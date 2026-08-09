@@ -148,511 +148,620 @@ import {
 } from "./network"
 
 const PROGRAMS = {
-  // environment detection
   detect_env: {
-    description: "Detect Linux environment: shell, tools, root, kernel, SELinux/AppArmor, container. Run FIRST.",
+    description:
+      "Detect Linux environment capabilities — shell, bash/python3/perl/busybox availability, root/sudo status, kernel version, distro, SELinux/AppArmor, container detection, init system, package manager, tool inventory. Returns recommended exec method. ALWAYS run first on a new target",
     args: "",
   },
-  // recon
   system_info: {
-    description: "System enumeration: kernel, distro, hostname, CPU, memory, disk, network interfaces",
-    args: "",
+    description:
+      "Gather comprehensive system information — hostname, kernel version, OS release, CPU, memory, uptime, logged-in users, environment variables, and installed security tools",
+    args: "[--verbose]",
   },
   process_enum: {
-    description: "Enumerate running processes with PID, user, command, and parent process info",
-    args: "[--full] [--tree]",
+    description:
+      "Enumerate running processes with full details — PID, PPID, user, CPU/memory usage, command line, open files, network connections. Identifies security tools, monitoring agents, and interesting targets",
+    args: "[--verbose] [--user USER]",
   },
   network_enum: {
-    description: "Network enumeration: interfaces, routes, DNS, ARP table, listening ports, connections",
-    args: "[--connections] [--routes]",
+    description:
+      "Enumerate network configuration — interfaces, IP addresses, routes, DNS, ARP cache, listening ports, established connections, iptables rules, and network namespaces",
+    args: "[--verbose]",
   },
   user_enum: {
-    description: "Enumerate users, groups, sudoers, logged-in users, and recent logins",
-    args: "[--all]",
+    description:
+      "Enumerate users and groups — /etc/passwd, /etc/group, sudo group members, logged-in users, SSH authorized keys, home directory permissions, shell history files, and .ssh directories",
+    args: "[--verbose]",
   },
   service_enum: {
-    description: "Enumerate running services: systemd units, sysvinit, xinetd, listening daemons",
-    args: "[--all] [--failed]",
+    description:
+      "Enumerate system services — systemd units, init.d scripts, running daemons, enabled/disabled status, service configurations, and listening service ports",
+    args: "[--verbose]",
   },
   package_enum: {
-    description: "List installed packages with versions for vulnerability correlation",
-    args: "[--count N]",
+    description:
+      "Enumerate installed packages — detect package manager, list all packages with versions, identify security-relevant packages, find outdated packages with known CVEs",
+    args: "[--verbose] [--security-only]",
   },
   container_detect: {
-    description: "Detect container/VM environment: Docker, LXC, Kubernetes, WSL, VMware, VirtualBox",
+    description:
+      "Detect container/virtualization environment — Docker, LXC, Kubernetes, Podman, WSL, VM hypervisors. Check for container escape opportunities and host access",
     args: "",
   },
   security_framework: {
-    description: "Check security frameworks: SELinux, AppArmor, firewall, audit, Fail2ban status",
-    args: "",
+    description:
+      "Enumerate security frameworks — SELinux mode/policy, AppArmor profiles/enforcement, seccomp filters, capabilities, audit system status, PAM configuration, and security modules",
+    args: "[--verbose]",
   },
   interesting_files: {
-    description: "Find interesting files: configs, scripts, SUID, world-writable, recent modifications",
-    args: "[--depth N] [--path PATH]",
+    description:
+      "Find security-relevant files — SUID/SGID binaries, world-writable files/directories, config files with credentials, backup files, database files, private keys, and core dumps",
+    args: "[--deep] [--path PATH]",
   },
   mount_enum: {
-    description: "Enumerate mounts, fstab entries, NFS shares, and filesystem permissions",
-    args: "",
+    description:
+      "Enumerate mount points and filesystems — mounted filesystems, fstab entries, NFS/CIFS shares, tmpfs/devtmpfs, mount options (nosuid, noexec), and unmounted partitions",
+    args: "[--verbose]",
   },
   kernel_module_enum: {
-    description: "List loaded kernel modules and check for suspicious or vulnerable modules",
-    args: "[--suspicious]",
+    description:
+      "Enumerate loaded kernel modules — list modules with descriptions, identify security modules, detect rootkit indicators, check module signing enforcement, and find loadable module paths",
+    args: "[--verbose]",
   },
   local_recon_linux: {
-    description: "Comprehensive local recon — runs all recon handlers and aggregates results",
-    args: "[--quick]",
+    description:
+      "Comprehensive local reconnaissance combining system info, users, network, services, and security frameworks into a single attack surface assessment",
+    args: "[--verbose]",
   },
-  // credential harvesting
   shadow_dump: {
-    description: "Read /etc/shadow for password hashes — requires root or shadow group membership",
+    description:
+      "Extract /etc/shadow password hashes — read shadow file (requires root or shadow group), parse hash formats ($1$/$5$/$6$/$y$), identify weak/empty/locked accounts, suggest cracking approach",
     args: "",
   },
   ssh_key_harvest: {
-    description: "Harvest SSH private keys from all user home directories and common locations",
+    description:
+      "Harvest SSH private keys from all users — scan home directories, /etc/ssh, and common key locations for id_rsa/id_ed25519/id_ecdsa files, check permissions, extract public key fingerprints",
     args: "[--user USER]",
   },
   bash_history_secrets: {
-    description: "Search shell history files for passwords, tokens, API keys, and credentials",
-    args: "[--user USER] [--all]",
+    description:
+      "Extract secrets from shell history files — scan .bash_history, .zsh_history, .sh_history for passwords, tokens, API keys, database connection strings passed as command arguments",
+    args: "[--user USER]",
   },
   gnome_keyring_dump: {
-    description: "Extract secrets from GNOME Keyring using secret-tool or D-Bus interface",
+    description:
+      "Extract credentials from GNOME Keyring — enumerate keyrings, dump stored passwords, WiFi credentials, application secrets. Requires user session or keyring unlock",
     args: "",
   },
   kwallet_dump: {
-    description: "Extract secrets from KDE KWallet password manager",
+    description:
+      "Extract credentials from KDE Wallet (KWallet) — enumerate wallets, dump stored passwords, network credentials, and application secrets",
     args: "",
   },
   browser_creds_linux: {
-    description: "Extract saved passwords and cookies from Chrome, Firefox, and Chromium browsers",
+    description:
+      "Extract browser credentials on Linux — Chrome/Chromium/Firefox saved passwords, cookies, history. Chrome uses GNOME Keyring/kwallet for encryption, Firefox uses NSS key4.db",
     args: "[--browser chrome|firefox|all]",
   },
   env_secrets: {
-    description: "Search environment variables and .env files for secrets, tokens, and credentials",
-    args: "[--proc] [--files]",
+    description:
+      "Extract secrets from environment variables — scan /proc/*/environ for API keys, tokens, passwords, database URLs, cloud credentials across all accessible processes",
+    args: "",
   },
   proc_memory_harvest: {
-    description: "Extract credentials from /proc/*/maps and process memory — requires root",
+    description:
+      "Harvest credentials from process memory — scan /proc/PID/maps and mem for passwords, tokens, keys in running processes (requires ptrace or root). Targets sshd, sudo, su, gpg-agent",
     args: "[--pid PID] [--pattern REGEX]",
   },
   gpg_key_extract: {
-    description: "Export GPG private keys and keyring data from all user directories",
+    description:
+      "Extract GPG/PGP private keys — enumerate keyrings, export secret keys, find passphrase-less keys, identify key trust relationships and encrypted files",
     args: "[--user USER]",
   },
   cloud_cred_harvest: {
-    description: "Harvest cloud credentials: AWS, GCP, Azure, DigitalOcean, Kubernetes configs",
-    args: "[--provider aws|gcp|azure|all]",
+    description:
+      "Harvest cloud provider credentials — AWS (~/.aws/credentials, IAM role), GCP (~/.config/gcloud), Azure (~/.azure), DigitalOcean, Heroku, and cloud metadata endpoints",
+    args: "",
   },
   docker_config_creds: {
-    description: "Extract Docker registry credentials from ~/.docker/config.json files",
+    description:
+      "Extract Docker registry credentials — ~/.docker/config.json auth tokens, registry passwords, and container environment secrets from docker inspect",
     args: "",
   },
   git_cred_harvest: {
-    description: "Harvest Git credentials from .git-credentials, .gitconfig, and credential helpers",
+    description:
+      "Harvest Git credentials — .git-credentials, .gitconfig credential helpers, GitHub/GitLab tokens, SSH deploy keys, and repository secrets in .env files",
     args: "",
   },
   wifi_creds_nm: {
-    description: "Extract WiFi passwords from NetworkManager connection profiles — requires root",
+    description:
+      "Extract WiFi credentials from NetworkManager — /etc/NetworkManager/system-connections/ WPA-PSK passwords, 802.1X credentials, VPN secrets (requires root)",
     args: "",
   },
   kerberos_keytab: {
-    description: "Extract Kerberos keytab files and ticket cache for credential reuse",
+    description:
+      "Extract Kerberos credentials — keytab files (/etc/krb5.keytab, user keytabs), ccache tickets (/tmp/krb5cc_*), and krb5.conf realm configuration",
     args: "",
   },
   db_cred_harvest: {
-    description: "Harvest database credentials from config files: MySQL, PostgreSQL, MongoDB, Redis",
-    args: "[--type mysql|postgres|mongo|redis|all]",
+    description:
+      "Harvest database credentials — MySQL .my.cnf, PostgreSQL .pgpass, MongoDB config, Redis requirepass, and database connection strings in application configs",
+    args: "",
   },
   vnc_password: {
-    description: "Extract VNC passwords from ~/.vnc/passwd and other VNC config locations",
+    description:
+      "Extract VNC passwords — decode ~/.vnc/passwd (DES-encrypted, trivially reversible), check x11vnc configs, and TigerVNC/TightVNC password files",
     args: "",
   },
   mail_spool_harvest: {
-    description: "Search mail spools and maildir for credentials, tokens, and sensitive data",
+    description:
+      "Harvest credentials from mail spools — scan /var/mail/*, /var/spool/mail/*, and user Maildir for password reset emails, credentials, tokens, and API keys",
     args: "[--user USER]",
   },
   netrc_harvest: {
-    description: "Extract credentials from .netrc and .curlrc files across user directories",
+    description:
+      "Extract credentials from .netrc files — plaintext login/password entries for FTP, HTTP, and other services stored in ~/.netrc",
     args: "",
   },
   ldap_cred_harvest: {
-    description: "Extract LDAP bind credentials from ldap.conf, sssd.conf, and related configs",
+    description:
+      "Extract LDAP credentials — ldap.conf bind passwords, sssd.conf credentials, nslcd.conf, pam_ldap.conf, and phpLDAPadmin configs",
     args: "",
   },
   credential_files_scan: {
-    description: "Broad scan for credential files: private keys, certificates, password stores",
-    args: "[--depth N] [--path PATH]",
+    description:
+      "Comprehensive credential file scan — find files containing passwords, tokens, keys across the filesystem using pattern matching and entropy analysis",
+    args: "[--path PATH] [--deep]",
   },
-  // privilege escalation
   sudo_misconfig: {
-    description: "Check sudo configuration for privilege escalation: NOPASSWD, GTFOBins binaries",
+    description:
+      "Analyze sudo configuration for privilege escalation — parse /etc/sudoers and sudoers.d, identify NOPASSWD entries, GTFOBins-exploitable commands, env_keep abuses, and wildcards",
     args: "",
   },
   suid_sgid_scan: {
-    description: "Find SUID/SGID binaries and check against GTFOBins for privesc opportunities",
+    description:
+      "Scan for SUID/SGID binaries — find all SUID/SGID executables, cross-reference with GTFOBins, identify custom/non-standard SUID binaries, check for known vulnerable versions",
     args: "[--path PATH]",
   },
   capabilities_abuse: {
-    description: "Find binaries with Linux capabilities (cap_setuid, cap_dac_override, etc.) for privesc",
+    description:
+      "Enumerate and exploit Linux capabilities — find binaries with dangerous capabilities (cap_setuid, cap_dac_override, cap_sys_admin, cap_net_raw), identify escalation paths",
     args: "",
   },
   cron_privesc: {
-    description: "Check cron jobs for writable scripts, wildcard injection, and PATH abuse",
+    description:
+      "Analyze cron jobs for privilege escalation — world-writable cron scripts, writable cron directories, PATH hijack in cron environment, and wildcard injection in cron commands",
     args: "",
   },
   nfs_no_root_squash: {
-    description: "Check NFS exports for no_root_squash — allows remote root SUID binary creation",
-    args: "",
+    description:
+      "Exploit NFS no_root_squash — enumerate NFS exports with root access allowed, mount share, create SUID binary for local privilege escalation",
+    args: "[--target HOST]",
   },
   path_hijack: {
-    description: "Check PATH for writable directories that could hijack SUID/service binary lookups",
+    description:
+      "Exploit PATH-based privilege escalation — find services/scripts running as root with relative paths, writable PATH directories, and missing binary references",
     args: "",
   },
   ld_preload_abuse: {
-    description: "Check LD_PRELOAD/LD_LIBRARY_PATH injection opportunities via sudo/SUID",
+    description:
+      "Exploit LD_PRELOAD for privilege escalation — check sudo env_keep for LD_PRELOAD, SUID binaries without NOFOLLOW, and ld.so.preload write access",
     args: "",
   },
   kernel_exploit_check: {
-    description: "Check kernel version against known exploits: DirtyPipe, DirtyCow, OverlayFS, etc.",
+    description:
+      "Check kernel for known privilege escalation exploits — DirtyPipe (CVE-2022-0847), DirtyCow (CVE-2016-5195), Polkit (CVE-2021-4034), netfilter, OverlayFS, and others based on kernel version",
     args: "",
   },
   writable_passwd: {
-    description: "Check if /etc/passwd or /etc/shadow is writable — allows adding root user",
+    description:
+      "Check if /etc/passwd or /etc/shadow is writable — add root user, modify existing entries, or replace password hashes for instant privilege escalation",
     args: "",
   },
   pkexec_cve: {
-    description: "Check for CVE-2021-4034 (PwnKit) pkexec privilege escalation vulnerability",
+    description:
+      "Check for PwnKit (CVE-2021-4034) — pkexec local privilege escalation via ARGV manipulation. Checks pkexec version and patch status",
     args: "",
   },
   systemd_unit_abuse: {
-    description: "Find writable systemd unit files and timer files for privilege escalation",
+    description:
+      "Exploit writable systemd units — find user-modifiable service/timer/socket files, writable ExecStart paths, and systemd configuration overrides for privilege escalation",
     args: "",
   },
   dbus_exploit: {
-    description: "Check D-Bus services for privilege escalation via misconfigured policies",
+    description:
+      "Exploit D-Bus for privilege escalation — enumerate D-Bus services, find services running as root with permissive policies, and known D-Bus CVEs",
     args: "",
   },
   pip_setup_abuse: {
-    description: "Check pip/setuptools for arbitrary code execution via setup.py or pip install",
+    description:
+      "Exploit pip/setup.py for code execution — check if pip install runs as root (sudo pip), writable site-packages, and setup.py command injection during package install",
     args: "",
   },
   shared_lib_hijack: {
-    description: "Find shared library hijacking opportunities via missing libraries in RPATH/RUNPATH",
+    description:
+      "Hijack shared libraries for privilege escalation — find SUID/root binaries with missing library dependencies (RPATH/RUNPATH abuse), writable library directories in search path",
     args: "",
   },
   logrotate_race: {
-    description: "Check logrotate for race condition privilege escalation (CVE-2016-1247 pattern)",
+    description:
+      "Exploit logrotate race condition (CVE-2016-1247) — check logrotate version and configuration for privilege escalation via log file symlink race",
     args: "",
   },
   writable_service_bin: {
-    description: "Find writable binaries referenced by systemd services or init scripts",
+    description:
+      "Find writable service binaries — services running as root with world-writable or user-writable executable paths for privilege escalation",
     args: "",
   },
   polkit_bypass: {
-    description: "Check PolicyKit for privilege escalation via CVE-2021-3560 or misconfigured rules",
+    description:
+      "Exploit Polkit/PolicyKit for privilege escalation — check for CVE-2021-3560 (timing attack), CVE-2021-4034 (PwnKit), and permissive Polkit rules",
     args: "",
   },
   snap_privesc: {
-    description: "Check snap for privilege escalation via dirty_sock or writable snap directories",
+    description:
+      "Exploit snap for privilege escalation — DirtySnap (CVE-2022-3328), snap confine vulnerabilities, and writable snap directories",
     args: "",
   },
   docker_group_escape: {
-    description: "Check Docker group membership for container escape to host root",
+    description:
+      "Exploit docker group membership for root — mount host filesystem via docker, run privileged container, access host namespaces. docker group = root equivalent",
     args: "",
   },
   lxd_group_escape: {
-    description: "Check LXD/LXC group membership for privilege escalation via container escape",
+    description:
+      "Exploit lxd/lxc group membership for root — import minimal image, mount host filesystem, gain root access via LXD container privilege escalation",
     args: "",
   },
   python_lib_hijack: {
-    description: "Check Python library paths for writable directories enabling import hijacking",
+    description:
+      "Exploit Python library path for privilege escalation — writable sys.path entries, PYTHONPATH injection, .pth file abuse in site-packages",
     args: "",
   },
   motd_abuse: {
-    description: "Check /etc/update-motd.d/ for writable scripts that run as root on login",
+    description:
+      "Exploit MOTD (Message of the Day) scripts for privilege escalation — writable /etc/update-motd.d/ scripts run as root on every login",
     args: "",
   },
   wildcard_injection: {
-    description: "Check for wildcard injection in cron/scripts using tar, rsync, chown with *",
-    args: "",
+    description:
+      "Exploit wildcard expansion in privileged scripts — tar, rsync, chown with wildcards in cron jobs or scripts allow arbitrary command execution via crafted filenames",
+    args: "[--path PATH]",
   },
   mysql_udf: {
-    description: "Check MySQL for UDF (User Defined Function) privilege escalation to OS commands",
-    args: "",
+    description:
+      "Exploit MySQL UDF for privilege escalation — create User Defined Function from shared library to execute system commands as mysql user (often root)",
+    args: "[--socket PATH]",
   },
   ptrace_scope_check: {
-    description: "Check ptrace_scope setting — 0 allows attaching to any process for credential theft",
+    description:
+      "Check ptrace scope restrictions — /proc/sys/kernel/yama/ptrace_scope setting affects process memory access, debugging, and credential harvesting capability",
     args: "",
   },
-  // persistence
   cron_persist: {
-    description: "Install cron-based persistence via crontab or /etc/cron.d/ drop-in files",
-    args: "--cmd COMMAND [--schedule CRON_EXPR] [--user USER]",
+    description:
+      "Establish cron-based persistence — add crontab entries or drop files in /etc/cron.d/ for scheduled command execution as root or target user",
+    args: "--command CMD [--schedule CRON_EXPR] [--user USER]",
   },
   systemd_persist: {
-    description: "Create systemd service or timer for persistent execution across reboots",
-    args: "--cmd COMMAND [--name NAME] [--timer INTERVAL]",
+    description:
+      "Create systemd service/timer for persistence — persistent service that auto-starts on boot, with optional timer for periodic execution",
+    args: "--command CMD [--name NAME] [--timer INTERVAL]",
   },
   bashrc_persist: {
-    description: "Add persistence payload to .bashrc, .bash_profile, .profile, or .zshrc",
-    args: "--cmd COMMAND [--user USER] [--file bashrc|profile|zshrc]",
+    description:
+      "Add persistence to shell RC files — inject commands into .bashrc, .profile, .bash_profile, .zshrc that execute on every shell session start",
+    args: "--command CMD [--user USER] [--file bashrc|profile|zshrc]",
   },
   ssh_authorized_keys: {
-    description: "Add SSH public key to authorized_keys for persistent remote access",
-    args: "--key 'ssh-rsa ...' [--user USER]",
+    description:
+      "Add SSH authorized key for persistent access — inject public key into target user's ~/.ssh/authorized_keys with optional command restriction and environment",
+    args: "--key PUBKEY [--user USER] [--command CMD]",
   },
   ld_so_preload: {
-    description: "Add shared library to /etc/ld.so.preload for process injection persistence",
-    args: "--lib /path/to/lib.so",
+    description:
+      "Persist via /etc/ld.so.preload — inject shared library that loads into every dynamically-linked process on the system. Extremely powerful but high-visibility",
+    args: "--library PATH",
   },
   sysvinit_persist: {
-    description: "Create SysV init script in /etc/init.d/ for boot persistence",
-    args: "--cmd COMMAND [--name NAME]",
+    description:
+      "Create SysV init script for persistence — /etc/init.d/ script with proper LSB headers, auto-enabled via update-rc.d or chkconfig",
+    args: "--command CMD [--name NAME]",
   },
   at_job_persist: {
-    description: "Schedule persistence via at job — survives cron removal",
-    args: "--cmd COMMAND [--time TIME]",
+    description:
+      "Schedule one-time persistence via at — create delayed command execution that survives reboots if atd is running",
+    args: "--command CMD [--time TIME]",
   },
   udev_rules_persist: {
-    description: "Create udev rule that triggers payload on device events",
-    args: "--cmd COMMAND [--trigger SUBSYSTEM]",
+    description:
+      "Create udev rules for persistence — trigger command execution on device events (USB insert, network interface up, etc.) via /etc/udev/rules.d/",
+    args: "--command CMD [--trigger DEVICE_EVENT]",
   },
   pam_backdoor: {
-    description: "Install PAM backdoor module for authentication bypass — requires root",
-    args: "--password PASSWORD [--module pam_unix]",
+    description:
+      "Install PAM backdoor — modify PAM configuration to accept a master password or always authenticate successfully. Affects SSH, su, sudo, login",
+    args: "--password MASTER_PASS [--service sshd|su|sudo|login]",
   },
   motd_persist: {
-    description: "Add persistence to /etc/update-motd.d/ — executes on each SSH login",
-    args: "--cmd COMMAND",
+    description:
+      "Persist via MOTD scripts — add executable to /etc/update-motd.d/ that runs as root on every user login (SSH, console, GUI)",
+    args: "--command CMD [--name NAME]",
   },
   xdg_autostart: {
-    description: "Create XDG autostart .desktop entry for GUI session persistence",
-    args: "--cmd COMMAND [--name NAME]",
+    description:
+      "Create XDG autostart entry — .desktop file in /etc/xdg/autostart/ or ~/.config/autostart/ that runs on graphical session start",
+    args: "--command CMD [--name NAME] [--user USER]",
   },
   git_hook_persist: {
-    description: "Install Git hook (post-checkout, post-merge) for developer-targeted persistence",
-    args: "--cmd COMMAND --repo /path/to/repo [--hook post-checkout]",
+    description:
+      "Install Git hook persistence — inject commands into repository hooks (post-commit, pre-push, post-checkout) that execute during git operations",
+    args: "--command CMD --repo PATH [--hook post-commit|pre-push|post-checkout]",
   },
   kernel_module_persist: {
-    description: "Load kernel module for rootkit-level persistence — requires root",
-    args: "--module /path/to/module.ko [--name NAME]",
+    description:
+      "Load persistent kernel module — compile and install custom kernel module that auto-loads on boot via /etc/modules or modprobe.d configuration",
+    args: "--module PATH [--name NAME]",
   },
   apt_hook_persist: {
-    description: "Create APT hook in /etc/apt/apt.conf.d/ — triggers on package operations",
-    args: "--cmd COMMAND [--name NAME]",
+    description:
+      "Install APT hook for persistence — execute commands before/after every apt/apt-get operation via /etc/apt/apt.conf.d/ DPkg::Pre-Invoke or Post-Invoke",
+    args: "--command CMD [--trigger pre|post]",
   },
   dpkg_trigger_persist: {
-    description: "Create dpkg trigger for persistence on package install/upgrade events",
-    args: "--cmd COMMAND [--package PACKAGE]",
+    description:
+      "Install dpkg trigger for persistence — execute commands when specific packages are installed/updated via dpkg trigger mechanism",
+    args: "--command CMD [--package PACKAGE]",
   },
   socket_activation: {
-    description: "Create systemd socket-activated service for on-demand persistence",
-    args: "--cmd COMMAND --port PORT [--name NAME]",
+    description:
+      "Create systemd socket-activated service — listen on a port and spawn handler on connection, providing on-demand persistence",
+    args: "--command CMD --port PORT [--name NAME]",
   },
   user_service_persist: {
-    description: "Create user-level systemd service — no root required",
-    args: "--cmd COMMAND [--name NAME]",
+    description:
+      "Create user-level systemd service — persistence without root via ~/.config/systemd/user/ (requires lingering enabled)",
+    args: "--command CMD [--name NAME] [--user USER]",
   },
   xinetd_persist: {
-    description: "Create xinetd service for network-triggered persistence",
-    args: "--cmd COMMAND --port PORT [--name NAME]",
+    description:
+      "Create xinetd service for persistence — on-demand service that spawns on incoming connection, configured via /etc/xinetd.d/",
+    args: "--command CMD --port PORT [--name NAME]",
   },
   rc_local_persist: {
-    description: "Add command to /etc/rc.local for boot persistence (legacy systems)",
-    args: "--cmd COMMAND",
+    description:
+      "Persist via /etc/rc.local — add commands to the legacy boot script that runs at the end of multi-user boot (before login prompt)",
+    args: "--command CMD",
   },
   logrotate_persist: {
-    description: "Add persistence via logrotate postrotate/prerotate scripts",
-    args: "--cmd COMMAND [--log /var/log/syslog]",
+    description:
+      "Persist via logrotate configuration — execute commands during log rotation via postrotate/prerotate scripts in /etc/logrotate.d/",
+    args: "--command CMD [--log PATH]",
   },
   ssh_rc_persist: {
-    description: "Add persistence to ~/.ssh/rc — executes on each SSH login for that user",
-    args: "--cmd COMMAND [--user USER]",
+    description:
+      "Persist via SSH RC files — inject commands into /etc/ssh/sshrc or ~/.ssh/rc that execute on every SSH login before the shell",
+    args: "--command CMD [--user USER]",
   },
   ld_config_persist: {
-    description: "Add library path to /etc/ld.so.conf.d/ for shared library injection persistence",
-    args: "--path /path/to/libs [--name NAME]",
+    description:
+      "Persist via ld.so.conf — add custom library path to /etc/ld.so.conf.d/ for library hijacking across all dynamically-linked processes",
+    args: "--library-path PATH",
   },
-  // lateral movement
   ssh_pivot: {
-    description: "Pivot to remote host via SSH using harvested keys, credentials, or agent forwarding",
-    args: "--target HOST [--user USER] [--key PATH] [--cmd COMMAND]",
+    description:
+      "SSH-based lateral movement — key-based or password authentication to remote hosts, SSH agent forwarding abuse, ProxyJump chains for multi-hop pivoting",
+    args: "--target HOST [--user USER] [--key PATH] [--command CMD]",
   },
   ansible_abuse: {
-    description: "Abuse Ansible for lateral movement via ad-hoc commands or playbook execution",
-    args: "--target HOST [--cmd COMMAND] [--inventory PATH]",
+    description:
+      "Exploit Ansible for lateral movement — abuse existing Ansible infrastructure to execute commands on managed nodes, extract vault secrets, modify playbooks",
+    args: "[--inventory PATH] [--target HOST] [--command CMD]",
   },
   puppet_abuse: {
-    description: "Abuse Puppet agent/master trust for lateral movement and code execution",
-    args: "[--target HOST]",
+    description:
+      "Exploit Puppet for lateral movement — abuse Puppet agent/master trust to execute code, extract certificates and secrets, modify manifests",
+    args: "[--target HOST] [--command CMD]",
   },
   salt_abuse: {
-    description: "Abuse SaltStack master for lateral movement via salt command execution",
-    args: "--target MINION [--cmd COMMAND]",
+    description:
+      "Exploit SaltStack for lateral movement — abuse Salt master to execute commands on minions, extract pillar secrets, and leverage Salt API",
+    args: "[--target MINION] [--command CMD]",
   },
   nfs_mount_attack: {
-    description: "Mount NFS shares and exploit no_root_squash for SUID binary deployment",
-    args: "--target HOST --share PATH [--mount PATH]",
+    description:
+      "Exploit NFS shares for lateral movement — mount remote NFS exports, access sensitive files, create SUID binaries for privilege escalation on NFS clients",
+    args: "--target HOST [--share PATH]",
   },
   rsync_exploit: {
-    description: "Exploit rsync for file transfer to/from remote hosts — check anonymous access",
-    args: "--target HOST [--module MODULE] [--path PATH]",
+    description:
+      "Exploit rsync for data access and lateral movement — enumerate rsync modules, download sensitive files, exploit anonymous rsync access",
+    args: "--target HOST [--module MODULE]",
   },
   ssh_tunnel: {
-    description: "Create SSH tunnels (local, remote, dynamic/SOCKS) for network pivoting",
-    args: "--target HOST --type local|remote|dynamic [--lport PORT] [--rhost HOST] [--rport PORT]",
+    description:
+      "Create SSH tunnels for network pivoting — local port forward (-L), remote port forward (-R), dynamic SOCKS proxy (-D) through compromised SSH hosts",
+    args: "--target HOST --type local|remote|dynamic [--local-port PORT] [--remote-port PORT] [--user USER]",
   },
   socat_tunnel: {
-    description: "Create socat tunnels for port forwarding and traffic relaying",
-    args: "--lport PORT --rhost HOST --rport PORT [--type tcp|udp]",
+    description:
+      "Create socat tunnels for network pivoting — TCP/UDP forwarding, SSL/TLS encrypted tunnels, and bidirectional data relay through compromised hosts",
+    args: "--listen PORT --connect HOST:PORT [--ssl]",
   },
   internal_scan: {
-    description: "Scan internal network for live hosts and open ports using bash/nc/python",
-    args: "--subnet CIDR [--ports PORTS] [--threads N]",
+    description:
+      "Scan internal network from compromised host — ping sweep, port scan, service detection using native tools (bash /dev/tcp, nc, nmap if available)",
+    args: "--target CIDR [--ports PORTS] [--type ping|port|service]",
   },
   proxychains_setup: {
-    description: "Configure proxychains for pivoting through SOCKS proxy",
-    args: "--proxy HOST:PORT [--type socks4|socks5] [--config PATH]",
+    description:
+      "Configure proxychains for tunneled network access — set up proxychains.conf with SOCKS4/5 proxy chain for routing tools through SSH tunnels",
+    args: "--proxy HOST:PORT [--type socks4|socks5]",
   },
-  // defense evasion
   log_tamper: {
-    description: "Tamper with log files: clear entries, remove specific lines, truncate logs",
-    args: "[--file PATH] [--pattern REGEX] [--clear]",
+    description:
+      "Tamper with system logs — selectively remove entries from auth.log, syslog, wtmp, btmp, lastlog, and journal. More stealthy than clearing entire logs",
+    args: "[--user USER] [--ip IP] [--after DATETIME]",
   },
   history_clear: {
-    description: "Clear shell history for all shells: bash, zsh, fish, and in-memory history",
-    args: "[--user USER] [--all]",
+    description:
+      "Clear shell history — remove bash/zsh/sh history files, unset HISTFILE, configure history to not record commands for current and future sessions",
+    args: "[--user USER]",
   },
   timestomp: {
-    description: "Modify file timestamps (atime, mtime, ctime) to match surrounding files",
-    args: "--file PATH [--reference REF_FILE] [--time TIMESTAMP]",
+    description:
+      "Modify file timestamps — change atime, mtime, ctime to blend with legitimate files. Use --reference to copy timestamps from another file",
+    args: "--target PATH [--reference PATH] [--timestamp 'YYYY-MM-DD HH:mm:ss']",
   },
   auditd_evade: {
-    description: "Evade auditd: stop service, remove rules, clear audit logs — requires root",
-    args: "[--stop] [--clear-rules] [--clear-logs]",
+    description:
+      "Evade auditd monitoring — check audit rules, stop auditd service, modify audit rules to exclude attacker activity, and fill audit log buffer to cause drops",
+    args: "[--action check|stop|modify|flood]",
   },
   selinux_bypass: {
-    description: "Bypass SELinux: set permissive, change context, exploit policy misconfigs",
-    args: "[--permissive] [--context CONTEXT]",
+    description:
+      "Bypass SELinux enforcement — set permissive mode (requires root), exploit permissive domains, find unconfined processes, and check for known SELinux bypasses",
+    args: "[--action check|permissive|exploit]",
   },
   apparmor_bypass: {
-    description: "Bypass AppArmor: set complain mode, remove profiles, exploit gaps",
-    args: "[--complain PROFILE] [--disable PROFILE]",
+    description:
+      "Bypass AppArmor enforcement — set profiles to complain mode, find unconfined processes, exploit profile gaps, and disable profiles for specific binaries",
+    args: "[--action check|complain|disable] [--profile PROFILE]",
   },
   rootkit_detect: {
-    description: "Detect rootkits: check /proc anomalies, hidden processes, kernel module hooks",
+    description:
+      "Detect existing rootkits — check for hidden processes, kernel module anomalies, LD_PRELOAD hooks, /etc/ld.so.preload, hidden files, modified system binaries (hash comparison)",
     args: "[--deep]",
   },
   process_hide: {
-    description: "Hide process from /proc listing using mount namespace or LD_PRELOAD tricks",
-    args: "--pid PID [--method mount|preload]",
+    description:
+      "Hide processes from enumeration — mount overlay on /proc/PID, use LD_PRELOAD to hook readdir, or rename process via prctl PR_SET_NAME",
+    args: "--pid PID [--method mount|preload|rename]",
   },
   file_hide: {
-    description: "Hide files using extended attributes, dot prefix, or bind mount techniques",
-    args: "--file PATH [--method xattr|dot|mount]",
+    description:
+      "Hide files from directory listings — use extended attributes, mount overlays, LD_PRELOAD hooks on readdir/stat, or dot-prefix naming",
+    args: "--path PATH [--method xattr|mount|preload|dot]",
   },
   network_hide: {
-    description: "Hide network connections from netstat/ss output using LD_PRELOAD or raw sockets",
-    args: "--port PORT [--method preload|raw]",
+    description:
+      "Hide network connections — manipulate /proc/net/tcp to remove entries, use LD_PRELOAD to hook getaddrinfo, or iptables rules to hide traffic",
+    args: "--port PORT [--method proc|preload|iptables]",
   },
   syslog_manipulate: {
-    description: "Manipulate syslog/journald: redirect, filter, or suppress specific log messages",
-    args: "[--filter PATTERN] [--redirect PATH] [--stop]",
+    description:
+      "Manipulate syslog — redirect syslog to /dev/null, modify rsyslog/syslog-ng configs to filter attacker activity, inject fake log entries",
+    args: "[--action redirect|filter|inject] [--pattern PATTERN]",
   },
   stealth_check_linux: {
-    description: "Check operational security: artifacts left, logs generated, detection indicators",
+    description:
+      "Verify stealth capability on Linux — test exec methods (bash, sh, python3, perl, busybox), stealth modes (base64, memfd, shm), and report working combinations",
     args: "",
   },
-  // exfiltration
   data_stage: {
-    description: "Stage data for exfiltration: compress, encrypt, split into chunks",
-    args: "--path PATH [--outdir DIR] [--chunk-size SIZE] [--encrypt KEY]",
+    description:
+      "Stage data for exfiltration — find sensitive files, compress and encrypt into staging archive, optionally split into chunks for transfer",
+    args: "--path PATH [--output PATH] [--password KEY] [--chunk-size SIZE]",
   },
   dns_tunnel_exfil: {
-    description: "Exfiltrate data via DNS queries — encodes data in subdomain labels",
-    args: "--file PATH --domain DOMAIN [--chunk-size N]",
+    description:
+      "Exfiltrate data via DNS queries — encode data in subdomain labels of DNS queries to attacker-controlled authoritative DNS server",
+    args: "--file PATH --domain DOMAIN [--chunk-size SIZE]",
   },
   icmp_exfil: {
-    description: "Exfiltrate data via ICMP echo requests — requires root for raw sockets",
-    args: "--file PATH --target HOST [--chunk-size N]",
+    description:
+      "Exfiltrate data via ICMP echo requests — hide data in ICMP payload, requires raw socket (root) or ping with pattern option",
+    args: "--file PATH --target IP [--chunk-size SIZE]",
   },
   covert_channel: {
-    description: "Create covert channels: TCP sequence numbers, HTTP headers, DNS TXT records",
-    args: "--type tcp|http|dns --target HOST [--data DATA]",
+    description:
+      "Establish covert communication channel — use timing-based, storage-based, or protocol-based covert channels for stealthy command and control",
+    args: "--type timing|storage|protocol --target HOST [--port PORT]",
   },
   https_exfil: {
-    description: "Exfiltrate data via HTTPS POST to a controlled endpoint",
-    args: "--file PATH --url URL [--chunk-size N] [--headers KEY=VALUE]",
+    description:
+      "Exfiltrate data via HTTPS POST — upload files to attacker-controlled endpoint over TLS, supports chunked transfer and custom headers",
+    args: "--file PATH --url URL [--header HEADER]",
   },
   cleanup_linux: {
-    description: "Clean up artifacts: temp files, logs, history, staged data. Run BEFORE leaving target.",
-    args: "[--thorough] [--keep-access]",
+    description:
+      "Remove CyberStrike artifacts from Linux target — clear logs, remove persistence mechanisms, restore modified configs, clean temp files. ALWAYS run before leaving",
+    args: "",
   },
   artifact_enum: {
-    description: "Enumerate artifacts left on the system: temp files, tools, logs, persistence",
-    args: "[--verbose]",
+    description:
+      "Enumerate forensic artifacts — list files modified during engagement, temporary files, new users/services/cron jobs, and other indicators of compromise",
+    args: "[--since DATETIME]",
   },
   steganography_exfil: {
-    description: "Hide data in image files using LSB steganography for covert exfiltration",
-    args: "--file PATH --image PATH [--output PATH]",
+    description:
+      "Exfiltrate data via steganography — hide data within image/audio files using LSB encoding, making exfiltration appear as normal file transfers",
+    args: "--file PATH --cover IMAGE_PATH [--output PATH]",
   },
-  // network attacks
   arp_spoof: {
-    description: "ARP spoofing for MITM positioning — poison ARP cache of target and gateway",
-    args: "--target IP --gateway IP [--interface IFACE]",
+    description:
+      "ARP spoofing for MITM — send gratuitous ARP replies to poison target's ARP cache, enabling traffic interception between target and gateway",
+    args: "--target IP --gateway IP [--interface IFACE] [--duration SECONDS]",
   },
   dns_spoof: {
-    description: "DNS spoofing via ARP+iptables or hosts file manipulation",
+    description:
+      "DNS spoofing — intercept DNS queries and respond with attacker-controlled IP addresses for phishing or traffic redirection",
     args: "--domain DOMAIN --ip IP [--interface IFACE]",
   },
   packet_capture: {
-    description: "Capture network packets using tcpdump with filters for credential extraction",
-    args: "[--interface IFACE] [--filter FILTER] [--duration SECONDS] [--output PCAP]",
+    description:
+      "Capture network packets — use tcpdump, tshark, or raw sockets to capture traffic on specified interface with optional BPF filters",
+    args: "[--interface IFACE] [--filter BPF] [--duration SECONDS] [--output PATH]",
   },
   port_scan_native: {
-    description: "Port scan using bash /dev/tcp, nc, or python sockets — no nmap required",
-    args: "--target HOST [--ports RANGE] [--threads N]",
+    description:
+      "Port scan using native tools — bash /dev/tcp, nc, or nmap if available. Supports TCP connect, SYN (nmap), and UDP scanning",
+    args: "--target HOST [--ports PORTS] [--type tcp|syn|udp]",
   },
   mitm_proxy: {
-    description: "Set up MITM proxy using iptables + mitmproxy/sslstrip for traffic interception",
-    args: "--target IP [--port PORT] [--ssl-strip]",
+    description:
+      "Set up MITM proxy — configure transparent proxy or iptables REDIRECT for traffic interception, SSL stripping, and credential capture",
+    args: "--port PORT [--target IP] [--ssl-strip]",
   },
   responder_linux: {
-    description: "LLMNR/NBT-NS/mDNS poisoning for credential capture on Linux networks",
-    args: "[--interface IFACE] [--analyze]",
+    description:
+      "LLMNR/NBT-NS/mDNS poisoning on Linux — capture NTLMv2 hashes from Windows clients on the local network by responding to broadcast name resolution",
+    args: "[--interface IFACE] [--duration SECONDS]",
   },
   firewall_enum: {
-    description: "Enumerate firewall rules: iptables, nftables, ufw, firewalld — find gaps",
-    args: "[--type iptables|nftables|ufw|firewalld|all]",
+    description:
+      "Enumerate firewall rules — iptables, nftables, ufw, firewalld rules and policies. Identify open ports, allowed services, and bypass opportunities",
+    args: "[--verbose]",
   },
   traffic_redirect: {
-    description: "Redirect traffic using iptables DNAT/SNAT rules for pivoting or interception",
-    args: "--from PORT --to HOST:PORT [--interface IFACE]",
+    description:
+      "Redirect network traffic — iptables DNAT/SNAT rules for port forwarding, traffic interception, and pivoting through compromised host",
+    args: "--src-port PORT --dst HOST:PORT [--protocol tcp|udp]",
   },
   wifi_attack: {
-    description: "WiFi attacks: deauth, handshake capture, evil twin using aircrack-ng suite",
-    args: "--interface IFACE [--target BSSID] [--attack deauth|handshake|evil-twin]",
+    description:
+      "WiFi attacks — enumerate wireless interfaces, scan networks, deauth clients, capture handshakes for offline cracking (requires monitor mode)",
+    args: "--action scan|deauth|capture [--interface IFACE] [--bssid BSSID]",
   },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
 
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
-  // environment
-  detect_env: async (_args, timeout) => {
+  detect_env: async (_args: string[], timeout: number): Promise<HookResult> => {
     const env = await detectEnv(timeout)
-    const output = [
-      "=== Linux Environment Detection ===",
+    const lines = [
+      "=== LINUX ENVIRONMENT DETECTION ===",
       "",
       `Shell: ${env.shell}`,
-      `Bash: ${env.bashAvailable ? "available" : "NOT available"}`,
-      `sh: ${env.shAvailable ? "available" : "NOT available"}`,
-      `Python3: ${env.python3Available ? "available" : "NOT available"}`,
-      `Perl: ${env.perlAvailable ? "available" : "NOT available"}`,
-      `Busybox: ${env.busyboxAvailable ? "available" : "NOT available"}`,
+      `Bash: ${env.bashAvailable ? "AVAILABLE" : "NOT FOUND"}`,
+      `sh: ${env.shAvailable ? "AVAILABLE" : "NOT FOUND"}`,
+      `Python3: ${env.python3Available ? "AVAILABLE" : "NOT FOUND"}`,
+      `Perl: ${env.perlAvailable ? "AVAILABLE" : "NOT FOUND"}`,
+      `BusyBox: ${env.busyboxAvailable ? "AVAILABLE" : "NOT FOUND"}`,
       "",
       `Root: ${env.isRoot ? "YES (uid=0)" : `NO (uid=${env.uid})`}`,
-      `Sudo: ${env.sudoAvailable ? (env.sudoNopasswd ? "available (NOPASSWD)" : "available (requires password)") : "NOT available"}`,
+      `Sudo: ${env.sudoAvailable ? (env.sudoNopasswd ? "AVAILABLE (NOPASSWD)" : "AVAILABLE (password required)") : "NOT FOUND"}`,
       "",
       `Kernel: ${env.kernelVersion} (${env.kernelMajor}.${env.kernelMinor})`,
       `Distro: ${env.distro} ${env.distroVersion}`,
@@ -661,31 +770,76 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
       `SELinux: ${env.selinuxStatus}`,
       `AppArmor: ${env.apparmorStatus}`,
       `Container: ${env.inContainer ? `YES (${env.containerType})` : "NO"}`,
-      `Init: ${env.initSystem}`,
+      `Init System: ${env.initSystem}`,
       `Package Manager: ${env.packageManager}`,
       "",
-      `curl: ${env.hasCurl ? "yes" : "no"}  wget: ${env.hasWget ? "yes" : "no"}  nc: ${env.hasNetcat ? "yes" : "no"}`,
-      `socat: ${env.hasSocat ? "yes" : "no"}  nmap: ${env.hasNmap ? "yes" : "no"}  gcc: ${env.hasGcc ? "yes" : "no"}`,
+      "=== TOOL AVAILABILITY ===",
+      `curl: ${env.hasCurl ? "YES" : "NO"}`,
+      `wget: ${env.hasWget ? "YES" : "NO"}`,
+      `netcat: ${env.hasNetcat ? "YES" : "NO"}`,
+      `socat: ${env.hasSocat ? "YES" : "NO"}`,
+      `nmap: ${env.hasNmap ? "YES" : "NO"}`,
+      `gcc: ${env.hasGcc ? "YES" : "NO"}`,
       "",
-      `Recommended exec: ${env.recommendedExec}`,
+      `Recommended --exec method: ${env.recommendedExec}`,
+      "",
+      "=== EXEC FALLBACK CHAIN ===",
+      env.bashAvailable ? "1. bash [AVAILABLE]" : "1. bash [NOT FOUND]",
+      "2. sh [AVAILABLE]",
+      env.python3Available ? "3. python3 [AVAILABLE]" : "3. python3 [NOT FOUND]",
+      env.perlAvailable ? "4. perl [AVAILABLE]" : "4. perl [NOT FOUND]",
+      env.busyboxAvailable ? "5. busybox [AVAILABLE]" : "5. busybox [NOT FOUND]",
+      "",
+      "Use: linuxhook <program> --exec auto   (auto-select best method)",
+      "Use: linuxhook <program> --exec sh     (force POSIX sh)",
     ]
-    return {
-      output: output.join("\n"),
-      findings: [
-        {
-          checkId: "ENV-001",
-          provider: "linuxhook",
-          severity: "INFO",
-          status: "IDENTIFIED",
-          resource: "environment",
-          title: "Linux environment detected",
-          details: `${env.distro} ${env.distroVersion}, kernel ${env.kernelVersion}, ${env.isRoot ? "root" : `uid=${env.uid}`}, ${env.selinuxStatus === "enforcing" ? "SELinux enforcing" : env.apparmorStatus === "enforcing" ? "AppArmor enforcing" : "no MAC enforcing"}`,
-          remediation: "Use detected environment info to select appropriate tools and execution methods",
-        },
-      ],
-    }
+    const findings: Finding[] = []
+    if (!env.bashAvailable)
+      findings.push({
+        checkId: "LNX-ENV-BASH",
+        provider: "linuxhook",
+        severity: "MEDIUM",
+        status: "WARN",
+        resource: "bash",
+        title: "Bash not available",
+        details: "bash is not accessible — some handlers will use sh fallback with reduced functionality. Use --exec auto.",
+        remediation: "Use --exec sh or --exec python3 for fallback",
+      })
+    if (!env.isRoot && !env.sudoNopasswd)
+      findings.push({
+        checkId: "LNX-ENV-ROOT",
+        provider: "linuxhook",
+        severity: "HIGH",
+        status: "WARN",
+        resource: "privileges",
+        title: "Not running as root and no NOPASSWD sudo",
+        details: "Many post-exploitation operations require root or passwordless sudo. Credential and persistence operations will be limited.",
+        remediation: "Escalate privileges first using linuxhook privesc programs",
+      })
+    if (env.selinuxStatus === "enforcing")
+      findings.push({
+        checkId: "LNX-ENV-SELINUX",
+        provider: "linuxhook",
+        severity: "MEDIUM",
+        status: "WARN",
+        resource: "SELinux",
+        title: "SELinux is enforcing",
+        details: "SELinux enforcement may block some operations. Use linuxhook selinux_bypass to assess bypass options.",
+        remediation: "Run linuxhook selinux_bypass --action check",
+      })
+    if (env.inContainer)
+      findings.push({
+        checkId: "LNX-ENV-CONTAINER",
+        provider: "linuxhook",
+        severity: "LOW",
+        status: "INFO",
+        resource: env.containerType,
+        title: `Running inside ${env.containerType} container`,
+        details: "Container environment detected — some host-level operations will be unavailable. Consider container escape via containerhook.",
+        remediation: "Use containerhook for container-specific attacks, or escape to host first",
+      })
+    return { output: lines.join("\n"), findings }
   },
-  // recon
   system_info: systemInfo,
   process_enum: processEnum,
   network_enum: networkEnum,
@@ -698,7 +852,6 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   mount_enum: mountEnum,
   kernel_module_enum: kernelModuleEnum,
   local_recon_linux: localReconLinux,
-  // credential harvesting
   shadow_dump: shadowDump,
   ssh_key_harvest: sshKeyHarvest,
   bash_history_secrets: bashHistorySecrets,
@@ -719,7 +872,6 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   netrc_harvest: netrcHarvest,
   ldap_cred_harvest: ldapCredHarvest,
   credential_files_scan: credentialFilesScan,
-  // privilege escalation
   sudo_misconfig: sudoMisconfig,
   suid_sgid_scan: suidSgidScan,
   capabilities_abuse: capabilitiesAbuse,
@@ -745,7 +897,6 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   wildcard_injection: wildcardInjection,
   mysql_udf: mysqlUdf,
   ptrace_scope_check: ptraceScopeCheck,
-  // persistence
   cron_persist: cronPersist,
   systemd_persist: systemdPersist,
   bashrc_persist: bashrcPersist,
@@ -768,7 +919,6 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   logrotate_persist: logrotatePersist,
   ssh_rc_persist: sshRcPersist,
   ld_config_persist: ldConfigPersist,
-  // lateral movement
   ssh_pivot: sshPivot,
   ansible_abuse: ansibleAbuse,
   puppet_abuse: puppetAbuse,
@@ -779,7 +929,6 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   socat_tunnel: socatTunnel,
   internal_scan: internalScan,
   proxychains_setup: proxychainsSetup,
-  // defense evasion
   log_tamper: logTamper,
   history_clear: historyClear,
   timestomp: timestomp,
@@ -792,7 +941,6 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   network_hide: networkHide,
   syslog_manipulate: syslogManipulate,
   stealth_check_linux: stealthCheckLinux,
-  // exfiltration
   data_stage: dataStage,
   dns_tunnel_exfil: dnsTunnelExfil,
   icmp_exfil: icmpExfil,
@@ -801,7 +949,6 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   cleanup_linux: cleanupLinux,
   artifact_enum: artifactEnum,
   steganography_exfil: steganographyExfil,
-  // network attacks
   arp_spoof: arpSpoof,
   dns_spoof: dnsSpoof,
   packet_capture: packetCapture,
@@ -814,86 +961,81 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
 }
 
 const CWE_MAP: Record<string, string> = {
-  // Credentials
   "LNX-SHADOW": "CWE-522",
   "LNX-SSH": "CWE-522",
+  "LNX-SSHPIVOT": "CWE-78",
+  "LNX-SSHRC": "CWE-269",
   "LNX-HISTORY": "CWE-312",
-  "LNX-KEYRING": "CWE-522",
-  "LNX-KWALLET": "CWE-522",
+  "LNX-KEYRING": "CWE-312",
+  "LNX-KWALLET": "CWE-312",
   "LNX-BROWSER": "CWE-312",
   "LNX-ENV": "CWE-312",
-  "LNX-PROC": "CWE-522",
-  "LNX-GPG": "CWE-522",
-  "LNX-CLOUD": "CWE-522",
-  "LNX-DOCKER": "CWE-522",
-  "LNX-GIT": "CWE-522",
+  "LNX-PROC": "CWE-316",
+  "LNX-GPG": "CWE-312",
+  "LNX-CLOUD": "CWE-312",
+  "LNX-DOCKER": "CWE-312",
+  "LNX-GIT": "CWE-312",
   "LNX-WIFI": "CWE-312",
   "LNX-KRB": "CWE-522",
-  "LNX-DB": "CWE-522",
+  "LNX-DB": "CWE-312",
   "LNX-VNC": "CWE-312",
   "LNX-MAIL": "CWE-200",
   "LNX-NETRC": "CWE-312",
-  "LNX-LDAP": "CWE-522",
-  "LNX-CRED": "CWE-522",
-  // Privesc
+  "LNX-LDAP": "CWE-312",
+  "LNX-CRED": "CWE-312",
   "LNX-SUDO": "CWE-269",
   "LNX-SUID": "CWE-269",
   "LNX-CAP": "CWE-269",
   "LNX-CRON": "CWE-269",
   "LNX-NFS": "CWE-269",
+  "LNX-NFSMNT": "CWE-269",
   "LNX-PATH": "CWE-426",
   "LNX-LDPRELOAD": "CWE-426",
+  "LNX-LDSOPRELOAD": "CWE-426",
+  "LNX-LDCONF": "CWE-426",
   "LNX-KERNEL": "CWE-269",
-  "LNX-PASSWD": "CWE-732",
+  "LNX-PASSWD": "CWE-269",
   "LNX-PKEXEC": "CWE-269",
   "LNX-SYSTEMD": "CWE-269",
   "LNX-DBUS": "CWE-269",
-  "LNX-PIP": "CWE-426",
+  "LNX-PIP": "CWE-269",
   "LNX-SHLIB": "CWE-426",
-  "LNX-LOGROTATE": "CWE-362",
-  "LNX-WRITSVC": "CWE-732",
+  "LNX-LOGROT": "CWE-269",
+  "LNX-LOGROTATE": "CWE-269",
+  "LNX-WRITSVC": "CWE-269",
   "LNX-POLKIT": "CWE-269",
   "LNX-SNAP": "CWE-269",
   "LNX-DOCKERGRP": "CWE-269",
   "LNX-LXDGRP": "CWE-269",
   "LNX-PYLIB": "CWE-426",
   "LNX-MOTD": "CWE-269",
+  "LNX-MOTDP": "CWE-269",
   "LNX-WILDCARD": "CWE-78",
   "LNX-MYSQLUDF": "CWE-269",
   "LNX-PTRACE": "CWE-269",
-  // Persistence
   "LNX-CRONP": "CWE-269",
   "LNX-SYSDP": "CWE-269",
   "LNX-BASHRC": "CWE-269",
   "LNX-AUTHKEYS": "CWE-269",
-  "LNX-LDSOPRELOAD": "CWE-269",
   "LNX-INITP": "CWE-269",
   "LNX-ATJOB": "CWE-269",
   "LNX-UDEV": "CWE-269",
-  "LNX-PAM": "CWE-269",
-  "LNX-MOTDP": "CWE-269",
+  "LNX-PAM": "CWE-287",
   "LNX-XDG": "CWE-269",
   "LNX-GITHOOK": "CWE-269",
   "LNX-KMOD": "CWE-269",
+  "LNX-KMODULES": "CWE-200",
   "LNX-APT": "CWE-269",
   "LNX-DPKG": "CWE-269",
   "LNX-SOCKET": "CWE-269",
   "LNX-USERSVC": "CWE-269",
   "LNX-XINETD": "CWE-269",
   "LNX-RCLOCAL": "CWE-269",
-  "LNX-LOGROT": "CWE-269",
-  "LNX-SSHRC": "CWE-269",
-  "LNX-LDCONF": "CWE-269",
-  // Lateral Movement
-  "LNX-SSHPIVOT": "CWE-78",
   "LNX-ANSIBLE": "CWE-78",
   "LNX-PUPPET": "CWE-78",
   "LNX-SALT": "CWE-78",
-  "LNX-NFSMNT": "CWE-269",
-  "LNX-RSYNC": "CWE-78",
+  "LNX-RSYNC": "CWE-200",
   "LNX-TUNNEL": "CWE-918",
-  "LNX-PORTSCAN": "CWE-200",
-  // Evasion
   "LNX-LOGTAMP": "CWE-1254",
   "LNX-HISTCLR": "CWE-1254",
   "LNX-TIMESTOMP": "CWE-1254",
@@ -903,9 +1045,8 @@ const CWE_MAP: Record<string, string> = {
   "LNX-ROOTKIT": "CWE-693",
   "LNX-HIDE": "CWE-693",
   "LNX-NETHIDE": "CWE-693",
-  "LNX-SYSLOG": "CWE-693",
+  "LNX-SYSLOG": "CWE-1254",
   "LNX-STEALTH": "CWE-693",
-  // Exfiltration
   "LNX-STAGE": "CWE-200",
   "LNX-DNSTUN": "CWE-200",
   "LNX-ICMPEX": "CWE-200",
@@ -914,16 +1055,16 @@ const CWE_MAP: Record<string, string> = {
   "LNX-CLEANUP": "CWE-1254",
   "LNX-ARTIFACT": "CWE-200",
   "LNX-STEGO": "CWE-200",
-  // Network
   "LNX-ARP": "CWE-350",
   "LNX-DNSSPOOF": "CWE-350",
   "LNX-PCAP": "CWE-319",
+  "LNX-PORTSCAN": "CWE-200",
   "LNX-MITM": "CWE-294",
   "LNX-RESPONDER": "CWE-350",
-  "LNX-FW": "CWE-693",
-  "LNX-REDIRECT": "CWE-693",
+  "LNX-FW": "CWE-200",
+  "LNX-REDIRECT": "CWE-918",
   "LNX-WIFIATT": "CWE-319",
-  // Recon
+  "LNX-RECON": "CWE-200",
   "LNX-SYSINFO": "CWE-200",
   "LNX-PROCS": "CWE-200",
   "LNX-NETWORK": "CWE-200",
@@ -931,12 +1072,9 @@ const CWE_MAP: Record<string, string> = {
   "LNX-SERVICES": "CWE-200",
   "LNX-PACKAGES": "CWE-200",
   "LNX-CONTAINER": "CWE-200",
-  "LNX-SECFW": "CWE-200",
+  "LNX-SECFW": "CWE-693",
   "LNX-FILES": "CWE-200",
   "LNX-MOUNTS": "CWE-200",
-  "LNX-KMODULES": "CWE-200",
-  "LNX-RECON": "CWE-200",
-  ENV: "CWE-693",
 }
 
 function resolveCwe(checkId: string): string | undefined {
@@ -950,14 +1088,15 @@ const BASH_FAILURE_PATTERNS = [
   "command not found",
   "Permission denied",
   "No such file or directory",
+  "not found",
+  "bash: ",
   "Operation not permitted",
   "cannot execute binary file",
-  "not found",
   "syntax error",
 ]
 
 function isBashFailure(output: string): boolean {
-  if (!output.trim()) return true
+  if (output.length === 0) return true
   const lower = output.toLowerCase()
   return BASH_FAILURE_PATTERNS.some((p) => lower.includes(p.toLowerCase()))
 }
@@ -965,7 +1104,7 @@ function isBashFailure(output: string): boolean {
 const envChangingPrograms = new Set(["selinux_bypass", "apparmor_bypass", "auditd_evade"])
 
 export const LinuxhookTool = Tool.define("linuxhook", {
-  description: `Execute a Linux post-exploitation program. Covers credential harvesting (/etc/shadow, SSH keys, cloud creds, browser, env, GPG, keytab), privilege escalation (sudo, SUID, capabilities, kernel exploits, Docker/LXD group, polkit, snap), persistence (cron, systemd, SSH keys, PAM, ld.so.preload, udev, apt hooks), defense evasion (log tamper, auditd, SELinux/AppArmor bypass, process/file/network hiding), lateral movement (SSH pivot, Ansible/Puppet/Salt, NFS, tunnels), network attacks (ARP/DNS spoof, MITM, packet capture, port scan), and exfiltration (DNS tunnel, ICMP, HTTPS, steganography). Requires root for many programs. ALWAYS run detect_env first. If bash is unavailable use --exec sh or --exec python3. Auto-fallback retries with sh when bash fails. Available programs: ${Object.keys(PROGRAMS).join(", ")}. ALWAYS run cleanup_linux before leaving a target.`,
+  description: `Execute a Linux post-exploitation program. Covers reconnaissance (system, process, network, user, service enumeration), credential harvesting (shadow, SSH keys, history secrets, keyrings, browser, environment, GPG, cloud, database, VNC, mail, LDAP), privilege escalation (sudo, SUID/SGID, capabilities, cron, NFS, PATH hijack, LD_PRELOAD, kernel exploits, writable passwd, pkexec, systemd, D-Bus, Docker/LXD group escape), persistence (cron, systemd, bashrc, SSH keys, ld.so.preload, udev, PAM, MOTD, apt/dpkg hooks, kernel modules, socket activation), lateral movement (SSH pivot, Ansible, Puppet, Salt, NFS, rsync, tunnels), evasion (log tamper, history clear, timestomp, auditd/SELinux/AppArmor bypass, rootkit detection, process/file/network hiding), exfiltration (staging, DNS tunnel, ICMP, HTTPS, covert channels, steganography), and network attacks (ARP/DNS spoofing, packet capture, port scanning, MITM, firewall enum). Requires root for most operations. ALWAYS run detect_env first to check available tools and exec methods. Use --exec auto for automatic fallback (bash → sh → python3 → perl → busybox). Available programs: ${Object.keys(PROGRAMS).join(", ")}. ALWAYS run cleanup_linux before leaving a target.`,
   parameters: z.object({
     program: z
       .enum(Object.keys(PROGRAMS) as [string, ...string[]])
@@ -973,7 +1112,7 @@ export const LinuxhookTool = Tool.define("linuxhook", {
     args: z
       .array(z.string())
       .describe(
-        "Arguments to pass to the program. Use --stealth <mode> for evasion: base64 (echo|base64 -d|bash), memfd (fileless via Python3 memfd_create), shm (/dev/shm tmpfs exec). Use --exec <method> for execution engine: bash (default), sh (POSIX), python3, perl, busybox, auto (detect best available)",
+        "Arguments to pass to the program. Use --stealth <mode> for evasion: base64 (echo|base64 -d|bash), memfd (python3 memfd_create fileless exec), shm (/dev/shm tmpfs). Use --exec <method> for execution engine: bash (default), sh (POSIX), python3, perl, busybox, auto (detect best available)",
       ),
     timeout_seconds: z.number().optional().default(120).describe("Maximum execution time in seconds (default: 120)"),
   }),
@@ -981,7 +1120,7 @@ export const LinuxhookTool = Tool.define("linuxhook", {
     if (process.platform !== "linux") {
       return {
         title: `linuxhook: ${params.program}`,
-        output: `linuxhook requires Linux. Current platform: ${process.platform}\n\nUse 'winhook' for Windows or 'machook' for macOS.`,
+        output: `linuxhook requires Linux. Current platform: ${process.platform}\n\nUse 'winhook' for Windows post-exploitation or 'machook' for macOS.`,
         metadata: { program: params.program, findings: [] as Finding[] },
       }
     }
