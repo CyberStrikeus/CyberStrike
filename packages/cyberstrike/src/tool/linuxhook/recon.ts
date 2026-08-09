@@ -392,3 +392,100 @@ systemctl list-units --state=failed 2>/dev/null
 
   return { output: output.join("\n"), findings }
 }
+
+export async function packageEnum(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Package Enumeration ==="]
+
+  const script = `
+echo "--- Package Manager ---"
+if command -v dpkg >/dev/null 2>&1; then
+  echo "TYPE: dpkg/apt"
+  echo "--- Installed Packages ---"
+  dpkg -l 2>/dev/null | tail -n +6 | awk '{print $2, $3}' | head -200
+  echo "--- Package Count ---"
+  dpkg -l 2>/dev/null | tail -n +6 | wc -l
+elif command -v rpm >/dev/null 2>&1; then
+  echo "TYPE: rpm/yum/dnf"
+  echo "--- Installed Packages ---"
+  rpm -qa --queryformat '%{NAME} %{VERSION}-%{RELEASE}\n' 2>/dev/null | sort | head -200
+  echo "--- Package Count ---"
+  rpm -qa 2>/dev/null | wc -l
+elif command -v pacman >/dev/null 2>&1; then
+  echo "TYPE: pacman"
+  echo "--- Installed Packages ---"
+  pacman -Q 2>/dev/null | head -200
+  echo "--- Package Count ---"
+  pacman -Q 2>/dev/null | wc -l
+elif command -v apk >/dev/null 2>&1; then
+  echo "TYPE: apk"
+  echo "--- Installed Packages ---"
+  apk list --installed 2>/dev/null | head -200
+  echo "--- Package Count ---"
+  apk list --installed 2>/dev/null | wc -l
+else
+  echo "TYPE: unknown"
+fi
+echo ""
+echo "--- Security Tools Installed ---"
+for tool in nmap nikto sqlmap hydra john hashcat aircrack-ng metasploit-framework burpsuite wireshark tcpdump strace ltrace gdb radare2 binwalk foremost volatility impacket-scripts responder crackmapexec evil-winrm bloodhound; do
+  command -v "$tool" >/dev/null 2>&1 && echo "FOUND: $tool"
+done
+echo ""
+echo "--- Development Tools ---"
+for tool in gcc g++ make cmake python3 python2 perl ruby go node java javac dotnet php; do
+  command -v "$tool" >/dev/null 2>&1 && echo "FOUND: $tool ($(${tool} --version 2>&1 | head -1))"
+done
+echo ""
+echo "--- Package Managers (dev) ---"
+for pm in pip pip3 gem npm cargo composer; do
+  command -v "$pm" >/dev/null 2>&1 && echo "FOUND: $pm"
+done
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const countMatch = r.stdout.match(/Package Count ---\n\s*(\d+)/m)
+  const pkgCount = countMatch ? parseInt(countMatch[1]) : 0
+  findings.push({
+    checkId: "LNX-PACKAGES-001",
+    provider: "linuxhook",
+    severity: "INFO",
+    status: "IDENTIFIED",
+    resource: "packages",
+    title: "Installed packages enumerated",
+    details: `${pkgCount} packages installed — review for known vulnerabilities and outdated versions`,
+    remediation: "Keep packages updated; remove unnecessary packages to reduce attack surface",
+  })
+
+  const secTools = (r.stdout.match(/FOUND: (nmap|nikto|sqlmap|hydra|john|hashcat|metasploit|responder|crackmapexec|evil-winrm|bloodhound)/g) || [])
+  if (secTools.length > 0) {
+    findings.push({
+      checkId: "LNX-PACKAGES-002",
+      provider: "linuxhook",
+      severity: "INFO",
+      status: "IDENTIFIED",
+      resource: "tools",
+      title: "Offensive security tools available",
+      details: `${secTools.length} security tool(s) found on system — can be leveraged for further exploitation`,
+      remediation: "Remove offensive security tools from production systems",
+    })
+  }
+
+  const compilers = (r.stdout.match(/FOUND: (gcc|g\+\+|make|cmake)/g) || [])
+  if (compilers.length > 0) {
+    findings.push({
+      checkId: "LNX-PACKAGES-003",
+      provider: "linuxhook",
+      severity: "LOW",
+      status: "IDENTIFIED",
+      resource: "tools",
+      title: "Compilation tools available",
+      details: `Compiler/build tools found — can compile kernel exploits or custom tools on target`,
+      remediation: "Remove build tools from production systems; use separate build environments",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
