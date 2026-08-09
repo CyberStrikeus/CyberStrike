@@ -364,3 +364,63 @@ salt '*' test.ping 2>/dev/null 2>&1 | head -10
 
   return { output: output.join("\n"), findings }
 }
+
+export async function nfsMountAttack(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== NFS Mount Attack ==="]
+  const target = argVal(args, "--target") || "localhost"
+
+  const script = `
+echo "--- Local NFS Exports ---"
+cat /etc/exports 2>/dev/null
+
+echo ""
+echo "--- Remote NFS Shares (${target}) ---"
+showmount -e ${target} 2>/dev/null || echo "[-] showmount failed or not available"
+
+echo ""
+echo "--- Currently Mounted NFS ---"
+mount 2>/dev/null | grep nfs
+df -h 2>/dev/null | grep ":"
+
+echo ""
+echo "--- NFS Configuration ---"
+cat /etc/nfs.conf 2>/dev/null | grep -vE "^(#|$)" | head -20
+rpcinfo -p ${target} 2>/dev/null | grep -i nfs
+
+echo ""
+echo "--- Checking no_root_squash ---"
+grep -i "no_root_squash" /etc/exports 2>/dev/null
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("no_root_squash")) {
+    findings.push({
+      checkId: "LNX-NFSMNT-001",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "FOUND",
+      resource: target,
+      title: "NFS share with no_root_squash",
+      details: `NFS export with no_root_squash found — mount share, create SUID binary as root, execute on target for root access`,
+      remediation: "Enable root_squash on all NFS exports. Use Kerberos authentication for NFS.",
+    })
+  }
+
+  if (r.stdout.includes("Export list") || r.stdout.match(/\//)) {
+    findings.push({
+      checkId: "LNX-NFSMNT-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: target,
+      title: "NFS shares enumerated",
+      details: `NFS shares found on ${target} — check for writable shares and sensitive data`,
+      remediation: "Restrict NFS exports to specific hosts and networks. Use NFSv4 with Kerberos.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
