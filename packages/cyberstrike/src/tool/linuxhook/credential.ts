@@ -1237,3 +1237,52 @@ find /var /opt /srv -name "*.db" -o -name "*.sqlite" -o -name "*.sqlite3" 2>/dev
   return { output: output.join("\n"), findings }
 }
 
+export async function vncPassword(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== VNC Password Extraction ==="]
+
+  const script = `
+echo "--- VNC Password Files ---"
+for dir in /root /home/*; do
+  if [ -f "$dir/.vnc/passwd" ]; then
+    echo "[+] VNC passwd: $dir/.vnc/passwd ($(wc -c < "$dir/.vnc/passwd") bytes)"
+    xxd "$dir/.vnc/passwd" 2>/dev/null | head -3
+    echo ""
+  fi
+  for f in "$dir/.vnc/config" "$dir/.vnc/xstartup"; do
+    [ -f "$f" ] && echo "[*] VNC config: $f"
+  done
+done
+
+echo ""
+echo "--- TigerVNC / x11vnc ---"
+find /etc /root /home -name "*vnc*" -type f 2>/dev/null | while read -r f; do
+  echo "[*] VNC file: $f"
+  grep -iE "(password|passwd|rfbauth)" "$f" 2>/dev/null
+done
+
+echo ""
+echo "--- VNC Services ---"
+ps aux 2>/dev/null | grep -iE "(vnc|x11vnc|tigervnc)" | grep -v grep
+systemctl list-units 2>/dev/null | grep -i vnc
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("VNC passwd:")) {
+    findings.push({
+      checkId: "LNX-VNC-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "vnc_password",
+      title: "VNC password file found",
+      details: "VNC password files use DES encryption (trivially reversible) — password can be recovered for remote desktop access",
+      remediation: "Use SSH tunneling for VNC instead of password auth. Migrate to VeNCrypt with TLS.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
