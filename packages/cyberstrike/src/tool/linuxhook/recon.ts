@@ -214,3 +214,116 @@ ip link show type wireguard 2>/dev/null
 
   return { output: output.join("\n"), findings }
 }
+
+export async function userEnum(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== User Enumeration ==="]
+
+  const script = `
+echo "--- Current User ---"
+id
+echo ""
+echo "--- Users with shells ---"
+grep -vE "(nologin|false|sync|halt|shutdown)" /etc/passwd 2>/dev/null
+echo ""
+echo "--- All Users ---"
+cat /etc/passwd 2>/dev/null
+echo ""
+echo "--- Groups ---"
+cat /etc/group 2>/dev/null
+echo ""
+echo "--- Sudoers ---"
+cat /etc/sudoers 2>/dev/null 2>&1
+echo ""
+echo "--- Sudoers.d ---"
+ls -la /etc/sudoers.d/ 2>/dev/null
+for f in /etc/sudoers.d/*; do
+  echo "-- $f --"
+  cat "$f" 2>/dev/null
+done
+echo ""
+echo "--- Currently Logged In ---"
+w 2>/dev/null || who 2>/dev/null
+echo ""
+echo "--- Last Logins ---"
+last -n 20 2>/dev/null
+echo ""
+echo "--- Failed Logins ---"
+lastb -n 20 2>/dev/null || echo "lastb: permission denied"
+echo ""
+echo "--- Password Policy ---"
+cat /etc/login.defs 2>/dev/null | grep -E "^(PASS_|LOGIN_|UID_|GID_)" 2>/dev/null
+echo ""
+echo "--- PAM Configuration ---"
+ls -la /etc/pam.d/ 2>/dev/null
+echo ""
+echo "--- Users with empty passwords ---"
+awk -F: '($2 == "" || $2 == "!") {print $1}' /etc/shadow 2>/dev/null || echo "Cannot read /etc/shadow"
+echo ""
+echo "--- Users with UID 0 ---"
+awk -F: '$3 == 0 {print $1}' /etc/passwd 2>/dev/null
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const shellUsers = (r.stdout.match(/\/bin\/(bash|sh|zsh|fish|csh|tcsh|ksh)/g) || []).length
+  findings.push({
+    checkId: "LNX-USERS-001",
+    provider: "linuxhook",
+    severity: "INFO",
+    status: "IDENTIFIED",
+    resource: "users",
+    title: "User accounts enumerated",
+    details: `${shellUsers} user(s) with interactive shells found — review for unnecessary accounts or weak credentials`,
+    remediation: "Remove unnecessary user accounts; set nologin shell for service accounts",
+  })
+
+  if (r.stdout.includes("NOPASSWD")) {
+    findings.push({
+      checkId: "LNX-USERS-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "sudoers",
+      title: "NOPASSWD sudo entries found",
+      details: "One or more users can execute sudo commands without a password — potential privilege escalation vector",
+      remediation: "Remove NOPASSWD entries unless absolutely necessary; restrict allowed commands",
+    })
+  }
+
+  const uid0Match = r.stdout.match(/Users with UID 0 ---\n([\s\S]*?)(\n---|$)/m)
+  if (uid0Match) {
+    const uid0Users = uid0Match[1].trim().split("\n").filter((l: string) => l.trim() && l.trim() !== "root")
+    if (uid0Users.length > 0) {
+      findings.push({
+        checkId: "LNX-USERS-003",
+        provider: "linuxhook",
+        severity: "CRITICAL",
+        status: "VULNERABLE",
+        resource: "users",
+        title: "Non-root users with UID 0",
+        details: `Users with UID 0 besides root: ${uid0Users.join(", ")} — these have full root privileges`,
+        remediation: "Remove UID 0 from non-root accounts; investigate potential backdoor accounts",
+      })
+    }
+  }
+
+  if (r.stdout.includes("empty passwords")) {
+    const emptyPwSection = r.stdout.split("empty passwords ---")[1]
+    if (emptyPwSection && !emptyPwSection.includes("Cannot read") && emptyPwSection.trim().split("\n").filter((l: string) => l.trim()).length > 0) {
+      findings.push({
+        checkId: "LNX-USERS-004",
+        provider: "linuxhook",
+        severity: "CRITICAL",
+        status: "VULNERABLE",
+        resource: "users",
+        title: "Users with empty passwords",
+        details: "One or more users have empty or disabled password hashes — login without password may be possible",
+        remediation: "Set strong passwords or lock accounts with empty passwords",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
