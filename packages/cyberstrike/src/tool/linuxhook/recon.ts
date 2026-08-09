@@ -870,3 +870,99 @@ find / -maxdepth 3 -name "core" -o -name "core.*" 2>/dev/null | head -5
 
   return { output: output.join("\n"), findings }
 }
+
+export async function mountEnum(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Mount Enumeration ==="]
+
+  const script = `
+echo "--- Current Mounts ---"
+mount 2>/dev/null | grep -vE "^(proc|sysfs|devpts|cgroup|securityfs|debugfs|pstore|bpf|tracefs|hugetlbfs|mqueue|configfs|fusectl)"
+echo ""
+echo "--- /etc/fstab ---"
+cat /etc/fstab 2>/dev/null | grep -v "^#"
+echo ""
+echo "--- findmnt (tree) ---"
+findmnt -t ext2,ext3,ext4,xfs,btrfs,nfs,cifs,tmpfs,vfat 2>/dev/null || echo "findmnt not available"
+echo ""
+echo "--- NFS Shares (exported) ---"
+cat /etc/exports 2>/dev/null || echo "No /etc/exports"
+showmount -e localhost 2>/dev/null || echo "showmount not available"
+echo ""
+echo "--- NFS Mounts (active) ---"
+mount | grep nfs 2>/dev/null
+echo ""
+echo "--- CIFS/SMB Mounts ---"
+mount | grep cifs 2>/dev/null
+echo ""
+echo "--- tmpfs Mounts ---"
+mount | grep tmpfs 2>/dev/null | grep -v "^tmpfs on /sys"
+echo ""
+echo "--- Mounts without nosuid ---"
+mount 2>/dev/null | grep -vE "(nosuid|proc|sys|cgroup|devpts|securityfs|debugfs)" | grep -v "^$"
+echo ""
+echo "--- Mounts without noexec ---"
+mount 2>/dev/null | grep -vE "(noexec|proc|sys|cgroup|devpts|securityfs|debugfs)" | grep -v "^$"
+echo ""
+echo "--- /dev/shm ---"
+ls -la /dev/shm/ 2>/dev/null
+mount | grep "/dev/shm" 2>/dev/null
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  findings.push({
+    checkId: "LNX-MOUNTS-001",
+    provider: "linuxhook",
+    severity: "INFO",
+    status: "IDENTIFIED",
+    resource: "filesystem",
+    title: "Mount points enumerated",
+    details: "Filesystem mounts, fstab, NFS/CIFS shares, and mount options collected",
+    remediation: "Review mount options and ensure nosuid,noexec on non-system partitions",
+  })
+
+  if (r.stdout.includes("no_root_squash")) {
+    findings.push({
+      checkId: "LNX-MOUNTS-002",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "VULNERABLE",
+      resource: "nfs",
+      title: "NFS export with no_root_squash",
+      details: "NFS share exported with no_root_squash — remote root can create SUID binaries for local privilege escalation",
+      remediation: "Remove no_root_squash from /etc/exports; use root_squash (default)",
+    })
+  }
+
+  const noSuidSection = r.stdout.split("without nosuid ---")[1]?.split("---")[0] || ""
+  const noSuidMounts = noSuidSection.trim().split("\n").filter((l: string) => l.trim() && l.includes("/")).length
+  if (noSuidMounts > 3) {
+    findings.push({
+      checkId: "LNX-MOUNTS-003",
+      provider: "linuxhook",
+      severity: "LOW",
+      status: "IDENTIFIED",
+      resource: "filesystem",
+      title: `${noSuidMounts} mount(s) without nosuid option`,
+      details: `${noSuidMounts} filesystem mount(s) allow SUID execution — SUID binaries on these mounts can escalate privileges`,
+      remediation: "Add nosuid mount option to non-system partitions in /etc/fstab",
+    })
+  }
+
+  if (r.stdout.includes("/dev/shm") && !r.stdout.includes("noexec")) {
+    findings.push({
+      checkId: "LNX-MOUNTS-004",
+      provider: "linuxhook",
+      severity: "LOW",
+      status: "IDENTIFIED",
+      resource: "/dev/shm",
+      title: "/dev/shm mounted without noexec",
+      details: "/dev/shm allows execution — attackers can stage and execute payloads from shared memory",
+      remediation: "Mount /dev/shm with noexec,nosuid,nodev options",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
