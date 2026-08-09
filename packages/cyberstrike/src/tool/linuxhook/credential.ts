@@ -1286,3 +1286,66 @@ systemctl list-units 2>/dev/null | grep -i vnc
   return { output: output.join("\n"), findings }
 }
 
+export async function mailSpoolHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Mail Spool Harvest ==="]
+
+  const script = `
+echo "--- Mail Spool ---"
+for f in /var/mail/* /var/spool/mail/*; do
+  if [ -f "$f" ] && [ -r "$f" ]; then
+    user=$(basename "$f")
+    size=$(wc -c < "$f" 2>/dev/null)
+    echo "[+] Mail for $user: $f ($size bytes)"
+    secrets=$(grep -iE "(password|credential|token|reset|temporary|one-time|OTP)" "$f" 2>/dev/null | head -10)
+    [ -n "$secrets" ] && echo "  [!] Potentially sensitive content found:" && echo "$secrets" | head -5
+    echo ""
+  fi
+done
+
+echo ""
+echo "--- User mbox files ---"
+for dir in /root /home/*; do
+  for mbox in "$dir/mbox" "$dir/Mail" "$dir/.mbox" "$dir/Maildir"; do
+    [ -e "$mbox" ] && echo "[*] Mailbox: $mbox ($(du -sh "$mbox" 2>/dev/null | cut -f1))"
+  done
+done
+
+echo ""
+echo "--- Mail service ---"
+ps aux 2>/dev/null | grep -iE "(postfix|sendmail|exim|dovecot)" | grep -v grep | head -5
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("sensitive content found")) {
+    findings.push({
+      checkId: "LNX-MAIL-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "mail_spool",
+      title: "Sensitive content in mail spool",
+      details: "Mail spool files contain password resets, temporary credentials, or tokens",
+      remediation: "Clear old mail. Restrict mail spool permissions. Use encrypted email for sensitive communications.",
+    })
+  }
+
+  const mailCount = (r.stdout.match(/Mail for /g) || []).length
+  if (mailCount > 0) {
+    findings.push({
+      checkId: "LNX-MAIL-002",
+      provider: "linuxhook",
+      severity: "LOW",
+      status: "FOUND",
+      resource: "mail_spool",
+      title: `${mailCount} readable mail spool(s) found`,
+      details: `${mailCount} user mail spool(s) readable — may contain sensitive organizational information`,
+      remediation: "Restrict mail spool file permissions to individual users.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
