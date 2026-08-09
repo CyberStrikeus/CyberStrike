@@ -1503,3 +1503,126 @@ realm list 2>/dev/null | head -10 || echo "[-] realm not available"
   return { output: output.join("\n"), findings }
 }
 
+export async function credentialFilesScan(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Credential Files Deep Scan ==="]
+
+  const depth = argVal(args, "--depth") || "4"
+  const script = `
+echo "--- .env Files ---"
+find /opt /srv /var/www /home /root -maxdepth ${depth} -name ".env" -readable 2>/dev/null | while read -r f; do
+  secrets=$(grep -ciE "(password|secret|token|key|api)" "$f" 2>/dev/null)
+  if [ "$secrets" -gt 0 ] 2>/dev/null; then
+    echo "[+] $f ($secrets secret-like entries)"
+    grep -iE "(password|secret|token|key|api)" "$f" 2>/dev/null | head -5
+    echo ""
+  fi
+done
+
+echo "--- Config Files with Secrets ---"
+find /opt /srv /var/www /etc -maxdepth ${depth} \\( -name "config.yml" -o -name "config.yaml" -o -name "secrets.json" -o -name "application.properties" -o -name "application.yml" -o -name "database.yml" -o -name "settings.py" -o -name "wp-config.php" -o -name "configuration.php" \\) -readable 2>/dev/null | while read -r f; do
+  secrets=$(grep -ciE "(password|secret|token|db_pass|database_password)" "$f" 2>/dev/null)
+  if [ "$secrets" -gt 0 ] 2>/dev/null; then
+    echo "[+] $f ($secrets secret-like entries)"
+    grep -inE "(password|secret|token|db_pass|database_password)" "$f" 2>/dev/null | head -5
+    echo ""
+  fi
+done
+
+echo "--- Kubernetes Secrets (mounted) ---"
+if [ -d /var/run/secrets/kubernetes.io ]; then
+  echo "[+] K8s secrets mounted:"
+  find /var/run/secrets -type f 2>/dev/null | while read -r f; do
+    echo "  $f: $(head -c 100 "$f" 2>/dev/null)"
+  done
+  echo ""
+fi
+
+echo "--- Vault Tokens ---"
+for dir in /root /home/*; do
+  [ -f "$dir/.vault-token" ] && echo "[+] Vault token: $dir/.vault-token: $(cat "$dir/.vault-token" 2>/dev/null)"
+done
+env | grep -i "^VAULT_TOKEN" 2>/dev/null
+
+echo ""
+echo "--- Private Keys (non-SSH) ---"
+find /opt /srv /etc /var -maxdepth ${depth} -name "*.key" -o -name "*.pem" -o -name "*.p12" -o -name "*.pfx" 2>/dev/null | grep -v "ssh_host" | head -20
+
+echo ""
+echo "--- Backup Files with Potential Secrets ---"
+find /opt /srv /var /tmp -maxdepth 3 \\( -name "*.bak" -o -name "*.old" -o -name "*.backup" -o -name "*.sql" -o -name "*.dump" \\) -readable 2>/dev/null | head -15
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const envFiles = (r.stdout.match(/\.env \(/g) || []).length
+  if (envFiles > 0) {
+    findings.push({
+      checkId: "LNX-CRED-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "dotenv_files",
+      title: `${envFiles} .env file(s) with secrets`,
+      details: `${envFiles} application .env file(s) contain passwords, API keys, or tokens`,
+      remediation: "Use a secrets manager. Set .env permissions to 600. Add .env to .gitignore.",
+    })
+  }
+
+  const configFiles = (r.stdout.match(/\[+\] \/(?:opt|srv|var|etc)/g) || []).length
+  if (configFiles > envFiles) {
+    findings.push({
+      checkId: "LNX-CRED-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "config_files",
+      title: "Application config files with credentials",
+      details: "Configuration files (YAML, JSON, PHP, Python) contain database passwords, API keys, or secrets",
+      remediation: "Externalize secrets to environment variables or a secrets manager. Restrict file permissions.",
+    })
+  }
+
+  if (r.stdout.includes("K8s secrets mounted")) {
+    findings.push({
+      checkId: "LNX-CRED-003",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "k8s_secrets",
+      title: "Kubernetes secrets mounted in filesystem",
+      details: "K8s service account tokens and secrets accessible at /var/run/secrets/ — can be used for cluster access",
+      remediation: "Use projected volumes with audience. Disable automountServiceAccountToken where not needed.",
+    })
+  }
+
+  if (r.stdout.includes("Vault token:") || r.stdout.includes("VAULT_TOKEN")) {
+    findings.push({
+      checkId: "LNX-CRED-004",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "vault_token",
+      title: "HashiCorp Vault token found",
+      details: "Vault token found — can access secrets stored in HashiCorp Vault",
+      remediation: "Use short-lived tokens with minimal policies. Revoke tokens after use.",
+    })
+  }
+
+  const keyFiles = (r.stdout.match(/\.(key|pem|p12|pfx)$/gm) || []).length
+  if (keyFiles > 0) {
+    findings.push({
+      checkId: "LNX-CRED-005",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "private_keys",
+      title: `${keyFiles} private key/certificate files found`,
+      details: `${keyFiles} private key or certificate file(s) found — TLS keys, code signing certs, or encryption keys`,
+      remediation: "Store keys in a secrets manager or HSM. Restrict file permissions to 400.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
