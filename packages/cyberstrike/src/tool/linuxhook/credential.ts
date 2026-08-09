@@ -1064,3 +1064,76 @@ nmcli -t -f NAME,TYPE,DEVICE connection show 2>/dev/null | head -20
   return { output: output.join("\n"), findings }
 }
 
+export async function kerberosKeytab(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Kerberos Keytab & Ticket Harvest ==="]
+
+  const script = `
+echo "--- System Keytab ---"
+if [ -f /etc/krb5.keytab ]; then
+  echo "[+] System keytab: /etc/krb5.keytab"
+  ls -la /etc/krb5.keytab
+  klist -kt /etc/krb5.keytab 2>/dev/null || echo "  (klist not available)"
+else
+  echo "[-] No system keytab at /etc/krb5.keytab"
+fi
+
+echo ""
+echo "--- User Keytabs ---"
+find / -name "*.keytab" -readable 2>/dev/null | while read -r kt; do
+  echo "[+] Keytab: $kt"
+  ls -la "$kt"
+  klist -kt "$kt" 2>/dev/null | head -10
+  echo ""
+done
+
+echo ""
+echo "--- Kerberos Ticket Cache ---"
+echo "KRB5CCNAME=$KRB5CCNAME"
+ls -la /tmp/krb5cc_* 2>/dev/null
+for cc in /tmp/krb5cc_*; do
+  if [ -f "$cc" ]; then
+    echo "[+] Ticket cache: $cc"
+    klist -c "$cc" 2>/dev/null | head -15
+    echo ""
+  fi
+done
+
+echo ""
+echo "--- Kerberos Config ---"
+cat /etc/krb5.conf 2>/dev/null | grep -E "default_realm|kdc|admin_server" | head -10
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] System keytab") || r.stdout.includes("[+] Keytab:")) {
+    const keytabs = (r.stdout.match(/\[+\] Keytab:|System keytab/g) || []).length
+    findings.push({
+      checkId: "LNX-KRB-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "kerberos_keytabs",
+      title: "Kerberos keytab files found",
+      details: `${keytabs} keytab file(s) found — contain long-term keys for service/user authentication without passwords`,
+      remediation: "Restrict keytab file permissions to the service account only (chmod 400). Rotate keytab keys regularly.",
+    })
+  }
+
+  if (r.stdout.includes("[+] Ticket cache")) {
+    findings.push({
+      checkId: "LNX-KRB-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "kerberos_tickets",
+      title: "Kerberos ticket cache accessible",
+      details: "Active Kerberos TGT/service tickets found — can be used for pass-the-ticket lateral movement",
+      remediation: "Set restrictive permissions on ccache files. Use kernel keyrings (KRB5CCNAME=KCM:) instead of file-based caches.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
