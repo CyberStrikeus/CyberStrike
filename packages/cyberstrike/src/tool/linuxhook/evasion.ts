@@ -132,3 +132,61 @@ echo "  Or prefix commands with a space (if HISTCONTROL=ignorespace)"
 
   return { output: output.join("\n"), findings }
 }
+
+export async function timestomp(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Timestomping ==="]
+  const target = argVal(args, "--target")
+  const reference = argVal(args, "--reference")
+
+  const script = `
+${target ? `
+echo "--- Current Timestamps ---"
+stat "${target}" 2>/dev/null
+
+${reference ? `
+echo ""
+echo "--- Reference File Timestamps ---"
+stat "${reference}" 2>/dev/null
+
+echo ""
+echo "--- Applying Timestamps ---"
+touch -r "${reference}" "${target}" 2>/dev/null && echo "[+] atime/mtime copied from ${reference} to ${target}"
+stat "${target}" 2>/dev/null
+` : `
+echo ""
+echo "--- Modifying Timestamps ---"
+echo "Usage: linuxhook timestomp --target /path/to/file --reference /bin/ls"
+echo "  This copies atime/mtime from the reference file"
+echo ""
+echo "Manual approaches:"
+echo "  touch -r /bin/ls target_file        # copy timestamps from reference"
+echo "  touch -t 202301011200 target_file   # set specific timestamp"
+echo "  debugfs -w -R 'set_inode_field <inode> crtime 202301011200' /dev/sda1  # ctime (requires debugfs)"
+`}
+` : `
+echo "Usage: linuxhook timestomp --target /path/to/file --reference /bin/ls"
+echo ""
+echo "--- Recently Modified Files (last 24h) ---"
+find /tmp /var/tmp /dev/shm -newer /etc/hostname -type f 2>/dev/null | head -20
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (target && reference && r.stdout.includes("[+]")) {
+    findings.push({
+      checkId: "LNX-TIMESTOMP-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "EXPLOITED",
+      resource: target,
+      title: "File timestamps modified",
+      details: `Timestamps on ${target} copied from ${reference} — file now blends with legitimate system files`,
+      remediation: "Use file integrity monitoring (AIDE, Tripwire). Monitor inode change times via auditd.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
