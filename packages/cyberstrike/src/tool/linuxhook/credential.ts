@@ -1223,3 +1223,58 @@ echo "--- Other Databases ---"
   return { output: output.join("\n"), findings }
 }
 
+export async function vncPassword(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== VNC Password Extraction ==="]
+
+  const script = `
+echo "--- VNC Password Files ---"
+for dir in /root /home/*; do
+  if [ -f "$dir/.vnc/passwd" ]; then
+    echo "[+] VNC passwd: $dir/.vnc/passwd ($(wc -c < "$dir/.vnc/passwd") bytes)"
+    xxd "$dir/.vnc/passwd" 2>/dev/null | head -3
+    echo ""
+  fi
+  if [ -f "$dir/.vnc/xstartup" ]; then
+    echo "[*] VNC startup: $dir/.vnc/xstartup"
+  fi
+done
+
+echo ""
+echo "--- x11vnc Config ---"
+for dir in /root /home/*; do
+  for f in "$dir/.x11vncrc" "$dir/.vnc/x11vnc.conf"; do
+    if [ -f "$f" ]; then
+      echo "[+] x11vnc config: $f"
+      grep -iE "(rfbauth|passwd|password)" "$f" 2>/dev/null
+    fi
+  done
+done
+
+echo ""
+echo "--- TigerVNC / TightVNC ---"
+find /etc -name "*.vnc" -o -name "vncserver*" 2>/dev/null | while read -r f; do
+  echo "[*] VNC config: $f"
+  grep -iE "(password|passwd|securitytypes)" "$f" 2>/dev/null
+done
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("VNC passwd:")) {
+    findings.push({
+      checkId: "LNX-VNC-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "vnc_password",
+      title: "VNC password file found",
+      details: "VNC passwd file uses weak DES encryption (max 8-char key, trivially reversible) — provides remote desktop access",
+      remediation: "Use SSH tunneling for VNC access. Disable VNC if not needed. Use strong, unique passwords.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
