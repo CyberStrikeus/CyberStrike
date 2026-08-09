@@ -424,3 +424,45 @@ grep -i "no_root_squash" /etc/exports 2>/dev/null
 
   return { output: output.join("\n"), findings }
 }
+
+export async function rsyncExploit(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Rsync Exploitation ==="]
+  const target = argVal(args, "--target") || "localhost"
+
+  const script = `
+echo "--- Rsync Configuration ---"
+cat /etc/rsyncd.conf 2>/dev/null || echo "[-] No rsyncd.conf found"
+
+echo ""
+echo "--- Enumerate Rsync Modules (${target}) ---"
+rsync ${target}:: 2>/dev/null || echo "[-] rsync enumeration failed or not available"
+
+echo ""
+echo "--- Check Anonymous Access ---"
+rsync --list-only ${target}:: 2>/dev/null | head -20
+
+echo ""
+echo "--- Rsync Service Check ---"
+ss -tlnp 2>/dev/null | grep ":873" || netstat -tlnp 2>/dev/null | grep ":873"
+ps aux 2>/dev/null | grep rsync | grep -v grep
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("rsyncd.conf") && !r.stdout.includes("No rsyncd.conf")) {
+    findings.push({
+      checkId: "LNX-RSYNC-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: target,
+      title: "Rsync daemon configuration found",
+      details: "Rsync daemon config exists — check for modules with anonymous read/write access",
+      remediation: "Require authentication for all rsync modules. Restrict to read-only where possible.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
