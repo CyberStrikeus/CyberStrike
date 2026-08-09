@@ -217,7 +217,21 @@ export async function artifactEnum(_args: string[], timeout: number): Promise<Ho
   output.push("\n--- Copied Databases ---")
   const dbs = await run(
     "find",
-    ["/tmp", "-maxdepth", "1", "(", "-name", "cs-chrome-*", "-o", "-name", "cs-safari-*", "-o", "-name", "cs-tcc-*", ")"],
+    [
+      "/tmp",
+      "-maxdepth",
+      "1",
+      "(",
+      "-name",
+      "cs-chrome-*",
+      "-o",
+      "-name",
+      "cs-safari-*",
+      "-o",
+      "-name",
+      "cs-tcc-*",
+      ")",
+    ],
     timeout,
   )
   if (dbs.exitCode === 0 && dbs.stdout.trim()) {

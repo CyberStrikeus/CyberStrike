@@ -254,13 +254,15 @@ print(f"TOTAL:{len(captured)}")
     const count = totalMatch ? parseInt(totalMatch[1]) : 0
     if (count > 0) {
       output.push(`\n[+] Captured ${count} clipboard change(s)`)
-      const sensitive = r.stdout.split("\n").filter(
-        (l) =>
-          l.toLowerCase().includes("password") ||
-          l.toLowerCase().includes("token") ||
-          l.toLowerCase().includes("key") ||
-          l.toLowerCase().includes("secret"),
-      )
+      const sensitive = r.stdout
+        .split("\n")
+        .filter(
+          (l) =>
+            l.toLowerCase().includes("password") ||
+            l.toLowerCase().includes("token") ||
+            l.toLowerCase().includes("key") ||
+            l.toLowerCase().includes("secret"),
+        )
       if (sensitive.length > 0) {
         output.push(`[!] Potentially sensitive clipboard content detected: ${sensitive.length} entries`)
       }

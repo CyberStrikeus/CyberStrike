@@ -111,7 +111,10 @@ export async function sshPivot(args: string[], timeout: number): Promise<HookRes
     status: r.exitCode === 0 ? "EXPLOITED" : "ATTEMPTED",
     resource: target,
     title: `SSH pivot ${r.exitCode === 0 ? "successful" : "failed"}: ${user}@${target}`,
-    details: r.exitCode === 0 ? `Command executed on ${target} as ${user}` : `Connection failed: ${r.stderr.trim().substring(0, 200)}`,
+    details:
+      r.exitCode === 0
+        ? `Command executed on ${target} as ${user}`
+        : `Connection failed: ${r.stderr.trim().substring(0, 200)}`,
     remediation: "Rotate SSH keys and restrict access after engagement",
   })
 
@@ -124,7 +127,14 @@ export async function airdropAbuse(_args: string[], timeout: number): Promise<Ho
 
   const discoverMode = await run("defaults", ["read", "com.apple.sharingd", "DiscoverableMode"], timeout)
   const mode = discoverMode.stdout.trim()
-  const modeLabel = mode === "Off" ? "No One" : mode === "Contacts Only" ? "Contacts Only" : mode === "Everyone" ? "Everyone" : mode || "unknown"
+  const modeLabel =
+    mode === "Off"
+      ? "No One"
+      : mode === "Contacts Only"
+        ? "Contacts Only"
+        : mode === "Everyone"
+          ? "Everyone"
+          : mode || "unknown"
   output.push(`\n[+] AirDrop discoverability: ${modeLabel}`)
 
   const awdl = await run("ifconfig", ["awdl0"], timeout)
@@ -218,7 +228,9 @@ export async function appleRemoteDesktop(_args: string[], timeout: number): Prom
   const output: string[] = ["=== Apple Remote Desktop / Screen Sharing ==="]
 
   const ardProcs = await run("ps", ["aux"], timeout)
-  const ardLines = ardProcs.stdout.split("\n").filter((l) => l.includes("ARDAgent") || l.includes("RemoteManagement") || l.includes("screensharingd"))
+  const ardLines = ardProcs.stdout
+    .split("\n")
+    .filter((l) => l.includes("ARDAgent") || l.includes("RemoteManagement") || l.includes("screensharingd"))
   const ardRunning = ardLines.length > 0
   output.push(`\n[+] ARD/Screen Sharing processes: ${ardRunning ? "RUNNING" : "not found"}`)
   if (ardRunning) {
@@ -239,7 +251,11 @@ export async function appleRemoteDesktop(_args: string[], timeout: number): Prom
   }
 
   const home = process.env.HOME || "/root"
-  const userScreenSharing = await run("defaults", ["read", `${home}/Library/Preferences/com.apple.ScreenSharing`], timeout)
+  const userScreenSharing = await run(
+    "defaults",
+    ["read", `${home}/Library/Preferences/com.apple.ScreenSharing`],
+    timeout,
+  )
   if (userScreenSharing.exitCode === 0) {
     output.push(`\n[+] User Screen Sharing preferences:\n${userScreenSharing.stdout.trim().substring(0, 500)}`)
   }
@@ -267,7 +283,8 @@ export async function appleRemoteDesktop(_args: string[], timeout: number): Prom
       resource: "macos://ard",
       title: "Apple Remote Desktop / Screen Sharing is active",
       details: `ARD/screensharingd running — remote desktop access is available. ${ardSettings.exitCode === 0 ? "Configuration retrieved." : ""}`,
-      remediation: "Disable ARD if not needed: sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -deactivate -stop",
+      remediation:
+        "Disable ARD if not needed: sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -deactivate -stop",
     })
   }
 

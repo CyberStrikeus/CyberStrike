@@ -10,7 +10,8 @@ export async function launchagentPersist(args: string[], timeout: number): Promi
 
   if (!label || !command) {
     return {
-      output: "[!] --label and --command are required. Usage: machook launchagent_persist --label com.cs.agent --command '/bin/bash -c ...' [--interval 300]",
+      output:
+        "[!] --label and --command are required. Usage: machook launchagent_persist --label com.cs.agent --command '/bin/bash -c ...' [--interval 300]",
       findings,
     }
   }
@@ -85,7 +86,8 @@ export async function launchdaemonPersist(args: string[], timeout: number): Prom
 
   if (!label || !command) {
     return {
-      output: "[!] --label and --command are required. Usage: machook launchdaemon_persist --label com.cs.daemon --command '/bin/bash -c ...' [--interval 300]",
+      output:
+        "[!] --label and --command are required. Usage: machook launchdaemon_persist --label com.cs.daemon --command '/bin/bash -c ...' [--interval 300]",
       findings,
     }
   }
@@ -366,4 +368,3 @@ export async function periodicScripts(args: string[], timeout: number): Promise<
 
   return { output: output.join("\n"), findings }
 }
-
