@@ -1003,3 +1003,62 @@ done
   return { output: output.join("\n"), findings }
 }
 
+export async function wifiCredsNm(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== WiFi Credentials (NetworkManager) ==="]
+
+  const script = `
+echo "--- NetworkManager Connections ---"
+if [ -d /etc/NetworkManager/system-connections ]; then
+  echo "[*] Scanning /etc/NetworkManager/system-connections/"
+  for f in /etc/NetworkManager/system-connections/*; do
+    if [ -f "$f" ]; then
+      ssid=$(grep "^ssid=" "$f" 2>/dev/null | cut -d= -f2)
+      psk=$(grep "^psk=" "$f" 2>/dev/null | cut -d= -f2)
+      type=$(grep "^type=" "$f" 2>/dev/null | cut -d= -f2)
+      if [ -n "$psk" ]; then
+        echo "[+] SSID=$ssid  PSK=$psk  TYPE=$type  FILE=$f"
+      elif [ -n "$ssid" ]; then
+        echo "[*] SSID=$ssid  (no PSK)  TYPE=$type  FILE=$f"
+      fi
+    fi
+  done
+else
+  echo "[-] /etc/NetworkManager/system-connections/ not found"
+fi
+
+echo ""
+echo "--- wpa_supplicant ---"
+for f in /etc/wpa_supplicant/wpa_supplicant.conf /etc/wpa_supplicant/*.conf; do
+  if [ -f "$f" ]; then
+    echo "[+] wpa_supplicant config: $f"
+    grep -E "(ssid|psk|password|key_mgmt)" "$f" 2>/dev/null
+    echo ""
+  fi
+done
+
+echo ""
+echo "--- nmcli (if available) ---"
+nmcli -s connection show 2>/dev/null | head -20
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const pskCount = (r.stdout.match(/PSK=/g) || []).length
+  if (pskCount > 0) {
+    findings.push({
+      checkId: "LNX-WIFI-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "wifi_credentials",
+      title: `${pskCount} WiFi password(s) extracted`,
+      details: `${pskCount} WiFi pre-shared key(s) found in NetworkManager/wpa_supplicant configs — can be used for wireless network access`,
+      remediation: "Use 802.1X enterprise auth instead of PSK. Restrict NM config file permissions to root.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
