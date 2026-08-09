@@ -973,6 +973,88 @@ export async function kernelModuleEnum(args: string[], timeout: number): Promise
 
   const script = `
 echo "--- Loaded Modules ---"
+lsmod 2>/dev/null | head -60
+echo ""
+echo "--- Module Count ---"
+lsmod 2>/dev/null | wc -l
+echo ""
+echo "--- Security-Relevant Modules ---"
+lsmod 2>/dev/null | grep -iE "(ip_tables|iptable_|nf_conntrack|nf_nat|br_netfilter|overlay|veth|usb_storage|firewire|thunderbolt|bluetooth|pcspkr)" 2>/dev/null
+echo ""
+echo "--- /etc/modules ---"
+cat /etc/modules 2>/dev/null || echo "(not found)"
+echo ""
+echo "--- /etc/modules-load.d/ ---"
+ls -la /etc/modules-load.d/ 2>/dev/null && cat /etc/modules-load.d/*.conf 2>/dev/null || echo "(not found)"
+echo ""
+echo "--- modprobe.d blacklist ---"
+grep -rh "^blacklist" /etc/modprobe.d/ 2>/dev/null | head -20
+echo ""
+echo "--- Kernel Module Signing ---"
+grep -i "module.sig" /proc/cmdline 2>/dev/null
+cat /proc/sys/kernel/modules_disabled 2>/dev/null && echo " (modules_disabled)"
+echo ""
+echo "--- Loadable Module Paths ---"
+ls -d /lib/modules/$(uname -r)/ 2>/dev/null
+ls /lib/modules/$(uname -r)/kernel/ 2>/dev/null | head -20
+echo ""
+echo "--- Writable Module Paths ---"
+find /lib/modules/ -writable -type f -name "*.ko" 2>/dev/null | head -10
+find /lib/modules/ -writable -type d 2>/dev/null | head -10
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const moduleCount = parseInt((r.stdout.match(/^\s*(\d+)\s*$/m) || ["0", "0"])[1]) || 0
+  if (moduleCount > 0) {
+    findings.push({
+      checkId: "LNX-KMODULES-001",
+      provider: "linuxhook",
+      severity: "INFO",
+      status: "IDENTIFIED",
+      resource: "kernel_modules",
+      title: "Kernel modules enumerated",
+      details: `${moduleCount} kernel module(s) loaded — review for unnecessary or exploitable modules`,
+      remediation: "Disable unnecessary kernel modules via modprobe blacklist. Enable module signing.",
+    })
+  }
+
+  if (r.stdout.includes("usb_storage")) {
+    findings.push({
+      checkId: "LNX-KMODULES-002",
+      provider: "linuxhook",
+      severity: "LOW",
+      status: "FOUND",
+      resource: "usb_storage",
+      title: "USB storage module loaded",
+      details: "usb_storage module is loaded — USB devices can be used for data exfiltration",
+      remediation: "Blacklist usb_storage module if USB storage is not required: echo 'blacklist usb_storage' > /etc/modprobe.d/usb.conf",
+    })
+  }
+
+  if (r.stdout.includes("0") && r.stdout.includes("modules_disabled")) {
+    findings.push({
+      checkId: "LNX-KMODULES-003",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "kernel",
+      title: "Kernel module loading not disabled",
+      details: "modules_disabled=0 — new kernel modules can be loaded at runtime, enabling rootkit insertion",
+      remediation: "Set kernel.modules_disabled=1 in sysctl after boot to prevent runtime module loading",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function kernelModuleEnum(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Kernel Module Enumeration ==="]
+
+  const script = `
+echo "--- Loaded Modules ---"
 lsmod 2>/dev/null || cat /proc/modules 2>/dev/null
 echo ""
 echo "--- Module Count ---"
@@ -1053,6 +1135,166 @@ cat /proc/sys/kernel/module_sig_enforce 2>/dev/null || echo "module_sig_enforce:
       title: "Kernel module signature enforcement disabled",
       details: "Module signature verification is not enforced — unsigned/malicious kernel modules can be loaded",
       remediation: "Enable CONFIG_MODULE_SIG_FORCE in kernel config; sign all modules with trusted key",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function localReconLinux(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Local Recon (Quick Scan) ==="]
+
+  const script = `
+echo "=== AV/EDR Detection ==="
+echo ""
+echo "--- CrowdStrike Falcon ---"
+ps aux 2>/dev/null | grep -i "falcon" | grep -v grep && echo "STATUS: RUNNING" || echo "STATUS: NOT DETECTED"
+ls /opt/CrowdStrike/ 2>/dev/null && echo "INSTALLED: /opt/CrowdStrike/"
+echo ""
+echo "--- Carbon Black ---"
+ps aux 2>/dev/null | grep -iE "(cbagent|cbdaemon|cbsensor)" | grep -v grep && echo "STATUS: RUNNING" || echo "STATUS: NOT DETECTED"
+echo ""
+echo "--- SentinelOne ---"
+ps aux 2>/dev/null | grep -i "sentinelone" | grep -v grep && echo "STATUS: RUNNING" || echo "STATUS: NOT DETECTED"
+echo ""
+echo "--- Wazuh ---"
+ps aux 2>/dev/null | grep -i "wazuh" | grep -v grep && echo "STATUS: RUNNING" || echo "STATUS: NOT DETECTED"
+ls /var/ossec/bin/ 2>/dev/null | head -5
+echo ""
+echo "--- OSSEC ---"
+ps aux 2>/dev/null | grep -i "ossec" | grep -v grep && echo "STATUS: RUNNING" || echo "STATUS: NOT DETECTED"
+echo ""
+echo "--- Sophos ---"
+ps aux 2>/dev/null | grep -i "sophos" | grep -v grep && echo "STATUS: RUNNING" || echo "STATUS: NOT DETECTED"
+echo ""
+echo "--- ClamAV ---"
+ps aux 2>/dev/null | grep -iE "(clamd|freshclam)" | grep -v grep && echo "STATUS: RUNNING" || echo "STATUS: NOT DETECTED"
+echo ""
+echo "=== Security Tools ==="
+echo ""
+echo "--- Audit System ---"
+ps aux 2>/dev/null | grep -i "auditd" | grep -v grep && echo "auditd: RUNNING" || echo "auditd: NOT RUNNING"
+auditctl -s 2>/dev/null || echo "auditctl: not available"
+echo ""
+echo "--- fail2ban ---"
+ps aux 2>/dev/null | grep -i "fail2ban" | grep -v grep && echo "fail2ban: RUNNING" || echo "fail2ban: NOT RUNNING"
+echo ""
+echo "--- Integrity Monitoring ---"
+command -v tripwire >/dev/null 2>&1 && echo "tripwire: INSTALLED" || echo "tripwire: NOT INSTALLED"
+command -v aide >/dev/null 2>&1 && echo "aide: INSTALLED" || echo "aide: NOT INSTALLED"
+command -v rkhunter >/dev/null 2>&1 && echo "rkhunter: INSTALLED" || echo "rkhunter: NOT INSTALLED"
+command -v chkrootkit >/dev/null 2>&1 && echo "chkrootkit: INSTALLED" || echo "chkrootkit: NOT INSTALLED"
+command -v osqueryi >/dev/null 2>&1 && echo "osquery: INSTALLED" || echo "osquery: NOT INSTALLED"
+echo ""
+echo "=== Logging ==="
+echo ""
+echo "--- rsyslog ---"
+ps aux 2>/dev/null | grep -i "rsyslog" | grep -v grep && echo "rsyslog: RUNNING" || echo "rsyslog: NOT RUNNING"
+echo ""
+echo "--- syslog-ng ---"
+ps aux 2>/dev/null | grep -i "syslog-ng" | grep -v grep && echo "syslog-ng: RUNNING" || echo "syslog-ng: NOT RUNNING"
+echo ""
+echo "--- journald ---"
+ps aux 2>/dev/null | grep -i "journald" | grep -v grep && echo "journald: RUNNING" || echo "journald: NOT RUNNING"
+echo ""
+echo "--- Remote Logging ---"
+grep -rE "^[^#].*@@" /etc/rsyslog.conf /etc/rsyslog.d/ 2>/dev/null && echo "REMOTE_LOGGING: CONFIGURED" || echo "REMOTE_LOGGING: NOT CONFIGURED"
+echo ""
+echo "=== Quick Attack Surface ==="
+echo ""
+echo "--- Sudo version ---"
+sudo --version 2>/dev/null | head -1
+echo ""
+echo "--- OpenSSH version ---"
+ssh -V 2>&1
+echo ""
+echo "--- Web servers ---"
+ps aux 2>/dev/null | grep -iE "(nginx|apache|httpd|lighttpd|caddy)" | grep -v grep | head -5
+echo ""
+echo "--- Databases ---"
+ps aux 2>/dev/null | grep -iE "(mysql|postgres|mongo|redis|memcached|elastic)" | grep -v grep | head -5
+echo ""
+echo "--- Docker ---"
+docker version 2>/dev/null | head -5 || echo "Docker: not available"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const edrProducts = ["CrowdStrike Falcon", "Carbon Black", "SentinelOne", "Wazuh", "OSSEC", "Sophos", "ClamAV"]
+  const edrPatterns = ["falcon", "cbagent", "sentinelone", "wazuh", "ossec", "sophos", "clamd"]
+  const detectedEdr: string[] = []
+
+  for (let i = 0; i < edrPatterns.length; i++) {
+    const section = r.stdout.split(`--- ${edrProducts[i].split(" ")[0]}`)[1]?.split("---")[0] || ""
+    if (section.includes("RUNNING") || section.includes("INSTALLED")) {
+      detectedEdr.push(edrProducts[i])
+    }
+  }
+
+  if (detectedEdr.length > 0) {
+    findings.push({
+      checkId: "LNX-RECON-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "IDENTIFIED",
+      resource: "security",
+      title: `AV/EDR detected: ${detectedEdr.join(", ")}`,
+      details: `Active security products: ${detectedEdr.join(", ")} — use stealth modes (--stealth base64/memfd/shm) and evasion techniques`,
+      remediation: "N/A — these are defensive controls",
+    })
+  }
+
+  if (!detectedEdr.length) {
+    findings.push({
+      checkId: "LNX-RECON-002",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "VULNERABLE",
+      resource: "security",
+      title: "No AV/EDR products detected",
+      details: "No endpoint detection and response products found — host lacks active threat monitoring",
+      remediation: "Deploy an EDR solution (CrowdStrike, SentinelOne, Wazuh, etc.)",
+    })
+  }
+
+  if (r.stdout.includes("auditd: RUNNING")) {
+    findings.push({
+      checkId: "LNX-RECON-003",
+      provider: "linuxhook",
+      severity: "INFO",
+      status: "IDENTIFIED",
+      resource: "audit",
+      title: "auditd is active",
+      details: "Linux Audit daemon is running — commands and file access may be logged; use auditd_evade to disable if needed",
+      remediation: "N/A — auditd is a defensive control",
+    })
+  }
+
+  if (r.stdout.includes("REMOTE_LOGGING: CONFIGURED")) {
+    findings.push({
+      checkId: "LNX-RECON-004",
+      provider: "linuxhook",
+      severity: "INFO",
+      status: "IDENTIFIED",
+      resource: "logging",
+      title: "Remote logging configured",
+      details: "Logs are forwarded to a remote syslog server — local log tampering alone will not remove evidence",
+      remediation: "N/A — remote logging is a defensive control",
+    })
+  }
+
+  if (r.stdout.includes("fail2ban: RUNNING")) {
+    findings.push({
+      checkId: "LNX-RECON-005",
+      provider: "linuxhook",
+      severity: "INFO",
+      status: "IDENTIFIED",
+      resource: "security",
+      title: "fail2ban active",
+      details: "fail2ban is running — brute-force attempts may result in IP bans",
+      remediation: "N/A — fail2ban is a defensive control; avoid noisy scanning",
     })
   }
 
