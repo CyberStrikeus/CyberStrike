@@ -440,3 +440,50 @@ fi
 
   return { output: output.join("\n"), findings }
 }
+
+export async function atJobPersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== At Job Persistence ==="]
+  const payload = argVal(args, "--payload")
+  const time = argVal(args, "--time") || "now + 1 hour"
+
+  const script = `
+echo "--- at/atd Status ---"
+command -v at >/dev/null 2>&1 && echo "[+] at is available" || echo "[-] at is not installed"
+pgrep -x atd >/dev/null 2>&1 && echo "[+] atd is running" || echo "[-] atd is NOT running"
+echo ""
+echo "--- Pending at Jobs ---"
+atq 2>/dev/null || echo "[-] Cannot list at queue"
+echo ""
+echo "--- /etc/at.allow and /etc/at.deny ---"
+cat /etc/at.allow 2>/dev/null && echo "[*] at.allow exists" || echo "[-] No at.allow"
+cat /etc/at.deny 2>/dev/null && echo "[*] at.deny exists" || echo "[-] No at.deny"
+echo ""
+${payload ? `
+echo "--- Installing at Job ---"
+echo "${payload}" | at ${time} 2>&1 && echo "[+] at job scheduled for: ${time}" || echo "[-] Failed to schedule at job"
+echo ""
+echo "--- Updated Queue ---"
+atq 2>/dev/null
+` : `echo "[*] Dry run — pass --payload <cmd> --time <timespec> to install."
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] at job scheduled")) {
+    findings.push({
+      checkId: "LNX-ATJOB-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "INSTALLED",
+      resource: "at_queue",
+      title: "at job persistence scheduled",
+      details: `at job scheduled for: ${time}`,
+      remediation: "Review at queue with atq. Remove jobs with atrm. Consider disabling atd if not needed.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
