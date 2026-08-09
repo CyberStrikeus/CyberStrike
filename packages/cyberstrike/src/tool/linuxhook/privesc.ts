@@ -321,3 +321,45 @@ grep -rn '\\*' /etc/crontab /etc/cron.d/* 2>/dev/null | grep -E "(tar |rsync |ch
 
   return { output: output.join("\n"), findings }
 }
+
+export async function nfsNoRootSquash(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== NFS no_root_squash Check ==="]
+
+  const script = `
+echo "--- /etc/exports ---"
+cat /etc/exports 2>/dev/null || echo "/etc/exports not found or not readable"
+echo ""
+echo "--- Mounted NFS Shares ---"
+mount | grep nfs 2>/dev/null
+df -T 2>/dev/null | grep nfs
+echo ""
+echo "--- showmount (local) ---"
+showmount -e 127.0.0.1 2>/dev/null || showmount -e localhost 2>/dev/null || echo "showmount not available"
+echo ""
+echo "--- no_root_squash check ---"
+grep -i "no_root_squash" /etc/exports 2>/dev/null
+echo ""
+echo "--- NFS-related services ---"
+systemctl status nfs-server nfs-kernel-server rpcbind 2>/dev/null | grep -E "(Active:|Loaded:)" || service nfs-kernel-server status 2>/dev/null
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("no_root_squash")) {
+    const shares = r.stdout.split("\n").filter(l => l.includes("no_root_squash"))
+    findings.push({
+      checkId: "LNX-NFS-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "nfs",
+      title: "NFS share with no_root_squash",
+      details: `${shares.length} NFS share(s) exported with no_root_squash: ${shares[0]?.trim()} — mount remotely, create SUID binary, escalate to root`,
+      remediation: "Use root_squash (default) on all NFS exports. Restrict NFS exports to specific hosts.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
