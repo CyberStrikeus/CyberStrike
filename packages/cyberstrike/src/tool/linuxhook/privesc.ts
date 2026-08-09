@@ -363,3 +363,47 @@ systemctl status nfs-server nfs-kernel-server rpcbind 2>/dev/null | grep -E "(Ac
 
   return { output: output.join("\n"), findings }
 }
+
+export async function pathHijack(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== PATH Hijack Check ==="]
+
+  const script = `
+echo "--- Current PATH ---"
+echo "$PATH"
+echo ""
+echo "--- Writable directories in PATH ---"
+IFS=: read -ra dirs <<< "$PATH" 2>/dev/null || dirs=$(echo "$PATH" | tr ':' ' ')
+for d in $dirs; do
+  [ -d "$d" ] && [ -w "$d" ] && echo "[!] WRITABLE: $d"
+done
+echo ""
+echo "--- Root scripts with relative paths ---"
+grep -rlE "^[^/].*[a-z]" /etc/init.d/ 2>/dev/null | head -10
+echo ""
+echo "--- Systemd units with relative ExecStart ---"
+grep -rn "ExecStart=" /etc/systemd/system/ /usr/lib/systemd/system/ 2>/dev/null | grep -v "ExecStart=/" | grep -v "^#" | head -10
+echo ""
+echo "--- Cron jobs with relative commands ---"
+cat /etc/crontab /etc/cron.d/* 2>/dev/null | grep -vE "^#|^$|^[A-Z]" | awk '{for(i=6;i<=NF;i++) printf "%s ", $i; print ""}' | grep -v "^/" | head -10
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[!] WRITABLE:")) {
+    const writable = r.stdout.split("\n").filter(l => l.includes("[!] WRITABLE:"))
+    findings.push({
+      checkId: "LNX-PATH-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "PATH",
+      title: "Writable directories in PATH",
+      details: `${writable.length} writable directory/directories in PATH: ${writable.map(l => l.replace("[!] WRITABLE: ", "")).join(", ")} — place malicious binary to hijack commands`,
+      remediation: "Remove writable directories from PATH. Ensure PATH directories are owned by root with restricted permissions.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
