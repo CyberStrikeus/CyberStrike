@@ -578,3 +578,74 @@ cat /proc/sys/kernel/perf_event_paranoid 2>/dev/null && echo " (perf_event_paran
 
   return { output: output.join("\n"), findings }
 }
+
+export async function writablePasswd(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Writable /etc/passwd Check ==="]
+
+  const script = `
+echo "--- /etc/passwd permissions ---"
+ls -la /etc/passwd
+echo ""
+echo "--- /etc/shadow permissions ---"
+ls -la /etc/shadow 2>/dev/null
+echo ""
+echo "--- /etc/group permissions ---"
+ls -la /etc/group
+echo ""
+echo "--- Writability check ---"
+[ -w /etc/passwd ] && echo "[!] /etc/passwd is WRITABLE" || echo "[-] /etc/passwd is not writable"
+[ -w /etc/shadow ] 2>/dev/null && echo "[!] /etc/shadow is WRITABLE" || echo "[-] /etc/shadow is not writable"
+[ -w /etc/group ] && echo "[!] /etc/group is WRITABLE" || echo "[-] /etc/group is not writable"
+echo ""
+echo "--- Users with UID 0 ---"
+awk -F: '$3 == 0 {print $1}' /etc/passwd 2>/dev/null
+echo ""
+echo "--- Users without password (empty hash field in passwd) ---"
+awk -F: '($2 == "" || $2 == "x") {print $1}' /etc/passwd 2>/dev/null | head -10
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[!] /etc/passwd is WRITABLE")) {
+    findings.push({
+      checkId: "LNX-PASSWD-001",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "VULNERABLE",
+      resource: "/etc/passwd",
+      title: "/etc/passwd is writable",
+      details: "/etc/passwd is writable — add a new root user: echo 'hacker:$(openssl passwd -6 password):0:0::/root:/bin/bash' >> /etc/passwd",
+      remediation: "Set /etc/passwd to root:root 644. Use chattr +i for immutability.",
+    })
+  }
+
+  if (r.stdout.includes("[!] /etc/shadow is WRITABLE")) {
+    findings.push({
+      checkId: "LNX-PASSWD-002",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "VULNERABLE",
+      resource: "/etc/shadow",
+      title: "/etc/shadow is writable",
+      details: "/etc/shadow is writable — replace root password hash directly for instant root access",
+      remediation: "Set /etc/shadow to root:shadow 640.",
+    })
+  }
+
+  if (r.stdout.includes("[!] /etc/group is WRITABLE")) {
+    findings.push({
+      checkId: "LNX-PASSWD-003",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "/etc/group",
+      title: "/etc/group is writable",
+      details: "/etc/group is writable — add current user to sudo/root/docker/lxd groups",
+      remediation: "Set /etc/group to root:root 644.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
