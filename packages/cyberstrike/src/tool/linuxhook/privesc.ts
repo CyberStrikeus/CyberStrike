@@ -494,3 +494,87 @@ done
 
   return { output: output.join("\n"), findings }
 }
+
+export async function kernelExploitCheck(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Kernel Exploit Check ==="]
+
+  const script = `
+echo "--- Kernel Version ---"
+uname -r
+uname -a
+echo ""
+echo "--- Distribution ---"
+cat /etc/os-release 2>/dev/null | grep -E "^(ID|VERSION_ID|PRETTY_NAME)="
+echo ""
+echo "--- Kernel Build Info ---"
+cat /proc/version 2>/dev/null
+echo ""
+echo "--- Security Modules ---"
+cat /sys/kernel/security/lsm 2>/dev/null
+echo ""
+echo "--- KASLR Status ---"
+cat /proc/sys/kernel/randomize_va_space 2>/dev/null
+echo ""
+echo "--- Kernel Protections ---"
+cat /proc/sys/kernel/kptr_restrict 2>/dev/null && echo " (kptr_restrict)"
+cat /proc/sys/kernel/dmesg_restrict 2>/dev/null && echo " (dmesg_restrict)"
+cat /proc/sys/kernel/perf_event_paranoid 2>/dev/null && echo " (perf_event_paranoid)"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const kernelLine = r.stdout.split("\n").find(l => l.match(/^\d+\.\d+/))
+  if (!kernelLine) return { output: output.join("\n"), findings }
+
+  const parts = kernelLine.trim().split(/[.\-]/)
+  const major = parseInt(parts[0]) || 0
+  const minor = parseInt(parts[1]) || 0
+  const patch = parseInt(parts[2]) || 0
+  const ver = major * 10000 + minor * 100 + patch
+
+  const exploits: Array<{ name: string; cve: string; min: number; max: number; note: string }> = [
+    { name: "DirtyPipe", cve: "CVE-2022-0847", min: 50800, max: 51611, note: "Overwrite read-only files via pipe splice — instant root" },
+    { name: "DirtyCow", cve: "CVE-2016-5195", min: 20622, max: 40803, note: "Race condition in COW — write to read-only mappings" },
+    { name: "OverlayFS (Ubuntu)", cve: "CVE-2021-3493", min: 50400, max: 51100, note: "Ubuntu-specific overlayfs user namespace privesc" },
+    { name: "GameOver(lay)", cve: "CVE-2023-2640", min: 50400, max: 51900, note: "Ubuntu overlayfs setattr bypass — unpriv user namespace" },
+    { name: "Netfilter nf_tables", cve: "CVE-2023-32233", min: 50100, max: 60400, note: "Use-after-free in nf_tables — local root" },
+    { name: "Netfilter nft_set_elem", cve: "CVE-2022-34918", min: 50800, max: 51817, note: "Heap buffer overflow in nft_set_elem — local root" },
+    { name: "io_uring", cve: "CVE-2023-2598", min: 50100, max: 60300, note: "io_uring use-after-free — kernel code execution" },
+    { name: "pipe_buffer", cve: "CVE-2021-22555", min: 20629, max: 51101, note: "Netfilter setsockopt heap OOB write — container escape capable" },
+    { name: "eBPF verifier", cve: "CVE-2021-3490", min: 50700, max: 51300, note: "eBPF ALU32 bounds tracking — local root" },
+    { name: "PolKit pkexec", cve: "CVE-2021-4034", min: 0, max: 999999, note: "pkexec SUID — affects all kernels if pkexec installed" },
+  ]
+
+  const distro = r.stdout.toLowerCase()
+  const applicable = exploits.filter(e => ver >= e.min && ver <= e.max)
+
+  for (const exp of applicable) {
+    findings.push({
+      checkId: `LNX-KERNEL-${exp.cve.replace("CVE-", "").replace("-", "")}`,
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "POTENTIALLY_VULNERABLE",
+      resource: `kernel ${kernelLine.trim()}`,
+      title: `${exp.name} (${exp.cve})`,
+      details: `Kernel ${kernelLine.trim()} falls within vulnerable range for ${exp.name} — ${exp.note}`,
+      remediation: `Upgrade kernel to latest stable. Apply vendor patches for ${exp.cve}.`,
+    })
+  }
+
+  if (applicable.length === 0) {
+    findings.push({
+      checkId: "LNX-KERNEL-001",
+      provider: "linuxhook",
+      severity: "INFO",
+      status: "NOT_FOUND",
+      resource: `kernel ${kernelLine.trim()}`,
+      title: "No known kernel exploits matched",
+      details: `Kernel ${kernelLine.trim()} does not match known exploit version ranges — may still be vulnerable to newer CVEs`,
+      remediation: "Keep kernel updated. Check kernel-exploits databases for latest CVEs.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
