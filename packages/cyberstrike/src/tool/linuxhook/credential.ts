@@ -1136,3 +1136,104 @@ fi
   return { output: output.join("\n"), findings }
 }
 
+export async function dbCredHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Database Credential Harvest ==="]
+
+  const script = `
+echo "--- MySQL / MariaDB ---"
+for dir in /root /home/*; do
+  if [ -f "$dir/.my.cnf" ]; then
+    echo "[+] MySQL client config: $dir/.my.cnf"
+    grep -iE "(password|user|host)" "$dir/.my.cnf" 2>/dev/null
+    echo ""
+  fi
+done
+if [ -f /etc/mysql/debian.cnf ]; then
+  echo "[+] MySQL debian.cnf: /etc/mysql/debian.cnf"
+  grep -iE "(password|user)" /etc/mysql/debian.cnf 2>/dev/null
+  echo ""
+fi
+
+echo "--- PostgreSQL ---"
+for dir in /root /home/*; do
+  if [ -f "$dir/.pgpass" ]; then
+    echo "[+] pgpass: $dir/.pgpass"
+    cat "$dir/.pgpass" 2>/dev/null
+    echo ""
+  fi
+done
+if [ -f /var/lib/postgresql/.pgpass ]; then
+  echo "[+] System pgpass: /var/lib/postgresql/.pgpass"
+  cat /var/lib/postgresql/.pgpass 2>/dev/null
+fi
+
+echo ""
+echo "--- Redis ---"
+for f in /etc/redis/redis.conf /etc/redis.conf /etc/redis/6379.conf; do
+  if [ -f "$f" ]; then
+    echo "[*] Redis config: $f"
+    grep -E "^requirepass|^masterauth" "$f" 2>/dev/null
+    echo ""
+  fi
+done
+
+echo ""
+echo "--- MongoDB ---"
+for f in /etc/mongod.conf /etc/mongodb.conf; do
+  if [ -f "$f" ]; then
+    echo "[*] MongoDB config: $f"
+    grep -iE "(authorization|password|keyFile)" "$f" 2>/dev/null
+  fi
+done
+
+echo ""
+echo "--- SQLite databases (interesting) ---"
+find /var /opt /srv -name "*.db" -o -name "*.sqlite" -o -name "*.sqlite3" 2>/dev/null | head -15
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes(".my.cnf") || r.stdout.includes("debian.cnf")) {
+    findings.push({
+      checkId: "LNX-DB-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "mysql_credentials",
+      title: "MySQL credentials found in config files",
+      details: "MySQL password found in .my.cnf or debian.cnf — direct database access possible",
+      remediation: "Use mysql_config_editor for encrypted login paths. Restrict .my.cnf permissions to 600.",
+    })
+  }
+
+  if (r.stdout.includes(".pgpass")) {
+    findings.push({
+      checkId: "LNX-DB-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "postgres_credentials",
+      title: "PostgreSQL credentials found in .pgpass",
+      details: "Plaintext PostgreSQL credentials in .pgpass — hostname:port:database:username:password format",
+      remediation: "Restrict .pgpass permissions to 600. Use certificate or Kerberos authentication instead.",
+    })
+  }
+
+  if (r.stdout.includes("requirepass") || r.stdout.includes("masterauth")) {
+    findings.push({
+      checkId: "LNX-DB-003",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "redis_credentials",
+      title: "Redis password found in config",
+      details: "Redis requirepass/masterauth found in config — direct access to Redis data store",
+      remediation: "Use Redis ACLs. Bind to localhost only. Use TLS for remote connections.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
