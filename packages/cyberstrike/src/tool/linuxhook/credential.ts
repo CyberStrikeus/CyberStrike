@@ -917,3 +917,79 @@ env | grep -i DOCKER_ 2>/dev/null
   return { output: output.join("\n"), findings }
 }
 
+export async function gitCredHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Git Credential Harvest ==="]
+
+  const script = `
+echo "--- Git Credential Stores ---"
+for dir in /root /home/*; do
+  if [ -f "$dir/.git-credentials" ]; then
+    echo "[+] Plaintext credentials: $dir/.git-credentials"
+    cat "$dir/.git-credentials" 2>/dev/null | sed 's/:\/\/\([^:]*\):\([^@]*\)@/:\/\/\1:***@/g'
+    echo ""
+  fi
+  gitcfg="$dir/.gitconfig"
+  if [ -f "$gitcfg" ]; then
+    helper=$(grep "helper" "$gitcfg" 2>/dev/null)
+    if [ -n "$helper" ]; then
+      echo "[*] Credential helper in $gitcfg: $helper"
+    fi
+    token=$(grep -iE "(token|password|oauth)" "$gitcfg" 2>/dev/null)
+    if [ -n "$token" ]; then
+      echo "[+] Token/password in $gitcfg: $token"
+    fi
+  fi
+done
+
+echo ""
+echo "--- GitHub/GitLab CLI Tokens ---"
+for dir in /root /home/*; do
+  [ -f "$dir/.config/gh/hosts.yml" ] && echo "[+] GitHub CLI: $dir/.config/gh/hosts.yml" && grep "oauth_token" "$dir/.config/gh/hosts.yml" 2>/dev/null
+  [ -f "$dir/.config/glab-cli/config.yml" ] && echo "[+] GitLab CLI: $dir/.config/glab-cli/config.yml" && grep "token" "$dir/.config/glab-cli/config.yml" 2>/dev/null
+done
+
+echo ""
+echo "--- Git Repos with Embedded Credentials ---"
+find /opt /srv /var/www /home -maxdepth 4 -name ".git" -type d 2>/dev/null | while read -r gitdir; do
+  repo=$(dirname "$gitdir")
+  remotes=$(git -C "$repo" remote -v 2>/dev/null | grep -E "https?://[^@]*:[^@]*@")
+  if [ -n "$remotes" ]; then
+    echo "[+] Embedded creds in $repo:"
+    echo "$remotes" | sed 's/:\/\/\([^:]*\):\([^@]*\)@/:\/\/\1:***@/g'
+  fi
+done
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes(".git-credentials") || r.stdout.includes("Embedded creds")) {
+    findings.push({
+      checkId: "LNX-GIT-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "git_credentials",
+      title: "Git credentials found in plaintext",
+      details: "Plaintext git credentials found — URLs contain embedded usernames and passwords for repository access",
+      remediation: "Use SSH keys or credential helpers instead of plaintext .git-credentials. Use fine-grained tokens with minimal scope.",
+    })
+  }
+
+  if (r.stdout.includes("oauth_token") || r.stdout.includes("GitHub CLI") || r.stdout.includes("GitLab CLI")) {
+    findings.push({
+      checkId: "LNX-GIT-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "cli_tokens",
+      title: "GitHub/GitLab CLI tokens found",
+      details: "CLI authentication tokens found — can access repositories, create releases, and manage CI/CD pipelines",
+      remediation: "Use short-lived tokens. Restrict token scopes to minimum required permissions.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
