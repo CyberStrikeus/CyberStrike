@@ -649,3 +649,775 @@ awk -F: '($2 == "" || $2 == "x") {print $1}' /etc/passwd 2>/dev/null | head -10
 
   return { output: output.join("\n"), findings }
 }
+
+export async function pkexecCve(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== PwnKit (CVE-2021-4034) Check ==="]
+
+  const script = `
+echo "--- pkexec location ---"
+which pkexec 2>/dev/null || echo "pkexec not found"
+echo ""
+echo "--- pkexec SUID check ---"
+ls -la $(which pkexec 2>/dev/null) 2>/dev/null
+echo ""
+echo "--- pkexec version ---"
+pkexec --version 2>/dev/null || dpkg -l policykit-1 2>/dev/null | tail -1 || rpm -q polkit 2>/dev/null
+echo ""
+echo "--- polkit version ---"
+pkaction --version 2>/dev/null
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const hasPkexec = !r.stdout.includes("pkexec not found")
+  const isSuid = r.stdout.includes("-rwsr") || r.stdout.includes("rws")
+
+  if (hasPkexec && isSuid) {
+    findings.push({
+      checkId: "LNX-PKEXEC-001",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "POTENTIALLY_VULNERABLE",
+      resource: "pkexec",
+      title: "pkexec SUID — PwnKit (CVE-2021-4034) potentially exploitable",
+      details: "pkexec is installed with SUID bit — CVE-2021-4034 affects virtually all polkit versions before Jan 2022 patches. Exploit gives instant local root.",
+      remediation: "Update polkit to latest version. Remove SUID from pkexec: chmod 0755 $(which pkexec).",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function systemdUnitAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Systemd Unit Abuse ==="]
+
+  const script = `
+echo "--- Writable systemd unit files ---"
+find /etc/systemd/system /usr/lib/systemd/system /lib/systemd/system -writable -name "*.service" -o -writable -name "*.timer" 2>/dev/null
+echo ""
+echo "--- Writable ExecStart targets ---"
+for unit in /etc/systemd/system/*.service /usr/lib/systemd/system/*.service /lib/systemd/system/*.service; do
+  [ -f "$unit" ] || continue
+  execstart=$(grep "^ExecStart=" "$unit" 2>/dev/null | head -1 | cut -d= -f2 | awk '{print $1}')
+  [ -n "$execstart" ] && [ -f "$execstart" ] && [ -w "$execstart" ] && echo "[!] WRITABLE ExecStart: $execstart (from $unit)"
+done
+echo ""
+echo "--- Timers running as root ---"
+systemctl list-timers --all 2>/dev/null | head -20
+echo ""
+echo "--- User-writable unit directories ---"
+[ -w /etc/systemd/system/ ] && echo "[!] /etc/systemd/system/ is writable"
+[ -d ~/.config/systemd/user/ ] && echo "[*] User systemd dir exists: ~/.config/systemd/user/"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const writableUnits = r.stdout.split("\n").filter(l => l.endsWith(".service") || l.endsWith(".timer"))
+  if (writableUnits.length > 0) {
+    findings.push({
+      checkId: "LNX-SYSTEMD-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "systemd",
+      title: "Writable systemd unit files",
+      details: `${writableUnits.length} writable unit file(s): ${writableUnits[0]} — modify ExecStart to execute payload as root`,
+      remediation: "Set systemd unit files to root:root 644.",
+    })
+  }
+
+  if (r.stdout.includes("[!] WRITABLE ExecStart:")) {
+    findings.push({
+      checkId: "LNX-SYSTEMD-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "systemd",
+      title: "Writable ExecStart binary in systemd service",
+      details: "A binary referenced by a systemd service ExecStart is writable — replace to execute as the service user",
+      remediation: "Ensure ExecStart binaries are root-owned with restricted permissions.",
+    })
+  }
+
+  if (r.stdout.includes("[!] /etc/systemd/system/ is writable")) {
+    findings.push({
+      checkId: "LNX-SYSTEMD-003",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "VULNERABLE",
+      resource: "systemd",
+      title: "/etc/systemd/system/ is writable",
+      details: "Can create new systemd service unit running as root — instant persistent root code execution",
+      remediation: "Restrict /etc/systemd/system/ to root:root 755.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function dbusExploit(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== D-Bus Service Enumeration ==="]
+
+  const script = `
+echo "--- System D-Bus services ---"
+busctl list --system 2>/dev/null | head -40 || dbus-send --system --dest=org.freedesktop.DBus --type=method_call --print-reply /org/freedesktop/DBus org.freedesktop.DBus.ListNames 2>/dev/null | head -40
+echo ""
+echo "--- Interesting D-Bus interfaces ---"
+busctl list --system 2>/dev/null | grep -iE "(polkit|PackageKit|systemd|NetworkManager|ModemManager|udisks|accounts|hostname|timedate|locale|login|realmd)" 2>/dev/null
+echo ""
+echo "--- PolicyKit introspection ---"
+busctl introspect org.freedesktop.PolicyKit1 /org/freedesktop/PolicyKit1/Authority 2>/dev/null | head -20
+echo ""
+echo "--- Session D-Bus ---"
+busctl list --user 2>/dev/null | head -20
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("polkit") || r.stdout.includes("PolicyKit")) {
+    findings.push({
+      checkId: "LNX-DBUS-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "IDENTIFIED",
+      resource: "dbus",
+      title: "PolicyKit D-Bus service available",
+      details: "PolicyKit D-Bus interface is accessible — check for CVE-2021-3560 (polkit 0.113-0.118) timing attack for unauthorized privilege escalation",
+      remediation: "Update polkit. Restrict D-Bus access via policy files.",
+    })
+  }
+
+  if (r.stdout.includes("PackageKit")) {
+    findings.push({
+      checkId: "LNX-DBUS-002",
+      provider: "linuxhook",
+      severity: "LOW",
+      status: "IDENTIFIED",
+      resource: "dbus",
+      title: "PackageKit D-Bus service available",
+      details: "PackageKit is accessible — may allow package installation without full root in some configurations",
+      remediation: "Restrict PackageKit D-Bus policy to authorized users only.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function pipSetupAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== pip Setup Abuse ==="]
+
+  const script = `
+echo "--- pip running as root? ---"
+ps aux 2>/dev/null | grep -E "[p]ip[3]? install" | head -5
+echo ""
+echo "--- pip/pip3 in cron (root) ---"
+grep -rn "pip\|pip3" /etc/crontab /etc/cron.d/ /var/spool/cron/crontabs/root 2>/dev/null | grep -v "^#"
+echo ""
+echo "--- pip install paths ---"
+python3 -c "import site; print('\n'.join(site.getsitepackages()))" 2>/dev/null
+echo ""
+echo "--- Writable pip install paths ---"
+python3 -c "import site; [print(p) for p in site.getsitepackages()]" 2>/dev/null | while read -r p; do
+  [ -d "$p" ] && [ -w "$p" ] && echo "[!] WRITABLE: $p"
+done
+echo ""
+echo "--- setup.py in common locations ---"
+find /opt /srv /var/www /home -name "setup.py" -writable 2>/dev/null | head -10
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("pip") && r.stdout.includes("root")) {
+    findings.push({
+      checkId: "LNX-PIP-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "pip",
+      title: "pip runs as root",
+      details: "pip install running as root in cron or active process — writable setup.py can execute arbitrary code as root",
+      remediation: "Never run pip as root. Use virtual environments and --user flag.",
+    })
+  }
+
+  if (r.stdout.includes("[!] WRITABLE:")) {
+    findings.push({
+      checkId: "LNX-PIP-002",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "IDENTIFIED",
+      resource: "pip",
+      title: "Writable pip site-packages directory",
+      details: "Python site-packages directory is writable — inject malicious modules to be imported by root scripts",
+      remediation: "Restrict site-packages permissions. Use virtual environments.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function sharedLibHijack(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Shared Library Hijack ==="]
+
+  const script = `
+echo "--- Missing libraries in SUID binaries ---"
+find / -perm -4000 -type f 2>/dev/null | head -30 | while read -r f; do
+  missing=$(ldd "$f" 2>/dev/null | grep "not found")
+  [ -n "$missing" ] && echo "[!] $f: $missing"
+done
+echo ""
+echo "--- Writable library directories (ld.so.conf) ---"
+cat /etc/ld.so.conf /etc/ld.so.conf.d/* 2>/dev/null | grep -v "^#" | while read -r d; do
+  [ -d "$d" ] && [ -w "$d" ] && echo "[!] WRITABLE: $d"
+done
+echo ""
+echo "--- RPATH/RUNPATH in SUID binaries ---"
+find / -perm -4000 -type f 2>/dev/null | head -20 | while read -r f; do
+  rp=$(readelf -d "$f" 2>/dev/null | grep -E "RPATH|RUNPATH")
+  [ -n "$rp" ] && echo "[!] $f: $rp"
+done
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("not found")) {
+    findings.push({
+      checkId: "LNX-SHLIB-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "shared_libs",
+      title: "Missing shared library in SUID binary",
+      details: "SUID binary references a missing shared library — create the .so file in a writable path to execute code as root",
+      remediation: "Install missing libraries or recompile SUID binary. Remove SUID bit if not needed.",
+    })
+  }
+
+  if (r.stdout.includes("[!] WRITABLE:") && r.stdout.includes("ld.so")) {
+    findings.push({
+      checkId: "LNX-SHLIB-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "ld.so.conf",
+      title: "Writable library directory",
+      details: "Library directory in ld.so.conf is writable — place .so for preload by privileged processes after ldconfig",
+      remediation: "Restrict library directory permissions to root-owned.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function logrotateRace(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Logrotate Race Condition ==="]
+
+  const script = `
+echo "--- logrotate version ---"
+logrotate --version 2>&1 | head -1
+echo ""
+echo "--- logrotate config ---"
+cat /etc/logrotate.conf 2>/dev/null | grep -vE "^#|^$" | head -20
+echo ""
+echo "--- User-writable log files rotated by logrotate ---"
+for f in /etc/logrotate.d/*; do
+  [ -f "$f" ] || continue
+  grep -oP '^[/\w.-]+' "$f" 2>/dev/null | while read -r logfile; do
+    [ -f "$logfile" ] && [ -w "$logfile" ] && echo "[!] WRITABLE LOG: $logfile (rotated by $f)"
+  done
+done
+echo ""
+echo "--- logrotate runs as ---"
+grep -r "logrotate" /etc/crontab /etc/cron.d/ /etc/cron.daily/ 2>/dev/null | head -5
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[!] WRITABLE LOG:")) {
+    findings.push({
+      checkId: "LNX-LOGROTATE-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "IDENTIFIED",
+      resource: "logrotate",
+      title: "User-writable log file under logrotate",
+      details: "Logrotate processes a user-writable log file — race condition during rotation may allow writing to arbitrary files as root",
+      remediation: "Restrict log file ownership to root or the logging service account.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function writableServiceBin(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Writable Service Binary Check ==="]
+
+  const script = `
+echo "--- Systemd services with writable ExecStart ---"
+for unit in /etc/systemd/system/*.service /usr/lib/systemd/system/*.service /lib/systemd/system/*.service; do
+  [ -f "$unit" ] || continue
+  bin=$(grep "^ExecStart=" "$unit" 2>/dev/null | head -1 | cut -d= -f2 | awk '{print $1}' | sed 's/^-//')
+  [ -n "$bin" ] && [ -f "$bin" ] && [ -w "$bin" ] && echo "[!] WRITABLE: $bin (unit: $unit)"
+done
+echo ""
+echo "--- Init.d scripts with writable targets ---"
+for script in /etc/init.d/*; do
+  [ -f "$script" ] || continue
+  [ -w "$script" ] && echo "[!] WRITABLE INIT SCRIPT: $script"
+done
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[!] WRITABLE:")) {
+    const writable = r.stdout.split("\n").filter(l => l.includes("[!] WRITABLE:"))
+    findings.push({
+      checkId: "LNX-WRITSVC-001",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "VULNERABLE",
+      resource: "services",
+      title: "Writable service binary",
+      details: `${writable.length} writable service binary/binaries: ${writable[0]?.replace("[!] WRITABLE: ", "")} — replace binary to execute as root on service restart`,
+      remediation: "Ensure service binaries are root-owned with 755 permissions.",
+    })
+  }
+
+  if (r.stdout.includes("[!] WRITABLE INIT SCRIPT:")) {
+    findings.push({
+      checkId: "LNX-WRITSVC-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "init.d",
+      title: "Writable init.d script",
+      details: "Init.d script is writable — inject commands to execute as root on service start/stop/restart",
+      remediation: "Set init.d scripts to root:root 755.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function polkitBypass(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Polkit Bypass Check ==="]
+
+  const script = `
+echo "--- polkit version ---"
+pkaction --version 2>/dev/null || dpkg -l policykit-1 2>/dev/null | tail -1 || rpm -q polkit 2>/dev/null
+echo ""
+echo "--- pkexec SUID check ---"
+ls -la $(which pkexec 2>/dev/null) 2>/dev/null
+echo ""
+echo "--- polkitd process ---"
+ps aux 2>/dev/null | grep -E "[p]olkit"
+echo ""
+echo "--- Polkit rules ---"
+ls -la /etc/polkit-1/rules.d/ /usr/share/polkit-1/rules.d/ 2>/dev/null
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const versionMatch = r.stdout.match(/(\d+\.\d+)/)
+  if (versionMatch) {
+    const ver = parseFloat(versionMatch[1])
+    if (ver >= 0.113 && ver <= 0.118) {
+      findings.push({
+        checkId: "LNX-POLKIT-001",
+        provider: "linuxhook",
+        severity: "CRITICAL",
+        status: "VULNERABLE",
+        resource: "polkit",
+        title: "CVE-2021-3560 — polkit timing attack",
+        details: `polkit version ${ver} is vulnerable to CVE-2021-3560 — send dbus request and kill it at the right moment to bypass authentication`,
+        remediation: "Update polkit to version 0.119 or later.",
+      })
+    }
+  }
+
+  if (r.stdout.includes("-rwsr") || r.stdout.includes("rws")) {
+    findings.push({
+      checkId: "LNX-POLKIT-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "IDENTIFIED",
+      resource: "pkexec",
+      title: "pkexec has SUID bit",
+      details: "pkexec SUID is set — check for CVE-2021-4034 (PwnKit) exploitation",
+      remediation: "Remove SUID from pkexec if not needed: chmod 0755 $(which pkexec).",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function snapPrivesc(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Snap Privilege Escalation ==="]
+
+  const script = `
+echo "--- snap version ---"
+snap version 2>/dev/null || echo "snap not installed"
+echo ""
+echo "--- snapd version ---"
+snap version 2>/dev/null | grep snapd
+echo ""
+echo "--- Installed snaps ---"
+snap list 2>/dev/null | head -20
+echo ""
+echo "--- Snap confinement ---"
+snap debug confinement 2>/dev/null
+echo ""
+echo "--- snapd socket ---"
+ls -la /run/snapd.socket 2>/dev/null
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("snap not installed")) return { output: output.join("\n"), findings }
+
+  const snapdMatch = r.stdout.match(/snapd\s+(\d+\.\d+)/)
+  if (snapdMatch) {
+    const ver = parseFloat(snapdMatch[1])
+    if (ver < 2.37) {
+      findings.push({
+        checkId: "LNX-SNAP-001",
+        provider: "linuxhook",
+        severity: "HIGH",
+        status: "VULNERABLE",
+        resource: "snapd",
+        title: "dirty_sock (CVE-2019-7304) — snapd < 2.37",
+        details: `snapd ${ver} is vulnerable to dirty_sock — exploit snapd API to create local admin user`,
+        remediation: "Update snapd to 2.37 or later.",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function dockerGroupEscape(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Docker Group Escape ==="]
+
+  const script = `
+echo "--- Current user groups ---"
+id
+echo ""
+echo "--- Docker group check ---"
+id | grep -oE "(docker|podman)" && echo "[+] User is in docker/podman group" || echo "[-] User is NOT in docker/podman group"
+echo ""
+echo "--- Docker socket ---"
+ls -la /var/run/docker.sock 2>/dev/null
+echo ""
+echo "--- Docker accessible ---"
+docker ps 2>/dev/null && echo "[+] Docker is accessible" || echo "[-] Docker not accessible"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] User is in docker/podman group") || r.stdout.includes("[+] Docker is accessible")) {
+    findings.push({
+      checkId: "LNX-DOCKERGRP-001",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "VULNERABLE",
+      resource: "docker",
+      title: "Docker group membership — root equivalent",
+      details: "Current user can access Docker — run: docker run -v /:/host -it alpine chroot /host to get full root access on host",
+      remediation: "Remove user from docker group. Use rootless Docker or Podman instead.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function lxdGroupEscape(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== LXD/LXC Group Escape ==="]
+
+  const script = `
+echo "--- Current user groups ---"
+id
+echo ""
+echo "--- LXD/LXC group check ---"
+id | grep -oE "(lxd|lxc)" && echo "[+] User is in lxd/lxc group" || echo "[-] User is NOT in lxd/lxc group"
+echo ""
+echo "--- LXD available ---"
+which lxd lxc 2>/dev/null
+lxc list 2>/dev/null && echo "[+] LXC is accessible" || echo "[-] LXC not accessible"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] User is in lxd/lxc group") || r.stdout.includes("[+] LXC is accessible")) {
+    findings.push({
+      checkId: "LNX-LXDGRP-001",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "VULNERABLE",
+      resource: "lxd",
+      title: "LXD/LXC group membership — root equivalent",
+      details: "Current user can access LXD/LXC — init storage pool, launch privileged container with host / mounted, chroot to host root",
+      remediation: "Remove user from lxd/lxc group unless container management is required.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function pythonLibHijack(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Python Library Hijack ==="]
+
+  const script = `
+echo "--- Python sys.path ---"
+python3 -c "import sys; print('\n'.join(sys.path))" 2>/dev/null
+echo ""
+echo "--- Writable Python paths ---"
+python3 -c "import sys; [print(p) for p in sys.path if p]" 2>/dev/null | while read -r p; do
+  [ -d "$p" ] && [ -w "$p" ] && echo "[!] WRITABLE: $p"
+done
+echo ""
+echo "--- Root Python scripts ---"
+find /etc/cron.d/ /etc/cron.daily/ /etc/cron.hourly/ /var/spool/cron/ -name "*.py" 2>/dev/null
+grep -rl "python" /etc/crontab /etc/cron.d/* 2>/dev/null | head -5
+echo ""
+echo "--- Python scripts run by systemd as root ---"
+grep -rl "python" /etc/systemd/system/*.service /usr/lib/systemd/system/*.service 2>/dev/null | head -5
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[!] WRITABLE:")) {
+    const writable = r.stdout.split("\n").filter(l => l.includes("[!] WRITABLE:"))
+    findings.push({
+      checkId: "LNX-PYLIB-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "python",
+      title: "Writable Python module path",
+      details: `${writable.length} writable directory/directories in Python sys.path: ${writable[0]?.replace("[!] WRITABLE: ", "")} — place malicious module to be imported by root scripts`,
+      remediation: "Restrict Python sys.path directories to root ownership. Use virtual environments.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function motdAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== MOTD Abuse ==="]
+
+  const script = `
+echo "--- /etc/update-motd.d/ ---"
+ls -la /etc/update-motd.d/ 2>/dev/null
+echo ""
+echo "--- Writable MOTD scripts ---"
+for f in /etc/update-motd.d/*; do
+  [ -f "$f" ] && [ -w "$f" ] && echo "[!] WRITABLE: $f"
+done
+echo ""
+echo "--- MOTD ownership ---"
+stat -c "%U:%G %a %n" /etc/update-motd.d/* 2>/dev/null
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[!] WRITABLE:")) {
+    const writable = r.stdout.split("\n").filter(l => l.includes("[!] WRITABLE:"))
+    findings.push({
+      checkId: "LNX-MOTD-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "motd",
+      title: "Writable MOTD scripts",
+      details: `${writable.length} writable script(s) in /etc/update-motd.d/: ${writable[0]?.replace("[!] WRITABLE: ", "")} — these run as root on every SSH login`,
+      remediation: "Set MOTD scripts to root:root 755.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function wildcardInjection(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Wildcard Injection ==="]
+
+  const script = `
+echo "--- tar with wildcard in cron/scripts ---"
+grep -rnE "tar .* \\*|tar .* \\." /etc/crontab /etc/cron.d/* /etc/cron.daily/* /etc/cron.hourly/* 2>/dev/null | grep -v "^#"
+echo ""
+echo "--- rsync with wildcard ---"
+grep -rnE "rsync .* \\*" /etc/crontab /etc/cron.d/* /etc/cron.daily/* /etc/cron.hourly/* 2>/dev/null | grep -v "^#"
+echo ""
+echo "--- chown/chmod with wildcard ---"
+grep -rnE "(chown|chmod) .* \\*" /etc/crontab /etc/cron.d/* /etc/cron.daily/* /etc/cron.hourly/* 2>/dev/null | grep -v "^#"
+echo ""
+echo "--- Systemd services with wildcards ---"
+grep -rnE "(tar|rsync|chown|chmod) .* \\*" /etc/systemd/system/*.service 2>/dev/null | grep -v "^#"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.match(/tar .* \*/)) {
+    findings.push({
+      checkId: "LNX-WILDCARD-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "cron",
+      title: "tar wildcard injection",
+      details: "tar command uses wildcard — create files named --checkpoint=1 and --checkpoint-action=exec=sh payload.sh for code execution",
+      remediation: "Use explicit file lists instead of wildcards. Quote arguments properly.",
+    })
+  }
+
+  if (r.stdout.match(/rsync .* \*/)) {
+    findings.push({
+      checkId: "LNX-WILDCARD-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "cron",
+      title: "rsync wildcard injection",
+      details: "rsync command uses wildcard — create file named -e sh payload.sh for code execution",
+      remediation: "Use explicit file lists instead of wildcards.",
+    })
+  }
+
+  if (r.stdout.match(/(chown|chmod) .* \*/)) {
+    findings.push({
+      checkId: "LNX-WILDCARD-003",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "VULNERABLE",
+      resource: "cron",
+      title: "chown/chmod wildcard injection",
+      details: "chown/chmod uses wildcard — create file named --reference=attacker_file to change permissions/ownership",
+      remediation: "Use explicit file lists. Run with -- before arguments.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function mysqlUdf(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== MySQL UDF Privilege Escalation ==="]
+
+  const script = `
+echo "--- MySQL/MariaDB running ---"
+ps aux 2>/dev/null | grep -E "[m]ysql|[m]ariadb"
+echo ""
+echo "--- MySQL running as ---"
+ps aux 2>/dev/null | grep -E "[m]ysqld" | awk '{print $1}' | sort -u
+echo ""
+echo "--- MySQL plugin_dir ---"
+mysql -e "SELECT @@plugin_dir;" 2>/dev/null || mysqld --verbose --help 2>/dev/null | grep plugin-dir | head -1
+echo ""
+echo "--- Plugin dir permissions ---"
+plugin_dir=$(mysql -e "SELECT @@plugin_dir;" 2>/dev/null | tail -1)
+[ -n "$plugin_dir" ] && ls -la "$plugin_dir" 2>/dev/null && [ -w "$plugin_dir" ] && echo "[!] plugin_dir is WRITABLE"
+echo ""
+echo "--- MySQL as root check ---"
+ps aux 2>/dev/null | grep -E "[m]ysqld" | grep root && echo "[!] MySQL running as root"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[!] MySQL running as root")) {
+    findings.push({
+      checkId: "LNX-MYSQLUDF-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "mysql",
+      title: "MySQL running as root",
+      details: "MySQL/MariaDB is running as root — upload UDF shared library (raptor_udf2.so) to plugin_dir, CREATE FUNCTION sys_exec, call it for root shell",
+      remediation: "Run MySQL as dedicated mysql user, never as root.",
+    })
+  }
+
+  if (r.stdout.includes("[!] plugin_dir is WRITABLE")) {
+    findings.push({
+      checkId: "LNX-MYSQLUDF-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "mysql",
+      title: "MySQL plugin directory writable",
+      details: "MySQL plugin_dir is writable — can upload UDF .so for command execution as the MySQL service user",
+      remediation: "Restrict plugin_dir to mysql:mysql 755.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function ptraceScopeCheck(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Ptrace Scope Check ==="]
+
+  const script = `
+echo "--- YAMA ptrace_scope ---"
+cat /proc/sys/kernel/yama/ptrace_scope 2>/dev/null
+echo ""
+echo "--- ptrace_scope meaning ---"
+val=$(cat /proc/sys/kernel/yama/ptrace_scope 2>/dev/null)
+case "$val" in
+  0) echo "0 = classic ptrace — any process can ptrace any other (PERMISSIVE)" ;;
+  1) echo "1 = restricted — only parent can ptrace child (DEFAULT)" ;;
+  2) echo "2 = admin-only — only CAP_SYS_PTRACE can ptrace" ;;
+  3) echo "3 = no-attach — ptrace completely disabled" ;;
+  *) echo "Unknown or YAMA not available" ;;
+esac
+echo ""
+echo "--- process_vm_readv capability ---"
+cat /proc/self/status 2>/dev/null | grep -i "cap"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const val = r.stdout.split("\n")[0]?.trim()
+  if (val === "0") {
+    findings.push({
+      checkId: "LNX-PTRACE-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "VULNERABLE",
+      resource: "kernel",
+      title: "ptrace_scope is 0 — classic permissive mode",
+      details: "Any process can ptrace any other process — enables credential extraction from sshd/sudo, process injection, and debugging attacks",
+      remediation: "Set kernel.yama.ptrace_scope=1 or higher in /etc/sysctl.conf.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
