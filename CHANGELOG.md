@@ -8,35 +8,83 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 
 ## [Unreleased]
 
+## [1.1.16] — 2026-08-08
+
 ### Added
 
-- **11 built-in MCP servers** — 8 new official MCP servers added to the default configuration, bringing the total from 3 to 11. All load at lowest priority so user config can override. New servers: `cloud-audit` (AWS/Azure/GCP misconfiguration), `hackbrowser` (AI browser security testing), `darknet` (dark web & breach intel), `dns-security` (DNSSEC, hijacking, tunneling), `supply-chain` (OSV, GHSA, dependency audit), `mcp-scanner` (MCP server security analysis), `steganography` (digital forensics & stego), `satellite` (geospatial & maritime OSINT)
+- **Linux post-exploitation tool (linuxhook)** — 120 programs across 9 categories for the `internal-network` agent, executed via `linuxhook <program>` after gaining access on Linux targets. Full native TypeScript implementation with bash/sh/python3/perl/busybox execution fallback chain and base64/memfd/shm stealth modes
+  - **Reconnaissance (12):** `system_info`, `process_enum`, `network_enum`, `user_enum`, `service_enum`, `package_enum`, `container_detect`, `security_framework`, `interesting_files`, `mount_enum`, `kernel_module_enum`, `local_recon_linux`
+  - **Credential harvesting (20):** `shadow_dump`, `ssh_key_harvest`, `bash_history_secrets`, `gnome_keyring_dump`, `kwallet_dump`, `browser_creds_linux`, `env_secrets`, `proc_memory_harvest`, `gpg_key_extract`, `cloud_cred_harvest`, `docker_config_creds`, `git_cred_harvest`, `wifi_creds_nm`, `kerberos_keytab`, `db_cred_harvest`, `vnc_password`, `mail_spool_harvest`, `netrc_harvest`, `ldap_cred_harvest`, `credential_files_scan`
+  - **Privilege escalation (25):** `sudo_misconfig`, `suid_sgid_scan`, `capabilities_abuse`, `cron_privesc`, `nfs_no_root_squash`, `path_hijack`, `ld_preload_abuse`, `kernel_exploit_check`, `writable_passwd`, `pkexec_cve`, `systemd_unit_abuse`, `dbus_exploit`, `pip_setup_abuse`, `shared_lib_hijack`, `logrotate_race`, `writable_service_bin`, `polkit_bypass`, `snap_privesc`, `docker_group_escape`, `lxd_group_escape`, `python_lib_hijack`, `motd_abuse`, `wildcard_injection`, `mysql_udf`, `ptrace_scope_check`
+  - **Persistence (22):** `cron_persist`, `systemd_persist`, `bashrc_persist`, `ssh_authorized_keys`, `ld_so_preload`, `sysvinit_persist`, `at_job_persist`, `udev_rules_persist`, `pam_backdoor`, `motd_persist`, `xdg_autostart`, `git_hook_persist`, `kernel_module_persist`, `apt_hook_persist`, `dpkg_trigger_persist`, `socket_activation`, `user_service_persist`, `xinetd_persist`, `rc_local_persist`, `logrotate_persist`, `ssh_rc_persist`, `ld_config_persist`
+  - **Lateral movement (10):** `ssh_pivot`, `ansible_abuse`, `puppet_abuse`, `salt_abuse`, `nfs_mount_attack`, `rsync_exploit`, `ssh_tunnel`, `socat_tunnel`, `internal_scan`, `proxychains_setup`
+  - **Defense evasion (12):** `log_tamper`, `history_clear`, `timestomp`, `auditd_evade`, `selinux_bypass`, `apparmor_bypass`, `rootkit_detect`, `process_hide`, `file_hide`, `network_hide`, `syslog_manipulate`, `stealth_check_linux`
+  - **Exfiltration (8):** `data_stage`, `dns_tunnel_exfil`, `icmp_exfil`, `covert_channel`, `https_exfil`, `cleanup_linux`, `artifact_enum`, `steganography_exfil`
+  - **Network attacks (9):** `arp_spoof`, `dns_spoof`, `packet_capture`, `port_scan_native`, `mitm_proxy`, `responder_linux`, `firewall_enum`, `traffic_redirect`, `wifi_attack`
+  - **IPv6 (1):** `ipv6_attack` — RA spoofing, DHCPv6, SLAAC abuse
+- **Container security tool (containerhook)** — 7 Docker container security programs for container escape, privilege escalation, and network pivoting
+- **IaC audit tool (iachook)** — 8 Terraform/Infrastructure-as-Code audit programs for misconfiguration detection
+- **Kubernetes security audit (k8s-audit)** — READ-ONLY Kubernetes security assessment tool with 10 programs: `rbac_audit`, `verify_readonly`, `network_policy_audit`, `pod_security_audit`, `secrets_audit`, `image_audit`, `api_server_audit`, `resource_limits_audit`, `ingress_audit`, `serviceaccount_audit`
+- **CI/CD security audit (ci-audit)** — READ-ONLY CI/CD pipeline security assessment tool with 8 programs for GitHub Actions, GitLab CI, Jenkins, and CircleCI
+- **GCP post-exploitation tool (gcphook)** — native GCP post-exploitation tool registered for `internal-network` and `cloud-security` agents
+- **Native cloud security audit tool (cloud_audit)** — registered for both `internal-network` and `cloud-security` agents with gcphook access
+- **`linux-postexploit` skill** — kill chain methodology with full MITRE ATT&CK mappings for all 120 linuxhook programs
+- **`ci-assessment` skill** — CI/CD pipeline security methodology documentation
+- **cve-mcp dynamic CTA** — all three OS hooks (winhook, linuxhook, machook) now include dynamic Call-To-Action in recon findings, guiding the agent to query `cve-mcp` for any discovered software/service with a version number. Replaces hardcoded service version check lists with a universal approach: `cve search_by_product --product <name> --version <ver>`. If cve-mcp is not enabled, the agent prompts users to enable it via `cyberstrike mcp enable cve`
 
 ### Changed
 
-- **Built-in MCP servers disabled by default** — all 11 MCP servers are now installed but disabled to avoid token overhead. The agent is aware of disabled servers and will remind users to enable them when relevant capabilities are needed. Enable via MCP panel or `cyberstrike mcp enable <name>`
-- **README: accurate platform numbers** — updated provider count (15+ → 150+), model count (5,300+), tool count (30+ → 56+), expanded provider table from 14 to 23 entries. Added Security Skills section (7,600+ Ed25519-signed skill files), Post-Exploitation section (macOS/Windows/Linux/AWS/Azure/K8s/CI/CD), and nav links
+- **winhook modular refactor** — monolithic `winhook.ts` split into 16 module files: `shared.ts`, `recon.ts`, `credential.ts`, `privesc.ts`, `persistence.ts`, `lateral.ts`, `evasion.ts`, `network.ts`, `injection.ts`, `kerberos.ts`, `ad-enum.ts`, `ad-exploit.ts`, `ad-cert-trust.ts`, `hybrid.ts`, `exfil.ts`, `index.ts`. Total 154 programs across 14 categories with CWE mapping
+- **winhook cmd.exe fallback** — all 154 winhook handlers now have `cmd.exe`/`reg.exe`/`wmic`/`vbs` fallback execution paths for environments where PowerShell is restricted (CLM, AppLocker, Defender ASR). Covers all 14 modules: recon (7), credential (21), privesc (23), persistence (23), lateral (10), evasion (11), network (9), injection (1), kerberos (12), ad-enum (8), ad-exploit (11), ad-cert-trust (6), hybrid (5), exfil (6)
+- **machook modular refactor** — monolithic `machook.ts` (12 programs) refactored into 10 module files with 46 programs: recon (7), credential (8), privesc (6), persistence (6), evasion (6), monitoring (6), lateral (4), exfil/cleanup (3). New handlers include Safari/cloud/GPG/iCloud/mail credential harvesting, dylib hijacking, authorization DB abuse, AirDrop/Bonjour/ARD lateral movement, endpoint security bypass, clipboard monitoring, screen capture
+- **azurehook native TypeScript** — all 8 Azure programs converted from Python to native TypeScript. Python scripts deleted
+- **kubehook native TypeScript** — all 7 Kubernetes programs converted from Python to native TypeScript. Python scripts deleted
+- **cipipe native TypeScript** — all 5 CI/CD pipeline programs converted from Python to native TypeScript. Python scripts deleted
+- **`macos-postexploit` skill** — updated from 12 to 46 programs with full kill chain methodology and MITRE ATT&CK mappings
 
 ### Fixed
 
-- **Copilot OAuth uses GitHub's first-party app** — replaced upstream's third-party OAuth app (`Ov23`, OpenCode by Anomaly) with GitHub's official Copilot CLI OAuth app (`Iv1.b507a08c87ecfe98`). Enterprise customers now see "Authorize GitHub Copilot CLI by GitHub" instead of "Authorize OpenCode by Anomaly". Also enables `copilot_internal/v2/token` for live model catalog discovery and adds `copilot` scope for proper API access
-- **HackBrowser works with GitHub Copilot** — Copilot's OAuth token is now extracted and passed to the crawler subprocess via `ModelDescriptor`, following the same pattern as Anthropic Pro/Max. Previously, Copilot users got "OAuth/subscription auth runs only in the main process" error when launching hackbrowser
-- **HackBrowser auto-installs Chromium on first use** — when Chromium browser is missing, hackbrowser now automatically downloads it via Playwright CLI with SSL verification bypass for corporate proxy environments. No manual `npx playwright install chromium` step needed
-- **HackBrowser planner token budget** — raised `maxOutputTokens` from 2048 to 16384 in both `planPage()` and `planUnexploredElements()`. OpenAI reasoning models (o4-mini) share `max_completion_tokens` between internal reasoning and visible output — 2048 was far below OpenAI's recommended 25,000+ minimum, causing the planner to return empty JSON and fall back to "nothing to do". Added `reasoningEffort: "low"` provider option to minimize reasoning token consumption
-- **Postinstall works in corporate proxy environments** — Playwright JS package installation during `npm install` now bypasses SSL verification to avoid `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` errors from corporate MITM proxies
-- **Windows PATH auto-configuration** — postinstall now detects if npm's global bin directory is missing from the user PATH and adds it automatically via PowerShell (no admin required). Fixes the issue where `cyberstrike` command was not found after `npm install -g` in corporate Windows environments
-- **curl installer auto-installs Playwright JS** — `install.sh` now automatically installs the Playwright JS package (~5 MB) with SSL bypass for corporate proxies. Combined with the launcher's Chromium auto-install, hackbrowser works out of the box with zero manual setup
-- **Provider: Gemini schema sanitization** — flatten type arrays (`["string", "null"]` → single type + `nullable: true`), strip `$defs`/`definitions`, remove `additionalProperties` from non-object types. Gemini API rejects these OpenAPI constructs
-- **Provider: GitHub Copilot schema sanitization** — apply the same OpenAI schema sanitization (`sanitizeOpenAISchema`) to the `@ai-sdk/github-copilot` provider, fixing schema validation errors when using MCP tools through Copilot
-- **Provider: error message extraction** — extract nested error messages from `body.detail`, `body.errors[0].message`, and string-type `body.error` in addition to existing patterns
-- **Provider: overflow detection** — added context overflow patterns for Mistral, Cerebras, Cohere, Venice AI, and Together AI providers
-- **Provider: MiniMax M3 parameters** — added sampling parameters (temperature 1.0, topP 0.95, topK 40) for MiniMax M3 model family
-- **Provider: Devstral detection** — use locale-invariant `toLowerCase()` instead of `toLocaleLowerCase()` to avoid Turkish `İ`/`i` locale issues
-- **MCP: tool execution crash** — `client.callTool` exceptions now caught and returned as `{ isError: true }` results instead of crashing the session
-- **MCP: URL validation** — validate URL before creating remote transport, preventing cryptic errors from malformed MCP server URLs
-- **MCP: log message accuracy** — corrected "failed to get prompts" → "failed to get resources" in `fetchResourcesForClient` and "failed to get prompt from MCP server" → "failed to read resource from MCP server" in `readResource`
-- **Session: auto-compaction config** — `compaction.auto: false` was checked in `isOverflow()` but not in the `process()` continuation path, causing auto-compaction to run even when explicitly disabled
-- **Session: content-filter visibility** — when a provider returns `content-filter` finish reason, the response now shows a message to the user instead of appearing as a silent empty response
+- **linuxhook: service_enum** — removed hardcoded 18-service version check list that would miss any service not in the predefined array. Replaced with dynamic cve-mcp CTA that works for any discovered service
+- **linuxhook: bash syntax** — fixed multiple `${}` bash parameter expansion syntax errors in template literals and steganography handler
+- **linuxhook: agent prompt** — aligned agent prompt arguments with actual PROGRAMS definitions
+- **winhook/machook: cross-reference** — updated tool cross-references from `ebpf` to `linuxhook` for Linux post-exploitation
+- **Provider: Gemini schema sanitization** — flatten type arrays, strip `$defs`/`definitions`, remove `additionalProperties` from non-object types
+- **Provider: GitHub Copilot schema sanitization** — apply OpenAI schema sanitization to `@ai-sdk/github-copilot` provider
+- **Provider: Vertex regional endpoints** — use regional endpoints for Vertex Anthropic in EU/US
+- **Provider: Copilot stale response IDs** — strip stale Responses API item IDs
+- **Provider: error extraction** — extract nested error messages from more response formats
+- **Provider: overflow detection** — added patterns for Mistral, Cerebras, Cohere, Venice AI, Together AI
+- **Provider: Devstral detection** — locale-invariant `toLowerCase()` for Turkish locale compatibility
+- **Provider: Codex compatibility** — version-based regex filter for future model compatibility
+- **MCP: orphan process cleanup** — kill orphaned grandchild processes on MCP server shutdown with process tree descendant discovery
+- **MCP: token masking** — mask access tokens in debug output
+- **MCP: tool execution crash** — `client.callTool` exceptions caught and returned as error results
+- **MCP: URL validation** — validate URL before creating remote transport
+- **Session: auto-compaction** — respect `compaction.auto: false` in continuation path
+- **Session: content-filter** — surface content-filter finish reason to user
+- **Session: compaction summary** — preserve relevant files and improve template
+- **Session: empty messages** — filter empty messages before model conversion
+- **Session: reasoning fallback** — lower failed reasoning to text on model switch
+- **Config: CRLF frontmatter** — handle CRLF line endings in frontmatter fallback parser
+- **Config: permission JSON** — tolerate invalid `CYBERSTRIKE_PERMISSION` JSON
+- **Config: permission-denied dirs** — handle inaccessible config directories gracefully
+- **Edit tool: destructive prevention** — prevent destructive edit with empty oldString and harden fuzzy matching
+- **Grep: symlink support** — follow symlinks by default in ripgrep searches
+- **File: binary detection** — remove script extensions from binary detection list
+- **Permission: Windows paths** — expand backslash in home-relative paths
+- **UI: entity decoding** — single-pass decoding to prevent double-escaping
+- **ID generation: modulo bias** — use rejection sampling to eliminate bias in random ID generation
+- **Sanitization: backslash escaping** — escape backslashes before quoting strings
+
+### Security
+
+- **fast-xml-parser** 5.9.3 → 5.10.1 — fixes repeated DOCTYPE declarations resetting entity expansion limits (DoS via XML parsing)
+- **dompurify** 3.4.11 → 3.4.12 — fixes `CUSTOM_ELEMENT_HANDLING` bypassing `afterSanitizeElements` for allowed custom elements
+
+### Testing
+
+- **inject-probe test suite** — 13 new test files covering payload battery correctness, cross-location injection, parameter discovery, path segment injection, multipart form-data parsing, excerpt utilities, WAF/block detection, input validation, cookie manipulation, JSON field operations, scope validation, XSS context routing, and XSS context classification
+- **vuln-scope test suite** — 7 new test files with 166+ test cases covering scope violation detection, finding classification, lane routing, off-lane messaging, and tester class categorization
 - **Config: CRLF parsing** — frontmatter fallback parser now splits on `/\r?\n/` instead of `"\n"`, fixing parse failures on Windows-edited markdown files
 - **File: script binary detection** — removed `.bat`, `.cmd`, `.ps1`, `.sh`, `.bash`, `.zsh`, `.fish` from the binary extensions set. These text-based scripts were incorrectly returning `{ type: "binary", content: "" }`, preventing agents from reading them
 - **Grep: symlink traversal** — ripgrep searches now follow symlinks by default, matching expected behavior in monorepos with linked packages
