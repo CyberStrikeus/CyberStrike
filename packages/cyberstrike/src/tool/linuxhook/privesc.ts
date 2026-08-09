@@ -102,3 +102,71 @@ sudo -l 2>/dev/null | grep -iE "(vim|vi|nano|find|nmap|python|perl|ruby|less|mor
 
   return { output: output.join("\n"), findings }
 }
+
+export async function suidSgidScan(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== SUID/SGID Binary Scan ==="]
+
+  const script = `
+echo "--- SUID Binaries ---"
+find / -perm -4000 -type f 2>/dev/null | sort
+echo ""
+echo "--- SGID Binaries ---"
+find / -perm -2000 -type f 2>/dev/null | sort
+echo ""
+echo "--- SUID binary details ---"
+find / -perm -4000 -type f 2>/dev/null | while read -r f; do
+  perms=$(ls -la "$f" 2>/dev/null | awk '{print $1, $3, $4}')
+  echo "  $perms  $f"
+done
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const gtfobinsSuid = ["nmap", "vim", "vi", "find", "bash", "dash", "zsh", "sh", "python", "python3", "perl", "ruby", "env", "cp", "mv", "docker", "pkexec", "node", "php", "lua", "gcc", "make", "strace", "ltrace", "gdb", "tee", "wget", "curl", "dd", "openssl", "ssh", "scp", "mount", "systemctl", "journalctl", "apt", "yum", "pip", "pip3", "start-stop-daemon", "taskset", "nice", "ionice", "time", "timeout", "watch", "xargs", "ar", "ed", "nano", "pico", "less", "more", "man", "git", "ftp", "socat", "zip", "tar", "rsync", "awk", "gawk", "mawk", "sed"]
+  const suidLines = r.stdout.split("\n").filter(l => l.startsWith("/"))
+  const exploitable = suidLines.filter(l => gtfobinsSuid.some(b => l.endsWith("/" + b) || l.includes("/" + b + " ")))
+  const custom = suidLines.filter(l => !l.includes("/usr/bin/") && !l.includes("/usr/sbin/") && !l.includes("/usr/lib/") && !l.includes("/bin/") && !l.includes("/sbin/"))
+
+  if (exploitable.length > 0) {
+    findings.push({
+      checkId: "LNX-SUID-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "suid_binaries",
+      title: "GTFOBins-exploitable SUID binaries found",
+      details: `${exploitable.length} SUID binary/binaries match GTFOBins entries: ${exploitable.map(l => l.split("/").pop()).join(", ")} — can be used for privilege escalation`,
+      remediation: "Remove SUID bit from unnecessary binaries (chmod u-s). Use capabilities instead where possible.",
+    })
+  }
+
+  if (custom.length > 0) {
+    findings.push({
+      checkId: "LNX-SUID-002",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "IDENTIFIED",
+      resource: "suid_binaries",
+      title: "Custom/non-standard SUID binaries found",
+      details: `${custom.length} SUID binary/binaries in non-standard locations: ${custom.slice(0, 5).join(", ")} — may be vulnerable to exploitation`,
+      remediation: "Audit custom SUID binaries for vulnerabilities. Remove SUID bit if not required.",
+    })
+  }
+
+  if (suidLines.length > 0 && exploitable.length === 0) {
+    findings.push({
+      checkId: "LNX-SUID-003",
+      provider: "linuxhook",
+      severity: "INFO",
+      status: "IDENTIFIED",
+      resource: "suid_binaries",
+      title: "SUID/SGID binaries enumerated",
+      details: `${suidLines.length} SUID/SGID binary/binaries found — no direct GTFOBins matches but manual review recommended`,
+      remediation: "Minimize SUID/SGID binaries on the system",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
