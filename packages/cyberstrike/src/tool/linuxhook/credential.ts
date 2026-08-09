@@ -993,3 +993,74 @@ done
   return { output: output.join("\n"), findings }
 }
 
+export async function wifiCredsNm(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== WiFi Credentials (NetworkManager) ==="]
+
+  const script = `
+echo "--- NetworkManager Connections ---"
+nmdir="/etc/NetworkManager/system-connections"
+if [ -d "$nmdir" ]; then
+  for f in "$nmdir"/*; do
+    if [ -f "$f" ]; then
+      ssid=$(grep "^ssid=" "$f" 2>/dev/null | cut -d= -f2)
+      psk=$(grep "^psk=" "$f" 2>/dev/null | cut -d= -f2)
+      if [ -n "$psk" ]; then
+        echo "[+] SSID: $ssid  PSK: $psk  File: $f"
+      elif [ -n "$ssid" ]; then
+        echo "[*] SSID: $ssid  (no PSK/open)  File: $f"
+      fi
+    fi
+  done
+else
+  echo "[-] NetworkManager connections directory not found"
+fi
+
+echo ""
+echo "--- wpa_supplicant.conf ---"
+for f in /etc/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant-*.conf; do
+  if [ -f "$f" ]; then
+    echo "[+] wpa_supplicant config: $f"
+    grep -A5 "network=" "$f" 2>/dev/null | grep -E "(ssid|psk|password|identity)" | head -20
+    echo ""
+  fi
+done
+
+echo ""
+echo "--- nmcli saved connections ---"
+nmcli -t -f NAME,TYPE,DEVICE connection show 2>/dev/null | head -20
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const wifiCreds = (r.stdout.match(/PSK: /g) || []).length
+  if (wifiCreds > 0) {
+    findings.push({
+      checkId: "LNX-WIFI-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "wifi_credentials",
+      title: "WiFi passwords extracted",
+      details: `${wifiCreds} WiFi network password(s) extracted from NetworkManager configuration files`,
+      remediation: "Restrict NetworkManager connection files to root only (chmod 600). Use 802.1X/EAP instead of PSK.",
+    })
+  }
+
+  if (r.stdout.includes("wpa_supplicant config:")) {
+    findings.push({
+      checkId: "LNX-WIFI-002",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "wpa_supplicant",
+      title: "wpa_supplicant configuration with credentials",
+      details: "wpa_supplicant config contains WiFi credentials — may include enterprise 802.1X identity and password",
+      remediation: "Restrict wpa_supplicant.conf permissions. Use certificate-based authentication.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
