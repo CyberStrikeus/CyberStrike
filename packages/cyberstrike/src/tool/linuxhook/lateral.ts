@@ -673,3 +673,56 @@ echo "Usage: linuxhook internal_scan --subnet 10.0.0.0/24 --ports 22,80,443"
 
   return { output: output.join("\n"), findings }
 }
+
+export async function proxychainsSetup(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Proxychains Setup ==="]
+  const proxyHost = argVal(args, "--proxy-host") || "127.0.0.1"
+  const proxyPort = argVal(args, "--proxy-port") || "1080"
+
+  const script = `
+echo "--- Proxychains Installation ---"
+command -v proxychains4 >/dev/null 2>&1 && echo "[+] proxychains4 available" || \
+command -v proxychains >/dev/null 2>&1 && echo "[+] proxychains available" || \
+echo "[-] proxychains not installed"
+
+echo ""
+echo "--- Current Configuration ---"
+for f in /etc/proxychains.conf /etc/proxychains4.conf ~/.proxychains/proxychains.conf; do
+  if [ -f "$f" ]; then
+    echo "[*] Config: $f"
+    grep -vE "^(#|$)" "$f" 2>/dev/null | tail -10
+  fi
+done
+
+echo ""
+echo "--- SOCKS Proxy Status ---"
+ss -tlnp 2>/dev/null | grep ":${proxyPort}" || echo "[-] No listener on port ${proxyPort}"
+
+echo ""
+echo "--- Setup Instructions ---"
+echo "1. Start SOCKS proxy: ssh -D ${proxyPort} -f -N pivot_host"
+echo "2. Configure proxychains:"
+echo "   echo 'socks5 ${proxyHost} ${proxyPort}' >> /etc/proxychains.conf"
+echo "3. Use: proxychains nmap -sT 10.0.0.0/24"
+echo "   proxychains curl http://internal-app:8080"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] proxychains")) {
+    findings.push({
+      checkId: "LNX-TUNNEL-003",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "IDENTIFIED",
+      resource: "proxychains",
+      title: "Proxychains available for pivoting",
+      details: `Proxychains installed — can tunnel traffic through SOCKS proxy on ${proxyHost}:${proxyPort}`,
+      remediation: "Remove proxychains from production systems. Monitor for SOCKS proxy connections.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
