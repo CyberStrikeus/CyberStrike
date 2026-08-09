@@ -966,3 +966,95 @@ mount | grep "/dev/shm" 2>/dev/null
 
   return { output: output.join("\n"), findings }
 }
+
+export async function kernelModuleEnum(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Kernel Module Enumeration ==="]
+
+  const script = `
+echo "--- Loaded Modules ---"
+lsmod 2>/dev/null || cat /proc/modules 2>/dev/null
+echo ""
+echo "--- Module Count ---"
+lsmod 2>/dev/null | tail -n +2 | wc -l
+echo ""
+echo "--- /etc/modules ---"
+cat /etc/modules 2>/dev/null || echo "No /etc/modules"
+echo ""
+echo "--- /etc/modules-load.d/ ---"
+ls -la /etc/modules-load.d/ 2>/dev/null
+for f in /etc/modules-load.d/*; do
+  [ -f "$f" ] && echo "-- $f --" && cat "$f"
+done
+echo ""
+echo "--- /etc/modprobe.d/ ---"
+ls -la /etc/modprobe.d/ 2>/dev/null
+for f in /etc/modprobe.d/*; do
+  [ -f "$f" ] && echo "-- $f --" && cat "$f"
+done
+echo ""
+echo "--- Module Load Disabled? ---"
+cat /proc/sys/kernel/modules_disabled 2>/dev/null
+echo ""
+echo "--- Security Modules ---"
+lsmod 2>/dev/null | grep -iE "(selinux|apparmor|tomoyo|smack|loadpin|yama|integrity|ima|evm)" || echo "No MAC modules loaded"
+echo ""
+echo "--- Networking Modules ---"
+lsmod 2>/dev/null | grep -iE "(ip_tables|nf_|xt_|ip6|bridge|bonding|vxlan|wireguard|tun|tap)" | head -20
+echo ""
+echo "--- USB/Storage Modules ---"
+lsmod 2>/dev/null | grep -iE "(usb|storage|hid|usbcore)" | head -10
+echo ""
+echo "--- Loadable Module Paths ---"
+ls /lib/modules/$(uname -r)/kernel/ 2>/dev/null | head -20
+echo ""
+echo "--- Module Signing ---"
+cat /proc/sys/kernel/module_sig_enforce 2>/dev/null || echo "module_sig_enforce: not available"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const modCountMatch = r.stdout.match(/Module Count ---\n\s*(\d+)/m)
+  const modCount = modCountMatch ? parseInt(modCountMatch[1]) : 0
+  findings.push({
+    checkId: "LNX-KMODULES-001",
+    provider: "linuxhook",
+    severity: "INFO",
+    status: "IDENTIFIED",
+    resource: "kernel",
+    title: `${modCount} kernel modules loaded`,
+    details: `${modCount} kernel module(s) currently loaded — review for unnecessary or vulnerable modules`,
+    remediation: "Blacklist unnecessary kernel modules in /etc/modprobe.d/; disable USB storage if not needed",
+  })
+
+  const modulesDisabled = r.stdout.match(/Module Load Disabled\? ---\n(\d)/m)
+  if (modulesDisabled && modulesDisabled[1] === "0") {
+    findings.push({
+      checkId: "LNX-KMODULES-002",
+      provider: "linuxhook",
+      severity: "LOW",
+      status: "IDENTIFIED",
+      resource: "kernel",
+      title: "Kernel module loading is enabled",
+      details: "modules_disabled=0 — new kernel modules can be loaded at runtime (rootkit installation possible with root access)",
+      remediation: "Set kernel.modules_disabled=1 after boot if dynamic module loading is not needed",
+    })
+  }
+
+  const sigEnforce = r.stdout.match(/module_sig_enforce: not available/m) || r.stdout.match(/module_sig_enforce ---\n0/m)
+  if (sigEnforce) {
+    findings.push({
+      checkId: "LNX-KMODULES-003",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "IDENTIFIED",
+      resource: "kernel",
+      title: "Kernel module signature enforcement disabled",
+      details: "Module signature verification is not enforced — unsigned/malicious kernel modules can be loaded",
+      remediation: "Enable CONFIG_MODULE_SIG_FORCE in kernel config; sign all modules with trusted key",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
