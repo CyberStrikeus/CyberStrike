@@ -600,7 +600,10 @@ export async function ipv6Attack(args: string[], timeout: number): Promise<HookR
 
   const exec = activeExec === "sh" ? sh : bash
 
-  const ipv6Check = await exec(`ip -6 addr show dev ${iface} 2>/dev/null || ifconfig ${iface} 2>/dev/null | grep inet6`, timeout)
+  const ipv6Check = await exec(
+    `ip -6 addr show dev ${iface} 2>/dev/null || ifconfig ${iface} 2>/dev/null | grep inet6`,
+    timeout,
+  )
   if (ipv6Check.stdout.trim()) {
     output.push("[+] IPv6 addresses on interface:")
     output.push(ipv6Check.stdout.trim())
@@ -623,7 +626,8 @@ export async function ipv6Attack(args: string[], timeout: number): Promise<HookR
         resource: iface,
         title: `${neighbors.length} IPv6 neighbors discovered`,
         details: `IPv6 neighbor discovery on ${iface} found ${neighbors.length} hosts. These are potential targets for RA spoofing and DHCPv6 attacks.`,
-        remediation: "Implement RA Guard (IEEE 802.1Dj). Enable DHCPv6 Guard on switches. Use SEcure Neighbor Discovery (SEND).",
+        remediation:
+          "Implement RA Guard (IEEE 802.1Dj). Enable DHCPv6 Guard on switches. Use SEcure Neighbor Discovery (SEND).",
       })
     }
   }
@@ -636,7 +640,10 @@ export async function ipv6Attack(args: string[], timeout: number): Promise<HookR
   }
 
   if (action === "scan") {
-    const linkLocal = await exec(`ping6 -c 3 -I ${iface} ff02::1 2>/dev/null | grep 'from' | awk '{print $4}' | tr -d ':' | sort -u`, timeout)
+    const linkLocal = await exec(
+      `ping6 -c 3 -I ${iface} ff02::1 2>/dev/null | grep 'from' | awk '{print $4}' | tr -d ':' | sort -u`,
+      timeout,
+    )
     if (linkLocal.stdout.trim()) {
       const hosts = linkLocal.stdout.trim().split("\n").filter(Boolean)
       output.push(`[+] Link-local multicast scan — ${hosts.length} hosts responded:`)
@@ -720,7 +727,8 @@ export async function ipv6Attack(args: string[], timeout: number): Promise<HookR
       resource: iface,
       title: "DHCPv6 DNS poisoning",
       details: `DHCPv6 spoofing on ${iface} can override DNS server for all IPv6 clients. Windows prefers IPv6 → effective even on IPv4 networks. ${hasMitm6.exitCode === 0 ? "mitm6 available." : ""}`,
-      remediation: "Enable DHCPv6 Guard on switches. Block ICMPv6 Type 134 at network edge. Disable IPv6 if not needed.",
+      remediation:
+        "Enable DHCPv6 Guard on switches. Block ICMPv6 Type 134 at network edge. Disable IPv6 if not needed.",
     })
   }
 
@@ -730,7 +738,10 @@ export async function ipv6Attack(args: string[], timeout: number): Promise<HookR
     output.push("    Attack: Send RA with attacker-controlled prefix → hosts auto-configure on attacker's subnet")
     output.push("")
 
-    const sysctl = await exec("sysctl -a 2>/dev/null | grep 'net.ipv6.conf' | grep -E 'accept_ra|autoconf|forwarding'", timeout)
+    const sysctl = await exec(
+      "sysctl -a 2>/dev/null | grep 'net.ipv6.conf' | grep -E 'accept_ra|autoconf|forwarding'",
+      timeout,
+    )
     if (sysctl.stdout.trim()) {
       output.push("[+] IPv6 sysctl configuration:")
       const lines = sysctl.stdout.trim().split("\n")
@@ -747,7 +758,8 @@ export async function ipv6Attack(args: string[], timeout: number): Promise<HookR
           status: "VULNERABLE",
           resource: iface,
           title: `${acceptRa.length} interfaces accepting Router Advertisements`,
-          details: "Interfaces with accept_ra=1 will auto-configure IPv6 addresses from any RA sender. Attacker can inject rogue prefix to redirect traffic.",
+          details:
+            "Interfaces with accept_ra=1 will auto-configure IPv6 addresses from any RA sender. Attacker can inject rogue prefix to redirect traffic.",
           remediation: "Set net.ipv6.conf.*.accept_ra=0 on server interfaces. Use static IPv6 configuration.",
         })
       }
