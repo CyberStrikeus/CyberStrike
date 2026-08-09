@@ -294,7 +294,10 @@ awk -F: '$3 == 0 {print $1}' /etc/passwd 2>/dev/null
 
   const uid0Match = r.stdout.match(/Users with UID 0 ---\n([\s\S]*?)(\n---|$)/m)
   if (uid0Match) {
-    const uid0Users = uid0Match[1].trim().split("\n").filter((l: string) => l.trim() && l.trim() !== "root")
+    const uid0Users = uid0Match[1]
+      .trim()
+      .split("\n")
+      .filter((l: string) => l.trim() && l.trim() !== "root")
     if (uid0Users.length > 0) {
       findings.push({
         checkId: "LNX-USERS-003",
@@ -311,7 +314,14 @@ awk -F: '$3 == 0 {print $1}' /etc/passwd 2>/dev/null
 
   if (r.stdout.includes("empty passwords")) {
     const emptyPwSection = r.stdout.split("empty passwords ---")[1]
-    if (emptyPwSection && !emptyPwSection.includes("Cannot read") && emptyPwSection.trim().split("\n").filter((l: string) => l.trim()).length > 0) {
+    if (
+      emptyPwSection &&
+      !emptyPwSection.includes("Cannot read") &&
+      emptyPwSection
+        .trim()
+        .split("\n")
+        .filter((l: string) => l.trim()).length > 0
+    ) {
       findings.push({
         checkId: "LNX-USERS-004",
         provider: "linuxhook",
@@ -376,7 +386,7 @@ systemctl list-units --state=failed 2>/dev/null
   })
 
   const dangerousServices = ["telnet", "rsh", "rlogin", "rexec", "ftp", "tftp", "finger", "talk"]
-  const foundDangerous = dangerousServices.filter(s => r.stdout.toLowerCase().includes(s))
+  const foundDangerous = dangerousServices.filter((s) => r.stdout.toLowerCase().includes(s))
   if (foundDangerous.length > 0) {
     findings.push({
       checkId: "LNX-SERVICES-002",
@@ -459,7 +469,10 @@ done
     remediation: "Keep packages updated; remove unnecessary packages to reduce attack surface",
   })
 
-  const secTools = (r.stdout.match(/FOUND: (nmap|nikto|sqlmap|hydra|john|hashcat|metasploit|responder|crackmapexec|evil-winrm|bloodhound)/g) || [])
+  const secTools =
+    r.stdout.match(
+      /FOUND: (nmap|nikto|sqlmap|hydra|john|hashcat|metasploit|responder|crackmapexec|evil-winrm|bloodhound)/g,
+    ) || []
   if (secTools.length > 0) {
     findings.push({
       checkId: "LNX-PACKAGES-002",
@@ -473,7 +486,7 @@ done
     })
   }
 
-  const compilers = (r.stdout.match(/FOUND: (gcc|g\+\+|make|cmake)/g) || [])
+  const compilers = r.stdout.match(/FOUND: (gcc|g\+\+|make|cmake)/g) || []
   if (compilers.length > 0) {
     findings.push({
       checkId: "LNX-PACKAGES-003",
@@ -550,7 +563,17 @@ capsh --print 2>/dev/null | grep -i "current"
   const isK8s = r.stdout.includes("KUBERNETES_SERVICE_HOST") && !r.stdout.includes("K8S_SERVICE_HOST: \n")
   const inContainer = isDocker || isPodman || isLxc || isWsl || isK8s
 
-  const containerType = isK8s ? "kubernetes" : isDocker ? "docker" : isPodman ? "podman" : isLxc ? "lxc" : isWsl ? "wsl" : "none"
+  const containerType = isK8s
+    ? "kubernetes"
+    : isDocker
+      ? "docker"
+      : isPodman
+        ? "podman"
+        : isLxc
+          ? "lxc"
+          : isWsl
+            ? "wsl"
+            : "none"
 
   findings.push({
     checkId: "LNX-CONTAINER-001",
@@ -573,7 +596,8 @@ capsh --print 2>/dev/null | grep -i "current"
       status: "VULNERABLE",
       resource: "docker.sock",
       title: "Docker socket accessible from container",
-      details: "Docker socket (/var/run/docker.sock) is mounted — full container escape possible via docker run with host mount",
+      details:
+        "Docker socket (/var/run/docker.sock) is mounted — full container escape possible via docker run with host mount",
       remediation: "Never mount Docker socket into containers; use Docker-in-Docker with rootless mode",
     })
   }
@@ -642,7 +666,11 @@ command -v osquery >/dev/null 2>&1 && echo "osquery: installed" || echo "osquery
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
   output.push(r.stdout || r.stderr)
 
-  if (r.stdout.includes("Disabled") || r.stdout.includes("disabled") || r.stdout.includes("getenforce: not available")) {
+  if (
+    r.stdout.includes("Disabled") ||
+    r.stdout.includes("disabled") ||
+    r.stdout.includes("getenforce: not available")
+  ) {
     if (!r.stdout.includes("Enforcing")) {
       findings.push({
         checkId: "LNX-SECFW-001",
@@ -679,7 +707,8 @@ command -v osquery >/dev/null 2>&1 && echo "osquery: installed" || echo "osquery
       status: "VULNERABLE",
       resource: "kernel",
       title: "YAMA ptrace_scope is 0 (permissive)",
-      details: "Any process can ptrace any other process owned by the same user — enables credential extraction and process injection",
+      details:
+        "Any process can ptrace any other process owned by the same user — enables credential extraction and process injection",
       remediation: "Set kernel.yama.ptrace_scope=1 or higher in /etc/sysctl.conf",
     })
   }
@@ -796,7 +825,10 @@ find / -maxdepth 3 -name "core" -o -name "core.*" 2>/dev/null | head -5
   output.push(r.stdout || r.stderr)
 
   const suidSection = r.stdout.split("SUID Binaries ---")[1]?.split("---")[0] || ""
-  const suidCount = suidSection.trim().split("\n").filter((l: string) => l.trim()).length
+  const suidCount = suidSection
+    .trim()
+    .split("\n")
+    .filter((l: string) => l.trim()).length
   if (suidCount > 0) {
     findings.push({
       checkId: "LNX-FILES-001",
@@ -825,7 +857,10 @@ find / -maxdepth 3 -name "core" -o -name "core.*" 2>/dev/null | head -5
   }
 
   const shadowPerms = r.stdout.match(/shadow Permissions ---\n(.+)/m)
-  if (shadowPerms && (shadowPerms[1].includes("-r--r--") || shadowPerms[1].includes("-rw-r--") || shadowPerms[1].includes("rw-rw"))) {
+  if (
+    shadowPerms &&
+    (shadowPerms[1].includes("-r--r--") || shadowPerms[1].includes("-rw-r--") || shadowPerms[1].includes("rw-rw"))
+  ) {
     findings.push({
       checkId: "LNX-FILES-003",
       provider: "linuxhook",
@@ -839,7 +874,10 @@ find / -maxdepth 3 -name "core" -o -name "core.*" 2>/dev/null | head -5
   }
 
   const sshKeys = r.stdout.split("SSH Keys ---")[1]?.split("---")[0] || ""
-  const keyCount = sshKeys.trim().split("\n").filter((l: string) => l.trim() && l.includes("id_")).length
+  const keyCount = sshKeys
+    .trim()
+    .split("\n")
+    .filter((l: string) => l.trim() && l.includes("id_")).length
   if (keyCount > 0) {
     findings.push({
       checkId: "LNX-FILES-004",
@@ -854,7 +892,10 @@ find / -maxdepth 3 -name "core" -o -name "core.*" 2>/dev/null | head -5
   }
 
   const backupSection = r.stdout.split("Backup Files ---")[1]?.split("---")[0] || ""
-  const backupCount = backupSection.trim().split("\n").filter((l: string) => l.trim()).length
+  const backupCount = backupSection
+    .trim()
+    .split("\n")
+    .filter((l: string) => l.trim()).length
   if (backupCount > 0) {
     findings.push({
       checkId: "LNX-FILES-005",
@@ -931,13 +972,17 @@ mount | grep "/dev/shm" 2>/dev/null
       status: "VULNERABLE",
       resource: "nfs",
       title: "NFS export with no_root_squash",
-      details: "NFS share exported with no_root_squash — remote root can create SUID binaries for local privilege escalation",
+      details:
+        "NFS share exported with no_root_squash — remote root can create SUID binaries for local privilege escalation",
       remediation: "Remove no_root_squash from /etc/exports; use root_squash (default)",
     })
   }
 
   const noSuidSection = r.stdout.split("without nosuid ---")[1]?.split("---")[0] || ""
-  const noSuidMounts = noSuidSection.trim().split("\n").filter((l: string) => l.trim() && l.includes("/")).length
+  const noSuidMounts = noSuidSection
+    .trim()
+    .split("\n")
+    .filter((l: string) => l.trim() && l.includes("/")).length
   if (noSuidMounts > 3) {
     findings.push({
       checkId: "LNX-MOUNTS-003",
@@ -1037,12 +1082,14 @@ cat /proc/sys/kernel/module_sig_enforce 2>/dev/null || echo "module_sig_enforce:
       status: "IDENTIFIED",
       resource: "kernel",
       title: "Kernel module loading is enabled",
-      details: "modules_disabled=0 — new kernel modules can be loaded at runtime (rootkit installation possible with root access)",
+      details:
+        "modules_disabled=0 — new kernel modules can be loaded at runtime (rootkit installation possible with root access)",
       remediation: "Set kernel.modules_disabled=1 after boot if dynamic module loading is not needed",
     })
   }
 
-  const sigEnforce = r.stdout.match(/module_sig_enforce: not available/m) || r.stdout.match(/module_sig_enforce ---\n0/m)
+  const sigEnforce =
+    r.stdout.match(/module_sig_enforce: not available/m) || r.stdout.match(/module_sig_enforce ---\n0/m)
   if (sigEnforce) {
     findings.push({
       checkId: "LNX-KMODULES-003",
@@ -1185,7 +1232,8 @@ docker version 2>/dev/null | head -5 || echo "Docker: not available"
       status: "IDENTIFIED",
       resource: "audit",
       title: "auditd is active",
-      details: "Linux Audit daemon is running — commands and file access may be logged; use auditd_evade to disable if needed",
+      details:
+        "Linux Audit daemon is running — commands and file access may be logged; use auditd_evade to disable if needed",
       remediation: "N/A — auditd is a defensive control",
     })
   }

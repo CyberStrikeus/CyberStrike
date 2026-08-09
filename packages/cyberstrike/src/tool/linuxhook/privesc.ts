@@ -32,7 +32,7 @@ sudo -l 2>/dev/null | grep -iE "(vim|vi|nano|find|nmap|python|perl|ruby|less|mor
   output.push(r.stdout || r.stderr)
 
   if (r.stdout.includes("NOPASSWD")) {
-    const nopassLines = r.stdout.split("\n").filter(l => l.includes("NOPASSWD"))
+    const nopassLines = r.stdout.split("\n").filter((l) => l.includes("NOPASSWD"))
     findings.push({
       checkId: "LNX-SUDO-001",
       provider: "linuxhook",
@@ -66,14 +66,53 @@ sudo -l 2>/dev/null | grep -iE "(vim|vi|nano|find|nmap|python|perl|ruby|less|mor
       status: "VULNERABLE",
       resource: "sudoers",
       title: "LD_PRELOAD/LD_LIBRARY_PATH preserved in sudo",
-      details: "env_keep includes LD_PRELOAD or LD_LIBRARY_PATH — compile a malicious .so and inject via sudo to escalate",
+      details:
+        "env_keep includes LD_PRELOAD or LD_LIBRARY_PATH — compile a malicious .so and inject via sudo to escalate",
       remediation: "Remove LD_PRELOAD and LD_LIBRARY_PATH from env_keep in sudoers",
     })
   }
 
-  const gtfobins = ["vim", "vi", "find", "nmap", "python", "perl", "ruby", "less", "more", "awk", "man", "ftp", "socat", "zip", "tar", "rsync", "git", "env", "bash", "sh", "node", "php", "lua", "gcc", "strace", "gdb", "tee", "wget", "curl", "docker", "lxc", "ansible", "journalctl", "systemctl", "pip", "mount", "ssh"]
+  const gtfobins = [
+    "vim",
+    "vi",
+    "find",
+    "nmap",
+    "python",
+    "perl",
+    "ruby",
+    "less",
+    "more",
+    "awk",
+    "man",
+    "ftp",
+    "socat",
+    "zip",
+    "tar",
+    "rsync",
+    "git",
+    "env",
+    "bash",
+    "sh",
+    "node",
+    "php",
+    "lua",
+    "gcc",
+    "strace",
+    "gdb",
+    "tee",
+    "wget",
+    "curl",
+    "docker",
+    "lxc",
+    "ansible",
+    "journalctl",
+    "systemctl",
+    "pip",
+    "mount",
+    "ssh",
+  ]
   const sudoOutput = r.stdout.toLowerCase()
-  const matched = gtfobins.filter(b => sudoOutput.includes(b))
+  const matched = gtfobins.filter((b) => sudoOutput.includes(b))
   if (matched.length > 0) {
     findings.push({
       checkId: "LNX-SUDO-004",
@@ -95,7 +134,8 @@ sudo -l 2>/dev/null | grep -iE "(vim|vi|nano|find|nmap|python|perl|ruby|less|mor
       status: "NOT_FOUND",
       resource: "sudoers",
       title: "No obvious sudo misconfigurations found",
-      details: "Sudo configuration appears restrictive — no NOPASSWD, env_keep LD_*, or GTFOBins-matchable entries detected",
+      details:
+        "Sudo configuration appears restrictive — no NOPASSWD, env_keep LD_*, or GTFOBins-matchable entries detected",
       remediation: "Continue with other privilege escalation vectors",
     })
   }
@@ -124,10 +164,84 @@ done
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
   output.push(r.stdout || r.stderr)
 
-  const gtfobinsSuid = ["nmap", "vim", "vi", "find", "bash", "dash", "zsh", "sh", "python", "python3", "perl", "ruby", "env", "cp", "mv", "docker", "pkexec", "node", "php", "lua", "gcc", "make", "strace", "ltrace", "gdb", "tee", "wget", "curl", "dd", "openssl", "ssh", "scp", "mount", "systemctl", "journalctl", "apt", "yum", "pip", "pip3", "start-stop-daemon", "taskset", "nice", "ionice", "time", "timeout", "watch", "xargs", "ar", "ed", "nano", "pico", "less", "more", "man", "git", "ftp", "socat", "zip", "tar", "rsync", "awk", "gawk", "mawk", "sed"]
-  const suidLines = r.stdout.split("\n").filter(l => l.startsWith("/"))
-  const exploitable = suidLines.filter(l => gtfobinsSuid.some(b => l.endsWith("/" + b) || l.includes("/" + b + " ")))
-  const custom = suidLines.filter(l => !l.includes("/usr/bin/") && !l.includes("/usr/sbin/") && !l.includes("/usr/lib/") && !l.includes("/bin/") && !l.includes("/sbin/"))
+  const gtfobinsSuid = [
+    "nmap",
+    "vim",
+    "vi",
+    "find",
+    "bash",
+    "dash",
+    "zsh",
+    "sh",
+    "python",
+    "python3",
+    "perl",
+    "ruby",
+    "env",
+    "cp",
+    "mv",
+    "docker",
+    "pkexec",
+    "node",
+    "php",
+    "lua",
+    "gcc",
+    "make",
+    "strace",
+    "ltrace",
+    "gdb",
+    "tee",
+    "wget",
+    "curl",
+    "dd",
+    "openssl",
+    "ssh",
+    "scp",
+    "mount",
+    "systemctl",
+    "journalctl",
+    "apt",
+    "yum",
+    "pip",
+    "pip3",
+    "start-stop-daemon",
+    "taskset",
+    "nice",
+    "ionice",
+    "time",
+    "timeout",
+    "watch",
+    "xargs",
+    "ar",
+    "ed",
+    "nano",
+    "pico",
+    "less",
+    "more",
+    "man",
+    "git",
+    "ftp",
+    "socat",
+    "zip",
+    "tar",
+    "rsync",
+    "awk",
+    "gawk",
+    "mawk",
+    "sed",
+  ]
+  const suidLines = r.stdout.split("\n").filter((l) => l.startsWith("/"))
+  const exploitable = suidLines.filter((l) =>
+    gtfobinsSuid.some((b) => l.endsWith("/" + b) || l.includes("/" + b + " ")),
+  )
+  const custom = suidLines.filter(
+    (l) =>
+      !l.includes("/usr/bin/") &&
+      !l.includes("/usr/sbin/") &&
+      !l.includes("/usr/lib/") &&
+      !l.includes("/bin/") &&
+      !l.includes("/sbin/"),
+  )
 
   if (exploitable.length > 0) {
     findings.push({
@@ -137,7 +251,7 @@ done
       status: "VULNERABLE",
       resource: "suid_binaries",
       title: "GTFOBins-exploitable SUID binaries found",
-      details: `${exploitable.length} SUID binary/binaries match GTFOBins entries: ${exploitable.map(l => l.split("/").pop()).join(", ")} — can be used for privilege escalation`,
+      details: `${exploitable.length} SUID binary/binaries match GTFOBins entries: ${exploitable.map((l) => l.split("/").pop()).join(", ")} — can be used for privilege escalation`,
       remediation: "Remove SUID bit from unnecessary binaries (chmod u-s). Use capabilities instead where possible.",
     })
   }
@@ -193,7 +307,10 @@ getcap -r / 2>/dev/null | grep -iE "(cap_setuid|cap_setgid|cap_dac_override|cap_
     cap_setuid: { severity: "HIGH", desc: "can change UID — direct root escalation via setuid(0)" },
     cap_setgid: { severity: "HIGH", desc: "can change GID — escalate to privileged groups" },
     cap_dac_override: { severity: "HIGH", desc: "bypasses file permission checks — read/write any file" },
-    cap_dac_read_search: { severity: "HIGH", desc: "bypasses read permission checks — read any file including /etc/shadow" },
+    cap_dac_read_search: {
+      severity: "HIGH",
+      desc: "bypasses read permission checks — read any file including /etc/shadow",
+    },
     cap_sys_admin: { severity: "HIGH", desc: "mount namespace escape, BPF, many kernel operations" },
     cap_sys_ptrace: { severity: "HIGH", desc: "process injection via ptrace — inject into root processes" },
     cap_sys_module: { severity: "HIGH", desc: "load kernel modules — rootkit insertion" },
@@ -203,7 +320,7 @@ getcap -r / 2>/dev/null | grep -iE "(cap_setuid|cap_setgid|cap_dac_override|cap_
     cap_chown: { severity: "HIGH", desc: "change file ownership — take ownership of /etc/shadow" },
   }
 
-  const capLines = r.stdout.split("\n").filter(l => l.includes("cap_"))
+  const capLines = r.stdout.split("\n").filter((l) => l.includes("cap_"))
   for (const line of capLines) {
     for (const [cap, info] of Object.entries(capMap)) {
       if (line.toLowerCase().includes(cap)) {
@@ -279,7 +396,7 @@ grep -rn '\\*' /etc/crontab /etc/cron.d/* 2>/dev/null | grep -E "(tar |rsync |ch
   output.push(r.stdout || r.stderr)
 
   if (r.stdout.includes("[!] WRITABLE:")) {
-    const writable = r.stdout.split("\n").filter(l => l.includes("[!] WRITABLE:"))
+    const writable = r.stdout.split("\n").filter((l) => l.includes("[!] WRITABLE:"))
     findings.push({
       checkId: "LNX-CRON-001",
       provider: "linuxhook",
@@ -293,7 +410,7 @@ grep -rn '\\*' /etc/crontab /etc/cron.d/* 2>/dev/null | grep -E "(tar |rsync |ch
   }
 
   if (r.stdout.includes("[!] WRITABLE TARGET:")) {
-    const targets = r.stdout.split("\n").filter(l => l.includes("[!] WRITABLE TARGET:"))
+    const targets = r.stdout.split("\n").filter((l) => l.includes("[!] WRITABLE TARGET:"))
     findings.push({
       checkId: "LNX-CRON-002",
       provider: "linuxhook",
@@ -314,7 +431,8 @@ grep -rn '\\*' /etc/crontab /etc/cron.d/* 2>/dev/null | grep -E "(tar |rsync |ch
       status: "VULNERABLE",
       resource: "cron",
       title: "Wildcard injection possible in cron",
-      details: "Cron job uses tar/rsync/chown/chmod with wildcard (*) — create specially named files for argument injection (e.g., --checkpoint-action for tar)",
+      details:
+        "Cron job uses tar/rsync/chown/chmod with wildcard (*) — create specially named files for argument injection (e.g., --checkpoint-action for tar)",
       remediation: "Avoid wildcards in cron commands. Use full paths and explicit file lists.",
     })
   }
@@ -348,7 +466,7 @@ systemctl status nfs-server nfs-kernel-server rpcbind 2>/dev/null | grep -E "(Ac
   output.push(r.stdout || r.stderr)
 
   if (r.stdout.includes("no_root_squash")) {
-    const shares = r.stdout.split("\n").filter(l => l.includes("no_root_squash"))
+    const shares = r.stdout.split("\n").filter((l) => l.includes("no_root_squash"))
     findings.push({
       checkId: "LNX-NFS-001",
       provider: "linuxhook",
@@ -392,7 +510,7 @@ cat /etc/crontab /etc/cron.d/* 2>/dev/null | grep -vE "^#|^$|^[A-Z]" | awk '{for
   output.push(r.stdout || r.stderr)
 
   if (r.stdout.includes("[!] WRITABLE:")) {
-    const writable = r.stdout.split("\n").filter(l => l.includes("[!] WRITABLE:"))
+    const writable = r.stdout.split("\n").filter((l) => l.includes("[!] WRITABLE:"))
     findings.push({
       checkId: "LNX-PATH-001",
       provider: "linuxhook",
@@ -400,8 +518,9 @@ cat /etc/crontab /etc/cron.d/* 2>/dev/null | grep -vE "^#|^$|^[A-Z]" | awk '{for
       status: "VULNERABLE",
       resource: "PATH",
       title: "Writable directories in PATH",
-      details: `${writable.length} writable directory/directories in PATH: ${writable.map(l => l.replace("[!] WRITABLE: ", "")).join(", ")} — place malicious binary to hijack commands`,
-      remediation: "Remove writable directories from PATH. Ensure PATH directories are owned by root with restricted permissions.",
+      details: `${writable.length} writable directory/directories in PATH: ${writable.map((l) => l.replace("[!] WRITABLE: ", "")).join(", ")} — place malicious binary to hijack commands`,
+      remediation:
+        "Remove writable directories from PATH. Ensure PATH directories are owned by root with restricted permissions.",
     })
   }
 
@@ -448,7 +567,8 @@ done
       status: "VULNERABLE",
       resource: "sudo",
       title: "LD_PRELOAD preserved through sudo",
-      details: "sudo env_keep includes LD_PRELOAD or LD_LIBRARY_PATH — compile malicious .so, run sudo with LD_PRELOAD=./evil.so to get root shell",
+      details:
+        "sudo env_keep includes LD_PRELOAD or LD_LIBRARY_PATH — compile malicious .so, run sudo with LD_PRELOAD=./evil.so to get root shell",
       remediation: "Remove LD_PRELOAD and LD_LIBRARY_PATH from sudo env_keep.",
     })
   }
@@ -461,7 +581,8 @@ done
       status: "VULNERABLE",
       resource: "/etc/ld.so.preload",
       title: "/etc/ld.so.preload is writable",
-      details: "/etc/ld.so.preload is writable — add malicious .so path to inject into every dynamically linked process on the system",
+      details:
+        "/etc/ld.so.preload is writable — add malicious .so path to inject into every dynamically linked process on the system",
       remediation: "Set /etc/ld.so.preload to root:root 644. Monitor changes with file integrity tools.",
     })
   }
@@ -474,7 +595,8 @@ done
       status: "IDENTIFIED",
       resource: "suid_rpath",
       title: "SUID binary with RPATH/RUNPATH",
-      details: "SUID binary has custom RPATH/RUNPATH — if the path is writable, place malicious .so for privilege escalation",
+      details:
+        "SUID binary has custom RPATH/RUNPATH — if the path is writable, place malicious .so for privilege escalation",
       remediation: "Rebuild SUID binaries without RPATH. Use system library paths only.",
     })
   }
@@ -487,7 +609,8 @@ done
       status: "VULNERABLE",
       resource: "ld.so.conf",
       title: "Writable library directory in ld.so.conf",
-      details: "A library directory from ld.so.conf is writable — place malicious .so to be loaded by privileged processes",
+      details:
+        "A library directory from ld.so.conf is writable — place malicious .so to be loaded by privileged processes",
       remediation: "Restrict library directory permissions. Ensure ld.so.conf directories are root-owned.",
     })
   }
@@ -525,7 +648,7 @@ cat /proc/sys/kernel/perf_event_paranoid 2>/dev/null && echo " (perf_event_paran
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
   output.push(r.stdout || r.stderr)
 
-  const kernelLine = r.stdout.split("\n").find(l => l.match(/^\d+\.\d+/))
+  const kernelLine = r.stdout.split("\n").find((l) => l.match(/^\d+\.\d+/))
   if (!kernelLine) return { output: output.join("\n"), findings }
 
   const parts = kernelLine.trim().split(/[.\-]/)
@@ -535,20 +658,80 @@ cat /proc/sys/kernel/perf_event_paranoid 2>/dev/null && echo " (perf_event_paran
   const ver = major * 10000 + minor * 100 + patch
 
   const exploits: Array<{ name: string; cve: string; min: number; max: number; note: string }> = [
-    { name: "DirtyPipe", cve: "CVE-2022-0847", min: 50800, max: 51611, note: "Overwrite read-only files via pipe splice — instant root" },
-    { name: "DirtyCow", cve: "CVE-2016-5195", min: 20622, max: 40803, note: "Race condition in COW — write to read-only mappings" },
-    { name: "OverlayFS (Ubuntu)", cve: "CVE-2021-3493", min: 50400, max: 51100, note: "Ubuntu-specific overlayfs user namespace privesc" },
-    { name: "GameOver(lay)", cve: "CVE-2023-2640", min: 50400, max: 51900, note: "Ubuntu overlayfs setattr bypass — unpriv user namespace" },
-    { name: "Netfilter nf_tables", cve: "CVE-2023-32233", min: 50100, max: 60400, note: "Use-after-free in nf_tables — local root" },
-    { name: "Netfilter nft_set_elem", cve: "CVE-2022-34918", min: 50800, max: 51817, note: "Heap buffer overflow in nft_set_elem — local root" },
-    { name: "io_uring", cve: "CVE-2023-2598", min: 50100, max: 60300, note: "io_uring use-after-free — kernel code execution" },
-    { name: "pipe_buffer", cve: "CVE-2021-22555", min: 20629, max: 51101, note: "Netfilter setsockopt heap OOB write — container escape capable" },
-    { name: "eBPF verifier", cve: "CVE-2021-3490", min: 50700, max: 51300, note: "eBPF ALU32 bounds tracking — local root" },
-    { name: "PolKit pkexec", cve: "CVE-2021-4034", min: 0, max: 999999, note: "pkexec SUID — affects all kernels if pkexec installed" },
+    {
+      name: "DirtyPipe",
+      cve: "CVE-2022-0847",
+      min: 50800,
+      max: 51611,
+      note: "Overwrite read-only files via pipe splice — instant root",
+    },
+    {
+      name: "DirtyCow",
+      cve: "CVE-2016-5195",
+      min: 20622,
+      max: 40803,
+      note: "Race condition in COW — write to read-only mappings",
+    },
+    {
+      name: "OverlayFS (Ubuntu)",
+      cve: "CVE-2021-3493",
+      min: 50400,
+      max: 51100,
+      note: "Ubuntu-specific overlayfs user namespace privesc",
+    },
+    {
+      name: "GameOver(lay)",
+      cve: "CVE-2023-2640",
+      min: 50400,
+      max: 51900,
+      note: "Ubuntu overlayfs setattr bypass — unpriv user namespace",
+    },
+    {
+      name: "Netfilter nf_tables",
+      cve: "CVE-2023-32233",
+      min: 50100,
+      max: 60400,
+      note: "Use-after-free in nf_tables — local root",
+    },
+    {
+      name: "Netfilter nft_set_elem",
+      cve: "CVE-2022-34918",
+      min: 50800,
+      max: 51817,
+      note: "Heap buffer overflow in nft_set_elem — local root",
+    },
+    {
+      name: "io_uring",
+      cve: "CVE-2023-2598",
+      min: 50100,
+      max: 60300,
+      note: "io_uring use-after-free — kernel code execution",
+    },
+    {
+      name: "pipe_buffer",
+      cve: "CVE-2021-22555",
+      min: 20629,
+      max: 51101,
+      note: "Netfilter setsockopt heap OOB write — container escape capable",
+    },
+    {
+      name: "eBPF verifier",
+      cve: "CVE-2021-3490",
+      min: 50700,
+      max: 51300,
+      note: "eBPF ALU32 bounds tracking — local root",
+    },
+    {
+      name: "PolKit pkexec",
+      cve: "CVE-2021-4034",
+      min: 0,
+      max: 999999,
+      note: "pkexec SUID — affects all kernels if pkexec installed",
+    },
   ]
 
   const distro = r.stdout.toLowerCase()
-  const applicable = exploits.filter(e => ver >= e.min && ver <= e.max)
+  const applicable = exploits.filter((e) => ver >= e.min && ver <= e.max)
 
   for (const exp of applicable) {
     findings.push({
@@ -616,7 +799,8 @@ awk -F: '($2 == "" || $2 == "x") {print $1}' /etc/passwd 2>/dev/null | head -10
       status: "VULNERABLE",
       resource: "/etc/passwd",
       title: "/etc/passwd is writable",
-      details: "/etc/passwd is writable — add a new root user: echo 'hacker:$(openssl passwd -6 password):0:0::/root:/bin/bash' >> /etc/passwd",
+      details:
+        "/etc/passwd is writable — add a new root user: echo 'hacker:$(openssl passwd -6 password):0:0::/root:/bin/bash' >> /etc/passwd",
       remediation: "Set /etc/passwd to root:root 644. Use chattr +i for immutability.",
     })
   }
@@ -682,7 +866,8 @@ pkaction --version 2>/dev/null
       status: "POTENTIALLY_VULNERABLE",
       resource: "pkexec",
       title: "pkexec SUID — PwnKit (CVE-2021-4034) potentially exploitable",
-      details: "pkexec is installed with SUID bit — CVE-2021-4034 affects virtually all polkit versions before Jan 2022 patches. Exploit gives instant local root.",
+      details:
+        "pkexec is installed with SUID bit — CVE-2021-4034 affects virtually all polkit versions before Jan 2022 patches. Exploit gives instant local root.",
       remediation: "Update polkit to latest version. Remove SUID from pkexec: chmod 0755 $(which pkexec).",
     })
   }
@@ -716,7 +901,7 @@ echo "--- User-writable unit directories ---"
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
   output.push(r.stdout || r.stderr)
 
-  const writableUnits = r.stdout.split("\n").filter(l => l.endsWith(".service") || l.endsWith(".timer"))
+  const writableUnits = r.stdout.split("\n").filter((l) => l.endsWith(".service") || l.endsWith(".timer"))
   if (writableUnits.length > 0) {
     findings.push({
       checkId: "LNX-SYSTEMD-001",
@@ -738,7 +923,8 @@ echo "--- User-writable unit directories ---"
       status: "VULNERABLE",
       resource: "systemd",
       title: "Writable ExecStart binary in systemd service",
-      details: "A binary referenced by a systemd service ExecStart is writable — replace to execute as the service user",
+      details:
+        "A binary referenced by a systemd service ExecStart is writable — replace to execute as the service user",
       remediation: "Ensure ExecStart binaries are root-owned with restricted permissions.",
     })
   }
@@ -788,7 +974,8 @@ busctl list --user 2>/dev/null | head -20
       status: "IDENTIFIED",
       resource: "dbus",
       title: "PolicyKit D-Bus service available",
-      details: "PolicyKit D-Bus interface is accessible — check for CVE-2021-3560 (polkit 0.113-0.118) timing attack for unauthorized privilege escalation",
+      details:
+        "PolicyKit D-Bus interface is accessible — check for CVE-2021-3560 (polkit 0.113-0.118) timing attack for unauthorized privilege escalation",
       remediation: "Update polkit. Restrict D-Bus access via policy files.",
     })
   }
@@ -843,7 +1030,8 @@ find /opt /srv /var/www /home -name "setup.py" -writable 2>/dev/null | head -10
       status: "VULNERABLE",
       resource: "pip",
       title: "pip runs as root",
-      details: "pip install running as root in cron or active process — writable setup.py can execute arbitrary code as root",
+      details:
+        "pip install running as root in cron or active process — writable setup.py can execute arbitrary code as root",
       remediation: "Never run pip as root. Use virtual environments and --user flag.",
     })
   }
@@ -898,7 +1086,8 @@ done
       status: "VULNERABLE",
       resource: "shared_libs",
       title: "Missing shared library in SUID binary",
-      details: "SUID binary references a missing shared library — create the .so file in a writable path to execute code as root",
+      details:
+        "SUID binary references a missing shared library — create the .so file in a writable path to execute code as root",
       remediation: "Install missing libraries or recompile SUID binary. Remove SUID bit if not needed.",
     })
   }
@@ -911,7 +1100,8 @@ done
       status: "VULNERABLE",
       resource: "ld.so.conf",
       title: "Writable library directory",
-      details: "Library directory in ld.so.conf is writable — place .so for preload by privileged processes after ldconfig",
+      details:
+        "Library directory in ld.so.conf is writable — place .so for preload by privileged processes after ldconfig",
       remediation: "Restrict library directory permissions to root-owned.",
     })
   }
@@ -953,7 +1143,8 @@ grep -r "logrotate" /etc/crontab /etc/cron.d/ /etc/cron.daily/ 2>/dev/null | hea
       status: "IDENTIFIED",
       resource: "logrotate",
       title: "User-writable log file under logrotate",
-      details: "Logrotate processes a user-writable log file — race condition during rotation may allow writing to arbitrary files as root",
+      details:
+        "Logrotate processes a user-writable log file — race condition during rotation may allow writing to arbitrary files as root",
       remediation: "Restrict log file ownership to root or the logging service account.",
     })
   }
@@ -984,7 +1175,7 @@ done
   output.push(r.stdout || r.stderr)
 
   if (r.stdout.includes("[!] WRITABLE:")) {
-    const writable = r.stdout.split("\n").filter(l => l.includes("[!] WRITABLE:"))
+    const writable = r.stdout.split("\n").filter((l) => l.includes("[!] WRITABLE:"))
     findings.push({
       checkId: "LNX-WRITSVC-001",
       provider: "linuxhook",
@@ -1142,7 +1333,8 @@ docker ps 2>/dev/null && echo "[+] Docker is accessible" || echo "[-] Docker not
       status: "VULNERABLE",
       resource: "docker",
       title: "Docker group membership — root equivalent",
-      details: "Current user can access Docker — run: docker run -v /:/host -it alpine chroot /host to get full root access on host",
+      details:
+        "Current user can access Docker — run: docker run -v /:/host -it alpine chroot /host to get full root access on host",
       remediation: "Remove user from docker group. Use rootless Docker or Podman instead.",
     })
   }
@@ -1177,7 +1369,8 @@ lxc list 2>/dev/null && echo "[+] LXC is accessible" || echo "[-] LXC not access
       status: "VULNERABLE",
       resource: "lxd",
       title: "LXD/LXC group membership — root equivalent",
-      details: "Current user can access LXD/LXC — init storage pool, launch privileged container with host / mounted, chroot to host root",
+      details:
+        "Current user can access LXD/LXC — init storage pool, launch privileged container with host / mounted, chroot to host root",
       remediation: "Remove user from lxd/lxc group unless container management is required.",
     })
   }
@@ -1210,7 +1403,7 @@ grep -rl "python" /etc/systemd/system/*.service /usr/lib/systemd/system/*.servic
   output.push(r.stdout || r.stderr)
 
   if (r.stdout.includes("[!] WRITABLE:")) {
-    const writable = r.stdout.split("\n").filter(l => l.includes("[!] WRITABLE:"))
+    const writable = r.stdout.split("\n").filter((l) => l.includes("[!] WRITABLE:"))
     findings.push({
       checkId: "LNX-PYLIB-001",
       provider: "linuxhook",
@@ -1247,7 +1440,7 @@ stat -c "%U:%G %a %n" /etc/update-motd.d/* 2>/dev/null
   output.push(r.stdout || r.stderr)
 
   if (r.stdout.includes("[!] WRITABLE:")) {
-    const writable = r.stdout.split("\n").filter(l => l.includes("[!] WRITABLE:"))
+    const writable = r.stdout.split("\n").filter((l) => l.includes("[!] WRITABLE:"))
     findings.push({
       checkId: "LNX-MOTD-001",
       provider: "linuxhook",
@@ -1292,7 +1485,8 @@ grep -rnE "(tar|rsync|chown|chmod) .* \\*" /etc/systemd/system/*.service 2>/dev/
       status: "VULNERABLE",
       resource: "cron",
       title: "tar wildcard injection",
-      details: "tar command uses wildcard — create files named --checkpoint=1 and --checkpoint-action=exec=sh payload.sh for code execution",
+      details:
+        "tar command uses wildcard — create files named --checkpoint=1 and --checkpoint-action=exec=sh payload.sh for code execution",
       remediation: "Use explicit file lists instead of wildcards. Quote arguments properly.",
     })
   }
@@ -1318,7 +1512,8 @@ grep -rnE "(tar|rsync|chown|chmod) .* \\*" /etc/systemd/system/*.service 2>/dev/
       status: "VULNERABLE",
       resource: "cron",
       title: "chown/chmod wildcard injection",
-      details: "chown/chmod uses wildcard — create file named --reference=attacker_file to change permissions/ownership",
+      details:
+        "chown/chmod uses wildcard — create file named --reference=attacker_file to change permissions/ownership",
       remediation: "Use explicit file lists. Run with -- before arguments.",
     })
   }
@@ -1359,7 +1554,8 @@ ps aux 2>/dev/null | grep -E "[m]ysqld" | grep root && echo "[!] MySQL running a
       status: "VULNERABLE",
       resource: "mysql",
       title: "MySQL running as root",
-      details: "MySQL/MariaDB is running as root — upload UDF shared library (raptor_udf2.so) to plugin_dir, CREATE FUNCTION sys_exec, call it for root shell",
+      details:
+        "MySQL/MariaDB is running as root — upload UDF shared library (raptor_udf2.so) to plugin_dir, CREATE FUNCTION sys_exec, call it for root shell",
       remediation: "Run MySQL as dedicated mysql user, never as root.",
     })
   }
@@ -1414,7 +1610,8 @@ cat /proc/self/status 2>/dev/null | grep -i "cap"
       status: "VULNERABLE",
       resource: "kernel",
       title: "ptrace_scope is 0 — classic permissive mode",
-      details: "Any process can ptrace any other process — enables credential extraction from sshd/sudo, process injection, and debugging attacks",
+      details:
+        "Any process can ptrace any other process — enables credential extraction from sshd/sudo, process injection, and debugging attacks",
       remediation: "Set kernel.yama.ptrace_scope=1 or higher in /etc/sysctl.conf.",
     })
   }
