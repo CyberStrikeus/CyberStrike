@@ -190,3 +190,55 @@ find /tmp /var/tmp /dev/shm -newer /etc/hostname -type f 2>/dev/null | head -20
 
   return { output: output.join("\n"), findings }
 }
+
+export async function auditdEvade(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Auditd Evasion ==="]
+
+  const script = `
+echo "--- Auditd Status ---"
+systemctl status auditd 2>/dev/null | head -5 || service auditd status 2>/dev/null | head -3
+ps aux 2>/dev/null | grep auditd | grep -v grep
+
+echo ""
+echo "--- Audit Rules ---"
+auditctl -l 2>/dev/null || echo "[-] Cannot list rules (not root or auditctl not found)"
+
+echo ""
+echo "--- Audit Configuration ---"
+cat /etc/audit/auditd.conf 2>/dev/null | grep -vE "^(#|$)" | head -20
+cat /etc/audit/audit.rules 2>/dev/null | grep -vE "^(#|$)" | head -20
+ls -la /etc/audit/rules.d/ 2>/dev/null
+
+echo ""
+echo "--- Audit Log Size ---"
+ls -lah /var/log/audit/audit.log 2>/dev/null
+wc -l /var/log/audit/audit.log 2>/dev/null
+
+echo ""
+echo "--- Evasion Options ---"
+echo "  auditctl -D                 # Delete all rules"
+echo "  auditctl -e 0               # Disable auditing"
+echo "  service auditd stop         # Stop auditd"
+echo "  kill -STOP \$(pidof auditd)   # Pause auditd"
+echo "  > /var/log/audit/audit.log  # Clear log"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("running") || r.stdout.includes("auditd")) {
+    findings.push({
+      checkId: "LNX-AUDITD-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "IDENTIFIED",
+      resource: "auditd",
+      title: "Auditd is active — actions are being logged",
+      details: "Audit daemon is running with rules active. Consider disabling or pausing before sensitive operations.",
+      remediation: "Protect auditd with immutable rules (-e 2). Ship logs to remote SIEM.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
