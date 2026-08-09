@@ -243,6 +243,34 @@ done
       !l.includes("/sbin/"),
   )
 
+  const versionScript = suidLines
+    .slice(0, 30)
+    .map((bin) => {
+      const name = bin.split("/").pop() || ""
+      return `VER=$("${bin}" --version 2>/dev/null | head -1) && echo "SUID_VER:${name}:${bin}:$VER"`
+    })
+    .join("\n")
+  if (versionScript) {
+    const vr = activeExec === "sh" ? await sh(versionScript, timeout) : await bash(versionScript, timeout)
+    const versionLines = vr.stdout.split("\n").filter((l) => l.startsWith("SUID_VER:"))
+    if (versionLines.length > 0) {
+      output.push("\n--- SUID Binary Versions ---")
+      const cveTargets: string[] = []
+      for (const vl of versionLines) {
+        const parts = vl.replace("SUID_VER:", "").split(":")
+        const name = parts[0]
+        const path = parts[1]
+        const version = parts.slice(2).join(":").trim()
+        output.push(`  ${name} (${path}): ${version}`)
+        cveTargets.push(`${name} ${version}`)
+      }
+      output.push("")
+      output.push("[!] CVE check recommended for versioned SUID binaries above.")
+      output.push("    Use cve-mcp: cve search_by_product --product <name> --version <ver>")
+      output.push("    If cve-mcp is not enabled: cyberstrike mcp enable cve")
+    }
+  }
+
   if (exploitable.length > 0) {
     findings.push({
       checkId: "LNX-SUID-001",
@@ -251,8 +279,8 @@ done
       status: "VULNERABLE",
       resource: "suid_binaries",
       title: "GTFOBins-exploitable SUID binaries found",
-      details: `${exploitable.length} SUID binary/binaries match GTFOBins entries: ${exploitable.map((l) => l.split("/").pop()).join(", ")} — can be used for privilege escalation`,
-      remediation: "Remove SUID bit from unnecessary binaries (chmod u-s). Use capabilities instead where possible.",
+      details: `${exploitable.length} SUID binary/binaries match GTFOBins entries: ${exploitable.map((l) => l.split("/").pop()).join(", ")} — can be used for privilege escalation. Check versions against CVE database via cve-mcp for version-specific exploits.`,
+      remediation: "Remove SUID bit from unnecessary binaries (chmod u-s). Use capabilities instead where possible. Query: cve search_by_product --product <name> --version <ver>",
     })
   }
 
@@ -264,7 +292,7 @@ done
       status: "IDENTIFIED",
       resource: "suid_binaries",
       title: "Custom/non-standard SUID binaries found",
-      details: `${custom.length} SUID binary/binaries in non-standard locations: ${custom.slice(0, 5).join(", ")} — may be vulnerable to exploitation`,
+      details: `${custom.length} SUID binary/binaries in non-standard locations: ${custom.slice(0, 5).join(", ")} — may be vulnerable to exploitation. Check versions via cve-mcp.`,
       remediation: "Audit custom SUID binaries for vulnerabilities. Remove SUID bit if not required.",
     })
   }
@@ -277,7 +305,7 @@ done
       status: "IDENTIFIED",
       resource: "suid_binaries",
       title: "SUID/SGID binaries enumerated",
-      details: `${suidLines.length} SUID/SGID binary/binaries found — no direct GTFOBins matches but manual review recommended`,
+      details: `${suidLines.length} SUID/SGID binary/binaries found — no direct GTFOBins matches but check versions via cve-mcp for known CVEs`,
       remediation: "Minimize SUID/SGID binaries on the system",
     })
   }
