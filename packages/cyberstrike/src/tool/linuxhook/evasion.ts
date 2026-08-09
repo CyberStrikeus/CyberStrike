@@ -87,10 +87,10 @@ done
 
 echo ""
 echo "--- History Environment ---"
-echo "HISTFILE=${HISTFILE:-not set}"
-echo "HISTSIZE=${HISTSIZE:-not set}"
-echo "HISTFILESIZE=${HISTFILESIZE:-not set}"
-echo "HISTCONTROL=${HISTCONTROL:-not set}"
+echo "HISTFILE=\${HISTFILE:-not set}"
+echo "HISTSIZE=\${HISTSIZE:-not set}"
+echo "HISTFILESIZE=\${HISTFILESIZE:-not set}"
+echo "HISTCONTROL=\${HISTCONTROL:-not set}"
 
 echo ""
 echo "--- Clearing History ---"
@@ -616,7 +616,7 @@ grep -r "destination.*network\|tcp\|udp" /etc/syslog-ng/ 2>/dev/null
 
 echo ""
 echo "--- Manipulation Options ---"
-echo "  echo ':msg, contains, \"${pattern:-pattern}\" ~' > /etc/rsyslog.d/99-filter.conf"
+echo "  echo ':msg, contains, \"\${pattern:-pattern}\" ~' > /etc/rsyslog.d/99-filter.conf"
 echo "  systemctl restart rsyslog"
 echo "  (This drops messages matching the pattern)"
 `
