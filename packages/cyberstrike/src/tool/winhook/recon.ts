@@ -718,7 +718,8 @@ export async function localRecon(args: string[], timeout: number): Promise<HookR
         status: "ENUMERATED",
         resource: "host://services",
         title: "Service enumeration via cmd.exe",
-        details: "Running services enumerated. Review service names and versions — for any with a version, check CVE database via cve-mcp (cve search_by_product --product <name> --version <ver>). If cve-mcp is not enabled: cyberstrike mcp enable cve",
+        details:
+          "Running services enumerated. Review service names and versions — for any with a version, check CVE database via cve-mcp (cve search_by_product --product <name> --version <ver>). If cve-mcp is not enabled: cyberstrike mcp enable cve",
         remediation: "Quote all service binary paths. Update vulnerable service versions.",
       })
     }
@@ -782,7 +783,8 @@ export async function localRecon(args: string[], timeout: number): Promise<HookR
         status: "ENUMERATED",
         resource: "host://hotfixes",
         title: "Patch level assessment via cmd.exe",
-        details: "OS version and installed hotfixes enumerated. Review OS build number and missing KBs — check CVE database via cve-mcp (cve search_by_product --product windows --version <build>) for known exploits. If cve-mcp is not enabled: cyberstrike mcp enable cve",
+        details:
+          "OS version and installed hotfixes enumerated. Review OS build number and missing KBs — check CVE database via cve-mcp (cve search_by_product --product windows --version <build>) for known exploits. If cve-mcp is not enabled: cyberstrike mcp enable cve",
         remediation: "Keep systems patched. Apply missing security updates.",
       })
     }
