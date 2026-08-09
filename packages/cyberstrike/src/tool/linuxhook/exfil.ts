@@ -699,7 +699,7 @@ DATASIZE=$(wc -c < "${dataFile}" 2>/dev/null)
 echo "[*] Cover image: ${coverImage} ($IMGSIZE bytes)"
 echo "[*] Data file: ${dataFile} ($DATASIZE bytes)"
 
-OUTFILE="${coverImage%.???}_steg.${coverImage##*.}"
+OUTFILE="${coverImage}_steg"
 
 if command -v python3 >/dev/null 2>&1; then
   echo "[*] Using python3 append method"
