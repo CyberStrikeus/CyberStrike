@@ -123,3 +123,94 @@ ps -eo pid,user,comm,args 2>/dev/null | grep -iE "(cron|atd|anacron)" 2>/dev/nul
 
   return { output: output.join("\n"), findings }
 }
+
+export async function networkEnum(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Network Enumeration ==="]
+
+  const script = `
+echo "--- Interfaces ---"
+ip -4 addr show 2>/dev/null || ifconfig 2>/dev/null
+echo ""
+echo "--- IPv6 Interfaces ---"
+ip -6 addr show 2>/dev/null
+echo ""
+echo "--- Routing Table ---"
+ip route show 2>/dev/null || route -n 2>/dev/null
+echo ""
+echo "--- ARP Table ---"
+ip neigh show 2>/dev/null || arp -an 2>/dev/null
+echo ""
+echo "--- DNS Configuration ---"
+cat /etc/resolv.conf 2>/dev/null
+echo ""
+echo "--- /etc/hosts ---"
+cat /etc/hosts 2>/dev/null
+echo ""
+echo "--- Listening Ports ---"
+ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null
+echo ""
+echo "--- UDP Listeners ---"
+ss -ulnp 2>/dev/null || netstat -ulnp 2>/dev/null
+echo ""
+echo "--- Firewall Rules (iptables) ---"
+iptables -L -n -v 2>/dev/null || echo "iptables: permission denied or not available"
+echo ""
+echo "--- Firewall Rules (nftables) ---"
+nft list ruleset 2>/dev/null || echo "nftables: not available"
+echo ""
+echo "--- UFW Status ---"
+ufw status verbose 2>/dev/null || echo "ufw: not available"
+echo ""
+echo "--- Network Namespaces ---"
+ip netns list 2>/dev/null
+echo ""
+echo "--- VPN / Tunnel Interfaces ---"
+ip link show type tun 2>/dev/null
+ip link show type tap 2>/dev/null
+ip link show type wireguard 2>/dev/null
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const interfaces = (r.stdout.match(/inet /g) || []).length
+  findings.push({
+    checkId: "LNX-NETWORK-001",
+    provider: "linuxhook",
+    severity: "INFO",
+    status: "IDENTIFIED",
+    resource: "network",
+    title: "Network configuration enumerated",
+    details: `${interfaces} network interface(s) with IPv4 addresses detected — routing, ARP, DNS, and firewall rules collected`,
+    remediation: "Segment networks and restrict inter-VLAN routing; apply host-based firewall rules",
+  })
+
+  if (r.stdout.includes("permission denied") || r.stdout.includes("not available")) {
+    findings.push({
+      checkId: "LNX-NETWORK-002",
+      provider: "linuxhook",
+      severity: "INFO",
+      status: "IDENTIFIED",
+      resource: "firewall",
+      title: "Firewall rules not accessible",
+      details: "Firewall rules could not be enumerated — may require root privileges",
+      remediation: "N/A — run with elevated privileges for full network enumeration",
+    })
+  }
+
+  if (r.stdout.includes("0.0.0.0:") || r.stdout.includes("*:")) {
+    findings.push({
+      checkId: "LNX-NETWORK-003",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "IDENTIFIED",
+      resource: "services",
+      title: "Services bound to all interfaces",
+      details: "One or more services listen on 0.0.0.0 (all interfaces) — accessible from any network segment",
+      remediation: "Bind services to specific interfaces or localhost unless external access is required",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
