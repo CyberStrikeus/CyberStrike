@@ -170,3 +170,70 @@ done
 
   return { output: output.join("\n"), findings }
 }
+
+export async function capabilitiesAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Linux Capabilities Abuse ==="]
+
+  const script = `
+echo "--- File Capabilities ---"
+getcap -r / 2>/dev/null | sort
+echo ""
+echo "--- Current Process Capabilities ---"
+cat /proc/self/status 2>/dev/null | grep -i cap
+echo ""
+echo "--- Exploitable Capabilities Check ---"
+getcap -r / 2>/dev/null | grep -iE "(cap_setuid|cap_setgid|cap_dac_override|cap_dac_read_search|cap_sys_admin|cap_sys_ptrace|cap_sys_module|cap_net_raw|cap_net_bind_service|cap_net_admin|cap_fowner|cap_chown|cap_mknod)" 2>/dev/null
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const capMap: Record<string, { severity: string; desc: string }> = {
+    cap_setuid: { severity: "HIGH", desc: "can change UID — direct root escalation via setuid(0)" },
+    cap_setgid: { severity: "HIGH", desc: "can change GID — escalate to privileged groups" },
+    cap_dac_override: { severity: "HIGH", desc: "bypasses file permission checks — read/write any file" },
+    cap_dac_read_search: { severity: "HIGH", desc: "bypasses read permission checks — read any file including /etc/shadow" },
+    cap_sys_admin: { severity: "HIGH", desc: "mount namespace escape, BPF, many kernel operations" },
+    cap_sys_ptrace: { severity: "HIGH", desc: "process injection via ptrace — inject into root processes" },
+    cap_sys_module: { severity: "HIGH", desc: "load kernel modules — rootkit insertion" },
+    cap_net_raw: { severity: "MEDIUM", desc: "raw sockets — packet sniffing and spoofing" },
+    cap_net_admin: { severity: "MEDIUM", desc: "network configuration — route manipulation, firewall changes" },
+    cap_fowner: { severity: "HIGH", desc: "bypass ownership checks — chown any file" },
+    cap_chown: { severity: "HIGH", desc: "change file ownership — take ownership of /etc/shadow" },
+  }
+
+  const capLines = r.stdout.split("\n").filter(l => l.includes("cap_"))
+  for (const line of capLines) {
+    for (const [cap, info] of Object.entries(capMap)) {
+      if (line.toLowerCase().includes(cap)) {
+        const binary = line.split(" ")[0] || "unknown"
+        findings.push({
+          checkId: `LNX-CAP-${cap.replace("cap_", "").toUpperCase().slice(0, 6)}`,
+          provider: "linuxhook",
+          severity: info.severity,
+          status: "VULNERABLE",
+          resource: binary,
+          title: `Exploitable capability: ${cap} on ${binary.split("/").pop()}`,
+          details: `${binary} has ${cap} — ${info.desc}`,
+          remediation: `Remove capability: setcap -r ${binary}. Use minimal capabilities instead of broad grants.`,
+        })
+      }
+    }
+  }
+
+  if (findings.length === 0) {
+    findings.push({
+      checkId: "LNX-CAP-001",
+      provider: "linuxhook",
+      severity: "INFO",
+      status: "NOT_FOUND",
+      resource: "capabilities",
+      title: "No exploitable file capabilities found",
+      details: "No files with dangerous capabilities detected",
+      remediation: "Continue with other privilege escalation vectors",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
