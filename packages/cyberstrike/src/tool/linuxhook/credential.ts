@@ -92,3 +92,104 @@ ls -la /etc/shadow- /etc/shadow.bak /etc/shadow.old /var/backups/shadow 2>/dev/n
 
   return { output: output.join("\n"), findings }
 }
+
+export async function sshKeyHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== SSH Key Harvest ==="]
+
+  const script = `
+echo "--- SSH Private Keys ---"
+for dir in /root /home/*; do
+  if [ -d "$dir/.ssh" ]; then
+    echo "[*] Found .ssh in $dir"
+    for keyfile in "$dir/.ssh/id_rsa" "$dir/.ssh/id_ecdsa" "$dir/.ssh/id_ed25519" "$dir/.ssh/id_dsa"; do
+      if [ -f "$keyfile" ]; then
+        perms=$(stat -c '%a' "$keyfile" 2>/dev/null || stat -f '%Lp' "$keyfile" 2>/dev/null)
+        encrypted=""
+        grep -q "ENCRYPTED" "$keyfile" && encrypted="(encrypted)" || encrypted="(UNENCRYPTED)"
+        echo "  [+] PRIVATE KEY: $keyfile  perms=$perms $encrypted"
+      fi
+    done
+    for pemfile in "$dir/.ssh/"*.pem "$dir/"*.pem; do
+      if [ -f "$pemfile" ]; then
+        perms=$(stat -c '%a' "$pemfile" 2>/dev/null || stat -f '%Lp' "$pemfile" 2>/dev/null)
+        echo "  [+] PEM FILE: $pemfile  perms=$perms"
+      fi
+    done
+    if [ -f "$dir/.ssh/authorized_keys" ]; then
+      count=$(wc -l < "$dir/.ssh/authorized_keys" 2>/dev/null)
+      echo "  [*] authorized_keys: $count key(s) in $dir/.ssh/authorized_keys"
+    fi
+    if [ -f "$dir/.ssh/known_hosts" ]; then
+      count=$(wc -l < "$dir/.ssh/known_hosts" 2>/dev/null)
+      echo "  [*] known_hosts: $count host(s) in $dir/.ssh/known_hosts"
+    fi
+    if [ -f "$dir/.ssh/config" ]; then
+      echo "  [*] SSH config found: $dir/.ssh/config"
+      grep -iE "^(Host |HostName |User |IdentityFile |ProxyJump |ProxyCommand )" "$dir/.ssh/config" 2>/dev/null
+    fi
+  fi
+done
+
+echo ""
+echo "--- SSH Agent ---"
+if [ -n "$SSH_AUTH_SOCK" ]; then
+  echo "[+] SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
+  ssh-add -l 2>/dev/null && echo "[+] Agent has loaded keys" || echo "[-] Agent has no keys or not accessible"
+else
+  echo "[-] No SSH_AUTH_SOCK set"
+  find /tmp -name "agent.*" -type s 2>/dev/null | head -5
+fi
+
+echo ""
+echo "--- System SSH Keys ---"
+ls -la /etc/ssh/ssh_host_*_key 2>/dev/null
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const privateKeys = (r.stdout.match(/PRIVATE KEY:/g) || []).length
+  const unencrypted = (r.stdout.match(/UNENCRYPTED/g) || []).length
+  if (privateKeys > 0) {
+    findings.push({
+      checkId: "LNX-SSH-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "ssh_keys",
+      title: "SSH private keys found",
+      details: `${privateKeys} SSH private key(s) found. ${unencrypted > 0 ? `${unencrypted} are UNENCRYPTED — can be used directly for lateral movement.` : "All are encrypted."}`,
+      remediation: "Protect SSH private keys with strong passphrases. Rotate keys regularly. Remove unnecessary keys.",
+    })
+  }
+
+  if (r.stdout.includes("SSH_AUTH_SOCK=")) {
+    findings.push({
+      checkId: "LNX-SSH-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "ssh_agent",
+      title: "SSH agent socket accessible",
+      details: "SSH agent socket is available — can be hijacked for lateral movement without needing the private key",
+      remediation: "Use SSH agent forwarding sparingly. Set AddKeysToAgent to confirm or ask.",
+    })
+  }
+
+  const pemFiles = (r.stdout.match(/PEM FILE:/g) || []).length
+  if (pemFiles > 0) {
+    findings.push({
+      checkId: "LNX-SSH-003",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "pem_files",
+      title: "PEM certificate/key files found",
+      details: `${pemFiles} PEM file(s) found — may contain private keys for cloud instances or TLS`,
+      remediation: "Store PEM files in a secrets manager. Restrict file permissions to 400.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
