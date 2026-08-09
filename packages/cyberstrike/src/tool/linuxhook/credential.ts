@@ -1137,3 +1137,89 @@ cat /etc/krb5.conf 2>/dev/null | grep -E "default_realm|kdc|admin_server" | head
   return { output: output.join("\n"), findings }
 }
 
+export async function dbCredHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Database Credential Harvest ==="]
+
+  const script = `
+echo "--- MySQL / MariaDB ---"
+for dir in /root /home/*; do
+  if [ -f "$dir/.my.cnf" ]; then
+    echo "[+] MySQL config: $dir/.my.cnf"
+    grep -iE "(user|password|host|port)" "$dir/.my.cnf" 2>/dev/null
+    echo ""
+  fi
+done
+[ -f /etc/mysql/debian.cnf ] && echo "[+] Debian MySQL: /etc/mysql/debian.cnf" && grep -iE "(user|password)" /etc/mysql/debian.cnf 2>/dev/null
+
+echo ""
+echo "--- PostgreSQL ---"
+for dir in /root /home/*; do
+  if [ -f "$dir/.pgpass" ]; then
+    echo "[+] PostgreSQL pgpass: $dir/.pgpass"
+    cat "$dir/.pgpass" 2>/dev/null
+    echo ""
+  fi
+done
+[ -f /etc/postgresql-common/pg_service.conf ] && echo "[+] PG service config found" && grep -iE "(host|user|password|dbname)" /etc/postgresql-common/pg_service.conf 2>/dev/null
+
+echo ""
+echo "--- Redis ---"
+for f in /etc/redis/redis.conf /etc/redis.conf /etc/redis/6379.conf; do
+  if [ -f "$f" ]; then
+    pass=$(grep "^requirepass" "$f" 2>/dev/null)
+    if [ -n "$pass" ]; then
+      echo "[+] Redis password in $f: $pass"
+    fi
+  fi
+done
+
+echo ""
+echo "--- MongoDB ---"
+for f in /etc/mongod.conf /etc/mongodb.conf; do
+  if [ -f "$f" ]; then
+    echo "[*] MongoDB config: $f"
+    grep -A3 "security:" "$f" 2>/dev/null
+    grep -iE "(auth|user|password|keyFile)" "$f" 2>/dev/null
+  fi
+done
+
+echo ""
+echo "--- Other Databases ---"
+[ -f /etc/couchdb/local.ini ] && echo "[+] CouchDB config" && grep -iE "(admin|password)" /etc/couchdb/local.ini 2>/dev/null
+[ -f /etc/elasticsearch/elasticsearch.yml ] && echo "[*] Elasticsearch config found"
+[ -f /etc/cassandra/cassandra.yaml ] && echo "[*] Cassandra config found"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("password") || r.stdout.includes("requirepass")) {
+    findings.push({
+      checkId: "LNX-DB-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "database_credentials",
+      title: "Database credentials found in config files",
+      details: "Database authentication credentials found in plaintext configuration files — can access MySQL, PostgreSQL, Redis, or MongoDB",
+      remediation: "Use OS authentication or certificate-based auth. Store credentials in a secrets manager. Restrict config file permissions.",
+    })
+  }
+
+  if (r.stdout.includes(".pgpass") || r.stdout.includes(".my.cnf")) {
+    findings.push({
+      checkId: "LNX-DB-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "db_credential_files",
+      title: "Database credential files accessible",
+      details: "User-level database credential files (.my.cnf, .pgpass) contain plaintext passwords for automated database access",
+      remediation: "Restrict permissions to 600. Use pg_hba.conf peer/ident auth instead of password files.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
