@@ -1349,3 +1349,77 @@ ps aux 2>/dev/null | grep -iE "(postfix|sendmail|exim|dovecot)" | grep -v grep |
   return { output: output.join("\n"), findings }
 }
 
+export async function netrcHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== .netrc Credential Harvest ==="]
+
+  const script = `
+echo "--- .netrc Files ---"
+for dir in /root /home/*; do
+  if [ -f "$dir/.netrc" ]; then
+    perms=$(stat -c '%a' "$dir/.netrc" 2>/dev/null || stat -f '%Lp' "$dir/.netrc" 2>/dev/null)
+    echo "[+] .netrc: $dir/.netrc (perms: $perms)"
+    cat "$dir/.netrc" 2>/dev/null
+    echo ""
+  fi
+done
+
+echo ""
+echo "--- curlrc files ---"
+for dir in /root /home/*; do
+  for f in "$dir/.curlrc" "$dir/.curl_config"; do
+    if [ -f "$f" ]; then
+      echo "[*] curl config: $f"
+      grep -iE "(user|password|proxy-user)" "$f" 2>/dev/null
+    fi
+  done
+done
+
+echo ""
+echo "--- wgetrc files ---"
+for dir in /root /home/*; do
+  if [ -f "$dir/.wgetrc" ]; then
+    echo "[*] wget config: $dir/.wgetrc"
+    grep -iE "(password|user|passwd)" "$dir/.wgetrc" 2>/dev/null
+  fi
+done
+[ -f /etc/wgetrc ] && echo "[*] System wgetrc: /etc/wgetrc" && grep -iE "(password|user|passwd)" /etc/wgetrc 2>/dev/null
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("machine ") || r.stdout.includes("login ")) {
+    findings.push({
+      checkId: "LNX-NETRC-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "netrc",
+      title: "Plaintext credentials in .netrc",
+      details: ".netrc contains machine/login/password entries — FTP, HTTP, and other service credentials in plaintext",
+      remediation: "Remove .netrc or set permissions to 600. Use credential helpers or SSH keys instead.",
+    })
+  }
+
+  const permsMatch = r.stdout.match(/perms: (\d+)/g) || []
+  for (const p of permsMatch) {
+    const perm = p.split(": ")[1]
+    if (perm && parseInt(perm, 8) & 0o044) {
+      findings.push({
+        checkId: "LNX-NETRC-002",
+        provider: "linuxhook",
+        severity: "HIGH",
+        status: "FOUND",
+        resource: "netrc",
+        title: ".netrc has overly permissive permissions",
+        details: `.netrc file has permissions ${perm} — readable by group or others, credentials exposed`,
+        remediation: "chmod 600 ~/.netrc",
+      })
+      break
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
