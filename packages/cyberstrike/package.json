@@ -124,7 +124,7 @@
     "decimal.js": "10.5.0",
     "diff": "catalog:",
     "drizzle-orm": "1.0.0-beta.20",
-    "fast-xml-parser": "5.9.3",
+    "fast-xml-parser": "5.10.1",
     "fuzzysort": "3.1.0",
     "graphql": "17.0.1",
     "gray-matter": "4.0.3",
