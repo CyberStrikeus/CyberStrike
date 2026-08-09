@@ -863,6 +863,57 @@ fi
   }
 
   return { output: output.join("\n"), findings }
+}
+
+export async function dpkgTriggerPersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== DPKG Trigger Persistence ==="]
+  const payload = argVal(args, "--payload")
+
+  const script = `
+echo "--- DPKG Info Directory ---"
+ls /var/lib/dpkg/info/ 2>/dev/null | head -20
+echo ""
+echo "--- Existing Postinst Scripts ---"
+ls /var/lib/dpkg/info/*.postinst 2>/dev/null | head -10
+echo ""
+echo "--- DPKG Triggers ---"
+ls /var/lib/dpkg/triggers/ 2>/dev/null
+cat /var/lib/dpkg/triggers/File 2>/dev/null | head -10
+echo ""
+echo "[*] DPKG trigger persistence methods:"
+echo "  1. Add payload to an existing package's .postinst script"
+echo "  2. Register interest in /var/lib/dpkg/triggers/File for a common path"
+echo "  3. Create a fake package with dpkg-deb containing persistence hooks"
+${payload ? `
+echo ""
+echo "--- Checking writable postinst scripts ---"
+find /var/lib/dpkg/info/ -name "*.postinst" -writable 2>/dev/null | head -5 | while read f; do
+  echo "[+] Writable postinst: $f"
+done
+` : ""}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const writable = (r.stdout.match(/Writable postinst/g) || []).length
+  if (writable > 0) {
+    findings.push({
+      checkId: "LNX-DPKG-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "IDENTIFIED",
+      resource: "dpkg_triggers",
+      title: "Writable dpkg postinst scripts found",
+      details: `${writable} writable package postinst script(s) — payload can be injected to run on package updates`,
+      remediation: "Verify dpkg info file integrity with dpkg --verify. Restrict /var/lib/dpkg/info/ permissions.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+
+  return { output: output.join("\n"), findings }
 
   return { output: output.join("\n"), findings }
 
