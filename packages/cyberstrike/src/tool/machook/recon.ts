@@ -322,7 +322,8 @@ export async function securityFramework(_args: string[], timeout: number): Promi
 
   const firewall = await run("defaults", ["read", "/Library/Preferences/com.apple.alf", "globalstate"], timeout)
   const fwState = firewall.stdout.trim()
-  const fwLabel = fwState === "0" ? "OFF" : fwState === "1" ? "ON (specific services)" : fwState === "2" ? "ON (block all)" : fwState
+  const fwLabel =
+    fwState === "0" ? "OFF" : fwState === "1" ? "ON (specific services)" : fwState === "2" ? "ON (block all)" : fwState
   output.push(`Firewall: ${fwLabel}`)
 
   const xprotectYara = "/Library/Apple/System/Library/CoreServices/XProtect.bundle/Contents/Resources/XProtect.yara"
@@ -425,7 +426,11 @@ export async function launchdEnum(_args: string[], timeout: number): Promise<Hoo
 
     for (const p of nonApple) {
       thirdParty.push(`${dir.path}/${p}`)
-      const info = await run("defaults", ["read", `${dir.path}/${p.replace(".plist", "")}`, "ProgramArguments"], timeout)
+      const info = await run(
+        "defaults",
+        ["read", `${dir.path}/${p.replace(".plist", "")}`, "ProgramArguments"],
+        timeout,
+      )
       if (info.exitCode === 0) {
         output.push(`      ProgramArguments: ${info.stdout.trim().replace(/\n/g, " ").substring(0, 200)}`)
       }

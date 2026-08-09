@@ -3,9 +3,25 @@ import { Tool } from "../tool"
 import type { Finding, HookResult } from "./shared"
 
 import { systemInfo, processEnum, networkEnum, userEnum, installedApps, securityFramework, launchdEnum } from "./recon"
-import { keychainDump, chromeCreds, sshKeys, safariCreds, cloudCreds, gpgKeys, icloudTokens, mailCreds } from "./credential"
+import {
+  keychainDump,
+  chromeCreds,
+  sshKeys,
+  safariCreds,
+  cloudCreds,
+  gpgKeys,
+  icloudTokens,
+  mailCreds,
+} from "./credential"
 import { tccBypass, dylibHijack, launchdPlistAbuse, sudoMisconfig, authorizationDb, pkgAbuse } from "./privesc"
-import { launchagentPersist, launchdaemonPersist, loginItems, cronPersist, bashrcPersist, periodicScripts } from "./persistence"
+import {
+  launchagentPersist,
+  launchdaemonPersist,
+  loginItems,
+  cronPersist,
+  bashrcPersist,
+  periodicScripts,
+} from "./persistence"
 import { xprotectCheck, gatekeeperBypass, logClear, historyClear, timestomp, endpointSecurityBypass } from "./evasion"
 import { keylogMac, dtraceExec, dtraceNet, dtraceFile, clipboardMonitor, screenCapture } from "./monitoring"
 import { sshPivot, airdropAbuse, bonjourEnum, appleRemoteDesktop } from "./lateral"
@@ -44,7 +60,8 @@ const PROGRAMS = {
 
   // ── Credential (8) ──
   keychain_dump: {
-    description: "Extract passwords from macOS Keychain — login, system, application keychains including WiFi credentials",
+    description:
+      "Extract passwords from macOS Keychain — login, system, application keychains including WiFi credentials",
     args: "[--keychain PATH]",
   },
   chrome_creds: {
@@ -130,7 +147,8 @@ const PROGRAMS = {
 
   // ── Evasion (6) ──
   xprotect_check: {
-    description: "Enumerate XProtect/MRT signatures, Gatekeeper/SIP/FileVault/Firewall status, installed apps for evasion planning",
+    description:
+      "Enumerate XProtect/MRT signatures, Gatekeeper/SIP/FileVault/Firewall status, installed apps for evasion planning",
     args: "",
   },
   gatekeeper_bypass: {
@@ -208,7 +226,8 @@ const PROGRAMS = {
     args: "",
   },
   cleanup_mac: {
-    description: "Remove CyberStrike artifacts — LaunchAgents, processes, temp files, DTrace scripts, history. ALWAYS run before leaving",
+    description:
+      "Remove CyberStrike artifacts — LaunchAgents, processes, temp files, DTrace scripts, history. ALWAYS run before leaving",
     args: "",
   },
 } as const satisfies Record<string, { description: string; args: string }>

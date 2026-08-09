@@ -308,8 +308,7 @@ export async function safariCreds(_args: string[], timeout: number): Promise<Hoo
     if (ext.exitCode === 0) {
       const names = ext.stdout.match(/"Bundle Directory Name"\s*=>\s*"([^"]+)"/g) || []
       output.push(`\n[+] Safari extensions: ${names.length}`)
-      for (const n of names)
-        output.push(`    ${n.replace(/"Bundle Directory Name"\s*=>\s*/, "").replace(/"/g, "")}`)
+      for (const n of names) output.push(`    ${n.replace(/"Bundle Directory Name"\s*=>\s*/, "").replace(/"/g, "")}`)
     }
   }
 
@@ -527,7 +526,9 @@ export async function icloudTokens(_args: string[], timeout: number): Promise<Ho
       const entries = JSON.parse(accounts.stdout || "[]") as Array<Record<string, string>>
       output.push(`[+] macOS accounts: ${entries.length}`)
       for (const e of entries) {
-        output.push(`    Type: ${e.ZACCOUNTTYPEDESCRIPTION || "unknown"}, User: ${e.ZUSERNAME || "N/A"}, Active: ${e.ZACTIVE}`)
+        output.push(
+          `    Type: ${e.ZACCOUNTTYPEDESCRIPTION || "unknown"}, User: ${e.ZUSERNAME || "N/A"}, Active: ${e.ZACTIVE}`,
+        )
       }
     }
     if (accounts.exitCode !== 0) {
