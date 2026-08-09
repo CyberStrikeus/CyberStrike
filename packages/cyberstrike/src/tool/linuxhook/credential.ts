@@ -72,12 +72,18 @@ ls -la /etc/shadow- /etc/shadow.bak /etc/shadow.old /var/backups/shadow 2>/dev/n
         resource: "/etc/shadow",
         title: "Weak password hash algorithms detected",
         details: `${weakAlgos} account(s) use MD5 or SHA-1 hashing — trivially crackable with modern GPUs`,
-        remediation: "Reconfigure PAM to use SHA-512 or yescrypt (pam_unix.so sha512/yescrypt). Force password resets for affected accounts.",
+        remediation:
+          "Reconfigure PAM to use SHA-512 or yescrypt (pam_unix.so sha512/yescrypt). Force password resets for affected accounts.",
       })
     }
   }
 
-  if (r.stdout.includes("shadow.bak") || r.stdout.includes("shadow-") || r.stdout.includes("shadow.old") || r.stdout.includes("/var/backups/shadow")) {
+  if (
+    r.stdout.includes("shadow.bak") ||
+    r.stdout.includes("shadow-") ||
+    r.stdout.includes("shadow.old") ||
+    r.stdout.includes("/var/backups/shadow")
+  ) {
     findings.push({
       checkId: "LNX-SHADOW-003",
       provider: "linuxhook",
@@ -262,7 +268,8 @@ done
       resource: "shell_history",
       title: "Credentials found in shell history",
       details: `${secretMatches} history file(s) contain passwords, API keys, or tokens in command arguments`,
-      remediation: "Clear shell history (history -c, rm ~/.bash_history). Set HISTCONTROL=ignorespace to avoid saving sensitive commands.",
+      remediation:
+        "Clear shell history (history -c, rm ~/.bash_history). Set HISTCONTROL=ignorespace to avoid saving sensitive commands.",
     })
   }
 
@@ -275,7 +282,8 @@ done
       resource: "shell_history",
       title: "AWS access key found in shell history",
       details: "AWS Access Key ID (AKIA...) found in command history — can be used for cloud access",
-      remediation: "Rotate the exposed AWS key immediately. Use IAM roles or credential files instead of CLI arguments.",
+      remediation:
+        "Rotate the exposed AWS key immediately. Use IAM roles or credential files instead of CLI arguments.",
     })
   }
 
@@ -345,7 +353,8 @@ echo "DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS"
       status: "FOUND",
       resource: "gnome_keyring",
       title: "GNOME Keyring secrets accessible",
-      details: "GNOME Keyring is available and can be queried via secret-tool — stored passwords, WiFi credentials, and application secrets may be extractable",
+      details:
+        "GNOME Keyring is available and can be queried via secret-tool — stored passwords, WiFi credentials, and application secrets may be extractable",
       remediation: "Lock the keyring when not in use. Use a strong keyring password separate from the login password.",
     })
   }
@@ -406,7 +415,8 @@ done
       status: "FOUND",
       resource: "kwallet",
       title: "KDE Wallet data accessible",
-      details: "KDE Wallet (KWallet) is present — may store network passwords, application credentials, and certificates",
+      details:
+        "KDE Wallet (KWallet) is present — may store network passwords, application credentials, and certificates",
       remediation: "Lock KWallet when not in use. Use a strong wallet password.",
     })
   }
@@ -481,7 +491,8 @@ done
       resource: "browser_creds",
       title: "Browser credential databases found",
       details: `${loginDbs} browser login database(s) found — saved passwords can be extracted with tools like LaZagne, browser_cookie3, or custom scripts`,
-      remediation: "Use a dedicated password manager instead of browser-saved passwords. Enable OS-level keyring integration.",
+      remediation:
+        "Use a dedicated password manager instead of browser-saved passwords. Enable OS-level keyring integration.",
     })
   }
 
@@ -493,7 +504,8 @@ done
       status: "FOUND",
       resource: "browser_cookies",
       title: "Browser cookie databases found",
-      details: "Session cookies can be extracted for session hijacking — access to authenticated web applications without credentials",
+      details:
+        "Session cookies can be extracted for session hijacking — access to authenticated web applications without credentials",
       remediation: "Use browser profiles with short session expiry. Enable SameSite cookie attributes.",
     })
   }
@@ -562,7 +574,8 @@ done
       resource: "environment",
       title: "Secrets found in environment variables",
       details: `${envMatches} source(s) contain secrets in environment variables — passwords, API keys, tokens exposed in process memory`,
-      remediation: "Use a secrets manager (Vault, AWS Secrets Manager) instead of environment variables. Restrict /proc access with hidepid=2.",
+      remediation:
+        "Use a secrets manager (Vault, AWS Secrets Manager) instead of environment variables. Restrict /proc access with hidepid=2.",
     })
   }
 
@@ -587,7 +600,9 @@ export async function procMemoryHarvest(args: string[], timeout: number): Promis
   const output: string[] = ["=== Process Memory Credential Harvest ==="]
 
   const target = argVal(args, "--target")
-  const targets = target ? [target] : ["sshd", "nginx", "apache2", "httpd", "mysqld", "postgres", "redis-server", "vsftpd", "proftpd"]
+  const targets = target
+    ? [target]
+    : ["sshd", "nginx", "apache2", "httpd", "mysqld", "postgres", "redis-server", "vsftpd", "proftpd"]
 
   const script = `
 echo "--- Checking ptrace_scope ---"
@@ -642,7 +657,8 @@ ls -la /var/crash/ 2>/dev/null
       status: "FOUND",
       resource: "/proc/sys/kernel/yama/ptrace_scope",
       title: "YAMA ptrace_scope is disabled (0)",
-      details: "Any process can ptrace any other process owned by the same user — enables credential extraction from process memory",
+      details:
+        "Any process can ptrace any other process owned by the same user — enables credential extraction from process memory",
       remediation: "Set kernel.yama.ptrace_scope=1 in /etc/sysctl.conf",
     })
   }
@@ -806,8 +822,10 @@ curl -s -m 2 -H "Metadata: true" "http://169.254.169.254/metadata/identity/oauth
       status: "FOUND",
       resource: "aws_credentials",
       title: "AWS credentials found on disk",
-      details: "AWS access keys found in ~/.aws/credentials — can be used for cloud resource access and privilege escalation",
-      remediation: "Use IAM roles instead of long-term access keys. Rotate keys regularly. Use aws-vault for local key management.",
+      details:
+        "AWS access keys found in ~/.aws/credentials — can be used for cloud resource access and privilege escalation",
+      remediation:
+        "Use IAM roles instead of long-term access keys. Rotate keys regularly. Use aws-vault for local key management.",
     })
   }
 
@@ -837,7 +855,11 @@ curl -s -m 2 -H "Metadata: true" "http://169.254.169.254/metadata/identity/oauth
     })
   }
 
-  if (r.stdout.includes("metadata token accessible") || r.stdout.includes("metadata accessible") || r.stdout.includes("IMDS accessible")) {
+  if (
+    r.stdout.includes("metadata token accessible") ||
+    r.stdout.includes("metadata accessible") ||
+    r.stdout.includes("IMDS accessible")
+  ) {
     findings.push({
       checkId: "LNX-CLOUD-004",
       provider: "linuxhook",
@@ -845,8 +867,10 @@ curl -s -m 2 -H "Metadata: true" "http://169.254.169.254/metadata/identity/oauth
       status: "FOUND",
       resource: "instance_metadata",
       title: "Cloud instance metadata service accessible",
-      details: "IMDS is accessible — can retrieve IAM credentials, instance identity, and user data without authentication",
-      remediation: "Use IMDSv2 (AWS) with hop limit. Restrict metadata access via firewall rules. Use network policies.",
+      details:
+        "IMDS is accessible — can retrieve IAM credentials, instance identity, and user data without authentication",
+      remediation:
+        "Use IMDSv2 (AWS) with hop limit. Restrict metadata access via firewall rules. Use network policies.",
     })
   }
 
@@ -905,7 +929,8 @@ ls -la /var/run/docker.sock 2>/dev/null
       status: "FOUND",
       resource: "docker_config",
       title: "Docker registry credentials found",
-      details: "Docker config.json contains base64-encoded registry auth tokens — can access private container registries",
+      details:
+        "Docker config.json contains base64-encoded registry auth tokens — can access private container registries",
       remediation: "Use credential helpers (docker-credential-pass, ecr-login) instead of storing auth in config.json.",
     })
   }
@@ -983,7 +1008,8 @@ done
       resource: "git_credentials",
       title: "Git credential store with plaintext passwords",
       details: "~/.git-credentials contains plaintext URLs with embedded passwords — direct access to repositories",
-      remediation: "Use SSH keys or credential helpers (git-credential-libsecret, git-credential-store with restricted perms).",
+      remediation:
+        "Use SSH keys or credential helpers (git-credential-libsecret, git-credential-store with restricted perms).",
     })
   }
 
@@ -1115,7 +1141,8 @@ fi
       status: "FOUND",
       resource: "kerberos_keytab",
       title: `${ktCount} Kerberos keytab(s) found`,
-      details: "Keytab files contain long-term Kerberos keys — can be used for authentication without password, ticket forging, or lateral movement",
+      details:
+        "Keytab files contain long-term Kerberos keys — can be used for authentication without password, ticket forging, or lateral movement",
       remediation: "Restrict keytab permissions to specific service accounts (chmod 600). Rotate service account keys.",
     })
   }
@@ -1128,7 +1155,8 @@ fi
       status: "FOUND",
       resource: "kerberos_ccache",
       title: "Kerberos credential cache tickets found",
-      details: "Active Kerberos tickets found in ccache files — can be passed for authenticated access to AD-joined services",
+      details:
+        "Active Kerberos tickets found in ccache files — can be passed for authenticated access to AD-joined services",
       remediation: "Set short ticket lifetimes. Clear ccache files when sessions end.",
     })
   }
@@ -1278,7 +1306,8 @@ systemctl list-units 2>/dev/null | grep -i vnc
       status: "FOUND",
       resource: "vnc_password",
       title: "VNC password file found",
-      details: "VNC password files use DES encryption (trivially reversible) — password can be recovered for remote desktop access",
+      details:
+        "VNC password files use DES encryption (trivially reversible) — password can be recovered for remote desktop access",
       remediation: "Use SSH tunneling for VNC instead of password auth. Migrate to VeNCrypt with TLS.",
     })
   }
@@ -1474,7 +1503,11 @@ realm list 2>/dev/null | head -10 || echo "[-] realm not available"
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
   output.push(r.stdout || r.stderr)
 
-  if (r.stdout.includes("bindpw") || r.stdout.includes("ldap_default_authtok") || r.stdout.includes("pam_ldap.secret")) {
+  if (
+    r.stdout.includes("bindpw") ||
+    r.stdout.includes("ldap_default_authtok") ||
+    r.stdout.includes("pam_ldap.secret")
+  ) {
     findings.push({
       checkId: "LNX-LDAP-001",
       provider: "linuxhook",
@@ -1482,8 +1515,10 @@ realm list 2>/dev/null | head -10 || echo "[-] realm not available"
       status: "FOUND",
       resource: "ldap_credentials",
       title: "LDAP bind credentials found",
-      details: "LDAP bind password found in configuration — can query directory for users, groups, and potentially modify entries",
-      remediation: "Use GSSAPI/Kerberos for LDAP auth instead of simple bind. Restrict config file permissions to root.",
+      details:
+        "LDAP bind password found in configuration — can query directory for users, groups, and potentially modify entries",
+      remediation:
+        "Use GSSAPI/Kerberos for LDAP auth instead of simple bind. Restrict config file permissions to root.",
     })
   }
 
@@ -1495,7 +1530,8 @@ realm list 2>/dev/null | head -10 || echo "[-] realm not available"
       status: "FOUND",
       resource: "sssd_config",
       title: "SSSD configuration with LDAP/AD details",
-      details: "SSSD config reveals AD/LDAP integration details — domain, URI, search base useful for further enumeration",
+      details:
+        "SSSD config reveals AD/LDAP integration details — domain, URI, search base useful for further enumeration",
       remediation: "Restrict sssd.conf permissions to 600 root:root.",
     })
   }
@@ -1592,7 +1628,8 @@ find /opt /srv /var /tmp -maxdepth 3 \\( -name "*.bak" -o -name "*.old" -o -name
       status: "FOUND",
       resource: "k8s_secrets",
       title: "Kubernetes secrets mounted in filesystem",
-      details: "K8s service account tokens and secrets accessible at /var/run/secrets/ — can be used for cluster access",
+      details:
+        "K8s service account tokens and secrets accessible at /var/run/secrets/ — can be used for cluster access",
       remediation: "Use projected volumes with audience. Disable automountServiceAccountToken where not needed.",
     })
   }

@@ -802,7 +802,8 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
         status: "WARN",
         resource: "bash",
         title: "Bash not available",
-        details: "bash is not accessible — some handlers will use sh fallback with reduced functionality. Use --exec auto.",
+        details:
+          "bash is not accessible — some handlers will use sh fallback with reduced functionality. Use --exec auto.",
         remediation: "Use --exec sh or --exec python3 for fallback",
       })
     if (!env.isRoot && !env.sudoNopasswd)
@@ -813,7 +814,8 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
         status: "WARN",
         resource: "privileges",
         title: "Not running as root and no NOPASSWD sudo",
-        details: "Many post-exploitation operations require root or passwordless sudo. Credential and persistence operations will be limited.",
+        details:
+          "Many post-exploitation operations require root or passwordless sudo. Credential and persistence operations will be limited.",
         remediation: "Escalate privileges first using linuxhook privesc programs",
       })
     if (env.selinuxStatus === "enforcing")
@@ -824,7 +826,8 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
         status: "WARN",
         resource: "SELinux",
         title: "SELinux is enforcing",
-        details: "SELinux enforcement may block some operations. Use linuxhook selinux_bypass to assess bypass options.",
+        details:
+          "SELinux enforcement may block some operations. Use linuxhook selinux_bypass to assess bypass options.",
         remediation: "Run linuxhook selinux_bypass --action check",
       })
     if (env.inContainer)
@@ -835,7 +838,8 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
         status: "INFO",
         resource: env.containerType,
         title: `Running inside ${env.containerType} container`,
-        details: "Container environment detected — some host-level operations will be unavailable. Consider container escape via containerhook.",
+        details:
+          "Container environment detected — some host-level operations will be unavailable. Consider container escape via containerhook.",
         remediation: "Use containerhook for container-specific attacks, or escape to host first",
       })
     return { output: lines.join("\n"), findings }

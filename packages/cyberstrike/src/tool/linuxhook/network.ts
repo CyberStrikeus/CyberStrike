@@ -62,7 +62,8 @@ ip link show ${iface} 2>/dev/null | grep ether || ifconfig ${iface} 2>/dev/null 
     resource: `${target} <-> ${gateway}`,
     title: "ARP spoofing attack prepared",
     details: `ARP spoof setup for MITM between ${target} and ${gateway} on ${iface}`,
-    remediation: "Implement Dynamic ARP Inspection (DAI). Use static ARP entries for critical infrastructure. Enable ARP spoofing detection.",
+    remediation:
+      "Implement Dynamic ARP Inspection (DAI). Use static ARP entries for critical infrastructure. Enable ARP spoofing detection.",
   })
 
   return { output: output.join("\n"), findings }
@@ -194,7 +195,8 @@ fi
       resource: outFile,
       title: "Network traffic captured",
       details: `Packet capture saved to ${outFile}. Filtered for credential-bearing protocols (FTP, Telnet, HTTP, SMTP, LDAP, SMB, MySQL, PostgreSQL).`,
-      remediation: "Encrypt all network traffic (TLS/SSH). Disable plaintext protocols. Implement network segmentation.",
+      remediation:
+        "Encrypt all network traffic (TLS/SSH). Disable plaintext protocols. Implement network segmentation.",
     })
   }
 
@@ -206,7 +208,9 @@ export async function portScanNative(args: string[], timeout: number): Promise<H
   const output: string[] = ["=== Port Scan ==="]
 
   const target = argVal(args, "--target") || "127.0.0.1"
-  const ports = argVal(args, "--ports") || "21,22,23,25,53,80,110,111,135,139,143,443,445,993,995,1433,1521,3306,3389,5432,5900,6379,8080,8443,9200,27017"
+  const ports =
+    argVal(args, "--ports") ||
+    "21,22,23,25,53,80,110,111,135,139,143,443,445,993,995,1433,1521,3306,3389,5432,5900,6379,8080,8443,9200,27017"
 
   const script = `
 echo "[*] Target: ${target}"
@@ -373,7 +377,8 @@ fi
     resource: iface,
     title: "LLMNR/NBT-NS/mDNS poisoning setup",
     details: `Poisoning attack setup for ${iface}. ${r.stdout.includes("[+] Responder found") ? "Responder is available." : "Responder not installed — manual setup required."}`,
-    remediation: "Disable LLMNR and NBT-NS via Group Policy. Disable mDNS if not required. Use DNS for name resolution.",
+    remediation:
+      "Disable LLMNR and NBT-NS via Group Policy. Disable mDNS if not required. Use DNS for name resolution.",
   })
 
   return { output: output.join("\n"), findings }
@@ -481,7 +486,9 @@ echo "--- Enabling IP Forwarding ---"
 echo 1 > /proc/sys/net/ipv4/ip_forward 2>/dev/null && echo "[+] IP forwarding enabled" || echo "[-] Cannot enable (need root)"
 
 echo ""
-${targetIp ? `
+${
+  targetIp
+    ? `
 echo "--- DNAT Rule (remote redirect) ---"
 echo "[*] iptables -t nat -A PREROUTING -p tcp --dport ${fromPort} -j DNAT --to-destination ${targetIp}:${toPort}"
 echo "[*] iptables -t nat -A POSTROUTING -j MASQUERADE"
@@ -490,14 +497,16 @@ iptables -t nat -A POSTROUTING -j MASQUERADE 2>/dev/null
 echo ""
 echo "--- Cleanup ---"
 echo "    iptables -t nat -D PREROUTING -p tcp --dport ${fromPort} -j DNAT --to-destination ${targetIp}:${toPort}"
-` : `
+`
+    : `
 echo "--- REDIRECT Rule (local redirect) ---"
 echo "[*] iptables -t nat -A PREROUTING -p tcp --dport ${fromPort} -j REDIRECT --to-port ${toPort}"
 iptables -t nat -A PREROUTING -p tcp --dport ${fromPort} -j REDIRECT --to-port ${toPort} 2>/dev/null && echo "[+] REDIRECT rule added" || echo "[-] Failed (need root)"
 echo ""
 echo "--- Cleanup ---"
 echo "    iptables -t nat -D PREROUTING -p tcp --dport ${fromPort} -j REDIRECT --to-port ${toPort}"
-`}
+`
+}
 
 echo ""
 echo "--- Current NAT Rules ---"
@@ -515,7 +524,8 @@ iptables -t nat -L -n 2>/dev/null | head -20
     resource: `port ${fromPort}`,
     title: `Traffic redirect ${fromPort} -> ${targetIp ? targetIp + ":" : ""}${toPort}`,
     details: `iptables ${targetIp ? "DNAT" : "REDIRECT"} rule ${r.stdout.includes("[+]") ? "active" : "prepared"} for port ${fromPort}`,
-    remediation: "Monitor iptables NAT rules for unauthorized changes. Implement change monitoring on firewall configs.",
+    remediation:
+      "Monitor iptables NAT rules for unauthorized changes. Implement change monitoring on firewall configs.",
   })
 
   return { output: output.join("\n"), findings }
