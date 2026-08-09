@@ -757,6 +757,69 @@ done
   }
 
   return { output: output.join("\n"), findings }
+}
+
+export async function kernelModulePersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Kernel Module Persistence ==="]
+
+  const script = `
+echo "--- Loaded Modules ---"
+lsmod 2>/dev/null | head -20
+echo ""
+echo "--- Boot-time Module Config ---"
+cat /etc/modules 2>/dev/null || echo "[-] /etc/modules not found"
+echo ""
+ls -la /etc/modules-load.d/ 2>/dev/null || echo "[-] /etc/modules-load.d/ not found"
+echo ""
+echo "--- Modprobe Config ---"
+ls -la /etc/modprobe.d/ 2>/dev/null
+echo ""
+echo "--- Module Build Dirs ---"
+ls -d /lib/modules/$(uname -r)/build 2>/dev/null && echo "[+] Kernel headers available (can compile modules)" || echo "[-] No kernel headers"
+echo ""
+echo "--- Writable Module Paths ---"
+for d in /etc/modules-load.d /etc/modprobe.d /lib/modules; do
+  [ -w "$d" ] && echo "[+] $d is WRITABLE" || echo "  $d is read-only"
+done
+echo ""
+echo "[*] Kernel module persistence methods:"
+echo "  1. Add module name to /etc/modules or /etc/modules-load.d/*.conf for boot-time loading"
+echo "  2. Compile custom .ko module and place in /lib/modules/\$(uname -r)/extra/"
+echo "  3. Use modprobe.d/install directive to run commands on module load"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("Kernel headers available")) {
+    findings.push({
+      checkId: "LNX-KMOD-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "IDENTIFIED",
+      resource: "kernel_modules",
+      title: "Kernel headers available for module compilation",
+      details: "Kernel headers installed — custom kernel modules can be compiled and loaded for rootkit-level persistence",
+      remediation: "Remove kernel headers (linux-headers-*) on production systems if not needed. Monitor module loading with auditd.",
+    })
+  }
+
+  const writablePaths = (r.stdout.match(/is WRITABLE/g) || []).length
+  if (writablePaths > 0) {
+    findings.push({
+      checkId: "LNX-KMOD-002",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "IDENTIFIED",
+      resource: "kernel_modules",
+      title: "Writable kernel module paths",
+      details: `${writablePaths} kernel module path(s) are writable — kernel-level persistence possible`,
+      remediation: "Restrict module paths to root only. Enable module signature verification in kernel config.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
 
   return { output: output.join("\n"), findings }
 }
