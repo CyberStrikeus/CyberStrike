@@ -1380,3 +1380,64 @@ done
   return { output: output.join("\n"), findings }
 }
 
+export async function ldapCredHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== LDAP Credential Harvest ==="]
+
+  const script = `
+echo "--- LDAP Configuration Files ---"
+for f in /etc/ldap/ldap.conf /etc/openldap/ldap.conf /etc/ldap.conf; do
+  if [ -f "$f" ]; then
+    echo "[*] LDAP config: $f"
+    grep -iE "(binddn|bindpw|uri|base|rootbinddn)" "$f" 2>/dev/null
+    echo ""
+  fi
+done
+
+echo "--- SSSD Configuration ---"
+if [ -f /etc/sssd/sssd.conf ]; then
+  echo "[+] SSSD config: /etc/sssd/sssd.conf"
+  grep -iE "(ldap_default_bind_dn|ldap_default_authtok|ldap_uri|ldap_search_base)" /etc/sssd/sssd.conf 2>/dev/null
+  echo ""
+fi
+
+echo "--- nslcd Configuration ---"
+if [ -f /etc/nslcd.conf ]; then
+  echo "[+] nslcd config: /etc/nslcd.conf"
+  grep -iE "(binddn|bindpw|uri|base)" /etc/nslcd.conf 2>/dev/null
+  echo ""
+fi
+
+echo "--- pam_ldap / nss_ldap ---"
+for f in /etc/pam_ldap.conf /etc/libnss-ldap.conf /etc/ldap.secret; do
+  if [ -f "$f" ]; then
+    echo "[+] Config: $f"
+    grep -iE "(binddn|bindpw|rootbinddn|host|base)" "$f" 2>/dev/null
+    echo ""
+  fi
+done
+if [ -f /etc/ldap.secret ]; then
+  echo "[+] LDAP secret file: /etc/ldap.secret"
+  cat /etc/ldap.secret 2>/dev/null
+fi
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("bindpw") || r.stdout.includes("authtok") || r.stdout.includes("ldap.secret")) {
+    findings.push({
+      checkId: "LNX-LDAP-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "ldap_credentials",
+      title: "LDAP bind credentials found",
+      details: "LDAP bind DN and password found in configuration files — can query directory service for users, groups, and password hashes",
+      remediation: "Use GSSAPI/Kerberos authentication instead of simple bind. Restrict config file permissions.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
