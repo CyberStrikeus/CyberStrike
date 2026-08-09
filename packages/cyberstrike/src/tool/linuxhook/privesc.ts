@@ -407,3 +407,90 @@ cat /etc/crontab /etc/cron.d/* 2>/dev/null | grep -vE "^#|^$|^[A-Z]" | awk '{for
 
   return { output: output.join("\n"), findings }
 }
+
+export async function ldPreloadAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== LD_PRELOAD / Shared Library Abuse ==="]
+
+  const script = `
+echo "--- sudo env_keep check ---"
+sudo -l 2>/dev/null | grep -iE "LD_PRELOAD|LD_LIBRARY_PATH|LIBPATH"
+echo ""
+echo "--- /etc/ld.so.preload ---"
+ls -la /etc/ld.so.preload 2>/dev/null
+cat /etc/ld.so.preload 2>/dev/null
+[ -w /etc/ld.so.preload ] 2>/dev/null && echo "[!] /etc/ld.so.preload is WRITABLE"
+[ ! -f /etc/ld.so.preload ] && [ -w /etc/ ] && echo "[!] /etc/ld.so.preload does not exist but /etc/ is writable"
+echo ""
+echo "--- LD_LIBRARY_PATH in environment ---"
+env 2>/dev/null | grep -i "LD_"
+echo ""
+echo "--- RPATH/RUNPATH in SUID binaries ---"
+find / -perm -4000 -type f 2>/dev/null | head -20 | while read -r f; do
+  rpath=$(readelf -d "$f" 2>/dev/null | grep -iE "RPATH|RUNPATH")
+  [ -n "$rpath" ] && echo "[!] $f: $rpath"
+done
+echo ""
+echo "--- Writable library paths ---"
+cat /etc/ld.so.conf /etc/ld.so.conf.d/* 2>/dev/null | grep -v "^#" | while read -r libdir; do
+  [ -d "$libdir" ] && [ -w "$libdir" ] && echo "[!] WRITABLE LIB DIR: $libdir"
+done
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.match(/env_keep.*LD_PRELOAD/i) || r.stdout.match(/env_keep.*LD_LIBRARY_PATH/i)) {
+    findings.push({
+      checkId: "LNX-LDPRELOAD-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "sudo",
+      title: "LD_PRELOAD preserved through sudo",
+      details: "sudo env_keep includes LD_PRELOAD or LD_LIBRARY_PATH — compile malicious .so, run sudo with LD_PRELOAD=./evil.so to get root shell",
+      remediation: "Remove LD_PRELOAD and LD_LIBRARY_PATH from sudo env_keep.",
+    })
+  }
+
+  if (r.stdout.includes("[!] /etc/ld.so.preload is WRITABLE")) {
+    findings.push({
+      checkId: "LNX-LDPRELOAD-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "/etc/ld.so.preload",
+      title: "/etc/ld.so.preload is writable",
+      details: "/etc/ld.so.preload is writable — add malicious .so path to inject into every dynamically linked process on the system",
+      remediation: "Set /etc/ld.so.preload to root:root 644. Monitor changes with file integrity tools.",
+    })
+  }
+
+  if (r.stdout.includes("RPATH") || r.stdout.includes("RUNPATH")) {
+    findings.push({
+      checkId: "LNX-LDPRELOAD-003",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "IDENTIFIED",
+      resource: "suid_rpath",
+      title: "SUID binary with RPATH/RUNPATH",
+      details: "SUID binary has custom RPATH/RUNPATH — if the path is writable, place malicious .so for privilege escalation",
+      remediation: "Rebuild SUID binaries without RPATH. Use system library paths only.",
+    })
+  }
+
+  if (r.stdout.includes("[!] WRITABLE LIB DIR:")) {
+    findings.push({
+      checkId: "LNX-LDPRELOAD-004",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "ld.so.conf",
+      title: "Writable library directory in ld.so.conf",
+      details: "A library directory from ld.so.conf is writable — place malicious .so to be loaded by privileged processes",
+      remediation: "Restrict library directory permissions. Ensure ld.so.conf directories are root-owned.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
