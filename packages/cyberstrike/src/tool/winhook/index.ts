@@ -1343,7 +1343,7 @@ export const WinhookTool = Tool.define("winhook", {
     if (process.platform !== "win32") {
       return {
         title: `winhook: ${params.program}`,
-        output: `winhook requires Windows. Current platform: ${process.platform}\n\nUse 'ebpf' for Linux post-exploitation or 'machook' for macOS.`,
+        output: `winhook requires Windows. Current platform: ${process.platform}\n\nUse 'linuxhook' for Linux post-exploitation or 'machook' for macOS.`,
         metadata: { program: params.program, findings: [] as Finding[] },
       }
     }

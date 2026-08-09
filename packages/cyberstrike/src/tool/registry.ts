@@ -55,6 +55,7 @@ import { GenerateReportTool } from "./generate-report"
 import { EbpfTool } from "./ebpf"
 import { WinhookTool } from "./winhook"
 import { MachookTool } from "./machook"
+import { LinuxhookTool } from "./linuxhook"
 import { AwshookTool } from "./awshook"
 import { AzurehookTool } from "./azurehook"
 import { KubehookTool } from "./kubehook"
@@ -194,6 +195,7 @@ export namespace ToolRegistry {
       EbpfTool,
       WinhookTool,
       MachookTool,
+      LinuxhookTool,
       AwshookTool,
       AzurehookTool,
       KubehookTool,
