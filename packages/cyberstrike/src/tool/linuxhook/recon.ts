@@ -593,3 +593,152 @@ capsh --print 2>/dev/null | grep -i "current"
 
   return { output: output.join("\n"), findings }
 }
+
+export async function securityFramework(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Security Framework Analysis ==="]
+
+  const script = `
+echo "--- SELinux ---"
+getenforce 2>/dev/null || echo "getenforce: not available"
+sestatus 2>/dev/null || echo "sestatus: not available"
+echo ""
+echo "--- AppArmor ---"
+aa-status 2>/dev/null || echo "aa-status: not available"
+cat /sys/kernel/security/apparmor/profiles 2>/dev/null | head -20
+echo ""
+echo "--- Seccomp ---"
+grep -i seccomp /proc/1/status 2>/dev/null
+echo ""
+echo "--- YAMA ptrace_scope ---"
+cat /proc/sys/kernel/yama/ptrace_scope 2>/dev/null || echo "YAMA: not available"
+echo ""
+echo "--- Kernel Hardening ---"
+echo "ASLR: $(cat /proc/sys/kernel/randomize_va_space 2>/dev/null)"
+echo "kptr_restrict: $(cat /proc/sys/kernel/kptr_restrict 2>/dev/null)"
+echo "dmesg_restrict: $(cat /proc/sys/kernel/dmesg_restrict 2>/dev/null)"
+echo "perf_event_paranoid: $(cat /proc/sys/kernel/perf_event_paranoid 2>/dev/null)"
+echo "unprivileged_bpf_disabled: $(cat /proc/sys/kernel/unprivileged_bpf_disabled 2>/dev/null)"
+echo "modules_disabled: $(cat /proc/sys/kernel/modules_disabled 2>/dev/null)"
+echo "kexec_load_disabled: $(cat /proc/sys/kernel/kexec_load_disabled 2>/dev/null)"
+echo ""
+echo "--- sysctl Security ---"
+echo "ip_forward: $(cat /proc/sys/net/ipv4/ip_forward 2>/dev/null)"
+echo "accept_redirects: $(cat /proc/sys/net/ipv4/conf/all/accept_redirects 2>/dev/null)"
+echo "send_redirects: $(cat /proc/sys/net/ipv4/conf/all/send_redirects 2>/dev/null)"
+echo "accept_source_route: $(cat /proc/sys/net/ipv4/conf/all/accept_source_route 2>/dev/null)"
+echo "syncookies: $(cat /proc/sys/net/ipv4/tcp_syncookies 2>/dev/null)"
+echo ""
+echo "--- Audit System ---"
+auditctl -l 2>/dev/null || echo "auditctl: not available or no rules"
+auditctl -s 2>/dev/null
+echo ""
+echo "--- Integrity Checking ---"
+command -v aide >/dev/null 2>&1 && echo "AIDE: installed" || echo "AIDE: not installed"
+command -v tripwire >/dev/null 2>&1 && echo "Tripwire: installed" || echo "Tripwire: not installed"
+command -v osquery >/dev/null 2>&1 && echo "osquery: installed" || echo "osquery: not installed"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("Disabled") || r.stdout.includes("disabled") || r.stdout.includes("getenforce: not available")) {
+    if (!r.stdout.includes("Enforcing")) {
+      findings.push({
+        checkId: "LNX-SECFW-001",
+        provider: "linuxhook",
+        severity: "MEDIUM",
+        status: "VULNERABLE",
+        resource: "selinux",
+        title: "SELinux not enforcing",
+        details: "SELinux is disabled or in permissive mode — mandatory access controls are not active",
+        remediation: "Enable SELinux in enforcing mode with appropriate policies",
+      })
+    }
+  }
+
+  if (r.stdout.includes("aa-status: not available") && !r.stdout.includes("apparmor")) {
+    findings.push({
+      checkId: "LNX-SECFW-002",
+      provider: "linuxhook",
+      severity: "LOW",
+      status: "IDENTIFIED",
+      resource: "apparmor",
+      title: "AppArmor not detected",
+      details: "AppArmor is not installed or not active — no application confinement in place",
+      remediation: "Install and configure AppArmor profiles for critical services",
+    })
+  }
+
+  const ptraceScope = r.stdout.match(/ptrace_scope.*\n\s*(\d)/m) || r.stdout.match(/YAMA ptrace_scope ---\n(\d)/m)
+  if (ptraceScope && ptraceScope[1] === "0") {
+    findings.push({
+      checkId: "LNX-SECFW-003",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "VULNERABLE",
+      resource: "kernel",
+      title: "YAMA ptrace_scope is 0 (permissive)",
+      details: "Any process can ptrace any other process owned by the same user — enables credential extraction and process injection",
+      remediation: "Set kernel.yama.ptrace_scope=1 or higher in /etc/sysctl.conf",
+    })
+  }
+
+  const aslr = r.stdout.match(/ASLR: (\d)/m)
+  if (aslr && aslr[1] !== "2") {
+    findings.push({
+      checkId: "LNX-SECFW-004",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "kernel",
+      title: `ASLR not fully enabled (level ${aslr[1]})`,
+      details: "Address Space Layout Randomization is not at maximum (2) — memory corruption exploits are easier",
+      remediation: "Set kernel.randomize_va_space=2 in /etc/sysctl.conf",
+    })
+  }
+
+  const kptrRestrict = r.stdout.match(/kptr_restrict: (\d)/m)
+  if (kptrRestrict && kptrRestrict[1] === "0") {
+    findings.push({
+      checkId: "LNX-SECFW-005",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "VULNERABLE",
+      resource: "kernel",
+      title: "Kernel pointer addresses exposed",
+      details: "kptr_restrict=0 — kernel symbols in /proc/kallsyms are visible, aiding kernel exploit development",
+      remediation: "Set kernel.kptr_restrict=1 or 2 in /etc/sysctl.conf",
+    })
+  }
+
+  const dmesgRestrict = r.stdout.match(/dmesg_restrict: (\d)/m)
+  if (dmesgRestrict && dmesgRestrict[1] === "0") {
+    findings.push({
+      checkId: "LNX-SECFW-006",
+      provider: "linuxhook",
+      severity: "LOW",
+      status: "VULNERABLE",
+      resource: "kernel",
+      title: "dmesg accessible to unprivileged users",
+      details: "dmesg_restrict=0 — kernel log messages are readable by all users, may leak sensitive information",
+      remediation: "Set kernel.dmesg_restrict=1 in /etc/sysctl.conf",
+    })
+  }
+
+  const ipForward = r.stdout.match(/ip_forward: (\d)/m)
+  if (ipForward && ipForward[1] === "1") {
+    findings.push({
+      checkId: "LNX-SECFW-007",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "VULNERABLE",
+      resource: "network",
+      title: "IP forwarding enabled",
+      details: "net.ipv4.ip_forward=1 — this host can route traffic between networks, enabling MITM attacks",
+      remediation: "Disable IP forwarding unless this is a router/gateway: net.ipv4.ip_forward=0",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
