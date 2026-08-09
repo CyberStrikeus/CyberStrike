@@ -193,3 +193,104 @@ ls -la /etc/ssh/ssh_host_*_key 2>/dev/null
 
   return { output: output.join("\n"), findings }
 }
+
+export async function bashHistorySecrets(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Shell History Secrets Scan ==="]
+
+  const script = `
+PATTERNS='(mysql.*-p|psql.*-W|sshpass|curl.*-u |wget.*--password|htpasswd|openssl passwd|ansible-vault.*--vault-password|aws_secret|AKIA[0-9A-Z]{16}|Authorization:|Bearer |token=|password=|passwd=|SECRET_KEY|API_KEY|PRIVATE_KEY|ssh .*@)'
+
+for dir in /root /home/*; do
+  for histfile in "$dir/.bash_history" "$dir/.zsh_history" "$dir/.sh_history" "$dir/.history" "$dir/.python_history"; do
+    if [ -r "$histfile" ]; then
+      matches=$(grep -inE "$PATTERNS" "$histfile" 2>/dev/null | head -50)
+      if [ -n "$matches" ]; then
+        user=$(basename "$dir")
+        echo "[+] Secrets found in $histfile (user: $user):"
+        echo "$matches" | while read -r line; do
+          echo "  $line"
+        done
+        echo ""
+      fi
+    fi
+  done
+done
+
+echo "--- MySQL History ---"
+for dir in /root /home/*; do
+  if [ -r "$dir/.mysql_history" ]; then
+    echo "[+] MySQL history: $dir/.mysql_history"
+    grep -iE "(password|grant|identified|set password)" "$dir/.mysql_history" 2>/dev/null | head -10
+  fi
+done
+
+echo ""
+echo "--- PSQL History ---"
+for dir in /root /home/*; do
+  if [ -r "$dir/.psql_history" ]; then
+    echo "[+] PSQL history: $dir/.psql_history"
+    grep -iE "(password|role|alter|create user)" "$dir/.psql_history" 2>/dev/null | head -10
+  fi
+done
+
+echo ""
+echo "--- Less/Vim History (may contain searched passwords) ---"
+for dir in /root /home/*; do
+  for f in "$dir/.lesshst" "$dir/.viminfo"; do
+    if [ -r "$f" ]; then
+      secrets=$(grep -iE "(password|secret|token|key|api)" "$f" 2>/dev/null | head -5)
+      if [ -n "$secrets" ]; then
+        echo "[+] Found in $f:"
+        echo "$secrets"
+      fi
+    fi
+  done
+done
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const secretMatches = (r.stdout.match(/\[+\] Secrets found in/g) || []).length
+  if (secretMatches > 0) {
+    findings.push({
+      checkId: "LNX-HISTORY-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "shell_history",
+      title: "Credentials found in shell history",
+      details: `${secretMatches} history file(s) contain passwords, API keys, or tokens in command arguments`,
+      remediation: "Clear shell history (history -c, rm ~/.bash_history). Set HISTCONTROL=ignorespace to avoid saving sensitive commands.",
+    })
+  }
+
+  if (r.stdout.includes("AKIA")) {
+    findings.push({
+      checkId: "LNX-HISTORY-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "shell_history",
+      title: "AWS access key found in shell history",
+      details: "AWS Access Key ID (AKIA...) found in command history — can be used for cloud access",
+      remediation: "Rotate the exposed AWS key immediately. Use IAM roles or credential files instead of CLI arguments.",
+    })
+  }
+
+  if (r.stdout.includes("MySQL history") || r.stdout.includes("PSQL history")) {
+    findings.push({
+      checkId: "LNX-HISTORY-003",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "db_history",
+      title: "Database CLI history with credentials",
+      details: "MySQL or PostgreSQL command history files found — may contain SQL statements with passwords",
+      remediation: "Remove database CLI history files. Use ~/.my.cnf or .pgpass for authentication instead.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
