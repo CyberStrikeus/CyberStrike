@@ -662,3 +662,70 @@ ls -la /var/crash/ 2>/dev/null
 
   return { output: output.join("\n"), findings }
 }
+
+export async function gpgKeyExtract(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== GPG Key Extraction ==="]
+
+  const script = `
+echo "--- GPG Keyrings ---"
+for dir in /root /home/*; do
+  gpgdir="$dir/.gnupg"
+  if [ -d "$gpgdir" ]; then
+    echo "[+] GPG directory: $gpgdir"
+    ls -la "$gpgdir/" 2>/dev/null
+    echo ""
+    echo "  Private keys:"
+    gpg --homedir "$gpgdir" --list-secret-keys --keyid-format long 2>/dev/null | head -30
+    echo ""
+    echo "  Public keys:"
+    gpg --homedir "$gpgdir" --list-keys --keyid-format long 2>/dev/null | head -20
+    echo ""
+  fi
+done
+
+echo "--- GPG Agent ---"
+pgrep -a gpg-agent 2>/dev/null || echo "[-] gpg-agent not running"
+echo "GPG_AGENT_INFO=$GPG_AGENT_INFO"
+
+echo ""
+echo "--- Cached Passphrases ---"
+gpg-connect-agent 'keyinfo --list' /bye 2>/dev/null | head -10 || echo "[-] Cannot query gpg-agent"
+
+echo ""
+echo "--- Exported Key Check ---"
+find /root /home -maxdepth 3 -name "*.asc" -o -name "*.gpg" -o -name "*.pgp" 2>/dev/null | head -10
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("sec ") || r.stdout.includes("ssb ")) {
+    const keyCount = (r.stdout.match(/sec /g) || []).length
+    findings.push({
+      checkId: "LNX-GPG-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "gpg_keys",
+      title: "GPG private keys found",
+      details: `${keyCount} GPG private key(s) found — can be used for decryption, signing, or identity impersonation`,
+      remediation: "Protect GPG keys with strong passphrases. Use hardware tokens (YubiKey) for key storage.",
+    })
+  }
+
+  if (r.stdout.includes("keyinfo") && !r.stdout.includes("Cannot query")) {
+    findings.push({
+      checkId: "LNX-GPG-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "gpg_agent",
+      title: "GPG agent has cached passphrases",
+      details: "GPG agent is running with cached key passphrases — keys can be used without re-entering passphrase",
+      remediation: "Set short cache TTL in gpg-agent.conf (default-cache-ttl, max-cache-ttl).",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
