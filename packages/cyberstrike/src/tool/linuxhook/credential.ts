@@ -1441,3 +1441,121 @@ fi
   return { output: output.join("\n"), findings }
 }
 
+export async function credentialFilesScan(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Deep Credential File Scan ==="]
+
+  const maxdepth = argVal(args, "--depth") || "4"
+
+  const script = `
+DEPTH=${maxdepth}
+
+echo "--- .env Files ---"
+find /opt /srv /var/www /home /root /etc -maxdepth $DEPTH -name ".env" -readable 2>/dev/null | while read -r f; do
+  echo "[+] $f"
+  grep -iE "(password|secret|token|key|api|auth)" "$f" 2>/dev/null | head -5
+  echo ""
+done
+
+echo ""
+echo "--- Config Files with Credentials ---"
+find /opt /srv /var/www /etc -maxdepth $DEPTH \\( -name "*.conf" -o -name "*.cfg" -o -name "*.ini" -o -name "*.yml" -o -name "*.yaml" -o -name "*.toml" -o -name "*.properties" -o -name "*.json" \\) -readable 2>/dev/null | while read -r f; do
+  secrets=$(grep -cilE "(password|passwd|secret|token|api_key|private_key|access_key)" "$f" 2>/dev/null)
+  if [ "$secrets" -gt 0 ] 2>/dev/null; then
+    echo "[+] $f ($secrets matches)"
+    grep -inE "(password|passwd|secret|token|api_key|private_key|access_key)" "$f" 2>/dev/null | head -3
+    echo ""
+  fi
+done | head -100
+
+echo ""
+echo "--- HashiCorp Vault ---"
+for dir in /root /home/*; do
+  [ -f "$dir/.vault-token" ] && echo "[+] Vault token: $dir/.vault-token"
+done
+env | grep -i "^VAULT_" 2>/dev/null
+
+echo ""
+echo "--- Kubernetes Secrets ---"
+if [ -d /var/run/secrets/kubernetes.io ]; then
+  echo "[+] K8s service account mounted"
+  find /var/run/secrets -type f 2>/dev/null | head -10
+fi
+
+echo ""
+echo "--- Ansible Vault Files ---"
+find /opt /srv /home /root -maxdepth $DEPTH -name "*.vault" -o -name "vault.yml" -o -name "vault.yaml" 2>/dev/null | while read -r f; do
+  if head -1 "$f" 2>/dev/null | grep -q "ANSIBLE_VAULT"; then
+    echo "[+] Ansible vault: $f"
+  fi
+done
+
+echo ""
+echo "--- Private Key Files ---"
+find /opt /srv /home /root /etc -maxdepth $DEPTH \\( -name "*.key" -o -name "*.pem" \\) -readable 2>/dev/null | while read -r f; do
+  if grep -q "PRIVATE KEY" "$f" 2>/dev/null; then
+    echo "[+] Private key: $f"
+  fi
+done
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const envFiles = (r.stdout.match(/\.env$/gm) || []).length
+  const configFiles = (r.stdout.match(/\[+\].*\(\d+ matches\)/g) || []).length
+  if (envFiles > 0 || configFiles > 0) {
+    findings.push({
+      checkId: "LNX-CRED-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "credential_files",
+      title: "Credential files found on filesystem",
+      details: `Found ${envFiles} .env file(s) and ${configFiles} config file(s) containing passwords, tokens, or API keys`,
+      remediation: "Use a secrets manager (Vault, AWS Secrets Manager). Remove hardcoded credentials from config files.",
+    })
+  }
+
+  if (r.stdout.includes("Vault token:") || r.stdout.includes("VAULT_TOKEN")) {
+    findings.push({
+      checkId: "LNX-CRED-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "vault_token",
+      title: "HashiCorp Vault token found",
+      details: "Vault authentication token found — can access secrets stored in HashiCorp Vault",
+      remediation: "Use short-lived tokens with limited policies. Revoke unused tokens.",
+    })
+  }
+
+  if (r.stdout.includes("K8s service account")) {
+    findings.push({
+      checkId: "LNX-CRED-003",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "k8s_secrets",
+      title: "Kubernetes service account token mounted",
+      details: "Kubernetes service account token is mounted — can interact with the K8s API server",
+      remediation: "Disable automountServiceAccountToken for pods that don't need API access. Use RBAC with minimal permissions.",
+    })
+  }
+
+  if (r.stdout.includes("Private key:")) {
+    const keyCount = (r.stdout.match(/Private key:/g) || []).length
+    findings.push({
+      checkId: "LNX-CRED-004",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "private_keys",
+      title: "Private key files found",
+      details: `${keyCount} private key file(s) found — TLS, SSH, or signing keys that enable impersonation or decryption`,
+      remediation: "Restrict key file permissions to 400. Use a certificate manager or HSM for key storage.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
