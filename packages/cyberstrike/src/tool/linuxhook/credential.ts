@@ -413,3 +413,90 @@ done
 
   return { output: output.join("\n"), findings }
 }
+
+export async function browserCredsLinux(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Browser Credentials (Linux) ==="]
+
+  const script = `
+echo "--- Google Chrome / Chromium ---"
+for dir in /root /home/*; do
+  for browser in ".config/google-chrome" ".config/chromium"; do
+    bdir="$dir/$browser"
+    if [ -d "$bdir" ]; then
+      echo "[+] Found: $bdir"
+      for profile in "$bdir/Default" "$bdir/Profile "* ; do
+        if [ -d "$profile" ]; then
+          pname=$(basename "$profile")
+          [ -f "$profile/Login Data" ] && echo "  [+] Login Data ($pname): $profile/Login Data ($(wc -c < "$profile/Login Data") bytes)"
+          [ -f "$profile/Cookies" ] && echo "  [+] Cookies ($pname): $profile/Cookies ($(wc -c < "$profile/Cookies") bytes)"
+          [ -f "$profile/Web Data" ] && echo "  [*] Web Data ($pname): $profile/Web Data (autofill, credit cards)"
+          [ -f "$profile/Local State" ] && echo "  [*] Local State: $bdir/Local State (encryption key)"
+        fi
+      done
+    fi
+  done
+done
+
+echo ""
+echo "--- Mozilla Firefox ---"
+for dir in /root /home/*; do
+  ffdir="$dir/.mozilla/firefox"
+  if [ -d "$ffdir" ]; then
+    echo "[+] Found: $ffdir"
+    cat "$ffdir/profiles.ini" 2>/dev/null | grep -E "^(Name|Path|Default)" || true
+    for profile in "$ffdir/"*.default* "$ffdir/"*.default-release*; do
+      if [ -d "$profile" ]; then
+        pname=$(basename "$profile")
+        [ -f "$profile/logins.json" ] && echo "  [+] logins.json ($pname): contains encrypted passwords"
+        [ -f "$profile/key4.db" ] && echo "  [+] key4.db ($pname): master key database"
+        [ -f "$profile/key3.db" ] && echo "  [+] key3.db ($pname): legacy key database"
+        [ -f "$profile/cookies.sqlite" ] && echo "  [+] cookies.sqlite ($pname)"
+        [ -f "$profile/cert9.db" ] && echo "  [*] cert9.db ($pname): certificate store"
+      fi
+    done
+  fi
+done
+
+echo ""
+echo "--- Other Browsers ---"
+for dir in /root /home/*; do
+  [ -d "$dir/.config/brave-browser" ] && echo "[+] Brave: $dir/.config/brave-browser"
+  [ -d "$dir/.config/vivaldi" ] && echo "[+] Vivaldi: $dir/.config/vivaldi"
+  [ -d "$dir/.config/opera" ] && echo "[+] Opera: $dir/.config/opera"
+  [ -d "$dir/.config/microsoft-edge" ] && echo "[+] Edge: $dir/.config/microsoft-edge"
+done
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("Login Data") || r.stdout.includes("logins.json")) {
+    const loginDbs = (r.stdout.match(/Login Data|logins\.json/g) || []).length
+    findings.push({
+      checkId: "LNX-BROWSER-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "browser_creds",
+      title: "Browser credential databases found",
+      details: `${loginDbs} browser login database(s) found — saved passwords can be extracted with tools like LaZagne, browser_cookie3, or custom scripts`,
+      remediation: "Use a dedicated password manager instead of browser-saved passwords. Enable OS-level keyring integration.",
+    })
+  }
+
+  if (r.stdout.includes("Cookies") || r.stdout.includes("cookies.sqlite")) {
+    findings.push({
+      checkId: "LNX-BROWSER-002",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "browser_cookies",
+      title: "Browser cookie databases found",
+      details: "Session cookies can be extracted for session hijacking — access to authenticated web applications without credentials",
+      remediation: "Use browser profiles with short session expiry. Enable SameSite cookie attributes.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
