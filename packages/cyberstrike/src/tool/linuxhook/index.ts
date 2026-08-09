@@ -145,6 +145,7 @@ import {
   firewallEnum,
   trafficRedirect,
   wifiAttack,
+  ipv6Attack,
 } from "./network"
 
 const PROGRAMS = {
@@ -743,6 +744,11 @@ const PROGRAMS = {
       "WiFi attacks — enumerate wireless interfaces, scan networks, deauth clients, capture handshakes for offline cracking (requires monitor mode)",
     args: "--action scan|deauth|capture [--interface IFACE] [--bssid BSSID]",
   },
+  ipv6_attack: {
+    description:
+      "IPv6 network attacks — RA spoofing, DHCPv6 poisoning, SLAAC abuse, neighbor discovery, multicast scan. Windows prefers IPv6 → effective even on IPv4-primary networks",
+    args: "--action scan|ra_spoof|dhcpv6|slaac [--interface IFACE] [--target IP] [--domain DOMAIN]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -962,6 +968,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   firewall_enum: firewallEnum,
   traffic_redirect: trafficRedirect,
   wifi_attack: wifiAttack,
+  ipv6_attack: ipv6Attack,
 }
 
 const CWE_MAP: Record<string, string> = {
@@ -1068,6 +1075,7 @@ const CWE_MAP: Record<string, string> = {
   "LNX-FW": "CWE-200",
   "LNX-REDIRECT": "CWE-918",
   "LNX-WIFIATT": "CWE-319",
+  "LNX-NET-IPV6": "CWE-940",
   "LNX-RECON": "CWE-200",
   "LNX-SYSINFO": "CWE-200",
   "LNX-PROCS": "CWE-200",

