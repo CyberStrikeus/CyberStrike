@@ -96,7 +96,9 @@ export async function dylibHijack(args: string[], timeout: number): Promise<Hook
 
   const sipCheck = await run("csrutil", ["status"], timeout)
   const sipEnabled = sipCheck.stdout.includes("enabled")
-  output.push(`[*] SIP: ${sipEnabled ? "ENABLED — DYLD_INSERT_LIBRARIES restricted for protected binaries" : "DISABLED — DYLD_INSERT_LIBRARIES available system-wide"}`)
+  output.push(
+    `[*] SIP: ${sipEnabled ? "ENABLED — DYLD_INSERT_LIBRARIES restricted for protected binaries" : "DISABLED — DYLD_INSERT_LIBRARIES available system-wide"}`,
+  )
 
   if (!sipEnabled) {
     findings.push({
@@ -130,7 +132,11 @@ export async function dylibHijack(args: string[], timeout: number): Promise<Hook
     const libs = otool.stdout.split("\n").filter(Boolean)
     for (const lib of libs) {
       const trimmed = lib.trim()
-      if (trimmed.includes("@rpath") || trimmed.includes("@loader_path") || (trimmed.includes("/") && !trimmed.startsWith("/usr/lib") && !trimmed.startsWith("/System"))) {
+      if (
+        trimmed.includes("@rpath") ||
+        trimmed.includes("@loader_path") ||
+        (trimmed.includes("/") && !trimmed.startsWith("/usr/lib") && !trimmed.startsWith("/System"))
+      ) {
         hijackable.push(`${bin} → ${trimmed.split(" (")[0].trim()}`)
       }
     }
@@ -189,7 +195,11 @@ export async function launchdPlistAbuse(args: string[], timeout: number): Promis
       }
     }
 
-    const nonApple = await run("find", [dir.path, "-name", "*.plist", "-not", "-name", "com.apple.*", "-type", "f"], timeout)
+    const nonApple = await run(
+      "find",
+      [dir.path, "-name", "*.plist", "-not", "-name", "com.apple.*", "-type", "f"],
+      timeout,
+    )
     const thirdParty = nonApple.stdout.split("\n").filter(Boolean)
     if (thirdParty.length === 0) continue
 
@@ -290,7 +300,10 @@ export async function sudoMisconfig(args: string[], timeout: number): Promise<Ho
       status: "VULNERABLE",
       resource: "macos://sudo",
       title: `NOPASSWD sudo entries: ${nopasswdLines.length}`,
-      details: `${nopasswdLines.length} NOPASSWD rule(s) allow passwordless privilege escalation: ${nopasswdLines.slice(0, 3).map((l) => l.trim()).join("; ")}`,
+      details: `${nopasswdLines.length} NOPASSWD rule(s) allow passwordless privilege escalation: ${nopasswdLines
+        .slice(0, 3)
+        .map((l) => l.trim())
+        .join("; ")}`,
       remediation: "Remove NOPASSWD from sudoers entries. Require password for all sudo operations.",
     })
   }
@@ -304,7 +317,8 @@ export async function sudoMisconfig(args: string[], timeout: number): Promise<Ho
       status: "VULNERABLE",
       resource: "macos://sudo",
       title: "sudo env_keep allows DYLD/LD injection",
-      details: "env_keep preserves DYLD_INSERT_LIBRARIES or LD_PRELOAD through sudo — allows library injection into privileged commands",
+      details:
+        "env_keep preserves DYLD_INSERT_LIBRARIES or LD_PRELOAD through sudo — allows library injection into privileged commands",
       remediation: "Remove DYLD_* and LD_* from env_keep in /etc/sudoers",
     })
   }
@@ -440,7 +454,11 @@ export async function pkgAbuse(args: string[], timeout: number): Promise<HookRes
     }
   }
 
-  const writableScripts = await run("find", ["/var/db/receipts", "-writable", "-name", "*.plist", "-type", "f"], timeout)
+  const writableScripts = await run(
+    "find",
+    ["/var/db/receipts", "-writable", "-name", "*.plist", "-type", "f"],
+    timeout,
+  )
   if (writableScripts.exitCode === 0 && writableScripts.stdout.trim()) {
     const writable = writableScripts.stdout.split("\n").filter(Boolean)
     output.push(`\n[!] Writable receipt plists: ${writable.length}`)
