@@ -327,3 +327,68 @@ awk -F: '$3 == 0 {print $1}' /etc/passwd 2>/dev/null
 
   return { output: output.join("\n"), findings }
 }
+
+export async function serviceEnum(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Service Enumeration ==="]
+
+  const script = `
+echo "--- Systemd Services (running) ---"
+systemctl list-units --type=service --state=running 2>/dev/null || echo "systemctl not available"
+echo ""
+echo "--- Systemd Services (enabled) ---"
+systemctl list-unit-files --type=service --state=enabled 2>/dev/null
+echo ""
+echo "--- Systemd Timers ---"
+systemctl list-timers --all 2>/dev/null
+echo ""
+echo "--- SysVinit Services ---"
+service --status-all 2>/dev/null || chkconfig --list 2>/dev/null || echo "No SysVinit service manager found"
+echo ""
+echo "--- xinetd Services ---"
+ls /etc/xinetd.d/ 2>/dev/null
+echo ""
+echo "--- Listening Ports → Services ---"
+ss -tlnp 2>/dev/null | while read line; do
+  echo "$line"
+done
+echo ""
+echo "--- Socket Units ---"
+systemctl list-sockets 2>/dev/null
+echo ""
+echo "--- Failed Services ---"
+systemctl list-units --state=failed 2>/dev/null
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const running = (r.stdout.match(/running/gi) || []).length
+  findings.push({
+    checkId: "LNX-SERVICES-001",
+    provider: "linuxhook",
+    severity: "INFO",
+    status: "IDENTIFIED",
+    resource: "services",
+    title: "Running services enumerated",
+    details: `${running} running service references found — review for unnecessary or vulnerable services`,
+    remediation: "Disable unnecessary services; keep all services updated to latest versions",
+  })
+
+  const dangerousServices = ["telnet", "rsh", "rlogin", "rexec", "ftp", "tftp", "finger", "talk"]
+  const foundDangerous = dangerousServices.filter(s => r.stdout.toLowerCase().includes(s))
+  if (foundDangerous.length > 0) {
+    findings.push({
+      checkId: "LNX-SERVICES-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "services",
+      title: "Insecure legacy services detected",
+      details: `Legacy insecure services found: ${foundDangerous.join(", ")} — these transmit credentials in cleartext`,
+      remediation: "Replace with secure alternatives (SSH, SFTP); disable legacy services immediately",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
