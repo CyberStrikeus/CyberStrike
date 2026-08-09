@@ -489,3 +489,107 @@ done
 
   return { output: output.join("\n"), findings }
 }
+
+export async function containerDetect(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Container Detection ==="]
+
+  const script = `
+echo "--- Container Indicators ---"
+echo "/.dockerenv exists: $([ -f /.dockerenv ] && echo YES || echo NO)"
+echo "/run/.containerenv exists: $([ -f /run/.containerenv ] && echo YES || echo NO)"
+echo ""
+echo "--- cgroup Info ---"
+cat /proc/1/cgroup 2>/dev/null
+echo ""
+echo "--- PID 1 ---"
+cat /proc/1/cmdline 2>/dev/null | tr '\\0' ' '
+echo ""
+ls -la /proc/1/exe 2>/dev/null
+echo ""
+echo "--- Hostname ---"
+hostname
+echo ""
+echo "--- /proc/version ---"
+cat /proc/version 2>/dev/null
+echo ""
+echo "--- Namespace Info ---"
+ls -la /proc/1/ns/ 2>/dev/null
+echo ""
+echo "--- Capabilities ---"
+cat /proc/1/status 2>/dev/null | grep -i cap
+echo ""
+echo "--- Mounted Volumes ---"
+mount 2>/dev/null | grep -vE "^(proc|sysfs|devpts|tmpfs|cgroup|mqueue|shm)"
+echo ""
+echo "--- Docker Socket ---"
+ls -la /var/run/docker.sock 2>/dev/null && echo "DOCKER_SOCKET: ACCESSIBLE" || echo "DOCKER_SOCKET: NOT_FOUND"
+echo ""
+echo "--- Kubernetes ---"
+echo "K8S_SERVICE_HOST: $KUBERNETES_SERVICE_HOST"
+ls -la /var/run/secrets/kubernetes.io/ 2>/dev/null
+cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null | head -c 50
+echo ""
+echo "--- Container Runtime ---"
+cat /proc/1/cgroup 2>/dev/null | grep -oP '(docker|containerd|cri-o|lxc|podman)' | head -1
+echo ""
+echo "--- Escape Vectors ---"
+echo "Privileged mode: $([ -w /sys/fs/cgroup ] && echo LIKELY || echo NO)"
+echo "Host PID ns: $([ "$(ls /proc | wc -l)" -gt 100 ] && echo POSSIBLE || echo NO)"
+echo "Host network: $(ip link show docker0 2>/dev/null && echo YES || echo NO)"
+capsh --print 2>/dev/null | grep -i "current"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const isDocker = r.stdout.includes("/.dockerenv exists: YES") || r.stdout.includes("docker")
+  const isPodman = r.stdout.includes("/run/.containerenv exists: YES") || r.stdout.includes("podman")
+  const isLxc = r.stdout.includes("lxc")
+  const isWsl = r.stdout.toLowerCase().includes("microsoft")
+  const isK8s = r.stdout.includes("KUBERNETES_SERVICE_HOST") && !r.stdout.includes("K8S_SERVICE_HOST: \n")
+  const inContainer = isDocker || isPodman || isLxc || isWsl || isK8s
+
+  const containerType = isK8s ? "kubernetes" : isDocker ? "docker" : isPodman ? "podman" : isLxc ? "lxc" : isWsl ? "wsl" : "none"
+
+  findings.push({
+    checkId: "LNX-CONTAINER-001",
+    provider: "linuxhook",
+    severity: "INFO",
+    status: "IDENTIFIED",
+    resource: "container",
+    title: inContainer ? `Running inside ${containerType} container` : "Not running in a container",
+    details: inContainer
+      ? `Container type: ${containerType} — check for escape vectors and mounted sensitive paths`
+      : "Host system detected — not containerized",
+    remediation: inContainer ? "Use containerhook for container-specific exploitation" : "N/A",
+  })
+
+  if (r.stdout.includes("DOCKER_SOCKET: ACCESSIBLE")) {
+    findings.push({
+      checkId: "LNX-CONTAINER-002",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "VULNERABLE",
+      resource: "docker.sock",
+      title: "Docker socket accessible from container",
+      details: "Docker socket (/var/run/docker.sock) is mounted — full container escape possible via docker run with host mount",
+      remediation: "Never mount Docker socket into containers; use Docker-in-Docker with rootless mode",
+    })
+  }
+
+  if (r.stdout.includes("Privileged mode: LIKELY")) {
+    findings.push({
+      checkId: "LNX-CONTAINER-003",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "VULNERABLE",
+      resource: "container",
+      title: "Container running in privileged mode",
+      details: "Container appears to be running with --privileged — cgroup writable, full host access possible",
+      remediation: "Never use --privileged in production; use specific capabilities instead",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
