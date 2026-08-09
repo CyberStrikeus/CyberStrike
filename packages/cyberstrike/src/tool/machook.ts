@@ -741,6 +741,38 @@ async function xprotectCheck(_args: string[], timeout: number): Promise<HookResu
     `[+] Firewall: ${fwState === "0" ? "OFF" : fwState === "1" ? "ON (specific services)" : fwState === "2" ? "ON (block all incoming)" : fwState}`,
   )
 
+  const swVers = await run("sw_vers", [], timeout)
+  if (swVers.exitCode === 0) {
+    output.push(`\n[+] macOS Version:\n${swVers.stdout.trim()}`)
+  }
+  const uname = await run("uname", ["-a"], timeout)
+  if (uname.exitCode === 0) {
+    output.push(`[+] Kernel: ${uname.stdout.trim()}`)
+  }
+  const installedApps = await run("ls", ["/Applications"], timeout)
+  if (installedApps.exitCode === 0) {
+    const apps = installedApps.stdout.split("\n").filter((a) => a.endsWith(".app"))
+    output.push(`\n[+] Installed Applications (${apps.length}):`)
+    for (const a of apps) output.push(`    ${a}`)
+  }
+  const brewList = await run("brew", ["list", "--versions"], timeout)
+  if (brewList.exitCode === 0 && brewList.stdout.trim()) {
+    const pkgs = brewList.stdout.trim().split("\n")
+    output.push(`\n[+] Homebrew packages (${pkgs.length}):`)
+    for (const p of pkgs.slice(0, 50)) output.push(`    ${p}`)
+  }
+
+  findings.push({
+    checkId: "MAC-RECON-001",
+    provider: "macos",
+    severity: "info",
+    status: "ENUMERATED",
+    resource: "macos://system",
+    title: "macOS system and software enumeration",
+    details: "macOS version, kernel, installed applications, and Homebrew packages enumerated. Review application names and versions in the output — for any with a version, check CVE database via cve-mcp (cve search_by_product --product <name> --version <ver>). If cve-mcp is not enabled: cyberstrike mcp enable cve",
+    remediation: "Remove unnecessary applications. Keep macOS and all software updated.",
+  })
+
   return { output: output.join("\n"), findings }
 }
 
