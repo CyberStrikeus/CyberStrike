@@ -533,3 +533,66 @@ fi
 
   return { output: output.join("\n"), findings }
 }
+
+export async function pamBackdoor(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== PAM Backdoor Analysis ==="]
+
+  const script = `
+echo "--- PAM Configuration ---"
+ls -la /etc/pam.d/ 2>/dev/null | head -20
+echo ""
+echo "--- PAM Auth Modules ---"
+grep -rn "pam_unix" /etc/pam.d/ 2>/dev/null | head -10
+echo ""
+echo "--- PAM Shared Objects ---"
+find /lib/security/ /lib64/security/ /usr/lib/security/ /usr/lib64/security/ -name "pam_*.so" -type f 2>/dev/null | head -20
+echo ""
+echo "--- pam_unix.so Location ---"
+find / -name "pam_unix.so" -type f 2>/dev/null 2>&1 | head -5
+echo ""
+echo "--- PAM Module Integrity ---"
+for f in $(find /lib/security/ /lib64/security/ /usr/lib/security/ /usr/lib64/security/ -name "pam_unix.so" 2>/dev/null); do
+  md5sum "$f" 2>/dev/null
+  ls -la "$f" 2>/dev/null
+done
+echo ""
+echo "--- common-auth / system-auth ---"
+cat /etc/pam.d/common-auth 2>/dev/null || cat /etc/pam.d/system-auth 2>/dev/null || echo "[-] Neither common-auth nor system-auth found"
+echo ""
+echo "[*] PAM backdoor methods:"
+echo "  1. Patch pam_unix.so to accept a master password (requires C compilation + replacement)"
+echo "  2. Add 'auth sufficient pam_permit.so' to /etc/pam.d/sshd (allows any password)"
+echo "  3. Add custom PAM module with hardcoded credential check"
+echo "  4. Modify pam_unix.so source and recompile with backdoor password"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("pam_unix.so")) {
+    findings.push({
+      checkId: "LNX-PAM-001",
+      provider: "linuxhook",
+      severity: "INFO",
+      status: "IDENTIFIED",
+      resource: "pam",
+      title: "PAM authentication modules enumerated",
+      details: "PAM configuration and module locations identified — backdoor installation paths mapped",
+      remediation: "Monitor PAM module integrity with AIDE/Tripwire. Hash-check pam_unix.so against distribution packages.",
+    })
+  }
+
+  findings.push({
+    checkId: "LNX-PAM-002",
+    provider: "linuxhook",
+    severity: "CRITICAL",
+    status: "IDENTIFIED",
+    resource: "pam",
+    title: "PAM backdoor vectors identified",
+    details: "PAM modules can be patched or replaced to accept a master password — extremely persistent and stealthy",
+    remediation: "Use package manager to verify PAM module integrity (dpkg --verify libpam-modules / rpm -V pam). Monitor /etc/pam.d/ for changes.",
+  })
+
+  return { output: output.join("\n"), findings }
+}
