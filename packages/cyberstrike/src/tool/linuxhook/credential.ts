@@ -1278,3 +1278,54 @@ done
   return { output: output.join("\n"), findings }
 }
 
+export async function mailSpoolHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Mail Spool Harvest ==="]
+
+  const script = `
+echo "--- Mail Spool ---"
+for mdir in /var/mail /var/spool/mail; do
+  if [ -d "$mdir" ]; then
+    echo "[*] Mail directory: $mdir"
+    ls -la "$mdir/" 2>/dev/null
+    for mbox in "$mdir"/*; do
+      if [ -f "$mbox" ] && [ -s "$mbox" ]; then
+        user=$(basename "$mbox")
+        size=$(wc -c < "$mbox")
+        secrets=$(grep -ciE "(password|credential|token|reset|confirm)" "$mbox" 2>/dev/null)
+        echo "[+] Mailbox: $user ($size bytes, $secrets sensitive keyword matches)"
+        grep -iE "(password|credential|reset your|temporary password|new password)" "$mbox" 2>/dev/null | head -5
+        echo ""
+      fi
+    done
+  fi
+done
+
+echo ""
+echo "--- User Mail Files ---"
+for dir in /root /home/*; do
+  [ -f "$dir/mbox" ] && echo "[+] mbox: $dir/mbox ($(wc -c < "$dir/mbox") bytes)"
+  [ -d "$dir/Maildir" ] && echo "[+] Maildir: $dir/Maildir"
+  [ -f "$dir/.forward" ] && echo "[*] Forward: $dir/.forward -> $(cat "$dir/.forward")"
+done
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("sensitive keyword matches") && !r.stdout.includes("0 sensitive")) {
+    findings.push({
+      checkId: "LNX-MAIL-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "mail_spool",
+      title: "Mail spool contains sensitive content",
+      details: "Local mail spool contains messages with password resets, credentials, or sensitive data",
+      remediation: "Clear local mail spools. Disable local mail delivery if not needed.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
