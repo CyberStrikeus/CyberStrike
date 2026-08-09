@@ -1329,3 +1329,54 @@ done
   return { output: output.join("\n"), findings }
 }
 
+export async function netrcHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== .netrc Credential Harvest ==="]
+
+  const script = `
+echo "--- .netrc Files ---"
+for dir in /root /home/*; do
+  if [ -f "$dir/.netrc" ]; then
+    perms=$(stat -c '%a' "$dir/.netrc" 2>/dev/null || stat -f '%Lp' "$dir/.netrc" 2>/dev/null)
+    echo "[+] Found: $dir/.netrc (perms: $perms)"
+    cat "$dir/.netrc" 2>/dev/null | sed 's/password .*/password ***REDACTED***/g'
+    echo ""
+    if [ "$perms" != "600" ] && [ "$perms" != "400" ]; then
+      echo "  [!] WARNING: Permissions are $perms (should be 600)"
+    fi
+  fi
+done
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] Found:")) {
+    findings.push({
+      checkId: "LNX-NETRC-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "netrc",
+      title: ".netrc file with credentials found",
+      details: ".netrc contains plaintext credentials for FTP, HTTP, and other network services — used by curl, wget, ftp",
+      remediation: "Remove .netrc files. Use SSH keys or token-based authentication. If needed, restrict to 600 permissions.",
+    })
+  }
+
+  if (r.stdout.includes("WARNING: Permissions")) {
+    findings.push({
+      checkId: "LNX-NETRC-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "netrc",
+      title: ".netrc has weak file permissions",
+      details: ".netrc is readable by other users — plaintext credentials are exposed to any local user",
+      remediation: "Set .netrc permissions to 600 (chmod 600 ~/.netrc).",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
