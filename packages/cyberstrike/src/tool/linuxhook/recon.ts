@@ -434,7 +434,7 @@ done
 echo ""
 echo "--- Development Tools ---"
 for tool in gcc g++ make cmake python3 python2 perl ruby go node java javac dotnet php; do
-  command -v "$tool" >/dev/null 2>&1 && echo "FOUND: $tool ($(${tool} --version 2>&1 | head -1))"
+  command -v "$tool" >/dev/null 2>&1 && echo "FOUND: $tool ($(\${tool} --version 2>&1 | head -1))"
 done
 echo ""
 echo "--- Package Managers (dev) ---"
