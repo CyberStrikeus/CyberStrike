@@ -926,3 +926,80 @@ ls -la /var/run/docker.sock 2>/dev/null
   return { output: output.join("\n"), findings }
 }
 
+export async function gitCredHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Git Credential Harvest ==="]
+
+  const script = `
+echo "--- .git-credentials ---"
+for dir in /root /home/*; do
+  if [ -f "$dir/.git-credentials" ]; then
+    echo "[+] Git credentials: $dir/.git-credentials"
+    cat "$dir/.git-credentials" 2>/dev/null | head -20
+    echo ""
+  fi
+done
+
+echo "--- Git config (credential helpers & tokens) ---"
+for dir in /root /home/*; do
+  if [ -f "$dir/.gitconfig" ]; then
+    echo "[*] $dir/.gitconfig:"
+    grep -iE "(credential|token|password|oauth|helper|url)" "$dir/.gitconfig" 2>/dev/null
+    echo ""
+  fi
+done
+
+echo "--- GitHub CLI tokens ---"
+for dir in /root /home/*; do
+  ghcfg="$dir/.config/gh/hosts.yml"
+  [ -f "$ghcfg" ] && echo "[+] GitHub CLI: $ghcfg" && cat "$ghcfg" 2>/dev/null && echo ""
+done
+
+echo "--- GitLab tokens ---"
+for dir in /root /home/*; do
+  [ -f "$dir/.python-gitlab.cfg" ] && echo "[+] python-gitlab: $dir/.python-gitlab.cfg" && grep -i "token\|private" "$dir/.python-gitlab.cfg" 2>/dev/null
+done
+
+echo "--- Environment tokens ---"
+env | grep -iE "^(GITHUB_TOKEN|GITLAB_TOKEN|GIT_TOKEN|BITBUCKET_TOKEN|GH_TOKEN)" 2>/dev/null
+
+echo ""
+echo "--- Git credential cache ---"
+ls -la /tmp/git-credential-cache/ 2>/dev/null
+for dir in /root /home/*; do
+  ls -la "$dir/.git-credential-cache/" 2>/dev/null
+done
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes(".git-credentials")) {
+    findings.push({
+      checkId: "LNX-GIT-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "git_credentials",
+      title: "Git credential store with plaintext passwords",
+      details: "~/.git-credentials contains plaintext URLs with embedded passwords — direct access to repositories",
+      remediation: "Use SSH keys or credential helpers (git-credential-libsecret, git-credential-store with restricted perms).",
+    })
+  }
+
+  if (r.stdout.includes("GitHub CLI") || r.stdout.includes("oauth_token")) {
+    findings.push({
+      checkId: "LNX-GIT-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "github_token",
+      title: "GitHub/GitLab access tokens found",
+      details: "CLI tokens found on disk — can access repositories, create PRs, manage org settings depending on scope",
+      remediation: "Use fine-grained tokens with minimal scope. Rotate tokens regularly.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
