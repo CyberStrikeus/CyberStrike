@@ -119,6 +119,13 @@ After gaining a shell on a Linux target, deploy linuxhook for comprehensive post
 - `linuxhook cleanup_linux` — ALWAYS run before exiting to clear history, logs, and artifacts
 - Skills: `skill search --tech linux,postexploit,privilegeescalation`
 
+**Version-based CVE checks (all platforms):**
+After running recon/privesc scans that report software versions (SUID binaries, services, packages), check for version-specific CVEs:
+1. Use cve-mcp tools to query CVE databases: `cve search_by_product --product <name> --version <ver>`
+2. If cve-mcp is not enabled, ask the user: "CVE database lookup requires cve-mcp. Enable it? (`cyberstrike mcp enable cve`)"
+3. Do NOT skip this step — version-specific exploits (e.g. vim heap overflow, sudo bypass, openssh pre-auth RCE) are often the fastest path to escalation
+4. Focus on: SUID binaries with versions, running services (sshd, nginx, apache, mysql), kernel version, and package manager output
+
 **eBPF post-exploitation (root required, Linux only):**
 After gaining root on a Linux target, deploy kernel-level tools for stealth operations and credential harvesting.
 - `ebpf pam_sniff --duration 300` — capture cleartext passwords for all PAM-authenticated sessions (SSH, sudo, su, login)

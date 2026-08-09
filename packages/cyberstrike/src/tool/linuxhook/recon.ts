@@ -374,6 +374,7 @@ systemctl list-units --state=failed 2>/dev/null
   output.push(r.stdout || r.stderr)
 
   const running = (r.stdout.match(/running/gi) || []).length
+
   findings.push({
     checkId: "LNX-SERVICES-001",
     provider: "linuxhook",
@@ -381,8 +382,8 @@ systemctl list-units --state=failed 2>/dev/null
     status: "IDENTIFIED",
     resource: "services",
     title: "Running services enumerated",
-    details: `${running} running service references found — review for unnecessary or vulnerable services`,
-    remediation: "Disable unnecessary services; keep all services updated to latest versions",
+    details: `${running} running service references found. Review service names and versions in the output above — for any service with a version, check CVE database via cve-mcp (cve search_by_product --product <name> --version <ver>). If cve-mcp is not enabled: cyberstrike mcp enable cve`,
+    remediation: "Disable unnecessary services; keep all services updated.",
   })
 
   const dangerousServices = ["telnet", "rsh", "rlogin", "rexec", "ftp", "tftp", "finger", "talk"]
