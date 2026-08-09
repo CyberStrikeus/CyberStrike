@@ -293,3 +293,74 @@ ps aux 2>/dev/null | grep -i "puppet.*master\|puppetserver" | grep -v grep
 
   return { output: output.join("\n"), findings }
 }
+
+export async function saltAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== SaltStack Abuse ==="]
+
+  const script = `
+echo "--- Salt Installation ---"
+command -v salt && salt --version 2>/dev/null || echo "[-] salt not found"
+command -v salt-call >/dev/null 2>&1 && echo "[+] salt-call available"
+command -v salt-key >/dev/null 2>&1 && echo "[+] salt-key available (master)"
+
+echo ""
+echo "--- Salt Configuration ---"
+for f in /etc/salt/master /etc/salt/minion /etc/salt/master.d/*.conf /etc/salt/minion.d/*.conf; do
+  if [ -f "$f" ]; then
+    echo "[+] Config: $f"
+    grep -iE "(master:|interface:|user:|root_dir:|pki_dir:|publish_port:|ret_port:)" "$f" 2>/dev/null
+  fi
+done
+
+echo ""
+echo "--- Salt Keys ---"
+if [ -d /etc/salt/pki ]; then
+  echo "[+] PKI directory found"
+  find /etc/salt/pki -name "*.pem" 2>/dev/null | head -20
+  ls -la /etc/salt/pki/master/minions/ 2>/dev/null | head -20
+fi
+salt-key -L 2>/dev/null
+
+echo ""
+echo "--- Salt Pillar Data (secrets) ---"
+find /srv/pillar /etc/salt/pillar -name "*.sls" 2>/dev/null | xargs grep -l "password\|secret\|key\|token" 2>/dev/null | head -10
+find /srv/salt /etc/salt -name "*.sls" 2>/dev/null | head -20
+
+echo ""
+echo "--- Salt Master Test ---"
+salt-call test.ping 2>/dev/null
+salt '*' test.ping 2>/dev/null 2>&1 | head -10
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] salt-key available")) {
+    findings.push({
+      checkId: "LNX-SALT-001",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "FOUND",
+      resource: "salt_master",
+      title: "SaltStack master detected",
+      details: "This host is a Salt master — can execute arbitrary commands on all connected minions via salt '*' cmd.run",
+      remediation: "Restrict Salt master access. Use ACLs and external_auth. Rotate master keys.",
+    })
+  }
+
+  if (r.stdout.includes("[+] salt-call available")) {
+    findings.push({
+      checkId: "LNX-SALT-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "salt_minion",
+      title: "SaltStack minion detected",
+      details: "Salt minion is installed — master connection details and keys may enable lateral movement to the master",
+      remediation: "Restrict minion key access. Use encrypted pillar data.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
