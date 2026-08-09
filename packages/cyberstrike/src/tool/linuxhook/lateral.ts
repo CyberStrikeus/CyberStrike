@@ -521,3 +521,66 @@ ps aux | grep "ssh -" | grep -v grep
 
   return { output: output.join("\n"), findings }
 }
+
+export async function socatTunnel(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Socat/Netcat Tunnel ==="]
+  const listenPort = argVal(args, "--listen-port")
+  const forwardTo = argVal(args, "--forward-to")
+
+  const script = `
+echo "--- Available Tools ---"
+command -v socat >/dev/null 2>&1 && echo "[+] socat available" || echo "[-] socat not found"
+command -v ncat >/dev/null 2>&1 && echo "[+] ncat available" || echo "[-] ncat not found"
+command -v nc >/dev/null 2>&1 && echo "[+] nc available" || echo "[-] nc not found"
+command -v netcat >/dev/null 2>&1 && echo "[+] netcat available" || echo "[-] netcat not found"
+
+echo ""
+echo "--- Existing Tunnels/Listeners ---"
+ss -tlnp 2>/dev/null | grep -E "(socat|ncat|nc)" || echo "No active socat/nc listeners"
+ps aux 2>/dev/null | grep -E "(socat|ncat|nc )" | grep -v grep
+
+${listenPort && forwardTo ? `
+echo ""
+echo "--- Creating Tunnel ---"
+if command -v socat >/dev/null 2>&1; then
+  echo "socat TCP-LISTEN:${listenPort},fork TCP:${forwardTo} &"
+  socat TCP-LISTEN:${listenPort},fork TCP:${forwardTo} &
+elif command -v ncat >/dev/null 2>&1; then
+  echo "ncat -lvkp ${listenPort} -c 'ncat ${forwardTo.split(":")[0]} ${forwardTo.split(":")[1]}' &"
+  ncat -lvkp ${listenPort} -c "ncat ${forwardTo.split(":")[0]} ${forwardTo.split(":")[1]}" &
+else
+  echo "[-] No suitable tool found for tunneling"
+fi
+sleep 1
+ss -tlnp 2>/dev/null | grep ":${listenPort}"
+` : `
+echo ""
+echo "--- Usage ---"
+echo "linuxhook socat_tunnel --listen-port 8080 --forward-to 10.0.0.5:80"
+echo ""
+echo "Manual examples:"
+echo "  socat TCP-LISTEN:8080,fork TCP:10.0.0.5:80 &"
+echo "  ncat -lvkp 8080 -c 'ncat 10.0.0.5 80' &"
+echo "  mkfifo /tmp/.p; nc -l 8080 < /tmp/.p | nc 10.0.0.5 80 > /tmp/.p &"
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] socat available") || r.stdout.includes("[+] ncat available")) {
+    findings.push({
+      checkId: "LNX-TUNNEL-002",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "IDENTIFIED",
+      resource: "tunneling_tools",
+      title: "Tunneling tools available",
+      details: "socat/ncat available for port forwarding and traffic pivoting",
+      remediation: "Remove unnecessary networking tools from production servers.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
