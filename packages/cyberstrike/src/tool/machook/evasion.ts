@@ -97,7 +97,8 @@ export async function xprotectCheck(_args: string[], timeout: number): Promise<H
     status: "ENUMERATED",
     resource: "macos://system",
     title: "macOS system and software enumeration",
-    details: "macOS version, kernel, installed applications, and Homebrew packages enumerated. Review application names and versions in the output — for any with a version, check CVE database via cve-mcp (cve search_by_product --product <name> --version <ver>). If cve-mcp is not enabled: cyberstrike mcp enable cve",
+    details:
+      "macOS version, kernel, installed applications, and Homebrew packages enumerated. Review application names and versions in the output — for any with a version, check CVE database via cve-mcp (cve search_by_product --product <name> --version <ver>). If cve-mcp is not enabled: cyberstrike mcp enable cve",
     remediation: "Remove unnecessary applications. Keep macOS and all software updated.",
   })
 
@@ -317,7 +318,8 @@ export async function timestomp(args: string[], timeout: number): Promise<HookRe
 
   if (!targetPath) {
     return {
-      output: "[!] --path is required. Usage: machook timestomp --path /path/to/file [--reference /ref/file] [--date \"YYYY-MM-DD HH:MM:SS\"]",
+      output:
+        '[!] --path is required. Usage: machook timestomp --path /path/to/file [--reference /ref/file] [--date "YYYY-MM-DD HH:MM:SS"]',
       findings,
     }
   }
