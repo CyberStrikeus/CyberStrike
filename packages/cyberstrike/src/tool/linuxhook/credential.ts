@@ -294,3 +294,74 @@ done
 
   return { output: output.join("\n"), findings }
 }
+
+export async function gnomeKeyringDump(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== GNOME Keyring Dump ==="]
+
+  const script = `
+echo "--- GNOME Keyring Daemon ---"
+pgrep -a gnome-keyring 2>/dev/null || echo "[-] gnome-keyring-daemon not running"
+
+echo ""
+echo "--- secret-tool availability ---"
+if command -v secret-tool >/dev/null 2>&1; then
+  echo "[+] secret-tool is available"
+  echo ""
+  echo "--- Stored Secrets (labels) ---"
+  secret-tool search --all 2>/dev/null | grep -E "^(label|secret)" | head -40
+else
+  echo "[-] secret-tool not installed"
+fi
+
+echo ""
+echo "--- Keyring Files ---"
+for dir in /root /home/*; do
+  keydir="$dir/.local/share/keyrings"
+  if [ -d "$keydir" ]; then
+    echo "[+] Keyring dir: $keydir"
+    ls -la "$keydir/" 2>/dev/null
+    for f in "$keydir"/*.keyring "$keydir"/default; do
+      if [ -f "$f" ]; then
+        echo "  File: $f ($(wc -c < "$f") bytes)"
+      fi
+    done
+  fi
+done
+
+echo ""
+echo "--- DBUS Session ---"
+echo "DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("secret-tool is available") || r.stdout.includes("label =")) {
+    findings.push({
+      checkId: "LNX-KEYRING-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "gnome_keyring",
+      title: "GNOME Keyring secrets accessible",
+      details: "GNOME Keyring is available and can be queried via secret-tool — stored passwords, WiFi credentials, and application secrets may be extractable",
+      remediation: "Lock the keyring when not in use. Use a strong keyring password separate from the login password.",
+    })
+  }
+
+  if (r.stdout.includes(".keyring") || r.stdout.includes("Keyring dir:")) {
+    findings.push({
+      checkId: "LNX-KEYRING-002",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "keyring_files",
+      title: "GNOME Keyring database files found",
+      details: "Keyring database files found on disk — can be copied for offline cracking or extraction",
+      remediation: "Encrypt home directories. Restrict keyring file permissions.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
