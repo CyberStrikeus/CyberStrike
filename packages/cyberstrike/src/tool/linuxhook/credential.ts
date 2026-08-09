@@ -1423,3 +1423,83 @@ done
   return { output: output.join("\n"), findings }
 }
 
+export async function ldapCredHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== LDAP Credential Harvest ==="]
+
+  const script = `
+echo "--- LDAP Config Files ---"
+for f in /etc/ldap/ldap.conf /etc/openldap/ldap.conf /etc/ldap.conf; do
+  if [ -f "$f" ]; then
+    echo "[*] LDAP config: $f"
+    grep -iE "(binddn|bindpw|uri|base|rootbinddn)" "$f" 2>/dev/null
+    echo ""
+  fi
+done
+
+echo "--- SSSD Config ---"
+if [ -f /etc/sssd/sssd.conf ]; then
+  echo "[+] SSSD config: /etc/sssd/sssd.conf"
+  grep -iE "(ldap_default_bind_dn|ldap_default_authtok|ldap_uri|ldap_search_base|ad_domain)" /etc/sssd/sssd.conf 2>/dev/null
+  echo ""
+fi
+for f in /etc/sssd/conf.d/*.conf; do
+  [ -f "$f" ] && echo "[*] SSSD extra: $f" && grep -iE "(bind|authtok|password)" "$f" 2>/dev/null
+done
+
+echo ""
+echo "--- nslcd Config ---"
+if [ -f /etc/nslcd.conf ]; then
+  echo "[+] nslcd config: /etc/nslcd.conf"
+  grep -iE "(binddn|bindpw|uri|base)" /etc/nslcd.conf 2>/dev/null
+  echo ""
+fi
+
+echo ""
+echo "--- pam_ldap ---"
+if [ -f /etc/pam_ldap.conf ]; then
+  echo "[+] pam_ldap config: /etc/pam_ldap.conf"
+  grep -iE "(binddn|bindpw|rootbinddn)" /etc/pam_ldap.conf 2>/dev/null
+fi
+if [ -f /etc/pam_ldap.secret ]; then
+  echo "[+] pam_ldap secret: /etc/pam_ldap.secret"
+  cat /etc/pam_ldap.secret 2>/dev/null
+fi
+
+echo ""
+echo "--- Realm / AD Join ---"
+realm list 2>/dev/null | head -10 || echo "[-] realm not available"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("bindpw") || r.stdout.includes("ldap_default_authtok") || r.stdout.includes("pam_ldap.secret")) {
+    findings.push({
+      checkId: "LNX-LDAP-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "ldap_credentials",
+      title: "LDAP bind credentials found",
+      details: "LDAP bind password found in configuration — can query directory for users, groups, and potentially modify entries",
+      remediation: "Use GSSAPI/Kerberos for LDAP auth instead of simple bind. Restrict config file permissions to root.",
+    })
+  }
+
+  if (r.stdout.includes("sssd.conf")) {
+    findings.push({
+      checkId: "LNX-LDAP-002",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "sssd_config",
+      title: "SSSD configuration with LDAP/AD details",
+      details: "SSSD config reveals AD/LDAP integration details — domain, URI, search base useful for further enumeration",
+      remediation: "Restrict sssd.conf permissions to 600 root:root.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
