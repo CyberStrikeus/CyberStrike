@@ -110,3 +110,99 @@ ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no ${key ? `-i
 
   return { output: output.join("\n"), findings }
 }
+
+export async function ansibleAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Ansible Abuse ==="]
+
+  const script = `
+echo "--- Ansible Installation ---"
+command -v ansible && ansible --version 2>/dev/null | head -3 || echo "[-] ansible not found in PATH"
+command -v ansible-playbook >/dev/null 2>&1 && echo "[+] ansible-playbook available"
+command -v ansible-vault >/dev/null 2>&1 && echo "[+] ansible-vault available"
+
+echo ""
+echo "--- Ansible Configuration Files ---"
+for f in /etc/ansible/ansible.cfg ~/.ansible.cfg ./ansible.cfg; do
+  if [ -f "$f" ]; then
+    echo "[+] Config: $f"
+    grep -iE "(remote_user|private_key_file|vault_password_file|become|ask_pass)" "$f" 2>/dev/null
+  fi
+done
+
+echo ""
+echo "--- Inventory Files ---"
+for f in /etc/ansible/hosts ~/.ansible/hosts ./inventory ./hosts ./inventory.yml ./inventory.yaml; do
+  if [ -f "$f" ]; then
+    echo "[+] Inventory: $f"
+    grep -vE "^(#|$)" "$f" 2>/dev/null | head -30
+  fi
+done
+find /etc/ansible /home -name "inventory*" -o -name "hosts" 2>/dev/null | grep -i ansible | head -10
+
+echo ""
+echo "--- Vault Files ---"
+find / -name "*.vault" -o -name "*vault*.yml" -o -name "*vault*.yaml" -o -name ".vault_pass*" 2>/dev/null | head -20
+for dir in /etc/ansible /home/*/.ansible /home/*/projects /opt; do
+  find "$dir" -name "*.yml" -exec grep -l "ANSIBLE_VAULT" {} \\; 2>/dev/null | head -10
+done
+
+echo ""
+echo "--- Vault Password Files ---"
+find / -name ".vault_pass*" -o -name "vault_password*" -o -name ".vault-pass*" 2>/dev/null | head -10
+grep -r "vault_password_file" /etc/ansible/ ~/.ansible* 2>/dev/null
+
+echo ""
+echo "--- Playbooks ---"
+find /etc/ansible /home /opt /srv -name "*.yml" -o -name "*.yaml" 2>/dev/null | xargs grep -l "hosts:" 2>/dev/null | head -20
+
+echo ""
+echo "--- SSH Keys for Ansible ---"
+grep -r "private_key_file\|ansible_ssh_private_key" /etc/ansible/ ~/.ansible* 2>/dev/null
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] ansible-playbook available")) {
+    findings.push({
+      checkId: "LNX-ANSIBLE-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "ansible",
+      title: "Ansible control node detected",
+      details: "Ansible is installed with playbook execution capability — can be used to execute commands across all managed hosts",
+      remediation: "Restrict Ansible access to authorized users. Use Ansible Vault for all secrets. Limit sudo in playbooks.",
+    })
+  }
+
+  if (r.stdout.includes("Inventory:")) {
+    const inventoryCount = (r.stdout.match(/Inventory:/g) || []).length
+    findings.push({
+      checkId: "LNX-ANSIBLE-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "ansible_inventory",
+      title: "Ansible inventory files found",
+      details: `${inventoryCount} inventory file(s) found — contains target hosts for lateral movement`,
+      remediation: "Protect inventory files with strict permissions (600). Use dynamic inventory with authentication.",
+    })
+  }
+
+  if (r.stdout.includes("ANSIBLE_VAULT") || r.stdout.includes(".vault")) {
+    findings.push({
+      checkId: "LNX-ANSIBLE-003",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "ansible_vault",
+      title: "Ansible vault files found",
+      details: "Encrypted vault files detected — may contain credentials, API keys, or other secrets. Attempt decryption with found vault password files.",
+      remediation: "Rotate all secrets stored in Ansible vaults. Use external secret management (HashiCorp Vault, AWS Secrets Manager).",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
