@@ -183,19 +183,15 @@ After gaining Administrator on a Windows target, deploy userland tools for crede
 - Skills: `skill search --tech windows,postexploit,credential`
 
 **macOS post-exploitation (root preferred, macOS only):**
-After gaining access on a macOS target, deploy tools for credential harvesting and monitoring.
-- `machook keychain_dump` — extract passwords from macOS Keychain
-- `machook chrome_creds` — extract Chrome/Safari saved passwords and cookies
-- `machook ssh_keys` — find and exfiltrate SSH private keys for all users
-- `machook tcc_bypass` — bypass TCC framework for camera, microphone, files access
-- `machook keylog_mac --duration 120` — capture keystrokes via CGEventTap with app context
-- `machook dtrace_exec --duration 60` — monitor process executions via DTrace (requires SIP disabled)
-- `machook dtrace_net --duration 60` — monitor network connections via DTrace
-- `machook dtrace_file --duration 60` — monitor file access via DTrace
-- `machook xprotect_check` — enumerate XProtect/MRT signatures to identify detection rules
-- `machook gatekeeper_bypass --path /path/to/file` — remove quarantine xattr to bypass Gatekeeper
-- `machook log_clear` — clear unified logging, audit logs, and crash reporter data
-- `machook cleanup_mac` — ALWAYS run before exiting to remove LaunchAgents and clear logs
+After gaining access on a macOS target, deploy 46 tools across 8 categories.
+- **Recon:** `machook system_info` — OS/kernel/hardware, `machook process_enum` — processes/ports, `machook network_enum` — interfaces/routing/DNS, `machook user_enum` — users/groups/sudo, `machook installed_apps` — apps/brew/pip/npm (with cve-mcp CTA), `machook security_framework` — SIP/Gatekeeper/FileVault/XProtect/MDM, `machook launchd_enum` — LaunchAgents/Daemons
+- **Credential:** `machook keychain_dump` — Keychain passwords, `machook chrome_creds` — Chrome/Safari passwords/cookies, `machook ssh_keys` — SSH private keys, `machook safari_creds` — Safari history/bookmarks/extensions, `machook cloud_creds` — AWS/GCP/Azure/Docker/K8s credentials, `machook gpg_keys` — GPG keyrings, `machook icloud_tokens` — iCloud account tokens, `machook mail_creds` — Mail.app credentials
+- **Privesc:** `machook tcc_bypass` — TCC framework bypass, `machook dylib_hijack` — SUID/SGID dylib hijack, `machook launchd_plist_abuse` — writable plist/binary abuse, `machook sudo_misconfig` — NOPASSWD/env_keep/CVE check, `machook authorization_db` — AuthorizationDB rights, `machook pkg_abuse` — installer script abuse
+- **Persistence:** `machook launchagent_persist --label NAME --command CMD` — user LaunchAgent, `machook launchdaemon_persist --label NAME --command CMD` — root LaunchDaemon, `machook login_items --path APP` — login item, `machook cron_persist --command CMD` — crontab, `machook bashrc_persist --command CMD` — shell RC inject, `machook periodic_scripts --command CMD` — periodic daily/weekly/monthly
+- **Evasion:** `machook xprotect_check` — XProtect/MRT enumeration + installed apps, `machook gatekeeper_bypass --path PATH` — quarantine xattr removal, `machook log_clear` — unified log/audit/crash clearing, `machook history_clear` — shell/app history clearing, `machook timestomp --path PATH` — timestamp modification, `machook endpoint_security_bypass` — EDR detection and bypass vectors
+- **Monitoring:** `machook keylog_mac --duration 120` — keystroke capture, `machook dtrace_exec --duration 60` — process trace (SIP disabled), `machook dtrace_net --duration 60` — network trace, `machook dtrace_file --duration 60` — file access trace, `machook clipboard_monitor --duration 30` — clipboard monitoring, `machook screen_capture` — screenshot capture
+- **Lateral:** `machook ssh_pivot --target HOST` — SSH lateral movement/tunnels, `machook airdrop_abuse` — AirDrop recon, `machook bonjour_enum` — mDNS service discovery (SSH/HTTP/SMB/VNC), `machook apple_remote_desktop` — ARD/Screen Sharing status
+- **Exfil/Cleanup:** `machook data_stage` — find/stage sensitive files, `machook artifact_enum` — pre-cleanup audit, `machook cleanup_mac` — ALWAYS run before exiting
 - Skills: `skill search --tech macos,postexploit,keychain`
 
 **AWS post-exploitation (after compromising IAM credentials or EC2 instance):**
@@ -297,7 +293,7 @@ For every confirmed finding, call `report_vulnerability`:
 | ebpf | eBPF kernel-level post-exploitation — credential capture, process/file/connection hiding, traffic interception (root + Linux). Advanced evasion monitors: io_uring bypass, fileless exec (memfd), ptrace injection, cross-process memory, userfaultfd races, BPF integrity, netlink manipulation, seccomp self-modification |
 | linuxhook | Linux post-exploitation — shadow/SSH/history/cloud creds, sudo/SUID/cap/kernel privesc, cron/systemd/PAM persistence, SSH pivot/Ansible lateral, log/audit evasion, DNS/ICMP exfil (any access + Linux) |
 | winhook | Windows userland post-exploitation — LSASS/SAM dump, DPAPI decrypt, keylogging, AMSI/ETW bypass, clipboard sniffing (Administrator + Windows) |
-| machook | macOS post-exploitation — Keychain dump, browser creds, DTrace monitoring, TCC bypass, XProtect enumeration (root + macOS) |
+| machook | macOS post-exploitation — 46 programs: recon, credential harvest (Keychain/browser/cloud/SSH), privesc (TCC/dylib/sudo), persistence (LaunchAgent/cron/bashrc), evasion (XProtect/Gatekeeper/log clear), monitoring (DTrace/keylog/clipboard), lateral (SSH/Bonjour/ARD), exfil/cleanup (root + macOS) |
 | awshook | AWS post-exploitation — IAM privesc, S3 dump, Lambda backdoor, SSM exec, CloudTrail manipulation, secrets extraction (AWS credentials required) |
 | azurehook | Azure/Entra ID post-exploitation — Key Vault dump, managed identity harvest, runbook backdoor, consent grants, token abuse (Azure credentials required) |
 | kubehook | Kubernetes post-exploitation — secret extraction, container escape, RBAC abuse, etcd dump, DaemonSet/CronJob backdoor (kubeconfig required) |
