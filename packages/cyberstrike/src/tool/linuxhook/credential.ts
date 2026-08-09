@@ -852,3 +852,68 @@ curl -s -m 2 -H "Metadata: true" "http://169.254.169.254/metadata/identity/oauth
 
   return { output: output.join("\n"), findings }
 }
+
+export async function dockerConfigCreds(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Docker Config Credentials ==="]
+
+  const script = `
+echo "--- Docker config.json ---"
+for dir in /root /home/*; do
+  cfg="$dir/.docker/config.json"
+  if [ -f "$cfg" ]; then
+    echo "[+] Docker config: $cfg"
+    cat "$cfg" 2>/dev/null
+    echo ""
+  fi
+done
+
+echo ""
+echo "--- Containerd config ---"
+[ -f /etc/containerd/config.toml ] && echo "[*] /etc/containerd/config.toml found" && grep -i "auth\|user\|pass\|token" /etc/containerd/config.toml 2>/dev/null
+
+echo ""
+echo "--- Podman auth ---"
+for dir in /root /home/*; do
+  pauth="$dir/.config/containers/auth.json"
+  [ -f "$pauth" ] && echo "[+] Podman auth: $pauth" && cat "$pauth" 2>/dev/null
+done
+
+echo ""
+echo "--- Docker environment ---"
+env | grep -i DOCKER_ 2>/dev/null
+[ -S /var/run/docker.sock ] && echo "[+] Docker socket: /var/run/docker.sock (accessible: $(test -w /var/run/docker.sock && echo YES || echo NO))"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes('"auth"') || r.stdout.includes('"auths"')) {
+    findings.push({
+      checkId: "LNX-DOCKER-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "docker_config",
+      title: "Docker registry credentials found",
+      details: "Docker config.json contains registry authentication tokens (base64-encoded username:password) — can access private container registries",
+      remediation: "Use credential helpers (docker-credential-pass, docker-credential-ecr-login) instead of storing auth in config.json.",
+    })
+  }
+
+  if (r.stdout.includes("accessible: YES")) {
+    findings.push({
+      checkId: "LNX-DOCKER-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "docker_socket",
+      title: "Docker socket is writable",
+      details: "Docker socket is writable — can escalate to root by mounting the host filesystem in a container",
+      remediation: "Restrict Docker socket access. Use rootless Docker or Podman.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
