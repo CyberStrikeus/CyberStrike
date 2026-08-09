@@ -365,3 +365,51 @@ echo "DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS"
 
   return { output: output.join("\n"), findings }
 }
+
+export async function kwalletDump(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== KDE Wallet (KWallet) Dump ==="]
+
+  const script = `
+echo "--- KWallet Daemon ---"
+pgrep -a kwalletd 2>/dev/null || echo "[-] kwalletd not running"
+
+echo ""
+echo "--- kwallet-query availability ---"
+if command -v kwallet-query >/dev/null 2>&1; then
+  echo "[+] kwallet-query is available"
+  kwallet-query -l 2>/dev/null | head -20
+else
+  echo "[-] kwallet-query not installed"
+fi
+
+echo ""
+echo "--- KWallet Files ---"
+for dir in /root /home/*; do
+  for kdir in "$dir/.local/share/kwalletd" "$dir/.kde/share/apps/kwallet" "$dir/.local/share/kwalletd5"; do
+    if [ -d "$kdir" ]; then
+      echo "[+] KWallet dir: $kdir"
+      ls -la "$kdir/" 2>/dev/null
+    fi
+  done
+done
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("kwallet-query is available") || r.stdout.includes("KWallet dir:")) {
+    findings.push({
+      checkId: "LNX-KWALLET-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "kwallet",
+      title: "KDE Wallet data accessible",
+      details: "KDE Wallet (KWallet) is present — may store network passwords, application credentials, and certificates",
+      remediation: "Lock KWallet when not in use. Use a strong wallet password.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
