@@ -1293,3 +1293,430 @@ export async function serviceRecon(args: string[], timeout: number): Promise<Hoo
 
   return { output: output.join("\n"), findings: [] }
 }
+
+export async function cfnEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] CloudFormation Stack Enumeration\n"]
+
+  const stacks = await aws(
+    ["cloudformation", "list-stacks", "--stack-status-filter", "CREATE_COMPLETE", "UPDATE_COMPLETE", "ROLLBACK_COMPLETE", "--query", "StackSummaries[].[StackName,StackStatus,CreationTime,TemplateDescription]"],
+    profile, region, timeout,
+  )
+  if (stacks.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: cloudformation:ListStacks", findings }
+
+  const sl = tryJson(stacks.stdout) || []
+  output.push(`[+] Stacks found: ${sl.length}\n`)
+
+  const secretPattern = /(?:password|secret|key|token|api.?key|credential|connexion|db.?pass|rds.?pass|auth)/i
+
+  for (const s of sl) {
+    output.push(`  Stack: ${s[0]}  Status: ${s[1]}  Created: ${s[2]}`)
+    if (s[3]) output.push(`    Description: ${s[3]}`)
+
+    const tpl = await aws(["cloudformation", "get-template", "--stack-name", s[0], "--query", "TemplateBody"], profile, region, timeout)
+    if (tpl.exitCode === 0) {
+      const body = tpl.stdout
+      const matches = body.match(secretPattern)
+      if (matches) {
+        output.push(`    [!] Template contains potential secrets (matched: ${matches.slice(0, 3).join(", ")})`)
+        findings.push({
+          checkId: "AWS-CFN-001",
+          provider: "aws",
+          severity: "high",
+          status: "FOUND",
+          resource: `cfn:stack:${s[0]}`,
+          title: `CloudFormation template may contain secrets: ${s[0]}`,
+          details: `Template matched secret patterns: ${matches.slice(0, 5).join(", ")}`,
+          remediation: "Use dynamic references (SSM/Secrets Manager) instead of hardcoded secrets in templates",
+        })
+      }
+
+      const noEchoCheck = /NoEcho.*true/i.test(body)
+      if (noEchoCheck) {
+        output.push(`    [!] Template has NoEcho parameters — values hidden in console but readable via get-template`)
+        findings.push({
+          checkId: "AWS-CFN-002",
+          provider: "aws",
+          severity: "medium",
+          status: "FOUND",
+          resource: `cfn:stack:${s[0]}`,
+          title: `NoEcho parameters in stack (still readable via API): ${s[0]}`,
+          details: "NoEcho hides values in console/describe-stacks but get-template returns the raw template",
+          remediation: "Use SSM SecureString or Secrets Manager dynamic references",
+        })
+      }
+    }
+
+    const params = await aws(["cloudformation", "describe-stacks", "--stack-name", s[0], "--query", "Stacks[0].Parameters[].[ParameterKey,ParameterValue]"], profile, region, timeout)
+    if (params.exitCode === 0) {
+      const pl = tryJson(params.stdout) || []
+      for (const p of pl) {
+        if (secretPattern.test(p[0]) && p[1] && p[1] !== "****") {
+          output.push(`    [!] Parameter ${p[0]} = ${p[1].slice(0, 20)}...`)
+          findings.push({
+            checkId: "AWS-CFN-003",
+            provider: "aws",
+            severity: "critical",
+            status: "EXPOSED",
+            resource: `cfn:param:${s[0]}:${p[0]}`,
+            title: `Exposed secret parameter: ${p[0]} in stack ${s[0]}`,
+            details: `Parameter value readable: ${p[1].slice(0, 40)}...`,
+            remediation: "Rotate exposed credential and use SSM SecureString reference",
+          })
+        }
+      }
+    }
+
+    const outputs = await aws(["cloudformation", "describe-stacks", "--stack-name", s[0], "--query", "Stacks[0].Outputs[].[OutputKey,OutputValue,ExportName]"], profile, region, timeout)
+    if (outputs.exitCode === 0) {
+      const ol = tryJson(outputs.stdout) || []
+      for (const o of ol) {
+        output.push(`    Output: ${o[0]} = ${o[1]}${o[2] ? ` (export: ${o[2]})` : ""}`)
+        if (secretPattern.test(o[0])) {
+          findings.push({
+            checkId: "AWS-CFN-004",
+            provider: "aws",
+            severity: "high",
+            status: "EXPOSED",
+            resource: `cfn:output:${s[0]}:${o[0]}`,
+            title: `Potential secret in stack output: ${o[0]}`,
+            details: `Output value: ${String(o[1]).slice(0, 40)}...`,
+            remediation: "Do not export secrets via CloudFormation outputs",
+          })
+        }
+      }
+    }
+
+    const resources = await aws(["cloudformation", "list-stack-resources", "--stack-name", s[0], "--query", "StackResourceSummaries[].[ResourceType,LogicalResourceId,PhysicalResourceId]"], profile, region, timeout)
+    if (resources.exitCode === 0) {
+      const rl = tryJson(resources.stdout) || []
+      const iamResources = rl.filter((r: string[]) => r[0]?.startsWith("AWS::IAM::"))
+      if (iamResources.length) {
+        output.push(`    [!] IAM resources in stack: ${iamResources.map((r: string[]) => `${r[0]}:${r[1]}`).join(", ")}`)
+      }
+    }
+    output.push("")
+  }
+
+  const exports = await aws(["cloudformation", "list-exports", "--query", "Exports[].[Name,Value,ExportingStackId]"], profile, region, timeout)
+  if (exports.exitCode === 0) {
+    const el = tryJson(exports.stdout) || []
+    if (el.length) {
+      output.push(`\n[+] Cross-Stack Exports: ${el.length}`)
+      for (const e of el) output.push(`    ${e[0]} = ${e[1]}`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function apigwEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] API Gateway Enumeration\n"]
+
+  const rest = await aws(["apigateway", "get-rest-apis", "--query", "items[].[id,name,endpointConfiguration.types[0],createdDate]"], profile, region, timeout)
+  if (rest.exitCode === 0) {
+    const apis = tryJson(rest.stdout) || []
+    output.push(`[+] REST APIs: ${apis.length}`)
+    for (const a of apis) {
+      output.push(`\n  API: ${a[1]} (${a[0]})  Type: ${a[2]}  Created: ${a[3]}`)
+
+      const stages = await aws(["apigateway", "get-stages", "--rest-api-id", a[0], "--query", "item[].[stageName,deploymentId,cacheClusterEnabled]"], profile, region, timeout)
+      if (stages.exitCode === 0) {
+        for (const st of tryJson(stages.stdout) || []) {
+          const url = `https://${a[0]}.execute-api.${region || "us-east-1"}.amazonaws.com/${st[0]}`
+          output.push(`    Stage: ${st[0]}  URL: ${url}`)
+        }
+      }
+
+      const resources = await aws(["apigateway", "get-resources", "--rest-api-id", a[0], "--query", "items[].[path,resourceMethods]"], profile, region, timeout)
+      if (resources.exitCode === 0) {
+        const rl = tryJson(resources.stdout) || []
+        for (const r of rl) {
+          if (r[1]) {
+            const methods = Object.keys(r[1])
+            output.push(`    ${r[0]}  Methods: ${methods.join(", ")}`)
+          }
+        }
+      }
+
+      const keys = await aws(["apigateway", "get-api-keys", "--include-values", "--query", "items[].[name,id,value,enabled]"], profile, region, timeout)
+      if (keys.exitCode === 0) {
+        const kl = tryJson(keys.stdout) || []
+        if (kl.length) {
+          output.push(`    [!] API Keys with values:`)
+          for (const k of kl) {
+            output.push(`      ${k[0]} (${k[1]}): ${k[2]}  enabled=${k[3]}`)
+            findings.push({
+              checkId: "AWS-APIGW-001",
+              provider: "aws",
+              severity: "high",
+              status: "EXTRACTED",
+              resource: `apigateway:key:${k[1]}`,
+              title: `API Key extracted: ${k[0]}`,
+              details: `Value: ${String(k[2]).slice(0, 12)}... enabled=${k[3]}`,
+              remediation: "Rotate API key and restrict --include-values permission",
+            })
+          }
+        }
+      }
+
+      const authorizers = await aws(["apigateway", "get-authorizers", "--rest-api-id", a[0], "--query", "items[].[name,type,authorizerUri]"], profile, region, timeout)
+      if (authorizers.exitCode === 0) {
+        const al = tryJson(authorizers.stdout) || []
+        if (al.length) {
+          output.push(`    Authorizers:`)
+          for (const auth of al) output.push(`      ${auth[0]}  Type: ${auth[1]}  URI: ${auth[2] || "N/A"}`)
+        }
+        if (!al.length) {
+          output.push(`    [!] No authorizers configured — endpoints may be open`)
+          findings.push({
+            checkId: "AWS-APIGW-002",
+            provider: "aws",
+            severity: "medium",
+            status: "MISSING",
+            resource: `apigateway:${a[0]}`,
+            title: `API Gateway ${a[1]} has no authorizers`,
+            details: "No authorization configured — endpoints may accept unauthenticated requests",
+            remediation: "Configure Cognito, Lambda, or IAM authorizer",
+          })
+        }
+      }
+    }
+  }
+
+  output.push("\n")
+  const v2 = await aws(["apigatewayv2", "get-apis", "--query", "Items[].[ApiId,Name,ProtocolType,ApiEndpoint]"], profile, region, timeout)
+  if (v2.exitCode === 0) {
+    const v2apis = tryJson(v2.stdout) || []
+    output.push(`[+] HTTP/WebSocket APIs (v2): ${v2apis.length}`)
+    for (const a of v2apis) {
+      output.push(`  ${a[1]} (${a[0]})  Protocol: ${a[2]}  Endpoint: ${a[3]}`)
+
+      const routes = await aws(["apigatewayv2", "get-routes", "--api-id", a[0], "--query", "Items[].[RouteKey,AuthorizationType,Target]"], profile, region, timeout)
+      if (routes.exitCode === 0) {
+        for (const r of tryJson(routes.stdout) || []) {
+          output.push(`    Route: ${r[0]}  Auth: ${r[1] || "NONE"}  Target: ${r[2] || "N/A"}`)
+          if (!r[1] || r[1] === "NONE") {
+            findings.push({
+              checkId: "AWS-APIGW-003",
+              provider: "aws",
+              severity: "medium",
+              status: "OPEN",
+              resource: `apigatewayv2:${a[0]}:${r[0]}`,
+              title: `Unauthenticated route: ${r[0]} on ${a[1]}`,
+              details: `Route has AuthorizationType=NONE`,
+              remediation: "Add JWT, Lambda, or IAM authorizer to route",
+            })
+          }
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function snsSqsEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] SNS/SQS Enumeration\n"]
+
+  const topics = await aws(["sns", "list-topics", "--query", "Topics[].TopicArn"], profile, region, timeout)
+  if (topics.exitCode === 0) {
+    const tl = tryJson(topics.stdout) || []
+    output.push(`[+] SNS Topics: ${tl.length}`)
+    for (const arn of tl) {
+      const name = String(arn).split(":").pop()
+      output.push(`\n  Topic: ${name}`)
+      output.push(`    ARN: ${arn}`)
+
+      const attrs = await aws(["sns", "get-topic-attributes", "--topic-arn", arn, "--query", "{Policy:Attributes.Policy,KmsMasterKeyId:Attributes.KmsMasterKeyId,SubscriptionsConfirmed:Attributes.SubscriptionsConfirmed}"], profile, region, timeout)
+      if (attrs.exitCode === 0) {
+        const a = tryJson(attrs.stdout)
+        if (a) {
+          output.push(`    Subscriptions: ${a.SubscriptionsConfirmed || 0}  KMS: ${a.KmsMasterKeyId || "none"}`)
+          if (a.Policy) {
+            const policy = tryJson(a.Policy) || a.Policy
+            const pStr = typeof policy === "string" ? policy : JSON.stringify(policy)
+            if (pStr.includes('"*"') || pStr.includes('"AWS":"*"')) {
+              output.push(`    [!] Topic policy allows public access`)
+              findings.push({
+                checkId: "AWS-SNS-001",
+                provider: "aws",
+                severity: "high",
+                status: "OPEN",
+                resource: `sns:${arn}`,
+                title: `SNS topic with wildcard principal: ${name}`,
+                details: "Topic policy contains Principal:* allowing any AWS account to publish/subscribe",
+                remediation: "Restrict SNS topic policy to specific accounts/services",
+              })
+            }
+          }
+        }
+      }
+
+      const subs = await aws(["sns", "list-subscriptions-by-topic", "--topic-arn", arn, "--query", "Subscriptions[].[Protocol,Endpoint,SubscriptionArn]"], profile, region, timeout)
+      if (subs.exitCode === 0) {
+        for (const sub of tryJson(subs.stdout) || []) {
+          output.push(`    Sub: ${sub[0]}  →  ${sub[1]}`)
+          if (sub[0] === "email" || sub[0] === "email-json" || sub[0] === "http") {
+            findings.push({
+              checkId: "AWS-SNS-002",
+              provider: "aws",
+              severity: "medium",
+              status: "FOUND",
+              resource: `sns:sub:${sub[2]}`,
+              title: `Interesting SNS subscription: ${sub[0]} → ${sub[1]}`,
+              details: `External delivery channel (${sub[0]}) can be used for data exfiltration`,
+              remediation: "Review SNS subscriptions for unauthorized endpoints",
+            })
+          }
+        }
+      }
+    }
+  }
+
+  output.push("\n")
+  const queues = await aws(["sqs", "list-queues", "--query", "QueueUrls"], profile, region, timeout)
+  if (queues.exitCode === 0) {
+    const ql = tryJson(queues.stdout) || []
+    output.push(`[+] SQS Queues: ${ql.length}`)
+    for (const url of ql) {
+      const name = String(url).split("/").pop()
+      output.push(`\n  Queue: ${name}`)
+      output.push(`    URL: ${url}`)
+
+      const qattrs = await aws(["sqs", "get-queue-attributes", "--queue-url", url, "--attribute-names", "All", "--query", "{Policy:Attributes.Policy,KmsMasterKeyId:Attributes.KmsMasterKeyId,ApproximateNumberOfMessages:Attributes.ApproximateNumberOfMessages,RedrivePolicy:Attributes.RedrivePolicy}"], profile, region, timeout)
+      if (qattrs.exitCode === 0) {
+        const qa = tryJson(qattrs.stdout)
+        if (qa) {
+          output.push(`    Messages: ${qa.ApproximateNumberOfMessages || 0}  KMS: ${qa.KmsMasterKeyId || "none"}`)
+          if (qa.RedrivePolicy) output.push(`    DLQ: ${qa.RedrivePolicy}`)
+          if (qa.Policy) {
+            const pStr = typeof qa.Policy === "string" ? qa.Policy : JSON.stringify(qa.Policy)
+            if (pStr.includes('"*"') || pStr.includes('"AWS":"*"')) {
+              output.push(`    [!] Queue policy allows public access`)
+              findings.push({
+                checkId: "AWS-SQS-001",
+                provider: "aws",
+                severity: "high",
+                status: "OPEN",
+                resource: `sqs:${name}`,
+                title: `SQS queue with wildcard principal: ${name}`,
+                details: "Queue policy contains Principal:* allowing any account to send/receive",
+                remediation: "Restrict SQS queue policy to specific accounts",
+              })
+            }
+          }
+          if (!qa.KmsMasterKeyId) {
+            findings.push({
+              checkId: "AWS-SQS-002",
+              provider: "aws",
+              severity: "low",
+              status: "UNENCRYPTED",
+              resource: `sqs:${name}`,
+              title: `SQS queue without KMS encryption: ${name}`,
+              details: "Queue uses SSE-SQS or no encryption — messages readable with queue access",
+              remediation: "Enable KMS encryption on SQS queue",
+            })
+          }
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function cloudwatchEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] CloudWatch Enumeration\n"]
+
+  const groups = await aws(["logs", "describe-log-groups", "--query", "logGroups[].[logGroupName,storedBytes,retentionInDays,kmsKeyId]"], profile, region, timeout)
+  if (groups.exitCode === 0) {
+    const gl = tryJson(groups.stdout) || []
+    output.push(`[+] Log Groups: ${gl.length}`)
+
+    const interestingPrefixes = ["/aws/lambda/", "/aws/apigateway/", "/aws/rds/", "/ecs/", "cloudtrail", "vpc-flow"]
+    for (const g of gl) {
+      const sizeMB = Math.round((g[1] || 0) / 1024 / 1024)
+      const retention = g[2] || "never expires"
+      output.push(`  ${g[0]}  Size: ${sizeMB}MB  Retention: ${retention}  KMS: ${g[3] || "none"}`)
+
+      if (interestingPrefixes.some(p => String(g[0]).toLowerCase().includes(p))) {
+        findings.push({
+          checkId: "AWS-CW-001",
+          provider: "aws",
+          severity: "info",
+          status: "FOUND",
+          resource: `cloudwatch:loggroup:${g[0]}`,
+          title: `Interesting log group: ${g[0]}`,
+          details: `Contains ${sizeMB}MB of logs, retention: ${retention}`,
+          remediation: "Review log group for sensitive data exposure",
+        })
+      }
+
+      if (!g[3]) {
+        findings.push({
+          checkId: "AWS-CW-002",
+          provider: "aws",
+          severity: "low",
+          status: "UNENCRYPTED",
+          resource: `cloudwatch:loggroup:${g[0]}`,
+          title: `Log group without KMS encryption: ${g[0]}`,
+          details: "Log data is not encrypted with customer-managed KMS key",
+          remediation: "Associate KMS key with log group",
+        })
+      }
+    }
+  }
+
+  const alarms = await aws(["cloudwatch", "describe-alarms", "--query", "MetricAlarms[].[AlarmName,MetricName,Namespace,StateValue,ActionsEnabled,AlarmActions]"], profile, region, timeout)
+  if (alarms.exitCode === 0) {
+    const al = tryJson(alarms.stdout) || []
+    output.push(`\n[+] CloudWatch Alarms: ${al.length}`)
+    for (const a of al) {
+      output.push(`  ${a[0]}  Metric: ${a[2]}/${a[1]}  State: ${a[3]}  Actions: ${a[4] ? "enabled" : "DISABLED"}`)
+      if (!a[4]) {
+        findings.push({
+          checkId: "AWS-CW-003",
+          provider: "aws",
+          severity: "medium",
+          status: "DISABLED",
+          resource: `cloudwatch:alarm:${a[0]}`,
+          title: `CloudWatch alarm with actions disabled: ${a[0]}`,
+          details: `Alarm monitoring ${a[2]}/${a[1]} has actions disabled — alerts won't fire`,
+          remediation: "Enable alarm actions or investigate why disabled",
+        })
+      }
+      if (a[5]) {
+        for (const action of a[5]) output.push(`    Action: ${action}`)
+      }
+    }
+  }
+
+  const dashboards = await aws(["cloudwatch", "list-dashboards", "--query", "DashboardEntries[].[DashboardName,Size,LastModified]"], profile, region, timeout)
+  if (dashboards.exitCode === 0) {
+    const dl = tryJson(dashboards.stdout) || []
+    if (dl.length) {
+      output.push(`\n[+] Dashboards: ${dl.length}`)
+      for (const d of dl) output.push(`  ${d[0]}  Size: ${d[1]}B  Modified: ${d[2]}`)
+    }
+  }
+
+  const metrics = await aws(["cloudwatch", "list-metrics", "--query", "Metrics | length(@)"], profile, region, timeout)
+  if (metrics.exitCode === 0) {
+    const count = tryJson(metrics.stdout) ?? 0
+    output.push(`\n[+] Total custom metrics: ${count}`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
