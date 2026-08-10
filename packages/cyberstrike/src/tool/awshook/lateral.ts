@@ -543,3 +543,133 @@ export async function codeExecLambda(args: string[], timeout: number): Promise<H
 
   return { output: output.join("\n"), findings }
 }
+
+export async function ssmSession(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const instanceId = argVal(args, "--instance-id")
+  const portForward = argVal(args, "--port-forward")
+  const remoteHost = argVal(args, "--remote-host")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] SSM Session Manager — Interactive Shell & Port Forwarding\n"]
+
+  const instances = await aws(["ssm", "describe-instance-information", "--query", "InstanceInformationList[].[InstanceId,PingStatus,PlatformType,PlatformName,AgentVersion,ComputerName,IPAddress]"], profile, region, timeout)
+  if (instances.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: ssm:DescribeInstanceInformation", findings }
+
+  const il = tryJson(instances.stdout) || []
+  output.push(`[+] SSM-managed instances: ${il.length}\n`)
+
+  const onlineInstances: string[] = []
+  for (const i of il) {
+    const status = i[1] === "Online" ? "[ONLINE]" : "[OFFLINE]"
+    output.push(`  ${status} ${i[0]}  Platform: ${i[3] || i[2]}  Agent: ${i[4]}  Name: ${i[5] || "N/A"}  IP: ${i[6] || "N/A"}`)
+    if (i[1] === "Online") onlineInstances.push(i[0])
+  }
+
+  if (!onlineInstances.length) {
+    output.push("\n[-] No online instances found")
+    return { output: output.join("\n"), findings }
+  }
+
+  for (const id of onlineInstances) {
+    findings.push({
+      checkId: "AWS-LATERAL-006",
+      provider: "aws",
+      severity: "high",
+      status: "AVAILABLE",
+      resource: `ssm:session:${id}`,
+      title: `SSM Session Manager available: ${id}`,
+      details: "Interactive shell access without SSH keys, security groups, or direct network — tunnels through HTTPS",
+      remediation: "Restrict ssm:StartSession via IAM policy with condition keys",
+    })
+  }
+
+  if (!instanceId) {
+    output.push(`\n[*] Usage:`)
+    output.push(`  Interactive shell: awshook ssm_session --instance-id ID`)
+    output.push(`  Port forward:      awshook ssm_session --instance-id ID --port-forward 8080:80`)
+    output.push(`  Remote host:       awshook ssm_session --instance-id ID --port-forward 3306 --remote-host rds.endpoint.com`)
+    output.push(`\n[*] SSM Session advantages over RunCommand:`)
+    output.push(`  - Interactive shell (not one-shot)`)
+    output.push(`  - Port forwarding through HTTPS tunnel`)
+    output.push(`  - No inbound security group rules needed`)
+    output.push(`  - Session logging may be disabled (check preferences)`)
+    return { output: output.join("\n"), findings }
+  }
+
+  if (!onlineInstances.includes(instanceId)) {
+    output.push(`\n[-] Instance ${instanceId} is not online or not SSM-managed`)
+    return { output: output.join("\n"), findings }
+  }
+
+  const prefs = await aws(["ssm", "get-document", "--name", "SSM-SessionManagerRunShell", "--query", "Content"], profile, region, timeout)
+  if (prefs.exitCode === 0) {
+    const content = tryJson(prefs.stdout) || prefs.stdout
+    const prefStr = typeof content === "string" ? content : JSON.stringify(content)
+    const logging = prefStr.includes('"cloudWatchLogGroupName"') || prefStr.includes('"s3BucketName"')
+    output.push(`\n[*] Session logging: ${logging ? "ENABLED — sessions may be recorded" : "DISABLED — sessions are not logged"}`)
+    if (!logging) {
+      findings.push({
+        checkId: "AWS-LATERAL-007",
+        provider: "aws",
+        severity: "medium",
+        status: "DISABLED",
+        resource: "ssm:session:logging",
+        title: "SSM Session Manager logging is disabled",
+        details: "Interactive sessions are not logged to CloudWatch or S3 — activity is invisible",
+        remediation: "Enable SSM Session Manager logging in preferences",
+      })
+    }
+  }
+
+  if (portForward) {
+    const parts = portForward.split(":")
+    const localPort = parts[0]
+    const remotePort = parts[1] || parts[0]
+
+    if (remoteHost) {
+      output.push(`\n[+] Starting remote host port forward: localhost:${localPort} → ${remoteHost}:${remotePort} via ${instanceId}`)
+      output.push(`    Command: aws ssm start-session --target ${instanceId} --document-name AWS-StartPortForwardingSessionToRemoteHost --parameters '{"host":["${remoteHost}"],"portNumber":["${remotePort}"],"localPortNumber":["${localPort}"]}'`)
+      findings.push({
+        checkId: "AWS-LATERAL-008",
+        provider: "aws",
+        severity: "critical",
+        status: "READY",
+        resource: `ssm:portforward:${instanceId}:${remoteHost}:${remotePort}`,
+        title: `SSM port forward to ${remoteHost}:${remotePort} via ${instanceId}`,
+        details: `Tunnel: localhost:${localPort} → ${remoteHost}:${remotePort} through ${instanceId} — access internal services (RDS, ElastiCache, etc.)`,
+        remediation: "Restrict ssm:StartSession with document name condition",
+      })
+    } else {
+      output.push(`\n[+] Starting port forward: localhost:${localPort} → ${instanceId}:${remotePort}`)
+      output.push(`    Command: aws ssm start-session --target ${instanceId} --document-name AWS-StartPortForwardingSession --parameters '{"portNumber":["${remotePort}"],"localPortNumber":["${localPort}"]}'`)
+      findings.push({
+        checkId: "AWS-LATERAL-008",
+        provider: "aws",
+        severity: "high",
+        status: "READY",
+        resource: `ssm:portforward:${instanceId}:${remotePort}`,
+        title: `SSM port forward to ${instanceId}:${remotePort}`,
+        details: `Tunnel: localhost:${localPort} → ${instanceId}:${remotePort}`,
+        remediation: "Restrict ssm:StartSession with document name condition",
+      })
+    }
+  } else {
+    output.push(`\n[+] Starting interactive session with ${instanceId}`)
+    output.push(`    Command: aws ssm start-session --target ${instanceId}${profile ? ` --profile ${profile}` : ""}${region ? ` --region ${region}` : ""}`)
+    output.push(`\n[*] Run the above command in your terminal for interactive shell`)
+    output.push(`[*] For automated commands, use ssm_exec instead`)
+    findings.push({
+      checkId: "AWS-LATERAL-006",
+      provider: "aws",
+      severity: "high",
+      status: "READY",
+      resource: `ssm:session:${instanceId}`,
+      title: `SSM interactive session ready: ${instanceId}`,
+      details: "Interactive shell via HTTPS tunnel — no SSH, no security group, no key pair needed",
+      remediation: "Restrict ssm:StartSession via IAM policy",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
