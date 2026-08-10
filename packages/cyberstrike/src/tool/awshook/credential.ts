@@ -622,3 +622,190 @@ export async function cognitoToken(args: string[], timeout: number): Promise<Hoo
 
   return { output: output.join("\n"), findings }
 }
+
+export async function cfnSecretExtract(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const stackName = argVal(args, "--stack-name")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] CloudFormation Secret Extraction\n"]
+
+  const secretPattern = /(?:password|secret|key|token|api.?key|credential|connection.?string|db.?pass|rds.?pass|auth|private|master)/i
+
+  const listCmd = stackName
+    ? ["cloudformation", "describe-stacks", "--stack-name", stackName, "--query", "Stacks[].[StackName,StackStatus]"]
+    : ["cloudformation", "list-stacks", "--stack-status-filter", "CREATE_COMPLETE", "UPDATE_COMPLETE", "--query", "StackSummaries[].[StackName,StackStatus]"]
+  const stacks = await aws(listCmd, profile, region, timeout)
+  if (stacks.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: cloudformation:ListStacks", findings }
+
+  const sl = tryJson(stacks.stdout) || []
+  output.push(`[+] Scanning ${sl.length} stacks for secrets...\n`)
+
+  for (const s of sl) {
+    const name = s[0]
+
+    const params = await aws(["cloudformation", "describe-stacks", "--stack-name", name, "--query", "Stacks[0].Parameters"], profile, region, timeout)
+    if (params.exitCode === 0) {
+      const pl = tryJson(params.stdout) || []
+      for (const p of pl) {
+        if (secretPattern.test(p.ParameterKey)) {
+          if (p.ParameterValue && p.ParameterValue !== "****") {
+            output.push(`  [!] ${name} / ${p.ParameterKey} = ${p.ParameterValue}`)
+            findings.push({
+              checkId: "AWS-CFNSEC-001",
+              provider: "aws",
+              severity: "critical",
+              status: "EXTRACTED",
+              resource: `cfn:${name}:${p.ParameterKey}`,
+              title: `Secret parameter exposed: ${p.ParameterKey}`,
+              details: `Stack ${name} parameter value: ${String(p.ParameterValue).slice(0, 40)}...`,
+              remediation: "Rotate credential immediately, use SSM SecureString dynamic reference",
+            })
+          } else {
+            output.push(`  [*] ${name} / ${p.ParameterKey} = **** (NoEcho — try get-template)`)
+          }
+        }
+      }
+    }
+
+    const tpl = await aws(["cloudformation", "get-template", "--stack-name", name, "--query", "TemplateBody"], profile, region, timeout)
+    if (tpl.exitCode === 0) {
+      const body = tpl.stdout
+      const lines = body.split("\n")
+      for (let i = 0; i < lines.length; i++) {
+        if (secretPattern.test(lines[i])) {
+          const ctx = lines.slice(Math.max(0, i - 1), Math.min(lines.length, i + 3)).join("\n").trim()
+          if (ctx.length > 10 && !ctx.includes("NoEcho") && !ctx.includes("AWS::SSM::Parameter")) {
+            output.push(`  [!] ${name} template line ${i + 1}: ${lines[i].trim().slice(0, 100)}`)
+            findings.push({
+              checkId: "AWS-CFNSEC-002",
+              provider: "aws",
+              severity: "high",
+              status: "FOUND",
+              resource: `cfn:template:${name}:line${i + 1}`,
+              title: `Potential hardcoded secret in template: ${name}`,
+              details: `Line ${i + 1}: ${lines[i].trim().slice(0, 80)}`,
+              remediation: "Replace hardcoded values with dynamic references",
+            })
+          }
+        }
+      }
+
+      const defaultRegex = /Default["']?\s*[:=]\s*["']([^"'\n]{8,})["']/g
+      let match
+      while ((match = defaultRegex.exec(body)) !== null) {
+        const pre = body.slice(Math.max(0, match.index - 200), match.index)
+        if (secretPattern.test(pre)) {
+          output.push(`  [!] ${name} default value: ${match[1].slice(0, 30)}...`)
+          findings.push({
+            checkId: "AWS-CFNSEC-003",
+            provider: "aws",
+            severity: "high",
+            status: "FOUND",
+            resource: `cfn:default:${name}`,
+            title: `Default parameter value with potential secret in ${name}`,
+            details: `Default value near secret-named parameter: ${match[1].slice(0, 40)}...`,
+            remediation: "Remove default values for sensitive parameters",
+          })
+        }
+      }
+    }
+
+    const outputs = await aws(["cloudformation", "describe-stacks", "--stack-name", name, "--query", "Stacks[0].Outputs"], profile, region, timeout)
+    if (outputs.exitCode === 0) {
+      for (const o of tryJson(outputs.stdout) || []) {
+        if (secretPattern.test(o.OutputKey) && o.OutputValue) {
+          output.push(`  [!] ${name} output ${o.OutputKey} = ${o.OutputValue}`)
+          findings.push({
+            checkId: "AWS-CFNSEC-004",
+            provider: "aws",
+            severity: "high",
+            status: "EXPOSED",
+            resource: `cfn:output:${name}:${o.OutputKey}`,
+            title: `Secret in stack output: ${o.OutputKey}`,
+            details: `Output value: ${String(o.OutputValue).slice(0, 40)}...${o.ExportName ? ` (exported as: ${o.ExportName})` : ""}`,
+            remediation: "Do not expose secrets via stack outputs — use SSM/Secrets Manager",
+          })
+        }
+      }
+    }
+  }
+
+  output.push(`\n[+] Scan complete: ${findings.length} potential secrets found`)
+  return { output: output.join("\n"), findings }
+}
+
+export async function codecommitCred(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] CodeCommit Credential Enumeration\n"]
+
+  const repos = await aws(["codecommit", "list-repositories", "--query", "repositories[].[repositoryName,repositoryId]"], profile, region, timeout)
+  if (repos.exitCode === 0) {
+    const rl = tryJson(repos.stdout) || []
+    output.push(`[+] CodeCommit Repositories: ${rl.length}`)
+    for (const r of rl) {
+      const detail = await aws(["codecommit", "get-repository", "--repository-name", r[0], "--query", "repositoryMetadata.{cloneUrl:cloneUrlHttp,sshUrl:cloneUrlSsh,defaultBranch:defaultBranch,lastModified:lastModifiedDate}"], profile, region, timeout)
+      if (detail.exitCode === 0) {
+        const d = tryJson(detail.stdout)
+        if (d) {
+          output.push(`  ${r[0]}  Branch: ${d.defaultBranch || "N/A"}  Modified: ${d.lastModified || "N/A"}`)
+          output.push(`    HTTPS: ${d.cloneUrl}`)
+          output.push(`    SSH: ${d.sshUrl}`)
+        }
+      }
+    }
+  }
+
+  const users = await aws(["iam", "list-users", "--query", "Users[].UserName"], profile, region, timeout)
+  if (users.exitCode === 0) {
+    const ul = tryJson(users.stdout) || []
+    output.push(`\n[+] Checking ${ul.length} IAM users for CodeCommit credentials...`)
+
+    for (const user of ul) {
+      const creds = await aws(["iam", "list-service-specific-credentials", "--user-name", user, "--service-name", "codecommit.amazonaws.com", "--query", "ServiceSpecificCredentials[].[ServiceUserName,ServiceSpecificCredentialId,Status,CreateDate]"], profile, region, timeout)
+      if (creds.exitCode === 0) {
+        const cl = tryJson(creds.stdout) || []
+        for (const c of cl) {
+          output.push(`  [!] ${user}: HTTPS Git credential ${c[0]} (${c[1]})  Status: ${c[2]}  Created: ${c[3]}`)
+          findings.push({
+            checkId: "AWS-CODECOMMIT-001",
+            provider: "aws",
+            severity: "high",
+            status: "FOUND",
+            resource: `codecommit:cred:${user}:${c[1]}`,
+            title: `CodeCommit HTTPS credential for user: ${user}`,
+            details: `Service username: ${c[0]}, Status: ${c[2]}, Created: ${c[3]}`,
+            remediation: "Rotate CodeCommit credentials, use IAM role-based access instead",
+          })
+        }
+      }
+
+      const sshKeys = await aws(["iam", "list-ssh-public-keys", "--user-name", user, "--query", "SSHPublicKeys[].[SSHPublicKeyId,Status,UploadDate]"], profile, region, timeout)
+      if (sshKeys.exitCode === 0) {
+        const sl = tryJson(sshKeys.stdout) || []
+        for (const s of sl) {
+          output.push(`  [!] ${user}: SSH public key ${s[0]}  Status: ${s[1]}  Uploaded: ${s[2]}`)
+          findings.push({
+            checkId: "AWS-CODECOMMIT-002",
+            provider: "aws",
+            severity: "medium",
+            status: "FOUND",
+            resource: `codecommit:ssh:${user}:${s[0]}`,
+            title: `SSH public key for CodeCommit: ${user}`,
+            details: `Key ID: ${s[0]}, Status: ${s[1]}`,
+            remediation: "Review SSH key usage and remove unused keys",
+          })
+        }
+      }
+    }
+  }
+
+  const connToken = await aws(["codecommit", "get-repository", "--repository-name", "nonexistent-probe-12345"], profile, region, timeout)
+  if (connToken.exitCode !== 0 && connToken.stderr.includes("does not exist")) {
+    output.push(`\n[+] Credential has codecommit:GetRepository access — can clone repos`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
