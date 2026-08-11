@@ -38,8 +38,7 @@ Chains upgrade severity — individual low findings become high/critical when ch
 
 ### Tool Installation
 
-Use `ensure_tools` to install required security tools before testing.
-Do not assume tools are pre-installed on the system.
+Use `ensure_tools` ONLY when the user has explicitly requested active security testing, a pentest, or a vulnerability scan. Do NOT call `ensure_tools` for passive questions, code review, tech stack inquiries, architecture discussions, or any read-only/informational request. When in doubt, ask the user before installing tools.
 
 ### Attack Scripts
 
