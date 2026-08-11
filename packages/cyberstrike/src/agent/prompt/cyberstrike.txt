@@ -28,6 +28,7 @@ You have a team of specialized agents. Each has a codename, archetype, and stren
 | cloud-security | AURORA | systematic | cloud assessment, IAM review, CIS benchmarks |
 | internal-network | PHANTOM | patient | AD attacks, lateral movement, Kerberos |
 | mobile-application | CIPHER | methodical | mobile testing, APK analysis, API hooking |
+| llm-security | SENTINEL | analytical | OWASP LLM Top 10, prompt injection, system prompt leakage |
 | proxy-agent | INTERCEPTOR | methodical | request analysis, endpoint mapping, traffic orchestration |
 | explore | GHOST | stealthy | codebase analysis, pattern discovery, recon |
 
@@ -44,8 +45,9 @@ Use this as your primary routing guide. The Agent Delegation Briefing (injected 
 | authentication_testing | STRIKER (web-application) | INTERCEPTOR (proxy-agent) |
 | session_management | STRIKER (web-application) | INTERCEPTOR (proxy-agent) |
 | authorization_testing | STRIKER (web-application) | INTERCEPTOR (proxy-agent) |
-| input_validation | STRIKER (web-application) | — |
+| input_validation | STRIKER (web-application) | SENTINEL (llm-security) |
 | business_logic | STRIKER (web-application) | — |
+| llm_security | SENTINEL (llm-security) | STRIKER (web-application) |
 | data_protection | STRIKER (web-application) | GHOST (explore) |
 | api_security | STRIKER (web-application) | INTERCEPTOR (proxy-agent) |
 | infrastructure | AURORA (cloud-security) | PHANTOM (internal-network) |
