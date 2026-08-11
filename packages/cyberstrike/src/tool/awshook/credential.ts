@@ -809,3 +809,153 @@ export async function codecommitCred(args: string[], timeout: number): Promise<H
 
   return { output: output.join("\n"), findings }
 }
+
+export async function ciCdSecretExtract(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] CI/CD Secret Extraction (CodePipeline + CodeBuild)\n"]
+
+  const secretPattern = /(?:password|secret|key|token|api.?key|credential|private|auth|db.?pass)/i
+
+  const pipelines = await aws(["codepipeline", "list-pipelines", "--query", "pipelines[].[name,created,updated]"], profile, region, timeout)
+  if (pipelines.exitCode === 0) {
+    const pl = tryJson(pipelines.stdout) || []
+    output.push(`[+] CodePipeline pipelines: ${pl.length}`)
+
+    for (const p of pl) {
+      output.push(`\n  Pipeline: ${p[0]}  Created: ${p[1]}`)
+      const detail = await aws(["codepipeline", "get-pipeline", "--name", p[0]], profile, region, timeout)
+      if (detail.exitCode === 0) {
+        const d = tryJson(detail.stdout)
+        const artifactStore = d?.pipeline?.artifactStore
+        if (artifactStore) {
+          output.push(`    Artifact bucket: ${artifactStore.location}  Type: ${artifactStore.type}`)
+          if (artifactStore.encryptionKey) {
+            output.push(`    Encryption: ${artifactStore.encryptionKey.type} ${artifactStore.encryptionKey.id}`)
+          } else {
+            output.push(`    [!] Artifacts not KMS-encrypted`)
+          }
+          findings.push({
+            checkId: "AWS-CICD-001",
+            provider: "aws",
+            severity: "high",
+            status: "FOUND",
+            resource: `codepipeline:artifact:${artifactStore.location}`,
+            title: `Pipeline artifact bucket: ${artifactStore.location}`,
+            details: `Pipeline ${p[0]} stores build artifacts — may contain compiled code, configs, secrets`,
+            remediation: "Restrict access to artifact bucket, enable KMS encryption",
+          })
+        }
+
+        const stages = d?.pipeline?.stages || []
+        for (const stage of stages) {
+          for (const action of stage.actions || []) {
+            const config = action.configuration || {}
+            for (const [k, v] of Object.entries(config)) {
+              if (secretPattern.test(k) && v) {
+                output.push(`    [!] ${stage.name}/${action.name}: ${k} = ${String(v).slice(0, 30)}...`)
+                findings.push({
+                  checkId: "AWS-CICD-002",
+                  provider: "aws",
+                  severity: "critical",
+                  status: "EXTRACTED",
+                  resource: `codepipeline:${p[0]}:${stage.name}:${action.name}`,
+                  title: `Pipeline action config secret: ${k}`,
+                  details: `Stage ${stage.name}, Action ${action.name}: ${k}=${String(v).slice(0, 40)}`,
+                  remediation: "Use Secrets Manager reference instead of plaintext",
+                })
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const projects = await aws(["codebuild", "list-projects", "--query", "projects"], profile, region, timeout)
+  if (projects.exitCode === 0) {
+    const prl = tryJson(projects.stdout) || []
+    output.push(`\n[+] CodeBuild projects: ${prl.length}`)
+
+    for (const name of prl) {
+      const detail = await aws(["codebuild", "batch-get-projects", "--names", name, "--query", "projects[0].{env:environment,source:source.type,serviceRole:serviceRole,artifacts:artifacts.type}"], profile, region, timeout)
+      if (detail.exitCode === 0) {
+        const d = tryJson(detail.stdout)
+        if (d) {
+          output.push(`\n  Project: ${name}  Source: ${d.source}  Artifacts: ${d.artifacts}`)
+          output.push(`    Service role: ${d.serviceRole}`)
+
+          const envVars = d.env?.environmentVariables || []
+          for (const ev of envVars) {
+            const isSecret = secretPattern.test(ev.name)
+            if (ev.type === "PLAINTEXT" && isSecret) {
+              output.push(`    [!] PLAINTEXT env: ${ev.name} = ${String(ev.value).slice(0, 30)}...`)
+              findings.push({
+                checkId: "AWS-CICD-003",
+                provider: "aws",
+                severity: "critical",
+                status: "EXTRACTED",
+                resource: `codebuild:${name}:env:${ev.name}`,
+                title: `Plaintext secret in CodeBuild env: ${ev.name}`,
+                details: `Project ${name}: ${ev.name}=${String(ev.value).slice(0, 40)}...`,
+                remediation: "Use SECRETS_MANAGER or PARAMETER_STORE type instead of PLAINTEXT",
+              })
+            } else if (ev.type === "PARAMETER_STORE" || ev.type === "SECRETS_MANAGER") {
+              output.push(`    Env: ${ev.name} (${ev.type}: ${ev.value})`)
+              findings.push({
+                checkId: "AWS-CICD-004",
+                provider: "aws",
+                severity: "medium",
+                status: "REFERENCE",
+                resource: `codebuild:${name}:env:${ev.name}`,
+                title: `CodeBuild references ${ev.type}: ${ev.name}`,
+                details: `Reference: ${ev.value} — extract via secrets_dump or ssm parameter store`,
+                remediation: "Ensure least-privilege access to referenced secret",
+              })
+            } else if (isSecret) {
+              output.push(`    Env: ${ev.name} = ${String(ev.value).slice(0, 20)}... (${ev.type})`)
+            }
+          }
+
+          if (d.env?.privilegedMode) {
+            output.push(`    [!] Privileged mode enabled — Docker-in-Docker, host access`)
+            findings.push({
+              checkId: "AWS-CICD-005",
+              provider: "aws",
+              severity: "high",
+              status: "ENABLED",
+              resource: `codebuild:${name}`,
+              title: `CodeBuild privileged mode: ${name}`,
+              details: "Container runs with elevated privileges — can access Docker socket, mount host filesystem",
+              remediation: "Disable privileged mode unless required for Docker builds",
+            })
+          }
+        }
+      }
+    }
+  }
+
+  const connections = await aws(["codestar-connections", "list-connections", "--query", "Connections[].[ConnectionName,ConnectionArn,ProviderType,ConnectionStatus]"], profile, region, timeout)
+  if (connections.exitCode === 0) {
+    const conns = tryJson(connections.stdout) || []
+    if (conns.length) {
+      output.push(`\n[+] CodeStar Connections: ${conns.length}`)
+      for (const conn of conns) {
+        output.push(`  ${conn[0]}  Provider: ${conn[2]}  Status: ${conn[3]}`)
+        findings.push({
+          checkId: "AWS-CICD-006",
+          provider: "aws",
+          severity: "medium",
+          status: "FOUND",
+          resource: `codestar:connection:${conn[0]}`,
+          title: `CodeStar connection to ${conn[2]}: ${conn[0]}`,
+          details: `${conn[3]} connection — may provide access to external Git repositories`,
+          remediation: "Review connection permissions and linked repositories",
+        })
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
