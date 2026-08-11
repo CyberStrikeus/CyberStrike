@@ -2321,7 +2321,7 @@ export async function regSecrets(args: string[], timeout: number): Promise<HookR
           status: "VULNERABLE",
           resource: "registry://Winlogon",
           title: "AutoLogon cleartext password",
-          details: `${dom}\\${user} : ${pass}`,
+          details: `${dom}\\${user} : [SECRET FOUND — ${String(pass).length} chars]`,
           remediation: "Remove DefaultPassword from registry.",
         })
       }
@@ -2339,7 +2339,7 @@ export async function regSecrets(args: string[], timeout: number): Promise<HookR
         const r = await cmd(`reg query "${key}" /v Password 2>nul`, timeout)
         if (r.stdout.includes("Password")) {
           output.push(`[!] VNC password found: ${key}`)
-          output.push(`    ${r.stdout.trim()}`)
+          output.push(`    [ENCRYPTED PASSWORD — ${r.stdout.trim().length} chars in registry]`)
           findings.push({
             checkId: "WIN-REG-VNC",
             provider: "windows",
