@@ -195,24 +195,42 @@ Skills: `skill search --tech aws,iam,postexploit`
 
 ### Azure Post-Exploitation (after compromising Azure credentials)
 
-When Azure/Entra ID credentials are compromised, use azurehook for tenant compromise:
-- `azurehook entra_enum` — enumerate Entra ID tenant (users, groups, apps, SPs)
-- `azurehook entra_privesc --method consent_grant` — privilege escalation via consent grant
-- `azurehook keyvault_dump` — extract all Key Vault secrets
-- `azurehook managed_identity` — harvest managed identity tokens
-- `azurehook storage_dump` — exfiltrate Azure Storage data
+When Azure/Entra ID credentials are compromised, use azurehook for tenant compromise. 154 programs across 13 categories:
+- **Recon (47):** `azurehook entra_enum` — Entra ID users/groups/apps/SPs/roles, `azurehook subscription_enum` — subscription details, `azurehook resource_graph` — cross-subscription queries, `azurehook vm_enum` — VMs/public IPs/extensions, `azurehook aks_enum` — AKS clusters/RBAC, `azurehook vnet_enum` — VNets/subnets/NSGs, `azurehook nsg_audit` — overly permissive rules, `azurehook rbac_audit` — role assignments analysis, `azurehook sql_enum` — SQL servers/firewall, `azurehook app_service_enum` — App Service config, `azurehook dns_enum` — DNS zones/DNSSEC, `azurehook acr_enum` — container registries, `azurehook subdomain_takeover` — dangling CNAMEs, `azurehook public_exposure_scan` — public-facing resources, plus 33 more service-specific enumerators
+- **Credential (14):** `azurehook keyvault_dump` — Key Vault secrets extraction, `azurehook managed_identity` — managed identity token harvest, `azurehook azuread_token` — token refresh/FOCI/PRT abuse, `azurehook imds_harvest` — IMDS credentials, `azurehook device_code_phish` — device code phishing, `azurehook graph_token_harvest` — multi-resource tokens, `azurehook storage_key_dump` — storage access keys, `azurehook automation_cred_dump` — Automation credentials, plus 6 more
+- **Privesc (11):** `azurehook entra_privesc` — consent grant/PIM/SP abuse, `azurehook global_admin_elevate` — Global Admin elevation, `azurehook pim_abuse` — PIM role activation, `azurehook conditional_access_audit` — CA policy MFA gaps, `azurehook custom_role_exploit` — custom role abuse, plus 6 more
+- **Persistence (11):** `azurehook runbook_backdoor` — Automation runbook, `azurehook logic_app_backdoor` — Logic App callback, `azurehook function_app_backdoor` — Function App backdoor, `azurehook sp_persist` — SP credential persist, `azurehook vm_extension_backdoor` — VM extension, `azurehook lighthouse_persist` — cross-tenant Lighthouse, plus 5 more
+- **Lateral (10):** `azurehook vm_run_command` — VM Run Command, `azurehook bastion_tunnel` — Bastion tunneling, `azurehook arc_exec` — Arc machine exec, `azurehook intune_deploy` — Intune deployment, `azurehook cross_tenant_enum` — B2B cross-tenant, plus 5 more
+- **Evasion (11):** `azurehook diagnostic_tamper` — disable diagnostics, `azurehook sentinel_suppress` — suppress Sentinel rules, `azurehook defender_disable` — disable Defender plans, `azurehook activity_log_tamper` — tamper activity logs, plus 7 more
+- **Exfil (12):** `azurehook storage_dump` — Blob Storage data, `azurehook cosmos_dump` — Cosmos DB extraction, `azurehook disk_snapshot` — disk snapshot, `azurehook graph_mail_dump` — Exchange mail via Graph, `azurehook sharepoint_dump` — SharePoint docs, `azurehook teams_dump` — Teams messages, plus 6 more
+- **Compliance (18):** CIS Azure Benchmark v3.0 auditing — `azurehook defender_plan_audit` (CIS 2.1), `azurehook storage_security_audit` (CIS 4.x), `azurehook sql_audit_config` (CIS 5.x), `azurehook vm_security_audit` (CIS 7.x), `azurehook appservice_security_audit` (CIS 9.x), `azurehook identity_mfa_audit` (CIS 1.x), plus 12 more
+- **Identity (10):** Entra ID attacks — `azurehook federation_backdoor` (Golden SAML), `azurehook pta_abuse` (PTA interception), `azurehook aadconnect_dump` (sync account DCSync), `azurehook saml_forge` (token forging), `azurehook password_spray`, `azurehook consent_phish`, plus 4 more
+- **Impact (5):** `azurehook resource_hijack` — cryptomining detection, `azurehook data_destroy` — destruction risk, `azurehook ransomware_sim`, `azurehook account_lockout`, `azurehook service_disruption`
+- **M365 (4):** `azurehook exchange_abuse` — Exchange mailbox/rule abuse, `azurehook sharepoint_enum`, `azurehook teams_enum`, `azurehook onedrive_access`
 - `azurehook cleanup_azure` — ALWAYS run to restore and clean artifacts
 
 Skills: `skill search --tech azure,entraid,postexploit`
 
+### GCP Post-Exploitation (after compromising GCP credentials)
+
+When GCP credentials or service accounts are compromised, use gcphook for project enumeration and exploitation. 33 programs across 7 categories:
+- **Recon (11):** `gcphook gcp_enum` — project/compute/storage/IAM, `gcphook vpc_enum` — VPC/firewall/routes, `gcphook iam_analyzer` — IAM privesc paths, `gcphook sql_enum` — Cloud SQL, `gcphook kms_enum` — KMS keys, `gcphook org_enum` — org/projects/policies, `gcphook gke_enum` — GKE clusters, plus 4 more
+- **Credential (4):** `gcphook metadata_harvest_gcp` — IMDS credentials, `gcphook secrets_dump_gcp` — Secret Manager, `gcphook sa_key_create` — SA key creation, `gcphook firestore_dump` — Firestore data
+- **Privesc (3):** `gcphook gcp_privesc` — IAM escalation, `gcphook custom_role_abuse`, `gcphook os_login_abuse`
+- **Persistence (5):** `gcphook cloudfunc_backdoor`, `gcphook cloud_run_backdoor`, `gcphook scheduler_persist`, `gcphook cloud_build_backdoor`, `gcphook composer_backdoor`
+- **Exfil (6):** `gcphook gcs_dump` — GCS buckets, `gcphook bigquery_dump` — BigQuery, `gcphook compute_snapshot` — disk snapshots, `gcphook pubsub_sniff` — Pub/Sub intercept, `gcphook source_repo_dump` — repo secrets, `gcphook dlp_scan` — DLP sensitive data
+- **Evasion (3):** `gcphook audit_log_tamper`, `gcphook vpc_flow_tamper`, `gcphook vpc_firewall_modify`
+- `gcphook cleanup_gcp` — ALWAYS run to restore and clean artifacts
+
+Skills: `skill search --tech gcp,cloud,postexploit`
+
 ### Kubernetes Post-Exploitation (after compromising pod or kubeconfig)
 
-When Kubernetes access is obtained, use kubehook for cluster compromise:
-- `kubehook k8s_enum` — full cluster enumeration
-- `kubehook k8s_secrets` — extract and decode all Kubernetes Secrets
-- `kubehook k8s_escape` — detect and exploit container escape vectors
-- `kubehook k8s_privesc --method bind_admin` — RBAC privilege escalation
-- `kubehook etcd_dump --endpoint ENDPOINT` — direct etcd secret extraction
+When Kubernetes access is obtained, use kubehook for cluster compromise. 20 programs:
+- **Enum:** `kubehook k8s_enum` — namespaces/pods/services/secrets/RBAC, `kubehook k8s_rbac_audit` — dangerous verbs/wildcard analysis, `kubehook k8s_network_policy` — policy gaps, `kubehook k8s_pod_security` — PSS violations, `kubehook k8s_service_account` — SA token/JWT analysis, `kubehook k8s_ingress_audit` — TLS/path audit, `kubehook k8s_configmap` — secret scan, `kubehook k8s_events` — security events
+- **Credential:** `kubehook k8s_secrets` — extract/decode all secrets, `kubehook helm_secrets` — Helm release secrets, `kubehook cloud_metadata` — IMDS credentials (AWS/GCP/Azure), `kubehook kubelet_api` — probe kubelet 10250/10255
+- **Exploit:** `kubehook k8s_escape` — container escape vectors, `kubehook k8s_privesc --method bind_admin` — RBAC escalation, `kubehook etcd_dump --endpoint EP` — direct etcd extraction, `kubehook k8s_exec --pod P --cmd C` — lateral movement
+- **Persist:** `kubehook k8s_backdoor --type daemonset --image IMG` — DaemonSet/CronJob backdoor, `kubehook k8s_pv_dump` — PV/PVC data extraction
 - `kubehook cleanup_k8s` — ALWAYS run to remove created resources
 
 Skills: `skill search --tech kubernetes,container,postexploit`
@@ -240,9 +258,12 @@ skill unload <skill-name>
 | Checkov / tfsec | IaC misconfiguration detection |
 | TruffleHog / GitLeaks | Secret scanning |
 | nmap | External service discovery |
-| awshook | AWS post-exploitation — IAM privesc, S3 dump, Lambda backdoor, CloudTrail manipulation, secrets extraction |
-| azurehook | Azure/Entra ID post-exploitation — Key Vault dump, managed identity harvest, runbook backdoor, consent grants |
-| kubehook | Kubernetes post-exploitation — secret extraction, container escape, RBAC abuse, etcd dump, backdoor deployment |
+| awshook | AWS post-exploitation — 82 programs: recon, credential, privesc, persistence, lateral, evasion, exfil. Full AWS kill chain from IAM enum to cleanup |
+| azurehook | Azure/Entra ID post-exploitation — 154 programs: recon, credential, privesc, persistence, lateral, evasion, exfil, compliance (CIS), identity (Entra ID), impact, M365 |
+| gcphook | GCP post-exploitation — 33 programs: project enum, IAM privesc, Secret Manager dump, Cloud Function/Run backdoor, GCS/BigQuery exfil |
+| kubehook | Kubernetes post-exploitation — 20 programs: cluster enum, RBAC audit, secret extraction, container escape, etcd dump, backdoor deployment |
+| containerhook | Container post-exploitation — 20 programs: Docker/Podman/containerd enum, escape, cgroup escape, registry dump, image backdoor |
+| iachook | Infrastructure-as-Code security — 13 programs: Terraform state/plan audit, CloudFormation, Ansible secrets, encryption/IAM/network audit |
 
 ## Reporting
 
