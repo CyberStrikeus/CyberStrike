@@ -1352,7 +1352,7 @@ export async function wifiDump(args: string[], timeout: number): Promise<HookRes
       const auth = authMatch ? authMatch[1].trim() : "Unknown"
       const cipher = cipherMatch ? cipherMatch[1].trim() : "Unknown"
       output.push(`[+] ${name}`)
-      output.push(`    Auth: ${auth} | Cipher: ${cipher} | Password: ${password}`)
+      output.push(`    Auth: ${auth} | Cipher: ${cipher} | Password: ${password !== "N/A" ? `[FOUND — ${password.length} chars]` : "N/A"}`)
       if (password !== "N/A") {
         findings.push({
           checkId: `WIN-WIFI-${findings.length + 1}`,
