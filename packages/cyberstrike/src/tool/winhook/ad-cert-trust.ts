@@ -1027,7 +1027,7 @@ try {
 
     if (hasKeyData) {
       findings.push({
-        checkId: "WIN-GMSA-001",
+        checkId: "WIN-GMSA-011",
         provider: "windows",
         severity: "critical",
         status: "EXTRACTABLE",
@@ -1041,7 +1041,7 @@ try {
 
     if (gmsaCount && parseInt(gmsaCount[1]) > 0) {
       findings.push({
-        checkId: "WIN-GMSA-002",
+        checkId: "WIN-GMSA-012",
         provider: "windows",
         severity: "medium",
         status: "INFO",
