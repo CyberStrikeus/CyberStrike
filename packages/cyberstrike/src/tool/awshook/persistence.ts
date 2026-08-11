@@ -744,7 +744,7 @@ export async function ec2InstanceConnect(args: string[], timeout: number): Promi
           output.push(`[+] SSH key pushed successfully — 60 second window!`)
           output.push(`[+] Connect: ssh -i /tmp/cs-ic-key ${osUser}@<IP>`)
           findings.push({
-            checkId: "AWS-PERSIST-009",
+            checkId: "AWS-PERSIST-012",
             provider: "aws",
             severity: "critical",
             status: "PUSHED",
@@ -777,7 +777,7 @@ export async function ec2InstanceConnect(args: string[], timeout: number): Promi
     if (push.exitCode === 0 && tryJson(push.stdout)?.Success) {
       output.push(`[+] SSH key pushed — connect within 60s!`)
       findings.push({
-        checkId: "AWS-PERSIST-009",
+        checkId: "AWS-PERSIST-013",
         provider: "aws",
         severity: "critical",
         status: "PUSHED",
@@ -879,7 +879,7 @@ export async function ssmStateManager(args: string[], timeout: number): Promise<
     output.push(`\n[*] More stealth than EventBridge — appears as normal SSM compliance`)
 
     findings.push({
-      checkId: "AWS-PERSIST-010",
+      checkId: "AWS-PERSIST-014",
       provider: "aws",
       severity: "critical",
       status: "CREATED",
