@@ -22,6 +22,11 @@ import {
   cloudwatchEnum,
   elasticacheEnum,
   redshiftEnum,
+  multiRegionScan,
+  kmsEnum,
+  opensearchEnum,
+  efsEnum,
+  elbEnum,
 } from "./recon"
 import {
   metadataHarvest,
@@ -84,6 +89,7 @@ import {
   macieDisable,
   inspectorDisable,
   s3LoggingDisable,
+  cloudtrailSelectorTamper,
 } from "./evasion"
 import {
   s3Dump,
@@ -98,10 +104,14 @@ import {
   ecrDump,
   athenaQuery,
   secretsBulkExport,
+  backupVaultEnum,
+  cloudwatchLogsDump,
+  snsSqsSiphon,
+  kinesisTap,
 } from "./exfil"
 
 const PROGRAMS = {
-  // ── Recon (18) ──
+  // ── Recon (23) ──
   iam_enum: {
     description:
       "Enumerate IAM users, roles, policies, and analyze for privilege escalation paths (PassRole, wildcard policies, inline policy abuse)",
@@ -183,6 +193,31 @@ const PROGRAMS = {
   redshift_enum: {
     description:
       "Enumerate Redshift clusters (classic + serverless) — public access, encryption, audit logging, snapshots with cross-account sharing",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  multi_region_scan: {
+    description:
+      "Scan all enabled AWS regions for EC2/Lambda/RDS/ECS resources — detect shadow deployments in non-primary regions",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  kms_enum: {
+    description:
+      "Enumerate KMS customer-managed keys, key policies (Principal:*), grants with cross-account access detection",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  opensearch_enum: {
+    description:
+      "Enumerate OpenSearch domains — public access, encryption, fine-grained access control, open resource policies",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  efs_enum: {
+    description:
+      "Enumerate EFS file systems, mount targets, security groups (0.0.0.0/0 NFS), encryption, resource policies",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  elb_enum: {
+    description:
+      "Enumerate ALB/NLB/Classic ELBs — internet-facing detection, SSL policy analysis, HTTP without redirect, listeners",
     args: "[--profile PROFILE] [--region REGION]",
   },
 
@@ -375,7 +410,7 @@ const PROGRAMS = {
     args: "[--instance-id ID] [--port-forward LOCAL:REMOTE] [--remote-host HOST] [--profile PROFILE] [--region REGION]",
   },
 
-  // ── Defense Evasion (12) ──
+  // ── Defense Evasion (13) ──
   cloudtrail_blind: {
     description:
       "Stop CloudTrail logging, manipulate event selectors to exclude management events, or delete existing log files from S3",
@@ -428,8 +463,13 @@ const PROGRAMS = {
       "Disable S3 access logging and remove S3 object-level data events from CloudTrail — makes s3_dump/s3_exfil invisible",
     args: "[--action status|disable_access_log|disable_data_events] [--bucket BUCKET] [--profile PROFILE] [--region REGION]",
   },
+  cloudtrail_selector_tamper: {
+    description:
+      "Surgically modify CloudTrail event selectors — exclude KMS/S3 data events, set WriteOnly (stealthier than stopping trail)",
+    args: "--action <status|exclude_kms|exclude_s3_data|management_read_only|restore> [--trail-name NAME] [--profile PROFILE] [--region REGION]",
+  },
 
-  // ── Exfiltration & Cleanup (12) ──
+  // ── Exfiltration & Cleanup (16) ──
   s3_dump: {
     description:
       "List all S3 buckets, identify sensitive files (.env, backups, credentials, .pem, .key), and optionally download high-value targets",
@@ -485,6 +525,26 @@ const PROGRAMS = {
     description:
       "Bulk extract all Secrets Manager secrets + SSM SecureString parameters with optional S3 staging as JSON or .env format",
     args: "[--dest-bucket BUCKET] [--format json|env] [--profile PROFILE] [--region REGION]",
+  },
+  backup_vault_enum: {
+    description:
+      "Enumerate AWS Backup vaults, recovery points across services, vault access policies for cross-account sharing",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  cloudwatch_logs_dump: {
+    description:
+      "Export CloudWatch log groups to S3 for offline analysis — enumerate groups, sizes, retention, create export tasks",
+    args: "[--log-group NAME] [--dest-bucket BUCKET] [--profile PROFILE] [--region REGION]",
+  },
+  sns_sqs_siphon: {
+    description:
+      "Intercept messages: subscribe to SNS topics (email/HTTPS/Lambda) and poll SQS queues for in-flight data",
+    args: "[--topic-arn ARN] [--queue-url URL] [--endpoint ENDPOINT] [--max-messages N] [--profile PROFILE] [--region REGION]",
+  },
+  kinesis_tap: {
+    description:
+      "Tap Kinesis data streams — enumerate streams/shards and read records for real-time data interception",
+    args: "[--stream-name NAME] [--limit N] [--profile PROFILE] [--region REGION]",
   },
 } as const satisfies Record<string, { description: string; args: string }>
 
@@ -617,6 +677,27 @@ const CWE_MAP: Record<string, string> = {
   "AWS-EVASION-017": "CWE-693",
   "AWS-EXFIL-011": "CWE-200",
   "AWS-EXFIL-012": "CWE-200",
+  "AWS-REGION-001": "CWE-200",
+  "AWS-KMS-001": "CWE-732",
+  "AWS-KMS-002": "CWE-284",
+  "AWS-OS-001": "CWE-284",
+  "AWS-OS-002": "CWE-311",
+  "AWS-OS-003": "CWE-284",
+  "AWS-OS-004": "CWE-284",
+  "AWS-EFS-001": "CWE-311",
+  "AWS-EFS-002": "CWE-284",
+  "AWS-EFS-003": "CWE-284",
+  "AWS-ELB-001": "CWE-284",
+  "AWS-ELB-002": "CWE-326",
+  "AWS-ELB-003": "CWE-319",
+  "AWS-ELB-004": "CWE-284",
+  "AWS-EVASION-SELECTOR-001": "CWE-693",
+  "AWS-BACKUP-001": "CWE-284",
+  "AWS-BACKUP-002": "CWE-200",
+  "AWS-CWLOGS-001": "CWE-200",
+  "AWS-SNS-SIPHON-001": "CWE-200",
+  "AWS-SQS-SIPHON-001": "CWE-200",
+  "AWS-KINESIS-001": "CWE-200",
 }
 
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
@@ -641,6 +722,11 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   cloudwatch_enum: cloudwatchEnum,
   elasticache_enum: elasticacheEnum,
   redshift_enum: redshiftEnum,
+  multi_region_scan: multiRegionScan,
+  kms_enum: kmsEnum,
+  opensearch_enum: opensearchEnum,
+  efs_enum: efsEnum,
+  elb_enum: elbEnum,
   // credential
   metadata_harvest: (args) => metadataHarvest(args),
   secrets_dump: secretsDump,
@@ -698,6 +784,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   macie_disable: macieDisable,
   inspector_disable: inspectorDisable,
   s3_logging_disable: s3LoggingDisable,
+  cloudtrail_selector_tamper: cloudtrailSelectorTamper,
   // exfil
   s3_dump: s3Dump,
   ec2_snapshot: ec2Snapshot,
@@ -711,10 +798,14 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   ecr_dump: ecrDump,
   athena_query: athenaQuery,
   secrets_bulk_export: secretsBulkExport,
+  backup_vault_enum: backupVaultEnum,
+  cloudwatch_logs_dump: cloudwatchLogsDump,
+  sns_sqs_siphon: snsSqsSiphon,
+  kinesis_tap: kinesisTap,
 }
 
 export const AwshookTool = Tool.define("awshook", {
-  description: `Execute an AWS post-exploitation program after compromising IAM credentials or EC2 instance. Uses aws CLI (no Python/SDK dependency). 82 programs across 7 categories: recon (18), credential (11), privesc (10), persistence (11), lateral (8), evasion (12), exfil (12). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
+  description: `Execute an AWS post-exploitation program after compromising IAM credentials or EC2 instance. Uses aws CLI (no Python/SDK dependency). 92 programs across 7 categories: recon (23), credential (11), privesc (10), persistence (11), lateral (8), evasion (13), exfil (16). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
   parameters: z.object({
     program: z.enum(programKeys).describe(
       "AWS program to execute. Options: " +
