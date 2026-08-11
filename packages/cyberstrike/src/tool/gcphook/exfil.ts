@@ -315,48 +315,51 @@ export async function sourceRepoDump(args: string[], timeout: number): Promise<H
     output.push(`    Mirror: ${info?.mirrorConfig ? JSON.stringify(info.mirrorConfig) : "none"}`)
   }
 
-  const cloneDir = `/tmp/cs-repo-${Date.now()}`
+  const cloneDir = `${process.env.TMPDIR || "/tmp"}/cs-repo-${Date.now()}`
   const clone = await gcloud(["source", "repos", "clone", repo, cloneDir, "--project", project], timeout)
   if (clone.exitCode === 0) {
-    output.push(`\n[+] Repository cloned to ${cloneDir}`)
-    const files = await run(
-      "find",
-      [
-        cloneDir,
-        "-type",
-        "f",
-        "-name",
-        "*.env",
-        "-o",
-        "-name",
-        "*.key",
-        "-o",
-        "-name",
-        "*.pem",
-        "-o",
-        "-name",
-        "*secret*",
-        "-o",
-        "-name",
-        "*credential*",
-      ],
-      timeout,
-    )
-    if (files.exitCode === 0 && files.stdout.trim()) {
-      output.push(`[!] Sensitive files found:`)
-      for (const f of files.stdout.trim().split("\n").slice(0, 20)) output.push(`    ${f}`)
+    try {
+      output.push(`\n[+] Repository cloned to ${cloneDir}`)
+      const files = await run(
+        "find",
+        [
+          cloneDir,
+          "-type",
+          "f",
+          "-name",
+          "*.env",
+          "-o",
+          "-name",
+          "*.key",
+          "-o",
+          "-name",
+          "*.pem",
+          "-o",
+          "-name",
+          "*secret*",
+          "-o",
+          "-name",
+          "*credential*",
+        ],
+        timeout,
+      )
+      if (files.exitCode === 0 && files.stdout.trim()) {
+        output.push(`[!] Sensitive files found:`)
+        for (const f of files.stdout.trim().split("\n").slice(0, 20)) output.push(`    ${f}`)
+      }
+      findings.push({
+        checkId: "GCP-REPO-001",
+        provider: "gcp",
+        severity: "high",
+        status: "CLONED",
+        resource: `source-repo/${repo}`,
+        title: `Source repo cloned: ${repo}`,
+        details: `Cloned to ${cloneDir}`,
+        remediation: "Review repo access and remove sensitive files",
+      })
+    } finally {
+      await run("rm", ["-rf", cloneDir], 10)
     }
-    findings.push({
-      checkId: "GCP-REPO-001",
-      provider: "gcp",
-      severity: "high",
-      status: "CLONED",
-      resource: `source-repo/${repo}`,
-      title: `Source repo cloned: ${repo}`,
-      details: `Cloned to ${cloneDir}`,
-      remediation: "Review repo access and remove sensitive files",
-    })
-    await run("rm", ["-rf", cloneDir], 10)
   } else {
     output.push(`[-] Clone failed: ${clone.stderr.trim()}`)
   }
