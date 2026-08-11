@@ -696,3 +696,515 @@ export async function deploymentPrivesc(args: string[], timeout: number): Promis
 
   return { output: output.join("\n"), findings }
 }
+
+export async function globalAdminElevate(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Checking Global Admin elevation to Azure resource access...\n"]
+
+  const me = await run("az", ["ad", "signed-in-user", "show", "-o", "json"], timeout)
+  if (me.exitCode !== 0) {
+    output.push("[-] Cannot determine signed-in user")
+    return { output: output.join("\n"), findings }
+  }
+  const user = tryJson(me.stdout)
+  output.push(`[+] Current user: ${user?.displayName || "unknown"} (${user?.userPrincipalName || user?.id || "unknown"})`)
+
+  const roles = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/me/memberOf?$select=displayName,roleTemplateId", "-o", "json"], timeout)
+  if (roles.exitCode === 0) {
+    const data = tryJson(roles.stdout)
+    const dirRoles = ((data?.value || []) as Array<Record<string, string>>).filter((r) => r["@odata.type"] === "#microsoft.graph.directoryRole")
+    output.push(`\n[+] Directory Roles (${dirRoles.length}):`)
+    const isGA = dirRoles.some((r) => r.roleTemplateId === "62e90394-69f5-4237-9190-012177145e10")
+    for (const r of dirRoles) {
+      const marker = r.roleTemplateId === "62e90394-69f5-4237-9190-012177145e10" ? " <<<< GLOBAL ADMIN" : ""
+      output.push(`    ${r.displayName}${marker}`)
+    }
+
+    if (isGA) {
+      output.push("\n[!] User IS a Global Administrator — checking elevation status...")
+      findings.push({
+        checkId: "AZ-GA-001",
+        provider: "azure",
+        severity: "critical",
+        status: "DETECTED",
+        resource: `user://${user?.userPrincipalName || user?.id}`,
+        title: "Current user has Global Administrator role",
+        details: "Global Admin can elevate to User Access Administrator on all Azure subscriptions",
+        remediation: "Review GA assignments, implement PIM for just-in-time elevation",
+      })
+
+      const elevateCheck = await run("az", ["rest", "--method", "GET", "--url", "https://management.azure.com/providers/Microsoft.Authorization/elevateAccess?api-version=2016-07-01"], timeout)
+      if (elevateCheck.exitCode === 0) {
+        output.push("[+] Elevation API accessible — GA can elevate to manage all Azure subscriptions")
+        const subs = await run("az", ["account", "list", "--all", "--query", "[].{name:name,id:id,state:state}", "-o", "json"], timeout)
+        if (subs.exitCode === 0) {
+          const subList = (tryJson(subs.stdout) || []) as Array<Record<string, string>>
+          output.push(`\n[+] Accessible subscriptions after elevation: ${subList.length}`)
+          for (const s of subList.slice(0, 20)) {
+            output.push(`    ${s.name} (${s.id}) [${s.state}]`)
+          }
+          findings.push({
+            checkId: "AZ-GA-002",
+            provider: "azure",
+            severity: "critical",
+            status: "EXPLOITABLE",
+            resource: "tenant://elevation",
+            title: `GA elevation gives access to ${subList.length} subscription(s)`,
+            details: "POST to elevateAccess API grants User Access Administrator on root scope /",
+            remediation: "Disable elevation: Set 'Access management for Azure resources' to No in Entra ID properties",
+          })
+        }
+      } else {
+        output.push("[-] Elevation API call returned error (may need POST, or elevation is disabled)")
+      }
+    } else {
+      output.push("\n[-] User is NOT a Global Administrator — elevation not applicable")
+    }
+  }
+
+  const pim = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/roleManagement/directory/roleEligibilityScheduleInstances?$filter=principalId eq '" + (user?.id || "") + "'", "-o", "json"], timeout)
+  if (pim.exitCode === 0) {
+    const pimData = tryJson(pim.stdout)
+    const eligible = (pimData?.value || []) as Array<Record<string, string>>
+    if (eligible.length > 0) {
+      output.push(`\n[+] PIM Eligible Roles: ${eligible.length}`)
+      for (const e of eligible) {
+        output.push(`    RoleDefinitionId: ${e.roleDefinitionId}, Start: ${e.startDateTime || "N/A"}, End: ${e.endDateTime || "permanent"}`)
+      }
+      findings.push({
+        checkId: "AZ-GA-003",
+        provider: "azure",
+        severity: "high",
+        status: "DETECTED",
+        resource: `user://${user?.userPrincipalName || user?.id}/pim`,
+        title: `${eligible.length} PIM eligible role(s) found`,
+        details: "Eligible roles can be activated on demand — check if GA is among them",
+        remediation: "Review PIM eligibility assignments and require MFA + approval for high-privilege roles",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function appAdminPrivesc(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Analyzing application/service principal privilege escalation paths...\n"]
+
+  const spApps = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/servicePrincipals?$select=displayName,appId,id,appRoles,appRoleAssignments&$top=100", "-o", "json"], timeout)
+  if (spApps.exitCode !== 0) {
+    output.push("[-] Cannot query service principals via Graph API")
+    return { output: output.join("\n"), findings }
+  }
+
+  const spData = tryJson(spApps.stdout)
+  const sps = (spData?.value || []) as Array<Record<string, unknown>>
+
+  const dangerousPerms = [
+    { perm: "RoleManagement.ReadWrite.Directory", reason: "can assign any directory role" },
+    { perm: "AppRoleAssignment.ReadWrite.All", reason: "can grant app role assignments" },
+    { perm: "Application.ReadWrite.All", reason: "can modify any application" },
+    { perm: "Directory.ReadWrite.All", reason: "can modify directory objects" },
+    { perm: "GroupMember.ReadWrite.All", reason: "can add members to any group" },
+    { perm: "ServicePrincipalEndpoint.ReadWrite.All", reason: "can modify SP endpoints" },
+  ]
+
+  for (const sp of sps) {
+    const name = sp.displayName as string
+    const appId = sp.appId as string
+    const spId = sp.id as string
+
+    const perms = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/servicePrincipals/${spId}/appRoleAssignments`, "-o", "json"], timeout)
+    if (perms.exitCode !== 0) continue
+
+    const permData = tryJson(perms.stdout)
+    const assignments = (permData?.value || []) as Array<Record<string, string>>
+    const dangerous = assignments.filter((a) => dangerousPerms.some((d) => a.appRoleId && a.resourceDisplayName))
+
+    if (dangerous.length > 0) {
+      output.push(`\n[!] ${name} (${appId}):`)
+      for (const a of dangerous) {
+        output.push(`    Role: ${a.appRoleId} on ${a.resourceDisplayName}`)
+      }
+    }
+
+    const owners = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/servicePrincipals/${spId}/owners?$select=displayName,userPrincipalName,id`, "-o", "json"], timeout)
+    if (owners.exitCode === 0) {
+      const ownerData = tryJson(owners.stdout)
+      const ownerList = (ownerData?.value || []) as Array<Record<string, string>>
+      if (ownerList.length > 0 && dangerous.length > 0) {
+        output.push(`    Owners who can abuse:`)
+        for (const o of ownerList) {
+          output.push(`      ${o.displayName} (${o.userPrincipalName || o.id})`)
+        }
+        findings.push({
+          checkId: "AZ-APPADMIN-001",
+          provider: "azure",
+          severity: "critical",
+          status: "EXPLOITABLE",
+          resource: `sp://${name}/${appId}`,
+          title: `SP ${name} has dangerous Graph permissions with ${ownerList.length} owner(s)`,
+          details: `Owners can add credentials to this SP and abuse its permissions`,
+          remediation: "Remove unnecessary Graph API permissions, restrict SP ownership",
+        })
+      }
+    }
+
+    const creds = await run("az", ["ad", "app", "credential", "list", "--id", appId, "-o", "json"], timeout)
+    if (creds.exitCode === 0) {
+      const credList = (tryJson(creds.stdout) || []) as Array<Record<string, string>>
+      const expired = credList.filter((c) => new Date(c.endDateTime) < new Date())
+      const active = credList.filter((c) => new Date(c.endDateTime) >= new Date())
+      if (active.length > 0 && dangerous.length > 0) {
+        output.push(`    Active credentials: ${active.length} (expired: ${expired.length})`)
+        for (const c of active) {
+          output.push(`      KeyId: ${c.keyId}, Expires: ${c.endDateTime}, Hint: ${c.hint || "N/A"}`)
+        }
+      }
+    }
+  }
+
+  const rbacSps = await run("az", ["role", "assignment", "list", "--all", "--query", "[?principalType=='ServicePrincipal' && (roleDefinitionName=='Owner' || roleDefinitionName=='Contributor' || roleDefinitionName=='User Access Administrator')]", "-o", "json", ...(sub ? ["--subscription", sub] : [])], timeout)
+  if (rbacSps.exitCode === 0) {
+    const rbacList = (tryJson(rbacSps.stdout) || []) as Array<Record<string, string>>
+    if (rbacList.length > 0) {
+      output.push(`\n[+] High-privilege Azure RBAC assignments for SPs: ${rbacList.length}`)
+      for (const r of rbacList.slice(0, 20)) {
+        output.push(`    ${r.principalName || r.principalId}: ${r.roleDefinitionName} on ${r.scope}`)
+        findings.push({
+          checkId: "AZ-APPADMIN-002",
+          provider: "azure",
+          severity: "high",
+          status: "DETECTED",
+          resource: `rbac://${r.principalId}/${r.roleDefinitionName}`,
+          title: `SP ${r.principalName || r.principalId} has ${r.roleDefinitionName} on ${r.scope}`,
+          details: "Service principal with high Azure RBAC privileges — compromise gives subscription access",
+          remediation: "Reduce SP RBAC scope, use least-privilege custom roles",
+        })
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function resourceHierarchyAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Analyzing Azure resource hierarchy for privilege escalation paths...\n"]
+
+  const mgGroups = await run("az", ["account", "management-group", "list", "-o", "json"], timeout)
+  if (mgGroups.exitCode === 0) {
+    const groups = (tryJson(mgGroups.stdout) || []) as Array<Record<string, string>>
+    output.push(`[+] Management Groups: ${groups.length}`)
+    for (const g of groups) {
+      output.push(`    ${g.displayName || g.name} (${g.id})`)
+      const mgRoles = await run("az", ["role", "assignment", "list", "--scope", g.id, "--query", "[?roleDefinitionName=='Owner' || roleDefinitionName=='Contributor' || roleDefinitionName=='User Access Administrator']", "-o", "json"], timeout)
+      if (mgRoles.exitCode === 0) {
+        const roleList = (tryJson(mgRoles.stdout) || []) as Array<Record<string, string>>
+        if (roleList.length > 0) {
+          output.push(`    [!] High-privilege role assignments at MG scope:`)
+          for (const r of roleList) {
+            output.push(`      ${r.principalName || r.principalId} (${r.principalType}): ${r.roleDefinitionName}`)
+            findings.push({
+              checkId: "AZ-HIER-001",
+              provider: "azure",
+              severity: "critical",
+              status: "DETECTED",
+              resource: `mg://${g.name}/${r.principalId}`,
+              title: `${r.roleDefinitionName} at management group ${g.displayName || g.name}`,
+              details: `${r.principalType} ${r.principalName || r.principalId} has ${r.roleDefinitionName} — inherits to all child subscriptions`,
+              remediation: "Review MG-level role assignments, prefer subscription-scoped assignments",
+            })
+          }
+        }
+      }
+    }
+  } else {
+    output.push("[-] Cannot list management groups (insufficient permissions)")
+  }
+
+  const subs = await run("az", ["account", "list", "--all", "--query", "[].{name:name,id:id,state:state}", "-o", "json"], timeout)
+  if (subs.exitCode === 0) {
+    const subList = (tryJson(subs.stdout) || []) as Array<Record<string, string>>
+    output.push(`\n[+] Subscriptions: ${subList.length}`)
+
+    for (const s of subList.filter((s) => s.state === "Enabled").slice(0, 10)) {
+      const customRoles = await run("az", ["role", "definition", "list", "--custom-role-only", "--subscription", s.id, "--query", "[].{name:roleName,actions:permissions[0].actions,dataActions:permissions[0].dataActions}", "-o", "json"], timeout)
+      if (customRoles.exitCode === 0) {
+        const roles = (tryJson(customRoles.stdout) || []) as Array<Record<string, unknown>>
+        const wildcardRoles = roles.filter((r) => {
+          const actions = r.actions as string[] || []
+          return actions.some((a: string) => a === "*" || a.endsWith("/*"))
+        })
+        if (wildcardRoles.length > 0) {
+          output.push(`\n[!] Subscription ${s.name}: ${wildcardRoles.length} custom role(s) with wildcard actions`)
+          for (const wr of wildcardRoles) {
+            output.push(`    ${wr.name}: actions=${JSON.stringify(wr.actions).substring(0, 100)}`)
+            findings.push({
+              checkId: "AZ-HIER-002",
+              provider: "azure",
+              severity: "high",
+              status: "DETECTED",
+              resource: `sub://${s.id}/role/${wr.name}`,
+              title: `Custom role with wildcard actions: ${wr.name}`,
+              details: "Wildcard custom roles can be abused for privilege escalation",
+              remediation: "Replace wildcard actions with specific resource provider actions",
+            })
+          }
+        }
+      }
+    }
+  }
+
+  const locks = await run("az", ["lock", "list", "--query", "[].{name:name,level:level,scope:id}", "-o", "json", ...(sub ? ["--subscription", sub] : [])], timeout)
+  if (locks.exitCode === 0) {
+    const lockList = (tryJson(locks.stdout) || []) as Array<Record<string, string>>
+    output.push(`\n[+] Resource Locks: ${lockList.length}`)
+    if (lockList.length === 0) {
+      findings.push({
+        checkId: "AZ-HIER-003",
+        provider: "azure",
+        severity: "medium",
+        status: "FAIL",
+        resource: `sub://${sub || "current"}/locks`,
+        title: "No resource locks configured",
+        details: "Without locks, attackers with sufficient permissions can delete critical resources",
+        remediation: "Apply CanNotDelete or ReadOnly locks on critical resources",
+      })
+    } else {
+      for (const l of lockList.slice(0, 10)) {
+        output.push(`    ${l.name}: ${l.level} (${l.scope})`)
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function groupMembershipAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Analyzing Entra ID group membership for privilege escalation...\n"]
+
+  const dangerousGroups = [
+    { pattern: "global admin", severity: "critical" as const },
+    { pattern: "privileged role admin", severity: "critical" as const },
+    { pattern: "security admin", severity: "high" as const },
+    { pattern: "exchange admin", severity: "high" as const },
+    { pattern: "sharepoint admin", severity: "high" as const },
+    { pattern: "application admin", severity: "critical" as const },
+    { pattern: "cloud application admin", severity: "critical" as const },
+    { pattern: "intune admin", severity: "high" as const },
+    { pattern: "user admin", severity: "high" as const },
+    { pattern: "helpdesk admin", severity: "medium" as const },
+  ]
+
+  const groups = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/groups?$select=displayName,id,groupTypes,securityEnabled,membershipRule,isAssignableToRole&$top=200", "-o", "json"], timeout)
+  if (groups.exitCode !== 0) {
+    output.push("[-] Cannot query groups via Graph API")
+    return { output: output.join("\n"), findings }
+  }
+
+  const groupData = tryJson(groups.stdout)
+  const groupList = (groupData?.value || []) as Array<Record<string, unknown>>
+  output.push(`[+] Total groups: ${groupList.length}\n`)
+
+  const roleAssignable = groupList.filter((g) => g.isAssignableToRole === true)
+  if (roleAssignable.length > 0) {
+    output.push(`[!] Role-assignable groups: ${roleAssignable.length}`)
+    for (const g of roleAssignable) {
+      const name = g.displayName as string
+      output.push(`    ${name} (${g.id})`)
+      const owners = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/groups/${g.id}/owners?$select=displayName,userPrincipalName,id`, "-o", "json"], timeout)
+      if (owners.exitCode === 0) {
+        const ownerData = tryJson(owners.stdout)
+        const ownerList = (ownerData?.value || []) as Array<Record<string, string>>
+        if (ownerList.length > 0) {
+          output.push(`    Owners (can add members → inherit role):`)
+          for (const o of ownerList) {
+            output.push(`      ${o.displayName} (${o.userPrincipalName || o.id})`)
+          }
+          findings.push({
+            checkId: "AZ-GROUP-001",
+            provider: "azure",
+            severity: "critical",
+            status: "EXPLOITABLE",
+            resource: `group://${g.id}/${name}`,
+            title: `Role-assignable group "${name}" has ${ownerList.length} owner(s)`,
+            details: "Group owners can add members who inherit the group's directory role assignments",
+            remediation: "Remove unnecessary group owners, require PIM for group membership changes",
+          })
+        }
+      }
+    }
+  }
+
+  const dynamicGroups = groupList.filter((g) => g.membershipRule)
+  if (dynamicGroups.length > 0) {
+    output.push(`\n[+] Dynamic membership groups: ${dynamicGroups.length}`)
+    for (const g of dynamicGroups) {
+      const name = g.displayName as string
+      const rule = g.membershipRule as string
+      output.push(`    ${name}: ${rule.substring(0, 120)}${rule.length > 120 ? "..." : ""}`)
+
+      const isDangerous = dangerousGroups.some((dg) => name.toLowerCase().includes(dg.pattern))
+      const isWeakRule = rule.includes("user.department") || rule.includes("user.jobTitle") || rule.includes("user.companyName")
+
+      if (isDangerous && isWeakRule) {
+        findings.push({
+          checkId: "AZ-GROUP-002",
+          provider: "azure",
+          severity: "high",
+          status: "EXPLOITABLE",
+          resource: `group://${g.id}/${name}/dynamic`,
+          title: `Dynamic group "${name}" uses weak membership rule`,
+          details: `Rule: ${rule.substring(0, 200)} — user-modifiable attributes can be changed to join`,
+          remediation: "Use immutable attributes (objectId, onPremisesSecurityIdentifier) in dynamic rules",
+        })
+      }
+    }
+  }
+
+  const me = await run("az", ["ad", "signed-in-user", "show", "--query", "id", "-o", "tsv"], timeout)
+  if (me.exitCode === 0) {
+    const myId = me.stdout.trim()
+    const myGroups = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/me/ownedObjects?$select=displayName,id,isAssignableToRole&$filter=isAssignableToRole eq true`, "-o", "json"], timeout)
+    if (myGroups.exitCode === 0) {
+      const ownedData = tryJson(myGroups.stdout)
+      const owned = (ownedData?.value || []) as Array<Record<string, unknown>>
+      if (owned.length > 0) {
+        output.push(`\n[!] Current user OWNS ${owned.length} role-assignable group(s):`)
+        for (const o of owned) {
+          output.push(`    ${o.displayName} (${o.id})`)
+          findings.push({
+            checkId: "AZ-GROUP-003",
+            provider: "azure",
+            severity: "critical",
+            status: "EXPLOITABLE",
+            resource: `group://${o.id}/owned-by/${myId}`,
+            title: `Current user owns role-assignable group "${o.displayName}"`,
+            details: "Can add self or others to group → inherit directory role assignment",
+            remediation: "Remove ownership or require PIM approval for membership changes",
+          })
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function partnerAdminAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Checking for partner/GDAP admin relationships...\n"]
+
+  const contracts = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/contracts?$select=displayName,contractType,customerId,defaultDomainName", "-o", "json"], timeout)
+  if (contracts.exitCode === 0) {
+    const data = tryJson(contracts.stdout)
+    const contractList = (data?.value || []) as Array<Record<string, string>>
+    if (contractList.length > 0) {
+      output.push(`[+] Partner contracts: ${contractList.length}`)
+      for (const c of contractList) {
+        output.push(`    ${c.displayName}: type=${c.contractType}, customer=${c.customerId}, domain=${c.defaultDomainName}`)
+      }
+    } else {
+      output.push("[-] No partner contracts found (this tenant is not a CSP partner)")
+    }
+  }
+
+  const gdap = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/tenantRelationships/delegatedAdminRelationships?$select=displayName,id,status,customer,accessDetails,duration", "-o", "json"], timeout)
+  if (gdap.exitCode === 0) {
+    const data = tryJson(gdap.stdout)
+    const relationships = (data?.value || []) as Array<Record<string, unknown>>
+    if (relationships.length > 0) {
+      output.push(`\n[+] GDAP Relationships: ${relationships.length}`)
+      for (const r of relationships) {
+        const name = r.displayName as string || "unnamed"
+        const status = r.status as string || "unknown"
+        const customer = r.customer as Record<string, string>
+        output.push(`    ${name}: status=${status}, customer=${customer?.displayName || customer?.tenantId || "N/A"}`)
+        const access = r.accessDetails as Record<string, unknown>
+        if (access) {
+          const roles = (access.unifiedRoles || []) as Array<Record<string, string>>
+          output.push(`    Delegated roles: ${roles.length}`)
+          for (const role of roles.slice(0, 10)) {
+            output.push(`      ${role.roleDefinitionId}`)
+          }
+        }
+        if (status === "active") {
+          findings.push({
+            checkId: "AZ-PARTNER-001",
+            provider: "azure",
+            severity: "high",
+            status: "DETECTED",
+            resource: `gdap://${r.id}/${name}`,
+            title: `Active GDAP relationship: ${name}`,
+            details: `Partner has delegated admin access to customer tenant ${customer?.displayName || customer?.tenantId || "unknown"}`,
+            remediation: "Review GDAP relationships, ensure least-privilege roles, set expiration dates",
+          })
+        }
+      }
+    } else {
+      output.push("[-] No GDAP relationships found")
+    }
+  } else {
+    output.push("[-] Cannot query GDAP relationships (may not be a partner tenant)")
+  }
+
+  const dap = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/organization?$select=displayName,id,verifiedDomains,partnerTenantType", "-o", "json"], timeout)
+  if (dap.exitCode === 0) {
+    const data = tryJson(dap.stdout)
+    const orgs = (data?.value || []) as Array<Record<string, unknown>>
+    for (const org of orgs) {
+      const partnerType = org.partnerTenantType as string
+      if (partnerType) {
+        output.push(`\n[+] Partner tenant type: ${partnerType}`)
+        if (partnerType === "microsoftSupport" || partnerType === "syndicatePartner" || partnerType === "resellerPartner") {
+          findings.push({
+            checkId: "AZ-PARTNER-002",
+            provider: "azure",
+            severity: "high",
+            status: "DETECTED",
+            resource: `tenant://${org.id}/partner`,
+            title: `Tenant has partner type: ${partnerType}`,
+            details: "Partner tenants may have elevated cross-tenant access",
+            remediation: "Review partner access settings in Entra ID cross-tenant access policies",
+          })
+        }
+      }
+    }
+  }
+
+  const crossTenant = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/policies/crossTenantAccessPolicy/partners?$select=tenantId,b2bCollaborationInbound,b2bCollaborationOutbound,inboundTrust", "-o", "json"], timeout)
+  if (crossTenant.exitCode === 0) {
+    const data = tryJson(crossTenant.stdout)
+    const partners = (data?.value || []) as Array<Record<string, unknown>>
+    if (partners.length > 0) {
+      output.push(`\n[+] Cross-tenant access policies: ${partners.length} partner(s)`)
+      for (const p of partners) {
+        output.push(`    Tenant: ${p.tenantId}`)
+        const trust = p.inboundTrust as Record<string, boolean>
+        if (trust) {
+          if (trust.isMfaAccepted) output.push("    [!] Trusts partner MFA")
+          if (trust.isCompliantDeviceAccepted) output.push("    [!] Trusts partner compliant devices")
+          if (trust.isHybridAzureADJoinedDeviceAccepted) output.push("    [!] Trusts partner hybrid-joined devices")
+          if (trust.isMfaAccepted || trust.isCompliantDeviceAccepted) {
+            findings.push({
+              checkId: "AZ-PARTNER-003",
+              provider: "azure",
+              severity: "medium",
+              status: "DETECTED",
+              resource: `tenant://${p.tenantId}/trust`,
+              title: `Cross-tenant trust configured for ${p.tenantId}`,
+              details: `MFA trust: ${trust.isMfaAccepted}, Device trust: ${trust.isCompliantDeviceAccepted}`,
+              remediation: "Review cross-tenant trust settings, ensure partner tenant is trustworthy",
+            })
+          }
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
