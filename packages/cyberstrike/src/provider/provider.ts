@@ -245,7 +245,14 @@ export namespace Provider {
         process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI || process.env.AWS_CONTAINER_CREDENTIALS_FULL_URI,
       )
 
-      if (!profile && !awsAccessKeyId && !awsBearerToken && !awsWebIdentityTokenFile && !containerCreds && !providerConfig)
+      if (
+        !profile &&
+        !awsAccessKeyId &&
+        !awsBearerToken &&
+        !awsWebIdentityTokenFile &&
+        !containerCreds &&
+        !providerConfig
+      )
         return { autoload: false }
 
       const providerOptions: AmazonBedrockProviderSettings = {
@@ -261,9 +268,7 @@ export namespace Provider {
           providerOptions.credentialProvider = fromNodeProviderChain(credentialProviderOptions)
         } catch {
           log.warn("fromNodeProviderChain failed, falling back to IMDS")
-          const { fromInstanceMetadata } = await import(
-            await BunProc.install("@aws-sdk/credential-provider-imds")
-          )
+          const { fromInstanceMetadata } = await import(await BunProc.install("@aws-sdk/credential-provider-imds"))
           providerOptions.credentialProvider = fromInstanceMetadata()
         }
       }
