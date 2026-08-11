@@ -69,7 +69,7 @@ export async function lsassDump(args: string[], timeout: number): Promise<HookRe
       const size = await ps(`(Get-Item "${outfile}").Length`, timeout)
       output.push(`[+] Dump size: ${size.stdout.trim()} bytes`)
       findings.push({
-        checkId: "WIN-LSASS-001",
+        checkId: "WIN-LSASS-003",
         provider: "windows",
         severity: "critical",
         status: "DUMPED",
@@ -468,7 +468,7 @@ if ($result -eq 0) {
     output.push(`    Username: ${parts[0]}`)
     output.push(`    Password: ${parts[1]}`)
     findings.push({
-      checkId: "WIN-CREDPHISH-001",
+      checkId: "WIN-CREDPHISH-002",
       provider: "windows",
       severity: "critical",
       status: "CAPTURED",
@@ -643,7 +643,7 @@ try {
     output.push(result.stdout)
     if (result.exitCode === 0 && result.stdout.includes("copied")) {
       findings.push({
-        checkId: "WIN-NTDS-001",
+        checkId: "WIN-NTDS-002",
         provider: "windows",
         severity: "critical",
         status: "EXTRACTED",
@@ -702,7 +702,7 @@ if ($guid) {
     output.push(result.stdout)
     if (result.stdout.includes("copied")) {
       findings.push({
-        checkId: "WIN-NTDS-001",
+        checkId: "WIN-NTDS-003",
         provider: "windows",
         severity: "critical",
         status: "EXTRACTED",
@@ -1079,7 +1079,7 @@ Write-Output "[+] Results saved to: ${outfile}"
   output.push(result.stdout)
   if (result.stdout.includes("entries found") || result.stdout.includes("hive saved")) {
     findings.push({
-      checkId: "WIN-CACHE-001",
+      checkId: "WIN-CACHE-002",
       provider: "windows",
       severity: "high",
       status: "EXTRACTED",
@@ -1313,7 +1313,7 @@ $conn.Close()
     result.stdout.includes("xp_cmdshell is ENABLED")
   ) {
     findings.push({
-      checkId: "WIN-MSSQL-001",
+      checkId: "WIN-MSSQL-002",
       provider: "windows",
       severity: "critical",
       status: "EXTRACTED",
@@ -1664,7 +1664,7 @@ Write-Output "[+] Total credentials found: $totalCreds"
     const count = countMatch ? parseInt(countMatch[1]) : 0
     if (count > 0) {
       findings.push({
-        checkId: "WIN-VAULT-001",
+        checkId: "WIN-VAULT-002",
         provider: "windows",
         severity: "high",
         status: "EXTRACTED",
@@ -1818,7 +1818,7 @@ try {
     output.push(result.stdout)
     if (result.stdout.includes("Decrypted") || result.stdout.includes("NAA found")) {
       findings.push({
-        checkId: "WIN-SCCM-001",
+        checkId: "WIN-SCCM-003",
         provider: "windows",
         severity: "critical",
         status: "EXTRACTED",
@@ -2275,7 +2275,7 @@ if ($targetBrowser -eq 'all' -or $targetBrowser -eq 'firefox') {
   output.push(r.stdout)
   if (r.stderr) output.push(`[!] ${r.stderr}`)
   findings.push({
-    checkId: "WIN-BROWSER-001",
+    checkId: "WIN-BROWSER-002",
     provider: "windows",
     severity: r.stdout.includes("Pass:") ? "critical" : "medium",
     status: r.stdout.includes("Pass:") ? "VULNERABLE" : "ENUMERATED",
@@ -2969,7 +2969,7 @@ Write-Output "[+] Total credential findings: $found"
 
   if (total > 0) {
     findings.push({
-      checkId: "WIN-PRIVESC-CRED-001",
+      checkId: "WIN-PRIVESC-CRED-002",
       provider: "windows",
       severity: "high",
       status: "ENUMERATED",
@@ -3085,7 +3085,7 @@ if ($dg -and $dg.SecurityServicesRunning -contains 1) {
     output.push(r.stdout)
     if (r.stdout.includes("ENABLED")) {
       findings.push({
-        checkId: "WDIGEST-001",
+        checkId: "WDIGEST-003",
         provider: "winhook",
         severity: "high",
         status: "FAIL",
@@ -3121,7 +3121,7 @@ if ($verify -eq 1) {
     const r = await ps(script, timeout)
     output.push(r.stdout)
     findings.push({
-      checkId: "WDIGEST-002",
+      checkId: "WDIGEST-004",
       provider: "winhook",
       severity: "critical",
       status: r.stdout.includes("SUCCESS") ? "PASS" : "FAIL",
@@ -3613,7 +3613,7 @@ if ($hLsass -ne [IntPtr]::Zero) {
 
   if (result.stdout.includes("dumped successfully") || result.stdout.includes("dumped via")) {
     findings.push({
-      checkId: "WIN-NANO-001",
+      checkId: "WIN-NANO-003",
       provider: "windows",
       severity: "critical",
       status: "DUMPED",
@@ -3801,7 +3801,7 @@ Write-Output "Certificate Trust: $(if ($certTrust -eq 1) {'Enabled'} else {'Disa
     output.push(r.stdout)
     if (r.stdout.includes("[+] NGC key data file found")) {
       findings.push({
-        checkId: "HELLO-001",
+        checkId: "HELLO-003",
         provider: "winhook",
         severity: "high",
         status: "FAIL",
@@ -3899,7 +3899,7 @@ if (-not $minLength -or $minLength -lt 6) {
     output.push(r.stdout)
     if (r.stdout.includes("brute force feasible")) {
       findings.push({
-        checkId: "HELLO-002",
+        checkId: "HELLO-004",
         provider: "winhook",
         severity: "medium",
         status: "FAIL",
@@ -4157,7 +4157,7 @@ if ($suspended) {
     const recoveryMatches = r.stdout.match(/RECOVERY PASSWORD: .+/g) || []
     for (const rk of recoveryMatches) {
       findings.push({
-        checkId: "BITL-001",
+        checkId: "BITL-004",
         provider: "winhook",
         severity: "critical",
         status: "FAIL",
@@ -4169,7 +4169,7 @@ if ($suspended) {
     }
     if (r.stdout.includes("protection SUSPENDED")) {
       findings.push({
-        checkId: "BITL-002",
+        checkId: "BITL-005",
         provider: "winhook",
         severity: "critical",
         status: "FAIL",
@@ -4222,7 +4222,7 @@ if ($keys.Count -eq 0) {
     const adKeyMatches = r.stdout.match(/\[\+\] Computer: .+/g) || []
     if (adKeyMatches.length > 0) {
       findings.push({
-        checkId: "BITL-003",
+        checkId: "BITL-006",
         provider: "winhook",
         severity: "critical",
         status: "FAIL",
@@ -4489,7 +4489,7 @@ if ('${action}' -eq 'export') {
   output.push(r.stdout)
   if (r.stderr) output.push(`[!] ${r.stderr}`)
   findings.push({
-    checkId: "WIN-CERT-001",
+    checkId: "WIN-CERT-002",
     provider: "windows",
     severity: r.stdout.includes("!!!") ? "critical" : "medium",
     status: r.stdout.includes("Exported:") ? "EXECUTED" : "ENUMERATED",
@@ -4672,7 +4672,7 @@ foreach ($cfg in $configPaths) {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-CRED-022",
+      checkId: "WIN-CRED-025",
       provider: "windows",
       severity: r.stdout.includes("RUNNING") ? "high" : "medium",
       status: "ENUMERATED",
@@ -5091,7 +5091,7 @@ if ($serviceSecrets) {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-CRED-020",
+      checkId: "WIN-CRED-026",
       provider: "windows",
       severity: r.stdout.includes("!!!") ? "critical" : "high",
       status: r.stdout.includes("hive saved") ? "EXECUTED" : "FAILED",
