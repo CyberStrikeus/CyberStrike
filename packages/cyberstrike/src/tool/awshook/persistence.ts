@@ -715,13 +715,14 @@ export async function ec2InstanceConnect(args: string[], timeout: number): Promi
   if (!instanceId) return { output: output.join("\n") + "\n[-] --instance-id required", findings }
 
   if (!sshKey) {
-    const keyGen = await Bun.spawn(["ssh-keygen", "-t", "rsa", "-b", "2048", "-f", "/tmp/cs-ic-key", "-N", "", "-q"], {
+    const tmpKey = `${process.env.TMPDIR || "/tmp"}/cs-ic-key`
+    const keyGen = await Bun.spawn(["ssh-keygen", "-t", "rsa", "-b", "2048", "-f", tmpKey, "-N", "", "-q"], {
       stdout: "pipe",
       stderr: "pipe",
     }).exited
     if (keyGen === 0) {
-      const pubKey = await Bun.file("/tmp/cs-ic-key.pub").text()
-      output.push(`[+] Generated temporary key pair: /tmp/cs-ic-key`)
+      const pubKey = await Bun.file(`${tmpKey}.pub`).text()
+      output.push(`[+] Generated temporary key pair: ${tmpKey}`)
 
       const push = await aws(
         [
