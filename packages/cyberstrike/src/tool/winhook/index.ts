@@ -1360,26 +1360,34 @@ export const WinhookTool = Tool.define("winhook", {
 
     const program = params.program as Program
     const handler = dispatch[program]
-    let result = await handler(params.args, params.timeout_seconds)
+    let result: HookResult
+    try {
+      result = await handler(params.args, params.timeout_seconds)
 
-    if (activeExec === "ps" && isPsFailure(result.output)) {
-      const env = await detectEnv(params.timeout_seconds)
-      const fallback = resolveExec("auto", env)
-      if (fallback !== "ps") {
-        setExecMethod(fallback)
-        const retry = await handler(params.args, params.timeout_seconds)
-        result = {
-          output: `[!] PowerShell failed — auto-fallback to ${fallback}\n\n${retry.output}`,
-          findings: retry.findings,
+      if (activeExec === "ps" && isPsFailure(result.output)) {
+        const env = await detectEnv(params.timeout_seconds)
+        const fallback = resolveExec("auto", env)
+        if (fallback !== "ps") {
+          setExecMethod(fallback)
+          const retry = await handler(params.args, params.timeout_seconds)
+          result = {
+            output: `[!] PowerShell failed — auto-fallback to ${fallback}\n\n${retry.output}`,
+            findings: retry.findings,
+          }
         }
       }
+    } catch (e) {
+      return {
+        title: `winhook: ${program}`,
+        output: `[-] ${program} failed: ${e instanceof Error ? e.message : String(e)}`,
+        metadata: { program, findings: [] as Finding[] },
+      }
+    } finally {
+      const envChangingPrograms = new Set(["amsi_bypass", "etw_blind", "clm_bypass", "ps_downgrade", "defender_exclude"])
+      if (envChangingPrograms.has(program)) resetEnvCache()
+      setStealthState(undefined, false)
+      setExecMethod("ps")
     }
-
-    const envChangingPrograms = new Set(["amsi_bypass", "etw_blind", "clm_bypass", "ps_downgrade", "defender_exclude"])
-    if (envChangingPrograms.has(program)) resetEnvCache()
-
-    setStealthState(undefined, false)
-    setExecMethod("ps")
 
     const enriched = result.findings.map((f) => ({
       ...f,

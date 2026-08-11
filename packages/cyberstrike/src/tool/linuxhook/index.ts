@@ -1149,25 +1149,33 @@ export const LinuxhookTool = Tool.define("linuxhook", {
 
     const program = params.program as Program
     const handler = dispatch[program]
-    let result = await handler(params.args, params.timeout_seconds)
+    let result: HookResult
+    try {
+      result = await handler(params.args, params.timeout_seconds)
 
-    if (activeExec === "bash" && isBashFailure(result.output)) {
-      const env = await detectEnv(params.timeout_seconds)
-      const fallback = resolveExec("auto", env)
-      if (fallback !== "bash") {
-        setExecMethod(fallback)
-        const retry = await handler(params.args, params.timeout_seconds)
-        result = {
-          output: `[!] Bash failed — auto-fallback to ${fallback}\n\n${retry.output}`,
-          findings: retry.findings,
+      if (activeExec === "bash" && isBashFailure(result.output)) {
+        const env = await detectEnv(params.timeout_seconds)
+        const fallback = resolveExec("auto", env)
+        if (fallback !== "bash") {
+          setExecMethod(fallback)
+          const retry = await handler(params.args, params.timeout_seconds)
+          result = {
+            output: `[!] Bash failed — auto-fallback to ${fallback}\n\n${retry.output}`,
+            findings: retry.findings,
+          }
         }
       }
+    } catch (e) {
+      return {
+        title: `linuxhook: ${program}`,
+        output: `[-] ${program} failed: ${e instanceof Error ? e.message : String(e)}`,
+        metadata: { program, findings: [] as Finding[] },
+      }
+    } finally {
+      if (envChangingPrograms.has(program)) resetEnvCache()
+      setStealthState(undefined)
+      setExecMethod("bash")
     }
-
-    if (envChangingPrograms.has(program)) resetEnvCache()
-
-    setStealthState(undefined)
-    setExecMethod("bash")
 
     const enriched = result.findings.map((f) => ({
       ...f,
