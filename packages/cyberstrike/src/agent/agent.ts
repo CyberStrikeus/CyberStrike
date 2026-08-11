@@ -504,6 +504,7 @@ export namespace Agent {
             scope_check: "allow",
             ensure_tools: "allow",
             attack_script: "allow",
+            llmhook: "allow",
           }),
           user,
         ),
