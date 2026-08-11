@@ -28,6 +28,7 @@ const version = Object.values(binaries)[0]
 await $`mkdir -p ./${distDir}`
 await $`cp -r ./bin ./${distDir}/bin`
 await $`cp ./script/postinstall.mjs ./${distDir}/postinstall.mjs`
+await $`cp ./script/preuninstall.mjs ./${distDir}/preuninstall.mjs`
 await Bun.file(`./${distDir}/LICENSE`).write(await Bun.file("../../LICENSE").text())
 await Bun.file(`./${distDir}/README.md`).write(await Bun.file("./README.md").text())
 
@@ -74,6 +75,7 @@ await Bun.file(`./${distDir}/package.json`).write(
       },
       scripts: {
         postinstall: "bun ./postinstall.mjs || node ./postinstall.mjs",
+        preuninstall: "bun ./preuninstall.mjs || node ./preuninstall.mjs || true",
       },
       version: version,
       license: pkg.license,
