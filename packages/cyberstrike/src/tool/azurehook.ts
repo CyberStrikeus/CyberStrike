@@ -1187,8 +1187,7 @@ export const AzurehookTool = Tool.define("azurehook", {
     timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
-    const check = await run("which", ["az"], 5)
-    if (check.exitCode !== 0) {
+    if (!Bun.which("az")) {
       return {
         title: `azurehook: ${params.program}`,
         output: "Azure CLI not found. Install: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli",

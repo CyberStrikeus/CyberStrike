@@ -764,8 +764,7 @@ export const ContainerhookTool = Tool.define("containerhook", {
     timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
-    const check = await run("which", ["docker"], 5)
-    if (check.exitCode !== 0 && !["compose_secrets"].includes(params.program)) {
+    if (!Bun.which("docker") && !["compose_secrets"].includes(params.program)) {
       return {
         title: `containerhook: ${params.program}`,
         output: "docker not found. Install: https://docs.docker.com/engine/install/",
