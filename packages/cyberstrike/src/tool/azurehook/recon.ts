@@ -2877,3 +2877,210 @@ export async function privateLinkAudit(args: string[], timeout: number): Promise
 
   return { output: output.join("\n"), findings }
 }
+
+export async function serviceFabricEnum(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const rg = argVal(args, "--resource-group")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Enumerating Service Fabric clusters...\n"]
+
+  const rgArgs = rg ? ["--resource-group", rg] : []
+  const clusters = await az(["sf", "cluster", "list", ...rgArgs], sub, timeout)
+  if (clusters.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list Service Fabric clusters", findings }
+
+  const items = tryJson(clusters.stdout) || []
+  output.push(`[+] Service Fabric clusters: ${items.length}\n`)
+
+  for (const c of items) {
+    output.push(`── ${c.name} (${c.resourceGroup}) ──`)
+    output.push(`    Endpoint: ${c.managementEndpoint || "N/A"}`)
+    output.push(`    Reliability: ${c.reliabilityLevel}`)
+    output.push(`    Upgrade mode: ${c.upgradeMode}`)
+    output.push(`    VM image: ${c.vmImage}`)
+
+    const nodeTypes = c.nodeTypes || []
+    output.push(`    Node types: ${nodeTypes.length}`)
+    for (const nt of nodeTypes) {
+      output.push(`      ${nt.name} — instances: ${nt.vmInstanceCount}, primary: ${nt.isPrimary}`)
+      if (nt.httpGatewayEndpointPort) output.push(`        HTTP gateway port: ${nt.httpGatewayEndpointPort}`)
+    }
+
+    if (c.certificate) {
+      output.push(`    [!] Cluster cert thumbprint: ${c.certificate.thumbprint}`)
+    }
+
+    findings.push({
+      checkId: "AZ-SF-001",
+      provider: "azure",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: `sf://${c.name}`,
+      title: `Service Fabric cluster: ${c.name}`,
+      details: `Management endpoint: ${c.managementEndpoint}, ${nodeTypes.length} node types`,
+      remediation: "Ensure cluster certificate is stored in Key Vault, enable AAD authentication",
+    })
+    output.push("")
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function batchAccountEnum(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const rg = argVal(args, "--resource-group")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Enumerating Azure Batch accounts...\n"]
+
+  const rgArgs = rg ? ["--resource-group", rg] : []
+  const accounts = await az(["batch", "account", "list", ...rgArgs], sub, timeout)
+  if (accounts.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list Batch accounts", findings }
+
+  const items = tryJson(accounts.stdout) || []
+  output.push(`[+] Batch accounts: ${items.length}\n`)
+
+  for (const acct of items) {
+    output.push(`── ${acct.name} (${acct.resourceGroup}) ──`)
+    output.push(`    Endpoint: ${acct.accountEndpoint}`)
+    output.push(`    Pool allocation: ${acct.poolAllocationMode}`)
+    output.push(`    Auth mode: ${acct.allowedAuthenticationModes?.join(", ") || "default"}`)
+    output.push(`    Public access: ${acct.publicNetworkAccess || "enabled"}`)
+
+    if (acct.publicNetworkAccess !== "Disabled") {
+      findings.push({
+        checkId: "AZ-BATCH-001",
+        provider: "azure",
+        severity: "medium",
+        status: "WARN",
+        resource: `batch://${acct.name}`,
+        title: `Batch account public access enabled: ${acct.name}`,
+        details: `Pool allocation: ${acct.poolAllocationMode}, endpoint: ${acct.accountEndpoint}`,
+        remediation: "Disable public network access, use private endpoints",
+      })
+    }
+
+    const keys = await az(["batch", "account", "keys", "list", "--name", acct.name, "--resource-group", acct.resourceGroup || rg || ""], sub, 15)
+    if (keys.exitCode === 0) {
+      const keyData = tryJson(keys.stdout)
+      if (keyData) {
+        output.push(`    [!] Primary key: ${keyData.primary?.substring(0, 16)}...`)
+        findings.push({
+          checkId: "AZ-BATCH-002",
+          provider: "azure",
+          severity: "high",
+          status: "EXTRACTED",
+          resource: `batch://${acct.name}/keys`,
+          title: `Batch account keys extracted: ${acct.name}`,
+          details: "Shared key authentication — full account access",
+          remediation: "Rotate keys, use AAD authentication, disable shared key auth",
+        })
+      }
+    }
+    output.push("")
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function managedEnvEnum(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const rg = argVal(args, "--resource-group")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Enumerating Container Apps managed environments...\n"]
+
+  const rgArgs = rg ? ["--resource-group", rg] : []
+  const envs = await az(["containerapp", "env", "list", ...rgArgs], sub, timeout)
+  if (envs.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list managed environments", findings }
+
+  const items = tryJson(envs.stdout) || []
+  output.push(`[+] Managed environments: ${items.length}\n`)
+
+  for (const env of items) {
+    output.push(`── ${env.name} (${env.resourceGroup}) ──`)
+    output.push(`    Default domain: ${env.properties?.defaultDomain || env.defaultDomain || "N/A"}`)
+    output.push(`    Static IP: ${env.properties?.staticIp || env.staticIp || "N/A"}`)
+    output.push(`    Internal: ${env.properties?.vnetConfiguration?.internal || false}`)
+    output.push(`    Zone redundant: ${env.properties?.zoneRedundant || false}`)
+
+    const apps = await az(["containerapp", "list", "--environment", env.id || env.name, ...rgArgs], sub, 30)
+    if (apps.exitCode === 0) {
+      const appList = tryJson(apps.stdout) || []
+      output.push(`    Container apps: ${appList.length}`)
+      for (const app of appList.slice(0, 10)) {
+        const ingress = app.properties?.configuration?.ingress || app.configuration?.ingress
+        output.push(`      ${app.name} — external: ${ingress?.external || false}, target: ${ingress?.targetPort || "?"}`)
+        if (ingress?.external) {
+          findings.push({
+            checkId: "AZ-CAPP-001",
+            provider: "azure",
+            severity: "medium",
+            status: "INFO",
+            resource: `containerapp://${app.name}`,
+            title: `External container app: ${app.name}`,
+            details: `Publicly accessible on port ${ingress.targetPort}`,
+            remediation: "Review if external access is required, configure IP restrictions",
+          })
+        }
+      }
+    }
+    output.push("")
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function staticWebAppEnum(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const rg = argVal(args, "--resource-group")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Enumerating Static Web Apps...\n"]
+
+  const rgArgs = rg ? ["--resource-group", rg] : []
+  const apps = await az(["staticwebapp", "list", ...rgArgs], sub, timeout)
+  if (apps.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list Static Web Apps", findings }
+
+  const items = tryJson(apps.stdout) || []
+  output.push(`[+] Static Web Apps: ${items.length}\n`)
+
+  for (const app of items) {
+    output.push(`── ${app.name} (${app.resourceGroup}) ──`)
+    output.push(`    URL: ${app.defaultHostname || "N/A"}`)
+    output.push(`    SKU: ${app.sku?.name || "Free"}`)
+    output.push(`    Repo: ${app.repositoryUrl || "N/A"}`)
+    output.push(`    Branch: ${app.branch || "N/A"}`)
+    output.push(`    Custom domains: ${app.customDomains?.length || 0}`)
+
+    if (app.repositoryUrl) {
+      findings.push({
+        checkId: "AZ-SWA-001",
+        provider: "azure",
+        severity: "info",
+        status: "ENUMERATED",
+        resource: `swa://${app.name}`,
+        title: `Static Web App: ${app.name}`,
+        details: `Hosted at ${app.defaultHostname}, source: ${app.repositoryUrl} (${app.branch})`,
+        remediation: "Ensure auth is configured, review linked backends",
+      })
+    }
+
+    const secrets = await az(["staticwebapp", "secrets", "list", "--name", app.name], sub, 15)
+    if (secrets.exitCode === 0) {
+      const secretData = tryJson(secrets.stdout)
+      if (secretData?.properties?.apiKey) {
+        output.push(`    [!] Deployment token: ${secretData.properties.apiKey.substring(0, 16)}...`)
+        findings.push({
+          checkId: "AZ-SWA-002",
+          provider: "azure",
+          severity: "high",
+          status: "EXTRACTED",
+          resource: `swa://${app.name}/secrets`,
+          title: `Static Web App deployment token extracted: ${app.name}`,
+          details: "Deployment token allows publishing content to the app",
+          remediation: "Rotate deployment token, restrict access to deployment pipeline",
+        })
+      }
+    }
+    output.push("")
+  }
+
+  return { output: output.join("\n"), findings }
+}
