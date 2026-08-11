@@ -1,6 +1,6 @@
 import z from "zod"
 import { Tool } from "../tool"
-import { argVal, type Finding, type HookResult } from "./shared"
+import { argVal, hasFlag, validateUrl, type Finding, type HandlerCtx, type HookResult, type RequestFormat } from "./shared"
 
 import { endpointDiscover, modelFingerprint, jsAnalysis } from "./recon"
 import { promptInject, systemPromptExtract, outputHandling } from "./injection"
@@ -54,7 +54,7 @@ const PROGRAMS = {
 
 type Program = keyof typeof PROGRAMS
 
-const dispatch: Record<Program, (args: string, timeout: number) => Promise<HookResult>> = {
+const dispatch: Record<Program, (ctx: HandlerCtx) => Promise<HookResult>> = {
   endpoint_discover: endpointDiscover,
   model_fingerprint: modelFingerprint,
   js_analysis: jsAnalysis,
@@ -97,8 +97,8 @@ const CWE_MAP: Record<string, string> = {
   "LLM-MT": "CWE-74",
   "LLM-IND": "CWE-74",
   "LLM-JAIL": "CWE-74",
-  "LLM-TOX": "CWE-1021",
-  "LLM-BIAS": "CWE-1021",
+  "LLM-TOX": "CWE-20",
+  "LLM-BIAS": "CWE-20",
   "LLM-TRAIN": "CWE-200",
   "LLM-HALL": "CWE-345",
   "LLM-XSESS": "CWE-200",
@@ -123,7 +123,9 @@ export const LlmhookTool = Tool.define("llmhook", {
           .map(([k, v]) => `  ${k}: ${v}`)
           .join("\n")}`,
       ),
-    args: z.string().default("").describe("Arguments: --target <URL> (required for most programs)"),
+    args: z.string().default("").describe(
+      "Arguments: --target <URL> (required for most programs), --format <generic|openai|anthropic> (API format, default: generic), --auth <token> (Bearer auth token)",
+    ),
     timeout_seconds: z.number().optional().default(30).describe("Per-request timeout in seconds (default: 30)"),
   }),
   async execute(params) {
@@ -141,8 +143,23 @@ export const LlmhookTool = Tool.define("llmhook", {
       }
     }
 
-    const target = argVal(params.args, "--target") || params.args.trim()
-    const result = await handler(target, params.timeout_seconds)
+    const target = argVal(params.args, "--target") || params.args.replace(/--\S+\s+\S+/g, "").trim()
+    const urlError = validateUrl(target)
+    if (urlError && program !== "endpoint_discover" && program !== "js_analysis") {
+      return {
+        title: `llmhook: ${program}`,
+        output: `[-] ${urlError}\n\nUsage: llmhook ${program} --target https://example.com/api/chat [--format openai|anthropic|generic] [--auth <token>]`,
+        metadata: { program, findings: [] as Finding[] },
+      }
+    }
+
+    const format = (argVal(params.args, "--format") || "generic") as RequestFormat
+    const auth = argVal(params.args, "--auth")
+    const headers: Record<string, string> = {}
+    if (auth) headers["Authorization"] = `Bearer ${auth}`
+
+    const ctx: HandlerCtx = { target, timeout: params.timeout_seconds, format, headers }
+    const result = await handler(ctx)
 
     for (const f of result.findings) {
       if (!f.cwe) f.cwe = resolveCwe(f.checkId)

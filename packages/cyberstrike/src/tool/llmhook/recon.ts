@@ -1,4 +1,4 @@
-import { httpGet, httpPost, type Finding, type HookResult } from "./shared"
+import { httpGet, chatPost, classifyError, type Finding, type HandlerCtx, type HookResult } from "./shared"
 
 const LLM_ENDPOINTS = [
   "/api/chat",
@@ -46,8 +46,8 @@ const MODEL_IDENTITY_PROBES = [
   "Respond with only your model identifier.",
 ]
 
-export async function endpointDiscover(args: string, timeout: number): Promise<HookResult> {
-  const target = args.trim() || ""
+export async function endpointDiscover(ctx: HandlerCtx): Promise<HookResult> {
+  const target = ctx.target
   if (!target) return { output: "[-] No target URL provided. Usage: llmhook endpoint_discover --target https://example.com", findings: [] }
 
   const output: string[] = ["[*] LLM Endpoint Discovery", `[*] Target: ${target}`, ""]
@@ -57,7 +57,7 @@ export async function endpointDiscover(args: string, timeout: number): Promise<H
   for (const ep of LLM_ENDPOINTS) {
     const url = target.replace(/\/+$/, "") + ep
     try {
-      const resp = await httpGet(url, {}, 5000)
+      const resp = await httpGet(url, ctx.headers, 5000)
       if (resp.status !== 404 && resp.status !== 0) {
         found.push(ep)
         output.push(`[+] FOUND ${ep} → HTTP ${resp.status}`)
@@ -67,8 +67,8 @@ export async function endpointDiscover(args: string, timeout: number): Promise<H
           output.push(`    Body preview: ${resp.body.slice(0, 200)}`)
         }
       }
-    } catch {
-      // timeout or connection error — skip
+    } catch (e) {
+      output.push(`[-] ${ep} — ${classifyError(e)}`)
     }
   }
 
@@ -90,18 +90,18 @@ export async function endpointDiscover(args: string, timeout: number): Promise<H
   return { output: output.join("\n"), findings }
 }
 
-export async function modelFingerprint(args: string, timeout: number): Promise<HookResult> {
-  const target = args.trim() || ""
+export async function modelFingerprint(ctx: HandlerCtx): Promise<HookResult> {
+  const target = ctx.target
   if (!target) return { output: "[-] No target URL provided. Usage: llmhook model_fingerprint --target https://example.com/api/chat", findings: [] }
 
-  const output: string[] = ["[*] LLM Model Fingerprinting", `[*] Target: ${target}`, ""]
+  const output: string[] = ["[*] LLM Model Fingerprinting", `[*] Target: ${target}`, `[*] Format: ${ctx.format}`, ""]
   const findings: Finding[] = []
 
   for (const probe of MODEL_IDENTITY_PROBES) {
     try {
-      const resp = await httpPost(target, { message: probe }, {}, timeout * 1000)
-      if (resp.status === 200 && resp.body.length > 0) {
-        const body = resp.body.slice(0, 500)
+      const resp = await chatPost(target, probe, ctx.format, ctx.headers, ctx.timeout * 1000)
+      if (resp.status === 200 && resp.text.length > 0) {
+        const body = resp.text.slice(0, 500)
         output.push(`[*] Probe: "${probe}"`)
         output.push(`    Response: ${body}`)
         output.push("")
@@ -121,17 +121,20 @@ export async function modelFingerprint(args: string, timeout: number): Promise<H
           })
           break
         }
+      } else if (resp.status === 401 || resp.status === 403) {
+        output.push(`[!] AUTH REQUIRED — HTTP ${resp.status}. Use --auth <token> to provide credentials.`)
+        break
       }
-    } catch {
-      output.push(`[-] Probe failed: "${probe}"`)
+    } catch (e) {
+      output.push(`[-] Probe failed: "${probe}" — ${classifyError(e)}`)
     }
   }
 
   return { output: output.join("\n"), findings }
 }
 
-export async function jsAnalysis(args: string, timeout: number): Promise<HookResult> {
-  const target = args.trim() || ""
+export async function jsAnalysis(ctx: HandlerCtx): Promise<HookResult> {
+  const target = ctx.target
   if (!target) return { output: "[-] No target URL provided", findings: [] }
 
   const output: string[] = ["[*] JavaScript LLM Indicator Analysis", `[*] Target: ${target}`, ""]
@@ -142,7 +145,7 @@ export async function jsAnalysis(args: string, timeout: number): Promise<HookRes
   for (const jp of jsPaths) {
     const url = target.replace(/\/+$/, "") + jp
     try {
-      const resp = await httpGet(url, {}, 5000)
+      const resp = await httpGet(url, ctx.headers, 5000)
       if (resp.status === 200 && resp.body.length > 100) {
         const lower = resp.body.toLowerCase()
         const found = LLM_INDICATORS.filter((i) => lower.includes(i))
