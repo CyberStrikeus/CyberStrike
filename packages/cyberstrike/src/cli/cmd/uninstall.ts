@@ -145,7 +145,10 @@ async function getRunningInstances(): Promise<number> {
   try {
     if (process.platform === "win32") {
       const result = await $`tasklist /FI "IMAGENAME eq cyberstrike.exe" /FO CSV /NH`.quiet().nothrow()
-      const lines = result.stdout.toString("utf8").split("\n").filter((l) => l.includes("cyberstrike"))
+      const lines = result.stdout
+        .toString("utf8")
+        .split("\n")
+        .filter((l) => l.includes("cyberstrike"))
       return Math.max(0, lines.length - 1)
     }
     const result = await $`pgrep -f cyberstrike`.quiet().nothrow()
