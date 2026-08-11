@@ -1742,7 +1742,7 @@ export async function snsSqsSiphon(args: string[], timeout: number): Promise<Hoo
             output.push(`        ${preview}${body.length > 150 ? "..." : ""}`)
             if (sensitivePattern.test(body)) {
               findings.push({
-                checkId: "AWS-SQS-001",
+                checkId: "AWS-SQS-003",
                 provider: "aws",
                 severity: "high",
                 status: "EXTRACTED",
