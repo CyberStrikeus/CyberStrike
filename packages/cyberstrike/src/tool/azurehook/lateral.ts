@@ -14,11 +14,18 @@ export async function vmRunCommand(args: string[], timeout: number): Promise<Hoo
   if (method === "list") {
     const rgArgs = rg ? ["--resource-group", rg] : []
     const vms = await az(
-      ["vm", "list", ...rgArgs, "--query", "[].{name:name,rg:resourceGroup,os:storageProfile.osDisk.osType,state:provisioningState}"],
+      [
+        "vm",
+        "list",
+        ...rgArgs,
+        "--query",
+        "[].{name:name,rg:resourceGroup,os:storageProfile.osDisk.osType,state:provisioningState}",
+      ],
       sub,
       timeout,
     )
-    if (vms.exitCode !== 0) return { output: output.join("\n") + `[-] Failed to list VMs: ${vms.stderr.slice(0, 200)}`, findings }
+    if (vms.exitCode !== 0)
+      return { output: output.join("\n") + `[-] Failed to list VMs: ${vms.stderr.slice(0, 200)}`, findings }
     const vmList = tryJson(vms.stdout) || []
     output.push(`[+] VMs accessible for Run Command: ${vmList.length}`)
     for (const v of vmList) {
@@ -38,20 +45,15 @@ export async function vmRunCommand(args: string[], timeout: number): Promise<Hoo
     return { output: output.join("\n"), findings }
   }
 
-  if (!vm || !rg || !cmd) return { output: "[-] --vm-name, --resource-group, and --command required for exec", findings }
+  if (!vm || !rg || !cmd)
+    return { output: "[-] --vm-name, --resource-group, and --command required for exec", findings }
 
   const commandId = os === "windows" ? "RunPowerShellScript" : "RunShellScript"
   output.push(`[*] Executing on ${vm} via ${commandId}...`)
   output.push(`    Command: ${cmd}`)
 
   const exec = await az(
-    [
-      "vm", "run-command", "invoke",
-      "--command-id", commandId,
-      "--name", vm,
-      "--resource-group", rg,
-      "--scripts", cmd,
-    ],
+    ["vm", "run-command", "invoke", "--command-id", commandId, "--name", vm, "--resource-group", rg, "--scripts", cmd],
     sub,
     timeout,
   )
@@ -129,11 +131,7 @@ export async function bastionTunnel(args: string[], timeout: number): Promise<Ho
     }
 
     const rgFilter = rg ? ["--resource-group", rg] : []
-    const vms = await az(
-      ["vm", "list", ...rgFilter, "--query", "[].{name:name,rg:resourceGroup,id:id}"],
-      sub,
-      timeout,
-    )
+    const vms = await az(["vm", "list", ...rgFilter, "--query", "[].{name:name,rg:resourceGroup,id:id}"], sub, timeout)
     if (vms.exitCode === 0) {
       const vmList = tryJson(vms.stdout) || []
       output.push(`\n[+] VMs reachable via Bastion: ${vmList.length}`)
@@ -149,19 +147,30 @@ export async function bastionTunnel(args: string[], timeout: number): Promise<Ho
   const tRg = targetRg || rg
   if (!tRg) return { output: "[-] --resource-group or --target-resource-group required", findings }
 
-  const vmInfo = await az(["vm", "show", "--name", targetVm, "--resource-group", tRg, "--query", "id", "-o", "tsv"], sub, timeout)
-  if (vmInfo.exitCode !== 0) return { output: output.join("\n") + `[-] VM not found: ${vmInfo.stderr.slice(0, 200)}`, findings }
+  const vmInfo = await az(
+    ["vm", "show", "--name", targetVm, "--resource-group", tRg, "--query", "id", "-o", "tsv"],
+    sub,
+    timeout,
+  )
+  if (vmInfo.exitCode !== 0)
+    return { output: output.join("\n") + `[-] VM not found: ${vmInfo.stderr.slice(0, 200)}`, findings }
 
   const vmId = vmInfo.stdout.trim()
   output.push(`[*] Bastion: ${bastionName}`)
   output.push(`[*] Target VM: ${targetVm} (${tRg})`)
   output.push(`[*] VM ID: ${vmId}`)
   output.push(`\n[+] SSH tunnel command:`)
-  output.push(`    az network bastion ssh --name ${bastionName} --resource-group ${rg || tRg} --target-resource-id ${vmId} --auth-type ssh-key --ssh-key ~/.ssh/id_rsa`)
+  output.push(
+    `    az network bastion ssh --name ${bastionName} --resource-group ${rg || tRg} --target-resource-id ${vmId} --auth-type ssh-key --ssh-key ~/.ssh/id_rsa`,
+  )
   output.push(`\n[+] RDP tunnel command:`)
-  output.push(`    az network bastion rdp --name ${bastionName} --resource-group ${rg || tRg} --target-resource-id ${vmId}`)
+  output.push(
+    `    az network bastion rdp --name ${bastionName} --resource-group ${rg || tRg} --target-resource-id ${vmId}`,
+  )
   output.push(`\n[+] Port forwarding (native tunnel):`)
-  output.push(`    az network bastion tunnel --name ${bastionName} --resource-group ${rg || tRg} --target-resource-id ${vmId} --resource-port 22 --port 2222`)
+  output.push(
+    `    az network bastion tunnel --name ${bastionName} --resource-group ${rg || tRg} --target-resource-id ${vmId} --resource-port 22 --port 2222`,
+  )
 
   findings.push({
     checkId: "AZ-BASTION-002",
@@ -223,7 +232,19 @@ export async function arcExec(args: string[], timeout: number): Promise<HookResu
       }
     }
 
-    const extensions = await az(["connectedmachine", "extension", "list", "--machine-name", machineList[0]?.name || "none", "--resource-group", machineList[0]?.resourceGroup || "none"], sub, timeout)
+    const extensions = await az(
+      [
+        "connectedmachine",
+        "extension",
+        "list",
+        "--machine-name",
+        machineList[0]?.name || "none",
+        "--resource-group",
+        machineList[0]?.resourceGroup || "none",
+      ],
+      sub,
+      timeout,
+    )
     if (extensions.exitCode === 0) {
       const extList = tryJson(extensions.stdout) || []
       output.push(`\n[+] Extensions on first machine: ${extList.length}`)
@@ -232,18 +253,25 @@ export async function arcExec(args: string[], timeout: number): Promise<HookResu
     return { output: output.join("\n"), findings }
   }
 
-  if (!machine || !rg || !cmd) return { output: "[-] --machine, --resource-group, and --command required for exec", findings }
+  if (!machine || !rg || !cmd)
+    return { output: "[-] --machine, --resource-group, and --command required for exec", findings }
 
   output.push(`[*] Executing on Arc machine: ${machine}`)
   output.push(`    Command: ${cmd}`)
 
   const exec = await az(
     [
-      "connectedmachine", "run-command", "create",
-      "--machine-name", machine,
-      "--resource-group", rg,
-      "--run-command-name", `cs-cmd-${Date.now().toString(36)}`,
-      "--script", cmd,
+      "connectedmachine",
+      "run-command",
+      "create",
+      "--machine-name",
+      machine,
+      "--resource-group",
+      rg,
+      "--run-command-name",
+      `cs-cmd-${Date.now().toString(36)}`,
+      "--script",
+      cmd,
     ],
     sub,
     timeout,
@@ -301,7 +329,11 @@ export async function devopsServiceConn(args: string[], timeout: number): Promis
 
     for (const p of projectList) {
       output.push(`\n[*] Project: ${p.name}`)
-      const endpoints = await run("az", ["devops", "service-endpoint", "list", "--project", p.name, ...orgArgs, "-o", "json"], timeout)
+      const endpoints = await run(
+        "az",
+        ["devops", "service-endpoint", "list", "--project", p.name, ...orgArgs, "-o", "json"],
+        timeout,
+      )
       if (endpoints.exitCode !== 0) continue
       const epList = tryJson(endpoints.stdout) || []
       output.push(`    Service connections: ${epList.length}`)
@@ -357,7 +389,11 @@ export async function devopsServiceConn(args: string[], timeout: number): Promis
     return { output: output.join("\n"), findings }
   }
 
-  const endpoints = await run("az", ["devops", "service-endpoint", "list", "--project", project, ...orgArgs, "-o", "json"], timeout)
+  const endpoints = await run(
+    "az",
+    ["devops", "service-endpoint", "list", "--project", project, ...orgArgs, "-o", "json"],
+    timeout,
+  )
   if (endpoints.exitCode !== 0) {
     output.push(`[-] Failed: ${endpoints.stderr.slice(0, 200)}`)
     return { output: output.join("\n"), findings }
@@ -378,20 +414,51 @@ export async function crossTenantEnum(args: string[], timeout: number): Promise<
   const findings: Finding[] = []
   const output: string[] = ["[*] Cross-tenant access enumeration...\n"]
 
-  const ctap = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/policies/crossTenantAccessPolicy", "-o", "json"], timeout)
+  const ctap = await run(
+    "az",
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/v1.0/policies/crossTenantAccessPolicy",
+      "-o",
+      "json",
+    ],
+    timeout,
+  )
   if (ctap.exitCode === 0) {
     const policy = tryJson(ctap.stdout)
     if (policy) {
       output.push(`[+] Cross-tenant access policy:`)
       const def = policy.default || {}
-      output.push(`    Inbound trust: MFA=${def.inboundTrust?.isMfaAccepted || false}, Device=${def.inboundTrust?.isCompliantDeviceAccepted || false}`)
-      output.push(`    B2B collaboration inbound: ${def.b2bCollaborationInbound?.usersAndGroups?.accessType || "default"}`)
-      output.push(`    B2B collaboration outbound: ${def.b2bCollaborationOutbound?.usersAndGroups?.accessType || "default"}`)
+      output.push(
+        `    Inbound trust: MFA=${def.inboundTrust?.isMfaAccepted || false}, Device=${def.inboundTrust?.isCompliantDeviceAccepted || false}`,
+      )
+      output.push(
+        `    B2B collaboration inbound: ${def.b2bCollaborationInbound?.usersAndGroups?.accessType || "default"}`,
+      )
+      output.push(
+        `    B2B collaboration outbound: ${def.b2bCollaborationOutbound?.usersAndGroups?.accessType || "default"}`,
+      )
     }
   }
-  if (ctap.exitCode !== 0) output.push(`[-] Cross-tenant policy access denied (needs Policy.Read.All): ${ctap.stderr.slice(0, 200)}`)
+  if (ctap.exitCode !== 0)
+    output.push(`[-] Cross-tenant policy access denied (needs Policy.Read.All): ${ctap.stderr.slice(0, 200)}`)
 
-  const partners = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/policies/crossTenantAccessPolicy/partners", "-o", "json"], timeout)
+  const partners = await run(
+    "az",
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/v1.0/policies/crossTenantAccessPolicy/partners",
+      "-o",
+      "json",
+    ],
+    timeout,
+  )
   if (partners.exitCode === 0) {
     const partnerList = tryJson(partners.stdout)?.value || []
     output.push(`\n[+] Partner tenants: ${partnerList.length}`)
@@ -414,7 +481,19 @@ export async function crossTenantEnum(args: string[], timeout: number): Promise<
   }
 
   output.push(`\n[*] Enumerating guest users...`)
-  const guests = await az(["ad", "user", "list", "--filter", "userType eq 'Guest'", "--query", "[].{upn:userPrincipalName,display:displayName,created:createdDateTime}"], undefined, timeout)
+  const guests = await az(
+    [
+      "ad",
+      "user",
+      "list",
+      "--filter",
+      "userType eq 'Guest'",
+      "--query",
+      "[].{upn:userPrincipalName,display:displayName,created:createdDateTime}",
+    ],
+    undefined,
+    timeout,
+  )
   if (guests.exitCode === 0) {
     const guestList = tryJson(guests.stdout) || []
     output.push(`[+] Guest users: ${guestList.length}`)
@@ -436,7 +515,19 @@ export async function crossTenantEnum(args: string[], timeout: number): Promise<
     }
   }
 
-  const b2bInvites = await az(["ad", "user", "list", "--filter", "externalUserState eq 'PendingAcceptance'", "--query", "[].{upn:userPrincipalName,display:displayName}"], undefined, timeout)
+  const b2bInvites = await az(
+    [
+      "ad",
+      "user",
+      "list",
+      "--filter",
+      "externalUserState eq 'PendingAcceptance'",
+      "--query",
+      "[].{upn:userPrincipalName,display:displayName}",
+    ],
+    undefined,
+    timeout,
+  )
   if (b2bInvites.exitCode === 0) {
     const pending = tryJson(b2bInvites.stdout) || []
     if (pending.length > 0) {

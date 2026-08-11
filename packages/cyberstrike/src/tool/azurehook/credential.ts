@@ -354,7 +354,10 @@ export async function tokenTheft(args: string[], timeout: number): Promise<HookR
     { path: `${home}/.config/azure-cli/accessTokens.json`, label: "Azure CLI tokens (XDG)" },
     { path: `${home}/.IdentityService/msal.cache`, label: "Visual Studio MSAL cache" },
     { path: `${home}/AppData/Local/.IdentityService/msal.cache`, label: "VS MSAL cache (Windows)" },
-    { path: `${home}/.local/share/powershell/Modules/Az.Accounts/AzureRmContextSettings.json`, label: "PowerShell Az context" },
+    {
+      path: `${home}/.local/share/powershell/Modules/Az.Accounts/AzureRmContextSettings.json`,
+      label: "PowerShell Az context",
+    },
   ]
 
   let found = 0
@@ -375,7 +378,9 @@ export async function tokenTheft(args: string[], timeout: number): Promise<HookR
           output.push(`    Entries: ${data.length}`)
           for (const entry of data.slice(0, 5)) {
             if (entry.accessToken) {
-              output.push(`    Token: ${entry.accessToken.substring(0, 30)}... (${entry.resource || entry._authority || ""})`)
+              output.push(
+                `    Token: ${entry.accessToken.substring(0, 30)}... (${entry.resource || entry._authority || ""})`,
+              )
               findings.push({
                 checkId: "AZ-CRED-001",
                 provider: "azure",
@@ -444,7 +449,15 @@ export async function certificateAbuse(args: string[], timeout: number): Promise
   if (action === "enum") {
     const apps = await run(
       "az",
-      ["ad", "app", "list", "--query", "[].{id:id,appId:appId,name:displayName,certCreds:keyCredentials}", "-o", "json"],
+      [
+        "ad",
+        "app",
+        "list",
+        "--query",
+        "[].{id:id,appId:appId,name:displayName,certCreds:keyCredentials}",
+        "-o",
+        "json",
+      ],
       timeout,
     )
     if (apps.exitCode !== 0) {
@@ -478,7 +491,16 @@ export async function certificateAbuse(args: string[], timeout: number): Promise
 
     const sps = await run(
       "az",
-      ["ad", "sp", "list", "--all", "--query", "[?keyCredentials].{id:id,appId:appId,name:displayName,certs:keyCredentials}", "-o", "json"],
+      [
+        "ad",
+        "sp",
+        "list",
+        "--all",
+        "--query",
+        "[?keyCredentials].{id:id,appId:appId,name:displayName,certs:keyCredentials}",
+        "-o",
+        "json",
+      ],
       timeout,
     )
     if (sps.exitCode === 0) {
@@ -541,12 +563,22 @@ export async function storageKeyDump(args: string[], timeout: number): Promise<H
   const findings: Finding[] = []
   const output: string[] = ["[*] Extracting Azure Storage account access keys...\n"]
 
-  const listArgs = ["storage", "account", "list", "--query", "[].{name:name,rg:resourceGroup,kind:kind,https:enableHttpsTrafficOnly,public:allowBlobPublicAccess}", "-o", "json"]
+  const listArgs = [
+    "storage",
+    "account",
+    "list",
+    "--query",
+    "[].{name:name,rg:resourceGroup,kind:kind,https:enableHttpsTrafficOnly,public:allowBlobPublicAccess}",
+    "-o",
+    "json",
+  ]
   const accts = await az(listArgs, sub, timeout)
   if (accts.exitCode !== 0) {
     return { output: output.join("\n") + `[-] Cannot list storage accounts: ${accts.stderr.trim()}`, findings }
   }
-  const accounts = (tryJson(accts.stdout) || []).filter((a: Record<string, string>) => !targetAccount || a.name === targetAccount)
+  const accounts = (tryJson(accts.stdout) || []).filter(
+    (a: Record<string, string>) => !targetAccount || a.name === targetAccount,
+  )
   output.push(`[+] Found ${accounts.length} storage account(s)\n`)
 
   for (const acct of accounts) {
@@ -619,7 +651,9 @@ export async function automationCredDump(args: string[], timeout: number): Promi
   if (accts.exitCode !== 0) {
     return { output: output.join("\n") + `[-] Cannot list automation accounts: ${accts.stderr.trim()}`, findings }
   }
-  const accounts = (tryJson(accts.stdout) || []).filter((a: Record<string, string>) => !targetAccount || a.name === targetAccount)
+  const accounts = (tryJson(accts.stdout) || []).filter(
+    (a: Record<string, string>) => !targetAccount || a.name === targetAccount,
+  )
   output.push(`[+] Found ${accounts.length} Automation Account(s)\n`)
 
   for (const acct of accounts) {
@@ -643,7 +677,8 @@ export async function automationCredDump(args: string[], timeout: number): Promi
             status: "ENUMERATED",
             resource: `automation://${acct.name}/credential/${c.name}`,
             title: `Automation credential: ${c.name} (user: ${c.userName || "N/A"})`,
-            details: "Credentials stored in Automation Accounts can be used in runbooks — passwords not retrievable via API but usernames leak info",
+            details:
+              "Credentials stored in Automation Accounts can be used in runbooks — passwords not retrievable via API but usernames leak info",
             remediation: "Use Managed Identity instead of stored credentials",
           })
         }
@@ -661,7 +696,9 @@ export async function automationCredDump(args: string[], timeout: number): Promi
         output.push(`    [+] Variables: ${varList.length}`)
         for (const v of varList) {
           const encrypted = v.isEncrypted ? "encrypted" : "PLAINTEXT"
-          output.push(`        ${v.name} [${encrypted}]: ${v.isEncrypted ? "(encrypted)" : String(v.value || "").substring(0, 60)}`)
+          output.push(
+            `        ${v.name} [${encrypted}]: ${v.isEncrypted ? "(encrypted)" : String(v.value || "").substring(0, 60)}`,
+          )
           if (!v.isEncrypted && v.value) {
             findings.push({
               checkId: "AZ-AUTO-002",
@@ -706,7 +743,17 @@ export async function automationCredDump(args: string[], timeout: number): Promi
     }
 
     const runAs = await az(
-      ["automation", "account", "show", "--name", acct.name, "--resource-group", acct.rg, "--query", "{identity:identity,automationHybridServiceUrl:automationHybridServiceUrl}"],
+      [
+        "automation",
+        "account",
+        "show",
+        "--name",
+        acct.name,
+        "--resource-group",
+        acct.rg,
+        "--query",
+        "{identity:identity,automationHybridServiceUrl:automationHybridServiceUrl}",
+      ],
       sub,
       timeout,
     )
@@ -718,7 +765,17 @@ export async function automationCredDump(args: string[], timeout: number): Promi
     }
 
     const runbooks = await az(
-      ["automation", "runbook", "list", "--automation-account-name", acct.name, "--resource-group", acct.rg, "--query", "[].{name:name,type:runbookType,state:state}"],
+      [
+        "automation",
+        "runbook",
+        "list",
+        "--automation-account-name",
+        acct.name,
+        "--resource-group",
+        acct.rg,
+        "--query",
+        "[].{name:name,type:runbookType,state:state}",
+      ],
       sub,
       timeout,
     )

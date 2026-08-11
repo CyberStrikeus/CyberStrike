@@ -687,7 +687,10 @@ export async function resourceGraph(args: string[], timeout: number): Promise<Ho
           status: "FAIL",
           resource: "azure://resource-graph",
           title: `${q.label}: ${count} found`,
-          details: items.slice(0, 10).map((i: Record<string, string>) => i.name).join(", "),
+          details: items
+            .slice(0, 10)
+            .map((i: Record<string, string>) => i.name)
+            .join(", "),
           remediation: `Review ${q.label.toLowerCase()} for security exposure`,
         })
       }
@@ -722,7 +725,9 @@ export async function vnetEnum(args: string[], timeout: number): Promise<HookRes
     for (const s of subnets) {
       const nsg = s.networkSecurityGroup ? s.networkSecurityGroup.id.split("/").pop() : "NONE"
       const svcEndpoints = (s.serviceEndpoints || []).map((e: Record<string, string>) => e.service).join(", ")
-      output.push(`      ${s.name}: ${s.addressPrefix} — NSG: ${nsg}${svcEndpoints ? `, SvcEndpoints: ${svcEndpoints}` : ""}`)
+      output.push(
+        `      ${s.name}: ${s.addressPrefix} — NSG: ${nsg}${svcEndpoints ? `, SvcEndpoints: ${svcEndpoints}` : ""}`,
+      )
       if (nsg === "NONE") {
         findings.push({
           checkId: "AZ-VNET-001",
@@ -748,7 +753,9 @@ export async function vnetEnum(args: string[], timeout: number): Promise<HookRes
         output.push(`    Peerings: ${peers.length}`)
         for (const p of peers) {
           const remote = p.remoteVirtualNetwork?.id?.split("/").pop() || "?"
-          output.push(`      → ${remote} (${p.peeringState}) allowGateway: ${p.allowGatewayTransit}, useRemote: ${p.useRemoteGateways}`)
+          output.push(
+            `      → ${remote} (${p.peeringState}) allowGateway: ${p.allowGatewayTransit}, useRemote: ${p.useRemoteGateways}`,
+          )
           findings.push({
             checkId: "AZ-VNET-002",
             provider: "azure",
@@ -782,7 +789,9 @@ export async function vnetEnum(args: string[], timeout: number): Promise<HookRes
     if (circuits.length > 0) {
       output.push(`\n[+] ExpressRoute circuits: ${circuits.length}`)
       for (const c of circuits) {
-        output.push(`    ${c.name} — provider: ${c.serviceProviderProperties?.serviceProviderName}, bandwidth: ${c.serviceProviderProperties?.bandwidthInMbps}Mbps`)
+        output.push(
+          `    ${c.name} — provider: ${c.serviceProviderProperties?.serviceProviderName}, bandwidth: ${c.serviceProviderProperties?.bandwidthInMbps}Mbps`,
+        )
         findings.push({
           checkId: "AZ-VNET-003",
           provider: "azure",
@@ -1119,7 +1128,13 @@ export async function dataFactoryEnum(args: string[], timeout: number): Promise<
 
   const rgArgs = rg ? ["--resource-group", rg] : []
   const factories = await az(["datafactory", "list", ...rgArgs], sub, timeout)
-  if (factories.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list Data Factories (extension may be needed: az extension add --name datafactory)", findings }
+  if (factories.exitCode !== 0)
+    return {
+      output:
+        output.join("\n") +
+        "[-] Cannot list Data Factories (extension may be needed: az extension add --name datafactory)",
+      findings,
+    }
 
   const items = tryJson(factories.stdout) || []
   output.push(`[+] Data Factories: ${items.length}\n`)
@@ -1205,7 +1220,9 @@ export async function frontDoorEnum(args: string[], timeout: number): Promise<Ho
       for (const pool of backends) {
         output.push(`    Backend pool: ${pool.name}`)
         for (const b of pool.backends || []) {
-          output.push(`      → ${b.address}:${b.httpPort}/${b.httpsPort} (priority: ${b.priority}, weight: ${b.weight})`)
+          output.push(
+            `      → ${b.address}:${b.httpPort}/${b.httpsPort} (priority: ${b.priority}, weight: ${b.weight})`,
+          )
         }
       }
 
@@ -1245,7 +1262,8 @@ export async function frontDoorEnum(args: string[], timeout: number): Promise<Ho
             remediation: "Switch WAF to Prevention mode",
           })
         }
-        const exclusions = p.managedRules?.managedRuleSets?.flatMap((r: Record<string, unknown[]>) => r.ruleGroupOverrides || []) || []
+        const exclusions =
+          p.managedRules?.managedRuleSets?.flatMap((r: Record<string, unknown[]>) => r.ruleGroupOverrides || []) || []
         if (exclusions.length > 0) {
           output.push(`    [!] Rule overrides: ${exclusions.length} groups modified`)
         }
@@ -1343,14 +1361,18 @@ export async function containerInstanceEnum(args: string[], timeout: number): Pr
 
       const mounts = c.volumeMounts || []
       if (mounts.length > 0) {
-        output.push(`      Volume mounts: ${mounts.map((m: Record<string, string>) => `${m.name}→${m.mountPath}`).join(", ")}`)
+        output.push(
+          `      Volume mounts: ${mounts.map((m: Record<string, string>) => `${m.name}→${m.mountPath}`).join(", ")}`,
+        )
       }
     }
 
     const volumes = group.volumes || []
     for (const v of volumes) {
       if (v.azureFile) {
-        output.push(`    Volume: ${v.name} → Azure File Share: ${v.azureFile.shareName} (account: ${v.azureFile.storageAccountName})`)
+        output.push(
+          `    Volume: ${v.name} → Azure File Share: ${v.azureFile.shareName} (account: ${v.azureFile.storageAccountName})`,
+        )
         findings.push({
           checkId: "AZ-ACI-003",
           provider: "azure",

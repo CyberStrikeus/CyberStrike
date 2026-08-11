@@ -88,9 +88,13 @@ export async function sentinelSuppress(args: string[], timeout: number): Promise
     const ruleList = tryJson(rules.stdout) || []
     const enabled = ruleList.filter((r: Record<string, unknown>) => r.enabled !== false)
     const disabled = ruleList.filter((r: Record<string, unknown>) => r.enabled === false)
-    output.push(`\n[+] Sentinel analytics rules in ${targetWs}: ${ruleList.length} (${enabled.length} enabled, ${disabled.length} disabled)`)
+    output.push(
+      `\n[+] Sentinel analytics rules in ${targetWs}: ${ruleList.length} (${enabled.length} enabled, ${disabled.length} disabled)`,
+    )
     for (const r of ruleList.slice(0, 20)) {
-      output.push(`    ${r.displayName || r.name} [${r.enabled !== false ? "ENABLED" : "DISABLED"}] severity: ${r.severity || "unknown"}`)
+      output.push(
+        `    ${r.displayName || r.name} [${r.enabled !== false ? "ENABLED" : "DISABLED"}] severity: ${r.severity || "unknown"}`,
+      )
     }
     if (ruleList.length > 20) output.push(`    ... and ${ruleList.length - 20} more`)
 
@@ -129,7 +133,19 @@ export async function sentinelSuppress(args: string[], timeout: number): Promise
     for (const r of rulesList) {
       if (r.enabled === false) continue
       const disable = await az(
-        ["sentinel", "alert-rule", "update", "--resource-group", targetRg, "--workspace-name", targetWs, "--name", r.name, "--enabled", "false"],
+        [
+          "sentinel",
+          "alert-rule",
+          "update",
+          "--resource-group",
+          targetRg,
+          "--workspace-name",
+          targetWs,
+          "--name",
+          r.name,
+          "--enabled",
+          "false",
+        ],
         sub,
         timeout,
       )
@@ -158,7 +174,21 @@ export async function sentinelSuppress(args: string[], timeout: number): Promise
     let closed = 0
     for (const i of active) {
       const close = await az(
-        ["sentinel", "incident", "update", "--resource-group", targetRg, "--workspace-name", targetWs, "--incident-id", i.name, "--status", "Closed", "--classification", "FalsePositive"],
+        [
+          "sentinel",
+          "incident",
+          "update",
+          "--resource-group",
+          targetRg,
+          "--workspace-name",
+          targetWs,
+          "--incident-id",
+          i.name,
+          "--status",
+          "Closed",
+          "--classification",
+          "FalsePositive",
+        ],
         sub,
         timeout,
       )
@@ -192,13 +222,16 @@ export async function defenderDisable(args: string[], timeout: number): Promise<
   const output: string[] = ["[*] Microsoft Defender for Cloud analysis...\n"]
 
   const pricing = await az(["security", "pricing", "list"], sub, timeout)
-  if (pricing.exitCode !== 0) return { output: "[-] Cannot list Defender pricing plans — may need Security Reader role", findings }
+  if (pricing.exitCode !== 0)
+    return { output: "[-] Cannot list Defender pricing plans — may need Security Reader role", findings }
 
   const plans = tryJson(pricing.stdout)?.value || tryJson(pricing.stdout) || []
   const enabledPlans = plans.filter((p: Record<string, unknown>) => p.pricingTier === "Standard")
   const freePlans = plans.filter((p: Record<string, unknown>) => p.pricingTier === "Free")
 
-  output.push(`[+] Defender plans: ${plans.length} total, ${enabledPlans.length} enabled (Standard), ${freePlans.length} disabled (Free)`)
+  output.push(
+    `[+] Defender plans: ${plans.length} total, ${enabledPlans.length} enabled (Standard), ${freePlans.length} disabled (Free)`,
+  )
   output.push("")
   for (const p of plans) {
     const tier = p.pricingTier === "Standard" ? "[ENABLED]" : "[FREE]  "
@@ -352,14 +385,29 @@ export async function policyExempt(args: string[], timeout: number): Promise<Hoo
     const exemptList = tryJson(exemptions.stdout) || []
     if (exemptList.length > 0) {
       output.push(`\n[+] Existing policy exemptions: ${exemptList.length}`)
-      for (const e of exemptList) output.push(`    ${e.displayName || e.name} — ${e.exemptionCategory} (assignment: ${e.policyAssignmentId?.split("/").pop()})`)
+      for (const e of exemptList)
+        output.push(
+          `    ${e.displayName || e.name} — ${e.exemptionCategory} (assignment: ${e.policyAssignmentId?.split("/").pop()})`,
+        )
     }
   }
 
   if (action === "exempt" && assignment) {
     const name = exemptionName || `cs-exempt-${Date.now()}`
     const create = await az(
-      ["policy", "exemption", "create", "--name", name, "--policy-assignment", assignment, "--exemption-category", "Waiver", "--display-name", `CyberStrike waiver: ${name}`],
+      [
+        "policy",
+        "exemption",
+        "create",
+        "--name",
+        name,
+        "--policy-assignment",
+        assignment,
+        "--exemption-category",
+        "Waiver",
+        "--display-name",
+        `CyberStrike waiver: ${name}`,
+      ],
       sub,
       timeout,
     )
@@ -401,7 +449,9 @@ export async function wafBypass(args: string[], timeout: number): Promise<HookRe
       const wafEnabled = gw.webApplicationFirewallConfiguration?.enabled
       const wafMode = gw.webApplicationFirewallConfiguration?.firewallMode || "N/A"
       const sku = gw.sku?.name || "unknown"
-      output.push(`    ${gw.name} (${sku}) — WAF: ${wafEnabled ? "enabled" : "disabled"}, mode: ${wafMode}, rg: ${gw.resourceGroup}`)
+      output.push(
+        `    ${gw.name} (${sku}) — WAF: ${wafEnabled ? "enabled" : "disabled"}, mode: ${wafMode}, rg: ${gw.resourceGroup}`,
+      )
       if (wafEnabled && wafMode === "Detection") {
         findings.push({
           checkId: "AZ-WAF-001",
@@ -454,7 +504,18 @@ export async function wafBypass(args: string[], timeout: number): Promise<HookRe
 
   if (action === "disable" && gateway && rg) {
     const disable = await az(
-      ["network", "application-gateway", "waf-config", "set", "--gateway-name", gateway, "--resource-group", rg, "--enabled", "false"],
+      [
+        "network",
+        "application-gateway",
+        "waf-config",
+        "set",
+        "--gateway-name",
+        gateway,
+        "--resource-group",
+        rg,
+        "--enabled",
+        "false",
+      ],
       sub,
       timeout,
     )
@@ -477,7 +538,18 @@ export async function wafBypass(args: string[], timeout: number): Promise<HookRe
 
   if (action === "detection" && gateway && rg) {
     const weaken = await az(
-      ["network", "application-gateway", "waf-config", "set", "--gateway-name", gateway, "--resource-group", rg, "--firewall-mode", "Detection"],
+      [
+        "network",
+        "application-gateway",
+        "waf-config",
+        "set",
+        "--gateway-name",
+        gateway,
+        "--resource-group",
+        rg,
+        "--firewall-mode",
+        "Detection",
+      ],
       sub,
       timeout,
     )
@@ -513,7 +585,9 @@ export async function alertSuppress(args: string[], timeout: number): Promise<Ho
     const disabled = alerts.filter((a: Record<string, unknown>) => a.enabled === false)
     output.push(`[+] Metric alerts: ${alerts.length} (${enabled.length} enabled, ${disabled.length} disabled)`)
     for (const a of alerts.slice(0, 15)) {
-      output.push(`    ${a.enabled !== false ? "[ON] " : "[OFF]"} ${a.name} — severity: ${a.severity}, rg: ${a.resourceGroup}`)
+      output.push(
+        `    ${a.enabled !== false ? "[ON] " : "[OFF]"} ${a.name} — severity: ${a.severity}, rg: ${a.resourceGroup}`,
+      )
     }
     if (alerts.length > 15) output.push(`    ... and ${alerts.length - 15} more`)
   }
@@ -528,11 +602,16 @@ export async function alertSuppress(args: string[], timeout: number): Promise<Ho
         ...(g.smsReceivers || []).map((r: Record<string, string>) => `sms:${r.phoneNumber}`),
         ...(g.webhookReceivers || []).map((r: Record<string, string>) => `webhook:${r.serviceUri?.substring(0, 40)}`),
       ]
-      output.push(`    ${g.groupShortName || g.name} (${g.enabled !== false ? "enabled" : "disabled"}): ${receivers.join(", ") || "no receivers"}`)
+      output.push(
+        `    ${g.groupShortName || g.name} (${g.enabled !== false ? "enabled" : "disabled"}): ${receivers.join(", ") || "no receivers"}`,
+      )
     }
 
-    const withReceivers = groups.filter((g: Record<string, unknown[]>) =>
-      (g.emailReceivers?.length || 0) > 0 || (g.smsReceivers?.length || 0) > 0 || (g.webhookReceivers?.length || 0) > 0
+    const withReceivers = groups.filter(
+      (g: Record<string, unknown[]>) =>
+        (g.emailReceivers?.length || 0) > 0 ||
+        (g.smsReceivers?.length || 0) > 0 ||
+        (g.webhookReceivers?.length || 0) > 0,
     )
     if (withReceivers.length > 0) {
       findings.push({
@@ -563,7 +642,18 @@ export async function alertSuppress(args: string[], timeout: number): Promise<Ho
     for (const a of alerts) {
       if (a.enabled === false) continue
       const dis = await az(
-        ["monitor", "metrics", "alert", "update", "--name", a.name, "--resource-group", a.resourceGroup, "--enabled", "false"],
+        [
+          "monitor",
+          "metrics",
+          "alert",
+          "update",
+          "--name",
+          a.name,
+          "--resource-group",
+          a.resourceGroup,
+          "--enabled",
+          "false",
+        ],
         sub,
         timeout,
       )
@@ -588,9 +678,22 @@ export async function alertSuppress(args: string[], timeout: number): Promise<Ho
 
   if (action === "clear_action_group" && rg) {
     const agName = argVal(args, "--action-group")
-    if (!agName) return { output: output.join("\n") + "\n\n[-] --action-group required for clear_action_group", findings }
+    if (!agName)
+      return { output: output.join("\n") + "\n\n[-] --action-group required for clear_action_group", findings }
     const clear = await az(
-      ["monitor", "action-group", "update", "--name", agName, "--resource-group", rg, "--remove-action", "email", "sms", "webhook"],
+      [
+        "monitor",
+        "action-group",
+        "update",
+        "--name",
+        agName,
+        "--resource-group",
+        rg,
+        "--remove-action",
+        "email",
+        "sms",
+        "webhook",
+      ],
       sub,
       timeout,
     )

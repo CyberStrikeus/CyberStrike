@@ -50,13 +50,7 @@ import {
   devopsPipelineBackdoor,
   lighthousePersist,
 } from "./persistence"
-import {
-  vmRunCommand,
-  bastionTunnel,
-  arcExec,
-  devopsServiceConn,
-  crossTenantEnum,
-} from "./lateral"
+import { vmRunCommand, bastionTunnel, arcExec, devopsServiceConn, crossTenantEnum } from "./lateral"
 import {
   diagnosticTamper,
   sentinelSuppress,
@@ -81,23 +75,28 @@ import { cleanupAzure } from "./cleanup"
 const PROGRAMS = {
   // ── Recon & Enumeration (17) ──
   subscription_enum: {
-    description: "Enumerate all accessible Azure subscriptions, management groups, and tenant info — determines blast radius",
+    description:
+      "Enumerate all accessible Azure subscriptions, management groups, and tenant info — determines blast radius",
     args: "",
   },
   resource_graph: {
-    description: "Azure Resource Graph cross-subscription discovery: find all public IPs, exposed storage, VMs with public access across all subscriptions",
+    description:
+      "Azure Resource Graph cross-subscription discovery: find all public IPs, exposed storage, VMs with public access across all subscriptions",
     args: "[--query QUERY] [--subscription-id SUB]",
   },
   entra_enum: {
-    description: "Enumerate Entra ID (Azure AD) users, groups, app registrations, service principals, and role assignments",
+    description:
+      "Enumerate Entra ID (Azure AD) users, groups, app registrations, service principals, and role assignments",
     args: "[--subscription-id SUB]",
   },
   vm_enum: {
-    description: "Enumerate Azure VMs: extensions, custom data, disk encryption, public IPs, NSG associations, user data scripts",
+    description:
+      "Enumerate Azure VMs: extensions, custom data, disk encryption, public IPs, NSG associations, user data scripts",
     args: "[--subscription-id SUB] [--resource-group RG]",
   },
   vmss_enum: {
-    description: "Enumerate VM Scale Sets: instances, extensions, managed identity, custom data, health probes, auto-scale rules",
+    description:
+      "Enumerate VM Scale Sets: instances, extensions, managed identity, custom data, health probes, auto-scale rules",
     args: "[--subscription-id SUB] [--resource-group RG]",
   },
   aks_enum: {
@@ -105,23 +104,28 @@ const PROGRAMS = {
     args: "[--cluster NAME] [--resource-group RG]",
   },
   vnet_enum: {
-    description: "VNet topology: subnets, peering connections (implicit trust), VPN gateways, ExpressRoute, Private Endpoints",
+    description:
+      "VNet topology: subnets, peering connections (implicit trust), VPN gateways, ExpressRoute, Private Endpoints",
     args: "[--subscription-id SUB] [--resource-group RG]",
   },
   nsg_audit: {
-    description: "Audit NSGs for overly permissive rules: open 0.0.0.0/0 ingress, any-any rules, dangerous port exposure (RDP/SSH/SQL)",
+    description:
+      "Audit NSGs for overly permissive rules: open 0.0.0.0/0 ingress, any-any rules, dangerous port exposure (RDP/SSH/SQL)",
     args: "[--subscription-id SUB] [--resource-group RG]",
   },
   rbac_audit: {
-    description: "Audit RBAC role assignments: Owner/Contributor at subscription level, custom roles with dangerous actions, overprivileged SPs",
+    description:
+      "Audit RBAC role assignments: Owner/Contributor at subscription level, custom roles with dangerous actions, overprivileged SPs",
     args: "[--subscription-id SUB]",
   },
   sql_enum: {
-    description: "Enumerate Azure SQL: firewall rules, AD admin, TDE status, auditing config, public endpoint exposure, connection strings",
+    description:
+      "Enumerate Azure SQL: firewall rules, AD admin, TDE status, auditing config, public endpoint exposure, connection strings",
     args: "[--subscription-id SUB] [--server NAME]",
   },
   app_service_enum: {
-    description: "Enumerate App Services: connection strings, app settings with secrets, SCM/Kudu access, managed identity, CORS config",
+    description:
+      "Enumerate App Services: connection strings, app settings with secrets, SCM/Kudu access, managed identity, CORS config",
     args: "[--subscription-id SUB] [--resource-group RG]",
   },
   dns_enum: {
@@ -137,11 +141,13 @@ const PROGRAMS = {
     args: "[--subscription-id SUB]",
   },
   data_factory_enum: {
-    description: "Data Factory pipelines and linked services — extract connection strings to production databases and storage",
+    description:
+      "Data Factory pipelines and linked services — extract connection strings to production databases and storage",
     args: "[--subscription-id SUB] [--resource-group RG]",
   },
   front_door_enum: {
-    description: "Front Door / Application Gateway / WAF: origins, routing rules, WAF policies, exclusions, backend exposure",
+    description:
+      "Front Door / Application Gateway / WAF: origins, routing rules, WAF policies, exclusions, backend exposure",
     args: "[--subscription-id SUB]",
   },
   container_instance_enum: {
@@ -163,33 +169,40 @@ const PROGRAMS = {
     args: "--action <refresh|foci> [--refresh-token TOKEN] [--client-id ID]",
   },
   imds_harvest: {
-    description: "Extract credentials and metadata from Azure IMDS: subscription info, VM identity tokens, network config",
+    description:
+      "Extract credentials and metadata from Azure IMDS: subscription info, VM identity tokens, network config",
     args: "[--resource RESOURCE_URL]",
   },
   device_code_phish: {
-    description: "Initiate device code auth flow for phishing — generates user_code, polls for token. #1 Azure initial access technique",
+    description:
+      "Initiate device code auth flow for phishing — generates user_code, polls for token. #1 Azure initial access technique",
     args: "[--client-id ID] [--scope SCOPE] [--tenant TENANT]",
   },
   token_theft: {
-    description: "Extract Azure tokens from local files: .azure/ profile, accessTokens.json, msal_token_cache, az CLI cache",
+    description:
+      "Extract Azure tokens from local files: .azure/ profile, accessTokens.json, msal_token_cache, az CLI cache",
     args: "",
   },
   certificate_abuse: {
-    description: "Generate/upload certificate for SP auth — bypasses MFA and conditional access. Enumerate existing cert credentials",
+    description:
+      "Generate/upload certificate for SP auth — bypasses MFA and conditional access. Enumerate existing cert credentials",
     args: "--app-id ID [--generate] [--subscription-id SUB]",
   },
   storage_key_dump: {
-    description: "Extract storage account access keys and generate SAS tokens for all accessible accounts. Keys never expire",
+    description:
+      "Extract storage account access keys and generate SAS tokens for all accessible accounts. Keys never expire",
     args: "[--account-name NAME] [--subscription-id SUB]",
   },
   automation_cred_dump: {
-    description: "Extract credentials, variables, and certificates from Azure Automation Accounts including RunAs accounts",
+    description:
+      "Extract credentials, variables, and certificates from Azure Automation Accounts including RunAs accounts",
     args: "[--subscription-id SUB] [--resource-group RG]",
   },
 
   // ── Privilege Escalation (6) ──
   entra_privesc: {
-    description: "Exploit Entra ID misconfigs: consent grant, SP secret injection, role assignment for privilege escalation",
+    description:
+      "Exploit Entra ID misconfigs: consent grant, SP secret injection, role assignment for privilege escalation",
     args: "--method <consent_grant|sp_secret|role_assign> [--target-id ID]",
   },
   custom_role_exploit: {
@@ -197,25 +210,30 @@ const PROGRAMS = {
     args: "[--subscription-id SUB]",
   },
   conditional_access_audit: {
-    description: "Enumerate CA policies — find gaps: no MFA for admins, excluded users, trusted locations, legacy auth allowed",
+    description:
+      "Enumerate CA policies — find gaps: no MFA for admins, excluded users, trusted locations, legacy auth allowed",
     args: "",
   },
   pim_abuse: {
-    description: "Enumerate PIM eligible roles — find roles with no approval required. Attempt activation for instant admin",
+    description:
+      "Enumerate PIM eligible roles — find roles with no approval required. Attempt activation for instant admin",
     args: "[--role-id ID] [--activate]",
   },
   managed_identity_privesc: {
-    description: "Cross-reference managed identities with RBAC — find over-privileged identities (Contributor on subscription)",
+    description:
+      "Cross-reference managed identities with RBAC — find over-privileged identities (Contributor on subscription)",
     args: "[--subscription-id SUB]",
   },
   deployment_privesc: {
-    description: "Abuse deployments/write to deploy ARM template creating new Owner role assignment. Shows exploit template",
+    description:
+      "Abuse deployments/write to deploy ARM template creating new Owner role assignment. Shows exploit template",
     args: "[--subscription-id SUB] [--resource-group RG]",
   },
 
   // ── Persistence (8) ──
   runbook_backdoor: {
-    description: "Create/modify Automation Account runbook with reverse shell payload, publish and schedule for persistence",
+    description:
+      "Create/modify Automation Account runbook with reverse shell payload, publish and schedule for persistence",
     args: "--automation-account NAME --resource-group RG [--callback-url URL]",
   },
   logic_app_backdoor: {
@@ -231,41 +249,50 @@ const PROGRAMS = {
     args: "--name NAME [--role ROLE] [--scope SCOPE]",
   },
   vm_extension_backdoor: {
-    description: "Deploy Custom Script Extension on VMs for persistent code execution — survives VM restart, runs as SYSTEM/root",
+    description:
+      "Deploy Custom Script Extension on VMs for persistent code execution — survives VM restart, runs as SYSTEM/root",
     args: "--vm-name VM --resource-group RG --command CMD [--os windows|linux]",
   },
   webhook_persist: {
-    description: "Create Event Grid subscription with webhook endpoint — event-driven callbacks on Azure resource changes",
+    description:
+      "Create Event Grid subscription with webhook endpoint — event-driven callbacks on Azure resource changes",
     args: "--endpoint URL [--event-type TYPE] [--subscription-id SUB]",
   },
   devops_pipeline_backdoor: {
-    description: "Inject steps into Azure DevOps pipeline YAML or create new pipeline with malicious build/release steps",
+    description:
+      "Inject steps into Azure DevOps pipeline YAML or create new pipeline with malicious build/release steps",
     args: "--org ORG --project PROJECT [--pipeline-id ID] [--callback-url URL]",
   },
   lighthouse_persist: {
-    description: "Create Azure Lighthouse delegation to external tenant — rarely audited cross-tenant persistent access",
+    description:
+      "Create Azure Lighthouse delegation to external tenant — rarely audited cross-tenant persistent access",
     args: "--tenant-id TENANT --principal-id PRINCIPAL [--role ROLE] [--subscription-id SUB]",
   },
 
   // ── Lateral Movement (5) ──
   vm_run_command: {
-    description: "Execute commands on Azure VMs via Run Command API — no SSH/RDP needed, works through management plane even without public IP",
+    description:
+      "Execute commands on Azure VMs via Run Command API — no SSH/RDP needed, works through management plane even without public IP",
     args: "--vm-name VM --resource-group RG --cmd CMD [--os windows|linux]",
   },
   bastion_tunnel: {
-    description: "Enumerate Azure Bastion hosts and create SSH/RDP tunnels to VMs in private VNets through management plane",
+    description:
+      "Enumerate Azure Bastion hosts and create SSH/RDP tunnels to VMs in private VNets through management plane",
     args: "[--resource-group RG] [--target-vm VM] [--ssh-key KEY]",
   },
   arc_exec: {
-    description: "Execute commands on Azure Arc-connected machines (on-prem/multi-cloud) — compromise Azure = compromise on-prem",
+    description:
+      "Execute commands on Azure Arc-connected machines (on-prem/multi-cloud) — compromise Azure = compromise on-prem",
     args: "[--machine-name NAME] [--resource-group RG] [--cmd CMD]",
   },
   devops_service_conn: {
-    description: "Enumerate Azure DevOps service connections — extract credentials for cross-environment pivoting to K8s, Docker, other subs",
+    description:
+      "Enumerate Azure DevOps service connections — extract credentials for cross-environment pivoting to K8s, Docker, other subs",
     args: "--org ORG --project PROJECT",
   },
   cross_tenant_enum: {
-    description: "Enumerate cross-tenant access settings, B2B collaborations, guest user access for multi-tenant pivoting",
+    description:
+      "Enumerate cross-tenant access settings, B2B collaborations, guest user access for multi-tenant pivoting",
     args: "",
   },
 
@@ -279,15 +306,18 @@ const PROGRAMS = {
     args: "--action <list|close|disable_rule> [--subscription-id SUB] [--workspace WS]",
   },
   defender_disable: {
-    description: "Disable Defender for Cloud plans (Servers, Storage, SQL, Containers, KeyVault, DNS, ARM) per subscription",
+    description:
+      "Disable Defender for Cloud plans (Servers, Storage, SQL, Containers, KeyVault, DNS, ARM) per subscription",
     args: "[--plan PLAN] [--subscription-id SUB]",
   },
   activity_log_tamper: {
-    description: "Modify Activity Log diagnostic settings — change retention, delete/redirect log sinks to cover tracks",
+    description:
+      "Modify Activity Log diagnostic settings — change retention, delete/redirect log sinks to cover tracks",
     args: "--action <status|delete|redirect> [--subscription-id SUB]",
   },
   policy_exempt: {
-    description: "Create Azure Policy exemptions to bypass security guardrails — stealthy, doesn't remove the policy itself",
+    description:
+      "Create Azure Policy exemptions to bypass security guardrails — stealthy, doesn't remove the policy itself",
     args: "--assignment ASSIGNMENT --name NAME [--subscription-id SUB]",
   },
   waf_bypass: {
@@ -295,7 +325,8 @@ const PROGRAMS = {
     args: "--action <list|disable|exclude> [--subscription-id SUB]",
   },
   alert_suppress: {
-    description: "Suppress Azure Monitor alerts — disable alert rules, remove notification recipients from action groups",
+    description:
+      "Suppress Azure Monitor alerts — disable alert rules, remove notification recipients from action groups",
     args: "--action <list|disable|suppress> [--subscription-id SUB]",
   },
 
@@ -305,7 +336,8 @@ const PROGRAMS = {
     args: "[--account-name NAME] [--container CONTAINER] [--download] [--pattern REGEX]",
   },
   cosmos_dump: {
-    description: "Enumerate and extract data from Cosmos DB — list databases, containers, query documents for sensitive data",
+    description:
+      "Enumerate and extract data from Cosmos DB — list databases, containers, query documents for sensitive data",
     args: "--account NAME [--database DB] [--container CONTAINER] [--query QUERY] [--max-items N]",
   },
   disk_snapshot: {
@@ -313,15 +345,18 @@ const PROGRAMS = {
     args: "--disk-id DISK_ID --resource-group RG [--share-sub SUB]",
   },
   table_queue_dump: {
-    description: "Extract data from Azure Table Storage and Queue Storage — enumerate tables, query entities, peek queue messages",
+    description:
+      "Extract data from Azure Table Storage and Queue Storage — enumerate tables, query entities, peek queue messages",
     args: "--account-name NAME [--table TABLE] [--queue QUEUE]",
   },
   file_share_dump: {
-    description: "Enumerate and download from Azure File Shares (SMB) — find credentials and config files in mounted shares",
+    description:
+      "Enumerate and download from Azure File Shares (SMB) — find credentials and config files in mounted shares",
     args: "--account-name NAME [--share SHARE] [--pattern REGEX]",
   },
   data_lake_dump: {
-    description: "Enumerate and extract from Azure Data Lake Storage Gen2 — filesystem listing, ACL checks, selective download",
+    description:
+      "Enumerate and extract from Azure Data Lake Storage Gen2 — filesystem listing, ACL checks, selective download",
     args: "--account-name NAME [--filesystem FS] [--path PATH]",
   },
   service_bus_sniff: {
@@ -335,7 +370,8 @@ const PROGRAMS = {
 
   // ── Cleanup (1) ──
   cleanup_azure: {
-    description: "Remove all CyberStrike-created Azure resources: SPs, runbooks, extensions, event grid subs, policy exemptions, snapshots. ALWAYS run before leaving",
+    description:
+      "Remove all CyberStrike-created Azure resources: SPs, runbooks, extensions, event grid subs, policy exemptions, snapshots. ALWAYS run before leaving",
     args: "[--dry-run]",
   },
 } as const satisfies Record<string, { description: string; args: string }>
@@ -532,7 +568,10 @@ export const AzurehookTool = Tool.define("azurehook", {
     timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
-    if (!Bun.which("az") && !["managed_identity", "imds_harvest", "token_theft", "device_code_phish"].includes(params.program)) {
+    if (
+      !Bun.which("az") &&
+      !["managed_identity", "imds_harvest", "token_theft", "device_code_phish"].includes(params.program)
+    ) {
       return {
         title: `azurehook: ${params.program}`,
         output: "az CLI not found. Install: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli",

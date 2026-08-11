@@ -102,8 +102,14 @@ export async function cleanupAzure(args: string[], timeout: number): Promise<Hoo
       if (dryRun) {
         output.push(`    [DRY] Would delete snapshot: ${s.name}`)
       } else {
-        const del = await az(["snapshot", "delete", "--name", s.name, "--resource-group", s.resourceGroup, "--yes"], sub, timeout)
-        output.push(del.exitCode === 0 ? `    [+] Deleted snapshot: ${s.name}` : `    [-] Failed: ${del.stderr.slice(0, 100)}`)
+        const del = await az(
+          ["snapshot", "delete", "--name", s.name, "--resource-group", s.resourceGroup, "--yes"],
+          sub,
+          timeout,
+        )
+        output.push(
+          del.exitCode === 0 ? `    [+] Deleted snapshot: ${s.name}` : `    [-] Failed: ${del.stderr.slice(0, 100)}`,
+        )
       }
       cleaned++
     }
@@ -119,7 +125,9 @@ export async function cleanupAzure(args: string[], timeout: number): Promise<Hoo
         output.push(`    [DRY] Would delete exemption: ${e.name}`)
       } else {
         const del = await az(["policy", "exemption", "delete", "--name", e.name], sub, timeout)
-        output.push(del.exitCode === 0 ? `    [+] Deleted exemption: ${e.name}` : `    [-] Failed: ${del.stderr.slice(0, 100)}`)
+        output.push(
+          del.exitCode === 0 ? `    [+] Deleted exemption: ${e.name}` : `    [-] Failed: ${del.stderr.slice(0, 100)}`,
+        )
       }
       cleaned++
     }
@@ -135,7 +143,11 @@ export async function cleanupAzure(args: string[], timeout: number): Promise<Hoo
         output.push(`    [DRY] Would delete event subscription: ${es.name}`)
       } else {
         const del = await az(["eventgrid", "event-subscription", "delete", "--name", es.name], sub, timeout)
-        output.push(del.exitCode === 0 ? `    [+] Deleted event subscription: ${es.name}` : `    [-] Failed: ${del.stderr.slice(0, 100)}`)
+        output.push(
+          del.exitCode === 0
+            ? `    [+] Deleted event subscription: ${es.name}`
+            : `    [-] Failed: ${del.stderr.slice(0, 100)}`,
+        )
       }
       cleaned++
     }
@@ -146,11 +158,30 @@ export async function cleanupAzure(args: string[], timeout: number): Promise<Hoo
   if (ehNamespaces.exitCode === 0) {
     const nsList = tryJson(ehNamespaces.stdout) || []
     for (const ns of nsList) {
-      const hubs = await az(["eventhubs", "eventhub", "list", "--namespace-name", ns.name, "--resource-group", ns.resourceGroup], sub, timeout)
+      const hubs = await az(
+        ["eventhubs", "eventhub", "list", "--namespace-name", ns.name, "--resource-group", ns.resourceGroup],
+        sub,
+        timeout,
+      )
       if (hubs.exitCode !== 0) continue
       const hubList = tryJson(hubs.stdout) || []
       for (const h of hubList) {
-        const cgs = await az(["eventhubs", "eventhub", "consumer-group", "list", "--eventhub-name", h.name, "--namespace-name", ns.name, "--resource-group", ns.resourceGroup], sub, timeout)
+        const cgs = await az(
+          [
+            "eventhubs",
+            "eventhub",
+            "consumer-group",
+            "list",
+            "--eventhub-name",
+            h.name,
+            "--namespace-name",
+            ns.name,
+            "--resource-group",
+            ns.resourceGroup,
+          ],
+          sub,
+          timeout,
+        )
         if (cgs.exitCode !== 0) continue
         const cgList = tryJson(cgs.stdout) || []
         for (const cg of cgList) {
@@ -158,8 +189,29 @@ export async function cleanupAzure(args: string[], timeout: number): Promise<Hoo
           if (dryRun) {
             output.push(`    [DRY] Would delete consumer group: ${cg.name} on ${h.name}`)
           } else {
-            const del = await az(["eventhubs", "eventhub", "consumer-group", "delete", "--name", cg.name, "--eventhub-name", h.name, "--namespace-name", ns.name, "--resource-group", ns.resourceGroup], sub, timeout)
-            output.push(del.exitCode === 0 ? `    [+] Deleted consumer group: ${cg.name}` : `    [-] Failed: ${del.stderr.slice(0, 100)}`)
+            const del = await az(
+              [
+                "eventhubs",
+                "eventhub",
+                "consumer-group",
+                "delete",
+                "--name",
+                cg.name,
+                "--eventhub-name",
+                h.name,
+                "--namespace-name",
+                ns.name,
+                "--resource-group",
+                ns.resourceGroup,
+              ],
+              sub,
+              timeout,
+            )
+            output.push(
+              del.exitCode === 0
+                ? `    [+] Deleted consumer group: ${cg.name}`
+                : `    [-] Failed: ${del.stderr.slice(0, 100)}`,
+            )
           }
           cleaned++
         }
@@ -180,7 +232,11 @@ export async function cleanupAzure(args: string[], timeout: number): Promise<Hoo
           output.push(`    [DRY] Would delete Lighthouse assignment: ${lh.name}`)
         } else {
           const del = await az(["managedservices", "assignment", "delete", "--assignment", lh.name], sub, timeout)
-          output.push(del.exitCode === 0 ? `    [+] Deleted Lighthouse assignment: ${lh.name}` : `    [-] Failed: ${del.stderr.slice(0, 100)}`)
+          output.push(
+            del.exitCode === 0
+              ? `    [+] Deleted Lighthouse assignment: ${lh.name}`
+              : `    [-] Failed: ${del.stderr.slice(0, 100)}`,
+          )
         }
         cleaned++
       }
