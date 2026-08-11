@@ -162,7 +162,7 @@ export async function rdsDump(args: string[], timeout: number): Promise<HookResu
   if (wait.exitCode === 0) output.push(`[+] Snapshot available`)
 
   findings.push({
-    checkId: "AWS-RDS-001",
+    checkId: "AWS-RDS-004",
     provider: "aws",
     severity: "critical",
     status: "EXTRACTED",
@@ -191,7 +191,7 @@ export async function rdsDump(args: string[], timeout: number): Promise<HookResu
     if (sr.exitCode === 0) {
       output.push(`[+] Snapshot shared with account: ${shareAccount}`)
       findings.push({
-        checkId: "AWS-RDS-002",
+        checkId: "AWS-RDS-005",
         provider: "aws",
         severity: "critical",
         status: "SHARED",
@@ -1657,7 +1657,7 @@ export async function snsSqsSiphon(args: string[], timeout: number): Promise<Hoo
           if (principal.includes("*") && s.Effect === "Allow") {
             output.push(`      [!] OPEN POLICY — anyone can publish/subscribe`)
             findings.push({
-              checkId: "AWS-SNS-001",
+              checkId: "AWS-SNS-003",
               provider: "aws",
               severity: "high",
               status: "FAIL",
