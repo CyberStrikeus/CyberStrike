@@ -225,7 +225,7 @@ if ($writableShares) {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-SHARE-001",
+      checkId: "WIN-SHARE-005",
       provider: "windows",
       severity: "info",
       status: "ENUMERATED",
@@ -420,7 +420,7 @@ if ($credFinds.Count -gt 0) {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-SHARE-003",
+      checkId: "WIN-SHARE-006",
       provider: "windows",
       severity: r.stdout.includes("CREDENTIALS FOUND") ? "critical" : "medium",
       status: r.stdout.includes("CREDENTIALS FOUND") ? "VULNERABLE" : "CHECKED",
@@ -497,7 +497,7 @@ if ($writableShares) {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-SHARE-004",
+      checkId: "WIN-SHARE-007",
       provider: "windows",
       severity: r.stdout.includes("WRITABLE:") ? "high" : "info",
       status: r.stdout.includes("WRITABLE:") ? "VULNERABLE" : "CHECKED",
@@ -714,7 +714,7 @@ if ($totalSize -lt 1MB) {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-EXFIL-001",
+      checkId: "WIN-EXFIL-007",
       provider: "windows",
       severity: "info",
       status: "ENUMERATED",
@@ -773,7 +773,7 @@ Write-Output "    winhook data_exfil --action dns --target $archivePath --domain
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-EXFIL-002",
+      checkId: "WIN-EXFIL-008",
       provider: "windows",
       severity: "high",
       status: "EXECUTED",
@@ -1208,7 +1208,7 @@ Write-Output "[*] Enabled rules: $((Get-NetFirewallRule -Enabled True -ErrorActi
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-FW-001",
+      checkId: "WIN-FW-006",
       provider: "windows",
       severity: "info",
       status: "ENUMERATED",
@@ -1249,7 +1249,7 @@ Write-Output "[!] Firewall profiles disabled — restore with: winhook firewall_
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-FW-002",
+      checkId: "WIN-FW-007",
       provider: "windows",
       severity: "high",
       status: "EXECUTED",
@@ -1303,7 +1303,7 @@ try {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-FW-003",
+      checkId: "WIN-FW-008",
       provider: "windows",
       severity: "high",
       status: "EXECUTED",
@@ -1340,7 +1340,7 @@ try {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-FW-004",
+      checkId: "WIN-FW-009",
       provider: "windows",
       severity: "high",
       status: "EXECUTED",
@@ -1385,7 +1385,7 @@ Get-NetFirewallProfile | ForEach-Object {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-FW-005",
+      checkId: "WIN-FW-010",
       provider: "windows",
       severity: "info",
       status: "RESTORED",
@@ -1538,7 +1538,7 @@ foreach ($e in $csExclusions) {
   output.push("[*] Note: Event log clearing itself generates Event ID 1102 (Security log cleared)")
 
   findings.push({
-    checkId: "WIN-CLEANUP-001",
+    checkId: "WIN-CLEANUP-002",
     provider: "windows",
     severity: "info",
     status: "CLEANED",
