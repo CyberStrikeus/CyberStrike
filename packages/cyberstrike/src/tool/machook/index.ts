@@ -289,6 +289,8 @@ const CWE_MAP: Record<string, string> = {
   "MAC-CLIP-001": "CWE-200",
   "MAC-SCREEN-001": "CWE-200",
   "MAC-SSH-PIVOT-001": "CWE-78",
+  "MAC-SSH-PIVOT-002": "CWE-78",
+  "MAC-SSH-PIVOT-003": "CWE-78",
   "MAC-AIRDROP-001": "CWE-200",
   "MAC-BONJOUR-001": "CWE-200",
   "MAC-ARD-001": "CWE-269",

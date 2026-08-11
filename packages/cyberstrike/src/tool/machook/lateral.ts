@@ -78,7 +78,7 @@ export async function sshPivot(args: string[], timeout: number): Promise<HookRes
       output.push(`[!] Tunnel failed: ${tun.stderr.trim()}`)
     }
     findings.push({
-      checkId: "MAC-SSH-PIVOT-001",
+      checkId: "MAC-SSH-PIVOT-002",
       provider: "macos",
       severity: "high",
       status: "EXPLOITED",
@@ -105,7 +105,7 @@ export async function sshPivot(args: string[], timeout: number): Promise<HookRes
   }
 
   findings.push({
-    checkId: "MAC-SSH-PIVOT-001",
+    checkId: "MAC-SSH-PIVOT-003",
     provider: "macos",
     severity: "high",
     status: r.exitCode === 0 ? "EXPLOITED" : "ATTEMPTED",
