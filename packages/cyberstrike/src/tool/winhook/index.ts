@@ -1296,6 +1296,8 @@ const CWE_MAP: Record<string, string> = {
   AZURE: "CWE-287",
   EXCH: "CWE-269",
   BITL: "CWE-312",
+  "WIN-CERT": "CWE-295",
+  "WIN-COERCE-EXT": "CWE-294",
   CERT: "CWE-295",
   HELLO: "CWE-287",
   ENV: "CWE-693",
