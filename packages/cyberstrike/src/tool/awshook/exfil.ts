@@ -1415,7 +1415,17 @@ export async function backupVaultEnum(args: string[], timeout: number): Promise<
   const findings: Finding[] = []
   const output: string[] = ["[*] Enumerating AWS Backup vaults...\n"]
 
-  const r = await aws(["backup", "list-backup-vaults", "--query", "BackupVaultList[].{Name:BackupVaultName,Arn:BackupVaultArn,Points:NumberOfRecoveryPoints,Encrypted:EncryptionKeyArn}"], profile, region, timeout)
+  const r = await aws(
+    [
+      "backup",
+      "list-backup-vaults",
+      "--query",
+      "BackupVaultList[].{Name:BackupVaultName,Arn:BackupVaultArn,Points:NumberOfRecoveryPoints,Encrypted:EncryptionKeyArn}",
+    ],
+    profile,
+    region,
+    timeout,
+  )
   if (r.exitCode !== 0) return { output: `[-] Cannot list backup vaults: ${r.stderr.trim()}`, findings }
   const vaults = tryJson(r.stdout) || []
   output.push(`[+] Backup vaults: ${vaults.length}\n`)
@@ -1438,7 +1448,12 @@ export async function backupVaultEnum(args: string[], timeout: number): Promise<
       })
     }
 
-    const policy = await aws(["backup", "get-backup-vault-access-policy", "--backup-vault-name", v.Name], profile, region, timeout)
+    const policy = await aws(
+      ["backup", "get-backup-vault-access-policy", "--backup-vault-name", v.Name],
+      profile,
+      region,
+      timeout,
+    )
     if (policy.exitCode === 0) {
       const p = tryJson(policy.stdout)
       const policyDoc = p?.Policy ? tryJson(p.Policy) : null
@@ -1464,7 +1479,21 @@ export async function backupVaultEnum(args: string[], timeout: number): Promise<
     }
 
     if ((v.Points || 0) > 0) {
-      const rp = await aws(["backup", "list-recovery-points-by-backup-vault", "--backup-vault-name", v.Name, "--query", "RecoveryPoints[].{Type:ResourceType,Created:CreationDate,Status:Status}", "--max-results", "20"], profile, region, timeout)
+      const rp = await aws(
+        [
+          "backup",
+          "list-recovery-points-by-backup-vault",
+          "--backup-vault-name",
+          v.Name,
+          "--query",
+          "RecoveryPoints[].{Type:ResourceType,Created:CreationDate,Status:Status}",
+          "--max-results",
+          "20",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (rp.exitCode === 0) {
         const points = tryJson(rp.stdout) || []
         const types = [...new Set(points.map((p: Record<string, string>) => p.Type))]
@@ -1488,13 +1517,19 @@ export async function cloudwatchLogsDump(args: string[], timeout: number): Promi
   const findings: Finding[] = []
   const output: string[] = ["[*] CloudWatch Logs extraction...\n"]
 
-  const secretPattern = /(?:password|passwd|secret|api[_-]?key|token|bearer|authorization|aws_secret|private[_-]?key|connection[_-]?string|database_url|mongodb|postgres:\/\/|mysql:\/\/|redis:\/\/)/i
+  const secretPattern =
+    /(?:password|passwd|secret|api[_-]?key|token|bearer|authorization|aws_secret|private[_-]?key|connection[_-]?string|database_url|mongodb|postgres:\/\/|mysql:\/\/|redis:\/\/)/i
 
   const groups: string[] = []
   if (logGroup) {
     groups.push(logGroup)
   } else {
-    const r = await aws(["logs", "describe-log-groups", "--query", "logGroups[].logGroupName"], profile, region, timeout)
+    const r = await aws(
+      ["logs", "describe-log-groups", "--query", "logGroups[].logGroupName"],
+      profile,
+      region,
+      timeout,
+    )
     if (r.exitCode !== 0) return { output: `[-] Cannot list log groups: ${r.stderr.trim()}`, findings }
     const all = tryJson(r.stdout) || []
     output.push(`[+] Log groups found: ${all.length}`)
@@ -1507,7 +1542,24 @@ export async function cloudwatchLogsDump(args: string[], timeout: number): Promi
   for (const g of groups) {
     output.push(`\n── ${g} ──`)
 
-    const streams = await aws(["logs", "describe-log-streams", "--log-group-name", g, "--order-by", "LastEventTime", "--descending", "--limit", "3", "--query", "logStreams[].logStreamName"], profile, region, timeout)
+    const streams = await aws(
+      [
+        "logs",
+        "describe-log-streams",
+        "--log-group-name",
+        g,
+        "--order-by",
+        "LastEventTime",
+        "--descending",
+        "--limit",
+        "3",
+        "--query",
+        "logStreams[].logStreamName",
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (streams.exitCode !== 0) {
       output.push(`    [-] Access denied`)
       continue
@@ -1516,7 +1568,23 @@ export async function cloudwatchLogsDump(args: string[], timeout: number): Promi
     output.push(`    Streams (recent 3): ${streamNames.length}`)
 
     for (const s of streamNames) {
-      const events = await aws(["logs", "get-log-events", "--log-group-name", g, "--log-stream-name", s, "--limit", "100", "--query", "events[].message"], profile, region, timeout)
+      const events = await aws(
+        [
+          "logs",
+          "get-log-events",
+          "--log-group-name",
+          g,
+          "--log-stream-name",
+          s,
+          "--limit",
+          "100",
+          "--query",
+          "events[].message",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (events.exitCode !== 0) continue
       const messages = tryJson(events.stdout) || []
 
@@ -1569,7 +1637,12 @@ export async function snsSqsSiphon(args: string[], timeout: number): Promise<Hoo
 
     for (const arn of targets) {
       const name = arn.split(":").pop() || arn
-      const attrs = await aws(["sns", "get-topic-attributes", "--topic-arn", arn, "--query", "Attributes"], profile, region, timeout)
+      const attrs = await aws(
+        ["sns", "get-topic-attributes", "--topic-arn", arn, "--query", "Attributes"],
+        profile,
+        region,
+        timeout,
+      )
       if (attrs.exitCode !== 0) continue
       const a = tryJson(attrs.stdout)
       const policy = a?.Policy ? tryJson(a.Policy) : null
@@ -1597,7 +1670,19 @@ export async function snsSqsSiphon(args: string[], timeout: number): Promise<Hoo
         }
       }
 
-      const subs = await aws(["sns", "list-subscriptions-by-topic", "--topic-arn", arn, "--query", "Subscriptions[].{Protocol:Protocol,Endpoint:Endpoint}"], profile, region, timeout)
+      const subs = await aws(
+        [
+          "sns",
+          "list-subscriptions-by-topic",
+          "--topic-arn",
+          arn,
+          "--query",
+          "Subscriptions[].{Protocol:Protocol,Endpoint:Endpoint}",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (subs.exitCode === 0) {
         const subList = tryJson(subs.stdout) || []
         for (const sub of subList) output.push(`      → ${sub.Protocol}: ${sub.Endpoint}`)
@@ -1615,7 +1700,12 @@ export async function snsSqsSiphon(args: string[], timeout: number): Promise<Hoo
 
     for (const url of targets) {
       const name = url.split("/").pop() || url
-      const attrs = await aws(["sqs", "get-queue-attributes", "--queue-url", url, "--attribute-names", "All", "--query", "Attributes"], profile, region, timeout)
+      const attrs = await aws(
+        ["sqs", "get-queue-attributes", "--queue-url", url, "--attribute-names", "All", "--query", "Attributes"],
+        profile,
+        region,
+        timeout,
+      )
       if (attrs.exitCode !== 0) continue
       const a = tryJson(attrs.stdout) || {}
 
@@ -1626,7 +1716,23 @@ export async function snsSqsSiphon(args: string[], timeout: number): Promise<Hoo
 
       const msgCount = parseInt(a.ApproximateNumberOfMessages || "0")
       if (msgCount > 0) {
-        const recv = await aws(["sqs", "receive-message", "--queue-url", url, "--max-number-of-messages", "10", "--wait-time-seconds", "3", "--query", "Messages"], profile, region, timeout)
+        const recv = await aws(
+          [
+            "sqs",
+            "receive-message",
+            "--queue-url",
+            url,
+            "--max-number-of-messages",
+            "10",
+            "--wait-time-seconds",
+            "3",
+            "--query",
+            "Messages",
+          ],
+          profile,
+          region,
+          timeout,
+        )
         if (recv.exitCode === 0) {
           const messages = tryJson(recv.stdout) || []
           output.push(`      [+] Retrieved ${messages.length} message(s)`)
@@ -1671,7 +1777,12 @@ export async function kinesisTap(args: string[], timeout: number): Promise<HookR
   if (streamName && targets.length === 0) return { output: `[-] Stream "${streamName}" not found`, findings }
 
   for (const name of targets) {
-    const desc = await aws(["kinesis", "describe-stream", "--stream-name", name, "--query", "StreamDescription"], profile, region, timeout)
+    const desc = await aws(
+      ["kinesis", "describe-stream", "--stream-name", name, "--query", "StreamDescription"],
+      profile,
+      region,
+      timeout,
+    )
     if (desc.exitCode !== 0) {
       output.push(`\n[-] ${name}: access denied`)
       continue
@@ -1707,12 +1818,31 @@ export async function kinesisTap(args: string[], timeout: number): Promise<HookR
     const firstShard = d.Shards[0]?.ShardId
     if (!firstShard) continue
 
-    const iter = await aws(["kinesis", "get-shard-iterator", "--stream-name", name, "--shard-id", firstShard, "--shard-iterator-type", "LATEST"], profile, region, timeout)
+    const iter = await aws(
+      [
+        "kinesis",
+        "get-shard-iterator",
+        "--stream-name",
+        name,
+        "--shard-id",
+        firstShard,
+        "--shard-iterator-type",
+        "LATEST",
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (iter.exitCode !== 0) continue
     const iterData = tryJson(iter.stdout)
     if (!iterData?.ShardIterator) continue
 
-    const records = await aws(["kinesis", "get-records", "--shard-iterator", iterData.ShardIterator, "--limit", "10"], profile, region, timeout)
+    const records = await aws(
+      ["kinesis", "get-records", "--shard-iterator", iterData.ShardIterator, "--limit", "10"],
+      profile,
+      region,
+      timeout,
+    )
     if (records.exitCode !== 0) continue
     const recs = tryJson(records.stdout)
     const recList = recs?.Records || []
