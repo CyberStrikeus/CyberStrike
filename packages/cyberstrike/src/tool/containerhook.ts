@@ -660,6 +660,14 @@ async function composeSecrets(args: string[], timeout: number): Promise<HookResu
   const secretPatterns =
     /(?:password|secret|api[_-]?key|token|credential|aws[_-]?access|private[_-]?key|database[_-]?url|connection[_-]?string|mysql|postgres|redis|mongo)[\s]*[=:]/i
 
+  const maskLine = (l: string): string => {
+    const eq = l.indexOf("=")
+    if (eq > 0) return `${l.substring(0, eq + 1)}[SECRET — ${l.length - eq - 1} chars]`
+    const col = l.indexOf(": ")
+    if (col > 0) return `${l.substring(0, col + 2)}[SECRET — ${l.length - col - 2} chars]`
+    return `[SECRET LINE — ${l.length} chars]`
+  }
+
   const composeFiles = await run(
     "find",
     [
@@ -689,7 +697,7 @@ async function composeSecrets(args: string[], timeout: number): Promise<HookResu
       const lines = content.stdout.split("\n")
       for (let i = 0; i < lines.length; i++) {
         if (secretPatterns.test(lines[i])) {
-          output.push(`    [!] ${f}:${i + 1} — ${lines[i].trim().substring(0, 150)}`)
+          output.push(`    [!] ${f}:${i + 1} — ${maskLine(lines[i].trim())}`)
           findings.push({
             checkId: "CONT-SEC-001",
             provider: "docker",
@@ -697,7 +705,7 @@ async function composeSecrets(args: string[], timeout: number): Promise<HookResu
             status: "FAIL",
             resource: `file://${f}`,
             title: `Secret in compose file: ${f}`,
-            details: `Line ${i + 1}: ${lines[i].trim().substring(0, 300)}`,
+            details: `Line ${i + 1}: ${maskLine(lines[i].trim())}`,
             remediation: "Use Docker secrets or external secret management",
           })
         }
@@ -721,7 +729,7 @@ async function composeSecrets(args: string[], timeout: number): Promise<HookResu
         const line = lines[i].trim()
         if (line.startsWith("#") || !line.includes("=")) continue
         if (secretPatterns.test(line)) {
-          output.push(`    [!] ${f}:${i + 1} — ${line.substring(0, 150)}`)
+          output.push(`    [!] ${f}:${i + 1} — ${maskLine(line)}`)
           findings.push({
             checkId: "CONT-SEC-002",
             provider: "docker",
@@ -729,7 +737,7 @@ async function composeSecrets(args: string[], timeout: number): Promise<HookResu
             status: "EXTRACTED",
             resource: `file://${f}`,
             title: `Secret in env file: ${f}`,
-            details: `Line ${i + 1}: ${line.substring(0, 300)}`,
+            details: `Line ${i + 1}: ${maskLine(line)}`,
             remediation: "Use a secrets manager instead of .env files",
           })
         }
@@ -749,7 +757,7 @@ async function composeSecrets(args: string[], timeout: number): Promise<HookResu
       const env = tryJson(envStr) || []
       for (const e of env) {
         if (secretPatterns.test(e)) {
-          output.push(`    [!] ${name}: ${(e as string).substring(0, 150)}`)
+          output.push(`    [!] ${name}: ${maskLine(e as string)}`)
           findings.push({
             checkId: "CONT-SEC-003",
             provider: "docker",
@@ -757,7 +765,7 @@ async function composeSecrets(args: string[], timeout: number): Promise<HookResu
             status: "EXTRACTED",
             resource: `container://${name}`,
             title: `Secret in container env: ${name}`,
-            details: (e as string).substring(0, 300),
+            details: maskLine(e as string),
             remediation: "Use Docker secrets or volume-mounted secret files",
           })
         }
