@@ -78,7 +78,7 @@ try {
   output.push(result.stdout)
   if (result.stdout.includes("[+] Process created") || result.stdout.includes("[+] CIM/DCOM")) {
     findings.push({
-      checkId: "WIN-LAT-001",
+      checkId: "WIN-LAT-014",
       provider: "windows",
       severity: "critical",
       status: "EXECUTED",
@@ -195,7 +195,7 @@ try {
   output.push(result.stdout)
   if (result.stdout.includes("[+] PSSession established") || result.stdout.includes("[+] Command output")) {
     findings.push({
-      checkId: "WIN-LAT-002",
+      checkId: "WIN-LAT-015",
       provider: "windows",
       severity: "critical",
       status: "EXECUTED",
@@ -496,7 +496,7 @@ ${user ? `net use \\\\${target}\\IPC$ /delete 2>$null` : ""}
   output.push(result.stdout)
   if (result.stdout.includes("[+] Service created") || result.stdout.includes("[+] Command output")) {
     findings.push({
-      checkId: "WIN-LAT-004",
+      checkId: "WIN-LAT-016",
       provider: "windows",
       severity: "critical",
       status: "EXECUTED",
@@ -700,7 +700,7 @@ try {
   const result = await ps(script, timeout)
   output.push(result.stdout)
   findings.push({
-    checkId: "WIN-LAT-005",
+    checkId: "WIN-LAT-017",
     provider: "windows",
     severity: "critical",
     status: "ATTEMPTED",
@@ -969,7 +969,7 @@ foreach ($r in $results) { Write-Output "  [+] $r" }
   const availableCount = (result.stdout.match(/AVAILABLE/g) || []).length
   if (availableCount > 0) {
     findings.push({
-      checkId: "WIN-COERCE-EXT-001",
+      checkId: "WIN-COERCE-EXT-002",
       provider: "windows",
       severity: "high",
       status: checkOnly ? "ENUMERATED" : "EXPLOITED",
@@ -1146,7 +1146,7 @@ try {
   }
 
   findings.push({
-    checkId: "WIN-RMON-001",
+    checkId: "WIN-RMON-002",
     provider: "windows",
     severity: "high",
     status: "COERCED",
@@ -1352,7 +1352,7 @@ $conn.Close()
   output.push(result.stdout)
   if (result.stdout.includes("[+] Connected") || result.stdout.includes("[+] xp_cmdshell")) {
     findings.push({
-      checkId: "WIN-LAT-006",
+      checkId: "WIN-LAT-018",
       provider: "windows",
       severity: "critical",
       status: action === "exec" ? "EXECUTED" : "ENUMERATED",
@@ -1499,7 +1499,7 @@ if ($LASTEXITCODE -eq 0) {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-LAT-012",
+      checkId: "WIN-LAT-019",
       provider: "windows",
       severity: r.stdout.includes("ALLOWED") ? "high" : "info",
       status: "ENUMERATED",
@@ -1570,7 +1570,7 @@ Write-Output "[+] Task deleted"
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-LAT-013",
+      checkId: "WIN-LAT-020",
       provider: "windows",
       severity: "critical",
       status: r.stdout.includes("Task started") ? "EXECUTED" : "FAILED",
@@ -1778,7 +1778,7 @@ if (Test-Path $adminKeys) {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-LAT-010",
+      checkId: "WIN-LAT-021",
       provider: "windows",
       severity: r.stdout.includes("PRIVATE KEY") ? "high" : "info",
       status: "ENUMERATED",
@@ -1839,7 +1839,7 @@ Write-Output $result
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-LAT-011",
+      checkId: "WIN-LAT-022",
       provider: "windows",
       severity: "high",
       status: r.exitCode === 0 ? "EXECUTED" : "FAILED",
