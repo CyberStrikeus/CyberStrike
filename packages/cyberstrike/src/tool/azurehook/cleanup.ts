@@ -65,7 +65,7 @@ export async function cleanupAzure(args: string[], timeout: number): Promise<Hoo
       if (dryRun) {
         output.push(`    [DRY] Would remove role assignment: ${r.roleDefinitionName} on ${r.principalName}`)
       } else {
-        const del = await az(["role", "assignment", "delete", "--ids", r.id], sub, timeout)
+        const del = await az(["role", "assignment", "delete", "--ids", r.id, "--yes"], sub, timeout)
         output.push(
           del.exitCode === 0
             ? `    [+] Removed: ${r.roleDefinitionName} on ${r.principalName}`
@@ -85,7 +85,7 @@ export async function cleanupAzure(args: string[], timeout: number): Promise<Hoo
       if (dryRun) {
         output.push(`    [DRY] Would delete app registration: ${a.displayName} (${a.appId})`)
       } else {
-        const del = await az(["ad", "app", "delete", "--id", a.appId], sub, timeout)
+        const del = await az(["ad", "app", "delete", "--id", a.appId, "--yes"], sub, timeout)
         output.push(
           del.exitCode === 0 ? `    [+] Deleted app: ${a.displayName}` : `    [-] Failed: ${del.stderr.slice(0, 100)}`,
         )
@@ -124,7 +124,7 @@ export async function cleanupAzure(args: string[], timeout: number): Promise<Hoo
       if (dryRun) {
         output.push(`    [DRY] Would delete exemption: ${e.name}`)
       } else {
-        const del = await az(["policy", "exemption", "delete", "--name", e.name], sub, timeout)
+        const del = await az(["policy", "exemption", "delete", "--name", e.name, "--yes"], sub, timeout)
         output.push(
           del.exitCode === 0 ? `    [+] Deleted exemption: ${e.name}` : `    [-] Failed: ${del.stderr.slice(0, 100)}`,
         )
@@ -142,7 +142,7 @@ export async function cleanupAzure(args: string[], timeout: number): Promise<Hoo
       if (dryRun) {
         output.push(`    [DRY] Would delete event subscription: ${es.name}`)
       } else {
-        const del = await az(["eventgrid", "event-subscription", "delete", "--name", es.name], sub, timeout)
+        const del = await az(["eventgrid", "event-subscription", "delete", "--name", es.name, "--yes"], sub, timeout)
         output.push(
           del.exitCode === 0
             ? `    [+] Deleted event subscription: ${es.name}`
@@ -231,7 +231,7 @@ export async function cleanupAzure(args: string[], timeout: number): Promise<Hoo
         if (dryRun) {
           output.push(`    [DRY] Would delete Lighthouse assignment: ${lh.name}`)
         } else {
-          const del = await az(["managedservices", "assignment", "delete", "--assignment", lh.name], sub, timeout)
+          const del = await az(["managedservices", "assignment", "delete", "--assignment", lh.name, "--yes"], sub, timeout)
           output.push(
             del.exitCode === 0
               ? `    [+] Deleted Lighthouse assignment: ${lh.name}`
