@@ -39,15 +39,17 @@ import {
   iotHubEnum,
   signalrEnum,
   eventGridEnum,
-  serviceFabricEnum,
-  batchAccountEnum,
-  managedEnvEnum,
-  staticWebAppEnum,
+  batchEnum,
   mapsSearchEnum,
   sentinelEnum,
   vpnGatewayEnum,
   expressRouteEnum,
   privateLinkAudit,
+  databricksSecretDump,
+  serviceFabricEnum,
+  batchAccountEnum,
+  managedEnvEnum,
+  staticWebAppEnum,
 } from "./recon"
 import {
   keyvaultDump,
@@ -335,20 +337,8 @@ const PROGRAMS = {
     description: "Event Grid: topics, subscriptions, domains, system topics — event-driven attack surface mapping",
     args: "[--subscription-id SUB]",
   },
-  service_fabric_enum: {
-    description: "Service Fabric clusters: nodes, applications, services, health state, security configuration",
-    args: "[--subscription-id SUB]",
-  },
-  batch_account_enum: {
-    description: "Azure Batch: accounts, pools, jobs, tasks, auto-scale, node configuration, shared key auth",
-    args: "[--subscription-id SUB]",
-  },
-  managed_env_enum: {
-    description: "Container App managed environments: apps, container images, ingress endpoints, VNet configuration",
-    args: "[--subscription-id SUB]",
-  },
-  static_web_app_enum: {
-    description: "Static Web Apps: deployments, custom domains, linked API backends, authentication settings",
+  batch_enum: {
+    description: "Azure Batch: account keys, pool allocation, public access, auto storage",
     args: "[--subscription-id SUB]",
   },
   maps_search_enum: {
@@ -369,6 +359,26 @@ const PROGRAMS = {
   },
   private_link_audit: {
     description: "Private Link / Private Endpoint audit: connections, DNS zones, approval state, PaaS service exposure",
+    args: "[--subscription-id SUB]",
+  },
+  databricks_secret_dump: {
+    description: "Databricks: list workspaces, scopes, secrets — extract secret values where accessible",
+    args: "[--subscription-id SUB]",
+  },
+  service_fabric_enum: {
+    description: "Service Fabric clusters: nodes, applications, services, health state, security configuration",
+    args: "[--subscription-id SUB]",
+  },
+  batch_account_enum: {
+    description: "Azure Batch accounts: pools, jobs, tasks, auto-scale, shared key auth, public access",
+    args: "[--subscription-id SUB]",
+  },
+  managed_env_enum: {
+    description: "Container App managed environments: apps, container images, ingress endpoints, VNet configuration",
+    args: "[--subscription-id SUB]",
+  },
+  static_web_app_enum: {
+    description: "Static Web Apps: deployments, custom domains, linked API backends, deployment tokens",
     args: "[--subscription-id SUB]",
   },
 
@@ -893,15 +903,17 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   iot_hub_enum: iotHubEnum,
   signalr_enum: signalrEnum,
   event_grid_enum: eventGridEnum,
-  service_fabric_enum: serviceFabricEnum,
-  batch_account_enum: batchAccountEnum,
-  managed_env_enum: managedEnvEnum,
-  static_web_app_enum: staticWebAppEnum,
+  batch_enum: batchEnum,
   maps_search_enum: mapsSearchEnum,
   sentinel_enum: sentinelEnum,
   vpn_gateway_enum: vpnGatewayEnum,
   express_route_enum: expressRouteEnum,
   private_link_audit: privateLinkAudit,
+  databricks_secret_dump: databricksSecretDump,
+  service_fabric_enum: serviceFabricEnum,
+  batch_account_enum: batchAccountEnum,
+  managed_env_enum: managedEnvEnum,
+  static_web_app_enum: staticWebAppEnum,
   // Credential (14)
   keyvault_dump: keyvaultDump,
   managed_identity: managedIdentity,
@@ -1081,6 +1093,8 @@ const CWE_MAP: Record<string, string> = {
   "AZ-VPN-001": "CWE-522",
   "AZ-ER-001": "CWE-200",
   "AZ-PL-001": "CWE-284",
+  "AZ-BATCH-002": "CWE-522",
+  "AZ-SWA-002": "CWE-522",
   // Credential
   "AZ-KV-001": "CWE-522",
   "AZ-KV-002": "CWE-522",
@@ -1275,7 +1289,7 @@ const CWE_MAP: Record<string, string> = {
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
 
 export const AzurehookTool = Tool.define("azurehook", {
-  description: `Execute an Azure post-exploitation program. 152 programs across 13 categories: recon (45), credential (14), privesc (11), persistence (11), lateral (10), evasion (11), exfil (12), compliance (18), identity (10), impact (5), m365 (4), cleanup (1). Uses az CLI and Azure REST API. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_azure before leaving.`,
+  description: `Execute an Azure post-exploitation program. 154 programs across 13 categories: recon (47), credential (14), privesc (11), persistence (11), lateral (10), identity (10), evasion (11), exfil (12), compliance (18), impact (5), m365 (4), cleanup (1). Uses az CLI, Azure REST API, and Microsoft Graph. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_azure before leaving.`,
   parameters: z.object({
     program: z.enum(programKeys).describe(
       "Azure program to execute. Options: " +
