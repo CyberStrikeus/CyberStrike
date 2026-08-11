@@ -378,7 +378,16 @@ export const MachookTool = Tool.define("machook", {
 
     const program = params.program as Program
     const handler = dispatch[program]
-    const result = await handler(params.args, params.timeout_seconds)
+    let result: HookResult
+    try {
+      result = await handler(params.args, params.timeout_seconds)
+    } catch (e) {
+      return {
+        title: `machook: ${program}`,
+        output: `[-] ${program} failed: ${e instanceof Error ? e.message : String(e)}`,
+        metadata: { program, findings: [] as Finding[] },
+      }
+    }
 
     const enriched = result.findings.map((f) => {
       const prefix = f.checkId.replace(/-\d+$/, "")
