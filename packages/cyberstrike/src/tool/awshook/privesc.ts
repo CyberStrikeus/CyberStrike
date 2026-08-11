@@ -272,40 +272,42 @@ def handler(event, context):
     return {'stdout': result.stdout, 'stderr': result.stderr, 'rc': result.returncode}
 `
 
-  const zipPath = `/tmp/cs-lambda-${Date.now()}.zip`
-  const pyPath = `/tmp/cs-lambda-${Date.now()}.py`
-  await Bun.write(pyPath, code)
-  const zipProc = Bun.spawn(["zip", "-j", zipPath, pyPath], { stdout: "pipe", stderr: "pipe" })
-  await zipProc.exited
+  const tmpDir = process.env.TMPDIR || "/tmp"
+  const zipPath = `${tmpDir}/cs-lambda-${Date.now()}.zip`
+  const pyPath = `${tmpDir}/cs-lambda-${Date.now()}.py`
+  try {
+    await Bun.write(pyPath, code)
+    const zipProc = Bun.spawn(["zip", "-j", zipPath, pyPath], { stdout: "pipe", stderr: "pipe" })
+    await zipProc.exited
 
-  const create = await aws(
-    [
-      "lambda",
-      "create-function",
-      "--function-name",
-      funcName,
-      "--runtime",
-      "python3.12",
-      "--handler",
-      `${pyPath.split("/").pop()?.replace(".py", "")}.handler`,
-      "--role",
-      roleArn,
-      "--zip-file",
-      `fileb://${zipPath}`,
-      "--timeout",
-      "30",
-      "--tags",
-      "CreatedBy=CyberStrike",
-    ],
-    profile,
-    region,
-    timeout,
-  )
+    const create = await aws(
+      [
+        "lambda",
+        "create-function",
+        "--function-name",
+        funcName,
+        "--runtime",
+        "python3.12",
+        "--handler",
+        `${pyPath.split("/").pop()?.replace(".py", "")}.handler`,
+        "--role",
+        roleArn,
+        "--zip-file",
+        `fileb://${zipPath}`,
+        "--timeout",
+        "30",
+        "--tags",
+        "CreatedBy=CyberStrike",
+      ],
+      profile,
+      region,
+      timeout,
+    )
 
-  if (create.exitCode !== 0) {
-    output.push(`[-] Function creation failed: ${create.stderr.trim()}`)
-    return { output: output.join("\n"), findings }
-  }
+    if (create.exitCode !== 0) {
+      output.push(`[-] Function creation failed: ${create.stderr.trim()}`)
+      return { output: output.join("\n"), findings }
+    }
 
   output.push(`[+] Function created with role ${roleArn}`)
   findings.push({
@@ -346,6 +348,11 @@ def handler(event, context):
   }
 
   return { output: output.join("\n"), findings }
+  } finally {
+    const { unlink } = await import("node:fs/promises")
+    await unlink(pyPath).catch(() => {})
+    await unlink(zipPath).catch(() => {})
+  }
 }
 
 export async function gluePrivesc(args: string[], timeout: number): Promise<HookResult> {
