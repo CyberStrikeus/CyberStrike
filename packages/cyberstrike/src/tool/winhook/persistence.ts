@@ -100,7 +100,7 @@ Remove-Item $xmlPath -Force 2>$null
   output.push(result.stdout)
   if (result.stdout.includes("[+] Scheduled task created")) {
     findings.push({
-      checkId: "WIN-PERSIST-001",
+      checkId: "WIN-PERSIST-027",
       provider: "windows",
       severity: "critical",
       status: "DEPLOYED",
@@ -260,7 +260,7 @@ if ($svc) {
     result.stdout.includes("[+] DLL service created")
   ) {
     findings.push({
-      checkId: "WIN-PERSIST-002",
+      checkId: "WIN-PERSIST-028",
       provider: "windows",
       severity: "critical",
       status: "DEPLOYED",
@@ -453,7 +453,7 @@ if ($verify) { Write-Output "[+] Verified: value is set" }
   output.push(result.stdout)
   if (result.stdout.includes("[+] Set") || result.stdout.includes("[+] Appended")) {
     findings.push({
-      checkId: "WIN-PERSIST-003",
+      checkId: "WIN-PERSIST-029",
       provider: "windows",
       severity: "critical",
       status: "DEPLOYED",
@@ -567,7 +567,7 @@ Write-Output "\`n[+] Active CS subscriptions: $($filters.Count) filters, $($cons
   output.push(result.stdout)
   if (result.stdout.includes("[+] Binding created") || result.stdout.includes("[+] WMI persistence active")) {
     findings.push({
-      checkId: "WIN-PERSIST-004",
+      checkId: "WIN-PERSIST-030",
       provider: "windows",
       severity: "critical",
       status: "DEPLOYED",
@@ -642,7 +642,7 @@ export async function comHijack(args: string[], timeout: number): Promise<HookRe
       )
       if (r2.exitCode === 0)
         findings.push({
-          checkId: "WIN-PERSIST-005",
+          checkId: "WIN-PERSIST-031",
           provider: "windows",
           severity: "critical",
           status: "DEPLOYED",
@@ -747,7 +747,7 @@ Write-Output "[+] Verified: $verify"
   output.push(result.stdout)
   if (action === "hijack" && result.stdout.includes("[+] COM hijack set")) {
     findings.push({
-      checkId: "WIN-PERSIST-005",
+      checkId: "WIN-PERSIST-032",
       provider: "windows",
       severity: "critical",
       status: "DEPLOYED",
@@ -761,7 +761,7 @@ Write-Output "[+] Verified: $verify"
     const count = (result.stdout.match(/HIJACKABLE:/g) || []).length
     if (count > 0) {
       findings.push({
-        checkId: "WIN-PERSIST-005",
+        checkId: "WIN-PERSIST-033",
         provider: "windows",
         severity: "info",
         status: "ENUMERATED",
@@ -821,7 +821,7 @@ export async function startupPersist(args: string[], timeout: number): Promise<H
       output.push(gpupdate.exitCode === 0 ? "[+] GPO updated" : "[!] gpupdate failed")
       if (r.exitCode === 0)
         findings.push({
-          checkId: "WIN-PERSIST-006",
+          checkId: "WIN-PERSIST-034",
           provider: "windows",
           severity: "critical",
           status: "DEPLOYED",
@@ -975,7 +975,7 @@ try {
   output.push(result.stdout)
   if (result.stdout.includes("[+]")) {
     findings.push({
-      checkId: "WIN-PERSIST-006",
+      checkId: "WIN-PERSIST-035",
       provider: "windows",
       severity: "critical",
       status: "DEPLOYED",
@@ -1122,7 +1122,7 @@ try {
     output.push(result.stdout)
     if (result.stdout.includes("written to GPO")) {
       findings.push({
-        checkId: "WIN-GPO-001",
+        checkId: "WIN-GPO-005",
         provider: "windows",
         severity: "critical",
         status: "DEPLOYED",
@@ -1189,7 +1189,7 @@ try {
     output.push(result.stdout)
     if (result.stdout.includes("script written")) {
       findings.push({
-        checkId: "WIN-GPO-002",
+        checkId: "WIN-GPO-007",
         provider: "windows",
         severity: "critical",
         status: "DEPLOYED",
@@ -1398,7 +1398,7 @@ if ($bitsReg) {
     const hasSuspicious = r.stdout.includes("SUSPICIOUS=1")
     if (hasSuspicious) {
       findings.push({
-        checkId: "WIN-BITS-001",
+        checkId: "WIN-BITS-011",
         provider: "windows",
         severity: "high",
         status: "SUSPICIOUS",
@@ -1479,7 +1479,7 @@ try {
 
     if (r.stdout.includes("STATUS=SUCCESS")) {
       findings.push({
-        checkId: "WIN-BITS-010",
+        checkId: "WIN-BITS-012",
         provider: "windows",
         severity: "critical",
         status: "PERSISTED",
@@ -1715,7 +1715,7 @@ if ($wsusServer) {
 
     if (isHttp && wsusUrl) {
       findings.push({
-        checkId: "WIN-WSUS-001",
+        checkId: "WIN-WSUS-011",
         provider: "windows",
         severity: "critical",
         status: "VULNERABLE",
@@ -1728,7 +1728,7 @@ if ($wsusServer) {
 
     if (wsusUrl && wsusUrl[1] !== "NONE") {
       findings.push({
-        checkId: "WIN-WSUS-002",
+        checkId: "WIN-WSUS-012",
         provider: "windows",
         severity: "medium",
         status: "INFO",
@@ -2134,7 +2134,7 @@ Write-Output "[*] Cleanup: winhook print_monitor_persist --action remove --name 
 
     if (r.stdout.includes("STATUS=SUCCESS") || r.stdout.includes("STATUS=INSTALLED")) {
       findings.push({
-        checkId: "WIN-PMON-010",
+        checkId: "WIN-PMON-011",
         provider: "windows",
         severity: "critical",
         status: "PERSISTED",
@@ -2360,7 +2360,7 @@ Write-Output "SUSPICIOUS=$suspicious"
     const suspicious = r.stdout.match(/SUSPICIOUS=(\d+)/)
     if (suspicious && parseInt(suspicious[1]) > 0) {
       findings.push({
-        checkId: "WIN-SSP-001",
+        checkId: "WIN-SSP-011",
         provider: "windows",
         severity: "critical",
         status: "SUSPICIOUS",
@@ -2499,7 +2499,7 @@ Write-Output "Cleanup: winhook ssp_persist --action remove --name $dllName"
 
     if (r.stdout.includes("STATUS=SUCCESS")) {
       findings.push({
-        checkId: "WIN-SSP-010",
+        checkId: "WIN-SSP-012",
         provider: "windows",
         severity: "critical",
         status: "INSTALLED",
@@ -2740,7 +2740,7 @@ if ($dllName -notin $current) {
 
     if (r.stdout.includes("STATUS=SUCCESS")) {
       findings.push({
-        checkId: "WIN-PF-010",
+        checkId: "WIN-PF-011",
         provider: "windows",
         severity: "critical",
         status: "INSTALLED",
@@ -2940,7 +2940,7 @@ if ($admin) {
 
     if (isDC && dsrmBehavior && dsrmBehavior[1] === "2") {
       findings.push({
-        checkId: "WIN-DSRM-001",
+        checkId: "WIN-DSRM-011",
         provider: "windows",
         severity: "critical",
         status: "EXPLOITABLE",
@@ -2954,7 +2954,7 @@ if ($admin) {
 
     if (isDC && (!dsrmBehavior || dsrmBehavior[1] !== "2")) {
       findings.push({
-        checkId: "WIN-DSRM-002",
+        checkId: "WIN-DSRM-012",
         provider: "windows",
         severity: "medium",
         status: "INFO",
@@ -3004,7 +3004,7 @@ Write-Output "STATUS=SUCCESS"
 
     if (r.stdout.includes("STATUS=SUCCESS")) {
       findings.push({
-        checkId: "WIN-DSRM-010",
+        checkId: "WIN-DSRM-013",
         provider: "windows",
         severity: "critical",
         status: "BACKDOORED",
@@ -3158,7 +3158,7 @@ export async function accessibilityBackdoor(args: string[], timeout: number): Pr
         )
         if (ifeo.exitCode === 0)
           findings.push({
-            checkId: "WIN-ACC-010",
+            checkId: "WIN-ACC-011",
             provider: "windows",
             severity: "critical",
             status: "BACKDOORED",
@@ -3338,7 +3338,7 @@ try {
 
     if (r.stdout.includes("STATUS=SUCCESS") || r.stdout.includes("STATUS=SUCCESS_IFEO")) {
       findings.push({
-        checkId: "WIN-ACC-010",
+        checkId: "WIN-ACC-012",
         provider: "windows",
         severity: "critical",
         status: "BACKDOORED",
@@ -3533,7 +3533,7 @@ if ($debuggerCount -gt 0 -or $silentCount -gt 0) {
 
     if (total > 0) {
       findings.push({
-        checkId: "WIN-IFEO-001",
+        checkId: "WIN-IFEO-011",
         provider: "windows",
         severity: "high",
         status: "SUSPICIOUS",
@@ -3627,7 +3627,7 @@ Write-Output "STATUS=SUCCESS"
 
     if (output.some((o) => o.includes("STATUS=SUCCESS"))) {
       findings.push({
-        checkId: "WIN-IFEO-010",
+        checkId: "WIN-IFEO-012",
         provider: "windows",
         severity: "critical",
         status: "PERSISTED",
@@ -3836,7 +3836,7 @@ Write-Output "[*] Notify = legacy DLL callbacks (deprecated but still functional
 
     if (r.stdout.includes("NON-DEFAULT")) {
       findings.push({
-        checkId: "WIN-WLGN-001",
+        checkId: "WIN-WLGN-011",
         provider: "windows",
         severity: "high",
         status: "SUSPICIOUS",
@@ -3926,7 +3926,7 @@ Write-Output "STATUS=SUCCESS"
 
     if (output.some((o) => o.includes("STATUS=SUCCESS"))) {
       findings.push({
-        checkId: "WIN-WLGN-010",
+        checkId: "WIN-WLGN-012",
         provider: "windows",
         severity: "critical",
         status: "PERSISTED",
@@ -4094,7 +4094,7 @@ Write-Output "[*] On Windows 8+ with Secure Boot, unsigned DLLs are blocked"
 
     if (r.stdout.includes("Loading ENABLED")) {
       findings.push({
-        checkId: "WIN-APPI-001",
+        checkId: "WIN-APPI-011",
         provider: "windows",
         severity: "high",
         status: "ENABLED",
@@ -4165,7 +4165,7 @@ Write-Output "STATUS=SUCCESS"
 
     if (r.stdout.includes("STATUS=SUCCESS")) {
       findings.push({
-        checkId: "WIN-APPI-010",
+        checkId: "WIN-APPI-012",
         provider: "windows",
         severity: "critical",
         status: "PERSISTED",
@@ -4351,7 +4351,7 @@ Write-Output "STATUS=SUCCESS"
 
     if (r.stdout.includes("STATUS=SUCCESS")) {
       findings.push({
-        checkId: "WIN-NTSH-010",
+        checkId: "WIN-NTSH-011",
         provider: "windows",
         severity: "critical",
         status: "PERSISTED",
@@ -4554,7 +4554,7 @@ Write-Output "STATUS=SUCCESS"
 
     if (r.stdout.includes("STATUS=SUCCESS")) {
       findings.push({
-        checkId: "WIN-TIME-010",
+        checkId: "WIN-TIME-011",
         provider: "windows",
         severity: "critical",
         status: "PERSISTED",
@@ -4765,7 +4765,7 @@ Write-Output "STATUS=SUCCESS"
 
     if (r.stdout.includes("STATUS=SUCCESS")) {
       findings.push({
-        checkId: "WIN-SCRN-010",
+        checkId: "WIN-SCRN-011",
         provider: "windows",
         severity: "high",
         status: "PERSISTED",
@@ -4973,7 +4973,7 @@ Write-Output "[*] Profile: $profilePath"
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-PERSIST-022",
+      checkId: "WIN-PERSIST-036",
       provider: "windows",
       severity: "high",
       status: r.stdout.includes("installed") ? "EXECUTED" : "FAILED",
@@ -5156,7 +5156,7 @@ Write-Output "[*] To force re-execution: increment Version value"
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-PERSIST-024",
+      checkId: "WIN-PERSIST-037",
       provider: "windows",
       severity: "high",
       status: r.stdout.includes("installed") ? "EXECUTED" : "FAILED",
@@ -5310,7 +5310,7 @@ Write-Output "[*] Runs as SYSTEM with kernel-level access"
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-PERSIST-025",
+      checkId: "WIN-PERSIST-038",
       provider: "windows",
       severity: r.stdout.includes("CUSTOM") ? "critical" : "info",
       status: "ENUMERATED",
@@ -5358,7 +5358,7 @@ Write-Output "[*] Effective on next reboot"
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-PERSIST-026",
+      checkId: "WIN-PERSIST-039",
       provider: "windows",
       severity: "critical",
       status: r.stdout.includes("added") ? "EXECUTED" : "FAILED",
