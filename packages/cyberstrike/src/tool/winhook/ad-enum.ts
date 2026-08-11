@@ -598,7 +598,7 @@ if ($dangerousAcls.Count -gt 0) {
   if (aclCountMatch) {
     output.push(`\n[+] Data saved to: ${outfile}`)
     findings.push({
-      checkId: "WIN-BH-001",
+      checkId: "WIN-BH-003",
       provider: "windows",
       severity: "info",
       status: "COLLECTED",
@@ -792,7 +792,7 @@ if ($sample) {
 
   if (legacyCount > 0) {
     findings.push({
-      checkId: "WIN-LAPS-001",
+      checkId: "WIN-LAPS-003",
       provider: "windows",
       severity: "critical",
       status: "EXTRACTED",
@@ -1021,7 +1021,7 @@ foreach ($cf in $cpasswordFindings) {
   if (cpassMatches && parseInt(cpassMatches[1]) > 0) {
     const count = parseInt(cpassMatches[1])
     findings.push({
-      checkId: "WIN-GPO-001",
+      checkId: "WIN-GPO-004",
       provider: "windows",
       severity: "critical",
       status: "EXTRACTED",
@@ -1034,7 +1034,7 @@ foreach ($cf in $cpasswordFindings) {
 
   if (result.stdout.includes("Potential credentials in script")) {
     findings.push({
-      checkId: "WIN-GPO-002",
+      checkId: "WIN-GPO-006",
       provider: "windows",
       severity: "high",
       status: "FAIL",
@@ -1258,7 +1258,7 @@ try {
   const wildcardMatch = result.stdout.match(/WILDCARD_COUNT=(\d+)/)
   if (wildcardMatch && parseInt(wildcardMatch[1]) > 0) {
     findings.push({
-      checkId: "WIN-DNS-001",
+      checkId: "WIN-DNS-004",
       provider: "windows",
       severity: "high",
       status: "FAIL",
@@ -1530,7 +1530,7 @@ Write-Output "    All queries sent via port 9389 — LDAP monitoring was BYPASSE
   output.push(result.stdout)
 
   findings.push({
-    checkId: "WIN-ADWS-001",
+    checkId: "WIN-ADWS-002",
     provider: "windows",
     severity: "informational",
     status: "ENUMERATED",
@@ -1792,7 +1792,7 @@ try {
     const count = countMatch ? parseInt(countMatch[1]) : 0
     if (count > 0) {
       findings.push({
-        checkId: "WIN-LAPS2-001",
+        checkId: "WIN-LAPS2-003",
         provider: "windows",
         severity: "high",
         status: "ENUMERATED",
@@ -2051,7 +2051,7 @@ try {
     const suspMatch = result.stdout.match(/(\d+) users have hidden/)
     if (suspMatch) {
       findings.push({
-        checkId: "WIN-PGID-001",
+        checkId: "WIN-PGID-003",
         provider: "windows",
         severity: "high",
         status: "ENUMERATED",
