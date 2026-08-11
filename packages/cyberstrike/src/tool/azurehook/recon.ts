@@ -1391,640 +1391,1238 @@ export async function containerInstanceEnum(args: string[], timeout: number): Pr
   return { output: output.join("\n"), findings }
 }
 
-// ── P0 recon handlers (apimEnum..purviewEnum) ──
-// ── P2 recon handlers (subdomainTakeover..publicExposureScan) ──
-// ── P3 niche handlers (databricksSecretDump..privateLinkAudit) ──
-// Duplicate stubs removed — canonical implementations below.
 
-// ── P0 Recon Handlers ──
+// ── P0 recon handlers ──
 
 export async function apimEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] API Management Enumeration\n"]
-  const services = await az(["apim", "list", "--query", "[].{name:name,rg:resourceGroup,sku:sku.name,gateway:gatewayUrl,portal:developerPortalUrl}"], sub, timeout)
-  if (services.exitCode !== 0) return { output: "[-] Cannot list APIM services", findings }
-  const list = tryJson(services.stdout) || []
-  output.push(`[+] API Management services: ${list.length}`)
-  for (const s of list) {
-    output.push(`    ${s.name} (${s.sku}) — rg: ${s.rg}`)
-    output.push(`      Gateway: ${s.gateway || "N/A"}`)
-    output.push(`      Dev Portal: ${s.portal || "N/A"}`)
-    const apis = await az(["apim", "api", "list", "--service-name", s.name, "--resource-group", s.rg, "--query", "[].{name:displayName,path:path,protocols:protocols}"], sub, timeout)
+  const output: string[] = ["[*] Enumerating Azure API Management...\n"]
+
+  const apims = await az(["apim", "list"], sub, timeout)
+  if (apims.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list APIM instances", findings }
+
+  const items = tryJson(apims.stdout) || []
+  output.push(`[+] APIM instances: ${items.length}\n`)
+
+  for (const apim of items) {
+    output.push(`── ${apim.name} (${apim.resourceGroup}) ──`)
+    output.push(`    Gateway URL: ${apim.gatewayUrl}`)
+    output.push(`    SKU: ${apim.sku?.name}`)
+    output.push(`    Public IP: ${apim.publicIpAddresses?.join(", ") || "none"}`)
+
+    const apis = await az(
+      ["apim", "api", "list", "--resource-group", apim.resourceGroup, "--service-name", apim.name],
+      sub,
+      30,
+    )
     if (apis.exitCode === 0) {
       const apiList = tryJson(apis.stdout) || []
-      output.push(`      APIs: ${apiList.length}`)
-      for (const a of apiList) output.push(`        ${a.name} — /${a.path} [${(a.protocols || []).join(",")}]`)
+      output.push(`    APIs: ${apiList.length}`)
+      for (const api of apiList) {
+        output.push(`      ${api.displayName} (${api.path}) — auth: ${api.authenticationSettings ? "configured" : "NONE"}`)
+        if (!api.authenticationSettings || (!api.authenticationSettings.oAuth2 && !api.authenticationSettings.openid)) {
+          findings.push({
+            checkId: "AZ-APIM-001",
+            provider: "azure",
+            severity: "high",
+            status: "FAIL",
+            resource: `apim://${apim.name}/${api.name}`,
+            title: `APIM API without auth: ${apim.name}/${api.displayName}`,
+            details: `API "${api.displayName}" at path /${api.path} has no authentication policy`,
+            remediation: "Configure OAuth2, OpenID Connect, or subscription key validation",
+          })
+        }
+      }
     }
-    findings.push({ checkId: "AZ-APIM-001", provider: "azure", severity: "medium", status: "INFO", resource: `apim://${s.name}`, title: `APIM service: ${s.name}`, details: `Gateway: ${s.gateway}. May expose internal APIs.`, remediation: "Review API access policies and subscription keys" })
   }
+
   return { output: output.join("\n"), findings }
 }
 
 export async function databricksEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure Databricks enumeration...\n"]
-  const workspaces = await az(["databricks", "workspace", "list", "--query", "[].{name:name,rg:resourceGroup,url:workspaceUrl,sku:sku.name,managedRg:managedResourceGroupId}"], sub, timeout)
-  if (workspaces.exitCode !== 0) return { output: "[-] Cannot list Databricks workspaces", findings }
-  const list = tryJson(workspaces.stdout) || []
-  output.push(`[+] Databricks workspaces: ${list.length}`)
-  for (const w of list) {
-    output.push(`    ${w.name} (${w.sku}) — ${w.url || "N/A"}`)
-    output.push(`      RG: ${w.rg}, Managed RG: ${w.managedRg?.split("/").pop() || "N/A"}`)
-    findings.push({ checkId: "AZ-DBRICKS-001", provider: "azure", severity: "high", status: "INFO", resource: `databricks://${w.name}`, title: `Databricks workspace: ${w.name}`, details: `URL: ${w.url}. Contains notebooks, secrets, and compute. High-value target.`, remediation: "Review workspace access and token management" })
+  const output: string[] = ["[*] Enumerating Azure Databricks workspaces...\n"]
+
+  const workspaces = await az(["databricks", "workspace", "list"], sub, timeout)
+  if (workspaces.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list Databricks workspaces", findings }
+
+  const items = tryJson(workspaces.stdout) || []
+  output.push(`[+] Databricks workspaces: ${items.length}\n`)
+
+  for (const ws of items) {
+    output.push(`── ${ws.name} (${ws.resourceGroup}) ──`)
+    output.push(`    URL: ${ws.workspaceUrl || "N/A"}`)
+    output.push(`    SKU: ${ws.sku?.name}`)
+    output.push(`    Managed RG: ${ws.managedResourceGroupId?.split("/").pop() || "N/A"}`)
+    output.push(`    Public access: ${ws.publicNetworkAccess || "Enabled"}`)
+    output.push(`    Identity: ${ws.identity?.type || "none"}`)
+
+    const vnetInjection = ws.parameters?.customVirtualNetworkId?.value
+    output.push(`    VNet injection: ${vnetInjection ? "YES" : "NO"}`)
+
+    if (ws.publicNetworkAccess !== "Disabled") {
+      findings.push({
+        checkId: "AZ-DBR-001",
+        provider: "azure",
+        severity: "high",
+        status: "FAIL",
+        resource: `databricks://${ws.name}`,
+        title: `Databricks public access enabled: ${ws.name}`,
+        details: `Workspace is publicly accessible${!vnetInjection ? " and not VNet-injected" : ""}`,
+        remediation: "Disable public network access and enable VNet injection",
+      })
+    }
+    output.push("")
   }
+
   return { output: output.join("\n"), findings }
 }
 
 export async function appInsightsEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure Application Insights enumeration...\n"]
-  const apps = await az(["monitor", "app-insights", "component", "show", "--query", "{name:name,rg:resourceGroup,appId:appId,ikey:instrumentationKey,kind:kind,connStr:connectionString}"], sub, timeout)
-  if (apps.exitCode !== 0) {
-    const list = await az(["resource", "list", "--resource-type", "Microsoft.Insights/components", "--query", "[].{name:name,rg:resourceGroup}"], sub, timeout)
-    if (list.exitCode === 0) {
-      const components = tryJson(list.stdout) || []
-      output.push(`[+] App Insights components: ${components.length}`)
-      for (const c of components) output.push(`    ${c.name} — rg: ${c.rg}`)
+  const output: string[] = ["[*] Enumerating Application Insights...\n"]
+
+  const components = await az(["monitor", "app-insights", "component", "list"], sub, timeout)
+  if (components.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list App Insights", findings }
+
+  const items = tryJson(components.stdout) || []
+  output.push(`[+] App Insights components: ${items.length}\n`)
+
+  for (const comp of items) {
+    output.push(`── ${comp.name} (${comp.resourceGroup}) ──`)
+    output.push(`    App ID: ${comp.appId}`)
+    output.push(`    Instrumentation Key: ${comp.instrumentationKey || "N/A"}`)
+    output.push(`    Connection String: ${comp.connectionString?.substring(0, 80) || "N/A"}...`)
+
+    const apiKeys = await az(
+      ["monitor", "app-insights", "api-key", "list", "--app", comp.name, "--resource-group", comp.resourceGroup],
+      sub,
+      15,
+    )
+    if (apiKeys.exitCode === 0) {
+      const keys = tryJson(apiKeys.stdout) || []
+      output.push(`    API keys: ${keys.length}`)
+      if (keys.length > 0) {
+        for (const k of keys) output.push(`      ${k.name} — permissions: ${(k.linkedReadProperties || []).length} read, ${(k.linkedWriteProperties || []).length} write`)
+        findings.push({
+          checkId: "AZ-AI-001",
+          provider: "azure",
+          severity: "medium",
+          status: "INFO",
+          resource: `appinsights://${comp.name}`,
+          title: `App Insights API keys exist: ${comp.name}`,
+          details: `${keys.length} API key(s) found — can be used to read telemetry data`,
+          remediation: "Rotate or remove unused API keys, prefer AAD authentication",
+        })
+      }
     }
-    return { output: output.join("\n"), findings }
+    output.push("")
   }
-  const info = tryJson(apps.stdout)
-  if (info) {
-    output.push(`[+] App Insights: ${info.name}`)
-    output.push(`    Instrumentation Key: ${info.ikey}`)
-    output.push(`    App ID: ${info.appId}`)
-    if (info.connStr) output.push(`    Connection String: ${String(info.connStr).substring(0, 80)}...`)
-    findings.push({ checkId: "AZ-APPINS-001", provider: "azure", severity: "medium", status: "INFO", resource: `appinsights://${info.name}`, title: `App Insights: ${info.name}`, details: `Instrumentation key exposed. Query telemetry for app behavior, user data, errors.`, remediation: "Restrict API key access, use AAD-based auth" })
-  }
+
   return { output: output.join("\n"), findings }
 }
 
 export async function monitorEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure Monitor & Log Analytics enumeration...\n"]
-  const workspaces = await az(["monitor", "log-analytics", "workspace", "list", "--query", "[].{name:name,rg:resourceGroup,retention:retentionInDays,sku:sku.name,id:customerId}"], sub, timeout)
-  if (workspaces.exitCode !== 0) return { output: "[-] Cannot list Log Analytics workspaces", findings }
-  const list = tryJson(workspaces.stdout) || []
-  output.push(`[+] Log Analytics workspaces: ${list.length}`)
-  for (const ws of list) {
-    output.push(`    ${ws.name} (${ws.sku}) — retention: ${ws.retention}d, rg: ${ws.rg}`)
-    output.push(`      Customer ID: ${ws.id}`)
-    const solutions = await az(["monitor", "log-analytics", "solution", "list", "--resource-group", ws.rg, "--query", "[].{name:name,plan:plan.product}"], sub, timeout)
-    if (solutions.exitCode === 0) {
-      const solList = tryJson(solutions.stdout) || []
-      if (solList.length > 0) {
-        output.push(`      Solutions: ${solList.map((s: Record<string, string>) => s.plan || s.name).join(", ")}`)
-      }
-    }
-    findings.push({ checkId: "AZ-MONITOR-001", provider: "azure", severity: "info", status: "INFO", resource: `log-analytics://${ws.name}`, title: `Log Analytics workspace: ${ws.name}`, details: `Retention: ${ws.retention}d. Query for security events, sign-in logs.`, remediation: "Restrict workspace access, review shared keys" })
+  const output: string[] = ["[*] Enumerating Azure Monitor...\n"]
+
+  const alerts = await az(["monitor", "metrics", "alert", "list"], sub, timeout)
+  if (alerts.exitCode === 0) {
+    const items = tryJson(alerts.stdout) || []
+    output.push(`[+] Metric alert rules: ${items.length}`)
+    for (const a of items.slice(0, 15)) output.push(`    ${a.name} — severity: ${a.severity}, enabled: ${a.enabled}`)
+    if (items.length > 15) output.push(`    ... and ${items.length - 15} more`)
   }
+
+  const actionGroups = await az(["monitor", "action-group", "list"], sub, timeout)
+  if (actionGroups.exitCode === 0) {
+    const items = tryJson(actionGroups.stdout) || []
+    output.push(`\n[+] Action groups: ${items.length}`)
+    for (const ag of items) {
+      const receivers = [
+        ...(ag.emailReceivers || []).map((r: Record<string, string>) => `email:${r.emailAddress}`),
+        ...(ag.smsReceivers || []).map((r: Record<string, string>) => `sms:${r.phoneNumber}`),
+        ...(ag.webhookReceivers || []).map((r: Record<string, string>) => `webhook:${r.serviceUri?.substring(0, 50)}`),
+      ]
+      output.push(`    ${ag.name}: ${receivers.join(", ") || "no receivers"}`)
+    }
+    if (items.length === 0) {
+      findings.push({
+        checkId: "AZ-MON-001",
+        provider: "azure",
+        severity: "medium",
+        status: "FAIL",
+        resource: "azure://monitor/action-groups",
+        title: "No action groups configured",
+        details: "No alert action groups exist — security alerts have no notification target",
+        remediation: "Create action groups with email/SMS/webhook receivers for security alerts",
+      })
+    }
+  }
+
+  const diagSettings = await az(
+    ["monitor", "diagnostic-settings", "subscription", "list"],
+    sub,
+    timeout,
+  )
+  if (diagSettings.exitCode === 0) {
+    const items = tryJson(diagSettings.stdout)
+    const settings = items?.value || items || []
+    output.push(`\n[+] Subscription diagnostic settings: ${Array.isArray(settings) ? settings.length : 0}`)
+  }
+
   return { output: output.join("\n"), findings }
 }
 
 export async function recoveryVaultEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure Recovery Services vault enumeration...\n"]
-  const vaults = await az(["backup", "vault", "list", "--query", "[].{name:name,rg:resourceGroup,location:location}"], sub, timeout)
-  if (vaults.exitCode !== 0) return { output: "[-] Cannot list Recovery Services vaults", findings }
-  const list = tryJson(vaults.stdout) || []
-  output.push(`[+] Recovery Services vaults: ${list.length}`)
-  for (const v of list) {
-    output.push(`    ${v.name} (${v.rg}) — ${v.location}`)
-    const items = await az(["backup", "item", "list", "--vault-name", v.name, "--resource-group", v.rg, "--query", "[].{name:name,type:workloadType,status:protectionStatus,state:protectionState}"], sub, timeout)
-    if (items.exitCode === 0) {
-      const itemList = tryJson(items.stdout) || []
-      output.push(`      Backup items: ${itemList.length}`)
-      for (const i of itemList) output.push(`        ${i.name} (${i.type}) — ${i.status}/${i.state}`)
+  const output: string[] = ["[*] Enumerating Recovery Services Vaults...\n"]
+
+  const vaults = await az(["backup", "vault", "list"], sub, timeout)
+  if (vaults.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list Recovery vaults", findings }
+
+  const items = tryJson(vaults.stdout) || []
+  output.push(`[+] Recovery Services Vaults: ${items.length}\n`)
+
+  for (const vault of items) {
+    output.push(`── ${vault.name} (${vault.resourceGroup}) ──`)
+    output.push(`    Location: ${vault.location}`)
+
+    const policies = await az(
+      ["backup", "policy", "list", "--vault-name", vault.name, "--resource-group", vault.resourceGroup],
+      sub,
+      15,
+    )
+    if (policies.exitCode === 0) {
+      const policyList = tryJson(policies.stdout) || []
+      output.push(`    Backup policies: ${policyList.length}`)
+      for (const p of policyList) output.push(`      ${p.name} (${p.properties?.backupManagementType || "?"})`)
     }
-    findings.push({ checkId: "AZ-VAULT-001", provider: "azure", severity: "medium", status: "INFO", resource: `recovery-vault://${v.name}`, title: `Recovery vault: ${v.name}`, details: `${v.location}. Contains VM/SQL/file backups — data exfil or ransomware target.`, remediation: "Enable soft delete, MUA, and resource locks on vaults" })
+
+    const props = await az(
+      ["backup", "vault", "backup-properties", "show", "--name", vault.name, "--resource-group", vault.resourceGroup],
+      sub,
+      15,
+    )
+    if (props.exitCode === 0) {
+      const bp = tryJson(props.stdout)
+      if (bp) {
+        const softDelete = bp.softDeleteFeatureState || "Unknown"
+        output.push(`    Soft delete: ${softDelete}`)
+        if (softDelete === "Disabled") {
+          findings.push({
+            checkId: "AZ-RSV-001",
+            provider: "azure",
+            severity: "high",
+            status: "FAIL",
+            resource: `rsv://${vault.name}`,
+            title: `Soft delete disabled: ${vault.name}`,
+            details: "Backup data can be permanently deleted without recovery period",
+            remediation: "Enable soft delete for ransomware protection",
+          })
+        }
+      }
+    }
+    output.push("")
   }
+
   return { output: output.join("\n"), findings }
 }
 
-export async function intuneEnum(args: string[], timeout: number): Promise<HookResult> {
+export async function intuneEnum(_args: string[], timeout: number): Promise<HookResult> {
   const findings: Finding[] = []
-  const output: string[] = ["[*] Microsoft Intune / Endpoint Manager enumeration...\n"]
-  const devices = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/deviceManagement/managedDevices?$top=100&$select=deviceName,operatingSystem,complianceState,managementAgent,userPrincipalName", "-o", "json"], timeout)
-  if (devices.exitCode !== 0) {
-    output.push(`[-] Cannot enumerate Intune (needs DeviceManagementManagedDevices.Read.All): ${devices.stderr.slice(0, 200)}`)
-    return { output: output.join("\n"), findings }
-  }
-  const list = tryJson(devices.stdout)?.value || []
-  output.push(`[+] Intune managed devices: ${list.length}`)
-  const osCounts: Record<string, number> = {}
-  for (const d of list) {
-    const os = d.operatingSystem || "unknown"
-    osCounts[os] = (osCounts[os] || 0) + 1
-    output.push(`    ${d.deviceName} — ${os} (${d.managementAgent}) user: ${d.userPrincipalName || "N/A"} compliance: ${d.complianceState}`)
-  }
-  output.push(`\n[+] OS distribution: ${Object.entries(osCounts).map(([k, v]) => `${k}:${v}`).join(", ")}`)
-  if (list.length > 0) findings.push({ checkId: "AZ-INTUNE-ENUM-001", provider: "azure", severity: "high", status: "ENUMERATED", resource: "intune://devices", title: `${list.length} Intune managed devices`, details: `OS: ${Object.entries(osCounts).map(([k, v]) => `${k}(${v})`).join(", ")}`, remediation: "Review Intune RBAC and device compliance policies" })
-  return { output: output.join("\n"), findings }
-}
+  const output: string[] = ["[*] Enumerating Intune (via Graph API)...\n"]
 
-export async function graphUserEnum(args: string[], timeout: number): Promise<HookResult> {
-  const search = argVal(args, "--search")
-  const role = argVal(args, "--role")
-  const findings: Finding[] = []
-  const output: string[] = ["[*] Microsoft Graph user enumeration...\n"]
-  const filter = search ? `&$search="displayName:${search}"` : ""
-  const headers = search ? `--headers "ConsistencyLevel=eventual"` : ""
-  const cmdArgs = ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/users?$top=100&$select=displayName,userPrincipalName,mail,jobTitle,department,accountEnabled,userType,createdDateTime${filter}`, "-o", "json"]
-  if (search) cmdArgs.push("--headers", "ConsistencyLevel=eventual")
-  const users = await run("az", cmdArgs, timeout)
-  if (users.exitCode !== 0) return { output: `[-] Cannot list users: ${users.stderr.slice(0, 200)}`, findings }
-  const list = tryJson(users.stdout)?.value || []
-  output.push(`[+] Users: ${list.length}`)
-  const admins: string[] = []
-  const guests: string[] = []
-  for (const u of list) {
-    const type = u.userType === "Guest" ? " [GUEST]" : ""
-    output.push(`    ${u.displayName} — ${u.userPrincipalName}${type}`)
-    output.push(`      Title: ${u.jobTitle || "N/A"}, Dept: ${u.department || "N/A"}, Enabled: ${u.accountEnabled}`)
-    if (u.userType === "Guest") guests.push(u.userPrincipalName)
+  const compliance = await run(
+    "az",
+    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/deviceManagement/deviceCompliancePolicies", "--query", "value"],
+    timeout,
+  )
+  if (compliance.exitCode === 0) {
+    const policies = tryJson(compliance.stdout) || []
+    output.push(`[+] Compliance policies: ${policies.length}`)
+    for (const p of policies) output.push(`    ${p.displayName} (${p["@odata.type"]?.split(".").pop()})`)
   }
-  if (guests.length > 0) findings.push({ checkId: "AZ-GRAPH-USER-001", provider: "azure", severity: "medium", status: "INFO", resource: "graph://users/guests", title: `${guests.length} guest users found`, details: "Guest users from external organizations", remediation: "Review guest access and enable access reviews" })
-  const dirRoles = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/directoryRoles?$select=displayName,id", "-o", "json"], timeout)
-  if (dirRoles.exitCode === 0) {
-    const roles = tryJson(dirRoles.stdout)?.value || []
-    output.push(`\n[+] Active directory roles: ${roles.length}`)
-    for (const r of roles) {
-      output.push(`    ${r.displayName}`)
-      const members = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/directoryRoles/${r.id}/members?$select=displayName,userPrincipalName`, "-o", "json"], timeout)
-      if (members.exitCode === 0) {
-        const mList = tryJson(members.stdout)?.value || []
-        for (const m of mList) output.push(`      ${m.displayName} (${m.userPrincipalName})`)
+
+  const configs = await run(
+    "az",
+    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/deviceManagement/deviceConfigurations", "--query", "value"],
+    timeout,
+  )
+  if (configs.exitCode === 0) {
+    const cfgList = tryJson(configs.stdout) || []
+    output.push(`\n[+] Device configurations: ${cfgList.length}`)
+    for (const c of cfgList) output.push(`    ${c.displayName} (${c["@odata.type"]?.split(".").pop()})`)
+  }
+
+  const scripts = await run(
+    "az",
+    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/beta/deviceManagement/deviceManagementScripts", "--query", "value"],
+    timeout,
+  )
+  if (scripts.exitCode === 0) {
+    const scriptList = tryJson(scripts.stdout) || []
+    output.push(`\n[+] Device management scripts: ${scriptList.length}`)
+    for (const s of scriptList) {
+      output.push(`    ${s.displayName} — runAs: ${s.runAsAccount}`)
+      if (s.runAsAccount === "system") {
+        findings.push({
+          checkId: "AZ-INTUNE-001",
+          provider: "azure",
+          severity: "high",
+          status: "INFO",
+          resource: `intune://script/${s.id}`,
+          title: `Intune script runs as SYSTEM: ${s.displayName}`,
+          details: "Script executes with SYSTEM privileges on managed devices",
+          remediation: "Review script content for sensitive operations, use least-privilege",
+        })
       }
     }
   }
-  findings.push({ checkId: "AZ-GRAPH-USER-002", provider: "azure", severity: "high", status: "ENUMERATED", resource: "graph://users", title: `${list.length} users enumerated via Graph`, details: "Full user directory with roles and metadata", remediation: "Restrict User.Read.All and Directory.Read.All permissions" })
+
   return { output: output.join("\n"), findings }
 }
 
-export async function appRegistrationEnum(args: string[], timeout: number): Promise<HookResult> {
+export async function graphUserEnum(_args: string[], timeout: number): Promise<HookResult> {
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure AD app registration enumeration...\n"]
-  const apps = await az(["ad", "app", "list", "--all", "--query", "[].{name:displayName,appId:appId,signIn:signInAudience,creds:passwordCredentials[].endDateTime,keys:keyCredentials[].endDateTime}"], undefined, timeout)
-  if (apps.exitCode !== 0) return { output: `[-] Cannot list apps: ${apps.stderr.slice(0, 200)}`, findings }
-  const list = tryJson(apps.stdout) || []
-  output.push(`[+] App registrations: ${list.length}`)
-  const expiredCreds: string[] = []
-  const multiTenant: string[] = []
-  for (const a of list) {
-    const credCount = (a.creds?.length || 0) + (a.keys?.length || 0)
-    output.push(`    ${a.name} (${a.appId}) — audience: ${a.signIn}, credentials: ${credCount}`)
-    if (a.signIn === "AzureADMultipleOrgs" || a.signIn === "AzureADandPersonalMicrosoftAccount") multiTenant.push(a.name)
+  const output: string[] = ["[*] Enumerating Azure AD users via Graph...\n"]
+
+  const users = await run(
+    "az",
+    ["ad", "user", "list", "--query", "[].{upn:userPrincipalName,type:userType,enabled:accountEnabled,displayName:displayName}", "-o", "json"],
+    timeout,
+  )
+  if (users.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot enumerate users", findings }
+
+  const items = tryJson(users.stdout) || []
+  output.push(`[+] Total users: ${items.length}\n`)
+
+  const guests = items.filter((u: Record<string, string>) => u.type === "Guest")
+  const members = items.filter((u: Record<string, string>) => u.type === "Member")
+  const disabled = items.filter((u: Record<string, string>) => !u.enabled)
+
+  output.push(`[+] Members: ${members.length}, Guests: ${guests.length}, Disabled: ${disabled.length}`)
+
+  if (guests.length > 0) {
+    output.push(`\n[+] Guest users:`)
+    for (const g of guests.slice(0, 20)) output.push(`    ${g.upn} (${g.displayName})`)
+    if (guests.length > 20) output.push(`    ... and ${guests.length - 20} more`)
+    findings.push({
+      checkId: "AZ-GRAPH-USER-001",
+      provider: "azure",
+      severity: "medium",
+      status: "INFO",
+      resource: "azure://ad/users/guests",
+      title: `${guests.length} guest users in tenant`,
+      details: `Guest accounts: ${guests.slice(0, 5).map((g: Record<string, string>) => g.upn).join(", ")}${guests.length > 5 ? "..." : ""}`,
+      remediation: "Review guest access policies, ensure B2B guests have minimal permissions",
+    })
   }
-  if (multiTenant.length > 0) {
-    output.push(`\n[!] Multi-tenant apps: ${multiTenant.length}`)
-    findings.push({ checkId: "AZ-APPREG-001", provider: "azure", severity: "high", status: "FAIL", resource: "azure-ad://apps/multi-tenant", title: `${multiTenant.length} multi-tenant app(s)`, details: `${multiTenant.join(", ")}. Can authenticate users from any tenant.`, remediation: "Review if multi-tenant access is required" })
+
+  if (disabled.length > 0) {
+    output.push(`\n[+] Disabled accounts: ${disabled.length}`)
+    for (const d of disabled.slice(0, 10)) output.push(`    ${d.upn}`)
   }
-  findings.push({ checkId: "AZ-APPREG-002", provider: "azure", severity: "medium", status: "ENUMERATED", resource: "azure-ad://apps", title: `${list.length} app registrations enumerated`, details: "App registrations with credentials may have privileged access", remediation: "Audit app permissions and credential expiry" })
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function appRegistrationEnum(_args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Enumerating Azure AD App Registrations...\n"]
+
+  const apps = await run("az", ["ad", "app", "list", "--all", "-o", "json"], timeout)
+  if (apps.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list app registrations", findings }
+
+  const items = tryJson(apps.stdout) || []
+  output.push(`[+] App registrations: ${items.length}\n`)
+
+  const dangerousPerms = ["Directory.ReadWrite.All", "RoleManagement.ReadWrite.Directory", "Application.ReadWrite.All", "Mail.ReadWrite", "Files.ReadWrite.All"]
+  const now = Date.now()
+
+  for (const app of items) {
+    output.push(`── ${app.displayName} (${app.appId}) ──`)
+
+    const creds = app.passwordCredentials || []
+    const certs = app.keyCredentials || []
+    output.push(`    Secrets: ${creds.length}, Certificates: ${certs.length}`)
+
+    for (const c of creds) {
+      const expiry = c.endDateTime ? new Date(c.endDateTime).getTime() : 0
+      if (expiry && expiry < now) {
+        output.push(`    [!] Expired secret: ${c.displayName || c.keyId} (expired ${c.endDateTime})`)
+      } else if (expiry && expiry - now < 30 * 86400000) {
+        output.push(`    [!] Secret expiring soon: ${c.displayName || c.keyId} (${c.endDateTime})`)
+      }
+    }
+
+    const reqPerms = app.requiredResourceAccess || []
+    for (const rp of reqPerms) {
+      for (const perm of rp.resourceAccess || []) {
+        if (perm.type === "Role") {
+          findings.push({
+            checkId: "AZ-APPREG-001",
+            provider: "azure",
+            severity: "high",
+            status: "FAIL",
+            resource: `appreg://${app.appId}`,
+            title: `App with application-level permission: ${app.displayName}`,
+            details: `Permission ID: ${perm.id} (type: Role) — application permissions don't require user consent`,
+            remediation: "Review if application permission is necessary, prefer delegated permissions",
+          })
+          break
+        }
+      }
+    }
+
+    const redirectUris = [...(app.web?.redirectUris || []), ...(app.spa?.redirectUris || []), ...(app.publicClient?.redirectUris || [])]
+    if (redirectUris.length > 0) {
+      const suspicious = redirectUris.filter((u: string) => u.startsWith("http://") && !u.startsWith("http://localhost"))
+      if (suspicious.length > 0) {
+        output.push(`    [!] Non-HTTPS redirect URIs: ${suspicious.join(", ")}`)
+        findings.push({
+          checkId: "AZ-APPREG-001",
+          provider: "azure",
+          severity: "high",
+          status: "FAIL",
+          resource: `appreg://${app.appId}/redirectUri`,
+          title: `HTTP redirect URI: ${app.displayName}`,
+          details: `Non-HTTPS redirect URIs: ${suspicious.join(", ")}`,
+          remediation: "Use HTTPS redirect URIs to prevent token interception",
+        })
+      }
+    }
+    output.push("")
+  }
+
   return { output: output.join("\n"), findings }
 }
 
 export async function logicAppConnectorEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure Logic App connector enumeration...\n"]
-  const logicApps = await az(["logic", "workflow", "list", "--query", "[].{name:name,rg:resourceGroup,state:state,sku:sku.name,endpoint:accessEndpoint}"], sub, timeout)
-  if (logicApps.exitCode !== 0) return { output: "[-] Cannot list Logic Apps", findings }
-  const list = tryJson(logicApps.stdout) || []
-  output.push(`[+] Logic Apps: ${list.length}`)
-  for (const la of list) {
-    output.push(`    ${la.name} (${la.rg}) — state: ${la.state}`)
-    if (la.endpoint) output.push(`      Endpoint: ${la.endpoint}`)
-    const connections = await az(["resource", "list", "--resource-type", "Microsoft.Web/connections", "--resource-group", la.rg, "--query", "[].{name:name,type:kind}"], sub, timeout)
-    if (connections.exitCode === 0) {
-      const connList = tryJson(connections.stdout) || []
-      if (connList.length > 0) {
-        output.push(`      API connections: ${connList.length}`)
-        for (const c of connList) output.push(`        ${c.name} (${c.type || "managed"})`)
-      }
+  const output: string[] = ["[*] Enumerating Logic App API connections...\n"]
+
+  const subId = sub || (tryJson((await run("az", ["account", "show", "-o", "json"], 10)).stdout))?.id
+  if (!subId) return { output: output.join("\n") + "[-] Cannot determine subscription ID", findings }
+
+  const connections = await run(
+    "az",
+    ["rest", "--method", "GET", "--url", `https://management.azure.com/subscriptions/${subId}/providers/Microsoft.Web/connections?api-version=2016-06-01`],
+    timeout,
+  )
+  if (connections.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list API connections", findings }
+
+  const data = tryJson(connections.stdout)
+  const items = data?.value || []
+  output.push(`[+] API connections: ${items.length}\n`)
+
+  const sensitiveTypes = ["sql", "keyvault", "azureblob", "azuread", "office365", "sharepoint", "dynamicscrmonline"]
+
+  for (const conn of items) {
+    const connType = conn.properties?.api?.name || "unknown"
+    const status = conn.properties?.statuses?.[0]?.status || "Unknown"
+    output.push(`    ${conn.name} — type: ${connType}, status: ${status}`)
+
+    if (sensitiveTypes.some((t) => connType.toLowerCase().includes(t))) {
+      findings.push({
+        checkId: "AZ-LACONN-001",
+        provider: "azure",
+        severity: "medium",
+        status: "INFO",
+        resource: `logicapp-conn://${conn.name}`,
+        title: `Sensitive API connection: ${conn.name} (${connType})`,
+        details: `Logic App connection to ${connType} — may contain stored credentials`,
+        remediation: "Use managed identity for Logic App connections where possible",
+      })
     }
   }
-  const enabled = list.filter((l: Record<string, string>) => l.state === "Enabled")
-  if (enabled.length > 0) findings.push({ checkId: "AZ-LOGICCONN-001", provider: "azure", severity: "medium", status: "INFO", resource: "logic-app://connectors", title: `${enabled.length} active Logic Apps with connectors`, details: "Connectors may have stored credentials for O365, SQL, SFTP, etc.", remediation: "Audit Logic App connectors for excessive permissions" })
+
   return { output: output.join("\n"), findings }
 }
 
 export async function automationRunbookEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure Automation runbook enumeration...\n"]
-  const accounts = await az(["automation", "account", "list", "--query", "[].{name:name,rg:resourceGroup,state:state,identity:identity.type}"], sub, timeout)
-  if (accounts.exitCode !== 0) return { output: "[-] Cannot list Automation accounts", findings }
-  const list = tryJson(accounts.stdout) || []
-  output.push(`[+] Automation accounts: ${list.length}`)
-  for (const a of list) {
-    output.push(`    ${a.name} (${a.rg}) — state: ${a.state}, identity: ${a.identity || "none"}`)
-    const runbooks = await az(["automation", "runbook", "list", "--automation-account-name", a.name, "--resource-group", a.rg, "--query", "[].{name:name,type:runbookType,state:state,lastModified:lastModifiedTime}"], sub, timeout)
+  const output: string[] = ["[*] Enumerating Azure Automation accounts & runbooks...\n"]
+
+  const accounts = await az(["automation", "account", "list"], sub, timeout)
+  if (accounts.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list Automation accounts", findings }
+
+  const items = tryJson(accounts.stdout) || []
+  output.push(`[+] Automation accounts: ${items.length}\n`)
+
+  for (const acct of items) {
+    output.push(`── ${acct.name} (${acct.resourceGroup}) ──`)
+    output.push(`    Identity: ${acct.identity?.type || "none"}`)
+
+    const runbooks = await az(
+      ["automation", "runbook", "list", "--automation-account-name", acct.name, "--resource-group", acct.resourceGroup],
+      sub,
+      30,
+    )
     if (runbooks.exitCode === 0) {
       const rbList = tryJson(runbooks.stdout) || []
-      output.push(`      Runbooks: ${rbList.length}`)
-      for (const rb of rbList) output.push(`        ${rb.name} (${rb.type}) — ${rb.state}`)
+      output.push(`    Runbooks: ${rbList.length}`)
+      for (const rb of rbList) output.push(`      ${rb.name} (${rb.runbookType}) — state: ${rb.state}`)
     }
-    const variables = await az(["automation", "variable", "list", "--automation-account-name", a.name, "--resource-group", a.rg, "--query", "[].{name:name,encrypted:isEncrypted}"], sub, timeout)
+
+    const schedules = await az(
+      ["automation", "schedule", "list", "--automation-account-name", acct.name, "--resource-group", acct.resourceGroup],
+      sub,
+      15,
+    )
+    if (schedules.exitCode === 0) {
+      const schedList = tryJson(schedules.stdout) || []
+      output.push(`    Schedules: ${schedList.length}`)
+      for (const s of schedList) output.push(`      ${s.name} — freq: ${s.frequency}, enabled: ${s.isEnabled}`)
+    }
+
+    const variables = await az(
+      ["automation", "variable", "list", "--automation-account-name", acct.name, "--resource-group", acct.resourceGroup],
+      sub,
+      15,
+    )
     if (variables.exitCode === 0) {
       const varList = tryJson(variables.stdout) || []
-      if (varList.length > 0) {
-        output.push(`      Variables: ${varList.length}`)
-        for (const v of varList) output.push(`        ${v.name} (encrypted: ${v.encrypted})`)
+      output.push(`    Variables: ${varList.length}`)
+      for (const v of varList) {
+        const encrypted = v.isEncrypted ? "[encrypted]" : v.value?.substring(0, 60) || ""
+        output.push(`      ${v.name}: ${encrypted}`)
+        if (!v.isEncrypted && v.value) {
+          findings.push({
+            checkId: "AZ-AUTORUN-001",
+            provider: "azure",
+            severity: "medium",
+            status: "INFO",
+            resource: `automation://${acct.name}/var/${v.name}`,
+            title: `Unencrypted automation variable: ${acct.name}/${v.name}`,
+            details: `Variable stored in plaintext: ${v.value.substring(0, 100)}`,
+            remediation: "Mark sensitive variables as encrypted",
+          })
+        }
       }
     }
-    if (a.identity) findings.push({ checkId: "AZ-AUTORUN-001", provider: "azure", severity: "high", status: "INFO", resource: `automation://${a.name}`, title: `Automation account with managed identity: ${a.name}`, details: `Identity: ${a.identity}. Runbooks run with this identity's permissions.`, remediation: "Review managed identity role assignments" })
+    output.push("")
   }
+
   return { output: output.join("\n"), findings }
 }
 
 export async function synapseEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure Synapse Analytics enumeration...\n"]
-  const workspaces = await az(["synapse", "workspace", "list", "--query", "[].{name:name,rg:resourceGroup,endpoint:connectivityEndpoints.web,sqlAdmin:sqlAdministratorLogin,managedRg:managedResourceGroupName}"], sub, timeout)
-  if (workspaces.exitCode !== 0) return { output: "[-] Cannot list Synapse workspaces (extension may not be installed)", findings }
-  const list = tryJson(workspaces.stdout) || []
-  output.push(`[+] Synapse workspaces: ${list.length}`)
-  for (const w of list) {
-    output.push(`    ${w.name} (${w.rg})`)
-    output.push(`      SQL admin: ${w.sqlAdmin || "N/A"}`)
-    output.push(`      Web endpoint: ${w.endpoint || "N/A"}`)
-    const pools = await az(["synapse", "sql", "pool", "list", "--workspace-name", w.name, "--resource-group", w.rg, "--query", "[].{name:name,sku:sku.name,status:status}"], sub, timeout)
-    if (pools.exitCode === 0) {
-      const poolList = tryJson(pools.stdout) || []
-      output.push(`      SQL pools: ${poolList.length}`)
-      for (const p of poolList) output.push(`        ${p.name} (${p.sku}) — ${p.status}`)
+  const output: string[] = ["[*] Enumerating Azure Synapse Analytics...\n"]
+
+  const workspaces = await az(["synapse", "workspace", "list"], sub, timeout)
+  if (workspaces.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list Synapse workspaces", findings }
+
+  const items = tryJson(workspaces.stdout) || []
+  output.push(`[+] Synapse workspaces: ${items.length}\n`)
+
+  for (const ws of items) {
+    output.push(`── ${ws.name} (${ws.resourceGroup}) ──`)
+    output.push(`    Dev endpoint: ${ws.connectivityEndpoints?.dev || "N/A"}`)
+    output.push(`    SQL endpoint: ${ws.connectivityEndpoints?.sql || "N/A"}`)
+    output.push(`    SQL admin: ${ws.sqlAdministratorLogin}`)
+    output.push(`    Public access: ${ws.publicNetworkAccess || "Enabled"}`)
+    output.push(`    Managed VNet: ${ws.managedVirtualNetwork ? "YES" : "NO"}`)
+    output.push(`    Identity: ${ws.identity?.type || "none"}`)
+
+    if (ws.publicNetworkAccess !== "Disabled") {
+      findings.push({
+        checkId: "AZ-SYNAPSE-001",
+        provider: "azure",
+        severity: "high",
+        status: "FAIL",
+        resource: `synapse://${ws.name}`,
+        title: `Synapse public access: ${ws.name}`,
+        details: `Workspace is publicly accessible — SQL admin: ${ws.sqlAdministratorLogin}`,
+        remediation: "Disable public network access, use managed VNet and private endpoints",
+      })
     }
-    findings.push({ checkId: "AZ-SYNAPSE-001", provider: "azure", severity: "high", status: "INFO", resource: `synapse://${w.name}`, title: `Synapse workspace: ${w.name}`, details: `SQL admin: ${w.sqlAdmin}. Contains data pipelines, notebooks, SQL pools.`, remediation: "Review Synapse RBAC and network access" })
+
+    const sqlPools = await az(
+      ["synapse", "sql", "pool", "list", "--workspace-name", ws.name, "--resource-group", ws.resourceGroup],
+      sub,
+      15,
+    )
+    if (sqlPools.exitCode === 0) {
+      const pools = tryJson(sqlPools.stdout) || []
+      output.push(`    SQL pools: ${pools.length}`)
+      for (const p of pools) output.push(`      ${p.name} (${p.sku?.name}) — status: ${p.status}`)
+    }
+
+    const sparkPools = await az(
+      ["synapse", "spark", "pool", "list", "--workspace-name", ws.name, "--resource-group", ws.resourceGroup],
+      sub,
+      15,
+    )
+    if (sparkPools.exitCode === 0) {
+      const pools = tryJson(sparkPools.stdout) || []
+      output.push(`    Spark pools: ${pools.length}`)
+      for (const p of pools) output.push(`      ${p.name} — nodes: ${p.nodeCount} x ${p.nodeSize}`)
+    }
+    output.push("")
   }
+
   return { output: output.join("\n"), findings }
 }
 
 export async function purviewEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Microsoft Purview / Data Governance enumeration...\n"]
-  const accounts = await az(["purview", "account", "list", "--query", "[].{name:name,rg:resourceGroup,endpoint:endpoints.catalog,identity:identity.type}"], sub, timeout)
+  const output: string[] = ["[*] Enumerating Microsoft Purview accounts...\n"]
+
+  const accounts = await az(["purview", "account", "list"], sub, timeout)
   if (accounts.exitCode !== 0) {
-    const resources = await az(["resource", "list", "--resource-type", "Microsoft.Purview/accounts", "--query", "[].{name:name,rg:resourceGroup}"], sub, timeout)
-    if (resources.exitCode === 0) {
-      const list = tryJson(resources.stdout) || []
-      output.push(`[+] Purview accounts: ${list.length}`)
-      for (const p of list) output.push(`    ${p.name} — rg: ${p.rg}`)
+    const subId = sub || (tryJson((await run("az", ["account", "show", "-o", "json"], 10)).stdout))?.id
+    if (subId) {
+      const rest = await run(
+        "az",
+        ["rest", "--method", "GET", "--url", `https://management.azure.com/subscriptions/${subId}/providers/Microsoft.Purview/accounts?api-version=2021-07-01`],
+        timeout,
+      )
+      if (rest.exitCode === 0) {
+        const data = tryJson(rest.stdout)
+        const items = data?.value || []
+        output.push(`[+] Purview accounts (via REST): ${items.length}`)
+        for (const acct of items) {
+          output.push(`    ${acct.name} (${acct.location}) — ${acct.properties?.publicNetworkAccess || "Enabled"}`)
+          if (acct.properties?.publicNetworkAccess !== "Disabled") {
+            findings.push({
+              checkId: "AZ-PURVIEW-001",
+              provider: "azure",
+              severity: "medium",
+              status: "FAIL",
+              resource: `purview://${acct.name}`,
+              title: `Purview public access: ${acct.name}`,
+              details: "Data governance portal is publicly accessible",
+              remediation: "Disable public network access for Purview account",
+            })
+          }
+        }
+        return { output: output.join("\n"), findings }
+      }
     }
-    return { output: output.join("\n"), findings }
+    return { output: output.join("\n") + "[-] Cannot list Purview accounts", findings }
   }
-  const list = tryJson(accounts.stdout) || []
-  output.push(`[+] Purview accounts: ${list.length}`)
-  for (const p of list) {
-    output.push(`    ${p.name} (${p.rg})`)
-    if (p.endpoint) output.push(`      Catalog endpoint: ${p.endpoint}`)
-    output.push(`      Identity: ${p.identity || "none"}`)
-    findings.push({ checkId: "AZ-PURVIEW-001", provider: "azure", severity: "medium", status: "INFO", resource: `purview://${p.name}`, title: `Purview account: ${p.name}`, details: "Data catalog contains metadata about all sensitive data sources. High recon value.", remediation: "Restrict Purview access, review data source connections" })
+
+  const items = tryJson(accounts.stdout) || []
+  output.push(`[+] Purview accounts: ${items.length}\n`)
+
+  for (const acct of items) {
+    output.push(`── ${acct.name} (${acct.resourceGroup || acct.location}) ──`)
+    output.push(`    Public access: ${acct.properties?.publicNetworkAccess || "Enabled"}`)
+    output.push(`    Identity: ${acct.identity?.type || "none"}`)
+
+    if (acct.properties?.publicNetworkAccess !== "Disabled") {
+      findings.push({
+        checkId: "AZ-PURVIEW-001",
+        provider: "azure",
+        severity: "medium",
+        status: "FAIL",
+        resource: `purview://${acct.name}`,
+        title: `Purview public access: ${acct.name}`,
+        details: "Data governance portal is publicly accessible",
+        remediation: "Disable public network access for Purview account",
+      })
+    }
+    output.push("")
   }
+
   return { output: output.join("\n"), findings }
 }
+
+// ── P2 recon handlers ──
 
 export async function subdomainTakeover(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure subdomain takeover check...\n"]
-  const cnames = await az(["network", "dns", "record-set", "cname", "list", "--zone-name", argVal(args, "--zone") || "", "--resource-group", argVal(args, "--resource-group") || ""], sub, timeout)
-  if (cnames.exitCode !== 0) {
-    const zones = await az(["network", "dns", "zone", "list", "--query", "[].{name:name,rg:resourceGroup,records:numberOfRecordSets}"], sub, timeout)
-    if (zones.exitCode === 0) {
-      const zoneList = tryJson(zones.stdout) || []
-      output.push(`[+] DNS zones: ${zoneList.length}`)
-      for (const z of zoneList) {
-        output.push(`    ${z.name} (${z.rg}) — ${z.records} record sets`)
-        const records = await az(["network", "dns", "record-set", "cname", "list", "--zone-name", z.name, "--resource-group", z.rg], sub, timeout)
-        if (records.exitCode === 0) {
-          const cnameList = tryJson(records.stdout) || []
-          const azureTargets = cnameList.filter((r: Record<string, Record<string, string>>) => {
-            const target = r.cnameRecord?.cname || r.CNAMERecord?.cname || ""
-            return target.includes(".azurewebsites.net") || target.includes(".cloudapp.azure.com") || target.includes(".trafficmanager.net") || target.includes(".blob.core.windows.net") || target.includes(".azureedge.net") || target.includes(".azure-api.net")
-          })
-          if (azureTargets.length > 0) {
-            output.push(`      [!] CNAME records pointing to Azure services: ${azureTargets.length}`)
-            for (const r of azureTargets) {
-              const target = r.cnameRecord?.cname || r.CNAMERecord?.cname || ""
-              output.push(`        ${r.name}.${z.name} → ${target}`)
-              findings.push({ checkId: "AZ-TAKEOVER-001", provider: "azure", severity: "high", status: "FAIL", resource: `dns://${z.name}/${r.name}`, title: `Potential subdomain takeover: ${r.name}.${z.name}`, details: `CNAME → ${target}. If Azure resource is deleted, domain can be claimed.`, remediation: "Verify Azure resource exists, remove stale CNAME records" })
-            }
-          }
-        }
+  const output: string[] = ["[*] Checking for subdomain takeover via dangling CNAMEs...\n"]
+
+  const danglingPatterns = [
+    ".azurewebsites.net",
+    ".trafficmanager.net",
+    ".cloudapp.azure.com",
+    ".blob.core.windows.net",
+    ".azureedge.net",
+    ".azure-api.net",
+    ".azurefd.net",
+    ".azurecontainer.io",
+    ".database.windows.net",
+    ".azurecr.io",
+  ]
+
+  const zones = await az(["network", "dns", "zone", "list"], sub, timeout)
+  if (zones.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list DNS zones", findings }
+
+  const zoneList = tryJson(zones.stdout) || []
+  output.push(`[+] DNS zones to check: ${zoneList.length}\n`)
+
+  for (const zone of zoneList) {
+    const records = await az(
+      ["network", "dns", "record-set", "cname", "list", "--zone-name", zone.name, "--resource-group", zone.resourceGroup],
+      sub,
+      30,
+    )
+    if (records.exitCode !== 0) continue
+
+    const cnames = tryJson(records.stdout) || []
+    for (const cn of cnames) {
+      const target = cn.cnameRecord?.cname || cn.CNAMERecord?.cname || ""
+      if (!target) continue
+
+      const isDangling = danglingPatterns.some((p) => target.endsWith(p))
+      if (!isDangling) continue
+
+      output.push(`[!] ${cn.fqdn || cn.name + "." + zone.name} → ${target}`)
+
+      const dig = await run("dig", ["+short", target], 10)
+      const resolved = dig.exitCode === 0 && dig.stdout.trim().length > 0
+
+      if (!resolved) {
+        output.push(`    STATUS: NXDOMAIN — likely takeover candidate`)
+        findings.push({
+          checkId: "AZ-SUBDOMAIN-001",
+          provider: "azure",
+          severity: "critical",
+          status: "FAIL",
+          resource: `dns://${zone.name}/${cn.name}`,
+          title: `Subdomain takeover: ${cn.name}.${zone.name}`,
+          details: `CNAME → ${target} does not resolve — attacker can claim this resource`,
+          remediation: "Remove dangling CNAME record or reclaim the Azure resource",
+        })
+      } else {
+        output.push(`    STATUS: Resolves — not currently vulnerable`)
       }
     }
-    return { output: output.join("\n"), findings }
   }
+
   return { output: output.join("\n"), findings }
 }
 
 export async function stalePermissionAudit(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure stale permission audit...\n"]
-  const assignments = await az(["role", "assignment", "list", "--all", "--query", "[].{principal:principalName,principalType:principalType,role:roleDefinitionName,scope:scope}"], sub, timeout)
-  if (assignments.exitCode !== 0) return { output: "[-] Cannot list role assignments", findings }
-  const list = tryJson(assignments.stdout) || []
-  output.push(`[+] Role assignments: ${list.length}`)
-  const byType: Record<string, number> = {}
-  const orphaned: string[] = []
-  for (const a of list) {
-    const type = a.principalType || "Unknown"
-    byType[type] = (byType[type] || 0) + 1
-    if (!a.principal || a.principal === "") {
-      orphaned.push(`${a.role} at ${a.scope}`)
+  const output: string[] = ["[*] Auditing stale role assignments...\n"]
+
+  const assignments = await az(["role", "assignment", "list", "--all", "--include-inherited"], sub, timeout)
+  if (assignments.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list role assignments", findings }
+
+  const items = tryJson(assignments.stdout) || []
+  output.push(`[+] Total role assignments: ${items.length}\n`)
+
+  const spAssignments = items.filter((a: Record<string, string>) => a.principalType === "ServicePrincipal")
+  output.push(`[+] Service Principal assignments: ${spAssignments.length}`)
+
+  for (const sp of spAssignments) {
+    const spShow = await run("az", ["ad", "sp", "show", "--id", sp.principalId, "-o", "json"], 10)
+    if (spShow.exitCode !== 0) {
+      output.push(`    [!] Orphaned assignment: ${sp.principalId} → ${sp.roleDefinitionName} (principal not found)`)
+      findings.push({
+        checkId: "AZ-STALE-001",
+        provider: "azure",
+        severity: "medium",
+        status: "FAIL",
+        resource: `rbac://${sp.principalId}`,
+        title: `Orphaned role assignment: ${sp.roleDefinitionName}`,
+        details: `Principal ${sp.principalId} no longer exists but has ${sp.roleDefinitionName} at ${sp.scope}`,
+        remediation: "Remove orphaned role assignment: az role assignment delete --ids <assignment-id>",
+      })
+      continue
+    }
+
+    const spData = tryJson(spShow.stdout)
+    if (spData) output.push(`    ${spData.displayName} → ${sp.roleDefinitionName}`)
+  }
+
+  const unknownPrincipals = items.filter((a: Record<string, string>) => a.principalType === "Unknown" || !a.principalName)
+  if (unknownPrincipals.length > 0) {
+    output.push(`\n[!] Assignments with unknown/deleted principals: ${unknownPrincipals.length}`)
+    for (const u of unknownPrincipals) {
+      output.push(`    ${u.principalId} → ${u.roleDefinitionName} at ${u.scope?.split("/").pop()}`)
+      findings.push({
+        checkId: "AZ-STALE-001",
+        provider: "azure",
+        severity: "medium",
+        status: "FAIL",
+        resource: `rbac://${u.principalId}`,
+        title: `Orphaned role assignment: deleted principal`,
+        details: `Deleted principal ${u.principalId} retains ${u.roleDefinitionName} at ${u.scope}`,
+        remediation: "Remove orphaned role assignment",
+      })
     }
   }
-  output.push(`    By type: ${Object.entries(byType).map(([k, v]) => `${k}:${v}`).join(", ")}`)
-  if (orphaned.length > 0) {
-    output.push(`\n[!] Orphaned assignments (deleted principals): ${orphaned.length}`)
-    for (const o of orphaned) output.push(`    ${o}`)
-    findings.push({ checkId: "AZ-STALE-001", provider: "azure", severity: "high", status: "FAIL", resource: "subscription://role-assignments/orphaned", title: `${orphaned.length} orphaned role assignments`, details: "Assignments for deleted users/SPs — can be claimed by recreating the principal", remediation: "Remove orphaned role assignments" })
-  }
-  const ownerAssignments = list.filter((a: Record<string, string>) => a.role === "Owner" || a.role === "Contributor")
-  if (ownerAssignments.length > 0) {
-    output.push(`\n[+] High-privilege assignments: ${ownerAssignments.length}`)
-    for (const a of ownerAssignments.slice(0, 20)) output.push(`    ${a.principal || "(orphaned)"} — ${a.role} at ${a.scope?.substring(0, 60)}`)
-    findings.push({ checkId: "AZ-STALE-002", provider: "azure", severity: "high", status: "INFO", resource: "subscription://role-assignments/high-priv", title: `${ownerAssignments.length} Owner/Contributor assignments`, details: "Review for excessive permissions and unused accounts", remediation: "Implement least-privilege, use PIM for just-in-time access" })
-  }
+
   return { output: output.join("\n"), findings }
 }
 
 export async function publicExposureScan(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure public exposure scan...\n"]
-  const publicIps = await az(["network", "public-ip", "list", "--query", "[].{name:name,rg:resourceGroup,ip:ipAddress,allocation:publicIpAllocationMethod,associated:ipConfiguration.id}"], sub, timeout)
-  if (publicIps.exitCode === 0) {
-    const ipList = tryJson(publicIps.stdout) || []
-    const assigned = ipList.filter((ip: Record<string, string>) => ip.ip)
-    const unassociated = ipList.filter((ip: Record<string, string | undefined>) => !ip.associated)
-    output.push(`[+] Public IPs: ${ipList.length} (${assigned.length} with address, ${unassociated.length} unassociated)`)
-    for (const ip of assigned) output.push(`    ${ip.name} — ${ip.ip} (${ip.allocation}) rg: ${ip.rg}`)
-    if (unassociated.length > 0) {
-      output.push(`\n[!] Unassociated public IPs (cost + takeover risk):`)
-      for (const ip of unassociated) output.push(`    ${ip.name} — ${ip.ip || "no address"} rg: ${ip.rg}`)
-      findings.push({ checkId: "AZ-PUBEXP-001", provider: "azure", severity: "medium", status: "FAIL", resource: "subscription://public-ips/unassociated", title: `${unassociated.length} unassociated public IP(s)`, details: "Unused public IPs incur cost and may be reclaimable", remediation: "Delete unassociated public IPs" })
+  const output: string[] = ["[*] Full public exposure scan...\n"]
+
+  const pips = await az(["network", "public-ip", "list"], sub, timeout)
+  if (pips.exitCode === 0) {
+    const items = tryJson(pips.stdout) || []
+    output.push(`[+] Public IPs: ${items.length}`)
+    for (const ip of items) {
+      const addr = ip.ipAddress || "unallocated"
+      const assoc = ip.ipConfiguration?.id?.split("/").slice(-3).join("/") || "unassociated"
+      output.push(`    ${ip.name}: ${addr} → ${assoc}`)
     }
+    findings.push({
+      checkId: "AZ-EXPOSURE-001",
+      provider: "azure",
+      severity: items.length > 10 ? "high" : "medium",
+      status: "INFO",
+      resource: "azure://public-ips",
+      title: `${items.length} public IP addresses`,
+      details: items.map((i: Record<string, string>) => `${i.name}:${i.ipAddress || "unallocated"}`).join(", "),
+      remediation: "Remove unnecessary public IPs, use Azure Bastion/Private Link",
+    })
   }
-  const storageAccts = await az(["storage", "account", "list", "--query", "[?networkRuleSet.defaultAction=='Allow'].{name:name,rg:resourceGroup,https:supportsHttpsTrafficOnly}"], sub, timeout)
-  if (storageAccts.exitCode === 0) {
-    const openStorage = tryJson(storageAccts.stdout) || []
-    if (openStorage.length > 0) {
-      output.push(`\n[!] Storage accounts with public network access: ${openStorage.length}`)
-      for (const s of openStorage) output.push(`    ${s.name} (${s.rg}) https-only: ${s.https}`)
-      findings.push({ checkId: "AZ-PUBEXP-002", provider: "azure", severity: "high", status: "FAIL", resource: "subscription://storage/public", title: `${openStorage.length} storage account(s) publicly accessible`, details: "Default network rule is Allow — accessible from any network", remediation: "Set default network rule to Deny, add specific network rules" })
-    }
-  }
-  const sqlServers = await az(["sql", "server", "list", "--query", "[].{name:name,rg:resourceGroup,admin:administratorLogin}"], sub, timeout)
-  if (sqlServers.exitCode === 0) {
-    const servers = tryJson(sqlServers.stdout) || []
-    for (const s of servers) {
-      const fwRules = await az(["sql", "server", "firewall-rule", "list", "--server", s.name, "--resource-group", s.rg, "--query", "[].{name:name,start:startIpAddress,end:endIpAddress}"], sub, timeout)
-      if (fwRules.exitCode === 0) {
-        const rules = tryJson(fwRules.stdout) || []
-        const allowAll = rules.filter((r: Record<string, string>) => r.start === "0.0.0.0" && r.end === "255.255.255.255")
-        if (allowAll.length > 0) {
-          output.push(`\n[!] SQL server ${s.name} allows all IPs (0.0.0.0 - 255.255.255.255)`)
-          findings.push({ checkId: "AZ-PUBEXP-003", provider: "azure", severity: "critical", status: "FAIL", resource: `sql://${s.name}`, title: `SQL server publicly accessible: ${s.name}`, details: "Firewall allows all IP addresses", remediation: "Restrict SQL Server firewall rules to specific IPs" })
+
+  const nsgs = await az(["network", "nsg", "list"], sub, timeout)
+  if (nsgs.exitCode === 0) {
+    const nsgItems = tryJson(nsgs.stdout) || []
+    let openCount = 0
+    for (const nsg of nsgItems) {
+      const rules = nsg.securityRules || []
+      for (const rule of rules) {
+        if (
+          rule.direction === "Inbound" &&
+          rule.access === "Allow" &&
+          (rule.sourceAddressPrefix === "*" || rule.sourceAddressPrefix === "0.0.0.0/0") &&
+          rule.destinationPortRange === "*"
+        ) {
+          openCount++
+          output.push(`    [!] Open NSG: ${nsg.name}/${rule.name} — all ports from Internet`)
         }
       }
     }
-  }
-  return { output: output.join("\n"), findings }
-}
-
-export async function eventGridEnum(args: string[], timeout: number): Promise<HookResult> {
-  const sub = argVal(args, "--subscription-id")
-  const findings: Finding[] = []
-  const output: string[] = ["[*] Azure Event Grid enumeration...\n"]
-  const topics = await az(["eventgrid", "topic", "list", "--query", "[].{name:name,rg:resourceGroup,endpoint:endpoint,status:provisioningState}"], sub, timeout)
-  if (topics.exitCode === 0) {
-    const topicList = tryJson(topics.stdout) || []
-    output.push(`[+] Custom topics: ${topicList.length}`)
-    for (const t of topicList) output.push(`    ${t.name} (${t.rg}) — ${t.endpoint}`)
-  }
-  const systemTopics = await az(["eventgrid", "system-topic", "list", "--query", "[].{name:name,rg:resourceGroup,type:topicType,source:source}"], sub, timeout)
-  if (systemTopics.exitCode === 0) {
-    const stList = tryJson(systemTopics.stdout) || []
-    output.push(`\n[+] System topics: ${stList.length}`)
-    for (const st of stList) output.push(`    ${st.name} (${st.type}) — source: ${st.source}`)
-  }
-  const subs = await az(["eventgrid", "event-subscription", "list", "--location", "global", "--query", "[].{name:name,endpoint:destination.endpointUrl,type:destination.endpointType}"], sub, timeout)
-  if (subs.exitCode === 0) {
-    const subList = tryJson(subs.stdout) || []
-    output.push(`\n[+] Global event subscriptions: ${subList.length}`)
-    for (const s of subList) {
-      output.push(`    ${s.name} → ${s.type || "unknown"}: ${s.endpoint || "hidden"}`)
-      if (s.type === "WebHook") findings.push({ checkId: "AZ-EVGRID-001", provider: "azure", severity: "medium", status: "INFO", resource: `eventgrid://subscription/${s.name}`, title: `Event Grid webhook subscription: ${s.name}`, details: `External endpoint receives Azure events — potential data leak or persistence`, remediation: "Review Event Grid subscriptions and webhook endpoints" })
+    if (openCount > 0) {
+      findings.push({
+        checkId: "AZ-EXPOSURE-001",
+        provider: "azure",
+        severity: "critical",
+        status: "FAIL",
+        resource: "azure://nsg/open-rules",
+        title: `${openCount} NSG rules allow all inbound from Internet`,
+        details: "NSG rules with source 0.0.0.0/0 and destination port * found",
+        remediation: "Restrict NSG rules to specific ports and source IPs",
+      })
     }
   }
-  return { output: output.join("\n"), findings }
-}
 
-export async function serviceFabricEnum(args: string[], timeout: number): Promise<HookResult> {
-  const sub = argVal(args, "--subscription-id")
-  const findings: Finding[] = []
-  const output: string[] = ["[*] Azure Service Fabric enumeration...\n"]
-  const clusters = await az(["sf", "cluster", "list", "--query", "[].{name:name,rg:resourceGroup,state:clusterState,endpoint:managementEndpoint,nodes:nodeTypes[0].vmInstanceCount}"], sub, timeout)
-  if (clusters.exitCode !== 0) {
-    const resources = await az(["resource", "list", "--resource-type", "Microsoft.ServiceFabric/clusters", "--query", "[].{name:name,rg:resourceGroup}"], sub, timeout)
-    if (resources.exitCode === 0) {
-      const list = tryJson(resources.stdout) || []
-      output.push(`[+] Service Fabric clusters: ${list.length}`)
-      for (const c of list) output.push(`    ${c.name} — rg: ${c.rg}`)
+  const storage = await az(["storage", "account", "list", "--query", "[].{name:name,rg:resourceGroup,allowBlobPublicAccess:allowBlobPublicAccess}"], sub, timeout)
+  if (storage.exitCode === 0) {
+    const items = tryJson(storage.stdout) || []
+    const publicAccounts = items.filter((s: Record<string, boolean>) => s.allowBlobPublicAccess)
+    output.push(`\n[+] Storage accounts with public blob access: ${publicAccounts.length}/${items.length}`)
+    for (const s of publicAccounts) {
+      output.push(`    [!] ${s.name} — anonymous blob access allowed`)
+      findings.push({
+        checkId: "AZ-EXPOSURE-001",
+        provider: "azure",
+        severity: "high",
+        status: "FAIL",
+        resource: `storage://${s.name}`,
+        title: `Public blob access: ${s.name}`,
+        details: "Storage account allows anonymous public blob access",
+        remediation: "Disable allowBlobPublicAccess on storage account",
+      })
     }
-    return { output: output.join("\n"), findings }
   }
-  const list = tryJson(clusters.stdout) || []
-  output.push(`[+] Service Fabric clusters: ${list.length}`)
-  for (const c of list) {
-    output.push(`    ${c.name} (${c.rg}) — state: ${c.state}, nodes: ${c.nodes || "?"}`)
-    if (c.endpoint) output.push(`      Management: ${c.endpoint}`)
-    findings.push({ checkId: "AZ-SF-001", provider: "azure", severity: "medium", status: "INFO", resource: `service-fabric://${c.name}`, title: `Service Fabric cluster: ${c.name}`, details: `State: ${c.state}, nodes: ${c.nodes || "?"}. Microservices platform — may host internal services.`, remediation: "Review cluster security settings and certificate rotation" })
-  }
+
   return { output: output.join("\n"), findings }
 }
 
-export async function batchAccountEnum(args: string[], timeout: number): Promise<HookResult> {
+// ── P3 niche handlers ──
+
+export async function databricksSecretDump(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure Batch account enumeration...\n"]
-  const accounts = await az(["batch", "account", "list", "--query", "[].{name:name,rg:resourceGroup,location:location,endpoint:accountEndpoint,pool:poolAllocationMode}"], sub, timeout)
-  if (accounts.exitCode !== 0) return { output: "[-] Cannot list Batch accounts", findings }
-  const list = tryJson(accounts.stdout) || []
-  output.push(`[+] Batch accounts: ${list.length}`)
-  for (const a of list) {
-    output.push(`    ${a.name} (${a.rg}) — ${a.location}, pool: ${a.pool}`)
-    if (a.endpoint) output.push(`      Endpoint: ${a.endpoint}`)
-    findings.push({ checkId: "AZ-BATCH-001", provider: "azure", severity: "medium", status: "INFO", resource: `batch://${a.name}`, title: `Batch account: ${a.name}`, details: `Pool allocation: ${a.pool}. Can run arbitrary code on compute nodes.`, remediation: "Review Batch account access keys and pool configurations" })
+  const output: string[] = ["[*] Enumerating Databricks secret scopes...\n"]
+
+  const workspaces = await az(["databricks", "workspace", "list"], sub, timeout)
+  if (workspaces.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list Databricks workspaces", findings }
+
+  const items = tryJson(workspaces.stdout) || []
+  output.push(`[+] Databricks workspaces: ${items.length}\n`)
+
+  for (const ws of items) {
+    output.push(`── ${ws.name} ──`)
+    const wsUrl = ws.workspaceUrl
+    if (!wsUrl) {
+      output.push("    [!] No workspace URL — cannot query secret scopes")
+      continue
+    }
+
+    const scopes = await run(
+      "az",
+      ["rest", "--method", "GET", "--url", `https://${wsUrl}/api/2.0/secrets/scopes/list`, "--resource", "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d"],
+      timeout,
+    )
+    if (scopes.exitCode === 0) {
+      const data = tryJson(scopes.stdout)
+      const scopeList = data?.scopes || []
+      output.push(`    Secret scopes: ${scopeList.length}`)
+      for (const scope of scopeList) {
+        output.push(`      ${scope.name} (backend: ${scope.backend_type})`)
+        findings.push({
+          checkId: "AZ-DBR-SECRET-001",
+          provider: "azure",
+          severity: "medium",
+          status: "INFO",
+          resource: `databricks://${ws.name}/secrets/${scope.name}`,
+          title: `Databricks secret scope: ${ws.name}/${scope.name}`,
+          details: `Backend: ${scope.backend_type} — enumerate secrets with list API`,
+          remediation: "Ensure secret ACLs restrict access to authorized principals",
+        })
+      }
+    } else {
+      output.push("    [!] Cannot access secrets API (auth or permission issue)")
+    }
+    output.push("")
   }
+
   return { output: output.join("\n"), findings }
 }
 
 export async function cognitiveServicesEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure Cognitive Services / AI Services enumeration...\n"]
-  const services = await az(["cognitiveservices", "account", "list", "--query", "[].{name:name,rg:resourceGroup,kind:kind,sku:sku.name,endpoint:properties.endpoint,publicAccess:properties.publicNetworkAccess}"], sub, timeout)
-  if (services.exitCode !== 0) return { output: "[-] Cannot list Cognitive Services", findings }
-  const list = tryJson(services.stdout) || []
-  output.push(`[+] Cognitive Services accounts: ${list.length}`)
-  for (const s of list) {
-    output.push(`    ${s.name} (${s.kind}, ${s.sku}) — public: ${s.publicAccess || "?"}`)
-    if (s.endpoint) output.push(`      Endpoint: ${s.endpoint}`)
-    const keys = await az(["cognitiveservices", "account", "keys", "list", "--name", s.name, "--resource-group", s.rg], sub, timeout)
-    if (keys.exitCode === 0) {
-      const k = tryJson(keys.stdout)
-      if (k?.key1) {
-        output.push(`      Key1: ${String(k.key1).substring(0, 15)}...`)
-        findings.push({ checkId: "AZ-COGNITIVE-001", provider: "azure", severity: "high", status: "EXTRACTED", resource: `cognitive://${s.name}`, title: `Cognitive Services key extracted: ${s.name} (${s.kind})`, details: `API keys accessible. Can use ${s.kind} service — data, models, and billing.`, remediation: "Rotate keys, use managed identity for access" })
-      }
-    }
-  }
-  return { output: output.join("\n"), findings }
-}
+  const output: string[] = ["[*] Enumerating Cognitive Services...\n"]
 
-export async function signalrEnum(args: string[], timeout: number): Promise<HookResult> {
-  const sub = argVal(args, "--subscription-id")
-  const findings: Finding[] = []
-  const output: string[] = ["[*] Azure SignalR / Web PubSub enumeration...\n"]
-  const signalr = await az(["signalr", "list", "--query", "[].{name:name,rg:resourceGroup,sku:sku.name,hostName:hostName,publicAccess:publicNetworkAccess}"], sub, timeout)
-  if (signalr.exitCode === 0) {
-    const list = tryJson(signalr.stdout) || []
-    output.push(`[+] SignalR services: ${list.length}`)
-    for (const s of list) {
-      output.push(`    ${s.name} (${s.sku}) — host: ${s.hostName || "N/A"}, public: ${s.publicAccess || "?"}`)
-      const keys = await az(["signalr", "key", "list", "--name", s.name, "--resource-group", s.rg], sub, timeout)
-      if (keys.exitCode === 0) {
-        const k = tryJson(keys.stdout)
-        if (k?.primaryConnectionString) {
-          output.push(`      Connection: ${String(k.primaryConnectionString).substring(0, 60)}...`)
-          findings.push({ checkId: "AZ-SIGNALR-001", provider: "azure", severity: "high", status: "EXTRACTED", resource: `signalr://${s.name}`, title: `SignalR connection string extracted: ${s.name}`, details: "Full access to real-time messaging service", remediation: "Rotate SignalR keys" })
-        }
+  const accounts = await az(["cognitiveservices", "account", "list"], sub, timeout)
+  if (accounts.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list Cognitive Services", findings }
+
+  const items = tryJson(accounts.stdout) || []
+  output.push(`[+] Cognitive Services accounts: ${items.length}\n`)
+
+  for (const acct of items) {
+    output.push(`── ${acct.name} (${acct.kind}) ──`)
+    output.push(`    SKU: ${acct.sku?.name}`)
+    output.push(`    Endpoint: ${acct.properties?.endpoint || "N/A"}`)
+    output.push(`    Public access: ${acct.properties?.publicNetworkAccess || "Enabled"}`)
+    output.push(`    Network rules: ${acct.properties?.networkAcls?.defaultAction || "Allow"}`)
+
+    if (acct.properties?.publicNetworkAccess !== "Disabled" && acct.properties?.networkAcls?.defaultAction !== "Deny") {
+      findings.push({
+        checkId: "AZ-COG-001",
+        provider: "azure",
+        severity: "medium",
+        status: "FAIL",
+        resource: `cognitive://${acct.name}`,
+        title: `Cognitive Services publicly accessible: ${acct.name}`,
+        details: `${acct.kind} endpoint open to public — API key auth only`,
+        remediation: "Restrict network access and use AAD authentication",
+      })
+    }
+
+    const keys = await az(
+      ["cognitiveservices", "account", "keys", "list", "--name", acct.name, "--resource-group", acct.resourceGroup],
+      sub,
+      15,
+    )
+    if (keys.exitCode === 0) {
+      const keyData = tryJson(keys.stdout)
+      if (keyData) {
+        output.push(`    [!] Key1: ${keyData.key1?.substring(0, 16)}...`)
+        findings.push({
+          checkId: "AZ-COG-001",
+          provider: "azure",
+          severity: "high",
+          status: "EXTRACTED",
+          resource: `cognitive://${acct.name}/keys`,
+          title: `Cognitive Services keys extracted: ${acct.name}`,
+          details: `API keys for ${acct.kind} — endpoint: ${acct.properties?.endpoint}`,
+          remediation: "Rotate keys, use managed identity authentication",
+        })
       }
     }
+    output.push("")
   }
-  const pubsub = await az(["webpubsub", "list", "--query", "[].{name:name,rg:resourceGroup,sku:sku.name}"], sub, timeout)
-  if (pubsub.exitCode === 0) {
-    const list = tryJson(pubsub.stdout) || []
-    if (list.length > 0) {
-      output.push(`\n[+] Web PubSub services: ${list.length}`)
-      for (const s of list) output.push(`    ${s.name} (${s.sku}) — rg: ${s.rg}`)
-    }
-  }
+
   return { output: output.join("\n"), findings }
 }
 
 export async function iotHubEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure IoT Hub enumeration...\n"]
-  const hubs = await az(["iot", "hub", "list", "--query", "[].{name:name,rg:resourceGroup,sku:sku.name,state:state,hostname:properties.hostName,devices:properties.deviceCount}"], sub, timeout)
-  if (hubs.exitCode !== 0) {
-    const resources = await az(["resource", "list", "--resource-type", "Microsoft.Devices/IotHubs", "--query", "[].{name:name,rg:resourceGroup}"], sub, timeout)
-    if (resources.exitCode === 0) {
-      const list = tryJson(resources.stdout) || []
-      output.push(`[+] IoT Hubs: ${list.length}`)
-      for (const h of list) output.push(`    ${h.name} — rg: ${h.rg}`)
+  const output: string[] = ["[*] Enumerating Azure IoT Hubs...\n"]
+
+  const hubs = await az(["iot", "hub", "list"], sub, timeout)
+  if (hubs.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list IoT Hubs", findings }
+
+  const items = tryJson(hubs.stdout) || []
+  output.push(`[+] IoT Hubs: ${items.length}\n`)
+
+  for (const hub of items) {
+    output.push(`── ${hub.name} (${hub.resourcegroup || hub.resourceGroup}) ──`)
+    output.push(`    Hostname: ${hub.properties?.hostName}`)
+    output.push(`    SKU: ${hub.sku?.name} (${hub.sku?.capacity} units)`)
+    output.push(`    State: ${hub.properties?.state}`)
+    output.push(`    Public access: ${hub.properties?.publicNetworkAccess || "Enabled"}`)
+
+    const policies = hub.properties?.authorizationPolicies || []
+    output.push(`    Shared access policies: ${policies.length}`)
+    for (const p of policies) {
+      output.push(`      ${p.keyName} — rights: ${p.rights}`)
+      if (p.rights?.includes("RegistryWrite") || p.rights?.includes("ServiceConnect")) {
+        findings.push({
+          checkId: "AZ-IOT-001",
+          provider: "azure",
+          severity: "high",
+          status: "INFO",
+          resource: `iothub://${hub.name}/${p.keyName}`,
+          title: `IoT Hub privileged policy: ${hub.name}/${p.keyName}`,
+          details: `Policy "${p.keyName}" has ${p.rights} — high-privilege access`,
+          remediation: "Use per-device SAS tokens, limit shared access policies",
+        })
+      }
     }
-    return { output: output.join("\n"), findings }
+
+    const routing = hub.properties?.routing?.endpoints || {}
+    const endpoints = [
+      ...(routing.eventHubs || []),
+      ...(routing.serviceBusQueues || []),
+      ...(routing.serviceBusTopics || []),
+      ...(routing.storageContainers || []),
+    ]
+    if (endpoints.length > 0) {
+      output.push(`    Routing endpoints: ${endpoints.length}`)
+      for (const ep of endpoints) output.push(`      ${ep.name} (${ep.resourceGroup || "?"})`)
+    }
+    output.push("")
   }
-  const list = tryJson(hubs.stdout) || []
-  output.push(`[+] IoT Hubs: ${list.length}`)
-  for (const h of list) {
-    output.push(`    ${h.name} (${h.sku}) — state: ${h.state}, devices: ${h.devices || "?"}`)
-    if (h.hostname) output.push(`      Hostname: ${h.hostname}`)
-    findings.push({ checkId: "AZ-IOT-001", provider: "azure", severity: "high", status: "INFO", resource: `iothub://${h.name}`, title: `IoT Hub: ${h.name} (${h.devices || "?"} devices)`, details: "IoT Hub manages device connections — compromise enables device control and data interception", remediation: "Review IoT Hub shared access policies and device identities" })
-  }
+
   return { output: output.join("\n"), findings }
 }
 
-export async function managedEnvEnum(args: string[], timeout: number): Promise<HookResult> {
+export async function signalrEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure Container Apps managed environment enumeration...\n"]
-  const envs = await az(["containerapp", "env", "list", "--query", "[].{name:name,rg:resourceGroup,location:location,vnet:vnetConfiguration.infrastructureSubnetId}"], sub, timeout)
-  if (envs.exitCode !== 0) return { output: "[-] Cannot list Container App environments", findings }
-  const list = tryJson(envs.stdout) || []
-  output.push(`[+] Container App environments: ${list.length}`)
-  for (const e of list) {
-    output.push(`    ${e.name} (${e.rg}) — ${e.location}`)
-    if (e.vnet) output.push(`      VNet: ${e.vnet}`)
-    const apps = await az(["containerapp", "list", "--environment", e.name, "--resource-group", e.rg, "--query", "[].{name:name,image:properties.template.containers[0].image,ingress:properties.configuration.ingress.fqdn}"], sub, timeout)
-    if (apps.exitCode === 0) {
-      const appList = tryJson(apps.stdout) || []
-      output.push(`      Apps: ${appList.length}`)
-      for (const a of appList) {
-        output.push(`        ${a.name} — image: ${a.image || "?"}`)
-        if (a.ingress) output.push(`          FQDN: ${a.ingress}`)
+  const output: string[] = ["[*] Enumerating Azure SignalR Service...\n"]
+
+  const instances = await az(["signalr", "list"], sub, timeout)
+  if (instances.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list SignalR instances", findings }
+
+  const items = tryJson(instances.stdout) || []
+  output.push(`[+] SignalR instances: ${items.length}\n`)
+
+  for (const sr of items) {
+    output.push(`── ${sr.name} (${sr.resourceGroup}) ──`)
+    output.push(`    Hostname: ${sr.hostName}`)
+    output.push(`    SKU: ${sr.sku?.name} (${sr.sku?.capacity} units)`)
+    output.push(`    Public access: ${sr.publicNetworkAccess || "Enabled"}`)
+    output.push(`    Network ACLs: default=${sr.networkACLs?.defaultAction || "Allow"}`)
+
+    if (sr.publicNetworkAccess !== "Disabled") {
+      findings.push({
+        checkId: "AZ-SIGNALR-001",
+        provider: "azure",
+        severity: "medium",
+        status: "FAIL",
+        resource: `signalr://${sr.name}`,
+        title: `SignalR public access: ${sr.name}`,
+        details: `SignalR Service is publicly accessible at ${sr.hostName}`,
+        remediation: "Disable public network access, use private endpoints",
+      })
+    }
+
+    const keys = await az(
+      ["signalr", "key", "list", "--name", sr.name, "--resource-group", sr.resourceGroup],
+      sub,
+      15,
+    )
+    if (keys.exitCode === 0) {
+      const keyData = tryJson(keys.stdout)
+      if (keyData) {
+        output.push(`    [!] Primary key: ${keyData.primaryKey?.substring(0, 16)}...`)
+        findings.push({
+          checkId: "AZ-SIGNALR-001",
+          provider: "azure",
+          severity: "high",
+          status: "EXTRACTED",
+          resource: `signalr://${sr.name}/keys`,
+          title: `SignalR keys extracted: ${sr.name}`,
+          details: `Connection string available — full service access`,
+          remediation: "Rotate keys, use AAD authentication",
+        })
       }
     }
+    output.push("")
   }
-  if (list.length > 0) findings.push({ checkId: "AZ-CAPP-001", provider: "azure", severity: "medium", status: "INFO", resource: "container-apps://environments", title: `${list.length} Container App environment(s)`, details: "Container Apps may run with managed identity and access other Azure resources", remediation: "Review Container App identity bindings and secrets" })
+
   return { output: output.join("\n"), findings }
 }
 
-export async function staticWebAppEnum(args: string[], timeout: number): Promise<HookResult> {
+export async function eventGridEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure Static Web App enumeration...\n"]
-  const apps = await az(["staticwebapp", "list", "--query", "[].{name:name,rg:resourceGroup,url:defaultHostname,sku:sku.name,branch:branch,repo:repositoryUrl}"], sub, timeout)
-  if (apps.exitCode !== 0) return { output: "[-] Cannot list Static Web Apps", findings }
-  const list = tryJson(apps.stdout) || []
-  output.push(`[+] Static Web Apps: ${list.length}`)
-  for (const a of list) {
-    output.push(`    ${a.name} (${a.sku || "Free"}) — ${a.url}`)
-    if (a.repo) output.push(`      Repo: ${a.repo} (branch: ${a.branch || "main"})`)
-    const customs = await az(["staticwebapp", "hostname", "list", "--name", a.name, "--resource-group", a.rg, "--query", "[].{domain:domainName,status:status}"], sub, timeout)
-    if (customs.exitCode === 0) {
-      const customList = tryJson(customs.stdout) || []
-      if (customList.length > 0) {
-        output.push(`      Custom domains: ${customList.length}`)
-        for (const c of customList) output.push(`        ${c.domain} (${c.status})`)
+  const output: string[] = ["[*] Enumerating Azure Event Grid...\n"]
+
+  const topics = await az(["eventgrid", "topic", "list"], sub, timeout)
+  if (topics.exitCode === 0) {
+    const items = tryJson(topics.stdout) || []
+    output.push(`[+] Event Grid topics: ${items.length}`)
+    for (const t of items) {
+      output.push(`    ${t.name} — endpoint: ${t.endpoint?.substring(0, 60)}`)
+      output.push(`      Public access: ${t.publicNetworkAccess || "Enabled"}`)
+
+      const subs = await az(
+        ["eventgrid", "event-subscription", "list", "--topic-name", t.name, "--resource-group", t.resourceGroup],
+        sub,
+        15,
+      )
+      if (subs.exitCode === 0) {
+        const subList = tryJson(subs.stdout) || []
+        output.push(`      Subscriptions: ${subList.length}`)
+        for (const s of subList) {
+          output.push(`        ${s.name} → ${s.destination?.endpointType || "?"}`)
+          if (s.deadLetterDestination) output.push(`        Dead-letter: configured`)
+        }
+      }
+
+      const keys = await az(
+        ["eventgrid", "topic", "key", "list", "--name", t.name, "--resource-group", t.resourceGroup],
+        sub,
+        10,
+      )
+      if (keys.exitCode === 0) {
+        const keyData = tryJson(keys.stdout)
+        if (keyData) {
+          output.push(`      [!] Key1: ${keyData.key1?.substring(0, 16)}...`)
+          findings.push({
+            checkId: "AZ-EG-001",
+            provider: "azure",
+            severity: "high",
+            status: "EXTRACTED",
+            resource: `eventgrid://${t.name}/keys`,
+            title: `Event Grid keys extracted: ${t.name}`,
+            details: `Access keys retrieved — can publish events to topic`,
+            remediation: "Rotate keys, use AAD authentication for publishers",
+          })
+        }
       }
     }
   }
-  if (list.length > 0) findings.push({ checkId: "AZ-SWA-001", provider: "azure", severity: "low", status: "INFO", resource: "static-web-app://apps", title: `${list.length} Static Web App(s)`, details: "Check for linked API backends and authentication settings", remediation: "Review Static Web App auth config and API routes" })
+
+  const domains = await az(["eventgrid", "domain", "list"], sub, timeout)
+  if (domains.exitCode === 0) {
+    const items = tryJson(domains.stdout) || []
+    if (items.length > 0) {
+      output.push(`\n[+] Event Grid domains: ${items.length}`)
+      for (const d of items) output.push(`    ${d.name} — endpoint: ${d.endpoint?.substring(0, 60)}`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function batchEnum(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Enumerating Azure Batch accounts...\n"]
+
+  const accounts = await az(["batch", "account", "list"], sub, timeout)
+  if (accounts.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list Batch accounts", findings }
+
+  const items = tryJson(accounts.stdout) || []
+  output.push(`[+] Batch accounts: ${items.length}\n`)
+
+  for (const acct of items) {
+    output.push(`── ${acct.name} (${acct.resourceGroup}) ──`)
+    output.push(`    Endpoint: ${acct.accountEndpoint}`)
+    output.push(`    Pool allocation: ${acct.poolAllocationMode}`)
+    output.push(`    Public access: ${acct.publicNetworkAccess || "Enabled"}`)
+    output.push(`    Auto-storage: ${acct.autoStorage?.storageAccountId?.split("/").pop() || "none"}`)
+
+    if (acct.autoStorage?.storageAccountId) {
+      findings.push({
+        checkId: "AZ-BATCH-001",
+        provider: "azure",
+        severity: "medium",
+        status: "INFO",
+        resource: `batch://${acct.name}`,
+        title: `Batch auto-storage account: ${acct.name}`,
+        details: `Auto-storage: ${acct.autoStorage.storageAccountId.split("/").pop()} — may contain task data`,
+        remediation: "Ensure auto-storage account has proper access controls",
+      })
+    }
+
+    const keys = await az(
+      ["batch", "account", "keys", "list", "--name", acct.name, "--resource-group", acct.resourceGroup],
+      sub,
+      15,
+    )
+    if (keys.exitCode === 0) {
+      const keyData = tryJson(keys.stdout)
+      if (keyData) {
+        output.push(`    [!] Primary key: ${keyData.primary?.substring(0, 16)}...`)
+        findings.push({
+          checkId: "AZ-BATCH-001",
+          provider: "azure",
+          severity: "high",
+          status: "EXTRACTED",
+          resource: `batch://${acct.name}/keys`,
+          title: `Batch account keys extracted: ${acct.name}`,
+          details: `Full account keys — can submit jobs, access pools`,
+          remediation: "Rotate keys, use AAD authentication",
+        })
+      }
+    }
+    output.push("")
+  }
+
   return { output: output.join("\n"), findings }
 }
 
 export async function mapsSearchEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Azure Maps Enumeration\n"]
+  const output: string[] = ["[*] Enumerating Azure Maps accounts...\n"]
 
-  const r = await az(["maps", "account", "list"], sub, timeout)
-  if (r.exitCode !== 0) return { output: `[-] Failed to list Maps accounts: ${r.stderr.trim()}`, findings }
-  const accounts = tryJson(r.stdout) || []
-  output.push(`[+] Maps accounts: ${accounts.length}\n`)
+  const accounts = await az(["maps", "account", "list"], sub, timeout)
+  if (accounts.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list Maps accounts", findings }
 
-  for (const acct of accounts) {
-    output.push(`[+] ${acct.name} — ${acct.location}, RG: ${acct.resourceGroup}`)
-    output.push(`    SKU: ${acct.sku?.name || "unknown"}`)
-    output.push(`    Kind: ${acct.kind || "Gen2"}`)
+  const items = tryJson(accounts.stdout) || []
+  output.push(`[+] Maps accounts: ${items.length}\n`)
 
-    const keys = await az(["maps", "account", "keys", "list", "--name", acct.name, "--resource-group", acct.resourceGroup], sub, timeout)
-    const keyData = tryJson(keys.stdout)
-    if (keyData) {
-      output.push(`    Primary key: ${keyData.primaryKey?.substring(0, 8)}...`)
-      findings.push({
-        checkId: "AZ-MAPS-001",
-        provider: "azure",
-        severity: "low",
-        status: "INFO",
-        resource: `maps://${acct.name}`,
-        title: `Maps account keys accessible: ${acct.name}`,
-        details: `Shared keys provide access to Maps REST APIs — potential cost abuse`,
-        remediation: "Use Entra ID authentication and disable shared key access",
-      })
+  for (const acct of items) {
+    output.push(`── ${acct.name} (${acct.resourceGroup || "?"}) ──`)
+    output.push(`    SKU: ${acct.sku?.name}`)
+    output.push(`    Kind: ${acct.kind || "Gen1"}`)
+
+    const keys = await az(
+      ["maps", "account", "keys", "list", "--name", acct.name, "--resource-group", acct.resourceGroup || argVal(args, "--resource-group") || ""],
+      sub,
+      15,
+    )
+    if (keys.exitCode === 0) {
+      const keyData = tryJson(keys.stdout)
+      if (keyData) {
+        output.push(`    [!] Primary key: ${keyData.primaryKey?.substring(0, 16)}...`)
+        output.push(`    [!] Secondary key: ${keyData.secondaryKey?.substring(0, 16)}...`)
+        findings.push({
+          checkId: "AZ-MAPS-001",
+          provider: "azure",
+          severity: "medium",
+          status: "EXTRACTED",
+          resource: `maps://${acct.name}/keys`,
+          title: `Maps keys extracted: ${acct.name}`,
+          details: "Primary and secondary keys — can be used for Maps API requests (cost impact)",
+          remediation: "Rotate keys, use AAD authentication, restrict with CORS",
+        })
+      }
     }
     output.push("")
   }
@@ -2037,53 +2635,62 @@ export async function sentinelEnum(args: string[], timeout: number): Promise<Hoo
   const rg = argVal(args, "--resource-group")
   const workspace = argVal(args, "--workspace")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Microsoft Sentinel Enumeration\n"]
+  const output: string[] = ["[*] Enumerating Microsoft Sentinel...\n"]
 
-  const workspaces = await az(["monitor", "log-analytics", "workspace", "list"], sub, timeout)
-  const wsList = tryJson(workspaces.stdout) || []
-  output.push(`[+] Log Analytics workspaces: ${wsList.length}\n`)
+  if (!workspace || !rg) {
+    const workspaces = await az(["monitor", "log-analytics", "workspace", "list"], sub, timeout)
+    if (workspaces.exitCode === 0) {
+      const wsList = tryJson(workspaces.stdout) || []
+      output.push(`[+] Log Analytics workspaces: ${wsList.length}`)
+      for (const ws of wsList) output.push(`    ${ws.name} (${ws.resourceGroup}) — sku: ${ws.sku?.name}`)
 
-  for (const ws of wsList) {
-    if (workspace && ws.name !== workspace) continue
-    if (rg && ws.resourceGroup !== rg) continue
-
-    output.push(`[+] Workspace: ${ws.name} — ${ws.location}`)
-    output.push(`    SKU: ${ws.sku?.name}, Retention: ${ws.retentionInDays} days`)
-
-    const rules = await run("az", ["rest", "--method", "GET", "--url", `https://management.azure.com${ws.id}/providers/Microsoft.SecurityInsights/alertRules?api-version=2023-11-01`, "-o", "json"], timeout)
-    const ruleList = (tryJson(rules.stdout) || {}).value || []
-    output.push(`    Analytics rules: ${ruleList.length}`)
-    const enabled = ruleList.filter((r: Record<string, Record<string, boolean>>) => r.properties?.enabled)
-    const disabled = ruleList.filter((r: Record<string, Record<string, boolean>>) => !r.properties?.enabled)
-    output.push(`      Enabled: ${enabled.length}, Disabled: ${disabled.length}`)
-
-    if (disabled.length > 0) {
-      findings.push({
-        checkId: "AZ-SENTINEL-ENUM-001",
-        provider: "azure",
-        severity: "medium",
-        status: "FAIL",
-        resource: `sentinel://${ws.name}`,
-        title: `${disabled.length} Sentinel analytics rules disabled`,
-        details: `Disabled rules: ${disabled.slice(0, 5).map((r: Record<string, Record<string, string>>) => r.properties?.displayName).join(", ")}`,
-        remediation: "Review and enable disabled analytics rules or remove if not needed",
-      })
+      for (const ws of wsList) {
+        const alertRules = await az(
+          ["sentinel", "alert-rule", "list", "--workspace-name", ws.name, "--resource-group", ws.resourceGroup],
+          sub,
+          30,
+        )
+        if (alertRules.exitCode === 0) {
+          const rules = tryJson(alertRules.stdout) || []
+          output.push(`\n[+] Sentinel alert rules (${ws.name}): ${rules.length}`)
+          for (const r of rules.slice(0, 15)) output.push(`    ${r.name} — kind: ${r.kind}, enabled: ${r.properties?.enabled ?? "?"}`)
+          if (rules.length > 15) output.push(`    ... and ${rules.length - 15} more`)
+          findings.push({
+            checkId: "AZ-SENTINEL-ENUM-001",
+            provider: "azure",
+            severity: "info",
+            status: "ENUMERATED",
+            resource: `sentinel://${ws.name}`,
+            title: `Sentinel rules on ${ws.name}: ${rules.length}`,
+            details: rules.slice(0, 5).map((r: Record<string, string>) => r.name).join(", "),
+            remediation: "Review detection coverage for gaps in MITRE ATT&CK matrix",
+          })
+        }
+      }
     }
+    return { output: output.join("\n"), findings }
+  }
 
-    const connectors = await run("az", ["rest", "--method", "GET", "--url", `https://management.azure.com${ws.id}/providers/Microsoft.SecurityInsights/dataConnectors?api-version=2023-11-01`, "-o", "json"], timeout)
-    const connList = (tryJson(connectors.stdout) || {}).value || []
-    output.push(`    Data connectors: ${connList.length}`)
-    for (const c of connList) {
-      output.push(`      ${c.kind || c.properties?.connectorDefinitionName || "unknown"} — ${c.name}`)
-    }
+  const alertRules = await az(
+    ["sentinel", "alert-rule", "list", "--workspace-name", workspace, "--resource-group", rg],
+    sub,
+    timeout,
+  )
+  if (alertRules.exitCode === 0) {
+    const rules = tryJson(alertRules.stdout) || []
+    output.push(`[+] Alert rules: ${rules.length}`)
+    for (const r of rules) output.push(`    ${r.name} — kind: ${r.kind}`)
+  }
 
-    const incidents = await run("az", ["rest", "--method", "GET", "--url", `https://management.azure.com${ws.id}/providers/Microsoft.SecurityInsights/incidents?api-version=2023-11-01&$top=10&$orderby=properties/createdTimeUtc desc`, "-o", "json"], timeout)
-    const incidentList = (tryJson(incidents.stdout) || {}).value || []
-    output.push(`    Recent incidents: ${incidentList.length}`)
-    for (const inc of incidentList) {
-      output.push(`      [${inc.properties?.severity}] ${inc.properties?.title} — ${inc.properties?.status} (${inc.properties?.createdTimeUtc})`)
-    }
-    output.push("")
+  const incidents = await az(
+    ["sentinel", "incident", "list", "--workspace-name", workspace, "--resource-group", rg],
+    sub,
+    timeout,
+  )
+  if (incidents.exitCode === 0) {
+    const items = tryJson(incidents.stdout) || []
+    output.push(`\n[+] Incidents: ${items.length}`)
+    for (const i of items.slice(0, 10)) output.push(`    ${i.properties?.title} — severity: ${i.properties?.severity}, status: ${i.properties?.status}`)
   }
 
   return { output: output.join("\n"), findings }
@@ -2091,56 +2698,57 @@ export async function sentinelEnum(args: string[], timeout: number): Promise<Hoo
 
 export async function vpnGatewayEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
+  const rg = argVal(args, "--resource-group")
   const findings: Finding[] = []
-  const output: string[] = ["[*] VPN Gateway Enumeration\n"]
+  const output: string[] = ["[*] Enumerating VPN Gateways...\n"]
 
-  const gateways = await az(["network", "vnet-gateway", "list"], sub, timeout)
-  if (gateways.exitCode !== 0) return { output: `[-] Failed to list VPN gateways: ${gateways.stderr.trim()}`, findings }
-  const gwList = tryJson(gateways.stdout) || []
-  output.push(`[+] VPN gateways: ${gwList.length}\n`)
+  const rgArgs = rg ? ["--resource-group", rg] : []
+  const gateways = await az(["network", "vnet-gateway", "list", ...rgArgs], sub, timeout)
+  if (gateways.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list VPN gateways", findings }
 
-  for (const gw of gwList) {
-    output.push(`[+] ${gw.name} — ${gw.location}, RG: ${gw.resourceGroup}`)
-    output.push(`    Type: ${gw.gatewayType}, VPN type: ${gw.vpnType}`)
-    output.push(`    SKU: ${gw.sku?.name} (${gw.sku?.tier})`)
-    output.push(`    Active-active: ${gw.activeActive ? "Yes" : "No"}`)
-    output.push(`    BGP: ${gw.enableBgp ? `Yes (ASN: ${gw.bgpSettings?.asn})` : "No"}`)
-    const publicIps = (gw.ipConfigurations || []).map((ip: Record<string, Record<string, string>>) => ip.publicIpAddress?.id?.split("/").pop()).filter(Boolean)
-    output.push(`    Public IPs: ${publicIps.join(", ") || "none"}`)
-  }
+  const items = tryJson(gateways.stdout) || []
+  output.push(`[+] VPN Gateways: ${items.length}\n`)
 
-  const connections = await az(["network", "vpn-connection", "list"], sub, timeout)
-  const connList = tryJson(connections.stdout) || []
-  output.push(`\n[+] VPN connections: ${connList.length}`)
+  for (const gw of items) {
+    output.push(`── ${gw.name} (${gw.resourceGroup}) ──`)
+    output.push(`    Type: ${gw.gatewayType}/${gw.vpnType}`)
+    output.push(`    SKU: ${gw.sku?.name}`)
+    output.push(`    Active-active: ${gw.activeActive}`)
+    output.push(`    BGP: ${gw.enableBgp}`)
+    if (gw.bgpSettings) output.push(`    BGP ASN: ${gw.bgpSettings.asn}`)
 
-  for (const conn of connList) {
-    output.push(`  ${conn.name} — type: ${conn.connectionType}, status: ${conn.connectionStatus || "unknown"}`)
-    output.push(`    Protocol: ${conn.connectionProtocol || "IKEv2"}`)
-    if (conn.sharedKey) {
-      output.push(`    [!] Shared key accessible`)
-      findings.push({
-        checkId: "AZ-VPN-001",
-        provider: "azure",
-        severity: "high",
-        status: "FAIL",
-        resource: `vpn://${conn.name}`,
-        title: `VPN connection shared key accessible: ${conn.name}`,
-        details: `VPN shared key is readable — can be used to establish unauthorized tunnels`,
-        remediation: "Rotate VPN shared key and restrict read access via RBAC",
-      })
+    const connections = await az(
+      ["network", "vpn-connection", "list", "--vnet-gateway", gw.name, "--resource-group", gw.resourceGroup],
+      sub,
+      30,
+    )
+    if (connections.exitCode === 0) {
+      const conns = tryJson(connections.stdout) || []
+      output.push(`    Connections: ${conns.length}`)
+      for (const c of conns) {
+        output.push(`      ${c.name} — type: ${c.connectionType}, status: ${c.connectionStatus}`)
+        if (c.sharedKey) {
+          output.push(`      [!] Shared key: ${c.sharedKey.substring(0, 12)}...`)
+          findings.push({
+            checkId: "AZ-VPN-001",
+            provider: "azure",
+            severity: "critical",
+            status: "EXTRACTED",
+            resource: `vpn://${gw.name}/${c.name}`,
+            title: `VPN shared key extracted: ${c.name}`,
+            details: `IPsec shared key for connection "${c.name}" — can connect to on-premises network`,
+            remediation: "Rotate VPN shared key, use certificate-based authentication",
+          })
+        }
+      }
     }
-    if (conn.connectionProtocol === "IKEv1") {
-      findings.push({
-        checkId: "AZ-VPN-002",
-        provider: "azure",
-        severity: "medium",
-        status: "FAIL",
-        resource: `vpn://${conn.name}`,
-        title: `VPN connection uses IKEv1: ${conn.name}`,
-        details: "IKEv1 has known vulnerabilities — IKEv2 is recommended",
-        remediation: "Upgrade connection protocol to IKEv2",
-      })
+
+    const ipConfigs = gw.ipConfigurations || []
+    for (const ip of ipConfigs) {
+      const pubIp = ip.publicIpAddress?.id?.split("/").pop() || "none"
+      output.push(`    Public IP: ${pubIp}`)
     }
+    output.push("")
   }
 
   return { output: output.join("\n"), findings }
@@ -2149,42 +2757,57 @@ export async function vpnGatewayEnum(args: string[], timeout: number): Promise<H
 export async function expressRouteEnum(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const findings: Finding[] = []
-  const output: string[] = ["[*] ExpressRoute Enumeration\n"]
+  const output: string[] = ["[*] Enumerating ExpressRoute circuits...\n"]
 
   const circuits = await az(["network", "express-route", "list"], sub, timeout)
-  if (circuits.exitCode !== 0) return { output: `[-] Failed to list ExpressRoute: ${circuits.stderr.trim()}`, findings }
-  const circuitList = tryJson(circuits.stdout) || []
-  output.push(`[+] ExpressRoute circuits: ${circuitList.length}\n`)
+  if (circuits.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list ExpressRoute circuits", findings }
 
-  for (const circuit of circuitList) {
-    output.push(`[+] ${circuit.name} — ${circuit.location}`)
-    output.push(`    Provider: ${circuit.serviceProviderProperties?.serviceProviderName || "unknown"}`)
-    output.push(`    Bandwidth: ${circuit.serviceProviderProperties?.bandwidthInMbps || "unknown"} Mbps`)
-    output.push(`    SKU: ${circuit.sku?.name} (${circuit.sku?.tier}, ${circuit.sku?.family})`)
-    output.push(`    Circuit state: ${circuit.circuitProvisioningState || "unknown"}`)
-    output.push(`    Service key: ${circuit.serviceKey ? circuit.serviceKey.substring(0, 8) + "..." : "none"}`)
+  const items = tryJson(circuits.stdout) || []
+  output.push(`[+] ExpressRoute circuits: ${items.length}\n`)
 
-    if (circuit.serviceKey) {
+  for (const er of items) {
+    output.push(`── ${er.name} (${er.resourceGroup}) ──`)
+    output.push(`    Provider: ${er.serviceProviderProperties?.serviceProviderName}`)
+    output.push(`    Bandwidth: ${er.serviceProviderProperties?.bandwidthInMbps} Mbps`)
+    output.push(`    SKU: ${er.sku?.tier}/${er.sku?.family}`)
+    output.push(`    Status: ${er.circuitProvisioningState} / ${er.serviceProviderProvisioningState}`)
+
+    if (er.serviceKey) {
+      output.push(`    [!] Service key: ${er.serviceKey.substring(0, 12)}...`)
       findings.push({
         checkId: "AZ-ER-001",
         provider: "azure",
-        severity: "high",
-        status: "INFO",
-        resource: `expressroute://${circuit.name}`,
-        title: `ExpressRoute service key accessible: ${circuit.name}`,
-        details: `Service key provides circuit identification — should be protected`,
-        remediation: "Restrict access to the ExpressRoute circuit resource",
+        severity: "critical",
+        status: "EXTRACTED",
+        resource: `expressroute://${er.name}`,
+        title: `ExpressRoute service key extracted: ${er.name}`,
+        details: `Service key provides circuit access — can be used to configure peering`,
+        remediation: "Restrict who can view ExpressRoute circuit details",
       })
     }
 
-    const peerings = await az(["network", "express-route", "peering", "list", "--circuit-name", circuit.name, "--resource-group", circuit.resourceGroup], sub, timeout)
-    const peerList = tryJson(peerings.stdout) || []
-    output.push(`    Peerings: ${peerList.length}`)
-    for (const p of peerList) {
-      output.push(`      ${p.name} — type: ${p.peeringType}, state: ${p.state}`)
-      output.push(`        Peer ASN: ${p.peerASN || "none"}, VLAN: ${p.vlanId || "none"}`)
-      if (p.microsoftPeeringConfig) {
-        output.push(`        Microsoft peering: ${(p.microsoftPeeringConfig.advertisedPublicPrefixes || []).join(", ")}`)
+    const peerings = await az(
+      ["network", "express-route", "peering", "list", "--circuit-name", er.name, "--resource-group", er.resourceGroup],
+      sub,
+      15,
+    )
+    if (peerings.exitCode === 0) {
+      const peerList = tryJson(peerings.stdout) || []
+      output.push(`    Peerings: ${peerList.length}`)
+      for (const p of peerList) {
+        output.push(`      ${p.peeringType} — state: ${p.state}, vlanId: ${p.vlanId}`)
+        output.push(`        Primary peer: ${p.primaryPeerAddressPrefix || "N/A"}`)
+        output.push(`        Secondary peer: ${p.secondaryPeerAddressPrefix || "N/A"}`)
+        findings.push({
+          checkId: "AZ-ER-001",
+          provider: "azure",
+          severity: "high",
+          status: "INFO",
+          resource: `expressroute://${er.name}/${p.peeringType}`,
+          title: `ExpressRoute peering: ${er.name} (${p.peeringType})`,
+          details: `Direct connection to on-premises — VLAN ${p.vlanId}`,
+          remediation: "Ensure route filters are configured, review advertised routes",
+        })
       }
     }
     output.push("")
@@ -2195,60 +2818,62 @@ export async function expressRouteEnum(args: string[], timeout: number): Promise
 
 export async function privateLinkAudit(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
+  const rg = argVal(args, "--resource-group")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Private Link / Private Endpoint Audit\n"]
+  const output: string[] = ["[*] Auditing Private Link / Private Endpoints...\n"]
 
-  const endpoints = await az(["network", "private-endpoint", "list"], sub, timeout)
-  if (endpoints.exitCode !== 0) return { output: `[-] Failed to list private endpoints: ${endpoints.stderr.trim()}`, findings }
-  const peList = tryJson(endpoints.stdout) || []
-  output.push(`[+] Private endpoints: ${peList.length}\n`)
+  const rgArgs = rg ? ["--resource-group", rg] : []
+  const endpoints = await az(["network", "private-endpoint", "list", ...rgArgs], sub, timeout)
+  if (endpoints.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list private endpoints", findings }
 
-  const connectedResources = new Set<string>()
-  for (const pe of peList) {
-    const connections = pe.privateLinkServiceConnections || pe.manualPrivateLinkServiceConnections || []
+  const items = tryJson(endpoints.stdout) || []
+  output.push(`[+] Private endpoints: ${items.length}\n`)
+
+  const coveredResources = new Set<string>()
+  for (const ep of items) {
+    output.push(`── ${ep.name} (${ep.resourceGroup}) ──`)
+    output.push(`    Subnet: ${ep.subnet?.id?.split("/").pop() || "?"}`)
+
+    const connections = ep.privateLinkServiceConnections || ep.manualPrivateLinkServiceConnections || []
     for (const conn of connections) {
-      const resourceId = conn.privateLinkServiceId || conn.groupIds?.[0] || ""
-      connectedResources.add(resourceId)
-      output.push(`[+] ${pe.name} → ${resourceId.split("/").pop() || "unknown"} (${conn.groupIds?.join(",") || "all"})`)
-      output.push(`    Status: ${conn.privateLinkServiceConnectionState?.status || "unknown"}`)
+      const resourceId = conn.privateLinkServiceId || ""
+      const resourceName = resourceId.split("/").pop() || "?"
+      const resourceType = resourceId.split("/").slice(-2, -1)[0] || "?"
+      output.push(`    → ${resourceName} (${resourceType}) — status: ${conn.privateLinkServiceConnectionState?.status}`)
+      coveredResources.add(resourceType.toLowerCase())
     }
+
+    const dnsConfigs = ep.customDnsConfigs || []
+    for (const dns of dnsConfigs) output.push(`      DNS: ${dns.fqdn} → ${(dns.ipAddresses || []).join(", ")}`)
+    output.push("")
   }
 
-  const plServices = await az(["network", "private-link-service", "list"], sub, timeout)
-  const plsList = tryJson(plServices.stdout) || []
-  output.push(`\n[+] Private Link services: ${plsList.length}`)
-  for (const pls of plsList) {
-    output.push(`  ${pls.name} — visibility: ${pls.visibility?.subscriptions?.length || 0} subs, auto-approve: ${pls.autoApproval?.subscriptions?.length || 0} subs`)
+  const serviceTypes = ["storageAccounts", "vaults", "sites", "servers", "namespaces", "registries"]
+  const uncovered = serviceTypes.filter((t) => !coveredResources.has(t.toLowerCase()))
+  if (uncovered.length > 0) {
+    output.push(`\n[!] Service types without private endpoints: ${uncovered.join(", ")}`)
+    findings.push({
+      checkId: "AZ-PL-001",
+      provider: "azure",
+      severity: "medium",
+      status: "INFO",
+      resource: "azure://private-endpoints",
+      title: `Services without private endpoints: ${uncovered.length} types`,
+      details: `Missing private endpoint coverage for: ${uncovered.join(", ")}`,
+      remediation: "Deploy private endpoints for sensitive services (storage, key vault, SQL, etc.)",
+    })
   }
 
-  const criticalTypes = [
-    { type: "storage", cmd: ["storage", "account", "list", "--query", "[?publicNetworkAccess!='Disabled'].{name:name,id:id}"] },
-    { type: "sql", cmd: ["sql", "server", "list", "--query", "[?publicNetworkAccess!='Disabled'].{name:name,id:id}"] },
-    { type: "keyvault", cmd: ["keyvault", "list", "--query", "[?properties.publicNetworkAccess!='Disabled'].{name:name,id:id}"] },
-  ]
-
-  output.push("\n[*] Services without private endpoints:")
-  for (const check of criticalTypes) {
-    const r = await az(check.cmd, sub, timeout)
-    const resources = tryJson(r.stdout) || []
-    const withoutPe = resources.filter((res: Record<string, string>) => !connectedResources.has(res.id))
-    if (withoutPe.length > 0) {
-      output.push(`  ${check.type}: ${withoutPe.length} without private endpoint`)
-      for (const res of withoutPe.slice(0, 5)) {
-        output.push(`    ${res.name}`)
-      }
-      findings.push({
-        checkId: "AZ-PL-001",
-        provider: "azure",
-        severity: "medium",
-        status: "FAIL",
-        resource: `privatelink://${check.type}`,
-        title: `${withoutPe.length} ${check.type} resources without private endpoints`,
-        details: `Public network access enabled without private endpoint protection`,
-        remediation: `Create private endpoints for ${check.type} resources and disable public access`,
-      })
-    }
-  }
+  findings.push({
+    checkId: "AZ-PL-001",
+    provider: "azure",
+    severity: "info",
+    status: "ENUMERATED",
+    resource: "azure://private-endpoints",
+    title: `Private endpoints: ${items.length} deployed`,
+    details: `Covered resource types: ${[...coveredResources].join(", ") || "none"}`,
+    remediation: "Ensure all data-plane services use private endpoints",
+  })
 
   return { output: output.join("\n"), findings }
 }
