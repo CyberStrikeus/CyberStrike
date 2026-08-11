@@ -5,6 +5,8 @@ import { argVal, type Finding, type HookResult } from "./shared"
 import { endpointDiscover, modelFingerprint, jsAnalysis } from "./recon"
 import { promptInject, systemPromptExtract, outputHandling } from "./injection"
 import { excessiveAgency, ssrfProbe, dataExfil, rateLimitTest } from "./abuse"
+import { encodingBypass, guardrailDetect, tokenExhaustion } from "./evasion"
+import { multiTurnAttack, indirectInjection } from "./multiturn"
 
 const PROGRAMS = {
   // ── Recon (3) ──────────────────────────────────────────────
@@ -22,6 +24,15 @@ const PROGRAMS = {
   ssrf_probe: "Test SSRF via LLM tools — cloud metadata, internal services (OWASP LLM06)",
   data_exfil: "Test sensitive information disclosure — credentials, PII, system info (OWASP LLM02)",
   rate_limit: "Test unbounded consumption / missing rate limiting (OWASP LLM10)",
+
+  // ── Evasion (3) ───────────────────────────────────────────
+  encoding_bypass: "Test 12 encoding/evasion techniques — base64, unicode, ROT13, token splitting, delimiter flood (OWASP LLM01)",
+  guardrail_detect: "Fingerprint guardrail/safety systems and detect missing restrictions",
+  token_exhaustion: "Test token exhaustion via large payloads, recursive prompts, output amplification (OWASP LLM10)",
+
+  // ── Multi-turn (2) ───────────────────────────────────────
+  multi_turn: "4 crescendo attack chains — authority escalation, context stuffing, role accumulation, hypothetical framing",
+  indirect_inject: "6 indirect injection vectors — markdown exfil, hidden HTML, JSON payload, CSV injection, unicode (OWASP LLM01)",
 } as const
 
 type Program = keyof typeof PROGRAMS
@@ -37,6 +48,11 @@ const dispatch: Record<Program, (args: string, timeout: number) => Promise<HookR
   ssrf_probe: ssrfProbe,
   data_exfil: dataExfil,
   rate_limit: rateLimitTest,
+  encoding_bypass: encodingBypass,
+  guardrail_detect: guardrailDetect,
+  token_exhaustion: tokenExhaustion,
+  multi_turn: multiTurnAttack,
+  indirect_inject: indirectInjection,
 }
 
 const CWE_MAP: Record<string, string> = {
@@ -50,6 +66,11 @@ const CWE_MAP: Record<string, string> = {
   "LLM-SSRF": "CWE-918",
   "LLM-DISC": "CWE-200",
   "LLM-DOS": "CWE-770",
+  "LLM-EVAS": "CWE-74",
+  "LLM-GUARD": "CWE-693",
+  "LLM-TOK": "CWE-770",
+  "LLM-MT": "CWE-74",
+  "LLM-IND": "CWE-74",
 }
 
 function resolveCwe(checkId: string): string | undefined {
