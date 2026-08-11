@@ -2211,3 +2211,449 @@ export async function redshiftEnum(args: string[], timeout: number): Promise<Hoo
 
   return { output: output.join("\n"), findings }
 }
+
+export async function multiRegionScan(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const primary = argVal(args, "--region") || "us-east-1"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Multi-Region Resource Scan\n"]
+
+  const regionsR = await aws(["ec2", "describe-regions", "--query", "Regions[].RegionName"], profile, primary, timeout)
+  if (regionsR.exitCode !== 0) return { output: `[-] Cannot list regions: ${regionsR.stderr.trim()}`, findings }
+  const regions = (tryJson(regionsR.stdout) || []) as string[]
+  output.push(`[+] Enabled regions: ${regions.length}\n`)
+
+  const services = [
+    { label: "EC2", cmd: ["ec2", "describe-instances", "--query", "Reservations[].Instances[] | length(@)"] },
+    { label: "Lambda", cmd: ["lambda", "list-functions", "--query", "Functions | length(@)"] },
+    { label: "RDS", cmd: ["rds", "describe-db-instances", "--query", "DBInstances | length(@)"] },
+    { label: "ECS", cmd: ["ecs", "list-clusters", "--query", "clusterArns | length(@)"] },
+  ]
+
+  const summary: Record<string, Record<string, number>> = {}
+  for (const region of regions) {
+    const counts: Record<string, number> = {}
+    for (const svc of services) {
+      const r = await aws(svc.cmd, profile, region, Math.min(timeout, 30))
+      counts[svc.label] = r.exitCode === 0 ? (tryJson(r.stdout) || 0) : 0
+    }
+    summary[region] = counts
+    const total = Object.values(counts).reduce((a, b) => a + b, 0)
+    if (total > 0) {
+      const parts = Object.entries(counts).filter(([, v]) => v > 0).map(([k, v]) => `${k}:${v}`)
+      output.push(`[+] ${region}: ${parts.join(", ")}`)
+      if (region !== primary) {
+        findings.push({
+          checkId: "AWS-REGION-001",
+          provider: "aws",
+          severity: "medium",
+          status: "INFO",
+          resource: region,
+          title: `Resources in non-primary region: ${region}`,
+          details: `Found ${total} resource(s): ${parts.join(", ")}`,
+          remediation: "Verify these resources are expected — attackers use non-primary regions to hide",
+        })
+      }
+    }
+  }
+
+  const bucketsR = await aws(["s3api", "list-buckets", "--query", "Buckets | length(@)"], profile, primary, timeout)
+  if (bucketsR.exitCode === 0) output.push(`\n[+] S3 Buckets (global): ${tryJson(bucketsR.stdout) || 0}`)
+
+  const active = Object.entries(summary).filter(([, c]) => Object.values(c).some((v) => v > 0))
+  output.push(`\n[*] Summary: resources in ${active.length}/${regions.length} regions`)
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function kmsEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] KMS Key Enumeration\n"]
+
+  const keysR = await aws(["kms", "list-keys", "--query", "Keys[].KeyId"], profile, region, timeout)
+  if (keysR.exitCode !== 0) return { output: `[-] Cannot list KMS keys: ${keysR.stderr.trim()}`, findings }
+  const keyIds = (tryJson(keysR.stdout) || []) as string[]
+  output.push(`[+] KMS Keys: ${keyIds.length}\n`)
+
+  const aliasR = await aws(["kms", "list-aliases", "--query", "Aliases[].{KeyId:TargetKeyId,Alias:AliasName}"], profile, region, timeout)
+  const aliases = (tryJson(aliasR.stdout) || []) as Array<{ KeyId: string; Alias: string }>
+  const aliasMap = new Map<string, string>()
+  for (const a of aliases) if (a.KeyId) aliasMap.set(a.KeyId, a.Alias)
+
+  for (const keyId of keyIds) {
+    const desc = await aws(["kms", "describe-key", "--key-id", keyId, "--query", "KeyMetadata"], profile, region, timeout)
+    const meta = tryJson(desc.stdout)
+    if (!meta) continue
+
+    const alias = aliasMap.get(keyId) || "(no alias)"
+    const manager = meta.KeyManager || "unknown"
+    if (manager === "AWS") continue
+
+    output.push(`[+] ${alias} (${keyId.slice(0, 8)}...)`)
+    output.push(`    State: ${meta.KeyState}, Origin: ${meta.Origin}, Manager: ${manager}`)
+    output.push(`    Created: ${meta.CreationDate}, Spec: ${meta.KeySpec}`)
+
+    const policyR = await aws(["kms", "get-key-policy", "--key-id", keyId, "--policy-name", "default", "--query", "Policy"], profile, region, timeout)
+    if (policyR.exitCode === 0) {
+      const policyStr = tryJson(policyR.stdout) || policyR.stdout.trim()
+      const policy = typeof policyStr === "string" ? tryJson(policyStr) : policyStr
+      if (policy?.Statement) {
+        for (const stmt of policy.Statement) {
+          const principal = JSON.stringify(stmt.Principal || "")
+          if (principal.includes('"*"') && stmt.Effect === "Allow") {
+            output.push(`    [!] OPEN policy: Principal=* in statement ${stmt.Sid || "unnamed"}`)
+            findings.push({
+              checkId: "AWS-KMS-001",
+              provider: "aws",
+              severity: "critical",
+              status: "FAIL",
+              resource: `${alias} (${keyId})`,
+              title: "KMS key with Principal: *",
+              details: `Statement ${stmt.Sid || "unnamed"} allows all principals — anyone can use this key`,
+              remediation: "Restrict KMS key policy to specific accounts/roles",
+            })
+          }
+        }
+      }
+    }
+
+    const grantsR = await aws(["kms", "list-grants", "--key-id", keyId, "--query", "Grants[]"], profile, region, timeout)
+    const grants = (tryJson(grantsR.stdout) || []) as Array<Record<string, unknown>>
+    if (grants.length > 0) {
+      output.push(`    Grants: ${grants.length}`)
+      for (const g of grants) {
+        const grantee = (g.GranteePrincipal || "") as string
+        const ops = (g.Operations || []) as string[]
+        const grantId = (g.GrantId || "") as string
+        output.push(`      ${grantId.slice(0, 16)}... → ${grantee} (${ops.join(",")})`)
+        const keyAccount = (meta.Arn || "").split(":")[4] || ""
+        const granteeAccount = grantee.split(":")[4] || ""
+        if (keyAccount && granteeAccount && keyAccount !== granteeAccount) {
+          findings.push({
+            checkId: "AWS-KMS-002",
+            provider: "aws",
+            severity: "high",
+            status: "FAIL",
+            resource: `${alias} (${keyId})`,
+            title: `Cross-account KMS grant to ${granteeAccount}`,
+            details: `Grant ${grantId} gives ${grantee} access to key in account ${keyAccount}`,
+            remediation: "Review cross-account KMS grants for least privilege",
+          })
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function opensearchEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] OpenSearch / Elasticsearch Domain Enumeration\n"]
+
+  const domainsR = await aws(["opensearch", "list-domain-names", "--query", "DomainNames[].DomainName"], profile, region, timeout)
+  if (domainsR.exitCode !== 0) return { output: `[-] Cannot list domains: ${domainsR.stderr.trim()}`, findings }
+  const domains = (tryJson(domainsR.stdout) || []) as string[]
+  output.push(`[+] Domains: ${domains.length}\n`)
+
+  for (const name of domains) {
+    const descR = await aws(["opensearch", "describe-domain", "--domain-name", name, "--query", "DomainStatus"], profile, region, timeout)
+    const domain = tryJson(descR.stdout)
+    if (!domain) continue
+
+    output.push(`[+] ${name}`)
+    output.push(`    Engine: ${domain.EngineVersion}, ARN: ${domain.ARN}`)
+    output.push(`    Endpoint: ${domain.Endpoint || domain.Endpoints?.vpc || "(none)"}`)
+
+    const hasVpc = !!domain.VPCOptions?.VPCId
+    output.push(`    VPC: ${hasVpc ? domain.VPCOptions.VPCId : "PUBLIC"}`)
+    if (!hasVpc) {
+      findings.push({
+        checkId: "AWS-OS-001",
+        provider: "aws",
+        severity: "critical",
+        status: "FAIL",
+        resource: name,
+        title: `OpenSearch domain publicly accessible: ${name}`,
+        details: `Domain ${name} has no VPC configuration — accessible from the internet`,
+        remediation: "Deploy OpenSearch domain within a VPC",
+      })
+    }
+
+    const encrypted = domain.EncryptionAtRestOptions?.Enabled
+    const nodeEncrypted = domain.NodeToNodeEncryptionOptions?.Enabled
+    output.push(`    Encryption at rest: ${encrypted ? "YES" : "NO"}, Node-to-node: ${nodeEncrypted ? "YES" : "NO"}`)
+    if (!encrypted) {
+      findings.push({
+        checkId: "AWS-OS-002",
+        provider: "aws",
+        severity: "high",
+        status: "FAIL",
+        resource: name,
+        title: `OpenSearch domain without encryption at rest: ${name}`,
+        details: "Data stored in the domain is not encrypted",
+        remediation: "Enable encryption at rest for OpenSearch domain",
+      })
+    }
+
+    const fgac = domain.AdvancedSecurityOptions?.Enabled
+    output.push(`    Fine-grained access control: ${fgac ? "YES" : "NO"}`)
+    if (!fgac) {
+      findings.push({
+        checkId: "AWS-OS-003",
+        provider: "aws",
+        severity: "high",
+        status: "FAIL",
+        resource: name,
+        title: `OpenSearch domain without fine-grained access control: ${name}`,
+        details: "No FGAC — access is controlled only by resource policy",
+        remediation: "Enable fine-grained access control with IAM or internal user database",
+      })
+    }
+
+    const policyStr = domain.AccessPolicies
+    if (policyStr) {
+      const policy = tryJson(policyStr)
+      if (policy?.Statement) {
+        for (const stmt of policy.Statement) {
+          const principal = JSON.stringify(stmt.Principal || "")
+          if (principal.includes('"*"') && stmt.Effect === "Allow" && !stmt.Condition) {
+            output.push(`    [!] OPEN access policy: Principal=*`)
+            findings.push({
+              checkId: "AWS-OS-004",
+              provider: "aws",
+              severity: "critical",
+              status: "FAIL",
+              resource: name,
+              title: `OpenSearch open access policy: ${name}`,
+              details: "Access policy allows Principal: * without conditions — anyone can read/write",
+              remediation: "Restrict access policy to specific IAM principals or IP ranges",
+            })
+          }
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function efsEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] EFS File System Enumeration\n"]
+
+  const fsR = await aws(["efs", "describe-file-systems", "--query", "FileSystems[]"], profile, region, timeout)
+  if (fsR.exitCode !== 0) return { output: `[-] Cannot list EFS: ${fsR.stderr.trim()}`, findings }
+  const fileSystems = (tryJson(fsR.stdout) || []) as Array<Record<string, unknown>>
+  output.push(`[+] EFS File Systems: ${fileSystems.length}\n`)
+
+  for (const fs of fileSystems) {
+    const fsId = fs.FileSystemId as string
+    const name = (fs.Name as string) || "(unnamed)"
+    const encrypted = fs.Encrypted as boolean
+    const size = ((fs.SizeInBytes as Record<string, number>)?.Value || 0) / (1024 * 1024 * 1024)
+
+    output.push(`[+] ${name} (${fsId})`)
+    output.push(`    Size: ${size.toFixed(2)} GB, Lifecycle: ${fs.LifeCycleState}, Performance: ${fs.PerformanceMode}`)
+    output.push(`    Encrypted: ${encrypted ? "YES" : "NO"}`)
+
+    if (!encrypted) {
+      findings.push({
+        checkId: "AWS-EFS-001",
+        provider: "aws",
+        severity: "high",
+        status: "FAIL",
+        resource: `${name} (${fsId})`,
+        title: `EFS without encryption: ${name}`,
+        details: `File system ${fsId} is not encrypted at rest`,
+        remediation: "Create a new encrypted EFS and migrate data — encryption cannot be enabled after creation",
+      })
+    }
+
+    const mtR = await aws(["efs", "describe-mount-targets", "--file-system-id", fsId, "--query", "MountTargets[]"], profile, region, timeout)
+    const mounts = (tryJson(mtR.stdout) || []) as Array<Record<string, string>>
+    output.push(`    Mount targets: ${mounts.length}`)
+
+    for (const mt of mounts) {
+      output.push(`      ${mt.MountTargetId} — subnet: ${mt.SubnetId}, AZ: ${mt.AvailabilityZoneName}, IP: ${mt.IpAddress}`)
+      const sgR = await aws(["efs", "describe-mount-target-security-groups", "--mount-target-id", mt.MountTargetId, "--query", "SecurityGroups"], profile, region, timeout)
+      const sgs = (tryJson(sgR.stdout) || []) as string[]
+      if (sgs.length > 0) {
+        output.push(`        Security groups: ${sgs.join(", ")}`)
+        for (const sg of sgs) {
+          const sgDesc = await aws(["ec2", "describe-security-groups", "--group-ids", sg, "--query", "SecurityGroups[0].IpPermissions[]"], profile, region, timeout)
+          const rules = (tryJson(sgDesc.stdout) || []) as Array<Record<string, unknown>>
+          for (const rule of rules) {
+            const ranges = (rule.IpRanges || []) as Array<Record<string, string>>
+            for (const range of ranges) {
+              if (range.CidrIp === "0.0.0.0/0" && (rule.FromPort === 2049 || rule.IpProtocol === "-1")) {
+                findings.push({
+                  checkId: "AWS-EFS-002",
+                  provider: "aws",
+                  severity: "critical",
+                  status: "FAIL",
+                  resource: `${name} (${fsId})`,
+                  title: `EFS mount target open to 0.0.0.0/0`,
+                  details: `Mount target ${mt.MountTargetId} SG ${sg} allows NFS (2049) from anywhere`,
+                  remediation: "Restrict NFS access to specific VPC CIDRs",
+                })
+              }
+            }
+          }
+        }
+      }
+    }
+
+    const policyR = await aws(["efs", "describe-file-system-policy", "--file-system-id", fsId], profile, region, timeout)
+    if (policyR.exitCode === 0) {
+      const policyData = tryJson(policyR.stdout)
+      const policy = policyData?.Policy ? tryJson(policyData.Policy) : null
+      if (policy?.Statement) {
+        for (const stmt of policy.Statement) {
+          const principal = JSON.stringify(stmt.Principal || "")
+          if (principal.includes('"*"') && stmt.Effect === "Allow") {
+            output.push(`    [!] Open file system policy: Principal=*`)
+            findings.push({
+              checkId: "AWS-EFS-003",
+              provider: "aws",
+              severity: "high",
+              status: "FAIL",
+              resource: `${name} (${fsId})`,
+              title: `EFS open resource policy: ${name}`,
+              details: "File system policy allows Principal: * — any authenticated AWS principal can mount",
+              remediation: "Restrict EFS resource policy to specific accounts/roles",
+            })
+          }
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function elbEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Load Balancer Enumeration\n"]
+
+  const v2R = await aws(["elbv2", "describe-load-balancers", "--query", "LoadBalancers[]"], profile, region, timeout)
+  if (v2R.exitCode === 0) {
+    const lbs = (tryJson(v2R.stdout) || []) as Array<Record<string, unknown>>
+    output.push(`[+] ALB/NLB/GWLB: ${lbs.length}`)
+
+    for (const lb of lbs) {
+      const name = lb.LoadBalancerName as string
+      const scheme = lb.Scheme as string
+      const lbType = lb.Type as string
+      const arn = lb.LoadBalancerArn as string
+      const dns = lb.DNSName as string
+
+      output.push(`\n  [+] ${name} (${lbType}, ${scheme})`)
+      output.push(`      DNS: ${dns}`)
+      output.push(`      VPC: ${lb.VpcId}, AZs: ${((lb.AvailabilityZones || []) as Array<Record<string, string>>).map((az) => az.ZoneName).join(",")}`)
+
+      if (scheme === "internet-facing") {
+        findings.push({
+          checkId: "AWS-ELB-001",
+          provider: "aws",
+          severity: "medium",
+          status: "INFO",
+          resource: name,
+          title: `Internet-facing load balancer: ${name}`,
+          details: `${lbType} ${name} is publicly accessible at ${dns}`,
+          remediation: "Ensure only intended services are exposed via internet-facing LBs",
+        })
+      }
+
+      const listenersR = await aws(["elbv2", "describe-listeners", "--load-balancer-arn", arn, "--query", "Listeners[]"], profile, region, timeout)
+      const listeners = (tryJson(listenersR.stdout) || []) as Array<Record<string, unknown>>
+      for (const l of listeners) {
+        const proto = l.Protocol as string
+        const port = l.Port as number
+        output.push(`      Listener: ${proto}:${port}`)
+
+        if (proto === "HTTPS" || proto === "TLS") {
+          const sslPolicy = l.SslPolicy as string
+          output.push(`        SSL Policy: ${sslPolicy}`)
+          const weak = ["ELBSecurityPolicy-2016-08", "ELBSecurityPolicy-TLS-1-0-2015-04"]
+          if (weak.includes(sslPolicy)) {
+            findings.push({
+              checkId: "AWS-ELB-002",
+              provider: "aws",
+              severity: "high",
+              status: "FAIL",
+              resource: name,
+              title: `Weak SSL policy on ${name}`,
+              details: `Listener ${proto}:${port} uses ${sslPolicy} which supports TLS 1.0/weak ciphers`,
+              remediation: "Upgrade to ELBSecurityPolicy-TLS13-1-2-2021-06 or newer",
+            })
+          }
+        }
+
+        if (proto === "HTTP" && scheme === "internet-facing") {
+          const actions = (l.DefaultActions || []) as Array<Record<string, string>>
+          const hasRedirect = actions.some((a) => a.Type === "redirect")
+          if (!hasRedirect) {
+            findings.push({
+              checkId: "AWS-ELB-003",
+              provider: "aws",
+              severity: "medium",
+              status: "FAIL",
+              resource: name,
+              title: `HTTP without redirect on internet-facing ${name}`,
+              details: `Listener HTTP:${port} serves traffic without HTTPS redirect`,
+              remediation: "Add HTTP→HTTPS redirect action",
+            })
+          }
+        }
+      }
+
+      const sgs = (lb.SecurityGroups || []) as string[]
+      if (sgs.length > 0) output.push(`      Security Groups: ${sgs.join(", ")}`)
+    }
+  }
+
+  const classicR = await aws(["elb", "describe-load-balancers", "--query", "LoadBalancerDescriptions[]"], profile, region, timeout)
+  if (classicR.exitCode === 0) {
+    const clbs = (tryJson(classicR.stdout) || []) as Array<Record<string, unknown>>
+    if (clbs.length > 0) {
+      output.push(`\n[+] Classic ELB: ${clbs.length}`)
+      for (const clb of clbs) {
+        const name = clb.LoadBalancerName as string
+        const scheme = clb.Scheme as string
+        const dns = clb.DNSName as string
+        output.push(`  [+] ${name} (classic, ${scheme})`)
+        output.push(`      DNS: ${dns}`)
+
+        const listeners = (clb.ListenerDescriptions || []) as Array<Record<string, Record<string, unknown>>>
+        for (const ld of listeners) {
+          const l = ld.Listener || {}
+          output.push(`      Listener: ${l.Protocol}:${l.LoadBalancerPort} → ${l.InstanceProtocol}:${l.InstancePort}`)
+        }
+
+        if (scheme === "internet-facing") {
+          findings.push({
+            checkId: "AWS-ELB-004",
+            provider: "aws",
+            severity: "medium",
+            status: "INFO",
+            resource: name,
+            title: `Internet-facing Classic ELB: ${name}`,
+            details: `Classic ELB ${name} is publicly accessible — consider migrating to ALB/NLB`,
+            remediation: "Migrate Classic ELBs to ALB/NLB for modern security features",
+          })
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
