@@ -64,11 +64,23 @@ async function run(
   args: string[],
   timeout: number,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  const proc = Bun.spawn([cmd, ...args], { stdout: "pipe", stderr: "pipe", env: { ...process.env } })
-  const timer = setTimeout(() => proc.kill(), timeout * 1000)
-  const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
+  let proc: ReturnType<typeof Bun.spawn>
+  try {
+    proc = Bun.spawn([cmd, ...args], { stdout: "pipe", stderr: "pipe", env: { ...process.env } })
+  } catch (e) {
+    return { stdout: "", stderr: e instanceof Error ? e.message : String(e), exitCode: 127 }
+  }
+  const ms = timeout * 1000
+  let killed = false
+  const timer = setTimeout(() => {
+    killed = true
+    proc.kill(9)
+  }, ms)
+  const reads = Promise.all([new Response(proc.stdout as ReadableStream).text(), new Response(proc.stderr as ReadableStream).text()])
+  const [stdout, stderr] = await Promise.race([reads, new Promise<[string, string]>((r) => setTimeout(() => r(["", "(timed out)"]), ms + 2000))])
   clearTimeout(timer)
-  return { stdout, stderr, exitCode: await proc.exited }
+  const exitCode = killed ? 124 : await proc.exited
+  return { stdout, stderr, exitCode }
 }
 
 function argVal(args: string[], flag: string): string | undefined {
