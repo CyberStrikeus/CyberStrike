@@ -255,12 +255,12 @@ export namespace Provider {
       // Only use credential chain if no bearer token exists
       // Bearer token takes precedence over credential chain (profiles, access keys, IAM roles, web identity tokens)
       if (!awsBearerToken) {
-        if (awsAccessKeyId) {
-          // If explicit environment credentials are set, use standard env provider
-          const { fromEnv } = await import(await BunProc.install("@aws-sdk/credential-provider-env"))
-          providerOptions.credentialProvider = fromEnv()
-        } else {
-          // Direct IMDS provider for EC2 Instance Roles (bypasses file-loader symbol stubs)
+        const credentialProviderOptions = profile ? { profile } : {}
+        try {
+          const { fromNodeProviderChain } = await import(await BunProc.install("@aws-sdk/credential-providers"))
+          providerOptions.credentialProvider = fromNodeProviderChain(credentialProviderOptions)
+        } catch {
+          log.warn("fromNodeProviderChain failed, falling back to IMDS")
           const { fromInstanceMetadata } = await import(
             await BunProc.install("@aws-sdk/credential-provider-imds")
           )
