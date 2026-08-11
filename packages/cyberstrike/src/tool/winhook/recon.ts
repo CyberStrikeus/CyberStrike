@@ -269,7 +269,11 @@ export async function etwNetwork(args: string[], timeout: number): Promise<HookR
   )
   if (baseline.exitCode === 0) {
     let conns: Array<Record<string, string | number>> = []
-    try { conns = JSON.parse(baseline.stdout || "[]") } catch { /* PS output may be mangled */ }
+    try {
+      conns = JSON.parse(baseline.stdout || "[]")
+    } catch {
+      /* PS output may be mangled */
+    }
     const arr = Array.isArray(conns) ? conns : [conns]
     output.push(`[+] Current TCP connections: ${arr.length}`)
     const established = arr.filter((c) => c.State === "Established" || c.State === 4)

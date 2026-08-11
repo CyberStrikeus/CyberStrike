@@ -1383,7 +1383,13 @@ export const WinhookTool = Tool.define("winhook", {
         metadata: { program, findings: [] as Finding[] },
       }
     } finally {
-      const envChangingPrograms = new Set(["amsi_bypass", "etw_blind", "clm_bypass", "ps_downgrade", "defender_exclude"])
+      const envChangingPrograms = new Set([
+        "amsi_bypass",
+        "etw_blind",
+        "clm_bypass",
+        "ps_downgrade",
+        "defender_exclude",
+      ])
       if (envChangingPrograms.has(program)) resetEnvCache()
       setStealthState(undefined, false)
       setExecMethod("ps")
