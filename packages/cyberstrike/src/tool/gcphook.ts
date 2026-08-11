@@ -897,8 +897,7 @@ export const GcphookTool = Tool.define("gcphook", {
     timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
-    const check = await run("which", ["gcloud"], 5)
-    if (check.exitCode !== 0) {
+    if (!Bun.which("gcloud")) {
       return {
         title: `gcphook: ${params.program}`,
         output: "gcloud CLI not found. Install: https://cloud.google.com/sdk/docs/install\nThen run: gcloud auth login",

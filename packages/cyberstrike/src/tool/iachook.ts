@@ -690,6 +690,15 @@ export const IachookTool = Tool.define("iachook", {
     timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
+    const needsTerraform = ["tf_state_secrets", "tf_plan_audit", "remote_state_exploit"]
+    if (needsTerraform.includes(params.program) && !Bun.which("terraform")) {
+      return {
+        title: `iachook: ${params.program}`,
+        output: "terraform CLI not found. Install: https://developer.hashicorp.com/terraform/install",
+        metadata: { program: params.program, findings: [] as Finding[] },
+      }
+    }
+
     const dispatch: Record<Program, () => Promise<HookResult>> = {
       tf_state_secrets: () => tfStateSecrets(params.args, params.timeout_seconds),
       tf_plan_audit: () => tfPlanAudit(params.args, params.timeout_seconds),

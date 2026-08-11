@@ -726,8 +726,7 @@ export const AwshookTool = Tool.define("awshook", {
     timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
-    const check = await run("which", ["aws"], 5)
-    if (check.exitCode !== 0) {
+    if (!Bun.which("aws")) {
       return {
         title: `awshook: ${params.program}`,
         output:

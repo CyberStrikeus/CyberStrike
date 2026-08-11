@@ -401,8 +401,7 @@ async function etcdDump(args: string[], timeout: number): Promise<HookResult> {
 
   output.push(`[*] Connecting to etcd at ${endpoint}...\n`)
 
-  const check = await run("which", ["etcdctl"], 5)
-  if (check.exitCode !== 0)
+  if (!Bun.which("etcdctl"))
     return { output: output.join("\n") + "[-] etcdctl not found. Install etcd client tools.", findings: [] }
 
   const etcdArgs = [
@@ -628,8 +627,7 @@ export const KubehookTool = Tool.define("kubehook", {
     timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
-    const check = await run("which", ["kubectl"], 5)
-    if (check.exitCode !== 0) {
+    if (!Bun.which("kubectl")) {
       return {
         title: `kubehook: ${params.program}`,
         output: "kubectl not found. Install: https://kubernetes.io/docs/tasks/tools/",
