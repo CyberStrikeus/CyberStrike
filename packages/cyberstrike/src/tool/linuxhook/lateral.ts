@@ -690,7 +690,7 @@ echo "Usage: linuxhook internal_scan --subnet 10.0.0.0/24 --ports 22,80,443"
 
   if (openPorts > 0) {
     findings.push({
-      checkId: "LNX-PORTSCAN-002",
+      checkId: "LNX-PORTSCAN-003",
       provider: "linuxhook",
       severity: "LOW",
       status: "IDENTIFIED",
