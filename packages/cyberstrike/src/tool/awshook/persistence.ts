@@ -743,7 +743,7 @@ export async function ec2InstanceConnect(args: string[], timeout: number): Promi
         const r = tryJson(push.stdout)
         if (r?.Success) {
           output.push(`[+] SSH key pushed successfully — 60 second window!`)
-          output.push(`[+] Connect: ssh -i /tmp/cs-ic-key ${osUser}@<IP>`)
+          output.push(`[+] Connect: ssh -i ${tmpKey} ${osUser}@<IP>`)
           findings.push({
             checkId: "AWS-PERSIST-012",
             provider: "aws",
