@@ -99,7 +99,7 @@ export async function secretsDump(args: string[], timeout: number): Promise<Hook
         )
         if (val.exitCode === 0) {
           const v = tryJson(val.stdout) || val.stdout
-          output.push(`[+] ${s[0]}: ${String(v).slice(0, 80)}${String(v).length > 80 ? "..." : ""}`)
+          output.push(`[+] ${s[0]}: [SECRET FOUND — ${String(v).length} chars]`)
         } else {
           output.push(`[-] ${s[0]}: access denied`)
         }
@@ -122,7 +122,7 @@ export async function secretsDump(args: string[], timeout: number): Promise<Hook
         )
         if (val.exitCode === 0) {
           const v = tryJson(val.stdout) || val.stdout
-          output.push(`[+] ${p[0]}: ${String(v).slice(0, 80)}${String(v).length > 80 ? "..." : ""}`)
+          output.push(`[+] ${p[0]}: [SECRET FOUND — ${String(v).length} chars]`)
         } else {
           output.push(`[-] ${p[0]}: access denied`)
         }
@@ -593,7 +593,7 @@ export async function cognitoToken(args: string[], timeout: number): Promise<Hoo
         if (clientDesc.exitCode === 0) {
           const client = tryJson(clientDesc.stdout)?.UserPoolClient
           if (client?.ClientSecret) {
-            output.push(`    [!] Client secret: ${String(client.ClientSecret).slice(0, 20)}...`)
+            output.push(`    [!] Client secret: [SECRET FOUND — ${String(client.ClientSecret).length} chars]`)
             findings.push({
               checkId: "AWS-COGNITO-002",
               provider: "aws",
@@ -695,7 +695,7 @@ export async function cfnSecretExtract(args: string[], timeout: number): Promise
       for (const p of pl) {
         if (secretPattern.test(p.ParameterKey)) {
           if (p.ParameterValue && p.ParameterValue !== "****") {
-            output.push(`  [!] ${name} / ${p.ParameterKey} = ${p.ParameterValue}`)
+            output.push(`  [!] ${name} / ${p.ParameterKey} = [SECRET FOUND — ${String(p.ParameterValue).length} chars]`)
             findings.push({
               checkId: "AWS-CFNSEC-001",
               provider: "aws",
@@ -703,7 +703,7 @@ export async function cfnSecretExtract(args: string[], timeout: number): Promise
               status: "EXTRACTED",
               resource: `cfn:${name}:${p.ParameterKey}`,
               title: `Secret parameter exposed: ${p.ParameterKey}`,
-              details: `Stack ${name} parameter value: ${String(p.ParameterValue).slice(0, 40)}...`,
+              details: `Stack ${name} parameter ${p.ParameterKey}: [SECRET FOUND — ${String(p.ParameterValue).length} chars]`,
               remediation: "Rotate credential immediately, use SSM SecureString dynamic reference",
             })
           } else {
@@ -749,7 +749,7 @@ export async function cfnSecretExtract(args: string[], timeout: number): Promise
       while ((match = defaultRegex.exec(body)) !== null) {
         const pre = body.slice(Math.max(0, match.index - 200), match.index)
         if (secretPattern.test(pre)) {
-          output.push(`  [!] ${name} default value: ${match[1].slice(0, 30)}...`)
+          output.push(`  [!] ${name} default value: [SECRET FOUND — ${match[1].length} chars]`)
           findings.push({
             checkId: "AWS-CFNSEC-003",
             provider: "aws",
@@ -757,7 +757,7 @@ export async function cfnSecretExtract(args: string[], timeout: number): Promise
             status: "FOUND",
             resource: `cfn:default:${name}`,
             title: `Default parameter value with potential secret in ${name}`,
-            details: `Default value near secret-named parameter: ${match[1].slice(0, 40)}...`,
+            details: `Default value near secret-named parameter: [SECRET FOUND — ${match[1].length} chars]`,
             remediation: "Remove default values for sensitive parameters",
           })
         }
@@ -773,7 +773,7 @@ export async function cfnSecretExtract(args: string[], timeout: number): Promise
     if (outputs.exitCode === 0) {
       for (const o of tryJson(outputs.stdout) || []) {
         if (secretPattern.test(o.OutputKey) && o.OutputValue) {
-          output.push(`  [!] ${name} output ${o.OutputKey} = ${o.OutputValue}`)
+          output.push(`  [!] ${name} output ${o.OutputKey} = [SECRET FOUND — ${String(o.OutputValue).length} chars]`)
           findings.push({
             checkId: "AWS-CFNSEC-004",
             provider: "aws",
@@ -781,7 +781,7 @@ export async function cfnSecretExtract(args: string[], timeout: number): Promise
             status: "EXPOSED",
             resource: `cfn:output:${name}:${o.OutputKey}`,
             title: `Secret in stack output: ${o.OutputKey}`,
-            details: `Output value: ${String(o.OutputValue).slice(0, 40)}...${o.ExportName ? ` (exported as: ${o.ExportName})` : ""}`,
+            details: `Output ${o.OutputKey}: [SECRET FOUND — ${String(o.OutputValue).length} chars]${o.ExportName ? ` (exported as: ${o.ExportName})` : ""}`,
             remediation: "Do not expose secrets via stack outputs — use SSM/Secrets Manager",
           })
         }
@@ -965,7 +965,7 @@ export async function ciCdSecretExtract(args: string[], timeout: number): Promis
             const config = action.configuration || {}
             for (const [k, v] of Object.entries(config)) {
               if (secretPattern.test(k) && v) {
-                output.push(`    [!] ${stage.name}/${action.name}: ${k} = ${String(v).slice(0, 30)}...`)
+                output.push(`    [!] ${stage.name}/${action.name}: ${k} = [SECRET FOUND — ${String(v).length} chars]`)
                 findings.push({
                   checkId: "AWS-CICD-002",
                   provider: "aws",
@@ -973,7 +973,7 @@ export async function ciCdSecretExtract(args: string[], timeout: number): Promis
                   status: "EXTRACTED",
                   resource: `codepipeline:${p[0]}:${stage.name}:${action.name}`,
                   title: `Pipeline action config secret: ${k}`,
-                  details: `Stage ${stage.name}, Action ${action.name}: ${k}=${String(v).slice(0, 40)}`,
+                  details: `Stage ${stage.name}, Action ${action.name}: ${k} [SECRET FOUND — ${String(v).length} chars]`,
                   remediation: "Use Secrets Manager reference instead of plaintext",
                 })
               }
@@ -1013,7 +1013,7 @@ export async function ciCdSecretExtract(args: string[], timeout: number): Promis
           for (const ev of envVars) {
             const isSecret = secretPattern.test(ev.name)
             if (ev.type === "PLAINTEXT" && isSecret) {
-              output.push(`    [!] PLAINTEXT env: ${ev.name} = ${String(ev.value).slice(0, 30)}...`)
+              output.push(`    [!] PLAINTEXT env: ${ev.name} = [SECRET FOUND — ${String(ev.value).length} chars]`)
               findings.push({
                 checkId: "AWS-CICD-003",
                 provider: "aws",
@@ -1021,7 +1021,7 @@ export async function ciCdSecretExtract(args: string[], timeout: number): Promis
                 status: "EXTRACTED",
                 resource: `codebuild:${name}:env:${ev.name}`,
                 title: `Plaintext secret in CodeBuild env: ${ev.name}`,
-                details: `Project ${name}: ${ev.name}=${String(ev.value).slice(0, 40)}...`,
+                details: `Project ${name}: ${ev.name} [SECRET FOUND — ${String(ev.value).length} chars]`,
                 remediation: "Use SECRETS_MANAGER or PARAMETER_STORE type instead of PLAINTEXT",
               })
             } else if (ev.type === "PARAMETER_STORE" || ev.type === "SECRETS_MANAGER") {
@@ -1037,7 +1037,7 @@ export async function ciCdSecretExtract(args: string[], timeout: number): Promis
                 remediation: "Ensure least-privilege access to referenced secret",
               })
             } else if (isSecret) {
-              output.push(`    Env: ${ev.name} = ${String(ev.value).slice(0, 20)}... (${ev.type})`)
+              output.push(`    Env: ${ev.name} = [SECRET FOUND — ${String(ev.value).length} chars] (${ev.type})`)
             }
           }
 
