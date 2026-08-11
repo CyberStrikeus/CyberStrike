@@ -19,6 +19,23 @@ import { Truncate } from "./truncation"
 import { Plugin } from "@/plugin"
 
 const MAX_METADATA_LENGTH = 30_000
+
+// Detect binary content in a buffer by checking for high density of
+// non-printable bytes. Printable = ASCII 0x20-0x7E, tab, newline, CR, ESC
+// (for ANSI colors). If >30% of bytes are non-printable, treat as binary.
+function isBinaryBuffer(buf: Buffer): boolean {
+  if (buf.length === 0) return false
+  let nonPrintable = 0
+  for (let i = 0; i < buf.length; i++) {
+    const b = buf[i]
+    if (b >= 0x20 && b <= 0x7e) continue
+    if (b === 0x09 || b === 0x0a || b === 0x0d || b === 0x1b) continue
+    if (b >= 0xc0) continue // UTF-8 lead bytes
+    if (b >= 0x80 && b <= 0xbf) continue // UTF-8 continuation
+    nonPrintable++
+  }
+  return nonPrintable / buf.length > 0.3
+}
 const DEFAULT_TIMEOUT = Flag.CYBERSTRIKE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS || 2 * 60 * 1000
 
 export const log = Log.create({ service: "bash-tool" })
@@ -185,7 +202,15 @@ export const BashTool = Tool.define("bash", async () => {
         },
       })
 
+      let binaryDetected = false
       const append = (chunk: Buffer) => {
+        if (isBinaryBuffer(chunk)) {
+          if (!binaryDetected) {
+            binaryDetected = true
+            output += "\n[binary output detected and stripped — " + chunk.length + " bytes]\n"
+          }
+          return
+        }
         output += chunk.toString()
         ctx.metadata({
           metadata: {
