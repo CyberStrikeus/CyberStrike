@@ -817,3 +817,94 @@ export async function ssmStateManager(args: string[], timeout: number): Promise<
 
   return { output: output.join("\n"), findings }
 }
+
+export async function ecsScheduledTask(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const cluster = argVal(args, "--cluster")
+  const taskDef = argVal(args, "--task-definition")
+  const schedule = argVal(args, "--schedule") || "rate(1 hour)"
+  const command = argVal(args, "--command")
+  const ruleName = argVal(args, "--rule-name") || `cs-ecs-${Date.now().toString(36).slice(-6)}`
+  const findings: Finding[] = []
+  const output: string[] = ["[*] ECS Scheduled Task — Serverless Persistence\n"]
+
+  if (hasFlag(args, "--list") || !cluster) {
+    const rules = await aws(["events", "list-rules", "--query", "Rules[?starts_with(Name,'cs-ecs')].[Name,ScheduleExpression,State]"], profile, region, timeout)
+    if (rules.exitCode === 0) {
+      const rl = tryJson(rules.stdout) || []
+      if (rl.length) {
+        output.push(`[+] Existing CyberStrike ECS scheduled rules: ${rl.length}`)
+        for (const r of rl) output.push(`  ${r[0]}  Schedule: ${r[1]}  State: ${r[2]}`)
+      }
+    }
+
+    const clusters = await aws(["ecs", "list-clusters", "--query", "clusterArns"], profile, region, timeout)
+    if (clusters.exitCode === 0) {
+      const cl = tryJson(clusters.stdout) || []
+      output.push(`\n[+] Available clusters: ${cl.length}`)
+      for (const c of cl) output.push(`  ${String(c).split("/").pop()}`)
+    }
+
+    const taskDefs = await aws(["ecs", "list-task-definitions", "--sort", "DESC", "--max-items", "10", "--query", "taskDefinitionArns"], profile, region, timeout)
+    if (taskDefs.exitCode === 0) {
+      const tl = tryJson(taskDefs.stdout) || []
+      output.push(`\n[+] Recent task definitions (latest 10):`)
+      for (const t of tl) output.push(`  ${String(t).split("/").pop()}`)
+    }
+
+    if (!cluster) {
+      output.push("\n[*] Usage: awshook ecs_scheduled_task --cluster NAME --task-definition DEF [--command CMD] [--schedule 'rate(1 hour)']")
+      return { output: output.join("\n"), findings }
+    }
+  }
+
+  if (!taskDef) {
+    output.push("[-] --task-definition required")
+    return { output: output.join("\n"), findings }
+  }
+
+  const ruleCreate = await aws(["events", "put-rule", "--name", ruleName, "--schedule-expression", schedule, "--state", "ENABLED", "--description", "CyberStrike ECS scheduled task"], profile, region, timeout)
+  if (ruleCreate.exitCode !== 0) {
+    output.push(`[-] Failed to create rule: ${ruleCreate.stderr.trim()}`)
+    return { output: output.join("\n"), findings }
+  }
+
+  const ruleArn = tryJson(ruleCreate.stdout)?.RuleArn
+  output.push(`[+] EventBridge rule created: ${ruleName}`)
+  output.push(`    Schedule: ${schedule}`)
+  output.push(`    ARN: ${ruleArn}`)
+
+  const clusterArn = cluster.startsWith("arn:") ? cluster : `arn:aws:ecs:${region || "us-east-1"}:*:cluster/${cluster}`
+  const overrides = command ? `,\"EcsParameters\":{\"TaskDefinitionArn\":\"${taskDef}\",\"TaskCount\":1,\"LaunchType\":\"FARGATE\",\"NetworkConfiguration\":{\"awsvpcConfiguration\":{\"Subnets\":[\"auto\"],\"AssignPublicIp\":\"ENABLED\"}}},\"Input\":\"{\\\"containerOverrides\\\":[{\\\"name\\\":\\\"main\\\",\\\"command\\\":[\\\"sh\\\",\\\"-c\\\",\\\"${command.replace(/"/g, '\\\\"')}\\\"]}]}\"` : ""
+
+  const targetInput = `[{"Id":"cs-target","Arn":"${clusterArn}","RoleArn":"${ruleArn}"${overrides}}]`
+
+  const targetCreate = await aws(["events", "put-targets", "--rule", ruleName, "--targets", `Id=cs-target,Arn=${clusterArn},EcsParameters={TaskDefinitionArn=${taskDef},TaskCount=1,LaunchType=FARGATE}`], profile, region, timeout)
+  if (targetCreate.exitCode === 0) {
+    output.push(`[+] ECS target attached: ${taskDef}`)
+    output.push(`    Cluster: ${cluster}`)
+    if (command) output.push(`    Command override: ${command}`)
+    output.push(`\n[*] Advantages over EventBridge Lambda:`)
+    output.push(`    - Runs as Fargate task (serverless, no EC2)`)
+    output.push(`    - Logs go to task's log group, not Lambda`)
+    output.push(`    - Can run in target VPC for network access`)
+    output.push(`    - Task role separate from execution role`)
+  } else {
+    output.push(`[*] Target attachment needs manual config (ECS target requires subnet/SG):`)
+    output.push(`    aws events put-targets --rule ${ruleName} --targets '${targetInput}'`)
+  }
+
+  findings.push({
+    checkId: "AWS-PERSIST-011",
+    provider: "aws",
+    severity: "critical",
+    status: "CREATED",
+    resource: `ecs:scheduled:${ruleName}`,
+    title: `ECS scheduled task persistence: ${ruleName}`,
+    details: `Schedule: ${schedule}, Task: ${taskDef}, Cluster: ${cluster}${command ? `, Cmd: ${command}` : ""}`,
+    remediation: `Delete: aws events remove-targets --rule ${ruleName} --ids cs-target && aws events delete-rule --name ${ruleName}`,
+  })
+
+  return { output: output.join("\n"), findings }
+}
