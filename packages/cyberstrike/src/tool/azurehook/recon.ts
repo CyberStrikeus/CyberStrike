@@ -1774,7 +1774,19 @@ export async function appRegistrationEnum(_args: string[], timeout: number): Pro
   const findings: Finding[] = []
   const output: string[] = ["[*] Enumerating Azure AD App Registrations...\n"]
 
-  const apps = await run("az", ["ad", "app", "list", "--query", "[].{displayName:displayName,appId:appId,passwordCredentials:passwordCredentials,keyCredentials:keyCredentials,requiredResourceAccess:requiredResourceAccess}", "-o", "json"], timeout)
+  const apps = await run(
+    "az",
+    [
+      "ad",
+      "app",
+      "list",
+      "--query",
+      "[].{displayName:displayName,appId:appId,passwordCredentials:passwordCredentials,keyCredentials:keyCredentials,requiredResourceAccess:requiredResourceAccess}",
+      "-o",
+      "json",
+    ],
+    timeout,
+  )
   if (apps.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list app registrations", findings }
 
   const items = tryJson(apps.stdout) || []
