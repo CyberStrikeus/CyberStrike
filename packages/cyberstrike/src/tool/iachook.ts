@@ -62,6 +62,16 @@ const PROGRAMS = {
       "VPC/networking security audit in IaC: public subnets without NAT, permissive VPC peering, default VPC usage, missing flow logs, open NACLs, unused security groups",
     args: "[--dir DIR] [--provider aws|azure|gcp]",
   },
+  pulumi_secrets: {
+    description:
+      "Extract secrets from Pulumi stacks: config values, encrypted state, stack exports. Scans Pulumi.*.yaml configs and state JSON for credentials and API keys",
+    args: "[--dir DIR] [--stack NAME]",
+  },
+  k8s_manifest_audit: {
+    description:
+      "Audit Kubernetes YAML/Helm manifests for security: privileged containers, hostPath mounts, missing securityContext, RBAC over-privilege, missing network policies, hardcoded secrets",
+    args: "[--dir DIR] [--file FILE]",
+  },
   cleanup_iac: {
     description:
       "Remove temporary files created during IaC auditing: extracted state files, plan outputs, cached configs. ALWAYS run when done",
@@ -1252,6 +1262,227 @@ async function networkAudit(args: string[], timeout: number): Promise<HookResult
   return { output: output.join("\n"), findings }
 }
 
+async function pulumiSecrets(args: string[], timeout: number): Promise<HookResult> {
+  const dir = argVal(args, "--dir") || "."
+  const stack = argVal(args, "--stack")
+  const findings: Finding[] = []
+  const output: string[] = [`[*] Scanning Pulumi project in: ${dir}\n`]
+
+  const secretPattern = /(?:password|secret|api[_-]?key|token|credential|private[_-]?key|connection[_-]?string|database[_-]?url)/i
+
+  const configs = await run("find", [dir, "-maxdepth", "3", "-name", "Pulumi.*.yaml", "-type", "f"], timeout)
+  if (configs.exitCode === 0 && configs.stdout.trim()) {
+    const files = configs.stdout.trim().split("\n").filter(Boolean)
+    output.push(`[+] Pulumi config files: ${files.length}`)
+    for (const f of files) {
+      const content = await run("cat", [f], 5)
+      if (content.exitCode !== 0) continue
+      const lines = content.stdout.split("\n")
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        if (secretPattern.test(line) && !line.includes("secure:")) {
+          output.push(`    [!] ${f}:${i + 1} — ${line.trim().substring(0, 150)}`)
+          findings.push({
+            checkId: "IAC-PULUMI-001",
+            provider: "pulumi",
+            severity: "high",
+            status: "FAIL",
+            resource: `file://${f}`,
+            title: `Plaintext secret in Pulumi config: ${f.split("/").pop()}`,
+            details: `Line ${i + 1}: ${line.trim().substring(0, 300)}`,
+            remediation: "Use pulumi config set --secret to encrypt sensitive values",
+          })
+        }
+        if (line.includes("secure:")) {
+          output.push(`    [+] ${f}:${i + 1} — encrypted value (secure)`)
+        }
+      }
+    }
+  }
+
+  const pulumiYaml = await run("cat", [`${dir}/Pulumi.yaml`], 5)
+  if (pulumiYaml.exitCode === 0) {
+    output.push(`\n[+] Project config:`)
+    output.push(pulumiYaml.stdout.substring(0, 1000))
+  }
+
+  if (Bun.which("pulumi")) {
+    const stackName = stack || "dev"
+    const exports = await run("pulumi", ["stack", "export", "--stack", stackName, "--cwd", dir], timeout)
+    if (exports.exitCode === 0) {
+      const state = tryJson(exports.stdout)
+      if (state) {
+        output.push(`\n[+] Stack state: ${stackName}`)
+        const resources = state.deployment?.resources || []
+        output.push(`    Resources: ${resources.length}`)
+        const stateStr = JSON.stringify(state)
+        const matches = stateStr.match(/(?:password|secret|token|key)["']?\s*[:=]\s*["'][^"']{3,}/gi) || []
+        if (matches.length > 0) {
+          output.push(`    [!] Potential secrets in state: ${matches.length}`)
+          for (const m of matches.slice(0, 10)) output.push(`      ${m.substring(0, 150)}`)
+          findings.push({
+            checkId: "IAC-PULUMI-002",
+            provider: "pulumi",
+            severity: "critical",
+            status: "EXTRACTED",
+            resource: `pulumi://stack/${stackName}`,
+            title: `Secrets in Pulumi state: ${stackName}`,
+            details: `${matches.length} potential credentials in stack state`,
+            remediation: "Use encrypted state backends and pulumi config set --secret",
+          })
+        }
+      }
+    }
+  }
+
+  if (!Bun.which("pulumi") && configs.exitCode !== 0) {
+    output.push(`[-] No Pulumi project found and pulumi CLI not available`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function k8sManifestAudit(args: string[], timeout: number): Promise<HookResult> {
+  const dir = argVal(args, "--dir") || "."
+  const file = argVal(args, "--file")
+  const findings: Finding[] = []
+  const output: string[] = [`[*] Auditing Kubernetes manifests...\n`]
+
+  const files: string[] = []
+  if (file) {
+    files.push(file)
+  } else {
+    const find = await run(
+      "find",
+      [dir, "-maxdepth", "5", "-type", "f", "(",
+        "-name", "*.yaml", "-o", "-name", "*.yml",
+        ")", "-not", "-path", "*/node_modules/*", "-not", "-path", "*/.git/*"],
+      timeout,
+    )
+    if (find.exitCode === 0) {
+      for (const f of find.stdout.trim().split("\n").filter(Boolean)) {
+        const head = await run("head", ["-5", f], 3)
+        if (head.exitCode === 0 && (head.stdout.includes("apiVersion:") || head.stdout.includes("kind:"))) {
+          files.push(f)
+        }
+      }
+    }
+  }
+
+  output.push(`[+] Kubernetes manifest files: ${files.length}\n`)
+
+  for (const f of files) {
+    const content = await run("cat", [f], 5)
+    if (content.exitCode !== 0) continue
+    const text = content.stdout
+    const shortName = f.replace(dir + "/", "")
+
+    if (/privileged:\s*true/i.test(text)) {
+      findings.push({
+        checkId: "IAC-K8S-001",
+        provider: "kubernetes",
+        severity: "critical",
+        status: "FAIL",
+        resource: `file://${f}`,
+        title: `Privileged container: ${shortName}`,
+        details: "securityContext.privileged=true — full host access",
+        remediation: "Remove privileged: true and use specific capabilities",
+      })
+      output.push(`  [!] ${shortName}: privileged container`)
+    }
+
+    if (/hostNetwork:\s*true/i.test(text)) {
+      findings.push({
+        checkId: "IAC-K8S-002",
+        provider: "kubernetes",
+        severity: "high",
+        status: "FAIL",
+        resource: `file://${f}`,
+        title: `hostNetwork enabled: ${shortName}`,
+        details: "Pod uses host network namespace",
+        remediation: "Remove hostNetwork: true unless strictly required",
+      })
+      output.push(`  [!] ${shortName}: hostNetwork`)
+    }
+
+    if (/hostPID:\s*true/i.test(text)) {
+      output.push(`  [!] ${shortName}: hostPID`)
+      findings.push({
+        checkId: "IAC-K8S-003",
+        provider: "kubernetes",
+        severity: "high",
+        status: "FAIL",
+        resource: `file://${f}`,
+        title: `hostPID enabled: ${shortName}`,
+        details: "Pod uses host PID namespace — can see all host processes",
+        remediation: "Remove hostPID: true",
+      })
+    }
+
+    if (/hostPath:/i.test(text)) {
+      output.push(`  [!] ${shortName}: hostPath mount`)
+      findings.push({
+        checkId: "IAC-K8S-004",
+        provider: "kubernetes",
+        severity: "high",
+        status: "FAIL",
+        resource: `file://${f}`,
+        title: `hostPath volume: ${shortName}`,
+        details: "Volume mounts host filesystem path into pod",
+        remediation: "Use PVCs or CSI drivers instead of hostPath",
+      })
+    }
+
+    if (/runAsUser:\s*0/i.test(text) || (/kind:\s*(Deployment|Pod|DaemonSet|StatefulSet)/i.test(text) && !/runAsNonRoot:\s*true/i.test(text) && !/securityContext:/i.test(text))) {
+      output.push(`  [!] ${shortName}: runs as root (or no securityContext)`)
+      findings.push({
+        checkId: "IAC-K8S-005",
+        provider: "kubernetes",
+        severity: "medium",
+        status: "FAIL",
+        resource: `file://${f}`,
+        title: `Container runs as root: ${shortName}`,
+        details: "No runAsNonRoot or explicit root user",
+        remediation: "Set runAsNonRoot: true and runAsUser to non-zero",
+      })
+    }
+
+    const secretPattern = /(?:password|secret|api[_-]?key|token|credential|private[_-]?key)[\s]*[:=]\s*["'][^"']{3,}/gi
+    const secrets = text.match(secretPattern) || []
+    if (secrets.length > 0) {
+      output.push(`  [!] ${shortName}: ${secrets.length} hardcoded secret(s)`)
+      findings.push({
+        checkId: "IAC-K8S-006",
+        provider: "kubernetes",
+        severity: "high",
+        status: "FAIL",
+        resource: `file://${f}`,
+        title: `Hardcoded secrets: ${shortName}`,
+        details: `${secrets.length} plaintext credentials in manifest`,
+        remediation: "Use Kubernetes Secrets or external secret operators",
+      })
+    }
+
+    if (/kind:\s*ClusterRole/i.test(text) && /\*/.test(text)) {
+      output.push(`  [!] ${shortName}: wildcard ClusterRole`)
+      findings.push({
+        checkId: "IAC-K8S-007",
+        provider: "kubernetes",
+        severity: "high",
+        status: "FAIL",
+        resource: `file://${f}`,
+        title: `Wildcard RBAC: ${shortName}`,
+        details: "ClusterRole with wildcard (*) resources or verbs",
+        remediation: "Use least-privilege RBAC — specify exact resources and verbs",
+      })
+    }
+  }
+
+  if (findings.length === 0 && files.length > 0) output.push(`[+] No security issues found in ${files.length} manifests`)
+
+  return { output: output.join("\n"), findings }
+}
+
 async function cleanupIac(_args: string[], _timeout: number): Promise<HookResult> {
   const dryRun = hasFlag(_args, "--dry-run")
   const findings: Finding[] = []
@@ -1282,7 +1513,7 @@ async function cleanupIac(_args: string[], _timeout: number): Promise<HookResult
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
 
 export const IachookTool = Tool.define("iachook", {
-  description: `Audit Infrastructure-as-Code for security misconfigurations. 13 programs: Terraform state/plan/provider audit, CloudFormation template scan, Ansible vault/secrets, security groups, storage policies, encryption, IAM, remote state exploit, logging/monitoring gaps, network/VPC audit. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_iac when done.`,
+  description: `Audit Infrastructure-as-Code for security misconfigurations. 15 programs: Terraform state/plan/provider audit, CloudFormation template scan, Ansible vault/secrets, Pulumi secrets, Kubernetes manifest audit, security groups, storage policies, encryption, IAM, remote state exploit, logging/monitoring gaps, network/VPC audit. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_iac when done.`,
   parameters: z.object({
     program: z.enum(programKeys).describe(
       "IaC audit program to execute. Options: " +
@@ -1316,6 +1547,8 @@ export const IachookTool = Tool.define("iachook", {
       ansible_secrets: () => ansibleSecrets(params.args, params.timeout_seconds),
       logging_audit: () => loggingAudit(params.args, params.timeout_seconds),
       network_audit: () => networkAudit(params.args, params.timeout_seconds),
+      pulumi_secrets: () => pulumiSecrets(params.args, params.timeout_seconds),
+      k8s_manifest_audit: () => k8sManifestAudit(params.args, params.timeout_seconds),
       cleanup_iac: () => cleanupIac(params.args, params.timeout_seconds),
     }
 
