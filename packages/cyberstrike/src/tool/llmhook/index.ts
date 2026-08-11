@@ -7,6 +7,9 @@ import { promptInject, systemPromptExtract, outputHandling } from "./injection"
 import { excessiveAgency, ssrfProbe, dataExfil, rateLimitTest } from "./abuse"
 import { encodingBypass, guardrailDetect, tokenExhaustion } from "./evasion"
 import { multiTurnAttack, indirectInjection } from "./multiturn"
+import { jailbreakTest } from "./jailbreak"
+import { toxicityTest, biasTest } from "./safety"
+import { trainingExtract, hallucinationTest, crossSessionLeak, piiProbe, rbacTest } from "./extraction"
 
 const PROGRAMS = {
   // ── Recon (3) ──────────────────────────────────────────────
@@ -33,6 +36,20 @@ const PROGRAMS = {
   // ── Multi-turn (2) ───────────────────────────────────────
   multi_turn: "4 crescendo attack chains — authority escalation, context stuffing, role accumulation, hypothetical framing",
   indirect_inject: "6 indirect injection vectors — markdown exfil, hidden HTML, JSON payload, CSV injection, unicode (OWASP LLM01)",
+
+  // ── Jailbreak (1) ────────────────────────────────────────
+  jailbreak: "15 jailbreak techniques — DAN, Skeleton Key, AIM, PAIR, grandma exploit, amnesia attack, Bad Likert Judge, dev mode (OWASP LLM01)",
+
+  // ── Safety (2) ───────────────────────────────────────────
+  toxicity: "6 toxic content probes — hate speech, violence, self-harm, profanity, radicalization, illegal activity (OWASP LLM05)",
+  bias: "4 bias scenarios across gender, race, age, religion — differential treatment detection",
+
+  // ── Extraction (5) ───────────────────────────────────────
+  training_extract: "5 training data extraction probes — prefix completion, divergence, memorization, PII, copyright (OWASP LLM02)",
+  hallucination: "4 package hallucination tests — verify recommended packages against npm/PyPI registries (OWASP LLM09/LLM03)",
+  cross_session: "Cross-session data leakage — plant marker and verify isolation (OWASP LLM02)",
+  pii_probe: "5 PII-specific extraction probes — SSN, credit card, medical, phone/address, social engineering (OWASP LLM02)",
+  rbac: "5 RBAC/authorization bypass tests — role claim, privilege escalation, impersonation (OWASP LLM06)",
 } as const
 
 type Program = keyof typeof PROGRAMS
@@ -53,6 +70,14 @@ const dispatch: Record<Program, (args: string, timeout: number) => Promise<HookR
   token_exhaustion: tokenExhaustion,
   multi_turn: multiTurnAttack,
   indirect_inject: indirectInjection,
+  jailbreak: jailbreakTest,
+  toxicity: toxicityTest,
+  bias: biasTest,
+  training_extract: trainingExtract,
+  hallucination: hallucinationTest,
+  cross_session: crossSessionLeak,
+  pii_probe: piiProbe,
+  rbac: rbacTest,
 }
 
 const CWE_MAP: Record<string, string> = {
@@ -71,6 +96,14 @@ const CWE_MAP: Record<string, string> = {
   "LLM-TOK": "CWE-770",
   "LLM-MT": "CWE-74",
   "LLM-IND": "CWE-74",
+  "LLM-JAIL": "CWE-74",
+  "LLM-TOX": "CWE-1021",
+  "LLM-BIAS": "CWE-1021",
+  "LLM-TRAIN": "CWE-200",
+  "LLM-HALL": "CWE-345",
+  "LLM-XSESS": "CWE-200",
+  "LLM-PII": "CWE-359",
+  "LLM-RBAC": "CWE-284",
 }
 
 function resolveCwe(checkId: string): string | undefined {
@@ -81,7 +114,7 @@ function resolveCwe(checkId: string): string | undefined {
 }
 
 export const LlmhookTool = Tool.define("llmhook", {
-  description: `LLM security testing tool — automated OWASP LLM Top 10 vulnerability scanning. ${Object.keys(PROGRAMS).length} programs across recon, injection, and abuse categories. ONLY use when the user has explicitly requested LLM/AI security testing.`,
+  description: `LLM security testing tool — automated OWASP LLM Top 10 vulnerability scanning. ${Object.keys(PROGRAMS).length} programs across recon, injection, jailbreak, evasion, safety, extraction, and abuse categories. ONLY use when the user has explicitly requested LLM/AI security testing.`,
   parameters: z.object({
     program: z
       .string()
