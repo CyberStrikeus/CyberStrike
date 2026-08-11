@@ -1188,7 +1188,9 @@ async function k8sAdmission(args: string[], timeout: number): Promise<HookResult
       output.push(`    ${w.metadata.name}`)
       for (const wh of w.webhooks || []) {
         const fail = wh.failurePolicy || "Fail"
-        const rules = (wh.rules || []).map((r: Record<string, string[]>) => `${(r.operations || []).join(",")} → ${(r.resources || []).join(",")}`).join("; ")
+        const rules = (wh.rules || [])
+          .map((r: Record<string, string[]>) => `${(r.operations || []).join(",")} → ${(r.resources || []).join(",")}`)
+          .join("; ")
         output.push(`      ${wh.name} [${fail}] ${rules}`)
         if (fail === "Ignore") {
           findings.push({
@@ -1453,7 +1455,11 @@ async function k8sIngressAudit(args: string[], timeout: number): Promise<HookRes
       }
     }
 
-    const dangerous = ["nginx.ingress.kubernetes.io/server-snippet", "nginx.ingress.kubernetes.io/configuration-snippet", "nginx.ingress.kubernetes.io/auth-url"]
+    const dangerous = [
+      "nginx.ingress.kubernetes.io/server-snippet",
+      "nginx.ingress.kubernetes.io/configuration-snippet",
+      "nginx.ingress.kubernetes.io/auth-url",
+    ]
     for (const key of dangerous) {
       if (annotations[key]) {
         output.push(`    [!] Annotation: ${key}`)
@@ -1554,13 +1560,19 @@ async function k8sEvents(args: string[], timeout: number): Promise<HookResult> {
   output.push(`[+] Events: ${items.length}\n`)
 
   const warnings = items.filter((e: Record<string, string>) => e.type === "Warning")
-  const errors = items.filter((e: Record<string, string>) => e.reason === "Failed" || e.reason === "FailedScheduling" || e.reason === "BackOff")
-  const security = items.filter((e: Record<string, string>) => /forbidden|unauthorized|denied|auth/i.test(e.message || ""))
+  const errors = items.filter(
+    (e: Record<string, string>) => e.reason === "Failed" || e.reason === "FailedScheduling" || e.reason === "BackOff",
+  )
+  const security = items.filter((e: Record<string, string>) =>
+    /forbidden|unauthorized|denied|auth/i.test(e.message || ""),
+  )
 
   if (security.length > 0) {
     output.push(`[!] Security-related events: ${security.length}`)
     for (const e of security.slice(0, 20)) {
-      output.push(`    [${e.lastTimestamp || "?"}] ${e.involvedObject?.name || "?"}: ${(e.message || "").substring(0, 150)}`)
+      output.push(
+        `    [${e.lastTimestamp || "?"}] ${e.involvedObject?.name || "?"}: ${(e.message || "").substring(0, 150)}`,
+      )
     }
     findings.push({
       checkId: "K8S-EVT-001",
@@ -1577,7 +1589,9 @@ async function k8sEvents(args: string[], timeout: number): Promise<HookResult> {
   if (warnings.length > 0) {
     output.push(`\n[+] Warning events: ${warnings.length}`)
     for (const e of warnings.slice(0, 20)) {
-      output.push(`    [${e.lastTimestamp || "?"}] ${e.reason}: ${e.involvedObject?.name || "?"} — ${(e.message || "").substring(0, 150)}`)
+      output.push(
+        `    [${e.lastTimestamp || "?"}] ${e.reason}: ${e.involvedObject?.name || "?"} — ${(e.message || "").substring(0, 150)}`,
+      )
     }
   }
 
@@ -1588,7 +1602,9 @@ async function k8sEvents(args: string[], timeout: number): Promise<HookResult> {
     }
   }
 
-  const imagePulls = items.filter((e: Record<string, string>) => e.reason === "Failed" && /pull|image/i.test(e.message || ""))
+  const imagePulls = items.filter(
+    (e: Record<string, string>) => e.reason === "Failed" && /pull|image/i.test(e.message || ""),
+  )
   if (imagePulls.length > 0) {
     output.push(`\n[+] Image pull failures: ${imagePulls.length}`)
     for (const e of imagePulls.slice(0, 10)) {

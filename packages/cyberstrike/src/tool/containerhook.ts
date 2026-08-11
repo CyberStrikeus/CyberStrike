@@ -1246,7 +1246,8 @@ async function containerCreds(args: string[], timeout: number): Promise<HookResu
 
   output.push(`[+] Scanning ${targets.length} container(s)\n`)
 
-  const secretPattern = /(?:password|secret|api[_-]?key|token|credential|aws[_-]?access|private[_-]?key|database[_-]?url)/i
+  const secretPattern =
+    /(?:password|secret|api[_-]?key|token|credential|aws[_-]?access|private[_-]?key|database[_-]?url)/i
   const credPaths = [
     "/var/run/secrets/kubernetes.io/serviceaccount/token",
     "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
@@ -1544,8 +1545,18 @@ async function volumeDump(args: string[], timeout: number): Promise<HookResult> 
 
     const search = await run(
       "docker",
-      ["run", "--rm", "-v", `${volume}:/data:ro`, "--label", "cyberstrike=true", "alpine", "sh", "-c",
-        `find /data -type f -size -10M 2>/dev/null | head -100 | while read f; do grep -il '${secretPattern}' "$f" 2>/dev/null; done`],
+      [
+        "run",
+        "--rm",
+        "-v",
+        `${volume}:/data:ro`,
+        "--label",
+        "cyberstrike=true",
+        "alpine",
+        "sh",
+        "-c",
+        `find /data -type f -size -10M 2>/dev/null | head -100 | while read f; do grep -il '${secretPattern}' "$f" 2>/dev/null; done`,
+      ],
       timeout,
     )
     if (search.exitCode === 0 && search.stdout.trim()) {
@@ -1566,7 +1577,21 @@ async function volumeDump(args: string[], timeout: number): Promise<HookResult> 
 
     const listing = await run(
       "docker",
-      ["run", "--rm", "-v", `${volume}:/data:ro`, "--label", "cyberstrike=true", "alpine", "find", "/data", "-type", "f", "-maxdepth", "3"],
+      [
+        "run",
+        "--rm",
+        "-v",
+        `${volume}:/data:ro`,
+        "--label",
+        "cyberstrike=true",
+        "alpine",
+        "find",
+        "/data",
+        "-type",
+        "f",
+        "-maxdepth",
+        "3",
+      ],
       timeout,
     )
     if (listing.exitCode === 0) {
@@ -1594,8 +1619,18 @@ async function volumeDump(args: string[], timeout: number): Promise<HookResult> 
 
     const search = await run(
       "docker",
-      ["run", "--rm", "-v", `${v.Name}:/data:ro`, "--label", "cyberstrike=true", "alpine", "sh", "-c",
-        `find /data -type f -size -10M 2>/dev/null | head -20 | while read f; do grep -il '${secretPattern}' "$f" 2>/dev/null; done`],
+      [
+        "run",
+        "--rm",
+        "-v",
+        `${v.Name}:/data:ro`,
+        "--label",
+        "cyberstrike=true",
+        "alpine",
+        "sh",
+        "-c",
+        `find /data -type f -size -10M 2>/dev/null | head -20 | while read f; do grep -il '${secretPattern}' "$f" 2>/dev/null; done`,
+      ],
       30,
     )
     if (search.exitCode === 0 && search.stdout.trim()) {
@@ -1850,7 +1885,18 @@ export const ContainerhookTool = Tool.define("containerhook", {
     timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
-    if (!Bun.which("docker") && !["compose_secrets", "docker_api_exploit", "podman_enum", "cgroup_escape", "container_pivot", "namespace_exploit", "containerd_exploit"].includes(params.program)) {
+    if (
+      !Bun.which("docker") &&
+      ![
+        "compose_secrets",
+        "docker_api_exploit",
+        "podman_enum",
+        "cgroup_escape",
+        "container_pivot",
+        "namespace_exploit",
+        "containerd_exploit",
+      ].includes(params.program)
+    ) {
       return {
         title: `containerhook: ${params.program}`,
         output: "docker not found. Install: https://docs.docker.com/engine/install/",
