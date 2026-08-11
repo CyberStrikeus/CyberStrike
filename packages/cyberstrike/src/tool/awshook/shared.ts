@@ -40,6 +40,7 @@ export function aws(args: string[], profile: string | undefined, region: string 
     ...(region ? ["--region", region] : []),
     "--output",
     "json",
+    "--no-cli-pager",
   ]
   return run("aws", [...args, ...extra], timeout)
 }
