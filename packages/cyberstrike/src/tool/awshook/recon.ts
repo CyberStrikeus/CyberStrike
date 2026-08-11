@@ -1720,3 +1720,212 @@ export async function cloudwatchEnum(args: string[], timeout: number): Promise<H
 
   return { output: output.join("\n"), findings }
 }
+
+export async function elasticacheEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] ElastiCache Enumeration (Redis/Memcached)\n"]
+
+  const clusters = await aws(["elasticache", "describe-cache-clusters", "--show-cache-node-info", "--query", "CacheClusters[].[CacheClusterId,Engine,EngineVersion,CacheNodeType,NumCacheNodes,CacheClusterStatus,TransitEncryptionEnabled,AtRestEncryptionEnabled,AuthTokenEnabled,ConfigurationEndpoint.Address,CacheNodes[0].Endpoint.Address,CacheNodes[0].Endpoint.Port]"], profile, region, timeout)
+  if (clusters.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: elasticache:DescribeCacheClusters", findings }
+
+  const cl = tryJson(clusters.stdout) || []
+  output.push(`[+] Cache clusters: ${cl.length}`)
+
+  for (const c of cl) {
+    output.push(`\n  Cluster: ${c[0]}  Engine: ${c[1]} ${c[2]}  Type: ${c[3]}  Nodes: ${c[4]}  Status: ${c[5]}`)
+    output.push(`    Endpoint: ${c[10] || c[9] || "N/A"}:${c[11] || "N/A"}`)
+    output.push(`    Transit encryption: ${c[6] || false}  At-rest encryption: ${c[7] || false}  Auth: ${c[8] || false}`)
+
+    if (!c[8]) {
+      output.push(`    [!] No AUTH — anyone with network access can read/write data`)
+      findings.push({
+        checkId: "AWS-ELASTICACHE-001",
+        provider: "aws",
+        severity: "critical",
+        status: "NO_AUTH",
+        resource: `elasticache:${c[0]}`,
+        title: `ElastiCache cluster without AUTH: ${c[0]} (${c[1]})`,
+        details: `${c[1]} ${c[2]} on ${c[3]} — no authentication required. Network access = full data access`,
+        remediation: "Enable AUTH token (Redis) or use IAM authentication",
+      })
+    }
+
+    if (!c[6]) {
+      findings.push({
+        checkId: "AWS-ELASTICACHE-002",
+        provider: "aws",
+        severity: "high",
+        status: "UNENCRYPTED",
+        resource: `elasticache:${c[0]}`,
+        title: `ElastiCache without transit encryption: ${c[0]}`,
+        details: "Data transmitted in plaintext — credentials/session tokens readable via network sniffing",
+        remediation: "Enable in-transit encryption (TLS)",
+      })
+    }
+
+    if (!c[7]) {
+      findings.push({
+        checkId: "AWS-ELASTICACHE-003",
+        provider: "aws",
+        severity: "medium",
+        status: "UNENCRYPTED",
+        resource: `elasticache:${c[0]}`,
+        title: `ElastiCache without at-rest encryption: ${c[0]}`,
+        details: "Snapshot and backup data stored unencrypted",
+        remediation: "Enable at-rest encryption",
+      })
+    }
+  }
+
+  const repl = await aws(["elasticache", "describe-replication-groups", "--query", "ReplicationGroups[].[ReplicationGroupId,Description,Status,MemberClusters,NodeGroups[0].PrimaryEndpoint.Address,NodeGroups[0].PrimaryEndpoint.Port,TransitEncryptionEnabled,AtRestEncryptionEnabled,AuthTokenEnabled,AutomaticFailover]"], profile, region, timeout)
+  if (repl.exitCode === 0) {
+    const rl = tryJson(repl.stdout) || []
+    if (rl.length) {
+      output.push(`\n[+] Replication groups: ${rl.length}`)
+      for (const r of rl) {
+        output.push(`  ${r[0]}  Status: ${r[2]}  Endpoint: ${r[4] || "N/A"}:${r[5] || "N/A"}  Failover: ${r[9]}`)
+        output.push(`    Members: ${(r[3] || []).join(", ")}  Auth: ${r[8] || false}`)
+      }
+    }
+  }
+
+  const sgroupsList = await aws(["elasticache", "describe-cache-subnet-groups", "--query", "CacheSubnetGroups[].[CacheSubnetGroupName,VpcId,Subnets[].SubnetIdentifier]"], profile, region, timeout)
+  if (sgroupsList.exitCode === 0) {
+    const sgl = tryJson(sgroupsList.stdout) || []
+    if (sgl.length) {
+      output.push(`\n[+] Subnet groups: ${sgl.length}`)
+      for (const sg of sgl) output.push(`  ${sg[0]}  VPC: ${sg[1]}  Subnets: ${(sg[2] || []).join(", ")}`)
+    }
+  }
+
+  const snapshots = await aws(["elasticache", "describe-snapshots", "--query", "Snapshots[].[SnapshotName,CacheClusterId,SnapshotStatus,Engine]"], profile, region, timeout)
+  if (snapshots.exitCode === 0) {
+    const snl = tryJson(snapshots.stdout) || []
+    if (snl.length) {
+      output.push(`\n[+] Snapshots: ${snl.length}`)
+      for (const sn of snl) output.push(`  ${sn[0]}  Cluster: ${sn[1]}  Status: ${sn[2]}  Engine: ${sn[3]}`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function redshiftEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Redshift Data Warehouse Enumeration\n"]
+
+  const clusters = await aws(["redshift", "describe-clusters", "--query", "Clusters[].[ClusterIdentifier,NodeType,NumberOfNodes,ClusterStatus,DBName,MasterUsername,Endpoint.Address,Endpoint.Port,PubliclyAccessible,Encrypted,EnhancedVpcRouting,ClusterSubnetGroupName,VpcId]"], profile, region, timeout)
+  if (clusters.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: redshift:DescribeClusters", findings }
+
+  const cl = tryJson(clusters.stdout) || []
+  output.push(`[+] Redshift clusters: ${cl.length}`)
+
+  for (const c of cl) {
+    output.push(`\n  Cluster: ${c[0]}  Type: ${c[1]}  Nodes: ${c[2]}  Status: ${c[3]}`)
+    output.push(`    DB: ${c[4]}  User: ${c[5]}  Endpoint: ${c[6]}:${c[7]}`)
+    output.push(`    Public: ${c[8]}  Encrypted: ${c[9]}  Enhanced VPC: ${c[10]}  VPC: ${c[12]}`)
+
+    if (c[8]) {
+      output.push(`    [!] Publicly accessible — connect from internet`)
+      findings.push({
+        checkId: "AWS-REDSHIFT-001",
+        provider: "aws",
+        severity: "critical",
+        status: "PUBLIC",
+        resource: `redshift:${c[0]}`,
+        title: `Publicly accessible Redshift cluster: ${c[0]}`,
+        details: `Endpoint: ${c[6]}:${c[7]}, DB: ${c[4]}, Master user: ${c[5]}`,
+        remediation: "Disable public accessibility and restrict via security groups",
+      })
+    }
+
+    if (!c[9]) {
+      findings.push({
+        checkId: "AWS-REDSHIFT-002",
+        provider: "aws",
+        severity: "high",
+        status: "UNENCRYPTED",
+        resource: `redshift:${c[0]}`,
+        title: `Unencrypted Redshift cluster: ${c[0]}`,
+        details: "Data warehouse stored without encryption — full data exposure if storage compromised",
+        remediation: "Enable encryption (requires cluster recreation or snapshot restore)",
+      })
+    }
+
+    const logging = await aws(["redshift", "describe-logging-status", "--cluster-identifier", c[0]], profile, region, timeout)
+    if (logging.exitCode === 0) {
+      const l = tryJson(logging.stdout)
+      if (l && !l.LoggingEnabled) {
+        output.push(`    [!] Audit logging disabled`)
+        findings.push({
+          checkId: "AWS-REDSHIFT-003",
+          provider: "aws",
+          severity: "medium",
+          status: "DISABLED",
+          resource: `redshift:${c[0]}`,
+          title: `Redshift audit logging disabled: ${c[0]}`,
+          details: "Query activity not logged — SQL injection and data exfil untracked",
+          remediation: "Enable audit logging to S3",
+        })
+      }
+    }
+
+    const users = await aws(["redshift", "describe-cluster-db-revisions", "--cluster-identifier", c[0]], profile, region, timeout)
+    if (users.exitCode === 0) {
+      output.push(`    [+] Database revisions accessible`)
+    }
+  }
+
+  const snapshots = await aws(["redshift", "describe-cluster-snapshots", "--query", "Snapshots[].[SnapshotIdentifier,ClusterIdentifier,Status,SnapshotType,Encrypted,AccountsWithRestoreAccess]"], profile, region, timeout)
+  if (snapshots.exitCode === 0) {
+    const sl = tryJson(snapshots.stdout) || []
+    if (sl.length) {
+      output.push(`\n[+] Snapshots: ${sl.length}`)
+      for (const s of sl) {
+        output.push(`  ${s[0]}  Cluster: ${s[1]}  Type: ${s[3]}  Encrypted: ${s[4]}`)
+        if (s[5] && s[5].length) {
+          output.push(`    [!] Shared with accounts: ${s[5].map((a: Record<string, string>) => a.AccountId).join(", ")}`)
+          findings.push({
+            checkId: "AWS-REDSHIFT-004",
+            provider: "aws",
+            severity: "high",
+            status: "SHARED",
+            resource: `redshift:snapshot:${s[0]}`,
+            title: `Redshift snapshot shared cross-account: ${s[0]}`,
+            details: `Cluster ${s[1]} snapshot shared with external accounts`,
+            remediation: "Revoke cross-account snapshot sharing",
+          })
+        }
+      }
+    }
+  }
+
+  const serverless = await aws(["redshift-serverless", "list-workgroups", "--query", "workgroups[].[workgroupName,status,baseCapacity,endpoint.address,endpoint.port,publiclyAccessible]"], profile, region, timeout)
+  if (serverless.exitCode === 0) {
+    const wl = tryJson(serverless.stdout) || []
+    if (wl.length) {
+      output.push(`\n[+] Redshift Serverless workgroups: ${wl.length}`)
+      for (const w of wl) {
+        output.push(`  ${w[0]}  Status: ${w[1]}  Capacity: ${w[2]}  Endpoint: ${w[3]}:${w[4]}  Public: ${w[5]}`)
+        if (w[5]) {
+          findings.push({
+            checkId: "AWS-REDSHIFT-005",
+            provider: "aws",
+            severity: "critical",
+            status: "PUBLIC",
+            resource: `redshift-serverless:${w[0]}`,
+            title: `Publicly accessible Redshift Serverless: ${w[0]}`,
+            details: `Endpoint: ${w[3]}:${w[4]}`,
+            remediation: "Disable public accessibility",
+          })
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
