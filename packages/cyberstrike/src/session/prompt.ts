@@ -357,7 +357,11 @@ export namespace SessionPrompt {
         !["tool-calls", "unknown"].includes(lastAssistant.finish) &&
         lastUser.id < lastAssistant.id
       ) {
-        log.info("exiting loop", { sessionID })
+        if (lastAssistant.finish === "content-filter") {
+          log.warn("exiting loop — content-filter", { sessionID, finish: lastAssistant.finish })
+        } else {
+          log.info("exiting loop", { sessionID })
+        }
         break
       }
 
@@ -915,6 +919,15 @@ export namespace SessionPrompt {
       const modelFinished = processor.message.finish && !["tool-calls", "unknown"].includes(processor.message.finish)
 
       if (modelFinished && !processor.message.error) {
+        if (processor.message.finish === "content-filter") {
+          processor.message.error = new NamedError.Unknown({
+            message:
+              "The provider's content filter blocked this response. The session has been paused — send a new message to continue.",
+          }).toObject()
+          log.warn("content-filter finish reason — surfacing as error", { sessionID })
+          await Session.updateMessage(processor.message)
+          break
+        }
         if (format.type === "json_schema") {
           // Model stopped without calling StructuredOutput tool
           processor.message.error = new MessageV2.StructuredOutputError({
