@@ -235,11 +235,17 @@ async function gcsDump(args: string[], timeout: number) {
   const download = hasFlag(args, "--download")
 
   const sensitivePattern = pattern || "\\.(env|pem|key|p12|pfx|sql|bak)$|credentials|secret|password|backup|id_rsa"
+  let regex: RegExp
+  try {
+    regex = new RegExp(sensitivePattern, "i")
+  } catch {
+    return `[-] Invalid regex pattern: ${sensitivePattern}`
+  }
 
   if (bucket) {
     const r = await run("gsutil", ["ls", "-r", `gs://${bucket}`], timeout)
     if (r.exitCode !== 0) return `[-] Cannot list bucket ${bucket}: ${r.stderr.trim()}`
-    const files = r.stdout.split("\n").filter((f) => new RegExp(sensitivePattern, "i").test(f))
+    const files = r.stdout.split("\n").filter((f) => regex.test(f))
     const output = [`[*] Scanning bucket: ${bucket}`, `[+] Sensitive files found: ${files.length}`]
     for (const f of files) output.push(`    ${f}`)
     if (download && files.length > 0) {
@@ -262,7 +268,7 @@ async function gcsDump(args: string[], timeout: number) {
       output.push(`[-] ${b}: access denied`)
       continue
     }
-    const files = lr.stdout.split("\n").filter((f) => new RegExp(sensitivePattern, "i").test(f))
+    const files = lr.stdout.split("\n").filter((f) => regex.test(f))
     output.push(`[${files.length > 0 ? "!" : "+"}] ${b}: ${files.length} sensitive file(s)`)
     for (const f of files.slice(0, 5)) output.push(`    ${f}`)
   }

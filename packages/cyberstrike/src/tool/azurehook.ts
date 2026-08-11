@@ -320,6 +320,12 @@ async function storageDump(args: string[], timeout: number): Promise<HookResult>
   const pattern = argVal(args, "--pattern")
   const download = hasFlag(args, "--download")
   const sensitivePattern = pattern || "\\.(env|pem|key|p12|pfx|sql|bak)$|credentials|secret|password|backup"
+  let regex: RegExp
+  try {
+    regex = new RegExp(sensitivePattern, "i")
+  } catch {
+    return { output: `[-] Invalid regex pattern: ${sensitivePattern}`, findings: [] }
+  }
 
   if (accountName && container) {
     const r = await run(
@@ -341,7 +347,7 @@ async function storageDump(args: string[], timeout: number): Promise<HookResult>
     )
     if (r.exitCode !== 0) return { output: `[-] Cannot list blobs: ${r.stderr.trim()}`, findings: [] }
     const blobs = (tryJson(r.stdout) || []) as string[]
-    const sensitive = blobs.filter((b) => new RegExp(sensitivePattern, "i").test(b))
+    const sensitive = blobs.filter((b) => regex.test(b))
     const output = [
       `[*] Container: ${accountName}/${container}`,
       `[+] Total blobs: ${blobs.length}`,
@@ -462,7 +468,7 @@ async function cleanupAzure(args: string[], timeout: number): Promise<HookResult
   output.push("[*] Checking for CyberStrike automation runbooks (cs-* prefix)...")
   const accts = await az(["automation", "account", "list"], sub, timeout)
   if (accts.exitCode === 0) {
-    const accounts = JSON.parse(accts.stdout)
+    const accounts = tryJson(accts.stdout) || []
     for (const a of accounts) {
       const rbs = await az(
         ["automation", "runbook", "list", "--automation-account-name", a.name, "--resource-group", a.resourceGroup],
@@ -470,7 +476,7 @@ async function cleanupAzure(args: string[], timeout: number): Promise<HookResult
         timeout,
       )
       if (rbs.exitCode !== 0) continue
-      const runbooks = JSON.parse(rbs.stdout)
+      const runbooks = tryJson(rbs.stdout) || []
       for (const r of runbooks) {
         if (!String(r.name).startsWith("cs-")) continue
         if (dryRun) {
@@ -506,7 +512,7 @@ async function cleanupAzure(args: string[], timeout: number): Promise<HookResult
   output.push("\n[*] Checking for CyberStrike role assignments...")
   const assignments = await az(["role", "assignment", "list"], sub, timeout)
   if (assignments.exitCode === 0) {
-    const roles = JSON.parse(assignments.stdout)
+    const roles = tryJson(assignments.stdout) || []
     for (const r of roles) {
       const desc = String(r.description || "")
       if (!desc.includes("cyberstrike") && !desc.includes("cs-")) continue
@@ -527,7 +533,7 @@ async function cleanupAzure(args: string[], timeout: number): Promise<HookResult
   output.push("\n[*] Checking for CyberStrike app registrations (cs-* prefix)...")
   const apps = await az(["ad", "app", "list", "--display-name", "cs-"], sub, timeout)
   if (apps.exitCode === 0) {
-    const appList = JSON.parse(apps.stdout)
+    const appList = tryJson(apps.stdout) || []
     for (const a of appList) {
       if (!String(a.displayName).startsWith("cs-")) continue
       if (dryRun) {
@@ -559,7 +565,8 @@ async function azureadToken(args: string[], timeout: number): Promise<HookResult
     output.push(`[-] Token acquisition failed: ${tokenResult.stderr.slice(0, 300)}`)
     return { output: output.join("\n"), findings: [] }
   }
-  const token = JSON.parse(tokenResult.stdout)
+  const token = tryJson(tokenResult.stdout)
+  if (!token) return { output: output.join("\n") + "\n[-] Failed to parse token response", findings: [] }
   output.push(`[+] Token acquired for resource: ${resource}`)
   output.push(`    Token type: ${token.tokenType}`)
   output.push(`    Expires: ${token.expiresOn}`)
@@ -568,11 +575,13 @@ async function azureadToken(args: string[], timeout: number): Promise<HookResult
 
   const acctResult = await az(["account", "show"], sub, timeout)
   if (acctResult.exitCode === 0) {
-    const acct = JSON.parse(acctResult.stdout)
-    output.push(`\n[+] Current identity:`)
-    output.push(`    User: ${acct.user?.name} (${acct.user?.type})`)
-    output.push(`    Subscription: ${acct.name} (${acct.id})`)
-    output.push(`    Tenant: ${acct.tenantId}`)
+    const acct = tryJson(acctResult.stdout)
+    if (acct) {
+      output.push(`\n[+] Current identity:`)
+      output.push(`    User: ${acct.user?.name} (${acct.user?.type})`)
+      output.push(`    Subscription: ${acct.name} (${acct.id})`)
+      output.push(`    Tenant: ${acct.tenantId}`)
+    }
   }
 
   const resources = [
@@ -607,7 +616,7 @@ async function runbookBackdoor(args: string[], timeout: number): Promise<HookRes
       output.push(`[-] Failed to list automation accounts: ${accts.stderr.slice(0, 200)}`)
       return { output: output.join("\n"), findings: [] }
     }
-    const accounts = JSON.parse(accts.stdout)
+    const accounts = tryJson(accts.stdout) || []
     output.push(`[+] Found ${accounts.length} automation account(s)`)
     for (const a of accounts) {
       output.push(`    ${a.name} (${a.resourceGroup}) — state: ${a.state}`)
@@ -617,7 +626,7 @@ async function runbookBackdoor(args: string[], timeout: number): Promise<HookRes
         timeout,
       )
       if (rbs.exitCode === 0) {
-        const runbooks = JSON.parse(rbs.stdout)
+        const runbooks = tryJson(rbs.stdout) || []
         output.push(`      Runbooks: ${runbooks.length}`)
         for (const r of runbooks) output.push(`        - ${r.name} (${r.runbookType}, state: ${r.state})`)
       }
@@ -699,6 +708,7 @@ $req.GetResponse() | Out-Null
     sub,
     timeout,
   )
+  await run("rm", ["-f", tmpFile], 5)
   if (replace.exitCode !== 0) {
     output.push(`[-] Content replace failed: ${replace.stderr.slice(0, 200)}`)
     return { output: output.join("\n"), findings: [] }
