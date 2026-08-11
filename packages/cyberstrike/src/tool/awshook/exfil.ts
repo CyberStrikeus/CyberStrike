@@ -245,7 +245,14 @@ export async function dynamodbDump(args: string[], timeout: number): Promise<Hoo
 
     for (const t of tl) {
       const desc = await aws(
-        ["dynamodb", "describe-table", "--table-name", t, "--query", "Table.[TableName,ItemCount,TableSizeBytes,TableStatus,SSEDescription.Status]"],
+        [
+          "dynamodb",
+          "describe-table",
+          "--table-name",
+          t,
+          "--query",
+          "Table.[TableName,ItemCount,TableSizeBytes,TableStatus,SSEDescription.Status]",
+        ],
         profile,
         region,
         timeout,
@@ -253,7 +260,9 @@ export async function dynamodbDump(args: string[], timeout: number): Promise<Hoo
       if (desc.exitCode === 0) {
         const d = tryJson(desc.stdout)
         const sizeKb = Math.round((d?.[2] || 0) / 1024)
-        output.push(`    ${d?.[0]} — ${d?.[1]} items — ${sizeKb}KB — ${d?.[3]}${d?.[4] === "ENABLED" ? "" : " [NO SSE]"}`)
+        output.push(
+          `    ${d?.[0]} — ${d?.[1]} items — ${sizeKb}KB — ${d?.[3]}${d?.[4] === "ENABLED" ? "" : " [NO SSE]"}`,
+        )
       }
     }
     output.push("\n[*] Use --table-name TABLE to scan/dump data")
@@ -375,7 +384,9 @@ export async function ebsDirectRead(args: string[], timeout: number): Promise<Ho
     remediation: "Review ebs:ListSnapshotBlocks and ebs:GetSnapshotBlock permissions",
   })
 
-  output.push(`\n[*] To read block data: aws ebs get-snapshot-block --snapshot-id ${snapshotId} --block-index <INDEX> --block-token <TOKEN>`)
+  output.push(
+    `\n[*] To read block data: aws ebs get-snapshot-block --snapshot-id ${snapshotId} --block-index <INDEX> --block-token <TOKEN>`,
+  )
   output.push("[*] Block data can be reassembled into a raw disk image for offline analysis")
 
   return { output: output.join("\n"), findings }
@@ -455,12 +466,7 @@ export async function dataStage(args: string[], timeout: number): Promise<HookRe
     output.push(`[*] Source: ${sourcePath} (S3)`)
     output.push(`[*] Destination: s3://${destBucket}/staged/`)
 
-    const r = await aws(
-      ["s3", "sync", sourcePath, `s3://${destBucket}/staged/`, "--quiet"],
-      profile,
-      region,
-      timeout,
-    )
+    const r = await aws(["s3", "sync", sourcePath, `s3://${destBucket}/staged/`, "--quiet"], profile, region, timeout)
     if (r.exitCode === 0) {
       output.push(`[+] Data staged to s3://${destBucket}/staged/`)
     } else {
@@ -581,12 +587,7 @@ export async function cleanupAws(args: string[], timeout: number): Promise<HookR
   }
 
   const lambdas = await aws(
-    [
-      "lambda",
-      "list-functions",
-      "--query",
-      "Functions[?contains(FunctionName,'cs-')].[FunctionName]",
-    ],
+    ["lambda", "list-functions", "--query", "Functions[?contains(FunctionName,'cs-')].[FunctionName]"],
     profile,
     region,
     timeout,
@@ -605,12 +606,7 @@ export async function cleanupAws(args: string[], timeout: number): Promise<HookR
   }
 
   const users = await aws(
-    [
-      "iam",
-      "list-users",
-      "--query",
-      "Users[?contains(UserName,'cs-')].[UserName]",
-    ],
+    ["iam", "list-users", "--query", "Users[?contains(UserName,'cs-')].[UserName]"],
     profile,
     region,
     timeout,
@@ -622,12 +618,22 @@ export async function cleanupAws(args: string[], timeout: number): Promise<HookR
       if (dryRun) {
         output.push(`    Would delete: ${u[0]}`)
       } else {
-        const keys = await aws(["iam", "list-access-keys", "--user-name", u[0], "--query", "AccessKeyMetadata[].AccessKeyId"], profile, region, timeout)
+        const keys = await aws(
+          ["iam", "list-access-keys", "--user-name", u[0], "--query", "AccessKeyMetadata[].AccessKeyId"],
+          profile,
+          region,
+          timeout,
+        )
         for (const k of tryJson(keys.stdout) || []) {
           await aws(["iam", "delete-access-key", "--user-name", u[0], "--access-key-id", k], profile, region, timeout)
         }
         await aws(["iam", "delete-login-profile", "--user-name", u[0]], profile, region, timeout)
-        const policies = await aws(["iam", "list-attached-user-policies", "--user-name", u[0], "--query", "AttachedPolicies[].PolicyArn"], profile, region, timeout)
+        const policies = await aws(
+          ["iam", "list-attached-user-policies", "--user-name", u[0], "--query", "AttachedPolicies[].PolicyArn"],
+          profile,
+          region,
+          timeout,
+        )
         for (const p of tryJson(policies.stdout) || []) {
           await aws(["iam", "detach-user-policy", "--user-name", u[0], "--policy-arn", p], profile, region, timeout)
         }
@@ -638,12 +644,7 @@ export async function cleanupAws(args: string[], timeout: number): Promise<HookR
   }
 
   const roles = await aws(
-    [
-      "iam",
-      "list-roles",
-      "--query",
-      "Roles[?contains(RoleName,'cs-')].[RoleName]",
-    ],
+    ["iam", "list-roles", "--query", "Roles[?contains(RoleName,'cs-')].[RoleName]"],
     profile,
     region,
     timeout,
@@ -655,7 +656,12 @@ export async function cleanupAws(args: string[], timeout: number): Promise<HookR
       if (dryRun) {
         output.push(`    Would delete: ${r[0]}`)
       } else {
-        const policies = await aws(["iam", "list-attached-role-policies", "--role-name", r[0], "--query", "AttachedPolicies[].PolicyArn"], profile, region, timeout)
+        const policies = await aws(
+          ["iam", "list-attached-role-policies", "--role-name", r[0], "--query", "AttachedPolicies[].PolicyArn"],
+          profile,
+          region,
+          timeout,
+        )
         for (const p of tryJson(policies.stdout) || []) {
           await aws(["iam", "detach-role-policy", "--role-name", r[0], "--policy-arn", p], profile, region, timeout)
         }
@@ -693,12 +699,7 @@ export async function cleanupAws(args: string[], timeout: number): Promise<HookR
   }
 
   const events = await aws(
-    [
-      "events",
-      "list-rules",
-      "--query",
-      "Rules[?contains(Name,'cs-')].[Name]",
-    ],
+    ["events", "list-rules", "--query", "Rules[?contains(Name,'cs-')].[Name]"],
     profile,
     region,
     timeout,
@@ -710,7 +711,12 @@ export async function cleanupAws(args: string[], timeout: number): Promise<HookR
       if (dryRun) {
         output.push(`    Would delete: ${e[0]}`)
       } else {
-        const targets = await aws(["events", "list-targets-by-rule", "--rule", e[0], "--query", "Targets[].Id"], profile, region, timeout)
+        const targets = await aws(
+          ["events", "list-targets-by-rule", "--rule", e[0], "--query", "Targets[].Id"],
+          profile,
+          region,
+          timeout,
+        )
         const tl = tryJson(targets.stdout) || []
         if (tl.length > 0) {
           await aws(["events", "remove-targets", "--rule", e[0], "--ids", ...tl], profile, region, timeout)
@@ -749,8 +755,14 @@ export async function codecommitDump(args: string[], timeout: number): Promise<H
   const findings: Finding[] = []
   const output: string[] = ["[*] CodeCommit Repository Dump\n"]
 
-  const repos = await aws(["codecommit", "list-repositories", "--query", "repositories[].[repositoryName,repositoryId]"], profile, region, timeout)
-  if (repos.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: codecommit:ListRepositories", findings }
+  const repos = await aws(
+    ["codecommit", "list-repositories", "--query", "repositories[].[repositoryName,repositoryId]"],
+    profile,
+    region,
+    timeout,
+  )
+  if (repos.exitCode !== 0)
+    return { output: output.join("\n") + "\n[-] Access denied: codecommit:ListRepositories", findings }
 
   const rl = tryJson(repos.stdout) || []
   output.push(`[+] Repositories: ${rl.length}`)
@@ -761,7 +773,19 @@ export async function codecommitDump(args: string[], timeout: number): Promise<H
     const name = r[0]
     output.push(`\n  Repository: ${name}`)
 
-    const meta = await aws(["codecommit", "get-repository", "--repository-name", name, "--query", "repositoryMetadata.{defaultBranch:defaultBranch,cloneUrl:cloneUrlHttp,lastModified:lastModifiedDate,description:repositoryDescription}"], profile, region, timeout)
+    const meta = await aws(
+      [
+        "codecommit",
+        "get-repository",
+        "--repository-name",
+        name,
+        "--query",
+        "repositoryMetadata.{defaultBranch:defaultBranch,cloneUrl:cloneUrlHttp,lastModified:lastModifiedDate,description:repositoryDescription}",
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (meta.exitCode === 0) {
       const m = tryJson(meta.stdout)
       if (m) {
@@ -772,29 +796,75 @@ export async function codecommitDump(args: string[], timeout: number): Promise<H
       }
     }
 
-    const branches = await aws(["codecommit", "list-branches", "--repository-name", name, "--query", "branches"], profile, region, timeout)
+    const branches = await aws(
+      ["codecommit", "list-branches", "--repository-name", name, "--query", "branches"],
+      profile,
+      region,
+      timeout,
+    )
     if (branches.exitCode === 0) {
       const bl = tryJson(branches.stdout) || []
       output.push(`    Branches: ${bl.join(", ")}`)
     }
 
-    const targetBranch = branch || tryJson((await aws(["codecommit", "get-repository", "--repository-name", name, "--query", "repositoryMetadata.defaultBranch"], profile, region, timeout)).stdout)
+    const targetBranch =
+      branch ||
+      tryJson(
+        (
+          await aws(
+            ["codecommit", "get-repository", "--repository-name", name, "--query", "repositoryMetadata.defaultBranch"],
+            profile,
+            region,
+            timeout,
+          )
+        ).stdout,
+      )
     if (targetBranch) {
-      const folderContent = await aws(["codecommit", "get-folder", "--repository-name", name, "--folder-path", "/", "--query", "{files:files[].relativePath,subFolders:subFolders[].relativePath}"], profile, region, timeout)
+      const folderContent = await aws(
+        [
+          "codecommit",
+          "get-folder",
+          "--repository-name",
+          name,
+          "--folder-path",
+          "/",
+          "--query",
+          "{files:files[].relativePath,subFolders:subFolders[].relativePath}",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (folderContent.exitCode === 0) {
         const fc = tryJson(folderContent.stdout)
         if (fc) {
           output.push(`    Root files: ${(fc.files || []).join(", ")}`)
           output.push(`    Directories: ${(fc.subFolders || []).join(", ")}`)
 
-          const secretFiles = [".env", ".env.production", "config.json", "secrets.json", "credentials", ".aws/credentials", "docker-compose.yml", "terraform.tfvars", "*.pem", "*.key"]
+          const secretFiles = [
+            ".env",
+            ".env.production",
+            "config.json",
+            "secrets.json",
+            "credentials",
+            ".aws/credentials",
+            "docker-compose.yml",
+            "terraform.tfvars",
+            "*.pem",
+            "*.key",
+          ]
           const foundSecrets = (fc.files || []).filter((f: string) =>
-            secretFiles.some(s => f.toLowerCase().includes(s.replace("*.", ".")) || f.toLowerCase() === s)
+            secretFiles.some((s) => f.toLowerCase().includes(s.replace("*.", ".")) || f.toLowerCase() === s),
           )
           if (foundSecrets.length) {
             output.push(`    [!] Potential secret files: ${foundSecrets.join(", ")}`)
             for (const sf of foundSecrets) {
-              const content = await aws(["codecommit", "get-file", "--repository-name", name, "--file-path", sf, "--query", "fileContent"], profile, region, timeout)
+              const content = await aws(
+                ["codecommit", "get-file", "--repository-name", name, "--file-path", sf, "--query", "fileContent"],
+                profile,
+                region,
+                timeout,
+              )
               if (content.exitCode === 0) {
                 const decoded = Buffer.from(tryJson(content.stdout) || "", "base64").toString()
                 output.push(`\n    --- ${sf} ---`)
@@ -816,7 +886,9 @@ export async function codecommitDump(args: string[], timeout: number): Promise<H
         }
       }
 
-      output.push(`\n    [*] Clone command: git clone ${tryJson((await aws(["codecommit", "get-repository", "--repository-name", name, "--query", "repositoryMetadata.cloneUrlHttp"], profile, region, timeout)).stdout) || name}`)
+      output.push(
+        `\n    [*] Clone command: git clone ${tryJson((await aws(["codecommit", "get-repository", "--repository-name", name, "--query", "repositoryMetadata.cloneUrlHttp"], profile, region, timeout)).stdout) || name}`,
+      )
 
       findings.push({
         checkId: "AWS-EXFIL-006",
@@ -842,8 +914,19 @@ export async function ecrDump(args: string[], timeout: number): Promise<HookResu
   const findings: Finding[] = []
   const output: string[] = ["[*] ECR Container Image Dump\n"]
 
-  const repos = await aws(["ecr", "describe-repositories", "--query", "repositories[].[repositoryName,repositoryUri,repositoryArn,imageScanningConfiguration.scanOnPush,imageTagMutability]"], profile, region, timeout)
-  if (repos.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: ecr:DescribeRepositories", findings }
+  const repos = await aws(
+    [
+      "ecr",
+      "describe-repositories",
+      "--query",
+      "repositories[].[repositoryName,repositoryUri,repositoryArn,imageScanningConfiguration.scanOnPush,imageTagMutability]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
+  if (repos.exitCode !== 0)
+    return { output: output.join("\n") + "\n[-] Access denied: ecr:DescribeRepositories", findings }
 
   const rl = tryJson(repos.stdout) || []
   output.push(`[+] ECR Repositories: ${rl.length}`)
@@ -856,7 +939,12 @@ export async function ecrDump(args: string[], timeout: number): Promise<HookResu
     output.push(`    URI: ${r[1]}`)
     output.push(`    Scan on push: ${r[3]}  Tag mutability: ${r[4]}`)
 
-    const policy = await aws(["ecr", "get-repository-policy", "--repository-name", name, "--query", "policyText"], profile, region, timeout)
+    const policy = await aws(
+      ["ecr", "get-repository-policy", "--repository-name", name, "--query", "policyText"],
+      profile,
+      region,
+      timeout,
+    )
     if (policy.exitCode === 0) {
       const p = tryJson(policy.stdout)
       const pStr = typeof p === "string" ? p : JSON.stringify(p)
@@ -875,7 +963,19 @@ export async function ecrDump(args: string[], timeout: number): Promise<HookResu
       }
     }
 
-    const images = await aws(["ecr", "describe-images", "--repository-name", name, "--query", "imageDetails | sort_by(@, &imagePushedAt) | reverse(@) | [0:10].[{tags:imageTags,digest:imageDigest,size:imageSizeInBytes,pushed:imagePushedAt,vulns:imageScanFindingsSummary.findingSeverityCounts}]"], profile, region, timeout)
+    const images = await aws(
+      [
+        "ecr",
+        "describe-images",
+        "--repository-name",
+        name,
+        "--query",
+        "imageDetails | sort_by(@, &imagePushedAt) | reverse(@) | [0:10].[{tags:imageTags,digest:imageDigest,size:imageSizeInBytes,pushed:imagePushedAt,vulns:imageScanFindingsSummary.findingSeverityCounts}]",
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (images.exitCode === 0) {
       const il = tryJson(images.stdout) || []
       output.push(`    Images (latest 10):`)
@@ -885,12 +985,19 @@ export async function ecrDump(args: string[], timeout: number): Promise<HookResu
         const tags = (i.tags || []).join(", ") || "untagged"
         output.push(`      ${tags}  Size: ${sizeMB}MB  Pushed: ${i.pushed}`)
         if (i.vulns) {
-          output.push(`        Vulns: Critical=${i.vulns.CRITICAL || 0} High=${i.vulns.HIGH || 0} Medium=${i.vulns.MEDIUM || 0}`)
+          output.push(
+            `        Vulns: Critical=${i.vulns.CRITICAL || 0} High=${i.vulns.HIGH || 0} Medium=${i.vulns.MEDIUM || 0}`,
+          )
         }
       }
     }
 
-    const lifecycle = await aws(["ecr", "get-lifecycle-policy", "--repository-name", name, "--query", "lifecyclePolicyText"], profile, region, timeout)
+    const lifecycle = await aws(
+      ["ecr", "get-lifecycle-policy", "--repository-name", name, "--query", "lifecyclePolicyText"],
+      profile,
+      region,
+      timeout,
+    )
     if (lifecycle.exitCode === 0) {
       output.push(`    Lifecycle policy: configured`)
     }
@@ -908,7 +1015,17 @@ export async function ecrDump(args: string[], timeout: number): Promise<HookResu
   }
 
   if (pullImage && repoName) {
-    const token = await aws(["ecr", "get-authorization-token", "--query", "authorizationData[0].{token:authorizationToken,endpoint:proxyEndpoint}"], profile, region, timeout)
+    const token = await aws(
+      [
+        "ecr",
+        "get-authorization-token",
+        "--query",
+        "authorizationData[0].{token:authorizationToken,endpoint:proxyEndpoint}",
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (token.exitCode === 0) {
       const t = tryJson(token.stdout)
       if (t) {
@@ -923,7 +1040,12 @@ export async function ecrDump(args: string[], timeout: number): Promise<HookResu
     output.push(`\n[*] Use --repository NAME --pull to get auth token for image pull`)
   }
 
-  const publicRepos = await aws(["ecr-public", "describe-repositories", "--query", "repositories[].[repositoryName,repositoryUri]"], profile, region, timeout)
+  const publicRepos = await aws(
+    ["ecr-public", "describe-repositories", "--query", "repositories[].[repositoryName,repositoryUri]"],
+    profile,
+    region,
+    timeout,
+  )
   if (publicRepos.exitCode === 0) {
     const prl = tryJson(publicRepos.stdout) || []
     if (prl.length) {
@@ -944,21 +1066,46 @@ export async function athenaQuery(args: string[], timeout: number): Promise<Hook
   const findings: Finding[] = []
   const output: string[] = ["[*] Athena Data Lake Query\n"]
 
-  const catalogs = await aws(["athena", "list-data-catalogs", "--query", "DataCatalogsSummary[].[CatalogName,Type]"], profile, region, timeout)
-  if (catalogs.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: athena:ListDataCatalogs", findings }
+  const catalogs = await aws(
+    ["athena", "list-data-catalogs", "--query", "DataCatalogsSummary[].[CatalogName,Type]"],
+    profile,
+    region,
+    timeout,
+  )
+  if (catalogs.exitCode !== 0)
+    return { output: output.join("\n") + "\n[-] Access denied: athena:ListDataCatalogs", findings }
 
   const cl = tryJson(catalogs.stdout) || []
   output.push(`[+] Data catalogs: ${cl.length}`)
   for (const c of cl) output.push(`  ${c[0]}  Type: ${c[1]}`)
 
-  const databases = await aws(["athena", "list-databases", "--catalog-name", "AwsDataCatalog", "--query", "DatabaseList[].[Name,Description]"], profile, region, timeout)
+  const databases = await aws(
+    ["athena", "list-databases", "--catalog-name", "AwsDataCatalog", "--query", "DatabaseList[].[Name,Description]"],
+    profile,
+    region,
+    timeout,
+  )
   if (databases.exitCode === 0) {
     const dl = tryJson(databases.stdout) || []
     output.push(`\n[+] Databases (Glue catalog): ${dl.length}`)
     for (const d of dl) {
       output.push(`  ${d[0]}${d[1] ? ` — ${d[1]}` : ""}`)
 
-      const tables = await aws(["athena", "list-table-metadata", "--catalog-name", "AwsDataCatalog", "--database-name", d[0], "--query", "TableMetadataList[].[Name,TableType,Columns | length(@)]"], profile, region, timeout)
+      const tables = await aws(
+        [
+          "athena",
+          "list-table-metadata",
+          "--catalog-name",
+          "AwsDataCatalog",
+          "--database-name",
+          d[0],
+          "--query",
+          "TableMetadataList[].[Name,TableType,Columns | length(@)]",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (tables.exitCode === 0) {
         const tl = tryJson(tables.stdout) || []
         for (const t of tl) output.push(`    Table: ${t[0]}  Type: ${t[1]}  Columns: ${t[2]}`)
@@ -966,14 +1113,31 @@ export async function athenaQuery(args: string[], timeout: number): Promise<Hook
     }
   }
 
-  const workgroups = await aws(["athena", "list-work-groups", "--query", "WorkGroups[].[Name,State,EngineVersion.EffectiveEngineVersion]"], profile, region, timeout)
+  const workgroups = await aws(
+    ["athena", "list-work-groups", "--query", "WorkGroups[].[Name,State,EngineVersion.EffectiveEngineVersion]"],
+    profile,
+    region,
+    timeout,
+  )
   if (workgroups.exitCode === 0) {
     const wl = tryJson(workgroups.stdout) || []
     output.push(`\n[+] Workgroups: ${wl.length}`)
     for (const w of wl) {
       output.push(`  ${w[0]}  State: ${w[1]}  Engine: ${w[2]}`)
 
-      const wgDetail = await aws(["athena", "get-work-group", "--work-group", w[0], "--query", "WorkGroup.Configuration.ResultConfiguration.OutputLocation"], profile, region, timeout)
+      const wgDetail = await aws(
+        [
+          "athena",
+          "get-work-group",
+          "--work-group",
+          w[0],
+          "--query",
+          "WorkGroup.Configuration.ResultConfiguration.OutputLocation",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (wgDetail.exitCode === 0) {
         const loc = tryJson(wgDetail.stdout)
         if (loc) output.push(`    Output: ${loc}`)
@@ -981,13 +1145,30 @@ export async function athenaQuery(args: string[], timeout: number): Promise<Hook
     }
   }
 
-  const recent = await aws(["athena", "list-query-executions", "--work-group", "primary", "--query", "QueryExecutionIds[0:5]"], profile, region, timeout)
+  const recent = await aws(
+    ["athena", "list-query-executions", "--work-group", "primary", "--query", "QueryExecutionIds[0:5]"],
+    profile,
+    region,
+    timeout,
+  )
   if (recent.exitCode === 0) {
     const ids = tryJson(recent.stdout) || []
     if (ids.length) {
       output.push(`\n[+] Recent queries:`)
       for (const id of ids) {
-        const detail = await aws(["athena", "get-query-execution", "--query-execution-id", id, "--query", "QueryExecution.{query:Query,status:Status.State,submitted:Status.SubmissionDateTime,output:ResultConfiguration.OutputLocation}"], profile, region, timeout)
+        const detail = await aws(
+          [
+            "athena",
+            "get-query-execution",
+            "--query-execution-id",
+            id,
+            "--query",
+            "QueryExecution.{query:Query,status:Status.State,submitted:Status.SubmissionDateTime,output:ResultConfiguration.OutputLocation}",
+          ],
+          profile,
+          region,
+          timeout,
+        )
         if (detail.exitCode === 0) {
           const d = tryJson(detail.stdout)
           if (d) {
@@ -1017,8 +1198,10 @@ export async function athenaQuery(args: string[], timeout: number): Promise<Hook
 
   const outputLoc = outputBucket ? `s3://${outputBucket}/athena-results/` : undefined
   const execArgs = [
-    "athena", "start-query-execution",
-    "--query-string", query,
+    "athena",
+    "start-query-execution",
+    "--query-string",
+    query,
     ...(database ? ["--query-execution-context", `Database=${database}`] : []),
     ...(outputLoc ? ["--result-configuration", `OutputLocation=${outputLoc}`] : []),
   ]
@@ -1034,13 +1217,23 @@ export async function athenaQuery(args: string[], timeout: number): Promise<Hook
 
   let queryStatus = "RUNNING"
   for (let i = 0; i < 30 && (queryStatus === "RUNNING" || queryStatus === "QUEUED"); i++) {
-    await new Promise(r => setTimeout(r, 2000))
-    const check = await aws(["athena", "get-query-execution", "--query-execution-id", execId, "--query", "QueryExecution.Status.State"], profile, region, timeout)
+    await new Promise((r) => setTimeout(r, 2000))
+    const check = await aws(
+      ["athena", "get-query-execution", "--query-execution-id", execId, "--query", "QueryExecution.Status.State"],
+      profile,
+      region,
+      timeout,
+    )
     queryStatus = tryJson(check.stdout) || "UNKNOWN"
   }
 
   if (queryStatus === "SUCCEEDED") {
-    const results = await aws(["athena", "get-query-results", "--query-execution-id", execId, "--max-items", "20"], profile, region, timeout)
+    const results = await aws(
+      ["athena", "get-query-results", "--query-execution-id", execId, "--max-items", "20"],
+      profile,
+      region,
+      timeout,
+    )
     if (results.exitCode === 0) {
       const r = tryJson(results.stdout)
       const rows = r?.ResultSet?.Rows || []
@@ -1077,13 +1270,30 @@ export async function secretsBulkExport(args: string[], timeout: number): Promis
 
   const secrets: Record<string, string> = {}
 
-  const smList = await aws(["secretsmanager", "list-secrets", "--query", "SecretList[].[Name,ARN,Description,LastChangedDate]"], profile, region, timeout)
+  const smList = await aws(
+    ["secretsmanager", "list-secrets", "--query", "SecretList[].[Name,ARN,Description,LastChangedDate]"],
+    profile,
+    region,
+    timeout,
+  )
   if (smList.exitCode === 0) {
     const sl = tryJson(smList.stdout) || []
     output.push(`[+] Secrets Manager secrets: ${sl.length}`)
 
     for (const s of sl) {
-      const val = await aws(["secretsmanager", "get-secret-value", "--secret-id", s[1], "--query", "{value:SecretString,binary:SecretBinary}"], profile, region, timeout)
+      const val = await aws(
+        [
+          "secretsmanager",
+          "get-secret-value",
+          "--secret-id",
+          s[1],
+          "--query",
+          "{value:SecretString,binary:SecretBinary}",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (val.exitCode === 0) {
         const v = tryJson(val.stdout)
         const secretVal = v?.value || (v?.binary ? `[binary:${v.binary.length}bytes]` : "[empty]")
@@ -1095,7 +1305,12 @@ export async function secretsBulkExport(args: string[], timeout: number): Promis
     }
   }
 
-  const ssmParams = await aws(["ssm", "describe-parameters", "--query", "Parameters[].[Name,Type,LastModifiedDate,Description]"], profile, region, timeout)
+  const ssmParams = await aws(
+    ["ssm", "describe-parameters", "--query", "Parameters[].[Name,Type,LastModifiedDate,Description]"],
+    profile,
+    region,
+    timeout,
+  )
   if (ssmParams.exitCode === 0) {
     const pl = tryJson(ssmParams.stdout) || []
     const secureParams = pl.filter((p: string[]) => p[1] === "SecureString")
@@ -1104,7 +1319,12 @@ export async function secretsBulkExport(args: string[], timeout: number): Promis
     output.push(`\n[+] SSM Parameters: ${pl.length} (${secureParams.length} SecureString, ${plainParams.length} other)`)
 
     for (const p of secureParams) {
-      const val = await aws(["ssm", "get-parameter", "--name", p[0], "--with-decryption", "--query", "Parameter.Value"], profile, region, timeout)
+      const val = await aws(
+        ["ssm", "get-parameter", "--name", p[0], "--with-decryption", "--query", "Parameter.Value"],
+        profile,
+        region,
+        timeout,
+      )
       if (val.exitCode === 0) {
         const v = tryJson(val.stdout) || val.stdout.trim()
         secrets[`ssm://${p[0]}`] = v
@@ -1117,7 +1337,12 @@ export async function secretsBulkExport(args: string[], timeout: number): Promis
     const secretPattern = /(?:password|secret|key|token|api.?key|credential|private|auth|db.?pass|connection)/i
     const interestingPlain = plainParams.filter((p: string[]) => secretPattern.test(p[0]))
     for (const p of interestingPlain) {
-      const val = await aws(["ssm", "get-parameter", "--name", p[0], "--query", "Parameter.Value"], profile, region, timeout)
+      const val = await aws(
+        ["ssm", "get-parameter", "--name", p[0], "--query", "Parameter.Value"],
+        profile,
+        region,
+        timeout,
+      )
       if (val.exitCode === 0) {
         const v = tryJson(val.stdout) || val.stdout.trim()
         secrets[`ssm://${p[0]}`] = v
@@ -1143,9 +1368,12 @@ export async function secretsBulkExport(args: string[], timeout: number): Promis
   })
 
   if (destBucket) {
-    const exportData = format === "json"
-      ? JSON.stringify(secrets, null, 2)
-      : Object.entries(secrets).map(([k, v]) => `${k}=${v}`).join("\n")
+    const exportData =
+      format === "json"
+        ? JSON.stringify(secrets, null, 2)
+        : Object.entries(secrets)
+            .map(([k, v]) => `${k}=${v}`)
+            .join("\n")
 
     const tmpFile = `/tmp/cs-secrets-export.${format === "json" ? "json" : "env"}`
     await Bun.write(tmpFile, exportData)

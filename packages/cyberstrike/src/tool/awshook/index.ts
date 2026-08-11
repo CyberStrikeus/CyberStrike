@@ -3,18 +3,108 @@ import { Tool } from "../tool"
 import { run } from "./shared"
 import type { Finding, HookResult } from "./shared"
 
-import { iamEnum, ec2Enum, s3Enum, lambdaEnum, vpcEnum, rdsEnum, ecsEnum, eksEnum, ssoEnum, orgEnum, route53Enum, serviceRecon, cfnEnum, apigwEnum, snsSqsEnum, cloudwatchEnum, elasticacheEnum, redshiftEnum } from "./recon"
-import { metadataHarvest, secretsDump, accessKeyEnum, roleCredential, federationToken, ecrToken, consoleLogin, cognitoToken, cfnSecretExtract, codecommitCred, ciCdSecretExtract } from "./credential"
-import { iamPrivesc, policyVersionRollback, roleChain, lambdaPrivesc, gluePrivesc, cloudformationPrivesc, ssmPrivesc, ec2Privesc, permissionBoundaryBypass, sagemakerPrivesc } from "./privesc"
-import { lambdaBackdoor, iamBackdoor, eventbridgeBackdoor, ssmDocumentBackdoor, codebuildBackdoor, amiBackdoor, crossAccountRole, cognitoBackdoor, ec2InstanceConnect, ssmStateManager, ecsScheduledTask } from "./persistence"
-import { ssmExec, ecsExec, crossAccountEnum, vpcPeeringEnum, transitGatewayEnum, lightsailExec, codeExecLambda, ssmSession } from "./lateral"
-import { cloudtrailBlind, guarddutyEvade, configDisable, vpcFlowDisable, accessAnalyzerSuppress, securityHubSuppress, wafBypass, dnsFirewallDisable, cloudwatchTamper, macieDisable, inspectorDisable, s3LoggingDisable } from "./evasion"
-import { s3Dump, ec2Snapshot, rdsDump, dynamodbDump, ebsDirectRead, s3Exfil, dataStage, cleanupAws, codecommitDump, ecrDump, athenaQuery, secretsBulkExport } from "./exfil"
+import {
+  iamEnum,
+  ec2Enum,
+  s3Enum,
+  lambdaEnum,
+  vpcEnum,
+  rdsEnum,
+  ecsEnum,
+  eksEnum,
+  ssoEnum,
+  orgEnum,
+  route53Enum,
+  serviceRecon,
+  cfnEnum,
+  apigwEnum,
+  snsSqsEnum,
+  cloudwatchEnum,
+  elasticacheEnum,
+  redshiftEnum,
+} from "./recon"
+import {
+  metadataHarvest,
+  secretsDump,
+  accessKeyEnum,
+  roleCredential,
+  federationToken,
+  ecrToken,
+  consoleLogin,
+  cognitoToken,
+  cfnSecretExtract,
+  codecommitCred,
+  ciCdSecretExtract,
+} from "./credential"
+import {
+  iamPrivesc,
+  policyVersionRollback,
+  roleChain,
+  lambdaPrivesc,
+  gluePrivesc,
+  cloudformationPrivesc,
+  ssmPrivesc,
+  ec2Privesc,
+  permissionBoundaryBypass,
+  sagemakerPrivesc,
+} from "./privesc"
+import {
+  lambdaBackdoor,
+  iamBackdoor,
+  eventbridgeBackdoor,
+  ssmDocumentBackdoor,
+  codebuildBackdoor,
+  amiBackdoor,
+  crossAccountRole,
+  cognitoBackdoor,
+  ec2InstanceConnect,
+  ssmStateManager,
+  ecsScheduledTask,
+} from "./persistence"
+import {
+  ssmExec,
+  ecsExec,
+  crossAccountEnum,
+  vpcPeeringEnum,
+  transitGatewayEnum,
+  lightsailExec,
+  codeExecLambda,
+  ssmSession,
+} from "./lateral"
+import {
+  cloudtrailBlind,
+  guarddutyEvade,
+  configDisable,
+  vpcFlowDisable,
+  accessAnalyzerSuppress,
+  securityHubSuppress,
+  wafBypass,
+  dnsFirewallDisable,
+  cloudwatchTamper,
+  macieDisable,
+  inspectorDisable,
+  s3LoggingDisable,
+} from "./evasion"
+import {
+  s3Dump,
+  ec2Snapshot,
+  rdsDump,
+  dynamodbDump,
+  ebsDirectRead,
+  s3Exfil,
+  dataStage,
+  cleanupAws,
+  codecommitDump,
+  ecrDump,
+  athenaQuery,
+  secretsBulkExport,
+} from "./exfil"
 
 const PROGRAMS = {
   // ── Recon (18) ──
   iam_enum: {
-    description: "Enumerate IAM users, roles, policies, and analyze for privilege escalation paths (PassRole, wildcard policies, inline policy abuse)",
+    description:
+      "Enumerate IAM users, roles, policies, and analyze for privilege escalation paths (PassRole, wildcard policies, inline policy abuse)",
     args: "[--profile PROFILE] [--region REGION]",
   },
   ec2_enum: {
@@ -46,57 +136,70 @@ const PROGRAMS = {
     args: "[--profile PROFILE] [--region REGION]",
   },
   sso_enum: {
-    description: "Enumerate AWS SSO/IAM Identity Center: instances, permission sets, account assignments, and identity store users/groups",
+    description:
+      "Enumerate AWS SSO/IAM Identity Center: instances, permission sets, account assignments, and identity store users/groups",
     args: "[--instance-arn ARN] [--profile PROFILE] [--region REGION]",
   },
   org_enum: {
-    description: "Enumerate AWS Organizations: accounts, OUs, SCPs, delegated administrators, and cross-account trust relationships",
+    description:
+      "Enumerate AWS Organizations: accounts, OUs, SCPs, delegated administrators, and cross-account trust relationships",
     args: "[--profile PROFILE] [--region REGION]",
   },
   route53_enum: {
-    description: "Enumerate Route 53 hosted zones, DNS records, health checks, resolver endpoints, and detect subdomain takeover targets",
+    description:
+      "Enumerate Route 53 hosted zones, DNS records, health checks, resolver endpoints, and detect subdomain takeover targets",
     args: "[--profile PROFILE] [--region REGION]",
   },
   service_recon: {
-    description: "Quick account-wide service usage summary: identity, aliases, enabled regions, resource counts across major services",
+    description:
+      "Quick account-wide service usage summary: identity, aliases, enabled regions, resource counts across major services",
     args: "[--profile PROFILE] [--region REGION]",
   },
   cfn_enum: {
-    description: "Enumerate CloudFormation stacks, extract templates with secret detection, parameters, outputs, IAM resources, and cross-stack exports",
+    description:
+      "Enumerate CloudFormation stacks, extract templates with secret detection, parameters, outputs, IAM resources, and cross-stack exports",
     args: "[--profile PROFILE] [--region REGION]",
   },
   apigw_enum: {
-    description: "Enumerate API Gateway REST/HTTP/WebSocket APIs, stages, routes, API keys (with values), and authorizer configuration",
+    description:
+      "Enumerate API Gateway REST/HTTP/WebSocket APIs, stages, routes, API keys (with values), and authorizer configuration",
     args: "[--profile PROFILE] [--region REGION]",
   },
   sns_sqs_enum: {
-    description: "Enumerate SNS topics with subscriptions and policies, SQS queues with policies, encryption, and message counts",
+    description:
+      "Enumerate SNS topics with subscriptions and policies, SQS queues with policies, encryption, and message counts",
     args: "[--profile PROFILE] [--region REGION]",
   },
   cloudwatch_enum: {
-    description: "Enumerate CloudWatch log groups (security-relevant), alarms (disabled actions), dashboards, and custom metrics",
+    description:
+      "Enumerate CloudWatch log groups (security-relevant), alarms (disabled actions), dashboards, and custom metrics",
     args: "[--profile PROFILE] [--region REGION]",
   },
   elasticache_enum: {
-    description: "Enumerate ElastiCache Redis/Memcached clusters — auth status, encryption, replication groups, subnets, snapshots",
+    description:
+      "Enumerate ElastiCache Redis/Memcached clusters — auth status, encryption, replication groups, subnets, snapshots",
     args: "[--profile PROFILE] [--region REGION]",
   },
   redshift_enum: {
-    description: "Enumerate Redshift clusters (classic + serverless) — public access, encryption, audit logging, snapshots with cross-account sharing",
+    description:
+      "Enumerate Redshift clusters (classic + serverless) — public access, encryption, audit logging, snapshots with cross-account sharing",
     args: "[--profile PROFILE] [--region REGION]",
   },
 
   // ── Credential Harvesting (11) ──
   metadata_harvest: {
-    description: "Extract IAM role credentials from EC2/ECS/Lambda metadata endpoints (169.254.169.254). Supports IMDSv1 and IMDSv2",
+    description:
+      "Extract IAM role credentials from EC2/ECS/Lambda metadata endpoints (169.254.169.254). Supports IMDSv1 and IMDSv2",
     args: "[--imds-version v1|v2]",
   },
   secrets_dump: {
-    description: "Extract all secrets from AWS Secrets Manager and SSM Parameter Store (SecureString parameters with decryption)",
+    description:
+      "Extract all secrets from AWS Secrets Manager and SSM Parameter Store (SecureString parameters with decryption)",
     args: "[--service secretsmanager|ssm|all] [--profile PROFILE] [--region REGION]",
   },
   access_key_enum: {
-    description: "Find all active access keys across IAM users with age, last-used date, and identify stale/unused keys",
+    description:
+      "Find all active access keys across IAM users with age, last-used date, and identify stale/unused keys",
     args: "[--profile PROFILE] [--region REGION]",
   },
   role_credential: {
@@ -112,15 +215,18 @@ const PROGRAMS = {
     args: "[--profile PROFILE] [--region REGION]",
   },
   console_login: {
-    description: "Create or update IAM console login profile for programmatic-only users (password-based console access)",
+    description:
+      "Create or update IAM console login profile for programmatic-only users (password-based console access)",
     args: "--user-name NAME [--password PW] [--profile PROFILE]",
   },
   cognito_token: {
-    description: "Enumerate Cognito user/identity pools, extract client secrets, obtain AWS credentials from identity pools",
+    description:
+      "Enumerate Cognito user/identity pools, extract client secrets, obtain AWS credentials from identity pools",
     args: "[--user-pool-id ID] [--identity-pool-id ID] [--profile PROFILE] [--region REGION]",
   },
   cfn_secret_extract: {
-    description: "Extract secrets from CloudFormation stacks: parameters (including NoEcho via get-template), template hardcoded values, and outputs",
+    description:
+      "Extract secrets from CloudFormation stacks: parameters (including NoEcho via get-template), template hardcoded values, and outputs",
     args: "[--stack-name NAME] [--profile PROFILE] [--region REGION]",
   },
   codecommit_cred: {
@@ -128,13 +234,15 @@ const PROGRAMS = {
     args: "[--profile PROFILE] [--region REGION]",
   },
   ci_cd_secret_extract: {
-    description: "Extract secrets from CI/CD: CodePipeline artifact stores, CodeBuild env vars (plaintext/SSM/Secrets Manager refs), CodeStar connections",
+    description:
+      "Extract secrets from CI/CD: CodePipeline artifact stores, CodeBuild env vars (plaintext/SSM/Secrets Manager refs), CodeStar connections",
     args: "[--profile PROFILE] [--region REGION]",
   },
 
   // ── Privilege Escalation (10) ──
   iam_privesc: {
-    description: "Exploit IAM misconfigurations for privilege escalation: PassRole+Lambda, AssumeRole chaining, AttachUserPolicy, CreateLoginProfile, CreateAccessKey",
+    description:
+      "Exploit IAM misconfigurations for privilege escalation: PassRole+Lambda, AssumeRole chaining, AttachUserPolicy, CreateLoginProfile, CreateAccessKey",
     args: "--method <passrole|assumerole|attach_policy|create_login|create_key> [--role-arn ARN] [--profile PROFILE]",
   },
   policy_version_rollback: {
@@ -158,15 +266,18 @@ const PROGRAMS = {
     args: "[--role-arn ARN] [--stack-name NAME] [--profile PROFILE] [--region REGION]",
   },
   ssm_privesc: {
-    description: "Exploit SSM RunCommand to execute on instances with high-privilege instance profiles for credential harvesting",
+    description:
+      "Exploit SSM RunCommand to execute on instances with high-privilege instance profiles for credential harvesting",
     args: "[--instance-id ID] [--command CMD] [--profile PROFILE] [--region REGION]",
   },
   ec2_privesc: {
-    description: "Enumerate instance profiles with high-privilege roles, launch EC2 with target profile for metadata credential extraction",
+    description:
+      "Enumerate instance profiles with high-privilege roles, launch EC2 with target profile for metadata credential extraction",
     args: "[--instance-profile-arn ARN] [--profile PROFILE] [--region REGION]",
   },
   permission_boundary_bypass: {
-    description: "Analyze IAM permission boundaries for bypass techniques: self-modification, new entity creation, resource-based policies",
+    description:
+      "Analyze IAM permission boundaries for bypass techniques: self-modification, new entity creation, resource-based policies",
     args: "[--profile PROFILE] [--region REGION]",
   },
   sagemaker_privesc: {
@@ -176,11 +287,13 @@ const PROGRAMS = {
 
   // ── Persistence (11) ──
   lambda_backdoor: {
-    description: "Inject reverse shell layer into existing Lambda function or create new backdoor function with high-privilege role",
+    description:
+      "Inject reverse shell layer into existing Lambda function or create new backdoor function with high-privilege role",
     args: "--function-name NAME --callback-url URL [--method inject|create] [--profile PROFILE]",
   },
   iam_backdoor: {
-    description: "Create shadow admin IAM user with AdministratorAccess, access keys, and console login for persistent access",
+    description:
+      "Create shadow admin IAM user with AdministratorAccess, access keys, and console login for persistent access",
     args: "[--user-name NAME] [--profile PROFILE] [--region REGION]",
   },
   eventbridge_backdoor: {
@@ -192,7 +305,8 @@ const PROGRAMS = {
     args: "[--document-name NAME] [--command CMD] [--list] [--profile PROFILE]",
   },
   codebuild_backdoor: {
-    description: "Create CodeBuild project with buildspec that exfiltrates credentials using a high-privilege service role",
+    description:
+      "Create CodeBuild project with buildspec that exfiltrates credentials using a high-privilege service role",
     args: "[--role-arn ARN] [--callback-url URL] [--project-name NAME] [--profile PROFILE]",
   },
   ami_backdoor: {
@@ -208,25 +322,30 @@ const PROGRAMS = {
     args: "[--user-pool-id ID] [--username NAME] [--password PW] [--profile PROFILE]",
   },
   ec2_instance_connect: {
-    description: "Push SSH public key to EC2 via Instance Connect (60s window) — enumerate eligible instances or push key for access",
+    description:
+      "Push SSH public key to EC2 via Instance Connect (60s window) — enumerate eligible instances or push key for access",
     args: "[--instance-id ID] [--ssh-public-key KEY] [--os-user USER] [--enum] [--profile PROFILE] [--region REGION]",
   },
   ssm_state_manager: {
-    description: "Create SSM State Manager association for scheduled command execution — more stealth than EventBridge (appears as normal SSM compliance)",
+    description:
+      "Create SSM State Manager association for scheduled command execution — more stealth than EventBridge (appears as normal SSM compliance)",
     args: "[--command CMD] [--instance-id ID] [--schedule EXPR] [--name NAME] [--list] [--profile PROFILE] [--region REGION]",
   },
   ecs_scheduled_task: {
-    description: "Create EventBridge-triggered ECS Fargate scheduled task for serverless persistence — logs separate from Lambda, runs in target VPC",
+    description:
+      "Create EventBridge-triggered ECS Fargate scheduled task for serverless persistence — logs separate from Lambda, runs in target VPC",
     args: "[--cluster NAME] [--task-definition DEF] [--command CMD] [--schedule EXPR] [--rule-name NAME] [--list] [--profile PROFILE] [--region REGION]",
   },
 
   // ── Lateral Movement (8) ──
   ssm_exec: {
-    description: "Execute commands on EC2 instances via AWS Systems Manager RunCommand — no SSH or direct network access required",
+    description:
+      "Execute commands on EC2 instances via AWS Systems Manager RunCommand — no SSH or direct network access required",
     args: "--instance-id ID --command CMD [--all-instances] [--profile PROFILE]",
   },
   ecs_exec: {
-    description: "Execute commands inside running ECS Fargate/EC2 containers via ECS Exec (SSM-based) — no SSH or direct network access required",
+    description:
+      "Execute commands inside running ECS Fargate/EC2 containers via ECS Exec (SSM-based) — no SSH or direct network access required",
     args: "--cluster CLUSTER --task TASK --container CONTAINER --command CMD [--all-tasks] [--profile PROFILE] [--region REGION]",
   },
   cross_account_enum: {
@@ -246,21 +365,25 @@ const PROGRAMS = {
     args: "[--instance-name NAME] [--command CMD] [--profile PROFILE] [--region REGION]",
   },
   code_exec_lambda: {
-    description: "Direct Lambda function invocation for arbitrary code execution, with VPC-attached function pivot analysis",
+    description:
+      "Direct Lambda function invocation for arbitrary code execution, with VPC-attached function pivot analysis",
     args: "[--function-name NAME] [--command CMD] [--payload JSON] [--profile PROFILE]",
   },
   ssm_session: {
-    description: "SSM Session Manager for interactive shell, port forwarding (local and remote host), with session logging check",
+    description:
+      "SSM Session Manager for interactive shell, port forwarding (local and remote host), with session logging check",
     args: "[--instance-id ID] [--port-forward LOCAL:REMOTE] [--remote-host HOST] [--profile PROFILE] [--region REGION]",
   },
 
   // ── Defense Evasion (12) ──
   cloudtrail_blind: {
-    description: "Stop CloudTrail logging, manipulate event selectors to exclude management events, or delete existing log files from S3",
+    description:
+      "Stop CloudTrail logging, manipulate event selectors to exclude management events, or delete existing log files from S3",
     args: "--action <stop|delete_logs|modify_selectors|status> [--trail-name NAME] [--profile PROFILE]",
   },
   guardduty_evade: {
-    description: "Suspend/disable GuardDuty detectors, archive findings, or create auto-archive filter to suppress all alerts",
+    description:
+      "Suspend/disable GuardDuty detectors, archive findings, or create auto-archive filter to suppress all alerts",
     args: "[--action status|suspend|suppress|filter] [--profile PROFILE] [--region REGION]",
   },
   config_disable: {
@@ -288,7 +411,8 @@ const PROGRAMS = {
     args: "[--action status|disassociate] [--profile PROFILE] [--region REGION]",
   },
   cloudwatch_tamper: {
-    description: "CloudWatch Logs tampering: delete log groups/streams, reduce retention to 1 day, target security-relevant groups (CloudTrail, GuardDuty, VPC Flow)",
+    description:
+      "CloudWatch Logs tampering: delete log groups/streams, reduce retention to 1 day, target security-relevant groups (CloudTrail, GuardDuty, VPC Flow)",
     args: "[--action status|delete|reduce_retention|delete_streams] [--log-group NAME] [--retention DAYS] [--profile PROFILE] [--region REGION]",
   },
   macie_disable: {
@@ -300,21 +424,25 @@ const PROGRAMS = {
     args: "[--action status|disable] [--profile PROFILE] [--region REGION]",
   },
   s3_logging_disable: {
-    description: "Disable S3 access logging and remove S3 object-level data events from CloudTrail — makes s3_dump/s3_exfil invisible",
+    description:
+      "Disable S3 access logging and remove S3 object-level data events from CloudTrail — makes s3_dump/s3_exfil invisible",
     args: "[--action status|disable_access_log|disable_data_events] [--bucket BUCKET] [--profile PROFILE] [--region REGION]",
   },
 
   // ── Exfiltration & Cleanup (12) ──
   s3_dump: {
-    description: "List all S3 buckets, identify sensitive files (.env, backups, credentials, .pem, .key), and optionally download high-value targets",
+    description:
+      "List all S3 buckets, identify sensitive files (.env, backups, credentials, .pem, .key), and optionally download high-value targets",
     args: "[--bucket BUCKET] [--download] [--pattern REGEX] [--profile PROFILE]",
   },
   ec2_snapshot: {
-    description: "Create EBS volume snapshots for data exfiltration, optionally share cross-account for offline analysis",
+    description:
+      "Create EBS volume snapshots for data exfiltration, optionally share cross-account for offline analysis",
     args: "--volume-id VOL_ID [--share-account ACCOUNT_ID] [--profile PROFILE]",
   },
   rds_dump: {
-    description: "Create RDS database snapshot, optionally share cross-account or restore to accessible instance for data extraction",
+    description:
+      "Create RDS database snapshot, optionally share cross-account or restore to accessible instance for data extraction",
     args: "--db-identifier ID [--share-account ACCOUNT_ID] [--restore] [--profile PROFILE] [--region REGION]",
   },
   dynamodb_dump: {
@@ -334,23 +462,28 @@ const PROGRAMS = {
     args: "--source PATH --dest-bucket BUCKET [--no-compress] [--profile PROFILE]",
   },
   cleanup_aws: {
-    description: "Remove all CyberStrike-created AWS resources (IAM, Lambda, snapshots, stacks, rules), restore CloudTrail logging. ALWAYS run before leaving",
+    description:
+      "Remove all CyberStrike-created AWS resources (IAM, Lambda, snapshots, stacks, rules), restore CloudTrail logging. ALWAYS run before leaving",
     args: "[--dry-run] [--profile PROFILE]",
   },
   codecommit_dump: {
-    description: "Dump CodeCommit repositories: enumerate repos, branches, root files, extract secret files (.env, credentials, .pem), clone URLs",
+    description:
+      "Dump CodeCommit repositories: enumerate repos, branches, root files, extract secret files (.env, credentials, .pem), clone URLs",
     args: "[--repo NAME] [--branch BRANCH] [--profile PROFILE] [--region REGION]",
   },
   ecr_dump: {
-    description: "Enumerate ECR repositories, images with vulnerability scan results, repository policies, and extract auth tokens for image pull",
+    description:
+      "Enumerate ECR repositories, images with vulnerability scan results, repository policies, and extract auth tokens for image pull",
     args: "[--repository NAME] [--pull] [--profile PROFILE] [--region REGION]",
   },
   athena_query: {
-    description: "Query S3 data lakes via Athena: enumerate catalogs, databases, tables, workgroups, recent queries, and execute SQL queries",
+    description:
+      "Query S3 data lakes via Athena: enumerate catalogs, databases, tables, workgroups, recent queries, and execute SQL queries",
     args: "[--query-string SQL] [--database DB] [--output-bucket BUCKET] [--profile PROFILE] [--region REGION]",
   },
   secrets_bulk_export: {
-    description: "Bulk extract all Secrets Manager secrets + SSM SecureString parameters with optional S3 staging as JSON or .env format",
+    description:
+      "Bulk extract all Secrets Manager secrets + SSM SecureString parameters with optional S3 staging as JSON or .env format",
     args: "[--dest-bucket BUCKET] [--format json|env] [--profile PROFILE] [--region REGION]",
   },
 } as const satisfies Record<string, { description: string; args: string }>

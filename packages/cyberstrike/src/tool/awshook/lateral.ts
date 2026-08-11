@@ -182,25 +182,29 @@ export async function crossAccountEnum(args: string[], timeout: number): Promise
   const currentAccount = tryJson(id.stdout)
   output.push(`[+] Current account: ${currentAccount}\n`)
 
-  const roles = await aws(
-    ["iam", "list-roles", "--query", "Roles[].[RoleName,Arn]"],
-    profile,
-    region,
-    timeout,
-  )
+  const roles = await aws(["iam", "list-roles", "--query", "Roles[].[RoleName,Arn]"], profile, region, timeout)
   if (roles.exitCode !== 0) return { output: `[-] Cannot list roles: ${roles.stderr.trim()}`, findings }
 
   const rl = tryJson(roles.stdout) || []
   const crossAccountRoles: { name: string; arn: string; trusts: string[] }[] = []
 
   for (const r of rl) {
-    const desc = await aws(["iam", "get-role", "--role-name", r[0], "--query", "Role.AssumeRolePolicyDocument"], profile, region, timeout)
+    const desc = await aws(
+      ["iam", "get-role", "--role-name", r[0], "--query", "Role.AssumeRolePolicyDocument"],
+      profile,
+      region,
+      timeout,
+    )
     if (desc.exitCode !== 0) continue
     const trust = tryJson(desc.stdout)
     const statements = trust?.Statement || []
     for (const st of statements) {
       if (st.Effect !== "Allow") continue
-      const principals = Array.isArray(st.Principal?.AWS) ? st.Principal.AWS : st.Principal?.AWS ? [st.Principal.AWS] : []
+      const principals = Array.isArray(st.Principal?.AWS)
+        ? st.Principal.AWS
+        : st.Principal?.AWS
+          ? [st.Principal.AWS]
+          : []
       const external = principals.filter((p: string) => {
         const account = p.match(/::(\d+):/)?.[1] || p.replace("arn:aws:iam::", "").replace(":root", "")
         return account !== currentAccount && /^\d{12}$/.test(account)
@@ -255,13 +259,9 @@ export async function vpcPeeringEnum(args: string[], timeout: number): Promise<H
   const findings: Finding[] = []
   const output: string[] = ["[*] VPC Peering Enumeration for Lateral Movement\n"]
 
-  const peerings = await aws(
-    ["ec2", "describe-vpc-peering-connections"],
-    profile,
-    region,
-    timeout,
-  )
-  if (peerings.exitCode !== 0) return { output: `[-] Cannot describe peering connections: ${peerings.stderr.trim()}`, findings }
+  const peerings = await aws(["ec2", "describe-vpc-peering-connections"], profile, region, timeout)
+  if (peerings.exitCode !== 0)
+    return { output: `[-] Cannot describe peering connections: ${peerings.stderr.trim()}`, findings }
 
   const pl = tryJson(peerings.stdout)?.VpcPeeringConnections || []
   output.push(`[+] VPC Peering Connections: ${pl.length}\n`)
@@ -270,8 +270,12 @@ export async function vpcPeeringEnum(args: string[], timeout: number): Promise<H
     const reqVpc = p.RequesterVpcInfo || {}
     const accVpc = p.AccepterVpcInfo || {}
     output.push(`    ${p.VpcPeeringConnectionId} (${p.Status?.Code})`)
-    output.push(`      Requester: ${reqVpc.VpcId} (${reqVpc.CidrBlock}) — account: ${reqVpc.OwnerId} — region: ${reqVpc.Region}`)
-    output.push(`      Accepter:  ${accVpc.VpcId} (${accVpc.CidrBlock}) — account: ${accVpc.OwnerId} — region: ${accVpc.Region}`)
+    output.push(
+      `      Requester: ${reqVpc.VpcId} (${reqVpc.CidrBlock}) — account: ${reqVpc.OwnerId} — region: ${reqVpc.Region}`,
+    )
+    output.push(
+      `      Accepter:  ${accVpc.VpcId} (${accVpc.CidrBlock}) — account: ${accVpc.OwnerId} — region: ${accVpc.Region}`,
+    )
 
     if (reqVpc.OwnerId !== accVpc.OwnerId) {
       findings.push({
@@ -387,7 +391,14 @@ export async function transitGatewayEnum(args: string[], timeout: number): Promi
       for (const rt of rtl) {
         output.push(`        ${rt[0]} — ${rt[1]}${rt[2] ? " (default)" : ""}`)
         const routes = await aws(
-          ["ec2", "search-transit-gateway-routes", "--transit-gateway-route-table-id", rt[0], "--filters", "Name=state,Values=active"],
+          [
+            "ec2",
+            "search-transit-gateway-routes",
+            "--transit-gateway-route-table-id",
+            rt[0],
+            "--filters",
+            "Name=state,Values=active",
+          ],
           profile,
           region,
           timeout,
@@ -395,7 +406,9 @@ export async function transitGatewayEnum(args: string[], timeout: number): Promi
         if (routes.exitCode === 0) {
           const routeList = tryJson(routes.stdout)?.Routes || []
           for (const route of routeList.slice(0, 10)) {
-            output.push(`          ${route.DestinationCidrBlock} → ${route.Type} (${(route.TransitGatewayAttachments || []).map((a: Record<string, string>) => a.ResourceId).join(",")})`)
+            output.push(
+              `          ${route.DestinationCidrBlock} → ${route.Type} (${(route.TransitGatewayAttachments || []).map((a: Record<string, string>) => a.ResourceId).join(",")})`,
+            )
           }
         }
       }
@@ -414,12 +427,18 @@ export async function lightsailExec(args: string[], timeout: number): Promise<Ho
   const findings: Finding[] = []
 
   const instances = await aws(
-    ["lightsail", "get-instances", "--query", "instances[].[name,state.name,publicIpAddress,privateIpAddress,blueprintId,bundleId]"],
+    [
+      "lightsail",
+      "get-instances",
+      "--query",
+      "instances[].[name,state.name,publicIpAddress,privateIpAddress,blueprintId,bundleId]",
+    ],
     profile,
     region,
     timeout,
   )
-  if (instances.exitCode !== 0) return { output: `[-] Cannot list Lightsail instances: ${instances.stderr.trim()}`, findings }
+  if (instances.exitCode !== 0)
+    return { output: `[-] Cannot list Lightsail instances: ${instances.stderr.trim()}`, findings }
 
   const il = tryJson(instances.stdout) || []
   output.push(`[+] Lightsail Instances: ${il.length}`)
@@ -445,12 +464,7 @@ export async function lightsailExec(args: string[], timeout: number): Promise<Ho
 
   if (!command) return { output: output.join("\n") + "\n\nERROR: --command required for execution", findings }
 
-  const keyPair = await aws(
-    ["lightsail", "download-default-key-pair"],
-    profile,
-    region,
-    timeout,
-  )
+  const keyPair = await aws(["lightsail", "download-default-key-pair"], profile, region, timeout)
   if (keyPair.exitCode === 0) {
     const kp = tryJson(keyPair.stdout)
     if (kp?.privateKeyBase64 || kp?.publicKeyBase64) {
@@ -498,7 +512,8 @@ export async function codeExecLambda(args: string[], timeout: number): Promise<H
       const vpcFuncs = fl.filter((f: (string | null)[]) => f[3])
       if (vpcFuncs.length > 0) {
         output.push(`\n[+] VPC-attached functions (network pivot targets):`)
-        for (const f of vpcFuncs) output.push(`    ${f[0]} (${f[1]}) — VPC: ${f[3]} — role: ${(f[2] || "").split("/").pop()}`)
+        for (const f of vpcFuncs)
+          output.push(`    ${f[0]} (${f[1]}) — VPC: ${f[3]} — role: ${(f[2] || "").split("/").pop()}`)
       }
     }
     output.push("\n[*] Use --function-name NAME to invoke directly")
@@ -553,8 +568,19 @@ export async function ssmSession(args: string[], timeout: number): Promise<HookR
   const findings: Finding[] = []
   const output: string[] = ["[*] SSM Session Manager — Interactive Shell & Port Forwarding\n"]
 
-  const instances = await aws(["ssm", "describe-instance-information", "--query", "InstanceInformationList[].[InstanceId,PingStatus,PlatformType,PlatformName,AgentVersion,ComputerName,IPAddress]"], profile, region, timeout)
-  if (instances.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: ssm:DescribeInstanceInformation", findings }
+  const instances = await aws(
+    [
+      "ssm",
+      "describe-instance-information",
+      "--query",
+      "InstanceInformationList[].[InstanceId,PingStatus,PlatformType,PlatformName,AgentVersion,ComputerName,IPAddress]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
+  if (instances.exitCode !== 0)
+    return { output: output.join("\n") + "\n[-] Access denied: ssm:DescribeInstanceInformation", findings }
 
   const il = tryJson(instances.stdout) || []
   output.push(`[+] SSM-managed instances: ${il.length}\n`)
@@ -562,7 +588,9 @@ export async function ssmSession(args: string[], timeout: number): Promise<HookR
   const onlineInstances: string[] = []
   for (const i of il) {
     const status = i[1] === "Online" ? "[ONLINE]" : "[OFFLINE]"
-    output.push(`  ${status} ${i[0]}  Platform: ${i[3] || i[2]}  Agent: ${i[4]}  Name: ${i[5] || "N/A"}  IP: ${i[6] || "N/A"}`)
+    output.push(
+      `  ${status} ${i[0]}  Platform: ${i[3] || i[2]}  Agent: ${i[4]}  Name: ${i[5] || "N/A"}  IP: ${i[6] || "N/A"}`,
+    )
     if (i[1] === "Online") onlineInstances.push(i[0])
   }
 
@@ -588,7 +616,9 @@ export async function ssmSession(args: string[], timeout: number): Promise<HookR
     output.push(`\n[*] Usage:`)
     output.push(`  Interactive shell: awshook ssm_session --instance-id ID`)
     output.push(`  Port forward:      awshook ssm_session --instance-id ID --port-forward 8080:80`)
-    output.push(`  Remote host:       awshook ssm_session --instance-id ID --port-forward 3306 --remote-host rds.endpoint.com`)
+    output.push(
+      `  Remote host:       awshook ssm_session --instance-id ID --port-forward 3306 --remote-host rds.endpoint.com`,
+    )
     output.push(`\n[*] SSM Session advantages over RunCommand:`)
     output.push(`  - Interactive shell (not one-shot)`)
     output.push(`  - Port forwarding through HTTPS tunnel`)
@@ -602,12 +632,19 @@ export async function ssmSession(args: string[], timeout: number): Promise<HookR
     return { output: output.join("\n"), findings }
   }
 
-  const prefs = await aws(["ssm", "get-document", "--name", "SSM-SessionManagerRunShell", "--query", "Content"], profile, region, timeout)
+  const prefs = await aws(
+    ["ssm", "get-document", "--name", "SSM-SessionManagerRunShell", "--query", "Content"],
+    profile,
+    region,
+    timeout,
+  )
   if (prefs.exitCode === 0) {
     const content = tryJson(prefs.stdout) || prefs.stdout
     const prefStr = typeof content === "string" ? content : JSON.stringify(content)
     const logging = prefStr.includes('"cloudWatchLogGroupName"') || prefStr.includes('"s3BucketName"')
-    output.push(`\n[*] Session logging: ${logging ? "ENABLED — sessions may be recorded" : "DISABLED — sessions are not logged"}`)
+    output.push(
+      `\n[*] Session logging: ${logging ? "ENABLED — sessions may be recorded" : "DISABLED — sessions are not logged"}`,
+    )
     if (!logging) {
       findings.push({
         checkId: "AWS-LATERAL-007",
@@ -628,8 +665,12 @@ export async function ssmSession(args: string[], timeout: number): Promise<HookR
     const remotePort = parts[1] || parts[0]
 
     if (remoteHost) {
-      output.push(`\n[+] Starting remote host port forward: localhost:${localPort} → ${remoteHost}:${remotePort} via ${instanceId}`)
-      output.push(`    Command: aws ssm start-session --target ${instanceId} --document-name AWS-StartPortForwardingSessionToRemoteHost --parameters '{"host":["${remoteHost}"],"portNumber":["${remotePort}"],"localPortNumber":["${localPort}"]}'`)
+      output.push(
+        `\n[+] Starting remote host port forward: localhost:${localPort} → ${remoteHost}:${remotePort} via ${instanceId}`,
+      )
+      output.push(
+        `    Command: aws ssm start-session --target ${instanceId} --document-name AWS-StartPortForwardingSessionToRemoteHost --parameters '{"host":["${remoteHost}"],"portNumber":["${remotePort}"],"localPortNumber":["${localPort}"]}'`,
+      )
       findings.push({
         checkId: "AWS-LATERAL-008",
         provider: "aws",
@@ -642,7 +683,9 @@ export async function ssmSession(args: string[], timeout: number): Promise<HookR
       })
     } else {
       output.push(`\n[+] Starting port forward: localhost:${localPort} → ${instanceId}:${remotePort}`)
-      output.push(`    Command: aws ssm start-session --target ${instanceId} --document-name AWS-StartPortForwardingSession --parameters '{"portNumber":["${remotePort}"],"localPortNumber":["${localPort}"]}'`)
+      output.push(
+        `    Command: aws ssm start-session --target ${instanceId} --document-name AWS-StartPortForwardingSession --parameters '{"portNumber":["${remotePort}"],"localPortNumber":["${localPort}"]}'`,
+      )
       findings.push({
         checkId: "AWS-LATERAL-008",
         provider: "aws",
@@ -656,7 +699,9 @@ export async function ssmSession(args: string[], timeout: number): Promise<HookR
     }
   } else {
     output.push(`\n[+] Starting interactive session with ${instanceId}`)
-    output.push(`    Command: aws ssm start-session --target ${instanceId}${profile ? ` --profile ${profile}` : ""}${region ? ` --region ${region}` : ""}`)
+    output.push(
+      `    Command: aws ssm start-session --target ${instanceId}${profile ? ` --profile ${profile}` : ""}${region ? ` --region ${region}` : ""}`,
+    )
     output.push(`\n[*] Run the above command in your terminal for interactive shell`)
     output.push(`[*] For automated commands, use ssm_exec instead`)
     findings.push({

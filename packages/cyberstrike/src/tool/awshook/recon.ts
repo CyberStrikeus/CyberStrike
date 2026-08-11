@@ -161,12 +161,7 @@ export async function ec2Enum(args: string[], timeout: number): Promise<HookResu
   }
 
   const sgs = await aws(
-    [
-      "ec2",
-      "describe-security-groups",
-      "--query",
-      "SecurityGroups[].[GroupId,GroupName,IpPermissions]",
-    ],
+    ["ec2", "describe-security-groups", "--query", "SecurityGroups[].[GroupId,GroupName,IpPermissions]"],
     profile,
     region,
     timeout,
@@ -245,7 +240,16 @@ export async function ec2Enum(args: string[], timeout: number): Promise<HookResu
     const idList = tryJson(ud.stdout) || []
     for (const inst of idList.slice(0, 10)) {
       const udata = await aws(
-        ["ec2", "describe-instance-attribute", "--instance-id", inst[0], "--attribute", "userData", "--query", "UserData.Value"],
+        [
+          "ec2",
+          "describe-instance-attribute",
+          "--instance-id",
+          inst[0],
+          "--attribute",
+          "userData",
+          "--query",
+          "UserData.Value",
+        ],
         profile,
         region,
         timeout,
@@ -282,7 +286,12 @@ export async function s3Enum(args: string[], timeout: number): Promise<HookResul
   const findings: Finding[] = []
   const output: string[] = ["[*] S3 Bucket Enumeration\n"]
 
-  const buckets = await aws(["s3api", "list-buckets", "--query", "Buckets[].[Name,CreationDate]"], profile, region, timeout)
+  const buckets = await aws(
+    ["s3api", "list-buckets", "--query", "Buckets[].[Name,CreationDate]"],
+    profile,
+    region,
+    timeout,
+  )
   if (buckets.exitCode !== 0) return { output: `[-] Cannot list buckets: ${buckets.stderr.trim()}`, findings }
   const bl = tryJson(buckets.stdout) || []
   output.push(`[+] Buckets: ${bl.length}\n`)
@@ -290,15 +299,11 @@ export async function s3Enum(args: string[], timeout: number): Promise<HookResul
   for (const b of bl) {
     output.push(`[*] ${b[0]} (created: ${b[1]})`)
 
-    const pub = await aws(
-      ["s3api", "get-public-access-block", "--bucket", b[0]],
-      profile,
-      region,
-      timeout,
-    )
+    const pub = await aws(["s3api", "get-public-access-block", "--bucket", b[0]], profile, region, timeout)
     if (pub.exitCode === 0) {
       const cfg = tryJson(pub.stdout)?.PublicAccessBlockConfiguration || {}
-      const allBlocked = cfg.BlockPublicAcls && cfg.IgnorePublicAcls && cfg.BlockPublicPolicy && cfg.RestrictPublicBuckets
+      const allBlocked =
+        cfg.BlockPublicAcls && cfg.IgnorePublicAcls && cfg.BlockPublicPolicy && cfg.RestrictPublicBuckets
       if (!allBlocked) {
         output.push(`    [!] Public access not fully blocked`)
         findings.push({
@@ -326,12 +331,7 @@ export async function s3Enum(args: string[], timeout: number): Promise<HookResul
       })
     }
 
-    const enc = await aws(
-      ["s3api", "get-bucket-encryption", "--bucket", b[0]],
-      profile,
-      region,
-      timeout,
-    )
+    const enc = await aws(["s3api", "get-bucket-encryption", "--bucket", b[0]], profile, region, timeout)
     if (enc.exitCode !== 0) {
       output.push(`    [-] No encryption configured`)
       findings.push({
@@ -346,12 +346,7 @@ export async function s3Enum(args: string[], timeout: number): Promise<HookResul
       })
     }
 
-    const ver = await aws(
-      ["s3api", "get-bucket-versioning", "--bucket", b[0]],
-      profile,
-      region,
-      timeout,
-    )
+    const ver = await aws(["s3api", "get-bucket-versioning", "--bucket", b[0]], profile, region, timeout)
     if (ver.exitCode === 0) {
       const vs = tryJson(ver.stdout)
       if (vs?.Status !== "Enabled") output.push(`    [-] Versioning: ${vs?.Status || "disabled"}`)
@@ -422,12 +417,7 @@ export async function lambdaEnum(args: string[], timeout: number): Promise<HookR
   for (const f of fl) {
     output.push(`    ${f[0]} (${f[1]}) — role: ${(f[2] || "").split("/").pop()} — ${f[3]} bytes`)
 
-    const cfg = await aws(
-      ["lambda", "get-function-configuration", "--function-name", f[0]],
-      profile,
-      region,
-      timeout,
-    )
+    const cfg = await aws(["lambda", "get-function-configuration", "--function-name", f[0]], profile, region, timeout)
     if (cfg.exitCode === 0) {
       const config = tryJson(cfg.stdout)
       const envVars = config?.Environment?.Variables || {}
@@ -528,7 +518,12 @@ export async function vpcEnum(args: string[], timeout: number): Promise<HookResu
   }
 
   const rtbs = await aws(
-    ["ec2", "describe-route-tables", "--query", "RouteTables[].[RouteTableId,VpcId,Routes[].{dest:DestinationCidrBlock,gw:GatewayId,nat:NatGatewayId}]"],
+    [
+      "ec2",
+      "describe-route-tables",
+      "--query",
+      "RouteTables[].[RouteTableId,VpcId,Routes[].{dest:DestinationCidrBlock,gw:GatewayId,nat:NatGatewayId}]",
+    ],
     profile,
     region,
     timeout,
@@ -544,7 +539,12 @@ export async function vpcEnum(args: string[], timeout: number): Promise<HookResu
   }
 
   const nats = await aws(
-    ["ec2", "describe-nat-gateways", "--query", "NatGateways[].[NatGatewayId,VpcId,State,NatGatewayAddresses[0].PublicIp]"],
+    [
+      "ec2",
+      "describe-nat-gateways",
+      "--query",
+      "NatGateways[].[NatGatewayId,VpcId,State,NatGatewayAddresses[0].PublicIp]",
+    ],
     profile,
     region,
     timeout,
@@ -556,7 +556,12 @@ export async function vpcEnum(args: string[], timeout: number): Promise<HookResu
   }
 
   const endpoints = await aws(
-    ["ec2", "describe-vpc-endpoints", "--query", "VpcEndpoints[].[VpcEndpointId,VpcId,ServiceName,VpcEndpointType,State]"],
+    [
+      "ec2",
+      "describe-vpc-endpoints",
+      "--query",
+      "VpcEndpoints[].[VpcEndpointId,VpcId,ServiceName,VpcEndpointType,State]",
+    ],
     profile,
     region,
     timeout,
@@ -677,7 +682,14 @@ export async function rdsEnum(args: string[], timeout: number): Promise<HookResu
 
     for (const s of sl) {
       const attr = await aws(
-        ["rds", "describe-db-snapshot-attributes", "--db-snapshot-identifier", s[0], "--query", "DBSnapshotAttributesResult.DBSnapshotAttributes"],
+        [
+          "rds",
+          "describe-db-snapshot-attributes",
+          "--db-snapshot-identifier",
+          s[0],
+          "--query",
+          "DBSnapshotAttributesResult.DBSnapshotAttributes",
+        ],
         profile,
         region,
         timeout,
@@ -731,7 +743,9 @@ export async function ecsEnum(args: string[], timeout: number): Promise<HookResu
         const execEnabled = (cluster.settings || []).some(
           (s: Record<string, string>) => s.name === "containerInsights" && s.value === "enabled",
         )
-        output.push(`    ${name} — ${cluster.status} — tasks: ${cluster.runningTasksCount}${execEnabled ? " [INSIGHTS]" : ""}`)
+        output.push(
+          `    ${name} — ${cluster.status} — tasks: ${cluster.runningTasksCount}${execEnabled ? " [INSIGHTS]" : ""}`,
+        )
       }
     }
 
@@ -754,7 +768,9 @@ export async function ecsEnum(args: string[], timeout: number): Promise<HookResu
           const svcList = tryJson(svcDesc.stdout)?.services || []
           for (const s of svcList) {
             const execEnabled = s.enableExecuteCommand
-            output.push(`      svc: ${s.serviceName} — ${s.status} — tasks: ${s.runningCount}${execEnabled ? " [EXEC-ENABLED]" : ""}`)
+            output.push(
+              `      svc: ${s.serviceName} — ${s.status} — tasks: ${s.runningCount}${execEnabled ? " [EXEC-ENABLED]" : ""}`,
+            )
             if (execEnabled) {
               findings.push({
                 checkId: `AWS-ECS-001`,
@@ -772,12 +788,7 @@ export async function ecsEnum(args: string[], timeout: number): Promise<HookResu
       }
     }
 
-    const tasks = await aws(
-      ["ecs", "list-tasks", "--cluster", arn, "--query", "taskArns"],
-      profile,
-      region,
-      timeout,
-    )
+    const tasks = await aws(["ecs", "list-tasks", "--cluster", arn, "--query", "taskArns"], profile, region, timeout)
     if (tasks.exitCode === 0) {
       const tl = tryJson(tasks.stdout) || []
       if (tl.length > 0) {
@@ -818,11 +829,13 @@ export async function ecsEnum(args: string[], timeout: number): Promise<HookResu
       if (tdDesc.exitCode === 0) {
         const def = tryJson(tdDesc.stdout)
         for (const c of def?.containerDefinitions || []) {
-          const envSecrets = (c.environment || []).filter(
-            (e: Record<string, string>) => /password|secret|key|token/i.test(e.name),
+          const envSecrets = (c.environment || []).filter((e: Record<string, string>) =>
+            /password|secret|key|token/i.test(e.name),
           )
           if (envSecrets.length > 0) {
-            output.push(`      [!] Container ${c.name}: secrets in env vars — ${envSecrets.map((e: Record<string, string>) => e.name).join(",")}`)
+            output.push(
+              `      [!] Container ${c.name}: secrets in env vars — ${envSecrets.map((e: Record<string, string>) => e.name).join(",")}`,
+            )
             findings.push({
               checkId: `AWS-ECS-002`,
               provider: "aws",
@@ -861,7 +874,9 @@ export async function eksEnum(args: string[], timeout: number): Promise<HookResu
 
     output.push(`\n    ${name} — ${cluster.status} — k8s ${cluster.version}`)
     output.push(`      Endpoint: ${cluster.endpoint}`)
-    output.push(`      Public: ${cluster.resourcesVpcConfig?.endpointPublicAccess}, Private: ${cluster.resourcesVpcConfig?.endpointPrivateAccess}`)
+    output.push(
+      `      Public: ${cluster.resourcesVpcConfig?.endpointPublicAccess}, Private: ${cluster.resourcesVpcConfig?.endpointPrivateAccess}`,
+    )
 
     if (cluster.resourcesVpcConfig?.endpointPublicAccess) {
       const publicCidrs = cluster.resourcesVpcConfig?.publicAccessCidrs || []
@@ -906,7 +921,9 @@ export async function eksEnum(args: string[], timeout: number): Promise<HookResu
         if (ngDesc.exitCode === 0) {
           const nodeGroup = tryJson(ngDesc.stdout)?.nodegroup
           if (nodeGroup) {
-            output.push(`        ${ng}: ${nodeGroup.status} — ${nodeGroup.instanceTypes?.join(",")} — desired: ${nodeGroup.scalingConfig?.desiredSize}`)
+            output.push(
+              `        ${ng}: ${nodeGroup.status} — ${nodeGroup.instanceTypes?.join(",")} — desired: ${nodeGroup.scalingConfig?.desiredSize}`,
+            )
           }
         }
       }
@@ -1170,7 +1187,14 @@ export async function route53Enum(args: string[], timeout: number): Promise<Hook
     output.push(`\n    ${z[1]} (${zoneId}) — ${z[2] ? "private" : "public"} — ${z[3]} records`)
 
     const records = await aws(
-      ["route53", "list-resource-record-sets", "--hosted-zone-id", zoneId, "--query", "ResourceRecordSets[].[Name,Type,ResourceRecords[0].Value,AliasTarget.DNSName]"],
+      [
+        "route53",
+        "list-resource-record-sets",
+        "--hosted-zone-id",
+        zoneId,
+        "--query",
+        "ResourceRecordSets[].[Name,Type,ResourceRecords[0].Value,AliasTarget.DNSName]",
+      ],
       profile,
       region,
       timeout,
@@ -1206,7 +1230,12 @@ export async function route53Enum(args: string[], timeout: number): Promise<Hook
   }
 
   const healthChecks = await aws(
-    ["route53", "list-health-checks", "--query", "HealthChecks[].[Id,HealthCheckConfig.FullyQualifiedDomainName,HealthCheckConfig.Port,HealthCheckConfig.Type]"],
+    [
+      "route53",
+      "list-health-checks",
+      "--query",
+      "HealthChecks[].[Id,HealthCheckConfig.FullyQualifiedDomainName,HealthCheckConfig.Port,HealthCheckConfig.Type]",
+    ],
     profile,
     region,
     timeout,
@@ -1277,7 +1306,18 @@ export async function serviceRecon(args: string[], timeout: number): Promise<Hoo
     { name: "DynamoDB", cmd: ["dynamodb", "list-tables", "--query", "TableNames | length(@)"] },
     { name: "SNS", cmd: ["sns", "list-topics", "--query", "Topics | length(@)"] },
     { name: "SQS", cmd: ["sqs", "list-queues", "--query", "QueueUrls | length(@)"] },
-    { name: "CloudFormation", cmd: ["cloudformation", "list-stacks", "--stack-status-filter", "CREATE_COMPLETE", "UPDATE_COMPLETE", "--query", "StackSummaries | length(@)"] },
+    {
+      name: "CloudFormation",
+      cmd: [
+        "cloudformation",
+        "list-stacks",
+        "--stack-status-filter",
+        "CREATE_COMPLETE",
+        "UPDATE_COMPLETE",
+        "--query",
+        "StackSummaries | length(@)",
+      ],
+    },
   ]
 
   output.push(`\n[*] Service Usage Summary:`)
@@ -1301,10 +1341,22 @@ export async function cfnEnum(args: string[], timeout: number): Promise<HookResu
   const output: string[] = ["[*] CloudFormation Stack Enumeration\n"]
 
   const stacks = await aws(
-    ["cloudformation", "list-stacks", "--stack-status-filter", "CREATE_COMPLETE", "UPDATE_COMPLETE", "ROLLBACK_COMPLETE", "--query", "StackSummaries[].[StackName,StackStatus,CreationTime,TemplateDescription]"],
-    profile, region, timeout,
+    [
+      "cloudformation",
+      "list-stacks",
+      "--stack-status-filter",
+      "CREATE_COMPLETE",
+      "UPDATE_COMPLETE",
+      "ROLLBACK_COMPLETE",
+      "--query",
+      "StackSummaries[].[StackName,StackStatus,CreationTime,TemplateDescription]",
+    ],
+    profile,
+    region,
+    timeout,
   )
-  if (stacks.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: cloudformation:ListStacks", findings }
+  if (stacks.exitCode !== 0)
+    return { output: output.join("\n") + "\n[-] Access denied: cloudformation:ListStacks", findings }
 
   const sl = tryJson(stacks.stdout) || []
   output.push(`[+] Stacks found: ${sl.length}\n`)
@@ -1315,7 +1367,12 @@ export async function cfnEnum(args: string[], timeout: number): Promise<HookResu
     output.push(`  Stack: ${s[0]}  Status: ${s[1]}  Created: ${s[2]}`)
     if (s[3]) output.push(`    Description: ${s[3]}`)
 
-    const tpl = await aws(["cloudformation", "get-template", "--stack-name", s[0], "--query", "TemplateBody"], profile, region, timeout)
+    const tpl = await aws(
+      ["cloudformation", "get-template", "--stack-name", s[0], "--query", "TemplateBody"],
+      profile,
+      region,
+      timeout,
+    )
     if (tpl.exitCode === 0) {
       const body = tpl.stdout
       const matches = body.match(secretPattern)
@@ -1349,7 +1406,19 @@ export async function cfnEnum(args: string[], timeout: number): Promise<HookResu
       }
     }
 
-    const params = await aws(["cloudformation", "describe-stacks", "--stack-name", s[0], "--query", "Stacks[0].Parameters[].[ParameterKey,ParameterValue]"], profile, region, timeout)
+    const params = await aws(
+      [
+        "cloudformation",
+        "describe-stacks",
+        "--stack-name",
+        s[0],
+        "--query",
+        "Stacks[0].Parameters[].[ParameterKey,ParameterValue]",
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (params.exitCode === 0) {
       const pl = tryJson(params.stdout) || []
       for (const p of pl) {
@@ -1369,7 +1438,19 @@ export async function cfnEnum(args: string[], timeout: number): Promise<HookResu
       }
     }
 
-    const outputs = await aws(["cloudformation", "describe-stacks", "--stack-name", s[0], "--query", "Stacks[0].Outputs[].[OutputKey,OutputValue,ExportName]"], profile, region, timeout)
+    const outputs = await aws(
+      [
+        "cloudformation",
+        "describe-stacks",
+        "--stack-name",
+        s[0],
+        "--query",
+        "Stacks[0].Outputs[].[OutputKey,OutputValue,ExportName]",
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (outputs.exitCode === 0) {
       const ol = tryJson(outputs.stdout) || []
       for (const o of ol) {
@@ -1389,18 +1470,37 @@ export async function cfnEnum(args: string[], timeout: number): Promise<HookResu
       }
     }
 
-    const resources = await aws(["cloudformation", "list-stack-resources", "--stack-name", s[0], "--query", "StackResourceSummaries[].[ResourceType,LogicalResourceId,PhysicalResourceId]"], profile, region, timeout)
+    const resources = await aws(
+      [
+        "cloudformation",
+        "list-stack-resources",
+        "--stack-name",
+        s[0],
+        "--query",
+        "StackResourceSummaries[].[ResourceType,LogicalResourceId,PhysicalResourceId]",
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (resources.exitCode === 0) {
       const rl = tryJson(resources.stdout) || []
       const iamResources = rl.filter((r: string[]) => r[0]?.startsWith("AWS::IAM::"))
       if (iamResources.length) {
-        output.push(`    [!] IAM resources in stack: ${iamResources.map((r: string[]) => `${r[0]}:${r[1]}`).join(", ")}`)
+        output.push(
+          `    [!] IAM resources in stack: ${iamResources.map((r: string[]) => `${r[0]}:${r[1]}`).join(", ")}`,
+        )
       }
     }
     output.push("")
   }
 
-  const exports = await aws(["cloudformation", "list-exports", "--query", "Exports[].[Name,Value,ExportingStackId]"], profile, region, timeout)
+  const exports = await aws(
+    ["cloudformation", "list-exports", "--query", "Exports[].[Name,Value,ExportingStackId]"],
+    profile,
+    region,
+    timeout,
+  )
   if (exports.exitCode === 0) {
     const el = tryJson(exports.stdout) || []
     if (el.length) {
@@ -1418,14 +1518,31 @@ export async function apigwEnum(args: string[], timeout: number): Promise<HookRe
   const findings: Finding[] = []
   const output: string[] = ["[*] API Gateway Enumeration\n"]
 
-  const rest = await aws(["apigateway", "get-rest-apis", "--query", "items[].[id,name,endpointConfiguration.types[0],createdDate]"], profile, region, timeout)
+  const rest = await aws(
+    ["apigateway", "get-rest-apis", "--query", "items[].[id,name,endpointConfiguration.types[0],createdDate]"],
+    profile,
+    region,
+    timeout,
+  )
   if (rest.exitCode === 0) {
     const apis = tryJson(rest.stdout) || []
     output.push(`[+] REST APIs: ${apis.length}`)
     for (const a of apis) {
       output.push(`\n  API: ${a[1]} (${a[0]})  Type: ${a[2]}  Created: ${a[3]}`)
 
-      const stages = await aws(["apigateway", "get-stages", "--rest-api-id", a[0], "--query", "item[].[stageName,deploymentId,cacheClusterEnabled]"], profile, region, timeout)
+      const stages = await aws(
+        [
+          "apigateway",
+          "get-stages",
+          "--rest-api-id",
+          a[0],
+          "--query",
+          "item[].[stageName,deploymentId,cacheClusterEnabled]",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (stages.exitCode === 0) {
         for (const st of tryJson(stages.stdout) || []) {
           const url = `https://${a[0]}.execute-api.${region || "us-east-1"}.amazonaws.com/${st[0]}`
@@ -1433,7 +1550,12 @@ export async function apigwEnum(args: string[], timeout: number): Promise<HookRe
         }
       }
 
-      const resources = await aws(["apigateway", "get-resources", "--rest-api-id", a[0], "--query", "items[].[path,resourceMethods]"], profile, region, timeout)
+      const resources = await aws(
+        ["apigateway", "get-resources", "--rest-api-id", a[0], "--query", "items[].[path,resourceMethods]"],
+        profile,
+        region,
+        timeout,
+      )
       if (resources.exitCode === 0) {
         const rl = tryJson(resources.stdout) || []
         for (const r of rl) {
@@ -1444,7 +1566,12 @@ export async function apigwEnum(args: string[], timeout: number): Promise<HookRe
         }
       }
 
-      const keys = await aws(["apigateway", "get-api-keys", "--include-values", "--query", "items[].[name,id,value,enabled]"], profile, region, timeout)
+      const keys = await aws(
+        ["apigateway", "get-api-keys", "--include-values", "--query", "items[].[name,id,value,enabled]"],
+        profile,
+        region,
+        timeout,
+      )
       if (keys.exitCode === 0) {
         const kl = tryJson(keys.stdout) || []
         if (kl.length) {
@@ -1465,7 +1592,12 @@ export async function apigwEnum(args: string[], timeout: number): Promise<HookRe
         }
       }
 
-      const authorizers = await aws(["apigateway", "get-authorizers", "--rest-api-id", a[0], "--query", "items[].[name,type,authorizerUri]"], profile, region, timeout)
+      const authorizers = await aws(
+        ["apigateway", "get-authorizers", "--rest-api-id", a[0], "--query", "items[].[name,type,authorizerUri]"],
+        profile,
+        region,
+        timeout,
+      )
       if (authorizers.exitCode === 0) {
         const al = tryJson(authorizers.stdout) || []
         if (al.length) {
@@ -1490,14 +1622,24 @@ export async function apigwEnum(args: string[], timeout: number): Promise<HookRe
   }
 
   output.push("\n")
-  const v2 = await aws(["apigatewayv2", "get-apis", "--query", "Items[].[ApiId,Name,ProtocolType,ApiEndpoint]"], profile, region, timeout)
+  const v2 = await aws(
+    ["apigatewayv2", "get-apis", "--query", "Items[].[ApiId,Name,ProtocolType,ApiEndpoint]"],
+    profile,
+    region,
+    timeout,
+  )
   if (v2.exitCode === 0) {
     const v2apis = tryJson(v2.stdout) || []
     output.push(`[+] HTTP/WebSocket APIs (v2): ${v2apis.length}`)
     for (const a of v2apis) {
       output.push(`  ${a[1]} (${a[0]})  Protocol: ${a[2]}  Endpoint: ${a[3]}`)
 
-      const routes = await aws(["apigatewayv2", "get-routes", "--api-id", a[0], "--query", "Items[].[RouteKey,AuthorizationType,Target]"], profile, region, timeout)
+      const routes = await aws(
+        ["apigatewayv2", "get-routes", "--api-id", a[0], "--query", "Items[].[RouteKey,AuthorizationType,Target]"],
+        profile,
+        region,
+        timeout,
+      )
       if (routes.exitCode === 0) {
         for (const r of tryJson(routes.stdout) || []) {
           output.push(`    Route: ${r[0]}  Auth: ${r[1] || "NONE"}  Target: ${r[2] || "N/A"}`)
@@ -1536,7 +1678,19 @@ export async function snsSqsEnum(args: string[], timeout: number): Promise<HookR
       output.push(`\n  Topic: ${name}`)
       output.push(`    ARN: ${arn}`)
 
-      const attrs = await aws(["sns", "get-topic-attributes", "--topic-arn", arn, "--query", "{Policy:Attributes.Policy,KmsMasterKeyId:Attributes.KmsMasterKeyId,SubscriptionsConfirmed:Attributes.SubscriptionsConfirmed}"], profile, region, timeout)
+      const attrs = await aws(
+        [
+          "sns",
+          "get-topic-attributes",
+          "--topic-arn",
+          arn,
+          "--query",
+          "{Policy:Attributes.Policy,KmsMasterKeyId:Attributes.KmsMasterKeyId,SubscriptionsConfirmed:Attributes.SubscriptionsConfirmed}",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (attrs.exitCode === 0) {
         const a = tryJson(attrs.stdout)
         if (a) {
@@ -1561,7 +1715,19 @@ export async function snsSqsEnum(args: string[], timeout: number): Promise<HookR
         }
       }
 
-      const subs = await aws(["sns", "list-subscriptions-by-topic", "--topic-arn", arn, "--query", "Subscriptions[].[Protocol,Endpoint,SubscriptionArn]"], profile, region, timeout)
+      const subs = await aws(
+        [
+          "sns",
+          "list-subscriptions-by-topic",
+          "--topic-arn",
+          arn,
+          "--query",
+          "Subscriptions[].[Protocol,Endpoint,SubscriptionArn]",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (subs.exitCode === 0) {
         for (const sub of tryJson(subs.stdout) || []) {
           output.push(`    Sub: ${sub[0]}  →  ${sub[1]}`)
@@ -1592,7 +1758,21 @@ export async function snsSqsEnum(args: string[], timeout: number): Promise<HookR
       output.push(`\n  Queue: ${name}`)
       output.push(`    URL: ${url}`)
 
-      const qattrs = await aws(["sqs", "get-queue-attributes", "--queue-url", url, "--attribute-names", "All", "--query", "{Policy:Attributes.Policy,KmsMasterKeyId:Attributes.KmsMasterKeyId,ApproximateNumberOfMessages:Attributes.ApproximateNumberOfMessages,RedrivePolicy:Attributes.RedrivePolicy}"], profile, region, timeout)
+      const qattrs = await aws(
+        [
+          "sqs",
+          "get-queue-attributes",
+          "--queue-url",
+          url,
+          "--attribute-names",
+          "All",
+          "--query",
+          "{Policy:Attributes.Policy,KmsMasterKeyId:Attributes.KmsMasterKeyId,ApproximateNumberOfMessages:Attributes.ApproximateNumberOfMessages,RedrivePolicy:Attributes.RedrivePolicy}",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (qattrs.exitCode === 0) {
         const qa = tryJson(qattrs.stdout)
         if (qa) {
@@ -1640,7 +1820,12 @@ export async function cloudwatchEnum(args: string[], timeout: number): Promise<H
   const findings: Finding[] = []
   const output: string[] = ["[*] CloudWatch Enumeration\n"]
 
-  const groups = await aws(["logs", "describe-log-groups", "--query", "logGroups[].[logGroupName,storedBytes,retentionInDays,kmsKeyId]"], profile, region, timeout)
+  const groups = await aws(
+    ["logs", "describe-log-groups", "--query", "logGroups[].[logGroupName,storedBytes,retentionInDays,kmsKeyId]"],
+    profile,
+    region,
+    timeout,
+  )
   if (groups.exitCode === 0) {
     const gl = tryJson(groups.stdout) || []
     output.push(`[+] Log Groups: ${gl.length}`)
@@ -1651,7 +1836,7 @@ export async function cloudwatchEnum(args: string[], timeout: number): Promise<H
       const retention = g[2] || "never expires"
       output.push(`  ${g[0]}  Size: ${sizeMB}MB  Retention: ${retention}  KMS: ${g[3] || "none"}`)
 
-      if (interestingPrefixes.some(p => String(g[0]).toLowerCase().includes(p))) {
+      if (interestingPrefixes.some((p) => String(g[0]).toLowerCase().includes(p))) {
         findings.push({
           checkId: "AWS-CW-001",
           provider: "aws",
@@ -1679,7 +1864,17 @@ export async function cloudwatchEnum(args: string[], timeout: number): Promise<H
     }
   }
 
-  const alarms = await aws(["cloudwatch", "describe-alarms", "--query", "MetricAlarms[].[AlarmName,MetricName,Namespace,StateValue,ActionsEnabled,AlarmActions]"], profile, region, timeout)
+  const alarms = await aws(
+    [
+      "cloudwatch",
+      "describe-alarms",
+      "--query",
+      "MetricAlarms[].[AlarmName,MetricName,Namespace,StateValue,ActionsEnabled,AlarmActions]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
   if (alarms.exitCode === 0) {
     const al = tryJson(alarms.stdout) || []
     output.push(`\n[+] CloudWatch Alarms: ${al.length}`)
@@ -1703,7 +1898,12 @@ export async function cloudwatchEnum(args: string[], timeout: number): Promise<H
     }
   }
 
-  const dashboards = await aws(["cloudwatch", "list-dashboards", "--query", "DashboardEntries[].[DashboardName,Size,LastModified]"], profile, region, timeout)
+  const dashboards = await aws(
+    ["cloudwatch", "list-dashboards", "--query", "DashboardEntries[].[DashboardName,Size,LastModified]"],
+    profile,
+    region,
+    timeout,
+  )
   if (dashboards.exitCode === 0) {
     const dl = tryJson(dashboards.stdout) || []
     if (dl.length) {
@@ -1727,8 +1927,20 @@ export async function elasticacheEnum(args: string[], timeout: number): Promise<
   const findings: Finding[] = []
   const output: string[] = ["[*] ElastiCache Enumeration (Redis/Memcached)\n"]
 
-  const clusters = await aws(["elasticache", "describe-cache-clusters", "--show-cache-node-info", "--query", "CacheClusters[].[CacheClusterId,Engine,EngineVersion,CacheNodeType,NumCacheNodes,CacheClusterStatus,TransitEncryptionEnabled,AtRestEncryptionEnabled,AuthTokenEnabled,ConfigurationEndpoint.Address,CacheNodes[0].Endpoint.Address,CacheNodes[0].Endpoint.Port]"], profile, region, timeout)
-  if (clusters.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: elasticache:DescribeCacheClusters", findings }
+  const clusters = await aws(
+    [
+      "elasticache",
+      "describe-cache-clusters",
+      "--show-cache-node-info",
+      "--query",
+      "CacheClusters[].[CacheClusterId,Engine,EngineVersion,CacheNodeType,NumCacheNodes,CacheClusterStatus,TransitEncryptionEnabled,AtRestEncryptionEnabled,AuthTokenEnabled,ConfigurationEndpoint.Address,CacheNodes[0].Endpoint.Address,CacheNodes[0].Endpoint.Port]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
+  if (clusters.exitCode !== 0)
+    return { output: output.join("\n") + "\n[-] Access denied: elasticache:DescribeCacheClusters", findings }
 
   const cl = tryJson(clusters.stdout) || []
   output.push(`[+] Cache clusters: ${cl.length}`)
@@ -1736,7 +1948,9 @@ export async function elasticacheEnum(args: string[], timeout: number): Promise<
   for (const c of cl) {
     output.push(`\n  Cluster: ${c[0]}  Engine: ${c[1]} ${c[2]}  Type: ${c[3]}  Nodes: ${c[4]}  Status: ${c[5]}`)
     output.push(`    Endpoint: ${c[10] || c[9] || "N/A"}:${c[11] || "N/A"}`)
-    output.push(`    Transit encryption: ${c[6] || false}  At-rest encryption: ${c[7] || false}  Auth: ${c[8] || false}`)
+    output.push(
+      `    Transit encryption: ${c[6] || false}  At-rest encryption: ${c[7] || false}  Auth: ${c[8] || false}`,
+    )
 
     if (!c[8]) {
       output.push(`    [!] No AUTH — anyone with network access can read/write data`)
@@ -1779,7 +1993,17 @@ export async function elasticacheEnum(args: string[], timeout: number): Promise<
     }
   }
 
-  const repl = await aws(["elasticache", "describe-replication-groups", "--query", "ReplicationGroups[].[ReplicationGroupId,Description,Status,MemberClusters,NodeGroups[0].PrimaryEndpoint.Address,NodeGroups[0].PrimaryEndpoint.Port,TransitEncryptionEnabled,AtRestEncryptionEnabled,AuthTokenEnabled,AutomaticFailover]"], profile, region, timeout)
+  const repl = await aws(
+    [
+      "elasticache",
+      "describe-replication-groups",
+      "--query",
+      "ReplicationGroups[].[ReplicationGroupId,Description,Status,MemberClusters,NodeGroups[0].PrimaryEndpoint.Address,NodeGroups[0].PrimaryEndpoint.Port,TransitEncryptionEnabled,AtRestEncryptionEnabled,AuthTokenEnabled,AutomaticFailover]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
   if (repl.exitCode === 0) {
     const rl = tryJson(repl.stdout) || []
     if (rl.length) {
@@ -1791,7 +2015,17 @@ export async function elasticacheEnum(args: string[], timeout: number): Promise<
     }
   }
 
-  const sgroupsList = await aws(["elasticache", "describe-cache-subnet-groups", "--query", "CacheSubnetGroups[].[CacheSubnetGroupName,VpcId,Subnets[].SubnetIdentifier]"], profile, region, timeout)
+  const sgroupsList = await aws(
+    [
+      "elasticache",
+      "describe-cache-subnet-groups",
+      "--query",
+      "CacheSubnetGroups[].[CacheSubnetGroupName,VpcId,Subnets[].SubnetIdentifier]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
   if (sgroupsList.exitCode === 0) {
     const sgl = tryJson(sgroupsList.stdout) || []
     if (sgl.length) {
@@ -1800,7 +2034,12 @@ export async function elasticacheEnum(args: string[], timeout: number): Promise<
     }
   }
 
-  const snapshots = await aws(["elasticache", "describe-snapshots", "--query", "Snapshots[].[SnapshotName,CacheClusterId,SnapshotStatus,Engine]"], profile, region, timeout)
+  const snapshots = await aws(
+    ["elasticache", "describe-snapshots", "--query", "Snapshots[].[SnapshotName,CacheClusterId,SnapshotStatus,Engine]"],
+    profile,
+    region,
+    timeout,
+  )
   if (snapshots.exitCode === 0) {
     const snl = tryJson(snapshots.stdout) || []
     if (snl.length) {
@@ -1818,8 +2057,19 @@ export async function redshiftEnum(args: string[], timeout: number): Promise<Hoo
   const findings: Finding[] = []
   const output: string[] = ["[*] Redshift Data Warehouse Enumeration\n"]
 
-  const clusters = await aws(["redshift", "describe-clusters", "--query", "Clusters[].[ClusterIdentifier,NodeType,NumberOfNodes,ClusterStatus,DBName,MasterUsername,Endpoint.Address,Endpoint.Port,PubliclyAccessible,Encrypted,EnhancedVpcRouting,ClusterSubnetGroupName,VpcId]"], profile, region, timeout)
-  if (clusters.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: redshift:DescribeClusters", findings }
+  const clusters = await aws(
+    [
+      "redshift",
+      "describe-clusters",
+      "--query",
+      "Clusters[].[ClusterIdentifier,NodeType,NumberOfNodes,ClusterStatus,DBName,MasterUsername,Endpoint.Address,Endpoint.Port,PubliclyAccessible,Encrypted,EnhancedVpcRouting,ClusterSubnetGroupName,VpcId]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
+  if (clusters.exitCode !== 0)
+    return { output: output.join("\n") + "\n[-] Access denied: redshift:DescribeClusters", findings }
 
   const cl = tryJson(clusters.stdout) || []
   output.push(`[+] Redshift clusters: ${cl.length}`)
@@ -1856,7 +2106,12 @@ export async function redshiftEnum(args: string[], timeout: number): Promise<Hoo
       })
     }
 
-    const logging = await aws(["redshift", "describe-logging-status", "--cluster-identifier", c[0]], profile, region, timeout)
+    const logging = await aws(
+      ["redshift", "describe-logging-status", "--cluster-identifier", c[0]],
+      profile,
+      region,
+      timeout,
+    )
     if (logging.exitCode === 0) {
       const l = tryJson(logging.stdout)
       if (l && !l.LoggingEnabled) {
@@ -1874,13 +2129,28 @@ export async function redshiftEnum(args: string[], timeout: number): Promise<Hoo
       }
     }
 
-    const users = await aws(["redshift", "describe-cluster-db-revisions", "--cluster-identifier", c[0]], profile, region, timeout)
+    const users = await aws(
+      ["redshift", "describe-cluster-db-revisions", "--cluster-identifier", c[0]],
+      profile,
+      region,
+      timeout,
+    )
     if (users.exitCode === 0) {
       output.push(`    [+] Database revisions accessible`)
     }
   }
 
-  const snapshots = await aws(["redshift", "describe-cluster-snapshots", "--query", "Snapshots[].[SnapshotIdentifier,ClusterIdentifier,Status,SnapshotType,Encrypted,AccountsWithRestoreAccess]"], profile, region, timeout)
+  const snapshots = await aws(
+    [
+      "redshift",
+      "describe-cluster-snapshots",
+      "--query",
+      "Snapshots[].[SnapshotIdentifier,ClusterIdentifier,Status,SnapshotType,Encrypted,AccountsWithRestoreAccess]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
   if (snapshots.exitCode === 0) {
     const sl = tryJson(snapshots.stdout) || []
     if (sl.length) {
@@ -1888,7 +2158,9 @@ export async function redshiftEnum(args: string[], timeout: number): Promise<Hoo
       for (const s of sl) {
         output.push(`  ${s[0]}  Cluster: ${s[1]}  Type: ${s[3]}  Encrypted: ${s[4]}`)
         if (s[5] && s[5].length) {
-          output.push(`    [!] Shared with accounts: ${s[5].map((a: Record<string, string>) => a.AccountId).join(", ")}`)
+          output.push(
+            `    [!] Shared with accounts: ${s[5].map((a: Record<string, string>) => a.AccountId).join(", ")}`,
+          )
           findings.push({
             checkId: "AWS-REDSHIFT-004",
             provider: "aws",
@@ -1904,7 +2176,17 @@ export async function redshiftEnum(args: string[], timeout: number): Promise<Hoo
     }
   }
 
-  const serverless = await aws(["redshift-serverless", "list-workgroups", "--query", "workgroups[].[workgroupName,status,baseCapacity,endpoint.address,endpoint.port,publiclyAccessible]"], profile, region, timeout)
+  const serverless = await aws(
+    [
+      "redshift-serverless",
+      "list-workgroups",
+      "--query",
+      "workgroups[].[workgroupName,status,baseCapacity,endpoint.address,endpoint.port,publiclyAccessible]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
   if (serverless.exitCode === 0) {
     const wl = tryJson(serverless.stdout) || []
     if (wl.length) {
