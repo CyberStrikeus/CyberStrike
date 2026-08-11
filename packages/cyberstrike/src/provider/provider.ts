@@ -245,7 +245,7 @@ export namespace Provider {
         process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI || process.env.AWS_CONTAINER_CREDENTIALS_FULL_URI,
       )
 
-      if (!profile && !awsAccessKeyId && !awsBearerToken && !awsWebIdentityTokenFile && !containerCreds)
+      if (!profile && !awsAccessKeyId && !awsBearerToken && !awsWebIdentityTokenFile && !containerCreds && !providerConfig)
         return { autoload: false }
 
       const providerOptions: AmazonBedrockProviderSettings = {
@@ -255,12 +255,17 @@ export namespace Provider {
       // Only use credential chain if no bearer token exists
       // Bearer token takes precedence over credential chain (profiles, access keys, IAM roles, web identity tokens)
       if (!awsBearerToken) {
-        const { fromNodeProviderChain } = await import(await BunProc.install("@aws-sdk/credential-providers"))
-
-        // Build credential provider options (only pass profile if specified)
-        const credentialProviderOptions = profile ? { profile } : {}
-
-        providerOptions.credentialProvider = fromNodeProviderChain(credentialProviderOptions)
+        if (awsAccessKeyId) {
+          // If explicit environment credentials are set, use standard env provider
+          const { fromEnv } = await import(await BunProc.install("@aws-sdk/credential-provider-env"))
+          providerOptions.credentialProvider = fromEnv()
+        } else {
+          // Direct IMDS provider for EC2 Instance Roles (bypasses file-loader symbol stubs)
+          const { fromInstanceMetadata } = await import(
+            await BunProc.install("@aws-sdk/credential-provider-imds")
+          )
+          providerOptions.credentialProvider = fromInstanceMetadata()
+        }
       }
 
       // Add custom endpoint if specified (endpoint takes precedence over baseURL)
