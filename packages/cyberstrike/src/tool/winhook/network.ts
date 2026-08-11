@@ -1207,7 +1207,7 @@ Write-Output "Extended Protection: $(if ($epa.SuppressExtendedProtection -eq 1) 
 
     if (alreadyWeak) {
       findings.push({
-        checkId: "WIN-NTLM-001",
+        checkId: "WIN-NTLM-011",
         provider: "windows",
         severity: "critical",
         status: "WEAK",
@@ -1446,7 +1446,7 @@ if ($interfaces.Count -gt 1) {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-PIVOT-001",
+      checkId: "WIN-PIVOT-006",
       provider: "windows",
       severity: "info",
       status: "ENUMERATED",
@@ -1507,7 +1507,7 @@ Write-Output "    chisel server -p ${listenPort} --socks5 --reverse"
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-PIVOT-002",
+      checkId: "WIN-PIVOT-007",
       provider: "windows",
       severity: "high",
       status: "EXECUTED",
