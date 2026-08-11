@@ -86,24 +86,14 @@ export async function guarddutyEvade(args: string[], timeout: number): Promise<H
   const output: string[] = ["[*] GuardDuty Evasion\n"]
   const findings: Finding[] = []
 
-  const detectors = await aws(
-    ["guardduty", "list-detectors", "--query", "DetectorIds"],
-    profile,
-    region,
-    timeout,
-  )
+  const detectors = await aws(["guardduty", "list-detectors", "--query", "DetectorIds"], profile, region, timeout)
   if (detectors.exitCode !== 0) return { output: `[-] Cannot list detectors: ${detectors.stderr.trim()}`, findings }
 
   const dl = tryJson(detectors.stdout) || []
   output.push(`[+] GuardDuty Detectors: ${dl.length}`)
 
   for (const detectorId of dl) {
-    const desc = await aws(
-      ["guardduty", "get-detector", "--detector-id", detectorId],
-      profile,
-      region,
-      timeout,
-    )
+    const desc = await aws(["guardduty", "get-detector", "--detector-id", detectorId], profile, region, timeout)
     if (desc.exitCode === 0) {
       const det = tryJson(desc.stdout)
       output.push(`\n    ${detectorId} — status: ${det?.Status} — updated: ${det?.UpdatedAt}`)
@@ -137,7 +127,14 @@ export async function guarddutyEvade(args: string[], timeout: number): Promise<H
 
     if (action === "suppress") {
       const gdFindings = await aws(
-        ["guardduty", "list-findings", "--detector-id", detectorId, "--finding-criteria", '{"Criterion":{"severity":{"Gte":7}}}'],
+        [
+          "guardduty",
+          "list-findings",
+          "--detector-id",
+          detectorId,
+          "--finding-criteria",
+          '{"Criterion":{"severity":{"Gte":7}}}',
+        ],
         profile,
         region,
         timeout,
@@ -199,7 +196,8 @@ export async function guarddutyEvade(args: string[], timeout: number): Promise<H
           resource: `guardduty:${detectorId}:filter`,
           title: "GuardDuty auto-archive filter created",
           details: "All future findings will be automatically archived",
-          remediation: "Delete filter: aws guardduty delete-filter --detector-id " + detectorId + " --filter-name cs-suppress-all",
+          remediation:
+            "Delete filter: aws guardduty delete-filter --detector-id " + detectorId + " --filter-name cs-suppress-all",
         })
       } else {
         output.push(`    [-] Filter creation failed: ${filter.stderr.trim()}`)
@@ -221,12 +219,7 @@ export async function configDisable(args: string[], timeout: number): Promise<Ho
   const output: string[] = ["[*] AWS Config Recorder\n"]
   const findings: Finding[] = []
 
-  const recorders = await aws(
-    ["configservice", "describe-configuration-recorders"],
-    profile,
-    region,
-    timeout,
-  )
+  const recorders = await aws(["configservice", "describe-configuration-recorders"], profile, region, timeout)
   if (recorders.exitCode !== 0) return { output: `[-] Cannot describe recorders: ${recorders.stderr.trim()}`, findings }
 
   const rl = tryJson(recorders.stdout)?.ConfigurationRecorders || []
@@ -259,7 +252,8 @@ export async function configDisable(args: string[], timeout: number): Promise<Ho
           resource: `config:${rec.name}`,
           title: `AWS Config recorder stopped: ${rec.name}`,
           details: "Configuration recording disabled — changes will not be tracked",
-          remediation: "Restart: aws configservice start-configuration-recorder --configuration-recorder-name " + rec.name,
+          remediation:
+            "Restart: aws configservice start-configuration-recorder --configuration-recorder-name " + rec.name,
         })
       } else {
         output.push(`    [-] Stop failed: ${r.stderr.trim()}`)
@@ -267,12 +261,7 @@ export async function configDisable(args: string[], timeout: number): Promise<Ho
     }
   }
 
-  const channels = await aws(
-    ["configservice", "describe-delivery-channels"],
-    profile,
-    region,
-    timeout,
-  )
+  const channels = await aws(["configservice", "describe-delivery-channels"], profile, region, timeout)
   if (channels.exitCode === 0) {
     const cl = tryJson(channels.stdout)?.DeliveryChannels || []
     output.push(`\n[+] Delivery Channels: ${cl.length}`)
@@ -303,7 +292,12 @@ export async function vpcFlowDisable(args: string[], timeout: number): Promise<H
   const findings: Finding[] = []
 
   const flowLogs = await aws(
-    ["ec2", "describe-flow-logs", "--query", "FlowLogs[].[FlowLogId,ResourceId,LogDestinationType,LogDestination,FlowLogStatus,TrafficType]"],
+    [
+      "ec2",
+      "describe-flow-logs",
+      "--query",
+      "FlowLogs[].[FlowLogId,ResourceId,LogDestinationType,LogDestination,FlowLogStatus,TrafficType]",
+    ],
     profile,
     region,
     timeout,
@@ -316,12 +310,7 @@ export async function vpcFlowDisable(args: string[], timeout: number): Promise<H
 
   if (action === "delete") {
     for (const f of fl) {
-      const r = await aws(
-        ["ec2", "delete-flow-logs", "--flow-log-ids", f[0]],
-        profile,
-        region,
-        timeout,
-      )
+      const r = await aws(["ec2", "delete-flow-logs", "--flow-log-ids", f[0]], profile, region, timeout)
       if (r.exitCode === 0) {
         output.push(`    [+] Deleted: ${f[0]}`)
         findings.push({
@@ -366,7 +355,14 @@ export async function accessAnalyzerSuppress(args: string[], timeout: number): P
 
   for (const a of al) {
     const aaFindings = await aws(
-      ["accessanalyzer", "list-findings", "--analyzer-arn", a[0], "--query", "findings[].[id,resourceType,resource,status]"],
+      [
+        "accessanalyzer",
+        "list-findings",
+        "--analyzer-arn",
+        a[0],
+        "--query",
+        "findings[].[id,resourceType,resource,status]",
+      ],
       profile,
       region,
       timeout,
@@ -399,12 +395,7 @@ export async function accessAnalyzerSuppress(args: string[], timeout: number): P
       }
 
       if (action === "delete") {
-        const del = await aws(
-          ["accessanalyzer", "delete-analyzer", "--analyzer-name", a[1]],
-          profile,
-          region,
-          timeout,
-        )
+        const del = await aws(["accessanalyzer", "delete-analyzer", "--analyzer-name", a[1]], profile, region, timeout)
         if (del.exitCode === 0) {
           output.push(`    [+] Analyzer deleted: ${a[1]}`)
           findings.push({
@@ -546,8 +537,11 @@ export async function wafBypass(args: string[], timeout: number): Promise<HookRe
       if (desc.exitCode === 0) {
         const acl = tryJson(desc.stdout)?.WebACL
         const rules = acl?.Rules || []
-        output.push(`      Rules: ${rules.length}, Default: ${acl?.DefaultAction ? Object.keys(acl.DefaultAction)[0] : "unknown"}`)
-        for (const r of rules) output.push(`        ${r.Name} — ${r.Priority} — ${Object.keys(r.Action || {})[0] || "count"}`)
+        output.push(
+          `      Rules: ${rules.length}, Default: ${acl?.DefaultAction ? Object.keys(acl.DefaultAction)[0] : "unknown"}`,
+        )
+        for (const r of rules)
+          output.push(`        ${r.Name} — ${r.Priority} — ${Object.keys(r.Action || {})[0] || "count"}`)
       }
     }
   }
@@ -580,7 +574,8 @@ export async function wafBypass(args: string[], timeout: number): Promise<HookRe
     }
   }
 
-  if (action === "status") output.push("\n[*] Manual WAF modification requires web-acl lock-token. Use AWS console or specific API calls.")
+  if (action === "status")
+    output.push("\n[*] Manual WAF modification requires web-acl lock-token. Use AWS console or specific API calls.")
 
   return { output: output.join("\n"), findings }
 }
@@ -607,7 +602,14 @@ export async function dnsFirewallDisable(args: string[], timeout: number): Promi
     output.push(`\n    ${g[1]} (${g[0]}) — ${g[2]} — owner: ${g[3]}`)
 
     const rules = await aws(
-      ["route53resolver", "list-firewall-rules", "--firewall-rule-group-id", g[0], "--query", "FirewallRules[].[Name,Action,Priority,FirewallDomainListId]"],
+      [
+        "route53resolver",
+        "list-firewall-rules",
+        "--firewall-rule-group-id",
+        g[0],
+        "--query",
+        "FirewallRules[].[Name,Action,Priority,FirewallDomainListId]",
+      ],
       profile,
       region,
       timeout,
@@ -676,15 +678,28 @@ export async function cloudwatchTamper(args: string[], timeout: number): Promise
   const findings: Finding[] = []
   const output: string[] = ["[*] CloudWatch Logs Tampering\n"]
 
-  const groups = await aws(["logs", "describe-log-groups", "--query", "logGroups[].[logGroupName,storedBytes,retentionInDays,kmsKeyId]"], profile, region, timeout)
-  if (groups.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: logs:DescribeLogGroups", findings }
+  const groups = await aws(
+    ["logs", "describe-log-groups", "--query", "logGroups[].[logGroupName,storedBytes,retentionInDays,kmsKeyId]"],
+    profile,
+    region,
+    timeout,
+  )
+  if (groups.exitCode !== 0)
+    return { output: output.join("\n") + "\n[-] Access denied: logs:DescribeLogGroups", findings }
 
   const gl = tryJson(groups.stdout) || []
   output.push(`[+] Log groups: ${gl.length}`)
 
   const securityGroups = gl.filter((g: (string | number | null)[]) => {
     const name = String(g[0]).toLowerCase()
-    return name.includes("cloudtrail") || name.includes("guardduty") || name.includes("config") || name.includes("vpc-flow") || name.includes("waf") || name.includes("security")
+    return (
+      name.includes("cloudtrail") ||
+      name.includes("guardduty") ||
+      name.includes("config") ||
+      name.includes("vpc-flow") ||
+      name.includes("waf") ||
+      name.includes("security")
+    )
   })
 
   if (securityGroups.length) {
@@ -696,14 +711,21 @@ export async function cloudwatchTamper(args: string[], timeout: number): Promise
   }
 
   if (action === "status") {
-    output.push("\n[*] Actions: --action delete (delete group), --action reduce_retention (set 1-day retention), --action delete_streams (delete log streams)")
+    output.push(
+      "\n[*] Actions: --action delete (delete group), --action reduce_retention (set 1-day retention), --action delete_streams (delete log streams)",
+    )
     return { output: output.join("\n"), findings }
   }
 
   if (action === "reduce_retention") {
     const targets = groupName ? gl.filter((g: string[]) => g[0] === groupName) : securityGroups
     for (const g of targets) {
-      const r = await aws(["logs", "put-retention-policy", "--log-group-name", g[0], "--retention-in-days", retentionDays], profile, region, timeout)
+      const r = await aws(
+        ["logs", "put-retention-policy", "--log-group-name", g[0], "--retention-in-days", retentionDays],
+        profile,
+        region,
+        timeout,
+      )
       if (r.exitCode === 0) {
         output.push(`[+] Retention set to ${retentionDays} day(s): ${g[0]}`)
         findings.push({
@@ -722,9 +744,15 @@ export async function cloudwatchTamper(args: string[], timeout: number): Promise
 
   if (action === "delete") {
     const target = groupName || securityGroups[0]?.[0]
-    if (!target) return { output: output.join("\n") + "\n[-] --log-group required or no security groups found", findings }
+    if (!target)
+      return { output: output.join("\n") + "\n[-] --log-group required or no security groups found", findings }
 
-    const r = await aws(["logs", "delete-log-group", "--log-group-name", typeof target === "string" ? target : target[0]], profile, region, timeout)
+    const r = await aws(
+      ["logs", "delete-log-group", "--log-group-name", typeof target === "string" ? target : target[0]],
+      profile,
+      region,
+      timeout,
+    )
     const name = typeof target === "string" ? target : target[0]
     if (r.exitCode === 0) {
       output.push(`[+] Log group deleted: ${name}`)
@@ -748,12 +776,34 @@ export async function cloudwatchTamper(args: string[], timeout: number): Promise
     if (!target) return { output: output.join("\n") + "\n[-] --log-group required", findings }
     const name = typeof target === "string" ? target : target[0]
 
-    const streams = await aws(["logs", "describe-log-streams", "--log-group-name", name, "--order-by", "LastEventTime", "--descending", "--limit", "50", "--query", "logStreams[].logStreamName"], profile, region, timeout)
+    const streams = await aws(
+      [
+        "logs",
+        "describe-log-streams",
+        "--log-group-name",
+        name,
+        "--order-by",
+        "LastEventTime",
+        "--descending",
+        "--limit",
+        "50",
+        "--query",
+        "logStreams[].logStreamName",
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (streams.exitCode === 0) {
       const stl = tryJson(streams.stdout) || []
       let deleted = 0
       for (const st of stl) {
-        const d = await aws(["logs", "delete-log-stream", "--log-group-name", name, "--log-stream-name", st], profile, region, timeout)
+        const d = await aws(
+          ["logs", "delete-log-stream", "--log-group-name", name, "--log-stream-name", st],
+          profile,
+          region,
+          timeout,
+        )
         if (d.exitCode === 0) deleted++
       }
       output.push(`[+] Deleted ${deleted}/${stl.length} log streams from ${name}`)
@@ -799,7 +849,12 @@ export async function macieDisable(args: string[], timeout: number): Promise<Hoo
     output.push(`    Monitored buckets: ${tryJson(buckets.stdout) || 0}`)
   }
 
-  const jobs = await aws(["macie2", "list-classification-jobs", "--query", "items[].[jobId,name,jobStatus,jobType]"], profile, region, timeout)
+  const jobs = await aws(
+    ["macie2", "list-classification-jobs", "--query", "items[].[jobId,name,jobStatus,jobType]"],
+    profile,
+    region,
+    timeout,
+  )
   if (jobs.exitCode === 0) {
     const jl = tryJson(jobs.stdout) || []
     output.push(`    Classification jobs: ${jl.length}`)
@@ -855,7 +910,17 @@ export async function inspectorDisable(args: string[], timeout: number): Promise
   const findings: Finding[] = []
   const output: string[] = ["[*] Amazon Inspector — Vulnerability Scanning\n"]
 
-  const status = await aws(["inspector2", "batch-get-account-status", "--query", "accounts[0].{state:state,ec2:resourceState.ec2,ecr:resourceState.ecr,lambda:resourceState.lambda}"], profile, region, timeout)
+  const status = await aws(
+    [
+      "inspector2",
+      "batch-get-account-status",
+      "--query",
+      "accounts[0].{state:state,ec2:resourceState.ec2,ecr:resourceState.ecr,lambda:resourceState.lambda}",
+    ],
+    profile,
+    region,
+    timeout,
+  )
   if (status.exitCode !== 0) {
     output.push("[-] Inspector v2 not enabled or access denied")
     return { output: output.join("\n"), findings }
@@ -867,12 +932,29 @@ export async function inspectorDisable(args: string[], timeout: number): Promise
   if (s?.ecr) output.push(`    ECR scanning: ${s.ecr.status}`)
   if (s?.lambda) output.push(`    Lambda scanning: ${s.lambda.status}`)
 
-  const coverage = await aws(["inspector2", "list-coverage", "--query", "coveredResources | length(@)"], profile, region, timeout)
+  const coverage = await aws(
+    ["inspector2", "list-coverage", "--query", "coveredResources | length(@)"],
+    profile,
+    region,
+    timeout,
+  )
   if (coverage.exitCode === 0) {
     output.push(`    Covered resources: ${tryJson(coverage.stdout) || 0}`)
   }
 
-  const findingsCount = await aws(["inspector2", "list-finding-aggregations", "--aggregation-type", "ACCOUNT", "--query", "responses[0].{critical:severityCounts.critical,high:severityCounts.high,medium:severityCounts.medium}"], profile, region, timeout)
+  const findingsCount = await aws(
+    [
+      "inspector2",
+      "list-finding-aggregations",
+      "--aggregation-type",
+      "ACCOUNT",
+      "--query",
+      "responses[0].{critical:severityCounts.critical,high:severityCounts.high,medium:severityCounts.medium}",
+    ],
+    profile,
+    region,
+    timeout,
+  )
   if (findingsCount.exitCode === 0) {
     const fc = tryJson(findingsCount.stdout)
     if (fc) output.push(`    Findings: Critical=${fc.critical || 0} High=${fc.high || 0} Medium=${fc.medium || 0}`)
@@ -957,13 +1039,23 @@ export async function s3LoggingDisable(args: string[], timeout: number): Promise
     }
   }
 
-  const trails = await aws(["cloudtrail", "describe-trails", "--query", "trailList[].[Name,S3BucketName,HasCustomEventSelectors]"], profile, region, timeout)
+  const trails = await aws(
+    ["cloudtrail", "describe-trails", "--query", "trailList[].[Name,S3BucketName,HasCustomEventSelectors]"],
+    profile,
+    region,
+    timeout,
+  )
   if (trails.exitCode === 0) {
     const tl = tryJson(trails.stdout) || []
     output.push(`\n[+] CloudTrail trails with event selectors:`)
     for (const t of tl) {
       if (t[2]) {
-        const selectors = await aws(["cloudtrail", "get-event-selectors", "--trail-name", t[0]], profile, region, timeout)
+        const selectors = await aws(
+          ["cloudtrail", "get-event-selectors", "--trail-name", t[0]],
+          profile,
+          region,
+          timeout,
+        )
         if (selectors.exitCode === 0) {
           const s = tryJson(selectors.stdout)
           const advanced = s?.AdvancedEventSelectors || []
@@ -990,8 +1082,9 @@ export async function s3LoggingDisable(args: string[], timeout: number): Promise
           }
 
           for (const ae of advanced) {
-            const s3match = (ae.FieldSelectors || []).some((f: Record<string, unknown>) =>
-              f.Field === "resources.type" && Array.isArray(f.Equals) && f.Equals.includes("AWS::S3::Object")
+            const s3match = (ae.FieldSelectors || []).some(
+              (f: Record<string, unknown>) =>
+                f.Field === "resources.type" && Array.isArray(f.Equals) && f.Equals.includes("AWS::S3::Object"),
             )
             if (s3match) {
               output.push(`  Trail ${t[0]}: Advanced S3 object-level selector: ${ae.Name || "unnamed"}`)
@@ -1003,14 +1096,21 @@ export async function s3LoggingDisable(args: string[], timeout: number): Promise
   }
 
   if (action === "status") {
-    output.push("\n[*] Actions: --action disable_access_log (remove S3 access logging), --action disable_data_events (remove S3 object-level CloudTrail)")
+    output.push(
+      "\n[*] Actions: --action disable_access_log (remove S3 access logging), --action disable_data_events (remove S3 object-level CloudTrail)",
+    )
     return { output: output.join("\n"), findings }
   }
 
   if (action === "disable_access_log") {
     const targetBuckets = bucket ? [bucket] : targets.slice(0, 10)
     for (const b of targetBuckets) {
-      const r = await aws(["s3api", "put-bucket-logging", "--bucket", b, "--bucket-logging-status", "{}"], profile, region, timeout)
+      const r = await aws(
+        ["s3api", "put-bucket-logging", "--bucket", b, "--bucket-logging-status", "{}"],
+        profile,
+        region,
+        timeout,
+      )
       if (r.exitCode === 0) {
         output.push(`[+] Access logging disabled: ${b}`)
         findings.push({
@@ -1028,21 +1128,34 @@ export async function s3LoggingDisable(args: string[], timeout: number): Promise
   }
 
   if (action === "disable_data_events") {
-    const trailsList = tryJson((await aws(["cloudtrail", "describe-trails", "--query", "trailList[].Name"], profile, region, timeout)).stdout) || []
+    const trailsList =
+      tryJson(
+        (await aws(["cloudtrail", "describe-trails", "--query", "trailList[].Name"], profile, region, timeout)).stdout,
+      ) || []
     for (const trail of trailsList) {
-      const selectors = await aws(["cloudtrail", "get-event-selectors", "--trail-name", trail], profile, region, timeout)
+      const selectors = await aws(
+        ["cloudtrail", "get-event-selectors", "--trail-name", trail],
+        profile,
+        region,
+        timeout,
+      )
       if (selectors.exitCode === 0) {
         const s = tryJson(selectors.stdout)
         const basic = s?.EventSelectors || []
         const hasS3 = basic.some((es: Record<string, Record<string, string>[]>) =>
-          (es.DataResources || []).some(d => d.Type === "AWS::S3::Object")
+          (es.DataResources || []).some((d) => d.Type === "AWS::S3::Object"),
         )
         if (hasS3) {
           const cleaned = basic.map((es: Record<string, Record<string, string>[]>) => ({
             ...es,
-            DataResources: (es.DataResources || []).filter(d => d.Type !== "AWS::S3::Object"),
+            DataResources: (es.DataResources || []).filter((d) => d.Type !== "AWS::S3::Object"),
           }))
-          const r = await aws(["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(cleaned)], profile, region, timeout)
+          const r = await aws(
+            ["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(cleaned)],
+            profile,
+            region,
+            timeout,
+          )
           if (r.exitCode === 0) {
             output.push(`[+] S3 data events removed from trail: ${trail}`)
             findings.push({

@@ -148,7 +148,14 @@ export async function accessKeyEnum(args: string[], timeout: number): Promise<Ho
   let active = 0
   for (const username of ul) {
     const keys = await aws(
-      ["iam", "list-access-keys", "--user-name", username, "--query", "AccessKeyMetadata[].[AccessKeyId,Status,CreateDate]"],
+      [
+        "iam",
+        "list-access-keys",
+        "--user-name",
+        username,
+        "--query",
+        "AccessKeyMetadata[].[AccessKeyId,Status,CreateDate]",
+      ],
       profile,
       region,
       timeout,
@@ -159,17 +166,14 @@ export async function accessKeyEnum(args: string[], timeout: number): Promise<Ho
       total++
       if (k[1] === "Active") active++
 
-      const lastUsed = await aws(
-        ["iam", "get-access-key-last-used", "--access-key-id", k[0]],
-        profile,
-        region,
-        timeout,
-      )
+      const lastUsed = await aws(["iam", "get-access-key-last-used", "--access-key-id", k[0]], profile, region, timeout)
       const lu = tryJson(lastUsed.stdout)?.AccessKeyLastUsed || {}
       const created = new Date(k[2])
       const age = Math.floor((Date.now() - created.getTime()) / (1000 * 60 * 60 * 24))
 
-      output.push(`    ${username}: ${k[0]} — ${k[1]} — age: ${age}d — last used: ${lu.LastUsedDate || "never"} (${lu.ServiceName || "none"})`)
+      output.push(
+        `    ${username}: ${k[0]} — ${k[1]} — age: ${age}d — last used: ${lu.LastUsedDate || "never"} (${lu.ServiceName || "none"})`,
+      )
 
       if (k[1] === "Active" && age > 90) {
         findings.push({
@@ -245,16 +249,18 @@ export async function roleCredential(args: string[], timeout: number): Promise<H
 
   return {
     output: output.join("\n"),
-    findings: [{
-      checkId: "AWS-CRED-003",
-      provider: "aws",
-      severity: "high",
-      status: "OBTAINED",
-      resource: roleArn,
-      title: `Assumed role: ${roleArn}`,
-      details: `Obtained temporary credentials via AssumeRole, expires ${creds.Expiration}`,
-      remediation: "Review trust policy for overly permissive principal",
-    }],
+    findings: [
+      {
+        checkId: "AWS-CRED-003",
+        provider: "aws",
+        severity: "high",
+        status: "OBTAINED",
+        resource: roleArn,
+        title: `Assumed role: ${roleArn}`,
+        details: `Obtained temporary credentials via AssumeRole, expires ${creds.Expiration}`,
+        remediation: "Review trust policy for overly permissive principal",
+      },
+    ],
   }
 }
 
@@ -290,11 +296,13 @@ export async function federationToken(args: string[], timeout: number): Promise<
   const fedUser = result?.FederatedUser
   if (!creds) return { output: "[-] No credentials returned", findings: [] }
 
-  const signinToken = Buffer.from(JSON.stringify({
-    sessionId: creds.AccessKeyId,
-    sessionKey: creds.SecretAccessKey,
-    sessionToken: creds.SessionToken,
-  })).toString("base64")
+  const signinToken = Buffer.from(
+    JSON.stringify({
+      sessionId: creds.AccessKeyId,
+      sessionKey: creds.SecretAccessKey,
+      sessionToken: creds.SessionToken,
+    }),
+  ).toString("base64")
 
   const output = [
     `[+] Federation token obtained`,
@@ -308,16 +316,18 @@ export async function federationToken(args: string[], timeout: number): Promise<
 
   return {
     output: output.join("\n"),
-    findings: [{
-      checkId: "AWS-CRED-004",
-      provider: "aws",
-      severity: "high",
-      status: "OBTAINED",
-      resource: fedUser?.Arn || "federation",
-      title: `Federation token obtained: ${name}`,
-      details: `Console access possible via federation endpoint, expires ${creds.Expiration}`,
-      remediation: "Restrict GetFederationToken permissions",
-    }],
+    findings: [
+      {
+        checkId: "AWS-CRED-004",
+        provider: "aws",
+        severity: "high",
+        status: "OBTAINED",
+        resource: fedUser?.Arn || "federation",
+        title: `Federation token obtained: ${name}`,
+        details: `Console access possible via federation endpoint, expires ${creds.Expiration}`,
+        remediation: "Restrict GetFederationToken permissions",
+      },
+    ],
   }
 }
 
@@ -357,7 +367,12 @@ export async function ecrToken(args: string[], timeout: number): Promise<HookRes
   }
 
   const repos = await aws(
-    ["ecr", "describe-repositories", "--query", "repositories[].[repositoryName,repositoryUri,imageScanningConfiguration.scanOnPush]"],
+    [
+      "ecr",
+      "describe-repositories",
+      "--query",
+      "repositories[].[repositoryName,repositoryUri,imageScanningConfiguration.scanOnPush]",
+    ],
     profile,
     region,
     timeout,
@@ -393,12 +408,7 @@ export async function consoleLogin(args: string[], timeout: number): Promise<Hoo
 
   const pw = password || `CyStr!ke${Date.now().toString(36)}`
 
-  const existing = await aws(
-    ["iam", "get-login-profile", "--user-name", username],
-    profile,
-    region,
-    timeout,
-  )
+  const existing = await aws(["iam", "get-login-profile", "--user-name", username], profile, region, timeout)
 
   if (existing.exitCode === 0) {
     const r = await aws(
@@ -410,16 +420,18 @@ export async function consoleLogin(args: string[], timeout: number): Promise<Hoo
     if (r.exitCode !== 0) return { output: `[-] update-login-profile failed: ${r.stderr.trim()}`, findings: [] }
     return {
       output: `[+] Console login updated for ${username}\n    Password: ${pw}`,
-      findings: [{
-        checkId: "AWS-CRED-006",
-        provider: "aws",
-        severity: "critical",
-        status: "MODIFIED",
-        resource: `iam:${username}`,
-        title: `Console password updated: ${username}`,
-        details: `Password changed for IAM user ${username}`,
-        remediation: "Reset password and enable MFA",
-      }],
+      findings: [
+        {
+          checkId: "AWS-CRED-006",
+          provider: "aws",
+          severity: "critical",
+          status: "MODIFIED",
+          resource: `iam:${username}`,
+          title: `Console password updated: ${username}`,
+          details: `Password changed for IAM user ${username}`,
+          remediation: "Reset password and enable MFA",
+        },
+      ],
     }
   }
 
@@ -440,16 +452,18 @@ export async function consoleLogin(args: string[], timeout: number): Promise<Hoo
       `    Password: ${pw}`,
       `    Console URL: https://${account || "ACCOUNT_ID"}.signin.aws.amazon.com/console`,
     ].join("\n"),
-    findings: [{
-      checkId: "AWS-CRED-007",
-      provider: "aws",
-      severity: "critical",
-      status: "CREATED",
-      resource: `iam:${username}`,
-      title: `Console login profile created: ${username}`,
-      details: `New console access for IAM user ${username}`,
-      remediation: "Delete login profile: aws iam delete-login-profile",
-    }],
+    findings: [
+      {
+        checkId: "AWS-CRED-007",
+        provider: "aws",
+        severity: "critical",
+        status: "CREATED",
+        resource: `iam:${username}`,
+        title: `Console login profile created: ${username}`,
+        details: `New console access for IAM user ${username}`,
+        remediation: "Delete login profile: aws iam delete-login-profile",
+      },
+    ],
   }
 }
 
@@ -475,7 +489,14 @@ export async function cognitoToken(args: string[], timeout: number): Promise<Hoo
     }
 
     const idPools = await aws(
-      ["cognito-identity", "list-identity-pools", "--max-results", "20", "--query", "IdentityPools[].[IdentityPoolId,IdentityPoolName]"],
+      [
+        "cognito-identity",
+        "list-identity-pools",
+        "--max-results",
+        "20",
+        "--query",
+        "IdentityPools[].[IdentityPoolId,IdentityPoolName]",
+      ],
       profile,
       region,
       timeout,
@@ -515,12 +536,7 @@ export async function cognitoToken(args: string[], timeout: number): Promise<Hoo
   }
 
   if (poolId) {
-    const desc = await aws(
-      ["cognito-idp", "describe-user-pool", "--user-pool-id", poolId],
-      profile,
-      region,
-      timeout,
-    )
+    const desc = await aws(["cognito-idp", "describe-user-pool", "--user-pool-id", poolId], profile, region, timeout)
     if (desc.exitCode === 0) {
       const pool = tryJson(desc.stdout)?.UserPool
       output.push(`[+] User Pool: ${pool?.Name} (${poolId})`)
@@ -529,7 +545,14 @@ export async function cognitoToken(args: string[], timeout: number): Promise<Hoo
     }
 
     const users = await aws(
-      ["cognito-idp", "list-users", "--user-pool-id", poolId, "--query", "Users[].[Username,UserStatus,Enabled,Attributes]"],
+      [
+        "cognito-idp",
+        "list-users",
+        "--user-pool-id",
+        poolId,
+        "--query",
+        "Users[].[Username,UserStatus,Enabled,Attributes]",
+      ],
       profile,
       region,
       timeout,
@@ -544,7 +567,14 @@ export async function cognitoToken(args: string[], timeout: number): Promise<Hoo
     }
 
     const clients = await aws(
-      ["cognito-idp", "list-user-pool-clients", "--user-pool-id", poolId, "--query", "UserPoolClients[].[ClientId,ClientName]"],
+      [
+        "cognito-idp",
+        "list-user-pool-clients",
+        "--user-pool-id",
+        poolId,
+        "--query",
+        "UserPoolClients[].[ClientId,ClientName]",
+      ],
       profile,
       region,
       timeout,
@@ -630,13 +660,23 @@ export async function cfnSecretExtract(args: string[], timeout: number): Promise
   const findings: Finding[] = []
   const output: string[] = ["[*] CloudFormation Secret Extraction\n"]
 
-  const secretPattern = /(?:password|secret|key|token|api.?key|credential|connection.?string|db.?pass|rds.?pass|auth|private|master)/i
+  const secretPattern =
+    /(?:password|secret|key|token|api.?key|credential|connection.?string|db.?pass|rds.?pass|auth|private|master)/i
 
   const listCmd = stackName
     ? ["cloudformation", "describe-stacks", "--stack-name", stackName, "--query", "Stacks[].[StackName,StackStatus]"]
-    : ["cloudformation", "list-stacks", "--stack-status-filter", "CREATE_COMPLETE", "UPDATE_COMPLETE", "--query", "StackSummaries[].[StackName,StackStatus]"]
+    : [
+        "cloudformation",
+        "list-stacks",
+        "--stack-status-filter",
+        "CREATE_COMPLETE",
+        "UPDATE_COMPLETE",
+        "--query",
+        "StackSummaries[].[StackName,StackStatus]",
+      ]
   const stacks = await aws(listCmd, profile, region, timeout)
-  if (stacks.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: cloudformation:ListStacks", findings }
+  if (stacks.exitCode !== 0)
+    return { output: output.join("\n") + "\n[-] Access denied: cloudformation:ListStacks", findings }
 
   const sl = tryJson(stacks.stdout) || []
   output.push(`[+] Scanning ${sl.length} stacks for secrets...\n`)
@@ -644,7 +684,12 @@ export async function cfnSecretExtract(args: string[], timeout: number): Promise
   for (const s of sl) {
     const name = s[0]
 
-    const params = await aws(["cloudformation", "describe-stacks", "--stack-name", name, "--query", "Stacks[0].Parameters"], profile, region, timeout)
+    const params = await aws(
+      ["cloudformation", "describe-stacks", "--stack-name", name, "--query", "Stacks[0].Parameters"],
+      profile,
+      region,
+      timeout,
+    )
     if (params.exitCode === 0) {
       const pl = tryJson(params.stdout) || []
       for (const p of pl) {
@@ -668,13 +713,21 @@ export async function cfnSecretExtract(args: string[], timeout: number): Promise
       }
     }
 
-    const tpl = await aws(["cloudformation", "get-template", "--stack-name", name, "--query", "TemplateBody"], profile, region, timeout)
+    const tpl = await aws(
+      ["cloudformation", "get-template", "--stack-name", name, "--query", "TemplateBody"],
+      profile,
+      region,
+      timeout,
+    )
     if (tpl.exitCode === 0) {
       const body = tpl.stdout
       const lines = body.split("\n")
       for (let i = 0; i < lines.length; i++) {
         if (secretPattern.test(lines[i])) {
-          const ctx = lines.slice(Math.max(0, i - 1), Math.min(lines.length, i + 3)).join("\n").trim()
+          const ctx = lines
+            .slice(Math.max(0, i - 1), Math.min(lines.length, i + 3))
+            .join("\n")
+            .trim()
           if (ctx.length > 10 && !ctx.includes("NoEcho") && !ctx.includes("AWS::SSM::Parameter")) {
             output.push(`  [!] ${name} template line ${i + 1}: ${lines[i].trim().slice(0, 100)}`)
             findings.push({
@@ -711,7 +764,12 @@ export async function cfnSecretExtract(args: string[], timeout: number): Promise
       }
     }
 
-    const outputs = await aws(["cloudformation", "describe-stacks", "--stack-name", name, "--query", "Stacks[0].Outputs"], profile, region, timeout)
+    const outputs = await aws(
+      ["cloudformation", "describe-stacks", "--stack-name", name, "--query", "Stacks[0].Outputs"],
+      profile,
+      region,
+      timeout,
+    )
     if (outputs.exitCode === 0) {
       for (const o of tryJson(outputs.stdout) || []) {
         if (secretPattern.test(o.OutputKey) && o.OutputValue) {
@@ -741,12 +799,29 @@ export async function codecommitCred(args: string[], timeout: number): Promise<H
   const findings: Finding[] = []
   const output: string[] = ["[*] CodeCommit Credential Enumeration\n"]
 
-  const repos = await aws(["codecommit", "list-repositories", "--query", "repositories[].[repositoryName,repositoryId]"], profile, region, timeout)
+  const repos = await aws(
+    ["codecommit", "list-repositories", "--query", "repositories[].[repositoryName,repositoryId]"],
+    profile,
+    region,
+    timeout,
+  )
   if (repos.exitCode === 0) {
     const rl = tryJson(repos.stdout) || []
     output.push(`[+] CodeCommit Repositories: ${rl.length}`)
     for (const r of rl) {
-      const detail = await aws(["codecommit", "get-repository", "--repository-name", r[0], "--query", "repositoryMetadata.{cloneUrl:cloneUrlHttp,sshUrl:cloneUrlSsh,defaultBranch:defaultBranch,lastModified:lastModifiedDate}"], profile, region, timeout)
+      const detail = await aws(
+        [
+          "codecommit",
+          "get-repository",
+          "--repository-name",
+          r[0],
+          "--query",
+          "repositoryMetadata.{cloneUrl:cloneUrlHttp,sshUrl:cloneUrlSsh,defaultBranch:defaultBranch,lastModified:lastModifiedDate}",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (detail.exitCode === 0) {
         const d = tryJson(detail.stdout)
         if (d) {
@@ -764,7 +839,21 @@ export async function codecommitCred(args: string[], timeout: number): Promise<H
     output.push(`\n[+] Checking ${ul.length} IAM users for CodeCommit credentials...`)
 
     for (const user of ul) {
-      const creds = await aws(["iam", "list-service-specific-credentials", "--user-name", user, "--service-name", "codecommit.amazonaws.com", "--query", "ServiceSpecificCredentials[].[ServiceUserName,ServiceSpecificCredentialId,Status,CreateDate]"], profile, region, timeout)
+      const creds = await aws(
+        [
+          "iam",
+          "list-service-specific-credentials",
+          "--user-name",
+          user,
+          "--service-name",
+          "codecommit.amazonaws.com",
+          "--query",
+          "ServiceSpecificCredentials[].[ServiceUserName,ServiceSpecificCredentialId,Status,CreateDate]",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (creds.exitCode === 0) {
         const cl = tryJson(creds.stdout) || []
         for (const c of cl) {
@@ -782,7 +871,19 @@ export async function codecommitCred(args: string[], timeout: number): Promise<H
         }
       }
 
-      const sshKeys = await aws(["iam", "list-ssh-public-keys", "--user-name", user, "--query", "SSHPublicKeys[].[SSHPublicKeyId,Status,UploadDate]"], profile, region, timeout)
+      const sshKeys = await aws(
+        [
+          "iam",
+          "list-ssh-public-keys",
+          "--user-name",
+          user,
+          "--query",
+          "SSHPublicKeys[].[SSHPublicKeyId,Status,UploadDate]",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (sshKeys.exitCode === 0) {
         const sl = tryJson(sshKeys.stdout) || []
         for (const s of sl) {
@@ -802,7 +903,12 @@ export async function codecommitCred(args: string[], timeout: number): Promise<H
     }
   }
 
-  const connToken = await aws(["codecommit", "get-repository", "--repository-name", "nonexistent-probe-12345"], profile, region, timeout)
+  const connToken = await aws(
+    ["codecommit", "get-repository", "--repository-name", "nonexistent-probe-12345"],
+    profile,
+    region,
+    timeout,
+  )
   if (connToken.exitCode !== 0 && connToken.stderr.includes("does not exist")) {
     output.push(`\n[+] Credential has codecommit:GetRepository access — can clone repos`)
   }
@@ -818,7 +924,12 @@ export async function ciCdSecretExtract(args: string[], timeout: number): Promis
 
   const secretPattern = /(?:password|secret|key|token|api.?key|credential|private|auth|db.?pass)/i
 
-  const pipelines = await aws(["codepipeline", "list-pipelines", "--query", "pipelines[].[name,created,updated]"], profile, region, timeout)
+  const pipelines = await aws(
+    ["codepipeline", "list-pipelines", "--query", "pipelines[].[name,created,updated]"],
+    profile,
+    region,
+    timeout,
+  )
   if (pipelines.exitCode === 0) {
     const pl = tryJson(pipelines.stdout) || []
     output.push(`[+] CodePipeline pipelines: ${pl.length}`)
@@ -879,7 +990,19 @@ export async function ciCdSecretExtract(args: string[], timeout: number): Promis
     output.push(`\n[+] CodeBuild projects: ${prl.length}`)
 
     for (const name of prl) {
-      const detail = await aws(["codebuild", "batch-get-projects", "--names", name, "--query", "projects[0].{env:environment,source:source.type,serviceRole:serviceRole,artifacts:artifacts.type}"], profile, region, timeout)
+      const detail = await aws(
+        [
+          "codebuild",
+          "batch-get-projects",
+          "--names",
+          name,
+          "--query",
+          "projects[0].{env:environment,source:source.type,serviceRole:serviceRole,artifacts:artifacts.type}",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       if (detail.exitCode === 0) {
         const d = tryJson(detail.stdout)
         if (d) {
@@ -936,7 +1059,17 @@ export async function ciCdSecretExtract(args: string[], timeout: number): Promis
     }
   }
 
-  const connections = await aws(["codestar-connections", "list-connections", "--query", "Connections[].[ConnectionName,ConnectionArn,ProviderType,ConnectionStatus]"], profile, region, timeout)
+  const connections = await aws(
+    [
+      "codestar-connections",
+      "list-connections",
+      "--query",
+      "Connections[].[ConnectionName,ConnectionArn,ProviderType,ConnectionStatus]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
   if (connections.exitCode === 0) {
     const conns = tryJson(connections.stdout) || []
     if (conns.length) {
