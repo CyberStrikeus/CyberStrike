@@ -19,6 +19,8 @@ export async function entraEnum(args: string[], timeout: number): Promise<HookRe
       "ad",
       "user",
       "list",
+      "--filter",
+      "accountEnabled eq true",
       "--query",
       "[].{name:displayName,upn:userPrincipalName,enabled:accountEnabled}",
       "-o",
@@ -1772,7 +1774,7 @@ export async function appRegistrationEnum(_args: string[], timeout: number): Pro
   const findings: Finding[] = []
   const output: string[] = ["[*] Enumerating Azure AD App Registrations...\n"]
 
-  const apps = await run("az", ["ad", "app", "list", "--all", "-o", "json"], timeout)
+  const apps = await run("az", ["ad", "app", "list", "--query", "[].{displayName:displayName,appId:appId,passwordCredentials:passwordCredentials,keyCredentials:keyCredentials,requiredResourceAccess:requiredResourceAccess}", "-o", "json"], timeout)
   if (apps.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list app registrations", findings }
 
   const items = tryJson(apps.stdout) || []
@@ -2982,7 +2984,7 @@ export async function privateLinkAudit(args: string[], timeout: number): Promise
   }
 
   findings.push({
-    checkId: "AZ-PL-001",
+    checkId: "AZ-PL-002",
     provider: "azure",
     severity: "info",
     status: "ENUMERATED",
