@@ -178,7 +178,7 @@ Write-Output "    - RuntimeBroker.exe: UWP broker, low suspicion"
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-INJECT-001",
+      checkId: "WIN-INJECT-007",
       provider: "windows",
       severity: "info",
       status: "ENUMERATED",
