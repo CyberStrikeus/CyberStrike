@@ -687,7 +687,7 @@ export async function ssmSession(args: string[], timeout: number): Promise<HookR
         `    Command: aws ssm start-session --target ${instanceId} --document-name AWS-StartPortForwardingSession --parameters '{"portNumber":["${remotePort}"],"localPortNumber":["${localPort}"]}'`,
       )
       findings.push({
-        checkId: "AWS-LATERAL-008",
+        checkId: "AWS-LATERAL-010",
         provider: "aws",
         severity: "high",
         status: "READY",
@@ -705,7 +705,7 @@ export async function ssmSession(args: string[], timeout: number): Promise<HookR
     output.push(`\n[*] Run the above command in your terminal for interactive shell`)
     output.push(`[*] For automated commands, use ssm_exec instead`)
     findings.push({
-      checkId: "AWS-LATERAL-006",
+      checkId: "AWS-LATERAL-009",
       provider: "aws",
       severity: "high",
       status: "READY",
