@@ -804,14 +804,33 @@ async function cfnAudit(args: string[], timeout: number): Promise<HookResult> {
   } else {
     const find = await run(
       "find",
-      [dir, "-maxdepth", "5", "(", "-name", "*.json", "-o", "-name", "*.yaml", "-o", "-name", "*.yml", ")", "-type", "f"],
+      [
+        dir,
+        "-maxdepth",
+        "5",
+        "(",
+        "-name",
+        "*.json",
+        "-o",
+        "-name",
+        "*.yaml",
+        "-o",
+        "-name",
+        "*.yml",
+        ")",
+        "-type",
+        "f",
+      ],
       timeout,
     )
     if (find.exitCode === 0) {
       const candidates = find.stdout.trim().split("\n").filter(Boolean)
       for (const f of candidates) {
         const head = await run("head", ["-5", f], 5)
-        if (head.exitCode === 0 && (head.stdout.includes("AWSTemplateFormatVersion") || head.stdout.includes("Resources"))) {
+        if (
+          head.exitCode === 0 &&
+          (head.stdout.includes("AWSTemplateFormatVersion") || head.stdout.includes("Resources"))
+        ) {
           cfnFiles.push(f)
         }
       }
@@ -850,7 +869,10 @@ async function cfnAudit(args: string[], timeout: number): Promise<HookResult> {
         }
       }
 
-      if (openCidrPattern.test(line) && /Ingress|SecurityGroup|CidrIp/i.test(lines.slice(Math.max(0, i - 3), i + 1).join(""))) {
+      if (
+        openCidrPattern.test(line) &&
+        /Ingress|SecurityGroup|CidrIp/i.test(lines.slice(Math.max(0, i - 3), i + 1).join(""))
+      ) {
         output.push(`  [!] ${i + 1}: Open ingress CIDR: ${line.trim().substring(0, 100)}`)
         findings.push({
           checkId: "IAC-CFN-002",
@@ -900,7 +922,11 @@ async function ansibleSecrets(args: string[], timeout: number): Promise<HookResu
   const secretPattern =
     /(?:password|secret|api[_-]?key|token|credential|private[_-]?key|ansible_become_pass|vault_password)/i
 
-  const vaultFiles = await run("grep", ["-rl", "ANSIBLE_VAULT", dir, "--include=*.yml", "--include=*.yaml", "--include=*.enc"], timeout)
+  const vaultFiles = await run(
+    "grep",
+    ["-rl", "ANSIBLE_VAULT", dir, "--include=*.yml", "--include=*.yaml", "--include=*.enc"],
+    timeout,
+  )
   if (vaultFiles.exitCode === 0 && vaultFiles.stdout.trim()) {
     const files = vaultFiles.stdout.trim().split("\n").filter(Boolean)
     output.push(`[+] Vault-encrypted files: ${files.length}`)
@@ -931,7 +957,11 @@ async function ansibleSecrets(args: string[], timeout: number): Promise<HookResu
     }
   }
 
-  const vaultPassFiles = await run("find", [dir, "-maxdepth", "3", "-name", ".vault_pass*", "-o", "-name", "vault_password*"], timeout)
+  const vaultPassFiles = await run(
+    "find",
+    [dir, "-maxdepth", "3", "-name", ".vault_pass*", "-o", "-name", "vault_password*"],
+    timeout,
+  )
   if (vaultPassFiles.exitCode === 0 && vaultPassFiles.stdout.trim()) {
     const files = vaultPassFiles.stdout.trim().split("\n").filter(Boolean)
     output.push(`\n[!] Vault password files found:`)
@@ -982,7 +1012,11 @@ async function ansibleSecrets(args: string[], timeout: number): Promise<HookResu
     }
   }
 
-  const cfgFiles = await run("find", [dir, "-maxdepth", "2", "-name", "ansible.cfg", "-o", "-name", ".ansible.cfg"], timeout)
+  const cfgFiles = await run(
+    "find",
+    [dir, "-maxdepth", "2", "-name", "ansible.cfg", "-o", "-name", ".ansible.cfg"],
+    timeout,
+  )
   if (cfgFiles.exitCode === 0 && cfgFiles.stdout.trim()) {
     const files = cfgFiles.stdout.trim().split("\n").filter(Boolean)
     for (const f of files) {
@@ -1010,12 +1044,14 @@ async function loggingAudit(args: string[], timeout: number): Promise<HookResult
   }
 
   const files = tfFiles.stdout.trim().split("\n").filter(Boolean)
-  const allContent = (await Promise.all(
-    files.map(async (f) => {
-      const c = await run("cat", [f], 5)
-      return c.exitCode === 0 ? c.stdout : ""
-    }),
-  )).join("\n")
+  const allContent = (
+    await Promise.all(
+      files.map(async (f) => {
+        const c = await run("cat", [f], 5)
+        return c.exitCode === 0 ? c.stdout : ""
+      }),
+    )
+  ).join("\n")
 
   const loggingChecks: Array<{ resource: string; label: string; severity: string }> = [
     { resource: "aws_cloudtrail", label: "AWS CloudTrail", severity: "critical" },
@@ -1035,7 +1071,11 @@ async function loggingAudit(args: string[], timeout: number): Promise<HookResult
   }
 
   for (const check of loggingChecks) {
-    const providerPrefix = check.resource.startsWith("aws") ? "aws" : check.resource.startsWith("google") ? "gcp" : "azure"
+    const providerPrefix = check.resource.startsWith("aws")
+      ? "aws"
+      : check.resource.startsWith("google")
+        ? "gcp"
+        : "azure"
     if (!hasProvider[providerPrefix]) continue
 
     const regex = new RegExp(`resource\\s+"${check.resource}"`)
@@ -1071,7 +1111,10 @@ async function loggingAudit(args: string[], timeout: number): Promise<HookResult
         remediation: "Set is_multi_region_trail = true",
       })
     }
-    if (!allContent.includes("enable_log_file_validation") || allContent.includes("enable_log_file_validation = false")) {
+    if (
+      !allContent.includes("enable_log_file_validation") ||
+      allContent.includes("enable_log_file_validation = false")
+    ) {
       output.push(`  [!] CloudTrail log validation disabled`)
     }
   }
@@ -1092,12 +1135,14 @@ async function networkAudit(args: string[], timeout: number): Promise<HookResult
   }
 
   const files = tfFiles.stdout.trim().split("\n").filter(Boolean)
-  const allContent = (await Promise.all(
-    files.map(async (f) => {
-      const c = await run("cat", [f], 5)
-      return c.exitCode === 0 ? `\n### FILE: ${f} ###\n${c.stdout}` : ""
-    }),
-  )).join("\n")
+  const allContent = (
+    await Promise.all(
+      files.map(async (f) => {
+        const c = await run("cat", [f], 5)
+        return c.exitCode === 0 ? `\n### FILE: ${f} ###\n${c.stdout}` : ""
+      }),
+    )
+  ).join("\n")
 
   if (provider === "aws" || provider === "all") {
     if (allContent.includes("aws_default_vpc")) {
@@ -1122,10 +1167,10 @@ async function networkAudit(args: string[], timeout: number): Promise<HookResult
     const naclMatches = allContent.match(naclPattern)
     if (naclMatches) {
       output.push(`  [+] Network ACL rules: ${naclMatches.length}`)
-      if (allContent.includes('cidr_block') && /cidr_block\s*=\s*"0\.0\.0\.0\/0"/.test(allContent)) {
+      if (allContent.includes("cidr_block") && /cidr_block\s*=\s*"0\.0\.0\.0\/0"/.test(allContent)) {
         const context = allContent.match(/resource\s+"aws_network_acl_rule"[^}]*0\.0\.0\.0\/0[^}]*/g) || []
         for (const block of context) {
-          if (block.includes('rule_action') && block.includes('allow') && !block.includes('egress')) {
+          if (block.includes("rule_action") && block.includes("allow") && !block.includes("egress")) {
             output.push(`  [!] Open NACL ingress rule (0.0.0.0/0 allow)`)
             findings.push({
               checkId: "IAC-NET-002",

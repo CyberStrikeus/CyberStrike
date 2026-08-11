@@ -137,7 +137,9 @@ export async function saKeyCreate(args: string[], timeout: number): Promise<Hook
     return { output: output.join("\n"), findings }
   }
 
-  const keyContent = await Bun.file(keyFile).text().catch(() => "")
+  const keyContent = await Bun.file(keyFile)
+    .text()
+    .catch(() => "")
   const keyData = tryJson(keyContent)
   output.push(`[+] Key created successfully`)
   output.push(`    SA: ${saEmail}`)
@@ -183,7 +185,10 @@ export async function firestoreDump(args: string[], timeout: number): Promise<Ho
   }
 
   if (!collection) {
-    const indexes = await gcloud(["firestore", "indexes", "composite", "list", "--project", project, "--format=json"], timeout)
+    const indexes = await gcloud(
+      ["firestore", "indexes", "composite", "list", "--project", project, "--format=json"],
+      timeout,
+    )
     if (indexes.exitCode === 0) {
       const idxList = tryJson(indexes.stdout) || []
       output.push(`\n[+] Composite indexes: ${idxList.length}`)
@@ -216,7 +221,16 @@ export async function firestoreDump(args: string[], timeout: number): Promise<Ho
   output.push(`\n[*] Collection: ${collection} (limit: ${limit})`)
   const query = await run(
     "gcloud",
-    ["alpha", "firestore", "documents", "list", `projects/${project}/databases/(default)/documents/${collection}`, "--limit", limit, "--format=json"],
+    [
+      "alpha",
+      "firestore",
+      "documents",
+      "list",
+      `projects/${project}/databases/(default)/documents/${collection}`,
+      "--limit",
+      limit,
+      "--format=json",
+    ],
     timeout,
   )
   if (query.exitCode === 0) {

