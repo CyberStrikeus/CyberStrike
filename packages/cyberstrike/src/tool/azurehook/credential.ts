@@ -18,8 +18,7 @@ export async function keyvaultDump(args: string[], timeout: number): Promise<Hoo
           ["keyvault", "secret", "show", "--vault-name", vaultName, "--name", name, "--query", "value", "-o", "tsv"],
           timeout,
         )
-        if (val.exitCode === 0)
-          output.push(`[+] ${name}: [SECRET FOUND — ${val.stdout.trim().length} chars]`)
+        if (val.exitCode === 0) output.push(`[+] ${name}: [SECRET FOUND — ${val.stdout.trim().length} chars]`)
         else output.push(`[-] ${name}: access denied`)
       }
     }

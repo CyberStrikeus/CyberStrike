@@ -231,7 +231,11 @@ export async function cleanupAzure(args: string[], timeout: number): Promise<Hoo
         if (dryRun) {
           output.push(`    [DRY] Would delete Lighthouse assignment: ${lh.name}`)
         } else {
-          const del = await az(["managedservices", "assignment", "delete", "--assignment", lh.name, "--yes"], sub, timeout)
+          const del = await az(
+            ["managedservices", "assignment", "delete", "--assignment", lh.name, "--yes"],
+            sub,
+            timeout,
+          )
           output.push(
             del.exitCode === 0
               ? `    [+] Deleted Lighthouse assignment: ${lh.name}`
