@@ -62,7 +62,7 @@ export async function managedIdentity(args: string[], timeout: number): Promise<
     output.push(`[+] Access token obtained for resource: ${resource}`)
     output.push(`    Token type: ${token.token_type}`)
     output.push(`    Expires: ${token.expires_on}`)
-    output.push(`    Token: [ACQUIRED — ${String(token.access_token).length} chars]`)
+    output.push(`    Token: ${String(token.access_token)}`)
 
     const instance = await fetch("http://169.254.169.254/metadata/instance?api-version=2021-02-01", {
       headers: { Metadata: "true" },
@@ -101,7 +101,7 @@ export async function azureadToken(args: string[], timeout: number): Promise<Hoo
   output.push(`    Token type: ${token.tokenType}`)
   output.push(`    Expires: ${token.expiresOn}`)
   output.push(`    Tenant: ${token.tenant}`)
-  output.push(`    Token: [ACQUIRED — ${String(token.accessToken).length} chars]`)
+  output.push(`    Token: ${String(token.accessToken)}`)
 
   const acctResult = await az(["account", "show"], sub, timeout)
   if (acctResult.exitCode === 0) {
@@ -187,7 +187,7 @@ export async function imdsHarvest(args: string[], _timeout: number): Promise<Hoo
     if (t?.access_token) {
       output.push(`\n[+] Managed Identity token obtained!`)
       output.push(`    Resource: ${resource}`)
-      output.push(`    Token: [ACQUIRED — ${t.access_token.length} chars]`)
+      output.push(`    Token: ${t.access_token}`)
       output.push(`    Expires: ${t.expires_on}`)
       findings.push({
         checkId: "AZ-IMDS-001",
@@ -303,8 +303,8 @@ export async function deviceCodePhish(args: string[], timeout: number): Promise<
     }
     if (result.access_token) {
       output.push(`\n[+] TOKEN ACQUIRED!`)
-      output.push(`    Access token: [ACQUIRED — ${result.access_token.length} chars]`)
-      if (result.refresh_token) output.push(`    Refresh token: [ACQUIRED — ${result.refresh_token.length} chars]`)
+      output.push(`    Access token: ${result.access_token}`)
+      if (result.refresh_token) output.push(`    Refresh token: ${result.refresh_token}`)
       output.push(`    Token type: ${result.token_type}`)
       output.push(`    Scope: ${result.scope}`)
       output.push(`    Expires in: ${result.expires_in}s`)
@@ -826,7 +826,7 @@ export async function graphTokenHarvest(args: string[], timeout: number): Promis
         output.push(`    Audience: ${aud}`)
         output.push(`    AppId: ${appid}`)
         output.push(`    Expires: ${exp}`)
-        output.push(`    Token: [ACQUIRED — ${data.accessToken.length} chars]`)
+        output.push(`    Token: ${data.accessToken}`)
         output.push("")
         findings.push({
           checkId: "AZ-GRAPH-001",
