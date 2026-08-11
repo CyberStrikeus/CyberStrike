@@ -3,16 +3,16 @@ import { Tool } from "../tool"
 import { run } from "./shared"
 import type { Finding, HookResult } from "./shared"
 
-import { iamEnum, ec2Enum, s3Enum, lambdaEnum, vpcEnum, rdsEnum, ecsEnum, eksEnum, ssoEnum, orgEnum, route53Enum, serviceRecon, cfnEnum, apigwEnum, snsSqsEnum, cloudwatchEnum } from "./recon"
-import { metadataHarvest, secretsDump, accessKeyEnum, roleCredential, federationToken, ecrToken, consoleLogin, cognitoToken, cfnSecretExtract, codecommitCred } from "./credential"
+import { iamEnum, ec2Enum, s3Enum, lambdaEnum, vpcEnum, rdsEnum, ecsEnum, eksEnum, ssoEnum, orgEnum, route53Enum, serviceRecon, cfnEnum, apigwEnum, snsSqsEnum, cloudwatchEnum, elasticacheEnum, redshiftEnum } from "./recon"
+import { metadataHarvest, secretsDump, accessKeyEnum, roleCredential, federationToken, ecrToken, consoleLogin, cognitoToken, cfnSecretExtract, codecommitCred, ciCdSecretExtract } from "./credential"
 import { iamPrivesc, policyVersionRollback, roleChain, lambdaPrivesc, gluePrivesc, cloudformationPrivesc, ssmPrivesc, ec2Privesc, permissionBoundaryBypass, sagemakerPrivesc } from "./privesc"
-import { lambdaBackdoor, iamBackdoor, eventbridgeBackdoor, ssmDocumentBackdoor, codebuildBackdoor, amiBackdoor, crossAccountRole, cognitoBackdoor, ec2InstanceConnect, ssmStateManager } from "./persistence"
+import { lambdaBackdoor, iamBackdoor, eventbridgeBackdoor, ssmDocumentBackdoor, codebuildBackdoor, amiBackdoor, crossAccountRole, cognitoBackdoor, ec2InstanceConnect, ssmStateManager, ecsScheduledTask } from "./persistence"
 import { ssmExec, ecsExec, crossAccountEnum, vpcPeeringEnum, transitGatewayEnum, lightsailExec, codeExecLambda, ssmSession } from "./lateral"
-import { cloudtrailBlind, guarddutyEvade, configDisable, vpcFlowDisable, accessAnalyzerSuppress, securityHubSuppress, wafBypass, dnsFirewallDisable, cloudwatchTamper, macieDisable, inspectorDisable } from "./evasion"
-import { s3Dump, ec2Snapshot, rdsDump, dynamodbDump, ebsDirectRead, s3Exfil, dataStage, cleanupAws, codecommitDump, ecrDump, athenaQuery } from "./exfil"
+import { cloudtrailBlind, guarddutyEvade, configDisable, vpcFlowDisable, accessAnalyzerSuppress, securityHubSuppress, wafBypass, dnsFirewallDisable, cloudwatchTamper, macieDisable, inspectorDisable, s3LoggingDisable } from "./evasion"
+import { s3Dump, ec2Snapshot, rdsDump, dynamodbDump, ebsDirectRead, s3Exfil, dataStage, cleanupAws, codecommitDump, ecrDump, athenaQuery, secretsBulkExport } from "./exfil"
 
 const PROGRAMS = {
-  // ── Recon (16) ──
+  // ── Recon (18) ──
   iam_enum: {
     description: "Enumerate IAM users, roles, policies, and analyze for privilege escalation paths (PassRole, wildcard policies, inline policy abuse)",
     args: "[--profile PROFILE] [--region REGION]",
@@ -77,8 +77,16 @@ const PROGRAMS = {
     description: "Enumerate CloudWatch log groups (security-relevant), alarms (disabled actions), dashboards, and custom metrics",
     args: "[--profile PROFILE] [--region REGION]",
   },
+  elasticache_enum: {
+    description: "Enumerate ElastiCache Redis/Memcached clusters — auth status, encryption, replication groups, subnets, snapshots",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  redshift_enum: {
+    description: "Enumerate Redshift clusters (classic + serverless) — public access, encryption, audit logging, snapshots with cross-account sharing",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
 
-  // ── Credential Harvesting (10) ──
+  // ── Credential Harvesting (11) ──
   metadata_harvest: {
     description: "Extract IAM role credentials from EC2/ECS/Lambda metadata endpoints (169.254.169.254). Supports IMDSv1 and IMDSv2",
     args: "[--imds-version v1|v2]",
@@ -117,6 +125,10 @@ const PROGRAMS = {
   },
   codecommit_cred: {
     description: "Enumerate CodeCommit repositories and HTTPS Git/SSH credentials across all IAM users",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  ci_cd_secret_extract: {
+    description: "Extract secrets from CI/CD: CodePipeline artifact stores, CodeBuild env vars (plaintext/SSM/Secrets Manager refs), CodeStar connections",
     args: "[--profile PROFILE] [--region REGION]",
   },
 
@@ -162,7 +174,7 @@ const PROGRAMS = {
     args: "[--role-arn ARN] [--profile PROFILE] [--region REGION]",
   },
 
-  // ── Persistence (10) ──
+  // ── Persistence (11) ──
   lambda_backdoor: {
     description: "Inject reverse shell layer into existing Lambda function or create new backdoor function with high-privilege role",
     args: "--function-name NAME --callback-url URL [--method inject|create] [--profile PROFILE]",
@@ -203,6 +215,10 @@ const PROGRAMS = {
     description: "Create SSM State Manager association for scheduled command execution — more stealth than EventBridge (appears as normal SSM compliance)",
     args: "[--command CMD] [--instance-id ID] [--schedule EXPR] [--name NAME] [--list] [--profile PROFILE] [--region REGION]",
   },
+  ecs_scheduled_task: {
+    description: "Create EventBridge-triggered ECS Fargate scheduled task for serverless persistence — logs separate from Lambda, runs in target VPC",
+    args: "[--cluster NAME] [--task-definition DEF] [--command CMD] [--schedule EXPR] [--rule-name NAME] [--list] [--profile PROFILE] [--region REGION]",
+  },
 
   // ── Lateral Movement (8) ──
   ssm_exec: {
@@ -238,7 +254,7 @@ const PROGRAMS = {
     args: "[--instance-id ID] [--port-forward LOCAL:REMOTE] [--remote-host HOST] [--profile PROFILE] [--region REGION]",
   },
 
-  // ── Defense Evasion (11) ──
+  // ── Defense Evasion (12) ──
   cloudtrail_blind: {
     description: "Stop CloudTrail logging, manipulate event selectors to exclude management events, or delete existing log files from S3",
     args: "--action <stop|delete_logs|modify_selectors|status> [--trail-name NAME] [--profile PROFILE]",
@@ -283,8 +299,12 @@ const PROGRAMS = {
     description: "Disable Amazon Inspector vulnerability scanning for EC2, ECR, Lambda, and Lambda code",
     args: "[--action status|disable] [--profile PROFILE] [--region REGION]",
   },
+  s3_logging_disable: {
+    description: "Disable S3 access logging and remove S3 object-level data events from CloudTrail — makes s3_dump/s3_exfil invisible",
+    args: "[--action status|disable_access_log|disable_data_events] [--bucket BUCKET] [--profile PROFILE] [--region REGION]",
+  },
 
-  // ── Exfiltration & Cleanup (11) ──
+  // ── Exfiltration & Cleanup (12) ──
   s3_dump: {
     description: "List all S3 buckets, identify sensitive files (.env, backups, credentials, .pem, .key), and optionally download high-value targets",
     args: "[--bucket BUCKET] [--download] [--pattern REGEX] [--profile PROFILE]",
@@ -328,6 +348,10 @@ const PROGRAMS = {
   athena_query: {
     description: "Query S3 data lakes via Athena: enumerate catalogs, databases, tables, workgroups, recent queries, and execute SQL queries",
     args: "[--query-string SQL] [--database DB] [--output-bucket BUCKET] [--profile PROFILE] [--region REGION]",
+  },
+  secrets_bulk_export: {
+    description: "Bulk extract all Secrets Manager secrets + SSM SecureString parameters with optional S3 staging as JSON or .env format",
+    args: "[--dest-bucket BUCKET] [--format json|env] [--profile PROFILE] [--region REGION]",
   },
 } as const satisfies Record<string, { description: string; args: string }>
 
@@ -441,6 +465,25 @@ const CWE_MAP: Record<string, string> = {
   "AWS-EXFIL-008": "CWE-200",
   "AWS-EXFIL-009": "CWE-200",
   "AWS-EXFIL-010": "CWE-200",
+  "AWS-ELASTICACHE-001": "CWE-287",
+  "AWS-ELASTICACHE-002": "CWE-311",
+  "AWS-ELASTICACHE-003": "CWE-311",
+  "AWS-REDSHIFT-001": "CWE-284",
+  "AWS-REDSHIFT-002": "CWE-311",
+  "AWS-REDSHIFT-003": "CWE-693",
+  "AWS-REDSHIFT-004": "CWE-284",
+  "AWS-REDSHIFT-005": "CWE-284",
+  "AWS-CICD-001": "CWE-200",
+  "AWS-CICD-002": "CWE-312",
+  "AWS-CICD-003": "CWE-312",
+  "AWS-CICD-004": "CWE-200",
+  "AWS-CICD-005": "CWE-269",
+  "AWS-CICD-006": "CWE-200",
+  "AWS-PERSIST-011": "CWE-547",
+  "AWS-EVASION-016": "CWE-693",
+  "AWS-EVASION-017": "CWE-693",
+  "AWS-EXFIL-011": "CWE-200",
+  "AWS-EXFIL-012": "CWE-200",
 }
 
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
@@ -463,6 +506,8 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   apigw_enum: apigwEnum,
   sns_sqs_enum: snsSqsEnum,
   cloudwatch_enum: cloudwatchEnum,
+  elasticache_enum: elasticacheEnum,
+  redshift_enum: redshiftEnum,
   // credential
   metadata_harvest: (args) => metadataHarvest(args),
   secrets_dump: secretsDump,
@@ -474,6 +519,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   cognito_token: cognitoToken,
   cfn_secret_extract: cfnSecretExtract,
   codecommit_cred: codecommitCred,
+  ci_cd_secret_extract: ciCdSecretExtract,
   // privesc
   iam_privesc: iamPrivesc,
   policy_version_rollback: policyVersionRollback,
@@ -496,6 +542,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   cognito_backdoor: cognitoBackdoor,
   ec2_instance_connect: ec2InstanceConnect,
   ssm_state_manager: ssmStateManager,
+  ecs_scheduled_task: ecsScheduledTask,
   // lateral
   ssm_exec: ssmExec,
   ecs_exec: ecsExec,
@@ -517,6 +564,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   cloudwatch_tamper: cloudwatchTamper,
   macie_disable: macieDisable,
   inspector_disable: inspectorDisable,
+  s3_logging_disable: s3LoggingDisable,
   // exfil
   s3_dump: s3Dump,
   ec2_snapshot: ec2Snapshot,
@@ -529,10 +577,11 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   codecommit_dump: codecommitDump,
   ecr_dump: ecrDump,
   athena_query: athenaQuery,
+  secrets_bulk_export: secretsBulkExport,
 }
 
 export const AwshookTool = Tool.define("awshook", {
-  description: `Execute an AWS post-exploitation program after compromising IAM credentials or EC2 instance. Uses aws CLI (no Python/SDK dependency). 76 programs across 7 categories: recon (16), credential (10), privesc (10), persistence (10), lateral (8), evasion (11), exfil (11). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
+  description: `Execute an AWS post-exploitation program after compromising IAM credentials or EC2 instance. Uses aws CLI (no Python/SDK dependency). 82 programs across 7 categories: recon (18), credential (11), privesc (10), persistence (11), lateral (8), evasion (12), exfil (12). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
   parameters: z.object({
     program: z.enum(programKeys).describe(
       "AWS program to execute. Options: " +
