@@ -888,7 +888,7 @@ export async function macieDisable(args: string[], timeout: number): Promise<Hoo
     if (r.exitCode === 0) {
       output.push(`\n[+] Macie disabled permanently`)
       findings.push({
-        checkId: "AWS-EVASION-014",
+        checkId: "AWS-EVASION-018",
         provider: "aws",
         severity: "critical",
         status: "DISABLED",
@@ -985,7 +985,7 @@ export async function inspectorDisable(args: string[], timeout: number): Promise
       if (partial.exitCode === 0) {
         output.push(`[+] Inspector partially disabled (EC2, ECR)`)
         findings.push({
-          checkId: "AWS-EVASION-015",
+          checkId: "AWS-EVASION-019",
           provider: "aws",
           severity: "critical",
           status: "DISABLED",
@@ -1024,7 +1024,7 @@ export async function s3LoggingDisable(args: string[], timeout: number): Promise
       if (l?.LoggingEnabled) {
         output.push(`  ${b}: ACCESS LOGGING → ${l.LoggingEnabled.TargetBucket}/${l.LoggingEnabled.TargetPrefix || ""}`)
         findings.push({
-          checkId: "AWS-EVASION-016",
+          checkId: "AWS-EVASION-020",
           provider: "aws",
           severity: "info",
           status: "ENABLED",
@@ -1069,7 +1069,7 @@ export async function s3LoggingDisable(args: string[], timeout: number): Promise
                 output.push(`    Resources: ${(d.Values || []).join(", ")}`)
               }
               findings.push({
-                checkId: "AWS-EVASION-017",
+                checkId: "AWS-EVASION-021",
                 provider: "aws",
                 severity: "info",
                 status: "ENABLED",
