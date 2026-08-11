@@ -71,8 +71,14 @@ async function run(
     killed = true
     proc.kill(9)
   }, ms)
-  const reads = Promise.all([new Response(proc.stdout as ReadableStream).text(), new Response(proc.stderr as ReadableStream).text()])
-  const [stdout, stderr] = await Promise.race([reads, new Promise<[string, string]>((r) => setTimeout(() => r(["", "(timed out)"]), ms + 2000))])
+  const reads = Promise.all([
+    new Response(proc.stdout as ReadableStream).text(),
+    new Response(proc.stderr as ReadableStream).text(),
+  ])
+  const [stdout, stderr] = await Promise.race([
+    reads,
+    new Promise<[string, string]>((r) => setTimeout(() => r(["", "(timed out)"]), ms + 2000)),
+  ])
   clearTimeout(timer)
   const exitCode = killed ? 124 : await proc.exited
   return { stdout, stderr, exitCode }
