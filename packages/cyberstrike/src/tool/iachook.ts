@@ -1268,7 +1268,8 @@ async function pulumiSecrets(args: string[], timeout: number): Promise<HookResul
   const findings: Finding[] = []
   const output: string[] = [`[*] Scanning Pulumi project in: ${dir}\n`]
 
-  const secretPattern = /(?:password|secret|api[_-]?key|token|credential|private[_-]?key|connection[_-]?string|database[_-]?url)/i
+  const secretPattern =
+    /(?:password|secret|api[_-]?key|token|credential|private[_-]?key|connection[_-]?string|database[_-]?url)/i
 
   const configs = await run("find", [dir, "-maxdepth", "3", "-name", "Pulumi.*.yaml", "-type", "f"], timeout)
   if (configs.exitCode === 0 && configs.stdout.trim()) {
@@ -1354,9 +1355,26 @@ async function k8sManifestAudit(args: string[], timeout: number): Promise<HookRe
   } else {
     const find = await run(
       "find",
-      [dir, "-maxdepth", "5", "-type", "f", "(",
-        "-name", "*.yaml", "-o", "-name", "*.yml",
-        ")", "-not", "-path", "*/node_modules/*", "-not", "-path", "*/.git/*"],
+      [
+        dir,
+        "-maxdepth",
+        "5",
+        "-type",
+        "f",
+        "(",
+        "-name",
+        "*.yaml",
+        "-o",
+        "-name",
+        "*.yml",
+        ")",
+        "-not",
+        "-path",
+        "*/node_modules/*",
+        "-not",
+        "-path",
+        "*/.git/*",
+      ],
       timeout,
     )
     if (find.exitCode === 0) {
@@ -1433,7 +1451,12 @@ async function k8sManifestAudit(args: string[], timeout: number): Promise<HookRe
       })
     }
 
-    if (/runAsUser:\s*0/i.test(text) || (/kind:\s*(Deployment|Pod|DaemonSet|StatefulSet)/i.test(text) && !/runAsNonRoot:\s*true/i.test(text) && !/securityContext:/i.test(text))) {
+    if (
+      /runAsUser:\s*0/i.test(text) ||
+      (/kind:\s*(Deployment|Pod|DaemonSet|StatefulSet)/i.test(text) &&
+        !/runAsNonRoot:\s*true/i.test(text) &&
+        !/securityContext:/i.test(text))
+    ) {
       output.push(`  [!] ${shortName}: runs as root (or no securityContext)`)
       findings.push({
         checkId: "IAC-K8S-005",
@@ -1478,7 +1501,8 @@ async function k8sManifestAudit(args: string[], timeout: number): Promise<HookRe
     }
   }
 
-  if (findings.length === 0 && files.length > 0) output.push(`[+] No security issues found in ${files.length} manifests`)
+  if (findings.length === 0 && files.length > 0)
+    output.push(`[+] No security issues found in ${files.length} manifests`)
 
   return { output: output.join("\n"), findings }
 }
