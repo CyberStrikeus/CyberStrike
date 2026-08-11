@@ -1381,8 +1381,10 @@ export async function secretsBulkExport(args: string[], timeout: number): Promis
             .map(([k, v]) => `${k}=${v}`)
             .join("\n")
 
-    const tmpFile = `/tmp/cs-secrets-export.${format === "json" ? "json" : "env"}`
+    const tmpDir = process.env.TMPDIR || "/tmp"
+    const tmpFile = `${tmpDir}/cs-secrets-export.${format === "json" ? "json" : "env"}`
     await Bun.write(tmpFile, exportData)
+    try {
 
     const key = `secrets-export-${Date.now().toString(36)}.${format === "json" ? "json" : "env"}`
     const upload = await aws(["s3", "cp", tmpFile, `s3://${destBucket}/${key}`], profile, region, timeout)
@@ -1400,7 +1402,10 @@ export async function secretsBulkExport(args: string[], timeout: number): Promis
       })
     }
 
-    await Bun.write(tmpFile, "")
+    } finally {
+      const { unlink } = await import("node:fs/promises")
+      await unlink(tmpFile).catch(() => {})
+    }
   } else {
     output.push(`\n[*] Use --dest-bucket BUCKET to stage secrets to S3 for extraction`)
     output.push(`[*] Use --format env for KEY=VALUE format (default: json)`)
