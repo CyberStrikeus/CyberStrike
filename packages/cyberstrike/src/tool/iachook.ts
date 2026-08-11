@@ -153,6 +153,8 @@ async function tfStateSecrets(args: string[], timeout: number): Promise<HookResu
     /(?:password|secret|api[_-]?key|token|credential|private[_-]?key|connection[_-]?string|access[_-]?key|master[_-]?password|admin[_-]?password)/i
 
   const stateFiles: string[] = []
+  const tmpDir = process.env.TMPDIR || "/tmp"
+  const tmpFiles: string[] = []
 
   if (statePath) {
     stateFiles.push(statePath)
@@ -162,9 +164,10 @@ async function tfStateSecrets(args: string[], timeout: number): Promise<HookResu
     if (init.exitCode === 0) {
       const pull = await run("terraform", ["state", "pull"], timeout)
       if (pull.exitCode === 0) {
-        const tmpFile = "/tmp/cs-tfstate-pulled.json"
+        const tmpFile = `${tmpDir}/cs-tfstate-pulled.json`
         await Bun.write(tmpFile, pull.stdout)
         stateFiles.push(tmpFile)
+        tmpFiles.push(tmpFile)
         output.push(`[+] State pulled from S3 backend`)
       }
     }
@@ -177,9 +180,10 @@ async function tfStateSecrets(args: string[], timeout: number): Promise<HookResu
     if (find.exitCode === 0) stateFiles.push(...find.stdout.trim().split("\n").filter(Boolean))
     const pull = await run("terraform", ["state", "pull"], timeout)
     if (pull.exitCode === 0 && pull.stdout.trim().startsWith("{")) {
-      const tmpFile = "/tmp/cs-tfstate-current.json"
+      const tmpFile = `${tmpDir}/cs-tfstate-current.json`
       await Bun.write(tmpFile, pull.stdout)
       stateFiles.push(tmpFile)
+      tmpFiles.push(tmpFile)
     }
   }
 
@@ -204,7 +208,7 @@ async function tfStateSecrets(args: string[], timeout: number): Promise<HookResu
         for (const [key, val] of Object.entries(attrs)) {
           if (typeof val !== "string" || val.length < 4) continue
           if (secretPatterns.test(key) && val !== "" && val !== "null") {
-            output.push(`    [!] ${res.type}.${res.name}.${key} = ${(val as string).substring(0, 80)}...`)
+            output.push(`    [!] ${res.type}.${res.name}.${key} = [SECRET FOUND — ${(val as string).length} chars]`)
             findings.push({
               checkId: "IAC-STATE-001",
               provider: "terraform",
@@ -212,7 +216,7 @@ async function tfStateSecrets(args: string[], timeout: number): Promise<HookResu
               status: "EXTRACTED",
               resource: `${res.type}.${res.name}`,
               title: `Secret in state: ${res.type}.${res.name}.${key}`,
-              details: `Value: ${(val as string).substring(0, 200)}`,
+              details: `Key: ${key}, Length: ${(val as string).length} chars`,
               remediation: "Use sensitive variables and ensure state is encrypted at rest",
             })
           }
@@ -229,7 +233,7 @@ async function tfStateSecrets(args: string[], timeout: number): Promise<HookResu
       const v = val as Record<string, unknown>
       if (secretPatterns.test(key) || v.sensitive) {
         output.push(
-          `    [!] Output: ${key} = ${String(v.value || "").substring(0, 80)}${v.sensitive ? " [SENSITIVE]" : ""}`,
+          `    [!] Output: ${key} = [SECRET FOUND — ${String(v.value || "").length} chars]${v.sensitive ? " [SENSITIVE]" : ""}`,
         )
         if (!v.sensitive) {
           findings.push({
@@ -239,7 +243,7 @@ async function tfStateSecrets(args: string[], timeout: number): Promise<HookResu
             status: "FAIL",
             resource: `output.${key}`,
             title: `Secret output not marked sensitive: ${key}`,
-            details: `Value: ${String(v.value || "").substring(0, 200)}`,
+            details: `Key: ${key}, Length: ${String(v.value || "").length} chars`,
             remediation: "Add sensitive = true to the output block",
           })
         }
@@ -247,6 +251,9 @@ async function tfStateSecrets(args: string[], timeout: number): Promise<HookResu
     }
   }
 
+  for (const f of tmpFiles) {
+    try { await run("rm", ["-f", f], 5) } catch {}
+  }
   return { output: output.join("\n"), findings }
 }
 
@@ -261,9 +268,10 @@ async function tfPlanAudit(args: string[], timeout: number): Promise<HookResult>
     const show = await run("terraform", ["show", "-json", planFile], timeout)
     if (show.exitCode === 0) planJson = show.stdout
   } else {
-    const plan = await run("terraform", ["-chdir=" + dir, "plan", "-out=/tmp/cs-tfplan", "-input=false"], timeout)
+    const tmpPlan = `${process.env.TMPDIR || "/tmp"}/cs-tfplan`
+    const plan = await run("terraform", ["-chdir=" + dir, "plan", `-out=${tmpPlan}`, "-input=false"], timeout)
     if (plan.exitCode === 0) {
-      const show = await run("terraform", ["-chdir=" + dir, "show", "-json", "/tmp/cs-tfplan"], timeout)
+      const show = await run("terraform", ["-chdir=" + dir, "show", "-json", tmpPlan], timeout)
       if (show.exitCode === 0) planJson = show.stdout
     }
   }
@@ -340,6 +348,7 @@ async function tfPlanAudit(args: string[], timeout: number): Promise<HookResult>
 
   output.push(`\n[+] Summary: +${creates} ~${updates} -${deletes}`)
 
+  if (!planFile) try { await run("rm", ["-f", `${process.env.TMPDIR || "/tmp"}/cs-tfplan`], 5) } catch {}
   return { output: output.join("\n"), findings }
 }
 
@@ -628,18 +637,18 @@ async function remoteStateExploit(args: string[], timeout: number): Promise<Hook
 
     const getState = await run(
       "aws",
-      ["s3", "cp", `s3://${bucket}/${key}`, "/tmp/cs-remote-state.json", "--no-sign-request"],
+      ["s3", "cp", `s3://${bucket}/${key}`, `${process.env.TMPDIR || "/tmp"}/cs-remote-state.json`, "--no-sign-request"],
       timeout,
     )
     if (getState.exitCode === 0) {
       output.push(`[+] State file downloaded: ${key}`)
-      output.push(`    Run tf_state_secrets --path /tmp/cs-remote-state.json to extract secrets`)
+      output.push(`    Run tf_state_secrets --path ${process.env.TMPDIR || "/tmp"}/cs-remote-state.json to extract secrets`)
     }
 
     if (inject) {
       output.push(`\n[!] State injection is destructive — requires manual terraform apply on victim's next run`)
       output.push(
-        `    Modify /tmp/cs-remote-state.json and upload with: aws s3 cp /tmp/cs-remote-state.json s3://${bucket}/${key} --no-sign-request`,
+        `    Modify ${process.env.TMPDIR || "/tmp"}/cs-remote-state.json and upload with: aws s3 cp ${process.env.TMPDIR || "/tmp"}/cs-remote-state.json s3://${bucket}/${key} --no-sign-request`,
       )
     }
   }
