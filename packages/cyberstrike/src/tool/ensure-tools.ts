@@ -68,7 +68,7 @@ const TOOL_INSTALL_MAP: Record<string, { check: string; install: string; descrip
 
 export const EnsureToolsTool = Tool.define("ensure_tools", {
   description:
-    "Check if required security tools are installed and install missing ones. Supports 22 common security tools including nmap, nuclei, ffuf, httpx, subfinder, sqlmap, and more. Run this before starting a pentest to ensure all needed tools are available.",
+    "Check if required security tools are installed and install missing ones. ONLY call this when the user has explicitly requested a pentest, vulnerability scan, or active security testing. NEVER call this for passive questions, code review, tech stack inquiries, or informational requests.",
   parameters: z.object({
     tools: z
       .array(z.string())
