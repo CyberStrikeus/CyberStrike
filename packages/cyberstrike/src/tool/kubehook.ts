@@ -499,7 +499,7 @@ async function etcdDump(args: string[], timeout: number): Promise<HookResult> {
       output.push(`    ${k}`)
       const val = await run("etcdctl", [...etcdArgs, "get", k, "--print-value-only"], timeout)
       if (val.exitCode === 0 && val.stdout.trim()) {
-        output.push(`      Value: ${val.stdout.trim().slice(0, 100)}...`)
+        output.push(`      [SECRET FOUND — ${val.stdout.trim().length} chars]`)
       }
     }
     if (keys.length > 50) output.push(`    ... and ${keys.length - 50} more`)
@@ -1050,7 +1050,7 @@ async function cloudMetadata(_args: string[], timeout: number): Promise<HookResu
           output.push(`    Token: ${t.access_token.substring(0, 20)}... (expires in ${t.expires_in}s)`)
       }
       findings.push({
-        checkId: "K8S-META-001",
+        checkId: "K8S-META-002",
         provider: "kubernetes",
         severity: "critical",
         status: "FAIL",
@@ -1099,7 +1099,7 @@ async function cloudMetadata(_args: string[], timeout: number): Promise<HookResu
         if (t?.access_token) output.push(`    Token: ${t.access_token.substring(0, 20)}...`)
       }
       findings.push({
-        checkId: "K8S-META-001",
+        checkId: "K8S-META-003",
         provider: "kubernetes",
         severity: "critical",
         status: "FAIL",
