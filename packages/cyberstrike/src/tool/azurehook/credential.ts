@@ -19,7 +19,7 @@ export async function keyvaultDump(args: string[], timeout: number): Promise<Hoo
           timeout,
         )
         if (val.exitCode === 0)
-          output.push(`[+] ${name}: ${val.stdout.trim().slice(0, 80)}${val.stdout.length > 80 ? "..." : ""}`)
+          output.push(`[+] ${name}: [SECRET FOUND — ${val.stdout.trim().length} chars]`)
         else output.push(`[-] ${name}: access denied`)
       }
     }
@@ -42,16 +42,17 @@ export async function keyvaultDump(args: string[], timeout: number): Promise<Hoo
   return { output: output.join("\n"), findings: [] }
 }
 
-export async function managedIdentity(args: string[]): Promise<HookResult> {
+export async function managedIdentity(args: string[], timeout: number): Promise<HookResult> {
   const resource = argVal(args, "--resource") || "https://management.azure.com/"
   const output: string[] = ["[*] Probing Azure IMDS for managed identity...\n"]
+  const ms = Math.min(timeout * 1000, 30000)
 
   try {
     const resp = await fetch(
       `http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=${encodeURIComponent(resource)}`,
       {
         headers: { Metadata: "true" },
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(ms),
       },
     )
     if (!resp.ok) {
@@ -62,11 +63,11 @@ export async function managedIdentity(args: string[]): Promise<HookResult> {
     output.push(`[+] Access token obtained for resource: ${resource}`)
     output.push(`    Token type: ${token.token_type}`)
     output.push(`    Expires: ${token.expires_on}`)
-    output.push(`    Token: ${String(token.access_token).slice(0, 30)}...`)
+    output.push(`    Token: [ACQUIRED — ${String(token.access_token).length} chars]`)
 
     const instance = await fetch("http://169.254.169.254/metadata/instance?api-version=2021-02-01", {
       headers: { Metadata: "true" },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(ms),
     })
     if (instance.ok) {
       const meta = await instance.json()
@@ -101,7 +102,7 @@ export async function azureadToken(args: string[], timeout: number): Promise<Hoo
   output.push(`    Token type: ${token.tokenType}`)
   output.push(`    Expires: ${token.expiresOn}`)
   output.push(`    Tenant: ${token.tenant}`)
-  output.push(`    Token: ${String(token.accessToken).slice(0, 30)}...`)
+  output.push(`    Token: [ACQUIRED — ${String(token.accessToken).length} chars]`)
 
   const acctResult = await az(["account", "show"], sub, timeout)
   if (acctResult.exitCode === 0) {
@@ -130,7 +131,7 @@ export async function azureadToken(args: string[], timeout: number): Promise<Hoo
   return { output: output.join("\n"), findings: [] }
 }
 
-export async function imdsHarvest(args: string[]): Promise<HookResult> {
+export async function imdsHarvest(args: string[], _timeout: number): Promise<HookResult> {
   const resource = argVal(args, "--resource") || "https://management.azure.com/"
   const findings: Finding[] = []
   const output: string[] = ["[*] Harvesting Azure IMDS metadata...\n"]
@@ -187,7 +188,7 @@ export async function imdsHarvest(args: string[]): Promise<HookResult> {
     if (t?.access_token) {
       output.push(`\n[+] Managed Identity token obtained!`)
       output.push(`    Resource: ${resource}`)
-      output.push(`    Token: ${t.access_token.substring(0, 30)}...`)
+      output.push(`    Token: [ACQUIRED — ${t.access_token.length} chars]`)
       output.push(`    Expires: ${t.expires_on}`)
       findings.push({
         checkId: "AZ-IMDS-001",
@@ -303,8 +304,8 @@ export async function deviceCodePhish(args: string[], timeout: number): Promise<
     }
     if (result.access_token) {
       output.push(`\n[+] TOKEN ACQUIRED!`)
-      output.push(`    Access token: ${result.access_token.substring(0, 40)}...`)
-      if (result.refresh_token) output.push(`    Refresh token: ${result.refresh_token.substring(0, 40)}...`)
+      output.push(`    Access token: [ACQUIRED — ${result.access_token.length} chars]`)
+      if (result.refresh_token) output.push(`    Refresh token: [ACQUIRED — ${result.refresh_token.length} chars]`)
       output.push(`    Token type: ${result.token_type}`)
       output.push(`    Scope: ${result.scope}`)
       output.push(`    Expires in: ${result.expires_in}s`)
@@ -379,7 +380,7 @@ export async function tokenTheft(args: string[], timeout: number): Promise<HookR
           for (const entry of data.slice(0, 5)) {
             if (entry.accessToken) {
               output.push(
-                `    Token: ${entry.accessToken.substring(0, 30)}... (${entry.resource || entry._authority || ""})`,
+                `    Token: [FOUND — ${entry.accessToken.length} chars] (${entry.resource || entry._authority || ""})`,
               )
               findings.push({
                 checkId: "AZ-CRED-001",
@@ -393,7 +394,7 @@ export async function tokenTheft(args: string[], timeout: number): Promise<HookR
               })
             }
             if (entry.refreshToken) {
-              output.push(`    Refresh: ${entry.refreshToken.substring(0, 20)}...`)
+              output.push(`    Refresh: [FOUND — ${entry.refreshToken.length} chars]`)
             }
           }
         }
@@ -401,7 +402,7 @@ export async function tokenTheft(args: string[], timeout: number): Promise<HookR
           const tokens = Object.values(data.RefreshToken) as Record<string, string>[]
           output.push(`    Refresh tokens: ${tokens.length}`)
           for (const t of tokens.slice(0, 5)) {
-            output.push(`    RT: ${String(t.secret || "").substring(0, 20)}... (${t.home_account_id || ""})`)
+            output.push(`    RT: [FOUND — ${String(t.secret || "").length} chars] (${t.home_account_id || ""})`)
           }
           findings.push({
             checkId: "AZ-CRED-002",
@@ -418,7 +419,7 @@ export async function tokenTheft(args: string[], timeout: number): Promise<HookR
           const tokens = Object.values(data.AccessToken) as Record<string, string>[]
           output.push(`    Access tokens: ${tokens.length}`)
           for (const t of tokens.slice(0, 3)) {
-            output.push(`    AT: ${String(t.secret || "").substring(0, 30)}... (${t.realm || ""})`)
+            output.push(`    AT: [FOUND — ${String(t.secret || "").length} chars] (${t.realm || ""})`)
           }
         }
       } else {
@@ -826,7 +827,7 @@ export async function graphTokenHarvest(args: string[], timeout: number): Promis
         output.push(`    Audience: ${aud}`)
         output.push(`    AppId: ${appid}`)
         output.push(`    Expires: ${exp}`)
-        output.push(`    Token (first 40): ${data.accessToken.substring(0, 40)}...`)
+        output.push(`    Token: [ACQUIRED — ${data.accessToken.length} chars]`)
         output.push("")
         findings.push({
           checkId: "AZ-GRAPH-001",
