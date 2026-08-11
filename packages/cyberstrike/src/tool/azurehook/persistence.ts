@@ -423,7 +423,7 @@ export async function spPersist(args: string[], timeout: number): Promise<HookRe
   }
 
   findings.push({
-    checkId: "AZ-SP-001",
+    checkId: "AZ-SP-003",
     provider: "azure",
     severity: "critical",
     status: "CREATED",

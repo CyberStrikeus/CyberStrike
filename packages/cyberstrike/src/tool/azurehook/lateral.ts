@@ -761,7 +761,7 @@ export async function intuneDeploy(args: string[], timeout: number): Promise<Hoo
       }
       if (list.length > 0) {
         findings.push({
-          checkId: "AZ-INTUNE-001",
+          checkId: "AZ-INTUNE-003",
           provider: "azure",
           severity: "high",
           status: "ENUMERATED",

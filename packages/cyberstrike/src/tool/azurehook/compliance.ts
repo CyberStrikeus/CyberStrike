@@ -619,7 +619,7 @@ export async function diagnosticAudit(args: string[], timeout: number): Promise<
   const settings = tryJson(r.stdout)?.value || tryJson(r.stdout) || []
   if (!Array.isArray(settings) || settings.length === 0) {
     findings.push({
-      checkId: "CIS-AZ-6.1",
+      checkId: "CIS-AZ-6.2",
       provider: "azure-cis",
       severity: "high",
       status: "FAIL",
@@ -642,7 +642,7 @@ export async function diagnosticAudit(args: string[], timeout: number): Promise<
       const log = logs.find((l: Record<string, string | boolean>) => l.category === cat)
       if (!log || !log.enabled) {
         findings.push({
-          checkId: "CIS-AZ-6.1",
+          checkId: "CIS-AZ-6.3",
           provider: "azure-cis",
           severity: "medium",
           status: "FAIL",
@@ -1362,7 +1362,7 @@ export async function passwordPolicyAudit(args: string[], timeout: number): Prom
 
       if (bannedList && (!bannedList.value || bannedList.value.split(",").length < 3)) {
         findings.push({
-          checkId: "CIS-AZ-2.19",
+          checkId: "CIS-AZ-2.20",
           provider: "azure-cis",
           severity: "low",
           status: "FAIL",
