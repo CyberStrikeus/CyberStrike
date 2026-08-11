@@ -290,7 +290,12 @@ export async function cleanupMac(_args: string[], timeout: number): Promise<Hook
   }
 
   const td = process.env.TMPDIR || "/tmp"
-  const tmpPatterns = [`${td}/cs-*`, `${td}/cyberstrike-*`, ...(td !== "/tmp" ? ["/tmp/cs-*", "/tmp/cyberstrike-*"] : []), `${home}/.cs-*`]
+  const tmpPatterns = [
+    `${td}/cs-*`,
+    `${td}/cyberstrike-*`,
+    ...(td !== "/tmp" ? ["/tmp/cs-*", "/tmp/cyberstrike-*"] : []),
+    `${home}/.cs-*`,
+  ]
   for (const pattern of tmpPatterns) {
     const find = await run(
       "find",

