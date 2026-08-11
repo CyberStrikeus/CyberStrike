@@ -252,7 +252,9 @@ async function tfStateSecrets(args: string[], timeout: number): Promise<HookResu
   }
 
   for (const f of tmpFiles) {
-    try { await run("rm", ["-f", f], 5) } catch {}
+    try {
+      await run("rm", ["-f", f], 5)
+    } catch {}
   }
   return { output: output.join("\n"), findings }
 }
@@ -348,7 +350,10 @@ async function tfPlanAudit(args: string[], timeout: number): Promise<HookResult>
 
   output.push(`\n[+] Summary: +${creates} ~${updates} -${deletes}`)
 
-  if (!planFile) try { await run("rm", ["-f", `${process.env.TMPDIR || "/tmp"}/cs-tfplan`], 5) } catch {}
+  if (!planFile)
+    try {
+      await run("rm", ["-f", `${process.env.TMPDIR || "/tmp"}/cs-tfplan`], 5)
+    } catch {}
   return { output: output.join("\n"), findings }
 }
 
@@ -637,12 +642,20 @@ async function remoteStateExploit(args: string[], timeout: number): Promise<Hook
 
     const getState = await run(
       "aws",
-      ["s3", "cp", `s3://${bucket}/${key}`, `${process.env.TMPDIR || "/tmp"}/cs-remote-state.json`, "--no-sign-request"],
+      [
+        "s3",
+        "cp",
+        `s3://${bucket}/${key}`,
+        `${process.env.TMPDIR || "/tmp"}/cs-remote-state.json`,
+        "--no-sign-request",
+      ],
       timeout,
     )
     if (getState.exitCode === 0) {
       output.push(`[+] State file downloaded: ${key}`)
-      output.push(`    Run tf_state_secrets --path ${process.env.TMPDIR || "/tmp"}/cs-remote-state.json to extract secrets`)
+      output.push(
+        `    Run tf_state_secrets --path ${process.env.TMPDIR || "/tmp"}/cs-remote-state.json to extract secrets`,
+      )
     }
 
     if (inject) {
