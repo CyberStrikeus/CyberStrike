@@ -168,9 +168,17 @@ export async function computeSnapshot(args: string[], timeout: number): Promise<
   const snapName = `cs-snap-${disk}-${Date.now()}`
   const r = await gcloud(
     [
-      "compute", "disks", "snapshot", disk,
-      "--zone", zone, "--snapshot-names", snapName,
-      "--project", project, "--description=CyberStrike forensic snapshot",
+      "compute",
+      "disks",
+      "snapshot",
+      disk,
+      "--zone",
+      zone,
+      "--snapshot-names",
+      snapName,
+      "--project",
+      project,
+      "--description=CyberStrike forensic snapshot",
     ],
     timeout,
   )
@@ -192,10 +200,16 @@ export async function computeSnapshot(args: string[], timeout: number): Promise<
   if (shareProject) {
     const sr = await gcloud(
       [
-        "compute", "snapshots", "add-iam-policy-binding", snapName,
-        "--member", `serviceAccount:${shareProject}@cloudservices.gserviceaccount.com`,
-        "--role", "roles/compute.storageAdmin",
-        "--project", project,
+        "compute",
+        "snapshots",
+        "add-iam-policy-binding",
+        snapName,
+        "--member",
+        `serviceAccount:${shareProject}@cloudservices.gserviceaccount.com`,
+        "--role",
+        "roles/compute.storageAdmin",
+        "--project",
+        project,
       ],
       timeout,
     )
@@ -305,7 +319,29 @@ export async function sourceRepoDump(args: string[], timeout: number): Promise<H
   const clone = await gcloud(["source", "repos", "clone", repo, cloneDir, "--project", project], timeout)
   if (clone.exitCode === 0) {
     output.push(`\n[+] Repository cloned to ${cloneDir}`)
-    const files = await run("find", [cloneDir, "-type", "f", "-name", "*.env", "-o", "-name", "*.key", "-o", "-name", "*.pem", "-o", "-name", "*secret*", "-o", "-name", "*credential*"], timeout)
+    const files = await run(
+      "find",
+      [
+        cloneDir,
+        "-type",
+        "f",
+        "-name",
+        "*.env",
+        "-o",
+        "-name",
+        "*.key",
+        "-o",
+        "-name",
+        "*.pem",
+        "-o",
+        "-name",
+        "*secret*",
+        "-o",
+        "-name",
+        "*credential*",
+      ],
+      timeout,
+    )
     if (files.exitCode === 0 && files.stdout.trim()) {
       output.push(`[!] Sensitive files found:`)
       for (const f of files.stdout.trim().split("\n").slice(0, 20)) output.push(`    ${f}`)
@@ -331,7 +367,8 @@ export async function sourceRepoDump(args: string[], timeout: number): Promise<H
 export async function dlpScan(args: string[], timeout: number): Promise<HookResult> {
   const project = await resolveProject(argVal(args, "--project"))
   const bucket = argVal(args, "--bucket")
-  const infoTypes = argVal(args, "--info-types") || "CREDIT_CARD_NUMBER,US_SOCIAL_SECURITY_NUMBER,EMAIL_ADDRESS,PHONE_NUMBER"
+  const infoTypes =
+    argVal(args, "--info-types") || "CREDIT_CARD_NUMBER,US_SOCIAL_SECURITY_NUMBER,EMAIL_ADDRESS,PHONE_NUMBER"
   const findings: Finding[] = []
   const output: string[] = [`[*] Cloud DLP scan — project: ${project}\n`]
 
@@ -342,7 +379,10 @@ export async function dlpScan(args: string[], timeout: number): Promise<HookResu
     for (const t of items) output.push(`    ${t.name?.split("/").pop()}`)
   }
 
-  const jobs = await gcloud(["dlp", "jobs", "list", "--project", project, "--format=json", "--filter=state=DONE"], timeout)
+  const jobs = await gcloud(
+    ["dlp", "jobs", "list", "--project", project, "--format=json", "--filter=state=DONE"],
+    timeout,
+  )
   if (jobs.exitCode === 0) {
     const jobList = tryJson(jobs.stdout) || []
     output.push(`\n[+] Completed DLP jobs: ${jobList.length}`)

@@ -85,7 +85,18 @@ export async function vpcFlowTamper(args: string[], timeout: number): Promise<Ho
     if (!subnet) return { output: "ERROR: --subnet required for disable", findings }
     if (!region) return { output: "ERROR: --region required for disable", findings }
     const disable = await gcloud(
-      ["compute", "networks", "subnets", "update", subnet, "--region", region, "--no-enable-flow-logs", "--project", project],
+      [
+        "compute",
+        "networks",
+        "subnets",
+        "update",
+        subnet,
+        "--region",
+        region,
+        "--no-enable-flow-logs",
+        "--project",
+        project,
+      ],
       timeout,
     )
     if (disable.exitCode === 0) {
@@ -136,11 +147,18 @@ export async function vpcFirewallModify(args: string[], timeout: number): Promis
     const name = ruleName || `cs-allow-${Date.now()}`
     const create = await gcloud(
       [
-        "compute", "firewall-rules", "create", name,
-        "--direction=INGRESS", "--action=ALLOW",
+        "compute",
+        "firewall-rules",
+        "create",
+        name,
+        "--direction=INGRESS",
+        "--action=ALLOW",
         "--rules=tcp:22,tcp:443,tcp:8080,tcp:4444",
-        "--source-ranges=0.0.0.0/0", "--priority=100",
-        "--project", project, "--quiet",
+        "--source-ranges=0.0.0.0/0",
+        "--priority=100",
+        "--project",
+        project,
+        "--quiet",
       ],
       timeout,
     )

@@ -2,10 +2,28 @@ import z from "zod"
 import { Tool } from "../tool"
 import type { Finding, HookResult } from "./shared"
 
-import { gcpEnum, vpcEnum, iamAnalyzer, sqlEnum, kmsEnum, orgEnum, dnsEnum, loggingEnum, spannerEnum, artifactRegistryEnum, gkeEnum } from "./recon"
+import {
+  gcpEnum,
+  vpcEnum,
+  iamAnalyzer,
+  sqlEnum,
+  kmsEnum,
+  orgEnum,
+  dnsEnum,
+  loggingEnum,
+  spannerEnum,
+  artifactRegistryEnum,
+  gkeEnum,
+} from "./recon"
 import { metadataHarvestGcp, secretsDumpGcp, saKeyCreate, firestoreDump } from "./credential"
 import { gcpPrivesc, customRoleAbuse, osLoginAbuse } from "./privesc"
-import { cloudfuncBackdoor, cloudRunBackdoor, schedulerPersist, cloudBuildBackdoor, composerBackdoor } from "./persistence"
+import {
+  cloudfuncBackdoor,
+  cloudRunBackdoor,
+  schedulerPersist,
+  cloudBuildBackdoor,
+  composerBackdoor,
+} from "./persistence"
 import { gcsDump, bigqueryDump, computeSnapshot, pubsubSniff, sourceRepoDump, dlpScan } from "./exfil"
 import { auditLogTamper, vpcFlowTamper, vpcFirewallModify } from "./evasion"
 import { cleanupGcp } from "./cleanup"
@@ -13,7 +31,8 @@ import { cleanupGcp } from "./cleanup"
 const PROGRAMS = {
   // ── Recon (11) ──
   gcp_enum: {
-    description: "Enumerate GCP project resources: compute instances, GKE clusters, Cloud SQL, Cloud Functions, Cloud Run, storage buckets, IAM policies, VPCs, firewalls",
+    description:
+      "Enumerate GCP project resources: compute instances, GKE clusters, Cloud SQL, Cloud Functions, Cloud Run, storage buckets, IAM policies, VPCs, firewalls",
     args: "[--project PROJECT]",
   },
   vpc_enum: {
@@ -21,15 +40,18 @@ const PROGRAMS = {
     args: "[--project PROJECT]",
   },
   iam_analyzer: {
-    description: "Deep IAM analysis: overprivileged service accounts, custom roles with dangerous permissions, cross-project bindings, key rotation status",
+    description:
+      "Deep IAM analysis: overprivileged service accounts, custom roles with dangerous permissions, cross-project bindings, key rotation status",
     args: "[--project PROJECT]",
   },
   sql_enum: {
-    description: "Enumerate Cloud SQL instances: version, flags, SSL enforcement, authorized networks, backup status, public IP exposure",
+    description:
+      "Enumerate Cloud SQL instances: version, flags, SSL enforcement, authorized networks, backup status, public IP exposure",
     args: "[--project PROJECT]",
   },
   kms_enum: {
-    description: "Enumerate Cloud KMS keyrings, keys, IAM bindings. Check for overly permissive key access and rotation policies",
+    description:
+      "Enumerate Cloud KMS keyrings, keys, IAM bindings. Check for overly permissive key access and rotation policies",
     args: "[--project PROJECT]",
   },
   org_enum: {
@@ -53,39 +75,47 @@ const PROGRAMS = {
     args: "[--project PROJECT]",
   },
   gke_enum: {
-    description: "Deep GKE cluster enumeration: node pools, workload identity, network policies, RBAC, pod security, master authorized networks",
+    description:
+      "Deep GKE cluster enumeration: node pools, workload identity, network policies, RBAC, pod security, master authorized networks",
     args: "[--project PROJECT] [--cluster NAME] [--zone ZONE]",
   },
 
   // ── Credential (4) ──
   metadata_harvest_gcp: {
-    description: "Harvest credentials from GCP metadata server: service account token, project info, instance attributes, custom metadata, SSH keys",
+    description:
+      "Harvest credentials from GCP metadata server: service account token, project info, instance attributes, custom metadata, SSH keys",
     args: "",
   },
   secrets_dump_gcp: {
-    description: "Extract all secrets from GCP Secret Manager with version data. Lists and decodes accessible secret values",
+    description:
+      "Extract all secrets from GCP Secret Manager with version data. Lists and decodes accessible secret values",
     args: "[--project PROJECT]",
   },
   sa_key_create: {
-    description: "Create new service account key for persistence. Downloads JSON key file for specified service account",
+    description:
+      "Create new service account key for persistence. Downloads JSON key file for specified service account",
     args: "--sa-email EMAIL [--project PROJECT]",
   },
   firestore_dump: {
-    description: "Dump Firestore/Datastore collections and documents. Searches for credentials, tokens, and PII in document fields",
+    description:
+      "Dump Firestore/Datastore collections and documents. Searches for credentials, tokens, and PII in document fields",
     args: "[--project PROJECT] [--collection NAME]",
   },
 
   // ── Privesc (3) ──
   gcp_privesc: {
-    description: "Check current IAM permissions for privilege escalation paths: setIamPolicy, actAs, signBlob, deploy functions, create keys",
+    description:
+      "Check current IAM permissions for privilege escalation paths: setIamPolicy, actAs, signBlob, deploy functions, create keys",
     args: "[--project PROJECT]",
   },
   custom_role_abuse: {
-    description: "Audit and exploit custom IAM roles: find roles with dangerous permission combinations, check for role update permissions",
+    description:
+      "Audit and exploit custom IAM roles: find roles with dangerous permission combinations, check for role update permissions",
     args: "[--project PROJECT]",
   },
   os_login_abuse: {
-    description: "Exploit OS Login for compute instance access: check OS Login status, SSH key injection, sudo access via roles",
+    description:
+      "Exploit OS Login for compute instance access: check OS Login status, SSH key injection, sudo access via roles",
     args: "[--project PROJECT]",
   },
 
@@ -99,25 +129,30 @@ const PROGRAMS = {
     args: "--name NAME --image IMAGE [--project PROJECT] [--region REGION] [--env KEY=VAL]",
   },
   scheduler_persist: {
-    description: "Create Cloud Scheduler job for periodic callback/command execution. Supports HTTP, Pub/Sub, and App Engine targets",
+    description:
+      "Create Cloud Scheduler job for periodic callback/command execution. Supports HTTP, Pub/Sub, and App Engine targets",
     args: "--name NAME --schedule CRON --url URL [--project PROJECT]",
   },
   cloud_build_backdoor: {
-    description: "Create Cloud Build trigger for build-time persistence: injects commands into CI/CD pipeline on repository events",
+    description:
+      "Create Cloud Build trigger for build-time persistence: injects commands into CI/CD pipeline on repository events",
     args: "--repo REPO --branch BRANCH --command CMD [--project PROJECT]",
   },
   composer_backdoor: {
-    description: "Inject DAG into Cloud Composer (managed Airflow) environment for scheduled task execution and data access",
+    description:
+      "Inject DAG into Cloud Composer (managed Airflow) environment for scheduled task execution and data access",
     args: "--environment ENV --dag-name NAME --command CMD [--project PROJECT] [--location LOCATION]",
   },
 
   // ── Exfil (6) ──
   gcs_dump: {
-    description: "Enumerate and download files from GCS buckets. Supports pattern-based filtering and permission checks for public access",
+    description:
+      "Enumerate and download files from GCS buckets. Supports pattern-based filtering and permission checks for public access",
     args: "--bucket BUCKET [--pattern REGEX] [--output DIR] [--project PROJECT]",
   },
   bigquery_dump: {
-    description: "Enumerate and extract data from BigQuery datasets. Lists tables, schemas, row counts, and exports matching data",
+    description:
+      "Enumerate and extract data from BigQuery datasets. Lists tables, schemas, row counts, and exports matching data",
     args: "[--project PROJECT] [--dataset DATASET] [--query SQL]",
   },
   compute_snapshot: {
@@ -139,7 +174,8 @@ const PROGRAMS = {
 
   // ── Evasion (3) ──
   audit_log_tamper: {
-    description: "Enumerate and manipulate GCP audit logging: check status, modify log sinks to filter events, disable data access logs",
+    description:
+      "Enumerate and manipulate GCP audit logging: check status, modify log sinks to filter events, disable data access logs",
     args: "--action <status|disable_data_access|modify_sink> [--project PROJECT]",
   },
   vpc_flow_tamper: {
@@ -153,7 +189,8 @@ const PROGRAMS = {
 
   // ── Cleanup (1) ──
   cleanup_gcp: {
-    description: "Remove all CyberStrike GCP artifacts: snapshots, functions, Run services, scheduler jobs, build triggers, firewall rules. ALWAYS run before leaving",
+    description:
+      "Remove all CyberStrike GCP artifacts: snapshots, functions, Run services, scheduler jobs, build triggers, firewall rules. ALWAYS run before leaving",
     args: "[--project PROJECT] [--dry-run]",
   },
 } as const satisfies Record<string, { description: string; args: string }>

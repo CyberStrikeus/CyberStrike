@@ -10,7 +10,15 @@ export async function cleanupGcp(args: string[], timeout: number): Promise<HookR
   let cleaned = 0
 
   const snapR = await gcloud(
-    ["compute", "snapshots", "list", "--filter=description~CyberStrike OR name~cs-", "--project", project, "--format=json"],
+    [
+      "compute",
+      "snapshots",
+      "list",
+      "--filter=description~CyberStrike OR name~cs-",
+      "--project",
+      project,
+      "--format=json",
+    ],
     timeout,
   )
   if (snapR.exitCode === 0) {
@@ -139,10 +147,7 @@ export async function cleanupGcp(args: string[], timeout: number): Promise<HookR
     }
   }
 
-  const saKeyR = await gcloud(
-    ["iam", "service-accounts", "list", "--project", project, "--format=json"],
-    timeout,
-  )
+  const saKeyR = await gcloud(["iam", "service-accounts", "list", "--project", project, "--format=json"], timeout)
   if (saKeyR.exitCode === 0) {
     const sas = tryJson(saKeyR.stdout) || []
     for (const sa of sas) {

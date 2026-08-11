@@ -11,11 +11,7 @@ export async function gcpPrivesc(args: string[], timeout: number): Promise<HookR
 
   if (method === "impersonate") {
     if (!targetSa) return { output: "ERROR: --target-sa required for impersonate", findings }
-    const r = await run(
-      "gcloud",
-      ["auth", "print-access-token", `--impersonate-service-account=${targetSa}`],
-      timeout,
-    )
+    const r = await run("gcloud", ["auth", "print-access-token", `--impersonate-service-account=${targetSa}`], timeout)
     if (r.exitCode === 0) {
       findings.push({
         checkId: "GCP-PRIVESC-001",
@@ -41,8 +37,7 @@ export async function gcpPrivesc(args: string[], timeout: number): Promise<HookR
     const policy = tryJson(r.stdout)
     const bindings = policy?.bindings || []
     const ownerBindings = bindings.filter(
-      (b: { role: string }) =>
-        b.role === "roles/owner" || b.role === "roles/resourcemanager.projectIamAdmin",
+      (b: { role: string }) => b.role === "roles/owner" || b.role === "roles/resourcemanager.projectIamAdmin",
     )
     if (ownerBindings.length > 0) {
       findings.push({
@@ -88,12 +83,7 @@ export async function gcpPrivesc(args: string[], timeout: number): Promise<HookR
     if (!targetSa) return { output: "ERROR: --target-sa required for token_create", findings }
     const r = await run(
       "gcloud",
-      [
-        "auth",
-        "print-identity-token",
-        `--impersonate-service-account=${targetSa}`,
-        `--audiences=https://${targetSa}`,
-      ],
+      ["auth", "print-identity-token", `--impersonate-service-account=${targetSa}`, `--audiences=https://${targetSa}`],
       timeout,
     )
     if (r.exitCode === 0) {
@@ -204,7 +194,9 @@ export async function osLoginAbuse(args: string[], timeout: number): Promise<Hoo
   }
 
   if (sshKeyFile) {
-    const keyContent = await Bun.file(sshKeyFile).text().catch(() => "")
+    const keyContent = await Bun.file(sshKeyFile)
+      .text()
+      .catch(() => "")
     if (!keyContent) {
       output.push(`[-] Cannot read SSH key file: ${sshKeyFile}`)
       return { output: output.join("\n"), findings }

