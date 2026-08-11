@@ -134,7 +134,7 @@ Write-Output "[+] Full ticket data saved to $env:TEMP\\cs-kerberoast.json"
     const ticketCount = (result.stdout.match(/\[\+\]/g) || []).length
     if (ticketCount > 0) {
       findings.push({
-        checkId: "WIN-KERB-001",
+        checkId: "WIN-KERB-009",
         provider: "windows",
         severity: "critical",
         status: "EXTRACTED",

@@ -2059,7 +2059,7 @@ Write-Output "[+] WMIC/XSL bypass executed"
     }
 
     findings.push({
-      checkId: "WIN-APPLOCKER-002",
+      checkId: "WIN-APPLOCKER-003",
       provider: "windows",
       severity: "high",
       status: "BYPASSED",
