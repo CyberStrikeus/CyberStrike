@@ -2235,12 +2235,14 @@ export async function multiRegionScan(args: string[], timeout: number): Promise<
     const counts: Record<string, number> = {}
     for (const svc of services) {
       const r = await aws(svc.cmd, profile, region, Math.min(timeout, 30))
-      counts[svc.label] = r.exitCode === 0 ? (tryJson(r.stdout) || 0) : 0
+      counts[svc.label] = r.exitCode === 0 ? tryJson(r.stdout) || 0 : 0
     }
     summary[region] = counts
     const total = Object.values(counts).reduce((a, b) => a + b, 0)
     if (total > 0) {
-      const parts = Object.entries(counts).filter(([, v]) => v > 0).map(([k, v]) => `${k}:${v}`)
+      const parts = Object.entries(counts)
+        .filter(([, v]) => v > 0)
+        .map(([k, v]) => `${k}:${v}`)
       output.push(`[+] ${region}: ${parts.join(", ")}`)
       if (region !== primary) {
         findings.push({
@@ -2277,13 +2279,23 @@ export async function kmsEnum(args: string[], timeout: number): Promise<HookResu
   const keyIds = (tryJson(keysR.stdout) || []) as string[]
   output.push(`[+] KMS Keys: ${keyIds.length}\n`)
 
-  const aliasR = await aws(["kms", "list-aliases", "--query", "Aliases[].{KeyId:TargetKeyId,Alias:AliasName}"], profile, region, timeout)
+  const aliasR = await aws(
+    ["kms", "list-aliases", "--query", "Aliases[].{KeyId:TargetKeyId,Alias:AliasName}"],
+    profile,
+    region,
+    timeout,
+  )
   const aliases = (tryJson(aliasR.stdout) || []) as Array<{ KeyId: string; Alias: string }>
   const aliasMap = new Map<string, string>()
   for (const a of aliases) if (a.KeyId) aliasMap.set(a.KeyId, a.Alias)
 
   for (const keyId of keyIds) {
-    const desc = await aws(["kms", "describe-key", "--key-id", keyId, "--query", "KeyMetadata"], profile, region, timeout)
+    const desc = await aws(
+      ["kms", "describe-key", "--key-id", keyId, "--query", "KeyMetadata"],
+      profile,
+      region,
+      timeout,
+    )
     const meta = tryJson(desc.stdout)
     if (!meta) continue
 
@@ -2295,7 +2307,12 @@ export async function kmsEnum(args: string[], timeout: number): Promise<HookResu
     output.push(`    State: ${meta.KeyState}, Origin: ${meta.Origin}, Manager: ${manager}`)
     output.push(`    Created: ${meta.CreationDate}, Spec: ${meta.KeySpec}`)
 
-    const policyR = await aws(["kms", "get-key-policy", "--key-id", keyId, "--policy-name", "default", "--query", "Policy"], profile, region, timeout)
+    const policyR = await aws(
+      ["kms", "get-key-policy", "--key-id", keyId, "--policy-name", "default", "--query", "Policy"],
+      profile,
+      region,
+      timeout,
+    )
     if (policyR.exitCode === 0) {
       const policyStr = tryJson(policyR.stdout) || policyR.stdout.trim()
       const policy = typeof policyStr === "string" ? tryJson(policyStr) : policyStr
@@ -2319,7 +2336,12 @@ export async function kmsEnum(args: string[], timeout: number): Promise<HookResu
       }
     }
 
-    const grantsR = await aws(["kms", "list-grants", "--key-id", keyId, "--query", "Grants[]"], profile, region, timeout)
+    const grantsR = await aws(
+      ["kms", "list-grants", "--key-id", keyId, "--query", "Grants[]"],
+      profile,
+      region,
+      timeout,
+    )
     const grants = (tryJson(grantsR.stdout) || []) as Array<Record<string, unknown>>
     if (grants.length > 0) {
       output.push(`    Grants: ${grants.length}`)
@@ -2355,13 +2377,23 @@ export async function opensearchEnum(args: string[], timeout: number): Promise<H
   const findings: Finding[] = []
   const output: string[] = ["[*] OpenSearch / Elasticsearch Domain Enumeration\n"]
 
-  const domainsR = await aws(["opensearch", "list-domain-names", "--query", "DomainNames[].DomainName"], profile, region, timeout)
+  const domainsR = await aws(
+    ["opensearch", "list-domain-names", "--query", "DomainNames[].DomainName"],
+    profile,
+    region,
+    timeout,
+  )
   if (domainsR.exitCode !== 0) return { output: `[-] Cannot list domains: ${domainsR.stderr.trim()}`, findings }
   const domains = (tryJson(domainsR.stdout) || []) as string[]
   output.push(`[+] Domains: ${domains.length}\n`)
 
   for (const name of domains) {
-    const descR = await aws(["opensearch", "describe-domain", "--domain-name", name, "--query", "DomainStatus"], profile, region, timeout)
+    const descR = await aws(
+      ["opensearch", "describe-domain", "--domain-name", name, "--query", "DomainStatus"],
+      profile,
+      region,
+      timeout,
+    )
     const domain = tryJson(descR.stdout)
     if (!domain) continue
 
@@ -2476,18 +2508,42 @@ export async function efsEnum(args: string[], timeout: number): Promise<HookResu
       })
     }
 
-    const mtR = await aws(["efs", "describe-mount-targets", "--file-system-id", fsId, "--query", "MountTargets[]"], profile, region, timeout)
+    const mtR = await aws(
+      ["efs", "describe-mount-targets", "--file-system-id", fsId, "--query", "MountTargets[]"],
+      profile,
+      region,
+      timeout,
+    )
     const mounts = (tryJson(mtR.stdout) || []) as Array<Record<string, string>>
     output.push(`    Mount targets: ${mounts.length}`)
 
     for (const mt of mounts) {
-      output.push(`      ${mt.MountTargetId} — subnet: ${mt.SubnetId}, AZ: ${mt.AvailabilityZoneName}, IP: ${mt.IpAddress}`)
-      const sgR = await aws(["efs", "describe-mount-target-security-groups", "--mount-target-id", mt.MountTargetId, "--query", "SecurityGroups"], profile, region, timeout)
+      output.push(
+        `      ${mt.MountTargetId} — subnet: ${mt.SubnetId}, AZ: ${mt.AvailabilityZoneName}, IP: ${mt.IpAddress}`,
+      )
+      const sgR = await aws(
+        [
+          "efs",
+          "describe-mount-target-security-groups",
+          "--mount-target-id",
+          mt.MountTargetId,
+          "--query",
+          "SecurityGroups",
+        ],
+        profile,
+        region,
+        timeout,
+      )
       const sgs = (tryJson(sgR.stdout) || []) as string[]
       if (sgs.length > 0) {
         output.push(`        Security groups: ${sgs.join(", ")}`)
         for (const sg of sgs) {
-          const sgDesc = await aws(["ec2", "describe-security-groups", "--group-ids", sg, "--query", "SecurityGroups[0].IpPermissions[]"], profile, region, timeout)
+          const sgDesc = await aws(
+            ["ec2", "describe-security-groups", "--group-ids", sg, "--query", "SecurityGroups[0].IpPermissions[]"],
+            profile,
+            region,
+            timeout,
+          )
           const rules = (tryJson(sgDesc.stdout) || []) as Array<Record<string, unknown>>
           for (const rule of rules) {
             const ranges = (rule.IpRanges || []) as Array<Record<string, string>>
@@ -2510,7 +2566,12 @@ export async function efsEnum(args: string[], timeout: number): Promise<HookResu
       }
     }
 
-    const policyR = await aws(["efs", "describe-file-system-policy", "--file-system-id", fsId], profile, region, timeout)
+    const policyR = await aws(
+      ["efs", "describe-file-system-policy", "--file-system-id", fsId],
+      profile,
+      region,
+      timeout,
+    )
     if (policyR.exitCode === 0) {
       const policyData = tryJson(policyR.stdout)
       const policy = policyData?.Policy ? tryJson(policyData.Policy) : null
@@ -2558,7 +2619,9 @@ export async function elbEnum(args: string[], timeout: number): Promise<HookResu
 
       output.push(`\n  [+] ${name} (${lbType}, ${scheme})`)
       output.push(`      DNS: ${dns}`)
-      output.push(`      VPC: ${lb.VpcId}, AZs: ${((lb.AvailabilityZones || []) as Array<Record<string, string>>).map((az) => az.ZoneName).join(",")}`)
+      output.push(
+        `      VPC: ${lb.VpcId}, AZs: ${((lb.AvailabilityZones || []) as Array<Record<string, string>>).map((az) => az.ZoneName).join(",")}`,
+      )
 
       if (scheme === "internet-facing") {
         findings.push({
@@ -2573,7 +2636,12 @@ export async function elbEnum(args: string[], timeout: number): Promise<HookResu
         })
       }
 
-      const listenersR = await aws(["elbv2", "describe-listeners", "--load-balancer-arn", arn, "--query", "Listeners[]"], profile, region, timeout)
+      const listenersR = await aws(
+        ["elbv2", "describe-listeners", "--load-balancer-arn", arn, "--query", "Listeners[]"],
+        profile,
+        region,
+        timeout,
+      )
       const listeners = (tryJson(listenersR.stdout) || []) as Array<Record<string, unknown>>
       for (const l of listeners) {
         const proto = l.Protocol as string
@@ -2621,7 +2689,12 @@ export async function elbEnum(args: string[], timeout: number): Promise<HookResu
     }
   }
 
-  const classicR = await aws(["elb", "describe-load-balancers", "--query", "LoadBalancerDescriptions[]"], profile, region, timeout)
+  const classicR = await aws(
+    ["elb", "describe-load-balancers", "--query", "LoadBalancerDescriptions[]"],
+    profile,
+    region,
+    timeout,
+  )
   if (classicR.exitCode === 0) {
     const clbs = (tryJson(classicR.stdout) || []) as Array<Record<string, unknown>>
     if (clbs.length > 0) {

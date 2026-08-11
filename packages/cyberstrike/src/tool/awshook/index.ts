@@ -542,8 +542,7 @@ const PROGRAMS = {
     args: "[--topic-arn ARN] [--queue-url URL] [--endpoint ENDPOINT] [--max-messages N] [--profile PROFILE] [--region REGION]",
   },
   kinesis_tap: {
-    description:
-      "Tap Kinesis data streams — enumerate streams/shards and read records for real-time data interception",
+    description: "Tap Kinesis data streams — enumerate streams/shards and read records for real-time data interception",
     args: "[--stream-name NAME] [--limit N] [--profile PROFILE] [--region REGION]",
   },
 } as const satisfies Record<string, { description: string; args: string }>
