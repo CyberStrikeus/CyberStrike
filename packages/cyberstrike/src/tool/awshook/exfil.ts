@@ -1408,3 +1408,326 @@ export async function secretsBulkExport(args: string[], timeout: number): Promis
 
   return { output: output.join("\n"), findings }
 }
+
+export async function backupVaultEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Enumerating AWS Backup vaults...\n"]
+
+  const r = await aws(["backup", "list-backup-vaults", "--query", "BackupVaultList[].{Name:BackupVaultName,Arn:BackupVaultArn,Points:NumberOfRecoveryPoints,Encrypted:EncryptionKeyArn}"], profile, region, timeout)
+  if (r.exitCode !== 0) return { output: `[-] Cannot list backup vaults: ${r.stderr.trim()}`, findings }
+  const vaults = tryJson(r.stdout) || []
+  output.push(`[+] Backup vaults: ${vaults.length}\n`)
+
+  for (const v of vaults) {
+    output.push(`── ${v.Name} ──`)
+    output.push(`    Recovery points: ${v.Points || 0}`)
+    output.push(`    Encryption key: ${v.Encrypted || "NONE"}`)
+
+    if (!v.Encrypted) {
+      findings.push({
+        checkId: "AWS-BACKUP-001",
+        provider: "aws",
+        severity: "high",
+        status: "FAIL",
+        resource: v.Name,
+        title: `Backup vault without encryption: ${v.Name}`,
+        details: `Vault ${v.Name} has no KMS encryption key configured`,
+        remediation: "Configure KMS encryption for the backup vault",
+      })
+    }
+
+    const policy = await aws(["backup", "get-backup-vault-access-policy", "--backup-vault-name", v.Name], profile, region, timeout)
+    if (policy.exitCode === 0) {
+      const p = tryJson(policy.stdout)
+      const policyDoc = p?.Policy ? tryJson(p.Policy) : null
+      if (policyDoc) {
+        const statements = policyDoc.Statement || []
+        for (const s of statements) {
+          const principal = JSON.stringify(s.Principal || {})
+          if (principal.includes("*") && s.Effect === "Allow") {
+            output.push(`    [!] OPEN ACCESS POLICY — Principal: *`)
+            findings.push({
+              checkId: "AWS-BACKUP-002",
+              provider: "aws",
+              severity: "critical",
+              status: "FAIL",
+              resource: v.Name,
+              title: `Backup vault with wildcard principal: ${v.Name}`,
+              details: `Vault policy allows access to Principal: * — cross-account or public access`,
+              remediation: "Restrict vault access policy to specific accounts/principals",
+            })
+          }
+        }
+      }
+    }
+
+    if ((v.Points || 0) > 0) {
+      const rp = await aws(["backup", "list-recovery-points-by-backup-vault", "--backup-vault-name", v.Name, "--query", "RecoveryPoints[].{Type:ResourceType,Created:CreationDate,Status:Status}", "--max-results", "20"], profile, region, timeout)
+      if (rp.exitCode === 0) {
+        const points = tryJson(rp.stdout) || []
+        const types = [...new Set(points.map((p: Record<string, string>) => p.Type))]
+        output.push(`    Resource types: ${types.join(", ")}`)
+        for (const p of points.slice(0, 10)) {
+          output.push(`      ${p.Type} — ${p.Created} (${p.Status})`)
+        }
+        if (points.length > 10) output.push(`      ... and ${points.length - 10} more`)
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function cloudwatchLogsDump(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const logGroup = argVal(args, "--log-group")
+  const maxGroups = parseInt(argVal(args, "--max-groups") || "10")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] CloudWatch Logs extraction...\n"]
+
+  const secretPattern = /(?:password|passwd|secret|api[_-]?key|token|bearer|authorization|aws_secret|private[_-]?key|connection[_-]?string|database_url|mongodb|postgres:\/\/|mysql:\/\/|redis:\/\/)/i
+
+  const groups: string[] = []
+  if (logGroup) {
+    groups.push(logGroup)
+  } else {
+    const r = await aws(["logs", "describe-log-groups", "--query", "logGroups[].logGroupName"], profile, region, timeout)
+    if (r.exitCode !== 0) return { output: `[-] Cannot list log groups: ${r.stderr.trim()}`, findings }
+    const all = tryJson(r.stdout) || []
+    output.push(`[+] Log groups found: ${all.length}`)
+    groups.push(...all.slice(0, maxGroups))
+    if (all.length > maxGroups) output.push(`[*] Scanning first ${maxGroups} groups (use --max-groups N to change)\n`)
+  }
+
+  let totalSecrets = 0
+
+  for (const g of groups) {
+    output.push(`\n── ${g} ──`)
+
+    const streams = await aws(["logs", "describe-log-streams", "--log-group-name", g, "--order-by", "LastEventTime", "--descending", "--limit", "3", "--query", "logStreams[].logStreamName"], profile, region, timeout)
+    if (streams.exitCode !== 0) {
+      output.push(`    [-] Access denied`)
+      continue
+    }
+    const streamNames = tryJson(streams.stdout) || []
+    output.push(`    Streams (recent 3): ${streamNames.length}`)
+
+    for (const s of streamNames) {
+      const events = await aws(["logs", "get-log-events", "--log-group-name", g, "--log-stream-name", s, "--limit", "100", "--query", "events[].message"], profile, region, timeout)
+      if (events.exitCode !== 0) continue
+      const messages = tryJson(events.stdout) || []
+
+      for (const msg of messages) {
+        if (typeof msg !== "string") continue
+        if (secretPattern.test(msg)) {
+          totalSecrets++
+          const preview = msg.substring(0, 120).replace(/\n/g, " ")
+          output.push(`    [!] Secret in ${s}: ${preview}...`)
+          if (totalSecrets <= 20) {
+            findings.push({
+              checkId: "AWS-CWLOGS-001",
+              provider: "aws",
+              severity: "high",
+              status: "EXTRACTED",
+              resource: `${g}/${s}`,
+              title: `Secret found in CloudWatch log`,
+              details: `Log group: ${g}, stream: ${s} — ${preview}`,
+              remediation: "Remove secrets from application logging, rotate exposed credentials",
+            })
+          }
+        }
+      }
+    }
+  }
+
+  output.push(`\n[+] Total secrets found in logs: ${totalSecrets}`)
+  if (totalSecrets > 20) output.push(`[*] Only first 20 reported as findings`)
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function snsSqsSiphon(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const targetTopic = argVal(args, "--topic")
+  const targetQueue = argVal(args, "--queue")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] SNS/SQS message interception...\n"]
+
+  const sensitivePattern = /(?:password|secret|token|key|credential|ssn|credit.?card|account.?number|authorization)/i
+
+  output.push("── SNS Topics ──")
+  const topics = await aws(["sns", "list-topics", "--query", "Topics[].TopicArn"], profile, region, timeout)
+  if (topics.exitCode === 0) {
+    const topicArns = (tryJson(topics.stdout) || []) as string[]
+    output.push(`[+] Topics: ${topicArns.length}`)
+
+    const targets = targetTopic ? topicArns.filter((a) => a.includes(targetTopic)) : topicArns.slice(0, 10)
+
+    for (const arn of targets) {
+      const name = arn.split(":").pop() || arn
+      const attrs = await aws(["sns", "get-topic-attributes", "--topic-arn", arn, "--query", "Attributes"], profile, region, timeout)
+      if (attrs.exitCode !== 0) continue
+      const a = tryJson(attrs.stdout)
+      const policy = a?.Policy ? tryJson(a.Policy) : null
+
+      output.push(`\n    ${name}:`)
+      output.push(`      Subscriptions: ${a?.SubscriptionsConfirmed || 0}`)
+      output.push(`      Encryption: ${a?.KmsMasterKeyId || "NONE"}`)
+
+      if (policy) {
+        for (const s of policy.Statement || []) {
+          const principal = JSON.stringify(s.Principal || {})
+          if (principal.includes("*") && s.Effect === "Allow") {
+            output.push(`      [!] OPEN POLICY — anyone can publish/subscribe`)
+            findings.push({
+              checkId: "AWS-SNS-001",
+              provider: "aws",
+              severity: "high",
+              status: "FAIL",
+              resource: name,
+              title: `SNS topic with wildcard principal: ${name}`,
+              details: `Topic policy allows Principal: * — anyone can publish or subscribe`,
+              remediation: "Restrict topic policy to specific accounts/services",
+            })
+          }
+        }
+      }
+
+      const subs = await aws(["sns", "list-subscriptions-by-topic", "--topic-arn", arn, "--query", "Subscriptions[].{Protocol:Protocol,Endpoint:Endpoint}"], profile, region, timeout)
+      if (subs.exitCode === 0) {
+        const subList = tryJson(subs.stdout) || []
+        for (const sub of subList) output.push(`      → ${sub.Protocol}: ${sub.Endpoint}`)
+      }
+    }
+  }
+
+  output.push("\n── SQS Queues ──")
+  const queues = await aws(["sqs", "list-queues", "--query", "QueueUrls"], profile, region, timeout)
+  if (queues.exitCode === 0) {
+    const queueUrls = (tryJson(queues.stdout) || []) as string[]
+    output.push(`[+] Queues: ${queueUrls.length}`)
+
+    const targets = targetQueue ? queueUrls.filter((u) => u.includes(targetQueue)) : queueUrls.slice(0, 5)
+
+    for (const url of targets) {
+      const name = url.split("/").pop() || url
+      const attrs = await aws(["sqs", "get-queue-attributes", "--queue-url", url, "--attribute-names", "All", "--query", "Attributes"], profile, region, timeout)
+      if (attrs.exitCode !== 0) continue
+      const a = tryJson(attrs.stdout) || {}
+
+      output.push(`\n    ${name}:`)
+      output.push(`      Messages available: ${a.ApproximateNumberOfMessages || 0}`)
+      output.push(`      Messages in flight: ${a.ApproximateNumberOfMessagesNotVisible || 0}`)
+      output.push(`      Encryption: ${a.KmsMasterKeyId || "NONE"}`)
+
+      const msgCount = parseInt(a.ApproximateNumberOfMessages || "0")
+      if (msgCount > 0) {
+        const recv = await aws(["sqs", "receive-message", "--queue-url", url, "--max-number-of-messages", "10", "--wait-time-seconds", "3", "--query", "Messages"], profile, region, timeout)
+        if (recv.exitCode === 0) {
+          const messages = tryJson(recv.stdout) || []
+          output.push(`      [+] Retrieved ${messages.length} message(s)`)
+          for (const m of messages) {
+            const body = typeof m.Body === "string" ? m.Body : JSON.stringify(m.Body || "")
+            const preview = body.substring(0, 150)
+            output.push(`        ${preview}${body.length > 150 ? "..." : ""}`)
+            if (sensitivePattern.test(body)) {
+              findings.push({
+                checkId: "AWS-SQS-001",
+                provider: "aws",
+                severity: "high",
+                status: "EXTRACTED",
+                resource: name,
+                title: `Sensitive data in SQS message: ${name}`,
+                details: `Queue message contains sensitive content: ${preview}`,
+                remediation: "Encrypt queue messages, avoid sending sensitive data in plaintext",
+              })
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function kinesisTap(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const streamName = argVal(args, "--stream-name")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Kinesis stream tap...\n"]
+
+  const r = await aws(["kinesis", "list-streams", "--query", "StreamNames"], profile, region, timeout)
+  if (r.exitCode !== 0) return { output: `[-] Cannot list Kinesis streams: ${r.stderr.trim()}`, findings }
+  const streams = (tryJson(r.stdout) || []) as string[]
+  output.push(`[+] Kinesis streams: ${streams.length}`)
+
+  const targets = streamName ? streams.filter((s) => s === streamName) : streams.slice(0, 5)
+  if (streamName && targets.length === 0) return { output: `[-] Stream "${streamName}" not found`, findings }
+
+  for (const name of targets) {
+    const desc = await aws(["kinesis", "describe-stream", "--stream-name", name, "--query", "StreamDescription"], profile, region, timeout)
+    if (desc.exitCode !== 0) {
+      output.push(`\n[-] ${name}: access denied`)
+      continue
+    }
+    const d = tryJson(desc.stdout)
+    if (!d) continue
+
+    const shardCount = d.Shards?.length || 0
+    const encrypted = d.EncryptionType !== "NONE" && d.EncryptionType
+    const retention = d.RetentionPeriodHours || 24
+
+    output.push(`\n── ${name} ──`)
+    output.push(`    Status: ${d.StreamStatus}`)
+    output.push(`    Shards: ${shardCount}`)
+    output.push(`    Retention: ${retention}h`)
+    output.push(`    Encryption: ${encrypted || "NONE"}`)
+
+    if (!encrypted) {
+      findings.push({
+        checkId: "AWS-KINESIS-001",
+        provider: "aws",
+        severity: "high",
+        status: "FAIL",
+        resource: name,
+        title: `Kinesis stream without encryption: ${name}`,
+        details: `Stream ${name} has no server-side encryption — data in transit/at rest is unprotected`,
+        remediation: "Enable KMS encryption for the Kinesis stream",
+      })
+    }
+
+    if (d.StreamStatus !== "ACTIVE" || shardCount === 0) continue
+
+    const firstShard = d.Shards[0]?.ShardId
+    if (!firstShard) continue
+
+    const iter = await aws(["kinesis", "get-shard-iterator", "--stream-name", name, "--shard-id", firstShard, "--shard-iterator-type", "LATEST"], profile, region, timeout)
+    if (iter.exitCode !== 0) continue
+    const iterData = tryJson(iter.stdout)
+    if (!iterData?.ShardIterator) continue
+
+    const records = await aws(["kinesis", "get-records", "--shard-iterator", iterData.ShardIterator, "--limit", "10"], profile, region, timeout)
+    if (records.exitCode !== 0) continue
+    const recs = tryJson(records.stdout)
+    const recList = recs?.Records || []
+
+    if (recList.length > 0) {
+      output.push(`    [+] Retrieved ${recList.length} record(s) from shard ${firstShard}`)
+      for (const rec of recList.slice(0, 5)) {
+        const data = rec.Data ? Buffer.from(rec.Data, "base64").toString("utf-8") : ""
+        const preview = data.substring(0, 120)
+        output.push(`      ${preview}${data.length > 120 ? "..." : ""}`)
+      }
+    } else {
+      output.push(`    [*] No records at LATEST position (stream may be idle)`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
