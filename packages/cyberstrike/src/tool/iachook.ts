@@ -662,8 +662,8 @@ async function remoteStateExploit(args: string[], timeout: number): Promise<Hook
     )
     if (getState.exitCode === 0 && getState.stdout.includes('"terraform_version"')) {
       output.push(`[+] GCS bucket ${bucket} serves state publicly!`)
-      await Bun.write("/tmp/cs-gcs-state.json", getState.stdout)
-      output.push(`    State saved to /tmp/cs-gcs-state.json`)
+      await Bun.write(`${process.env.TMPDIR || "/tmp"}/cs-gcs-state.json`, getState.stdout)
+      output.push(`    State saved to ${process.env.TMPDIR || "/tmp"}/cs-gcs-state.json`)
       findings.push({
         checkId: "IAC-RS-002",
         provider: "terraform",
@@ -681,7 +681,7 @@ async function remoteStateExploit(args: string[], timeout: number): Promise<Hook
     const getState = await run("curl", ["-sk", target, "--max-time", "15"], timeout)
     if (getState.exitCode === 0 && getState.stdout.includes('"terraform_version"')) {
       output.push(`[+] HTTP backend serves state without auth!`)
-      await Bun.write("/tmp/cs-http-state.json", getState.stdout)
+      await Bun.write(`${process.env.TMPDIR || "/tmp"}/cs-http-state.json`, getState.stdout)
       findings.push({
         checkId: "IAC-RS-003",
         provider: "terraform",
@@ -1521,13 +1521,14 @@ async function cleanupIac(_args: string[], _timeout: number): Promise<HookResult
   const findings: Finding[] = []
   const output: string[] = ["[*] Cleaning up IaC audit artifacts...\n"]
 
+  const td = process.env.TMPDIR || "/tmp"
   const tmpFiles = [
-    "/tmp/cs-tfstate-pulled.json",
-    "/tmp/cs-tfstate-current.json",
-    "/tmp/cs-tfplan",
-    "/tmp/cs-remote-state.json",
-    "/tmp/cs-gcs-state.json",
-    "/tmp/cs-http-state.json",
+    `${td}/cs-tfstate-pulled.json`,
+    `${td}/cs-tfstate-current.json`,
+    `${td}/cs-tfplan`,
+    `${td}/cs-remote-state.json`,
+    `${td}/cs-gcs-state.json`,
+    `${td}/cs-http-state.json`,
   ]
 
   for (const f of tmpFiles) {
