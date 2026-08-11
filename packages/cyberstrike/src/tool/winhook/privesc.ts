@@ -829,7 +829,7 @@ if ($writable) {
     })
   } else if (result.stdout.includes("NOT installed")) {
     findings.push({
-      checkId: "WIN-PRIV-004",
+      checkId: "WIN-PRIV-005",
       provider: "windows",
       severity: "critical",
       status: "VULNERABLE",
@@ -947,7 +947,7 @@ try {
     const maq = maqMatch ? parseInt(maqMatch[1]) : 0
 
     findings.push({
-      checkId: "WIN-NOPAC-001",
+      checkId: "WIN-NOPAC-003",
       provider: "windows",
       severity: maq > 0 ? "critical" : "info",
       status: maq > 0 ? "VULNERABLE" : "NOT_VULNERABLE",
@@ -1186,7 +1186,7 @@ if (-not $vulnerable) {
 
     const isVuln = result.stdout.includes("VULNERABLE")
     findings.push({
-      checkId: "WIN-ZEROLOGON-001",
+      checkId: "WIN-ZEROLOGON-003",
       provider: "windows",
       severity: isVuln ? "critical" : "info",
       status: isVuln ? "VULNERABLE" : "NOT_VULNERABLE",
@@ -1426,7 +1426,7 @@ Write-Output "[+] Found $vulnCount potentially vulnerable templates"
 
     const isVuln = result.stdout.includes("VULNERABLE") || result.stdout.includes("Certifried target")
     findings.push({
-      checkId: "WIN-CERTIFRIED-001",
+      checkId: "WIN-CERTIFRIED-003",
       provider: "windows",
       severity: isVuln ? "critical" : "info",
       status: isVuln ? "VULNERABLE" : "NOT_VULNERABLE",
@@ -2746,7 +2746,7 @@ Write-Output "[*] Volume Shadow Copy Service: $($vss.Status)"
 
     if (result.stdout.includes("EXPLOITABLE") || result.stdout.includes("VULNERABLE")) {
       findings.push({
-        checkId: "WIN-SHADOW-001",
+        checkId: "WIN-SHADOW-003",
         provider: "windows",
         severity: "critical",
         status: "VULNERABLE",
