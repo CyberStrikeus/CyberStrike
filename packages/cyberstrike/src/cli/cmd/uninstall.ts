@@ -64,6 +64,22 @@ export const UninstallCommand = {
     UI.empty()
     prompts.intro("Uninstall CyberStrike")
 
+    // Check for other running cyberstrike instances
+    const running = await getRunningInstances()
+    if (running > 0) {
+      prompts.log.warn(`${running} other cyberstrike process${running > 1 ? "es" : ""} running`)
+      if (!args.force) {
+        const proceed = await prompts.confirm({
+          message: "Uninstalling while other instances are running may cause errors. Continue?",
+          initialValue: false,
+        })
+        if (!proceed || prompts.isCancel(proceed)) {
+          prompts.outro("Stop other cyberstrike processes first, then retry")
+          return
+        }
+      }
+    }
+
     const method = await Installation.method()
     prompts.log.info(`Installation method: ${method}`)
 
@@ -122,6 +138,26 @@ export const UninstallCommand = {
 
     prompts.outro("Done")
   },
+}
+
+async function getRunningInstances(): Promise<number> {
+  const pid = process.pid
+  try {
+    if (process.platform === "win32") {
+      const result = await $`tasklist /FI "IMAGENAME eq cyberstrike.exe" /FO CSV /NH`.quiet().nothrow()
+      const lines = result.stdout.toString("utf8").split("\n").filter((l) => l.includes("cyberstrike"))
+      return Math.max(0, lines.length - 1)
+    }
+    const result = await $`pgrep -f cyberstrike`.quiet().nothrow()
+    const pids = result.stdout
+      .toString("utf8")
+      .trim()
+      .split("\n")
+      .filter((p) => p && Number(p) !== pid)
+    return pids.length
+  } catch {
+    return 0
+  }
 }
 
 async function getExistingTargets(targets: RemovalTargets): Promise<RemovalTarget[]> {
