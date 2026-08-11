@@ -107,7 +107,7 @@ os.execve(f"/proc/self/fd/{fd}", ["bash"], dict(os.environ))
   }
   const id = Math.random().toString(36).slice(2, 8)
   const shmPath = `/dev/shm/.cs_${id}`
-  const wrapped = `echo ${toBase64(script)} | base64 -d > ${shmPath} && chmod +x ${shmPath} && ${shmPath}; rm -f ${shmPath}`
+  const wrapped = `trap "rm -f ${shmPath}" EXIT; echo ${toBase64(script)} | base64 -d > ${shmPath} && chmod +x ${shmPath} && ${shmPath}`
   return run("bash", ["-c", wrapped], timeout)
 }
 
