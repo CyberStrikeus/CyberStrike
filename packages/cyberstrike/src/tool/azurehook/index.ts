@@ -180,7 +180,7 @@ import {
 } from "./m365"
 
 const PROGRAMS = {
-  // ── Recon & Enumeration (45) ──
+  // ── Recon & Enumeration (47) ──
   subscription_enum: {
     description:
       "Enumerate all accessible Azure subscriptions, management groups, and tenant info — determines blast radius",
@@ -1027,7 +1027,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   service_disruption: serviceDisruption,
   // M365 (4)
   exchange_abuse: exchangeAbuse,
-  sharepoint_m365_enum: sharepointEnum,
+  sharepoint_enum: sharepointEnum,
   teams_m365_enum: teamsEnum,
   onedrive_access: onedriveAccess,
   // Cleanup
@@ -1289,7 +1289,7 @@ const CWE_MAP: Record<string, string> = {
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
 
 export const AzurehookTool = Tool.define("azurehook", {
-  description: `Execute an Azure post-exploitation program. 154 programs across 13 categories: recon (47), credential (14), privesc (11), persistence (11), lateral (10), identity (10), evasion (11), exfil (12), compliance (18), impact (5), m365 (4), cleanup (1). Uses az CLI, Azure REST API, and Microsoft Graph. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_azure before leaving.`,
+  description: `Execute an Azure post-exploitation program. 152 programs across 13 categories: recon (47), credential (14), privesc (11), persistence (11), lateral (10), identity (10), evasion (11), exfil (12), compliance (18), impact (5), m365 (4), cleanup (1). Uses az CLI, Azure REST API, and Microsoft Graph. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_azure before leaving.`,
   parameters: z.object({
     program: z.enum(programKeys).describe(
       "Azure program to execute. Options: " +
