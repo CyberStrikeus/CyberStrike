@@ -27,9 +27,7 @@ export async function metadataHarvestGcp(_args: string[], _timeout: number): Pro
       const text = await resp.text()
       if (name === "access_token") {
         const parsed = tryJson(text)
-        output.push(
-          `[+] ${name}: ${String(parsed?.access_token || "").slice(0, 20)}... (expires: ${parsed?.expires_in}s)`,
-        )
+        output.push(`[+] ${name}: ${String(parsed?.access_token || "")} (expires: ${parsed?.expires_in}s)`)
         findings.push({
           checkId: "GCP-META-001",
           provider: "gcp",
@@ -73,7 +71,7 @@ export async function secretsDumpGcp(args: string[], timeout: number): Promise<H
       remediation: "Rotate secret and review IAM bindings",
     })
     return {
-      output: `[+] Secret '${secretId}' (${r.stdout.length} bytes):\n${r.stdout.slice(0, 500)}${r.stdout.length > 500 ? "..." : ""}`,
+      output: `[+] Secret '${secretId}' accessible — [SECRET VALUE — ${r.stdout.length} bytes]`,
       findings,
     }
   }
@@ -90,7 +88,7 @@ export async function secretsDumpGcp(args: string[], timeout: number): Promise<H
       timeout,
     )
     if (vr.exitCode === 0) {
-      output.push(`[+] ${name}: ${vr.stdout.slice(0, 80)}${vr.stdout.length > 80 ? "..." : ""}`)
+      output.push(`[+] ${name}: [SECRET — ${vr.stdout.length} bytes]`)
       findings.push({
         checkId: "GCP-SECRET-001",
         provider: "gcp",
@@ -127,7 +125,7 @@ export async function saKeyCreate(args: string[], timeout: number): Promise<Hook
     output.push(`[*] Existing user-managed keys: ${keys.length}`)
   }
 
-  const keyFile = `/tmp/cs-sa-key-${Date.now()}.json`
+  const keyFile = `${process.env.TMPDIR || "/tmp"}/cs-sa-key-${Date.now()}.json`
   const create = await gcloud(
     ["iam", "service-accounts", "keys", "create", keyFile, "--iam-account", saEmail, "--project", project],
     timeout,
@@ -137,21 +135,23 @@ export async function saKeyCreate(args: string[], timeout: number): Promise<Hook
     return { output: output.join("\n"), findings }
   }
 
-  const keyContent = await Bun.file(keyFile)
-    .text()
-    .catch(() => "")
-  const keyData = tryJson(keyContent)
-  output.push(`[+] Key created successfully`)
-  output.push(`    SA: ${saEmail}`)
-  output.push(`    Key ID: ${keyData?.private_key_id || "unknown"}`)
-  output.push(`    Key file: ${keyFile}`)
-  output.push(`    Type: ${keyData?.type || "service_account"}`)
-
   try {
-    const { unlink } = await import("node:fs/promises")
-    await unlink(keyFile)
-    output.push(`[*] Key file cleaned from disk`)
-  } catch {}
+    const keyContent = await Bun.file(keyFile)
+      .text()
+      .catch(() => "")
+    const keyData = tryJson(keyContent)
+    output.push(`[+] Key created successfully`)
+    output.push(`    SA: ${saEmail}`)
+    output.push(`    Key ID: ${keyData?.private_key_id || "unknown"}`)
+    output.push(`    Key file: ${keyFile}`)
+    output.push(`    Type: ${keyData?.type || "service_account"}`)
+  } finally {
+    try {
+      const { unlink } = await import("node:fs/promises")
+      await unlink(keyFile)
+      output.push(`[*] Key file cleaned from disk`)
+    } catch {}
+  }
 
   findings.push({
     checkId: "GCP-SAKEY-001",
@@ -238,10 +238,11 @@ export async function firestoreDump(args: string[], timeout: number): Promise<Ho
     output.push(`[+] Documents: ${docs.length}`)
     for (const d of docs.slice(0, 10)) {
       const docId = d.name?.split("/").pop() || ""
-      output.push(`    ${docId}: ${JSON.stringify(d.fields || {}).substring(0, 200)}`)
+      const fieldCount = Object.keys(d.fields || {}).length
+      output.push(`    ${docId}: [${fieldCount} field(s)]`)
     }
     findings.push({
-      checkId: "GCP-FIRESTORE-001",
+      checkId: "GCP-FIRESTORE-002",
       provider: "gcp",
       severity: "high",
       status: "EXTRACTED",
