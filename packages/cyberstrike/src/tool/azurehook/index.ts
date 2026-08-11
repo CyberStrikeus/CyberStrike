@@ -20,6 +20,34 @@ import {
   dataFactoryEnum,
   frontDoorEnum,
   containerInstanceEnum,
+  apimEnum,
+  databricksEnum,
+  appInsightsEnum,
+  monitorEnum,
+  recoveryVaultEnum,
+  intuneEnum,
+  graphUserEnum,
+  appRegistrationEnum,
+  logicAppConnectorEnum,
+  automationRunbookEnum,
+  synapseEnum,
+  purviewEnum,
+  subdomainTakeover,
+  stalePermissionAudit,
+  publicExposureScan,
+  cognitiveServicesEnum,
+  iotHubEnum,
+  signalrEnum,
+  eventGridEnum,
+  serviceFabricEnum,
+  batchAccountEnum,
+  managedEnvEnum,
+  staticWebAppEnum,
+  mapsSearchEnum,
+  sentinelEnum,
+  vpnGatewayEnum,
+  expressRouteEnum,
+  privateLinkAudit,
 } from "./recon"
 import {
   keyvaultDump,
@@ -31,6 +59,11 @@ import {
   certificateAbuse,
   storageKeyDump,
   automationCredDump,
+  graphTokenHarvest,
+  refreshTokenReplay,
+  runbookCredExtract,
+  kubeconfigDump,
+  webappEnvDump,
 } from "./credential"
 import {
   entraPrivesc,
@@ -39,6 +72,11 @@ import {
   pimAbuse,
   managedIdentityPrivesc,
   deploymentPrivesc,
+  globalAdminElevate,
+  appAdminPrivesc,
+  resourceHierarchyAbuse,
+  groupMembershipAbuse,
+  partnerAdminAbuse,
 } from "./privesc"
 import {
   runbookBackdoor,
@@ -49,8 +87,22 @@ import {
   webhookPersist,
   devopsPipelineBackdoor,
   lighthousePersist,
+  acrImageBackdoor,
+  scheduledTaskPersist,
+  oauthAppPersist,
 } from "./persistence"
-import { vmRunCommand, bastionTunnel, arcExec, devopsServiceConn, crossTenantEnum } from "./lateral"
+import {
+  vmRunCommand,
+  bastionTunnel,
+  arcExec,
+  devopsServiceConn,
+  crossTenantEnum,
+  customScriptExt,
+  userdataCommand,
+  intuneDeploy,
+  msbuildExec,
+  sharedImageInject,
+} from "./lateral"
 import {
   diagnosticTamper,
   sentinelSuppress,
@@ -59,6 +111,10 @@ import {
   policyExempt,
   wafBypass,
   alertSuppress,
+  logAnalyticsTamper,
+  nsgFlowLogDisable,
+  resourceMove,
+  tagManipulation,
 } from "./evasion"
 import {
   storageDump,
@@ -69,11 +125,60 @@ import {
   dataLakeDump,
   serviceBusSniff,
   eventHubTap,
+  graphMailDump,
+  sharepointDump,
+  teamsDump,
+  vmDiskDownload,
 } from "./exfil"
 import { cleanupAzure } from "./cleanup"
+import {
+  defenderPlanAudit,
+  defenderContactAudit,
+  storageSecurityAudit,
+  sqlAuditConfig,
+  postgresAudit,
+  mysqlAudit,
+  cosmosSecurityAudit,
+  diagnosticAudit,
+  activityAlertAudit,
+  networkWatcherAudit,
+  vmSecurityAudit,
+  appserviceSecurityAudit,
+  keyvaultSecurityAudit,
+  identityMfaAudit,
+  guestAccessAudit,
+  passwordPolicyAudit,
+  resourceLockAudit,
+  policyComplianceAudit,
+} from "./compliance"
+import {
+  federationBackdoor,
+  ptaAbuse,
+  aadconnectDump,
+  seamlessSsoAbuse,
+  samlForge,
+  mfaManipulation,
+  userCreation,
+  passwordSpray,
+  tenantReconInsider,
+  consentPhish,
+} from "./identity"
+import {
+  resourceHijack,
+  dataDestroy,
+  ransomwareSim,
+  accountLockout,
+  serviceDisruption,
+} from "./impact"
+import {
+  exchangeAbuse,
+  sharepointEnum,
+  teamsEnum,
+  onedriveAccess,
+} from "./m365"
 
 const PROGRAMS = {
-  // ── Recon & Enumeration (17) ──
+  // ── Recon & Enumeration (45) ──
   subscription_enum: {
     description:
       "Enumerate all accessible Azure subscriptions, management groups, and tenant info — determines blast radius",
@@ -154,8 +259,120 @@ const PROGRAMS = {
     description: "Azure Container Instances: running groups, env vars (secrets), mounted volumes, networking, identity",
     args: "[--subscription-id SUB] [--resource-group RG]",
   },
+  apim_enum: {
+    description: "API Management: APIs, subscription keys, named values/secrets, backend configs, developer portal",
+    args: "[--subscription-id SUB]",
+  },
+  databricks_enum: {
+    description: "Azure Databricks: workspaces, clusters, notebooks, secrets, DBFS, jobs, service principals",
+    args: "[--subscription-id SUB]",
+  },
+  app_insights_enum: {
+    description: "Application Insights: instrumentation keys, API keys, telemetry data, availability tests, smart detection rules",
+    args: "[--subscription-id SUB]",
+  },
+  monitor_enum: {
+    description: "Azure Monitor: log profiles, diagnostic settings, action groups, alert rules — reveals monitoring coverage and gaps",
+    args: "[--subscription-id SUB]",
+  },
+  recovery_vault_enum: {
+    description: "Recovery Services Vaults: backup policies, protected items, replication, soft-delete status",
+    args: "[--subscription-id SUB]",
+  },
+  intune_enum: {
+    description: "Intune/Endpoint Manager: managed devices, compliance policies, configuration profiles, device scripts",
+    args: "",
+  },
+  graph_user_enum: {
+    description: "Microsoft Graph deep user enumeration: all attributes, manager chain, group memberships, auth methods, registered devices",
+    args: "[--target USER_UPN]",
+  },
+  app_registration_enum: {
+    description: "Entra app registration deep dive: API permissions, owner analysis, credential expiry, reply URLs, dangerous configs",
+    args: "",
+  },
+  logic_app_connector_enum: {
+    description: "Logic App connectors: OAuth connections, managed API connections, shared access keys, linked services",
+    args: "[--subscription-id SUB]",
+  },
+  automation_runbook_enum: {
+    description: "Automation Account deep dive: runbook source, schedules, variables, credentials, webhooks, hybrid workers",
+    args: "[--subscription-id SUB]",
+  },
+  synapse_enum: {
+    description: "Azure Synapse Analytics: workspaces, SQL pools, Spark pools, linked services, pipeline secrets",
+    args: "[--subscription-id SUB]",
+  },
+  purview_enum: {
+    description: "Microsoft Purview: governance accounts, data sources, classifications, sensitivity labels, scan rules",
+    args: "[--subscription-id SUB]",
+  },
+  subdomain_takeover: {
+    description: "Detect Azure subdomain takeover: dangling DNS records pointing to deprovisioned Azure services (CNAME hijack)",
+    args: "[--subscription-id SUB]",
+  },
+  stale_permission_audit: {
+    description: "Find stale RBAC assignments: deleted/disabled users with active roles, SP with no recent sign-ins",
+    args: "[--subscription-id SUB]",
+  },
+  public_exposure_scan: {
+    description: "Scan for publicly exposed Azure resources: open storage, exposed APIs, public endpoints, misconfigured NSGs",
+    args: "[--subscription-id SUB]",
+  },
+  cognitive_services_enum: {
+    description: "Azure Cognitive Services / AI Services: keys, endpoints, models, deployments, content safety bypasses",
+    args: "[--subscription-id SUB]",
+  },
+  iot_hub_enum: {
+    description: "Azure IoT Hub: devices, shared access policies, device twins, message routes, custom endpoints",
+    args: "[--subscription-id SUB]",
+  },
+  signalr_enum: {
+    description: "Azure SignalR / Web PubSub: connection strings, access keys, upstream settings, hub configurations",
+    args: "[--subscription-id SUB]",
+  },
+  event_grid_enum: {
+    description: "Event Grid: topics, subscriptions, domains, system topics — event-driven attack surface mapping",
+    args: "[--subscription-id SUB]",
+  },
+  service_fabric_enum: {
+    description: "Service Fabric clusters: nodes, applications, services, health state, security configuration",
+    args: "[--subscription-id SUB]",
+  },
+  batch_account_enum: {
+    description: "Azure Batch: accounts, pools, jobs, tasks, auto-scale, node configuration, shared key auth",
+    args: "[--subscription-id SUB]",
+  },
+  managed_env_enum: {
+    description: "Container App managed environments: apps, container images, ingress endpoints, VNet configuration",
+    args: "[--subscription-id SUB]",
+  },
+  static_web_app_enum: {
+    description: "Static Web Apps: deployments, custom domains, linked API backends, authentication settings",
+    args: "[--subscription-id SUB]",
+  },
+  maps_search_enum: {
+    description: "Azure Maps: accounts, keys, creators, CORS settings, usage for geolocation tracking",
+    args: "[--subscription-id SUB]",
+  },
+  sentinel_enum: {
+    description: "Azure Sentinel: workspaces, data connectors, analytics rules, incidents, watchlists, threat intelligence",
+    args: "[--subscription-id SUB]",
+  },
+  vpn_gateway_enum: {
+    description: "VPN Gateway: connections, shared keys, BGP settings, local network gateways — on-prem tunnel access",
+    args: "[--subscription-id SUB]",
+  },
+  express_route_enum: {
+    description: "ExpressRoute: circuits, peering configs, route tables, cross-connections — direct datacenter links",
+    args: "[--subscription-id SUB]",
+  },
+  private_link_audit: {
+    description: "Private Link / Private Endpoint audit: connections, DNS zones, approval state, PaaS service exposure",
+    args: "[--subscription-id SUB]",
+  },
 
-  // ── Credential Harvesting (9) ──
+  // ── Credential Harvesting (14) ──
   keyvault_dump: {
     description: "Extract secrets, keys, and certificates from all accessible Azure Key Vaults",
     args: "[--vault-name NAME] [--subscription-id SUB]",
@@ -198,8 +415,28 @@ const PROGRAMS = {
       "Extract credentials, variables, and certificates from Azure Automation Accounts including RunAs accounts",
     args: "[--subscription-id SUB] [--resource-group RG]",
   },
+  graph_token_harvest: {
+    description: "Harvest OAuth tokens for 10 Azure resource audiences: Graph, Management, Key Vault, SQL, Storage, DevOps",
+    args: "",
+  },
+  refresh_token_replay: {
+    description: "Decode JWT tokens, extract PRT info (Windows), analyze local MSAL token caches for credential replay",
+    args: "",
+  },
+  runbook_cred_extract: {
+    description: "Export Automation Account runbook source code and scan for hardcoded credentials (passwords, connection strings, API keys)",
+    args: "[--subscription-id SUB] [--automation-account NAME] [--resource-group RG]",
+  },
+  kubeconfig_dump: {
+    description: "Extract AKS admin/user kubeconfig — full cluster access via management plane without network connectivity",
+    args: "[--subscription-id SUB] [--cluster NAME] [--resource-group RG]",
+  },
+  webapp_env_dump: {
+    description: "Extract App Service/Function App settings, connection strings, and publishing credentials with sensitive data detection",
+    args: "[--subscription-id SUB] [--app NAME] [--resource-group RG]",
+  },
 
-  // ── Privilege Escalation (6) ──
+  // ── Privilege Escalation (11) ──
   entra_privesc: {
     description:
       "Exploit Entra ID misconfigs: consent grant, SP secret injection, role assignment for privilege escalation",
@@ -229,8 +466,28 @@ const PROGRAMS = {
       "Abuse deployments/write to deploy ARM template creating new Owner role assignment. Shows exploit template",
     args: "[--subscription-id SUB] [--resource-group RG]",
   },
+  global_admin_elevate: {
+    description: "Check Global Admin elevation to Azure resource access — enumerate all subscriptions after elevation, PIM eligible roles",
+    args: "",
+  },
+  app_admin_privesc: {
+    description: "Analyze service principal Graph API permissions and RBAC for privilege escalation paths via app credentials",
+    args: "[--subscription-id SUB]",
+  },
+  resource_hierarchy_abuse: {
+    description: "Analyze management group/subscription hierarchy, custom roles with wildcard actions, resource lock gaps",
+    args: "[--subscription-id SUB]",
+  },
+  group_membership_abuse: {
+    description: "Find role-assignable groups with owners, dynamic groups with weak membership rules for privilege escalation",
+    args: "",
+  },
+  partner_admin_abuse: {
+    description: "Enumerate GDAP/DAP partner relationships, cross-tenant access policies, partner trust configurations",
+    args: "",
+  },
 
-  // ── Persistence (8) ──
+  // ── Persistence (11) ──
   runbook_backdoor: {
     description:
       "Create/modify Automation Account runbook with reverse shell payload, publish and schedule for persistence",
@@ -268,8 +525,20 @@ const PROGRAMS = {
       "Create Azure Lighthouse delegation to external tenant — rarely audited cross-tenant persistent access",
     args: "--tenant-id TENANT --principal-id PRINCIPAL [--role ROLE] [--subscription-id SUB]",
   },
+  acr_image_backdoor: {
+    description: "Enumerate ACR registries and repos, extract admin credentials, backdoor container images via tag replacement",
+    args: "[--registry NAME] [--image IMAGE] [--method list|creds|inject] [--subscription-id SUB]",
+  },
+  scheduled_task_persist: {
+    description: "Create Azure Automation schedules linked to runbooks for periodic execution persistence",
+    args: "[--automation-account NAME] [--resource-group RG] [--runbook-name NAME] [--method list|create]",
+  },
+  oauth_app_persist: {
+    description: "Enumerate OAuth apps/grants, add backdoor credentials to existing high-permission apps for persistent access",
+    args: "[--name NAME] [--method list|add_cred]",
+  },
 
-  // ── Lateral Movement (5) ──
+  // ── Lateral Movement (10) ──
   vm_run_command: {
     description:
       "Execute commands on Azure VMs via Run Command API — no SSH/RDP needed, works through management plane even without public IP",
@@ -295,8 +564,28 @@ const PROGRAMS = {
       "Enumerate cross-tenant access settings, B2B collaborations, guest user access for multi-tenant pivoting",
     args: "",
   },
+  custom_script_ext: {
+    description: "Deploy Custom Script Extensions on VMs for lateral movement via management plane — list existing or deploy new",
+    args: "[--vm-name VM] [--resource-group RG] [--script-uri URL] [--command CMD] [--os linux|windows] [--method list|deploy]",
+  },
+  userdata_command: {
+    description: "Inject user data / custom data into VMs for code execution on cloud-init cycle — no network access needed",
+    args: "[--vm-name VM] [--resource-group RG] [--user-data BASE64] [--method list|inject]",
+  },
+  intune_deploy: {
+    description: "Enumerate Intune managed devices and deploy PowerShell scripts as SYSTEM for mass lateral movement",
+    args: "[--action list|deploy_script]",
+  },
+  msbuild_exec: {
+    description: "Enumerate Azure DevOps agent pools and self-hosted build agents for code execution on org infrastructure",
+    args: "[--org ORG] [--project PROJECT] [--method list|exec]",
+  },
+  shared_image_inject: {
+    description: "Enumerate Shared Image Galleries and inject backdoored image versions for supply-chain compromise of VM deployments",
+    args: "[--gallery NAME] [--resource-group RG] [--method list|inject] [--subscription-id SUB]",
+  },
 
-  // ── Defense Evasion (7) ──
+  // ── Defense Evasion (11) ──
   diagnostic_tamper: {
     description: "Manipulate Azure diagnostic settings and activity logs — identify monitoring blind spots for evasion",
     args: "--action <status|disable> [--subscription-id SUB] [--resource-id RID]",
@@ -329,8 +618,24 @@ const PROGRAMS = {
       "Suppress Azure Monitor alerts — disable alert rules, remove notification recipients from action groups",
     args: "--action <list|disable|suppress> [--subscription-id SUB]",
   },
+  log_analytics_tamper: {
+    description: "Tamper with Log Analytics workspace: reduce retention, set low daily cap, purge logs to blind SIEM/SOC",
+    args: "[--action status|reduce_retention|set_daily_cap|purge] [--workspace NAME] [--resource-group RG] [--subscription-id SUB]",
+  },
+  nsg_flow_log_disable: {
+    description: "Audit and disable NSG flow logs — enumerate NSGs without flow logging, disable existing flow logs",
+    args: "[--action status|disable] [--nsg-name NAME] [--resource-group RG] [--subscription-id SUB]",
+  },
+  resource_move: {
+    description: "Move resources between resource groups to evade RG-scoped monitoring, policies, and alert rules",
+    args: "[--action list|create_rg|move] [--source-rg RG] [--target-rg RG] [--resource-id ID] [--subscription-id SUB]",
+  },
+  tag_manipulation: {
+    description: "Audit and modify resource tags to bypass tag-based policies, compliance scopes, and monitoring rules",
+    args: "[--action status|modify|remove] [--resource-id ID] [--tag-name NAME] [--tag-value VALUE] [--subscription-id SUB]",
+  },
 
-  // ── Exfiltration (8) ──
+  // ── Exfiltration (12) ──
   storage_dump: {
     description: "Enumerate and download sensitive data from Azure Blob Storage containers",
     args: "[--account-name NAME] [--container CONTAINER] [--download] [--pattern REGEX]",
@@ -367,6 +672,178 @@ const PROGRAMS = {
     description: "Enumerate Event Hub namespaces, create consumer group to capture real-time event streams",
     args: "[--namespace NS] [--eventhub HUB] [--subscription-id SUB]",
   },
+  graph_mail_dump: {
+    description: "Exfiltrate emails via Microsoft Graph API — read mail folders, search messages, detect forwarding rules",
+    args: "[--target me|USER_UPN] [--folder FOLDER] [--search QUERY] [--max-items N]",
+  },
+  sharepoint_dump: {
+    description: "Enumerate SharePoint sites and document libraries, search documents across all accessible sites via Graph API",
+    args: "[--site NAME] [--search QUERY] [--max-items N]",
+  },
+  teams_dump: {
+    description: "Enumerate Microsoft Teams channels and extract messages — chat history may contain credentials and sensitive data",
+    args: "[--team NAME] [--channel NAME] [--max-items N]",
+  },
+  vm_disk_download: {
+    description: "Snapshot VM disks and generate SAS URLs for full disk download and offline forensic analysis",
+    args: "[--action list|snapshot_and_export] [--vm-name VM] [--disk-name DISK] [--resource-group RG] [--subscription-id SUB]",
+  },
+
+  // ── CIS Compliance (18) ──
+  defender_plan_audit: {
+    description: "CIS 2.1: Audit Defender for Cloud plan status across all resource types — check for disabled/free-tier plans",
+    args: "[--subscription-id SUB]",
+  },
+  defender_contact_audit: {
+    description: "CIS 2.1.21: Verify security contact configuration for high-severity alerts and email notifications",
+    args: "[--subscription-id SUB]",
+  },
+  storage_security_audit: {
+    description: "CIS 3.x: Audit storage account security — HTTPS enforcement, TLS version, public access, SAS expiry, key rotation",
+    args: "[--subscription-id SUB]",
+  },
+  sql_audit_config: {
+    description: "CIS 4.1.x: Audit Azure SQL security — auditing, TDE, Advanced Threat Protection, AD admin, firewall rules",
+    args: "[--subscription-id SUB]",
+  },
+  postgres_audit: {
+    description: "CIS 4.3.x: Audit PostgreSQL Flexible Server security — SSL, connection throttling, log checkpoints, retention",
+    args: "[--subscription-id SUB]",
+  },
+  mysql_audit: {
+    description: "CIS 4.4.x: Audit MySQL Flexible Server security — SSL enforcement, audit logging, TLS version",
+    args: "[--subscription-id SUB]",
+  },
+  cosmos_security_audit: {
+    description: "CIS 4.5.x: Audit Cosmos DB security — network restrictions, key-based auth, RBAC, managed identity access",
+    args: "[--subscription-id SUB]",
+  },
+  diagnostic_audit: {
+    description: "CIS 5.1.x: Audit diagnostic settings — ensure key resources have logging enabled to Log Analytics or Storage",
+    args: "[--subscription-id SUB]",
+  },
+  activity_alert_audit: {
+    description: "CIS 5.2.x: Audit Activity Log alerts — verify alerts exist for critical operations (policy, NSG, SQL, security)",
+    args: "[--subscription-id SUB]",
+  },
+  network_watcher_audit: {
+    description: "CIS 5.5: Verify Network Watcher is enabled in all regions with resources — required for NSG flow logs",
+    args: "[--subscription-id SUB]",
+  },
+  vm_security_audit: {
+    description: "CIS 7.x: Audit VM security — disk encryption, endpoint protection, approved extensions, trusted launch",
+    args: "[--subscription-id SUB]",
+  },
+  appservice_security_audit: {
+    description: "CIS 9.x: Audit App Service security — HTTPS, TLS 1.2+, managed identity, remote debugging, FTP state",
+    args: "[--subscription-id SUB]",
+  },
+  keyvault_security_audit: {
+    description: "CIS 8.x: Audit Key Vault security — RBAC vs access policies, soft-delete, purge protection, private endpoints",
+    args: "[--subscription-id SUB]",
+  },
+  identity_mfa_audit: {
+    description: "CIS 1.1.x: Audit MFA enforcement for all users, admins, and guest accounts via Conditional Access policies",
+    args: "",
+  },
+  guest_access_audit: {
+    description: "CIS 1.3-1.5: Audit guest user access restrictions, invitation settings, and external collaboration policies",
+    args: "",
+  },
+  password_policy_audit: {
+    description: "CIS 1.7-1.8: Audit password policies — banned passwords, self-service reset, lockout thresholds, expiry settings",
+    args: "",
+  },
+  resource_lock_audit: {
+    description: "CIS 8.5: Audit resource locks on critical resources — CanNotDelete or ReadOnly locks prevent accidental deletion",
+    args: "[--subscription-id SUB]",
+  },
+  policy_compliance_audit: {
+    description: "Audit Azure Policy compliance — non-compliant resources, policy assignments, initiative coverage, exemptions",
+    args: "[--subscription-id SUB]",
+  },
+
+  // ── Identity Attack (10) ──
+  federation_backdoor: {
+    description: "Analyze and exploit Entra ID federation settings for persistent access via trusted domain federation",
+    args: "",
+  },
+  pta_abuse: {
+    description: "Enumerate Pass-Through Authentication agents — compromise PTA agent host for credential interception",
+    args: "",
+  },
+  aadconnect_dump: {
+    description: "Detect Azure AD Connect servers and extract sync credentials for on-prem Active Directory access",
+    args: "",
+  },
+  seamless_sso_abuse: {
+    description: "Enumerate Seamless SSO configuration — Kerberos-based SSO can be abused for ticket forging",
+    args: "",
+  },
+  saml_forge: {
+    description: "Analyze SAML/WS-Fed SSO configurations — find certificate-based auth weaknesses for Golden SAML attacks",
+    args: "",
+  },
+  mfa_manipulation: {
+    description: "Enumerate user MFA methods, find users without MFA, analyze legacy auth protocols that bypass MFA",
+    args: "[--target USER_UPN]",
+  },
+  user_creation: {
+    description: "Create backdoor Entra ID users with role assignments for persistent access (requires User Administrator)",
+    args: "[--method list|create] [--upn UPN] [--role ROLE]",
+  },
+  password_spray: {
+    description: "Analyze password policy and sign-in logs for password spray feasibility — lockout thresholds, smart lockout, success rates",
+    args: "",
+  },
+  tenant_recon_insider: {
+    description: "Deep tenant reconnaissance from authenticated insider — directory settings, licensing, security defaults, legacy protocols",
+    args: "",
+  },
+  consent_phish: {
+    description: "Analyze OAuth consent grant attack surface — illicit consent grants, admin-consented permissions, consent workflow gaps",
+    args: "",
+  },
+
+  // ── Impact (5) ──
+  resource_hijack: {
+    description: "Enumerate crypto-mining opportunities — underutilized VMs, VMSS auto-scale, Batch accounts, Spot instances for resource hijacking",
+    args: "[--subscription-id SUB]",
+  },
+  data_destroy: {
+    description: "Assess data destruction impact — storage accounts without soft-delete, databases without backup, unprotected resources",
+    args: "[--subscription-id SUB]",
+  },
+  ransomware_sim: {
+    description: "Simulate ransomware impact assessment — find unencrypted disks, backup gaps, recovery vault weaknesses",
+    args: "[--subscription-id SUB]",
+  },
+  account_lockout: {
+    description: "Assess account lockout impact — enumerate users, smart lockout policies, lockout thresholds and duration",
+    args: "",
+  },
+  service_disruption: {
+    description: "Assess service disruption impact — auto-scale manipulation, DNS poisoning, certificate deletion, WAF bypass",
+    args: "[--subscription-id SUB]",
+  },
+
+  // ── M365 (4) ──
+  exchange_abuse: {
+    description: "Enumerate Exchange Online: mailbox permissions, transport rules, forwarding rules, mail-enabled security groups",
+    args: "",
+  },
+  sharepoint_enum: {
+    description: "Enumerate SharePoint Online: sites, permissions, external sharing, sensitivity labels, DLP policies",
+    args: "",
+  },
+  teams_m365_enum: {
+    description: "Enumerate Teams: settings, guest access, messaging policies, external access, app permissions",
+    args: "",
+  },
+  onedrive_access: {
+    description: "Enumerate OneDrive: accessible drives, shared files, recent documents, external sharing status",
+    args: "",
+  },
 
   // ── Cleanup (1) ──
   cleanup_azure: {
@@ -379,7 +856,7 @@ const PROGRAMS = {
 type Program = keyof typeof PROGRAMS
 
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
-  // Recon
+  // Recon (45)
   subscription_enum: subscriptionEnum,
   resource_graph: resourceGraph,
   entra_enum: entraEnum,
@@ -397,7 +874,35 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   data_factory_enum: dataFactoryEnum,
   front_door_enum: frontDoorEnum,
   container_instance_enum: containerInstanceEnum,
-  // Credential
+  apim_enum: apimEnum,
+  databricks_enum: databricksEnum,
+  app_insights_enum: appInsightsEnum,
+  monitor_enum: monitorEnum,
+  recovery_vault_enum: recoveryVaultEnum,
+  intune_enum: intuneEnum,
+  graph_user_enum: graphUserEnum,
+  app_registration_enum: appRegistrationEnum,
+  logic_app_connector_enum: logicAppConnectorEnum,
+  automation_runbook_enum: automationRunbookEnum,
+  synapse_enum: synapseEnum,
+  purview_enum: purviewEnum,
+  subdomain_takeover: subdomainTakeover,
+  stale_permission_audit: stalePermissionAudit,
+  public_exposure_scan: publicExposureScan,
+  cognitive_services_enum: cognitiveServicesEnum,
+  iot_hub_enum: iotHubEnum,
+  signalr_enum: signalrEnum,
+  event_grid_enum: eventGridEnum,
+  service_fabric_enum: serviceFabricEnum,
+  batch_account_enum: batchAccountEnum,
+  managed_env_enum: managedEnvEnum,
+  static_web_app_enum: staticWebAppEnum,
+  maps_search_enum: mapsSearchEnum,
+  sentinel_enum: sentinelEnum,
+  vpn_gateway_enum: vpnGatewayEnum,
+  express_route_enum: expressRouteEnum,
+  private_link_audit: privateLinkAudit,
+  // Credential (14)
   keyvault_dump: keyvaultDump,
   managed_identity: managedIdentity,
   azuread_token: azureadToken,
@@ -407,14 +912,24 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   certificate_abuse: certificateAbuse,
   storage_key_dump: storageKeyDump,
   automation_cred_dump: automationCredDump,
-  // Privesc
+  graph_token_harvest: graphTokenHarvest,
+  refresh_token_replay: refreshTokenReplay,
+  runbook_cred_extract: runbookCredExtract,
+  kubeconfig_dump: kubeconfigDump,
+  webapp_env_dump: webappEnvDump,
+  // Privesc (11)
   entra_privesc: entraPrivesc,
   custom_role_exploit: customRoleExploit,
   conditional_access_audit: conditionalAccessAudit,
   pim_abuse: pimAbuse,
   managed_identity_privesc: managedIdentityPrivesc,
   deployment_privesc: deploymentPrivesc,
-  // Persistence
+  global_admin_elevate: globalAdminElevate,
+  app_admin_privesc: appAdminPrivesc,
+  resource_hierarchy_abuse: resourceHierarchyAbuse,
+  group_membership_abuse: groupMembershipAbuse,
+  partner_admin_abuse: partnerAdminAbuse,
+  // Persistence (11)
   runbook_backdoor: runbookBackdoor,
   logic_app_backdoor: logicAppBackdoor,
   function_app_backdoor: functionAppBackdoor,
@@ -423,13 +938,21 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   webhook_persist: webhookPersist,
   devops_pipeline_backdoor: devopsPipelineBackdoor,
   lighthouse_persist: lighthousePersist,
-  // Lateral
+  acr_image_backdoor: acrImageBackdoor,
+  scheduled_task_persist: scheduledTaskPersist,
+  oauth_app_persist: oauthAppPersist,
+  // Lateral (10)
   vm_run_command: vmRunCommand,
   bastion_tunnel: bastionTunnel,
   arc_exec: arcExec,
   devops_service_conn: devopsServiceConn,
   cross_tenant_enum: crossTenantEnum,
-  // Evasion
+  custom_script_ext: customScriptExt,
+  userdata_command: userdataCommand,
+  intune_deploy: intuneDeploy,
+  msbuild_exec: msbuildExec,
+  shared_image_inject: sharedImageInject,
+  // Evasion (11)
   diagnostic_tamper: diagnosticTamper,
   sentinel_suppress: sentinelSuppress,
   defender_disable: defenderDisable,
@@ -437,7 +960,11 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   policy_exempt: policyExempt,
   waf_bypass: wafBypass,
   alert_suppress: alertSuppress,
-  // Exfil
+  log_analytics_tamper: logAnalyticsTamper,
+  nsg_flow_log_disable: nsgFlowLogDisable,
+  resource_move: resourceMove,
+  tag_manipulation: tagManipulation,
+  // Exfil (12)
   storage_dump: storageDump,
   cosmos_dump: cosmosDump,
   disk_snapshot: diskSnapshot,
@@ -446,6 +973,51 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   data_lake_dump: dataLakeDump,
   service_bus_sniff: serviceBusSniff,
   event_hub_tap: eventHubTap,
+  graph_mail_dump: graphMailDump,
+  sharepoint_dump: sharepointDump,
+  teams_dump: teamsDump,
+  vm_disk_download: vmDiskDownload,
+  // Compliance (18)
+  defender_plan_audit: defenderPlanAudit,
+  defender_contact_audit: defenderContactAudit,
+  storage_security_audit: storageSecurityAudit,
+  sql_audit_config: sqlAuditConfig,
+  postgres_audit: postgresAudit,
+  mysql_audit: mysqlAudit,
+  cosmos_security_audit: cosmosSecurityAudit,
+  diagnostic_audit: diagnosticAudit,
+  activity_alert_audit: activityAlertAudit,
+  network_watcher_audit: networkWatcherAudit,
+  vm_security_audit: vmSecurityAudit,
+  appservice_security_audit: appserviceSecurityAudit,
+  keyvault_security_audit: keyvaultSecurityAudit,
+  identity_mfa_audit: identityMfaAudit,
+  guest_access_audit: guestAccessAudit,
+  password_policy_audit: passwordPolicyAudit,
+  resource_lock_audit: resourceLockAudit,
+  policy_compliance_audit: policyComplianceAudit,
+  // Identity (10)
+  federation_backdoor: federationBackdoor,
+  pta_abuse: ptaAbuse,
+  aadconnect_dump: aadconnectDump,
+  seamless_sso_abuse: seamlessSsoAbuse,
+  saml_forge: samlForge,
+  mfa_manipulation: mfaManipulation,
+  user_creation: userCreation,
+  password_spray: passwordSpray,
+  tenant_recon_insider: tenantReconInsider,
+  consent_phish: consentPhish,
+  // Impact (5)
+  resource_hijack: resourceHijack,
+  data_destroy: dataDestroy,
+  ransomware_sim: ransomwareSim,
+  account_lockout: accountLockout,
+  service_disruption: serviceDisruption,
+  // M365 (4)
+  exchange_abuse: exchangeAbuse,
+  sharepoint_m365_enum: sharepointEnum,
+  teams_m365_enum: teamsEnum,
+  onedrive_access: onedriveAccess,
   // Cleanup
   cleanup_azure: cleanupAzure,
 }
@@ -480,6 +1052,35 @@ const CWE_MAP: Record<string, string> = {
   "AZ-AKS-002": "CWE-284",
   "AZ-VM-001": "CWE-200",
   "AZ-VM-002": "CWE-284",
+  "AZ-APIM-001": "CWE-522",
+  "AZ-APIM-002": "CWE-200",
+  "AZ-DATABRICKS-001": "CWE-200",
+  "AZ-APPINSIGHTS-001": "CWE-522",
+  "AZ-MONITOR-001": "CWE-778",
+  "AZ-VAULT-001": "CWE-693",
+  "AZ-INTUNE-ENUM-001": "CWE-200",
+  "AZ-GRAPHUSER-001": "CWE-200",
+  "AZ-APPREG-001": "CWE-522",
+  "AZ-LOGIC-CONN-001": "CWE-522",
+  "AZ-AUTO-ENUM-001": "CWE-200",
+  "AZ-SYNAPSE-001": "CWE-200",
+  "AZ-PURVIEW-001": "CWE-200",
+  "AZ-SUBDOMAIN-001": "CWE-672",
+  "AZ-STALE-001": "CWE-269",
+  "AZ-PUBLIC-001": "CWE-284",
+  "AZ-COG-001": "CWE-522",
+  "AZ-SF-001": "CWE-200",
+  "AZ-CAPP-001": "CWE-200",
+  "AZ-SWA-001": "CWE-200",
+  "AZ-IOT-001": "CWE-522",
+  "AZ-SIGNALR-001": "CWE-522",
+  "AZ-EVTGRID-001": "CWE-200",
+  "AZ-BATCH-001": "CWE-522",
+  "AZ-MAPS-001": "CWE-522",
+  "AZ-SENTINEL-ENUM-001": "CWE-200",
+  "AZ-VPN-001": "CWE-522",
+  "AZ-ER-001": "CWE-200",
+  "AZ-PL-001": "CWE-284",
   // Credential
   "AZ-KV-001": "CWE-522",
   "AZ-KV-002": "CWE-522",
@@ -494,6 +1095,18 @@ const CWE_MAP: Record<string, string> = {
   "AZ-SKEY-002": "CWE-320",
   "AZ-AUTO-001": "CWE-522",
   "AZ-AUTO-002": "CWE-312",
+  "AZ-GRAPH-001": "CWE-522",
+  "AZ-PRT-001": "CWE-522",
+  "AZ-PRT-002": "CWE-522",
+  "AZ-PRT-003": "CWE-312",
+  "AZ-RUNBOOK-001": "CWE-798",
+  "AZ-KUBE-001": "CWE-284",
+  "AZ-KUBE-002": "CWE-284",
+  "AZ-KUBE-003": "CWE-522",
+  "AZ-KUBE-004": "CWE-522",
+  "AZ-WEBAPP-001": "CWE-312",
+  "AZ-WEBAPP-002": "CWE-312",
+  "AZ-WEBAPP-003": "CWE-522",
   // Privesc
   "AZ-PRIVESC-001": "CWE-269",
   "AZ-PRIVESC-002": "CWE-269",
@@ -505,6 +1118,21 @@ const CWE_MAP: Record<string, string> = {
   "AZ-PIM-002": "CWE-269",
   "AZ-MI-PRIV-001": "CWE-269",
   "AZ-DEPLOY-001": "CWE-269",
+  "AZ-DEPLOY-002": "CWE-269",
+  "AZ-GA-001": "CWE-269",
+  "AZ-GA-002": "CWE-269",
+  "AZ-GA-003": "CWE-269",
+  "AZ-APPADMIN-001": "CWE-269",
+  "AZ-APPADMIN-002": "CWE-269",
+  "AZ-HIER-001": "CWE-269",
+  "AZ-HIER-002": "CWE-269",
+  "AZ-HIER-003": "CWE-693",
+  "AZ-GROUP-001": "CWE-269",
+  "AZ-GROUP-002": "CWE-269",
+  "AZ-GROUP-003": "CWE-269",
+  "AZ-PARTNER-001": "CWE-284",
+  "AZ-PARTNER-002": "CWE-284",
+  "AZ-PARTNER-003": "CWE-284",
   // Persistence
   "AZ-PERSIST-001": "CWE-547",
   "AZ-PERSIST-002": "CWE-547",
@@ -514,6 +1142,14 @@ const CWE_MAP: Record<string, string> = {
   "AZ-WEBHOOK-001": "CWE-547",
   "AZ-DEVOPS-001": "CWE-94",
   "AZ-LH-001": "CWE-284",
+  "AZ-LH-002": "CWE-284",
+  "AZ-ACR-PERSIST-001": "CWE-284",
+  "AZ-ACR-PERSIST-002": "CWE-522",
+  "AZ-ACR-PERSIST-003": "CWE-94",
+  "AZ-SCHED-001": "CWE-547",
+  "AZ-OAUTH-001": "CWE-269",
+  "AZ-OAUTH-002": "CWE-269",
+  "AZ-OAUTH-003": "CWE-522",
   // Lateral
   "AZ-RUNCMD-001": "CWE-78",
   "AZ-RUNCMD-002": "CWE-78",
@@ -521,7 +1157,18 @@ const CWE_MAP: Record<string, string> = {
   "AZ-ARC-001": "CWE-78",
   "AZ-SVCCONN-001": "CWE-522",
   "AZ-XTENANT-001": "CWE-284",
+  "AZ-XTENANT-002": "CWE-284",
+  "AZ-XTENANT-003": "CWE-200",
   "AZ-LATERAL-001": "CWE-78",
+  "AZ-CSE-001": "CWE-94",
+  "AZ-UDATA-001": "CWE-200",
+  "AZ-UDATA-002": "CWE-94",
+  "AZ-INTUNE-001": "CWE-200",
+  "AZ-INTUNE-002": "CWE-94",
+  "AZ-BUILD-001": "CWE-94",
+  "AZ-BUILD-002": "CWE-94",
+  "AZ-SIG-001": "CWE-200",
+  "AZ-SIG-002": "CWE-94",
   // Evasion
   "AZ-DIAG-001": "CWE-778",
   "AZ-DIAG-002": "CWE-778",
@@ -536,6 +1183,17 @@ const CWE_MAP: Record<string, string> = {
   "AZ-WAF-002": "CWE-693",
   "AZ-ALERT-001": "CWE-778",
   "AZ-ALERT-002": "CWE-778",
+  "AZ-ALERT-003": "CWE-778",
+  "AZ-LAW-001": "CWE-778",
+  "AZ-LAW-002": "CWE-778",
+  "AZ-LAW-003": "CWE-778",
+  "AZ-NSGFLOW-001": "CWE-778",
+  "AZ-NSGFLOW-002": "CWE-778",
+  "AZ-MOVE-001": "CWE-693",
+  "AZ-MOVE-002": "CWE-693",
+  "AZ-TAG-001": "CWE-693",
+  "AZ-TAG-002": "CWE-693",
+  "AZ-TAG-003": "CWE-693",
   // Exfil
   "AZ-STORAGE-001": "CWE-200",
   "AZ-STORAGE-002": "CWE-200",
@@ -549,6 +1207,67 @@ const CWE_MAP: Record<string, string> = {
   "AZ-DATALAKE-001": "CWE-200",
   "AZ-SBUS-001": "CWE-200",
   "AZ-EHUB-001": "CWE-200",
+  "AZ-EHUB-002": "CWE-200",
+  "AZ-MAIL-001": "CWE-200",
+  "AZ-SP-EXFIL-001": "CWE-200",
+  "AZ-SP-EXFIL-002": "CWE-200",
+  "AZ-TEAMS-001": "CWE-200",
+  "AZ-TEAMS-002": "CWE-200",
+  "AZ-VMDISK-001": "CWE-200",
+  "AZ-VMDISK-002": "CWE-200",
+  // Compliance
+  "AZ-CIS-DEFENDER-001": "CWE-693",
+  "AZ-CIS-DEFENDER-002": "CWE-693",
+  "AZ-CIS-CONTACT-001": "CWE-778",
+  "AZ-CIS-STORAGE-001": "CWE-319",
+  "AZ-CIS-STORAGE-002": "CWE-319",
+  "AZ-CIS-STORAGE-003": "CWE-284",
+  "AZ-CIS-SQL-001": "CWE-778",
+  "AZ-CIS-SQL-002": "CWE-311",
+  "AZ-CIS-SQL-003": "CWE-693",
+  "AZ-CIS-PG-001": "CWE-319",
+  "AZ-CIS-PG-002": "CWE-778",
+  "AZ-CIS-MYSQL-001": "CWE-319",
+  "AZ-CIS-COSMOS-001": "CWE-284",
+  "AZ-CIS-DIAG-001": "CWE-778",
+  "AZ-CIS-ALERT-001": "CWE-778",
+  "AZ-CIS-NW-001": "CWE-778",
+  "AZ-CIS-VM-001": "CWE-311",
+  "AZ-CIS-VM-002": "CWE-693",
+  "AZ-CIS-APPSVC-001": "CWE-319",
+  "AZ-CIS-APPSVC-002": "CWE-319",
+  "AZ-CIS-KV-001": "CWE-693",
+  "AZ-CIS-KV-002": "CWE-284",
+  "AZ-CIS-MFA-001": "CWE-287",
+  "AZ-CIS-GUEST-001": "CWE-284",
+  "AZ-CIS-PWD-001": "CWE-521",
+  "AZ-CIS-LOCK-001": "CWE-693",
+  "AZ-CIS-POLICY-001": "CWE-693",
+  // Identity
+  "AZ-FED-001": "CWE-284",
+  "AZ-FED-002": "CWE-284",
+  "AZ-PTA-001": "CWE-522",
+  "AZ-AADC-001": "CWE-522",
+  "AZ-SSO-001": "CWE-287",
+  "AZ-SAML-001": "CWE-290",
+  "AZ-MFA-001": "CWE-287",
+  "AZ-MFA-002": "CWE-287",
+  "AZ-USERCREATE-001": "CWE-269",
+  "AZ-SPRAY-001": "CWE-521",
+  "AZ-TENANT-001": "CWE-200",
+  "AZ-CONSENT-001": "CWE-269",
+  // Impact
+  "AZ-HIJACK-001": "CWE-400",
+  "AZ-DESTROY-001": "CWE-400",
+  "AZ-RANSOM-001": "CWE-311",
+  "AZ-LOCKOUT-001": "CWE-307",
+  "AZ-DISRUPT-001": "CWE-400",
+  // M365
+  "AZ-EXCHANGE-001": "CWE-284",
+  "AZ-EXCHANGE-002": "CWE-200",
+  "AZ-SPO-001": "CWE-284",
+  "AZ-M365TEAMS-001": "CWE-284",
+  "AZ-ONEDRIVE-001": "CWE-200",
   // Cleanup
   "AZ-CLEANUP-001": "CWE-1254",
 }
@@ -556,7 +1275,7 @@ const CWE_MAP: Record<string, string> = {
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
 
 export const AzurehookTool = Tool.define("azurehook", {
-  description: `Execute an Azure post-exploitation program. 61 programs across 9 categories: recon (17), credential (9), privesc (6), persistence (8), lateral (5), evasion (7), exfil (8), cleanup (1). Uses az CLI and Azure REST API. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_azure before leaving.`,
+  description: `Execute an Azure post-exploitation program. 152 programs across 13 categories: recon (45), credential (14), privesc (11), persistence (11), lateral (10), evasion (11), exfil (12), compliance (18), identity (10), impact (5), m365 (4), cleanup (1). Uses az CLI and Azure REST API. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_azure before leaving.`,
   parameters: z.object({
     program: z.enum(programKeys).describe(
       "Azure program to execute. Options: " +
