@@ -158,7 +158,7 @@ if (Test-Path $azContext) {
     output.push(r.stdout)
     if (r.stdout.includes("PRT available")) {
       findings.push({
-        checkId: "AZURE-001",
+        checkId: "AZURE-007",
         provider: "winhook",
         severity: "critical",
         status: "FAIL",
@@ -422,7 +422,7 @@ Write-Output "This grants access to Azure AD as any synced user"
     if (r.stdout.includes("[+] AZUREADSSOACC$ found")) {
       const daysMatch = r.stdout.match(/(\d+) days ago/)
       findings.push({
-        checkId: "AZURE-006",
+        checkId: "AZURE-008",
         provider: "winhook",
         severity: "critical",
         status: "FAIL",
@@ -618,7 +618,7 @@ foreach ($vd in ($vdirs | Select-Object -First 20)) {
     output.push(r.stdout)
     if (r.stdout.includes("Exchange servers:")) {
       findings.push({
-        checkId: "EXCH-001",
+        checkId: "EXCH-004",
         provider: "winhook",
         severity: "medium",
         status: "INFO",
@@ -854,7 +854,7 @@ Write-Output "  3. Exchange authenticates → relay to LDAP → grant DCSync →
     output.push(r.stdout)
     if (r.stdout.includes("WriteDACL on domain")) {
       findings.push({
-        checkId: "EXCH-003",
+        checkId: "EXCH-005",
         provider: "winhook",
         severity: "critical",
         status: "FAIL",
@@ -966,7 +966,7 @@ if (-not $isSystem) {
     const discCount = discMatch ? parseInt(discMatch[1]) : 0
     if (discCount > 0) {
       findings.push({
-        checkId: "WIN-RDP-001",
+        checkId: "WIN-RDP-011",
         provider: "windows",
         severity: "high",
         status: "ENUMERATED",
@@ -1009,7 +1009,7 @@ query user 2>&1
     output.push(result.stdout)
 
     findings.push({
-      checkId: "WIN-RDP-002",
+      checkId: "WIN-RDP-014",
       provider: "windows",
       severity: "critical",
       status: "EXPLOITED",
@@ -1043,7 +1043,7 @@ export async function rdpShadow(args: string[], timeout: number): Promise<HookRe
       const activeCount = (r.stdout.match(/Active/gi) || []).length
       if (activeCount > 0) {
         findings.push({
-          checkId: "WIN-RDP-001",
+          checkId: "WIN-RDP-012",
           provider: "windows",
           severity: "high",
           status: "SHADOWABLE",
@@ -1055,7 +1055,7 @@ export async function rdpShadow(args: string[], timeout: number): Promise<HookRe
       }
       if (shadowCfg.stdout.includes("0x2") || shadowCfg.stdout.includes("0x4")) {
         findings.push({
-          checkId: "WIN-RDP-002",
+          checkId: "WIN-RDP-015",
           provider: "windows",
           severity: "critical",
           status: "NO_CONSENT",
@@ -1176,7 +1176,7 @@ Write-Output "NLA Required: $(if ($nla -eq 1) { 'YES' } else { 'NO' })"
 
     if (activeCount && parseInt(activeCount[1]) > 0 && canShadow) {
       findings.push({
-        checkId: "WIN-RDP-001",
+        checkId: "WIN-RDP-013",
         provider: "windows",
         severity: "high",
         status: "SHADOWABLE",
@@ -1189,7 +1189,7 @@ Write-Output "NLA Required: $(if ($nla -eq 1) { 'YES' } else { 'NO' })"
 
     if (shadowMode && (shadowMode[1] === "2" || shadowMode[1] === "4")) {
       findings.push({
-        checkId: "WIN-RDP-002",
+        checkId: "WIN-RDP-016",
         provider: "windows",
         severity: "critical",
         status: "NO_CONSENT",
@@ -1268,7 +1268,7 @@ Write-Output "SHADOW_STATUS=STARTED"
 
     if (r.stdout.includes("SHADOW_STATUS=STARTED")) {
       findings.push({
-        checkId: "WIN-RDP-010",
+        checkId: "WIN-RDP-017",
         provider: "windows",
         severity: "critical",
         status: "SHADOWING",
@@ -1431,7 +1431,7 @@ foreach ($loc in $locations) {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-HYBRID-010",
+      checkId: "WIN-HYBRID-013",
       provider: "windows",
       severity: r.stdout.includes("RUNNING") ? "high" : "medium",
       status: "ENUMERATED",
@@ -1596,7 +1596,7 @@ if (Test-Path $cachePath) {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-HYBRID-012",
+      checkId: "WIN-HYBRID-014",
       provider: "windows",
       severity: "medium",
       status: "ENUMERATED",
