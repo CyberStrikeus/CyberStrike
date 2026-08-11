@@ -128,7 +128,7 @@ export async function etwProcess(args: string[], timeout: number): Promise<HookR
     output.push(`[+] New processes (wmic): ${newProcs.length}`)
     for (const line of newProcs.slice(0, 50)) output.push(`    ${line}`)
     findings.push({
-      checkId: "WIN-ETW-PROC-001",
+      checkId: "WIN-ETW-PROC-002",
       provider: "windows",
       severity: "info",
       status: "CAPTURED",
@@ -161,7 +161,7 @@ $global:events | ForEach-Object { Write-Output $_ }
       output.push(`    ${parts[0]?.padEnd(8)} ${parts[1]?.padEnd(8)} ${parts[2]?.padEnd(30)} ${parts[3] || ""}`)
     }
     findings.push({
-      checkId: "WIN-ETW-PROC-001",
+      checkId: "WIN-ETW-PROC-003",
       provider: "windows",
       severity: "info",
       status: "CAPTURED",
@@ -251,7 +251,7 @@ export async function etwNetwork(args: string[], timeout: number): Promise<HookR
     output.push("\n=== Active Connections (netstat) ===")
     output.push(netstat.stdout.trim().split("\n").slice(0, 50).join("\n"))
     findings.push({
-      checkId: "WIN-NET-001",
+      checkId: "WIN-NET-014",
       provider: "windows",
       severity: "info",
       status: "CAPTURED",
@@ -301,7 +301,7 @@ export async function etwNetwork(args: string[], timeout: number): Promise<HookR
   }
 
   findings.push({
-    checkId: "WIN-NET-001",
+    checkId: "WIN-NET-015",
     provider: "windows",
     severity: "info",
     status: "CAPTURED",
@@ -905,7 +905,7 @@ if ($hasCritical) {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-RECON-001",
+      checkId: "WIN-RECON-013",
       provider: "windows",
       severity: "info",
       status: "ENUMERATED",
@@ -957,7 +957,7 @@ Write-Output "[*] CLR: $($PSVersionTable.CLRVersion)"
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-RECON-002",
+      checkId: "WIN-RECON-014",
       provider: "windows",
       severity: "info",
       status: "ENUMERATED",
@@ -1020,7 +1020,7 @@ foreach ($s in $systemServices) {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-RECON-003",
+      checkId: "WIN-RECON-015",
       provider: "windows",
       severity: "info",
       status: "ENUMERATED",
@@ -1073,7 +1073,7 @@ Get-SmbShare -ErrorAction SilentlyContinue |
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-RECON-004",
+      checkId: "WIN-RECON-016",
       provider: "windows",
       severity: "info",
       status: "ENUMERATED",
@@ -1119,7 +1119,7 @@ Write-Output "[*] Last Boot: $($os.ConvertToDateTime($os.LastBootUpTime))"
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-RECON-005",
+      checkId: "WIN-RECON-017",
       provider: "windows",
       severity: "info",
       status: "ENUMERATED",
@@ -1269,7 +1269,7 @@ if ($filterVal) {
     output.push(r.stdout)
     if (r.stderr) output.push(`[!] ${r.stderr}`)
     findings.push({
-      checkId: "WIN-RECON-010",
+      checkId: "WIN-RECON-018",
       provider: "windows",
       severity: "info",
       status: "ENUMERATED",
