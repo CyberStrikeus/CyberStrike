@@ -1848,7 +1848,7 @@ export async function appRegistrationEnum(_args: string[], timeout: number): Pro
       if (suspicious.length > 0) {
         output.push(`    [!] Non-HTTPS redirect URIs: ${suspicious.join(", ")}`)
         findings.push({
-          checkId: "AZ-APPREG-001",
+          checkId: "AZ-APPREG-002",
           provider: "azure",
           severity: "high",
           status: "FAIL",
@@ -2113,7 +2113,7 @@ export async function purviewEnum(args: string[], timeout: number): Promise<Hook
 
     if (acct.properties?.publicNetworkAccess !== "Disabled") {
       findings.push({
-        checkId: "AZ-PURVIEW-001",
+        checkId: "AZ-PURVIEW-002",
         provider: "azure",
         severity: "medium",
         status: "FAIL",
@@ -2250,7 +2250,7 @@ export async function stalePermissionAudit(args: string[], timeout: number): Pro
     for (const u of unknownPrincipals) {
       output.push(`    ${u.principalId} → ${u.roleDefinitionName} at ${u.scope?.split("/").pop()}`)
       findings.push({
-        checkId: "AZ-STALE-001",
+        checkId: "AZ-STALE-002",
         provider: "azure",
         severity: "medium",
         status: "FAIL",
@@ -2311,7 +2311,7 @@ export async function publicExposureScan(args: string[], timeout: number): Promi
     }
     if (openCount > 0) {
       findings.push({
-        checkId: "AZ-EXPOSURE-001",
+        checkId: "AZ-EXPOSURE-002",
         provider: "azure",
         severity: "critical",
         status: "FAIL",
@@ -2341,7 +2341,7 @@ export async function publicExposureScan(args: string[], timeout: number): Promi
     for (const s of publicAccounts) {
       output.push(`    [!] ${s.name} — anonymous blob access allowed`)
       findings.push({
-        checkId: "AZ-EXPOSURE-001",
+        checkId: "AZ-EXPOSURE-003",
         provider: "azure",
         severity: "high",
         status: "FAIL",
@@ -2458,7 +2458,7 @@ export async function cognitiveServicesEnum(args: string[], timeout: number): Pr
       if (keyData) {
         output.push(`    [!] Key1: ${keyData.key1?.substring(0, 16)}...`)
         findings.push({
-          checkId: "AZ-COG-001",
+          checkId: "AZ-COG-002",
           provider: "azure",
           severity: "high",
           status: "EXTRACTED",
@@ -2565,7 +2565,7 @@ export async function signalrEnum(args: string[], timeout: number): Promise<Hook
       if (keyData) {
         output.push(`    [!] Primary key: ${keyData.primaryKey?.substring(0, 16)}...`)
         findings.push({
-          checkId: "AZ-SIGNALR-001",
+          checkId: "AZ-SIGNALR-002",
           provider: "azure",
           severity: "high",
           status: "EXTRACTED",
@@ -2686,7 +2686,7 @@ export async function batchEnum(args: string[], timeout: number): Promise<HookRe
       if (keyData) {
         output.push(`    [!] Primary key: ${keyData.primary?.substring(0, 16)}...`)
         findings.push({
-          checkId: "AZ-BATCH-001",
+          checkId: "AZ-BATCH-004",
           provider: "azure",
           severity: "high",
           status: "EXTRACTED",
@@ -2930,7 +2930,7 @@ export async function expressRouteEnum(args: string[], timeout: number): Promise
         output.push(`        Primary peer: ${p.primaryPeerAddressPrefix || "N/A"}`)
         output.push(`        Secondary peer: ${p.secondaryPeerAddressPrefix || "N/A"}`)
         findings.push({
-          checkId: "AZ-ER-001",
+          checkId: "AZ-ER-002",
           provider: "azure",
           severity: "high",
           status: "INFO",
@@ -3079,7 +3079,7 @@ export async function batchAccountEnum(args: string[], timeout: number): Promise
 
     if (acct.publicNetworkAccess !== "Disabled") {
       findings.push({
-        checkId: "AZ-BATCH-001",
+        checkId: "AZ-BATCH-003",
         provider: "azure",
         severity: "medium",
         status: "WARN",

@@ -1266,7 +1266,7 @@ export async function teamsDump(args: string[], timeout: number): Promise<HookRe
 
   if (teamList.length > 0) {
     findings.push({
-      checkId: "AZ-TEAMS-001",
+      checkId: "AZ-TEAMS-003",
       provider: "azure",
       severity: "high",
       status: "ENUMERATED",
@@ -1332,7 +1332,7 @@ export async function teamsDump(args: string[], timeout: number): Promise<HookRe
         }
         if (msgList.length > 0) {
           findings.push({
-            checkId: "AZ-TEAMS-002",
+            checkId: "AZ-TEAMS-004",
             provider: "azure",
             severity: "critical",
             status: "EXTRACTED",
