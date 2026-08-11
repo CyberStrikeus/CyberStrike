@@ -166,7 +166,17 @@ export namespace Database {
         count: entries.length,
         mode: typeof CYBERSTRIKE_MIGRATIONS !== "undefined" ? "bundled" : "dev",
       })
-      migrate(db, entries)
+      // Make CREATE statements idempotent so migrations survive re-install over an
+      // existing database (e.g. `cyberstrike uninstall` removes the binary but leaves
+      // the SQLite DB — the migration journal is gone but the tables remain).
+      const safe = entries.map((e) => ({
+        ...e,
+        sql: e.sql
+          .replace(/CREATE TABLE `/g, "CREATE TABLE IF NOT EXISTS `")
+          .replace(/CREATE INDEX `/g, "CREATE INDEX IF NOT EXISTS `")
+          .replace(/CREATE UNIQUE INDEX `/g, "CREATE UNIQUE INDEX IF NOT EXISTS `"),
+      }))
+      migrate(db, safe)
     }
 
     // Reconcile schema: ensures all tables have all expected columns.
