@@ -37,6 +37,31 @@ const PROGRAMS = {
       "Exploit misconfigured Terraform remote state backends: public S3 buckets, unauthenticated HTTP backends, GCS with allUsers, writable state for state injection",
     args: "--backend <s3|gcs|http> --target URL [--inject]",
   },
+  tf_provider_creds: {
+    description:
+      "Extract provider credentials from .terraform/ directory, .terraformrc, terraform.rc, and environment variables (TF_VAR_*, AWS_*, GOOGLE_*, ARM_*). Scans backend configs for embedded credentials",
+    args: "[--dir DIR]",
+  },
+  cfn_audit: {
+    description:
+      "Audit CloudFormation templates for security issues: hardcoded secrets in Parameters (missing NoEcho), open security groups, public S3 buckets, wildcard IAM policies, missing encryption",
+    args: "[--dir DIR] [--file FILE]",
+  },
+  ansible_secrets: {
+    description:
+      "Extract secrets from Ansible: vault-encrypted files, plaintext passwords in playbooks/roles, group_vars/host_vars credentials, vault_password_file references",
+    args: "[--dir DIR] [--vault-pass PASSWORD]",
+  },
+  logging_audit: {
+    description:
+      "Check IaC for missing logging/monitoring: CloudTrail, VPC Flow Logs, S3 access logging, GCP audit logs, Azure diagnostic settings",
+    args: "[--dir DIR]",
+  },
+  network_audit: {
+    description:
+      "VPC/networking security audit in IaC: public subnets without NAT, permissive VPC peering, default VPC usage, missing flow logs, open NACLs, unused security groups",
+    args: "[--dir DIR] [--provider aws|azure|gcp]",
+  },
   cleanup_iac: {
     description:
       "Remove temporary files created during IaC auditing: extracted state files, plan outputs, cached configs. ALWAYS run when done",
@@ -654,6 +679,534 @@ async function remoteStateExploit(args: string[], timeout: number): Promise<Hook
   return { output: output.join("\n"), findings }
 }
 
+async function tfProviderCreds(args: string[], timeout: number): Promise<HookResult> {
+  const dir = argVal(args, "--dir") || "."
+  const findings: Finding[] = []
+  const output: string[] = [`[*] Extracting Terraform provider credentials in: ${dir}\n`]
+
+  const secretPattern =
+    /(?:password|secret|api[_-]?key|token|credential|private[_-]?key|access[_-]?key|client[_-]?secret)/i
+
+  const tfDir = `${dir}/.terraform`
+  const tfDirExists = await run("test", ["-d", tfDir], 5)
+  if (tfDirExists.exitCode === 0) {
+    output.push(`[+] .terraform/ directory found`)
+
+    const providerLock = `${dir}/.terraform.lock.hcl`
+    const lockContent = await run("cat", [providerLock], 5)
+    if (lockContent.exitCode === 0) {
+      const providers = lockContent.stdout.match(/provider\s+"([^"]+)"/g) || []
+      output.push(`    Providers: ${providers.length}`)
+      for (const p of providers) output.push(`      ${p}`)
+    }
+
+    const backendConfig = await run("find", [tfDir, "-name", "*.tfstate", "-o", "-name", "backend"], 10)
+    if (backendConfig.exitCode === 0 && backendConfig.stdout.trim()) {
+      const files = backendConfig.stdout.trim().split("\n").filter(Boolean)
+      for (const f of files) {
+        const content = await run("cat", [f], 5)
+        if (content.exitCode !== 0) continue
+        if (secretPattern.test(content.stdout)) {
+          output.push(`    [!] Credentials in: ${f}`)
+          findings.push({
+            checkId: "IAC-PROV-001",
+            provider: "terraform",
+            severity: "critical",
+            status: "EXTRACTED",
+            resource: f,
+            title: `Credential in .terraform: ${f.split("/").pop()}`,
+            details: "Provider cache or backend config contains credentials",
+            remediation: "Use environment variables or credential helper for provider auth",
+          })
+        }
+      }
+    }
+  }
+
+  const rcFiles = [
+    `${process.env.HOME}/.terraformrc`,
+    `${process.env.HOME}/terraform.rc`,
+    `${process.env.APPDATA || ""}/terraform.rc`,
+  ]
+  for (const rc of rcFiles) {
+    const content = await run("cat", [rc], 5)
+    if (content.exitCode !== 0) continue
+    output.push(`\n[+] Found: ${rc}`)
+    if (content.stdout.includes("credentials") || content.stdout.includes("token")) {
+      output.push(`    [!] Contains credential configuration`)
+      const lines = content.stdout.split("\n")
+      for (const line of lines) {
+        if (/token|credentials/.test(line)) output.push(`      ${line.trim().substring(0, 150)}`)
+      }
+      findings.push({
+        checkId: "IAC-PROV-002",
+        provider: "terraform",
+        severity: "high",
+        status: "EXTRACTED",
+        resource: rc,
+        title: `Credentials in Terraform RC: ${rc}`,
+        details: "Terraform RC file contains provider tokens",
+        remediation: "Use credential helpers instead of storing tokens in RC files",
+      })
+    }
+  }
+
+  output.push(`\n[*] Checking environment variables...`)
+  const envPrefixes = ["TF_VAR_", "AWS_", "GOOGLE_", "ARM_", "ALICLOUD_", "DO_"]
+  const envVars = Object.keys(process.env).filter((k) => envPrefixes.some((p) => k.startsWith(p)))
+  if (envVars.length > 0) {
+    output.push(`[+] IaC-related env vars: ${envVars.length}`)
+    for (const k of envVars) {
+      const val = process.env[k] || ""
+      const masked = val.length > 8 ? val.substring(0, 4) + "****" + val.substring(val.length - 4) : "****"
+      output.push(`    ${k} = ${masked}`)
+    }
+  }
+
+  const tfFiles = await run("find", [dir, "-maxdepth", "3", "-name", "*.tf"], timeout)
+  if (tfFiles.exitCode === 0) {
+    const files = tfFiles.stdout.trim().split("\n").filter(Boolean)
+    for (const f of files) {
+      const content = await run("cat", [f], 5)
+      if (content.exitCode !== 0) continue
+      if (!content.stdout.includes("provider")) continue
+      const lines = content.stdout.split("\n")
+      for (let i = 0; i < lines.length; i++) {
+        if (/^\s*(access_key|secret_key|token|password|client_secret)\s*=\s*"[^"]+"/i.test(lines[i])) {
+          output.push(`\n  [!] Hardcoded credential in ${f}:${i + 1}: ${lines[i].trim().substring(0, 100)}`)
+          findings.push({
+            checkId: "IAC-PROV-001",
+            provider: "terraform",
+            severity: "critical",
+            status: "FAIL",
+            resource: `${f}:${i + 1}`,
+            title: `Hardcoded provider credential: ${f}`,
+            details: lines[i].trim().substring(0, 300),
+            remediation: "Use environment variables or a vault for provider credentials",
+          })
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function cfnAudit(args: string[], timeout: number): Promise<HookResult> {
+  const dir = argVal(args, "--dir") || "."
+  const file = argVal(args, "--file")
+  const findings: Finding[] = []
+  const output: string[] = [`[*] Auditing CloudFormation templates...\n`]
+
+  const cfnFiles: string[] = []
+  if (file) {
+    cfnFiles.push(file)
+  } else {
+    const find = await run(
+      "find",
+      [dir, "-maxdepth", "5", "(", "-name", "*.json", "-o", "-name", "*.yaml", "-o", "-name", "*.yml", ")", "-type", "f"],
+      timeout,
+    )
+    if (find.exitCode === 0) {
+      const candidates = find.stdout.trim().split("\n").filter(Boolean)
+      for (const f of candidates) {
+        const head = await run("head", ["-5", f], 5)
+        if (head.exitCode === 0 && (head.stdout.includes("AWSTemplateFormatVersion") || head.stdout.includes("Resources"))) {
+          cfnFiles.push(f)
+        }
+      }
+    }
+  }
+
+  output.push(`[+] CloudFormation templates found: ${cfnFiles.length}`)
+
+  const secretPattern = /(?:password|secret|api[_-]?key|token|credential|private[_-]?key)/i
+  const openCidrPattern = /(?:0\.0\.0\.0\/0|::\/?0)/
+  const wildcardIam = /"(?:Action|Resource)"\s*:\s*"\*"/
+
+  for (const f of cfnFiles) {
+    const content = await run("cat", [f], 10)
+    if (content.exitCode !== 0) continue
+    const lines = content.stdout.split("\n")
+    output.push(`\n── ${f} ──`)
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+
+      if (secretPattern.test(line) && /Default\s*[:=]/.test(line)) {
+        const nearNoEcho = lines.slice(Math.max(0, i - 5), i + 5).some((l) => /NoEcho/i.test(l))
+        if (!nearNoEcho) {
+          output.push(`  [!] ${i + 1}: Parameter with default secret, no NoEcho: ${line.trim().substring(0, 150)}`)
+          findings.push({
+            checkId: "IAC-CFN-001",
+            provider: "cloudformation",
+            severity: "high",
+            status: "FAIL",
+            resource: `${f}:${i + 1}`,
+            title: `Secret parameter without NoEcho: ${f}`,
+            details: line.trim().substring(0, 300),
+            remediation: "Add NoEcho: true to sensitive Parameters",
+          })
+        }
+      }
+
+      if (openCidrPattern.test(line) && /Ingress|SecurityGroup|CidrIp/i.test(lines.slice(Math.max(0, i - 3), i + 1).join(""))) {
+        output.push(`  [!] ${i + 1}: Open ingress CIDR: ${line.trim().substring(0, 100)}`)
+        findings.push({
+          checkId: "IAC-CFN-002",
+          provider: "cloudformation",
+          severity: "high",
+          status: "FAIL",
+          resource: `${f}:${i + 1}`,
+          title: `Open security group ingress: ${f}`,
+          details: line.trim().substring(0, 300),
+          remediation: "Restrict CidrIp to specific ranges",
+        })
+      }
+
+      if (wildcardIam.test(line)) {
+        output.push(`  [!] ${i + 1}: Wildcard IAM: ${line.trim().substring(0, 100)}`)
+        findings.push({
+          checkId: "IAC-CFN-003",
+          provider: "cloudformation",
+          severity: "critical",
+          status: "FAIL",
+          resource: `${f}:${i + 1}`,
+          title: `Wildcard IAM in CloudFormation: ${f}`,
+          details: line.trim().substring(0, 300),
+          remediation: "Replace * with specific actions/resources",
+        })
+      }
+
+      if (/PublicAccessBlockConfiguration/.test(line)) {
+        const block = lines.slice(i, Math.min(i + 10, lines.length)).join("\n")
+        if (/false/i.test(block)) {
+          output.push(`  [!] ${i + 1}: Public S3 access enabled`)
+        }
+      }
+    }
+  }
+
+  if (findings.length === 0) output.push("\n[+] No CloudFormation security issues found")
+  return { output: output.join("\n"), findings }
+}
+
+async function ansibleSecrets(args: string[], timeout: number): Promise<HookResult> {
+  const dir = argVal(args, "--dir") || "."
+  const vaultPass = argVal(args, "--vault-pass")
+  const findings: Finding[] = []
+  const output: string[] = [`[*] Scanning Ansible for secrets in: ${dir}\n`]
+
+  const secretPattern =
+    /(?:password|secret|api[_-]?key|token|credential|private[_-]?key|ansible_become_pass|vault_password)/i
+
+  const vaultFiles = await run("grep", ["-rl", "ANSIBLE_VAULT", dir, "--include=*.yml", "--include=*.yaml", "--include=*.enc"], timeout)
+  if (vaultFiles.exitCode === 0 && vaultFiles.stdout.trim()) {
+    const files = vaultFiles.stdout.trim().split("\n").filter(Boolean)
+    output.push(`[+] Vault-encrypted files: ${files.length}`)
+    for (const f of files) output.push(`    ${f}`)
+
+    if (vaultPass && Bun.which("ansible-vault")) {
+      output.push(`\n[*] Attempting vault decryption...`)
+      for (const f of files) {
+        const decrypt = await run("ansible-vault", ["view", f, "--vault-password", vaultPass], timeout)
+        if (decrypt.exitCode === 0) {
+          output.push(`  [+] Decrypted: ${f}`)
+          const lines = decrypt.stdout.split("\n")
+          for (const line of lines) {
+            if (secretPattern.test(line)) output.push(`      [!] ${line.trim().substring(0, 150)}`)
+          }
+          findings.push({
+            checkId: "IAC-ANS-001",
+            provider: "ansible",
+            severity: "critical",
+            status: "EXTRACTED",
+            resource: f,
+            title: `Vault decrypted: ${f}`,
+            details: "Vault file decrypted with provided password",
+            remediation: "Rotate vault password and all contained secrets",
+          })
+        }
+      }
+    }
+  }
+
+  const vaultPassFiles = await run("find", [dir, "-maxdepth", "3", "-name", ".vault_pass*", "-o", "-name", "vault_password*"], timeout)
+  if (vaultPassFiles.exitCode === 0 && vaultPassFiles.stdout.trim()) {
+    const files = vaultPassFiles.stdout.trim().split("\n").filter(Boolean)
+    output.push(`\n[!] Vault password files found:`)
+    for (const f of files) {
+      output.push(`    ${f}`)
+      findings.push({
+        checkId: "IAC-ANS-002",
+        provider: "ansible",
+        severity: "critical",
+        status: "FAIL",
+        resource: f,
+        title: `Vault password file: ${f}`,
+        details: "Ansible vault password stored in plaintext file",
+        remediation: "Remove vault password file, use --ask-vault-pass or env var",
+      })
+    }
+  }
+
+  const playbookDirs = ["group_vars", "host_vars", "roles", "vars", "defaults"]
+  for (const subdir of playbookDirs) {
+    const yamlFiles = await run(
+      "find",
+      [`${dir}/${subdir}`, "-maxdepth", "3", "-name", "*.yml", "-o", "-name", "*.yaml"],
+      10,
+    )
+    if (yamlFiles.exitCode !== 0) continue
+    const files = yamlFiles.stdout.trim().split("\n").filter(Boolean)
+    for (const f of files) {
+      const content = await run("cat", [f], 5)
+      if (content.exitCode !== 0) continue
+      if (content.stdout.includes("ANSIBLE_VAULT")) continue
+      const lines = content.stdout.split("\n")
+      for (let i = 0; i < lines.length; i++) {
+        if (secretPattern.test(lines[i]) && /:\s*\S/.test(lines[i]) && !lines[i].includes("vault")) {
+          output.push(`  [!] ${f}:${i + 1}: ${lines[i].trim().substring(0, 150)}`)
+          findings.push({
+            checkId: "IAC-ANS-002",
+            provider: "ansible",
+            severity: "high",
+            status: "FAIL",
+            resource: `${f}:${i + 1}`,
+            title: `Plaintext secret in Ansible: ${f.split("/").pop()}`,
+            details: lines[i].trim().substring(0, 300),
+            remediation: "Encrypt with ansible-vault or use a secrets manager lookup",
+          })
+        }
+      }
+    }
+  }
+
+  const cfgFiles = await run("find", [dir, "-maxdepth", "2", "-name", "ansible.cfg", "-o", "-name", ".ansible.cfg"], timeout)
+  if (cfgFiles.exitCode === 0 && cfgFiles.stdout.trim()) {
+    const files = cfgFiles.stdout.trim().split("\n").filter(Boolean)
+    for (const f of files) {
+      const content = await run("cat", [f], 5)
+      if (content.exitCode !== 0) continue
+      if (/vault_password_file/.test(content.stdout)) {
+        const line = content.stdout.split("\n").find((l) => l.includes("vault_password_file"))
+        output.push(`\n[+] ansible.cfg vault_password_file: ${line?.trim()}`)
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function loggingAudit(args: string[], timeout: number): Promise<HookResult> {
+  const dir = argVal(args, "--dir") || "."
+  const findings: Finding[] = []
+  const output: string[] = [`[*] Auditing logging/monitoring configuration in IaC...\n`]
+
+  const tfFiles = await run("find", [dir, "-maxdepth", "5", "-name", "*.tf"], timeout)
+  if (tfFiles.exitCode !== 0 || !tfFiles.stdout.trim()) {
+    output.push("[!] No .tf files found")
+    return { output: output.join("\n"), findings }
+  }
+
+  const files = tfFiles.stdout.trim().split("\n").filter(Boolean)
+  const allContent = (await Promise.all(
+    files.map(async (f) => {
+      const c = await run("cat", [f], 5)
+      return c.exitCode === 0 ? c.stdout : ""
+    }),
+  )).join("\n")
+
+  const loggingChecks: Array<{ resource: string; label: string; severity: string }> = [
+    { resource: "aws_cloudtrail", label: "AWS CloudTrail", severity: "critical" },
+    { resource: "aws_flow_log", label: "AWS VPC Flow Logs", severity: "high" },
+    { resource: "aws_s3_bucket_logging", label: "S3 Access Logging", severity: "medium" },
+    { resource: "aws_cloudwatch_log_group", label: "CloudWatch Log Groups", severity: "medium" },
+    { resource: "google_logging_project_sink", label: "GCP Logging Sink", severity: "high" },
+    { resource: "google_project_iam_audit_config", label: "GCP IAM Audit Config", severity: "high" },
+    { resource: "azurerm_monitor_diagnostic_setting", label: "Azure Diagnostic Settings", severity: "high" },
+    { resource: "azurerm_log_analytics_workspace", label: "Azure Log Analytics", severity: "medium" },
+  ]
+
+  const hasProvider: Record<string, boolean> = {
+    aws: allContent.includes('provider "aws"') || allContent.includes("aws_"),
+    gcp: allContent.includes('provider "google"') || allContent.includes("google_"),
+    azure: allContent.includes('provider "azurerm"') || allContent.includes("azurerm_"),
+  }
+
+  for (const check of loggingChecks) {
+    const providerPrefix = check.resource.startsWith("aws") ? "aws" : check.resource.startsWith("google") ? "gcp" : "azure"
+    if (!hasProvider[providerPrefix]) continue
+
+    const regex = new RegExp(`resource\\s+"${check.resource}"`)
+    if (!regex.test(allContent)) {
+      output.push(`  [!] Missing: ${check.label} (${check.resource})`)
+      findings.push({
+        checkId: "IAC-LOG-001",
+        provider: "terraform",
+        severity: check.severity,
+        status: "FAIL",
+        resource: check.resource,
+        title: `Missing logging: ${check.label}`,
+        details: `No ${check.resource} resource found in Terraform — ${check.label} not configured`,
+        remediation: `Add ${check.resource} resource to enable ${check.label}`,
+      })
+    }
+    if (regex.test(allContent)) {
+      output.push(`  [+] Found: ${check.label}`)
+    }
+  }
+
+  if (hasProvider.aws && allContent.includes("aws_cloudtrail")) {
+    if (!allContent.includes("is_multi_region_trail") || allContent.includes("is_multi_region_trail = false")) {
+      output.push(`  [!] CloudTrail is not multi-region`)
+      findings.push({
+        checkId: "IAC-LOG-001",
+        provider: "terraform",
+        severity: "high",
+        status: "FAIL",
+        resource: "aws_cloudtrail",
+        title: "CloudTrail not multi-region",
+        details: "is_multi_region_trail is missing or false",
+        remediation: "Set is_multi_region_trail = true",
+      })
+    }
+    if (!allContent.includes("enable_log_file_validation") || allContent.includes("enable_log_file_validation = false")) {
+      output.push(`  [!] CloudTrail log validation disabled`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function networkAudit(args: string[], timeout: number): Promise<HookResult> {
+  const dir = argVal(args, "--dir") || "."
+  const provider = argVal(args, "--provider") || "aws"
+  const findings: Finding[] = []
+  const output: string[] = [`[*] Auditing network/VPC configuration (${provider})...\n`]
+
+  const tfFiles = await run("find", [dir, "-maxdepth", "5", "-name", "*.tf"], timeout)
+  if (tfFiles.exitCode !== 0 || !tfFiles.stdout.trim()) {
+    output.push("[!] No .tf files found")
+    return { output: output.join("\n"), findings }
+  }
+
+  const files = tfFiles.stdout.trim().split("\n").filter(Boolean)
+  const allContent = (await Promise.all(
+    files.map(async (f) => {
+      const c = await run("cat", [f], 5)
+      return c.exitCode === 0 ? `\n### FILE: ${f} ###\n${c.stdout}` : ""
+    }),
+  )).join("\n")
+
+  if (provider === "aws" || provider === "all") {
+    if (allContent.includes("aws_default_vpc")) {
+      output.push(`  [!] Default VPC resource used`)
+      findings.push({
+        checkId: "IAC-NET-001",
+        provider: "terraform",
+        severity: "medium",
+        status: "FAIL",
+        resource: "aws_default_vpc",
+        title: "Default VPC in use",
+        details: "Default VPCs have permissive configurations",
+        remediation: "Create a custom VPC with proper network segmentation",
+      })
+    }
+
+    if (allContent.includes("aws_default_security_group")) {
+      output.push(`  [+] Default security group managed (good)`)
+    }
+
+    const naclPattern = /resource\s+"aws_network_acl_rule"/g
+    const naclMatches = allContent.match(naclPattern)
+    if (naclMatches) {
+      output.push(`  [+] Network ACL rules: ${naclMatches.length}`)
+      if (allContent.includes('cidr_block') && /cidr_block\s*=\s*"0\.0\.0\.0\/0"/.test(allContent)) {
+        const context = allContent.match(/resource\s+"aws_network_acl_rule"[^}]*0\.0\.0\.0\/0[^}]*/g) || []
+        for (const block of context) {
+          if (block.includes('rule_action') && block.includes('allow') && !block.includes('egress')) {
+            output.push(`  [!] Open NACL ingress rule (0.0.0.0/0 allow)`)
+            findings.push({
+              checkId: "IAC-NET-002",
+              provider: "terraform",
+              severity: "high",
+              status: "FAIL",
+              resource: "aws_network_acl_rule",
+              title: "Open NACL ingress: 0.0.0.0/0",
+              details: "Network ACL allows all inbound traffic",
+              remediation: "Restrict NACL rules to specific CIDR ranges",
+            })
+          }
+        }
+      }
+    }
+
+    if (allContent.includes("aws_subnet")) {
+      const publicSubnets = allContent.match(/map_public_ip_on_launch\s*=\s*true/g)
+      if (publicSubnets) {
+        output.push(`  [+] Public subnets (auto-assign IP): ${publicSubnets.length}`)
+        if (!allContent.includes("aws_nat_gateway")) {
+          output.push(`  [!] Public subnets exist but no NAT gateway found`)
+          findings.push({
+            checkId: "IAC-NET-001",
+            provider: "terraform",
+            severity: "medium",
+            status: "FAIL",
+            resource: "aws_nat_gateway",
+            title: "No NAT gateway for private subnet outbound",
+            details: "Public subnets exist but no NAT gateway — private subnets have no outbound path",
+            remediation: "Add NAT gateway for private subnet internet access",
+          })
+        }
+      }
+    }
+
+    if (allContent.includes("aws_vpc_peering_connection")) {
+      output.push(`  [+] VPC peering connections found`)
+      if (allContent.includes("auto_accept") && allContent.includes("auto_accept = true")) {
+        output.push(`  [!] VPC peering with auto_accept = true`)
+        findings.push({
+          checkId: "IAC-NET-002",
+          provider: "terraform",
+          severity: "medium",
+          status: "FAIL",
+          resource: "aws_vpc_peering_connection",
+          title: "VPC peering auto-accept enabled",
+          details: "Auto-accepting peering can allow unauthorized network access",
+          remediation: "Set auto_accept = false and manually accept peering requests",
+        })
+      }
+    }
+
+    if (!allContent.includes("aws_flow_log") && allContent.includes("aws_vpc")) {
+      output.push(`  [!] VPCs defined but no flow logs`)
+    }
+  }
+
+  if (provider === "azure" || provider === "all") {
+    if (allContent.includes("azurerm_network_security_group")) {
+      output.push(`  [+] Azure NSGs found`)
+    }
+    if (allContent.includes("azurerm_virtual_network")) {
+      if (!allContent.includes("azurerm_network_watcher_flow_log")) {
+        output.push(`  [!] Azure VNets without flow logs`)
+      }
+    }
+  }
+
+  if (provider === "gcp" || provider === "all") {
+    if (allContent.includes("google_compute_network")) {
+      if (allContent.includes("auto_create_subnetworks = true")) {
+        output.push(`  [!] GCP network with auto-create subnets (less control)`)
+      }
+    }
+  }
+
+  if (findings.length === 0) output.push("\n[+] No network misconfigurations found")
+  return { output: output.join("\n"), findings }
+}
+
 async function cleanupIac(_args: string[], _timeout: number): Promise<HookResult> {
   const dryRun = hasFlag(_args, "--dry-run")
   const findings: Finding[] = []
@@ -684,7 +1237,7 @@ async function cleanupIac(_args: string[], _timeout: number): Promise<HookResult
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
 
 export const IachookTool = Tool.define("iachook", {
-  description: `Audit Infrastructure-as-Code (Terraform) for security misconfigurations: state secrets, dangerous plan changes, open security groups, public storage, missing encryption, overprivileged IAM, and remote state exploitation. Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_iac when done.`,
+  description: `Audit Infrastructure-as-Code for security misconfigurations. 13 programs: Terraform state/plan/provider audit, CloudFormation template scan, Ansible vault/secrets, security groups, storage policies, encryption, IAM, remote state exploit, logging/monitoring gaps, network/VPC audit. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_iac when done.`,
   parameters: z.object({
     program: z.enum(programKeys).describe(
       "IaC audit program to execute. Options: " +
@@ -713,6 +1266,11 @@ export const IachookTool = Tool.define("iachook", {
       encryption_audit: () => encryptionAudit(params.args, params.timeout_seconds),
       iam_audit: () => iamAudit(params.args, params.timeout_seconds),
       remote_state_exploit: () => remoteStateExploit(params.args, params.timeout_seconds),
+      tf_provider_creds: () => tfProviderCreds(params.args, params.timeout_seconds),
+      cfn_audit: () => cfnAudit(params.args, params.timeout_seconds),
+      ansible_secrets: () => ansibleSecrets(params.args, params.timeout_seconds),
+      logging_audit: () => loggingAudit(params.args, params.timeout_seconds),
+      network_audit: () => networkAudit(params.args, params.timeout_seconds),
       cleanup_iac: () => cleanupIac(params.args, params.timeout_seconds),
     }
 
