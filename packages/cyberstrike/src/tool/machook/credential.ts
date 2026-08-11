@@ -401,7 +401,8 @@ export async function cloudCreds(_args: string[], timeout: number): Promise<Hook
   const azureTokens = `${home}/.azure/accessTokens.json`
   if (await Bun.file(azureTokens).exists()) {
     const content = await Bun.file(azureTokens).text()
-    const tokens = JSON.parse(content || "[]") as Array<Record<string, string>>
+    let tokens: Array<Record<string, string>> = []
+    try { tokens = JSON.parse(content || "[]") } catch { /* corrupted token file */ }
     output.push(`[+] Azure access tokens found: ${tokens.length} token(s)`)
     for (const t of tokens.slice(0, 5)) {
       output.push(`    Tenant: ${t.tenantId || "unknown"}, Resource: ${t.resource || "unknown"}`)
