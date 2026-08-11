@@ -63,7 +63,9 @@ export async function resourceHijack(args: string[], timeout: number): Promise<H
     if (unusedVMs.length > 0) {
       output.push(`\n[!] ${unusedVMs.length} underutilized/idle VMs (potential hijack or waste)`)
       for (const r of unusedVMs.slice(0, 5)) {
-        output.push(`    ${r.resourceMetadata?.resourceId?.split("/").pop() || "unknown"}: ${r.shortDescription?.problem || ""}`)
+        output.push(
+          `    ${r.resourceMetadata?.resourceId?.split("/").pop() || "unknown"}: ${r.shortDescription?.problem || ""}`,
+        )
       }
     }
   }
@@ -81,7 +83,20 @@ export async function dataDestroy(args: string[], timeout: number): Promise<Hook
   if (storage.exitCode === 0) {
     for (const acct of tryJson(storage.stdout) || []) {
       const softDelete = acct.properties?.blobServiceProperties?.deleteRetentionPolicy?.enabled
-      const locks = await az(["lock", "list", "--resource-group", acct.resourceGroup, "--resource-name", acct.name, "--resource-type", "Microsoft.Storage/storageAccounts"], sub, timeout)
+      const locks = await az(
+        [
+          "lock",
+          "list",
+          "--resource-group",
+          acct.resourceGroup,
+          "--resource-name",
+          acct.name,
+          "--resource-type",
+          "Microsoft.Storage/storageAccounts",
+        ],
+        sub,
+        timeout,
+      )
       const hasLock = locks.exitCode === 0 && (tryJson(locks.stdout) || []).length > 0
 
       if (!softDelete && !hasLock) {
@@ -105,7 +120,11 @@ export async function dataDestroy(args: string[], timeout: number): Promise<Hook
   const sql = await az(["sql", "server", "list"], sub, timeout)
   if (sql.exitCode === 0) {
     for (const srv of tryJson(sql.stdout) || []) {
-      const dbs = await az(["sql", "db", "list", "--server", srv.name, "--resource-group", srv.resourceGroup], sub, timeout)
+      const dbs = await az(
+        ["sql", "db", "list", "--server", srv.name, "--resource-group", srv.resourceGroup],
+        sub,
+        timeout,
+      )
       if (dbs.exitCode === 0) {
         for (const db of tryJson(dbs.stdout) || []) {
           if (db.name === "master") continue
@@ -197,7 +216,17 @@ export async function accountLockout(args: string[], timeout: number): Promise<H
   const findings: Finding[] = []
   const output: string[] = ["[*] Assessing account access removal capabilities (T1531)...\n"]
 
-  const admins = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/directoryRoles/filterByRoleTemplateId(roleTemplateId='62e90394-69f5-4237-9190-012177145e10')/members"], undefined, timeout)
+  const admins = await az(
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/v1.0/directoryRoles/filterByRoleTemplateId(roleTemplateId='62e90394-69f5-4237-9190-012177145e10')/members",
+    ],
+    undefined,
+    timeout,
+  )
   if (admins.exitCode === 0) {
     const globalAdmins = tryJson(admins.stdout)?.value || []
     output.push(`[*] Global Administrators: ${globalAdmins.length}`)
@@ -232,7 +261,17 @@ export async function accountLockout(args: string[], timeout: number): Promise<H
     }
   }
 
-  const breakGlass = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/users?$filter=startswith(displayName,'BreakGlass') or startswith(displayName,'Emergency') or startswith(displayName,'Break Glass')&$select=displayName,userPrincipalName,accountEnabled"], undefined, timeout)
+  const breakGlass = await az(
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/v1.0/users?$filter=startswith(displayName,'BreakGlass') or startswith(displayName,'Emergency') or startswith(displayName,'Break Glass')&$select=displayName,userPrincipalName,accountEnabled",
+    ],
+    undefined,
+    timeout,
+  )
   if (breakGlass.exitCode === 0) {
     const bgAccounts = tryJson(breakGlass.stdout)?.value || []
     if (bgAccounts.length === 0) {
@@ -263,7 +302,11 @@ export async function serviceDisruption(args: string[], timeout: number): Promis
   const apps = await az(["webapp", "list"], sub, timeout)
   if (apps.exitCode === 0) {
     for (const app of tryJson(apps.stdout) || []) {
-      const slots = await az(["webapp", "deployment", "slot", "list", "--name", app.name, "--resource-group", app.resourceGroup], sub, timeout)
+      const slots = await az(
+        ["webapp", "deployment", "slot", "list", "--name", app.name, "--resource-group", app.resourceGroup],
+        sub,
+        timeout,
+      )
       const hasSlots = slots.exitCode === 0 && (tryJson(slots.stdout) || []).length > 0
       if (!hasSlots) {
         findings.push({
@@ -284,7 +327,9 @@ export async function serviceDisruption(args: string[], timeout: number): Promis
   const locks = await az(["lock", "list"], sub, timeout)
   if (locks.exitCode === 0) {
     const lockList = tryJson(locks.stdout) || []
-    const deleteProtected = lockList.filter((l: Record<string, string>) => l.level === "CanNotDelete" || l.level === "ReadOnly")
+    const deleteProtected = lockList.filter(
+      (l: Record<string, string>) => l.level === "CanNotDelete" || l.level === "ReadOnly",
+    )
     output.push(`\n[*] Resource locks: ${lockList.length} total, ${deleteProtected.length} delete-protected`)
 
     if (deleteProtected.length === 0) {

@@ -1391,7 +1391,6 @@ export async function containerInstanceEnum(args: string[], timeout: number): Pr
   return { output: output.join("\n"), findings }
 }
 
-
 // ── P0 recon handlers ──
 
 export async function apimEnum(args: string[], timeout: number): Promise<HookResult> {
@@ -1420,7 +1419,9 @@ export async function apimEnum(args: string[], timeout: number): Promise<HookRes
       const apiList = tryJson(apis.stdout) || []
       output.push(`    APIs: ${apiList.length}`)
       for (const api of apiList) {
-        output.push(`      ${api.displayName} (${api.path}) — auth: ${api.authenticationSettings ? "configured" : "NONE"}`)
+        output.push(
+          `      ${api.displayName} (${api.path}) — auth: ${api.authenticationSettings ? "configured" : "NONE"}`,
+        )
         if (!api.authenticationSettings || (!api.authenticationSettings.oAuth2 && !api.authenticationSettings.openid)) {
           findings.push({
             checkId: "AZ-APIM-001",
@@ -1446,7 +1447,8 @@ export async function databricksEnum(args: string[], timeout: number): Promise<H
   const output: string[] = ["[*] Enumerating Azure Databricks workspaces...\n"]
 
   const workspaces = await az(["databricks", "workspace", "list"], sub, timeout)
-  if (workspaces.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list Databricks workspaces", findings }
+  if (workspaces.exitCode !== 0)
+    return { output: output.join("\n") + "[-] Cannot list Databricks workspaces", findings }
 
   const items = tryJson(workspaces.stdout) || []
   output.push(`[+] Databricks workspaces: ${items.length}\n`)
@@ -1506,7 +1508,10 @@ export async function appInsightsEnum(args: string[], timeout: number): Promise<
       const keys = tryJson(apiKeys.stdout) || []
       output.push(`    API keys: ${keys.length}`)
       if (keys.length > 0) {
-        for (const k of keys) output.push(`      ${k.name} — permissions: ${(k.linkedReadProperties || []).length} read, ${(k.linkedWriteProperties || []).length} write`)
+        for (const k of keys)
+          output.push(
+            `      ${k.name} — permissions: ${(k.linkedReadProperties || []).length} read, ${(k.linkedWriteProperties || []).length} write`,
+          )
         findings.push({
           checkId: "AZ-AI-001",
           provider: "azure",
@@ -1564,11 +1569,7 @@ export async function monitorEnum(args: string[], timeout: number): Promise<Hook
     }
   }
 
-  const diagSettings = await az(
-    ["monitor", "diagnostic-settings", "subscription", "list"],
-    sub,
-    timeout,
-  )
+  const diagSettings = await az(["monitor", "diagnostic-settings", "subscription", "list"], sub, timeout)
   if (diagSettings.exitCode === 0) {
     const items = tryJson(diagSettings.stdout)
     const settings = items?.value || items || []
@@ -1640,7 +1641,15 @@ export async function intuneEnum(_args: string[], timeout: number): Promise<Hook
 
   const compliance = await run(
     "az",
-    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/deviceManagement/deviceCompliancePolicies", "--query", "value"],
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/v1.0/deviceManagement/deviceCompliancePolicies",
+      "--query",
+      "value",
+    ],
     timeout,
   )
   if (compliance.exitCode === 0) {
@@ -1651,7 +1660,15 @@ export async function intuneEnum(_args: string[], timeout: number): Promise<Hook
 
   const configs = await run(
     "az",
-    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/deviceManagement/deviceConfigurations", "--query", "value"],
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/v1.0/deviceManagement/deviceConfigurations",
+      "--query",
+      "value",
+    ],
     timeout,
   )
   if (configs.exitCode === 0) {
@@ -1662,7 +1679,15 @@ export async function intuneEnum(_args: string[], timeout: number): Promise<Hook
 
   const scripts = await run(
     "az",
-    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/beta/deviceManagement/deviceManagementScripts", "--query", "value"],
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/beta/deviceManagement/deviceManagementScripts",
+      "--query",
+      "value",
+    ],
     timeout,
   )
   if (scripts.exitCode === 0) {
@@ -1694,7 +1719,15 @@ export async function graphUserEnum(_args: string[], timeout: number): Promise<H
 
   const users = await run(
     "az",
-    ["ad", "user", "list", "--query", "[].{upn:userPrincipalName,type:userType,enabled:accountEnabled,displayName:displayName}", "-o", "json"],
+    [
+      "ad",
+      "user",
+      "list",
+      "--query",
+      "[].{upn:userPrincipalName,type:userType,enabled:accountEnabled,displayName:displayName}",
+      "-o",
+      "json",
+    ],
     timeout,
   )
   if (users.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot enumerate users", findings }
@@ -1719,7 +1752,10 @@ export async function graphUserEnum(_args: string[], timeout: number): Promise<H
       status: "INFO",
       resource: "azure://ad/users/guests",
       title: `${guests.length} guest users in tenant`,
-      details: `Guest accounts: ${guests.slice(0, 5).map((g: Record<string, string>) => g.upn).join(", ")}${guests.length > 5 ? "..." : ""}`,
+      details: `Guest accounts: ${guests
+        .slice(0, 5)
+        .map((g: Record<string, string>) => g.upn)
+        .join(", ")}${guests.length > 5 ? "..." : ""}`,
       remediation: "Review guest access policies, ensure B2B guests have minimal permissions",
     })
   }
@@ -1742,7 +1778,13 @@ export async function appRegistrationEnum(_args: string[], timeout: number): Pro
   const items = tryJson(apps.stdout) || []
   output.push(`[+] App registrations: ${items.length}\n`)
 
-  const dangerousPerms = ["Directory.ReadWrite.All", "RoleManagement.ReadWrite.Directory", "Application.ReadWrite.All", "Mail.ReadWrite", "Files.ReadWrite.All"]
+  const dangerousPerms = [
+    "Directory.ReadWrite.All",
+    "RoleManagement.ReadWrite.Directory",
+    "Application.ReadWrite.All",
+    "Mail.ReadWrite",
+    "Files.ReadWrite.All",
+  ]
   const now = Date.now()
 
   for (const app of items) {
@@ -1780,9 +1822,15 @@ export async function appRegistrationEnum(_args: string[], timeout: number): Pro
       }
     }
 
-    const redirectUris = [...(app.web?.redirectUris || []), ...(app.spa?.redirectUris || []), ...(app.publicClient?.redirectUris || [])]
+    const redirectUris = [
+      ...(app.web?.redirectUris || []),
+      ...(app.spa?.redirectUris || []),
+      ...(app.publicClient?.redirectUris || []),
+    ]
     if (redirectUris.length > 0) {
-      const suspicious = redirectUris.filter((u: string) => u.startsWith("http://") && !u.startsWith("http://localhost"))
+      const suspicious = redirectUris.filter(
+        (u: string) => u.startsWith("http://") && !u.startsWith("http://localhost"),
+      )
       if (suspicious.length > 0) {
         output.push(`    [!] Non-HTTPS redirect URIs: ${suspicious.join(", ")}`)
         findings.push({
@@ -1808,12 +1856,18 @@ export async function logicAppConnectorEnum(args: string[], timeout: number): Pr
   const findings: Finding[] = []
   const output: string[] = ["[*] Enumerating Logic App API connections...\n"]
 
-  const subId = sub || (tryJson((await run("az", ["account", "show", "-o", "json"], 10)).stdout))?.id
+  const subId = sub || tryJson((await run("az", ["account", "show", "-o", "json"], 10)).stdout)?.id
   if (!subId) return { output: output.join("\n") + "[-] Cannot determine subscription ID", findings }
 
   const connections = await run(
     "az",
-    ["rest", "--method", "GET", "--url", `https://management.azure.com/subscriptions/${subId}/providers/Microsoft.Web/connections?api-version=2016-06-01`],
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      `https://management.azure.com/subscriptions/${subId}/providers/Microsoft.Web/connections?api-version=2016-06-01`,
+    ],
     timeout,
   )
   if (connections.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list API connections", findings }
@@ -1873,7 +1927,15 @@ export async function automationRunbookEnum(args: string[], timeout: number): Pr
     }
 
     const schedules = await az(
-      ["automation", "schedule", "list", "--automation-account-name", acct.name, "--resource-group", acct.resourceGroup],
+      [
+        "automation",
+        "schedule",
+        "list",
+        "--automation-account-name",
+        acct.name,
+        "--resource-group",
+        acct.resourceGroup,
+      ],
       sub,
       15,
     )
@@ -1884,7 +1946,15 @@ export async function automationRunbookEnum(args: string[], timeout: number): Pr
     }
 
     const variables = await az(
-      ["automation", "variable", "list", "--automation-account-name", acct.name, "--resource-group", acct.resourceGroup],
+      [
+        "automation",
+        "variable",
+        "list",
+        "--automation-account-name",
+        acct.name,
+        "--resource-group",
+        acct.resourceGroup,
+      ],
       sub,
       15,
     )
@@ -1981,11 +2051,17 @@ export async function purviewEnum(args: string[], timeout: number): Promise<Hook
 
   const accounts = await az(["purview", "account", "list"], sub, timeout)
   if (accounts.exitCode !== 0) {
-    const subId = sub || (tryJson((await run("az", ["account", "show", "-o", "json"], 10)).stdout))?.id
+    const subId = sub || tryJson((await run("az", ["account", "show", "-o", "json"], 10)).stdout)?.id
     if (subId) {
       const rest = await run(
         "az",
-        ["rest", "--method", "GET", "--url", `https://management.azure.com/subscriptions/${subId}/providers/Microsoft.Purview/accounts?api-version=2021-07-01`],
+        [
+          "rest",
+          "--method",
+          "GET",
+          "--url",
+          `https://management.azure.com/subscriptions/${subId}/providers/Microsoft.Purview/accounts?api-version=2021-07-01`,
+        ],
         timeout,
       )
       if (rest.exitCode === 0) {
@@ -2067,7 +2143,17 @@ export async function subdomainTakeover(args: string[], timeout: number): Promis
 
   for (const zone of zoneList) {
     const records = await az(
-      ["network", "dns", "record-set", "cname", "list", "--zone-name", zone.name, "--resource-group", zone.resourceGroup],
+      [
+        "network",
+        "dns",
+        "record-set",
+        "cname",
+        "list",
+        "--zone-name",
+        zone.name,
+        "--resource-group",
+        zone.resourceGroup,
+      ],
       sub,
       30,
     )
@@ -2142,7 +2228,9 @@ export async function stalePermissionAudit(args: string[], timeout: number): Pro
     if (spData) output.push(`    ${spData.displayName} → ${sp.roleDefinitionName}`)
   }
 
-  const unknownPrincipals = items.filter((a: Record<string, string>) => a.principalType === "Unknown" || !a.principalName)
+  const unknownPrincipals = items.filter(
+    (a: Record<string, string>) => a.principalType === "Unknown" || !a.principalName,
+  )
   if (unknownPrincipals.length > 0) {
     output.push(`\n[!] Assignments with unknown/deleted principals: ${unknownPrincipals.length}`)
     for (const u of unknownPrincipals) {
@@ -2221,7 +2309,17 @@ export async function publicExposureScan(args: string[], timeout: number): Promi
     }
   }
 
-  const storage = await az(["storage", "account", "list", "--query", "[].{name:name,rg:resourceGroup,allowBlobPublicAccess:allowBlobPublicAccess}"], sub, timeout)
+  const storage = await az(
+    [
+      "storage",
+      "account",
+      "list",
+      "--query",
+      "[].{name:name,rg:resourceGroup,allowBlobPublicAccess:allowBlobPublicAccess}",
+    ],
+    sub,
+    timeout,
+  )
   if (storage.exitCode === 0) {
     const items = tryJson(storage.stdout) || []
     const publicAccounts = items.filter((s: Record<string, boolean>) => s.allowBlobPublicAccess)
@@ -2252,7 +2350,8 @@ export async function databricksSecretDump(args: string[], timeout: number): Pro
   const output: string[] = ["[*] Enumerating Databricks secret scopes...\n"]
 
   const workspaces = await az(["databricks", "workspace", "list"], sub, timeout)
-  if (workspaces.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list Databricks workspaces", findings }
+  if (workspaces.exitCode !== 0)
+    return { output: output.join("\n") + "[-] Cannot list Databricks workspaces", findings }
 
   const items = tryJson(workspaces.stdout) || []
   output.push(`[+] Databricks workspaces: ${items.length}\n`)
@@ -2267,7 +2366,15 @@ export async function databricksSecretDump(args: string[], timeout: number): Pro
 
     const scopes = await run(
       "az",
-      ["rest", "--method", "GET", "--url", `https://${wsUrl}/api/2.0/secrets/scopes/list`, "--resource", "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d"],
+      [
+        "rest",
+        "--method",
+        "GET",
+        "--url",
+        `https://${wsUrl}/api/2.0/secrets/scopes/list`,
+        "--resource",
+        "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d",
+      ],
       timeout,
     )
     if (scopes.exitCode === 0) {
@@ -2438,11 +2545,7 @@ export async function signalrEnum(args: string[], timeout: number): Promise<Hook
       })
     }
 
-    const keys = await az(
-      ["signalr", "key", "list", "--name", sr.name, "--resource-group", sr.resourceGroup],
-      sub,
-      15,
-    )
+    const keys = await az(["signalr", "key", "list", "--name", sr.name, "--resource-group", sr.resourceGroup], sub, 15)
     if (keys.exitCode === 0) {
       const keyData = tryJson(keys.stdout)
       if (keyData) {
@@ -2603,7 +2706,16 @@ export async function mapsSearchEnum(args: string[], timeout: number): Promise<H
     output.push(`    Kind: ${acct.kind || "Gen1"}`)
 
     const keys = await az(
-      ["maps", "account", "keys", "list", "--name", acct.name, "--resource-group", acct.resourceGroup || argVal(args, "--resource-group") || ""],
+      [
+        "maps",
+        "account",
+        "keys",
+        "list",
+        "--name",
+        acct.name,
+        "--resource-group",
+        acct.resourceGroup || argVal(args, "--resource-group") || "",
+      ],
       sub,
       15,
     )
@@ -2653,7 +2765,8 @@ export async function sentinelEnum(args: string[], timeout: number): Promise<Hoo
         if (alertRules.exitCode === 0) {
           const rules = tryJson(alertRules.stdout) || []
           output.push(`\n[+] Sentinel alert rules (${ws.name}): ${rules.length}`)
-          for (const r of rules.slice(0, 15)) output.push(`    ${r.name} — kind: ${r.kind}, enabled: ${r.properties?.enabled ?? "?"}`)
+          for (const r of rules.slice(0, 15))
+            output.push(`    ${r.name} — kind: ${r.kind}, enabled: ${r.properties?.enabled ?? "?"}`)
           if (rules.length > 15) output.push(`    ... and ${rules.length - 15} more`)
           findings.push({
             checkId: "AZ-SENTINEL-ENUM-001",
@@ -2662,7 +2775,10 @@ export async function sentinelEnum(args: string[], timeout: number): Promise<Hoo
             status: "ENUMERATED",
             resource: `sentinel://${ws.name}`,
             title: `Sentinel rules on ${ws.name}: ${rules.length}`,
-            details: rules.slice(0, 5).map((r: Record<string, string>) => r.name).join(", "),
+            details: rules
+              .slice(0, 5)
+              .map((r: Record<string, string>) => r.name)
+              .join(", "),
             remediation: "Review detection coverage for gaps in MITRE ATT&CK matrix",
           })
         }
@@ -2690,7 +2806,8 @@ export async function sentinelEnum(args: string[], timeout: number): Promise<Hoo
   if (incidents.exitCode === 0) {
     const items = tryJson(incidents.stdout) || []
     output.push(`\n[+] Incidents: ${items.length}`)
-    for (const i of items.slice(0, 10)) output.push(`    ${i.properties?.title} — severity: ${i.properties?.severity}, status: ${i.properties?.status}`)
+    for (const i of items.slice(0, 10))
+      output.push(`    ${i.properties?.title} — severity: ${i.properties?.severity}, status: ${i.properties?.status}`)
   }
 
   return { output: output.join("\n"), findings }
@@ -2886,7 +3003,8 @@ export async function serviceFabricEnum(args: string[], timeout: number): Promis
 
   const rgArgs = rg ? ["--resource-group", rg] : []
   const clusters = await az(["sf", "cluster", "list", ...rgArgs], sub, timeout)
-  if (clusters.exitCode !== 0) return { output: output.join("\n") + "[-] Cannot list Service Fabric clusters", findings }
+  if (clusters.exitCode !== 0)
+    return { output: output.join("\n") + "[-] Cannot list Service Fabric clusters", findings }
 
   const items = tryJson(clusters.stdout) || []
   output.push(`[+] Service Fabric clusters: ${items.length}\n`)
@@ -2958,7 +3076,11 @@ export async function batchAccountEnum(args: string[], timeout: number): Promise
       })
     }
 
-    const keys = await az(["batch", "account", "keys", "list", "--name", acct.name, "--resource-group", acct.resourceGroup || rg || ""], sub, 15)
+    const keys = await az(
+      ["batch", "account", "keys", "list", "--name", acct.name, "--resource-group", acct.resourceGroup || rg || ""],
+      sub,
+      15,
+    )
     if (keys.exitCode === 0) {
       const keyData = tryJson(keys.stdout)
       if (keyData) {
@@ -3007,7 +3129,9 @@ export async function managedEnvEnum(args: string[], timeout: number): Promise<H
       output.push(`    Container apps: ${appList.length}`)
       for (const app of appList.slice(0, 10)) {
         const ingress = app.properties?.configuration?.ingress || app.configuration?.ingress
-        output.push(`      ${app.name} — external: ${ingress?.external || false}, target: ${ingress?.targetPort || "?"}`)
+        output.push(
+          `      ${app.name} — external: ${ingress?.external || false}, target: ${ingress?.targetPort || "?"}`,
+        )
         if (ingress?.external) {
           findings.push({
             checkId: "AZ-CAPP-001",

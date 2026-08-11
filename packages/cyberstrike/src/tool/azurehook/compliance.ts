@@ -13,10 +13,19 @@ export async function defenderPlanAudit(args: string[], timeout: number): Promis
   if (!Array.isArray(plans)) return { output: "[-] Could not parse Defender plan data", findings }
 
   const required = [
-    "VirtualMachines", "StorageAccounts", "SqlServers", "AppServices",
-    "Containers", "KeyVaults", "Dns", "Arm",
-    "OpenSourceRelationalDatabases", "CosmosDbs", "CloudPosture",
-    "SqlServerVirtualMachines", "Api",
+    "VirtualMachines",
+    "StorageAccounts",
+    "SqlServers",
+    "AppServices",
+    "Containers",
+    "KeyVaults",
+    "Dns",
+    "Arm",
+    "OpenSourceRelationalDatabases",
+    "CosmosDbs",
+    "CloudPosture",
+    "SqlServerVirtualMachines",
+    "Api",
   ]
 
   for (const plan of plans) {
@@ -67,7 +76,8 @@ export async function defenderContactAudit(args: string[], timeout: number): Pro
       resource: "defender://contacts",
       title: "No security contacts configured",
       details: "No email addresses configured for security alert notifications",
-      remediation: "az security contact create --name default --email security@example.com --alert-notifications on --alerts-admins on",
+      remediation:
+        "az security contact create --name default --email security@example.com --alert-notifications on --alerts-admins on",
     })
     output.push("[-] No security contacts configured")
     return { output: output.join("\n"), findings }
@@ -254,7 +264,11 @@ export async function sqlAuditConfig(args: string[], timeout: number): Promise<H
     const rg = srv.resourceGroup
     output.push(`[*] ${name} (${rg})`)
 
-    const audit = await az(["sql", "server", "audit-policy", "show", "--name", name, "--resource-group", rg], sub, timeout)
+    const audit = await az(
+      ["sql", "server", "audit-policy", "show", "--name", name, "--resource-group", rg],
+      sub,
+      timeout,
+    )
     if (audit.exitCode === 0) {
       const policy = tryJson(audit.stdout)
       const state = policy?.state || policy?.properties?.state || "Disabled"
@@ -275,7 +289,11 @@ export async function sqlAuditConfig(args: string[], timeout: number): Promise<H
       }
     }
 
-    const atp = await az(["sql", "server", "advanced-threat-protection-setting", "show", "--name", name, "--resource-group", rg], sub, timeout)
+    const atp = await az(
+      ["sql", "server", "advanced-threat-protection-setting", "show", "--name", name, "--resource-group", rg],
+      sub,
+      timeout,
+    )
     if (atp.exitCode === 0) {
       const atpData = tryJson(atp.stdout)
       const atpState = atpData?.state || atpData?.properties?.state || "Disabled"
@@ -300,7 +318,11 @@ export async function sqlAuditConfig(args: string[], timeout: number): Promise<H
     if (dbs.exitCode === 0) {
       for (const db of tryJson(dbs.stdout) || []) {
         if (db.name === "master") continue
-        const tde = await az(["sql", "db", "tde", "show", "--server", name, "--database", db.name, "--resource-group", rg], sub, timeout)
+        const tde = await az(
+          ["sql", "db", "tde", "show", "--server", name, "--database", db.name, "--resource-group", rg],
+          sub,
+          timeout,
+        )
         if (tde.exitCode === 0) {
           const tdeData = tryJson(tde.stdout)
           const tdeState = tdeData?.state || tdeData?.properties?.state || "Disabled"
@@ -321,7 +343,11 @@ export async function sqlAuditConfig(args: string[], timeout: number): Promise<H
       }
     }
 
-    const fw = await az(["sql", "server", "firewall-rule", "list", "--server", name, "--resource-group", rg], sub, timeout)
+    const fw = await az(
+      ["sql", "server", "firewall-rule", "list", "--server", name, "--resource-group", rg],
+      sub,
+      timeout,
+    )
     if (fw.exitCode === 0) {
       for (const rule of tryJson(fw.stdout) || []) {
         if (rule.startIpAddress === "0.0.0.0" && rule.endIpAddress === "255.255.255.255") {
@@ -376,7 +402,11 @@ export async function postgresAudit(args: string[], timeout: number): Promise<Ho
       output.push("  [+] SSL enforcement: enabled")
     }
 
-    const configs = await az(["postgres", "server", "configuration", "list", "--server-name", name, "--resource-group", rg], sub, timeout)
+    const configs = await az(
+      ["postgres", "server", "configuration", "list", "--server-name", name, "--resource-group", rg],
+      sub,
+      timeout,
+    )
     if (configs.exitCode === 0) {
       const params = tryJson(configs.stdout) || []
       const checks: Record<string, { cis: string; expected: string; sev: string }> = {
@@ -469,7 +499,11 @@ export async function mysqlAudit(args: string[], timeout: number): Promise<HookR
       output.push(`  [-] Min TLS: ${minTls}`)
     }
 
-    const configs = await az(["mysql", "server", "configuration", "list", "--server-name", name, "--resource-group", rg], sub, timeout)
+    const configs = await az(
+      ["mysql", "server", "configuration", "list", "--server-name", name, "--resource-group", rg],
+      sub,
+      timeout,
+    )
     if (configs.exitCode === 0) {
       const params = tryJson(configs.stdout) || []
       const auditLog = params.find((p: Record<string, string>) => p.name === "audit_log_enabled")
@@ -576,7 +610,8 @@ export async function diagnosticAudit(args: string[], timeout: number): Promise<
       resource: "subscription://diagnostic-settings",
       title: "No subscription diagnostic settings found",
       details: `Could not retrieve diagnostic settings: ${r.stderr.trim()}`,
-      remediation: "az monitor diagnostic-settings subscription create --name AuditLogs --logs '[{\"category\":\"Administrative\",\"enabled\":true}]' --workspace WS_ID",
+      remediation:
+        'az monitor diagnostic-settings subscription create --name AuditLogs --logs \'[{"category":"Administrative","enabled":true}]\' --workspace WS_ID',
     })
     return { output: output.join("\n"), findings }
   }
@@ -638,7 +673,11 @@ export async function activityAlertAudit(args: string[], timeout: number): Promi
   output.push(`[*] Found ${alerts.length} activity log alerts\n`)
 
   const requiredOps = [
-    { op: "Microsoft.Authorization/policyAssignments/write", cis: "CIS-AZ-6.2.1", desc: "Policy assignment create/update" },
+    {
+      op: "Microsoft.Authorization/policyAssignments/write",
+      cis: "CIS-AZ-6.2.1",
+      desc: "Policy assignment create/update",
+    },
     { op: "Microsoft.Authorization/policyAssignments/delete", cis: "CIS-AZ-6.2.2", desc: "Policy assignment delete" },
     { op: "Microsoft.Network/networkSecurityGroups/write", cis: "CIS-AZ-6.2.3", desc: "NSG create/update" },
     { op: "Microsoft.Network/networkSecurityGroups/delete", cis: "CIS-AZ-6.2.4", desc: "NSG delete" },
@@ -646,14 +685,23 @@ export async function activityAlertAudit(args: string[], timeout: number): Promi
     { op: "Microsoft.Security/securitySolutions/delete", cis: "CIS-AZ-6.2.6", desc: "Security solution delete" },
     { op: "Microsoft.Sql/servers/firewallRules/write", cis: "CIS-AZ-6.2.7", desc: "SQL firewall rule create/update" },
     { op: "Microsoft.Sql/servers/firewallRules/delete", cis: "CIS-AZ-6.2.8", desc: "SQL firewall rule delete" },
-    { op: "Microsoft.Network/networkSecurityGroups/securityRules/write", cis: "CIS-AZ-6.2.9", desc: "NSG security rule change" },
+    {
+      op: "Microsoft.Network/networkSecurityGroups/securityRules/write",
+      cis: "CIS-AZ-6.2.9",
+      desc: "NSG security rule change",
+    },
   ]
 
   for (const req of requiredOps) {
     const found = alerts.some((a: Record<string, unknown>) => {
       const cond = a as Record<string, Record<string, Record<string, unknown>>>
-      const conditions = ((cond.condition?.allOf || cond.properties?.condition?.allOf || []) as unknown) as Record<string, unknown>[]
-      return conditions.some((c: Record<string, unknown>) => c.equals === req.op || c.field === "operationName" && c.equals === req.op)
+      const conditions = (cond.condition?.allOf || cond.properties?.condition?.allOf || []) as unknown as Record<
+        string,
+        unknown
+      >[]
+      return conditions.some(
+        (c: Record<string, unknown>) => c.equals === req.op || (c.field === "operationName" && c.equals === req.op),
+      )
     })
     if (!found) {
       findings.push({
@@ -680,8 +728,12 @@ export async function networkWatcherAudit(args: string[], timeout: number): Prom
   const findings: Finding[] = []
   const output: string[] = ["[*] Auditing Network Watcher (CIS 7.4-7.7)...\n"]
 
-  const locations = await az(["account", "list-locations", "--query", "[?metadata.regionType=='Physical'].name"], sub, timeout)
-  const regions: string[] = locations.exitCode === 0 ? (tryJson(locations.stdout) || []) : []
+  const locations = await az(
+    ["account", "list-locations", "--query", "[?metadata.regionType=='Physical'].name"],
+    sub,
+    timeout,
+  )
+  const regions: string[] = locations.exitCode === 0 ? tryJson(locations.stdout) || [] : []
 
   const r = await az(["network", "watcher", "list"], sub, timeout)
   if (r.exitCode !== 0) return { output: `[-] Failed to list Network Watchers: ${r.stderr.trim()}`, findings }
@@ -708,7 +760,11 @@ export async function networkWatcherAudit(args: string[], timeout: number): Prom
     }
   }
 
-  const flowLogs = await az(["network", "watcher", "flow-log", "list", "--location", watchers[0]?.location || "eastus"], sub, timeout)
+  const flowLogs = await az(
+    ["network", "watcher", "flow-log", "list", "--location", watchers[0]?.location || "eastus"],
+    sub,
+    timeout,
+  )
   if (flowLogs.exitCode === 0) {
     const logs = tryJson(flowLogs.stdout) || []
     output.push(`\n[*] Flow logs found: ${logs.length}`)
@@ -787,13 +843,32 @@ export async function vmSecurityAudit(args: string[], timeout: number): Promise<
     const exts = await az(["vm", "extension", "list", "--vm-name", name, "--resource-group", vmRg], sub, timeout)
     if (exts.exitCode === 0) {
       const extList = tryJson(exts.stdout) || []
-      const approved = ["MicrosoftMonitoringAgent", "AzureMonitorWindowsAgent", "AzureMonitorLinuxAgent", "DependencyAgentWindows", "DependencyAgentLinux", "AzureDiskEncryption", "AzureDiskEncryptionForLinux", "IaaSAntimalware", "MDE.Windows", "MDE.Linux"]
-      const unapproved = extList.filter((e: Record<string, string>) => !approved.some(a => (e.name || "").includes(a) || (e.typeHandlerVersion || "").includes(a)))
+      const approved = [
+        "MicrosoftMonitoringAgent",
+        "AzureMonitorWindowsAgent",
+        "AzureMonitorLinuxAgent",
+        "DependencyAgentWindows",
+        "DependencyAgentLinux",
+        "AzureDiskEncryption",
+        "AzureDiskEncryptionForLinux",
+        "IaaSAntimalware",
+        "MDE.Windows",
+        "MDE.Linux",
+      ]
+      const unapproved = extList.filter(
+        (e: Record<string, string>) =>
+          !approved.some((a) => (e.name || "").includes(a) || (e.typeHandlerVersion || "").includes(a)),
+      )
       if (unapproved.length > 0) {
         output.push(`  [!] Unapproved extensions: ${unapproved.map((e: Record<string, string>) => e.name).join(", ")}`)
       }
 
-      const hasEndpoint = extList.some((e: Record<string, string>) => (e.name || "").includes("Antimalware") || (e.name || "").includes("MDE") || (e.name || "").includes("IaaSAntimalware"))
+      const hasEndpoint = extList.some(
+        (e: Record<string, string>) =>
+          (e.name || "").includes("Antimalware") ||
+          (e.name || "").includes("MDE") ||
+          (e.name || "").includes("IaaSAntimalware"),
+      )
       if (!hasEndpoint) {
         findings.push({
           checkId: "CIS-AZ-8.7",
@@ -1019,7 +1094,11 @@ export async function keyvaultSecurityAudit(args: string[], timeout: number): Pr
       output.push("  [-] Private endpoints: none")
     }
 
-    const keys = await az(["keyvault", "key", "list", "--vault-name", name, "--query", "[?attributes.enabled==`true`]"], sub, timeout)
+    const keys = await az(
+      ["keyvault", "key", "list", "--vault-name", name, "--query", "[?attributes.enabled==`true`]"],
+      sub,
+      timeout,
+    )
     if (keys.exitCode === 0) {
       for (const key of tryJson(keys.stdout) || []) {
         if (!key.attributes?.expires) {
@@ -1037,7 +1116,11 @@ export async function keyvaultSecurityAudit(args: string[], timeout: number): Pr
       }
     }
 
-    const secrets = await az(["keyvault", "secret", "list", "--vault-name", name, "--query", "[?attributes.enabled==`true`]"], sub, timeout)
+    const secrets = await az(
+      ["keyvault", "secret", "list", "--vault-name", name, "--query", "[?attributes.enabled==`true`]"],
+      sub,
+      timeout,
+    )
     if (secrets.exitCode === 0) {
       for (const secret of tryJson(secrets.stdout) || []) {
         if (!secret.attributes?.expires) {
@@ -1063,7 +1146,17 @@ export async function identityMfaAudit(args: string[], timeout: number): Promise
   const findings: Finding[] = []
   const output: string[] = ["[*] Auditing MFA enforcement (CIS 2.1.1-2.1.4)...\n"]
 
-  const reg = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/reports/authenticationMethods/userRegistrationDetails?$top=999"], undefined, timeout)
+  const reg = await az(
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/v1.0/reports/authenticationMethods/userRegistrationDetails?$top=999",
+    ],
+    undefined,
+    timeout,
+  )
   if (reg.exitCode === 0) {
     const data = tryJson(reg.stdout)
     const users = data?.value || []
@@ -1090,7 +1183,11 @@ export async function identityMfaAudit(args: string[], timeout: number): Promise
     output.push("[-] Could not query MFA registration (Graph API permissions required)")
   }
 
-  const ca = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/identity/conditionalAccessPolicies"], undefined, timeout)
+  const ca = await az(
+    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/identity/conditionalAccessPolicies"],
+    undefined,
+    timeout,
+  )
   if (ca.exitCode === 0) {
     const policies = tryJson(ca.stdout)?.value || []
     const enabled = policies.filter((p: Record<string, string>) => p.state === "enabled")
@@ -1126,7 +1223,19 @@ export async function guestAccessAudit(args: string[], timeout: number): Promise
   const findings: Finding[] = []
   const output: string[] = ["[*] Auditing guest user access (CIS 2.6-2.8)...\n"]
 
-  const guests = await az(["ad", "user", "list", "--filter", "userType eq 'Guest'", "--query", "[].{upn:userPrincipalName,displayName:displayName,createdDateTime:createdDateTime}"], undefined, timeout)
+  const guests = await az(
+    [
+      "ad",
+      "user",
+      "list",
+      "--filter",
+      "userType eq 'Guest'",
+      "--query",
+      "[].{upn:userPrincipalName,displayName:displayName,createdDateTime:createdDateTime}",
+    ],
+    undefined,
+    timeout,
+  )
   if (guests.exitCode === 0) {
     const guestList = tryJson(guests.stdout) || []
     output.push(`[*] Guest users: ${guestList.length}`)
@@ -1151,7 +1260,11 @@ export async function guestAccessAudit(args: string[], timeout: number): Promise
     }
   }
 
-  const authPolicy = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/policies/authorizationPolicy"], undefined, timeout)
+  const authPolicy = await az(
+    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/policies/authorizationPolicy"],
+    undefined,
+    timeout,
+  )
   if (authPolicy.exitCode === 0) {
     const policy = tryJson(authPolicy.stdout)
 
@@ -1200,7 +1313,11 @@ export async function passwordPolicyAudit(args: string[], timeout: number): Prom
   const findings: Finding[] = []
   const output: string[] = ["[*] Auditing password policies (CIS 2.10-2.14, 2.19)...\n"]
 
-  const methods = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy"], undefined, timeout)
+  const methods = await az(
+    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy"],
+    undefined,
+    timeout,
+  )
   if (methods.exitCode === 0) {
     const policy = tryJson(methods.stdout)
     output.push(`[*] Authentication methods policy retrieved`)
@@ -1213,7 +1330,11 @@ export async function passwordPolicyAudit(args: string[], timeout: number): Prom
     output.push("[-] Could not retrieve authentication methods policy")
   }
 
-  const settings = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/settings"], undefined, timeout)
+  const settings = await az(
+    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/settings"],
+    undefined,
+    timeout,
+  )
   if (settings.exitCode === 0) {
     const data = tryJson(settings.stdout)
     const dirSettings = data?.value || []
@@ -1254,11 +1375,17 @@ export async function passwordPolicyAudit(args: string[], timeout: number): Prom
     }
   }
 
-  const lockout = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/beta/settings"], undefined, timeout)
+  const lockout = await az(
+    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/beta/settings"],
+    undefined,
+    timeout,
+  )
   if (lockout.exitCode === 0) {
     const data = tryJson(lockout.stdout)
     output.push("\n[*] Lockout settings retrieved via beta API")
-    const lockoutSetting = (data?.value || []).find((s: Record<string, string>) => s.displayName === "Password Rule Settings")
+    const lockoutSetting = (data?.value || []).find(
+      (s: Record<string, string>) => s.displayName === "Password Rule Settings",
+    )
     if (lockoutSetting) {
       const lockoutThreshold = lockoutSetting.values?.find((v: Record<string, string>) => v.name === "LockoutThreshold")
       if (lockoutThreshold) {
@@ -1335,7 +1462,8 @@ export async function policyComplianceAudit(args: string[], timeout: number): Pr
   const output: string[] = ["[*] Auditing Azure Policy compliance...\n"]
 
   const assignments = await az(["policy", "assignment", "list"], sub, timeout)
-  if (assignments.exitCode !== 0) return { output: `[-] Failed to list policy assignments: ${assignments.stderr.trim()}`, findings }
+  if (assignments.exitCode !== 0)
+    return { output: `[-] Failed to list policy assignments: ${assignments.stderr.trim()}`, findings }
 
   const assignList = tryJson(assignments.stdout) || []
   output.push(`[*] Policy assignments: ${assignList.length}`)

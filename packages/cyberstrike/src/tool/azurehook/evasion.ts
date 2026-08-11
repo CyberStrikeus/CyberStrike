@@ -725,12 +725,25 @@ export async function logAnalyticsTamper(args: string[], timeout: number): Promi
   const findings: Finding[] = []
   const output: string[] = ["[*] Azure Log Analytics workspace tampering...\n"]
 
-  const workspaces = await az(["monitor", "log-analytics", "workspace", "list", "--query", "[].{name:name,rg:resourceGroup,retention:retentionInDays,sku:sku.name,dailyCap:workspaceCapping.dailyQuotaGb}"], sub, timeout)
+  const workspaces = await az(
+    [
+      "monitor",
+      "log-analytics",
+      "workspace",
+      "list",
+      "--query",
+      "[].{name:name,rg:resourceGroup,retention:retentionInDays,sku:sku.name,dailyCap:workspaceCapping.dailyQuotaGb}",
+    ],
+    sub,
+    timeout,
+  )
   if (workspaces.exitCode !== 0) return { output: "[-] Cannot list Log Analytics workspaces", findings }
   const wsList = tryJson(workspaces.stdout) || []
   output.push(`[+] Log Analytics workspaces: ${wsList.length}`)
   for (const ws of wsList) {
-    output.push(`    ${ws.name} (${ws.rg}) — retention: ${ws.retention}d, sku: ${ws.sku}, daily cap: ${ws.dailyCap || "unlimited"}GB`)
+    output.push(
+      `    ${ws.name} (${ws.rg}) — retention: ${ws.retention}d, sku: ${ws.sku}, daily cap: ${ws.dailyCap || "unlimited"}GB`,
+    )
     if (ws.retention > 30) {
       findings.push({
         checkId: "AZ-LAW-001",
@@ -751,7 +764,18 @@ export async function logAnalyticsTamper(args: string[], timeout: number): Promi
 
   if (action === "reduce_retention") {
     const update = await az(
-      ["monitor", "log-analytics", "workspace", "update", "--workspace-name", targetWs, "--resource-group", targetRg, "--retention-time", "30"],
+      [
+        "monitor",
+        "log-analytics",
+        "workspace",
+        "update",
+        "--workspace-name",
+        targetWs,
+        "--resource-group",
+        targetRg,
+        "--retention-time",
+        "30",
+      ],
       sub,
       timeout,
     )
@@ -775,7 +799,18 @@ export async function logAnalyticsTamper(args: string[], timeout: number): Promi
   if (action === "set_daily_cap") {
     const cap = argVal(args, "--cap-gb") || "0.1"
     const update = await az(
-      ["monitor", "log-analytics", "workspace", "update", "--workspace-name", targetWs, "--resource-group", targetRg, "--quota", cap],
+      [
+        "monitor",
+        "log-analytics",
+        "workspace",
+        "update",
+        "--workspace-name",
+        targetWs,
+        "--resource-group",
+        targetRg,
+        "--quota",
+        cap,
+      ],
       sub,
       timeout,
     )
@@ -801,7 +836,9 @@ export async function logAnalyticsTamper(args: string[], timeout: number): Promi
     output.push(`    1. Identify table: SecurityEvent, AzureActivity, Syslog, etc.`)
     output.push(`    2. Run purge: az monitor log-analytics workspace table data-export rule`)
     output.push(`    3. Or use REST API: POST /workspaces/{wsId}/purge`)
-    output.push(`    Body: { table: "SecurityEvent", filters: [{ column: "TimeGenerated", operator: ">", value: "..." }] }`)
+    output.push(
+      `    Body: { table: "SecurityEvent", filters: [{ column: "TimeGenerated", operator: ">", value: "..." }] }`,
+    )
     output.push(`    4. Purge is async — takes hours to complete`)
   }
 
@@ -816,14 +853,22 @@ export async function nsgFlowLogDisable(args: string[], timeout: number): Promis
   const findings: Finding[] = []
   const output: string[] = ["[*] NSG flow log analysis...\n"]
 
-  const nsgs = await az(["network", "nsg", "list", "--query", "[].{name:name,rg:resourceGroup,location:location}"], sub, timeout)
+  const nsgs = await az(
+    ["network", "nsg", "list", "--query", "[].{name:name,rg:resourceGroup,location:location}"],
+    sub,
+    timeout,
+  )
   if (nsgs.exitCode !== 0) return { output: "[-] Cannot list NSGs", findings }
   const nsgList = tryJson(nsgs.stdout) || []
   output.push(`[+] Network Security Groups: ${nsgList.length}`)
 
   for (const nsg of nsgList) {
     output.push(`    ${nsg.name} (${nsg.rg}) — ${nsg.location}`)
-    const flowLogs = await az(["network", "watcher", "flow-log", "list", "--nsg", nsg.name, "--resource-group", nsg.rg], sub, timeout)
+    const flowLogs = await az(
+      ["network", "watcher", "flow-log", "list", "--nsg", nsg.name, "--resource-group", nsg.rg],
+      sub,
+      timeout,
+    )
     if (flowLogs.exitCode === 0) {
       const logs = tryJson(flowLogs.stdout) || []
       if (logs.length === 0) {
@@ -841,7 +886,9 @@ export async function nsgFlowLogDisable(args: string[], timeout: number): Promis
       }
       for (const l of logs) {
         const enabled = l.enabled !== false
-        output.push(`      flow-log: ${l.name} [${enabled ? "ENABLED" : "DISABLED"}] → ${l.storageId?.split("/").pop() || "?"}`)
+        output.push(
+          `      flow-log: ${l.name} [${enabled ? "ENABLED" : "DISABLED"}] → ${l.storageId?.split("/").pop() || "?"}`,
+        )
         if (l.flowAnalyticsConfiguration?.networkWatcherFlowAnalyticsConfiguration?.enabled) {
           output.push(`        Traffic Analytics: ENABLED`)
         }
@@ -850,13 +897,35 @@ export async function nsgFlowLogDisable(args: string[], timeout: number): Promis
   }
 
   if (action === "disable" && nsgName && rg) {
-    const flowLogs = await az(["network", "watcher", "flow-log", "list", "--nsg", nsgName, "--resource-group", rg], sub, timeout)
-    if (flowLogs.exitCode !== 0) return { output: output.join("\n") + "\n[-] Cannot list flow logs for target NSG", findings }
+    const flowLogs = await az(
+      ["network", "watcher", "flow-log", "list", "--nsg", nsgName, "--resource-group", rg],
+      sub,
+      timeout,
+    )
+    if (flowLogs.exitCode !== 0)
+      return { output: output.join("\n") + "\n[-] Cannot list flow logs for target NSG", findings }
     const logs = tryJson(flowLogs.stdout) || []
     let disabled = 0
     for (const l of logs) {
       if (l.enabled === false) continue
-      const dis = await az(["network", "watcher", "flow-log", "update", "--name", l.name, "--nsg", nsgName, "--resource-group", rg, "--enabled", "false"], sub, timeout)
+      const dis = await az(
+        [
+          "network",
+          "watcher",
+          "flow-log",
+          "update",
+          "--name",
+          l.name,
+          "--nsg",
+          nsgName,
+          "--resource-group",
+          rg,
+          "--enabled",
+          "false",
+        ],
+        sub,
+        timeout,
+      )
       if (dis.exitCode === 0) {
         output.push(`\n[+] Disabled flow log: ${l.name}`)
         disabled++
@@ -906,7 +975,11 @@ export async function resourceMove(args: string[], timeout: number): Promise<Hoo
   if (action === "create_rg") {
     const name = targetRg || `cs-shadow-${Date.now().toString(36)}`
     const location = argVal(args, "--location") || "eastus"
-    const create = await az(["group", "create", "--name", name, "--location", location, "--tags", "team=infra"], sub, timeout)
+    const create = await az(
+      ["group", "create", "--name", name, "--location", location, "--tags", "team=infra"],
+      sub,
+      timeout,
+    )
     if (create.exitCode === 0) {
       output.push(`[+] Shadow resource group created: ${name}`)
       output.push(`    Location: ${location}`)
@@ -957,7 +1030,11 @@ export async function tagManipulation(args: string[], timeout: number): Promise<
 
   if (action === "status") {
     const rgArgs = rg ? ["--resource-group", rg] : []
-    const resources = await az(["resource", "list", ...rgArgs, "--query", "[].{name:name,type:type,rg:resourceGroup,tags:tags}"], sub, timeout)
+    const resources = await az(
+      ["resource", "list", ...rgArgs, "--query", "[].{name:name,type:type,rg:resourceGroup,tags:tags}"],
+      sub,
+      timeout,
+    )
     if (resources.exitCode !== 0) return { output: "[-] Cannot list resources", findings }
     const list = tryJson(resources.stdout) || []
     output.push(`[+] Resources: ${list.length}`)
@@ -968,7 +1045,7 @@ export async function tagManipulation(args: string[], timeout: number): Promise<
     for (const r of list.slice(0, 30)) {
       const tags = r.tags || {}
       const tagKeys = Object.keys(tags)
-      const secTags = tagKeys.filter((k: string) => tagPatterns.some(p => k.toLowerCase().includes(p)))
+      const secTags = tagKeys.filter((k: string) => tagPatterns.some((p) => k.toLowerCase().includes(p)))
       if (secTags.length > 0) {
         output.push(`    ${r.name} (${r.type?.split("/").pop()})`)
         for (const t of secTags) output.push(`      ${t}: ${tags[t]}`)
@@ -999,7 +1076,11 @@ export async function tagManipulation(args: string[], timeout: number): Promise<
   if (action === "modify" && resourceId) {
     const tagName = argVal(args, "--tag-name") || "environment"
     const tagValue = argVal(args, "--tag-value") || "dev"
-    const update = await az(["tag", "update", "--resource-id", resourceId, "--operation", "merge", "--tags", `${tagName}=${tagValue}`], sub, timeout)
+    const update = await az(
+      ["tag", "update", "--resource-id", resourceId, "--operation", "merge", "--tags", `${tagName}=${tagValue}`],
+      sub,
+      timeout,
+    )
     if (update.exitCode === 0) {
       output.push(`[+] Tag set: ${tagName}=${tagValue} on resource`)
       findings.push({
@@ -1019,7 +1100,11 @@ export async function tagManipulation(args: string[], timeout: number): Promise<
   if (action === "remove" && resourceId) {
     const tagName = argVal(args, "--tag-name")
     if (!tagName) return { output: output.join("\n") + "\n[-] --tag-name required for remove", findings }
-    const update = await az(["tag", "update", "--resource-id", resourceId, "--operation", "delete", "--tags", tagName], sub, timeout)
+    const update = await az(
+      ["tag", "update", "--resource-id", resourceId, "--operation", "delete", "--tags", tagName],
+      sub,
+      timeout,
+    )
     if (update.exitCode === 0) {
       output.push(`[+] Tag removed: ${tagName}`)
       findings.push({

