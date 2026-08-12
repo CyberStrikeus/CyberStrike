@@ -161,14 +161,29 @@ export const LlmhookTool = Tool.define("llmhook", {
     const ctx: HandlerCtx = { target, timeout: params.timeout_seconds, format, headers }
     const result = await handler(ctx)
 
-    for (const f of result.findings) {
-      if (!f.cwe) f.cwe = resolveCwe(f.checkId)
-    }
+    const enriched = result.findings.map((f) => ({ ...f, cwe: f.cwe || resolveCwe(f.checkId) }))
+
+    const output =
+      enriched.length > 0
+        ? result.output +
+          "\n\n=== FINDINGS (" +
+          enriched.length +
+          ") ===\n" +
+          enriched
+            .map(
+              (f, i) =>
+                `[${i + 1}] ${f.severity} — ${f.title}${f.cwe ? ` (${f.cwe})` : ""}\n    Check: ${f.checkId} | Status: ${f.status} | Resource: ${f.resource}\n    ${f.details}\n    Remediation: ${f.remediation}`,
+            )
+            .join("\n") +
+          "\n\nCall report_vulnerability for each finding: severity (lowercase), title, description=details, recommendation=remediation" +
+          (enriched.some((f) => f.cwe) ? ", cwe_id from parentheses above" : "") +
+          "."
+        : result.output
 
     return {
-      title: `llmhook: ${program} (${result.findings.length} findings)`,
-      output: result.output,
-      metadata: { program, findings: result.findings },
+      title: `llmhook: ${program} (${enriched.length} findings)`,
+      output,
+      metadata: { program, findings: enriched },
     }
   },
 })
