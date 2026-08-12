@@ -392,14 +392,16 @@ export namespace Provider {
       }
     },
     "google-vertex": async () => {
-      const project = Env.get("GOOGLE_CLOUD_PROJECT") ?? Env.get("GCP_PROJECT") ?? Env.get("GCLOUD_PROJECT")
-      const location = Env.get("GOOGLE_CLOUD_LOCATION") ?? Env.get("VERTEX_LOCATION") ?? "us-east5"
-      const autoload = Boolean(project)
-      if (!autoload) return { autoload: false }
+      const project =
+        Env.get("GOOGLE_CLOUD_PROJECT") ?? Env.get("GCP_PROJECT") ?? Env.get("GCLOUD_PROJECT") ?? Env.get("GOOGLE_VERTEX_PROJECT")
+      const location =
+        Env.get("GOOGLE_CLOUD_LOCATION") ?? Env.get("VERTEX_LOCATION") ?? Env.get("GOOGLE_VERTEX_LOCATION") ?? "us-east5"
+      const hasCredentials = Boolean(Env.get("GOOGLE_APPLICATION_CREDENTIALS"))
+      if (!project && !hasCredentials) return { autoload: false }
       return {
         autoload: true,
         options: {
-          project,
+          ...(project && { project }),
           location,
         },
         async getModel(sdk: any, modelID: string) {
@@ -409,10 +411,12 @@ export namespace Provider {
       }
     },
     "google-vertex-anthropic": async () => {
-      const project = Env.get("GOOGLE_CLOUD_PROJECT") ?? Env.get("GCP_PROJECT") ?? Env.get("GCLOUD_PROJECT")
-      const location = Env.get("GOOGLE_CLOUD_LOCATION") ?? Env.get("VERTEX_LOCATION") ?? "global"
-      const autoload = Boolean(project)
-      if (!autoload) return { autoload: false }
+      const project =
+        Env.get("GOOGLE_CLOUD_PROJECT") ?? Env.get("GCP_PROJECT") ?? Env.get("GCLOUD_PROJECT") ?? Env.get("GOOGLE_VERTEX_PROJECT")
+      const location =
+        Env.get("GOOGLE_CLOUD_LOCATION") ?? Env.get("VERTEX_LOCATION") ?? Env.get("GOOGLE_VERTEX_LOCATION") ?? "global"
+      const hasCredentials = Boolean(Env.get("GOOGLE_APPLICATION_CREDENTIALS"))
+      if (!project && !hasCredentials) return { autoload: false }
       // Continental multi-regions (eu, us) require Regional Endpoint Platform domains
       const baseURL =
         project && (location === "eu" || location === "us")
@@ -421,7 +425,7 @@ export namespace Provider {
       return {
         autoload: true,
         options: {
-          project,
+          ...(project && { project }),
           location,
           ...(baseURL && { baseURL }),
         },
