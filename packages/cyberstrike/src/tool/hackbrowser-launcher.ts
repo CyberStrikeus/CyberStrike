@@ -163,8 +163,8 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
   const playwrightDir = path.join(Global.Path.data, "node_modules", "playwright")
   try {
     const { execSync } = await import("child_process")
-    const checkScript = `require("${playwrightDir.replace(/\\/g, "/")}").chromium.executablePath()`
-    const chromiumPath = execSync(`${runtime} -e "process.stdout.write(${JSON.stringify(checkScript)})"`, {
+    const fullScript = `process.stdout.write(require(${JSON.stringify(playwrightDir.replace(/\\/g, "/"))}).chromium.executablePath())`
+    const chromiumPath = execSync(`${runtime} -e ${JSON.stringify(fullScript)}`, {
       encoding: "utf-8",
       timeout: 5000,
     }).trim()
