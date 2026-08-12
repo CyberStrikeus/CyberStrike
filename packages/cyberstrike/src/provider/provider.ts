@@ -393,9 +393,15 @@ export namespace Provider {
     },
     "google-vertex": async () => {
       const project =
-        Env.get("GOOGLE_CLOUD_PROJECT") ?? Env.get("GCP_PROJECT") ?? Env.get("GCLOUD_PROJECT") ?? Env.get("GOOGLE_VERTEX_PROJECT")
+        Env.get("GOOGLE_CLOUD_PROJECT") ??
+        Env.get("GCP_PROJECT") ??
+        Env.get("GCLOUD_PROJECT") ??
+        Env.get("GOOGLE_VERTEX_PROJECT")
       const location =
-        Env.get("GOOGLE_CLOUD_LOCATION") ?? Env.get("VERTEX_LOCATION") ?? Env.get("GOOGLE_VERTEX_LOCATION") ?? "us-east5"
+        Env.get("GOOGLE_CLOUD_LOCATION") ??
+        Env.get("VERTEX_LOCATION") ??
+        Env.get("GOOGLE_VERTEX_LOCATION") ??
+        "us-east5"
       const hasCredentials = Boolean(Env.get("GOOGLE_APPLICATION_CREDENTIALS"))
       if (!project && !hasCredentials) return { autoload: false }
       return {
@@ -412,7 +418,10 @@ export namespace Provider {
     },
     "google-vertex-anthropic": async () => {
       const project =
-        Env.get("GOOGLE_CLOUD_PROJECT") ?? Env.get("GCP_PROJECT") ?? Env.get("GCLOUD_PROJECT") ?? Env.get("GOOGLE_VERTEX_PROJECT")
+        Env.get("GOOGLE_CLOUD_PROJECT") ??
+        Env.get("GCP_PROJECT") ??
+        Env.get("GCLOUD_PROJECT") ??
+        Env.get("GOOGLE_VERTEX_PROJECT")
       const location =
         Env.get("GOOGLE_CLOUD_LOCATION") ?? Env.get("VERTEX_LOCATION") ?? Env.get("GOOGLE_VERTEX_LOCATION") ?? "global"
       const hasCredentials = Boolean(Env.get("GOOGLE_APPLICATION_CREDENTIALS"))
