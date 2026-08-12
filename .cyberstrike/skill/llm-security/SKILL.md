@@ -473,9 +473,10 @@ done
 
 ## Tools
 
-| Tool           | Purpose                                  |
-| -------------- | ---------------------------------------- |
-| **Burp Suite** | Intercept and manipulate LLM API traffic |
+| Tool                       | Purpose                                            |
+| -------------------------- | -------------------------------------------------- |
+| **llmhook**                | Automated OWASP LLM Top-10 scanning (23 programs)  |
+| **webfetch / curl (bash)** | Probe and replay the LLM API endpoint directly     |
 
 ---
 
