@@ -505,6 +505,8 @@ export namespace Agent {
             ensure_tools: "allow",
             attack_script: "allow",
             llmhook: "allow",
+            hackbrowser: "allow",
+            generate_report: "allow",
           }),
           user,
         ),
