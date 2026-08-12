@@ -36,11 +36,15 @@ export function run(cmd: string[], timeout = 30_000): RunResult {
 
 function buildChatBody(message: string, format: RequestFormat): Record<string, unknown> {
   if (format === "openai") return { messages: [{ role: "user", content: message }], model: "gpt-4" }
-  if (format === "anthropic") return { messages: [{ role: "user", content: message }], model: "claude-sonnet-4-20250514", max_tokens: 1024 }
+  if (format === "anthropic")
+    return { messages: [{ role: "user", content: message }], model: "claude-sonnet-4-20250514", max_tokens: 1024 }
   return { message }
 }
 
-function buildConversationBody(messages: Array<{ role: string; content: string }>, format: RequestFormat): Record<string, unknown> {
+function buildConversationBody(
+  messages: Array<{ role: string; content: string }>,
+  format: RequestFormat,
+): Record<string, unknown> {
   if (format === "openai") return { messages, model: "gpt-4" }
   if (format === "anthropic") return { messages, model: "claude-sonnet-4-20250514", max_tokens: 1024 }
   return { messages }
@@ -87,9 +91,10 @@ export async function httpPost(
       signal: controller.signal,
     })
     const buf = await resp.arrayBuffer()
-    const text = buf.byteLength > MAX_RESPONSE_BYTES
-      ? new TextDecoder().decode(buf.slice(0, MAX_RESPONSE_BYTES)) + `\n[truncated at ${MAX_RESPONSE_BYTES} bytes]`
-      : new TextDecoder().decode(buf)
+    const text =
+      buf.byteLength > MAX_RESPONSE_BYTES
+        ? new TextDecoder().decode(buf.slice(0, MAX_RESPONSE_BYTES)) + `\n[truncated at ${MAX_RESPONSE_BYTES} bytes]`
+        : new TextDecoder().decode(buf)
     return { status: resp.status, body: text, headers: resp.headers }
   } finally {
     clearTimeout(timer)
@@ -132,9 +137,10 @@ export async function httpGet(
       signal: controller.signal,
     })
     const buf = await resp.arrayBuffer()
-    const text = buf.byteLength > MAX_RESPONSE_BYTES
-      ? new TextDecoder().decode(buf.slice(0, MAX_RESPONSE_BYTES)) + `\n[truncated at ${MAX_RESPONSE_BYTES} bytes]`
-      : new TextDecoder().decode(buf)
+    const text =
+      buf.byteLength > MAX_RESPONSE_BYTES
+        ? new TextDecoder().decode(buf.slice(0, MAX_RESPONSE_BYTES)) + `\n[truncated at ${MAX_RESPONSE_BYTES} bytes]`
+        : new TextDecoder().decode(buf)
     return { status: resp.status, body: text, headers: resp.headers }
   } finally {
     clearTimeout(timer)
@@ -157,7 +163,8 @@ export function validateUrl(url: string): string | undefined {
   if (!url) return "No target URL provided"
   try {
     const parsed = new URL(url)
-    if (!["http:", "https:"].includes(parsed.protocol)) return `Invalid protocol: ${parsed.protocol} (expected http/https)`
+    if (!["http:", "https:"].includes(parsed.protocol))
+      return `Invalid protocol: ${parsed.protocol} (expected http/https)`
     return undefined
   } catch {
     return `Invalid URL: ${url}`
