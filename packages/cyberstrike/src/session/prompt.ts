@@ -51,6 +51,7 @@ import { Token } from "@/util/token"
 import { MethodologyContext } from "@/methodology/context"
 import { AgentPerformance } from "@/methodology/performance"
 import { testerClass } from "@/tool/vuln-scope"
+import { stopHackbrowser } from "@/tool/hackbrowser-launcher"
 import { toolSig, READ_ONLY_TOOLS } from "./stuck/signals"
 import { StuckDetector, DEFAULT_STUCK_CONFIG } from "./stuck/stuck-detector"
 import { RepeatDetector } from "./stuck/repeat-detector"
@@ -266,6 +267,7 @@ export namespace SessionPrompt {
 
   export function cancel(sessionID: string) {
     log.info("cancel", { sessionID })
+    stopHackbrowser(sessionID)
     const s = state()
     const match = s[sessionID]
     if (!match) {
