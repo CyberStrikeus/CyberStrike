@@ -20,7 +20,8 @@ import PROMPT_MOBILE_APPLICATION from "./prompt/mobile-application.txt"
 import PROMPT_NORMALIZE_REQUEST from "./prompt/normalize-request.txt"
 import PROMPT_CYBERSTRIKE from "./prompt/cyberstrike.txt"
 import PROMPT_GENERAL from "./prompt/general.txt"
-import PROMPT_LLM_SECURITY from "./prompt/llm-security.txt"
+import PROMPT_PROXY_TESTER_LLM from "./prompt/vuln/llm/prompt.txt"
+import DESC_PROXY_TESTER_LLM from "./prompt/vuln/llm/description.txt"
 
 // New folder-based agent imports
 import PROMPT_VULN_COMMON from "./prompt/vuln/common-prompt.txt"
@@ -476,42 +477,6 @@ export namespace Agent {
         ),
         options: {},
       },
-      "llm-security": {
-        name: "llm-security",
-        description:
-          "LLM and AI application security specialist. OWASP LLM Top 10, prompt injection, multi-turn attacks, system prompt leakage.",
-        mode: "subagent",
-        native: true,
-        color: "green",
-        prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n${PROMPT_METHODOLOGY_CONTINUATION}\n\n---\n\n${PROMPT_LLM_SECURITY}`,
-        skills: ["llm-security"],
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            question: "allow",
-            bash: "allow",
-            browser: "allow",
-            read: "allow",
-            glob: "allow",
-            grep: "allow",
-            webfetch: "allow",
-            websearch: "allow",
-            report_vulnerability: "allow",
-            triage_vulnerability: "allow",
-            add_intel: "allow",
-            update_vrt_check: "allow",
-            methodology_status: "allow",
-            scope_check: "allow",
-            ensure_tools: "allow",
-            attack_script: "allow",
-            llmhook: "allow",
-            hackbrowser: "allow",
-            generate_report: "allow",
-          }),
-          user,
-        ),
-        options: {},
-      },
       "proxy-agent": {
         name: "proxy-agent",
         description: DESC_WEB_PROXY_AGENT.split("\n")[0].trim(),
@@ -588,6 +553,7 @@ export namespace Agent {
           businessLogicAgent,
           ssrfAgent,
           fileAttacksAgent,
+          llmAgent,
         ] = await Promise.all([
           loadVulnAgent(PROMPT_PROXY_TESTER_IDOR, DESC_PROXY_TESTER_IDOR, ["wstg-authz-04", "wstg-apit-02"]),
           loadVulnAgent(PROMPT_PROXY_TESTER_AUTHZ, DESC_PROXY_TESTER_AUTHZ, [
@@ -624,6 +590,7 @@ export namespace Agent {
             "wstg-busl-08",
             "wstg-busl-09",
           ]),
+          loadVulnAgent(PROMPT_PROXY_TESTER_LLM, DESC_PROXY_TESTER_LLM, ["llm-security"]),
         ])
 
         const vulnAgentPermission = PermissionNext.merge(
@@ -701,6 +668,18 @@ export namespace Agent {
         const fileAttacksPermission = PermissionNext.merge(
           vulnAgentPermission,
           PermissionNext.fromConfig({ inject_probe: "allow" }),
+        )
+
+        // LLM-specific permission: the LLM tester's instrument is `llmhook` (an
+        // automated OWASP LLM Top-10 scanner that posts crafted prompts to the
+        // captured chat endpoint). Scoped to this agent only (not
+        // vulnAgentPermission) to keep the blast radius narrow — no other vuln
+        // tester needs it. It does NOT get `hackbrowser`/`browser`: the endpoint
+        // is already captured in the prepended request context, so there is
+        // nothing to crawl.
+        const llmAgentPermission = PermissionNext.merge(
+          vulnAgentPermission,
+          PermissionNext.fromConfig({ llmhook: "allow" }),
         )
 
         return {
@@ -790,6 +769,17 @@ export namespace Agent {
             prompt: fileAttacksAgent.prompt,
             prependRequestContext: true,
             permission: fileAttacksPermission,
+            options: {},
+          },
+          "proxy-tester-llm": {
+            name: "proxy-tester-llm",
+            description: llmAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: llmAgent.prompt,
+            prependRequestContext: true,
+            permission: llmAgentPermission,
             options: {},
           },
         }

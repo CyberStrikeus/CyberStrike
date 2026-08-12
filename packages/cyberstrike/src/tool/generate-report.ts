@@ -26,7 +26,6 @@ const AGENT_NAMES = [
   "cloud-security",
   "internal-network",
   "mobile-application",
-  "llm-security",
   "cyberstrike",
 ] as const
 
@@ -37,7 +36,6 @@ const AGENT_CODENAMES: Record<string, string> = {
   "cloud-security": "AURORA",
   "internal-network": "PHANTOM",
   "mobile-application": "CIPHER",
-  "llm-security": "SENTINEL",
   cyberstrike: "COMMANDER",
 }
 
