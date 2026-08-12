@@ -88,6 +88,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 - **UI: entity decoding** — single-pass decoding to prevent double-escaping
 - **ID generation: modulo bias** — use rejection sampling to eliminate bias in random ID generation
 - **Sanitization: backslash escaping** — escape backslashes before quoting strings
+- **Hackbrowser: Chromium path detection** — fix shell quoting in `execSync` command for Playwright Chromium path detection. Nested double-quotes from `JSON.stringify` inside template literal caused `/bin/sh` syntax error on `require(` token
+- **Hackbrowser: cancel on session interrupt** — pressing Esc now stops the hackbrowser worker subprocess. Previously `SessionPrompt.cancel()` only aborted the LLM prompt loop while the crawl continued running in the background
+- **Build: bundled migration name** — include `name` field in bundled migrations for Drizzle ORM 1.0 compatibility. Missing field caused `INSERT INTO __drizzle_migrations` to fail with empty parameter on first-time setup
 
 ### Security
 
