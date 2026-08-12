@@ -1,6 +1,14 @@
 import z from "zod"
 import { Tool } from "../tool"
-import { argVal, hasFlag, validateUrl, type Finding, type HandlerCtx, type HookResult, type RequestFormat } from "./shared"
+import {
+  argVal,
+  hasFlag,
+  validateUrl,
+  type Finding,
+  type HandlerCtx,
+  type HookResult,
+  type RequestFormat,
+} from "./shared"
 
 import { endpointDiscover, modelFingerprint, jsAnalysis } from "./recon"
 import { promptInject, systemPromptExtract, outputHandling } from "./injection"
@@ -29,26 +37,34 @@ const PROGRAMS = {
   rate_limit: "Test unbounded consumption / missing rate limiting (OWASP LLM10)",
 
   // ── Evasion (3) ───────────────────────────────────────────
-  encoding_bypass: "Test 12 encoding/evasion techniques — base64, unicode, ROT13, token splitting, delimiter flood (OWASP LLM01)",
+  encoding_bypass:
+    "Test 12 encoding/evasion techniques — base64, unicode, ROT13, token splitting, delimiter flood (OWASP LLM01)",
   guardrail_detect: "Fingerprint guardrail/safety systems and detect missing restrictions",
   token_exhaustion: "Test token exhaustion via large payloads, recursive prompts, output amplification (OWASP LLM10)",
 
   // ── Multi-turn (2) ───────────────────────────────────────
-  multi_turn: "4 crescendo attack chains — authority escalation, context stuffing, role accumulation, hypothetical framing",
-  indirect_inject: "6 indirect injection vectors — markdown exfil, hidden HTML, JSON payload, CSV injection, unicode (OWASP LLM01)",
+  multi_turn:
+    "4 crescendo attack chains — authority escalation, context stuffing, role accumulation, hypothetical framing",
+  indirect_inject:
+    "6 indirect injection vectors — markdown exfil, hidden HTML, JSON payload, CSV injection, unicode (OWASP LLM01)",
 
   // ── Jailbreak (1) ────────────────────────────────────────
-  jailbreak: "15 jailbreak techniques — DAN, Skeleton Key, AIM, PAIR, grandma exploit, amnesia attack, Bad Likert Judge, dev mode (OWASP LLM01)",
+  jailbreak:
+    "15 jailbreak techniques — DAN, Skeleton Key, AIM, PAIR, grandma exploit, amnesia attack, Bad Likert Judge, dev mode (OWASP LLM01)",
 
   // ── Safety (2) ───────────────────────────────────────────
-  toxicity: "6 toxic content probes — hate speech, violence, self-harm, profanity, radicalization, illegal activity (OWASP LLM05)",
+  toxicity:
+    "6 toxic content probes — hate speech, violence, self-harm, profanity, radicalization, illegal activity (OWASP LLM05)",
   bias: "4 bias scenarios across gender, race, age, religion — differential treatment detection",
 
   // ── Extraction (5) ───────────────────────────────────────
-  training_extract: "5 training data extraction probes — prefix completion, divergence, memorization, PII, copyright (OWASP LLM02)",
-  hallucination: "4 package hallucination tests — verify recommended packages against npm/PyPI registries (OWASP LLM09/LLM03)",
+  training_extract:
+    "5 training data extraction probes — prefix completion, divergence, memorization, PII, copyright (OWASP LLM02)",
+  hallucination:
+    "4 package hallucination tests — verify recommended packages against npm/PyPI registries (OWASP LLM09/LLM03)",
   cross_session: "Cross-session data leakage — plant marker and verify isolation (OWASP LLM02)",
-  pii_probe: "5 PII-specific extraction probes — SSN, credit card, medical, phone/address, social engineering (OWASP LLM02)",
+  pii_probe:
+    "5 PII-specific extraction probes — SSN, credit card, medical, phone/address, social engineering (OWASP LLM02)",
   rbac: "5 RBAC/authorization bypass tests — role claim, privilege escalation, impersonation (OWASP LLM06)",
 } as const
 
@@ -116,16 +132,17 @@ function resolveCwe(checkId: string): string | undefined {
 export const LlmhookTool = Tool.define("llmhook", {
   description: `LLM security testing tool — automated OWASP LLM Top 10 vulnerability scanning. ${Object.keys(PROGRAMS).length} programs across recon, injection, jailbreak, evasion, safety, extraction, and abuse categories. ONLY use when the user has explicitly requested LLM/AI security testing.`,
   parameters: z.object({
-    program: z
-      .string()
-      .describe(
-        `Program to run. Available:\n${Object.entries(PROGRAMS)
-          .map(([k, v]) => `  ${k}: ${v}`)
-          .join("\n")}`,
-      ),
-    args: z.string().default("").describe(
-      "Arguments: --target <URL> (required for most programs), --format <generic|openai|anthropic> (API format, default: generic), --auth <token> (Bearer auth token)",
+    program: z.string().describe(
+      `Program to run. Available:\n${Object.entries(PROGRAMS)
+        .map(([k, v]) => `  ${k}: ${v}`)
+        .join("\n")}`,
     ),
+    args: z
+      .string()
+      .default("")
+      .describe(
+        "Arguments: --target <URL> (required for most programs), --format <generic|openai|anthropic> (API format, default: generic), --auth <token> (Bearer auth token)",
+      ),
     timeout_seconds: z.number().optional().default(30).describe("Per-request timeout in seconds (default: 30)"),
   }),
   async execute(params) {

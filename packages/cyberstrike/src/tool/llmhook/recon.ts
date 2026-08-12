@@ -48,7 +48,11 @@ const MODEL_IDENTITY_PROBES = [
 
 export async function endpointDiscover(ctx: HandlerCtx): Promise<HookResult> {
   const target = ctx.target
-  if (!target) return { output: "[-] No target URL provided. Usage: llmhook endpoint_discover --target https://example.com", findings: [] }
+  if (!target)
+    return {
+      output: "[-] No target URL provided. Usage: llmhook endpoint_discover --target https://example.com",
+      findings: [],
+    }
 
   const output: string[] = ["[*] LLM Endpoint Discovery", `[*] Target: ${target}`, ""]
   const findings: Finding[] = []
@@ -92,7 +96,11 @@ export async function endpointDiscover(ctx: HandlerCtx): Promise<HookResult> {
 
 export async function modelFingerprint(ctx: HandlerCtx): Promise<HookResult> {
   const target = ctx.target
-  if (!target) return { output: "[-] No target URL provided. Usage: llmhook model_fingerprint --target https://example.com/api/chat", findings: [] }
+  if (!target)
+    return {
+      output: "[-] No target URL provided. Usage: llmhook model_fingerprint --target https://example.com/api/chat",
+      findings: [],
+    }
 
   const output: string[] = ["[*] LLM Model Fingerprinting", `[*] Target: ${target}`, `[*] Format: ${ctx.format}`, ""]
   const findings: Finding[] = []
@@ -117,7 +125,8 @@ export async function modelFingerprint(ctx: HandlerCtx): Promise<HookResult> {
             resource: target,
             title: "Model identity disclosed",
             details: `Model identity probe "${probe}" revealed indicators: ${detected.join(", ")}. Response: ${body.slice(0, 200)}`,
-            remediation: "Strip model identity information from responses. Do not disclose model name/version to end users.",
+            remediation:
+              "Strip model identity information from responses. Do not disclose model name/version to end users.",
           })
           break
         }
