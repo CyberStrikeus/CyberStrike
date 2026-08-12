@@ -31,6 +31,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 - **`linux-postexploit` skill** — kill chain methodology with full MITRE ATT&CK mappings for all 120 linuxhook programs
 - **`ci-assessment` skill** — CI/CD pipeline security methodology documentation
 - **cve-mcp dynamic CTA** — all three OS hooks (winhook, linuxhook, machook) now include dynamic Call-To-Action in recon findings, guiding the agent to query `cve-mcp` for any discovered software/service with a version number. Replaces hardcoded service version check lists with a universal approach: `cve search_by_product --product <name> --version <ver>`. If cve-mcp is not enabled, the agent prompts users to enable it via `cyberstrike mcp enable cve`
+- **LLM security testing tool (llmhook)** — 23 programs across 8 categories for the `llm-security` (SENTINEL) agent, automated OWASP LLM Top 10 vulnerability scanning with 130+ probes/payloads
+  - **Reconnaissance (3):** `endpoint_discover`, `model_fingerprint`, `js_analysis`
+  - **Injection (3):** `prompt_inject` (10 canary-based payloads), `system_prompt_extract` (10 techniques), `output_handling` (XSS/SQLi/CMDi via LLM output)
+  - **Abuse (4):** `excessive_agency`, `ssrf_probe`, `data_exfil`, `rate_limit` (concurrent with unique payloads)
+  - **Evasion (3):** `encoding_bypass` (12 encoding techniques), `guardrail_detect` (8 probes), `token_exhaustion` (3 tests)
+  - **Multi-turn (2):** `multi_turn` (4 crescendo chains with full conversation history), `indirect_inject` (6 vectors)
+  - **Jailbreak (1):** 15 techniques — DAN 11.0, Skeleton Key, AIM, PAIR, persona modulation, many-shot, refusal suppression, grandma exploit, translation bypass, hypothetical compliance, token smuggling, dev mode, amnesia attack, Bad Likert Judge, virtualization
+  - **Safety (2):** `toxicity` (6 probes), `bias` (4 comparative pair scenarios across gender/race/age/religion)
+  - **Extraction (5):** `training_extract` (5 memorization probes), `hallucination` (4 package confusion tests with npm/PyPI registry verification), `cross_session` (per-invocation marker isolation), `pii_probe` (5 PII types), `rbac` (5 authorization bypass tests)
+  - Supports `--format openai|anthropic|generic` for API-specific request/response handling
+  - Findings auto-bridge to `report_vulnerability` with CWE mappings (22 check-to-CWE entries)
+  - Full pipeline: llm-security agent → llmhook → findings → report_vulnerability → generate_report
 
 ### Changed
 
@@ -50,6 +62,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 - **winhook/machook: cross-reference** — updated tool cross-references from `ebpf` to `linuxhook` for Linux post-exploitation
 - **Provider: Gemini schema sanitization** — flatten type arrays, strip `$defs`/`definitions`, remove `additionalProperties` from non-object types
 - **Provider: GitHub Copilot schema sanitization** — apply OpenAI schema sanitization to `@ai-sdk/github-copilot` provider
+- **Provider: Vertex AI autoload** — `GOOGLE_APPLICATION_CREDENTIALS` now triggers autoload for both `google-vertex` (Gemini) and `google-vertex-anthropic` (Claude) providers. SDK resolves project_id from service account JSON via ADC. Added `GOOGLE_VERTEX_PROJECT` and `GOOGLE_VERTEX_LOCATION` to env chain
 - **Provider: Vertex regional endpoints** — use regional endpoints for Vertex Anthropic in EU/US
 - **Provider: Copilot stale response IDs** — strip stale Responses API item IDs
 - **Provider: error extraction** — extract nested error messages from more response formats
@@ -79,7 +92,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 ### Security
 
 - **fast-xml-parser** 5.9.3 → 5.10.1 — fixes repeated DOCTYPE declarations resetting entity expansion limits (DoS via XML parsing)
-- **dompurify** 3.4.11 → 3.4.12 — fixes `CUSTOM_ELEMENT_HANDLING` bypassing `afterSanitizeElements` for allowed custom elements
+- **dompurify** 3.4.11 → 3.4.13 — fixes `CUSTOM_ELEMENT_HANDLING` bypassing `afterSanitizeElements` (3.4.12) + IN_PLACE hook removal XSS (3.4.13)
 
 ### Testing
 
