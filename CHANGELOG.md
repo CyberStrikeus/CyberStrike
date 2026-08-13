@@ -157,7 +157,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 
 ### Added
 
-- Initial public release — fork of [opencode](https://github.com/anomalyco/opencode) with offensive security focus
+- Initial public release of CyberStrike
+- AI-powered offensive security agent platform with 13+ specialized agents
 - Claude Code CLI/API provider, cloud security agent, chunked context compaction
 - MCP browser server, ASCII logo
 
