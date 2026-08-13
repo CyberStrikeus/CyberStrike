@@ -95,6 +95,8 @@ Review each agent's description to understand when it should be used:
 
 - **proxy-tester-file-attacks**: Tests file upload vulnerabilities, path traversal, and file inclusion attacks. Effective when: endpoint accepts file uploads (multipart/form-data), has file path parameters, or processes user-supplied filenames. Tests malicious file types (webshell, XSS via SVG), path traversal (../../etc/passwd), XXE via file upload, and zip slip.
 
+- **proxy-tester-llm**: Tests the LLM/AI layer (OWASP LLM Top 10) — prompt injection, jailbreaks, encoding/evasion bypass, system-prompt leakage, improper output handling, sensitive-data disclosure, excessive agency. Effective when: the endpoint is an LLM chat/completions API — body carries a `messages[]`/`prompt`/`input` field feeding a model, the path looks like `/chat`, `/completions`, `/v1/chat/completions`, `/generate`, `/ask`, or the response is model-generated natural-language text. Driven by the `llmhook` scanner against the captured endpoint. Do NOT dispatch for endpoints that are not LLM-backed.
+
 ## How SubAgents Receive Data
 
 **All proxy subagents** automatically receive request context prepended to their prompt:
@@ -195,6 +197,7 @@ Use this table to quickly classify the endpoint and identify which testers to pr
 | **Search / filter** | Param like `q=`, `search=`, `filter=`, `where=` | injection (SQLi via filter, NoSQL operators) |
 | **Form / free-text input** | Any `<form>` in the response, or any param/body field carrying free text (name, subject, message, comment, contact) | injection — dispatch it and name the full floor **SQLi + XSS + SSTI on EVERY field** (a text field is both a DB/query sink and a reflection/template sink; do not skip it just because THIS request had no params — test the form's submit target) |
 | **WebSocket / SSE** | `Upgrade: websocket` or `Accept: text/event-stream` | injection (message injection), authn (origin/auth check) |
+| **LLM / chat endpoint** | Body has `messages[]`/`prompt`/`input` feeding a model, path like `/chat`, `/completions`, `/v1/chat/completions`, `/generate`, or response is model-generated text | llm (prompt injection, jailbreak, system-prompt leak, output handling) — dispatch `proxy-tester-llm`; also injection if the same body has classic injectable params |
 
 **DO NOT use rigid rules like "if path contains '/login' then call authn-agent".**
 
