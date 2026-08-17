@@ -363,6 +363,10 @@ export namespace SessionProcessor {
               if (needsCompaction) break
             }
           } catch (e: any) {
+            if (input.abort.aborted) {
+              log.info("process aborted by user", { sessionID: input.sessionID })
+              break
+            }
             log.error("process", {
               error: e,
               stack: JSON.stringify(e.stack),
