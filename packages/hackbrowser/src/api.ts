@@ -18,6 +18,7 @@ import { chromium } from "playwright"
 import type { LanguageModel } from "ai"
 
 import { run } from "./agent.ts"
+import { findSystemChrome } from "./stealth.ts"
 import { Log, type LogSink, type LogRecord, type LogLevel } from "./log.ts"
 import { setEventSink, clearEventSink } from "./panel/emit.ts"
 import type { AgentConfig, CredentialConfig, CrawlResult, CSEvent } from "./types.ts"
@@ -111,22 +112,8 @@ const log = Log.create({ service: "hackbrowser:api" })
  * `require("../../../package.json")` that breaks under Bun --compile.
  * Users (typically developers/pentesters) run the install command once.
  */
-function hasSystemChrome(): boolean {
-  const candidates =
-    process.platform === "darwin"
-      ? ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
-      : process.platform === "win32"
-        ? [
-            `${process.env.PROGRAMFILES}\\Google\\Chrome\\Application\\chrome.exe`,
-            `${process.env["PROGRAMFILES(X86)"]}\\Google\\Chrome\\Application\\chrome.exe`,
-            `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`,
-          ]
-        : ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium-browser", "/usr/bin/chromium"]
-  return candidates.some((p) => existsSync(p))
-}
-
 function preflightCheck(): void {
-  if (hasSystemChrome()) return
+  if (findSystemChrome()) return
   const chromiumPath = chromium.executablePath()
   if (!existsSync(chromiumPath)) {
     throw new Error(

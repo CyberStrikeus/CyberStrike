@@ -1,3 +1,4 @@
+import { existsSync } from "fs"
 import { chromium, type Browser, type LaunchOptions, type BrowserContextOptions } from "playwright"
 
 const LAUNCH_ARGS = [
@@ -18,13 +19,25 @@ export function userAgent(version: string): string {
   return `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Safari/537.36`
 }
 
+export function findSystemChrome(): string | undefined {
+  const candidates =
+    process.platform === "darwin"
+      ? ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
+      : process.platform === "win32"
+        ? [
+            `${process.env.PROGRAMFILES}\\Google\\Chrome\\Application\\chrome.exe`,
+            `${process.env["PROGRAMFILES(X86)"]}\\Google\\Chrome\\Application\\chrome.exe`,
+            `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`,
+          ]
+        : ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium-browser", "/usr/bin/chromium"]
+  return candidates.find((p) => existsSync(p))
+}
+
 export async function connect(opts: { cdp?: string; headless: boolean }): Promise<Browser> {
   if (opts.cdp) return chromium.connectOverCDP(opts.cdp)
-  try {
-    return await chromium.launch({ ...launchOptions(opts.headless), channel: "chrome" })
-  } catch {
-    return chromium.launch(launchOptions(opts.headless))
-  }
+  const chrome = findSystemChrome()
+  if (chrome) return chromium.launch({ ...launchOptions(opts.headless), executablePath: chrome })
+  return chromium.launch(launchOptions(opts.headless))
 }
 
 export function contextOptions(version: string): BrowserContextOptions {
