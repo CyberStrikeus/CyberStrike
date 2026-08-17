@@ -1730,7 +1730,10 @@ export const SessionRoutes = lazy(() =>
           },
           auto: body.auto,
         })
-        await SessionPrompt.loop({ sessionID })
+        await SessionPrompt.loop({ sessionID }).catch((e) => {
+          if (e instanceof Error && e.message === "session prompt cancelled") return
+          throw e
+        })
         return c.json(true)
       },
     )
