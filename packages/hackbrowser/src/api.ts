@@ -79,6 +79,12 @@ export interface CrawlOptions {
   panel?: boolean
   dryRun?: boolean
 
+  // Connect to user's real Chrome via CDP. User launches Chrome with
+  // --remote-debugging-port=9222 and hackbrowser connects to it instead
+  // of launching Playwright's bundled Chromium. Bypasses WAF TLS
+  // fingerprinting (Cloudflare, etc.).
+  cdp?: string
+
   // Cancellation — when fired, the agent finishes the current step and
   // gracefully exits the BFS loop. The browser closes via the existing
   // finally block. LLM calls in progress are NOT cancelled at the SDK
@@ -163,6 +169,7 @@ function toAgentConfig(opts: CrawlOptions): AgentConfig {
     dryRun: opts.dryRun,
     panel: opts.panel,
     model: opts.model,
+    cdp: opts.cdp,
     signal: opts.signal,
   }
 }
@@ -182,7 +189,7 @@ function toAgentConfig(opts: CrawlOptions): AgentConfig {
  */
 export async function runCrawl(opts: CrawlOptions): Promise<CrawlResult> {
   validate(opts)
-  preflightCheck()
+  if (!opts.cdp) preflightCheck()
 
   // Logger and event sink setup — install caller's sinks if provided,
   // restore defaults in finally so subsequent calls in the same process
@@ -283,6 +290,7 @@ export function parseArgsToOptions(argv: string[]): CrawlOptions {
     headless: hasFlag("--headless") ? true : undefined,
     dryRun: hasFlag("--dry-run"),
     panel: hasFlag("--no-panel") ? false : undefined,
+    cdp: getArg("--use-chrome") ?? (hasFlag("--use-chrome") ? "http://localhost:9222" : undefined),
     logLevel: hasFlag("--debug") ? "DEBUG" : undefined,
   }
 }

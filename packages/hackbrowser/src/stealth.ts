@@ -1,4 +1,4 @@
-import type { LaunchOptions, BrowserContextOptions } from "playwright"
+import { chromium, type Browser, type LaunchOptions, type BrowserContextOptions } from "playwright"
 
 const LAUNCH_ARGS = [
   "--disable-blink-features=AutomationControlled",
@@ -16,6 +16,11 @@ export function launchOptions(headless: boolean): LaunchOptions {
 
 export function userAgent(version: string): string {
   return `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Safari/537.36`
+}
+
+export async function connect(opts: { cdp?: string; headless: boolean }): Promise<Browser> {
+  if (opts.cdp) return chromium.connectOverCDP(opts.cdp)
+  return chromium.launch(launchOptions(opts.headless))
 }
 
 export function contextOptions(version: string): BrowserContextOptions {

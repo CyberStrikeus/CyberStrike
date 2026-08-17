@@ -66,6 +66,7 @@ export interface WorkerOptions {
   cyberstrikeUrl: string
   model: ModelDescriptor
   credentialDispatch: CredentialDispatch
+  cdp?: string
 }
 
 // ============================================================
