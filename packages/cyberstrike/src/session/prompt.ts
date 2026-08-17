@@ -267,7 +267,9 @@ export namespace SessionPrompt {
 
   export function cancel(sessionID: string) {
     log.info("cancel", { sessionID })
-    stopHackbrowser(sessionID)
+    try {
+      stopHackbrowser(sessionID)
+    } catch {}
     const s = state()
     const match = s[sessionID]
     if (!match) {
