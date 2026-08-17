@@ -20,7 +20,11 @@ export function userAgent(version: string): string {
 
 export async function connect(opts: { cdp?: string; headless: boolean }): Promise<Browser> {
   if (opts.cdp) return chromium.connectOverCDP(opts.cdp)
-  return chromium.launch(launchOptions(opts.headless))
+  try {
+    return await chromium.launch({ ...launchOptions(opts.headless), channel: "chrome" })
+  } catch {
+    return chromium.launch(launchOptions(opts.headless))
+  }
 }
 
 export function contextOptions(version: string): BrowserContextOptions {
