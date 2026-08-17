@@ -1676,7 +1676,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     throw new Error(`AI model required: ${String(err)}`)
   }
 
-  const browser = await chromium.launch(Stealth.launchOptions(config.headless ?? false))
+  const browser = await Stealth.connect({ cdp: config.cdp, headless: config.headless ?? false })
 
   // Single CyberStrike session for ALL credentials. Honor a host-provided
   // sessionID (cyberstrike injects this when /hackbrowser slash or the
@@ -2078,7 +2078,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     sessionID = created
   }
 
-  const browser = await chromium.launch(Stealth.launchOptions(config.headless ?? false))
+  const browser = await Stealth.connect({ cdp: config.cdp, headless: config.headless ?? false })
   const context: BrowserContext = await browser.newContext(Stealth.contextOptions(browser.version()))
   await context.addInitScript(Stealth.INIT_SCRIPT)
   if (panelOn) await context.addInitScript(PANEL_INIT_SCRIPT)
