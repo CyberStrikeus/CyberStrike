@@ -111,13 +111,28 @@ const log = Log.create({ service: "hackbrowser:api" })
  * `require("../../../package.json")` that breaks under Bun --compile.
  * Users (typically developers/pentesters) run the install command once.
  */
+function hasSystemChrome(): boolean {
+  const candidates =
+    process.platform === "darwin"
+      ? ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
+      : process.platform === "win32"
+        ? [
+            `${process.env.PROGRAMFILES}\\Google\\Chrome\\Application\\chrome.exe`,
+            `${process.env["PROGRAMFILES(X86)"]}\\Google\\Chrome\\Application\\chrome.exe`,
+            `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`,
+          ]
+        : ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium-browser", "/usr/bin/chromium"]
+  return candidates.some((p) => existsSync(p))
+}
+
 function preflightCheck(): void {
+  if (hasSystemChrome()) return
   const chromiumPath = chromium.executablePath()
   if (!existsSync(chromiumPath)) {
     throw new Error(
-      `Chromium browser is not installed at ${chromiumPath}.\n` +
-        `Run: bunx playwright install chromium\n` +
-        `(or: npx playwright install chromium — both download to the same cache)`,
+      `No browser found. Install Google Chrome or run:\n` +
+        `  bunx playwright install chromium\n` +
+        `(or: npx playwright install chromium)`,
     )
   }
 }
