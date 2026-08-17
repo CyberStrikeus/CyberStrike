@@ -1924,8 +1924,11 @@ export const SessionRoutes = lazy(() =>
         return stream(c, async (stream) => {
           const sessionID = c.req.valid("param").sessionID
           const body = c.req.valid("json")
-          const msg = await SessionPrompt.prompt({ ...body, sessionID })
-          stream.write(JSON.stringify(msg))
+          const msg = await SessionPrompt.prompt({ ...body, sessionID }).catch((e) => {
+            if (e instanceof Error && e.message === "session prompt cancelled") return
+            throw e
+          })
+          if (msg) stream.write(JSON.stringify(msg))
         })
       },
     )
