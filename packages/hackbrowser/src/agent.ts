@@ -1701,10 +1701,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
   const lastAuthHeaders = new Map<string, Record<string, string>>()
 
   for (const [credIndex, cred] of credentials.entries()) {
-    const browserContext = await browser.newContext({
-      userAgent: Stealth.userAgent(browser.version()),
-      extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" },
-    })
+    const browserContext = await browser.newContext(Stealth.contextOptions(browser.version()))
     await browserContext.addInitScript(Stealth.INIT_SCRIPT)
     if (panelOn) await browserContext.addInitScript(PANEL_INIT_SCRIPT)
     const page = await browserContext.newPage()
@@ -2082,10 +2079,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
   }
 
   const browser = await chromium.launch(Stealth.launchOptions(config.headless ?? false))
-  const context: BrowserContext = await browser.newContext({
-    userAgent: Stealth.userAgent(browser.version()),
-    extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" },
-  })
+  const context: BrowserContext = await browser.newContext(Stealth.contextOptions(browser.version()))
   await context.addInitScript(Stealth.INIT_SCRIPT)
   if (panelOn) await context.addInitScript(PANEL_INIT_SCRIPT)
   const page = await context.newPage()
