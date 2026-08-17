@@ -365,6 +365,7 @@ export namespace SessionProcessor {
           } catch (e: any) {
             if (input.abort.aborted) {
               log.info("process aborted by user", { sessionID: input.sessionID })
+              input.assistantMessage.finish = "stop"
               break
             }
             log.error("process", {
