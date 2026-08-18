@@ -36,3 +36,6 @@ logs/
 
 # Local throwaway test/eval harness (not committed)
 packages/cyberstrike/test/proxy-eval/
+
+# Exported session transcripts and reports
+session-*.md
