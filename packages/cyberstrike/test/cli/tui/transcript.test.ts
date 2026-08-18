@@ -48,7 +48,7 @@ describe("transcript", () => {
   })
 
   describe("formatPart", () => {
-    const options = { thinking: true, toolDetails: true, assistantMetadata: true }
+    const options = { thinking: true, toolDetails: true, assistantMetadata: true, includeChildren: false }
 
     test("formats text part", () => {
       const part: Part = {
@@ -85,7 +85,8 @@ describe("transcript", () => {
         time: { start: 1000 },
       }
       const result = formatPart(part, options)
-      expect(result).toBe("_Thinking:_\n\nLet me think...\n\n")
+      expect(result).toContain("<details><summary>Thinking</summary>")
+      expect(result).toContain("Let me think...")
     })
 
     test("skips reasoning when thinking disabled", () => {
@@ -120,9 +121,9 @@ describe("transcript", () => {
       }
       const result = formatPart(part, options)
       expect(result).toContain("**Tool: bash**")
-      expect(result).toContain("**Input:**")
+      expect(result).toContain("<details><summary>Input</summary>")
       expect(result).toContain('"command": "ls"')
-      expect(result).toContain("**Output:**")
+      expect(result).toContain("<details><summary>Output</summary>")
       expect(result).toContain("file1.txt")
     })
 
@@ -144,11 +145,9 @@ describe("transcript", () => {
         },
       }
       const result = formatPart(part, options)
-      // The tool header should not be inside a code block
-      expect(result).toStartWith("**Tool: bash**\n")
-      // Input and output should each be in their own code blocks
-      expect(result).toContain("**Input:**\n```json")
-      expect(result).toContain("**Output:**\n```\n```hello```\n```")
+      expect(result).toStartWith("**Tool: bash**")
+      expect(result).toContain("<details><summary>Input</summary>")
+      expect(result).toContain("<details><summary>Output</summary>")
     })
 
     test("formats tool part without details when disabled", () => {
@@ -196,7 +195,7 @@ describe("transcript", () => {
   })
 
   describe("formatMessage", () => {
-    const options = { thinking: true, toolDetails: true, assistantMetadata: true }
+    const options = { thinking: true, toolDetails: true, assistantMetadata: true, includeChildren: false }
 
     test("formats user message", () => {
       const msg: UserMessage = {
@@ -272,7 +271,7 @@ describe("transcript", () => {
           parts: [{ id: "p2", sessionID: "ses_abc123", messageID: "msg_2", type: "text" as const, text: "Hi!" }],
         },
       ]
-      const options = { thinking: false, toolDetails: false, assistantMetadata: true }
+      const options = { thinking: false, toolDetails: false, assistantMetadata: true, includeChildren: false }
 
       const result = formatTranscript(session, messages, options)
 
@@ -310,7 +309,7 @@ describe("transcript", () => {
           parts: [{ id: "p1", sessionID: "ses_abc123", messageID: "msg_1", type: "text" as const, text: "Response" }],
         },
       ]
-      const options = { thinking: false, toolDetails: false, assistantMetadata: false }
+      const options = { thinking: false, toolDetails: false, assistantMetadata: false, includeChildren: false }
 
       const result = formatTranscript(session, messages, options)
 
