@@ -572,12 +572,11 @@ export function Session() {
       },
     },
     {
-      title: "Generate report",
+      title: "Generate security report",
       value: "session.report",
       category: "Session",
       slash: {
         name: "report",
-        aliases: ["export"],
       },
       onSelect: (dialog) => {
         dialog.replace(() => (
