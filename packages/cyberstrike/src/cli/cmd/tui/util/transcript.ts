@@ -56,14 +56,70 @@ export function formatTranscript(
     }
   }
 
+  if (options.assistantMetadata) {
+    transcript += formatSummary(messages, children)
+  }
+
   return transcript
+}
+
+export function formatSummary(messages: MessageWithParts[], children?: ChildSession[]): string {
+  let totalInput = 0
+  let totalOutput = 0
+  let totalReasoning = 0
+  let totalCacheRead = 0
+  let totalCacheWrite = 0
+  let totalCost = 0
+  let toolCount = 0
+  let patchFiles = new Set<string>()
+
+  const accumulate = (msgs: MessageWithParts[]) => {
+    for (const msg of msgs) {
+      if (msg.info.role === "assistant") {
+        totalInput += msg.info.tokens.input
+        totalOutput += msg.info.tokens.output
+        totalReasoning += msg.info.tokens.reasoning
+        totalCacheRead += msg.info.tokens.cache.read
+        totalCacheWrite += msg.info.tokens.cache.write
+        totalCost += msg.info.cost
+      }
+      for (const part of msg.parts) {
+        if (part.type === "tool") toolCount++
+        if (part.type === "patch") part.files.forEach((f) => patchFiles.add(f))
+      }
+    }
+  }
+
+  accumulate(messages)
+  if (children) children.forEach((c) => accumulate(c.messages))
+
+  let summary = `\n# Summary\n\n`
+  summary += `| Metric | Value |\n|--------|-------|\n`
+  summary += `| Messages | ${messages.length} |\n`
+  summary += `| Tool calls | ${toolCount} |\n`
+  summary += `| Files changed | ${patchFiles.size} |\n`
+  summary += `| Total tokens | ${(totalInput + totalOutput + totalReasoning).toLocaleString()} (${totalInput.toLocaleString()} in / ${totalOutput.toLocaleString()} out${totalReasoning ? ` / ${totalReasoning.toLocaleString()} reasoning` : ""}) |\n`
+  summary += `| Cache | ${totalCacheRead.toLocaleString()} read / ${totalCacheWrite.toLocaleString()} write |\n`
+  summary += `| Total cost | $${totalCost.toFixed(4)} |\n`
+  if (children?.length) summary += `| Subagent sessions | ${children.length} |\n`
+  if (patchFiles.size > 0) {
+    summary += `\n**Files changed:**\n`
+    for (const f of [...patchFiles].sort()) {
+      summary += `- \`${f}\`\n`
+    }
+  }
+  summary += `\n`
+  return summary
 }
 
 export function formatMessage(msg: UserMessage | AssistantMessage, parts: Part[], options: TranscriptOptions): string {
   let result = ""
 
   if (msg.role === "user") {
-    result += `## User\n\n`
+    const ts = options.assistantMetadata && msg.time.created
+      ? ` _(${new Date(msg.time.created).toLocaleTimeString()})_`
+      : ""
+    result += `## User${ts}\n\n`
   } else {
     result += formatAssistantHeader(msg, options.assistantMetadata)
   }
@@ -129,6 +185,11 @@ export function formatPart(part: Part, options: TranscriptOptions): string {
     const cache = t.cache ? ` (cache: ${t.cache.read}r/${t.cache.write}w)` : ""
     const cost = part.cost ? ` · $${part.cost.toFixed(4)}` : ""
     return `> _Step: ${tokens}${reasoning}${cache}${cost}_\n\n`
+  }
+
+  if (part.type === "patch") {
+    if (!part.files.length) return ""
+    return `**Files changed:**\n${part.files.map((f) => `- \`${f}\``).join("\n")}\n\n`
   }
 
   return ""

@@ -3,6 +3,7 @@ import {
   formatAssistantHeader,
   formatMessage,
   formatPart,
+  formatSummary,
   formatTranscript,
 } from "../../../src/cli/cmd/tui/util/transcript"
 import type { AssistantMessage, Part, UserMessage } from "@cyberstrike-io/sdk/v2"
@@ -192,12 +193,40 @@ describe("transcript", () => {
       expect(result).toContain("**Error:**")
       expect(result).toContain("Command failed")
     })
+
+    test("formats patch part with files", () => {
+      const part: Part = {
+        id: "part_1",
+        sessionID: "ses_123",
+        messageID: "msg_123",
+        type: "patch",
+        hash: "abc123",
+        files: ["src/index.ts", "src/util.ts"],
+      }
+      const result = formatPart(part, options)
+      expect(result).toContain("**Files changed:**")
+      expect(result).toContain("`src/index.ts`")
+      expect(result).toContain("`src/util.ts`")
+    })
+
+    test("skips empty patch part", () => {
+      const part: Part = {
+        id: "part_1",
+        sessionID: "ses_123",
+        messageID: "msg_123",
+        type: "patch",
+        hash: "abc123",
+        files: [],
+      }
+      const result = formatPart(part, options)
+      expect(result).toBe("")
+    })
   })
 
   describe("formatMessage", () => {
     const options = { thinking: true, toolDetails: true, assistantMetadata: true, includeChildren: false }
 
-    test("formats user message", () => {
+    test("formats user message with timestamp", () => {
       const msg: UserMessage = {
         id: "msg_123",
         sessionID: "ses_123",
@@ -208,8 +237,22 @@ describe("transcript", () => {
       }
       const parts: Part[] = [{ id: "p1", sessionID: "ses_123", messageID: "msg_123", type: "text", text: "Hello" }]
       const result = formatMessage(msg, parts, options)
-      expect(result).toContain("## User")
+      expect(result).toContain("## User _")
       expect(result).toContain("Hello")
+    })
+
+    test("formats user message without timestamp when metadata disabled", () => {
+      const msg: UserMessage = {
+        id: "msg_123",
+        sessionID: "ses_123",
+        role: "user",
+        agent: "build",
+        model: { providerID: "anthropic", modelID: "claude-sonnet-4-20250514" },
+        time: { created: 1000000 },
+      }
+      const parts: Part[] = [{ id: "p1", sessionID: "ses_123", messageID: "msg_123", type: "text", text: "Hello" }]
+      const result = formatMessage(msg, parts, { ...options, assistantMetadata: false })
+      expect(result).toBe("## User\n\nHello\n\n")
     })
 
     test("formats assistant message with metadata", () => {
@@ -282,6 +325,59 @@ describe("transcript", () => {
       expect(result).toContain("## Assistant (Build · claude-sonnet-4-20250514 · 0.5s)")
       expect(result).toContain("Hi!")
       expect(result).toContain("---")
+    })
+
+    test("includes summary when assistantMetadata enabled", () => {
+      const session = {
+        id: "ses_abc123",
+        title: "Test Session",
+        time: { created: 1000000000000, updated: 1000000001000 },
+      }
+      const messages = [
+        {
+          info: {
+            id: "msg_1",
+            sessionID: "ses_abc123",
+            role: "assistant" as const,
+            agent: "build",
+            modelID: "claude-sonnet-4-20250514",
+            providerID: "anthropic",
+            mode: "",
+            parentID: "msg_0",
+            path: { cwd: "/test", root: "/test" },
+            cost: 0.015,
+            tokens: { input: 1000, output: 500, reasoning: 100, cache: { read: 800, write: 200 } },
+            time: { created: 1000000000100, completed: 1000000000600 },
+          },
+          parts: [
+            { id: "p1", sessionID: "ses_abc123", messageID: "msg_1", type: "text" as const, text: "Done" },
+            {
+              id: "p2",
+              sessionID: "ses_abc123",
+              messageID: "msg_1",
+              type: "tool" as const,
+              callID: "c1",
+              tool: "bash",
+              state: { status: "completed" as const, input: { command: "ls" }, output: "ok", time: { start: 1, end: 2 }, metadata: {}, title: "" },
+            },
+            {
+              id: "p3",
+              sessionID: "ses_abc123",
+              messageID: "msg_1",
+              type: "patch" as const,
+              hash: "h1",
+              files: ["src/a.ts", "src/b.ts"],
+            },
+          ],
+        },
+      ]
+      const options = { thinking: false, toolDetails: false, assistantMetadata: true, includeChildren: false }
+      const result = formatTranscript(session, messages, options)
+      expect(result).toContain("# Summary")
+      expect(result).toContain("Tool calls | 1")
+      expect(result).toContain("Files changed | 2")
+      expect(result).toContain("$0.0150")
+      expect(result).toContain("`src/a.ts`")
     })
 
     test("formats transcript without assistant metadata", () => {
