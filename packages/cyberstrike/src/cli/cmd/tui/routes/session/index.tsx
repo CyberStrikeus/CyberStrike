@@ -81,7 +81,7 @@ import { Global } from "@/global"
 import { PermissionPrompt } from "./permission"
 import { QuestionPrompt } from "./question"
 import { DialogExportOptions } from "../../ui/dialog-export-options"
-import { formatTranscript } from "../../util/transcript"
+import { formatTranscript, type ChildSession } from "../../util/transcript"
 import { UI } from "@/cli/ui.ts"
 
 addDefaultParsers(parsers.parsers)
@@ -994,17 +994,18 @@ export function Session() {
 
           if (options === null) return
 
-          const childSessions = options.includeChildren
-            ? children()
-                .filter((c) => c.id !== sessionData.id)
-                .map((c) => ({
-                  session: c,
-                  messages: (sync.data.message[c.id] ?? []).map((msg) => ({
-                    info: msg,
-                    parts: sync.data.part[msg.id] ?? [],
-                  })),
-                }))
-            : undefined
+          let childSessions: ChildSession[] | undefined
+          if (options.includeChildren) {
+            const descendants = collectDescendants(sessionData.id, sync.data.session)
+            await Promise.all(descendants.map((s) => sync.session.sync(s.id)))
+            childSessions = descendants.map((c) => ({
+              session: { id: c.id, title: c.title ?? c.id.slice(0, 8), parentID: c.parentID, time: { created: c.time.created, updated: c.time.updated } },
+              messages: (sync.data.message[c.id] ?? []).map((msg) => ({
+                info: msg,
+                parts: sync.data.part[msg.id] ?? [],
+              })),
+            }))
+          }
 
           const transcript = formatTranscript(
             sessionData,
@@ -2296,6 +2297,18 @@ function Skill(props: ToolProps<typeof SkillTool>) {
       Skill "{props.input.name}"
     </InlineTool>
   )
+}
+
+function collectDescendants<T extends { id: string; parentID?: string }>(rootID: string, sessions: T[]): T[] {
+  const result: T[] = []
+  const queue = [rootID]
+  while (queue.length) {
+    const id = queue.shift()!
+    const kids = sessions.filter((s) => s.parentID === id && s.id !== rootID)
+    result.push(...kids)
+    queue.push(...kids.map((s) => s.id))
+  }
+  return result
 }
 
 function normalizePath(input?: string) {
