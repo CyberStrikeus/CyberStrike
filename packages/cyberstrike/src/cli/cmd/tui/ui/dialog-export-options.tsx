@@ -10,12 +10,14 @@ export type DialogExportOptionsProps = {
   defaultThinking: boolean
   defaultToolDetails: boolean
   defaultAssistantMetadata: boolean
+  defaultIncludeChildren: boolean
   defaultOpenWithoutSaving: boolean
   onConfirm?: (options: {
     filename: string
     thinking: boolean
     toolDetails: boolean
     assistantMetadata: boolean
+    includeChildren: boolean
     openWithoutSaving: boolean
   }) => void
   onCancel?: () => void
@@ -29,8 +31,9 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
     thinking: props.defaultThinking,
     toolDetails: props.defaultToolDetails,
     assistantMetadata: props.defaultAssistantMetadata,
+    includeChildren: props.defaultIncludeChildren,
     openWithoutSaving: props.defaultOpenWithoutSaving,
-    active: "filename" as "filename" | "thinking" | "toolDetails" | "assistantMetadata" | "openWithoutSaving",
+    active: "filename" as "filename" | "thinking" | "toolDetails" | "assistantMetadata" | "includeChildren" | "openWithoutSaving",
   })
 
   useKeyboard((evt) => {
@@ -40,15 +43,17 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
         thinking: store.thinking,
         toolDetails: store.toolDetails,
         assistantMetadata: store.assistantMetadata,
+        includeChildren: store.includeChildren,
         openWithoutSaving: store.openWithoutSaving,
       })
     }
     if (evt.name === "tab") {
-      const order: Array<"filename" | "thinking" | "toolDetails" | "assistantMetadata" | "openWithoutSaving"> = [
+      const order: Array<"filename" | "thinking" | "toolDetails" | "assistantMetadata" | "includeChildren" | "openWithoutSaving"> = [
         "filename",
         "thinking",
         "toolDetails",
         "assistantMetadata",
+        "includeChildren",
         "openWithoutSaving",
       ]
       const currentIndex = order.indexOf(store.active)
@@ -60,6 +65,7 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
       if (store.active === "thinking") setStore("thinking", !store.thinking)
       if (store.active === "toolDetails") setStore("toolDetails", !store.toolDetails)
       if (store.active === "assistantMetadata") setStore("assistantMetadata", !store.assistantMetadata)
+      if (store.active === "includeChildren") setStore("includeChildren", !store.includeChildren)
       if (store.active === "openWithoutSaving") setStore("openWithoutSaving", !store.openWithoutSaving)
       evt.preventDefault()
     }
@@ -95,6 +101,7 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
               thinking: store.thinking,
               toolDetails: store.toolDetails,
               assistantMetadata: store.assistantMetadata,
+              includeChildren: store.includeChildren,
               openWithoutSaving: store.openWithoutSaving,
             })
           }}
@@ -149,6 +156,18 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
           flexDirection="row"
           gap={2}
           paddingLeft={1}
+          backgroundColor={store.active === "includeChildren" ? theme.backgroundElement : undefined}
+          onMouseUp={() => setStore("active", "includeChildren")}
+        >
+          <text fg={store.active === "includeChildren" ? theme.primary : theme.textMuted}>
+            {store.includeChildren ? "[x]" : "[ ]"}
+          </text>
+          <text fg={store.active === "includeChildren" ? theme.primary : theme.text}>Include subagent sessions</text>
+        </box>
+        <box
+          flexDirection="row"
+          gap={2}
+          paddingLeft={1}
           backgroundColor={store.active === "openWithoutSaving" ? theme.backgroundElement : undefined}
           onMouseUp={() => setStore("active", "openWithoutSaving")}
         >
@@ -180,6 +199,7 @@ DialogExportOptions.show = (
   defaultThinking: boolean,
   defaultToolDetails: boolean,
   defaultAssistantMetadata: boolean,
+  defaultIncludeChildren: boolean,
   defaultOpenWithoutSaving: boolean,
 ) => {
   return new Promise<{
@@ -187,6 +207,7 @@ DialogExportOptions.show = (
     thinking: boolean
     toolDetails: boolean
     assistantMetadata: boolean
+    includeChildren: boolean
     openWithoutSaving: boolean
   } | null>((resolve) => {
     dialog.replace(
@@ -196,6 +217,7 @@ DialogExportOptions.show = (
           defaultThinking={defaultThinking}
           defaultToolDetails={defaultToolDetails}
           defaultAssistantMetadata={defaultAssistantMetadata}
+          defaultIncludeChildren={defaultIncludeChildren}
           defaultOpenWithoutSaving={defaultOpenWithoutSaving}
           onConfirm={(options) => resolve(options)}
           onCancel={() => resolve(null)}

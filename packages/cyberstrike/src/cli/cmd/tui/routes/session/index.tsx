@@ -955,6 +955,7 @@ export function Session() {
               thinking: showThinking(),
               toolDetails: showDetails(),
               assistantMetadata: showAssistantMetadata(),
+              includeChildren: false,
             },
           )
           await Clipboard.copy(transcript)
@@ -987,10 +988,23 @@ export function Session() {
             showThinking(),
             showDetails(),
             showAssistantMetadata(),
+            true,
             false,
           )
 
           if (options === null) return
+
+          const childSessions = options.includeChildren
+            ? children()
+                .filter((c) => c.id !== sessionData.id)
+                .map((c) => ({
+                  session: c,
+                  messages: (sync.data.message[c.id] ?? []).map((msg) => ({
+                    info: msg,
+                    parts: sync.data.part[msg.id] ?? [],
+                  })),
+                }))
+            : undefined
 
           const transcript = formatTranscript(
             sessionData,
@@ -999,7 +1013,9 @@ export function Session() {
               thinking: options.thinking,
               toolDetails: options.toolDetails,
               assistantMetadata: options.assistantMetadata,
+              includeChildren: options.includeChildren,
             },
+            childSessions,
           )
 
           if (options.openWithoutSaving) {
