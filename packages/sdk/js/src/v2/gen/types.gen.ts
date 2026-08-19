@@ -1375,6 +1375,46 @@ export type KeybindsConfig = {
    */
   session_unshare?: string
   /**
+   * Pin/unpin session to quick switch slot
+   */
+  session_pin_toggle?: string
+  /**
+   * Quick switch to pinned session slot 1
+   */
+  session_quick_switch_1?: string
+  /**
+   * Quick switch to pinned session slot 2
+   */
+  session_quick_switch_2?: string
+  /**
+   * Quick switch to pinned session slot 3
+   */
+  session_quick_switch_3?: string
+  /**
+   * Quick switch to pinned session slot 4
+   */
+  session_quick_switch_4?: string
+  /**
+   * Quick switch to pinned session slot 5
+   */
+  session_quick_switch_5?: string
+  /**
+   * Quick switch to pinned session slot 6
+   */
+  session_quick_switch_6?: string
+  /**
+   * Quick switch to pinned session slot 7
+   */
+  session_quick_switch_7?: string
+  /**
+   * Quick switch to pinned session slot 8
+   */
+  session_quick_switch_8?: string
+  /**
+   * Quick switch to pinned session slot 9
+   */
+  session_quick_switch_9?: string
+  /**
    * Interrupt current session
    */
   session_interrupt?: string
