@@ -378,6 +378,73 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       }
     })
 
+    const session = iife(() => {
+      const [store, setStore] = createStore<{
+        ready: boolean
+        pinned: string[]
+      }>({
+        ready: false,
+        pinned: [],
+      })
+
+      const file = Bun.file(path.join(Global.Path.state, "session.json"))
+      const pending = { value: false }
+
+      function save() {
+        if (!store.ready) {
+          pending.value = true
+          return
+        }
+        pending.value = false
+        Bun.write(file, JSON.stringify({ pinned: store.pinned }))
+      }
+
+      file
+        .json()
+        .then((x) => {
+          if (Array.isArray(x.pinned)) setStore("pinned", x.pinned)
+        })
+        .catch(() => {})
+        .finally(() => {
+          setStore("ready", true)
+          if (pending.value) save()
+        })
+
+      return {
+        get ready() {
+          return store.ready
+        },
+        pinned() {
+          return store.pinned
+        },
+        isPinned(id: string) {
+          return store.pinned.includes(id)
+        },
+        togglePin(id: string) {
+          batch(() => {
+            const exists = store.pinned.includes(id)
+            if (exists) {
+              setStore("pinned", store.pinned.filter((x) => x !== id))
+            } else {
+              if (store.pinned.length >= 9) {
+                toast.show({
+                  variant: "warning",
+                  message: "Maximum 9 pinned sessions (Alt+1-9)",
+                  duration: 3000,
+                })
+                return
+              }
+              setStore("pinned", [...store.pinned, id])
+            }
+            save()
+          })
+        },
+        slot(n: number) {
+          return store.pinned[n - 1]
+        },
+      }
+    })
+
     const mcp = {
       isEnabled(name: string) {
         const status = sync.data.mcp[name]
@@ -386,10 +453,8 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       async toggle(name: string) {
         const status = sync.data.mcp[name]
         if (status?.status === "connected") {
-          // Disable: disconnect the MCP
           await sdk.client.mcp.disconnect({ name })
         } else {
-          // Enable/Retry: connect the MCP (handles disabled, failed, and other states)
           await sdk.client.mcp.connect({ name })
         }
       },
@@ -417,6 +482,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       model,
       agent,
       mcp,
+      session,
     }
     return result
   },
