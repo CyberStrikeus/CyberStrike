@@ -42,7 +42,7 @@ export function DialogSessionList() {
   const [allSessions] = createResource(
     () => true,
     async () => {
-      const result = await sdk.client.session.list({ limit: 100 })
+      const result = await sdk.client.session.list({ roots: true, limit: 100 })
       return result.data ?? []
     },
   )
