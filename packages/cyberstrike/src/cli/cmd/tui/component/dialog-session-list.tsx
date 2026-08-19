@@ -109,7 +109,7 @@ export function DialogSessionList() {
         value: x.id,
         category: "Pinned",
         footer: Locale.time(x.time.updated),
-        gutter: isWorking ? <Spinner /> : `${slot}`,
+        gutter: isWorking ? <Spinner /> : <text>{slot}</text>,
       }
     })
 
@@ -191,9 +191,15 @@ export function DialogSessionList() {
         },
         {
           keybind: keybind.all.session_pin_toggle?.[0],
-          title: "pin",
+          title: "pin/unpin",
           onTrigger: (option) => {
+            const wasPinned = local.session.isPinned(option.value)
             local.session.togglePin(option.value)
+            toast.show({
+              variant: "success",
+              message: wasPinned ? "Session unpinned" : `Session pinned to slot ${local.session.pinned().length}`,
+              duration: 2000,
+            })
           },
         },
         {

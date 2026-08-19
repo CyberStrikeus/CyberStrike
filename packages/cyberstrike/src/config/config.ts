@@ -869,7 +869,7 @@ export namespace Config {
       model_favorite_toggle: z.string().optional().default("ctrl+f").describe("Toggle model favorite status"),
       session_share: z.string().optional().default("none").describe("Share current session"),
       session_unshare: z.string().optional().default("none").describe("Unshare current session"),
-      session_pin_toggle: z.string().optional().default("<leader>p").describe("Pin/unpin session to quick switch slot"),
+      session_pin_toggle: z.string().optional().default("ctrl+b").describe("Pin/unpin session to quick switch slot"),
       session_quick_switch_1: z.string().optional().default("alt+1").describe("Quick switch to pinned session slot 1"),
       session_quick_switch_2: z.string().optional().default("alt+2").describe("Quick switch to pinned session slot 2"),
       session_quick_switch_3: z.string().optional().default("alt+3").describe("Quick switch to pinned session slot 3"),
