@@ -33,7 +33,13 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
     assistantMetadata: props.defaultAssistantMetadata,
     includeChildren: props.defaultIncludeChildren,
     openWithoutSaving: props.defaultOpenWithoutSaving,
-    active: "filename" as "filename" | "thinking" | "toolDetails" | "assistantMetadata" | "includeChildren" | "openWithoutSaving",
+    active: "filename" as
+      | "filename"
+      | "thinking"
+      | "toolDetails"
+      | "assistantMetadata"
+      | "includeChildren"
+      | "openWithoutSaving",
   })
 
   useKeyboard((evt) => {
@@ -48,14 +54,9 @@ export function DialogExportOptions(props: DialogExportOptionsProps) {
       })
     }
     if (evt.name === "tab") {
-      const order: Array<"filename" | "thinking" | "toolDetails" | "assistantMetadata" | "includeChildren" | "openWithoutSaving"> = [
-        "filename",
-        "thinking",
-        "toolDetails",
-        "assistantMetadata",
-        "includeChildren",
-        "openWithoutSaving",
-      ]
+      const order: Array<
+        "filename" | "thinking" | "toolDetails" | "assistantMetadata" | "includeChildren" | "openWithoutSaving"
+      > = ["filename", "thinking", "toolDetails", "assistantMetadata", "includeChildren", "openWithoutSaving"]
       const currentIndex = order.indexOf(store.active)
       const nextIndex = (currentIndex + 1) % order.length
       setStore("active", order[nextIndex])

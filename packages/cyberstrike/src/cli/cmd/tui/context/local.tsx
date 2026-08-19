@@ -424,7 +424,10 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           batch(() => {
             const exists = store.pinned.includes(id)
             if (exists) {
-              setStore("pinned", store.pinned.filter((x) => x !== id))
+              setStore(
+                "pinned",
+                store.pinned.filter((x) => x !== id),
+              )
             } else {
               if (store.pinned.length >= 9) {
                 toast.show({
