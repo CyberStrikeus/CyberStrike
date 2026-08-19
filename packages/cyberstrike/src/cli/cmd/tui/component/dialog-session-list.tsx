@@ -2,7 +2,7 @@ import { useDialog } from "@tui/ui/dialog"
 import { DialogSelect } from "@tui/ui/dialog-select"
 import { useRoute } from "@tui/context/route"
 import { useSync } from "@tui/context/sync"
-import { createMemo, createSignal, createResource, onMount, Show } from "solid-js"
+import { createMemo, createSignal, createResource, onMount } from "solid-js"
 import { Locale } from "@/util/locale"
 import { useKeybind } from "../context/keybind"
 import { useTheme } from "../context/theme"
@@ -10,6 +10,7 @@ import { useSDK } from "../context/sdk"
 import { DialogSessionRename } from "./dialog-session-rename"
 import { useKV } from "../context/kv"
 import { createDebouncedSignal } from "../util/signal"
+import { useToast } from "../ui/toast"
 import { Spinner } from "./spinner"
 
 function dateCategory(timestamp: number): string {
@@ -27,6 +28,15 @@ function dateCategory(timestamp: number): string {
   return "Older"
 }
 
+export function createSessionListQuery(input: { search?: string }) {
+  const search = input.search?.trim()
+  return {
+    roots: true,
+    limit: search ? 30 : 100,
+    ...(search ? { search } : {}),
+  }
+}
+
 export function DialogSessionList() {
   const dialog = useDialog()
   const route = useRoute()
@@ -35,27 +45,46 @@ export function DialogSessionList() {
   const { theme } = useTheme()
   const sdk = useSDK()
   const kv = useKV()
+  const toast = useToast()
 
   const [toDelete, setToDelete] = createSignal<string>()
+  const [deleted, setDeleted] = createSignal(new Set<string>())
   const [search, setSearch] = createDebouncedSignal("", 150)
 
-  const [allSessions] = createResource(
+  const [browseResults, { refetch: refetchBrowse }] = createResource(
     () => true,
     async () => {
-      const result = await sdk.client.session.list({ roots: true, limit: 100 })
+      const query = createSessionListQuery({})
+      const result = await sdk.client.session.list(query).catch(() => ({ data: undefined }))
       return result.data ?? []
     },
   )
 
-  const [searchResults] = createResource(search, async (query) => {
+  const [searchResults, { refetch: refetchSearch }] = createResource(search, async (query) => {
     if (!query) return undefined
-    const result = await sdk.client.session.list({ search: query, limit: 30 })
+    const q = createSessionListQuery({ search: query })
+    const result = await sdk.client.session.list(q).catch(() => ({ data: undefined }))
     return result.data ?? []
   })
 
   const currentSessionID = createMemo(() => (route.data.type === "session" ? route.data.sessionID : undefined))
 
-  const sessions = createMemo(() => searchResults() ?? allSessions() ?? sync.data.session)
+  const sessions = createMemo(() => {
+    const result = searchResults() ?? browseResults() ?? sync.data.session
+    const synced = new Map(sync.data.session.map((s) => [s.id, s]))
+    const ids = new Set(result.map((s) => s.id))
+
+    const current = currentSessionID()
+    const extra = current && !ids.has(current)
+      ? (() => {
+          const s = synced.get(current)
+          return s ? [s] : []
+        })()
+      : []
+
+    return [...result.map((s) => synced.get(s.id) ?? s), ...extra]
+      .filter((s) => !deleted().has(s.id))
+  })
 
   const options = createMemo(() => {
     return sessions()
@@ -104,9 +133,29 @@ export function DialogSessionList() {
           title: "delete",
           onTrigger: async (option) => {
             if (toDelete() === option.value) {
-              sdk.client.session.delete({
-                sessionID: option.value,
-              })
+              try {
+                const result = await sdk.client.session.delete({
+                  sessionID: option.value,
+                })
+                if (result.error) {
+                  toast.show({
+                    variant: "error",
+                    message: `Failed to delete session`,
+                  })
+                  setToDelete(undefined)
+                  return
+                }
+              } catch {
+                toast.show({
+                  variant: "error",
+                  message: `Failed to delete session`,
+                })
+                setToDelete(undefined)
+                return
+              }
+              setDeleted((current) => new Set(current).add(option.value))
+              await refetchBrowse()
+              if (search()) await refetchSearch()
               setToDelete(undefined)
               return
             }
