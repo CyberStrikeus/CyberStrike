@@ -7,6 +7,7 @@ import { Locale } from "@/util/locale"
 import { useKeybind } from "../context/keybind"
 import { useTheme } from "../context/theme"
 import { useSDK } from "../context/sdk"
+import { useLocal } from "../context/local"
 import { DialogSessionRename } from "./dialog-session-rename"
 import { useKV } from "../context/kv"
 import { createDebouncedSignal } from "../util/signal"
@@ -44,6 +45,7 @@ export function DialogSessionList() {
   const keybind = useKeybind()
   const { theme } = useTheme()
   const sdk = useSDK()
+  const local = useLocal()
   const kv = useKV()
   const toast = useToast()
 
@@ -87,9 +89,32 @@ export function DialogSessionList() {
   })
 
   const options = createMemo(() => {
-    return sessions()
+    const pinned = local.session.pinned()
+    const roots = sessions()
       .filter((x) => x.parentID === undefined)
       .toSorted((a, b) => b.time.updated - a.time.updated)
+
+    const pinnedSessions = pinned.flatMap((id) => {
+      const s = roots.find((x) => x.id === id)
+      return s ? [s] : []
+    })
+    const pinnedItems = pinnedSessions.map((x, i) => {
+      const isDeleting = toDelete() === x.id
+      const status = sync.data.session_status?.[x.id]
+      const isWorking = status?.type === "busy"
+      const slot = i + 1
+      return {
+        title: isDeleting ? `Press ${keybind.print("session_delete")} again to confirm` : x.title,
+        bg: isDeleting ? theme.error : undefined,
+        value: x.id,
+        category: "Pinned",
+        footer: Locale.time(x.time.updated),
+        gutter: isWorking ? <Spinner /> : `${slot}`,
+      }
+    })
+
+    const unpinned = roots
+      .filter((x) => !pinned.includes(x.id))
       .map((x) => {
         const category = dateCategory(x.time.updated)
         const isDeleting = toDelete() === x.id
@@ -104,6 +129,8 @@ export function DialogSessionList() {
           gutter: isWorking ? <Spinner /> : undefined,
         }
       })
+
+    return [...pinnedItems, ...unpinned]
   })
 
   onMount(() => {
@@ -160,6 +187,13 @@ export function DialogSessionList() {
               return
             }
             setToDelete(option.value)
+          },
+        },
+        {
+          keybind: keybind.all.session_pin_toggle?.[0],
+          title: "pin",
+          onTrigger: (option) => {
+            local.session.togglePin(option.value)
           },
         },
         {
