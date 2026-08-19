@@ -1082,6 +1082,45 @@ export function Session() {
         dialog.clear()
       },
     },
+    ...Array.from({ length: 9 }, (_, i) => ({
+      title: `Switch to pinned session ${i + 1}`,
+      value: `session.quick_switch.${i + 1}`,
+      keybind: `session_quick_switch_${i + 1}` as any,
+      category: "Session",
+      hidden: true,
+      onSelect: (dialog: ReturnType<typeof useDialog>) => {
+        const id = local.session.slot(i + 1)
+        if (id) {
+          navigate({ type: "session", sessionID: id })
+        } else {
+          toast.show({
+            variant: "info",
+            message: `No session pinned to slot ${i + 1}`,
+            duration: 2000,
+          })
+        }
+        dialog.clear()
+      },
+    })),
+    {
+      title: "Pin/unpin current session",
+      value: "session.pin.toggle",
+      keybind: "session_pin_toggle",
+      category: "Session",
+      slash: {
+        name: "pin",
+      },
+      onSelect: (dialog) => {
+        local.session.togglePin(route.sessionID)
+        const pinned = local.session.isPinned(route.sessionID)
+        toast.show({
+          variant: "success",
+          message: pinned ? `Session pinned to slot ${local.session.pinned().length}` : "Session unpinned",
+          duration: 2000,
+        })
+        dialog.clear()
+      },
+    },
   ])
 
   const revertInfo = createMemo(() => session()?.revert)
