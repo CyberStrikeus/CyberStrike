@@ -1124,7 +1124,7 @@ export namespace Config {
         .enum(["manual", "auto", "disabled"])
         .optional()
         .describe(
-          "Control sharing behavior:'manual' allows manual sharing via commands, 'auto' enables automatic sharing, 'disabled' disables all sharing",
+          "Control sharing behavior: 'disabled' disables all sharing (default), 'manual' allows manual sharing via commands, 'auto' enables automatic sharing. Requires enterprise URL configuration.",
         ),
       autoshare: z
         .boolean()
