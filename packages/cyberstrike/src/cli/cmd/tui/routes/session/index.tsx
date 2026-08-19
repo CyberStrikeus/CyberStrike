@@ -999,7 +999,12 @@ export function Session() {
             const descendants = collectDescendants(sessionData.id, sync.data.session)
             await Promise.all(descendants.map((s) => sync.session.sync(s.id)))
             childSessions = descendants.map((c) => ({
-              session: { id: c.id, title: c.title ?? c.id.slice(0, 8), parentID: c.parentID, time: { created: c.time.created, updated: c.time.updated } },
+              session: {
+                id: c.id,
+                title: c.title ?? c.id.slice(0, 8),
+                parentID: c.parentID,
+                time: { created: c.time.created, updated: c.time.updated },
+              },
               messages: (sync.data.message[c.id] ?? []).map((msg) => ({
                 info: msg,
                 parts: sync.data.part[msg.id] ?? [],

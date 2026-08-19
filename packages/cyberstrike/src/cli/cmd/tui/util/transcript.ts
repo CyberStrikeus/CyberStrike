@@ -116,9 +116,8 @@ export function formatMessage(msg: UserMessage | AssistantMessage, parts: Part[]
   let result = ""
 
   if (msg.role === "user") {
-    const ts = options.assistantMetadata && msg.time.created
-      ? ` _(${new Date(msg.time.created).toLocaleTimeString()})_`
-      : ""
+    const ts =
+      options.assistantMetadata && msg.time.created ? ` _(${new Date(msg.time.created).toLocaleTimeString()})_` : ""
     result += `## User${ts}\n\n`
   } else {
     result += formatAssistantHeader(msg, options.assistantMetadata)
@@ -165,9 +164,8 @@ export function formatPart(part: Part, options: TranscriptOptions): string {
       result += `\n<details><summary>Input</summary>\n\n\`\`\`json\n${JSON.stringify(part.state.input, null, 2)}\n\`\`\`\n\n</details>\n`
     }
     if (options.toolDetails && part.state.status === "completed" && part.state.output) {
-      const output = part.state.output.length > 5000
-        ? part.state.output.slice(0, 5000) + "\n...(truncated)"
-        : part.state.output
+      const output =
+        part.state.output.length > 5000 ? part.state.output.slice(0, 5000) + "\n...(truncated)" : part.state.output
       result += `\n<details><summary>Output</summary>\n\n\`\`\`\n${output}\n\`\`\`\n\n</details>\n`
     }
     if (options.toolDetails && part.state.status === "error" && part.state.error) {

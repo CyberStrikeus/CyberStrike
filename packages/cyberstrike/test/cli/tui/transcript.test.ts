@@ -358,7 +358,14 @@ describe("transcript", () => {
               type: "tool" as const,
               callID: "c1",
               tool: "bash",
-              state: { status: "completed" as const, input: { command: "ls" }, output: "ok", time: { start: 1, end: 2 }, metadata: {}, title: "" },
+              state: {
+                status: "completed" as const,
+                input: { command: "ls" },
+                output: "ok",
+                time: { start: 1, end: 2 },
+                metadata: {},
+                title: "",
+              },
             },
             {
               id: "p3",

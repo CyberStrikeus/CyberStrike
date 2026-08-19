@@ -77,15 +77,15 @@ export function DialogSessionList() {
     const ids = new Set(result.map((s) => s.id))
 
     const current = currentSessionID()
-    const extra = current && !ids.has(current)
-      ? (() => {
-          const s = synced.get(current)
-          return s ? [s] : []
-        })()
-      : []
+    const extra =
+      current && !ids.has(current)
+        ? (() => {
+            const s = synced.get(current)
+            return s ? [s] : []
+          })()
+        : []
 
-    return [...result.map((s) => synced.get(s.id) ?? s), ...extra]
-      .filter((s) => !deleted().has(s.id))
+    return [...result.map((s) => synced.get(s.id) ?? s), ...extra].filter((s) => !deleted().has(s.id))
   })
 
   const options = createMemo(() => {
