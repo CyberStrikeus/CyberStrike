@@ -2102,7 +2102,7 @@ export type Config = {
   plugin?: Array<string>
   snapshot?: boolean
   /**
-   * Control sharing behavior:'manual' allows manual sharing via commands, 'auto' enables automatic sharing, 'disabled' disables all sharing
+   * Control sharing behavior: 'disabled' disables all sharing (default), 'manual' allows manual sharing via commands, 'auto' enables automatic sharing. Requires enterprise URL configuration.
    */
   share?: "manual" | "auto" | "disabled"
   /**
