@@ -12,6 +12,21 @@ import { useKV } from "../context/kv"
 import { createDebouncedSignal } from "../util/signal"
 import { Spinner } from "./spinner"
 
+function dateCategory(timestamp: number): string {
+  const now = new Date()
+  const date = new Date(timestamp)
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today.getTime() - 86400000)
+  const weekAgo = new Date(today.getTime() - 7 * 86400000)
+  const monthAgo = new Date(today.getTime() - 30 * 86400000)
+
+  if (date >= today) return "Today"
+  if (date >= yesterday) return "Yesterday"
+  if (date >= weekAgo) return "This Week"
+  if (date >= monthAgo) return "This Month"
+  return "Older"
+}
+
 export function DialogSessionList() {
   const dialog = useDialog()
   const route = useRoute()
@@ -24,6 +39,14 @@ export function DialogSessionList() {
   const [toDelete, setToDelete] = createSignal<string>()
   const [search, setSearch] = createDebouncedSignal("", 150)
 
+  const [allSessions] = createResource(
+    () => true,
+    async () => {
+      const result = await sdk.client.session.list({ limit: 100 })
+      return result.data ?? []
+    },
+  )
+
   const [searchResults] = createResource(search, async (query) => {
     if (!query) return undefined
     const result = await sdk.client.session.list({ search: query, limit: 30 })
@@ -32,19 +55,14 @@ export function DialogSessionList() {
 
   const currentSessionID = createMemo(() => (route.data.type === "session" ? route.data.sessionID : undefined))
 
-  const sessions = createMemo(() => searchResults() ?? sync.data.session)
+  const sessions = createMemo(() => searchResults() ?? allSessions() ?? sync.data.session)
 
   const options = createMemo(() => {
-    const today = new Date().toDateString()
     return sessions()
       .filter((x) => x.parentID === undefined)
       .toSorted((a, b) => b.time.updated - a.time.updated)
       .map((x) => {
-        const date = new Date(x.time.updated)
-        let category = date.toDateString()
-        if (category === today) {
-          category = "Today"
-        }
+        const category = dateCategory(x.time.updated)
         const isDeleting = toDelete() === x.id
         const status = sync.data.session_status?.[x.id]
         const isWorking = status?.type === "busy"
