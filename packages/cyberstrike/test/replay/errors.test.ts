@@ -11,6 +11,19 @@ describe("ReplayError.classify", () => {
     expect(ReplayError.classify({ code: "EHOSTUNREACH" })).toBe("unreachable")
   })
 
+  test("maps Bun-native fetch codes", () => {
+    expect(ReplayError.classify({ code: "ConnectionRefused", message: "Unable to connect." })).toBe("conn_refused")
+    expect(ReplayError.classify({ code: "ConnectionClosed" })).toBe("reset")
+    expect(ReplayError.classify({ code: "ConnectionTimedOut" })).toBe("timeout")
+    expect(ReplayError.classify({ code: "DNSFailure" })).toBe("dns")
+  })
+
+  test("falls back to the message when the code is unrecognized", () => {
+    expect(ReplayError.classify({ code: "X", message: "Unable to connect. Is the computer able..." })).toBe(
+      "conn_refused",
+    )
+  })
+
   test("treats AbortError / TimeoutError as timeout", () => {
     expect(ReplayError.classify({ name: "AbortError" })).toBe("timeout")
     expect(ReplayError.classify({ name: "TimeoutError" })).toBe("timeout")
