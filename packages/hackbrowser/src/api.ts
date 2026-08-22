@@ -18,6 +18,7 @@ import { chromium } from "playwright"
 import type { LanguageModel } from "ai"
 
 import { run } from "./agent.ts"
+import { findSystemChrome } from "./stealth.ts"
 import { Log, type LogSink, type LogRecord, type LogLevel } from "./log.ts"
 import { setEventSink, clearEventSink } from "./panel/emit.ts"
 import type { AgentConfig, CredentialConfig, CrawlResult, CSEvent } from "./types.ts"
@@ -79,6 +80,12 @@ export interface CrawlOptions {
   panel?: boolean
   dryRun?: boolean
 
+  // Connect to user's real Chrome via CDP. User launches Chrome with
+  // --remote-debugging-port=9222 and hackbrowser connects to it instead
+  // of launching Playwright's bundled Chromium. Bypasses WAF TLS
+  // fingerprinting (Cloudflare, etc.).
+  cdp?: string
+
   // Cancellation — when fired, the agent finishes the current step and
   // gracefully exits the BFS loop. The browser closes via the existing
   // finally block. LLM calls in progress are NOT cancelled at the SDK
@@ -106,12 +113,13 @@ const log = Log.create({ service: "hackbrowser:api" })
  * Users (typically developers/pentesters) run the install command once.
  */
 function preflightCheck(): void {
+  if (findSystemChrome()) return
   const chromiumPath = chromium.executablePath()
   if (!existsSync(chromiumPath)) {
     throw new Error(
-      `Chromium browser is not installed at ${chromiumPath}.\n` +
-        `Run: bunx playwright install chromium\n` +
-        `(or: npx playwright install chromium — both download to the same cache)`,
+      `No browser found. Install Google Chrome or run:\n` +
+        `  bunx playwright install chromium\n` +
+        `(or: npx playwright install chromium)`,
     )
   }
 }
@@ -163,6 +171,7 @@ function toAgentConfig(opts: CrawlOptions): AgentConfig {
     dryRun: opts.dryRun,
     panel: opts.panel,
     model: opts.model,
+    cdp: opts.cdp,
     signal: opts.signal,
   }
 }
@@ -182,7 +191,7 @@ function toAgentConfig(opts: CrawlOptions): AgentConfig {
  */
 export async function runCrawl(opts: CrawlOptions): Promise<CrawlResult> {
   validate(opts)
-  preflightCheck()
+  if (!opts.cdp) preflightCheck()
 
   // Logger and event sink setup — install caller's sinks if provided,
   // restore defaults in finally so subsequent calls in the same process
@@ -283,6 +292,7 @@ export function parseArgsToOptions(argv: string[]): CrawlOptions {
     headless: hasFlag("--headless") ? true : undefined,
     dryRun: hasFlag("--dry-run"),
     panel: hasFlag("--no-panel") ? false : undefined,
+    cdp: getArg("--use-chrome") ?? (hasFlag("--use-chrome") ? "http://localhost:9222" : undefined),
     logLevel: hasFlag("--debug") ? "DEBUG" : undefined,
   }
 }

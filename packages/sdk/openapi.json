@@ -13211,6 +13211,56 @@
             "default": "none",
             "type": "string"
           },
+          "session_pin_toggle": {
+            "description": "Pin/unpin session to quick switch slot",
+            "default": "ctrl+b",
+            "type": "string"
+          },
+          "session_quick_switch_1": {
+            "description": "Quick switch to pinned session slot 1",
+            "default": "alt+1",
+            "type": "string"
+          },
+          "session_quick_switch_2": {
+            "description": "Quick switch to pinned session slot 2",
+            "default": "alt+2",
+            "type": "string"
+          },
+          "session_quick_switch_3": {
+            "description": "Quick switch to pinned session slot 3",
+            "default": "alt+3",
+            "type": "string"
+          },
+          "session_quick_switch_4": {
+            "description": "Quick switch to pinned session slot 4",
+            "default": "alt+4",
+            "type": "string"
+          },
+          "session_quick_switch_5": {
+            "description": "Quick switch to pinned session slot 5",
+            "default": "alt+5",
+            "type": "string"
+          },
+          "session_quick_switch_6": {
+            "description": "Quick switch to pinned session slot 6",
+            "default": "alt+6",
+            "type": "string"
+          },
+          "session_quick_switch_7": {
+            "description": "Quick switch to pinned session slot 7",
+            "default": "alt+7",
+            "type": "string"
+          },
+          "session_quick_switch_8": {
+            "description": "Quick switch to pinned session slot 8",
+            "default": "alt+8",
+            "type": "string"
+          },
+          "session_quick_switch_9": {
+            "description": "Quick switch to pinned session slot 9",
+            "default": "alt+9",
+            "type": "string"
+          },
           "session_interrupt": {
             "description": "Interrupt current session",
             "default": "escape",
@@ -14410,7 +14460,7 @@
             "type": "boolean"
           },
           "share": {
-            "description": "Control sharing behavior:'manual' allows manual sharing via commands, 'auto' enables automatic sharing, 'disabled' disables all sharing",
+            "description": "Control sharing behavior: 'disabled' disables all sharing (default), 'manual' allows manual sharing via commands, 'auto' enables automatic sharing. Requires enterprise URL configuration.",
             "type": "string",
             "enum": ["manual", "auto", "disabled"]
           },

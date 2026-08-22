@@ -291,6 +291,10 @@ export interface AgentConfig {
   // Used by cyberstrike launcher (Provider → opts.model → AgentConfig.model).
   // Standalone CLI leaves this undefined; navigator falls back to env vars.
   model?: import("ai").LanguageModel
+  // Connect to user's real Chrome via CDP instead of launching Playwright's
+  // bundled Chromium. Bypasses TLS fingerprinting (JA3/JA4) that WAFs like
+  // Cloudflare use to detect automated browsers.
+  cdp?: string
   // Cancellation signal — agent BFS loop checks signal.aborted at each
   // iteration boundary; browser closes via existing finally block.
   // Wired by api.ts from CrawlOptions.signal (Faz B.5).

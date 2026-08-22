@@ -1,4 +1,5 @@
 import { chromium, type Page, type BrowserContext } from "playwright"
+import * as Stealth from "./stealth.ts"
 import { Log } from "./log.ts"
 import type {
   AgentConfig,
@@ -1675,7 +1676,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     throw new Error(`AI model required: ${String(err)}`)
   }
 
-  const browser = await chromium.launch({ headless: config.headless ?? false })
+  const browser = await Stealth.connect({ cdp: config.cdp, headless: config.headless ?? false })
 
   // Single CyberStrike session for ALL credentials. Honor a host-provided
   // sessionID (cyberstrike injects this when /hackbrowser slash or the
@@ -1700,10 +1701,8 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
   const lastAuthHeaders = new Map<string, Record<string, string>>()
 
   for (const [credIndex, cred] of credentials.entries()) {
-    const browserContext = await browser.newContext({
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
-    })
-    // Panel must be ready before first document — attach init script per context.
+    const browserContext = await browser.newContext(Stealth.contextOptions(browser.version()))
+    await browserContext.addInitScript(Stealth.INIT_SCRIPT)
     if (panelOn) await browserContext.addInitScript(PANEL_INIT_SCRIPT)
     const page = await browserContext.newPage()
     attachDialogAutoAccept(page)
@@ -2079,11 +2078,9 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     sessionID = created
   }
 
-  const browser = await chromium.launch({ headless: config.headless ?? false })
-  const context: BrowserContext = await browser.newContext({
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
-  })
-  // Panel must mount on every new document — addInitScript before the first page is created.
+  const browser = await Stealth.connect({ cdp: config.cdp, headless: config.headless ?? false })
+  const context: BrowserContext = await browser.newContext(Stealth.contextOptions(browser.version()))
+  await context.addInitScript(Stealth.INIT_SCRIPT)
   if (panelOn) await context.addInitScript(PANEL_INIT_SCRIPT)
   const page = await context.newPage()
   attachDialogAutoAccept(page)

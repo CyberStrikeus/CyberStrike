@@ -320,7 +320,7 @@ export namespace Session {
 
   export const share = fn(Identifier.schema("session"), async (id) => {
     const cfg = await Config.get()
-    if (cfg.share === "disabled") {
+    if (!cfg.share || cfg.share === "disabled") {
       throw new Error("Sharing is disabled in configuration")
     }
     const { ShareNext } = await import("@/share/share-next")

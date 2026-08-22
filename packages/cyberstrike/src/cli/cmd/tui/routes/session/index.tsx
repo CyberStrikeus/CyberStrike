@@ -81,7 +81,7 @@ import { Global } from "@/global"
 import { PermissionPrompt } from "./permission"
 import { QuestionPrompt } from "./question"
 import { DialogExportOptions } from "../../ui/dialog-export-options"
-import { formatTranscript } from "../../util/transcript"
+import { formatTranscript, type ChildSession } from "../../util/transcript"
 import { UI } from "@/cli/ui.ts"
 
 addDefaultParsers(parsers.parsers)
@@ -572,12 +572,11 @@ export function Session() {
       },
     },
     {
-      title: "Generate report",
+      title: "Generate security report",
       value: "session.report",
       category: "Session",
       slash: {
         name: "report",
-        aliases: ["export"],
       },
       onSelect: (dialog) => {
         dialog.replace(() => (
@@ -956,6 +955,7 @@ export function Session() {
               thinking: showThinking(),
               toolDetails: showDetails(),
               assistantMetadata: showAssistantMetadata(),
+              includeChildren: false,
             },
           )
           await Clipboard.copy(transcript)
@@ -988,10 +988,29 @@ export function Session() {
             showThinking(),
             showDetails(),
             showAssistantMetadata(),
+            true,
             false,
           )
 
           if (options === null) return
+
+          let childSessions: ChildSession[] | undefined
+          if (options.includeChildren) {
+            const descendants = collectDescendants(sessionData.id, sync.data.session)
+            await Promise.all(descendants.map((s) => sync.session.sync(s.id)))
+            childSessions = descendants.map((c) => ({
+              session: {
+                id: c.id,
+                title: c.title ?? c.id.slice(0, 8),
+                parentID: c.parentID,
+                time: { created: c.time.created, updated: c.time.updated },
+              },
+              messages: (sync.data.message[c.id] ?? []).map((msg) => ({
+                info: msg,
+                parts: sync.data.part[msg.id] ?? [],
+              })),
+            }))
+          }
 
           const transcript = formatTranscript(
             sessionData,
@@ -1000,7 +1019,9 @@ export function Session() {
               thinking: options.thinking,
               toolDetails: options.toolDetails,
               assistantMetadata: options.assistantMetadata,
+              includeChildren: options.includeChildren,
             },
+            childSessions,
           )
 
           if (options.openWithoutSaving) {
@@ -1063,6 +1084,45 @@ export function Session() {
             sessionID: parentID,
           })
         }
+        dialog.clear()
+      },
+    },
+    ...Array.from({ length: 9 }, (_, i) => ({
+      title: `Switch to pinned session ${i + 1}`,
+      value: `session.quick_switch.${i + 1}`,
+      keybind: `session_quick_switch_${i + 1}` as any,
+      category: "Session",
+      hidden: true,
+      onSelect: (dialog: ReturnType<typeof useDialog>) => {
+        const id = local.session.slot(i + 1)
+        if (id) {
+          navigate({ type: "session", sessionID: id })
+        } else {
+          toast.show({
+            variant: "info",
+            message: `No session pinned to slot ${i + 1}`,
+            duration: 2000,
+          })
+        }
+        dialog.clear()
+      },
+    })),
+    {
+      title: "Pin/unpin current session",
+      value: "session.pin.toggle",
+      keybind: "session_pin_toggle",
+      category: "Session",
+      slash: {
+        name: "pin",
+      },
+      onSelect: (dialog) => {
+        local.session.togglePin(route.sessionID)
+        const pinned = local.session.isPinned(route.sessionID)
+        toast.show({
+          variant: "success",
+          message: pinned ? `Session pinned to slot ${local.session.pinned().length}` : "Session unpinned",
+          duration: 2000,
+        })
         dialog.clear()
       },
     },
@@ -2281,6 +2341,18 @@ function Skill(props: ToolProps<typeof SkillTool>) {
       Skill "{props.input.name}"
     </InlineTool>
   )
+}
+
+function collectDescendants<T extends { id: string; parentID?: string }>(rootID: string, sessions: T[]): T[] {
+  const result: T[] = []
+  const queue = [rootID]
+  while (queue.length) {
+    const id = queue.shift()!
+    const kids = sessions.filter((s) => s.parentID === id && s.id !== rootID)
+    result.push(...kids)
+    queue.push(...kids.map((s) => s.id))
+  }
+  return result
 }
 
 function normalizePath(input?: string) {

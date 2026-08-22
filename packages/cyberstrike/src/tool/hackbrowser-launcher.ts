@@ -92,6 +92,9 @@ export interface LauncherOptions {
   credentials?: string[]
   steps?: number
   headless?: boolean
+  // Connect to user's real Chrome via CDP instead of Playwright's Chromium.
+  // Bypasses WAF TLS fingerprinting (Cloudflare, etc.).
+  cdp?: string
   // Soft signal — forwarded to worker as { type: "abort" } IPC message.
   // INTEGRATION.md §10.6.
   signal?: AbortSignal
@@ -243,6 +246,7 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
     cyberstrikeUrl,
     model: modelDescriptor,
     credentialDispatch,
+    cdp: opts.cdp,
   }
 
   return { workerOptions, modelInfo, workerPath, runtime }

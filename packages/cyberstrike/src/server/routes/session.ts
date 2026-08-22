@@ -1730,7 +1730,10 @@ export const SessionRoutes = lazy(() =>
           },
           auto: body.auto,
         })
-        await SessionPrompt.loop({ sessionID })
+        await SessionPrompt.loop({ sessionID }).catch((e) => {
+          if (e instanceof Error && e.message === "session prompt cancelled") return
+          throw e
+        })
         return c.json(true)
       },
     )
@@ -1921,8 +1924,11 @@ export const SessionRoutes = lazy(() =>
         return stream(c, async (stream) => {
           const sessionID = c.req.valid("param").sessionID
           const body = c.req.valid("json")
-          const msg = await SessionPrompt.prompt({ ...body, sessionID })
-          stream.write(JSON.stringify(msg))
+          const msg = await SessionPrompt.prompt({ ...body, sessionID }).catch((e) => {
+            if (e instanceof Error && e.message === "session prompt cancelled") return
+            throw e
+          })
+          if (msg) stream.write(JSON.stringify(msg))
         })
       },
     )
@@ -1953,7 +1959,7 @@ export const SessionRoutes = lazy(() =>
         return stream(c, async () => {
           const sessionID = c.req.valid("param").sessionID
           const body = c.req.valid("json")
-          SessionPrompt.prompt({ ...body, sessionID })
+          SessionPrompt.prompt({ ...body, sessionID }).catch(() => {})
         })
       },
     )

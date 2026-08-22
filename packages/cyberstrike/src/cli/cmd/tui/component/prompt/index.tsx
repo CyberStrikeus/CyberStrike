@@ -1138,6 +1138,11 @@ export function Prompt(props: PromptProps) {
                   <text fg={theme.text}>
                     {keybind.print("command_list")} <span style={{ fg: theme.textMuted }}>commands</span>
                   </text>
+                  <Show when={local.session.pinned().length > 0}>
+                    <text fg={theme.text}>
+                      alt+1-{local.session.pinned().length} <span style={{ fg: theme.textMuted }}>sessions</span>
+                    </text>
+                  </Show>
                 </Match>
                 <Match when={store.mode === "shell"}>
                   <text fg={theme.text}>
