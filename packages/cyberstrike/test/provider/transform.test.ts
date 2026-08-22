@@ -1638,6 +1638,23 @@ describe("ProviderTransform.variants", () => {
     })
   })
 
+  test("deepseek-v4-flash-vision-exp returns high/max reasoning_effort variants", () => {
+    const model = createMockModel({
+      id: "deepseek/deepseek-v4-flash-vision-exp",
+      providerID: "deepseek",
+      api: {
+        id: "deepseek-v4-flash-vision-exp",
+        url: "https://api.deepseek.com",
+        npm: "@ai-sdk/openai-compatible",
+      },
+    })
+    const result = ProviderTransform.variants(model)
+    expect(result).toEqual({
+      high: { reasoning_effort: "high" },
+      max: { reasoning_effort: "max" },
+    })
+  })
+
   test("minimax returns empty object", () => {
     const model = createMockModel({
       id: "minimax/minimax-model",
