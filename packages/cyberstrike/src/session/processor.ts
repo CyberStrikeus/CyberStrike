@@ -363,6 +363,27 @@ export namespace SessionProcessor {
               if (needsCompaction) break
             }
           } catch (e: any) {
+            if (input.abort.aborted) {
+              log.info("process aborted by user", { sessionID: input.sessionID })
+              input.assistantMessage.finish = "stop"
+              input.assistantMessage.time.completed = Date.now()
+              await Session.updateMessage(input.assistantMessage)
+              const abortedParts = await MessageV2.parts(input.assistantMessage.id)
+              for (const part of abortedParts) {
+                if (part.type === "tool" && part.state.status !== "completed" && part.state.status !== "error") {
+                  await Session.updatePart({
+                    ...part,
+                    state: {
+                      ...part.state,
+                      status: "error",
+                      error: "Tool execution aborted",
+                      time: { start: Date.now(), end: Date.now() },
+                    },
+                  })
+                }
+              }
+              return "stop"
+            }
             log.error("process", {
               error: e,
               stack: JSON.stringify(e.stack),

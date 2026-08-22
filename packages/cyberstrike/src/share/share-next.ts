@@ -13,7 +13,10 @@ export namespace ShareNext {
   const log = Log.create({ service: "share-next" })
 
   export async function url() {
-    return Config.get().then((x) => x.enterprise?.url ?? "https://cybrstk.us")
+    const config = await Config.get()
+    const enterpriseUrl = config.enterprise?.url
+    if (!enterpriseUrl) throw new Error("Session sharing requires enterprise URL configuration")
+    return enterpriseUrl
   }
 
   const disabled =

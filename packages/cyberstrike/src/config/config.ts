@@ -869,6 +869,16 @@ export namespace Config {
       model_favorite_toggle: z.string().optional().default("ctrl+f").describe("Toggle model favorite status"),
       session_share: z.string().optional().default("none").describe("Share current session"),
       session_unshare: z.string().optional().default("none").describe("Unshare current session"),
+      session_pin_toggle: z.string().optional().default("ctrl+b").describe("Pin/unpin session to quick switch slot"),
+      session_quick_switch_1: z.string().optional().default("alt+1").describe("Quick switch to pinned session slot 1"),
+      session_quick_switch_2: z.string().optional().default("alt+2").describe("Quick switch to pinned session slot 2"),
+      session_quick_switch_3: z.string().optional().default("alt+3").describe("Quick switch to pinned session slot 3"),
+      session_quick_switch_4: z.string().optional().default("alt+4").describe("Quick switch to pinned session slot 4"),
+      session_quick_switch_5: z.string().optional().default("alt+5").describe("Quick switch to pinned session slot 5"),
+      session_quick_switch_6: z.string().optional().default("alt+6").describe("Quick switch to pinned session slot 6"),
+      session_quick_switch_7: z.string().optional().default("alt+7").describe("Quick switch to pinned session slot 7"),
+      session_quick_switch_8: z.string().optional().default("alt+8").describe("Quick switch to pinned session slot 8"),
+      session_quick_switch_9: z.string().optional().default("alt+9").describe("Quick switch to pinned session slot 9"),
       session_interrupt: z.string().optional().default("escape").describe("Interrupt current session"),
       session_compact: z.string().optional().default("<leader>c").describe("Compact the session"),
       messages_page_up: z.string().optional().default("pageup,ctrl+alt+b").describe("Scroll messages up by one page"),
@@ -1114,7 +1124,7 @@ export namespace Config {
         .enum(["manual", "auto", "disabled"])
         .optional()
         .describe(
-          "Control sharing behavior:'manual' allows manual sharing via commands, 'auto' enables automatic sharing, 'disabled' disables all sharing",
+          "Control sharing behavior: 'disabled' disables all sharing (default), 'manual' allows manual sharing via commands, 'auto' enables automatic sharing. Requires enterprise URL configuration.",
         ),
       autoshare: z
         .boolean()
