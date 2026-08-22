@@ -349,7 +349,8 @@ export namespace ProviderTransform {
     )
       return {}
 
-    // DeepSeek V4 supports only "high" and "max" reasoning_effort (low/medium are mapped to high by API)
+    // DeepSeek V4 supports only "high" and "max" reasoning_effort (low/medium are mapped to high by API).
+    // Applies to all deepseek-v4* models including the multimodal deepseek-v4-flash-vision-exp.
     if (id.includes("deepseek")) {
       if (id.includes("deepseek-v4"))
         return {

@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.md">English</a> |
+  <a href="../../README.md">English</a> |
   <a href="README.zh.md">简体中文</a> |
   <a href="README.zht.md">繁體中文</a> |
   <a href="README.ko.md">한국어</a> |
@@ -26,9 +26,9 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="assets/hero-light.webp">
-    <img src="assets/hero-dark.png" alt="CyberStrike — open-source AI agent for offensive security" width="880">
+    <source media="(prefers-color-scheme: dark)" srcset="../../assets/hero-dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="../../assets/hero-light.webp">
+    <img src="../../assets/hero-dark.png" alt="CyberStrike — open-source AI agent for offensive security" width="880">
   </picture>
 </p>
 
@@ -48,8 +48,8 @@
   <a href="#ইনস্টলেশন">ইনস্টলেশন</a> &bull;
   <a href="#বিল্ট-ইন-টুল">বিল্ট-ইন টুল</a> &bull;
   <a href="#এটি-কাদের-জন্য">এটি কাদের জন্য?</a> &bull;
-  <a href="CHANGELOG.md">Changelog</a> &bull;
-  <a href="CONTRIBUTING.md">Contributing</a>
+  <a href="../../CHANGELOG.md">Changelog</a> &bull;
+  <a href="../../CONTRIBUTING.md">Contributing</a>
 </p>
 
 <p align="center">

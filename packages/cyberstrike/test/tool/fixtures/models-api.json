@@ -9866,6 +9866,30 @@
         "open_weights": false,
         "cost": { "input": 0.28, "output": 0.42, "cache_read": 0.028 },
         "limit": { "context": 128000, "output": 128000 }
+      },
+      "deepseek-v4-flash-vision-exp": {
+        "id": "deepseek-v4-flash-vision-exp",
+        "name": "DeepSeek V4 Flash Vision Exp",
+        "description": "Experimental multimodal DeepSeek V4 Flash model for image understanding, coding, and agentic work",
+        "family": "deepseek-flash",
+        "attachment": true,
+        "reasoning": true,
+        "reasoning_options": [
+          { "type": "toggle" },
+          { "type": "effort", "values": ["low", "high", "max"] }
+        ],
+        "tool_call": true,
+        "interleaved": { "field": "reasoning_content" },
+        "structured_output": true,
+        "temperature": true,
+        "knowledge": "2025-05",
+        "release_date": "2026-08-21",
+        "last_updated": "2026-08-21",
+        "modalities": { "input": ["text", "image"], "output": ["text"] },
+        "open_weights": false,
+        "status": "beta",
+        "cost": { "input": 0.14, "output": 0.28, "cache_read": 0.0028 },
+        "limit": { "context": 1000000, "output": 384000 }
       }
     }
   },
