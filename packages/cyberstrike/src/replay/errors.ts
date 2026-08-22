@@ -27,19 +27,33 @@ export namespace ReplayError {
     message?: string
   }
 
-  // Node error codes grouped by taxonomy kind. Checked case-insensitively and
-  // also against the error message as a fallback (fetch wraps causes unevenly).
+  // Error codes grouped by taxonomy kind, covering BOTH Node/undici codes and
+  // Bun's native fetch codes (Bun surfaces e.g. "ConnectionRefused" rather than
+  // POSIX "ECONNREFUSED"). Checked against the error message as a fallback too,
+  // since fetch wraps causes unevenly across runtimes.
   const CODE_MAP: Record<string, Kind> = {
+    // DNS
     ENOTFOUND: "dns",
     EAI_AGAIN: "dns",
+    DNSFailure: "dns",
+    FailedToResolveHostname: "dns",
+    // Connection refused / could not open a socket
     ECONNREFUSED: "conn_refused",
+    ConnectionRefused: "conn_refused",
+    FailedToOpenSocket: "conn_refused",
+    // Timeout
     ETIMEDOUT: "timeout",
+    ConnectionTimedOut: "timeout",
+    Timeout: "timeout",
     UND_ERR_CONNECT_TIMEOUT: "timeout",
     UND_ERR_HEADERS_TIMEOUT: "timeout",
     UND_ERR_BODY_TIMEOUT: "timeout",
+    // Reset / broken connection mid-flight
     ECONNRESET: "reset",
     EPIPE: "reset",
+    ConnectionClosed: "reset",
     UND_ERR_SOCKET: "reset",
+    // Network / host unreachable
     ENETUNREACH: "unreachable",
     EHOSTUNREACH: "unreachable",
   }
@@ -75,6 +89,11 @@ export namespace ReplayError {
     ) {
       return "tls"
     }
+
+    // Message fallbacks for runtimes that don't set a recognizable code.
+    if (msg.includes("UNABLE TO CONNECT") || msg.includes("CONNECTION REFUSED")) return "conn_refused"
+    if (msg.includes("TIMED OUT") || msg.includes("TIMEOUT")) return "timeout"
+    if (msg.includes("RESOLVE") && msg.includes("HOST")) return "dns"
 
     // Recurse into a wrapped cause (fetch: `TypeError: fetch failed` + cause).
     if (e.cause) {
