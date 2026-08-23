@@ -2,7 +2,9 @@ import z from "zod"
 import { Tool } from "./tool"
 import { Session } from "../session"
 import { Request } from "../session/request"
+import { WebCredential, COMMON_AUTH_HEADERS } from "../session/web/web-credential"
 import { HttpMessage } from "../replay/message"
+import { Mutate } from "../replay/mutate"
 import { BackendFetch } from "../replay/backend-fetch"
 
 function originFromRequest(req: Request.Info): string | undefined {
@@ -22,6 +24,10 @@ Use this to:
 - Extract anti-CSRF tokens from login/form pages for recipe building`,
   parameters: z.object({
     request_id: z.string().describe("Captured GET request that serves the page containing the CSRF token"),
+    credential_id: z
+      .string()
+      .optional()
+      .describe("Credential ID to inject auth headers — needed when the CSRF page requires authentication"),
     extract_from: z
       .enum(["body", "header", "cookie"])
       .describe("Where to find the CSRF token: body (HTML/JSON), header, or cookie"),
@@ -65,6 +71,23 @@ Use this to:
         title: "csrf_extract: parse error",
         output: `Could not parse request: ${e instanceof Error ? e.message : String(e)}`,
         metadata: { extracted: false },
+      }
+    }
+
+    if (params.credential_id) {
+      const cred = WebCredential.getById(params.credential_id)
+      if (!cred) {
+        return {
+          title: "csrf_extract: credential not found",
+          output: `Credential "${params.credential_id}" not found.`,
+          metadata: { extracted: false },
+        }
+      }
+      for (const h of COMMON_AUTH_HEADERS) {
+        msg = Mutate.removeHeader(msg, h)
+      }
+      for (const [name, value] of Object.entries(cred.headers)) {
+        msg = Mutate.setHeader(msg, name, value)
       }
     }
 

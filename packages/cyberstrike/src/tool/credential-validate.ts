@@ -15,6 +15,15 @@ function originFromRequest(req: Request.Info): string | undefined {
   return `${scheme}://${req.host}${port}`
 }
 
+function inScope(sessionID: string, host: string): boolean {
+  const allowed = new Set(
+    Request.get(sessionID)
+      .map((r) => r.host)
+      .filter((h): h is string => Boolean(h)),
+  )
+  return allowed.size > 0 && allowed.has(host)
+}
+
 export const CredentialValidateTool = Tool.define("credential_validate", {
   description: `Check whether a credential is still valid by sending a test request and inspecting the response status. Sends the captured request with the credential's auth headers and reports whether the server accepted (2xx/3xx) or rejected (401/403) the credentials.
 
@@ -68,6 +77,19 @@ Use this to:
       }
     }
 
+    try {
+      const url = new URL(origin)
+      if (!inScope(sessionID, url.hostname)) {
+        return {
+          title: "credential_validate: out of scope",
+          output: `Host "${url.hostname}" is not among this session's captured hosts.`,
+          metadata: { valid: false },
+        }
+      }
+    } catch {
+      // origin format issue — let the send call handle it
+    }
+
     let msg: HttpMessage.Request
     try {
       msg = HttpMessage.parse(request.raw_request)
@@ -102,23 +124,33 @@ Use this to:
       }
 
       const status = result.response!.status
-      const valid = status >= 200 && status < 400
+      const valid = status >= 200 && status < 300
+      const redirected = status >= 300 && status < 400
+
+      let hint: string
+      if (valid) {
+        hint = "Credential is still accepted by the server."
+      } else if (redirected) {
+        hint = `Server returned ${status} redirect — likely redirecting to a login page. Credential may be expired.`
+        if (cred.recipe) hint += " Use credential_mint to refresh."
+      } else if (cred.recipe) {
+        hint = "Credential rejected. Use credential_mint to refresh it using the saved recipe."
+      } else {
+        hint = "Credential rejected. No recipe saved — use credential_set_recipe to create one, then credential_mint."
+      }
 
       return {
-        title: `credential_validate: ${valid ? "valid" : "invalid"} (${status})`,
+        title: `credential_validate: ${valid ? "valid" : redirected ? "redirected" : "invalid"} (${status})`,
         output: JSON.stringify(
           {
             credential_id: params.credential_id,
             label: cred.label,
             valid,
+            redirected,
             status,
             timing_ms: Math.round(result.timing.totalMs),
             has_recipe: !!cred.recipe,
-            hint: valid
-              ? "Credential is still accepted by the server."
-              : cred.recipe
-                ? "Credential rejected. Use credential_mint to refresh it using the saved recipe."
-                : "Credential rejected. No recipe saved — use credential_set_recipe to create one, then credential_mint.",
+            hint,
           },
           null,
           2,
