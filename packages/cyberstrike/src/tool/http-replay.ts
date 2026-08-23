@@ -171,7 +171,27 @@ function applyAuthParams(
 
 // ── Auto-refresh on 401 ──────────────────────────────────────────────────────
 
+const refreshing = new Map<string, Promise<boolean>>()
+
 async function tryAutoRefresh(
+  credentialID: string,
+  sessionID: string,
+  origin: string,
+  signal?: AbortSignal,
+): Promise<boolean> {
+  const pending = refreshing.get(credentialID)
+  if (pending) return pending
+
+  const promise = doRefresh(credentialID, sessionID, origin, signal)
+  refreshing.set(credentialID, promise)
+  try {
+    return await promise
+  } finally {
+    refreshing.delete(credentialID)
+  }
+}
+
+async function doRefresh(
   credentialID: string,
   sessionID: string,
   origin: string,
@@ -187,15 +207,49 @@ async function tryAutoRefresh(
     const result = await CredentialRecipe.execute(parsed.data, { sessionID, origin, signal })
     if (Object.keys(result.headers).length === 0) return false
 
+    const cred = WebCredential.getById(credentialID)
+    const merged = { ...(cred?.headers ?? {}) }
+    for (const [name, value] of Object.entries(result.headers)) {
+      const lower = name.toLowerCase()
+      for (const k of Object.keys(merged)) {
+        if (k.toLowerCase() === lower && k !== name) delete merged[k]
+      }
+      merged[name] = value
+    }
+
     WebCredential.update({
       id: credentialID,
       sessionID,
-      headers: result.headers,
+      headers: merged,
     })
     return true
   } catch {
     return false
   }
+}
+
+async function tryProactiveRefresh(
+  credentialID: string,
+  sessionID: string,
+  origin: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  const cred = WebCredential.getById(credentialID)
+  if (!cred) return
+
+  const raw = WebCredential.getRecipe(credentialID)
+  if (!raw) return
+
+  const parsed = Recipe.safeParse(raw)
+  if (!parsed.success) return
+
+  const ttl = parsed.data.ttl_seconds
+  if (!ttl) return
+
+  const elapsed = (Date.now() - cred.time.updated) / 1000
+  if (elapsed < ttl * 0.8) return
+
+  await tryAutoRefresh(credentialID, sessionID, origin, signal)
 }
 
 // ── Governed send wrapper ─────────────────────────────────────────────────────
@@ -403,6 +457,13 @@ export const HttpReplayTool = Tool.define("http_replay", {
       if (compare.exploit.mutations)
         exploitMsg = Apply.mutations(exploitMsg, compare.exploit.mutations as Apply.Mutation[])
 
+      const compareCredIDs = new Set<string>()
+      if (compare.baseline?.credential) compareCredIDs.add(compare.baseline.credential)
+      if (compare.exploit.credential) compareCredIDs.add(compare.exploit.credential)
+      for (const cid of compareCredIDs) {
+        await tryProactiveRefresh(cid, sessionID, origin, ctx.abort)
+      }
+
       const [baselineResult, exploitResult] = await Promise.all([
         sendGoverned(baselineMsg, origin, sendOpts),
         sendGoverned(exploitMsg, origin, sendOpts),
@@ -432,6 +493,10 @@ export const HttpReplayTool = Tool.define("http_replay", {
         return { title: "http_replay sweep", output: (authResult as { error: string }).error, metadata: {} }
       sharedMsg = authResult
       if (params.mutations) sharedMsg = Apply.mutations(sharedMsg, params.mutations as Apply.Mutation[])
+
+      if (params.credential) {
+        await tryProactiveRefresh(params.credential, sessionID, origin, ctx.abort)
+      }
 
       const results = await Batch.run(
         sweep.values,
@@ -469,6 +534,10 @@ export const HttpReplayTool = Tool.define("http_replay", {
         output: `Could not build request: ${e instanceof Error ? e.message : String(e)}`,
         metadata: {},
       }
+    }
+
+    if (params.credential) {
+      await tryProactiveRefresh(params.credential, sessionID, origin, ctx.abort)
     }
 
     let result = await sendGoverned(msg, origin, sendOpts)

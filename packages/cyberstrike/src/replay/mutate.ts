@@ -243,7 +243,12 @@ export namespace Mutate {
    * copying the original body content. */
   export function bodyMerge(req: HttpMessage.Request, fields: string): HttpMessage.Request {
     const obj = parseJsonBody(req)
-    const merge = JSON.parse(fields)
+    let merge: Record<string, unknown>
+    try {
+      merge = JSON.parse(fields)
+    } catch {
+      return req
+    }
     return setBody(req, JSON.stringify({ ...obj, ...merge }))
   }
 
@@ -272,9 +277,7 @@ export namespace Mutate {
   export function setPathParam(req: HttpMessage.Request, position: number, value: string): HttpMessage.Request {
     const { path, query } = splitTarget(req.target)
     const segments = path.split("/")
-    if (position < 0 || position >= segments.length) {
-      throw new Error(`setPathParam: position ${position} out of range (path has ${segments.length} segments)`)
-    }
+    if (position < 0 || position >= segments.length) return req
     segments[position] = value
     return setTarget(req, joinTarget(segments.join("/"), query))
   }
