@@ -22,6 +22,12 @@ export namespace Apply {
     | "set-body"
     | "set-method"
     | "set-target"
+    | "body-merge"
+    | "body-set-field"
+    | "body-remove-field"
+    | "set-cookie"
+    | "remove-cookie"
+    | "set-path-param"
 
   export interface Mutation {
     op: Op
@@ -74,6 +80,24 @@ export namespace Apply {
           break
         case "set-target":
           out = Mutate.setTarget(out, val)
+          break
+        case "body-merge":
+          out = Mutate.bodyMerge(out, val)
+          break
+        case "body-set-field":
+          out = Mutate.bodySetField(out, req_name(m), val)
+          break
+        case "body-remove-field":
+          out = Mutate.bodyRemoveField(out, req_name(m))
+          break
+        case "set-cookie":
+          out = Mutate.setCookie(out, req_name(m), val)
+          break
+        case "remove-cookie":
+          out = Mutate.removeCookie(out, req_name(m))
+          break
+        case "set-path-param":
+          out = Mutate.setPathParam(out, parseInt(req_name(m), 10), val)
           break
       }
     }
