@@ -913,14 +913,16 @@ function handle(ev) {
 
 // ---------- keep card inside viewport on resize ----------
 function clampCard() {
-  var vw = document.documentElement.clientWidth || window.innerWidth;
-  var vh = document.documentElement.clientHeight || window.innerHeight;
+  var vv = window.visualViewport;
+  var vw = vv ? vv.width : (document.documentElement.clientWidth || window.innerWidth);
+  var vh = vv ? vv.height : (document.documentElement.clientHeight || window.innerHeight);
   var w = card.offsetWidth;
   var h = card.offsetHeight;
   card.style.right  = Math.max(0, Math.min(16, vw - w - 16)) + 'px';
   card.style.bottom = Math.max(0, Math.min(16, vh - h - 16)) + 'px';
 }
 window.addEventListener('resize', clampCard);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', clampCard);
 clampCard();
 
 // ---------- render restored state ----------
