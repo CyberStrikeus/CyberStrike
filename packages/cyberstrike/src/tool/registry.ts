@@ -44,6 +44,11 @@ import { HttpReplayTool, HttpReplayRawTool } from "./http-replay"
 import { WebGetVulnerabilitiesTool } from "./web-get-vulnerabilities"
 import { WebGetVulnDetailTool } from "./web-get-vuln-detail"
 import { WebUpdateCredentialClaimsTool } from "./web-update-credential-claims"
+import { WebUpdateCredentialTool } from "./web-update-credential"
+import { CredentialSetRecipeTool } from "./credential-set-recipe"
+import { CredentialMintTool } from "./credential-mint"
+import { CredentialValidateTool } from "./credential-validate"
+import { CsrfExtractTool } from "./csrf-extract"
 import { HackbrowserTool } from "./hackbrowser"
 import { AddIntelTool } from "./intel"
 import { UpdateVrtCheckTool } from "./vrt-check"
@@ -183,6 +188,11 @@ export namespace ToolRegistry {
       WebGetVulnerabilitiesTool,
       WebGetVulnDetailTool,
       WebUpdateCredentialClaimsTool,
+      WebUpdateCredentialTool,
+      CredentialSetRecipeTool,
+      CredentialMintTool,
+      CredentialValidateTool,
+      CsrfExtractTool,
       // Hackbrowser — autonomous crawler that produces captures the
       // proxy-analyzer ingests. Upstream of the rest of the web pipeline.
       HackbrowserTool,
