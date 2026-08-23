@@ -57,12 +57,12 @@ import { Plugin } from "@/plugin"
 import { Skill } from "../skill"
 
 // ============================================================================
-// Static skill injection for vulnerability testing sub-agents
+// Skill injection for vulnerability testing sub-agents
 //
-// Vuln tester sub-agents do not have access to the `skill` tool (their
-// permission is `*: deny` with a small allowlist). To give them the
-// methodology they need without runtime tool calls, we statically embed
-// WSTG skill content via `Skill.get()` into each agent's prompt at startup.
+// Two layers: (1) static WSTG skills embedded at startup via loadVulnAgent()
+// as baseline methodology, and (2) dynamic skill tool access at runtime so
+// agents can discover tech-specific or CWE-specific skills when they detect
+// the target's stack or need deeper methodology.
 // ============================================================================
 
 // Strip defensive sections (Remediation, Risk Assessment, CWE Categories,
@@ -598,6 +598,7 @@ export namespace Agent {
           PermissionNext.fromConfig({
             "*": "deny",
             bash: "allow",
+            webfetch: "allow",
             web_get_session_context: "allow",
             web_get_detail: "allow",
             web_get_request_detail: "allow",
@@ -612,26 +613,15 @@ export namespace Agent {
             methodology_status: "allow",
             scope_check: "allow",
             attack_script: "allow",
+            skill: "allow",
             // Structured replay engine (docs/http-replay-engine-design.md §4):
-            // the ONLY sanctioned way to send attack/modified requests.
+            // PRIMARY way to send attack/modified requests — prompt-enforced, not
+            // permission-blocked. curl/webfetch stay available as fallbacks for
+            // cases http_replay cannot express (complex redirects, streaming).
             http_replay: "allow",
             http_replay_raw: "allow",
           }),
           user,
-          // §4 funnel — HARD requirement, not the model's choice: all attack HTTP
-          // egress goes through the http_replay engine. curl/wget in bash and the
-          // webfetch tool are denied for EVERY vuln tester, merged AFTER the user
-          // ruleset so a user allow cannot loosen it. bash stays allowed for
-          // non-HTTP work (jq, encoding); attack_script (its own tool) is unaffected.
-          PermissionNext.fromConfig({
-            webfetch: "deny",
-            bash: {
-              "*curl *": "deny",
-              "*curl\t*": "deny",
-              "*wget *": "deny",
-              "*wget\t*": "deny",
-            },
-          }),
         )
 
         // Injection-specific permission: blocks destructive SQL payloads and
