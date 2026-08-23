@@ -618,6 +618,24 @@ export namespace Agent {
               "*import urllib*": "deny",
               "*import aiohttp*": "deny",
               "*import httpx*": "deny",
+              // Block inline JS/TS execution — fetch() in bun/node/deno bypasses
+              // all Python/curl denies above.
+              "*bun -e*": "deny",
+              "*bun --eval*": "deny",
+              "*node -e*": "deny",
+              "*node --eval*": "deny",
+              "*deno eval*": "deny",
+              "*deno run*-*": "deny",
+              // Block raw TCP tools — can send HTTP without matching other patterns.
+              "* nc *": "deny",
+              "*ncat *": "deny",
+              "*socat *": "deny",
+              "*telnet *": "deny",
+              // Block base64-pipe-to-interpreter evasion pattern.
+              "*base64*| python*": "deny",
+              "*base64*| python3*": "deny",
+              "*base64*| bun*": "deny",
+              "*base64*| node*": "deny",
               "*": "allow",
             },
             webfetch: "deny",
