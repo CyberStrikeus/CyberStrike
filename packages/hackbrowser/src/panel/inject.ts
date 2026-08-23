@@ -65,9 +65,10 @@ const PANEL_CSS = `
 
 /* =========================== Card base =========================== */
 .card {
-  position: absolute;
+  position: fixed;
   bottom: 16px; right: 16px;
   width: 360px;
+  max-width: calc(100vw - 32px);
   background: #0b0f14;
   border: 1px solid #1f2937;
   /* Non-blocking HUD: the agent's own observability overlay must NEVER intercept
@@ -909,6 +910,18 @@ function handle(ev) {
       return;
   }
 }
+
+// ---------- keep card inside viewport on resize ----------
+function clampCard() {
+  var vw = document.documentElement.clientWidth || window.innerWidth;
+  var vh = document.documentElement.clientHeight || window.innerHeight;
+  var w = card.offsetWidth;
+  var h = card.offsetHeight;
+  card.style.right  = Math.max(0, Math.min(16, vw - w - 16)) + 'px';
+  card.style.bottom = Math.max(0, Math.min(16, vh - h - 16)) + 'px';
+}
+window.addEventListener('resize', clampCard);
+clampCard();
 
 // ---------- render restored state ----------
 setHeader();
