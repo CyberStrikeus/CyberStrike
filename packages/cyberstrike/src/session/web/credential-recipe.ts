@@ -107,7 +107,7 @@ export namespace CredentialRecipe {
     let unresolved = false
     const result = template.replace(/\{\{([\w:.\-]+)\}\}/g, (_, key) => {
       const val = bag[key]
-      if (!val) unresolved = true
+      if (val === undefined) unresolved = true
       return val ?? ""
     })
     return unresolved ? "" : result
