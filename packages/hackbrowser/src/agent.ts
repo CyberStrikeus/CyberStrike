@@ -2091,7 +2091,8 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     await contexts[0]?.page.waitForTimeout(600).catch(() => {})
   }
 
-  await browser.close().catch(() => {})
+  const cancelledByUser = config.signal?.aborted === true
+  if (!cancelledByUser) await browser.close().catch(() => {})
 
   return {
     sessionID: dryRun ? "" : sessionId,
@@ -2496,7 +2497,8 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     await page.waitForTimeout(600).catch(() => {})
   }
 
-  await browser.close().catch(() => {})
+  const cancelledByUser = config.signal?.aborted === true
+  if (!cancelledByUser) await browser.close().catch(() => {})
 
   return {
     sessionID: dryRun ? "" : sessionID!,
