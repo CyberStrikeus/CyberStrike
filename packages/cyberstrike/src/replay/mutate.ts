@@ -242,7 +242,12 @@ export namespace Mutate {
    * parsed body, so the agent can inject extra fields without knowing or
    * copying the original body content. */
   export function bodyMerge(req: HttpMessage.Request, fields: string): HttpMessage.Request {
-    const obj = parseJsonBody(req)
+    let obj: Record<string, unknown>
+    try {
+      obj = JSON.parse(new TextDecoder().decode(req.body))
+    } catch {
+      return req
+    }
     let merge: Record<string, unknown>
     try {
       merge = JSON.parse(fields)
