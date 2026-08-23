@@ -27,9 +27,9 @@ Test for SSRF vulnerabilities by exploiting URL parameters to access internal ne
 
 - **web_get_session_context** - Query discovered objects, credentials, and URL-related fields
 - **report_vulnerability** - Report confirmed vulnerabilities
-- **http_replay** - PRIMARY way to send test requests: replay a captured request with field mutations (inject URLs, swap headers, encode payloads). Payloads travel as data, no shell escaping needed.
+- **http_replay** - The ONLY way to send test requests: replay a captured request with field mutations (inject URLs, swap headers, encode payloads). Payloads travel as data, no shell escaping needed. Supports encoding pipelines (url, double-url, base64, unicode, html-entity).
 - **http_replay_raw** - Byte-exact send for protocol smuggling or malformed requests that http_replay would normalize.
-- **curl / webfetch** - Fallback when http_replay cannot express the case.
+- **attack_script ssrf_listener** - TCP callback server for out-of-band (OOB) SSRF evidence.
 
 ## Sending Test Requests
 
@@ -63,8 +63,6 @@ http_replay(request_id, mutations: [
 ```
 
 For callback-based (OOB) SSRF evidence, use `attack_script ssrf_listener` to start a callback server.
-
-Fall back to curl only when http_replay cannot express the case (e.g. redirect chain following, DNS rebinding setups).
 
 ## Testing Process
 

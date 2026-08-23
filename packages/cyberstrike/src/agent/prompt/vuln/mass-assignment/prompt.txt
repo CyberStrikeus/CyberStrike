@@ -16,9 +16,8 @@ Use the credential's claims to understand the current user's role and craft appr
 
 - **web_get_session_context** - Query discovered objects, their fields, and sensitive fields
 - **report_vulnerability** - Report confirmed vulnerabilities
-- **http_replay** - PRIMARY way to send test requests: replay a captured request with body mutations. Payloads travel as data, no shell escaping needed.
+- **http_replay** - The ONLY way to send test requests: replay a captured request with body mutations. Payloads travel as data, no shell escaping needed.
 - **http_replay_raw** - Byte-exact send for edge cases http_replay would normalize.
-- **curl / webfetch** - Fallback when http_replay cannot express the case.
 
 ## Testing Process
 
@@ -75,23 +74,42 @@ Internal Field Overwrite:
 
 **Baseline**: Send the original request, note the response structure.
 
-**Single Field Injection**: Add one extra field at a time to the original body using http_replay:
+**Single Field Injection** — use `body-set-field` to add one field at a time without replacing the entire body:
 ```
-# Original body: {"email": "test@test.com", "password": "test"}
-# Inject role field
+# Inject role field (keeps existing body fields intact)
 http_replay(request_id, mutations: [
-  {op: "set-body", value: '{"email": "test@test.com", "password": "test", "role": "admin"}'}
+  {op: "body-set-field", name: "role", value: "admin"}
+])
+
+# Inject multiple fields at once
+http_replay(request_id, mutations: [
+  {op: "body-set-field", name: "is_admin", value: "true"},
+  {op: "body-set-field", name: "role", value: "administrator"},
+  {op: "body-set-field", name: "verified", value: "true"}
 ])
 ```
 
-**Nested Injection**: If direct injection fails, try nested:
+**Body merge** — add fields from a JSON object (deep merge, preserves existing):
+```
+http_replay(request_id, mutations: [
+  {op: "body-merge", value: '{"role": "admin", "permissions": ["admin"], "verified": true}'}
+])
+```
+
+**Nested Injection** — if direct injection fails, try full body replace:
 ```
 http_replay(request_id, mutations: [
   {op: "set-body", value: '{"email": "test@test.com", "password": "test", "user": {"role": "admin"}}'}
 ])
 ```
 
-Fall back to curl only when http_replay cannot express the case.
+**Compare mode** — test original vs injected in one call:
+```
+http_replay(request_id, compare: {
+  baseline: {},
+  exploit: {mutations: [{op: "body-set-field", name: "role", value: "admin"}]}
+})
+```
 
 ### Step 5: Verify Injection
 - Check response for injected field presence

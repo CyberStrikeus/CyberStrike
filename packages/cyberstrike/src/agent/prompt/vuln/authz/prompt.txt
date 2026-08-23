@@ -16,9 +16,10 @@ Use the credential info to understand which role/privilege level made the origin
 
 - **web_get_session_context** - Query discovered credentials, roles, and their hierarchy
 - **report_vulnerability** - Report confirmed vulnerabilities
-- **http_replay** - PRIMARY way to send test requests: replay a captured request with field mutations (swap credentials, change paths, add headers). Payloads travel as data, no shell escaping needed.
+- **http_replay** - The ONLY way to send test requests: replay a captured request with field mutations (swap credentials, change paths, add headers). Payloads travel as data, no shell escaping needed. Supports credential swap, unauthenticated mode, compare mode (baseline vs exploit in one call), and sweep mode (multiple values).
 - **http_replay_raw** - Byte-exact send for malformed/smuggling requests that http_replay would normalize.
-- **curl / webfetch** - Fallback when http_replay cannot express the case.
+- **credential_validate** - Check if a credential is still valid before testing. If invalid, call credential_mint to refresh.
+- **credential_mint** - Execute a credential's refresh recipe to mint fresh auth tokens.
 
 ## Testing Process
 
@@ -106,7 +107,19 @@ Add role parameters:
 Use **http_replay** with the captured request_id. Swap credentials via mutations:
 
 ```
-# Replay admin endpoint with a lower-privilege token
+# Credential swap: replay admin endpoint with a lower-privilege credential
+http_replay(request_id, credential: "cred_regular_user")
+
+# Unauthenticated: strips ALL auth headers
+http_replay(request_id, unauthenticated: true)
+
+# Compare mode: baseline (admin) vs exploit (regular user) in ONE call
+http_replay(request_id, compare: {
+  baseline: {},
+  exploit: {credential: "cred_regular_user"}
+})
+
+# Manual header manipulation when needed
 http_replay(request_id, mutations: [
   {op: "set-header", name: "Authorization", value: "Bearer <lower_privilege_token>"}
 ])
@@ -122,8 +135,6 @@ http_replay(request_id, mutations: [
   {op: "set-header", name: "X-HTTP-Method-Override", value: "POST"}
 ])
 ```
-
-Fall back to curl only when http_replay cannot express the case (e.g. complex multi-step flows).
 
 ## Response Analysis
 

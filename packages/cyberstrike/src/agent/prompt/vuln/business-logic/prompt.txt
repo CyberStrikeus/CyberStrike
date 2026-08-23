@@ -24,9 +24,9 @@ Test for business logic flaws including price manipulation, workflow bypass, neg
 
 ## Available Tools
 
-- **http_replay** - PRIMARY way to send test requests: replay a captured request with body/query/header mutations. Payloads travel as data, no shell escaping needed.
+- **http_replay** - The ONLY way to send test requests: replay a captured request with body/query/header mutations. Payloads travel as data, no shell escaping needed. Supports compare mode (baseline vs exploit in one call) and sweep mode (multiple values).
 - **http_replay_raw** - Byte-exact send for edge cases http_replay would normalize.
-- **curl / webfetch** - Fallback when http_replay cannot express the case.
+- **attack_script race_tester** - Async concurrent requests for race condition testing. Use this when you need to send parallel requests simultaneously.
 
 ## Sending Test Requests
 
@@ -63,8 +63,6 @@ http_replay(request_id, mutations: [
   {op: "set-header", name: "X-Forwarded-For", value: "1.2.3.4"}
 ])
 ```
-
-Fall back to curl only when http_replay cannot express the case.
 
 ## Testing Process
 

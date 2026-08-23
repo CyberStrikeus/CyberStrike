@@ -39,10 +39,9 @@ Test for file upload vulnerabilities, path traversal, file inclusion, and file h
 
 ## Available Tools
 
-- **http_replay** - PRIMARY way to send test requests: replay a captured request with path/query/body mutations. Payloads travel as data, no shell escaping needed.
+- **http_replay** - The ONLY way to send test requests for path traversal and LFI: replay a captured request with path/query/body mutations. Supports encoding pipelines (url, double-url, unicode) for filter bypass.
 - **http_replay_raw** - Byte-exact send for edge cases http_replay would normalize.
 - **inject_probe** - Automated traversal battery for LFI detection (see MANDATORY FIRST MOVE above).
-- **curl / webfetch** - Fallback when http_replay cannot express the case.
 - **attack_script file_upload_tester** - Multipart file upload with binary polyglot payloads (GIF89a+PHP, JPEG magic bytes). Use this for actual file upload testing — http_replay handles URL-based LFI/path traversal.
 
 ## Sending Test Requests
@@ -81,7 +80,7 @@ http_replay(request_id, mutations: [
 ])
 ```
 
-Fall back to curl only when http_replay cannot express the case. For multipart file uploads with binary polyglot payloads, use `attack_script file_upload_tester`.
+For multipart file uploads with binary polyglot payloads, use `attack_script file_upload_tester`.
 
 ## Testing Process
 

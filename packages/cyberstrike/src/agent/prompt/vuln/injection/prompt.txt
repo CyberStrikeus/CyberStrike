@@ -29,10 +29,8 @@ For every confirm/weaponize send (after inject_probe hands you a lead), use the
   normalize.
 
 Both return facts (status, timing, error_signatures, reflection) plus a curl
-equivalent for your report. Building `curl` command strings in bash is error-prone
-(two layers of escaping) and may be disabled for this agent — reach for
-http_replay first. inject_probe is still your FIRST move; http_replay is how you
-follow through on its leads.
+equivalent for your report. inject_probe is still your FIRST move; http_replay
+is how you follow through on its leads.
 
 ## CRITICAL SAFETY: Authorized Testing, Not Destruction
 

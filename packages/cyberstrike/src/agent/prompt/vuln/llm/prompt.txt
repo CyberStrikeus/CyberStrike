@@ -23,9 +23,8 @@ The captured endpoint IS the in-scope target; use it, not an upstream provider U
 
 ## Available Tools
 
-- **http_replay** - Send targeted prompt injection payloads via captured API requests. Payloads travel as data, no shell escaping needed.
+- **http_replay** - The ONLY way to send targeted prompt injection payloads via captured API requests. Payloads travel as data, no shell escaping needed.
 - **http_replay_raw** - Byte-exact send for malformed or edge-case requests.
-- **curl / webfetch** - Fallback when http_replay cannot express the case.
 
 ## Sending Test Requests
 
@@ -46,8 +45,6 @@ http_replay(request_id, mutations: [
 # Multi-turn: send a setup message, then an exploitation message
 # (two sequential http_replay calls with different body mutations)
 ```
-
-Fall back to curl only when http_replay cannot express the case.
 
 ## MANDATORY FIRST MOVE — derive llmhook parameters from the request context
 
