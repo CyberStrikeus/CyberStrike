@@ -530,6 +530,7 @@ export namespace Agent {
             "*": "deny",
             bash: "allow",
             webfetch: "allow",
+            http_replay: "allow",
             web_get_session_context: "allow",
             web_get_detail: "allow",
             web_get_request_detail: "allow",
