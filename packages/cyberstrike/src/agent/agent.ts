@@ -665,6 +665,22 @@ export namespace Agent {
               "*--reg-del*": "deny",
             },
           }),
+          // §4 funnel enforcement (flag-gated): when http_replay_funnel is on, the
+          // injection tester's HTTP egress is denied in the sandbox (curl/wget +
+          // webfetch), so confirm/weaponize MUST go through the http_replay engine.
+          // Merged AFTER the user ruleset so a user allow cannot loosen it. Off by
+          // default → no behavior change; attack_script and non-HTTP bash still work.
+          ...(cfg.experimental?.http_replay_funnel
+            ? [
+                PermissionNext.fromConfig({
+                  webfetch: "deny",
+                  bash: {
+                    "*curl *": "deny",
+                    "*wget *": "deny",
+                  },
+                }),
+              ]
+            : []),
         )
 
         // File-attacks-specific permission: inject_probe's LFI mode (read-only Linux/Windows
