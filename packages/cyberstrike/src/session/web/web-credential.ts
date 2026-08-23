@@ -4,6 +4,7 @@ import z from "zod"
 import { Database, eq, and } from "../../storage/db"
 import { WebCredentialTable } from "../session.sql"
 import { Identifier } from "../../id/id"
+import { type Recipe } from "./credential-recipe"
 
 // Common auth headers to track
 export const COMMON_AUTH_HEADERS = [
@@ -25,6 +26,7 @@ export namespace WebCredential {
       headers: z.record(z.string(), z.string()),
       container_id: z.string().optional(),
       role_id: z.string().optional(),
+      recipe: z.unknown().optional(),
       time: z.object({
         created: z.number(),
         updated: z.number(),
@@ -78,28 +80,12 @@ export namespace WebCredential {
       headers: input.headers ?? {},
       container_id: input.containerID,
       role_id: input.roleID,
+      recipe: undefined,
       time: { created: now, updated: now },
     }
   }
 
-  export function get(sessionID: string): Info[] {
-    const rows = Database.use((db) =>
-      db.select().from(WebCredentialTable).where(eq(WebCredentialTable.session_id, sessionID)).all(),
-    )
-    return rows.map((row) => ({
-      id: row.id,
-      session_id: row.session_id,
-      label: row.label,
-      headers: (row.headers as Record<string, string>) ?? {},
-      container_id: row.container_id ?? undefined,
-      role_id: row.role_id ?? undefined,
-      time: { created: row.time_created, updated: row.time_updated },
-    }))
-  }
-
-  export function getById(id: string): Info | undefined {
-    const row = Database.use((db) => db.select().from(WebCredentialTable).where(eq(WebCredentialTable.id, id)).get())
-    if (!row) return undefined
+  function rowToInfo(row: typeof WebCredentialTable.$inferSelect): Info {
     return {
       id: row.id,
       session_id: row.session_id,
@@ -107,8 +93,22 @@ export namespace WebCredential {
       headers: (row.headers as Record<string, string>) ?? {},
       container_id: row.container_id ?? undefined,
       role_id: row.role_id ?? undefined,
+      recipe: (row.recipe as Recipe) ?? undefined,
       time: { created: row.time_created, updated: row.time_updated },
     }
+  }
+
+  export function get(sessionID: string): Info[] {
+    const rows = Database.use((db) =>
+      db.select().from(WebCredentialTable).where(eq(WebCredentialTable.session_id, sessionID)).all(),
+    )
+    return rows.map(rowToInfo)
+  }
+
+  export function getById(id: string): Info | undefined {
+    const row = Database.use((db) => db.select().from(WebCredentialTable).where(eq(WebCredentialTable.id, id)).get())
+    if (!row) return undefined
+    return rowToInfo(row)
   }
 
   export function getByContainer(sessionID: string, containerID: string): Info | undefined {
@@ -120,15 +120,7 @@ export namespace WebCredential {
         .get(),
     )
     if (!row) return undefined
-    return {
-      id: row.id,
-      session_id: row.session_id,
-      label: row.label,
-      headers: (row.headers as Record<string, string>) ?? {},
-      container_id: row.container_id ?? undefined,
-      role_id: row.role_id ?? undefined,
-      time: { created: row.time_created, updated: row.time_updated },
-    }
+    return rowToInfo(row)
   }
 
   export function link(input: { id: string; roleID: string }): void {
@@ -203,15 +195,7 @@ export namespace WebCredential {
       const list = get(row.session_id)
       Database.effect(() => Bus.publish(Event.Updated, { sessionID: row.session_id, credentials: list }))
 
-      return {
-        id: row.id,
-        session_id: row.session_id,
-        label: row.label,
-        headers: (row.headers as Record<string, string>) ?? {},
-        container_id: row.container_id ?? undefined,
-        role_id: row.role_id ?? undefined,
-        time: { created: row.time_created, updated: row.time_updated },
-      }
+      return rowToInfo(row)
     })
   }
 
@@ -231,6 +215,33 @@ export namespace WebCredential {
         .get(),
     )
     return !!row
+  }
+
+  export function setRecipe(input: { id: string; sessionID: string; recipe: Recipe }): Info | undefined {
+    const now = Date.now()
+    return Database.use((db) => {
+      const existing = db.select().from(WebCredentialTable).where(eq(WebCredentialTable.id, input.id)).get()
+      if (!existing) return undefined
+      if (existing.session_id !== input.sessionID) return undefined
+
+      db.update(WebCredentialTable)
+        .set({ recipe: input.recipe as unknown as null, time_updated: now })
+        .where(eq(WebCredentialTable.id, input.id))
+        .run()
+
+      const row = db.select().from(WebCredentialTable).where(eq(WebCredentialTable.id, input.id)).get()
+      if (!row) return undefined
+
+      const list = get(row.session_id)
+      Database.effect(() => Bus.publish(Event.Updated, { sessionID: row.session_id, credentials: list }))
+      return rowToInfo(row)
+    })
+  }
+
+  export function getRecipe(id: string): Recipe | undefined {
+    const row = Database.use((db) => db.select().from(WebCredentialTable).where(eq(WebCredentialTable.id, id)).get())
+    if (!row?.recipe) return undefined
+    return row.recipe as Recipe
   }
 
   // Helper: JWT token'dan claims çıkar (Authorization header'dan)
