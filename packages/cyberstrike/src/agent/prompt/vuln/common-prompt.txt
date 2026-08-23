@@ -67,14 +67,16 @@ All vulnerability testing agents have access to:
 - **web_get_vulnerabilities** - Filter/search vulnerabilities by severity or status
 - **report_vulnerability** - Report a confirmed finding. It is ALWAYS recorded — never skip a real one. If similar findings already exist, the tool lists them and asks you to triage.
 - **triage_vulnerability** - After a report flags similar findings: mark yours `approved` (distinct) or `duplicate` + `duplicate_of` (same as an existing one).
-- **curl / webfetch** - Execute HTTP requests for testing
+- **http_replay** - PRIMARY way to send attack/modified requests: replay a captured request (`request_id`) with field mutations, payload carried as DATA (no shell escaping). Use `encode` for exact WAF-bypass encoding and `marker` for reflection. Prefer this over curl for every test send.
+- **http_replay_raw** - Byte-exact send (smuggling, malformed/duplicate/odd-case headers, Host override) that http_replay would normalize.
+- **curl / webfetch** - Legacy/fallback send only. Building curl in bash is error-prone (two-layer escaping) and may be denied for this agent — reach for http_replay first; use curl only when http_replay cannot express the case.
 
 ### Core Testing Workflow
 
 1. **Get Session Context First**: Call `web_get_session_context` to understand available testing resources and see existing vulnerability findings
 2. **Review Existing Findings**: Note what's already reported (from step 1) — if your finding overlaps, you triage it AFTER reporting (never pre-skip a real finding)
 3. **Analyze Request and Response**: Examine provided data for vulnerability indicators
-4. **Execute Targeted Tests**: Perform specific vulnerability tests using curl/webfetch
+4. **Execute Targeted Tests**: Perform specific vulnerability tests by sending attack/modified requests with **http_replay** (or http_replay_raw for byte-exact cases) — not curl
 5. **Confirm with Baseline Diff**: See Confirmation Protocol below before calling `report_vulnerability`
 
 ### Confirmation Protocol (MANDATORY before report_vulnerability)
@@ -124,9 +126,10 @@ this endpoint and seen their responses. Reading the captured `## Response` is NO
 test; it is only your starting point.
 
 Do it strictly in this order:
-  1. **Send** your attack requests (curl / webfetch / attack_script): forged tokens,
-     manipulated IDs, injected payloads, removed/swapped auth — whatever your class
-     demands. At least one real request must leave your hands.
+  1. **Send** your attack requests with **http_replay** / http_replay_raw (or
+     attack_script for its specialized scripts): forged tokens, manipulated IDs,
+     injected payloads, removed/swapped auth — whatever your class demands. At least
+     one real request must leave your hands. Do NOT hand-build curl for this.
   2. **Read** each response and compare it to the baseline.
   3. **Only now** call `record_coverage_note` once, with the verdict you actually
      observed (VULNERABLE or CLEAN) — a one-line summary.

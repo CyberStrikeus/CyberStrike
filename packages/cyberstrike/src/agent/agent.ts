@@ -598,7 +598,6 @@ export namespace Agent {
           PermissionNext.fromConfig({
             "*": "deny",
             bash: "allow",
-            webfetch: "allow",
             web_get_session_context: "allow",
             web_get_detail: "allow",
             web_get_request_detail: "allow",
@@ -613,13 +612,26 @@ export namespace Agent {
             methodology_status: "allow",
             scope_check: "allow",
             attack_script: "allow",
-            // Structured replay engine (docs/http-replay-engine-design.md): send
-            // confirm/weaponize requests through the engine instead of curl-in-bash.
-            // Available to every tester; the curl path stays until prompts migrate.
+            // Structured replay engine (docs/http-replay-engine-design.md §4):
+            // the ONLY sanctioned way to send attack/modified requests.
             http_replay: "allow",
             http_replay_raw: "allow",
           }),
           user,
+          // §4 funnel — HARD requirement, not the model's choice: all attack HTTP
+          // egress goes through the http_replay engine. curl/wget in bash and the
+          // webfetch tool are denied for EVERY vuln tester, merged AFTER the user
+          // ruleset so a user allow cannot loosen it. bash stays allowed for
+          // non-HTTP work (jq, encoding); attack_script (its own tool) is unaffected.
+          PermissionNext.fromConfig({
+            webfetch: "deny",
+            bash: {
+              "*curl *": "deny",
+              "*curl\t*": "deny",
+              "*wget *": "deny",
+              "*wget\t*": "deny",
+            },
+          }),
         )
 
         // Injection-specific permission: blocks destructive SQL payloads and
@@ -665,22 +677,6 @@ export namespace Agent {
               "*--reg-del*": "deny",
             },
           }),
-          // §4 funnel enforcement (flag-gated): when http_replay_funnel is on, the
-          // injection tester's HTTP egress is denied in the sandbox (curl/wget +
-          // webfetch), so confirm/weaponize MUST go through the http_replay engine.
-          // Merged AFTER the user ruleset so a user allow cannot loosen it. Off by
-          // default → no behavior change; attack_script and non-HTTP bash still work.
-          ...(cfg.experimental?.http_replay_funnel
-            ? [
-                PermissionNext.fromConfig({
-                  webfetch: "deny",
-                  bash: {
-                    "*curl *": "deny",
-                    "*wget *": "deny",
-                  },
-                }),
-              ]
-            : []),
         )
 
         // File-attacks-specific permission: inject_probe's LFI mode (read-only Linux/Windows
