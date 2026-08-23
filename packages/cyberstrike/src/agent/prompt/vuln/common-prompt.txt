@@ -69,14 +69,32 @@ All vulnerability testing agents have access to:
 - **triage_vulnerability** - After a report flags similar findings: mark yours `approved` (distinct) or `duplicate` + `duplicate_of` (same as an existing one).
 - **http_replay** - PRIMARY way to send attack/modified requests: replay a captured request (`request_id`) with field mutations, payload carried as DATA (no shell escaping). Use `encode` for exact WAF-bypass encoding and `marker` for reflection. Prefer this over curl for every test send.
 - **http_replay_raw** - Byte-exact send (smuggling, malformed/duplicate/odd-case headers, Host override) that http_replay would normalize.
-- **curl / webfetch** - Legacy/fallback send only. Building curl in bash is error-prone (two-layer escaping) and may be denied for this agent — reach for http_replay first; use curl only when http_replay cannot express the case.
+- **curl / webfetch** - Fallback only. Use http_replay first; fall back to curl/webfetch only when http_replay cannot express the case (complex redirect chains, streaming responses, custom TLS).
+- **skill** - Dynamic skill discovery: search by keyword, CWE, tech stack, or category to find specialized attack methodology. Use `search` to find relevant skills, `load` to inject them into your context for deeper techniques.
+
+### Dynamic Skill Discovery
+
+You have baseline WSTG methodology embedded in your prompt. When you need deeper
+or more targeted techniques, use the **skill** tool at runtime:
+
+- **Tech stack detected** — response headers reveal the stack (e.g., `X-Powered-By: PHP`,
+  Java stack trace, Django debug page): `skill({action: "search", tech: ["php"]})`
+- **WAF blocks payloads** — standard payloads return 403/WAF page:
+  `skill({action: "search", query: "waf bypass"})`
+- **Specific CWE depth** — you need specialized payloads for a known weakness:
+  `skill({action: "search", cwe: "CWE-89"})`
+- **Category sweep** — explore all skills for a vulnerability category:
+  `skill({action: "search", category: "injection"})`
+
+Load a skill with `skill({action: "load", name: "attack-ssti"})` to get its full
+methodology, payloads, and procedures. Unload when done to free context.
 
 ### Core Testing Workflow
 
 1. **Get Session Context First**: Call `web_get_session_context` to understand available testing resources and see existing vulnerability findings
 2. **Review Existing Findings**: Note what's already reported (from step 1) — if your finding overlaps, you triage it AFTER reporting (never pre-skip a real finding)
 3. **Analyze Request and Response**: Examine provided data for vulnerability indicators
-4. **Execute Targeted Tests**: Perform specific vulnerability tests by sending attack/modified requests with **http_replay** (or http_replay_raw for byte-exact cases) — not curl
+4. **Execute Targeted Tests**: Perform specific vulnerability tests by sending attack/modified requests with **http_replay** (or http_replay_raw for byte-exact cases) — prefer over curl
 5. **Confirm with Baseline Diff**: See Confirmation Protocol below before calling `report_vulnerability`
 
 ### Confirmation Protocol (MANDATORY before report_vulnerability)
@@ -129,7 +147,7 @@ Do it strictly in this order:
   1. **Send** your attack requests with **http_replay** / http_replay_raw (or
      attack_script for its specialized scripts): forged tokens, manipulated IDs,
      injected payloads, removed/swapped auth — whatever your class demands. At least
-     one real request must leave your hands. Do NOT hand-build curl for this.
+     one real request must leave your hands. Prefer http_replay over curl.
   2. **Read** each response and compare it to the baseline.
   3. **Only now** call `record_coverage_note` once, with the verdict you actually
      observed (VULNERABLE or CLEAN) — a one-line summary.
