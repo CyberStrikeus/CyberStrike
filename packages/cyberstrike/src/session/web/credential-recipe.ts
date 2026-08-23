@@ -180,11 +180,15 @@ export namespace CredentialRecipe {
       let msg = HttpMessage.parse(request.raw_request)
 
       if (step.mutations) {
-        msg = Apply.mutations(msg, step.mutations as Apply.Mutation[])
+        const resolved = step.mutations.map((m) => ({
+          ...m,
+          value: m.value ? resolveTemplate(m.value, bag) : m.value,
+        }))
+        msg = Apply.mutations(msg, resolved as Apply.Mutation[])
       }
 
       if (step.override_body !== undefined) {
-        msg = Mutate.setBody(msg, new TextEncoder().encode(step.override_body))
+        msg = Mutate.setBody(msg, resolveTemplate(step.override_body, bag))
       }
 
       if (step.inject) {
