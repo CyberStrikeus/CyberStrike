@@ -85,8 +85,12 @@ The engine automatically does this on 401 during http_replay — this tool lets 
       if (Object.keys(result.headers).length === 0) {
         return {
           title: "credential_mint: empty result",
-          output: `Recipe executed but produced no credential headers. Check the recipe's credential_map and extraction rules.`,
-          metadata: { minted: false, bag: result.bag },
+          output: JSON.stringify({
+            minted: false,
+            message: "Recipe executed but produced no credential headers. Check the recipe's credential_map and extraction rules.",
+            extracted_variables: Object.keys(result.bag),
+          }, null, 2),
+          metadata: { minted: false },
         }
       }
 

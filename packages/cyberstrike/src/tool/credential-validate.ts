@@ -47,7 +47,7 @@ Use this to:
       return {
         title: "credential_validate: not found",
         output: `Credential "${params.credential_id}" does not exist.`,
-        metadata: { valid: false },
+        metadata: { valid: false, status: 0 },
       }
     }
 
@@ -55,7 +55,7 @@ Use this to:
       return {
         title: "credential_validate: wrong session",
         output: `Credential "${params.credential_id}" belongs to a different session.`,
-        metadata: { valid: false },
+        metadata: { valid: false, status: 0 },
       }
     }
 
@@ -64,7 +64,7 @@ Use this to:
       return {
         title: "credential_validate: request not found",
         output: `Request "${params.request_id}" not found or has no raw data.`,
-        metadata: { valid: false },
+        metadata: { valid: false, status: 0 },
       }
     }
 
@@ -73,7 +73,7 @@ Use this to:
       return {
         title: "credential_validate: no origin",
         output: `Cannot determine origin from request "${params.request_id}".`,
-        metadata: { valid: false },
+        metadata: { valid: false, status: 0 },
       }
     }
 
@@ -83,7 +83,7 @@ Use this to:
         return {
           title: "credential_validate: out of scope",
           output: `Host "${url.hostname}" is not among this session's captured hosts.`,
-          metadata: { valid: false },
+          metadata: { valid: false, status: 0 },
         }
       }
     } catch {
@@ -97,7 +97,7 @@ Use this to:
       return {
         title: "credential_validate: parse error",
         output: `Could not parse request: ${e instanceof Error ? e.message : String(e)}`,
-        metadata: { valid: false },
+        metadata: { valid: false, status: 0 },
       }
     }
 
@@ -119,7 +119,7 @@ Use this to:
         return {
           title: "credential_validate: send error",
           output: `Request failed: ${result.error.message}`,
-          metadata: { valid: false },
+          metadata: { valid: false, status: 0 },
         }
       }
 
@@ -161,7 +161,7 @@ Use this to:
       return {
         title: "credential_validate: error",
         output: `Validation failed: ${e instanceof Error ? e.message : String(e)}`,
-        metadata: { valid: false },
+        metadata: { valid: false, status: 0 },
       }
     }
   },
