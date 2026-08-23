@@ -104,7 +104,21 @@ export namespace CredentialRecipe {
   }
 
   function resolveTemplate(template: string, bag: Record<string, string>): string {
-    return template.replace(/\{\{([\w:.\-]+)\}\}/g, (_, key) => bag[key] ?? "")
+    let unresolved = false
+    const result = template.replace(/\{\{([\w:.\-]+)\}\}/g, (_, key) => {
+      const val = bag[key]
+      if (!val) unresolved = true
+      return val ?? ""
+    })
+    return unresolved ? "" : result
+  }
+
+  function originFromRequest(req: { origin?: string | null; host?: string | null; scheme?: string | null; port?: number | null }): string | undefined {
+    if (req.origin) return req.origin.replace(/\/+$/, "")
+    if (!req.host) return undefined
+    const scheme = req.scheme ?? "http"
+    const port = req.port ? `:${req.port}` : ""
+    return `${scheme}://${req.host}${port}`
   }
 
   function getNestedValue(obj: Record<string, unknown>, dotPath: string): unknown {
@@ -188,17 +202,32 @@ export namespace CredentialRecipe {
         }
 
         if (step.inject.body_fields) {
-          for (const [field, template] of Object.entries(step.inject.body_fields)) {
-            msg = Mutate.bodySetField(msg, field, resolveTemplate(template, bag))
+          const ct = msg.headers.find((h) => h.name.toLowerCase() === "content-type")?.value ?? ""
+          const isForm = ct.includes("application/x-www-form-urlencoded")
+          if (isForm) {
+            const bodyStr = new TextDecoder().decode(msg.body)
+            const params = new URLSearchParams(bodyStr)
+            for (const [field, template] of Object.entries(step.inject.body_fields)) {
+              params.set(field, resolveTemplate(template, bag))
+            }
+            msg = Mutate.setBody(msg, params.toString())
+          } else {
+            for (const [field, template] of Object.entries(step.inject.body_fields)) {
+              msg = Mutate.bodySetField(msg, field, resolveTemplate(template, bag))
+            }
           }
         }
       }
 
-      const result = await sendStep(msg, opts.origin, step.follow_redirects, opts.signal)
+      const stepOrigin = originFromRequest(request) ?? opts.origin
+      const result = await sendStep(msg, stepOrigin, step.follow_redirects, opts.signal)
       if (result.error) {
         throw new Error(`Recipe step ${i} failed: ${result.error.message}`)
       }
       const res = result.response!
+      if (res.status >= 400) {
+        throw new Error(`Recipe step ${i} returned HTTP ${res.status}`)
+      }
 
       if (step.extract) {
         if (step.extract.set_cookies) {
