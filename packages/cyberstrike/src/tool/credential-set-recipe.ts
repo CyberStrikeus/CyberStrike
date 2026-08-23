@@ -3,6 +3,7 @@ import { Tool } from "./tool"
 import { WebCredential } from "../session/web/web-credential"
 import { Recipe } from "../session/web/credential-recipe"
 import { Session } from "../session"
+import { Request } from "../session/request"
 
 const RECIPE_DESC = `Save a credential refresh recipe to a credential. The recipe describes how to mint fresh auth tokens by replaying a sequence of captured requests — the engine executes it automatically on 401 to refresh expired credentials.
 
@@ -80,6 +81,19 @@ export const CredentialSetRecipeTool = Tool.define("credential_set_recipe", {
       return {
         title: "credential_set_recipe: wrong session",
         output: `Credential "${params.credential_id}" belongs to a different session.`,
+        metadata: { saved: false },
+      }
+    }
+
+    const requests = Request.get(sessionID)
+    const missing = params.recipe.steps
+      .map((s, i) => ({ idx: i, id: s.request_id }))
+      .filter((s) => !requests.some((r) => r.id === s.id))
+
+    if (missing.length > 0) {
+      return {
+        title: "credential_set_recipe: invalid request_id",
+        output: `Recipe references request(s) not in this session: ${missing.map((m) => `step ${m.idx}: "${m.id}"`).join(", ")}. Use web_get_session_context to find valid request IDs.`,
         metadata: { saved: false },
       }
     }
