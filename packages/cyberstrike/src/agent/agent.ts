@@ -597,8 +597,29 @@ export namespace Agent {
           defaults,
           PermissionNext.fromConfig({
             "*": "deny",
-            bash: "allow",
-            webfetch: "allow",
+            bash: {
+              // Block HTTP clients in bash — agents MUST use http_replay instead.
+              // This is defense-in-depth alongside the prompt mandate: old session
+              // history can override prompt guidance, but permission denies are absolute.
+              "*curl *": "deny",
+              "*curl.exe*": "deny",
+              "*wget *": "deny",
+              "*python*requests*": "deny",
+              "*python*urllib*": "deny",
+              "*python*aiohttp*": "deny",
+              "*python*httpx*": "deny",
+              "*python3*requests*": "deny",
+              "*python3*urllib*": "deny",
+              "*python3*aiohttp*": "deny",
+              "*python3*httpx*": "deny",
+              "*import requests*": "deny",
+              "*from requests *": "deny",
+              "*import urllib*": "deny",
+              "*import aiohttp*": "deny",
+              "*import httpx*": "deny",
+              "*": "allow",
+            },
+            webfetch: "deny",
             web_get_session_context: "allow",
             web_get_detail: "allow",
             web_get_request_detail: "allow",
@@ -614,10 +635,8 @@ export namespace Agent {
             scope_check: "allow",
             attack_script: "allow",
             skill: "allow",
-            // Structured replay engine (docs/http-replay-engine-design.md §4):
-            // PRIMARY way to send attack/modified requests — prompt-enforced, not
-            // permission-blocked. curl/webfetch stay available as fallbacks for
-            // cases http_replay cannot express (complex redirects, streaming).
+            // Structured replay engine — the ONLY way to send HTTP requests.
+            // Permission-enforced: curl/webfetch/Python HTTP denied above.
             http_replay: "allow",
             http_replay_raw: "allow",
             web_update_credential: "allow",
