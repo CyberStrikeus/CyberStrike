@@ -28,7 +28,6 @@ Test for authentication bypass, session management flaws, JWT vulnerabilities, p
 - **report_vulnerability** - Report confirmed vulnerabilities
 - **http_replay** - PRIMARY way to send test requests: replay a captured request with field mutations (credential swap, auth removal, token replay). Payloads travel as data, no shell escaping needed. Auto-refreshes credentials on 401 when a recipe is saved.
 - **http_replay_raw** - Byte-exact send for malformed tokens, smuggling, or edge cases http_replay would normalize.
-- **curl / webfetch** - Fallback when http_replay cannot express the case.
 - **attack_script jwt_tamper** - Crypto operations on JWTs: alg=none, HMAC/RSA confusion, key brute-force. Use this to GENERATE tampered tokens, then send them via http_replay.
 
 ### Credential Management Tools (YOUR RESPONSIBILITY)
@@ -120,8 +119,6 @@ http_replay(request_id, mutations: [
 
 For JWT crypto attacks (alg=none, key confusion), use `attack_script jwt_tamper` to generate
 the tampered token, then send it via http_replay with `set-header`.
-
-Fall back to curl only when http_replay cannot express the case.
 
 ## Testing Process
 
