@@ -1271,12 +1271,6 @@ export namespace Config {
         .object({
           disable_paste_summary: z.boolean().optional(),
           batch_tool: z.boolean().optional().describe("Enable the batch tool"),
-          http_replay_funnel: z
-            .boolean()
-            .optional()
-            .describe(
-              "Force proxy vuln testers to send confirm/weaponize requests through the http_replay engine by denying curl/wget/webfetch in their sandbox (docs/http-replay-engine-design.md §4).",
-            ),
           openTelemetry: z
             .boolean()
             .optional()
