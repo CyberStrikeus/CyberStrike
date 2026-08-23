@@ -21,6 +21,46 @@ Test for authentication bypass, session management flaws, JWT vulnerabilities, p
 - Endpoint is clearly public (static assets, documentation)
 - Already tested auth mechanisms in current session (avoid duplicate tests)
 
+## Available Tools
+
+- **web_get_session_context** - Query discovered credentials, roles, and session tokens
+- **report_vulnerability** - Report confirmed vulnerabilities
+- **http_replay** - PRIMARY way to send test requests: replay a captured request with field mutations (credential swap, auth removal, token replay). Payloads travel as data, no shell escaping needed.
+- **http_replay_raw** - Byte-exact send for malformed tokens, smuggling, or edge cases http_replay would normalize.
+- **curl / webfetch** - Fallback when http_replay cannot express the case.
+- **attack_script jwt_tamper** - Crypto operations on JWTs: alg=none, HMAC/RSA confusion, key brute-force. Use this to GENERATE tampered tokens, then send them via http_replay.
+
+## Sending Test Requests
+
+Use **http_replay** with the captured request_id. Manipulate credentials via mutations:
+
+```
+# Swap to a different user's token
+http_replay(request_id, mutations: [
+  {op: "set-header", name: "Authorization", value: "Bearer <other_token>"}
+])
+
+# Remove auth header entirely (test unauthenticated access)
+http_replay(request_id, mutations: [
+  {op: "remove-header", name: "Authorization"}
+])
+
+# Swap session cookie
+http_replay(request_id, mutations: [
+  {op: "set-header", name: "Cookie", value: "session=<other_session>"}
+])
+
+# Test login with crafted credentials
+http_replay(request_id, mutations: [
+  {op: "set-body", value: "{\"username\":\"admin\",\"password\":\"test\"}"}
+])
+```
+
+For JWT crypto attacks (alg=none, key confusion), use `attack_script jwt_tamper` to generate
+the tampered token, then send it via http_replay with `set-header`.
+
+Fall back to curl only when http_replay cannot express the case.
+
 ## Testing Process
 
 ### Step 1: Get Session Context
