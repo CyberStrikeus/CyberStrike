@@ -274,7 +274,33 @@ unchanged while the flag is off.
 
 ---
 
-## 7. Non-goals
+## 7. Progress
+
+### Done — engine core (`src/replay/`, dependency-free, unit-tested)
+- [x] `message.ts` — lossless byte↔struct HTTP request model
+- [x] `mutate.ts` — field-level mutation (query / headers / body)
+- [x] `encode.ts` — composable WAF-bypass encoding toolkit
+- [x] `errors.ts` — error taxonomy + retry/idempotency policy (Node + Bun codes)
+- [x] `governor.ts` — CircuitBreaker / AimdLimiter / TokenBucket / GlobalBudget
+- [x] `response.ts` — response parser + unified Result shape
+- [x] `backend-fetch.ts` — backend A (structured send via fetch)
+- [x] `backend-socket.ts` — backend B (byte-exact send via raw TCP/TLS)
+- [x] `observe.ts` — reflection / error-signature / baseline diff
+- [x] `send.ts` — governed send (retry + idempotency + circuit/budget)
+- [x] `batch.ts` — bounded-concurrency runner (fixed or AIMD-adaptive)
+
+Each module ships with a `test/replay/*.test.ts` suite; both backends are
+verified end-to-end against local servers (backend B proven byte-exact).
+
+### Remaining — CS integration (needs the installed workspace)
+- [ ] Tool surface: `http_replay` / `http_replay_raw` (`Tool.define`, wired into
+      `Request` / scope matcher / `WebCredential`), modeled on `tool/inject-probe.ts`
+- [ ] §4 funnel enforcement: deny curl/wget/webfetch for `proxy-tester-*` +
+      `permission.ask` hook net
+- [ ] Migrate `proxy-tester-injection` behind a feature flag (curl fallback intact)
+- [ ] Optional external-tool bridge for HTTP/3 / JA3 (Phase 3)
+
+## 8. Non-goals
 - Non-HTTP protocols (SMTP/FTP/…): out of scope — this is a web-pentest engine.
 - Embedding Caido/Burp: rejected (see §2). Optional import/export only.
 - HTTP/3 and JA3 mimicry in core: out (native dependency vs clean `npm install`);
