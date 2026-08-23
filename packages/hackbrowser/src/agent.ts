@@ -2092,7 +2092,12 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
   }
 
   const cancelledByUser = config.signal?.aborted === true
-  if (!cancelledByUser) await browser.close().catch(() => {})
+  if (cancelledByUser && !browserDied && !config.headless) {
+    log.info("crawl stopped — browser stays open for manual inspection, close the window to finish")
+    await new Promise<void>((resolve) => browser.on("disconnected", resolve))
+  } else if (!cancelledByUser) {
+    await browser.close().catch(() => {})
+  }
 
   return {
     sessionID: dryRun ? "" : sessionId,
@@ -2498,7 +2503,12 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
   }
 
   const cancelledByUser = config.signal?.aborted === true
-  if (!cancelledByUser) await browser.close().catch(() => {})
+  if (cancelledByUser && !browserDied && !config.headless) {
+    log.info("crawl stopped — browser stays open for manual inspection, close the window to finish")
+    await new Promise<void>((resolve) => browser.on("disconnected", resolve))
+  } else if (!cancelledByUser) {
+    await browser.close().catch(() => {})
+  }
 
   return {
     sessionID: dryRun ? "" : sessionID!,
