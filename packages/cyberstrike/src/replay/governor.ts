@@ -44,8 +44,8 @@ export namespace Governor {
     private openedAt = 0
 
     constructor(
-      private readonly threshold = DEFAULTS.circuitBreakerThreshold,
-      private readonly cooldownMs = DEFAULTS.circuitBreakerCooldownMs,
+      private readonly threshold: number = DEFAULTS.circuitBreakerThreshold,
+      private readonly cooldownMs: number = DEFAULTS.circuitBreakerCooldownMs,
     ) {}
 
     /** Whether a request may proceed now. Transitions open→half-open once the
@@ -89,8 +89,8 @@ export namespace Governor {
     private limit: number
 
     constructor(
-      start = DEFAULTS.perHostConcurrencyStart,
-      private readonly max = DEFAULTS.perHostConcurrencyMax,
+      start: number = DEFAULTS.perHostConcurrencyStart,
+      private readonly max: number = DEFAULTS.perHostConcurrencyMax,
     ) {
       this.limit = Math.max(1, start)
     }
@@ -156,7 +156,7 @@ export namespace Governor {
   export class GlobalBudget {
     private used = 0
 
-    constructor(private readonly cap = DEFAULTS.globalRequestBudget) {}
+    constructor(private readonly cap: number = DEFAULTS.globalRequestBudget) {}
 
     tryConsume(n = 1): boolean {
       if (this.used + n > this.cap) return false

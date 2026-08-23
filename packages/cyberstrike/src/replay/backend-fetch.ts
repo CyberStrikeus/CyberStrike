@@ -92,7 +92,10 @@ export namespace BackendFetch {
       const init: RequestInit & { tls?: { rejectUnauthorized: boolean } } = {
         method: req.method,
         headers,
-        body: hasBody ? req.body : undefined,
+        // TS 5.7 types Uint8Array as generic over its backing buffer and won't
+        // accept Uint8Array<ArrayBufferLike> as BodyInit, though fetch handles it
+        // fine at runtime. Cast through unknown for this lib-generics friction.
+        body: hasBody ? (req.body as unknown as BodyInit) : undefined,
         redirect: "manual",
         signal: controller.signal,
       }
