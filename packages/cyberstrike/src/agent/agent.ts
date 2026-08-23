@@ -620,6 +620,11 @@ export namespace Agent {
             // cases http_replay cannot express (complex redirects, streaming).
             http_replay: "allow",
             http_replay_raw: "allow",
+            web_update_credential: "allow",
+            credential_set_recipe: "allow",
+            credential_mint: "allow",
+            credential_validate: "allow",
+            csrf_extract: "allow",
           }),
           user,
         )
