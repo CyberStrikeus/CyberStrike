@@ -178,7 +178,7 @@ Use this to:
         null,
         2,
       ),
-      metadata: { extracted: true, token },
+      metadata: { extracted: true },
     }
   },
 })
