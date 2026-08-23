@@ -87,6 +87,45 @@ const LOGIN_SUCCESS_PATTERN = /POST\s+.*\/(login|signin|authenticate)\S*\s+\[200
 const SKIP_AUTO_DISCOVERY = /\b(logout|sign.?out|log.?out|delete.?account|reset.?data|revoke)\b/i
 
 // ============================================================
+// Browser lifecycle detection
+// ============================================================
+
+interface BrowserHealth {
+  dead: boolean
+  reason: string
+}
+
+function createBrowserHealth(): BrowserHealth {
+  return { dead: false, reason: "" }
+}
+
+function attachLifecycleHandlers(
+  browser: import("playwright").Browser,
+  page: Page,
+  health: BrowserHealth,
+): void {
+  browser.on("disconnected", () => {
+    health.dead = true
+    health.reason = "browser process disconnected"
+    log.error("browser disconnected — crawl will terminate")
+  })
+  page.on("close", () => {
+    health.dead = true
+    health.reason = "page closed unexpectedly"
+    log.error("page closed — crawl will terminate")
+  })
+  page.on("crash", () => {
+    health.dead = true
+    health.reason = "page renderer crashed"
+    log.error("page crashed — crawl will terminate")
+  })
+}
+
+function isBrowserDead(health: BrowserHealth): boolean {
+  return health.dead
+}
+
+// ============================================================
 // Post-Login Re-Discovery
 // ============================================================
 
@@ -1677,6 +1716,12 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
   }
 
   const browser = await Stealth.connect({ cdp: config.cdp, headless: config.headless ?? false })
+  const health = createBrowserHealth()
+  browser.on("disconnected", () => {
+    health.dead = true
+    health.reason = "browser process disconnected"
+    log.error("browser disconnected — multi-credential crawl will terminate")
+  })
 
   // Single CyberStrike session for ALL credentials. Honor a host-provided
   // sessionID (cyberstrike injects this when /hackbrowser slash or the
@@ -1705,6 +1750,16 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     await browserContext.addInitScript(Stealth.INIT_SCRIPT)
     if (panelOn) await browserContext.addInitScript(PANEL_INIT_SCRIPT)
     const page = await browserContext.newPage()
+    page.on("close", () => {
+      health.dead = true
+      health.reason = `page closed (credential: ${cred.id})`
+      log.error("page closed — multi-credential crawl will terminate", { credential: cred.id })
+    })
+    page.on("crash", () => {
+      health.dead = true
+      health.reason = `page crashed (credential: ${cred.id})`
+      log.error("page crashed — multi-credential crawl will terminate", { credential: cred.id })
+    })
     attachDialogAutoAccept(page)
     attachFileChooserAutoFill(page)
 
@@ -1803,6 +1858,10 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
 
   // BFS Loop — single loop, N contexts
   while (pageQueue.length > 0 && pagesExplored < maxPages) {
+    if (isBrowserDead(health)) {
+      log.error("browser died, terminating multi-credential crawl", { reason: health.reason, pagesExplored, captured: globalState.capturedEndpoints.size })
+      break
+    }
     // Cancellation check at iteration boundary (Faz B.5). Multi-cred path
     // gets the same granularity as single-cred run() — all contexts share
     // the same signal so a single abort halts every in-flight context.
@@ -1936,8 +1995,10 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     // design (§3.5.1). Even when fingerprints match, per-credential journey
     // state (empty-state queue, revisitCount, pageFingerprints) stays separate.
     for (const ctx of visitableContexts) {
+      if (isBrowserDead(health)) break
       log.info("exploring", { credential: ctx.id, url: entry.url })
       const exploreInline = async (p: Page, url: string, depth: number): Promise<void> => {
+        if (isBrowserDead(health)) return
         const found = await explorePageWithAI(
           p,
           url,
@@ -1952,20 +2013,28 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
         )
         for (const u of found) enqueueWithContext(u, ctx.id, pageQueue, visitedPages, inScope, pathPatternCounts)
       }
-      const discovered = await explorePageWithAI(
-        ctx.page,
-        entry.url,
-        ctx.interceptor,
-        model,
-        globalState,
-        inScope,
-        ctx.id,
-        maxPages,
-        usageAcc,
-        { explore: exploreInline, depth: 0 },
-      )
-      for (const url of discovered) {
-        enqueueWithContext(url, ctx.id, pageQueue, visitedPages, inScope, pathPatternCounts)
+      try {
+        const discovered = await explorePageWithAI(
+          ctx.page,
+          entry.url,
+          ctx.interceptor,
+          model,
+          globalState,
+          inScope,
+          ctx.id,
+          maxPages,
+          usageAcc,
+          { explore: exploreInline, depth: 0 },
+        )
+        for (const url of discovered) {
+          enqueueWithContext(url, ctx.id, pageQueue, visitedPages, inScope, pathPatternCounts)
+        }
+      } catch (err) {
+        if (isBrowserDead(health)) {
+          log.error("exploration aborted — browser died mid-page", { credential: ctx.id, url: entry.url, reason: health.reason })
+          break
+        }
+        log.warn("exploration error", { credential: ctx.id, url: entry.url, err: String(err) })
       }
     }
 
@@ -1986,8 +2055,13 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
   }
 
   // Final drain — late async requests, no enrichment (credential_id fallback)
-  log.info("multi-credential exploration complete, draining remaining requests")
-  await contexts[0]?.page.waitForTimeout(2000)
+  const browserDied = isBrowserDead(health)
+  log.info(browserDied ? "browser died, draining captured requests" : "multi-credential exploration complete, draining remaining requests", {
+    pagesExplored,
+    captured: globalState.capturedEndpoints.size,
+    ...(browserDied ? { reason: health.reason } : {}),
+  })
+  if (!browserDied) await contexts[0]?.page.waitForTimeout(2000).catch(() => {})
 
   await drainPageCaptures(captureQueues, captureHandlers, new Map(), null, null)
 
@@ -1996,32 +2070,35 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     credentials: contexts.map((c) => c.id),
     totalSteps: globalState.totalSteps,
     capturedEndpoints: globalState.capturedEndpoints.size,
+    browserDied,
   })
 
   // Panel done event — one per context so each tab shows its own summary.
-  const mutationCount = [...globalState.capturedEndpoints].filter((e) => /^(POST|PUT|PATCH|DELETE)\s/.test(e)).length
-  const credentialIds = contexts.map((c) => c.id)
-  for (const ctx of contexts) {
-    void csEmit(ctx.page, {
-      type: "crawl-done",
-      summary: {
-        pagesExplored,
-        capturedEndpoints: globalState.capturedEndpoints.size,
-        mutations: mutationCount,
-        credentials: credentialIds,
-      },
-    })
+  if (!browserDied) {
+    const mutationCount = [...globalState.capturedEndpoints].filter((e) => /^(POST|PUT|PATCH|DELETE)\s/.test(e)).length
+    const credentialIds = contexts.map((c) => c.id)
+    for (const ctx of contexts) {
+      void csEmit(ctx.page, {
+        type: "crawl-done",
+        summary: {
+          pagesExplored,
+          capturedEndpoints: globalState.capturedEndpoints.size,
+          mutations: mutationCount,
+          credentials: credentialIds,
+        },
+      })
+    }
+    await contexts[0]?.page.waitForTimeout(600).catch(() => {})
   }
-  await contexts[0]?.page.waitForTimeout(600).catch(() => {})
 
-  await browser.close()
+  await browser.close().catch(() => {})
 
   return {
     sessionID: dryRun ? "" : sessionId,
     capturedEndpoints: globalState.capturedEndpoints.size,
     pagesExplored,
     totalSteps: globalState.totalSteps,
-    errors: [],
+    errors: browserDied ? [`Browser died: ${health.reason}. Captured ${globalState.capturedEndpoints.size} endpoints before failure.`] : [],
     usage: usageAcc,
   }
 }
@@ -2079,10 +2156,12 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
   }
 
   const browser = await Stealth.connect({ cdp: config.cdp, headless: config.headless ?? false })
+  const health = createBrowserHealth()
   const context: BrowserContext = await browser.newContext(Stealth.contextOptions(browser.version()))
   await context.addInitScript(Stealth.INIT_SCRIPT)
   if (panelOn) await context.addInitScript(PANEL_INIT_SCRIPT)
   const page = await context.newPage()
+  attachLifecycleHandlers(browser, page, health)
   attachDialogAutoAccept(page)
   attachFileChooserAutoFill(page)
 
@@ -2195,6 +2274,10 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
   let pagesExplored = 0
 
   while (globalState.pageQueue.length > 0 && pagesExplored < maxPages) {
+    if (isBrowserDead(health)) {
+      log.error("browser died, terminating crawl", { reason: health.reason, pagesExplored, captured: globalState.capturedEndpoints.size })
+      break
+    }
     // Cancellation check at iteration boundary (Faz B.5). Granularity is
     // per-page — current LLM call / page exploration completes before
     // we exit. Browser closes via the existing finally below.
@@ -2311,6 +2394,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     // ASP.NET postback) is explored INLINE while its state is alive (handleNavigation),
     // then its discoveries are enqueued the same way as top-level discoveries.
     const exploreInline = async (p: Page, url: string, depth: number): Promise<void> => {
+      if (isBrowserDead(health)) return
       const found = await explorePageWithAI(
         p,
         url,
@@ -2325,18 +2409,27 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
       )
       for (const u of found) enqueueUrl(u, globalState, inScope)
     }
-    const discovered = await explorePageWithAI(
-      page,
-      currentUrl,
-      interceptor,
-      model,
-      globalState,
-      inScope,
-      SINGLE_CRED,
-      maxPages,
-      usageAcc,
-      { explore: exploreInline, depth: 0 },
-    )
+    let discovered: string[] = []
+    try {
+      discovered = await explorePageWithAI(
+        page,
+        currentUrl,
+        interceptor,
+        model,
+        globalState,
+        inScope,
+        SINGLE_CRED,
+        maxPages,
+        usageAcc,
+        { explore: exploreInline, depth: 0 },
+      )
+    } catch (err) {
+      if (isBrowserDead(health)) {
+        log.error("exploration aborted — browser died mid-page", { url: currentUrl, reason: health.reason })
+        break
+      }
+      log.warn("exploration error", { url: currentUrl, err: String(err) })
+    }
 
     // Enqueue new same-host pages (auth URLs deferred during anonymous phase)
     let newEnqueued = 0
@@ -2367,8 +2460,13 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
   }
 
   // Final drain
-  log.info("exploration complete, draining remaining requests")
-  await page.waitForTimeout(2000)
+  const browserDied = isBrowserDead(health)
+  log.info(browserDied ? "browser died, draining captured requests" : "exploration complete, draining remaining requests", {
+    pagesExplored,
+    captured: globalState.capturedEndpoints.size,
+    ...(browserDied ? { reason: health.reason } : {}),
+  })
+  if (!browserDied) await page.waitForTimeout(2000).catch(() => {})
   clearInterval(drainInterval)
 
   while (captureQueue.length > 0) {
@@ -2381,29 +2479,31 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     totalSteps: globalState.totalSteps,
     capturedEndpoints: globalState.capturedEndpoints.size,
     sessionID: dryRun ? undefined : sessionID,
+    browserDied,
   })
 
   // Final panel event before teardown — gives pentester a visible "done" glow.
-  void csEmit(page, {
-    type: "crawl-done",
-    summary: {
-      pagesExplored,
-      capturedEndpoints: globalState.capturedEndpoints.size,
-      mutations: [...globalState.capturedEndpoints].filter((e) => /^(POST|PUT|PATCH|DELETE)\s/.test(e)).length,
-      credentials: [SINGLE_CRED],
-    },
-  })
-  // Let the done-glow render before tearing down.
-  await page.waitForTimeout(600).catch(() => {})
+  if (!browserDied) {
+    void csEmit(page, {
+      type: "crawl-done",
+      summary: {
+        pagesExplored,
+        capturedEndpoints: globalState.capturedEndpoints.size,
+        mutations: [...globalState.capturedEndpoints].filter((e) => /^(POST|PUT|PATCH|DELETE)\s/.test(e)).length,
+        credentials: [SINGLE_CRED],
+      },
+    })
+    await page.waitForTimeout(600).catch(() => {})
+  }
 
-  await browser.close()
+  await browser.close().catch(() => {})
 
   return {
     sessionID: dryRun ? "" : sessionID!,
     capturedEndpoints: globalState.capturedEndpoints.size,
     pagesExplored,
     totalSteps: globalState.totalSteps,
-    errors: [],
+    errors: browserDied ? [`Browser died: ${health.reason}. Captured ${globalState.capturedEndpoints.size} endpoints before failure.`] : [],
     usage: usageAcc,
   }
 }
