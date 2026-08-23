@@ -42,9 +42,9 @@ Use `ensure_tools` ONLY when the user has explicitly requested active security t
 
 ### Sending Test Requests
 
-Use **http_replay** as the PRIMARY way to send attack/modified requests — it replays
-captured requests with field mutations, carrying payloads as data (no shell escaping).
-Fall back to curl/webfetch only when http_replay cannot express the case.
+Use **http_replay** to send attack/modified requests — it replays captured requests
+with field mutations, carrying payloads as data (no shell escaping). For specialized
+cases (JWT crypto, race conditions, file uploads, SSRF callbacks), use `attack_script`.
 
 ### Attack Scripts
 
