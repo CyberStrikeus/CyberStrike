@@ -613,6 +613,11 @@ export namespace Agent {
             methodology_status: "allow",
             scope_check: "allow",
             attack_script: "allow",
+            // Structured replay engine (docs/http-replay-engine-design.md): send
+            // confirm/weaponize requests through the engine instead of curl-in-bash.
+            // Available to every tester; the curl path stays until prompts migrate.
+            http_replay: "allow",
+            http_replay_raw: "allow",
           }),
           user,
         )
