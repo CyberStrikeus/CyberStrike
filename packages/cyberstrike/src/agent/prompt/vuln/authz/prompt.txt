@@ -16,7 +16,9 @@ Use the credential info to understand which role/privilege level made the origin
 
 - **web_get_session_context** - Query discovered credentials, roles, and their hierarchy
 - **report_vulnerability** - Report confirmed vulnerabilities
-- **curl / webfetch** - Send HTTP requests for testing
+- **http_replay** - PRIMARY way to send test requests: replay a captured request with field mutations (swap credentials, change paths, add headers). Payloads travel as data, no shell escaping needed.
+- **http_replay_raw** - Byte-exact send for malformed/smuggling requests that http_replay would normalize.
+- **curl / webfetch** - Fallback when http_replay cannot express the case.
 
 ## Testing Process
 
@@ -99,17 +101,29 @@ Add role parameters:
 ?admin=true, ?role=admin, ?is_admin=1
 ```
 
-## Constructing curl Commands
+## Sending Test Requests
 
-Use the raw request from `## Current request` as the base. Swap credentials from session context:
+Use **http_replay** with the captured request_id. Swap credentials via mutations:
 
-```bash
-# Example: Replay admin endpoint with regular user token
-curl -s -X POST "https://target.com/api/admin/users" \
-  -H "Authorization: Bearer <lower_privilege_token>" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "test"}'
 ```
+# Replay admin endpoint with a lower-privilege token
+http_replay(request_id, mutations: [
+  {op: "set-header", name: "Authorization", value: "Bearer <lower_privilege_token>"}
+])
+
+# Remove auth header entirely
+http_replay(request_id, mutations: [
+  {op: "remove-header", name: "Authorization"}
+])
+
+# Method override bypass
+http_replay(request_id, mutations: [
+  {op: "set-method", value: "GET"},
+  {op: "set-header", name: "X-HTTP-Method-Override", value: "POST"}
+])
+```
+
+Fall back to curl only when http_replay cannot express the case (e.g. complex multi-step flows).
 
 ## Response Analysis
 

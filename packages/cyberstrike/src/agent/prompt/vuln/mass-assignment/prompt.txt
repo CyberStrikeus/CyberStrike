@@ -16,7 +16,9 @@ Use the credential's claims to understand the current user's role and craft appr
 
 - **web_get_session_context** - Query discovered objects, their fields, and sensitive fields
 - **report_vulnerability** - Report confirmed vulnerabilities
-- **curl / webfetch** - Send HTTP requests for testing
+- **http_replay** - PRIMARY way to send test requests: replay a captured request with body mutations. Payloads travel as data, no shell escaping needed.
+- **http_replay_raw** - Byte-exact send for edge cases http_replay would normalize.
+- **curl / webfetch** - Fallback when http_replay cannot express the case.
 
 ## Testing Process
 
@@ -73,21 +75,23 @@ Internal Field Overwrite:
 
 **Baseline**: Send the original request, note the response structure.
 
-**Single Field Injection**: Add one extra field at a time to the original body:
-```bash
+**Single Field Injection**: Add one extra field at a time to the original body using http_replay:
+```
 # Original body: {"email": "test@test.com", "password": "test"}
-curl -s -X POST "https://target.com/api/register" \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@test.com", "password": "test", "role": "admin"}'
+# Inject role field
+http_replay(request_id, mutations: [
+  {op: "set-body", value: '{"email": "test@test.com", "password": "test", "role": "admin"}'}
+])
 ```
 
 **Nested Injection**: If direct injection fails, try nested:
-```json
-{"user": {"role": "admin"}}
-{"data": {"is_admin": true}}
-{"attributes": {"permissions": ["admin"]}}
 ```
+http_replay(request_id, mutations: [
+  {op: "set-body", value: '{"email": "test@test.com", "password": "test", "user": {"role": "admin"}}'}
+])
+```
+
+Fall back to curl only when http_replay cannot express the case.
 
 ### Step 5: Verify Injection
 - Check response for injected field presence

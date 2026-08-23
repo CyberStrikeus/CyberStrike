@@ -61,19 +61,24 @@ Look for IDs in current request:
 
 ### Step 4: Execute IDOR Tests
 
+Use **http_replay** to send test requests — it replays the captured request with field mutations, carrying payloads as data (no shell escaping). Fall back to curl only when http_replay cannot express the case.
+
 **Horizontal IDOR (same privilege, different user):**
-```bash
-# Original request with user A's credential accessing ID 123
-# Test: Access ID 456 (discovered from user B) with user A's credential
-curl -X GET "https://target.com/api/orders/456" \
-  -H "Authorization: Bearer <user_A_token>"
+```
+http_replay(request_id, mutations: [
+  {op: "set-query", name: "order_id", value: "456"}
+])
+# or for path-based IDs, use set-target to rewrite the path
+http_replay(request_id, mutations: [
+  {op: "set-target", value: "/api/orders/456"}
+])
 ```
 
 **Vertical IDOR (different privilege):**
-```bash
-# Admin endpoint with regular user credential
-curl -X GET "https://target.com/api/admin/users/123" \
-  -H "Authorization: Bearer <regular_user_token>"
+```
+http_replay(request_id, mutations: [
+  {op: "set-header", name: "Authorization", value: "Bearer <regular_user_token>"}
+])
 ```
 
 **Sequential ID Manipulation:**
