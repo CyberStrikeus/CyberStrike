@@ -23,6 +23,8 @@ export namespace BackendFetch {
     bodyCapBytes?: number
     /** TLS certificate verification (default true). false = accept self-signed. */
     rejectUnauthorized?: boolean
+    /** Follow 3xx redirects instead of returning the redirect response. */
+    followRedirects?: boolean
     /** External cancellation (e.g. the chat turn's abort). */
     signal?: AbortSignal
   }
@@ -96,7 +98,7 @@ export namespace BackendFetch {
         // accept Uint8Array<ArrayBufferLike> as BodyInit, though fetch handles it
         // fine at runtime. Cast through unknown for this lib-generics friction.
         body: hasBody ? (req.body as unknown as BodyInit) : undefined,
-        redirect: "manual",
+        redirect: opts.followRedirects ? "follow" : "manual",
         signal: controller.signal,
       }
       if (opts.rejectUnauthorized === false) init.tls = { rejectUnauthorized: false }

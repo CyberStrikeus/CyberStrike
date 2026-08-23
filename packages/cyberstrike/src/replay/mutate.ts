@@ -148,4 +148,134 @@ export namespace Mutate {
     out.body = typeof body === "string" ? new TextEncoder().encode(body) : body.slice()
     return out
   }
+
+  // ── Cookie (individual cookie manipulation) ─────────────────────────────
+
+  function parseCookieHeader(header: string): Map<string, string> {
+    const cookies = new Map<string, string>()
+    for (const pair of header.split(";")) {
+      const trimmed = pair.trim()
+      if (!trimmed) continue
+      const eq = trimmed.indexOf("=")
+      if (eq === -1) {
+        cookies.set(trimmed, "")
+        continue
+      }
+      cookies.set(trimmed.slice(0, eq), trimmed.slice(eq + 1))
+    }
+    return cookies
+  }
+
+  function serializeCookieHeader(cookies: Map<string, string>): string {
+    return [...cookies].map(([k, v]) => (v ? `${k}=${v}` : k)).join("; ")
+  }
+
+  export function setCookie(req: HttpMessage.Request, name: string, value: string): HttpMessage.Request {
+    const out = clone(req)
+    const idx = out.headers.findIndex((h) => h.name.toLowerCase() === "cookie")
+    if (idx === -1) {
+      out.headers.push({ name: "Cookie", value: `${name}=${value}` })
+      return out
+    }
+    const cookies = parseCookieHeader(out.headers[idx].value)
+    cookies.set(name, value)
+    out.headers[idx] = { name: out.headers[idx].name, value: serializeCookieHeader(cookies) }
+    return out
+  }
+
+  export function removeCookie(req: HttpMessage.Request, name: string): HttpMessage.Request {
+    const out = clone(req)
+    const idx = out.headers.findIndex((h) => h.name.toLowerCase() === "cookie")
+    if (idx === -1) return out
+    const cookies = parseCookieHeader(out.headers[idx].value)
+    cookies.delete(name)
+    if (cookies.size === 0) {
+      out.headers = out.headers.filter((_, i) => i !== idx)
+      return out
+    }
+    out.headers[idx] = { name: out.headers[idx].name, value: serializeCookieHeader(cookies) }
+    return out
+  }
+
+  // ── JSON body (field-level manipulation) ────────────────────────────────
+
+  function parseJsonBody(req: HttpMessage.Request): Record<string, unknown> {
+    try {
+      return JSON.parse(new TextDecoder().decode(req.body))
+    } catch {
+      return {}
+    }
+  }
+
+  function setNested(obj: Record<string, unknown>, path: string, value: unknown): void {
+    const parts = path.split(".")
+    let cur: Record<string, unknown> = obj
+    for (let i = 0; i < parts.length - 1; i++) {
+      const k = parts[i]
+      if (cur[k] === undefined || cur[k] === null || typeof cur[k] !== "object") cur[k] = {}
+      cur = cur[k] as Record<string, unknown>
+    }
+    cur[parts[parts.length - 1]] = value
+  }
+
+  function removeNested(obj: Record<string, unknown>, path: string): void {
+    const parts = path.split(".")
+    let cur: Record<string, unknown> = obj
+    for (let i = 0; i < parts.length - 1; i++) {
+      const k = parts[i]
+      if (cur[k] === undefined || typeof cur[k] !== "object") return
+      cur = cur[k] as Record<string, unknown>
+    }
+    delete cur[parts[parts.length - 1]]
+  }
+
+  function tryParseJson(value: string): unknown {
+    try {
+      return JSON.parse(value)
+    } catch {
+      return value
+    }
+  }
+
+  /** Merge JSON fields into the existing body. Does not replace the body —
+   * shallow-merges top-level keys from `fields` (a JSON string) into the
+   * parsed body, so the agent can inject extra fields without knowing or
+   * copying the original body content. */
+  export function bodyMerge(req: HttpMessage.Request, fields: string): HttpMessage.Request {
+    const obj = parseJsonBody(req)
+    const merge = JSON.parse(fields)
+    return setBody(req, JSON.stringify({ ...obj, ...merge }))
+  }
+
+  /** Set a nested JSON field by dot-path (e.g. "user.role"). The value
+   * string is parsed as JSON first; if that fails it is kept as a raw string.
+   * Intermediate objects are created when missing. */
+  export function bodySetField(req: HttpMessage.Request, path: string, value: string): HttpMessage.Request {
+    const obj = parseJsonBody(req)
+    setNested(obj, path, tryParseJson(value))
+    return setBody(req, JSON.stringify(obj))
+  }
+
+  /** Remove a nested JSON field by dot-path. No-op if the path does not exist. */
+  export function bodyRemoveField(req: HttpMessage.Request, path: string): HttpMessage.Request {
+    const obj = parseJsonBody(req)
+    removeNested(obj, path)
+    return setBody(req, JSON.stringify(obj))
+  }
+
+  // ── Path parameters ─────────────────────────────────────────────────────
+
+  /** Replace a path segment by its 0-based position. The position counts
+   * slash-separated segments including the leading empty segment (position 0
+   * is before the first `/`), so for `/api/users/123` the segments are
+   * `["", "api", "users", "123"]` — position 3 is `"123"`. */
+  export function setPathParam(req: HttpMessage.Request, position: number, value: string): HttpMessage.Request {
+    const { path, query } = splitTarget(req.target)
+    const segments = path.split("/")
+    if (position < 0 || position >= segments.length) {
+      throw new Error(`setPathParam: position ${position} out of range (path has ${segments.length} segments)`)
+    }
+    segments[position] = value
+    return setTarget(req, joinTarget(segments.join("/"), query))
+  }
 }
