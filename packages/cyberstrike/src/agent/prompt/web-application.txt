@@ -33,8 +33,10 @@ Launches an AI-driven crawler that navigates the app, fills forms, clicks button
   - `co-pilot` — AI crawl with pause/resume (coming soon)
   - `observer` — manual browse, capture only (coming soon)
 - `target` (required): URL to crawl
-- `credentials` (optional, array of credential IDs): omit for anonymous crawl.
-  Forces visible browser. **ONLY pass when a human is present.**
+- `login` (optional, `{username, password}`): auto-fill login credentials. The
+  crawler fills the login form automatically. Use when user provides credentials.
+- `credentials` (optional, array of credential IDs): manual login — opens browser,
+  waits for user. For complex auth (2FA, OAuth, CAPTCHA). Never combine with `login`.
 - `scope` (optional): hostname patterns to limit crawl
 - `exclude` (optional): UI labels or path patterns to skip
 - `steps` (optional, 1–200): max pages to crawl, defaults to 50
@@ -42,8 +44,9 @@ Launches an AI-driven crawler that navigates the app, fills forms, clicks button
 **Typical flow:**
 1. `hackbrowser target="https://target.com"` — tool asks mode, then anonymous crawl
 2. Review captured traffic, identify auth-protected areas
-3. `hackbrowser mode="full-auto-headed" target="https://target.com" credentials=["user1","admin1"]`
-4. Run targeted testing on captured requests
+3. `hackbrowser target="https://target.com" login={username: "user@test.com", password: "pass123"}` — authenticated crawl with auto-fill
+4. For 2FA/OAuth: `hackbrowser target="https://target.com" credentials=["user1"]` — manual login
+5. Run targeted testing on captured requests
 
 ## Testing Workflow
 

@@ -276,10 +276,19 @@ The hackbrowser tool supports 4 crawl modes:
 **Key parameters:**
 - `mode` (optional) — crawl mode; omit to let the tool ask the user
 - `target` (required) — URL to crawl; also derives capture scope (*.eTLD+1)
-- `credentials` (optional, array of credential IDs) — omit for anonymous crawl.
-  Forces visible browser. **Only pass when a human is present to log in.**
+- `login` (optional, `{username, password}`) — auto-fill login credentials. The
+  crawler fills the login form automatically. **Use in Full Auto when the user
+  provides credentials in chat.** No manual interaction needed.
+- `credentials` (optional, array of credential IDs) — manual login flow. Opens
+  browser visibly, waits for user to log in. Use for complex auth (2FA, OAuth,
+  CAPTCHA) where auto-fill won't work. **Never combine with `login`.**
 - `scope` / `exclude` — bound or trim the crawl
 - `steps` (1–200, default 50) — max pages
+
+**Authentication decision:**
+- User gives email/password in chat → pass `login: {username, password}`
+- App uses 2FA/OAuth/CAPTCHA → use `credentials` (manual login)
+- No auth needed → omit both
 
 **The user can also launch it themselves** with the `/hackbrowser` slash command (or
 `cyberstrike hackbrowser <target>` from the CLI) — same backend.
