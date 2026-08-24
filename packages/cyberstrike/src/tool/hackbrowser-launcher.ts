@@ -421,7 +421,9 @@ async function backgroundRun(
     }
 
     // Worker exited without sending result/error — unexpected crash.
+    // Force-kill to clean up any orphaned Chrome child processes.
     if (!receivedResult) {
+      try { proc.kill() } catch {}
       const exitCode = await proc.exited.catch(() => -1)
       const stderr = await Bun.readableStreamToText(proc.stderr as ReadableStream).catch(() => "")
       const message =
@@ -463,7 +465,13 @@ async function backgroundRun(
     )
   } finally {
     activeRuns.delete(sessionID)
-    proc.kill()
+    try {
+      const s = proc.stdin
+      if (s && typeof s !== "number") (s as any).end()
+    } catch {}
+    setTimeout(() => {
+      try { proc.kill() } catch {}
+    }, 10_000)
   }
 }
 

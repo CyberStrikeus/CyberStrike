@@ -1,18 +1,28 @@
 import { existsSync } from "fs"
 import { chromium, type Browser, type LaunchOptions, type BrowserContextOptions } from "playwright"
 
+const PLATFORM_ARGS =
+  process.platform === "linux"
+    ? ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--no-zygote"]
+    : []
+
 const LAUNCH_ARGS = [
   "--disable-blink-features=AutomationControlled",
   "--disable-features=IsolateOrigins,site-per-process",
-  "--no-sandbox",
-  "--disable-setuid-sandbox",
-  "--disable-dev-shm-usage",
   "--no-first-run",
-  "--no-zygote",
+  // Stability: prevent renderer throttling/death on window drag/resize/minimize
+  "--disable-backgrounding-occluded-windows",
+  "--disable-renderer-backgrounding",
+  "--disable-background-timer-throttling",
+  "--disable-hang-monitor",
+  "--disable-ipc-flooding-protection",
+  "--disable-component-update",
+  ...PLATFORM_ARGS,
 ]
 
 export function launchOptions(headless: boolean): LaunchOptions {
-  return { headless, args: LAUNCH_ARGS }
+  const args = headless ? LAUNCH_ARGS : [...LAUNCH_ARGS, "--window-size=1920,1080"]
+  return { headless, args }
 }
 
 export function userAgent(version: string): string {
@@ -40,10 +50,10 @@ export async function connect(opts: { cdp?: string; headless: boolean }): Promis
   return chromium.launch(launchOptions(opts.headless))
 }
 
-export function contextOptions(version: string): BrowserContextOptions {
+export function contextOptions(version: string, headless = true): BrowserContextOptions {
   return {
     userAgent: userAgent(version),
-    viewport: { width: 1920, height: 1080 },
+    viewport: headless ? { width: 1920, height: 1080 } : null,
     screen: { width: 1920, height: 1080 },
     locale: "en-US",
     timezoneId: "America/New_York",
