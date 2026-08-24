@@ -313,9 +313,11 @@ function buildDiff(baseline: ReplayResponse.Result, exploit: ReplayResponse.Resu
 
 // ── http_replay (structured) ─────────────────────────────────────────────────
 
-const REPLAY_DESC = `Replay a captured request with field-level mutations, sent through the structured (fetch) backend — no shell, so payloads land as request DATA byte-for-byte.
+const REPLAY_DESC = `Send an HTTP request through the structured (fetch) backend — no shell, so payloads land as request DATA byte-for-byte.
 
-Resolve request_id, apply mutations[] (set/add/remove query & header, set body/method/target, body-merge, body-set-field, body-remove-field, set-cookie, remove-cookie, set-path-param — each value optionally passed through an encode pipeline), then send once (governed: timeout, retry only on transient+idempotent, budget, circuit breaker). Returns FACTS: status, timing, response headers/body preview, error-signature hits, and (if you pass a marker) whether that marker reflected raw vs html-encoded — plus a copy-pasteable curl equivalent for your report. It never decides "vulnerable"; you judge the observations.
+Two modes: (1) pass request_id to replay a captured request, or (2) pass url (+ optional method/headers/body) to build a request from scratch. Either way the target host must be among captured in-scope hosts.
+
+Apply mutations[] (set/add/remove query & header, set body/method/target, body-merge, body-set-field, body-remove-field, set-cookie, remove-cookie, set-path-param — each value optionally passed through an encode pipeline), then send once (governed: timeout, retry only on transient+idempotent, budget, circuit breaker). Returns FACTS: status, timing, response headers/body preview, error-signature hits, and (if you pass a marker) whether that marker reflected raw vs html-encoded — plus a copy-pasteable curl equivalent for your report. It never decides "vulnerable"; you judge the observations.
 
 Special modes:
 - **credential**: Swap auth headers — pass a session credential ID and the engine strips all auth headers from the captured request and injects the credential's headers. Use for cross-credential IDOR testing.
@@ -330,7 +332,28 @@ Use for confirm/weaponize instead of building curl in bash. For byte-exact / smu
 export const HttpReplayTool = Tool.define("http_replay", {
   description: REPLAY_DESC,
   parameters: z.object({
-    request_id: z.string().describe("ID of the captured request to replay (source of URL, headers, body, credential)."),
+    request_id: z
+      .string()
+      .optional()
+      .describe("ID of a captured request to replay. Omit when building a request from scratch with url/method/headers/body."),
+    url: z
+      .string()
+      .optional()
+      .describe(
+        "Full URL to target (e.g. https://target.com/api/users). Required when request_id is omitted. Host must be among captured in-scope hosts.",
+      ),
+    method: z
+      .string()
+      .optional()
+      .describe("HTTP method (default GET). Only used when building from scratch (no request_id)."),
+    headers: z
+      .record(z.string())
+      .optional()
+      .describe("Request headers as key-value pairs. Only used when building from scratch (no request_id)."),
+    body: z
+      .string()
+      .optional()
+      .describe("Request body string. Only used when building from scratch (no request_id)."),
     mutations: z
       .array(MUTATION)
       .optional()
@@ -388,35 +411,68 @@ export const HttpReplayTool = Tool.define("http_replay", {
   }),
   async execute(params, ctx) {
     const sessionID = Session.root(ctx.sessionID)
-    const request = Request.get(sessionID).find((r) => r.id === params.request_id)
-    if (!request) return { title: "http_replay", output: `Request "${params.request_id}" not found.`, metadata: {} }
-    if (!request.raw_request) {
+
+    let baseMsg: HttpMessage.Request
+    let origin: string
+
+    if (params.request_id) {
+      const request = Request.get(sessionID).find((r) => r.id === params.request_id)
+      if (!request) return { title: "http_replay", output: `Request "${params.request_id}" not found.`, metadata: {} }
+      if (!request.raw_request) {
+        return {
+          title: "http_replay",
+          output: `Request "${params.request_id}" has no raw_request to replay.`,
+          metadata: {},
+        }
+      }
+
+      const resolved = originOf(request)
+      if (typeof resolved !== "string") return { title: "http_replay", output: resolved.error, metadata: {} }
+      origin = resolved
+
+      try {
+        baseMsg = HttpMessage.parse(request.raw_request)
+      } catch (e) {
+        return {
+          title: "http_replay",
+          output: `Could not parse request: ${e instanceof Error ? e.message : String(e)}`,
+          metadata: {},
+        }
+      }
+    } else if (params.url) {
+      const parsed = safeURL(params.url)
+      if (!parsed) return { title: "http_replay", output: `Invalid URL: "${params.url}".`, metadata: {} }
+
+      origin = parsed.origin
+      const target = parsed.pathname + parsed.search
+      const headers: HttpMessage.Header[] = [{ name: "Host", value: parsed.host }]
+      if (params.headers) {
+        for (const [name, value] of Object.entries(params.headers)) {
+          if (name.toLowerCase() !== "host") headers.push({ name, value })
+        }
+      }
+
+      const encoder = new TextEncoder()
+      baseMsg = {
+        method: params.method ?? "GET",
+        target,
+        version: "HTTP/1.1",
+        headers,
+        body: params.body ? encoder.encode(params.body) : new Uint8Array(0),
+      }
+    } else {
       return {
         title: "http_replay",
-        output: `Request "${params.request_id}" has no raw_request to replay.`,
+        output: "Either request_id or url is required.",
         metadata: {},
       }
     }
-
-    const origin = originOf(request)
-    if (typeof origin !== "string") return { title: "http_replay", output: origin.error, metadata: {} }
 
     const originHost = safeURL(origin)?.hostname ?? ""
     if (!inScope(sessionID, originHost)) {
       return {
         title: "http_replay — refused (out of scope)",
         output: `Refusing host "${originHost}": not among this session's captured in-scope hosts.`,
-        metadata: {},
-      }
-    }
-
-    let baseMsg: HttpMessage.Request
-    try {
-      baseMsg = HttpMessage.parse(request.raw_request)
-    } catch (e) {
-      return {
-        title: "http_replay",
-        output: `Could not parse request: ${e instanceof Error ? e.message : String(e)}`,
         metadata: {},
       }
     }
