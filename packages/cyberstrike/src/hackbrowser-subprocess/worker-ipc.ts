@@ -67,6 +67,7 @@ export interface WorkerOptions {
   model: ModelDescriptor
   credentialDispatch: CredentialDispatch
   cdp?: string
+  mode?: "full-auto-headless" | "full-auto-headed" | "co-pilot" | "observer"
 }
 
 // ============================================================
