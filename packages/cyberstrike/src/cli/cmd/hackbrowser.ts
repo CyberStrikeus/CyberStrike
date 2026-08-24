@@ -62,7 +62,7 @@ export const HackbrowserCommand = cmd({
       }
 
       const credentials = args.credential ?? []
-      const mode = args.mode ?? (args.headfull ? "full-auto-headed" : "full-auto-headless") as const
+      const mode = args.mode ?? (args.headfull ? "full-auto-headed" as const : "full-auto-headless" as const)
       const headless = HackbrowserStatus.deriveHeadless(mode, credentials)
       const kickOff = await launchHackbrowser({
         target: args.target,

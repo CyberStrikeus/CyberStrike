@@ -71,6 +71,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           startedAt: number
           finishedAt?: number
           cost?: number
+          mode?: "full-auto-headless" | "full-auto-headed" | "co-pilot" | "observer"
         }
       }
       // Methodology engine digest — populated by SSE event "intel.updated"

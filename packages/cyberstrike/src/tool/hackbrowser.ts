@@ -83,7 +83,7 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       return {
         title: `hackbrowser ${args.target}`,
         output: `Mode "${mode}" is not available yet. Please select full-auto-headless or full-auto-headed.`,
-        metadata: {},
+        metadata: { sessionID: "", started: false },
       }
     }
 
@@ -91,7 +91,7 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       return {
         title: `hackbrowser ${args.target}`,
         output: `Cannot combine "login" (auto-fill) with "credentials" (manual login). Use one or the other.`,
-        metadata: {},
+        metadata: { sessionID: "", started: false },
       }
     }
 

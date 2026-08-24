@@ -783,6 +783,8 @@ export type EventSessionQueueStatus = {
   }
 }
 
+export type HackbrowserMode = "full-auto-headless" | "full-auto-headed" | "co-pilot" | "observer"
+
 export type HackbrowserPhase = "starting" | "crawling" | "completed" | "failed"
 
 export type HackbrowserStatus = {
@@ -796,6 +798,7 @@ export type HackbrowserStatus = {
   startedAt: number
   finishedAt?: number
   cost?: number
+  mode?: HackbrowserMode
 }
 
 export type EventSessionHackbrowserStatus = {
@@ -3467,6 +3470,7 @@ export type SessionHackbrowserLaunchData = {
     exclude?: Array<string>
     steps?: number
     headless?: boolean
+    mode?: HackbrowserMode
   }
   path: {
     sessionID: string

@@ -1174,6 +1174,7 @@ export class Session extends HeyApiClient {
       exclude?: Array<string>
       steps?: number
       headless?: boolean
+      mode?: "full-auto-headless" | "full-auto-headed" | "co-pilot" | "observer"
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -1190,6 +1191,7 @@ export class Session extends HeyApiClient {
             { in: "body", key: "exclude" },
             { in: "body", key: "steps" },
             { in: "body", key: "headless" },
+            { in: "body", key: "mode" },
           ],
         },
       ],
