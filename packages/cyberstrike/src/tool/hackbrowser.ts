@@ -1,132 +1,8 @@
-// Hackbrowser tool — agent-callable wrapper around the hackbrowser library.
-// All cyberstrike→hackbrowser plumbing (Provider, Server URL, log bridge,
-// re-entrance) lives in hackbrowser-launcher.ts; this file is just the
-// Tool.define surface (parameters, permission gate, output shape).
-//
-// Surface is shared with the /hackbrowser slash command and the
-// `cyberstrike hackbrowser` CLI subcommand — same fields, same semantics
-// across all three entry points.
-
 import z from "zod"
 import { Tool } from "./tool"
 import { launchHackbrowser } from "./hackbrowser-launcher"
 import { HackbrowserStatus } from "../session/hackbrowser-status"
-import { Question } from "../question"
-
-const PHASE_2_MODES: ReadonlySet<string> = new Set(["co-pilot", "observer"])
-const QUESTION_TIMEOUT_MS = 300_000
-
-const MODE_QUESTION_OPTIONS: Question.Option[] = [
-  { label: "Full Auto (Headless)", description: "AI autonomous crawl, no browser window. Fastest." },
-  { label: "Full Auto (Headed)", description: "AI autonomous crawl, visible browser. Watch/debug." },
-  { label: "Co-Pilot (Coming Soon)", description: "AI crawls, you can pause and intervene." },
-  { label: "Observer (Coming Soon)", description: "You browse manually, only traffic captured." },
-]
-
-const LABEL_TO_MODE: Record<string, HackbrowserStatus.Mode> = {
-  "Full Auto (Headless)": "full-auto-headless",
-  "Full Auto (Headed)": "full-auto-headed",
-  "Co-Pilot (Coming Soon)": "co-pilot",
-  "Observer (Coming Soon)": "observer",
-}
-
-function mapModeToConfig(mode: HackbrowserStatus.Mode, credentials?: string[]) {
-  const hasCredentials = credentials && credentials.length > 0
-  switch (mode) {
-    case "full-auto-headless":
-      if (hasCredentials) return { headless: false }
-      return { headless: true }
-    case "full-auto-headed":
-      return { headless: false }
-    case "co-pilot":
-    case "observer":
-      return { headless: false }
-  }
-}
-
-async function resolveMode(
-  sessionID: string,
-  explicitMode: HackbrowserStatus.Mode | undefined,
-  tool?: { messageID: string; callID: string },
-): Promise<HackbrowserStatus.Mode> {
-  if (explicitMode) {
-    if (PHASE_2_MODES.has(explicitMode)) {
-      throw new Error(
-        `Mode "${explicitMode}" is not available yet. Pass mode="full-auto-headless" or mode="full-auto-headed".`,
-      )
-    }
-    return explicitMode
-  }
-
-  const prev = HackbrowserStatus.get(sessionID)
-
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const base =
-      attempt === 0
-        ? [...MODE_QUESTION_OPTIONS]
-        : MODE_QUESTION_OPTIONS.filter((o) => !PHASE_2_MODES.has(LABEL_TO_MODE[o.label]))
-    const options = [...base]
-
-    if (prev?.mode && !PHASE_2_MODES.has(prev.mode)) {
-      const prevLabel = Object.entries(LABEL_TO_MODE).find(([, m]) => m === prev.mode)?.[0]
-      if (prevLabel) {
-        const idx = options.findIndex((o) => o.label === prevLabel)
-        if (idx >= 0) {
-          const recommended = { ...options[idx], label: `${options[idx].label} (Recommended)` }
-          options.splice(idx, 1)
-          options.unshift(recommended)
-        }
-      }
-    }
-
-    const questionText =
-      attempt > 0
-        ? "Co-Pilot and Observer are coming soon. Select an available mode:"
-        : "Which crawl mode should I use?"
-
-    let answers: Question.Answer[]
-    let timer: ReturnType<typeof setTimeout>
-    try {
-      answers = await Promise.race([
-        Question.ask({
-          sessionID,
-          questions: [
-            {
-              question: questionText,
-              header: "Crawl Mode",
-              options,
-              custom: false,
-            },
-          ],
-          tool,
-        }),
-        new Promise<never>((_, reject) => {
-          timer = setTimeout(
-            () => reject(new Error("Mode selection timed out — no response in 5 minutes")),
-            QUESTION_TIMEOUT_MS,
-          )
-        }),
-      ])
-      clearTimeout(timer!)
-    } catch (err) {
-      clearTimeout(timer!)
-      if (err instanceof Question.RejectedError) {
-        throw new Error("Crawl cancelled — user dismissed mode selection.")
-      }
-      throw err
-    }
-
-    const selected = answers[0]?.[0]
-    if (!selected) return "full-auto-headless"
-
-    const clean = selected.replace(" (Recommended)", "")
-    const mode = LABEL_TO_MODE[clean] ?? "full-auto-headless"
-
-    if (!PHASE_2_MODES.has(mode)) return mode
-  }
-
-  return "full-auto-headless"
-}
+import { HackbrowserMode } from "../session/hackbrowser-mode"
 
 const DESCRIPTION = `Crawl a web application autonomously and capture HTTP requests with UI context.
 
@@ -197,13 +73,13 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
     steps: z.number().int().min(1).max(200).optional().describe("Maximum number of pages to crawl. Defaults to 50."),
   }),
   async execute(args, ctx) {
-    const mode = await resolveMode(
+    const mode = await HackbrowserMode.resolve(
       ctx.sessionID,
       args.mode,
       ctx.callID ? { messageID: ctx.messageID, callID: ctx.callID } : undefined,
     )
 
-    if (PHASE_2_MODES.has(mode)) {
+    if (HackbrowserMode.PHASE_2.has(mode)) {
       return {
         title: `hackbrowser ${args.target}`,
         output: `Mode "${mode}" is not available yet. Please select full-auto-headless or full-auto-headed.`,
@@ -226,7 +102,7 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       metadata: { scope: args.scope, exclude: args.exclude },
     })
 
-    const modeConfig = mapModeToConfig(mode, args.credentials)
+    const config = HackbrowserMode.toConfig(mode, args.credentials)
 
     const kickOff = await launchHackbrowser({
       target: args.target,
@@ -235,7 +111,7 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       exclude: args.exclude,
       credentials: args.credentials,
       steps: args.steps,
-      headless: modeConfig.headless,
+      headless: config.headless,
       mode,
       loginCredentials: args.login,
       signal: ctx.abort,
