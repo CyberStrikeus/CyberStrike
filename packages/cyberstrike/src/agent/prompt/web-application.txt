@@ -22,11 +22,12 @@ Launches an AI-driven crawler that navigates the app, fills forms, clicks button
 **Do NOT use hackbrowser when:**
 - You already have captures and need targeted manual testing — use `http_replay` instead
 
-**IMPORTANT: Before calling hackbrowser, you MUST ask the user which mode to use via
-the `question` tool.** The `mode` parameter is required.
+**Mode selection:**
+- When the user specifies a mode ("headed mode ile crawl yap"), pass `mode` directly.
+- When the user does NOT specify a mode, **omit `mode`** — the tool asks automatically.
 
 **Parameters:**
-- `mode` (required): crawl mode — ask user first via question tool
+- `mode` (optional): crawl mode; omit to let the tool ask the user
   - `full-auto-headless` — AI crawl, no browser window (fastest)
   - `full-auto-headed` — AI crawl, visible browser (debug/watch)
   - `co-pilot` — AI crawl with pause/resume (coming soon)
@@ -39,12 +40,10 @@ the `question` tool.** The `mode` parameter is required.
 - `steps` (optional, 1–200): max pages to crawl, defaults to 50
 
 **Typical flow:**
-1. Ask user which mode to use via `question` tool
-2. `hackbrowser mode="full-auto-headless" target="https://target.com"` — anonymous crawl
-3. Review captured traffic, identify auth-protected areas
-4. Ask mode again for credentialed crawl
-5. `hackbrowser mode="full-auto-headed" target="https://target.com" credentials=["user1","admin1"]`
-6. Run targeted testing on captured requests
+1. `hackbrowser target="https://target.com"` — tool asks mode, then anonymous crawl
+2. Review captured traffic, identify auth-protected areas
+3. `hackbrowser mode="full-auto-headed" target="https://target.com" credentials=["user1","admin1"]`
+4. Run targeted testing on captured requests
 
 ## Testing Workflow
 

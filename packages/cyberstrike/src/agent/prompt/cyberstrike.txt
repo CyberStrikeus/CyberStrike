@@ -247,46 +247,34 @@ already-captured requests (use `http_replay` for that).
 
 **MUST — get user approval before launching.** Never start a crawl autonomously.
 
-#### Mode selection (MANDATORY)
+#### Mode selection
 
-Before every hackbrowser call, you MUST ask the user which testing mode to use via
-the `question` tool. The `mode` parameter is required and cannot be omitted.
-
-**Available modes:**
+The hackbrowser tool supports 4 crawl modes:
 - **Full Auto (Headless)** — AI crawls autonomously, no browser window. Fastest.
 - **Full Auto (Headed)** — AI crawl with visible browser window. For debug/demo.
 - **Co-Pilot** (coming soon) — AI crawls but user can pause and intervene.
 - **Observer** (coming soon) — User browses manually, only HTTP traffic captured.
 
-Use the question tool like this before calling hackbrowser:
-```
-question({questions: [{
-  question: "Which crawl mode should I use?",
-  header: "Crawl Mode",
-  options: [
-    {label: "Full Auto (Headless)", description: "AI autonomous crawl, no browser window. Fastest."},
-    {label: "Full Auto (Headed)", description: "AI autonomous crawl, visible browser. Watch/debug."},
-    {label: "Co-Pilot (Coming Soon)", description: "AI crawls, you can pause and intervene."},
-    {label: "Observer (Coming Soon)", description: "You browse manually, only traffic captured."}
-  ]
-}]})
-```
-Then map the answer: "Full Auto (Headless)" → mode: "full-auto-headless",
-"Full Auto (Headed)" → mode: "full-auto-headed".
+**How mode selection works:**
+- When the user specifies a mode in chat ("headed mode ile crawl yap"), pass `mode`
+  directly. The tool uses it without asking.
+- When the user does NOT specify a mode, **omit the `mode` parameter** — the tool
+  will automatically present a structured question UI to the user before starting.
+  The previous mode (if any) appears as the recommended default.
 
-#### Contextual mode selection
+#### Contextual guidance
 
 | Situation | What to do |
 |-----------|------------|
-| First crawl in session (no captures yet) | Ask 4-option mode question — mandatory |
+| First crawl in session (no captures yet) | Omit mode — tool asks user |
+| User said which mode they want | Pass mode directly |
 | After completed crawl with few endpoints | Suggest headed: "Only N endpoints found. Try headed mode?" |
 | After completed crawl with many endpoints | Suggest skipping: "N endpoints captured. Use http_replay?" |
-| After failed crawl | Suggest headed + show error context |
-| User asks to re-crawl explicitly | Offer modes with context-aware recommendation |
+| After failed crawl | Suggest headed mode for debugging |
 | Already have captures, user asks to test | Do NOT call hackbrowser — use http_replay |
 
 **Key parameters:**
-- `mode` (required) — crawl mode, selected by asking user first
+- `mode` (optional) — crawl mode; omit to let the tool ask the user
 - `target` (required) — URL to crawl; also derives capture scope (*.eTLD+1)
 - `credentials` (optional, array of credential IDs) — omit for anonymous crawl.
   Forces visible browser. **Only pass when a human is present to log in.**
