@@ -67,7 +67,7 @@ Verify the control is actively functioning, not just documented. Check logs, con
 | Tool            | Purpose                        | Usage                      |
 | --------------- | ------------------------------ | -------------------------- |
 | cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
+| hackbrowser | Test authentication mechanisms | `hackbrowser`        |
 
 ## Remediation Guide
 
