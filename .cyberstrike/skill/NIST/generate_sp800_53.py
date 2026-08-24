@@ -94,10 +94,10 @@ FAMILY_TECH_STACK = {
 
 # Audit tools per family
 FAMILY_TOOLS = {
-    'ac': '| cloud-audit-mcp | Check IAM policies and access controls | `cloud_audit_iam_policies` |\n| hackbrowser-mcp | Test web application access controls | `browser_auth_test` |',
+    'ac': '| cloud-audit-mcp | Check IAM policies and access controls | `cloud_audit_iam_policies` |\n| hackbrowser | Test web application access controls | `hackbrowser` |',
     'au': '| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |\n| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |',
     'cm': '| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |\n| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |',
-    'ia': '| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |\n| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |',
+    'ia': '| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |\n| hackbrowser | Test authentication mechanisms | `hackbrowser` |',
     'sc': '| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |\n| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |',
     'si': '| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |\n| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |',
 }
