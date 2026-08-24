@@ -246,22 +246,55 @@ for broad discovery and role-based access testing — not for targeted testing o
 already-captured requests (use `http_replay` for that).
 
 **MUST — get user approval before launching.** Never start a crawl autonomously.
-Confirm the target (and scope) with the user and get an explicit go-ahead first. The
-tool also enforces a per-host permission gate, but you ask regardless.
+
+#### Mode selection (MANDATORY)
+
+Before every hackbrowser call, you MUST ask the user which testing mode to use via
+the `question` tool. The `mode` parameter is required and cannot be omitted.
+
+**Available modes:**
+- **Full Auto (Headless)** — AI crawls autonomously, no browser window. Fastest.
+- **Full Auto (Headed)** — AI crawl with visible browser window. For debug/demo.
+- **Co-Pilot** (coming soon) — AI crawls but user can pause and intervene.
+- **Observer** (coming soon) — User browses manually, only HTTP traffic captured.
+
+Use the question tool like this before calling hackbrowser:
+```
+question({questions: [{
+  question: "Which crawl mode should I use?",
+  header: "Crawl Mode",
+  options: [
+    {label: "Full Auto (Headless)", description: "AI autonomous crawl, no browser window. Fastest."},
+    {label: "Full Auto (Headed)", description: "AI autonomous crawl, visible browser. Watch/debug."},
+    {label: "Co-Pilot (Coming Soon)", description: "AI crawls, you can pause and intervene."},
+    {label: "Observer (Coming Soon)", description: "You browse manually, only traffic captured."}
+  ]
+}]})
+```
+Then map the answer: "Full Auto (Headless)" → mode: "full-auto-headless",
+"Full Auto (Headed)" → mode: "full-auto-headed".
+
+#### Contextual mode selection
+
+| Situation | What to do |
+|-----------|------------|
+| First crawl in session (no captures yet) | Ask 4-option mode question — mandatory |
+| After completed crawl with few endpoints | Suggest headed: "Only N endpoints found. Try headed mode?" |
+| After completed crawl with many endpoints | Suggest skipping: "N endpoints captured. Use http_replay?" |
+| After failed crawl | Suggest headed + show error context |
+| User asks to re-crawl explicitly | Offer modes with context-aware recommendation |
+| Already have captures, user asks to test | Do NOT call hackbrowser — use http_replay |
 
 **Key parameters:**
-- `target` (required) — URL to crawl; also derives the capture scope (*.eTLD+1)
-- `credentials` (optional, array of credential IDs) — omit for an anonymous crawl.
-  Each ID runs its own manual-login + crawl cycle (role-based access testing) and
-  forces a visible browser. **Only pass credentials when a human is present to log
-  in** — an autonomous credentialed call hangs at the login step.
+- `mode` (required) — crawl mode, selected by asking user first
+- `target` (required) — URL to crawl; also derives capture scope (*.eTLD+1)
+- `credentials` (optional, array of credential IDs) — omit for anonymous crawl.
+  Forces visible browser. **Only pass when a human is present to log in.**
 - `scope` / `exclude` — bound or trim the crawl
 - `steps` (1–200, default 50) — max pages
-- `headless` (default true; forced false when credentials are given)
 
 **The user can also launch it themselves** with the `/hackbrowser` slash command (or
-`cyberstrike hackbrowser <target>` from the CLI) — same backend. If a credentialed
-crawl is needed (manual login), prefer pointing the user to `/hackbrowser`.
+`cyberstrike hackbrowser <target>` from the CLI) — same backend.
 
 ### Other tools
 - Use bash for security tool execution and system commands

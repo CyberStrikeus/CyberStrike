@@ -22,23 +22,29 @@ Launches an AI-driven crawler that navigates the app, fills forms, clicks button
 **Do NOT use hackbrowser when:**
 - You already have captures and need targeted manual testing — use `http_replay` instead
 
+**IMPORTANT: Before calling hackbrowser, you MUST ask the user which mode to use via
+the `question` tool.** The `mode` parameter is required.
+
 **Parameters:**
+- `mode` (required): crawl mode — ask user first via question tool
+  - `full-auto-headless` — AI crawl, no browser window (fastest)
+  - `full-auto-headed` — AI crawl, visible browser (debug/watch)
+  - `co-pilot` — AI crawl with pause/resume (coming soon)
+  - `observer` — manual browse, capture only (coming soon)
 - `target` (required): URL to crawl
-- `credentials` (optional, array of credential IDs): omit for anonymous crawl
-  - One ID = single manual login + crawl, captures tagged with that credential
-  - Multiple IDs = repeats login + crawl once per credential (role-based access testing)
-  - Auto-login is intentionally not supported — every credentialed crawl opens the browser and waits for the user to log in manually
-  - **ONLY pass `credentials` when a human is present** — autonomous call with credentials will hang at login
+- `credentials` (optional, array of credential IDs): omit for anonymous crawl.
+  Forces visible browser. **ONLY pass when a human is present.**
 - `scope` (optional): hostname patterns to limit crawl
 - `exclude` (optional): UI labels or path patterns to skip
 - `steps` (optional, 1–200): max pages to crawl, defaults to 50
-- `headless` (optional): defaults to true; forced to false when credentials provided
 
 **Typical flow:**
-1. `hackbrowser target="https://target.com"` — anonymous crawl to discover endpoints
-2. Review captured traffic, identify auth-protected areas
-3. `hackbrowser target="https://target.com" credentials=["user1","admin1"]` — role-based crawl (user present)
-4. Run targeted testing on captured requests
+1. Ask user which mode to use via `question` tool
+2. `hackbrowser mode="full-auto-headless" target="https://target.com"` — anonymous crawl
+3. Review captured traffic, identify auth-protected areas
+4. Ask mode again for credentialed crawl
+5. `hackbrowser mode="full-auto-headed" target="https://target.com" credentials=["user1","admin1"]`
+6. Run targeted testing on captured requests
 
 ## Testing Workflow
 
