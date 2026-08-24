@@ -125,6 +125,30 @@ function isBrowserDead(health: BrowserHealth): boolean {
   return health.dead
 }
 
+const BROWSER_WAIT_TIMEOUT = 30 * 60 * 1000
+
+function waitForBrowserClose(
+  browser: import("playwright").Browser,
+  signal?: AbortSignal,
+): Promise<void> {
+  return new Promise<void>((resolve) => {
+    let resolved = false
+    const done = () => {
+      if (resolved) return
+      resolved = true
+      clearTimeout(timer)
+      resolve()
+    }
+    const timer = setTimeout(done, BROWSER_WAIT_TIMEOUT)
+    browser.on("disconnected", done)
+    if (signal) {
+      if (signal.aborted) { done(); return }
+      signal.addEventListener("abort", done, { once: true })
+    }
+    if (!browser.isConnected()) done()
+  })
+}
+
 // ============================================================
 // Post-Login Re-Discovery
 // ============================================================
@@ -1764,7 +1788,27 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     attachFileChooserAutoFill(page)
 
     // Navigate to target
-    await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 })
+    const mcInitNavErr = await page
+      .goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 })
+      .then(() => null)
+      .catch((e: Error) => e)
+    if (mcInitNavErr) {
+      log.warn("initial navigation failed", { credential: cred.id, url: targetUrl, err: mcInitNavErr.message.split("\n")[0] })
+      if (!config.headless && browser.isConnected()) {
+        log.info("browser stays open — navigate manually or close the window to finish")
+        await waitForBrowserClose(browser, config.signal)
+      } else {
+        await browser.close().catch(() => {})
+      }
+      return {
+        sessionID: dryRun ? "" : sessionId,
+        capturedEndpoints: 0,
+        pagesExplored: 0,
+        totalSteps: 0,
+        errors: [`Initial navigation failed (credential: ${cred.id}): ${mcInitNavErr.message}`],
+        usage: usageAcc,
+      }
+    }
 
     // First panel event — identifies this context's credential before manual login.
     void csEmit(page, {
@@ -2093,7 +2137,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
 
   if (!config.headless && browser.isConnected()) {
     log.info("crawl complete — browser stays open, close the window to finish")
-    await new Promise<void>((resolve) => browser.on("disconnected", resolve))
+    await waitForBrowserClose(browser, config.signal)
   } else if (!browserDied) {
     await browser.close().catch(() => {})
   }
@@ -2221,7 +2265,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     clearInterval(drainInterval)
     if (!config.headless && browser.isConnected()) {
       log.info("browser stays open — navigate manually or close the window to finish")
-      await new Promise<void>((resolve) => browser.on("disconnected", resolve))
+      await waitForBrowserClose(browser, config.signal)
     } else {
       await browser.close().catch(() => {})
     }
@@ -2524,7 +2568,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
 
   if (!config.headless && browser.isConnected()) {
     log.info("crawl complete — browser stays open, close the window to finish")
-    await new Promise<void>((resolve) => browser.on("disconnected", resolve))
+    await waitForBrowserClose(browser, config.signal)
   } else if (!browserDied) {
     await browser.close().catch(() => {})
   }
