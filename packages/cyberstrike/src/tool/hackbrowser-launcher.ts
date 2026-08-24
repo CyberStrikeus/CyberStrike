@@ -92,6 +92,7 @@ export interface LauncherOptions {
   credentials?: string[]
   steps?: number
   headless?: boolean
+  mode?: "full-auto-headless" | "full-auto-headed" | "co-pilot" | "observer"
   // Connect to user's real Chrome via CDP instead of Playwright's Chromium.
   // Bypasses WAF TLS fingerprinting (Cloudflare, etc.).
   cdp?: string
@@ -247,6 +248,7 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
     model: modelDescriptor,
     credentialDispatch,
     cdp: opts.cdp,
+    mode: opts.mode,
   }
 
   return { workerOptions, modelInfo, workerPath, runtime }
@@ -341,6 +343,7 @@ async function backgroundRun(
               HackbrowserStatus.set(sessionID, {
                 sessionID,
                 phase: "failed",
+                mode: prev?.mode,
                 targetUrl,
                 pagesExplored: msg.pagesExplored,
                 capturedEndpoints: msg.capturedEndpoints,
@@ -382,6 +385,7 @@ async function backgroundRun(
               HackbrowserStatus.set(sessionID, {
                 sessionID,
                 phase: "completed",
+                mode: prev?.mode,
                 targetUrl,
                 pagesExplored: msg.pagesExplored,
                 capturedEndpoints: msg.capturedEndpoints,
@@ -403,6 +407,7 @@ async function backgroundRun(
             HackbrowserStatus.set(sessionID, {
               sessionID,
               phase: "failed",
+              mode: prev?.mode,
               targetUrl,
               pagesExplored: prev?.pagesExplored ?? 0,
               capturedEndpoints: prev?.capturedEndpoints ?? 0,
@@ -435,6 +440,7 @@ async function backgroundRun(
       HackbrowserStatus.set(sessionID, {
         sessionID,
         phase: "failed",
+        mode: prev?.mode,
         targetUrl,
         pagesExplored: prev?.pagesExplored ?? 0,
         capturedEndpoints: prev?.capturedEndpoints ?? 0,
@@ -454,6 +460,7 @@ async function backgroundRun(
     HackbrowserStatus.set(sessionID, {
       sessionID,
       phase: "failed",
+      mode: prev?.mode,
       targetUrl,
       pagesExplored: prev?.pagesExplored ?? 0,
       capturedEndpoints: prev?.capturedEndpoints ?? 0,
@@ -522,6 +529,7 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
   HackbrowserStatus.set(opts.sessionID, {
     sessionID: opts.sessionID,
     phase: "starting",
+    mode: opts.mode,
     targetUrl: opts.target,
     pagesExplored: 0,
     capturedEndpoints: 0,
