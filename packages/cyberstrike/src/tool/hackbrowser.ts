@@ -10,6 +10,23 @@
 import z from "zod"
 import { Tool } from "./tool"
 import { launchHackbrowser } from "./hackbrowser-launcher"
+import { HackbrowserStatus } from "../session/hackbrowser-status"
+
+const PHASE_2_MODES: ReadonlySet<string> = new Set(["co-pilot", "observer"])
+
+function mapModeToConfig(mode: HackbrowserStatus.Mode, credentials?: string[]) {
+  const hasCredentials = credentials && credentials.length > 0
+  switch (mode) {
+    case "full-auto-headless":
+      if (hasCredentials) return { headless: false }
+      return { headless: true }
+    case "full-auto-headed":
+      return { headless: false }
+    case "co-pilot":
+    case "observer":
+      return { headless: false }
+  }
+}
 
 const DESCRIPTION = `Crawl a web application autonomously and capture HTTP requests with UI context.
 
@@ -17,11 +34,24 @@ Use this when you have a target URL but no captured requests yet — hackbrowser
 
 This tool runs ASYNCHRONOUSLY: it returns immediately after starting the background crawl. Captures stream into the session over the next 30s–2min. Do NOT call this tool again to "wait" for results — use web_get_session_context to inspect captured endpoints when you actually need them. The hackbrowser status (running / completed / failed) appears in the TUI sidebar.
 
-Defaults to anonymous headless mode. To crawl as authenticated user(s), pass \`credentials\` — the browser opens visibly and the user must log in manually before the crawl begins. Each credential ID in the array triggers its own login + crawl cycle, so multiple IDs run a sequence (role-based access tests). Auto-login (filling username/password in code) is intentionally not supported. Only invoke with credentials when a human is present to complete each login interactively; without a user, the crawl will hang at the login step.`
+**IMPORTANT:** You MUST ask the user which mode to use via the \`question\` tool BEFORE calling hackbrowser. The \`mode\` parameter is required.
+
+Available modes:
+- full-auto-headless — AI crawls autonomously, no browser window. Fastest option.
+- full-auto-headed — AI crawls with visible browser window. For watching/debugging.
+- co-pilot — AI crawls but user can pause and intervene. Best for complex apps. (Coming soon)
+- observer — User browses manually, only HTTP traffic is captured. (Coming soon)
+
+To crawl as authenticated user(s), pass \`credentials\` — the browser opens visibly and the user must log in manually before the crawl begins. Each credential ID in the array triggers its own login + crawl cycle, so multiple IDs run a sequence (role-based access tests). Auto-login is intentionally not supported. Only invoke with credentials when a human is present.`
 
 export const HackbrowserTool = Tool.define("hackbrowser", {
   description: DESCRIPTION,
   parameters: z.object({
+    mode: HackbrowserStatus.Mode.describe(
+      "Crawl mode. MUST be selected by asking the user via the question tool before calling this tool. " +
+        "full-auto-headless: AI crawl, no browser window. full-auto-headed: AI crawl, visible browser. " +
+        "co-pilot: AI crawl with pause/resume (coming soon). observer: manual browse, capture only (coming soon).",
+    ),
     target: z
       .string()
       .url()
@@ -58,9 +88,14 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       ),
   }),
   async execute(args, ctx) {
-    // Permission gate — opening a browser + outbound network is high-risk;
-    // require explicit consent. Pattern is the target URL so the user can
-    // grant blanket permission for a host on first use.
+    if (PHASE_2_MODES.has(args.mode)) {
+      return {
+        title: `hackbrowser ${args.target}`,
+        output: `Mode "${args.mode}" is not available yet. Please select full-auto-headless or full-auto-headed.`,
+        metadata: {},
+      }
+    }
+
     await ctx.ask({
       permission: "hackbrowser",
       patterns: [args.target],
@@ -68,11 +103,8 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       metadata: { scope: args.scope, exclude: args.exclude },
     })
 
-    // Fire and forget — launchHackbrowser returns immediately after sync
-    // prep (Provider resolve, Server URL, log sink). The actual runCrawl
-    // runs in a background IIFE so the chat session prompt loop unblocks
-    // and ingest queue tasks (proxy-analyzer dispatches) can run in
-    // parallel (INTEGRATION.md §10.9 / §13.6).
+    const modeConfig = mapModeToConfig(args.mode, args.credentials)
+
     const kickOff = await launchHackbrowser({
       target: args.target,
       sessionID: ctx.sessionID,
@@ -80,16 +112,13 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       exclude: args.exclude,
       credentials: args.credentials,
       steps: args.steps,
-      headless: args.headless,
+      headless: modeConfig.headless,
+      mode: args.mode,
       signal: ctx.abort,
     })
 
-    // Output is intentionally a "started" notice, NOT a result summary.
-    // Spell-out is for weak LLMs — see feedback_weak_llm_baseline:
-    // explicit "do NOT poll" + "use web_get_session_context when you
-    // need them" prevents looped re-invocation.
     const output = [
-      `Hackbrowser crawl started for ${args.target}.`,
+      `Hackbrowser crawl started for ${args.target} in ${args.mode} mode.`,
       `Captures stream into this session as the crawl progresses (typically 30s–2min).`,
       ``,
       `Do NOT call this tool again to wait for results — it is already running.`,
