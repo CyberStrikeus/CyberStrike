@@ -63,6 +63,11 @@ export namespace HackbrowserStatus {
     ),
   }
 
+  export function deriveHeadless(mode: Mode, credentials?: string[]): boolean {
+    if (credentials && credentials.length > 0) return false
+    return mode === "full-auto-headless"
+  }
+
   // Per-session map. Reset on cyberstrike restart by virtue of Instance.state
   // — dangling background runners are also gone, so clean slate is correct.
   const state = Instance.state(() => {

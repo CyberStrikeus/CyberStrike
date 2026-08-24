@@ -12,9 +12,9 @@ import { Tool } from "./tool"
 import { launchHackbrowser } from "./hackbrowser-launcher"
 import { HackbrowserStatus } from "../session/hackbrowser-status"
 import { Question } from "../question"
-import { Session } from "../session"
 
 const PHASE_2_MODES: ReadonlySet<string> = new Set(["co-pilot", "observer"])
+const QUESTION_TIMEOUT_MS = 300_000
 
 const MODE_QUESTION_OPTIONS: Question.Option[] = [
   { label: "Full Auto (Headless)", description: "AI autonomous crawl, no browser window. Fastest." },
@@ -49,42 +49,83 @@ async function resolveMode(
   explicitMode: HackbrowserStatus.Mode | undefined,
   tool?: { messageID: string; callID: string },
 ): Promise<HackbrowserStatus.Mode> {
-  if (explicitMode) return explicitMode
-
-  const rootSession = Session.root(sessionID)
-  const prev = HackbrowserStatus.get(rootSession)
-
-  const options = [...MODE_QUESTION_OPTIONS]
-  if (prev?.mode) {
-    const prevLabel = Object.entries(LABEL_TO_MODE).find(([, m]) => m === prev.mode)?.[0]
-    if (prevLabel) {
-      const idx = options.findIndex((o) => o.label === prevLabel)
-      if (idx > 0) {
-        const recommended = { ...options[idx], label: `${options[idx].label} (Recommended)` }
-        options.splice(idx, 1)
-        options.unshift(recommended)
-      }
+  if (explicitMode) {
+    if (PHASE_2_MODES.has(explicitMode)) {
+      throw new Error(
+        `Mode "${explicitMode}" is not available yet. Pass mode="full-auto-headless" or mode="full-auto-headed".`,
+      )
     }
+    return explicitMode
   }
 
-  const answers = await Question.ask({
-    sessionID,
-    questions: [
-      {
-        question: "Which crawl mode should I use?",
-        header: "Crawl Mode",
-        options,
-        custom: false,
-      },
-    ],
-    tool,
-  })
+  const prev = HackbrowserStatus.get(sessionID)
 
-  const selected = answers[0]?.[0]
-  if (!selected) return "full-auto-headless"
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const base =
+      attempt === 0
+        ? [...MODE_QUESTION_OPTIONS]
+        : MODE_QUESTION_OPTIONS.filter((o) => !PHASE_2_MODES.has(LABEL_TO_MODE[o.label]))
+    const options = [...base]
 
-  const clean = selected.replace(" (Recommended)", "")
-  return LABEL_TO_MODE[clean] ?? "full-auto-headless"
+    if (prev?.mode && !PHASE_2_MODES.has(prev.mode)) {
+      const prevLabel = Object.entries(LABEL_TO_MODE).find(([, m]) => m === prev.mode)?.[0]
+      if (prevLabel) {
+        const idx = options.findIndex((o) => o.label === prevLabel)
+        if (idx >= 0) {
+          const recommended = { ...options[idx], label: `${options[idx].label} (Recommended)` }
+          options.splice(idx, 1)
+          options.unshift(recommended)
+        }
+      }
+    }
+
+    const questionText =
+      attempt > 0
+        ? "Co-Pilot and Observer are coming soon. Select an available mode:"
+        : "Which crawl mode should I use?"
+
+    let answers: Question.Answer[]
+    let timer: ReturnType<typeof setTimeout>
+    try {
+      answers = await Promise.race([
+        Question.ask({
+          sessionID,
+          questions: [
+            {
+              question: questionText,
+              header: "Crawl Mode",
+              options,
+              custom: false,
+            },
+          ],
+          tool,
+        }),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error("Mode selection timed out — no response in 5 minutes")),
+            QUESTION_TIMEOUT_MS,
+          )
+        }),
+      ])
+      clearTimeout(timer!)
+    } catch (err) {
+      clearTimeout(timer!)
+      if (err instanceof Question.RejectedError) {
+        throw new Error("Crawl cancelled — user dismissed mode selection.")
+      }
+      throw err
+    }
+
+    const selected = answers[0]?.[0]
+    if (!selected) return "full-auto-headless"
+
+    const clean = selected.replace(" (Recommended)", "")
+    const mode = LABEL_TO_MODE[clean] ?? "full-auto-headless"
+
+    if (!PHASE_2_MODES.has(mode)) return mode
+  }
+
+  return "full-auto-headless"
 }
 
 const DESCRIPTION = `Crawl a web application autonomously and capture HTTP requests with UI context.
@@ -177,8 +218,10 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       signal: ctx.abort,
     })
 
+    const credentialOverride = mode === "full-auto-headless" && args.credentials && args.credentials.length > 0
     const output = [
       `Hackbrowser crawl started for ${args.target} in ${mode} mode.`,
+      ...(credentialOverride ? [`Note: browser opened visibly — credentials require manual login.`] : []),
       `Captures stream into this session as the crawl progresses (typically 30s–2min).`,
       ``,
       `Do NOT call this tool again to wait for results — it is already running.`,
