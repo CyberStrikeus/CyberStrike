@@ -256,7 +256,27 @@ export namespace PermissionNext {
       if (!rule) continue
       if (rule.pattern === "*" && rule.action === "deny") result.add(tool)
     }
+    warnUnmatchedRules(tools, ruleset)
     return result
+  }
+
+  const _warnedKeys = new Set<string>()
+
+  export function warnUnmatchedRules(tools: string[], ruleset: Ruleset): void {
+    for (const rule of ruleset) {
+      if (rule.permission === "*" || rule.permission.includes("*")) continue
+      if (EDIT_TOOLS.includes(rule.permission)) continue
+      if (_warnedKeys.has(rule.permission)) continue
+      const matched = tools.some((t) => t === rule.permission)
+      if (!matched) {
+        _warnedKeys.add(rule.permission)
+        log.warn("unmatched permission key", {
+          key: rule.permission,
+          action: rule.action,
+          hint: "this permission key does not match any registered tool — possible typo",
+        })
+      }
+    }
   }
 
   /** User rejected without message - halts execution */
