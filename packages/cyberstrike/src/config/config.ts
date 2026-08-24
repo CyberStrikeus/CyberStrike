@@ -101,11 +101,6 @@ export namespace Config {
         command: ["npx", "-y", "cloud-audit-mcp"],
         enabled: false,
       },
-      hackbrowser: {
-        type: "local",
-        command: ["npx", "-y", "hackbrowser-mcp"],
-        enabled: false,
-      },
       // --- Tier 2: Extended Intelligence ---
       darknet: {
         type: "local",
