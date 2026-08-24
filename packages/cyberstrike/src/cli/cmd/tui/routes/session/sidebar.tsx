@@ -234,6 +234,11 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                     return url.length > 40 ? url.slice(0, 37) + "..." : url
                   })()}
                 </text>
+                <Show when={hackbrowserStatus()!.mode}>
+                  <text fg={theme.textMuted}>
+                    Mode: {hackbrowserStatus()!.mode}
+                  </text>
+                </Show>
                 <Show when={hackbrowserStatus()!.phase === "crawling" || hackbrowserStatus()!.phase === "starting"}>
                   <text fg={theme.textMuted}>
                     {hackbrowserStatus()!.pagesExplored} page
