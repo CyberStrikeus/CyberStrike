@@ -2091,11 +2091,10 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     await contexts[0]?.page.waitForTimeout(600).catch(() => {})
   }
 
-  const cancelledByUser = config.signal?.aborted === true
-  if (cancelledByUser && !browserDied && !config.headless) {
-    log.info("crawl stopped — browser stays open for manual inspection, close the window to finish")
+  if (!config.headless && browser.isConnected()) {
+    log.info("crawl complete — browser stays open, close the window to finish")
     await new Promise<void>((resolve) => browser.on("disconnected", resolve))
-  } else if (!cancelledByUser) {
+  } else if (!browserDied) {
     await browser.close().catch(() => {})
   }
 
@@ -2213,7 +2212,28 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
   }, 500)
 
   // Navigate to target and authenticate
-  await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 })
+  const initNavErr = await page
+    .goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 })
+    .then(() => null)
+    .catch((e: Error) => e)
+  if (initNavErr) {
+    log.warn("initial navigation failed", { url: targetUrl, err: initNavErr.message.split("\n")[0] })
+    clearInterval(drainInterval)
+    if (!config.headless && browser.isConnected()) {
+      log.info("browser stays open — navigate manually or close the window to finish")
+      await new Promise<void>((resolve) => browser.on("disconnected", resolve))
+    } else {
+      await browser.close().catch(() => {})
+    }
+    return {
+      sessionID: dryRun ? "" : sessionID!,
+      capturedEndpoints: 0,
+      pagesExplored: 0,
+      totalSteps: 0,
+      errors: [`Initial navigation failed: ${initNavErr.message}`],
+      usage: usageAcc,
+    }
+  }
 
   // Panel init — after first goto so the host document exists.
   void csEmit(page, {
@@ -2502,11 +2522,10 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     await page.waitForTimeout(600).catch(() => {})
   }
 
-  const cancelledByUser = config.signal?.aborted === true
-  if (cancelledByUser && !browserDied && !config.headless) {
-    log.info("crawl stopped — browser stays open for manual inspection, close the window to finish")
+  if (!config.headless && browser.isConnected()) {
+    log.info("crawl complete — browser stays open, close the window to finish")
     await new Promise<void>((resolve) => browser.on("disconnected", resolve))
-  } else if (!cancelledByUser) {
+  } else if (!browserDied) {
     await browser.close().catch(() => {})
   }
 
