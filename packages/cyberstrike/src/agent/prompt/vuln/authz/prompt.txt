@@ -16,7 +16,10 @@ Use the credential info to understand which role/privilege level made the origin
 
 - **web_get_session_context** - Query discovered credentials, roles, and their hierarchy
 - **report_vulnerability** - Report confirmed vulnerabilities
-- **curl / webfetch** - Send HTTP requests for testing
+- **http_replay** - The ONLY way to send test requests: replay a captured request with field mutations (swap credentials, change paths, add headers). Payloads travel as data, no shell escaping needed. Supports credential swap, unauthenticated mode, compare mode (baseline vs exploit in one call), and sweep mode (multiple values).
+- **http_replay_raw** - Byte-exact send for malformed/smuggling requests that http_replay would normalize.
+- **credential_validate** - Check if a credential is still valid before testing. If invalid, call credential_mint to refresh.
+- **credential_mint** - Execute a credential's refresh recipe to mint fresh auth tokens.
 
 ## Testing Process
 
@@ -99,16 +102,38 @@ Add role parameters:
 ?admin=true, ?role=admin, ?is_admin=1
 ```
 
-## Constructing curl Commands
+## Sending Test Requests
 
-Use the raw request from `## Current request` as the base. Swap credentials from session context:
+Use **http_replay** with the captured request_id. Swap credentials via mutations:
 
-```bash
-# Example: Replay admin endpoint with regular user token
-curl -s -X POST "https://target.com/api/admin/users" \
-  -H "Authorization: Bearer <lower_privilege_token>" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "test"}'
+```
+# Credential swap: replay admin endpoint with a lower-privilege credential
+http_replay(request_id, credential: "cred_regular_user")
+
+# Unauthenticated: strips ALL auth headers
+http_replay(request_id, unauthenticated: true)
+
+# Compare mode: baseline (admin) vs exploit (regular user) in ONE call
+http_replay(request_id, compare: {
+  baseline: {},
+  exploit: {credential: "cred_regular_user"}
+})
+
+# Manual header manipulation when needed
+http_replay(request_id, mutations: [
+  {op: "set-header", name: "Authorization", value: "Bearer <lower_privilege_token>"}
+])
+
+# Remove auth header entirely
+http_replay(request_id, mutations: [
+  {op: "remove-header", name: "Authorization"}
+])
+
+# Method override bypass
+http_replay(request_id, mutations: [
+  {op: "set-method", value: "GET"},
+  {op: "set-header", name: "X-HTTP-Method-Override", value: "POST"}
+])
 ```
 
 ## Response Analysis
