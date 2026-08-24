@@ -11,6 +11,7 @@
 // input; the form parses on submit. Trim/empty filtering is centralized in
 // `splitCSV`.
 
+import { HackbrowserStatus } from "@/session/hackbrowser-status"
 import { TextareaRenderable, TextAttributes } from "@opentui/core"
 import { useTheme } from "../context/theme"
 import { useDialog, type DialogContext } from "../ui/dialog"
@@ -89,7 +90,7 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
       steps = n
     }
     const mode = store.mode
-    const headless = mode === "full-auto-headless" && !(credentials && credentials.length >= 1)
+    const headless = HackbrowserStatus.deriveHeadless(mode, credentials ?? undefined)
     return { target, credentials, scope, exclude, steps, headless, mode }
   }
 

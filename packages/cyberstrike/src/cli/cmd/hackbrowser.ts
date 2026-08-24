@@ -3,6 +3,7 @@ import { bootstrap } from "../bootstrap"
 import { Server } from "../../server/server"
 import { createCyberstrikeClient } from "@cyberstrike-io/sdk/v2"
 import { launchHackbrowser, stopHackbrowser } from "../../tool/hackbrowser-launcher"
+import { HackbrowserStatus } from "../../session/hackbrowser-status"
 import { tui } from "./tui/app"
 import { UI } from "../ui"
 
@@ -62,7 +63,7 @@ export const HackbrowserCommand = cmd({
 
       const credentials = args.credential ?? []
       const mode = args.mode ?? (args.headfull ? "full-auto-headed" : "full-auto-headless") as const
-      const headless = mode === "full-auto-headless" && credentials.length === 0
+      const headless = HackbrowserStatus.deriveHeadless(mode, credentials)
       const kickOff = await launchHackbrowser({
         target: args.target,
         sessionID,

@@ -466,6 +466,9 @@ export const SessionRoutes = lazy(() =>
         const { launchHackbrowser } = await import("@/tool/hackbrowser-launcher")
         const sessionID = c.req.valid("param").sessionID
         const body = c.req.valid("json")
+        const headless = body.mode
+          ? HackbrowserStatus.deriveHeadless(body.mode, body.credentials)
+          : body.headless
         const result = await launchHackbrowser({
           sessionID,
           target: body.target,
@@ -473,7 +476,7 @@ export const SessionRoutes = lazy(() =>
           scope: body.scope,
           exclude: body.exclude,
           steps: body.steps,
-          headless: body.headless,
+          headless,
           mode: body.mode,
         })
         return c.json(result)
