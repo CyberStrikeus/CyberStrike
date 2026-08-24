@@ -80,7 +80,7 @@ Verify the control is actively functioning, not just documented. Check logs, con
 | Tool            | Purpose                                | Usage                      |
 | --------------- | -------------------------------------- | -------------------------- |
 | cloud-audit-mcp | Check IAM policies and access controls | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test web application access controls   | `browser_auth_test`        |
+| hackbrowser | Test web application access controls   | `hackbrowser`        |
 
 ## Remediation Guide
 
