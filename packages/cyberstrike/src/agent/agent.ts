@@ -57,12 +57,12 @@ import { Plugin } from "@/plugin"
 import { Skill } from "../skill"
 
 // ============================================================================
-// Static skill injection for vulnerability testing sub-agents
+// Skill injection for vulnerability testing sub-agents
 //
-// Vuln tester sub-agents do not have access to the `skill` tool (their
-// permission is `*: deny` with a small allowlist). To give them the
-// methodology they need without runtime tool calls, we statically embed
-// WSTG skill content via `Skill.get()` into each agent's prompt at startup.
+// Two layers: (1) static WSTG skills embedded at startup via loadVulnAgent()
+// as baseline methodology, and (2) dynamic skill tool access at runtime so
+// agents can discover tech-specific or CWE-specific skills when they detect
+// the target's stack or need deeper methodology.
 // ============================================================================
 
 // Strip defensive sections (Remediation, Risk Assessment, CWE Categories,
@@ -530,6 +530,7 @@ export namespace Agent {
             "*": "deny",
             bash: "allow",
             webfetch: "allow",
+            http_replay: "allow",
             web_get_session_context: "allow",
             web_get_detail: "allow",
             web_get_request_detail: "allow",
@@ -597,8 +598,47 @@ export namespace Agent {
           defaults,
           PermissionNext.fromConfig({
             "*": "deny",
-            bash: "allow",
-            webfetch: "allow",
+            bash: {
+              // Block HTTP clients in bash — agents MUST use http_replay instead.
+              // This is defense-in-depth alongside the prompt mandate: old session
+              // history can override prompt guidance, but permission denies are absolute.
+              "*curl *": "deny",
+              "*curl.exe*": "deny",
+              "*wget *": "deny",
+              "*python*requests*": "deny",
+              "*python*urllib*": "deny",
+              "*python*aiohttp*": "deny",
+              "*python*httpx*": "deny",
+              "*python3*requests*": "deny",
+              "*python3*urllib*": "deny",
+              "*python3*aiohttp*": "deny",
+              "*python3*httpx*": "deny",
+              "*import requests*": "deny",
+              "*from requests *": "deny",
+              "*import urllib*": "deny",
+              "*import aiohttp*": "deny",
+              "*import httpx*": "deny",
+              // Block inline JS/TS execution — fetch() in bun/node/deno bypasses
+              // all Python/curl denies above.
+              "*bun -e*": "deny",
+              "*bun --eval*": "deny",
+              "*node -e*": "deny",
+              "*node --eval*": "deny",
+              "*deno eval*": "deny",
+              "*deno run*-*": "deny",
+              // Block raw TCP tools — can send HTTP without matching other patterns.
+              "* nc *": "deny",
+              "*ncat *": "deny",
+              "*socat *": "deny",
+              "*telnet *": "deny",
+              // Block base64-pipe-to-interpreter evasion pattern.
+              "*base64*| python*": "deny",
+              "*base64*| python3*": "deny",
+              "*base64*| bun*": "deny",
+              "*base64*| node*": "deny",
+              "*": "allow",
+            },
+            webfetch: "deny",
             web_get_session_context: "allow",
             web_get_detail: "allow",
             web_get_request_detail: "allow",
@@ -613,6 +653,16 @@ export namespace Agent {
             methodology_status: "allow",
             scope_check: "allow",
             attack_script: "allow",
+            skill: "allow",
+            // Structured replay engine — the ONLY way to send HTTP requests.
+            // Permission-enforced: curl/webfetch/Python HTTP denied above.
+            http_replay: "allow",
+            http_replay_raw: "allow",
+            web_update_credential: "allow",
+            credential_set_recipe: "allow",
+            credential_mint: "allow",
+            credential_validate: "allow",
+            csrf_extract: "allow",
           }),
           user,
         )

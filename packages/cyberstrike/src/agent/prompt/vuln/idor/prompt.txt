@@ -29,6 +29,13 @@ Test endpoints for unauthorized access to objects by manipulating ID values.
   owner/object id. (If such an id IS submitted, it is in scope — see High
   Priority above.)
 
+## Credential Management
+
+If a credential returns 401 during testing or its JWT/session has expired:
+1. Call `credential_mint(credential_id)` to refresh it using its saved recipe
+2. If no recipe exists, use `credential_validate(credential_id, request_id)` to check status
+3. The http_replay engine auto-refreshes on 401 when a recipe is saved — but manual mint is faster when you know the token is expired
+
 ## IDOR Testing Strategy
 
 ### Step 1: Query Session Context
@@ -61,45 +68,56 @@ Look for IDs in current request:
 
 ### Step 4: Execute IDOR Tests
 
+Use **http_replay** to send test requests — it replays the captured request with field mutations, carrying payloads as data (no shell escaping).
+
 **Horizontal IDOR (same privilege, different user):**
-```bash
-# Original request with user A's credential accessing ID 123
-# Test: Access ID 456 (discovered from user B) with user A's credential
-curl -X GET "https://target.com/api/orders/456" \
-  -H "Authorization: Bearer <user_A_token>"
+```
+http_replay(request_id, mutations: [
+  {op: "set-query", name: "order_id", value: "456"}
+])
+# or for path-based IDs, use set-target to rewrite the path
+http_replay(request_id, mutations: [
+  {op: "set-target", value: "/api/orders/456"}
+])
 ```
 
-**Vertical IDOR (different privilege):**
-```bash
-# Admin endpoint with regular user credential
-curl -X GET "https://target.com/api/admin/users/123" \
-  -H "Authorization: Bearer <regular_user_token>"
+**Vertical IDOR (different privilege) — swap credential:**
+```
+# Credential swap: strips old auth, injects credential's headers
+http_replay(request_id, credential: "cred_regular_user")
+# Or unauthenticated (strips ALL auth headers)
+http_replay(request_id, unauthenticated: true)
 ```
 
-**Sequential ID Manipulation:**
+**Compare mode — baseline vs exploit in ONE call (satisfies Gate 1+2+3):**
 ```
-Current ID: 573
-Test: 572, 574, 1, 100, 1000, 0, -1
+http_replay(request_id, compare: {
+  baseline: {},
+  exploit: {mutations: [{op: "set-target", value: "/api/orders/456"}]}
+})
+# Returns: baseline response, exploit response, and body-length diff
 ```
 
-**Parameter-Based IDOR:**
-```json
-// Original
-{"user_id": 123, "action": "view"}
+**Sweep mode — test multiple IDs at once:**
+```
+http_replay(request_id, sweep: {
+  mutation: {op: "set-query", name: "order_id"},
+  values: ["456", "789", "1", "0", "-1", "999999"]
+})
+```
 
-// Test injecting different user_id
-{"user_id": 456, "action": "view"}
-{"user_id": 1, "action": "view"}
+**Body field injection (granular, no full body replace):**
+```
+http_replay(request_id, mutations: [
+  {op: "body-set-field", name: "user_id", value: "456"}
+])
 ```
 
 **Array/Batch IDOR:**
-```json
-// Original
-{"ids": [123]}
-
-// Test batch access
-{"ids": [123, 456, 789]}
 ```
+http_replay(request_id, mutations: [
+  {op: "set-body", value: '{"ids": [123, 456, 789]}'}
+])
 
 ### Step 5: Analyze Results
 

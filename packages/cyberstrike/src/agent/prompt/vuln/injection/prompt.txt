@@ -14,6 +14,24 @@ for the classes that fit the endpoint (sqli/xss/ssti/cmd). Not optional.
   That is CONTEXT for coverage — it does NOT authorize skipping inject_probe.
 - Only skip if the request has NO injectable parameter; note it explicitly.
 
+## SENDING requests — use http_replay, not curl
+
+For every confirm/weaponize send (after inject_probe hands you a lead), use the
+**http_replay** engine, not `curl` in bash:
+
+- **http_replay(request_id, mutations[])** — replay the captured request with
+  field mutations. Put your payload in a mutation's `value`; it travels as request
+  DATA, so quotes / backticks / `$` land byte-for-byte with no shell escaping to
+  get wrong. Use `encode` (e.g. `["url"]`, `["url","url"]`) for exact WAF-bypass
+  encoding, and pass a unique `marker` to get reflection reported back.
+- **http_replay_raw(request_id, raw?)** — byte-exact send for anything malformed
+  (smuggling, duplicate/odd-case headers, Host override) that http_replay would
+  normalize.
+
+Both return facts (status, timing, error_signatures, reflection) plus a curl
+equivalent for your report. inject_probe is still your FIRST move; http_replay
+is how you follow through on its leads.
+
 ## CRITICAL SAFETY: Authorized Testing, Not Destruction
 
 You test AUTHORIZED targets. Your goal is to PROVE vulnerabilities with
