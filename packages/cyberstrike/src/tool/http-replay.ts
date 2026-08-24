@@ -347,7 +347,7 @@ export const HttpReplayTool = Tool.define("http_replay", {
       .optional()
       .describe("HTTP method (default GET). Only used when building from scratch (no request_id)."),
     headers: z
-      .record(z.string())
+      .record(z.string(), z.string())
       .optional()
       .describe("Request headers as key-value pairs. Only used when building from scratch (no request_id)."),
     body: z
