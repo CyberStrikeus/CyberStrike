@@ -14,15 +14,7 @@ describe("HttpMessage.parse", () => {
   })
 
   test("preserves header case, order, and duplicates", () => {
-    const raw = [
-      `GET / HTTP/1.1`,
-      `Host: example.com`,
-      `content-length: 0`,
-      `X-Dup: a`,
-      `X-Dup: b`,
-      ``,
-      ``,
-    ].join(CRLF)
+    const raw = [`GET / HTTP/1.1`, `Host: example.com`, `content-length: 0`, `X-Dup: a`, `X-Dup: b`, ``, ``].join(CRLF)
     const req = HttpMessage.parse(raw)
     expect(req.headers).toEqual([
       { name: "Host", value: "example.com" },

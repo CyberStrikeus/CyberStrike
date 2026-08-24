@@ -57,8 +57,7 @@ export namespace Observe {
     // (named or numeric) while the rest stays literal — reflected but neutralized.
     const hasSpecial = [...marker].some((c) => SPECIAL.has(c))
     const htmlEncoded =
-      hasSpecial &&
-      (text.includes(htmlSpecial(marker, "numeric")) || text.includes(htmlSpecial(marker, "named")))
+      hasSpecial && (text.includes(htmlSpecial(marker, "numeric")) || text.includes(htmlSpecial(marker, "named")))
     return { raw: count > 0, htmlEncoded, count }
   }
 

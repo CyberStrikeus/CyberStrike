@@ -76,10 +76,7 @@ export namespace Mutate {
     return `${path}?${qs}`
   }
 
-  function withQuery(
-    req: HttpMessage.Request,
-    fn: (query: QueryParam[]) => QueryParam[],
-  ): HttpMessage.Request {
+  function withQuery(req: HttpMessage.Request, fn: (query: QueryParam[]) => QueryParam[]): HttpMessage.Request {
     const { path, query } = splitTarget(req.target)
     return setTarget(req, joinTarget(path, fn(query)))
   }
@@ -87,9 +84,7 @@ export namespace Mutate {
   /** Replace the value of every param named `key`. No-op if the key is absent
    * (use addQuery to introduce it). Sets `hasEquals` so `k` becomes `k=value`. */
   export function setQuery(req: HttpMessage.Request, key: string, value: string): HttpMessage.Request {
-    return withQuery(req, (query) =>
-      query.map((p) => (p.key === key ? { key, value, hasEquals: true } : p)),
-    )
+    return withQuery(req, (query) => query.map((p) => (p.key === key ? { key, value, hasEquals: true } : p)))
   }
 
   /** Append a param, even if `key` already exists — enables HTTP parameter

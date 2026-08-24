@@ -11583,6 +11583,7 @@
           "role_id": {
             "type": "string"
           },
+          "recipe": {},
           "time": {
             "type": "object",
             "properties": {

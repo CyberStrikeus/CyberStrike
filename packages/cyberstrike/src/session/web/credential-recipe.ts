@@ -12,10 +12,7 @@ const RecipeExtract = z.object({
     .union([z.literal(true), z.array(z.string())])
     .optional()
     .describe("true = extract all Set-Cookie headers; string[] = only named cookies"),
-  headers: z
-    .array(z.string())
-    .optional()
-    .describe("Response header names to extract (stored as header:<name>)"),
+  headers: z.array(z.string()).optional().describe("Response header names to extract (stored as header:<name>)"),
   json: z
     .array(
       z.object({
@@ -65,14 +62,8 @@ const RecipeStep = z.object({
   override_body: z.string().optional().describe("Replace request body entirely"),
   inject: z
     .object({
-      cookies: z
-        .boolean()
-        .optional()
-        .describe("Carry accumulated Set-Cookie values as the Cookie header"),
-      headers: z
-        .record(z.string(), z.string())
-        .optional()
-        .describe('Template headers: {"X-CSRF-Token": "{{csrf}}"}'),
+      cookies: z.boolean().optional().describe("Carry accumulated Set-Cookie values as the Cookie header"),
+      headers: z.record(z.string(), z.string()).optional().describe('Template headers: {"X-CSRF-Token": "{{csrf}}"}'),
       body_fields: z
         .record(z.string(), z.string())
         .optional()
@@ -113,7 +104,12 @@ export namespace CredentialRecipe {
     return unresolved ? "" : result
   }
 
-  function originFromRequest(req: { origin?: string | null; host?: string | null; scheme?: string | null; port?: number | null }): string | undefined {
+  function originFromRequest(req: {
+    origin?: string | null
+    host?: string | null
+    scheme?: string | null
+    port?: number | null
+  }): string | undefined {
     if (req.origin) return req.origin.replace(/\/+$/, "")
     if (!req.host) return undefined
     const scheme = req.scheme ?? "http"
