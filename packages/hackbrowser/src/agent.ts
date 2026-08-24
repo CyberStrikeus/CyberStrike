@@ -56,8 +56,6 @@ import {
   type OcclusionState,
 } from "./state.ts"
 import { execute } from "./executor.ts"
-import { createChangeDetector } from "./change-detector.ts"
-import { createElementTracker } from "./element-tracker.ts"
 import { pickSample } from "./upload-samples.ts"
 import { PANEL_INIT_SCRIPT } from "./panel/inject.ts"
 import { csEmit, setPanelEnabled } from "./panel/emit.ts"
@@ -697,18 +695,19 @@ async function explorePageWithAI(
 
   // 3. TaskQueue — system drives execution, no LLM per step
   const taskQueue: PageTask[] = [...plan.tasks]
-  // Multi-signal change detection (issue #90) — replaces brute-force before/after scanning
-  const detector = createChangeDetector(page)
-  const tracker = createElementTracker()
-  tracker.snapshot(elements)
-  await detector.install()
+  // Track all seen element semantic keys to detect new elements after clicks
+  const seenKeys = new Set(elements.map((e) => `${e.role}::${e.label}`))
   let steps = 0
 
   while (taskQueue.length > 0 && steps < MAX_STEPS_PER_PAGE) {
     steps++
     const task = taskQueue.shift()!
 
-    // Check if task target resolves in current snapshot; only re-collect if overlay blocks it
+    // Re-collect before each task (DOM may have changed from previous action)
+    elements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
+
+    // If the task target is blocked by an overlay (e.g. sidenav opened by a prior click),
+    // close the overlay first so the element becomes reachable again.
     {
       const lookupRole = task.type === "form" ? (task.fields[0]?.role ?? task.submit.role) : task.role
       const lookupLabel = task.type === "form" ? (task.fields[0]?.label ?? task.submit.label) : task.label
@@ -716,8 +715,6 @@ async function explorePageWithAI(
         log.debug("task target blocked by overlay, closing overlay first", { role: lookupRole, label: lookupLabel })
         await closeOverlay(page)
         elements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
-        tracker.snapshot(elements)
-        await detector.reset()
       }
     }
 
@@ -761,82 +758,75 @@ async function explorePageWithAI(
       )
     }
 
-    // Multi-signal post-action discovery (issue #90): check all signals before
-    // deciding whether a full DOM scan is needed. Skips scan entirely when no
-    // signal fires — the main speed win over brute-force before/after scanning.
-    const changeResult = await detector.check()
+    // Unified post-action discovery: find new elements after any action (form submit or click)
+    const postActionElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
 
-    if (changeResult.changed) {
-      // DOM changed — do a full scan and compute delta
-      const postActionElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
-      const delta = tracker.diff(postActionElements)
-      tracker.snapshot(postActionElements)
-      elements = postActionElements
-
-      // Combobox → option: mechanical pattern, system handles directly (no LLM needed)
-      if (task.type === "click" && task.role === "combobox") {
-        const optionTasks = collectOptionTasks(postActionElements, tracker.seenKeys())
-        if (optionTasks.length > 0) {
-          taskQueue.unshift(...optionTasks)
-        }
+    // Combobox → option: mechanical pattern, system handles directly (no LLM needed)
+    // When a combobox was just clicked, queue its options for selection
+    if (task.type === "click" && task.role === "combobox") {
+      const optionTasks = collectOptionTasks(postActionElements, seenKeys)
+      if (optionTasks.length > 0) {
+        taskQueue.unshift(...optionTasks)
       }
+    }
 
-      const hasStaleTargets = queueHasStaleTargets(taskQueue, postActionElements)
+    const hasNewElements = discoverNewElements(postActionElements, seenKeys)
+    const hasStaleTargets = queueHasStaleTargets(taskQueue, postActionElements)
 
-      // Re-plan when significant changes detected or occlusion pending
-      if (delta.hasChanges || hasStaleTargets || occ.pending.length > 0) {
-        const snapshot = buildPlannerSnapshot(
-          pageUrl,
-          postActionElements,
-          globalState,
-          credentialId,
-          await isViewportCenterBlocked(page),
-          occ.pending,
-        )
-        occ.pending = [] // consumed into this snapshot
+    // Any DOM change that affects the queue → re-plan with LLM
+    // Additions: hasNewElements (new buttons/inputs appeared)
+    // Removals: hasStaleTargets (queued task's target is gone — filter, tab, delete)
+    // Occlusion: occ.pending — a click hit a covering overlay; re-plan so the LLM
+    //   dismisses it first (the occluded target is marked occludedBy in the snapshot).
+    // System only detects change; LLM decides what to do (Architecture 2.1)
+    if (hasNewElements || hasStaleTargets || occ.pending.length > 0) {
+      const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
+      const snapshot = buildPlannerSnapshot(
+        pageUrl,
+        freshElements,
+        globalState,
+        credentialId,
+        await isViewportCenterBlocked(page),
+        occ.pending,
+      )
+      occ.pending = [] // consumed into this snapshot
+      void csEmit(page, {
+        type: "llm-thinking",
+        reason: "replan",
+        elements: freshElements.length,
+        credential: credentialId,
+      })
+      const newPlan = await planPage(snapshot, model, usageAcc)
+      applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId, page) // Aşama 13
+      if (newPlan.tasks.length > 0) {
+        log.debug("re-plan after state change", {
+          reason: hasStaleTargets ? (hasNewElements ? "new+stale" : "stale") : "new",
+          tasks: newPlan.tasks.length,
+        })
         void csEmit(page, {
-          type: "llm-thinking",
-          reason: "replan",
-          elements: postActionElements.length,
+          type: "plan-received",
+          tasks: newPlan.tasks.length,
+          pageState: newPlan.pageState ?? "unknown",
+          summary: newPlan.tasks.slice(0, 10).map((t) => ({
+            kind: t.type,
+            label: t.type === "form" ? `${t.fields.length} fields → ${t.submit.label}` : t.label,
+          })),
           credential: credentialId,
         })
-        const newPlan = await planPage(snapshot, model, usageAcc)
-        applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId, page) // Aşama 13
-        if (newPlan.tasks.length > 0) {
-          log.debug("re-plan after state change", {
-            reason: hasStaleTargets ? (delta.added.length > 0 ? "new+stale" : "stale") : "new",
-            added: delta.added.length,
-            removed: delta.removed.length,
-            tasks: newPlan.tasks.length,
-          })
-          void csEmit(page, {
-            type: "plan-received",
-            tasks: newPlan.tasks.length,
-            pageState: newPlan.pageState ?? "unknown",
-            summary: newPlan.tasks.slice(0, 10).map((t) => ({
-              kind: t.type,
-              label: t.type === "form" ? `${t.fields.length} fields → ${t.submit.label}` : t.label,
-            })),
-            credential: credentialId,
-          })
-          reconcileQueue(taskQueue, newPlan.tasks)
-        }
-        const dropped = pruneStaleTasks(taskQueue, postActionElements)
-        if (dropped > 0) {
-          log.debug("pruned stale tasks", { dropped })
-          void csEmit(page, {
-            type: "intelligence",
-            kind: "stale-prune",
-            url: pageUrl,
-            credential: credentialId,
-            note: `${dropped} task(s) dropped`,
-          })
-        }
+        reconcileQueue(taskQueue, newPlan.tasks) // supersede stale intent matches
       }
-
-      await detector.reset()
-    } else {
-      log.debug("no DOM change detected, skipping scan", { step: steps })
+      // Drop any remaining tasks whose targets are still unresolvable
+      const dropped = pruneStaleTasks(taskQueue, freshElements)
+      if (dropped > 0) {
+        log.debug("pruned stale tasks", { dropped })
+        void csEmit(page, {
+          type: "intelligence",
+          kind: "stale-prune",
+          url: pageUrl,
+          credential: credentialId,
+          note: `${dropped} task(s) dropped`,
+        })
+      }
     }
 
     // If queue empty but overlay still open, close it and discover post-overlay elements
@@ -845,16 +835,13 @@ async function explorePageWithAI(
       await closeOverlay(page)
       if (!(await isViewportCenterBlocked(page))) {
         elements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
-        const seen = tracker.seenKeys()
         for (const el of elements) {
           const k = `${el.role}::${el.label}`
-          if (!seen.has(k) && el.label && el.role !== "link" && !INPUT_ROLES.has(el.role)) {
-            tracker.addSeenKey(k)
+          if (!seenKeys.has(k) && el.label && el.role !== "link" && !INPUT_ROLES.has(el.role)) {
+            seenKeys.add(k)
             taskQueue.push({ type: "click", role: el.role, label: el.label })
           }
         }
-        tracker.snapshot(elements)
-        await detector.reset()
       }
     }
   }
@@ -864,8 +851,7 @@ async function explorePageWithAI(
   // and ask LLM for additional plans. Max 2 iterations (loop guard).
   for (let iteration = 0; iteration < MAX_UNPLANNED_ITERATIONS && steps < MAX_STEPS_PER_PAGE; iteration++) {
     const currentElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
-    tracker.snapshot(currentElements)
-    const unexplored = findUnexploredElements(currentElements, semanticActionsDone, tracker.seenKeys())
+    const unexplored = findUnexploredElements(currentElements, semanticActionsDone, seenKeys)
     if (unexplored.length === 0) break
 
     log.info("unexplored elements found", {
@@ -901,10 +887,11 @@ async function explorePageWithAI(
 
     // Execute additional tasks
     const additionalQueue: PageTask[] = [...additionalPlan.tasks]
-    await detector.reset()
     while (additionalQueue.length > 0 && steps < MAX_STEPS_PER_PAGE) {
       steps++
       const task = additionalQueue.shift()!
+
+      elements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
 
       // Close overlay if task target is blocked
       {
@@ -913,8 +900,6 @@ async function explorePageWithAI(
         if (!resolveElement(elements, lookupRole, lookupLabel) && (await isViewportCenterBlocked(page))) {
           await closeOverlay(page)
           elements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
-          tracker.snapshot(elements)
-          await detector.reset()
         }
       }
 
@@ -958,71 +943,62 @@ async function explorePageWithAI(
         )
       }
 
-      // Post-action discovery (same as main loop — multi-signal)
-      const addChangeResult = await detector.check()
-
-      if (addChangeResult.changed) {
-        const postActionElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
-        const delta = tracker.diff(postActionElements)
-        tracker.snapshot(postActionElements)
-        elements = postActionElements
-
-        if (task.type === "click" && task.role === "combobox") {
-          const optionTasks = collectOptionTasks(postActionElements, tracker.seenKeys())
-          if (optionTasks.length > 0) additionalQueue.unshift(...optionTasks)
-        }
-
-        const hasStaleTargets = queueHasStaleTargets(additionalQueue, postActionElements)
-        if (delta.hasChanges || hasStaleTargets || occ.pending.length > 0) {
-          const freshSnap = buildPlannerSnapshot(
-            pageUrl,
-            postActionElements,
-            globalState,
-            credentialId,
-            await isViewportCenterBlocked(page),
-            occ.pending,
-          )
-          occ.pending = []
+      // Post-action discovery (same as main loop)
+      const postActionElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
+      if (task.type === "click" && task.role === "combobox") {
+        const optionTasks = collectOptionTasks(postActionElements, seenKeys)
+        if (optionTasks.length > 0) additionalQueue.unshift(...optionTasks)
+      }
+      const hasNewElements = discoverNewElements(postActionElements, seenKeys)
+      const hasStaleTargets = queueHasStaleTargets(additionalQueue, postActionElements)
+      if (hasNewElements || hasStaleTargets || occ.pending.length > 0) {
+        const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
+        const freshSnap = buildPlannerSnapshot(
+          pageUrl,
+          freshElements,
+          globalState,
+          credentialId,
+          await isViewportCenterBlocked(page),
+          occ.pending,
+        )
+        occ.pending = [] // consumed into this snapshot
+        void csEmit(page, {
+          type: "llm-thinking",
+          reason: "replan",
+          elements: freshElements.length,
+          credential: credentialId,
+        })
+        const newPlan = await planPage(freshSnap, model, usageAcc)
+        applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId, page) // Aşama 13
+        if (newPlan.tasks.length > 0) {
           void csEmit(page, {
-            type: "llm-thinking",
-            reason: "replan",
-            elements: postActionElements.length,
+            type: "plan-received",
+            tasks: newPlan.tasks.length,
+            pageState: newPlan.pageState ?? "unknown",
+            summary: newPlan.tasks.slice(0, 10).map((t) => ({
+              kind: t.type,
+              label: t.type === "form" ? `${t.fields.length} fields → ${t.submit.label}` : t.label,
+            })),
             credential: credentialId,
           })
-          const newPlan = await planPage(freshSnap, model, usageAcc)
-          applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId, page) // Aşama 13
-          if (newPlan.tasks.length > 0) {
-            void csEmit(page, {
-              type: "plan-received",
-              tasks: newPlan.tasks.length,
-              pageState: newPlan.pageState ?? "unknown",
-              summary: newPlan.tasks.slice(0, 10).map((t) => ({
-                kind: t.type,
-                label: t.type === "form" ? `${t.fields.length} fields → ${t.submit.label}` : t.label,
-              })),
-              credential: credentialId,
-            })
-            reconcileQueue(additionalQueue, newPlan.tasks)
-          }
-          const dropped = pruneStaleTasks(additionalQueue, postActionElements)
-          if (dropped > 0) {
-            log.debug("pruned stale additional tasks", { dropped })
-            void csEmit(page, {
-              type: "intelligence",
-              kind: "stale-prune",
-              url: pageUrl,
-              credential: credentialId,
-              note: `${dropped} task(s) dropped`,
-            })
-          }
+          reconcileQueue(additionalQueue, newPlan.tasks)
         }
-        await detector.reset()
+        const dropped = pruneStaleTasks(additionalQueue, freshElements)
+        if (dropped > 0) {
+          log.debug("pruned stale additional tasks", { dropped })
+          void csEmit(page, {
+            type: "intelligence",
+            kind: "stale-prune",
+            url: pageUrl,
+            credential: credentialId,
+            note: `${dropped} task(s) dropped`,
+          })
+        }
       }
     }
   }
 
-  // 5. Teardown change detector and store fingerprint
-  await detector.teardown()
+  // 5. Store fingerprint for post-login re-visit comparison — credential-scoped
   const finalElements = await collectElements(page)
   getIntelligence(globalState, credentialId).pageFingerprints.set(pageUrl, generateFingerprint(finalElements))
   log.debug("fingerprint stored", { url: pageUrl, credential: credentialId })
