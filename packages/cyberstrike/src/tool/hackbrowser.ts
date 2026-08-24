@@ -11,8 +11,24 @@ import z from "zod"
 import { Tool } from "./tool"
 import { launchHackbrowser } from "./hackbrowser-launcher"
 import { HackbrowserStatus } from "../session/hackbrowser-status"
+import { Question } from "../question"
+import { Session } from "../session"
 
 const PHASE_2_MODES: ReadonlySet<string> = new Set(["co-pilot", "observer"])
+
+const MODE_QUESTION_OPTIONS: Question.Option[] = [
+  { label: "Full Auto (Headless)", description: "AI autonomous crawl, no browser window. Fastest." },
+  { label: "Full Auto (Headed)", description: "AI autonomous crawl, visible browser. Watch/debug." },
+  { label: "Co-Pilot (Coming Soon)", description: "AI crawls, you can pause and intervene." },
+  { label: "Observer (Coming Soon)", description: "You browse manually, only traffic captured." },
+]
+
+const LABEL_TO_MODE: Record<string, HackbrowserStatus.Mode> = {
+  "Full Auto (Headless)": "full-auto-headless",
+  "Full Auto (Headed)": "full-auto-headed",
+  "Co-Pilot (Coming Soon)": "co-pilot",
+  "Observer (Coming Soon)": "observer",
+}
 
 function mapModeToConfig(mode: HackbrowserStatus.Mode, credentials?: string[]) {
   const hasCredentials = credentials && credentials.length > 0
@@ -28,13 +44,56 @@ function mapModeToConfig(mode: HackbrowserStatus.Mode, credentials?: string[]) {
   }
 }
 
+async function resolveMode(
+  sessionID: string,
+  explicitMode: HackbrowserStatus.Mode | undefined,
+  tool?: { messageID: string; callID: string },
+): Promise<HackbrowserStatus.Mode> {
+  if (explicitMode) return explicitMode
+
+  const rootSession = Session.root(sessionID)
+  const prev = HackbrowserStatus.get(rootSession)
+
+  const options = [...MODE_QUESTION_OPTIONS]
+  if (prev?.mode) {
+    const prevLabel = Object.entries(LABEL_TO_MODE).find(([, m]) => m === prev.mode)?.[0]
+    if (prevLabel) {
+      const idx = options.findIndex((o) => o.label === prevLabel)
+      if (idx > 0) {
+        const recommended = { ...options[idx], label: `${options[idx].label} (Recommended)` }
+        options.splice(idx, 1)
+        options.unshift(recommended)
+      }
+    }
+  }
+
+  const answers = await Question.ask({
+    sessionID,
+    questions: [
+      {
+        question: "Which crawl mode should I use?",
+        header: "Crawl Mode",
+        options,
+        custom: false,
+      },
+    ],
+    tool,
+  })
+
+  const selected = answers[0]?.[0]
+  if (!selected) return "full-auto-headless"
+
+  const clean = selected.replace(" (Recommended)", "")
+  return LABEL_TO_MODE[clean] ?? "full-auto-headless"
+}
+
 const DESCRIPTION = `Crawl a web application autonomously and capture HTTP requests with UI context.
 
-Use this when you have a target URL but no captured requests yet — hackbrowser will navigate the app, fill forms, click buttons, and stream every HTTP request into the current session for later vulnerability analysis. After captures arrive, the proxy-analyzer ingest pipeline analyzes them automatically.
+Use this when you have a target URL but no captured requests yet — hackbrowser will navigate the app, fill forms, clicks buttons, and stream every HTTP request into the current session for later vulnerability analysis. After captures arrive, the proxy-analyzer ingest pipeline analyzes them automatically.
 
 This tool runs ASYNCHRONOUSLY: it returns immediately after starting the background crawl. Captures stream into the session over the next 30s–2min. Do NOT call this tool again to "wait" for results — use web_get_session_context to inspect captured endpoints when you actually need them. The hackbrowser status (running / completed / failed) appears in the TUI sidebar.
 
-**IMPORTANT:** You MUST ask the user which mode to use via the \`question\` tool BEFORE calling hackbrowser. The \`mode\` parameter is required.
+When you know which mode the user wants (they said it in chat, or context makes it obvious), pass \`mode\` directly. When you do NOT know, omit \`mode\` — the tool will ask the user automatically via a structured question UI.
 
 Available modes:
 - full-auto-headless — AI crawls autonomously, no browser window. Fastest option.
@@ -47,8 +106,9 @@ To crawl as authenticated user(s), pass \`credentials\` — the browser opens vi
 export const HackbrowserTool = Tool.define("hackbrowser", {
   description: DESCRIPTION,
   parameters: z.object({
-    mode: HackbrowserStatus.Mode.describe(
-      "Crawl mode. MUST be selected by asking the user via the question tool before calling this tool. " +
+    mode: HackbrowserStatus.Mode.optional().describe(
+      "Crawl mode. Pass when you already know the user's preference from conversation context. " +
+        "Omit to let the tool ask the user via a structured question UI. " +
         "full-auto-headless: AI crawl, no browser window. full-auto-headed: AI crawl, visible browser. " +
         "co-pilot: AI crawl with pause/resume (coming soon). observer: manual browse, capture only (coming soon).",
     ),
@@ -80,18 +140,18 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
         'Optional UI labels the planner must skip (e.g. "Delete Account", "Cancel Subscription"). Semantic match.',
       ),
     steps: z.number().int().min(1).max(200).optional().describe("Maximum number of pages to crawl. Defaults to 50."),
-    headless: z
-      .boolean()
-      .optional()
-      .describe(
-        "Open the browser with a visible window when false (useful for visual debug). Defaults to true. Forced to false when credentials are provided (manual login requires a visible browser).",
-      ),
   }),
   async execute(args, ctx) {
-    if (PHASE_2_MODES.has(args.mode)) {
+    const mode = await resolveMode(
+      ctx.sessionID,
+      args.mode,
+      ctx.callID ? { messageID: ctx.messageID, callID: ctx.callID } : undefined,
+    )
+
+    if (PHASE_2_MODES.has(mode)) {
       return {
         title: `hackbrowser ${args.target}`,
-        output: `Mode "${args.mode}" is not available yet. Please select full-auto-headless or full-auto-headed.`,
+        output: `Mode "${mode}" is not available yet. Please select full-auto-headless or full-auto-headed.`,
         metadata: {},
       }
     }
@@ -103,7 +163,7 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       metadata: { scope: args.scope, exclude: args.exclude },
     })
 
-    const modeConfig = mapModeToConfig(args.mode, args.credentials)
+    const modeConfig = mapModeToConfig(mode, args.credentials)
 
     const kickOff = await launchHackbrowser({
       target: args.target,
@@ -113,12 +173,12 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       credentials: args.credentials,
       steps: args.steps,
       headless: modeConfig.headless,
-      mode: args.mode,
+      mode,
       signal: ctx.abort,
     })
 
     const output = [
-      `Hackbrowser crawl started for ${args.target} in ${args.mode} mode.`,
+      `Hackbrowser crawl started for ${args.target} in ${mode} mode.`,
       `Captures stream into this session as the crawl progresses (typically 30s–2min).`,
       ``,
       `Do NOT call this tool again to wait for results — it is already running.`,
