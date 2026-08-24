@@ -29,10 +29,16 @@ export namespace HackbrowserStatus {
   })
   export type Phase = z.infer<typeof Phase>
 
+  export const Mode = z
+    .enum(["full-auto-headless", "full-auto-headed", "co-pilot", "observer"])
+    .meta({ ref: "HackbrowserMode" })
+  export type Mode = z.infer<typeof Mode>
+
   export const Info = z
     .object({
       sessionID: z.string(),
       phase: Phase,
+      mode: Mode.optional(),
       targetUrl: z.string(),
       pagesExplored: z.number().int().min(0),
       capturedEndpoints: z.number().int().min(0),
