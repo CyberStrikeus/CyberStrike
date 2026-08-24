@@ -122,7 +122,19 @@ export function createChangeDetector(page: Page): ChangeDetector {
         return { changed: true, signals: { mutations: 0, networkRequests: 0, visibilityDelta: 0, elementCountDelta: 0 }, verdict: "scan" }
       }
 
-      const mutations: number = await page.evaluate(() => (window as any).__cs_mutations ?? 0)
+      const observerState = await page.evaluate(() => {
+        const obs = (window as any).__cs_observer
+        const muts = (window as any).__cs_mutations ?? 0
+        return { alive: !!obs, mutations: muts as number }
+      })
+
+      if (!observerState.alive) {
+        log.warn("observer lost (page navigated?) — forcing scan")
+        installed = false
+        return { changed: true, signals: { mutations: 0, networkRequests: networkHits, visibilityDelta: 0, elementCountDelta: 0 }, verdict: "full-scan" }
+      }
+
+      const mutations = observerState.mutations
 
       const current = await page.evaluate(
         (selector: string) => {

@@ -56,7 +56,7 @@ import {
   type OcclusionState,
 } from "./state.ts"
 import { execute } from "./executor.ts"
-import { createChangeDetector, waitForSettled } from "./change-detector.ts"
+import { createChangeDetector } from "./change-detector.ts"
 import { createElementTracker } from "./element-tracker.ts"
 import { pickSample } from "./upload-samples.ts"
 import { PANEL_INIT_SCRIPT } from "./panel/inject.ts"
@@ -764,7 +764,6 @@ async function explorePageWithAI(
     // Multi-signal post-action discovery (issue #90): check all signals before
     // deciding whether a full DOM scan is needed. Skips scan entirely when no
     // signal fires — the main speed win over brute-force before/after scanning.
-    await waitForSettled(page)
     const changeResult = await detector.check()
 
     if (changeResult.changed) {
@@ -960,7 +959,6 @@ async function explorePageWithAI(
       }
 
       // Post-action discovery (same as main loop — multi-signal)
-      await waitForSettled(page)
       const addChangeResult = await detector.check()
 
       if (addChangeResult.changed) {
