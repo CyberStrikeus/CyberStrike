@@ -463,7 +463,10 @@ async function backgroundRun(
     )
   } finally {
     activeRuns.delete(sessionID)
-    proc.kill()
+    try {
+      const s = proc.stdin
+      if (s && typeof s !== "number") (s as any).end()
+    } catch {}
   }
 }
 
