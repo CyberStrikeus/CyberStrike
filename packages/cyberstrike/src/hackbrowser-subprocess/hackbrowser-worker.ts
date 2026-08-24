@@ -277,6 +277,8 @@ async function main(): Promise<void> {
       resolve()
     }),
   )
+  // Backstop: if runWorker is still hanging 5s after stdin close, force exit
+  setTimeout(() => process.exit(0), 5000).unref()
 }
 
 async function runWorker(opts: WorkerOptions, signal: AbortSignal): Promise<void> {
