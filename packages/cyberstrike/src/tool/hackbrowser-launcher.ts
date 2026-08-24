@@ -93,6 +93,7 @@ export interface LauncherOptions {
   steps?: number
   headless?: boolean
   mode?: "full-auto-headless" | "full-auto-headed" | "co-pilot" | "observer"
+  loginCredentials?: { username: string; password: string }
   // Connect to user's real Chrome via CDP instead of Playwright's Chromium.
   // Bypasses WAF TLS fingerprinting (Cloudflare, etc.).
   cdp?: string
@@ -249,6 +250,7 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
     credentialDispatch,
     cdp: opts.cdp,
     mode: opts.mode,
+    loginCredentials: opts.loginCredentials,
   }
 
   return { workerOptions, modelInfo, workerPath, runtime }

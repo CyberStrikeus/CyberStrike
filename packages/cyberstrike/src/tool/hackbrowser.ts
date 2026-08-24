@@ -142,7 +142,11 @@ Available modes:
 - co-pilot — AI crawls but user can pause and intervene. Best for complex apps. (Coming soon)
 - observer — User browses manually, only HTTP traffic is captured. (Coming soon)
 
-To crawl as authenticated user(s), pass \`credentials\` — the browser opens visibly and the user must log in manually before the crawl begins. Each credential ID in the array triggers its own login + crawl cycle, so multiple IDs run a sequence (role-based access tests). Auto-login is intentionally not supported. Only invoke with credentials when a human is present.`
+Authentication options:
+- \`login\` — pass username + password for automatic login. The crawler fills the login form and proceeds. Use this in Full Auto mode when the user provides credentials in chat. No manual interaction needed.
+- \`credentials\` — pass credential IDs for manual login. The browser opens visibly and waits for the user to log in before crawling. Use for complex auth flows (2FA, OAuth, CAPTCHA) where auto-fill won't work. Forces visible browser.
+
+Do NOT combine \`login\` and \`credentials\` — use one or the other.`
 
 export const HackbrowserTool = Tool.define("hackbrowser", {
   description: DESCRIPTION,
@@ -159,14 +163,24 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       .describe(
         "Target URL to crawl. Used both as the start of navigation and as the basis for the auto-derived network scope (*.{eTLD+1}).",
       ),
+    login: z
+      .object({
+        username: z.string().describe("Login username or email"),
+        password: z.string().describe("Login password"),
+      })
+      .optional()
+      .describe(
+        "Auto-fill login credentials. The crawler fills the login form automatically — no manual interaction. " +
+          "Use in Full Auto mode when the user provides credentials in chat. " +
+          "Do NOT combine with the credentials parameter.",
+      ),
     credentials: z
       .array(z.string())
       .optional()
       .describe(
-        "Credential IDs to crawl as. Omit (or empty) for anonymous crawl. " +
-          "One ID: opens the browser visibly, waits for the user to log in manually, then crawls — captures are tagged with this credential. " +
-          "Two or more IDs: repeats the manual-login + crawl cycle once per credential, tagging captures per identity (role-based access tests). " +
-          "Forces headless: false. Only use when a human is present to complete each login.",
+        "Credential IDs for manual login. Opens browser visibly, waits for user to log in, then crawls. " +
+          "Use for complex auth (2FA, OAuth, CAPTCHA) where auto-fill won't work. " +
+          "Forces headless: false. Only use when a human is present.",
       ),
     scope: z
       .array(z.string())
@@ -197,6 +211,14 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       }
     }
 
+    if (args.login && args.credentials && args.credentials.length > 0) {
+      return {
+        title: `hackbrowser ${args.target}`,
+        output: `Cannot combine "login" (auto-fill) with "credentials" (manual login). Use one or the other.`,
+        metadata: {},
+      }
+    }
+
     await ctx.ask({
       permission: "hackbrowser",
       patterns: [args.target],
@@ -215,13 +237,19 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       steps: args.steps,
       headless: modeConfig.headless,
       mode,
+      loginCredentials: args.login,
       signal: ctx.abort,
     })
 
     const credentialOverride = mode === "full-auto-headless" && args.credentials && args.credentials.length > 0
+    const authInfo = args.login
+      ? `Auto-fill login enabled — crawler will fill login forms automatically.`
+      : credentialOverride
+        ? `Note: browser opened visibly — credentials require manual login.`
+        : null
     const output = [
       `Hackbrowser crawl started for ${args.target} in ${mode} mode.`,
-      ...(credentialOverride ? [`Note: browser opened visibly — credentials require manual login.`] : []),
+      ...(authInfo ? [authInfo] : []),
       `Captures stream into this session as the crawl progresses (typically 30s–2min).`,
       ``,
       `Do NOT call this tool again to wait for results — it is already running.`,

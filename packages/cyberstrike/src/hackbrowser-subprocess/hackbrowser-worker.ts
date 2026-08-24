@@ -209,6 +209,7 @@ function buildCrawlOptions(opts: WorkerOptions, signal: AbortSignal): CrawlOptio
   const model = createModelFromDescriptor(opts.model)
 
   const credentialFields: Partial<CrawlOptions> = (() => {
+    if (opts.loginCredentials) return { credentials: opts.loginCredentials }
     const d = opts.credentialDispatch
     if (d.kind === "single") return { authenticated: true, credentialID: d.credentialID }
     if (d.kind === "multi") return { multiCredentials: d.multiCredentials.map((c) => ({ id: c.id })) }
