@@ -282,6 +282,7 @@ async function main(): Promise<void> {
 }
 
 async function runWorker(opts: WorkerOptions, signal: AbortSignal): Promise<void> {
+  send({ type: "log", level: "info", service: "hackbrowser-worker", message: "starting crawl", extra: { url: opts.url, mode: opts.mode } })
   const crawlOpts = buildCrawlOptions(opts, signal)
 
   try {
