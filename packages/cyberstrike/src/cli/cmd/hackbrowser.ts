@@ -38,7 +38,12 @@ export const HackbrowserCommand = cmd({
       .option("headfull", {
         type: "boolean",
         default: false,
-        describe: "run browser in visible (headfull) mode",
+        describe: "run browser in visible (headfull) mode (deprecated: use --mode)",
+      })
+      .option("mode", {
+        type: "string",
+        choices: ["full-auto-headless", "full-auto-headed"] as const,
+        describe: "crawl mode (default: full-auto-headless, or full-auto-headed with --headfull)",
       }),
   handler: async (args) => {
     await bootstrap(process.cwd(), async () => {
@@ -56,6 +61,8 @@ export const HackbrowserCommand = cmd({
       }
 
       const credentials = args.credential ?? []
+      const mode = args.mode ?? (args.headfull ? "full-auto-headed" : "full-auto-headless") as const
+      const headless = mode === "full-auto-headless" && credentials.length === 0
       const kickOff = await launchHackbrowser({
         target: args.target,
         sessionID,
@@ -63,7 +70,8 @@ export const HackbrowserCommand = cmd({
         exclude: args.exclude,
         steps: args.steps,
         credentials,
-        headless: credentials.length > 0 ? false : !args.headfull,
+        headless,
+        mode,
       }).catch((err: unknown) => {
         UI.error(`hackbrowser: ${err instanceof Error ? err.message : String(err)}`)
         process.exit(1)

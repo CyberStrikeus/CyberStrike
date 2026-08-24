@@ -459,6 +459,7 @@ export const SessionRoutes = lazy(() =>
           exclude: z.array(z.string()).optional(),
           steps: z.number().int().min(1).max(200).optional(),
           headless: z.boolean().optional(),
+          mode: z.enum(["full-auto-headless", "full-auto-headed", "co-pilot", "observer"]).optional(),
         }),
       ),
       async (c) => {
@@ -473,6 +474,7 @@ export const SessionRoutes = lazy(() =>
           exclude: body.exclude,
           steps: body.steps,
           headless: body.headless,
+          mode: body.mode,
         })
         return c.json(result)
       },

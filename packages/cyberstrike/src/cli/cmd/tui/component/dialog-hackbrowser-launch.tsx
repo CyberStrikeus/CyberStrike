@@ -18,6 +18,13 @@ import { createStore } from "solid-js/store"
 import { onMount, Show } from "solid-js"
 import { useKeyboard } from "@opentui/solid"
 
+type CrawlMode = "full-auto-headless" | "full-auto-headed"
+const CRAWL_MODES: CrawlMode[] = ["full-auto-headless", "full-auto-headed"]
+const MODE_LABELS: Record<CrawlMode, string> = {
+  "full-auto-headless": "Full Auto (Headless)",
+  "full-auto-headed": "Full Auto (Headed)",
+}
+
 export interface HackbrowserLaunchInput {
   target: string
   credentials?: string[]
@@ -25,11 +32,12 @@ export interface HackbrowserLaunchInput {
   exclude?: string[]
   steps?: number
   headless: boolean
+  mode: CrawlMode
 }
 
-type Field = "target" | "credentials" | "scope" | "exclude" | "steps" | "headless"
+type Field = "mode" | "target" | "credentials" | "scope" | "exclude" | "steps"
 
-const FIELD_ORDER: Field[] = ["target", "credentials", "scope", "exclude", "steps", "headless"]
+const FIELD_ORDER: Field[] = ["mode", "target", "credentials", "scope", "exclude", "steps"]
 
 function splitCSV(s: string | undefined): string[] | undefined {
   if (!s) return undefined
@@ -55,12 +63,9 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
   let stepsArea: TextareaRenderable
 
   const [store, setStore] = createStore({
-    headless: true,
-    // Recomputed on tab navigation away from the credentials field. Drives
-    // the headless checkbox label + auto-disabling, so the form reflects the
-    // launcher's "credentials present → headless: false" rule before submit.
+    mode: "full-auto-headless" as CrawlMode,
     credentialsPresent: false,
-    active: "target" as Field,
+    active: "mode" as Field,
   })
 
   const refreshCredentialsPresent = () => {
@@ -83,26 +88,22 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
       if (!Number.isFinite(n) || n < 1 || n > 200) return null
       steps = n
     }
-    // Credentials always require manual login (browser opens, user logs in).
-    // Force headless off here so the launcher's pre-flight validation accepts
-    // the call; otherwise respect the user's checkbox.
-    const headless = credentials && credentials.length >= 1 ? false : store.headless
-    return { target, credentials, scope, exclude, steps, headless }
+    const mode = store.mode
+    const headless = mode === "full-auto-headless" && !(credentials && credentials.length >= 1)
+    return { target, credentials, scope, exclude, steps, headless, mode }
   }
 
   const focusActive = () => {
+    targetArea?.blur()
+    credsArea?.blur()
+    scopeArea?.blur()
+    excludeArea?.blur()
+    stepsArea?.blur()
     if (store.active === "target") targetArea?.focus()
     else if (store.active === "credentials") credsArea?.focus()
     else if (store.active === "scope") scopeArea?.focus()
     else if (store.active === "exclude") excludeArea?.focus()
     else if (store.active === "steps") stepsArea?.focus()
-    else {
-      targetArea?.blur()
-      credsArea?.blur()
-      scopeArea?.blur()
-      excludeArea?.blur()
-      stepsArea?.blur()
-    }
   }
 
   useKeyboard((evt) => {
@@ -116,8 +117,9 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
       setTimeout(focusActive, 0)
       evt.preventDefault()
     }
-    if (evt.name === "space" && store.active === "headless" && !store.credentialsPresent) {
-      setStore("headless", !store.headless)
+    if (evt.name === "space" && store.active === "mode") {
+      const idx = CRAWL_MODES.indexOf(store.mode)
+      setStore("mode", CRAWL_MODES[(idx + 1) % CRAWL_MODES.length])
       evt.preventDefault()
     }
     if (evt.name === "return") {
@@ -161,6 +163,20 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
       </box>
 
       <scrollbox maxHeight={20} gap={1}>
+        <box gap={1}>
+          <text fg={store.active === "mode" ? theme.primary : theme.text}>Mode:</text>
+          <box flexDirection="row" gap={2} paddingLeft={1}>
+            {CRAWL_MODES.map((m) => (
+              <text
+                fg={store.mode === m ? theme.primary : theme.textMuted}
+                onMouseUp={() => setStore("mode", m)}
+              >
+                {store.mode === m ? `(●) ${MODE_LABELS[m]}` : `( ) ${MODE_LABELS[m]}`}
+              </text>
+            ))}
+          </box>
+        </box>
+
         <box gap={1}>
           <text fg={store.active === "target" ? theme.primary : theme.text}>Target URL: *</text>
           <textarea
@@ -243,43 +259,15 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
         </box>
       </scrollbox>
 
-      <box flexDirection="column">
-        <box
-          flexDirection="row"
-          gap={2}
-          paddingLeft={1}
-          backgroundColor={store.active === "headless" ? theme.backgroundElement : undefined}
-          onMouseUp={() => {
-            if (store.credentialsPresent) return
-            setStore("active", "headless")
-            focusActive()
-          }}
-        >
-          <text
-            fg={
-              store.credentialsPresent ? theme.textMuted : store.active === "headless" ? theme.primary : theme.textMuted
-            }
-          >
-            {(store.credentialsPresent ? false : store.headless) ? "[x]" : "[ ]"}
-          </text>
-          <text
-            fg={store.credentialsPresent ? theme.textMuted : store.active === "headless" ? theme.primary : theme.text}
-          >
-            {store.credentialsPresent ? "Headless (forced off — credentials need manual login)" : "Headless"}
-          </text>
-        </box>
-      </box>
-
       <Show when={store.credentialsPresent}>
         <text fg={theme.warning ?? theme.textMuted} paddingLeft={1}>
-          ⚠ Manual login: Esc and /hackbrowser-stop cannot cancel during the login wait. Close the browser window
-          manually to abort. (INTEGRATION.md §10.10)
+          ⚠ Manual login: browser opens regardless of mode. Esc and /hackbrowser-stop cannot cancel during login wait.
         </text>
       </Show>
 
       <text fg={theme.textMuted} paddingBottom={1}>
         <span style={{ fg: theme.text }}>tab</span> to switch fields, <span style={{ fg: theme.text }}>space</span> to
-        toggle headless, <span style={{ fg: theme.text }}>return</span> to launch (works from any field),{" "}
+        cycle mode, <span style={{ fg: theme.text }}>return</span> to launch,{" "}
         <span style={{ fg: theme.text }}>esc</span> to cancel
       </text>
     </box>

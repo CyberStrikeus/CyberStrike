@@ -90,6 +90,7 @@ export function Home() {
             exclude: input.exclude,
             steps: input.steps,
             headless: input.headless,
+            mode: input.mode,
           })
           toast.show({
             message: result?.data?.message ?? "Hackbrowser crawl started",
