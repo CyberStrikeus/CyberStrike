@@ -2255,6 +2255,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     }
   }, 500)
 
+  try {
   // Navigate to target and authenticate
   const initNavErr = await page
     .goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 })
@@ -2262,7 +2263,6 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     .catch((e: Error) => e)
   if (initNavErr) {
     log.warn("initial navigation failed", { url: targetUrl, err: initNavErr.message.split("\n")[0] })
-    clearInterval(drainInterval)
     if (!config.headless && browser.isConnected()) {
       log.info("browser stays open — navigate manually or close the window to finish")
       await waitForBrowserClose(browser, config.signal)
@@ -2537,7 +2537,6 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     ...(browserDied ? { reason: health.reason } : {}),
   })
   if (!browserDied) await page.waitForTimeout(2000).catch(() => {})
-  clearInterval(drainInterval)
 
   while (captureQueue.length > 0) {
     const captured = captureQueue.shift()!
@@ -2564,11 +2563,24 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
       },
     })
     await page.waitForTimeout(600).catch(() => {})
+    // Second drain pass — catch captures that arrived during csEmit/panel wait
+    while (captureQueue.length > 0) {
+      const captured = captureQueue.shift()!
+      await handleCapture(captured)
+    }
   }
 
   if (!config.headless && browser.isConnected()) {
     log.info("crawl complete — browser stays open, close the window to finish")
+    // Keep draining captures during manual browsing
+    const postCrawlDrain = setInterval(async () => {
+      while (captureQueue.length > 0) {
+        const captured = captureQueue.shift()!
+        await handleCapture(captured)
+      }
+    }, 500)
     await waitForBrowserClose(browser, config.signal)
+    clearInterval(postCrawlDrain)
   } else if (!browserDied) {
     await browser.close().catch(() => {})
   }
@@ -2580,5 +2592,8 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     totalSteps: globalState.totalSteps,
     errors: browserDied ? [`Browser died: ${health.reason}. Captured ${globalState.capturedEndpoints.size} endpoints before failure.`] : [],
     usage: usageAcc,
+  }
+  } finally {
+    clearInterval(drainInterval)
   }
 }
