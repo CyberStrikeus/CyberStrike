@@ -26,10 +26,14 @@ describe("Batch.run", () => {
   })
 
   test("a throwing worker yields undefined without failing the batch", async () => {
-    const out = await Batch.run([1, 2, 3], async (n) => {
-      if (n === 2) throw new Error("boom")
-      return n
-    }, { concurrency: 3 })
+    const out = await Batch.run(
+      [1, 2, 3],
+      async (n) => {
+        if (n === 2) throw new Error("boom")
+        return n
+      },
+      { concurrency: 3 },
+    )
     expect(out).toEqual([1, undefined, 3])
   })
 

@@ -74,7 +74,7 @@ const MUTATION = z.object({
   encode: z
     .array(CODEC)
     .optional()
-    .describe("encode pipeline applied to value before it is set (e.g. [\"url\",\"url\"] for double-encode)"),
+    .describe('encode pipeline applied to value before it is set (e.g. ["url","url"] for double-encode)'),
 })
 
 // Compare side — each side of a compare can independently set credential,
@@ -283,10 +283,7 @@ async function sendGoverned(
 
 // ── Diff builder ──────────────────────────────────────────────────────────────
 
-function buildDiff(
-  baseline: ReplayResponse.Result,
-  exploit: ReplayResponse.Result,
-): Record<string, unknown> {
+function buildDiff(baseline: ReplayResponse.Result, exploit: ReplayResponse.Result): Record<string, unknown> {
   const bs = baseline.response
   const ex = exploit.response
 
@@ -333,9 +330,7 @@ Use for confirm/weaponize instead of building curl in bash. For byte-exact / smu
 export const HttpReplayTool = Tool.define("http_replay", {
   description: REPLAY_DESC,
   parameters: z.object({
-    request_id: z
-      .string()
-      .describe("ID of the captured request to replay (source of URL, headers, body, credential)."),
+    request_id: z.string().describe("ID of the captured request to replay (source of URL, headers, body, credential)."),
     mutations: z
       .array(MUTATION)
       .optional()
@@ -375,9 +370,7 @@ export const HttpReplayTool = Tool.define("http_replay", {
     marker: z
       .string()
       .optional()
-      .describe(
-        "A unique token you injected via a mutation — reported back as reflected raw / html-encoded / absent.",
-      ),
+      .describe("A unique token you injected via a mutation — reported back as reflected raw / html-encoded / absent."),
     follow_redirects: z
       .boolean()
       .optional()
@@ -578,9 +571,7 @@ export const HttpReplayRawTool = Tool.define("http_replay_raw", {
   parameters: z.object({
     request_id: z
       .string()
-      .describe(
-        "Captured request whose host/port/TLS to connect to (and whose bytes to send unless `raw` is given).",
-      ),
+      .describe("Captured request whose host/port/TLS to connect to (and whose bytes to send unless `raw` is given)."),
     raw: z
       .string()
       .optional()

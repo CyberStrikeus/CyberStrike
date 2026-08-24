@@ -65,7 +65,12 @@ describe("Send.governed — retry & idempotency", () => {
 
   test("a timeout is never retried and throttles the limiter", async () => {
     const limiter = new Governor.AimdLimiter(8, 20)
-    const r = await Send.governed(scripted([err("timeout"), ok()]), "GET", { limiter }, { sleep: noSleep, now: fixedNow })
+    const r = await Send.governed(
+      scripted([err("timeout"), ok()]),
+      "GET",
+      { limiter },
+      { sleep: noSleep, now: fixedNow },
+    )
     expect(r.error?.kind).toBe("timeout")
     expect(r.attempts).toBe(1)
     expect(limiter.value).toBe(4) // halved

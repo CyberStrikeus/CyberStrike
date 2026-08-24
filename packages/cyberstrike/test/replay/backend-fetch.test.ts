@@ -51,10 +51,9 @@ describe("BackendFetch.send", () => {
 
   test("a shell-hostile payload lands on the wire byte-for-byte", async () => {
     const payload = `{"q":"'\`$(id)\` OR 1=1--","x":42}`
-    const r = await BackendFetch.send(
-      reqLine("POST /echo HTTP/1.1", ["Content-Type: application/json"], payload),
-      { origin },
-    )
+    const r = await BackendFetch.send(reqLine("POST /echo HTTP/1.1", ["Content-Type: application/json"], payload), {
+      origin,
+    })
     const echoed = JSON.parse(new TextDecoder().decode(r.response!.body))
     // The backtick/$/quote payload arrives intact — no shell ever saw it.
     expect(echoed.body).toBe(payload)

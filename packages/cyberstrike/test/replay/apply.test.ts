@@ -3,8 +3,7 @@ import { Apply } from "../../src/replay/apply"
 import { HttpMessage } from "../../src/replay/message"
 
 const CRLF = "\r\n"
-const base = () =>
-  HttpMessage.parse([`GET /p?id=1 HTTP/1.1`, `Host: x`, `Cookie: s=1`, ``, ``].join(CRLF))
+const base = () => HttpMessage.parse([`GET /p?id=1 HTTP/1.1`, `Host: x`, `Cookie: s=1`, ``, ``].join(CRLF))
 
 describe("Apply.mutations", () => {
   test("set-query replaces a param value", () => {
@@ -74,9 +73,7 @@ describe("Apply.toCurl", () => {
   })
 
   test("escapes embedded single quotes and omits Content-Length", () => {
-    const req = HttpMessage.parse(
-      [`POST /p HTTP/1.1`, `Host: x`, `Content-Length: 5`, ``, `a'b`].join(CRLF),
-    )
+    const req = HttpMessage.parse([`POST /p HTTP/1.1`, `Host: x`, `Content-Length: 5`, ``, `a'b`].join(CRLF))
     const curl = Apply.toCurl(req, "http://x")
     expect(curl).not.toContain("Content-Length")
     expect(curl).toContain(`'\\''`) // the ' in a'b is shell-escaped
