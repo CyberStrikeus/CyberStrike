@@ -94,11 +94,32 @@ export namespace HackbrowserConfig {
       }
     }
 
-    const answers = await Question.ask({
-      sessionID: input.sessionID,
-      questions,
-      tool: input.tool,
-    })
+    const QUESTION_TIMEOUT_MS = 300_000
+    let answers: Awaited<ReturnType<typeof Question.ask>>
+    try {
+      answers = await Promise.race([
+        Question.ask({
+          sessionID: input.sessionID,
+          questions,
+          tool: input.tool,
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("hackbrowser config question timed out")), QUESTION_TIMEOUT_MS),
+        ),
+      ])
+    } catch {
+      // Timeout or user rejected — use sensible defaults
+      return {
+        mode: input.mode,
+        headless,
+        loginCredentials: vaultCreds.length > 0
+          ? vaultCreds.map((c) => ({ username: c.username!, password: c.password!, label: c.label }))
+          : input.explicitLogin
+            ? [input.explicitLogin]
+            : undefined,
+        steps: input.explicitSteps ?? 50,
+      }
+    }
 
     let loginCredentials: Array<{ username: string; password: string; label?: string }> | undefined
     let steps = input.explicitSteps ?? 50

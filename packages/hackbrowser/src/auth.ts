@@ -50,9 +50,11 @@ export async function waitForHuman(prompt: string): Promise<string> {
 }
 
 /**
- * Detect if a 2FA / MFA / OTP page is shown and pause for user input.
+ * Detect if a 2FA / MFA / OTP page is shown.
+ * In interactive mode (terminal), pauses for user input.
+ * In non-interactive mode (subprocess / full-auto), detects and returns without blocking.
  */
-export async function handle2FA(page: Page): Promise<boolean> {
+export async function handle2FA(page: Page, interactive = true): Promise<boolean> {
   const mfaSelectors = [
     'input[name*="otp"]',
     'input[name*="mfa"]',
@@ -70,6 +72,10 @@ export async function handle2FA(page: Page): Promise<boolean> {
     const el = await page.$(sel)
     if (el) {
       log.info("2FA detected", { selector: sel })
+      if (!interactive) {
+        log.warn("2FA detected in non-interactive mode — cannot complete, skipping")
+        return true
+      }
       const code = await waitForHuman("Enter your 2FA code and press Enter:")
       await el.fill(code)
       const form = await page.$("form")
@@ -415,6 +421,7 @@ export interface AutoLoginResult {
 export async function autoLogin(
   page: Page,
   credentials: { username: string; password: string; usernameSelector?: string; passwordSelector?: string },
+  interactive = false,
 ): Promise<AutoLoginResult> {
   const userSel =
     credentials.usernameSelector ??
@@ -456,7 +463,7 @@ export async function autoLogin(
       log.info("auto-login attempted (multi-step)", { username: credentials.username })
     }
 
-    await handle2FA(page)
+    await handle2FA(page, interactive)
 
     // Verify login succeeded — check if we're still on a login page
     await page.waitForTimeout(1500)

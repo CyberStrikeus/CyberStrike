@@ -668,6 +668,23 @@ async function explorePageWithAI(
   elements = filterVisitedLinks(elements, pageUrl, globalState.visitedPages)
   log.debug("initial scan", { elements: elements.length })
 
+  // 1.5. Session expire detection: if loginHandled but we're back on a login page,
+  // re-authenticate before letting the planner see this page.
+  if (globalState.loginHandled && globalState.storedCredentials) {
+    const hasPasswordField = elements.some((e) => e.type === "password")
+    const urlLooksLikeLogin = /\/(login|sign-?in|auth|accounts)\b/i.test(pageUrl)
+    if (hasPasswordField || urlLooksLikeLogin) {
+      log.warn("session expired — re-attempting login", { url: pageUrl })
+      const reloginResult = await autoLogin(page, globalState.storedCredentials)
+      if (reloginResult.success) {
+        log.info("re-login succeeded after session expire")
+        elements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
+      } else {
+        log.warn("re-login failed, continuing with current page", { error: reloginResult.error })
+      }
+    }
+  }
+
   // 2. Ask LLM once — get the full exploration plan for this page
   const vcBlocked = await isViewportCenterBlocked(page)
   const snapshot = buildPlannerSnapshot(pageUrl, elements, globalState, credentialId, vcBlocked)
@@ -2340,6 +2357,10 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     // Signal planner to skip login forms when credentials were provided
     if (config.auth.credentials) {
       globalState.loginHandled = true
+      globalState.storedCredentials = {
+        username: config.auth.credentials.username,
+        password: config.auth.credentials.password,
+      }
     }
 
     // Manual or auto login → already authenticated, no re-discovery needed

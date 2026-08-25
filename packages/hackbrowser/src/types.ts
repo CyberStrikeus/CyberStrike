@@ -54,6 +54,7 @@ export interface GlobalState {
   pathPatternCounts: Map<string, number> // template key → enqueued count (path pattern limiting)
   outOfScope: readonly string[] // labels the planner must never plan (config snapshot)
   loginHandled: boolean // true when autoLogin succeeded — planner must not fill login forms
+  storedCredentials?: { username: string; password: string } // for re-login on session expire
   // Credential-scoped intelligence (Aşama 13) — keyed by credential id or SINGLE_CRED
   intelligenceByCredential: Map<string, IntelligenceState>
 }
