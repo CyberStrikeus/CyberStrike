@@ -131,17 +131,26 @@ interface PreparedWorker {
  * can surface the error to the tool caller without poisoning the slot.
  */
 async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
-  // 1. Locate worker JS — placed by postinstall at Global.Path.bin.
-  const workerPath = path.join(Global.Path.bin, "hackbrowser-worker.js")
+  // 1. Locate worker. In dev (`bun run dev` from source), run the worker
+  // straight from TypeScript so source changes to the worker, planner, and
+  // @cyberstrike-io/hackbrowser take effect without a rebuild+copy. In a
+  // packaged install the source isn't present, so fall back to the bundled
+  // worker.js that postinstall places at Global.Path.bin.
+  const devWorker = path.join(import.meta.dir, "..", "hackbrowser-subprocess", "hackbrowser-worker.ts")
+  const bundledWorker = path.join(Global.Path.bin, "hackbrowser-worker.js")
+  const workerPath = existsSync(devWorker) ? devWorker : bundledWorker
   if (!existsSync(workerPath)) {
     throw new Error(
       `hackbrowser worker not found at ${workerPath}. ` +
         `Re-install cyberstrike (npm install -g @cyberstrike-io/cyberstrike) to set it up.`,
     )
   }
+  const workerDir = path.dirname(workerPath)
 
   // 2. Find a JS runtime to run the worker. Bun preferred; node as fallback.
-  const runtime = Bun.which("bun") ?? Bun.which("node")
+  // Source .ts worker requires bun (node can't run TypeScript directly).
+  const isSourceWorker = workerPath.endsWith(".ts")
+  const runtime = isSourceWorker ? Bun.which("bun") : (Bun.which("bun") ?? Bun.which("node"))
   if (!runtime) {
     throw new Error("hackbrowser requires bun or node to run the worker process. " + "Install bun: https://bun.sh")
   }
@@ -151,9 +160,9 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
   // message is sent), producing a raw stderr dump in the chat. Fail fast
   // here so the error surfaces as a clean message instead.
   // Bun.resolve mirrors the worker's actual module lookup (upward traversal
-  // from bin/ + NODE_PATH), so no false positives on non-standard installs.
+  // from the worker dir + NODE_PATH), so no false positives on non-standard installs.
   try {
-    await Bun.resolve("playwright", Global.Path.bin)
+    await Bun.resolve("playwright", workerDir)
   } catch {
     throw new Error(
       `playwright is not installed. Run:\n` +
