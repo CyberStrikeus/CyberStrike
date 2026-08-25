@@ -19,11 +19,11 @@ Available modes:
 - co-pilot — AI crawls but user can pause and intervene. Best for complex apps. (Coming soon)
 - observer — User browses manually, only HTTP traffic is captured. (Coming soon)
 
-Authentication options:
-- \`login\` — pass username + password for automatic login. The crawler fills the login form and proceeds. Use this in Full Auto mode when the user provides credentials in chat. No manual interaction needed.
-- \`credentials\` — pass credential IDs for manual login. The browser opens visibly and waits for the user to log in before crawling. Use for complex auth flows (2FA, OAuth, CAPTCHA) where auto-fill won't work. Forces visible browser.
+Authentication:
+- \`login\` — REQUIRED when user has provided credentials. Pass username + password for automatic login. The crawler fills the login form and proceeds. ALWAYS pass this when credentials are available — NEVER rely on the crawler to guess credentials.
+- \`credentials\` — credential IDs for manual login (2FA, OAuth, CAPTCHA). Forces visible browser.
 
-Do NOT combine \`login\` and \`credentials\` — use one or the other.`
+CRITICAL: When the user gave you credentials, you MUST pass \`login\`. If you omit it, the crawler will try test@example.com which will fail. Do NOT combine \`login\` and \`credentials\`.`
 
 export const HackbrowserTool = Tool.define("hackbrowser", {
   description: DESCRIPTION,

@@ -41,12 +41,23 @@ Launches an AI-driven crawler that navigates the app, fills forms, clicks button
 - `exclude` (optional): UI labels or path patterns to skip
 - `steps` (optional, 1–200): max pages to crawl, defaults to 50
 
-**Typical flow:**
-1. `hackbrowser target="https://target.com"` — tool asks mode, then anonymous crawl
-2. Review captured traffic, identify auth-protected areas
-3. `hackbrowser target="https://target.com" login={username: "user@test.com", password: "pass123"}` — authenticated crawl with auto-fill
-4. For 2FA/OAuth: `hackbrowser target="https://target.com" credentials=["user1"]` — manual login
-5. Run targeted testing on captured requests
+**CRITICAL — Credential handling:**
+When the user provides login credentials in chat, you MUST:
+1. Call `credential_save` immediately to store them in the vault
+2. When calling hackbrowser, pass `login: {username, password}` — NEVER call hackbrowser without login when credentials are available
+3. Do NOT do an anonymous crawl first — go straight to authenticated crawl
+
+**Typical flow (with credentials):**
+1. User provides credentials → call `credential_save` to store in vault
+2. `hackbrowser target="https://target.com" login={username: "user@test.com", password: "pass123"}` — authenticated crawl with auto-fill
+3. Run targeted testing on captured requests
+
+**Typical flow (no credentials):**
+1. `hackbrowser target="https://target.com"` — anonymous crawl
+2. Review captured traffic
+3. If auth areas found, ask user for credentials
+
+**For 2FA/OAuth:** `hackbrowser target="https://target.com" credentials=["user1"]` — manual login
 
 ## Testing Workflow
 
