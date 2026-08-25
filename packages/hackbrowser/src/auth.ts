@@ -408,6 +408,8 @@ export interface AutoLoginResult {
 
 /**
  * Auto-login with username/password credentials.
+ * Handles both single-step (username + password visible) and multi-step
+ * (email → CONTINUE → password) login forms like Clerk, Auth0, Firebase.
  * Returns structured result — never falls back to manual login.
  */
 export async function autoLogin(
@@ -428,22 +430,55 @@ export async function autoLogin(
 
   try {
     await page.fill(userSel, credentials.username)
-    await page.fill(passSel, credentials.password)
 
-    const submitBtn = await page.$('button[type="submit"], input[type="submit"], button:not([type])')
-    if (submitBtn) {
-      await submitBtn.click()
+    const passwordVisible = await page.$(passSel)
+    if (passwordVisible) {
+      // Single-step form: both fields visible at once
+      await page.fill(passSel, credentials.password)
+      await clickSubmit(page)
+      await page.waitForLoadState("domcontentloaded").catch(() => {})
+      log.info("auto-login attempted (single-step)", { username: credentials.username })
     } else {
-      await page.keyboard.press("Enter")
+      // Multi-step form: submit email first, wait for password field
+      log.info("auto-login: password not visible, trying multi-step flow", { username: credentials.username })
+      await clickSubmit(page)
+
+      try {
+        await page.waitForSelector(passSel, { timeout: 8000 })
+      } catch {
+        log.warn("auto-login: password field never appeared after email submit", { username: credentials.username })
+        return { success: false, error: "multi_step_password_not_found" }
+      }
+
+      await page.fill(passSel, credentials.password)
+      await clickSubmit(page)
+      await page.waitForLoadState("domcontentloaded").catch(() => {})
+      log.info("auto-login attempted (multi-step)", { username: credentials.username })
     }
 
-    await page.waitForLoadState("domcontentloaded").catch(() => {})
-    log.info("auto-login attempted", { username: credentials.username })
-
     await handle2FA(page)
+
+    // Verify login succeeded — check if we're still on a login page
+    await page.waitForTimeout(1500)
+    const stillOnLogin = await page.$(userSel)
+    const stillHasPassword = await page.$(passSel)
+    if (stillOnLogin && stillHasPassword) {
+      log.warn("auto-login: still on login page after submit — credentials likely rejected", { username: credentials.username })
+      return { success: false, error: "credentials_rejected" }
+    }
+
     return { success: true }
   } catch (err) {
     log.warn("auto-login failed", { err: String(err), username: credentials.username })
     return { success: false, error: String(err) }
+  }
+}
+
+async function clickSubmit(page: Page): Promise<void> {
+  const submitBtn = await page.$('button[type="submit"], input[type="submit"], button:not([type])')
+  if (submitBtn) {
+    await submitBtn.click()
+  } else {
+    await page.keyboard.press("Enter")
   }
 }

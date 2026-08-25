@@ -15,6 +15,7 @@ A JSON snapshot with:
 - pendingMutations (optional): mutation keywords awaiting a triggering task.
   If a task you plan would trigger one of these, set `triggersMutation` on that
   task to the SAME keyword (exact spelling) so the waiting page gets revisited.
+- loginHandled (optional): when true, login was already completed by the system using provided credentials. Do NOT plan any login/sign-in form tasks — the system handled authentication before crawling started. Skip email/password form fills on login pages entirely. Only plan non-auth interactions on the page (navigation, other buttons).
 
 ## Output
 Return a JSON object with a tasks array, plus three optional Intelligence fields
@@ -135,6 +136,7 @@ simply omit the occluded element (do not invent a control, do not click a destru
 - Language / locale selectors (labels: "EN", "English", "DE", "🌐")
 - Logout / sign-out / delete account (system handles logout separately)
 - OAuth / SSO login buttons (Login with Google, Sign in with Facebook, Sign in with GitHub, etc.) — these trigger external redirects the agent cannot handle
+- **Login/sign-in forms when `loginHandled` is true** — the system already authenticated with real credentials. Do NOT fill email/password fields or click sign-in/log-in/continue buttons. Return `{"tasks":[]}` for login pages when loginHandled is set.
 - Links — do NOT put links in tasks (the system handles navigation separately)
 - Navigation menuitems that change page ("Go to login page", "Go to register", "Orders", "Saved addresses") — the BFS system handles page navigation separately
 - Buttons already visible only as overlay content when viewportCenterBlocked is false

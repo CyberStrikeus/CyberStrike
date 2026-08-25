@@ -2337,6 +2337,11 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
       log.info("out-of-scope labels", { count: config.outOfScope.length, labels: config.outOfScope })
     }
 
+    // Signal planner to skip login forms when credentials were provided
+    if (config.auth.credentials) {
+      globalState.loginHandled = true
+    }
+
     // Manual or auto login → already authenticated, no re-discovery needed
     if (isAuthenticated) {
       globalState.authPhase = "authenticated"

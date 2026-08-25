@@ -30,6 +30,7 @@ export function createGlobalState(opts?: { outOfScope?: readonly string[] }): Gl
     pendingReDiscovery: false,
     pathPatternCounts: new Map(),
     outOfScope: opts?.outOfScope ?? [],
+    loginHandled: false,
     intelligenceByCredential: new Map(),
   }
 }
@@ -452,6 +453,8 @@ export interface PlannerSnapshot {
   /** Aşama 13 Mutation Matching — keywords currently awaiting a triggering mutation.
    *  LLM should tag matching tasks with triggersMutation=<keyword> for targeted drain. */
   pendingMutations?: string[]
+  /** When true, login was already handled by autoLogin — planner must NOT fill login forms. */
+  loginHandled?: boolean
 }
 
 /**
@@ -496,6 +499,9 @@ export function buildPlannerSnapshot(
   }
   if (pending.size > 0) {
     snapshot.pendingMutations = [...pending]
+  }
+  if (globalState.loginHandled) {
+    snapshot.loginHandled = true
   }
   return snapshot
 }
