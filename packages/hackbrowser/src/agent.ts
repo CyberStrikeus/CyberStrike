@@ -28,7 +28,7 @@ import {
   initAuth,
 } from "./ingest.ts"
 import { loadSession, autoLogin, handle2FA, waitForManualLogin } from "./auth.ts"
-import { resolveModel, planPage, planUnexploredElements } from "./navigator.ts"
+import { resolveModel, planPage, planUnexploredElements, planLogin } from "./navigator.ts"
 import {
   collectElements,
   isViewportCenterBlocked,
@@ -676,7 +676,10 @@ async function explorePageWithAI(
   if (looksLikeLoginPage && globalState.storedCredentials) {
     // Session expire: re-authenticate before letting the planner see this page
     log.warn("session expired — re-attempting login", { url: pageUrl })
-    const reloginResult = await autoLogin(page, globalState.storedCredentials)
+    let reloginResult = await autoLogin(page, globalState.storedCredentials)
+    if (!reloginResult.success) {
+      reloginResult = await aiLogin(page, globalState.storedCredentials, model)
+    }
     if (reloginResult.success) {
       log.info("re-login succeeded after session expire")
       elements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
@@ -1388,6 +1391,72 @@ function resolveElement(elements: RawElement[], role: string, label: string): Ra
     elements.find((e) => e.role === role && e.label === label) ??
     elements.find((e) => e.role === role && e.label.startsWith(label))
   )
+}
+
+/**
+ * AI-driven login fallback. Runs only when deterministic autoLogin fails on a
+ * custom/dynamic auth UI (Clerk, Auth0, etc.). The model identifies the login
+ * fields and submit button for each step (by role+label); this code resolves
+ * them to selectors and fills the REAL credentials, then advances. Handles
+ * multi-step (email → Continue → password) up to 3 steps.
+ */
+async function aiLogin(
+  page: Page,
+  credentials: { username: string; password: string },
+  model: LanguageModel,
+  usageAcc?: CrawlUsage,
+): Promise<{ success: boolean; error?: string }> {
+  const noopUI = () => {}
+  const stillOnLogin = async (): Promise<boolean> => {
+    const pass = await page.$('input[type="password"]')
+    const passVisible = pass ? await pass.isVisible().catch(() => false) : false
+    const onLoginUrl = /\/(login|sign-?in|auth|accounts)\b/i.test(page.url())
+    return passVisible || onLoginUrl
+  }
+
+  for (let step = 0; step < 3; step++) {
+    const elements = await collectElements(page)
+    const formEls = elements.filter(
+      (e) =>
+        e.type === "password" ||
+        e.type === "email" ||
+        ["textbox", "button", "combobox", "checkbox"].includes(e.role),
+    )
+    if (formEls.length === 0) break
+
+    const plan = await planLogin(formEls, credentials.username, model, usageAcc)
+    if (plan.done) return { success: true }
+
+    let acted = false
+    if (plan.username) {
+      const el = resolveElement(elements, plan.username.role, plan.username.label)
+      if (el) {
+        await execute(page, el, "fill", credentials.username, noopUI, elements.length)
+        acted = true
+      }
+    }
+    if (plan.password) {
+      const el = resolveElement(elements, plan.password.role, plan.password.label)
+      if (el) {
+        await execute(page, el, "fill", credentials.password, noopUI, elements.length)
+        acted = true
+      }
+    }
+    if (plan.submit) {
+      const el = resolveElement(elements, plan.submit.role, plan.submit.label)
+      if (el) {
+        await execute(page, el, "click", undefined, noopUI, elements.length)
+        acted = true
+      }
+    }
+    if (!acted) break
+
+    await page.waitForLoadState("domcontentloaded").catch(() => {})
+    await page.waitForTimeout(1500)
+    if (!(await stillOnLogin())) return { success: true }
+  }
+
+  return (await stillOnLogin()) ? { success: false, error: "ai_login_failed" } : { success: true }
 }
 
 /**
@@ -2348,7 +2417,18 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     } else if (config.auth.credentials) {
       const loginResult = await autoLogin(page, config.auth.credentials)
       if (!loginResult.success) {
-        log.warn("auto-login failed, continuing as anonymous", { error: loginResult.error })
+        // Deterministic autoLogin failed (custom/dynamic auth UI). Fall back to
+        // the AI-driven login, which adapts to arbitrary forms using the real
+        // credentials rather than guessing selectors.
+        log.warn("auto-login failed, trying AI login fallback", { error: loginResult.error })
+        const aiResult = model
+          ? await aiLogin(page, config.auth.credentials, model, usageAcc)
+          : { success: false, error: "no_model" }
+        if (aiResult.success) {
+          log.info("AI login fallback succeeded")
+        } else {
+          log.warn("AI login fallback failed, continuing as anonymous", { error: aiResult.error })
+        }
       }
     } else {
       await handle2FA(page)

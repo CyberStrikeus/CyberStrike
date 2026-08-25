@@ -152,6 +152,74 @@ export async function planPage(
 }
 
 // ============================================================
+// LLM planner — login fallback
+// ============================================================
+
+export interface LoginStepPlan {
+  username?: { role: string; label: string }
+  password?: { role: string; label: string }
+  submit?: { role: string; label: string }
+  done?: boolean
+}
+
+const LOGIN_SYSTEM_PROMPT = `You are logging a user into a web app. You are given the page's interactive elements and the username to sign in with. Identify, for the CURRENT step only:
+- "username": the element to type the username/email into (if present this step)
+- "password": the element to type the password into (if present this step)
+- "submit": the button that advances/submits THIS step
+
+Rules:
+- Many logins are MULTI-STEP: step 1 = type email + click a Continue/Next button; the password field appears only on step 2. Plan just the current step — omit fields not visible now.
+- NEVER choose social/SSO buttons (Google, GitHub, Apple, Microsoft, "Continue with X", "Sign in with X"). Choose the app's own email/password submit.
+- If there is no login form because the user is already signed in, return {"done": true}.
+- Identify elements by their exact role and label as given. Do not invent elements.
+
+Return ONLY a JSON object, no prose:
+{"username":{"role":"textbox","label":"Email address"},"password":{"role":"textbox","label":"Password"},"submit":{"role":"button","label":"Continue"},"done":false}`
+
+/**
+ * Ask the LLM to identify the login fields/button for the current step. Used as
+ * a fallback when deterministic autoLogin fails (custom/dynamic auth UIs like
+ * Clerk). Returns element references (role+label) — the caller resolves them to
+ * selectors and fills the REAL credentials, so the plan itself carries no secret.
+ */
+export async function planLogin(
+  elements: Array<{ role: string; label: string; type: string; placeholder: string }>,
+  username: string,
+  model: LanguageModel,
+  usageAcc?: CrawlUsage,
+): Promise<LoginStepPlan> {
+  const userMessage = JSON.stringify({
+    username,
+    elements: elements.map((e) => ({ role: e.role, label: e.label, type: e.type, placeholder: e.placeholder })),
+  })
+
+  try {
+    const result = await generateText({
+      model,
+      system: LOGIN_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userMessage }],
+      maxOutputTokens: 1024,
+      temperature: 0,
+      providerOptions: { openai: { reasoningEffort: "low" } },
+    })
+    if (usageAcc) {
+      usageAcc.inputTokens += result.usage.inputTokens ?? 0
+      usageAcc.outputTokens += result.usage.outputTokens ?? 0
+      usageAcc.cacheReadTokens += result.usage.cachedInputTokens ?? 0
+    }
+    const raw = result.text.trim()
+    const start = raw.indexOf("{")
+    const end = raw.lastIndexOf("}")
+    if (start === -1 || end === -1) return {}
+    return JSON.parse(raw.slice(start, end + 1)) as LoginStepPlan
+  } catch (err) {
+    if (isAuthError(err)) throw err
+    log.warn("planLogin failed", { err: String(err) })
+    return {}
+  }
+}
+
+// ============================================================
 // LLM planner — unexplored elements follow-up
 // ============================================================
 
