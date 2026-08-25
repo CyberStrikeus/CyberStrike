@@ -285,8 +285,15 @@ The hackbrowser tool supports 4 crawl modes:
 - `scope` / `exclude` — bound or trim the crawl
 - `steps` (1–200, default 50) — max pages
 
-**Authentication decision:**
-- User gives email/password in chat → pass `login: {username, password}`
+**Credential vault flow:**
+When the user provides login credentials in chat, IMMEDIATELY call `credential_save` to store them in the vault. Do NOT wait for hackbrowser — save first, crawl later. The hackbrowser post-mode config will offer saved vault credentials for auto-fill.
+
+- User says "admin is admin@site.com / Pass123" → call `credential_save` with label "admin"
+- User provides multiple accounts → save all in one `credential_save` call
+- User updates a password → call `credential_save` again (it updates existing entries)
+
+**Authentication decision (hackbrowser):**
+- Vault has credentials → hackbrowser config asks which to use (auto)
 - App uses 2FA/OAuth/CAPTCHA → use `credentials` (manual login)
 - No auth needed → omit both
 

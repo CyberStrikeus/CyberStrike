@@ -45,6 +45,7 @@ import { WebGetVulnerabilitiesTool } from "./web-get-vulnerabilities"
 import { WebGetVulnDetailTool } from "./web-get-vuln-detail"
 import { WebUpdateCredentialClaimsTool } from "./web-update-credential-claims"
 import { WebUpdateCredentialTool } from "./web-update-credential"
+import { CredentialSaveTool } from "./credential-save"
 import { CredentialSetRecipeTool } from "./credential-set-recipe"
 import { CredentialMintTool } from "./credential-mint"
 import { CredentialValidateTool } from "./credential-validate"
@@ -189,6 +190,7 @@ export namespace ToolRegistry {
       WebGetVulnDetailTool,
       WebUpdateCredentialClaimsTool,
       WebUpdateCredentialTool,
+      CredentialSaveTool,
       CredentialSetRecipeTool,
       CredentialMintTool,
       CredentialValidateTool,
