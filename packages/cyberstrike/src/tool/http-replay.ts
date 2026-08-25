@@ -24,6 +24,7 @@ import { Observe } from "../replay/observe"
 import { Mutate } from "../replay/mutate"
 import { Batch } from "../replay/batch"
 import { CredentialRecipe, Recipe } from "../session/web/credential-recipe"
+import { CredentialRecipeDetect } from "../session/web/credential-recipe-detect"
 
 // Encode codecs mirrored as a zod enum for the tool schema (kept in sync with
 // Encode.Codec in ../replay/encode.ts).
@@ -191,13 +192,27 @@ async function tryAutoRefresh(
   }
 }
 
+// Return the credential's saved recipe, deriving one from captured traffic and
+// persisting it when absent. This is what makes short-lived-token refresh work
+// automatically in full auto — no agent-authored recipe or curl minting needed.
+function ensureRecipe(credentialID: string, sessionID: string): unknown | undefined {
+  const existing = WebCredential.getRecipe(credentialID)
+  if (existing) return existing
+
+  const derived = CredentialRecipeDetect.derive(sessionID, credentialID)
+  if (!derived) return undefined
+
+  WebCredential.setRecipe({ id: credentialID, sessionID, recipe: derived })
+  return derived
+}
+
 async function doRefresh(
   credentialID: string,
   sessionID: string,
   origin: string,
   signal?: AbortSignal,
 ): Promise<boolean> {
-  const raw = WebCredential.getRecipe(credentialID)
+  const raw = ensureRecipe(credentialID, sessionID)
   if (!raw) return false
 
   const parsed = Recipe.safeParse(raw)
@@ -237,7 +252,7 @@ async function tryProactiveRefresh(
   const cred = WebCredential.getById(credentialID)
   if (!cred) return
 
-  const raw = WebCredential.getRecipe(credentialID)
+  const raw = ensureRecipe(credentialID, sessionID)
   if (!raw) return
 
   const parsed = Recipe.safeParse(raw)
