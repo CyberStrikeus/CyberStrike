@@ -52,7 +52,7 @@ export namespace HackbrowserConfig {
         const labels = vaultCreds.map((c) => c.label).join(", ")
         authOptions.push({
           label: "All credentials (multi-pass)",
-          description: `Anonymous + ${labels} — sequential crawl per role, auto-diff.`,
+          description: `${labels} — sequential crawl per role, auto-diff.`,
         })
       }
 

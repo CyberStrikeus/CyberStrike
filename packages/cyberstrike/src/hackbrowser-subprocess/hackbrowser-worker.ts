@@ -331,25 +331,15 @@ async function runMultiPassCrawl(
 ): Promise<void> {
   const totals = { pagesExplored: 0, capturedEndpoints: 0, errors: [] as string[], usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 } }
 
-  send({ type: "log", level: "info", service: "hackbrowser-worker", message: `multi-pass crawl: 1 anonymous + ${creds.length} authenticated passes`, extra: { url: opts.url } })
+  send({ type: "log", level: "info", service: "hackbrowser-worker", message: `multi-pass crawl: ${creds.length} authenticated passes`, extra: { url: opts.url } })
 
   try {
-    // Pass 1: anonymous crawl — detect login-required apps early
-    send({ type: "log", level: "info", service: "hackbrowser-worker", message: `pass 1/${creds.length + 1}: anonymous crawl`, extra: { url: opts.url } })
-    const anonOpts = { ...opts, loginCredentials: undefined, credentialDispatch: { kind: "none" as const }, steps: Math.min(opts.steps, 5) }
-    const anonResult = await runCrawl(buildCrawlOptions(anonOpts, signal))
-    if (anonResult.pagesExplored <= 1) {
-      send({ type: "log", level: "warn", service: "hackbrowser-worker", message: "anonymous pass found ≤1 page — app likely requires login, skipping anonymous results", extra: { url: opts.url } })
-    } else {
-      accumulateResult(totals, anonResult)
-    }
-
-    // Pass 2..N: authenticated crawl per credential
+    // Authenticated crawl per credential — no anonymous pass
     for (let i = 0; i < creds.length; i++) {
       if (signal.aborted) break
       const cred = creds[i]
       const label = cred.label ?? cred.username
-      send({ type: "log", level: "info", service: "hackbrowser-worker", message: `pass ${i + 2}/${creds.length + 1}: authenticated crawl as ${label}`, extra: { url: opts.url } })
+      send({ type: "log", level: "info", service: "hackbrowser-worker", message: `pass ${i + 1}/${creds.length}: authenticated crawl as ${label}`, extra: { url: opts.url } })
 
       const authOpts = { ...opts, loginCredentials: undefined, credentialDispatch: { kind: "none" as const } }
       const authResult = await runCrawl(buildCrawlOptions(authOpts, signal, cred))
