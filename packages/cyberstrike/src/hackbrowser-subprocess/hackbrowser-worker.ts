@@ -192,7 +192,7 @@ function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
 // CrawlOptions builder from WorkerOptions
 // ============================================================
 
-function buildCrawlOptions(opts: WorkerOptions, signal: AbortSignal): CrawlOptions {
+function buildCrawlOptions(opts: WorkerOptions, signal: AbortSignal, credentialOverride?: { username: string; password: string }): CrawlOptions {
   const logSink = (rec: LogRecord) => {
     send({
       type: "log",
@@ -209,7 +209,12 @@ function buildCrawlOptions(opts: WorkerOptions, signal: AbortSignal): CrawlOptio
   const model = createModelFromDescriptor(opts.model)
 
   const credentialFields: Partial<CrawlOptions> = (() => {
-    if (opts.loginCredentials) return { credentials: opts.loginCredentials }
+    if (credentialOverride) return { credentials: credentialOverride }
+    if (opts.loginCredentials) {
+      const creds = opts.loginCredentials
+      if (Array.isArray(creds)) return creds.length > 0 ? { credentials: creds[0] } : {}
+      return { credentials: creds }
+    }
     const d = opts.credentialDispatch
     if (d.kind === "single") return { authenticated: true, credentialID: d.credentialID }
     if (d.kind === "multi") return { multiCredentials: d.multiCredentials.map((c) => ({ id: c.id })) }
@@ -282,7 +287,24 @@ async function main(): Promise<void> {
   setTimeout(() => process.exit(0), 5000).unref()
 }
 
+function normalizeLoginCredentials(opts: WorkerOptions): Array<{ username: string; password: string; label?: string }> {
+  if (!opts.loginCredentials) return []
+  if (Array.isArray(opts.loginCredentials)) return opts.loginCredentials
+  return [opts.loginCredentials]
+}
+
 async function runWorker(opts: WorkerOptions, signal: AbortSignal): Promise<void> {
+  const creds = normalizeLoginCredentials(opts)
+  const isMultiPass = creds.length > 1
+
+  if (isMultiPass) {
+    await runMultiPassCrawl(opts, creds, signal)
+  } else {
+    await runSingleCrawl(opts, signal)
+  }
+}
+
+async function runSingleCrawl(opts: WorkerOptions, signal: AbortSignal): Promise<void> {
   send({ type: "log", level: "info", service: "hackbrowser-worker", message: "starting crawl", extra: { url: opts.url, mode: opts.mode } })
   const crawlOpts = buildCrawlOptions(opts, signal)
 
@@ -300,6 +322,62 @@ async function runWorker(opts: WorkerOptions, signal: AbortSignal): Promise<void
     send({ type: "error", message })
     process.exitCode = 1
   }
+}
+
+async function runMultiPassCrawl(
+  opts: WorkerOptions,
+  creds: Array<{ username: string; password: string; label?: string }>,
+  signal: AbortSignal,
+): Promise<void> {
+  const totals = { pagesExplored: 0, capturedEndpoints: 0, errors: [] as string[], usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 } }
+
+  const passCount = creds.length + 1
+  send({ type: "log", level: "info", service: "hackbrowser-worker", message: `multi-pass crawl: ${passCount} passes (1 anonymous + ${creds.length} authenticated)`, extra: { url: opts.url } })
+
+  try {
+    // Pass 1: anonymous crawl
+    send({ type: "log", level: "info", service: "hackbrowser-worker", message: "pass 1/${passCount}: anonymous crawl", extra: { url: opts.url } })
+    const anonOpts = { ...opts, loginCredentials: undefined, credentialDispatch: { kind: "none" as const } }
+    const anonResult = await runCrawl(buildCrawlOptions(anonOpts, signal))
+    accumulateResult(totals, anonResult)
+
+    // Pass 2..N: authenticated crawl per credential
+    for (let i = 0; i < creds.length; i++) {
+      if (signal.aborted) break
+      const cred = creds[i]
+      const label = cred.label ?? cred.username
+      send({ type: "log", level: "info", service: "hackbrowser-worker", message: `pass ${i + 2}/${passCount}: authenticated crawl as ${label}`, extra: { url: opts.url } })
+
+      const authOpts = { ...opts, loginCredentials: undefined, credentialDispatch: { kind: "none" as const } }
+      const authResult = await runCrawl(buildCrawlOptions(authOpts, signal, cred))
+      accumulateResult(totals, authResult)
+    }
+
+    send({
+      type: "result",
+      pagesExplored: totals.pagesExplored,
+      capturedEndpoints: totals.capturedEndpoints,
+      errors: totals.errors,
+      usage: totals.usage,
+    })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    send({ type: "error", message })
+    process.exitCode = 1
+  }
+}
+
+function accumulateResult(
+  totals: { pagesExplored: number; capturedEndpoints: number; errors: string[]; usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number } },
+  result: { pagesExplored: number; capturedEndpoints: number; errors: string[]; usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number } },
+): void {
+  totals.pagesExplored += result.pagesExplored
+  totals.capturedEndpoints += result.capturedEndpoints
+  totals.errors.push(...result.errors)
+  totals.usage.inputTokens += result.usage.inputTokens
+  totals.usage.outputTokens += result.usage.outputTokens
+  totals.usage.cacheReadTokens += result.usage.cacheReadTokens
+  totals.usage.cacheWriteTokens += result.usage.cacheWriteTokens
 }
 
 main().catch((err) => {

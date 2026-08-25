@@ -93,7 +93,7 @@ export interface LauncherOptions {
   steps?: number
   headless?: boolean
   mode?: "full-auto-headless" | "full-auto-headed" | "co-pilot" | "observer"
-  loginCredentials?: { username: string; password: string }
+  loginCredentials?: { username: string; password: string } | Array<{ username: string; password: string; label?: string }>
   // Connect to user's real Chrome via CDP instead of Playwright's Chromium.
   // Bypasses WAF TLS fingerprinting (Cloudflare, etc.).
   cdp?: string

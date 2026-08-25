@@ -66,7 +66,7 @@ export interface WorkerOptions {
   cyberstrikeUrl: string
   model: ModelDescriptor
   credentialDispatch: CredentialDispatch
-  loginCredentials?: { username: string; password: string }
+  loginCredentials?: { username: string; password: string } | Array<{ username: string; password: string; label?: string }>
   cdp?: string
   mode?: "full-auto-headless" | "full-auto-headed" | "co-pilot" | "observer"
 }
