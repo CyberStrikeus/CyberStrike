@@ -200,6 +200,9 @@ export const WebCredentialTable = sqliteTable(
     label: text().notNull(),
     // Generic header storage: { "Authorization": "Bearer xxx", "Cookie": "session=abc" }
     headers: text({ mode: "json" }).$type<Record<string, string>>().notNull(),
+    username: text(),
+    password: text(),
+    valid: integer({ mode: "boolean" }).default(true),
     container_id: text(), // Firefox container ID for sync
     role_id: text(),
     // Credential refresh recipe (JSON) — engine replays these steps to mint fresh tokens on 401.

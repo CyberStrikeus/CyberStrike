@@ -24,6 +24,9 @@ export namespace WebCredential {
       session_id: z.string(),
       label: z.string(),
       headers: z.record(z.string(), z.string()),
+      username: z.string().optional(),
+      password: z.string().optional(),
+      valid: z.boolean().optional(),
       container_id: z.string().optional(),
       role_id: z.string().optional(),
       recipe: z.unknown().optional(),
@@ -49,6 +52,8 @@ export namespace WebCredential {
     sessionID: string
     label: string
     headers?: Record<string, string>
+    username?: string
+    password?: string
     containerID?: string
     roleID?: string
   }): Info {
@@ -62,6 +67,9 @@ export namespace WebCredential {
           session_id: input.sessionID,
           label: input.label,
           headers: input.headers ?? {},
+          username: input.username ?? null,
+          password: input.password ?? null,
+          valid: true,
           container_id: input.containerID ?? null,
           role_id: input.roleID ?? null,
           time_created: now,
@@ -78,6 +86,9 @@ export namespace WebCredential {
       session_id: input.sessionID,
       label: input.label,
       headers: input.headers ?? {},
+      username: input.username,
+      password: input.password,
+      valid: true,
       container_id: input.containerID,
       role_id: input.roleID,
       recipe: undefined,
@@ -91,6 +102,9 @@ export namespace WebCredential {
       session_id: row.session_id,
       label: row.label,
       headers: (row.headers as Record<string, string>) ?? {},
+      username: row.username ?? undefined,
+      password: row.password ?? undefined,
+      valid: row.valid ?? undefined,
       container_id: row.container_id ?? undefined,
       role_id: row.role_id ?? undefined,
       recipe: (row.recipe as Recipe) ?? undefined,
@@ -155,6 +169,9 @@ export namespace WebCredential {
     sessionID: string
     headers?: Record<string, string>
     label?: string
+    username?: string
+    password?: string
+    valid?: boolean
     containerID?: string
     roleID?: string
   }): Info | undefined {
@@ -164,7 +181,6 @@ export namespace WebCredential {
       const existing = db.select().from(WebCredentialTable).where(eq(WebCredentialTable.id, input.id)).get()
       if (!existing) return undefined
 
-      // Session kontrolü
       if (existing.session_id !== input.sessionID) {
         throw new Error(`Credential ${input.id} does not belong to session ${input.sessionID}`)
       }
@@ -177,6 +193,18 @@ export namespace WebCredential {
 
       if (input.label !== undefined) {
         updates.label = input.label
+      }
+
+      if (input.username !== undefined) {
+        updates.username = input.username
+      }
+
+      if (input.password !== undefined) {
+        updates.password = input.password
+      }
+
+      if (input.valid !== undefined) {
+        updates.valid = input.valid
       }
 
       if (input.containerID !== undefined) {
@@ -197,6 +225,14 @@ export namespace WebCredential {
 
       return rowToInfo(row)
     })
+  }
+
+  export function getLoginCredentials(sessionID: string): Info[] {
+    return get(sessionID).filter((c) => c.username && c.password && c.valid !== false)
+  }
+
+  export function invalidate(id: string, sessionID: string): void {
+    update({ id, sessionID, valid: false })
   }
 
   export function exists(sessionID: string, label: string): boolean {
