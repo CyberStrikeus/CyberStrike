@@ -500,8 +500,8 @@ export function buildPlannerSnapshot(
   if (pending.size > 0) {
     snapshot.pendingMutations = [...pending]
   }
-  if (globalState.loginHandled) {
-    snapshot.loginHandled = true
-  }
+  // Always true — login is handled by autoLogin at startup, never by planner form tasks.
+  // Prevents planner from filling login forms with default test@example.com.
+  snapshot.loginHandled = true
   return snapshot
 }

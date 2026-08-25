@@ -668,21 +668,27 @@ async function explorePageWithAI(
   elements = filterVisitedLinks(elements, pageUrl, globalState.visitedPages)
   log.debug("initial scan", { elements: elements.length })
 
-  // 1.5. Session expire detection: if loginHandled but we're back on a login page,
-  // re-authenticate before letting the planner see this page.
-  if (globalState.loginHandled && globalState.storedCredentials) {
-    const hasPasswordField = elements.some((e) => e.type === "password")
-    const urlLooksLikeLogin = /\/(login|sign-?in|auth|accounts)\b/i.test(pageUrl)
-    if (hasPasswordField || urlLooksLikeLogin) {
-      log.warn("session expired — re-attempting login", { url: pageUrl })
-      const reloginResult = await autoLogin(page, globalState.storedCredentials)
-      if (reloginResult.success) {
-        log.info("re-login succeeded after session expire")
-        elements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
-      } else {
-        log.warn("re-login failed, continuing with current page", { error: reloginResult.error })
-      }
+  // 1.5. Login page handling
+  const hasPasswordField = elements.some((e) => e.type === "password")
+  const urlLooksLikeLogin = /\/(login|sign-?in|auth|accounts)\b/i.test(pageUrl)
+  const looksLikeLoginPage = hasPasswordField || urlLooksLikeLogin
+
+  if (looksLikeLoginPage && globalState.storedCredentials) {
+    // Session expire: re-authenticate before letting the planner see this page
+    log.warn("session expired — re-attempting login", { url: pageUrl })
+    const reloginResult = await autoLogin(page, globalState.storedCredentials)
+    if (reloginResult.success) {
+      log.info("re-login succeeded after session expire")
+      elements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
+    } else {
+      log.warn("re-login failed, continuing with current page", { error: reloginResult.error })
     }
+  } else if (looksLikeLoginPage && !globalState.storedCredentials) {
+    // No credentials available — skip login page entirely to prevent planner
+    // from filling with default test@example.com values
+    log.warn("login page detected without credentials — skipping planner", { url: pageUrl })
+    const links = elements.filter((e) => e.href && e.role === "link").map((e) => e.href!)
+    return links
   }
 
   // 2. Ask LLM once — get the full exploration plan for this page
