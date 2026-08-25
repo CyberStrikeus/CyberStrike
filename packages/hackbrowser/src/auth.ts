@@ -401,14 +401,19 @@ export async function waitForManualLogin(
 // Auto-login
 // ============================================================
 
+export interface AutoLoginResult {
+  success: boolean
+  error?: string
+}
+
 /**
  * Auto-login with username/password credentials.
- * Falls back to manual login via browser button if form not found.
+ * Returns structured result — never falls back to manual login.
  */
 export async function autoLogin(
   page: Page,
   credentials: { username: string; password: string; usernameSelector?: string; passwordSelector?: string },
-): Promise<void> {
+): Promise<AutoLoginResult> {
   const userSel =
     credentials.usernameSelector ??
     'input[type="text"], input[type="email"], input[name*="user"], input[name*="email"], input[id*="user"], input[id*="email"]'
@@ -416,6 +421,12 @@ export async function autoLogin(
 
   try {
     await page.waitForSelector(userSel, { timeout: 5000 })
+  } catch {
+    log.warn("auto-login: login form not found", { username: credentials.username })
+    return { success: false, error: "login_form_not_found" }
+  }
+
+  try {
     await page.fill(userSel, credentials.username)
     await page.fill(passSel, credentials.password)
 
@@ -430,8 +441,9 @@ export async function autoLogin(
     log.info("auto-login attempted", { username: credentials.username })
 
     await handle2FA(page)
+    return { success: true }
   } catch (err) {
-    log.warn("auto-login failed, falling back to manual login", { err: String(err) })
-    await waitForManualLogin(page)
+    log.warn("auto-login failed", { err: String(err), username: credentials.username })
+    return { success: false, error: String(err) }
   }
 }

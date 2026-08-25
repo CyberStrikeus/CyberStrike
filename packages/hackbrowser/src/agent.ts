@@ -2323,7 +2323,10 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
         }
       }
     } else if (config.auth.credentials) {
-      await autoLogin(page, config.auth.credentials)
+      const loginResult = await autoLogin(page, config.auth.credentials)
+      if (!loginResult.success) {
+        log.warn("auto-login failed, continuing as anonymous", { error: loginResult.error })
+      }
     } else {
       await handle2FA(page)
     }
