@@ -3,6 +3,7 @@ import { Tool } from "./tool"
 import { launchHackbrowser } from "./hackbrowser-launcher"
 import { HackbrowserStatus } from "../session/hackbrowser-status"
 import { HackbrowserMode } from "../session/hackbrowser-mode"
+import { HackbrowserConfig } from "../session/hackbrowser-config"
 
 const DESCRIPTION = `Crawl a web application autonomously and capture HTTP requests with UI context.
 
@@ -102,7 +103,14 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       metadata: { scope: args.scope, exclude: args.exclude },
     })
 
-    const config = HackbrowserMode.toConfig(mode, args.credentials)
+    const toolRef = ctx.callID ? { messageID: ctx.messageID, callID: ctx.callID } : undefined
+    const config = await HackbrowserConfig.resolve({
+      sessionID: ctx.sessionID,
+      mode,
+      explicitLogin: args.login,
+      explicitSteps: args.steps,
+      tool: toolRef,
+    })
 
     const kickOff = await launchHackbrowser({
       target: args.target,
@@ -110,19 +118,18 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       scope: args.scope,
       exclude: args.exclude,
       credentials: args.credentials,
-      steps: args.steps,
+      steps: config.steps,
       headless: config.headless,
       mode,
-      loginCredentials: args.login,
+      loginCredentials: config.loginCredentials,
       signal: ctx.abort,
     })
 
-    const credentialOverride = mode === "full-auto-headless" && args.credentials && args.credentials.length > 0
-    const authInfo = args.login
-      ? `Auto-fill login enabled — crawler will fill login forms automatically.`
-      : credentialOverride
-        ? `Note: browser opened visibly — credentials require manual login.`
-        : null
+    const authInfo = config.loginCredentials?.length
+      ? config.loginCredentials.length > 1
+        ? `Multi-pass crawl: anonymous + ${config.loginCredentials.map((c) => c.label ?? c.username).join(", ")}.`
+        : `Auto-fill login: ${config.loginCredentials[0].label ?? config.loginCredentials[0].username}.`
+      : null
     const output = [
       `Hackbrowser crawl started for ${args.target} in ${mode} mode.`,
       ...(authInfo ? [authInfo] : []),
