@@ -63,7 +63,7 @@ const MUTATION = z.object({
     .string()
     .optional()
     .describe(
-      "param/header/cookie name, JSON field dot-path (body-set-field/body-remove-field), or path segment position as string (set-path-param). Required for query/header/cookie/body-field/path-param ops.",
+      "param/header/cookie name, JSON field dot-path (body-set-field/body-remove-field), or path segment position as a 0-based string for set-path-param — the position COUNTS the leading empty segment, so in `/rest/products/1/reviews` the id `1` is position 3 (segments: ['', 'rest', 'products', '1', 'reviews']). To rewrite a path id, prefer `set-target` (full request-target) to avoid position miscounts. Required for query/header/cookie/body-field/path-param ops.",
     ),
   value: z
     .string()
