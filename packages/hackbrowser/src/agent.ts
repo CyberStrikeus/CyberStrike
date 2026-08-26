@@ -764,7 +764,7 @@ async function explorePageWithAI(
     // Combobox → option: mechanical pattern, system handles directly (no LLM needed)
     // When a combobox was just clicked, queue its options for selection
     if (task.type === "click" && task.role === "combobox") {
-      const optionTasks = collectOptionTasks(postActionElements, seenKeys)
+      const optionTasks = await collectComboboxOptions(page, postActionElements, seenKeys, pageUrl, globalState.visitedPages)
       if (optionTasks.length > 0) {
         taskQueue.unshift(...optionTasks)
       }
@@ -946,7 +946,7 @@ async function explorePageWithAI(
       // Post-action discovery (same as main loop)
       const postActionElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
       if (task.type === "click" && task.role === "combobox") {
-        const optionTasks = collectOptionTasks(postActionElements, seenKeys)
+        const optionTasks = await collectComboboxOptions(page, postActionElements, seenKeys, pageUrl, globalState.visitedPages)
         if (optionTasks.length > 0) additionalQueue.unshift(...optionTasks)
       }
       const hasNewElements = discoverNewElements(postActionElements, seenKeys)
@@ -1295,6 +1295,44 @@ function collectOptionTasks(elements: RawElement[], seenKeys: Set<string>): Page
   }
   // Only select the first option — one selection per combobox interaction
   return tasks.slice(0, 1)
+}
+
+// Probe characters for a search-gated combobox. Measured: no single character is
+// universal (word option sets need a letter, numeric ones need a digit), so a short
+// letter+digit+space sequence is tried in order until options appear.
+const COMBOBOX_PROBES = ["e", "a", "2", "0", " "]
+
+/**
+ * Option tasks for a just-clicked combobox. First try options already present (an
+ * inline listbox). If none appear, the combobox is likely search-gated (role=combobox
+ * aria-haspopup=dialog, cmdk / command-palette style) — it renders options only after a
+ * query is typed into the search input in its opened popup. That popup auto-focuses its
+ * search input, so :focus is the safe target (never types into an unrelated form field);
+ * type a short probe sequence there to reveal options, then collect one. Mechanical +
+ * model-independent, matching the combobox design. Best-effort: an exotic option set
+ * matched by none of the probes is left unselected — no worse than before.
+ */
+async function collectComboboxOptions(
+  page: Page,
+  elements: RawElement[],
+  seenKeys: Set<string>,
+  pageUrl: string,
+  visitedPages: Set<string>,
+): Promise<PageTask[]> {
+  const inline = collectOptionTasks(elements, seenKeys)
+  if (inline.length > 0) return inline
+  const search = page.locator(":focus")
+  const typeable = await search
+    .evaluate((el) => !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || (el as HTMLElement).isContentEditable))
+    .catch(() => false)
+  if (!typeable) return inline
+  for (const probe of COMBOBOX_PROBES) {
+    await search.fill(probe).catch(() => {})
+    await page.waitForTimeout(200)
+    if ((await page.locator("[role=option]:visible").count()) > 0) break
+  }
+  const revealed = filterVisitedLinks(await collectElements(page), pageUrl, visitedPages)
+  return collectOptionTasks(revealed, seenKeys)
 }
 
 /**
