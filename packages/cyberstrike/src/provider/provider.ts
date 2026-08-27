@@ -1145,18 +1145,10 @@ export namespace Provider {
         // exposes the API key to whoever runs it, so it must be a deliberate act.
         // Resolved per request against the actual endpoint so the bypass list and
         // per-host certificates apply here the same as anywhere else.
-        let transport: { proxy?: string; tls?: Record<string, unknown> } = {}
+        let transport: ReturnType<typeof Network.toFetchInit> = {}
         if (await Network.includeProviders()) {
           const url = typeof input === "string" ? input : (input?.url ?? String(input))
-          const net = await Network.forUrl(url)
-          if (net.proxy) transport.proxy = net.proxy
-          const tls: Record<string, unknown> = {}
-          if (net.rejectUnauthorized !== undefined) tls.rejectUnauthorized = net.rejectUnauthorized
-          if (net.ca) tls.ca = net.ca
-          if (net.clientCertificate?.cert) tls.cert = net.clientCertificate.cert
-          if (net.clientCertificate?.key) tls.key = net.clientCertificate.key
-          if (net.clientCertificate?.passphrase) tls.passphrase = net.clientCertificate.passphrase
-          if (Object.keys(tls).length > 0) transport.tls = tls
+          transport = Network.toFetchInit(await Network.forUrl(url))
         }
 
         return fetchFn(input, {

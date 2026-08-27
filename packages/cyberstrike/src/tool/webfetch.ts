@@ -66,16 +66,7 @@ export const WebFetchTool = Tool.define("webfetch", {
 
     // Outbound policy for this destination (proxy / CA / client cert). Empty when
     // nothing is configured, so the call below stays a plain fetch.
-    const net = await Network.forUrl(params.url)
-    const transport: { proxy?: string; tls?: Record<string, unknown> } = {}
-    if (net.proxy) transport.proxy = net.proxy
-    const tls: Record<string, unknown> = {}
-    if (net.rejectUnauthorized === false) tls.rejectUnauthorized = false
-    if (net.ca) tls.ca = net.ca
-    if (net.clientCertificate?.cert) tls.cert = net.clientCertificate.cert
-    if (net.clientCertificate?.key) tls.key = net.clientCertificate.key
-    if (net.clientCertificate?.passphrase) tls.passphrase = net.clientCertificate.passphrase
-    if (Object.keys(tls).length > 0) transport.tls = tls
+    const transport = Network.toFetchInit(await Network.forUrl(params.url))
 
     const initial = await fetch(params.url, { signal, headers, ...transport })
 

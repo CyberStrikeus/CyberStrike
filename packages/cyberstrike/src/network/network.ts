@@ -315,6 +315,28 @@ export namespace Network {
     return forHost(u.hostname, port)
   }
 
+  /**
+   * Render an Outbound as the fetch init fields it corresponds to. Every
+   * in-process caller that hands options straight to `fetch` uses this, so the
+   * mapping exists once — it had begun to drift when each site kept its own copy
+   * (one read the resolved value, another the caller's override).
+   *
+   * The replay backends deliberately do NOT use it: they take primitive fields
+   * so they stay pure and testable without this module.
+   */
+  export function toFetchInit(out: Outbound): { proxy?: string; tls?: Record<string, unknown> } {
+    const init: { proxy?: string; tls?: Record<string, unknown> } = {}
+    if (out.proxy) init.proxy = out.proxy
+    const tls: Record<string, unknown> = {}
+    if (out.rejectUnauthorized !== undefined) tls.rejectUnauthorized = out.rejectUnauthorized
+    if (out.ca) tls.ca = out.ca
+    if (out.clientCertificate?.cert) tls.cert = out.clientCertificate.cert
+    if (out.clientCertificate?.key) tls.key = out.clientCertificate.key
+    if (out.clientCertificate?.passphrase) tls.passphrase = out.clientCertificate.passphrase
+    if (Object.keys(tls).length > 0) init.tls = tls
+    return init
+  }
+
   /** Proxy host:port with any credentials stripped — safe to log or show a user. */
   export function proxyAuthority(proxyUrl: string): string {
     try {
