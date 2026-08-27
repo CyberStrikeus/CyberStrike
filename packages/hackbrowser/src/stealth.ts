@@ -25,10 +25,6 @@ export function launchOptions(headless: boolean): LaunchOptions {
   return { headless, args }
 }
 
-export function userAgent(version: string): string {
-  return `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Safari/537.36`
-}
-
 export function findSystemChrome(): string | undefined {
   const candidates =
     process.platform === "darwin"
@@ -50,9 +46,11 @@ export async function connect(opts: { cdp?: string; headless: boolean }): Promis
   return chromium.launch(launchOptions(opts.headless))
 }
 
-export function contextOptions(version: string, headless = true): BrowserContextOptions {
+export function contextOptions(headless = true): BrowserContextOptions {
+  // Report the REAL Chrome UA (no spoof). A faked Windows UA over the real macOS/Linux
+  // navigator.platform is a glaring cross-check mismatch that makes detection easier, not
+  // harder; only automation tells are hidden (INIT_SCRIPT). The real host stays consistent.
   return {
-    userAgent: userAgent(version),
     viewport: headless ? { width: 1920, height: 1080 } : null,
     screen: { width: 1920, height: 1080 },
     locale: "en-US",
@@ -111,18 +109,10 @@ Object.defineProperty(screen, 'pixelDepth', { get: () => 24 });
 // screen.* above; the window is launched at 1920x1080 (launchOptions/contextOptions) so on
 // a normal host innerWidth is already ~1920 with no spoof needed.
 
-const origGetParameter = WebGLRenderingContext.prototype.getParameter;
-WebGLRenderingContext.prototype.getParameter = function(param) {
-  if (param === 37445) return 'Intel Inc.';
-  if (param === 37446) return 'Intel Iris OpenGL Engine';
-  return origGetParameter.call(this, param);
-};
-const origGetParameter2 = WebGL2RenderingContext.prototype.getParameter;
-WebGL2RenderingContext.prototype.getParameter = function(param) {
-  if (param === 37445) return 'Intel Inc.';
-  if (param === 37446) return 'Intel Iris OpenGL Engine';
-  return origGetParameter2.call(this, param);
-};
+// NOTE: WebGL vendor/renderer are intentionally NOT spoofed. The real GPU string is a
+// genuine, self-consistent value; a faked 'Intel Iris OpenGL Engine' (an old macOS GPU
+// name, in the outdated non-ANGLE format) contradicts both the platform and modern Chrome's
+// 'ANGLE (...)' renderer format, which is more detectable than reporting the truth.
 
 const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
 HTMLCanvasElement.prototype.toDataURL = function(type, quality) {
