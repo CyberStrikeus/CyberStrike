@@ -357,6 +357,21 @@ export namespace Network {
   export async function childEnv(): Promise<Record<string, string>> {
     const cfg = (await Config.get()).network
     if (!proxyActive(cfg)) return {}
+    const parsed = parseProxyUrl(cfg!.proxy!.url!)
+    // SOCKS THROWS here, unlike forHost which warns and hands the proxy over.
+    // The difference is what a caller can do with the answer: a replayed request
+    // fails closed on its own, but a child script handed a socks:// URL in
+    // HTTP_PROXY speaks HTTP at a SOCKS server and reports a parse error that
+    // names neither the proxy nor the config. Refusing to start is the only
+    // outcome here that is both safe and explicable. (Measured: it does not leak
+    // — the traffic simply never arrives — but the error is unreadable.)
+    if (isSocks(parsed)) {
+      throw new Error(
+        `Cannot run this with a SOCKS proxy configured (${parsed.protocol}//${parsed.host}). ` +
+          `The bundled scripts' HTTP clients cannot use one: requests needs PySocks and aiohttp has no SOCKS support at all. ` +
+          `Use an http:// proxy, or set network.proxy.enabled=false to run without one.`,
+      )
+    }
     const url = toProxyUrl(cfg!.proxy!.url!, cfg!.proxy!.auth?.username, cfg!.proxy!.auth?.password)
     const noProxy = ["localhost", ".localhost", "127.0.0.1", "::1"]
     for (const p of cfg!.proxy!.bypass ?? []) {

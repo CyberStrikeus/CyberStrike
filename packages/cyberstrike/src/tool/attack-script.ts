@@ -69,7 +69,19 @@ export const AttackScriptTool = Tool.define("attack_script", {
     // outbound policy as everything else. We do not own their code, so the
     // proxy is handed over as environment variables — the one interface every
     // HTTP library in them honours. Empty when no proxy is configured.
-    const netEnv = await Network.childEnv()
+    let netEnv: Record<string, string>
+    try {
+      netEnv = await Network.childEnv()
+    } catch (err) {
+      // A configuration the scripts genuinely cannot honour (SOCKS). Refusing is
+      // deliberate: running anyway would either leak past the proxy or fail with
+      // an error that names the target instead of the setting.
+      return {
+        title: `attack_script: ${params.script}`,
+        output: err instanceof Error ? err.message : String(err),
+        metadata: { script: params.script, exitCode: -1, hasStderr: false },
+      }
+    }
 
     const proc = Bun.spawn(["python3", scriptPath, ...params.args], {
       stdout: "pipe",
