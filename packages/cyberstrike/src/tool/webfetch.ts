@@ -1,5 +1,6 @@
 import z from "zod"
 import { Tool } from "./tool"
+import { Network } from "../network/network"
 import TurndownService from "turndown"
 import DESCRIPTION from "./webfetch.txt"
 import { abortAfterAny } from "../util/abort"
@@ -63,12 +64,30 @@ export const WebFetchTool = Tool.define("webfetch", {
       "Accept-Language": "en-US,en;q=0.9",
     }
 
-    const initial = await fetch(params.url, { signal, headers })
+    // Outbound policy for this destination (proxy / CA / client cert). Empty when
+    // nothing is configured, so the call below stays a plain fetch.
+    const net = await Network.forUrl(params.url)
+    const transport: { proxy?: string; tls?: Record<string, unknown> } = {}
+    if (net.proxy) transport.proxy = net.proxy
+    const tls: Record<string, unknown> = {}
+    if (net.rejectUnauthorized === false) tls.rejectUnauthorized = false
+    if (net.ca) tls.ca = net.ca
+    if (net.clientCertificate?.cert) tls.cert = net.clientCertificate.cert
+    if (net.clientCertificate?.key) tls.key = net.clientCertificate.key
+    if (net.clientCertificate?.pfx) tls.pfx = net.clientCertificate.pfx
+    if (net.clientCertificate?.passphrase) tls.passphrase = net.clientCertificate.passphrase
+    if (Object.keys(tls).length > 0) transport.tls = tls
+
+    const initial = await fetch(params.url, { signal, headers, ...transport })
 
     // Retry with honest UA if blocked by Cloudflare bot detection (TLS fingerprint mismatch)
     const response =
       initial.status === 403 && initial.headers.get("cf-mitigated") === "challenge"
-        ? await fetch(params.url, { signal, headers: { ...headers, "User-Agent": "cyberstrike" } })
+        ? await fetch(params.url, {
+            signal,
+            headers: { ...headers, "User-Agent": "cyberstrike" },
+            ...transport,
+          })
         : initial
 
     clearTimeout()
