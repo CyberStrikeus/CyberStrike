@@ -78,7 +78,14 @@ All vulnerability testing agents have access to:
 **ALWAYS use `http_replay` or `http_replay_raw` to send HTTP requests.** These tools
 replay captured requests with field-level mutations — payloads travel as data, no shell
 escaping, no encoding surprises. They handle credentials, compare mode, sweep mode,
-auto-refresh on 401, and produce structured results with timing and error signatures.
+and produce structured results with timing and error signatures.
+
+**Request source — request_id (default) or target (for un-captured endpoints):**
+Normally pass a captured **`request_id`** — it carries the real URL, auth and cookies, so ALWAYS prefer it when the endpoint was captured. For an endpoint the crawl never captured — e.g. one you inferred by reasoning — omit request_id and pass a constructed **`target`** instead:
+`http_replay(target: {method: "GET", url: "https://host/api/inferred/path"})` (byte-exact: `http_replay_raw(target_url: "https://host/api/inferred/path", raw: "...")`).
+The same captured-host scope guard still applies, so a target reaches an un-captured PATH on a host the crawl already saw, not a brand-new host. Give exactly one of request_id / target.
+
+**RULE: if the exact endpoint you must test is NOT in your captured-request list, you MUST build a `target` for that exact URL. NEVER send a different captured request_id in its place — replaying an unrelated captured request does NOT test the endpoint you were asked about.**
 
 **NEVER do any of the following to send HTTP requests:**
 - Write Python code (requests, urllib, aiohttp, httpx) in bash
