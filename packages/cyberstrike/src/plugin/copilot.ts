@@ -163,33 +163,39 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
             // token. api.githubcopilot.com rejects the raw ghu_ token (403),
             // which surfaced as constant "reauthenticate" prompts.
             const exchangeBase = enterpriseUrl ? `https://api.${normalizeDomain(enterpriseUrl)}` : "https://api.github.com"
-            const copilotSessionToken = await exchangeCopilotToken(info.refresh, exchangeBase)
 
-            const headers: Record<string, string> = {
-              "x-initiator": isAgent ? "agent" : "user",
-              ...(init?.headers as Record<string, string>),
-              Authorization: `Bearer ${copilotSessionToken}`,
-              // Copilot validates these integration/editor headers — without
-              // them (esp. copilot-integration-id) the API returns 403.
-              "Copilot-Integration-Id": COPILOT_INTEGRATION_ID,
-              "Editor-Version": COPILOT_EDITOR_VERSION,
-              "Editor-Plugin-Version": COPILOT_PLUGIN_VERSION,
-              "User-Agent": COPILOT_USER_AGENT,
-              "X-GitHub-Api-Version": COPILOT_API_VERSION,
-              "Openai-Intent": "conversation-edits",
+            const send = (sessionToken: string) => {
+              const headers: Record<string, string> = {
+                "x-initiator": isAgent ? "agent" : "user",
+                ...(init?.headers as Record<string, string>),
+                Authorization: `Bearer ${sessionToken}`,
+                // Copilot validates these integration/editor headers — without
+                // them (esp. copilot-integration-id) the API returns 403.
+                "Copilot-Integration-Id": COPILOT_INTEGRATION_ID,
+                "Editor-Version": COPILOT_EDITOR_VERSION,
+                "Editor-Plugin-Version": COPILOT_PLUGIN_VERSION,
+                "User-Agent": COPILOT_USER_AGENT,
+                "X-GitHub-Api-Version": COPILOT_API_VERSION,
+                "Openai-Intent": "conversation-edits",
+              }
+              if (isVision) headers["Copilot-Vision-Request"] = "true"
+              delete headers["x-api-key"]
+              delete headers["authorization"]
+              return fetch(request, { ...init, headers })
             }
 
-            if (isVision) {
-              headers["Copilot-Vision-Request"] = "true"
+            let response = await send(await exchangeCopilotToken(info.refresh, exchangeBase))
+
+            // A 403 under heavy use is usually a transient or rotated-token blip,
+            // not a real auth failure. Force a fresh session token and retry once
+            // before the error surfaces as a "reauthenticate" prompt. If the retry
+            // still 403s, it's a genuine auth problem and flows through as before.
+            if (response.status === 403) {
+              copilotTokenCache.delete(info.refresh)
+              response = await send(await exchangeCopilotToken(info.refresh, exchangeBase))
             }
 
-            delete headers["x-api-key"]
-            delete headers["authorization"]
-
-            return fetch(request, {
-              ...init,
-              headers,
-            })
+            return response
           },
         }
       },
