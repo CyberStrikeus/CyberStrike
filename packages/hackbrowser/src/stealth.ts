@@ -21,7 +21,11 @@ const LAUNCH_ARGS = [
 ]
 
 export function launchOptions(headless: boolean): LaunchOptions {
-  const args = headless ? LAUNCH_ARGS : [...LAUNCH_ARGS, "--window-size=1920,1080"]
+  // Headful: maximize to the REAL screen instead of forcing a fixed 1920x1080 window, which
+  // overflows (and hides the login bar) on any screen smaller than that. Maximized fits every
+  // screen and looks natural. Paired with contextOptions' viewport:null so Chrome — not
+  // Playwright — owns the window size.
+  const args = headless ? LAUNCH_ARGS : [...LAUNCH_ARGS, "--start-maximized"]
   return { headless, args }
 }
 
