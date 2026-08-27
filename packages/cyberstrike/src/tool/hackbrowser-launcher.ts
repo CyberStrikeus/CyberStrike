@@ -41,6 +41,7 @@ import type {
   WorkerMessage,
   ParentMessage,
   CredentialDispatch,
+  ModelDescriptor,
 } from "../hackbrowser-subprocess/worker-ipc"
 
 const log = Log.create({ service: "hackbrowser-launcher" })
@@ -211,6 +212,25 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
 
   const modelDetails = await Provider.getModel(modelInfo.providerID, modelInfo.modelID)
   const modelDescriptor = await Provider.getModelDescriptor(modelDetails)
+  // The worker runs in its own process and cannot read config, so the planner's
+  // model calls would otherwise ignore the proxy that governs everything else.
+  // Resolved here, against the model's own endpoint, so the bypass list applies —
+  // and only under the same opt-in that governs provider traffic in-process.
+  let providerNetwork: ModelDescriptor["network"]
+  if (await Network.includeProviders()) {
+    const endpoint = modelDescriptor.baseURL ?? modelDetails.api?.url
+    if (endpoint) {
+      const net = await Network.forUrl(endpoint)
+      providerNetwork = {
+        proxy: net.proxy,
+        ca: net.ca,
+        rejectUnauthorized: net.rejectUnauthorized,
+        cert: net.clientCertificate?.cert,
+        key: net.clientCertificate?.key,
+        passphrase: net.clientCertificate?.passphrase,
+      }
+    }
+  }
   log.info("resolved model for hackbrowser run", {
     provider: modelInfo.providerID,
     model: modelInfo.modelID,
@@ -245,7 +265,7 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
     headless: opts.headless ?? true,
     panel: opts.headless === false,
     cyberstrikeUrl,
-    model: modelDescriptor,
+    model: { ...modelDescriptor, ...(providerNetwork ? { network: providerNetwork } : {}) },
     credentialDispatch,
     cdp: opts.cdp,
     // Resolved here because the parent owns the config; the worker only applies it.
