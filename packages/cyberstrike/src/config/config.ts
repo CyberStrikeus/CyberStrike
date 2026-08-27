@@ -1113,7 +1113,7 @@ export namespace Config {
         .boolean()
         .optional()
         .describe(
-          "Verify TLS certificates for outbound requests. Unset leaves each sender's own default in place — note http_replay deliberately accepts bad certs unless you set this to true, since pentest targets routinely have them. A per-call insecure_tls still overrides this for that one call",
+          "Verify TLS certificates for outbound requests. Unset leaves the pentest-friendly default in place: both the crawler and http_replay accept invalid or self-signed certificates, since targets routinely have them and an intercepting proxy always does. Set true for strict checking — note the crawler browser cannot use caPath for that (Chromium trusts the OS store), so an intercepting proxy's CA must be installed there. A per-call insecure_tls still overrides this for that one call",
         ),
       clientCertificates: z
         .array(ClientCertificate)

@@ -91,10 +91,14 @@ export function contextOptions(headless = true, network?: NetworkConfig): Browse
     // proxied. Measured: launch-only + cert never reaches the proxy; adding it
     // here restores it (the interceptor CONNECTs through it).
     ...(network?.proxy ? { proxy: network.proxy } : {}),
-    // TLS trust is context-level in Playwright. There is no CA option — Chromium
-    // trusts the OS store — so an intercepting proxy is accepted either by
-    // installing its CA at OS level or via ignoreHTTPSErrors.
-    ...(network?.ignoreHTTPSErrors ? { ignoreHTTPSErrors: true } : {}),
+    // Certificate errors are IGNORED by default. A crawler aimed at staging
+    // apps, self-signed dev hosts and traffic behind an intercepting proxy hits
+    // untrusted certificates constantly, and refusing to load the page turns a
+    // testable target into a blank run. This matches what the replay engine
+    // already does (http_replay accepts bad certs unless told otherwise);
+    // the browser being the one strict component was the inconsistency.
+    // Set network.tls.rejectUnauthorized=true to opt back into strict checking.
+    ignoreHTTPSErrors: network?.ignoreHTTPSErrors ?? true,
     ...(network?.clientCertificates?.length ? { clientCertificates: network.clientCertificates } : {}),
   }
 }
