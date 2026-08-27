@@ -114,6 +114,33 @@ function inScope(sessionID: string, host: string): boolean {
   return allowed.size > 0 && allowed.has(host)
 }
 
+// Build a base message + origin from a constructed target (the FALLBACK source
+// when no captured request_id is given). Mirrors what HttpMessage.parse would
+// produce for a captured request, so all downstream modes treat it identically.
+function buildFromTarget(t: {
+  method: string
+  url: string
+  headers?: Record<string, string>
+  body?: string
+}): { baseMsg: HttpMessage.Request; origin: string } | { error: string } {
+  const url = safeURL(t.url)
+  if (!url) return { error: `Invalid target url "${t.url}".` }
+  const headers: HttpMessage.Header[] = [{ name: "Host", value: url.host }]
+  if (t.headers) for (const [name, value] of Object.entries(t.headers)) headers.push({ name, value: String(value) })
+  const body = t.body != null ? new TextEncoder().encode(t.body) : new Uint8Array(0)
+  if (body.length > 0 && !headers.some((h) => h.name.toLowerCase() === "content-length")) {
+    headers.push({ name: "Content-Length", value: String(body.length) })
+  }
+  const baseMsg: HttpMessage.Request = {
+    method: t.method.toUpperCase(),
+    target: (url.pathname || "/") + url.search,
+    version: "HTTP/1.1",
+    headers,
+    body,
+  }
+  return { baseMsg, origin: `${url.protocol}//${url.host}` }
+}
+
 const BODY_PREVIEW = 4096
 
 function summarize(result: ReplayResponse.Result, marker?: string): Record<string, unknown> {
@@ -239,12 +266,32 @@ Special modes:
 - **sweep**: Test multiple values for one mutation in a single call. Returns an array of results.
 - **follow_redirects**: Follow 3xx redirects (default: false — manual redirect for pentest visibility).
 
+Source: usually a captured **request_id** (PRIMARY — carries the real auth, cookies and headers, so prefer it whenever the endpoint was captured). For an endpoint the crawl never captured, pass a constructed **target** {method, url, headers?, body?} instead (FALLBACK) — the same captured-host scope guard applies, so it can reach an un-captured path but not a new host. Give exactly one of request_id / target.
+
 Use for confirm/weaponize instead of building curl in bash. For byte-exact / smuggling / malformed requests use http_replay_raw.`
 
 export const HttpReplayTool = Tool.define("http_replay", {
   description: REPLAY_DESC,
   parameters: z.object({
-    request_id: z.string().describe("ID of the captured request to replay (source of URL, headers, body, credential)."),
+    request_id: z
+      .string()
+      .optional()
+      .describe(
+        "PRIMARY source — ID of a captured request to replay (its real URL, headers, cookies, auth). ALWAYS use this when the endpoint was already captured. Provide EITHER request_id OR target, never both.",
+      ),
+    target: z
+      .object({
+        method: z.string().describe("HTTP method, e.g. GET or POST."),
+        url: z
+          .string()
+          .describe("Absolute URL incl. scheme and host, e.g. https://host/api/x?y=1. Host must be one the crawl captured."),
+        headers: z.record(z.string(), z.string()).optional().describe("Extra request headers (Host is derived from url)."),
+        body: z.string().optional().describe("Request body, if any."),
+      })
+      .optional()
+      .describe(
+        "FALLBACK source — construct a request from scratch. Use ONLY when the endpoint was NOT captured (e.g. one you inferred by reasoning). NEVER use when a matching captured request_id exists (you would lose the real cookies/headers). mutations/credential/compare/sweep apply to it exactly as to a captured request.",
+      ),
     mutations: z
       .array(MUTATION)
       .optional()
@@ -302,35 +349,43 @@ export const HttpReplayTool = Tool.define("http_replay", {
   }),
   async execute(params, ctx) {
     const sessionID = Session.root(ctx.sessionID)
-    const request = Request.get(sessionID).find((r) => r.id === params.request_id)
-    if (!request) return { title: "http_replay", output: `Request "${params.request_id}" not found.`, metadata: {} }
-    if (!request.raw_request) {
-      return {
-        title: "http_replay",
-        output: `Request "${params.request_id}" has no raw_request to replay.`,
-        metadata: {},
+    const err = (output: string) => ({ title: "http_replay", output, metadata: {} })
+
+    // Resolve the request source: a captured request_id (PRIMARY) or a constructed
+    // target (FALLBACK, for endpoints the crawl never captured). Exactly one.
+    const hasRid = !!params.request_id
+    const hasTarget = !!params.target
+    if (hasRid && hasTarget) return err("Provide either request_id or target, not both.")
+    if (!hasRid && !hasTarget) return err("Provide request_id (a captured request) or target (a constructed request).")
+
+    let baseMsg: HttpMessage.Request
+    let origin: string
+    if (hasRid) {
+      const request = Request.get(sessionID).find((r) => r.id === params.request_id)
+      if (!request) return err(`Request "${params.request_id}" not found.`)
+      if (!request.raw_request) return err(`Request "${params.request_id}" has no raw_request to replay.`)
+      const o = originOf(request)
+      if (typeof o !== "string") return err(o.error)
+      origin = o
+      try {
+        baseMsg = HttpMessage.parse(request.raw_request)
+      } catch (e) {
+        return err(`Could not parse request: ${e instanceof Error ? e.message : String(e)}`)
       }
+    } else {
+      const built = buildFromTarget(params.target!)
+      if ("error" in built) return err(built.error)
+      baseMsg = built.baseMsg
+      origin = built.origin
     }
 
-    const origin = originOf(request)
-    if (typeof origin !== "string") return { title: "http_replay", output: origin.error, metadata: {} }
-
+    // Scope guard applies to BOTH sources — a constructed target must resolve to a
+    // host the crawl already captured (it can reach an un-captured PATH, not a new host).
     const originHost = safeURL(origin)?.hostname ?? ""
     if (!inScope(sessionID, originHost)) {
       return {
         title: "http_replay — refused (out of scope)",
         output: `Refusing host "${originHost}": not among this session's captured in-scope hosts.`,
-        metadata: {},
-      }
-    }
-
-    let baseMsg: HttpMessage.Request
-    try {
-      baseMsg = HttpMessage.parse(request.raw_request)
-    } catch (e) {
-      return {
-        title: "http_replay",
-        output: `Could not parse request: ${e instanceof Error ? e.message : String(e)}`,
         metadata: {},
       }
     }
@@ -447,31 +502,62 @@ export const HttpReplayTool = Tool.define("http_replay", {
 
 const RAW_DESC = `Send an EXACT byte sequence over a raw TCP/TLS socket — no normalization. This is the byte-exact backend for request smuggling / desync, intentionally-malformed messages, duplicate/odd-case headers, and Host-header overrides that http_replay (fetch) would normalize away.
 
-Provide request_id to derive host/port/TLS from a captured request; by default it sends that request's raw bytes, or pass raw to send bytes you crafted. Returns the parsed response (status/headers/body) with timing. Host must be one the crawl already captured.`
+Provide request_id (PRIMARY) to derive host/port/TLS from a captured request; by default it sends that request's raw bytes, or pass raw to send bytes you crafted. For an endpoint the crawl never captured, pass target_url (FALLBACK) together with raw instead. Give exactly one of request_id / target_url. Returns the parsed response (status/headers/body) with timing. Host must be one the crawl already captured.`
 
 export const HttpReplayRawTool = Tool.define("http_replay_raw", {
   description: RAW_DESC,
   parameters: z.object({
     request_id: z
       .string()
-      .describe("Captured request whose host/port/TLS to connect to (and whose bytes to send unless `raw` is given)."),
+      .optional()
+      .describe(
+        "PRIMARY source — a captured request whose host/port/TLS to connect to (and whose bytes to send unless `raw` is given). Provide EITHER request_id OR target_url, never both.",
+      ),
+    target_url: z
+      .string()
+      .optional()
+      .describe(
+        "FALLBACK — connect to this absolute URL's host/port/TLS instead of a captured request. Use ONLY for an endpoint the crawl never captured; requires `raw` (no captured bytes to fall back on). Host must be one the crawl captured.",
+      ),
     raw: z
       .string()
       .optional()
-      .describe("Exact raw HTTP request bytes to send. Omit to send the captured request's raw bytes unchanged."),
+      .describe(
+        "Exact raw HTTP request bytes to send. Omit to send the captured request's raw bytes unchanged (required when using target_url).",
+      ),
     insecure_tls: z.boolean().optional().describe("Accept invalid/self-signed certs (default true)."),
     total_timeout_ms: z.number().int().positive().optional(),
   }),
   async execute(params, ctx) {
     const sessionID = Session.root(ctx.sessionID)
-    const request = Request.get(sessionID).find((r) => r.id === params.request_id)
-    if (!request) return { title: "http_replay_raw", output: `Request "${params.request_id}" not found.`, metadata: {} }
+    const err = (output: string) => ({ title: "http_replay_raw", output, metadata: {} })
 
-    const origin = originOf(request)
-    if (typeof origin !== "string") return { title: "http_replay_raw", output: origin.error, metadata: {} }
-    const url = safeURL(origin)
-    if (!url) return { title: "http_replay_raw", output: `Invalid origin "${origin}".`, metadata: {} }
+    // Source: a captured request_id (PRIMARY) or a constructed target_url (FALLBACK). Exactly one.
+    const hasRid = !!params.request_id
+    const hasTarget = !!params.target_url
+    if (hasRid && hasTarget) return err("Provide either request_id or target_url, not both.")
+    if (!hasRid && !hasTarget) return err("Provide request_id or target_url.")
 
+    let url: URL
+    let raw: string | undefined
+    if (hasRid) {
+      const request = Request.get(sessionID).find((r) => r.id === params.request_id)
+      if (!request) return err(`Request "${params.request_id}" not found.`)
+      const o = originOf(request)
+      if (typeof o !== "string") return err(o.error)
+      const u = safeURL(o)
+      if (!u) return err(`Invalid origin "${o}".`)
+      url = u
+      raw = params.raw ?? request.raw_request
+    } else {
+      const u = safeURL(params.target_url!)
+      if (!u) return err(`Invalid target_url "${params.target_url}".`)
+      url = u
+      raw = params.raw
+    }
+
+    // Scope guard applies to BOTH sources — a constructed target_url must resolve to
+    // a host the crawl already captured.
     if (!inScope(sessionID, url.hostname)) {
       return {
         title: "http_replay_raw — refused (out of scope)",
@@ -480,13 +566,12 @@ export const HttpReplayRawTool = Tool.define("http_replay_raw", {
       }
     }
 
-    const raw = params.raw ?? request.raw_request
     if (!raw)
-      return {
-        title: "http_replay_raw",
-        output: `No raw bytes to send (request has no raw_request and none provided).`,
-        metadata: {},
-      }
+      return err(
+        hasTarget
+          ? "target_url requires raw (the exact bytes to send)."
+          : "No raw bytes to send (request has no raw_request and none provided).",
+      )
 
     const useTls = url.protocol === "https:"
     const port = url.port ? Number.parseInt(url.port, 10) : useTls ? 443 : 80
