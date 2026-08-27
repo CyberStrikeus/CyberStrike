@@ -284,8 +284,13 @@ export const HttpReplayTool = Tool.define("http_replay", {
         method: z.string().describe("HTTP method, e.g. GET or POST."),
         url: z
           .string()
-          .describe("Absolute URL incl. scheme and host, e.g. https://host/api/x?y=1. Host must be one the crawl captured."),
-        headers: z.record(z.string(), z.string()).optional().describe("Extra request headers (Host is derived from url)."),
+          .describe(
+            "Absolute URL incl. scheme and host, e.g. https://host/api/x?y=1. Host must be one the crawl captured.",
+          ),
+        headers: z
+          .record(z.string(), z.string())
+          .optional()
+          .describe("Extra request headers (Host is derived from url)."),
         body: z.string().optional().describe("Request body, if any."),
       })
       .optional()
