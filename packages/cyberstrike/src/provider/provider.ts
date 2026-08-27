@@ -1344,6 +1344,15 @@ export namespace Provider {
       return getModel(parsed.providerID, parsed.modelID)
     }
 
+    // GitHub Copilot's model catalog is static (models.dev), not the user's live
+    // entitlements — a hardcoded small model like gpt-5-mini may not be enabled
+    // on their plan (common on GitHub Enterprise), so the background summarize/
+    // title task loops on "the model is not supported". With no small_model
+    // configured, defer to the caller's main model (which the user is already
+    // using, hence entitled). Copilot is subscription-billed, so a separate
+    // small model saves nothing here anyway.
+    if (providerID.startsWith("github-copilot")) return undefined
+
     const provider = await state().then((state) => state.providers[providerID])
     if (provider) {
       let priority = [
