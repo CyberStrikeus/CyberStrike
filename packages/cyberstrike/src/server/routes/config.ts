@@ -30,7 +30,8 @@ export const ConfigRoutes = lazy(() =>
         },
       }),
       async (c) => {
-        return c.json(await Config.get())
+        // Shown, not used — mask the outbound-network secrets on the way out.
+        return c.json(Config.redactSecrets(await Config.get()))
       },
     )
     .patch(

@@ -9,7 +9,7 @@ export const ConfigCommand = cmd({
   builder: (yargs) => yargs,
   async handler() {
     await bootstrap(process.cwd(), async () => {
-      const config = await Config.get()
+      const config = Config.redactSecrets(await Config.get())
       process.stdout.write(JSON.stringify(config, null, 2) + EOL)
     })
   },

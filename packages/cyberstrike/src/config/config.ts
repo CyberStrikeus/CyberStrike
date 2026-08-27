@@ -1555,6 +1555,48 @@ export namespace Config {
     return state().then((x) => x.config)
   }
 
+  const REDACTED = "[redacted]"
+
+  /**
+   * A copy of the config with outbound-network secrets masked, for anything that
+   * SHOWS the configuration rather than uses it.
+   *
+   * `{env:VAR}` keeps a password out of the config FILE, but the loader expands
+   * it into the in-memory config — which is then served verbatim by GET /config
+   * and printed by `debug config`. The field description promises the file, and
+   * a reader can easily hear it as a promise about the process; this closes that
+   * gap for the secrets this feature introduced.
+   *
+   * Returns the original object when there is nothing to mask, and never mutates
+   * it — `get()` hands back the live cached config, so a mutation here would
+   * blank the credential the running process still needs.
+   */
+  export function redactSecrets(info: Info): Info {
+    const net = info.network
+    if (!net) return info
+    const proxyPassword = net.proxy?.auth?.password
+    const certs = net.tls?.clientCertificates
+    const hasPassphrase = certs?.some((c) => !!c.passphrase) ?? false
+    if (!proxyPassword && !hasPassphrase) return info
+    return {
+      ...info,
+      network: {
+        ...net,
+        ...(proxyPassword
+          ? { proxy: { ...net.proxy!, auth: { ...net.proxy!.auth!, password: REDACTED } } }
+          : {}),
+        ...(hasPassphrase
+          ? {
+              tls: {
+                ...net.tls!,
+                clientCertificates: certs!.map((c) => (c.passphrase ? { ...c, passphrase: REDACTED } : c)),
+              },
+            }
+          : {}),
+      },
+    }
+  }
+
   export async function getGlobal() {
     return global()
   }
