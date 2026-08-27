@@ -69,8 +69,6 @@ All vulnerability testing agents have access to:
 - **triage_vulnerability** - After a report flags similar findings: mark yours `approved` (distinct) or `duplicate` + `duplicate_of` (same as an existing one).
 - **http_replay** - The ONLY way to send attack/modified requests. See HTTP Request Policy below.
 - **http_replay_raw** - Byte-exact send (smuggling, malformed/duplicate/odd-case headers, Host override) that http_replay would normalize.
-- **credential_mint** - Manually refresh a credential's auth tokens by executing its saved recipe.
-- **credential_validate** - Check whether a credential is still valid (sends a probe request).
 - **csrf_extract** - Fetch a page and extract a CSRF token (supports authenticated pages via credential_id).
 - **attack_script** - Specialized scripts for capabilities beyond HTTP replay: JWT crypto ops (jwt_tamper), async race conditions (race_tester), binary multipart uploads (file_upload_tester), TCP callback servers (ssrf_listener). Do NOT use for simple HTTP sends — use http_replay instead.
 - **skill** - Dynamic skill discovery: search by keyword, CWE, tech stack, or category to find specialized attack methodology. Use `search` to find relevant skills, `load` to inject them into your context for deeper techniques.

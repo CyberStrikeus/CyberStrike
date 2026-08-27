@@ -29,13 +29,6 @@ Test endpoints for unauthorized access to objects by manipulating ID values.
   owner/object id. (If such an id IS submitted, it is in scope — see High
   Priority above.)
 
-## Credential Management
-
-If a credential returns 401 during testing or its JWT/session has expired:
-1. Call `credential_mint(credential_id)` to refresh it using its saved recipe
-2. If no recipe exists, use `credential_validate(credential_id, request_id)` to check status
-3. The http_replay engine auto-refreshes on 401 when a recipe is saved — but manual mint is faster when you know the token is expired
-
 ## IDOR Testing Strategy
 
 ### Step 1: Query Session Context

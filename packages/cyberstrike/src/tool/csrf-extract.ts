@@ -21,7 +21,7 @@ export const CsrfExtractTool = Tool.define("csrf_extract", {
 Use this to:
 - Get a fresh CSRF token before sending a state-changing request
 - Verify CSRF token rotation (fetch twice, compare)
-- Extract anti-CSRF tokens from login/form pages for recipe building`,
+- Extract anti-CSRF tokens from login/form pages before submitting a state-changing form`,
   parameters: z.object({
     request_id: z.string().describe("Captured GET request that serves the page containing the CSRF token"),
     credential_id: z

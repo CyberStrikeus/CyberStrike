@@ -202,9 +202,6 @@ export const WebCredentialTable = sqliteTable(
     headers: text({ mode: "json" }).$type<Record<string, string>>().notNull(),
     container_id: text(), // Firefox container ID for sync
     role_id: text(),
-    // Credential refresh recipe (JSON) — engine replays these steps to mint fresh tokens on 401.
-    // Set by the AuthN agent via credential_set_recipe.
-    recipe: text({ mode: "json" }).$type<import("./web/credential-recipe").Recipe>(),
     ...Timestamps,
   },
   (table) => [

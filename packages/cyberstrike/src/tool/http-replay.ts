@@ -23,7 +23,6 @@ import { ReplayResponse } from "../replay/response"
 import { Observe } from "../replay/observe"
 import { Mutate } from "../replay/mutate"
 import { Batch } from "../replay/batch"
-import { CredentialRecipe, Recipe } from "../session/web/credential-recipe"
 
 // Encode codecs mirrored as a zod enum for the tool schema (kept in sync with
 // Encode.Codec in ../replay/encode.ts).
@@ -134,7 +133,6 @@ function summarize(result: ReplayResponse.Result, marker?: string): Record<strin
     body_truncated: res.body.length > BODY_PREVIEW,
     error_signatures: Observe.errorSignatures(res.body),
     attempts: (result as Send.Result).attempts,
-    retried: result.retried ?? false,
   }
   if (marker) out.reflection = Observe.reflection(res.body, marker)
   return out
@@ -167,89 +165,6 @@ function applyAuthParams(
   if (opts.unauthenticated) return stripAuthHeaders(msg)
   if (opts.credential) return applyCredential(msg, opts.credential)
   return msg
-}
-
-// ── Auto-refresh on 401 ──────────────────────────────────────────────────────
-
-const refreshing = new Map<string, Promise<boolean>>()
-
-async function tryAutoRefresh(
-  credentialID: string,
-  sessionID: string,
-  origin: string,
-  signal?: AbortSignal,
-): Promise<boolean> {
-  const pending = refreshing.get(credentialID)
-  if (pending) return pending
-
-  const promise = doRefresh(credentialID, sessionID, origin, signal)
-  refreshing.set(credentialID, promise)
-  try {
-    return await promise
-  } finally {
-    refreshing.delete(credentialID)
-  }
-}
-
-async function doRefresh(
-  credentialID: string,
-  sessionID: string,
-  origin: string,
-  signal?: AbortSignal,
-): Promise<boolean> {
-  const raw = WebCredential.getRecipe(credentialID)
-  if (!raw) return false
-
-  const parsed = Recipe.safeParse(raw)
-  if (!parsed.success) return false
-
-  try {
-    const result = await CredentialRecipe.execute(parsed.data, { sessionID, origin, signal })
-    if (Object.keys(result.headers).length === 0) return false
-
-    const cred = WebCredential.getById(credentialID)
-    const merged = { ...(cred?.headers ?? {}) }
-    for (const [name, value] of Object.entries(result.headers)) {
-      const lower = name.toLowerCase()
-      for (const k of Object.keys(merged)) {
-        if (k.toLowerCase() === lower && k !== name) delete merged[k]
-      }
-      merged[name] = value
-    }
-
-    WebCredential.update({
-      id: credentialID,
-      sessionID,
-      headers: merged,
-    })
-    return true
-  } catch {
-    return false
-  }
-}
-
-async function tryProactiveRefresh(
-  credentialID: string,
-  sessionID: string,
-  origin: string,
-  signal?: AbortSignal,
-): Promise<void> {
-  const cred = WebCredential.getById(credentialID)
-  if (!cred) return
-
-  const raw = WebCredential.getRecipe(credentialID)
-  if (!raw) return
-
-  const parsed = Recipe.safeParse(raw)
-  if (!parsed.success) return
-
-  const ttl = parsed.data.ttl_seconds
-  if (!ttl) return
-
-  const elapsed = (Date.now() - cred.time.updated) / 1000
-  if (elapsed < ttl * 0.8) return
-
-  await tryAutoRefresh(credentialID, sessionID, origin, signal)
 }
 
 // ── Governed send wrapper ─────────────────────────────────────────────────────
@@ -323,7 +238,6 @@ Special modes:
 - **compare**: Send baseline + exploit in ONE call and get a structured diff (status match, body length, body content, timing delta). Each side independently configures credential/unauthenticated/mutations.
 - **sweep**: Test multiple values for one mutation in a single call. Returns an array of results.
 - **follow_redirects**: Follow 3xx redirects (default: false — manual redirect for pentest visibility).
-- **Auto-refresh**: When a credential has a saved recipe (via credential_set_recipe) and the server returns 401, the engine automatically executes the recipe to mint fresh tokens and retries the request once. The response includes retried: true when this happens.
 
 Use for confirm/weaponize instead of building curl in bash. For byte-exact / smuggling / malformed requests use http_replay_raw.`
 
@@ -450,13 +364,6 @@ export const HttpReplayTool = Tool.define("http_replay", {
       if (compare.exploit.mutations)
         exploitMsg = Apply.mutations(exploitMsg, compare.exploit.mutations as Apply.Mutation[])
 
-      const compareCredIDs = new Set<string>()
-      if (compare.baseline?.credential) compareCredIDs.add(compare.baseline.credential)
-      if (compare.exploit.credential) compareCredIDs.add(compare.exploit.credential)
-      for (const cid of compareCredIDs) {
-        await tryProactiveRefresh(cid, sessionID, origin, ctx.abort)
-      }
-
       const [baselineResult, exploitResult] = await Promise.all([
         sendGoverned(baselineMsg, origin, sendOpts),
         sendGoverned(exploitMsg, origin, sendOpts),
@@ -486,10 +393,6 @@ export const HttpReplayTool = Tool.define("http_replay", {
         return { title: "http_replay sweep", output: (authResult as { error: string }).error, metadata: {} }
       sharedMsg = authResult
       if (params.mutations) sharedMsg = Apply.mutations(sharedMsg, params.mutations as Apply.Mutation[])
-
-      if (params.credential) {
-        await tryProactiveRefresh(params.credential, sessionID, origin, ctx.abort)
-      }
 
       const results = await Batch.run(
         sweep.values,
@@ -529,27 +432,7 @@ export const HttpReplayTool = Tool.define("http_replay", {
       }
     }
 
-    if (params.credential) {
-      await tryProactiveRefresh(params.credential, sessionID, origin, ctx.abort)
-    }
-
-    let result = await sendGoverned(msg, origin, sendOpts)
-
-    // Auto-refresh on 401: if credential has a recipe, mint fresh tokens and retry once
-    if (result.response?.status === 401 && params.credential) {
-      const refreshed = await tryAutoRefresh(params.credential, sessionID, origin, ctx.abort)
-      if (refreshed) {
-        let retryMsg = baseMsg
-        const retryAuth = applyCredential(retryMsg, params.credential)
-        if (typeof retryAuth !== "object" || !("error" in retryAuth)) {
-          retryMsg = retryAuth as HttpMessage.Request
-          if (params.mutations?.length) retryMsg = Apply.mutations(retryMsg, params.mutations as Apply.Mutation[])
-          const retryResult = await sendGoverned(retryMsg, origin, sendOpts)
-          result = { ...retryResult, retried: true }
-          msg = retryMsg
-        }
-      }
-    }
+    const result = await sendGoverned(msg, origin, sendOpts)
 
     const output = {
       target: { method: msg.method, origin, request_target: msg.target },
