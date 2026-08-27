@@ -716,6 +716,10 @@ async function explorePageWithAI(
   // Track all seen element semantic keys to detect new elements after clicks
   const seenKeys = new Set(elements.map((e) => `${e.role}::${e.label}`))
   let steps = 0
+  // The last click that revealed new elements — the presumed "opener" of a transient
+  // container (drawer / menu / popover), used to re-open it if a revealed target later
+  // slides off-screen before it can be clicked. Page-scoped (reset per explorePageWithAI).
+  let lastRevealingClick: ClickTask | null = null
 
   while (taskQueue.length > 0 && steps < MAX_STEPS_PER_PAGE) {
     steps++
@@ -773,6 +777,7 @@ async function explorePageWithAI(
         inScope,
         occ,
         nav,
+        lastRevealingClick,
       )
     }
 
@@ -782,19 +787,15 @@ async function explorePageWithAI(
     // Combobox → option: mechanical pattern, system handles directly (no LLM needed)
     // When a combobox was just clicked, queue its options for selection
     if (task.type === "click" && task.role === "combobox") {
-      const optionTasks = await collectComboboxOptions(
-        page,
-        postActionElements,
-        seenKeys,
-        pageUrl,
-        globalState.visitedPages,
-      )
+      const optionTasks = await collectComboboxOptions(page, postActionElements, seenKeys, pageUrl, globalState.visitedPages)
       if (optionTasks.length > 0) {
         taskQueue.unshift(...optionTasks)
       }
     }
 
     const hasNewElements = discoverNewElements(postActionElements, seenKeys)
+    // A click that revealed new elements is the presumed opener of a transient container.
+    if (task.type === "click" && hasNewElements) lastRevealingClick = task
     const hasStaleTargets = queueHasStaleTargets(taskQueue, postActionElements)
 
     // Any DOM change that affects the queue → re-plan with LLM
@@ -964,22 +965,18 @@ async function explorePageWithAI(
           inScope,
           occ,
           nav,
+          lastRevealingClick,
         )
       }
 
       // Post-action discovery (same as main loop)
       const postActionElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
       if (task.type === "click" && task.role === "combobox") {
-        const optionTasks = await collectComboboxOptions(
-          page,
-          postActionElements,
-          seenKeys,
-          pageUrl,
-          globalState.visitedPages,
-        )
+        const optionTasks = await collectComboboxOptions(page, postActionElements, seenKeys, pageUrl, globalState.visitedPages)
         if (optionTasks.length > 0) additionalQueue.unshift(...optionTasks)
       }
       const hasNewElements = discoverNewElements(postActionElements, seenKeys)
+      if (task.type === "click" && hasNewElements) lastRevealingClick = task
       const hasStaleTargets = queueHasStaleTargets(additionalQueue, postActionElements)
       if (hasNewElements || hasStaleTargets || occ.pending.length > 0) {
         const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
@@ -1069,6 +1066,38 @@ async function recoverFromOcclusion(
   log.debug("click occluded — clearing overlay + waiting, then retrying once", { label: el.label })
   await closeOverlay(page)
   await page.waitForTimeout(OVERLAY_CLEAR_WAIT)
+  return retry()
+}
+
+/**
+ * Sibling of recoverFromOcclusion for a transient container that closed between plan and
+ * act. A target revealed by opening a container (drawer / menu / popover) can slide
+ * off-screen if that container auto-closes during the planner's round-trip; the click then
+ * fails and the target's click point is off the viewport (not covered by an overlay). If we
+ * know the opener that revealed it, re-click the opener to re-open the container, then retry
+ * the click once. Best-effort and bounded (one re-open, one retry); the planner's judgment
+ * of WHAT to click is untouched — only the container state is restored.
+ */
+async function recoverFromClosedContainer(
+  page: Page,
+  el: RawElement,
+  original: ActionResult,
+  opener: ClickTask | null,
+  interceptor: Interceptor,
+  retry: () => Promise<ActionResult>,
+): Promise<ActionResult> {
+  if (original.success || !opener) return original
+  if (opener.role === el.role && opener.label === el.label) return original // never re-open self
+  if ((await probeClickPoint(page, el.selector)).status !== "offscreen") return original
+  const fresh = await collectElements(page)
+  const openerEl = resolveElement(fresh, opener.role, opener.label)
+  if (!openerEl) return original
+  log.debug("target offscreen — re-opening its container via opener, retrying once", {
+    target: el.label,
+    opener: opener.label,
+  })
+  await execute(page, openerEl, "click", undefined, interceptor.setPendingUI, fresh.length)
+  await page.waitForTimeout(POST_GOTO_WAIT)
   return retry()
 }
 
@@ -1251,6 +1280,7 @@ async function executeClickTask(
   inScope: ScopeMatcher,
   occ: OcclusionState,
   nav: ExploreContext,
+  opener: ClickTask | null,
 ): Promise<void> {
   const el = resolveElement(elements, task.role, task.label)
   if (!el) {
@@ -1273,6 +1303,11 @@ async function executeClickTask(
   let result = await execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length)
   // Safe overlay recovery (Escape/backdrop + wait + real retry) for a covered target.
   result = await recoverFromOcclusion(page, el, result, () =>
+    execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length),
+  )
+  // Transient-container recovery: if the target slid off-screen because the container that
+  // revealed it auto-closed during planning, re-open it via the opener and retry once.
+  result = await recoverFromClosedContainer(page, el, result, opener, interceptor, () =>
     execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length),
   )
   // Still covered after the safe recovery → signal the planner to dismiss the overlay via a
@@ -1352,9 +1387,7 @@ export async function collectComboboxOptions(
   if (inline.length > 0) return inline
   const search = page.locator(":focus")
   const typeable = await search
-    .evaluate(
-      (el) => !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || (el as HTMLElement).isContentEditable),
-    )
+    .evaluate((el) => !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || (el as HTMLElement).isContentEditable))
     .catch(() => false)
   if (!typeable) return inline
   for (const probe of COMBOBOX_PROBES) {
