@@ -24,8 +24,12 @@ async def send_request(session, method, url, headers, data, req_id):
         return {"id": req_id, "status": 0, "error": str(e), "elapsed_ms": round((time.time() - start) * 1000, 2)}
 
 async def race(method, url, headers, data, count, delay_ms=0):
-    connector = aiohttp.TCPConnector(limit=count, force_close=True)
-    async with aiohttp.ClientSession(connector=connector) as session:
+    # trust_env: aiohttp is the only client here that ignores HTTP_PROXY unless
+    # asked. ssl=False: every sibling script already passes verify=False, and an
+    # intercepting proxy re-signs certificates — verifying would make this the
+    # one script that breaks the moment a proxy is configured.
+    connector = aiohttp.TCPConnector(limit=count, force_close=True, ssl=False)
+    async with aiohttp.ClientSession(connector=connector, trust_env=True) as session:
         if delay_ms > 0:
             tasks = []
             for i in range(count):

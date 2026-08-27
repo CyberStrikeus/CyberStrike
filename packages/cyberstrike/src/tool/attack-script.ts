@@ -1,6 +1,7 @@
 import z from "zod"
 import { Tool } from "./tool"
 import path from "path"
+import { Network } from "../network/network"
 
 const SCRIPTS_DIR = path.resolve(import.meta.dir, "../../data/scripts")
 
@@ -64,10 +65,16 @@ export const AttackScriptTool = Tool.define("attack_script", {
       }
     }
 
+    // These scripts send real traffic at the target, so they follow the same
+    // outbound policy as everything else. We do not own their code, so the
+    // proxy is handed over as environment variables — the one interface every
+    // HTTP library in them honours. Empty when no proxy is configured.
+    const netEnv = await Network.childEnv()
+
     const proc = Bun.spawn(["python3", scriptPath, ...params.args], {
       stdout: "pipe",
       stderr: "pipe",
-      env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" },
+      env: { ...process.env, ...netEnv, PYTHONDONTWRITEBYTECODE: "1" },
     })
 
     const timeout = setTimeout(() => {

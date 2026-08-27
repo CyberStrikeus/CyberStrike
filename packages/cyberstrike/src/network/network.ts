@@ -337,6 +337,50 @@ export namespace Network {
     return init
   }
 
+  /**
+   * Environment for a CHILD PROCESS we do not own the code of (the bundled
+   * attack scripts). Returns {} when no proxy is configured, so the child's
+   * environment is untouched by default.
+   *
+   * This is the one place env-var proxying is right, and the exception is worth
+   * stating because the rest of this module deliberately avoids it: inside our
+   * own process an ambient proxy variable would silently capture traffic we
+   * never routed (including loopback ingest), so callers pass options
+   * explicitly. A third-party script has no such seam — the variables ARE the
+   * interface, and every HTTP library in those scripts honours them.
+   *
+   * Both cases of each name are set: tools disagree about which they read.
+   * NO_PROXY entries are emitted in the same exact+suffix pair used for the
+   * browser, since library implementations differ on whether a bare host also
+   * covers its subdomains.
+   */
+  export async function childEnv(): Promise<Record<string, string>> {
+    const cfg = (await Config.get()).network
+    if (!proxyActive(cfg)) return {}
+    const url = toProxyUrl(cfg!.proxy!.url!, cfg!.proxy!.auth?.username, cfg!.proxy!.auth?.password)
+    const noProxy = ["localhost", ".localhost", "127.0.0.1", "::1"]
+    for (const p of cfg!.proxy!.bypass ?? []) {
+      const base = normalizeHost(p.startsWith("*.") ? p.slice(2) : p)
+      if (base && !base.includes("*")) noProxy.push(base, `.${base}`)
+    }
+    const env: Record<string, string> = {
+      HTTP_PROXY: url,
+      http_proxy: url,
+      HTTPS_PROXY: url,
+      https_proxy: url,
+      ALL_PROXY: url,
+      all_proxy: url,
+      NO_PROXY: noProxy.join(","),
+      no_proxy: noProxy.join(","),
+    }
+    // Honoured by requests/gh when they verify at all; harmless otherwise.
+    if (cfg!.tls?.caPath) {
+      env.REQUESTS_CA_BUNDLE = cfg!.tls.caPath
+      env.SSL_CERT_FILE = cfg!.tls.caPath
+    }
+    return env
+  }
+
   /** Proxy host:port with any credentials stripped — safe to log or show a user. */
   export function proxyAuthority(proxyUrl: string): string {
     try {
