@@ -13,34 +13,59 @@
 //   - The replay backends stay pure: they accept these options, they never read
 //     config themselves (they are unit-tested with no network and no Instance).
 
+import { readFileSync } from "fs"
 import { Config } from "../config/config"
+import { Log } from "../util/log"
 
 export namespace Network {
-  /** Proxy endpoint, already resolved for one destination. */
-  export interface Proxy {
-    /** Full proxy URL including scheme, e.g. "http://127.0.0.1:8080". */
-    url: string
-    username?: string
-    password?: string
-  }
+  const log = Log.create({ service: "network" })
 
-  /** Client certificate material for a mutual-TLS target. */
-  export interface ClientCertificate {
-    certPath?: string
-    keyPath?: string
-    pfxPath?: string
-    passphrase?: string
-  }
-
-  /** What a sender needs to reach one destination. All fields optional — an
-   *  empty object means "behave exactly as before this feature existed". */
+  /** What a sender needs to reach one destination, in the shape fetch/tls take:
+   *  a ready-to-use proxy URL and certificate CONTENTS, not paths. All fields
+   *  optional — an empty object means "behave exactly as before this existed". */
   export interface Outbound {
-    proxy?: Proxy
-    /** Extra CA to trust (PEM path), e.g. an intercepting proxy's root. */
-    caPath?: string
+    /** Proxy URL with credentials already embedded, e.g. "http://u:p@127.0.0.1:8080". */
+    proxy?: string
+    /** Extra CA to trust (PEM contents), e.g. an intercepting proxy's root. */
+    ca?: string
     /** Only set when config explicitly turns verification off. */
     rejectUnauthorized?: boolean
-    clientCertificate?: ClientCertificate
+    /** Client certificate material for a mutual-TLS target. */
+    clientCertificate?: { cert?: string; key?: string; pfx?: Buffer; passphrase?: string }
+  }
+
+  // Certificates are read once per path. A changed file needs a restart, which
+  // is the same contract as the rest of the config.
+  const fileCache = new Map<string, string | Buffer | undefined>()
+
+  function readCert(path: string | undefined, binary = false): any {
+    if (!path) return undefined
+    const key = `${binary ? "b:" : "t:"}${path}`
+    if (fileCache.has(key)) return fileCache.get(key)
+    let value: string | Buffer | undefined
+    try {
+      value = binary ? readFileSync(path) : readFileSync(path, "utf8")
+    } catch (err) {
+      // A bad path must be loud: silently dropping it would look like the proxy
+      // simply "doesn't work" and send the user hunting in the wrong place.
+      log.error("cannot read certificate file, ignoring it", { path, err: String(err) })
+      value = undefined
+    }
+    fileCache.set(key, value)
+    return value
+  }
+
+  /** Render a proxy URL with credentials embedded, the form fetch expects. */
+  export function toProxyUrl(url: string, username?: string, password?: string): string {
+    if (!username && !password) return url
+    try {
+      const u = new URL(url)
+      if (username) u.username = encodeURIComponent(username)
+      if (password) u.password = encodeURIComponent(password)
+      return u.toString()
+    } catch {
+      return url
+    }
   }
 
   // Loopback is bypassed unconditionally: the crawler posts captured traffic to
@@ -117,22 +142,19 @@ export namespace Network {
     const out: Outbound = {}
 
     if (proxyActive(cfg) && !isBypassed(host, cfg.proxy!.bypass ?? [])) {
-      out.proxy = {
-        url: cfg.proxy!.url!,
-        username: cfg.proxy!.auth?.username,
-        password: cfg.proxy!.auth?.password,
-      }
+      out.proxy = toProxyUrl(cfg.proxy!.url!, cfg.proxy!.auth?.username, cfg.proxy!.auth?.password)
     }
 
-    if (cfg.tls?.caPath) out.caPath = cfg.tls.caPath
+    const ca = readCert(cfg.tls?.caPath)
+    if (ca) out.ca = ca
     if (cfg.tls?.rejectUnauthorized === false) out.rejectUnauthorized = false
 
     const cert = matchCertificate(cfg.tls?.clientCertificates ?? [], host, port)
     if (cert) {
       out.clientCertificate = {
-        certPath: cert.certPath,
-        keyPath: cert.keyPath,
-        pfxPath: cert.pfxPath,
+        cert: readCert(cert.certPath),
+        key: readCert(cert.keyPath),
+        pfx: readCert(cert.pfxPath, true),
         passphrase: cert.passphrase,
       }
     }

@@ -27,6 +27,16 @@ export namespace BackendFetch {
     followRedirects?: boolean
     /** External cancellation (e.g. the chat turn's abort). */
     signal?: AbortSignal
+    // ── Outbound network policy ───────────────────────────────────────────────
+    // Supplied by the caller (see ../network/network.ts), never read from config
+    // here: this backend stays pure so it can be unit-tested with no network and
+    // no Instance context. Absent = direct connection, exactly as before.
+    /** Proxy URL to route this request through, credentials already embedded. */
+    proxy?: string
+    /** Extra CA to trust (PEM contents), e.g. an intercepting proxy's root. */
+    ca?: string
+    /** Client certificate material for a mutual-TLS target. */
+    clientCertificate?: { cert?: string; key?: string; pfx?: Buffer; passphrase?: string }
   }
 
   const BODYLESS = new Set(["GET", "HEAD"])
@@ -91,7 +101,7 @@ export namespace BackendFetch {
 
       const hasBody = !BODYLESS.has(req.method.toUpperCase()) && req.body.length > 0
 
-      const init: RequestInit & { tls?: { rejectUnauthorized: boolean } } = {
+      const init: RequestInit & { tls?: Record<string, unknown>; proxy?: string } = {
         method: req.method,
         headers,
         // TS 5.7 types Uint8Array as generic over its backing buffer and won't
@@ -101,7 +111,18 @@ export namespace BackendFetch {
         redirect: opts.followRedirects ? "follow" : "manual",
         signal: controller.signal,
       }
-      if (opts.rejectUnauthorized === false) init.tls = { rejectUnauthorized: false }
+      // TLS trust material and proxy routing. Only set what was actually asked
+      // for — an untouched `init` must behave exactly like a direct fetch.
+      const tls: Record<string, unknown> = {}
+      if (opts.rejectUnauthorized === false) tls.rejectUnauthorized = false
+      if (opts.ca) tls.ca = opts.ca
+      const cc = opts.clientCertificate
+      if (cc?.cert) tls.cert = cc.cert
+      if (cc?.key) tls.key = cc.key
+      if (cc?.pfx) tls.pfx = cc.pfx
+      if (cc?.passphrase) tls.passphrase = cc.passphrase
+      if (Object.keys(tls).length > 0) init.tls = tls
+      if (opts.proxy) init.proxy = opts.proxy
 
       const res = await fetch(url, init)
       const ttfbMs = performance.now() - start

@@ -6,6 +6,7 @@ import { WebCredential, COMMON_AUTH_HEADERS } from "../session/web/web-credentia
 import { HttpMessage } from "../replay/message"
 import { Mutate } from "../replay/mutate"
 import { BackendFetch } from "../replay/backend-fetch"
+import { Network } from "../network/network"
 
 function originFromRequest(req: Request.Info): string | undefined {
   if (req.origin) return req.origin.replace(/\/+$/, "")
@@ -93,6 +94,7 @@ Use this to:
 
     const result = await BackendFetch.send(msg, {
       origin,
+      ...(await Network.forUrl(origin)),
       totalTimeoutMs: 15000,
       followRedirects: true,
       signal: ctx.abort,

@@ -18,6 +18,7 @@ import { Apply } from "../replay/apply"
 import { Send } from "../replay/send"
 import { Governor } from "../replay/governor"
 import { BackendFetch } from "../replay/backend-fetch"
+import { Network } from "../network/network"
 import { BackendSocket } from "../replay/backend-socket"
 import { ReplayResponse } from "../replay/response"
 import { Observe } from "../replay/observe"
@@ -186,10 +187,14 @@ async function sendGoverned(
 ): Promise<Send.Result> {
   const budget = new Governor.GlobalBudget()
   const breaker = new Governor.CircuitBreaker()
+  // Resolved once, outside the thunk: Send.governed may call it again on retry.
+  // The per-call `insecure_tls` is applied after, so it still wins over config.
+  const net = await Network.forUrl(origin)
   return Send.governed(
     () =>
       BackendFetch.send(msg, {
         origin,
+        ...net,
         rejectUnauthorized: opts.insecure_tls === false,
         totalTimeoutMs: opts.total_timeout_ms,
         followRedirects: opts.follow_redirects,
