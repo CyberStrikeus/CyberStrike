@@ -126,6 +126,38 @@ export namespace Network {
     return fallback
   }
 
+  // Warn-once bookkeeping: the resolver runs per request, so an unconditional
+  // log would drown the output on a busy replay loop.
+  const warned = new Set<string>()
+  function warnOnce(key: string, message: string, extra: Record<string, unknown>) {
+    if (warned.has(key)) return
+    warned.add(key)
+    log.error(message, extra)
+  }
+
+  /**
+   * Parse a configured proxy URL, or throw something the operator can act on.
+   * Failing closed is deliberate: a misconfigured proxy must stop the request,
+   * never quietly downgrade it to a direct connection.
+   */
+  function parseProxyUrl(raw: string): URL {
+    let u: URL
+    try {
+      u = new URL(raw)
+    } catch {
+      throw new Error(
+        `network.proxy.url is not a valid URL: ${JSON.stringify(raw)}. Include the scheme, e.g. "http://127.0.0.1:8080".`,
+      )
+    }
+    const scheme = u.protocol.replace(":", "")
+    if (!["http", "https", "socks4", "socks5", "socks5h"].includes(scheme)) {
+      throw new Error(`network.proxy.url has an unsupported scheme "${scheme}". Use http, https, socks4 or socks5.`)
+    }
+    return u
+  }
+
+  const isSocks = (u: URL) => u.protocol.startsWith("socks")
+
   /** Is the proxy configured and switched on? `enabled` defaults to true when a url is set. */
   function proxyActive(cfg: Config.Network | undefined): cfg is Config.Network & { proxy: { url: string } } {
     const p = cfg?.proxy
@@ -144,6 +176,18 @@ export namespace Network {
     const out: Outbound = {}
 
     if (proxyActive(cfg) && !isBypassed(host, cfg.proxy!.bypass ?? [])) {
+      const parsed = parseProxyUrl(cfg.proxy!.url!)
+      // Measured: the fetch runtime rejects SOCKS outright (UnsupportedProxyProtocol),
+      // so replayed requests cannot use one — only the crawler's browser can. The
+      // proxy is still returned so the send FAILS rather than silently going direct;
+      // this line is what turns "my proxy is broken" into an answerable question.
+      if (isSocks(parsed)) {
+        warnOnce(
+          "socks-replay",
+          "SOCKS proxies are only usable by the crawler's browser — replayed requests will fail. Use an HTTP proxy to cover both.",
+          { proxy: `${parsed.protocol}//${parsed.host}` },
+        )
+      }
       out.proxy = toProxyUrl(cfg.proxy!.url!, cfg.proxy!.auth?.username, cfg.proxy!.auth?.password)
     }
 
@@ -240,6 +284,15 @@ export namespace Network {
     const out: BrowserOptions = {}
 
     if (proxyActive(cfg)) {
+      const parsed = parseProxyUrl(cfg.proxy!.url!)
+      // Chromium rejects SOCKS proxy authentication at LAUNCH, killing the whole
+      // crawl with a message that never mentions the config. Refuse it here,
+      // where the fix can be spelled out.
+      if (isSocks(parsed) && (cfg.proxy!.auth?.username || cfg.proxy!.auth?.password)) {
+        throw new Error(
+          "network.proxy: the browser cannot authenticate to a SOCKS proxy. Remove network.proxy.auth, or use an http:// proxy, which supports credentials.",
+        )
+      }
       // Chromium takes the bypass list as a comma-separated string. Loopback is
       // added explicitly because the browser has no notion of our always-bypass rule.
       const bypass = ["localhost", "127.0.0.1", "::1", ...(cfg.proxy!.bypass ?? [])]

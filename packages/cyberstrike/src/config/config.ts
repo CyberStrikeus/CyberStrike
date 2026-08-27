@@ -1049,7 +1049,9 @@ export namespace Config {
       url: z
         .string()
         .optional()
-        .describe('Proxy server URL, e.g. "http://127.0.0.1:8080" or "socks5://127.0.0.1:1080"'),
+        .describe(
+          'Proxy server URL including the scheme, e.g. "http://127.0.0.1:8080". SOCKS ("socks5://...") works ONLY for the crawler browser and only without credentials — replayed requests cannot use a SOCKS proxy, so prefer http for full coverage',
+        ),
       enabled: z
         .boolean()
         .optional()
@@ -1061,7 +1063,9 @@ export namespace Config {
         })
         .strict()
         .optional()
-        .describe("Proxy credentials. Use {env:VAR} to keep the password out of the config file"),
+        .describe(
+          "Proxy credentials. Use {env:VAR} to keep the password out of the config file. Not supported with a SOCKS proxy",
+        ),
       bypass: z
         .array(z.string())
         .optional()
