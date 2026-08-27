@@ -1037,6 +1037,100 @@ export namespace Config {
       ref: "ServerConfig",
     })
 
+  // ── Outbound network: proxy + TLS ───────────────────────────────────────────
+  // One place to describe how CyberStrike reaches the outside world, so the
+  // crawler and the replay engine share the same answer instead of each growing
+  // their own flag. Everything is optional: absent config means today's
+  // behavior. Secrets should use the {env:VAR} interpolation the loader already
+  // supports, so no credential has to sit in the file in plaintext.
+
+  export const Proxy = z
+    .object({
+      url: z
+        .string()
+        .optional()
+        .describe('Proxy server URL, e.g. "http://127.0.0.1:8080" or "socks5://127.0.0.1:1080"'),
+      enabled: z
+        .boolean()
+        .optional()
+        .describe("Turn the proxy off without deleting the config. Defaults to true when `url` is set"),
+      auth: z
+        .object({
+          username: z.string(),
+          password: z.string(),
+        })
+        .strict()
+        .optional()
+        .describe("Proxy credentials. Use {env:VAR} to keep the password out of the config file"),
+      bypass: z
+        .array(z.string())
+        .optional()
+        .describe(
+          'Hosts that skip the proxy. Accepts a bare host or a "*.example.com" wildcard. Loopback is always bypassed regardless of this list',
+        ),
+      includeProviders: z
+        .boolean()
+        .optional()
+        .describe(
+          "Also route LLM/provider API calls through the proxy. Off by default — when on, whoever operates the proxy can read the API key in the request headers",
+        ),
+    })
+    .strict()
+    .meta({
+      ref: "ProxyConfig",
+    })
+  export type Proxy = z.infer<typeof Proxy>
+
+  export const ClientCertificate = z
+    .object({
+      host: z
+        .string()
+        .describe('Host this certificate is used for. Give "host:port" to scope it to one port'),
+      certPath: z.string().optional().describe("Path to the client certificate (PEM)"),
+      keyPath: z.string().optional().describe("Path to the private key (PEM)"),
+      pfxPath: z.string().optional().describe("Path to a PFX/PKCS#12 bundle, instead of certPath + keyPath"),
+      passphrase: z.string().optional().describe("Passphrase for the key or PFX. Use {env:VAR}"),
+    })
+    .strict()
+    .meta({
+      ref: "ClientCertificateConfig",
+    })
+  export type ClientCertificate = z.infer<typeof ClientCertificate>
+
+  export const Tls = z
+    .object({
+      caPath: z
+        .string()
+        .optional()
+        .describe(
+          "Path to an extra CA certificate to trust (PEM) — e.g. an intercepting proxy's CA. Preferred over turning verification off. Note: this applies to replayed requests; the browser trusts the OS store instead",
+        ),
+      rejectUnauthorized: z
+        .boolean()
+        .optional()
+        .describe("Verify TLS certificates. Defaults to true. Setting false disables verification for all outbound requests"),
+      clientCertificates: z
+        .array(ClientCertificate)
+        .optional()
+        .describe("Client certificates for mutual-TLS targets, matched per host"),
+    })
+    .strict()
+    .meta({
+      ref: "TlsConfig",
+    })
+  export type Tls = z.infer<typeof Tls>
+
+  export const Network = z
+    .object({
+      proxy: Proxy.optional().describe("Route outbound traffic through a proxy"),
+      tls: Tls.optional().describe("TLS trust and client-certificate settings for outbound traffic"),
+    })
+    .strict()
+    .meta({
+      ref: "NetworkConfig",
+    })
+  export type Network = z.infer<typeof Network>
+
   export const Layout = z.enum(["auto", "stretch"]).meta({
     ref: "LayoutConfig",
   })
@@ -1103,6 +1197,7 @@ export namespace Config {
       logLevel: Log.Level.optional().describe("Log level"),
       tui: TUI.optional().describe("TUI specific settings"),
       server: Server.optional().describe("Server configuration for cyberstrike serve and web commands"),
+      network: Network.optional().describe("Proxy and TLS settings for outbound traffic (crawler + replay engine)"),
       command: z
         .record(z.string(), Command)
         .optional()
