@@ -755,7 +755,6 @@ export type WebCredential = {
   }
   container_id?: string
   role_id?: string
-  recipe?: unknown
   time: {
     created: number
     updated: number
