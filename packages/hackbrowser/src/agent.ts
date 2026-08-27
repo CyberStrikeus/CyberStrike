@@ -78,6 +78,12 @@ const OVERLAY_ESCAPE_WAIT = 400
 const OVERLAY_CLEAR_WAIT = 800
 const SPA_RENDER_RETRY_WAIT = 600
 const POST_GOTO_WAIT = 400
+// Bounded wait for the network to go idle after navigation, so async / AJAX content
+// renders before we scan. On a clean page networkidle fires within a few hundred ms;
+// but a page holding a persistent connection (websocket / socket.io long-poll / analytics
+// heartbeat) never reaches idle and pays this cap on every navigation. Kept modest so that
+// per-page tax stays small while still covering the common sub-second AJAX render.
+const NETWORK_IDLE_TIMEOUT = 1500
 /** Max nesting for inline depth-first exploration of pages reached via a
  *  state-changing action (e.g. an ASP.NET postback). Such a page can be
  *  unreachable by a later queued GET (its server-side state is lost on return →
@@ -85,6 +91,18 @@ const POST_GOTO_WAIT = 400
 const MAX_INLINE_DEPTH = 2
 const LOGIN_SUCCESS_PATTERN = /POST\s+.*\/(login|signin|authenticate)\S*\s+\[200\]/i
 const SKIP_AUTO_DISCOVERY = /\b(logout|sign.?out|log.?out|delete.?account|reset.?data|revoke)\b/i
+
+/**
+ * Let a page settle after navigation so client-rendered / AJAX content is present
+ * before we scan. A fixed nudge covers synchronous hydration; the bounded network-idle
+ * wait covers async content — adaptive (returns as soon as the page is idle) and capped
+ * (a page with a persistent connection never blocks the crawl). Previously a fixed 400ms
+ * nudge only, which missed content that renders slower than that.
+ */
+async function stabilizeAfterGoto(page: Page): Promise<void> {
+  await page.waitForTimeout(POST_GOTO_WAIT)
+  await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_TIMEOUT }).catch(() => {})
+}
 
 // ============================================================
 // Browser lifecycle detection
@@ -1102,8 +1120,7 @@ async function handleNavigation(
   }
   // Return to the parent so its remaining tasks can continue (GET-reachable parent).
   await page.goto(parentUrl, { waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {})
-  await page.waitForTimeout(POST_GOTO_WAIT)
-  await page.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(() => {})
+  await stabilizeAfterGoto(page)
 }
 
 /**
@@ -1312,7 +1329,7 @@ const COMBOBOX_PROBES = ["e", "a", "2", "0", " "]
  * model-independent, matching the combobox design. Best-effort: an exotic option set
  * matched by none of the probes is left unselected — no worse than before.
  */
-async function collectComboboxOptions(
+export async function collectComboboxOptions(
   page: Page,
   elements: RawElement[],
   seenKeys: Set<string>,
@@ -1974,8 +1991,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
       activeContexts.map(async (ctx) => {
         try {
           await ctx.page.goto(entry.url, { waitUntil: "domcontentloaded", timeout: 15000 })
-          await ctx.page.waitForTimeout(POST_GOTO_WAIT)
-          await ctx.page.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(() => {})
+          await stabilizeAfterGoto(ctx.page)
           return { ctx, success: true, redirected: normalizeUrl(ctx.page.url()) !== normalizeUrl(entry.url) }
         } catch (err) {
           log.warn("navigation failed", { credential: ctx.id, url: entry.url, err: String(err) })
@@ -2430,8 +2446,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
         }
 
         // SPA stabilization: wait for component-level async rendering
-        await page.waitForTimeout(POST_GOTO_WAIT)
-        await page.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(() => {})
+        await stabilizeAfterGoto(page)
       }
 
       if (!isInScope(page.url(), inScope)) {
