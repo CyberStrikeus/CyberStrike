@@ -787,7 +787,13 @@ async function explorePageWithAI(
     // Combobox → option: mechanical pattern, system handles directly (no LLM needed)
     // When a combobox was just clicked, queue its options for selection
     if (task.type === "click" && task.role === "combobox") {
-      const optionTasks = await collectComboboxOptions(page, postActionElements, seenKeys, pageUrl, globalState.visitedPages)
+      const optionTasks = await collectComboboxOptions(
+        page,
+        postActionElements,
+        seenKeys,
+        pageUrl,
+        globalState.visitedPages,
+      )
       if (optionTasks.length > 0) {
         taskQueue.unshift(...optionTasks)
       }
@@ -972,7 +978,13 @@ async function explorePageWithAI(
       // Post-action discovery (same as main loop)
       const postActionElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
       if (task.type === "click" && task.role === "combobox") {
-        const optionTasks = await collectComboboxOptions(page, postActionElements, seenKeys, pageUrl, globalState.visitedPages)
+        const optionTasks = await collectComboboxOptions(
+          page,
+          postActionElements,
+          seenKeys,
+          pageUrl,
+          globalState.visitedPages,
+        )
         if (optionTasks.length > 0) additionalQueue.unshift(...optionTasks)
       }
       const hasNewElements = discoverNewElements(postActionElements, seenKeys)
@@ -1387,7 +1399,9 @@ export async function collectComboboxOptions(
   if (inline.length > 0) return inline
   const search = page.locator(":focus")
   const typeable = await search
-    .evaluate((el) => !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || (el as HTMLElement).isContentEditable))
+    .evaluate(
+      (el) => !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || (el as HTMLElement).isContentEditable),
+    )
     .catch(() => false)
   if (!typeable) return inline
   for (const probe of COMBOBOX_PROBES) {
@@ -2322,9 +2336,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
 
   const browser = await Stealth.connect({ cdp: config.cdp, headless: config.headless ?? false })
   const health = createBrowserHealth()
-  const context: BrowserContext = await browser.newContext(
-    Stealth.contextOptions(config.headless ?? false),
-  )
+  const context: BrowserContext = await browser.newContext(Stealth.contextOptions(config.headless ?? false))
   await context.addInitScript(Stealth.INIT_SCRIPT)
   if (panelOn) await context.addInitScript(PANEL_INIT_SCRIPT)
   const page = await context.newPage()
