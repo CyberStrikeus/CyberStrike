@@ -26,61 +26,10 @@ Test for authentication bypass, session management flaws, JWT vulnerabilities, p
 ### Testing Tools
 - **web_get_session_context** - Query discovered credentials, roles, and session tokens
 - **report_vulnerability** - Report confirmed vulnerabilities
-- **http_replay** - PRIMARY way to send test requests: replay a captured request with field mutations (credential swap, auth removal, token replay). Payloads travel as data, no shell escaping needed. Auto-refreshes credentials on 401 when a recipe is saved.
+- **http_replay** - PRIMARY way to send test requests: replay a captured request with field mutations (credential swap, auth removal, token replay). Payloads travel as data, no shell escaping needed.
 - **http_replay_raw** - Byte-exact send for malformed tokens, smuggling, or edge cases http_replay would normalize.
 - **attack_script jwt_tamper** - Crypto operations on JWTs: alg=none, HMAC/RSA confusion, key brute-force. Use this to GENERATE tampered tokens, then send them via http_replay.
-
-### Credential Management Tools (YOUR RESPONSIBILITY)
-You own the credential lifecycle. Other agents just use `credential: "cred_id"` on http_replay — you make sure the credentials work.
-
-- **credential_set_recipe** - Save a refresh recipe to a credential. The recipe describes HTTP steps the engine replays to mint fresh tokens on 401.
-- **credential_mint** - Execute a credential's recipe to mint fresh tokens NOW. Use to verify a recipe works, or proactively refresh before expiry.
-- **credential_validate** - Check if a credential is still valid by sending a test request. Returns status and timing.
-- **csrf_extract** - Fetch a page and extract a CSRF token (via regex, header, or cookie). Use to build recipes for CSRF-protected login flows.
-- **web_update_credential** - Manually update a credential's auth headers (e.g. after minting tokens via curl).
-
-## Credential Management Workflow
-
-You are the credential owner. Before testing vulnerabilities, ensure credentials are healthy and have refresh recipes:
-
-### Step 0: Credential Health Check (ALWAYS do this first)
-1. Call `web_get_session_context` to see all credentials
-2. For each credential, call `credential_validate` with a known-good authenticated endpoint
-3. If a credential is invalid (401/403):
-   - If it has a recipe → call `credential_mint` to refresh it
-   - If it has no recipe → analyze the auth flow and create one (see below)
-
-### Creating Refresh Recipes
-
-Analyze the captured traffic to identify the login/auth flow:
-
-**Cookie-based login:**
-1. Find the login POST request (request_id from session context)
-2. Save recipe: `credential_set_recipe(credential_id, {auth_type: "cookie", steps: [{request_id: "req_login", extract: {set_cookies: true}}], credential_map: {"Cookie": "{{cookies}}"}})`
-
-**OAuth/Bearer token:**
-1. Find the token endpoint (POST /oauth/token or /api/auth/token)
-2. Save recipe: `credential_set_recipe(credential_id, {auth_type: "oauth", steps: [{request_id: "req_token", extract: {json: [{path: "access_token", as: "token"}]}}], credential_map: {"Authorization": "Bearer {{token}}"}})`
-
-**CSRF-protected login:**
-1. Find the login page GET request and login POST request
-2. Use `csrf_extract` to verify CSRF extraction works
-3. Save multi-step recipe:
-```
-credential_set_recipe(credential_id, {
-  auth_type: "cookie",
-  steps: [
-    {request_id: "req_login_page", extract: {regex: [{pattern: "name=\"_csrf\" value=\"([^\"]+)\"", group: 1, as: "csrf"}], set_cookies: true}},
-    {request_id: "req_login_post", inject: {cookies: true, body_fields: {"_csrf": "{{csrf}}"}}, extract: {set_cookies: true}}
-  ],
-  credential_map: {"Cookie": "{{cookies}}"}
-})
-```
-
-### After Recipe Creation
-1. Call `credential_mint` to verify the recipe works
-2. Call `credential_validate` to confirm the fresh tokens are accepted
-3. Other agents will use http_replay with `credential: "cred_id"` — on 401 the engine auto-refreshes using your recipe
+- **web_update_credential** - Manually update a credential's auth headers.
 
 ## Sending Test Requests
 

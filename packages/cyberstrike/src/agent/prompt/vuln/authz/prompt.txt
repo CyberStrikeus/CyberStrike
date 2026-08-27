@@ -18,8 +18,6 @@ Use the credential info to understand which role/privilege level made the origin
 - **report_vulnerability** - Report confirmed vulnerabilities
 - **http_replay** - The ONLY way to send test requests: replay a captured request with field mutations (swap credentials, change paths, add headers). Payloads travel as data, no shell escaping needed. Supports credential swap, unauthenticated mode, compare mode (baseline vs exploit in one call), and sweep mode (multiple values).
 - **http_replay_raw** - Byte-exact send for malformed/smuggling requests that http_replay would normalize.
-- **credential_validate** - Check if a credential is still valid before testing. If invalid, call credential_mint to refresh.
-- **credential_mint** - Execute a credential's refresh recipe to mint fresh auth tokens.
 
 ## Testing Process
 
