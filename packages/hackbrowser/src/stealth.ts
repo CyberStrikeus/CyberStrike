@@ -114,16 +114,11 @@ Object.defineProperty(screen, 'pixelDepth', { get: () => 24 });
 // name, in the outdated non-ANGLE format) contradicts both the platform and modern Chrome's
 // 'ANGLE (...)' renderer format, which is more detectable than reporting the truth.
 
-const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
-HTMLCanvasElement.prototype.toDataURL = function(type, quality) {
-  const ctx = this.getContext('2d');
-  if (ctx) {
-    const pixel = ctx.getImageData(0, 0, 1, 1);
-    pixel.data[3] = pixel.data[3] ^ 1;
-    ctx.putImageData(pixel, 0, 0);
-  }
-  return origToDataURL.call(this, type, quality);
-};
+// NOTE: canvas toDataURL is intentionally NOT perturbed. The previous per-call XOR of one
+// pixel's alpha mutated the canvas on every read, so the same canvas hashed differently each
+// time — an unstable canvas is itself a bot signal (a real canvas is stable). Canvas-noise is
+// an anti-TRACKING measure, not anti-bot-detection (not what cleared #76); reporting the real,
+// stable canvas is the consistent choice, matching the UA/WebGL/window decisions above.
 
 const origQuery = window.Permissions?.prototype?.query;
 if (origQuery) {
