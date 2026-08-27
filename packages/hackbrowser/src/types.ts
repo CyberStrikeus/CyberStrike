@@ -252,6 +252,34 @@ export interface PageDiffContext {
   elements: Record<string, string[]> // "button:Delete User" → ["admin"]
 }
 
+/**
+ * Outbound network policy for the browser, supplied by the HOST (cyberstrike),
+ * never resolved here — hackbrowser has no config of its own and must not grow
+ * one. Shape mirrors what Playwright accepts so applying it stays a pass-through.
+ *
+ * Note there is no CA field: Playwright has no such option, Chromium trusts the
+ * OS store. Trusting an intercepting proxy in the browser means installing its
+ * CA at OS level, or accepting `ignoreHTTPSErrors`.
+ */
+export interface NetworkConfig {
+  proxy?: {
+    /** Proxy URL, e.g. "http://127.0.0.1:8080". */
+    server: string
+    username?: string
+    password?: string
+    /** Comma-separated hosts that skip the proxy (Chromium's bypass list format). */
+    bypass?: string
+  }
+  ignoreHTTPSErrors?: boolean
+  clientCertificates?: Array<{
+    origin: string
+    certPath?: string
+    keyPath?: string
+    pfxPath?: string
+    passphrase?: string
+  }>
+}
+
 export interface AgentConfig {
   targetUrl: string
   cyberstrike: {
@@ -299,6 +327,9 @@ export interface AgentConfig {
   // iteration boundary; browser closes via existing finally block.
   // Wired by api.ts from CrawlOptions.signal (Faz B.5).
   signal?: AbortSignal
+  // Outbound proxy / TLS policy for the browser, resolved by the host.
+  // Absent = direct connection, exactly as before.
+  network?: NetworkConfig
 }
 
 /** Single credential definition for multi-credential crawl */

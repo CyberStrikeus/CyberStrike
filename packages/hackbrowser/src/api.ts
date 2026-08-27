@@ -21,7 +21,7 @@ import { run } from "./agent.ts"
 import { findSystemChrome } from "./stealth.ts"
 import { Log, type LogSink, type LogRecord, type LogLevel } from "./log.ts"
 import { setEventSink, clearEventSink } from "./panel/emit.ts"
-import type { AgentConfig, CredentialConfig, CrawlResult, CSEvent } from "./types.ts"
+import type { AgentConfig, CredentialConfig, CrawlResult, CSEvent, NetworkConfig } from "./types.ts"
 
 // ============================================================
 // Public types
@@ -80,6 +80,11 @@ export interface CrawlOptions {
   panel?: boolean
   dryRun?: boolean
 
+  // Outbound proxy / TLS policy for the browser. Resolved by the HOST and
+  // passed in — hackbrowser deliberately has no config of its own. Absent
+  // means a direct connection, exactly as before this option existed.
+  network?: NetworkConfig
+
   // Connect to user's real Chrome via CDP. User launches Chrome with
   // --remote-debugging-port=9222 and hackbrowser connects to it instead
   // of launching Playwright's bundled Chromium. Bypasses WAF TLS
@@ -96,7 +101,7 @@ export interface CrawlOptions {
 
 // Re-export so callers don't need to import from log.ts and types.ts separately
 export type { LogRecord, LogSink, LogLevel } from "./log.ts"
-export type { CrawlResult, CSEvent } from "./types.ts"
+export type { CrawlResult, CSEvent, NetworkConfig } from "./types.ts"
 
 // ============================================================
 // Internal helpers
@@ -171,6 +176,7 @@ function toAgentConfig(opts: CrawlOptions): AgentConfig {
     dryRun: opts.dryRun,
     panel: opts.panel,
     model: opts.model,
+    network: opts.network,
     cdp: opts.cdp,
     signal: opts.signal,
   }

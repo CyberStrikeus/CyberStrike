@@ -223,10 +223,23 @@ export namespace Network {
 
     if (cfg.tls?.rejectUnauthorized === false) out.ignoreHTTPSErrors = true
 
+    // Playwright keys client certs by EXACT origin — it has no wildcard matching
+    // of its own, so a "*.example.com" entry cannot be expressed here. Those
+    // entries still work for replayed requests (forHost does its own matching);
+    // dropping them silently would leave the browser mysteriously unauthenticated.
     const certs = cfg.tls?.clientCertificates ?? []
-    if (certs.length > 0) {
-      out.clientCertificates = certs.map((c) => ({
-        // Playwright keys client certs by origin; a portless entry defaults to https.
+    const exact = certs.filter((c) => !c.host.includes("*"))
+    for (const c of certs) {
+      if (c.host.includes("*")) {
+        log.warn("wildcard client certificate cannot be applied to the browser", {
+          host: c.host,
+          hint: "Playwright matches client certificates by exact origin — list the concrete host(s) to cover the crawl",
+        })
+      }
+    }
+    if (exact.length > 0) {
+      out.clientCertificates = exact.map((c) => ({
+        // A portless entry defaults to https, the only scheme mTLS applies to.
         origin: /^https?:\/\//.test(c.host) ? c.host : `https://${c.host}`,
         certPath: c.certPath,
         keyPath: c.keyPath,

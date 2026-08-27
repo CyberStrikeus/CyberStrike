@@ -30,6 +30,7 @@ import { existsSync } from "fs"
 import { Provider } from "../provider/provider"
 import { Auth } from "../auth"
 import { Server } from "../server/server"
+import { Network } from "../network/network"
 import { Log } from "../util/log"
 import { Identifier } from "../id/id"
 import { Session } from "../session"
@@ -247,6 +248,8 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
     model: modelDescriptor,
     credentialDispatch,
     cdp: opts.cdp,
+    // Resolved here because the parent owns the config; the worker only applies it.
+    network: await Network.forBrowser(),
   }
 
   return { workerOptions, modelInfo, workerPath, runtime }

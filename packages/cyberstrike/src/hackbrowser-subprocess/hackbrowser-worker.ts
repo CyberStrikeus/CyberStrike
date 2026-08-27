@@ -226,6 +226,7 @@ function buildCrawlOptions(opts: WorkerOptions, signal: AbortSignal): CrawlOptio
     cyberstrikeUrl: opts.cyberstrikeUrl,
     model,
     cdp: opts.cdp,
+    network: opts.network,
     logSink,
     eventSink,
     signal,
