@@ -90,6 +90,22 @@ const NETWORK_IDLE_TIMEOUT = 1500
  *  session-timeout), so it must be explored in place. Bounded to avoid runaway. */
 const MAX_INLINE_DEPTH = 2
 const LOGIN_SUCCESS_PATTERN = /POST\s+.*\/(login|signin|authenticate)\S*\s+\[200\]/i
+
+/**
+ * A TLS-trust failure while a proxy is configured is almost always the proxy's
+ * own certificate, not the target's: an intercepting proxy re-signs with a CA
+ * the browser does not know. Without this the operator reads
+ * `ERR_CERT_AUTHORITY_INVALID` and goes looking at the target. Returns "" when
+ * the error is unrelated or no proxy is in play, so nothing is invented.
+ */
+const CERT_ERROR = /ERR_CERT|CERT_AUTHORITY|ERR_SSL|SSL_ERROR/i
+function certHint(message: string, config: AgentConfig): string {
+  if (!config.network?.proxy || !CERT_ERROR.test(message)) return ""
+  return (
+    " — this request went through the configured proxy. If the proxy intercepts TLS, the browser must trust its CA" +
+    " (install it in the OS certificate store) or be told to accept untrusted certificates."
+  )
+}
 const SKIP_AUTO_DISCOVERY = /\b(logout|sign.?out|log.?out|delete.?account|reset.?data|revoke)\b/i
 
 /**
@@ -2412,7 +2428,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
         capturedEndpoints: 0,
         pagesExplored: 0,
         totalSteps: 0,
-        errors: [`Initial navigation failed: ${initNavErr.message}`],
+        errors: [`Initial navigation failed: ${initNavErr.message}${certHint(initNavErr.message, config)}`],
         usage: usageAcc,
       }
     }
@@ -2508,7 +2524,13 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
           .catch((e: Error) => e)
 
         if (navErr) {
-          log.warn("navigation failed", { url: nextUrl, err: navErr.message.split("\n")[0] })
+          // A TLS-trust failure behind a proxy is a configuration fault, not a
+          // flaky page: raised to error so a crawl that quietly skips every
+          // https page is visible rather than finishing "clean" with holes.
+          const head = navErr.message.split("\n")[0]
+          const hint = certHint(navErr.message, config)
+          if (hint) log.error("navigation failed", { url: nextUrl, err: head + hint })
+          else log.warn("navigation failed", { url: nextUrl, err: head })
           continue
         }
 

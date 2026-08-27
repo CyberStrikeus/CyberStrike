@@ -304,6 +304,19 @@ export namespace Network {
       }
     }
 
+    // A caPath means the operator has an intercepting proxy and handed us its CA
+    // — which is exactly the thing Chromium cannot take. Left unsaid, every HTTPS
+    // page fails with a certificate error and the crawl looks like the target is
+    // broken. Measured: default config through an intercepting proxy gives
+    // ERR_CERT_AUTHORITY_INVALID on the first navigation.
+    if (cfg.tls?.caPath && cfg.tls?.rejectUnauthorized !== false) {
+      warnOnce(
+        "browser-ca",
+        "network.tls.caPath cannot be applied to the crawler's browser — Chromium trusts the OS certificate store, not this file. Install the CA there, or set network.tls.rejectUnauthorized:false to accept the proxy's certificate. Otherwise every HTTPS page will fail with a certificate error.",
+        { caPath: cfg.tls.caPath },
+      )
+    }
+
     if (cfg.tls?.rejectUnauthorized === false) out.ignoreHTTPSErrors = true
 
     // Playwright keys client certs by EXACT origin — it has no wildcard matching
