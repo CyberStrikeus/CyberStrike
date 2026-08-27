@@ -28,6 +28,16 @@ export namespace BackendSocket {
     connectTimeoutMs?: number
     bodyCapBytes?: number
     signal?: AbortSignal
+    // ── Outbound TLS material ─────────────────────────────────────────────────
+    // Supplied by the caller (see ../network/network.ts), never read from config
+    // here — this backend stays pure. There is deliberately NO proxy option: an
+    // intercepting proxy re-frames HTTP/1.1 messages, which would silently
+    // invalidate the very tests this backend exists for (smuggling, desync,
+    // malformed framing). The caller reports the bypass rather than hiding it.
+    /** Extra CA to trust (PEM contents). */
+    ca?: string
+    /** Client certificate material for a mutual-TLS target. */
+    clientCertificate?: { cert?: string; key?: string; pfx?: Buffer; passphrase?: string }
   }
 
   const CR = 0x0d
@@ -103,6 +113,11 @@ export namespace BackendSocket {
             port: opts.port,
             servername: opts.servername ?? opts.host,
             rejectUnauthorized: opts.rejectUnauthorized ?? true,
+            ...(opts.ca ? { ca: opts.ca } : {}),
+            ...(opts.clientCertificate?.cert ? { cert: opts.clientCertificate.cert } : {}),
+            ...(opts.clientCertificate?.key ? { key: opts.clientCertificate.key } : {}),
+            ...(opts.clientCertificate?.pfx ? { pfx: opts.clientCertificate.pfx } : {}),
+            ...(opts.clientCertificate?.passphrase ? { passphrase: opts.clientCertificate.passphrase } : {}),
           })
         : net.connect({ host: opts.host, port: opts.port })
 

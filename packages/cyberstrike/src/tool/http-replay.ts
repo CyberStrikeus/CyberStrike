@@ -564,16 +564,32 @@ export const HttpReplayRawTool = Tool.define("http_replay_raw", {
     const useTls = url.protocol === "https:"
     const port = url.port ? Number.parseInt(url.port, 10) : useTls ? 443 : 80
 
+    // TLS trust material applies here; the proxy deliberately does not. An
+    // intercepting proxy re-frames HTTP/1.1, which would silently invalidate the
+    // byte-exact tests this path exists for. Report the bypass so a configured
+    // proxy that shows no traffic for this send is explained, not mysterious.
+    const net = await Network.forUrl(`${url.protocol}//${url.hostname}:${port}`)
     const result = await BackendSocket.send(new TextEncoder().encode(raw), {
       host: url.hostname,
       port,
       tls: useTls,
       rejectUnauthorized: params.insecure_tls === false,
+      ca: net.ca,
+      clientCertificate: net.clientCertificate,
       totalTimeoutMs: params.total_timeout_ms,
       signal: ctx.abort,
     })
 
-    const output = { target: { host: url.hostname, port, tls: useTls }, ...summarize(result) }
+    const output = {
+      target: { host: url.hostname, port, tls: useTls },
+      ...(net.proxy
+        ? {
+            proxy_bypassed:
+              "Sent directly, not through the configured proxy — a proxy would re-frame these bytes and invalidate a byte-exact test.",
+          }
+        : {}),
+      ...summarize(result),
+    }
     return {
       title: `http_replay_raw ${url.hostname}:${port}`,
       output: JSON.stringify(output, null, 2),
