@@ -75,9 +75,28 @@ export namespace Network {
   // ingest and mirror every capture into the proxy's history.
   const LOOPBACK = new Set(["localhost", "127.0.0.1", "::1", "[::1]", "0.0.0.0"])
 
+  /**
+   * One spelling for a host before any comparison: lowercased, trailing dots
+   * dropped ("localhost." is localhost), IPv6 brackets removed, and unicode
+   * folded to punycode — URL.hostname always hands us punycode, while a config
+   * file is written by a human who types the unicode form.
+   */
+  function normalizeHost(host: string): string {
+    let h = host.trim().toLowerCase().replace(/\.+$/, "")
+    if (h.startsWith("[") && h.endsWith("]")) h = h.slice(1, -1)
+    if (!/^[\x00-\x7f]*$/.test(h)) {
+      try {
+        h = new URL(`http://${h}`).hostname
+      } catch {
+        // not host-shaped; compare as written
+      }
+    }
+    return h
+  }
+
   function isLoopback(host: string): boolean {
-    const h = host.toLowerCase().replace(/^\[|\]$/g, "")
-    if (LOOPBACK.has(h) || LOOPBACK.has(host.toLowerCase())) return true
+    const h = normalizeHost(host)
+    if (LOOPBACK.has(h)) return true
     if (h.endsWith(".localhost")) return true
     return /^127\./.test(h)
   }
@@ -86,13 +105,25 @@ export namespace Network {
    * Host-pattern match: exact, or a "*.example.com" wildcard that also matches
    * the bare base. Same semantics the crawler already uses for network scope,
    * so one mental model covers both settings.
+   *
+   * A `*` anywhere but a leading "*." is refused rather than silently matching
+   * nothing: "*example.com" reads like a suffix rule, and Chromium's bypass
+   * grammar really does treat it as one — matching notexample.com as well.
+   * Failing loudly beats two subsystems disagreeing about what was excluded.
    */
   export function matchHost(pattern: string, host: string): boolean {
-    const p = pattern.trim().toLowerCase().replace(/\.+$/, "")
-    const h = host.trim().toLowerCase().replace(/\.+$/, "")
+    const raw = pattern.trim().toLowerCase()
+    if (!raw) return false
+    if (raw.includes("*") && !raw.startsWith("*.")) {
+      warnOnce(`badwildcard:${raw}`, "ignoring host pattern: '*' is only supported as a leading '*.' label", {
+        pattern: raw,
+      })
+      return false
+    }
+    const p = normalizeHost(raw.startsWith("*.") ? raw.slice(2) : raw)
+    const h = normalizeHost(host)
     if (!p) return false
-    const base = p.startsWith("*.") ? p.slice(2) : p
-    return h === base || h.endsWith("." + base)
+    return h === p || h.endsWith("." + p)
   }
 
   /** Should this host skip the proxy? Loopback always does. */
@@ -106,24 +137,38 @@ export namespace Network {
    * ("app.example.com:8443"); a portless entry matches any port on that host.
    * Port-pinned entries win so a specific rule beats a general one.
    */
+  /** Split "host", "host:port", "[::1]:port" or "https://host:port" into parts. */
+  function splitCertHost(raw: string): { host: string; port?: number; wildcard: boolean } {
+    let s = raw.trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, "") // tolerate a scheme prefix
+    s = s.replace(/\/.*$/, "")
+    // Only a bracketed address or a colon-free name may carry a :port — a bare
+    // IPv6 literal is all colons and must not be mis-read as host:port.
+    const m = /^(\[[^\]]+\]|[^:]+):(\d+)$/.exec(s)
+    const host = m ? m[1]! : s
+    const port = m ? Number(m[2]) : undefined
+    return { host, port, wildcard: host.trim().startsWith("*.") }
+  }
+
+  /**
+   * Pick the client certificate for a destination. Presenting the WRONG client
+   * certificate is a credential-handling fault, so selection is by specificity,
+   * never by the order entries happen to appear in the file:
+   *   exact host + port  >  exact host  >  wildcard + port  >  wildcard
+   */
   export function matchCertificate(
     entries: readonly Config.ClientCertificate[],
     host: string,
     port?: number,
   ): Config.ClientCertificate | undefined {
-    let fallback: Config.ClientCertificate | undefined
+    let best: { score: number; entry: Config.ClientCertificate } | undefined
     for (const entry of entries) {
-      const idx = entry.host.lastIndexOf(":")
-      const hasPort = idx > 0 && /^\d+$/.test(entry.host.slice(idx + 1))
-      const entryHost = hasPort ? entry.host.slice(0, idx) : entry.host
-      if (!matchHost(entryHost, host)) continue
-      if (hasPort) {
-        if (port !== undefined && Number(entry.host.slice(idx + 1)) === port) return entry
-        continue
-      }
-      fallback ??= entry
+      const parsed = splitCertHost(entry.host)
+      if (!matchHost(parsed.host, host)) continue
+      if (parsed.port !== undefined && parsed.port !== port) continue
+      const score = (parsed.wildcard ? 0 : 2) + (parsed.port !== undefined ? 1 : 0)
+      if (!best || score > best.score) best = { score, entry }
     }
-    return fallback
+    return best?.entry
   }
 
   // Warn-once bookkeeping: the resolver runs per request, so an unconditional
@@ -157,6 +202,39 @@ export namespace Network {
   }
 
   const isSocks = (u: URL) => u.protocol.startsWith("socks")
+
+  /**
+   * Translate our bypass patterns into Chromium's grammar. They are NOT the
+   * same language, and the difference was measured rather than assumed:
+   *
+   *   pattern           example.test   sub.example.test   notexample.test
+   *   example.test      bypassed       PROXIED            PROXIED
+   *   .example.test     PROXIED        bypassed           PROXIED
+   *   *example.test     bypassed       bypassed           bypassed  (!)
+   *
+   * So a bare host is EXACT there while it covers subdomains here, and a
+   * dotless star is a broad suffix rule there while it matches nothing here.
+   * Each of our patterns therefore becomes two Chromium rules — the exact host
+   * and the subdomain form — and a malformed wildcard is dropped rather than
+   * handed over to mean something far wider than it does on our side.
+   */
+  export function toChromiumBypass(patterns: readonly string[]): string[] {
+    const out: string[] = []
+    for (const raw of patterns) {
+      const p = raw.trim().toLowerCase()
+      if (!p) continue
+      if (p.includes("*") && !p.startsWith("*.")) {
+        warnOnce(`badwildcard:${p}`, "ignoring bypass pattern: '*' is only supported as a leading '*.' label", {
+          pattern: p,
+        })
+        continue
+      }
+      const base = normalizeHost(p.startsWith("*.") ? p.slice(2) : p)
+      if (!base) continue
+      out.push(base, `.${base}`)
+    }
+    return out
+  }
 
   /** Is the proxy configured and switched on? `enabled` defaults to true when a url is set. */
   function proxyActive(cfg: Config.Network | undefined): cfg is Config.Network & { proxy: { url: string } } {
@@ -293,9 +371,10 @@ export namespace Network {
           "network.proxy: the browser cannot authenticate to a SOCKS proxy. Remove network.proxy.auth, or use an http:// proxy, which supports credentials.",
         )
       }
-      // Chromium takes the bypass list as a comma-separated string. Loopback is
-      // added explicitly because the browser has no notion of our always-bypass rule.
-      const bypass = ["localhost", "127.0.0.1", "::1", ...(cfg.proxy!.bypass ?? [])]
+      // Loopback is added explicitly: the browser has no notion of our
+      // always-bypass rule, and Chromium in fact FORCES loopback through the
+      // proxy unless the list names it.
+      const bypass = ["localhost", ".localhost", "127.0.0.1", "::1", ...toChromiumBypass(cfg.proxy!.bypass ?? [])]
       out.proxy = {
         server: cfg.proxy!.url!,
         username: cfg.proxy!.auth?.username,
