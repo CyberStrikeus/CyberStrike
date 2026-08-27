@@ -259,7 +259,9 @@ export interface PageDiffContext {
  *
  * Note there is no CA field: Playwright has no such option, Chromium trusts the
  * OS store. Trusting an intercepting proxy in the browser means installing its
- * CA at OS level, or accepting `ignoreHTTPSErrors`.
+ * CA at OS level, or accepting `ignoreHTTPSErrors`. There is no client-certificate
+ * field either — measured, Playwright's interceptor hangs every page load when
+ * one is set, so the host does not send them.
  */
 export interface NetworkConfig {
   proxy?: {
@@ -271,13 +273,6 @@ export interface NetworkConfig {
     bypass?: string
   }
   ignoreHTTPSErrors?: boolean
-  clientCertificates?: Array<{
-    origin: string
-    certPath?: string
-    keyPath?: string
-    pfxPath?: string
-    passphrase?: string
-  }>
 }
 
 export interface AgentConfig {

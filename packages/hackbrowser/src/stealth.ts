@@ -82,14 +82,13 @@ export function contextOptions(headless = true, network?: NetworkConfig): Browse
     locale: "en-US",
     timezoneId: "America/New_York",
     extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" },
-    // The proxy is repeated here, not just at launch, and that is load-bearing.
-    // When clientCertificates are present Playwright inserts its own local
-    // interceptor and points the context at it, overriding the launch-level
-    // --proxy-server; the interceptor then picks ITS upstream from the CONTEXT
-    // proxy. With the proxy only at launch, a crawl that also uses a client
-    // certificate connects to targets DIRECTLY while the operator believes it is
-    // proxied. Measured: launch-only + cert never reaches the proxy; adding it
-    // here restores it (the interceptor CONNECTs through it).
+    // The proxy is repeated here, not just at launch. Playwright can insert a
+    // local interceptor that overrides the process-level --proxy-server and
+    // takes ITS upstream from the CONTEXT proxy — measured, with the proxy only
+    // at launch such a context connects to targets DIRECTLY while the operator
+    // believes it is proxied. The host no longer sends the option that triggered
+    // that (client certificates), so this is now belt-and-braces; it stays
+    // because a silent direct connection is the worst failure this code has.
     ...(network?.proxy ? { proxy: network.proxy } : {}),
     // Certificate errors are IGNORED by default. A crawler aimed at staging
     // apps, self-signed dev hosts and traffic behind an intercepting proxy hits
@@ -99,7 +98,6 @@ export function contextOptions(headless = true, network?: NetworkConfig): Browse
     // the browser being the one strict component was the inconsistency.
     // Set network.tls.rejectUnauthorized=true to opt back into strict checking.
     ignoreHTTPSErrors: network?.ignoreHTTPSErrors ?? true,
-    ...(network?.clientCertificates?.length ? { clientCertificates: network.clientCertificates } : {}),
   }
 }
 

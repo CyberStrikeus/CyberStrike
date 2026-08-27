@@ -428,13 +428,6 @@ export namespace Network {
   export interface BrowserOptions {
     proxy?: { server: string; username?: string; password?: string; bypass?: string }
     ignoreHTTPSErrors?: boolean
-    clientCertificates?: Array<{
-      origin: string
-      certPath?: string
-      keyPath?: string
-      pfxPath?: string
-      passphrase?: string
-    }>
   }
 
   export async function forBrowser(): Promise<BrowserOptions> {
@@ -481,29 +474,26 @@ export namespace Network {
       }
     }
 
-    // Playwright keys client certs by EXACT origin — it has no wildcard matching
-    // of its own, so a "*.example.com" entry cannot be expressed here. Those
-    // entries still work for replayed requests (forHost does its own matching);
-    // dropping them silently would leave the browser mysteriously unauthenticated.
-    const certs = cfg.tls?.clientCertificates ?? []
-    const exact = certs.filter((c) => !c.host.includes("*"))
-    for (const c of certs) {
-      if (c.host.includes("*")) {
-        log.warn("wildcard client certificate cannot be applied to the browser", {
-          host: c.host,
-          hint: "Playwright matches client certificates by exact origin — list the concrete host(s) to cover the crawl",
-        })
-      }
-    }
-    if (exact.length > 0) {
-      out.clientCertificates = exact.map((c) => ({
-        // A portless entry defaults to https, the only scheme mTLS applies to.
-        origin: /^https?:\/\//.test(c.host) ? c.host : `https://${c.host}`,
-        certPath: c.certPath,
-        keyPath: c.keyPath,
-        pfxPath: c.pfxPath,
-        passphrase: c.passphrase,
-      }))
+    // Client certificates are deliberately NOT passed to the browser.
+    //
+    // Measured on the pinned Playwright: configuring clientCertificates makes
+    // EVERY page load in that context hang until timeout — with or without the
+    // server asking for a certificate, whether or not the server's own
+    // certificate is trusted, and reproduced against bare chromium.launch()
+    // with none of our launch arguments. Playwright inserts a local interceptor
+    // whenever the option is present, and that interceptor never completes here.
+    //
+    // Passing it through would mean a plausible-looking config silently kills
+    // the crawl — including on hosts the certificate has nothing to do with,
+    // since one entry re-routes the whole context. Replayed requests DO honour
+    // client certificates (verified on the wire), so the capability is not lost,
+    // just not available to the crawler.
+    if ((cfg.tls?.clientCertificates?.length ?? 0) > 0) {
+      warnOnce(
+        "browser-clientcerts",
+        "client certificates are not applied to the crawler's browser — the browser hangs on every page when they are set. Replayed requests still use them; a crawl of a mutual-TLS host is not supported.",
+        { count: cfg.tls!.clientCertificates!.length },
+      )
     }
 
     return out

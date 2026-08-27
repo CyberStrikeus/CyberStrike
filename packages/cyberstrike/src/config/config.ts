@@ -1118,7 +1118,9 @@ export namespace Config {
       clientCertificates: z
         .array(ClientCertificate)
         .optional()
-        .describe("Client certificates for mutual-TLS targets, matched per host"),
+        .describe(
+          "Client certificates for mutual-TLS targets, matched per host. Applies to replayed requests only — the crawler browser cannot use them (Playwright hangs on every page load when they are set), so a mutual-TLS host cannot be crawled",
+        ),
     })
     .strict()
     .meta({
