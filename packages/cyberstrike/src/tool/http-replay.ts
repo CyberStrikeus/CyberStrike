@@ -123,6 +123,8 @@ function buildFromTarget(t: {
 const BODY_PREVIEW = 4096
 
 function summarize(result: ReplayResponse.Result, marker?: string): Record<string, unknown> {
+  // Attached by sendGoverned when the PROXY answered instead of the target.
+  const proxyNote = (result as { proxyNote?: string }).proxyNote
   if (result.error) {
     return { sent: true, error: result.error, timing: result.timing, attempts: (result as Send.Result).attempts }
   }
@@ -141,6 +143,7 @@ function summarize(result: ReplayResponse.Result, marker?: string): Record<strin
     attempts: (result as Send.Result).attempts,
   }
   if (marker) out.reflection = Observe.reflection(res.body, marker)
+  if (proxyNote) out.proxy_note = proxyNote
   return out
 }
 
@@ -224,6 +227,21 @@ async function sendGoverned(
         message: `${result.error.message} [sent via proxy ${Network.proxyAuthority(net.proxy)} — the proxy, not the target, may be what failed]`,
       },
     }
+  }
+  // A 407 is the PROXY refusing, not the target. Left unlabelled it reads as an
+  // authentication finding about the endpoint. Only Basic is supported here, so
+  // name the scheme the proxy actually asked for — an enterprise proxy demanding
+  // NTLM or Negotiate cannot be satisfied, and that is worth saying once rather
+  // than leaving as a mysterious status.
+  if (net.proxy && result.response?.status === 407) {
+    const scheme = result.response.headers.find((h) => h.name.toLowerCase() === "proxy-authenticate")?.value
+    return {
+      ...result,
+      proxyNote:
+        `Rejected by the proxy ${Network.proxyAuthority(net.proxy)}, not by the target` +
+        (scheme ? ` — it requires ${scheme.split(/[\s,]/)[0]} authentication.` : ".") +
+        ` network.proxy.auth sends Basic credentials only.`,
+    } as typeof result
   }
   return result
 }

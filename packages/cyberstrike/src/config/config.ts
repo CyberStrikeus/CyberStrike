@@ -1064,7 +1064,7 @@ export namespace Config {
         .strict()
         .optional()
         .describe(
-          "Proxy credentials. Use {env:VAR} to keep the password out of the config file. Not supported with a SOCKS proxy",
+          "Proxy credentials, sent as Basic. Use {env:VAR} to keep the password out of the config file. Not supported with a SOCKS proxy, and NTLM/Negotiate proxies cannot be satisfied — a 407 from those is reported as such rather than retried",
         ),
       bypass: z
         .array(z.string())
