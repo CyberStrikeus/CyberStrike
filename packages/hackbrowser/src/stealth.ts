@@ -82,6 +82,15 @@ export function contextOptions(headless = true, network?: NetworkConfig): Browse
     locale: "en-US",
     timezoneId: "America/New_York",
     extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" },
+    // The proxy is repeated here, not just at launch, and that is load-bearing.
+    // When clientCertificates are present Playwright inserts its own local
+    // interceptor and points the context at it, overriding the launch-level
+    // --proxy-server; the interceptor then picks ITS upstream from the CONTEXT
+    // proxy. With the proxy only at launch, a crawl that also uses a client
+    // certificate connects to targets DIRECTLY while the operator believes it is
+    // proxied. Measured: launch-only + cert never reaches the proxy; adding it
+    // here restores it (the interceptor CONNECTs through it).
+    ...(network?.proxy ? { proxy: network.proxy } : {}),
     // TLS trust is context-level in Playwright. There is no CA option — Chromium
     // trusts the OS store — so an intercepting proxy is accepted either by
     // installing its CA at OS level or via ignoreHTTPSErrors.
