@@ -1108,7 +1108,9 @@ export namespace Config {
       rejectUnauthorized: z
         .boolean()
         .optional()
-        .describe("Verify TLS certificates. Defaults to true. Setting false disables verification for all outbound requests"),
+        .describe(
+          "Verify TLS certificates for outbound requests. Unset leaves each sender's own default in place — note http_replay deliberately accepts bad certs unless you set this to true, since pentest targets routinely have them. A per-call insecure_tls still overrides this for that one call",
+        ),
       clientCertificates: z
         .array(ClientCertificate)
         .optional()

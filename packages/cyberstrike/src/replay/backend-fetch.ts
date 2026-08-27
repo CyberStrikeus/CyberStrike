@@ -36,7 +36,7 @@ export namespace BackendFetch {
     /** Extra CA to trust (PEM contents), e.g. an intercepting proxy's root. */
     ca?: string
     /** Client certificate material for a mutual-TLS target. */
-    clientCertificate?: { cert?: string; key?: string; pfx?: Buffer; passphrase?: string }
+    clientCertificate?: { cert?: string; key?: string; passphrase?: string }
   }
 
   const BODYLESS = new Set(["GET", "HEAD"])
@@ -119,7 +119,6 @@ export namespace BackendFetch {
       const cc = opts.clientCertificate
       if (cc?.cert) tls.cert = cc.cert
       if (cc?.key) tls.key = cc.key
-      if (cc?.pfx) tls.pfx = cc.pfx
       if (cc?.passphrase) tls.passphrase = cc.passphrase
       if (Object.keys(tls).length > 0) init.tls = tls
       if (opts.proxy) init.proxy = opts.proxy

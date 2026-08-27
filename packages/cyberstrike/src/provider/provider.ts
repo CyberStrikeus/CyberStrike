@@ -2,6 +2,7 @@ import z from "zod"
 import os from "os"
 import fuzzysort from "fuzzysort"
 import { Config } from "../config/config"
+import { Network } from "../network/network"
 import { mapValues, mergeDeep, omit, pickBy, sortBy } from "remeda"
 import { NoSuchModelError, type Provider as SDK } from "ai"
 import { Log } from "../util/log"
@@ -1139,8 +1140,28 @@ export namespace Provider {
           }
         }
 
+        // Outbound proxy/TLS for provider traffic. OFF unless the operator sets
+        // network.proxy.includeProviders — routing model calls through a proxy
+        // exposes the API key to whoever runs it, so it must be a deliberate act.
+        // Resolved per request against the actual endpoint so the bypass list and
+        // per-host certificates apply here the same as anywhere else.
+        let transport: { proxy?: string; tls?: Record<string, unknown> } = {}
+        if (await Network.includeProviders()) {
+          const url = typeof input === "string" ? input : (input?.url ?? String(input))
+          const net = await Network.forUrl(url)
+          if (net.proxy) transport.proxy = net.proxy
+          const tls: Record<string, unknown> = {}
+          if (net.rejectUnauthorized !== undefined) tls.rejectUnauthorized = net.rejectUnauthorized
+          if (net.ca) tls.ca = net.ca
+          if (net.clientCertificate?.cert) tls.cert = net.clientCertificate.cert
+          if (net.clientCertificate?.key) tls.key = net.clientCertificate.key
+          if (net.clientCertificate?.passphrase) tls.passphrase = net.clientCertificate.passphrase
+          if (Object.keys(tls).length > 0) transport.tls = tls
+        }
+
         return fetchFn(input, {
           ...opts,
+          ...transport,
           // @ts-ignore see here: https://github.com/oven-sh/bun/issues/16682
           timeout: false,
         })

@@ -28,31 +28,33 @@ export namespace Network {
     proxy?: string
     /** Extra CA to trust (PEM contents), e.g. an intercepting proxy's root. */
     ca?: string
-    /** Only set when config explicitly turns verification off. */
+    /** Set whenever config states it, in either direction. */
     rejectUnauthorized?: boolean
     /** Client certificate material for a mutual-TLS target. */
-    clientCertificate?: { cert?: string; key?: string; pfx?: Buffer; passphrase?: string }
+    clientCertificate?: { cert?: string; key?: string; passphrase?: string }
   }
 
-  // Certificates are read once per path. A changed file needs a restart, which
-  // is the same contract as the rest of the config.
-  const fileCache = new Map<string, string | Buffer | undefined>()
+  // Successful reads are cached per path; FAILURES are not. Caching a failure
+  // would make a fixed permission or a newly created file invisible until the
+  // process restarts, and the user would keep seeing the same handshake error
+  // after apparently fixing it. Config itself hot-reloads, so the cache must not
+  // be the one thing that needs a restart.
+  const fileCache = new Map<string, string>()
 
-  function readCert(path: string | undefined, binary = false): any {
+  function readCert(path: string | undefined): string | undefined {
     if (!path) return undefined
-    const key = `${binary ? "b:" : "t:"}${path}`
-    if (fileCache.has(key)) return fileCache.get(key)
-    let value: string | Buffer | undefined
+    const hit = fileCache.get(path)
+    if (hit !== undefined) return hit
     try {
-      value = binary ? readFileSync(path) : readFileSync(path, "utf8")
+      const value = readFileSync(path, "utf8")
+      fileCache.set(path, value)
+      return value
     } catch (err) {
-      // A bad path must be loud: silently dropping it would look like the proxy
-      // simply "doesn't work" and send the user hunting in the wrong place.
+      // Loud every time: a silently dropped certificate looks like "the proxy
+      // just doesn't work" and sends the user hunting in the wrong place.
       log.error("cannot read certificate file, ignoring it", { path, err: String(err) })
-      value = undefined
+      return undefined
     }
-    fileCache.set(key, value)
-    return value
   }
 
   /** Render a proxy URL with credentials embedded, the form fetch expects. */
@@ -147,14 +149,24 @@ export namespace Network {
 
     const ca = readCert(cfg.tls?.caPath)
     if (ca) out.ca = ca
-    if (cfg.tls?.rejectUnauthorized === false) out.rejectUnauthorized = false
+    if (cfg.tls?.rejectUnauthorized !== undefined) out.rejectUnauthorized = cfg.tls.rejectUnauthorized
 
     const cert = matchCertificate(cfg.tls?.clientCertificates ?? [], host, port)
     if (cert) {
+      // pfx is deliberately NOT forwarded here. Measured on the pinned runtime:
+      // neither the fetch backend nor node:tls applies it (both modern and
+      // legacy PKCS#12), while cert+key works in both. Passing it anyway would
+      // connect with NO client certificate and surface as an opaque handshake
+      // failure from the server, pointing the user nowhere.
+      if (cert.pfxPath && !(cert.certPath && cert.keyPath)) {
+        log.error("pfxPath is not supported for replayed requests — supply certPath + keyPath instead", {
+          host: cert.host,
+          pfxPath: cert.pfxPath,
+        })
+      }
       out.clientCertificate = {
         cert: readCert(cert.certPath),
         key: readCert(cert.keyPath),
-        pfx: readCert(cert.pfxPath, true),
         passphrase: cert.passphrase,
       }
     }
@@ -162,14 +174,32 @@ export namespace Network {
     return out
   }
 
-  /** Same as forHost, but takes a URL or origin string. Returns {} if unparseable. */
+  /**
+   * Same as forHost, but takes a URL or origin string.
+   *
+   * ONLY the URL parse is tolerated — a resolution failure propagates. Catching
+   * it would return "no proxy, no CA", i.e. send the request DIRECTLY while the
+   * operator believes it is being intercepted. For a tool whose purpose is
+   * controlling where traffic goes, failing loudly is the safe direction.
+   */
   export async function forUrl(url: string): Promise<Outbound> {
+    let u: URL
     try {
-      const u = new URL(url)
-      const port = u.port ? Number(u.port) : u.protocol === "https:" ? 443 : 80
-      return await forHost(u.hostname, port)
+      u = new URL(url)
     } catch {
       return {}
+    }
+    const port = u.port ? Number(u.port) : u.protocol === "https:" ? 443 : 80
+    return forHost(u.hostname, port)
+  }
+
+  /** Proxy host:port with any credentials stripped — safe to log or show a user. */
+  export function proxyAuthority(proxyUrl: string): string {
+    try {
+      const u = new URL(proxyUrl)
+      return u.host
+    } catch {
+      return "(unparseable proxy url)"
     }
   }
 

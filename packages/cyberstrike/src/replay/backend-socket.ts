@@ -37,7 +37,7 @@ export namespace BackendSocket {
     /** Extra CA to trust (PEM contents). */
     ca?: string
     /** Client certificate material for a mutual-TLS target. */
-    clientCertificate?: { cert?: string; key?: string; pfx?: Buffer; passphrase?: string }
+    clientCertificate?: { cert?: string; key?: string; passphrase?: string }
   }
 
   const CR = 0x0d
@@ -116,7 +116,6 @@ export namespace BackendSocket {
             ...(opts.ca ? { ca: opts.ca } : {}),
             ...(opts.clientCertificate?.cert ? { cert: opts.clientCertificate.cert } : {}),
             ...(opts.clientCertificate?.key ? { key: opts.clientCertificate.key } : {}),
-            ...(opts.clientCertificate?.pfx ? { pfx: opts.clientCertificate.pfx } : {}),
             ...(opts.clientCertificate?.passphrase ? { passphrase: opts.clientCertificate.passphrase } : {}),
           })
         : net.connect({ host: opts.host, port: opts.port })

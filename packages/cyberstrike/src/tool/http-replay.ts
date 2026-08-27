@@ -188,14 +188,21 @@ async function sendGoverned(
   const budget = new Governor.GlobalBudget()
   const breaker = new Governor.CircuitBreaker()
   // Resolved once, outside the thunk: Send.governed may call it again on retry.
-  // The per-call `insecure_tls` is applied after, so it still wins over config.
   const net = await Network.forUrl(origin)
-  return Send.governed(
+  // Precedence, most specific first: an explicit per-call insecure_tls, then
+  // config, then this tool's documented default of accepting bad certs (pentest
+  // targets routinely have them). Writing `insecure_tls === false` unconditionally
+  // looked like "per-call wins" but silently pinned verification OFF for every
+  // call, because the parameter is optional — which made config's
+  // tls.rejectUnauthorized dead in the tool that sends most of the traffic.
+  const rejectUnauthorized =
+    opts.insecure_tls !== undefined ? opts.insecure_tls === false : (net.rejectUnauthorized ?? false)
+  const result = await Send.governed(
     () =>
       BackendFetch.send(msg, {
         origin,
         ...net,
-        rejectUnauthorized: opts.insecure_tls === false,
+        rejectUnauthorized,
         totalTimeoutMs: opts.total_timeout_ms,
         followRedirects: opts.follow_redirects,
         signal: opts.signal,
@@ -204,6 +211,21 @@ async function sendGoverned(
     { budget, breaker },
     {},
   )
+  // A transport failure through a proxy is reported by the runtime against the
+  // TARGET url, so a dead proxy reads as "target refused the connection" — an
+  // agent draws "host down, out of scope" from that and stops testing a live
+  // target. Name the proxy (authority only, never credentials) so the reader can
+  // tell the two apart.
+  if (result.error && net.proxy) {
+    return {
+      ...result,
+      error: {
+        ...result.error,
+        message: `${result.error.message} [sent via proxy ${Network.proxyAuthority(net.proxy)} — the proxy, not the target, may be what failed]`,
+      },
+    }
+  }
+  return result
 }
 
 // ── Diff builder ──────────────────────────────────────────────────────────────

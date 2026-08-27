@@ -74,7 +74,6 @@ export const WebFetchTool = Tool.define("webfetch", {
     if (net.ca) tls.ca = net.ca
     if (net.clientCertificate?.cert) tls.cert = net.clientCertificate.cert
     if (net.clientCertificate?.key) tls.key = net.clientCertificate.key
-    if (net.clientCertificate?.pfx) tls.pfx = net.clientCertificate.pfx
     if (net.clientCertificate?.passphrase) tls.passphrase = net.clientCertificate.passphrase
     if (Object.keys(tls).length > 0) transport.tls = tls
 
