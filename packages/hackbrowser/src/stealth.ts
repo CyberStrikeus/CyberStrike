@@ -103,10 +103,13 @@ Object.defineProperty(screen, 'availWidth', { get: () => 1920 });
 Object.defineProperty(screen, 'availHeight', { get: () => 1040 });
 Object.defineProperty(screen, 'colorDepth', { get: () => 24 });
 Object.defineProperty(screen, 'pixelDepth', { get: () => 24 });
-window.outerWidth = 1920;
-window.outerHeight = 1080;
-window.innerWidth = 1920;
-window.innerHeight = 969;
+// NOTE: window.inner/outerWidth/Height are intentionally NOT spoofed. They must reflect
+// the REAL window so (a) the crawler's own geometry stays correct — scanner occlusion /
+// offscreen / scroll and the injected panel/login-bar clamp all read innerWidth — and
+// (b) they stay consistent with the actual rendered viewport (a faked 1920 over a smaller
+// real window is itself a detectable fingerprint mismatch). Monitor size is spoofed via
+// screen.* above; the window is launched at 1920x1080 (launchOptions/contextOptions) so on
+// a normal host innerWidth is already ~1920 with no spoof needed.
 
 const origGetParameter = WebGLRenderingContext.prototype.getParameter;
 WebGLRenderingContext.prototype.getParameter = function(param) {
