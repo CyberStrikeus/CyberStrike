@@ -599,9 +599,18 @@ export namespace Agent {
           PermissionNext.fromConfig({
             "*": "deny",
             bash: {
-              // Block HTTP clients in bash — agents MUST use http_replay instead.
-              // This is defense-in-depth alongside the prompt mandate: old session
-              // history can override prompt guidance, but permission denies are absolute.
+              // Base: bash is allowed. The permission evaluator is ORDER-BASED
+              // (last matching rule wins, no specificity), so `*: allow` MUST come
+              // FIRST — the specific HTTP-client denies below then win over it for
+              // any command they match. (With `*: allow` last, findLast would pick
+              // it for every command and the denies would be inert.) Block HTTP
+              // clients so vuln testers funnel through http_replay — defense-in-depth
+              // with the prompt mandate. Effective by default, but a later `user`
+              // bash rule can still loosen them — unlike the destructive-SQL denies
+              // in injectionAgentPermission (merged after `user`, absolute). This is
+              // intentional: HTTP-client steering is a routing choice, not a
+              // destructive-command risk.
+              "*": "allow",
               "*curl *": "deny",
               "*curl.exe*": "deny",
               "*wget *": "deny",
@@ -625,9 +634,12 @@ export namespace Agent {
               "*node -e*": "deny",
               "*node --eval*": "deny",
               "*deno eval*": "deny",
-              "*deno run*-*": "deny",
+              "*deno run *": "deny",
               // Block raw TCP tools — can send HTTP without matching other patterns.
+              // `* nc *` catches piped/mid-command nc; `nc *` catches command-initial
+              // nc (the anchored matcher misses it otherwise) without hitting sync/ncat.
               "* nc *": "deny",
+              "nc *": "deny",
               "*ncat *": "deny",
               "*socat *": "deny",
               "*telnet *": "deny",
@@ -636,7 +648,6 @@ export namespace Agent {
               "*base64*| python3*": "deny",
               "*base64*| bun*": "deny",
               "*base64*| node*": "deny",
-              "*": "allow",
             },
             webfetch: "deny",
             web_get_session_context: "allow",
