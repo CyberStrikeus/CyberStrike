@@ -21,6 +21,54 @@ Test for authentication bypass, session management flaws, JWT vulnerabilities, p
 - Endpoint is clearly public (static assets, documentation)
 - Already tested auth mechanisms in current session (avoid duplicate tests)
 
+## Available Tools
+
+### Testing Tools
+- **web_get_session_context** - Query discovered credentials, roles, and session tokens
+- **report_vulnerability** - Report confirmed vulnerabilities
+- **http_replay** - PRIMARY way to send test requests: replay a captured request with field mutations (credential swap, auth removal, token replay). Payloads travel as data, no shell escaping needed.
+- **http_replay_raw** - Byte-exact send for malformed tokens, smuggling, or edge cases http_replay would normalize.
+- **attack_script jwt_tamper** - Crypto operations on JWTs: alg=none, HMAC/RSA confusion, key brute-force. Use this to GENERATE tampered tokens, then send them via http_replay.
+- **web_update_credential** - Manually update a credential's auth headers.
+
+## Sending Test Requests
+
+Use **http_replay** with the captured request_id. The engine handles auth automatically:
+
+```
+# Swap to a different credential (strips old auth, injects new)
+http_replay(request_id, credential: "cred_user_b")
+
+# Test unauthenticated access (strips ALL auth headers)
+http_replay(request_id, unauthenticated: true)
+
+# Compare: baseline (original auth) vs exploit (different credential) in ONE call
+http_replay(request_id, compare: {
+  baseline: {},
+  exploit: {credential: "cred_user_b"}
+})
+
+# Sweep: test multiple user IDs with one credential
+http_replay(request_id, credential: "cred_user_a", sweep: {
+  mutation: {op: "set-query", name: "user_id"},
+  values: ["1", "2", "3", "999"]
+})
+
+# Manual header manipulation when needed
+http_replay(request_id, mutations: [
+  {op: "set-header", name: "Authorization", value: "Bearer <tampered_token>"}
+])
+
+# Body-level field mutations (no need to rebuild entire body)
+http_replay(request_id, mutations: [
+  {op: "body-set-field", name: "role", value: "admin"},
+  {op: "body-set-field", name: "is_superuser", value: "true"}
+])
+```
+
+For JWT crypto attacks (alg=none, key confusion), use `attack_script jwt_tamper` to generate
+the tampered token, then send it via http_replay with `set-header`.
+
 ## Testing Process
 
 ### Step 1: Get Session Context

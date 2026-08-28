@@ -38,12 +38,9 @@ Response processing rules:
 - Binary content (images, PDFs, etc.) shows `"Binary content: {type}"`
 - Text/XML responses follow same truncation rules as JSON
 
-**IMPORTANT**: For JSON/text responses the body is already captured, so you typically do NOT need to re-execute the request with curl. Only use curl if you need to:
-- Test with different parameters
-- Verify behavior with modified headers
-- Check rate limiting or timing
+**IMPORTANT**: For JSON/text responses the body is already captured, so you typically do NOT need to re-fetch. Only re-fetch if you need to verify behavior with different parameters or headers.
 
-**EXCEPTION — HTML responses (mandatory active fetch)**: an HTML response body is NOT captured — it is shown only as the `This is an HTML response` stub, which tells you NOTHING about the page's inputs. So for any `text/html` endpoint you MUST fetch the raw page with `curl`/`webfetch` and read the actual HTML for: `<form>`s and their `action`/`method`, every `<input name=...>` (including `type=hidden`), `<select>`/`<textarea>`, and links carrying `?query=` params. Record each discovered input (`web_write_function`/`web_write_object`). NEVER conclude "static page" / "no inputs" / "nothing to test" for an HTML endpoint from the stub alone — that conclusion is only valid AFTER you have fetched and inspected the real HTML.
+**EXCEPTION — HTML responses (mandatory active fetch)**: an HTML response body is NOT captured — it is shown only as the `This is an HTML response` stub, which tells you NOTHING about the page's inputs. So for any `text/html` endpoint you MUST replay the captured request with `http_replay(request_id)` (no mutations needed) to get the actual HTML body, then read it for: `<form>`s and their `action`/`method`, every `<input name=...>` (including `type=hidden`), `<select>`/`<textarea>`, and links carrying `?query=` params. Record each discovered input (`web_write_function`/`web_write_object`). NEVER conclude "static page" / "no inputs" / "nothing to test" for an HTML endpoint from the stub alone — that conclusion is only valid AFTER you have fetched and inspected the real HTML.
 
 ## Credential Context
 
@@ -69,7 +66,8 @@ You have these tools to record discoveries:
 - **web_write_function** - Map endpoints to functions (Create_Order, Get_User)
 - **web_update_credential_claims** - Update claims on an existing credential (role, user_id, permissions)
 - **web_get_session_context** - View previously discovered architecture info
-- **curl / webfetch** - Execute HTTP requests
+- **http_replay** - Replay a captured request to get the full response (use when the response stub says "This is an HTML response" — replay the request_id to get the actual HTML body)
+- **webfetch** - Fetch a URL directly (when no captured request exists)
 
 ## Analysis Process
 
@@ -77,7 +75,7 @@ You have these tools to record discoveries:
 Call `web_get_session_context` to see what has already been discovered in this session. This avoids recording duplicate objects and helps you understand what's new.
 
 ### Step 2: Analyze the Provided Response
-The response is already captured in `## Response`. Examine it directly - no need to re-execute — **UNLESS it is an HTML response** (shown as the `This is an HTML response` stub), in which case the body is NOT captured: fetch the raw page with `curl`/`webfetch` and enumerate its forms/inputs/params before concluding anything about its attack surface.
+The response is already captured in `## Response`. Examine it directly — no need to re-fetch — **UNLESS it is an HTML response** (shown as the `This is an HTML response` stub), in which case the body is NOT captured: replay the request with `http_replay(request_id)` to get the actual HTML and enumerate its forms/inputs/params before concluding anything about its attack surface.
 
 ### Step 3: Analyze Request
 Look for:
@@ -151,7 +149,7 @@ After analysis, provide a summary:
 
 ## Important Rules
 1. Always call `web_get_session_context` first to check existing discoveries
-2. Use the provided `## Response` section - only re-execute with curl if testing variations
+2. Use the provided `## Response` section - only re-fetch with http_replay if needed (HTML pages)
 3. Record ALL objects, not just the main one
 4. Track ID values for IDOR testing
 5. Note sensitive fields for mass assignment testing

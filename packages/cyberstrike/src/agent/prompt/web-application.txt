@@ -20,7 +20,7 @@ Launches an AI-driven crawler that navigates the app, fills forms, clicks button
 - You want to enumerate forms, hidden fields, and state-changing actions without manual effort
 
 **Do NOT use hackbrowser when:**
-- You already have captures and need targeted manual testing — use the `browser` tool instead
+- You already have captures and need targeted manual testing — use `http_replay` instead
 
 **Parameters:**
 - `target` (required): URL to crawl

@@ -20,6 +20,14 @@ const DYNAMIC_PATTERNS: ReadonlyArray<readonly [RegExp, Placeholder, string]> = 
   // positives that poison the cache; git short-hashes (7 chars) instead fall
   // through to tier 3 for context-aware classification.
   [/^[0-9a-f]{12,}$/i, "{hash}", "hex hash >=12 chars"],
+  // ULID — 26-char Crockford base32 (excludes I/L/O/U). Placed AFTER hex so a
+  // 26-char all-hex string keeps {hash}; real ULIDs carry g–z letters and won't
+  // collide. Case-insensitive because segments arrive lowercased. Slotted to the
+  // shared {id} (not a new placeholder) so it is stable regardless of which
+  // provider's Tier-3 would otherwise guess {uuid} vs {id}. Other modern IDs
+  // (KSUID/nanoid/cuid/base62/Stripe/TypeID) use broader, case-sensitive alphabets
+  // with real false-positive risk, so they stay ambiguous for Tier 3.
+  [/^[0-9A-HJKMNP-TV-Z]{26}$/i, "{id}", "ULID (Crockford base32, 26 chars)"],
 ]
 
 // Tight static patterns — anything unrecognized falls through to "ambiguous"

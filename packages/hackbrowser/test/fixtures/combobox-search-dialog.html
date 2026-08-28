@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>combobox coverage fixtures</title>
+  </head>
+  <body>
+    <!-- Case A — search-gated dialog combobox (issue #100 gap #2): the widget the
+         collectComboboxOptions fix targets. Options mount ONLY after a query is typed
+         into the popup's search input. Opening the popup auto-focuses that search input. -->
+    <label for="owner-combo">Owner</label>
+    <button id="owner-combo" role="combobox" aria-haspopup="dialog" aria-expanded="false">Select owner</button>
+    <div id="owner-dialog" role="dialog" style="display: none">
+      <input id="owner-search" type="text" aria-label="Search owner" />
+      <ul id="owner-options"></ul>
+    </div>
+
+    <!-- Case B — inline listbox combobox (pre-existing pattern): options are already in
+         the DOM once the combobox opens. collectComboboxOptions must short-circuit to the
+         inline result and never probe/type. Guards against the fix changing old behavior. -->
+    <label for="status-combo">Status</label>
+    <button id="status-combo" role="combobox" aria-expanded="false">Select status</button>
+    <ul id="status-options" role="listbox" style="display: none">
+      <li role="option">Active</li>
+      <li role="option">Archived</li>
+    </ul>
+
+    <!-- Case C — dialog combobox that opens but does NOT move focus to a search input
+         (focus stays on the trigger button). collectComboboxOptions must degrade
+         gracefully: no options, no throw, and crucially NO stray typing into any field. -->
+    <label for="region-combo">Region</label>
+    <button id="region-combo" role="combobox" aria-haspopup="dialog" aria-expanded="false">Select region</button>
+    <div id="region-dialog" role="dialog" style="display: none">
+      <input id="region-search" type="text" aria-label="Search region" />
+      <ul id="region-options"></ul>
+    </div>
+
+    <script>
+      // Case A: open → focus search; typing any query reveals options.
+      const oc = document.getElementById("owner-combo")
+      const od = document.getElementById("owner-dialog")
+      const os = document.getElementById("owner-search")
+      const oo = document.getElementById("owner-options")
+      oc.addEventListener("click", () => {
+        od.style.display = "block"
+        oc.setAttribute("aria-expanded", "true")
+        os.focus()
+      })
+      os.addEventListener("input", () => {
+        oo.innerHTML = ""
+        if (os.value.length > 0) {
+          ;["Alice Owner", "Bob Owner"].forEach((n) => {
+            const li = document.createElement("li")
+            li.setAttribute("role", "option")
+            li.textContent = n
+            oo.appendChild(li)
+          })
+        }
+      })
+
+      // Case B: open → reveal an already-populated inline listbox.
+      const sc = document.getElementById("status-combo")
+      const sl = document.getElementById("status-options")
+      sc.addEventListener("click", () => {
+        sl.style.display = "block"
+        sc.setAttribute("aria-expanded", "true")
+      })
+
+      // Case C: open the dialog but deliberately do NOT focus the search input.
+      const rc = document.getElementById("region-combo")
+      const rd = document.getElementById("region-dialog")
+      const rs = document.getElementById("region-search")
+      const ro = document.getElementById("region-options")
+      rc.addEventListener("click", () => {
+        rd.style.display = "block"
+        rc.setAttribute("aria-expanded", "true")
+        // no focus move — a variant that would require a second interaction
+      })
+      rs.addEventListener("input", () => {
+        ro.innerHTML = ""
+        if (rs.value.length > 0) {
+          const li = document.createElement("li")
+          li.setAttribute("role", "option")
+          li.textContent = "Some Region"
+          ro.appendChild(li)
+        }
+      })
+    </script>
+  </body>
+</html>

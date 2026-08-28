@@ -40,25 +40,23 @@ Chains upgrade severity — individual low findings become high/critical when ch
 
 Use `ensure_tools` ONLY when the user has explicitly requested active security testing, a pentest, or a vulnerability scan. Do NOT call `ensure_tools` for passive questions, code review, tech stack inquiries, architecture discussions, or any read-only/informational request. When in doubt, ask the user before installing tools.
 
+### Sending Test Requests
+
+Use **http_replay** to send attack/modified requests — it replays captured requests
+with field mutations, carrying payloads as data (no shell escaping). For specialized
+cases (JWT crypto, race conditions, file uploads, SSRF callbacks), use `attack_script`.
+
 ### Attack Scripts
 
-Use `attack_script` for automated vulnerability testing:
-- `cors_checker` — CORS misconfiguration
-- `jwt_tamper` — JWT token attacks
-- `ssti_tester` — Template injection
-- `ssrf_listener` — SSRF callback server
-- `idor_tester` — Cross-account access
-- `graphql_tester` — GraphQL vulnerabilities
-- `race_tester` — Race conditions
-- `file_upload_tester` — Upload bypass
-- `rate_limit_bypass` — Rate limit evasion
-- `waf_bypass` — WAF encoding variants
-- `oauth_tester` — OAuth flow attacks
+Use `attack_script` for specialized capabilities beyond http_replay:
+- `jwt_tamper` — JWT token crypto attacks (alg=none, key confusion)
+- `ssrf_listener` — SSRF callback server for OOB evidence
+- `race_tester` — Race conditions (async concurrency)
+- `file_upload_tester` — Upload bypass with binary polyglots
 - `cloud_storage_enum` — Bucket enumeration
 - `subdomain_takeover` — Dangling DNS
 - `github_dorker` — Secret detection
 - `wayback_endpoints` — Historical endpoints
-- `response_diff` — Access control differences
 
 ### Phase Awareness
 

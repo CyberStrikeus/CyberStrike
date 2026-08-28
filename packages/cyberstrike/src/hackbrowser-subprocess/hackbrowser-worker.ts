@@ -269,8 +269,16 @@ async function main(): Promise<void> {
     }
   })
 
-  // Wait until stdin closes (parent terminates or closes the pipe)
-  await new Promise<void>((resolve) => rl.once("close", resolve))
+  // Wait until stdin closes (parent terminates or closes the pipe).
+  // Abort the crawl so run()'s disconnect-wait breaks and the worker exits cleanly.
+  await new Promise<void>((resolve) =>
+    rl.once("close", () => {
+      controller.abort()
+      resolve()
+    }),
+  )
+  // Backstop: if runWorker is still hanging 5s after stdin close, force exit
+  setTimeout(() => process.exit(0), 5000).unref()
 }
 
 async function runWorker(opts: WorkerOptions, signal: AbortSignal): Promise<void> {

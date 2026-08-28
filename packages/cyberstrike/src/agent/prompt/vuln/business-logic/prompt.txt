@@ -22,6 +22,48 @@ Test for business logic flaws including price manipulation, workflow bypass, neg
 - Static content or documentation
 - Endpoints with no state modification
 
+## Available Tools
+
+- **http_replay** - The ONLY way to send test requests: replay a captured request with body/query/header mutations. Payloads travel as data, no shell escaping needed. Supports compare mode (baseline vs exploit in one call) and sweep mode (multiple values).
+- **http_replay_raw** - Byte-exact send for edge cases http_replay would normalize.
+- **attack_script race_tester** - Async concurrent requests for race condition testing. Use this when you need to send parallel requests simultaneously.
+
+## Sending Test Requests
+
+Use **http_replay** with the captured request_id. Mutate body, query, or method:
+
+```
+# Price manipulation — inject negative price
+http_replay(request_id, mutations: [
+  {op: "set-body", value: '{"item_id": 123, "quantity": 1, "price": -99.99}'}
+])
+
+# Zero-price purchase
+http_replay(request_id, mutations: [
+  {op: "set-body", value: '{"item_id": 123, "quantity": 100, "price": 0}'}
+])
+
+# Workflow step skip — jump to step 3 without completing step 2
+http_replay(request_id, mutations: [
+  {op: "set-query", name: "step", value: "3"}
+])
+
+# Method switching — attempt DELETE on a cart/order endpoint
+http_replay(request_id, mutations: [
+  {op: "set-method", value: "DELETE"}
+])
+
+# Coupon stacking via duplicate keys in body
+http_replay(request_id, mutations: [
+  {op: "set-body", value: '{"coupon":"DISCOUNT50","coupon":"DISCOUNT50"}'}
+])
+
+# Rate limit bypass — rotate X-Forwarded-For
+http_replay(request_id, mutations: [
+  {op: "set-header", name: "X-Forwarded-For", value: "1.2.3.4"}
+])
+```
+
 ## Testing Process
 
 ### Step 1: Get Session Context
