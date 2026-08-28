@@ -97,7 +97,7 @@ export namespace WebSend {
           `Rejected by the proxy ${Network.proxyAuthority(net.proxy)}, not by the target` +
           (scheme ? ` — it requires ${scheme.split(/[\s,]/)[0]} authentication.` : ".") +
           ` network.proxy.auth sends Basic credentials only.`,
-      } as typeof result
+      }
     }
 
     return result

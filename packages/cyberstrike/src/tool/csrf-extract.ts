@@ -5,8 +5,7 @@ import { Request } from "../session/request"
 import { WebCredential, COMMON_AUTH_HEADERS } from "../session/web/web-credential"
 import { HttpMessage } from "../replay/message"
 import { Mutate } from "../replay/mutate"
-import { BackendFetch } from "../replay/backend-fetch"
-import { Network } from "../network/network"
+import { WebSend } from "./web-send"
 
 function originFromRequest(req: Request.Info): string | undefined {
   if (req.origin) return req.origin.replace(/\/+$/, "")
@@ -92,9 +91,9 @@ Use this to:
       }
     }
 
-    const result = await BackendFetch.send(msg, {
-      origin,
-      ...(await Network.forUrl(origin)),
+    // Through the one core sender — same proxy/TLS resolution, fail-closed on a bad proxy,
+    // governance and rejectUnauthorized precedence as http_replay/inject_probe.
+    const result = await WebSend.send(msg, origin, {
       totalTimeoutMs: 15000,
       followRedirects: true,
       signal: ctx.abort,

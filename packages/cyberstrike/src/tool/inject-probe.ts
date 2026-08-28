@@ -961,6 +961,10 @@ async function send(
     const timeout = /timeout|timed ?out|aborted|reset|ECONNRESET|ETIMEDOUT|socket|EOF|closed/i.test(emsg)
     return { error: emsg, timeout }
   }
+  // A proxy refusal (e.g. 407) is the PROXY's response, not the target's. Reading it as a
+  // target response would make the marker "not reflected" → a false clean negative. WebSend
+  // sets proxyNote precisely for this, so surface it as a stop signal instead.
+  if (result.proxyNote) return { error: result.proxyNote, timeout: true }
   const res = result.response!
   // Reuse the curated header extraction (Header[] → the KEEP_HEADERS subset) via a Headers view.
   const h = new Headers()
@@ -985,7 +989,10 @@ const WAF_BODY =
   /cloudflare|attention required|just a moment|checking your browser|access denied|request unsuccessful|mod_?security|incapsula|sucuri|akamai|captcha|are you a robot|ddos protection/i
 const WAF_SERVER = /cloudflare|sucuri|akamai|incapsula|mod_?security|awselb|barracuda|f5|big-?ip/i
 function looksBlocked(status: number): boolean {
-  return status === 403 || status === 406 || status === 429 || status === 503
+  // 407 = Proxy Authentication Required: the request never reached the target, so it must
+  // never read as a clean negative (proxy-set 407s are already caught upstream via proxyNote;
+  // this covers a bare 407 that reaches the observation).
+  return status === 403 || status === 406 || status === 407 || status === 429 || status === 503
 }
 // Returns a short reason string when the response looks WAF/challenge-shaped, else undefined.
 function blockSignal(res: SendOk): string | undefined {

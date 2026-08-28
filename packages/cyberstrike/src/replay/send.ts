@@ -34,6 +34,10 @@ export namespace Send {
     attempts: number
     /** Set when no send happened: budget exhausted or circuit open. */
     skipped?: "budget" | "circuit"
+    /** Set by the sender (WebSend) when the response/failure is the PROXY's, not the
+     *  target's — e.g. a 407. A typed field, not a cast-in side-channel, so every caller
+     *  that must not mis-read a proxy refusal as a target result is compiler-visible. */
+    proxyNote?: string
   }
 
   const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))

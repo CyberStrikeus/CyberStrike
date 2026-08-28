@@ -124,7 +124,7 @@ const BODY_PREVIEW = 4096
 
 function summarize(result: ReplayResponse.Result, marker?: string): Record<string, unknown> {
   // Attached by sendGoverned when the PROXY answered instead of the target.
-  const proxyNote = (result as { proxyNote?: string }).proxyNote
+  const proxyNote = (result as Send.Result).proxyNote
   if (result.error) {
     return { sent: true, error: result.error, timing: result.timing, attempts: (result as Send.Result).attempts }
   }
