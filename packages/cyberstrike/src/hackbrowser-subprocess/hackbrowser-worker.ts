@@ -205,8 +205,23 @@ function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
     // the Copilot SDK maps to the Chat Completions endpoint (copilot-provider.ts) — for every
     // model, so GPT-5 planner calls hit the wrong endpoint and every plan failed. Mirror the main
     // process. For non-GPT-5 models sdk.chat === the old sdk.languageModel, so they are unchanged.
-    if (sdk.responses === undefined && sdk.chat === undefined) return sdk.languageModel(desc.modelApiId)
-    return shouldUseCopilotResponsesApi(desc.modelApiId) ? sdk.responses(desc.modelApiId) : sdk.chat(desc.modelApiId)
+    const api =
+      sdk.responses === undefined && sdk.chat === undefined
+        ? "languageModel"
+        : shouldUseCopilotResponsesApi(desc.modelApiId)
+          ? "responses"
+          : "chat"
+    // Surface the chosen Copilot endpoint so an operator can confirm from the crawl log that
+    // GPT-5+ routes to the Responses API (and spot an endpoint mismatch after the fact).
+    send({
+      type: "log",
+      level: "info",
+      service: "hackbrowser:worker",
+      message: `copilot model "${desc.modelApiId}" -> ${api} API`,
+      extra: { model: desc.modelApiId, api },
+    })
+    if (api === "languageModel") return sdk.languageModel(desc.modelApiId)
+    return api === "responses" ? sdk.responses(desc.modelApiId) : sdk.chat(desc.modelApiId)
   }
 
   // Every other provider: resolve the SDK factory from the SHARED provider map
