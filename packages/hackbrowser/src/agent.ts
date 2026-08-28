@@ -117,21 +117,41 @@ function createBrowserHealth(): BrowserHealth {
   return { dead: false, reason: "" }
 }
 
+// Best-effort context for a browser lifecycle log — every read is guarded so a lifecycle
+// handler (especially crash/disconnect) can never throw while gathering diagnostics.
+function lifecycleContext(browser: import("playwright").Browser, page?: Page): Record<string, unknown> {
+  try {
+    const ctx: Record<string, unknown> = { connected: browser.isConnected() }
+    if (page) {
+      ctx.url = page.url()
+      ctx.openPages = page.context().pages().length
+    }
+    return ctx
+  } catch {
+    return {}
+  }
+}
+
 function attachLifecycleHandlers(browser: import("playwright").Browser, page: Page, health: BrowserHealth): void {
   browser.on("disconnected", () => {
     health.dead = true
     health.reason = "browser process disconnected"
-    log.error("browser disconnected — crawl will terminate")
+    log.error("browser disconnected — crawl will terminate", lifecycleContext(browser, page))
   })
   page.on("close", () => {
     health.dead = true
     health.reason = "page closed unexpectedly"
-    log.error("page closed — crawl will terminate")
+    log.error("page closed — crawl will terminate", lifecycleContext(browser, page))
   })
   page.on("crash", () => {
     health.dead = true
     health.reason = "page renderer crashed"
-    log.error("page crashed — crawl will terminate")
+    log.error("page crashed — crawl will terminate", lifecycleContext(browser, page))
+  })
+  // A new page/popup/tab opened in this context — logged (debug) so a partial crawl caused
+  // by a popup can be traced. Additive; there is no other context "page" listener.
+  page.context().on("page", (p) => {
+    log.debug("new page/popup opened", lifecycleContext(browser, p))
   })
 }
 
@@ -1864,7 +1884,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
   browser.on("disconnected", () => {
     health.dead = true
     health.reason = "browser process disconnected"
-    log.error("browser disconnected — multi-credential crawl will terminate")
+    log.error("browser disconnected — multi-credential crawl will terminate", lifecycleContext(browser))
   })
 
   // Single CyberStrike session for ALL credentials. Honor a host-provided
@@ -1897,12 +1917,21 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     page.on("close", () => {
       health.dead = true
       health.reason = `page closed (credential: ${cred.id})`
-      log.error("page closed — multi-credential crawl will terminate", { credential: cred.id })
+      log.error("page closed — multi-credential crawl will terminate", {
+        credential: cred.id,
+        ...lifecycleContext(browser, page),
+      })
     })
     page.on("crash", () => {
       health.dead = true
       health.reason = `page crashed (credential: ${cred.id})`
-      log.error("page crashed — multi-credential crawl will terminate", { credential: cred.id })
+      log.error("page crashed — multi-credential crawl will terminate", {
+        credential: cred.id,
+        ...lifecycleContext(browser, page),
+      })
+    })
+    browserContext.on("page", (p) => {
+      log.debug("new page/popup opened", { credential: cred.id, ...lifecycleContext(browser, p) })
     })
     attachDialogAutoAccept(page)
     attachFileChooserAutoFill(page)
