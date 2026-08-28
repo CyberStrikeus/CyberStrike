@@ -47,7 +47,10 @@ export namespace WebSend {
       net = await Network.forUrl(origin)
     } catch (e) {
       return {
-        error: { kind: "unknown", message: `outbound network config error: ${e instanceof Error ? e.message : String(e)}` },
+        error: {
+          kind: "unknown",
+          message: `outbound network config error: ${e instanceof Error ? e.message : String(e)}`,
+        },
         timing: { totalMs: 0 },
         attempts: 0,
       }

@@ -1895,7 +1895,11 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     throw new Error(`AI model required: ${String(err)}`)
   }
 
-  const browser = await Stealth.connect({ cdp: config.cdp, headless: config.headless ?? false, network: config.network })
+  const browser = await Stealth.connect({
+    cdp: config.cdp,
+    headless: config.headless ?? false,
+    network: config.network,
+  })
   const health = createBrowserHealth()
   browser.on("disconnected", () => {
     health.dead = true
@@ -2387,9 +2391,15 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     sessionID = created
   }
 
-  const browser = await Stealth.connect({ cdp: config.cdp, headless: config.headless ?? false, network: config.network })
+  const browser = await Stealth.connect({
+    cdp: config.cdp,
+    headless: config.headless ?? false,
+    network: config.network,
+  })
   const health = createBrowserHealth()
-  const context: BrowserContext = await browser.newContext(Stealth.contextOptions(config.headless ?? false, config.network))
+  const context: BrowserContext = await browser.newContext(
+    Stealth.contextOptions(config.headless ?? false, config.network),
+  )
   await context.addInitScript(Stealth.INIT_SCRIPT)
   if (panelOn) await context.addInitScript(PANEL_INIT_SCRIPT)
   const page = await context.newPage()

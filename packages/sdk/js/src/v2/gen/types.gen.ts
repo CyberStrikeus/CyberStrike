@@ -1743,6 +1743,84 @@ export type ServerConfig = {
   cors?: Array<string>
 }
 
+/**
+ * Route outbound traffic through a proxy
+ */
+export type ProxyConfig = {
+  /**
+   * Proxy server URL including the scheme, e.g. "http://127.0.0.1:8080". SOCKS ("socks5://...") works ONLY for the crawler browser and only without credentials — replayed requests cannot use a SOCKS proxy, so prefer http for full coverage
+   */
+  url?: string
+  /**
+   * Turn the proxy off without deleting the config. Defaults to true when `url` is set
+   */
+  enabled?: boolean
+  /**
+   * Proxy credentials, sent as Basic. Use {env:VAR} to keep the password out of the config file. Not supported with a SOCKS proxy, and NTLM/Negotiate proxies cannot be satisfied — a 407 from those is reported as such rather than retried
+   */
+  auth?: {
+    username: string
+    password: string
+  }
+  /**
+   * Hosts that skip the proxy. Accepts a bare host or a "*.example.com" wildcard. Loopback is always bypassed regardless of this list
+   */
+  bypass?: Array<string>
+  /**
+   * Also route LLM/provider API calls through the proxy. Off by default — when on, whoever operates the proxy can read the API key in the request headers
+   */
+  includeProviders?: boolean
+}
+
+export type ClientCertificateConfig = {
+  /**
+   * Host this certificate is used for. Give "host:port" to scope it to one port
+   */
+  host: string
+  /**
+   * Path to the client certificate (PEM)
+   */
+  certPath?: string
+  /**
+   * Path to the private key (PEM)
+   */
+  keyPath?: string
+  /**
+   * Path to a PFX/PKCS#12 bundle, instead of certPath + keyPath
+   */
+  pfxPath?: string
+  /**
+   * Passphrase for the key or PFX. Use {env:VAR}
+   */
+  passphrase?: string
+}
+
+/**
+ * TLS trust and client-certificate settings for outbound traffic
+ */
+export type TlsConfig = {
+  /**
+   * Path to an extra CA certificate to trust (PEM) — e.g. an intercepting proxy's CA. Preferred over turning verification off. Note: this applies to replayed requests; the browser trusts the OS store instead
+   */
+  caPath?: string
+  /**
+   * Verify TLS certificates for outbound requests. Unset leaves the pentest-friendly default in place: both the crawler and http_replay accept invalid or self-signed certificates, since targets routinely have them and an intercepting proxy always does. Set true for strict checking — note the crawler browser cannot use caPath for that (Chromium trusts the OS store), so an intercepting proxy's CA must be installed there. A per-call insecure_tls still overrides this for that one call
+   */
+  rejectUnauthorized?: boolean
+  /**
+   * Client certificates for mutual-TLS targets, matched per host. Applies to replayed requests only — the crawler browser cannot use them (Playwright hangs on every page load when they are set), so a mutual-TLS host cannot be crawled
+   */
+  clientCertificates?: Array<ClientCertificateConfig>
+}
+
+/**
+ * Proxy and TLS settings for outbound traffic (crawler + replay engine)
+ */
+export type NetworkConfig = {
+  proxy?: ProxyConfig
+  tls?: TlsConfig
+}
+
 export type PermissionActionConfig = "ask" | "allow" | "deny"
 
 export type PermissionObjectConfig = {
@@ -2067,6 +2145,7 @@ export type Config = {
     diff_style?: "auto" | "stacked"
   }
   server?: ServerConfig
+  network?: NetworkConfig
   /**
    * Command configuration, see https://cyberstrike.io/docs/commands
    */

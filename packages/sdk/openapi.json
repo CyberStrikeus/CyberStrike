@@ -13671,6 +13671,108 @@
         },
         "additionalProperties": false
       },
+      "ProxyConfig": {
+        "description": "Route outbound traffic through a proxy",
+        "type": "object",
+        "properties": {
+          "url": {
+            "description": "Proxy server URL including the scheme, e.g. \"http://127.0.0.1:8080\". SOCKS (\"socks5://...\") works ONLY for the crawler browser and only without credentials — replayed requests cannot use a SOCKS proxy, so prefer http for full coverage",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Turn the proxy off without deleting the config. Defaults to true when `url` is set",
+            "type": "boolean"
+          },
+          "auth": {
+            "description": "Proxy credentials, sent as Basic. Use {env:VAR} to keep the password out of the config file. Not supported with a SOCKS proxy, and NTLM/Negotiate proxies cannot be satisfied — a 407 from those is reported as such rather than retried",
+            "type": "object",
+            "properties": {
+              "username": {
+                "type": "string"
+              },
+              "password": {
+                "type": "string"
+              }
+            },
+            "required": ["username", "password"],
+            "additionalProperties": false
+          },
+          "bypass": {
+            "description": "Hosts that skip the proxy. Accepts a bare host or a \"*.example.com\" wildcard. Loopback is always bypassed regardless of this list",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "includeProviders": {
+            "description": "Also route LLM/provider API calls through the proxy. Off by default — when on, whoever operates the proxy can read the API key in the request headers",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ClientCertificateConfig": {
+        "type": "object",
+        "properties": {
+          "host": {
+            "description": "Host this certificate is used for. Give \"host:port\" to scope it to one port",
+            "type": "string"
+          },
+          "certPath": {
+            "description": "Path to the client certificate (PEM)",
+            "type": "string"
+          },
+          "keyPath": {
+            "description": "Path to the private key (PEM)",
+            "type": "string"
+          },
+          "pfxPath": {
+            "description": "Path to a PFX/PKCS#12 bundle, instead of certPath + keyPath",
+            "type": "string"
+          },
+          "passphrase": {
+            "description": "Passphrase for the key or PFX. Use {env:VAR}",
+            "type": "string"
+          }
+        },
+        "required": ["host"],
+        "additionalProperties": false
+      },
+      "TlsConfig": {
+        "description": "TLS trust and client-certificate settings for outbound traffic",
+        "type": "object",
+        "properties": {
+          "caPath": {
+            "description": "Path to an extra CA certificate to trust (PEM) — e.g. an intercepting proxy's CA. Preferred over turning verification off. Note: this applies to replayed requests; the browser trusts the OS store instead",
+            "type": "string"
+          },
+          "rejectUnauthorized": {
+            "description": "Verify TLS certificates for outbound requests. Unset leaves the pentest-friendly default in place: both the crawler and http_replay accept invalid or self-signed certificates, since targets routinely have them and an intercepting proxy always does. Set true for strict checking — note the crawler browser cannot use caPath for that (Chromium trusts the OS store), so an intercepting proxy's CA must be installed there. A per-call insecure_tls still overrides this for that one call",
+            "type": "boolean"
+          },
+          "clientCertificates": {
+            "description": "Client certificates for mutual-TLS targets, matched per host. Applies to replayed requests only — the crawler browser cannot use them (Playwright hangs on every page load when they are set), so a mutual-TLS host cannot be crawled",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClientCertificateConfig"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "NetworkConfig": {
+        "description": "Proxy and TLS settings for outbound traffic (crawler + replay engine)",
+        "type": "object",
+        "properties": {
+          "proxy": {
+            "$ref": "#/components/schemas/ProxyConfig"
+          },
+          "tls": {
+            "$ref": "#/components/schemas/TlsConfig"
+          }
+        },
+        "additionalProperties": false
+      },
       "PermissionActionConfig": {
         "type": "string",
         "enum": ["ask", "allow", "deny"]
@@ -14383,6 +14485,9 @@
           },
           "server": {
             "$ref": "#/components/schemas/ServerConfig"
+          },
+          "network": {
+            "$ref": "#/components/schemas/NetworkConfig"
           },
           "command": {
             "description": "Command configuration, see https://cyberstrike.io/docs/commands",

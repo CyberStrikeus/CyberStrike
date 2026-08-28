@@ -1087,9 +1087,7 @@ export namespace Config {
 
   export const ClientCertificate = z
     .object({
-      host: z
-        .string()
-        .describe('Host this certificate is used for. Give "host:port" to scope it to one port'),
+      host: z.string().describe('Host this certificate is used for. Give "host:port" to scope it to one port'),
       certPath: z.string().optional().describe("Path to the client certificate (PEM)"),
       keyPath: z.string().optional().describe("Path to the private key (PEM)"),
       pfxPath: z.string().optional().describe("Path to a PFX/PKCS#12 bundle, instead of certPath + keyPath"),
