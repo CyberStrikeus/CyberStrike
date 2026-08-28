@@ -13,6 +13,7 @@
 //   - The replay backends stay pure: they accept these options, they never read
 //     config themselves (they are unit-tested with no network and no Instance).
 
+import { AsyncLocalStorage } from "async_hooks"
 import { readFileSync } from "fs"
 import { Config } from "../config/config"
 import { Log } from "../util/log"
@@ -70,10 +71,22 @@ export namespace Network {
     }
   }
 
-  // Loopback is bypassed unconditionally: the crawler posts captured traffic to
-  // the local server, and routing that through an external proxy would break
-  // ingest and mirror every capture into the proxy's history.
+  // Loopback is bypassed by DEFAULT, not by law. The default is right for the
+  // usual shape — an external proxy cannot reach back to our own local server,
+  // and every capture would be mirrored into its history. But a target on
+  // localhost is ordinary (an app in Docker, a staging build, an SSH tunnel),
+  // and with the proxy on the same machine there is nothing to protect it from.
+  // network.proxy.includeLoopback turns the default off.
   const LOOPBACK = new Set(["localhost", "127.0.0.1", "::1", "[::1]", "0.0.0.0"])
+
+  // The same rule for the two consumers that need PATTERNS rather than a
+  // predicate: a child process's NO_PROXY and Chromium's bypass list. It was
+  // written out separately in both and they had already drifted from the
+  // predicate above — 127.0.0.2 was bypassed for replayed requests but proxied
+  // in the browser and in a script. One list now, so they cannot disagree again.
+  // (127.x beyond 127.0.0.1 stays outside it: NO_PROXY has no range syntax, and
+  // a rule only half the consumers can express is the drift this replaces.)
+  const LOOPBACK_PATTERNS = ["localhost", ".localhost", "127.0.0.1", "::1"]
 
   /**
    * One spelling for a host before any comparison: lowercased, trailing dots
@@ -126,9 +139,14 @@ export namespace Network {
     return h === p || h.endsWith("." + p)
   }
 
-  /** Should this host skip the proxy? Loopback always does. */
-  export function isBypassed(host: string, bypass: readonly string[] = []): boolean {
-    if (isLoopback(host)) return true
+  /**
+   * Should this host skip the proxy? Loopback does unless the caller passes
+   * includeLoopback, which is how network.proxy.includeLoopback reaches here.
+   * Kept pure — the flag is a parameter, not a config read, so this stays
+   * testable and the config is read in one place (forHost).
+   */
+  export function isBypassed(host: string, bypass: readonly string[] = [], includeLoopback = false): boolean {
+    if (!includeLoopback && isLoopback(host)) return true
     return bypass.some((p) => matchHost(p, host))
   }
 
@@ -253,7 +271,7 @@ export namespace Network {
 
     const out: Outbound = {}
 
-    if (proxyActive(cfg) && !isBypassed(host, cfg.proxy!.bypass ?? [])) {
+    if (proxyActive(cfg) && !isBypassed(host, cfg.proxy!.bypass ?? [], cfg.proxy!.includeLoopback === true)) {
       const parsed = parseProxyUrl(cfg.proxy!.url!)
       // Measured: the fetch runtime rejects SOCKS outright (UnsupportedProxyProtocol),
       // so replayed requests cannot use one — only the crawler's browser can. The
@@ -367,9 +385,66 @@ export namespace Network {
    * browser, since library implementations differ on whether a bare host also
    * covers its subdomains.
    */
+  /**
+   * The NO_PROXY value config implies: loopback (unless includeLoopback) plus
+   * every bypass entry, in the exact+suffix pairs library implementations
+   * disagree about. Shared with the crawler subprocess, which needs the same
+   * rule for a different reason — see AMBIENT_NEUTRALISED below.
+   */
+  export async function noProxyList(): Promise<string> {
+    const cfg = (await Config.get()).network
+    const out = cfg?.proxy?.includeLoopback === true ? [] : [...LOOPBACK_PATTERNS]
+    for (const p of cfg?.proxy?.bypass ?? []) {
+      const base = normalizeHost(p.startsWith("*.") ? p.slice(2) : p)
+      if (base && !base.includes("*")) out.push(base, `.${base}`)
+    }
+    return out.join(",")
+  }
+
+  /** True when the operator's shell exports a proxy we did not configure. */
+  export function ambientProxy(): string | undefined {
+    return (
+      process.env.HTTPS_PROXY ||
+      process.env.https_proxy ||
+      process.env.HTTP_PROXY ||
+      process.env.http_proxy ||
+      process.env.ALL_PROXY ||
+      process.env.all_proxy ||
+      undefined
+    )
+  }
+
+  /**
+   * Environment additions for a child we DO own (the crawler subprocess), whose
+   * only job here is to stop an ambient proxy from capturing traffic config
+   * never routed. The subprocess posts every captured request to our local
+   * server; with HTTP_PROXY exported in the operator's shell that POST goes to
+   * the corporate proxy instead and the crawl silently produces nothing.
+   *
+   * Measured: a child cannot undo its own captured proxy at runtime, but the
+   * env we hand it at spawn IS honoured — NO_PROXY included. This is the one
+   * seam where the config's bypass rule can actually be enforced.
+   */
+  export async function childProtectedEnv(): Promise<Record<string, string>> {
+    const list = await noProxyList()
+    if (!list) return {}
+    const existing = process.env.NO_PROXY || process.env.no_proxy || ""
+    const merged = existing ? `${existing},${list}` : list
+    return { NO_PROXY: merged, no_proxy: merged }
+  }
+
   export async function childEnv(): Promise<Record<string, string>> {
     const cfg = (await Config.get()).network
-    if (!proxyActive(cfg)) return {}
+    if (!proxyActive(cfg)) {
+      // "No proxy configured" and "proxy turned OFF" are different statements.
+      // Silence leaves the machine's own HTTP_PROXY in charge, which is right
+      // when the user said nothing and wrong when they said off — a script would
+      // then use a proxy the config explicitly disabled.
+      if (cfg?.proxy?.enabled === false) {
+        return { HTTP_PROXY: "", http_proxy: "", HTTPS_PROXY: "", https_proxy: "", ALL_PROXY: "", all_proxy: "" }
+      }
+      return {}
+    }
     const parsed = parseProxyUrl(cfg!.proxy!.url!)
     // SOCKS THROWS here, unlike forHost which warns and hands the proxy over.
     // The difference is what a caller can do with the answer: a replayed request
@@ -386,11 +461,7 @@ export namespace Network {
       )
     }
     const url = toProxyUrl(cfg!.proxy!.url!, cfg!.proxy!.auth?.username, cfg!.proxy!.auth?.password)
-    const noProxy = ["localhost", ".localhost", "127.0.0.1", "::1"]
-    for (const p of cfg!.proxy!.bypass ?? []) {
-      const base = normalizeHost(p.startsWith("*.") ? p.slice(2) : p)
-      if (base && !base.includes("*")) noProxy.push(base, `.${base}`)
-    }
+    const noProxy = await noProxyList()
     const env: Record<string, string> = {
       HTTP_PROXY: url,
       http_proxy: url,
@@ -398,8 +469,8 @@ export namespace Network {
       https_proxy: url,
       ALL_PROXY: url,
       all_proxy: url,
-      NO_PROXY: noProxy.join(","),
-      no_proxy: noProxy.join(","),
+      NO_PROXY: noProxy,
+      no_proxy: noProxy,
     }
     // Honoured by requests/gh when they verify at all; harmless otherwise.
     if (cfg!.tls?.caPath) {
@@ -420,12 +491,101 @@ export namespace Network {
   }
 
   /**
-   * Whether provider/LLM API traffic may go through the proxy. Off unless the
-   * user opts in — when on, the proxy operator can read the API key.
+   * Whether CyberStrike's OWN outbound traffic may go through the proxy. Off
+   * unless the user opts in — when on, the proxy operator can read the API keys
+   * and OAuth tokens those requests carry.
+   *
+   * Traffic aimed at the TARGET is not gated by this: those senders resolve the
+   * transport themselves and a configured `url` is enough.
    */
-  export async function includeProviders(): Promise<boolean> {
+  export async function includeInternal(): Promise<boolean> {
     const cfg = (await Config.get()).network
-    return proxyActive(cfg) && cfg!.proxy!.includeProviders === true
+    return proxyActive(cfg) && cfg!.proxy!.includeInternal === true
+  }
+
+  /**
+   * Route this process's own `fetch` through the configured proxy — ONE hook
+   * instead of a policy every present and future call site has to remember.
+   *
+   * The alternative was a helper swapped in at each known provider/auth call
+   * site. That was rejected because it makes coverage a matter of discipline: a
+   * new provider plugin (or third-party plugin code we do not control) writes a
+   * plain `fetch` and silently escapes the proxy. That exact failure already
+   * happened once here — a new sender was added and went direct while the
+   * operator believed everything was proxied. A hook cannot be forgotten.
+   *
+   * Install once, from the CLI entry point. Not on import: a global side effect
+   * at import time would reach unit tests and anything embedding this package.
+   */
+  let installed = false
+
+  /**
+   * Marks the call chain that is currently reading the config, so a fetch issued
+   * FROM INSIDE that read can be told apart from an unrelated concurrent one.
+   *
+   * This has to be call-chain scoped, not process scoped. A plain boolean held
+   * across the await looks equivalent and is not: it starves every request that
+   * arrives while one is resolving. Measured, with a module-level flag, 11 of 12
+   * parallel fetches skipped the proxy and went direct — silently, which is the
+   * worst failure this code has. `Context` is not used here because it throws
+   * when absent by design; this marker is optional by nature.
+   */
+  const resolvingConfig = new AsyncLocalStorage<true>()
+
+  export function installGlobalTransport(): void {
+    if (installed) return
+    installed = true
+    const original = globalThis.fetch
+
+    // An ambient proxy is a limit on everything below, so say it once, here.
+    // Measured: the runtime reads HTTP_PROXY at process start and there is no
+    // per-request value meaning "go direct" — undefined, "", null and false all
+    // fall back to it, and deleting the variable at runtime changes nothing. So
+    // for a host this config BYPASSES, the shell's proxy wins and nothing in
+    // this process can stop it. Loopback included, which is what breaks a crawl:
+    // the captured traffic is posted to our local server. Children we spawn are
+    // not affected — we build their environment (see childProtectedEnv).
+    const ambient = ambientProxy()
+    if (ambient) {
+      warnOnce(
+        "ambient-proxy",
+        "a proxy is set in this shell's environment, so outbound requests use it whether or not network.proxy says to — including hosts on the bypass list and localhost. Unset HTTP_PROXY/HTTPS_PROXY before starting CyberStrike to let its own settings decide, or add the hosts to the shell's NO_PROXY as well.",
+        { proxy: proxyAuthority(ambient) },
+      )
+    }
+
+    globalThis.fetch = (async (input: any, init?: any) => {
+      // The caller already decided this request's transport (the replay backends
+      // pass resolved proxy/TLS fields). Re-deriving it here would apply policy
+      // twice and could overwrite deliberate per-call choices.
+      if (init && ("proxy" in init || "tls" in init)) return original(input, init)
+
+      // Reading the config can itself fetch (a remote well-known config), which
+      // would re-enter this hook and await the very config load it is inside —
+      // a deadlock. Going direct here is not a compromise: a proxy DERIVED from
+      // the config cannot apply to the request that loads that config.
+      if (resolvingConfig.getStore()) return original(input, init)
+
+      let transport: ReturnType<typeof toFetchInit> = {}
+      try {
+        transport = await resolvingConfig.run(true, async () => {
+          if (!(await includeInternal())) return {}
+          return toFetchInit(await forUrl(urlOf(input)))
+        })
+      } catch {
+        // No Instance context (early CLI paths), or an unreadable config. Behave
+        // exactly as if this hook were not installed rather than failing a request.
+      }
+
+      return original(input, Object.keys(transport).length > 0 ? { ...init, ...transport } : init)
+    }) as typeof globalThis.fetch
+  }
+
+  /** The request's URL, whichever of fetch's three input shapes was used. */
+  function urlOf(input: unknown): string {
+    if (typeof input === "string") return input
+    if (input instanceof URL) return input.href
+    return String((input as { url?: string })?.url ?? input)
   }
 
   /**
@@ -458,10 +618,14 @@ export namespace Network {
           "network.proxy: the browser cannot authenticate to a SOCKS proxy. Remove network.proxy.auth, or use an http:// proxy, which supports credentials.",
         )
       }
-      // Loopback is added explicitly: the browser has no notion of our
-      // always-bypass rule, and Chromium in fact FORCES loopback through the
-      // proxy unless the list names it.
-      const bypass = ["localhost", ".localhost", "127.0.0.1", "::1", ...toChromiumBypass(cfg.proxy!.bypass ?? [])]
+      // Loopback is named explicitly: the browser has no notion of our default,
+      // and Chromium in fact FORCES loopback through the proxy unless the list
+      // says otherwise. Measured both ways — dropping these entries is all it
+      // takes to make the browser proxy a localhost target.
+      const bypass = [
+        ...(cfg.proxy!.includeLoopback === true ? [] : LOOPBACK_PATTERNS),
+        ...toChromiumBypass(cfg.proxy!.bypass ?? []),
+      ]
       out.proxy = {
         server: cfg.proxy!.url!,
         username: cfg.proxy!.auth?.username,

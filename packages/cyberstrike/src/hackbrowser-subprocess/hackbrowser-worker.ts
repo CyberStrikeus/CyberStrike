@@ -89,7 +89,7 @@ function applyAnthropicBearerBody(
  * Merge the parent-resolved outbound policy into a fetch init. Applied to EVERY
  * provider branch below, so the crawl planner's own model calls honour the same
  * proxy the rest of the tool uses — but only when the parent sent one, which it
- * does only under network.proxy.includeProviders. Exported so the wiring can be
+ * does only under network.proxy.includeInternal. Exported so the wiring can be
  * exercised without spawning the whole subprocess.
  */
 export function applyTransport(desc: ModelDescriptor, init?: any): any {

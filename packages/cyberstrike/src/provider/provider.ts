@@ -1140,20 +1140,11 @@ export namespace Provider {
           }
         }
 
-        // Outbound proxy/TLS for provider traffic. OFF unless the operator sets
-        // network.proxy.includeProviders — routing model calls through a proxy
-        // exposes the API key to whoever runs it, so it must be a deliberate act.
-        // Resolved per request against the actual endpoint so the bypass list and
-        // per-host certificates apply here the same as anywhere else.
-        let transport: ReturnType<typeof Network.toFetchInit> = {}
-        if (await Network.includeProviders()) {
-          const url = typeof input === "string" ? input : (input?.url ?? String(input))
-          transport = Network.toFetchInit(await Network.forUrl(url))
-        }
-
+        // No proxy/TLS handling here: Network.installGlobalTransport hooks the
+        // process's fetch, so provider traffic is routed by the same rule as
+        // every other outbound request instead of by a copy kept in this file.
         return fetchFn(input, {
           ...opts,
-          ...transport,
           // @ts-ignore see here: https://github.com/oven-sh/bun/issues/16682
           timeout: false,
         })

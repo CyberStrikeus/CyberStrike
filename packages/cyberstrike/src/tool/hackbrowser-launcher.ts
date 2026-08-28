@@ -217,7 +217,7 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
   // Resolved here, against the model's own endpoint, so the bypass list applies —
   // and only under the same opt-in that governs provider traffic in-process.
   let providerNetwork: ModelDescriptor["network"]
-  if (await Network.includeProviders()) {
+  if (await Network.includeInternal()) {
     const endpoint = modelDescriptor.baseURL ?? modelDetails.api?.url
     if (endpoint) {
       const net = await Network.forUrl(endpoint)
@@ -530,11 +530,19 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
   // Inherits full parent env so AWS/GCP/other provider credentials
   // (AWS_ACCESS_KEY_ID, GOOGLE_APPLICATION_CREDENTIALS, etc.) are
   // available to the worker without explicit forwarding.
+  // The worker posts every captured request back to our local server. If the
+  // operator's shell exports HTTP_PROXY the runtime picks it up at process
+  // start, that POST goes to their proxy instead, and the crawl silently
+  // captures nothing. The worker cannot undo that from the inside — but this
+  // is the process that builds its environment, so the bypass rule can be
+  // enforced right here. The worker's real outbound traffic is unaffected: its
+  // browser gets the proxy through Playwright and its model calls through the
+  // transport in its ModelDescriptor, both explicit.
   const proc = Bun.spawn([prepared.runtime, prepared.workerPath], {
     stdin: "pipe",
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...process.env },
+    env: { ...process.env, ...(await Network.childProtectedEnv()) },
   })
 
   activeRuns.set(opts.sessionID, { proc, modelInfo: prepared.modelInfo })
