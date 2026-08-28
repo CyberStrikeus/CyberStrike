@@ -169,7 +169,12 @@ function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
         headers.delete("authorization")
         headers.set("Authorization", `Bearer ${token}`)
         headers.set("x-initiator", "user")
-        headers.set("User-Agent", `cyberstrike/${CYBERSTRIKE_VERSION}`)
+        // CYBERSTRIKE_VERSION is a build-time define that the standalone worker bundle does not
+        // inject, so referencing it bare throws ReferenceError here (in the subprocess) and every
+        // planner call fails → the crawl "completes" with no plan. Guard it exactly like
+        // Installation.VERSION does (installation/index.ts) so it falls back to "local" instead.
+        const version = typeof CYBERSTRIKE_VERSION === "string" ? CYBERSTRIKE_VERSION : "local"
+        headers.set("User-Agent", `cyberstrike/${version}`)
         headers.set("Openai-Intent", "conversation-edits")
         return fetch(
           url,
