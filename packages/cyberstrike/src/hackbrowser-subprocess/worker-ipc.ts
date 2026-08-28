@@ -41,7 +41,7 @@ export interface ModelDescriptor {
   // Outbound proxy/TLS for the worker's OWN provider calls (the crawl planner).
   // The worker runs in a separate process and cannot read cyberstrike's config,
   // so the parent resolves this and ships it — but ONLY when the operator opted
-  // in via network.proxy.includeProviders. Absent = direct, which is the default.
+  // in via network.proxy.includeInternal. Absent = direct, which is the default.
   network?: {
     proxy?: string
     ca?: string

@@ -420,12 +420,72 @@ export namespace Network {
   }
 
   /**
-   * Whether provider/LLM API traffic may go through the proxy. Off unless the
-   * user opts in — when on, the proxy operator can read the API key.
+   * Whether CyberStrike's OWN outbound traffic may go through the proxy. Off
+   * unless the user opts in — when on, the proxy operator can read the API keys
+   * and OAuth tokens those requests carry.
+   *
+   * Traffic aimed at the TARGET is not gated by this: those senders resolve the
+   * transport themselves and a configured `url` is enough.
    */
-  export async function includeProviders(): Promise<boolean> {
+  export async function includeInternal(): Promise<boolean> {
     const cfg = (await Config.get()).network
-    return proxyActive(cfg) && cfg!.proxy!.includeProviders === true
+    return proxyActive(cfg) && cfg!.proxy!.includeInternal === true
+  }
+
+  /**
+   * Route this process's own `fetch` through the configured proxy — ONE hook
+   * instead of a policy every present and future call site has to remember.
+   *
+   * The alternative was a helper swapped in at each known provider/auth call
+   * site. That was rejected because it makes coverage a matter of discipline: a
+   * new provider plugin (or third-party plugin code we do not control) writes a
+   * plain `fetch` and silently escapes the proxy. That exact failure already
+   * happened once here — a new sender was added and went direct while the
+   * operator believed everything was proxied. A hook cannot be forgotten.
+   *
+   * Install once, from the CLI entry point. Not on import: a global side effect
+   * at import time would reach unit tests and anything embedding this package.
+   */
+  let installed = false
+  let resolvingConfig = false
+
+  export function installGlobalTransport(): void {
+    if (installed) return
+    installed = true
+    const original = globalThis.fetch
+
+    globalThis.fetch = (async (input: any, init?: any) => {
+      // The caller already decided this request's transport (the replay backends
+      // pass resolved proxy/TLS fields). Re-deriving it here would apply policy
+      // twice and could overwrite deliberate per-call choices.
+      if (init && ("proxy" in init || "tls" in init)) return original(input, init)
+
+      // Reading the config can itself fetch (a remote well-known config), which
+      // would re-enter this hook and await the very config load it is inside —
+      // a deadlock. Going direct here is not a compromise: a proxy DERIVED from
+      // the config cannot apply to the request that loads that config.
+      if (resolvingConfig) return original(input, init)
+
+      let transport: ReturnType<typeof toFetchInit> = {}
+      resolvingConfig = true
+      try {
+        if (await includeInternal()) transport = toFetchInit(await forUrl(urlOf(input)))
+      } catch {
+        // No Instance context (early CLI paths), or an unreadable config. Behave
+        // exactly as if this hook were not installed rather than failing a request.
+      } finally {
+        resolvingConfig = false
+      }
+
+      return original(input, Object.keys(transport).length > 0 ? { ...init, ...transport } : init)
+    }) as typeof globalThis.fetch
+  }
+
+  /** The request's URL, whichever of fetch's three input shapes was used. */
+  function urlOf(input: unknown): string {
+    if (typeof input === "string") return input
+    if (input instanceof URL) return input.href
+    return String((input as { url?: string })?.url ?? input)
   }
 
   /**

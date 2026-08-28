@@ -33,6 +33,12 @@ import path from "path"
 import { Global } from "./global"
 import { JsonMigration } from "./storage/json-migration"
 import { Database } from "./storage/db"
+import { Network } from "./network/network"
+
+// Route this process's own outbound HTTP through the configured proxy. Installed
+// once, here, because it is a process-wide effect that belongs to running the CLI
+// — not to importing the package. No-ops unless network.proxy.includeInternal.
+Network.installGlobalTransport()
 
 process.on("unhandledRejection", (e) => {
   Log.Default.error("rejection", {

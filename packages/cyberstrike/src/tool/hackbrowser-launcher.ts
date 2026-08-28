@@ -217,7 +217,7 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
   // Resolved here, against the model's own endpoint, so the bypass list applies —
   // and only under the same opt-in that governs provider traffic in-process.
   let providerNetwork: ModelDescriptor["network"]
-  if (await Network.includeProviders()) {
+  if (await Network.includeInternal()) {
     const endpoint = modelDescriptor.baseURL ?? modelDetails.api?.url
     if (endpoint) {
       const net = await Network.forUrl(endpoint)
