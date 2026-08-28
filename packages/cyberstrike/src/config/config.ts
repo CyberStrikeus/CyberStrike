@@ -1070,7 +1070,13 @@ export namespace Config {
         .array(z.string())
         .optional()
         .describe(
-          'Hosts that skip the proxy. Accepts a bare host or a "*.example.com" wildcard. Loopback is always bypassed regardless of this list',
+          'Hosts that skip the proxy. Accepts a bare host or a "*.example.com" wildcard. Loopback also skips it unless `includeLoopback` says otherwise',
+        ),
+      includeLoopback: z
+        .boolean()
+        .optional()
+        .describe(
+          "Send localhost traffic through the proxy too, so a target on 127.0.0.1 can be tested through it. Off by default. This is all-or-nothing — it covers CyberStrike's own local traffic as well, so it only makes sense when the proxy runs on this machine; an external proxy cannot reach back here",
         ),
       includeInternal: z
         .boolean()

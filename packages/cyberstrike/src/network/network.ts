@@ -71,10 +71,22 @@ export namespace Network {
     }
   }
 
-  // Loopback is bypassed unconditionally: the crawler posts captured traffic to
-  // the local server, and routing that through an external proxy would break
-  // ingest and mirror every capture into the proxy's history.
+  // Loopback is bypassed by DEFAULT, not by law. The default is right for the
+  // usual shape — an external proxy cannot reach back to our own local server,
+  // and every capture would be mirrored into its history. But a target on
+  // localhost is ordinary (an app in Docker, a staging build, an SSH tunnel),
+  // and with the proxy on the same machine there is nothing to protect it from.
+  // network.proxy.includeLoopback turns the default off.
   const LOOPBACK = new Set(["localhost", "127.0.0.1", "::1", "[::1]", "0.0.0.0"])
+
+  // The same rule for the two consumers that need PATTERNS rather than a
+  // predicate: a child process's NO_PROXY and Chromium's bypass list. It was
+  // written out separately in both and they had already drifted from the
+  // predicate above — 127.0.0.2 was bypassed for replayed requests but proxied
+  // in the browser and in a script. One list now, so they cannot disagree again.
+  // (127.x beyond 127.0.0.1 stays outside it: NO_PROXY has no range syntax, and
+  // a rule only half the consumers can express is the drift this replaces.)
+  const LOOPBACK_PATTERNS = ["localhost", ".localhost", "127.0.0.1", "::1"]
 
   /**
    * One spelling for a host before any comparison: lowercased, trailing dots
@@ -127,9 +139,14 @@ export namespace Network {
     return h === p || h.endsWith("." + p)
   }
 
-  /** Should this host skip the proxy? Loopback always does. */
-  export function isBypassed(host: string, bypass: readonly string[] = []): boolean {
-    if (isLoopback(host)) return true
+  /**
+   * Should this host skip the proxy? Loopback does unless the caller passes
+   * includeLoopback, which is how network.proxy.includeLoopback reaches here.
+   * Kept pure — the flag is a parameter, not a config read, so this stays
+   * testable and the config is read in one place (forHost).
+   */
+  export function isBypassed(host: string, bypass: readonly string[] = [], includeLoopback = false): boolean {
+    if (!includeLoopback && isLoopback(host)) return true
     return bypass.some((p) => matchHost(p, host))
   }
 
@@ -254,7 +271,7 @@ export namespace Network {
 
     const out: Outbound = {}
 
-    if (proxyActive(cfg) && !isBypassed(host, cfg.proxy!.bypass ?? [])) {
+    if (proxyActive(cfg) && !isBypassed(host, cfg.proxy!.bypass ?? [], cfg.proxy!.includeLoopback === true)) {
       const parsed = parseProxyUrl(cfg.proxy!.url!)
       // Measured: the fetch runtime rejects SOCKS outright (UnsupportedProxyProtocol),
       // so replayed requests cannot use one — only the crawler's browser can. The
@@ -387,7 +404,7 @@ export namespace Network {
       )
     }
     const url = toProxyUrl(cfg!.proxy!.url!, cfg!.proxy!.auth?.username, cfg!.proxy!.auth?.password)
-    const noProxy = ["localhost", ".localhost", "127.0.0.1", "::1"]
+    const noProxy = cfg!.proxy!.includeLoopback === true ? [] : [...LOOPBACK_PATTERNS]
     for (const p of cfg!.proxy!.bypass ?? []) {
       const base = normalizeHost(p.startsWith("*.") ? p.slice(2) : p)
       if (base && !base.includes("*")) noProxy.push(base, `.${base}`)
@@ -531,10 +548,14 @@ export namespace Network {
           "network.proxy: the browser cannot authenticate to a SOCKS proxy. Remove network.proxy.auth, or use an http:// proxy, which supports credentials.",
         )
       }
-      // Loopback is added explicitly: the browser has no notion of our
-      // always-bypass rule, and Chromium in fact FORCES loopback through the
-      // proxy unless the list names it.
-      const bypass = ["localhost", ".localhost", "127.0.0.1", "::1", ...toChromiumBypass(cfg.proxy!.bypass ?? [])]
+      // Loopback is named explicitly: the browser has no notion of our default,
+      // and Chromium in fact FORCES loopback through the proxy unless the list
+      // says otherwise. Measured both ways — dropping these entries is all it
+      // takes to make the browser proxy a localhost target.
+      const bypass = [
+        ...(cfg.proxy!.includeLoopback === true ? [] : LOOPBACK_PATTERNS),
+        ...toChromiumBypass(cfg.proxy!.bypass ?? []),
+      ]
       out.proxy = {
         server: cfg.proxy!.url!,
         username: cfg.proxy!.auth?.username,
