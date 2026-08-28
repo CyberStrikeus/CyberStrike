@@ -1749,9 +1749,39 @@ function resolveUrl(href: string, baseUrl: string, inScope: ScopeMatcher): strin
 
 /** Collect <a href> links from DOM as BFS supplement. */
 async function collectDOMLinks(page: Page, pageUrl: string, inScope: ScopeMatcher): Promise<string[]> {
-  const hrefs: string[] = await page.$$eval("a[href]", (els) =>
-    els.map((el) => (el as HTMLAnchorElement).href).filter(Boolean),
-  )
+  // Anchors, plus unambiguous button/element navigation that <a href> misses on SPAs:
+  // data-href, and onclick handlers that assign location / call location.assign /
+  // window.open. Deliberately NOT navigate()/push()/go() — those collide with analytics
+  // and Array.push, so extracting them would enqueue phantom pages.
+  const hrefs: string[] = await page.$$eval("a[href], [data-href], [onclick]", (els) => {
+    const out: string[] = []
+    for (const el of els) {
+      const a = el as HTMLAnchorElement
+      if (a.tagName === "A" && a.href) {
+        out.push(a.href)
+        continue
+      }
+      const dataHref = el.getAttribute("data-href")
+      if (dataHref) out.push(dataHref)
+      const onclick = el.getAttribute("onclick")
+      if (onclick) {
+        const m =
+          onclick.match(/(?:window\.)?location(?:\.href)?\s*=\s*['"]([^'"]+)['"]/) ||
+          onclick.match(/location\.assign\s*\(\s*['"]([^'"]+)['"]/) ||
+          onclick.match(/window\.open\s*\(\s*['"]([^'"]+)['"]/)
+        if (m) out.push(m[1])
+      }
+    }
+    // Resolve relative targets (data-href/onclick) against the page; anchor hrefs are
+    // already absolute so this is idempotent for them.
+    return out.map((h) => {
+      try {
+        return new URL(h, location.href).href
+      } catch {
+        return ""
+      }
+    })
+  })
 
   const results: string[] = []
   const seen = new Set<string>()
