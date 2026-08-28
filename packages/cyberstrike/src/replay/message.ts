@@ -145,4 +145,34 @@ export namespace HttpMessage {
   export function toString(req: Request): string {
     return decoder.decode(serialize(req))
   }
+
+  /**
+   * Build a Request from structured parts — the counterpart to `parse` for a
+   * request constructed from a URL rather than captured bytes. Emits origin-form
+   * request-target (path?query), a Host header from the URL, and a Content-Length
+   * when a body is present and none was supplied. The caller derives the sendable
+   * origin from the same URL (`scheme://host`).
+   */
+  export function build(input: {
+    method: string
+    url: URL
+    headers?: Record<string, string>
+    body?: string | Uint8Array
+  }): Request {
+    const headers: Header[] = [{ name: "Host", value: input.url.host }]
+    if (input.headers)
+      for (const [name, value] of Object.entries(input.headers)) headers.push({ name, value: String(value) })
+    const body =
+      input.body == null ? new Uint8Array(0) : typeof input.body === "string" ? encoder.encode(input.body) : input.body
+    if (body.length > 0 && !headers.some((h) => h.name.toLowerCase() === "content-length")) {
+      headers.push({ name: "Content-Length", value: String(body.length) })
+    }
+    return {
+      method: input.method.toUpperCase(),
+      target: (input.url.pathname || "/") + input.url.search,
+      version: "HTTP/1.1",
+      headers,
+      body,
+    }
+  }
 }

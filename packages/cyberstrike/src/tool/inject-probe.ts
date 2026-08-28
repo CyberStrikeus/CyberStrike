@@ -4,6 +4,10 @@ import { Tool } from "./tool"
 import { Request } from "../session/request"
 import { WebCredential } from "../session/web/web-credential"
 import { Session } from "../session"
+import { HttpMessage } from "../replay/message"
+import { Send } from "../replay/send"
+import { Governor } from "../replay/governor"
+import { BackendFetch } from "../replay/backend-fetch"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // inject_probe (v1 — XSS only) — an EVIDENCE ENGINE, NOT an oracle.
@@ -866,9 +870,13 @@ function guardHost(r: ResolvedRequest, target: URL): { ok: true } | { ok: false;
 
 // Hard upper bound on total sends per tool call (WAF-ban + DoS + context guard). When hit,
 // remaining probes are skipped and reported as truncated rather than exploding silently.
+// `gov` carries ONE governor for the whole battery (created once per tool call), so the
+// GlobalBudget / CircuitBreaker accumulate across all sends and can trip mid-battery — the
+// session-wide sharing across tools is deferred to the governor-wiring issue (#91).
 interface SendBudget {
   sent: number
   max: number
+  gov: { budget: Governor.GlobalBudget; breaker: Governor.CircuitBreaker }
 }
 
 // A curated subset of response headers the agent needs to reason about (DB/engine fingerprint,
@@ -918,30 +926,59 @@ async function send(
   const guard = guardHost(r, u)
   if (!guard.ok) return { error: guard.reason }
   const sendHeaders: Record<string, string> = { ...(target.headers ?? r.headers) }
-  delete sendHeaders["content-length"] // recomputed by fetch
-  delete sendHeaders["host"]
-  // combine the caller's abort with a per-request deadline — the deadline signal governs BOTH the
-  // fetch (connect/headers) and the streamed `resp.text()` body read, so neither can hang forever.
+  delete sendHeaders["content-length"] // HttpMessage.build recomputes it
+  delete sendHeaders["host"] // HttpMessage.build sets Host from the URL
+  // Combine the caller's abort with a per-request deadline so neither connect/headers nor the
+  // body read can hang forever (tarpit / rate-limit). A hit surfaces as a timeout (WAF/tarpit
+  // signal), never a clean "safe".
   const signal = AbortSignal.any([abort, AbortSignal.timeout(SEND_TIMEOUT_MS)])
-  const init: RequestInit & { tls?: { rejectUnauthorized: boolean } } = {
+
+  // Send through the shared, governed replay engine (the same path http_replay uses) instead of
+  // a raw fetch: BackendFetch for transport, Send.governed for retry/circuit-breaking, one
+  // governor shared across the whole battery so a failing host trips the breaker mid-run.
+  const msg = HttpMessage.build({
     method: r.method,
+    url: u,
     headers: sendHeaders,
-    signal,
-    redirect: "manual",
-    // authorized-testing: accept self-signed on the (already in-scope) target host
-    tls: { rejectUnauthorized: false },
-  }
-  if (r.method !== "GET" && r.method !== "HEAD") init.body = target.body
-  const t0 = performance.now()
-  try {
-    const resp = await fetch(u.toString(), init as RequestInit)
-    const text = (await resp.text()).slice(0, 200_000)
-    return { status: resp.status, text, ms: Math.round(performance.now() - t0), headers: extractHeaders(resp.headers) }
-  } catch (e: any) {
-    const msg = String(e?.message ?? e)
+    body: r.method !== "GET" && r.method !== "HEAD" ? target.body : undefined,
+  })
+  const result = await Send.governed(
+    () =>
+      BackendFetch.send(msg, {
+        origin: `${u.protocol}//${u.host}`,
+        rejectUnauthorized: false, // authorized-testing: accept self-signed on the in-scope host
+        totalTimeoutMs: SEND_TIMEOUT_MS,
+        bodyCapBytes: 200_000,
+        signal,
+      }),
+    r.method,
+    budget ? { budget: budget.gov.budget, breaker: budget.gov.breaker } : {},
+    {},
+  )
+
+  // A breaker/budget skip mid-battery is a stop signal (host failing / DoS-guard), NOT a clean safe.
+  if (result.skipped) return { error: `governor skip: ${result.skipped}`, timeout: true }
+  if (result.error) {
+    const emsg = String((result.error as { message?: string })?.message ?? result.error)
     // a dropped/reset/timed-out connection is a common WAF response — flag it, don't treat as clean
-    const timeout = /timeout|timed ?out|aborted|reset|ECONNRESET|ETIMEDOUT|socket|EOF|closed/i.test(msg)
-    return { error: msg, timeout }
+    const timeout = /timeout|timed ?out|aborted|reset|ECONNRESET|ETIMEDOUT|socket|EOF|closed/i.test(emsg)
+    return { error: emsg, timeout }
+  }
+  const res = result.response!
+  // Reuse the curated header extraction (Header[] → the KEEP_HEADERS subset) via a Headers view.
+  const h = new Headers()
+  for (const { name, value } of res.headers) {
+    try {
+      h.append(name, value)
+    } catch {
+      // fetch forbids a few header names (e.g. Host); skip rather than fail the extraction.
+    }
+  }
+  return {
+    status: res.status,
+    text: new TextDecoder().decode(res.body).slice(0, 200_000),
+    ms: Math.round(result.timing.totalMs),
+    headers: extractHeaders(h),
   }
 }
 
@@ -1691,19 +1728,14 @@ export const InjectProbeTool = Tool.define("inject_probe", {
       // the SSRF-shaped hole where a model could aim probes at an arbitrary host. An
       // empty allowlist (no captured requests) is refused, not waved through.
       const sessionID = Session.root(ctx.sessionID)
-      const allowedHosts = new Set(
-        Request.get(sessionID)
-          .map((r) => r.host)
-          .filter(Boolean),
-      )
       let targetHost = ""
       try {
         targetHost = new URL(params.target.url).hostname
       } catch {}
-      if (!targetHost || allowedHosts.size === 0 || !allowedHosts.has(targetHost)) {
+      if (!targetHost || !Request.hostInScope(sessionID, targetHost)) {
         return {
           title: "inject_probe — refused (out of scope)",
-          output: `Refusing target host "${targetHost || params.target.url}": not among this session's in-scope hosts [${[...allowedHosts].join(", ") || "none captured"}]. inject_probe only reaches hosts the crawl already captured.`,
+          output: `Refusing target host "${targetHost || params.target.url}": not among this session's in-scope hosts. inject_probe only reaches hosts the crawl already captured.`,
           metadata: {},
         }
       }
@@ -1719,7 +1751,12 @@ export const InjectProbeTool = Tool.define("inject_probe", {
       return { title: "inject_probe", output: `Could not resolve request: ${resolved.error}`, metadata: {} }
     }
     const DELAY = 120
-    const budget: SendBudget = { sent: 0, max: 120 } // hard upper bound on total sends per call
+    const budget: SendBudget = {
+      sent: 0,
+      max: 120, // hard upper bound on total sends per call
+      // one governor for the whole battery — accumulates across sends so a failing host trips the breaker mid-run
+      gov: { budget: new Governor.GlobalBudget(), breaker: new Governor.CircuitBreaker() },
+    }
 
     const targetInfo = {
       method: resolved.method,

@@ -238,6 +238,21 @@ export namespace Request {
   }
 
   /**
+   * Scope query: is `host` among the hosts this session already captured? The
+   * single source of truth for the "only reach a host the crawl saw" guard that
+   * http_replay / inject_probe enforce (SSRF-shaped hole otherwise). An empty
+   * allowlist (nothing captured) is out of scope, never waved through.
+   */
+  export function hostInScope(sessionID: string, host: string): boolean {
+    const allowed = new Set(
+      get(sessionID)
+        .map((r) => r.host)
+        .filter((h): h is string => Boolean(h)),
+    )
+    return allowed.size > 0 && allowed.has(host)
+  }
+
+  /**
    * Two-stage dedup at the TEMPLATE level. Same endpoint shape (normalized
    * template) hit twice — even with different concrete paths like
    * `/users/1` vs `/users/2` — must collapse to one row so proxy-agent only

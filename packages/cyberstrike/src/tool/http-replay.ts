@@ -102,21 +102,9 @@ function safeURL(u: string): URL | undefined {
   }
 }
 
-// Every attack request must target a host the crawl already captured — closes
-// the SSRF-shaped hole where a mutated Host/target could aim at an arbitrary
-// host. Empty allowlist is refused, not waved through.
-function inScope(sessionID: string, host: string): boolean {
-  const allowed = new Set(
-    Request.get(sessionID)
-      .map((r) => r.host)
-      .filter((h): h is string => Boolean(h)),
-  )
-  return allowed.size > 0 && allowed.has(host)
-}
-
 // Build a base message + origin from a constructed target (the FALLBACK source
-// when no captured request_id is given). Mirrors what HttpMessage.parse would
-// produce for a captured request, so all downstream modes treat it identically.
+// when no captured request_id is given). Message construction lives in
+// HttpMessage.build; here we only validate the URL and derive the origin.
 function buildFromTarget(t: {
   method: string
   url: string
@@ -125,20 +113,10 @@ function buildFromTarget(t: {
 }): { baseMsg: HttpMessage.Request; origin: string } | { error: string } {
   const url = safeURL(t.url)
   if (!url) return { error: `Invalid target url "${t.url}".` }
-  const headers: HttpMessage.Header[] = [{ name: "Host", value: url.host }]
-  if (t.headers) for (const [name, value] of Object.entries(t.headers)) headers.push({ name, value: String(value) })
-  const body = t.body != null ? new TextEncoder().encode(t.body) : new Uint8Array(0)
-  if (body.length > 0 && !headers.some((h) => h.name.toLowerCase() === "content-length")) {
-    headers.push({ name: "Content-Length", value: String(body.length) })
+  return {
+    baseMsg: HttpMessage.build({ method: t.method, url, headers: t.headers, body: t.body }),
+    origin: `${url.protocol}//${url.host}`,
   }
-  const baseMsg: HttpMessage.Request = {
-    method: t.method.toUpperCase(),
-    target: (url.pathname || "/") + url.search,
-    version: "HTTP/1.1",
-    headers,
-    body,
-  }
-  return { baseMsg, origin: `${url.protocol}//${url.host}` }
 }
 
 const BODY_PREVIEW = 4096
@@ -387,7 +365,7 @@ export const HttpReplayTool = Tool.define("http_replay", {
     // Scope guard applies to BOTH sources — a constructed target must resolve to a
     // host the crawl already captured (it can reach an un-captured PATH, not a new host).
     const originHost = safeURL(origin)?.hostname ?? ""
-    if (!inScope(sessionID, originHost)) {
+    if (!Request.hostInScope(sessionID, originHost)) {
       return {
         title: "http_replay — refused (out of scope)",
         output: `Refusing host "${originHost}": not among this session's captured in-scope hosts.`,
@@ -563,7 +541,7 @@ export const HttpReplayRawTool = Tool.define("http_replay_raw", {
 
     // Scope guard applies to BOTH sources — a constructed target_url must resolve to
     // a host the crawl already captured.
-    if (!inScope(sessionID, url.hostname)) {
+    if (!Request.hostInScope(sessionID, url.hostname)) {
       return {
         title: "http_replay_raw — refused (out of scope)",
         output: `Refusing host "${url.hostname}": not among this session's captured in-scope hosts.`,
