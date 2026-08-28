@@ -2150,7 +2150,10 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
 
     // Filter: skip contexts that failed or got access-denied redirect
     // Normal redirects (e.g. / → /dashboard) are fine — only skip if redirected to login/unauthorized
-    const ACCESS_DENIED_PATTERNS = /\/(login|signin|sign-in|unauthorized|forbidden|access-denied|auth)/i
+    // NOTE: 'authenticate', not bare 'auth' — bare 'auth' matched legitimate resources like
+    // /auth/profile, /auth/settings, /authors/123 and wrongly skipped them as access-denied.
+    // Real /auth/login|signin gates are still caught via the login/signin terms.
+    const ACCESS_DENIED_PATTERNS = /\/(login|signin|sign-in|unauthorized|forbidden|access-denied|authenticate)/i
     const visitableContexts: LocalCrawlContext[] = []
 
     for (const r of navigateResults) {
