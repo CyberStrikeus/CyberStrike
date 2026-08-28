@@ -19,6 +19,7 @@ import { runCrawl } from "@cyberstrike-io/hackbrowser/api"
 import type { CrawlOptions, LogRecord, CSEvent } from "@cyberstrike-io/hackbrowser/api"
 import type { ParentMessage, WorkerMessage, WorkerOptions, ModelDescriptor } from "./worker-ipc"
 import readline from "readline"
+import tls from "node:tls"
 
 // ============================================================
 // IPC helpers
@@ -106,6 +107,16 @@ export function applyTransport(desc: ModelDescriptor, init?: any): any {
   return out
 }
 
+// Mirror of provider.ts's shouldUseCopilotResponsesApi / isGpt5OrLater. Kept local rather than
+// imported because this worker is a standalone bundle that must not pull in the heavy provider
+// module. GPT-5+ Copilot models are served on the Responses API, not Chat Completions; gpt-5-mini
+// stays on Chat Completions. modelApiId is hyphenated (e.g. "gpt-5-4"), which /^gpt-(\d+)/ still
+// matches on the leading major version.
+function shouldUseCopilotResponsesApi(modelID: string): boolean {
+  const match = /^gpt-(\d+)/.exec(modelID)
+  return match !== null && Number(match[1]) >= 5 && !modelID.startsWith("gpt-5-mini")
+}
+
 function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
   const stripSampling = desc.supportsTemperature === false
 
@@ -169,7 +180,12 @@ function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
         headers.delete("authorization")
         headers.set("Authorization", `Bearer ${token}`)
         headers.set("x-initiator", "user")
-        headers.set("User-Agent", `cyberstrike/${CYBERSTRIKE_VERSION}`)
+        // CYBERSTRIKE_VERSION is a build-time define that the standalone worker bundle does not
+        // inject, so referencing it bare throws ReferenceError here (in the subprocess) and every
+        // planner call fails → the crawl "completes" with no plan. Guard it exactly like
+        // Installation.VERSION does (installation/index.ts) so it falls back to "local" instead.
+        const version = typeof CYBERSTRIKE_VERSION === "string" ? CYBERSTRIKE_VERSION : "local"
+        headers.set("User-Agent", `cyberstrike/${version}`)
         headers.set("Openai-Intent", "conversation-edits")
         return fetch(
           url,
@@ -184,7 +200,28 @@ function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
     if (desc.baseURL) opts.baseURL = desc.baseURL
     if (desc.headers) opts.headers = desc.headers
     const sdk = factory(opts) as any
-    return sdk.languageModel(desc.modelApiId)
+    // GPT-5+ Copilot models are only served on the Responses API; the main process routes them
+    // there (provider.ts shouldUseCopilotResponsesApi). The worker used sdk.languageModel — which
+    // the Copilot SDK maps to the Chat Completions endpoint (copilot-provider.ts) — for every
+    // model, so GPT-5 planner calls hit the wrong endpoint and every plan failed. Mirror the main
+    // process. For non-GPT-5 models sdk.chat === the old sdk.languageModel, so they are unchanged.
+    const api =
+      sdk.responses === undefined && sdk.chat === undefined
+        ? "languageModel"
+        : shouldUseCopilotResponsesApi(desc.modelApiId)
+          ? "responses"
+          : "chat"
+    // Surface the chosen Copilot endpoint so an operator can confirm from the crawl log that
+    // GPT-5+ routes to the Responses API (and spot an endpoint mismatch after the fact).
+    send({
+      type: "log",
+      level: "info",
+      service: "hackbrowser:worker",
+      message: `copilot model "${desc.modelApiId}" -> ${api} API`,
+      extra: { model: desc.modelApiId, api },
+    })
+    if (api === "languageModel") return sdk.languageModel(desc.modelApiId)
+    return api === "responses" ? sdk.responses(desc.modelApiId) : sdk.chat(desc.modelApiId)
   }
 
   // Every other provider: resolve the SDK factory from the SHARED provider map
@@ -268,7 +305,32 @@ function buildCrawlOptions(opts: WorkerOptions, signal: AbortSignal): CrawlOptio
 // Main
 // ============================================================
 
+// The crawler worker runs as a separate Node (or bun) subprocess and makes its own TLS
+// connection to the LLM API — unlike the main process, whose Bun runtime already trusts the OS
+// certificate store. Node trusts only its bundled CA list, so when a corporate proxy / VPN /
+// antivirus intercepts TLS (presenting a root CA the OS trusts but Node's bundle does not), the
+// worker's LLM call fails with UNABLE_TO_GET_ISSUER_CERT_LOCALLY while the main-process chat with
+// the same token works. Merge the OS trust store into the default CA set — the same thing that
+// `node --use-system-ca` does, done here in-process. It only ADDS trust (the bundled defaults are
+// kept), so it cannot break a connection that already verifies; on runtimes without these APIs
+// (bun, Node < 22.15) it is a graceful no-op.
+function trustSystemCertificates(): void {
+  try {
+    const t = tls as unknown as {
+      getCACertificates?: (type: "default" | "system") => string[]
+      setDefaultCACertificates?: (certs: readonly string[]) => void
+    }
+    if (typeof t.getCACertificates !== "function" || typeof t.setDefaultCACertificates !== "function") return
+    const system = t.getCACertificates("system")
+    if (system.length === 0) return
+    t.setDefaultCACertificates([...t.getCACertificates("default"), ...system])
+  } catch {
+    // Best-effort: leave the default trust store unchanged if anything is unavailable.
+  }
+}
+
 async function main(): Promise<void> {
+  trustSystemCertificates()
   const controller = new AbortController()
 
   const rl = readline.createInterface({ input: process.stdin, terminal: false })
