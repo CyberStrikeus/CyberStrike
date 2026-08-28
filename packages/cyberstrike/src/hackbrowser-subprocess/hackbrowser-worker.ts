@@ -106,6 +106,16 @@ export function applyTransport(desc: ModelDescriptor, init?: any): any {
   return out
 }
 
+// Mirror of provider.ts's shouldUseCopilotResponsesApi / isGpt5OrLater. Kept local rather than
+// imported because this worker is a standalone bundle that must not pull in the heavy provider
+// module. GPT-5+ Copilot models are served on the Responses API, not Chat Completions; gpt-5-mini
+// stays on Chat Completions. modelApiId is hyphenated (e.g. "gpt-5-4"), which /^gpt-(\d+)/ still
+// matches on the leading major version.
+function shouldUseCopilotResponsesApi(modelID: string): boolean {
+  const match = /^gpt-(\d+)/.exec(modelID)
+  return match !== null && Number(match[1]) >= 5 && !modelID.startsWith("gpt-5-mini")
+}
+
 function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
   const stripSampling = desc.supportsTemperature === false
 
@@ -189,7 +199,15 @@ function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
     if (desc.baseURL) opts.baseURL = desc.baseURL
     if (desc.headers) opts.headers = desc.headers
     const sdk = factory(opts) as any
-    return sdk.languageModel(desc.modelApiId)
+    // GPT-5+ Copilot models are only served on the Responses API; the main process routes them
+    // there (provider.ts shouldUseCopilotResponsesApi). The worker used sdk.languageModel — which
+    // the Copilot SDK maps to the Chat Completions endpoint (copilot-provider.ts) — for every
+    // model, so GPT-5 planner calls hit the wrong endpoint and every plan failed. Mirror the main
+    // process. For non-GPT-5 models sdk.chat === the old sdk.languageModel, so they are unchanged.
+    if (sdk.responses === undefined && sdk.chat === undefined) return sdk.languageModel(desc.modelApiId)
+    return shouldUseCopilotResponsesApi(desc.modelApiId)
+      ? sdk.responses(desc.modelApiId)
+      : sdk.chat(desc.modelApiId)
   }
 
   // Every other provider: resolve the SDK factory from the SHARED provider map
