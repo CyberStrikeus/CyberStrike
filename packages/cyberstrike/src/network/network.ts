@@ -385,9 +385,66 @@ export namespace Network {
    * browser, since library implementations differ on whether a bare host also
    * covers its subdomains.
    */
+  /**
+   * The NO_PROXY value config implies: loopback (unless includeLoopback) plus
+   * every bypass entry, in the exact+suffix pairs library implementations
+   * disagree about. Shared with the crawler subprocess, which needs the same
+   * rule for a different reason — see AMBIENT_NEUTRALISED below.
+   */
+  export async function noProxyList(): Promise<string> {
+    const cfg = (await Config.get()).network
+    const out = cfg?.proxy?.includeLoopback === true ? [] : [...LOOPBACK_PATTERNS]
+    for (const p of cfg?.proxy?.bypass ?? []) {
+      const base = normalizeHost(p.startsWith("*.") ? p.slice(2) : p)
+      if (base && !base.includes("*")) out.push(base, `.${base}`)
+    }
+    return out.join(",")
+  }
+
+  /** True when the operator's shell exports a proxy we did not configure. */
+  export function ambientProxy(): string | undefined {
+    return (
+      process.env.HTTPS_PROXY ||
+      process.env.https_proxy ||
+      process.env.HTTP_PROXY ||
+      process.env.http_proxy ||
+      process.env.ALL_PROXY ||
+      process.env.all_proxy ||
+      undefined
+    )
+  }
+
+  /**
+   * Environment additions for a child we DO own (the crawler subprocess), whose
+   * only job here is to stop an ambient proxy from capturing traffic config
+   * never routed. The subprocess posts every captured request to our local
+   * server; with HTTP_PROXY exported in the operator's shell that POST goes to
+   * the corporate proxy instead and the crawl silently produces nothing.
+   *
+   * Measured: a child cannot undo its own captured proxy at runtime, but the
+   * env we hand it at spawn IS honoured — NO_PROXY included. This is the one
+   * seam where the config's bypass rule can actually be enforced.
+   */
+  export async function childProtectedEnv(): Promise<Record<string, string>> {
+    const list = await noProxyList()
+    if (!list) return {}
+    const existing = process.env.NO_PROXY || process.env.no_proxy || ""
+    const merged = existing ? `${existing},${list}` : list
+    return { NO_PROXY: merged, no_proxy: merged }
+  }
+
   export async function childEnv(): Promise<Record<string, string>> {
     const cfg = (await Config.get()).network
-    if (!proxyActive(cfg)) return {}
+    if (!proxyActive(cfg)) {
+      // "No proxy configured" and "proxy turned OFF" are different statements.
+      // Silence leaves the machine's own HTTP_PROXY in charge, which is right
+      // when the user said nothing and wrong when they said off — a script would
+      // then use a proxy the config explicitly disabled.
+      if (cfg?.proxy?.enabled === false) {
+        return { HTTP_PROXY: "", http_proxy: "", HTTPS_PROXY: "", https_proxy: "", ALL_PROXY: "", all_proxy: "" }
+      }
+      return {}
+    }
     const parsed = parseProxyUrl(cfg!.proxy!.url!)
     // SOCKS THROWS here, unlike forHost which warns and hands the proxy over.
     // The difference is what a caller can do with the answer: a replayed request
@@ -404,11 +461,7 @@ export namespace Network {
       )
     }
     const url = toProxyUrl(cfg!.proxy!.url!, cfg!.proxy!.auth?.username, cfg!.proxy!.auth?.password)
-    const noProxy = cfg!.proxy!.includeLoopback === true ? [] : [...LOOPBACK_PATTERNS]
-    for (const p of cfg!.proxy!.bypass ?? []) {
-      const base = normalizeHost(p.startsWith("*.") ? p.slice(2) : p)
-      if (base && !base.includes("*")) noProxy.push(base, `.${base}`)
-    }
+    const noProxy = await noProxyList()
     const env: Record<string, string> = {
       HTTP_PROXY: url,
       http_proxy: url,
@@ -416,8 +469,8 @@ export namespace Network {
       https_proxy: url,
       ALL_PROXY: url,
       all_proxy: url,
-      NO_PROXY: noProxy.join(","),
-      no_proxy: noProxy.join(","),
+      NO_PROXY: noProxy,
+      no_proxy: noProxy,
     }
     // Honoured by requests/gh when they verify at all; harmless otherwise.
     if (cfg!.tls?.caPath) {
@@ -483,6 +536,23 @@ export namespace Network {
     if (installed) return
     installed = true
     const original = globalThis.fetch
+
+    // An ambient proxy is a limit on everything below, so say it once, here.
+    // Measured: the runtime reads HTTP_PROXY at process start and there is no
+    // per-request value meaning "go direct" — undefined, "", null and false all
+    // fall back to it, and deleting the variable at runtime changes nothing. So
+    // for a host this config BYPASSES, the shell's proxy wins and nothing in
+    // this process can stop it. Loopback included, which is what breaks a crawl:
+    // the captured traffic is posted to our local server. Children we spawn are
+    // not affected — we build their environment (see childProtectedEnv).
+    const ambient = ambientProxy()
+    if (ambient) {
+      warnOnce(
+        "ambient-proxy",
+        "a proxy is set in this shell's environment, so outbound requests use it whether or not network.proxy says to — including hosts on the bypass list and localhost. Unset HTTP_PROXY/HTTPS_PROXY before starting CyberStrike to let its own settings decide, or add the hosts to the shell's NO_PROXY as well.",
+        { proxy: proxyAuthority(ambient) },
+      )
+    }
 
     globalThis.fetch = (async (input: any, init?: any) => {
       // The caller already decided this request's transport (the replay backends
