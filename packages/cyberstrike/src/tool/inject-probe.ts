@@ -5,9 +5,8 @@ import { Request } from "../session/request"
 import { WebCredential } from "../session/web/web-credential"
 import { Session } from "../session"
 import { HttpMessage } from "../replay/message"
-import { Send } from "../replay/send"
 import { Governor } from "../replay/governor"
-import { BackendFetch } from "../replay/backend-fetch"
+import { WebSend } from "./web-send"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // inject_probe (v1 — XSS only) — an EVIDENCE ENGINE, NOT an oracle.
@@ -933,28 +932,26 @@ async function send(
   // signal), never a clean "safe".
   const signal = AbortSignal.any([abort, AbortSignal.timeout(SEND_TIMEOUT_MS)])
 
-  // Send through the shared, governed replay engine (the same path http_replay uses) instead of
-  // a raw fetch: BackendFetch for transport, Send.governed for retry/circuit-breaking, one
-  // governor shared across the whole battery so a failing host trips the breaker mid-run.
+  // Send through WebSend — the ONE core sender http_replay also uses — so proxy/TLS,
+  // governance and proxy-aware error framing are identical across both tools and any
+  // future change reaches both at once. One governor is shared across the whole battery
+  // (passed below) so a failing host trips the breaker mid-run.
   const msg = HttpMessage.build({
     method: r.method,
     url: u,
     headers: sendHeaders,
     body: r.method !== "GET" && r.method !== "HEAD" ? target.body : undefined,
   })
-  const result = await Send.governed(
-    () =>
-      BackendFetch.send(msg, {
-        origin: `${u.protocol}//${u.host}`,
-        rejectUnauthorized: false, // authorized-testing: accept self-signed on the in-scope host
-        totalTimeoutMs: SEND_TIMEOUT_MS,
-        bodyCapBytes: 200_000,
-        signal,
-      }),
-    r.method,
-    budget ? { budget: budget.gov.budget, breaker: budget.gov.breaker } : {},
-    {},
-  )
+  // Route through the shared core sender: proxy/TLS/auth and the proxy-aware error
+  // framing come from WebSend, identical to http_replay. The per-battery governor is
+  // passed in; rejectUnauthorized defaults to accepting bad certs (authorized-testing)
+  // unless config pins strict TLS — WebSend owns that precedence now.
+  const result = await WebSend.send(msg, `${u.protocol}//${u.host}`, {
+    governors: budget ? { budget: budget.gov.budget, breaker: budget.gov.breaker } : {},
+    totalTimeoutMs: SEND_TIMEOUT_MS,
+    bodyCapBytes: 200_000,
+    signal,
+  })
 
   // A breaker/budget skip mid-battery is a stop signal (host failing / DoS-guard), NOT a clean safe.
   if (result.skipped) return { error: `governor skip: ${result.skipped}`, timeout: true }

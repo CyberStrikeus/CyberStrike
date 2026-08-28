@@ -17,7 +17,7 @@ import { HttpMessage } from "../replay/message"
 import { Apply } from "../replay/apply"
 import { Send } from "../replay/send"
 import { Governor } from "../replay/governor"
-import { BackendFetch } from "../replay/backend-fetch"
+import { WebSend } from "./web-send"
 import { Network } from "../network/network"
 import { BackendSocket } from "../replay/backend-socket"
 import { ReplayResponse } from "../replay/response"
@@ -188,62 +188,17 @@ async function sendGoverned(
     signal?: AbortSignal
   },
 ): Promise<Send.Result> {
-  const budget = new Governor.GlobalBudget()
-  const breaker = new Governor.CircuitBreaker()
-  // Resolved once, outside the thunk: Send.governed may call it again on retry.
-  const net = await Network.forUrl(origin)
-  // Precedence, most specific first: an explicit per-call insecure_tls, then
-  // config, then this tool's documented default of accepting bad certs (pentest
-  // targets routinely have them). Writing `insecure_tls === false` unconditionally
-  // looked like "per-call wins" but silently pinned verification OFF for every
-  // call, because the parameter is optional — which made config's
-  // tls.rejectUnauthorized dead in the tool that sends most of the traffic.
-  const rejectUnauthorized =
-    opts.insecure_tls !== undefined ? opts.insecure_tls === false : (net.rejectUnauthorized ?? false)
-  const result = await Send.governed(
-    () =>
-      BackendFetch.send(msg, {
-        origin,
-        ...net,
-        rejectUnauthorized,
-        totalTimeoutMs: opts.total_timeout_ms,
-        followRedirects: opts.follow_redirects,
-        signal: opts.signal,
-      }),
-    msg.method,
-    { budget, breaker },
-    {},
-  )
-  // A transport failure through a proxy is reported by the runtime against the
-  // TARGET url, so a dead proxy reads as "target refused the connection" — an
-  // agent draws "host down, out of scope" from that and stops testing a live
-  // target. Name the proxy (authority only, never credentials) so the reader can
-  // tell the two apart.
-  if (result.error && net.proxy) {
-    return {
-      ...result,
-      error: {
-        ...result.error,
-        message: `${result.error.message} [sent via proxy ${Network.proxyAuthority(net.proxy)} — the proxy, not the target, may be what failed]`,
-      },
-    }
-  }
-  // A 407 is the PROXY refusing, not the target. Left unlabelled it reads as an
-  // authentication finding about the endpoint. Only Basic is supported here, so
-  // name the scheme the proxy actually asked for — an enterprise proxy demanding
-  // NTLM or Negotiate cannot be satisfied, and that is worth saying once rather
-  // than leaving as a mysterious status.
-  if (net.proxy && result.response?.status === 407) {
-    const scheme = result.response.headers.find((h) => h.name.toLowerCase() === "proxy-authenticate")?.value
-    return {
-      ...result,
-      proxyNote:
-        `Rejected by the proxy ${Network.proxyAuthority(net.proxy)}, not by the target` +
-        (scheme ? ` — it requires ${scheme.split(/[\s,]/)[0]} authentication.` : ".") +
-        ` network.proxy.auth sends Basic credentials only.`,
-    } as typeof result
-  }
-  return result
+  // Route through the shared core sender (WebSend) — proxy/TLS/auth and the
+  // proxy-aware error framing live there, so this tool and inject_probe stay in
+  // lockstep. This adapter only owns http_replay's per-call governor and its
+  // parameter names.
+  return WebSend.send(msg, origin, {
+    governors: { budget: new Governor.GlobalBudget(), breaker: new Governor.CircuitBreaker() },
+    insecureTls: opts.insecure_tls,
+    followRedirects: opts.follow_redirects,
+    totalTimeoutMs: opts.total_timeout_ms,
+    signal: opts.signal,
+  })
 }
 
 // ── Diff builder ──────────────────────────────────────────────────────────────
