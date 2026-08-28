@@ -19,6 +19,7 @@ import { runCrawl } from "@cyberstrike-io/hackbrowser/api"
 import type { CrawlOptions, LogRecord, CSEvent } from "@cyberstrike-io/hackbrowser/api"
 import type { ParentMessage, WorkerMessage, WorkerOptions, ModelDescriptor } from "./worker-ipc"
 import readline from "readline"
+import tls from "node:tls"
 
 // ============================================================
 // IPC helpers
@@ -260,7 +261,32 @@ function buildCrawlOptions(opts: WorkerOptions, signal: AbortSignal): CrawlOptio
 // Main
 // ============================================================
 
+// The crawler worker runs as a separate Node (or bun) subprocess and makes its own TLS
+// connection to the LLM API — unlike the main process, whose Bun runtime already trusts the OS
+// certificate store. Node trusts only its bundled CA list, so when a corporate proxy / VPN /
+// antivirus intercepts TLS (presenting a root CA the OS trusts but Node's bundle does not), the
+// worker's LLM call fails with UNABLE_TO_GET_ISSUER_CERT_LOCALLY while the main-process chat with
+// the same token works. Merge the OS trust store into the default CA set — the same thing that
+// `node --use-system-ca` does, done here in-process. It only ADDS trust (the bundled defaults are
+// kept), so it cannot break a connection that already verifies; on runtimes without these APIs
+// (bun, Node < 22.15) it is a graceful no-op.
+function trustSystemCertificates(): void {
+  try {
+    const t = tls as unknown as {
+      getCACertificates?: (type: "default" | "system") => string[]
+      setDefaultCACertificates?: (certs: readonly string[]) => void
+    }
+    if (typeof t.getCACertificates !== "function" || typeof t.setDefaultCACertificates !== "function") return
+    const system = t.getCACertificates("system")
+    if (system.length === 0) return
+    t.setDefaultCACertificates([...t.getCACertificates("default"), ...system])
+  } catch {
+    // Best-effort: leave the default trust store unchanged if anything is unavailable.
+  }
+}
+
 async function main(): Promise<void> {
+  trustSystemCertificates()
   const controller = new AbortController()
 
   const rl = readline.createInterface({ input: process.stdin, terminal: false })
