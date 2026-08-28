@@ -1577,15 +1577,38 @@ export namespace Config {
     const net = info.network
     if (!net) return info
     const proxyPassword = net.proxy?.auth?.password
+    // Credentials can also ride inside proxy.url ("http://user:pass@host") with no
+    // separate auth block — mask those too, or they leak through GET /config.
+    let proxyUrlSecret = false
+    if (net.proxy?.url) {
+      try {
+        proxyUrlSecret = !!new URL(net.proxy.url).password
+      } catch {}
+    }
     const certs = net.tls?.clientCertificates
     const hasPassphrase = certs?.some((c) => !!c.passphrase) ?? false
-    if (!proxyPassword && !hasPassphrase) return info
+    if (!proxyPassword && !proxyUrlSecret && !hasPassphrase) return info
+    const redactProxyUrl = (url: string): string => {
+      try {
+        const u = new URL(url)
+        u.password = REDACTED
+        return u.toString()
+      } catch {
+        return url
+      }
+    }
     return {
       ...info,
       network: {
         ...net,
-        ...(proxyPassword
-          ? { proxy: { ...net.proxy!, auth: { ...net.proxy!.auth!, password: REDACTED } } }
+        ...(proxyPassword || proxyUrlSecret
+          ? {
+              proxy: {
+                ...net.proxy!,
+                ...(proxyPassword ? { auth: { ...net.proxy!.auth!, password: REDACTED } } : {}),
+                ...(proxyUrlSecret ? { url: redactProxyUrl(net.proxy!.url!) } : {}),
+              },
+            }
           : {}),
         ...(hasPassphrase
           ? {

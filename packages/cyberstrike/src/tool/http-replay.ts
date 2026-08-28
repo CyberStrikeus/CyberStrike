@@ -568,7 +568,9 @@ export const HttpReplayRawTool = Tool.define("http_replay_raw", {
       host: url.hostname,
       port,
       tls: useTls,
-      rejectUnauthorized: params.insecure_tls === false,
+      // Honour config's tls.rejectUnauthorized here too (per-call → config → default),
+      // not just ca/clientCertificate — a global strict-TLS setting was being dropped.
+      rejectUnauthorized: Network.tlsRejectUnauthorized(params.insecure_tls, net),
       ca: net.ca,
       clientCertificate: net.clientCertificate,
       totalTimeoutMs: params.total_timeout_ms,

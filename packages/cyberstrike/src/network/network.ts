@@ -316,6 +316,19 @@ export namespace Network {
   }
 
   /**
+   * The single source of truth for a send's TLS strictness. Precedence, most
+   * specific first: an explicit per-call override (a tool's `insecure_tls`), then
+   * config's `tls.rejectUnauthorized`, then the documented default of accepting
+   * bad certs (pentest targets routinely have them). Writing `insecure === false`
+   * unconditionally silently pins verification OFF whenever the override is unset,
+   * which makes config's `tls.rejectUnauthorized` dead — every send site must use
+   * this so that security rule cannot drift between them.
+   */
+  export function tlsRejectUnauthorized(insecureTls: boolean | undefined, out: Outbound): boolean {
+    return insecureTls !== undefined ? insecureTls === false : (out.rejectUnauthorized ?? false)
+  }
+
+  /**
    * Render an Outbound as the fetch init fields it corresponds to. Every
    * in-process caller that hands options straight to `fetch` uses this, so the
    * mapping exists once — it had begun to drift when each site kept its own copy

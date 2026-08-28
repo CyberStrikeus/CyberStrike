@@ -39,13 +39,21 @@ export namespace WebSend {
    */
   export async function send(msg: HttpMessage.Request, origin: string, opts: Options = {}): Promise<Send.Result> {
     // Resolve transport ONCE, outside the thunk: Send.governed may call it again on retry.
-    const net = await Network.forUrl(origin)
-    // Precedence, most specific first: an explicit per-call insecureTls, then config,
-    // then the documented default of accepting bad certs (pentest targets routinely
-    // have them). Writing `=== false` unconditionally would silently pin verification
-    // OFF for every call, making config's tls.rejectUnauthorized dead.
-    const rejectUnauthorized =
-      opts.insecureTls !== undefined ? opts.insecureTls === false : (net.rejectUnauthorized ?? false)
+    // A misconfigured proxy (bad URL, unsupported scheme) must fail CLOSED — return a
+    // clean structured error, NEVER fall through to a direct send that leaks past the
+    // proxy, and never throw out of the tool's execute().
+    let net: Network.Outbound
+    try {
+      net = await Network.forUrl(origin)
+    } catch (e) {
+      return {
+        error: { kind: "unknown", message: `outbound network config error: ${e instanceof Error ? e.message : String(e)}` },
+        timing: { totalMs: 0 },
+        attempts: 0,
+      }
+    }
+    // Single source of truth for the per-call → config → default TLS precedence.
+    const rejectUnauthorized = Network.tlsRejectUnauthorized(opts.insecureTls, net)
 
     const result = await Send.governed(
       () =>
