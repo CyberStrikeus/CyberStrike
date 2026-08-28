@@ -1763,13 +1763,17 @@ export type ProxyConfig = {
     password: string
   }
   /**
-   * Hosts that skip the proxy. Accepts a bare host or a "*.example.com" wildcard. Loopback is always bypassed regardless of this list
+   * Hosts that skip the proxy. Accepts a bare host or a "*.example.com" wildcard. Loopback also skips it unless `includeLoopback` says otherwise
    */
   bypass?: Array<string>
   /**
-   * Also route LLM/provider API calls through the proxy. Off by default — when on, whoever operates the proxy can read the API key in the request headers
+   * Send localhost traffic through the proxy too, so a target on 127.0.0.1 can be tested through it. Off by default. This is all-or-nothing — it covers CyberStrike's own local traffic as well, so it only makes sense when the proxy runs on this machine; an external proxy cannot reach back here
    */
-  includeProviders?: boolean
+  includeLoopback?: boolean
+  /**
+   * Also route CyberStrike's OWN outbound traffic through the proxy — LLM/provider API calls, the OAuth token refreshes that keep them alive, and the rest of its HTTP. Off by default: when on, whoever operates the proxy can read the API keys and tokens in those requests. Traffic aimed at the target is proxied by `url` alone and is not affected by this
+   */
+  includeInternal?: boolean
 }
 
 export type ClientCertificateConfig = {
