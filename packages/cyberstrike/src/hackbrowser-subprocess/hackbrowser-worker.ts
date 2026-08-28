@@ -206,9 +206,7 @@ function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
     // model, so GPT-5 planner calls hit the wrong endpoint and every plan failed. Mirror the main
     // process. For non-GPT-5 models sdk.chat === the old sdk.languageModel, so they are unchanged.
     if (sdk.responses === undefined && sdk.chat === undefined) return sdk.languageModel(desc.modelApiId)
-    return shouldUseCopilotResponsesApi(desc.modelApiId)
-      ? sdk.responses(desc.modelApiId)
-      : sdk.chat(desc.modelApiId)
+    return shouldUseCopilotResponsesApi(desc.modelApiId) ? sdk.responses(desc.modelApiId) : sdk.chat(desc.modelApiId)
   }
 
   // Every other provider: resolve the SDK factory from the SHARED provider map
