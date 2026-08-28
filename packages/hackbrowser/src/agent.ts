@@ -476,7 +476,15 @@ function setupRequestInterceptor(
     }
 
     const method = request.method()
-    const headers = await request.allHeaders()
+    let headers: Record<string, string>
+    try {
+      headers = await request.allHeaders()
+    } catch {
+      // Target/page/browser closed mid-flight → drop this capture instead of letting the
+      // unhandled rejection crash the worker. (The response branch below is already guarded.)
+      log.debug("request capture dropped — target closed mid-flight", { url })
+      return
+    }
     const postData = request.postData() ?? null
     const raw = buildRawRequest(method, url, headers, postData)
 
