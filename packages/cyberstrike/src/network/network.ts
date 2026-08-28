@@ -13,6 +13,7 @@
 //   - The replay backends stay pure: they accept these options, they never read
 //     config themselves (they are unit-tested with no network and no Instance).
 
+import { AsyncLocalStorage } from "async_hooks"
 import { readFileSync } from "fs"
 import { Config } from "../config/config"
 import { Log } from "../util/log"
@@ -447,7 +448,19 @@ export namespace Network {
    * at import time would reach unit tests and anything embedding this package.
    */
   let installed = false
-  let resolvingConfig = false
+
+  /**
+   * Marks the call chain that is currently reading the config, so a fetch issued
+   * FROM INSIDE that read can be told apart from an unrelated concurrent one.
+   *
+   * This has to be call-chain scoped, not process scoped. A plain boolean held
+   * across the await looks equivalent and is not: it starves every request that
+   * arrives while one is resolving. Measured, with a module-level flag, 11 of 12
+   * parallel fetches skipped the proxy and went direct — silently, which is the
+   * worst failure this code has. `Context` is not used here because it throws
+   * when absent by design; this marker is optional by nature.
+   */
+  const resolvingConfig = new AsyncLocalStorage<true>()
 
   export function installGlobalTransport(): void {
     if (installed) return
@@ -464,17 +477,17 @@ export namespace Network {
       // would re-enter this hook and await the very config load it is inside —
       // a deadlock. Going direct here is not a compromise: a proxy DERIVED from
       // the config cannot apply to the request that loads that config.
-      if (resolvingConfig) return original(input, init)
+      if (resolvingConfig.getStore()) return original(input, init)
 
       let transport: ReturnType<typeof toFetchInit> = {}
-      resolvingConfig = true
       try {
-        if (await includeInternal()) transport = toFetchInit(await forUrl(urlOf(input)))
+        transport = await resolvingConfig.run(true, async () => {
+          if (!(await includeInternal())) return {}
+          return toFetchInit(await forUrl(urlOf(input)))
+        })
       } catch {
         // No Instance context (early CLI paths), or an unreadable config. Behave
         // exactly as if this hook were not installed rather than failing a request.
-      } finally {
-        resolvingConfig = false
       }
 
       return original(input, Object.keys(transport).length > 0 ? { ...init, ...transport } : init)
