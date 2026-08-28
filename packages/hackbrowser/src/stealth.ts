@@ -1,22 +1,32 @@
 import { existsSync } from "fs"
 import { chromium, type Browser, type LaunchOptions, type BrowserContextOptions } from "playwright"
 
+const PLATFORM_ARGS =
+  process.platform === "linux"
+    ? ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--no-zygote"]
+    : []
+
 const LAUNCH_ARGS = [
   "--disable-blink-features=AutomationControlled",
   "--disable-features=IsolateOrigins,site-per-process",
-  "--no-sandbox",
-  "--disable-setuid-sandbox",
-  "--disable-dev-shm-usage",
   "--no-first-run",
-  "--no-zygote",
+  // Stability: prevent renderer throttling/death on window drag/resize/minimize
+  "--disable-backgrounding-occluded-windows",
+  "--disable-renderer-backgrounding",
+  "--disable-background-timer-throttling",
+  "--disable-hang-monitor",
+  "--disable-ipc-flooding-protection",
+  "--disable-component-update",
+  ...PLATFORM_ARGS,
 ]
 
 export function launchOptions(headless: boolean): LaunchOptions {
-  return { headless, args: LAUNCH_ARGS }
-}
-
-export function userAgent(version: string): string {
-  return `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Safari/537.36`
+  // Headful: maximize to the REAL screen instead of forcing a fixed 1920x1080 window, which
+  // overflows (and hides the login bar) on any screen smaller than that. Maximized fits every
+  // screen and looks natural. Paired with contextOptions' viewport:null so Chrome — not
+  // Playwright — owns the window size.
+  const args = headless ? LAUNCH_ARGS : [...LAUNCH_ARGS, "--start-maximized"]
+  return { headless, args }
 }
 
 export function findSystemChrome(): string | undefined {
@@ -40,10 +50,12 @@ export async function connect(opts: { cdp?: string; headless: boolean }): Promis
   return chromium.launch(launchOptions(opts.headless))
 }
 
-export function contextOptions(version: string): BrowserContextOptions {
+export function contextOptions(headless = true): BrowserContextOptions {
+  // Report the REAL Chrome UA (no spoof). A faked Windows UA over the real macOS/Linux
+  // navigator.platform is a glaring cross-check mismatch that makes detection easier, not
+  // harder; only automation tells are hidden (INIT_SCRIPT). The real host stays consistent.
   return {
-    userAgent: userAgent(version),
-    viewport: { width: 1920, height: 1080 },
+    viewport: headless ? { width: 1920, height: 1080 } : null,
     screen: { width: 1920, height: 1080 },
     locale: "en-US",
     timezoneId: "America/New_York",
@@ -93,34 +105,24 @@ Object.defineProperty(screen, 'availWidth', { get: () => 1920 });
 Object.defineProperty(screen, 'availHeight', { get: () => 1040 });
 Object.defineProperty(screen, 'colorDepth', { get: () => 24 });
 Object.defineProperty(screen, 'pixelDepth', { get: () => 24 });
-window.outerWidth = 1920;
-window.outerHeight = 1080;
-window.innerWidth = 1920;
-window.innerHeight = 969;
+// NOTE: window.inner/outerWidth/Height are intentionally NOT spoofed. They must reflect
+// the REAL window so (a) the crawler's own geometry stays correct — scanner occlusion /
+// offscreen / scroll and the injected panel/login-bar clamp all read innerWidth — and
+// (b) they stay consistent with the actual rendered viewport (a faked 1920 over a smaller
+// real window is itself a detectable fingerprint mismatch). Monitor size is spoofed via
+// screen.* above; the window is launched at 1920x1080 (launchOptions/contextOptions) so on
+// a normal host innerWidth is already ~1920 with no spoof needed.
 
-const origGetParameter = WebGLRenderingContext.prototype.getParameter;
-WebGLRenderingContext.prototype.getParameter = function(param) {
-  if (param === 37445) return 'Intel Inc.';
-  if (param === 37446) return 'Intel Iris OpenGL Engine';
-  return origGetParameter.call(this, param);
-};
-const origGetParameter2 = WebGL2RenderingContext.prototype.getParameter;
-WebGL2RenderingContext.prototype.getParameter = function(param) {
-  if (param === 37445) return 'Intel Inc.';
-  if (param === 37446) return 'Intel Iris OpenGL Engine';
-  return origGetParameter2.call(this, param);
-};
+// NOTE: WebGL vendor/renderer are intentionally NOT spoofed. The real GPU string is a
+// genuine, self-consistent value; a faked 'Intel Iris OpenGL Engine' (an old macOS GPU
+// name, in the outdated non-ANGLE format) contradicts both the platform and modern Chrome's
+// 'ANGLE (...)' renderer format, which is more detectable than reporting the truth.
 
-const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
-HTMLCanvasElement.prototype.toDataURL = function(type, quality) {
-  const ctx = this.getContext('2d');
-  if (ctx) {
-    const pixel = ctx.getImageData(0, 0, 1, 1);
-    pixel.data[3] = pixel.data[3] ^ 1;
-    ctx.putImageData(pixel, 0, 0);
-  }
-  return origToDataURL.call(this, type, quality);
-};
+// NOTE: canvas toDataURL is intentionally NOT perturbed. The previous per-call XOR of one
+// pixel's alpha mutated the canvas on every read, so the same canvas hashed differently each
+// time — an unstable canvas is itself a bot signal (a real canvas is stable). Canvas-noise is
+// an anti-TRACKING measure, not anti-bot-detection (not what cleared #76); reporting the real,
+// stable canvas is the consistent choice, matching the UA/WebGL/window decisions above.
 
 const origQuery = window.Permissions?.prototype?.query;
 if (origQuery) {

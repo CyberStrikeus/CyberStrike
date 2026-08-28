@@ -6,9 +6,10 @@
 // about. The orchestrator (pipeline.ts) assembles the final path from Tier 1
 // decisions plus the LLM's classifications.
 
-import { generateObject, NoObjectGeneratedError } from "ai"
+import { streamText, tool } from "ai"
 import z from "zod"
 import { Provider } from "../../provider/provider"
+import { ProviderTransform } from "../../provider/transform"
 import type {
   ClassificationKind,
   LLMSegmentDecision,
@@ -124,27 +125,60 @@ export async function createProviderClient(opts: ProviderClientOptions): Promise
     async classify({ parsed, tier1, ambiguousIndices }) {
       const userMessage = buildUserMessage(parsed, tier1, ambiguousIndices)
 
-      try {
-        const result = await generateObject({
-          model: language,
-          temperature: 0,
-          schema: DecisionsSchema,
-          messages: [
-            { role: "system", content: NORMALIZE_SYSTEM_PROMPT },
-            { role: "user", content: userMessage },
-          ],
-        })
-        return {
-          decisions: result.object.decisions as LLMSegmentDecision[],
-          model: model.id,
-          promptTokens: result.usage?.inputTokens,
-          completionTokens: result.usage?.outputTokens,
-        }
-      } catch (err) {
-        if (NoObjectGeneratedError.isInstance(err)) {
-          throw new Error(`structured output failed: ${err.message}`)
-        }
-        throw err
+      // Structured output via a FORCED tool call — not generateObject's json mode.
+      // generateObject leans on `responseFormat`, which several providers silently
+      // drop: the Anthropic OAuth subscription model ignores it and returns
+      // free-form prose that cannot be parsed. A forced tool call is the mechanism
+      // the rest of CyberStrike already uses for structured LLM output and works
+      // uniformly across providers (Anthropic subscription/API-key, OpenAI).
+      //
+      // streamText (not generateText) is deliberate: Anthropic rejects
+      // NON-streaming requests whose max_tokens ceiling is large ("Streaming is
+      // required..."), while reasoning small-models (e.g. gpt-5-nano) spend output
+      // budget on hidden reasoning BEFORE emitting the tool call — so the ceiling
+      // must be generous (a small cap truncates them to finishReason=length with
+      // no tool call). Streaming is what lets a generous ceiling coexist with
+      // Anthropic. Mirrors the streamObject path in agent.ts.
+      const result = streamText({
+        model: language,
+        temperature: 0,
+        maxOutputTokens: ProviderTransform.maxOutputTokens(model),
+        tools: {
+          classify_segments: tool({
+            description:
+              "Report the classification of every ambiguous path segment. Call exactly once with all decisions.",
+            inputSchema: DecisionsSchema,
+          }),
+        },
+        // Exactly one tool is defined, so "required" (force *some* tool call) is
+        // equivalent to forcing this tool by name — but "required" maps to the
+        // most broadly supported provider primitive (Anthropic tool_choice=any,
+        // OpenAI required, etc.), whereas forcing a tool by name is not honored by
+        // every provider/proxy. It is also the mode the rest of CyberStrike uses.
+        toolChoice: "required",
+        messages: [
+          { role: "system", content: NORMALIZE_SYSTEM_PROMPT },
+          { role: "user", content: userMessage },
+        ],
+        onError: () => {},
+      })
+      // Drive the stream to completion; errors are otherwise swallowed by the
+      // stream (same reason agent.ts iterates fullStream on its streamObject).
+      for await (const part of result.fullStream) {
+        if (part.type === "error") throw part.error
+      }
+
+      const toolCalls = await result.toolCalls
+      const call = toolCalls.find((c) => c.toolName === "classify_segments")
+      if (!call) throw new Error("classifier did not return a classify_segments tool call")
+      const validated = DecisionsSchema.safeParse(call.input)
+      if (!validated.success) throw new Error(`classifier returned malformed decisions: ${validated.error.message}`)
+      const usage = await result.usage
+      return {
+        decisions: validated.data.decisions as LLMSegmentDecision[],
+        model: model.id,
+        promptTokens: usage?.inputTokens,
+        completionTokens: usage?.outputTokens,
       }
     },
   }

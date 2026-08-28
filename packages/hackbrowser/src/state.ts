@@ -305,16 +305,28 @@ export function normalizeUrl(url: string): string {
     const u = new URL(url)
     u.searchParams.sort()
     let path = u.pathname.replace(/\/+$/, "") || "/"
-    // Normalize hash path: #recycle → #/recycle (SPA routing consistency)
+    // Fragment semantics — keep = distinct logical page, drop = position on the SAME page:
+    //   "#/route" / "#/a/b"   → hash-router route            → KEEP
+    //   "#!/route"            → hashbang route (legacy SPA)  → KEEP
+    //   "#k=v" / "#a=1&b=2"   → fragment-encoded view state  → KEEP
+    //   "#main" / "#section"  → element-id scroll anchor     → DROP (collapse to base)
+    //   "#" / "#/"            → SPA root                     → DROP to base
+    // A bare-word fragment is overwhelmingly a scroll-anchor / skip-link (otherwise
+    // they spawn phantom crawl targets). The residual case of a bare-word hash-route
+    // ("#home") is accepted — distinguishing it precisely needs an element-id lookup
+    // (DOM access), out of scope for this pure string normalizer. Query is untouched.
     let hash = u.hash
-    if (hash && hash !== "#" && !hash.startsWith("#/")) {
-      hash = "#/" + hash.slice(1)
+    const routeLike = hash.startsWith("#/") || hash.startsWith("#!") || hash.includes("=") || hash.includes("&")
+    if (routeLike) {
+      // BUG-5 / Aşama 13: on path-style routes only, unify trailing slash and the
+      // "#/" ↔ root representation (leave "#k=v" fragment values untouched).
+      if (hash.startsWith("#/") || hash.startsWith("#!/")) {
+        hash = hash.replace(/\/+$/, "")
+        if (hash === "#") hash = ""
+      }
+    } else {
+      hash = "" // bare-word / element-id scroll anchor / bare "#" → same page as base
     }
-    // BUG-5 / Aşama 13: unify root representations — "", "#", "#/" all mean
-    // the SPA root. Also strip trailing slash from hash routes ("#/cart/" →
-    // "#/cart"). Prevents duplicate queueing of the same logical page.
-    hash = hash.replace(/\/+$/, "")
-    if (hash === "#") hash = ""
     return u.origin + path + u.search + hash
   } catch {
     return url

@@ -78,6 +78,12 @@ const OVERLAY_ESCAPE_WAIT = 400
 const OVERLAY_CLEAR_WAIT = 800
 const SPA_RENDER_RETRY_WAIT = 600
 const POST_GOTO_WAIT = 400
+// Bounded wait for the network to go idle after navigation, so async / AJAX content
+// renders before we scan. On a clean page networkidle fires within a few hundred ms;
+// but a page holding a persistent connection (websocket / socket.io long-poll / analytics
+// heartbeat) never reaches idle and pays this cap on every navigation. Kept modest so that
+// per-page tax stays small while still covering the common sub-second AJAX render.
+const NETWORK_IDLE_TIMEOUT = 1500
 /** Max nesting for inline depth-first exploration of pages reached via a
  *  state-changing action (e.g. an ASP.NET postback). Such a page can be
  *  unreachable by a later queued GET (its server-side state is lost on return →
@@ -85,6 +91,77 @@ const POST_GOTO_WAIT = 400
 const MAX_INLINE_DEPTH = 2
 const LOGIN_SUCCESS_PATTERN = /POST\s+.*\/(login|signin|authenticate)\S*\s+\[200\]/i
 const SKIP_AUTO_DISCOVERY = /\b(logout|sign.?out|log.?out|delete.?account|reset.?data|revoke)\b/i
+
+/**
+ * Let a page settle after navigation so client-rendered / AJAX content is present
+ * before we scan. A fixed nudge covers synchronous hydration; the bounded network-idle
+ * wait covers async content — adaptive (returns as soon as the page is idle) and capped
+ * (a page with a persistent connection never blocks the crawl). Previously a fixed 400ms
+ * nudge only, which missed content that renders slower than that.
+ */
+async function stabilizeAfterGoto(page: Page): Promise<void> {
+  await page.waitForTimeout(POST_GOTO_WAIT)
+  await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_TIMEOUT }).catch(() => {})
+}
+
+// ============================================================
+// Browser lifecycle detection
+// ============================================================
+
+interface BrowserHealth {
+  dead: boolean
+  reason: string
+}
+
+function createBrowserHealth(): BrowserHealth {
+  return { dead: false, reason: "" }
+}
+
+function attachLifecycleHandlers(browser: import("playwright").Browser, page: Page, health: BrowserHealth): void {
+  browser.on("disconnected", () => {
+    health.dead = true
+    health.reason = "browser process disconnected"
+    log.error("browser disconnected — crawl will terminate")
+  })
+  page.on("close", () => {
+    health.dead = true
+    health.reason = "page closed unexpectedly"
+    log.error("page closed — crawl will terminate")
+  })
+  page.on("crash", () => {
+    health.dead = true
+    health.reason = "page renderer crashed"
+    log.error("page crashed — crawl will terminate")
+  })
+}
+
+function isBrowserDead(health: BrowserHealth): boolean {
+  return health.dead
+}
+
+const BROWSER_WAIT_TIMEOUT = 30 * 60 * 1000
+
+function waitForBrowserClose(browser: import("playwright").Browser, signal?: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve) => {
+    let resolved = false
+    const done = () => {
+      if (resolved) return
+      resolved = true
+      clearTimeout(timer)
+      resolve()
+    }
+    const timer = setTimeout(done, BROWSER_WAIT_TIMEOUT)
+    browser.on("disconnected", done)
+    if (signal) {
+      if (signal.aborted) {
+        done()
+        return
+      }
+      signal.addEventListener("abort", done, { once: true })
+    }
+    if (!browser.isConnected()) done()
+  })
+}
 
 // ============================================================
 // Post-Login Re-Discovery
@@ -639,6 +716,10 @@ async function explorePageWithAI(
   // Track all seen element semantic keys to detect new elements after clicks
   const seenKeys = new Set(elements.map((e) => `${e.role}::${e.label}`))
   let steps = 0
+  // The last click that revealed new elements — the presumed "opener" of a transient
+  // container (drawer / menu / popover), used to re-open it if a revealed target later
+  // slides off-screen before it can be clicked. Page-scoped (reset per explorePageWithAI).
+  let lastRevealingClick: ClickTask | null = null
 
   while (taskQueue.length > 0 && steps < MAX_STEPS_PER_PAGE) {
     steps++
@@ -696,6 +777,7 @@ async function explorePageWithAI(
         inScope,
         occ,
         nav,
+        lastRevealingClick,
       )
     }
 
@@ -705,13 +787,21 @@ async function explorePageWithAI(
     // Combobox → option: mechanical pattern, system handles directly (no LLM needed)
     // When a combobox was just clicked, queue its options for selection
     if (task.type === "click" && task.role === "combobox") {
-      const optionTasks = collectOptionTasks(postActionElements, seenKeys)
+      const optionTasks = await collectComboboxOptions(
+        page,
+        postActionElements,
+        seenKeys,
+        pageUrl,
+        globalState.visitedPages,
+      )
       if (optionTasks.length > 0) {
         taskQueue.unshift(...optionTasks)
       }
     }
 
     const hasNewElements = discoverNewElements(postActionElements, seenKeys)
+    // A click that revealed new elements is the presumed opener of a transient container.
+    if (task.type === "click" && hasNewElements) lastRevealingClick = task
     const hasStaleTargets = queueHasStaleTargets(taskQueue, postActionElements)
 
     // Any DOM change that affects the queue → re-plan with LLM
@@ -881,16 +971,24 @@ async function explorePageWithAI(
           inScope,
           occ,
           nav,
+          lastRevealingClick,
         )
       }
 
       // Post-action discovery (same as main loop)
       const postActionElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
       if (task.type === "click" && task.role === "combobox") {
-        const optionTasks = collectOptionTasks(postActionElements, seenKeys)
+        const optionTasks = await collectComboboxOptions(
+          page,
+          postActionElements,
+          seenKeys,
+          pageUrl,
+          globalState.visitedPages,
+        )
         if (optionTasks.length > 0) additionalQueue.unshift(...optionTasks)
       }
       const hasNewElements = discoverNewElements(postActionElements, seenKeys)
+      if (task.type === "click" && hasNewElements) lastRevealingClick = task
       const hasStaleTargets = queueHasStaleTargets(additionalQueue, postActionElements)
       if (hasNewElements || hasStaleTargets || occ.pending.length > 0) {
         const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
@@ -984,6 +1082,38 @@ async function recoverFromOcclusion(
 }
 
 /**
+ * Sibling of recoverFromOcclusion for a transient container that closed between plan and
+ * act. A target revealed by opening a container (drawer / menu / popover) can slide
+ * off-screen if that container auto-closes during the planner's round-trip; the click then
+ * fails and the target's click point is off the viewport (not covered by an overlay). If we
+ * know the opener that revealed it, re-click the opener to re-open the container, then retry
+ * the click once. Best-effort and bounded (one re-open, one retry); the planner's judgment
+ * of WHAT to click is untouched — only the container state is restored.
+ */
+async function recoverFromClosedContainer(
+  page: Page,
+  el: RawElement,
+  original: ActionResult,
+  opener: ClickTask | null,
+  interceptor: Interceptor,
+  retry: () => Promise<ActionResult>,
+): Promise<ActionResult> {
+  if (original.success || !opener) return original
+  if (opener.role === el.role && opener.label === el.label) return original // never re-open self
+  if ((await probeClickPoint(page, el.selector)).status !== "offscreen") return original
+  const fresh = await collectElements(page)
+  const openerEl = resolveElement(fresh, opener.role, opener.label)
+  if (!openerEl) return original
+  log.debug("target offscreen — re-opening its container via opener, retrying once", {
+    target: el.label,
+    opener: opener.label,
+  })
+  await execute(page, openerEl, "click", undefined, interceptor.setPendingUI, fresh.length)
+  await page.waitForTimeout(POST_GOTO_WAIT)
+  return retry()
+}
+
+/**
  * After an action failed, check whether an unrelated overlay physically covers the
  * target's click point (a banner/toast/dialog the center-only closeOverlay misses).
  * If so, record the occluder so the planner dismisses it first, and report that the
@@ -1043,8 +1173,7 @@ async function handleNavigation(
   }
   // Return to the parent so its remaining tasks can continue (GET-reachable parent).
   await page.goto(parentUrl, { waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {})
-  await page.waitForTimeout(POST_GOTO_WAIT)
-  await page.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(() => {})
+  await stabilizeAfterGoto(page)
 }
 
 /**
@@ -1163,6 +1292,7 @@ async function executeClickTask(
   inScope: ScopeMatcher,
   occ: OcclusionState,
   nav: ExploreContext,
+  opener: ClickTask | null,
 ): Promise<void> {
   const el = resolveElement(elements, task.role, task.label)
   if (!el) {
@@ -1185,6 +1315,11 @@ async function executeClickTask(
   let result = await execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length)
   // Safe overlay recovery (Escape/backdrop + wait + real retry) for a covered target.
   result = await recoverFromOcclusion(page, el, result, () =>
+    execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length),
+  )
+  // Transient-container recovery: if the target slid off-screen because the container that
+  // revealed it auto-closed during planning, re-open it via the opener and retry once.
+  result = await recoverFromClosedContainer(page, el, result, opener, interceptor, () =>
     execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length),
   )
   // Still covered after the safe recovery → signal the planner to dismiss the overlay via a
@@ -1236,6 +1371,46 @@ function collectOptionTasks(elements: RawElement[], seenKeys: Set<string>): Page
   }
   // Only select the first option — one selection per combobox interaction
   return tasks.slice(0, 1)
+}
+
+// Probe characters for a search-gated combobox. Measured: no single character is
+// universal (word option sets need a letter, numeric ones need a digit), so a short
+// letter+digit+space sequence is tried in order until options appear.
+const COMBOBOX_PROBES = ["e", "a", "2", "0", " "]
+
+/**
+ * Option tasks for a just-clicked combobox. First try options already present (an
+ * inline listbox). If none appear, the combobox is likely search-gated (role=combobox
+ * aria-haspopup=dialog, cmdk / command-palette style) — it renders options only after a
+ * query is typed into the search input in its opened popup. That popup auto-focuses its
+ * search input, so :focus is the safe target (never types into an unrelated form field);
+ * type a short probe sequence there to reveal options, then collect one. Mechanical +
+ * model-independent, matching the combobox design. Best-effort: an exotic option set
+ * matched by none of the probes is left unselected — no worse than before.
+ */
+export async function collectComboboxOptions(
+  page: Page,
+  elements: RawElement[],
+  seenKeys: Set<string>,
+  pageUrl: string,
+  visitedPages: Set<string>,
+): Promise<PageTask[]> {
+  const inline = collectOptionTasks(elements, seenKeys)
+  if (inline.length > 0) return inline
+  const search = page.locator(":focus")
+  const typeable = await search
+    .evaluate(
+      (el) => !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || (el as HTMLElement).isContentEditable),
+    )
+    .catch(() => false)
+  if (!typeable) return inline
+  for (const probe of COMBOBOX_PROBES) {
+    await search.fill(probe).catch(() => {})
+    await page.waitForTimeout(200)
+    if ((await page.locator("[role=option]:visible").count()) > 0) break
+  }
+  const revealed = filterVisitedLinks(await collectElements(page), pageUrl, visitedPages)
+  return collectOptionTasks(revealed, seenKeys)
 }
 
 /**
@@ -1677,6 +1852,12 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
   }
 
   const browser = await Stealth.connect({ cdp: config.cdp, headless: config.headless ?? false })
+  const health = createBrowserHealth()
+  browser.on("disconnected", () => {
+    health.dead = true
+    health.reason = "browser process disconnected"
+    log.error("browser disconnected — multi-credential crawl will terminate")
+  })
 
   // Single CyberStrike session for ALL credentials. Honor a host-provided
   // sessionID (cyberstrike injects this when /hackbrowser slash or the
@@ -1701,15 +1882,49 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
   const lastAuthHeaders = new Map<string, Record<string, string>>()
 
   for (const [credIndex, cred] of credentials.entries()) {
-    const browserContext = await browser.newContext(Stealth.contextOptions(browser.version()))
+    const browserContext = await browser.newContext(Stealth.contextOptions(config.headless ?? false))
     await browserContext.addInitScript(Stealth.INIT_SCRIPT)
     if (panelOn) await browserContext.addInitScript(PANEL_INIT_SCRIPT)
     const page = await browserContext.newPage()
+    page.on("close", () => {
+      health.dead = true
+      health.reason = `page closed (credential: ${cred.id})`
+      log.error("page closed — multi-credential crawl will terminate", { credential: cred.id })
+    })
+    page.on("crash", () => {
+      health.dead = true
+      health.reason = `page crashed (credential: ${cred.id})`
+      log.error("page crashed — multi-credential crawl will terminate", { credential: cred.id })
+    })
     attachDialogAutoAccept(page)
     attachFileChooserAutoFill(page)
 
     // Navigate to target
-    await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 })
+    const mcInitNavErr = await page
+      .goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 })
+      .then(() => null)
+      .catch((e: Error) => e)
+    if (mcInitNavErr) {
+      log.warn("initial navigation failed", {
+        credential: cred.id,
+        url: targetUrl,
+        err: mcInitNavErr.message.split("\n")[0],
+      })
+      if (!config.headless && browser.isConnected()) {
+        log.info("browser stays open — navigate manually or close the window to finish")
+        await waitForBrowserClose(browser, config.signal)
+      } else {
+        await browser.close().catch(() => {})
+      }
+      return {
+        sessionID: dryRun ? "" : sessionId,
+        capturedEndpoints: 0,
+        pagesExplored: 0,
+        totalSteps: 0,
+        errors: [`Initial navigation failed (credential: ${cred.id}): ${mcInitNavErr.message}`],
+        usage: usageAcc,
+      }
+    }
 
     // First panel event — identifies this context's credential before manual login.
     void csEmit(page, {
@@ -1803,6 +2018,14 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
 
   // BFS Loop — single loop, N contexts
   while (pageQueue.length > 0 && pagesExplored < maxPages) {
+    if (isBrowserDead(health)) {
+      log.error("browser died, terminating multi-credential crawl", {
+        reason: health.reason,
+        pagesExplored,
+        captured: globalState.capturedEndpoints.size,
+      })
+      break
+    }
     // Cancellation check at iteration boundary (Faz B.5). Multi-cred path
     // gets the same granularity as single-cred run() — all contexts share
     // the same signal so a single abort halts every in-flight context.
@@ -1829,8 +2052,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
       activeContexts.map(async (ctx) => {
         try {
           await ctx.page.goto(entry.url, { waitUntil: "domcontentloaded", timeout: 15000 })
-          await ctx.page.waitForTimeout(POST_GOTO_WAIT)
-          await ctx.page.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(() => {})
+          await stabilizeAfterGoto(ctx.page)
           return { ctx, success: true, redirected: normalizeUrl(ctx.page.url()) !== normalizeUrl(entry.url) }
         } catch (err) {
           log.warn("navigation failed", { credential: ctx.id, url: entry.url, err: String(err) })
@@ -1936,8 +2158,10 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     // design (§3.5.1). Even when fingerprints match, per-credential journey
     // state (empty-state queue, revisitCount, pageFingerprints) stays separate.
     for (const ctx of visitableContexts) {
+      if (isBrowserDead(health)) break
       log.info("exploring", { credential: ctx.id, url: entry.url })
       const exploreInline = async (p: Page, url: string, depth: number): Promise<void> => {
+        if (isBrowserDead(health)) return
         const found = await explorePageWithAI(
           p,
           url,
@@ -1952,20 +2176,32 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
         )
         for (const u of found) enqueueWithContext(u, ctx.id, pageQueue, visitedPages, inScope, pathPatternCounts)
       }
-      const discovered = await explorePageWithAI(
-        ctx.page,
-        entry.url,
-        ctx.interceptor,
-        model,
-        globalState,
-        inScope,
-        ctx.id,
-        maxPages,
-        usageAcc,
-        { explore: exploreInline, depth: 0 },
-      )
-      for (const url of discovered) {
-        enqueueWithContext(url, ctx.id, pageQueue, visitedPages, inScope, pathPatternCounts)
+      try {
+        const discovered = await explorePageWithAI(
+          ctx.page,
+          entry.url,
+          ctx.interceptor,
+          model,
+          globalState,
+          inScope,
+          ctx.id,
+          maxPages,
+          usageAcc,
+          { explore: exploreInline, depth: 0 },
+        )
+        for (const url of discovered) {
+          enqueueWithContext(url, ctx.id, pageQueue, visitedPages, inScope, pathPatternCounts)
+        }
+      } catch (err) {
+        if (isBrowserDead(health)) {
+          log.error("exploration aborted — browser died mid-page", {
+            credential: ctx.id,
+            url: entry.url,
+            reason: health.reason,
+          })
+          break
+        }
+        log.warn("exploration error", { credential: ctx.id, url: entry.url, err: String(err) })
       }
     }
 
@@ -1986,8 +2222,18 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
   }
 
   // Final drain — late async requests, no enrichment (credential_id fallback)
-  log.info("multi-credential exploration complete, draining remaining requests")
-  await contexts[0]?.page.waitForTimeout(2000)
+  const browserDied = isBrowserDead(health)
+  log.info(
+    browserDied
+      ? "browser died, draining captured requests"
+      : "multi-credential exploration complete, draining remaining requests",
+    {
+      pagesExplored,
+      captured: globalState.capturedEndpoints.size,
+      ...(browserDied ? { reason: health.reason } : {}),
+    },
+  )
+  if (!browserDied) await contexts[0]?.page.waitForTimeout(2000).catch(() => {})
 
   await drainPageCaptures(captureQueues, captureHandlers, new Map(), null, null)
 
@@ -1996,32 +2242,42 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     credentials: contexts.map((c) => c.id),
     totalSteps: globalState.totalSteps,
     capturedEndpoints: globalState.capturedEndpoints.size,
+    browserDied,
   })
 
   // Panel done event — one per context so each tab shows its own summary.
-  const mutationCount = [...globalState.capturedEndpoints].filter((e) => /^(POST|PUT|PATCH|DELETE)\s/.test(e)).length
-  const credentialIds = contexts.map((c) => c.id)
-  for (const ctx of contexts) {
-    void csEmit(ctx.page, {
-      type: "crawl-done",
-      summary: {
-        pagesExplored,
-        capturedEndpoints: globalState.capturedEndpoints.size,
-        mutations: mutationCount,
-        credentials: credentialIds,
-      },
-    })
+  if (!browserDied) {
+    const mutationCount = [...globalState.capturedEndpoints].filter((e) => /^(POST|PUT|PATCH|DELETE)\s/.test(e)).length
+    const credentialIds = contexts.map((c) => c.id)
+    for (const ctx of contexts) {
+      void csEmit(ctx.page, {
+        type: "crawl-done",
+        summary: {
+          pagesExplored,
+          capturedEndpoints: globalState.capturedEndpoints.size,
+          mutations: mutationCount,
+          credentials: credentialIds,
+        },
+      })
+    }
+    await contexts[0]?.page.waitForTimeout(600).catch(() => {})
   }
-  await contexts[0]?.page.waitForTimeout(600).catch(() => {})
 
-  await browser.close()
+  if (!config.headless && browser.isConnected()) {
+    log.info("crawl complete — browser stays open, close the window to finish")
+    await waitForBrowserClose(browser, config.signal)
+  } else if (!browserDied) {
+    await browser.close().catch(() => {})
+  }
 
   return {
     sessionID: dryRun ? "" : sessionId,
     capturedEndpoints: globalState.capturedEndpoints.size,
     pagesExplored,
     totalSteps: globalState.totalSteps,
-    errors: [],
+    errors: browserDied
+      ? [`Browser died: ${health.reason}. Captured ${globalState.capturedEndpoints.size} endpoints before failure.`]
+      : [],
     usage: usageAcc,
   }
 }
@@ -2079,10 +2335,12 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
   }
 
   const browser = await Stealth.connect({ cdp: config.cdp, headless: config.headless ?? false })
-  const context: BrowserContext = await browser.newContext(Stealth.contextOptions(browser.version()))
+  const health = createBrowserHealth()
+  const context: BrowserContext = await browser.newContext(Stealth.contextOptions(config.headless ?? false))
   await context.addInitScript(Stealth.INIT_SCRIPT)
   if (panelOn) await context.addInitScript(PANEL_INIT_SCRIPT)
   const page = await context.newPage()
+  attachLifecycleHandlers(browser, page, health)
   attachDialogAutoAccept(page)
   attachFileChooserAutoFill(page)
 
@@ -2127,283 +2385,356 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     }
   }, 500)
 
-  // Navigate to target and authenticate
-  await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 })
-
-  // Panel init — after first goto so the host document exists.
-  void csEmit(page, {
-    type: "init",
-    target: targetUrl,
-    credentials: [],
-    maxPages,
-    startedAt: Date.now(),
-  })
-
-  // Login flow: --authenticated → manual login, --user/--pass → auto-login, neither → anonymous
-  const isAuthenticated = config.auth.authenticated || !!config.auth.credentials
-  if (config.auth.authenticated) {
-    await waitForManualLogin(page)
-    // Resolve label → UUID. credentialId from the launcher is a user-supplied
-    // label ("admin", "user"). The server only accepts PATCH /web/credentials/{uuid},
-    // so syncCredentialHeaders (F.2) would 404 silently on every capture without
-    // this step. registerCredential POSTs the label, gets back a real DB UUID,
-    // and we update both the closure binding (interceptor) and handleCapture so
-    // all subsequent ingest and sync calls use the correct identifier.
-    if (!dryRun && credentialId) {
-      const registeredId = await registerCredential(serverUrl, sessionID!, credentialId)
-      if (registeredId) {
-        credentialId = registeredId
-        handleCapture = createIngestHandler(serverUrl, sessionID!, credentialId)
+  try {
+    // Navigate to target and authenticate
+    const initNavErr = await page
+      .goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 })
+      .then(() => null)
+      .catch((e: Error) => e)
+    if (initNavErr) {
+      log.warn("initial navigation failed", { url: targetUrl, err: initNavErr.message.split("\n")[0] })
+      if (!config.headless && browser.isConnected()) {
+        log.info("browser stays open — navigate manually or close the window to finish")
+        await waitForBrowserClose(browser, config.signal)
+      } else {
+        await browser.close().catch(() => {})
+      }
+      return {
+        sessionID: dryRun ? "" : sessionID!,
+        capturedEndpoints: 0,
+        pagesExplored: 0,
+        totalSteps: 0,
+        errors: [`Initial navigation failed: ${initNavErr.message}`],
+        usage: usageAcc,
       }
     }
-  } else if (config.auth.credentials) {
-    await autoLogin(page, config.auth.credentials)
-  } else {
-    await handle2FA(page)
-  }
 
-  // Initialize global state (Aşama 13: outOfScope snapshotted from config)
-  const globalState = createGlobalState({ outOfScope: config.outOfScope })
-  if (config.outOfScope?.length) {
-    log.info("out-of-scope labels", { count: config.outOfScope.length, labels: config.outOfScope })
-  }
-
-  // Manual or auto login → already authenticated, no re-discovery needed
-  if (isAuthenticated) {
-    globalState.authPhase = "authenticated"
-  }
-  // Seed URL always goes directly to queue (never deferred)
-  globalState.visitedPages.add(normalizeUrl(page.url()))
-  globalState.pageQueue.push(page.url())
-
-  // Login detection via response event — fires immediately when response arrives,
-  // before page navigation can cancel the interceptor's async handler
-  page.on("response", (response) => {
-    if (globalState.authPhase === "authenticated") return
-    const req = response.request()
-    const method = req.method()
-    const status = response.status()
-    try {
-      const pathname = new URL(req.url()).pathname
-      if (LOGIN_SUCCESS_PATTERN.test(`${method} ${pathname} [${status}]`)) {
-        log.info("login success detected via HTTP response")
-        triggerReDiscovery(globalState)
-      }
-    } catch {}
-  })
-
-  let pagesExplored = 0
-
-  while (globalState.pageQueue.length > 0 && pagesExplored < maxPages) {
-    // Cancellation check at iteration boundary (Faz B.5). Granularity is
-    // per-page — current LLM call / page exploration completes before
-    // we exit. Browser closes via the existing finally below.
-    if (config.signal?.aborted) {
-      log.info("crawl cancelled by signal", { pagesExplored, queued: globalState.pageQueue.length })
-      break
-    }
-
-    const nextUrl = globalState.pageQueue.shift()!
-    pagesExplored++
-
-    if (page.url() !== nextUrl) {
-      const navErr = await page
-        .goto(nextUrl, { waitUntil: "domcontentloaded", timeout: 15000 })
-        .then(() => null)
-        .catch((e: Error) => e)
-
-      if (navErr) {
-        log.warn("navigation failed", { url: nextUrl, err: navErr.message.split("\n")[0] })
-        continue
-      }
-
-      // SPA stabilization: wait for component-level async rendering
-      await page.waitForTimeout(POST_GOTO_WAIT)
-      await page.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(() => {})
-    }
-
-    if (!isInScope(page.url(), inScope)) {
-      log.info("off-host redirect, skipping", { url: page.url() })
-      await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {})
-      continue
-    }
-
-    const currentUrl = normalizeUrl(page.url())
-    // Redirect-collapse guard: a distinct queued URL that REDIRECTS to a page we've
-    // already explored (a login/onboarding gate or SPA router-guard funnelling every
-    // route to one page). Re-exploring the same landed page burns the page budget and
-    // LLM turns for zero new coverage. Fires ONLY on a real redirect (landed URL differs
-    // from the requested one) to an already-visited page — so deliberate revisits
-    // (empty-state, post-login re-discovery, where requested == landed) and the first
-    // visit of a gate page are unaffected. Lands the gate page exactly once, skips the rest.
-    if (currentUrl !== normalizeUrl(nextUrl) && globalState.visitedPages.has(currentUrl)) {
-      log.info("redirect to already-explored page, skipping", { requested: normalizeUrl(nextUrl), landed: currentUrl })
-      continue
-    }
-    globalState.visitedPages.add(currentUrl)
-    log.info("exploring page", { page: `${pagesExplored}/${maxPages}`, url: currentUrl })
-    log.debug("state", {
-      phase: globalState.authPhase,
-      queueSize: globalState.pageQueue.length,
-      queue: globalState.pageQueue.slice(0, 5).map((u) => {
-        try {
-          return new URL(u).pathname + new URL(u).hash
-        } catch {
-          return u
-        }
-      }),
-      visited: globalState.visitedPages.size,
-      deferred: globalState.deferredAuthPages.map((d) => `${d.type}:${d.url.split("/").pop()}`),
-      endpoints: globalState.capturedEndpoints.size,
-      steps: globalState.totalSteps,
+    // Panel init — after first goto so the host document exists.
+    void csEmit(page, {
+      type: "init",
+      target: targetUrl,
+      credentials: [],
+      maxPages,
+      startedAt: Date.now(),
     })
 
-    // Close any open overlays before starting exploration
-    await page.keyboard.press("Escape").catch(() => {})
-    await page.waitForTimeout(OVERLAY_ESCAPE_WAIT)
-    if (await isViewportCenterBlocked(page)) {
-      const dims = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }))
-      await page.mouse.click(dims.w / 2, dims.h / 2).catch(() => {})
-      await page.waitForTimeout(OVERLAY_ESCAPE_WAIT)
+    // Login flow: --authenticated → manual login, --user/--pass → auto-login, neither → anonymous
+    const isAuthenticated = config.auth.authenticated || !!config.auth.credentials
+    if (config.auth.authenticated) {
+      await waitForManualLogin(page)
+      // Resolve label → UUID. credentialId from the launcher is a user-supplied
+      // label ("admin", "user"). The server only accepts PATCH /web/credentials/{uuid},
+      // so syncCredentialHeaders (F.2) would 404 silently on every capture without
+      // this step. registerCredential POSTs the label, gets back a real DB UUID,
+      // and we update both the closure binding (interceptor) and handleCapture so
+      // all subsequent ingest and sync calls use the correct identifier.
+      if (!dryRun && credentialId) {
+        const registeredId = await registerCredential(serverUrl, sessionID!, credentialId)
+        if (registeredId) {
+          credentialId = registeredId
+          handleCapture = createIngestHandler(serverUrl, sessionID!, credentialId)
+        }
+      }
+    } else if (config.auth.credentials) {
+      await autoLogin(page, config.auth.credentials)
+    } else {
+      await handle2FA(page)
     }
 
-    // Dismiss cookie banners — deterministic, no LLM needed
-    await dismissCookieBanner(page)
+    // Initialize global state (Aşama 13: outOfScope snapshotted from config)
+    const globalState = createGlobalState({ outOfScope: config.outOfScope })
+    if (config.outOfScope?.length) {
+      log.info("out-of-scope labels", { count: config.outOfScope.length, labels: config.outOfScope })
+    }
 
-    // Reveal lazily-rendered below-the-fold content (scroll-gated sections) before
-    // collection so a non-scrolling scan doesn't miss unique sections. Bounded.
-    await revealLazyContent(page)
-    // Expand safe disclosures (<details>, aria-expanded accordions) so hidden
-    // actions become visible surface without spending LLM turns. Bounded, ARIA-safe.
-    await expandDisclosures(page)
+    // Manual or auto login → already authenticated, no re-discovery needed
+    if (isAuthenticated) {
+      globalState.authPhase = "authenticated"
+    }
+    // Seed URL always goes directly to queue (never deferred)
+    globalState.visitedPages.add(normalizeUrl(page.url()))
+    globalState.pageQueue.push(page.url())
 
-    // Fingerprint comparison: skip unchanged pages on re-visit (no LLM calls)
-    // Fingerprint only includes input roles (textbox/combobox/checkbox/radio/slider)
-    // so navbar/toolbar button changes don't cause false positives
-    // Single-credential mode uses SINGLE_CRED sentinel for intelligence state.
-    const intel = getIntelligence(globalState, SINGLE_CRED)
-    const oldFingerprint = intel.pageFingerprints.get(currentUrl)
-    log.debug("fingerprint check", { url: currentUrl, hasOld: !!oldFingerprint })
-    if (oldFingerprint !== undefined) {
-      const currentElements = await collectElements(page)
-      const newFingerprint = generateFingerprint(currentElements)
-      log.debug("fingerprint compare", {
-        url: currentUrl,
-        match: newFingerprint === oldFingerprint,
-        oldFp: oldFingerprint.slice(0, 80),
-        newFp: newFingerprint.slice(0, 80),
-      })
-      if (newFingerprint === oldFingerprint) {
-        log.info("page unchanged after auth, skipping exploration", { url: currentUrl })
-        // Still collect DOM links — navbar may have new links after login
-        const domLinks = await collectDOMLinks(page, currentUrl, inScope)
-        for (const url of domLinks) {
-          enqueueUrl(url, globalState, inScope)
+    // Login detection via response event — fires immediately when response arrives,
+    // before page navigation can cancel the interceptor's async handler
+    page.on("response", (response) => {
+      if (globalState.authPhase === "authenticated") return
+      const req = response.request()
+      const method = req.method()
+      const status = response.status()
+      try {
+        const pathname = new URL(req.url()).pathname
+        if (LOGIN_SUCCESS_PATTERN.test(`${method} ${pathname} [${status}]`)) {
+          log.info("login success detected via HTTP response")
+          triggerReDiscovery(globalState)
         }
-        intel.pageFingerprints.set(currentUrl, newFingerprint)
-        await page.waitForTimeout(300)
+      } catch {}
+    })
+
+    let pagesExplored = 0
+
+    while (globalState.pageQueue.length > 0 && pagesExplored < maxPages) {
+      if (isBrowserDead(health)) {
+        log.error("browser died, terminating crawl", {
+          reason: health.reason,
+          pagesExplored,
+          captured: globalState.capturedEndpoints.size,
+        })
+        break
+      }
+      // Cancellation check at iteration boundary (Faz B.5). Granularity is
+      // per-page — current LLM call / page exploration completes before
+      // we exit. Browser closes via the existing finally below.
+      if (config.signal?.aborted) {
+        log.info("crawl cancelled by signal", { pagesExplored, queued: globalState.pageQueue.length })
+        break
+      }
+
+      const nextUrl = globalState.pageQueue.shift()!
+      pagesExplored++
+
+      if (page.url() !== nextUrl) {
+        const navErr = await page
+          .goto(nextUrl, { waitUntil: "domcontentloaded", timeout: 15000 })
+          .then(() => null)
+          .catch((e: Error) => e)
+
+        if (navErr) {
+          log.warn("navigation failed", { url: nextUrl, err: navErr.message.split("\n")[0] })
+          continue
+        }
+
+        // SPA stabilization: wait for component-level async rendering
+        await stabilizeAfterGoto(page)
+      }
+
+      if (!isInScope(page.url(), inScope)) {
+        log.info("off-host redirect, skipping", { url: page.url() })
+        await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {})
         continue
       }
-      log.info("page changed after auth, re-exploring", { url: currentUrl })
-    }
 
-    // Explore the page with AI. A page reached via a state-changing action (e.g. an
-    // ASP.NET postback) is explored INLINE while its state is alive (handleNavigation),
-    // then its discoveries are enqueued the same way as top-level discoveries.
-    const exploreInline = async (p: Page, url: string, depth: number): Promise<void> => {
-      const found = await explorePageWithAI(
-        p,
-        url,
-        interceptor,
-        model,
-        globalState,
-        inScope,
-        SINGLE_CRED,
-        maxPages,
-        usageAcc,
-        { explore: exploreInline, depth },
-      )
-      for (const u of found) enqueueUrl(u, globalState, inScope)
-    }
-    const discovered = await explorePageWithAI(
-      page,
-      currentUrl,
-      interceptor,
-      model,
-      globalState,
-      inScope,
-      SINGLE_CRED,
-      maxPages,
-      usageAcc,
-      { explore: exploreInline, depth: 0 },
-    )
-
-    // Enqueue new same-host pages (auth URLs deferred during anonymous phase)
-    let newEnqueued = 0
-    for (const url of discovered) {
-      if (enqueueUrl(url, globalState, inScope)) newEnqueued++
-    }
-    if (discovered.length > 0) {
-      log.debug("discovered links", {
-        found: discovered.length,
-        enqueued: newEnqueued,
-        queueSize: globalState.pageQueue.length,
-      })
-    }
-
-    // Flush re-discovery AFTER new discoveries are enqueued — new pages come first, re-visits last
-    flushReDiscovery(globalState)
-
-    await page.waitForTimeout(300)
-
-    // Phase transition: when queue is empty, process deferred auth pages
-    if (globalState.pageQueue.length === 0 && globalState.deferredAuthPages.length > 0) {
-      log.debug("queue empty, processing auth phase", {
+      const currentUrl = normalizeUrl(page.url())
+      // Redirect-collapse guard: a distinct queued URL that REDIRECTS to a page we've
+      // already explored (a login/onboarding gate or SPA router-guard funnelling every
+      // route to one page). Re-exploring the same landed page burns the page budget and
+      // LLM turns for zero new coverage. Fires ONLY on a real redirect (landed URL differs
+      // from the requested one) to an already-visited page — so deliberate revisits
+      // (empty-state, post-login re-discovery, where requested == landed) and the first
+      // visit of a gate page are unaffected. Lands the gate page exactly once, skips the rest.
+      if (currentUrl !== normalizeUrl(nextUrl) && globalState.visitedPages.has(currentUrl)) {
+        log.info("redirect to already-explored page, skipping", {
+          requested: normalizeUrl(nextUrl),
+          landed: currentUrl,
+        })
+        continue
+      }
+      globalState.visitedPages.add(currentUrl)
+      log.info("exploring page", { page: `${pagesExplored}/${maxPages}`, url: currentUrl })
+      log.debug("state", {
         phase: globalState.authPhase,
-        deferred: globalState.deferredAuthPages.map((d) => d.type),
+        queueSize: globalState.pageQueue.length,
+        queue: globalState.pageQueue.slice(0, 5).map((u) => {
+          try {
+            return new URL(u).pathname + new URL(u).hash
+          } catch {
+            return u
+          }
+        }),
+        visited: globalState.visitedPages.size,
+        deferred: globalState.deferredAuthPages.map((d) => `${d.type}:${d.url.split("/").pop()}`),
+        endpoints: globalState.capturedEndpoints.size,
+        steps: globalState.totalSteps,
       })
-      processAuthPhase(globalState)
+
+      // Close any open overlays before starting exploration
+      await page.keyboard.press("Escape").catch(() => {})
+      await page.waitForTimeout(OVERLAY_ESCAPE_WAIT)
+      if (await isViewportCenterBlocked(page)) {
+        const dims = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }))
+        await page.mouse.click(dims.w / 2, dims.h / 2).catch(() => {})
+        await page.waitForTimeout(OVERLAY_ESCAPE_WAIT)
+      }
+
+      // Dismiss cookie banners — deterministic, no LLM needed
+      await dismissCookieBanner(page)
+
+      // Reveal lazily-rendered below-the-fold content (scroll-gated sections) before
+      // collection so a non-scrolling scan doesn't miss unique sections. Bounded.
+      await revealLazyContent(page)
+      // Expand safe disclosures (<details>, aria-expanded accordions) so hidden
+      // actions become visible surface without spending LLM turns. Bounded, ARIA-safe.
+      await expandDisclosures(page)
+
+      // Fingerprint comparison: skip unchanged pages on re-visit (no LLM calls)
+      // Fingerprint only includes input roles (textbox/combobox/checkbox/radio/slider)
+      // so navbar/toolbar button changes don't cause false positives
+      // Single-credential mode uses SINGLE_CRED sentinel for intelligence state.
+      const intel = getIntelligence(globalState, SINGLE_CRED)
+      const oldFingerprint = intel.pageFingerprints.get(currentUrl)
+      log.debug("fingerprint check", { url: currentUrl, hasOld: !!oldFingerprint })
+      if (oldFingerprint !== undefined) {
+        const currentElements = await collectElements(page)
+        const newFingerprint = generateFingerprint(currentElements)
+        log.debug("fingerprint compare", {
+          url: currentUrl,
+          match: newFingerprint === oldFingerprint,
+          oldFp: oldFingerprint.slice(0, 80),
+          newFp: newFingerprint.slice(0, 80),
+        })
+        if (newFingerprint === oldFingerprint) {
+          log.info("page unchanged after auth, skipping exploration", { url: currentUrl })
+          // Still collect DOM links — navbar may have new links after login
+          const domLinks = await collectDOMLinks(page, currentUrl, inScope)
+          for (const url of domLinks) {
+            enqueueUrl(url, globalState, inScope)
+          }
+          intel.pageFingerprints.set(currentUrl, newFingerprint)
+          await page.waitForTimeout(300)
+          continue
+        }
+        log.info("page changed after auth, re-exploring", { url: currentUrl })
+      }
+
+      // Explore the page with AI. A page reached via a state-changing action (e.g. an
+      // ASP.NET postback) is explored INLINE while its state is alive (handleNavigation),
+      // then its discoveries are enqueued the same way as top-level discoveries.
+      const exploreInline = async (p: Page, url: string, depth: number): Promise<void> => {
+        if (isBrowserDead(health)) return
+        const found = await explorePageWithAI(
+          p,
+          url,
+          interceptor,
+          model,
+          globalState,
+          inScope,
+          SINGLE_CRED,
+          maxPages,
+          usageAcc,
+          { explore: exploreInline, depth },
+        )
+        for (const u of found) enqueueUrl(u, globalState, inScope)
+      }
+      let discovered: string[] = []
+      try {
+        discovered = await explorePageWithAI(
+          page,
+          currentUrl,
+          interceptor,
+          model,
+          globalState,
+          inScope,
+          SINGLE_CRED,
+          maxPages,
+          usageAcc,
+          { explore: exploreInline, depth: 0 },
+        )
+      } catch (err) {
+        if (isBrowserDead(health)) {
+          log.error("exploration aborted — browser died mid-page", { url: currentUrl, reason: health.reason })
+          break
+        }
+        log.warn("exploration error", { url: currentUrl, err: String(err) })
+      }
+
+      // Enqueue new same-host pages (auth URLs deferred during anonymous phase)
+      let newEnqueued = 0
+      for (const url of discovered) {
+        if (enqueueUrl(url, globalState, inScope)) newEnqueued++
+      }
+      if (discovered.length > 0) {
+        log.debug("discovered links", {
+          found: discovered.length,
+          enqueued: newEnqueued,
+          queueSize: globalState.pageQueue.length,
+        })
+      }
+
+      // Flush re-discovery AFTER new discoveries are enqueued — new pages come first, re-visits last
+      flushReDiscovery(globalState)
+
+      await page.waitForTimeout(300)
+
+      // Phase transition: when queue is empty, process deferred auth pages
+      if (globalState.pageQueue.length === 0 && globalState.deferredAuthPages.length > 0) {
+        log.debug("queue empty, processing auth phase", {
+          phase: globalState.authPhase,
+          deferred: globalState.deferredAuthPages.map((d) => d.type),
+        })
+        processAuthPhase(globalState)
+      }
     }
-  }
 
-  // Final drain
-  log.info("exploration complete, draining remaining requests")
-  await page.waitForTimeout(2000)
-  clearInterval(drainInterval)
+    // Final drain
+    const browserDied = isBrowserDead(health)
+    log.info(
+      browserDied ? "browser died, draining captured requests" : "exploration complete, draining remaining requests",
+      {
+        pagesExplored,
+        captured: globalState.capturedEndpoints.size,
+        ...(browserDied ? { reason: health.reason } : {}),
+      },
+    )
+    if (!browserDied) await page.waitForTimeout(2000).catch(() => {})
 
-  while (captureQueue.length > 0) {
-    const captured = captureQueue.shift()!
-    await handleCapture(captured)
-  }
+    while (captureQueue.length > 0) {
+      const captured = captureQueue.shift()!
+      await handleCapture(captured)
+    }
 
-  log.info("done", {
-    pagesExplored,
-    totalSteps: globalState.totalSteps,
-    capturedEndpoints: globalState.capturedEndpoints.size,
-    sessionID: dryRun ? undefined : sessionID,
-  })
-
-  // Final panel event before teardown — gives pentester a visible "done" glow.
-  void csEmit(page, {
-    type: "crawl-done",
-    summary: {
+    log.info("done", {
       pagesExplored,
+      totalSteps: globalState.totalSteps,
       capturedEndpoints: globalState.capturedEndpoints.size,
-      mutations: [...globalState.capturedEndpoints].filter((e) => /^(POST|PUT|PATCH|DELETE)\s/.test(e)).length,
-      credentials: [SINGLE_CRED],
-    },
-  })
-  // Let the done-glow render before tearing down.
-  await page.waitForTimeout(600).catch(() => {})
+      sessionID: dryRun ? undefined : sessionID,
+      browserDied,
+    })
 
-  await browser.close()
+    // Final panel event before teardown — gives pentester a visible "done" glow.
+    if (!browserDied) {
+      void csEmit(page, {
+        type: "crawl-done",
+        summary: {
+          pagesExplored,
+          capturedEndpoints: globalState.capturedEndpoints.size,
+          mutations: [...globalState.capturedEndpoints].filter((e) => /^(POST|PUT|PATCH|DELETE)\s/.test(e)).length,
+          credentials: [SINGLE_CRED],
+        },
+      })
+      await page.waitForTimeout(600).catch(() => {})
+      // Second drain pass — catch captures that arrived during csEmit/panel wait
+      while (captureQueue.length > 0) {
+        const captured = captureQueue.shift()!
+        await handleCapture(captured)
+      }
+    }
 
-  return {
-    sessionID: dryRun ? "" : sessionID!,
-    capturedEndpoints: globalState.capturedEndpoints.size,
-    pagesExplored,
-    totalSteps: globalState.totalSteps,
-    errors: [],
-    usage: usageAcc,
+    if (!config.headless && browser.isConnected()) {
+      log.info("crawl complete — browser stays open, close the window to finish")
+      // Keep draining captures during manual browsing
+      const postCrawlDrain = setInterval(async () => {
+        while (captureQueue.length > 0) {
+          const captured = captureQueue.shift()!
+          await handleCapture(captured)
+        }
+      }, 500)
+      await waitForBrowserClose(browser, config.signal)
+      clearInterval(postCrawlDrain)
+    } else if (!browserDied) {
+      await browser.close().catch(() => {})
+    }
+
+    return {
+      sessionID: dryRun ? "" : sessionID!,
+      capturedEndpoints: globalState.capturedEndpoints.size,
+      pagesExplored,
+      totalSteps: globalState.totalSteps,
+      errors: browserDied
+        ? [`Browser died: ${health.reason}. Captured ${globalState.capturedEndpoints.size} endpoints before failure.`]
+        : [],
+      usage: usageAcc,
+    }
+  } finally {
+    clearInterval(drainInterval)
   }
 }

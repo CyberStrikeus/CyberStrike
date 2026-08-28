@@ -82,24 +82,7 @@ export namespace WebCredential {
     }
   }
 
-  export function get(sessionID: string): Info[] {
-    const rows = Database.use((db) =>
-      db.select().from(WebCredentialTable).where(eq(WebCredentialTable.session_id, sessionID)).all(),
-    )
-    return rows.map((row) => ({
-      id: row.id,
-      session_id: row.session_id,
-      label: row.label,
-      headers: (row.headers as Record<string, string>) ?? {},
-      container_id: row.container_id ?? undefined,
-      role_id: row.role_id ?? undefined,
-      time: { created: row.time_created, updated: row.time_updated },
-    }))
-  }
-
-  export function getById(id: string): Info | undefined {
-    const row = Database.use((db) => db.select().from(WebCredentialTable).where(eq(WebCredentialTable.id, id)).get())
-    if (!row) return undefined
+  function rowToInfo(row: typeof WebCredentialTable.$inferSelect): Info {
     return {
       id: row.id,
       session_id: row.session_id,
@@ -109,6 +92,19 @@ export namespace WebCredential {
       role_id: row.role_id ?? undefined,
       time: { created: row.time_created, updated: row.time_updated },
     }
+  }
+
+  export function get(sessionID: string): Info[] {
+    const rows = Database.use((db) =>
+      db.select().from(WebCredentialTable).where(eq(WebCredentialTable.session_id, sessionID)).all(),
+    )
+    return rows.map(rowToInfo)
+  }
+
+  export function getById(id: string): Info | undefined {
+    const row = Database.use((db) => db.select().from(WebCredentialTable).where(eq(WebCredentialTable.id, id)).get())
+    if (!row) return undefined
+    return rowToInfo(row)
   }
 
   export function getByContainer(sessionID: string, containerID: string): Info | undefined {
@@ -120,15 +116,7 @@ export namespace WebCredential {
         .get(),
     )
     if (!row) return undefined
-    return {
-      id: row.id,
-      session_id: row.session_id,
-      label: row.label,
-      headers: (row.headers as Record<string, string>) ?? {},
-      container_id: row.container_id ?? undefined,
-      role_id: row.role_id ?? undefined,
-      time: { created: row.time_created, updated: row.time_updated },
-    }
+    return rowToInfo(row)
   }
 
   export function link(input: { id: string; roleID: string }): void {
@@ -203,15 +191,7 @@ export namespace WebCredential {
       const list = get(row.session_id)
       Database.effect(() => Bus.publish(Event.Updated, { sessionID: row.session_id, credentials: list }))
 
-      return {
-        id: row.id,
-        session_id: row.session_id,
-        label: row.label,
-        headers: (row.headers as Record<string, string>) ?? {},
-        container_id: row.container_id ?? undefined,
-        role_id: row.role_id ?? undefined,
-        time: { created: row.time_created, updated: row.time_updated },
-      }
+      return rowToInfo(row)
     })
   }
 
