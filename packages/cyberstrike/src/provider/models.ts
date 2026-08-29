@@ -4,6 +4,7 @@ import path from "path"
 import z from "zod"
 import { Installation } from "../installation"
 import { Flag } from "../flag/flag"
+import { LLMTR } from "./llmtr"
 import { lazy } from "@/util/lazy"
 
 // Try to import bundled snapshot (generated at build time)
@@ -135,8 +136,12 @@ export namespace ModelsDev {
   })
 
   export async function get() {
-    const result = await Data()
-    return result as Record<string, Provider>
+    const result = (await Data()) as Record<string, Provider>
+    // LLMTR is not published on models.dev, so its entry is built from the
+    // gateway's own catalog and merged here — that keeps every consumer
+    // (auth login, model picker, app settings) on a single provider list.
+    if (Flag.CYBERSTRIKE_DISABLE_LLMTR) return result
+    return { ...result, [LLMTR.ID]: await LLMTR.get() }
   }
 
   export async function refresh() {
@@ -159,11 +164,10 @@ export namespace ModelsDev {
 }
 
 if (!Flag.CYBERSTRIKE_DISABLE_MODELS_FETCH && !process.argv.includes("--get-yargs-completions")) {
-  ModelsDev.refresh()
-  setInterval(
-    async () => {
-      await ModelsDev.refresh()
-    },
-    60 * 1000 * 60,
-  ).unref()
+  const refresh = async () => {
+    await ModelsDev.refresh()
+    if (!Flag.CYBERSTRIKE_DISABLE_LLMTR) await LLMTR.refresh()
+  }
+  refresh()
+  setInterval(refresh, 60 * 1000 * 60).unref()
 }

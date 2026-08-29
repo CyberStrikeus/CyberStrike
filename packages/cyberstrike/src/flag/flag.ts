@@ -57,6 +57,9 @@ export namespace Flag {
   export const CYBERSTRIKE_EXPERIMENTAL_MARKDOWN = truthy("CYBERSTRIKE_EXPERIMENTAL_MARKDOWN")
   export const CYBERSTRIKE_MODELS_URL = process.env["CYBERSTRIKE_MODELS_URL"]
   export const CYBERSTRIKE_MODELS_PATH = process.env["CYBERSTRIKE_MODELS_PATH"]
+  export const CYBERSTRIKE_LLMTR_URL = process.env["CYBERSTRIKE_LLMTR_URL"]
+  export const CYBERSTRIKE_LLMTR_PATH = process.env["CYBERSTRIKE_LLMTR_PATH"]
+  export const CYBERSTRIKE_DISABLE_LLMTR = truthy("CYBERSTRIKE_DISABLE_LLMTR")
 
   function number(key: string) {
     const value = process.env[key]

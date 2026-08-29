@@ -102,6 +102,7 @@ export const dict = {
   "dialog.provider.openai.note": "โมเดล GPT สำหรับงาน AI ทั่วไปที่รวดเร็วและมีความสามารถ",
   "dialog.provider.google.note": "โมเดล Gemini สำหรับการตอบสนองที่รวดเร็วและมีโครงสร้าง",
   "dialog.provider.openrouter.note": "เข้าถึงโมเดลที่รองรับทั้งหมดจากผู้ให้บริการเดียว",
+  "dialog.provider.llmtr.note": "โมเดลที่โฮสต์ในตุรกีและราคาส่วนลดสำหรับโมเดลระดับโลก",
   "dialog.provider.vercel.note": "การเข้าถึงโมเดล AI แบบรวมด้วยการกำหนดเส้นทางอัจฉริยะ",
 
   "dialog.model.select.title": "เลือกโมเดล",
