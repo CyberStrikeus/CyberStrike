@@ -1510,7 +1510,8 @@ export const SessionRoutes = lazy(() =>
         }),
       ),
       async (c) => {
-        SessionPrompt.cancel(c.req.valid("param").sessionID)
+        // Genuine user abort (Esc) — stop the background hackbrowser crawl too.
+        SessionPrompt.cancel(c.req.valid("param").sessionID, { stopCrawl: true })
         return c.json(true)
       },
     )
