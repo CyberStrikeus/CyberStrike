@@ -476,7 +476,17 @@ function setupRequestInterceptor(
     }
 
     const method = request.method()
-    const headers = await request.allHeaders()
+    let headers: Record<string, string>
+    try {
+      headers = await request.allHeaders()
+    } catch {
+      // Target/page/browser closed mid-flight — in headed mode this fires when
+      // the crawl ends or the user closes the window while requests are still
+      // in flight. This is a fire-and-forget capture handler, so a rejected
+      // allHeaders() here would become an unhandled rejection and crash the
+      // worker (exit 1). Drop the capture instead.
+      return
+    }
     const postData = request.postData() ?? null
     const raw = buildRawRequest(method, url, headers, postData)
 
