@@ -103,7 +103,7 @@ jobs:
         env:
           CYBERSTRIKE_VERSION: ${{ needs.version.outputs.version }}
           CYBERSTRIKE_RELEASE: ${{ needs.version.outputs.release }}
-          CYBERSTRIKE_BUILD_OS: ${{ inputs.platform == 'all' && '' || inputs.platform }}
+          CYBERSTRIKE_BUILD_OS: ${{ inputs.platform }}
           GH_TOKEN: ${{ github.token }}
 
       - uses: actions/upload-artifact@v4
