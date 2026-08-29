@@ -123,12 +123,14 @@ export interface AccessContextInput {
 // so the orchestrator and subagents see the same structured signals.
 export function renderAccessContextLines(accessContext: AccessContextInput): string[] {
   const ac = accessContext
-  const hasData = ac.triggerElement || ac.pageUrl || ac.uiContext
+  const hasData = ac.triggerElement || ac.pageUrl || ac.uiContext || ac.pageVisitedBy?.length
   if (!hasData) return []
   const lines: string[] = ["", "## Access Context"]
   if (ac.pageUrl) {
     const visitedBy = ac.pageVisitedBy?.length ? ` (visited by: ${ac.pageVisitedBy.join(", ")})` : ""
     lines.push(`Page: ${ac.pageUrl}${visitedBy}`)
+  } else if (ac.pageVisitedBy?.length) {
+    lines.push(`Visited by: ${ac.pageVisitedBy.join(", ")}`)
   }
   if (ac.triggerElement) {
     const visibleTo = ac.elementRoles?.length ? ` (visible to: ${ac.elementRoles.join(", ")})` : ""
@@ -166,6 +168,32 @@ export function renderAccessContextLines(accessContext: AccessContextInput): str
     }
   }
   return lines
+}
+
+// Derive visited_by from observed credential attribution (request_observation), merging
+// with any capture-time label. This is the Firefox fix: Firefox traffic has no
+// page_visited_by at capture time, but request_observation carries per-credential
+// reachability for both paths. Merged, distinct, label-resolved.
+export function getVisitedByForKeyHash(
+  sessionID: string,
+  keyHash: string,
+  captureVisitedBy?: string[],
+): string[] {
+  const obs = Observation.listByKeyHash(sessionID, keyHash)
+  const ids = [...new Set(obs.map((o) => o.credential_id).filter((id): id is string => !!id))]
+  const labels = ids.map((id) => WebCredential.getById(id)?.label ?? id)
+  const merged = new Set<string>([...(captureVisitedBy ?? []), ...labels])
+  return [...merged]
+}
+
+export function resolveVisitedBy(input: {
+  sessionID: string
+  keyHash?: string
+  captureVisitedBy?: string[]
+}): string[] | undefined {
+  if (!input.keyHash) return input.captureVisitedBy
+  const derived = getVisitedByForKeyHash(input.sessionID, input.keyHash, input.captureVisitedBy)
+  return derived.length ? derived : input.captureVisitedBy
 }
 
 // Renders the `## Observed Values` block: the concrete input values each credential was
@@ -1247,6 +1275,11 @@ export const SessionRoutes = lazy(() =>
             // orchestrator skips re-dispatching deployment-wide testers (JWT/TLS/headers).
             // Rendered at dequeue, so it reflects coverage that accrued while queued.
             const coverage = CoverageNote.wideBlock(sessionID, normalized.origin)
+            const visitedBy = resolveVisitedBy({
+              sessionID,
+              keyHash: normalized.keyHash,
+              captureVisitedBy: body.page_visited_by,
+            })
             const base = buildPromptWithCredentialContext(
               truncatedRawRequest,
               credentialID,
@@ -1255,7 +1288,7 @@ export const SessionRoutes = lazy(() =>
                 triggerElement: body.trigger_element,
                 elementRoles: body.element_roles,
                 pageUrl: body.page_url,
-                pageVisitedBy: body.page_visited_by,
+                pageVisitedBy: visitedBy,
                 uiContext: body.ui_context as Record<string, unknown> | undefined,
               },
               normalized.protocol && normalized.operation
