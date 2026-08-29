@@ -31,6 +31,63 @@ function send(msg: WorkerMessage): void {
 }
 
 // ============================================================
+// Crash safety net (#117)
+// ============================================================
+//
+// The worker does extensive async DOM work (page.evaluate, selectors, network
+// capture, event handlers). A single uncaught throw anywhere would otherwise
+// terminate the process and kill the whole multi-page crawl — one bad element
+// must never abort a 50-page run (#116). Captured requests are ingested to the
+// parent live, so continuing loses no data, and the BFS loop has its own
+// per-page try/catch + browser-death detection to terminate on real failure.
+const UNCAUGHT_LIMIT = 25
+const UNCAUGHT_WINDOW_MS = 15_000
+let uncaughtTimes: number[] = []
+
+function stringifyError(e: unknown): string {
+  if (e instanceof Error) return (e.stack ?? e.message).slice(0, 500)
+  try {
+    return String(e).slice(0, 500)
+  } catch {
+    return "<unstringifiable>"
+  }
+}
+
+function installCrashGuards(): void {
+  // An unhandledRejection escaped EVERY await, so the main runCrawl chain never
+  // depended on it (a fire-and-forget background promise). Log and continue.
+  process.on("unhandledRejection", (reason) => {
+    send({
+      type: "log",
+      level: "warn",
+      service: "hackbrowser:worker",
+      message: "unhandledRejection (crawl continues): " + stringifyError(reason),
+    })
+  })
+  // uncaughtException is a sync throw in a callback (event handler/timer) with
+  // no try/catch — usually background too. Continue, but bail if they flood:
+  // a genuinely corrupted browser/session, so stop rather than spin forever.
+  process.on("uncaughtException", (err) => {
+    send({
+      type: "log",
+      level: "error",
+      service: "hackbrowser:worker",
+      message: "uncaughtException (crawl continues): " + stringifyError(err),
+    })
+    const now = Date.now()
+    uncaughtTimes.push(now)
+    uncaughtTimes = uncaughtTimes.filter((t) => now - t < UNCAUGHT_WINDOW_MS)
+    if (uncaughtTimes.length > UNCAUGHT_LIMIT) {
+      send({
+        type: "error",
+        message: `worker aborted after ${uncaughtTimes.length} uncaught exceptions in ${UNCAUGHT_WINDOW_MS / 1000}s — likely a corrupted browser/session`,
+      })
+      process.exit(1)
+    }
+  })
+}
+
+// ============================================================
 // Model reconstruction from ModelDescriptor
 // ============================================================
 
@@ -293,6 +350,7 @@ function trustSystemCertificates(): void {
 }
 
 async function main(): Promise<void> {
+  installCrashGuards()
   trustSystemCertificates()
   const controller = new AbortController()
 
