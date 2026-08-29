@@ -1749,21 +1749,20 @@ async function collectDOMLinks(page: Page, pageUrl: string, inScope: ScopeMatche
     els.map((el) => (el as HTMLAnchorElement).href).filter(Boolean),
   )
 
-  const results: string[] = []
+  // Route every harvested href through resolveUrl (resolve-against-page +
+  // in-scope + normalizeUrl) rather than an ad-hoc inline normalization. This
+  // aligns DOM-link dedup with the rest of the crawl — e.g. bare "#section"
+  // scroll anchors collapse to the base page instead of spawning phantom
+  // targets, while "#/route" hash-router URLs are preserved.
   const seen = new Set<string>()
-
+  const results: string[] = []
   for (const href of hrefs) {
-    try {
-      const u = new URL(href)
-      if (!inScope(u.hostname)) continue
-      const normalized = u.origin + u.pathname + u.search + u.hash
-      if (!seen.has(normalized)) {
-        seen.add(normalized)
-        results.push(normalized)
-      }
-    } catch {}
+    const resolved = resolveUrl(href, pageUrl, inScope)
+    if (resolved && !seen.has(resolved)) {
+      seen.add(resolved)
+      results.push(resolved)
+    }
   }
-
   return results
 }
 
