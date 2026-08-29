@@ -44,6 +44,13 @@ export namespace Provider {
     return Number(match[1]) >= 5
   }
 
+  // deepseek-v4-flash-vision-exp is DeepSeek's multimodal model. Force image
+  // input capability even if models.dev / local cache hasn't tagged it yet.
+  // https://api-docs.deepseek.com/zh-cn/guides/vision
+  function isVisionModel(modelID: string): boolean {
+    return modelID === "deepseek-v4-flash-vision-exp" || modelID.endsWith("/deepseek-v4-flash-vision-exp")
+  }
+
   function shouldUseCopilotResponsesApi(modelID: string): boolean {
     return isGpt5OrLater(modelID) && !modelID.startsWith("gpt-5-mini")
   }
@@ -735,7 +742,7 @@ export namespace Provider {
         input: {
           text: model.modalities?.input?.includes("text") ?? false,
           audio: model.modalities?.input?.includes("audio") ?? false,
-          image: model.modalities?.input?.includes("image") ?? false,
+          image: model.modalities?.input?.includes("image") || isVisionModel(model.id),
           video: model.modalities?.input?.includes("video") ?? false,
           pdf: model.modalities?.input?.includes("pdf") ?? false,
         },
@@ -876,7 +883,10 @@ export namespace Provider {
             input: {
               text: model.modalities?.input?.includes("text") ?? existingModel?.capabilities.input.text ?? true,
               audio: model.modalities?.input?.includes("audio") ?? existingModel?.capabilities.input.audio ?? false,
-              image: model.modalities?.input?.includes("image") ?? existingModel?.capabilities.input.image ?? false,
+              image:
+                model.modalities?.input?.includes("image") ||
+                existingModel?.capabilities.input.image ||
+                isVisionModel(modelID),
               video: model.modalities?.input?.includes("video") ?? existingModel?.capabilities.input.video ?? false,
               pdf: model.modalities?.input?.includes("pdf") ?? existingModel?.capabilities.input.pdf ?? false,
             },

@@ -2127,3 +2127,77 @@ test("custom model with variants enabled and disabled", async () => {
     },
   })
 })
+
+test("deepseek-v4-flash-vision-exp is loaded as a multimodal model from models.dev", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "cyberstrike.json"),
+        JSON.stringify({
+          $schema: "https://cyberstrike.io/config.json",
+        }),
+      )
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    init: async () => {
+      Env.set("DEEPSEEK_API_KEY", "test-api-key")
+    },
+    fn: async () => {
+      const providers = await Provider.list()
+      const model = providers["deepseek"].models["deepseek-v4-flash-vision-exp"]
+      expect(model).toBeDefined()
+      expect(model.name).toBe("DeepSeek V4 Flash Vision Exp")
+      // Multimodal: accepts image input
+      expect(model.capabilities.input.image).toBe(true)
+      expect(model.capabilities.attachment).toBe(true)
+      // Reasoning + interleaved reasoning_content (deepseek-v4 family)
+      expect(model.capabilities.reasoning).toBe(true)
+      expect(model.capabilities.interleaved).toEqual({ field: "reasoning_content" })
+      // Reasoning effort variants are generated for deepseek-v4 models
+      expect(model.variants).toBeDefined()
+      expect(model.variants!["high"]).toEqual({ reasoning_effort: "high" })
+      expect(model.variants!["max"]).toEqual({ reasoning_effort: "max" })
+    },
+  })
+})
+
+test("deepseek-v4-flash-vision-exp keeps image capability even when config omits modalities", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await Bun.write(
+        path.join(dir, "cyberstrike.json"),
+        JSON.stringify({
+          $schema: "https://cyberstrike.io/config.json",
+          provider: {
+            deepseek: {
+              models: {
+                "deepseek-v4-flash-vision-exp": {
+                  name: "DeepSeek V4 Flash Vision Exp",
+                  tool_call: true,
+                  reasoning: true,
+                  limit: { context: 1000000, output: 384000 },
+                },
+              },
+            },
+          },
+        }),
+      )
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    init: async () => {
+      Env.set("DEEPSEEK_API_KEY", "test-api-key")
+    },
+    fn: async () => {
+      const providers = await Provider.list()
+      const model = providers["deepseek"].models["deepseek-v4-flash-vision-exp"]
+      expect(model).toBeDefined()
+      // Image input must be forced on even though config didn't set modalities
+      expect(model.capabilities.input.image).toBe(true)
+      expect(model.capabilities.reasoning).toBe(true)
+    },
+  })
+})
