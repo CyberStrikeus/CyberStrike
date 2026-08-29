@@ -3,7 +3,7 @@ dist
 gen
 app.log
 src/provider/models-snapshot.ts
-cookies.txt
+cookies*.txt
 headers.txt
 jq
 postman/
