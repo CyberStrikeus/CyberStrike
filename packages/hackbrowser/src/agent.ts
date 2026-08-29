@@ -198,7 +198,7 @@ function waitForBrowserClose(browser: import("playwright").Browser, signal?: Abo
 /**
  * Mark that login was detected. The actual re-queue happens in the BFS loop
  * AFTER the current page finishes exploration (so new discoveries from
- * collectDOMLinks are enqueued first, before re-visit URLs).
+ * collectNavLinks are enqueued first, before re-visit URLs).
  */
 function triggerReDiscovery(globalState: ReturnType<typeof createGlobalState>): void {
   if (globalState.authPhase === "authenticated") return
@@ -1084,12 +1084,12 @@ async function explorePageWithAI(
 
   // 6. Collect same-host links from DOM (BFS supplement)
   try {
-    const domLinks = await collectDOMLinks(page, pageUrl, inScope)
+    const domLinks = await collectNavLinks(page, pageUrl, inScope)
     for (const url of domLinks) {
       if (!linksToEnqueue.includes(url)) linksToEnqueue.push(url)
     }
   } catch {
-    log.debug("collectDOMLinks failed (page may have navigated)")
+    log.debug("collectNavLinks failed (page may have navigated)")
   }
 
   return linksToEnqueue
@@ -1752,7 +1752,7 @@ const DECLARATIVE_NAV_ATTRS = ["href", "data-href", "data-url"] as const
 const NAV_TARGET_SELECTOR = "a[href], [role=link], [data-href], [data-url]"
 
 /** Collect declarative navigation links from DOM as a BFS supplement. */
-async function collectDOMLinks(page: Page, pageUrl: string, inScope: ScopeMatcher): Promise<string[]> {
+async function collectNavLinks(page: Page, pageUrl: string, inScope: ScopeMatcher): Promise<string[]> {
   // Beyond <a href>: many SPAs navigate via non-anchor elements that still
   // declare their destination in an attribute (data-href/data-url) or carry
   // role=link. Harvest the first destination-bearing attribute per element; the
@@ -2170,7 +2170,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
       continue
     }
 
-    // Mark URL as visited BEFORE exploration — prevents re-enqueue during explore/collectDOMLinks
+    // Mark URL as visited BEFORE exploration — prevents re-enqueue during explore/collectNavLinks
     const normalizedEntryUrl = normalizeUrl(entry.url)
     visitedPages.add(normalizedEntryUrl)
     globalState.visitedPages.add(normalizedEntryUrl) // sync for explorePageWithAI's filterVisitedLinks
@@ -2278,7 +2278,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
 
     // Collect DOM links from each context — enqueue with context tag
     for (const ctx of visitableContexts) {
-      const domLinks = await collectDOMLinks(ctx.page, entry.url, inScope)
+      const domLinks = await collectNavLinks(ctx.page, entry.url, inScope)
       for (const url of domLinks) {
         enqueueWithContext(url, ctx.id, pageQueue, visitedPages, inScope, pathPatternCounts)
       }
@@ -2657,7 +2657,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
         if (newFingerprint === oldFingerprint) {
           log.info("page unchanged after auth, skipping exploration", { url: currentUrl })
           // Still collect DOM links — navbar may have new links after login
-          const domLinks = await collectDOMLinks(page, currentUrl, inScope)
+          const domLinks = await collectNavLinks(page, currentUrl, inScope)
           for (const url of domLinks) {
             enqueueUrl(url, globalState, inScope)
           }
