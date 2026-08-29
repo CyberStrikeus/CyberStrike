@@ -126,8 +126,13 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       }
       const id = el.getAttribute("id")
       if (id) {
-        const labelEl = document.querySelector(`label[for="${id}"]`)
-        if (labelEl?.textContent?.trim()) return labelEl.textContent.trim()
+        // CSS.escape + try/catch: an id with a quote/special char would otherwise
+        // build an invalid selector (e.g. label[for="content""]) and throw a
+        // SyntaxError that crashes the whole worker mid-crawl (#116).
+        try {
+          const labelEl = document.querySelector(`label[for="${CSS.escape(id)}"]`)
+          if (labelEl?.textContent?.trim()) return labelEl.textContent.trim()
+        } catch {}
       }
       const text = (el as HTMLElement).innerText?.trim()
       if (text && text.length < 80) return text
