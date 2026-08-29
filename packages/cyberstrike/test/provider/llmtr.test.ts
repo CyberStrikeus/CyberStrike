@@ -63,9 +63,11 @@ describe("LLMTR catalog", () => {
 
   test("converts per-token pricing to per-million-token cost", () => {
     const model = provider.models["llmtr/trendyol-asure-12b"]
-    expect(model.cost?.input).toBeCloseTo(0.1, 10)
-    expect(model.cost?.output).toBeCloseTo(0.5, 10)
-    expect(model.cost?.cache_read).toBeCloseTo(0.025, 10)
+    // Exact, not close-to: scaling per-token prices by a million must not leave
+    // float noise behind, since these values are rendered as session cost.
+    expect(model.cost?.input).toBe(0.1)
+    expect(model.cost?.output).toBe(0.5)
+    expect(model.cost?.cache_read).toBe(0.025)
   })
 
   test("carries limits, modalities and capabilities across", () => {

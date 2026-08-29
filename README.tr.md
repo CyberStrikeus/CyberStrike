@@ -100,7 +100,7 @@ Diger yapay zeka araclari siradaki ne yapacaginizi soylemenizi bekler. CyberStri
 
 **Herhangi Bir LLM, Bagimlilik Yok**
 
-Kutudan ciktigi gibi 15+ saglayici: Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, Mistral, OpenRouter, LLMTR (Turkiye'de barindirilan modeller ve KVKK veri yerelligi) — hatta OpenAI uyumlu uc noktalar araciligiyla yerel modeller bile. Claude, GPT, Gemini veya kendi barindiginiz LLM ile calistirin. Modeller iyilestikce ve ucuzladikca, CyberStrike de onlarla birlikte gelisir.
+Kutudan ciktigi gibi 15+ saglayici: Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, Mistral, OpenRouter, LLMTR (Turkiye'de barindirilan modeller) — hatta OpenAI uyumlu uc noktalar araciligiyla yerel modeller bile. Claude, GPT, Gemini veya kendi barindiginiz LLM ile calistirin. Modeller iyilestikce ve ucuzladikca, CyberStrike de onlarla birlikte gelisir.
 
 </td>
 <td width="50%">

@@ -112,7 +112,7 @@ CyberStrike integrates with the entire AI ecosystem through 23 bundled SDK provi
 | **Cerebras**              | LLaMA on Cerebras        | Fastest inference available             |
 | **Cohere**                | Command R+               | RAG-optimized models                    |
 | **OpenRouter**            | 300+ models              | Single API, any model                   |
-| **LLMTR**                 | 180+ models              | Türkiye-hosted models, KVKK residency   |
+| **LLMTR**                 | 180+ models              | Türkiye-hosted models, local pricing    |
 | **Together AI**           | Open-source models       | Fine-tuning support                     |
 | **DeepInfra**             | Open-source models       | Pay-per-token, no GPU needed            |
 | **Perplexity**            | Sonar models             | Search-augmented generation             |

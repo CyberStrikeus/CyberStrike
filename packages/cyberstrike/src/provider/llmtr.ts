@@ -67,9 +67,13 @@ export namespace LLMTR {
   }
 
   // Catalog prices are per token; models.dev costs are per million tokens.
+  // Scaling by a million leaves binary float noise ($1e-7/token lands on
+  // 0.09999999999999999 rather than 0.1), so round back to a precision far
+  // finer than any real price - cost is rendered to the user per session.
   function price(input: string | undefined) {
     const value = Number(input)
-    return Number.isFinite(value) ? value * 1_000_000 : 0
+    if (!Number.isFinite(value)) return 0
+    return Math.round(value * 1_000_000 * 1e6) / 1e6
   }
 
   function model(entry: Entry): ModelsDev.Model {
