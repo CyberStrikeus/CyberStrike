@@ -22,7 +22,7 @@ const log = Log.create({ service: "hackbrowser:navigator" })
  * Rethrowing lets runCrawl record the error in CrawlResult.errors[], which the
  * launcher surfaces as a "failed" phase. Transient errors keep the fallback.
  */
-function isAuthError(err: unknown): boolean {
+export function isAuthError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false
   const e = err as { name?: string; statusCode?: number; lastError?: unknown; errors?: unknown[] }
   if (e.name === "AI_LoadAPIKeyError") return true

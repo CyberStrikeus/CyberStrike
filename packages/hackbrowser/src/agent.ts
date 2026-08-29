@@ -28,7 +28,7 @@ import {
   initAuth,
 } from "./ingest.ts"
 import { loadSession, autoLogin, handle2FA, waitForManualLogin } from "./auth.ts"
-import { resolveModel, planPage, planUnexploredElements } from "./navigator.ts"
+import { resolveModel, planPage, planUnexploredElements, isAuthError } from "./navigator.ts"
 import {
   collectElements,
   isViewportCenterBlocked,
@@ -2211,6 +2211,11 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
           })
           break
         }
+        // Auth/credential failures (401/403, missing key) never recover within a
+        // run. Swallowing them here let the crawl finish as a clean "complete"
+        // with zero captures (#107). Propagate so runCrawl records the error and
+        // the launcher marks the run "failed".
+        if (isAuthError(err)) throw err
         log.warn("exploration error", { credential: ctx.id, url: entry.url, err: String(err) })
       }
     }
@@ -2644,6 +2649,8 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
           log.error("exploration aborted — browser died mid-page", { url: currentUrl, reason: health.reason })
           break
         }
+        // See note above: auth failures must fail the crawl, not complete it (#107).
+        if (isAuthError(err)) throw err
         log.warn("exploration error", { url: currentUrl, err: String(err) })
       }
 
