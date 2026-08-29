@@ -65,6 +65,29 @@ import type { RawElement } from "./types.ts"
 
 const log = Log.create({ service: "hackbrowser:agent" })
 
+// ── Env-gated fault injector (test-only, #117) ─────────────────────────────
+// Deliberately triggers a worker-level fault so the crash safety net can be
+// verified end-to-end. NO effect unless CYBERSTRIKE_HB_FAULT is set. Fires once
+// mid-crawl (default page 3, override via CYBERSTRIKE_HB_FAULT_AT) so you can
+// confirm the crawl CONTINUES past the fault instead of the worker dying.
+//   CYBERSTRIKE_HB_FAULT=unhandled → an un-awaited Promise.reject (mimics #116)
+//   CYBERSTRIKE_HB_FAULT=uncaught  → a sync throw in a timer callback
+let faultInjected = false
+function maybeInjectFault(pagesExplored: number): void {
+  const fault = process.env.CYBERSTRIKE_HB_FAULT
+  if (!fault || faultInjected) return
+  if (pagesExplored < Number(process.env.CYBERSTRIKE_HB_FAULT_AT ?? "3")) return
+  faultInjected = true
+  log.warn("injecting TEST fault (CYBERSTRIKE_HB_FAULT)", { fault, pagesExplored })
+  if (fault === "unhandled") {
+    void Promise.reject(new Error(`injected fault: unhandledRejection at page ${pagesExplored}`))
+  } else if (fault === "uncaught") {
+    setTimeout(() => {
+      throw new Error(`injected fault: uncaughtException at page ${pagesExplored}`)
+    }, 0)
+  }
+}
+
 // ============================================================
 // Constants
 // ============================================================
@@ -2053,6 +2076,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
 
     const entry = pageQueue.shift()!
     pagesExplored++
+    maybeInjectFault(pagesExplored)
 
     log.info("processing URL", {
       page: `${pagesExplored}/${maxPages}`,
@@ -2514,6 +2538,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
 
       const nextUrl = globalState.pageQueue.shift()!
       pagesExplored++
+      maybeInjectFault(pagesExplored)
 
       if (page.url() !== nextUrl) {
         const navErr = await page
