@@ -265,11 +265,20 @@ export namespace SessionPrompt {
     return s[sessionID].abort.signal
   }
 
-  export function cancel(sessionID: string) {
-    log.info("cancel", { sessionID })
-    try {
-      stopHackbrowser(sessionID)
-    } catch {}
+  // stopCrawl defaults to FALSE: a bare cancel() is the loop/prompt turn-end
+  // cleanup (fired by the two defer()s below and by child-session teardown),
+  // and a background hackbrowser crawl must SURVIVE those turn boundaries so it
+  // can run to its own maxPages / empty queue. Only a genuine teardown — the
+  // user pressing Esc (/abort route) or the session being deleted — passes
+  // stopCrawl:true. Previously this always stopped the crawl, so every turn end
+  // killed the crawl after ~3 pages (see hackbrowser crawl-lifetime fix).
+  export function cancel(sessionID: string, opts?: { stopCrawl?: boolean }) {
+    log.info("cancel", { sessionID, stopCrawl: opts?.stopCrawl ?? false })
+    if (opts?.stopCrawl) {
+      try {
+        stopHackbrowser(sessionID)
+      } catch {}
+    }
     const s = state()
     const match = s[sessionID]
     if (!match) {

@@ -114,8 +114,9 @@ const allTargets: {
   },
 ]
 
-// CI-only: build just one OS when set (windows/linux/darwin). Empty = all.
-const buildOS = process.env.CYBERSTRIKE_BUILD_OS?.trim()
+// CI-only: build just one OS when set (windows/linux/darwin). Empty or "all" = every platform.
+const buildOSRaw = process.env.CYBERSTRIKE_BUILD_OS?.trim()
+const buildOS = buildOSRaw && buildOSRaw !== "all" ? buildOSRaw : undefined
 const targets = (singleFlag
   ? allTargets.filter((item) => {
       if (item.os !== process.platform || item.arch !== process.arch) {

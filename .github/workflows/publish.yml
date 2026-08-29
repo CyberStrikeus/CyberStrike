@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       bump:
-        description: "Bump major, minor, patch, or beta"
+        description: "Bump major, minor, patch, beta, or canary"
         required: false
         type: choice
         options:
@@ -13,6 +13,7 @@ on:
           - minor
           - patch
           - beta
+          - canary
       version:
         description: "Override version (optional)"
         required: false
@@ -102,7 +103,7 @@ jobs:
         env:
           CYBERSTRIKE_VERSION: ${{ needs.version.outputs.version }}
           CYBERSTRIKE_RELEASE: ${{ needs.version.outputs.release }}
-          CYBERSTRIKE_BUILD_OS: ${{ inputs.platform == 'all' && '' || inputs.platform }}
+          CYBERSTRIKE_BUILD_OS: ${{ inputs.platform }}
           GH_TOKEN: ${{ github.token }}
 
       - uses: actions/upload-artifact@v4

@@ -34,10 +34,14 @@ export interface ModelDescriptor {
   // process does in-process (anthropic-subscription-model omits them;
   // ProviderTransform.temperature returns undefined for such models).
   supportsTemperature?: boolean
-  // GitHub Copilot OAuth bearer token. When set, the worker authenticates
-  // via Authorization: Bearer instead of apiKey, and adds Copilot-specific
-  // headers (Openai-Intent, x-initiator, User-Agent).
+  // GitHub OAuth token (ghu_…) for Copilot. When set, the worker EXCHANGES it
+  // for a short-lived Copilot session token (copilot-session.ts) and adds the
+  // integration/editor headers Copilot validates. The raw token is not accepted
+  // by api.githubcopilot.com directly (403) — see #107.
   copilotToken?: string
+  // GHE domain (e.g. "company.ghe.com") when the Copilot auth is enterprise, so
+  // the worker exchanges the token at api.{domain} instead of api.github.com.
+  copilotEnterpriseDomain?: string
 }
 
 // ============================================================
