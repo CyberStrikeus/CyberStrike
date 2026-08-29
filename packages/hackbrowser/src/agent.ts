@@ -1743,10 +1743,36 @@ function resolveUrl(href: string, baseUrl: string, inScope: ScopeMatcher): strin
   return null
 }
 
-/** Collect <a href> links from DOM as BFS supplement. */
+// Attributes that DECLARATIVELY encode a navigation destination readable
+// without clicking (a real URL, path, or hash-route). Order = priority per
+// element. `routerLink`/`[to]`/`data-route` are intentionally excluded — their
+// values are router-relative and need scheme-guessing; those routes are
+// discovered imperatively by clicking (phase B, #120).
+const DECLARATIVE_NAV_ATTRS = ["href", "data-href", "data-url"] as const
+const NAV_TARGET_SELECTOR = "a[href], [role=link], [data-href], [data-url]"
+
+/** Collect declarative navigation links from DOM as a BFS supplement. */
 async function collectDOMLinks(page: Page, pageUrl: string, inScope: ScopeMatcher): Promise<string[]> {
-  const hrefs: string[] = await page.$$eval("a[href]", (els) =>
-    els.map((el) => (el as HTMLAnchorElement).href).filter(Boolean),
+  // Beyond <a href>: many SPAs navigate via non-anchor elements that still
+  // declare their destination in an attribute (data-href/data-url) or carry
+  // role=link. Harvest the first destination-bearing attribute per element; the
+  // raw value is resolved against the page URL below (so "/x" and "#/x" work).
+  const hrefs: string[] = await page.$$eval(
+    NAV_TARGET_SELECTOR,
+    (els, attrs) => {
+      const out: string[] = []
+      for (const el of els) {
+        for (const attr of attrs) {
+          const value = el.getAttribute(attr)
+          if (value) {
+            out.push(value)
+            break
+          }
+        }
+      }
+      return out
+    },
+    [...DECLARATIVE_NAV_ATTRS],
   )
 
   // Route every harvested href through resolveUrl (resolve-against-page +
