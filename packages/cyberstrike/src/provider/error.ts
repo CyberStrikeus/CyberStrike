@@ -27,6 +27,21 @@ export namespace ProviderError {
     /context[_ ]length[_ ]exceeded/i, // Generic fallback
   ]
 
+  // Provider-side content moderation that rejects security/offensive prompts
+  // ("possible cybersecurity risk"). This is OpenAI's cyber filter — it also
+  // fires on OpenAI models proxied through GitHub Copilot. CyberStrike cannot
+  // disable it; detecting it lets us surface actionable guidance instead of a
+  // raw crash, and mark it non-retryable so it doesn't retry-spam. See #111.
+  const CONTENT_FILTER_PATTERNS = [
+    /flagged for possible cybersecurity risk/i,
+    /flagged as a potential (?:security|cybersecurity) risk/i,
+    /Trusted Access for Cyber/i,
+  ]
+
+  function isContentFilter(message: string) {
+    return CONTENT_FILTER_PATTERNS.some((p) => p.test(message))
+  }
+
   function isServerError(status?: number) {
     return !!status && status >= 500
   }
@@ -196,6 +211,23 @@ export namespace ProviderError {
         type: "context_overflow",
         message: m,
         responseBody: input.error.responseBody,
+      }
+    }
+
+    if (isContentFilter(m)) {
+      return {
+        type: "api_error",
+        message:
+          "Blocked by the AI provider's cybersecurity content filter. This is a server-side policy on the model provider " +
+          "(it also applies to OpenAI models proxied through GitHub Copilot) and cannot be disabled by CyberStrike. " +
+          "For offensive-security work, set your default model to an API-key provider such as Anthropic or OpenAI direct. " +
+          `Provider detail: ${m}`,
+        statusCode: input.error.statusCode,
+        // Same prompt will be blocked every time — retrying just wastes calls.
+        isRetryable: false,
+        responseHeaders: input.error.responseHeaders,
+        responseBody: input.error.responseBody,
+        metadata: input.error.url ? { url: input.error.url } : undefined,
       }
     }
 

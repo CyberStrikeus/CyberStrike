@@ -25,6 +25,7 @@ const env = {
 const CHANNEL = await (async () => {
   if (env.CYBERSTRIKE_CHANNEL) return env.CYBERSTRIKE_CHANNEL
   if (env.CYBERSTRIKE_BUMP === "beta") return "beta"
+  if (env.CYBERSTRIKE_BUMP === "canary") return "canary"
   if (env.CYBERSTRIKE_BUMP) return "latest"
   if (env.CYBERSTRIKE_VERSION && !env.CYBERSTRIKE_VERSION.startsWith("0.0.0-")) {
     // Extract prerelease tag from semver (e.g. "1.1.6-beta.1" → "beta")
@@ -37,7 +38,7 @@ const IS_PREVIEW = CHANNEL !== "latest"
 
 const VERSION = await (async () => {
   if (env.CYBERSTRIKE_VERSION) return env.CYBERSTRIKE_VERSION
-  if (IS_PREVIEW && env.CYBERSTRIKE_BUMP !== "beta")
+  if (IS_PREVIEW && env.CYBERSTRIKE_BUMP !== "beta" && env.CYBERSTRIKE_BUMP !== "canary")
     return `0.0.0-${CHANNEL}-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "")}`
 
   const registry = (await fetch("https://registry.npmjs.org/@cyberstrike-io%2Fcyberstrike").then((res) => {
@@ -45,25 +46,26 @@ const VERSION = await (async () => {
     return res.json()
   })) as { "dist-tags": Record<string, string>; versions: Record<string, unknown> }
 
-  if (env.CYBERSTRIKE_BUMP === "beta") {
+  if (env.CYBERSTRIKE_BUMP === "beta" || env.CYBERSTRIKE_BUMP === "canary") {
+    const pre = env.CYBERSTRIKE_BUMP // "beta" | "canary" — separate dist-tags, separate counters
     const latest = registry["dist-tags"]?.latest
     if (!latest) throw new Error("No published latest version found on npm")
     const [major, minor, patch] = latest.split(".").map((x: string) => Number(x) || 0)
 
-    const beta = registry["dist-tags"]?.beta
-    if (beta) {
-      const betaMatch = beta.match(/^(\d+)\.(\d+)\.(\d+)-beta\.(\d+)$/)
-      if (betaMatch) {
-        const [, bMaj, bMin, bPatch, bNum] = betaMatch
+    const current = registry["dist-tags"]?.[pre]
+    if (current) {
+      const m = current.match(new RegExp(`^(\\d+)\\.(\\d+)\\.(\\d+)-${pre}\\.(\\d+)$`))
+      if (m) {
+        const [, bMaj, bMin, bPatch, bNum] = m
         const sameMajor = Number(bMaj) === major
         const sameMinor = Number(bMin) === minor
         const samePatch = Number(bPatch) === patch + 1
         if (sameMajor && sameMinor && samePatch) {
-          return `${bMaj}.${bMin}.${bPatch}-beta.${Number(bNum) + 1}`
+          return `${bMaj}.${bMin}.${bPatch}-${pre}.${Number(bNum) + 1}`
         }
       }
     }
-    return `${major}.${minor}.${patch + 1}-beta.0`
+    return `${major}.${minor}.${patch + 1}-${pre}.0`
   }
 
   const version = registry["dist-tags"]?.latest

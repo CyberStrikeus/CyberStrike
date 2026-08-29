@@ -43,8 +43,12 @@ export async function snapshotPageUI(page: Page, trigger: Locator | null, compon
 
         const id = el.getAttribute("id")
         if (id) {
-          const label = document.querySelector(`label[for="${id}"]`)
-          if (label) return label.textContent?.trim() ?? ""
+          // Escape + guard: an unescaped id with a special char builds an invalid
+          // selector and throws inside page.evaluate, crashing the worker (#116).
+          try {
+            const label = document.querySelector(`label[for="${CSS.escape(id)}"]`)
+            if (label) return label.textContent?.trim() ?? ""
+          } catch {}
         }
 
         const parentLabel = el.closest("label")

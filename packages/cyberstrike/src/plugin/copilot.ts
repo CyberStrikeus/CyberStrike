@@ -1,49 +1,10 @@
 import type { Hooks, PluginInput } from "@cyberstrike-io/plugin"
 import { Installation } from "@/installation"
 import { iife } from "@/util/iife"
+import { exchangeCopilotToken, invalidateCopilotToken, copilotApiBase, copilotHeaders } from "@/provider/copilot-session"
 
 const CLIENT_ID = "Iv1.b507a08c87ecfe98"
 
-// GitHub Copilot's chat API validates that requests look like they come from
-// the VS Code Copilot client. These match a recent Copilot Chat build; the
-// exact minor version is not strict but the shape (vscode/… + copilot-chat/…)
-// is. Sourced from the reference copilot-api proxy implementation.
-const COPILOT_EDITOR_VERSION = "vscode/1.99.3"
-const COPILOT_PLUGIN_VERSION = "copilot-chat/0.26.7"
-const COPILOT_USER_AGENT = "GitHubCopilotChat/0.26.7"
-const COPILOT_INTEGRATION_ID = "vscode-chat"
-const COPILOT_API_VERSION = "2025-04-01"
-
-// The GitHub OAuth token (ghu_…) is NOT accepted directly by
-// api.githubcopilot.com — it must first be exchanged for a short-lived
-// Copilot session token (~30 min) at copilot_internal/v2/token. Cache the
-// session token per GitHub token and refresh before it expires.
-const copilotTokenCache = new Map<string, { token: string; expires: number }>()
-
-async function exchangeCopilotToken(githubToken: string, apiBase: string): Promise<string> {
-  const cached = copilotTokenCache.get(githubToken)
-  if (cached && cached.expires > Date.now() + 60_000) return cached.token
-
-  const response = await fetch(`${apiBase}/copilot_internal/v2/token`, {
-    headers: {
-      Authorization: `token ${githubToken}`,
-      "Editor-Version": COPILOT_EDITOR_VERSION,
-      "Editor-Plugin-Version": COPILOT_PLUGIN_VERSION,
-      "User-Agent": COPILOT_USER_AGENT,
-      "X-GitHub-Api-Version": COPILOT_API_VERSION,
-      Accept: "application/json",
-    },
-  })
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => "")
-    throw new Error(`Copilot token exchange failed: ${response.status} ${body.slice(0, 300)}`)
-  }
-
-  const data = (await response.json()) as { token: string; expires_at: number; refresh_in?: number }
-  copilotTokenCache.set(githubToken, { token: data.token, expires: data.expires_at * 1000 })
-  return data.token
-}
 // Add a small safety buffer when polling to avoid hitting the server
 // slightly too early due to clock skew / timer drift.
 const OAUTH_POLLING_SAFETY_MARGIN_MS = 3000 // 3 seconds
@@ -162,23 +123,14 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
             // Exchange the GitHub OAuth token for a short-lived Copilot session
             // token. api.githubcopilot.com rejects the raw ghu_ token (403),
             // which surfaced as constant "reauthenticate" prompts.
-            const exchangeBase = enterpriseUrl ? `https://api.${normalizeDomain(enterpriseUrl)}` : "https://api.github.com"
+            const exchangeBase = copilotApiBase(enterpriseUrl)
 
             const send = (sessionToken: string) => {
               const headers: Record<string, string> = {
                 "x-initiator": isAgent ? "agent" : "user",
                 ...(init?.headers as Record<string, string>),
-                Authorization: `Bearer ${sessionToken}`,
-                // Copilot validates these integration/editor headers — without
-                // them (esp. copilot-integration-id) the API returns 403.
-                "Copilot-Integration-Id": COPILOT_INTEGRATION_ID,
-                "Editor-Version": COPILOT_EDITOR_VERSION,
-                "Editor-Plugin-Version": COPILOT_PLUGIN_VERSION,
-                "User-Agent": COPILOT_USER_AGENT,
-                "X-GitHub-Api-Version": COPILOT_API_VERSION,
-                "Openai-Intent": "conversation-edits",
+                ...copilotHeaders(sessionToken, { vision: isVision }),
               }
-              if (isVision) headers["Copilot-Vision-Request"] = "true"
               delete headers["x-api-key"]
               delete headers["authorization"]
               return fetch(request, { ...init, headers })
@@ -191,7 +143,7 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
             // before the error surfaces as a "reauthenticate" prompt. If the retry
             // still 403s, it's a genuine auth problem and flows through as before.
             if (response.status === 403) {
-              copilotTokenCache.delete(info.refresh)
+              invalidateCopilotToken(info.refresh)
               response = await send(await exchangeCopilotToken(info.refresh, exchangeBase))
             }
 

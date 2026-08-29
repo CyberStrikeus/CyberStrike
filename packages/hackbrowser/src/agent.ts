@@ -28,7 +28,7 @@ import {
   initAuth,
 } from "./ingest.ts"
 import { loadSession, autoLogin, handle2FA, waitForManualLogin } from "./auth.ts"
-import { resolveModel, planPage, planUnexploredElements } from "./navigator.ts"
+import { resolveModel, planPage, planUnexploredElements, isAuthError } from "./navigator.ts"
 import {
   collectElements,
   isViewportCenterBlocked,
@@ -64,6 +64,29 @@ import type { LanguageModel } from "ai"
 import type { RawElement } from "./types.ts"
 
 const log = Log.create({ service: "hackbrowser:agent" })
+
+// ── Env-gated fault injector (test-only, #117) ─────────────────────────────
+// Deliberately triggers a worker-level fault so the crash safety net can be
+// verified end-to-end. NO effect unless CYBERSTRIKE_HB_FAULT is set. Fires once
+// mid-crawl (default page 3, override via CYBERSTRIKE_HB_FAULT_AT) so you can
+// confirm the crawl CONTINUES past the fault instead of the worker dying.
+//   CYBERSTRIKE_HB_FAULT=unhandled → an un-awaited Promise.reject (mimics #116)
+//   CYBERSTRIKE_HB_FAULT=uncaught  → a sync throw in a timer callback
+let faultInjected = false
+function maybeInjectFault(pagesExplored: number): void {
+  const fault = process.env.CYBERSTRIKE_HB_FAULT
+  if (!fault || faultInjected) return
+  if (pagesExplored < Number(process.env.CYBERSTRIKE_HB_FAULT_AT ?? "3")) return
+  faultInjected = true
+  log.warn("injecting TEST fault (CYBERSTRIKE_HB_FAULT)", { fault, pagesExplored })
+  if (fault === "unhandled") {
+    void Promise.reject(new Error(`injected fault: unhandledRejection at page ${pagesExplored}`))
+  } else if (fault === "uncaught") {
+    setTimeout(() => {
+      throw new Error(`injected fault: uncaughtException at page ${pagesExplored}`)
+    }, 0)
+  }
+}
 
 // ============================================================
 // Constants
@@ -476,7 +499,17 @@ function setupRequestInterceptor(
     }
 
     const method = request.method()
-    const headers = await request.allHeaders()
+    let headers: Record<string, string>
+    try {
+      headers = await request.allHeaders()
+    } catch {
+      // Target/page/browser closed mid-flight — in headed mode this fires when
+      // the crawl ends or the user closes the window while requests are still
+      // in flight. This is a fire-and-forget capture handler, so a rejected
+      // allHeaders() here would become an unhandled rejection and crash the
+      // worker (exit 1). Drop the capture instead.
+      return
+    }
     const postData = request.postData() ?? null
     const raw = buildRawRequest(method, url, headers, postData)
 
@@ -545,6 +578,13 @@ function setupRequestInterceptor(
   return {
     setPendingUI: (promise) => {
       pendingUIContext = promise
+      // Detached no-op catch: the consumer awaits this promise inside its own
+      // try/catch, but ONLY on mutating requests — on a GET (or if overwritten
+      // first) a rejection from snapshotPageUI would otherwise go unhandled and
+      // crash the whole worker (this was the #116 crash path). Marking it
+      // handled here changes nothing for the consumer (it awaits `promise`),
+      // it only prevents the process-killing unhandled rejection. See #117.
+      promise.catch(() => {})
     },
     setPendingTrigger: (trigger) => {
       pendingTrigger = trigger
@@ -2036,6 +2076,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
 
     const entry = pageQueue.shift()!
     pagesExplored++
+    maybeInjectFault(pagesExplored)
 
     log.info("processing URL", {
       page: `${pagesExplored}/${maxPages}`,
@@ -2201,6 +2242,11 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
           })
           break
         }
+        // Auth/credential failures (401/403, missing key) never recover within a
+        // run. Swallowing them here let the crawl finish as a clean "complete"
+        // with zero captures (#107). Propagate so runCrawl records the error and
+        // the launcher marks the run "failed".
+        if (isAuthError(err)) throw err
         log.warn("exploration error", { credential: ctx.id, url: entry.url, err: String(err) })
       }
     }
@@ -2492,6 +2538,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
 
       const nextUrl = globalState.pageQueue.shift()!
       pagesExplored++
+      maybeInjectFault(pagesExplored)
 
       if (page.url() !== nextUrl) {
         const navErr = await page
@@ -2634,6 +2681,8 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
           log.error("exploration aborted — browser died mid-page", { url: currentUrl, reason: health.reason })
           break
         }
+        // See note above: auth failures must fail the crawl, not complete it (#107).
+        if (isAuthError(err)) throw err
         log.warn("exploration error", { url: currentUrl, err: String(err) })
       }
 
