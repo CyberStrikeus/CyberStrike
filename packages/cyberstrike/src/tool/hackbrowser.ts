@@ -81,7 +81,11 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       credentials: args.credentials,
       steps: args.steps,
       headless: args.headless,
-      signal: ctx.abort,
+      // Intentionally NOT passing signal: ctx.abort. ctx.abort is the agent
+      // TURN's abort — it fires on every normal turn-end (cancel → match.abort),
+      // which would forward an abort to the worker and kill the still-running
+      // background crawl. The crawl is stopped only via stopHackbrowser (Esc /
+      // session-delete / /hackbrowser-stop), never the turn lifecycle.
     })
 
     // Output is intentionally a "started" notice, NOT a result summary.
