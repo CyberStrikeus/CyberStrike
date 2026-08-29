@@ -1247,6 +1247,7 @@ export namespace Provider {
     anthropicUserId?: string
     anthropicSystemPrefix?: string
     copilotToken?: string
+    copilotEnterpriseDomain?: string
   }> {
     const s = await state()
     const provider = s.providers[model.providerID]
@@ -1296,13 +1297,15 @@ export namespace Provider {
       if (auth?.type === "oauth" && auth.refresh) {
         // Enterprise deployments route through copilot-api.{domain}
         let baseURL = options["baseURL"] as string | undefined
+        let enterpriseDomain: string | undefined
         if (auth.enterpriseUrl) {
-          const domain = auth.enterpriseUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")
-          baseURL = `https://copilot-api.${domain}`
+          enterpriseDomain = auth.enterpriseUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")
+          baseURL = `https://copilot-api.${enterpriseDomain}`
         }
         return {
           npm: model.api.npm,
           copilotToken: auth.refresh,
+          copilotEnterpriseDomain: enterpriseDomain,
           baseURL,
           modelApiId: model.api.id,
           headers: mergedHeaders,

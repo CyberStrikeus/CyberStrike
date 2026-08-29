@@ -15,6 +15,7 @@
 import { createAnthropic } from "@ai-sdk/anthropic"
 import type { LanguageModel } from "ai"
 import { BUNDLED_PROVIDERS } from "../provider/bundled-providers"
+import { exchangeCopilotToken, invalidateCopilotToken, copilotApiBase, copilotHeaders } from "../provider/copilot-session"
 import { runCrawl } from "@cyberstrike-io/hackbrowser/api"
 import type { CrawlOptions, LogRecord, CSEvent } from "@cyberstrike-io/hackbrowser/api"
 import type { ParentMessage, WorkerMessage, WorkerOptions, ModelDescriptor } from "./worker-ipc"
@@ -139,32 +140,38 @@ function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
     return createAnthropic(opts as Parameters<typeof createAnthropic>[0])(desc.modelApiId)
   }
 
-  // GitHub Copilot OAuth: same pattern as Anthropic above.
-  // Swap default auth for Bearer token and add Copilot-specific headers.
+  // GitHub Copilot OAuth: same pattern as Anthropic above, but the raw ghu_
+  // token is NOT accepted by api.githubcopilot.com (403 "Forbidden"). Exchange
+  // it for a short-lived Copilot session token and send the integration/editor
+  // headers Copilot validates. Shared with the main chat provider via
+  // copilot-session.ts so the two can't drift again (#107).
   if (desc.npm.includes("github-copilot") && desc.copilotToken) {
-    const token = desc.copilotToken
+    const githubToken = desc.copilotToken
+    const exchangeBase = copilotApiBase(desc.copilotEnterpriseDomain)
     const factory = BUNDLED_PROVIDERS[desc.npm]
     if (!factory) throw new Error(`hackbrowser: missing bundled provider "${desc.npm}"`)
     const opts: Record<string, unknown> = {
       apiKey: "placeholder",
-      fetch: (url: any, init?: any) => {
-        const headers = new Headers(init?.headers)
-        headers.delete("x-api-key")
-        headers.delete("authorization")
-        headers.set("Authorization", `Bearer ${token}`)
-        headers.set("x-initiator", "user")
-        // CYBERSTRIKE_VERSION is a build-time define that the standalone worker bundle does not
-        // inject, so referencing it bare throws ReferenceError here (in the subprocess) and every
-        // planner call fails → the crawl "completes" with no plan. Guard it exactly like
-        // Installation.VERSION does (installation/index.ts) so it falls back to "local" instead.
-        const version = typeof CYBERSTRIKE_VERSION === "string" ? CYBERSTRIKE_VERSION : "local"
-        headers.set("User-Agent", `cyberstrike/${version}`)
-        headers.set("Openai-Intent", "conversation-edits")
-        return fetch(url, {
-          ...init,
-          headers,
-          body: stripSampling ? stripSamplingParams(init?.body) : init?.body,
-        })
+      fetch: async (url: any, init?: any) => {
+        const body = stripSampling ? stripSamplingParams(init?.body) : init?.body
+        const send = (sessionToken: string) => {
+          const headers = new Headers(init?.headers)
+          headers.delete("x-api-key")
+          headers.delete("authorization")
+          headers.set("x-initiator", "user")
+          for (const [key, value] of Object.entries(copilotHeaders(sessionToken))) headers.set(key, value)
+          return fetch(url, { ...init, headers, body })
+        }
+
+        let response = await send(await exchangeCopilotToken(githubToken, exchangeBase))
+        // A 403 under heavy use is usually a rotated/expired session token, not a
+        // real auth failure. Force a fresh exchange and retry once before the
+        // error surfaces as a stalled crawl.
+        if (response.status === 403) {
+          invalidateCopilotToken(githubToken)
+          response = await send(await exchangeCopilotToken(githubToken, exchangeBase))
+        }
+        return response
       },
     }
     if (desc.baseURL) opts.baseURL = desc.baseURL
