@@ -112,6 +112,7 @@ CyberStrike integrates with the entire AI ecosystem through 23 bundled SDK provi
 | **Cerebras**              | LLaMA on Cerebras        | Fastest inference available             |
 | **Cohere**                | Command R+               | RAG-optimized models                    |
 | **OpenRouter**            | 300+ models              | Single API, any model                   |
+| **LLMTR**                 | 180+ models              | Türkiye-hosted models, KVKK residency   |
 | **Together AI**           | Open-source models       | Fine-tuning support                     |
 | **DeepInfra**             | Open-source models       | Pay-per-token, no GPU needed            |
 | **Perplexity**            | Sonar models             | Search-augmented generation             |
@@ -150,7 +151,7 @@ Most AI security tools are thin wrappers that send your prompt to an API. CyberS
 
 **150+ Providers, Zero Lock-in**
 
-Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, Mistral, xAI, DeepSeek, Cerebras, Cohere, OpenRouter, Together AI, GitHub Copilot — or run fully offline with Ollama and LM Studio. 150+ providers, 5,300+ models. You choose the model. You own the results. As AI models get better and cheaper, CyberStrike gets better with them. Switch providers in seconds without reconfiguring anything.
+Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, Mistral, xAI, DeepSeek, Cerebras, Cohere, OpenRouter, LLMTR, Together AI, GitHub Copilot — or run fully offline with Ollama and LM Studio. 150+ providers, 5,300+ models. You choose the model. You own the results. As AI models get better and cheaper, CyberStrike gets better with them. Switch providers in seconds without reconfiguring anything.
 
 </td>
 <td width="50%">

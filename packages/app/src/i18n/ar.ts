@@ -94,6 +94,7 @@ export const dict = {
   "dialog.provider.openai.note": "اتصل باستخدام ChatGPT Pro/Plus أو مفتاح API",
   "dialog.provider.google.note": "نماذج Gemini لاستجابات سريعة ومنظمة",
   "dialog.provider.openrouter.note": "الوصول إلى جميع النماذج المدعومة من موفر واحد",
+  "dialog.provider.llmtr.note": "نماذج مستضافة في تركيا وأسعار مخفّضة على النماذج العالمية",
   "dialog.provider.vercel.note": "وصول موحد إلى نماذج الذكاء الاصطناعي مع توجيه ذكي",
   "dialog.model.select.title": "تحديد نموذج",
   "dialog.model.search.placeholder": "البحث عن نماذج",

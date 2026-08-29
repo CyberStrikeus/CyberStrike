@@ -102,6 +102,7 @@ export const dict = {
   "dialog.provider.openai.note": "GPT-modeller til hurtige, kompetente generelle AI-opgaver",
   "dialog.provider.google.note": "Gemini-modeller til hurtige, strukturerede svar",
   "dialog.provider.openrouter.note": "Få adgang til alle understøttede modeller fra én udbyder",
+  "dialog.provider.llmtr.note": "Modeller hostet i Tyrkiet og rabatterede priser på globale modeller",
   "dialog.provider.vercel.note": "Samlet adgang til AI-modeller med smart routing",
 
   "dialog.model.select.title": "Vælg model",

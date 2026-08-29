@@ -381,6 +381,17 @@ export namespace Provider {
         },
       }
     },
+    llmtr: async () => {
+      return {
+        autoload: false,
+        options: {
+          headers: {
+            "HTTP-Referer": "https://cyberstrike.io/",
+            "X-Title": "cyberstrike",
+          },
+        },
+      }
+    },
     vercel: async () => {
       return {
         autoload: false,

@@ -94,6 +94,7 @@ export const dict = {
   "dialog.provider.openai.note": "Connectez-vous avec ChatGPT Pro/Plus ou une clé API",
   "dialog.provider.google.note": "Modèles Gemini pour des réponses rapides et structurées",
   "dialog.provider.openrouter.note": "Accédez à tous les modèles pris en charge depuis un seul fournisseur",
+  "dialog.provider.llmtr.note": "Modèles hébergés en Türkiye et tarifs réduits sur les modèles mondiaux",
   "dialog.provider.vercel.note": "Accès unifié aux modèles d'IA avec routage intelligent",
   "dialog.model.select.title": "Sélectionner un modèle",
   "dialog.model.search.placeholder": "Rechercher des modèles",

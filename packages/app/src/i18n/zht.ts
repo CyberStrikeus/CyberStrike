@@ -106,6 +106,7 @@ export const dict = {
   "dialog.provider.copilot.note": "使用 Copilot 或 API 金鑰連線",
   "dialog.provider.google.note": "Gemini 模型，提供快速且結構化的回應",
   "dialog.provider.openrouter.note": "從單一提供者存取所有支援的模型",
+  "dialog.provider.llmtr.note": "土耳其在地託管模型，全球模型享折扣價",
   "dialog.provider.vercel.note": "透過智慧路由統一存取 AI 模型",
 
   "dialog.model.select.title": "選擇模型",

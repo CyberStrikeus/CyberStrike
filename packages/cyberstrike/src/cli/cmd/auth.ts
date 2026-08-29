@@ -3,6 +3,7 @@ import { cmd } from "./cmd"
 import * as prompts from "@clack/prompts"
 import { UI } from "../ui"
 import { ModelsDev } from "../../provider/models"
+import { LLMTR } from "../../provider/llmtr"
 import { map, pipe, sortBy, values } from "remeda"
 import path from "path"
 import os from "os"
@@ -252,6 +253,7 @@ export const AuthLoginCommand = cmd({
           return
         }
         await ModelsDev.refresh().catch(() => {})
+        await LLMTR.refresh().catch(() => {})
 
         const config = await Config.get()
 
@@ -275,7 +277,8 @@ export const AuthLoginCommand = cmd({
           openai: 3,
           google: 4,
           openrouter: 5,
-          vercel: 6,
+          llmtr: 6,
+          vercel: 7,
         }
         let provider = await prompts.autocomplete({
           message: "Select provider",
@@ -295,6 +298,7 @@ export const AuthLoginCommand = cmd({
                   cyberstrike: "recommended",
                   anthropic: "Claude Max or API key",
                   openai: "ChatGPT Plus/Pro or API key",
+                  llmtr: "Türkiye-hosted models, discounted pricing",
                 }[x.id],
               })),
             ),
@@ -346,6 +350,10 @@ export const AuthLoginCommand = cmd({
 
         if (provider === "cyberstrike") {
           prompts.log.info("Create an api key at https://cyberstrike.io/auth")
+        }
+
+        if (provider === LLMTR.ID) {
+          prompts.log.info("Create an api key from your LLMTR account - https://llmtr.com/docs")
         }
 
         if (provider === "vercel") {

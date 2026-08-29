@@ -4,6 +4,7 @@ import type { JSONSchema7 } from "@ai-sdk/provider"
 import type { JSONSchema } from "zod/v4/core"
 import type { Provider } from "./provider"
 import type { ModelsDev } from "./models"
+import { LLMTR } from "./llmtr"
 import { iife } from "@/util/iife"
 import { Flag } from "@/flag/flag"
 
@@ -337,6 +338,16 @@ export namespace ProviderTransform {
 
   export function variants(model: Provider.Model): Record<string, Record<string, any>> {
     if (!model.capabilities.reasoning) return {}
+
+    // LLMTR publishes the exact effort list every model accepts, so read it
+    // instead of inferring from the npm package (shared with every other
+    // openai-compatible provider) or from the model id (the same upstream model
+    // is offered with different effort sets). Each effort maps to the standard
+    // `reasoning_effort` body field, which the gateway advertises for all of them.
+    if (model.providerID === LLMTR.ID) {
+      const efforts = model.reasoning_options?.flatMap((o) => (o.type === "effort" ? o.values : [])) ?? []
+      return Object.fromEntries(efforts.map((effort) => [effort, { reasoningEffort: effort }]))
+    }
 
     const id = model.id.toLowerCase()
     if (
@@ -847,6 +858,14 @@ export namespace ProviderTransform {
       const keys = Object.keys(v)
       if (keys.length > 0) return v[keys[0]]
       return {}
+    }
+    if (model.providerID === LLMTR.ID) {
+      // Title/summarize calls should not pay for reasoning. The catalog effort
+      // list is ordered weakest-first, so the first supported one is the
+      // cheapest the model actually accepts.
+      const v = variants(model)
+      const first = Object.keys(v)[0]
+      return first ? v[first] : {}
     }
     if (model.providerID === "deepseek") {
       return { thinking: { type: "disabled" } }
