@@ -555,6 +555,13 @@ function setupRequestInterceptor(
   return {
     setPendingUI: (promise) => {
       pendingUIContext = promise
+      // Detached no-op catch: the consumer awaits this promise inside its own
+      // try/catch, but ONLY on mutating requests — on a GET (or if overwritten
+      // first) a rejection from snapshotPageUI would otherwise go unhandled and
+      // crash the whole worker (this was the #116 crash path). Marking it
+      // handled here changes nothing for the consumer (it awaits `promise`),
+      // it only prevents the process-killing unhandled rejection. See #117.
+      promise.catch(() => {})
     },
     setPendingTrigger: (trigger) => {
       pendingTrigger = trigger
