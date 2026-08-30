@@ -49,6 +49,7 @@ import { CsrfExtractTool } from "./csrf-extract"
 import { HackbrowserTool } from "./hackbrowser"
 import { AddIntelTool } from "./intel"
 import { GetCloudIntelTool, GetCloudGroupsTool } from "./cloud-intel"
+import { GetAssessGroupFindingsTool } from "./assess-findings"
 import { UpdateVrtCheckTool } from "./vrt-check"
 import { RecordCoverageNoteTool, GetCoverageNotesTool } from "./coverage-note"
 import { ScopeCheckTool } from "./scope-check"
@@ -195,6 +196,7 @@ export namespace ToolRegistry {
       AddIntelTool,
       GetCloudIntelTool,
       GetCloudGroupsTool,
+      GetAssessGroupFindingsTool,
       UpdateVrtCheckTool,
       RecordCoverageNoteTool,
       GetCoverageNotesTool,

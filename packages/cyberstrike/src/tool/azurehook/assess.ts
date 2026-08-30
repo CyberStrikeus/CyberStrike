@@ -126,9 +126,13 @@ export async function azureAssess(args: string[], timeout: number): Promise<Hook
     durationMs: Date.now() - start,
   }
 
+  lastAssessResult = result
+
   const output = outputFormat === "json" ? formatAssessResultJSON(result) : formatAssessResult(result)
   return { output, findings: unique }
 }
+
+export let lastAssessResult: AssessResult | undefined
 
 const SEV_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
 

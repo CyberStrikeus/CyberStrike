@@ -3,6 +3,8 @@ import { Tool } from "../tool"
 import type { Finding, HookResult } from "./shared"
 import { Vulnerability } from "../../session/vulnerability"
 import { Session } from "../../session"
+import { storeAssessResult } from "./assess-cache"
+import { lastAssessResult } from "./assess"
 
 import {
   entraEnum,
@@ -1071,6 +1073,9 @@ export const AzurehookTool = Tool.define("azurehook", {
     let result: HookResult
     try {
       result = await handler(params.args, effectiveTimeout)
+      if (program === "azure_assess" && lastAssessResult) {
+        storeAssessResult(Session.root(ctx.sessionID), lastAssessResult)
+      }
     } catch (e) {
       return {
         title: `azurehook: ${program}`,
