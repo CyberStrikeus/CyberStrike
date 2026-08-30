@@ -9,30 +9,11 @@ Before testing:
 
 ## Starting Point: Discovery
 
-When given a target URL with no captured traffic yet, start with **web_recon** for fast HTTP-based reconnaissance, then **hackbrowser** for browser-driven crawling.
-
-### web_recon tool
-
-Fast, deterministic HTTP reconnaissance — no browser needed. Run this BEFORE hackbrowser to understand the target's technology stack, exposed APIs, and security posture. Every program makes only safe read-only HTTP requests.
-
-**Programs:**
-- `full_recon` — run all programs below in one call (recommended first step)
-- `sitemap_scan` — extract page URLs from sitemap.xml / sitemapindex
-- `robots_scan` — parse robots.txt for hidden paths (admin, API, internal areas)
-- `openapi_scan` — discover OpenAPI/Swagger specs and enumerate all API endpoints
-- `graphql_probe` — detect GraphQL endpoints and test introspection
-- `tech_detect` — fingerprint server, framework, CMS, CDN/WAF from HTTP response
-- `header_audit` — audit security headers (HSTS, CSP, X-Frame-Options, etc.)
-
-**Typical usage:**
-1. `web_recon program="full_recon" target="https://target.com"` — comprehensive pre-crawl intelligence
-2. Review findings to plan attack strategy
-3. If OpenAPI spec found → use `http_replay` directly on discovered endpoints
-4. If more discovery needed → proceed to hackbrowser crawl
+When given a target URL with no captured traffic yet, start with **hackbrowser** to crawl and collect endpoints, then **web_recon** to test collected endpoints for vulnerabilities.
 
 ### hackbrowser tool
 
-Launches an AI-driven crawler that navigates the app, fills forms, clicks buttons, and streams every HTTP request into the current session. The proxy-analyzer processes captures automatically after the crawl completes.
+Launches an AI-driven crawler that navigates the app, fills forms, clicks buttons, and streams every HTTP request into the current session. Its discovery engine also mines JS bundles, sitemaps, robots.txt, and OpenAPI specs for additional endpoints. The proxy-analyzer processes captures automatically after the crawl completes.
 
 **Use hackbrowser when:**
 - You have a target URL but no captures yet — broad endpoint discovery before targeted testing
@@ -53,9 +34,29 @@ Launches an AI-driven crawler that navigates the app, fills forms, clicks button
 - `steps` (optional, 1–200): max pages to crawl, defaults to 50
 - `headless` (optional): defaults to true; forced to false when credentials provided
 
+### web_recon tool — post-crawl vulnerability testing
+
+Run AFTER hackbrowser to test all collected endpoints for common vulnerabilities. Reads captured requests from the session and runs deterministic HTTP checks — no browser needed.
+
+**Primary program: `session_scan`** (no target needed)
+- Audits security headers + sensitive files (.env, .git, etc.) per origin
+- Tests CORS on discovered API endpoints
+- Checks dangerous HTTP methods (TRACE, PUT, DELETE)
+- Tests open redirect on pages with redirect-like query params
+
+**Standalone programs** (require a target URL):
+- `full_recon` — all checks below in one call
+- `tech_detect` — fingerprint server, framework, CMS, CDN/WAF
+- `header_audit` — audit security headers (HSTS, CSP, X-Frame-Options)
+- `sensitive_files` — probe 22 sensitive paths (.env, .git, actuator, etc.)
+- `cors_check` — test CORS origin reflection, null origin, wildcard+creds
+- `method_check` — test TRACE (XST), PUT, DELETE methods
+- `open_redirect` — test 17 redirect parameters for open redirect
+- `sitemap_scan`, `robots_scan`, `openapi_scan`, `graphql_probe` — discovery
+
 **Typical flow:**
-1. `web_recon program="full_recon" target="https://target.com"` — fast HTTP recon (tech stack, APIs, headers)
-2. `hackbrowser target="https://target.com"` — anonymous crawl to discover endpoints
+1. `hackbrowser target="https://target.com"` — crawl to discover endpoints
+2. `web_recon program="session_scan"` — test all collected endpoints for vulns
 3. Review captured traffic, identify auth-protected areas
 4. `hackbrowser target="https://target.com" credentials=["user1","admin1"]` — role-based crawl (user present)
 5. Run targeted testing on captured requests
@@ -125,8 +126,8 @@ skill unload <skill-name>   # unload when moving to a different test area
 
 | Tool | Purpose |
 |------|---------|
-| web_recon | HTTP-based recon — tech stack, APIs, security headers (run BEFORE hackbrowser) |
-| hackbrowser | AI-driven crawler — endpoint and form discovery |
+| hackbrowser | AI-driven crawler — endpoint discovery, JS mining, form enumeration |
+| web_recon | Post-crawl vuln testing — session_scan tests all collected endpoints |
 | sqlmap | SQL injection exploitation |
 | ffuf | Directory/parameter fuzzing |
 | nuclei | Template-based vulnerability scanning |

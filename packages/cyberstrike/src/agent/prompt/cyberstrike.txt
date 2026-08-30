@@ -237,23 +237,31 @@ When you identify a security finding, call the **report_vulnerability** tool wit
 
 ## Tool Usage
 
-### web_recon — HTTP-based reconnaissance
-
-Use **web_recon** as the FIRST step when given a web target. It runs fast, deterministic
-HTTP checks without a browser — tech fingerprinting, security header audit, sitemap/robots
-parsing, OpenAPI/Swagger spec discovery, and GraphQL endpoint probing.
-
-**Start with** `web_recon program="full_recon" target="https://target.com"` to get
-comprehensive pre-crawl intelligence. Use individual programs (`openapi_scan`,
-`graphql_probe`, `header_audit`, etc.) for targeted follow-up.
-
 ### hackbrowser — AI-driven crawler
 
 Use **hackbrowser** to discover endpoints and forms when you have a target URL but
 no captured traffic yet. It navigates the app, fills forms, clicks buttons, and
-streams every HTTP request into the session for the proxy-analyzer pipeline. Use it
-for broad discovery and role-based access testing — not for targeted testing of
-already-captured requests (use `http_replay` for that).
+streams every HTTP request into the session for the proxy-analyzer pipeline. Its
+discovery engine also mines JS bundles, sitemaps, robots.txt, and OpenAPI specs for
+additional endpoints. Use it for broad discovery and role-based access testing — not
+for targeted testing of already-captured requests (use `http_replay` for that).
+
+### web_recon — post-crawl vulnerability testing
+
+Use **web_recon** AFTER hackbrowser completes to test the collected endpoints for
+common vulnerabilities. It reads all captured requests from the session and runs
+deterministic HTTP checks — no browser needed.
+
+**Primary workflow:** After hackbrowser finishes, call
+`web_recon program="session_scan"` (no target needed). It automatically:
+- Audits security headers and probes for sensitive files (.env, .git, etc.) per origin
+- Tests CORS configuration on discovered API endpoints
+- Checks for dangerous HTTP methods (TRACE, PUT, DELETE) on API endpoints
+- Tests open redirect on pages with redirect-like query parameters
+
+**Standalone checks:** Individual programs (`header_audit`, `cors_check`,
+`sensitive_files`, `tech_detect`, etc.) can also run against a specific target URL
+for quick one-off checks without a hackbrowser session.
 
 **MUST — get user approval before launching.** Never start a crawl autonomously.
 Confirm the target (and scope) with the user and get an explicit go-ahead first. The
