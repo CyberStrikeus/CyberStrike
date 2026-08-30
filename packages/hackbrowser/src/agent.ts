@@ -1489,8 +1489,15 @@ function findUnexploredElements(
 
   for (const el of elements) {
     if (!el.label || !el.selector) continue
-    if (el.role === "link") continue
+    // Declarative links (href set) are already discovered by the BFS link
+    // harvest. But IMPERATIVE nav — role=link with NO href (JS onclick) — is
+    // invisible to the harvest, so keep it as a click candidate so its route
+    // can be discovered by clicking (#127).
+    if (el.role === "link" && el.href) continue
     if (INPUT_ROLES.has(el.role)) continue // input fields are part of forms, not standalone actions
+    // Never auto-click destructive / session-ending controls (logout, delete
+    // account, revoke…) — essential now that nav exploration clicks more.
+    if (SKIP_AUTO_DISCOVERY.test(el.label)) continue
 
     // Check if this element was already actioned
     const actionKey = `${el.selector}::click::`
