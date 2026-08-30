@@ -497,7 +497,7 @@ export async function headerAudit(target: string, _args: string[], timeout: numb
   const findings: Finding[] = []
   const output: string[] = [`[*] Auditing security headers for ${target}`]
 
-  const resp = await safeFetch(target, { timeout })
+  const resp = await safeFetch(target, { timeout, redirect: "manual" })
   if (!resp) {
     output.push("[-] Target unreachable")
     return { output: output.join("\n"), findings }
@@ -566,6 +566,32 @@ export async function headerAudit(target: string, _args: string[], timeout: numb
     }
   }
 
+  const setCookie = resp.headers.get("set-cookie")
+  if (setCookie) {
+    const sessionLike = /session|token|auth|sid|connect\.sid|PHPSESSID|JSESSIONID/i.test(setCookie)
+    if (sessionLike) {
+      const cookieIssues: string[] = []
+      if (!/;\s*secure/i.test(setCookie)) cookieIssues.push("missing Secure flag")
+      if (!/;\s*httponly/i.test(setCookie)) cookieIssues.push("missing HttpOnly flag")
+      if (!/;\s*samesite/i.test(setCookie)) cookieIssues.push("missing SameSite attribute")
+      if (cookieIssues.length > 0) {
+        output.push(`\n[!] Session cookie security issues:`)
+        for (const issue of cookieIssues) output.push(`    ${issue}`)
+        findings.push({
+          checkId: "WEB-HDR-COOKIE",
+          provider: "web-recon",
+          severity: "medium",
+          status: "WEAK",
+          resource: target,
+          title: "Session cookie missing security flags",
+          details: `Set-Cookie header: ${cookieIssues.join(", ")}`,
+          remediation: "Add Secure, HttpOnly, and SameSite=Lax (or Strict) to session cookies",
+          cwe: "CWE-614",
+        })
+      }
+    }
+  }
+
   const score = Math.round((present.length / HEADER_CHECKS.length) * 100)
   output.push(`\n[*] Security header score: ${score}% (${present.length}/${HEADER_CHECKS.length})`)
 
@@ -577,6 +603,7 @@ export async function headerAudit(target: string, _args: string[], timeout: numb
 // ---------------------------------------------------------------------------
 
 type SensitiveProbe = {
+  id: string
   path: string
   title: string
   severity: string
@@ -586,165 +613,121 @@ type SensitiveProbe = {
 
 const SENSITIVE_PROBES: SensitiveProbe[] = [
   {
-    path: "/.env",
-    title: ".env file exposed (credentials/secrets)",
-    severity: "critical",
-    cwe: "CWE-538",
+    id: "ENV", path: "/.env",
+    title: ".env file exposed (credentials/secrets)", severity: "critical", cwe: "CWE-538",
     validate: (text) => /^[A-Z_]+=.+/m.test(text) || /DB_PASSWORD|API_KEY|SECRET|AWS_/i.test(text),
   },
   {
-    path: "/.git/HEAD",
-    title: "Git repository exposed",
-    severity: "high",
-    cwe: "CWE-538",
+    id: "GIT-HEAD", path: "/.git/HEAD",
+    title: "Git repository exposed", severity: "high", cwe: "CWE-538",
     validate: (text) => /^ref: refs\//.test(text.trim()),
   },
   {
-    path: "/.git/config",
-    title: "Git config exposed (may contain credentials)",
-    severity: "high",
-    cwe: "CWE-538",
+    id: "GIT-CONFIG", path: "/.git/config",
+    title: "Git config exposed (may contain credentials)", severity: "high", cwe: "CWE-538",
     validate: (text) => text.includes("[core]") || text.includes("[remote"),
   },
   {
-    path: "/.DS_Store",
-    title: "macOS .DS_Store exposes directory listing",
-    severity: "medium",
-    cwe: "CWE-538",
+    id: "DS-STORE", path: "/.DS_Store",
+    title: "macOS .DS_Store exposes directory listing", severity: "medium", cwe: "CWE-538",
     validate: (text) => text.startsWith("\x00\x00\x00\x01Bud1"),
   },
   {
-    path: "/.svn/entries",
-    title: "SVN repository exposed",
-    severity: "high",
-    cwe: "CWE-538",
+    id: "SVN", path: "/.svn/entries",
+    title: "SVN repository exposed", severity: "high", cwe: "CWE-538",
     validate: (text, status) => status === 200 && (text.startsWith("10") || text.startsWith("12") || text.includes("dir\n")),
   },
   {
-    path: "/server-status",
-    title: "Apache server-status exposed",
-    severity: "medium",
-    cwe: "CWE-200",
+    id: "SERVER-STATUS", path: "/server-status",
+    title: "Apache server-status exposed", severity: "medium", cwe: "CWE-200",
     validate: (text) => text.includes("Apache Server Status") || text.includes("Server uptime"),
   },
   {
-    path: "/server-info",
-    title: "Apache server-info exposed",
-    severity: "medium",
-    cwe: "CWE-200",
+    id: "SERVER-INFO", path: "/server-info",
+    title: "Apache server-info exposed", severity: "medium", cwe: "CWE-200",
     validate: (text) => text.includes("Apache Server Information") || text.includes("Server Settings"),
   },
   {
-    path: "/phpinfo.php",
-    title: "phpinfo() page exposed",
-    severity: "medium",
-    cwe: "CWE-200",
+    id: "PHPINFO", path: "/phpinfo.php",
+    title: "phpinfo() page exposed", severity: "medium", cwe: "CWE-200",
     validate: (text) => text.includes("phpinfo()") || text.includes("PHP Version"),
   },
   {
-    path: "/info.php",
-    title: "PHP info page exposed",
-    severity: "medium",
-    cwe: "CWE-200",
+    id: "INFO-PHP", path: "/info.php",
+    title: "PHP info page exposed", severity: "medium", cwe: "CWE-200",
     validate: (text) => text.includes("phpinfo()") || text.includes("PHP Version"),
   },
   {
-    path: "/elmah.axd",
-    title: "ELMAH error log exposed (ASP.NET)",
-    severity: "high",
-    cwe: "CWE-209",
+    id: "ELMAH", path: "/elmah.axd",
+    title: "ELMAH error log exposed (ASP.NET)", severity: "high", cwe: "CWE-209",
     validate: (text) => text.includes("Error Log for") || text.includes("ELMAH"),
   },
   {
-    path: "/trace.axd",
-    title: "ASP.NET trace exposed",
-    severity: "high",
-    cwe: "CWE-209",
+    id: "TRACE-AXD", path: "/trace.axd",
+    title: "ASP.NET trace exposed", severity: "high", cwe: "CWE-209",
     validate: (text) => text.includes("Application Trace") || text.includes("Request Details"),
   },
   {
-    path: "/actuator/env",
-    title: "Spring Boot actuator /env exposed",
-    severity: "critical",
-    cwe: "CWE-200",
+    id: "ACTUATOR-ENV", path: "/actuator/env",
+    title: "Spring Boot actuator /env exposed", severity: "critical", cwe: "CWE-200",
     validate: (text) => {
       try { const j = JSON.parse(text); return j.propertySources !== undefined || j.activeProfiles !== undefined } catch { return false }
     },
   },
   {
-    path: "/actuator/health",
-    title: "Spring Boot actuator /health exposed",
-    severity: "low",
-    cwe: "CWE-200",
+    id: "ACTUATOR-HEALTH", path: "/actuator/health",
+    title: "Spring Boot actuator /health exposed", severity: "low", cwe: "CWE-200",
     validate: (text) => {
       try { const j = JSON.parse(text); return j.status === "UP" || j.status === "DOWN" } catch { return false }
     },
   },
   {
-    path: "/actuator",
-    title: "Spring Boot actuator index exposed",
-    severity: "medium",
-    cwe: "CWE-200",
+    id: "ACTUATOR-INDEX", path: "/actuator",
+    title: "Spring Boot actuator index exposed", severity: "medium", cwe: "CWE-200",
     validate: (text) => {
       try { const j = JSON.parse(text); return j._links !== undefined } catch { return false }
     },
   },
   {
-    path: "/debug/vars",
-    title: "Go debug variables exposed",
-    severity: "medium",
-    cwe: "CWE-200",
+    id: "DEBUG-VARS", path: "/debug/vars",
+    title: "Go debug variables exposed", severity: "medium", cwe: "CWE-200",
     validate: (text) => {
       try { const j = JSON.parse(text); return j.cmdline !== undefined || j.memstats !== undefined } catch { return false }
     },
   },
   {
-    path: "/wp-config.php.bak",
-    title: "WordPress config backup exposed",
-    severity: "critical",
-    cwe: "CWE-538",
+    id: "WP-CONFIG-BAK", path: "/wp-config.php.bak",
+    title: "WordPress config backup exposed", severity: "critical", cwe: "CWE-538",
     validate: (text) => text.includes("DB_PASSWORD") || text.includes("DB_NAME"),
   },
   {
-    path: "/wp-config.php~",
-    title: "WordPress config editor backup exposed",
-    severity: "critical",
-    cwe: "CWE-538",
+    id: "WP-CONFIG-TILDE", path: "/wp-config.php~",
+    title: "WordPress config editor backup exposed", severity: "critical", cwe: "CWE-538",
     validate: (text) => text.includes("DB_PASSWORD") || text.includes("DB_NAME"),
   },
   {
-    path: "/crossdomain.xml",
-    title: "Overly permissive crossdomain.xml",
-    severity: "medium",
-    cwe: "CWE-942",
+    id: "CROSSDOMAIN", path: "/crossdomain.xml",
+    title: "Overly permissive crossdomain.xml", severity: "medium", cwe: "CWE-942",
     validate: (text) => text.includes('domain="*"') || text.includes('to-ports="*"'),
   },
   {
-    path: "/web.config",
-    title: "IIS web.config exposed",
-    severity: "high",
-    cwe: "CWE-538",
+    id: "WEB-CONFIG", path: "/web.config",
+    title: "IIS web.config exposed", severity: "high", cwe: "CWE-538",
     validate: (text) => text.includes("<configuration") && text.includes("<system.web"),
   },
   {
-    path: "/.well-known/security.txt",
-    title: "security.txt found (informational)",
-    severity: "info",
-    cwe: "CWE-200",
+    id: "SECURITY-TXT", path: "/.well-known/security.txt",
+    title: "security.txt found (informational)", severity: "info", cwe: "CWE-200",
     validate: (text) => /contact:/i.test(text),
   },
   {
-    path: "/backup.sql",
-    title: "SQL database dump exposed",
-    severity: "critical",
-    cwe: "CWE-538",
+    id: "BACKUP-SQL", path: "/backup.sql",
+    title: "SQL database dump exposed", severity: "critical", cwe: "CWE-538",
     validate: (text) => /^(--|CREATE TABLE|INSERT INTO|DROP TABLE)/m.test(text),
   },
   {
-    path: "/dump.sql",
-    title: "SQL database dump exposed",
-    severity: "critical",
-    cwe: "CWE-538",
+    id: "DUMP-SQL", path: "/dump.sql",
+    title: "SQL database dump exposed", severity: "critical", cwe: "CWE-538",
     validate: (text) => /^(--|CREATE TABLE|INSERT INTO|DROP TABLE)/m.test(text),
   },
 ]
@@ -754,17 +737,22 @@ export async function sensitiveFiles(target: string, _args: string[], timeout: n
   const output: string[] = [`[*] Probing for sensitive files at ${target}`]
   const origin = new URL(target).origin
 
-  let found = 0
-  for (const probe of SENSITIVE_PROBES) {
-    const resp = await safeFetch(origin + probe.path, { timeout })
-    if (!resp || resp.status >= 400) continue
+  const results = await Promise.allSettled(
+    SENSITIVE_PROBES.map((probe) => safeFetch(origin + probe.path, { timeout })),
+  )
+
+  for (let i = 0; i < SENSITIVE_PROBES.length; i++) {
+    const r = results[i]
+    if (r.status !== "fulfilled" || !r.value) continue
+    const resp = r.value
+    if (resp.status >= 400) continue
+    const probe = SENSITIVE_PROBES[i]
     if (!probe.validate(resp.text, resp.status)) continue
 
-    found++
     const url = origin + probe.path
     output.push(`[+] FOUND: ${url} — ${probe.title}`)
     findings.push({
-      checkId: `WEB-FILE-${String(found).padStart(3, "0")}`,
+      checkId: `WEB-FILE-${probe.id}`,
       provider: "web-recon",
       severity: probe.severity,
       status: "VULNERABLE",
@@ -776,10 +764,10 @@ export async function sensitiveFiles(target: string, _args: string[], timeout: n
     })
   }
 
-  if (found === 0) {
+  if (findings.length === 0) {
     output.push("[*] No sensitive files found at standard paths")
   } else {
-    output.push(`\n[!] ${found} sensitive file(s) exposed`)
+    output.push(`\n[!] ${findings.length} sensitive file(s) exposed`)
   }
 
   return { output: output.join("\n"), findings }
@@ -793,9 +781,12 @@ export async function corsCheck(target: string, _args: string[], timeout: number
   const findings: Finding[] = []
   const output: string[] = [`[*] Testing CORS configuration for ${target}`]
 
+  const targetHost = new URL(target).hostname
   const origins = [
     { origin: "https://evil.com", label: "arbitrary origin" },
     { origin: "null", label: "null origin" },
+    { origin: `https://evil.${targetHost}`, label: "subdomain prefix" },
+    { origin: `https://${targetHost}.evil.com`, label: "domain suffix" },
   ]
 
   for (const test of origins) {
@@ -972,7 +963,7 @@ export async function openRedirect(target: string, _args: string[], timeout: num
 
     const resp = await safeFetch(testUrl.href, {
       timeout,
-      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+      redirect: "manual",
     })
     if (!resp) continue
 
