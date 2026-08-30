@@ -60,6 +60,7 @@ import { pickSample } from "./upload-samples.ts"
 import { PANEL_INIT_SCRIPT } from "./panel/inject.ts"
 import { csEmit, setPanelEnabled } from "./panel/emit.ts"
 import { deriveScope, makeMatcher, normalizeScope, type ScopeMatcher } from "./scope.ts"
+import { runDiscovery } from "./discovery/index.ts"
 import type { LanguageModel } from "ai"
 import type { RawElement } from "./types.ts"
 
@@ -2525,6 +2526,21 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     // Seed URL always goes directly to queue (never deferred)
     globalState.visitedPages.add(normalizeUrl(page.url()))
     globalState.pageQueue.push(page.url())
+
+    // Discovery Engine (#126): seed the BFS from declared sources (sitemap /
+    // robots now; specs / JS routes in later phases) via the authenticated,
+    // proxy-aware browser context. Best-effort + additive — a failure here
+    // never blocks the crawl; results just augment the queue.
+    try {
+      const discovered = await runDiscovery(page, page.url(), inScope)
+      let seeded = 0
+      for (const url of discovered.pages) {
+        if (enqueueUrl(url, globalState, inScope)) seeded++
+      }
+      if (seeded > 0) log.info("discovery seeded pages", { pages: seeded })
+    } catch (err) {
+      log.warn("discovery failed (skipped)", { err: String(err) })
+    }
 
     // Login detection via response event — fires immediately when response arrives,
     // before page navigation can cancel the interceptor's async handler
