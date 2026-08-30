@@ -163,40 +163,27 @@ export const WebReconTool = Tool.define("web_recon", {
       .describe("Maximum time per HTTP request in seconds (default: 30)."),
   }),
   async execute(params, ctx) {
-    const program = params.program as Program
+    const program = params.program
+    const fail = (msg: string) => ({
+      title: `web_recon: ${program}`,
+      output: msg,
+      metadata: { program, findings: [] as Finding[] },
+    })
 
+    let result: WebReconResult
     if (program === "session_scan") {
-      let result: WebReconResult
       try {
         result = await sessionScan(ctx.sessionID, params.timeout_seconds)
       } catch (e) {
-        return {
-          title: "web_recon: session_scan",
-          output: `[-] session_scan failed: ${e instanceof Error ? e.message : String(e)}`,
-          metadata: { program, findings: [] as Finding[] },
-        }
+        return fail(`[-] session_scan failed: ${e instanceof Error ? e.message : String(e)}`)
       }
-      const { output, enriched } = formatOutput(program, result)
-      return { title: "web_recon: session_scan", output, metadata: { program, findings: enriched } }
-    }
-
-    if (!params.target) {
-      return {
-        title: `web_recon: ${program}`,
-        output: `[-] target URL is required for ${program}. Only session_scan runs without a target.`,
-        metadata: { program, findings: [] as Finding[] },
-      }
-    }
-
-    const handler = dispatch[program as Exclude<Program, "session_scan">]
-    let result: WebReconResult
-    try {
-      result = await handler(params.target, params.args, params.timeout_seconds)
-    } catch (e) {
-      return {
-        title: `web_recon: ${program}`,
-        output: `[-] ${program} failed: ${e instanceof Error ? e.message : String(e)}`,
-        metadata: { program, findings: [] as Finding[] },
+    } else {
+      if (!params.target) return fail(`[-] target URL is required for ${program}. Only session_scan runs without a target.`)
+      const handler = dispatch[program]
+      try {
+        result = await handler(params.target, params.args, params.timeout_seconds)
+      } catch (e) {
+        return fail(`[-] ${program} failed: ${e instanceof Error ? e.message : String(e)}`)
       }
     }
 
