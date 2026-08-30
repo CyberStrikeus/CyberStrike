@@ -140,7 +140,7 @@ function formatOutput(program: string, result: WebReconResult): { output: string
 }
 
 export const WebReconTool = Tool.define("web_recon", {
-  description: `Web reconnaissance and vulnerability testing. session_scan: test ALL hackbrowser endpoints (no target). Individual programs (require target): full_recon, tech_detect, header_audit, sensitive_files, cors_check, method_check, open_redirect, sitemap_scan, robots_scan, openapi_scan, graphql_probe.`,
+  description: `Web reconnaissance and vulnerability testing. Two modes:\n(1) session_scan — run AFTER hackbrowser, no target needed. Tests ALL collected endpoints: tech fingerprint, security headers + cookie flags, 22 sensitive file probes, CORS origin reflection + subdomain bypass, HTTP method checks, open redirect.\n(2) Individual programs against a target URL: full_recon (all-in-one), tech_detect (stack fingerprint), header_audit (HSTS/CSP/XFO), sensitive_files (.env/.git/actuator), cors_check, method_check (TRACE/PUT/DELETE), open_redirect, sitemap_scan, robots_scan, openapi_scan, graphql_probe.`,
   parameters: z.object({
     program: z
       .enum(Object.keys(PROGRAMS) as [Program, ...Program[]])

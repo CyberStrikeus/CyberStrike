@@ -497,7 +497,7 @@ export async function headerAudit(target: string, _args: string[], timeout: numb
   const findings: Finding[] = []
   const output: string[] = [`[*] Auditing security headers for ${target}`]
 
-  const resp = await safeFetch(target, { timeout, redirect: "manual" })
+  const resp = await safeFetch(target, { timeout })
   if (!resp) {
     output.push("[-] Target unreachable")
     return { output: output.join("\n"), findings }

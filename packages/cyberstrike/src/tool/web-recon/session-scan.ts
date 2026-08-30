@@ -20,11 +20,6 @@ interface OriginBucket {
   pages: Set<string>
 }
 
-function instantiateTemplate(path: string): string {
-  if (!path.includes("{")) return path
-  return path.replace(/\{[^}]+\}/g, "1")
-}
-
 function isApiEndpoint(req: Request.Info, path: string): boolean {
   if (req.method !== "GET") return true
   if (/\/api\b|\/v\d+\/|\/graphql\b|\/rest\/|\/ws\//i.test(path)) return true
@@ -48,26 +43,28 @@ function classifyRequests(requests: Request.Info[]): {
     if (!origin) continue
 
     const rawPath = req.normalized_path.split("?")[0]
-    const path = instantiateTemplate(rawPath)
-    if (path !== rawPath) templateCount++
+    const isTemplate = rawPath.includes("{")
+    if (isTemplate) templateCount++
 
     if (!origins.has(origin)) origins.set(origin, { apis: new Set(), pages: new Set() })
-    const bucket = origins.get(origin)!
-    const fullUrl = `${origin}${path}`
 
-    if (isApiEndpoint(req, path)) {
-      bucket.apis.add(fullUrl)
-    } else {
-      bucket.pages.add(fullUrl)
+    if (!isTemplate) {
+      const bucket = origins.get(origin)!
+      const fullUrl = `${origin}${rawPath}`
+      if (isApiEndpoint(req, rawPath)) {
+        bucket.apis.add(fullUrl)
+      } else {
+        bucket.pages.add(fullUrl)
+      }
     }
 
-    if (req.normalized_path.includes("?")) {
+    if (!isTemplate && req.normalized_path.includes("?")) {
       try {
         const qIdx = req.normalized_path.indexOf("?")
         const params = new URLSearchParams(req.normalized_path.slice(qIdx + 1))
         for (const key of params.keys()) {
           if (REDIRECT_PARAMS.has(key.toLowerCase())) {
-            redirectPages.add(`${origin}${path}`)
+            redirectPages.add(`${origin}${rawPath}`)
             break
           }
         }
@@ -99,7 +96,7 @@ export async function sessionScan(
   const lines: string[] = [
     `[*] Session scan: ${requests.length} requests, ${origins.size} origins`,
   ]
-  if (templateCount > 0) lines.push(`[*] ${templateCount} template path(s) instantiated ({param} → 1)`)
+  if (templateCount > 0) lines.push(`[*] ${templateCount} template path(s) skipped — discovered endpoints with {param} placeholders (use targeted programs)`)
 
   const originEntries = [...origins.entries()].slice(0, MAX_ORIGINS)
   let apiCheckCount = 0
