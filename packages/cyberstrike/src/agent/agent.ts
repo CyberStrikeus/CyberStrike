@@ -527,7 +527,6 @@ export namespace Agent {
         native: true,
         hidden: true,
         steps: STEP_CAPS.analyzer,
-        useSmallModel: true,
         color: "cyan",
         prompt: PROMPT_CLOUD_VERIFY,
         permission: PermissionNext.merge(
