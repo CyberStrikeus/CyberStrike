@@ -45,13 +45,14 @@ export function parseRawRequest({ raw, scheme }: ParseInput): ParsedRequest {
   // for non-JSON, where the value-bearing bodyHash remains the fallback.
   const bodyKeyHash = bodyKeyShapeHash(body, bodyContentType)
 
-  // Body/header-dispatched protocols (GraphQL, JSON-RPC): derive a per-operation
-  // identity so each operation is its own dedup unit. Undefined ⇒ plain REST.
+  // Body/header-dispatched protocols (GraphQL, JSON-RPC, tRPC, gRPC-Web): derive a
+  // per-operation identity so each operation is its own dedup unit. Undefined ⇒ plain REST.
   const op = extractOperation({
     method,
     bodyContentType,
     body,
     query: targetUrl.search.replace(/^\?/, ""),
+    path: canonicalPath,
   })
 
   return {
@@ -109,7 +110,16 @@ function findAuthority(lines: string[]): string | undefined {
 // (%20, %40, ...) are decoded so regex classification works on a clean form.
 function canonicalizePath(path: string): { canonicalPath: string; segments: string[] } {
   const rawSegments = path.split("/")
-  const decoded = rawSegments.map((seg) => safeDecodePreservingSlash(seg).toLowerCase())
+  const decoded = rawSegments.map((seg) => {
+    // Strip matrix params (;-delimited per-segment params like ;jsessionid= or
+    // ;color=red). They are not part of endpoint identity and may leak session tokens.
+    const withoutMatrix = seg.split(";")[0] ?? ""
+    const dec = safeDecodePreservingSlash(withoutMatrix)
+    // Preserve case for opaque case-sensitive ids (base62/nanoid etc) so
+    // differing-case ids do not collapse; otherwise lowercase for normalization.
+    if (isCaseSensitiveId(dec)) return dec
+    return dec.toLowerCase()
+  })
 
   // Strip a single trailing empty segment (from trailing slash); keep the
   // leading empty segment that represents the root.
@@ -120,6 +130,22 @@ function canonicalizePath(path: string): { canonicalPath: string; segments: stri
     canonicalPath: joined === "" ? "/" : joined,
     segments: decoded,
   }
+}
+
+function isCaseSensitiveId(seg: string): boolean {
+  if (seg.includes("%")) return false
+  if (seg.length < 16) return false
+  // TypeID suffix, KSUID, nanoid, cuid, Stripe suffix, base62 mixed-case
+  if (/^[0-9A-HJKMNP-TV-Z]{26}$/i.test(seg)) return false // ULID is case-insensitive (Crockford)
+  if (/^[A-Za-z0-9_-]{21}$/.test(seg)) return true
+  if (/^[0-9A-Za-z]{27}$/.test(seg)) return true
+  if (/^c[a-z0-9]{24,}$/.test(seg)) return false // cuid is lowercase
+  if (/^[a-z]{2,10}_[A-Za-z0-9]{14,}$/.test(seg)) return true
+  if (/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])[A-Za-z0-9_-]{16,}$/.test(seg)) return true
+  if (/^[a-z][a-z0-9_]*_[0-9A-HJKMNP-TV-Z]{26}$/i.test(seg)) return true
+  // generic: contains both upper and lower + digit, length >=16
+  if (seg.length >= 16 && /[a-z]/.test(seg) && /[A-Z]/.test(seg) && /[0-9]/.test(seg)) return true
+  return false
 }
 
 // Decode percent-encoding in a segment while keeping %2F encoded. We replace
