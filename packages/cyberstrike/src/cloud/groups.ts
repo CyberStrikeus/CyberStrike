@@ -157,9 +157,11 @@ export function groupByAnalyst(analyst: string): CloudAnalysis.GroupDef | undefi
 }
 
 export function identityGroup(): CloudAnalysis.GroupDef {
-  return CLOUD_GROUPS[0]!
+  const g = CLOUD_GROUPS.find((g) => g.key === "identity")
+  if (!g) throw new Error("identity group not found in CLOUD_GROUPS")
+  return g
 }
 
 export function parallelGroups(): CloudAnalysis.GroupDef[] {
-  return CLOUD_GROUPS.slice(1)
+  return CLOUD_GROUPS.filter((g) => g.key !== "identity")
 }
