@@ -1,14 +1,17 @@
 import { register } from "../registry.ts"
-import { toScopedPages } from "../url.ts"
+import { inScopeUrl, toScopedPages } from "../url.ts"
 import { EMPTY_RESULT, type Detector, type DiscoveryContext, type DiscoveryResult } from "../detector.ts"
 
 const CANDIDATES = ["/sitemap.xml", "/sitemap_index.xml"]
 const MAX_NESTED = 20 // bound nested sitemap fetches so a huge index can't stall discovery
 
-/** Pull `<loc>…</loc>` values out of sitemap XML without a full XML parser dependency. */
+/**
+ * Pull `<loc>…</loc>` values out of sitemap XML without a full XML parser
+ * dependency. Tolerates an optional `<![CDATA[…]]>` wrapper around the URL.
+ */
 function extractLocs(xml: string): string[] {
   const locs: string[] = []
-  const re = /<loc>\s*([^<\s]+)\s*<\/loc>/gi
+  const re = /<loc>\s*(?:<!\[CDATA\[\s*)?([^<\]\s]+)/gi
   let match: RegExpExecArray | null
   while ((match = re.exec(xml)) !== null) {
     if (match[1]) locs.push(match[1])
@@ -37,6 +40,9 @@ const sitemap: Detector = {
       const locs = extractLocs(xml)
       if (/<sitemapindex/i.test(xml)) {
         for (const child of locs.slice(0, MAX_NESTED)) {
+          // Scope-check the child sitemap URL before fetching it — a sitemapindex
+          // could point <loc> at an out-of-scope host, which we must not request.
+          if (!inScopeUrl(child, ctx.inScope)) continue
           const childXml = await ctx.fetchText(child)
           if (childXml) for (const loc of extractLocs(childXml)) rawPages.add(loc)
         }
