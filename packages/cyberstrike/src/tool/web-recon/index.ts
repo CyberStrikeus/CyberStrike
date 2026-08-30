@@ -9,6 +9,10 @@ import {
   graphqlProbe,
   techDetect,
   headerAudit,
+  sensitiveFiles,
+  corsCheck,
+  methodCheck,
+  openRedirect,
 } from "./programs"
 
 const PROGRAMS = {
@@ -40,6 +44,22 @@ const PROGRAMS = {
     description:
       "Audit security headers: HSTS, CSP (with weakness analysis), X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy. Returns score and findings",
   },
+  sensitive_files: {
+    description:
+      "Probe for 22 sensitive files: .env, .git/HEAD, .git/config, .DS_Store, phpinfo, server-status, actuator/env, wp-config.bak, elmah.axd, trace.axd, backup.sql, web.config, crossdomain.xml. Content-validated to avoid false positives from custom 404 pages",
+  },
+  cors_check: {
+    description:
+      "Test CORS for origin reflection (evil.com), null origin bypass, wildcard with credentials. Detects cross-origin data theft vulnerabilities",
+  },
+  method_check: {
+    description:
+      "Test TRACE (XST), PUT, DELETE methods on target. Check OPTIONS Allow header for dangerous method advertisement",
+  },
+  open_redirect: {
+    description:
+      "Test 17 common redirect parameters (?url=, ?next=, ?redirect=, ?returnUrl=, etc.) for open redirect via 3xx Location, meta refresh, and JavaScript redirect",
+  },
 } as const satisfies Record<string, { description: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -52,6 +72,10 @@ const dispatch: Record<Program, (target: string, args: string[], timeout: number
   graphql_probe: graphqlProbe,
   tech_detect: techDetect,
   header_audit: headerAudit,
+  sensitive_files: sensitiveFiles,
+  cors_check: corsCheck,
+  method_check: methodCheck,
+  open_redirect: openRedirect,
 }
 
 const CWE_MAP: Record<string, string> = {
@@ -66,6 +90,10 @@ const CWE_MAP: Record<string, string> = {
   "WEB-HDR-XFO": "CWE-1021",
   "WEB-HDR-RP": "CWE-200",
   "WEB-HDR-PP": "CWE-16",
+  "WEB-FILE": "CWE-538",
+  "WEB-CORS": "CWE-942",
+  "WEB-METHOD": "CWE-749",
+  "WEB-REDIR": "CWE-601",
 }
 
 function resolveCwe(checkId: string): string | undefined {

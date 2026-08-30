@@ -573,6 +573,474 @@ export async function headerAudit(target: string, _args: string[], timeout: numb
 }
 
 // ---------------------------------------------------------------------------
+// sensitive_files
+// ---------------------------------------------------------------------------
+
+type SensitiveProbe = {
+  path: string
+  title: string
+  severity: string
+  cwe: string
+  validate: (text: string, status: number) => boolean
+}
+
+const SENSITIVE_PROBES: SensitiveProbe[] = [
+  {
+    path: "/.env",
+    title: ".env file exposed (credentials/secrets)",
+    severity: "critical",
+    cwe: "CWE-538",
+    validate: (text) => /^[A-Z_]+=.+/m.test(text) || /DB_PASSWORD|API_KEY|SECRET|AWS_/i.test(text),
+  },
+  {
+    path: "/.git/HEAD",
+    title: "Git repository exposed",
+    severity: "high",
+    cwe: "CWE-538",
+    validate: (text) => /^ref: refs\//.test(text.trim()),
+  },
+  {
+    path: "/.git/config",
+    title: "Git config exposed (may contain credentials)",
+    severity: "high",
+    cwe: "CWE-538",
+    validate: (text) => text.includes("[core]") || text.includes("[remote"),
+  },
+  {
+    path: "/.DS_Store",
+    title: "macOS .DS_Store exposes directory listing",
+    severity: "medium",
+    cwe: "CWE-538",
+    validate: (text) => text.startsWith("\x00\x00\x00\x01Bud1"),
+  },
+  {
+    path: "/.svn/entries",
+    title: "SVN repository exposed",
+    severity: "high",
+    cwe: "CWE-538",
+    validate: (text, status) => status === 200 && (text.startsWith("10") || text.startsWith("12") || text.includes("dir\n")),
+  },
+  {
+    path: "/server-status",
+    title: "Apache server-status exposed",
+    severity: "medium",
+    cwe: "CWE-200",
+    validate: (text) => text.includes("Apache Server Status") || text.includes("Server uptime"),
+  },
+  {
+    path: "/server-info",
+    title: "Apache server-info exposed",
+    severity: "medium",
+    cwe: "CWE-200",
+    validate: (text) => text.includes("Apache Server Information") || text.includes("Server Settings"),
+  },
+  {
+    path: "/phpinfo.php",
+    title: "phpinfo() page exposed",
+    severity: "medium",
+    cwe: "CWE-200",
+    validate: (text) => text.includes("phpinfo()") || text.includes("PHP Version"),
+  },
+  {
+    path: "/info.php",
+    title: "PHP info page exposed",
+    severity: "medium",
+    cwe: "CWE-200",
+    validate: (text) => text.includes("phpinfo()") || text.includes("PHP Version"),
+  },
+  {
+    path: "/elmah.axd",
+    title: "ELMAH error log exposed (ASP.NET)",
+    severity: "high",
+    cwe: "CWE-209",
+    validate: (text) => text.includes("Error Log for") || text.includes("ELMAH"),
+  },
+  {
+    path: "/trace.axd",
+    title: "ASP.NET trace exposed",
+    severity: "high",
+    cwe: "CWE-209",
+    validate: (text) => text.includes("Application Trace") || text.includes("Request Details"),
+  },
+  {
+    path: "/actuator/env",
+    title: "Spring Boot actuator /env exposed",
+    severity: "critical",
+    cwe: "CWE-200",
+    validate: (text) => {
+      try { const j = JSON.parse(text); return j.propertySources !== undefined || j.activeProfiles !== undefined } catch { return false }
+    },
+  },
+  {
+    path: "/actuator/health",
+    title: "Spring Boot actuator /health exposed",
+    severity: "low",
+    cwe: "CWE-200",
+    validate: (text) => {
+      try { const j = JSON.parse(text); return j.status === "UP" || j.status === "DOWN" } catch { return false }
+    },
+  },
+  {
+    path: "/actuator",
+    title: "Spring Boot actuator index exposed",
+    severity: "medium",
+    cwe: "CWE-200",
+    validate: (text) => {
+      try { const j = JSON.parse(text); return j._links !== undefined } catch { return false }
+    },
+  },
+  {
+    path: "/debug/vars",
+    title: "Go debug variables exposed",
+    severity: "medium",
+    cwe: "CWE-200",
+    validate: (text) => {
+      try { const j = JSON.parse(text); return j.cmdline !== undefined || j.memstats !== undefined } catch { return false }
+    },
+  },
+  {
+    path: "/wp-config.php.bak",
+    title: "WordPress config backup exposed",
+    severity: "critical",
+    cwe: "CWE-538",
+    validate: (text) => text.includes("DB_PASSWORD") || text.includes("DB_NAME"),
+  },
+  {
+    path: "/wp-config.php~",
+    title: "WordPress config editor backup exposed",
+    severity: "critical",
+    cwe: "CWE-538",
+    validate: (text) => text.includes("DB_PASSWORD") || text.includes("DB_NAME"),
+  },
+  {
+    path: "/crossdomain.xml",
+    title: "Overly permissive crossdomain.xml",
+    severity: "medium",
+    cwe: "CWE-942",
+    validate: (text) => text.includes('domain="*"') || text.includes('to-ports="*"'),
+  },
+  {
+    path: "/web.config",
+    title: "IIS web.config exposed",
+    severity: "high",
+    cwe: "CWE-538",
+    validate: (text) => text.includes("<configuration") && text.includes("<system.web"),
+  },
+  {
+    path: "/.well-known/security.txt",
+    title: "security.txt found (informational)",
+    severity: "info",
+    cwe: "CWE-200",
+    validate: (text) => /contact:/i.test(text),
+  },
+  {
+    path: "/backup.sql",
+    title: "SQL database dump exposed",
+    severity: "critical",
+    cwe: "CWE-538",
+    validate: (text) => /^(--|CREATE TABLE|INSERT INTO|DROP TABLE)/m.test(text),
+  },
+  {
+    path: "/dump.sql",
+    title: "SQL database dump exposed",
+    severity: "critical",
+    cwe: "CWE-538",
+    validate: (text) => /^(--|CREATE TABLE|INSERT INTO|DROP TABLE)/m.test(text),
+  },
+]
+
+export async function sensitiveFiles(target: string, _args: string[], timeout: number): Promise<WebReconResult> {
+  const findings: Finding[] = []
+  const output: string[] = [`[*] Probing for sensitive files at ${target}`]
+  const origin = new URL(target).origin
+
+  let found = 0
+  for (const probe of SENSITIVE_PROBES) {
+    const resp = await safeFetch(origin + probe.path, { timeout })
+    if (!resp || resp.status >= 400) continue
+    if (!probe.validate(resp.text, resp.status)) continue
+
+    found++
+    const url = origin + probe.path
+    output.push(`[+] FOUND: ${url} — ${probe.title}`)
+    findings.push({
+      checkId: `WEB-FILE-${String(found).padStart(3, "0")}`,
+      provider: "web-recon",
+      severity: probe.severity,
+      status: "VULNERABLE",
+      resource: url,
+      title: probe.title,
+      details: `Sensitive file accessible at ${url} (HTTP ${resp.status}, ${resp.text.length} bytes)`,
+      remediation: `Block public access to ${probe.path} via web server configuration or WAF rules`,
+      cwe: probe.cwe,
+    })
+  }
+
+  if (found === 0) {
+    output.push("[*] No sensitive files found at standard paths")
+  } else {
+    output.push(`\n[!] ${found} sensitive file(s) exposed`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+// ---------------------------------------------------------------------------
+// cors_check
+// ---------------------------------------------------------------------------
+
+export async function corsCheck(target: string, _args: string[], timeout: number): Promise<WebReconResult> {
+  const findings: Finding[] = []
+  const output: string[] = [`[*] Testing CORS configuration for ${target}`]
+
+  const origins = [
+    { origin: "https://evil.com", label: "arbitrary origin" },
+    { origin: "null", label: "null origin" },
+  ]
+
+  for (const test of origins) {
+    const resp = await safeFetch(target, {
+      timeout,
+      headers: { Origin: test.origin },
+    })
+    if (!resp) continue
+
+    const acao = resp.headers.get("access-control-allow-origin")
+    const acac = resp.headers.get("access-control-allow-credentials")
+
+    if (!acao) continue
+
+    const reflected = acao === test.origin || acao === "*"
+    const withCreds = acac?.toLowerCase() === "true"
+
+    if (acao === "*" && withCreds) {
+      output.push(`[+] CRITICAL: Access-Control-Allow-Origin: * with Access-Control-Allow-Credentials: true`)
+      output.push(`    This is an invalid combination per spec but some browsers may not enforce it`)
+      findings.push({
+        checkId: "WEB-CORS-001",
+        provider: "web-recon",
+        severity: "high",
+        status: "VULNERABLE",
+        resource: target,
+        title: "CORS wildcard with credentials",
+        details: `Access-Control-Allow-Origin: * combined with Access-Control-Allow-Credentials: true`,
+        remediation: "Never combine wildcard ACAO with credentials. Validate the Origin header against an allowlist",
+        cwe: "CWE-942",
+      })
+    } else if (reflected && test.origin !== "*" && test.origin !== "null") {
+      const severity = withCreds ? "high" : "medium"
+      output.push(`[+] ${severity.toUpperCase()}: Origin "${test.origin}" reflected in Access-Control-Allow-Origin`)
+      if (withCreds) output.push(`    Access-Control-Allow-Credentials: true — attacker can read authenticated responses`)
+      findings.push({
+        checkId: "WEB-CORS-002",
+        provider: "web-recon",
+        severity,
+        status: "VULNERABLE",
+        resource: target,
+        title: `CORS origin reflection (${test.label})${withCreds ? " with credentials" : ""}`,
+        details: `Origin "${test.origin}" is reflected in ACAO header${withCreds ? " with ACAC:true — full cross-origin data theft" : ""}`,
+        remediation: "Validate the Origin header server-side against a strict allowlist. Do not reflect arbitrary origins",
+        cwe: "CWE-942",
+      })
+    } else if (acao === "null" && test.origin === "null") {
+      output.push(`[+] MEDIUM: Access-Control-Allow-Origin: null accepted`)
+      output.push(`    Exploitable via sandboxed iframes (sandbox attribute strips origin to null)`)
+      findings.push({
+        checkId: "WEB-CORS-003",
+        provider: "web-recon",
+        severity: withCreds ? "high" : "medium",
+        status: "VULNERABLE",
+        resource: target,
+        title: `CORS null origin accepted${withCreds ? " with credentials" : ""}`,
+        details: `Server accepts Origin: null — exploitable via sandboxed iframes${withCreds ? " with credential sharing" : ""}`,
+        remediation: "Do not whitelist the null origin. Validate against explicit domain allowlist",
+        cwe: "CWE-942",
+      })
+    } else if (acao === "*") {
+      output.push(`[*] Access-Control-Allow-Origin: * (public API, no credentials)`)
+    }
+  }
+
+  if (findings.length === 0) {
+    const baseline = await safeFetch(target, { timeout })
+    const acao = baseline?.headers.get("access-control-allow-origin")
+    if (!acao) {
+      output.push("[*] No CORS headers present — same-origin policy enforced")
+    } else {
+      output.push(`[*] CORS properly configured: Access-Control-Allow-Origin: ${acao}`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+// ---------------------------------------------------------------------------
+// method_check
+// ---------------------------------------------------------------------------
+
+const DANGEROUS_METHODS = ["TRACE", "PUT", "DELETE"]
+
+export async function methodCheck(target: string, _args: string[], timeout: number): Promise<WebReconResult> {
+  const findings: Finding[] = []
+  const output: string[] = [`[*] Testing HTTP methods for ${target}`]
+
+  const optResp = await safeFetch(target, { timeout, method: "OPTIONS" })
+  if (optResp) {
+    const allow = optResp.headers.get("allow")
+    if (allow) {
+      output.push(`[+] OPTIONS Allow header: ${allow}`)
+      const methods = allow.split(",").map((m) => m.trim().toUpperCase())
+      for (const m of DANGEROUS_METHODS) {
+        if (methods.includes(m)) {
+          output.push(`[!] Dangerous method advertised: ${m}`)
+        }
+      }
+    } else {
+      output.push(`[*] OPTIONS returned HTTP ${optResp.status} (no Allow header)`)
+    }
+  }
+
+  const traceResp = await safeFetch(target, { timeout, method: "TRACE" })
+  if (traceResp && traceResp.status === 200) {
+    const ct = (traceResp.headers.get("content-type") || "").toLowerCase()
+    const reflected = ct.includes("message/http") || traceResp.text.includes("TRACE / ")
+    if (reflected) {
+      output.push(`[+] TRACE method enabled — Cross-Site Tracing (XST) possible`)
+      output.push(`    Response reflects the request including cookies and auth headers`)
+      findings.push({
+        checkId: "WEB-METHOD-001",
+        provider: "web-recon",
+        severity: "medium",
+        status: "VULNERABLE",
+        resource: target,
+        title: "TRACE method enabled (XST)",
+        details: `TRACE returns HTTP 200 with reflected request body — combined with XSS this leaks HttpOnly cookies`,
+        remediation: "Disable TRACE method in the web server configuration (TraceEnable Off for Apache)",
+        cwe: "CWE-693",
+      })
+    }
+  }
+
+  for (const method of ["PUT", "DELETE"]) {
+    const resp = await safeFetch(target, { timeout, method })
+    if (!resp) continue
+    if (resp.status < 400 && resp.status !== 301 && resp.status !== 302) {
+      output.push(`[+] ${method} method accepted (HTTP ${resp.status})`)
+      findings.push({
+        checkId: `WEB-METHOD-${method}`,
+        provider: "web-recon",
+        severity: "medium",
+        status: "VULNERABLE",
+        resource: target,
+        title: `${method} method accepted on root`,
+        details: `HTTP ${method} returned status ${resp.status} — may allow unauthorized resource modification/deletion`,
+        remediation: `Restrict ${method} method to authenticated and authorized requests only`,
+        cwe: "CWE-749",
+      })
+    }
+  }
+
+  if (findings.length === 0) {
+    output.push("[*] No dangerous HTTP methods enabled")
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+// ---------------------------------------------------------------------------
+// open_redirect
+// ---------------------------------------------------------------------------
+
+const REDIRECT_PARAMS = [
+  "url", "next", "redirect", "return", "returnUrl", "return_url",
+  "continue", "dest", "destination", "target", "rurl", "redirect_uri",
+  "redirect_url", "forward", "go", "out", "callback", "redir",
+]
+
+const CANARY_DOMAIN = "https://evil.example.com"
+
+export async function openRedirect(target: string, _args: string[], timeout: number): Promise<WebReconResult> {
+  const findings: Finding[] = []
+  const output: string[] = [`[*] Testing open redirect parameters at ${target}`]
+
+  const base = new URL(target)
+  let found = 0
+
+  for (const param of REDIRECT_PARAMS) {
+    const testUrl = new URL(target)
+    testUrl.searchParams.set(param, CANARY_DOMAIN)
+
+    const resp = await safeFetch(testUrl.href, {
+      timeout,
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+    })
+    if (!resp) continue
+
+    const location = resp.headers.get("location") || ""
+    const isRedirect = resp.status >= 300 && resp.status < 400
+
+    if (isRedirect && location.includes("evil.example.com")) {
+      found++
+      output.push(`[+] OPEN REDIRECT: ?${param}=${CANARY_DOMAIN}`)
+      output.push(`    HTTP ${resp.status} Location: ${location}`)
+      findings.push({
+        checkId: `WEB-REDIR-${String(found).padStart(3, "0")}`,
+        provider: "web-recon",
+        severity: "medium",
+        status: "VULNERABLE",
+        resource: `${base.origin}${base.pathname}?${param}=`,
+        title: `Open redirect via ?${param} parameter`,
+        details: `Parameter "${param}" redirects to arbitrary external domain (HTTP ${resp.status} -> ${location})`,
+        remediation: "Validate redirect targets against an allowlist of trusted domains. Use relative paths instead of full URLs",
+        cwe: "CWE-601",
+      })
+    }
+
+    const metaRefresh = resp.text.match(/meta\s+http-equiv=["']refresh["']\s+content=["']\d+;\s*url=([^"']+)/i)
+    if (metaRefresh && metaRefresh[1].includes("evil.example.com")) {
+      found++
+      output.push(`[+] OPEN REDIRECT (meta refresh): ?${param}=${CANARY_DOMAIN}`)
+      findings.push({
+        checkId: `WEB-REDIR-${String(found).padStart(3, "0")}`,
+        provider: "web-recon",
+        severity: "medium",
+        status: "VULNERABLE",
+        resource: `${base.origin}${base.pathname}?${param}=`,
+        title: `Open redirect via meta refresh on ?${param}`,
+        details: `Parameter "${param}" causes meta refresh redirect to external domain`,
+        remediation: "Validate redirect targets server-side before rendering meta refresh tags",
+        cwe: "CWE-601",
+      })
+    }
+
+    const jsRedirect = resp.text.match(/(?:window\.location|location\.href)\s*=\s*["']([^"']*evil\.example\.com[^"']*)/i)
+    if (jsRedirect) {
+      found++
+      output.push(`[+] OPEN REDIRECT (JavaScript): ?${param}=${CANARY_DOMAIN}`)
+      findings.push({
+        checkId: `WEB-REDIR-${String(found).padStart(3, "0")}`,
+        provider: "web-recon",
+        severity: "medium",
+        status: "VULNERABLE",
+        resource: `${base.origin}${base.pathname}?${param}=`,
+        title: `Open redirect via JavaScript on ?${param}`,
+        details: `Parameter "${param}" value injected into JavaScript redirect`,
+        remediation: "Sanitize user input before use in client-side redirects",
+        cwe: "CWE-601",
+      })
+    }
+  }
+
+  if (found === 0) {
+    output.push(`[*] Tested ${REDIRECT_PARAMS.length} redirect parameters — no open redirects found`)
+  } else {
+    output.push(`\n[!] ${found} open redirect(s) found`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+// ---------------------------------------------------------------------------
 // full_recon
 // ---------------------------------------------------------------------------
 
@@ -581,6 +1049,10 @@ type ProgramFn = (target: string, args: string[], timeout: number) => Promise<We
 const RECON_SUITE: { label: string; fn: ProgramFn }[] = [
   { label: "Technology Detection", fn: techDetect },
   { label: "Security Headers", fn: headerAudit },
+  { label: "Sensitive Files", fn: sensitiveFiles },
+  { label: "CORS Configuration", fn: corsCheck },
+  { label: "HTTP Methods", fn: methodCheck },
+  { label: "Open Redirect", fn: openRedirect },
   { label: "Sitemap", fn: sitemapScan },
   { label: "Robots.txt", fn: robotsScan },
   { label: "OpenAPI/Swagger", fn: openapiScan },
