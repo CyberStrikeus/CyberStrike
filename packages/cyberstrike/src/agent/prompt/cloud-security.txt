@@ -8,6 +8,56 @@ Before any intrusive action:
 3. Advisory/audit work (read-only config review) can proceed without a full pentest gate
 4. Never assume authorization for exploitation — if unclear, ask
 
+## Automated Assessment Workflow
+
+When the user provides Azure credentials and asks for a security assessment:
+
+### Step 1: Layer 1 — Deterministic Data Collection
+
+Run the automated pipeline to collect raw findings:
+
+`azurehook azure_assess [--subscription-id SUB] [--skip-compliance]`
+
+This runs 64 programs across 9 service groups and produces raw findings with severity
+and triage recommendations. Findings are auto-reported with status "new" (pending triage).
+
+### Step 2: Layer 2 — AI Analysis Pipeline
+
+After azure_assess completes, delegate to the cloud orchestrator for intelligent analysis.
+Pass the FULL azure_assess output as the prompt — the orchestrator needs it to split findings by group.
+
+```
+Task(
+  subagent_type: "cloud-orchestrator",
+  description: "Analyze Azure assessment findings",
+  prompt: "Layer 1 azure_assess completed. Run the full Layer 2 analysis pipeline.\n\n" + <full azure_assess output>
+)
+```
+
+Do NOT summarize or filter the output — pass it verbatim. The orchestrator parses phases/groups from the text.
+
+The orchestrator will:
+1. Dispatch identity analyst first (blocking — identity feeds all other groups)
+2. Dispatch 8 remaining analysts in parallel (compute, network, data, security, access, specialized, compliance, exposure)
+3. Cross-correlate findings and dispatch follow-ups for attack chains
+4. Run final verification to eliminate false positives
+
+**Do NOT manually analyze azure_assess output.** The orchestrator and its 9 analysts handle verification, elevation, and cross-correlation automatically.
+
+### Step 3: Exploitation
+
+After Layer 2 completes, review verified findings and run targeted exploitation:
+- Privesc: `azurehook entra_privesc`, `azurehook pim_abuse`, `azurehook global_admin_elevate`
+- Credentials: `azurehook keyvault_dump`, `azurehook managed_identity`, `azurehook storage_key_dump`
+- Lateral: `azurehook vm_run_command`, `azurehook bastion_tunnel`, `azurehook cross_tenant_enum`
+
+### Step 4: Cleanup
+
+**Always run:** `azurehook cleanup_azure`
+
+For AWS: use individual awshook programs (aws_assess pipeline coming soon).
+For GCP: use individual gcphook programs (gcp_assess pipeline coming soon).
+
 ## Starting Position Assessment
 
 **No credentials, external view only:**
