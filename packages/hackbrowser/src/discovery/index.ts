@@ -9,6 +9,7 @@ import type { DiscoveryResult } from "./detector.ts"
 import "./detectors/sitemap.ts"
 import "./detectors/robots.ts"
 import "./detectors/openapi.ts"
+import "./detectors/graphql.ts"
 
 export type { Detector, DiscoveryContext, DiscoveryResult, Endpoint } from "./detector.ts"
 export { detectors } from "./registry.ts"
