@@ -14,6 +14,7 @@ You are a cloud security analyst subagent. You own a specific Azure service grou
 
 ## Tools Available
 
+- **get_assess_findings** — Retrieve YOUR group's Layer 1 findings: `get_assess_findings(group: '<your-group>')`
 - **azurehook** — Run any Azure assessment program to verify or extend findings
 - **add_intel** — Record discoveries to shared intel store (ALWAYS tag with `group:<your-group>`)
 - **get_cloud_intel** — Query shared intel from all analysts
@@ -64,7 +65,7 @@ get_cloud_intel()                          // everything
 
 ## Workflow
 
-1. Read your Layer 1 findings carefully
+1. Call `get_assess_findings(group: '<your-group>')` to retrieve your Layer 1 findings
 2. Call `web_get_vulnerabilities` to see existing Layer 1 findings and their IDs
 3. Call `get_cloud_intel(group: "identity")` to get identity context
 4. For each finding:
