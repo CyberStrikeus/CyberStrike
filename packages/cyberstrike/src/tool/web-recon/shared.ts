@@ -21,7 +21,7 @@ export type FetchResult = { status: number; headers: Headers; text: string }
 
 export async function safeFetch(
   url: string,
-  opts: { timeout?: number; method?: string; body?: string; headers?: Record<string, string> } = {},
+  opts: { timeout?: number; method?: string; body?: string; headers?: Record<string, string>; redirect?: RequestRedirect } = {},
 ): Promise<FetchResult | null> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), (opts.timeout ?? 10) * 1000)
@@ -31,7 +31,7 @@ export async function safeFetch(
       headers: { "User-Agent": UA, Accept: "*/*", ...opts.headers },
       body: opts.body,
       signal: controller.signal,
-      redirect: "follow",
+      redirect: opts.redirect ?? "follow",
     })
     const declared = Number(resp.headers.get("content-length") ?? "0")
     if (declared > MAX_BODY) return { status: resp.status, headers: resp.headers, text: "" }
