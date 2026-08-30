@@ -923,7 +923,7 @@ async function explorePageWithAI(
   // and ask LLM for additional plans. Max 2 iterations (loop guard).
   for (let iteration = 0; iteration < MAX_UNPLANNED_ITERATIONS && steps < MAX_STEPS_PER_PAGE; iteration++) {
     const currentElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
-    const unexplored = findUnexploredElements(currentElements, semanticActionsDone, seenKeys)
+    const unexplored = findUnexploredElements(currentElements, semanticActionsDone, seenKeys, globalState.visitedNav)
     if (unexplored.length === 0) break
 
     log.info("unexplored elements found", {
@@ -1483,6 +1483,7 @@ function findUnexploredElements(
   elements: RawElement[],
   semanticActionsDone: Set<string>,
   seenKeys: Set<string>,
+  visitedNav: Set<string>,
 ): string[] {
   const unexplored: string[] = []
   const rolesSeen = new Set<string>() // for duplicate role filter
@@ -1509,6 +1510,16 @@ function findUnexploredElements(
     const roleKey = `${el.role}::${baseLabel}`
     if (rolesSeen.has(roleKey)) continue
     rolesSeen.add(roleKey)
+
+    // Crawl-wide nav dedup (#127): a site-chrome nav item (navbar/sidebar)
+    // appears on every page. Surface it once across the whole crawl — not per
+    // page — so nav isn't re-clicked repeatedly. Page-body (non-chrome) actions
+    // are unaffected. (Mark-on-surface: the additional-plan step then clicks it.)
+    if (el.inChrome) {
+      const navKey = `${el.role}::${el.label}`
+      if (visitedNav.has(navKey)) continue
+      visitedNav.add(navKey)
+    }
 
     unexplored.push(`[${el.role}] ${el.label}`)
   }
