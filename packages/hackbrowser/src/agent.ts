@@ -125,6 +125,54 @@ const SKIP_AUTO_DISCOVERY = /\b(logout|sign.?out|log.?out|delete.?account|reset.
 async function stabilizeAfterGoto(page: Page): Promise<void> {
   await page.waitForTimeout(POST_GOTO_WAIT)
   await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_TIMEOUT }).catch(() => {})
+  await waitForDomQuiescence(page)
+}
+
+/**
+ * DOM-mutation quiescence wait for timer-mounted content (issue #103 gap B).
+ * Timer-driven mounts (setTimeout, no network) are invisible to networkidle.
+ * Wait until the DOM has been quiet for DOM_QUIET_MS, bounded by DOM_QUIET_TIMEOUT
+ * so a page with continuous mutations (chat widget, analytics) never blocks the crawl.
+ * On a stable page the cost is just DOM_QUIET_MS; on a mutating page it caps at
+ * DOM_QUIET_TIMEOUT (covers the 4.5s synthetic repro with margin).
+ */
+const DOM_QUIET_MS = 600
+const DOM_QUIET_TIMEOUT = 5000
+
+export async function waitForDomQuiescence(page: Page): Promise<void> {
+  try {
+    await page.evaluate(
+      ({ quietMs, timeoutMs }) => {
+        return new Promise<void>((resolve) => {
+          let quietTimer: number | undefined
+          const timeout = window.setTimeout(() => {
+            observer.disconnect()
+            if (quietTimer !== undefined) clearTimeout(quietTimer)
+            resolve()
+          }, timeoutMs)
+          const observer = new MutationObserver(() => {
+            if (quietTimer !== undefined) clearTimeout(quietTimer)
+            quietTimer = window.setTimeout(() => {
+              clearTimeout(timeout)
+              observer.disconnect()
+              resolve()
+            }, quietMs)
+          })
+          observer.observe(document.documentElement, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+          })
+          quietTimer = window.setTimeout(() => {
+            clearTimeout(timeout)
+            observer.disconnect()
+            resolve()
+          }, quietMs)
+        })
+      },
+      { quietMs: DOM_QUIET_MS, timeoutMs: DOM_QUIET_TIMEOUT },
+    )
+  } catch {}
 }
 
 // ============================================================
