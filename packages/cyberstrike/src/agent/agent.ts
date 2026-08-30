@@ -50,6 +50,12 @@ import DESC_PROXY_TESTER_FILE_ATTACKS from "./prompt/vuln/file-attacks/descripti
 import PROMPT_METHODOLOGY_COMMON from "./prompt/methodology/common-methodology.txt"
 import PROMPT_METHODOLOGY_CONTINUATION from "./prompt/methodology/forced-continuation.txt"
 
+// Cloud analysis pipeline — Layer 2 orchestrator, analysts, verify
+import PROMPT_CLOUD_ORCHESTRATOR from "./prompt/cloud/orchestrator.txt"
+import PROMPT_CLOUD_ANALYST_COMMON from "./prompt/cloud/analyst-common.txt"
+import PROMPT_CLOUD_VERIFY from "./prompt/cloud/verify.txt"
+import { CLOUD_GROUPS } from "../cloud/groups"
+
 import { PermissionNext } from "@/permission/next"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
 import path from "path"
@@ -416,6 +422,33 @@ export namespace Agent {
             cloud_audit: "allow",
             k8s_audit: "allow",
             ci_audit: "allow",
+          }),
+          user,
+        ),
+        options: {},
+      },
+      // ── Cloud Analysis Pipeline (Layer 2) ─────────────────────────
+      "cloud-orchestrator": {
+        name: "cloud-orchestrator",
+        description: "Cloud assessment orchestrator. Dispatches 9 analyst subagents, coordinates cross-group correlation, runs verification.",
+        mode: "subagent",
+        native: true,
+        hidden: true,
+        steps: STEP_CAPS.orchestrator,
+        color: "cyan",
+        prompt: PROMPT_CLOUD_ORCHESTRATOR,
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            "*": "deny",
+            task: "allow",
+            question: "allow",
+            get_cloud_intel: "allow",
+            get_cloud_groups: "allow",
+            web_get_vulnerabilities: "allow",
+            web_get_vuln_detail: "allow",
+            triage_vulnerability: "allow",
+            methodology_status: "allow",
           }),
           user,
         ),
