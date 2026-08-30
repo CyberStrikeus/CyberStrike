@@ -14,11 +14,16 @@ import {
   methodCheck,
   openRedirect,
 } from "./programs"
+import { sessionScan } from "./session-scan"
 
 const PROGRAMS = {
+  session_scan: {
+    description:
+      "Run vulnerability tests on ALL endpoints collected by hackbrowser in the current session. Automatically performs header_audit + sensitive_files per origin, cors_check + method_check per API endpoint, and open_redirect on pages with redirect parameters. Use AFTER hackbrowser completes — does not require a target URL",
+  },
   full_recon: {
     description:
-      "Run all reconnaissance programs (tech detect, headers, sitemap, robots, OpenAPI, GraphQL) and return aggregated results — the starting tool for any web target",
+      "Run all reconnaissance programs against a single target URL and return aggregated results — useful for quick standalone checks without hackbrowser",
   },
   sitemap_scan: {
     description:
@@ -64,7 +69,10 @@ const PROGRAMS = {
 
 type Program = keyof typeof PROGRAMS
 
-const dispatch: Record<Program, (target: string, args: string[], timeout: number) => Promise<WebReconResult>> = {
+const dispatch: Record<
+  Exclude<Program, "session_scan">,
+  (target: string, args: string[], timeout: number) => Promise<WebReconResult>
+> = {
   full_recon: fullRecon,
   sitemap_scan: sitemapScan,
   robots_scan: robotsScan,
@@ -103,16 +111,46 @@ function resolveCwe(checkId: string): string | undefined {
   return undefined
 }
 
+function formatOutput(program: string, result: WebReconResult): { output: string; enriched: Finding[] } {
+  const enriched = result.findings.map((f) => ({
+    ...f,
+    severity: f.severity.toLowerCase(),
+    cwe: f.cwe || resolveCwe(f.checkId),
+  }))
+
+  const output =
+    enriched.length > 0
+      ? result.output +
+        "\n\n=== FINDINGS (" +
+        enriched.length +
+        ") ===\n" +
+        enriched
+          .map(
+            (f, i) =>
+              `[${i + 1}] ${f.severity} — ${f.title}${f.cwe ? ` (${f.cwe})` : ""}\n    Check: ${f.checkId} | Status: ${f.status} | Resource: ${f.resource}\n    ${f.details}\n    Remediation: ${f.remediation}`,
+          )
+          .join("\n") +
+        "\n\nCall report_vulnerability for each finding: severity (lowercase), title, description=details, recommendation=remediation" +
+        (enriched.some((f) => f.cwe) ? ", cwe_id from parentheses above" : "") +
+        "."
+      : result.output
+
+  return { output, enriched }
+}
+
 export const WebReconTool = Tool.define("web_recon", {
-  description: `HTTP-based web reconnaissance — run deterministic checks against a target URL without a browser. Use BEFORE hackbrowser to understand the target's technology stack, exposed APIs, and security posture. Each program makes only safe read-only HTTP requests (no crawling, no form submission, no authentication). Available programs: ${Object.entries(PROGRAMS).map(([k, v]) => `${k} (${v.description})`).join("; ")}`,
+  description: `Web reconnaissance and vulnerability testing. Two modes: (1) session_scan — run AFTER hackbrowser to test ALL collected endpoints for vulnerabilities (headers, sensitive files, CORS, methods, open redirect). No target needed. (2) Individual programs — run against a specific target URL for standalone checks. Programs: ${Object.entries(PROGRAMS).map(([k, v]) => `${k} (${v.description})`).join("; ")}`,
   parameters: z.object({
     program: z
       .enum(Object.keys(PROGRAMS) as [Program, ...Program[]])
-      .describe("Reconnaissance program to run. Use full_recon for comprehensive scan, or individual programs for targeted checks."),
+      .describe(
+        "Program to run. Use session_scan after hackbrowser to test all collected endpoints. Use individual programs for targeted checks against a specific URL.",
+      ),
     target: z
       .string()
       .url()
-      .describe("Target URL to scan (e.g. https://target.com). All programs resolve paths relative to this origin."),
+      .optional()
+      .describe("Target URL (required for all programs except session_scan). All programs resolve paths relative to this origin."),
     args: z
       .array(z.string())
       .optional()
@@ -122,11 +160,35 @@ export const WebReconTool = Tool.define("web_recon", {
       .number()
       .optional()
       .default(30)
-      .describe("Maximum time per HTTP request in seconds (default: 30). Full recon may take up to 6x this."),
+      .describe("Maximum time per HTTP request in seconds (default: 30)."),
   }),
-  async execute(params) {
+  async execute(params, ctx) {
     const program = params.program as Program
-    const handler = dispatch[program]
+
+    if (program === "session_scan") {
+      let result: WebReconResult
+      try {
+        result = await sessionScan(ctx.sessionID, params.timeout_seconds)
+      } catch (e) {
+        return {
+          title: "web_recon: session_scan",
+          output: `[-] session_scan failed: ${e instanceof Error ? e.message : String(e)}`,
+          metadata: { program, findings: [] as Finding[] },
+        }
+      }
+      const { output, enriched } = formatOutput(program, result)
+      return { title: "web_recon: session_scan", output, metadata: { program, findings: enriched } }
+    }
+
+    if (!params.target) {
+      return {
+        title: `web_recon: ${program}`,
+        output: `[-] target URL is required for ${program}. Only session_scan runs without a target.`,
+        metadata: { program, findings: [] as Finding[] },
+      }
+    }
+
+    const handler = dispatch[program as Exclude<Program, "session_scan">]
     let result: WebReconResult
     try {
       result = await handler(params.target, params.args, params.timeout_seconds)
@@ -138,33 +200,7 @@ export const WebReconTool = Tool.define("web_recon", {
       }
     }
 
-    const enriched = result.findings.map((f) => ({
-      ...f,
-      severity: f.severity.toLowerCase(),
-      cwe: f.cwe || resolveCwe(f.checkId),
-    }))
-
-    const output =
-      enriched.length > 0
-        ? result.output +
-          "\n\n=== FINDINGS (" +
-          enriched.length +
-          ") ===\n" +
-          enriched
-            .map(
-              (f, i) =>
-                `[${i + 1}] ${f.severity} — ${f.title}${f.cwe ? ` (${f.cwe})` : ""}\n    Check: ${f.checkId} | Status: ${f.status} | Resource: ${f.resource}\n    ${f.details}\n    Remediation: ${f.remediation}`,
-            )
-            .join("\n") +
-          "\n\nCall report_vulnerability for each finding: severity (lowercase), title, description=details, recommendation=remediation" +
-          (enriched.some((f) => f.cwe) ? ", cwe_id from parentheses above" : "") +
-          "."
-        : result.output
-
-    return {
-      title: `web_recon: ${program}`,
-      output,
-      metadata: { program, findings: enriched },
-    }
+    const { output, enriched } = formatOutput(program, result)
+    return { title: `web_recon: ${program}`, output, metadata: { program, findings: enriched } }
   },
 })
