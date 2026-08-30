@@ -39,10 +39,14 @@ Launches an AI-driven crawler that navigates the app, fills forms, clicks button
 Run AFTER hackbrowser to test all collected endpoints for common vulnerabilities. Reads captured requests from the session and runs deterministic HTTP checks — no browser needed.
 
 **Primary program: `session_scan`** (no target needed)
-- Audits security headers + sensitive files (.env, .git, etc.) per origin
-- Tests CORS on discovered API endpoints
-- Checks dangerous HTTP methods (TRACE, PUT, DELETE)
+- Fingerprints technology stack per origin (tech_detect)
+- Audits security headers + cookie flags per origin
+- Probes 22 sensitive files (.env, .git, actuator, etc.) per origin — parallel
+- Tests CORS (including subdomain bypass) on API endpoints (origin root fallback)
+- Checks dangerous HTTP methods on origin roots only (safe — no PUT/DELETE on endpoints)
 - Tests open redirect on pages with redirect-like query params
+- **Limits:** max 10 origins, 3 CORS targets/origin, 10 redirect pages, 5 min deadline
+- Template paths ({id}) auto-instantiated; run targeted programs for additional origins
 
 **Standalone programs** (require a target URL):
 - `full_recon` — all checks below in one call

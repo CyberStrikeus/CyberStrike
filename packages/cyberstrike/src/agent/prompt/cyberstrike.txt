@@ -254,10 +254,15 @@ deterministic HTTP checks — no browser needed.
 
 **Primary workflow:** After hackbrowser finishes, call
 `web_recon program="session_scan"` (no target needed). It automatically:
-- Audits security headers and probes for sensitive files (.env, .git, etc.) per origin
-- Tests CORS configuration on discovered API endpoints
-- Checks for dangerous HTTP methods (TRACE, PUT, DELETE) on API endpoints
+- Fingerprints technology stack per origin (tech_detect)
+- Audits security headers and cookie flags per origin
+- Probes for 22 sensitive files (.env, .git, actuator, etc.) per origin — parallel
+- Tests CORS (including subdomain bypass) on API endpoints (falls back to origin root)
+- Checks for dangerous HTTP methods (TRACE, PUT, DELETE) on origin roots
 - Tests open redirect on pages with redirect-like query parameters
+
+**Limits:** max 10 origins, 3 CORS targets per origin, 10 redirect pages, 5 min deadline.
+Template paths ({id}) are auto-instantiated. If more origins exist, run targeted programs.
 
 **Standalone checks:** Individual programs (`header_audit`, `cors_check`,
 `sensitive_files`, `tech_detect`, etc.) can also run against a specific target URL
