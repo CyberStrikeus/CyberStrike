@@ -30,6 +30,15 @@ test("harvests bare API path literals and resolves against origin", () => {
   expect(set.has("GET https://app.example.com/graphql")).toBe(true)
 })
 
+test("path-literal prefix must be a whole segment (no /user-guide, /username)", () => {
+  const src = `a="/users";b="/user-guide";c="/username";d="/session/abc"`
+  const set = keys(src)
+  expect(set.has("GET https://app.example.com/users")).toBe(true)
+  expect(set.has("GET https://app.example.com/session/abc")).toBe(true)
+  expect(set.has("GET https://app.example.com/user-guide")).toBe(false)
+  expect(set.has("GET https://app.example.com/username")).toBe(false)
+})
+
 test("skips static assets, non-http schemes, and out-of-scope hosts", () => {
   const src = `fetch("/app.js");fetch("data:text/js");axios.get("https://evil.com/api/x");img="/logo.png"`
   expect(keys(src).size).toBe(0)

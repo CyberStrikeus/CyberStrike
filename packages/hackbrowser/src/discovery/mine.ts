@@ -5,9 +5,11 @@ import type { Endpoint } from "./detector.ts"
 const HTTP_METHOD_CALL = /\.(get|post|put|delete|patch|head|options)\s*\(\s*(["'`])([^"'`]+?)\2/gi
 // `fetch("/x")` — method defaults to GET (the options arg, if any, is not parsed here).
 const FETCH_CALL = /\bfetch\s*\(\s*(["'`])([^"'`]+?)\1/gi
-// Bare path literals for common API prefixes — a bonus harvest independent of call shape.
+// Bare path literals for common API prefixes — a bonus harvest independent of
+// call shape. The prefix must be a WHOLE path segment (lookahead for /, ?, or a
+// closing quote) so "/user-guide" / "/username" don't masquerade as "/user".
 const API_PATH_LITERAL =
-  /(["'`])(\/(?:api|rest|graphql|v\d+|auth|oauth2?|admin|internal|accounts?|users?|sessions?)\b[^"'`\s]*)\1/gi
+  /(["'`])(\/(?:api|rest|graphql|v\d+|auth|oauth2?|admin|internal|account|user|session)s?(?=[/?"'`])[^"'`\s]*)\1/gi
 
 // Static assets and non-HTTP schemes are never application endpoints.
 const SKIP_EXT = /\.(js|mjs|cjs|css|map|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|html?)($|\?)/i
