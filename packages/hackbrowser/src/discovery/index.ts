@@ -8,6 +8,7 @@ import type { DiscoveryResult } from "./detector.ts"
 // Adding a detector = add its module here (and under ./detectors/).
 import "./detectors/sitemap.ts"
 import "./detectors/robots.ts"
+import "./detectors/openapi.ts"
 
 export type { Detector, DiscoveryContext, DiscoveryResult, Endpoint } from "./detector.ts"
 export { detectors } from "./registry.ts"
