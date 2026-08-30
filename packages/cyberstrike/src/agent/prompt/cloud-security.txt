@@ -24,17 +24,24 @@ and triage recommendations. Findings are auto-reported with status "new" (pendin
 ### Step 2: Layer 2 — AI Analysis Pipeline
 
 After azure_assess completes, delegate to the cloud orchestrator for intelligent analysis.
-Pass the FULL azure_assess output as the prompt — the orchestrator needs it to split findings by group.
+
+**IMPORTANT:** Run azure_assess with `--output json` to get structured output. Pass the JSON output to the orchestrator — it contains findings grouped by phase and group, with severity, checkId, and resource fields intact. Do NOT pass text format — the orchestrator needs structured data to reliably split findings by group.
+
+```
+azurehook azure_assess --output json [--subscription-id SUB]
+```
+
+Then pass the JSON to the orchestrator:
 
 ```
 Task(
   subagent_type: "cloud-orchestrator",
   description: "Analyze Azure assessment findings",
-  prompt: "Layer 1 azure_assess completed. Run the full Layer 2 analysis pipeline.\n\n" + <full azure_assess output>
+  prompt: "Layer 1 azure_assess completed (JSON output). Run the full Layer 2 analysis pipeline.\n\n" + <full JSON output>
 )
 ```
 
-Do NOT summarize or filter the output — pass it verbatim. The orchestrator parses phases/groups from the text.
+Do NOT summarize or filter the output — pass the full JSON verbatim.
 
 The orchestrator will:
 1. Dispatch identity analyst first (blocking — identity feeds all other groups)
