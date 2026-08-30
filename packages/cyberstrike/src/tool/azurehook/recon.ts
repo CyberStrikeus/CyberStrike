@@ -589,6 +589,7 @@ export async function subscriptionEnum(_args: string[], timeout: number): Promis
         remediation: "Review cross-tenant access — each tenant is a separate blast radius",
       })
     }
+    const subIds = items.map((s: Record<string, string>) => s.id).filter(Boolean)
     findings.push({
       checkId: "AZ-SUB-002",
       provider: "azure",
@@ -596,7 +597,7 @@ export async function subscriptionEnum(_args: string[], timeout: number): Promis
       status: "ENUMERATED",
       resource: "azure://subscriptions",
       title: `${items.length} subscriptions accessible`,
-      details: items.map((s: Record<string, string>) => `${s.name} (${s.id})`).join("; "),
+      details: `subscription_ids:${JSON.stringify(subIds)}\n${items.map((s: Record<string, string>) => `${s.name} (${s.id})`).join("; ")}`,
       remediation: "Ensure subscription access follows least privilege",
     })
   }

@@ -91,14 +91,16 @@ export async function azureAssess(args: string[], timeout: number): Promise<Hook
       consecutiveBreaks = 0
     }
 
-    // extract subscriptions from Phase 1
     if (phaseDef.name === "Identity & Permissions" && !phaseResult.skipped) {
       for (const g of phaseResult.groups) {
         for (const f of g.findings) {
-          if (f.title.includes("subscriptions accessible") && f.details) {
-            const ids = f.details.matchAll(/\(([0-9a-f-]{36})\)/g)
-            for (const m of ids) ctx.subscriptions.push(m[1])
-          }
+          if (f.checkId !== "AZ-SUB-002" || !f.details) continue
+          const line = f.details.split("\n").find((l) => l.startsWith("subscription_ids:"))
+          if (!line) continue
+          try {
+            const ids = JSON.parse(line.slice("subscription_ids:".length))
+            if (Array.isArray(ids)) ctx.subscriptions.push(...ids)
+          } catch {}
         }
       }
     }
