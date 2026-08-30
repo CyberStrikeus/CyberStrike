@@ -2,6 +2,7 @@ import z from "zod"
 import { Tool } from "../tool"
 import type { Finding, HookResult } from "./shared"
 import { Vulnerability } from "../../session/vulnerability"
+import { Session } from "../../session"
 
 import {
   entraEnum,
@@ -1085,10 +1086,20 @@ export const AzurehookTool = Tool.define("azurehook", {
 
     if (program === "azure_assess" && enriched.length > 0) {
       const VALID_SEV = new Set(["critical", "high", "medium", "low", "info"])
+      const rootSession = Session.root(ctx.sessionID)
+      const existing = new Set(
+        Vulnerability.get(rootSession).map((v) => `${v.title}|${(v.endpoint ?? "").toLowerCase()}`),
+      )
       let reported = 0
+      let skipped = 0
       for (const f of enriched) {
         const sev = f.severity.toLowerCase()
         if (!VALID_SEV.has(sev)) continue
+        const key = `[${f.checkId}] ${f.title}|${f.resource.toLowerCase()}`
+        if (existing.has(key)) {
+          skipped++
+          continue
+        }
         Vulnerability.add({
           sessionID: ctx.sessionID,
           messageID: ctx.messageID,
@@ -1102,12 +1113,13 @@ export const AzurehookTool = Tool.define("azurehook", {
             status: "new",
           },
         })
+        existing.add(key)
         reported++
       }
       return {
-        title: `azurehook: ${program} (${enriched.length} findings, ${reported} auto-reported)`,
+        title: `azurehook: ${program} (${enriched.length} findings, ${reported} reported${skipped ? `, ${skipped} skipped` : ""})`,
         output: result.output,
-        metadata: { program, findings: enriched, autoReported: reported },
+        metadata: { program, findings: enriched, autoReported: reported, skippedDuplicates: skipped },
       }
     }
 
