@@ -3,6 +3,10 @@ import type { IngestPayload, CapturedRequest, PageDiffContext, AccessContext } f
 
 const log = Log.create({ service: "hackbrowser:ingest" })
 
+// Cap on a single ingest POST so a hung backend can't stall the caller forever
+// (discovery emits many endpoints — without this, one hang blocks them all).
+const INGEST_TIMEOUT_MS = 10000
+
 let authHeader = ""
 
 export function initAuth(username?: string, password?: string): void {
@@ -96,11 +100,14 @@ export async function sendIngest(
     sizeKB: (body.length / 1024).toFixed(1),
   })
 
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), INGEST_TIMEOUT_MS)
   try {
     const res = await fetch(`${serverUrl}/session/ingest`, {
       method: "POST",
       headers: { Authorization: authHeader, "Content-Type": "application/json" },
       body,
+      signal: controller.signal,
     })
 
     if (!res.ok) {
@@ -114,6 +121,8 @@ export async function sendIngest(
   } catch (err) {
     log.error("ingest network error", { err: String(err) })
     return null
+  } finally {
+    clearTimeout(timer)
   }
 }
 
