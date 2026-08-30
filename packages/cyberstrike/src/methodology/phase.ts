@@ -307,6 +307,31 @@ export namespace Phase {
     vulnerability_hint: [],
     business_rule: [],
     sensitive_data: [],
+    attack_path: [
+      { category: "Privilege Escalation", path: "Broken Access Control > Privilege Escalation > Cloud IAM Chain" },
+      { category: "Lateral Movement", path: "Security Misconfiguration > Cloud Provider > Cross-Service Access" },
+      { category: "Data Exfiltration", path: "Business Logic > Data Exfiltration > Cloud Storage Chain" },
+    ],
+    iam_principal: [
+      { category: "Overprivileged", path: "Security Misconfiguration > Cloud Provider > Overprivileged IAM" },
+      { category: "Privilege Escalation", path: "Broken Access Control > Privilege Escalation > Service Principal Abuse" },
+      { category: "Persistence", path: "Security Misconfiguration > Cloud Provider > IAM Persistence" },
+    ],
+    lateral_movement: [
+      { category: "Cross-Service", path: "Security Misconfiguration > Cloud Provider > Cross-Service Access" },
+      { category: "Cross-Subscription", path: "Security Misconfiguration > Cloud Provider > Cross-Subscription Access" },
+      { category: "Network Pivot", path: "Security Misconfiguration > Cloud Provider > Network Pivot" },
+    ],
+    cloud_misconfiguration: [
+      { category: "Cloud Misconfig", path: "Security Misconfiguration > Cloud Provider > Service Misconfiguration" },
+      { category: "Missing Encryption", path: "Cryptographic Failures > Missing Encryption at Rest" },
+      { category: "Logging Gap", path: "Security Misconfiguration > Insufficient Logging > Cloud Audit Trail" },
+    ],
+    cloud_exposure: [
+      { category: "Public Storage", path: "Security Misconfiguration > Cloud Provider > Public Storage Bucket" },
+      { category: "Network Exposure", path: "Security Misconfiguration > Cloud Provider > Open Security Group" },
+      { category: "Subdomain Takeover", path: "DNS > Subdomain Takeover > CNAME Dangling" },
+    ],
   }
 
   // --- Scope Detection ---
