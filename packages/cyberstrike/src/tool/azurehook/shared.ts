@@ -33,11 +33,12 @@ export async function run(
     proc.kill(9)
   }, ms)
 
-  const exitCode = await proc.exited
+  const [exitCode, stdout, stderr] = await Promise.all([
+    proc.exited,
+    new Response(proc.stdout as ReadableStream).text(),
+    new Response(proc.stderr as ReadableStream).text(),
+  ])
   clearTimeout(timer)
-
-  const stdout = await new Response(proc.stdout as ReadableStream).text()
-  const stderr = await new Response(proc.stderr as ReadableStream).text()
 
   return { stdout, stderr, exitCode: killed ? 124 : exitCode }
 }
