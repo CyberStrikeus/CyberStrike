@@ -23,6 +23,7 @@ export function createGlobalState(opts?: { outOfScope?: readonly string[] }): Gl
   return {
     visitedPages: new Set(),
     visitedNav: new Set(),
+    emittedEndpoints: new Set(),
     capturedEndpoints: new Set(),
     authPhase: "anonymous",
     totalSteps: 0,

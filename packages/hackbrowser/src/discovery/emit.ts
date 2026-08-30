@@ -40,24 +40,32 @@ export function toCapturedRequest(endpoint: Endpoint): CapturedRequest {
 /**
  * Ingest discovered endpoints as known (un-hit) endpoints. Best-effort: a failed
  * ingest is logged and skipped. Returns how many were accepted.
+ *
+ * `seen` (optional) is a crawl-wide set of already-emitted "METHOD url" keys —
+ * pass it so repeated discovery passes (seed + per-page network miner) don't
+ * re-ingest the same endpoint. Newly emitted keys are added to it.
  */
 export async function emitEndpoints(
   endpoints: readonly Endpoint[],
   serverUrl: string,
   sessionID: string,
   credentialId: string | undefined,
+  seen?: Set<string>,
 ): Promise<number> {
-  const batch = endpoints.slice(0, MAX_EMIT)
-  if (endpoints.length > MAX_EMIT) {
-    log.warn("discovered endpoints truncated for ingest", { total: endpoints.length, cap: MAX_EMIT })
+  const fresh = seen ? endpoints.filter((e) => !seen.has(`${e.method} ${e.url}`)) : endpoints
+  const batch = fresh.slice(0, MAX_EMIT)
+  if (fresh.length > MAX_EMIT) {
+    log.warn("discovered endpoints truncated for ingest", { total: fresh.length, cap: MAX_EMIT })
   }
   let sent = 0
   for (const endpoint of batch) {
+    const key = `${endpoint.method} ${endpoint.url}`
+    seen?.add(key) // mark before the await so a concurrent pass can't double-send
     try {
       const ok = await sendIngest(toCapturedRequest(endpoint), serverUrl, sessionID, credentialId)
       if (ok) sent++
     } catch (err) {
-      log.warn("endpoint ingest failed", { endpoint: `${endpoint.method} ${endpoint.url}`, err: String(err) })
+      log.warn("endpoint ingest failed", { endpoint: key, err: String(err) })
     }
   }
   return sent

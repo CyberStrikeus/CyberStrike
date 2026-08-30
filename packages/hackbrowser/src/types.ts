@@ -46,6 +46,7 @@ export interface GlobalState {
   // Shared across credentials
   visitedPages: Set<string>
   visitedNav: Set<string> // site-chrome nav items already surfaced ("role::label") — crawl-wide nav dedup (#127)
+  emittedEndpoints: Set<string> // discovered endpoints already ingested ("METHOD url") — crawl-wide emit dedup (#129)
   capturedEndpoints: Set<string> // "METHOD /path" format
   authPhase: "anonymous" | "registered" | "authenticated"
   totalSteps: number
