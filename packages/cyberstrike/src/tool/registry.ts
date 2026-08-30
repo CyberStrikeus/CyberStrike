@@ -48,6 +48,7 @@ import { WebUpdateCredentialTool } from "./web-update-credential"
 import { CsrfExtractTool } from "./csrf-extract"
 import { HackbrowserTool } from "./hackbrowser"
 import { AddIntelTool } from "./intel"
+import { GetCloudIntelTool, GetCloudGroupsTool } from "./cloud-intel"
 import { UpdateVrtCheckTool } from "./vrt-check"
 import { RecordCoverageNoteTool, GetCoverageNotesTool } from "./coverage-note"
 import { ScopeCheckTool } from "./scope-check"
@@ -192,6 +193,8 @@ export namespace ToolRegistry {
       HackbrowserTool,
       // Methodology Engine Tools — intelligence, coverage, chain detection
       AddIntelTool,
+      GetCloudIntelTool,
+      GetCloudGroupsTool,
       UpdateVrtCheckTool,
       RecordCoverageNoteTool,
       GetCoverageNotesTool,
