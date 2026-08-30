@@ -1,6 +1,7 @@
 import z from "zod"
 import { Tool } from "../tool"
 import type { Finding, HookResult } from "./shared"
+import { Vulnerability } from "../../session/vulnerability"
 
 import {
   entraEnum,
@@ -167,8 +168,14 @@ import {
 import { resourceHijack, dataDestroy, ransomwareSim, accountLockout, serviceDisruption } from "./impact"
 import { exchangeAbuse, sharepointEnum, teamsEnum, onedriveAccess } from "./m365"
 import { cleanupAzure } from "./cleanup"
+import { azureAssess } from "./assess"
 
 const PROGRAMS = {
+  azure_assess: {
+    description:
+      "Full Azure security assessment — runs 65+ recon + compliance programs in parallel groups with concurrency control, retry, and circuit breaker. Returns consolidated findings with triage summary. Supports JSON output for CI/CD integration.",
+    args: "[--subscription-id SUB] [--resource-group RG] [--timeout-per-program SEC] [--max-concurrency N] [--skip-compliance] [--output text|json]",
+  },
   subscription_enum: {
     description: "Enumerate all accessible Azure subscriptions, management groups, and tenant info",
     args: "",
@@ -637,6 +644,7 @@ const PROGRAMS = {
 type Program = keyof typeof PROGRAMS
 
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
+  azure_assess: azureAssess,
   subscription_enum: subscriptionEnum,
   resource_graph: resourceGraph,
   entra_enum: entraEnum,
@@ -1044,14 +1052,16 @@ export const AzurehookTool = Tool.define("azurehook", {
           .join("; "),
     ),
     args: z.array(z.string()).describe("Arguments to pass to the program"),
-    timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
+    timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300, azure_assess uses 600)"),
   }),
-  async execute(params) {
+  async execute(params, ctx) {
+    const effectiveTimeout = params.program === "azure_assess" ? Math.max(params.timeout_seconds, 600) : params.timeout_seconds
+
     if (!Bun.which("az") && !NO_CLI_PROGRAMS.has(params.program)) {
       return {
         title: `azurehook: ${params.program}`,
         output: "az CLI not found. Install: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli",
-        metadata: { program: params.program, findings: [] as Finding[] },
+        metadata: { program: params.program, findings: [] as Finding[], autoReported: 0 },
       }
     }
 
@@ -1059,12 +1069,12 @@ export const AzurehookTool = Tool.define("azurehook", {
     const handler = dispatch[program]
     let result: HookResult
     try {
-      result = await handler(params.args, params.timeout_seconds)
+      result = await handler(params.args, effectiveTimeout)
     } catch (e) {
       return {
         title: `azurehook: ${program}`,
         output: `[-] ${program} failed: ${e instanceof Error ? e.message : String(e)}`,
-        metadata: { program, findings: [] as Finding[] },
+        metadata: { program, findings: [] as Finding[], autoReported: 0 },
       }
     }
 
@@ -1073,10 +1083,38 @@ export const AzurehookTool = Tool.define("azurehook", {
       return cwe ? { ...f, cwe } : f
     })
 
+    if (program === "azure_assess" && enriched.length > 0) {
+      const VALID_SEV = new Set(["critical", "high", "medium", "low", "info"])
+      let reported = 0
+      for (const f of enriched) {
+        const sev = f.severity.toLowerCase()
+        if (!VALID_SEV.has(sev)) continue
+        Vulnerability.add({
+          sessionID: ctx.sessionID,
+          messageID: ctx.messageID,
+          data: {
+            severity: sev as Vulnerability.Info["severity"],
+            title: `[${f.checkId}] ${f.title}`,
+            description: f.details,
+            recommendation: f.remediation,
+            endpoint: f.resource,
+            cwe_id: "cwe" in f ? (f as { cwe: string }).cwe : undefined,
+            status: "new",
+          },
+        })
+        reported++
+      }
+      return {
+        title: `azurehook: ${program} (${enriched.length} findings, ${reported} auto-reported)`,
+        output: result.output,
+        metadata: { program, findings: enriched, autoReported: reported },
+      }
+    }
+
     return {
       title: `azurehook: ${program}`,
       output: result.output,
-      metadata: { program, findings: enriched },
+      metadata: { program, findings: enriched, autoReported: 0 },
     }
   },
 })
