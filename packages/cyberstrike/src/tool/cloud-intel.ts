@@ -64,7 +64,8 @@ export const GetCloudIntelTool = Tool.define("get_cloud_intel", {
     if (params.group) {
       const grp = groupByKey(params.group)
       if (grp) {
-        entries = entries.filter((e) => e.source === grp.analyst)
+        const tag = `group:${params.group}`
+        entries = entries.filter((e) => e.source === grp.analyst || e.tags.includes(tag))
       }
     }
 
