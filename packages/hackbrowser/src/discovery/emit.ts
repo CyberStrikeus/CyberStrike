@@ -17,7 +17,9 @@ const MAX_EMIT = 500
  */
 export function toCapturedRequest(endpoint: Endpoint): CapturedRequest {
   const url = new URL(endpoint.url)
-  const target = (url.pathname || "/") + url.search
+  // new URL() percent-encodes template braces ({id}, {}); restore them so the
+  // proxy-agent sees the endpoint shape rather than /users/%7Bid%7D.
+  const target = ((url.pathname || "/") + url.search).replace(/%7B/gi, "{").replace(/%7D/gi, "}")
   const raw =
     `${endpoint.method} ${target} HTTP/1.1\r\n` +
     `Host: ${url.host}\r\n` +
