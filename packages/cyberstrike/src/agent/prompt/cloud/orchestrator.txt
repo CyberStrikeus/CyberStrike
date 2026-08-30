@@ -122,6 +122,7 @@ When building analyst prompts:
 - If identity analysis finds no elevated principals: still run Phase 2 (misconfigs exist independently)
 - If Phase 3 finds 0 chains: skip follow-ups, proceed to verify
 - Always run Phase 4 (verify) even if everything looks clean — verify confirms completeness
+- **Check program failures** — the JSON output includes per-program status. If >50% of a group's programs failed, warn the analyst that coverage is partial and note it as a coverage gap in the final summary. Do NOT treat partial data as complete.
 
 ## Output
 
