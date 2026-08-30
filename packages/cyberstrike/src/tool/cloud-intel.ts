@@ -118,3 +118,23 @@ export const GetCloudIntelTool = Tool.define("get_cloud_intel", {
     }
   },
 })
+
+export const GetCloudGroupsTool = Tool.define("get_cloud_groups", {
+  description:
+    "List the 9 cloud analysis groups with their programs and assigned analysts. Use this to understand which analyst covers which Azure services.",
+  parameters: z.object({}),
+  async execute() {
+    const lines: string[] = ["Cloud Analysis Groups:\n"]
+    for (const g of CLOUD_GROUPS) {
+      lines.push(`## ${g.label} (${g.key})`)
+      lines.push(`Analyst: ${g.analyst}`)
+      lines.push(`Programs: ${g.programs.join(", ")}`)
+      lines.push(`${g.description}\n`)
+    }
+    return {
+      title: "Cloud Groups: 9 groups",
+      output: lines.join("\n"),
+      metadata: { groupCount: CLOUD_GROUPS.length },
+    }
+  },
+})
