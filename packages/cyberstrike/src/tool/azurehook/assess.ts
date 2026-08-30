@@ -62,8 +62,9 @@ export async function azureAssess(args: string[], timeout: number): Promise<Hook
     return { output: formatAssessResult(result), findings: [] }
   }
 
-  // run phases with cross-phase circuit breaker
+  // run phases — abort only after 2+ consecutive circuit breakers
   const phases = []
+  let consecutiveBreaks = 0
   let aborted = false
 
   for (const phaseDef of AZURE_PHASES) {
@@ -73,7 +74,7 @@ export async function azureAssess(args: string[], timeout: number): Promise<Hook
         groups: [],
         findings: [],
         skipped: true,
-        skipReason: "aborted (prior phase circuit breaker)",
+        skipReason: "aborted (2+ consecutive phase circuit breakers)",
         durationMs: 0,
         circuitBroken: false,
       })
@@ -83,7 +84,12 @@ export async function azureAssess(args: string[], timeout: number): Promise<Hook
     const phaseResult = await runPhase(phaseDef, ctx)
     phases.push(phaseResult)
 
-    if (phaseResult.circuitBroken) aborted = true
+    if (phaseResult.circuitBroken) {
+      consecutiveBreaks++
+      if (consecutiveBreaks >= 2) aborted = true
+    } else {
+      consecutiveBreaks = 0
+    }
 
     // extract subscriptions from Phase 1
     if (phaseDef.name === "Identity & Permissions" && !phaseResult.skipped) {
