@@ -15,6 +15,7 @@ import "./detectors/jsbundle.ts"
 export type { Detector, DiscoveryContext, DiscoveryResult, Endpoint } from "./detector.ts"
 export { detectors } from "./registry.ts"
 export { emitEndpoints } from "./emit.ts"
+export { attachBundleMiner } from "./bundle-watch.ts"
 
 /**
  * Run all applicable detectors for the current page. Builds the DiscoveryContext

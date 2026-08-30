@@ -60,7 +60,7 @@ import { pickSample } from "./upload-samples.ts"
 import { PANEL_INIT_SCRIPT } from "./panel/inject.ts"
 import { csEmit, setPanelEnabled } from "./panel/emit.ts"
 import { deriveScope, makeMatcher, normalizeScope, type ScopeMatcher } from "./scope.ts"
-import { runDiscovery, emitEndpoints } from "./discovery/index.ts"
+import { runDiscovery, emitEndpoints, attachBundleMiner } from "./discovery/index.ts"
 import type { LanguageModel } from "ai"
 import type { RawElement } from "./types.ts"
 
@@ -2555,19 +2555,39 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     // proxy-aware browser context. Best-effort + additive — a failure here
     // never blocks the crawl; results just augment the queue.
     try {
-      const discovered = await runDiscovery(page, page.url(), inScope)
+      // Resolve against the current URL only if it's still in scope — an initial
+      // navigation can redirect to an out-of-scope SSO/IdP; fall back to target.
+      const seedBase = isInScope(page.url(), inScope) ? page.url() : targetUrl
+      const seedOrigin = new URL(seedBase).origin
+
+      const discovered = await runDiscovery(page, seedBase, inScope)
       let seeded = 0
       for (const url of discovered.pages) {
         if (enqueueUrl(url, globalState, inScope)) seeded++
       }
-      // Discovered API endpoints (e.g. from an OpenAPI spec) are ingested as
-      // KNOWN endpoints — the proxy-agents test them via http_replay; the crawler
-      // never blindly hits them (Approach B). Skipped in dry-run (no sessionID).
-      let ingested = 0
-      if (discovered.endpoints.length > 0 && sessionID) {
-        ingested = await emitEndpoints(discovered.endpoints, serverUrl, sessionID, credentialId)
+      if (seeded > 0) log.info("discovery seeded pages", { pages: seeded, confidence: discovered.confidence })
+
+      if (sessionID) {
+        // Endpoints -> ingest OFF the critical path (fire-and-forget): the crawl
+        // needs pages synchronously; discovered endpoints just need to reach the
+        // backend eventually. Approach B — proxy-agents test them, crawler never
+        // hits them. Deduped crawl-wide via globalState.emittedEndpoints.
+        if (discovered.endpoints.length > 0) {
+          void emitEndpoints(discovered.endpoints, serverUrl, sessionID, credentialId, globalState.emittedEndpoints)
+            .then((n) => n > 0 && log.info("discovery ingested endpoints", { endpoints: n }))
+            .catch((err) => log.warn("endpoint emit failed", { err: String(err) }))
+        }
+        // Keep mining JS bundles loaded later in the crawl — lazy route chunks a
+        // seed-time DOM scan can't see (the biggest coverage gap for SPAs).
+        attachBundleMiner(page, {
+          origin: seedOrigin,
+          inScope,
+          serverUrl,
+          sessionID,
+          credentialId,
+          seen: globalState.emittedEndpoints,
+        })
       }
-      if (seeded > 0 || ingested > 0) log.info("discovery seeded", { pages: seeded, endpoints: ingested })
     } catch (err) {
       log.warn("discovery failed (skipped)", { err: String(err) })
     }
