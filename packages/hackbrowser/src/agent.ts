@@ -60,7 +60,7 @@ import { pickSample } from "./upload-samples.ts"
 import { PANEL_INIT_SCRIPT } from "./panel/inject.ts"
 import { csEmit, setPanelEnabled } from "./panel/emit.ts"
 import { deriveScope, makeMatcher, normalizeScope, type ScopeMatcher } from "./scope.ts"
-import { runDiscovery } from "./discovery/index.ts"
+import { runDiscovery, emitEndpoints } from "./discovery/index.ts"
 import type { LanguageModel } from "ai"
 import type { RawElement } from "./types.ts"
 
@@ -2560,7 +2560,14 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
       for (const url of discovered.pages) {
         if (enqueueUrl(url, globalState, inScope)) seeded++
       }
-      if (seeded > 0) log.info("discovery seeded pages", { pages: seeded })
+      // Discovered API endpoints (e.g. from an OpenAPI spec) are ingested as
+      // KNOWN endpoints — the proxy-agents test them via http_replay; the crawler
+      // never blindly hits them (Approach B). Skipped in dry-run (no sessionID).
+      let ingested = 0
+      if (discovered.endpoints.length > 0 && sessionID) {
+        ingested = await emitEndpoints(discovered.endpoints, serverUrl, sessionID, credentialId)
+      }
+      if (seeded > 0 || ingested > 0) log.info("discovery seeded", { pages: seeded, endpoints: ingested })
     } catch (err) {
       log.warn("discovery failed (skipped)", { err: String(err) })
     }
