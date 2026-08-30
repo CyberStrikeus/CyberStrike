@@ -98,6 +98,7 @@ const CWE_MAP: Record<string, string> = {
   "WEB-HDR-XFO": "CWE-1021",
   "WEB-HDR-RP": "CWE-200",
   "WEB-HDR-PP": "CWE-16",
+  "WEB-HDR-COOKIE": "CWE-614",
   "WEB-FILE": "CWE-538",
   "WEB-CORS": "CWE-942",
   "WEB-METHOD": "CWE-749",
@@ -139,7 +140,7 @@ function formatOutput(program: string, result: WebReconResult): { output: string
 }
 
 export const WebReconTool = Tool.define("web_recon", {
-  description: `Web reconnaissance and vulnerability testing. Two modes: (1) session_scan — run AFTER hackbrowser to test ALL collected endpoints for vulnerabilities (headers, sensitive files, CORS, methods, open redirect). No target needed. (2) Individual programs — run against a specific target URL for standalone checks. Programs: ${Object.entries(PROGRAMS).map(([k, v]) => `${k} (${v.description})`).join("; ")}`,
+  description: `Web reconnaissance and vulnerability testing. session_scan: test ALL hackbrowser endpoints (no target). Individual programs (require target): full_recon, tech_detect, header_audit, sensitive_files, cors_check, method_check, open_redirect, sitemap_scan, robots_scan, openapi_scan, graphql_probe.`,
   parameters: z.object({
     program: z
       .enum(Object.keys(PROGRAMS) as [Program, ...Program[]])
@@ -173,7 +174,7 @@ export const WebReconTool = Tool.define("web_recon", {
     let result: WebReconResult
     if (program === "session_scan") {
       try {
-        result = await sessionScan(ctx.sessionID, params.timeout_seconds)
+        result = await sessionScan(ctx.sessionID, params.timeout_seconds, ctx.abort)
       } catch (e) {
         return fail(`[-] session_scan failed: ${e instanceof Error ? e.message : String(e)}`)
       }
