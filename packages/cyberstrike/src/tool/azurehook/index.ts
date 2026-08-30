@@ -1062,7 +1062,7 @@ export const AzurehookTool = Tool.define("azurehook", {
       return {
         title: `azurehook: ${params.program}`,
         output: "az CLI not found. Install: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli",
-        metadata: { program: params.program, findings: [] as Finding[], autoReported: 0 },
+        metadata: { program: params.program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 },
       }
     }
 
@@ -1075,7 +1075,7 @@ export const AzurehookTool = Tool.define("azurehook", {
       return {
         title: `azurehook: ${program}`,
         output: `[-] ${program} failed: ${e instanceof Error ? e.message : String(e)}`,
-        metadata: { program, findings: [] as Finding[], autoReported: 0 },
+        metadata: { program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 },
       }
     }
 
@@ -1126,7 +1126,7 @@ export const AzurehookTool = Tool.define("azurehook", {
     return {
       title: `azurehook: ${program}`,
       output: result.output,
-      metadata: { program, findings: enriched, autoReported: 0 },
+      metadata: { program, findings: enriched, autoReported: 0, skippedDuplicates: 0 },
     }
   },
 })
