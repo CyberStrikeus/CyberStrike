@@ -1485,6 +1485,7 @@ function findUnexploredElements(
   seenKeys: Set<string>,
   visitedNav: Set<string>,
 ): string[] {
+  const navFirst: string[] = [] // site-chrome nav — prioritized within the budget
   const unexplored: string[] = []
   const rolesSeen = new Set<string>() // for duplicate role filter
 
@@ -1515,16 +1516,20 @@ function findUnexploredElements(
     // appears on every page. Surface it once across the whole crawl — not per
     // page — so nav isn't re-clicked repeatedly. Page-body (non-chrome) actions
     // are unaffected. (Mark-on-surface: the additional-plan step then clicks it.)
+    const entry = `[${el.role}] ${el.label}`
     if (el.inChrome) {
       const navKey = `${el.role}::${el.label}`
       if (visitedNav.has(navKey)) continue
       visitedNav.add(navKey)
+      navFirst.push(entry)
+    } else {
+      unexplored.push(entry)
     }
-
-    unexplored.push(`[${el.role}] ${el.label}`)
   }
 
-  return unexplored
+  // Nav-first: within the small additional-plan budget, prioritize navigation so
+  // route discovery isn't starved by page-body actions (#127).
+  return [...navFirst, ...unexplored]
 }
 
 /** Map form field role to executor action */
