@@ -32,17 +32,14 @@ export async function run(
     killed = true
     proc.kill(9)
   }, ms)
-  const reads = Promise.all([
-    new Response(proc.stdout as ReadableStream).text(),
-    new Response(proc.stderr as ReadableStream).text(),
-  ])
-  const [stdout, stderr] = await Promise.race([
-    reads,
-    new Promise<[string, string]>((r) => setTimeout(() => r(["", "(timed out)"]), ms + 2000)),
-  ])
+
+  const exitCode = await proc.exited
   clearTimeout(timer)
-  const exitCode = killed ? 124 : await proc.exited
-  return { stdout, stderr, exitCode }
+
+  const stdout = await new Response(proc.stdout as ReadableStream).text()
+  const stderr = await new Response(proc.stderr as ReadableStream).text()
+
+  return { stdout, stderr, exitCode: killed ? 124 : exitCode }
 }
 
 export function az(args: string[], sub: string | undefined, timeout: number) {
