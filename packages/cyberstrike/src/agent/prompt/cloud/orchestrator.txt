@@ -75,13 +75,14 @@ Each analyst's prompt MUST include:
 
 After ALL 8 analysts complete:
 
-1. Call `get_cloud_intel` to see everything all analysts found
-2. Look for cross-group attack chains:
+1. Call `get_cloud_intel(keyword: "analyst_completion")` to verify all dispatched analysts finished. Each analyst writes an `analyst_completion:<group>` intel entry as its final step. If any dispatched analyst is missing a completion record, it may have failed silently — note the gap in your summary.
+2. Call `get_cloud_intel` to see everything all analysts found
+3. Look for cross-group attack chains:
    - Identity principal → Resource access (compute/data/specialized)
    - Network exposure → Reachable service → Data access
    - Compliance gap → Exploitable misconfiguration
    - Stale permission → Lateral movement path
-3. If chains are found, dispatch targeted `cloud-followup` agents:
+4. If chains are found, dispatch targeted `cloud-followup` agents:
 
 ```
 Task(

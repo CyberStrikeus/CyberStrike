@@ -76,6 +76,21 @@ get_cloud_intel()                          // everything
    f. NEW discovery → `report_vulnerability` with full evidence
 5. After processing all findings, call `get_cloud_intel()` for a final cross-check
 6. If you discover something outside your group's scope, use `add_intel` with `target_class` to hint at the right group
+7. **FINAL STEP** — Record your completion status to the intel store:
+
+```
+add_intel(
+  type: "configuration",
+  title: "analyst_completion:<your-group>",
+  asset: "orchestration",
+  severity: "info",
+  detail: "Verified: N, Rejected: N, Elevated: N, New discoveries: N, Intel added: N",
+  tags: ["group:<your-group>", "analyst_completion"],
+  confidence_level: "confirmed"
+)
+```
+
+This completion record is REQUIRED — the orchestrator checks for it to confirm you finished.
 
 ## Evidence Quality
 
