@@ -22,6 +22,7 @@ const MAX_FAILED_ELEMENTS = 20
 export function createGlobalState(opts?: { outOfScope?: readonly string[] }): GlobalState {
   return {
     visitedPages: new Set(),
+    visitedNav: new Set(),
     capturedEndpoints: new Set(),
     authPhase: "anonymous",
     totalSteps: 0,
