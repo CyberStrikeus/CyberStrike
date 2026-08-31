@@ -8,7 +8,7 @@ import type { Finding } from "./azurehook/shared"
 type Meta = {
   available: boolean
   totalFindings?: number
-  groups?: { key: string; label: string; findings: number; programs: number; failures: number }[]
+  groups?: { key: string; label: string; findings: number; programs: number; failures: number; permissionFailures: number }[]
   group?: string
   findingCount?: number
   failureCount?: number
@@ -50,13 +50,13 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
       const groups: Meta["groups"] & {} = []
       for (const phase of result.phases) {
         for (const g of phase.groups) {
-          const cg = CLOUD_GROUPS.find((c) => c.label === g.label)
           groups.push({
-            key: cg?.key ?? g.label,
+            key: g.key,
             label: g.label,
             findings: g.findings.length,
             programs: g.programCount,
             failures: g.failures.length,
+            permissionFailures: g.permissionFailures.length,
           })
         }
       }
@@ -67,7 +67,11 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
         "",
         "Groups:",
         ...groups.map(
-          (g) => `  ${g.key}: ${g.findings} findings, ${g.programs} programs, ${g.failures} failures`,
+          (g) => {
+            let line = `  ${g.key}: ${g.findings} findings, ${g.programs} programs, ${g.failures} failures`
+            if (g.permissionFailures > 0) line += `, ${g.permissionFailures} permission denied (coverage gap)`
+            return line
+          },
         ),
         "",
         `Triage: ${result.triage.critical.length} critical, ${result.triage.high.length} high`,
@@ -91,12 +95,13 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
       }
     }
 
-    const groupResults = result.phases.flatMap((p) => p.groups).filter((g) => g.label === grp.label)
+    const groupResults = result.phases.flatMap((p) => p.groups).filter((g) => g.key === grp.key)
     const findings = groupResults.flatMap((g) => g.findings)
     const failures = groupResults.flatMap((g) => g.failures)
+    const permDenied = groupResults.flatMap((g) => g.permissionFailures)
     const programs = groupResults.flatMap((g) => g.programs)
 
-    if (findings.length === 0 && failures.length === 0) {
+    if (findings.length === 0 && failures.length === 0 && permDenied.length === 0) {
       return {
         title: `Assess Findings [${params.group}]: 0 findings`,
         output: `No findings for group "${grp.label}". ${programs.length === 0 ? "Group was not executed." : `${programs.length} programs ran, all clean.`}`,
@@ -107,10 +112,16 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
     const lines: string[] = [
       `Group: ${grp.label} (${params.group})`,
       `Analyst: ${grp.analyst}`,
-      `Programs: ${programs.length} (${failures.length} failed)`,
+      `Programs: ${programs.length} (${failures.length} failed${permDenied.length > 0 ? `, ${permDenied.length} permission denied` : ""})`,
       `Findings: ${findings.length}`,
       "",
     ]
+
+    if (permDenied.length > 0) {
+      lines.push("⚠ Coverage gap — insufficient permissions:")
+      for (const f of permDenied) lines.push(`  [DENIED] ${f.program}: ${f.reason}`)
+      lines.push("")
+    }
 
     if (failures.length > 0) {
       lines.push("Failed programs:")
