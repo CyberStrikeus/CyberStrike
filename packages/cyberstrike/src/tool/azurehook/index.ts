@@ -172,12 +172,18 @@ import { resourceHijack, dataDestroy, ransomwareSim, accountLockout, serviceDisr
 import { exchangeAbuse, sharepointEnum, teamsEnum, onedriveAccess } from "./m365"
 import { cleanupAzure } from "./cleanup"
 import { azureAssess } from "./assess"
+import { orchestrateLayer2 } from "../../cloud/orchestrate"
 
 const PROGRAMS = {
   azure_assess: {
     description:
       "Full Azure security assessment — runs 65+ recon + compliance programs in parallel groups with concurrency control, retry, and circuit breaker. Returns consolidated findings with triage summary. Supports JSON output for CI/CD integration.",
     args: "[--subscription-id SUB] [--resource-group RG] [--timeout-per-program SEC] [--max-concurrency N] [--skip-compliance] [--output text|json]",
+  },
+  azure_orchestrate: {
+    description:
+      "Run Layer 2 AI analysis pipeline on cached azure_assess findings. Deterministic state machine: dispatches identity analyst (blocking), then 8 parallel analysts, detects cross-group chains (LLM judgment), runs follow-ups, then final verification. Requires azure_assess to have run first in this session.",
+    args: "",
   },
   subscription_enum: {
     description: "Enumerate all accessible Azure subscriptions, management groups, and tenant info",
@@ -648,6 +654,7 @@ type Program = keyof typeof PROGRAMS
 
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   azure_assess: azureAssess,
+  azure_orchestrate: () => { throw new Error("handled in execute()") },
   subscription_enum: subscriptionEnum,
   resource_graph: resourceGraph,
   entra_enum: entraEnum,
@@ -1041,6 +1048,7 @@ const NO_CLI_PROGRAMS = new Set<string>([
   "token_theft",
   "device_code_phish",
   "password_spray",
+  "azure_orchestrate",
 ])
 
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
@@ -1069,6 +1077,39 @@ export const AzurehookTool = Tool.define("azurehook", {
     }
 
     const program = params.program as Program
+
+    if (program === "azure_orchestrate") {
+      try {
+        const state = await orchestrateLayer2(ctx.sessionID)
+        const completed = state.analystResults.filter((a) => !a.summary.startsWith("Error:"))
+        const failed = state.analystResults.filter((a) => a.summary.startsWith("Error:"))
+        const lines = [
+          `[*] Layer 2 orchestration ${state.phase === "complete" ? "complete" : `stopped at ${state.phase}`}`,
+          `[*] Duration: ${state.completedAt ? Math.round((state.completedAt - state.startedAt) / 1000) : "?"}s`,
+          `[*] Layer 1 findings: ${state.layer1Findings}`,
+          `[*] Identity intel entries: ${state.identityIntel}`,
+          `[*] Analysts completed: ${completed.length}/${state.analystResults.length}`,
+          ...(failed.length > 0 ? [`[!] Analysts failed: ${failed.map((a) => a.group).join(", ")}`] : []),
+          `[*] Follow-ups dispatched: ${state.followUps.length}`,
+          `[*] Verify: ${state.verifyResult ? "done" : "skipped"}`,
+          "",
+          "Analyst Results:",
+          ...state.analystResults.map((a) => `  ${a.group}: verified=${a.verified} rejected=${a.rejected} elevated=${a.elevated} intel=${a.intelAdded} chains=${a.chains.length}`),
+        ]
+        return {
+          title: `azurehook: azure_orchestrate — Layer 2 complete`,
+          output: lines.join("\n"),
+          metadata: { program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 },
+        }
+      } catch (e) {
+        return {
+          title: `azurehook: azure_orchestrate`,
+          output: `[-] orchestration failed: ${e instanceof Error ? e.message : String(e)}`,
+          metadata: { program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 },
+        }
+      }
+    }
+
     const handler = dispatch[program]
     let result: HookResult
     try {

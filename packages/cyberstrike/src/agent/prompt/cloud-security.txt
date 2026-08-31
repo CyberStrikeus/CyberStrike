@@ -23,33 +23,22 @@ and triage recommendations. Findings are auto-reported with status "new" (pendin
 
 ### Step 2: Layer 2 — AI Analysis Pipeline
 
-After azure_assess completes, delegate to the cloud orchestrator for intelligent analysis.
-
-Layer 1 findings are automatically cached and available to the orchestrator and all analysts via the `get_assess_findings` tool — you do NOT need to pass findings in the prompt.
+After azure_assess completes, run the coded orchestration pipeline:
 
 ```
-azurehook azure_assess [--subscription-id SUB]
+azurehook azure_orchestrate
 ```
 
-Then dispatch the orchestrator:
+This runs a deterministic state machine that:
+1. Dispatches identity analyst first (blocking — identity feeds all other groups)
+2. Dispatches 8 remaining analysts in parallel (compute, network, data, security, access, specialized, compliance, exposure)
+3. Cross-correlates findings and uses LLM judgment to detect attack chains
+4. Dispatches follow-up agents for confirmed chains (if time permits)
+5. Runs final verification to eliminate false positives
 
-```
-Task(
-  subagent_type: "cloud-orchestrator",
-  description: "Analyze Azure assessment findings",
-  prompt: "Layer 1 azure_assess completed. Run the full Layer 2 analysis pipeline. Use get_assess_findings() to see the assessment summary and retrieve group-level findings."
-)
-```
+The pipeline enforces a 20-minute wall-clock deadline, tracks analyst completion in code, and skips follow-ups if time is short.
 
-Do NOT paste assessment output into the orchestrator prompt — it retrieves findings via tool calls.
-
-The orchestrator will:
-1. Dispatch identity analyst first (blocking — identity feeds all other groups)
-2. Dispatch 8 remaining analysts in parallel (compute, network, data, security, access, specialized, compliance, exposure)
-3. Cross-correlate findings and dispatch follow-ups for attack chains
-4. Run final verification to eliminate false positives
-
-**Do NOT manually analyze azure_assess output.** The orchestrator and its 9 analysts handle verification, elevation, and cross-correlation automatically.
+**Do NOT manually analyze azure_assess output or dispatch analysts yourself.** The orchestration pipeline handles everything automatically.
 
 ### Step 3: Exploitation
 
