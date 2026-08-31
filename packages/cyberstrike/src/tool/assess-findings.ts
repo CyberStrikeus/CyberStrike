@@ -6,15 +6,6 @@ import { getAssessResult } from "./azurehook/assess-cache"
 import { CLOUD_GROUPS, groupByKey } from "../cloud/groups"
 import type { Finding } from "./azurehook/shared"
 
-const STATUS_LABEL: Record<string, string> = {
-  new: "PENDING",
-  approved: "APPROVED",
-  duplicate: "REJECTED",
-  open: "OPEN",
-  fixed: "FIXED",
-  ignored: "REJECTED",
-}
-
 function buildTriageMap(sessionID: string): Map<string, { status: string; vulnId: string }> {
   const vulns = Vulnerability.get(sessionID)
   const map = new Map<string, { status: string; vulnId: string }>()
@@ -26,17 +17,63 @@ function buildTriageMap(sessionID: string): Map<string, { status: string; vulnId
   return map
 }
 
-function lookupTriage(f: Finding, triageMap: Map<string, { status: string; vulnId: string }>): { label: string; vulnId: string } {
+function lookupTriage(f: Finding, triageMap: Map<string, { status: string; vulnId: string }>): { status: string; vulnId: string } {
   const key = `${f.title.toLowerCase()}|${f.resource.toLowerCase()}`
   const match = triageMap.get(key)
-  if (!match) return { label: "NOT REPORTED", vulnId: "" }
-  return { label: STATUS_LABEL[match.status] ?? match.status.toUpperCase(), vulnId: match.vulnId }
+  if (!match) return { status: "not_reported", vulnId: "" }
+  return match
+}
+
+interface TriagedFinding {
+  checkId: string
+  title: string
+  severity: string
+  resource: string
+  details: string
+  remediation: string | undefined
+  triageStatus: string
+  vulnId: string
+}
+
+interface GroupSummary {
+  key: string
+  label: string
+  findings: number
+  programs: number
+  failures: number
+  permissionFailures: number
+}
+
+interface SummaryOutput {
+  type: "summary"
+  totalFindings: number
+  durationMs: number
+  tenant: string
+  subscription: string
+  triage: { approved: number; rejected: number; pending: number }
+  groups: GroupSummary[]
+  critical: number
+  high: number
+  skippedPhases: string[]
+}
+
+interface GroupOutput {
+  type: "group"
+  group: string
+  label: string
+  analyst: string
+  programs: number
+  triaged: number
+  pending: number
+  findings: TriagedFinding[]
+  failures: { program: string; reason: string }[]
+  permissionDenied: { program: string; reason: string }[]
 }
 
 type Meta = {
   available: boolean
   totalFindings?: number
-  groups?: { key: string; label: string; findings: number; programs: number; failures: number; permissionFailures: number }[]
+  groups?: GroupSummary[]
   group?: string
   findingCount?: number
   failureCount?: number
@@ -45,7 +82,7 @@ type Meta = {
 
 export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
   description:
-    "Retrieve Layer 1 assessment findings for a specific cloud group, or a summary of all groups. Findings are cached from the last azure_assess run — no need to re-run the pipeline. Use this instead of parsing the full JSON output.",
+    "Retrieve Layer 1 assessment findings for a specific cloud group, or a summary of all groups. Returns structured JSON. Findings are cached from the last azure_assess run — no need to re-run the pipeline.",
   parameters: z.object({
     group: z
       .string()
@@ -61,7 +98,7 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
     if (!result) {
       return {
         title: "Assess Findings: no cached result",
-        output: "No assessment result cached. Run `azurehook azure_assess` first.",
+        output: JSON.stringify({ error: "No assessment result cached. Run azurehook azure_assess first." }),
         metadata: { available: false },
       }
     }
@@ -69,14 +106,14 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
     if (!result.authOk) {
       return {
         title: "Assess Findings: auth failed",
-        output: "Last assessment failed authentication.",
+        output: JSON.stringify({ error: "Last assessment failed authentication." }),
         metadata: { available: false },
       }
     }
 
     if (!params.group) {
       const triageMap = buildTriageMap(rootSession)
-      const groups: Meta["groups"] & {} = []
+      const groups: GroupSummary[] = []
       for (const phase of result.phases) {
         for (const g of phase.groups) {
           groups.push({
@@ -90,36 +127,30 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
         }
       }
       const allFindings = result.phases.flatMap((p) => p.groups.flatMap((g) => g.findings))
-      let approved = 0, rejected = 0, pendingCount = 0
+      let approved = 0, rejected = 0, pending = 0
       for (const f of allFindings) {
-        const label = lookupTriage(f, triageMap).label
-        if (label === "APPROVED") approved++
-        else if (label === "REJECTED") rejected++
-        else pendingCount++
+        const triage = lookupTriage(f, triageMap)
+        if (triage.status === "approved") approved++
+        else if (triage.status === "duplicate" || triage.status === "ignored") rejected++
+        else pending++
       }
-      const lines = [
-        `Assessment Summary (${result.findings.length} total findings, ${result.durationMs}ms)`,
-        `Tenant: ${result.metadata.tenantId ?? "unknown"}`,
-        `Subscription: ${result.metadata.subscriptionName ?? "unknown"}`,
-        `Triage progress: ${approved} approved, ${rejected} rejected, ${pendingCount} pending`,
-        "",
-        "Groups:",
-        ...groups.map(
-          (g) => {
-            let line = `  ${g.key}: ${g.findings} findings, ${g.programs} programs, ${g.failures} failures`
-            if (g.permissionFailures > 0) line += `, ${g.permissionFailures} permission denied (coverage gap)`
-            return line
-          },
-        ),
-        "",
-        `Triage: ${result.triage.critical.length} critical, ${result.triage.high.length} high`,
-        `Skipped phases: ${result.skippedPhases.length > 0 ? result.skippedPhases.join(", ") : "none"}`,
-        "",
-        "Use get_assess_findings(group: '<key>') to retrieve findings for a specific group.",
-      ]
+
+      const summary: SummaryOutput = {
+        type: "summary",
+        totalFindings: result.findings.length,
+        durationMs: result.durationMs,
+        tenant: result.metadata.tenantId ?? "unknown",
+        subscription: result.metadata.subscriptionName ?? "unknown",
+        triage: { approved, rejected, pending },
+        groups,
+        critical: result.triage.critical.length,
+        high: result.triage.high.length,
+        skippedPhases: result.skippedPhases,
+      }
+
       return {
         title: `Assess Summary: ${result.findings.length} findings across ${groups.length} groups`,
-        output: lines.join("\n"),
+        output: JSON.stringify(summary),
         metadata: { available: true, totalFindings: result.findings.length, groups },
       }
     }
@@ -128,7 +159,7 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
     if (!grp) {
       return {
         title: "Assess Findings: unknown group",
-        output: `Unknown group key "${params.group}". Valid keys: ${CLOUD_GROUPS.map((g) => g.key).join(", ")}`,
+        output: JSON.stringify({ error: `Unknown group key "${params.group}". Valid keys: ${CLOUD_GROUPS.map((g) => g.key).join(", ")}` }),
         metadata: { available: false },
       }
     }
@@ -140,54 +171,59 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
     const programs = groupResults.flatMap((g) => g.programs)
 
     if (findings.length === 0 && failures.length === 0 && permDenied.length === 0) {
+      const empty: GroupOutput = {
+        type: "group",
+        group: params.group,
+        label: grp.label,
+        analyst: grp.analyst,
+        programs: programs.length,
+        triaged: 0,
+        pending: 0,
+        findings: [],
+        failures: [],
+        permissionDenied: [],
+      }
       return {
         title: `Assess Findings [${params.group}]: 0 findings`,
-        output: `No findings for group "${grp.label}". ${programs.length === 0 ? "Group was not executed." : `${programs.length} programs ran, all clean.`}`,
+        output: JSON.stringify(empty),
         metadata: { available: true, group: params.group, findingCount: 0 },
       }
     }
 
     const triageMap = buildTriageMap(rootSession)
-    const triaged = findings.filter((f) => lookupTriage(f, triageMap).label !== "PENDING" && lookupTriage(f, triageMap).label !== "NOT REPORTED")
-    const pending = findings.filter((f) => {
-      const t = lookupTriage(f, triageMap)
-      return t.label === "PENDING" || t.label === "NOT REPORTED"
+    const triagedFindings: TriagedFinding[] = findings.map((f) => {
+      const triage = lookupTriage(f, triageMap)
+      return {
+        checkId: f.checkId,
+        title: f.title,
+        severity: f.severity,
+        resource: f.resource,
+        details: f.details.slice(0, 500),
+        remediation: f.remediation?.slice(0, 300),
+        triageStatus: triage.status,
+        vulnId: triage.vulnId,
+      }
     })
 
-    const lines: string[] = [
-      `Group: ${grp.label} (${params.group})`,
-      `Analyst: ${grp.analyst}`,
-      `Programs: ${programs.length} (${failures.length} failed${permDenied.length > 0 ? `, ${permDenied.length} permission denied` : ""})`,
-      `Findings: ${findings.length} (${triaged.length} triaged, ${pending.length} pending)`,
-      "",
-    ]
+    const triaged = triagedFindings.filter((f) => f.triageStatus !== "new" && f.triageStatus !== "not_reported")
+    const pending = triagedFindings.filter((f) => f.triageStatus === "new" || f.triageStatus === "not_reported")
 
-    if (permDenied.length > 0) {
-      lines.push("Coverage gap — insufficient permissions:")
-      for (const f of permDenied) lines.push(`  [DENIED] ${f.program}: ${f.reason}`)
-      lines.push("")
-    }
-
-    if (failures.length > 0) {
-      lines.push("Failed programs:")
-      for (const f of failures) lines.push(`  [!] ${f.program}: ${f.reason}`)
-      lines.push("")
-    }
-
-    lines.push("Findings:")
-    for (const f of findings) {
-      const triage = lookupTriage(f, triageMap)
-      lines.push(`  [${f.severity.toUpperCase()}] [${triage.label}] ${f.checkId} — ${f.title}`)
-      if (triage.vulnId) lines.push(`    Vuln ID: ${triage.vulnId}`)
-      lines.push(`    Resource: ${f.resource}`)
-      lines.push(`    ${f.details.slice(0, 300)}`)
-      if (f.remediation) lines.push(`    Fix: ${f.remediation.slice(0, 200)}`)
-      lines.push("")
+    const groupOutput: GroupOutput = {
+      type: "group",
+      group: params.group,
+      label: grp.label,
+      analyst: grp.analyst,
+      programs: programs.length,
+      triaged: triaged.length,
+      pending: pending.length,
+      findings: triagedFindings,
+      failures: failures.map((f) => ({ program: f.program, reason: f.reason })),
+      permissionDenied: permDenied.map((f) => ({ program: f.program, reason: f.reason })),
     }
 
     return {
       title: `Assess Findings [${params.group}]: ${findings.length} findings`,
-      output: lines.join("\n"),
+      output: JSON.stringify(groupOutput),
       metadata: {
         available: true,
         group: params.group,
