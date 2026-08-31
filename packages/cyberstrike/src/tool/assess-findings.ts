@@ -9,7 +9,7 @@ import type { Finding } from "./azurehook/shared"
 function buildTriageMap(sessionID: string): Map<string, { status: string; vulnId: string }> {
   const vulns = Vulnerability.get(sessionID)
   const map = new Map<string, { status: string; vulnId: string }>()
-  const stripCheckId = (t: string) => t.replace(/^\[AZ-[A-Z]+-\d+\]\s*/, "")
+  const stripCheckId = (t: string) => t.replace(/^\[[\w.-]+\]\s*/, "")
   for (const v of vulns) {
     const key = `${stripCheckId(v.title).toLowerCase()}|${(v.endpoint ?? "").toLowerCase()}`
     map.set(key, { status: v.status, vulnId: v.id ?? "" })
