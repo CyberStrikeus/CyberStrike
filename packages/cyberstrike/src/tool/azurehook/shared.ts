@@ -11,6 +11,29 @@ export type Finding = {
 
 export type HookResult = { output: string; findings: Finding[] }
 
+const MAX_OUTPUT_BYTES = 5 * 1024 * 1024
+
+async function readCapped(stream: ReadableStream | null): Promise<string> {
+  if (!stream) return ""
+  const reader = stream.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    if (value) {
+      total += value.byteLength
+      if (total > MAX_OUTPUT_BYTES) {
+        chunks.push(value.subarray(0, value.byteLength - (total - MAX_OUTPUT_BYTES)))
+        reader.cancel()
+        break
+      }
+      chunks.push(value)
+    }
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks))
+}
+
 export async function run(
   cmd: string,
   args: string[],
@@ -35,8 +58,8 @@ export async function run(
 
   const [exitCode, stdout, stderr] = await Promise.all([
     proc.exited,
-    new Response(proc.stdout as ReadableStream).text(),
-    new Response(proc.stderr as ReadableStream).text(),
+    readCapped(proc.stdout as ReadableStream),
+    readCapped(proc.stderr as ReadableStream),
   ])
   clearTimeout(timer)
 
