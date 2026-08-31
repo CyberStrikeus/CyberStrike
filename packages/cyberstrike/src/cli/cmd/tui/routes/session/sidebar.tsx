@@ -12,7 +12,7 @@ import { useDirectory } from "../../context/directory"
 import { useKV } from "../../context/kv"
 import { TodoItem } from "../../component/todo-item"
 import { formatEndpointHost } from "@tui/util/format"
-import { normalizeStatus, groupOrder, STATUS_DISPLAY } from "@/session/vulnerability-status"
+import { normalizeStatus, groupOrder, STATUS_DISPLAY, compareBySeverity } from "@/session/vulnerability-status"
 
 const fmtTokens = (n: number) =>
   n >= 1_000_000 ? (n / 1_000_000).toFixed(2) + "M" : n >= 1_000 ? Math.round(n / 1_000) + "K" : String(n)
@@ -25,11 +25,10 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const diff = createMemo(() => sync.data.session_diff[props.sessionID] ?? [])
   const todo = createMemo(() => sync.data.todo[props.sessionID] ?? [])
   const vulnerability = createMemo(() => sync.data.vulnerability[props.sessionID] ?? [])
-  const SEV_RANK_V: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
   const vulnGroups = createMemo(() => {
     const all = vulnerability()
     const bySev = (a: (typeof all)[number], b: (typeof all)[number]) =>
-      (SEV_RANK_V[a.severity] ?? 9) - (SEV_RANK_V[b.severity] ?? 9)
+      compareBySeverity(a.severity, b.severity)
     const pick = (pred: (v: (typeof all)[number]) => boolean) => all.filter(pred).sort(bySev)
     const order = groupOrder()
     return order

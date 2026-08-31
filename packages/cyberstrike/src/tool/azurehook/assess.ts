@@ -6,6 +6,7 @@ import { analyzeTriage } from "./assess/triage"
 import { formatAssessResult, formatAssessResultJSON } from "./assess/format"
 import { AZURE_PHASES } from "./assess/phases"
 import { storeAssessResult } from "./assess-cache"
+import { SEV_RANK } from "@/session/vulnerability-status"
 
 const MAX_ASSESS_MS = 1_800_000
 const DEFAULT_CONCURRENCY = 5
@@ -134,8 +135,6 @@ export async function azureAssess(args: string[], timeout: number, sessionID?: s
   const output = outputFormat === "json" ? formatAssessResultJSON(result) : formatAssessResult(result)
   return { output, findings: unique }
 }
-
-const SEV_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
 
 function sevRank(sev: string): number {
   return SEV_RANK[sev.toLowerCase()] ?? 5
