@@ -345,6 +345,41 @@ export namespace Request {
     return matches(legacyRows)
   }
 
+  export function getByIds(sessionID: string, ids: string[]): Info[] {
+    if (ids.length === 0) return []
+    const all = get(sessionID)
+    const idSet = new Set(ids)
+    return all.filter((r) => idSet.has(r.id))
+  }
+
+  export function formatEvidence(req: Info): string {
+    const lines: string[] = []
+    const url = req.origin
+      ? `${req.origin}${req.normalized_path}`
+      : req.normalized_path
+    lines.push(`## ${req.method} ${url}`)
+    lines.push("")
+    if (req.raw_request) {
+      lines.push("### Request")
+      lines.push("```http")
+      lines.push(req.raw_request.slice(0, 4000))
+      lines.push("```")
+      lines.push("")
+    }
+    if (req.response_status) {
+      lines.push("### Response")
+      lines.push(`Status: ${req.response_status}`)
+      if (req.response_content_type) lines.push(`Content-Type: ${req.response_content_type}`)
+      if (req.processed_response) {
+        lines.push("```")
+        lines.push(req.processed_response.slice(0, 4000))
+        lines.push("```")
+      }
+      lines.push("")
+    }
+    return lines.join("\n")
+  }
+
   export function updateStatus(input: { id: string; status: z.infer<typeof Status> }) {
     const now = Date.now()
     const row = Database.use((db) => {
