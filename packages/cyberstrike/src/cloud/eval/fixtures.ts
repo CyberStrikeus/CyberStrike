@@ -4,7 +4,7 @@ export interface EvalCase {
   name: string
   findings: Finding[]
   expectedClassification: Record<string, "formulaic" | "investigate">
-  expectedTriage: Record<string, "triaged" | "pending_fix" | "rejected" | "approved">
+  expectedTriage: Record<string, "triaged" | "pending_fix" | "rejected" | "draft">
 }
 
 function finding(overrides: Partial<Finding> & Pick<Finding, "checkId" | "title" | "severity">): Finding {
@@ -178,7 +178,7 @@ export const EVAL_CASES: EvalCase[] = [
       }),
     ],
     expectedClassification: { "AZ-DATA-001": "formulaic" },
-    expectedTriage: { "AZ-DATA-001": "approved" },
+    expectedTriage: { "AZ-DATA-001": "pending_fix" },
   },
   {
     name: "managed-identity-overprivileged",
@@ -193,7 +193,7 @@ export const EVAL_CASES: EvalCase[] = [
       }),
     ],
     expectedClassification: { "AZ-IAM-003": "investigate" },
-    expectedTriage: { "AZ-IAM-003": "approved" },
+    expectedTriage: { "AZ-IAM-003": "pending_fix" },
   },
   {
     name: "nsg-rule-any-any",
@@ -208,7 +208,7 @@ export const EVAL_CASES: EvalCase[] = [
       }),
     ],
     expectedClassification: { "AZ-NET-005": "formulaic" },
-    expectedTriage: { "AZ-NET-005": "approved" },
+    expectedTriage: { "AZ-NET-005": "pending_fix" },
   },
   {
     name: "sql-tde-disabled-false-positive",
@@ -238,7 +238,7 @@ export const EVAL_CASES: EvalCase[] = [
       }),
     ],
     expectedClassification: { "AZ-IAM-007": "investigate" },
-    expectedTriage: { "AZ-IAM-007": "approved" },
+    expectedTriage: { "AZ-IAM-007": "pending_fix" },
   },
   {
     name: "diagnostic-logging-disabled",
@@ -253,7 +253,7 @@ export const EVAL_CASES: EvalCase[] = [
       }),
     ],
     expectedClassification: { "AZ-SEC-002": "formulaic" },
-    expectedTriage: { "AZ-SEC-002": "approved" },
+    expectedTriage: { "AZ-SEC-002": "pending_fix" },
   },
   {
     name: "rbac-custom-role-wildcard",
@@ -268,7 +268,7 @@ export const EVAL_CASES: EvalCase[] = [
       }),
     ],
     expectedClassification: { "AZ-IAM-012": "investigate" },
-    expectedTriage: { "AZ-IAM-012": "approved" },
+    expectedTriage: { "AZ-IAM-012": "pending_fix" },
   },
   {
     name: "app-service-http-only",
@@ -283,6 +283,6 @@ export const EVAL_CASES: EvalCase[] = [
       }),
     ],
     expectedClassification: { "AZ-COMP-004": "formulaic" },
-    expectedTriage: { "AZ-COMP-004": "approved" },
+    expectedTriage: { "AZ-COMP-004": "pending_fix" },
   },
 ]

@@ -3,6 +3,7 @@ import { Tool } from "./tool"
 import DESCRIPTION from "./generate_report.txt"
 import { Vulnerability } from "../session/vulnerability"
 import { Session } from "../session"
+import { VulnStatus, normalizeStatus } from "../session/vulnerability-status"
 import { Methodology } from "../methodology/methodology"
 import { Intel } from "../methodology/intel"
 import { CoverageNote } from "../session/coverage-note"
@@ -145,7 +146,7 @@ function formatHeader(
   duration: number,
 ): string {
   const date = new Date(session.time.created).toISOString().split("T")[0]
-  const openCount = vulns.filter((v) => v.status === "pending_fix" || v.status === "open").length
+  const openCount = vulns.filter((v) => normalizeStatus(v.status ?? VulnStatus.DRAFT) === VulnStatus.PENDING_FIX).length
   return [
     "# Security Assessment Report",
     "",

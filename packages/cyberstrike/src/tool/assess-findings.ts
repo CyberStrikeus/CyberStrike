@@ -5,6 +5,7 @@ import { Vulnerability } from "../session/vulnerability"
 import { getAssessResult } from "./azurehook/assess-cache"
 import { CLOUD_GROUPS, groupByKey } from "../cloud/groups"
 import type { Finding } from "./azurehook/shared"
+import { isActionable, isExcluded } from "../session/vulnerability-status"
 
 function buildTriageMap(sessionID: string): Map<string, { status: string; vulnId: string }> {
   const vulns = Vulnerability.get(sessionID)
@@ -130,8 +131,8 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
       let approved = 0, rejected = 0, pending = 0
       for (const f of allFindings) {
         const triage = lookupTriage(f, triageMap)
-        if (triage.status === "triaged" || triage.status === "pending_fix" || triage.status === "approved") approved++
-        else if (triage.status === "duplicate" || triage.status === "rejected" || triage.status === "ignored") rejected++
+        if (isActionable(triage.status)) approved++
+        else if (isExcluded(triage.status)) rejected++
         else pending++
       }
 

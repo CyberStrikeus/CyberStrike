@@ -4,6 +4,7 @@ import { Agent } from "../agent/agent"
 import { Identifier } from "../id/id"
 import { Intel } from "../methodology/intel"
 import { Vulnerability } from "../session/vulnerability"
+import { VulnStatus, isExcluded, isActionable, normalizeStatus } from "../session/vulnerability-status"
 import { getAssessResult } from "../tool/azurehook/assess-cache"
 import { identityGroup, parallelGroups, CLOUD_GROUPS } from "./groups"
 import { classifyGroupFindings } from "./classify"
@@ -40,7 +41,7 @@ function deduplicateFindings(rootSession: string): void {
   const seen = new Map<string, string>()
   let deduped = 0
   for (const v of vulns) {
-    if (!v.id || v.status === "duplicate") continue
+    if (!v.id || v.status === VulnStatus.DUPLICATE) continue
     const key = [
       v.cwe_id?.toLowerCase() ?? "",
       v.endpoint?.toLowerCase().replace(/\s+/g, " ").trim() ?? "",
@@ -48,7 +49,7 @@ function deduplicateFindings(rootSession: string): void {
     ].join("|")
     const existing = seen.get(key)
     if (existing) {
-      Vulnerability.update({ sessionID: rootSession, id: v.id, status: "duplicate", duplicate_of: existing })
+      Vulnerability.update({ sessionID: rootSession, id: v.id, status: VulnStatus.DUPLICATE, duplicate_of: existing })
       deduped++
     } else {
       seen.set(key, v.id)
@@ -309,8 +310,9 @@ function buildAnalystResult(group: string, spawn: SpawnResult, rootSession: stri
   let verified = 0, rejected = 0, elevated = 0
   for (const v of vulns) {
     if (v.source_agent !== spawn.agent) continue
-    if (v.status === "triaged" || v.status === "pending_fix" || v.status === "approved") verified++
-    else if (v.status === "duplicate" || v.status === "rejected" || v.status === "ignored") rejected++
+    const ns = normalizeStatus(v.status ?? VulnStatus.DRAFT)
+    if (isActionable(ns)) verified++
+    else if (isExcluded(ns)) rejected++
   }
   elevated = groupIntel.filter((e) => e.chainPotential).length
 
@@ -588,11 +590,11 @@ async function runOrchestration(
   const verifyTimeout = Math.min(VERIFY_TIMEOUT_MS, Math.max(LAYER2_DEADLINE_MS - (Date.now() - state.startedAt), 60_000))
 
   const vulnSummary = Vulnerability.get(rootSession)
-  const vulnDraft = vulnSummary.filter((v) => v.status === "draft" || v.status === "new").length
-  const vulnTriaged = vulnSummary.filter((v) => v.status === "triaged").length
-  const vulnPendingFix = vulnSummary.filter((v) => v.status === "pending_fix" || v.status === "approved").length
-  const vulnRejected = vulnSummary.filter((v) => v.status === "rejected" || v.status === "ignored").length
-  const vulnDuplicate = vulnSummary.filter((v) => v.status === "duplicate").length
+  const vulnDraft = vulnSummary.filter((v) => normalizeStatus(v.status ?? VulnStatus.DRAFT) === VulnStatus.DRAFT).length
+  const vulnTriaged = vulnSummary.filter((v) => normalizeStatus(v.status ?? VulnStatus.DRAFT) === VulnStatus.TRIAGED).length
+  const vulnPendingFix = vulnSummary.filter((v) => normalizeStatus(v.status ?? VulnStatus.DRAFT) === VulnStatus.PENDING_FIX).length
+  const vulnRejected = vulnSummary.filter((v) => normalizeStatus(v.status ?? VulnStatus.DRAFT) === VulnStatus.REJECTED).length
+  const vulnDuplicate = vulnSummary.filter((v) => v.status === VulnStatus.DUPLICATE).length
 
   const orchestrationSummary = [
     `- Dispatched: ${state.analystResults.length} analyst(s), ${state.followUps.length} follow-up(s)`,

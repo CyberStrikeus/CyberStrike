@@ -3,6 +3,7 @@ import { Tool } from "../tool"
 import type { Finding, HookResult } from "./shared"
 import { Vulnerability } from "../../session/vulnerability"
 import { Session } from "../../session"
+import { VulnStatus } from "../../session/vulnerability-status"
 
 import {
   entraEnum,
@@ -1177,7 +1178,7 @@ export const AzurehookTool = Tool.define("azurehook", {
             endpoint: f.resource,
             cwe_id: "cwe" in f ? (f as { cwe: string }).cwe : undefined,
             source_agent: "azure-assess",
-            status: "draft",
+            status: VulnStatus.DRAFT,
           },
         })
         existing.add(key)
