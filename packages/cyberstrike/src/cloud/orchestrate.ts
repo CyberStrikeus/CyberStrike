@@ -5,12 +5,14 @@ import { Identifier } from "../id/id"
 import { Intel } from "../methodology/intel"
 import { getAssessResult } from "../tool/azurehook/assess-cache"
 import { identityGroup, parallelGroups, CLOUD_GROUPS } from "./groups"
+import { classifyGroupFindings } from "./classify"
 import type { CloudAnalysis } from "./types"
 
 const LAYER2_DEADLINE_MS = 20 * 60 * 1000
 const FOLLOWUP_RESERVE_MS = 5 * 60 * 1000
 const AGENT_TIMEOUT_MS = 10 * 60 * 1000
 const IDENTITY_TIMEOUT_MS = 6 * 60 * 1000
+const BATCH_VERIFY_TIMEOUT_MS = 5 * 60 * 1000
 const FOLLOWUP_TIMEOUT_MS = 5 * 60 * 1000
 const VERIFY_TIMEOUT_MS = 5 * 60 * 1000
 
@@ -174,6 +176,57 @@ async function spawnVerify(
   }
 }
 
+async function spawnBatchVerifier(
+  parentID: string,
+  groups: string[],
+  identityContext: string,
+  model: { providerID: string; modelID: string },
+  timeoutMs: number = BATCH_VERIFY_TIMEOUT_MS,
+): Promise<SpawnResult> {
+  const start = Date.now()
+  const agent = await Agent.get("cloud-batch-verifier")
+  if (!agent) return { agent: "cloud-batch-verifier", group: "batch-verify", text: "", error: "unknown agent", durationMs: 0 }
+
+  const session = await Session.create({
+    parentID,
+    title: "Batch verification (@cloud-batch-verifier)",
+    permission: [
+      { permission: "todowrite", pattern: "*", action: "deny" },
+      { permission: "todoread", pattern: "*", action: "deny" },
+      { permission: "task", pattern: "*", action: "deny" },
+    ],
+  })
+
+  const prompt = [
+    `Rapidly triage formulaic findings across these groups: ${groups.join(", ")}`,
+    "",
+    "For each group, call `get_assess_findings(group: '<key>')` to see findings with their triage status and vulnerability IDs.",
+    "Triage each finding as approved or duplicate (false positive). Do not investigate deeply.",
+    "",
+    identityContext ? `## Identity Context\n${identityContext}` : "",
+  ].filter(Boolean).join("\n")
+
+  try {
+    const result = await withTimeout(
+      SessionPrompt.prompt({
+        messageID: Identifier.ascending("message"),
+        sessionID: session.id,
+        model,
+        agent: agent.name,
+        tools: { todowrite: false, todoread: false, task: false },
+        parts: [{ type: "text" as const, text: prompt }],
+      }),
+      timeoutMs,
+      session.id,
+    )
+    const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
+    return { agent: "cloud-batch-verifier", group: "batch-verify", text, error: undefined, durationMs: Date.now() - start }
+  } catch (e) {
+    const timedOut = e instanceof Error && e.message.includes("timed out")
+    return { agent: "cloud-batch-verifier", group: "batch-verify", text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
+  }
+}
+
 function extractIdentityContext(rootSession: string): string {
   const entries = Intel.get(rootSession)
   const identity = entries.filter((e) => e.tags.includes("group:identity"))
@@ -279,6 +332,7 @@ export async function orchestrateLayer2(sessionID: string): Promise<CloudAnalysi
     sessionID: rootSession,
     layer1Findings: assessResult?.findings.length ?? 0,
     identityIntel: 0,
+    triageStats: null,
     analystResults: [],
     followUps: [],
     verifyResult: null,
@@ -320,39 +374,84 @@ async function runOrchestration(
   const identityContext = extractIdentityContext(rootSession)
   state.identityIntel = Intel.get(rootSession).filter((e) => e.tags.includes("group:identity")).length
 
-  // ── Phase: parallel ──────────────────────────────────────
-  state.phase = "parallel"
+  // ── Phase: triage (classify findings) ───────────────────
+  state.phase = "triage"
   const remaining = parallelGroups()
-  const parallelTimeout = Math.min(AGENT_TIMEOUT_MS, LAYER2_DEADLINE_MS - (Date.now() - state.startedAt) - FOLLOWUP_RESERVE_MS)
-  const settled = await Promise.allSettled(
-    remaining.map((g) => spawnAnalyst(sessionID, g, identityContext, model, Math.max(parallelTimeout, 60_000))),
-  )
+  const groupFindings = remaining.map((g) => {
+    const gResults = assessResult.phases.flatMap((p) => p.groups).filter((r) => r.key === g.key)
+    return { key: g.key, findings: gResults.flatMap((r) => r.findings) }
+  })
+  const classified = classifyGroupFindings(groupFindings)
 
-  for (let i = 0; i < remaining.length; i++) {
-    const s = settled[i]
-    if (s.status === "fulfilled") {
-      state.analystResults.push(buildAnalystResult(remaining[i].key, s.value, rootSession))
-    } else {
-      state.analystResults.push(buildAnalystResult(remaining[i].key, {
-        agent: remaining[i].analyst, group: remaining[i].key, text: "", error: s.reason?.message ?? "unknown error", durationMs: 0, timedOut: true,
-      }, rootSession))
+  const formulaicGroups = classified.filter((c) => c.formulaic.length > 0).map((c) => c.key)
+  const investigateGroups = classified.filter((c) => c.investigate.length > 0)
+  const totalFormulaic = classified.reduce((sum, c) => sum + c.formulaic.length, 0)
+  const totalInvestigate = classified.reduce((sum, c) => sum + c.investigate.length, 0)
+
+  state.triageStats = {
+    formulaic: totalFormulaic,
+    investigate: totalInvestigate,
+    groupsWithInvestigation: investigateGroups.map((g) => g.key),
+  }
+
+  console.log(`[orchestrate] triage: ${totalFormulaic} formulaic (${formulaicGroups.length} groups), ${totalInvestigate} investigate (${investigateGroups.length} groups)`)
+
+  // ── Phase: parallel (batch verify + investigation analysts) ──
+  state.phase = "parallel"
+  const parallelTimeout = Math.min(AGENT_TIMEOUT_MS, LAYER2_DEADLINE_MS - (Date.now() - state.startedAt) - FOLLOWUP_RESERVE_MS)
+  const effectiveTimeout = Math.max(parallelTimeout, 60_000)
+
+  const tasks: Promise<PromiseSettledResult<SpawnResult>>[] = []
+  const taskMeta: { type: "batch" | "analyst"; groupKey?: string; groupDef?: CloudAnalysis.GroupDef }[] = []
+
+  if (formulaicGroups.length > 0) {
+    tasks.push(
+      spawnBatchVerifier(sessionID, formulaicGroups, identityContext, model, Math.min(BATCH_VERIFY_TIMEOUT_MS, effectiveTimeout))
+        .then((v) => ({ status: "fulfilled" as const, value: v }))
+        .catch((e) => ({ status: "rejected" as const, reason: e })),
+    )
+    taskMeta.push({ type: "batch" })
+  }
+
+  for (const c of investigateGroups) {
+    const groupDef = remaining.find((g) => g.key === c.key)
+    if (!groupDef) continue
+    tasks.push(
+      spawnAnalyst(sessionID, groupDef, identityContext, model, effectiveTimeout)
+        .then((v) => ({ status: "fulfilled" as const, value: v }))
+        .catch((e) => ({ status: "rejected" as const, reason: e })),
+    )
+    taskMeta.push({ type: "analyst", groupKey: c.key, groupDef })
+  }
+
+  const settled = await Promise.all(tasks)
+
+  for (let i = 0; i < settled.length; i++) {
+    const meta = taskMeta[i]!
+    const s = settled[i]!
+    if (meta.type === "batch") {
+      const spawn = s.status === "fulfilled"
+        ? s.value
+        : { agent: "cloud-batch-verifier", group: "batch-verify", text: "", error: (s as PromiseRejectedResult).reason?.message ?? "unknown error", durationMs: 0, timedOut: true } as SpawnResult
+      if (s.status === "rejected") console.warn(`[orchestrate] batch verifier failed: ${spawn.error}`)
+      state.analystResults.push(buildAnalystResult("batch-verify", spawn, rootSession))
+    } else if (meta.groupDef) {
+      const spawn = s.status === "fulfilled"
+        ? s.value
+        : { agent: meta.groupDef.analyst, group: meta.groupKey!, text: "", error: (s as PromiseRejectedResult).reason?.message ?? "unknown error", durationMs: 0, timedOut: true } as SpawnResult
+      state.analystResults.push(buildAnalystResult(meta.groupKey!, spawn, rootSession))
     }
   }
 
   // ── Phase: sync ──────────────────────────────────────────
   state.phase = "sync"
-  const elapsed = Date.now() - state.startedAt
-  const timeLeft = LAYER2_DEADLINE_MS - elapsed
+  const timeLeft = LAYER2_DEADLINE_MS - (Date.now() - state.startedAt)
 
   const completedAnalysts = state.analystResults.filter((a) => !a.summary.startsWith("Error:"))
   const failedAnalysts = state.analystResults.filter((a) => a.summary.startsWith("Error:"))
-  const timedOutCount = settled.filter((s) => s.status === "fulfilled" && s.value.timedOut).length
 
   if (failedAnalysts.length > 0) {
-    console.warn(`[orchestrate] ${failedAnalysts.length} analyst(s) failed: ${failedAnalysts.map((a) => a.group).join(", ")}`)
-  }
-  if (timedOutCount > 0) {
-    console.warn(`[orchestrate] ${timedOutCount} analyst(s) timed out`)
+    console.warn(`[orchestrate] ${failedAnalysts.length} agent(s) failed: ${failedAnalysts.map((a) => a.group).join(", ")}`)
   }
 
   // ── Phase: followup (LLM judgment) ───────────────────────
@@ -393,7 +492,8 @@ async function runOrchestration(
   state.completedAt = Date.now()
 
   const total = state.analystResults.reduce((sum, a) => sum + a.verified + a.rejected + a.elevated, 0)
-  console.log(`[orchestrate] Layer 2 complete in ${Math.round((state.completedAt - state.startedAt) / 1000)}s — ${completedAnalysts.length}/${CLOUD_GROUPS.length} analysts, ${total} findings processed, ${state.followUps.length} follow-ups`)
+  const agentCount = investigateGroups.length + (formulaicGroups.length > 0 ? 1 : 0) + 1
+  console.log(`[orchestrate] Layer 2 complete in ${Math.round((state.completedAt - state.startedAt) / 1000)}s — ${agentCount} agents (1 identity + ${investigateGroups.length} investigation + ${formulaicGroups.length > 0 ? "1 batch" : "0 batch"}), ${total} findings processed, ${state.followUps.length} follow-ups`)
 
   return state
 }

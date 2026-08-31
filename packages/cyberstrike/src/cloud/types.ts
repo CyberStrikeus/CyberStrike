@@ -17,6 +17,7 @@ export namespace CloudAnalysis {
     "idle",
     "layer1",
     "identity",
+    "triage",
     "parallel",
     "sync",
     "followup",
@@ -49,11 +50,18 @@ export namespace CloudAnalysis {
 
   // ── Orchestration state ───────────────────────────────────────
 
+  export interface TriageStats {
+    formulaic: number
+    investigate: number
+    groupsWithInvestigation: string[]
+  }
+
   export interface OrchestrationState {
     phase: Phase
     sessionID: string
     layer1Findings: number
     identityIntel: number
+    triageStats: TriageStats | null
     analystResults: AnalystResult[]
     followUps: FollowUp[]
     verifyResult: VerifyResult | null

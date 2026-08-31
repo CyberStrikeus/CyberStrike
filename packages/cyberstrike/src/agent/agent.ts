@@ -54,6 +54,7 @@ import PROMPT_METHODOLOGY_CONTINUATION from "./prompt/methodology/forced-continu
 import PROMPT_CLOUD_ORCHESTRATOR from "./prompt/cloud/orchestrator.txt"
 import PROMPT_CLOUD_ANALYST_COMMON from "./prompt/cloud/analyst-common.txt"
 import PROMPT_CLOUD_VERIFY from "./prompt/cloud/verify.txt"
+import PROMPT_CLOUD_BATCH_VERIFIER from "./prompt/cloud/batch-verifier.txt"
 import { CLOUD_GROUPS } from "../cloud/groups"
 
 import { PermissionNext } from "@/permission/next"
@@ -556,6 +557,32 @@ export namespace Agent {
             web_get_vuln_detail: "allow",
             triage_vulnerability: "allow",
             methodology_status: "allow",
+            skill: "allow",
+          }),
+          user,
+        ),
+        options: {},
+      },
+      "cloud-batch-verifier": {
+        name: "cloud-batch-verifier",
+        description: "Rapid batch verifier for formulaic cloud findings. Single-pass triage without deep investigation.",
+        mode: "subagent",
+        native: true,
+        hidden: true,
+        steps: 15,
+        color: "cyan",
+        prompt: PROMPT_CLOUD_BATCH_VERIFIER,
+        skills: ["cloud-assessment"],
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            bash: "allow",
+            read: "allow",
+            azurehook: "allow",
+            get_assess_findings: "allow",
+            get_cloud_intel: "allow",
+            add_intel: "allow",
+            triage_vulnerability: "allow",
             skill: "allow",
           }),
           user,
