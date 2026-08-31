@@ -9,6 +9,9 @@ import type { CloudAnalysis } from "./types"
 
 const LAYER2_DEADLINE_MS = 20 * 60 * 1000
 const FOLLOWUP_RESERVE_MS = 5 * 60 * 1000
+const AGENT_TIMEOUT_MS = 10 * 60 * 1000
+const FOLLOWUP_TIMEOUT_MS = 5 * 60 * 1000
+const VERIFY_TIMEOUT_MS = 5 * 60 * 1000
 
 interface SpawnResult {
   agent: string
@@ -16,6 +19,20 @@ interface SpawnResult {
   text: string
   error: string | undefined
   durationMs: number
+  timedOut?: boolean
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, sessionID: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      SessionPrompt.cancel(sessionID)
+      reject(new Error(`agent timed out after ${Math.round(ms / 1000)}s`))
+    }, ms)
+    promise.then(
+      (v) => { clearTimeout(timer); resolve(v) },
+      (e) => { clearTimeout(timer); reject(e) },
+    )
+  })
 }
 
 async function spawnAnalyst(
@@ -23,6 +40,7 @@ async function spawnAnalyst(
   groupDef: CloudAnalysis.GroupDef,
   identityContext: string,
   model: { providerID: string; modelID: string },
+  timeoutMs: number = AGENT_TIMEOUT_MS,
 ): Promise<SpawnResult> {
   const start = Date.now()
   const agent = await Agent.get(groupDef.analyst)
@@ -44,18 +62,24 @@ async function spawnAnalyst(
     `Verify each finding. Run additional azurehook programs if needed.`,
     `Use add_intel to record significant discoveries. Tag entries with group:${groupDef.key}.`,
     "",
+    `You have relevant skills loaded — use the \`skill\` tool to search and load cloud-specific skills (azure-postexploit, cloud-assessment, etc.) for detailed methodology when verifying findings.`,
+    "",
     identityContext ? `## Identity Context\n${identityContext}` : "",
   ].filter(Boolean).join("\n")
 
   try {
-    const result = await SessionPrompt.prompt({
-      messageID: Identifier.ascending("message"),
-      sessionID: session.id,
-      model,
-      agent: agent.name,
-      tools: { todowrite: false, todoread: false, task: false },
-      parts: [{ type: "text" as const, text: prompt }],
-    })
+    const result = await withTimeout(
+      SessionPrompt.prompt({
+        messageID: Identifier.ascending("message"),
+        sessionID: session.id,
+        model,
+        agent: agent.name,
+        tools: { todowrite: false, todoread: false, task: false },
+        parts: [{ type: "text" as const, text: prompt }],
+      }),
+      timeoutMs,
+      session.id,
+    )
 
     const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
     const info = result.info
@@ -63,7 +87,8 @@ async function spawnAnalyst(
 
     return { agent: groupDef.analyst, group: groupDef.key, text, error: error ? String(error) : undefined, durationMs: Date.now() - start }
   } catch (e) {
-    return { agent: groupDef.analyst, group: groupDef.key, text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start }
+    const timedOut = e instanceof Error && e.message.includes("timed out")
+    return { agent: groupDef.analyst, group: groupDef.key, text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
   }
 }
 
@@ -71,6 +96,7 @@ async function spawnFollowup(
   parentID: string,
   followUp: CloudAnalysis.FollowUp,
   model: { providerID: string; modelID: string },
+  timeoutMs: number = FOLLOWUP_TIMEOUT_MS,
 ): Promise<SpawnResult> {
   const start = Date.now()
   const agent = await Agent.get("cloud-followup")
@@ -87,24 +113,30 @@ async function spawnFollowup(
   })
 
   try {
-    const result = await SessionPrompt.prompt({
-      messageID: Identifier.ascending("message"),
-      sessionID: session.id,
-      model,
-      agent: agent.name,
-      tools: { todowrite: false, todoread: false, task: false },
-      parts: [{ type: "text" as const, text: followUp.prompt }],
-    })
+    const result = await withTimeout(
+      SessionPrompt.prompt({
+        messageID: Identifier.ascending("message"),
+        sessionID: session.id,
+        model,
+        agent: agent.name,
+        tools: { todowrite: false, todoread: false, task: false },
+        parts: [{ type: "text" as const, text: followUp.prompt }],
+      }),
+      timeoutMs,
+      session.id,
+    )
     const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
     return { agent: "cloud-followup", group: "followup", text, error: undefined, durationMs: Date.now() - start }
   } catch (e) {
-    return { agent: "cloud-followup", group: "followup", text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start }
+    const timedOut = e instanceof Error && e.message.includes("timed out")
+    return { agent: "cloud-followup", group: "followup", text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
   }
 }
 
 async function spawnVerify(
   parentID: string,
   model: { providerID: string; modelID: string },
+  timeoutMs: number = VERIFY_TIMEOUT_MS,
 ): Promise<SpawnResult> {
   const start = Date.now()
   const agent = await Agent.get("cloud-verify")
@@ -121,18 +153,23 @@ async function spawnVerify(
   })
 
   try {
-    const result = await SessionPrompt.prompt({
-      messageID: Identifier.ascending("message"),
-      sessionID: session.id,
-      model,
-      agent: agent.name,
-      tools: { todowrite: false, todoread: false, task: false },
-      parts: [{ type: "text" as const, text: "Review all cloud intel and reported vulnerabilities. Check for false positives, verify severity ratings, confirm attack chains are documented. Use get_cloud_intel to review the full intelligence picture." }],
-    })
+    const result = await withTimeout(
+      SessionPrompt.prompt({
+        messageID: Identifier.ascending("message"),
+        sessionID: session.id,
+        model,
+        agent: agent.name,
+        tools: { todowrite: false, todoread: false, task: false },
+        parts: [{ type: "text" as const, text: "Review all cloud intel and reported vulnerabilities. Check for false positives, verify severity ratings, confirm attack chains are documented. Use get_cloud_intel to review the full intelligence picture. Use the `skill` tool to load relevant skills (cloud-assessment, azure-postexploit) for CIS compliance checks." }],
+      }),
+      timeoutMs,
+      session.id,
+    )
     const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
     return { agent: "cloud-verify", group: "verify", text, error: undefined, durationMs: Date.now() - start }
   } catch (e) {
-    return { agent: "cloud-verify", group: "verify", text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start }
+    const timedOut = e instanceof Error && e.message.includes("timed out")
+    return { agent: "cloud-verify", group: "verify", text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
   }
 }
 
@@ -263,12 +300,20 @@ export async function orchestrateLayer2(sessionID: string): Promise<CloudAnalysi
   // ── Phase: parallel ──────────────────────────────────────
   state.phase = "parallel"
   const remaining = parallelGroups()
-  const parallelResults = await Promise.all(
-    remaining.map((g) => spawnAnalyst(sessionID, g, identityContext, model)),
+  const parallelTimeout = Math.min(AGENT_TIMEOUT_MS, LAYER2_DEADLINE_MS - (Date.now() - state.startedAt) - FOLLOWUP_RESERVE_MS)
+  const settled = await Promise.allSettled(
+    remaining.map((g) => spawnAnalyst(sessionID, g, identityContext, model, Math.max(parallelTimeout, 60_000))),
   )
 
   for (let i = 0; i < remaining.length; i++) {
-    state.analystResults.push(buildAnalystResult(remaining[i].key, parallelResults[i], rootSession))
+    const s = settled[i]
+    if (s.status === "fulfilled") {
+      state.analystResults.push(buildAnalystResult(remaining[i].key, s.value, rootSession))
+    } else {
+      state.analystResults.push(buildAnalystResult(remaining[i].key, {
+        agent: remaining[i].analyst, group: remaining[i].key, text: "", error: s.reason?.message ?? "unknown error", durationMs: 0, timedOut: true,
+      }, rootSession))
+    }
   }
 
   // ── Phase: sync ──────────────────────────────────────────
@@ -278,9 +323,13 @@ export async function orchestrateLayer2(sessionID: string): Promise<CloudAnalysi
 
   const completedAnalysts = state.analystResults.filter((a) => !a.summary.startsWith("Error:"))
   const failedAnalysts = state.analystResults.filter((a) => a.summary.startsWith("Error:"))
+  const timedOutCount = settled.filter((s) => s.status === "fulfilled" && s.value.timedOut).length
 
   if (failedAnalysts.length > 0) {
     console.warn(`[orchestrate] ${failedAnalysts.length} analyst(s) failed: ${failedAnalysts.map((a) => a.group).join(", ")}`)
+  }
+  if (timedOutCount > 0) {
+    console.warn(`[orchestrate] ${timedOutCount} analyst(s) timed out`)
   }
 
   // ── Phase: followup (LLM judgment) ───────────────────────
@@ -290,11 +339,13 @@ export async function orchestrateLayer2(sessionID: string): Promise<CloudAnalysi
     state.followUps = followUps
 
     if (followUps.length > 0) {
-      const followUpResults = await Promise.all(
-        followUps.slice(0, 5).map((f) => spawnFollowup(sessionID, f, model)),
+      const fuTimeout = Math.min(FOLLOWUP_TIMEOUT_MS, timeLeft - FOLLOWUP_RESERVE_MS)
+      const fuSettled = await Promise.allSettled(
+        followUps.slice(0, 5).map((f) => spawnFollowup(sessionID, f, model, Math.max(fuTimeout, 60_000))),
       )
-      for (const r of followUpResults) {
-        if (r.error) console.warn(`[orchestrate] follow-up failed: ${r.error}`)
+      for (const r of fuSettled) {
+        if (r.status === "rejected") console.warn(`[orchestrate] follow-up failed: ${r.reason?.message}`)
+        else if (r.value.error) console.warn(`[orchestrate] follow-up failed: ${r.value.error}`)
       }
     }
   } else {
@@ -303,7 +354,8 @@ export async function orchestrateLayer2(sessionID: string): Promise<CloudAnalysi
 
   // ── Phase: verify ────────────────────────────────────────
   state.phase = "verify"
-  const verifyResult = await spawnVerify(sessionID, model)
+  const verifyTimeout = Math.min(VERIFY_TIMEOUT_MS, Math.max(LAYER2_DEADLINE_MS - (Date.now() - state.startedAt), 60_000))
+  const verifyResult = await spawnVerify(sessionID, model, verifyTimeout)
 
   state.verifyResult = {
     approved: 0,
