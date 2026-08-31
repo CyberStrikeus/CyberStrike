@@ -11,7 +11,7 @@ import type {
 
 // ── Retry classification ──────────────────────────────────────
 
-const TRANSIENT = [/429/i, /timeout/i, /ECONNRESET/i, /ETIMEDOUT/i, /throttl/i, /too many/i]
+const TRANSIENT = [/429/i, /timeout/i, /ECONNRESET/i, /ETIMEDOUT/i, /EPIPE/i, /throttl/i, /too many/i]
 const NON_TRANSIENT = [/unauthorized/i, /login required/i, /ENOENT/i, /forbidden/i]
 const PERMISSION_DENIED = [/AuthorizationFailed/i, /does not have authorization/i, /InsufficientPermissions/i, /AuthorizationPermissionMismatch/i]
 
