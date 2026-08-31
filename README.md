@@ -32,10 +32,10 @@
   </picture>
 </p>
 
-<h3 align="center">The first open-source AI agent built for offensive security.</h3>
+<h3 align="center">The provider-agnostic AI agent for offensive security.</h3>
 
 <p align="center">
-  Automated penetration testing from your terminal — plug in your Claude, GPT, or any LLM subscription<br>
+  Autonomous penetration testing and AI red teaming from your terminal — plug in your Claude, GPT, or any LLM subscription<br>
   and turn it into an autonomous red team agent with 13+ specialized agents, 7,600+ security skills, and 120+ OWASP test cases.<br>
   <b>150+ AI providers</b> &bull; <b>5,300+ models</b> &bull; <b>56+ built-in tools</b> &bull; <b>176+ MCP tools</b>
 </p>
@@ -326,7 +326,7 @@ All open source. All installable with `npx`. Plug them into CyberStrike or use t
 CyberStrike agents have direct access to **56+ tools** without any external dependencies:
 
 | Category              | Tools                                                                               |
-| --------------------- | ----------------------------------------------------------------------------------- |
+| --------------------- | ------------------------------------------------------------------------------------- |
 | **Execution**         | Shell (bash), file read/write/edit/patch, directory listing, batch operations       |
 | **Discovery**         | Web fetch, web search, code search, glob, grep, intel gathering                     |
 | **Offensive**         | HackBrowser, attack script execution, vulnerability reporting & triage              |
@@ -345,7 +345,7 @@ Plus a **plugin SDK** with 15+ hook types (tool interception, message transforma
 CyberStrike includes built-in post-exploitation capabilities across multiple platforms — no external tools required.
 
 | Platform       | Capabilities                                                                                                                                                                     |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **macOS**      | Chrome credential extraction, Keychain dumping, keylogging, TCC bypass, GateKeeper bypass, XProtect checks, SSH key extraction, DTrace system tracing                            |
 | **Windows**    | Post-exploitation hooks for privilege escalation and persistence                                                                                                                 |
 | **Linux/eBPF** | 29 kernel-level scripts — process execution monitoring, SSL/TLS sniffing, keystroke logging, namespace manipulation detection, rootkit detection, process/file/connection hiding |
@@ -412,7 +412,7 @@ Read the [Contributing Guide](./CONTRIBUTING.md) before submitting a PR. All con
 CyberStrike is the core platform. These MCP servers extend its capabilities:
 
 | Project                                                                | Domain                                  | Tools                                                       |
-| ---------------------------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------- |
+| ---------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------- |
 | **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 56+ tools, 7,600+ skills, 150+ AI providers** |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                                        |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                                         |
