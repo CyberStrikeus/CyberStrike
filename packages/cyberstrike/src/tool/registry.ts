@@ -50,6 +50,7 @@ import { HackbrowserTool } from "./hackbrowser"
 import { AddIntelTool } from "./intel"
 import { GetCloudIntelTool, GetCloudGroupsTool } from "./cloud-intel"
 import { GetAssessGroupFindingsTool } from "./assess-findings"
+import { EnrichVulnerabilityTool } from "./enrich-vulnerability"
 import { UpdateVrtCheckTool } from "./vrt-check"
 import { RecordCoverageNoteTool, GetCoverageNotesTool } from "./coverage-note"
 import { ScopeCheckTool } from "./scope-check"
@@ -197,6 +198,7 @@ export namespace ToolRegistry {
       GetCloudIntelTool,
       GetCloudGroupsTool,
       GetAssessGroupFindingsTool,
+      EnrichVulnerabilityTool,
       UpdateVrtCheckTool,
       RecordCoverageNoteTool,
       GetCoverageNotesTool,
