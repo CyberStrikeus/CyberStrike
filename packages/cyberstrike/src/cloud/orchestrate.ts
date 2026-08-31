@@ -10,6 +10,7 @@ import type { CloudAnalysis } from "./types"
 const LAYER2_DEADLINE_MS = 20 * 60 * 1000
 const FOLLOWUP_RESERVE_MS = 5 * 60 * 1000
 const AGENT_TIMEOUT_MS = 10 * 60 * 1000
+const IDENTITY_TIMEOUT_MS = 6 * 60 * 1000
 const FOLLOWUP_TIMEOUT_MS = 5 * 60 * 1000
 const VERIFY_TIMEOUT_MS = 5 * 60 * 1000
 
@@ -243,14 +244,18 @@ async function detectFollowUps(
   ].join("\n")
 
   try {
-    const result = await SessionPrompt.prompt({
-      messageID: Identifier.ascending("message"),
-      sessionID: session.id,
-      model,
-      agent: agent.name,
-      tools: { todowrite: false, todoread: false, task: false },
-      parts: [{ type: "text" as const, text: prompt }],
-    })
+    const result = await withTimeout(
+      SessionPrompt.prompt({
+        messageID: Identifier.ascending("message"),
+        sessionID: session.id,
+        model,
+        agent: agent.name,
+        tools: { todowrite: false, todoread: false, task: false },
+        parts: [{ type: "text" as const, text: prompt }],
+      }),
+      FOLLOWUP_TIMEOUT_MS,
+      session.id,
+    )
 
     const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
     const jsonMatch = text.match(/```json\s*\n?([\s\S]*?)\n?```/)
@@ -259,7 +264,8 @@ async function detectFollowUps(
     const parsed = JSON.parse(jsonMatch[1])
     if (!Array.isArray(parsed)) return []
     return parsed.filter((f: any) => f.reason && f.prompt)
-  } catch {
+  } catch (e) {
+    if (e instanceof Error) console.warn(`[orchestrate] detectFollowUps failed: ${e.message}`)
     return []
   }
 }
@@ -286,12 +292,29 @@ export async function orchestrateLayer2(sessionID: string): Promise<CloudAnalysi
     return state
   }
 
+  const deadlineTimer = setTimeout(() => {
+    console.warn(`[orchestrate] Layer 2 hard deadline reached (${LAYER2_DEADLINE_MS / 1000}s)`)
+  }, LAYER2_DEADLINE_MS)
+
+  try {
+    return await runOrchestration(sessionID, rootSession, assessResult, state)
+  } finally {
+    clearTimeout(deadlineTimer)
+  }
+}
+
+async function runOrchestration(
+  sessionID: string,
+  rootSession: string,
+  assessResult: NonNullable<ReturnType<typeof getAssessResult>>,
+  state: CloudAnalysis.OrchestrationState,
+): Promise<CloudAnalysis.OrchestrationState> {
   const model = await SessionPrompt.lastModel(sessionID)
 
   // ── Phase: identity ──────────────────────────────────────
   state.phase = "identity"
   const idGroup = identityGroup()
-  const idResult = await spawnAnalyst(sessionID, idGroup, "", model)
+  const idResult = await spawnAnalyst(sessionID, idGroup, "", model, IDENTITY_TIMEOUT_MS)
   state.analystResults.push(buildAnalystResult(idGroup.key, idResult, rootSession))
 
   const identityContext = extractIdentityContext(rootSession)
