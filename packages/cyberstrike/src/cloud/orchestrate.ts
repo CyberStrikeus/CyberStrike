@@ -3,6 +3,7 @@ import { SessionPrompt } from "../session/prompt"
 import { Agent } from "../agent/agent"
 import { Identifier } from "../id/id"
 import { Intel } from "../methodology/intel"
+import { Vulnerability } from "../session/vulnerability"
 import { getAssessResult } from "../tool/azurehook/assess-cache"
 import { identityGroup, parallelGroups, CLOUD_GROUPS } from "./groups"
 import { classifyGroupFindings } from "./classify"
@@ -245,14 +246,17 @@ function extractIdentityContext(rootSession: string): string {
 
 function buildAnalystResult(group: string, spawn: SpawnResult, rootSession: string): CloudAnalysis.AnalystResult {
   const entries = Intel.get(rootSession)
-  const completion = entries.find((e) => e.title === `analyst_completion:${group}`)
   const groupIntel = entries.filter((e) => e.tags.includes(`group:${group}`))
 
+  const vulns = Vulnerability.get(rootSession)
   let verified = 0, rejected = 0, elevated = 0
-  if (completion?.detail) {
-    const m = completion.detail.match(/Verified:\s*(\d+).*Rejected:\s*(\d+).*Elevated:\s*(\d+)/)
-    if (m) { verified = Number(m[1]); rejected = Number(m[2]); elevated = Number(m[3]) }
+  for (const v of vulns) {
+    const isGroupFinding = v.endpoint?.toLowerCase().includes(group) || v.title.toLowerCase().includes(group)
+    if (!isGroupFinding) continue
+    if (v.status === "approved") verified++
+    else if (v.status === "duplicate" || v.status === "ignored") rejected++
   }
+  elevated = groupIntel.filter((e) => e.chainPotential).length
 
   return {
     analyst: spawn.agent,
