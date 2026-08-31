@@ -100,7 +100,9 @@ export async function azureAssess(args: string[], timeout: number): Promise<Hook
           try {
             const ids = JSON.parse(line.slice("subscription_ids:".length))
             if (Array.isArray(ids)) ctx.subscriptions.push(...ids)
-          } catch {}
+          } catch {
+            console.warn("[assess] failed to parse subscription_ids from AZ-SUB-002 — multi-sub coverage may be incomplete")
+          }
         }
       }
     }
