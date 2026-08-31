@@ -107,6 +107,7 @@ export const VulnerabilityTable = sqliteTable(
     // downstream never parses the title prefix. Cleared to NULL on an in-place evidence upgrade.
     cvss: text(),
     references: text(),
+    evidence_request_ids: text(),
     candidate: text(),
     duplicate_of: text(), // triage link: this finding is a duplicate of <vuln id>
     position: integer().notNull(),
