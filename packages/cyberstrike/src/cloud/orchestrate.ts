@@ -104,7 +104,12 @@ async function spawnAnalyst(
   const prompt = [
     `Analyze the ${groupDef.key} group findings.`,
     `Call get_assess_findings(group: '${groupDef.key}') to retrieve your Layer 1 findings.`,
-    `Verify each finding. Run additional azurehook programs if needed.`,
+    "",
+    `## Workflow`,
+    `1. ENRICH FIRST: For each Layer 1 finding, verify it and use enrich_vulnerability(id, steps_to_reproduce, poc, ...) to add details to the EXISTING record. This updates the skeleton in place — no duplicate is created.`,
+    `2. NEW FINDINGS: Only use report_vulnerability for genuinely NEW issues not already in the Layer 1 findings.`,
+    `3. Run additional azurehook programs if needed to verify or discover more issues.`,
+    "",
     `Use add_intel to record significant discoveries. Tag entries with group:${groupDef.key}.`,
     "",
     `You have relevant skills loaded — use the \`skill\` tool to search and load cloud-specific skills (azure-postexploit, cloud-assessment, etc.) for detailed methodology when verifying findings.`,
