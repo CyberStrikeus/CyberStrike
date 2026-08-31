@@ -418,7 +418,10 @@ export async function orchestrateLayer2(sessionID: string): Promise<CloudAnalysi
     completedAt: null,
   }
 
-  if (!assessResult || !assessResult.authOk || assessResult.findings.length === 0) {
+  if (!assessResult) {
+    throw new Error("No assessment results cached. Run azurehook azure_assess first — results are lost on process restart.")
+  }
+  if (!assessResult.authOk || assessResult.findings.length === 0) {
     state.phase = "complete"
     state.completedAt = Date.now()
     return state
@@ -568,11 +571,12 @@ async function runOrchestration(
           spawnResults.push(r.value)
         }
       }
-      deduplicateFindings(rootSession)
     }
   } else {
     console.warn(`[orchestrate] skipping follow-ups — ${Math.round(timeLeft / 1000)}s left (need ${FOLLOWUP_RESERVE_MS / 1000}s)`)
   }
+
+  deduplicateFindings(rootSession)
 
   // ── Phase: verify ────────────────────────────────────────
   state.phase = "verify"
