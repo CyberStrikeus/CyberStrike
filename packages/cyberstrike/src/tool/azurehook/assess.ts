@@ -5,11 +5,12 @@ import { runPhase } from "./assess/runner"
 import { analyzeTriage } from "./assess/triage"
 import { formatAssessResult, formatAssessResultJSON } from "./assess/format"
 import { AZURE_PHASES } from "./assess/phases"
+import { storeAssessResult } from "./assess-cache"
 
 const MAX_ASSESS_MS = 1_800_000
 const DEFAULT_CONCURRENCY = 5
 
-export async function azureAssess(args: string[], timeout: number): Promise<HookResult> {
+export async function azureAssess(args: string[], timeout: number, sessionID?: string): Promise<HookResult> {
   const start = Date.now()
 
   // parse args
@@ -128,13 +129,11 @@ export async function azureAssess(args: string[], timeout: number): Promise<Hook
     durationMs: Date.now() - start,
   }
 
-  lastAssessResult = result
+  if (sessionID) storeAssessResult(sessionID, result)
 
   const output = outputFormat === "json" ? formatAssessResultJSON(result) : formatAssessResult(result)
   return { output, findings: unique }
 }
-
-export let lastAssessResult: AssessResult | undefined
 
 const SEV_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
 

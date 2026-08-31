@@ -3,8 +3,6 @@ import { Tool } from "../tool"
 import type { Finding, HookResult } from "./shared"
 import { Vulnerability } from "../../session/vulnerability"
 import { Session } from "../../session"
-import { storeAssessResult } from "./assess-cache"
-import { lastAssessResult } from "./assess"
 
 import {
   entraEnum,
@@ -653,7 +651,7 @@ const PROGRAMS = {
 type Program = keyof typeof PROGRAMS
 
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
-  azure_assess: azureAssess,
+  azure_assess: (args, timeout) => azureAssess(args, timeout),
   azure_orchestrate: () => { throw new Error("handled in execute()") },
   subscription_enum: subscriptionEnum,
   resource_graph: resourceGraph,
@@ -1113,9 +1111,10 @@ export const AzurehookTool = Tool.define("azurehook", {
     const handler = dispatch[program]
     let result: HookResult
     try {
-      result = await handler(params.args, effectiveTimeout)
-      if (program === "azure_assess" && lastAssessResult) {
-        storeAssessResult(Session.root(ctx.sessionID), lastAssessResult)
+      if (program === "azure_assess") {
+        result = await azureAssess(params.args, effectiveTimeout, Session.root(ctx.sessionID))
+      } else {
+        result = await handler(params.args, effectiveTimeout)
       }
     } catch (e) {
       return {
@@ -1133,15 +1132,16 @@ export const AzurehookTool = Tool.define("azurehook", {
     if (program === "azure_assess" && enriched.length > 0) {
       const VALID_SEV = new Set(["critical", "high", "medium", "low", "info"])
       const rootSession = Session.root(ctx.sessionID)
+      const stripCheckId = (t: string) => t.replace(/^\[AZ-[A-Z]+-\d+\]\s*/, "")
       const existing = new Set(
-        Vulnerability.get(rootSession).map((v) => `${v.title}|${(v.endpoint ?? "").toLowerCase()}`),
+        Vulnerability.get(rootSession).map((v) => `${stripCheckId(v.title).toLowerCase()}|${(v.endpoint ?? "").toLowerCase()}`),
       )
       let reported = 0
       let skipped = 0
       for (const f of enriched) {
         const sev = f.severity.toLowerCase()
         if (!VALID_SEV.has(sev)) continue
-        const key = `[${f.checkId}] ${f.title}|${f.resource.toLowerCase()}`
+        const key = `${f.title.toLowerCase()}|${f.resource.toLowerCase()}`
         if (existing.has(key)) {
           skipped++
           continue
