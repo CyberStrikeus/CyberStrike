@@ -105,6 +105,8 @@ export const VulnerabilityTable = sqliteTable(
     // (execution-dependent class filed without execution_evidence) and holds the severity it
     // was downgraded FROM. NULL = a normal (confirmed/claimed) finding. First-class signal so
     // downstream never parses the title prefix. Cleared to NULL on an in-place evidence upgrade.
+    cvss: text(),
+    references: text(),
     candidate: text(),
     duplicate_of: text(), // triage link: this finding is a duplicate of <vuln id>
     position: integer().notNull(),
