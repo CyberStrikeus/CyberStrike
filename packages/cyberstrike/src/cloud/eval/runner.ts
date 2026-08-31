@@ -108,8 +108,8 @@ function evalJsonOutput(): EvalResult[] {
     case: "summary-output",
     check: "triage-sum",
     expected: "42",
-    actual: String(parsed.triage.approved + parsed.triage.rejected + parsed.triage.pending),
-    pass: parsed.triage.approved + parsed.triage.rejected + parsed.triage.pending === 42,
+    actual: String(parsed.triage.verified + parsed.triage.rejected + parsed.triage.pending),
+    pass: parsed.triage.verified + parsed.triage.rejected + parsed.triage.pending === 42,
   })
 
   const groupJson = JSON.stringify({

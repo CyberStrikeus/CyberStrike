@@ -72,7 +72,7 @@ export namespace CloudAnalysis {
   // ── Verify result ─────────────────────────────────────────────
 
   export interface VerifyResult {
-    approved: number
+    verified: number
     rejected: number
     downgraded: number
     missing: string[]

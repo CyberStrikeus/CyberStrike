@@ -261,7 +261,7 @@ async function spawnBatchVerifier(
     `Rapidly triage formulaic findings across these groups: ${groups.join(", ")}`,
     "",
     "For each group, call `get_assess_findings(group: '<key>')` to see findings with their triage status and vulnerability IDs.",
-    "Triage each finding as approved, duplicate (false positive), or ignored (not exploitable in context).",
+    "Triage each finding as triaged (verified), duplicate (false positive), or rejected (not exploitable in context).",
     "",
     "**Escalation:** If a finding turns out to be MORE complex than expected (e.g. involves privilege escalation, lateral movement, or cross-group chain potential), do NOT attempt deep investigation. Instead, call `add_intel` with title starting with `ESCALATE:` and describe why it needs deeper analysis. The orchestrator will route it to a follow-up agent.",
     "",
@@ -610,7 +610,7 @@ async function runOrchestration(
   spawnResults.push(verifyResult)
 
   state.verifyResult = {
-    approved: 0,
+    verified: 0,
     rejected: 0,
     downgraded: 0,
     missing: failedAnalysts.map((a) => a.group),

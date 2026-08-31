@@ -51,7 +51,7 @@ interface SummaryOutput {
   durationMs: number
   tenant: string
   subscription: string
-  triage: { approved: number; rejected: number; pending: number }
+  triage: { verified: number; rejected: number; pending: number }
   groups: GroupSummary[]
   critical: number
   high: number
@@ -128,10 +128,10 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
         }
       }
       const allFindings = result.phases.flatMap((p) => p.groups.flatMap((g) => g.findings))
-      let approved = 0, rejected = 0, pending = 0
+      let verified = 0, rejected = 0, pending = 0
       for (const f of allFindings) {
         const triage = lookupTriage(f, triageMap)
-        if (isActionable(triage.status)) approved++
+        if (isActionable(triage.status)) verified++
         else if (isExcluded(triage.status)) rejected++
         else pending++
       }
@@ -142,7 +142,7 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
         durationMs: result.durationMs,
         tenant: result.metadata.tenantId ?? "unknown",
         subscription: result.metadata.subscriptionName ?? "unknown",
-        triage: { approved, rejected, pending },
+        triage: { verified, rejected, pending },
         groups,
         critical: result.triage.critical.length,
         high: result.triage.high.length,
