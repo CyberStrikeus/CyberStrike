@@ -1949,6 +1949,14 @@ export default function Layout(props: ParentProps) {
   return (
     <div class="relative bg-background-base flex-1 min-h-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
       <Titlebar />
+      <Show when={server.role() === "observer"}>
+        <div
+          role="status"
+          class="shrink-0 h-7 px-3 flex items-center justify-center border-b border-border-weak-base bg-surface-info-base text-11-medium text-text-info-base"
+        >
+          Read-only observer mode · execution, configuration, secrets, and terminal input are disabled
+        </div>
+      </Show>
       <div class="flex-1 min-h-0 flex">
         <nav
           aria-label={language.t("sidebar.nav.projectsAndSessions")}

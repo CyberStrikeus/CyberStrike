@@ -230,6 +230,32 @@ test("validates config schema and throws on invalid fields", async () => {
   })
 })
 
+test("loads namespaced extension configuration", async () => {
+  await using tmp = await tmpdir({
+    init: async (dir) => {
+      await writeConfig(dir, {
+        $schema: "https://cyberstrike.io/config.json",
+        extension: {
+          voice: {
+            enabled: true,
+            tts: "local",
+          },
+        },
+      })
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const config = await Config.get()
+      expect(config.extension?.voice).toEqual({
+        enabled: true,
+        tts: "local",
+      })
+    },
+  })
+})
+
 test("throws error for invalid JSON", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
@@ -1797,6 +1823,50 @@ describe("CYBERSTRIKE_DISABLE_PROJECT_CONFIG", () => {
       } else {
         process.env["CYBERSTRIKE_CONFIG_DIR"] = originalConfigDir
       }
+    }
+  })
+})
+
+describe("CYBERSTRIKE_SAFE_MODE", () => {
+  test("ignores invalid project configuration", async () => {
+    const original = process.env["CYBERSTRIKE_SAFE_MODE"]
+    process.env["CYBERSTRIKE_SAFE_MODE"] = "true"
+    Config.global.reset()
+
+    try {
+      await using tmp = await tmpdir({
+        init: async (dir) => {
+          await writeConfig(dir, {
+            invalid_field: "ignored in safe mode",
+          })
+        },
+      })
+      await Instance.provide({
+        directory: tmp.path,
+        fn: async () => {
+          const config = await Config.get()
+          expect(config.username).toBeDefined()
+          expect(config).not.toHaveProperty("invalid_field")
+        },
+      })
+    } finally {
+      if (original === undefined) delete process.env["CYBERSTRIKE_SAFE_MODE"]
+      else process.env["CYBERSTRIKE_SAFE_MODE"] = original
+      Config.global.reset()
+    }
+  })
+
+  test("rejects configuration changes", async () => {
+    const original = process.env["CYBERSTRIKE_SAFE_MODE"]
+    process.env["CYBERSTRIKE_SAFE_MODE"] = "true"
+
+    try {
+      const error = await Config.updateGlobal({ username: "ignored" }).catch((cause) => cause)
+      expect(error).toBeInstanceOf(Config.SafeModeError)
+      expect(error.data.message).toContain("disabled in safe mode")
+    } finally {
+      if (original === undefined) delete process.env["CYBERSTRIKE_SAFE_MODE"]
+      else process.env["CYBERSTRIKE_SAFE_MODE"] = original
     }
   })
 })

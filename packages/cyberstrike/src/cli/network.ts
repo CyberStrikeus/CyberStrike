@@ -28,6 +28,11 @@ const options = {
     describe: "additional domains to allow for CORS",
     default: [] as string[],
   },
+  safe: {
+    type: "boolean" as const,
+    describe: "start in recovery mode without user or project configuration",
+    default: false,
+  },
 }
 
 export type NetworkOptions = InferredOptionTypes<typeof options>
@@ -37,6 +42,7 @@ export function withNetworkOptions<T>(yargs: Argv<T>) {
 }
 
 export async function resolveNetworkOptions(args: NetworkOptions) {
+  if (args.safe) process.env["CYBERSTRIKE_SAFE_MODE"] = "1"
   const config = await Config.global()
   const portExplicitlySet = process.argv.includes("--port")
   const hostnameExplicitlySet = process.argv.includes("--hostname")

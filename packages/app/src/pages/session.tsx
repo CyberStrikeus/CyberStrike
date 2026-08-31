@@ -58,6 +58,7 @@ import { SessionPromptDock } from "@/pages/session/session-prompt-dock"
 import { SessionMobileTabs } from "@/pages/session/session-mobile-tabs"
 import { SessionSidePanel } from "@/pages/session/session-side-panel"
 import { useSessionHashScroll } from "@/pages/session/use-session-hash-scroll"
+import { useServer } from "@/context/server"
 
 type HandoffSession = {
   prompt: string
@@ -102,6 +103,8 @@ export default function Page() {
   const prompt = usePrompt()
   const comments = useComments()
   const permission = usePermission()
+  const server = useServer()
+  const observer = createMemo(() => server.role() === "observer")
 
   const permRequest = createMemo(() => {
     const sessionID = params.id
@@ -688,6 +691,7 @@ export default function Page() {
       setUi("autoCreated", false)
       return
     }
+    if (observer()) return
     if (!terminal.ready() || terminal.all().length !== 0 || ui.autoCreated) return
     terminal.new()
     setUi("autoCreated", true)
@@ -881,7 +885,17 @@ export default function Page() {
   }
 
   const contextOpen = createMemo(() => tabs().active() === "context" || tabs().all().includes("context"))
-  const panelTabSet = new Set(["mcp-panel", "bolt-panel", "vulns-panel", "todo-panel", "skills-panel"])
+  const panelTabSet = new Set([
+    "mission-panel",
+    "mcp-panel",
+    "bolt-panel",
+    "vulns-panel",
+    "web-panel",
+    "topology-panel",
+    "memory-panel",
+    "todo-panel",
+    "skills-panel",
+  ])
   const openedTabs = createMemo(() =>
     tabs()
       .all()
@@ -1688,27 +1702,36 @@ export default function Page() {
             </Switch>
           </div>
 
-          <SessionPromptDock
-            centered={centered()}
-            questionRequest={questionRequest}
-            permissionRequest={permRequest}
-            blocked={blocked()}
-            promptReady={prompt.ready()}
-            handoffPrompt={handoff.session.get(sessionKey())?.prompt}
-            t={language.t as (key: string, vars?: Record<string, string | number | boolean>) => string}
-            responding={ui.responding}
-            onDecide={decide}
-            inputRef={(el) => {
-              inputRef = el
-            }}
-            newSessionWorktree={newSessionWorktree()}
-            onNewSessionWorktreeReset={() => setStore("newSessionWorktree", "main")}
-            onSubmit={() => {
-              comments.clear()
-              resumeScroll()
-            }}
-            setPromptDockRef={(el) => (promptDock = el)}
-          />
+          <Show
+            when={!observer()}
+            fallback={
+              <div class="mx-auto mb-6 px-3 py-2 rounded-md bg-surface-base text-12-regular text-text-weak">
+                Read-only observer mode
+              </div>
+            }
+          >
+            <SessionPromptDock
+              centered={centered()}
+              questionRequest={questionRequest}
+              permissionRequest={permRequest}
+              blocked={blocked()}
+              promptReady={prompt.ready()}
+              handoffPrompt={handoff.session.get(sessionKey())?.prompt}
+              t={language.t as (key: string, vars?: Record<string, string | number | boolean>) => string}
+              responding={ui.responding}
+              onDecide={decide}
+              inputRef={(el) => {
+                inputRef = el
+              }}
+              newSessionWorktree={newSessionWorktree()}
+              onNewSessionWorktreeReset={() => setStore("newSessionWorktree", "main")}
+              onSubmit={() => {
+                comments.clear()
+                resumeScroll()
+              }}
+              setPromptDockRef={(el) => (promptDock = el)}
+            />
+          </Show>
 
           <Show when={desktopReviewOpen()}>
             <ResizeHandle
@@ -1770,6 +1793,7 @@ export default function Page() {
         resize={layout.terminal.resize}
         close={view().terminal.close}
         terminal={terminal}
+        readOnly={observer()}
         language={language}
         command={command}
         handoff={() => handoff.terminal.get(params.dir!) ?? []}

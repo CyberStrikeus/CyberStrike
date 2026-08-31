@@ -1,7 +1,9 @@
 import { z } from "zod"
 import { Tool } from "./tool"
 import { Memory } from "../memory"
+import { MemoryStore } from "../memory/store"
 import path from "path"
+import { Session } from "../session"
 
 export const MemorySearchTool = Tool.define("memory_search", {
   description: `Search through persistent memory for relevant information.
@@ -11,16 +13,19 @@ Use this tool to:
 - Recall context from past sessions
 - Search for specific topics or keywords in memory
 
-Memory is stored in:
-- MEMORY.md: Long-term decisions, preferences, important facts
-- memory/YYYY-MM-DD.md: Daily notes and session context`,
+Structured memory is engagement-scoped, provenance-aware, secret-redacted, and ranked with FTS.
+Legacy MEMORY.md and daily notes are searched as a fallback.`,
   parameters: z.object({
     query: z.string().describe("Search query - keywords or phrases to find in memory"),
   }),
-  execute: async (params, _ctx) => {
+  execute: async (params, ctx) => {
+    const structured = MemoryStore.search({
+      query: params.query,
+      sessionID: Session.root(ctx.sessionID),
+    })
     const results = await Memory.search(params.query)
 
-    if (results.length === 0) {
+    if (structured.length === 0 && results.length === 0) {
       return {
         title: `Memory search: "${params.query}"`,
         metadata: { query: params.query, matches: 0 },
@@ -28,36 +33,32 @@ Memory is stored in:
       }
     }
 
-    const output = results.map((r) => {
+    const entries = structured.map(
+      (entry) =>
+        `### ${entry.title}\n\n${entry.content}\n\n_${entry.kind} · ${entry.trust} · ${Math.round(entry.confidence * 100)}% confidence · ${entry.source}_`,
+    )
+    const legacy = results.map((r) => {
       const relativePath = r.file.includes(".cyberstrike") ? r.file.split(".cyberstrike/")[1] : path.basename(r.file)
       return `### ${relativePath}:${r.line}\n\n${r.context}`
     })
 
     return {
       title: `Memory search: "${params.query}"`,
-      metadata: { query: params.query, matches: results.length },
-      output: `Found ${results.length} match(es) for "${params.query}":\n\n${output.join("\n\n---\n\n")}`,
+      metadata: { query: params.query, matches: structured.length + results.length },
+      output: `Found ${structured.length + results.length} match(es) for "${params.query}":\n\n${[...entries, ...legacy].join("\n\n---\n\n")}`,
     }
   },
 })
 
 export const MemoryWriteTool = Tool.define("memory_write", {
-  description: `Write information to persistent memory for future recall.
+  description: `Write an inferred fact or experience to structured persistent memory for future recall.
 
 Use this tool to store:
-- **MEMORY.md** (type: "long_term"): Decisions, preferences, important facts that should persist across sessions
-- **Daily notes** (type: "daily"): Session context, temporary notes, work in progress
+- **Long-term semantic memory**: reusable project facts and decisions
+- **Engagement episodic memory**: session-specific outcomes, failures, and context
 
-Examples of what to store in long-term memory:
-- User preferences ("User prefers Python over JavaScript")
-- Project decisions ("Using PostgreSQL for the database")
-- Important context ("Main API endpoint is api.example.com")
-- Learned facts ("The codebase uses monorepo structure")
-
-Examples of what to store in daily notes:
-- Current task progress
-- Temporary context
-- Session-specific notes`,
+Never write plaintext secrets. Content is redacted again at the storage boundary.
+Model-authored entries are stored as inferred and must be re-verified before high-risk actions.`,
   parameters: z.object({
     content: z.string().describe("The content to write to memory"),
     type: z
@@ -65,24 +66,28 @@ Examples of what to store in daily notes:
       .default("daily")
       .describe("Where to store: 'long_term' for MEMORY.md, 'daily' for today's notes"),
     title: z.string().optional().describe("Optional title/heading for the memory entry"),
+    tags: z.array(z.string()).optional().describe("Search and methodology tags"),
+    related_ids: z.array(z.string()).optional().describe("Related topology or memory IDs"),
+    confidence: z.number().min(0).max(1).optional().describe("Confidence from 0 to 1"),
   }),
-  execute: async (params, _ctx) => {
-    const content = params.title ? `**${params.title}**\n\n${params.content}` : params.content
+  execute: async (params, ctx) => {
     const memoryType = params.type || "daily"
-
-    if (memoryType === "long_term") {
-      await Memory.appendToLongTermMemory(content)
-    } else {
-      await Memory.appendToDailyMemory(content)
-    }
+    const entry = MemoryStore.add({
+      sessionID: memoryType === "daily" ? Session.root(ctx.sessionID) : undefined,
+      kind: memoryType === "long_term" ? "semantic" : "episodic",
+      title: params.title ?? (memoryType === "long_term" ? "Project memory" : "Engagement memory"),
+      content: params.content,
+      source: ctx.agent,
+      trust: "inferred",
+      confidence: params.confidence ?? 0.5,
+      tags: params.tags,
+      relatedIDs: params.related_ids,
+    })
 
     return {
-      title: memoryType === "long_term" ? "Saved to long-term memory" : "Saved to daily notes",
-      metadata: { type: memoryType },
-      output:
-        memoryType === "long_term"
-          ? `Saved to long-term memory (MEMORY.md):\n\n${content}`
-          : `Saved to daily notes:\n\n${content}`,
+      title: memoryType === "long_term" ? "Saved semantic memory" : "Saved episodic memory",
+      metadata: { type: memoryType, entryID: entry.id, redacted: entry.redacted },
+      output: `Saved ${entry.kind} memory ${entry.id}${entry.redacted ? " with sensitive values redacted" : ""}.`,
     }
   },
 })
@@ -170,12 +175,14 @@ Available memory files:
 })
 
 export const MemoryContextTool = Tool.define("memory_context", {
-  description: `Get the full memory context including long-term memory and recent daily notes.
+  description: `Get trust-ranked structured memory plus legacy long-term and recent daily notes.
 
-This is automatically called at session start, but you can use it to refresh your memory context.`,
+Structured memory is automatically injected when relevant, but this tool can refresh the full context.`,
   parameters: z.object({}),
-  execute: async (_params, _ctx) => {
-    const context = await Memory.getSessionContext()
+  execute: async (_params, ctx) => {
+    const structured = MemoryStore.context(Session.root(ctx.sessionID))
+    const legacy = await Memory.getSessionContext()
+    const context = [structured, legacy].filter(Boolean).join("\n\n---\n\n")
     return {
       title: "Get memory context",
       metadata: {},

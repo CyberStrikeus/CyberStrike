@@ -994,6 +994,15 @@ export type EventWebRetestUpdated = {
   }
 }
 
+export type EventMemoryUpdated = {
+  type: "memory.updated"
+  properties: {
+    sessionID?: string
+    entryID: string
+    action: "created" | "invalidated" | "promoted"
+  }
+}
+
 export type EventTuiPromptAppend = {
   type: "tui.prompt.append"
   properties: {
@@ -1228,6 +1237,15 @@ export type EventWorktreeFailed = {
   }
 }
 
+export type EventDossierNoteUpdated = {
+  type: "dossier.note.updated"
+  properties: {
+    sessionID: string
+    entityID: string
+    count: number
+  }
+}
+
 export type Event =
   | EventInstallationUpdated
   | EventInstallationUpdateAvailable
@@ -1264,6 +1282,7 @@ export type Event =
   | EventWebObjectValueUpdated
   | EventWebRoleUpdated
   | EventWebRetestUpdated
+  | EventMemoryUpdated
   | EventTuiPromptAppend
   | EventTuiCommandExecute
   | EventTuiToastShow
@@ -1284,6 +1303,7 @@ export type Event =
   | EventPtyDeleted
   | EventWorktreeReady
   | EventWorktreeFailed
+  | EventDossierNoteUpdated
 
 export type GlobalEvent = {
   directory: string
@@ -2161,6 +2181,12 @@ export type Config = {
    */
   provider?: {
     [key: string]: ProviderConfig
+  }
+  /**
+   * Namespaced configuration for plugins and external integrations
+   */
+  extension?: {
+    [key: string]: unknown
   }
   /**
    * MCP (Model Context Protocol) server configurations
@@ -5591,6 +5617,36 @@ export type FileStatusResponses = {
 
 export type FileStatusResponse = FileStatusResponses[keyof FileStatusResponses]
 
+export type McpCatalogData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/mcp/catalog"
+}
+
+export type McpCatalogResponses = {
+  /**
+   * MCP server catalog
+   */
+  200: Array<{
+    id: string
+    name: string
+    summary: string
+    tier: number
+    tools: number
+    techniques?: number
+    version: string
+    package?: string
+    repository: string
+    command?: Array<string>
+    default: boolean
+  }>
+}
+
+export type McpCatalogResponse = McpCatalogResponses[keyof McpCatalogResponses]
+
 export type McpStatusData = {
   body?: never
   path?: never
@@ -6683,6 +6739,533 @@ export type MethodologyReportDownloadResponses = {
    */
   200: unknown
 }
+
+export type EventLogListData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    before?: number
+    limit?: number
+  }
+  url: "/event-log/session/{sessionID}"
+}
+
+export type EventLogListResponses = {
+  /**
+   * Engagement events
+   */
+  200: Array<{
+    id: string
+    projectID: string
+    sessionID?: string
+    type: string
+    source: "agent" | "tool" | "mcp" | "bolt" | "browser" | "pty" | "finding" | "system"
+    correlationID?: string
+    parentID?: string
+    data: {
+      [key: string]: unknown
+    }
+    time: number
+  }>
+}
+
+export type EventLogListResponse = EventLogListResponses[keyof EventLogListResponses]
+
+export type EventLogStreamData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/event-log/session/{sessionID}/stream"
+}
+
+export type EventLogStreamResponses = {
+  /**
+   * Engagement event stream
+   */
+  200: {
+    id: string
+    projectID: string
+    sessionID?: string
+    type: string
+    source: "agent" | "tool" | "mcp" | "bolt" | "browser" | "pty" | "finding" | "system"
+    correlationID?: string
+    parentID?: string
+    data: {
+      [key: string]: unknown
+    }
+    time: number
+  }
+}
+
+export type EventLogStreamResponse = EventLogStreamResponses[keyof EventLogStreamResponses]
+
+export type TopologyGetData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/topology/session/{sessionID}"
+}
+
+export type TopologyGetResponses = {
+  /**
+   * Session topology
+   */
+  200: {
+    sessionID: string
+    nodes: Array<{
+      id: string
+      kind: "asset" | "host" | "service" | "endpoint" | "identity" | "finding" | "fact"
+      label: string
+      source: string
+      status?: string
+      severity?: string
+      confidence?: string
+      data: {
+        [key: string]: unknown
+      }
+    }>
+    edges: Array<{
+      id: string
+      source: string
+      target: string
+      kind: string
+    }>
+    time: number
+  }
+}
+
+export type TopologyGetResponse = TopologyGetResponses[keyof TopologyGetResponses]
+
+export type TopologyNotesData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    entityID?: string
+  }
+  url: "/topology/session/{sessionID}/notes"
+}
+
+export type TopologyNotesResponses = {
+  /**
+   * Target notes
+   */
+  200: Array<{
+    id: string
+    sessionID: string
+    entityID: string
+    title: string
+    content: string
+    links: Array<string>
+    tags: Array<string>
+    author: string
+    time: {
+      created: number
+      updated: number
+    }
+  }>
+}
+
+export type TopologyNotesResponse = TopologyNotesResponses[keyof TopologyNotesResponses]
+
+export type TopologyNoteCreateData = {
+  body?: {
+    entityID: string
+    title: string
+    content: string
+    links?: Array<string>
+    tags?: Array<string>
+  }
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/topology/session/{sessionID}/notes"
+}
+
+export type TopologyNoteCreateResponses = {
+  /**
+   * Created target note
+   */
+  200: {
+    id: string
+    sessionID: string
+    entityID: string
+    title: string
+    content: string
+    links: Array<string>
+    tags: Array<string>
+    author: string
+    time: {
+      created: number
+      updated: number
+    }
+  }
+}
+
+export type TopologyNoteCreateResponse = TopologyNoteCreateResponses[keyof TopologyNoteCreateResponses]
+
+export type TopologyNoteDeleteData = {
+  body?: never
+  path: {
+    sessionID: string
+    noteID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/topology/session/{sessionID}/notes/{noteID}"
+}
+
+export type TopologyNoteDeleteResponses = {
+  /**
+   * Target note removed
+   */
+  200: boolean
+}
+
+export type TopologyNoteDeleteResponse = TopologyNoteDeleteResponses[keyof TopologyNoteDeleteResponses]
+
+export type TopologyNoteUpdateData = {
+  body?: {
+    title?: string
+    content?: string
+    links?: Array<string>
+    tags?: Array<string>
+  }
+  path: {
+    sessionID: string
+    noteID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/topology/session/{sessionID}/notes/{noteID}"
+}
+
+export type TopologyNoteUpdateResponses = {
+  /**
+   * Updated target note
+   */
+  200: {
+    id: string
+    sessionID: string
+    entityID: string
+    title: string
+    content: string
+    links: Array<string>
+    tags: Array<string>
+    author: string
+    time: {
+      created: number
+      updated: number
+    }
+  }
+}
+
+export type TopologyNoteUpdateResponse = TopologyNoteUpdateResponses[keyof TopologyNoteUpdateResponses]
+
+export type MemoryListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    sessionID?: string
+    kind?: "working" | "episodic" | "semantic" | "procedural"
+    includeInvalid?: boolean
+    limit?: number
+  }
+  url: "/memory"
+}
+
+export type MemoryListResponses = {
+  /**
+   * Memory entries
+   */
+  200: Array<{
+    id: string
+    projectID: string
+    sessionID?: string
+    kind: "working" | "episodic" | "semantic" | "procedural"
+    title: string
+    content: string
+    source: string
+    trust: "human" | "tool" | "inferred" | "untrusted"
+    confidence: number
+    tags: Array<string>
+    relatedIDs: Array<string>
+    metadata: {
+      [key: string]: unknown
+    }
+    redacted: boolean
+    validFrom: number
+    invalidAt?: number
+    useCount: number
+    lastUsedAt?: number
+    time: {
+      created: number
+      updated: number
+    }
+  }>
+}
+
+export type MemoryListResponse = MemoryListResponses[keyof MemoryListResponses]
+
+export type MemoryCreateData = {
+  body?: {
+    sessionID?: string
+    kind: "working" | "episodic" | "semantic" | "procedural"
+    title: string
+    content: string
+    confidence?: number
+    tags?: Array<string>
+    relatedIDs?: Array<string>
+    metadata?: {
+      [key: string]: unknown
+    }
+    validFrom?: number
+  }
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/memory"
+}
+
+export type MemoryCreateResponses = {
+  /**
+   * Created memory entry
+   */
+  200: {
+    id: string
+    projectID: string
+    sessionID?: string
+    kind: "working" | "episodic" | "semantic" | "procedural"
+    title: string
+    content: string
+    source: string
+    trust: "human" | "tool" | "inferred" | "untrusted"
+    confidence: number
+    tags: Array<string>
+    relatedIDs: Array<string>
+    metadata: {
+      [key: string]: unknown
+    }
+    redacted: boolean
+    validFrom: number
+    invalidAt?: number
+    useCount: number
+    lastUsedAt?: number
+    time: {
+      created: number
+      updated: number
+    }
+  }
+}
+
+export type MemoryCreateResponse = MemoryCreateResponses[keyof MemoryCreateResponses]
+
+export type MemorySearchData = {
+  body?: never
+  path?: never
+  query: {
+    directory?: string
+    query: string
+    sessionID?: string
+    kind?: "working" | "episodic" | "semantic" | "procedural"
+    limit?: number
+  }
+  url: "/memory/search"
+}
+
+export type MemorySearchResponses = {
+  /**
+   * Ranked memory entries
+   */
+  200: Array<{
+    id: string
+    projectID: string
+    sessionID?: string
+    kind: "working" | "episodic" | "semantic" | "procedural"
+    title: string
+    content: string
+    source: string
+    trust: "human" | "tool" | "inferred" | "untrusted"
+    confidence: number
+    tags: Array<string>
+    relatedIDs: Array<string>
+    metadata: {
+      [key: string]: unknown
+    }
+    redacted: boolean
+    validFrom: number
+    invalidAt?: number
+    useCount: number
+    lastUsedAt?: number
+    time: {
+      created: number
+      updated: number
+    }
+    rank: number
+  }>
+}
+
+export type MemorySearchResponse = MemorySearchResponses[keyof MemorySearchResponses]
+
+export type MemoryInvalidateData = {
+  body?: never
+  path: {
+    entryID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/memory/{entryID}/invalidate"
+}
+
+export type MemoryInvalidateResponses = {
+  /**
+   * Invalidated memory entry
+   */
+  200: {
+    id: string
+    projectID: string
+    sessionID?: string
+    kind: "working" | "episodic" | "semantic" | "procedural"
+    title: string
+    content: string
+    source: string
+    trust: "human" | "tool" | "inferred" | "untrusted"
+    confidence: number
+    tags: Array<string>
+    relatedIDs: Array<string>
+    metadata: {
+      [key: string]: unknown
+    }
+    redacted: boolean
+    validFrom: number
+    invalidAt?: number
+    useCount: number
+    lastUsedAt?: number
+    time: {
+      created: number
+      updated: number
+    }
+  }
+}
+
+export type MemoryInvalidateResponse = MemoryInvalidateResponses[keyof MemoryInvalidateResponses]
+
+export type MemoryPromoteData = {
+  body?: {
+    cases: number
+    baselinePassRate: number
+    candidatePassRate: number
+    criticalRegressions: number
+  }
+  path: {
+    entryID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/memory/{entryID}/promote"
+}
+
+export type MemoryPromoteResponses = {
+  /**
+   * Promoted procedural memory
+   */
+  200: {
+    id: string
+    projectID: string
+    sessionID?: string
+    kind: "working" | "episodic" | "semantic" | "procedural"
+    title: string
+    content: string
+    source: string
+    trust: "human" | "tool" | "inferred" | "untrusted"
+    confidence: number
+    tags: Array<string>
+    relatedIDs: Array<string>
+    metadata: {
+      [key: string]: unknown
+    }
+    redacted: boolean
+    validFrom: number
+    invalidAt?: number
+    useCount: number
+    lastUsedAt?: number
+    time: {
+      created: number
+      updated: number
+    }
+  }
+}
+
+export type MemoryPromoteResponse = MemoryPromoteResponses[keyof MemoryPromoteResponses]
+
+export type SystemCapabilitiesData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/system/capabilities"
+}
+
+export type SystemCapabilitiesResponses = {
+  /**
+   * Execution-plane capabilities
+   */
+  200: {
+    hostname: string
+    platform: string
+    release: string
+    arch: string
+    virtualization?: string
+    cpu: {
+      model: string
+      cores: number
+    }
+    memory: {
+      total: number
+      free: number
+    }
+    uptime: number
+    interfaces: Array<{
+      name: string
+      addresses: Array<{
+        address: string
+        family: string
+        internal: boolean
+      }>
+    }>
+    tools: Array<{
+      name: string
+      available: boolean
+      path?: string
+    }>
+    time: number
+  }
+}
+
+export type SystemCapabilitiesResponse = SystemCapabilitiesResponses[keyof SystemCapabilitiesResponses]
 
 export type InstanceDisposeData = {
   body?: never

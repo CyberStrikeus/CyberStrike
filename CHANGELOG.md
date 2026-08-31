@@ -8,6 +8,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 
 ## [Unreleased]
 
+### Added
+
+- Durable, redacted engagement event log with live SSE, correlation IDs, activity timeline/lanes, filters, and JSONL export
+- Mission posture and topology panels for methodology coverage, validation, attack chains, agents, assets, hosts, endpoints, findings, and target notes
+- Structured project/session memory with FTS5, provenance, trust, confidence, secret redaction, invalidation, failure reflection, and evaluation-gated procedural promotion
+- Server-enforced read-only observer role and typed local execution-plane capability inventory
+- Version-pinned MCP catalog with manual/optional install states and three additional owner-maintained integrations
+- Safe recovery startup with `--safe` and namespaced extension configuration
+
+### Changed
+
+- MCP tool materialization now filters schemas before conversion and enforces real context-budget eviction
+
 ## [1.1.16] — 2026-08-08
 
 ### Added

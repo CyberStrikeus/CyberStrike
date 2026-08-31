@@ -5,9 +5,29 @@ import { MCP } from "../../mcp"
 import { Config } from "../../config/config"
 import { errors } from "../error"
 import { lazy } from "../../util/lazy"
+import { McpCatalog } from "../../mcp/catalog"
 
 export const McpRoutes = lazy(() =>
   new Hono()
+    .get(
+      "/catalog",
+      describeRoute({
+        summary: "Get MCP catalog",
+        description: "Get curated MCP servers, pinned install commands, and manual installation requirements.",
+        operationId: "mcp.catalog",
+        responses: {
+          200: {
+            description: "MCP server catalog",
+            content: {
+              "application/json": {
+                schema: resolver(McpCatalog.Entry.array()),
+              },
+            },
+          },
+        },
+      }),
+      (c) => c.json(McpCatalog.list()),
+    )
     .get(
       "/",
       describeRoute({

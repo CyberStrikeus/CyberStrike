@@ -251,16 +251,21 @@ Browser ──HTTPS──▶ Cloudflare Tunnel ──encrypted──▶ cloudfla
 
 ```bash
 export CYBERSTRIKE_SERVER_PASSWORD=your-secure-password
+# Optional API/viewer credential with a strict read-only route allowlist:
+export CYBERSTRIKE_OBSERVER_PASSWORD=your-observer-password
 cyberstrike web
 # In another terminal:
 cloudflared tunnel --url http://localhost:4096 run your-tunnel
 ```
+
+If user or project configuration prevents startup, run `cyberstrike web --safe` to start recovery mode without those config sources. Managed administrator policy is still enforced.
 
 **Why this is secure:**
 
 - **Zero open ports** — CyberStrike binds to `localhost:4096`. `cloudflared` makes an outbound-only connection to Cloudflare's edge. No firewall rules, no port forwarding needed.
 - **End-to-end encryption** — Browser to Cloudflare edge is TLS. Cloudflare edge to your machine is an encrypted tunnel. No plaintext leaves your network.
 - **Password-protected API** — Every API request requires Basic Auth. Local requests on `localhost` bypass auth for convenience; remote requests via CF tunnel always require credentials (detects `X-Forwarded-For` / `CF-Connecting-IP`).
+- **Read-only observers** — The optional `observer` account can read redacted activity, mission posture, topology, findings, and status, but cannot access configuration, secrets, raw events, PTYs, WebSockets, or mutation routes.
 - **Your data stays local** — LLM inference runs on your hardware. CyberStrike processes everything locally. The tunnel is just a secure pipe.
 
 **What's in the Web UI:**
@@ -272,6 +277,10 @@ cloudflared tunnel --url http://localhost:4096 run your-tunnel
 | **Bolt**            | Bolt remote server connection monitoring                                       |
 | **Vulnerabilities** | Discovered vulns with severity, PoC, and impact                                |
 | **Web Context**     | Endpoints, roles, credentials, and functions discovered during active sessions |
+| **Mission**         | Methodology phases, coverage, blockers, attack chains, agents, and safe CTAs   |
+| **Topology**        | Evidence-linked assets, hosts, services, endpoints, identities, and findings    |
+| **Activity**        | Durable Agent/Tool/MCP/Bolt/Browser/PTY lanes with filtering and JSONL export   |
+| **Memory**          | Trust-ranked structured memory, FTS search, redaction, notes, and invalidation   |
 
 **[app.cyberstrike.io](https://app.cyberstrike.io)** is a hosted static page (no backend, no data storage) for convenience. Or self-host: clone the repo and serve `packages/app/dist/` from your own domain.
 
@@ -308,16 +317,23 @@ Bolt is CyberStrike's remote tool server. Deploy it on any VPS, cloud instance, 
 
 ### MCP Ecosystem
 
-CyberStrike connects to specialized MCP servers that extend its capabilities — **176+ security tools** across 5 domains:
+CyberStrike includes a curated MCP catalog with roughly **724 direct/composite security tools** across 11 default entries:
 
-| Server                                                                 | Tools | What It Adds                                                         |
-| ---------------------------------------------------------------------- | ----- | -------------------------------------------------------------------- |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38    | Cloud security audits — 60+ checks across AWS, Azure, GCP            |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39    | GitHub security posture — repo, org, actions, secrets, supply chain  |
-| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23    | CVE intelligence — NVD, EPSS, CISA KEV, GitHub Advisory, OSV         |
-| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37    | OSINT recon — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
+| Server                                                                    | Tools    | What It Adds                                                          |
+| ------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------- |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp)    | 39       | GitHub org, repo, Actions, secrets, supply chain, and access posture   |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                            | 41       | CVE intelligence across 11 vulnerability and exploitability sources   |
+| [osint-mcp-server](https://github.com/badchars/osint-mcp-server)          | 37       | Shodan, VirusTotal, Censys, DNS, WHOIS, certificates, BGP, and archives |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)            | 38       | AWS, Azure, and GCP security audits with 60+ checks                    |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)            | 39       | Firefox security browser, isolated roles, traffic replay, active tests |
+| [darknet-mcp-server](https://github.com/badchars/darknet-mcp-server)      | 66       | Breach, ransomware, Tor, malware, blockchain, and exploit intelligence |
+| [dns-security-mcp](https://github.com/badchars/dns-security-mcp)          | 103      | DNSSEC, email, hijacking, tunneling, typosquatting, and certificates   |
+| [supply-chain-mcp-server](https://github.com/badchars/supply-chain-mcp-server) | 7/90 | 7 composite tools orchestrating 90 package and provenance techniques   |
+| [mcp-security-scanner](https://github.com/badchars/mcp-security-scanner)  | 55       | Runtime, source, config, dependency, and OWASP MCP security analysis   |
+| [steganography-mcp](https://github.com/badchars/steganography-mcp)        | 128      | Offline image, audio, video, document, and covert-channel analysis     |
+| [satellite-mcp](https://github.com/badchars/satellite-mcp)                | 171      | Satellite, aviation, maritime, conflict, infrastructure, and GEOINT    |
 
-All open source. All installable with `npx`. Plug them into CyberStrike or use them standalone with any MCP-compatible client.
+Runnable npm entries are version-pinned. `cloud-audit-mcp` and `hackbrowser-mcp` currently require manual installation from their repositories. The catalog also offers optional wireless-security, LOLBin, and fingerprinting servers.
 
 ---
 
@@ -327,7 +343,7 @@ CyberStrike agents have direct access to **56+ tools** without any external depe
 
 | Category              | Tools                                                                               |
 | --------------------- | ----------------------------------------------------------------------------------- |
-| **Execution**         | Shell (bash), file read/write/edit/patch, directory listing, batch operations       |
+| **Execution**         | Shell, typed host readiness, file read/write/edit/patch, directory listing, batch operations |
 | **Discovery**         | Web fetch, web search, code search, glob, grep, intel gathering                     |
 | **Offensive**         | HackBrowser, attack script execution, vulnerability reporting & triage              |
 | **Post-Exploitation** | AWS hook, Azure hook, Kubernetes hook, Windows hook, macOS hook, CI/CD pipe, eBPF   |

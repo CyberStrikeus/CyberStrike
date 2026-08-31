@@ -9,6 +9,7 @@ export namespace Flag {
   export const CYBERSTRIKE_CONFIG = process.env["CYBERSTRIKE_CONFIG"]
   export declare const CYBERSTRIKE_CONFIG_DIR: string | undefined
   export const CYBERSTRIKE_CONFIG_CONTENT = process.env["CYBERSTRIKE_CONFIG_CONTENT"]
+  export declare const CYBERSTRIKE_SAFE_MODE: boolean
   export const CYBERSTRIKE_DISABLE_AUTOUPDATE = truthy("CYBERSTRIKE_DISABLE_AUTOUPDATE")
   export const CYBERSTRIKE_DISABLE_PRUNE = truthy("CYBERSTRIKE_DISABLE_PRUNE")
   export const CYBERSTRIKE_DISABLE_TERMINAL_TITLE = truthy("CYBERSTRIKE_DISABLE_TERMINAL_TITLE")
@@ -30,6 +31,8 @@ export namespace Flag {
   export declare const CYBERSTRIKE_CLIENT: string
   export const CYBERSTRIKE_SERVER_PASSWORD = process.env["CYBERSTRIKE_SERVER_PASSWORD"]
   export const CYBERSTRIKE_SERVER_USERNAME = process.env["CYBERSTRIKE_SERVER_USERNAME"]
+  export const CYBERSTRIKE_OBSERVER_PASSWORD = process.env["CYBERSTRIKE_OBSERVER_PASSWORD"]
+  export const CYBERSTRIKE_OBSERVER_USERNAME = process.env["CYBERSTRIKE_OBSERVER_USERNAME"]
 
   // Experimental
   export const CYBERSTRIKE_EXPERIMENTAL = truthy("CYBERSTRIKE_EXPERIMENTAL")
@@ -72,6 +75,15 @@ export namespace Flag {
 Object.defineProperty(Flag, "CYBERSTRIKE_DISABLE_PROJECT_CONFIG", {
   get() {
     return truthy("CYBERSTRIKE_DISABLE_PROJECT_CONFIG")
+  },
+  enumerable: true,
+  configurable: false,
+})
+
+// Dynamic getter so CLI commands can enable recovery before config is loaded.
+Object.defineProperty(Flag, "CYBERSTRIKE_SAFE_MODE", {
+  get() {
+    return truthy("CYBERSTRIKE_SAFE_MODE")
   },
   enumerable: true,
   configurable: false,
