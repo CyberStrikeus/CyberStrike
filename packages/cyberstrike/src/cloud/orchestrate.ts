@@ -6,7 +6,9 @@ import { Intel } from "../methodology/intel"
 import { getAssessResult } from "../tool/azurehook/assess-cache"
 import { identityGroup, parallelGroups, CLOUD_GROUPS } from "./groups"
 import { classifyGroupFindings } from "./classify"
+import { extractTrajectory, aggregateTrajectories, formatTrajectoryLog } from "./trajectory"
 import type { CloudAnalysis } from "./types"
+import type { AgentTrajectory } from "./trajectory"
 
 const LAYER2_DEADLINE_MS = 20 * 60 * 1000
 const FOLLOWUP_RESERVE_MS = 5 * 60 * 1000
@@ -19,6 +21,7 @@ const VERIFY_TIMEOUT_MS = 5 * 60 * 1000
 interface SpawnResult {
   agent: string
   group: string
+  sessionID: string
   text: string
   error: string | undefined
   durationMs: number
@@ -47,7 +50,7 @@ async function spawnAnalyst(
 ): Promise<SpawnResult> {
   const start = Date.now()
   const agent = await Agent.get(groupDef.analyst)
-  if (!agent) return { agent: groupDef.analyst, group: groupDef.key, text: "", error: `unknown agent: ${groupDef.analyst}`, durationMs: 0 }
+  if (!agent) return { agent: groupDef.analyst, group: groupDef.key, sessionID: "", text: "", error: `unknown agent: ${groupDef.analyst}`, durationMs: 0 }
 
   const session = await Session.create({
     parentID,
@@ -88,10 +91,10 @@ async function spawnAnalyst(
     const info = result.info
     const error = info.role === "assistant" ? info.error : undefined
 
-    return { agent: groupDef.analyst, group: groupDef.key, text, error: error ? String(error) : undefined, durationMs: Date.now() - start }
+    return { agent: groupDef.analyst, group: groupDef.key, sessionID: session.id, text, error: error ? String(error) : undefined, durationMs: Date.now() - start }
   } catch (e) {
     const timedOut = e instanceof Error && e.message.includes("timed out")
-    return { agent: groupDef.analyst, group: groupDef.key, text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
+    return { agent: groupDef.analyst, group: groupDef.key, sessionID: session.id, text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
   }
 }
 
@@ -103,7 +106,7 @@ async function spawnFollowup(
 ): Promise<SpawnResult> {
   const start = Date.now()
   const agent = await Agent.get("cloud-followup")
-  if (!agent) return { agent: "cloud-followup", group: "followup", text: "", error: "unknown agent", durationMs: 0 }
+  if (!agent) return { agent: "cloud-followup", group: "followup", sessionID: "", text: "", error: "unknown agent", durationMs: 0 }
 
   const session = await Session.create({
     parentID,
@@ -129,10 +132,10 @@ async function spawnFollowup(
       session.id,
     )
     const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
-    return { agent: "cloud-followup", group: "followup", text, error: undefined, durationMs: Date.now() - start }
+    return { agent: "cloud-followup", group: "followup", sessionID: session.id, text, error: undefined, durationMs: Date.now() - start }
   } catch (e) {
     const timedOut = e instanceof Error && e.message.includes("timed out")
-    return { agent: "cloud-followup", group: "followup", text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
+    return { agent: "cloud-followup", group: "followup", sessionID: session.id, text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
   }
 }
 
@@ -143,7 +146,7 @@ async function spawnVerify(
 ): Promise<SpawnResult> {
   const start = Date.now()
   const agent = await Agent.get("cloud-verify")
-  if (!agent) return { agent: "cloud-verify", group: "verify", text: "", error: "unknown agent", durationMs: 0 }
+  if (!agent) return { agent: "cloud-verify", group: "verify", sessionID: "", text: "", error: "unknown agent", durationMs: 0 }
 
   const session = await Session.create({
     parentID,
@@ -169,10 +172,10 @@ async function spawnVerify(
       session.id,
     )
     const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
-    return { agent: "cloud-verify", group: "verify", text, error: undefined, durationMs: Date.now() - start }
+    return { agent: "cloud-verify", group: "verify", sessionID: session.id, text, error: undefined, durationMs: Date.now() - start }
   } catch (e) {
     const timedOut = e instanceof Error && e.message.includes("timed out")
-    return { agent: "cloud-verify", group: "verify", text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
+    return { agent: "cloud-verify", group: "verify", sessionID: session.id, text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
   }
 }
 
@@ -185,7 +188,7 @@ async function spawnBatchVerifier(
 ): Promise<SpawnResult> {
   const start = Date.now()
   const agent = await Agent.get("cloud-batch-verifier")
-  if (!agent) return { agent: "cloud-batch-verifier", group: "batch-verify", text: "", error: "unknown agent", durationMs: 0 }
+  if (!agent) return { agent: "cloud-batch-verifier", group: "batch-verify", sessionID: "", text: "", error: "unknown agent", durationMs: 0 }
 
   const session = await Session.create({
     parentID,
@@ -220,10 +223,10 @@ async function spawnBatchVerifier(
       session.id,
     )
     const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
-    return { agent: "cloud-batch-verifier", group: "batch-verify", text, error: undefined, durationMs: Date.now() - start }
+    return { agent: "cloud-batch-verifier", group: "batch-verify", sessionID: session.id, text, error: undefined, durationMs: Date.now() - start }
   } catch (e) {
     const timedOut = e instanceof Error && e.message.includes("timed out")
-    return { agent: "cloud-batch-verifier", group: "batch-verify", text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
+    return { agent: "cloud-batch-verifier", group: "batch-verify", sessionID: session.id, text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
   }
 }
 
@@ -370,6 +373,7 @@ async function runOrchestration(
   const idGroup = identityGroup()
   const idResult = await spawnAnalyst(sessionID, idGroup, "", model, IDENTITY_TIMEOUT_MS)
   state.analystResults.push(buildAnalystResult(idGroup.key, idResult, rootSession))
+  const spawnResults: SpawnResult[] = [idResult]
 
   const identityContext = extractIdentityContext(rootSession)
   state.identityIntel = Intel.get(rootSession).filter((e) => e.tags.includes("group:identity")).length
@@ -432,14 +436,16 @@ async function runOrchestration(
     if (meta.type === "batch") {
       const spawn = s.status === "fulfilled"
         ? s.value
-        : { agent: "cloud-batch-verifier", group: "batch-verify", text: "", error: (s as PromiseRejectedResult).reason?.message ?? "unknown error", durationMs: 0, timedOut: true } as SpawnResult
+        : { agent: "cloud-batch-verifier", group: "batch-verify", sessionID: "", text: "", error: (s as PromiseRejectedResult).reason?.message ?? "unknown error", durationMs: 0, timedOut: true } as SpawnResult
       if (s.status === "rejected") console.warn(`[orchestrate] batch verifier failed: ${spawn.error}`)
       state.analystResults.push(buildAnalystResult("batch-verify", spawn, rootSession))
+      spawnResults.push(spawn)
     } else if (meta.groupDef) {
       const spawn = s.status === "fulfilled"
         ? s.value
-        : { agent: meta.groupDef.analyst, group: meta.groupKey!, text: "", error: (s as PromiseRejectedResult).reason?.message ?? "unknown error", durationMs: 0, timedOut: true } as SpawnResult
+        : { agent: meta.groupDef.analyst, group: meta.groupKey!, sessionID: "", text: "", error: (s as PromiseRejectedResult).reason?.message ?? "unknown error", durationMs: 0, timedOut: true } as SpawnResult
       state.analystResults.push(buildAnalystResult(meta.groupKey!, spawn, rootSession))
+      spawnResults.push(spawn)
     }
   }
 
@@ -467,7 +473,10 @@ async function runOrchestration(
       )
       for (const r of fuSettled) {
         if (r.status === "rejected") console.warn(`[orchestrate] follow-up failed: ${r.reason?.message}`)
-        else if (r.value.error) console.warn(`[orchestrate] follow-up failed: ${r.value.error}`)
+        else {
+          if (r.value.error) console.warn(`[orchestrate] follow-up failed: ${r.value.error}`)
+          spawnResults.push(r.value)
+        }
       }
     }
   } else {
@@ -478,6 +487,7 @@ async function runOrchestration(
   state.phase = "verify"
   const verifyTimeout = Math.min(VERIFY_TIMEOUT_MS, Math.max(LAYER2_DEADLINE_MS - (Date.now() - state.startedAt), 60_000))
   const verifyResult = await spawnVerify(sessionID, model, verifyTimeout)
+  spawnResults.push(verifyResult)
 
   state.verifyResult = {
     approved: 0,
@@ -491,9 +501,14 @@ async function runOrchestration(
   state.phase = "complete"
   state.completedAt = Date.now()
 
-  const total = state.analystResults.reduce((sum, a) => sum + a.verified + a.rejected + a.elevated, 0)
-  const agentCount = investigateGroups.length + (formulaicGroups.length > 0 ? 1 : 0) + 1
-  console.log(`[orchestrate] Layer 2 complete in ${Math.round((state.completedAt - state.startedAt) / 1000)}s — ${agentCount} agents (1 identity + ${investigateGroups.length} investigation + ${formulaicGroups.length > 0 ? "1 batch" : "0 batch"}), ${total} findings processed, ${state.followUps.length} follow-ups`)
+  // ── Trajectory logging ──────────────────────────────────
+  const trajectories = await Promise.all(
+    spawnResults
+      .filter((s) => s.sessionID)
+      .map((s) => extractTrajectory(s.sessionID, s.agent, s.group, s.durationMs, !!s.timedOut, s.error)),
+  )
+  const aggregate = aggregateTrajectories(trajectories, state.completedAt - state.startedAt)
+  console.log(formatTrajectoryLog(aggregate))
 
   return state
 }
