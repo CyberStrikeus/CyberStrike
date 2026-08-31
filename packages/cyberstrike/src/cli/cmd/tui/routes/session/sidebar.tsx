@@ -99,6 +99,16 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
     retests: true,
   })
 
+  const [expandedVulnGroup, setExpandedVulnGroup] = createStore<Record<string, boolean>>({})
+  createEffect(() => {
+    for (const g of vulnGroups()) {
+      if (expandedVulnGroup[g.key] === undefined) {
+        const display = STATUS_DISPLAY[g.key as keyof typeof STATUS_DISPLAY]
+        setExpandedVulnGroup(g.key, !display?.collapsedByDefault)
+      }
+    }
+  })
+
   // Per-endpoint expand state (by request id). Clicking an endpoint fetches its
   // observed values on demand and reveals the param→credential→values tree.
   const [expandedEp, setExpandedEp] = createStore<Record<string, boolean>>({})
@@ -462,34 +472,42 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                   <For each={vulnGroups()}>
                     {(g) => (
                       <box flexDirection="column">
-                        <text fg={theme.textMuted}>
-                          {g.symbol} {g.label} ({g.items.length})
-                        </text>
-                        <For each={g.items}>
-                          {(v) => (
-                            <box flexDirection="row" gap={1} paddingLeft={1}>
-                              <text
-                                flexShrink={0}
-                                style={{
-                                  fg:
-                                    {
-                                      critical: theme.error,
-                                      high: theme.warning,
-                                      medium: theme.text,
-                                      low: theme.textMuted,
-                                      info: theme.textMuted,
-                                    }[v.severity] ?? theme.text,
-                                }}
-                              >
-                                •
-                              </text>
-                              <text fg={theme.text} wrapMode="word">
-                                {v.title}
-                                {v.file ? ` (${v.line_start != null ? `${v.file}:${v.line_start}` : v.file})` : ""}
-                              </text>
-                            </box>
-                          )}
-                        </For>
+                        <box
+                          flexDirection="row"
+                          gap={1}
+                          onMouseDown={() => setExpandedVulnGroup(g.key, !expandedVulnGroup[g.key])}
+                        >
+                          <text fg={theme.textMuted}>
+                            {expandedVulnGroup[g.key] ? "▾" : "▸"} {g.symbol} {g.label} ({g.items.length})
+                          </text>
+                        </box>
+                        <Show when={expandedVulnGroup[g.key]}>
+                          <For each={g.items}>
+                            {(v) => (
+                              <box flexDirection="row" gap={1} paddingLeft={1}>
+                                <text
+                                  flexShrink={0}
+                                  style={{
+                                    fg:
+                                      {
+                                        critical: theme.error,
+                                        high: theme.warning,
+                                        medium: theme.text,
+                                        low: theme.textMuted,
+                                        info: theme.textMuted,
+                                      }[v.severity] ?? theme.text,
+                                  }}
+                                >
+                                  •
+                                </text>
+                                <text fg={theme.text} wrapMode="word">
+                                  {v.title}
+                                  {v.file ? ` (${v.line_start != null ? `${v.file}:${v.line_start}` : v.file})` : ""}
+                                </text>
+                              </box>
+                            )}
+                          </For>
+                        </Show>
                       </box>
                     )}
                   </For>
