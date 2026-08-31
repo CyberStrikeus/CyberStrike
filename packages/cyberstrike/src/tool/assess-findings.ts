@@ -130,8 +130,8 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
       let approved = 0, rejected = 0, pending = 0
       for (const f of allFindings) {
         const triage = lookupTriage(f, triageMap)
-        if (triage.status === "approved") approved++
-        else if (triage.status === "duplicate" || triage.status === "ignored") rejected++
+        if (triage.status === "triaged" || triage.status === "pending_fix" || triage.status === "approved") approved++
+        else if (triage.status === "duplicate" || triage.status === "rejected" || triage.status === "ignored") rejected++
         else pending++
       }
 

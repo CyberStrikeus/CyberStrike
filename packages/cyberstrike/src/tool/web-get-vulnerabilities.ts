@@ -19,10 +19,11 @@ export const WebGetVulnerabilitiesTool = Tool.define("web_get_vulnerabilities", 
       .optional()
       .describe("Filter by severity. Omit to return all severities."),
     status: z
-      .enum(["new", "approved", "duplicate", "open", "fixed", "ignored"])
+      .enum(["draft", "triaged", "pending_fix", "rejected", "duplicate", "fixed",
+        "new", "approved", "open", "ignored"])
       .optional()
       .describe(
-        'Filter by status: "new" (recorded, needs triage — has similar findings), "approved" (distinct/real), "duplicate" (linked to another). Omit to return all.',
+        'Filter by status: "draft" (unreviewed), "triaged" (quality verified), "pending_fix" (confirmed real), "rejected" (not valid), "duplicate" (linked), "fixed" (remediated). Omit to return all.',
       ),
     limit: z
       .number()

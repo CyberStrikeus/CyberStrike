@@ -4,7 +4,7 @@ export interface EvalCase {
   name: string
   findings: Finding[]
   expectedClassification: Record<string, "formulaic" | "investigate">
-  expectedTriage: Record<string, "approved" | "rejected">
+  expectedTriage: Record<string, "triaged" | "pending_fix" | "rejected" | "approved">
 }
 
 function finding(overrides: Partial<Finding> & Pick<Finding, "checkId" | "title" | "severity">): Finding {

@@ -309,8 +309,8 @@ function buildAnalystResult(group: string, spawn: SpawnResult, rootSession: stri
   let verified = 0, rejected = 0, elevated = 0
   for (const v of vulns) {
     if (v.source_agent !== spawn.agent) continue
-    if (v.status === "approved") verified++
-    else if (v.status === "duplicate" || v.status === "ignored") rejected++
+    if (v.status === "triaged" || v.status === "pending_fix" || v.status === "approved") verified++
+    else if (v.status === "duplicate" || v.status === "rejected" || v.status === "ignored") rejected++
   }
   elevated = groupIntel.filter((e) => e.chainPotential).length
 
@@ -588,17 +588,18 @@ async function runOrchestration(
   const verifyTimeout = Math.min(VERIFY_TIMEOUT_MS, Math.max(LAYER2_DEADLINE_MS - (Date.now() - state.startedAt), 60_000))
 
   const vulnSummary = Vulnerability.get(rootSession)
-  const vulnApproved = vulnSummary.filter((v) => v.status === "approved").length
-  const vulnIgnored = vulnSummary.filter((v) => v.status === "ignored").length
+  const vulnDraft = vulnSummary.filter((v) => v.status === "draft" || v.status === "new").length
+  const vulnTriaged = vulnSummary.filter((v) => v.status === "triaged").length
+  const vulnPendingFix = vulnSummary.filter((v) => v.status === "pending_fix" || v.status === "approved").length
+  const vulnRejected = vulnSummary.filter((v) => v.status === "rejected" || v.status === "ignored").length
   const vulnDuplicate = vulnSummary.filter((v) => v.status === "duplicate").length
-  const vulnPending = vulnSummary.filter((v) => v.status === "new").length
 
   const orchestrationSummary = [
     `- Dispatched: ${state.analystResults.length} analyst(s), ${state.followUps.length} follow-up(s)`,
     `- Completed: ${completedAnalysts.length} analyst(s)`,
     failedAnalysts.length > 0 ? `- FAILED/TIMED OUT: ${failedAnalysts.map((a) => a.group).join(", ")} — these groups may have INCOMPLETE coverage` : null,
     state.triageStats ? `- Classification: ${state.triageStats.formulaic} formulaic, ${state.triageStats.investigate} investigate` : null,
-    `- Findings: ${vulnApproved} approved, ${vulnIgnored} ignored, ${vulnDuplicate} duplicate, ${vulnPending} pending triage`,
+    `- Findings: ${vulnDraft} draft, ${vulnTriaged} triaged, ${vulnPendingFix} pending_fix, ${vulnRejected} rejected, ${vulnDuplicate} duplicate`,
     `- Total intel entries: ${Intel.get(rootSession).length}`,
     `- Elapsed: ${Math.round((Date.now() - state.startedAt) / 1000)}s`,
   ].filter(Boolean).join("\n")

@@ -121,7 +121,7 @@ function evalJsonOutput(): EvalResult[] {
     triaged: 5,
     pending: 3,
     findings: [
-      { checkId: "AZ-IAM-001", title: "Test", severity: "high", resource: "/sub/rg", details: "d", remediation: "r", triageStatus: "approved", vulnId: "v1" },
+      { checkId: "AZ-IAM-001", title: "Test", severity: "high", resource: "/sub/rg", details: "d", remediation: "r", triageStatus: "triaged", vulnId: "v1" },
     ],
     failures: [],
     permissionDenied: [],

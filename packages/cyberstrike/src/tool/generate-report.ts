@@ -145,7 +145,7 @@ function formatHeader(
   duration: number,
 ): string {
   const date = new Date(session.time.created).toISOString().split("T")[0]
-  const openCount = vulns.filter((v) => v.status === "open").length
+  const openCount = vulns.filter((v) => v.status === "pending_fix" || v.status === "open").length
   return [
     "# Security Assessment Report",
     "",
