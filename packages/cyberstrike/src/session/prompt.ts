@@ -778,8 +778,10 @@ export namespace SessionPrompt {
 
       // Inject methodology context if the session has intel data. Scope it to the
       // running agent's lane when it's a proxy-tester (Phase 2.3) — orchestrator
-      // (non-tester) gets the full routing view.
-      const methodologyCtx = MethodologyContext.generate(Session.root(sessionID), testerClass(lastUser.agent))
+      // (non-tester) gets the full routing view. Cloud agents get cloud-specific
+      // intel context instead of web-proxy methodology.
+      const isCloudAgent = lastUser.agent?.startsWith("cloud-") ?? false
+      const methodologyCtx = MethodologyContext.generate(Session.root(sessionID), testerClass(lastUser.agent), { cloud: isCloudAgent })
       if (methodologyCtx) system.push(methodologyCtx)
 
       // Inject MCP tool availability info so the LLM knows to use tool_search

@@ -25,8 +25,13 @@ export namespace MethodologyContext {
    *   the lane and orchestrator-only sections (delegation briefing, work queue)
    *   are dropped — a tester is handed only its own work, not the routing view.
    *   Leave undefined for the orchestrator / non-tester agents (full context).
+   * @param opts.cloud when true, returns cloud-focused intel context instead of
+   *   web-proxy methodology. Cloud agents don't use VRT checks, delegation
+   *   briefing, work queue, or agent morale.
    */
-  export function generate(sessionID: string, agentClass?: string): string | null {
+  export function generate(sessionID: string, agentClass?: string, opts?: { cloud?: boolean }): string | null {
+    if (opts?.cloud) return generateCloudContext(sessionID)
+
     const isTester = !!agentClass
     // Check if any intel entries exist for this session
     const count = Database.use((db) =>
@@ -536,5 +541,74 @@ export namespace MethodologyContext {
     lines.push("**When re-delegating, include the specific fix instructions above in the agent's prompt.**")
 
     return lines.join("\n")
+  }
+
+  // --- Cloud Context (replaces full methodology for cloud agents) ---
+
+  function generateCloudContext(sessionID: string): string | null {
+    const entries = Intel.get(sessionID)
+    if (entries.length === 0) return null
+
+    const sections: string[] = ["# Cloud Intel Context", ""]
+
+    const byType = new Map<string, typeof entries>()
+    for (const e of entries) {
+      const list = byType.get(e.type) ?? []
+      list.push(e)
+      byType.set(e.type, list)
+    }
+
+    const iamEntries = byType.get("iam_principal") ?? []
+    if (iamEntries.length > 0) {
+      sections.push(`## Identity & Access (${iamEntries.length})`)
+      for (const e of iamEntries.slice(0, 15)) {
+        sections.push(`- [${e.severity ?? "info"}] ${e.title}`)
+        if (e.chainPotential) sections.push(`  Chain: ${e.chainPotential}`)
+      }
+      sections.push("")
+    }
+
+    const attackPaths = byType.get("attack_path") ?? []
+    if (attackPaths.length > 0) {
+      sections.push(`## Attack Paths (${attackPaths.length})`)
+      for (const e of attackPaths.slice(0, 10)) {
+        sections.push(`- [${e.severity ?? "info"}] ${e.title}`)
+        if (e.detail) sections.push(`  ${e.detail.slice(0, 200)}`)
+      }
+      sections.push("")
+    }
+
+    const lateralMovement = byType.get("lateral_movement") ?? []
+    if (lateralMovement.length > 0) {
+      sections.push(`## Lateral Movement (${lateralMovement.length})`)
+      for (const e of lateralMovement.slice(0, 10)) {
+        sections.push(`- [${e.severity ?? "info"}] ${e.title}`)
+      }
+      sections.push("")
+    }
+
+    const misconfigs = byType.get("cloud_misconfiguration") ?? []
+    const exposures = byType.get("cloud_exposure") ?? []
+    const combined = [...misconfigs, ...exposures]
+    if (combined.length > 0) {
+      sections.push(`## Misconfigurations & Exposures (${combined.length})`)
+      for (const e of combined.slice(0, 10)) {
+        sections.push(`- [${e.severity ?? "info"}] ${e.title} (${e.asset})`)
+      }
+      sections.push("")
+    }
+
+    const chains = entries.filter((e) => e.chainPotential)
+    if (chains.length > 0) {
+      sections.push(`## Chain Opportunities (${chains.length})`)
+      for (const e of chains.slice(0, 8)) {
+        sections.push(`- ${e.title} → ${e.chainPotential}`)
+      }
+      sections.push("")
+    }
+
+    sections.push(`Total intel entries: ${entries.length}`)
+
+    return sections.length > 3 ? sections.join("\n") : null
   }
 }
