@@ -18,6 +18,152 @@ function finding(overrides: Partial<Finding> & Pick<Finding, "checkId" | "title"
   }
 }
 
+// ── Boundary cases: patterns that appear in details but NOT title ──
+// These must stay formulaic — the classifier matches title only.
+
+export const BOUNDARY_CASES: EvalCase[] = [
+  {
+    name: "boundary-anonymous-in-details-only",
+    findings: [
+      finding({
+        checkId: "AZ-BOUND-001",
+        title: "Storage container access level set to Blob",
+        severity: "high",
+        details: "Container allows anonymous access to blobs. Public read access is enabled.",
+      }),
+    ],
+    expectedClassification: { "AZ-BOUND-001": "formulaic" },
+    expectedTriage: {},
+  },
+  {
+    name: "boundary-secret-in-details-only",
+    findings: [
+      finding({
+        checkId: "AZ-BOUND-002",
+        title: "App Configuration store has no private endpoint",
+        severity: "high",
+        details: "App Configuration contains secrets and connection strings accessible over public network.",
+      }),
+    ],
+    expectedClassification: { "AZ-BOUND-002": "formulaic" },
+    expectedTriage: {},
+  },
+  {
+    name: "boundary-credential-in-title",
+    findings: [
+      finding({
+        checkId: "AZ-BOUND-003",
+        title: "Function App has credential stored in app settings",
+        severity: "high",
+        details: "Database connection string is stored in plain text in application settings.",
+      }),
+    ],
+    expectedClassification: { "AZ-BOUND-003": "investigate" },
+    expectedTriage: {},
+  },
+  {
+    name: "boundary-low-severity-with-pattern",
+    findings: [
+      finding({
+        checkId: "AZ-BOUND-004",
+        title: "Service Principal has Reader role on subscription",
+        severity: "low",
+        details: "Reader role grants read-only access to all resources.",
+      }),
+    ],
+    expectedClassification: { "AZ-BOUND-004": "formulaic" },
+    expectedTriage: {},
+  },
+  {
+    name: "boundary-medium-severity-with-pattern",
+    findings: [
+      finding({
+        checkId: "AZ-BOUND-005",
+        title: "Key Vault allows network access from all VNets",
+        severity: "medium",
+        details: "Key Vault secrets are accessible from any virtual network.",
+      }),
+    ],
+    expectedClassification: { "AZ-BOUND-005": "formulaic" },
+    expectedTriage: {},
+  },
+  {
+    name: "boundary-critical-always-investigate",
+    findings: [
+      finding({
+        checkId: "AZ-BOUND-006",
+        title: "SQL firewall allows 0.0.0.0",
+        severity: "critical",
+        details: "Basic firewall rule, no identity patterns at all.",
+      }),
+    ],
+    expectedClassification: { "AZ-BOUND-006": "investigate" },
+    expectedTriage: {},
+  },
+]
+
+// ── Mixed group classification ──
+
+export const GROUP_CASES: {
+  name: string
+  groups: { key: string; findings: Finding[] }[]
+  expected: Record<string, { formulaic: number; investigate: number }>
+}[] = [
+  {
+    name: "mixed-identity-group",
+    groups: [
+      {
+        key: "identity",
+        findings: [
+          finding({ checkId: "G-001", title: "Managed Identity overprivileged", severity: "high" }),
+          finding({ checkId: "G-002", title: "MFA not enforced for admin accounts", severity: "high" }),
+          finding({ checkId: "G-003", title: "Guest user with elevated role assignment", severity: "critical" }),
+        ],
+      },
+    ],
+    expected: { identity: { formulaic: 1, investigate: 2 } },
+  },
+  {
+    name: "all-formulaic-data-group",
+    groups: [
+      {
+        key: "data",
+        findings: [
+          finding({ checkId: "G-004", title: "Storage account TLS 1.0 enabled", severity: "medium" }),
+          finding({ checkId: "G-005", title: "SQL auditing not configured", severity: "medium" }),
+          finding({ checkId: "G-006", title: "Cosmos DB firewall allows all Azure IPs", severity: "high" }),
+        ],
+      },
+    ],
+    expected: { data: { formulaic: 3, investigate: 0 } },
+  },
+  {
+    name: "multi-group-split",
+    groups: [
+      {
+        key: "compute",
+        findings: [
+          finding({ checkId: "G-007", title: "VM disk encryption disabled", severity: "medium" }),
+          finding({ checkId: "G-008", title: "VM has lateral movement path via managed identity", severity: "high" }),
+        ],
+      },
+      {
+        key: "network",
+        findings: [
+          finding({ checkId: "G-009", title: "VPN gateway uses weak cipher", severity: "high" }),
+          finding({ checkId: "G-010", title: "NSG allows SSH from internet", severity: "high" }),
+        ],
+      },
+    ],
+    expected: {
+      compute: { formulaic: 1, investigate: 1 },
+      network: { formulaic: 1, investigate: 1 },
+    },
+  },
+]
+
+// ── Core eval cases ──
+
 export const EVAL_CASES: EvalCase[] = [
   {
     name: "storage-public-access",
