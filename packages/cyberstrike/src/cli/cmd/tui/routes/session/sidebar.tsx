@@ -12,6 +12,7 @@ import { useDirectory } from "../../context/directory"
 import { useKV } from "../../context/kv"
 import { TodoItem } from "../../component/todo-item"
 import { formatEndpointHost } from "@tui/util/format"
+import { normalizeStatus, groupOrder, STATUS_DISPLAY } from "@/session/vulnerability-status"
 
 const fmtTokens = (n: number) =>
   n >= 1_000_000 ? (n / 1_000_000).toFixed(2) + "M" : n >= 1_000 ? Math.round(n / 1_000) + "K" : String(n)
@@ -24,21 +25,20 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const diff = createMemo(() => sync.data.session_diff[props.sessionID] ?? [])
   const todo = createMemo(() => sync.data.todo[props.sessionID] ?? [])
   const vulnerability = createMemo(() => sync.data.vulnerability[props.sessionID] ?? [])
-  // Group vulns by triage status (New → Duplicate → Approved), each sorted by severity.
   const SEV_RANK_V: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
   const vulnGroups = createMemo(() => {
     const all = vulnerability()
     const bySev = (a: (typeof all)[number], b: (typeof all)[number]) =>
       (SEV_RANK_V[a.severity] ?? 9) - (SEV_RANK_V[b.severity] ?? 9)
     const pick = (pred: (v: (typeof all)[number]) => boolean) => all.filter(pred).sort(bySev)
-    const out: { key: string; label: string; symbol: string; items: typeof all }[] = []
-    const n = pick((v) => v.status === "new")
-    if (n.length) out.push({ key: "new", label: "New", symbol: "◍", items: n })
-    const d = pick((v) => v.status === "duplicate")
-    if (d.length) out.push({ key: "duplicate", label: "Duplicates", symbol: "⊗", items: d })
-    const a = pick((v) => v.status !== "new" && v.status !== "duplicate")
-    if (a.length) out.push({ key: "approved", label: "Approved", symbol: "●", items: a })
-    return out
+    const order = groupOrder()
+    return order
+      .map((key) => {
+        const display = STATUS_DISPLAY[key]
+        const matched = pick((v) => normalizeStatus(v.status ?? "draft") === key)
+        return { key, label: display.label, symbol: display.symbol, items: matched }
+      })
+      .filter((g) => g.items.length > 0)
   })
   const requests = createMemo(() => sync.data.request[props.sessionID] ?? [])
   // Group endpoints by host for sidebar — narrow column can't fit
