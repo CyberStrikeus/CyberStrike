@@ -108,6 +108,7 @@ export const VulnerabilityTable = sqliteTable(
     cvss: text(),
     references: text(),
     evidence_request_ids: text(),
+    source_agent: text(),
     candidate: text(),
     duplicate_of: text(), // triage link: this finding is a duplicate of <vuln id>
     position: integer().notNull(),
