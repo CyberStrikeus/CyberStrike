@@ -4,7 +4,7 @@ import { Agent } from "../agent/agent"
 import { Identifier } from "../id/id"
 import { Intel } from "../methodology/intel"
 import { Vulnerability } from "../session/vulnerability"
-import { VulnStatus, isExcluded, isActionable, normalizeStatus } from "../session/vulnerability-status"
+import { VulnStatus, isExcluded, isActionable, normalizeStatus, triageGuide, triageActions } from "../session/vulnerability-status"
 import { getAssessResult } from "../tool/azurehook/assess-cache"
 import { identityGroup, parallelGroups, CLOUD_GROUPS } from "./groups"
 import { classifyGroupFindings } from "./classify"
@@ -261,7 +261,10 @@ async function spawnBatchVerifier(
     `Rapidly triage formulaic findings across these groups: ${groups.join(", ")}`,
     "",
     "For each group, call `get_assess_findings(group: '<key>')` to see findings with their triage status and vulnerability IDs.",
-    "Triage each finding as triaged (verified), duplicate (false positive), or rejected (not exploitable in context).",
+    `Triage each finding using triage_vulnerability with one of: ${triageActions()}.`,
+    "",
+    "Status guide:",
+    triageGuide(),
     "",
     "**Escalation:** If a finding turns out to be MORE complex than expected (e.g. involves privilege escalation, lateral movement, or cross-group chain potential), do NOT attempt deep investigation. Instead, call `add_intel` with title starting with `ESCALATE:` and describe why it needs deeper analysis. The orchestrator will route it to a follow-up agent.",
     "",
