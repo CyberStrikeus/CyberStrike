@@ -106,7 +106,7 @@ export const VulnerabilityTable = sqliteTable(
     // was downgraded FROM. NULL = a normal (confirmed/claimed) finding. First-class signal so
     // downstream never parses the title prefix. Cleared to NULL on an in-place evidence upgrade.
     cvss: text(),
-    references: text(),
+    references: text("reference_urls"),
     evidence_request_ids: text(),
     source_agent: text(),
     candidate: text(),
