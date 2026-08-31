@@ -181,6 +181,7 @@ async function spawnFollowup(
 async function spawnVerify(
   parentID: string,
   model: { providerID: string; modelID: string },
+  orchestrationSummary: string,
   timeoutMs: number = VERIFY_TIMEOUT_MS,
 ): Promise<SpawnResult> {
   const start = Date.now()
@@ -197,6 +198,17 @@ async function spawnVerify(
     ],
   })
 
+  const prompt = [
+    "Review all cloud intel and reported vulnerabilities. Check for false positives, verify severity ratings, confirm attack chains are documented.",
+    "",
+    "Use get_cloud_intel to review the full intelligence picture. Use the `skill` tool to load relevant skills (cloud-assessment, azure-postexploit) for CIS compliance checks.",
+    "",
+    "## Orchestration Context",
+    orchestrationSummary,
+    "",
+    "Pay special attention to failed/timed-out analysts — their groups may have incomplete coverage. Check if any findings from those groups were missed.",
+  ].join("\n")
+
   try {
     const result = await withTimeout(
       SessionPrompt.prompt({
@@ -205,7 +217,7 @@ async function spawnVerify(
         model,
         agent: agent.name,
         tools: { todowrite: false, todoread: false, task: false },
-        parts: [{ type: "text" as const, text: "Review all cloud intel and reported vulnerabilities. Check for false positives, verify severity ratings, confirm attack chains are documented. Use get_cloud_intel to review the full intelligence picture. Use the `skill` tool to load relevant skills (cloud-assessment, azure-postexploit) for CIS compliance checks." }],
+        parts: [{ type: "text" as const, text: prompt }],
       }),
       timeoutMs,
       session.id,
@@ -243,7 +255,9 @@ async function spawnBatchVerifier(
     `Rapidly triage formulaic findings across these groups: ${groups.join(", ")}`,
     "",
     "For each group, call `get_assess_findings(group: '<key>')` to see findings with their triage status and vulnerability IDs.",
-    "Triage each finding as approved or duplicate (false positive). Do not investigate deeply.",
+    "Triage each finding as approved, duplicate (false positive), or ignored (not exploitable in context).",
+    "",
+    "**Escalation:** If a finding turns out to be MORE complex than expected (e.g. involves privilege escalation, lateral movement, or cross-group chain potential), do NOT attempt deep investigation. Instead, call `add_intel` with title starting with `ESCALATE:` and describe why it needs deeper analysis. The orchestrator will route it to a follow-up agent.",
     "",
     identityContext ? `## Identity Context\n${identityContext}` : "",
   ].filter(Boolean).join("\n")
@@ -314,7 +328,9 @@ async function detectFollowUps(
 ): Promise<CloudAnalysis.FollowUp[]> {
   const entries = Intel.get(rootSession)
   const chains = entries.filter((e) => e.chainPotential)
-  if (chains.length === 0) return []
+  const targetHints = entries.filter((e) => e.tags.some((t) => t.startsWith("target:")))
+  const escalations = entries.filter((e) => e.title.startsWith("ESCALATE:"))
+  if (chains.length === 0 && targetHints.length === 0 && escalations.length === 0) return []
 
   const agent = await Agent.get("cloud-orchestrator")
   if (!agent) return []
@@ -329,15 +345,33 @@ async function detectFollowUps(
     ],
   })
 
-  const chainSummary = chains.slice(0, 30).map((e) => `- [${e.source ?? "?"}] ${e.title}: ${e.chainPotential}`).join("\n")
+  const sections: string[] = []
+
+  if (chains.length > 0) {
+    const chainSummary = chains.slice(0, 30).map((e) => `- [${e.source ?? "?"}] ${e.title}: ${e.chainPotential}`).join("\n")
+    sections.push(`## Cross-Group Chains\n${chainSummary}`)
+  }
+
+  if (targetHints.length > 0) {
+    const hintSummary = targetHints.slice(0, 20).map((e) => {
+      const target = e.tags.find((t) => t.startsWith("target:"))?.replace("target:", "") ?? "?"
+      return `- [${e.source ?? "?"}→${target}] ${e.title}`
+    }).join("\n")
+    sections.push(`## Cross-Group Hints (unprocessed)\nAnalysts flagged these for another group's attention:\n${hintSummary}`)
+  }
+
+  if (escalations.length > 0) {
+    const escSummary = escalations.slice(0, 10).map((e) => `- [${e.source ?? "?"}] ${e.title}`).join("\n")
+    sections.push(`## Escalations from Batch Verifier\nFormulaic findings that need deeper investigation:\n${escSummary}`)
+  }
+
   const prompt = [
-    "Analysts found these potential cross-group chains:\n",
-    chainSummary,
+    sections.join("\n\n"),
     "\nUse get_cloud_intel to see the full picture.",
-    "\nFor each chain worth investigating, respond with a JSON block:",
+    "\nFor each item worth investigating, respond with a JSON block:",
     '```json\n[{"reason":"...","chain":["group1","group2"],"groups":["group1","group2"],"prompt":"Detailed verification prompt for the follow-up agent"}]\n```',
-    "\nIf no chains need follow-up, respond with `[]`.",
-    "\nBe selective — only chains that cross group boundaries and have real attack potential.",
+    "\nIf nothing needs follow-up, respond with `[]`.",
+    "\nBe selective — prioritize chains with real attack potential and escalated findings over routine hints.",
   ].join("\n")
 
   try {
@@ -543,7 +577,24 @@ async function runOrchestration(
   // ── Phase: verify ────────────────────────────────────────
   state.phase = "verify"
   const verifyTimeout = Math.min(VERIFY_TIMEOUT_MS, Math.max(LAYER2_DEADLINE_MS - (Date.now() - state.startedAt), 60_000))
-  const verifyResult = await spawnVerify(sessionID, model, verifyTimeout)
+
+  const vulnSummary = Vulnerability.get(rootSession)
+  const vulnApproved = vulnSummary.filter((v) => v.status === "approved").length
+  const vulnIgnored = vulnSummary.filter((v) => v.status === "ignored").length
+  const vulnDuplicate = vulnSummary.filter((v) => v.status === "duplicate").length
+  const vulnPending = vulnSummary.filter((v) => v.status === "new").length
+
+  const orchestrationSummary = [
+    `- Dispatched: ${state.analystResults.length} analyst(s), ${state.followUps.length} follow-up(s)`,
+    `- Completed: ${completedAnalysts.length} analyst(s)`,
+    failedAnalysts.length > 0 ? `- FAILED/TIMED OUT: ${failedAnalysts.map((a) => a.group).join(", ")} — these groups may have INCOMPLETE coverage` : null,
+    state.triageStats ? `- Classification: ${state.triageStats.formulaic} formulaic, ${state.triageStats.investigate} investigate` : null,
+    `- Findings: ${vulnApproved} approved, ${vulnIgnored} ignored, ${vulnDuplicate} duplicate, ${vulnPending} pending triage`,
+    `- Total intel entries: ${Intel.get(rootSession).length}`,
+    `- Elapsed: ${Math.round((Date.now() - state.startedAt) / 1000)}s`,
+  ].filter(Boolean).join("\n")
+
+  const verifyResult = await spawnVerify(sessionID, model, orchestrationSummary, verifyTimeout)
   spawnResults.push(verifyResult)
 
   state.verifyResult = {
