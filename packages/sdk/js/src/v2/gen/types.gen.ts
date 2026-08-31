@@ -843,7 +843,7 @@ export type Vulnerability = {
   poc?: string
   endpoint?: string
   attack_vector?: string
-  status?: "new" | "approved" | "duplicate" | "open" | "fixed" | "ignored"
+  status?: "draft" | "triaged" | "pending_fix" | "rejected" | "duplicate" | "fixed" | "new" | "approved" | "open" | "ignored"
   candidate?: "critical" | "high" | "medium" | "low" | "info"
   duplicate_of?: string
   message_id?: string

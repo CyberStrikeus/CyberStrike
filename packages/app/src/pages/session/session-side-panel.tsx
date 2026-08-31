@@ -273,9 +273,15 @@ const severityBadge = (severity: Vulnerability["severity"]) => {
 }
 
 const statusLabel = (status: string) => {
-  if (status === "fixed") return "Fixed"
-  if (status === "ignored") return "Ignored"
-  return "Open"
+  switch (status) {
+    case "draft": case "new": case "open": return "Draft"
+    case "triaged": return "Triaged"
+    case "pending_fix": case "approved": return "Pending Fix"
+    case "rejected": case "ignored": return "Rejected"
+    case "duplicate": return "Duplicate"
+    case "fixed": return "Fixed"
+    default: return "Draft"
+  }
 }
 
 function CopyVulnButton(props: { vuln: Parameters<typeof copyVulnToClipboard>[0]; iconOnly?: boolean }): JSX.Element {
@@ -344,23 +350,28 @@ function VulnsPanelList() {
     })
   })
 
-  const openCount = createMemo(() => items().filter((v) => v.status !== "fixed" && v.status !== "ignored").length)
+  const openCount = createMemo(() => items().filter((v) =>
+    v.status !== "fixed" && v.status !== "rejected" && v.status !== "ignored" && v.status !== "duplicate"
+  ).length)
 
-  // Group by triage status (New → Duplicate → Approved). items() is already severity-sorted,
-  // so each group stays severity-sorted. "approved" is a catch-all so no vuln is ever dropped.
   const vulnGroups = createMemo(() => {
     const all = items()
     const out: { key: string; label: string; symbol: string; items: typeof all }[] = []
-    const n = all.filter((v) => v.status === "new")
-    if (n.length) out.push({ key: "new", label: "New", symbol: "◍", items: n })
+    const pf = all.filter((v) => v.status === "pending_fix" || v.status === "approved")
+    if (pf.length) out.push({ key: "pending_fix", label: "Pending Fix", symbol: "▲", items: pf })
+    const tr = all.filter((v) => v.status === "triaged")
+    if (tr.length) out.push({ key: "triaged", label: "Triaged", symbol: "●", items: tr })
+    const dr = all.filter((v) => v.status === "draft" || v.status === "new" || v.status === "open")
+    if (dr.length) out.push({ key: "draft", label: "Draft", symbol: "◍", items: dr })
     const d = all.filter((v) => v.status === "duplicate")
     if (d.length) out.push({ key: "duplicate", label: "Duplicates", symbol: "⊗", items: d })
-    const a = all.filter((v) => v.status !== "new" && v.status !== "duplicate")
-    if (a.length) out.push({ key: "approved", label: "Approved", symbol: "●", items: a })
+    const rj = all.filter((v) => v.status === "rejected" || v.status === "ignored")
+    if (rj.length) out.push({ key: "rejected", label: "Rejected", symbol: "✗", items: rj })
+    const fx = all.filter((v) => v.status === "fixed")
+    if (fx.length) out.push({ key: "fixed", label: "Fixed", symbol: "✓", items: fx })
     return out
   })
-  // New + Duplicate collapsed by default; Approved open.
-  const [collapsedGroups, setCollapsedGroups] = createSignal<Record<string, boolean>>({ new: true, duplicate: true })
+  const [collapsedGroups, setCollapsedGroups] = createSignal<Record<string, boolean>>({ duplicate: true, rejected: true, fixed: true })
   const toggleGroup = (key: string) => setCollapsedGroups((p) => ({ ...p, [key]: !p[key] }))
   const canonicalTitle = (v: ReturnType<typeof items>[number]) =>
     v.duplicate_of ? items().find((x) => x.id === v.duplicate_of)?.title : undefined
@@ -410,7 +421,7 @@ function VulnsPanelList() {
                   return (
                     <div
                       class="group flex flex-col rounded transition-colors hover:bg-surface-raised-base-hover"
-                      classList={{ "opacity-50": v.status === "fixed" || v.status === "ignored" }}
+                      classList={{ "opacity-50": v.status === "fixed" || v.status === "rejected" || v.status === "ignored" }}
                     >
                       <div class="flex items-start gap-2 px-2 py-1.5 cursor-pointer" on:click={() => toggle(id())}>
                         <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDot(v.severity)}`} />
