@@ -1176,6 +1176,7 @@ export const AzurehookTool = Tool.define("azurehook", {
             recommendation: f.remediation,
             endpoint: f.resource,
             cwe_id: "cwe" in f ? (f as { cwe: string }).cwe : undefined,
+            source_agent: "azure-assess",
             status: "new",
           },
         })
