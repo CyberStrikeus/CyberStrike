@@ -44,7 +44,11 @@ export class StuckDetector {
   private streak = 0
   private nudged = false
 
-  constructor(private readonly cfg: StuckConfig) {}
+  constructor(private cfg: StuckConfig) {}
+
+  configure(cfg: Partial<StuckConfig>): void {
+    this.cfg = { ...this.cfg, ...cfg }
+  }
 
   /**
    * Feed one completed step. A step is "progress" iff it made at least one non-read-only

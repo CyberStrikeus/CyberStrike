@@ -645,6 +645,9 @@ export namespace SessionPrompt {
 
       // normal processing
       const agent = await Agent.get(lastUser.agent)
+      if (step === 1 && agent.name.startsWith("cloud-analyst-")) {
+        stuckDetector.configure({ enabled: true, maxMonologue: 8 })
+      }
       const maxSteps = agent.steps ?? Infinity
       const isLastStep = step >= maxSteps
       // Hard backstop (loop-termination Layer 1): the forced wrap-up turn strips
