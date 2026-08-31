@@ -46,6 +46,25 @@ export const GetCloudIntelTool = Tool.define("get_cloud_intel", {
       .describe("Include non-cloud intel types too (web endpoints, subdomains, etc.)"),
   }),
   async execute(params, ctx) {
+    const emptyMeta = { count: 0, bySeverity: {} as Record<string, number>, byType: {} as Record<string, number>, bySource: {} as Record<string, number> }
+
+    if (params.type && !CLOUD_INTEL_TYPES.has(params.type)) {
+      return {
+        title: "Cloud Intel: query error",
+        output: `Unknown intel type '${params.type}'. Valid types: ${[...CLOUD_INTEL_TYPES].join(", ")}`,
+        metadata: emptyMeta,
+      }
+    }
+
+    if (params.group && !groupByKey(params.group)) {
+      const validKeys = CLOUD_GROUPS.map((g) => g.key).join(", ")
+      return {
+        title: "Cloud Intel: query error",
+        output: `Unknown group key '${params.group}'. Valid keys: ${validKeys}`,
+        metadata: emptyMeta,
+      }
+    }
+
     const rootSession = Session.root(ctx.sessionID)
     let entries = Intel.get(rootSession)
 
@@ -62,11 +81,9 @@ export const GetCloudIntelTool = Tool.define("get_cloud_intel", {
     }
 
     if (params.group) {
-      const grp = groupByKey(params.group)
-      if (grp) {
-        const tag = `group:${params.group}`
-        entries = entries.filter((e) => e.source === grp.analyst || e.tags.includes(tag))
-      }
+      const grp = groupByKey(params.group)!
+      const tag = `group:${params.group}`
+      entries = entries.filter((e) => e.source === grp.analyst || e.tags.includes(tag))
     }
 
     if (params.keyword) {
