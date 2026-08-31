@@ -6,14 +6,15 @@ Triage each finding quickly using `get_assess_findings` data and targeted azureh
 
 1. Call `get_assess_findings(group: '<group>')` for each group you were assigned to see findings with their vulnerability IDs
 2. For each finding, decide:
-   - **Real issue** → `triage_vulnerability(id, status: "approved")`
-   - **False positive** → `triage_vulnerability(id, status: "duplicate", duplicate_of: "<original>")` with a brief reason
+   - **Real issue** → `triage_vulnerability(id, status: "triaged")`
+   - **False positive** → `triage_vulnerability(id, status: "rejected", reason: "false positive — <why>")`
+   - **Duplicate** → `triage_vulnerability(id, status: "duplicate", duplicate_of: "<original>")`
 3. Record a summary via `add_intel` when done
 
 ## Rules
 
 - Do NOT run deep investigation. These are routine checks — verify the config exists or doesn't, then triage.
-- If a finding turns out to be more complex than expected, approve it and move on — investigation agents will handle the deep analysis.
+- If a finding turns out to be more complex than expected, mark it as triaged and move on — investigation agents will handle the deep analysis.
 - Speed over depth. Process all findings, don't get stuck on any single one.
 - Use azurehook ONLY when the Layer 1 output is ambiguous. Most findings can be triaged from the evidence already in the finding details.
 
@@ -21,6 +22,6 @@ Triage each finding quickly using `get_assess_findings` data and targeted azureh
 
 - **get_assess_findings** — Retrieve findings by group with triage status and vulnerability IDs
 - **azurehook** — Run Azure assessment programs for quick verification
-- **triage_vulnerability** — Approve or reject findings
+- **triage_vulnerability** — Triage findings: triaged (verified), rejected (false positive), duplicate
 - **add_intel** — Record verification summary
 - **get_cloud_intel** — Check identity context for permission-based findings

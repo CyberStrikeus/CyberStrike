@@ -19,7 +19,7 @@ Run the automated pipeline to collect raw findings:
 `azurehook azure_assess [--subscription-id SUB] [--skip-compliance]`
 
 This runs 64 programs across 9 service groups and produces raw findings with severity
-and triage recommendations. Findings are auto-reported with status "new" (pending triage).
+and triage recommendations. Findings are auto-reported with status "draft" (pending triage).
 
 ### Step 2: Layer 2 — AI Analysis Pipeline
 

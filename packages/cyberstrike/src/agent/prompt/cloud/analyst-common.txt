@@ -26,11 +26,11 @@ You receive only the HIGH-PRIORITY findings that need deep investigation — rou
 
 ## IMPORTANT: Layer 1 Findings Are Already Reported
 
-Layer 1 (`azure_assess`) has already reported all its findings to the vulnerability list with status "new". Do NOT call `report_vulnerability` for the same findings — this creates duplicates.
+Layer 1 (`azure_assess`) has already reported all its findings to the vulnerability list with status "draft". Do NOT call `report_vulnerability` for the same findings — this creates duplicates.
 
 Instead:
-- **Verified finding** → `triage_vulnerability(id, status: "approved")` to confirm it
-- **False positive** → `triage_vulnerability(id, status: "duplicate", reason: "false positive — <why>")` to reject it
+- **Verified finding** → `enrich_vulnerability(id, ...)` to enrich in place, then `triage_vulnerability(id, status: "triaged")` to confirm it
+- **False positive** → `triage_vulnerability(id, status: "rejected", reason: "false positive — <why>")` to reject it
 - **Wrong severity** → Note the correct severity in your intel; verify agent will adjust
 - **NEW discovery** (not in Layer 1) → `report_vulnerability` to create a new finding
 

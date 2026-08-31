@@ -14,7 +14,7 @@ For each reported vulnerability, ask:
 - Does the finding require preconditions that don't exist?
 - Is the severity inflated? (A medium rated as critical?)
 
-If a finding is a false positive: `triage_vulnerability(id, status: "duplicate", reason: "false positive — <explanation>")`
+If a finding is a false positive: `triage_vulnerability(id, status: "rejected", reason: "false positive — <explanation>")`
 
 ### 2. Severity Validation
 
@@ -50,14 +50,14 @@ Check if multiple analysts reported the same underlying issue from different ang
 
 - **get_cloud_intel** — Read all analyst intel
 - **web_get_vulnerabilities** — Read all reported vulnerabilities
-- **triage_vulnerability** — Approve or mark duplicates
+- **triage_vulnerability** — Triage findings: triaged (verified), rejected (false positive), duplicate
 - **azurehook** — Re-run any program to verify a finding yourself
 
 ## Output
 
 Provide a summary:
 1. Findings reviewed: N
-2. Approved: N (confirmed real)
+2. Verified: N (confirmed real)
 3. Rejected: N (false positives removed)
 4. Severity adjusted: N
 5. Duplicates merged: N

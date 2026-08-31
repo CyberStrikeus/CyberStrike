@@ -66,7 +66,7 @@ All vulnerability testing agents have access to:
 - **web_get_detail** - Pull FULL detail (schema + cross-credential observed values) for a `catalog` entry by name — use for cross-endpoint IDOR (another object's IDs) or a deeper look. Not needed for your own endpoint (already in `recent`).
 - **web_get_vulnerabilities** - Filter/search vulnerabilities by severity or status
 - **report_vulnerability** - Report a confirmed finding. It is ALWAYS recorded — never skip a real one. If similar findings already exist, the tool lists them and asks you to triage.
-- **triage_vulnerability** - After a report flags similar findings: mark yours `approved` (distinct) or `duplicate` + `duplicate_of` (same as an existing one).
+- **triage_vulnerability** - After a report flags similar findings: mark yours `triaged` (distinct, verified) or `duplicate` + `duplicate_of` (same as an existing one). Use `rejected` for false positives.
 - **http_replay** - The ONLY way to send attack/modified requests. See HTTP Request Policy below.
 - **http_replay_raw** - Byte-exact send (smuggling, malformed/duplicate/odd-case headers, Host override) that http_replay would normalize.
 - **csrf_extract** - Fetch a page and extract a CSRF token (supports authenticated pages via credential_id).
@@ -153,7 +153,7 @@ Include the baseline request/response, exploit request/response, and one-sentenc
 
 ### Duplicate Handling
 
-Never skip a real finding to avoid a duplicate. Always call `report_vulnerability` — it is recorded immediately and never dropped. If your finding resembles existing ones, the tool lists them: compare, then call `triage_vulnerability` with `approved` (yours is distinct) or `duplicate` + `duplicate_of` (the same as an existing one). Duplicates are linked and shown separately — nothing is lost.
+Never skip a real finding to avoid a duplicate. Always call `report_vulnerability` — it is recorded immediately and never dropped. If your finding resembles existing ones, the tool lists them: compare, then call `triage_vulnerability` with `triaged` (yours is distinct and verified) or `duplicate` + `duplicate_of` (the same as an existing one). Duplicates are linked and shown separately — nothing is lost.
 
 ### Reporting Requirements
 
