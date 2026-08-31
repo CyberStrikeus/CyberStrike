@@ -1177,7 +1177,7 @@ export const AzurehookTool = Tool.define("azurehook", {
             endpoint: f.resource,
             cwe_id: "cwe" in f ? (f as { cwe: string }).cwe : undefined,
             source_agent: "azure-assess",
-            status: "new",
+            status: "draft",
           },
         })
         existing.add(key)
