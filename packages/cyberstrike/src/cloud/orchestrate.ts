@@ -18,6 +18,44 @@ const IDENTITY_TIMEOUT_MS = 6 * 60 * 1000
 const BATCH_VERIFY_TIMEOUT_MS = 5 * 60 * 1000
 const FOLLOWUP_TIMEOUT_MS = 5 * 60 * 1000
 const VERIFY_TIMEOUT_MS = 5 * 60 * 1000
+const MAX_CONCURRENT_AGENTS = 5
+
+class Semaphore {
+  private queue: (() => void)[] = []
+  private active = 0
+  constructor(private max: number) {}
+  async acquire(): Promise<void> {
+    if (this.active < this.max) { this.active++; return }
+    return new Promise((resolve) => this.queue.push(() => { this.active++; resolve() }))
+  }
+  release(): void {
+    this.active--
+    const next = this.queue.shift()
+    if (next) next()
+  }
+}
+
+function deduplicateFindings(rootSession: string): void {
+  const vulns = Vulnerability.get(rootSession)
+  const seen = new Map<string, string>()
+  let deduped = 0
+  for (const v of vulns) {
+    if (!v.id || v.status === "duplicate") continue
+    const key = [
+      v.cwe_id?.toLowerCase() ?? "",
+      v.endpoint?.toLowerCase().replace(/\s+/g, " ").trim() ?? "",
+      v.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 80),
+    ].join("|")
+    const existing = seen.get(key)
+    if (existing) {
+      Vulnerability.update({ sessionID: rootSession, id: v.id, status: "duplicate", duplicate_of: existing })
+      deduped++
+    } else {
+      seen.set(key, v.id)
+    }
+  }
+  if (deduped > 0) console.log(`[orchestrate] dedup fence: marked ${deduped} duplicate finding(s)`)
+}
 
 interface SpawnResult {
   agent: string
@@ -251,8 +289,7 @@ function buildAnalystResult(group: string, spawn: SpawnResult, rootSession: stri
   const vulns = Vulnerability.get(rootSession)
   let verified = 0, rejected = 0, elevated = 0
   for (const v of vulns) {
-    const isGroupFinding = v.endpoint?.toLowerCase().includes(group) || v.title.toLowerCase().includes(group)
-    if (!isGroupFinding) continue
+    if (v.source_agent !== spawn.agent) continue
     if (v.status === "approved") verified++
     else if (v.status === "duplicate" || v.status === "ignored") rejected++
   }
@@ -409,14 +446,25 @@ async function runOrchestration(
   const parallelTimeout = Math.min(AGENT_TIMEOUT_MS, LAYER2_DEADLINE_MS - (Date.now() - state.startedAt) - FOLLOWUP_RESERVE_MS)
   const effectiveTimeout = Math.max(parallelTimeout, 60_000)
 
+  const sem = new Semaphore(MAX_CONCURRENT_AGENTS)
   const tasks: Promise<PromiseSettledResult<SpawnResult>>[] = []
   const taskMeta: { type: "batch" | "analyst"; groupKey?: string; groupDef?: CloudAnalysis.GroupDef }[] = []
 
+  const withSemaphore = async (fn: () => Promise<SpawnResult>): Promise<PromiseSettledResult<SpawnResult>> => {
+    await sem.acquire()
+    try {
+      const v = await fn()
+      return { status: "fulfilled" as const, value: v }
+    } catch (e) {
+      return { status: "rejected" as const, reason: e }
+    } finally {
+      sem.release()
+    }
+  }
+
   if (formulaicGroups.length > 0) {
     tasks.push(
-      spawnBatchVerifier(sessionID, formulaicGroups, identityContext, model, Math.min(BATCH_VERIFY_TIMEOUT_MS, effectiveTimeout))
-        .then((v) => ({ status: "fulfilled" as const, value: v }))
-        .catch((e) => ({ status: "rejected" as const, reason: e })),
+      withSemaphore(() => spawnBatchVerifier(sessionID, formulaicGroups, identityContext, model, Math.min(BATCH_VERIFY_TIMEOUT_MS, effectiveTimeout))),
     )
     taskMeta.push({ type: "batch" })
   }
@@ -425,13 +473,12 @@ async function runOrchestration(
     const groupDef = remaining.find((g) => g.key === c.key)
     if (!groupDef) continue
     tasks.push(
-      spawnAnalyst(sessionID, groupDef, identityContext, model, effectiveTimeout)
-        .then((v) => ({ status: "fulfilled" as const, value: v }))
-        .catch((e) => ({ status: "rejected" as const, reason: e })),
+      withSemaphore(() => spawnAnalyst(sessionID, groupDef, identityContext, model, effectiveTimeout)),
     )
     taskMeta.push({ type: "analyst", groupKey: c.key, groupDef })
   }
 
+  console.log(`[orchestrate] parallel: ${tasks.length} agents (max ${MAX_CONCURRENT_AGENTS} concurrent)`)
   const settled = await Promise.all(tasks)
 
   for (let i = 0; i < settled.length; i++) {
@@ -472,8 +519,13 @@ async function runOrchestration(
 
     if (followUps.length > 0) {
       const fuTimeout = Math.min(FOLLOWUP_TIMEOUT_MS, timeLeft - FOLLOWUP_RESERVE_MS)
+      const fuSem = new Semaphore(MAX_CONCURRENT_AGENTS)
       const fuSettled = await Promise.allSettled(
-        followUps.slice(0, 5).map((f) => spawnFollowup(sessionID, f, model, Math.max(fuTimeout, 60_000))),
+        followUps.slice(0, 5).map(async (f) => {
+          await fuSem.acquire()
+          try { return await spawnFollowup(sessionID, f, model, Math.max(fuTimeout, 60_000)) }
+          finally { fuSem.release() }
+        }),
       )
       for (const r of fuSettled) {
         if (r.status === "rejected") console.warn(`[orchestrate] follow-up failed: ${r.reason?.message}`)
@@ -482,6 +534,7 @@ async function runOrchestration(
           spawnResults.push(r.value)
         }
       }
+      deduplicateFindings(rootSession)
     }
   } else {
     console.warn(`[orchestrate] skipping follow-ups — ${Math.round(timeLeft / 1000)}s left (need ${FOLLOWUP_RESERVE_MS / 1000}s)`)
