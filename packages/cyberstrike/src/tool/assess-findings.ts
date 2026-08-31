@@ -1,9 +1,37 @@
 import z from "zod"
 import { Tool } from "./tool"
 import { Session } from "../session"
+import { Vulnerability } from "../session/vulnerability"
 import { getAssessResult } from "./azurehook/assess-cache"
 import { CLOUD_GROUPS, groupByKey } from "../cloud/groups"
 import type { Finding } from "./azurehook/shared"
+
+const STATUS_LABEL: Record<string, string> = {
+  new: "PENDING",
+  approved: "APPROVED",
+  duplicate: "REJECTED",
+  open: "OPEN",
+  fixed: "FIXED",
+  ignored: "REJECTED",
+}
+
+function buildTriageMap(sessionID: string): Map<string, { status: string; vulnId: string }> {
+  const vulns = Vulnerability.get(sessionID)
+  const map = new Map<string, { status: string; vulnId: string }>()
+  const stripCheckId = (t: string) => t.replace(/^\[AZ-[A-Z]+-\d+\]\s*/, "")
+  for (const v of vulns) {
+    const key = `${stripCheckId(v.title).toLowerCase()}|${(v.endpoint ?? "").toLowerCase()}`
+    map.set(key, { status: v.status, vulnId: v.id ?? "" })
+  }
+  return map
+}
+
+function lookupTriage(f: Finding, triageMap: Map<string, { status: string; vulnId: string }>): { label: string; vulnId: string } {
+  const key = `${f.title.toLowerCase()}|${f.resource.toLowerCase()}`
+  const match = triageMap.get(key)
+  if (!match) return { label: "NOT REPORTED", vulnId: "" }
+  return { label: STATUS_LABEL[match.status] ?? match.status.toUpperCase(), vulnId: match.vulnId }
+}
 
 type Meta = {
   available: boolean
@@ -47,6 +75,7 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
     }
 
     if (!params.group) {
+      const triageMap = buildTriageMap(rootSession)
       const groups: Meta["groups"] & {} = []
       for (const phase of result.phases) {
         for (const g of phase.groups) {
@@ -60,10 +89,19 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
           })
         }
       }
+      const allFindings = result.phases.flatMap((p) => p.groups.flatMap((g) => g.findings))
+      let approved = 0, rejected = 0, pendingCount = 0
+      for (const f of allFindings) {
+        const label = lookupTriage(f, triageMap).label
+        if (label === "APPROVED") approved++
+        else if (label === "REJECTED") rejected++
+        else pendingCount++
+      }
       const lines = [
         `Assessment Summary (${result.findings.length} total findings, ${result.durationMs}ms)`,
         `Tenant: ${result.metadata.tenantId ?? "unknown"}`,
         `Subscription: ${result.metadata.subscriptionName ?? "unknown"}`,
+        `Triage progress: ${approved} approved, ${rejected} rejected, ${pendingCount} pending`,
         "",
         "Groups:",
         ...groups.map(
@@ -109,16 +147,23 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
       }
     }
 
+    const triageMap = buildTriageMap(rootSession)
+    const triaged = findings.filter((f) => lookupTriage(f, triageMap).label !== "PENDING" && lookupTriage(f, triageMap).label !== "NOT REPORTED")
+    const pending = findings.filter((f) => {
+      const t = lookupTriage(f, triageMap)
+      return t.label === "PENDING" || t.label === "NOT REPORTED"
+    })
+
     const lines: string[] = [
       `Group: ${grp.label} (${params.group})`,
       `Analyst: ${grp.analyst}`,
       `Programs: ${programs.length} (${failures.length} failed${permDenied.length > 0 ? `, ${permDenied.length} permission denied` : ""})`,
-      `Findings: ${findings.length}`,
+      `Findings: ${findings.length} (${triaged.length} triaged, ${pending.length} pending)`,
       "",
     ]
 
     if (permDenied.length > 0) {
-      lines.push("⚠ Coverage gap — insufficient permissions:")
+      lines.push("Coverage gap — insufficient permissions:")
       for (const f of permDenied) lines.push(`  [DENIED] ${f.program}: ${f.reason}`)
       lines.push("")
     }
@@ -131,7 +176,9 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
 
     lines.push("Findings:")
     for (const f of findings) {
-      lines.push(`  [${f.severity.toUpperCase()}] ${f.checkId} — ${f.title}`)
+      const triage = lookupTriage(f, triageMap)
+      lines.push(`  [${f.severity.toUpperCase()}] [${triage.label}] ${f.checkId} — ${f.title}`)
+      if (triage.vulnId) lines.push(`    Vuln ID: ${triage.vulnId}`)
       lines.push(`    Resource: ${f.resource}`)
       lines.push(`    ${f.details.slice(0, 300)}`)
       if (f.remediation) lines.push(`    Fix: ${f.remediation.slice(0, 200)}`)
