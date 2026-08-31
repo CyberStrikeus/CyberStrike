@@ -581,8 +581,8 @@ const PROGRAMS = {
     args: "[--team TEAM_ID] [--channel CHANNEL_ID] [--limit N]",
   },
   vm_disk_download: {
-    description: "Snapshot VM disk and generate SAS download URL",
-    args: "[--disk DISK] [--resource-group RG] [--execute]",
+    description: "Snapshot VM disk and generate SAS download URL. Use execute param to actually perform.",
+    args: "[--disk DISK] [--resource-group RG]",
   },
   defender_plan_audit: { description: "CIS 2.1: Audit Defender plans", args: "[--subscription-id SUB]" },
   defender_contact_audit: {
@@ -627,14 +627,14 @@ const PROGRAMS = {
     description: "Illicit consent grant / OAuth phishing",
     args: "[--name NAME] [--redirect-uri URI] [--tenant TENANT] [--create]",
   },
-  resource_hijack: { description: "Hijack resources for cryptomining", args: "[--subscription-id SUB] [--execute]" },
-  data_destroy: { description: "Data destruction assessment", args: "[--subscription-id SUB] [--execute]" },
+  resource_hijack: { description: "Hijack resources for cryptomining. Use execute param to actually perform.", args: "[--subscription-id SUB]" },
+  data_destroy: { description: "Data destruction assessment. Use execute param to actually perform.", args: "[--subscription-id SUB]" },
   ransomware_sim: {
-    description: "Ransomware simulation — rotate keys, delete backups",
-    args: "[--subscription-id SUB] [--execute]",
+    description: "Ransomware simulation — rotate keys, delete backups. Use execute param to actually perform.",
+    args: "[--subscription-id SUB]",
   },
   account_lockout: { description: "Account lockout assessment", args: "[--target USER]" },
-  service_disruption: { description: "Service disruption assessment", args: "[--subscription-id SUB] [--execute]" },
+  service_disruption: { description: "Service disruption assessment. Use execute param to actually perform.", args: "[--subscription-id SUB]" },
   exchange_abuse: {
     description: "Exchange Online abuse — delegation, forwarding",
     args: "[--user USER] [--action enum|forward|delegate]",
@@ -1051,6 +1051,14 @@ const NO_CLI_PROGRAMS = new Set<string>([
 
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
 
+const EXECUTE_PROGRAMS = new Set<string>([
+  "resource_hijack",
+  "data_destroy",
+  "ransomware_sim",
+  "service_disruption",
+  "vm_disk_download",
+])
+
 export const AzurehookTool = Tool.define("azurehook", {
   description: `Execute an Azure post-exploitation program. 154 programs across 13 categories: recon (47), credential (14), privesc (11), persistence (11), lateral (10), evasion (11), exfil (12), compliance (18), identity (10), impact (5), m365 (4), cleanup (1). Uses az CLI and Azure REST API. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_azure before leaving.`,
   parameters: z.object({
@@ -1062,9 +1070,21 @@ export const AzurehookTool = Tool.define("azurehook", {
     ),
     args: z.array(z.string()).describe("Arguments to pass to the program"),
     timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300, azure_assess uses 600)"),
+    execute: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe(
+        "For impact programs (resource_hijack, data_destroy, ransomware_sim, service_disruption, vm_disk_download): actually perform the destructive action. Default false = assessment/dry-run only. Ignored for other programs.",
+      ),
   }),
   async execute(params, ctx) {
     const effectiveTimeout = params.program === "azure_assess" ? Math.max(params.timeout_seconds, 600) : params.timeout_seconds
+
+    const safeArgs = params.args.filter((a) => a !== "--execute")
+    if (params.execute && EXECUTE_PROGRAMS.has(params.program)) {
+      safeArgs.push("--execute")
+    }
 
     if (!Bun.which("az") && !NO_CLI_PROGRAMS.has(params.program)) {
       return {
@@ -1112,9 +1132,9 @@ export const AzurehookTool = Tool.define("azurehook", {
     let result: HookResult
     try {
       if (program === "azure_assess") {
-        result = await azureAssess(params.args, effectiveTimeout, Session.root(ctx.sessionID))
+        result = await azureAssess(safeArgs, effectiveTimeout, Session.root(ctx.sessionID))
       } else {
-        result = await handler(params.args, effectiveTimeout)
+        result = await handler(safeArgs, effectiveTimeout)
       }
     } catch (e) {
       return {
