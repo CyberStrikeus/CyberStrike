@@ -26,7 +26,7 @@ const INVESTIGATE_PATTERNS = [
   /express.route/i,
   /subdomain.takeover/i,
   /dangling/i,
-  /public.endpoint/i,
+  /public endpoint/i,
   /anonymous.access/i,
   /runbook/i,
   /automation/i,
@@ -38,8 +38,7 @@ export function classifyFinding(f: Finding): FindingClass {
   if (f.severity === "critical") return "investigate"
 
   if (f.severity === "high") {
-    const text = `${f.title} ${f.details}`
-    if (INVESTIGATE_PATTERNS.some((p) => p.test(text))) return "investigate"
+    if (INVESTIGATE_PATTERNS.some((p) => p.test(f.title))) return "investigate"
   }
 
   return "formulaic"
