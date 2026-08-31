@@ -34,14 +34,35 @@ jobs:
       - name: Run unit tests
         run: bun turbo test
 
+  cloud-eval:
+    name: cloud eval
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Run cloud eval
+        run: cd packages/cyberstrike && bun run eval:cloud
+
   required:
     name: test (linux)
     runs-on: ubuntu-24.04
     needs:
       - unit
+      - cloud-eval
     if: always()
     steps:
       - name: Verify upstream test jobs passed
         run: |
           echo "unit=${{ needs.unit.result }}"
+          echo "cloud-eval=${{ needs.cloud-eval.result }}"
           test "${{ needs.unit.result }}" = "success"
+          test "${{ needs.cloud-eval.result }}" = "success"
