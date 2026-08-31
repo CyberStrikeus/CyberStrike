@@ -132,6 +132,18 @@ export namespace Agent {
   // capped turn) lives in session/prompt.ts.
   const STEP_CAPS = { orchestrator: 40, analyzer: 20 } as const
 
+  const CLOUD_GROUP_SKILLS: Record<string, string[]> = {
+    identity: ["azure-postexploit", "cloud-assessment", "ad-security"],
+    compute: ["azure-postexploit", "cloud-assessment", "k8s-assessment"],
+    network: ["cloud-assessment", "azure-postexploit"],
+    data: ["azure-postexploit", "cloud-assessment"],
+    security: ["cloud-assessment", "azure-postexploit"],
+    access: ["azure-postexploit", "cloud-assessment", "ad-security"],
+    specialized: ["azure-postexploit", "cloud-assessment", "k8s-assessment"],
+    compliance: ["cloud-assessment", "azure-postexploit", "ci-assessment"],
+    exposure: ["cloud-assessment", "azure-postexploit", "attack-subdomain-takeover"],
+  }
+
   export const Info = z
     .object({
       name: z.string(),
@@ -467,6 +479,7 @@ export namespace Agent {
             steps: 30,
             color: "cyan",
             prompt: `${PROMPT_CLOUD_ANALYST_COMMON}\n\n---\n\n## Your Group: ${g.label}\n\nYou own the **${g.key}** group.\nPrograms in your group: ${g.programs.join(", ")}\n\n${g.description}`,
+            skills: CLOUD_GROUP_SKILLS[g.key] ?? ["cloud-assessment", "azure-postexploit"],
             permission: PermissionNext.merge(
               defaults,
               PermissionNext.fromConfig({
@@ -487,6 +500,7 @@ export namespace Agent {
                 web_get_vulnerabilities: "allow",
                 update_vrt_check: "allow",
                 methodology_status: "allow",
+                skill: "allow",
               }),
               user,
             ),
@@ -502,7 +516,8 @@ export namespace Agent {
         hidden: true,
         steps: 20,
         color: "cyan",
-        prompt: `${PROMPT_CLOUD_ANALYST_COMMON}\n\n---\n\n## Your Role: Follow-up Verification\n\nYou are a targeted verifier. The orchestrator detected a cross-group attack chain and dispatched you to confirm it.\n\nYour job:\n1. Verify each link in the chain by running the relevant azurehook programs\n2. Confirm the full chain is exploitable end-to-end\n3. Report the chain as a vulnerability if confirmed, with the full attack path\n4. Record the chain via add_intel with type "attack_path"`,
+        prompt: `${PROMPT_CLOUD_ANALYST_COMMON}\n\n---\n\n## Your Role: Follow-up Verification\n\nYou are a targeted verifier. The orchestrator detected a cross-group attack chain and dispatched you to confirm it.\n\nYour job:\n1. Verify each link in the chain by running the relevant azurehook programs\n2. Confirm the full chain is exploitable end-to-end\n3. Report the chain as a vulnerability if confirmed, with the full attack path\n4. Record the chain via add_intel with type "attack_path"\n\nUse the \`skill\` tool to load relevant skills for the chain you are verifying.`,
+        skills: ["azure-postexploit", "cloud-assessment"],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -517,6 +532,7 @@ export namespace Agent {
             report_vulnerability: "allow",
             triage_vulnerability: "allow",
             web_get_vulnerabilities: "allow",
+            skill: "allow",
           }),
           user,
         ),
@@ -531,6 +547,7 @@ export namespace Agent {
         steps: STEP_CAPS.analyzer,
         color: "cyan",
         prompt: PROMPT_CLOUD_VERIFY,
+        skills: ["cloud-assessment", "azure-postexploit"],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -542,6 +559,7 @@ export namespace Agent {
             web_get_vuln_detail: "allow",
             triage_vulnerability: "allow",
             methodology_status: "allow",
+            skill: "allow",
           }),
           user,
         ),

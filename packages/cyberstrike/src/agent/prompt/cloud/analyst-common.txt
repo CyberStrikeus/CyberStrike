@@ -21,6 +21,7 @@ You are a cloud security analyst subagent. You own a specific Azure service grou
 - **report_vulnerability** — Report NEW vulnerabilities you discover (NOT for Layer 1 findings)
 - **triage_vulnerability** — Approve, reject, or adjust existing Layer 1 findings
 - **web_get_vulnerabilities** — View all reported findings (Layer 1 + others)
+- **skill** — Load specialized security testing skills. Your recommended skills are listed in the system prompt. Load them early for detailed methodology, CIS benchmark checks, and post-exploitation techniques relevant to your group.
 
 ## IMPORTANT: Layer 1 Findings Are Already Reported
 
@@ -65,6 +66,7 @@ get_cloud_intel()                          // everything
 
 ## Workflow
 
+0. Load your recommended skills using the `skill` tool — they contain detailed testing methodology and CIS benchmark checks for your group
 1. Call `get_assess_findings(group: '<your-group>')` to retrieve your Layer 1 findings
 2. Call `web_get_vulnerabilities` to see existing Layer 1 findings and their IDs
 3. Call `get_cloud_intel(group: "identity")` to get identity context
