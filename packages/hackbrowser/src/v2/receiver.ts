@@ -45,7 +45,82 @@ function trafficClass(type: string): "api" | "js" | "html" | "static" | "realtim
   return "other"
 }
 
-const tally = { total: 0, api: 0, js: 0, html: 0, static: 0, realtime: 0, other: 0 }
+const tally = { total: 0, api: 0, js: 0, html: 0, static: 0, realtime: 0, other: 0, forwarded: 0, failed: 0 }
+
+// --- CyberStrike forwarding -------------------------------------------------
+// Dynamic/API + HTML records are forwarded to CyberStrike's existing ingest
+// endpoint (§ "same endpoint"). Static/JS are held back (mining runs later,
+// out of band — they never enter the LLM ingest path). One CyberStrike session
+// is reused for the whole capture stream: the first forward creates it, the
+// returned sessionID rides along on every subsequent record.
+
+const CYBERSTRIKE_URL = (process.env.CYBERSTRIKE_URL ?? "http://127.0.0.1:4096").replace(/\/$/, "")
+const CYBERSTRIKE_PASSWORD = process.env.CYBERSTRIKE_SERVER_PASSWORD ?? ""
+let session = ""
+
+function authHeader(): Record<string, string> {
+  if (!CYBERSTRIKE_PASSWORD) return {}
+  return { Authorization: `Basic ${btoa(`cyberstrike:${CYBERSTRIKE_PASSWORD}`)}` }
+}
+
+// Rebuild a raw HTTP request string from the record — the format /session/ingest
+// expects in its `text` field (same shape the 1.x hackbrowser / Firefox ext send).
+function toRawHttp(rec: CaptureRecord): string {
+  let path = rec.url
+  let host = ""
+  try {
+    const u = new URL(rec.url)
+    path = u.pathname + u.search
+    host = u.host
+  } catch {
+    // leave url as-is if unparseable
+  }
+  const lines = [`${rec.method} ${path} HTTP/1.1`]
+  if (host && !rec.requestHeaders["host"] && !rec.requestHeaders["Host"]) lines.push(`Host: ${host}`)
+  for (const name of Object.keys(rec.requestHeaders)) lines.push(`${name}: ${rec.requestHeaders[name]}`)
+  const head = lines.join("\r\n")
+  return rec.requestBody ? `${head}\r\n\r\n${rec.requestBody}` : `${head}\r\n\r\n`
+}
+
+async function forwardToCyberStrike(rec: CaptureRecord): Promise<boolean> {
+  const payload: Record<string, unknown> = {
+    text: toRawHttp(rec),
+    scheme: rec.scheme,
+  }
+  if (session) payload.sessionID = session
+  if (rec.credentialId) payload.credential_id = rec.credentialId
+  if (rec.triggerElement) payload.trigger_element = rec.triggerElement
+  if (rec.elementRoles) payload.element_roles = rec.elementRoles
+  if (rec.pageUrl) payload.page_url = rec.pageUrl
+  if (rec.pageVisitedBy) payload.page_visited_by = rec.pageVisitedBy
+  if (rec.status > 0) {
+    payload.response = { status: rec.status, headers: rec.responseHeaders, body: rec.responseBody ?? "" }
+  }
+
+  try {
+    const res = await fetch(`${CYBERSTRIKE_URL}/session/ingest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader() },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) {
+      tally.failed++
+      console.warn(`[hb2] ingest ${res.status}: ${await res.text().catch(() => "")}`)
+      return false
+    }
+    const data = (await res.json()) as { sessionID?: string }
+    if (data.sessionID && !session) {
+      session = data.sessionID
+      console.log(`[hb2] cyberstrike session: ${session}`)
+    }
+    tally.forwarded++
+    return true
+  } catch (e) {
+    tally.failed++
+    console.warn(`[hb2] ingest network error: ${String(e)}`)
+    return false
+  }
+}
 
 function corsHeaders(): Record<string, string> {
   return {
@@ -78,12 +153,19 @@ Bun.serve({
       tally.total++
       tally[cls === "api" || cls === "js" || cls === "html" || cls === "static" || cls === "realtime" ? cls : "other"]++
 
+      // Route by class: dynamic/API + HTML go to CyberStrike ingest (LLM path);
+      // static/JS/realtime are held back for out-of-band mining (§4.3).
+      const forwardable = cls === "api" || cls === "html"
+      let forwarded = false
+      if (forwardable) forwarded = await forwardToCyberStrike(record)
+
       const bodyKB = record.responseBody ? (record.responseBody.length / 1024).toFixed(1) : "-"
+      const mark = forwardable ? (forwarded ? "→CS" : "→CS!") : "hold"
       console.log(
-        `[hb2] ${cls.padEnd(8)} ${record.method.padEnd(6)} ${record.status} ${record.resourceType.padEnd(10)} body=${bodyKB}KB  ${record.url}`,
+        `[hb2] ${cls.padEnd(8)} ${mark.padEnd(5)} ${record.method.padEnd(6)} ${record.status} ${record.resourceType.padEnd(10)} body=${bodyKB}KB  ${record.url}`,
       )
 
-      return Response.json({ ok: true }, { headers: corsHeaders() })
+      return Response.json({ ok: true, forwarded }, { headers: corsHeaders() })
     }
 
     return new Response("not found", { status: 404, headers: corsHeaders() })
