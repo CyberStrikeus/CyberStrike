@@ -108,11 +108,31 @@ const tally = { total: 0, api: 0, js: 0, html: 0, static: 0, realtime: 0, other:
 
 const CYBERSTRIKE_URL = (process.env.CYBERSTRIKE_URL ?? "http://127.0.0.1:4096").replace(/\/$/, "")
 const CYBERSTRIKE_PASSWORD = process.env.CYBERSTRIKE_SERVER_PASSWORD ?? ""
+// Active CyberStrike session for the capture stream. Empty = "New Session": the
+// next forward creates one and stores its id here. The popup can set this via
+// /select-session to attach capture to an existing session (Firefox-ext pattern).
 let session = ""
 
 function authHeader(): Record<string, string> {
   if (!CYBERSTRIKE_PASSWORD) return {}
   return { Authorization: `Basic ${btoa(`cyberstrike:${CYBERSTRIKE_PASSWORD}`)}` }
+}
+
+// Proxy CyberStrike's session list to the popup (extension has no direct CS access
+// in our model — receiver is the single hop). Returns [] on any failure so the
+// popup degrades gracefully when CS is down.
+async function listSessions(): Promise<Array<{ id: string; title?: string }>> {
+  try {
+    const res = await fetch(`${CYBERSTRIKE_URL}/session?limit=20&roots=true`, { headers: authHeader() })
+    if (!res.ok) return []
+    const data = (await res.json()) as unknown
+    if (!Array.isArray(data)) return []
+    return data
+      .filter((s): s is { id: string; title?: string } => !!s && typeof (s as { id?: unknown }).id === "string")
+      .map((s) => ({ id: s.id, title: s.title }))
+  } catch {
+    return []
+  }
 }
 
 // Rebuild a raw HTTP request string from the record — the format /session/ingest
@@ -251,7 +271,26 @@ Bun.serve({
     if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders() })
 
     if (req.method === "GET" && url.pathname === "/health") {
-      return Response.json({ ok: true, tally, pages: pageState.size }, { headers: corsHeaders() })
+      return Response.json({ ok: true, tally, pages: pageState.size, session: session || null }, { headers: corsHeaders() })
+    }
+
+    // Session visibility/selection (Firefox-ext pattern): popup lists CS sessions
+    // and picks which one capture attaches to.
+    if (req.method === "GET" && url.pathname === "/sessions") {
+      const sessions = await listSessions()
+      return Response.json({ sessions, active: session || null }, { headers: corsHeaders() })
+    }
+    if (req.method === "POST" && url.pathname === "/select-session") {
+      let body: { sessionID?: string }
+      try {
+        body = (await req.json()) as typeof body
+      } catch {
+        return Response.json({ ok: false, error: "invalid json" }, { status: 400, headers: corsHeaders() })
+      }
+      // "" (New Session) → next forward creates a fresh session; a real id attaches to it.
+      session = typeof body.sessionID === "string" ? body.sessionID : ""
+      console.log(`[hb2] session selected: ${session || "(new)"}`)
+      return Response.json({ ok: true, active: session || null }, { headers: corsHeaders() })
     }
 
     // Deterministic page observation (§3.3): the state the AI pulls via

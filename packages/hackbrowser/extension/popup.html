@@ -63,12 +63,38 @@
       .dot.on {
         background: #4ade80;
       }
+      .row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      select {
+        flex: 1;
+        padding: 6px;
+        border: 1px solid #24313d;
+        border-radius: 6px;
+        background: #111820;
+        color: #d7e0ea;
+        font: 12px system-ui, sans-serif;
+      }
+      button.mini {
+        width: auto;
+        margin-top: 0;
+        padding: 6px 10px;
+      }
     </style>
   </head>
   <body>
     <h1>CYBERSTRIKE HACKBROWSER 2.0</h1>
     <label for="receiver">Receiver endpoint</label>
     <input id="receiver" type="text" placeholder="http://127.0.0.1:4097/capture" />
+    <label for="sessionSelect">CyberStrike session</label>
+    <div class="row">
+      <select id="sessionSelect">
+        <option value="">-- New Session --</option>
+      </select>
+      <button id="refreshSessions" class="mini" title="Refresh sessions">↻</button>
+    </div>
     <button id="toggle">Attach capture</button>
     <div class="status"><span id="dot" class="dot"></span><span id="statusText">detached</span></div>
     <script src="popup.js"></script>
