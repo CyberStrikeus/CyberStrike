@@ -1,12 +1,12 @@
 // CyberStrike HackBrowser 2.0 — panel (content script).
 //
-// Injects a small status panel on every page (§S4: panel always via content
-// script, never CDP — leak-free, works on real Chrome and CfT alike). Houses the
-// co-driving handover toggle: even before the AI control loop exists, flipping to
-// "You're driving" tags captured traffic as driver:"human", so human-found requests
-// are distinguishable from AI-found ones (§6.4 blind-spot signal).
+// A Vercel-toolbar-style dock: a small floating pill in the corner (collapsed)
+// that expands into a panel on click. Injected on every page in a closed shadow
+// root so the target page's CSS can't touch it. Houses the co-driving handover
+// toggle and shows live capture/observation state.
 //
-// Isolated in a shadow root so the target page's CSS can't touch it.
+// Deterministic observation (§3.3) + the perform executor live here too; only the
+// UI is toolbar-styled — the capture/observe/command logic is unchanged.
 
 ;(function () {
   if (window !== window.top) return // top frame only
@@ -16,75 +16,159 @@
   host.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:2147483647;"
   const root = host.attachShadow({ mode: "closed" })
 
+  // Placeholder mark (lightning bolt) — swap for the real CyberStrike logo later.
+  const LOGO = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M13 2 4 13h6l-1 9 9-12h-6l1-8Z" fill="currentColor"/></svg>`
+
   root.innerHTML = `
     <style>
       :host { all: initial; }
+      * { box-sizing: border-box; }
+      .dock {
+        --bg: #0b0f14; --panel: #0f161d; --line: #1e2a36;
+        --text: #d7e0ea; --dim: #8aa0b4; --faint: #6b7684;
+        --on: #4ade80; --human: #f0b429; --accent: #1f6feb;
+        font: 12px/1.4 ui-sans-serif, system-ui, -apple-system, sans-serif;
+        color: var(--text);
+        display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+      }
+
+      /* Collapsed pill */
+      .fab {
+        display: inline-flex; align-items: center; gap: 8px;
+        height: 34px; padding: 0 12px 0 10px;
+        background: var(--bg); color: var(--dim);
+        border: 1px solid var(--line); border-radius: 999px;
+        cursor: pointer; user-select: none;
+        box-shadow: 0 4px 16px rgba(0,0,0,.4);
+        transition: transform .15s ease, border-color .15s ease, color .15s ease;
+      }
+      .fab:hover { transform: translateY(-1px); border-color: #2b3a49; }
+      .mark {
+        display: inline-flex; color: var(--faint);
+        transition: color .2s ease;
+      }
+      .dock.capturing .mark { color: var(--on); animation: pulse 1.8s ease-in-out infinite; }
+      .dock.human .mark { color: var(--human); }
+      .label { font-weight: 600; letter-spacing: .02em; }
+      .count {
+        min-width: 18px; text-align: center; padding: 1px 6px;
+        font-variant-numeric: tabular-nums; font-size: 11px;
+        background: #16212b; border-radius: 999px; color: var(--dim);
+      }
+      .dock.capturing .count { color: var(--on); }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; filter: drop-shadow(0 0 0 rgba(74,222,128,0)); }
+        50% { opacity: .75; filter: drop-shadow(0 0 4px rgba(74,222,128,.6)); }
+      }
+
+      /* Expanded panel */
       .panel {
-        font: 12px system-ui, sans-serif;
-        background: #0b0f14; color: #d7e0ea;
-        border: 1px solid #24313d; border-radius: 10px;
-        padding: 10px 12px; width: 200px;
-        box-shadow: 0 8px 28px rgba(0,0,0,.45);
+        width: 236px; background: var(--panel);
+        border: 1px solid var(--line); border-radius: 12px;
+        box-shadow: 0 12px 40px rgba(0,0,0,.5);
+        overflow: hidden;
+        transform-origin: bottom right;
+        transition: opacity .16s ease, transform .16s ease;
       }
-      .row { display: flex; align-items: center; gap: 6px; }
-      .title { color: #4ade80; font-weight: 700; letter-spacing: .04em; font-size: 11px; }
-      .dot { width: 8px; height: 8px; border-radius: 50%; background: #6b7684; }
-      .dot.on { background: #4ade80; }
-      .count { margin-left: auto; font-variant-numeric: tabular-nums; color: #8aa0b4; }
-      button {
-        width: 100%; margin-top: 9px; padding: 7px; border: 0; border-radius: 7px;
-        font-weight: 600; cursor: pointer; background: #1f6feb; color: #fff;
+      .dock:not(.open) .panel {
+        opacity: 0; transform: translateY(6px) scale(.97);
+        pointer-events: none; height: 0; border: 0; margin: 0;
       }
-      button.human { background: #d29922; color: #1a1205; }
-      .hint { margin-top: 6px; font-size: 10px; color: #6b7684; }
+      .phead {
+        display: flex; align-items: center; gap: 8px;
+        padding: 10px 12px; border-bottom: 1px solid var(--line);
+      }
+      .phead .mark { color: var(--faint); }
+      .dock.capturing .phead .mark { color: var(--on); }
+      .brand { font-weight: 700; letter-spacing: .06em; font-size: 11px; }
+      .pill {
+        margin-left: auto; font-size: 10px; padding: 2px 7px; border-radius: 999px;
+        background: #16212b; color: var(--dim);
+      }
+      .dock.capturing .pill { background: rgba(74,222,128,.12); color: var(--on); }
+      .pbody { padding: 11px 12px; display: flex; flex-direction: column; gap: 10px; }
+      .stat { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--dim); }
+      .stat b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+      .obs { font-size: 10px; color: var(--faint); }
+      button.act {
+        width: 100%; padding: 8px; border: 0; border-radius: 8px;
+        font: 600 12px system-ui, sans-serif; cursor: pointer;
+        background: var(--accent); color: #fff;
+        transition: filter .15s ease;
+      }
+      button.act:hover { filter: brightness(1.08); }
+      button.act.human { background: var(--human); color: #1a1205; }
     </style>
-    <div class="panel">
-      <div class="row">
-        <span class="dot" id="dot"></span>
-        <span class="title">CYBERSTRIKE</span>
-        <span class="count" id="count">0</span>
+
+    <div class="dock" id="dock">
+      <div class="panel" id="panel">
+        <div class="phead">
+          <span class="mark">${LOGO}</span>
+          <span class="brand">CYBERSTRIKE</span>
+          <span class="pill" id="pill">detached</span>
+        </div>
+        <div class="pbody">
+          <div class="stat">captured <b id="pcount">0</b></div>
+          <div class="obs" id="obs">observing…</div>
+          <button class="act" id="handover">AI is driving — take over</button>
+        </div>
       </div>
-      <button id="handover">AI is driving</button>
-      <div class="hint" id="hint">capture attached to this tab</div>
-      <div class="hint" id="obs">observing…</div>
+      <div class="fab" id="fab">
+        <span class="mark">${LOGO}</span>
+        <span class="label">CS</span>
+        <span class="count" id="fcount">0</span>
+      </div>
     </div>
   `
-  const dot = root.getElementById("dot")
-  const count = root.getElementById("count")
+
+  const dock = root.getElementById("dock")
+  const fab = root.getElementById("fab")
+  const panel = root.getElementById("panel")
+  const pill = root.getElementById("pill")
+  const fcount = root.getElementById("fcount")
+  const pcount = root.getElementById("pcount")
   const handover = root.getElementById("handover")
-  const hint = root.getElementById("hint")
   const obsLine = root.getElementById("obs")
 
   let driver = "ai"
+  let expanded = false
+
+  function applyDriverClass() {
+    dock.classList.toggle("human", driver === "human")
+  }
 
   function render(status) {
-    if (status && status.attached) {
-      dot.classList.add("on")
-    } else {
-      dot.classList.remove("on")
+    const attached = !!(status && status.attached)
+    dock.classList.toggle("capturing", attached && driver !== "human")
+    if (status && typeof status.count === "number") {
+      fcount.textContent = String(status.count)
+      pcount.textContent = String(status.count)
     }
-    if (status && typeof status.count === "number") count.textContent = String(status.count)
     if (status && status.driver) driver = status.driver
+    applyDriverClass()
+    pill.textContent = driver === "human" ? "you drive" : attached ? "capturing" : "detached"
     if (driver === "human") {
       handover.textContent = "You're driving — give back to AI"
       handover.classList.add("human")
-      hint.textContent = "your clicks are captured as 'human'"
     } else {
       handover.textContent = "AI is driving — take over"
       handover.classList.remove("human")
-      hint.textContent = "capture attached to this tab"
     }
   }
 
-  handover.addEventListener("click", () => {
+  fab.addEventListener("click", () => {
+    expanded = !expanded
+    dock.classList.toggle("open", expanded)
+  })
+
+  handover.addEventListener("click", (e) => {
+    e.stopPropagation()
     driver = driver === "ai" ? "human" : "ai"
     chrome.runtime.sendMessage({ type: "set-driver", driver }, (res) => render(res))
   })
 
   // --- Deterministic page observation (§3.3) --------------------------------
-  // Extract clickables/forms/links from the DOM with no LLM. This is the state
-  // the AI will later pull via get_page_state instead of re-reading the page.
-
   function visible(el) {
     if (!el || el.offsetParent === null) return false
     const r = el.getBoundingClientRect()
@@ -102,8 +186,6 @@
     return raw.replace(/\s+/g, " ").trim().slice(0, 80)
   }
 
-  // elementId → live DOM node, so a click/type command can resolve the element
-  // the AI referenced from page-state. Rebuilt on every observation.
   const elMap = new Map()
 
   function observePage() {
@@ -161,44 +243,31 @@
     return obs
   }
 
-  // Execute a guard-approved command (background already relayed only allowed ones).
-  // First cut uses plain DOM dispatch; human-like CDP bezier/keystroke is future work.
+  // Execute a guard-approved command (background relays only allowed ones).
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type !== "perform") return
     const cmd = msg.cmd || {}
     try {
       if (cmd.op === "click") {
         const el = elMap.get(cmd.elementId)
-        if (!el) {
-          sendResponse({ ok: false, error: "element not found" })
-          return
-        }
+        if (!el) return sendResponse({ ok: false, error: "element not found" })
         el.scrollIntoView({ block: "center" })
         el.click()
-        sendResponse({ ok: true })
-        return
+        return sendResponse({ ok: true })
       }
       if (cmd.op === "type") {
         const el = elMap.get(cmd.elementId)
-        if (!el) {
-          sendResponse({ ok: false, error: "element not found" })
-          return
-        }
+        if (!el) return sendResponse({ ok: false, error: "element not found" })
         el.focus()
         el.value = cmd.text || ""
         el.dispatchEvent(new Event("input", { bubbles: true }))
         el.dispatchEvent(new Event("change", { bubbles: true }))
-        sendResponse({ ok: true })
-        return
+        return sendResponse({ ok: true })
       }
       if (cmd.op === "navigate") {
-        if (!cmd.url) {
-          sendResponse({ ok: false, error: "url required" })
-          return
-        }
+        if (!cmd.url) return sendResponse({ ok: false, error: "url required" })
         location.href = cmd.url
-        sendResponse({ ok: true })
-        return
+        return sendResponse({ ok: true })
       }
       sendResponse({ ok: false, error: "unknown op" })
     } catch (e) {
@@ -206,29 +275,7 @@
     }
   })
 
-  let lastObs = null
-  let lastUrl = location.href
-
-  function showObs(obs) {
-    if (!obs) return
-    obsLine.textContent = `${obs.clickables.length} clickables · ${obs.forms.length} forms · ${obs.links.length} links`
-  }
-
-  function poll() {
-    chrome.runtime.sendMessage({ type: "panel-status" }, (res) => {
-      if (chrome.runtime.lastError) return // service worker asleep — try next tick
-      render(res)
-    })
-    // SPA route change without full reload → re-observe (§3.3 re-snapshot).
-    if (location.href !== lastUrl) {
-      lastUrl = location.href
-      lastObs = sendObservation()
-      showObs(lastObs)
-    }
-  }
-
-  // Auto-credential (launcher-injected): #__cs_cred=<label> → self-register + strip.
-  // Lets the multi-profile launcher tag each profile's identity without manual popup.
+  // Launcher-injected credential: #__cs_cred=<label> → self-register + strip.
   function readCredFromHash() {
     const m = location.hash.match(/__cs_cred=([^&]+)/)
     if (!m) return
@@ -238,10 +285,26 @@
     } catch {
       label = m[1]
     }
-    // Strip immediately so the hash never reaches the app or a screenshot.
-    const clean = location.pathname + location.search
-    history.replaceState(null, "", clean || "/")
+    history.replaceState(null, "", location.pathname + location.search || "/")
     if (label) chrome.runtime.sendMessage({ type: "set-credential-label", label }, () => void chrome.runtime.lastError)
+  }
+
+  let lastUrl = location.href
+
+  function showObs(obs) {
+    if (!obs) return
+    obsLine.textContent = `${obs.clickables.length} clickables · ${obs.forms.length} forms · ${obs.links.length} links`
+  }
+
+  function poll() {
+    chrome.runtime.sendMessage({ type: "panel-status" }, (res) => {
+      if (chrome.runtime.lastError) return
+      render(res)
+    })
+    if (location.href !== lastUrl) {
+      lastUrl = location.href
+      showObs(sendObservation())
+    }
   }
 
   function mount() {
@@ -250,8 +313,7 @@
     document.body.appendChild(host)
     readCredFromHash()
     poll()
-    lastObs = sendObservation()
-    showObs(lastObs)
+    showObs(sendObservation())
     setInterval(poll, 1500)
   }
 
