@@ -9,6 +9,41 @@
 
 const PORT = Number(process.env.HB2_PORT ?? 4097)
 
+// --- Scope enforcement (risk #2) --------------------------------------------
+// Capture records everything (3rd-party analytics/CDN/ads included), but ONLY
+// in-scope hosts are forwarded to CyberStrike for analysis — out-of-scope hosts
+// must never reach the analysis/replay path (authorization boundary). Set
+// HB2_SCOPE to a comma-separated list of hosts/wildcards, e.g.
+//   HB2_SCOPE="app.example.com,*.api.example.com"
+// A bare host matches itself and its subdomains; "*.x" matches subdomains only.
+
+const SCOPE_PATTERNS = (process.env.HB2_SCOPE ?? "")
+  .split(",")
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean)
+
+function inScope(host: string): boolean {
+  if (SCOPE_PATTERNS.length === 0) return true // no scope set → permissive (dev), warned at startup
+  const h = host.toLowerCase()
+  for (const p of SCOPE_PATTERNS) {
+    if (p.startsWith("*.")) {
+      const suffix = p.slice(1) // ".example.com"
+      if (h.endsWith(suffix)) return true
+      continue
+    }
+    if (h === p || h.endsWith("." + p)) return true
+  }
+  return false
+}
+
+function hostOf(rawUrl: string): string {
+  try {
+    return new URL(rawUrl).host
+  } catch {
+    return ""
+  }
+}
+
 // Enriched-HAR record as emitted by a CaptureSource (§2.1.1). Kept minimal and
 // permissive — this is the contract the extension and the future proxy/Playwright
 // sources all speak.
@@ -59,7 +94,7 @@ interface PageObservation {
 // url → latest observation. get_page_state reads from here.
 const pageState = new Map<string, PageObservation>()
 
-const tally = { total: 0, api: 0, js: 0, html: 0, static: 0, realtime: 0, other: 0, forwarded: 0, failed: 0 }
+const tally = { total: 0, api: 0, js: 0, html: 0, static: 0, realtime: 0, other: 0, forwarded: 0, failed: 0, outOfScope: 0 }
 
 // --- CyberStrike forwarding -------------------------------------------------
 // Dynamic/API + HTML records are forwarded to CyberStrike's existing ingest
@@ -194,14 +229,18 @@ Bun.serve({
       tally.total++
       tally[cls === "api" || cls === "js" || cls === "html" || cls === "static" || cls === "realtime" ? cls : "other"]++
 
-      // Route by class: dynamic/API + HTML go to CyberStrike ingest (LLM path);
-      // static/JS/realtime are held back for out-of-band mining (§4.3).
-      const forwardable = cls === "api" || cls === "html"
+      // Scope gate (risk #2): out-of-scope hosts are captured/tallied but NEVER
+      // forwarded to analysis. Route in-scope dynamic/API + HTML to CyberStrike
+      // ingest; static/JS/realtime held for out-of-band mining (§4.3).
+      const host = hostOf(record.url)
+      const scoped = inScope(host)
+      if (!scoped) tally.outOfScope++
+      const forwardable = (cls === "api" || cls === "html") && scoped
       let forwarded = false
       if (forwardable) forwarded = await forwardToCyberStrike(record)
 
       const bodyKB = record.responseBody ? (record.responseBody.length / 1024).toFixed(1) : "-"
-      const mark = forwardable ? (forwarded ? "→CS" : "→CS!") : "hold"
+      const mark = !scoped ? "oos" : forwardable ? (forwarded ? "→CS" : "→CS!") : "hold"
       const drv = record.driver === "human" ? "HUMAN" : "ai"
       console.log(
         `[hb2] ${cls.padEnd(8)} ${mark.padEnd(5)} ${drv.padEnd(5)} ${record.method.padEnd(6)} ${record.status} ${record.resourceType.padEnd(10)} body=${bodyKB}KB  ${record.url}`,
@@ -217,3 +256,8 @@ Bun.serve({
 console.log(`[hb2] capture receiver listening on http://127.0.0.1:${PORT}`)
 console.log(`[hb2]   POST /capture   — extension sends enriched-HAR records here`)
 console.log(`[hb2]   GET  /health    — running tally`)
+if (SCOPE_PATTERNS.length === 0) {
+  console.warn(`[hb2]   ⚠ HB2_SCOPE not set — forwarding ALL hosts (dev only). Set it before real testing.`)
+} else {
+  console.log(`[hb2]   scope: ${SCOPE_PATTERNS.join(", ")} — out-of-scope hosts captured but NOT forwarded`)
+}
