@@ -12,6 +12,7 @@ import { extractTrajectory, aggregateTrajectories, formatTrajectoryLog } from ".
 import type { CloudAnalysis } from "./types"
 import type { AgentTrajectory } from "./trajectory"
 import { Semaphore } from "../util/semaphore"
+import { withTimeout } from "../util/timeout"
 
 const LAYER2_DEADLINE_MS = 20 * 60 * 1000
 const FOLLOWUP_RESERVE_MS = 5 * 60 * 1000
@@ -52,19 +53,6 @@ interface SpawnResult {
   error: string | undefined
   durationMs: number
   timedOut?: boolean
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number, sessionID: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      SessionPrompt.cancel(sessionID)
-      reject(new Error(`agent timed out after ${Math.round(ms / 1000)}s`))
-    }, ms)
-    promise.then(
-      (v) => { clearTimeout(timer); resolve(v) },
-      (e) => { clearTimeout(timer); reject(e) },
-    )
-  })
 }
 
 async function spawnAnalyst(
@@ -115,7 +103,7 @@ async function spawnAnalyst(
         parts: [{ type: "text" as const, text: prompt }],
       }),
       timeoutMs,
-      session.id,
+      () => SessionPrompt.cancel(session.id),
     )
 
     const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
@@ -160,7 +148,7 @@ async function spawnFollowup(
         parts: [{ type: "text" as const, text: followUp.prompt }],
       }),
       timeoutMs,
-      session.id,
+      () => SessionPrompt.cancel(session.id),
     )
     const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
     return { agent: "cloud-followup", group: "followup", sessionID: session.id, text, error: undefined, durationMs: Date.now() - start }
@@ -212,7 +200,7 @@ async function spawnVerify(
         parts: [{ type: "text" as const, text: prompt }],
       }),
       timeoutMs,
-      session.id,
+      () => SessionPrompt.cancel(session.id),
     )
     const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
     return { agent: "cloud-verify", group: "verify", sessionID: session.id, text, error: undefined, durationMs: Date.now() - start }
@@ -268,7 +256,7 @@ async function spawnBatchVerifier(
         parts: [{ type: "text" as const, text: prompt }],
       }),
       timeoutMs,
-      session.id,
+      () => SessionPrompt.cancel(session.id),
     )
     const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
     return { agent: "cloud-batch-verifier", group: "batch-verify", sessionID: session.id, text, error: undefined, durationMs: Date.now() - start }
@@ -381,7 +369,7 @@ async function detectFollowUps(
         parts: [{ type: "text" as const, text: prompt }],
       }),
       FOLLOWUP_TIMEOUT_MS,
-      session.id,
+      () => SessionPrompt.cancel(session.id),
     )
 
     const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
