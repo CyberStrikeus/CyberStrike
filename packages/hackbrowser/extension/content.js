@@ -38,11 +38,14 @@
         height: 34px; padding: 0 12px 0 10px;
         background: var(--bg); color: var(--dim);
         border: 1px solid var(--line); border-radius: 999px;
-        cursor: pointer; user-select: none;
+        cursor: grab; user-select: none;
         box-shadow: 0 4px 16px rgba(0,0,0,.4);
         transition: transform .15s ease, border-color .15s ease, color .15s ease;
       }
       .fab:hover { transform: translateY(-1px); border-color: #2b3a49; }
+      .fab:active { cursor: grabbing; }
+      .phead { cursor: grab; }
+      .phead:active { cursor: grabbing; }
       .mark {
         display: inline-flex; color: var(--faint);
         transition: color .2s ease;
@@ -157,7 +160,70 @@
     }
   }
 
+  // --- Drag to reposition (like the 1.x draggable bar) ----------------------
+  // The dock can be dragged anywhere; a click that didn't move toggles expand.
+  let dragging = false
+  let moved = false
+  let startX = 0
+  let startY = 0
+  let origLeft = 0
+  let origTop = 0
+
+  function onDragStart(e) {
+    dragging = true
+    moved = false
+    const p = e.touches ? e.touches[0] : e
+    startX = p.clientX
+    startY = p.clientY
+    const r = host.getBoundingClientRect()
+    origLeft = r.left
+    origTop = r.top
+    // switch from right/bottom anchoring to absolute left/top
+    host.style.left = origLeft + "px"
+    host.style.top = origTop + "px"
+    host.style.right = "auto"
+    host.style.bottom = "auto"
+    e.preventDefault()
+  }
+
+  function onDragMove(e) {
+    if (!dragging) return
+    const p = e.touches ? e.touches[0] : e
+    const dx = p.clientX - startX
+    const dy = p.clientY - startY
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true
+    let left = origLeft + dx
+    let top = origTop + dy
+    // keep it on-screen
+    const w = host.offsetWidth
+    const h = host.offsetHeight
+    left = Math.max(4, Math.min(left, window.innerWidth - w - 4))
+    top = Math.max(4, Math.min(top, window.innerHeight - h - 4))
+    host.style.left = left + "px"
+    host.style.top = top + "px"
+  }
+
+  function onDragEnd() {
+    dragging = false
+  }
+
+  fab.addEventListener("mousedown", onDragStart)
+  fab.addEventListener("touchstart", onDragStart, { passive: false })
+  const phead = root.querySelector(".phead")
+  if (phead) {
+    phead.addEventListener("mousedown", onDragStart)
+    phead.addEventListener("touchstart", onDragStart, { passive: false })
+  }
+  document.addEventListener("mousemove", onDragMove)
+  document.addEventListener("touchmove", onDragMove, { passive: false })
+  document.addEventListener("mouseup", onDragEnd)
+  document.addEventListener("touchend", onDragEnd)
+
   fab.addEventListener("click", () => {
+    if (moved) {
+      moved = false
+      return // was a drag, not a click
+    }
     expanded = !expanded
     dock.classList.toggle("open", expanded)
   })
