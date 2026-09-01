@@ -68,6 +68,9 @@
         gap: 6px;
         align-items: center;
       }
+      .row input {
+        flex: 1;
+      }
       select {
         flex: 1;
         padding: 6px;
@@ -95,6 +98,12 @@
       </select>
       <button id="refreshSessions" class="mini" title="Refresh sessions">↻</button>
     </div>
+    <label for="credLabel">This profile's credential</label>
+    <div class="row">
+      <input id="credLabel" type="text" placeholder="e.g. admin" />
+      <button id="registerCred" class="mini">Set</button>
+    </div>
+    <div class="status" id="credStatus">no credential</div>
     <button id="toggle">Attach capture</button>
     <div class="status"><span id="dot" class="dot"></span><span id="statusText">detached</span></div>
     <script src="popup.js"></script>

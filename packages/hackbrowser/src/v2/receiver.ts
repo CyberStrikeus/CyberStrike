@@ -135,6 +135,38 @@ async function listSessions(): Promise<Array<{ id: string; title?: string }>> {
   }
 }
 
+// Credential proxy (Firefox-ext pattern, profile-local per §3.1): each profile's
+// extension registers ONE credential label and tags its captures with the id.
+async function listCredentials(sid: string): Promise<Array<{ id: string; label: string }>> {
+  try {
+    const res = await fetch(`${CYBERSTRIKE_URL}/session/${sid}/web/credentials`, { headers: authHeader() })
+    if (!res.ok) return []
+    const data = (await res.json()) as unknown
+    if (!Array.isArray(data)) return []
+    return data
+      .filter((c): c is { id: string; label: string } => !!c && typeof (c as { id?: unknown }).id === "string")
+      .map((c) => ({ id: c.id, label: String((c as { label?: unknown }).label ?? "") }))
+  } catch {
+    return []
+  }
+}
+
+// Register a credential label; returns its id, or null on failure (CS down / bad resp).
+async function registerCredential(sid: string, label: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${CYBERSTRIKE_URL}/session/${sid}/web/credentials`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader() },
+      body: JSON.stringify({ label }),
+    })
+    if (!res.ok) return null
+    const d = (await res.json()) as { id?: unknown }
+    return typeof d.id === "string" ? d.id : null
+  } catch {
+    return null
+  }
+}
+
 // Rebuild a raw HTTP request string from the record — the format /session/ingest
 // expects in its `text` field (same shape the 1.x hackbrowser / Firefox ext send).
 function toRawHttp(rec: CaptureRecord): string {
@@ -291,6 +323,32 @@ Bun.serve({
       session = typeof body.sessionID === "string" ? body.sessionID : ""
       console.log(`[hb2] session selected: ${session || "(new)"}`)
       return Response.json({ ok: true, active: session || null }, { headers: corsHeaders() })
+    }
+
+    // Credentials for the active session (profile-local identity, §3.1).
+    if (req.method === "GET" && url.pathname === "/credentials") {
+      if (!session) return Response.json({ credentials: [] }, { headers: corsHeaders() })
+      return Response.json({ credentials: await listCredentials(session) }, { headers: corsHeaders() })
+    }
+    if (req.method === "POST" && url.pathname === "/register-credential") {
+      if (!session) {
+        return Response.json(
+          { ok: false, error: "select or start a session first" },
+          { status: 409, headers: corsHeaders() },
+        )
+      }
+      let body: { label?: string }
+      try {
+        body = (await req.json()) as typeof body
+      } catch {
+        return Response.json({ ok: false, error: "invalid json" }, { status: 400, headers: corsHeaders() })
+      }
+      const label = (body.label ?? "").trim()
+      if (!label) return Response.json({ ok: false, error: "label required" }, { status: 400, headers: corsHeaders() })
+      const id = await registerCredential(session, label)
+      if (!id) return Response.json({ ok: false, error: "register failed (CS down?)" }, { status: 502, headers: corsHeaders() })
+      console.log(`[hb2] credential registered: ${label} → ${id}`)
+      return Response.json({ ok: true, id, label }, { headers: corsHeaders() })
     }
 
     // Deterministic page observation (§3.3): the state the AI pulls via

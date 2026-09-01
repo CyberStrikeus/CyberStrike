@@ -23,6 +23,15 @@ const pending = new Map()
 const driverByTab = new Map()
 // tabId → count of records forwarded (shown in the panel)
 const countByTab = new Map()
+// This profile's credential (§3.1: one identity per profile). Set from the popup,
+// persisted in profile-local storage, stamped onto every captured record.
+let activeCredential = null
+chrome.storage.local.get("credential", (o) => {
+  if (o && o.credential) activeCredential = o.credential
+})
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.credential) activeCredential = changes.credential.newValue || null
+})
 
 function receiverUrl() {
   return new Promise((resolve) => {
@@ -219,8 +228,9 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
       timestamp: rec.timestamp,
       // co-driving provenance: who was driving when this was captured (§6.4)
       driver: driverByTab.get(tabId) || "ai",
-      // enrichment fields — filled in later phases (multi-credential, panel triggers)
-      credentialId: null,
+      // this profile's identity (§3.1) — null until the popup sets a credential
+      credentialId: activeCredential ? activeCredential.id : null,
+      // enrichment fields — filled in later phases (panel triggers)
       triggerElement: null,
       elementRoles: null,
       pageUrl: null,

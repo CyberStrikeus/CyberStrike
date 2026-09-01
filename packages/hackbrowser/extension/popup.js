@@ -52,6 +52,46 @@ async function selectSession() {
 sessionSelect.addEventListener("change", selectSession)
 refreshSessions.addEventListener("click", loadSessions)
 
+// --- Credential (this profile's identity, §3.1) ---
+const credLabel = document.getElementById("credLabel")
+const registerCred = document.getElementById("registerCred")
+const credStatus = document.getElementById("credStatus")
+
+async function loadCredential() {
+  const o = await chrome.storage.local.get("credential")
+  if (o && o.credential) {
+    credLabel.value = o.credential.label || ""
+    credStatus.textContent = `credential: ${o.credential.label} (${o.credential.id.slice(0, 10)}…)`
+  } else {
+    credStatus.textContent = "no credential"
+  }
+}
+
+registerCred.addEventListener("click", async () => {
+  const label = credLabel.value.trim()
+  if (!label) {
+    credStatus.textContent = "enter a label first"
+    return
+  }
+  credStatus.textContent = "registering…"
+  try {
+    const res = await fetch(receiverBase() + "/register-credential", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label }),
+    })
+    const d = await res.json()
+    if (d.ok) {
+      await chrome.storage.local.set({ credential: { id: d.id, label: d.label } })
+      credStatus.textContent = `credential: ${d.label} (${d.id.slice(0, 10)}…)`
+    } else {
+      credStatus.textContent = `error: ${d.error || res.status}`
+    }
+  } catch {
+    credStatus.textContent = "error: receiver unreachable"
+  }
+})
+
 function render(isAttached) {
   if (isAttached) {
     dot.classList.add("on")
@@ -79,6 +119,7 @@ async function init() {
   }
 
   await loadSessions()
+  await loadCredential()
 }
 
 receiverInput.addEventListener("change", () => {
