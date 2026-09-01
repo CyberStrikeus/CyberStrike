@@ -244,7 +244,7 @@ function buildAnalystResult(group: string, spawn: SpawnResult, rootSession: stri
   const vulns = Vulnerability.get(rootSession)
   let verified = 0, rejected = 0, elevated = 0
   for (const v of vulns) {
-    if (v.source_agent !== spawn.agent) continue
+    if (!v.source_agent?.includes(spawn.agent)) continue
     const ns = normalizeStatus(v.status ?? VulnStatus.DRAFT)
     if (isActionable(ns)) verified++
     else if (isExcluded(ns)) rejected++
@@ -300,7 +300,7 @@ function readGroupProgress(rootSession: string, groupKey: string, analystName?: 
   const groupIntel = entries.filter((e) => e.tags.includes(`group:${groupKey}`))
   const vulns = Vulnerability.get(rootSession)
   const groupVulns = analystName
-    ? vulns.filter((v) => v.source_agent === analystName)
+    ? vulns.filter((v) => v.source_agent?.includes(analystName))
     : vulns.filter((v) => v.source_agent?.includes(groupKey))
   const draftCount = groupVulns.filter((v) => normalizeStatus(v.status ?? VulnStatus.DRAFT) === VulnStatus.DRAFT).length
   const triagedCount = groupVulns.filter((v) => {
@@ -447,7 +447,7 @@ function chainToFollowUp(chain: ReturnType<typeof detectCloudChains>[number]): C
   return {
     reason: `[graph:${chain.pattern}] ${assetList} (${chain.confidence}% confidence)`,
     chain: chain.assetNames,
-    groups: [...new Set(chain.assetIDs)],
+    groups: [],
     prompt: [
       `## Auto-Detected Chain: ${chain.pattern.toUpperCase()}`,
       `Assets: ${assetList}`,
@@ -627,6 +627,9 @@ async function runOrchestration(
     const allIdResults = [...idResults, ...idHelperResults]
     for (const r of allIdResults) spawnResults.push(r)
     const idBest = allIdResults.find((r) => !r.error) ?? allIdResults[0]
+    if (!allIdResults.some((r) => !r.error)) {
+      console.warn(`[orchestrate] all identity agents failed — parallel agents will run without identity context`)
+    }
     if (idBest) {
       const result = buildAnalystResult(idGroup.key, idBest, rootSession)
       const idErrors = allIdResults.filter((r) => r.error)
@@ -655,6 +658,8 @@ async function runOrchestration(
     groupsWithInvestigation: investigateGroups.map((g) => g.key),
   }
 
+  const skippedGroups = remaining.filter((g) => !investigateKeys.has(g.key) && !formulaicGroups.includes(g.key))
+  if (skippedGroups.length > 0) console.log(`[orchestrate] skipped groups (0 findings): ${skippedGroups.map((g) => g.key).join(", ")}`)
   console.log(`[orchestrate] triage: ${totalFormulaic} formulaic (${formulaicGroups.length} groups), ${totalInvestigate} investigate (${investigateGroups.length} groups)`)
 
   // ── Phase: parallel (batch verify + investigation analysts) ──
@@ -822,6 +827,8 @@ async function runOrchestration(
     missing: failedAnalysts.map((a) => a.group),
     summary: verifyResult.error ? `Error: ${verifyResult.error}` : verifyResult.text.slice(0, 500),
   }
+
+  deduplicateFindings(rootSession)
 
   // ── Phase: complete ──────────────────────────────────────
   state.phase = "complete"
