@@ -227,10 +227,28 @@
     }
   }
 
+  // Auto-credential (launcher-injected): #__cs_cred=<label> → self-register + strip.
+  // Lets the multi-profile launcher tag each profile's identity without manual popup.
+  function readCredFromHash() {
+    const m = location.hash.match(/__cs_cred=([^&]+)/)
+    if (!m) return
+    let label
+    try {
+      label = decodeURIComponent(m[1])
+    } catch {
+      label = m[1]
+    }
+    // Strip immediately so the hash never reaches the app or a screenshot.
+    const clean = location.pathname + location.search
+    history.replaceState(null, "", clean || "/")
+    if (label) chrome.runtime.sendMessage({ type: "set-credential-label", label }, () => void chrome.runtime.lastError)
+  }
+
   function mount() {
     if (!document.body) return
     if (document.getElementById("cyberstrike-panel-host")) return
     document.body.appendChild(host)
+    readCredFromHash()
     poll()
     lastObs = sendObservation()
     showObs(lastObs)

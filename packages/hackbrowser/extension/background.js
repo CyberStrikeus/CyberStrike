@@ -291,6 +291,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       })
       return
     }
+    // Launcher-injected credential: register the label with the receiver and
+    // persist it profile-local, exactly as the popup "Set" button does.
+    if (msg.type === "set-credential-label") {
+      const base = await receiverUrl()
+      const regUrl = base.replace(/\/capture$/, "/register-credential")
+      try {
+        const res = await fetch(regUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ label: msg.label }),
+        })
+        const d = await res.json()
+        if (d && d.ok) {
+          await chrome.storage.local.set({ credential: { id: d.id, label: d.label } })
+          sendResponse({ ok: true, id: d.id })
+          return
+        }
+        sendResponse({ ok: false, error: (d && d.error) || "register failed" })
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) })
+      }
+      return
+    }
     if (msg.type === "observe") {
       const tabId = sender.tab && sender.tab.id
       const base = await receiverUrl()
