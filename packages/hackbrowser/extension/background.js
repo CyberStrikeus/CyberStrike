@@ -51,8 +51,22 @@ const pending = new Map()
 // tabId → "ai" | "human" — co-driving state; set from the panel handover toggle.
 // Tags each forwarded record so human-driven captures are distinguishable (§6.4).
 const driverByTab = new Map()
-// tabId → count of records forwarded (shown in the panel)
-const countByTab = new Map()
+// tabId → capture breakdown by class (shown in the panel). Computed locally from
+// each request's resource_type — no backend needed.
+const statsByTab = new Map()
+
+function emptyStats() {
+  return { total: 0, api: 0, js: 0, html: 0, static: 0, realtime: 0, other: 0 }
+}
+
+function classOf(resourceType) {
+  if (resourceType === "xhr" || resourceType === "fetch") return "api"
+  if (resourceType === "script") return "js"
+  if (resourceType === "document") return "html"
+  if (resourceType === "image" || resourceType === "font" || resourceType === "stylesheet" || resourceType === "media") return "static"
+  if (resourceType === "websocket" || resourceType === "eventsource") return "realtime"
+  return "other"
+}
 // This profile's credential (§3.1: one identity per profile). Set from the popup,
 // persisted in profile-local storage, stamped onto every captured record.
 let activeCredential = null
@@ -199,7 +213,13 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
     }
 
     const response = rec.response || { status: 0, headers: {}, contentType: "" }
-    countByTab.set(tabId, (countByTab.get(tabId) || 0) + 1)
+    let stats = statsByTab.get(tabId)
+    if (!stats) {
+      stats = emptyStats()
+      statsByTab.set(tabId, stats)
+    }
+    stats.total++
+    stats[classOf(rec.resourceType)]++
     forward({
       url: rec.url,
       method: rec.method,
@@ -236,7 +256,7 @@ chrome.debugger.onDetach.addListener((source) => {
 chrome.tabs.onRemoved.addListener((tabId) => {
   attached.delete(tabId)
   driverByTab.delete(tabId)
-  countByTab.delete(tabId)
+  statsByTab.delete(tabId)
   for (const key of pending.keys()) {
     if (key.startsWith(`${tabId}:`)) pending.delete(key)
   }
@@ -264,7 +284,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       const tabId = sender.tab && sender.tab.id
       sendResponse({
         attached: tabId !== undefined && attached.has(tabId),
-        count: tabId !== undefined ? countByTab.get(tabId) || 0 : 0,
+        stats: tabId !== undefined ? statsByTab.get(tabId) || emptyStats() : emptyStats(),
         driver: tabId !== undefined ? driverByTab.get(tabId) || "ai" : "ai",
       })
       return
@@ -274,7 +294,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       if (tabId !== undefined) driverByTab.set(tabId, msg.driver === "human" ? "human" : "ai")
       sendResponse({
         attached: tabId !== undefined && attached.has(tabId),
-        count: tabId !== undefined ? countByTab.get(tabId) || 0 : 0,
+        stats: tabId !== undefined ? statsByTab.get(tabId) || emptyStats() : emptyStats(),
         driver: tabId !== undefined ? driverByTab.get(tabId) || "ai" : "ai",
       })
       return

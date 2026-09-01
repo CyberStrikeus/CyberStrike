@@ -1,164 +1,189 @@
 // CyberStrike HackBrowser 2.0 — panel (content script).
 //
-// A Vercel-toolbar-style dock: a small floating pill in the corner (collapsed)
-// that expands into a panel on click. Injected on every page in a closed shadow
-// root so the target page's CSS can't touch it. Houses the co-driving handover
-// toggle and shows live capture/observation state.
-//
-// Deterministic observation (§3.3) + the perform executor live here too; only the
-// UI is toolbar-styled — the capture/observe/command logic is unchanged.
+// A logo dock: a large CyberStrike mark sits in a corner; clicking it expands a
+// panel HORIZONTALLY toward screen-center (left if docked right, right if docked
+// left). The panel shows the capture breakdown (captured / API / JS / static /
+// page elements), computed by the background from resource_type. When a tab is
+// being captured a hue floats around the viewport edges — navy for AI-driven,
+// amber for human (co-driving handover). Injected in a closed shadow root.
 
 ;(function () {
   if (window !== window.top) return // top frame only
 
+  const LOGO_SRC = chrome.runtime.getURL("logo.png")
+
+  // --- Edge glow overlay (like Claude-in-Chrome's border hue) ---------------
+  const glowHost = document.createElement("div")
+  glowHost.style.cssText = "position:fixed;inset:0;z-index:2147483646;pointer-events:none;"
+  const glowRoot = glowHost.attachShadow({ mode: "closed" })
+  glowRoot.innerHTML = `
+    <style>
+      .glow {
+        position: fixed; inset: 0; pointer-events: none;
+        opacity: 0; transition: opacity .4s ease, box-shadow .4s ease;
+      }
+      .glow.on { opacity: 1; animation: breathe 3s ease-in-out infinite; }
+      .glow.ai { box-shadow: inset 0 0 46px 8px rgba(37,99,235,.55); }
+      .glow.human { box-shadow: inset 0 0 46px 8px rgba(240,180,41,.55); }
+      @keyframes breathe { 0%,100% { opacity: .9; } 50% { opacity: .45; } }
+    </style>
+    <div class="glow" id="glow"></div>
+  `
+  const glow = glowRoot.getElementById("glow")
+
+  // --- Dock (logo + panel) --------------------------------------------------
   const host = document.createElement("div")
   host.id = "cyberstrike-panel-host"
-  host.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:2147483647;"
+  host.style.cssText = "position:fixed;right:20px;bottom:20px;z-index:2147483647;"
   const root = host.attachShadow({ mode: "closed" })
-
-  // CyberStrike logo (bundled, exposed via web_accessible_resources).
-  const LOGO = `<img class="logo" src="${chrome.runtime.getURL("logo.png")}" width="18" height="18" alt="" draggable="false" />`
 
   root.innerHTML = `
     <style>
       :host { all: initial; }
       * { box-sizing: border-box; }
       .dock {
-        --bg: #0b0f14; --panel: #0f161d; --line: #1e2a36;
-        --text: #d7e0ea; --dim: #8aa0b4; --faint: #6b7684;
-        --on: #4ade80; --human: #f0b429; --accent: #1f6feb;
+        --panel: #0f161d; --line: #1e2a36; --text: #d7e0ea;
+        --dim: #8aa0b4; --faint: #6b7684;
+        --ai: #2563eb; --human: #f0b429;
         font: 12px/1.4 ui-sans-serif, system-ui, -apple-system, sans-serif;
         color: var(--text);
-        display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+        display: flex; align-items: flex-end; gap: 12px;
       }
+      .dock.left { flex-direction: row; }          /* logo left  → panel right */
+      .dock.right { flex-direction: row-reverse; } /* logo right → panel left  */
 
-      /* Collapsed pill */
+      /* Big logo button */
       .fab {
-        display: inline-flex; align-items: center; gap: 8px;
-        height: 34px; padding: 0 12px 0 10px;
-        background: var(--bg); color: var(--dim);
-        border: 1px solid var(--line); border-radius: 999px;
-        cursor: grab; user-select: none;
-        box-shadow: 0 4px 16px rgba(0,0,0,.4);
-        transition: transform .15s ease, border-color .15s ease, color .15s ease;
+        flex: none; width: 54px; height: 54px; padding: 0;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: transparent; border: 0; cursor: grab; user-select: none;
+        filter: drop-shadow(0 4px 12px rgba(0,0,0,.5));
+        transition: transform .15s ease;
       }
-      .fab:hover { transform: translateY(-1px); border-color: #2b3a49; }
+      .fab:hover { transform: scale(1.06); }
       .fab:active { cursor: grabbing; }
-      .phead { cursor: grab; }
-      .phead:active { cursor: grabbing; }
-      .mark { display: inline-flex; }
-      .mark .logo { display: block; width: 18px; height: 18px; }
-      .dock.capturing .mark .logo { animation: pulse 1.8s ease-in-out infinite; }
-      .label { font-weight: 600; letter-spacing: .02em; }
-      .count {
-        min-width: 18px; text-align: center; padding: 1px 6px;
-        font-variant-numeric: tabular-nums; font-size: 11px;
-        background: #16212b; border-radius: 999px; color: var(--dim);
-      }
-      .dock.capturing .count { color: var(--on); }
-
+      .fab img { width: 54px; height: 54px; display: block; pointer-events: none; }
+      .dock.capturing.driver-ai .fab img { animation: pulse 1.8s ease-in-out infinite; }
+      .dock.capturing.driver-human .fab img { animation: pulse 1.8s ease-in-out infinite; }
       @keyframes pulse {
-        0%, 100% { opacity: 1; filter: drop-shadow(0 0 0 rgba(74,222,128,0)); }
-        50% { opacity: .75; filter: drop-shadow(0 0 4px rgba(74,222,128,.6)); }
+        0%,100% { filter: drop-shadow(0 0 0 transparent); opacity: 1; }
+        50% { filter: drop-shadow(0 0 6px rgba(255,255,255,.5)); opacity: .8; }
       }
 
-      /* Expanded panel */
+      /* Panel */
       .panel {
-        width: 236px; background: var(--panel);
+        width: 248px; background: var(--panel);
         border: 1px solid var(--line); border-radius: 12px;
-        box-shadow: 0 12px 40px rgba(0,0,0,.5);
+        box-shadow: 0 14px 44px rgba(0,0,0,.5);
         overflow: hidden;
-        transform-origin: bottom right;
-        transition: opacity .16s ease, transform .16s ease;
+        transform-origin: bottom center;
+        transition: opacity .16s ease, transform .16s ease, width .16s ease;
       }
       .dock:not(.open) .panel {
-        opacity: 0; transform: translateY(6px) scale(.97);
-        pointer-events: none; height: 0; border: 0; margin: 0;
+        opacity: 0; width: 0; border: 0; padding: 0;
+        transform: scale(.97); pointer-events: none;
       }
       .phead {
         display: flex; align-items: center; gap: 8px;
-        padding: 10px 12px; border-bottom: 1px solid var(--line);
+        padding: 11px 13px; border-bottom: 1px solid var(--line);
+        cursor: grab;
       }
-      .phead .mark { color: var(--faint); }
-      .dock.capturing .phead .mark { color: var(--on); }
-      .brand { font-weight: 700; letter-spacing: .06em; font-size: 11px; }
-      .pill {
-        margin-left: auto; font-size: 10px; padding: 2px 7px; border-radius: 999px;
-        background: #16212b; color: var(--dim);
+      .phead:active { cursor: grabbing; }
+      .brand { font-weight: 700; letter-spacing: .07em; font-size: 11px; white-space: nowrap; }
+      .state {
+        margin-left: auto; font-size: 10px; padding: 2px 8px; border-radius: 999px;
+        background: #16212b; color: var(--dim); white-space: nowrap;
       }
-      .dock.capturing .pill { background: rgba(74,222,128,.12); color: var(--on); }
-      .pbody { padding: 11px 12px; display: flex; flex-direction: column; gap: 10px; }
-      .stat { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--dim); }
-      .stat b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
-      .obs { font-size: 10px; color: var(--faint); }
+      .dock.capturing.driver-ai .state { background: rgba(37,99,235,.15); color: #7ea8ff; }
+      .dock.capturing.driver-human .state { background: rgba(240,180,41,.15); color: var(--human); }
+
+      .pbody { padding: 12px 13px; display: flex; flex-direction: column; gap: 2px; }
+      .stat {
+        display: flex; align-items: baseline; justify-content: space-between;
+        padding: 5px 0; border-bottom: 1px dashed #17222d;
+      }
+      .stat:last-of-type { border-bottom: 0; }
+      .stat .k { color: var(--dim); font-size: 11px; }
+      .stat .v { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+      .stat .v.accent { color: #7ea8ff; }
+
       button.act {
-        width: 100%; padding: 8px; border: 0; border-radius: 8px;
-        font: 600 12px system-ui, sans-serif; cursor: pointer;
-        background: var(--accent); color: #fff;
-        transition: filter .15s ease;
+        margin-top: 10px; width: 100%; padding: 9px; border: 0; border-radius: 9px;
+        font: 700 12px system-ui, sans-serif; cursor: pointer;
+        background: var(--ai); color: #fff; transition: filter .15s ease;
       }
       button.act:hover { filter: brightness(1.08); }
       button.act.human { background: var(--human); color: #1a1205; }
     </style>
 
-    <div class="dock" id="dock">
+    <div class="dock right" id="dock">
       <div class="panel" id="panel">
         <div class="phead">
-          <span class="mark">${LOGO}</span>
           <span class="brand">CYBERSTRIKE</span>
-          <span class="pill" id="pill">detached</span>
+          <span class="state" id="state">detached</span>
         </div>
         <div class="pbody">
-          <div class="stat">captured <b id="pcount">0</b></div>
-          <div class="obs" id="obs">observing…</div>
+          <div class="stat"><span class="k">captured</span><span class="v accent" id="s-total">0</span></div>
+          <div class="stat"><span class="k">API endpoints</span><span class="v" id="s-api">0</span></div>
+          <div class="stat"><span class="k">JavaScript files</span><span class="v" id="s-js">0</span></div>
+          <div class="stat"><span class="k">static assets</span><span class="v" id="s-static">0</span></div>
+          <div class="stat"><span class="k">page elements</span><span class="v" id="s-page">0</span></div>
           <button class="act" id="handover">AI is driving — take over</button>
         </div>
       </div>
-      <div class="fab" id="fab">
-        <span class="mark">${LOGO}</span>
-        <span class="label">CS</span>
-        <span class="count" id="fcount">0</span>
-      </div>
+      <button class="fab" id="fab" title="CyberStrike"><img src="${LOGO_SRC}" alt="CyberStrike" draggable="false" /></button>
     </div>
   `
 
   const dock = root.getElementById("dock")
   const fab = root.getElementById("fab")
-  const panel = root.getElementById("panel")
-  const pill = root.getElementById("pill")
-  const fcount = root.getElementById("fcount")
-  const pcount = root.getElementById("pcount")
+  const stateEl = root.getElementById("state")
+  const sTotal = root.getElementById("s-total")
+  const sApi = root.getElementById("s-api")
+  const sJs = root.getElementById("s-js")
+  const sStatic = root.getElementById("s-static")
+  const sPage = root.getElementById("s-page")
   const handover = root.getElementById("handover")
-  const obsLine = root.getElementById("obs")
 
   let driver = "ai"
   let expanded = false
+  let pageCount = 0
 
-  function applyDriverClass() {
-    dock.classList.toggle("human", driver === "human")
+  // Dock side (left/right) from the host position — panel opens toward center.
+  function updateSide() {
+    const cx = host.getBoundingClientRect().left + host.offsetWidth / 2
+    const onRight = cx > window.innerWidth / 2
+    dock.classList.toggle("right", onRight)
+    dock.classList.toggle("left", !onRight)
   }
 
   function render(status) {
     const attached = !!(status && status.attached)
-    dock.classList.toggle("capturing", attached && driver !== "human")
-    if (status && typeof status.count === "number") {
-      fcount.textContent = String(status.count)
-      pcount.textContent = String(status.count)
-    }
     if (status && status.driver) driver = status.driver
-    applyDriverClass()
-    pill.textContent = driver === "human" ? "you drive" : attached ? "capturing" : "detached"
-    if (driver === "human") {
-      handover.textContent = "You're driving — give back to AI"
-      handover.classList.add("human")
-    } else {
-      handover.textContent = "AI is driving — take over"
-      handover.classList.remove("human")
+    dock.classList.toggle("capturing", attached)
+    dock.classList.toggle("driver-ai", driver !== "human")
+    dock.classList.toggle("driver-human", driver === "human")
+
+    if (status && status.stats) {
+      const st = status.stats
+      sTotal.textContent = st.total || 0
+      sApi.textContent = st.api || 0
+      sJs.textContent = st.js || 0
+      sStatic.textContent = st.static || 0
     }
+    sPage.textContent = pageCount
+
+    stateEl.textContent = !attached ? "detached" : driver === "human" ? "you drive" : "AI driving"
+    handover.textContent = driver === "human" ? "You're driving — give back to AI" : "AI is driving — take over"
+    handover.classList.toggle("human", driver === "human")
+
+    // Edge glow: navy when AI-driven, amber when human — only while capturing.
+    glow.classList.toggle("on", attached)
+    glow.classList.toggle("ai", attached && driver !== "human")
+    glow.classList.toggle("human", attached && driver === "human")
   }
 
-  // --- Drag to reposition (like the 1.x draggable bar) ----------------------
-  // The dock can be dragged anywhere; a click that didn't move toggles expand.
+  // --- Drag ------------------------------------------------------------------
   let dragging = false
   let moved = false
   let startX = 0
@@ -175,31 +200,24 @@
     const r = host.getBoundingClientRect()
     origLeft = r.left
     origTop = r.top
-    // switch from right/bottom anchoring to absolute left/top
     host.style.left = origLeft + "px"
     host.style.top = origTop + "px"
     host.style.right = "auto"
     host.style.bottom = "auto"
     e.preventDefault()
   }
-
   function onDragMove(e) {
     if (!dragging) return
     const p = e.touches ? e.touches[0] : e
     const dx = p.clientX - startX
     const dy = p.clientY - startY
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true
-    let left = origLeft + dx
-    let top = origTop + dy
-    // keep it on-screen
-    const w = host.offsetWidth
-    const h = host.offsetHeight
-    left = Math.max(4, Math.min(left, window.innerWidth - w - 4))
-    top = Math.max(4, Math.min(top, window.innerHeight - h - 4))
+    let left = Math.max(4, Math.min(origLeft + dx, window.innerWidth - host.offsetWidth - 4))
+    let top = Math.max(4, Math.min(origTop + dy, window.innerHeight - host.offsetHeight - 4))
     host.style.left = left + "px"
     host.style.top = top + "px"
+    updateSide()
   }
-
   function onDragEnd() {
     dragging = false
   }
@@ -219,8 +237,9 @@
   fab.addEventListener("click", () => {
     if (moved) {
       moved = false
-      return // was a drag, not a click
+      return
     }
+    updateSide()
     expanded = !expanded
     dock.classList.toggle("open", expanded)
   })
@@ -237,7 +256,6 @@
     const r = el.getBoundingClientRect()
     return r.width > 0 && r.height > 0
   }
-
   function labelOf(el) {
     const raw =
       el.getAttribute("aria-label") ||
@@ -248,9 +266,7 @@
       ""
     return raw.replace(/\s+/g, " ").trim().slice(0, 80)
   }
-
   const elMap = new Map()
-
   function observePage() {
     const clickSel = "a[href],button,[role=button],input[type=submit],input[type=button],[onclick]"
     const clickables = []
@@ -260,31 +276,19 @@
       if (!visible(el)) continue
       const eid = "E" + i++
       elMap.set(eid, el)
-      clickables.push({
-        id: eid,
-        tag: el.tagName.toLowerCase(),
-        role: el.getAttribute("role") || "",
-        label: labelOf(el),
-        href: el.getAttribute("href") || "",
-      })
+      clickables.push({ id: eid, tag: el.tagName.toLowerCase(), role: el.getAttribute("role") || "", label: labelOf(el), href: el.getAttribute("href") || "" })
       if (i >= 300) break
     }
-
     const forms = []
     for (const f of document.querySelectorAll("form")) {
       if (forms.length >= 40) break
       const fields = []
       for (const el of f.elements) {
         if (!el.name && !el.id) continue
-        fields.push({
-          name: el.name || el.id,
-          type: (el.getAttribute("type") || el.tagName).toLowerCase(),
-          required: el.hasAttribute("required"),
-        })
+        fields.push({ name: el.name || el.id, type: (el.getAttribute("type") || el.tagName).toLowerCase(), required: el.hasAttribute("required") })
       }
       forms.push({ action: f.getAttribute("action") || "", method: (f.getAttribute("method") || "get").toLowerCase(), fields })
     }
-
     const links = []
     const seen = new Set()
     for (const a of document.querySelectorAll("a[href]")) {
@@ -294,15 +298,12 @@
       links.push(href)
       if (links.length >= 300) break
     }
-
     return { url: location.href, title: document.title, clickables, forms, links }
   }
-
   function sendObservation() {
     const obs = observePage()
-    chrome.runtime.sendMessage({ type: "observe", observation: obs }, () => {
-      if (chrome.runtime.lastError) return
-    })
+    pageCount = obs.clickables.length + obs.forms.length
+    chrome.runtime.sendMessage({ type: "observe", observation: obs }, () => void chrome.runtime.lastError)
     return obs
   }
 
@@ -353,12 +354,6 @@
   }
 
   let lastUrl = location.href
-
-  function showObs(obs) {
-    if (!obs) return
-    obsLine.textContent = `${obs.clickables.length} clickables · ${obs.forms.length} forms · ${obs.links.length} links`
-  }
-
   function poll() {
     chrome.runtime.sendMessage({ type: "panel-status" }, (res) => {
       if (chrome.runtime.lastError) return
@@ -366,17 +361,19 @@
     })
     if (location.href !== lastUrl) {
       lastUrl = location.href
-      showObs(sendObservation())
+      sendObservation()
     }
   }
 
   function mount() {
     if (!document.body) return
     if (document.getElementById("cyberstrike-panel-host")) return
+    document.body.appendChild(glowHost)
     document.body.appendChild(host)
     readCredFromHash()
+    updateSide()
+    sendObservation()
     poll()
-    showObs(sendObservation())
     setInterval(poll, 1500)
   }
 
