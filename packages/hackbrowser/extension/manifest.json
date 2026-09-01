@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "CyberStrike HackBrowser 2.0",
+  "version": "0.1.0",
+  "description": "Full network capture via chrome.debugger Network domain — forwards every request to CyberStrike.",
+  "permissions": ["debugger", "tabs", "storage", "webNavigation"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "CyberStrike: attach capture to this tab",
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

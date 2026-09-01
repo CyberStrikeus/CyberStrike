@@ -1,0 +1,197 @@
+// CyberStrike HackBrowser 2.0 — background service worker.
+//
+// Captures ALL network traffic on an attached tab via the Chrome DevTools
+// Protocol (chrome.debugger → Network domain) and forwards each request to a
+// receiver endpoint. This is the extension CaptureSource: it drives the tab
+// in-page rather than through a Playwright/CDP automation stack, so the only
+// CDP surface is the Network domain (needed for response bodies).
+//
+// Body policy (see design §2.1.1): every request's metadata is forwarded;
+// response bodies are fetched only for DYNAMIC resources (xhr/fetch/document/
+// eventsource) — static assets (script/stylesheet/font/image/media) forward
+// URL + hash only, and their bodies are pulled later, out of band.
+
+const DEBUGGER_VERSION = "1.3"
+const DEFAULT_RECEIVER = "http://127.0.0.1:4097/capture"
+
+// tabId → true, for tabs we've attached to
+const attached = new Map()
+// `${tabId}:${requestId}` → in-flight request record awaiting its response
+const pending = new Map()
+
+function receiverUrl() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get("receiver", (out) => {
+      resolve(out && out.receiver ? out.receiver : DEFAULT_RECEIVER)
+    })
+  })
+}
+
+// CDP resource type → our normalized resource_type
+function normalizeType(cdpType) {
+  const t = (cdpType || "").toLowerCase()
+  if (t === "document") return "document"
+  if (t === "script") return "script"
+  if (t === "stylesheet") return "stylesheet"
+  if (t === "xhr") return "xhr"
+  if (t === "fetch") return "fetch"
+  if (t === "image") return "image"
+  if (t === "font") return "font"
+  if (t === "media") return "media"
+  if (t === "websocket") return "websocket"
+  if (t === "eventsource") return "eventsource"
+  return "other"
+}
+
+// Static (idempotent) resources forward URL+hash only; dynamic carry the body.
+function bodyClass(resourceType, method) {
+  const m = (method || "GET").toUpperCase()
+  if (resourceType === "xhr" || resourceType === "fetch" || resourceType === "eventsource") return "dynamic"
+  if (resourceType === "document" && m !== "GET" && m !== "HEAD") return "dynamic"
+  if (resourceType === "document") return "dynamic" // keep HTML for form/link extraction
+  return "static"
+}
+
+async function attach(tabId) {
+  if (attached.has(tabId)) return
+  await chrome.debugger.attach({ tabId }, DEBUGGER_VERSION)
+  await chrome.debugger.sendCommand({ tabId }, "Network.enable", {})
+  attached.set(tabId, true)
+}
+
+async function detach(tabId) {
+  if (!attached.has(tabId)) return
+  try {
+    await chrome.debugger.detach({ tabId })
+  } catch (e) {
+    // tab may already be gone
+  }
+  attached.delete(tabId)
+}
+
+async function forward(record) {
+  const url = await receiverUrl()
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(record),
+    })
+  } catch (e) {
+    console.warn("[hackbrowser] forward failed", e)
+  }
+}
+
+// Single global CDP event listener; source.tabId disambiguates.
+chrome.debugger.onEvent.addListener(async (source, method, params) => {
+  const tabId = source.tabId
+  if (tabId === undefined) return
+  const key = `${tabId}:${params && params.requestId}`
+
+  if (method === "Network.requestWillBeSent") {
+    const req = params.request
+    const resourceType = normalizeType(params.type)
+    pending.set(key, {
+      url: req.url,
+      method: req.method,
+      requestHeaders: req.headers || {},
+      requestBody: req.postData || null,
+      resourceType,
+      bodyClass: bodyClass(resourceType, req.method),
+      scheme: req.url.startsWith("https:") ? "https" : "http",
+      timestamp: Date.now(),
+      response: null,
+    })
+    return
+  }
+
+  if (method === "Network.responseReceived") {
+    const rec = pending.get(key)
+    if (!rec) return
+    const res = params.response
+    rec.response = {
+      status: res.status,
+      headers: res.headers || {},
+      contentType: res.mimeType || "",
+    }
+    return
+  }
+
+  if (method === "Network.loadingFinished") {
+    const rec = pending.get(key)
+    if (!rec) return
+    pending.delete(key)
+
+    let responseBody = null
+    let responseSize = 0
+    if (rec.bodyClass === "dynamic" && rec.response) {
+      try {
+        const out = await chrome.debugger.sendCommand({ tabId }, "Network.getResponseBody", {
+          requestId: params.requestId,
+        })
+        responseBody = out && out.body ? out.body : null
+        responseSize = responseBody ? responseBody.length : 0
+      } catch (e) {
+        // body no longer available (streamed/evicted) — forward without it
+      }
+    }
+
+    const response = rec.response || { status: 0, headers: {}, contentType: "" }
+    forward({
+      url: rec.url,
+      method: rec.method,
+      status: response.status,
+      resourceType: rec.resourceType,
+      bodyClass: rec.bodyClass,
+      requestHeaders: rec.requestHeaders,
+      requestBody: rec.requestBody,
+      responseHeaders: response.headers,
+      responseBody,
+      responseSize,
+      contentType: response.contentType,
+      scheme: rec.scheme,
+      timestamp: rec.timestamp,
+      // enrichment fields — filled in later phases (multi-credential, overlay triggers)
+      credentialId: null,
+      triggerElement: null,
+      elementRoles: null,
+      pageUrl: null,
+      pageVisitedBy: null,
+      isPrefetch: false,
+    })
+    return
+  }
+})
+
+// Auto-detach bookkeeping when a tab closes or the user detaches via DevTools.
+chrome.debugger.onDetach.addListener((source) => {
+  if (source.tabId !== undefined) attached.delete(source.tabId)
+})
+chrome.tabs.onRemoved.addListener((tabId) => {
+  attached.delete(tabId)
+  for (const key of pending.keys()) {
+    if (key.startsWith(`${tabId}:`)) pending.delete(key)
+  }
+})
+
+// Popup asks us to attach/detach/status the active tab.
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  ;(async () => {
+    if (msg.type === "attach") {
+      await attach(msg.tabId)
+      sendResponse({ ok: true, attached: true })
+      return
+    }
+    if (msg.type === "detach") {
+      await detach(msg.tabId)
+      sendResponse({ ok: true, attached: false })
+      return
+    }
+    if (msg.type === "status") {
+      sendResponse({ ok: true, attached: attached.has(msg.tabId) })
+      return
+    }
+    sendResponse({ ok: false, error: "unknown message" })
+  })()
+  return true // async sendResponse
+})
