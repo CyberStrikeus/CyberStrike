@@ -96,11 +96,16 @@
       .fab:active { cursor: grabbing; }
       .fab img {
         width: 52px; height: 52px; display: block; pointer-events: none;
+        transform-origin: 50% 50%;              /* center of the circular logo */
         filter: drop-shadow(0 3px 10px rgba(0,0,0,.5));
+        animation: spin 12s steps(6) infinite;  /* idle: 60° step every 2s */
       }
+      @keyframes spin { to { transform: rotate(360deg); } }
       .fab.tapped { animation: tap .3s ease; }
       @keyframes tap { 0% { transform: scale(1);} 40% { transform: scale(.82);} 100% { transform: scale(1);} }
-      .dock.capturing .fab img { animation: glowpulse 2s ease-in-out infinite; }
+      .dock.capturing .fab img {
+        animation: spin 12s steps(6) infinite, glowpulse 2s ease-in-out infinite;
+      }
       @keyframes glowpulse {
         0%,100% { filter: drop-shadow(0 3px 10px rgba(0,0,0,.5)); }
         50% { filter: drop-shadow(0 0 10px rgba(255,255,255,.35)) drop-shadow(0 3px 10px rgba(0,0,0,.5)); }
