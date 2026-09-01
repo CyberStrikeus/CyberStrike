@@ -211,6 +211,48 @@ enrichment). **S3 is exactly the three-phase model** — nothing new invented. *
 always inject overlay via content script, never CDP `addScriptToEvaluateOnNewDocument`**
 — avoids the leak and works across all runtimes.
 
+### 3.7 Auth-token resilience (OIDC/OAuth targets)
+
+A long crawl against an OIDC/OAuth target loses auth mid-run. 1.x discards the whole
+crawl on the first auth error — all progress lost. 2.0 treats it as a **pause, not a
+fail**, and — more importantly — **prevents the most common self-inflicted causes.**
+
+**Root cause seen in 1.x: `access token revoked` (not expired — actively invalidated).**
+Two causes, both preventable:
+
+1. **The AI logged itself out.** A crawl click hit a logout / sign-out / end-session /
+   "revoke all sessions" element. 1.x's guard was URL-based (`classifyAuthUrl`) — a
+   button, a menu item, a localized label, or a security page slips through.
+2. **Refresh-token reuse detection.** OIDC refresh tokens rotate (single-use). If the
+   SAME refresh token is used in two places — the browser refreshing while
+   `http_replay` (offline analysis) also holds it — the IdP treats it as an attack and
+   **revokes the whole token family.** This is the likely 1.x cause: browser and replay
+   shared the refresh token.
+
+**Prevention (design rules):**
+- **Never share the refresh token.** Only the browser refreshes (single authority).
+  `http_replay` uses the short-lived **access token only** — never the refresh token.
+  `auth_sync` pushes the current *access* token from browser to replay; the refresh
+  token is never exported. This structurally prevents reuse-detection revocation.
+- **Deny logout/revoke actions at the brick level.** The AI's action space is bounded
+  by tools (§6). Logout / sign-out / end-session / revoke-sessions elements are
+  deny-listed by semantic detection (element meaning, not just URL) — the AI *cannot*
+  click them. Far stronger than 1.x's URL guard; a subset of the destructive-action
+  guardrail.
+- **Multi-credential isolation.** Each credential = a separate real Chrome profile
+  (separate cookie jar, separate token family). If the IdP enforces single-session,
+  run credentials sequentially, not concurrently.
+
+**Recovery (if revoked anyway):**
+- **Detect early on 401.** First few 401s ⇒ auth lost; pause — don't run on emitting a
+  clean empty "complete".
+- **Persistent state ⇒ pause, resume from where it stopped** (no lost work).
+- **Co-driving handover ⇒ human re-login.** Revocation is irreversible (refresh won't
+  work); the only path is a fresh login. Human re-logs in via handover, `auth_sync`
+  broadcasts the new token, the AI resumes. Impossible in 1.x's isolated model.
+
+See issue tracker: "HackBrowser 2.0 — refresh-token reuse revokes target session".
+
 ---
 
 ## 4. Analysis layer: OO agent cluster (Phase 2 target)
