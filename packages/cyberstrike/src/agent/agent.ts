@@ -50,12 +50,9 @@ import DESC_PROXY_TESTER_FILE_ATTACKS from "./prompt/vuln/file-attacks/descripti
 import PROMPT_METHODOLOGY_COMMON from "./prompt/methodology/common-methodology.txt"
 import PROMPT_METHODOLOGY_CONTINUATION from "./prompt/methodology/forced-continuation.txt"
 
-// Cloud analysis pipeline — Layer 2 orchestrator, analysts, verify
-import PROMPT_CLOUD_ORCHESTRATOR from "./prompt/cloud/orchestrator.txt"
-import PROMPT_CLOUD_ANALYST_COMMON from "./prompt/cloud/analyst-common.txt"
-import PROMPT_CLOUD_VERIFY from "./prompt/cloud/verify.txt"
-import PROMPT_CLOUD_BATCH_VERIFIER from "./prompt/cloud/batch-verifier.txt"
-import { CLOUD_GROUPS } from "../cloud/groups"
+// Cloud analysis pipeline — providers define agent specs
+import { AzureProvider } from "../cloud/provider-azure"
+import type { AgentSpec } from "../cloud/provider"
 
 import { PermissionNext } from "@/permission/next"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
@@ -133,16 +130,24 @@ export namespace Agent {
   // capped turn) lives in session/prompt.ts.
   const STEP_CAPS = { orchestrator: 40, analyzer: 20 } as const
 
-  const CLOUD_GROUP_SKILLS: Record<string, string[]> = {
-    identity: ["azure-postexploit", "cloud-assessment", "ad-security"],
-    compute: ["azure-postexploit", "cloud-assessment", "k8s-assessment"],
-    network: ["cloud-assessment", "azure-postexploit"],
-    data: ["azure-postexploit", "cloud-assessment"],
-    security: ["cloud-assessment", "azure-postexploit"],
-    access: ["azure-postexploit", "cloud-assessment", "ad-security"],
-    specialized: ["azure-postexploit", "cloud-assessment", "k8s-assessment"],
-    compliance: ["cloud-assessment", "azure-postexploit", "ci-assessment"],
-    exposure: ["cloud-assessment", "azure-postexploit", "attack-subdomain-takeover"],
+  function specsToAgents(specs: AgentSpec[], defaults: PermissionNext.Ruleset, user: PermissionNext.Ruleset): Record<string, Info> {
+    const result: Record<string, Info> = {}
+    for (const spec of specs) {
+      result[spec.name] = {
+        name: spec.name,
+        description: spec.description,
+        mode: "subagent",
+        native: true,
+        hidden: true,
+        steps: spec.steps,
+        color: spec.color,
+        prompt: spec.prompt,
+        skills: spec.skills,
+        permission: PermissionNext.merge(defaults, PermissionNext.fromConfig(spec.permissions), user),
+        options: {},
+      }
+    }
+    return result
   }
 
   export const Info = z
@@ -440,155 +445,8 @@ export namespace Agent {
         ),
         options: {},
       },
-      // ── Cloud Analysis Pipeline (Layer 2) ─────────────────────────
-      "cloud-orchestrator": {
-        name: "cloud-orchestrator",
-        description: "Cloud assessment orchestrator. Dispatches 9 analyst subagents, coordinates cross-group correlation, runs verification.",
-        mode: "subagent",
-        native: true,
-        hidden: true,
-        steps: STEP_CAPS.orchestrator,
-        color: "cyan",
-        prompt: PROMPT_CLOUD_ORCHESTRATOR,
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            "*": "deny",
-            task: "allow",
-            question: "allow",
-            get_cloud_intel: "allow",
-            get_cloud_groups: "allow",
-            get_assess_findings: "allow",
-            web_get_vuln_detail: "allow",
-            triage_vulnerability: "allow",
-            methodology_status: "allow",
-          }),
-          user,
-        ),
-        options: {},
-      },
-      ...Object.fromEntries(
-        CLOUD_GROUPS.map((g) => [
-          g.analyst,
-          {
-            name: g.analyst,
-            description: `Cloud analyst: ${g.label}. ${g.description}`,
-            mode: "subagent" as const,
-            native: true,
-            hidden: true,
-            steps: 30,
-            color: "cyan",
-            prompt: `${PROMPT_CLOUD_ANALYST_COMMON}\n\n---\n\n## Your Group: ${g.label}\n\nYou own the **${g.key}** group.\nPrograms in your group: ${g.programs.join(", ")}\n\n${g.description}`,
-            skills: CLOUD_GROUP_SKILLS[g.key] ?? ["cloud-assessment", "azure-postexploit"],
-            permission: PermissionNext.merge(
-              defaults,
-              PermissionNext.fromConfig({
-                bash: "allow",
-                read: "allow",
-                glob: "allow",
-                grep: "allow",
-                azurehook: "allow",
-                awshook: "allow",
-                kubehook: "allow",
-                gcphook: "allow",
-                add_intel: "allow",
-                get_cloud_intel: "allow",
-                get_cloud_groups: "allow",
-                get_assess_findings: "allow",
-                report_vulnerability: "allow",
-                triage_vulnerability: "allow",
-                update_vrt_check: "allow",
-                methodology_status: "allow",
-                skill: "allow",
-              }),
-              user,
-            ),
-            options: {},
-          },
-        ]),
-      ),
-      "cloud-followup": {
-        name: "cloud-followup",
-        description: "Cloud follow-up agent for verifying cross-group attack chains.",
-        mode: "subagent",
-        native: true,
-        hidden: true,
-        steps: 20,
-        color: "cyan",
-        prompt: `${PROMPT_CLOUD_ANALYST_COMMON}\n\n---\n\n## Your Role: Follow-up Verification\n\nYou are a targeted verifier. The orchestrator detected a cross-group attack chain and dispatched you to confirm it.\n\nYour job:\n1. Verify each link in the chain by running the relevant azurehook programs\n2. Confirm the full chain is exploitable end-to-end\n3. Report the chain as a vulnerability if confirmed, with the full attack path\n4. Record the chain via add_intel with type "attack_path"\n\nUse the \`skill\` tool to load relevant skills for the chain you are verifying.`,
-        skills: ["azure-postexploit", "cloud-assessment"],
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            bash: "allow",
-            read: "allow",
-            azurehook: "allow",
-            awshook: "allow",
-            kubehook: "allow",
-            gcphook: "allow",
-            add_intel: "allow",
-            get_cloud_intel: "allow",
-            report_vulnerability: "allow",
-            triage_vulnerability: "allow",
-            skill: "allow",
-          }),
-          user,
-        ),
-        options: {},
-      },
-      "cloud-verify": {
-        name: "cloud-verify",
-        description: "Cloud verification agent. Final validation of all cloud findings before presentation.",
-        mode: "subagent",
-        native: true,
-        hidden: true,
-        steps: STEP_CAPS.analyzer,
-        color: "cyan",
-        prompt: PROMPT_CLOUD_VERIFY,
-        skills: ["cloud-assessment", "azure-postexploit"],
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            bash: "allow",
-            read: "allow",
-            azurehook: "allow",
-            get_cloud_intel: "allow",
-            get_assess_findings: "allow",
-            web_get_vuln_detail: "allow",
-            triage_vulnerability: "allow",
-            methodology_status: "allow",
-            skill: "allow",
-          }),
-          user,
-        ),
-        options: {},
-      },
-      "cloud-batch-verifier": {
-        name: "cloud-batch-verifier",
-        description: "Rapid batch verifier for formulaic cloud findings. Single-pass triage without deep investigation.",
-        mode: "subagent",
-        native: true,
-        hidden: true,
-        steps: 15,
-        color: "cyan",
-        prompt: PROMPT_CLOUD_BATCH_VERIFIER,
-        skills: ["cloud-assessment"],
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            bash: "allow",
-            read: "allow",
-            azurehook: "allow",
-            get_assess_findings: "allow",
-            get_cloud_intel: "allow",
-            add_intel: "allow",
-            triage_vulnerability: "allow",
-            skill: "allow",
-          }),
-          user,
-        ),
-        options: {},
-      },
+      // ── Cloud Analysis Pipeline (Layer 2) — provider-defined agents ──
+      ...specsToAgents(new AzureProvider().agentSpecs(), defaults, user),
       "internal-network": {
         name: "internal-network",
         description: "Internal network and Active Directory specialist. AD attacks, Kerberos, lateral movement.",
