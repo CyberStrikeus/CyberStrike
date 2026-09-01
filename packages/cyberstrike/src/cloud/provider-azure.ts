@@ -1,11 +1,36 @@
-import type { AssessmentProvider } from "./provider"
+import type { AssessmentProvider, AgentSpec } from "./provider"
 import type { CloudAnalysis } from "./types"
-import type { ClassifiedGroup } from "./classify"
 import { CLOUD_GROUPS, identityGroup as azureIdentityGroup, parallelGroups as azureParallelGroups } from "./groups"
 import { getAssessResult } from "../tool/azurehook/assess-cache"
 import { classifyGroupFindings } from "./classify"
 import { Intel } from "../methodology/intel"
 import { triageGuide, triageActions } from "../session/vulnerability-status"
+
+import PROMPT_CLOUD_ANALYST_COMMON from "../agent/prompt/cloud/analyst-common.txt"
+import PROMPT_CLOUD_ORCHESTRATOR from "../agent/prompt/cloud/orchestrator.txt"
+import PROMPT_CLOUD_VERIFY from "../agent/prompt/cloud/verify.txt"
+import PROMPT_CLOUD_BATCH_VERIFIER from "../agent/prompt/cloud/batch-verifier.txt"
+
+const ANALYST_PERMISSIONS: Record<string, "ask" | "allow" | "deny"> = {
+  bash: "allow", read: "allow", glob: "allow", grep: "allow",
+  azurehook: "allow", awshook: "allow", kubehook: "allow", gcphook: "allow",
+  add_intel: "allow", get_cloud_intel: "allow", get_cloud_groups: "allow",
+  get_assess_findings: "allow", report_vulnerability: "allow",
+  triage_vulnerability: "allow", update_vrt_check: "allow",
+  methodology_status: "allow", skill: "allow",
+}
+
+const GROUP_SKILLS: Record<string, string[]> = {
+  identity: ["azure-postexploit", "cloud-assessment", "ad-security"],
+  compute: ["azure-postexploit", "cloud-assessment", "k8s-assessment"],
+  network: ["cloud-assessment", "azure-postexploit"],
+  data: ["azure-postexploit", "cloud-assessment"],
+  security: ["cloud-assessment", "azure-postexploit"],
+  access: ["azure-postexploit", "cloud-assessment", "ad-security"],
+  specialized: ["azure-postexploit", "cloud-assessment", "k8s-assessment"],
+  compliance: ["cloud-assessment", "azure-postexploit", "ci-assessment"],
+  exposure: ["cloud-assessment", "azure-postexploit", "attack-subdomain-takeover"],
+}
 
 export class AzureProvider implements AssessmentProvider {
   key = "azure"
@@ -94,6 +119,10 @@ export class AzureProvider implements AssessmentProvider {
     ].join("\n")
   }
 
+  followupPrompt(chain: CloudAnalysis.FollowUp) {
+    return chain.prompt
+  }
+
   identityContext(rootSession: string) {
     const entries = Intel.get(rootSession)
     const identity = entries.filter((e) => e.tags.includes("group:identity"))
@@ -104,5 +133,97 @@ export class AzureProvider implements AssessmentProvider {
       if (e.chainPotential) lines.push(`  Chain: ${e.chainPotential}`)
     }
     return lines.join("\n")
+  }
+
+  agentSpecs(): AgentSpec[] {
+    const analysts: AgentSpec[] = CLOUD_GROUPS.map((g) => ({
+      name: g.analyst,
+      role: "analyst" as const,
+      group: g.key,
+      description: `Cloud analyst: ${g.label}. ${g.description}`,
+      steps: 30,
+      color: "cyan",
+      prompt: `${PROMPT_CLOUD_ANALYST_COMMON}\n\n---\n\n## Your Group: ${g.label}\n\nYou own the **${g.key}** group.\nPrograms in your group: ${g.programs.join(", ")}\n\n${g.description}`,
+      skills: GROUP_SKILLS[g.key] ?? ["cloud-assessment", "azure-postexploit"],
+      permissions: ANALYST_PERMISSIONS,
+    }))
+
+    return [
+      ...analysts,
+      {
+        name: "cloud-orchestrator",
+        role: "orchestrator",
+        description: "Cloud assessment orchestrator. Dispatches analyst subagents, coordinates cross-group correlation, runs verification.",
+        steps: 40,
+        color: "cyan",
+        prompt: PROMPT_CLOUD_ORCHESTRATOR,
+        skills: [],
+        permissions: {
+          "*": "deny",
+          task: "allow", question: "allow",
+          get_cloud_intel: "allow", get_cloud_groups: "allow",
+          get_assess_findings: "allow", web_get_vuln_detail: "allow",
+          triage_vulnerability: "allow", methodology_status: "allow",
+        },
+      },
+      {
+        name: "cloud-followup",
+        role: "followup",
+        description: "Cloud follow-up agent for verifying cross-group attack chains.",
+        steps: 20,
+        color: "cyan",
+        prompt: [
+          PROMPT_CLOUD_ANALYST_COMMON,
+          "\n\n---\n\n## Your Role: Follow-up Verification\n\n",
+          "You are a targeted verifier. The orchestrator detected a cross-group attack chain and dispatched you to confirm it.\n\n",
+          "Your job:\n",
+          "1. Verify each link in the chain by running the relevant azurehook programs\n",
+          "2. Confirm the full chain is exploitable end-to-end\n",
+          "3. Report the chain as a vulnerability if confirmed, with the full attack path\n",
+          "4. Record the chain via add_intel with type \"attack_path\"\n\n",
+          "Use the `skill` tool to load relevant skills for the chain you are verifying.",
+        ].join(""),
+        skills: ["azure-postexploit", "cloud-assessment"],
+        permissions: {
+          bash: "allow", read: "allow",
+          azurehook: "allow", awshook: "allow", kubehook: "allow", gcphook: "allow",
+          add_intel: "allow", get_cloud_intel: "allow",
+          report_vulnerability: "allow", triage_vulnerability: "allow",
+          skill: "allow",
+        },
+      },
+      {
+        name: "cloud-verify",
+        role: "verifier",
+        description: "Cloud verification agent. Final validation of all cloud findings before presentation.",
+        steps: 20,
+        color: "cyan",
+        prompt: PROMPT_CLOUD_VERIFY,
+        skills: ["cloud-assessment", "azure-postexploit"],
+        permissions: {
+          bash: "allow", read: "allow",
+          azurehook: "allow",
+          get_cloud_intel: "allow", get_assess_findings: "allow",
+          web_get_vuln_detail: "allow", triage_vulnerability: "allow",
+          methodology_status: "allow", skill: "allow",
+        },
+      },
+      {
+        name: "cloud-batch-verifier",
+        role: "batch-verifier",
+        description: "Rapid batch verifier for formulaic cloud findings. Single-pass triage without deep investigation.",
+        steps: 15,
+        color: "cyan",
+        prompt: PROMPT_CLOUD_BATCH_VERIFIER,
+        skills: ["cloud-assessment"],
+        permissions: {
+          bash: "allow", read: "allow",
+          azurehook: "allow",
+          get_assess_findings: "allow", get_cloud_intel: "allow",
+          add_intel: "allow", triage_vulnerability: "allow",
+          skill: "allow",
+        },
+      },
+    ]
   }
 }
