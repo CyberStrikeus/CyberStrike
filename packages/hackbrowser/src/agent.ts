@@ -2066,6 +2066,18 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     )
   }
 
+  // Background drain every 500ms — mirrors run() single-credential path.
+  const drainInterval = setInterval(async () => {
+    for (const [ctxId, queue] of captureQueues) {
+      const handler = captureHandlers.get(ctxId)
+      if (!handler) continue
+      while (queue.length > 0) {
+        const captured = queue.shift()!
+        await handler(captured)
+      }
+    }
+  }, 500)
+
   // Initialize BFS queue — use each context's actual URL after login (may have redirected from targetUrl)
   // Collect unique post-login URLs and tag with their contexts
   const seedUrls = new Map<string, string[]>()
@@ -2081,6 +2093,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
   globalState.authPhase = "authenticated" // Multi-credential: skip anonymous phase
   let pagesExplored = 0
 
+  try {
   // BFS Loop — single loop, N contexts
   while (pageQueue.length > 0 && pagesExplored < maxPages) {
     if (isBrowserDead(health)) {
@@ -2336,7 +2349,18 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
 
   if (!config.headless && browser.isConnected()) {
     log.info("crawl complete — browser stays open, close the window to finish")
+    const postCrawlDrain = setInterval(async () => {
+      for (const [ctxId, queue] of captureQueues) {
+        const handler = captureHandlers.get(ctxId)
+        if (!handler) continue
+        while (queue.length > 0) {
+          const captured = queue.shift()!
+          await handler(captured)
+        }
+      }
+    }, 500)
     await waitForBrowserClose(browser, config.signal)
+    clearInterval(postCrawlDrain)
   } else if (!browserDied) {
     await browser.close().catch(() => {})
   }
@@ -2350,6 +2374,9 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
       ? [`Browser died: ${health.reason}. Captured ${globalState.capturedEndpoints.size} endpoints before failure.`]
       : [],
     usage: usageAcc,
+  }
+  } finally {
+    clearInterval(drainInterval)
   }
 }
 
