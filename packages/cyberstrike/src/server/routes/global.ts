@@ -10,6 +10,7 @@ import { Log } from "../../util/log"
 import { lazy } from "../../util/lazy"
 import { Config } from "../../config/config"
 import { errors } from "../error"
+import { Flag } from "../../flag/flag"
 
 const log = Log.create({ service: "server" })
 
@@ -62,6 +63,13 @@ export const GlobalRoutes = lazy(() =>
         },
       }),
       async (c) => {
+        const config = await Config.global()
+        if (config.autoupdate === false || Flag.CYBERSTRIKE_DISABLE_AUTOUPDATE) {
+          return c.json({
+            version: Installation.VERSION,
+            updateAvailable: false,
+          })
+        }
         const latest = await Installation.latest().catch(() => undefined)
         const updateAvailable = !!latest && latest !== Installation.VERSION
         return c.json({

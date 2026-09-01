@@ -268,6 +268,25 @@ scoop install cyberstrike
 curl -fsSL https://cyberstrike.io/install.sh | bash
 ```
 
+#### Build and deploy on Kali/Linux from source
+
+Build the matching Linux binary and web bundle with the repository-pinned Bun version:
+
+```bash
+bun install --frozen-lockfile
+bun run --cwd packages/app build
+CYBERSTRIKE_BUILD_TARGET=linux-x64 bun run --cwd packages/cyberstrike script/build.ts
+./install --binary packages/cyberstrike/dist/cyberstrike-linux-x64/bin/cyberstrike
+
+install -d "${XDG_DATA_HOME:-$HOME/.local/share}/cyberstrike/web"
+cp -R packages/app/dist/. "${XDG_DATA_HOME:-$HOME/.local/share}/cyberstrike/web/"
+CYBERSTRIKE_SERVER_PASSWORD=change-me cyberstrike web --hostname 127.0.0.1
+```
+
+The installer also copies the sibling HackBrowser worker. Use `linux-x64-baseline` for x64 CPUs without AVX2 and a `*-musl` target for musl-based distributions.
+
+For a persistent localhost-only deployment, install [`contrib/systemd/cyberstrike-web.service`](../../contrib/systemd/cyberstrike-web.service), set `CYBERSTRIKE_SERVER_PASSWORD` in a mode `0600` `~/.config/cyberstrike/web.env`, and enable the unit with `systemctl --user enable --now cyberstrike-web.service`.
+
 ---
 
 ### Who Is This For?

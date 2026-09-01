@@ -393,6 +393,36 @@ scoop install cyberstrike
 curl -fsSL https://cyberstrike.io/install.sh | bash
 ```
 
+#### Build and deploy on Kali/Linux from source
+
+Source deployments require the compiled binary, the matching HackBrowser worker, and the web bundle. Use the repository-pinned Bun version:
+
+```bash
+bun install --frozen-lockfile
+bun run --cwd packages/app build
+CYBERSTRIKE_BUILD_TARGET=linux-x64 bun run --cwd packages/cyberstrike script/build.ts
+
+# Installs the binary and its sibling HackBrowser worker.
+./install --binary packages/cyberstrike/dist/cyberstrike-linux-x64/bin/cyberstrike
+
+# Install the locally built Web UI.
+install -d "${XDG_DATA_HOME:-$HOME/.local/share}/cyberstrike/web"
+cp -R packages/app/dist/. "${XDG_DATA_HOME:-$HOME/.local/share}/cyberstrike/web/"
+
+CYBERSTRIKE_SERVER_PASSWORD=change-me cyberstrike web --hostname 127.0.0.1
+```
+
+Use `linux-x64-baseline` on x64 CPUs without AVX2, or the corresponding `*-musl` target on musl-based distributions. Back up the installed binary, configuration, and data directory before replacing a production deployment.
+
+For a persistent localhost-only deployment, install `contrib/systemd/cyberstrike-web.service` under `~/.config/systemd/user/`, create a mode `0600` `~/.config/cyberstrike/web.env` containing `CYBERSTRIKE_SERVER_PASSWORD`, then run:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now cyberstrike-web.service
+```
+
+Use an SSH or authenticated Cloudflare tunnel for remote access rather than exposing port 4096 directly.
+
 ---
 
 ### Who Is This For?

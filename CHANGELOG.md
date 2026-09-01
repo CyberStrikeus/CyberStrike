@@ -17,10 +17,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 - Server-enforced read-only observer role and typed local execution-plane capability inventory
 - Version-pinned MCP catalog with manual/optional install states and three additional owner-maintained integrations
 - Safe recovery startup with `--safe` and namespaced extension configuration
+- Target-selectable source builds and a localhost-only systemd user service template for Kali/Linux deployments
 
 ### Changed
 
 - MCP tool materialization now filters schemas before conversion and enforces real context-budget eviction
+
+### Fixed
+
+- Release and local-binary installs now deploy the bundled HackBrowser worker to the runtime data directory
+- Web update checks now honor disabled auto-updates, avoiding false upgrade prompts for managed source builds
 
 ## [1.1.16] — 2026-08-08
 

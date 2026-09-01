@@ -73,7 +73,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 INSTALL_DIR=$HOME/.cyberstrike/bin
-mkdir -p "$INSTALL_DIR"
+DATA_BIN_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/cyberstrike/bin"
+mkdir -p "$INSTALL_DIR" "$DATA_BIN_DIR"
 
 # If --binary is provided, skip all download/detection logic
 if [ -n "$binary_path" ]; then
@@ -354,13 +355,24 @@ download_and_install() {
 
     mv "$tmp_dir/cyberstrike" "$INSTALL_DIR"
     chmod 755 "${INSTALL_DIR}/cyberstrike"
+    install_worker "$tmp_dir/hackbrowser-worker.js"
     rm -rf "$tmp_dir"
+}
+
+install_worker() {
+    local worker_path="$1"
+    if [ ! -f "$worker_path" ]; then
+        return
+    fi
+    cp "$worker_path" "${DATA_BIN_DIR}/hackbrowser-worker.js"
+    chmod 755 "${DATA_BIN_DIR}/hackbrowser-worker.js"
 }
 
 install_from_binary() {
     print_message info "\n${MUTED}Installing ${NC}cyberstrike ${MUTED}from: ${NC}$binary_path"
     cp "$binary_path" "${INSTALL_DIR}/cyberstrike"
     chmod 755 "${INSTALL_DIR}/cyberstrike"
+    install_worker "$(dirname "$binary_path")/hackbrowser-worker.js"
 }
 
 if [ -n "$binary_path" ]; then
