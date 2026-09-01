@@ -3,3 +3,5 @@ export { CLOUD_GROUPS, groupByKey, groupByAnalyst, identityGroup, parallelGroups
 export { orchestrateLayer2 } from "./orchestrate"
 export { classifyFinding, classifyGroupFindings } from "./classify"
 export type { AgentTrajectory, OrchestrationTrajectory } from "./trajectory"
+export { CloudAsset, CloudEdge, CloudExposure, buildGraph } from "./inventory"
+export type { AssetKind, EdgeType, ExposureType } from "./inventory"

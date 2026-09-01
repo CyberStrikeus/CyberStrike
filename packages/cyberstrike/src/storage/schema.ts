@@ -25,3 +25,8 @@ export {
   AgentPerformanceTable,
   ValidationViolationTable,
 } from "../methodology/methodology.sql"
+export {
+  CloudAssetTable,
+  CloudEdgeTable,
+  CloudExposureTable,
+} from "../cloud/inventory.sql"
