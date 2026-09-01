@@ -91,6 +91,12 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
       .describe(
         "Cloud group key to filter: identity, compute, network, data, security, access, specialized, compliance, exposure. Omit for a summary of all groups.",
       ),
+    slice: z
+      .string()
+      .optional()
+      .describe(
+        "Slice notation 'N/T' (e.g. '1/3' = first of 3 slices). When set, only returns findings in this slice. Used by the orchestrator to split work across multiple agents.",
+      ),
   }),
   async execute(params, ctx): Promise<{ title: string; output: string; metadata: Meta }> {
     const rootSession = Session.root(ctx.sessionID)
@@ -166,7 +172,19 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
     }
 
     const groupResults = result.phases.flatMap((p) => p.groups).filter((g) => g.key === grp.key)
-    const findings = groupResults.flatMap((g) => g.findings)
+    let findings = groupResults.flatMap((g) => g.findings)
+    const totalBeforeSlice = findings.length
+    if (params.slice) {
+      const match = params.slice.match(/^(\d+)\/(\d+)$/)
+      if (match) {
+        const idx = parseInt(match[1]!) - 1
+        const total = parseInt(match[2]!)
+        if (idx >= 0 && idx < total && total > 0) {
+          const size = Math.ceil(findings.length / total)
+          findings = findings.slice(idx * size, (idx + 1) * size)
+        }
+      }
+    }
     const failures = groupResults.flatMap((g) => g.failures)
     const permDenied = groupResults.flatMap((g) => g.permissionFailures)
     const programs = groupResults.flatMap((g) => g.programs)
@@ -223,7 +241,7 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
     }
 
     return {
-      title: `Assess Findings [${params.group}]: ${findings.length} findings`,
+      title: `Assess Findings [${params.group}]: ${findings.length} findings${params.slice ? ` (slice ${params.slice}, ${totalBeforeSlice} total)` : ""}`,
       output: JSON.stringify(groupOutput),
       metadata: {
         available: true,
