@@ -22,13 +22,16 @@ async function loadSessions() {
   let data
   try {
     const res = await fetch(receiverBase() + "/sessions")
-    if (!res.ok) return
+    if (!res.ok) throw new Error(String(res.status))
     data = await res.json()
   } catch {
-    return // receiver/CS unreachable — leave "-- New Session --"
+    // Make the failure visible instead of a silently-empty dropdown.
+    sessionSelect.innerHTML = '<option value="">-- receiver/CS unreachable — click ↻ --</option>'
+    return
   }
+  const sessions = data.sessions || []
   sessionSelect.innerHTML = '<option value="">-- New Session --</option>'
-  for (const s of data.sessions || []) {
+  for (const s of sessions) {
     const o = document.createElement("option")
     o.value = s.id
     o.textContent = s.title ? s.title.slice(0, 34) : s.id
