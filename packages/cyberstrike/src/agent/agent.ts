@@ -446,7 +446,10 @@ export namespace Agent {
         options: {},
       },
       // ── Cloud Analysis Pipeline (Layer 2) — provider-defined agents ──
-      ...specsToAgents(new AzureProvider().agentSpecs(), defaults, user),
+      ...(() => {
+        try { return specsToAgents(new AzureProvider().agentSpecs(), defaults, user) }
+        catch (e) { console.error(`[agent] failed to load cloud agents: ${e}`); return {} }
+      })(),
       "internal-network": {
         name: "internal-network",
         description: "Internal network and Active Directory specialist. AD attacks, Kerberos, lateral movement.",
