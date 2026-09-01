@@ -12,7 +12,37 @@
 // URL + hash only, and their bodies are pulled later, out of band.
 
 const DEBUGGER_VERSION = "1.3"
-const DEFAULT_RECEIVER = "http://127.0.0.1:4097/capture"
+// Extension talks DIRECTLY to CyberStrike's existing routes (host_permissions lets
+// it bypass CORS, same as the 1.x worker / Firefox ext). No intermediate receiver.
+const DEFAULT_CS = "http://127.0.0.1:4096"
+
+function csUrl() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get("cyberstrike", (out) => {
+      resolve(out && out.cyberstrike ? out.cyberstrike : DEFAULT_CS)
+    })
+  })
+}
+
+// Rebuild a raw HTTP request string — the format /session/ingest expects in `text`
+// (same shape the 1.x hackbrowser worker sent). Scope is enforced by the crawl
+// target; here we forward every in-flight dynamic request.
+function toRawHttp(rec) {
+  let path = rec.url
+  let host = ""
+  try {
+    const u = new URL(rec.url)
+    path = u.pathname + u.search
+    host = u.host
+  } catch {
+    // leave url as-is
+  }
+  const lines = [`${rec.method} ${path} HTTP/1.1`]
+  if (host && !rec.requestHeaders["host"] && !rec.requestHeaders["Host"]) lines.push(`Host: ${host}`)
+  for (const name of Object.keys(rec.requestHeaders)) lines.push(`${name}: ${rec.requestHeaders[name]}`)
+  const head = lines.join("\r\n")
+  return rec.requestBody ? `${head}\r\n\r\n${rec.requestBody}` : `${head}\r\n\r\n`
+}
 
 // tabId → true, for tabs we've attached to
 const attached = new Map()
@@ -26,20 +56,15 @@ const countByTab = new Map()
 // This profile's credential (§3.1: one identity per profile). Set from the popup,
 // persisted in profile-local storage, stamped onto every captured record.
 let activeCredential = null
-chrome.storage.local.get("credential", (o) => {
+let activeSession = ""
+chrome.storage.local.get(["credential", "session"], (o) => {
   if (o && o.credential) activeCredential = o.credential
+  if (o && o.session) activeSession = o.session
 })
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.credential) activeCredential = changes.credential.newValue || null
+  if (changes.session) activeSession = changes.session.newValue || ""
 })
-
-function receiverUrl() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get("receiver", (out) => {
-      resolve(out && out.receiver ? out.receiver : DEFAULT_RECEIVER)
-    })
-  })
-}
 
 // CDP resource type → our normalized resource_type
 function normalizeType(cdpType) {
@@ -66,71 +91,16 @@ function bodyClass(resourceType, method) {
   return "static"
 }
 
-// --- WS control channel (receiver → extension) ------------------------------
-// Receives click/type/navigate commands the AI issued (already guard-checked by
-// the receiver — a denied command never arrives here) and executes them via the
-// content script. Reconnects on drop so the channel survives receiver restarts.
-let controlWs = null
-
-function controlUrl(base) {
-  // http://127.0.0.1:4097/capture → ws://127.0.0.1:4097/control
-  return base.replace(/^http/, "ws").replace(/\/capture$/, "/control")
-}
-
-async function connectControl() {
-  if (controlWs) return
-  const base = await receiverUrl()
-  const wsUrl = controlUrl(base)
-  try {
-    const ws = new WebSocket(wsUrl)
-    ws.onopen = () => {
-      controlWs = ws
-    }
-    ws.onmessage = (e) => {
-      let cmd
-      try {
-        cmd = JSON.parse(e.data)
-      } catch {
-        return
-      }
-      handleCommand(cmd)
-    }
-    ws.onclose = () => {
-      controlWs = null
-      setTimeout(connectControl, 2000) // reconnect
-    }
-    ws.onerror = () => {}
-  } catch (e) {
-    setTimeout(connectControl, 2000)
-  }
-}
-
-function ackCommand(id, ok, error) {
-  if (controlWs) controlWs.send(JSON.stringify({ id, ok: !!ok, error: error || undefined }))
-}
-
-function handleCommand(cmd) {
-  // Route to an attached tab's content script for execution. Single-tab for now.
-  const tabId = [...attached.keys()][0]
-  if (tabId === undefined) {
-    ackCommand(cmd.id, false, "no attached tab")
-    return
-  }
-  chrome.tabs.sendMessage(tabId, { type: "perform", cmd }, (res) => {
-    if (chrome.runtime.lastError) {
-      ackCommand(cmd.id, false, chrome.runtime.lastError.message)
-      return
-    }
-    ackCommand(cmd.id, res && res.ok, res && res.error)
-  })
-}
+// NOTE: the WS control channel (AI → extension click/type/navigate) lived on the
+// receiver, which we removed. Co-driving/click-brick will return once that path is
+// re-homed on CyberStrike; the content-script `perform` handler stays ready. See
+// git history for the receiver-based version.
 
 async function attach(tabId) {
   if (attached.has(tabId)) return
   await chrome.debugger.attach({ tabId }, DEBUGGER_VERSION)
   await chrome.debugger.sendCommand({ tabId }, "Network.enable", {})
   attached.set(tabId, true)
-  connectControl() // open the control channel once we're capturing
 }
 
 async function detach(tabId) {
@@ -143,16 +113,34 @@ async function detach(tabId) {
   attached.delete(tabId)
 }
 
+// Forward a captured record straight to CyberStrike's /session/ingest (the existing
+// route the 1.x worker used). Only DYNAMIC requests are ingested; static assets are
+// skipped (mined later). Session is reused: the first ingest creates one, its id is
+// stored and rides along after.
 async function forward(record) {
-  const url = await receiverUrl()
+  if (record.bodyClass !== "dynamic") return // static asset — skip ingest
+  const base = await csUrl()
+  const payload = { text: toRawHttp(record), scheme: record.scheme }
+  if (activeSession) payload.sessionID = activeSession
+  if (record.credentialId) payload.credential_id = record.credentialId
+  if (record.status > 0) {
+    payload.response = { status: record.status, headers: record.responseHeaders, body: record.responseBody || "" }
+  }
   try {
-    await fetch(url, {
+    const res = await fetch(`${base}/session/ingest`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(record),
+      body: JSON.stringify(payload),
     })
+    if (res.ok) {
+      const d = await res.json().catch(() => ({}))
+      if (d && d.sessionID && !activeSession) {
+        activeSession = d.sessionID
+        chrome.storage.local.set({ session: activeSession })
+      }
+    }
   } catch (e) {
-    console.warn("[hackbrowser] forward failed", e)
+    console.warn("[hackbrowser] ingest failed", e)
   }
 }
 
@@ -291,42 +279,35 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       })
       return
     }
-    // Launcher-injected credential: register the label with the receiver and
-    // persist it profile-local, exactly as the popup "Set" button does.
+    // Launcher-injected credential: register directly with CyberStrike's existing
+    // credential route and persist it profile-local (same as the popup "Set" button).
     if (msg.type === "set-credential-label") {
-      const base = await receiverUrl()
-      const regUrl = base.replace(/\/capture$/, "/register-credential")
+      if (!activeSession) {
+        sendResponse({ ok: false, error: "no session selected" })
+        return
+      }
+      const base = await csUrl()
       try {
-        const res = await fetch(regUrl, {
+        const res = await fetch(`${base}/session/${activeSession}/web/credentials`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ label: msg.label }),
         })
-        const d = await res.json()
-        if (d && d.ok) {
+        const d = await res.json().catch(() => ({}))
+        if (d && d.id) {
           await chrome.storage.local.set({ credential: { id: d.id, label: d.label } })
           sendResponse({ ok: true, id: d.id })
           return
         }
-        sendResponse({ ok: false, error: (d && d.error) || "register failed" })
+        sendResponse({ ok: false, error: "register failed" })
       } catch (e) {
         sendResponse({ ok: false, error: String(e) })
       }
       return
     }
     if (msg.type === "observe") {
-      const tabId = sender.tab && sender.tab.id
-      const base = await receiverUrl()
-      const obsUrl = base.replace(/\/capture$/, "/observe")
-      try {
-        await fetch(obsUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...msg.observation, driver: tabId !== undefined ? driverByTab.get(tabId) || "ai" : "ai" }),
-        })
-      } catch (e) {
-        // receiver down — observation is best-effort
-      }
+      // Page-state store is a 2.0-only feature not yet in CyberStrike (co-driving /
+      // get_page_state). Deferred — the panel still shows counts locally.
       sendResponse({ ok: true })
       return
     }

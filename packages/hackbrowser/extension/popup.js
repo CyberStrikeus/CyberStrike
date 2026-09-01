@@ -11,45 +11,38 @@ const refreshSessions = document.getElementById("refreshSessions")
 
 let tabId = null
 
-// Receiver base URL (strip the /capture path) — sessions live at <base>/sessions.
-function receiverBase() {
-  const raw = (receiverInput.value || "").trim() || "http://127.0.0.1:4097/capture"
-  return raw.replace(/\/capture$/, "")
+// CyberStrike base URL — the extension talks to CS directly (its existing routes).
+function csBase() {
+  return (receiverInput.value || "").trim() || "http://127.0.0.1:4096"
 }
 
-// Populate the session dropdown from the receiver (which proxies CyberStrike).
+// Populate the session dropdown directly from CyberStrike's /session route.
 async function loadSessions() {
-  let data
+  let sessions
   try {
-    const res = await fetch(receiverBase() + "/sessions")
+    const res = await fetch(csBase() + "/session?limit=20&roots=true")
     if (!res.ok) throw new Error(String(res.status))
-    data = await res.json()
+    sessions = await res.json()
   } catch {
-    // Make the failure visible instead of a silently-empty dropdown.
-    sessionSelect.innerHTML = '<option value="">-- receiver/CS unreachable — click ↻ --</option>'
+    sessionSelect.innerHTML = '<option value="">-- CyberStrike unreachable — click ↻ --</option>'
     return
   }
-  const sessions = data.sessions || []
+  const active = (await chrome.storage.local.get("session")).session || ""
   sessionSelect.innerHTML = '<option value="">-- New Session --</option>'
-  for (const s of sessions) {
+  for (const s of Array.isArray(sessions) ? sessions : []) {
+    if (!s || typeof s.id !== "string") continue
     const o = document.createElement("option")
     o.value = s.id
     o.textContent = s.title ? s.title.slice(0, 34) : s.id
-    if (s.id === data.active) o.selected = true
+    if (s.id === active) o.selected = true
     sessionSelect.appendChild(o)
   }
 }
 
+// Selection is extension-local (CyberStrike has no "active session" concept);
+// background stamps ingest with this id.
 async function selectSession() {
-  try {
-    await fetch(receiverBase() + "/select-session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionID: sessionSelect.value }),
-    })
-  } catch {
-    // best-effort; selection re-applies on next change
-  }
+  await chrome.storage.local.set({ session: sessionSelect.value })
 }
 
 sessionSelect.addEventListener("change", selectSession)
@@ -76,22 +69,27 @@ registerCred.addEventListener("click", async () => {
     credStatus.textContent = "enter a label first"
     return
   }
+  const sid = (await chrome.storage.local.get("session")).session || ""
+  if (!sid) {
+    credStatus.textContent = "select a session first"
+    return
+  }
   credStatus.textContent = "registering…"
   try {
-    const res = await fetch(receiverBase() + "/register-credential", {
+    const res = await fetch(csBase() + `/session/${sid}/web/credentials`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ label }),
     })
     const d = await res.json()
-    if (d.ok) {
-      await chrome.storage.local.set({ credential: { id: d.id, label: d.label } })
-      credStatus.textContent = `credential: ${d.label} (${d.id.slice(0, 10)}…)`
+    if (d && d.id) {
+      await chrome.storage.local.set({ credential: { id: d.id, label: d.label || label } })
+      credStatus.textContent = `credential: ${d.label || label} (${d.id.slice(0, 10)}…)`
     } else {
-      credStatus.textContent = `error: ${d.error || res.status}`
+      credStatus.textContent = `error: ${res.status}`
     }
   } catch {
-    credStatus.textContent = "error: receiver unreachable"
+    credStatus.textContent = "error: CyberStrike unreachable"
   }
 })
 
@@ -113,8 +111,8 @@ async function init() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
   tabId = tabs[0] ? tabs[0].id : null
 
-  const stored = await chrome.storage.local.get("receiver")
-  receiverInput.value = stored && stored.receiver ? stored.receiver : "http://127.0.0.1:4097/capture"
+  const stored = await chrome.storage.local.get("cyberstrike")
+  receiverInput.value = stored && stored.cyberstrike ? stored.cyberstrike : "http://127.0.0.1:4096"
 
   if (tabId !== null) {
     const status = await chrome.runtime.sendMessage({ type: "status", tabId })
@@ -126,12 +124,12 @@ async function init() {
 }
 
 receiverInput.addEventListener("change", () => {
-  chrome.storage.local.set({ receiver: receiverInput.value.trim() })
+  chrome.storage.local.set({ cyberstrike: receiverInput.value.trim() })
 })
 
 toggle.addEventListener("click", async () => {
   if (tabId === null) return
-  chrome.storage.local.set({ receiver: receiverInput.value.trim() })
+  chrome.storage.local.set({ cyberstrike: receiverInput.value.trim() })
   const status = await chrome.runtime.sendMessage({ type: "status", tabId })
   const next = status && status.attached ? "detach" : "attach"
   const res = await chrome.runtime.sendMessage({ type: next, tabId })
