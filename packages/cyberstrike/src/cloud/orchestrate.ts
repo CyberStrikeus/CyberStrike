@@ -1,5 +1,6 @@
 import { Session } from "../session"
 import { SessionPrompt } from "../session/prompt"
+import { MessageV2 } from "../session/message-v2"
 import { Agent } from "../agent/agent"
 import { Identifier } from "../id/id"
 import { Intel } from "../methodology/intel"
@@ -72,6 +73,51 @@ interface CloudSpawnOpts {
   prompt: string
   model: { providerID: string; modelID: string }
   timeoutMs: number
+  messageID?: string
+}
+
+async function emitTaskPart(
+  opts: CloudSpawnOpts,
+  partID: string,
+  childSessionID: string,
+  state: "running" | "completed" | "error",
+  extra?: { output?: string; error?: string; start: number; end?: number },
+) {
+  if (!opts.messageID) return
+  const time = extra ?? { start: Date.now() }
+  const part: MessageV2.ToolPart = {
+    id: partID,
+    sessionID: opts.parentID,
+    messageID: opts.messageID,
+    type: "tool",
+    callID: partID,
+    tool: "task",
+    state: state === "running"
+      ? {
+          status: "running",
+          input: { description: opts.title, subagent_type: opts.agentName, prompt: opts.prompt },
+          title: opts.title,
+          metadata: { sessionId: childSessionID, model: opts.model },
+          time: { start: time.start },
+        }
+      : state === "completed"
+        ? {
+            status: "completed",
+            input: { description: opts.title, subagent_type: opts.agentName, prompt: opts.prompt },
+            output: extra?.output ?? "",
+            title: opts.title,
+            metadata: { sessionId: childSessionID, model: opts.model },
+            time: { start: time.start, end: time.end ?? Date.now() },
+          }
+        : {
+            status: "error",
+            input: { description: opts.title, subagent_type: opts.agentName, prompt: opts.prompt },
+            error: extra?.error ?? "unknown error",
+            metadata: { sessionId: childSessionID, model: opts.model },
+            time: { start: time.start, end: time.end ?? Date.now() },
+          },
+  }
+  await Session.updatePart(part)
 }
 
 async function spawnCloudAgent(opts: CloudSpawnOpts): Promise<SpawnResult> {
@@ -84,6 +130,11 @@ async function spawnCloudAgent(opts: CloudSpawnOpts): Promise<SpawnResult> {
     title: opts.title,
     permission: CLOUD_DENY_RULES,
   })
+
+  const partID = opts.messageID ? Identifier.ascending("part") : ""
+  if (opts.messageID) {
+    await emitTaskPart(opts, partID, session.id, "running", { start })
+  }
 
   try {
     const result = await withTimeout(
@@ -103,9 +154,17 @@ async function spawnCloudAgent(opts: CloudSpawnOpts): Promise<SpawnResult> {
     const info = result.info
     const error = info.role === "assistant" ? info.error : undefined
 
+    if (opts.messageID) {
+      const output = error ? `Error: ${error}` : text.slice(0, 200)
+      await emitTaskPart(opts, partID, session.id, error ? "error" : "completed", { output, error: error ? String(error) : undefined, start, end: Date.now() })
+    }
+
     return { agent: opts.agentName, group: opts.group, sessionID: session.id, text, error: error ? String(error) : undefined, durationMs: Date.now() - start }
   } catch (e) {
     const timedOut = e instanceof Error && e.message.includes("timed out")
+    if (opts.messageID) {
+      await emitTaskPart(opts, partID, session.id, "error", { error: e instanceof Error ? e.message : String(e), start, end: Date.now() })
+    }
     return { agent: opts.agentName, group: opts.group, sessionID: session.id, text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
   }
 }
@@ -116,6 +175,7 @@ async function spawnAnalyst(
   identityContext: string,
   model: { providerID: string; modelID: string },
   timeoutMs: number = AGENT_TIMEOUT_MS,
+  messageID?: string,
 ): Promise<SpawnResult> {
   const prompt = [
     `Analyze the ${groupDef.key} group findings.`,
@@ -136,7 +196,7 @@ async function spawnAnalyst(
   return spawnCloudAgent({
     parentID, agentName: groupDef.analyst, group: groupDef.key,
     title: `Analyze ${groupDef.label} (@${groupDef.analyst})`,
-    prompt, model, timeoutMs,
+    prompt, model, timeoutMs, messageID,
   })
 }
 
@@ -145,11 +205,12 @@ async function spawnFollowup(
   followUp: CloudAnalysis.FollowUp,
   model: { providerID: string; modelID: string },
   timeoutMs: number = FOLLOWUP_TIMEOUT_MS,
+  messageID?: string,
 ): Promise<SpawnResult> {
   return spawnCloudAgent({
     parentID, agentName: "cloud-followup", group: "followup",
     title: `Follow-up: ${followUp.reason} (@cloud-followup)`,
-    prompt: followUp.prompt, model, timeoutMs,
+    prompt: followUp.prompt, model, timeoutMs, messageID,
   })
 }
 
@@ -158,6 +219,7 @@ async function spawnVerify(
   model: { providerID: string; modelID: string },
   orchestrationSummary: string,
   timeoutMs: number = VERIFY_TIMEOUT_MS,
+  messageID?: string,
 ): Promise<SpawnResult> {
   const prompt = [
     "Review all cloud intel and reported vulnerabilities. Check for false positives, verify severity ratings, confirm attack chains are documented.",
@@ -173,7 +235,7 @@ async function spawnVerify(
   return spawnCloudAgent({
     parentID, agentName: "cloud-verify", group: "verify",
     title: "Final verification (@cloud-verify)",
-    prompt, model, timeoutMs,
+    prompt, model, timeoutMs, messageID,
   })
 }
 
@@ -183,6 +245,7 @@ async function spawnBatchVerifier(
   identityContext: string,
   model: { providerID: string; modelID: string },
   timeoutMs: number = BATCH_VERIFY_TIMEOUT_MS,
+  messageID?: string,
 ): Promise<SpawnResult> {
   const prompt = [
     `Rapidly triage formulaic findings across these groups: ${groups.join(", ")}`,
@@ -201,7 +264,7 @@ async function spawnBatchVerifier(
   return spawnCloudAgent({
     parentID, agentName: "cloud-batch-verifier", group: "batch-verify",
     title: "Batch verification (@cloud-batch-verifier)",
-    prompt, model, timeoutMs,
+    prompt, model, timeoutMs, messageID,
   })
 }
 
@@ -341,7 +404,7 @@ async function detectFollowUps(
   }
 }
 
-export async function orchestrateLayer2(sessionID: string): Promise<CloudAnalysis.OrchestrationState> {
+export async function orchestrateLayer2(sessionID: string, messageID?: string): Promise<CloudAnalysis.OrchestrationState> {
   const rootSession = Session.root(sessionID)
   const assessResult = getAssessResult(rootSession)
 
@@ -372,7 +435,7 @@ export async function orchestrateLayer2(sessionID: string): Promise<CloudAnalysi
   }, LAYER2_DEADLINE_MS)
 
   try {
-    return await runOrchestration(sessionID, rootSession, assessResult, state)
+    return await runOrchestration(sessionID, rootSession, assessResult, state, messageID)
   } finally {
     clearTimeout(deadlineTimer)
   }
@@ -383,13 +446,14 @@ async function runOrchestration(
   rootSession: string,
   assessResult: NonNullable<ReturnType<typeof getAssessResult>>,
   state: CloudAnalysis.OrchestrationState,
+  messageID?: string,
 ): Promise<CloudAnalysis.OrchestrationState> {
   const model = await SessionPrompt.lastModel(sessionID)
 
   // ── Phase: identity ──────────────────────────────────────
   state.phase = "identity"
   const idGroup = identityGroup()
-  const idResult = await spawnAnalyst(sessionID, idGroup, "", model, IDENTITY_TIMEOUT_MS)
+  const idResult = await spawnAnalyst(sessionID, idGroup, "", model, IDENTITY_TIMEOUT_MS, messageID)
   state.analystResults.push(buildAnalystResult(idGroup.key, idResult, rootSession))
   const spawnResults: SpawnResult[] = [idResult]
 
@@ -441,7 +505,7 @@ async function runOrchestration(
 
   if (formulaicGroups.length > 0) {
     tasks.push(
-      withSemaphore(() => spawnBatchVerifier(sessionID, formulaicGroups, identityContext, model, Math.min(BATCH_VERIFY_TIMEOUT_MS, effectiveTimeout))),
+      withSemaphore(() => spawnBatchVerifier(sessionID, formulaicGroups, identityContext, model, Math.min(BATCH_VERIFY_TIMEOUT_MS, effectiveTimeout), messageID)),
     )
     taskMeta.push({ type: "batch" })
   }
@@ -450,7 +514,7 @@ async function runOrchestration(
     const groupDef = remaining.find((g) => g.key === c.key)
     if (!groupDef) continue
     tasks.push(
-      withSemaphore(() => spawnAnalyst(sessionID, groupDef, identityContext, model, effectiveTimeout)),
+      withSemaphore(() => spawnAnalyst(sessionID, groupDef, identityContext, model, effectiveTimeout, messageID)),
     )
     taskMeta.push({ type: "analyst", groupKey: c.key, groupDef })
   }
@@ -500,7 +564,7 @@ async function runOrchestration(
       const fuSettled = await Promise.allSettled(
         followUps.slice(0, 5).map(async (f) => {
           await fuSem.acquire()
-          try { return await spawnFollowup(sessionID, f, model, Math.max(fuTimeout, 60_000)) }
+          try { return await spawnFollowup(sessionID, f, model, Math.max(fuTimeout, 60_000), messageID) }
           finally { fuSem.release() }
         }),
       )
@@ -539,7 +603,7 @@ async function runOrchestration(
     `- Elapsed: ${Math.round((Date.now() - state.startedAt) / 1000)}s`,
   ].filter(Boolean).join("\n")
 
-  const verifyResult = await spawnVerify(sessionID, model, orchestrationSummary, verifyTimeout)
+  const verifyResult = await spawnVerify(sessionID, model, orchestrationSummary, verifyTimeout, messageID)
   spawnResults.push(verifyResult)
 
   state.verifyResult = {

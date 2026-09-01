@@ -1099,7 +1099,7 @@ export const AzurehookTool = Tool.define("azurehook", {
 
     if (program === "azure_orchestrate") {
       try {
-        const state = await orchestrateLayer2(ctx.sessionID)
+        const state = await orchestrateLayer2(ctx.sessionID, ctx.messageID)
         const completed = state.analystResults.filter((a) => !a.summary.startsWith("Error:"))
         const failed = state.analystResults.filter((a) => a.summary.startsWith("Error:"))
         const lines = [
