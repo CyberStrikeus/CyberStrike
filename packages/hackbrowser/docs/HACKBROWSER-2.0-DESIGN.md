@@ -42,7 +42,7 @@ web.
         └───────────── UI: open browser on demand ──────────┘
 ```
 
-- **Phase 1 — Capture (live).** User + AI walk the app (overlay-assisted). Everything
+- **Phase 1 — Capture (live).** User + AI walk the app (panel-assisted). Everything
   is recorded to an enriched HAR-shaped stream. Goal: maximize *coverage of unique,
   meaningful endpoints*, not raw request count.
 - **Phase 2 — Analyze (semi-offline).** Load the recorded traffic + the
@@ -194,21 +194,21 @@ vanilla Playwright/Puppeteer.
 
 ### 3.6 Capture runtime scenarios
 
-| # | Situation | Solution | Profile / stealth | Overlay source |
+| # | Situation | Solution | Profile / stealth | Panel source |
 |---|-----------|----------|-------------------|----------------|
 | **S1** | Chromium browser + can install extension (**ideal BYOB**) | Web Store (unlisted) + WS connect | Real profile, logged in, best stealth | Content script |
 | **S2a** | Only Edge, extension policy-blocked | Download our **CfT** + `--load-extension` (policy targets Web Store IDs; separate binary+profile usually escapes) | Isolated, good (no CDP leak) | Content script |
 | **S2b** | S2a also blocked (strict HKLM policy) | **Local proxy + manual browse** — user browses own Edge, proxy captures | Real profile, **no DOM/trigger enrichment** | None (separate window UI) |
 | **S2c** | Proxy also blocked (no CA cert) | Last resort **patchright managed** | CF risk accepted | Content script |
 | **S3** | Headless crawl needs a session | **Open headed → user logs in + solves CF → `auth_sync` token → hand off to headless** | Phase 1 headed (login) → Phase 2 headless | Content script (headed phase) |
-| **S4** | Overlay required on every headed run | Extension content script injects overlay — same in BYOB and CfT-managed | — | **Content script (works on CfT too)** |
+| **S4** | Panel required on every headed run | Extension content script injects panel — same in BYOB and CfT-managed | — | **Content script (works on CfT too)** |
 
 Notes: **S2 is the hardest and not 100% solvable** — a fully locked machine (extension
 + download + CA all blocked) leaves only raw capture. Surface this to the user up
 front via a **capability check** ("modes available on this machine: …"). **S2b's local
 proxy is a legitimate 4th `CaptureSource`** behind the same HAR contract (HTTP-only, no
 enrichment). **S3 is exactly the three-phase model** — nothing new invented. **S4:
-always inject overlay via content script, never CDP `addScriptToEvaluateOnNewDocument`**
+always inject panel via content script, never CDP `addScriptToEvaluateOnNewDocument`**
 — avoids the leak and works across all runtimes.
 
 ### 3.7 Auth-token resilience (OIDC/OAuth targets)

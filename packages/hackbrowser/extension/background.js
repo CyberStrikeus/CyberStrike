@@ -18,10 +18,10 @@ const DEFAULT_RECEIVER = "http://127.0.0.1:4097/capture"
 const attached = new Map()
 // `${tabId}:${requestId}` → in-flight request record awaiting its response
 const pending = new Map()
-// tabId → "ai" | "human" — co-driving state; set from the overlay handover toggle.
+// tabId → "ai" | "human" — co-driving state; set from the panel handover toggle.
 // Tags each forwarded record so human-driven captures are distinguishable (§6.4).
 const driverByTab = new Map()
-// tabId → count of records forwarded (shown in the overlay panel)
+// tabId → count of records forwarded (shown in the panel)
 const countByTab = new Map()
 
 function receiverUrl() {
@@ -159,7 +159,7 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
       timestamp: rec.timestamp,
       // co-driving provenance: who was driving when this was captured (§6.4)
       driver: driverByTab.get(tabId) || "ai",
-      // enrichment fields — filled in later phases (multi-credential, overlay triggers)
+      // enrichment fields — filled in later phases (multi-credential, panel triggers)
       credentialId: null,
       triggerElement: null,
       elementRoles: null,
@@ -201,8 +201,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       sendResponse({ ok: true, attached: attached.has(msg.tabId) })
       return
     }
-    // Content-script (overlay) messages — tab identified by sender, not payload.
-    if (msg.type === "overlay-status") {
+    // Content-script (panel) messages — tab identified by sender, not payload.
+    if (msg.type === "panel-status") {
       const tabId = sender.tab && sender.tab.id
       sendResponse({
         attached: tabId !== undefined && attached.has(tabId),

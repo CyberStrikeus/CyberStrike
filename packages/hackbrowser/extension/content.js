@@ -1,6 +1,6 @@
-// CyberStrike HackBrowser 2.0 — overlay (content script).
+// CyberStrike HackBrowser 2.0 — panel (content script).
 //
-// Injects a small status panel on every page (§S4: overlay always via content
+// Injects a small status panel on every page (§S4: panel always via content
 // script, never CDP — leak-free, works on real Chrome and CfT alike). Houses the
 // co-driving handover toggle: even before the AI control loop exists, flipping to
 // "You're driving" tags captured traffic as driver:"human", so human-found requests
@@ -12,7 +12,7 @@
   if (window !== window.top) return // top frame only
 
   const host = document.createElement("div")
-  host.id = "cyberstrike-overlay-host"
+  host.id = "cyberstrike-panel-host"
   host.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:2147483647;"
   const root = host.attachShadow({ mode: "closed" })
 
@@ -163,7 +163,7 @@
   }
 
   function poll() {
-    chrome.runtime.sendMessage({ type: "overlay-status" }, (res) => {
+    chrome.runtime.sendMessage({ type: "panel-status" }, (res) => {
       if (chrome.runtime.lastError) return // service worker asleep — try next tick
       render(res)
     })
@@ -177,7 +177,7 @@
 
   function mount() {
     if (!document.body) return
-    if (document.getElementById("cyberstrike-overlay-host")) return
+    if (document.getElementById("cyberstrike-panel-host")) return
     document.body.appendChild(host)
     poll()
     lastObs = sendObservation()
