@@ -26,6 +26,7 @@ interface CaptureRecord {
   contentType: string
   scheme: "http" | "https"
   timestamp: number
+  driver: "ai" | "human"
   credentialId: string | null
   triggerElement: string | null
   elementRoles: string[] | null
@@ -161,8 +162,9 @@ Bun.serve({
 
       const bodyKB = record.responseBody ? (record.responseBody.length / 1024).toFixed(1) : "-"
       const mark = forwardable ? (forwarded ? "→CS" : "→CS!") : "hold"
+      const drv = record.driver === "human" ? "HUMAN" : "ai"
       console.log(
-        `[hb2] ${cls.padEnd(8)} ${mark.padEnd(5)} ${record.method.padEnd(6)} ${record.status} ${record.resourceType.padEnd(10)} body=${bodyKB}KB  ${record.url}`,
+        `[hb2] ${cls.padEnd(8)} ${mark.padEnd(5)} ${drv.padEnd(5)} ${record.method.padEnd(6)} ${record.status} ${record.resourceType.padEnd(10)} body=${bodyKB}KB  ${record.url}`,
       )
 
       return Response.json({ ok: true, forwarded }, { headers: corsHeaders() })

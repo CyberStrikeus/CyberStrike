@@ -18,6 +18,11 @@ const DEFAULT_RECEIVER = "http://127.0.0.1:4097/capture"
 const attached = new Map()
 // `${tabId}:${requestId}` → in-flight request record awaiting its response
 const pending = new Map()
+// tabId → "ai" | "human" — co-driving state; set from the overlay handover toggle.
+// Tags each forwarded record so human-driven captures are distinguishable (§6.4).
+const driverByTab = new Map()
+// tabId → count of records forwarded (shown in the overlay panel)
+const countByTab = new Map()
 
 function receiverUrl() {
   return new Promise((resolve) => {
@@ -137,6 +142,7 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
     }
 
     const response = rec.response || { status: 0, headers: {}, contentType: "" }
+    countByTab.set(tabId, (countByTab.get(tabId) || 0) + 1)
     forward({
       url: rec.url,
       method: rec.method,
@@ -151,6 +157,8 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
       contentType: response.contentType,
       scheme: rec.scheme,
       timestamp: rec.timestamp,
+      // co-driving provenance: who was driving when this was captured (§6.4)
+      driver: driverByTab.get(tabId) || "ai",
       // enrichment fields — filled in later phases (multi-credential, overlay triggers)
       credentialId: null,
       triggerElement: null,
@@ -169,6 +177,8 @@ chrome.debugger.onDetach.addListener((source) => {
 })
 chrome.tabs.onRemoved.addListener((tabId) => {
   attached.delete(tabId)
+  driverByTab.delete(tabId)
+  countByTab.delete(tabId)
   for (const key of pending.keys()) {
     if (key.startsWith(`${tabId}:`)) pending.delete(key)
   }
@@ -189,6 +199,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
     if (msg.type === "status") {
       sendResponse({ ok: true, attached: attached.has(msg.tabId) })
+      return
+    }
+    // Content-script (overlay) messages — tab identified by sender, not payload.
+    if (msg.type === "overlay-status") {
+      const tabId = sender.tab && sender.tab.id
+      sendResponse({
+        attached: tabId !== undefined && attached.has(tabId),
+        count: tabId !== undefined ? countByTab.get(tabId) || 0 : 0,
+        driver: tabId !== undefined ? driverByTab.get(tabId) || "ai" : "ai",
+      })
+      return
+    }
+    if (msg.type === "set-driver") {
+      const tabId = sender.tab && sender.tab.id
+      if (tabId !== undefined) driverByTab.set(tabId, msg.driver === "human" ? "human" : "ai")
+      sendResponse({
+        attached: tabId !== undefined && attached.has(tabId),
+        count: tabId !== undefined ? countByTab.get(tabId) || 0 : 0,
+        driver: tabId !== undefined ? driverByTab.get(tabId) || "ai" : "ai",
+      })
       return
     }
     sendResponse({ ok: false, error: "unknown message" })
