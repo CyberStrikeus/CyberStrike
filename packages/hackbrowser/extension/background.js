@@ -289,6 +289,27 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       })
       return
     }
+    // List CyberStrike sessions for the panel dropdown. MUST run here (background)
+    // — a content-script fetch would be CORS-blocked; background fetch is exempt
+    // via host_permissions, same as the capture forward.
+    if (msg.type === "list-sessions") {
+      const base = await csUrl()
+      try {
+        const r = await fetch(`${base}/session?limit=20&roots=true`)
+        if (!r.ok) {
+          sendResponse({ ok: false, sessions: [] })
+          return
+        }
+        const d = await r.json()
+        const sessions = Array.isArray(d)
+          ? d.filter((s) => s && typeof s.id === "string").map((s) => ({ id: s.id, title: s.title }))
+          : []
+        sendResponse({ ok: true, sessions })
+      } catch (e) {
+        sendResponse({ ok: false, sessions: [] })
+      }
+      return
+    }
     // Attach/detach this tab from the panel (no popup needed).
     if (msg.type === "toggle-attach-self") {
       const tabId = sender.tab && sender.tab.id

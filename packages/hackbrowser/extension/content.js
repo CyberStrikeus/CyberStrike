@@ -23,9 +23,9 @@
     <style>
       .glow { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .6s ease; }
       .glow.on { animation: breathe 4s ease-in-out infinite; }
-      .glow.ai { box-shadow: inset 0 0 50px 9px rgba(37,99,235,.32); }
-      .glow.human { box-shadow: inset 0 0 50px 9px rgba(240,180,41,.32); }
-      @keyframes breathe { 0%,100% { opacity: .8; } 50% { opacity: .45; } }
+      .glow.ai { box-shadow: inset 0 0 56px 12px rgba(37,99,235,.5); }
+      .glow.human { box-shadow: inset 0 0 56px 12px rgba(240,180,41,.5); }
+      @keyframes breathe { 0%,100% { opacity: .95; } 50% { opacity: .6; } }
     </style>
     <div class="glow" id="glow"></div>
   `
@@ -248,25 +248,17 @@
   const cred = root.getElementById("cred")
   const setCred = root.getElementById("setCred")
 
-  async function csBase() {
-    const o = await chrome.storage.local.get("cyberstrike")
-    return (o && o.cyberstrike) || "http://127.0.0.1:4096"
-  }
-
+  // All CyberStrike calls go through the background (CORS-exempt); a content-script
+  // fetch to localhost would be blocked by the page's CORS policy.
   async function loadSessions() {
-    let list
-    try {
-      const r = await fetch((await csBase()) + "/session?limit=20&roots=true")
-      if (!r.ok) throw new Error()
-      list = await r.json()
-    } catch {
+    const res = await chrome.runtime.sendMessage({ type: "list-sessions" })
+    if (!res || !res.ok) {
       sess.innerHTML = '<option value="">-- CyberStrike unreachable --</option>'
       return
     }
     const active = (await chrome.storage.local.get("session")).session || ""
     sess.innerHTML = '<option value="">-- New session --</option>'
-    for (const s of Array.isArray(list) ? list : []) {
-      if (!s || typeof s.id !== "string") continue
+    for (const s of res.sessions || []) {
       const o = document.createElement("option")
       o.value = s.id
       o.textContent = s.title ? s.title.slice(0, 30) : s.id
@@ -287,25 +279,14 @@
   setCred.addEventListener("click", async () => {
     const label = cred.value.trim()
     if (!label) return
-    const sid = (await chrome.storage.local.get("session")).session || ""
-    if (!sid) {
+    // background registers against the active session (kept in sync via storage).
+    const res = await chrome.runtime.sendMessage({ type: "set-credential-label", label })
+    if (res && res.ok) {
+      cred.value = label
+      cred.placeholder = "e.g. admin"
+    } else {
       cred.value = ""
-      cred.placeholder = "select a session first"
-      return
-    }
-    try {
-      const r = await fetch((await csBase()) + `/session/${sid}/web/credentials`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label }),
-      })
-      const d = await r.json()
-      if (d && d.id) {
-        await chrome.storage.local.set({ credential: { id: d.id, label: d.label || label } })
-        cred.value = d.label || label
-      }
-    } catch {
-      cred.placeholder = "CyberStrike unreachable"
+      cred.placeholder = (res && res.error) || "select a session first"
     }
   })
 
