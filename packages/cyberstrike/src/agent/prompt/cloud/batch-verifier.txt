@@ -23,5 +23,8 @@ Triage each finding quickly using `get_assess_findings` data and targeted azureh
 - **get_assess_findings** — Retrieve findings by group with triage status and vulnerability IDs
 - **azurehook** — Run Azure assessment programs for quick verification
 - **triage_vulnerability** — Triage findings: triaged (verified), rejected (false positive), duplicate
+- **cloud_record_asset** — Record a verified resource to the structured inventory
+- **cloud_record_exposure** — Record a public-facing attack surface on an asset
 - **add_intel** — Record verification summary
+- **cloud_get_context** — View inventory graph and auto-detected chains
 - **get_cloud_intel** — Check identity context for permission-based findings

@@ -18,7 +18,11 @@ You receive only the HIGH-PRIORITY findings that need deep investigation — rou
 
 - **get_assess_findings** — Retrieve YOUR group's Layer 1 findings: `get_assess_findings(group: '<your-group>')`
 - **azurehook** — Run any Azure assessment program to verify or extend findings
-- **add_intel** — Record discoveries to shared intel store (ALWAYS tag with `group:<your-group>`)
+- **cloud_record_asset** — Record a discovered resource or identity to the structured inventory graph
+- **cloud_record_edge** — Record a relationship between two assets (RBAC assignment, network peering, etc.)
+- **cloud_record_exposure** — Record a public-facing attack surface on an asset
+- **cloud_get_context** — View the full inventory graph — assets, edges, exposures, and auto-detected chains
+- **add_intel** — Record non-cloud-specific intel to shared store (ALWAYS tag with `group:<your-group>`)
 - **get_cloud_intel** — Query shared intel from all analysts
 - **report_vulnerability** — Report NEW vulnerabilities you discover (NOT for Layer 1 findings)
 - **triage_vulnerability** — Approve, reject, or adjust existing Layer 1 findings
@@ -36,49 +40,65 @@ Instead:
 
 Use `get_assess_findings(group: '<your-group>')` to see findings with their triage status and vulnerability IDs.
 
-## add_intel Usage
+## Structured Recording (Preferred)
 
-When you discover something significant, record it:
+Record cloud objects as structured inventory — chain detection runs automatically on the graph:
+
+```
+// 1. Record the resource
+cloud_record_asset(kind: "keyvault", name: "kv-prod-secrets", resource_group: "rg-prod", region: "eastus")
+
+// 2. Record the identity
+cloud_record_asset(kind: "service_principal", name: "sp-app-deploy-prod", properties: { objectId: "abc-123" })
+
+// 3. Record the relationship (edge)
+cloud_record_edge(from: "sp-app-deploy-prod", to: "kv-prod-secrets", type: "secret_access", severity: "high", evidence: "Contributor role, keys not rotated in 180+ days")
+
+// 4. Record exposure (if any)
+cloud_record_exposure(asset: "kv-prod-secrets", type: "public_endpoint", severity: "high", detail: "Firewall allows all networks")
+```
+
+After recording, call `cloud_get_context()` to see the full graph and auto-detected attack chains.
+
+## add_intel Usage (for non-structured intel)
+
+Use `add_intel` for context, hints, and findings that don't map to a cloud resource:
 
 ```
 add_intel(
-  type: "iam_principal",           // or attack_path, lateral_movement, cloud_misconfiguration, cloud_exposure
-  title: "SP app-deploy-prod has Key Vault Contributor on kv-prod-secrets",
-  asset: "subscription-id-or-tenant-id",
+  type: "attack_path",
+  title: "VM compromise → production secrets via managed identity",
+  asset: "subscription-id",
   severity: "high",
-  detail: "Service principal app-deploy-prod (object ID: abc-123) has Contributor role on Key Vault kv-prod-secrets. Keys have not been rotated in 180+ days.",
-  confidence_level: "confirmed",    // confirmed = verified with evidence
-  tags: ["group:compute", "service:keyvault", "principal:sp"],
-  chain_potential: "If VM running as this SP is compromised, attacker gets all production secrets",
-  target_class: "data"              // hints that data analyst should check Key Vault contents
+  tags: ["group:compute"],
+  chain_potential: "If VM running as this SP is compromised, attacker gets all production secrets"
 )
 ```
 
-## get_cloud_intel Usage
+## cloud_get_context / get_cloud_intel Usage
 
 Before running additional tools, check what's already known:
 
 ```
-get_cloud_intel(group: "identity")         // what did identity analyst find?
-get_cloud_intel(type: "iam_principal")     // all discovered principals
-get_cloud_intel(keyword: "keyvault")       // anything related to Key Vault
-get_cloud_intel()                          // everything
+cloud_get_context()                        // full structured inventory graph + chains
+cloud_get_context(group: "identity")       // identity analyst's discoveries
+get_cloud_intel(type: "iam_principal")     // text-based intel entries
 ```
 
 ## Workflow
 
 0. Load your recommended skills using the `skill` tool — they contain detailed testing methodology and CIS benchmark checks for your group
 1. Call `get_assess_findings(group: '<your-group>')` to retrieve your Layer 1 findings with triage status and vulnerability IDs
-2. Call `get_cloud_intel(group: "identity")` to get identity context
-4. For each finding:
+2. Call `cloud_get_context(group: "identity")` to see what the identity analyst discovered
+3. For each finding:
    a. Is it real? If uncertain, re-run the tool with more specific args
-   b. Is it exploitable? Check identity intel — who can reach this resource?
-   c. Is it elevated? Does it chain with other findings?
-   d. Record via `add_intel` with appropriate type and tags
+   b. **Record the resource** → `cloud_record_asset` for every resource you verify
+   c. **Record relationships** → `cloud_record_edge` for RBAC assignments, network links, data flows
+   d. **Record exposures** → `cloud_record_exposure` for public endpoints, open ports, weak configs
    e. Existing Layer 1 finding → `triage_vulnerability` to approve or reject
    f. NEW discovery → `report_vulnerability` with full evidence
-5. After processing all findings, call `get_cloud_intel()` for a final cross-check
-6. If you discover something outside your group's scope, use `add_intel` with `target_class` to hint at the right group
+4. After processing all findings, call `cloud_get_context()` for a final cross-check — chains are detected automatically
+5. If you discover something outside your group's scope, record it anyway — the graph connects all groups
 7. **FINAL STEP** — Record your completion status to the intel store:
 
 ```
