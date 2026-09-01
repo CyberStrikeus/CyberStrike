@@ -49,6 +49,10 @@ import { CsrfExtractTool } from "./csrf-extract"
 import { HackbrowserTool } from "./hackbrowser"
 import { AddIntelTool } from "./intel"
 import { GetCloudIntelTool, GetCloudGroupsTool } from "./cloud-intel"
+import { CloudRecordAssetTool } from "./cloud-record-asset"
+import { CloudRecordEdgeTool } from "./cloud-record-edge"
+import { CloudRecordExposureTool } from "./cloud-record-exposure"
+import { CloudGetContextTool } from "./cloud-get-context"
 import { GetAssessGroupFindingsTool } from "./assess-findings"
 import { EnrichVulnerabilityTool } from "./enrich-vulnerability"
 import { UpdateVrtCheckTool } from "./vrt-check"
@@ -197,6 +201,10 @@ export namespace ToolRegistry {
       AddIntelTool,
       GetCloudIntelTool,
       GetCloudGroupsTool,
+      CloudRecordAssetTool,
+      CloudRecordEdgeTool,
+      CloudRecordExposureTool,
+      CloudGetContextTool,
       GetAssessGroupFindingsTool,
       EnrichVulnerabilityTool,
       UpdateVrtCheckTool,
