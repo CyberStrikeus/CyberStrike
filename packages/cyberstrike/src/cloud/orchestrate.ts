@@ -81,9 +81,11 @@ async function emitTaskPart(
   childSessionID: string,
   state: "running" | "completed" | "error",
   extra?: { output?: string; error?: string; start: number; end?: number },
+  partInput?: { description: string; subagent_type: string; prompt: string },
 ) {
   if (!opts.messageID) return
   const time = extra ?? { start: Date.now() }
+  const input = partInput ?? { description: opts.title, subagent_type: opts.agentName, prompt: opts.prompt.slice(0, 300) }
   const part: MessageV2.ToolPart = {
     id: partID,
     sessionID: opts.parentID,
@@ -95,7 +97,7 @@ async function emitTaskPart(
     state: state === "running"
       ? {
           status: "running",
-          input: { description: opts.title, subagent_type: opts.agentName, prompt: opts.prompt },
+          input,
           title: opts.title,
           metadata: { sessionId: childSessionID, model: opts.model },
           time: { start: time.start },
@@ -103,7 +105,7 @@ async function emitTaskPart(
       : state === "completed"
         ? {
             status: "completed",
-            input: { description: opts.title, subagent_type: opts.agentName, prompt: opts.prompt },
+            input,
             output: extra?.output ?? "",
             title: opts.title,
             metadata: { sessionId: childSessionID, model: opts.model },
@@ -111,7 +113,7 @@ async function emitTaskPart(
           }
         : {
             status: "error",
-            input: { description: opts.title, subagent_type: opts.agentName, prompt: opts.prompt },
+            input,
             error: extra?.error ?? "unknown error",
             metadata: { sessionId: childSessionID, model: opts.model },
             time: { start: time.start, end: time.end ?? Date.now() },
@@ -132,8 +134,12 @@ async function spawnCloudAgent(opts: CloudSpawnOpts): Promise<SpawnResult> {
   })
 
   const partID = opts.messageID ? Identifier.ascending("part") : ""
+  const promptSnippet = opts.prompt.slice(0, 300)
+  const partInput = { description: opts.title, subagent_type: opts.agentName, prompt: promptSnippet }
+
   if (opts.messageID) {
-    await emitTaskPart(opts, partID, session.id, "running", { start })
+    try { await emitTaskPart(opts, partID, session.id, "running", { start }, partInput) }
+    catch (err) { console.warn(`[orchestrate] emitTaskPart(running) failed: ${err}`) }
   }
 
   try {
@@ -156,14 +162,16 @@ async function spawnCloudAgent(opts: CloudSpawnOpts): Promise<SpawnResult> {
 
     if (opts.messageID) {
       const output = error ? `Error: ${error}` : text.slice(0, 200)
-      await emitTaskPart(opts, partID, session.id, error ? "error" : "completed", { output, error: error ? String(error) : undefined, start, end: Date.now() })
+      try { await emitTaskPart(opts, partID, session.id, error ? "error" : "completed", { output, error: error ? String(error) : undefined, start, end: Date.now() }, partInput) }
+      catch (err) { console.warn(`[orchestrate] emitTaskPart(completed) failed: ${err}`) }
     }
 
     return { agent: opts.agentName, group: opts.group, sessionID: session.id, text, error: error ? String(error) : undefined, durationMs: Date.now() - start }
   } catch (e) {
     const timedOut = e instanceof Error && e.message.includes("timed out")
     if (opts.messageID) {
-      await emitTaskPart(opts, partID, session.id, "error", { error: e instanceof Error ? e.message : String(e), start, end: Date.now() })
+      try { await emitTaskPart(opts, partID, session.id, "error", { error: e instanceof Error ? e.message : String(e), start, end: Date.now() }, partInput) }
+      catch (err) { console.warn(`[orchestrate] emitTaskPart(error) failed: ${err}`) }
     }
     return { agent: opts.agentName, group: opts.group, sessionID: session.id, text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
   }
@@ -277,6 +285,7 @@ async function detectFollowUps(
   parentID: string,
   rootSession: string,
   model: { providerID: string; modelID: string },
+  messageID?: string,
 ): Promise<CloudAnalysis.FollowUp[]> {
   const graphChains = detectCloudChains(rootSession)
   const highConfidence = graphChains.filter((c) => c.confidence >= 80)
@@ -329,7 +338,7 @@ async function detectFollowUps(
   const result = await spawnCloudAgent({
     parentID, agentName: "cloud-orchestrator", group: "followup-detect",
     title: "Chain detection (@cloud-orchestrator)",
-    prompt, model, timeoutMs: FOLLOWUP_TIMEOUT_MS,
+    prompt, model, timeoutMs: FOLLOWUP_TIMEOUT_MS, messageID,
   })
 
   if (result.error) {
@@ -421,9 +430,13 @@ async function runOrchestration(
         })()
       }),
     )
-    for (const r of idResults) {
-      state.analystResults.push(buildAnalystResult(idGroup.key, r, rootSession))
-      spawnResults.push(r)
+    for (const r of idResults) spawnResults.push(r)
+    const idBest = idResults.find((r) => !r.error) ?? idResults[0]
+    if (idBest) {
+      const result = buildAnalystResult(idGroup.key, idBest, rootSession)
+      const idErrors = idResults.filter((r) => r.error)
+      if (idErrors.length > 0) result.summary = `[${idResults.length - idErrors.length}/${idResults.length} agents ok] ${result.summary}`
+      state.analystResults.push(result)
     }
   }
 
@@ -435,8 +448,9 @@ async function runOrchestration(
   const remaining = provider.parallelGroups()
   const classified = provider.classify(rootSession, remaining)
 
-  const formulaicGroups = classified.filter((c) => c.formulaic.length > 0).map((c) => c.key)
   const investigateGroups = classified.filter((c) => c.investigate.length > 0)
+  const investigateKeys = new Set(investigateGroups.map((g) => g.key))
+  const formulaicGroups = classified.filter((c) => c.formulaic.length > 0 && !investigateKeys.has(c.key)).map((c) => c.key)
   const totalFormulaic = classified.reduce((sum, c) => sum + c.formulaic.length, 0)
   const totalInvestigate = classified.reduce((sum, c) => sum + c.investigate.length, 0)
 
@@ -496,6 +510,8 @@ async function runOrchestration(
   console.log(`[orchestrate] parallel: ${tasks.length} agents (max ${MAX_CONCURRENT_AGENTS} concurrent)`)
   const settled = await Promise.all(tasks)
 
+  const processedParallelGroups = new Set<string>()
+  const parallelGroupSpawns = new Map<string, SpawnResult[]>()
   for (let i = 0; i < settled.length; i++) {
     const meta = taskMeta[i]!
     const s = settled[i]!
@@ -506,13 +522,21 @@ async function runOrchestration(
       if (s.status === "rejected") console.warn(`[orchestrate] batch verifier failed: ${spawn.error}`)
       state.analystResults.push(buildAnalystResult("batch-verify", spawn, rootSession))
       spawnResults.push(spawn)
-    } else if (meta.groupDef) {
+    } else if (meta.groupDef && meta.groupKey) {
       const spawn = s.status === "fulfilled"
         ? s.value
-        : { agent: meta.groupDef.analyst, group: meta.groupKey!, sessionID: "", text: "", error: (s as PromiseRejectedResult).reason?.message ?? "unknown error", durationMs: 0, timedOut: true } as SpawnResult
-      state.analystResults.push(buildAnalystResult(meta.groupKey!, spawn, rootSession))
+        : { agent: meta.groupDef.analyst, group: meta.groupKey, sessionID: "", text: "", error: (s as PromiseRejectedResult).reason?.message ?? "unknown error", durationMs: 0, timedOut: true } as SpawnResult
       spawnResults.push(spawn)
+      if (!parallelGroupSpawns.has(meta.groupKey)) parallelGroupSpawns.set(meta.groupKey, [])
+      parallelGroupSpawns.get(meta.groupKey)!.push(spawn)
     }
+  }
+  for (const [groupKey, spawns] of parallelGroupSpawns) {
+    const best = spawns.find((s) => !s.error) ?? spawns[0]!
+    const result = buildAnalystResult(groupKey, best, rootSession)
+    const errors = spawns.filter((s) => s.error)
+    if (errors.length > 0) result.summary = `[${spawns.length - errors.length}/${spawns.length} agents ok] ${result.summary}`
+    state.analystResults.push(result)
   }
 
   // ── Phase: sync ──────────────────────────────────────────
@@ -529,7 +553,7 @@ async function runOrchestration(
   // ── Phase: followup (LLM judgment) ───────────────────────
   if (timeLeft > FOLLOWUP_RESERVE_MS) {
     state.phase = "followup"
-    const followUps = await detectFollowUps(sessionID, rootSession, model)
+    const followUps = await detectFollowUps(sessionID, rootSession, model, messageID)
     state.followUps = followUps
 
     if (followUps.length > 0) {
