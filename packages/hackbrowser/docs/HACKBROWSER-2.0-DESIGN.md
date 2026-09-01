@@ -188,7 +188,95 @@ Measure on three axes, not raw request count:
 
 ---
 
-## 6. Explicitly out of scope / do-not-do
+## 6. Tool bricks + framework-adaptive strategies
+
+HackBrowser 2.0's AI is not a cursor that clicks around — it is an **operator armed
+with deterministic bricks**. Playwright drove Chromium through `page.click`/`page.type`;
+we give the AI the same granularity as tools. The AI decides *which* brick to call
+(the ambiguity layer); the brick handles *how* deterministically.
+
+### 6.1 Bricks we already have (analysis + HTTP — reuse, don't rewrite)
+
+| Brick | Role |
+|-------|------|
+| `http_replay` / `http_replay_raw` | Credential-based replay + mutation ops — IDOR/BFLA/param-fuzz core |
+| `csrf_extract` | Token extraction (also feeds framework `submit`) |
+| `web_get_*` / `web_write_*` | Endpoint/request/session graph query + write |
+| `enrich_vulnerability` / `report_vulnerability` | Finding record (shared with cloud) |
+| `azurehook`/`winhook`/`linuxhook`/… | Post-exploit hooks |
+
+### 6.2 Bricks we need — browser-driving primitives
+
+In 1.x these live buried in `navigator.ts`/`executor.ts`/`scanner.ts`; the AI never
+sees them. 2.0 exposes them as tools.
+
+| Category | Bricks | Determinism |
+|----------|--------|-------------|
+| **Navigation** | `goto` `back` `forward` `reload` `wait_for(selector\|idle\|settle\|hydrated)` | Fully deterministic |
+| **Observation** | `dom_snapshot` `a11y_tree` `collect_elements` `collect_links` `screenshot` `page_diff` `framework_fingerprint` | Fully deterministic (no LLM) |
+| **Human-like interaction** | `click` (bezier cursor path+hover) `type` (real keystroke) `scroll` `hover` `select` `check` `upload` `drag` | Deterministic primitive, AI triggers |
+| **Identity/session** | `switch_credential` `cookies_get/set` (profile-local) `auth_sync` | Deterministic |
+| **Traffic** | `capture` (HAR emit) | Deterministic |
+
+### 6.3 Human-like `type` is not cosmetic
+
+`type` must be **real keystroke, not fill/paste**, or tests break:
+1. **Controlled inputs (React/Angular/Vue):** setting `value` directly does not fire
+   `onChange`/`input` → framework state never updates → the form looks empty.
+2. **Anti-bot/WAF:** keystroke dynamics + mouse trajectory are analyzed; instant paste
+   + straight-line cursor = bot flag.
+3. **Live validation/autocomplete:** debounced search, `keyup` validators,
+   autocomplete dropdowns only fire on real key events.
+
+Implementation: CDP `Input.dispatchKeyEvent` (per key, jittered delay) +
+`Input.dispatchMouseEvent` series (bezier). Under the extension model, same CDP via
+`chrome.debugger`.
+
+### 6.4 Framework-adaptive strategies (one brick, pluggable strategy — NOT one brick per framework)
+
+**Anti-pattern to avoid:** `react-click` / `angular-click` / `webforms-click` … →
+combinatorial explosion. Instead: a brick's signature is fixed (`type`, `click`,
+`navigate`, `submit`); a deterministic `framework_fingerprint` selects the strategy
+underneath. The AI need not even know the framework.
+
+**Fingerprint signals (deterministic):**
+- Client: `window.React`/`__reactContainer`, `window.ng`/`getAllAngularRootElements`,
+  `window.Vue`/`__vue__`, `window.jQuery`, Zone.js
+- Meta-framework: `__NEXT_DATA__` + `/_next/` (Next.js), `__NUXT__` + `/_nuxt/` (Nuxt),
+  `__data.json` + `data-sveltekit-*` (SvelteKit), `__remixContext` (Remix)
+- Server: `__VIEWSTATE`/`__EVENTVALIDATION` (ASP.NET WebForms), `javax.faces.ViewState`
+  (JSF), headers (`X-AspNet-Version`, `X-Powered-By`, `Server`), session cookie
+  (`JSESSIONID`, `ASP.NET_SessionId`)
+
+**Strategy matrix:**
+
+| Family | Edge case | Brick adaptation |
+|--------|-----------|------------------|
+| **React** | Controlled input; `fill` skips onChange; SyntheticEvent delegation at root | `type`: bypass native value setter + dispatch `input` |
+| **Angular** | Zone.js change detection; Reactive Forms touched/dirty; Shadow DOM common | events inside zone; `dom_snapshot` pierces shadow root |
+| **Vue** | `v-model` two-way binding | `type`: real keystroke + `input`/`change` |
+| **Meta-framework (Next.js/Nuxt/SvelteKit/Remix)** | **Hydration:** SSR HTML present but dead until JS hydrates → early click/type lost. **RSC/App Router:** nav = RSC payload (`?_rsc=`)/`__data.json`, not full load. **Server Actions:** submit uses `Next-Action` header. **`<Link>` prefetch:** auto background requests → "who really visited" blurred. **Middleware:** route rewrite → requested path ≠ landing | `wait_for`: **hydration-complete**, not DOM-ready. `collect_elements`: don't touch pre-hydration nodes. Discovery: mine endpoints from RSC payload/`__data.json`/`/_next/` chunks. `submit`: preserve `Next-Action`. Mark prefetch (no `trigger_element`) distinct from real navigation in `page_visited_by`. |
+| **SPA general** | Client routing (history/hash) — no real navigation; virtual DOM stales element refs; lazy chunks reveal endpoints late | `navigate`: watch route mutation + wait **DOM-settle** (not network-idle); **re-snapshot** after each action; mine endpoints from chunks |
+| **ASP.NET WebForms (IIS)** | `__VIEWSTATE`/`__EVENTVALIDATION`/`__doPostBack`; postback = full reload | `submit`: **preserve + resend** viewstate/eventvalidation hidden fields; trigger `__doPostBack` |
+| **Java JSF** | `ViewState`, component-tree state, partial ajax submit | `submit`: preserve ViewState token; parse partial-response |
+| **Classic SSR (.NET MVC/JSP)** | Full-reload nav; hidden CSRF token | `navigate`: `goto`+network-idle is deterministic; `csrf_extract` carries hidden token |
+| **IIS/Windows auth** | NTLM/Negotiate integrated auth | session brick carries negotiate header profile-local; care on replay |
+
+**Two concepts with no prior equivalent in the matrix:**
+- **Hydration ≠ DOM-settle.** In SPAs "DOM settled" sufficed; in meta-frameworks the
+  DOM exists but is *dead* until hydration — actions before it are silently lost.
+  `wait_for` needs a separate hydrated signal. Sneakiest source of timing bugs.
+- **Prefetch traffic is misleading.** `<Link>` prefetch produces endpoint requests
+  with no user click, corrupting the "did this credential actually see it" signal for
+  IDOR/BFLA. Enriched-HAR gets a field: no `trigger_element` ⇒ prefetch, marked apart
+  from real navigation.
+
+**Not yet covered (extend the matrix before P3):** Blazor/WASM, htmx, mobile
+webviews. Placeholder — confirm signals + strategies when we reach them.
+
+---
+
+## 7. Explicitly out of scope / do-not-do
 
 - Do NOT merge correlation dispatch policy with reporting-copy rules (they change for
   different reasons — same warning as cloud's `INVESTIGATE_PATTERNS` vs `TRIAGE_RULES`).
