@@ -55,6 +55,60 @@ interface SpawnResult {
   timedOut?: boolean
 }
 
+const CLOUD_DENY_RULES = [
+  { permission: "todowrite" as const, pattern: "*", action: "deny" as const },
+  { permission: "todoread" as const, pattern: "*", action: "deny" as const },
+  { permission: "task" as const, pattern: "*", action: "deny" as const },
+]
+
+const CLOUD_TOOL_OVERRIDES = { todowrite: false, todoread: false, task: false }
+
+interface CloudSpawnOpts {
+  parentID: string
+  agentName: string
+  group: string
+  title: string
+  prompt: string
+  model: { providerID: string; modelID: string }
+  timeoutMs: number
+}
+
+async function spawnCloudAgent(opts: CloudSpawnOpts): Promise<SpawnResult> {
+  const start = Date.now()
+  const agent = await Agent.get(opts.agentName)
+  if (!agent) return { agent: opts.agentName, group: opts.group, sessionID: "", text: "", error: `unknown agent: ${opts.agentName}`, durationMs: 0 }
+
+  const session = await Session.create({
+    parentID: opts.parentID,
+    title: opts.title,
+    permission: CLOUD_DENY_RULES,
+  })
+
+  try {
+    const result = await withTimeout(
+      SessionPrompt.prompt({
+        messageID: Identifier.ascending("message"),
+        sessionID: session.id,
+        model: opts.model,
+        agent: agent.name,
+        tools: CLOUD_TOOL_OVERRIDES,
+        parts: [{ type: "text" as const, text: opts.prompt }],
+      }),
+      opts.timeoutMs,
+      () => SessionPrompt.cancel(session.id),
+    )
+
+    const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
+    const info = result.info
+    const error = info.role === "assistant" ? info.error : undefined
+
+    return { agent: opts.agentName, group: opts.group, sessionID: session.id, text, error: error ? String(error) : undefined, durationMs: Date.now() - start }
+  } catch (e) {
+    const timedOut = e instanceof Error && e.message.includes("timed out")
+    return { agent: opts.agentName, group: opts.group, sessionID: session.id, text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
+  }
+}
+
 async function spawnAnalyst(
   parentID: string,
   groupDef: CloudAnalysis.GroupDef,
@@ -62,20 +116,6 @@ async function spawnAnalyst(
   model: { providerID: string; modelID: string },
   timeoutMs: number = AGENT_TIMEOUT_MS,
 ): Promise<SpawnResult> {
-  const start = Date.now()
-  const agent = await Agent.get(groupDef.analyst)
-  if (!agent) return { agent: groupDef.analyst, group: groupDef.key, sessionID: "", text: "", error: `unknown agent: ${groupDef.analyst}`, durationMs: 0 }
-
-  const session = await Session.create({
-    parentID,
-    title: `Analyze ${groupDef.label} (@${agent.name})`,
-    permission: [
-      { permission: "todowrite", pattern: "*", action: "deny" },
-      { permission: "todoread", pattern: "*", action: "deny" },
-      { permission: "task", pattern: "*", action: "deny" },
-    ],
-  })
-
   const prompt = [
     `Analyze the ${groupDef.key} group findings.`,
     `Call get_assess_findings(group: '${groupDef.key}') to retrieve your Layer 1 findings.`,
@@ -92,29 +132,11 @@ async function spawnAnalyst(
     identityContext ? `## Identity Context\n${identityContext}` : "",
   ].filter(Boolean).join("\n")
 
-  try {
-    const result = await withTimeout(
-      SessionPrompt.prompt({
-        messageID: Identifier.ascending("message"),
-        sessionID: session.id,
-        model,
-        agent: agent.name,
-        tools: { todowrite: false, todoread: false, task: false },
-        parts: [{ type: "text" as const, text: prompt }],
-      }),
-      timeoutMs,
-      () => SessionPrompt.cancel(session.id),
-    )
-
-    const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
-    const info = result.info
-    const error = info.role === "assistant" ? info.error : undefined
-
-    return { agent: groupDef.analyst, group: groupDef.key, sessionID: session.id, text, error: error ? String(error) : undefined, durationMs: Date.now() - start }
-  } catch (e) {
-    const timedOut = e instanceof Error && e.message.includes("timed out")
-    return { agent: groupDef.analyst, group: groupDef.key, sessionID: session.id, text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
-  }
+  return spawnCloudAgent({
+    parentID, agentName: groupDef.analyst, group: groupDef.key,
+    title: `Analyze ${groupDef.label} (@${groupDef.analyst})`,
+    prompt, model, timeoutMs,
+  })
 }
 
 async function spawnFollowup(
@@ -123,39 +145,11 @@ async function spawnFollowup(
   model: { providerID: string; modelID: string },
   timeoutMs: number = FOLLOWUP_TIMEOUT_MS,
 ): Promise<SpawnResult> {
-  const start = Date.now()
-  const agent = await Agent.get("cloud-followup")
-  if (!agent) return { agent: "cloud-followup", group: "followup", sessionID: "", text: "", error: "unknown agent", durationMs: 0 }
-
-  const session = await Session.create({
-    parentID,
+  return spawnCloudAgent({
+    parentID, agentName: "cloud-followup", group: "followup",
     title: `Follow-up: ${followUp.reason} (@cloud-followup)`,
-    permission: [
-      { permission: "todowrite", pattern: "*", action: "deny" },
-      { permission: "todoread", pattern: "*", action: "deny" },
-      { permission: "task", pattern: "*", action: "deny" },
-    ],
+    prompt: followUp.prompt, model, timeoutMs,
   })
-
-  try {
-    const result = await withTimeout(
-      SessionPrompt.prompt({
-        messageID: Identifier.ascending("message"),
-        sessionID: session.id,
-        model,
-        agent: agent.name,
-        tools: { todowrite: false, todoread: false, task: false },
-        parts: [{ type: "text" as const, text: followUp.prompt }],
-      }),
-      timeoutMs,
-      () => SessionPrompt.cancel(session.id),
-    )
-    const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
-    return { agent: "cloud-followup", group: "followup", sessionID: session.id, text, error: undefined, durationMs: Date.now() - start }
-  } catch (e) {
-    const timedOut = e instanceof Error && e.message.includes("timed out")
-    return { agent: "cloud-followup", group: "followup", sessionID: session.id, text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
-  }
 }
 
 async function spawnVerify(
@@ -164,20 +158,6 @@ async function spawnVerify(
   orchestrationSummary: string,
   timeoutMs: number = VERIFY_TIMEOUT_MS,
 ): Promise<SpawnResult> {
-  const start = Date.now()
-  const agent = await Agent.get("cloud-verify")
-  if (!agent) return { agent: "cloud-verify", group: "verify", sessionID: "", text: "", error: "unknown agent", durationMs: 0 }
-
-  const session = await Session.create({
-    parentID,
-    title: "Final verification (@cloud-verify)",
-    permission: [
-      { permission: "todowrite", pattern: "*", action: "deny" },
-      { permission: "todoread", pattern: "*", action: "deny" },
-      { permission: "task", pattern: "*", action: "deny" },
-    ],
-  })
-
   const prompt = [
     "Review all cloud intel and reported vulnerabilities. Check for false positives, verify severity ratings, confirm attack chains are documented.",
     "",
@@ -189,25 +169,11 @@ async function spawnVerify(
     "Pay special attention to failed/timed-out analysts — their groups may have incomplete coverage. Check if any findings from those groups were missed.",
   ].join("\n")
 
-  try {
-    const result = await withTimeout(
-      SessionPrompt.prompt({
-        messageID: Identifier.ascending("message"),
-        sessionID: session.id,
-        model,
-        agent: agent.name,
-        tools: { todowrite: false, todoread: false, task: false },
-        parts: [{ type: "text" as const, text: prompt }],
-      }),
-      timeoutMs,
-      () => SessionPrompt.cancel(session.id),
-    )
-    const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
-    return { agent: "cloud-verify", group: "verify", sessionID: session.id, text, error: undefined, durationMs: Date.now() - start }
-  } catch (e) {
-    const timedOut = e instanceof Error && e.message.includes("timed out")
-    return { agent: "cloud-verify", group: "verify", sessionID: session.id, text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
-  }
+  return spawnCloudAgent({
+    parentID, agentName: "cloud-verify", group: "verify",
+    title: "Final verification (@cloud-verify)",
+    prompt, model, timeoutMs,
+  })
 }
 
 async function spawnBatchVerifier(
@@ -217,20 +183,6 @@ async function spawnBatchVerifier(
   model: { providerID: string; modelID: string },
   timeoutMs: number = BATCH_VERIFY_TIMEOUT_MS,
 ): Promise<SpawnResult> {
-  const start = Date.now()
-  const agent = await Agent.get("cloud-batch-verifier")
-  if (!agent) return { agent: "cloud-batch-verifier", group: "batch-verify", sessionID: "", text: "", error: "unknown agent", durationMs: 0 }
-
-  const session = await Session.create({
-    parentID,
-    title: "Batch verification (@cloud-batch-verifier)",
-    permission: [
-      { permission: "todowrite", pattern: "*", action: "deny" },
-      { permission: "todoread", pattern: "*", action: "deny" },
-      { permission: "task", pattern: "*", action: "deny" },
-    ],
-  })
-
   const prompt = [
     `Rapidly triage formulaic findings across these groups: ${groups.join(", ")}`,
     "",
@@ -245,25 +197,11 @@ async function spawnBatchVerifier(
     identityContext ? `## Identity Context\n${identityContext}` : "",
   ].filter(Boolean).join("\n")
 
-  try {
-    const result = await withTimeout(
-      SessionPrompt.prompt({
-        messageID: Identifier.ascending("message"),
-        sessionID: session.id,
-        model,
-        agent: agent.name,
-        tools: { todowrite: false, todoread: false, task: false },
-        parts: [{ type: "text" as const, text: prompt }],
-      }),
-      timeoutMs,
-      () => SessionPrompt.cancel(session.id),
-    )
-    const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
-    return { agent: "cloud-batch-verifier", group: "batch-verify", sessionID: session.id, text, error: undefined, durationMs: Date.now() - start }
-  } catch (e) {
-    const timedOut = e instanceof Error && e.message.includes("timed out")
-    return { agent: "cloud-batch-verifier", group: "batch-verify", sessionID: session.id, text: "", error: e instanceof Error ? e.message : String(e), durationMs: Date.now() - start, timedOut }
-  }
+  return spawnCloudAgent({
+    parentID, agentName: "cloud-batch-verifier", group: "batch-verify",
+    title: "Batch verification (@cloud-batch-verifier)",
+    prompt, model, timeoutMs,
+  })
 }
 
 function extractIdentityContext(rootSession: string): string {
@@ -316,19 +254,6 @@ async function detectFollowUps(
   const escalations = entries.filter((e) => e.title.startsWith("ESCALATE:"))
   if (chains.length === 0 && targetHints.length === 0 && escalations.length === 0) return []
 
-  const agent = await Agent.get("cloud-orchestrator")
-  if (!agent) return []
-
-  const session = await Session.create({
-    parentID,
-    title: "Chain detection (@cloud-orchestrator)",
-    permission: [
-      { permission: "todowrite", pattern: "*", action: "deny" },
-      { permission: "todoread", pattern: "*", action: "deny" },
-      { permission: "task", pattern: "*", action: "deny" },
-    ],
-  })
-
   const sections: string[] = []
 
   if (chains.length > 0) {
@@ -358,29 +283,25 @@ async function detectFollowUps(
     "\nBe selective — prioritize chains with real attack potential and escalated findings over routine hints.",
   ].join("\n")
 
+  const result = await spawnCloudAgent({
+    parentID, agentName: "cloud-orchestrator", group: "followup-detect",
+    title: "Chain detection (@cloud-orchestrator)",
+    prompt, model, timeoutMs: FOLLOWUP_TIMEOUT_MS,
+  })
+
+  if (result.error) {
+    console.warn(`[orchestrate] detectFollowUps failed: ${result.error}`)
+    return []
+  }
+
+  const jsonMatch = result.text.match(/```json\s*\n?([\s\S]*?)\n?```/)
+  if (!jsonMatch) return []
+
   try {
-    const result = await withTimeout(
-      SessionPrompt.prompt({
-        messageID: Identifier.ascending("message"),
-        sessionID: session.id,
-        model,
-        agent: agent.name,
-        tools: { todowrite: false, todoread: false, task: false },
-        parts: [{ type: "text" as const, text: prompt }],
-      }),
-      FOLLOWUP_TIMEOUT_MS,
-      () => SessionPrompt.cancel(session.id),
-    )
-
-    const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
-    const jsonMatch = text.match(/```json\s*\n?([\s\S]*?)\n?```/)
-    if (!jsonMatch) return []
-
     const parsed = JSON.parse(jsonMatch[1])
     if (!Array.isArray(parsed)) return []
     return parsed.filter((f: any) => f.reason && f.prompt)
-  } catch (e) {
-    if (e instanceof Error) console.warn(`[orchestrate] detectFollowUps failed: ${e.message}`)
+  } catch {
     return []
   }
 }
