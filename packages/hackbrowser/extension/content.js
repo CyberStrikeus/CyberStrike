@@ -91,6 +91,7 @@
       .fab {
         flex: none; width: 52px; height: 52px; padding: 0; border: 0;
         background: transparent; cursor: grab; user-select: none;
+        perspective: 260px;                     /* 3D depth for the Y-axis spin */
         transition: transform .12s ease;
       }
       .fab:active { cursor: grabbing; }
@@ -98,13 +99,13 @@
         width: 52px; height: 52px; display: block; pointer-events: none;
         transform-origin: 50% 50%;              /* center of the circular logo */
         filter: drop-shadow(0 3px 10px rgba(0,0,0,.5));
-        animation: spin 12s steps(6) infinite;  /* idle: 60° step every 2s */
+        animation: spin 8s linear infinite;     /* idle: smooth coin-flip around Y */
       }
-      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes spin { to { transform: rotateY(360deg); } }
       .fab.tapped { animation: tap .3s ease; }
       @keyframes tap { 0% { transform: scale(1);} 40% { transform: scale(.82);} 100% { transform: scale(1);} }
       .dock.capturing .fab img {
-        animation: spin 12s steps(6) infinite, glowpulse 2s ease-in-out infinite;
+        animation: spin 8s linear infinite, glowpulse 2s ease-in-out infinite;
       }
       @keyframes glowpulse {
         0%,100% { filter: drop-shadow(0 3px 10px rgba(0,0,0,.5)); }
