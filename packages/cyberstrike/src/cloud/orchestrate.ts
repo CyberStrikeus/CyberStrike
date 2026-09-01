@@ -11,6 +11,7 @@ import { classifyGroupFindings } from "./classify"
 import { extractTrajectory, aggregateTrajectories, formatTrajectoryLog } from "./trajectory"
 import type { CloudAnalysis } from "./types"
 import type { AgentTrajectory } from "./trajectory"
+import { detectCloudChains, formatCloudChainsForPrompt } from "./cloud-chain"
 import { Semaphore } from "../util/semaphore"
 import { withTimeout } from "../util/timeout"
 
@@ -161,7 +162,7 @@ async function spawnVerify(
   const prompt = [
     "Review all cloud intel and reported vulnerabilities. Check for false positives, verify severity ratings, confirm attack chains are documented.",
     "",
-    "Use get_cloud_intel to review the full intelligence picture. Use the `skill` tool to load relevant skills (cloud-assessment, azure-postexploit) for CIS compliance checks.",
+    "Use cloud_get_context(include_chains: true) to review the structured inventory graph and auto-detected chains. Use get_cloud_intel for text-based intel. Use the `skill` tool to load relevant skills (cloud-assessment, azure-postexploit) for CIS compliance checks.",
     "",
     "## Orchestration Context",
     orchestrationSummary,
@@ -243,22 +244,54 @@ function buildAnalystResult(group: string, spawn: SpawnResult, rootSession: stri
   }
 }
 
+function chainToFollowUp(chain: ReturnType<typeof detectCloudChains>[number]): CloudAnalysis.FollowUp {
+  const assetList = chain.assetNames.map((n) => `"${n}"`).join(" → ")
+  return {
+    reason: `[graph:${chain.pattern}] ${assetList} (${chain.confidence}% confidence)`,
+    chain: chain.assetNames,
+    groups: [...new Set(chain.assetIDs)],
+    prompt: [
+      `## Auto-Detected Chain: ${chain.pattern.toUpperCase()}`,
+      `Assets: ${assetList}`,
+      `Expected impact: ${chain.expectedImpact}`,
+      `Severity: ${chain.severity}`,
+      "",
+      `### Testing Plan`,
+      chain.testingPlan,
+      "",
+      "Use `cloud_get_context(include_chains: true)` to see the full graph. Verify each link in the chain is exploitable, then report findings.",
+    ].join("\n"),
+  }
+}
+
 async function detectFollowUps(
   parentID: string,
   rootSession: string,
   model: { providerID: string; modelID: string },
 ): Promise<CloudAnalysis.FollowUp[]> {
+  const graphChains = detectCloudChains(rootSession)
+  const highConfidence = graphChains.filter((c) => c.confidence >= 80)
+  const lowerConfidence = graphChains.filter((c) => c.confidence < 80)
+
+  const directFollowUps = highConfidence.slice(0, 3).map(chainToFollowUp)
+
   const entries = Intel.get(rootSession)
-  const chains = entries.filter((e) => e.chainPotential)
+  const textChains = entries.filter((e) => e.chainPotential)
   const targetHints = entries.filter((e) => e.tags.some((t) => t.startsWith("target:")))
   const escalations = entries.filter((e) => e.title.startsWith("ESCALATE:"))
-  if (chains.length === 0 && targetHints.length === 0 && escalations.length === 0) return []
+
+  const hasTextSignals = textChains.length > 0 || targetHints.length > 0 || escalations.length > 0
+  if (!hasTextSignals && lowerConfidence.length === 0) return directFollowUps
 
   const sections: string[] = []
 
-  if (chains.length > 0) {
-    const chainSummary = chains.slice(0, 30).map((e) => `- [${e.source ?? "?"}] ${e.title}: ${e.chainPotential}`).join("\n")
-    sections.push(`## Cross-Group Chains\n${chainSummary}`)
+  if (lowerConfidence.length > 0) {
+    sections.push(formatCloudChainsForPrompt(lowerConfidence))
+  }
+
+  if (textChains.length > 0) {
+    const chainSummary = textChains.slice(0, 30).map((e) => `- [${e.source ?? "?"}] ${e.title}: ${e.chainPotential}`).join("\n")
+    sections.push(`## Text-Based Cross-Group Chains\n${chainSummary}`)
   }
 
   if (targetHints.length > 0) {
@@ -276,11 +309,12 @@ async function detectFollowUps(
 
   const prompt = [
     sections.join("\n\n"),
-    "\nUse get_cloud_intel to see the full picture.",
+    "\nUse cloud_get_context and get_cloud_intel to see the full picture.",
     "\nFor each item worth investigating, respond with a JSON block:",
     '```json\n[{"reason":"...","chain":["group1","group2"],"groups":["group1","group2"],"prompt":"Detailed verification prompt for the follow-up agent"}]\n```',
     "\nIf nothing needs follow-up, respond with `[]`.",
     "\nBe selective — prioritize chains with real attack potential and escalated findings over routine hints.",
+    "\nNote: high-confidence graph chains are already queued. Focus on the lower-confidence and text-based signals.",
   ].join("\n")
 
   const result = await spawnCloudAgent({
@@ -291,18 +325,19 @@ async function detectFollowUps(
 
   if (result.error) {
     console.warn(`[orchestrate] detectFollowUps failed: ${result.error}`)
-    return []
+    return directFollowUps
   }
 
   const jsonMatch = result.text.match(/```json\s*\n?([\s\S]*?)\n?```/)
-  if (!jsonMatch) return []
+  if (!jsonMatch) return directFollowUps
 
   try {
     const parsed = JSON.parse(jsonMatch[1])
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter((f: any) => f.reason && f.prompt)
+    if (!Array.isArray(parsed)) return directFollowUps
+    const llmFollowUps: CloudAnalysis.FollowUp[] = parsed.filter((f: any) => f.reason && f.prompt)
+    return [...directFollowUps, ...llmFollowUps]
   } catch {
-    return []
+    return directFollowUps
   }
 }
 
