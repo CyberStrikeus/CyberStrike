@@ -20,6 +20,12 @@
     "default_title": "CyberStrike: attach capture to this tab",
     "default_popup": "popup.html"
   },
+  "web_accessible_resources": [
+    {
+      "resources": ["logo.png"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "icons": {
     "16": "icon16.png",
     "48": "icon48.png",

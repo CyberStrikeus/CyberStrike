@@ -16,8 +16,8 @@
   host.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:2147483647;"
   const root = host.attachShadow({ mode: "closed" })
 
-  // Placeholder mark (lightning bolt) — swap for the real CyberStrike logo later.
-  const LOGO = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M13 2 4 13h6l-1 9 9-12h-6l1-8Z" fill="currentColor"/></svg>`
+  // CyberStrike logo (bundled, exposed via web_accessible_resources).
+  const LOGO = `<img class="logo" src="${chrome.runtime.getURL("logo.png")}" width="18" height="18" alt="" draggable="false" />`
 
   root.innerHTML = `
     <style>
@@ -46,12 +46,9 @@
       .fab:active { cursor: grabbing; }
       .phead { cursor: grab; }
       .phead:active { cursor: grabbing; }
-      .mark {
-        display: inline-flex; color: var(--faint);
-        transition: color .2s ease;
-      }
-      .dock.capturing .mark { color: var(--on); animation: pulse 1.8s ease-in-out infinite; }
-      .dock.human .mark { color: var(--human); }
+      .mark { display: inline-flex; }
+      .mark .logo { display: block; width: 18px; height: 18px; }
+      .dock.capturing .mark .logo { animation: pulse 1.8s ease-in-out infinite; }
       .label { font-weight: 600; letter-spacing: .02em; }
       .count {
         min-width: 18px; text-align: center; padding: 1px 6px;
