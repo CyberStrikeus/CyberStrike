@@ -8,6 +8,7 @@
 // Run: bun run packages/hackbrowser/src/v2/receiver.ts   (listens on :4097)
 
 import { annotateClickables, type Clickable, type ElementKind } from "./classify"
+import { actionPolicy } from "./guard"
 
 const PORT = Number(process.env.HB2_PORT ?? 4097)
 
@@ -224,12 +225,13 @@ Bun.serve({
       if (want) {
         const obs = pageState.get(want)
         if (!obs) return new Response("not found", { status: 404, headers: corsHeaders() })
+        // Attach the action policy per clickable (derived from kind, not stored —
+        // guard.ts is the single source). The AI sees deny/confirm/allow alongside
+        // each element; the click brick will later enforce the same rule.
+        const withPolicy = (cs: Clickable[]) => cs.map((c) => ({ ...c, policy: actionPolicy(c.kind) }))
         const view = url.searchParams.get("view") as ElementKind | null
-        if (view) {
-          const filtered = { ...obs, clickables: obs.clickables.filter((c) => c.kind === view) }
-          return Response.json(filtered, { headers: corsHeaders() })
-        }
-        return Response.json(obs, { headers: corsHeaders() })
+        const clickables = view ? obs.clickables.filter((c) => c.kind === view) : obs.clickables
+        return Response.json({ ...obs, clickables: withPolicy(clickables) }, { headers: corsHeaders() })
       }
       return Response.json({ urls: [...pageState.keys()] }, { headers: corsHeaders() })
     }
