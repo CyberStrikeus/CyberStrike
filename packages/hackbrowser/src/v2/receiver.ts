@@ -7,6 +7,8 @@
 //
 // Run: bun run packages/hackbrowser/src/v2/receiver.ts   (listens on :4097)
 
+import { annotateClickables, type Clickable, type ElementKind } from "./classify"
+
 const PORT = Number(process.env.HB2_PORT ?? 4097)
 
 // --- Scope enforcement (risk #2) --------------------------------------------
@@ -85,7 +87,7 @@ function trafficClass(type: string): "api" | "js" | "html" | "static" | "realtim
 interface PageObservation {
   url: string
   title: string
-  clickables: { id: string; tag: string; role: string; label: string; href: string }[]
+  clickables: Clickable[]
   forms: { action: string; method: string; fields: { name: string; type: string; required: boolean }[] }[]
   links: string[]
   driver?: "ai" | "human"
@@ -199,19 +201,34 @@ Bun.serve({
       } catch {
         return new Response("invalid json", { status: 400, headers: corsHeaders() })
       }
+      // Deterministic semantic tagging (LLM-free) — makes the observation AI-usable
+      // and feeds the destructive/logout guard. Single source of truth: classify.ts.
+      const counts = annotateClickables(obs.clickables)
       pageState.set(obs.url, obs)
+      const risky = counts.destructive + counts.logout
       console.log(
-        `[hb2] observe ${(obs.driver || "ai").padEnd(5)} ${obs.clickables.length}c ${obs.forms.length}f ${obs.links.length}l  ${obs.url}`,
+        `[hb2] observe ${(obs.driver || "ai").padEnd(5)} ${obs.clickables.length}c ${obs.forms.length}f ${obs.links.length}l` +
+          ` [${counts.destructive}D ${counts.logout}Lo ${counts.auth}Au ${counts.mutating}M ${counts.query}Q]` +
+          (risky > 0 ? " ⚠" : "") +
+          `  ${obs.url}`,
       )
-      return Response.json({ ok: true }, { headers: corsHeaders() })
+      return Response.json({ ok: true, kinds: counts }, { headers: corsHeaders() })
     }
 
     // get_page_state substrate: return the last observation for a URL (or all).
+    // ?view=<kind> filters clickables to one semantic kind (destructive/logout/
+    // auth/mutating/query/nav/other) — the sub-view the AI pulls instead of the
+    // whole flat list.
     if (req.method === "GET" && url.pathname === "/page-state") {
       const want = url.searchParams.get("url")
       if (want) {
         const obs = pageState.get(want)
         if (!obs) return new Response("not found", { status: 404, headers: corsHeaders() })
+        const view = url.searchParams.get("view") as ElementKind | null
+        if (view) {
+          const filtered = { ...obs, clickables: obs.clickables.filter((c) => c.kind === view) }
+          return Response.json(filtered, { headers: corsHeaders() })
+        }
         return Response.json(obs, { headers: corsHeaders() })
       }
       return Response.json({ urls: [...pageState.keys()] }, { headers: corsHeaders() })
