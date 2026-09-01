@@ -280,15 +280,85 @@ interface TrackedAgent {
   promise: Promise<SpawnResult>
 }
 
+interface GroupProgress {
+  intelCount: number
+  draftCount: number
+  triagedCount: number
+  staleTicks: number
+}
+
+interface WatchdogState {
+  ticks: number
+  helpersSpawned: number
+  groupProgress: Map<string, GroupProgress>
+  lastTickAt: number
+}
+
+function readGroupProgress(rootSession: string, groupKey: string): GroupProgress {
+  const entries = Intel.get(rootSession)
+  const groupIntel = entries.filter((e) => e.tags.includes(`group:${groupKey}`))
+  const vulns = Vulnerability.get(rootSession)
+  const groupVulns = vulns.filter((v) => v.source_agent?.includes(groupKey))
+  const draftCount = groupVulns.filter((v) => normalizeStatus(v.status ?? VulnStatus.DRAFT) === VulnStatus.DRAFT).length
+  const triagedCount = groupVulns.filter((v) => {
+    const s = normalizeStatus(v.status ?? VulnStatus.DRAFT)
+    return s !== VulnStatus.DRAFT
+  }).length
+  return { intelCount: groupIntel.length, draftCount, triagedCount, staleTicks: 0 }
+}
+
+function spawnHelper(
+  ctx: WatchdogContext,
+  groupDef: CloudAnalysis.GroupDef,
+  reason: string,
+  progress: GroupProgress,
+): Promise<SpawnResult> {
+  const helperContext = [
+    `\n\n## Helper Mode — ${reason}`,
+    `Original agent state: ${progress.triagedCount} triaged, ${progress.draftCount} still draft, ${progress.intelCount} intel entries.`,
+    "Focus ONLY on findings still in draft status — skip any finding that has already been triaged or enriched.",
+  ].join("\n")
+  const prompt = ctx.provider.analystPrompt(groupDef, ctx.identityContext) + helperContext
+  return (async () => {
+    await ctx.sem.acquire()
+    try { return await spawnAnalyst(ctx.sessionID, groupDef, prompt, ctx.model, AGENT_TIMEOUT_MS, ctx.messageID) }
+    finally { ctx.sem.release() }
+  })()
+}
+
 function startWatchdog(
   ctx: WatchdogContext,
   tracked: TrackedAgent[],
   helperResults: SpawnResult[],
-): { stop: () => Promise<PromiseSettledResult<SpawnResult>[]> } {
+): { stop: () => Promise<PromiseSettledResult<SpawnResult>[]>; state: WatchdogState } {
   const helpedGroups = new Set<string>()
   const helperPromises: Promise<SpawnResult>[] = []
+  const wdState: WatchdogState = {
+    ticks: 0,
+    helpersSpawned: 0,
+    groupProgress: new Map(),
+    lastTickAt: Date.now(),
+  }
+
+  for (const t of tracked) {
+    if (!wdState.groupProgress.has(t.groupKey)) {
+      wdState.groupProgress.set(t.groupKey, { intelCount: 0, draftCount: 0, triagedCount: 0, staleTicks: 0 })
+    }
+  }
 
   const timer = setInterval(async () => {
+    wdState.ticks++
+    wdState.lastTickAt = Date.now()
+
+    // Read current progress for each tracked group
+    for (const t of tracked) {
+      const prev = wdState.groupProgress.get(t.groupKey)!
+      const current = readGroupProgress(ctx.rootSession, t.groupKey)
+      const progressed = current.triagedCount > prev.triagedCount || current.intelCount > prev.intelCount
+      current.staleTicks = progressed ? 0 : prev.staleTicks + 1
+      wdState.groupProgress.set(t.groupKey, current)
+    }
+
     // Layer 1: Self-spawn — agent signaled SCALE:<group> via add_intel
     const entries = Intel.get(ctx.rootSession)
     for (const e of entries) {
@@ -298,41 +368,58 @@ function startWatchdog(
       const groupDef = ctx.provider.groups().find((g) => g.key === gk)
       if (!groupDef) continue
       helpedGroups.add(gk)
-      console.log(`[watchdog] self-spawn: agent requested help for ${gk}`)
-      const prompt = ctx.provider.analystPrompt(groupDef, ctx.identityContext) +
-        "\n\n## Helper Mode\nAnother agent is already working on this group but is overloaded. Focus ONLY on findings still in draft status — skip any finding that has already been triaged or enriched."
-      const p = (async () => {
-        await ctx.sem.acquire()
-        try { return await spawnAnalyst(ctx.sessionID, groupDef, prompt, ctx.model, AGENT_TIMEOUT_MS, ctx.messageID) }
-        finally { ctx.sem.release() }
-      })()
+      const progress = wdState.groupProgress.get(gk) ?? readGroupProgress(ctx.rootSession, gk)
+      console.log(`[watchdog] self-spawn: ${gk} requested help (${progress.triagedCount} triaged, ${progress.draftCount} draft)`)
+      const p = spawnHelper(ctx, groupDef, "agent requested help", progress)
       helperPromises.push(p)
       p.then((r) => helperResults.push(r)).catch(() => {})
+      wdState.helpersSpawned++
     }
 
-    // Layer 2: Watchdog — agent running > WATCHDOG_SPAWN_AFTER_MS
+    // Layer 2: Watchdog — stale or long-running agents
     for (const t of tracked) {
       if (helpedGroups.has(t.groupKey)) continue
       const elapsed = Date.now() - t.startTime
-      if (elapsed < WATCHDOG_SPAWN_AFTER_MS) continue
+      const progress = wdState.groupProgress.get(t.groupKey)!
+
+      // Stuck: no progress for 3 consecutive ticks (90s) and agent running > 2min
+      const isStuck = progress.staleTicks >= 3 && elapsed > 2 * 60_000
+      // Long-running: agent exceeds WATCHDOG_SPAWN_AFTER_MS and still has draft findings
+      const isLongRunning = elapsed >= WATCHDOG_SPAWN_AFTER_MS && progress.draftCount > 0
+
+      if (!isStuck && !isLongRunning) continue
+
       helpedGroups.add(t.groupKey)
-      console.log(`[watchdog] timeout-guard: spawning helper for ${t.groupKey} (${Math.round(elapsed / 1000)}s elapsed)`)
-      const prompt = ctx.provider.analystPrompt(t.groupDef, ctx.identityContext) +
-        "\n\n## Helper Mode\nAnother agent is already working on this group but is running long. Focus ONLY on findings still in draft status — skip any finding that has already been triaged or enriched."
-      const p = (async () => {
-        await ctx.sem.acquire()
-        try { return await spawnAnalyst(ctx.sessionID, t.groupDef, prompt, ctx.model, AGENT_TIMEOUT_MS, ctx.messageID) }
-        finally { ctx.sem.release() }
-      })()
+      const reason = isStuck
+        ? `stuck — no progress for ${progress.staleTicks * 30}s`
+        : `long-running — ${Math.round(elapsed / 1000)}s elapsed, ${progress.draftCount} draft remaining`
+      console.log(`[watchdog] ${t.groupKey}: ${reason} → spawning helper (${progress.triagedCount} triaged, ${progress.draftCount} draft, ${progress.intelCount} intel)`)
+      const p = spawnHelper(ctx, t.groupDef, reason, progress)
       helperPromises.push(p)
       p.then((r) => helperResults.push(r)).catch(() => {})
+      wdState.helpersSpawned++
+    }
+
+    // Heartbeat
+    if (wdState.ticks % 4 === 0) {
+      const groupSummaries = [...wdState.groupProgress.entries()]
+        .map(([k, p]) => `${k}:${p.triagedCount}t/${p.draftCount}d`)
+        .join(" ")
+      console.log(`[watchdog] heartbeat tick=${wdState.ticks} helpers=${wdState.helpersSpawned} ${groupSummaries}`)
     }
   }, WATCHDOG_INTERVAL_MS)
 
   return {
-    stop: () => {
+    state: wdState,
+    stop: async () => {
       clearInterval(timer)
-      return Promise.allSettled(helperPromises)
+      const results = await Promise.allSettled(helperPromises)
+      if (wdState.ticks === 0) {
+        console.warn(`[watchdog] WARNING: watchdog never ticked — timer may have been blocked`)
+      } else {
+        console.log(`[watchdog] stopped after ${wdState.ticks} ticks, ${wdState.helpersSpawned} helpers spawned`)
+      }
+      return results
     },
   }
 }
