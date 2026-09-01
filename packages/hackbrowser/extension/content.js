@@ -1,41 +1,78 @@
 // CyberStrike HackBrowser 2.0 — panel (content script).
 //
-// A logo dock: a large CyberStrike mark sits in a corner; clicking it expands a
-// panel HORIZONTALLY toward screen-center (left if docked right, right if docked
-// left). The panel shows the capture breakdown (captured / API / JS / static /
-// page elements), computed by the background from resource_type. When a tab is
-// being captured a hue floats around the viewport edges — navy for AI-driven,
-// amber for human (co-driving handover). Injected in a closed shadow root.
+// Interaction:
+//   - a large transparent CyberStrike logo sits in a corner (draggable)
+//   - hover reveals a small toolbar toward center: captured count + settings gear
+//   - clicking the logo TOGGLES the driver (AI <-> Human) and flashes a soft
+//     center-screen line ("AI Driving the session" / "Human Driving the session")
+//   - the settings gear opens the breakdown panel (captured/API/JS/static/page)
+//   - while capturing, a very faint edge hue floats around the viewport:
+//     navy for AI-driven, amber for human
+// Everything is injected in closed shadow roots.
 
 ;(function () {
-  if (window !== window.top) return // top frame only
+  if (window !== window.top) return
 
   const LOGO_SRC = chrome.runtime.getURL("logo.png")
 
-  // --- Edge glow overlay (like Claude-in-Chrome's border hue) ---------------
+  // --- Edge glow (very faint) -----------------------------------------------
   const glowHost = document.createElement("div")
-  glowHost.style.cssText = "position:fixed;inset:0;z-index:2147483646;pointer-events:none;"
+  glowHost.style.cssText = "position:fixed;inset:0;z-index:2147483645;pointer-events:none;"
   const glowRoot = glowHost.attachShadow({ mode: "closed" })
   glowRoot.innerHTML = `
     <style>
-      .glow {
-        position: fixed; inset: 0; pointer-events: none;
-        opacity: 0; transition: opacity .4s ease, box-shadow .4s ease;
-      }
-      .glow.on { opacity: 1; animation: breathe 3s ease-in-out infinite; }
-      .glow.ai { box-shadow: inset 0 0 46px 8px rgba(37,99,235,.55); }
-      .glow.human { box-shadow: inset 0 0 46px 8px rgba(240,180,41,.55); }
-      @keyframes breathe { 0%,100% { opacity: .9; } 50% { opacity: .45; } }
+      .glow { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .6s ease; }
+      .glow.on { animation: breathe 4s ease-in-out infinite; }
+      .glow.ai { box-shadow: inset 0 0 42px 6px rgba(37,99,235,.18); }
+      .glow.human { box-shadow: inset 0 0 42px 6px rgba(240,180,41,.18); }
+      @keyframes breathe { 0%,100% { opacity: .55; } 50% { opacity: .22; } }
     </style>
     <div class="glow" id="glow"></div>
   `
   const glow = glowRoot.getElementById("glow")
 
-  // --- Dock (logo + panel) --------------------------------------------------
+  // --- Center transition line ------------------------------------------------
+  const transHost = document.createElement("div")
+  transHost.style.cssText = "position:fixed;inset:0;z-index:2147483646;pointer-events:none;"
+  const transRoot = transHost.attachShadow({ mode: "closed" })
+  transRoot.innerHTML = `
+    <style>
+      .trans {
+        position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+        pointer-events: none; opacity: 0; transition: opacity .45s ease, transform .45s ease;
+        transform: scale(.98);
+      }
+      .trans.show { opacity: 1; transform: scale(1); }
+      .msg {
+        font: 500 30px ui-sans-serif, system-ui, -apple-system, sans-serif;
+        letter-spacing: .01em; color: rgba(255,255,255,.92);
+        text-shadow: 0 2px 30px rgba(0,0,0,.55);
+        padding: 14px 26px; border-radius: 14px;
+        background: rgba(10,14,20,.32); backdrop-filter: blur(2px);
+      }
+      .msg.ai { box-shadow: 0 0 0 1px rgba(37,99,235,.35), 0 8px 40px rgba(37,99,235,.2); }
+      .msg.human { box-shadow: 0 0 0 1px rgba(240,180,41,.35), 0 8px 40px rgba(240,180,41,.2); }
+    </style>
+    <div class="trans" id="trans"><div class="msg" id="msg"></div></div>
+  `
+  const trans = transRoot.getElementById("trans")
+  const msg = transRoot.getElementById("msg")
+  let transTimer = null
+  function flashTransition(text, cls) {
+    msg.textContent = text
+    msg.className = "msg " + cls
+    trans.classList.add("show")
+    if (transTimer) clearTimeout(transTimer)
+    transTimer = setTimeout(() => trans.classList.remove("show"), 1400)
+  }
+
+  // --- Dock ------------------------------------------------------------------
   const host = document.createElement("div")
   host.id = "cyberstrike-panel-host"
   host.style.cssText = "position:fixed;right:20px;bottom:20px;z-index:2147483647;"
   const root = host.attachShadow({ mode: "closed" })
+
+  const GEAR = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>`
 
   root.innerHTML = `
     <style>
@@ -43,113 +80,113 @@
       * { box-sizing: border-box; }
       .dock {
         --panel: #0f161d; --line: #1e2a36; --text: #d7e0ea;
-        --dim: #8aa0b4; --faint: #6b7684;
-        --ai: #2563eb; --human: #f0b429;
+        --dim: #8aa0b4; --faint: #6b7684; --ai: #2563eb; --human: #f0b429;
         font: 12px/1.4 ui-sans-serif, system-ui, -apple-system, sans-serif;
         color: var(--text);
-        display: flex; align-items: flex-end; gap: 12px;
-      }
-      .dock.left { flex-direction: row; }          /* logo left  → panel right */
-      .dock.right { flex-direction: row-reverse; } /* logo right → panel left  */
-
-      /* Big logo button */
-      .fab {
-        flex: none; width: 54px; height: 54px; padding: 0;
-        display: inline-flex; align-items: center; justify-content: center;
-        background: transparent; border: 0; cursor: grab; user-select: none;
-        filter: drop-shadow(0 4px 12px rgba(0,0,0,.5));
-        transition: transform .15s ease;
-      }
-      .fab:hover { transform: scale(1.06); }
-      .fab:active { cursor: grabbing; }
-      .fab img { width: 54px; height: 54px; display: block; pointer-events: none; }
-      .dock.capturing.driver-ai .fab img { animation: pulse 1.8s ease-in-out infinite; }
-      .dock.capturing.driver-human .fab img { animation: pulse 1.8s ease-in-out infinite; }
-      @keyframes pulse {
-        0%,100% { filter: drop-shadow(0 0 0 transparent); opacity: 1; }
-        50% { filter: drop-shadow(0 0 6px rgba(255,255,255,.5)); opacity: .8; }
-      }
-
-      /* Panel */
-      .panel {
-        width: 248px; background: var(--panel);
-        border: 1px solid var(--line); border-radius: 12px;
-        box-shadow: 0 14px 44px rgba(0,0,0,.5);
-        overflow: hidden;
-        transform-origin: bottom center;
-        transition: opacity .16s ease, transform .16s ease, width .16s ease;
-      }
-      .dock:not(.open) .panel {
-        opacity: 0; width: 0; border: 0; padding: 0;
-        transform: scale(.97); pointer-events: none;
-      }
-      .phead {
         display: flex; align-items: center; gap: 8px;
-        padding: 11px 13px; border-bottom: 1px solid var(--line);
-        cursor: grab;
       }
-      .phead:active { cursor: grabbing; }
-      .brand { font-weight: 700; letter-spacing: .07em; font-size: 11px; white-space: nowrap; }
-      .state {
-        margin-left: auto; font-size: 10px; padding: 2px 8px; border-radius: 999px;
-        background: #16212b; color: var(--dim); white-space: nowrap;
-      }
-      .dock.capturing.driver-ai .state { background: rgba(37,99,235,.15); color: #7ea8ff; }
-      .dock.capturing.driver-human .state { background: rgba(240,180,41,.15); color: var(--human); }
+      .dock.right { flex-direction: row-reverse; }
+      .dock.left { flex-direction: row; }
 
-      .pbody { padding: 12px 13px; display: flex; flex-direction: column; gap: 2px; }
-      .stat {
-        display: flex; align-items: baseline; justify-content: space-between;
-        padding: 5px 0; border-bottom: 1px dashed #17222d;
+      .fab {
+        flex: none; width: 52px; height: 52px; padding: 0; border: 0;
+        background: transparent; cursor: grab; user-select: none;
+        transition: transform .12s ease;
       }
-      .stat:last-of-type { border-bottom: 0; }
-      .stat .k { color: var(--dim); font-size: 11px; }
-      .stat .v { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
-      .stat .v.accent { color: #7ea8ff; }
+      .fab:active { cursor: grabbing; }
+      .fab img {
+        width: 52px; height: 52px; display: block; pointer-events: none;
+        filter: drop-shadow(0 3px 10px rgba(0,0,0,.5));
+      }
+      .fab.tapped { animation: tap .3s ease; }
+      @keyframes tap { 0% { transform: scale(1);} 40% { transform: scale(.82);} 100% { transform: scale(1);} }
+      .dock.capturing .fab img { animation: glowpulse 2s ease-in-out infinite; }
+      @keyframes glowpulse {
+        0%,100% { filter: drop-shadow(0 3px 10px rgba(0,0,0,.5)); }
+        50% { filter: drop-shadow(0 0 10px rgba(255,255,255,.35)) drop-shadow(0 3px 10px rgba(0,0,0,.5)); }
+      }
 
-      button.act {
-        margin-top: 10px; width: 100%; padding: 9px; border: 0; border-radius: 9px;
-        font: 700 12px system-ui, sans-serif; cursor: pointer;
-        background: var(--ai); color: #fff; transition: filter .15s ease;
+      /* Hover toolbar: captured count + settings */
+      .bar {
+        display: flex; align-items: center; gap: 6px;
+        height: 30px; padding: 0 6px 0 10px;
+        background: #0b0f14; border: 1px solid var(--line); border-radius: 999px;
+        box-shadow: 0 4px 16px rgba(0,0,0,.4);
+        opacity: 0; transform: translateX(6px); pointer-events: none;
+        transition: opacity .15s ease, transform .15s ease;
       }
-      button.act:hover { filter: brightness(1.08); }
-      button.act.human { background: var(--human); color: #1a1205; }
+      .dock.right .bar { transform: translateX(6px); }
+      .dock.left .bar { transform: translateX(-6px); }
+      .dock:hover .bar, .dock.pinned .bar { opacity: 1; transform: none; pointer-events: auto; }
+      .cap { font-size: 11px; color: var(--dim); white-space: nowrap; }
+      .cap b { color: var(--text); font-variant-numeric: tabular-nums; }
+      .dock.capturing.driver-ai .cap b { color: #7ea8ff; }
+      .dock.capturing.driver-human .cap b { color: var(--human); }
+      .gear {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 24px; height: 24px; border: 0; border-radius: 50%;
+        background: transparent; color: var(--dim); cursor: pointer;
+        transition: color .15s ease, background .15s ease;
+      }
+      .gear:hover { color: var(--text); background: #16212b; }
+
+      /* Settings panel (breakdown) */
+      .panel {
+        position: absolute; bottom: 60px; width: 244px;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+        box-shadow: 0 14px 44px rgba(0,0,0,.5); overflow: hidden;
+        opacity: 0; transform: translateY(6px) scale(.98); pointer-events: none;
+        transition: opacity .16s ease, transform .16s ease;
+      }
+      .dock.right .panel { right: 0; }
+      .dock.left .panel { left: 0; }
+      .dock.settings .panel { opacity: 1; transform: none; pointer-events: auto; }
+      .phead { display: flex; align-items: center; gap: 8px; padding: 11px 13px; border-bottom: 1px solid var(--line); }
+      .brand { font-weight: 700; letter-spacing: .07em; font-size: 11px; }
+      .st { margin-left: auto; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #16212b; color: var(--dim); }
+      .dock.capturing.driver-ai .st { background: rgba(37,99,235,.15); color: #7ea8ff; }
+      .dock.capturing.driver-human .st { background: rgba(240,180,41,.15); color: var(--human); }
+      .pbody { padding: 10px 13px; display: flex; flex-direction: column; }
+      .row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px dashed #17222d; }
+      .row:last-child { border-bottom: 0; }
+      .row .k { color: var(--dim); font-size: 11px; }
+      .row .v { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
     </style>
 
     <div class="dock right" id="dock">
       <div class="panel" id="panel">
-        <div class="phead">
-          <span class="brand">CYBERSTRIKE</span>
-          <span class="state" id="state">detached</span>
-        </div>
+        <div class="phead"><span class="brand">CYBERSTRIKE</span><span class="st" id="state">detached</span></div>
         <div class="pbody">
-          <div class="stat"><span class="k">captured</span><span class="v accent" id="s-total">0</span></div>
-          <div class="stat"><span class="k">API endpoints</span><span class="v" id="s-api">0</span></div>
-          <div class="stat"><span class="k">JavaScript files</span><span class="v" id="s-js">0</span></div>
-          <div class="stat"><span class="k">static assets</span><span class="v" id="s-static">0</span></div>
-          <div class="stat"><span class="k">page elements</span><span class="v" id="s-page">0</span></div>
-          <button class="act" id="handover">AI is driving — take over</button>
+          <div class="row"><span class="k">captured</span><span class="v" id="s-total">0</span></div>
+          <div class="row"><span class="k">API endpoints</span><span class="v" id="s-api">0</span></div>
+          <div class="row"><span class="k">JavaScript files</span><span class="v" id="s-js">0</span></div>
+          <div class="row"><span class="k">static assets</span><span class="v" id="s-static">0</span></div>
+          <div class="row"><span class="k">page elements</span><span class="v" id="s-page">0</span></div>
         </div>
       </div>
-      <button class="fab" id="fab" title="CyberStrike"><img src="${LOGO_SRC}" alt="CyberStrike" draggable="false" /></button>
+      <div class="bar" id="bar">
+        <span class="cap">captured <b id="b-total">0</b></span>
+        <button class="gear" id="gear" title="Details">${GEAR}</button>
+      </div>
+      <button class="fab" id="fab" title="Toggle driver"><img src="${LOGO_SRC}" alt="CyberStrike" draggable="false" /></button>
     </div>
   `
 
   const dock = root.getElementById("dock")
   const fab = root.getElementById("fab")
+  const gear = root.getElementById("gear")
   const stateEl = root.getElementById("state")
   const sTotal = root.getElementById("s-total")
   const sApi = root.getElementById("s-api")
   const sJs = root.getElementById("s-js")
   const sStatic = root.getElementById("s-static")
   const sPage = root.getElementById("s-page")
-  const handover = root.getElementById("handover")
+  const bTotal = root.getElementById("b-total")
 
   let driver = "ai"
-  let expanded = false
+  let settingsOpen = false
   let pageCount = 0
 
-  // Dock side (left/right) from the host position — panel opens toward center.
   function updateSide() {
     const cx = host.getBoundingClientRect().left + host.offsetWidth / 2
     const onRight = cx > window.innerWidth / 2
@@ -170,14 +207,11 @@
       sApi.textContent = st.api || 0
       sJs.textContent = st.js || 0
       sStatic.textContent = st.static || 0
+      bTotal.textContent = st.total || 0
     }
     sPage.textContent = pageCount
-
     stateEl.textContent = !attached ? "detached" : driver === "human" ? "you drive" : "AI driving"
-    handover.textContent = driver === "human" ? "You're driving — give back to AI" : "AI is driving — take over"
-    handover.classList.toggle("human", driver === "human")
 
-    // Edge glow: navy when AI-driven, amber when human — only while capturing.
     glow.classList.toggle("on", attached)
     glow.classList.toggle("ai", attached && driver !== "human")
     glow.classList.toggle("human", attached && driver === "human")
@@ -190,7 +224,6 @@
   let startY = 0
   let origLeft = 0
   let origTop = 0
-
   function onDragStart(e) {
     dragging = true
     moved = false
@@ -212,42 +245,42 @@
     const dx = p.clientX - startX
     const dy = p.clientY - startY
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true
-    let left = Math.max(4, Math.min(origLeft + dx, window.innerWidth - host.offsetWidth - 4))
-    let top = Math.max(4, Math.min(origTop + dy, window.innerHeight - host.offsetHeight - 4))
-    host.style.left = left + "px"
-    host.style.top = top + "px"
+    host.style.left = Math.max(4, Math.min(origLeft + dx, window.innerWidth - host.offsetWidth - 4)) + "px"
+    host.style.top = Math.max(4, Math.min(origTop + dy, window.innerHeight - host.offsetHeight - 4)) + "px"
     updateSide()
   }
   function onDragEnd() {
     dragging = false
   }
-
   fab.addEventListener("mousedown", onDragStart)
   fab.addEventListener("touchstart", onDragStart, { passive: false })
-  const phead = root.querySelector(".phead")
-  if (phead) {
-    phead.addEventListener("mousedown", onDragStart)
-    phead.addEventListener("touchstart", onDragStart, { passive: false })
-  }
   document.addEventListener("mousemove", onDragMove)
   document.addEventListener("touchmove", onDragMove, { passive: false })
   document.addEventListener("mouseup", onDragEnd)
   document.addEventListener("touchend", onDragEnd)
 
+  // Logo click → toggle driver (not a drag) + flash transition.
   fab.addEventListener("click", () => {
     if (moved) {
       moved = false
       return
     }
-    updateSide()
-    expanded = !expanded
-    dock.classList.toggle("open", expanded)
+    fab.classList.remove("tapped")
+    void fab.offsetWidth
+    fab.classList.add("tapped")
+    driver = driver === "ai" ? "human" : "ai"
+    flashTransition(
+      driver === "human" ? "Human Driving the session" : "AI Driving the session",
+      driver === "human" ? "human" : "ai",
+    )
+    chrome.runtime.sendMessage({ type: "set-driver", driver }, (res) => render(res))
   })
 
-  handover.addEventListener("click", (e) => {
+  gear.addEventListener("click", (e) => {
     e.stopPropagation()
-    driver = driver === "ai" ? "human" : "ai"
-    chrome.runtime.sendMessage({ type: "set-driver", driver }, (res) => render(res))
+    settingsOpen = !settingsOpen
+    dock.classList.toggle("settings", settingsOpen)
+    dock.classList.toggle("pinned", settingsOpen) // keep the bar visible while panel is open
   })
 
   // --- Deterministic page observation (§3.3) --------------------------------
@@ -307,10 +340,9 @@
     return obs
   }
 
-  // Execute a guard-approved command (background relays only allowed ones).
-  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.type !== "perform") return
-    const cmd = msg.cmd || {}
+  chrome.runtime.onMessage.addListener((m, s, sendResponse) => {
+    if (m.type !== "perform") return
+    const cmd = m.cmd || {}
     try {
       if (cmd.op === "click") {
         const el = elMap.get(cmd.elementId)
@@ -339,7 +371,6 @@
     }
   })
 
-  // Launcher-injected credential: #__cs_cred=<label> → self-register + strip.
   function readCredFromHash() {
     const m = location.hash.match(/__cs_cred=([^&]+)/)
     if (!m) return
@@ -369,6 +400,7 @@
     if (!document.body) return
     if (document.getElementById("cyberstrike-panel-host")) return
     document.body.appendChild(glowHost)
+    document.body.appendChild(transHost)
     document.body.appendChild(host)
     readCredFromHash()
     updateSide()
