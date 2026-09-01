@@ -17,7 +17,7 @@ import { withTimeout } from "../util/timeout"
 const LAYER2_DEADLINE_MS = 20 * 60 * 1000
 const FOLLOWUP_RESERVE_MS = 5 * 60 * 1000
 const AGENT_TIMEOUT_MS = 10 * 60 * 1000
-const FINDINGS_PER_AGENT = 15
+const FINDINGS_PER_AGENT = 8
 const MAX_AGENTS_PER_GROUP = 4
 const BATCH_VERIFY_TIMEOUT_MS = 5 * 60 * 1000
 const FOLLOWUP_TIMEOUT_MS = 5 * 60 * 1000
@@ -413,7 +413,7 @@ async function runOrchestration(
   if (idGroup) {
     const idFindingCount = provider.findingCount(rootSession, idGroup.key)
     const idAgentCount = Math.min(MAX_AGENTS_PER_GROUP, Math.max(1, Math.ceil(idFindingCount / FINDINGS_PER_AGENT)))
-    if (idAgentCount > 1) console.log(`[orchestrate] identity: ${idFindingCount} findings → ${idAgentCount} agents`)
+    console.log(`[orchestrate] identity: ${idFindingCount} findings → ${idAgentCount} agents (threshold: ${FINDINGS_PER_AGENT})`)
 
     const idSem = new Semaphore(MAX_CONCURRENT_AGENTS)
     const idResults = await Promise.all(
@@ -496,7 +496,7 @@ async function runOrchestration(
     if (!groupDef) continue
     const fc = provider.findingCount(rootSession, c.key)
     const agentCount = Math.min(MAX_AGENTS_PER_GROUP, Math.max(1, Math.ceil(fc / FINDINGS_PER_AGENT)))
-    if (agentCount > 1) console.log(`[orchestrate] ${c.key}: ${fc} findings → ${agentCount} agents`)
+    console.log(`[orchestrate] ${c.key}: ${fc} findings → ${agentCount} agents (threshold: ${FINDINGS_PER_AGENT})`)
     for (let i = 0; i < agentCount; i++) {
       const slice = agentCount > 1 ? `${i + 1}/${agentCount}` : undefined
       const prompt = provider.analystPrompt(groupDef, identityContext, slice)
