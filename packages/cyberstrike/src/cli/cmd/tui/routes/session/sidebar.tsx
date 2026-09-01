@@ -192,7 +192,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
             </box>
             <box>
               <text fg={theme.text}>
-                <b>Context</b>
+                <b>Context & LLM</b>
               </text>
               <text fg={theme.textMuted}>{context()?.tokens ?? 0} tokens</text>
               <text fg={theme.textMuted}>{context()?.percentage ?? 0}% used</text>
@@ -282,7 +282,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                 </Show>
               </box>
             </Show>
-            <Show when={methodology() && methodology()!.totalEntries > 0}>
+            <Show when={methodology()}>
               <box>
                 <text fg={theme.text}>
                   <b>Methodology</b>
@@ -324,7 +324,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                     <text fg={theme.text}>{expanded.mcp ? "▼" : "▶"}</text>
                   </Show>
                   <text fg={theme.text}>
-                    <b>MCP</b>
+                    <b>MCP Servers</b>
                     <Show when={!expanded.mcp}>
                       <span style={{ fg: theme.textMuted }}>
                         {" "}
