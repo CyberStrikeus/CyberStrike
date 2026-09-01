@@ -59,6 +59,16 @@ function emptyStats() {
   return { total: 0, api: 0, js: 0, html: 0, static: 0, realtime: 0, other: 0 }
 }
 
+// The panel's status shape — one source, so panel-status and set-driver can't drift.
+function panelStatus(tabId) {
+  const ok = tabId !== undefined
+  return {
+    attached: ok && attached.has(tabId),
+    stats: (ok && statsByTab.get(tabId)) || emptyStats(),
+    driver: (ok && driverByTab.get(tabId)) || "ai",
+  }
+}
+
 function classOf(resourceType) {
   if (resourceType === "xhr" || resourceType === "fetch") return "api"
   if (resourceType === "script") return "js"
@@ -281,12 +291,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
     // Content-script (panel) messages — tab identified by sender, not payload.
     if (msg.type === "panel-status") {
-      const tabId = sender.tab && sender.tab.id
-      sendResponse({
-        attached: tabId !== undefined && attached.has(tabId),
-        stats: tabId !== undefined ? statsByTab.get(tabId) || emptyStats() : emptyStats(),
-        driver: tabId !== undefined ? driverByTab.get(tabId) || "ai" : "ai",
-      })
+      sendResponse(panelStatus(sender.tab && sender.tab.id))
       return
     }
     // List CyberStrike sessions for the panel dropdown. MUST run here (background)
@@ -325,11 +330,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === "set-driver") {
       const tabId = sender.tab && sender.tab.id
       if (tabId !== undefined) driverByTab.set(tabId, msg.driver === "human" ? "human" : "ai")
-      sendResponse({
-        attached: tabId !== undefined && attached.has(tabId),
-        stats: tabId !== undefined ? statsByTab.get(tabId) || emptyStats() : emptyStats(),
-        driver: tabId !== undefined ? driverByTab.get(tabId) || "ai" : "ai",
-      })
+      sendResponse(panelStatus(tabId))
       return
     }
     // Launcher-injected credential: register directly with CyberStrike's existing

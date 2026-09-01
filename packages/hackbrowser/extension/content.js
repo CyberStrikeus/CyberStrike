@@ -15,6 +15,12 @@
 
   const LOGO_SRC = chrome.runtime.getURL("logo.png")
 
+  // Driver palette — one source for the three shadow roots (glow, transition, dock),
+  // which can't share CSS vars because each has its own <style>.
+  const AI_RGB = "37,99,235"
+  const HUMAN_RGB = "240,180,41"
+  const AI_TINT = "#7ea8ff"
+
   // --- Edge glow (very faint) -----------------------------------------------
   const glowHost = document.createElement("div")
   glowHost.style.cssText = "position:fixed;inset:0;z-index:2147483645;pointer-events:none;"
@@ -23,8 +29,8 @@
     <style>
       .glow { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .6s ease; }
       .glow.on { animation: breathe 4s ease-in-out infinite; }
-      .glow.ai { box-shadow: inset 0 0 56px 12px rgba(37,99,235,.5); }
-      .glow.human { box-shadow: inset 0 0 56px 12px rgba(240,180,41,.5); }
+      .glow.ai { box-shadow: inset 0 0 56px 12px rgba(${AI_RGB},.5); }
+      .glow.human { box-shadow: inset 0 0 56px 12px rgba(${HUMAN_RGB},.5); }
       @keyframes breathe { 0%,100% { opacity: .95; } 50% { opacity: .6; } }
     </style>
     <div class="glow" id="glow"></div>
@@ -50,8 +56,8 @@
         padding: 15px 30px; border-radius: 12px;
         background: rgba(10,14,20,.4); backdrop-filter: blur(3px);
       }
-      .msg.ai { box-shadow: 0 0 0 1px rgba(37,99,235,.35), 0 8px 40px rgba(37,99,235,.2); }
-      .msg.human { box-shadow: 0 0 0 1px rgba(240,180,41,.35), 0 8px 40px rgba(240,180,41,.2); }
+      .msg.ai { box-shadow: 0 0 0 1px rgba(${AI_RGB},.35), 0 8px 40px rgba(${AI_RGB},.2); }
+      .msg.human { box-shadow: 0 0 0 1px rgba(${HUMAN_RGB},.35), 0 8px 40px rgba(${HUMAN_RGB},.2); }
     </style>
     <div class="trans" id="trans"><div class="msg" id="msg"></div></div>
   `
@@ -108,8 +114,8 @@
       /* No rotation at all; hover just scales the disc (.fab:hover above). */
       .fab.tapped { animation: tap .32s ease; }
       @keyframes tap { 0% { transform: scale(1);} 40% { transform: scale(.84);} 100% { transform: scale(1);} }
-      .dock.capturing .fab { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(37,99,235,.35); }
-      .dock.capturing.driver-human .fab { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(240,180,41,.4); }
+      .dock.capturing .fab { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(${AI_RGB},.35); }
+      .dock.capturing.driver-human .fab { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(${HUMAN_RGB},.4); }
 
       /* Hover toolbar: captured count + settings — absolute so it never takes
          layout space; shown via JS on hover (or while settings is open). */
@@ -127,7 +133,7 @@
       .dock.right .bar.show, .dock.left .bar.show { opacity: 1; transform: translateY(-50%); pointer-events: auto; }
       .cap { font-size: 11px; color: var(--dim); white-space: nowrap; }
       .cap b { color: var(--text); font-variant-numeric: tabular-nums; }
-      .dock.capturing.driver-ai .cap b { color: #7ea8ff; }
+      .dock.capturing.driver-ai .cap b { color: ${AI_TINT}; }
       .dock.capturing.driver-human .cap b { color: var(--human); }
       .gear {
         display: inline-flex; align-items: center; justify-content: center;
@@ -151,8 +157,8 @@
       .phead { display: flex; align-items: center; gap: 8px; padding: 11px 13px; border-bottom: 1px solid var(--line); }
       .brand { font-weight: 700; letter-spacing: .07em; font-size: 11px; }
       .st { margin-left: auto; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #16212b; color: var(--dim); }
-      .dock.capturing.driver-ai .st { background: rgba(37,99,235,.15); color: #7ea8ff; }
-      .dock.capturing.driver-human .st { background: rgba(240,180,41,.15); color: var(--human); }
+      .dock.capturing.driver-ai .st { background: rgba(${AI_RGB},.15); color: ${AI_TINT}; }
+      .dock.capturing.driver-human .st { background: rgba(${HUMAN_RGB},.15); color: var(--human); }
       .pbody { padding: 12px 13px; display: flex; flex-direction: column; }
       .ctl {
         width: 100%; padding: 9px; margin-bottom: 4px; border: 0; border-radius: 9px;
