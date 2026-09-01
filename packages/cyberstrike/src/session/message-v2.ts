@@ -635,6 +635,7 @@ export namespace MessageV2 {
               type: "step-start",
             })
           if (part.type === "tool") {
+            if (part.metadata?.synthetic) continue
             toolNames.add(part.tool)
             if (part.state.status === "completed") {
               const outputText = part.state.time.compacted

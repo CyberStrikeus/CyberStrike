@@ -92,6 +92,7 @@ async function emitTaskPart(
     type: "tool",
     callID: partID,
     tool: "task",
+    metadata: { synthetic: true },
     state: state === "running"
       ? {
           status: "running",
