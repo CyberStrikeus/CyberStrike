@@ -1038,31 +1038,29 @@ export function SessionSidePanel(props: {
                         </div>
                       </Tabs.Trigger>
                     </Show>
-                    <Show when={props.contextOpen()}>
-                      <Tabs.Trigger
-                        value="context"
-                        closeButton={
-                          <Tooltip value={props.language.t("common.closeTab")} placement="bottom">
-                            <IconButton
-                              icon="close-small"
-                              variant="ghost"
-                              class="h-5 w-5"
-                              onClick={() => props.tabs().close("context")}
-                              aria-label={props.language.t("common.closeTab")}
-                            />
-                          </Tooltip>
-                        }
-                        hideCloseButton
-                        onMiddleClick={() => props.tabs().close("context")}
-                      >
-                        <div class="flex items-center gap-2">
-                          <SessionContextUsage variant="indicator" />
-                          <div>{props.language.t("session.tab.context")}</div>
-                        </div>
-                      </Tabs.Trigger>
-                    </Show>
+                    <Tabs.Trigger
+                      value="context"
+                      closeButton={
+                        <Tooltip value={props.language.t("common.closeTab")} placement="bottom">
+                          <IconButton
+                            icon="close-small"
+                            variant="ghost"
+                            class="h-5 w-5"
+                            onClick={() => props.tabs().close("context")}
+                            aria-label={props.language.t("common.closeTab")}
+                          />
+                        </Tooltip>
+                      }
+                      hideCloseButton
+                      onMiddleClick={() => props.tabs().close("context")}
+                    >
+                      <div class="flex items-center gap-2">
+                        <SessionContextUsage variant="indicator" />
+                        <div>{props.language.t("session.tab.context")}</div>
+                      </div>
+                    </Tabs.Trigger>
                     <Tabs.Trigger value="mcp-panel">
-                      <div class="flex items-center gap-1.5">MCP</div>
+                      <div class="flex items-center gap-1.5">MCP Servers</div>
                     </Tabs.Trigger>
                     <Tabs.Trigger value="bolt-panel">
                       <div class="flex items-center gap-1.5">Bolt</div>
@@ -1123,20 +1121,18 @@ export function SessionSidePanel(props: {
                   </Show>
                 </Tabs.Content>
 
-                <Show when={props.contextOpen()}>
-                  <Tabs.Content value="context" class="flex flex-col h-full overflow-hidden contain-strict">
-                    <Show when={props.activeTab() === "context"}>
-                      <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
-                        <SessionContextTab
-                          messages={props.vm.messages}
-                          visibleUserMessages={props.vm.visibleUserMessages}
-                          view={props.vm.view}
-                          info={props.vm.info}
-                        />
-                      </div>
-                    </Show>
-                  </Tabs.Content>
-                </Show>
+                <Tabs.Content value="context" class="flex flex-col h-full overflow-hidden contain-strict">
+                  <Show when={props.activeTab() === "context"}>
+                    <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
+                      <SessionContextTab
+                        messages={props.vm.messages}
+                        visibleUserMessages={props.vm.visibleUserMessages}
+                        view={props.vm.view}
+                        info={props.vm.info}
+                      />
+                    </div>
+                  </Show>
+                </Tabs.Content>
 
                 <Tabs.Content value="mcp-panel" class="flex flex-col h-full overflow-hidden contain-strict">
                   <Show when={props.activeTab() === "mcp-panel"}>
