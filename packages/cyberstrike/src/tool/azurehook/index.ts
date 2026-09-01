@@ -172,6 +172,7 @@ import { exchangeAbuse, sharepointEnum, teamsEnum, onedriveAccess } from "./m365
 import { cleanupAzure } from "./cleanup"
 import { azureAssess } from "./assess"
 import { orchestrateLayer2 } from "../../cloud/orchestrate"
+import { AzureProvider } from "../../cloud/provider-azure"
 
 const PROGRAMS = {
   azure_assess: {
@@ -1099,7 +1100,7 @@ export const AzurehookTool = Tool.define("azurehook", {
 
     if (program === "azure_orchestrate") {
       try {
-        const state = await orchestrateLayer2(ctx.sessionID, ctx.messageID)
+        const state = await orchestrateLayer2(new AzureProvider(), ctx.sessionID, ctx.messageID)
         const completed = state.analystResults.filter((a) => !a.summary.startsWith("Error:"))
         const failed = state.analystResults.filter((a) => a.summary.startsWith("Error:"))
         const lines = [

@@ -1,6 +1,8 @@
 export { CloudAnalysis } from "./types"
 export { CLOUD_GROUPS, groupByKey, groupByAnalyst, identityGroup, parallelGroups } from "./groups"
 export { orchestrateLayer2 } from "./orchestrate"
+export type { AssessmentProvider } from "./provider"
+export { AzureProvider } from "./provider-azure"
 export { classifyFinding, classifyGroupFindings } from "./classify"
 export type { AgentTrajectory, OrchestrationTrajectory } from "./trajectory"
 export { CloudAsset, CloudEdge, CloudExposure, buildGraph } from "./inventory"

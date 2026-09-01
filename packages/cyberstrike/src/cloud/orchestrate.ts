@@ -5,13 +5,11 @@ import { Agent } from "../agent/agent"
 import { Identifier } from "../id/id"
 import { Intel } from "../methodology/intel"
 import { Vulnerability } from "../session/vulnerability"
-import { VulnStatus, isExcluded, isActionable, normalizeStatus, triageGuide, triageActions } from "../session/vulnerability-status"
-import { getAssessResult } from "../tool/azurehook/assess-cache"
-import { identityGroup, parallelGroups, CLOUD_GROUPS } from "./groups"
-import { classifyGroupFindings } from "./classify"
+import { VulnStatus, isExcluded, isActionable, normalizeStatus } from "../session/vulnerability-status"
 import { extractTrajectory, aggregateTrajectories, formatTrajectoryLog } from "./trajectory"
 import type { CloudAnalysis } from "./types"
 import type { AgentTrajectory } from "./trajectory"
+import type { AssessmentProvider } from "./provider"
 import { detectCloudChains, formatCloudChainsForPrompt } from "./cloud-chain"
 import { Semaphore } from "../util/semaphore"
 import { withTimeout } from "../util/timeout"
@@ -174,30 +172,12 @@ async function spawnCloudAgent(opts: CloudSpawnOpts): Promise<SpawnResult> {
 async function spawnAnalyst(
   parentID: string,
   groupDef: CloudAnalysis.GroupDef,
-  identityContext: string,
+  prompt: string,
   model: { providerID: string; modelID: string },
   timeoutMs: number = AGENT_TIMEOUT_MS,
   messageID?: string,
   slice?: string,
 ): Promise<SpawnResult> {
-  const sliceArg = slice ? `, slice: '${slice}'` : ""
-  const sliceNote = slice ? `\nYou are agent ${slice} for this group — only analyze the findings in your slice.` : ""
-  const prompt = [
-    `Analyze the ${groupDef.key} group findings.${sliceNote}`,
-    `Call get_assess_findings(group: '${groupDef.key}'${sliceArg}) to retrieve your Layer 1 findings.`,
-    "",
-    `## Workflow`,
-    `1. ENRICH FIRST: For each Layer 1 finding, verify it and use enrich_vulnerability(id, steps_to_reproduce, poc, ...) to add details to the EXISTING record. This updates the skeleton in place — no duplicate is created.`,
-    `2. NEW FINDINGS: Only use report_vulnerability for genuinely NEW issues not already in the Layer 1 findings.`,
-    `3. Run additional azurehook programs if needed to verify or discover more issues.`,
-    "",
-    `Use add_intel to record significant discoveries. Tag entries with group:${groupDef.key}.`,
-    "",
-    `You have relevant skills loaded — use the \`skill\` tool to search and load cloud-specific skills (azure-postexploit, cloud-assessment, etc.) for detailed methodology when verifying findings.`,
-    "",
-    identityContext ? `## Identity Context\n${identityContext}` : "",
-  ].filter(Boolean).join("\n")
-
   return spawnCloudAgent({
     parentID, agentName: groupDef.analyst, group: groupDef.key,
     title: `Analyze ${groupDef.label}${slice ? ` [${slice}]` : ""} (@${groupDef.analyst})`,
@@ -221,22 +201,11 @@ async function spawnFollowup(
 
 async function spawnVerify(
   parentID: string,
+  prompt: string,
   model: { providerID: string; modelID: string },
-  orchestrationSummary: string,
   timeoutMs: number = VERIFY_TIMEOUT_MS,
   messageID?: string,
 ): Promise<SpawnResult> {
-  const prompt = [
-    "Review all cloud intel and reported vulnerabilities. Check for false positives, verify severity ratings, confirm attack chains are documented.",
-    "",
-    "Use cloud_get_context(include_chains: true) to review the structured inventory graph and auto-detected chains. Use get_cloud_intel for text-based intel. Use the `skill` tool to load relevant skills (cloud-assessment, azure-postexploit) for CIS compliance checks.",
-    "",
-    "## Orchestration Context",
-    orchestrationSummary,
-    "",
-    "Pay special attention to failed/timed-out analysts — their groups may have incomplete coverage. Check if any findings from those groups were missed.",
-  ].join("\n")
-
   return spawnCloudAgent({
     parentID, agentName: "cloud-verify", group: "verify",
     title: "Final verification (@cloud-verify)",
@@ -246,44 +215,16 @@ async function spawnVerify(
 
 async function spawnBatchVerifier(
   parentID: string,
-  groups: string[],
-  identityContext: string,
+  prompt: string,
   model: { providerID: string; modelID: string },
   timeoutMs: number = BATCH_VERIFY_TIMEOUT_MS,
   messageID?: string,
 ): Promise<SpawnResult> {
-  const prompt = [
-    `Rapidly triage formulaic findings across these groups: ${groups.join(", ")}`,
-    "",
-    "For each group, call `get_assess_findings(group: '<key>')` to see findings with their triage status and vulnerability IDs.",
-    `Triage each finding using triage_vulnerability with one of: ${triageActions()}.`,
-    "",
-    "Status guide:",
-    triageGuide(),
-    "",
-    "**Escalation:** If a finding turns out to be MORE complex than expected (e.g. involves privilege escalation, lateral movement, or cross-group chain potential), do NOT attempt deep investigation. Instead, call `add_intel` with title starting with `ESCALATE:` and describe why it needs deeper analysis. The orchestrator will route it to a follow-up agent.",
-    "",
-    identityContext ? `## Identity Context\n${identityContext}` : "",
-  ].filter(Boolean).join("\n")
-
   return spawnCloudAgent({
     parentID, agentName: "cloud-batch-verifier", group: "batch-verify",
     title: "Batch verification (@cloud-batch-verifier)",
     prompt, model, timeoutMs, messageID,
   })
-}
-
-function extractIdentityContext(rootSession: string): string {
-  const entries = Intel.get(rootSession)
-  const identity = entries.filter((e) => e.tags.includes("group:identity"))
-  if (identity.length === 0) return ""
-
-  const lines = ["Identity analysis found:"]
-  for (const e of identity.slice(0, 20)) {
-    lines.push(`- [${e.severity ?? "info"}] ${e.title}`)
-    if (e.chainPotential) lines.push(`  Chain: ${e.chainPotential}`)
-  }
-  return lines.join("\n")
 }
 
 function buildAnalystResult(group: string, spawn: SpawnResult, rootSession: string): CloudAnalysis.AnalystResult {
@@ -409,14 +350,14 @@ async function detectFollowUps(
   }
 }
 
-export async function orchestrateLayer2(sessionID: string, messageID?: string): Promise<CloudAnalysis.OrchestrationState> {
+export async function orchestrateLayer2(provider: AssessmentProvider, sessionID: string, messageID?: string): Promise<CloudAnalysis.OrchestrationState> {
   const rootSession = Session.root(sessionID)
-  const assessResult = getAssessResult(rootSession)
+  const validation = provider.validate(rootSession)
 
   const state: CloudAnalysis.OrchestrationState = {
     phase: "idle",
     sessionID: rootSession,
-    layer1Findings: assessResult?.findings.length ?? 0,
+    layer1Findings: validation.ok ? validation.totalFindings : 0,
     identityIntel: 0,
     triageStats: null,
     analystResults: [],
@@ -426,10 +367,10 @@ export async function orchestrateLayer2(sessionID: string, messageID?: string): 
     completedAt: null,
   }
 
-  if (!assessResult) {
-    throw new Error("No assessment results cached. Run azurehook azure_assess first — results are lost on process restart.")
+  if (!validation.ok) {
+    throw new Error(validation.reason)
   }
-  if (!assessResult.authOk || assessResult.findings.length === 0) {
+  if (validation.totalFindings === 0) {
     state.phase = "complete"
     state.completedAt = Date.now()
     return state
@@ -440,16 +381,16 @@ export async function orchestrateLayer2(sessionID: string, messageID?: string): 
   }, LAYER2_DEADLINE_MS)
 
   try {
-    return await runOrchestration(sessionID, rootSession, assessResult, state, messageID)
+    return await runOrchestration(provider, sessionID, rootSession, state, messageID)
   } finally {
     clearTimeout(deadlineTimer)
   }
 }
 
 async function runOrchestration(
+  provider: AssessmentProvider,
   sessionID: string,
   rootSession: string,
-  assessResult: NonNullable<ReturnType<typeof getAssessResult>>,
   state: CloudAnalysis.OrchestrationState,
   messageID?: string,
 ): Promise<CloudAnalysis.OrchestrationState> {
@@ -457,42 +398,42 @@ async function runOrchestration(
 
   // ── Phase: identity ──────────────────────────────────────
   state.phase = "identity"
-  const idGroup = identityGroup()
-  const idFindingCount = assessResult.phases.flatMap((p) => p.groups).filter((g) => g.key === idGroup.key).flatMap((g) => g.findings).length
-  const idAgentCount = Math.min(MAX_AGENTS_PER_GROUP, Math.max(1, Math.ceil(idFindingCount / FINDINGS_PER_AGENT)))
-  if (idAgentCount > 1) console.log(`[orchestrate] identity: ${idFindingCount} findings → ${idAgentCount} agents`)
-
-  const idSem = new Semaphore(MAX_CONCURRENT_AGENTS)
-  const idResults = await Promise.all(
-    Array.from({ length: idAgentCount }, (_, i) => {
-      const slice = idAgentCount > 1 ? `${i + 1}/${idAgentCount}` : undefined
-      return (async () => {
-        await idSem.acquire()
-        try {
-          return await spawnAnalyst(sessionID, idGroup, "", model, AGENT_TIMEOUT_MS, messageID, slice)
-        } finally {
-          idSem.release()
-        }
-      })()
-    }),
-  )
+  const idGroup = provider.identityGroup()
   const spawnResults: SpawnResult[] = []
-  for (const r of idResults) {
-    state.analystResults.push(buildAnalystResult(idGroup.key, r, rootSession))
-    spawnResults.push(r)
+
+  if (idGroup) {
+    const idFindingCount = provider.findingCount(rootSession, idGroup.key)
+    const idAgentCount = Math.min(MAX_AGENTS_PER_GROUP, Math.max(1, Math.ceil(idFindingCount / FINDINGS_PER_AGENT)))
+    if (idAgentCount > 1) console.log(`[orchestrate] identity: ${idFindingCount} findings → ${idAgentCount} agents`)
+
+    const idSem = new Semaphore(MAX_CONCURRENT_AGENTS)
+    const idResults = await Promise.all(
+      Array.from({ length: idAgentCount }, (_, i) => {
+        const slice = idAgentCount > 1 ? `${i + 1}/${idAgentCount}` : undefined
+        const prompt = provider.analystPrompt(idGroup, "", slice)
+        return (async () => {
+          await idSem.acquire()
+          try {
+            return await spawnAnalyst(sessionID, idGroup, prompt, model, AGENT_TIMEOUT_MS, messageID, slice)
+          } finally {
+            idSem.release()
+          }
+        })()
+      }),
+    )
+    for (const r of idResults) {
+      state.analystResults.push(buildAnalystResult(idGroup.key, r, rootSession))
+      spawnResults.push(r)
+    }
   }
 
-  const identityContext = extractIdentityContext(rootSession)
+  const identityContext = provider.identityContext(rootSession)
   state.identityIntel = Intel.get(rootSession).filter((e) => e.tags.includes("group:identity")).length
 
   // ── Phase: triage (classify findings) ───────────────────
   state.phase = "triage"
-  const remaining = parallelGroups()
-  const groupFindings = remaining.map((g) => {
-    const gResults = assessResult.phases.flatMap((p) => p.groups).filter((r) => r.key === g.key)
-    return { key: g.key, findings: gResults.flatMap((r) => r.findings) }
-  })
-  const classified = classifyGroupFindings(groupFindings)
+  const remaining = provider.parallelGroups()
+  const classified = provider.classify(rootSession, remaining)
 
   const formulaicGroups = classified.filter((c) => c.formulaic.length > 0).map((c) => c.key)
   const investigateGroups = classified.filter((c) => c.investigate.length > 0)
@@ -529,8 +470,9 @@ async function runOrchestration(
   }
 
   if (formulaicGroups.length > 0) {
+    const batchPrompt = provider.batchPrompt(formulaicGroups, identityContext)
     tasks.push(
-      withSemaphore(() => spawnBatchVerifier(sessionID, formulaicGroups, identityContext, model, Math.min(BATCH_VERIFY_TIMEOUT_MS, effectiveTimeout), messageID)),
+      withSemaphore(() => spawnBatchVerifier(sessionID, batchPrompt, model, Math.min(BATCH_VERIFY_TIMEOUT_MS, effectiveTimeout), messageID)),
     )
     taskMeta.push({ type: "batch" })
   }
@@ -538,14 +480,14 @@ async function runOrchestration(
   for (const c of investigateGroups) {
     const groupDef = remaining.find((g) => g.key === c.key)
     if (!groupDef) continue
-    const gf = groupFindings.find((g) => g.key === c.key)
-    const fc = gf ? gf.findings.length : 0
+    const fc = provider.findingCount(rootSession, c.key)
     const agentCount = Math.min(MAX_AGENTS_PER_GROUP, Math.max(1, Math.ceil(fc / FINDINGS_PER_AGENT)))
     if (agentCount > 1) console.log(`[orchestrate] ${c.key}: ${fc} findings → ${agentCount} agents`)
     for (let i = 0; i < agentCount; i++) {
       const slice = agentCount > 1 ? `${i + 1}/${agentCount}` : undefined
+      const prompt = provider.analystPrompt(groupDef, identityContext, slice)
       tasks.push(
-        withSemaphore(() => spawnAnalyst(sessionID, groupDef, identityContext, model, effectiveTimeout, messageID, slice)),
+        withSemaphore(() => spawnAnalyst(sessionID, groupDef, prompt, model, effectiveTimeout, messageID, slice)),
       )
       taskMeta.push({ type: "analyst", groupKey: c.key, groupDef })
     }
@@ -635,7 +577,8 @@ async function runOrchestration(
     `- Elapsed: ${Math.round((Date.now() - state.startedAt) / 1000)}s`,
   ].filter(Boolean).join("\n")
 
-  const verifyResult = await spawnVerify(sessionID, model, orchestrationSummary, verifyTimeout, messageID)
+  const verifyPrompt = provider.verifyPrompt(orchestrationSummary)
+  const verifyResult = await spawnVerify(sessionID, verifyPrompt, model, verifyTimeout, messageID)
   spawnResults.push(verifyResult)
 
   state.verifyResult = {
