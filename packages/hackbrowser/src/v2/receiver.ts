@@ -182,10 +182,71 @@ function corsHeaders(): Record<string, string> {
   }
 }
 
+// --- WS control channel (backend → extension) -------------------------------
+// The AI drives the browser by POSTing to /action; guard.ts is enforced HERE
+// (a denied action never reaches the extension). Allowed commands are relayed
+// over a single WebSocket to the extension, which executes them. One control
+// socket for now (single tab); multi-tab routing is future work.
+
+type ControlWs = { send: (data: string) => void }
+let controlWs: ControlWs | null = null
+let cmdSeq = 0
+const pendingCmd = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }>()
+
+function sendCommand(cmd: Record<string, unknown>, timeoutMs = 5000): Promise<{ ok: boolean; error?: string }> {
+  return new Promise((resolve, reject) => {
+    if (!controlWs) {
+      reject(new Error("no-extension"))
+      return
+    }
+    const id = `cmd${++cmdSeq}`
+    const timer = setTimeout(() => {
+      pendingCmd.delete(id)
+      reject(new Error("timeout"))
+    }, timeoutMs)
+    pendingCmd.set(id, { resolve: resolve as (v: unknown) => void, reject, timer })
+    controlWs.send(JSON.stringify({ id, ...cmd }))
+  })
+}
+
+function onCommandAck(raw: string) {
+  let msg: { id?: string; ok?: boolean; error?: string }
+  try {
+    msg = JSON.parse(raw)
+  } catch {
+    return
+  }
+  if (!msg.id) return
+  const p = pendingCmd.get(msg.id)
+  if (!p) return
+  clearTimeout(p.timer)
+  pendingCmd.delete(msg.id)
+  p.resolve({ ok: !!msg.ok, error: msg.error })
+}
+
 Bun.serve({
   port: PORT,
-  async fetch(req) {
+  websocket: {
+    open(ws) {
+      controlWs = ws
+      console.log(`[hb2] control channel: extension connected`)
+    },
+    message(_ws, message) {
+      onCommandAck(typeof message === "string" ? message : message.toString())
+    },
+    close() {
+      controlWs = null
+      console.log(`[hb2] control channel: extension disconnected`)
+    },
+  },
+  async fetch(req, server) {
     const url = new URL(req.url)
+
+    // Extension upgrades here to receive click/type/navigate commands.
+    if (url.pathname === "/control") {
+      if (server.upgrade(req)) return undefined
+      return new Response("expected websocket", { status: 426, headers: corsHeaders() })
+    }
 
     if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders() })
 
@@ -266,6 +327,68 @@ Bun.serve({
       )
 
       return Response.json({ ok: true, forwarded }, { headers: corsHeaders() })
+    }
+
+    // AI drives the browser here. guard.ts is ENFORCED before relaying: a denied
+    // action never reaches the extension. This is where "the AI cannot click
+    // logout" actually happens (risk #1 / issue #1).
+    if (req.method === "POST" && url.pathname === "/action") {
+      let body: { op?: string; url?: string; elementId?: string; text?: string }
+      try {
+        body = (await req.json()) as typeof body
+      } catch {
+        return Response.json({ ok: false, error: "invalid json" }, { status: 400, headers: corsHeaders() })
+      }
+      if (!controlWs) {
+        return Response.json({ ok: false, error: "no extension connected" }, { status: 503, headers: corsHeaders() })
+      }
+      const op = body.op
+
+      // navigate: no element to guard (URL-level guard is future work — noted).
+      if (op === "navigate") {
+        if (!body.url) return Response.json({ ok: false, error: "url required" }, { status: 400, headers: corsHeaders() })
+        try {
+          const ack = await sendCommand({ op: "navigate", url: body.url })
+          return Response.json(ack, { status: ack.ok ? 200 : 502, headers: corsHeaders() })
+        } catch (e) {
+          const to = e instanceof Error && e.message === "timeout"
+          return Response.json({ ok: false, error: String(e) }, { status: to ? 504 : 502, headers: corsHeaders() })
+        }
+      }
+
+      if (op !== "click" && op !== "type") {
+        return Response.json({ ok: false, error: `unknown op: ${op}` }, { status: 400, headers: corsHeaders() })
+      }
+      // click/type target an element — resolve its kind from page-state and guard it.
+      if (!body.url || !body.elementId) {
+        return Response.json({ ok: false, error: "url and elementId required" }, { status: 400, headers: corsHeaders() })
+      }
+      const obs = pageState.get(body.url)
+      if (!obs) return Response.json({ ok: false, error: "no page-state for url" }, { status: 404, headers: corsHeaders() })
+      const el = obs.clickables.find((c) => c.id === body.elementId)
+      if (!el) return Response.json({ ok: false, error: "unknown element" }, { status: 404, headers: corsHeaders() })
+
+      const policy = actionPolicy(el.kind)
+      if (policy === "deny") {
+        return Response.json(
+          { ok: false, policy, kind: el.kind, label: el.label, error: "denied by guard" },
+          { status: 403, headers: corsHeaders() },
+        )
+      }
+      if (policy === "confirm") {
+        return Response.json(
+          { ok: false, policy, kind: el.kind, label: el.label, error: "human confirmation required" },
+          { status: 409, headers: corsHeaders() },
+        )
+      }
+      // allow → relay to the extension.
+      try {
+        const ack = await sendCommand({ op, elementId: body.elementId, text: body.text })
+        return Response.json({ ...ack, policy }, { status: ack.ok ? 200 : 502, headers: corsHeaders() })
+      } catch (e) {
+        const to = e instanceof Error && e.message === "timeout"
+        return Response.json({ ok: false, error: String(e) }, { status: to ? 504 : 502, headers: corsHeaders() })
+      }
     }
 
     return new Response("not found", { status: 404, headers: corsHeaders() })

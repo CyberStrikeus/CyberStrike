@@ -102,14 +102,21 @@
     return raw.replace(/\s+/g, " ").trim().slice(0, 80)
   }
 
+  // elementId → live DOM node, so a click/type command can resolve the element
+  // the AI referenced from page-state. Rebuilt on every observation.
+  const elMap = new Map()
+
   function observePage() {
     const clickSel = "a[href],button,[role=button],input[type=submit],input[type=button],[onclick]"
     const clickables = []
+    elMap.clear()
     let i = 0
     for (const el of document.querySelectorAll(clickSel)) {
       if (!visible(el)) continue
+      const eid = "E" + i++
+      elMap.set(eid, el)
       clickables.push({
-        id: "E" + i++,
+        id: eid,
         tag: el.tagName.toLowerCase(),
         role: el.getAttribute("role") || "",
         label: labelOf(el),
@@ -153,6 +160,51 @@
     })
     return obs
   }
+
+  // Execute a guard-approved command (background already relayed only allowed ones).
+  // First cut uses plain DOM dispatch; human-like CDP bezier/keystroke is future work.
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.type !== "perform") return
+    const cmd = msg.cmd || {}
+    try {
+      if (cmd.op === "click") {
+        const el = elMap.get(cmd.elementId)
+        if (!el) {
+          sendResponse({ ok: false, error: "element not found" })
+          return
+        }
+        el.scrollIntoView({ block: "center" })
+        el.click()
+        sendResponse({ ok: true })
+        return
+      }
+      if (cmd.op === "type") {
+        const el = elMap.get(cmd.elementId)
+        if (!el) {
+          sendResponse({ ok: false, error: "element not found" })
+          return
+        }
+        el.focus()
+        el.value = cmd.text || ""
+        el.dispatchEvent(new Event("input", { bubbles: true }))
+        el.dispatchEvent(new Event("change", { bubbles: true }))
+        sendResponse({ ok: true })
+        return
+      }
+      if (cmd.op === "navigate") {
+        if (!cmd.url) {
+          sendResponse({ ok: false, error: "url required" })
+          return
+        }
+        location.href = cmd.url
+        sendResponse({ ok: true })
+        return
+      }
+      sendResponse({ ok: false, error: "unknown op" })
+    } catch (e) {
+      sendResponse({ ok: false, error: String(e) })
+    }
+  })
 
   let lastObs = null
   let lastUrl = location.href

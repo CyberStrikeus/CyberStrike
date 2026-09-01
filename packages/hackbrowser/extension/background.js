@@ -57,11 +57,71 @@ function bodyClass(resourceType, method) {
   return "static"
 }
 
+// --- WS control channel (receiver → extension) ------------------------------
+// Receives click/type/navigate commands the AI issued (already guard-checked by
+// the receiver — a denied command never arrives here) and executes them via the
+// content script. Reconnects on drop so the channel survives receiver restarts.
+let controlWs = null
+
+function controlUrl(base) {
+  // http://127.0.0.1:4097/capture → ws://127.0.0.1:4097/control
+  return base.replace(/^http/, "ws").replace(/\/capture$/, "/control")
+}
+
+async function connectControl() {
+  if (controlWs) return
+  const base = await receiverUrl()
+  const wsUrl = controlUrl(base)
+  try {
+    const ws = new WebSocket(wsUrl)
+    ws.onopen = () => {
+      controlWs = ws
+    }
+    ws.onmessage = (e) => {
+      let cmd
+      try {
+        cmd = JSON.parse(e.data)
+      } catch {
+        return
+      }
+      handleCommand(cmd)
+    }
+    ws.onclose = () => {
+      controlWs = null
+      setTimeout(connectControl, 2000) // reconnect
+    }
+    ws.onerror = () => {}
+  } catch (e) {
+    setTimeout(connectControl, 2000)
+  }
+}
+
+function ackCommand(id, ok, error) {
+  if (controlWs) controlWs.send(JSON.stringify({ id, ok: !!ok, error: error || undefined }))
+}
+
+function handleCommand(cmd) {
+  // Route to an attached tab's content script for execution. Single-tab for now.
+  const tabId = [...attached.keys()][0]
+  if (tabId === undefined) {
+    ackCommand(cmd.id, false, "no attached tab")
+    return
+  }
+  chrome.tabs.sendMessage(tabId, { type: "perform", cmd }, (res) => {
+    if (chrome.runtime.lastError) {
+      ackCommand(cmd.id, false, chrome.runtime.lastError.message)
+      return
+    }
+    ackCommand(cmd.id, res && res.ok, res && res.error)
+  })
+}
+
 async function attach(tabId) {
   if (attached.has(tabId)) return
   await chrome.debugger.attach({ tabId }, DEBUGGER_VERSION)
   await chrome.debugger.sendCommand({ tabId }, "Network.enable", {})
   attached.set(tabId, true)
+  connectControl() // open the control channel once we're capturing
 }
 
 async function detach(tabId) {
