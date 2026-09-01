@@ -44,11 +44,11 @@
       }
       .trans.show { opacity: 1; transform: scale(1); }
       .msg {
-        font: 500 30px ui-sans-serif, system-ui, -apple-system, sans-serif;
-        letter-spacing: .01em; color: rgba(255,255,255,.92);
-        text-shadow: 0 2px 30px rgba(0,0,0,.55);
-        padding: 14px 26px; border-radius: 14px;
-        background: rgba(10,14,20,.32); backdrop-filter: blur(2px);
+        font: 600 19px ui-sans-serif, system-ui, -apple-system, sans-serif;
+        text-transform: uppercase; letter-spacing: .18em;
+        color: rgba(255,255,255,.95); text-shadow: 0 2px 30px rgba(0,0,0,.6);
+        padding: 15px 30px; border-radius: 12px;
+        background: rgba(10,14,20,.4); backdrop-filter: blur(3px);
       }
       .msg.ai { box-shadow: 0 0 0 1px rgba(37,99,235,.35), 0 8px 40px rgba(37,99,235,.2); }
       .msg.human { box-shadow: 0 0 0 1px rgba(240,180,41,.35), 0 8px 40px rgba(240,180,41,.2); }
@@ -88,42 +88,46 @@
       .dock.right { flex-direction: row-reverse; }
       .dock.left { flex-direction: row; }
 
+      /* Round dark disc behind the logo → readable on light AND dark pages */
       .fab {
-        flex: none; width: 52px; height: 52px; padding: 0; border: 0;
-        background: transparent; cursor: grab; user-select: none;
-        perspective: 260px;                     /* 3D depth for the Y-axis spin */
-        transition: transform .12s ease;
+        flex: none; width: 52px; height: 52px; padding: 0; border: 0; border-radius: 50%;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: radial-gradient(circle at 50% 40%, #141c26, #0b0f14);
+        box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07);
+        cursor: grab; user-select: none; perspective: 300px;
+        transition: transform .16s ease, box-shadow .16s ease;
+      }
+      .fab:hover {
+        transform: scale(1.09);
+        box-shadow: 0 8px 24px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.14);
       }
       .fab:active { cursor: grabbing; }
       .fab img {
-        width: 52px; height: 52px; display: block; pointer-events: none;
-        transform-origin: 50% 50%;              /* center of the circular logo */
-        filter: drop-shadow(0 3px 10px rgba(0,0,0,.5));
-        animation: spin 8s linear infinite;     /* idle: smooth coin-flip around Y */
+        width: 34px; height: 34px; display: block; pointer-events: none;
+        transform-origin: 50% 50%;
       }
+      /* No idle motion; spin only while hovered (smooth coin-flip). */
+      .fab:hover img { animation: spin 2.4s linear infinite; }
       @keyframes spin { to { transform: rotateY(360deg); } }
-      .fab.tapped { animation: tap .3s ease; }
-      @keyframes tap { 0% { transform: scale(1);} 40% { transform: scale(.82);} 100% { transform: scale(1);} }
-      .dock.capturing .fab img {
-        animation: spin 8s linear infinite, glowpulse 2s ease-in-out infinite;
-      }
-      @keyframes glowpulse {
-        0%,100% { filter: drop-shadow(0 3px 10px rgba(0,0,0,.5)); }
-        50% { filter: drop-shadow(0 0 10px rgba(255,255,255,.35)) drop-shadow(0 3px 10px rgba(0,0,0,.5)); }
-      }
+      .fab.tapped { animation: tap .32s ease; }
+      @keyframes tap { 0% { transform: scale(1);} 40% { transform: scale(.84);} 100% { transform: scale(1);} }
+      .dock.capturing .fab { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(37,99,235,.35); }
+      .dock.capturing.driver-human .fab { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(240,180,41,.4); }
 
-      /* Hover toolbar: captured count + settings */
+      /* Hover toolbar: captured count + settings — absolute so it never takes
+         layout space; shown via JS on hover (or while settings is open). */
       .bar {
+        position: absolute; top: 50%;
         display: flex; align-items: center; gap: 6px;
         height: 30px; padding: 0 6px 0 10px;
         background: #0b0f14; border: 1px solid var(--line); border-radius: 999px;
         box-shadow: 0 4px 16px rgba(0,0,0,.4);
-        opacity: 0; transform: translateX(6px); pointer-events: none;
+        opacity: 0; pointer-events: none;
         transition: opacity .15s ease, transform .15s ease;
       }
-      .dock.right .bar { transform: translateX(6px); }
-      .dock.left .bar { transform: translateX(-6px); }
-      .dock:hover .bar, .dock.pinned .bar { opacity: 1; transform: none; pointer-events: auto; }
+      .dock.right .bar { right: 62px; transform: translateY(-50%) translateX(6px); }
+      .dock.left .bar { left: 62px; transform: translateY(-50%) translateX(-6px); }
+      .dock.right .bar.show, .dock.left .bar.show { opacity: 1; transform: translateY(-50%); pointer-events: auto; }
       .cap { font-size: 11px; color: var(--dim); white-space: nowrap; }
       .cap b { color: var(--text); font-variant-numeric: tabular-nums; }
       .dock.capturing.driver-ai .cap b { color: #7ea8ff; }
@@ -188,10 +192,28 @@
   const sStatic = root.getElementById("s-static")
   const sPage = root.getElementById("s-page")
   const bTotal = root.getElementById("b-total")
+  const bar = root.getElementById("bar")
 
   let driver = "ai"
   let settingsOpen = false
   let pageCount = 0
+
+  // Hover reveals the toolbar (captured + settings). JS-driven so a gap between
+  // the logo and the bar doesn't drop the hover; stays open while settings is on.
+  let hoverTimer = null
+  function showBar() {
+    if (hoverTimer) clearTimeout(hoverTimer)
+    bar.classList.add("show")
+  }
+  function hideBar() {
+    hoverTimer = setTimeout(() => {
+      if (!settingsOpen) bar.classList.remove("show")
+    }, 260)
+  }
+  fab.addEventListener("mouseenter", showBar)
+  fab.addEventListener("mouseleave", hideBar)
+  bar.addEventListener("mouseenter", showBar)
+  bar.addEventListener("mouseleave", hideBar)
 
   function updateSide() {
     const cx = host.getBoundingClientRect().left + host.offsetWidth / 2
@@ -286,7 +308,7 @@
     e.stopPropagation()
     settingsOpen = !settingsOpen
     dock.classList.toggle("settings", settingsOpen)
-    dock.classList.toggle("pinned", settingsOpen) // keep the bar visible while panel is open
+    if (settingsOpen) bar.classList.add("show")
   })
 
   // --- Deterministic page observation (§3.3) --------------------------------
