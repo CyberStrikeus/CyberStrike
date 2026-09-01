@@ -19,7 +19,7 @@ import { withTimeout } from "../util/timeout"
 const LAYER2_DEADLINE_MS = 20 * 60 * 1000
 const FOLLOWUP_RESERVE_MS = 5 * 60 * 1000
 const AGENT_TIMEOUT_MS = 10 * 60 * 1000
-const IDENTITY_TIMEOUT_MS = 6 * 60 * 1000
+const FINDINGS_PER_AGENT = 15
 const BATCH_VERIFY_TIMEOUT_MS = 5 * 60 * 1000
 const FOLLOWUP_TIMEOUT_MS = 5 * 60 * 1000
 const VERIFY_TIMEOUT_MS = 5 * 60 * 1000
@@ -177,10 +177,13 @@ async function spawnAnalyst(
   model: { providerID: string; modelID: string },
   timeoutMs: number = AGENT_TIMEOUT_MS,
   messageID?: string,
+  slice?: string,
 ): Promise<SpawnResult> {
+  const sliceArg = slice ? `, slice: '${slice}'` : ""
+  const sliceNote = slice ? `\nYou are agent ${slice} for this group — only analyze the findings in your slice.` : ""
   const prompt = [
-    `Analyze the ${groupDef.key} group findings.`,
-    `Call get_assess_findings(group: '${groupDef.key}') to retrieve your Layer 1 findings.`,
+    `Analyze the ${groupDef.key} group findings.${sliceNote}`,
+    `Call get_assess_findings(group: '${groupDef.key}'${sliceArg}) to retrieve your Layer 1 findings.`,
     "",
     `## Workflow`,
     `1. ENRICH FIRST: For each Layer 1 finding, verify it and use enrich_vulnerability(id, steps_to_reproduce, poc, ...) to add details to the EXISTING record. This updates the skeleton in place — no duplicate is created.`,
@@ -196,7 +199,7 @@ async function spawnAnalyst(
 
   return spawnCloudAgent({
     parentID, agentName: groupDef.analyst, group: groupDef.key,
-    title: `Analyze ${groupDef.label} (@${groupDef.analyst})`,
+    title: `Analyze ${groupDef.label}${slice ? ` [${slice}]` : ""} (@${groupDef.analyst})`,
     prompt, model, timeoutMs, messageID,
   })
 }
@@ -454,9 +457,29 @@ async function runOrchestration(
   // ── Phase: identity ──────────────────────────────────────
   state.phase = "identity"
   const idGroup = identityGroup()
-  const idResult = await spawnAnalyst(sessionID, idGroup, "", model, IDENTITY_TIMEOUT_MS, messageID)
-  state.analystResults.push(buildAnalystResult(idGroup.key, idResult, rootSession))
-  const spawnResults: SpawnResult[] = [idResult]
+  const idFindingCount = assessResult.phases.flatMap((p) => p.groups).filter((g) => g.key === idGroup.key).flatMap((g) => g.findings).length
+  const idAgentCount = Math.max(1, Math.ceil(idFindingCount / FINDINGS_PER_AGENT))
+  if (idAgentCount > 1) console.log(`[orchestrate] identity: ${idFindingCount} findings → ${idAgentCount} agents`)
+
+  const idSem = new Semaphore(MAX_CONCURRENT_AGENTS)
+  const idResults = await Promise.all(
+    Array.from({ length: idAgentCount }, (_, i) => {
+      const slice = idAgentCount > 1 ? `${i + 1}/${idAgentCount}` : undefined
+      return (async () => {
+        await idSem.acquire()
+        try {
+          return await spawnAnalyst(sessionID, idGroup, "", model, AGENT_TIMEOUT_MS, messageID, slice)
+        } finally {
+          idSem.release()
+        }
+      })()
+    }),
+  )
+  const spawnResults: SpawnResult[] = []
+  for (const r of idResults) {
+    state.analystResults.push(buildAnalystResult(idGroup.key, r, rootSession))
+    spawnResults.push(r)
+  }
 
   const identityContext = extractIdentityContext(rootSession)
   state.identityIntel = Intel.get(rootSession).filter((e) => e.tags.includes("group:identity")).length
@@ -514,10 +537,17 @@ async function runOrchestration(
   for (const c of investigateGroups) {
     const groupDef = remaining.find((g) => g.key === c.key)
     if (!groupDef) continue
-    tasks.push(
-      withSemaphore(() => spawnAnalyst(sessionID, groupDef, identityContext, model, effectiveTimeout, messageID)),
-    )
-    taskMeta.push({ type: "analyst", groupKey: c.key, groupDef })
+    const gf = groupFindings.find((g) => g.key === c.key)
+    const fc = gf ? gf.findings.length : 0
+    const agentCount = Math.max(1, Math.ceil(fc / FINDINGS_PER_AGENT))
+    if (agentCount > 1) console.log(`[orchestrate] ${c.key}: ${fc} findings → ${agentCount} agents`)
+    for (let i = 0; i < agentCount; i++) {
+      const slice = agentCount > 1 ? `${i + 1}/${agentCount}` : undefined
+      tasks.push(
+        withSemaphore(() => spawnAnalyst(sessionID, groupDef, identityContext, model, effectiveTimeout, messageID, slice)),
+      )
+      taskMeta.push({ type: "analyst", groupKey: c.key, groupDef })
+    }
   }
 
   console.log(`[orchestrate] parallel: ${tasks.length} agents (max ${MAX_CONCURRENT_AGENTS} concurrent)`)
