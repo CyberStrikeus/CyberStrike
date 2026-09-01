@@ -49,7 +49,7 @@ export namespace ServerAuth {
   const observer = [
     /^\/global\/health$/,
     /^\/event-log\/session\/[^/]+(?:\/stream)?$/,
-    /^\/topology\/session\/[^/]+(?:\/notes)?$/,
+    /^\/topology\/session\/[^/]+(?:\/notes|\/nmap(?:\/diff)?)?$/,
     /^\/methodology\/session\/[^/]+\/(?:state|intel|coverage-notes|intel\/coverage(?:\/assets)?|chains|violations|performance|report\/compile|report\/download)$/,
     /^\/session\/?$/,
     /^\/session\/status$/,

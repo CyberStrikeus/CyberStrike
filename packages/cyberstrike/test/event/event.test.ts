@@ -98,6 +98,15 @@ describe("engagement event normalization", () => {
     expect(JSON.stringify(event)).not.toContain("evidence")
   })
 
+  test("classifies Nmap scan updates as tool activity", () => {
+    expect(
+      EngagementEvent.normalize({
+        type: "nmap.scan.updated",
+        properties: { sessionID: "ses_test", scanID: "nms_test", hosts: 2 },
+      })?.source,
+    ).toBe("tool")
+  })
+
   test("persists and lists session events", async () => {
     await using tmp = await tmpdir()
     const sessionID = `ses_event_${Date.now()}`

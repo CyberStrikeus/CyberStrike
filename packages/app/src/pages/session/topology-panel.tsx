@@ -1,10 +1,16 @@
 import { For, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js"
 import { createStore, reconcile } from "solid-js/store"
 import { useParams } from "@solidjs/router"
-import type { TopologyGetResponse, TopologyNotesResponse } from "@cyberstrike-io/sdk/v2/client"
+import type {
+  TopologyGetResponse,
+  TopologyNmapDiffResponse,
+  TopologyNmapScansResponse,
+  TopologyNotesResponse,
+} from "@cyberstrike-io/sdk/v2/client"
 import { Icon } from "@cyberstrike-io/ui/icon"
 import { useSDK } from "@/context/sdk"
 import { useServer } from "@/context/server"
+import { usePrompt } from "@/context/prompt"
 
 type Node = TopologyGetResponse["nodes"][number]
 type Kind = Node["kind"]
@@ -37,6 +43,7 @@ export function TopologyPanel() {
   const params = useParams()
   const sdk = useSDK()
   const server = useServer()
+  const prompt = usePrompt()
   const [graph, setGraph] = createStore<TopologyGetResponse>({
     sessionID: "",
     nodes: [],
@@ -49,33 +56,116 @@ export function TopologyPanel() {
   const [zoom, setZoom] = createSignal(1)
   const [error, setError] = createSignal("")
   const [notes, setNotes] = createStore<TopologyNotesResponse>([])
+  const [scans, setScans] = createStore<TopologyNmapScansResponse>([])
+  const [diff, setDiff] = createSignal<TopologyNmapDiffResponse>()
+  const [from, setFrom] = createSignal("")
+  const [to, setTo] = createSignal("")
+  const [importing, setImporting] = createSignal(false)
   const [draft, setDraft] = createStore({ content: "", link: "", saving: false })
+  const [scan, setScan] = createStore({
+    target: "",
+    profile: "service" as "quick" | "service" | "os" | "comprehensive",
+  })
+  let fileInput!: HTMLInputElement
+  let generation = 0
+
+  const load = async () => {
+    const sessionID = params.id
+    if (!sessionID) return false
+    const request = ++generation
+    try {
+      const [topology, noteList, history] = await Promise.all([
+        sdk.client.topology.get({ sessionID }),
+        sdk.client.topology.notes({ sessionID }),
+        sdk.client.topology.nmapScans({ sessionID }),
+      ])
+      if (request !== generation || params.id !== sessionID || !topology.data) return false
+      setGraph(reconcile(topology.data))
+      setNotes(reconcile(noteList.data ?? []))
+      setScans(reconcile(history.data ?? []))
+      const available = history.data ?? []
+      if (available.length >= 2 && (!available.some((scan) => scan.id === from()) || !available.some((scan) => scan.id === to()))) {
+        setFrom(available.at(-2)!.id)
+        setTo(available.at(-1)!.id)
+      }
+      setError("")
+      return true
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause))
+      return false
+    }
+  }
 
   createEffect(() => {
-    const sessionID = params.id
-    if (!sessionID) return
+    params.id
+    setFrom("")
+    setTo("")
+    setDiff(undefined)
     let alive = true
-    const load = async () => {
-      try {
-        const [topology, noteList] = await Promise.all([
-          sdk.client.topology.get({ sessionID }),
-          sdk.client.topology.notes({ sessionID }),
-        ])
-        if (!alive || !topology.data) return
-        setGraph(reconcile(topology.data))
-        setNotes(reconcile(noteList.data ?? []))
-        setError("")
-      } catch (cause) {
-        if (alive) setError(cause instanceof Error ? cause.message : String(cause))
-      }
-    }
     void load()
-    const timer = setInterval(load, 10_000)
+    const timer = setInterval(() => {
+      if (alive) void load()
+    }, 10_000)
     onCleanup(() => {
       alive = false
+      generation++
       clearInterval(timer)
     })
   })
+
+  createEffect(() => {
+    const sessionID = params.id
+    const baseline = from()
+    const current = to()
+    if (!sessionID || !baseline || !current || baseline === current) {
+      setDiff(undefined)
+      return
+    }
+    sdk.client.topology
+      .nmapDiff({ sessionID, from: baseline, to: current })
+      .then((response) => setDiff(response.data))
+      .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)))
+  })
+
+  const profile = {
+    quick: "-T4 -F",
+    service: "-T4 -sV",
+    os: "-T4 -sV -O",
+    comprehensive: "-T4 -sV -O -sC",
+  } as const
+  const command = () =>
+    `nmap ${profile[scan.profile]} --stats-every 5s -oX - ${scan.target.trim() || "<authorized-target>"}`
+  const prepareScan = () => {
+    const target = scan.target.trim()
+    if (!target) return
+    const value = `Run the built-in nmap_scan tool against the explicitly authorized target ${target} with the ${scan.profile} profile. Preview the exact command (${command()}), confirm scope and expected impact, and wait for my approval before starting. Persist the XML result into topology and compare it with prior scans.`
+    prompt.set([{ type: "text", content: value, start: 0, end: value.length }], value.length)
+  }
+
+  const importScan = async (file?: File) => {
+    const sessionID = params.id
+    if (!file || !sessionID || importing() || server.role() === "observer") return
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Nmap XML exceeds the 10 MiB import limit")
+      return
+    }
+
+    setImporting(true)
+    try {
+      await sdk.client.topology.nmapImport({
+        sessionID,
+        name: file.name.replace(/\.xml$/i, ""),
+        xml: await file.text(),
+      })
+      await load()
+      setError("")
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setImporting(false)
+      fileInput.value = ""
+    }
+  }
 
   const visible = createMemo(() => {
     const query = search().trim().toLowerCase()
@@ -212,6 +302,96 @@ export function TopologyPanel() {
           +
         </button>
       </div>
+      <Show when={scans.length > 0 || server.role() !== "observer"}>
+        <div class="shrink-0 flex flex-col border-b border-border-weak-base bg-background-stronger">
+          <div class="flex items-center gap-2 px-2 py-1.5 overflow-x-auto">
+            <span class="text-10-medium text-text-weaker uppercase tracking-wider shrink-0">Nmap · {scans.length}</span>
+            <Show when={scans.length >= 2}>
+              <select
+                value={from()}
+                aria-label="Baseline Nmap scan"
+                class="h-6 max-w-40 px-1.5 rounded bg-surface-inset-base text-10-regular text-text-base"
+                onChange={(event) => setFrom(event.currentTarget.value)}
+              >
+                <For each={scans}>{(scan) => <option value={scan.id}>{scan.name}</option>}</For>
+              </select>
+              <span class="text-10-regular text-text-weaker">→</span>
+              <select
+                value={to()}
+                aria-label="Current Nmap scan"
+                class="h-6 max-w-40 px-1.5 rounded bg-surface-inset-base text-10-regular text-text-base"
+                onChange={(event) => setTo(event.currentTarget.value)}
+              >
+                <For each={scans}>{(scan) => <option value={scan.id}>{scan.name}</option>}</For>
+              </select>
+            </Show>
+            <Show when={diff()}>
+              {(change) => (
+                <div class="flex items-center gap-1 shrink-0">
+                  <span class="px-1.5 py-0.5 rounded bg-surface-success-base text-10-medium text-text-success-base">
+                    +{change().addedHosts.length} hosts
+                  </span>
+                  <span class="px-1.5 py-0.5 rounded bg-surface-critical-base text-10-medium text-text-critical-base">
+                    −{change().removedHosts.length} hosts
+                  </span>
+                  <span class="px-1.5 py-0.5 rounded bg-surface-warning-base text-10-medium text-text-warning-base">
+                    {change().changedHosts.length} changed
+                  </span>
+                </div>
+              )}
+            </Show>
+            <div class="flex-1 min-w-2" />
+            <Show when={server.role() !== "observer"}>
+              <input
+                ref={fileInput}
+                type="file"
+                accept=".xml,text/xml,application/xml"
+                class="hidden"
+                onChange={(event) => void importScan(event.currentTarget.files?.[0])}
+              />
+              <button
+                type="button"
+                class="h-6 px-2 rounded bg-surface-base text-10-medium text-text-accent disabled:opacity-50 shrink-0"
+                disabled={importing()}
+                onClick={() => fileInput.click()}
+              >
+                {importing() ? "Importing..." : "Import XML"}
+              </button>
+            </Show>
+          </div>
+          <Show when={server.role() !== "observer"}>
+            <div class="flex items-center gap-2 px-2 pb-1.5">
+              <input
+                value={scan.target}
+                placeholder="Authorized domain, IP, range, or CIDR"
+                aria-label="Nmap target"
+                class="h-7 min-w-48 flex-1 px-2 rounded bg-surface-inset-base text-10-mono text-text-base outline-none placeholder:text-text-weaker"
+                onInput={(event) => setScan("target", event.currentTarget.value)}
+              />
+              <select
+                value={scan.profile}
+                aria-label="Nmap profile"
+                class="h-7 px-2 rounded bg-surface-inset-base text-10-regular text-text-base"
+                onChange={(event) => setScan("profile", event.currentTarget.value as typeof scan.profile)}
+              >
+                <option value="quick">Quick</option>
+                <option value="service">Service</option>
+                <option value="os">OS</option>
+                <option value="comprehensive">Comprehensive</option>
+              </select>
+              <button
+                type="button"
+                class="h-7 px-2 rounded bg-surface-accent-base text-10-medium text-text-accent-base disabled:opacity-50"
+                disabled={!scan.target.trim()}
+                title={command()}
+                onClick={prepareScan}
+              >
+                Prepare scan
+              </button>
+            </div>
+          </Show>
+        </div>
+      </Show>
       <Show when={error()}>
         <div class="shrink-0 px-3 py-1.5 bg-surface-critical-base text-11-regular text-text-critical-base">{error()}</div>
       </Show>

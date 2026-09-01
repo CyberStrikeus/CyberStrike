@@ -53,6 +53,12 @@ describe("observer policy", () => {
         path: "/topology/session/ses_test",
       }),
     ).toBe(true)
+    expect(
+      ServerAuth.allows("observer", {
+        method: "GET",
+        path: "/topology/session/ses_test/nmap/diff",
+      }),
+    ).toBe(true)
   })
 
   test("denies mutations, PTYs, secrets, and raw event streams", () => {
@@ -60,6 +66,7 @@ describe("observer policy", () => {
     expect(ServerAuth.allows("observer", { method: "GET", path: "/pty" })).toBe(false)
     expect(ServerAuth.allows("observer", { method: "GET", path: "/config" })).toBe(false)
     expect(ServerAuth.allows("observer", { method: "GET", path: "/global/event" })).toBe(false)
+    expect(ServerAuth.allows("observer", { method: "POST", path: "/topology/session/ses_test/nmap" })).toBe(false)
     expect(
       ServerAuth.allows("observer", {
         method: "GET",

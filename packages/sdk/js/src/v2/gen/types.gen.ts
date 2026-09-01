@@ -1080,6 +1080,15 @@ export type EventIntelUpdated = {
   }
 }
 
+export type EventNmapScanUpdated = {
+  type: "nmap.scan.updated"
+  properties: {
+    sessionID: string
+    scanID: string
+    hosts: number
+  }
+}
+
 export type EventCommandExecuted = {
   type: "command.executed"
   properties: {
@@ -1290,6 +1299,7 @@ export type Event =
   | EventMcpToolsChanged
   | EventMcpBrowserOpenFailed
   | EventIntelUpdated
+  | EventNmapScanUpdated
   | EventCommandExecuted
   | EventSessionCreated
   | EventSessionUpdated
@@ -6919,6 +6929,228 @@ export type TopologyNoteCreateResponses = {
 }
 
 export type TopologyNoteCreateResponse = TopologyNoteCreateResponses[keyof TopologyNoteCreateResponses]
+
+export type TopologyNmapScansData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/topology/session/{sessionID}/nmap"
+}
+
+export type TopologyNmapScansResponses = {
+  /**
+   * Nmap scan history
+   */
+  200: Array<{
+    summary: {
+      scanner: string
+      args?: string
+      version?: string
+      start?: number
+      finished?: number
+      elapsed?: number
+      up: number
+      down: number
+      total: number
+    }
+    hosts: Array<{
+      id: string
+      status: string
+      reason?: string
+      addresses: Array<{
+        address: string
+        type: string
+        vendor?: string
+      }>
+      hostnames: Array<string>
+      ports: Array<{
+        protocol: string
+        port: number
+        state: string
+        reason?: string
+        service: {
+          name?: string
+          product?: string
+          version?: string
+          extra?: string
+          os?: string
+          method?: string
+          confidence?: number
+          cpe: Array<string>
+        }
+        scripts: Array<{
+          id: string
+          output: string
+        }>
+      }>
+      os: Array<{
+        name: string
+        accuracy: number
+        line?: number
+        classes: Array<{
+          type?: string
+          vendor?: string
+          family?: string
+          generation?: string
+          accuracy?: number
+          cpe: Array<string>
+        }>
+      }>
+      trace: Array<{
+        ttl: number
+        address: string
+        rtt?: number
+        host?: string
+      }>
+      start?: number
+      end?: number
+    }>
+    id: string
+    sessionID: string
+    name: string
+    profile?: string
+    command?: string
+    source: string
+    xmlHash: string
+    time: number
+  }>
+}
+
+export type TopologyNmapScansResponse = TopologyNmapScansResponses[keyof TopologyNmapScansResponses]
+
+export type TopologyNmapImportData = {
+  body?: {
+    name: string
+    xml: string
+    profile?: string
+    command?: string
+  }
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/topology/session/{sessionID}/nmap"
+}
+
+export type TopologyNmapImportResponses = {
+  /**
+   * Imported Nmap scan
+   */
+  200: {
+    summary: {
+      scanner: string
+      args?: string
+      version?: string
+      start?: number
+      finished?: number
+      elapsed?: number
+      up: number
+      down: number
+      total: number
+    }
+    hosts: Array<{
+      id: string
+      status: string
+      reason?: string
+      addresses: Array<{
+        address: string
+        type: string
+        vendor?: string
+      }>
+      hostnames: Array<string>
+      ports: Array<{
+        protocol: string
+        port: number
+        state: string
+        reason?: string
+        service: {
+          name?: string
+          product?: string
+          version?: string
+          extra?: string
+          os?: string
+          method?: string
+          confidence?: number
+          cpe: Array<string>
+        }
+        scripts: Array<{
+          id: string
+          output: string
+        }>
+      }>
+      os: Array<{
+        name: string
+        accuracy: number
+        line?: number
+        classes: Array<{
+          type?: string
+          vendor?: string
+          family?: string
+          generation?: string
+          accuracy?: number
+          cpe: Array<string>
+        }>
+      }>
+      trace: Array<{
+        ttl: number
+        address: string
+        rtt?: number
+        host?: string
+      }>
+      start?: number
+      end?: number
+    }>
+    id: string
+    sessionID: string
+    name: string
+    profile?: string
+    command?: string
+    source: string
+    xmlHash: string
+    time: number
+  }
+}
+
+export type TopologyNmapImportResponse = TopologyNmapImportResponses[keyof TopologyNmapImportResponses]
+
+export type TopologyNmapDiffData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query: {
+    directory?: string
+    from: string
+    to: string
+  }
+  url: "/topology/session/{sessionID}/nmap/diff"
+}
+
+export type TopologyNmapDiffResponses = {
+  /**
+   * Nmap scan difference
+   */
+  200: {
+    from: string
+    to: string
+    addedHosts: Array<string>
+    removedHosts: Array<string>
+    changedHosts: Array<{
+      host: string
+      addedPorts: Array<string>
+      removedPorts: Array<string>
+      changedServices: Array<string>
+    }>
+  }
+}
+
+export type TopologyNmapDiffResponse = TopologyNmapDiffResponses[keyof TopologyNmapDiffResponses]
 
 export type TopologyNoteDeleteData = {
   body?: never

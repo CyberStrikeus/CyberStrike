@@ -244,6 +244,9 @@ import type {
   ToolListErrors,
   ToolListResponses,
   TopologyGetResponses,
+  TopologyNmapDiffResponses,
+  TopologyNmapImportResponses,
+  TopologyNmapScansResponses,
   TopologyNoteCreateResponses,
   TopologyNoteDeleteResponses,
   TopologyNotesResponses,
@@ -4533,6 +4536,113 @@ export class Topology extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
+    })
+  }
+
+  /**
+   * List Nmap scans
+   *
+   * Get saved parsed Nmap scans for a session.
+   */
+  public nmapScans<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<TopologyNmapScansResponses, unknown, ThrowOnError>({
+      url: "/topology/session/{sessionID}/nmap",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Import Nmap XML
+   *
+   * Parse and persist an Nmap XML scan for topology and comparison.
+   */
+  public nmapImport<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      name: string
+      xml: string
+      profile?: string
+      command?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "name" },
+            { in: "body", key: "xml" },
+            { in: "body", key: "profile" },
+            { in: "body", key: "command" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<TopologyNmapImportResponses, unknown, ThrowOnError>({
+      url: "/topology/session/{sessionID}/nmap",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Compare Nmap scans
+   *
+   * Compare hosts, ports, and service changes between two saved scans.
+   */
+  public nmapDiff<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      from: string
+      to: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "from" },
+            { in: "query", key: "to" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<TopologyNmapDiffResponses, unknown, ThrowOnError>({
+      url: "/topology/session/{sessionID}/nmap/diff",
+      ...options,
+      ...params,
     })
   }
 

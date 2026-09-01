@@ -45,6 +45,7 @@ export namespace EngagementEvent {
   function source(type: string, data: Record<string, unknown>) {
     if (type.startsWith("mcp.")) return "mcp" as const
     if (type.startsWith("bolt.")) return "bolt" as const
+    if (type.startsWith("nmap.")) return "tool" as const
     if (type.startsWith("pty.")) return "pty" as const
     if (
       type.startsWith("request.") ||
@@ -144,6 +145,8 @@ export namespace EngagementEvent {
         directory: text(props.directory),
         permission: text(props.permission),
         tool: text(tool?.tool) ?? text(props.tool),
+        scanID: text(props.scanID),
+        hosts: number(props.hosts),
         patternCount: Array.isArray(props.patterns) ? props.patterns.length : undefined,
       }
     })()

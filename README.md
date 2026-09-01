@@ -278,7 +278,7 @@ If user or project configuration prevents startup, run `cyberstrike web --safe` 
 | **Vulnerabilities** | Discovered vulns with severity, PoC, and impact                                |
 | **Web Context**     | Endpoints, roles, credentials, and functions discovered during active sessions |
 | **Mission**         | Methodology phases, coverage, blockers, attack chains, agents, and safe CTAs   |
-| **Topology**        | Evidence-linked assets, hosts, services, endpoints, identities, and findings    |
+| **Topology**        | Evidence-linked assets, Nmap hosts/services/routes, scan history/diffs, endpoints, identities, and findings |
 | **Activity**        | Durable Agent/Tool/MCP/Bolt/Browser/PTY lanes with filtering and JSONL export   |
 | **Memory**          | Trust-ranked structured memory, FTS search, redaction, notes, and invalidation   |
 
@@ -345,7 +345,7 @@ CyberStrike agents have direct access to **56+ tools** without any external depe
 | --------------------- | ----------------------------------------------------------------------------------- |
 | **Execution**         | Shell, typed host readiness, file read/write/edit/patch, directory listing, batch operations |
 | **Discovery**         | Web fetch, web search, code search, glob, grep, intel gathering                     |
-| **Offensive**         | HackBrowser, attack script execution, vulnerability reporting & triage              |
+| **Offensive**         | Approval-gated Nmap profiles, HackBrowser, attack scripts, vulnerability reporting & triage |
 | **Post-Exploitation** | AWS hook, Azure hook, Kubernetes hook, Windows hook, macOS hook, CI/CD pipe, eBPF   |
 | **Web Context**       | Session context, endpoint/role/credential/function discovery and management         |
 | **Proxy**             | HTTP/HTTPS interception, request replay, session context sharing across sub-testers |

@@ -3,6 +3,7 @@ import z from "zod"
 import { Intel } from "../methodology/intel"
 import { Request } from "../session/request"
 import { Vulnerability } from "../session/vulnerability"
+import { NmapScan } from "./nmap"
 
 export namespace Topology {
   export const Kind = z.enum(["asset", "host", "service", "endpoint", "identity", "finding", "fact"])
@@ -53,6 +54,7 @@ export namespace Topology {
     intel: Intel.Entry[]
     requests: Request.Info[]
     vulnerabilities: Vulnerability.Info[]
+    scans?: NmapScan.Info[]
     time?: number
   }): Snapshot {
     const nodes = new Map<string, Node>()
@@ -177,6 +179,68 @@ export namespace Topology {
       if (endpoint) edge(endpoint, current, "vulnerable_to")
     }
 
+    const latest = new Map<string, { scan: NmapScan.Info; host: NmapScan.Host }>()
+    for (const scan of (input.scans ?? []).toSorted((a, b) => a.time - b.time)) {
+      for (const host of scan.hosts) latest.set(host.id, { scan, host })
+    }
+    for (const observation of latest.values()) {
+      const scan = observation.scan
+      const host = observation.host
+        const current = node({
+          id: id("host", host.id),
+          kind: "host",
+          label: host.hostnames[0] ?? host.id,
+          source: "nmap",
+          status: host.status,
+          confidence: host.os[0] ? `${host.os[0].accuracy}%` : undefined,
+          data: {
+            addresses: host.addresses,
+            os: host.os,
+            scanID: scan.id,
+            scanName: scan.name,
+            scannedAt: scan.time,
+          },
+        })
+        for (const port of host.ports) {
+          const service = node({
+            id: id("service", `${host.id}:${port.protocol}:${port.port}`),
+            kind: "service",
+            label: `${port.port}/${port.protocol} ${port.service.name ?? port.service.product ?? "unknown"}`,
+            source: "nmap",
+            status: port.state,
+            data: {
+              host: host.id,
+              port: port.port,
+              protocol: port.protocol,
+              service: port.service,
+              scripts: port.scripts,
+              scanID: scan.id,
+            },
+          })
+          edge(current, service, "exposes")
+        }
+        let prior: string | undefined
+        const target = new Set(host.addresses.map((address) => address.address))
+        for (const hop of host.trace.toSorted((a, b) => a.ttl - b.ttl)) {
+          if (target.has(hop.address)) continue
+          const hopNode = node({
+            id: id("host", hop.address),
+            kind: "host",
+            label: hop.host ?? hop.address,
+            source: "nmap",
+            data: {
+              address: hop.address,
+              ttl: hop.ttl,
+              rtt: hop.rtt,
+              scanID: scan.id,
+            },
+          })
+          if (prior) edge(prior, hopNode, "routes_to")
+          prior = hopNode
+        }
+        if (prior) edge(prior, current, "routes_to")
+    }
+
     return {
       sessionID: input.sessionID,
       nodes: [...nodes.values()],
@@ -191,6 +255,7 @@ export namespace Topology {
       intel: Intel.get(sessionID),
       requests: Request.get(sessionID),
       vulnerabilities: Vulnerability.get(sessionID),
+      scans: NmapScan.scans(sessionID),
     })
   }
 }

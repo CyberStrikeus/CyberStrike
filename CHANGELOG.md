@@ -12,6 +12,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 
 - Durable, redacted engagement event log with live SSE, correlation IDs, activity timeline/lanes, filters, and JSONL export
 - Mission posture and topology panels for methodology coverage, validation, attack chains, agents, assets, hosts, endpoints, findings, and target notes
+- Approval-gated Nmap scan profiles, canonical XML ingestion, saved scan history, host/service/route topology, and scan comparison
 - Structured project/session memory with FTS5, provenance, trust, confidence, secret redaction, invalidation, failure reflection, and evaluation-gated procedural promotion
 - Server-enforced read-only observer role and typed local execution-plane capability inventory
 - Version-pinned MCP catalog with manual/optional install states and three additional owner-maintained integrations

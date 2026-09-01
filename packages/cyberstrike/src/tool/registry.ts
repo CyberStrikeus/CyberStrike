@@ -71,6 +71,7 @@ import { K8sAuditTool } from "./k8s-audit"
 import { CiAuditTool } from "./ci-audit"
 import { CipipeTool } from "./cipipe"
 import { HostFactsTool } from "./host-facts"
+import { NmapScanTool } from "./nmap-scan"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -148,6 +149,7 @@ export namespace ToolRegistry {
       ...(["app", "cli", "desktop"].includes(Flag.CYBERSTRIKE_CLIENT) ? [QuestionTool] : []),
       BashTool,
       HostFactsTool,
+      NmapScanTool,
       ReadTool,
       GlobTool,
       GrepTool,
