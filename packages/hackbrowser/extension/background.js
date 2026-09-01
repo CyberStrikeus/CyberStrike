@@ -221,6 +221,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       })
       return
     }
+    if (msg.type === "observe") {
+      const tabId = sender.tab && sender.tab.id
+      const base = await receiverUrl()
+      const obsUrl = base.replace(/\/capture$/, "/observe")
+      try {
+        await fetch(obsUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...msg.observation, driver: tabId !== undefined ? driverByTab.get(tabId) || "ai" : "ai" }),
+        })
+      } catch (e) {
+        // receiver down — observation is best-effort
+      }
+      sendResponse({ ok: true })
+      return
+    }
     sendResponse({ ok: false, error: "unknown message" })
   })()
   return true // async sendResponse

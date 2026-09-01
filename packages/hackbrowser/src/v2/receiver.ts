@@ -46,6 +46,19 @@ function trafficClass(type: string): "api" | "js" | "html" | "static" | "realtim
   return "other"
 }
 
+// Deterministic page observation (§3.3) — what the extension extracts with no LLM.
+interface PageObservation {
+  url: string
+  title: string
+  clickables: { id: string; tag: string; role: string; label: string; href: string }[]
+  forms: { action: string; method: string; fields: { name: string; type: string; required: boolean }[] }[]
+  links: string[]
+  driver?: "ai" | "human"
+}
+
+// url → latest observation. get_page_state reads from here.
+const pageState = new Map<string, PageObservation>()
+
 const tally = { total: 0, api: 0, js: 0, html: 0, static: 0, realtime: 0, other: 0, forwarded: 0, failed: 0 }
 
 // --- CyberStrike forwarding -------------------------------------------------
@@ -139,7 +152,34 @@ Bun.serve({
     if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders() })
 
     if (req.method === "GET" && url.pathname === "/health") {
-      return Response.json({ ok: true, tally }, { headers: corsHeaders() })
+      return Response.json({ ok: true, tally, pages: pageState.size }, { headers: corsHeaders() })
+    }
+
+    // Deterministic page observation (§3.3): the state the AI pulls via
+    // get_page_state instead of re-reading the DOM. Keyed by URL, last-write-wins.
+    if (req.method === "POST" && url.pathname === "/observe") {
+      let obs: PageObservation
+      try {
+        obs = (await req.json()) as PageObservation
+      } catch {
+        return new Response("invalid json", { status: 400, headers: corsHeaders() })
+      }
+      pageState.set(obs.url, obs)
+      console.log(
+        `[hb2] observe ${(obs.driver || "ai").padEnd(5)} ${obs.clickables.length}c ${obs.forms.length}f ${obs.links.length}l  ${obs.url}`,
+      )
+      return Response.json({ ok: true }, { headers: corsHeaders() })
+    }
+
+    // get_page_state substrate: return the last observation for a URL (or all).
+    if (req.method === "GET" && url.pathname === "/page-state") {
+      const want = url.searchParams.get("url")
+      if (want) {
+        const obs = pageState.get(want)
+        if (!obs) return new Response("not found", { status: 404, headers: corsHeaders() })
+        return Response.json(obs, { headers: corsHeaders() })
+      }
+      return Response.json({ urls: [...pageState.keys()] }, { headers: corsHeaders() })
     }
 
     if (req.method === "POST" && url.pathname === "/capture") {

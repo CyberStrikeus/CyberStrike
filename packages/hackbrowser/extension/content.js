@@ -46,12 +46,14 @@
       </div>
       <button id="handover">AI is driving</button>
       <div class="hint" id="hint">capture attached to this tab</div>
+      <div class="hint" id="obs">observing…</div>
     </div>
   `
   const dot = root.getElementById("dot")
   const count = root.getElementById("count")
   const handover = root.getElementById("handover")
   const hint = root.getElementById("hint")
+  const obsLine = root.getElementById("obs")
 
   let driver = "ai"
 
@@ -79,11 +81,98 @@
     chrome.runtime.sendMessage({ type: "set-driver", driver }, (res) => render(res))
   })
 
+  // --- Deterministic page observation (§3.3) --------------------------------
+  // Extract clickables/forms/links from the DOM with no LLM. This is the state
+  // the AI will later pull via get_page_state instead of re-reading the page.
+
+  function visible(el) {
+    if (!el || el.offsetParent === null) return false
+    const r = el.getBoundingClientRect()
+    return r.width > 0 && r.height > 0
+  }
+
+  function labelOf(el) {
+    const raw =
+      el.getAttribute("aria-label") ||
+      (el.innerText || "").trim() ||
+      el.getAttribute("placeholder") ||
+      el.getAttribute("name") ||
+      el.getAttribute("value") ||
+      ""
+    return raw.replace(/\s+/g, " ").trim().slice(0, 80)
+  }
+
+  function observePage() {
+    const clickSel = "a[href],button,[role=button],input[type=submit],input[type=button],[onclick]"
+    const clickables = []
+    let i = 0
+    for (const el of document.querySelectorAll(clickSel)) {
+      if (!visible(el)) continue
+      clickables.push({
+        id: "E" + i++,
+        tag: el.tagName.toLowerCase(),
+        role: el.getAttribute("role") || "",
+        label: labelOf(el),
+        href: el.getAttribute("href") || "",
+      })
+      if (i >= 300) break
+    }
+
+    const forms = []
+    for (const f of document.querySelectorAll("form")) {
+      if (forms.length >= 40) break
+      const fields = []
+      for (const el of f.elements) {
+        if (!el.name && !el.id) continue
+        fields.push({
+          name: el.name || el.id,
+          type: (el.getAttribute("type") || el.tagName).toLowerCase(),
+          required: el.hasAttribute("required"),
+        })
+      }
+      forms.push({ action: f.getAttribute("action") || "", method: (f.getAttribute("method") || "get").toLowerCase(), fields })
+    }
+
+    const links = []
+    const seen = new Set()
+    for (const a of document.querySelectorAll("a[href]")) {
+      const href = a.href
+      if (!href || seen.has(href)) continue
+      seen.add(href)
+      links.push(href)
+      if (links.length >= 300) break
+    }
+
+    return { url: location.href, title: document.title, clickables, forms, links }
+  }
+
+  function sendObservation() {
+    const obs = observePage()
+    chrome.runtime.sendMessage({ type: "observe", observation: obs }, () => {
+      if (chrome.runtime.lastError) return
+    })
+    return obs
+  }
+
+  let lastObs = null
+  let lastUrl = location.href
+
+  function showObs(obs) {
+    if (!obs) return
+    obsLine.textContent = `${obs.clickables.length} clickables · ${obs.forms.length} forms · ${obs.links.length} links`
+  }
+
   function poll() {
     chrome.runtime.sendMessage({ type: "overlay-status" }, (res) => {
       if (chrome.runtime.lastError) return // service worker asleep — try next tick
       render(res)
     })
+    // SPA route change without full reload → re-observe (§3.3 re-snapshot).
+    if (location.href !== lastUrl) {
+      lastUrl = location.href
+      lastObs = sendObservation()
+      showObs(lastObs)
+    }
   }
 
   function mount() {
@@ -91,6 +180,8 @@
     if (document.getElementById("cyberstrike-overlay-host")) return
     document.body.appendChild(host)
     poll()
+    lastObs = sendObservation()
+    showObs(lastObs)
     setInterval(poll, 1500)
   }
 
