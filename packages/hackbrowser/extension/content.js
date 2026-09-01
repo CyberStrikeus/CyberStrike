@@ -153,7 +153,27 @@
       .st { margin-left: auto; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #16212b; color: var(--dim); }
       .dock.capturing.driver-ai .st { background: rgba(37,99,235,.15); color: #7ea8ff; }
       .dock.capturing.driver-human .st { background: rgba(240,180,41,.15); color: var(--human); }
-      .pbody { padding: 10px 13px; display: flex; flex-direction: column; }
+      .pbody { padding: 12px 13px; display: flex; flex-direction: column; }
+      .ctl {
+        width: 100%; padding: 9px; margin-bottom: 4px; border: 0; border-radius: 9px;
+        font: 700 12px system-ui, sans-serif; cursor: pointer; color: #fff; background: var(--ai);
+        transition: filter .15s ease;
+      }
+      .ctl:hover { filter: brightness(1.08); }
+      .ctl.on { background: #b4232f; }
+      .lbl { font-size: 10px; color: var(--faint); margin: 9px 0 3px; text-transform: uppercase; letter-spacing: .06em; }
+      .fld {
+        width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px;
+        background: #0b0f14; color: var(--text); font: 12px system-ui, sans-serif;
+      }
+      .credrow { display: flex; gap: 6px; }
+      .credrow .fld { flex: 1; }
+      .mini {
+        padding: 0 12px; border: 0; border-radius: 7px; background: #16212b; color: var(--text);
+        cursor: pointer; font: 600 11px system-ui, sans-serif;
+      }
+      .mini:hover { background: #1e2a36; }
+      .brk { margin-top: 11px; padding-top: 6px; border-top: 1px solid var(--line); }
       .row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px dashed #17222d; }
       .row:last-child { border-bottom: 0; }
       .row .k { color: var(--dim); font-size: 11px; }
@@ -164,11 +184,21 @@
       <div class="panel" id="panel">
         <div class="phead"><span class="brand">CYBERSTRIKE</span><span class="st" id="state">detached</span></div>
         <div class="pbody">
-          <div class="row"><span class="k">captured</span><span class="v" id="s-total">0</span></div>
-          <div class="row"><span class="k">API endpoints</span><span class="v" id="s-api">0</span></div>
-          <div class="row"><span class="k">JavaScript files</span><span class="v" id="s-js">0</span></div>
-          <div class="row"><span class="k">static assets</span><span class="v" id="s-static">0</span></div>
-          <div class="row"><span class="k">page elements</span><span class="v" id="s-page">0</span></div>
+          <button class="ctl" id="attachBtn">Attach capture</button>
+          <label class="lbl">CyberStrike session</label>
+          <select class="fld" id="sess"><option value="">-- New session --</option></select>
+          <label class="lbl">This profile's credential</label>
+          <div class="credrow">
+            <input class="fld" id="cred" type="text" placeholder="e.g. admin" />
+            <button class="mini" id="setCred">Set</button>
+          </div>
+          <div class="brk">
+            <div class="row"><span class="k">captured</span><span class="v" id="s-total">0</span></div>
+            <div class="row"><span class="k">API endpoints</span><span class="v" id="s-api">0</span></div>
+            <div class="row"><span class="k">JavaScript files</span><span class="v" id="s-js">0</span></div>
+            <div class="row"><span class="k">static assets</span><span class="v" id="s-static">0</span></div>
+            <div class="row"><span class="k">page elements</span><span class="v" id="s-page">0</span></div>
+          </div>
         </div>
       </div>
       <div class="bar" id="bar">
@@ -212,6 +242,73 @@
   bar.addEventListener("mouseenter", showBar)
   bar.addEventListener("mouseleave", hideBar)
 
+  // --- Settings controls: attach/detach, session, credential (no popup) ------
+  const attachBtn = root.getElementById("attachBtn")
+  const sess = root.getElementById("sess")
+  const cred = root.getElementById("cred")
+  const setCred = root.getElementById("setCred")
+
+  async function csBase() {
+    const o = await chrome.storage.local.get("cyberstrike")
+    return (o && o.cyberstrike) || "http://127.0.0.1:4096"
+  }
+
+  async function loadSessions() {
+    let list
+    try {
+      const r = await fetch((await csBase()) + "/session?limit=20&roots=true")
+      if (!r.ok) throw new Error()
+      list = await r.json()
+    } catch {
+      sess.innerHTML = '<option value="">-- CyberStrike unreachable --</option>'
+      return
+    }
+    const active = (await chrome.storage.local.get("session")).session || ""
+    sess.innerHTML = '<option value="">-- New session --</option>'
+    for (const s of Array.isArray(list) ? list : []) {
+      if (!s || typeof s.id !== "string") continue
+      const o = document.createElement("option")
+      o.value = s.id
+      o.textContent = s.title ? s.title.slice(0, 30) : s.id
+      if (s.id === active) o.selected = true
+      sess.appendChild(o)
+    }
+  }
+
+  sess.addEventListener("change", () => chrome.storage.local.set({ session: sess.value }))
+
+  attachBtn.addEventListener("click", async () => {
+    const res = await chrome.runtime.sendMessage({ type: "toggle-attach-self" })
+    const on = !!(res && res.attached)
+    attachBtn.textContent = on ? "Detach capture" : "Attach capture"
+    attachBtn.classList.toggle("on", on)
+  })
+
+  setCred.addEventListener("click", async () => {
+    const label = cred.value.trim()
+    if (!label) return
+    const sid = (await chrome.storage.local.get("session")).session || ""
+    if (!sid) {
+      cred.value = ""
+      cred.placeholder = "select a session first"
+      return
+    }
+    try {
+      const r = await fetch((await csBase()) + `/session/${sid}/web/credentials`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label }),
+      })
+      const d = await r.json()
+      if (d && d.id) {
+        await chrome.storage.local.set({ credential: { id: d.id, label: d.label || label } })
+        cred.value = d.label || label
+      }
+    } catch {
+      cred.placeholder = "CyberStrike unreachable"
+    }
+  })
+
   function updateSide() {
     const cx = host.getBoundingClientRect().left + host.offsetWidth / 2
     const onRight = cx > window.innerWidth / 2
@@ -225,6 +322,8 @@
     dock.classList.toggle("capturing", attached)
     dock.classList.toggle("driver-ai", driver !== "human")
     dock.classList.toggle("driver-human", driver === "human")
+    attachBtn.textContent = attached ? "Detach capture" : "Attach capture"
+    attachBtn.classList.toggle("on", attached)
 
     if (status && status.stats) {
       const st = status.stats
@@ -430,6 +529,10 @@
     readCredFromHash()
     updateSide()
     sendObservation()
+    loadSessions()
+    chrome.storage.local.get("credential", (o) => {
+      if (o && o.credential) cred.value = o.credential.label || ""
+    })
     poll()
     setInterval(poll, 1500)
   }

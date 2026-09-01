@@ -289,6 +289,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       })
       return
     }
+    // Attach/detach this tab from the panel (no popup needed).
+    if (msg.type === "toggle-attach-self") {
+      const tabId = sender.tab && sender.tab.id
+      if (tabId === undefined) {
+        sendResponse({ ok: false, attached: false })
+        return
+      }
+      if (attached.has(tabId)) await detach(tabId)
+      else await attach(tabId)
+      sendResponse({ ok: true, attached: attached.has(tabId) })
+      return
+    }
     if (msg.type === "set-driver") {
       const tabId = sender.tab && sender.tab.id
       if (tabId !== undefined) driverByTab.set(tabId, msg.driver === "human" ? "human" : "ai")
