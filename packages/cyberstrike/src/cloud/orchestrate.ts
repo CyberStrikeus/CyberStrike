@@ -11,6 +11,7 @@ import { classifyGroupFindings } from "./classify"
 import { extractTrajectory, aggregateTrajectories, formatTrajectoryLog } from "./trajectory"
 import type { CloudAnalysis } from "./types"
 import type { AgentTrajectory } from "./trajectory"
+import { Semaphore } from "../util/semaphore"
 
 const LAYER2_DEADLINE_MS = 20 * 60 * 1000
 const FOLLOWUP_RESERVE_MS = 5 * 60 * 1000
@@ -20,21 +21,6 @@ const BATCH_VERIFY_TIMEOUT_MS = 5 * 60 * 1000
 const FOLLOWUP_TIMEOUT_MS = 5 * 60 * 1000
 const VERIFY_TIMEOUT_MS = 5 * 60 * 1000
 const MAX_CONCURRENT_AGENTS = 5
-
-class Semaphore {
-  private queue: (() => void)[] = []
-  private active = 0
-  constructor(private max: number) {}
-  async acquire(): Promise<void> {
-    if (this.active < this.max) { this.active++; return }
-    return new Promise((resolve) => this.queue.push(() => { this.active++; resolve() }))
-  }
-  release(): void {
-    this.active--
-    const next = this.queue.shift()
-    if (next) next()
-  }
-}
 
 function deduplicateFindings(rootSession: string): void {
   const vulns = Vulnerability.get(rootSession)

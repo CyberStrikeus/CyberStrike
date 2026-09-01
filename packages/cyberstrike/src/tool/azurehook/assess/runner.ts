@@ -8,6 +8,7 @@ import type {
   ProgramResult,
   ProgramEntry,
 } from "./types"
+import { Semaphore } from "@/util/semaphore"
 
 // ── Retry classification ──────────────────────────────────────
 
@@ -22,30 +23,6 @@ function isTransient(err: string): boolean {
 
 function isPermissionDenied(err: string): boolean {
   return PERMISSION_DENIED.some((p) => p.test(err))
-}
-
-// ── Concurrency semaphore ─────────────────────────────────────
-
-function createSemaphore(max: number) {
-  let active = 0
-  const queue: (() => void)[] = []
-  return {
-    async acquire(): Promise<void> {
-      if (active < max) {
-        active++
-        return
-      }
-      await new Promise<void>((resolve) => queue.push(resolve))
-    },
-    release(): void {
-      active--
-      const next = queue.shift()
-      if (next) {
-        active++
-        next()
-      }
-    },
-  }
 }
 
 // ── Program runner with retry ─────────────────────────────────
@@ -114,7 +91,7 @@ export async function runGroup(
   const remaining = deadline - Date.now()
   const effective = Math.min(timeout, Math.ceil(remaining / 1000))
 
-  const sem = createSemaphore(maxConcurrency)
+  const sem = new Semaphore(maxConcurrency)
   const programResults = await Promise.all(
     group.programs.map(async (p) => {
       await sem.acquire()
