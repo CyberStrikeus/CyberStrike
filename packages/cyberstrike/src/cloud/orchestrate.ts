@@ -23,6 +23,8 @@ const BATCH_VERIFY_TIMEOUT_MS = 5 * 60 * 1000
 const FOLLOWUP_TIMEOUT_MS = 10 * 60 * 1000
 const VERIFY_TIMEOUT_MS = 5 * 60 * 1000
 const MAX_CONCURRENT_AGENTS = 5
+const WATCHDOG_INTERVAL_MS = 30_000
+const WATCHDOG_SPAWN_AFTER_MS = 4 * 60_000
 
 function deduplicateFindings(rootSession: string): void {
   const vulns = Vulnerability.get(rootSession)
@@ -261,6 +263,80 @@ function buildAnalystResult(group: string, spawn: SpawnResult, rootSession: stri
   }
 }
 
+interface WatchdogContext {
+  rootSession: string
+  sessionID: string
+  model: { providerID: string; modelID: string }
+  provider: AssessmentProvider
+  identityContext: string
+  messageID?: string
+  sem: InstanceType<typeof Semaphore>
+}
+
+interface TrackedAgent {
+  groupKey: string
+  groupDef: CloudAnalysis.GroupDef
+  startTime: number
+  promise: Promise<SpawnResult>
+}
+
+function startWatchdog(
+  ctx: WatchdogContext,
+  tracked: TrackedAgent[],
+  helperResults: SpawnResult[],
+): { stop: () => Promise<PromiseSettledResult<SpawnResult>[]> } {
+  const helpedGroups = new Set<string>()
+  const helperPromises: Promise<SpawnResult>[] = []
+
+  const timer = setInterval(async () => {
+    // Layer 1: Self-spawn — agent signaled SCALE:<group> via add_intel
+    const entries = Intel.get(ctx.rootSession)
+    for (const e of entries) {
+      if (!e.title.startsWith("SCALE:")) continue
+      const gk = e.title.slice(6).trim()
+      if (helpedGroups.has(gk)) continue
+      const groupDef = ctx.provider.groups().find((g) => g.key === gk)
+      if (!groupDef) continue
+      helpedGroups.add(gk)
+      console.log(`[watchdog] self-spawn: agent requested help for ${gk}`)
+      const prompt = ctx.provider.analystPrompt(groupDef, ctx.identityContext) +
+        "\n\n## Helper Mode\nAnother agent is already working on this group but is overloaded. Focus ONLY on findings still in draft status — skip any finding that has already been triaged or enriched."
+      const p = (async () => {
+        await ctx.sem.acquire()
+        try { return await spawnAnalyst(ctx.sessionID, groupDef, prompt, ctx.model, AGENT_TIMEOUT_MS, ctx.messageID) }
+        finally { ctx.sem.release() }
+      })()
+      helperPromises.push(p)
+      p.then((r) => helperResults.push(r)).catch(() => {})
+    }
+
+    // Layer 2: Watchdog — agent running > WATCHDOG_SPAWN_AFTER_MS
+    for (const t of tracked) {
+      if (helpedGroups.has(t.groupKey)) continue
+      const elapsed = Date.now() - t.startTime
+      if (elapsed < WATCHDOG_SPAWN_AFTER_MS) continue
+      helpedGroups.add(t.groupKey)
+      console.log(`[watchdog] timeout-guard: spawning helper for ${t.groupKey} (${Math.round(elapsed / 1000)}s elapsed)`)
+      const prompt = ctx.provider.analystPrompt(t.groupDef, ctx.identityContext) +
+        "\n\n## Helper Mode\nAnother agent is already working on this group but is running long. Focus ONLY on findings still in draft status — skip any finding that has already been triaged or enriched."
+      const p = (async () => {
+        await ctx.sem.acquire()
+        try { return await spawnAnalyst(ctx.sessionID, t.groupDef, prompt, ctx.model, AGENT_TIMEOUT_MS, ctx.messageID) }
+        finally { ctx.sem.release() }
+      })()
+      helperPromises.push(p)
+      p.then((r) => helperResults.push(r)).catch(() => {})
+    }
+  }, WATCHDOG_INTERVAL_MS)
+
+  return {
+    stop: () => {
+      clearInterval(timer)
+      return Promise.allSettled(helperPromises)
+    },
+  }
+}
+
 function chainToFollowUp(chain: ReturnType<typeof detectCloudChains>[number]): CloudAnalysis.FollowUp {
   const assetList = chain.assetNames.map((n) => `"${n}"`).join(" → ")
   return {
@@ -416,26 +492,40 @@ async function runOrchestration(
     console.log(`[orchestrate] identity: ${idFindingCount} findings → ${idAgentCount} agents (threshold: ${FINDINGS_PER_AGENT})`)
 
     const idSem = new Semaphore(MAX_CONCURRENT_AGENTS)
-    const idResults = await Promise.all(
-      Array.from({ length: idAgentCount }, (_, i) => {
-        const slice = idAgentCount > 1 ? `${i + 1}/${idAgentCount}` : undefined
-        const prompt = provider.analystPrompt(idGroup, "", slice)
-        return (async () => {
-          await idSem.acquire()
-          try {
-            return await spawnAnalyst(sessionID, idGroup, prompt, model, AGENT_TIMEOUT_MS, messageID, slice)
-          } finally {
-            idSem.release()
-          }
-        })()
-      }),
+    const idStartTime = Date.now()
+    const idTracked: TrackedAgent[] = []
+    const idHelperResults: SpawnResult[] = []
+
+    const idPromises = Array.from({ length: idAgentCount }, (_, i) => {
+      const slice = idAgentCount > 1 ? `${i + 1}/${idAgentCount}` : undefined
+      const prompt = provider.analystPrompt(idGroup, "", slice)
+      const p = (async () => {
+        await idSem.acquire()
+        try {
+          return await spawnAnalyst(sessionID, idGroup, prompt, model, AGENT_TIMEOUT_MS, messageID, slice)
+        } finally {
+          idSem.release()
+        }
+      })()
+      idTracked.push({ groupKey: idGroup.key, groupDef: idGroup, startTime: idStartTime, promise: p })
+      return p
+    })
+
+    const idWatchdog = startWatchdog(
+      { rootSession, sessionID, model, provider, identityContext: "", messageID, sem: idSem },
+      idTracked,
+      idHelperResults,
     )
-    for (const r of idResults) spawnResults.push(r)
-    const idBest = idResults.find((r) => !r.error) ?? idResults[0]
+    const idResults = await Promise.all(idPromises)
+    await idWatchdog.stop()
+
+    const allIdResults = [...idResults, ...idHelperResults]
+    for (const r of allIdResults) spawnResults.push(r)
+    const idBest = allIdResults.find((r) => !r.error) ?? allIdResults[0]
     if (idBest) {
       const result = buildAnalystResult(idGroup.key, idBest, rootSession)
-      const idErrors = idResults.filter((r) => r.error)
-      if (idErrors.length > 0) result.summary = `[${idResults.length - idErrors.length}/${idResults.length} agents ok] ${result.summary}`
+      const idErrors = allIdResults.filter((r) => r.error)
+      if (idErrors.length > 0) result.summary = `[${allIdResults.length - idErrors.length}/${allIdResults.length} agents ok] ${result.summary}`
       state.analystResults.push(result)
     }
   }
@@ -470,6 +560,8 @@ async function runOrchestration(
   const sem = new Semaphore(MAX_CONCURRENT_AGENTS)
   const tasks: Promise<PromiseSettledResult<SpawnResult>>[] = []
   const taskMeta: { type: "batch" | "analyst"; groupKey?: string; groupDef?: CloudAnalysis.GroupDef }[] = []
+  const parallelTracked: TrackedAgent[] = []
+  const parallelHelperResults: SpawnResult[] = []
 
   const withSemaphore = async (fn: () => Promise<SpawnResult>): Promise<PromiseSettledResult<SpawnResult>> => {
     await sem.acquire()
@@ -497,20 +589,27 @@ async function runOrchestration(
     const fc = provider.findingCount(rootSession, c.key)
     const agentCount = Math.min(MAX_AGENTS_PER_GROUP, Math.max(1, Math.ceil(fc / FINDINGS_PER_AGENT)))
     console.log(`[orchestrate] ${c.key}: ${fc} findings → ${agentCount} agents (threshold: ${FINDINGS_PER_AGENT})`)
+    const spawnTime = Date.now()
     for (let i = 0; i < agentCount; i++) {
       const slice = agentCount > 1 ? `${i + 1}/${agentCount}` : undefined
       const prompt = provider.analystPrompt(groupDef, identityContext, slice)
-      tasks.push(
-        withSemaphore(() => spawnAnalyst(sessionID, groupDef, prompt, model, effectiveTimeout, messageID, slice)),
-      )
+      const p = withSemaphore(() => spawnAnalyst(sessionID, groupDef, prompt, model, effectiveTimeout, messageID, slice))
+      tasks.push(p)
       taskMeta.push({ type: "analyst", groupKey: c.key, groupDef })
+      parallelTracked.push({ groupKey: c.key, groupDef, startTime: spawnTime, promise: p.then((r) => r.status === "fulfilled" ? r.value : { agent: groupDef.analyst, group: c.key, sessionID: "", text: "", error: "rejected", durationMs: 0 } as SpawnResult) })
     }
   }
 
   console.log(`[orchestrate] parallel: ${tasks.length} agents (max ${MAX_CONCURRENT_AGENTS} concurrent)`)
-  const settled = await Promise.all(tasks)
 
-  const processedParallelGroups = new Set<string>()
+  const parallelWatchdog = startWatchdog(
+    { rootSession, sessionID, model, provider, identityContext, messageID, sem },
+    parallelTracked,
+    parallelHelperResults,
+  )
+  const settled = await Promise.all(tasks)
+  await parallelWatchdog.stop()
+
   const parallelGroupSpawns = new Map<string, SpawnResult[]>()
   for (let i = 0; i < settled.length; i++) {
     const meta = taskMeta[i]!
@@ -531,6 +630,12 @@ async function runOrchestration(
       parallelGroupSpawns.get(meta.groupKey)!.push(spawn)
     }
   }
+  for (const r of parallelHelperResults) {
+    spawnResults.push(r)
+    if (!parallelGroupSpawns.has(r.group)) parallelGroupSpawns.set(r.group, [])
+    parallelGroupSpawns.get(r.group)!.push(r)
+  }
+  if (parallelHelperResults.length > 0) console.log(`[watchdog] ${parallelHelperResults.length} helper agent(s) completed`)
   for (const [groupKey, spawns] of parallelGroupSpawns) {
     const best = spawns.find((s) => !s.error) ?? spawns[0]!
     const result = buildAnalystResult(groupKey, best, rootSession)

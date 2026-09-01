@@ -86,6 +86,9 @@ export class AzureProvider implements AssessmentProvider {
       "",
       `You have relevant skills loaded — use the \`skill\` tool to search and load cloud-specific skills (azure-postexploit, cloud-assessment, etc.) for detailed methodology when verifying findings.`,
       "",
+      `## Scaling`,
+      `If you have more findings than you can thoroughly verify within your time limit, call add_intel with title "SCALE:${group.key}" and body describing what remains. The orchestrator will spawn a helper agent to handle remaining draft findings.`,
+      "",
       identityContext ? `## Identity Context\n${identityContext}` : "",
     ].filter(Boolean).join("\n")
   }
