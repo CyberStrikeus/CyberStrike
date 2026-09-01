@@ -139,6 +139,9 @@ export class AzureProvider implements AssessmentProvider {
   }
 
   agentSpecs(): AgentSpec[] {
+    for (const g of CLOUD_GROUPS) {
+      if (!GROUP_SKILLS[g.key]) console.warn(`[azure-provider] GROUP_SKILLS missing for group "${g.key}" — using generic fallback`)
+    }
     const analysts: AgentSpec[] = CLOUD_GROUPS.map((g) => ({
       name: g.analyst,
       role: "analyst" as const,
