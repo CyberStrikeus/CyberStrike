@@ -23,9 +23,9 @@
     <style>
       .glow { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .6s ease; }
       .glow.on { animation: breathe 4s ease-in-out infinite; }
-      .glow.ai { box-shadow: inset 0 0 42px 6px rgba(37,99,235,.18); }
-      .glow.human { box-shadow: inset 0 0 42px 6px rgba(240,180,41,.18); }
-      @keyframes breathe { 0%,100% { opacity: .55; } 50% { opacity: .22; } }
+      .glow.ai { box-shadow: inset 0 0 50px 9px rgba(37,99,235,.32); }
+      .glow.human { box-shadow: inset 0 0 50px 9px rgba(240,180,41,.32); }
+      @keyframes breathe { 0%,100% { opacity: .8; } 50% { opacity: .45; } }
     </style>
     <div class="glow" id="glow"></div>
   `
@@ -94,7 +94,7 @@
         display: inline-flex; align-items: center; justify-content: center;
         background: radial-gradient(circle at 50% 40%, #141c26, #0b0f14);
         box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07);
-        cursor: grab; user-select: none; perspective: 300px;
+        cursor: grab; user-select: none;
         transition: transform .16s ease, box-shadow .16s ease;
       }
       .fab:hover {
@@ -103,12 +103,9 @@
       }
       .fab:active { cursor: grabbing; }
       .fab img {
-        width: 34px; height: 34px; display: block; pointer-events: none;
-        transform-origin: 50% 50%;
+        width: 44px; height: 44px; display: block; pointer-events: none;
       }
-      /* No idle motion; spin only while hovered (smooth coin-flip). */
-      .fab:hover img { animation: spin 2.4s linear infinite; }
-      @keyframes spin { to { transform: rotateY(360deg); } }
+      /* No rotation at all; hover just scales the disc (.fab:hover above). */
       .fab.tapped { animation: tap .32s ease; }
       @keyframes tap { 0% { transform: scale(1);} 40% { transform: scale(.84);} 100% { transform: scale(1);} }
       .dock.capturing .fab { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(37,99,235,.35); }
