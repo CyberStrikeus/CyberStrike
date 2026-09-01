@@ -71,11 +71,31 @@ ingest — carry them forward):
 | `page_url` / `page_visited_by` | page context + which identities visited | coverage per identity |
 | `scheme`/`host`/`port`/`origin` | normalized | dedup + scope |
 | `key_hash` / `op_key_hash` | normalized identity of the endpoint | dedup unit (see §4) |
+| `resource_type` | document / script / stylesheet / xhr / fetch / image / font / media / websocket / eventsource / other | traffic classification (§4.3) |
 
 > **Gotcha (must design for):** DevTools HAR export drops large/binary/streaming
 > response bodies ("content not available"). We do **not** rely on DevTools HAR — we
 > produce our own HAR from our own capture (as 1.x already captures response bodies),
 > so bodies are always present.
+
+#### 2.1.1 Capture EVERY request — not just API endpoints
+
+Today's HackBrowser only records API endpoints. 2.0 must capture **all** network
+traffic (Burp-style): document, script, stylesheet, xhr/fetch, image, font, media,
+websocket. Every request's **metadata** (URL, method, status, `resource_type`,
+content-type, size, hash) is always recorded — nothing is dropped.
+
+**Response body is selective — static vs dynamic:**
+
+| Class | resource_type | Capture body at capture-time? | Rationale |
+|-------|---------------|-------------------------------|-----------|
+| **Static / idempotent** | script, stylesheet, font, image, static document | **No** — URL+hash only; fetch on demand via `http_replay` | Content is stable; replay returns the same bytes. Keeps capture light, shrinks CDP `getResponseBody` surface. |
+| **Dynamic / state-bound** | xhr, fetch, json, POST/PUT/PATCH document | **Yes — at capture time** | Replay returns *different* bytes (nonce, one-time token, dynamic CSRF, session/state). The real per-credential response is the IDOR/BFLA substrate — lost if not captured live. |
+
+**Hashing is nearly free:** modern bundlers put the content hash in the filename
+(`main.a3f2b1c.js`), so static-asset change-detection/dedup needs no body read; fall
+back to `ETag`/`Last-Modified`. Static JS is fetched later, out of band, by the JS
+mining agent (§4.3) via `http_replay` — never carried through the browser.
 
 ---
 
@@ -123,6 +143,74 @@ Target:
 - **Gotcha:** in SPAs a deterministic click can mutate the DOM and invalidate later
   selectors. Manage click order + re-snapshot state between actions.
 
+### 3.4 Browser provisioning / runtime fallback
+
+The extension needs a Chromium-based browser. Preference order — **use an installed
+real browser; download only as last resort**:
+
+1. Installed **Chrome** → best (real profile/fingerprint in BYOB).
+2. Installed **Edge** → **always present on Windows** (uninstallable), Chromium-based,
+   extension+CDP capable. Our Windows-heavy work rarely needs anything below this.
+3. Installed **Brave/Opera/Vivaldi** → Chromium-based.
+4. Download **Chrome for Testing (CfT)** via `@puppeteer/browsers` — Google's official
+   pinnable Chrome build, closer to real-Chrome fingerprint than Chromium; single-
+   purpose lightweight installer. **Do NOT keep Playwright just as a downloader** — we
+   are leaving Playwright; only a transitional bridge while 1.x is still in-tree.
+5. Bundled Chromium (today's model) — capture works, weak stealth.
+
+One extension covers the **whole Chromium family** (Chrome/Edge/Brave/Opera/Vivaldi)
+— one MV3 codebase. Firefox = a separate port; Safari = out of scope (WebKit).
+
+### 3.5 Anti-bot / CF challenge — the CDP-leak problem
+
+Root cause of "insecure browser/app" on CF: driving via Playwright/CDP leaks
+(`Runtime.enable` + `navigator.webdriver`), which CF detects — the user can't even
+solve the challenge manually. **The fix is architectural, not a stealth library.**
+
+**Both BYOB and managed share one spine: extension-driven, not CDP-automation-driven.**
+
+| | BYOB | Managed (no installable Chrome / extension) |
+|---|---|---|
+| Browser | User's Chrome/Edge | We download **CfT** |
+| Extension | Web Store (one click) | `--load-extension=<path>` on our CfT |
+| Profile | Real (logged in) | Isolated/clean |
+| Driving | Extension in-page | **Extension in-page** — no CDP-automation stack → **no `Runtime.enable` leak** |
+
+So even when we spin up our own browser (managed), the challenge stays
+manually-solvable because there is no automation fingerprint.
+
+**Body capture without reopening the CDP leak — two options:**
+- **A) Content-script `fetch`/`XHR` patch** (zero CDP): captures JS-initiated requests
+  incl. body, CF sees nothing. Trade-off: only page-context requests — misses browser
+  resource loads (document/script/asset), so **not full-capture**.
+- **B) Selective `chrome.debugger` (CDP Network)**: full capture incl. all
+  resource_types; on a detected CF challenge **detach** debugger → user solves clean →
+  reattach. Full capture everywhere except during the challenge.
+
+Full Burp-style capture ⇒ CDP Network domain **or** local proxy. The CF-safe
+fetch-patch mode is intentionally partial. Fallback if extension-driving is
+insufficient: **patchright / rebrowser-patches** (leak patched at source) — never
+vanilla Playwright/Puppeteer.
+
+### 3.6 Capture runtime scenarios
+
+| # | Situation | Solution | Profile / stealth | Overlay source |
+|---|-----------|----------|-------------------|----------------|
+| **S1** | Chromium browser + can install extension (**ideal BYOB**) | Web Store (unlisted) + WS connect | Real profile, logged in, best stealth | Content script |
+| **S2a** | Only Edge, extension policy-blocked | Download our **CfT** + `--load-extension` (policy targets Web Store IDs; separate binary+profile usually escapes) | Isolated, good (no CDP leak) | Content script |
+| **S2b** | S2a also blocked (strict HKLM policy) | **Local proxy + manual browse** — user browses own Edge, proxy captures | Real profile, **no DOM/trigger enrichment** | None (separate window UI) |
+| **S2c** | Proxy also blocked (no CA cert) | Last resort **patchright managed** | CF risk accepted | Content script |
+| **S3** | Headless crawl needs a session | **Open headed → user logs in + solves CF → `auth_sync` token → hand off to headless** | Phase 1 headed (login) → Phase 2 headless | Content script (headed phase) |
+| **S4** | Overlay required on every headed run | Extension content script injects overlay — same in BYOB and CfT-managed | — | **Content script (works on CfT too)** |
+
+Notes: **S2 is the hardest and not 100% solvable** — a fully locked machine (extension
++ download + CA all blocked) leaves only raw capture. Surface this to the user up
+front via a **capability check** ("modes available on this machine: …"). **S2b's local
+proxy is a legitimate 4th `CaptureSource`** behind the same HAR contract (HTTP-only, no
+enrichment). **S3 is exactly the three-phase model** — nothing new invented. **S4:
+always inject overlay via content script, never CDP `addScriptToEvaluateOnNewDocument`**
+— avoids the leak and works across all runtimes.
+
 ---
 
 ## 4. Analysis layer: OO agent cluster (Phase 2 target)
@@ -159,6 +247,30 @@ Cloud groups are bounded (9). Web hypotheses are **unbounded** → self-spawning
 can blow up cost/loops exponentially. Required from day one: a governor that
 **ranks hypotheses by signal strength, runs the top-N in parallel, queues the rest.**
 Scale target is *depth of coverage per budget*, not loop count.
+
+### 4.3 Traffic classification & JS mining
+
+Capture records every request (§2.1.1). The backend routes by `resource_type`
+deterministically:
+
+| Class | resource_type | Destination / purpose |
+|-------|---------------|-----------------------|
+| **API/endpoint** | xhr, fetch, json document | `request` table + observation → IDOR/BFLA substrate (today's flow) |
+| **JS** | script | Separate store → endpoint mining, source-map analysis, hardcoded secret/key scan |
+| **HTML** | document | Form/link extraction, framework fingerprint |
+| **Static** | image/font/css/media | Kept for scope/coverage, **not analyzed** (noise) |
+| **Realtime** | websocket, eventsource | Separate protocol analysis |
+
+**JS mining is high value and runs out-of-band.** Static JS bodies are NOT carried
+through the browser — only URL+hash. A dedicated JS mining agent (Phase 2) fetches
+them on demand via `http_replay` (idempotent, replay-safe) and mines:
+- **Uncalled endpoints** — SPA API routes often live only in JS, never yet requested;
+  static mining finds what dynamic crawl missed.
+- **Source maps** (`.map`) → original source, business logic, hidden endpoints.
+- **Hardcoded secrets / API keys / tokens.**
+
+This mining is deterministic — raw JS never enters an LLM prompt; only the extracted
+findings (endpoint list, secrets) go to an agent. Reuses the 1.x `discovery-core` logic.
 
 ---
 
