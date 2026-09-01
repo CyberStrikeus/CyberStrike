@@ -14,13 +14,13 @@ import { detectCloudChains, formatCloudChainsForPrompt } from "./cloud-chain"
 import { Semaphore } from "../util/semaphore"
 import { withTimeout } from "../util/timeout"
 
-const LAYER2_DEADLINE_MS = 20 * 60 * 1000
+const LAYER2_DEADLINE_MS = 25 * 60 * 1000
 const FOLLOWUP_RESERVE_MS = 5 * 60 * 1000
 const AGENT_TIMEOUT_MS = 10 * 60 * 1000
-const FINDINGS_PER_AGENT = 8
+const FINDINGS_PER_AGENT = 5
 const MAX_AGENTS_PER_GROUP = 4
 const BATCH_VERIFY_TIMEOUT_MS = 5 * 60 * 1000
-const FOLLOWUP_TIMEOUT_MS = 5 * 60 * 1000
+const FOLLOWUP_TIMEOUT_MS = 10 * 60 * 1000
 const VERIFY_TIMEOUT_MS = 5 * 60 * 1000
 const MAX_CONCURRENT_AGENTS = 5
 
