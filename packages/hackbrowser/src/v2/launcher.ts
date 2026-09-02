@@ -69,6 +69,10 @@ function main() {
     const args = [
       `--user-data-dir=${userDataDir}`,
       `--load-extension=${extPath}`,
+      // Suppress the "…started debugging this browser" bar that chrome.debugger
+      // (our Network capture) would otherwise show. Only works when WE launch
+      // Chrome (managed mode); a user's own Chrome (BYOB) still shows it.
+      "--silent-debugger-extension-api",
       "--no-first-run",
       "--no-default-browser-check",
       "--new-window",
