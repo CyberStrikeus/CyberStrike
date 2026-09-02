@@ -18,10 +18,13 @@
     }
   }
 
+  // Header keys MUST be lowercased — background.js merges these with webRequest's
+  // lowercased headers via Object.assign; mismatched case would keep BOTH keys and
+  // emit duplicate Authorization/Cookie lines in the raw HTTP.
   function headersToObj(h) {
     const o = {}
     try {
-      h.forEach((v, k) => (o[k] = v))
+      h.forEach((v, k) => (o[String(k).toLowerCase()] = v))
     } catch {}
     return o
   }
@@ -55,9 +58,10 @@
     const src = (init && init.headers) || (input && input.headers)
     if (!src) return h
     try {
-      if (typeof Headers !== "undefined" && src instanceof Headers) src.forEach((v, k) => (h[k] = v))
-      else if (Array.isArray(src)) src.forEach((p) => (h[p[0]] = p[1]))
-      else Object.keys(src).forEach((k) => (h[k] = src[k]))
+      // lowercase keys — see headersToObj note (background merge dedups by key)
+      if (typeof Headers !== "undefined" && src instanceof Headers) src.forEach((v, k) => (h[String(k).toLowerCase()] = v))
+      else if (Array.isArray(src)) src.forEach((p) => (h[String(p[0]).toLowerCase()] = p[1]))
+      else Object.keys(src).forEach((k) => (h[k.toLowerCase()] = src[k]))
     } catch {}
     return h
   }
@@ -106,7 +110,7 @@
   }
   XMLHttpRequest.prototype.setRequestHeader = function (k, v) {
     if (!this.__csH) this.__csH = {}
-    this.__csH[k] = v
+    this.__csH[String(k).toLowerCase()] = v // lowercase — background merge dedups by key
     return origSetHeader.apply(this, arguments)
   }
   XMLHttpRequest.prototype.send = function (body) {

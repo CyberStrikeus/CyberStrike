@@ -1,6 +1,7 @@
-// Popup: attach/detach the Network capture on the active tab, and configure
-// the receiver endpoint. State lives in chrome.storage.local so it survives
-// service-worker restarts.
+// Popup: attach/detach capture on the active tab, pick session/credential. State
+// lives in chrome.storage.local so it survives service-worker restarts.
+// (KEEP IN SYNC with background.js DEFAULT_CS — separate runtimes, can't import.)
+const DEFAULT_CS = "http://127.0.0.1:4096"
 
 const receiverInput = document.getElementById("receiver")
 const toggle = document.getElementById("toggle")
@@ -13,7 +14,7 @@ let tabId = null
 
 // CyberStrike base URL — the extension talks to CS directly (its existing routes).
 function csBase() {
-  return (receiverInput.value || "").trim() || "http://127.0.0.1:4096"
+  return (receiverInput.value || "").trim() || DEFAULT_CS
 }
 
 // Populate the session dropdown directly from CyberStrike's /session route.
@@ -112,7 +113,7 @@ async function init() {
   tabId = tabs[0] ? tabs[0].id : null
 
   const stored = await chrome.storage.local.get("cyberstrike")
-  receiverInput.value = stored && stored.cyberstrike ? stored.cyberstrike : "http://127.0.0.1:4096"
+  receiverInput.value = stored && stored.cyberstrike ? stored.cyberstrike : DEFAULT_CS
 
   if (tabId !== null) {
     const status = await chrome.runtime.sendMessage({ type: "status", tabId })

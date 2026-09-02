@@ -442,6 +442,8 @@
       links.push(href)
       if (links.length >= 300) break
     }
+    // KEEP IN SYNC with codriving.ts PageObservation / classify.ts Clickable
+    // (cross-runtime wire contract — can't import a shared type here).
     return { url: location.href, title: document.title, clickables, forms, links }
   }
   function sendObservation() {

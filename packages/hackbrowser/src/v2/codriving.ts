@@ -17,6 +17,7 @@ import { actionPolicy } from "./guard"
 const PORT = Number(process.env.HB2_PORT ?? 4097)
 
 // Deterministic page observation (§3.3) — what the extension extracts with no LLM.
+// KEEP IN SYNC with content.js observePage() (cross-runtime wire contract).
 interface PageObservation {
   url: string
   title: string
