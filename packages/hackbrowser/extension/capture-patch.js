@@ -99,6 +99,27 @@
     }
   }
 
+  // --- SPA navigation signal ---
+  // pushState/replaceState fire in the PAGE's world, invisible to the isolated
+  // content script. Wrap them here and post a nav marker so content.js can end the
+  // trigger-correlation window on a real client-side navigation.
+  function postNav() {
+    try {
+      window.postMessage({ __cs_nav: 1 }, window.location.origin || "*")
+    } catch {}
+  }
+  for (const m of ["pushState", "replaceState"]) {
+    const orig = history[m]
+    if (typeof orig === "function") {
+      history[m] = function () {
+        const r = orig.apply(this, arguments)
+        postNav()
+        return r
+      }
+    }
+  }
+  window.addEventListener("popstate", postNav)
+
   // --- XMLHttpRequest ---
   const origOpen = XMLHttpRequest.prototype.open
   const origSend = XMLHttpRequest.prototype.send

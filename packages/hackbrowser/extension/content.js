@@ -410,17 +410,117 @@
       ""
     return raw.replace(/\s+/g, " ").trim().slice(0, 80)
   }
+  // DOM element → Playwright-style semantic role. Explicit role attr wins, else
+  // infer from tag/type. Used for BOTH the observation `role` and the
+  // trigger_element "role:label" key, so Faz B availability compares cleanly.
+  function roleOf(el) {
+    const r = el.getAttribute("role")
+    if (r) return r.toLowerCase()
+    const tag = el.tagName.toLowerCase()
+    if (tag === "a" && el.getAttribute("href")) return "link"
+    if (tag === "button") return "button"
+    if (tag === "select") return "combobox"
+    if (tag === "textarea") return "textbox"
+    if (tag === "input") {
+      const t = (el.getAttribute("type") || "text").toLowerCase()
+      if (t === "submit" || t === "button" || t === "reset" || t === "image") return "button"
+      if (t === "checkbox") return "checkbox"
+      if (t === "radio") return "radio"
+      return "textbox"
+    }
+    return tag
+  }
+  // A form field's visible label: <label for>, wrapping <label>, else aria/placeholder.
+  function fieldLabel(el) {
+    try {
+      if (el.id) {
+        const l = document.querySelector(`label[for="${CSS.escape(el.id)}"]`)
+        if (l && l.innerText) return l.innerText.replace(/\s+/g, " ").trim().slice(0, 80)
+      }
+    } catch {}
+    const wrap = el.closest && el.closest("label")
+    if (wrap && wrap.innerText) return wrap.innerText.replace(/\s+/g, " ").trim().slice(0, 80)
+    return (el.getAttribute("aria-label") || el.getAttribute("placeholder") || "").slice(0, 80)
+  }
+  // DOM form control → UIField (types.ts UIField). Richer than the observation's
+  // thin field shape on purpose: ui_context feeds CyberStrike's param/UI diff.
+  function fieldOf(el) {
+    const type = (el.getAttribute("type") || el.tagName).toLowerCase()
+    let value = ""
+    try {
+      if (type === "checkbox" || type === "radio") value = el.checked ? el.value || "on" : ""
+      else value = el.value || ""
+    } catch {}
+    const field = {
+      name: el.name || el.id || el.getAttribute("aria-label") || "",
+      label: fieldLabel(el),
+      value: typeof value === "string" ? value.slice(0, 120) : "",
+      type,
+      isReadOnly: el.hasAttribute("readonly"),
+      isDisabled: el.disabled === true || el.hasAttribute("disabled"),
+      isHidden: type === "hidden" || !visible(el),
+      isDisplayOnly: false,
+      validation: {},
+    }
+    if (type === "hidden") field.hiddenReason = "type=hidden"
+    const v = field.validation
+    if (el.hasAttribute("required")) v.required = true
+    if (el.hasAttribute("min")) v.min = el.getAttribute("min")
+    if (el.hasAttribute("max")) v.max = el.getAttribute("max")
+    if (el.hasAttribute("maxlength")) v.maxLength = el.getAttribute("maxlength")
+    if (el.hasAttribute("pattern")) v.pattern = el.getAttribute("pattern")
+    return field
+  }
+  // Human-readable path to the element through landmark/form ancestors.
+  function componentPath(el) {
+    const parts = []
+    let n = el
+    let hops = 0
+    while (n && n !== document.body && hops < 40 && parts.length < 4) {
+      const lbl = n.getAttribute && (n.getAttribute("aria-label") || n.getAttribute("data-testid"))
+      if (lbl) parts.unshift(lbl.trim())
+      else if (/^(SECTION|NAV|FORM|MAIN|ASIDE|HEADER|DIALOG)$/.test(n.tagName)) {
+        const h = n.querySelector && n.querySelector("h1,h2,h3,legend")
+        if (h && h.innerText) parts.unshift(h.innerText.trim())
+      }
+      n = n.parentElement
+      hops++
+    }
+    return parts.slice(0, 4).join(" > ").slice(0, 200)
+  }
+  // UIContext (types.ts) static part for a triggering element. hiddenParams is left
+  // to background forward() — only there is the final request body known.
+  function uiContextFor(el) {
+    const form = el.closest ? el.closest("form") : null
+    const fields = []
+    if (form) {
+      for (const f of form.elements) {
+        if (!f.name && !f.id && !f.getAttribute("aria-label")) continue
+        fields.push(fieldOf(f))
+        if (fields.length >= 60) break
+      }
+    }
+    return {
+      pageUrl: location.href,
+      pageTitle: document.title,
+      componentPath: componentPath(el),
+      formName: form ? form.getAttribute("name") || form.getAttribute("id") || form.getAttribute("aria-label") || "" : "",
+      fields,
+    }
+  }
+  // Single selector for "a thing a user clicks" — used by both the page observation
+  // and the trigger-correlation click listener, so they never drift.
+  const CLICKABLE_SEL = "a[href],button,[role=button],input[type=submit],input[type=button],[onclick]"
   const elMap = new Map()
   function observePage() {
-    const clickSel = "a[href],button,[role=button],input[type=submit],input[type=button],[onclick]"
     const clickables = []
     elMap.clear()
     let i = 0
-    for (const el of document.querySelectorAll(clickSel)) {
+    for (const el of document.querySelectorAll(CLICKABLE_SEL)) {
       if (!visible(el)) continue
       const eid = "E" + i++
       elMap.set(eid, el)
-      clickables.push({ id: eid, tag: el.tagName.toLowerCase(), role: el.getAttribute("role") || "", label: labelOf(el), href: el.getAttribute("href") || "" })
+      clickables.push({ id: eid, tag: el.tagName.toLowerCase(), role: roleOf(el), label: labelOf(el), href: el.getAttribute("href") || "" })
       if (i >= 300) break
     }
     const forms = []
@@ -453,11 +553,48 @@
     return obs
   }
 
-  // Relay captured fetch/XHR records from the MAIN-world patch to the background.
+  // --- Trigger correlation (Faz A enrichment) --------------------------------
+  // The last user/AI click OWNS every dynamic request until the next click or a
+  // navigation that is not that click's own effect. Capture phase → the trigger is
+  // recorded BEFORE the page's click handler fires the request. trigger_element =
+  // "role:label" (single colon), matching 1.x's wire format (types.ts IngestPayload).
+  const NAV_GRACE_MS = 1000
+  let lastTrigger = null // { element, ui_context, ts }
+
+  document.addEventListener(
+    "click",
+    (e) => {
+      const t = e.target && e.target.closest ? e.target.closest(CLICKABLE_SEL) : null
+      if (!t) return // dead click (empty space) triggers no UI element — keep the last
+      lastTrigger = { element: roleOf(t) + ":" + labelOf(t), ui_context: uiContextFor(t), ts: Date.now() }
+    },
+    true, // capture phase — before the page's own handler runs
+  )
+
+  // A navigation ends the window UNLESS it happened within NAV_GRACE_MS of the click
+  // (then the nav was caused by that click, so its requests still belong to it).
+  // SPA navs (history.pushState) are signalled from the MAIN world via __cs_nav,
+  // since a content-script history patch can't see the page's own pushState calls.
+  function onNav() {
+    if (!lastTrigger || Date.now() - lastTrigger.ts > NAV_GRACE_MS) lastTrigger = null
+  }
+  window.addEventListener("popstate", onNav)
+  window.addEventListener("hashchange", onNav)
+
+  // Relay captured fetch/XHR records from the MAIN-world patch to the background,
+  // enriched with page_url + the owning trigger's element/ui_context (Faz A).
   window.addEventListener("message", (e) => {
     if (e.source !== window) return
-    const rec = e.data && e.data.__cs_capture
+    const d = e.data
+    if (!d) return
+    if (d.__cs_nav) return void onNav()
+    const rec = d.__cs_capture
     if (!rec) return
+    rec.page_url = location.href
+    if (lastTrigger) {
+      rec.trigger_element = lastTrigger.element
+      rec.ui_context = lastTrigger.ui_context
+    }
     chrome.runtime.sendMessage({ type: "captured", rec }, () => void chrome.runtime.lastError)
   })
 

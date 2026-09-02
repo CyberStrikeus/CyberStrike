@@ -39,6 +39,31 @@ function toRawHttp(rec) {
   return rec.requestBody ? `${head}\r\n\r\n${rec.requestBody}` : `${head}\r\n\r\n`
 }
 
+// Param names actually present in a request (query string + urlencoded/JSON body).
+// Used to derive ui_context.hiddenParams = request params NOT surfaced in the UI —
+// the mass-assignment / hidden-field signal CyberStrike reads.
+function paramNames(rec) {
+  const names = new Set()
+  try {
+    for (const k of new URL(rec.url).searchParams.keys()) names.add(k)
+  } catch {}
+  const body = rec.requestBody
+  if (typeof body === "string" && body.length) {
+    const trimmed = body.trim()
+    if (trimmed.startsWith("{")) {
+      try {
+        const o = JSON.parse(trimmed)
+        if (o && typeof o === "object") for (const k of Object.keys(o)) names.add(k)
+      } catch {}
+    } else {
+      try {
+        for (const k of new URLSearchParams(body).keys()) names.add(k)
+      } catch {}
+    }
+  }
+  return names
+}
+
 // tabId → true, for tabs we've attached to
 const attached = new Map()
 // tabId → "ai" | "human" — co-driving state; set from the panel handover toggle.
@@ -112,11 +137,22 @@ async function forward(rec) {
     requestHeaders: rec.requestHeaders || {},
     requestBody: rec.requestBody || null,
   })
+  // Builds an IngestPayload — keep the field set in sync with types.ts IngestPayload
+  // (the single wire contract; this JS runtime can't import the TS type).
   const payload = { text: raw, scheme }
   if (activeSession) payload.sessionID = activeSession
   if (activeCredential) payload.credential_id = activeCredential.id
   if (rec.status > 0) {
     payload.response = { status: rec.status, headers: rec.responseHeaders || {}, body: rec.responseBody || "" }
+  }
+  // Faz A enrichment (extension-local): which UI element/page drove this request.
+  // element_roles / page_visited_by are Faz B (server-side, cross-credential).
+  if (rec.page_url) payload.page_url = rec.page_url
+  if (rec.trigger_element) payload.trigger_element = rec.trigger_element
+  if (rec.ui_context) {
+    const fieldNames = new Set((rec.ui_context.fields || []).map((f) => f.name).filter(Boolean))
+    const hiddenParams = [...paramNames(rec)].filter((n) => n && !fieldNames.has(n))
+    payload.ui_context = Object.assign({}, rec.ui_context, { hiddenParams })
   }
   try {
     const res = await fetch(`${base}/session/ingest`, {
