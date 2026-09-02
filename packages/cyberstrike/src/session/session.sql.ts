@@ -279,6 +279,37 @@ export const WebObjectValueTable = sqliteTable(
   ],
 )
 
+// Per-credential UI-affordance observations (Faz B): which credential could SEE which
+// clickable on which page. Complements request_observation (which credential HIT an
+// endpoint) — the offered-but-maybe-unexercised signal for BFLA by forced browsing.
+// Append-only; the unique index makes re-sightings idempotent (ON CONFLICT DO NOTHING),
+// mirroring request_observation's dedup shape.
+export const WebUiObservationTable = sqliteTable(
+  "web_ui_observation",
+  {
+    id: text().primaryKey(),
+    session_id: text()
+      .notNull()
+      .references(() => SessionTable.id, { onDelete: "cascade" }),
+    credential_id: text(), // null = anonymous identity
+    normalized_page: text().notNull(), // origin+path; the availability key, query/fragment-insensitive
+    page_url: text().notNull(), // raw url as seen, for provenance
+    role: text().notNull(), // element semantic role (button, link, textbox, …)
+    label: text().notNull(), // visible label; role:label is the trigger_element key
+    ...Timestamps,
+  },
+  (table) => [
+    uniqueIndex("web_ui_observation_dedup_idx").on(
+      table.session_id,
+      table.normalized_page,
+      table.credential_id,
+      table.role,
+      table.label,
+    ),
+    index("web_ui_observation_page_idx").on(table.session_id, table.normalized_page),
+  ],
+)
+
 export const WebFunctionTable = sqliteTable(
   "web_function",
   {

@@ -14,6 +14,7 @@ const ctxFor = (sessionID: string) => ({
   abort: AbortSignal.any([]),
   messages: [],
   metadata: () => {},
+  ask: async () => {},
 })
 
 async function withInstance(fn: () => Promise<void>) {
@@ -26,7 +27,6 @@ describe("web_get_request_detail — Faz B derived access context", () => {
     await withInstance(async () => {
       const session = await Session.create({})
       const sid = session.id
-      UiObservation._reset()
       // admin sees Delete + Edit; user sees only Edit → BFLA signal on Delete.
       UiObservation.observe(sid, { credentialID: "admin", pageUrl: "https://h.tld/users", role: "button", label: "Delete User" })
       UiObservation.observe(sid, { credentialID: "admin", pageUrl: "https://h.tld/users", role: "button", label: "Edit" })
@@ -47,7 +47,6 @@ describe("web_get_request_detail — Faz B derived access context", () => {
       const detail = JSON.parse(res.output)
       expect(detail.element_roles).toEqual(["admin"])
       expect(detail.page_visited_by.sort()).toEqual(["admin", "user"])
-      UiObservation._reset()
     })
   })
 
@@ -55,7 +54,6 @@ describe("web_get_request_detail — Faz B derived access context", () => {
     await withInstance(async () => {
       const session = await Session.create({})
       const sid = session.id
-      UiObservation._reset()
       const req = Request.add({
         sessionID: sid,
         method: "DELETE",
