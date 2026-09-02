@@ -351,8 +351,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       return
     }
     if (msg.type === "observe") {
-      // Page-state store is a 2.0-only feature not yet in CyberStrike (co-driving /
-      // get_page_state). Deferred — the panel still shows counts locally.
+      // Forward this page's clickables to CyberStrike as per-credential UI observations
+      // (Faz B). Server derives element_roles/page_visited_by at read time. Needs a
+      // session to anchor to; credential is this profile's identity (§3.1), null = anon.
+      const obs = msg.observation
+      if (obs && obs.url && Array.isArray(obs.clickables) && activeSession) {
+        const base = await csUrl()
+        const elements = obs.clickables
+          .map((c) => ({ role: c.role || "", label: c.label || "" }))
+          .filter((e) => e.label)
+        if (elements.length > 0) {
+          const payload = { page_url: obs.url, elements }
+          if (activeCredential) payload.credential_id = activeCredential.id
+          try {
+            await fetch(`${base}/session/${activeSession}/web/observations`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            })
+          } catch (e) {
+            console.warn("[hackbrowser] observe forward failed", e)
+          }
+        }
+      }
       sendResponse({ ok: true })
       return
     }

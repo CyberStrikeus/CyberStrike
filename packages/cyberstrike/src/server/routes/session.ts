@@ -24,6 +24,7 @@ import { WebRole } from "../../session/web/web-role"
 import { WebObject } from "../../session/web/web-object"
 import { WebFunction } from "../../session/web/web-function"
 import { WebRetest } from "../../session/web/web-retest"
+import { UiObservation } from "../../session/web/ui-observation"
 import { Agent } from "../../agent/agent"
 import { Provider } from "../../provider/provider"
 import { Snapshot } from "@/snapshot"
@@ -827,6 +828,55 @@ export const SessionRoutes = lazy(() =>
           containerID: body.container_id,
         })
         return c.json(cred)
+      },
+    )
+    .post(
+      "/:sessionID/web/observations",
+      describeRoute({
+        summary: "Ingest UI observations",
+        description:
+          "Record which credential could see which clickable elements on a page — the Faz B UI-affordance substrate for access-control (BFLA) reasoning. Called by the browser extension per page, per credential.",
+        operationId: "session.addWebObservations",
+        responses: {
+          200: {
+            description: "Count of newly recorded observations",
+            content: {
+              "application/json": {
+                schema: resolver(z.object({ observed: z.number() })),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+        }),
+      ),
+      validator(
+        "json",
+        z.object({
+          credential_id: z.string().optional(),
+          page_url: z.string(),
+          elements: z.array(z.object({ role: z.string(), label: z.string() })),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const body = c.req.valid("json")
+        let observed = 0
+        for (const el of body.elements) {
+          const isNew = UiObservation.observe(sessionID, {
+            credentialID: body.credential_id ?? null,
+            pageUrl: body.page_url,
+            role: el.role,
+            label: el.label,
+          })
+          if (isNew) observed++
+        }
+        return c.json({ observed })
       },
     )
     .delete(
