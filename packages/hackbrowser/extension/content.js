@@ -265,7 +265,10 @@
           <button class="ctl" id="btnAnon">Browse anonymous (start capture)</button>
           <button class="ctl" id="attachBtn">Attach capture</button>
           <label class="lbl">CyberStrike session</label>
-          <select class="fld" id="sess"><option value="">-- New session --</option></select>
+          <div class="credrow">
+            <select class="fld" id="sess"><option value="">-- New session --</option></select>
+            <button class="mini" id="refreshSess" title="Reload sessions from CyberStrike">↻</button>
+          </div>
           <label class="lbl">This profile's role (empty = anonymous)</label>
           <div class="credrow">
             <input class="fld" id="cred" type="text" placeholder="anonymous" />
@@ -331,6 +334,7 @@
   const btnAnon = root.getElementById("btnAnon")
   const attachBtn = root.getElementById("attachBtn")
   const sess = root.getElementById("sess")
+  const refreshSess = root.getElementById("refreshSess")
   const cred = root.getElementById("cred")
   const setCred = root.getElementById("setCred")
   const newRole = root.getElementById("newRole")
@@ -357,6 +361,16 @@
   }
 
   sess.addEventListener("change", () => chrome.storage.local.set({ session: sess.value }))
+
+  // Reload the session list — a session created in CyberStrike AFTER the panel opened
+  // won't be in the dropdown until refetched. Keeps the current selection if it survives.
+  refreshSess.addEventListener("click", async () => {
+    refreshSess.disabled = true
+    refreshSess.textContent = "…"
+    await loadSessions()
+    refreshSess.textContent = "↻"
+    refreshSess.disabled = false
+  })
 
   attachBtn.addEventListener("click", async () => {
     const res = await chrome.runtime.sendMessage({ type: "toggle-attach-self" })
