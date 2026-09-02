@@ -165,19 +165,68 @@ chrome.webRequest.onResponseStarted.addListener(
   { urls: ["<all_urls>"] },
 )
 
+// Full request/response headers (Cookie + Set-Cookie included, via extraHeaders)
+// for XHR/fetch requests — the fetch/XHR patch can't see Cookie. Keyed by
+// tab|method|url so the patch's body can merge with these headers at ingest.
+// Only xmlhttprequest (fetch is xmlhttprequest in MV3) is stored, so static/script
+// requests (which never reach the patch) don't accumulate.
+const reqHeadersByKey = new Map()
+function hkey(tabId, method, url) {
+  return tabId + "|" + (method || "GET").toUpperCase() + "|" + url
+}
+function headerArrayToObj(arr) {
+  const o = {}
+  for (const h of arr || []) o[h.name.toLowerCase()] = h.value
+  return o
+}
+chrome.webRequest.onBeforeSendHeaders.addListener(
+  (d) => {
+    if (!attached.has(d.tabId) || d.type !== "xmlhttprequest") return
+    reqHeadersByKey.set(hkey(d.tabId, d.method, d.url), { req: headerArrayToObj(d.requestHeaders) })
+  },
+  { urls: ["<all_urls>"] },
+  ["requestHeaders", "extraHeaders"],
+)
+chrome.webRequest.onHeadersReceived.addListener(
+  (d) => {
+    if (!attached.has(d.tabId) || d.type !== "xmlhttprequest") return
+    const rec = reqHeadersByKey.get(hkey(d.tabId, d.method, d.url))
+    if (!rec) return
+    rec.res = headerArrayToObj(d.responseHeaders)
+    rec.status = d.statusCode
+  },
+  { urls: ["<all_urls>"] },
+  ["responseHeaders", "extraHeaders"],
+)
+
 chrome.tabs.onRemoved.addListener((tabId) => {
   attached.delete(tabId)
   driverByTab.delete(tabId)
   statsByTab.delete(tabId)
+  for (const k of reqHeadersByKey.keys()) if (k.startsWith(tabId + "|")) reqHeadersByKey.delete(k)
 })
 
 // Popup asks us to attach/detach/status the active tab.
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   ;(async () => {
-    // Dynamic request body from the MAIN-world fetch/XHR patch → ingest.
+    // Dynamic request body from the MAIN-world fetch/XHR patch → merge with the
+    // webRequest headers (Cookie + full request/response headers) → ingest.
     if (msg.type === "captured") {
       const tabId = sender.tab && sender.tab.id
-      if (tabId !== undefined && attached.has(tabId) && msg.rec) forward(msg.rec)
+      if (tabId !== undefined && attached.has(tabId) && msg.rec) {
+        const rec = msg.rec
+        const key = hkey(tabId, rec.method, rec.url)
+        const wr = reqHeadersByKey.get(key)
+        if (wr) {
+          // webRequest request headers are authoritative (Cookie + everything the
+          // browser actually sent); patch's JS-set headers are a fallback.
+          rec.requestHeaders = Object.assign({}, rec.requestHeaders || {}, wr.req)
+          if (wr.res) rec.responseHeaders = Object.assign({}, rec.responseHeaders || {}, wr.res)
+          if (wr.status) rec.status = wr.status
+          reqHeadersByKey.delete(key)
+        }
+        forward(rec)
+      }
       sendResponse({ ok: true })
       return
     }

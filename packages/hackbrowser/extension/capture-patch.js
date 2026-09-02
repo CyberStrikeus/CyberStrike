@@ -39,6 +39,15 @@
   function bodyString(b) {
     return typeof b === "string" ? b : null
   }
+  // Absolute URL so it matches webRequest's URL (which is always absolute) for the
+  // header merge in the background.
+  function absUrl(u) {
+    try {
+      return new URL(u, location.href).href
+    } catch {
+      return u || ""
+    }
+  }
   // JS-set request headers (Authorization, Content-Type, custom). Cookie and other
   // browser-managed headers are NOT visible here — those come from webRequest.
   function reqHeaders(init, input) {
@@ -70,7 +79,7 @@
             .then((body) => {
               post({
                 kind: "fetch",
-                url: url || (res && res.url) || "",
+                url: absUrl(url || (res && res.url) || ""),
                 method,
                 requestHeaders: reqHeaders(init, input),
                 requestBody: reqBody,
@@ -110,7 +119,7 @@
       } catch {}
       post({
         kind: "xhr",
-        url: self.__cs.url,
+        url: absUrl(self.__cs.url),
         method: self.__cs.method,
         requestHeaders: self.__csH || {},
         requestBody: bodyString(body),
