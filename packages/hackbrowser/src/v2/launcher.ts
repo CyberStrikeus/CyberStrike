@@ -15,18 +15,7 @@
 
 import { existsSync } from "node:fs"
 import { join } from "node:path"
-import { tmpdir } from "node:os"
-
-const BROWSERS = [
-  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-  "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-  "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
-]
-
-function findBrowser(): string | null {
-  for (const p of BROWSERS) if (existsSync(p)) return p
-  return null
-}
+import { buildProfileArgs, findBrowser, defaultExtensionPath } from "./spawn.ts"
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name)
@@ -43,11 +32,12 @@ function main() {
     process.exit(1)
   }
   const dryRun = flag("--dry-run")
-  const extPath = arg("--ext") ?? join(import.meta.dir, "..", "..", "extension")
+  const extPath = arg("--ext") ?? defaultExtensionPath()
   if (!existsSync(join(extPath, "manifest.json"))) {
     console.error(`error: extension not found at ${extPath} (no manifest.json)`)
     process.exit(1)
   }
+  const headless = flag("--headless")
 
   // --creds admin,user → one profile per credential. Absent → a single unnamed profile.
   const credsRaw = arg("--creds")
@@ -60,7 +50,7 @@ function main() {
 
   const browser = findBrowser()
   if (!browser) {
-    console.error(`error: no Chromium browser found. Looked for:\n  ${BROWSERS.join("\n  ")}`)
+    console.error(`error: no Chromium browser found (Chrome / Edge / Brave)`)
     process.exit(1)
   }
   console.log(`[hb2] browser: ${browser}`)
@@ -68,32 +58,16 @@ function main() {
   console.log(`[hb2] profiles: ${creds.map((c) => c || "(default)").join(", ")}`)
 
   for (const cred of creds) {
+    // Single source for the Chrome invocation — shared with the CyberStrike route.
+    const built = buildProfileArgs({ url, cred, session, extPath, browser, headless })
     const profileId = cred || "default"
-    const userDataDir = join(tmpdir(), `hb2-profile-${profileId}`)
-    // Shared session (all profiles) + per-profile credential, injected via the hash.
-    const hashParts: string[] = []
-    if (cred) hashParts.push(`__cs_cred=${encodeURIComponent(cred)}`)
-    if (session) hashParts.push(`__cs_sess=${encodeURIComponent(session)}`)
-    const target = hashParts.length ? `${url}#${hashParts.join("&")}` : url
-    const args = [
-      `--user-data-dir=${userDataDir}`,
-      `--load-extension=${extPath}`,
-      // Suppress the "…started debugging this browser" bar that chrome.debugger
-      // (our Network capture) would otherwise show. Only works when WE launch
-      // Chrome (managed mode); a user's own Chrome (BYOB) still shows it.
-      "--silent-debugger-extension-api",
-      "--no-first-run",
-      "--no-default-browser-check",
-      "--new-window",
-      target,
-    ]
     if (dryRun) {
       console.log(`\n[dry-run] ${profileId}:`)
-      console.log(`  ${browser} \\\n    ${args.join(" \\\n    ")}`)
+      console.log(`  ${built.browser} \\\n    ${built.args.join(" \\\n    ")}`)
       continue
     }
-    Bun.spawn([browser, ...args], { stdout: "ignore", stderr: "ignore" })
-    console.log(`[hb2] launched profile "${profileId}" → ${userDataDir}`)
+    Bun.spawn([built.browser, ...built.args], { stdout: "ignore", stderr: "ignore" })
+    console.log(`[hb2] launched profile "${profileId}" → ${built.profileDir}`)
   }
 
   if (!dryRun) console.log(`\n[hb2] ${creds.length} profile(s) launched. Each will self-register its credential.`)

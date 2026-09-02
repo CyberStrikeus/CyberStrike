@@ -6,7 +6,8 @@
   "private": true,
   "exports": {
     ".": "./src/index.ts",
-    "./api": "./src/api.ts"
+    "./api": "./src/api.ts",
+    "./v2-spawn": "./src/v2/spawn.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "2.0.0",
