@@ -19,6 +19,37 @@ function csUrl() {
   })
 }
 
+// Return the active session, creating one in CyberStrike if none is set yet. This is
+// the chicken-egg fix: the panel's Anonymous / Add-credential actions need a session
+// BEFORE any capture, so we create it up front (POST /session) instead of waiting for
+// the first ingest to auto-create it. Idempotent — reuses an existing activeSession.
+// A single in-flight promise coalesces concurrent callers (rapid Anonymous +
+// Add-credential clicks) so they share ONE session instead of racing two into being.
+let sessionCreating = null
+async function ensureSession() {
+  if (activeSession) return activeSession
+  if (sessionCreating) return sessionCreating
+  sessionCreating = (async () => {
+    const base = await csUrl()
+    const res = await fetch(`${base}/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    })
+    if (!res.ok) throw new Error(`session create failed (${res.status})`)
+    const d = await res.json().catch(() => ({}))
+    if (!d || typeof d.id !== "string") throw new Error("session create: no id in response")
+    activeSession = d.id
+    await chrome.storage.local.set({ session: activeSession })
+    return activeSession
+  })()
+  try {
+    return await sessionCreating
+  } finally {
+    sessionCreating = null
+  }
+}
+
 // Rebuild a raw HTTP request string — the format /session/ingest expects in `text`
 // (same shape the 1.x hackbrowser worker sent). Scope is enforced by the crawl
 // target; here we forward every in-flight dynamic request.
@@ -354,13 +385,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // jar) on this session tagged with the role. Extensions can't spawn a profile —
     // the backend does. Needs a local CyberStrike + an active session.
     if (msg.type === "spawn-role") {
-      if (!activeSession) {
-        sendResponse({ ok: false, error: "select a session first" })
-        return
-      }
-      const base = await csUrl()
       try {
-        const res = await fetch(`${base}/session/${activeSession}/web/spawn-profile`, {
+        const sid = await ensureSession()
+        const base = await csUrl()
+        const res = await fetch(`${base}/session/${sid}/web/spawn-profile`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ role: msg.role, url: msg.url }),
@@ -372,7 +400,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
         sendResponse({ ok: false, error: (d && d.error) || `spawn failed (${res.status})` })
       } catch (e) {
-        sendResponse({ ok: false, error: String(e) })
+        sendResponse({ ok: false, error: e && e.message ? e.message : String(e) })
+      }
+      return
+    }
+    // Panel "Browse anonymous": create/ensure a session and start capturing THIS tab as
+    // an anonymous identity (no credential). The session is the shared container every
+    // later role joins, so this is also the natural first step before Add credential.
+    if (msg.type === "bootstrap-anonymous") {
+      const tabId = sender.tab && sender.tab.id
+      if (tabId === undefined) {
+        sendResponse({ ok: false, error: "no tab" })
+        return
+      }
+      try {
+        await ensureSession()
+        // Anonymous → clear any credential this profile had; captures go untagged.
+        activeCredential = null
+        await chrome.storage.local.remove("credential")
+        attach(tabId)
+        sendResponse({ ok: true, attached: true, session: activeSession })
+      } catch (e) {
+        sendResponse({ ok: false, error: e && e.message ? e.message : String(e) })
       }
       return
     }

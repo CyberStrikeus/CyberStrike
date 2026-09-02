@@ -190,6 +190,7 @@
       <div class="panel" id="panel">
         <div class="phead"><span class="brand">CYBERSTRIKE</span><span class="st" id="state">detached</span></div>
         <div class="pbody">
+          <button class="ctl" id="btnAnon">Browse anonymous (start capture)</button>
           <button class="ctl" id="attachBtn">Attach capture</button>
           <label class="lbl">CyberStrike session</label>
           <select class="fld" id="sess"><option value="">-- New session --</option></select>
@@ -198,7 +199,7 @@
             <input class="fld" id="cred" type="text" placeholder="anonymous" />
             <button class="mini" id="setCred">Set</button>
           </div>
-          <label class="lbl">Add role (opens a new browser)</label>
+          <label class="lbl">Add credential (opens a new browser)</label>
           <div class="credrow">
             <input class="fld" id="newRole" type="text" placeholder="e.g. user" />
             <button class="mini" id="addRole">Add</button>
@@ -255,6 +256,7 @@
   bar.addEventListener("mouseleave", hideBar)
 
   // --- Settings controls: attach/detach, session, credential (no popup) ------
+  const btnAnon = root.getElementById("btnAnon")
   const attachBtn = root.getElementById("attachBtn")
   const sess = root.getElementById("sess")
   const cred = root.getElementById("cred")
@@ -289,6 +291,23 @@
     const on = !!(res && res.attached)
     attachBtn.textContent = on ? "Detach capture" : "Attach capture"
     attachBtn.classList.toggle("on", on)
+  })
+
+  // Browse anonymous: create/ensure a session + start capturing this tab, no credential.
+  // One click removes the "pick a session first" friction.
+  btnAnon.addEventListener("click", async () => {
+    roleHint.textContent = "starting…"
+    const res = await chrome.runtime.sendMessage({ type: "bootstrap-anonymous" })
+    if (res && res.ok) {
+      attachBtn.textContent = "Detach capture"
+      attachBtn.classList.add("on")
+      cred.value = ""
+      cred.placeholder = "anonymous"
+      roleHint.textContent = "capturing as anonymous — browse the site."
+      loadSessions()
+    } else {
+      roleHint.textContent = (res && res.error) || "failed (need local CyberStrike)"
+    }
   })
 
   setCred.addEventListener("click", async () => {
