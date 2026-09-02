@@ -6,21 +6,56 @@
 // Each profile is a separate --user-data-dir (its own cookie jar = its own identity,
 // §3.1). Session + credential ride in as a URL hash the content script reads/strips.
 
-import { existsSync } from "node:fs"
+import { existsSync, readdirSync } from "node:fs"
 import { join } from "node:path"
-import { tmpdir } from "node:os"
+import { tmpdir, homedir } from "node:os"
 
-// Browser preference mirrors §3.4: Chrome → Edge → Brave (macOS paths). A CfT
-// download fallback is not included yet.
-const BROWSERS = [
-  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-  "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+// Branded Google Chrome 137+ REMOVED the --load-extension switch (Chrome 142 removed the
+// --disable-features workaround too), so it can no longer load our unpacked extension
+// from the command line. We therefore spawn an EXTENSION-CAPABLE build instead — the
+// removal doesn't affect Chrome for Testing, unbranded Chromium, or Brave.
+const APP_BROWSERS = [
+  "/Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+  "/Applications/Chromium.app/Contents/MacOS/Chromium",
   "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
 ]
 
+// Chrome-for-Testing / Chromium builds that puppeteer or playwright already downloaded —
+// a very common case on dev machines. Newest name wins (version/build is in the dir).
+function cachedBrowsers(): string[] {
+  const out: string[] = []
+  const roots = [join(homedir(), ".cache", "puppeteer", "chrome"), join(homedir(), "Library", "Caches", "ms-playwright")]
+  const leaves = ["chrome-mac-arm64", "chrome-mac"]
+  const apps = [
+    "Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+    "Chromium.app/Contents/MacOS/Chromium",
+  ]
+  for (const root of roots) {
+    let entries: string[]
+    try {
+      entries = readdirSync(root).sort().reverse()
+    } catch {
+      continue
+    }
+    for (const e of entries) {
+      for (const leaf of leaves) {
+        for (const app of apps) {
+          const p = join(root, e, leaf, app)
+          if (existsSync(p)) out.push(p)
+        }
+      }
+    }
+  }
+  return out
+}
+
+// Returns an extension-capable browser, or null. Branded Chrome is intentionally NOT
+// returned — it opens but silently ignores --load-extension on 137+, which is exactly
+// the "browser spawns but no panel" failure.
 export function findBrowser(): string | null {
-  for (const p of BROWSERS) if (existsSync(p)) return p
-  return null
+  for (const p of APP_BROWSERS) if (existsSync(p)) return p
+  const cached = cachedBrowsers()
+  return cached.length ? cached[0] : null
 }
 
 // The static extension directory. Resolves relative to THIS file, so it is correct
@@ -51,7 +86,12 @@ export interface BuiltProfile {
 
 export function buildProfileArgs(spec: ProfileSpec): BuiltProfile {
   const browser = spec.browser ?? findBrowser()
-  if (!browser) throw new Error(`no Chromium browser found (looked for: ${BROWSERS.join(", ")})`)
+  if (!browser)
+    throw new Error(
+      "no extension-capable browser found (Chrome for Testing / Chromium / Brave). Branded " +
+        "Chrome 137+ can't load extensions via the command line. Install one with: " +
+        "npx @puppeteer/browsers install chrome@stable",
+    )
   const extPath = spec.extPath ?? defaultExtensionPath()
   if (!existsSync(join(extPath, "manifest.json"))) throw new Error(`extension not found at ${extPath} (no manifest.json)`)
 

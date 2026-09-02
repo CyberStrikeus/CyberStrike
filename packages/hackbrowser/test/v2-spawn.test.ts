@@ -49,6 +49,8 @@ describe("buildProfileArgs", () => {
     )
   })
   test("throws when no browser is available", () => {
-    expect(() => buildProfileArgs({ url: "https://x", extPath: EXT, browser: "" })).toThrow(/no Chromium browser/)
+    expect(() => buildProfileArgs({ url: "https://x", extPath: EXT, browser: "" })).toThrow(
+      /no extension-capable browser/,
+    )
   })
 })
