@@ -358,6 +358,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Launcher-injected credential: register directly with CyberStrike's existing
     // credential route and persist it profile-local (same as the popup "Set" button).
     if (msg.type === "set-credential-label") {
+      // A spawned profile writes the session to storage then immediately sends this;
+      // our activeSession is updated via storage.onChanged, which may not have fired
+      // yet. Read storage fresh to close that race before giving up.
+      if (!activeSession) {
+        const s = await new Promise((r) => chrome.storage.local.get("session", (o) => r(o && o.session)))
+        if (s) activeSession = s
+      }
       if (!activeSession) {
         sendResponse({ ok: false, error: "no session selected" })
         return

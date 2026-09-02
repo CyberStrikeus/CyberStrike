@@ -21,6 +21,16 @@
   const HUMAN_RGB = "240,180,41"
   const AI_TINT = "#7ea8ff"
 
+  // Role identity hue — SEPARATE from the driver palette above. Each role label maps
+  // deterministically to a distinct color so N spawned browsers are told apart at a
+  // glance. Same label → same color across every profile/session.
+  function roleColor(label) {
+    let h = 0
+    const s = String(label || "")
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+    return `hsl(${h % 360} 72% 56%)`
+  }
+
   // --- Edge glow (very faint) -----------------------------------------------
   const glowHost = document.createElement("div")
   glowHost.style.cssText = "position:fixed;inset:0;z-index:2147483645;pointer-events:none;"
@@ -70,6 +80,68 @@
     trans.classList.add("show")
     if (transTimer) clearTimeout(transTimer)
     transTimer = setTimeout(() => trans.classList.remove("show"), 1400)
+  }
+
+  // --- Role identity layer (Phase 2) ----------------------------------------
+  // A spawned profile carries a role (from #__cs_cred). Show a persistent role-colored
+  // top edge bar (which browser is which) + a dismissable "log in as this identity"
+  // banner. Anonymous (no role) shows neither.
+  const roleHost = document.createElement("div")
+  roleHost.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:2147483646;pointer-events:none;"
+  const roleRoot = roleHost.attachShadow({ mode: "closed" })
+  roleRoot.innerHTML = `
+    <style>
+      .bar { height: 3px; width: 100%; background: var(--rc,#888); opacity: 0; transition: opacity .4s ease; }
+      .bar.on { opacity: .9; }
+      .banner { pointer-events: auto; position: fixed; top: 12px; left: 50%;
+        transform: translateX(-50%) translateY(-14px); display: flex; align-items: center; gap: 9px;
+        max-width: 82vw; padding: 8px 12px; border-radius: 11px; background: rgba(16,18,23,.95);
+        font: 600 12px/1.3 -apple-system,system-ui,sans-serif; color: #fff;
+        box-shadow: 0 8px 28px rgba(0,0,0,.45), inset 0 0 0 1px var(--rc,#888);
+        opacity: 0; transition: opacity .45s ease, transform .45s ease; }
+      .banner.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+      .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--rc,#888);
+        box-shadow: 0 0 9px var(--rc,#888); }
+      .txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .rn { color: var(--rc,#fff); text-transform: uppercase; letter-spacing: .04em; }
+      .hint { color: #a7adba; font-weight: 500; }
+      .x { pointer-events: auto; cursor: pointer; flex: none; margin-left: 2px; color: #7d8496; font-weight: 700; }
+      .x:hover { color: #fff; }
+    </style>
+    <div class="bar" id="rbar"></div>
+    <div class="banner" id="rbanner">
+      <span class="dot"></span>
+      <span class="txt"><span class="rn" id="rname"></span> <span class="hint">— log in as this identity, then browse</span></span>
+      <span class="x" id="rx" title="dismiss">✕</span>
+    </div>
+  `
+  const rbar = roleRoot.getElementById("rbar")
+  const rbanner = roleRoot.getElementById("rbanner")
+  const rname = roleRoot.getElementById("rname")
+  let roleDismissed = false
+  let lastRole = null
+  roleRoot.getElementById("rx").addEventListener("click", () => {
+    roleDismissed = true
+    rbanner.classList.remove("on")
+  })
+  // label falsy/blank → anonymous → hide everything. A changed role resets the dismiss.
+  function renderRole(label) {
+    const l = label && String(label).trim() ? String(label).trim() : null
+    if (l !== lastRole) {
+      roleDismissed = false
+      lastRole = l
+    }
+    if (!l) {
+      rbar.classList.remove("on")
+      rbanner.classList.remove("on")
+      return
+    }
+    const c = roleColor(l)
+    rbar.style.setProperty("--rc", c)
+    rbanner.style.setProperty("--rc", c)
+    rname.textContent = l // textContent — never innerHTML (role is user-supplied)
+    rbar.classList.add("on")
+    if (!roleDismissed) rbanner.classList.add("on")
   }
 
   // --- Dock ------------------------------------------------------------------
@@ -717,17 +789,28 @@
     if (document.getElementById("cyberstrike-panel-host")) return
     document.body.appendChild(glowHost)
     document.body.appendChild(transHost)
+    document.body.appendChild(roleHost)
     document.body.appendChild(host)
     readCredFromHash()
     updateSide()
     sendObservation()
     loadSessions()
     chrome.storage.local.get("credential", (o) => {
-      if (o && o.credential) cred.value = o.credential.label || ""
+      const label = o && o.credential ? o.credential.label || "" : ""
+      cred.value = label
+      renderRole(label)
     })
     poll()
     setInterval(poll, 1500)
   }
+
+  // Credential is set asynchronously (hash → background register → storage), and can
+  // change (switch role) or clear (Browse anonymous). Keep the role layer in sync.
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !changes.credential) return
+    const c = changes.credential.newValue
+    renderRole(c && c.label ? c.label : null)
+  })
 
   if (document.body) mount()
   else document.addEventListener("DOMContentLoaded", mount)
