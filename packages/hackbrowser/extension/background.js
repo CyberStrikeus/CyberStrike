@@ -350,6 +350,32 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       return
     }
+    // Panel "Add role": ask CyberStrike to spawn a new Chrome profile (its own cookie
+    // jar) on this session tagged with the role. Extensions can't spawn a profile —
+    // the backend does. Needs a local CyberStrike + an active session.
+    if (msg.type === "spawn-role") {
+      if (!activeSession) {
+        sendResponse({ ok: false, error: "select a session first" })
+        return
+      }
+      const base = await csUrl()
+      try {
+        const res = await fetch(`${base}/session/${activeSession}/web/spawn-profile`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: msg.role, url: msg.url }),
+        })
+        const d = await res.json().catch(() => ({}))
+        if (res.ok && d && typeof d.pid === "number") {
+          sendResponse({ ok: true, pid: d.pid })
+          return
+        }
+        sendResponse({ ok: false, error: (d && d.error) || `spawn failed (${res.status})` })
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) })
+      }
+      return
+    }
     if (msg.type === "observe") {
       // Forward this page's clickables to CyberStrike as per-credential UI observations
       // (Faz B). Server derives element_roles/page_visited_by at read time. Needs a

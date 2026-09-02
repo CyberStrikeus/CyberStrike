@@ -193,11 +193,17 @@
           <button class="ctl" id="attachBtn">Attach capture</button>
           <label class="lbl">CyberStrike session</label>
           <select class="fld" id="sess"><option value="">-- New session --</option></select>
-          <label class="lbl">This profile's credential</label>
+          <label class="lbl">This profile's role (empty = anonymous)</label>
           <div class="credrow">
-            <input class="fld" id="cred" type="text" placeholder="e.g. admin" />
+            <input class="fld" id="cred" type="text" placeholder="anonymous" />
             <button class="mini" id="setCred">Set</button>
           </div>
+          <label class="lbl">Add role (opens a new browser)</label>
+          <div class="credrow">
+            <input class="fld" id="newRole" type="text" placeholder="e.g. user" />
+            <button class="mini" id="addRole">Add</button>
+          </div>
+          <div class="lbl" id="roleHint" style="min-height:13px"></div>
           <div class="brk">
             <div class="row"><span class="k">captured</span><span class="v" id="s-total">0</span></div>
             <div class="row"><span class="k">API endpoints</span><span class="v" id="s-api">0</span></div>
@@ -253,6 +259,9 @@
   const sess = root.getElementById("sess")
   const cred = root.getElementById("cred")
   const setCred = root.getElementById("setCred")
+  const newRole = root.getElementById("newRole")
+  const addRole = root.getElementById("addRole")
+  const roleHint = root.getElementById("roleHint")
 
   // All CyberStrike calls go through the background (CORS-exempt); a content-script
   // fetch to localhost would be blocked by the page's CORS policy.
@@ -294,6 +303,27 @@
       cred.value = ""
       cred.placeholder = (res && res.error) || "select a session first"
     }
+  })
+
+  // Add role → ask the backend to open a NEW Chrome profile (its own cookie jar) on
+  // this session tagged with the role. The extension can't spawn a profile itself, so
+  // CyberStrike does it. The new browser reads the role from its URL hash, then the
+  // user logs in there as that role.
+  async function spawnRole() {
+    const role = newRole.value.trim()
+    if (!role) return
+    roleHint.textContent = `opening “${role}” browser…`
+    const res = await chrome.runtime.sendMessage({ type: "spawn-role", role, url: location.origin })
+    if (res && res.ok) {
+      roleHint.textContent = `“${role}” browser opened — log in there as ${role}.`
+      newRole.value = ""
+    } else {
+      roleHint.textContent = (res && res.error) || "failed (need a session + local CyberStrike)"
+    }
+  }
+  addRole.addEventListener("click", spawnRole)
+  newRole.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") spawnRole()
   })
 
   function updateSide() {

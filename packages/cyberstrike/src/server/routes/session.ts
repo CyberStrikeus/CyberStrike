@@ -879,6 +879,58 @@ export const SessionRoutes = lazy(() =>
         return c.json({ observed })
       },
     )
+    .post(
+      "/:sessionID/web/spawn-profile",
+      describeRoute({
+        summary: "Spawn a role browser profile",
+        description:
+          "The panel 'Add role' action: open a new Chrome profile (its own cookie jar) with the hackbrowser extension, tagged with a role and attached to this session, so a second/third identity can log in and feed access-control comparison. Local only — CyberStrike spawns the browser on its own host.",
+        operationId: "session.spawnWebProfile",
+        responses: {
+          200: {
+            description: "Profile spawned",
+            content: {
+              "application/json": {
+                schema: resolver(z.object({ profileDir: z.string(), pid: z.number() })),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+        }),
+      ),
+      validator(
+        "json",
+        z.object({
+          role: z.string().optional().meta({ description: "Role/credential label; omitted = anonymous" }),
+          url: z.string().meta({ description: "URL to open the new profile at (usually the app origin)" }),
+          headless: z.boolean().optional(),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const body = c.req.valid("json")
+        // Dynamic import mirrors the hackbrowser launch route — keeps the spawn code
+        // (and its Chrome-path logic) out of server startup.
+        const spawn = await import("@cyberstrike-io/hackbrowser/v2-spawn")
+        try {
+          const result = spawn.spawnProfile({
+            url: body.url,
+            cred: body.role,
+            session: sessionID,
+            headless: body.headless,
+          })
+          return c.json(result)
+        } catch (e) {
+          return c.json({ error: e instanceof Error ? e.message : String(e) }, 500)
+        }
+      },
+    )
     .delete(
       "/:sessionID/web/credentials/:credentialID",
       describeRoute({
