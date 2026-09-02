@@ -39,6 +39,19 @@
   function bodyString(b) {
     return typeof b === "string" ? b : null
   }
+  // JS-set request headers (Authorization, Content-Type, custom). Cookie and other
+  // browser-managed headers are NOT visible here — those come from webRequest.
+  function reqHeaders(init, input) {
+    const h = {}
+    const src = (init && init.headers) || (input && input.headers)
+    if (!src) return h
+    try {
+      if (typeof Headers !== "undefined" && src instanceof Headers) src.forEach((v, k) => (h[k] = v))
+      else if (Array.isArray(src)) src.forEach((p) => (h[p[0]] = p[1]))
+      else Object.keys(src).forEach((k) => (h[k] = src[k]))
+    } catch {}
+    return h
+  }
 
   // --- fetch ---
   const origFetch = window.fetch
@@ -59,6 +72,7 @@
                 kind: "fetch",
                 url: url || (res && res.url) || "",
                 method,
+                requestHeaders: reqHeaders(init, input),
                 requestBody: reqBody,
                 status: res.status,
                 responseHeaders: headersToObj(res.headers),
@@ -75,9 +89,16 @@
   // --- XMLHttpRequest ---
   const origOpen = XMLHttpRequest.prototype.open
   const origSend = XMLHttpRequest.prototype.send
+  const origSetHeader = XMLHttpRequest.prototype.setRequestHeader
   XMLHttpRequest.prototype.open = function (method, url) {
     this.__cs = { method: (method || "GET").toUpperCase(), url }
+    this.__csH = {}
     return origOpen.apply(this, arguments)
+  }
+  XMLHttpRequest.prototype.setRequestHeader = function (k, v) {
+    if (!this.__csH) this.__csH = {}
+    this.__csH[k] = v
+    return origSetHeader.apply(this, arguments)
   }
   XMLHttpRequest.prototype.send = function (body) {
     const self = this
@@ -91,6 +112,7 @@
         kind: "xhr",
         url: self.__cs.url,
         method: self.__cs.method,
+        requestHeaders: self.__csH || {},
         requestBody: bodyString(body),
         status: self.status,
         responseHeaders: parseXhrHeaders(self.getAllResponseHeaders()),
