@@ -368,18 +368,18 @@
   // Browse anonymous: create/ensure a session + start capturing this tab, no credential.
   // One click removes the "pick a session first" friction.
   btnAnon.addEventListener("click", async () => {
+    btnAnon.disabled = true // prevent a second click while the request is in flight
     roleHint.textContent = "starting…"
     const res = await chrome.runtime.sendMessage({ type: "bootstrap-anonymous" })
     if (res && res.ok) {
-      attachBtn.textContent = "Detach capture"
-      attachBtn.classList.add("on")
       cred.value = ""
       cred.placeholder = "anonymous"
       roleHint.textContent = "capturing as anonymous — browse the site."
       loadSessions()
     } else {
-      roleHint.textContent = (res && res.error) || "failed (need local CyberStrike)"
+      roleHint.textContent = (res && res.error) || "failed (need local CyberStrike + reachable server)"
     }
+    poll() // render() reflects the real capture state (and re-enables on failure)
   })
 
   setCred.addEventListener("click", async () => {
@@ -432,6 +432,10 @@
     dock.classList.toggle("driver-human", driver === "human")
     attachBtn.textContent = attached ? "Detach capture" : "Attach capture"
     attachBtn.classList.toggle("on", attached)
+    // Once capturing, "Browse anonymous" is a no-op — disable it so it can't be
+    // pressed repeatedly (each press would re-clear the credential).
+    btnAnon.disabled = attached
+    btnAnon.textContent = attached ? "Capturing…" : "Browse anonymous (start capture)"
 
     if (status && status.stats) {
       const st = status.stats
