@@ -1,17 +1,12 @@
 // CyberStrike HackBrowser 2.0 — background service worker.
 //
-// Captures ALL network traffic on an attached tab via the Chrome DevTools
-// Protocol (chrome.debugger → Network domain) and forwards each request to a
-// receiver endpoint. This is the extension CaptureSource: it drives the tab
-// in-page rather than through a Playwright/CDP automation stack, so the only
-// CDP surface is the Network domain (needed for response bodies).
-//
-// Body policy (see design §2.1.1): every request's metadata is forwarded;
-// response bodies are fetched only for DYNAMIC resources (xhr/fetch/document/
-// eventsource) — static assets (script/stylesheet/font/image/media) forward
-// URL + hash only, and their bodies are pulled later, out of band.
+// NO chrome.debugger (so no "…started debugging this browser" bar). Capture is:
+//   - dynamic request/response bodies (xhr/fetch) via the MAIN-world fetch/XHR
+//     patch (capture-patch.js), relayed here as `captured` messages → ingest.
+//   - per-request metadata (all resource types) via chrome.webRequest → the panel
+//     breakdown only (no bodies).
+// Static asset bodies aren't captured (metadata only; pulled later via http_replay).
 
-const DEBUGGER_VERSION = "1.3"
 // Extension talks DIRECTLY to CyberStrike's existing routes (host_permissions lets
 // it bypass CORS, same as the 1.x worker / Firefox ext). No intermediate receiver.
 const DEFAULT_CS = "http://127.0.0.1:4096"
@@ -46,8 +41,6 @@ function toRawHttp(rec) {
 
 // tabId → true, for tabs we've attached to
 const attached = new Map()
-// `${tabId}:${requestId}` → in-flight request record awaiting its response
-const pending = new Map()
 // tabId → "ai" | "human" — co-driving state; set from the panel handover toggle.
 // Tags each forwarded record so human-driven captures are distinguishable (§6.4).
 const driverByTab = new Map()
@@ -90,65 +83,40 @@ chrome.storage.onChanged.addListener((changes) => {
   if (changes.session) activeSession = changes.session.newValue || ""
 })
 
-// CDP resource type → our normalized resource_type
-function normalizeType(cdpType) {
-  const t = (cdpType || "").toLowerCase()
-  if (t === "document") return "document"
-  if (t === "script") return "script"
-  if (t === "stylesheet") return "stylesheet"
-  if (t === "xhr") return "xhr"
-  if (t === "fetch") return "fetch"
-  if (t === "image") return "image"
-  if (t === "font") return "font"
-  if (t === "media") return "media"
-  if (t === "websocket") return "websocket"
-  if (t === "eventsource") return "eventsource"
-  return "other"
-}
-
-// Static (idempotent) resources forward URL+hash only; dynamic carry the body.
-function bodyClass(resourceType, method) {
-  const m = (method || "GET").toUpperCase()
-  if (resourceType === "xhr" || resourceType === "fetch" || resourceType === "eventsource") return "dynamic"
-  if (resourceType === "document" && m !== "GET" && m !== "HEAD") return "dynamic"
-  if (resourceType === "document") return "dynamic" // keep HTML for form/link extraction
-  return "static"
-}
-
 // NOTE: the WS control channel (AI → extension click/type/navigate) lived on the
 // receiver, which we removed. Co-driving/click-brick will return once that path is
 // re-homed on CyberStrike; the content-script `perform` handler stays ready. See
 // git history for the receiver-based version.
 
-async function attach(tabId) {
-  if (attached.has(tabId)) return
-  await chrome.debugger.attach({ tabId }, DEBUGGER_VERSION)
-  await chrome.debugger.sendCommand({ tabId }, "Network.enable", {})
+// Attach is now just a capture flag — NO chrome.debugger, so no "…started debugging
+// this browser" bar. Bodies come from the MAIN-world fetch/XHR patch; metadata from
+// webRequest. Both check attached.has(tabId).
+function attach(tabId) {
   attached.set(tabId, true)
 }
-
-async function detach(tabId) {
-  if (!attached.has(tabId)) return
-  try {
-    await chrome.debugger.detach({ tabId })
-  } catch (e) {
-    // tab may already be gone
-  }
+function detach(tabId) {
   attached.delete(tabId)
 }
 
-// Forward a captured record straight to CyberStrike's /session/ingest (the existing
-// route the 1.x worker used). Only DYNAMIC requests are ingested; static assets are
-// skipped (mined later). Session is reused: the first ingest creates one, its id is
-// stored and rides along after.
-async function forward(record) {
-  if (record.bodyClass !== "dynamic") return // static asset — skip ingest
+// Ingest a dynamic request captured by the MAIN-world fetch/XHR patch. fetch/XHR
+// are always dynamic → always ingested. Session is reused: first ingest creates one.
+async function forward(rec) {
   const base = await csUrl()
-  const payload = { text: toRawHttp(record), scheme: record.scheme }
+  let scheme = "http"
+  try {
+    scheme = new URL(rec.url).protocol === "https:" ? "https" : "http"
+  } catch {}
+  const raw = toRawHttp({
+    url: rec.url,
+    method: rec.method || "GET",
+    requestHeaders: rec.requestHeaders || {},
+    requestBody: rec.requestBody || null,
+  })
+  const payload = { text: raw, scheme }
   if (activeSession) payload.sessionID = activeSession
-  if (record.credentialId) payload.credential_id = record.credentialId
-  if (record.status > 0) {
-    payload.response = { status: record.status, headers: record.responseHeaders, body: record.responseBody || "" }
+  if (activeCredential) payload.credential_id = activeCredential.id
+  if (rec.status > 0) {
+    payload.response = { status: rec.status, headers: rec.responseHeaders || {}, body: rec.responseBody || "" }
   }
   try {
     const res = await fetch(`${base}/session/ingest`, {
@@ -168,113 +136,51 @@ async function forward(record) {
   }
 }
 
-// Single global CDP event listener; source.tabId disambiguates.
-chrome.debugger.onEvent.addListener(async (source, method, params) => {
-  const tabId = source.tabId
-  if (tabId === undefined) return
-  const key = `${tabId}:${params && params.requestId}`
+// webRequest resource type → our resource_type (for the panel breakdown).
+function webReqType(t) {
+  if (t === "xmlhttprequest") return "xhr"
+  if (t === "script") return "script"
+  if (t === "main_frame" || t === "sub_frame") return "document"
+  if (t === "stylesheet") return "stylesheet"
+  if (t === "image") return "image"
+  if (t === "font") return "font"
+  if (t === "media") return "media"
+  if (t === "websocket") return "websocket"
+  return "other"
+}
 
-  if (method === "Network.requestWillBeSent") {
-    const req = params.request
-    const resourceType = normalizeType(params.type)
-    pending.set(key, {
-      url: req.url,
-      method: req.method,
-      requestHeaders: req.headers || {},
-      requestBody: req.postData || null,
-      resourceType,
-      bodyClass: bodyClass(resourceType, req.method),
-      scheme: req.url.startsWith("https:") ? "https" : "http",
-      timestamp: Date.now(),
-      response: null,
-    })
-    return
-  }
-
-  if (method === "Network.responseReceived") {
-    const rec = pending.get(key)
-    if (!rec) return
-    const res = params.response
-    rec.response = {
-      status: res.status,
-      headers: res.headers || {},
-      contentType: res.mimeType || "",
-    }
-    return
-  }
-
-  if (method === "Network.loadingFinished") {
-    const rec = pending.get(key)
-    if (!rec) return
-    pending.delete(key)
-
-    let responseBody = null
-    let responseSize = 0
-    if (rec.bodyClass === "dynamic" && rec.response) {
-      try {
-        const out = await chrome.debugger.sendCommand({ tabId }, "Network.getResponseBody", {
-          requestId: params.requestId,
-        })
-        responseBody = out && out.body ? out.body : null
-        responseSize = responseBody ? responseBody.length : 0
-      } catch (e) {
-        // body no longer available (streamed/evicted) — forward without it
-      }
-    }
-
-    const response = rec.response || { status: 0, headers: {}, contentType: "" }
-    let stats = statsByTab.get(tabId)
+// Metadata for EVERY request of an attached tab → the panel breakdown (no bodies,
+// no debugger). Bodies for dynamic requests arrive separately via the fetch/XHR patch.
+chrome.webRequest.onResponseStarted.addListener(
+  (details) => {
+    if (!attached.has(details.tabId)) return
+    let stats = statsByTab.get(details.tabId)
     if (!stats) {
       stats = emptyStats()
-      statsByTab.set(tabId, stats)
+      statsByTab.set(details.tabId, stats)
     }
     stats.total++
-    stats[classOf(rec.resourceType)]++
-    forward({
-      url: rec.url,
-      method: rec.method,
-      status: response.status,
-      resourceType: rec.resourceType,
-      bodyClass: rec.bodyClass,
-      requestHeaders: rec.requestHeaders,
-      requestBody: rec.requestBody,
-      responseHeaders: response.headers,
-      responseBody,
-      responseSize,
-      contentType: response.contentType,
-      scheme: rec.scheme,
-      timestamp: rec.timestamp,
-      // co-driving provenance: who was driving when this was captured (§6.4)
-      driver: driverByTab.get(tabId) || "ai",
-      // this profile's identity (§3.1) — null until the popup sets a credential
-      credentialId: activeCredential ? activeCredential.id : null,
-      // enrichment fields — filled in later phases (panel triggers)
-      triggerElement: null,
-      elementRoles: null,
-      pageUrl: null,
-      pageVisitedBy: null,
-      isPrefetch: false,
-    })
-    return
-  }
-})
+    stats[classOf(webReqType(details.type))]++
+  },
+  { urls: ["<all_urls>"] },
+)
 
-// Auto-detach bookkeeping when a tab closes or the user detaches via DevTools.
-chrome.debugger.onDetach.addListener((source) => {
-  if (source.tabId !== undefined) attached.delete(source.tabId)
-})
 chrome.tabs.onRemoved.addListener((tabId) => {
   attached.delete(tabId)
   driverByTab.delete(tabId)
   statsByTab.delete(tabId)
-  for (const key of pending.keys()) {
-    if (key.startsWith(`${tabId}:`)) pending.delete(key)
-  }
 })
 
 // Popup asks us to attach/detach/status the active tab.
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   ;(async () => {
+    // Dynamic request body from the MAIN-world fetch/XHR patch → ingest.
+    if (msg.type === "captured") {
+      const tabId = sender.tab && sender.tab.id
+      if (tabId !== undefined && attached.has(tabId) && msg.rec) forward(msg.rec)
+      sendResponse({ ok: true })
+      return
+    }
     if (msg.type === "attach") {
       await attach(msg.tabId)
       sendResponse({ ok: true, attached: true })

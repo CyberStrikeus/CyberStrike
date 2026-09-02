@@ -3,12 +3,19 @@
   "name": "CyberStrike HackBrowser 2.0",
   "version": "0.1.0",
   "description": "Streams full browser network traffic to CyberStrike for security testing.",
-  "permissions": ["debugger", "tabs", "storage", "webNavigation"],
+  "permissions": ["webRequest", "tabs", "storage", "webNavigation"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["capture-patch.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    },
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],

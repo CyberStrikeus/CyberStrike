@@ -451,6 +451,14 @@
     return obs
   }
 
+  // Relay captured fetch/XHR records from the MAIN-world patch to the background.
+  window.addEventListener("message", (e) => {
+    if (e.source !== window) return
+    const rec = e.data && e.data.__cs_capture
+    if (!rec) return
+    chrome.runtime.sendMessage({ type: "captured", rec }, () => void chrome.runtime.lastError)
+  })
+
   chrome.runtime.onMessage.addListener((m, s, sendResponse) => {
     if (m.type !== "perform") return
     const cmd = m.cmd || {}
