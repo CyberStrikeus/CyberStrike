@@ -53,6 +53,11 @@ function main() {
   const credsRaw = arg("--creds")
   const creds = credsRaw ? credsRaw.split(",").map((c) => c.trim()).filter(Boolean) : [""]
 
+  // --session <id> → all profiles attach to the SAME CyberStrike session, so their
+  // per-credential captures compare on the same endpoints (IDOR/BFLA). Pick an
+  // existing session id (GET /session?roots=true) or a fresh one you create in CS.
+  const session = arg("--session")
+
   const browser = findBrowser()
   if (!browser) {
     console.error(`error: no Chromium browser found. Looked for:\n  ${BROWSERS.join("\n  ")}`)
@@ -65,7 +70,11 @@ function main() {
   for (const cred of creds) {
     const profileId = cred || "default"
     const userDataDir = join(tmpdir(), `hb2-profile-${profileId}`)
-    const target = cred ? `${url}#__cs_cred=${encodeURIComponent(cred)}` : url
+    // Shared session (all profiles) + per-profile credential, injected via the hash.
+    const hashParts: string[] = []
+    if (cred) hashParts.push(`__cs_cred=${encodeURIComponent(cred)}`)
+    if (session) hashParts.push(`__cs_sess=${encodeURIComponent(session)}`)
+    const target = hashParts.length ? `${url}#${hashParts.join("&")}` : url
     const args = [
       `--user-data-dir=${userDataDir}`,
       `--load-extension=${extPath}`,

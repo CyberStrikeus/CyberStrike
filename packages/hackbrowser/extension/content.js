@@ -492,16 +492,25 @@
     }
   })
 
-  function readCredFromHash() {
-    const m = location.hash.match(/__cs_cred=([^&]+)/)
-    if (!m) return
-    let label
+  function decodeHash(m) {
+    if (!m) return null
     try {
-      label = decodeURIComponent(m[1])
+      return decodeURIComponent(m[1])
     } catch {
-      label = m[1]
+      return m[1]
     }
+  }
+  // Launcher-injected config: #__cs_cred=<label>&__cs_sess=<id>. session makes all
+  // profiles share ONE CyberStrike session so captures compare per-credential
+  // (IDOR/BFLA); credential self-registers. Then strip the hash.
+  function readCredFromHash() {
+    const h = location.hash || ""
+    const label = decodeHash(h.match(/__cs_cred=([^&]+)/))
+    const sess = decodeHash(h.match(/__cs_sess=([^&]+)/))
+    if (label === null && sess === null) return
     history.replaceState(null, "", location.pathname + location.search || "/")
+    // Set the shared session BEFORE the credential (which registers against it).
+    if (sess) chrome.storage.local.set({ session: sess })
     if (label) chrome.runtime.sendMessage({ type: "set-credential-label", label }, () => void chrome.runtime.lastError)
   }
 
