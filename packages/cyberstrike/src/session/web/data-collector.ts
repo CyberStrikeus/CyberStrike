@@ -49,10 +49,17 @@ export namespace DataCollector {
     method: string
     url: string // absolute
   }
+  // A secret found in a JS bundle / source map (P4.2). Only the REDACTED preview is ever kept.
+  export interface Secret {
+    type: string
+    preview: string // redacted (first4…last4) — never the raw value
+    source: string // the JS/map URL it was found in
+  }
   export interface CollectedData {
     endpoints: Endpoint[]
     jsUrls: string[]
     minedRoutes: MinedRoute[]
+    secrets: Secret[]
     counts: Record<Kind, number>
     server: ServerSignals
   }
@@ -61,6 +68,7 @@ export namespace DataCollector {
     endpoints: Map<string, Endpoint> // key: `${method} ${origin}${path}`
     jsUrls: Set<string>
     mined: Map<string, MinedRoute> // key: `${method} ${url}` — JS-mined routes (P4.1)
+    secrets: Map<string, Secret> // key: `${type} ${preview}` — JS-mined secrets (P4.2)
     counts: Record<Kind, number>
     headers: Map<string, string> // signal headers (lowercased name → value)
     cookies: Set<string>
@@ -69,7 +77,7 @@ export namespace DataCollector {
   function store(sessionID: string): Store {
     let s = bySession.get(sessionID)
     if (!s) {
-      s = { endpoints: new Map(), jsUrls: new Set(), mined: new Map(), counts: { api: 0, html: 0, js: 0, static: 0, realtime: 0 }, headers: new Map(), cookies: new Set() }
+      s = { endpoints: new Map(), jsUrls: new Set(), mined: new Map(), secrets: new Map(), counts: { api: 0, html: 0, js: 0, static: 0, realtime: 0 }, headers: new Map(), cookies: new Set() }
       bySession.set(sessionID, s)
     }
     return s
@@ -148,6 +156,7 @@ export namespace DataCollector {
 
   const ENDPOINT_CAP = 200 // bound the per-session view; the DB holds the full set
   const MINED_CAP = 200
+  const SECRET_CAP = 200
 
   // Record routes mined from JS bundles (P4.1). Append-only + deduped by `${method} ${url}`.
   export function addMined(sessionID: string, routes: MinedRoute[]): void {
@@ -159,9 +168,21 @@ export namespace DataCollector {
     }
   }
 
+  // Record secrets found in JS bundles / source maps (P4.2). Append-only + deduped by type+preview.
+  // Only redacted previews are passed in — this store never holds a raw secret.
+  export function addSecrets(sessionID: string, secrets: Secret[]): void {
+    if (secrets.length === 0) return
+    const s = store(sessionID)
+    for (const sec of secrets) {
+      const key = `${sec.type} ${sec.preview}`
+      if (!s.secrets.has(key)) s.secrets.set(key, sec)
+    }
+  }
+
   export function latest(sessionID: string): CollectedData {
     const s = bySession.get(sessionID)
-    if (!s) return { endpoints: [], jsUrls: [], minedRoutes: [], counts: { api: 0, html: 0, js: 0, static: 0, realtime: 0 }, server: { headers: {}, cookies: [] } }
+    if (!s)
+      return { endpoints: [], jsUrls: [], minedRoutes: [], secrets: [], counts: { api: 0, html: 0, js: 0, static: 0, realtime: 0 }, server: { headers: {}, cookies: [] } }
     return {
       // html routes first (navigable), then api; each by descending hits — most-used surface first.
       endpoints: [...s.endpoints.values()]
@@ -169,6 +190,7 @@ export namespace DataCollector {
         .slice(0, ENDPOINT_CAP),
       jsUrls: [...s.jsUrls],
       minedRoutes: [...s.mined.values()].slice(0, MINED_CAP),
+      secrets: [...s.secrets.values()].slice(0, SECRET_CAP),
       counts: { ...s.counts },
       server: { headers: Object.fromEntries(s.headers), cookies: [...s.cookies] },
     }

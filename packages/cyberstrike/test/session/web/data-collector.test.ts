@@ -67,7 +67,19 @@ describe("record + latest", () => {
     expect(d.endpoints).toEqual([])
     expect(d.jsUrls).toEqual([])
     expect(d.minedRoutes).toEqual([])
+    expect(d.secrets).toEqual([])
     expect(d.counts).toEqual({ api: 0, html: 0, js: 0, static: 0, realtime: 0 })
+  })
+
+  test("addSecrets records + dedupes redacted secrets by type+preview (P4.2)", () => {
+    const sid = "s"
+    DataCollector.addSecrets(sid, [
+      { type: "aws-access-key-id", preview: "AKIA…AAAA (20 chars)", source: "https://h/app.js" },
+      { type: "jwt", preview: "eyJa…cccc (33 chars)", source: "https://h/app.js" },
+      { type: "aws-access-key-id", preview: "AKIA…AAAA (20 chars)", source: "https://h/app.js" }, // dup
+    ])
+    DataCollector.addSecrets(sid, []) // no-op
+    expect(DataCollector.latest(sid).secrets.map((s) => s.type).sort()).toEqual(["aws-access-key-id", "jwt"])
   })
 
   test("addMined records + dedupes JS-mined routes (P4.1)", () => {
