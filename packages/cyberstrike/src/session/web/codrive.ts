@@ -107,7 +107,13 @@ export namespace WebCoDrive {
   // Strategist: the MAIN-model reasoning tier → business-logic priorities that bias ranking.
   // Injectable so tests don't call a live model.
   export type Strategist = (sessionID: string, state: PageState.StatePayload) => Promise<string[]>
-  const defaultStrategist: Strategist = async (sessionID, state) => (await WebStrategy.ensure(sessionID, state)).priorities
+  // Non-blocking: kick the main-model reasoning off in the BACKGROUND (it caches) and return
+  // whatever priorities are cached now. The deterministic loop must never stall waiting on the
+  // big model — priorities just sharpen ranking once they arrive.
+  const defaultStrategist: Strategist = async (sessionID, state) => {
+    void WebStrategy.ensure(sessionID, state).catch(() => {})
+    return WebStrategy.get(sessionID)?.priorities ?? []
+  }
 
   export interface Options {
     planner?: Planner
@@ -122,8 +128,9 @@ export namespace WebCoDrive {
     thinkMaxMs?: number
     jitterBand?: number
     rng?: () => number
+    strategyTimeoutMs?: number // hard cap so a slow/hanging strategist can't stall driving
   }
-  const DEFAULTS = { pollMs: 400, settleMs: 1500, maxIdle: 8, humanize: true, thinkMinMs: 350, thinkMaxMs: 1400, jitterBand: 2 }
+  const DEFAULTS = { pollMs: 400, settleMs: 1500, maxIdle: 8, humanize: true, thinkMinMs: 350, thinkMaxMs: 1400, jitterBand: 2, strategyTimeoutMs: 5000 }
   // Skip the planner (auto-advance) when the top candidate clearly dominates.
   const AUTO_MARGIN = 2
 
@@ -149,12 +156,14 @@ export namespace WebCoDrive {
     thinkMaxMs: number
     jitterBand: number
     rng: () => number
+    strategyTimeoutMs: number
   }
 
   export function start(sessionID: string, opts: Options = {}): void {
     if (active.has(sessionID)) return
     const gen = ++seq
     active.set(sessionID, gen)
+    log.info("start", { sessionID })
     const cfg: Cfg = {
       planner: opts.planner ?? LlmPlanner,
       strategist: opts.strategist ?? defaultStrategist,
@@ -166,6 +175,7 @@ export namespace WebCoDrive {
       thinkMaxMs: opts.thinkMaxMs ?? DEFAULTS.thinkMaxMs,
       jitterBand: opts.jitterBand ?? DEFAULTS.jitterBand,
       rng: opts.rng ?? Math.random,
+      strategyTimeoutMs: opts.strategyTimeoutMs ?? DEFAULTS.strategyTimeoutMs,
     }
     void loop(sessionID, gen, cfg)
       .catch((e) => log.error("codrive loop crashed", { err: String(e) }))
@@ -197,24 +207,32 @@ export namespace WebCoDrive {
     return lo + Math.floor(cfg.rng() * (hi - lo + 1))
   }
 
+  // Strategy priorities, but never let a slow/hanging main model stall the drive loop.
+  async function strategyPriorities(sessionID: string, state: PageState.StatePayload, cfg: Cfg): Promise<string[]> {
+    return Promise.race([
+      cfg.strategist(sessionID, state).catch(() => [] as string[]),
+      sleep(cfg.strategyTimeoutMs).then(() => [] as string[]),
+    ])
+  }
+
   async function loop(sessionID: string, gen: number, cfg: Cfg) {
     let idle = 0
+    let reason = "ended"
     const alive = () => active.get(sessionID) === gen
     while (alive()) {
-      if (WebDriver.isHuman(sessionID)) break // human took over
-      if (!WebControl.connected(sessionID)) break // no browser attached
-      if (Crawl.overBudget(sessionID)) break // budget cap
+      if (WebDriver.isHuman(sessionID)) { reason = "human-took-over"; break }
+      if (!WebControl.connected(sessionID)) { reason = "no-extension-connected"; break }
+      if (Crawl.overBudget(sessionID)) { reason = "budget-exhausted"; break }
       const state = PageState.current(sessionID)
       if (!state) {
-        if (++idle > cfg.maxIdle) break // no page ever observed
+        if (++idle > cfg.maxIdle) { reason = "no-page-observed"; break } // extension not posting /web/observe
         await sleep(cfg.pollMs)
         continue
       }
       idle = 0
       Crawl.markPage(sessionID, state.url)
-      // MAIN-model strategy (sparingly cached) → business-logic priorities that bias ranking.
-      const priorities = await cfg.strategist(sessionID, state).catch(() => [])
-      if (!alive()) break
+      const priorities = await strategyPriorities(sessionID, state, cfg)
+      if (!alive()) { reason = "stopped"; break }
       const clickCands = Rank.candidates(sessionID, state, priorities)
       // Remember every discovered target so a dead-end can backtrack to an unvisited page.
       Crawl.discover(sessionID, clickCands.map((c) => c.targetUrl))
@@ -228,34 +246,39 @@ export namespace WebCoDrive {
           const pick = cfg.humanize ? pickBand(exp, cfg.rng, cfg.jitterBand) : exp[0]
           const pause = thinkTime(cfg)
           if (pause > 0) await sleep(pause)
-          if (!alive()) break
-          if ((await clickAndLearn(sessionID, state, pick.actionKey, pick.id, cfg)) === "stop") break
+          if (!alive()) { reason = "stopped"; break }
+          log.info("act", { sessionID, kind: "opener", label: pick.label, url: state.url })
+          if ((await clickAndLearn(sessionID, state, pick.actionKey, pick.id, cfg)) === "stop") { reason = "act-stop"; break }
           continue
         }
         // Dead end — jump to a discovered-but-unvisited page, else done.
         const next = Crawl.takeFrontier(sessionID)
-        if (!next) break // true coverage: no reachable page has unvisited link/form/opener left
+        if (!next) { reason = "coverage-complete"; break } // nothing left to explore anywhere reachable
+        log.info("act", { sessionID, kind: "navigate", url: next })
         const nav = await WebAct.perform(sessionID, { op: "navigate", url: next })
-        if (!nav.ok && stopStatus(nav.status)) break
+        if (!nav.ok && stopStatus(nav.status)) { reason = "act-stop:" + nav.status; break }
         await settle(sessionID, state.url, cfg)
         continue
       }
 
       const action = await decide(sessionID, state, clickCands, formCands, cfg)
-      if (!action) break
-      if (!alive()) break // driver may have flipped while the planner was thinking
+      if (!action) { reason = "no-action"; break }
+      if (!alive()) { reason = "stopped"; break } // driver may have flipped while the planner was thinking
       const pause = thinkTime(cfg) // human-ish think time before acting
       if (pause > 0) await sleep(pause)
-      if (!alive()) break
+      if (!alive()) { reason = "stopped"; break }
 
       if (action.kind === "form") {
-        if ((await executeForm(sessionID, state, action.form)) === "stop") break
+        log.info("act", { sessionID, kind: "form", label: action.form.label, url: state.url })
+        if ((await executeForm(sessionID, state, action.form)) === "stop") { reason = "act-stop"; break }
         await settle(sessionID, state.url, cfg)
         continue
       }
 
-      if ((await clickAndLearn(sessionID, state, action.cand.actionKey, action.cand.id, cfg)) === "stop") break
+      log.info("act", { sessionID, kind: "click", label: action.cand.label, url: state.url })
+      if ((await clickAndLearn(sessionID, state, action.cand.actionKey, action.cand.id, cfg)) === "stop") { reason = "act-stop"; break }
     }
+    log.info("stop", { sessionID, reason, actions: Crawl.summary(sessionID).actions, pages: Crawl.summary(sessionID).pages_visited })
   }
 
   // Click an element, wait for the page to settle, and record what it DID (U2 effect-tracking):

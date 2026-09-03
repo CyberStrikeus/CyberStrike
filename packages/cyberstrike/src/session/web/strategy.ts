@@ -32,6 +32,7 @@ export namespace WebStrategy {
 
   const REFRESH_PAGES = 15
   const bySession = new Map<string, Plan>()
+  const computing = new Set<string>() // guards against stacking concurrent main-model calls
 
   function host(url: string): string {
     try {
@@ -57,11 +58,17 @@ export namespace WebStrategy {
     const prev = bySession.get(sessionID)
     const pages = Crawl.summary(sessionID).pages_visited
     if (!shouldRecompute(prev, state.url, pages)) return prev as Plan
+    // Already recomputing for this session (fire-and-forget from the loop) — return what we
+    // have so callers never wait on a second concurrent main-model call.
+    if (computing.has(sessionID)) return prev ?? { purpose: "", priorities: [], host: host(state.url), atPage: pages }
+    computing.add(sessionID)
     let out: { purpose: string; priorities: string[] } = { purpose: "", priorities: [] }
     try {
       out = await reasoner(state)
     } catch (e) {
       log.debug("strategy reasoner failed; caching empty plan", { err: String(e) })
+    } finally {
+      computing.delete(sessionID)
     }
     const plan: Plan = { purpose: out.purpose ?? "", priorities: Array.isArray(out.priorities) ? out.priorities.slice(0, 20) : [], host: host(state.url), atPage: pages }
     bySession.set(sessionID, plan)
@@ -122,5 +129,6 @@ export namespace WebStrategy {
 
   export function _reset(): void {
     bySession.clear()
+    computing.clear()
   }
 }

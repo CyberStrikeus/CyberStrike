@@ -300,6 +300,22 @@ describe("WebCoDrive loop", () => {
     expect(moreClicks).toBe(MAX + 1)
   })
 
+  test("a hanging strategist never stalls the drive loop (strategy timeout)", async () => {
+    const sid = "s"
+    browser(sid, { "https://h/a": [{ id: "E0", tag: "a", role: "link", label: "B", href: "/b" }], "https://h/b": [] }, "https://h/a")
+    WebCoDrive.start(sid, {
+      planner: WebCoDrive.DeterministicPlanner,
+      strategist: () => new Promise<string[]>(() => {}), // never resolves
+      pollMs: 2,
+      settleMs: 15,
+      maxIdle: 3,
+      humanize: false,
+      strategyTimeoutMs: 20, // times out fast → loop proceeds deterministically
+    })
+    await untilStopped(sid)
+    expect(Crawl.isPageVisited(sid, "https://h/b")).toBe(true) // it drove despite the stuck strategist
+  })
+
   test("start is idempotent (a second start does not stack a loop)", async () => {
     const sid = "s"
     browser(sid, { "https://h/a": [{ id: "E0", tag: "a", role: "link", label: "B", href: "/b" }], "https://h/b": [] }, "https://h/a")
