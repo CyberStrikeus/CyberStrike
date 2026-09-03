@@ -21,7 +21,7 @@ export interface FingerprintInput {
   cookies?: string[] // cookie names: ["JSESSIONID","PHPSESSID"]
   meta?: string // <meta name="generator"> content
   scripts?: string[] // script-src hints: ["/_next/","/_nuxt/","angular"]
-  headers?: Record<string, string> // server response headers (reserved — wired via the ingest pipeline in P4)
+  headers?: Record<string, string> // server response headers (from the ingest pipeline via DataCollector, P4)
 }
 
 // --- detection tables (single source; extend here, not in call sites) ---------------------
@@ -137,6 +137,26 @@ export namespace FrameworkFingerprinter {
     const isSpa = client.size > 0 || metaFramework !== undefined
     const rendering: TechStack["rendering"] = isSpa ? "spa" : server.size > 0 ? "ssr" : "unknown"
     return { client: [...client], metaFramework, server: [...server], sessionKind, rendering, signals }
+  }
+
+  // Merge two fingerprints (P4): the client-side one the extension gathered per page with the
+  // server-side one derived from captured response headers/cookies (DataCollector). Union the
+  // evidence; a defined meta-framework / session kind wins; rendering favors client behavior
+  // (spa if either sees an SPA — navigation is then client-side regardless of the backend).
+  export function merge(a: TechStack | undefined, b: TechStack | undefined): TechStack | undefined {
+    if (!a) return b
+    if (!b) return a
+    const uniq = (xs: string[]) => [...new Set(xs.filter(Boolean))]
+    const rendering: TechStack["rendering"] =
+      a.rendering === "spa" || b.rendering === "spa" ? "spa" : a.rendering === "ssr" || b.rendering === "ssr" ? "ssr" : "unknown"
+    return {
+      client: uniq([...a.client, ...b.client]),
+      metaFramework: a.metaFramework ?? b.metaFramework,
+      server: uniq([...a.server, ...b.server]),
+      sessionKind: a.sessionKind ?? b.sessionKind,
+      rendering,
+      signals: uniq([...a.signals, ...b.signals]),
+    }
   }
 
   // Plain-language hint fed to the Navigator (P3) so it reasons about HOW to navigate this app.
