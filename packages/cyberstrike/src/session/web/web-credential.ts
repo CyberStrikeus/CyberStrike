@@ -113,15 +113,13 @@ export namespace WebCredential {
     return { ...existing, headers, container_id: containerID, role_id: roleID, time: { created: existing.time.created, updated: now } }
   }
 
+  // Case-insensitive (and whitespace-trimmed) label lookup: "anonymous", "Anonymous" and
+  // " Anonymous " are the SAME role, so the same identity is never duplicated over a casing
+  // difference. Compared in JS over the session's (few) credentials to stay portable across
+  // SQLite collations. The FIRST-registered casing is kept as canonical.
   export function getByLabel(sessionID: string, label: string): Info | undefined {
-    const row = Database.use((db) =>
-      db
-        .select()
-        .from(WebCredentialTable)
-        .where(and(eq(WebCredentialTable.session_id, sessionID), eq(WebCredentialTable.label, label)))
-        .get(),
-    )
-    return row ? rowToInfo(row) : undefined
+    const target = label.trim().toLowerCase()
+    return get(sessionID).find((c) => c.label.trim().toLowerCase() === target)
   }
 
   function rowToInfo(row: typeof WebCredentialTable.$inferSelect): Info {

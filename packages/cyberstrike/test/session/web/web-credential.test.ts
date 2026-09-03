@@ -41,6 +41,19 @@ describe("WebCredential.ensure — idempotent by label", () => {
     })
   })
 
+  test("labels differing only by case/whitespace are the SAME role (first casing kept)", async () => {
+    await withSession(async (sid) => {
+      const a = WebCredential.ensure({ sessionID: sid, label: "Anonymous" })
+      const b = WebCredential.ensure({ sessionID: sid, label: "anonymous" }) // different case
+      const c = WebCredential.ensure({ sessionID: sid, label: "  ANONYMOUS " }) // case + whitespace
+      expect(b.id).toBe(a.id)
+      expect(c.id).toBe(a.id)
+      expect(WebCredential.get(sid).length).toBe(1)
+      expect(WebCredential.get(sid)[0].label).toBe("Anonymous") // canonical = first registration
+      expect(WebCredential.getByLabel(sid, "aNoNyMoUs")!.id).toBe(a.id)
+    })
+  })
+
   test("getByLabel finds the one credential for a label", async () => {
     await withSession(async (sid) => {
       const a = WebCredential.ensure({ sessionID: sid, label: "anonymous" })
