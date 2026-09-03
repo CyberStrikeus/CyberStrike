@@ -110,6 +110,11 @@ export function buildProfileArgs(spec: ProfileSpec): BuiltProfile {
     "--silent-debugger-extension-api",
     "--no-first-run",
     "--no-default-browser-check",
+    // Chrome 137+/142+ blocks requests to localhost from public (HTTPS) pages via
+    // Private / Local Network Access, which stops the extension from reaching CyberStrike
+    // at http://127.0.0.1. Disable those checks for this managed testing browser. Chrome
+    // ignores unknown feature names, so listing several covers version drift.
+    "--disable-features=LocalNetworkAccessChecks,PrivateNetworkAccessSendPreflights,PrivateNetworkAccessRespectPreflightResults,BlockInsecurePrivateNetworkRequests",
     "--new-window",
   ]
   if (spec.headless) args.push("--headless=new")

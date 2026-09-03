@@ -35,6 +35,15 @@ describe("buildProfileArgs", () => {
     expect(b.args.some((a) => a.startsWith("--load-extension="))).toBe(true)
     expect(b.args.some((a) => a.startsWith("--user-data-dir="))).toBe(true)
   })
+  test("disables Local/Private Network Access so the extension can reach localhost CS", () => {
+    const f = base({ cred: "x" }).args.find((a) => a.startsWith("--disable-features="))
+    expect(f).toBeDefined()
+    expect(f).toContain("LocalNetworkAccessChecks")
+  })
+  test("target url is still the last arg (flags precede it)", () => {
+    const b = base({ cred: "x", session: "s1" })
+    expect(b.args[b.args.length - 1]).toBe("https://target.example.com#__cs_cred=x&__cs_sess=s1")
+  })
   test("headless adds --headless=new", () => {
     expect(base({ headless: true }).args).toContain("--headless=new")
     expect(base().args).not.toContain("--headless=new")
