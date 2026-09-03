@@ -12,6 +12,11 @@
 
 ;(function () {
   if (window !== window.top) return
+  // Idempotent: a fresh --load-extension profile can miss the declarative injection, so
+  // the popup re-injects this file. Run the setup once; a re-injection is a no-op (the
+  // first run's panel-visibility listener still handles show/hide).
+  if (window.__csHb2Loaded) return
+  window.__csHb2Loaded = true
 
   const LOGO_SRC = chrome.runtime.getURL("logo.png")
 
@@ -312,6 +317,7 @@
   let driver = "ai"
   let settingsOpen = false
   let pageCount = 0
+  let mountedAt = 0 // when the dock was appended — see panel-visibility (popup toggle)
 
   // Hover reveals the toolbar (captured + settings). JS-driven so a gap between
   // the logo and the bar doesn't drop the hover; stays open while settings is on.
@@ -533,6 +539,33 @@
     if (settingsOpen) bar.classList.add("show")
   })
 
+  // Auto-close the settings menu when the pointer leaves the dock — but NOT while a
+  // field inside it has focus (don't yank the panel away mid-typing). Re-entering the
+  // dock cancels a pending close.
+  let settingsTimer = null
+  function cancelCloseSettings() {
+    if (settingsTimer) {
+      clearTimeout(settingsTimer)
+      settingsTimer = null
+    }
+  }
+  function closeSettings() {
+    const a = root.activeElement
+    if (a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) {
+      settingsTimer = setTimeout(closeSettings, 400) // still editing — retry later
+      return
+    }
+    settingsOpen = false
+    dock.classList.remove("settings")
+    bar.classList.remove("show")
+  }
+  dock.addEventListener("mouseenter", cancelCloseSettings)
+  dock.addEventListener("mouseleave", () => {
+    if (!settingsOpen) return
+    cancelCloseSettings()
+    settingsTimer = setTimeout(closeSettings, 320)
+  })
+
   // --- Deterministic page observation (§3.3) --------------------------------
   function visible(el) {
     if (!el || el.offsetParent === null) return false
@@ -738,6 +771,18 @@
   })
 
   chrome.runtime.onMessage.addListener((m, s, sendResponse) => {
+    // Popup show/hide toggle for the on-page dock (the panel IS the control surface;
+    // the popup is just this toggle). show/hide are explicit; anything else toggles.
+    if (m.type === "panel-visibility") {
+      // A "toggle" right after a fresh (re)injection means the popup just brought the
+      // panel up on a profile that had missed it → show, don't immediately hide.
+      const justUp = !host.isConnected || Date.now() - mountedAt < 1500
+      const show =
+        m.action === "show" ? true : m.action === "hide" ? false : justUp ? true : host.style.display === "none"
+      host.style.display = show ? "" : "none"
+      sendResponse({ ok: true, visible: show })
+      return
+    }
     if (m.type !== "perform") return
     const cmd = m.cmd || {}
     try {
@@ -809,6 +854,7 @@
     document.body.appendChild(transHost)
     document.body.appendChild(roleHost)
     document.body.appendChild(host)
+    mountedAt = Date.now()
     readCredFromHash()
     updateSide()
     sendObservation()

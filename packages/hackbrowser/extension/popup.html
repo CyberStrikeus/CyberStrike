@@ -5,107 +5,51 @@
     <style>
       body {
         font: 13px system-ui, sans-serif;
-        width: 260px;
+        width: 220px;
         margin: 0;
-        padding: 12px;
+        padding: 14px;
         background: #0b0f14;
         color: #d7e0ea;
       }
       h1 {
-        font-size: 13px;
-        margin: 0 0 10px;
-        letter-spacing: 0.04em;
-        color: #4ade80;
+        font-size: 12px;
+        margin: 0 0 4px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #7ea8ff;
       }
-      label {
-        display: block;
+      p {
+        margin: 0 0 12px;
         font-size: 11px;
+        line-height: 1.45;
         color: #8aa0b4;
-        margin: 10px 0 4px;
-      }
-      input {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 6px;
-        border: 1px solid #24313d;
-        border-radius: 6px;
-        background: #111820;
-        color: #d7e0ea;
-        font: 12px monospace;
       }
       button {
         width: 100%;
-        margin-top: 10px;
-        padding: 8px;
+        padding: 9px;
         border: 0;
-        border-radius: 6px;
-        font-weight: 600;
+        border-radius: 7px;
+        font: 600 12px system-ui, sans-serif;
         cursor: pointer;
         background: #1f6feb;
         color: #fff;
       }
-      button.detach {
-        background: #30363d;
+      button:active {
+        transform: translateY(1px);
       }
-      .status {
+      .hint {
         margin-top: 10px;
-        font-size: 11px;
-        color: #8aa0b4;
-      }
-      .dot {
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        margin-right: 6px;
-        background: #6b7684;
-      }
-      .dot.on {
-        background: #4ade80;
-      }
-      .row {
-        display: flex;
-        gap: 6px;
-        align-items: center;
-      }
-      .row input {
-        flex: 1;
-      }
-      select {
-        flex: 1;
-        padding: 6px;
-        border: 1px solid #24313d;
-        border-radius: 6px;
-        background: #111820;
-        color: #d7e0ea;
-        font: 12px system-ui, sans-serif;
-      }
-      button.mini {
-        width: auto;
-        margin-top: 0;
-        padding: 6px 10px;
+        font-size: 10px;
+        color: #62708a;
+        min-height: 12px;
       }
     </style>
   </head>
   <body>
-    <h1>CYBERSTRIKE HACKBROWSER 2.0</h1>
-    <label for="receiver">CyberStrike endpoint</label>
-    <input id="receiver" type="text" placeholder="http://127.0.0.1:4096" />
-    <label for="sessionSelect">CyberStrike session</label>
-    <div class="row">
-      <select id="sessionSelect">
-        <option value="">-- New Session --</option>
-      </select>
-      <button id="refreshSessions" class="mini" title="Refresh sessions">↻</button>
-    </div>
-    <label for="credLabel">This profile's credential</label>
-    <div class="row">
-      <input id="credLabel" type="text" placeholder="e.g. admin" />
-      <button id="registerCred" class="mini">Set</button>
-    </div>
-    <div class="status" id="credStatus">no credential</div>
-    <button id="toggle">Attach capture</button>
-    <div class="status"><span id="dot" class="dot"></span><span id="statusText">detached</span></div>
+    <h1>CyberStrike</h1>
+    <p>All controls live in the on-page panel — click the CyberStrike logo on the page. This just shows or hides it.</p>
+    <button id="toggle">Show / hide panel</button>
+    <div class="hint" id="hint"></div>
     <script src="popup.js"></script>
   </body>
 </html>

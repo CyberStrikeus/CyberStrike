@@ -9,6 +9,11 @@
 // window.postMessage, which relays them to the background.
 
 ;(function () {
+  // Idempotent: the popup may re-inject this (fresh --load-extension profiles miss the
+  // first injection). Wrapping fetch/XHR twice would double-report, so run once.
+  if (window.__csCapturePatched) return
+  window.__csCapturePatched = true
+
   const MARK = "__cs_capture"
   function post(rec) {
     try {
