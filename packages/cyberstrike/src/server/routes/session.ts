@@ -1242,12 +1242,14 @@ export const SessionRoutes = lazy(() =>
         const sessionID = c.req.param("sessionID")
         return {
           onOpen(_e, ws) {
+            log.info("web control connected", { sessionID }) // the extension's control WS is up
             WebControl.connect(sessionID, { send: (d) => ws.send(d) })
           },
           onMessage(event) {
             WebControl.onAck(String(event.data))
           },
           onClose() {
+            log.info("web control closed", { sessionID })
             WebControl.disconnect(sessionID)
           },
         }
@@ -1273,6 +1275,7 @@ export const SessionRoutes = lazy(() =>
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
         const driver = c.req.valid("json").driver
+        log.info("web driver", { sessionID, driver }) // extension reached the server + who drives
         WebDriver.set(sessionID, driver)
         // AI mode drives the browser; Human mode stops the loop (the interlock also blocks
         // any in-flight action). Idempotent — repeated "ai" posts don't stack loops.
