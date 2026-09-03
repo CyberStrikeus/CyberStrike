@@ -8,6 +8,7 @@
 import { Log } from "../util/log"
 import { Server } from "../server/server"
 import { HBLog } from "../session/web/hblog"
+import { WebScope } from "../session/web/scope"
 import { HackbrowserStatus } from "../session/hackbrowser-status"
 import { RoleQueue } from "../session/web/role-queue"
 import { SpawnedProfiles } from "../session/web/spawned-profiles"
@@ -66,7 +67,9 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
   // role hash so it defaults to Anonymous and shows the queue status. The user drives
   // capture; each Start capture spawns the next role's browser one at a time.
   RoleQueue.enqueue(opts.sessionID, opts.credentials ?? [])
-  HBLog.record(opts.sessionID, "server", "launch", { target: opts.target, csUrl: Server.url().toString() })
+  // Bound the AI crawl to the target domain (+ any explicit scope) so it can't wander off-site.
+  WebScope.ensure(opts.sessionID, opts.target, opts.scope)
+  HBLog.record(opts.sessionID, "server", "launch", { target: opts.target, csUrl: Server.url().toString(), scope: WebScope.get(opts.sessionID)?.domain })
   const spawn = await import("@cyberstrike-io/hackbrowser/v2-spawn")
   try {
     // Pass the ACTUAL server URL so the extension calls back to this instance even when the

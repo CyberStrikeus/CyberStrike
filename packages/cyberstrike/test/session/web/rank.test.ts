@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, test } from "bun:test"
 import { Rank } from "../../../src/session/web/rank"
 import { PageState } from "../../../src/session/web/page-state"
 import { Crawl } from "../../../src/session/web/crawl"
+import { WebScope } from "../../../src/session/web/scope"
 
 beforeEach(() => {
   PageState._reset()
   Crawl._reset()
+  WebScope._reset()
 })
 
 // Build an annotated StatePayload via the real store so kind/policy match production.
@@ -46,6 +48,17 @@ describe("Rank.candidates", () => {
     expect(Rank.candidates("s", st)[0].id).toBe("top")
     // A "billing" priority (from the main model) lifts it to the front.
     expect(Rank.candidates("s", st, ["billing"])[0].id).toBe("prio")
+  })
+
+  test("drops out-of-scope links (external hosts) but keeps in-scope ones", () => {
+    const st = state("s", "https://demo.testfire.net/", [
+      { id: "in", tag: "a", role: "link", label: "Account", href: "/account" },
+      { id: "sub", tag: "a", role: "link", label: "App", href: "https://app.testfire.net/x" },
+      { id: "ext", tag: "a", role: "link", label: "Source on GitHub", href: "https://github.com/HCL/AltoroJ" },
+    ])
+    WebScope.ensure("s", "https://demo.testfire.net/")
+    const ids = Rank.candidates("s", st).map((c) => c.id).sort()
+    expect(ids).toEqual(["in", "sub"]) // github excluded
   })
 
   test("excludes already-acted elements and dedupes by action-key", () => {

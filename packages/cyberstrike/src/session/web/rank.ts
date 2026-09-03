@@ -6,6 +6,7 @@
 import { PageState } from "./page-state"
 import { Crawl } from "./crawl"
 import { Effect } from "./effect"
+import { WebScope } from "./scope"
 
 export namespace Rank {
   // Only navigation/lookup elements are auto-drivable. mutating/auth/destructive/logout are
@@ -54,8 +55,11 @@ export namespace Rank {
       // Acted excludes it — UNLESS effect-tracking found it productive (Load-more/paginator).
       if (Crawl.isActed(sessionID, key) && !Effect.eligible(sessionID, key)) continue
       if (seen.has(key)) continue
-      seen.add(key)
       const target = resolve(c.href, state.url)
+      // Stay on-target: drop links that navigate out of scope (external hosts) so the loop
+      // doesn't wander off the app into e.g. a footer "source on GitHub" link.
+      if (target && !WebScope.allowed(sessionID, target)) continue
+      seen.add(key)
       let score = SCORE[c.kind as "nav" | "query"] ?? 0
       if (target && !Crawl.isPageVisited(sessionID, target)) score += SCORE.newTarget
       if (c.in_viewport === true) score += SCORE.inViewport

@@ -20,6 +20,7 @@ import { WebAct } from "./act"
 import { WebFormFill } from "./formfill"
 import { Unexplored } from "./unexplored"
 import { Effect } from "./effect"
+import { WebScope } from "./scope"
 import { WebStrategy } from "./strategy"
 import { HBLog } from "./hblog"
 import { Provider } from "../../provider/provider"
@@ -232,6 +233,7 @@ export namespace WebCoDrive {
       }
       idle = 0
       Crawl.markPage(sessionID, state.url)
+      WebScope.ensure(sessionID, state.url) // bound the crawl to the target's domain (first page wins)
       const priorities = await strategyPriorities(sessionID, state, cfg)
       if (!alive()) { reason = "stopped"; break }
       const clickCands = Rank.candidates(sessionID, state, priorities)

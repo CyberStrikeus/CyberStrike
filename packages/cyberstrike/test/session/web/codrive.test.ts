@@ -6,6 +6,7 @@ import { WebDriver } from "../../../src/session/web/driver"
 import { Crawl } from "../../../src/session/web/crawl"
 import { Rank } from "../../../src/session/web/rank"
 import { Effect } from "../../../src/session/web/effect"
+import { WebScope } from "../../../src/session/web/scope"
 
 beforeEach(() => {
   PageState._reset()
@@ -14,6 +15,7 @@ beforeEach(() => {
   Crawl._reset()
   WebCoDrive._reset()
   Effect._reset()
+  WebScope._reset()
 })
 
 type Click = { id: string; tag: string; role: string; label: string; href: string }
@@ -314,6 +316,26 @@ describe("WebCoDrive loop", () => {
     })
     await untilStopped(sid)
     expect(Crawl.isPageVisited(sid, "https://h/b")).toBe(true) // it drove despite the stuck strategist
+  })
+
+  test("stays in scope — never follows an external link off the target domain", async () => {
+    const sid = "s"
+    const visited: string[] = []
+    browser(sid, {
+      "https://demo.testfire.net/": [
+        { id: "E0", tag: "a", role: "link", label: "Account", href: "/account" },
+        { id: "E1", tag: "a", role: "link", label: "GitHub", href: "https://github.com/HCL/AltoroJ" }, // external
+      ],
+      "https://demo.testfire.net/account": [],
+      "https://github.com/HCL/AltoroJ": [], // should NEVER be reached
+    }, "https://demo.testfire.net/", visited)
+
+    WebCoDrive.start(sid, fast)
+    await untilStopped(sid)
+
+    expect(Crawl.isPageVisited(sid, "https://demo.testfire.net/account")).toBe(true) // in-scope followed
+    expect(visited.some((u) => u.includes("github.com"))).toBe(false) // external never visited
+    expect(WebCoDrive.isRunning(sid)).toBe(false)
   })
 
   test("start is idempotent (a second start does not stack a loop)", async () => {
