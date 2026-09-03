@@ -538,8 +538,14 @@
       const res = await send({ type: "start-capture", role, url: location.href })
       attachBtn.disabled = false
       if (res && res.ok) {
-        cred.value = role
-        flashTransition(`Capture started with ${role} role`, "", roleColor(role), 1200)
+        const shown = res.role || role // server's canonical casing (one role, not a case-dup)
+        cred.value = shown
+        if (res.reused) {
+          flashTransition(`"${shown}" role already exists — continuing`, "", roleColor(shown), 1600)
+          roleHint.textContent = `Reusing the existing "${shown}" role.`
+        } else {
+          flashTransition(`Capture started with ${shown} role`, "", roleColor(shown), 1200)
+        }
         loadSessions()
       } else {
         roleHint.textContent = (res && res.error) || "failed (need local CyberStrike + reachable server)"

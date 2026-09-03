@@ -90,9 +90,11 @@ async function registerCredential(label) {
   })
   const d = await res.json().catch(() => ({}))
   if (!d || !d.id) throw new Error("register failed")
+  // Use the server's canonical label (first-registered casing) so the panel shows one role
+  // even if the user typed a different case. `reused` tells the caller it already existed.
   activeCredential = { id: d.id, label: d.label || label }
   await chrome.storage.local.set({ credential: activeCredential })
-  return activeCredential
+  return { ...activeCredential, reused: !!d.reused }
 }
 
 // Return the active session, creating one in CyberStrike if none is set yet. This is
@@ -617,8 +619,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         // Register the role as a real credential (anonymous included) so it shows in the
         // TUI and joins the access-control comparison. Reuse if it's already this role
         // (web_credential doesn't dedup by label) to avoid duplicates.
+        // Reuse if it's already this role (case-insensitive) — the server dedups too, but this
+        // avoids an extra round-trip. `reused` + the canonical label flow back to the panel so
+        // it can hint "role already exists" and show ONE role.
         const existing = await currentCredential()
-        if (!(existing && existing.label === role)) await registerCredential(role)
+        let reused = false
+        let canonical = role
+        if (existing && existing.label && existing.label.toLowerCase() === role.toLowerCase()) {
+          reused = true
+          canonical = existing.label
+        } else {
+          const cred = await registerCredential(role)
+          reused = !!cred.reused
+          canonical = cred.label || role
+        }
         attach(tabId)
         // Advance the sequential role queue — CyberStrike spawns the next role's browser
         // if one is queued. Fire-and-forget: capture is already on locally; the panel
@@ -627,9 +641,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         fetch(`${base}/session/${activeSession}/web/capture-started`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ role, url: msg.url || "" }),
+          body: JSON.stringify({ role: canonical, url: msg.url || "" }),
         }).catch(() => {})
-        sendResponse({ ok: true, attached: true, session: activeSession })
+        sendResponse({ ok: true, attached: true, session: activeSession, reused, role: canonical })
       } catch (e) {
         sendResponse({ ok: false, error: e && e.message ? e.message : String(e) })
       }

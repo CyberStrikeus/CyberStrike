@@ -832,13 +832,14 @@ export const SessionRoutes = lazy(() =>
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
         const body = c.req.valid("json")
+        const existed = !!WebCredential.getByLabel(sessionID, body.label) // reused (any casing) vs new
         const cred = WebCredential.ensure({
           sessionID,
           label: body.label,
           headers: body.headers,
           containerID: body.container_id,
         })
-        return c.json(cred)
+        return c.json({ ...cred, reused: existed })
       },
     )
     .post(
