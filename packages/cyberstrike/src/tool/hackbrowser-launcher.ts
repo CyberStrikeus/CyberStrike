@@ -34,6 +34,8 @@ import { Log } from "../util/log"
 import { Identifier } from "../id/id"
 import { Session } from "../session"
 import { HackbrowserStatus } from "../session/hackbrowser-status"
+import { RoleQueue } from "../session/web/role-queue"
+import { SpawnedProfiles } from "../session/web/spawned-profiles"
 import { Global } from "../global"
 import type {
   WorkerOptions,
@@ -71,6 +73,13 @@ interface WorkerHandle {
 }
 
 const activeRuns = new Map<string, WorkerHandle>()
+
+// v2 runs: no crawl worker — just the orchestrator browser + the role queue. Tracks the
+// session's active v2 launch (target/startedAt for the sidebar status).
+// NOTE: the 1.x worker path below (prepareCrawl / backgroundRun / workerWrite and the
+// activeRuns map) is now UNUSED — launchHackbrowser/stopHackbrowser drive v2. Kept to
+// avoid gutting the file in one pass; a follow-up should remove it + the worker subprocess.
+const v2Runs = new Map<string, { target: string; startedAt: number }>()
 
 export interface LauncherOptions {
   // Crawl URL. Named `target` here (and in all cyberstrike-facing surfaces:
@@ -501,32 +510,27 @@ async function backgroundRun(
  * here don't poison subsequent invocations.
  */
 export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffResult> {
-  if (activeRuns.has(opts.sessionID)) {
+  if (v2Runs.has(opts.sessionID)) {
     throw new Error(`hackbrowser already running for session ${opts.sessionID}`)
   }
 
-  // Sync prep first — fail fast on any issue before claiming the slot.
-  const prepared = await prepareCrawl(opts)
+  // v2: NO crawl worker. Enqueue the roles for sequential setup, then open the
+  // orchestrator browser — Chrome for Testing with our extension, at the target, with no
+  // role hash so it defaults to Anonymous and shows the queue status. The user drives
+  // capture; each Start capture spawns the next role's browser one at a time.
+  RoleQueue.enqueue(opts.sessionID, opts.credentials ?? [])
+  const spawn = await import("@cyberstrike-io/hackbrowser/v2-spawn")
+  try {
+    const result = spawn.spawnProfile({ url: opts.target, session: opts.sessionID, headless: opts.headless })
+    SpawnedProfiles.track(opts.sessionID, result.proc)
+  } catch (e) {
+    throw new Error(`could not open browser: ${e instanceof Error ? e.message : String(e)}`)
+  }
 
-  // Spawn worker subprocess. stdin/stdout are pipes for JSON IPC.
-  // Inherits full parent env so AWS/GCP/other provider credentials
-  // (AWS_ACCESS_KEY_ID, GOOGLE_APPLICATION_CREDENTIALS, etc.) are
-  // available to the worker without explicit forwarding.
-  const proc = Bun.spawn([prepared.runtime, prepared.workerPath], {
-    stdin: "pipe",
-    stdout: "pipe",
-    stderr: "pipe",
-    env: { ...process.env },
-  })
-
-  activeRuns.set(opts.sessionID, { proc, modelInfo: prepared.modelInfo })
-
-  // Initial sidebar entry — phase="starting" so users see the run
-  // appear instantly. CSEvents from the worker relay to HackbrowserStatus.handle
-  // as page-changes arrive via the IPC reader loop.
+  v2Runs.set(opts.sessionID, { target: opts.target, startedAt: Date.now() })
   HackbrowserStatus.set(opts.sessionID, {
     sessionID: opts.sessionID,
-    phase: "starting",
+    phase: "crawling",
     targetUrl: opts.target,
     pagesExplored: 0,
     capturedEndpoints: 0,
@@ -534,51 +538,44 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
     startedAt: Date.now(),
   })
 
-  // Bridge the chat track's ctx.abort (Esc) into an IPC abort message so
-  // pressing Esc on the currently running chat turn also stops the crawl.
-  // The reliable cancellation path is /hackbrowser-stop → stopHackbrowser().
-  if (opts.signal) {
-    opts.signal.addEventListener("abort", () => {
-      log.info("ctx.abort received — forwarding to worker", { sessionID: opts.sessionID })
-      workerWrite(proc, JSON.stringify({ type: "abort" } satisfies ParentMessage) + "\n")
-    })
-  }
+  // Esc / abort closes the browsers (same path as /hackbrowser-stop).
+  if (opts.signal) opts.signal.addEventListener("abort", () => void stopHackbrowser(opts.sessionID))
 
-  // Send start message — worker begins crawl on receipt.
-  workerWrite(proc, JSON.stringify({ type: "start", options: prepared.workerOptions } satisfies ParentMessage) + "\n")
-
-  // Fire and forget — IPC reader runs concurrently. The chat session prompt
-  // loop returns on tool completion, freeing the session for ingest queue
-  // tasks to dispatch their own SessionPrompt.prompt() calls in parallel
-  // (Faz B.0 / INTEGRATION.md §10.9).
-  void backgroundRun(opts.sessionID, prepared, opts.target, proc)
-
+  const extra = (opts.credentials ?? []).length
   return {
     sessionID: opts.sessionID,
     started: true,
-    message: `Hackbrowser crawl started for ${opts.target}. Captures will arrive in this session as the crawl progresses. Use /hackbrowser-stop to cancel before completion.`,
+    message:
+      `Hackbrowser opened for ${opts.target}. Log in (if needed) and press Start capture in the panel` +
+      (extra ? `; ${extra} more role browser(s) open one at a time as you go.` : ".") +
+      ` Use /hackbrowser-stop to close the browsers.`,
   }
 }
 
 /**
- * Cancel an in-flight hackbrowser run. Returns true if a run was active
- * (and therefore aborted), false if no run was found for this session.
- *
- * Sends { type: "abort" } to the worker's stdin. The worker's AbortController
- * fires, the agent's BFS loop sees signal.aborted at the next iteration
- * boundary, finishes the current page's pending tasks, closes the browser,
- * and writes a final result message. HackbrowserStatus transitions to
- * completed (not failed) — cancellation is a normal lifecycle exit.
+ * Stop a v2 hackbrowser run: close every browser CyberStrike spawned for the session
+ * (orchestrator + role browsers) and mark the run completed. Returns true if a run was
+ * active, false otherwise.
  */
 export function stopHackbrowser(sessionID: string): boolean {
-  const handle = activeRuns.get(sessionID)
-  if (!handle) return false
-  log.info("stopHackbrowser: sending abort to worker", { sessionID })
-  workerWrite(handle.proc, JSON.stringify({ type: "abort" } satisfies ParentMessage) + "\n")
+  const run = v2Runs.get(sessionID)
+  if (!run) return false
+  const closed = SpawnedProfiles.closeAll(sessionID)
+  v2Runs.delete(sessionID)
+  log.info("stopHackbrowser: closed spawned browsers", { sessionID, closed })
+  HackbrowserStatus.set(sessionID, {
+    sessionID,
+    phase: "completed",
+    targetUrl: run.target,
+    pagesExplored: 0,
+    capturedEndpoints: 0,
+    errors: [],
+    startedAt: run.startedAt,
+  })
   return true
 }
 
 /** Whether a hackbrowser run is active for the given session. */
 export function isHackbrowserRunning(sessionID: string): boolean {
-  return activeRuns.has(sessionID)
+  return v2Runs.has(sessionID)
 }
