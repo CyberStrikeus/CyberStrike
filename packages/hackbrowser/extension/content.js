@@ -1271,32 +1271,53 @@
   // key events — not one instant el.value assignment. Makes AI-driven typing look human and
   // fires the same handlers a real keyboard would (frameworks that listen on keydown/keyup).
   const csleep = (ms) => new Promise((r) => setTimeout(r, ms))
-  async function humanType(el, text) {
+  // React/Vue/Angular override the input's value setter to track state; a plain `el.value = x`
+  // is then invisible to them. Setting through the PROTOTYPE's native setter + dispatching input
+  // is the only way a programmatic value registers (design §6.3 / P5 native-setter mode).
+  function setNativeValue(el, value) {
+    const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype
+    const desc = Object.getOwnPropertyDescriptor(proto, "value")
+    if (desc && desc.set) desc.set.call(el, value)
+    else el.value = value
+  }
+  async function humanType(el, text, native) {
     el.focus()
     el.dispatchEvent(new Event("focus", { bubbles: true }))
     const editable = el.isContentEditable
-    if (editable) el.textContent = ""
-    else {
-      try {
-        el.value = ""
-      } catch {}
+    const put = (v) => {
+      if (editable) el.textContent = v
+      else if (native) setNativeValue(el, v)
+      else {
+        try {
+          el.value = v
+        } catch {}
+      }
     }
+    put("")
     const s = String(text == null ? "" : text)
+    let acc = ""
     for (const ch of s) {
       // 45–165ms per key, with an occasional longer "thinking" pause (~8% of keys).
       await csleep(45 + Math.floor(Math.random() * 120) + (Math.random() < 0.08 ? 250 + Math.floor(Math.random() * 300) : 0))
       el.dispatchEvent(new KeyboardEvent("keydown", { key: ch, bubbles: true }))
       el.dispatchEvent(new KeyboardEvent("keypress", { key: ch, bubbles: true }))
-      if (editable) el.textContent += ch
-      else {
-        try {
-          el.value += ch
-        } catch {}
-      }
+      acc += ch
+      put(acc)
       el.dispatchEvent(new InputEvent("input", { data: ch, inputType: "insertText", bubbles: true }))
       el.dispatchEvent(new KeyboardEvent("keyup", { key: ch, bubbles: true }))
     }
     el.dispatchEvent(new Event("change", { bubbles: true }))
+  }
+
+  // Best-effort hydration wait (P5): meta-framework SSR HTML is inert until its JS hydrates. We
+  // can't observe framework-internal hydration from an isolated content script, so we approximate:
+  // wait for document-complete, then two animation frames + a short settle (hydration runs right
+  // after load). Bounded by timeoutMs so it never hangs the driver.
+  async function waitHydrated(timeoutMs) {
+    const deadline = Date.now() + (Number(timeoutMs) || 4000)
+    while (document.readyState !== "complete" && Date.now() < deadline) await csleep(50)
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    await csleep(Math.min(200, Math.max(0, deadline - Date.now())))
   }
 
   chrome.runtime.onMessage.addListener((m, s, sendResponse) => {
@@ -1338,7 +1359,11 @@
           aiActivity("AI types: " + (labelOf(el) || el.getAttribute("name") || "field"))
           aiPointAt(el)
           await csleep(260)
-          await humanType(el, cmd.text || "")
+          await humanType(el, cmd.text || "", cmd.mode === "native-setter")
+          return sendResponse({ ok: true })
+        }
+        if (cmd.op === "wait") {
+          if (cmd.until === "hydrated") await waitHydrated(cmd.timeoutMs)
           return sendResponse({ ok: true })
         }
         if (cmd.op === "navigate") {

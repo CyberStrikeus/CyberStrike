@@ -323,7 +323,9 @@ async function connectControl() {
       controlSend(ws, { id: msg.id, ok: false, error: "no attached tab" })
       return
     }
-    const cmd = { op: msg.op, elementId: msg.elementId, text: msg.text, url: msg.url }
+    // Carry the framework-adaptive fields through (P5): `mode` (type: native-setter for
+    // React/Vue/Angular controlled inputs) and `until` (wait op: hydration).
+    const cmd = { op: msg.op, elementId: msg.elementId, text: msg.text, url: msg.url, mode: msg.mode, until: msg.until, timeoutMs: msg.timeoutMs }
     const ack = await new Promise((r) =>
       chrome.tabs.sendMessage(tabId, { type: "perform", cmd }, (res) => {
         void chrome.runtime.lastError
