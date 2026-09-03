@@ -1,0 +1,61 @@
+// Deterministic candidate ranking for the co-driving loop — the "deterministic feeds the
+// AI" half. From a page's annotated clickables it produces a short, ordered shortlist of
+// what is worth doing next, with NO LLM: skip visited / non-allow / non-navigable, dedupe
+// by action-key, then score for coverage. The loop either auto-advances on the top pick
+// (no LLM call) or hands this shortlist to the planner. Pure — fully testable.
+import { PageState } from "./page-state"
+import { Crawl } from "./crawl"
+
+export namespace Rank {
+  // Only navigation/lookup elements are auto-drivable. mutating/auth/destructive/logout are
+  // deliberately excluded here (the guard would block the dangerous ones anyway; mutating
+  // needs intent we don't infer deterministically).
+  const NAVIGABLE = new Set(["nav", "query"])
+  // Single source for the scoring weights.
+  const SCORE = { nav: 2, query: 1, newTarget: 3, inViewport: 1, testid: 1, offscreen: -1 }
+
+  export interface Candidate {
+    id: string
+    label: string
+    kind: string
+    actionKey: string
+    href: string
+    targetUrl?: string
+    score: number
+  }
+
+  function resolve(href: string, base: string): string | undefined {
+    if (!href) return undefined
+    try {
+      return new URL(href, base).href
+    } catch {
+      return undefined
+    }
+  }
+
+  // Ordered shortlist (highest score first; stable on ties). Empty ⇒ nothing left to do on
+  // this page (coverage for the loop's terminate check).
+  export function candidates(sessionID: string, state: PageState.StatePayload): Candidate[] {
+    const out: Candidate[] = []
+    const seen = new Set<string>()
+    for (const c of state.clickables) {
+      if (c.policy !== "allow") continue
+      if (!c.kind || !NAVIGABLE.has(c.kind)) continue
+      const key = Crawl.actionKey(state.url, c)
+      if (Crawl.isActed(sessionID, key)) continue
+      if (seen.has(key)) continue
+      seen.add(key)
+      const target = resolve(c.href, state.url)
+      let score = SCORE[c.kind as "nav" | "query"] ?? 0
+      if (target && !Crawl.isPageVisited(sessionID, target)) score += SCORE.newTarget
+      if (c.in_viewport === true) score += SCORE.inViewport
+      if (c.in_viewport === false) score += SCORE.offscreen
+      if (c.testid) score += SCORE.testid
+      out.push({ id: c.id, label: c.label, kind: c.kind, actionKey: key, href: c.href, targetUrl: target, score })
+    }
+    return out
+      .map((c, i) => ({ c, i }))
+      .sort((a, b) => b.c.score - a.c.score || a.i - b.i)
+      .map((x) => x.c)
+  }
+}
