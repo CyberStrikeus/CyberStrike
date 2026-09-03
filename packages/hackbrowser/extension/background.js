@@ -278,9 +278,12 @@ async function connectControl() {
   }
   controlWs = ws
   ws.onopen = () => {
-    // Re-assert the driven tab's driver so a fresh/reconnected server reflects it.
+    // Tell the server who is driving as soon as the control channel is up. The panel default
+    // is "ai" (co-driving), so an un-toggled tab must still report "ai" — otherwise the server
+    // never learns the driver and the AI loop never starts even though the panel shows "AI
+    // driving". A human takeover later re-POSTs "human".
     const t = drivenTab()
-    if (t !== undefined && driverByTab.has(t)) void postDriver(driverByTab.get(t))
+    if (t !== undefined) void postDriver(driverByTab.get(t) || "ai")
   }
   ws.onmessage = async (ev) => {
     let msg
