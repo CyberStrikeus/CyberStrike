@@ -48,7 +48,7 @@ export const WebGetPageStateTool = Tool.define("web_get_page_state", {
       .optional()
       .describe("Filter interactive elements to one semantic kind (e.g. 'mutating', 'nav')."),
   }),
-  async execute(params, ctx) {
+  async execute(params, ctx): Promise<{ title: string; output: string; metadata: Record<string, unknown> }> {
     const sessionID = Session.root(ctx.sessionID)
     const state = params.url
       ? PageState.get(sessionID, params.url, params.view as PageState.ClickableWithPolicy["kind"])

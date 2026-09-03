@@ -29,7 +29,7 @@ export const WebActionTool = Tool.define("web_action", {
     text: z.string().optional().describe("Text to enter (type only)."),
     url: z.string().optional().describe("navigate: destination url. click/type: page url (defaults to current)."),
   }),
-  async execute(params, ctx) {
+  async execute(params, ctx): Promise<{ title: string; output: string; metadata: Record<string, unknown> }> {
     const sessionID = Session.root(ctx.sessionID)
 
     if (!WebControl.connected(sessionID)) {
