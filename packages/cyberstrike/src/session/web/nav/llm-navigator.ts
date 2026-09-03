@@ -20,6 +20,7 @@ import { WebStrategy } from "../strategy"
 import { WebFormFill } from "../formfill"
 import { FrameworkFingerprinter } from "../tech"
 import { DataCollector } from "../data-collector"
+import { JsMiner } from "../js-miner"
 import { HBLog } from "../hblog"
 import { Provider } from "../../../provider/provider"
 import { ProviderTransform } from "../../../provider/transform"
@@ -113,6 +114,16 @@ export function clickPool(sessionID: string, snapshot: PageSnapshot, cap = CLICK
     .slice(0, cap)
 }
 
+// Compact a mined route URL to path(+query) for the prompt; falls back to the raw string.
+function pathOf(url: string): string {
+  try {
+    const u = new URL(url)
+    return u.pathname + u.search
+  } catch {
+    return url
+  }
+}
+
 // Server-side fingerprint from the collected response headers/cookies, or undefined when nothing
 // server-identifying was seen yet. Merged with the extension's client-side fingerprint so the AI
 // sees the FULL stack (client framework + backend) — resolves the P2 server-signal seam.
@@ -146,6 +157,8 @@ export function buildContext(
     .filter((e) => e.kind === "api")
     .map((e) => `${e.method} ${e.path}`)
     .slice(0, 10)
+  // Routes mined from JS bundles (P4.1) — discovered in code, not necessarily seen in traffic.
+  const mined = collected.minedRoutes.map((r) => `${r.method} ${pathOf(r.url)}`).slice(0, 12)
   const formLines = forms.map((f, i) => {
     const fields = f.fills.map((x) => x.id).filter(Boolean).slice(0, 8)
     return `  [${i}] "${f.label}"${fields.length ? ` fills: ${fields.join(", ")}` : ""}`
@@ -170,6 +183,7 @@ export function buildContext(
     `Coverage so far: ${cov.pages_visited} pages explored, ${cov.actions} actions used.`,
     unvisited.length ? `Routes seen in traffic, not yet visited (navigate to reach them): ${unvisited.join(", ")}` : "",
     apis.length ? `API endpoints seen (the app's surface): ${apis.join(", ")}` : "",
+    mined.length ? `Routes mined from JS bundles (discovered in code — may be uncalled/SPA-only): ${mined.join(", ")}` : "",
     forms.length ? `Forms (choose by form_index):\n${formLines.join("\n")}` : "",
     picks.length ? `Interactive elements (choose by element_id):\n${elLines.join("\n")}` : "",
   ]
@@ -279,6 +293,9 @@ export class LlmNavigator implements Navigator {
     // Keep the main-model business-strategy priorities warming in the background (cached,
     // non-blocking) — they sharpen the context's Focus areas and the deterministic fallback.
     void WebStrategy.ensure(sessionID, snapshot).catch(() => {})
+    // Mine any newly-collected JS bundles for routes in the background (P4.1) — fetch-once, so most
+    // plans this is a no-op; discovered routes accrue into DataCollector for the NEXT context build.
+    void JsMiner.mineNew(sessionID).catch(() => {})
 
     const priorities = WebStrategy.get(sessionID)?.priorities ?? []
     const picks = clickPool(sessionID, snapshot, this.cap)

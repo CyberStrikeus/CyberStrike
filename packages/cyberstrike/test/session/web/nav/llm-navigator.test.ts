@@ -7,6 +7,7 @@ import { WebScope } from "../../../../src/session/web/scope"
 import { WebStrategy } from "../../../../src/session/web/strategy"
 import { Effect } from "../../../../src/session/web/effect"
 import { DataCollector } from "../../../../src/session/web/data-collector"
+import { JsMiner } from "../../../../src/session/web/js-miner"
 
 beforeEach(() => {
   PageState._reset()
@@ -15,6 +16,7 @@ beforeEach(() => {
   WebStrategy._reset()
   Effect._reset()
   DataCollector._reset()
+  JsMiner._reset()
 })
 
 type Click = PageState.Observation["clickables"][number]
@@ -145,6 +147,7 @@ describe("buildContext — the rich model prompt", () => {
     DataCollector.record(sid, { method: "GET", origin: "https://h.test", path: "/admin", contentType: "text/html" })
     DataCollector.record(sid, { method: "POST", origin: "https://h.test", path: "/api/transfer", contentType: "application/json" })
     DataCollector.record(sid, { method: "GET", origin: "https://h.test", path: "/", headers: { "x-powered-by": "PHP/8.2.0" } })
+    DataCollector.addMined(sid, [{ method: "GET", url: "https://h.test/api/secret-route" }]) // P4.1 JS-mined
     const picks = clickPool(sid, snap)
     const forms = WebFormFill.candidates(sid, snap)
     const ctx = buildContext(sid, snap, picks, forms, DataCollector.latest(sid))
@@ -155,6 +158,8 @@ describe("buildContext — the rich model prompt", () => {
     expect(ctx).toContain("Routes seen in traffic, not yet visited")
     expect(ctx).toContain("/admin")
     expect(ctx).toContain("API endpoints seen")
+    expect(ctx).toContain("Routes mined from JS bundles") // P4.1
+    expect(ctx).toContain("/api/secret-route")
     expect(ctx).toContain("Forms (choose by form_index)")
     expect(ctx).toContain("Interactive elements")
     expect(ctx).toContain("n1")
