@@ -108,6 +108,75 @@
     transTimer = setTimeout(() => trans.classList.remove("show"), ms || 1400)
   }
 
+  // --- AI activity overlay --------------------------------------------------
+  // Makes the AI's actions VISIBLE: a synthetic cursor glides to the element the AI is about
+  // to act on, a ring flashes on that element, and a toast names the action ("AI clicks: …").
+  // The AI clicks via el.click() (no real pointer moves), so without this the page just changes
+  // with no indication anything is driving it. pointer-events:none so it never blocks the page.
+  const cursorHost = document.createElement("div")
+  cursorHost.style.cssText = "position:fixed;inset:0;z-index:2147483646;pointer-events:none;"
+  const curRoot = cursorHost.attachShadow({ mode: "closed" })
+  curRoot.innerHTML = `
+    <style>
+      .cur { position: fixed; left:-100px; top:-100px; margin:-3px 0 0 -3px; pointer-events:none;
+             opacity:0; transition: left .28s cubic-bezier(.4,0,.2,1), top .28s cubic-bezier(.4,0,.2,1), opacity .2s; }
+      .cur.on { opacity:1; }
+      .cur svg { display:block; filter: drop-shadow(0 1px 3px rgba(0,0,0,.55)); }
+      .dot { position:absolute; left:0; top:0; width:26px; height:26px; margin:-13px 0 0 -13px; border-radius:50%;
+             border:2px solid rgba(${AI_RGB},.9); opacity:0; }
+      .cur.pulse .dot { animation: aiPulse .5s ease-out; }
+      @keyframes aiPulse { 0%{ transform:scale(.3); opacity:.9 } 100%{ transform:scale(1.5); opacity:0 } }
+      .ring { position: fixed; pointer-events:none; border-radius:6px; opacity:0;
+              box-shadow: 0 0 0 2px rgba(${AI_RGB},.95), 0 0 16px 3px rgba(${AI_RGB},.5); }
+      .ring.flash { animation: aiRing 1s ease-out; }
+      @keyframes aiRing { 0%{opacity:.95} 70%{opacity:.5} 100%{opacity:0} }
+      .act { position: fixed; left:50%; top:16px; transform: translateX(-50%);
+             font: 600 12px ui-sans-serif, system-ui, -apple-system, sans-serif; letter-spacing:.01em;
+             color:#fff; background: rgba(${AI_RGB},.94); padding:7px 14px; border-radius:999px;
+             box-shadow: 0 6px 24px rgba(0,0,0,.35); opacity:0; transition: opacity .2s;
+             white-space:nowrap; max-width:72vw; overflow:hidden; text-overflow:ellipsis; }
+      .act.show { opacity:1; }
+    </style>
+    <div class="cur" id="aicur"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 2 L20 12 L13 13 L11 21 Z" fill="#fff" stroke="rgba(${AI_RGB},1)" stroke-width="1.5" stroke-linejoin="round"/></svg><div class="dot"></div></div>
+    <div class="ring" id="airing"></div>
+    <div class="act" id="aiact"></div>
+  `
+  const aicur = curRoot.getElementById("aicur")
+  const airing = curRoot.getElementById("airing")
+  const aiactEl = curRoot.getElementById("aiact")
+  let aiActTimer = null
+  function aiActivity(text) {
+    aiactEl.textContent = text
+    aiactEl.classList.add("show")
+    if (aiActTimer) clearTimeout(aiActTimer)
+    aiActTimer = setTimeout(() => aiactEl.classList.remove("show"), 2600)
+  }
+  function aiPointAt(el) {
+    let r
+    try {
+      r = el.getBoundingClientRect()
+    } catch {
+      return
+    }
+    const x = Math.max(0, Math.min(innerWidth, r.left + r.width / 2))
+    const y = Math.max(0, Math.min(innerHeight, r.top + r.height / 2))
+    aicur.style.left = x + "px"
+    aicur.style.top = y + "px"
+    aicur.classList.add("on")
+    airing.style.left = r.left + "px"
+    airing.style.top = r.top + "px"
+    airing.style.width = r.width + "px"
+    airing.style.height = r.height + "px"
+    airing.classList.remove("flash")
+    void airing.offsetWidth
+    airing.classList.add("flash")
+  }
+  function aiClickPulse() {
+    aicur.classList.remove("pulse")
+    void aicur.offsetWidth
+    aicur.classList.add("pulse")
+  }
+
   // --- Role identity layer (Phase 2) ----------------------------------------
   // A spawned profile carries a role (from #__cs_cred). Show a persistent role-colored
   // top edge bar (which browser is which) + a dismissable "log in as this identity"
@@ -1186,7 +1255,11 @@
           const el = elMap.get(cmd.elementId)
           if (!el) return sendResponse({ ok: false, error: "element not found" })
           el.scrollIntoView({ block: "center" })
-          await csleep(80 + Math.floor(Math.random() * 200)) // settle after scroll, human beat
+          await csleep(60)
+          aiActivity("AI clicks: " + (labelOf(el) || el.tagName.toLowerCase()))
+          aiPointAt(el)
+          await csleep(300) // let the cursor visibly glide to the target
+          aiClickPulse()
           el.click()
           return sendResponse({ ok: true })
         }
@@ -1194,11 +1267,17 @@
           const el = elMap.get(cmd.elementId)
           if (!el) return sendResponse({ ok: false, error: "element not found" })
           el.scrollIntoView({ block: "center" })
+          await csleep(60)
+          aiActivity("AI types: " + (labelOf(el) || el.getAttribute("name") || "field"))
+          aiPointAt(el)
+          await csleep(260)
           await humanType(el, cmd.text || "")
           return sendResponse({ ok: true })
         }
         if (cmd.op === "navigate") {
           if (!cmd.url) return sendResponse({ ok: false, error: "url required" })
+          aiActivity("AI navigates → " + cmd.url)
+          await csleep(200)
           location.href = cmd.url
           return sendResponse({ ok: true })
         }
@@ -1283,6 +1362,7 @@
     if (document.getElementById("cyberstrike-panel-host")) return
     document.body.appendChild(glowHost)
     document.body.appendChild(transHost)
+    document.body.appendChild(cursorHost)
     document.body.appendChild(roleHost)
     document.body.appendChild(confirmHost)
     document.body.appendChild(host)

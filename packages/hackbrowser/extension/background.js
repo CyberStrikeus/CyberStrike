@@ -278,6 +278,7 @@ async function connectControl() {
   }
   controlWs = ws
   ws.onopen = () => {
+    console.log("[hackbrowser] control WS connected")
     // Tell the server who is driving as soon as the control channel is up. The panel default
     // is "ai" (co-driving), so an un-toggled tab must still report "ai" — otherwise the server
     // never learns the driver and the AI loop never starts even though the panel shows "AI
@@ -293,8 +294,10 @@ async function connectControl() {
       return
     }
     if (!msg || !msg.id) return
+    console.log("[hackbrowser] perform", msg.op, msg.elementId || msg.url || "")
     const tabId = drivenTab()
     if (tabId === undefined) {
+      console.warn("[hackbrowser] perform dropped: no attached tab")
       controlSend(ws, { id: msg.id, ok: false, error: "no attached tab" })
       return
     }
