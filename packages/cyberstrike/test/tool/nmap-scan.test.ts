@@ -18,4 +18,38 @@ describe("nmap_scan parameters", () => {
     expect(NmapScanParameters.Ports.parse("22,80,443,8000-8100")).toBe("22,80,443,8000-8100")
     expect(NmapScanParameters.Ports.safeParse("http,https").success).toBe(false)
   })
+
+  test("uses passwordless sudo only for privileged Unix profiles", () => {
+    expect(
+      NmapScanParameters.Invocation({
+        binary: "/usr/bin/nmap",
+        profile: "service",
+        sudo: "/usr/bin/sudo",
+        platform: "linux",
+        uid: 1000,
+      }),
+    ).toEqual({ argv: ["/usr/bin/nmap"], privileged: false })
+    expect(
+      NmapScanParameters.Invocation({
+        binary: "/usr/bin/nmap",
+        profile: "os",
+        sudo: "/usr/bin/sudo",
+        platform: "linux",
+        uid: 1000,
+      }),
+    ).toEqual({ argv: ["/usr/bin/sudo", "-n", "/usr/bin/nmap"], privileged: true })
+    expect(() =>
+      NmapScanParameters.Invocation({
+        binary: "/usr/bin/nmap",
+        profile: "comprehensive",
+        platform: "linux",
+        uid: 1000,
+      }),
+    ).toThrow("passwordless sudo")
+  })
+
+  test("separates standard and elevated approval scopes", () => {
+    expect(NmapScanParameters.Scope("192.0.2.10", false)).toBe("standard:192.0.2.10")
+    expect(NmapScanParameters.Scope("192.0.2.10", true)).toBe("elevated:192.0.2.10")
+  })
 })

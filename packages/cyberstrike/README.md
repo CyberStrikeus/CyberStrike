@@ -180,15 +180,12 @@ Each proxy tester follows a structured methodology: intercept traffic, identify 
 
 ### Web UI & Remote Access
 
-Run `cyberstrike web` and control your agents, MCP servers, Bolt connections, always-visible live activity, event-driven mission posture, Nmap scan history/diffs and topology, structured memory, and vulnerability findings from any browser. Access from anywhere with Cloudflare Tunnel — zero open ports, end-to-end encryption, password-protected API. An optional `observer` credential is restricted server-side to redacted read-only routes. Your data stays on your machine.
+Run `cyberstrike web` and control your agents, MCP servers, Bolt connections, and vulnerability findings from any browser. Access from anywhere with Cloudflare Tunnel — zero open ports, end-to-end encryption, password-protected API. Your data stays on your machine.
 
 ```bash
 export CYBERSTRIKE_SERVER_PASSWORD=your-secure-password
-export CYBERSTRIKE_OBSERVER_PASSWORD=your-observer-password # optional read-only API/viewer role
 cyberstrike web
 ```
-
-If user or project configuration prevents startup, run `cyberstrike web --safe` to start recovery mode without those config sources. Managed administrator policy is still enforced.
 
 Use **[app.cyberstrike.io](https://app.cyberstrike.io)** (static page, no backend) or self-host from `packages/app/dist/`.
 
@@ -227,9 +224,16 @@ Bolt is CyberStrike's remote tool server. Deploy it on any VPS, cloud instance, 
 
 ### MCP Ecosystem
 
-CyberStrike includes a curated MCP catalog with roughly **724 direct/composite security tools** across 11 default entries. Runnable npm entries are version-pinned; `cloud-audit-mcp` and `hackbrowser-mcp` currently require manual installation from their repositories.
+CyberStrike connects to specialized MCP servers that extend its capabilities — **176+ security tools** across 5 domains:
 
-The catalog covers GitHub posture (39), CVE intelligence (41), OSINT (37), cloud audit (38), HackBrowser (39), darknet intelligence (66), DNS security (103), supply-chain analysis (7 composite tools / 90 techniques), MCP security scanning (55), steganography (128), and satellite/GEOINT (171). Optional owner-maintained entries add wireless security, LOLBin intelligence, and fingerprinting.
+| Server                                                                 | Tools | What It Adds                                                         |
+| ---------------------------------------------------------------------- | ----- | -------------------------------------------------------------------- |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38    | Cloud security audits — 60+ checks across AWS, Azure, GCP            |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39    | GitHub security posture — repo, org, actions, secrets, supply chain  |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23    | CVE intelligence — NVD, EPSS, CISA KEV, GitHub Advisory, OSV         |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37    | OSINT recon — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
+
+All open source. All installable with `npx`. Plug them into CyberStrike or use them standalone with any MCP-compatible client.
 
 ---
 
@@ -267,25 +271,6 @@ scoop install cyberstrike
 # Linux / macOS (curl)
 curl -fsSL https://cyberstrike.io/install.sh | bash
 ```
-
-#### Build and deploy on Kali/Linux from source
-
-Build the matching Linux binary and web bundle with the repository-pinned Bun version:
-
-```bash
-bun install --frozen-lockfile
-bun run --cwd packages/app build
-CYBERSTRIKE_BUILD_TARGET=linux-x64 bun run --cwd packages/cyberstrike script/build.ts
-./install --binary packages/cyberstrike/dist/cyberstrike-linux-x64/bin/cyberstrike
-
-install -d "${XDG_DATA_HOME:-$HOME/.local/share}/cyberstrike/web"
-cp -R packages/app/dist/. "${XDG_DATA_HOME:-$HOME/.local/share}/cyberstrike/web/"
-CYBERSTRIKE_SERVER_PASSWORD=change-me cyberstrike web --hostname 127.0.0.1
-```
-
-The installer also copies the sibling HackBrowser worker. Use `linux-x64-baseline` for x64 CPUs without AVX2 and a `*-musl` target for musl-based distributions.
-
-For a persistent localhost-only deployment, install [`contrib/systemd/cyberstrike-web.service`](../../contrib/systemd/cyberstrike-web.service), set `CYBERSTRIKE_SERVER_PASSWORD` in a mode `0600` `~/.config/cyberstrike/web.env`, and enable the unit with `systemctl --user enable --now cyberstrike-web.service`.
 
 ---
 

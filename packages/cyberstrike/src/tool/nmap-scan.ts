@@ -25,6 +25,23 @@ const profiles: Record<z.infer<typeof Profile>, string[]> = {
   comprehensive: ["-T4", "-sV", "-O", "-sC"],
 }
 
+const invocation = (input: {
+  binary: string
+  profile: z.infer<typeof Profile>
+  sudo?: string
+  platform?: NodeJS.Platform
+  uid?: number
+}) => {
+  const privileged = input.profile === "os" || input.profile === "comprehensive"
+  if (!privileged || input.platform === "win32" || input.uid === 0) {
+    return { argv: [input.binary], privileged }
+  }
+  if (!input.sudo) throw new Error("This Nmap profile requires root or passwordless sudo on this execution plane")
+  return { argv: [input.sudo, "-n", input.binary], privileged }
+}
+
+const scope = (target: string, privileged: boolean) => `${privileged ? "elevated" : "standard"}:${target}`
+
 export const NmapScanTool = Tool.define("nmap_scan", {
   description:
     "Run an authorized Nmap profile, stream progress, persist canonical XML, and update topology. This performs active network testing and always requires explicit target approval.",
@@ -38,16 +55,13 @@ export const NmapScanTool = Tool.define("nmap_scan", {
   async execute(params, ctx) {
     const binary = Bun.which("nmap")
     if (!binary) throw new Error("Nmap is not installed on this execution plane")
-    await ctx.ask({
-      permission: "nmap_scan",
-      patterns: [params.target],
-      always: [params.target],
-      metadata: {
-        profile: params.profile,
-        ports: params.ports,
-      },
+    const exec = invocation({
+      binary,
+      profile: params.profile,
+      sudo: Bun.which("sudo") ?? undefined,
+      platform: process.platform,
+      uid: typeof process.getuid === "function" ? process.getuid() : undefined,
     })
-
     const args = [
       ...profiles[params.profile],
       ...(params.ports ? ["-p", params.ports] : []),
@@ -57,8 +71,22 @@ export const NmapScanTool = Tool.define("nmap_scan", {
       "-",
       params.target,
     ]
-    const command = [binary, ...args].join(" ")
-    const proc = Bun.spawn([binary, ...args], {
+    const command = [...exec.argv, ...args].join(" ")
+    await ctx.ask({
+      permission: "nmap_scan",
+      patterns: [scope(params.target, exec.privileged)],
+      always: [scope(params.target, exec.privileged)],
+      metadata: {
+        target: params.target,
+        profile: params.profile,
+        ports: params.ports,
+        privileged: exec.privileged,
+        executor: exec.argv[0],
+        command,
+      },
+    })
+
+    const proc = Bun.spawn([...exec.argv, ...args], {
       stdout: "pipe",
       stderr: "pipe",
       env: process.env,
@@ -132,4 +160,6 @@ export const NmapScanParameters = {
   Target,
   Ports,
   Profile,
+  Invocation: invocation,
+  Scope: scope,
 }

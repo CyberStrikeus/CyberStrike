@@ -30,6 +30,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 - Release and local-binary installs now deploy the bundled HackBrowser worker to the runtime data directory
 - Web update checks now honor disabled auto-updates, avoiding false upgrade prompts for managed source builds
 - Hidden workbench panels no longer miss live changes or depend on visible-only polling; repeated session lifecycle events and reconnect gaps are recovered
+- Nmap permissions now identify active/elevated execution, privileged profiles use non-interactive sudo when required, and Topology explains why generic shell output is not graphable
 
 ## [1.1.16] — 2026-08-08
 

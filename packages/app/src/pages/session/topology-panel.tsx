@@ -63,6 +63,7 @@ export function TopologyPanel() {
   const [from, setFrom] = createSignal("")
   const [to, setTo] = createSignal("")
   const [importing, setImporting] = createSignal(false)
+  const [historySession, setHistorySession] = createSignal("")
   const [draft, setDraft] = createStore({ content: "", link: "", saving: false })
   const [scan, setScan] = createStore({
     target: "",
@@ -88,6 +89,7 @@ export function TopologyPanel() {
       setGraph(reconcile(topology.data))
       setNotes(reconcile(noteList.data ?? []))
       setScans(reconcile(history.data ?? []))
+      setHistorySession(sessionID)
       const available = history.data ?? []
       if (available.length >= 2 && (!available.some((scan) => scan.id === from()) || !available.some((scan) => scan.id === to()))) {
         setFrom(available.at(-2)!.id)
@@ -115,7 +117,11 @@ export function TopologyPanel() {
   }
 
   createEffect(() => {
-    params.id
+    const sessionID = params.id
+    setGraph(reconcile({ sessionID: sessionID ?? "", nodes: [], edges: [], time: 0 }))
+    setNotes(reconcile([]))
+    setScans(reconcile([]))
+    setHistorySession("")
     setFrom("")
     setTo("")
     setDiff(undefined)
@@ -170,7 +176,7 @@ export function TopologyPanel() {
   const prepareScan = () => {
     const target = scan.target.trim()
     if (!target) return
-    const value = `Run the built-in nmap_scan tool against the explicitly authorized target ${target} with the ${scan.profile} profile. Preview the exact command (${command()}), confirm scope and expected impact, and wait for my approval before starting. Persist the XML result into topology and compare it with prior scans.`
+    const value = `Run the built-in nmap_scan tool against the explicitly authorized target ${target} with the ${scan.profile} profile. Preview the planned Nmap arguments (${command()}); the approval card must show the resolved executor and exact command, including sudo when elevated. Confirm scope and expected impact, and wait for my approval before starting. Persist the XML result into topology and compare it with prior scans.`
     prompt.set([{ type: "text", content: value, start: 0, end: value.length }], value.length)
   }
 
@@ -420,6 +426,12 @@ export function TopologyPanel() {
               >
                 Prepare scan
               </button>
+            </div>
+          </Show>
+          <Show when={historySession() === params.id && scans.length === 0}>
+            <div class="px-2 pb-1.5 text-10-regular text-text-warning-base">
+              No managed Nmap evidence yet. Generic shell output cannot populate this graph; use Prepare scan or
+              Import XML so canonical results are saved to Topology.
             </div>
           </Show>
         </div>
