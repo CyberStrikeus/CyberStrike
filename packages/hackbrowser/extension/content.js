@@ -79,12 +79,16 @@
   const trans = transRoot.getElementById("trans")
   const msg = transRoot.getElementById("msg")
   let transTimer = null
-  function flashTransition(text, cls) {
+  function flashTransition(text, cls, color, ms) {
     msg.textContent = text
-    msg.className = "msg " + cls
+    msg.className = "msg " + (cls || "")
+    // Optional explicit color (role hue) — overrides the driver-class shadow; reset when
+    // absent so driver transitions keep their CSS styling.
+    msg.style.boxShadow = color ? `0 0 0 1px ${color}, 0 10px 40px -8px ${color}` : ""
+    msg.style.color = color || ""
     trans.classList.add("show")
     if (transTimer) clearTimeout(transTimer)
-    transTimer = setTimeout(() => trans.classList.remove("show"), 1400)
+    transTimer = setTimeout(() => trans.classList.remove("show"), ms || 1400)
   }
 
   // --- Role identity layer (Phase 2) ----------------------------------------
@@ -424,7 +428,7 @@
     const role = newRole.value.trim()
     if (!role) return
     roleHint.textContent = `opening “${role}” browser…`
-    const res = await chrome.runtime.sendMessage({ type: "spawn-role", role, url: location.origin })
+    const res = await chrome.runtime.sendMessage({ type: "spawn-role", role, url: location.href })
     if (res && res.ok) {
       roleHint.textContent = `“${role}” browser opened — log in there as ${role}.`
       newRole.value = ""
@@ -832,7 +836,18 @@
     history.replaceState(null, "", location.pathname + location.search || "/")
     // Set the shared session BEFORE the credential (which registers against it).
     if (sess) chrome.storage.local.set({ session: sess })
-    if (label) chrome.runtime.sendMessage({ type: "set-credential-label", label }, () => void chrome.runtime.lastError)
+    if (!label) return
+    // This is a spawned role browser (same scope, new identity). Register the credential,
+    // then auto-attach and start capturing on the shared session — no manual step — and
+    // flash a role-colored "capture started" line for ~1s.
+    chrome.runtime.sendMessage({ type: "set-credential-label", label }, () => {
+      void chrome.runtime.lastError
+      chrome.runtime.sendMessage({ type: "attach-self" }, (r) => {
+        void chrome.runtime.lastError
+        renderRole(label)
+        if (r && r.attached) flashTransition(`Session capture started — ${label}`, "", roleColor(label), 1200)
+      })
+    })
   }
 
   let lastUrl = location.href

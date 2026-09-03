@@ -31,6 +31,16 @@ async function currentSession() {
   return activeSession
 }
 
+// Same idea for the profile's credential: a spawned role browser auto-attaches and
+// captures immediately, before storage.onChanged has synced activeCredential — so the
+// first requests would go untagged. Read storage to tag them with the right role at once.
+async function currentCredential() {
+  if (activeCredential) return activeCredential
+  const c = await new Promise((r) => chrome.storage.local.get("credential", (o) => r(o && o.credential)))
+  if (c && c.id) activeCredential = c
+  return activeCredential
+}
+
 // Return the active session, creating one in CyberStrike if none is set yet. This is
 // the chicken-egg fix: the panel's Anonymous / Add-credential actions need a session
 // BEFORE any capture, so we create it up front (POST /session) instead of waiting for
@@ -186,7 +196,8 @@ async function forward(rec) {
   const payload = { text: raw, scheme }
   const sid = await currentSession()
   if (sid) payload.sessionID = sid
-  if (activeCredential) payload.credential_id = activeCredential.id
+  const cred = await currentCredential()
+  if (cred) payload.credential_id = cred.id
   if (rec.status > 0) {
     payload.response = { status: rec.status, headers: rec.responseHeaders || {}, body: rec.responseBody || "" }
   }
@@ -363,6 +374,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       sendResponse({ ok: true, attached: attached.has(tabId) })
       return
     }
+    // Idempotent attach — a spawned role browser calls this to start capturing on open
+    // (no toggle risk). Warm the session + credential from storage so the very first
+    // request is tagged with the right role and lands on the shared session.
+    if (msg.type === "attach-self") {
+      const tabId = sender.tab && sender.tab.id
+      if (tabId === undefined) {
+        sendResponse({ ok: false, attached: false })
+        return
+      }
+      await currentSession()
+      await currentCredential()
+      attach(tabId)
+      sendResponse({ ok: true, attached: true })
+      return
+    }
     if (msg.type === "set-driver") {
       const tabId = sender.tab && sender.tab.id
       if (tabId !== undefined) driverByTab.set(tabId, msg.driver === "human" ? "human" : "ai")
@@ -453,7 +479,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           .filter((e) => e.label)
         if (elements.length > 0) {
           const payload = { page_url: obs.url, elements }
-          if (activeCredential) payload.credential_id = activeCredential.id
+          const cred = await currentCredential()
+          if (cred) payload.credential_id = cred.id
           try {
             await fetch(`${base}/session/${sid}/web/observations`, {
               method: "POST",
