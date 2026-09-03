@@ -14,6 +14,17 @@ export namespace PageState {
     method: string
     fields: { name: string; type: string; required: boolean }[]
   }
+  // The page's structural map — landmarks/frames/description give the AI orientation
+  // ("what page am I on, where in the app") without re-reading the DOM.
+  export interface Landmark {
+    role: string // banner|navigation|main|complementary|contentinfo|search|form|dialog|region
+    label: string
+  }
+  export interface Frame {
+    src: string
+    same_origin: boolean
+    title: string
+  }
   export interface Observation {
     url: string
     title: string
@@ -21,6 +32,15 @@ export namespace PageState {
     forms: Form[]
     links: string[]
     driver?: "ai" | "human"
+    // --- rich page context (extension 2.0; all optional) ---
+    credential?: string // which identity observed this page — the access-control tag
+    description?: string // short human description of the page (h1 / meta / main sample)
+    location?: string[] // logical app-location trail: breadcrumb / active nav / path segments
+    landmarks?: Landmark[] // ARIA landmark map of the page
+    frames?: Frame[] // iframes present (same-origin ones are traversed into clickables)
+    canvas?: number // count of <canvas> — UIs we can flag but not introspect
+    dynamic?: boolean // page mutates after load (SPA / async content)
+    observed_at?: number // epoch ms of this observation
   }
 
   // session → (url → latest observation)
@@ -52,6 +72,15 @@ export namespace PageState {
     clickables: ClickableWithPolicy[]
     forms: Form[]
     links: string[]
+    // rich page context — passed straight through from the observation
+    credential?: string
+    description?: string
+    location?: string[]
+    landmarks?: Landmark[]
+    frames?: Frame[]
+    canvas?: number
+    dynamic?: boolean
+    observed_at?: number
   }
 
   // get_page_state: the observation for a URL, each clickable carrying its action policy.
@@ -67,6 +96,14 @@ export namespace PageState {
       clickables: chosen.map((c) => ({ ...c, policy: actionPolicy(c.kind) })),
       forms: obs.forms,
       links: obs.links,
+      credential: obs.credential,
+      description: obs.description,
+      location: obs.location,
+      landmarks: obs.landmarks,
+      frames: obs.frames,
+      canvas: obs.canvas,
+      dynamic: obs.dynamic,
+      observed_at: obs.observed_at,
     }
   }
 

@@ -47,6 +47,17 @@ export interface Clickable {
   label: string
   href: string
   kind?: ElementKind
+  // --- rich observation (extension 2.0). All optional so the thin {id,tag,role,label,href}
+  // wire still validates; classify only ever reads label/href/tag. This is what stops the AI
+  // struggling with the DOM: it sees WHY a node is interactive, its aria state, where it sits.
+  why?: string // why it counts as interactive: comma-joined of semantic|role|cursor|onclick|tabindex|contenteditable|listener
+  aria?: Record<string, string> // aria state the AI needs: expanded|haspopup|controls|checked|selected|current|disabled|label
+  disabled?: boolean // disabled attr or aria-disabled — present but not actionable
+  in_viewport?: boolean // currently within the viewport (vs. rendered but scrolled off)
+  section?: string // nearest landmark/heading path — where in the page this element sits
+  testid?: string // data-testid / data-test / data-cy — a stable handle the AI can reason about
+  shadow?: boolean // lives inside an (open) shadow root
+  frame?: string // iframe src when the element lives inside a frame (absent = top document)
 }
 
 // Annotate every clickable in place; returns a kind-count summary for logging.
