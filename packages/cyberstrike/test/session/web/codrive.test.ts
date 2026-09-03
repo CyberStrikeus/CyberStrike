@@ -17,7 +17,7 @@ beforeEach(() => {
 type Click = { id: string; tag: string; role: string; label: string; href: string }
 // A scripted site + a fake extension socket. Clicking a link (or navigating) moves the
 // "browser" to the target page and re-observes it, exactly like the real extension would.
-function browser(sid: string, site: Record<string, Click[]>, startUrl: string, visitLog?: string[]) {
+function browser(sid: string, site: Record<string, Click[]>, startUrl: string, visitLog?: string[], typed?: { id: string; text: string }[]) {
   let current = startUrl
   let clock = 1
   const observe = (url: string) => {
@@ -29,6 +29,7 @@ function browser(sid: string, site: Record<string, Click[]>, startUrl: string, v
     send(data: string) {
       const msg = JSON.parse(data)
       if (msg.op === "navigate" && msg.url) observe(msg.url)
+      else if (msg.op === "type") typed?.push({ id: msg.elementId, text: msg.text })
       else if (msg.op === "click") {
         const el = (site[current] ?? []).find((c) => c.id === msg.elementId)
         if (el && el.href) observe(new URL(el.href, current).href)
@@ -186,6 +187,39 @@ describe("WebCoDrive loop", () => {
     })
     await untilStopped(sid)
     for (const u of ["https://h/1", "https://h/2", "https://h/3"]) expect(Crawl.isPageVisited(sid, u)).toBe(true)
+  })
+
+  test("fills and submits a form during the crawl (human-safe: no login/logout)", async () => {
+    const sid = "s"
+    const typed: { id: string; text: string }[] = []
+    let clock = 1
+    const set = (url: string, clickables: Click[], forms: PageState.Observation["forms"]) =>
+      PageState.set(sid, { url, title: url, clickables, forms, links: [], observed_at: ++clock })
+    WebControl.connect(sid, {
+      send(data: string) {
+        const m = JSON.parse(data)
+        if (m.op === "type") typed.push({ id: m.elementId, text: m.text })
+        else if (m.op === "click" && m.elementId === "sub") set("https://h/results", [], []) // submit → results page
+        WebControl.onAck(JSON.stringify({ id: m.id, ok: true }))
+      },
+    })
+    // Field "Keyword" + submit "Go" both classify as `other` → NOT link candidates, so the only
+    // action on the page is the form (fill + submit).
+    set(
+      "https://h/a",
+      [
+        { id: "fld", tag: "input", role: "textbox", label: "Keyword", href: "" },
+        { id: "sub", tag: "button", role: "button", label: "Go", href: "" },
+      ],
+      [{ action: "/s", method: "get", fields: [{ id: "fld", name: "q", type: "search", required: false }], submit_id: "sub" }],
+    )
+
+    WebCoDrive.start(sid, fast)
+    await untilStopped(sid)
+
+    expect(typed).toContainEqual({ id: "fld", text: "test" }) // field filled with a benign value
+    expect(Crawl.isActed(sid, Crawl.actionKey("https://h/a", { role: "form", label: "Go", href: "/s" }))).toBe(true)
+    expect(Crawl.isPageVisited(sid, "https://h/results")).toBe(true) // submit navigated
   })
 
   test("start is idempotent (a second start does not stack a loop)", async () => {

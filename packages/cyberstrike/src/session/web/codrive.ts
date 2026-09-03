@@ -17,6 +17,7 @@ import { WebDriver } from "./driver"
 import { Crawl } from "./crawl"
 import { Rank } from "./rank"
 import { WebAct } from "./act"
+import { WebFormFill } from "./formfill"
 import { WebStrategy } from "./strategy"
 import { Provider } from "../../provider/provider"
 import { ProviderTransform } from "../../provider/transform"
@@ -171,19 +172,22 @@ export namespace WebCoDrive {
       })
   }
 
-  function autoAdvance(cands: Rank.Candidate[]): boolean {
-    if (cands.length === 1) return true
-    return cands[0].score - cands[1].score >= AUTO_MARGIN
-  }
-  // Human-like pick: choose randomly among the candidates within jitterBand of the top score,
-  // so exploration order isn't rigidly mechanical. Order changes, coverage does not (visited-
-  // tracking + frontier still reach every candidate).
-  function pickHumanized(cands: Rank.Candidate[], rng: () => number, band: number): Rank.Candidate {
-    const top = cands[0].score
-    const pool = cands.filter((c) => c.score >= top - band)
-    return pool[Math.floor(rng() * pool.length)] ?? cands[0]
+  // Human-like pick: choose randomly among the items within jitterBand of the top score, so
+  // exploration order isn't rigidly mechanical. Order changes, coverage does not (visited-
+  // tracking + frontier still reach everything). Generic over links AND forms.
+  function pickBand<T extends { score: number }>(items: T[], rng: () => number, band: number): T {
+    const top = items[0].score
+    const pool = items.filter((x) => x.score >= top - band)
+    return pool[Math.floor(rng() * pool.length)] ?? items[0]
   }
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+  // One thing the loop can do next: follow a link, or fill+submit a form.
+  type Action = { kind: "click"; cand: Rank.Candidate } | { kind: "form"; form: WebFormFill.FormCandidate }
+  // Statuses that mean "the whole loop should stop", not just "this action failed".
+  function stopStatus(s: WebAct.Status): boolean {
+    return s === "human-driving" || s === "no-extension" || s === "budget"
+  }
   function thinkTime(cfg: Cfg): number {
     if (!cfg.humanize) return 0
     const lo = Math.min(cfg.thinkMinMs, cfg.thinkMaxMs)
@@ -209,42 +213,85 @@ export namespace WebCoDrive {
       // MAIN-model strategy (sparingly cached) → business-logic priorities that bias ranking.
       const priorities = await cfg.strategist(sessionID, state).catch(() => [])
       if (!alive()) break
-      const cands = Rank.candidates(sessionID, state, priorities)
+      const clickCands = Rank.candidates(sessionID, state, priorities)
       // Remember every discovered target so a dead-end can backtrack to an unvisited page.
-      Crawl.discover(sessionID, cands.map((c) => c.targetUrl))
+      Crawl.discover(sessionID, clickCands.map((c) => c.targetUrl))
+      const formCands = WebFormFill.candidates(sessionID, state, priorities)
 
-      if (cands.length === 0) {
+      if (clickCands.length === 0 && formCands.length === 0) {
         // Nothing left on THIS page — jump to a discovered-but-unvisited page, else done.
         const next = Crawl.takeFrontier(sessionID)
-        if (!next) break // true coverage: no reachable page has unvisited nav/query left
+        if (!next) break // true coverage: no reachable page has unvisited link/form left
         const nav = await WebAct.perform(sessionID, { op: "navigate", url: next })
-        if (!nav.ok && (nav.status === "human-driving" || nav.status === "no-extension" || nav.status === "budget")) break
+        if (!nav.ok && stopStatus(nav.status)) break
         await settle(sessionID, state.url, cfg)
         continue
       }
 
-      // Clear pick → deterministic (humanized order); genuine ambiguity → planner (small model).
-      const chosen = autoAdvance(cands)
-        ? cfg.humanize
-          ? pickHumanized(cands, cfg.rng, cfg.jitterBand)
-          : cands[0]
-        : await cfg.planner.choose({ sessionID, state, candidates: cands })
-      if (!chosen) break
+      const action = await decide(sessionID, state, clickCands, formCands, cfg)
+      if (!action) break
       if (!alive()) break // driver may have flipped while the planner was thinking
       const pause = thinkTime(cfg) // human-ish think time before acting
       if (pause > 0) await sleep(pause)
       if (!alive()) break
-      const result = await WebAct.perform(sessionID, { op: "click", url: state.url, elementId: chosen.id })
+
+      if (action.kind === "form") {
+        if ((await executeForm(sessionID, state, action.form)) === "stop") break
+        await settle(sessionID, state.url, cfg)
+        continue
+      }
+
+      const result = await WebAct.perform(sessionID, { op: "click", url: state.url, elementId: action.cand.id })
       if (!result.ok) {
-        if (result.status === "human-driving" || result.status === "no-extension" || result.status === "budget") break
+        if (stopStatus(result.status)) break
         // denied/confirm won't appear (rank excludes them); unknown/relay-failed = stale DOM.
         // Record the key so this candidate can't be re-picked → the candidate set strictly
         // shrinks → the loop always makes progress and terminates.
-        Crawl.record(sessionID, chosen.actionKey)
+        Crawl.record(sessionID, action.cand.actionKey)
         continue
       }
       await settle(sessionID, state.url, cfg)
     }
+  }
+
+  // Pick the next action across links AND forms. Genuine link-only ambiguity → the (small-model)
+  // planner; otherwise deterministic, humanized order over the merged, score-sorted set.
+  async function decide(
+    sessionID: string,
+    state: PageState.StatePayload,
+    clickCands: Rank.Candidate[],
+    formCands: WebFormFill.FormCandidate[],
+    cfg: Cfg,
+  ): Promise<Action | null> {
+    const merged: { score: number; action: Action }[] = [
+      ...clickCands.map((c) => ({ score: c.score, action: { kind: "click", cand: c } as Action })),
+      ...formCands.map((f) => ({ score: f.score, action: { kind: "form", form: f } as Action })),
+    ].sort((a, b) => b.score - a.score)
+    if (merged.length === 0) return null
+
+    const clickAmbiguous = clickCands.length >= 2 && clickCands[0].score - clickCands[1].score < AUTO_MARGIN
+    if (merged[0].action.kind === "click" && clickAmbiguous && formCands.length === 0) {
+      const c = await cfg.planner.choose({ sessionID, state, candidates: clickCands })
+      return c ? { kind: "click", cand: c } : null
+    }
+    return (cfg.humanize ? pickBand(merged, cfg.rng, cfg.jitterBand) : merged[0]).action
+  }
+
+  // Fill a form's typeable fields (human-like keystrokes via WebAct) then click submit — which
+  // is guarded like any action (destructive→confirm, logout→deny already excluded by formfill).
+  // Returns "stop" only when the whole loop should end. The form is recorded either way so it
+  // is not refilled.
+  async function executeForm(sessionID: string, state: PageState.StatePayload, form: WebFormFill.FormCandidate): Promise<"ok" | "stop"> {
+    for (const fill of form.fills) {
+      if (WebDriver.isHuman(sessionID)) return "stop"
+      const r = await WebAct.perform(sessionID, { op: "type", url: state.url, elementId: fill.id, text: fill.value })
+      if (!r.ok && stopStatus(r.status)) return "stop"
+      // a single field failing (stale id) is non-fatal — keep filling the rest.
+    }
+    const submit = await WebAct.perform(sessionID, { op: "click", url: state.url, elementId: form.submitId })
+    Crawl.record(sessionID, form.actionKey) // don't refill this form, even if submit was blocked
+    if (!submit.ok && stopStatus(submit.status)) return "stop"
+    return "ok"
   }
 
   // Wait (briefly) for the extension to push a fresh observation after an action, so the next
