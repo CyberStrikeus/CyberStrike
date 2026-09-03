@@ -18,6 +18,7 @@ import { Crawl } from "./crawl"
 import { Rank } from "./rank"
 import { WebAct } from "./act"
 import { WebFormFill } from "./formfill"
+import { Unexplored } from "./unexplored"
 import { WebStrategy } from "./strategy"
 import { Provider } from "../../provider/provider"
 import { ProviderTransform } from "../../provider/transform"
@@ -219,9 +220,26 @@ export namespace WebCoDrive {
       const formCands = WebFormFill.candidates(sessionID, state, priorities)
 
       if (clickCands.length === 0 && formCands.length === 0) {
-        // Nothing left on THIS page — jump to a discovered-but-unvisited page, else done.
+        // U1: before leaving a page, try an opener the deterministic ranker deliberately
+        // skipped (custom menu/tab/accordion) — it may reveal links/forms behind it.
+        const exp = Unexplored.expanders(sessionID, state)
+        if (exp.length > 0) {
+          const pick = cfg.humanize ? pickBand(exp, cfg.rng, cfg.jitterBand) : exp[0]
+          const pause = thinkTime(cfg)
+          if (pause > 0) await sleep(pause)
+          if (!alive()) break
+          const r = await WebAct.perform(sessionID, { op: "click", url: state.url, elementId: pick.id })
+          if (!r.ok) {
+            if (stopStatus(r.status)) break
+            Crawl.record(sessionID, pick.actionKey) // tried → don't re-pick (guarantees progress)
+            continue
+          }
+          await settle(sessionID, state.url, cfg)
+          continue
+        }
+        // Dead end — jump to a discovered-but-unvisited page, else done.
         const next = Crawl.takeFrontier(sessionID)
-        if (!next) break // true coverage: no reachable page has unvisited link/form left
+        if (!next) break // true coverage: no reachable page has unvisited link/form/opener left
         const nav = await WebAct.perform(sessionID, { op: "navigate", url: next })
         if (!nav.ok && stopStatus(nav.status)) break
         await settle(sessionID, state.url, cfg)

@@ -222,6 +222,43 @@ describe("WebCoDrive loop", () => {
     expect(Crawl.isPageVisited(sid, "https://h/results")).toBe(true) // submit navigated
   })
 
+  test("U1: clicks an opener the ranker skipped, revealing a link it then follows", async () => {
+    const sid = "s"
+    const clicked: string[] = []
+    let clock = 1
+    const set = (url: string, clickables: Click[]) =>
+      PageState.set(sid, { url, title: url, clickables, forms: [], links: [], observed_at: ++clock })
+    const menu = { id: "menu", tag: "div", role: "button", label: "Menu", href: "" }
+    const deep = { id: "deep", tag: "a", role: "link", label: "Deep", href: "/deep" }
+    WebControl.connect(sid, {
+      send(data: string) {
+        const m = JSON.parse(data)
+        if (m.op === "click") {
+          clicked.push(m.elementId)
+          if (m.elementId === "menu") set("https://h/a", [menu, deep]) // opener reveals a link (same url)
+          else if (m.elementId === "deep") set("https://h/deep", []) // the revealed link navigates
+        }
+        WebControl.onAck(JSON.stringify({ id: m.id, ok: true }))
+      },
+    })
+    // Initially the page has ONLY the opener (kind other + aria-haspopup) — no nav/query/form,
+    // so the deterministic loop would dead-end without U1.
+    PageState.set(sid, {
+      url: "https://h/a",
+      title: "a",
+      clickables: [{ ...menu, aria: { haspopup: "menu" } }],
+      forms: [],
+      links: [],
+      observed_at: ++clock,
+    })
+
+    WebCoDrive.start(sid, fast)
+    await untilStopped(sid)
+
+    expect(clicked).toContain("menu") // the opener was tried
+    expect(Crawl.isPageVisited(sid, "https://h/deep")).toBe(true) // and it unlocked new content
+  })
+
   test("start is idempotent (a second start does not stack a loop)", async () => {
     const sid = "s"
     browser(sid, { "https://h/a": [{ id: "E0", tag: "a", role: "link", label: "B", href: "/b" }], "https://h/b": [] }, "https://h/a")
