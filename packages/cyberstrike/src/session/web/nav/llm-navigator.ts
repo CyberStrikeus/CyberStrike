@@ -19,6 +19,7 @@ import { WebScope } from "../scope"
 import { WebStrategy } from "../strategy"
 import { WebFormFill } from "../formfill"
 import { FrameworkFingerprinter } from "../tech"
+import { DataCollector } from "../data-collector"
 import { HBLog } from "../hblog"
 import { Provider } from "../../../provider/provider"
 import { ProviderTransform } from "../../../provider/transform"
@@ -112,12 +113,39 @@ export function clickPool(sessionID: string, snapshot: PageSnapshot, cap = CLICK
     .slice(0, cap)
 }
 
+// Server-side fingerprint from the collected response headers/cookies, or undefined when nothing
+// server-identifying was seen yet. Merged with the extension's client-side fingerprint so the AI
+// sees the FULL stack (client framework + backend) — resolves the P2 server-signal seam.
+function serverTech(collected: DataCollector.CollectedData) {
+  const { headers, cookies } = collected.server
+  if (Object.keys(headers).length === 0 && cookies.length === 0) return undefined
+  return FrameworkFingerprinter.detect({ headers, cookies })
+}
+
 // Rich per-page context so the MAIN model reasons about the app, not a flat list: what the page
 // is, where in the app, its structure, its framework (how navigation behaves), the focus areas,
-// coverage so far, the safe forms (by index) and every safe interactive element (by id).
-export function buildContext(sessionID: string, snapshot: PageSnapshot, picks: LlmNavigator.Pick[], forms: WebFormFill.FormCandidate[]): string {
+// coverage so far, routes already seen in traffic, the safe forms (by index) and every safe
+// interactive element (by id).
+export function buildContext(
+  sessionID: string,
+  snapshot: PageSnapshot,
+  picks: LlmNavigator.Pick[],
+  forms: WebFormFill.FormCandidate[],
+  collected: DataCollector.CollectedData,
+): string {
   const priorities = WebStrategy.get(sessionID)?.priorities ?? []
   const cov = Crawl.summary(sessionID)
+  const tech = FrameworkFingerprinter.merge(snapshot.tech, serverTech(collected))
+  // Routes the app served but the crawl has NOT loaded yet — strong "go here next" hints. API
+  // endpoints seen give the model the app's surface (e.g. an /api/admin hints at an admin UI).
+  const unvisited = collected.endpoints
+    .filter((e) => e.kind === "html" && !Crawl.isPageVisited(sessionID, e.origin + e.path))
+    .map((e) => e.origin + e.path)
+    .slice(0, 15)
+  const apis = collected.endpoints
+    .filter((e) => e.kind === "api")
+    .map((e) => `${e.method} ${e.path}`)
+    .slice(0, 10)
   const formLines = forms.map((f, i) => {
     const fields = f.fills.map((x) => x.id).filter(Boolean).slice(0, 8)
     return `  [${i}] "${f.label}"${fields.length ? ` fills: ${fields.join(", ")}` : ""}`
@@ -133,13 +161,15 @@ export function buildContext(sessionID: string, snapshot: PageSnapshot, picks: L
   return [
     `URL: ${snapshot.url}`,
     snapshot.description ? `Page: ${snapshot.description}` : "",
-    snapshot.tech ? `Tech: ${FrameworkFingerprinter.describe(snapshot.tech)}` : "",
+    tech ? `Tech: ${FrameworkFingerprinter.describe(tech)}` : "",
     snapshot.location && snapshot.location.length ? `Location: ${snapshot.location.join(" > ")}` : "",
     snapshot.landmarks && snapshot.landmarks.length
       ? `Structure: ${snapshot.landmarks.map((l) => `${l.role}${l.label ? `(${l.label})` : ""}`).join(", ")}`
       : "",
     priorities.length ? `Focus areas (app priorities): ${priorities.join(", ")}` : "",
     `Coverage so far: ${cov.pages_visited} pages explored, ${cov.actions} actions used.`,
+    unvisited.length ? `Routes seen in traffic, not yet visited (navigate to reach them): ${unvisited.join(", ")}` : "",
+    apis.length ? `API endpoints seen (the app's surface): ${apis.join(", ")}` : "",
     forms.length ? `Forms (choose by form_index):\n${formLines.join("\n")}` : "",
     picks.length ? `Interactive elements (choose by element_id):\n${elLines.join("\n")}` : "",
   ]
@@ -258,7 +288,7 @@ export class LlmNavigator implements Navigator {
 
     let raw: LlmNavigator.RawPlan | null = null
     try {
-      raw = await this.ask({ system: SYSTEM, user: buildContext(sessionID, snapshot, picks, forms) })
+      raw = await this.ask({ system: SYSTEM, user: buildContext(sessionID, snapshot, picks, forms, DataCollector.latest(sessionID)) })
     } catch (e) {
       log.debug("LlmNavigator ask failed → deterministic", { err: String(e) })
       return this.fallback.plan(sessionID, snapshot)

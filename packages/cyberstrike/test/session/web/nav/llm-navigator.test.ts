@@ -6,6 +6,7 @@ import { Crawl } from "../../../../src/session/web/crawl"
 import { WebScope } from "../../../../src/session/web/scope"
 import { WebStrategy } from "../../../../src/session/web/strategy"
 import { Effect } from "../../../../src/session/web/effect"
+import { DataCollector } from "../../../../src/session/web/data-collector"
 
 beforeEach(() => {
   PageState._reset()
@@ -13,6 +14,7 @@ beforeEach(() => {
   WebScope._reset()
   WebStrategy._reset()
   Effect._reset()
+  DataCollector._reset()
 })
 
 type Click = PageState.Observation["clickables"][number]
@@ -139,12 +141,20 @@ describe("buildContext — the rich model prompt", () => {
     )
     snap.tech = { client: ["React"], server: [], rendering: "spa", signals: [] }
     await seedStrategy(sid, snap, ["accounts"])
+    // Traffic collected for this session feeds routes + server-side tech into the prompt.
+    DataCollector.record(sid, { method: "GET", origin: "https://h.test", path: "/admin", contentType: "text/html" })
+    DataCollector.record(sid, { method: "POST", origin: "https://h.test", path: "/api/transfer", contentType: "application/json" })
+    DataCollector.record(sid, { method: "GET", origin: "https://h.test", path: "/", headers: { "x-powered-by": "PHP/8.2.0" } })
     const picks = clickPool(sid, snap)
     const forms = WebFormFill.candidates(sid, snap)
-    const ctx = buildContext(sid, snap, picks, forms)
+    const ctx = buildContext(sid, snap, picks, forms, DataCollector.latest(sid))
     expect(ctx).toContain("Tech:")
-    expect(ctx).toContain("React")
+    expect(ctx).toContain("React") // client fingerprint
+    expect(ctx).toContain("PHP") // merged server fingerprint (P2 seam)
     expect(ctx).toContain("Focus areas")
+    expect(ctx).toContain("Routes seen in traffic, not yet visited")
+    expect(ctx).toContain("/admin")
+    expect(ctx).toContain("API endpoints seen")
     expect(ctx).toContain("Forms (choose by form_index)")
     expect(ctx).toContain("Interactive elements")
     expect(ctx).toContain("n1")
