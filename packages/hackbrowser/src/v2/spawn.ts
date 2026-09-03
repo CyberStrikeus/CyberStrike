@@ -98,8 +98,17 @@ export function buildProfileArgs(spec: ProfileSpec): BuiltProfile {
   const extPath = spec.extPath ?? defaultExtensionPath()
   if (!existsSync(join(extPath, "manifest.json"))) throw new Error(`extension not found at ${extPath} (no manifest.json)`)
 
-  const profileId = spec.cred || "default"
-  const profileDir = spec.profileDir ?? join(tmpdir(), `hb2-profile-${profileId}`)
+  // Scope the profile dir to the SESSION so every /hackbrowser run gets a FRESH profile. This
+  // is the reliable fix for stale MV3 service workers: --load-extension refreshes content
+  // scripts and even bumps the version, but Chrome keeps serving the SW cached in a persistent
+  // profile — so background.js edits (ingest, control WS, driver) silently don't run. A fresh
+  // profile has no cached SW → Chrome registers it from disk. Role browsers already start at a
+  // login screen each run, and the orchestrator is anonymous, so nothing relies on cross-run
+  // profile state. Within a run the dir is stable (same session), so a role's login persists.
+  const sane = (s: string) => (s || "").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 48)
+  const profileId = sane(spec.cred || "default")
+  const scope = spec.session ? `${sane(spec.session)}-` : ""
+  const profileDir = spec.profileDir ?? join(tmpdir(), `hb2-profile-${scope}${profileId}`)
 
   const hashParts: string[] = []
   if (spec.cred) hashParts.push(`__cs_cred=${encodeURIComponent(spec.cred)}`)

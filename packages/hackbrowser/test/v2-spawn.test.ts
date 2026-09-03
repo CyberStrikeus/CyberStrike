@@ -34,6 +34,14 @@ describe("buildProfileArgs", () => {
     expect(base({ cred: "admin" }).profileDir).toEndWith("hb2-profile-admin")
     expect(base().profileDir).toEndWith("hb2-profile-default")
   })
+  test("profileDir is scoped to the session (fresh profile per run → fresh service worker)", () => {
+    expect(base({ cred: "admin", session: "ses_1" }).profileDir).toEndWith("hb2-profile-ses_1-admin")
+    expect(base({ session: "ses_1" }).profileDir).toEndWith("hb2-profile-ses_1-default")
+    // a different session ⇒ a different profile dir
+    expect(base({ session: "ses_1" }).profileDir).not.toBe(base({ session: "ses_2" }).profileDir)
+    // special chars in the label are sanitized for the filesystem
+    expect(base({ cred: "role with space", session: "s" }).profileDir).toEndWith("hb2-profile-s-role_with_space")
+  })
   test("distinct creds → distinct profile dirs (separate cookie jars)", () => {
     expect(base({ cred: "admin" }).profileDir).not.toBe(base({ cred: "user" }).profileDir)
   })
