@@ -117,8 +117,9 @@ export function buildProfileArgs(spec: ProfileSpec): BuiltProfile {
   return { browser, args, profileDir }
 }
 
-export function spawnProfile(spec: ProfileSpec): { profileDir: string; pid: number } {
+export function spawnProfile(spec: ProfileSpec): { profileDir: string; pid: number; proc: ReturnType<typeof Bun.spawn> } {
   const built = buildProfileArgs(spec)
   const proc = Bun.spawn([built.browser, ...built.args], { stdout: "ignore", stderr: "ignore" })
-  return { profileDir: built.profileDir, pid: proc.pid }
+  // proc is returned so the caller (CyberStrike) can track and later close the browser.
+  return { profileDir: built.profileDir, pid: proc.pid, proc }
 }

@@ -25,6 +25,7 @@ import { WebObject } from "../../session/web/web-object"
 import { WebFunction } from "../../session/web/web-function"
 import { WebRetest } from "../../session/web/web-retest"
 import { UiObservation } from "../../session/web/ui-observation"
+import { SpawnedProfiles } from "../../session/web/spawned-profiles"
 import { Agent } from "../../agent/agent"
 import { Provider } from "../../provider/provider"
 import { Snapshot } from "@/snapshot"
@@ -925,10 +926,53 @@ export const SessionRoutes = lazy(() =>
             session: sessionID,
             headless: body.headless,
           })
-          return c.json(result)
+          // Track the child so it can be closed with the assessment (the proc handle is
+          // not serializable — return only the plain fields).
+          SpawnedProfiles.track(sessionID, result.proc)
+          return c.json({ profileDir: result.profileDir, pid: result.pid })
         } catch (e) {
           return c.json({ error: e instanceof Error ? e.message : String(e) }, 500)
         }
+      },
+    )
+    .get(
+      "/:sessionID/web/spawned-count",
+      describeRoute({
+        summary: "Count spawned role browsers",
+        description: "How many spawned role browsers are still tracked for this session — the branded panel uses it to decide whether to confirm closing them on detach.",
+        operationId: "session.spawnedProfileCount",
+        responses: {
+          200: {
+            description: "Count",
+            content: { "application/json": { schema: resolver(z.object({ count: z.number() })) } },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      async (c) => c.json({ count: SpawnedProfiles.count(c.req.valid("param").sessionID) }),
+    )
+    .post(
+      "/:sessionID/web/close-profiles",
+      describeRoute({
+        summary: "Close spawned role browsers",
+        description:
+          "Close every browser profile CyberStrike spawned for this session (the 'Add credential' role browsers). A short delay first lets their last captures flush. Returns how many were closed.",
+        operationId: "session.closeWebProfiles",
+        responses: {
+          200: {
+            description: "Count closed",
+            content: { "application/json": { schema: resolver(z.object({ closed: z.number() })) } },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        // Flush window: let the spawned browsers' in-flight captures land before we kill.
+        await new Promise((r) => setTimeout(r, 800))
+        return c.json({ closed: SpawnedProfiles.closeAll(sessionID) })
       },
     )
     .delete(
