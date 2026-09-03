@@ -8,6 +8,7 @@
 // skipped here on purpose (too noisy without effect-tracking, which is U2).
 import { PageState } from "./page-state"
 import { Crawl } from "./crawl"
+import { Effect } from "./effect"
 
 export namespace Unexplored {
   const EXPANDER_ROLES: ReadonlySet<string> = new Set([
@@ -32,7 +33,8 @@ export namespace Unexplored {
       if (c.kind !== "other") continue // nav/query/forms handled elsewhere; auth/logout/destructive never here
       if (c.policy !== "allow") continue
       const key = Crawl.actionKey(state.url, c)
-      if (Crawl.isActed(sessionID, key)) continue
+      // Acted excludes it — UNLESS effect-tracking still finds it productive (a paginated opener).
+      if (Crawl.isActed(sessionID, key) && !Effect.eligible(sessionID, key)) continue
       if (seen.has(key)) continue
       const aria = c.aria ?? {}
       const why = c.why ?? ""

@@ -5,6 +5,7 @@ import { WebControl } from "../../../src/session/web/control"
 import { WebDriver } from "../../../src/session/web/driver"
 import { Crawl } from "../../../src/session/web/crawl"
 import { Rank } from "../../../src/session/web/rank"
+import { Effect } from "../../../src/session/web/effect"
 
 beforeEach(() => {
   PageState._reset()
@@ -12,6 +13,7 @@ beforeEach(() => {
   WebDriver._reset()
   Crawl._reset()
   WebCoDrive._reset()
+  Effect._reset()
 })
 
 type Click = { id: string; tag: string; role: string; label: string; href: string }
@@ -257,6 +259,45 @@ describe("WebCoDrive loop", () => {
 
     expect(clicked).toContain("menu") // the opener was tried
     expect(Crawl.isPageVisited(sid, "https://h/deep")).toBe(true) // and it unlocked new content
+  })
+
+  test("U2: re-clicks a productive 'Load more' until it stops revealing content", async () => {
+    const sid = "s"
+    const clicked: string[] = []
+    let clock = 1
+    let loaded = 0
+    const MAX = 3
+    // Page = a "Load more" opener (other + listener signal) + `loaded` inert rows. The rows are
+    // signalless `other` → never candidates; they only inflate the clickable count, which is the
+    // "productive" signal. So the only action is Load more, re-clicked while it keeps adding rows.
+    const build = (): Click[] => {
+      const rows: Click[] = []
+      for (let k = 0; k < loaded; k++) rows.push({ id: `row${k}`, tag: "div", role: "generic", label: `Row ${k}`, href: "" })
+      return [{ id: "more", tag: "button", role: "button", label: "Load more", href: "", why: "listener" } as Click, ...rows]
+    }
+    const observe = () => PageState.set(sid, { url: "https://h/a", title: "a", clickables: build(), forms: [], links: [], observed_at: ++clock })
+    WebControl.connect(sid, {
+      send(data: string) {
+        const m = JSON.parse(data)
+        if (m.op === "click") {
+          clicked.push(m.elementId)
+          if (m.elementId === "more") {
+            if (loaded < MAX) loaded++ // reveals a new row up to MAX, then nothing
+            observe()
+          }
+        }
+        WebControl.onAck(JSON.stringify({ id: m.id, ok: true }))
+      },
+    })
+    observe()
+
+    WebCoDrive.start(sid, fast)
+    await untilStopped(sid)
+
+    const moreClicks = clicked.filter((x) => x === "more").length
+    expect(loaded).toBe(MAX) // it paginated all the way
+    // MAX productive clicks + exactly one final click that revealed nothing (→ dead → stop).
+    expect(moreClicks).toBe(MAX + 1)
   })
 
   test("start is idempotent (a second start does not stack a loop)", async () => {

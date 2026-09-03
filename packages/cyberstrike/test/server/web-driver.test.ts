@@ -6,6 +6,7 @@ import { WebControl } from "../../src/session/web/control"
 import { WebCoDrive } from "../../src/session/web/codrive"
 import { PageState } from "../../src/session/web/page-state"
 import { Crawl } from "../../src/session/web/crawl"
+import { Effect } from "../../src/session/web/effect"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
 
@@ -19,6 +20,7 @@ async function withApp(fn: (app: Hono) => Promise<void>) {
       WebCoDrive._reset()
       PageState._reset()
       Crawl._reset()
+      Effect._reset()
       await fn(new Hono().route("/session", SessionRoutes()))
     },
   })

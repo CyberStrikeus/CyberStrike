@@ -19,6 +19,7 @@ import { Rank } from "./rank"
 import { WebAct } from "./act"
 import { WebFormFill } from "./formfill"
 import { Unexplored } from "./unexplored"
+import { Effect } from "./effect"
 import { WebStrategy } from "./strategy"
 import { Provider } from "../../provider/provider"
 import { ProviderTransform } from "../../provider/transform"
@@ -228,13 +229,7 @@ export namespace WebCoDrive {
           const pause = thinkTime(cfg)
           if (pause > 0) await sleep(pause)
           if (!alive()) break
-          const r = await WebAct.perform(sessionID, { op: "click", url: state.url, elementId: pick.id })
-          if (!r.ok) {
-            if (stopStatus(r.status)) break
-            Crawl.record(sessionID, pick.actionKey) // tried → don't re-pick (guarantees progress)
-            continue
-          }
-          await settle(sessionID, state.url, cfg)
+          if ((await clickAndLearn(sessionID, state, pick.actionKey, pick.id, cfg)) === "stop") break
           continue
         }
         // Dead end — jump to a discovered-but-unvisited page, else done.
@@ -259,17 +254,29 @@ export namespace WebCoDrive {
         continue
       }
 
-      const result = await WebAct.perform(sessionID, { op: "click", url: state.url, elementId: action.cand.id })
-      if (!result.ok) {
-        if (stopStatus(result.status)) break
-        // denied/confirm won't appear (rank excludes them); unknown/relay-failed = stale DOM.
-        // Record the key so this candidate can't be re-picked → the candidate set strictly
-        // shrinks → the loop always makes progress and terminates.
-        Crawl.record(sessionID, action.cand.actionKey)
-        continue
-      }
-      await settle(sessionID, state.url, cfg)
+      if ((await clickAndLearn(sessionID, state, action.cand.actionKey, action.cand.id, cfg)) === "stop") break
     }
+  }
+
+  // Click an element, wait for the page to settle, and record what it DID (U2 effect-tracking):
+  // productive = it revealed new content IN PLACE (same url, more clickables), the Load-more /
+  // expander signal that earns a re-admission; a navigation or a no-op does not. A failed click
+  // is recorded so the loop can't spin on it. Shared by the link and opener branches (DRY).
+  async function clickAndLearn(sessionID: string, state: PageState.StatePayload, key: string, elementId: string, cfg: Cfg): Promise<"stop" | "done"> {
+    const beforeUrl = state.url
+    const beforeCount = state.clickables.length
+    const r = await WebAct.perform(sessionID, { op: "click", url: beforeUrl, elementId })
+    if (!r.ok) {
+      if (stopStatus(r.status)) return "stop"
+      Crawl.record(sessionID, key) // stale/unknown → exclude so the loop makes progress
+      Effect.onClick(sessionID, key, false)
+      return "done"
+    }
+    await settle(sessionID, beforeUrl, cfg)
+    const after = PageState.current(sessionID)
+    const productive = !!after && after.url === beforeUrl && after.clickables.length > beforeCount
+    Effect.onClick(sessionID, key, productive) // WebAct already marked it acted; this re-admits if productive
+    return "done"
   }
 
   // Pick the next action across links AND forms. Genuine link-only ambiguity → the (small-model)

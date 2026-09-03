@@ -5,6 +5,7 @@
 // (no LLM call) or hands this shortlist to the planner. Pure — fully testable.
 import { PageState } from "./page-state"
 import { Crawl } from "./crawl"
+import { Effect } from "./effect"
 
 export namespace Rank {
   // Only navigation/lookup elements are auto-drivable. mutating/auth/destructive/logout are
@@ -50,7 +51,8 @@ export namespace Rank {
       if (c.policy !== "allow") continue
       if (!c.kind || !NAVIGABLE.has(c.kind)) continue
       const key = Crawl.actionKey(state.url, c)
-      if (Crawl.isActed(sessionID, key)) continue
+      // Acted excludes it — UNLESS effect-tracking found it productive (Load-more/paginator).
+      if (Crawl.isActed(sessionID, key) && !Effect.eligible(sessionID, key)) continue
       if (seen.has(key)) continue
       seen.add(key)
       const target = resolve(c.href, state.url)
