@@ -10,6 +10,7 @@ import { WebControl } from "./control"
 import { WebDriver } from "./driver"
 import { Crawl } from "./crawl"
 import { actionPolicy } from "./guard"
+import { ExecStrategy } from "./exec-strategy"
 import type { ElementKind } from "./classify"
 
 export namespace WebAct {
@@ -18,6 +19,7 @@ export namespace WebAct {
     url?: string
     elementId?: string
     text?: string
+    typeMode?: ExecStrategy.TypeMode // override; default is derived from the page's framework (P5)
   }
   export type Status =
     | "ok"
@@ -93,9 +95,13 @@ export namespace WebAct {
 
     const key = Crawl.actionKey(url, el)
     const repeat = Crawl.isActed(sessionID, key)
+    // Framework-adaptive type (P5, §6.4): the extension needs to know whether to use the native
+    // value-setter bypass (React/Vue/Angular controlled inputs). Derived from the page's tech
+    // fingerprint here — one source — unless the caller overrides it.
+    const typeMode = input.typeMode ?? ExecStrategy.forTech(PageState.get(sessionID, url)?.tech).typeMode
     const cmd =
       input.op === "type"
-        ? { op: "type", elementId: input.elementId, text: input.text ?? "" }
+        ? { op: "type", elementId: input.elementId, text: input.text ?? "", mode: typeMode }
         : { op: "click", elementId: input.elementId }
     // Human-like typing runs a keystroke-per-char sequence in the extension, which can take
     // well over the default 5s for long values — give type a generous ceiling so a completed

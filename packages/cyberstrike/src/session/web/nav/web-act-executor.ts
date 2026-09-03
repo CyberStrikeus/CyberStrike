@@ -5,17 +5,24 @@
 import type { Executor, Action, ActionResult, PageSnapshot } from "./types"
 import { snapshotSignature } from "./types"
 import { WebAct } from "../act"
+import { WebControl } from "../control"
 import { WebFormFill } from "../formfill"
 import { PageState } from "../page-state"
 import { Crawl } from "../crawl"
+import { ExecStrategy } from "../exec-strategy"
 
 const STOP_STATUSES = new Set(["human-driving", "no-extension", "budget"])
+const DEFAULT_HYDRATE_MS = 4000
 
 export class WebActExecutor implements Executor {
-  constructor(private readonly cfg: { settleMs: number; pollMs: number }) {}
+  private readonly hydrated = new Set<string>() // `${sessionID}\n${url}` already hydration-waited
+  constructor(private readonly cfg: { settleMs: number; pollMs: number; hydrateMs?: number }) {}
 
   async run(sessionID: string, action: Action, before: PageSnapshot): Promise<ActionResult> {
     if (action.kind === "done") return { ok: true, status: "done", effect: "noop" }
+    // Framework-adaptive (P5, §6.4): before acting on a meta-framework page, wait for hydration —
+    // its SSR HTML is inert until JS hydrates. navigate loads a NEW page, so it is exempt.
+    if (action.kind !== "navigate") await this.ensureHydrated(sessionID, before)
     const beforeSig = snapshotSignature(before)
 
     if (action.kind === "navigate") {
@@ -50,6 +57,18 @@ export class WebActExecutor implements Executor {
     const submit = await WebAct.perform(sessionID, { op: "click", url, elementId: form.submitId })
     Crawl.record(sessionID, form.actionKey)
     return !submit.ok && STOP_STATUSES.has(submit.status) ? "stop" : "ok"
+  }
+
+  // Best-effort hydration wait for meta-framework pages, ONCE per page url. A browser that doesn't
+  // understand the op, or a timeout, just proceeds — acting slightly early is recoverable (the
+  // material-change re-plan catches the post-hydration DOM). Never throws.
+  private async ensureHydrated(sessionID: string, snapshot: PageSnapshot): Promise<void> {
+    if (!ExecStrategy.forTech(snapshot.tech).waitHydrated) return
+    const key = `${sessionID}\n${snapshot.url}`
+    if (this.hydrated.has(key)) return
+    this.hydrated.add(key)
+    const ms = this.cfg.hydrateMs ?? DEFAULT_HYDRATE_MS
+    await WebControl.send(sessionID, { op: "wait", until: "hydrated", timeoutMs: ms }, ms + 500).catch(() => {})
   }
 
   private async settleAndEffect(sessionID: string, prevUrl: string, beforeSig: string, status: string): Promise<ActionResult> {
