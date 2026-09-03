@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test"
-import { buildProfileArgs, defaultExtensionPath } from "../src/v2/spawn.ts"
+import { buildProfileArgs, defaultExtensionPath, stageExtension } from "../src/v2/spawn.ts"
+import { mkdtempSync, writeFileSync, readFileSync, utimesSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
 // Real extension dir (has manifest.json); a fake browser path so we never depend on an
 // installed browser and never actually spawn.
@@ -67,5 +70,29 @@ describe("buildProfileArgs", () => {
     expect(() => buildProfileArgs({ url: "https://x", extPath: EXT, browser: "" })).toThrow(
       /no extension-capable browser/,
     )
+  })
+})
+
+describe("stageExtension (MV3 SW-cache fix)", () => {
+  test("stages a copy with a monotonic version derived from file mtime", () => {
+    const src = mkdtempSync(join(tmpdir(), "hb2-src-"))
+    const out = join(mkdtempSync(join(tmpdir(), "hb2-out-")), "e")
+    writeFileSync(join(src, "manifest.json"), JSON.stringify({ version: "0.1.0", name: "x" }))
+    writeFileSync(join(src, "background.js"), "// v1")
+
+    const dir1 = stageExtension(src, out)
+    const v1 = JSON.parse(readFileSync(join(dir1, "manifest.json"), "utf8")).version
+    expect(v1).toMatch(/^0\.1\.\d+\.\d+$/) // 4 numeric parts, ≤65535 each
+    expect(readFileSync(join(dir1, "background.js"), "utf8")).toBe("// v1") // files copied
+
+    // A newer background.js must bump the version so Chrome refreshes the cached service worker.
+    const later = Date.now() / 1000 + 300
+    utimesSync(join(src, "background.js"), later, later)
+    const v2 = JSON.parse(readFileSync(join(stageExtension(src, out), "manifest.json"), "utf8")).version
+    expect(v2).not.toBe(v1)
+  })
+
+  test("falls back to the source dir when staging can't run", () => {
+    expect(stageExtension("/no/such/extension/dir", "/no/such/out")).toBe("/no/such/extension/dir")
   })
 })

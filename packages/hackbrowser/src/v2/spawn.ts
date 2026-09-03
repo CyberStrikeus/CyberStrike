@@ -6,7 +6,7 @@
 // Each profile is a separate --user-data-dir (its own cookie jar = its own identity,
 // §3.1). Session + credential ride in as a URL hash the content script reads/strips.
 
-import { existsSync, readdirSync } from "node:fs"
+import { existsSync, readdirSync, statSync, cpSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { tmpdir, homedir } from "node:os"
 
@@ -126,8 +126,43 @@ export function buildProfileArgs(spec: ProfileSpec): BuiltProfile {
   return { browser, args, profileDir }
 }
 
+// Chrome caches the MV3 service worker (background.js) by manifest `version` in the persistent
+// --user-data-dir profile — so a static version leaves a STALE service worker across launches
+// even though --load-extension re-reads content scripts. That silently strands every
+// background.js change (control WS, driver POST, diagnostics), which is the classic "panel
+// shows but AI never drives / no logs".
+//
+// Fix: stage the extension into a stable temp dir with the version derived from the source
+// files' latest mtime — MONOTONIC, so Chrome sees an update and refreshes the SW whenever the
+// code changes, and no change means no needless churn. The source manifest is never touched
+// (no git noise). Falls back to the source dir if staging fails (still launchable, just with
+// the SW-cache caveat).
+export function stageExtension(srcDir: string, outDir: string = join(tmpdir(), "hb2-ext")): string {
+  try {
+    let maxMtime = 0
+    for (const f of readdirSync(srcDir)) {
+      const m = statSync(join(srcDir, f)).mtimeMs
+      if (m > maxMtime) maxMtime = m
+    }
+    const secs = Math.floor(maxMtime / 1000)
+    // manifest version = 4 dotted ints, each 0..65535; encode mtime into the last two parts.
+    const hi = Math.floor(secs / 65535) % 65536
+    const lo = secs % 65535
+    cpSync(srcDir, outDir, { recursive: true }) // small dir; fresh copy so edits always propagate
+    const manifestPath = join(outDir, "manifest.json")
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"))
+    manifest.version = `0.1.${hi}.${lo}`
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+    return outDir
+  } catch {
+    return srcDir
+  }
+}
+
 export function spawnProfile(spec: ProfileSpec): { profileDir: string; pid: number; proc: ReturnType<typeof Bun.spawn> } {
-  const built = buildProfileArgs(spec)
+  // Stage the extension (fresh SW version) unless the caller pinned an explicit extPath (tests).
+  const extPath = spec.extPath ?? stageExtension(defaultExtensionPath())
+  const built = buildProfileArgs({ ...spec, extPath })
   const proc = Bun.spawn([built.browser, ...built.args], { stdout: "ignore", stderr: "ignore" })
   // proc is returned so the caller (CyberStrike) can track and later close the browser.
   return { profileDir: built.profileDir, pid: proc.pid, proc }
