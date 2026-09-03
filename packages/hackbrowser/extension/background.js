@@ -411,26 +411,42 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       return
     }
-    // Panel "Add role": ask CyberStrike to spawn a new Chrome profile (its own cookie
-    // jar) on this session tagged with the role. Extensions can't spawn a profile —
-    // the backend does. Needs a local CyberStrike + an active session.
-    if (msg.type === "spawn-role") {
+    // Panel "Add credential": ENQUEUE a role for sequential setup. Its browser is spawned
+    // by CyberStrike when its turn comes (the previous role's capture-started).
+    if (msg.type === "enqueue-role") {
       try {
         const sid = await ensureSession()
         const base = await csUrl()
-        const res = await fetch(`${base}/session/${sid}/web/spawn-profile`, {
+        const res = await fetch(`${base}/session/${sid}/web/role-queue`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ role: msg.role, url: msg.url }),
+          body: JSON.stringify({ roles: [msg.role] }),
         })
-        const d = await res.json().catch(() => ({}))
-        if (res.ok && d && typeof d.pid === "number") {
-          sendResponse({ ok: true, pid: d.pid })
+        if (res.ok) {
+          sendResponse({ ok: true })
           return
         }
-        sendResponse({ ok: false, error: (d && d.error) || `spawn failed (${res.status})` })
+        sendResponse({ ok: false, error: `enqueue failed (${res.status})` })
       } catch (e) {
         sendResponse({ ok: false, error: e && e.message ? e.message : String(e) })
+      }
+      return
+    }
+    // Orchestrator panel polls the sequential-setup queue to show "spawning <role>…" /
+    // "please sign in as <role>".
+    if (msg.type === "queue-status") {
+      const sid = await currentSession()
+      if (!sid) {
+        sendResponse({ ok: true, status: { roles: [], setup: null } })
+        return
+      }
+      const base = await csUrl()
+      try {
+        const r = await fetch(`${base}/session/${sid}/web/queue-status`)
+        const d = await r.json().catch(() => null)
+        sendResponse({ ok: true, status: d || { roles: [], setup: null } })
+      } catch (e) {
+        sendResponse({ ok: false })
       }
       return
     }
@@ -452,6 +468,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const existing = await currentCredential()
         if (!(existing && existing.label === role)) await registerCredential(role)
         attach(tabId)
+        // Advance the sequential role queue — CyberStrike spawns the next role's browser
+        // if one is queued. Fire-and-forget: capture is already on locally; the panel
+        // polls queue-status for the result.
+        const base = await csUrl()
+        fetch(`${base}/session/${activeSession}/web/capture-started`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role, url: msg.url || "" }),
+        }).catch(() => {})
         sendResponse({ ok: true, attached: true, session: activeSession })
       } catch (e) {
         sendResponse({ ok: false, error: e && e.message ? e.message : String(e) })

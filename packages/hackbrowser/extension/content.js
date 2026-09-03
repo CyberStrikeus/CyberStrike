@@ -436,7 +436,7 @@
     if (!(status && status.attached)) {
       attachBtn.disabled = true
       const role = cred.value.trim() || "Anonymous"
-      const res = await chrome.runtime.sendMessage({ type: "start-capture", role })
+      const res = await chrome.runtime.sendMessage({ type: "start-capture", role, url: location.href })
       attachBtn.disabled = false
       if (res && res.ok) {
         cred.value = role
@@ -475,25 +475,23 @@
     }
   })
 
-  // Add role → ask the backend to open a NEW Chrome profile (its own cookie jar) on
-  // this session tagged with the role. The extension can't spawn a profile itself, so
-  // CyberStrike does it. The new browser reads the role from its URL hash, then the
-  // user logs in there as that role.
-  async function spawnRole() {
+  // Add credential → ENQUEUE the role for sequential setup. Its browser opens when its
+  // turn comes (after the previous role's Start capture), not immediately — so the user
+  // sets up one identity at a time instead of juggling N windows.
+  async function enqueueRoleClick() {
     const role = newRole.value.trim()
     if (!role) return
-    roleHint.textContent = `opening “${role}” browser…`
-    const res = await chrome.runtime.sendMessage({ type: "spawn-role", role, url: location.href })
+    const res = await chrome.runtime.sendMessage({ type: "enqueue-role", role })
     if (res && res.ok) {
-      roleHint.textContent = `“${role}” browser opened — log in there as ${role}.`
+      roleHint.textContent = `“${role}” queued — opens after you Start capture.`
       newRole.value = ""
     } else {
       roleHint.textContent = (res && res.error) || "failed (need a session + local CyberStrike)"
     }
   }
-  addRole.addEventListener("click", spawnRole)
+  addRole.addEventListener("click", enqueueRoleClick)
   newRole.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") spawnRole()
+    if (e.key === "Enter") enqueueRoleClick()
   })
 
   function updateSide() {
@@ -899,11 +897,32 @@
   }
 
   let lastUrl = location.href
+  // The orchestrator (first, non-spawned) browser shows what's mid-setup in the queue.
+  let hadSetup = false
+  function pollQueue() {
+    if (isSpawned) return
+    chrome.runtime.sendMessage({ type: "queue-status" }, (res) => {
+      if (chrome.runtime.lastError || !res || !res.ok) return
+      const setup = res.status && res.status.setup
+      if (setup) {
+        hadSetup = true
+        roleHint.textContent =
+          setup.phase === "spawning"
+            ? `Spawning “${setup.label}” browser…`
+            : `Please sign in as “${setup.label}” in the new window, then Start capture there.`
+      } else if (hadSetup) {
+        hadSetup = false
+        roleHint.textContent = ""
+      }
+    })
+  }
+
   function poll() {
     chrome.runtime.sendMessage({ type: "panel-status" }, (res) => {
       if (chrome.runtime.lastError) return
       render(res)
     })
+    pollQueue()
     if (location.href !== lastUrl) {
       lastUrl = location.href
       sendObservation()
