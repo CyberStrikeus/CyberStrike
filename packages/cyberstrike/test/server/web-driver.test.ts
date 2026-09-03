@@ -99,9 +99,9 @@ describe("driver route drives the co-driving loop (end-to-end, in-process)", () 
       const res = await setDriver(app, "s1", "ai")
       expect(await res.json()).toEqual({ ok: true, driver: "ai" })
 
-      // Loop runs in the background — wait for it to reach coverage.
+      // Loop runs in the background (default humanized think-delays apply) — wait for coverage.
       const start = Date.now()
-      while (WebCoDrive.isRunning("s1") && Date.now() - start < 3000) await new Promise((r) => setTimeout(r, 5))
+      while (WebCoDrive.isRunning("s1") && Date.now() - start < 8000) await new Promise((r) => setTimeout(r, 10))
       expect(Crawl.isPageVisited("s1", "https://h/b")).toBe(true)
       expect(Crawl.summary("s1").actions).toBeGreaterThanOrEqual(1)
 

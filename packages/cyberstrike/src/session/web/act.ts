@@ -97,7 +97,10 @@ export namespace WebAct {
       input.op === "type"
         ? { op: "type", elementId: input.elementId, text: input.text ?? "" }
         : { op: "click", elementId: input.elementId }
-    const ack = await WebControl.send(sessionID, cmd)
+    // Human-like typing runs a keystroke-per-char sequence in the extension, which can take
+    // well over the default 5s for long values — give type a generous ceiling so a completed
+    // fill is never mis-reported as a timeout.
+    const ack = await WebControl.send(sessionID, cmd, input.op === "type" ? 30000 : 5000)
     if (!ack.ok) return { ok: false, status: "relay-failed", message: relayMessage(ack.error), error: ack.error, label: el.label }
     Crawl.record(sessionID, key)
     const label = el.label || input.elementId

@@ -17,11 +17,12 @@ beforeEach(() => {
 type Click = { id: string; tag: string; role: string; label: string; href: string }
 // A scripted site + a fake extension socket. Clicking a link (or navigating) moves the
 // "browser" to the target page and re-observes it, exactly like the real extension would.
-function browser(sid: string, site: Record<string, Click[]>, startUrl: string) {
+function browser(sid: string, site: Record<string, Click[]>, startUrl: string, visitLog?: string[]) {
   let current = startUrl
   let clock = 1
   const observe = (url: string) => {
     current = url
+    visitLog?.push(url)
     PageState.set(sid, { url, title: url, clickables: site[url] ?? [], forms: [], links: [], observed_at: ++clock })
   }
   const socket = {
@@ -39,7 +40,15 @@ function browser(sid: string, site: Record<string, Click[]>, startUrl: string) {
   observe(startUrl)
 }
 
-const fast = { planner: WebCoDrive.DeterministicPlanner, pollMs: 2, settleMs: 15, maxIdle: 3 }
+// Deterministic + fast: no LLM planner, no main-model strategist, no human delays/jitter.
+const fast = {
+  planner: WebCoDrive.DeterministicPlanner,
+  strategist: async () => [] as string[],
+  pollMs: 2,
+  settleMs: 15,
+  maxIdle: 3,
+  humanize: false,
+}
 async function untilStopped(sid: string, timeoutMs = 3000) {
   const start = Date.now()
   while (WebCoDrive.isRunning(sid) && Date.now() - start < timeoutMs) await new Promise((r) => setTimeout(r, 3))
@@ -126,6 +135,57 @@ describe("WebCoDrive loop", () => {
     const chosen = await WebCoDrive.LlmPlanner.choose({ sessionID: sid, state, candidates })
     expect(chosen).not.toBeNull()
     expect(chosen!.id).toBe(candidates[0].id)
+  })
+
+  test("main-model strategy priorities steer which area is explored first", async () => {
+    const sid = "s"
+    const log: string[] = []
+    browser(sid, {
+      "https://h/a": [
+        { id: "E0", tag: "a", role: "link", label: "Reports", href: "/r" },
+        { id: "E1", tag: "a", role: "link", label: "Admin Panel", href: "/admin" },
+      ],
+      "https://h/r": [],
+      "https://h/admin": [],
+    }, "https://h/a", log)
+
+    // Strategist (stands in for the main model) prioritizes "admin".
+    WebCoDrive.start(sid, { ...fast, strategist: async () => ["admin"] })
+    await untilStopped(sid)
+
+    // First navigation is the start page; the first CLICK target must be the admin area.
+    const firstClick = log.find((u) => u !== "https://h/a")
+    expect(firstClick).toBe("https://h/admin")
+  })
+
+  test("humanized driving still reaches full coverage (jitter changes order, not completeness)", async () => {
+    const sid = "s"
+    browser(sid, {
+      "https://h/a": [
+        { id: "E0", tag: "a", role: "link", label: "One", href: "/1" },
+        { id: "E1", tag: "a", role: "link", label: "Two", href: "/2" },
+        { id: "E2", tag: "a", role: "link", label: "Three", href: "/3" },
+      ],
+      "https://h/1": [],
+      "https://h/2": [],
+      "https://h/3": [],
+    }, "https://h/a")
+
+    // humanize on, but delays 0 and a fixed rng so the test is deterministic + fast.
+    WebCoDrive.start(sid, {
+      planner: WebCoDrive.DeterministicPlanner,
+      strategist: async () => [],
+      pollMs: 2,
+      settleMs: 15,
+      maxIdle: 3,
+      humanize: true,
+      thinkMinMs: 0,
+      thinkMaxMs: 0,
+      jitterBand: 5,
+      rng: () => 0.99,
+    })
+    await untilStopped(sid)
+    for (const u of ["https://h/1", "https://h/2", "https://h/3"]) expect(Crawl.isPageVisited(sid, u)).toBe(true)
   })
 
   test("start is idempotent (a second start does not stack a loop)", async () => {

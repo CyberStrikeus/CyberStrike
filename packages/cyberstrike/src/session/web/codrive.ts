@@ -17,6 +17,7 @@ import { WebDriver } from "./driver"
 import { Crawl } from "./crawl"
 import { Rank } from "./rank"
 import { WebAct } from "./act"
+import { WebStrategy } from "./strategy"
 import { Provider } from "../../provider/provider"
 import { ProviderTransform } from "../../provider/transform"
 import { Log } from "../../util/log"
@@ -100,13 +101,26 @@ export namespace WebCoDrive {
     },
   }
 
+  // Strategist: the MAIN-model reasoning tier → business-logic priorities that bias ranking.
+  // Injectable so tests don't call a live model.
+  export type Strategist = (sessionID: string, state: PageState.StatePayload) => Promise<string[]>
+  const defaultStrategist: Strategist = async (sessionID, state) => (await WebStrategy.ensure(sessionID, state)).priorities
+
   export interface Options {
     planner?: Planner
+    strategist?: Strategist
     pollMs?: number
     settleMs?: number
     maxIdle?: number
+    // Human-like driving: don't click everything mechanically. Jitter the pick among near-top
+    // candidates and pause a human-ish "think" time between actions. rng is injectable for tests.
+    humanize?: boolean
+    thinkMinMs?: number
+    thinkMaxMs?: number
+    jitterBand?: number
+    rng?: () => number
   }
-  const DEFAULTS = { pollMs: 400, settleMs: 1500, maxIdle: 8 }
+  const DEFAULTS = { pollMs: 400, settleMs: 1500, maxIdle: 8, humanize: true, thinkMinMs: 350, thinkMaxMs: 1400, jitterBand: 2 }
   // Skip the planner (auto-advance) when the top candidate clearly dominates.
   const AUTO_MARGIN = 2
 
@@ -121,13 +135,36 @@ export namespace WebCoDrive {
   export function stop(sessionID: string): void {
     active.delete(sessionID)
   }
+  interface Cfg {
+    planner: Planner
+    strategist: Strategist
+    pollMs: number
+    settleMs: number
+    maxIdle: number
+    humanize: boolean
+    thinkMinMs: number
+    thinkMaxMs: number
+    jitterBand: number
+    rng: () => number
+  }
+
   export function start(sessionID: string, opts: Options = {}): void {
     if (active.has(sessionID)) return
     const gen = ++seq
     active.set(sessionID, gen)
-    const planner = opts.planner ?? LlmPlanner
-    const cfg = { pollMs: opts.pollMs ?? DEFAULTS.pollMs, settleMs: opts.settleMs ?? DEFAULTS.settleMs, maxIdle: opts.maxIdle ?? DEFAULTS.maxIdle }
-    void loop(sessionID, gen, planner, cfg)
+    const cfg: Cfg = {
+      planner: opts.planner ?? LlmPlanner,
+      strategist: opts.strategist ?? defaultStrategist,
+      pollMs: opts.pollMs ?? DEFAULTS.pollMs,
+      settleMs: opts.settleMs ?? DEFAULTS.settleMs,
+      maxIdle: opts.maxIdle ?? DEFAULTS.maxIdle,
+      humanize: opts.humanize ?? DEFAULTS.humanize,
+      thinkMinMs: opts.thinkMinMs ?? DEFAULTS.thinkMinMs,
+      thinkMaxMs: opts.thinkMaxMs ?? DEFAULTS.thinkMaxMs,
+      jitterBand: opts.jitterBand ?? DEFAULTS.jitterBand,
+      rng: opts.rng ?? Math.random,
+    }
+    void loop(sessionID, gen, cfg)
       .catch((e) => log.error("codrive loop crashed", { err: String(e) }))
       .finally(() => {
         if (active.get(sessionID) === gen) active.delete(sessionID)
@@ -138,9 +175,23 @@ export namespace WebCoDrive {
     if (cands.length === 1) return true
     return cands[0].score - cands[1].score >= AUTO_MARGIN
   }
+  // Human-like pick: choose randomly among the candidates within jitterBand of the top score,
+  // so exploration order isn't rigidly mechanical. Order changes, coverage does not (visited-
+  // tracking + frontier still reach every candidate).
+  function pickHumanized(cands: Rank.Candidate[], rng: () => number, band: number): Rank.Candidate {
+    const top = cands[0].score
+    const pool = cands.filter((c) => c.score >= top - band)
+    return pool[Math.floor(rng() * pool.length)] ?? cands[0]
+  }
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+  function thinkTime(cfg: Cfg): number {
+    if (!cfg.humanize) return 0
+    const lo = Math.min(cfg.thinkMinMs, cfg.thinkMaxMs)
+    const hi = Math.max(cfg.thinkMinMs, cfg.thinkMaxMs)
+    return lo + Math.floor(cfg.rng() * (hi - lo + 1))
+  }
 
-  async function loop(sessionID: string, gen: number, planner: Planner, cfg: { pollMs: number; settleMs: number; maxIdle: number }) {
+  async function loop(sessionID: string, gen: number, cfg: Cfg) {
     let idle = 0
     const alive = () => active.get(sessionID) === gen
     while (alive()) {
@@ -155,7 +206,10 @@ export namespace WebCoDrive {
       }
       idle = 0
       Crawl.markPage(sessionID, state.url)
-      const cands = Rank.candidates(sessionID, state)
+      // MAIN-model strategy (sparingly cached) → business-logic priorities that bias ranking.
+      const priorities = await cfg.strategist(sessionID, state).catch(() => [])
+      if (!alive()) break
+      const cands = Rank.candidates(sessionID, state, priorities)
       // Remember every discovered target so a dead-end can backtrack to an unvisited page.
       Crawl.discover(sessionID, cands.map((c) => c.targetUrl))
 
@@ -169,9 +223,17 @@ export namespace WebCoDrive {
         continue
       }
 
-      const chosen = autoAdvance(cands) ? cands[0] : await planner.choose({ sessionID, state, candidates: cands })
+      // Clear pick → deterministic (humanized order); genuine ambiguity → planner (small model).
+      const chosen = autoAdvance(cands)
+        ? cfg.humanize
+          ? pickHumanized(cands, cfg.rng, cfg.jitterBand)
+          : cands[0]
+        : await cfg.planner.choose({ sessionID, state, candidates: cands })
       if (!chosen) break
       if (!alive()) break // driver may have flipped while the planner was thinking
+      const pause = thinkTime(cfg) // human-ish think time before acting
+      if (pause > 0) await sleep(pause)
+      if (!alive()) break
       const result = await WebAct.perform(sessionID, { op: "click", url: state.url, elementId: chosen.id })
       if (!result.ok) {
         if (result.status === "human-driving" || result.status === "no-extension" || result.status === "budget") break
