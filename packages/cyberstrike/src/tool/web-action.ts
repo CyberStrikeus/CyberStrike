@@ -1,11 +1,8 @@
 import z from "zod"
 import { Tool } from "./tool"
 import { Session } from "../session"
-import { PageState } from "../session/web/page-state"
-import { WebControl } from "../session/web/control"
 import { Crawl } from "../session/web/crawl"
-import { actionPolicy } from "../session/web/guard"
-import { WebDriver } from "../session/web/driver"
+import { WebAct } from "../session/web/act"
 
 const description = `Drive the live browser: click / type / navigate — the co-driving "hands".
 
@@ -24,6 +21,62 @@ ops:
 Call web_get_page_state first to see ids, kinds and policies. When url is omitted for
 click/type, the page the browser is currently on is used.`
 
+// Map the shared executor's structured Result onto the tool's rich, LLM-facing output.
+// The gate logic lives in WebAct.perform (shared with the co-driving loop); this only
+// phrases the outcome.
+function present(r: WebAct.Result): { title: string; output: string; metadata: Record<string, unknown> } {
+  switch (r.status) {
+    case "no-extension":
+      return {
+        title: "No browser attached",
+        output: "No extension is connected on this session — cannot act. Start capture in a browser first.",
+        metadata: { ok: false, error: "no-extension" },
+      }
+    case "human-driving":
+      return {
+        title: "Human is driving",
+        output:
+          "The browser panel is in Human-driver mode — the AI must not act. Observe with web_get_page_state; wait until the panel is switched to AI-driver.",
+        metadata: { ok: false, error: "human-driving" },
+      }
+    case "bad-input":
+      return r.message.startsWith("navigate")
+        ? { title: "url required", output: r.message, metadata: { ok: false } }
+        : { title: "element_id required", output: r.message, metadata: { ok: false } }
+    case "no-page":
+      return { title: "no page", output: `${r.message} Call web_get_page_state first.`, metadata: { ok: false } }
+    case "unknown-element":
+      return { title: "unknown element", output: `${r.message} Re-read web_get_page_state.`, metadata: { ok: false, error: "unknown-element" } }
+    case "denied":
+      return {
+        title: `BLOCKED (logout): ${r.label}`,
+        output: `Guard DENIED this ${r.kind} element ("${r.label}"). Logging out would end the authenticated session — never do it during a crawl. Skip it.`,
+        metadata: { ok: false, policy: "deny", kind: r.kind },
+      }
+    case "confirm":
+      return {
+        title: `NEEDS HUMAN CONFIRMATION (destructive): ${r.label}`,
+        output: `This ${r.kind} element ("${r.label}") is irreversible and requires a human to confirm. Skipped — report it as a destructive action the human should review, do not retry.`,
+        metadata: { ok: false, policy: "confirm", kind: r.kind },
+      }
+    case "budget":
+      return {
+        title: "Crawl budget exhausted",
+        output: `${r.message} Stop the crawl and report coverage — do not keep acting.`,
+        metadata: { ok: false, error: "budget-exhausted" },
+      }
+    case "relay-failed":
+      return { title: `web_action failed`, output: `FAILED — ${r.message}`, metadata: { ok: false, error: r.error } }
+    case "ok": {
+      let output = `OK — ${r.message}`
+      if (r.repeat)
+        output +=
+          "\nNote: this element was already actioned earlier. If the page looks unchanged you may be in a cycle — prefer an UNVISITED nav/query element next."
+      return { title: `web_action: ${r.message}`, output, metadata: { ok: true, ...(r.repeat ? { repeat: true } : {}) } }
+    }
+  }
+}
+
 export const WebActionTool = Tool.define("web_action", {
   description,
   parameters: z.object({
@@ -34,112 +87,14 @@ export const WebActionTool = Tool.define("web_action", {
   }),
   async execute(params, ctx): Promise<{ title: string; output: string; metadata: Record<string, unknown> }> {
     const sessionID = Session.root(ctx.sessionID)
-
-    if (!WebControl.connected(sessionID)) {
-      return {
-        title: "No browser attached",
-        output: "No extension is connected on this session — cannot act. Start capture in a browser first.",
-        metadata: { ok: false, error: "no-extension" },
-      }
-    }
-
-    // Interlock: while a human explicitly drives, the AI must not act — even a stray turn.
-    // Only an EXPLICIT "human" blocks; an unset driver (manual use / tests) is allowed.
-    if (WebDriver.isHuman(sessionID)) {
-      return {
-        title: "Human is driving",
-        output:
-          "The browser panel is in Human-driver mode — the AI must not act. Observe with web_get_page_state; wait until the panel is switched to AI-driver.",
-        metadata: { ok: false, error: "human-driving" },
-      }
-    }
-
-    const relay = async (cmd: Record<string, unknown>, note: string) => {
-      const ack = await WebControl.send(sessionID, cmd)
-      if (ack.ok) return { title: `web_action: ${note}`, output: `OK — ${note}`, metadata: { ok: true } as Record<string, unknown> }
-      const why =
-        ack.error === "no-extension"
-          ? "no browser attached"
-          : ack.error === "timeout"
-            ? "timed out waiting for the browser"
-            : ack.error === "element not found"
-              ? "the browser could not find that element (the page may have changed — re-read web_get_page_state)"
-              : ack.error || "relay failed"
-      return { title: `web_action failed: ${note}`, output: `FAILED — ${why}`, metadata: { ok: false, error: ack.error } as Record<string, unknown> }
-    }
-
-    // Hard stop: the crawl budget can never be exceeded, even if the AI keeps trying.
-    const budgetHit = () => {
-      const s = Crawl.summary(sessionID)
-      return {
-        title: "Crawl budget exhausted",
-        output: `Action budget reached (${s.actions}/${s.budget}). Stop the crawl and report coverage — do not keep acting.`,
-        metadata: { ok: false, error: "budget-exhausted", ...s } as Record<string, unknown>,
-      }
-    }
-
-    if (params.op === "navigate") {
-      if (!params.url) return { title: "url required", output: "navigate needs a url.", metadata: { ok: false } }
-      if (Crawl.overBudget(sessionID)) return budgetHit()
-      const res = await relay({ op: "navigate", url: params.url }, `navigate → ${params.url}`)
-      if (res.metadata.ok) {
-        Crawl.record(sessionID, Crawl.navKey(params.url))
-        Crawl.markPage(sessionID, params.url)
-      }
-      return res
-    }
-
-    if (!params.element_id)
-      return { title: "element_id required", output: `${params.op} needs an element_id.`, metadata: { ok: false } }
-
-    const url = params.url ?? PageState.current(sessionID)?.url
-    if (!url)
-      return {
-        title: "no page",
-        output: "No current page and no url given. Call web_get_page_state first.",
-        metadata: { ok: false },
-      }
-
-    const el = PageState.element(sessionID, url, params.element_id)
-    if (!el)
-      return {
-        title: "unknown element",
-        output: `No element "${params.element_id}" in page-state for ${url}. Re-read web_get_page_state — the page may have changed.`,
-        metadata: { ok: false, error: "unknown-element" },
-      }
-    // Guard first — a blocked action never happened, so it must NOT consume budget.
-    const policy = actionPolicy(el.kind)
-    if (policy === "deny")
-      return {
-        title: `BLOCKED (logout): ${el.label}`,
-        output: `Guard DENIED this ${el.kind} element ("${el.label}"). Logging out would end the authenticated session — never do it during a crawl. Skip it.`,
-        metadata: { ok: false, policy: "deny", kind: el.kind },
-      }
-    if (policy === "confirm")
-      return {
-        title: `NEEDS HUMAN CONFIRMATION (destructive): ${el.label}`,
-        output: `This ${el.kind} element ("${el.label}") is irreversible and requires a human to confirm. Skipped — report it as a destructive action the human should review, do not retry.`,
-        metadata: { ok: false, policy: "confirm", kind: el.kind },
-      }
-
-    if (Crawl.overBudget(sessionID)) return budgetHit()
-
-    const key = Crawl.actionKey(url, el)
-    const repeat = Crawl.isActed(sessionID, key)
-    const label = el.label || params.element_id
-    const cmd =
-      params.op === "type"
-        ? { op: "type", elementId: params.element_id, text: params.text ?? "" }
-        : { op: "click", elementId: params.element_id }
-    const res = await relay(cmd, `${params.op === "type" ? "type into" : "click"} ${label}${repeat ? " (repeat)" : ""}`)
-    if (res.metadata.ok) {
-      Crawl.record(sessionID, key)
-      if (repeat) {
-        res.output +=
-          "\nNote: this element was already actioned earlier. If the page looks unchanged you may be in a cycle — prefer an UNVISITED nav/query element next."
-        res.metadata.repeat = true
-      }
-    }
-    return res
+    const r = await WebAct.perform(sessionID, {
+      op: params.op,
+      url: params.url,
+      elementId: params.element_id,
+      text: params.text,
+    })
+    const out = present(r)
+    if (r.status === "budget") out.metadata = { ...out.metadata, ...Crawl.summary(sessionID) }
+    return out
   },
 })
