@@ -31,6 +31,7 @@ import { PageState } from "../../session/web/page-state"
 import { WebControl } from "../../session/web/control"
 import { WebDriver } from "../../session/web/driver"
 import { CoDrive } from "../../session/web/nav/co-drive-runner"
+import { DataCollector } from "../../session/web/data-collector"
 import { HBLog } from "../../session/web/hblog"
 import { FrameworkFingerprinter } from "../../session/web/tech"
 import { upgradeWebSocket } from "hono/bun"
@@ -294,6 +295,14 @@ function inferScheme(rawText: string): "http" | "https" {
   const hostMatch = rawText.match(/^[Hh]ost:\s*[^\r\n]*?:80\b/m)
   if (hostMatch) return "http"
   return "https"
+}
+
+// Case-insensitive lookup over a header map (capture sources vary in header casing).
+function headerValue(headers: Record<string, string> | undefined, name: string): string | undefined {
+  if (!headers) return undefined
+  const want = name.toLowerCase()
+  for (const k in headers) if (k.toLowerCase() === want) return headers[k]
+  return undefined
 }
 
 // Bridge between the ingest payload and Normalize.run. Returns null when the
@@ -1682,6 +1691,19 @@ export const SessionRoutes = lazy(() =>
         const normalized = await runNormalize(body, sessionID, ingestDryRun)
 
         if (normalized) {
+          // Collect EVERY captured request into the per-session data view (decoupled from what the
+          // AI navigated) — the traffic substrate for the navigator's route context + the
+          // server-side framework fingerprint (P4). Runs before the dedup check so duplicates and
+          // race-losers still count. Never throws.
+          DataCollector.record(sessionID, {
+            method: normalized.method,
+            origin: normalized.origin,
+            path: normalized.canonicalPath ?? normalized.normalizedPath,
+            status: body.response?.status,
+            contentType: headerValue(body.response?.headers, "content-type"),
+            headers: body.response?.headers,
+          })
+
           const isDuplicate = Request.exists({
             sessionID,
             method: normalized.method,
