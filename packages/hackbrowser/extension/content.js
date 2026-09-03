@@ -1119,6 +1119,39 @@
     chrome.runtime.sendMessage({ type: "captured", rec }, () => void chrome.runtime.lastError)
   })
 
+  // --- Human-like input (anti-mechanical) ------------------------------------
+  // Fill fields as a person would — character by character with an irregular rhythm and full
+  // key events — not one instant el.value assignment. Makes AI-driven typing look human and
+  // fires the same handlers a real keyboard would (frameworks that listen on keydown/keyup).
+  const csleep = (ms) => new Promise((r) => setTimeout(r, ms))
+  async function humanType(el, text) {
+    el.focus()
+    el.dispatchEvent(new Event("focus", { bubbles: true }))
+    const editable = el.isContentEditable
+    if (editable) el.textContent = ""
+    else {
+      try {
+        el.value = ""
+      } catch {}
+    }
+    const s = String(text == null ? "" : text)
+    for (const ch of s) {
+      // 45–165ms per key, with an occasional longer "thinking" pause (~8% of keys).
+      await csleep(45 + Math.floor(Math.random() * 120) + (Math.random() < 0.08 ? 250 + Math.floor(Math.random() * 300) : 0))
+      el.dispatchEvent(new KeyboardEvent("keydown", { key: ch, bubbles: true }))
+      el.dispatchEvent(new KeyboardEvent("keypress", { key: ch, bubbles: true }))
+      if (editable) el.textContent += ch
+      else {
+        try {
+          el.value += ch
+        } catch {}
+      }
+      el.dispatchEvent(new InputEvent("input", { data: ch, inputType: "insertText", bubbles: true }))
+      el.dispatchEvent(new KeyboardEvent("keyup", { key: ch, bubbles: true }))
+    }
+    el.dispatchEvent(new Event("change", { bubbles: true }))
+  }
+
   chrome.runtime.onMessage.addListener((m, s, sendResponse) => {
     // Popup show/hide toggle for the on-page dock (the panel IS the control surface;
     // the popup is just this toggle). show/hide are explicit; anything else toggles.
@@ -1134,32 +1167,36 @@
     }
     if (m.type !== "perform") return
     const cmd = m.cmd || {}
-    try {
-      if (cmd.op === "click") {
-        const el = elMap.get(cmd.elementId)
-        if (!el) return sendResponse({ ok: false, error: "element not found" })
-        el.scrollIntoView({ block: "center" })
-        el.click()
-        return sendResponse({ ok: true })
+    // Async so typing can run a human-like keystroke sequence — return true to keep the
+    // sendResponse channel open (MV3 requirement).
+    ;(async () => {
+      try {
+        if (cmd.op === "click") {
+          const el = elMap.get(cmd.elementId)
+          if (!el) return sendResponse({ ok: false, error: "element not found" })
+          el.scrollIntoView({ block: "center" })
+          await csleep(80 + Math.floor(Math.random() * 200)) // settle after scroll, human beat
+          el.click()
+          return sendResponse({ ok: true })
+        }
+        if (cmd.op === "type") {
+          const el = elMap.get(cmd.elementId)
+          if (!el) return sendResponse({ ok: false, error: "element not found" })
+          el.scrollIntoView({ block: "center" })
+          await humanType(el, cmd.text || "")
+          return sendResponse({ ok: true })
+        }
+        if (cmd.op === "navigate") {
+          if (!cmd.url) return sendResponse({ ok: false, error: "url required" })
+          location.href = cmd.url
+          return sendResponse({ ok: true })
+        }
+        sendResponse({ ok: false, error: "unknown op" })
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) })
       }
-      if (cmd.op === "type") {
-        const el = elMap.get(cmd.elementId)
-        if (!el) return sendResponse({ ok: false, error: "element not found" })
-        el.focus()
-        el.value = cmd.text || ""
-        el.dispatchEvent(new Event("input", { bubbles: true }))
-        el.dispatchEvent(new Event("change", { bubbles: true }))
-        return sendResponse({ ok: true })
-      }
-      if (cmd.op === "navigate") {
-        if (!cmd.url) return sendResponse({ ok: false, error: "url required" })
-        location.href = cmd.url
-        return sendResponse({ ok: true })
-      }
-      sendResponse({ ok: false, error: "unknown op" })
-    } catch (e) {
-      sendResponse({ ok: false, error: String(e) })
-    }
+    })()
+    return true
   })
 
   function decodeHash(m) {
