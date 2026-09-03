@@ -17,6 +17,12 @@ describe("buildProfileArgs", () => {
     const b = base({ session: "ses_1" })
     expect(b.args[b.args.length - 1]).toBe("https://target.example.com#__cs_sess=ses_1")
   })
+  test("csUrl is injected so the extension calls back to THIS server", () => {
+    const b = base({ session: "ses_1", csUrl: "http://localhost:5173" })
+    expect(b.args[b.args.length - 1]).toBe(
+      "https://target.example.com#__cs_sess=ses_1&__cs_url=http%3A%2F%2Flocalhost%3A5173",
+    )
+  })
   test("no cred, no session → bare url", () => {
     const b = base()
     expect(b.args[b.args.length - 1]).toBe("https://target.example.com")

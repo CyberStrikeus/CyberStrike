@@ -1225,8 +1225,13 @@
     const h = location.hash || ""
     const label = decodeHash(h.match(/__cs_cred=([^&]+)/))
     const sess = decodeHash(h.match(/__cs_sess=([^&]+)/))
-    if (label === null && sess === null) return
+    const csUrl = decodeHash(h.match(/__cs_url=([^&]+)/))
+    if (label === null && sess === null && csUrl === null) return
     history.replaceState(null, "", location.pathname + location.search || "/")
+    // Point the extension at THIS server (the launcher passes its real URL — may be a non-4096
+    // port when 4096 was taken). Without it the extension defaults to :4096 and can talk to a
+    // stale/other server, so nothing (observe / driver / control) reaches the running instance.
+    if (csUrl) chrome.storage.local.set({ cyberstrike: csUrl.replace(/\/+$/, "") })
     // Set the shared session so this profile joins the one that spawned it.
     if (sess) chrome.storage.local.set({ session: sess })
     if (!label) return

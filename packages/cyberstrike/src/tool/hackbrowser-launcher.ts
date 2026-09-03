@@ -6,6 +6,7 @@
 // capture spawns the next role's browser. stopHackbrowser closes them all.
 
 import { Log } from "../util/log"
+import { Server } from "../server/server"
 import { HackbrowserStatus } from "../session/hackbrowser-status"
 import { RoleQueue } from "../session/web/role-queue"
 import { SpawnedProfiles } from "../session/web/spawned-profiles"
@@ -66,7 +67,15 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
   RoleQueue.enqueue(opts.sessionID, opts.credentials ?? [])
   const spawn = await import("@cyberstrike-io/hackbrowser/v2-spawn")
   try {
-    const result = spawn.spawnProfile({ url: opts.target, session: opts.sessionID, headless: opts.headless })
+    // Pass the ACTUAL server URL so the extension calls back to this instance even when the
+    // server bound a non-default port (4096 taken → random). Without it the extension defaults
+    // to :4096 and silently talks to a stale/other server → the AI loop never drives.
+    const result = spawn.spawnProfile({
+      url: opts.target,
+      session: opts.sessionID,
+      csUrl: Server.url().toString(),
+      headless: opts.headless,
+    })
     SpawnedProfiles.track(opts.sessionID, result.proc)
   } catch (e) {
     throw new Error(`could not open browser: ${e instanceof Error ? e.message : String(e)}`)

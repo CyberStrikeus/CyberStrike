@@ -71,6 +71,9 @@ export interface ProfileSpec {
   cred?: string
   // CyberStrike session id — shared across profiles so their captures compare.
   session?: string
+  // CyberStrike server base URL the extension must call back to. Passed so the extension
+  // talks to THIS server even when it bound a non-default port (4096 was taken → random).
+  csUrl?: string
   extPath?: string
   browser?: string
   headless?: boolean
@@ -101,6 +104,7 @@ export function buildProfileArgs(spec: ProfileSpec): BuiltProfile {
   const hashParts: string[] = []
   if (spec.cred) hashParts.push(`__cs_cred=${encodeURIComponent(spec.cred)}`)
   if (spec.session) hashParts.push(`__cs_sess=${encodeURIComponent(spec.session)}`)
+  if (spec.csUrl) hashParts.push(`__cs_url=${encodeURIComponent(spec.csUrl)}`)
   const target = hashParts.length ? `${spec.url}#${hashParts.join("&")}` : spec.url
 
   const args = [
