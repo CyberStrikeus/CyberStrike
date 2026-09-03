@@ -5,6 +5,7 @@ import { PageState } from "../session/web/page-state"
 import { WebControl } from "../session/web/control"
 import { Crawl } from "../session/web/crawl"
 import { actionPolicy } from "../session/web/guard"
+import { WebDriver } from "../session/web/driver"
 
 const description = `Drive the live browser: click / type / navigate — the co-driving "hands".
 
@@ -39,6 +40,17 @@ export const WebActionTool = Tool.define("web_action", {
         title: "No browser attached",
         output: "No extension is connected on this session — cannot act. Start capture in a browser first.",
         metadata: { ok: false, error: "no-extension" },
+      }
+    }
+
+    // Interlock: while a human explicitly drives, the AI must not act — even a stray turn.
+    // Only an EXPLICIT "human" blocks; an unset driver (manual use / tests) is allowed.
+    if (WebDriver.isHuman(sessionID)) {
+      return {
+        title: "Human is driving",
+        output:
+          "The browser panel is in Human-driver mode — the AI must not act. Observe with web_get_page_state; wait until the panel is switched to AI-driver.",
+        metadata: { ok: false, error: "human-driving" },
       }
     }
 

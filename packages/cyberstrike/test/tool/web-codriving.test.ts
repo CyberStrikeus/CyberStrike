@@ -4,6 +4,7 @@ import { WebActionTool } from "../../src/tool/web-action"
 import { PageState } from "../../src/session/web/page-state"
 import { WebControl } from "../../src/session/web/control"
 import { Crawl } from "../../src/session/web/crawl"
+import { WebDriver } from "../../src/session/web/driver"
 import { Session } from "../../src/session"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
@@ -38,6 +39,7 @@ async function withInstance(fn: (sid: string) => Promise<void>) {
       PageState._reset()
       WebControl._reset()
       Crawl._reset()
+      WebDriver._reset()
       const session = await Session.create({})
       await fn(session.id)
     },
@@ -248,6 +250,42 @@ describe("crawl loop — visited tracking + budget (Phase D)", () => {
       expect(res.metadata.ok).toBe(true)
       expect(Crawl.isPageVisited(sid, "https://h/next")).toBe(true)
       expect(Crawl.summary(sid).actions).toBe(1)
+    })
+  })
+})
+
+describe("driver interlock — AI must not act while a human drives (Phase E)", () => {
+  test("human-driver mode blocks web_action before guard/budget", async () => {
+    await withInstance(async (sid) => {
+      PageState.set(sid, { ...richPage("https://h/users"), observed_at: Date.now() })
+      WebControl.connect(sid, ackingSocket())
+      WebDriver.set(sid, "human")
+      const act = await WebActionTool.init()
+      const res = await act.execute({ op: "click", element_id: "E1" }, ctxFor(sid))
+      expect(res.metadata.error).toBe("human-driving")
+      expect(res.title).toBe("Human is driving")
+      expect(Crawl.summary(sid).actions).toBe(0) // blocked → no budget consumed
+    })
+  })
+
+  test("AI-driver mode allows web_action", async () => {
+    await withInstance(async (sid) => {
+      PageState.set(sid, { ...richPage("https://h/users"), observed_at: Date.now() })
+      WebControl.connect(sid, ackingSocket())
+      WebDriver.set(sid, "ai")
+      const act = await WebActionTool.init()
+      const res = await act.execute({ op: "click", element_id: "E1" }, ctxFor(sid))
+      expect(res.metadata.ok).toBe(true)
+    })
+  })
+
+  test("unset driver is allowed (manual use / tests are not blocked)", async () => {
+    await withInstance(async (sid) => {
+      PageState.set(sid, { ...richPage("https://h/users"), observed_at: Date.now() })
+      WebControl.connect(sid, ackingSocket())
+      const act = await WebActionTool.init()
+      const res = await act.execute({ op: "click", element_id: "E1" }, ctxFor(sid))
+      expect(res.metadata.ok).toBe(true)
     })
   })
 })
