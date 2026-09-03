@@ -318,8 +318,7 @@
       <div class="panel" id="panel">
         <div class="phead"><span class="brand">CYBERSTRIKE</span><span class="st" id="state">detached</span></div>
         <div class="pbody">
-          <button class="ctl" id="btnAnon">Browse anonymous (start capture)</button>
-          <button class="ctl" id="attachBtn">Attach capture</button>
+          <button class="ctl" id="attachBtn">Start capture</button>
           <label class="lbl">CyberStrike session</label>
           <div class="credrow">
             <select class="fld" id="sess"><option value="">-- New session --</option></select>
@@ -389,7 +388,6 @@
   bar.addEventListener("mouseleave", hideBar)
 
   // --- Settings controls: attach/detach, session, credential (no popup) ------
-  const btnAnon = root.getElementById("btnAnon")
   const attachBtn = root.getElementById("attachBtn")
   const sess = root.getElementById("sess")
   const refreshSess = root.getElementById("refreshSess")
@@ -430,14 +428,30 @@
     refreshSess.disabled = false
   })
 
+  // Single role-aware capture toggle. START: ensure session + register the role (default
+  // "anonymous") + attach, and flash a hue "Capture started with <role> role". STOP:
+  // detach; on the MAIN browser, offer to close the spawned role browsers.
   attachBtn.addEventListener("click", async () => {
-    const res = await chrome.runtime.sendMessage({ type: "toggle-attach-self" })
-    const on = !!(res && res.attached)
-    attachBtn.textContent = on ? "Detach capture" : "Attach capture"
-    attachBtn.classList.toggle("on", on)
-    // Detaching on the MAIN browser ends the assessment — offer to close the spawned role
-    // browsers (they otherwise stay open). A spawned browser itself never prompts.
-    if (on || isSpawned) return
+    const status = await chrome.runtime.sendMessage({ type: "panel-status" })
+    if (!(status && status.attached)) {
+      attachBtn.disabled = true
+      const role = cred.value.trim() || "anonymous"
+      const res = await chrome.runtime.sendMessage({ type: "start-capture", role })
+      attachBtn.disabled = false
+      if (res && res.ok) {
+        cred.value = role
+        flashTransition(`Capture started with ${role} role`, "", roleColor(role), 1200)
+        loadSessions()
+      } else {
+        roleHint.textContent = (res && res.error) || "failed (need local CyberStrike + reachable server)"
+      }
+      poll()
+      return
+    }
+    // STOP (detach). A spawned browser never prompts; the main one offers to close roles.
+    await chrome.runtime.sendMessage({ type: "toggle-attach-self" })
+    poll()
+    if (isSpawned) return
     const c = await chrome.runtime.sendMessage({ type: "spawned-count" })
     const n = c && c.ok ? c.count : 0
     if (n <= 0) return
@@ -445,23 +459,6 @@
       `Close the ${n} role browser${n > 1 ? "s" : ""} too? Their last captures flush first.`,
     )
     if (ok) chrome.runtime.sendMessage({ type: "close-role-browsers" }, () => void chrome.runtime.lastError)
-  })
-
-  // Browse anonymous: create/ensure a session + start capturing this tab, no credential.
-  // One click removes the "pick a session first" friction.
-  btnAnon.addEventListener("click", async () => {
-    btnAnon.disabled = true // prevent a second click while the request is in flight
-    roleHint.textContent = "starting…"
-    const res = await chrome.runtime.sendMessage({ type: "bootstrap-anonymous" })
-    if (res && res.ok) {
-      cred.value = ""
-      cred.placeholder = "anonymous"
-      roleHint.textContent = "capturing as anonymous — browse the site."
-      loadSessions()
-    } else {
-      roleHint.textContent = (res && res.error) || "failed (need local CyberStrike + reachable server)"
-    }
-    poll() // render() reflects the real capture state (and re-enables on failure)
   })
 
   setCred.addEventListener("click", async () => {
@@ -512,12 +509,8 @@
     dock.classList.toggle("capturing", attached)
     dock.classList.toggle("driver-ai", driver !== "human")
     dock.classList.toggle("driver-human", driver === "human")
-    attachBtn.textContent = attached ? "Detach capture" : "Attach capture"
+    attachBtn.textContent = attached ? "Stop capture" : "Start capture"
     attachBtn.classList.toggle("on", attached)
-    // Once capturing, "Browse anonymous" is a no-op — disable it so it can't be
-    // pressed repeatedly (each press would re-clear the credential).
-    btnAnon.disabled = attached
-    btnAnon.textContent = attached ? "Capturing…" : "Browse anonymous (start capture)"
 
     if (status && status.stats) {
       const st = status.stats
@@ -936,7 +929,7 @@
     loadSessions()
     chrome.storage.local.get("credential", (o) => {
       const label = o && o.credential ? o.credential.label || "" : ""
-      cred.value = label
+      cred.value = label || "anonymous" // default role is anonymous, shown pre-selected
       renderRole(label)
     })
     poll()

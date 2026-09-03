@@ -449,22 +449,23 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       return
     }
-    // Panel "Browse anonymous": create/ensure a session and start capturing THIS tab as
-    // an anonymous identity (no credential). The session is the shared container every
-    // later role joins, so this is also the natural first step before Add credential.
-    if (msg.type === "bootstrap-anonymous") {
+    // Panel "Start capture": create/ensure a session, register THIS tab's role (default
+    // "anonymous"), and attach. One button, role-aware — the session is the shared
+    // container every later role joins.
+    if (msg.type === "start-capture") {
       const tabId = sender.tab && sender.tab.id
       if (tabId === undefined) {
         sendResponse({ ok: false, error: "no tab" })
         return
       }
+      const role = (msg.role && String(msg.role).trim()) || "anonymous"
       try {
         await ensureSession()
-        // Register "anonymous" as a real role so it shows in the TUI and joins the
-        // access-control comparison — not an untagged NULL that never surfaces. Reuse an
-        // existing one (web_credential doesn't dedup by label) to avoid duplicates.
+        // Register the role as a real credential (anonymous included) so it shows in the
+        // TUI and joins the access-control comparison. Reuse if it's already this role
+        // (web_credential doesn't dedup by label) to avoid duplicates.
         const existing = await currentCredential()
-        if (!(existing && existing.label === "anonymous")) await registerCredential("anonymous")
+        if (!(existing && existing.label === role)) await registerCredential(role)
         attach(tabId)
         sendResponse({ ok: true, attached: true, session: activeSession })
       } catch (e) {
