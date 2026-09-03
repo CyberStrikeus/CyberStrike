@@ -20,6 +20,23 @@
 
   const LOGO_SRC = chrome.runtime.getURL("logo.png")
 
+  // Message the background without ever throwing. The callback form + lastError check
+  // means a sleeping/erroring MV3 service worker resolves to undefined instead of
+  // rejecting — so a click handler never dead-ends (and never leaves a button stuck
+  // disabled). Every button handler uses this.
+  function send(msg) {
+    return new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage(msg, (res) => {
+          void chrome.runtime.lastError
+          resolve(res)
+        })
+      } catch {
+        resolve(undefined)
+      }
+    })
+  }
+
   // Driver palette — one source for the three shadow roots (glow, transition, dock),
   // which can't share CSS vars because each has its own <style>.
   const AI_RGB = "37,99,235"
@@ -242,8 +259,21 @@
       /* No rotation at all; hover just scales the disc (.fab:hover above). */
       .fab.tapped { animation: tap .32s ease; }
       @keyframes tap { 0% { transform: scale(1);} 40% { transform: scale(.84);} 100% { transform: scale(1);} }
-      .dock.capturing .fab { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(${AI_RGB},.35); }
-      .dock.capturing.driver-human .fab { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(${HUMAN_RGB},.4); }
+      /* Hue aura around the logo while capturing — driver-colored, gently breathing. */
+      .dock.capturing .fab { animation: fabHueAI 3.4s ease-in-out infinite; }
+      .dock.capturing.driver-human .fab { animation: fabHueHuman 3.4s ease-in-out infinite; }
+      @keyframes fabHueAI {
+        0%,100% { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(${AI_RGB},.45), 0 0 14px 2px rgba(${AI_RGB},.4); }
+        50%     { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(${AI_RGB},.65), 0 0 26px 6px rgba(${AI_RGB},.7); }
+      }
+      @keyframes fabHueHuman {
+        0%,100% { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(${HUMAN_RGB},.5), 0 0 14px 2px rgba(${HUMAN_RGB},.45); }
+        50%     { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(${HUMAN_RGB},.7), 0 0 26px 6px rgba(${HUMAN_RGB},.75); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .dock.capturing .fab { animation: none; box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 16px 3px rgba(${AI_RGB},.55); }
+        .dock.capturing.driver-human .fab { animation: none; box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 16px 3px rgba(${HUMAN_RGB},.6); }
+      }
 
       /* Hover toolbar: captured count + settings — absolute so it never takes
          layout space; shown via JS on hover (or while settings is open). */
@@ -400,7 +430,7 @@
   // All CyberStrike calls go through the background (CORS-exempt); a content-script
   // fetch to localhost would be blocked by the page's CORS policy.
   async function loadSessions() {
-    const res = await chrome.runtime.sendMessage({ type: "list-sessions" })
+    const res = await send({ type: "list-sessions" })
     if (!res || !res.ok) {
       sess.innerHTML = '<option value="">-- CyberStrike unreachable --</option>'
       return
@@ -432,11 +462,11 @@
   // "anonymous") + attach, and flash a hue "Capture started with <role> role". STOP:
   // detach; on the MAIN browser, offer to close the spawned role browsers.
   attachBtn.addEventListener("click", async () => {
-    const status = await chrome.runtime.sendMessage({ type: "panel-status" })
+    const status = await send({ type: "panel-status" })
     if (!(status && status.attached)) {
       attachBtn.disabled = true
       const role = cred.value.trim() || "Anonymous"
-      const res = await chrome.runtime.sendMessage({ type: "start-capture", role, url: location.href })
+      const res = await send({ type: "start-capture", role, url: location.href })
       attachBtn.disabled = false
       if (res && res.ok) {
         cred.value = role
@@ -449,10 +479,10 @@
       return
     }
     // STOP (detach). A spawned browser never prompts; the main one offers to close roles.
-    await chrome.runtime.sendMessage({ type: "toggle-attach-self" })
+    await send({ type: "toggle-attach-self" })
     poll()
     if (isSpawned) return
-    const c = await chrome.runtime.sendMessage({ type: "spawned-count" })
+    const c = await send({ type: "spawned-count" })
     const n = c && c.ok ? c.count : 0
     if (n <= 0) return
     const ok = await askConfirm(
@@ -465,7 +495,7 @@
     const label = cred.value.trim()
     if (!label) return
     // background registers against the active session (kept in sync via storage).
-    const res = await chrome.runtime.sendMessage({ type: "set-credential-label", label })
+    const res = await send({ type: "set-credential-label", label })
     if (res && res.ok) {
       cred.value = label
       cred.placeholder = "e.g. admin"
@@ -481,7 +511,7 @@
   async function enqueueRoleClick() {
     const role = newRole.value.trim()
     if (!role) return
-    const res = await chrome.runtime.sendMessage({ type: "enqueue-role", role })
+    const res = await send({ type: "enqueue-role", role })
     if (res && res.ok) {
       roleHint.textContent = `“${role}” queued — opens after you Start capture.`
       newRole.value = ""
