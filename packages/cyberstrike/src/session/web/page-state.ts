@@ -107,6 +107,14 @@ export namespace PageState {
     }
   }
 
+  // The full clickable for an id on a url — the single lookup both the guard check and the
+  // crawl action-key derivation build on. null when the page or element is unknown.
+  export function element(sessionID: string, url: string, elementId: string): Clickable | null {
+    const obs = pages(sessionID).get(url)
+    if (!obs) return null
+    return obs.clickables.find((c) => c.id === elementId) ?? null
+  }
+
   // One clickable's kind/policy/label — used by /web/action to enforce guard on the exact
   // element the AI is about to act on. null when the page or element is unknown.
   export function elementPolicy(
@@ -114,9 +122,7 @@ export namespace PageState {
     url: string,
     elementId: string,
   ): { kind?: ElementKind; policy: "allow" | "confirm" | "deny"; label: string } | null {
-    const obs = pages(sessionID).get(url)
-    if (!obs) return null
-    const el = obs.clickables.find((c) => c.id === elementId)
+    const el = element(sessionID, url, elementId)
     if (!el) return null
     return { kind: el.kind, policy: actionPolicy(el.kind), label: el.label }
   }
