@@ -466,6 +466,42 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       return
     }
+    // How many role browsers CyberStrike still has open for this session — the branded
+    // panel asks before confirming a close-on-detach.
+    if (msg.type === "spawned-count") {
+      const sid = await currentSession()
+      if (!sid) {
+        sendResponse({ ok: true, count: 0 })
+        return
+      }
+      const base = await csUrl()
+      try {
+        const r = await fetch(`${base}/session/${sid}/web/spawned-count`)
+        const d = await r.json().catch(() => ({}))
+        sendResponse({ ok: true, count: (d && d.count) || 0 })
+      } catch (e) {
+        sendResponse({ ok: false, count: 0 })
+      }
+      return
+    }
+    // Close every spawned role browser for this session (CyberStrike kills the children
+    // after a short flush window).
+    if (msg.type === "close-role-browsers") {
+      const sid = await currentSession()
+      if (!sid) {
+        sendResponse({ ok: false })
+        return
+      }
+      const base = await csUrl()
+      try {
+        const r = await fetch(`${base}/session/${sid}/web/close-profiles`, { method: "POST" })
+        const d = await r.json().catch(() => ({}))
+        sendResponse({ ok: true, closed: (d && d.closed) || 0 })
+      } catch (e) {
+        sendResponse({ ok: false })
+      }
+      return
+    }
     if (msg.type === "observe") {
       // Forward this page's clickables to CyberStrike as per-credential UI observations
       // (Faz B). Server derives element_roles/page_visited_by at read time. Needs a

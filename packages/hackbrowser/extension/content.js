@@ -153,6 +153,50 @@
     if (!roleDismissed) rbanner.classList.add("on")
   }
 
+  // --- Confirm overlay (Yes/No) ---------------------------------------------
+  const confirmHost = document.createElement("div")
+  confirmHost.style.cssText = "position:fixed;inset:0;z-index:2147483647;pointer-events:none;"
+  const confirmRoot = confirmHost.attachShadow({ mode: "closed" })
+  confirmRoot.innerHTML = `
+    <style>
+      .wrap { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+        background: rgba(0,0,0,.45); pointer-events: auto; }
+      .wrap.on { display: flex; }
+      .card { background: #121319; color: #fff; border-radius: 12px; padding: 18px 20px; max-width: 360px;
+        box-shadow: 0 20px 60px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.08);
+        font: 13px/1.5 -apple-system,system-ui,sans-serif; }
+      .msg { margin-bottom: 14px; }
+      .row { display: flex; gap: 10px; justify-content: flex-end; }
+      button { padding: 7px 14px; border: 0; border-radius: 8px; font: 600 12px system-ui,sans-serif; cursor: pointer; }
+      .no { background: #2a2f3a; color: #cbd5e1; }
+      .yes { background: #dc2626; color: #fff; }
+    </style>
+    <div class="wrap" id="cwrap">
+      <div class="card">
+        <div class="msg" id="cmsg"></div>
+        <div class="row"><button class="no" id="cno">No</button><button class="yes" id="cyes">Yes</button></div>
+      </div>
+    </div>
+  `
+  const cwrap = confirmRoot.getElementById("cwrap")
+  const cmsg = confirmRoot.getElementById("cmsg")
+  let confirmResolve = null
+  function askConfirm(text) {
+    cmsg.textContent = text
+    cwrap.classList.add("on")
+    return new Promise((resolve) => {
+      confirmResolve = resolve
+    })
+  }
+  function answerConfirm(v) {
+    cwrap.classList.remove("on")
+    const r = confirmResolve
+    confirmResolve = null
+    if (r) r(v)
+  }
+  confirmRoot.getElementById("cyes").addEventListener("click", () => answerConfirm(true))
+  confirmRoot.getElementById("cno").addEventListener("click", () => answerConfirm(false))
+
   // --- Dock ------------------------------------------------------------------
   const host = document.createElement("div")
   host.id = "cyberstrike-panel-host"
@@ -322,6 +366,7 @@
   let settingsOpen = false
   let pageCount = 0
   let mountedAt = 0 // when the dock was appended — see panel-visibility (popup toggle)
+  let isSpawned = false // true in a browser CyberStrike spawned (opened with a role hash)
 
   // Hover reveals the toolbar (captured + settings). JS-driven so a gap between
   // the logo and the bar doesn't drop the hover; stays open while settings is on.
@@ -387,6 +432,16 @@
     const on = !!(res && res.attached)
     attachBtn.textContent = on ? "Detach capture" : "Attach capture"
     attachBtn.classList.toggle("on", on)
+    // Detaching on the MAIN browser ends the assessment — offer to close the spawned role
+    // browsers (they otherwise stay open). A spawned browser itself never prompts.
+    if (on || isSpawned) return
+    const c = await chrome.runtime.sendMessage({ type: "spawned-count" })
+    const n = c && c.ok ? c.count : 0
+    if (n <= 0) return
+    const ok = await askConfirm(
+      `Close the ${n} role browser${n > 1 ? "s" : ""} too? Their last captures flush first.`,
+    )
+    if (ok) chrome.runtime.sendMessage({ type: "close-role-browsers" }, () => void chrome.runtime.lastError)
   })
 
   // Browse anonymous: create/ensure a session + start capturing this tab, no credential.
@@ -837,6 +892,7 @@
     // Set the shared session BEFORE the credential (which registers against it).
     if (sess) chrome.storage.local.set({ session: sess })
     if (!label) return
+    isSpawned = true // opened by CyberStrike with a role — don't prompt to close others
     // This is a spawned role browser (same scope, new identity). Register the credential,
     // then auto-attach and start capturing on the shared session — no manual step — and
     // flash a role-colored "capture started" line for ~1s.
@@ -868,6 +924,7 @@
     document.body.appendChild(glowHost)
     document.body.appendChild(transHost)
     document.body.appendChild(roleHost)
+    document.body.appendChild(confirmHost)
     document.body.appendChild(host)
     mountedAt = Date.now()
     readCredFromHash()
