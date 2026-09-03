@@ -394,21 +394,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       sendResponse({ ok: true, attached: attached.has(tabId) })
       return
     }
-    // Idempotent attach — a spawned role browser calls this to start capturing on open
-    // (no toggle risk). Warm the session + credential from storage so the very first
-    // request is tagged with the right role and lands on the shared session.
-    if (msg.type === "attach-self") {
-      const tabId = sender.tab && sender.tab.id
-      if (tabId === undefined) {
-        sendResponse({ ok: false, attached: false })
-        return
-      }
-      await currentSession()
-      await currentCredential()
-      attach(tabId)
-      sendResponse({ ok: true, attached: true })
-      return
-    }
     if (msg.type === "set-driver") {
       const tabId = sender.tab && sender.tab.id
       if (tabId !== undefined) driverByTab.set(tabId, msg.driver === "human" ? "human" : "ai")

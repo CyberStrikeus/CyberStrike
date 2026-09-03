@@ -885,21 +885,17 @@
     const sess = decodeHash(h.match(/__cs_sess=([^&]+)/))
     if (label === null && sess === null) return
     history.replaceState(null, "", location.pathname + location.search || "/")
-    // Set the shared session BEFORE the credential (which registers against it).
+    // Set the shared session so this profile joins the one that spawned it.
     if (sess) chrome.storage.local.set({ session: sess })
     if (!label) return
     isSpawned = true // opened by CyberStrike with a role — don't prompt to close others
-    // This is a spawned role browser (same scope, new identity). Register the credential,
-    // then auto-attach and start capturing on the shared session — no manual step — and
-    // flash a role-colored "capture started" line for ~1s.
-    chrome.runtime.sendMessage({ type: "set-credential-label", label }, () => {
-      void chrome.runtime.lastError
-      chrome.runtime.sendMessage({ type: "attach-self" }, (r) => {
-        void chrome.runtime.lastError
-        renderRole(label)
-        if (r && r.attached) flashTransition(`Session capture started — ${label}`, "", roleColor(label), 1200)
-      })
-    })
+    // Spawned role browser: a fresh profile lands on the LOGIN screen, so we do NOT
+    // auto-capture (that would record login noise and there's no session yet). Pre-fill
+    // the role and guide the user to log in first; they click Start capture afterward,
+    // which registers the role + attaches on the shared session.
+    cred.value = label
+    renderRole(label) // shows the "<ROLE> — log in as this identity" banner
+    roleHint.textContent = `Log in as "${label}", then press Start capture.`
   }
 
   let lastUrl = location.href
@@ -929,8 +925,9 @@
     loadSessions()
     chrome.storage.local.get("credential", (o) => {
       const label = o && o.credential ? o.credential.label || "" : ""
-      cred.value = label || "anonymous" // default role is anonymous, shown pre-selected
-      renderRole(label)
+      // Don't clobber a role already pre-filled by readCredFromHash (spawned browser).
+      if (!cred.value) cred.value = label || "anonymous"
+      if (label) renderRole(label)
     })
     poll()
     setInterval(poll, 1500)
