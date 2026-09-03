@@ -26,6 +26,10 @@ import { WebFunction } from "../../session/web/web-function"
 import { WebRetest } from "../../session/web/web-retest"
 import { UiObservation } from "../../session/web/ui-observation"
 import { SpawnedProfiles } from "../../session/web/spawned-profiles"
+import { RoleQueue } from "../../session/web/role-queue"
+
+const RoleInfoSchema = z.object({ label: z.string(), phase: z.enum(["pending", "spawning", "awaiting", "capturing"]) })
+const QueueStatusSchema = z.object({ roles: z.array(RoleInfoSchema), setup: RoleInfoSchema.nullable() })
 import { Agent } from "../../agent/agent"
 import { Provider } from "../../provider/provider"
 import { Snapshot } from "@/snapshot"
@@ -973,6 +977,80 @@ export const SessionRoutes = lazy(() =>
         // Flush window: let the spawned browsers' in-flight captures land before we kill.
         await new Promise((r) => setTimeout(r, 800))
         return c.json({ closed: SpawnedProfiles.closeAll(sessionID) })
+      },
+    )
+    .post(
+      "/:sessionID/web/role-queue",
+      describeRoute({
+        summary: "Enqueue setup roles",
+        description:
+          "Add roles to this session's sequential setup queue (dedup by label). Fed by the TUI menu (a list) and the panel 'Add credential' (one at a time). Roles spawn one at a time as each prior role's capture starts.",
+        operationId: "session.enqueueRoles",
+        responses: {
+          200: { description: "Queue status", content: { "application/json": { schema: resolver(QueueStatusSchema) } } },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator("json", z.object({ roles: z.array(z.string()) })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        RoleQueue.enqueue(sessionID, c.req.valid("json").roles)
+        return c.json(RoleQueue.status(sessionID))
+      },
+    )
+    .get(
+      "/:sessionID/web/queue-status",
+      describeRoute({
+        summary: "Role setup queue status",
+        description: "The sequential-setup queue for this session — the orchestrator (first) browser polls it to show 'spawning <role>…' / 'please sign in as <role>'.",
+        operationId: "session.queueStatus",
+        responses: {
+          200: { description: "Queue status", content: { "application/json": { schema: resolver(QueueStatusSchema) } } },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      async (c) => c.json(RoleQueue.status(c.req.valid("param").sessionID)),
+    )
+    .post(
+      "/:sessionID/web/capture-started",
+      describeRoute({
+        summary: "Signal a role's capture started",
+        description:
+          "A browser pressed Start capture for `role`. Advances the queue and, if a next role is pending, spawns its browser on the shared session at `url`. Returns the next role's label (now being set up) or null.",
+        operationId: "session.captureStarted",
+        responses: {
+          200: {
+            description: "Next role spawned (or none)",
+            content: {
+              "application/json": {
+                schema: resolver(z.object({ next: z.string().nullable(), spawned: z.boolean() })),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator("json", z.object({ role: z.string(), url: z.string() })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const body = c.req.valid("json")
+        const next = RoleQueue.captureStarted(sessionID, body.role)
+        if (!next) return c.json({ next: null, spawned: false })
+        // Spawn the next role's browser on the shared session at the same URL.
+        try {
+          const spawn = await import("@cyberstrike-io/hackbrowser/v2-spawn")
+          const result = spawn.spawnProfile({ url: body.url, cred: next.label, session: sessionID })
+          SpawnedProfiles.track(sessionID, result.proc)
+          RoleQueue.spawned(sessionID, next.label)
+          return c.json({ next: next.label, spawned: true })
+        } catch (e) {
+          // Queue already advanced (next is "spawning"); report the failure so the panel
+          // can surface it rather than silently stalling.
+          return c.json({ next: next.label, spawned: false, error: e instanceof Error ? e.message : String(e) }, 500)
+        }
       },
     )
     .delete(
