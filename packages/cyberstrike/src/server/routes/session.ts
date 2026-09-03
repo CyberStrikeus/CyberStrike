@@ -1080,7 +1080,23 @@ export const SessionRoutes = lazy(() =>
           driver: z.enum(["ai", "human"]).optional(),
           credential_id: z.string().optional(),
           clickables: z.array(
-            z.object({ id: z.string(), tag: z.string(), role: z.string(), label: z.string(), href: z.string() }),
+            z.object({
+              id: z.string(),
+              tag: z.string(),
+              role: z.string(),
+              label: z.string(),
+              href: z.string(),
+              // rich observation (extension 2.0) — optional; zod strips unknown keys, so any
+              // field the AI should keep MUST be declared here.
+              why: z.string().optional(),
+              aria: z.record(z.string(), z.string()).optional(),
+              disabled: z.boolean().optional(),
+              in_viewport: z.boolean().optional(),
+              section: z.string().optional(),
+              testid: z.string().optional(),
+              shadow: z.boolean().optional(),
+              frame: z.string().optional(),
+            }),
           ),
           forms: z
             .array(
@@ -1092,6 +1108,13 @@ export const SessionRoutes = lazy(() =>
             )
             .optional(),
           links: z.array(z.string()).optional(),
+          // rich page context
+          description: z.string().optional(),
+          location: z.array(z.string()).optional(),
+          landmarks: z.array(z.object({ role: z.string(), label: z.string() })).optional(),
+          frames: z.array(z.object({ src: z.string(), same_origin: z.boolean(), title: z.string() })).optional(),
+          canvas: z.number().optional(),
+          dynamic: z.boolean().optional(),
         }),
       ),
       async (c) => {
@@ -1104,6 +1127,14 @@ export const SessionRoutes = lazy(() =>
           forms: b.forms ?? [],
           links: b.links ?? [],
           driver: b.driver,
+          credential: b.credential_id,
+          description: b.description,
+          location: b.location,
+          landmarks: b.landmarks,
+          frames: b.frames,
+          canvas: b.canvas,
+          dynamic: b.dynamic,
+          observed_at: Date.now(),
         })
         if (b.credential_id) {
           for (const el of b.clickables) {
