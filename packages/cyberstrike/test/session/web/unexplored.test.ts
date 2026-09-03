@@ -40,3 +40,17 @@ describe("Unexplored.expanders", () => {
     expect(Unexplored.expanders("s", st).length).toBe(0)
   })
 })
+
+describe("Unexplored.leftovers (U3 substrate)", () => {
+  test("gathers ALL un-acted labelled `other` interactives, including signalless ones", () => {
+    const st = state("s", [
+      { id: "sig", tag: "div", role: "button", label: "Menu", href: "", aria: { haspopup: "menu" } }, // signal
+      { id: "plain", tag: "div", role: "generic", label: "Fancy Widget", href: "", why: "cursor" }, // signalless
+      { id: "n", tag: "a", role: "link", label: "Home", href: "/home" }, // nav → excluded
+      { id: "nolabel", tag: "div", role: "generic", label: "", href: "", why: "cursor" }, // labelless → excluded
+    ])
+    expect(Unexplored.leftovers("s", st).map((c) => c.id).sort()).toEqual(["plain", "sig"])
+    // expanders is the narrow, signal-only subset U1 uses.
+    expect(Unexplored.expanders("s", st).map((c) => c.id)).toEqual(["sig"])
+  })
+})

@@ -69,4 +69,24 @@ export namespace Unexplored {
     }
     return out.sort((a, b) => b.score - a.score)
   }
+
+  // U3 substrate: ALL un-acted `other` interactive elements with a label — the leftovers the
+  // deterministic expander pass (U1) did NOT pick (typically signalless: a cursor:pointer div, a
+  // custom widget with no aria). The LLM second-look judges which, if any, reveal functionality;
+  // this stays pure (no LLM here) and just gathers the annotated candidates.
+  export function leftovers(sessionID: string, state: PageState.StatePayload): Candidate[] {
+    const out: Candidate[] = []
+    const seen = new Set<string>()
+    for (const c of state.clickables) {
+      if (c.kind !== "other") continue
+      if (c.policy !== "allow") continue
+      if (!c.label) continue // labelless nodes are noise the LLM can't reason about
+      const key = Crawl.actionKey(state.url, c)
+      if (Crawl.isActed(sessionID, key) && !Effect.eligible(sessionID, key)) continue
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push({ id: c.id, label: c.label, actionKey: key, score: 0 })
+    }
+    return out
+  }
 }

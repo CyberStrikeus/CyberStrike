@@ -7,6 +7,7 @@ import { Crawl } from "../../../src/session/web/crawl"
 import { Rank } from "../../../src/session/web/rank"
 import { Effect } from "../../../src/session/web/effect"
 import { WebScope } from "../../../src/session/web/scope"
+import { WebStrategy } from "../../../src/session/web/strategy"
 
 beforeEach(() => {
   PageState._reset()
@@ -16,6 +17,7 @@ beforeEach(() => {
   WebCoDrive._reset()
   Effect._reset()
   WebScope._reset()
+  WebStrategy._reset()
 })
 
 type Click = { id: string; tag: string; role: string; label: string; href: string }
@@ -49,6 +51,7 @@ function browser(sid: string, site: Record<string, Click[]>, startUrl: string, v
 const fast = {
   planner: WebCoDrive.DeterministicPlanner,
   strategist: async () => [] as string[],
+  secondLook: async () => null, // no LLM second-look unless a test opts in
   pollMs: 2,
   settleMs: 15,
   maxIdle: 3,
@@ -336,6 +339,93 @@ describe("WebCoDrive loop", () => {
     expect(Crawl.isPageVisited(sid, "https://demo.testfire.net/account")).toBe(true) // in-scope followed
     expect(visited.some((u) => u.includes("github.com"))).toBe(false) // external never visited
     expect(WebCoDrive.isRunning(sid)).toBe(false)
+  })
+
+  test("U3: LLM second-look clicks a signalless leftover the deterministic passes skipped", async () => {
+    const sid = "s"
+    const clicked: string[] = []
+    let looks = 0
+    let clock = 1
+    const set = (url: string, clickables: Click[]) =>
+      PageState.set(sid, { url, title: url, clickables, forms: [], links: [], observed_at: ++clock })
+    // 'Widget' is other + labelled but has NO expander signal (no aria/role/why) → U1 skips it;
+    // only U3's LLM judgement can decide to try it.
+    const widget = { id: "w", tag: "div", role: "generic", label: "Fancy Widget", href: "" }
+    const deep = { id: "deep", tag: "a", role: "link", label: "Deep", href: "/deep" }
+    WebControl.connect(sid, {
+      send(data: string) {
+        const m = JSON.parse(data)
+        if (m.op === "click") {
+          clicked.push(m.elementId)
+          if (m.elementId === "w") set("https://h/a", [widget, deep]) // widget reveals a link
+          else if (m.elementId === "deep") set("https://h/deep", [])
+        }
+        WebControl.onAck(JSON.stringify({ id: m.id, ok: true }))
+      },
+    })
+    set("https://h/a", [widget]) // page has ONLY the signalless widget
+
+    WebCoDrive.start(sid, {
+      ...fast,
+      secondLook: async (_s, _state, leftovers) => {
+        looks++
+        return leftovers.find((l) => l.id === "w") ?? null
+      },
+    })
+    await untilStopped(sid)
+
+    expect(clicked).toContain("w") // U3 tried the leftover
+    expect(Crawl.isPageVisited(sid, "https://h/deep")).toBe(true) // and it unlocked new content
+    expect(looks).toBeGreaterThanOrEqual(1)
+  })
+
+  test("the planner is consulted whenever there are 2+ link choices (deliberate, not mechanical)", async () => {
+    const sid = "s"
+    let planCalls = 0
+    browser(sid, {
+      "https://h/a": [
+        { id: "E0", tag: "a", role: "link", label: "A", href: "/x" },
+        { id: "E1", tag: "a", role: "link", label: "B", href: "/y" },
+      ],
+      "https://h/x": [],
+      "https://h/y": [],
+    }, "https://h/a")
+    WebCoDrive.start(sid, {
+      ...fast,
+      planner: {
+        async choose(inp) {
+          planCalls++
+          return inp.candidates[0]
+        },
+      },
+    })
+    await untilStopped(sid)
+    expect(planCalls).toBeGreaterThanOrEqual(1) // consulted on the 2-choice page, not auto-advanced
+  })
+
+  test("planner context is rich (page, structure, focus areas, coverage, per-candidate section)", async () => {
+    const sid = "s"
+    PageState.set(sid, {
+      url: "https://h/app",
+      title: "Bank",
+      description: "Online banking dashboard",
+      location: ["Home", "Accounts"],
+      landmarks: [{ role: "navigation", label: "Primary" }],
+      clickables: [{ id: "E0", tag: "a", role: "link", label: "Transfers", href: "/transfer", section: "main > Accounts" }],
+      forms: [{ action: "/search", method: "get", fields: [{ name: "q", type: "search", required: false }] }],
+      links: [],
+      observed_at: Date.now(),
+    })
+    const st = PageState.get(sid, "https://h/app")!
+    await WebStrategy.ensure(sid, st, async () => ({ purpose: "bank", priorities: ["transfer", "admin"] }))
+    const cand = { id: "E0", label: "Transfers", kind: "nav", actionKey: "k", href: "/transfer", targetUrl: "https://h/transfer", score: 5 }
+    const ctx = WebCoDrive.buildContext(sid, st, [cand as never])
+    expect(ctx).toContain("Online banking dashboard")
+    expect(ctx).toContain("Home > Accounts")
+    expect(ctx).toContain("navigation(Primary)")
+    expect(ctx).toContain("Focus areas (app priorities): transfer, admin")
+    expect(ctx).toContain("Coverage so far")
+    expect(ctx).toContain("(in: main > Accounts)")
   })
 
   test("start is idempotent (a second start does not stack a loop)", async () => {

@@ -48,17 +48,34 @@ export namespace WebCoDrive {
 
   const PLAN_TOPN = 25
   const SYSTEM =
-    "You navigate a web application to discover its pages and endpoints. You do NOT test for " +
-    "vulnerabilities — that is a separate job. Given the current page and a shortlist of unvisited " +
-    "links/queries, pick the SINGLE best next element to explore for the broadest coverage, " +
-    "preferring navigation that reaches new areas. Return exactly one element_id from the list."
+    "You are mapping a web application's IMPORTANT functionality — authentication, user/account " +
+    "management, settings, transactions, admin, search, anything business-critical. You do NOT " +
+    "test for vulnerabilities. Read the page (what it is, where in the app you are, its structure) " +
+    "and the candidate links/forms, then pick the SINGLE best next element to reach the most " +
+    "valuable UNVISITED area. Honor the Focus areas when given. Prefer new areas over places already " +
+    "well covered. Return one element_id from the list and a short reason."
 
-  function buildContext(state: PageState.StatePayload, shortlist: Rank.Candidate[]): string {
-    const lines = shortlist.map((c) => `- ${c.id} [${c.kind}] "${c.label}"${c.targetUrl ? ` -> ${c.targetUrl}` : ""}`)
+  // Rich per-step context so the model reasons about the app, not just picks off a flat list:
+  // what page this is, where in the app, its structure, the main-model Focus areas, how much is
+  // still unexplored, and per-candidate where-it-sits / why-it's-interactive.
+  export function buildContext(sessionID: string, state: PageState.StatePayload, shortlist: Rank.Candidate[]): string {
+    const byId = new Map(state.clickables.map((c) => [c.id, c]))
+    const lines = shortlist.map((c) => {
+      const el = byId.get(c.id)
+      const section = el && el.section ? ` (in: ${el.section})` : ""
+      return `- ${c.id} [${c.kind}] "${c.label}"${section}${c.targetUrl ? ` -> ${c.targetUrl}` : ""}`
+    })
+    const priorities = WebStrategy.get(sessionID)?.priorities ?? []
+    const cov = Crawl.summary(sessionID)
+    const forms = (state.forms ?? []).map((f) => (f.fields.map((x) => x.name).filter(Boolean).slice(0, 6).join(", ") || f.action)).filter(Boolean)
     return [
       `URL: ${state.url}`,
       state.description ? `Page: ${state.description}` : "",
       state.location && state.location.length ? `Location: ${state.location.join(" > ")}` : "",
+      state.landmarks && state.landmarks.length ? `Structure: ${state.landmarks.map((l) => `${l.role}${l.label ? `(${l.label})` : ""}`).join(", ")}` : "",
+      forms.length ? `Forms on page: ${forms.slice(0, 5).map((f) => `[${f}]`).join(" ")}` : "",
+      priorities.length ? `Focus areas (app priorities): ${priorities.join(", ")}` : "",
+      `Coverage so far: ${cov.pages_visited} pages explored, ${cov.actions} actions used.`,
       `Candidates (choose one element_id):`,
       ...lines,
     ]
@@ -70,7 +87,7 @@ export namespace WebCoDrive {
   // error, malformed output) falls back to the deterministic top pick — a broken model must
   // never stall the crawl.
   export const LlmPlanner: Planner = {
-    async choose({ state, candidates }) {
+    async choose({ sessionID, state, candidates }) {
       if (candidates.length === 0) return null
       const top = candidates[0]
       try {
@@ -78,7 +95,10 @@ export namespace WebCoDrive {
         const model = (await Provider.getSmallModel(dm.providerID).catch(() => undefined)) ?? (await Provider.getModel(dm.providerID, dm.modelID))
         const language = await Provider.getLanguage(model)
         const shortlist = candidates.slice(0, PLAN_TOPN)
-        const schema = z.object({ element_id: z.string().describe("id of the next element to act on, chosen from the candidate list") })
+        const schema = z.object({
+          element_id: z.string().describe("id of the next element to act on, chosen from the candidate list"),
+          reason: z.string().describe("one short sentence: why this is the most valuable next step").optional(),
+        })
         const result = streamText({
           model: language,
           temperature: 0,
@@ -87,7 +107,7 @@ export namespace WebCoDrive {
           toolChoice: "required",
           messages: [
             { role: "system", content: SYSTEM },
-            { role: "user", content: buildContext(state, shortlist) },
+            { role: "user", content: buildContext(sessionID, state, shortlist) },
           ],
           onError: () => {},
         })
@@ -96,7 +116,10 @@ export namespace WebCoDrive {
         const parsed = call ? schema.safeParse(call.input) : undefined
         if (parsed && parsed.success) {
           const match = shortlist.find((c) => c.id === parsed.data.element_id)
-          if (match) return match
+          if (match) {
+            HBLog.record(sessionID, "codrive", "plan", { picked: match.label, reason: parsed.data.reason ?? "" })
+            return match
+          }
         }
         return top // nothing usable → deterministic
       } catch (e) {
@@ -117,9 +140,79 @@ export namespace WebCoDrive {
     return WebStrategy.get(sessionID)?.priorities ?? []
   }
 
+  // U3 — LLM second-look over the leftovers the deterministic ranker + expander pass (U1) skipped
+  // (typically signalless custom widgets). Returns the element to click, or null (nothing worth
+  // trying). Injectable; the default calls the small model and NEVER throws (a failure → null →
+  // the loop just moves on to the frontier).
+  export type SecondLook = (sessionID: string, state: PageState.StatePayload, leftovers: Unexplored.Candidate[]) => Promise<Unexplored.Candidate | null>
+
+  const U3_SYSTEM =
+    "These page elements were NOT recognized as normal links or forms — they may be custom menus, " +
+    "tabs, accordions or widgets made interactive by scripts, or they may be decorative. Judge which " +
+    "ONE, if any, would most likely reveal NEW functionality or navigation when clicked. If none look " +
+    "useful, do not pick one. Never pick logout/sign-out or delete/remove controls."
+
+  function buildU3Context(state: PageState.StatePayload, leftovers: Unexplored.Candidate[]): string {
+    const byId = new Map(state.clickables.map((c) => [c.id, c]))
+    const lines = leftovers.map((c) => {
+      const el = byId.get(c.id)
+      const bits: string[] = []
+      if (el?.role) bits.push(`role=${el.role}`)
+      if (el?.why) bits.push(el.why)
+      if (el?.aria && Object.keys(el.aria).length) bits.push(`aria=${JSON.stringify(el.aria)}`)
+      if (el?.section) bits.push(`in ${el.section}`)
+      return `- ${c.id} "${c.label}"${bits.length ? ` (${bits.join("; ")})` : ""}`
+    })
+    return [`URL: ${state.url}`, state.description ? `Page: ${state.description}` : "", `Un-recognized interactive elements:`, ...lines]
+      .filter(Boolean)
+      .join("\n")
+  }
+
+  const U3_TOPN = 40
+  export const defaultSecondLook: SecondLook = async (sessionID, state, leftovers) => {
+    if (leftovers.length === 0) return null
+    try {
+      const dm = await Provider.defaultModel()
+      const model = (await Provider.getSmallModel(dm.providerID).catch(() => undefined)) ?? (await Provider.getModel(dm.providerID, dm.modelID))
+      const language = await Provider.getLanguage(model)
+      const list = leftovers.slice(0, U3_TOPN)
+      const schema = z.object({
+        element_id: z.string().describe("id of the element to click; OMIT entirely if none is worth clicking").optional(),
+        reason: z.string().optional(),
+      })
+      const result = streamText({
+        model: language,
+        temperature: 0,
+        maxOutputTokens: ProviderTransform.maxOutputTokens(model),
+        tools: { second_look: tool({ description: "Pick one element that would reveal new functionality, or none.", inputSchema: schema }) },
+        toolChoice: "required",
+        messages: [
+          { role: "system", content: U3_SYSTEM },
+          { role: "user", content: buildU3Context(state, list) },
+        ],
+        onError: () => {},
+      })
+      for await (const part of result.fullStream) if (part.type === "error") throw part.error
+      const call = (await result.toolCalls).find((c) => c.toolName === "second_look")
+      const parsed = call ? schema.safeParse(call.input) : undefined
+      if (parsed && parsed.success && parsed.data.element_id) {
+        const match = list.find((c) => c.id === parsed.data.element_id)
+        if (match) {
+          HBLog.record(sessionID, "codrive", "u3-pick", { label: match.label, reason: parsed.data.reason ?? "" })
+          return match
+        }
+      }
+      return null // model declined → nothing worth trying here
+    } catch (e) {
+      log.debug("U3 secondLook failed", { err: String(e) })
+      return null
+    }
+  }
+
   export interface Options {
     planner?: Planner
     strategist?: Strategist
+    secondLook?: SecondLook
     pollMs?: number
     settleMs?: number
     maxIdle?: number
@@ -133,13 +226,23 @@ export namespace WebCoDrive {
     strategyTimeoutMs?: number // hard cap so a slow/hanging strategist can't stall driving
   }
   const DEFAULTS = { pollMs: 400, settleMs: 1500, maxIdle: 8, humanize: true, thinkMinMs: 350, thinkMaxMs: 1400, jitterBand: 2, strategyTimeoutMs: 5000 }
-  // Skip the planner (auto-advance) when the top candidate clearly dominates.
-  const AUTO_MARGIN = 2
 
   // sid → running generation. Presence = running; the loop runs only while its captured
   // generation is still the current one, so a fast Human→AI re-toggle can never double-run.
   const active = new Map<string, number>()
   let seq = 0
+  // Urls where the U3 second-look has already run (one LLM pass per page — don't re-ask).
+  const u3Done = new Map<string, Set<string>>()
+  function u3Seen(sessionID: string, url: string): boolean {
+    let s = u3Done.get(sessionID)
+    if (!s) {
+      s = new Set()
+      u3Done.set(sessionID, s)
+    }
+    if (s.has(url)) return true
+    s.add(url)
+    return false
+  }
 
   export function isRunning(sessionID: string): boolean {
     return active.has(sessionID)
@@ -150,6 +253,7 @@ export namespace WebCoDrive {
   interface Cfg {
     planner: Planner
     strategist: Strategist
+    secondLook: SecondLook
     pollMs: number
     settleMs: number
     maxIdle: number
@@ -169,6 +273,7 @@ export namespace WebCoDrive {
     const cfg: Cfg = {
       planner: opts.planner ?? LlmPlanner,
       strategist: opts.strategist ?? defaultStrategist,
+      secondLook: opts.secondLook ?? defaultSecondLook,
       pollMs: opts.pollMs ?? DEFAULTS.pollMs,
       settleMs: opts.settleMs ?? DEFAULTS.settleMs,
       maxIdle: opts.maxIdle ?? DEFAULTS.maxIdle,
@@ -254,6 +359,23 @@ export namespace WebCoDrive {
           if ((await clickAndLearn(sessionID, state, pick.actionKey, pick.id, cfg)) === "stop") { reason = "act-stop"; break }
           continue
         }
+        // U3: one LLM second-look per page over the leftovers the deterministic passes skipped
+        // (signalless custom widgets). The model judges which, if any, reveals functionality.
+        if (!u3Seen(sessionID, state.url)) {
+          const left = Unexplored.leftovers(sessionID, state)
+          if (left.length > 0) {
+            const pick = await cfg.secondLook(sessionID, state, left)
+            if (!alive()) { reason = "stopped"; break }
+            if (pick) {
+              const pause = thinkTime(cfg)
+              if (pause > 0) await sleep(pause)
+              if (!alive()) { reason = "stopped"; break }
+              HBLog.record(sessionID, "codrive", "act", { kind: "u3", label: pick.label, url: state.url })
+              if ((await clickAndLearn(sessionID, state, pick.actionKey, pick.id, cfg)) === "stop") { reason = "act-stop"; break }
+              continue
+            }
+          }
+        }
         // Dead end — jump to a discovered-but-unvisited page, else done.
         const next = Crawl.takeFrontier(sessionID)
         if (!next) { reason = "coverage-complete"; break } // nothing left to explore anywhere reachable
@@ -305,8 +427,11 @@ export namespace WebCoDrive {
     return "done"
   }
 
-  // Pick the next action across links AND forms. Genuine link-only ambiguity → the (small-model)
-  // planner; otherwise deterministic, humanized order over the merged, score-sorted set.
+  // Pick the next action across links AND forms. Whenever there is a real choice among links
+  // (2+), the context-rich planner reasons about the most valuable next move — this is what
+  // makes the crawl deliberate instead of mechanically walking the score order. A top-scoring
+  // form wins deterministically (forms are high-value and deterministic to run); a single
+  // candidate or a planner that declines falls back to the deterministic (humanized) top.
   async function decide(
     sessionID: string,
     state: PageState.StatePayload,
@@ -320,10 +445,10 @@ export namespace WebCoDrive {
     ].sort((a, b) => b.score - a.score)
     if (merged.length === 0) return null
 
-    const clickAmbiguous = clickCands.length >= 2 && clickCands[0].score - clickCands[1].score < AUTO_MARGIN
-    if (merged[0].action.kind === "click" && clickAmbiguous && formCands.length === 0) {
+    if (merged[0].action.kind === "form") return merged[0].action
+    if (clickCands.length >= 2) {
       const c = await cfg.planner.choose({ sessionID, state, candidates: clickCands })
-      return c ? { kind: "click", cand: c } : null
+      if (c) return { kind: "click", cand: c }
     }
     return (cfg.humanize ? pickBand(merged, cfg.rng, cfg.jitterBand) : merged[0]).action
   }
@@ -359,5 +484,6 @@ export namespace WebCoDrive {
 
   export function _reset(): void {
     active.clear()
+    u3Done.clear()
   }
 }
