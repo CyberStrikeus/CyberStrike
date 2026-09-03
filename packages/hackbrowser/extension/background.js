@@ -382,6 +382,7 @@ async function forward(rec) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     })
+    void hblog("ingest", { method: rec.method || "GET", url: rec.url, status: rec.status || 0, ok: res.ok })
     if (res.ok) {
       const d = await res.json().catch(() => ({}))
       if (d && d.sessionID && !sid) {
@@ -390,6 +391,7 @@ async function forward(rec) {
       }
     }
   } catch (e) {
+    void hblog("ingest-failed", { url: rec.url, error: String(e) })
     console.warn("[hackbrowser] ingest failed", e)
   }
 }
@@ -439,7 +441,10 @@ function headerArrayToObj(arr) {
 }
 chrome.webRequest.onBeforeSendHeaders.addListener(
   (d) => {
-    if (!attached.has(d.tabId) || d.type !== "xmlhttprequest") return
+    if (!attached.has(d.tabId)) return
+    // xmlhttprequest: headers merge with the fetch/XHR patch body. main_frame/sub_frame:
+    // full-page navigations the patch NEVER sees — capture their headers so we can ingest them.
+    if (d.type !== "xmlhttprequest" && d.type !== "main_frame" && d.type !== "sub_frame") return
     reqHeadersByKey.set(hkey(d.tabId, d.method, d.url), { req: headerArrayToObj(d.requestHeaders) })
   },
   { urls: ["<all_urls>"] },
@@ -447,11 +452,31 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 )
 chrome.webRequest.onHeadersReceived.addListener(
   (d) => {
-    if (!attached.has(d.tabId) || d.type !== "xmlhttprequest") return
-    const rec = reqHeadersByKey.get(hkey(d.tabId, d.method, d.url))
-    if (!rec) return
-    rec.res = headerArrayToObj(d.responseHeaders)
-    rec.status = d.statusCode
+    if (!attached.has(d.tabId)) return
+    if (d.type === "xmlhttprequest") {
+      const rec = reqHeadersByKey.get(hkey(d.tabId, d.method, d.url))
+      if (!rec) return
+      rec.res = headerArrayToObj(d.responseHeaders)
+      rec.status = d.statusCode
+      return
+    }
+    // Full-page / iframe navigations: the fetch/XHR patch can't observe document loads, so a
+    // classic (JSP/MPA) app would ingest almost nothing. Ingest them here from webRequest
+    // metadata — no body (MV3 webRequest can't read response bodies), but method/url/params/
+    // status/headers are the core for endpoint + access-control analysis.
+    if (d.type === "main_frame" || d.type === "sub_frame") {
+      const key = hkey(d.tabId, d.method, d.url)
+      const stored = reqHeadersByKey.get(key)
+      reqHeadersByKey.delete(key)
+      forward({
+        method: d.method,
+        url: d.url,
+        requestHeaders: (stored && stored.req) || {},
+        responseHeaders: headerArrayToObj(d.responseHeaders),
+        status: d.statusCode,
+        page_url: d.url,
+      })
+    }
   },
   { urls: ["<all_urls>"] },
   ["responseHeaders", "extraHeaders"],
