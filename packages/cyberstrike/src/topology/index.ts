@@ -186,59 +186,59 @@ export namespace Topology {
     for (const observation of latest.values()) {
       const scan = observation.scan
       const host = observation.host
-        const current = node({
-          id: id("host", host.id),
-          kind: "host",
-          label: host.hostnames[0] ?? host.id,
+      const current = node({
+        id: id("host", host.id),
+        kind: "host",
+        label: host.hostnames[0] ?? host.id,
+        source: "nmap",
+        status: host.status,
+        confidence: host.os[0] ? `${host.os[0].accuracy}%` : undefined,
+        data: {
+          addresses: host.addresses,
+          os: host.os,
+          scanID: scan.id,
+          scanName: scan.name,
+          scannedAt: scan.time,
+        },
+      })
+      for (const port of host.ports) {
+        const service = node({
+          id: id("service", `${host.id}:${port.protocol}:${port.port}`),
+          kind: "service",
+          label: `${port.port}/${port.protocol} ${port.service.name ?? port.service.product ?? "unknown"}`,
           source: "nmap",
-          status: host.status,
-          confidence: host.os[0] ? `${host.os[0].accuracy}%` : undefined,
+          status: port.state,
           data: {
-            addresses: host.addresses,
-            os: host.os,
+            host: host.id,
+            port: port.port,
+            protocol: port.protocol,
+            service: port.service,
+            scripts: port.scripts,
             scanID: scan.id,
-            scanName: scan.name,
-            scannedAt: scan.time,
           },
         })
-        for (const port of host.ports) {
-          const service = node({
-            id: id("service", `${host.id}:${port.protocol}:${port.port}`),
-            kind: "service",
-            label: `${port.port}/${port.protocol} ${port.service.name ?? port.service.product ?? "unknown"}`,
-            source: "nmap",
-            status: port.state,
-            data: {
-              host: host.id,
-              port: port.port,
-              protocol: port.protocol,
-              service: port.service,
-              scripts: port.scripts,
-              scanID: scan.id,
-            },
-          })
-          edge(current, service, "exposes")
-        }
-        let prior: string | undefined
-        const target = new Set(host.addresses.map((address) => address.address))
-        for (const hop of host.trace.toSorted((a, b) => a.ttl - b.ttl)) {
-          if (target.has(hop.address)) continue
-          const hopNode = node({
-            id: id("host", hop.address),
-            kind: "host",
-            label: hop.host ?? hop.address,
-            source: "nmap",
-            data: {
-              address: hop.address,
-              ttl: hop.ttl,
-              rtt: hop.rtt,
-              scanID: scan.id,
-            },
-          })
-          if (prior) edge(prior, hopNode, "routes_to")
-          prior = hopNode
-        }
-        if (prior) edge(prior, current, "routes_to")
+        edge(current, service, "exposes")
+      }
+      let prior: string | undefined
+      const target = new Set(host.addresses.map((address) => address.address))
+      for (const hop of host.trace.toSorted((a, b) => a.ttl - b.ttl)) {
+        if (target.has(hop.address)) continue
+        const hopNode = node({
+          id: id("host", hop.address),
+          kind: "host",
+          label: hop.host ?? hop.address,
+          source: "nmap",
+          data: {
+            address: hop.address,
+            ttl: hop.ttl,
+            rtt: hop.rtt,
+            scanID: scan.id,
+          },
+        })
+        if (prior) edge(prior, hopNode, "routes_to")
+        prior = hopNode
+      }
+      if (prior) edge(prior, current, "routes_to")
     }
 
     return {

@@ -212,6 +212,48 @@ describe("topology projection", () => {
     expect(graph.nodes.some((node) => node.label === "443/tcp https")).toBe(true)
   })
 
+  test("projects every host in a multi-host Nmap scan", () => {
+    const host = (address: string, port: number) => ({
+      id: address,
+      status: "up",
+      addresses: [{ address, type: "ipv4" }],
+      hostnames: [`host-${port}.example.test`],
+      ports: [
+        {
+          protocol: "tcp",
+          port,
+          state: "open",
+          service: { name: port === 22 ? "ssh" : "https", cpe: [] },
+          scripts: [],
+        },
+      ],
+      os: [],
+      trace: [],
+    })
+    const graph = Topology.project({
+      sessionID: "ses_test",
+      intel: [],
+      requests: [],
+      vulnerabilities: [],
+      scans: [
+        {
+          id: "nms_multi",
+          sessionID: "ses_test",
+          name: "Multi-host",
+          source: "nmap_scan",
+          xmlHash: "multi",
+          time: 1,
+          summary: { scanner: "nmap", up: 2, down: 0, total: 2 },
+          hosts: [host("192.0.2.10", 22), host("192.0.2.11", 443)],
+        },
+      ],
+    })
+
+    expect(graph.nodes.filter((node) => node.kind === "host")).toHaveLength(2)
+    expect(graph.nodes.some((node) => node.label === "22/tcp ssh")).toBe(true)
+    expect(graph.nodes.some((node) => node.label === "443/tcp https")).toBe(true)
+  })
+
   test("does not create traceroute self-loops or overwrite the host label", () => {
     const graph = Topology.project({
       sessionID: "ses_test",
