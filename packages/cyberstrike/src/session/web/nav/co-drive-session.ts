@@ -3,12 +3,13 @@
 // It owns NO policy and NO decision: the Navigator decides, the Guardrails bound, the Executor
 // acts. Collaborators are injected (DI) so every LLM/browser touch is stubbable in tests.
 //
-// P1: driven by DeterministicNavigator for behavior-parity; NOT yet wired to the /web/driver
-// route (the existing WebCoDrive stays live). The route switch happens in P3 with LlmNavigator.
+// Driven in production by LlmNavigator (withLlm) via the CoDrive runner, which the /web/driver
+// route starts/stops; DeterministicNavigator (withDefaults) is the no-model fallback + test brain.
 import type { Observer, Navigator, Executor, Plan, StopReason, ActionResult } from "./types"
 import { Guardrails } from "./guardrails"
 import { PageStateObserver } from "./guardrails"
 import { DeterministicNavigator } from "./deterministic-navigator"
+import { LlmNavigator } from "./llm-navigator"
 import { WebActExecutor } from "./web-act-executor"
 import { Crawl } from "../crawl"
 import { WebScope } from "../scope"
@@ -36,14 +37,25 @@ export interface CoDriveConfig {
 export class CoDriveSession {
   constructor(private readonly deps: CoDriveDeps, private readonly cfg: CoDriveConfig) {}
 
-  // Wire the default (deterministic) collaborators. LlmNavigator is swapped in here in P3.
+  // Wire the DETERMINISTIC collaborators — the no-model brain. This is the safe default used as
+  // the fallback shape and in tests (fast, no live model). Production uses withLlm().
   static withDefaults(cfg?: Partial<CoDriveConfig> & { settleMs?: number }): CoDriveSession {
+    return CoDriveSession.build(new DeterministicNavigator(), cfg)
+  }
+
+  // Wire the LLM brain (P3) — the MAIN model plans over the full rich observation, with the
+  // deterministic navigator as its own internal fallback. This is what production runs.
+  static withLlm(cfg?: Partial<CoDriveConfig> & { settleMs?: number }): CoDriveSession {
+    return CoDriveSession.build(new LlmNavigator(), cfg)
+  }
+
+  private static build(navigator: Navigator, cfg?: Partial<CoDriveConfig> & { settleMs?: number }): CoDriveSession {
     const settleMs = cfg?.settleMs ?? 1500
     const pollMs = cfg?.pollMs ?? 400
     return new CoDriveSession(
       {
         observer: new PageStateObserver(),
-        navigator: new DeterministicNavigator(),
+        navigator,
         executor: new WebActExecutor({ settleMs, pollMs }),
         guardrails: new Guardrails(),
       },
