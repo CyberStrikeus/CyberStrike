@@ -832,7 +832,7 @@ export const SessionRoutes = lazy(() =>
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
         const body = c.req.valid("json")
-        const cred = WebCredential.add({
+        const cred = WebCredential.ensure({
           sessionID,
           label: body.label,
           headers: body.headers,
@@ -1653,7 +1653,7 @@ export const SessionRoutes = lazy(() =>
         // Handle credential registration
         let credentialID = body.credential_id
         if (body.credential && !credentialID) {
-          const cred = WebCredential.add({
+          const cred = WebCredential.ensure({
             sessionID,
             label: body.credential.label,
             headers: body.credential.headers,

@@ -82,6 +82,48 @@ export namespace WebCredential {
     }
   }
 
+  // One credential per (session, label). A label is a role identity, so registering the same
+  // label twice — e.g. "anonymous" auto-created at launch AND again when the user presses Start
+  // capture — must reuse the existing credential, not create a duplicate. Any newly-supplied
+  // headers/container are merged in so a re-registration can still enrich the credential.
+  export function ensure(input: {
+    sessionID: string
+    label: string
+    headers?: Record<string, string>
+    containerID?: string
+    roleID?: string
+  }): Info {
+    const existing = getByLabel(input.sessionID, input.label)
+    if (!existing) return add(input)
+    const hasHeaders = !!input.headers && Object.keys(input.headers).length > 0
+    if (!hasHeaders && input.containerID === undefined && input.roleID === undefined) return existing
+    const headers = hasHeaders ? { ...existing.headers, ...input.headers } : existing.headers
+    const containerID = input.containerID ?? existing.container_id
+    const roleID = input.roleID ?? existing.role_id
+    const now = Date.now()
+    Database.use((db) =>
+      db
+        .update(WebCredentialTable)
+        .set({ headers, container_id: containerID ?? null, role_id: roleID ?? null, time_updated: now })
+        .where(eq(WebCredentialTable.id, existing.id))
+        .run(),
+    )
+    const list = get(input.sessionID)
+    Bus.publish(Event.Updated, { sessionID: input.sessionID, credentials: list })
+    return { ...existing, headers, container_id: containerID, role_id: roleID, time: { created: existing.time.created, updated: now } }
+  }
+
+  export function getByLabel(sessionID: string, label: string): Info | undefined {
+    const row = Database.use((db) =>
+      db
+        .select()
+        .from(WebCredentialTable)
+        .where(and(eq(WebCredentialTable.session_id, sessionID), eq(WebCredentialTable.label, label)))
+        .get(),
+    )
+    return row ? rowToInfo(row) : undefined
+  }
+
   function rowToInfo(row: typeof WebCredentialTable.$inferSelect): Info {
     return {
       id: row.id,
