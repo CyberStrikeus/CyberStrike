@@ -26,14 +26,7 @@ export namespace Rank {
     score: number
   }
 
-  function resolve(href: string, base: string): string | undefined {
-    if (!href) return undefined
-    try {
-      return new URL(href, base).href
-    } catch {
-      return undefined
-    }
-  }
+  const resolve = WebScope.resolve // single source for relative-href resolution
 
   // Does this candidate match any strategy priority (business-logic steer from the main model)?
   function prioritized(c: { label: string; section?: string; targetUrl?: string }, priorities: string[]): boolean {

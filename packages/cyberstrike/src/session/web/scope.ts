@@ -25,6 +25,16 @@ export namespace WebScope {
     const last2 = l.slice(-2).join(".")
     return (TWO_PART.has(last2) ? l.slice(-3) : l.slice(-2)).join(".")
   }
+  // Resolve a possibly-relative href against the page URL. Single source (Rank + the LLM
+  // navigator both need it) so there is no duplicated URL parsing. undefined on a bad/empty href.
+  export function resolve(href: string, base: string): string | undefined {
+    if (!href) return undefined
+    try {
+      return new URL(href, base).href
+    } catch {
+      return undefined
+    }
+  }
   function hostOf(url: string): string | undefined {
     try {
       const u = new URL(url)
