@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CyberStrike HackBrowser 2.0",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Streams full browser network traffic to CyberStrike for security testing.",
   "permissions": ["webRequest", "tabs", "storage", "webNavigation", "scripting"],
   "host_permissions": ["<all_urls>"],
