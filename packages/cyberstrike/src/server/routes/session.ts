@@ -27,6 +27,9 @@ import { WebRetest } from "../../session/web/web-retest"
 import { UiObservation } from "../../session/web/ui-observation"
 import { SpawnedProfiles } from "../../session/web/spawned-profiles"
 import { RoleQueue } from "../../session/web/role-queue"
+import { PageState } from "../../session/web/page-state"
+import { WebControl } from "../../session/web/control"
+import { upgradeWebSocket } from "hono/bun"
 
 const RoleInfoSchema = z.object({ label: z.string(), phase: z.enum(["pending", "spawning", "awaiting", "capturing"]) })
 const QueueStatusSchema = z.object({ roles: z.array(RoleInfoSchema), setup: RoleInfoSchema.nullable() })
@@ -1052,6 +1055,169 @@ export const SessionRoutes = lazy(() =>
           return c.json({ next: next.label, spawned: false, error: e instanceof Error ? e.message : String(e) }, 500)
         }
       },
+    )
+    .post(
+      "/:sessionID/web/observe",
+      describeRoute({
+        summary: "Store a page observation",
+        description:
+          "The extension posts the current page's clickables/forms/links. Feeds the get_page_state store (annotated with semantic kind) and, when credential_id is present, the per-credential UI-affordance store (Faz B).",
+        operationId: "session.webObserve",
+        responses: {
+          200: {
+            description: "Kind counts",
+            content: { "application/json": { schema: resolver(z.object({ ok: z.boolean(), kinds: z.record(z.string(), z.number()) })) } },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator(
+        "json",
+        z.object({
+          url: z.string(),
+          title: z.string().optional(),
+          driver: z.enum(["ai", "human"]).optional(),
+          credential_id: z.string().optional(),
+          clickables: z.array(
+            z.object({ id: z.string(), tag: z.string(), role: z.string(), label: z.string(), href: z.string() }),
+          ),
+          forms: z
+            .array(
+              z.object({
+                action: z.string(),
+                method: z.string(),
+                fields: z.array(z.object({ name: z.string(), type: z.string(), required: z.boolean() })),
+              }),
+            )
+            .optional(),
+          links: z.array(z.string()).optional(),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const b = c.req.valid("json")
+        const kinds = PageState.set(sessionID, {
+          url: b.url,
+          title: b.title ?? "",
+          clickables: b.clickables,
+          forms: b.forms ?? [],
+          links: b.links ?? [],
+          driver: b.driver,
+        })
+        if (b.credential_id) {
+          for (const el of b.clickables) {
+            if (el.label)
+              UiObservation.observe(sessionID, { credentialID: b.credential_id, pageUrl: b.url, role: el.role, label: el.label })
+          }
+        }
+        return c.json({ ok: true, kinds })
+      },
+    )
+    .get(
+      "/:sessionID/web/page-state",
+      describeRoute({
+        summary: "Get page state (get_page_state substrate)",
+        description:
+          "The current page's clickables (each annotated with semantic kind + action policy), forms and links — what the AI reads to pick its next action. Omit url to list observed urls; view filters clickables to one kind.",
+        operationId: "session.webPageState",
+        responses: {
+          200: { description: "Page state", content: { "application/json": { schema: resolver(z.any()) } } },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator(
+        "query",
+        z.object({
+          url: z.string().optional(),
+          view: z.enum(["destructive", "logout", "auth", "mutating", "query", "nav", "other"]).optional(),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const q = c.req.valid("query")
+        if (!q.url) return c.json({ urls: PageState.urls(sessionID) })
+        const st = PageState.get(sessionID, q.url, q.view)
+        if (!st) return c.json({ error: "no page-state for this url" }, 404)
+        return c.json(st)
+      },
+    )
+    .post(
+      "/:sessionID/web/action",
+      describeRoute({
+        summary: "Perform a guarded browser action",
+        description:
+          "click / type / navigate, relayed to the extension over the control WS. guard.ts is enforced HERE: a logout element is denied (403), a destructive one needs human confirmation (409). The AI's hands.",
+        operationId: "session.webAction",
+        responses: {
+          200: {
+            description: "Action ack",
+            content: {
+              "application/json": {
+                schema: resolver(z.object({ ok: z.boolean(), policy: z.string().optional(), error: z.string().optional() })),
+              },
+            },
+          },
+          ...errors(400, 403, 404, 409),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator(
+        "json",
+        z.object({
+          op: z.enum(["click", "type", "navigate"]),
+          url: z.string().optional(),
+          element_id: z.string().optional(),
+          text: z.string().optional(),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const b = c.req.valid("json")
+        const relay = (ack: { ok: boolean; error?: string }, policy?: string) => {
+          if (ack.ok) return c.json({ ok: true, policy })
+          const status = ack.error === "no-extension" ? 503 : ack.error === "timeout" ? 504 : 502
+          return c.json({ ok: false, error: ack.error ?? "relay failed" }, status)
+        }
+        if (b.op === "navigate") {
+          if (!b.url) return c.json({ ok: false, error: "url required" }, 400)
+          return relay(await WebControl.send(sessionID, { op: "navigate", url: b.url }))
+        }
+        if (!b.url || !b.element_id) return c.json({ ok: false, error: "url and element_id required" }, 400)
+        const pol = PageState.elementPolicy(sessionID, b.url, b.element_id)
+        if (!pol) return c.json({ ok: false, error: "unknown element / no page-state for url" }, 404)
+        if (pol.policy === "deny")
+          return c.json({ ok: false, policy: "deny", kind: pol.kind, label: pol.label, error: "denied by guard (logout)" }, 403)
+        if (pol.policy === "confirm")
+          return c.json({ ok: false, policy: "confirm", kind: pol.kind, label: pol.label, error: "human confirmation required" }, 409)
+        return relay(await WebControl.send(sessionID, { op: b.op, elementId: b.element_id, text: b.text }), pol.policy)
+      },
+    )
+    .get(
+      "/:sessionID/web/control",
+      describeRoute({
+        summary: "Browser control channel (WebSocket)",
+        description:
+          "The extension upgrades here to receive click/type/navigate commands from /web/action and ack them. One socket per session.",
+        operationId: "session.webControl",
+        responses: { ...errors(404) },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      upgradeWebSocket((c) => {
+        const sessionID = c.req.param("sessionID")
+        return {
+          onOpen(_e, ws) {
+            WebControl.connect(sessionID, { send: (d) => ws.send(d) })
+          },
+          onMessage(event) {
+            WebControl.onAck(String(event.data))
+          },
+          onClose() {
+            WebControl.disconnect(sessionID)
+          },
+        }
+      }),
     )
     .delete(
       "/:sessionID/web/credentials/:credentialID",

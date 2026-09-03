@@ -6,7 +6,7 @@
 // flat list it must interpret itself. The same tags feed the destructive/logout
 // guard (risk #1) — one classification, two jobs.
 //
-// Single source of truth: only this module classifies. The receiver imports it;
+// Single source of truth: only this module classifies. The page-state store imports it;
 // nothing re-implements the rules.
 
 export type ElementKind = "destructive" | "logout" | "auth" | "mutating" | "query" | "nav" | "other"
