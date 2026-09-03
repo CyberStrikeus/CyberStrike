@@ -12,7 +12,7 @@ export namespace Rank {
   // needs intent we don't infer deterministically).
   const NAVIGABLE = new Set(["nav", "query"])
   // Single source for the scoring weights.
-  const SCORE = { nav: 2, query: 1, newTarget: 3, inViewport: 1, testid: 1, offscreen: -1 }
+  const SCORE = { nav: 2, query: 1, newTarget: 3, inViewport: 1, testid: 1, offscreen: -1, priority: 4 }
 
   export interface Candidate {
     id: string
@@ -33,9 +33,17 @@ export namespace Rank {
     }
   }
 
+  // Does this candidate match any strategy priority (business-logic steer from the main model)?
+  function prioritized(c: { label: string; section?: string; targetUrl?: string }, priorities: string[]): boolean {
+    if (priorities.length === 0) return false
+    const hay = `${c.label} ${c.section ?? ""} ${c.targetUrl ?? ""}`.toLowerCase()
+    return priorities.some((p) => p && hay.includes(p.toLowerCase()))
+  }
+
   // Ordered shortlist (highest score first; stable on ties). Empty ⇒ nothing left to do on
-  // this page (coverage for the loop's terminate check).
-  export function candidates(sessionID: string, state: PageState.StatePayload): Candidate[] {
+  // this page (coverage for the loop's terminate check). `priorities` (from WebStrategy, the
+  // main model) boosts business-logic-relevant candidates so the crawl explores them first.
+  export function candidates(sessionID: string, state: PageState.StatePayload, priorities: string[] = []): Candidate[] {
     const out: Candidate[] = []
     const seen = new Set<string>()
     for (const c of state.clickables) {
@@ -51,6 +59,7 @@ export namespace Rank {
       if (c.in_viewport === true) score += SCORE.inViewport
       if (c.in_viewport === false) score += SCORE.offscreen
       if (c.testid) score += SCORE.testid
+      if (prioritized({ label: c.label, section: c.section, targetUrl: target }, priorities)) score += SCORE.priority
       out.push({ id: c.id, label: c.label, kind: c.kind, actionKey: key, href: c.href, targetUrl: target, score })
     }
     return out

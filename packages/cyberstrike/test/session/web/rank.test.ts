@@ -37,6 +37,17 @@ describe("Rank.candidates", () => {
     expect(ordered[0]).toBe("hi")
   })
 
+  test("strategy priorities boost matching candidates above default ranking", () => {
+    const st = state("s", "https://h/a", [
+      { id: "top", tag: "a", role: "link", label: "Dashboard", href: "/dash", in_viewport: true }, // higher base
+      { id: "prio", tag: "a", role: "link", label: "Billing settings", href: "/billing" }, // lower base
+    ])
+    // Without priorities, the viewport one leads.
+    expect(Rank.candidates("s", st)[0].id).toBe("top")
+    // A "billing" priority (from the main model) lifts it to the front.
+    expect(Rank.candidates("s", st, ["billing"])[0].id).toBe("prio")
+  })
+
   test("excludes already-acted elements and dedupes by action-key", () => {
     const st = state("s", "https://h/a", [
       { id: "e1", tag: "a", role: "link", label: "B", href: "/b" },
