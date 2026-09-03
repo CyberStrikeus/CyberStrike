@@ -135,7 +135,10 @@
   })
   // label falsy/blank → anonymous → hide everything. A changed role resets the dismiss.
   function renderRole(label) {
-    const l = label && String(label).trim() ? String(label).trim() : null
+    let l = label && String(label).trim() ? String(label).trim() : null
+    // "anonymous" is the default identity — tagged in captures, but no role banner/hue
+    // (a "log in as this identity" prompt makes no sense for it).
+    if (l && l.toLowerCase() === "anonymous") l = null
     if (l !== lastRole) {
       roleDismissed = false
       lastRole = l

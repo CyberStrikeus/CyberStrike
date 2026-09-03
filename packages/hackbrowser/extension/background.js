@@ -41,6 +41,26 @@ async function currentCredential() {
   return activeCredential
 }
 
+// Register a credential label with CyberStrike and make it this profile's identity.
+// Shared by the panel "Set" button, spawned role browsers, and Browse-anonymous — the
+// last one registers a real "anonymous" role so it is a first-class identity in the TUI
+// and the access-control comparison, not an untagged NULL that never surfaces.
+async function registerCredential(label) {
+  const sid = await currentSession()
+  if (!sid) throw new Error("no session selected")
+  const base = await csUrl()
+  const res = await fetch(`${base}/session/${sid}/web/credentials`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ label }),
+  })
+  const d = await res.json().catch(() => ({}))
+  if (!d || !d.id) throw new Error("register failed")
+  activeCredential = { id: d.id, label: d.label || label }
+  await chrome.storage.local.set({ credential: activeCredential })
+  return activeCredential
+}
+
 // Return the active session, creating one in CyberStrike if none is set yet. This is
 // the chicken-egg fix: the panel's Anonymous / Add-credential actions need a session
 // BEFORE any capture, so we create it up front (POST /session) instead of waiting for
@@ -398,27 +418,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Launcher-injected credential: register directly with CyberStrike's existing
     // credential route and persist it profile-local (same as the popup "Set" button).
     if (msg.type === "set-credential-label") {
-      const sid = await currentSession() // authoritative even before onChanged fires
-      if (!sid) {
-        sendResponse({ ok: false, error: "no session selected" })
-        return
-      }
-      const base = await csUrl()
       try {
-        const res = await fetch(`${base}/session/${sid}/web/credentials`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ label: msg.label }),
-        })
-        const d = await res.json().catch(() => ({}))
-        if (d && d.id) {
-          await chrome.storage.local.set({ credential: { id: d.id, label: d.label } })
-          sendResponse({ ok: true, id: d.id })
-          return
-        }
-        sendResponse({ ok: false, error: "register failed" })
+        const cred = await registerCredential(msg.label)
+        sendResponse({ ok: true, id: cred.id })
       } catch (e) {
-        sendResponse({ ok: false, error: String(e) })
+        sendResponse({ ok: false, error: e && e.message ? e.message : String(e) })
       }
       return
     }
@@ -456,9 +460,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       try {
         await ensureSession()
-        // Anonymous → clear any credential this profile had; captures go untagged.
-        activeCredential = null
-        await chrome.storage.local.remove("credential")
+        // Register "anonymous" as a real role so it shows in the TUI and joins the
+        // access-control comparison — not an untagged NULL that never surfaces. Reuse an
+        // existing one (web_credential doesn't dedup by label) to avoid duplicates.
+        const existing = await currentCredential()
+        if (!(existing && existing.label === "anonymous")) await registerCredential("anonymous")
         attach(tabId)
         sendResponse({ ok: true, attached: true, session: activeSession })
       } catch (e) {
