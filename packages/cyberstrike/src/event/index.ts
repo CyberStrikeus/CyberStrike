@@ -1,5 +1,5 @@
 import z from "zod"
-import { and, desc, eq, lt } from "drizzle-orm"
+import { and, desc, eq, lt, or } from "drizzle-orm"
 import { Bus } from "../bus"
 import { Database } from "../storage/db"
 import { Identifier } from "../id/id"
@@ -10,6 +10,17 @@ import { Log } from "../util/log"
 export namespace EngagementEvent {
   const log = Log.create({ service: "engagement-event" })
   const MAX_SEEN = 2_000
+  const repeatable = new Set([
+    "endpoint_template.updated",
+    "request.updated",
+    "vulnerability.updated",
+    "web_credential.updated",
+    "web_function.updated",
+    "web_object.updated",
+    "web_object_value.updated",
+    "web_retest.updated",
+    "web_role.updated",
+  ])
 
   export const Info = z.object({
     id: Identifier.schema("engagement_event"),
@@ -73,6 +84,7 @@ export namespace EngagementEvent {
     const part = record(props.part)
     const info = record(props.info)
     const state = record(part?.state)
+    const status = record(props.status)
     const tool = record(props.tool)
     const time = record(state?.time)
     const list = Array.isArray(props.vulnerabilities)
@@ -92,6 +104,9 @@ export namespace EngagementEvent {
       text(props.callID) ??
       text(props.permissionID) ??
       text(props.requestID) ??
+      text(props.entryID) ??
+      text(props.scanID) ??
+      text(props.entityID) ??
       text(props.id) ??
       text(info?.id)
     const parentID = text(part?.messageID) ?? text(props.messageID) ?? text(info?.parentID)
@@ -139,14 +154,20 @@ export namespace EngagementEvent {
 
       return {
         id: text(props.id),
+        entryID: text(props.entryID),
+        entityID: text(props.entityID),
         name: text(props.name),
-        status: text(props.status),
+        action: text(props.action),
+        status: text(props.status) ?? text(status?.type),
         exitCode: number(props.exitCode),
         directory: text(props.directory),
         permission: text(props.permission),
         tool: text(tool?.tool) ?? text(props.tool),
         scanID: text(props.scanID),
+        server: text(props.server) ?? text(props.mcpName),
         hosts: number(props.hosts),
+        count: number(props.count),
+        entryCount: number(props.entryCount),
         patternCount: Array.isArray(props.patterns) ? props.patterns.length : undefined,
       }
     })()
@@ -165,12 +186,14 @@ export namespace EngagementEvent {
     () => {
       const seen = new Map<string, string>()
       const listeners = new Set<(event: Info) => void>()
+      const closures = new Set<() => void>()
       const unsub = Bus.subscribeAll((event) => {
         const next = normalize(event)
         if (!next) return
-        const key = `${next.type}:${next.correlationID ?? next.parentID ?? next.sessionID ?? "global"}`
+        const key = `${next.sessionID ?? "global"}:${next.type}:${next.correlationID ?? next.parentID ?? "global"}`
         const signature = JSON.stringify(next.data)
-        if (seen.get(key) === signature) return
+        const preserve = next.type === "session.idle" || next.type === "session.status" || repeatable.has(next.type)
+        if (!preserve && seen.get(key) === signature) return
         seen.delete(key)
         seen.set(key, signature)
         while (seen.size > MAX_SEEN) seen.delete(seen.keys().next().value!)
@@ -208,9 +231,12 @@ export namespace EngagementEvent {
           log.error("failed to persist event", { type: next.type, error })
         }
       })
-      return { listeners, unsub }
+      return { listeners, closures, unsub }
     },
-    async (entry) => entry.unsub(),
+    async (entry) => {
+      for (const close of entry.closures) close()
+      entry.unsub()
+    },
   )
 
   export function init() {
@@ -223,7 +249,13 @@ export namespace EngagementEvent {
     return () => current.listeners.delete(listener)
   }
 
-  export function list(input: { sessionID: string; before?: number; limit?: number }) {
+  export function onDispose(close: () => void) {
+    const current = state()
+    current.closures.add(close)
+    return () => current.closures.delete(close)
+  }
+
+  export function list(input: { sessionID: string; before?: number; beforeID?: string; limit?: number }) {
     const limit = Math.max(1, Math.min(input.limit ?? 200, 500))
     const rows = Database.use((db) =>
       db
@@ -233,10 +265,20 @@ export namespace EngagementEvent {
           and(
             eq(EngagementEventTable.project_id, Instance.project.id),
             eq(EngagementEventTable.session_id, input.sessionID),
-            input.before ? lt(EngagementEventTable.time_created, input.before) : undefined,
+            input.before
+              ? input.beforeID
+                ? or(
+                    lt(EngagementEventTable.time_created, input.before),
+                    and(
+                      eq(EngagementEventTable.time_created, input.before),
+                      lt(EngagementEventTable.id, input.beforeID),
+                    ),
+                  )
+                : lt(EngagementEventTable.time_created, input.before)
+              : undefined,
           ),
         )
-        .orderBy(desc(EngagementEventTable.time_created))
+        .orderBy(desc(EngagementEventTable.time_created), desc(EngagementEventTable.id))
         .limit(limit)
         .all(),
     )

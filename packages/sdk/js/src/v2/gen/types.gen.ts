@@ -6758,6 +6758,7 @@ export type EventLogListData = {
   query?: {
     directory?: string
     before?: number
+    beforeID?: string
     limit?: number
   }
   url: "/event-log/session/{sessionID}"

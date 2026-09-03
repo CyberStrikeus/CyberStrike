@@ -180,7 +180,7 @@ Each proxy tester follows a structured methodology: intercept traffic, identify 
 
 ### Web UI & Remote Access
 
-Run `cyberstrike web` and control your agents, MCP servers, Bolt connections, activity lanes, mission posture, Nmap scan history/diffs and topology, structured memory, and vulnerability findings from any browser. Access from anywhere with Cloudflare Tunnel — zero open ports, end-to-end encryption, password-protected API. An optional `observer` credential is restricted server-side to redacted read-only routes. Your data stays on your machine.
+Run `cyberstrike web` and control your agents, MCP servers, Bolt connections, always-visible live activity, event-driven mission posture, Nmap scan history/diffs and topology, structured memory, and vulnerability findings from any browser. Access from anywhere with Cloudflare Tunnel — zero open ports, end-to-end encryption, password-protected API. An optional `observer` credential is restricted server-side to redacted read-only routes. Your data stays on your machine.
 
 ```bash
 export CYBERSTRIKE_SERVER_PASSWORD=your-secure-password

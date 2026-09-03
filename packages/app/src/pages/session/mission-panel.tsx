@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createMemo, onCleanup } from "solid-js"
+import { For, Show, createEffect, createMemo, on, onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useParams } from "@solidjs/router"
 import type {
@@ -12,6 +12,7 @@ import { Icon } from "@cyberstrike-io/ui/icon"
 import { useSDK } from "@/context/sdk"
 import { usePrompt } from "@/context/prompt"
 import { useServer } from "@/context/server"
+import { useWorkbench } from "@/context/workbench"
 
 const text = (value: unknown) => (typeof value === "string" ? value : "")
 const number = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : 0)
@@ -40,6 +41,7 @@ export function MissionPanel() {
   const sdk = useSDK()
   const prompt = usePrompt()
   const server = useServer()
+  const workbench = useWorkbench()
   const [data, setData] = createStore<{
     state?: MethodologyStateResponse
     coverage?: MethodologyCoverageResponse
@@ -56,47 +58,50 @@ export function MissionPanel() {
     error: "",
   })
 
-  createEffect(() => {
+  let generation = 0
+  const load = async () => {
     const sessionID = params.id
     if (!sessionID) return
-    let alive = true
-
-    const load = async () => {
-      setData({ loading: true, error: "" })
-      try {
-        const [state, coverage, assets, chains, agents] = await Promise.all([
-          sdk.client.methodology.state({ sessionID }),
-          sdk.client.methodology.coverage({ sessionID }),
-          sdk.client.methodology.assetCoverage({ sessionID }),
-          sdk.client.methodology.chains({ sessionID }),
-          sdk.client.methodology.performance({ sessionID }),
-        ])
-        if (!alive) return
-        setData({
-          state: state.data,
-          coverage: coverage.data,
-          assets: assets.data ?? [],
-          chains: chains.data ?? [],
-          agents: agents.data ?? [],
-          loading: false,
-          error: "",
-        })
-      } catch (cause) {
-        if (!alive) return
-        setData({
-          loading: false,
-          error: cause instanceof Error ? cause.message : String(cause),
-        })
-      }
+    const request = ++generation
+    setData({ loading: true, error: "" })
+    try {
+      const [state, coverage, assets, chains, agents] = await Promise.all([
+        sdk.client.methodology.state({ sessionID }),
+        sdk.client.methodology.coverage({ sessionID }),
+        sdk.client.methodology.assetCoverage({ sessionID }),
+        sdk.client.methodology.chains({ sessionID }),
+        sdk.client.methodology.performance({ sessionID }),
+      ])
+      if (request !== generation || params.id !== sessionID) return
+      setData({
+        state: state.data,
+        coverage: coverage.data,
+        assets: assets.data ?? [],
+        chains: chains.data ?? [],
+        agents: agents.data ?? [],
+        loading: false,
+        error: "",
+      })
+    } catch (cause) {
+      if (request !== generation || params.id !== sessionID) return
+      setData({
+        loading: false,
+        error: cause instanceof Error ? cause.message : String(cause),
+      })
     }
+  }
 
+  createEffect(() => {
+    params.id
     void load()
-    const timer = setInterval(load, 10_000)
+    const timer = setInterval(load, 30_000)
     onCleanup(() => {
-      alive = false
+      generation++
       clearInterval(timer)
     })
   })
+
+  createEffect(on(() => workbench.revision("mission"), () => void load(), { defer: true }))
 
   const blocking = createMemo(() => data.state?.violations.filter((item) => item.severity === "blocking") ?? [])
   const warnings = createMemo(() => data.state?.violations.filter((item) => item.severity !== "blocking") ?? [])
@@ -146,6 +151,11 @@ export function MissionPanel() {
         <span class="text-11-medium text-text-weaker uppercase tracking-wider">Mission posture</span>
         <Show when={data.loading}>
           <span class="text-10-regular text-text-weaker">Refreshing...</span>
+        </Show>
+        <Show when={!data.loading && workbench.last("mission") > 0}>
+          <span class="text-10-mono text-text-weaker">
+            Live · {new Date(workbench.last("mission")).toLocaleTimeString()}
+          </span>
         </Show>
       </div>
 

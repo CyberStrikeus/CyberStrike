@@ -18,15 +18,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 - Version-pinned MCP catalog with manual/optional install states and three additional owner-maintained integrations
 - Safe recovery startup with `--safe` and namespaced extension configuration
 - Target-selectable source builds and a localhost-only systemd user service template for Kali/Linux deployments
+- Always-visible live workbench status with resilient activity streaming, meaningful change badges, and event-driven Mission, Topology, and Memory refresh
 
 ### Changed
 
 - MCP tool materialization now filters schemas before conversion and enforces real context-budget eviction
+- Agent methodology now routes Nmap through the approval-gated `nmap_scan` system of record and explicitly records verified discoveries, findings, and reusable memory for workbench projection
 
 ### Fixed
 
 - Release and local-binary installs now deploy the bundled HackBrowser worker to the runtime data directory
 - Web update checks now honor disabled auto-updates, avoiding false upgrade prompts for managed source builds
+- Hidden workbench panels no longer miss live changes or depend on visible-only polling; repeated session lifecycle events and reconnect gaps are recovered
 
 ## [1.1.16] — 2026-08-08
 

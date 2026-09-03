@@ -279,7 +279,7 @@ If user or project configuration prevents startup, run `cyberstrike web --safe` 
 | **Web Context** | Endpoints, roles, credentials, and functions discovered during active sessions |
 | **Mission** | Methodology phases, coverage, blockers, attack chains, agents, and safe CTAs |
 | **Topology** | Evidence-linked assets, Nmap hosts/services/routes, scan history/diffs, endpoints, identities, and findings |
-| **Activity** | Durable Agent/Tool/MCP/Bolt/Browser/PTY lanes with filtering and JSONL export |
+| **Activity**        | Always-visible live status plus durable Agent/Tool/MCP/Bolt/Browser/PTY lanes, filtering, reconnect recovery, and JSONL export |
 | **Memory** | Trust-ranked structured memory, FTS search, redaction, notes, and invalidation |
 
 [**app.cyberstrike.io**](https://app.cyberstrike.io) is a hosted static page (no backend, no data storage) for convenience. Or self-host: clone the repo and serve `packages/app/dist/` from your own domain.

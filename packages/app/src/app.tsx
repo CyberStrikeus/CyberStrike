@@ -21,6 +21,7 @@ import { TerminalProvider } from "@/context/terminal"
 import { PromptProvider } from "@/context/prompt"
 import { FileProvider } from "@/context/file"
 import { CommentsProvider } from "@/context/comments"
+import { WorkbenchProvider } from "@/context/workbench"
 import { NotificationProvider } from "@/context/notification"
 import { ModelsProvider } from "@/context/models"
 import { DialogProvider } from "@cyberstrike-io/ui/context/dialog"
@@ -92,7 +93,9 @@ function SessionProviders(props: ParentProps) {
     <TerminalProvider>
       <FileProvider>
         <PromptProvider>
-          <CommentsProvider>{props.children}</CommentsProvider>
+          <CommentsProvider>
+            <WorkbenchProvider>{props.children}</WorkbenchProvider>
+          </CommentsProvider>
         </PromptProvider>
       </FileProvider>
     </TerminalProvider>

@@ -29,6 +29,7 @@ export const EventLogRoutes = lazy(() =>
         "query",
         z.object({
           before: z.coerce.number().int().positive().optional(),
+          beforeID: z.string().optional(),
           limit: z.coerce.number().int().min(1).max(500).optional(),
         }),
       ),
@@ -62,6 +63,11 @@ export const EventLogRoutes = lazy(() =>
         c.header("X-Accel-Buffering", "no")
         c.header("Connection", "keep-alive")
         return streamSSE(c, async (stream) => {
+          const closed = new Promise<void>((resolve) => stream.onAbort(resolve))
+          let off = () => {}
+          const disposed = new Promise<void>((resolve) => {
+            off = EngagementEvent.onDispose(resolve)
+          })
           const unsub = EngagementEvent.subscribe((event) => {
             if (event.sessionID !== sessionID) return
             void stream.writeSSE({ id: event.id, data: JSON.stringify(event) })
@@ -69,13 +75,14 @@ export const EventLogRoutes = lazy(() =>
           const heartbeat = setInterval(() => {
             void stream.write(": heartbeat\n\n")
           }, 30_000)
-          await new Promise<void>((resolve) => {
-            stream.onAbort(() => {
-              clearInterval(heartbeat)
-              unsub()
-              resolve()
-            })
-          })
+          try {
+            await stream.write(": connected\n\n")
+            await Promise.race([closed, disposed])
+          } finally {
+            clearInterval(heartbeat)
+            off()
+            unsub()
+          }
         })
       },
     ),

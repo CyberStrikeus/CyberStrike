@@ -1,9 +1,10 @@
-import { For, Show, createEffect, createSignal, onCleanup } from "solid-js"
+import { For, Show, createEffect, createSignal, on, onCleanup } from "solid-js"
 import { createStore, reconcile } from "solid-js/store"
 import { useParams } from "@solidjs/router"
 import type { MemoryListResponse } from "@cyberstrike-io/sdk/v2/client"
 import { Icon } from "@cyberstrike-io/ui/icon"
 import { useSDK } from "@/context/sdk"
+import { useWorkbench } from "@/context/workbench"
 
 type Kind = MemoryListResponse[number]["kind"]
 
@@ -24,6 +25,7 @@ const trust = (value: MemoryListResponse[number]["trust"]) => {
 export function MemoryPanel() {
   const params = useParams()
   const sdk = useSDK()
+  const workbench = useWorkbench()
   const [items, setItems] = createStore<MemoryListResponse>([])
   const [query, setQuery] = createSignal("")
   const [kind, setKind] = createSignal<Kind | "all">("all")
@@ -68,6 +70,8 @@ export function MemoryPanel() {
     onCleanup(() => clearTimeout(timer))
   })
 
+  createEffect(on(() => workbench.revision("memory"), () => void load(), { defer: true }))
+
   const add = async () => {
     const title = form.title.trim()
     const content = form.content.trim()
@@ -111,13 +115,20 @@ export function MemoryPanel() {
     <div class="flex flex-col gap-2 pb-4">
       <div class="flex items-center justify-between px-2">
         <span class="text-11-medium text-text-weaker uppercase tracking-wider">Persistent memory</span>
-        <button
-          type="button"
-          class="text-10-medium text-text-accent hover:underline"
-          onClick={() => setForm("open", (value) => !value)}
-        >
-          {form.open ? "Cancel" : "Add memory"}
-        </button>
+        <div class="flex items-center gap-2">
+          <Show when={workbench.last("memory") > 0}>
+            <span class="text-10-mono text-text-weaker">
+              Live · {new Date(workbench.last("memory")).toLocaleTimeString()}
+            </span>
+          </Show>
+          <button
+            type="button"
+            class="text-10-medium text-text-accent hover:underline"
+            onClick={() => setForm("open", (value) => !value)}
+          >
+            {form.open ? "Cancel" : "Add memory"}
+          </button>
+        </div>
       </div>
       <div class="flex items-center gap-1 px-2">
         <button

@@ -1,9 +1,8 @@
-import { For, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js"
-import { createStore, produce, reconcile } from "solid-js/store"
+import { For, Show, createEffect, createMemo, createSignal } from "solid-js"
 import { useParams } from "@solidjs/router"
 import { Icon } from "@cyberstrike-io/ui/icon"
-import { useSDK } from "@/context/sdk"
-import { isActivity, mergeActivity, type Activity, type ActivitySource } from "./activity"
+import { useWorkbench } from "@/context/workbench"
+import { activitySummary, type Activity, type ActivitySource } from "./activity"
 
 const sources: Array<{ id: ActivitySource; label: string }> = [
   { id: "agent", label: "Agent" },
@@ -24,18 +23,6 @@ const badge = (source: ActivitySource) => {
   return "bg-surface-base text-text-weak"
 }
 
-const value = (data: Record<string, unknown>, key: string) =>
-  typeof data[key] === "string" || typeof data[key] === "number" ? String(data[key]) : ""
-
-const summary = (event: Activity) => {
-  const title = value(event.data, "title")
-  const tool = value(event.data, "tool")
-  const status = value(event.data, "status")
-  const name = value(event.data, "name")
-  const count = value(event.data, "count")
-  return [tool || name || event.type, status, title, count ? `${count} items` : ""].filter(Boolean).join(" · ")
-}
-
 function ActivityRow(props: { event: Activity }) {
   return (
     <details class="group border-b border-border-weak-base last:border-b-0">
@@ -50,7 +37,7 @@ function ActivityRow(props: { event: Activity }) {
         <span class={`text-10-medium px-1.5 py-0.5 rounded shrink-0 ${badge(props.event.source)}`}>
           {props.event.source.toUpperCase()}
         </span>
-        <span class="text-11-mono text-text-base break-all">{summary(props.event)}</span>
+        <span class="text-11-mono text-text-base break-all">{activitySummary(props.event)}</span>
       </summary>
       <pre class="m-0 px-3 py-2 bg-surface-inset-base text-10-mono text-text-weak whitespace-pre-wrap break-all select-text">
         {JSON.stringify(
@@ -70,79 +57,23 @@ function ActivityRow(props: { event: Activity }) {
 
 export function ActivityPanel() {
   const params = useParams()
-  const sdk = useSDK()
-  const [events, setEvents] = createStore<Activity[]>([])
+  const workbench = useWorkbench()
   const [source, setSource] = createSignal<ActivitySource | "all">("all")
   const [search, setSearch] = createSignal("")
   const [mode, setMode] = createSignal<"timeline" | "lanes">("timeline")
   const [follow, setFollow] = createSignal(true)
-  const [error, setError] = createSignal("")
   let scroll!: HTMLDivElement
 
-  const add = (event: Activity) => {
-    const index = events.findIndex((item) => item.id === event.id)
-    if (index !== -1) {
-      setEvents(index, reconcile(event))
-      return
-    }
-    setEvents(
-      produce((draft) => {
-        draft.push(event)
-        if (draft.length > 2_000) draft.splice(0, draft.length - 2_000)
-      }),
-    )
-  }
-
-  const merge = (incoming: Activity[]) => {
-    setEvents(reconcile(mergeActivity(incoming, [...events])))
-  }
-
   createEffect(() => {
-    const sessionID = params.id
-    if (!sessionID) {
-      setEvents(reconcile([]))
-      return
-    }
-
-    const abort = new AbortController()
-    const client = sdk.createClient({
-      directory: sdk.directory,
-      throwOnError: true,
-      signal: abort.signal,
-    })
-    setError("")
-    void client.eventLog
-      .list({ sessionID, limit: 500 })
-      .then((response) => merge(response.data ?? []))
-      .catch((cause) => {
-        if (!abort.signal.aborted) setError(cause instanceof Error ? cause.message : String(cause))
-      })
-    void (async () => {
-      try {
-        const response = await client.eventLog.stream(
-          { sessionID },
-          {
-            onSseError: (cause) => {
-              if (!abort.signal.aborted) setError(cause instanceof Error ? cause.message : String(cause))
-            },
-          },
-        )
-        for await (const event of response.stream) {
-          if (isActivity(event)) add(event)
-        }
-      } catch (cause) {
-        if (!abort.signal.aborted) setError(cause instanceof Error ? cause.message : String(cause))
-      }
-    })()
-    onCleanup(() => abort.abort())
+    if (workbench.changes("activity") > 0) workbench.ack("activity")
   })
 
   const filtered = createMemo(() => {
     const query = search().trim().toLowerCase()
-    return events.filter((event) => {
+    return workbench.events.filter((event) => {
       if (source() !== "all" && event.source !== source()) return false
       if (!query) return true
-      return `${event.type} ${summary(event)} ${event.correlationID ?? ""}`.toLowerCase().includes(query)
+      return `${event.type} ${activitySummary(event)} ${event.correlationID ?? ""}`.toLowerCase().includes(query)
     })
   })
 
@@ -174,7 +105,7 @@ export function ActivityPanel() {
           }}
           onClick={() => setSource("all")}
         >
-          All {events.length}
+          All {workbench.events.length}
         </button>
         <For each={sources}>
           {(item) => (
@@ -226,8 +157,10 @@ export function ActivityPanel() {
           <Icon name="download" size="small" />
         </button>
       </div>
-      <Show when={error()}>
-        <div class="shrink-0 px-3 py-1.5 bg-surface-critical-base text-11-regular text-text-critical-base">{error()}</div>
+      <Show when={workbench.error}>
+        <div class="shrink-0 px-3 py-1.5 bg-surface-critical-base text-11-regular text-text-critical-base">
+          {workbench.error}
+        </div>
       </Show>
       <div ref={scroll} class="flex-1 min-h-0 overflow-auto">
         <Show

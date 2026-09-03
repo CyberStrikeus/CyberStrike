@@ -40,6 +40,77 @@ describe("tool.bash", () => {
 })
 
 describe("tool.bash permissions", () => {
+  test("routes direct and wrapped Nmap commands to nmap_scan", async () => {
+    await using tmp = await tmpdir({ git: true })
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const bash = await BashTool.init()
+        const testCtx = {
+          ...ctx,
+          ask: async () => {
+            throw new Error("Bash permission reached")
+          },
+        }
+        for (const command of [
+          "nmap -sV example.test",
+          "/usr/bin/nmap -sV example.test",
+          "sudo -n /usr/bin/nmap -sV example.test",
+          "env NMAP_PRIVILEGED=1 nmap -sV example.test",
+          "bash -c \"nmap -sV example.test\"",
+          "sh -c \"echo ready; /usr/bin/nmap -sV example.test\"",
+          "bash -c \"sudo -n /usr/bin/nmap -sV example.test\"",
+          "bash -c \"env MODE=test /usr/bin/nmap -sV example.test\"",
+          "stdbuf -oL nmap -sV example.test",
+          "nmap</dev/null -sV example.test",
+          "bash -c \"bash -c 'bash -c \\\"bash -c \\\\\\\"bash -c \\\\\\\\\\\\\\\"nmap -sV example.test\\\\\\\\\\\\\\\"\\\\\\\"\\\"'\"",
+          "exec /usr/bin/nmap -sV example.test",
+          "env -S \"nmap -sV example.test\"",
+          "\"C:\\Program Files\\Nmap\\nmap.exe\" -sV example.test",
+        ]) {
+          const result = await bash
+            .execute(
+              {
+                command,
+                description: "Run Nmap scan",
+              },
+              testCtx,
+            )
+            .then(() => "resolved")
+            .catch((cause) => (cause instanceof Error ? cause.message : String(cause)))
+          if (!result.includes("Use nmap_scan")) throw new Error(`Nmap routing bypass for ${command}: ${result}`)
+        }
+      },
+    })
+  })
+
+  test("allows commands that only reference Nmap as data", async () => {
+    await using tmp = await tmpdir({ git: true })
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const bash = await BashTool.init()
+        const testCtx = {
+          ...ctx,
+          ask: async () => {
+            throw new Error("permission reached")
+          },
+        }
+        for (const command of ["echo nmap", "grep nmap README.md", "apt-get install nmap"]) {
+          await expect(
+            bash.execute(
+              {
+                command,
+                description: "Reference Nmap command",
+              },
+              testCtx,
+            ),
+          ).rejects.toThrow("permission reached")
+        }
+      },
+    })
+  })
+
   test("asks for bash permission with correct pattern", async () => {
     await using tmp = await tmpdir({ git: true })
     await Instance.provide({

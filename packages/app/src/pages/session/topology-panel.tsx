@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js"
+import { For, Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js"
 import { createStore, reconcile } from "solid-js/store"
 import { useParams } from "@solidjs/router"
 import type {
@@ -11,6 +11,7 @@ import { Icon } from "@cyberstrike-io/ui/icon"
 import { useSDK } from "@/context/sdk"
 import { useServer } from "@/context/server"
 import { usePrompt } from "@/context/prompt"
+import { useWorkbench } from "@/context/workbench"
 
 type Node = TopologyGetResponse["nodes"][number]
 type Kind = Node["kind"]
@@ -44,6 +45,7 @@ export function TopologyPanel() {
   const sdk = useSDK()
   const server = useServer()
   const prompt = usePrompt()
+  const workbench = useWorkbench()
   const [graph, setGraph] = createStore<TopologyGetResponse>({
     sessionID: "",
     nodes: [],
@@ -68,6 +70,9 @@ export function TopologyPanel() {
   })
   let fileInput!: HTMLInputElement
   let generation = 0
+  let pending = false
+  let loading: Promise<boolean> | undefined
+  let refreshTimer: ReturnType<typeof setTimeout> | undefined
 
   const load = async () => {
     const sessionID = params.id
@@ -95,6 +100,19 @@ export function TopologyPanel() {
       return false
     }
   }
+  const refresh = () => {
+    if (loading) {
+      pending = true
+      return loading
+    }
+    loading = load().finally(() => {
+      loading = undefined
+      if (!pending) return
+      pending = false
+      void refresh()
+    })
+    return loading
+  }
 
   createEffect(() => {
     params.id
@@ -102,15 +120,29 @@ export function TopologyPanel() {
     setTo("")
     setDiff(undefined)
     let alive = true
-    void load()
+    void refresh()
     const timer = setInterval(() => {
-      if (alive) void load()
-    }, 10_000)
+      if (alive) void refresh()
+    }, 30_000)
     onCleanup(() => {
       alive = false
       generation++
       clearInterval(timer)
     })
+  })
+
+  createEffect(
+    on(
+      () => workbench.revision("topology"),
+      () => {
+        if (refreshTimer) clearTimeout(refreshTimer)
+        refreshTimer = setTimeout(() => void refresh(), 250)
+      },
+      { defer: true },
+    ),
+  )
+  onCleanup(() => {
+    if (refreshTimer) clearTimeout(refreshTimer)
   })
 
   createEffect(() => {
@@ -157,7 +189,7 @@ export function TopologyPanel() {
         name: file.name.replace(/\.xml$/i, ""),
         xml: await file.text(),
       })
-      await load()
+      await refresh()
       setError("")
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))

@@ -39,6 +39,7 @@ test("cyberstrike agent has correct default properties", async () => {
       expect(cs?.native).toBe(true)
       expect(evalPerm(cs, "edit")).toBe("allow")
       expect(evalPerm(cs, "bash")).toBe("allow")
+      expect(PermissionNext.evaluate("nmap_scan", "*", cs!.permission).action).toBe("ask")
     },
   })
 })

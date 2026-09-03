@@ -44,6 +44,8 @@ import { useServer } from "@/context/server"
 import { MissionPanel } from "@/pages/session/mission-panel"
 import { TopologyPanel } from "@/pages/session/topology-panel"
 import { MemoryPanel } from "@/pages/session/memory-panel"
+import { useWorkbench } from "@/context/workbench"
+import type { WorkbenchChannel } from "@/pages/session/activity"
 
 const statusDot = (status: string) => {
   if (status === "connected") return "bg-icon-success-base"
@@ -51,6 +53,26 @@ const statusDot = (status: string) => {
   if (status === "needs_auth") return "bg-icon-warning-base"
   if (status === "available") return "bg-icon-accent-base"
   return "bg-surface-inset-base"
+}
+
+const panelChannels: Record<string, WorkbenchChannel> = {
+  "mcp-panel": "mcp",
+  "mission-panel": "mission",
+  "bolt-panel": "bolt",
+  "vulns-panel": "vulns",
+  "web-panel": "web",
+  "topology-panel": "topology",
+  "memory-panel": "memory",
+}
+
+function ChangeCount(props: { value: number }) {
+  return (
+    <Show when={props.value > 0}>
+      <span class="min-w-4 h-4 px-1 rounded-full bg-surface-accent-base text-10-medium text-text-accent-base tabular-nums">
+        {Math.min(props.value, 99)}
+      </span>
+    </Show>
+  )
 }
 
 type McpCatalogEntry = {
@@ -1196,6 +1218,13 @@ export function SessionSidePanel(props: {
 }) {
   const openedTabs = createMemo(() => props.openedTabs())
   const server = useServer()
+  const workbench = useWorkbench()
+
+  createEffect(() => {
+    if (!props.open || !props.reviewOpen) return
+    const channel = panelChannels[props.activeTab()]
+    if (channel && workbench.changes(channel) > 0) workbench.ack(channel)
+  })
 
   return (
     <Show when={props.open}>
@@ -1263,26 +1292,40 @@ export function SessionSidePanel(props: {
                       </Tabs.Trigger>
                     </Show>
                     <Tabs.Trigger value="mcp-panel">
-                      <div class="flex items-center gap-1.5">MCP</div>
+                      <div class="flex items-center gap-1.5">
+                        MCP <ChangeCount value={workbench.changes("mcp")} />
+                      </div>
                     </Tabs.Trigger>
                     <Tabs.Trigger value="mission-panel">
-                      <div class="flex items-center gap-1.5">Mission</div>
+                      <div class="flex items-center gap-1.5">
+                        Mission <ChangeCount value={workbench.changes("mission")} />
+                      </div>
                     </Tabs.Trigger>
                     <Tabs.Trigger value="bolt-panel">
-                      <div class="flex items-center gap-1.5">Bolt</div>
+                      <div class="flex items-center gap-1.5">
+                        Bolt <ChangeCount value={workbench.changes("bolt")} />
+                      </div>
                     </Tabs.Trigger>
                     <Tabs.Trigger value="vulns-panel">
-                      <div class="flex items-center gap-1.5">Vulns</div>
+                      <div class="flex items-center gap-1.5">
+                        Vulns <ChangeCount value={workbench.changes("vulns")} />
+                      </div>
                     </Tabs.Trigger>
                     <Tabs.Trigger value="web-panel">
-                      <div class="flex items-center gap-1.5">Web</div>
+                      <div class="flex items-center gap-1.5">
+                        Web <ChangeCount value={workbench.changes("web")} />
+                      </div>
                     </Tabs.Trigger>
                     <Tabs.Trigger value="topology-panel">
-                      <div class="flex items-center gap-1.5">Topology</div>
+                      <div class="flex items-center gap-1.5">
+                        Topology <ChangeCount value={workbench.changes("topology")} />
+                      </div>
                     </Tabs.Trigger>
                     <Show when={server.role() !== "observer"}>
                       <Tabs.Trigger value="memory-panel">
-                        <div class="flex items-center gap-1.5">Memory</div>
+                        <div class="flex items-center gap-1.5">
+                          Memory <ChangeCount value={workbench.changes("memory")} />
+                        </div>
                       </Tabs.Trigger>
                     </Show>
                     <Tabs.Trigger value="todo-panel">

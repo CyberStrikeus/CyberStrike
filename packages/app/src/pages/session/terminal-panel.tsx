@@ -1,4 +1,4 @@
-import { For, Show, createMemo, createSignal } from "solid-js"
+import { For, Show, createMemo } from "solid-js"
 import { Tabs } from "@cyberstrike-io/ui/tabs"
 import { ResizeHandle } from "@cyberstrike-io/ui/resize-handle"
 import { IconButton } from "@cyberstrike-io/ui/icon-button"
@@ -19,6 +19,9 @@ export function TerminalPanel(props: {
   height: number
   resize: (value: number) => void
   close: () => void
+  activity: boolean
+  setActivity: (value: boolean) => void
+  newTerminal: () => void
   terminal: ReturnType<typeof useTerminal>
   readOnly: boolean
   language: ReturnType<typeof useLanguage>
@@ -33,8 +36,6 @@ export function TerminalPanel(props: {
   const all = createMemo(() => props.terminal.all())
   const ids = createMemo(() => all().map((pty) => pty.id))
   const byId = createMemo(() => new Map(all().map((pty) => [pty.id, pty])))
-  const [activity, setActivity] = createSignal(false)
-
   return (
     <Show when={props.open}>
       <div
@@ -88,13 +89,13 @@ export function TerminalPanel(props: {
             <div class="flex flex-col h-full">
               <Tabs
                 variant="alt"
-                value={activity() ? "activity" : props.terminal.active()}
+                value={props.activity ? "activity" : props.terminal.active()}
                 onChange={(id) => {
                   if (id === "activity") {
-                    setActivity(true)
+                    props.setActivity(true)
                     return
                   }
-                  setActivity(false)
+                  props.setActivity(false)
                   props.terminal.open(id)
                 }}
                 class="!h-auto !flex-none"
@@ -130,10 +131,7 @@ export function TerminalPanel(props: {
                           icon="plus-small"
                           variant="ghost"
                           iconSize="large"
-                          onClick={() => {
-                            setActivity(false)
-                            props.terminal.new()
-                          }}
+                          onClick={props.newTerminal}
                           aria-label={props.language.t("command.terminal.new")}
                         />
                       </TooltipKeybind>
@@ -142,7 +140,7 @@ export function TerminalPanel(props: {
                 </Tabs.List>
               </Tabs>
               <div class="flex-1 min-h-0 relative">
-                <Show when={activity()}>
+                <Show when={props.activity}>
                   <div class="absolute inset-0">
                     <ActivityPanel />
                   </div>
@@ -155,7 +153,7 @@ export function TerminalPanel(props: {
                         class="absolute inset-0"
                         style={{
                           display: props.terminal.active() === pty.id ? "block" : "none",
-                          visibility: activity() ? "hidden" : "visible",
+                          visibility: props.activity ? "hidden" : "visible",
                         }}
                       >
                         <Show when={pty.id} keyed>

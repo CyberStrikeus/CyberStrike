@@ -4376,6 +4376,7 @@ export class EventLog extends HeyApiClient {
       sessionID: string
       directory?: string
       before?: number
+      beforeID?: string
       limit?: number
     },
     options?: Options<never, ThrowOnError>,
@@ -4388,6 +4389,7 @@ export class EventLog extends HeyApiClient {
             { in: "path", key: "sessionID" },
             { in: "query", key: "directory" },
             { in: "query", key: "before" },
+            { in: "query", key: "beforeID" },
             { in: "query", key: "limit" },
           ],
         },
