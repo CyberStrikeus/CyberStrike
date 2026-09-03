@@ -179,7 +179,16 @@ chrome.storage.local.get(["credential", "session"], (o) => {
 })
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.credential) activeCredential = changes.credential.newValue || null
-  if (changes.session) activeSession = changes.session.newValue || ""
+  if (changes.session) {
+    activeSession = changes.session.newValue || ""
+    // Session changed while capturing → point the control channel at the new session.
+    if (activeSession && drivenTab() !== undefined) {
+      try {
+        if (controlWs) controlWs.close()
+      } catch {}
+      connectControl()
+    }
+  }
 })
 
 // NOTE: the WS control channel (AI → extension click/type/navigate) lived on the
@@ -192,9 +201,95 @@ chrome.storage.onChanged.addListener((changes) => {
 // webRequest. Both check attached.has(tabId).
 function attach(tabId) {
   attached.set(tabId, true)
+  connectControl() // AI co-driving: open the control channel once we're capturing.
 }
 function detach(tabId) {
   attached.delete(tabId)
+  if (attached.size === 0) closeControl() // nothing to drive → drop the control channel
+}
+function closeControl() {
+  if (controlReconnectTimer) {
+    clearTimeout(controlReconnectTimer)
+    controlReconnectTimer = null
+  }
+  if (controlWs) {
+    try {
+      controlWs.onclose = null // don't let close trigger a reconnect
+      controlWs.close()
+    } catch {}
+    controlWs = null
+  }
+}
+
+// --- AI co-driving control channel (CyberStrike → this browser) -------------------
+// CyberStrike's /web/action relays click/type/navigate commands over WS /web/control;
+// we execute them in the driven tab via the content script's `perform` handler and ack.
+// MV3 keeps the service worker alive while a WebSocket is open (Chrome 116+).
+let controlWs = null
+let controlReconnectTimer = null
+
+// The tab the AI drives — the (first) attached tab in this browser.
+function drivenTab() {
+  for (const [tabId, on] of attached) if (on) return tabId
+  return undefined
+}
+function controlSend(ws, obj) {
+  try {
+    ws.send(JSON.stringify(obj))
+  } catch {}
+}
+function scheduleControlReconnect() {
+  if (controlReconnectTimer) return
+  controlReconnectTimer = setTimeout(() => {
+    controlReconnectTimer = null
+    connectControl()
+  }, 3000)
+}
+async function connectControl() {
+  const sid = await currentSession()
+  if (!sid) return
+  if (controlWs && (controlWs.readyState === WebSocket.CONNECTING || controlWs.readyState === WebSocket.OPEN)) return
+  const base = await csUrl()
+  const wsUrl = base.replace(/^http/i, "ws") + `/session/${encodeURIComponent(sid)}/web/control`
+  let ws
+  try {
+    ws = new WebSocket(wsUrl)
+  } catch {
+    scheduleControlReconnect()
+    return
+  }
+  controlWs = ws
+  ws.onmessage = async (ev) => {
+    let msg
+    try {
+      msg = JSON.parse(typeof ev.data === "string" ? ev.data : "")
+    } catch {
+      return
+    }
+    if (!msg || !msg.id) return
+    const tabId = drivenTab()
+    if (tabId === undefined) {
+      controlSend(ws, { id: msg.id, ok: false, error: "no attached tab" })
+      return
+    }
+    const cmd = { op: msg.op, elementId: msg.elementId, text: msg.text, url: msg.url }
+    const ack = await new Promise((r) =>
+      chrome.tabs.sendMessage(tabId, { type: "perform", cmd }, (res) => {
+        void chrome.runtime.lastError
+        r(res)
+      }),
+    )
+    controlSend(ws, { id: msg.id, ok: !!(ack && ack.ok), error: ack && ack.error })
+  }
+  ws.onclose = () => {
+    if (controlWs === ws) controlWs = null
+    scheduleControlReconnect()
+  }
+  ws.onerror = () => {
+    try {
+      ws.close()
+    } catch {}
+  }
 }
 
 // Ingest a dynamic request captured by the MAIN-world fetch/XHR patch. fetch/XHR
@@ -520,29 +615,32 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       return
     }
     if (msg.type === "observe") {
-      // Forward this page's clickables to CyberStrike as per-credential UI observations
-      // (Faz B). Server derives element_roles/page_visited_by at read time. Needs a
-      // session to anchor to; credential is this profile's identity (§3.1), null = anon.
+      // Forward the full page observation to CyberStrike's /web/observe, which feeds BOTH
+      // the get_page_state store (what the AI acts on) and the per-credential Faz B
+      // UI-affordance store (element_roles). Needs a session to anchor to.
       const obs = msg.observation
       const sid = await currentSession()
       if (obs && obs.url && Array.isArray(obs.clickables) && sid) {
         const base = await csUrl()
-        const elements = obs.clickables
-          .map((c) => ({ role: c.role || "", label: c.label || "" }))
-          .filter((e) => e.label)
-        if (elements.length > 0) {
-          const payload = { page_url: obs.url, elements }
-          const cred = await currentCredential()
-          if (cred) payload.credential_id = cred.id
-          try {
-            await fetch(`${base}/session/${sid}/web/observations`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-            })
-          } catch (e) {
-            console.warn("[hackbrowser] observe forward failed", e)
-          }
+        const cred = await currentCredential()
+        const tabId = sender.tab && sender.tab.id
+        const payload = {
+          url: obs.url,
+          title: obs.title || "",
+          clickables: obs.clickables,
+          forms: obs.forms || [],
+          links: obs.links || [],
+          driver: (tabId !== undefined && driverByTab.get(tabId)) || "ai",
+        }
+        if (cred) payload.credential_id = cred.id
+        try {
+          await fetch(`${base}/session/${sid}/web/observe`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        } catch (e) {
+          console.warn("[hackbrowser] observe forward failed", e)
         }
       }
       sendResponse({ ok: true })
