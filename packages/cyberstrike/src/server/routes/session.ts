@@ -29,6 +29,7 @@ import { SpawnedProfiles } from "../../session/web/spawned-profiles"
 import { RoleQueue } from "../../session/web/role-queue"
 import { PageState } from "../../session/web/page-state"
 import { WebControl } from "../../session/web/control"
+import { WebDriver } from "../../session/web/driver"
 import { upgradeWebSocket } from "hono/bun"
 
 const RoleInfoSchema = z.object({ label: z.string(), phase: z.enum(["pending", "spawning", "awaiting", "capturing"]) })
@@ -1249,6 +1250,51 @@ export const SessionRoutes = lazy(() =>
           },
         }
       }),
+    )
+    .post(
+      "/:sessionID/web/driver",
+      describeRoute({
+        summary: "Set the browser driver (AI / Human)",
+        description:
+          "The panel's AI/Human toggle reports here so CyberStrike knows who is driving. Human mode blocks web_action (interlock); AI mode is what will start the co-driving loop. The extension POSTs on toggle and on control-WS connect.",
+        operationId: "session.webSetDriver",
+        responses: {
+          200: {
+            description: "Current driver",
+            content: { "application/json": { schema: resolver(z.object({ ok: z.boolean(), driver: z.enum(["ai", "human"]) })) } },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator("json", z.object({ driver: z.enum(["ai", "human"]) })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const driver = c.req.valid("json").driver
+        WebDriver.set(sessionID, driver)
+        // SEAM (next slice): driver === "ai" starts the co-driving loop; "human" cancels it.
+        return c.json({ ok: true, driver })
+      },
+    )
+    .get(
+      "/:sessionID/web/driver",
+      describeRoute({
+        summary: "Get the browser driver (AI / Human)",
+        description: "The current driver for the session, or null if the panel has not reported one yet.",
+        operationId: "session.webGetDriver",
+        responses: {
+          200: {
+            description: "Current driver",
+            content: { "application/json": { schema: resolver(z.object({ driver: z.enum(["ai", "human"]).nullable() })) } },
+          },
+          ...errors(404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        return c.json({ driver: WebDriver.get(sessionID) ?? null })
+      },
     )
     .delete(
       "/:sessionID/web/credentials/:credentialID",
