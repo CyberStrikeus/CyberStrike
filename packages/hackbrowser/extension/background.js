@@ -19,6 +19,18 @@ function csUrl() {
   })
 }
 
+// The active session id, falling back to storage when the in-memory value hasn't caught
+// up yet. A spawned profile writes the session from its #__cs_sess hash to storage, and
+// our activeSession only syncs via storage.onChanged — so a capture firing in that gap
+// would otherwise ingest with no session and create a WRONG new one. Reading storage
+// here makes the hash-provided session authoritative everywhere (ingest, observe, etc.).
+async function currentSession() {
+  if (activeSession) return activeSession
+  const s = await new Promise((r) => chrome.storage.local.get("session", (o) => r(o && o.session)))
+  if (s) activeSession = s
+  return activeSession
+}
+
 // Return the active session, creating one in CyberStrike if none is set yet. This is
 // the chicken-egg fix: the panel's Anonymous / Add-credential actions need a session
 // BEFORE any capture, so we create it up front (POST /session) instead of waiting for
@@ -27,7 +39,8 @@ function csUrl() {
 // Add-credential clicks) so they share ONE session instead of racing two into being.
 let sessionCreating = null
 async function ensureSession() {
-  if (activeSession) return activeSession
+  const existing = await currentSession()
+  if (existing) return existing
   if (sessionCreating) return sessionCreating
   sessionCreating = (async () => {
     const base = await csUrl()
@@ -171,7 +184,8 @@ async function forward(rec) {
   // Builds an IngestPayload — keep the field set in sync with types.ts IngestPayload
   // (the single wire contract; this JS runtime can't import the TS type).
   const payload = { text: raw, scheme }
-  if (activeSession) payload.sessionID = activeSession
+  const sid = await currentSession()
+  if (sid) payload.sessionID = sid
   if (activeCredential) payload.credential_id = activeCredential.id
   if (rec.status > 0) {
     payload.response = { status: rec.status, headers: rec.responseHeaders || {}, body: rec.responseBody || "" }
@@ -193,7 +207,7 @@ async function forward(rec) {
     })
     if (res.ok) {
       const d = await res.json().catch(() => ({}))
-      if (d && d.sessionID && !activeSession) {
+      if (d && d.sessionID && !sid) {
         activeSession = d.sessionID
         chrome.storage.local.set({ session: activeSession })
       }
@@ -358,20 +372,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Launcher-injected credential: register directly with CyberStrike's existing
     // credential route and persist it profile-local (same as the popup "Set" button).
     if (msg.type === "set-credential-label") {
-      // A spawned profile writes the session to storage then immediately sends this;
-      // our activeSession is updated via storage.onChanged, which may not have fired
-      // yet. Read storage fresh to close that race before giving up.
-      if (!activeSession) {
-        const s = await new Promise((r) => chrome.storage.local.get("session", (o) => r(o && o.session)))
-        if (s) activeSession = s
-      }
-      if (!activeSession) {
+      const sid = await currentSession() // authoritative even before onChanged fires
+      if (!sid) {
         sendResponse({ ok: false, error: "no session selected" })
         return
       }
       const base = await csUrl()
       try {
-        const res = await fetch(`${base}/session/${activeSession}/web/credentials`, {
+        const res = await fetch(`${base}/session/${sid}/web/credentials`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ label: msg.label }),
@@ -437,7 +445,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       // (Faz B). Server derives element_roles/page_visited_by at read time. Needs a
       // session to anchor to; credential is this profile's identity (§3.1), null = anon.
       const obs = msg.observation
-      if (obs && obs.url && Array.isArray(obs.clickables) && activeSession) {
+      const sid = await currentSession()
+      if (obs && obs.url && Array.isArray(obs.clickables) && sid) {
         const base = await csUrl()
         const elements = obs.clickables
           .map((c) => ({ role: c.role || "", label: c.label || "" }))
@@ -446,7 +455,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           const payload = { page_url: obs.url, elements }
           if (activeCredential) payload.credential_id = activeCredential.id
           try {
-            await fetch(`${base}/session/${activeSession}/web/observations`, {
+            await fetch(`${base}/session/${sid}/web/observations`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(payload),
