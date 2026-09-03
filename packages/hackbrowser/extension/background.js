@@ -41,6 +41,24 @@ async function currentCredential() {
   return activeCredential
 }
 
+// Report the panel's driver (AI/Human) to CyberStrike so the server is authoritative:
+// it gates web_action (Human blocks the AI) and, later, starts/stops the co-driving loop.
+// Fire-and-forget — a failed post must never break the toggle.
+async function postDriver(driver) {
+  const sid = await currentSession()
+  if (!sid) return
+  const base = await csUrl()
+  try {
+    await fetch(`${base}/session/${encodeURIComponent(sid)}/web/driver`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ driver: driver === "human" ? "human" : "ai" }),
+    })
+  } catch (e) {
+    console.warn("[hackbrowser] driver post failed", e)
+  }
+}
+
 // Register a credential label with CyberStrike and make it this profile's identity.
 // Shared by the panel "Set" button, spawned role browsers, and Browse-anonymous — the
 // last one registers a real "anonymous" role so it is a first-class identity in the TUI
@@ -259,6 +277,11 @@ async function connectControl() {
     return
   }
   controlWs = ws
+  ws.onopen = () => {
+    // Re-assert the driven tab's driver so a fresh/reconnected server reflects it.
+    const t = drivenTab()
+    if (t !== undefined && driverByTab.has(t)) void postDriver(driverByTab.get(t))
+  }
   ws.onmessage = async (ev) => {
     let msg
     try {
@@ -492,6 +515,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === "set-driver") {
       const tabId = sender.tab && sender.tab.id
       if (tabId !== undefined) driverByTab.set(tabId, msg.driver === "human" ? "human" : "ai")
+      // Make the server authoritative on who drives (interlock + loop trigger).
+      void postDriver(msg.driver === "human" ? "human" : "ai")
       sendResponse(panelStatus(tabId))
       return
     }
