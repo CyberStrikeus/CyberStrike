@@ -48,6 +48,16 @@ export namespace WebScope {
   export function get(sessionID: string): S | undefined {
     return bySession.get(sessionID)
   }
+  // Human-readable scope, e.g. "*.testfire.net" (+ any explicit patterns) — the domain match
+  // is registrable-domain equality, which is exactly "the domain and all its subdomains".
+  export function label(sessionID: string): string {
+    const s = bySession.get(sessionID)
+    if (!s) return ""
+    const parts: string[] = []
+    if (s.domain) parts.push(`*.${s.domain}`)
+    parts.push(...s.patterns)
+    return parts.join(", ")
+  }
 
   // In scope? Non-http urls (mailto:/javascript:/tel:) are out. No scope set → allow (don't
   // block un-scoped/manual use); the loop always ensure()s scope before it navigates.

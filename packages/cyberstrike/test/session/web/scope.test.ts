@@ -33,4 +33,11 @@ describe("WebScope.allowed", () => {
   test("no scope set → allowed (don't block un-scoped/manual use)", () => {
     expect(WebScope.allowed("fresh", "https://anything.com/")).toBe(true)
   })
+
+  test("label renders the scope as *.domain (+ patterns)", () => {
+    WebScope.ensure("s", "http://demo.testfire.net/")
+    expect(WebScope.label("s")).toBe("*.testfire.net")
+    WebScope.ensure("s2", "http://a.example.com/", ["*.partner.org"])
+    expect(WebScope.label("s2")).toBe("*.example.com, *.partner.org")
+  })
 })

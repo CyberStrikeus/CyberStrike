@@ -69,7 +69,7 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
   RoleQueue.enqueue(opts.sessionID, opts.credentials ?? [])
   // Bound the AI crawl to the target domain (+ any explicit scope) so it can't wander off-site.
   WebScope.ensure(opts.sessionID, opts.target, opts.scope)
-  HBLog.record(opts.sessionID, "server", "launch", { target: opts.target, csUrl: Server.url().toString(), scope: WebScope.get(opts.sessionID)?.domain })
+  HBLog.record(opts.sessionID, "server", "launch", { target: opts.target, csUrl: Server.url().toString(), scope: WebScope.label(opts.sessionID) })
   const spawn = await import("@cyberstrike-io/hackbrowser/v2-spawn")
   try {
     // Pass the ACTUAL server URL so the extension calls back to this instance even when the
