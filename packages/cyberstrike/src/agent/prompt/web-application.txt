@@ -40,6 +40,36 @@ Launches an AI-driven crawler that navigates the app, fills forms, clicks button
 3. `hackbrowser target="https://target.com" credentials=["user1","admin1"]` — role-based crawl (user present)
 4. Run targeted testing on captured requests
 
+### Co-driving crawl (interactive) — `web_get_page_state` + `web_action`
+
+When a browser is attached, you can drive it yourself, one action at a time, instead of a
+one-shot crawl. This is the observe → decide → act loop; every request the page makes is
+captured automatically the whole time.
+
+**The loop:**
+1. `web_get_page_state` (omit `url` for the page the browser is on now). Read `clickables`
+   — each has `kind`, `policy`, `why` (why it is interactive), and `visited`.
+2. Pick an **unvisited** element whose `kind` is `nav` or `query` and `policy` is `allow`.
+   Use `web_action op="click" element_id="…"` (ids come from the state you just read), or
+   `web_action op="navigate" url="…"` to follow a discovered link.
+3. Repeat. After ANY navigation, call `web_get_page_state` again before acting — element ids
+   are only valid for the page you last observed.
+
+**Never act on:** `kind` = `logout` or `destructive` (the guard blocks these — logout ends
+the session, destructive is irreversible and needs a human), or `auth` (would drop the
+current identity). `web_action` reports these back to you; do not retry them.
+
+**When to stop:** watch the `crawl` block in each state — stop when `unvisited_nav_query`
+is 0 across the pages you can reach (coverage), when `remaining` reaches 0 (budget — a hard
+cap you cannot exceed), or when a human takes over driving.
+
+**Edge cases:**
+- Cycle: if `web_action` returns `repeat` or the page looks unchanged, pick a different
+  branch or navigate elsewhere — do not re-click the same control.
+- Dead end: navigate back or to another discovered link.
+- Auth wall / login / CAPTCHA: you cannot pass these autonomously. Stop and hand to the
+  human (they drive via the panel's AI/Human toggle), then resume observing.
+
 ## Testing Workflow
 
 After discovery, follow this decision-based approach — test what the attack surface reveals, not a fixed checklist.
@@ -106,6 +136,8 @@ skill unload <skill-name>   # unload when moving to a different test area
 | Tool | Purpose |
 |------|---------|
 | hackbrowser | AI-driven crawler — endpoint and form discovery |
+| web_get_page_state | Read the attached browser's current page as a structured map (co-driving eyes) |
+| web_action | Drive the attached browser: click / type / navigate, guard-enforced (co-driving hands) |
 | sqlmap | SQL injection exploitation |
 | ffuf | Directory/parameter fuzzing |
 | nuclei | Template-based vulnerability scanning |
