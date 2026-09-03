@@ -30,7 +30,7 @@ import { RoleQueue } from "../../session/web/role-queue"
 import { PageState } from "../../session/web/page-state"
 import { WebControl } from "../../session/web/control"
 import { WebDriver } from "../../session/web/driver"
-import { WebCoDrive } from "../../session/web/codrive"
+import { CoDrive } from "../../session/web/nav/co-drive-runner"
 import { HBLog } from "../../session/web/hblog"
 import { FrameworkFingerprinter } from "../../session/web/tech"
 import { upgradeWebSocket } from "hono/bun"
@@ -1296,8 +1296,8 @@ export const SessionRoutes = lazy(() =>
         WebDriver.set(sessionID, driver)
         // AI mode drives the browser; Human mode stops the loop (the interlock also blocks
         // any in-flight action). Idempotent — repeated "ai" posts don't stack loops.
-        if (driver === "ai") WebCoDrive.start(sessionID)
-        else WebCoDrive.stop(sessionID)
+        if (driver === "ai") CoDrive.start(sessionID)
+        else CoDrive.stop(sessionID)
         return c.json({ ok: true, driver })
       },
     )

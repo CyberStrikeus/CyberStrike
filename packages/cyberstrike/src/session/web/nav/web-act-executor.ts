@@ -1,8 +1,7 @@
 // WebActExecutor — runs an Action through the shared guarded path (WebAct), waits for the page
 // to settle, and reports the effect (navigated / revealed / no-op / blocked) via the snapshot
-// signature diff (design §3.4). This is the forward single-source for execution + effect; the
-// old WebCoDrive loop keeps its own inline settle/executeForm until it is retired in P3
-// (FLAG: intentional temporary parallel during the additive migration — do not extend the old one).
+// signature diff (design §3.4). This is the single source for execution + effect (the old
+// WebCoDrive loop that had its own inline settle/executeForm was retired in P3).
 import type { Executor, Action, ActionResult, PageSnapshot } from "./types"
 import { snapshotSignature } from "./types"
 import { WebAct } from "../act"

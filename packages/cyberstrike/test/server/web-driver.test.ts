@@ -3,12 +3,19 @@ import { Hono } from "hono"
 import { SessionRoutes } from "../../src/server/routes/session"
 import { WebDriver } from "../../src/session/web/driver"
 import { WebControl } from "../../src/session/web/control"
-import { WebCoDrive } from "../../src/session/web/codrive"
+import { CoDrive } from "../../src/session/web/nav/co-drive-runner"
+import { CoDriveSession } from "../../src/session/web/nav/co-drive-session"
 import { PageState } from "../../src/session/web/page-state"
 import { Crawl } from "../../src/session/web/crawl"
 import { Effect } from "../../src/session/web/effect"
+import { WebScope } from "../../src/session/web/scope"
+import { WebStrategy } from "../../src/session/web/strategy"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
+
+// The route builds an LLM-brained session in production; here we swap in the deterministic one so
+// the route→runner→session chain is exercised end-to-end with no live model (test seam).
+const fast = { settleMs: 15, pollMs: 2, maxIdle: 3 }
 
 async function withApp(fn: (app: Hono) => Promise<void>) {
   await using dir = await tmpdir({ git: true })
@@ -17,10 +24,12 @@ async function withApp(fn: (app: Hono) => Promise<void>) {
     fn: async () => {
       WebDriver._reset()
       WebControl._reset()
-      WebCoDrive._reset()
+      CoDrive._reset()
       PageState._reset()
       Crawl._reset()
       Effect._reset()
+      WebScope._reset()
+      WebStrategy._reset()
       await fn(new Hono().route("/session", SessionRoutes()))
     },
   })
@@ -70,7 +79,7 @@ describe("POST/GET /session/:id/web/driver", () => {
 })
 
 describe("driver route drives the co-driving loop (end-to-end, in-process)", () => {
-  // A one-link site so the loop auto-advances (single candidate) — no planner/model call.
+  // A one-link site the deterministic brain walks to full coverage — no planner/model call.
   function attachBrowser(sid: string) {
     let current = "https://h/a"
     let clock = 1
@@ -97,19 +106,20 @@ describe("driver route drives the co-driving loop (end-to-end, in-process)", () 
 
   test("POST ai starts the loop (it crawls); POST human stops it", async () => {
     await withApp(async (app) => {
+      CoDrive._setFactory(() => CoDriveSession.withDefaults(fast))
       attachBrowser("s1")
       const res = await setDriver(app, "s1", "ai")
       expect(await res.json()).toEqual({ ok: true, driver: "ai" })
 
-      // Loop runs in the background (default humanized think-delays apply) — wait for coverage.
+      // Loop runs in the background — wait for coverage.
       const start = Date.now()
-      while (WebCoDrive.isRunning("s1") && Date.now() - start < 8000) await new Promise((r) => setTimeout(r, 10))
+      while (CoDrive.isRunning("s1") && Date.now() - start < 8000) await new Promise((r) => setTimeout(r, 10))
       expect(Crawl.isPageVisited("s1", "https://h/b")).toBe(true)
       expect(Crawl.summary("s1").actions).toBeGreaterThanOrEqual(1)
 
       // Human takeover stops the loop + flips the interlock.
       await setDriver(app, "s1", "human")
-      expect(WebCoDrive.isRunning("s1")).toBe(false)
+      expect(CoDrive.isRunning("s1")).toBe(false)
       expect(WebDriver.isHuman("s1")).toBe(true)
     })
   })
