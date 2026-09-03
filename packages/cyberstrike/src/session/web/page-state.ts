@@ -7,6 +7,7 @@
 // on. In-memory, server-lifetime (mirrors ui-observation.ts / role-queue.ts).
 import { annotateClickables, type Clickable, type ElementKind } from "./classify"
 import { actionPolicy } from "./guard"
+import { type TechStack } from "./tech"
 
 export namespace PageState {
   export interface Form {
@@ -41,6 +42,7 @@ export namespace PageState {
     frames?: Frame[] // iframes present (same-origin ones are traversed into clickables)
     canvas?: number // count of <canvas> — UIs we can flag but not introspect
     dynamic?: boolean // page mutates after load (SPA / async content)
+    tech?: TechStack // framework fingerprint (P2) — how navigation works on this app
     observed_at?: number // epoch ms of this observation
   }
 
@@ -81,6 +83,7 @@ export namespace PageState {
     frames?: Frame[]
     canvas?: number
     dynamic?: boolean
+    tech?: TechStack
     observed_at?: number
   }
 
@@ -104,6 +107,7 @@ export namespace PageState {
       frames: obs.frames,
       canvas: obs.canvas,
       dynamic: obs.dynamic,
+      tech: obs.tech,
       observed_at: obs.observed_at,
     }
   }

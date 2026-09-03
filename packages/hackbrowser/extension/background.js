@@ -736,6 +736,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (Array.isArray(obs.frames)) payload.frames = obs.frames
         if (typeof obs.canvas === "number") payload.canvas = obs.canvas
         if (typeof obs.dynamic === "boolean") payload.dynamic = obs.dynamic
+        if (obs.tech && typeof obs.tech === "object") payload.tech = obs.tech // framework fingerprint signals (P2)
         if (cred) payload.credential_id = cred.id
         try {
           await fetch(`${base}/session/${sid}/web/observe`, {

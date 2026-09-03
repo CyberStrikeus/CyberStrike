@@ -32,6 +32,7 @@ import { WebControl } from "../../session/web/control"
 import { WebDriver } from "../../session/web/driver"
 import { WebCoDrive } from "../../session/web/codrive"
 import { HBLog } from "../../session/web/hblog"
+import { FrameworkFingerprinter } from "../../session/web/tech"
 import { upgradeWebSocket } from "hono/bun"
 
 const RoleInfoSchema = z.object({ label: z.string(), phase: z.enum(["pending", "spawning", "awaiting", "capturing"]) })
@@ -1120,6 +1121,18 @@ export const SessionRoutes = lazy(() =>
           frames: z.array(z.object({ src: z.string(), same_origin: z.boolean(), title: z.string() })).optional(),
           canvas: z.number().optional(),
           dynamic: z.boolean().optional(),
+          // Framework fingerprint signals (P2) — raw markers the extension gathered; the server
+          // runs FrameworkFingerprinter.detect over them into a TechStack.
+          tech: z
+            .object({
+              globals: z.array(z.string()).optional(),
+              dom: z.array(z.string()).optional(),
+              cookies: z.array(z.string()).optional(),
+              meta: z.string().optional(),
+              scripts: z.array(z.string()).optional(),
+              headers: z.record(z.string(), z.string()).optional(),
+            })
+            .optional(),
         }),
       ),
       async (c) => {
@@ -1139,6 +1152,7 @@ export const SessionRoutes = lazy(() =>
           frames: b.frames,
           canvas: b.canvas,
           dynamic: b.dynamic,
+          tech: b.tech ? FrameworkFingerprinter.detect(b.tech) : undefined,
           observed_at: Date.now(),
         })
         if (b.credential_id) {

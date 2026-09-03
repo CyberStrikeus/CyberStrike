@@ -57,6 +57,16 @@ describe("POST /web/observe → GET /web/page-state", () => {
       expect(res.status).toBe(404)
     })
   })
+
+  test("tech signals are fingerprinted on observe and surfaced in page-state (P2)", async () => {
+    await withApp(async (app) => {
+      await post(app, "observe", { url: "https://h/spa", clickables, tech: { globals: ["React"], scripts: ["/_next/x.js"] } })
+      const st = await (await app.request(`/session/s1/web/page-state?url=${encodeURIComponent("https://h/spa")}`)).json()
+      expect(st.tech.client).toContain("React")
+      expect(st.tech.metaFramework).toBe("Next.js")
+      expect(st.tech.rendering).toBe("spa")
+    })
+  })
 })
 
 describe("POST /web/action — guard enforcement", () => {

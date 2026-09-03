@@ -23,6 +23,7 @@ import { Effect } from "./effect"
 import { WebScope } from "./scope"
 import { WebStrategy } from "./strategy"
 import { HBLog } from "./hblog"
+import { FrameworkFingerprinter } from "./tech"
 import { Provider } from "../../provider/provider"
 import { ProviderTransform } from "../../provider/transform"
 import { Log } from "../../util/log"
@@ -71,6 +72,7 @@ export namespace WebCoDrive {
     return [
       `URL: ${state.url}`,
       state.description ? `Page: ${state.description}` : "",
+      state.tech ? `Tech: ${FrameworkFingerprinter.describe(state.tech)}` : "",
       state.location && state.location.length ? `Location: ${state.location.join(" > ")}` : "",
       state.landmarks && state.landmarks.length ? `Structure: ${state.landmarks.map((l) => `${l.role}${l.label ? `(${l.label})` : ""}`).join(", ")}` : "",
       forms.length ? `Forms on page: ${forms.slice(0, 5).map((f) => `[${f}]`).join(" ")}` : "",

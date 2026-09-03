@@ -1035,7 +1035,68 @@
       frames: framesOf(),
       canvas: document.querySelectorAll("canvas").length,
       dynamic: mutationBursts > 0,
+      tech: collectTech(), // framework fingerprint signals (P2) — server runs FrameworkFingerprinter
     }
+  }
+
+  // --- Framework fingerprint signals (P2) — raw markers only; the server classifies them ------
+  // Reads page globals via a synchronous MAIN-world probe (content scripts can't see page
+  // globals directly). Strict CSP can block the inline script → we simply fall back to the DOM/
+  // cookie/meta signals below, which cover most stacks (FLAG: React 18 without the global is the
+  // main miss). Never throws — a fingerprint failure must not break observation.
+  function readGlobals() {
+    try {
+      const s = document.createElement("script")
+      s.textContent =
+        "(function(){try{var g=[],w=window;" +
+        "if(w.React||w.__REACT_DEVTOOLS_GLOBAL_HOOK__)g.push('React');" +
+        "if(w.ng||w.getAllAngularRootElements)g.push('ng');" +
+        "if(w.Vue||w.__VUE__)g.push('Vue');" +
+        "if(w.jQuery||(w.$&&w.$.fn&&w.$.fn.jquery))g.push('jQuery');" +
+        "if(w.Zone)g.push('Zone');" +
+        "if(w.__NEXT_DATA__)g.push('__NEXT_DATA__');" +
+        "if(w.__NUXT__)g.push('__NUXT__');" +
+        "if(w.__remixContext)g.push('__remixContext');" +
+        "document.documentElement.setAttribute('data-cs-tech',g.join(','));}catch(e){}})();"
+      document.documentElement.appendChild(s)
+      s.remove()
+      const v = document.documentElement.getAttribute("data-cs-tech") || ""
+      document.documentElement.removeAttribute("data-cs-tech")
+      return v ? v.split(",").filter(Boolean) : []
+    } catch {
+      return []
+    }
+  }
+  function collectTech() {
+    const out = { globals: [], dom: [], cookies: [], meta: "", scripts: [] }
+    try {
+      out.globals = readGlobals()
+      if (document.querySelector("[ng-version]")) out.dom.push("ng-version")
+      if (document.querySelector("[data-reactroot]")) out.dom.push("data-reactroot")
+      if (document.querySelector("[data-sveltekit-hydrate],[data-sveltekit-preload-data]")) out.dom.push("data-sveltekit")
+      if (document.getElementById("__NEXT_DATA__")) out.dom.push("__next_data__")
+      if (document.querySelector('input[name="__VIEWSTATE"]')) out.dom.push("__viewstate")
+      if (document.querySelector('input[name*="javax.faces.ViewState"]')) out.dom.push("javax.faces.viewstate")
+      // Vue scoped-style attributes (data-v-<hash>) — bounded scan, can't select by prefix.
+      let n = 0
+      for (const el of document.querySelectorAll("body *")) {
+        if (n++ > 300) break
+        if (el.hasAttributes() && [...el.attributes].some((a) => a.name.startsWith("data-v-"))) {
+          out.dom.push("data-v")
+          break
+        }
+      }
+      out.cookies = (document.cookie || "").split(";").map((c) => c.trim().split("=")[0]).filter(Boolean)
+      const gen = document.querySelector('meta[name="generator"]')
+      out.meta = (gen && gen.getAttribute("content")) || ""
+      const wanted = ["/_next/", "/_nuxt/", "angular", "react", "vue", "jquery"]
+      const seen = new Set()
+      for (const sc of document.querySelectorAll("script[src]")) {
+        const src = (sc.getAttribute("src") || "").toLowerCase()
+        for (const w of wanted) if (src.includes(w) && !seen.has(w)) { seen.add(w); out.scripts.push(w) }
+      }
+    } catch {}
+    return out
   }
 
   // --- Page orientation: "what page is this, where in the app am I" -----------
