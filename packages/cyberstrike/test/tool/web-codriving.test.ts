@@ -3,6 +3,7 @@ import { WebGetPageStateTool } from "../../src/tool/web-get-page-state"
 import { WebActionTool } from "../../src/tool/web-action"
 import { PageState } from "../../src/session/web/page-state"
 import { WebControl } from "../../src/session/web/control"
+import { Crawl } from "../../src/session/web/crawl"
 import { Session } from "../../src/session"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
@@ -36,6 +37,7 @@ async function withInstance(fn: (sid: string) => Promise<void>) {
     fn: async () => {
       PageState._reset()
       WebControl._reset()
+      Crawl._reset()
       const session = await Session.create({})
       await fn(session.id)
     },
@@ -167,6 +169,85 @@ describe("web_action — the AI's hands (guard enforced)", () => {
       const res = await tool.execute({ op: "navigate" }, ctxFor(sid))
       expect(res.metadata.ok).toBe(false)
       expect(res.title).toBe("url required")
+    })
+  })
+})
+
+describe("crawl loop — visited tracking + budget (Phase D)", () => {
+  test("get_page_state marks the page visited and reports unvisited nav/query", async () => {
+    await withInstance(async (sid) => {
+      PageState.set(sid, { ...richPage("https://h/users"), observed_at: Date.now() })
+      const tool = await WebGetPageStateTool.init()
+      const p = JSON.parse((await tool.execute({}, ctxFor(sid))).output)
+      // richPage has one nav (E1 Home, allow); destructive/logout/mutating don't count.
+      expect(p.crawl.unvisited_nav_query).toBe(1)
+      expect(p.crawl.pages_visited).toBe(1)
+      expect(p.crawl.actions).toBe(0)
+      expect(Crawl.isPageVisited(sid, "https://h/users")).toBe(true)
+    })
+  })
+
+  test("after acting on a nav element it is marked visited and drops from the unvisited count", async () => {
+    await withInstance(async (sid) => {
+      PageState.set(sid, { ...richPage("https://h/users"), observed_at: Date.now() })
+      WebControl.connect(sid, ackingSocket())
+      const act = await WebActionTool.init()
+      await act.execute({ op: "click", element_id: "E1" }, ctxFor(sid))
+      const state = await WebGetPageStateTool.init()
+      const p = JSON.parse((await state.execute({}, ctxFor(sid))).output)
+      expect(p.crawl.actions).toBe(1)
+      expect(p.crawl.unvisited_nav_query).toBe(0)
+      const home = p.clickables.find((c: { id: string }) => c.id === "E1")
+      expect(home.visited).toBe(true)
+    })
+  })
+
+  test("budget is a HARD stop — over budget refuses to act", async () => {
+    await withInstance(async (sid) => {
+      PageState.set(sid, { ...richPage("https://h/users"), observed_at: Date.now() })
+      WebControl.connect(sid, ackingSocket())
+      Crawl.setBudget(sid, 1)
+      const act = await WebActionTool.init()
+      const first = await act.execute({ op: "click", element_id: "E1" }, ctxFor(sid))
+      expect(first.metadata.ok).toBe(true) // 1/1
+      const second = await act.execute({ op: "click", element_id: "E3" }, ctxFor(sid))
+      expect(second.metadata.error).toBe("budget-exhausted")
+      expect(second.title).toBe("Crawl budget exhausted")
+    })
+  })
+
+  test("a repeated action is flagged as a possible cycle", async () => {
+    await withInstance(async (sid) => {
+      PageState.set(sid, { ...richPage("https://h/users"), observed_at: Date.now() })
+      WebControl.connect(sid, ackingSocket())
+      const act = await WebActionTool.init()
+      await act.execute({ op: "click", element_id: "E1" }, ctxFor(sid))
+      const again = await act.execute({ op: "click", element_id: "E1" }, ctxFor(sid))
+      expect(again.metadata.ok).toBe(true)
+      expect(again.metadata.repeat).toBe(true)
+      expect(again.output).toContain("cycle")
+    })
+  })
+
+  test("a guard-blocked action does NOT consume budget", async () => {
+    await withInstance(async (sid) => {
+      PageState.set(sid, { ...richPage("https://h/users"), observed_at: Date.now() })
+      WebControl.connect(sid, ackingSocket())
+      const act = await WebActionTool.init()
+      await act.execute({ op: "click", element_id: "E2" }, ctxFor(sid)) // logout → deny
+      await act.execute({ op: "click", element_id: "E0" }, ctxFor(sid)) // destructive → confirm
+      expect(Crawl.summary(sid).actions).toBe(0)
+    })
+  })
+
+  test("navigate records the destination as a visited page", async () => {
+    await withInstance(async (sid) => {
+      WebControl.connect(sid, ackingSocket())
+      const act = await WebActionTool.init()
+      const res = await act.execute({ op: "navigate", url: "https://h/next" }, ctxFor(sid))
+      expect(res.metadata.ok).toBe(true)
+      expect(Crawl.isPageVisited(sid, "https://h/next")).toBe(true)
+      expect(Crawl.summary(sid).actions).toBe(1)
     })
   })
 })

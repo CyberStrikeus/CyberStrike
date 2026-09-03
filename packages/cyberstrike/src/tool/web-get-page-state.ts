@@ -2,6 +2,7 @@ import z from "zod"
 import { Tool } from "./tool"
 import { Session } from "../session"
 import { PageState } from "../session/web/page-state"
+import { Crawl } from "../session/web/crawl"
 
 const description = `Read the current browser page as a structured, AI-ready map — the co-driving "eyes".
 
@@ -62,15 +63,22 @@ export const WebGetPageStateTool = Tool.define("web_get_page_state", {
       return { title: "No page state", output: hint, metadata: {} }
     }
 
+    // Reading a page means the browser is on it — count it toward crawl coverage.
+    Crawl.markPage(sessionID, state.url)
+
     // view filters at get() when a url is passed; apply it to current() too.
     const chosen =
       params.url || !params.view ? state.clickables : state.clickables.filter((c) => c.kind === params.view)
 
     const byKind: Record<string, number> = {}
     const byPolicy: Record<string, number> = {}
+    let unvisitedNavQuery = 0
     for (const c of chosen) {
       byKind[c.kind ?? "other"] = (byKind[c.kind ?? "other"] ?? 0) + 1
       byPolicy[c.policy] = (byPolicy[c.policy] ?? 0) + 1
+      const isNavLike = c.kind === "nav" || c.kind === "query"
+      if (isNavLike && c.policy === "allow" && !Crawl.isActed(sessionID, Crawl.actionKey(state.url, c)))
+        unvisitedNavQuery++
     }
 
     const payload: Record<string, unknown> = {
@@ -86,7 +94,13 @@ export const WebGetPageStateTool = Tool.define("web_get_page_state", {
     if (state.frames && state.frames.length) payload.frames = state.frames
     if (state.canvas) payload.canvas = state.canvas
     payload.summary = { interactive: chosen.length, by_kind: byKind, by_policy: byPolicy }
-    payload.clickables = chosen.map(tidy)
+    // Crawl progress so the AI knows what is left and when to stop.
+    payload.crawl = { ...Crawl.summary(sessionID), unvisited_nav_query: unvisitedNavQuery }
+    payload.clickables = chosen.map((c) => {
+      const t = tidy(c)
+      if (Crawl.isActed(sessionID, Crawl.actionKey(state.url, c))) t.visited = true
+      return t
+    })
     if (state.forms && state.forms.length) payload.forms = state.forms
     if (state.links && state.links.length) payload.links = state.links.slice(0, 60)
 

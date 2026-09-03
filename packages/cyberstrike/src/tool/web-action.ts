@@ -3,6 +3,8 @@ import { Tool } from "./tool"
 import { Session } from "../session"
 import { PageState } from "../session/web/page-state"
 import { WebControl } from "../session/web/control"
+import { Crawl } from "../session/web/crawl"
+import { actionPolicy } from "../session/web/guard"
 
 const description = `Drive the live browser: click / type / navigate — the co-driving "hands".
 
@@ -42,7 +44,7 @@ export const WebActionTool = Tool.define("web_action", {
 
     const relay = async (cmd: Record<string, unknown>, note: string) => {
       const ack = await WebControl.send(sessionID, cmd)
-      if (ack.ok) return { title: `web_action: ${note}`, output: `OK — ${note}`, metadata: { ok: true } }
+      if (ack.ok) return { title: `web_action: ${note}`, output: `OK — ${note}`, metadata: { ok: true } as Record<string, unknown> }
       const why =
         ack.error === "no-extension"
           ? "no browser attached"
@@ -51,12 +53,28 @@ export const WebActionTool = Tool.define("web_action", {
             : ack.error === "element not found"
               ? "the browser could not find that element (the page may have changed — re-read web_get_page_state)"
               : ack.error || "relay failed"
-      return { title: `web_action failed: ${note}`, output: `FAILED — ${why}`, metadata: { ok: false, error: ack.error } }
+      return { title: `web_action failed: ${note}`, output: `FAILED — ${why}`, metadata: { ok: false, error: ack.error } as Record<string, unknown> }
+    }
+
+    // Hard stop: the crawl budget can never be exceeded, even if the AI keeps trying.
+    const budgetHit = () => {
+      const s = Crawl.summary(sessionID)
+      return {
+        title: "Crawl budget exhausted",
+        output: `Action budget reached (${s.actions}/${s.budget}). Stop the crawl and report coverage — do not keep acting.`,
+        metadata: { ok: false, error: "budget-exhausted", ...s } as Record<string, unknown>,
+      }
     }
 
     if (params.op === "navigate") {
       if (!params.url) return { title: "url required", output: "navigate needs a url.", metadata: { ok: false } }
-      return relay({ op: "navigate", url: params.url }, `navigate → ${params.url}`)
+      if (Crawl.overBudget(sessionID)) return budgetHit()
+      const res = await relay({ op: "navigate", url: params.url }, `navigate → ${params.url}`)
+      if (res.metadata.ok) {
+        Crawl.record(sessionID, Crawl.navKey(params.url))
+        Crawl.markPage(sessionID, params.url)
+      }
+      return res
     }
 
     if (!params.element_id)
@@ -70,29 +88,46 @@ export const WebActionTool = Tool.define("web_action", {
         metadata: { ok: false },
       }
 
-    const pol = PageState.elementPolicy(sessionID, url, params.element_id)
-    if (!pol)
+    const el = PageState.element(sessionID, url, params.element_id)
+    if (!el)
       return {
         title: "unknown element",
         output: `No element "${params.element_id}" in page-state for ${url}. Re-read web_get_page_state — the page may have changed.`,
         metadata: { ok: false, error: "unknown-element" },
       }
-    if (pol.policy === "deny")
+    // Guard first — a blocked action never happened, so it must NOT consume budget.
+    const policy = actionPolicy(el.kind)
+    if (policy === "deny")
       return {
-        title: `BLOCKED (logout): ${pol.label}`,
-        output: `Guard DENIED this ${pol.kind} element ("${pol.label}"). Logging out would end the authenticated session — never do it during a crawl. Skip it.`,
-        metadata: { ok: false, policy: "deny", kind: pol.kind },
+        title: `BLOCKED (logout): ${el.label}`,
+        output: `Guard DENIED this ${el.kind} element ("${el.label}"). Logging out would end the authenticated session — never do it during a crawl. Skip it.`,
+        metadata: { ok: false, policy: "deny", kind: el.kind },
       }
-    if (pol.policy === "confirm")
+    if (policy === "confirm")
       return {
-        title: `NEEDS HUMAN CONFIRMATION (destructive): ${pol.label}`,
-        output: `This ${pol.kind} element ("${pol.label}") is irreversible and requires a human to confirm. Skipped — report it as a destructive action the human should review, do not retry.`,
-        metadata: { ok: false, policy: "confirm", kind: pol.kind },
+        title: `NEEDS HUMAN CONFIRMATION (destructive): ${el.label}`,
+        output: `This ${el.kind} element ("${el.label}") is irreversible and requires a human to confirm. Skipped — report it as a destructive action the human should review, do not retry.`,
+        metadata: { ok: false, policy: "confirm", kind: el.kind },
       }
 
-    const label = pol.label || params.element_id
-    if (params.op === "type")
-      return relay({ op: "type", elementId: params.element_id, text: params.text ?? "" }, `type into ${label}`)
-    return relay({ op: "click", elementId: params.element_id }, `click ${label}`)
+    if (Crawl.overBudget(sessionID)) return budgetHit()
+
+    const key = Crawl.actionKey(url, el)
+    const repeat = Crawl.isActed(sessionID, key)
+    const label = el.label || params.element_id
+    const cmd =
+      params.op === "type"
+        ? { op: "type", elementId: params.element_id, text: params.text ?? "" }
+        : { op: "click", elementId: params.element_id }
+    const res = await relay(cmd, `${params.op === "type" ? "type into" : "click"} ${label}${repeat ? " (repeat)" : ""}`)
+    if (res.metadata.ok) {
+      Crawl.record(sessionID, key)
+      if (repeat) {
+        res.output +=
+          "\nNote: this element was already actioned earlier. If the page looks unchanged you may be in a cycle — prefer an UNVISITED nav/query element next."
+        res.metadata.repeat = true
+      }
+    }
+    return res
   },
 })
