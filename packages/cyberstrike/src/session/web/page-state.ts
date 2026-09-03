@@ -124,6 +124,16 @@ export namespace PageState {
   export function urls(sessionID: string): string[] {
     return [...pages(sessionID).keys()]
   }
+  // The most-recently-observed page — "where the browser is right now" for co-driving,
+  // so the AI can call get_page_state with no url and get the current view.
+  export function current(sessionID: string): StatePayload | null {
+    const m = bySession.get(sessionID)
+    if (!m || m.size === 0) return null
+    let best: Observation | undefined
+    for (const o of m.values()) if (!best || (o.observed_at ?? 0) >= (best.observed_at ?? 0)) best = o
+    if (!best) return null
+    return get(sessionID, best.url)
+  }
   export function clearSession(sessionID: string): void {
     bySession.delete(sessionID)
   }
