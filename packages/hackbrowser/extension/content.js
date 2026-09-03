@@ -326,7 +326,7 @@
           </div>
           <label class="lbl">This profile's role (empty = anonymous)</label>
           <div class="credrow">
-            <input class="fld" id="cred" type="text" placeholder="anonymous" />
+            <input class="fld" id="cred" type="text" placeholder="Anonymous" />
             <button class="mini" id="setCred">Set</button>
           </div>
           <label class="lbl">Add credential (opens a new browser)</label>
@@ -435,7 +435,7 @@
     const status = await chrome.runtime.sendMessage({ type: "panel-status" })
     if (!(status && status.attached)) {
       attachBtn.disabled = true
-      const role = cred.value.trim() || "anonymous"
+      const role = cred.value.trim() || "Anonymous"
       const res = await chrome.runtime.sendMessage({ type: "start-capture", role })
       attachBtn.disabled = false
       if (res && res.ok) {
@@ -926,7 +926,7 @@
     chrome.storage.local.get("credential", (o) => {
       const label = o && o.credential ? o.credential.label || "" : ""
       // Don't clobber a role already pre-filled by readCredFromHash (spawned browser).
-      if (!cred.value) cred.value = label || "anonymous"
+      if (!cred.value) cred.value = label || "Anonymous"
       if (label) renderRole(label)
     })
     poll()

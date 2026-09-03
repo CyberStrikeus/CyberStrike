@@ -443,7 +443,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ ok: false, error: "no tab" })
         return
       }
-      const role = (msg.role && String(msg.role).trim()) || "anonymous"
+      const role = (msg.role && String(msg.role).trim()) || "Anonymous"
       try {
         await ensureSession()
         // Register the role as a real credential (anonymous included) so it shows in the
