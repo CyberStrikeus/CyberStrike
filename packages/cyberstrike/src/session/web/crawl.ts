@@ -18,13 +18,14 @@ export namespace Crawl {
     actions: number
     pages: Set<string> // urls the crawl has observed / landed on
     acted: Set<string> // action keys already performed (cycle guard)
+    frontier: Set<string> // discovered-but-not-yet-visited urls (dead-end backtrack target)
   }
 
   const bySession = new Map<string, State>()
   function state(sessionID: string): State {
     let s = bySession.get(sessionID)
     if (!s) {
-      s = { budget: DEFAULT_BUDGET, actions: 0, pages: new Set(), acted: new Set() }
+      s = { budget: DEFAULT_BUDGET, actions: 0, pages: new Set(), acted: new Set(), frontier: new Set() }
       bySession.set(sessionID, s)
     }
     return s
@@ -56,6 +57,21 @@ export namespace Crawl {
   }
   export function isActed(sessionID: string, key: string): boolean {
     return state(sessionID).acted.has(key)
+  }
+  // Record discovered urls that have not been visited yet, for dead-end backtracking.
+  export function discover(sessionID: string, urls: (string | undefined)[]): void {
+    const s = state(sessionID)
+    for (const u of urls) if (u && !s.pages.has(u)) s.frontier.add(u)
+  }
+  // Pop one still-unvisited discovered url (skipping any since-visited), or undefined when the
+  // frontier is exhausted (true coverage). Drains, so each frontier url is tried at most once.
+  export function takeFrontier(sessionID: string): string | undefined {
+    const s = state(sessionID)
+    for (const u of s.frontier) {
+      s.frontier.delete(u)
+      if (!s.pages.has(u)) return u
+    }
+    return undefined
   }
   // Over budget BEFORE the next action would run. record() is what consumes budget.
   export function overBudget(sessionID: string): boolean {

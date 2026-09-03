@@ -61,3 +61,19 @@ describe("Crawl visited tracking", () => {
     expect(Crawl.isActed("b", "k")).toBe(true)
   })
 })
+
+describe("Crawl frontier (dead-end backtracking)", () => {
+  test("discover queues unvisited urls; takeFrontier drains them once", () => {
+    Crawl.discover("s", ["https://h/b", "https://h/c", undefined])
+    const first = Crawl.takeFrontier("s")
+    const second = Crawl.takeFrontier("s")
+    expect([first, second].sort()).toEqual(["https://h/b", "https://h/c"])
+    expect(Crawl.takeFrontier("s")).toBeUndefined() // drained
+  })
+  test("discover skips already-visited urls, and takeFrontier skips ones visited meanwhile", () => {
+    Crawl.markPage("s", "https://h/b")
+    Crawl.discover("s", ["https://h/b", "https://h/c"]) // /b already visited → not queued
+    Crawl.markPage("s", "https://h/c") // visited after discovery
+    expect(Crawl.takeFrontier("s")).toBeUndefined() // /b never queued, /c now visited
+  })
+})
