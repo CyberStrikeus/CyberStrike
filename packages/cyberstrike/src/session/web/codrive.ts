@@ -21,6 +21,7 @@ import { WebFormFill } from "./formfill"
 import { Unexplored } from "./unexplored"
 import { Effect } from "./effect"
 import { WebStrategy } from "./strategy"
+import { HBLog } from "./hblog"
 import { Provider } from "../../provider/provider"
 import { ProviderTransform } from "../../provider/transform"
 import { Log } from "../../util/log"
@@ -163,7 +164,7 @@ export namespace WebCoDrive {
     if (active.has(sessionID)) return
     const gen = ++seq
     active.set(sessionID, gen)
-    log.info("start", { sessionID })
+    HBLog.record(sessionID, "codrive", "start")
     const cfg: Cfg = {
       planner: opts.planner ?? LlmPlanner,
       strategist: opts.strategist ?? defaultStrategist,
@@ -247,14 +248,14 @@ export namespace WebCoDrive {
           const pause = thinkTime(cfg)
           if (pause > 0) await sleep(pause)
           if (!alive()) { reason = "stopped"; break }
-          log.info("act", { sessionID, kind: "opener", label: pick.label, url: state.url })
+          HBLog.record(sessionID, "codrive", "act", { kind: "opener", label: pick.label, url: state.url })
           if ((await clickAndLearn(sessionID, state, pick.actionKey, pick.id, cfg)) === "stop") { reason = "act-stop"; break }
           continue
         }
         // Dead end — jump to a discovered-but-unvisited page, else done.
         const next = Crawl.takeFrontier(sessionID)
         if (!next) { reason = "coverage-complete"; break } // nothing left to explore anywhere reachable
-        log.info("act", { sessionID, kind: "navigate", url: next })
+        HBLog.record(sessionID, "codrive", "act", { kind: "navigate", url: next })
         const nav = await WebAct.perform(sessionID, { op: "navigate", url: next })
         if (!nav.ok && stopStatus(nav.status)) { reason = "act-stop:" + nav.status; break }
         await settle(sessionID, state.url, cfg)
@@ -269,16 +270,16 @@ export namespace WebCoDrive {
       if (!alive()) { reason = "stopped"; break }
 
       if (action.kind === "form") {
-        log.info("act", { sessionID, kind: "form", label: action.form.label, url: state.url })
+        HBLog.record(sessionID, "codrive", "act", { kind: "form", label: action.form.label, url: state.url })
         if ((await executeForm(sessionID, state, action.form)) === "stop") { reason = "act-stop"; break }
         await settle(sessionID, state.url, cfg)
         continue
       }
 
-      log.info("act", { sessionID, kind: "click", label: action.cand.label, url: state.url })
+      HBLog.record(sessionID, "codrive", "act", { kind: "click", label: action.cand.label, url: state.url })
       if ((await clickAndLearn(sessionID, state, action.cand.actionKey, action.cand.id, cfg)) === "stop") { reason = "act-stop"; break }
     }
-    log.info("stop", { sessionID, reason, actions: Crawl.summary(sessionID).actions, pages: Crawl.summary(sessionID).pages_visited })
+    HBLog.record(sessionID, "codrive", "stop", { reason, actions: Crawl.summary(sessionID).actions, pages: Crawl.summary(sessionID).pages_visited })
   }
 
   // Click an element, wait for the page to settle, and record what it DID (U2 effect-tracking):

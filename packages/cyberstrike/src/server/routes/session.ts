@@ -31,6 +31,7 @@ import { PageState } from "../../session/web/page-state"
 import { WebControl } from "../../session/web/control"
 import { WebDriver } from "../../session/web/driver"
 import { WebCoDrive } from "../../session/web/codrive"
+import { HBLog } from "../../session/web/hblog"
 import { upgradeWebSocket } from "hono/bun"
 
 const RoleInfoSchema = z.object({ label: z.string(), phase: z.enum(["pending", "spawning", "awaiting", "capturing"]) })
@@ -1145,6 +1146,7 @@ export const SessionRoutes = lazy(() =>
               UiObservation.observe(sessionID, { credentialID: b.credential_id, pageUrl: b.url, role: el.role, label: el.label })
           }
         }
+        HBLog.record(sessionID, "server", "observe", { url: b.url, clickables: b.clickables.length, forms: (b.forms ?? []).length })
         return c.json({ ok: true, kinds })
       },
     )
@@ -1242,14 +1244,14 @@ export const SessionRoutes = lazy(() =>
         const sessionID = c.req.param("sessionID")
         return {
           onOpen(_e, ws) {
-            log.info("web control connected", { sessionID }) // the extension's control WS is up
+            HBLog.record(sessionID, "server", "control-connected") // the extension's control WS is up
             WebControl.connect(sessionID, { send: (d) => ws.send(d) })
           },
           onMessage(event) {
             WebControl.onAck(String(event.data))
           },
           onClose() {
-            log.info("web control closed", { sessionID })
+            HBLog.record(sessionID, "server", "control-closed")
             WebControl.disconnect(sessionID)
           },
         }
@@ -1275,7 +1277,7 @@ export const SessionRoutes = lazy(() =>
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
         const driver = c.req.valid("json").driver
-        log.info("web driver", { sessionID, driver }) // extension reached the server + who drives
+        HBLog.record(sessionID, "server", "driver", { driver }) // extension reached the server + who drives
         WebDriver.set(sessionID, driver)
         // AI mode drives the browser; Human mode stops the loop (the interlock also blocks
         // any in-flight action). Idempotent — repeated "ai" posts don't stack loops.
@@ -1302,6 +1304,39 @@ export const SessionRoutes = lazy(() =>
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
         return c.json({ driver: WebDriver.get(sessionID) ?? null })
+      },
+    )
+    .post(
+      "/:sessionID/web/log",
+      describeRoute({
+        summary: "Record a HackBrowser diagnostic event",
+        description:
+          "The extension posts its own lifecycle events (content mounted, control WS open, perform relayed, attach) into the per-session diagnostic trail. Absence of extension events is itself diagnostic.",
+        operationId: "session.webLog",
+        responses: { 200: { description: "Recorded", content: { "application/json": { schema: resolver(z.object({ ok: z.boolean() })) } } }, ...errors(400, 404) },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator("json", z.object({ source: z.string().optional(), event: z.string(), data: z.unknown().optional() })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const b = c.req.valid("json")
+        HBLog.record(sessionID, b.source ?? "extension", b.event, b.data)
+        return c.json({ ok: true })
+      },
+    )
+    .get(
+      "/:sessionID/web/log",
+      describeRoute({
+        summary: "Read the HackBrowser diagnostic trail",
+        description: "The per-session cross-layer event trail (server + extension) plus the on-disk JSONL file path.",
+        operationId: "session.webLogRead",
+        responses: { 200: { description: "Events", content: { "application/json": { schema: resolver(z.any()) } } }, ...errors(404) },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator("query", z.object({ limit: z.coerce.number().optional() })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        return c.json({ file: HBLog.file(sessionID), entries: HBLog.entries(sessionID, c.req.valid("query").limit ?? 1000) })
       },
     )
     .delete(

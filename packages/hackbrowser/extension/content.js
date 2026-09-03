@@ -1369,6 +1369,8 @@
     mountedAt = Date.now()
     readCredFromHash()
     updateSide()
+    // Diagnostics: proves THIS content script (current build) is running in the tab.
+    send({ type: "hblog", event: "content-mounted", data: { url: location.href } })
     startObservers()
     sendObservation()
     loadSessions()

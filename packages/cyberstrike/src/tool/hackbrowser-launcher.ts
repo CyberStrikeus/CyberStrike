@@ -7,6 +7,7 @@
 
 import { Log } from "../util/log"
 import { Server } from "../server/server"
+import { HBLog } from "../session/web/hblog"
 import { HackbrowserStatus } from "../session/hackbrowser-status"
 import { RoleQueue } from "../session/web/role-queue"
 import { SpawnedProfiles } from "../session/web/spawned-profiles"
@@ -65,6 +66,7 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
   // role hash so it defaults to Anonymous and shows the queue status. The user drives
   // capture; each Start capture spawns the next role's browser one at a time.
   RoleQueue.enqueue(opts.sessionID, opts.credentials ?? [])
+  HBLog.record(opts.sessionID, "server", "launch", { target: opts.target, csUrl: Server.url().toString() })
   const spawn = await import("@cyberstrike-io/hackbrowser/v2-spawn")
   try {
     // Pass the ACTUAL server URL so the extension calls back to this instance even when the
@@ -77,7 +79,9 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
       headless: opts.headless,
     })
     SpawnedProfiles.track(opts.sessionID, result.proc)
+    HBLog.record(opts.sessionID, "server", "spawn", { pid: result.proc?.pid })
   } catch (e) {
+    HBLog.record(opts.sessionID, "server", "spawn-failed", { error: e instanceof Error ? e.message : String(e) })
     throw new Error(`could not open browser: ${e instanceof Error ? e.message : String(e)}`)
   }
 

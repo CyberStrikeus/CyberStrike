@@ -59,6 +59,22 @@ async function postDriver(driver) {
   }
 }
 
+// Post a diagnostic event to CyberStrike's per-session HackBrowser log. The ABSENCE of these
+// on the server is the signal that the extension isn't reaching this server / isn't the current
+// build / CfT didn't load it. Fire-and-forget; never blocks the flow it observes.
+async function hblog(event, data) {
+  const sid = await currentSession()
+  if (!sid) return
+  const base = await csUrl()
+  try {
+    await fetch(`${base}/session/${encodeURIComponent(sid)}/web/log`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source: "extension", event, data }),
+    })
+  } catch {}
+}
+
 // Register a credential label with CyberStrike and make it this profile's identity.
 // Shared by the panel "Set" button, spawned role browsers, and Browse-anonymous — the
 // last one registers a real "anonymous" role so it is a first-class identity in the TUI
@@ -219,6 +235,7 @@ chrome.storage.onChanged.addListener((changes) => {
 // webRequest. Both check attached.has(tabId).
 function attach(tabId) {
   attached.set(tabId, true)
+  void hblog("attach", { tabId })
   connectControl() // AI co-driving: open the control channel once we're capturing.
 }
 function detach(tabId) {
@@ -279,6 +296,7 @@ async function connectControl() {
   controlWs = ws
   ws.onopen = () => {
     console.log("[hackbrowser] control WS connected")
+    void hblog("control-ws-open")
     // Tell the server who is driving as soon as the control channel is up. The panel default
     // is "ai" (co-driving), so an un-toggled tab must still report "ai" — otherwise the server
     // never learns the driver and the AI loop never starts even though the panel shows "AI
@@ -295,9 +313,11 @@ async function connectControl() {
     }
     if (!msg || !msg.id) return
     console.log("[hackbrowser] perform", msg.op, msg.elementId || msg.url || "")
+    void hblog("perform", { op: msg.op, target: msg.elementId || msg.url || "" })
     const tabId = drivenTab()
     if (tabId === undefined) {
       console.warn("[hackbrowser] perform dropped: no attached tab")
+      void hblog("perform-dropped", { reason: "no-attached-tab" })
       controlSend(ws, { id: msg.id, ok: false, error: "no attached tab" })
       return
     }
@@ -524,6 +544,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       // Make the server authoritative on who drives (interlock + loop trigger).
       void postDriver(msg.driver === "human" ? "human" : "ai")
       sendResponse(panelStatus(tabId))
+      return
+    }
+    // Content-script diagnostics → forward to the per-session HackBrowser log.
+    if (msg.type === "hblog") {
+      void hblog(msg.event, msg.data)
+      sendResponse({ ok: true })
       return
     }
     // Launcher-injected credential: register directly with CyberStrike's existing
