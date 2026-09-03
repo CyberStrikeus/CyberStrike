@@ -632,6 +632,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           links: obs.links || [],
           driver: (tabId !== undefined && driverByTab.get(tabId)) || "ai",
         }
+        // Rich page context (2.0) — forward whatever the content script observed. The
+        // server validator (zod) drops any key it doesn't declare, so this is safe to spread.
+        if (obs.description) payload.description = obs.description
+        if (Array.isArray(obs.location)) payload.location = obs.location
+        if (Array.isArray(obs.landmarks)) payload.landmarks = obs.landmarks
+        if (Array.isArray(obs.frames)) payload.frames = obs.frames
+        if (typeof obs.canvas === "number") payload.canvas = obs.canvas
+        if (typeof obs.dynamic === "boolean") payload.dynamic = obs.dynamic
         if (cred) payload.credential_id = cred.id
         try {
           await fetch(`${base}/session/${sid}/web/observe`, {

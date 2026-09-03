@@ -763,21 +763,159 @@
       fields,
     }
   }
-  // Single selector for "a thing a user clicks" — used by both the page observation
-  // and the trigger-correlation click listener, so they never drift.
+  // Single selector for "a thing a user clicks" — used by the trigger-correlation click
+  // listener (closest()). Observation now casts a MUCH wider net (below), so the two
+  // deliberately differ: the listener only needs to attribute captured requests to a
+  // semantic clickable, while observation must show the AI EVERY interactive affordance.
   const CLICKABLE_SEL = "a[href],button,[role=button],input[type=submit],input[type=button],[onclick]"
   const elMap = new Map()
+
+  // --- Rich DOM observation (§3.3, 2.0) — the AI's eyes -----------------------
+  // Goal: the AI must not struggle to understand the page. We surface not just semantic
+  // controls but anything MADE interactive (cursor:pointer, onclick, tabindex, role,
+  // contenteditable, framework listeners), across open shadow roots and same-origin
+  // iframes, each tagged with WHY it is interactive, its aria state, and where it sits.
+  // Caveats we cannot beat from a content script: getEventListeners() is DevTools-only
+  // (so real listeners are INFERRED, not read); closed shadow roots and cross-origin
+  // iframes are opaque (noted, not pierced); canvas content is not introspectable.
+  const INTERACTIVE_ROLES = new Set([
+    "button", "link", "menuitem", "menuitemcheckbox", "menuitemradio", "tab", "checkbox",
+    "radio", "switch", "option", "combobox", "textbox", "searchbox", "slider", "spinbutton",
+    "treeitem", "gridcell", "listbox",
+  ])
+  const OBSERVE_SEL =
+    "a[href],button,input,select,textarea,summary,[role],[onclick],[tabindex],[contenteditable],[jsaction],[data-action],[ng-click],[data-toggle],[data-testid]"
+  const CURSOR_SEL = "div,span,li,td,th,i,svg,img,label,p,h1,h2,h3,article,section"
+  const MAX_CLICKABLE = 400
+  const MAX_DEEP_NODES = 4000 // shadow/iframe traversal budget per observe
+  const ioVisible = new WeakMap() // el → live in-viewport truth from IntersectionObserver
+  let io = null
+  let lastVisCount = -1
+  let mutationBursts = 0
+
+  // Collect elements matching sel across the doc, OPEN shadow roots and SAME-ORIGIN
+  // iframes. Budget-capped so a pathological SPA can't hang the observe.
+  function deepCollect(sel, root, frameSrc, out, budget) {
+    if (budget.n >= MAX_DEEP_NODES) return
+    let nodes
+    try { nodes = root.querySelectorAll(sel) } catch { return }
+    for (const el of nodes) {
+      out.push({ el, frameSrc })
+      if (out.length >= MAX_CLICKABLE * 3) return
+    }
+    let all
+    try { all = root.querySelectorAll("*") } catch { all = [] }
+    for (const h of all) {
+      budget.n++
+      if (budget.n >= MAX_DEEP_NODES) return
+      if (h.shadowRoot) deepCollect(sel, h.shadowRoot, frameSrc, out, budget) // open only; closed → null
+      if (h.tagName === "IFRAME") {
+        let doc = null
+        try { doc = h.contentDocument } catch {}
+        if (doc) deepCollect(sel, doc, h.getAttribute("src") || frameSrc || "(iframe)", out, budget)
+      }
+    }
+  }
+
+  function cursorPointer(el) {
+    try { return getComputedStyle(el).cursor === "pointer" } catch { return false }
+  }
+  // Why is this element interactive? Empty ⇒ not interactive (skip). This is the signal
+  // that lets the AI trust the list instead of re-reading the DOM.
+  function whyInteractive(el, tag) {
+    const why = []
+    if (tag === "a" && el.getAttribute("href")) why.push("semantic")
+    else if (tag === "button" || tag === "select" || tag === "textarea" || tag === "summary") why.push("semantic")
+    else if (tag === "input" && (el.getAttribute("type") || "text").toLowerCase() !== "hidden") why.push("semantic")
+    const role = el.getAttribute("role")
+    if (role && INTERACTIVE_ROLES.has(role.toLowerCase())) why.push("role")
+    if (el.hasAttribute("onclick")) why.push("onclick")
+    const ti = el.getAttribute("tabindex")
+    if (ti !== null && parseInt(ti, 10) >= 0 && !/^(a|button|input|select|textarea|summary)$/.test(tag)) why.push("tabindex")
+    const ce = el.getAttribute("contenteditable")
+    if (ce === "" || ce === "true") why.push("contenteditable")
+    if (
+      el.hasAttribute("jsaction") || el.hasAttribute("data-action") || el.hasAttribute("ng-click") ||
+      el.hasAttribute("data-toggle") || el.hasAttribute("v-on:click") || el.hasAttribute("@click")
+    ) why.push("listener")
+    if (why.length === 0 && cursorPointer(el)) why.push("cursor")
+    return why
+  }
+  function ariaOf(el) {
+    const a = {}
+    const lbl = el.getAttribute("aria-label")
+    if (lbl) a.label = lbl.replace(/\s+/g, " ").trim().slice(0, 80)
+    for (const k of ["expanded", "haspopup", "controls", "checked", "selected", "current", "pressed", "level", "disabled"]) {
+      const v = el.getAttribute("aria-" + k)
+      if (v !== null) a[k] = v
+    }
+    return a
+  }
+  function isDisabled(el) {
+    return el.disabled === true || el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true"
+  }
+  function inViewport(el) {
+    if (ioVisible.has(el)) return ioVisible.get(el) // live truth (survives pure scroll)
+    try {
+      const r = el.getBoundingClientRect()
+      return r.bottom > 0 && r.right > 0 && r.top < (innerHeight || 0) && r.left < (innerWidth || 0)
+    } catch { return false }
+  }
+  function testidOf(el) {
+    return (
+      el.getAttribute("data-testid") || el.getAttribute("data-test") || el.getAttribute("data-cy") ||
+      el.getAttribute("data-qa") || ""
+    )
+  }
+
   function observePage() {
     const clickables = []
     elMap.clear()
+    const raw = []
+    deepCollect(OBSERVE_SEL, document, "", raw, { n: 0 })
+    // Second pass: cursor:pointer elements with no semantic/attribute hint (divs "made
+    // clickable" by JS+CSS). Bounded — getComputedStyle is not free.
+    const cursorRaw = []
+    deepCollect(CURSOR_SEL, document, "", cursorRaw, { n: 0 })
+    for (const r of cursorRaw) raw.push(r)
+
+    const seenEl = new Set()
     let i = 0
-    for (const el of document.querySelectorAll(CLICKABLE_SEL)) {
+    const tracked = []
+    for (const { el, frameSrc } of raw) {
+      if (i >= MAX_CLICKABLE) break
+      if (!el || seenEl.has(el)) continue
+      seenEl.add(el)
       if (!visible(el)) continue
+      const tag = el.tagName.toLowerCase()
+      const why = whyInteractive(el, tag)
+      if (why.length === 0) continue
       const eid = "E" + i++
       elMap.set(eid, el)
-      clickables.push({ id: eid, tag: el.tagName.toLowerCase(), role: roleOf(el), label: labelOf(el), href: el.getAttribute("href") || "" })
-      if (i >= 300) break
+      tracked.push(el)
+      const c = {
+        id: eid,
+        tag,
+        role: roleOf(el),
+        label: labelOf(el),
+        href: el.getAttribute("href") || "",
+        why: why.join(","),
+      }
+      const aria = ariaOf(el)
+      if (Object.keys(aria).length) c.aria = aria
+      if (isDisabled(el)) c.disabled = true
+      c.in_viewport = inViewport(el)
+      const section = componentPath(el)
+      if (section) c.section = section.slice(0, 120)
+      const testid = testidOf(el)
+      if (testid) c.testid = testid
+      if (frameSrc) c.frame = frameSrc
+      const rootNode = el.getRootNode && el.getRootNode()
+      if (rootNode && rootNode !== document && rootNode.host) c.shadow = true
+      clickables.push(c)
     }
+    reregisterIO(tracked)
+
     const forms = []
     for (const f of document.querySelectorAll("form")) {
       if (forms.length >= 40) break
@@ -797,10 +935,138 @@
       links.push(href)
       if (links.length >= 300) break
     }
-    // KEEP IN SYNC with codriving.ts PageObservation / classify.ts Clickable
-    // (cross-runtime wire contract — can't import a shared type here).
-    return { url: location.href, title: document.title, clickables, forms, links }
+    // KEEP IN SYNC with classify.ts Clickable + page-state.ts Observation (cross-runtime
+    // wire contract — can't import a shared type here).
+    return {
+      url: location.href,
+      title: document.title,
+      clickables,
+      forms,
+      links,
+      description: pageDescription(),
+      location: pageLocation(),
+      landmarks: landmarksOf(),
+      frames: framesOf(),
+      canvas: document.querySelectorAll("canvas").length,
+      dynamic: mutationBursts > 0,
+    }
   }
+
+  // --- Page orientation: "what page is this, where in the app am I" -----------
+  function pageDescription() {
+    const meta = document.querySelector('meta[name="description"]')
+    if (meta && meta.getAttribute("content")) return meta.getAttribute("content").replace(/\s+/g, " ").trim().slice(0, 200)
+    const h1 = document.querySelector("h1")
+    if (h1 && h1.innerText) return h1.innerText.replace(/\s+/g, " ").trim().slice(0, 200)
+    const main = document.querySelector("main,[role=main]") || document.body
+    return ((main && main.innerText) || "").replace(/\s+/g, " ").trim().slice(0, 200)
+  }
+  function pageLocation() {
+    const trail = []
+    let bc = null
+    try { bc = document.querySelector('[aria-label*="breadcrumb" i],nav.breadcrumb,.breadcrumb,[class*="breadcrumb" i]') } catch {}
+    if (bc) {
+      for (const a of bc.querySelectorAll("a,span,li")) {
+        const t = (a.innerText || "").replace(/\s+/g, " ").trim()
+        if (t && !trail.includes(t)) trail.push(t)
+        if (trail.length >= 6) break
+      }
+    }
+    if (trail.length === 0) {
+      let cur = null
+      try { cur = document.querySelector('[aria-current="page"],nav [aria-current]') } catch {}
+      if (cur && cur.innerText) trail.push(cur.innerText.replace(/\s+/g, " ").trim())
+    }
+    for (const s of location.pathname.split("/").filter(Boolean)) if (!trail.includes(s)) trail.push(s)
+    return trail.slice(0, 8)
+  }
+  const LANDMARK_SEL = [
+    ["header", "banner"], ["nav", "navigation"], ["main", "main"], ["aside", "complementary"],
+    ["footer", "contentinfo"], ['[role="search"]', "search"], ['[role="dialog"]', "dialog"],
+    ['[role="banner"]', "banner"], ['[role="navigation"]', "navigation"], ['[role="main"]', "main"],
+    ['[role="region"][aria-label]', "region"],
+  ]
+  function landmarksOf() {
+    const out = []
+    const seen = new Set()
+    for (const [sel, role] of LANDMARK_SEL) {
+      let els
+      try { els = document.querySelectorAll(sel) } catch { continue }
+      for (const el of els) {
+        if (!visible(el)) continue
+        const h = el.querySelector && el.querySelector("h1,h2,legend")
+        const label = (el.getAttribute("aria-label") || (h && h.innerText) || "").replace(/\s+/g, " ").trim().slice(0, 60)
+        const key = role + "|" + label
+        if (seen.has(key)) continue
+        seen.add(key)
+        out.push({ role, label })
+        if (out.length >= 12) return out
+      }
+    }
+    return out
+  }
+  function framesOf() {
+    const out = []
+    for (const f of document.querySelectorAll("iframe")) {
+      let same = false
+      try { same = !!f.contentDocument } catch { same = false }
+      out.push({ src: f.getAttribute("src") || "", same_origin: same, title: f.getAttribute("title") || "" })
+      if (out.length >= 10) break
+    }
+    return out
+  }
+
+  // --- Live observers: re-observe as the page changes -------------------------
+  // MutationObserver → DOM structure/attributes changed (SPA nav, modal open, an element
+  // made clickable AFTER load). ResizeObserver → layout/responsive reveal. IntersectionObserver
+  // → keeps in_viewport truthful under pure scroll and re-observes when a meaningful batch
+  // of content scrolls into view (lazy / infinite scroll). All debounced into one reobserve.
+  let reobserveTimer = null
+  function scheduleReobserve() {
+    if (reobserveTimer) return
+    reobserveTimer = setTimeout(() => {
+      reobserveTimer = null
+      if (host.isConnected) sendObservation()
+    }, 800)
+  }
+  function reregisterIO(els) {
+    if (!io) return
+    try {
+      io.disconnect()
+      for (const el of els) io.observe(el)
+    } catch {}
+  }
+  function startObservers() {
+    try {
+      const mo = new MutationObserver((muts) => {
+        mutationBursts += muts.length
+        scheduleReobserve()
+      })
+      mo.observe(document.documentElement, {
+        childList: true, subtree: true, attributes: true,
+        attributeFilter: ["class", "style", "hidden", "disabled", "aria-hidden", "aria-expanded", "role", "tabindex", "onclick", "href"],
+      })
+    } catch {}
+    try {
+      const ro = new ResizeObserver(() => scheduleReobserve())
+      if (document.body) ro.observe(document.body)
+    } catch {}
+    try {
+      io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) ioVisible.set(e.target, e.isIntersecting)
+          let vis = 0
+          for (const e of entries) if (e.isIntersecting) vis++
+          // Reobserve only on a MEANINGFUL change in visible count (≥3) — a steady page
+          // re-fires the same count, so this cannot self-trigger a loop.
+          if (lastVisCount >= 0 && Math.abs(vis - lastVisCount) >= 3) scheduleReobserve()
+          lastVisCount = vis
+        },
+        { threshold: 0.01 },
+      )
+    } catch {}
+  }
+
   function sendObservation() {
     const obs = observePage()
     pageCount = obs.clickables.length + obs.forms.length
@@ -970,6 +1236,7 @@
     mountedAt = Date.now()
     readCredFromHash()
     updateSide()
+    startObservers()
     sendObservation()
     loadSessions()
     chrome.storage.local.get("credential", (o) => {
