@@ -39,6 +39,8 @@ import { WebWriteFunctionTool } from "./web-write-function"
 import { WebGetSessionContextTool } from "./web-get-session-context"
 import { WebGetDetailTool } from "./web-get-detail"
 import { WebGetRequestDetailTool } from "./web-get-request-detail"
+import { WebGetPageStateTool } from "./web-get-page-state"
+import { WebActionTool } from "./web-action"
 import { InjectProbeTool } from "./inject-probe"
 import { HttpReplayTool, HttpReplayRawTool } from "./http-replay"
 import { WebGetVulnerabilitiesTool } from "./web-get-vulnerabilities"
@@ -186,6 +188,9 @@ export namespace ToolRegistry {
       WebGetSessionContextTool,
       WebGetDetailTool,
       WebGetRequestDetailTool,
+      // Co-driving (HackBrowser 2.0): the AI's eyes (page-state) and hands (action).
+      WebGetPageStateTool,
+      WebActionTool,
       InjectProbeTool,
       HttpReplayTool,
       HttpReplayRawTool,

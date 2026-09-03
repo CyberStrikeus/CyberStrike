@@ -357,6 +357,9 @@ export namespace Agent {
             scope_check: "allow",
             ensure_tools: "allow",
             attack_script: "allow",
+            // Co-driving crawl (HackBrowser 2.0): read the live page and drive it, guard-enforced.
+            web_get_page_state: "allow",
+            web_action: "allow",
           }),
           user,
         ),
