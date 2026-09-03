@@ -66,7 +66,22 @@ describe("record + latest", () => {
     const d = DataCollector.latest("nobody")
     expect(d.endpoints).toEqual([])
     expect(d.jsUrls).toEqual([])
+    expect(d.minedRoutes).toEqual([])
     expect(d.counts).toEqual({ api: 0, html: 0, js: 0, static: 0, realtime: 0 })
+  })
+
+  test("addMined records + dedupes JS-mined routes (P4.1)", () => {
+    const sid = "s"
+    DataCollector.addMined(sid, [
+      { method: "GET", url: "https://h.tld/api/a" },
+      { method: "POST", url: "https://h.tld/api/b" },
+      { method: "GET", url: "https://h.tld/api/a" }, // duplicate
+    ])
+    DataCollector.addMined(sid, []) // no-op
+    expect(DataCollector.latest(sid).minedRoutes.map((r) => `${r.method} ${r.url}`).sort()).toEqual([
+      "GET https://h.tld/api/a",
+      "POST https://h.tld/api/b",
+    ])
   })
 })
 

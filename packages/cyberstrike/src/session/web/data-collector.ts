@@ -44,9 +44,15 @@ export namespace DataCollector {
     headers: Record<string, string> // signal headers only (Server / X-Powered-By / …) for the fingerprint
     cookies: string[] // response cookie names (JSESSIONID / PHPSESSID / …)
   }
+  // A route mined out-of-band from a JS bundle (P4.1) — discovered, not yet observed in traffic.
+  export interface MinedRoute {
+    method: string
+    url: string // absolute
+  }
   export interface CollectedData {
     endpoints: Endpoint[]
     jsUrls: string[]
+    minedRoutes: MinedRoute[]
     counts: Record<Kind, number>
     server: ServerSignals
   }
@@ -54,6 +60,7 @@ export namespace DataCollector {
   interface Store {
     endpoints: Map<string, Endpoint> // key: `${method} ${origin}${path}`
     jsUrls: Set<string>
+    mined: Map<string, MinedRoute> // key: `${method} ${url}` — JS-mined routes (P4.1)
     counts: Record<Kind, number>
     headers: Map<string, string> // signal headers (lowercased name → value)
     cookies: Set<string>
@@ -62,7 +69,7 @@ export namespace DataCollector {
   function store(sessionID: string): Store {
     let s = bySession.get(sessionID)
     if (!s) {
-      s = { endpoints: new Map(), jsUrls: new Set(), counts: { api: 0, html: 0, js: 0, static: 0, realtime: 0 }, headers: new Map(), cookies: new Set() }
+      s = { endpoints: new Map(), jsUrls: new Set(), mined: new Map(), counts: { api: 0, html: 0, js: 0, static: 0, realtime: 0 }, headers: new Map(), cookies: new Set() }
       bySession.set(sessionID, s)
     }
     return s
@@ -140,16 +147,28 @@ export namespace DataCollector {
   }
 
   const ENDPOINT_CAP = 200 // bound the per-session view; the DB holds the full set
+  const MINED_CAP = 200
+
+  // Record routes mined from JS bundles (P4.1). Append-only + deduped by `${method} ${url}`.
+  export function addMined(sessionID: string, routes: MinedRoute[]): void {
+    if (routes.length === 0) return
+    const s = store(sessionID)
+    for (const r of routes) {
+      const key = `${r.method} ${r.url}`
+      if (!s.mined.has(key)) s.mined.set(key, r)
+    }
+  }
 
   export function latest(sessionID: string): CollectedData {
     const s = bySession.get(sessionID)
-    if (!s) return { endpoints: [], jsUrls: [], counts: { api: 0, html: 0, js: 0, static: 0, realtime: 0 }, server: { headers: {}, cookies: [] } }
+    if (!s) return { endpoints: [], jsUrls: [], minedRoutes: [], counts: { api: 0, html: 0, js: 0, static: 0, realtime: 0 }, server: { headers: {}, cookies: [] } }
     return {
       // html routes first (navigable), then api; each by descending hits — most-used surface first.
       endpoints: [...s.endpoints.values()]
         .sort((a, b) => (a.kind === b.kind ? b.hits - a.hits : a.kind === "html" ? -1 : 1))
         .slice(0, ENDPOINT_CAP),
       jsUrls: [...s.jsUrls],
+      minedRoutes: [...s.mined.values()].slice(0, MINED_CAP),
       counts: { ...s.counts },
       server: { headers: Object.fromEntries(s.headers), cookies: [...s.cookies] },
     }
