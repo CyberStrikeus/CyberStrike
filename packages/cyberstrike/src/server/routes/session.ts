@@ -1105,7 +1105,8 @@ export const SessionRoutes = lazy(() =>
               z.object({
                 action: z.string(),
                 method: z.string(),
-                fields: z.array(z.object({ name: z.string(), type: z.string(), required: z.boolean() })),
+                fields: z.array(z.object({ id: z.string().optional(), name: z.string(), type: z.string(), required: z.boolean() })),
+                submit_id: z.string().optional(),
               }),
             )
             .optional(),

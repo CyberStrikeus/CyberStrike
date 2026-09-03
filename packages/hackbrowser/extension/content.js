@@ -769,6 +769,7 @@
   // semantic clickable, while observation must show the AI EVERY interactive affordance.
   const CLICKABLE_SEL = "a[href],button,[role=button],input[type=submit],input[type=button],[onclick]"
   const elMap = new Map()
+  const idOf = new Map() // element → its E-id, so forms can reference their field/submit elements
 
   // --- Rich DOM observation (§3.3, 2.0) — the AI's eyes -----------------------
   // Goal: the AI must not struggle to understand the page. We surface not just semantic
@@ -871,6 +872,7 @@
   function observePage() {
     const clickables = []
     elMap.clear()
+    idOf.clear()
     const raw = []
     deepCollect(OBSERVE_SEL, document, "", raw, { n: 0 })
     // Second pass: cursor:pointer elements with no semantic/attribute hint (divs "made
@@ -892,6 +894,7 @@
       if (why.length === 0) continue
       const eid = "E" + i++
       elMap.set(eid, el)
+      idOf.set(el, eid)
       tracked.push(el)
       const c = {
         id: eid,
@@ -922,9 +925,17 @@
       const fields = []
       for (const el of f.elements) {
         if (!el.name && !el.id) continue
-        fields.push({ name: el.name || el.id, type: (el.getAttribute("type") || el.tagName).toLowerCase(), required: el.hasAttribute("required") })
+        // id links the field to a real element the AI can type into (empty when the field
+        // wasn't captured as interactive — e.g. hidden). name/type/required as before.
+        fields.push({ id: idOf.get(el) || "", name: el.name || el.id, type: (el.getAttribute("type") || el.tagName).toLowerCase(), required: el.hasAttribute("required") })
       }
-      forms.push({ action: f.getAttribute("action") || "", method: (f.getAttribute("method") || "get").toLowerCase(), fields })
+      const sb = f.querySelector('button[type="submit"],input[type="submit"],input[type="image"],button:not([type])')
+      forms.push({
+        action: f.getAttribute("action") || "",
+        method: (f.getAttribute("method") || "get").toLowerCase(),
+        fields,
+        submit_id: (sb && idOf.get(sb)) || "",
+      })
     }
     const links = []
     const seen = new Set()

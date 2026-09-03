@@ -12,7 +12,8 @@ export namespace PageState {
   export interface Form {
     action: string
     method: string
-    fields: { name: string; type: string; required: boolean }[]
+    fields: { id?: string; name: string; type: string; required: boolean }[]
+    submit_id?: string // element id of the form's submit control (for autonomous fill+submit)
   }
   // The page's structural map — landmarks/frames/description give the AI orientation
   // ("what page am I on, where in the app") without re-reading the DOM.
