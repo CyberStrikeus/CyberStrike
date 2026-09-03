@@ -5,17 +5,9 @@
   "type": "module",
   "private": true,
   "exports": {
-    ".": "./src/index.ts",
-    "./api": "./src/api.ts",
     "./v2-spawn": "./src/v2/spawn.ts"
   },
-  "dependencies": {
-    "@ai-sdk/anthropic": "2.0.0",
-    "@ai-sdk/openai": "2.0.2",
-    "ai": "catalog:",
-    "playwright": "1.58.2",
-    "psl": "1.15.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "catalog:",
     "typescript": "catalog:"
