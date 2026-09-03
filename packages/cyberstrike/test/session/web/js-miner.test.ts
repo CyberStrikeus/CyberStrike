@@ -15,6 +15,19 @@ function collectJs(sid: string, origin: string, path: string) {
   DataCollector.record(sid, { method: "GET", origin, path, contentType: "application/javascript" })
 }
 const minedKeys = (sid: string) => DataCollector.latest(sid).minedRoutes.map((r) => `${r.method} ${r.url}`)
+const secretTypes = (sid: string) => DataCollector.latest(sid).secrets.map((s) => s.type)
+// A stub fetcher backed by a url→text map, counting how many times each url is fetched.
+function fetcherFor(pages: Record<string, string>): { fetch: (url: string) => Promise<string | null>; calls: Record<string, number> } {
+  const calls: Record<string, number> = {}
+  return {
+    calls,
+    fetch: async (url: string) => {
+      calls[url] = (calls[url] ?? 0) + 1
+      return url in pages ? pages[url] : null
+    },
+  }
+}
+const AWS_KEY = "AKIA" + "A".repeat(16) // synthetic, format-only
 
 describe("JsMiner.mineNew", () => {
   test("fetches collected JS, mines routes, records them into DataCollector", async () => {
@@ -71,6 +84,46 @@ describe("JsMiner.mineNew", () => {
     const n = await JsMiner.mineNew(sid, async () => null)
     expect(n).toBe(0)
     expect(minedKeys(sid)).toEqual([])
+  })
+
+  test("scans fetched bundles for secrets and records them (redacted)", async () => {
+    const sid = "s"
+    WebScope.ensure(sid, ORIGIN + "/")
+    collectJs(sid, ORIGIN, "/app.js")
+    await JsMiner.mineNew(sid, async () => `const cfg = { key: "${AWS_KEY}" }; fetch("/api/x")`)
+    expect(secretTypes(sid)).toContain("aws-access-key-id")
+    const sec = DataCollector.latest(sid).secrets[0]
+    expect(sec.preview).not.toContain(AWS_KEY) // redacted
+    expect(sec.source).toBe("https://app.test/app.js")
+  })
+
+  test("follows an external source map and mines its original source (routes + secrets), fetch-once", async () => {
+    const sid = "s"
+    WebScope.ensure(sid, ORIGIN + "/")
+    collectJs(sid, ORIGIN, "/app.js")
+    const mapJson = JSON.stringify({ sources: ["src/api.ts"], sourcesContent: [`api.get("/api/frommap"); const k = "${AWS_KEY}"`] })
+    const f = fetcherFor({
+      "https://app.test/app.js": `console.log(1)\n//# sourceMappingURL=app.js.map`,
+      "https://app.test/app.js.map": mapJson,
+    })
+    await JsMiner.mineNew(sid, f.fetch)
+    expect(minedKeys(sid)).toContain("GET https://app.test/api/frommap")
+    expect(secretTypes(sid)).toContain("aws-access-key-id")
+    // A second pass re-fetches neither the bundle nor its map.
+    await JsMiner.mineNew(sid, f.fetch)
+    expect(f.calls["https://app.test/app.js.map"]).toBe(1)
+  })
+
+  test("decodes an INLINE source map without a second fetch", async () => {
+    const sid = "s"
+    WebScope.ensure(sid, ORIGIN + "/")
+    collectJs(sid, ORIGIN, "/app.js")
+    const mapJson = JSON.stringify({ sources: ["s"], sourcesContent: [`fetch("/api/inline")`] })
+    const b64 = Buffer.from(mapJson, "utf8").toString("base64")
+    const f = fetcherFor({ "https://app.test/app.js": `x\n//# sourceMappingURL=data:application/json;base64,${b64}` })
+    await JsMiner.mineNew(sid, f.fetch)
+    expect(minedKeys(sid)).toContain("GET https://app.test/api/inline")
+    expect(Object.keys(f.calls)).toEqual(["https://app.test/app.js"]) // only the bundle was fetched
   })
 
   test("a concurrent pass is a no-op (inflight guard)", async () => {
