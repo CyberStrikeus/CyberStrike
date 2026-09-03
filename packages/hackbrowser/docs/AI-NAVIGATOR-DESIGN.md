@@ -141,10 +141,26 @@ an element id or url. `rationale` is logged to HBLog so the operator can *watch 
 - **DeterministicNavigator** fallback: pick the top unvisited nav/query — used when no model
   resolves, when the model errors, and in every test. Guarantees the crawl never stalls.
 
-### 3.4 Re-plan triggers (the "elevate above 1.x")
-Re-plan when: url changed, DOM materially changed (new interactive elements / `dynamic`), the
-current plan is exhausted, or a max-actions-per-plan cap is hit. Otherwise keep executing the
-current plan. 1.x re-planned every page unconditionally; this is bounded and cheaper.
+### 3.4 Re-plan triggers — measured, not guessed
+
+"Material change" is a **deterministic signature diff**, not a fuzzy threshold. The signature of
+a snapshot is:
+
+```
+signature = url  +  sorted set of UN-ACTED interactive action-keys on the page  (+ form count)
+```
+
+The action-key of an element is the stable `Crawl.actionKey` we already compute. After an action
++ settle, re-observe and compare:
+- **url changed** ⇒ navigation ⇒ material ⇒ re-plan.
+- **a new un-acted action-key appeared** (set grew by ≥1) ⇒ content revealed (SPA render / modal /
+  load-more) ⇒ material ⇒ re-plan.
+- **signature identical** ⇒ the action was a no-op ⇒ advance to the next action in the current
+  plan; do **not** call the model.
+
+Also re-plan when the current plan is exhausted or a max-actions-per-plan cap is hit. This is a
+binary "did the set of things-I-can-do change?" signal — objective and cheap — versus 1.x, which
+re-planned every page unconditionally.
 
 ---
 
@@ -281,7 +297,21 @@ interlock, `strategy.ts` (app-level understanding), `hblog.ts`, the ingest/endpo
 
 ---
 
-## 11. Open decisions (confirm before P3)
-1. **Per-page vs material-change re-plan** — recommend material-change (cheaper, still smart).
-2. **Model for per-page planning** — small vs mid tier (cost vs quality).
-3. **Keep DeterministicNavigator forever** as the no-model fallback — recommend yes (robustness).
+## 11. Decisions (resolved)
+1. **Re-plan cadence** — **material-change** (§3.4 signature diff): url change OR a new un-acted
+   action-key. Bounded and objective.
+2. **Per-page planning model** — the **MAIN (big) model** (operator choice: navigation is the most
+   important part → maximum intelligence; bounded by budget + material-change re-plan). App-level
+   strategy also main model, rarely. Small/mid model NOT used for planning.
+3. **DeterministicNavigator stays forever** as the no-model / error / test fallback (robustness).
+
+## 12. Capture and analysis are decoupled — the AI never blocks the vuln pipeline
+The AI navigator only decides **which pages get loaded** (coverage). `DataCollector` and the
+ingest pipeline are **independent of it**: every request from every load — AI-chosen, redirect,
+prefetch — is captured to the DB (endpoints, JS URL+hash, request/response). What the AI misses
+is still covered downstream by (a) the traffic of the pages it *did* load, (b) deterministic **JS
+mining** (uncalled/SPA-only endpoints the dynamic crawl never hit), and (c) the **vulnerability
+sub-agents** that run as a separate workflow over the DB (§2 of the parent doc: three phases
+decoupled by the enriched-HAR contract). So navigation intelligence and vulnerability analysis
+never wait on each other — the navigator maximizes what gets captured; the sub-agents analyze
+whatever is in the DB.
