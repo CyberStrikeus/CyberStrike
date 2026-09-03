@@ -30,6 +30,7 @@ import { RoleQueue } from "../../session/web/role-queue"
 import { PageState } from "../../session/web/page-state"
 import { WebControl } from "../../session/web/control"
 import { WebDriver } from "../../session/web/driver"
+import { WebCoDrive } from "../../session/web/codrive"
 import { upgradeWebSocket } from "hono/bun"
 
 const RoleInfoSchema = z.object({ label: z.string(), phase: z.enum(["pending", "spawning", "awaiting", "capturing"]) })
@@ -1272,7 +1273,10 @@ export const SessionRoutes = lazy(() =>
         const sessionID = c.req.valid("param").sessionID
         const driver = c.req.valid("json").driver
         WebDriver.set(sessionID, driver)
-        // SEAM (next slice): driver === "ai" starts the co-driving loop; "human" cancels it.
+        // AI mode drives the browser; Human mode stops the loop (the interlock also blocks
+        // any in-flight action). Idempotent — repeated "ai" posts don't stack loops.
+        if (driver === "ai") WebCoDrive.start(sessionID)
+        else WebCoDrive.stop(sessionID)
         return c.json({ ok: true, driver })
       },
     )
