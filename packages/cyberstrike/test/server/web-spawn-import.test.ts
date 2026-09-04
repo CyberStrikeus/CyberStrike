@@ -25,7 +25,9 @@ describe("@cyberstrike-io/hackbrowser/v2-spawn — runtime import from cyberstri
       extPath: m.defaultExtensionPath(),
     })
     expect(built.args[built.args.length - 1]).toBe("https://target.example.com#__cs_cred=admin&__cs_sess=ses_1")
-    expect(built.profileDir).toEndWith("hb2-profile-admin")
+    // Session-scoped profile dir (hb2-profile-<session>-<cred>) — a fresh per-session profile is
+    // the fix for stale MV3 service workers in a reused persistent profile.
+    expect(built.profileDir).toEndWith("hb2-profile-ses_1-admin")
     expect(built.args.some((a) => a.startsWith("--load-extension="))).toBe(true)
   })
 })
