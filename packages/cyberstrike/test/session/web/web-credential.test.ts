@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { WebCredential } from "../../../src/session/web/web-credential"
+import { WebRole } from "../../../src/session/web/web-role"
 import { Session } from "../../../src/session"
 import { Instance } from "../../../src/project/instance"
 import { tmpdir } from "../../fixture/fixture"
@@ -59,6 +60,20 @@ describe("WebCredential.ensure — idempotent by label", () => {
       const a = WebCredential.ensure({ sessionID: sid, label: "anonymous" })
       expect(WebCredential.getByLabel(sid, "anonymous")!.id).toBe(a.id)
       expect(WebCredential.getByLabel(sid, "nope")).toBeUndefined()
+    })
+  })
+
+  // The "Provide New Credential" box spawn flow: the server pre-creates the credential linked to a
+  // declared role tier; when the spawned browser later registers the SAME label (no roleID), the
+  // role_id must survive so the authz agent keeps the privilege ordering.
+  test("a pre-linked role_id survives the spawned browser's re-registration", async () => {
+    await withSession(async (sid) => {
+      const role = WebRole.add({ sessionID: sid, name: "Admin", level: 3, discoveredFrom: "user" })
+      const pre = WebCredential.ensure({ sessionID: sid, label: "orhan1", roleID: role.id }) // spawn pre-link
+      expect(pre.role_id).toBe(role.id)
+      const re = WebCredential.ensure({ sessionID: sid, label: "orhan1" }) // spawned browser Start capture
+      expect(re.id).toBe(pre.id)
+      expect(re.role_id).toBe(role.id)
     })
   })
 })

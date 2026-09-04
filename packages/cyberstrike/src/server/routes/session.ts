@@ -931,6 +931,8 @@ export const SessionRoutes = lazy(() =>
         "json",
         z.object({
           role: z.string().optional().meta({ description: "Role/credential label; omitted = anonymous" }),
+          roleName: z.string().optional().meta({ description: "Declared role tier name (User/Admin/…); optional" }),
+          roleLevel: z.number().optional().meta({ description: "Declared role privilege level (ordering) for the tier" }),
           url: z.string().meta({ description: "URL to open the new profile at (usually the app origin)" }),
           headless: z.boolean().optional(),
         }),
@@ -938,6 +940,15 @@ export const SessionRoutes = lazy(() =>
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
         const body = c.req.valid("json")
+        // Declared role tier: seed a web_role and PRE-CREATE the credential linked to it, keyed by
+        // label. When the spawned browser later registers this label, WebCredential.ensure dedups by
+        // label and keeps role_id — so the authz agent has the privilege ordering without waiting on
+        // AI inference. Only when a label + a role name are both given.
+        const roleName = body.roleName && body.roleName.trim()
+        if (body.role && roleName) {
+          const role = WebRole.add({ sessionID, name: roleName, level: body.roleLevel, discoveredFrom: "user" })
+          WebCredential.ensure({ sessionID, label: body.role, roleID: role.id })
+        }
         // Dynamic import mirrors the hackbrowser launch route — keeps the spawn code
         // (and its Chrome-path logic) out of server startup.
         const spawn = await import("@cyberstrike-io/hackbrowser/v2-spawn")
@@ -1010,25 +1021,10 @@ export const SessionRoutes = lazy(() =>
         },
       }),
       validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
-      // A role is either a plain label (TUI) or a label with an optional declared role tier
-      // (panel "Add credential" box): { label, role?, level? }. A declared tier seeds a web_role
-      // (name + privilege level) so the authz agent can reason about vertical priv-esc immediately.
-      validator(
-        "json",
-        z.object({
-          roles: z.array(z.union([z.string(), z.object({ label: z.string(), role: z.string().optional(), level: z.number().optional() })])),
-        }),
-      ),
+      validator("json", z.object({ roles: z.array(z.string()) })),
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
-        const items = c.req.valid("json").roles.map((it) => {
-          if (typeof it === "string") return it
-          const roleName = (it.role ?? "").trim()
-          if (!roleName) return { label: it.label }
-          const role = WebRole.add({ sessionID, name: roleName, level: it.level, discoveredFrom: "user" })
-          return { label: it.label, roleID: role.id }
-        })
-        RoleQueue.enqueue(sessionID, items)
+        RoleQueue.enqueue(sessionID, c.req.valid("json").roles)
         return c.json(RoleQueue.status(sessionID))
       },
     )
@@ -1071,13 +1067,6 @@ export const SessionRoutes = lazy(() =>
         const sessionID = c.req.valid("param").sessionID
         const body = c.req.valid("json")
         const next = RoleQueue.captureStarted(sessionID, body.role)
-        // Link this just-registered credential to the role tier the user declared for it (if any),
-        // so the authz agent can compare privilege levels (vertical priv-esc / BFLA).
-        const cur = RoleQueue.getRole(sessionID, body.role)
-        if (cur && cur.roleID) {
-          const cred = WebCredential.getByLabel(sessionID, body.role)
-          if (cred && cred.role_id !== cur.roleID) WebCredential.link({ id: cred.id, roleID: cur.roleID })
-        }
         if (!next) return c.json({ next: null, spawned: false })
         // Spawn the next role's browser on the shared session at the same URL.
         try {
