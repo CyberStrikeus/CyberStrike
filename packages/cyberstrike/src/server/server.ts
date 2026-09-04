@@ -134,18 +134,23 @@ export namespace Server {
           // Manual Basic auth check — intentionally omit WWW-Authenticate header
           // so browsers don't show native auth dialog. The web UI uses its own form.
           const username = Flag.CYBERSTRIKE_SERVER_USERNAME ?? "cyberstrike"
-          const header = c.req.header("authorization")
-          if (header) {
-            const match = /^Basic\s+(.+)$/i.exec(header)
-            if (match) {
-              try {
-                const decoded = new TextDecoder().decode(Uint8Array.from(atob(match[1]), (c) => c.charCodeAt(0)))
-                const sep = decoded.indexOf(":")
-                if (sep !== -1 && decoded.slice(0, sep) === username && decoded.slice(sep + 1) === password)
-                  return next()
-              } catch {}
+          const okBasic = (b64: string): boolean => {
+            try {
+              const decoded = new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)))
+              const sep = decoded.indexOf(":")
+              return sep !== -1 && decoded.slice(0, sep) === username && decoded.slice(sep + 1) === password
+            } catch {
+              return false
             }
           }
+          const header = c.req.header("authorization")
+          const match = header ? /^Basic\s+(.+)$/i.exec(header) : null
+          if (match && okBasic(match[1])) return next()
+          // A browser WebSocket upgrade can't set an Authorization header, so the co-driving
+          // control channel passes the same Basic token as a `_cs_auth` query param instead.
+          // (Over HTTPS it's encrypted in transit; note it may appear in server access logs.)
+          const q = c.req.query("_cs_auth")
+          if (q && okBasic(q)) return next()
           return c.json({ error: "Unauthorized" }, 401)
         })
         .use(async (c, next) => {

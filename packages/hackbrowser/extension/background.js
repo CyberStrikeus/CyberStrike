@@ -22,14 +22,20 @@ function csUrl() {
 // Basic-auth header for a REMOTE CyberStrike (behind a CF tunnel) when the user configured a
 // password via the panel's Connect. A local/loopback CS skips auth server-side, so this is empty
 // there. Username defaults to "cyberstrike" (matches the server default). One source for auth.
-async function authHeaders() {
+// The Basic token base64("cyberstrike:<pw>"), or "" when no password is set. One source, used by
+// both the HTTP header and the control-WS query param (a browser WS can't set a header).
+async function authToken() {
   const pw = await new Promise((r) => chrome.storage.local.get("cs_pw", (o) => r(o && o.cs_pw)))
-  if (!pw) return {}
+  if (!pw) return ""
   try {
-    return { Authorization: "Basic " + btoa("cyberstrike:" + pw) }
+    return btoa("cyberstrike:" + pw)
   } catch {
-    return {}
+    return ""
   }
+}
+async function authHeaders() {
+  const t = await authToken()
+  return t ? { Authorization: "Basic " + t } : {}
 }
 // fetch() to the CS server, with the auth header merged in. Used for every CS call so remote
 // (tunnel) mode works; a no-op difference for local. Uses globalThis.fetch to avoid self-recursion.
@@ -353,7 +359,11 @@ async function connectControl() {
   if (!sid) return
   if (controlWs && (controlWs.readyState === WebSocket.CONNECTING || controlWs.readyState === WebSocket.OPEN)) return
   const base = await csUrl()
-  const wsUrl = base.replace(/^http/i, "ws") + `/session/${encodeURIComponent(sid)}/web/control`
+  let wsUrl = base.replace(/^http/i, "ws") + `/session/${encodeURIComponent(sid)}/web/control`
+  // A remote (tunnel) CS requires auth; the browser WS can't send an Authorization header, so pass
+  // the same Basic token as a query param (the server's auth middleware also accepts _cs_auth).
+  const tok = await authToken()
+  if (tok) wsUrl += "?_cs_auth=" + encodeURIComponent(tok)
   let ws
   try {
     ws = new WebSocket(wsUrl)
