@@ -514,10 +514,10 @@
     }
     const role = chosenRole()
     closeCredBox()
-    const res = await send({ type: "enqueue-role", role: label, roleName: role.name, roleLevel: role.level })
+    flashTransition("Opening browser for " + label + "…", "ai", "", 1400)
+    const res = await send({ type: "spawn-credential", role: label, roleName: role.name, roleLevel: role.level, url: location.href })
     if (res && res.ok) {
-      roleHint.textContent = `"${label}"${role.name ? " (" + role.name + ")" : ""} queued — opens after Start capture.`
-      flashTransition("Credential queued: " + label, "", "", 1400)
+      roleHint.textContent = `Opened a browser for "${label}"${role.name ? " (" + role.name + ")" : ""} — log in there, then Start capture.`
     } else {
       flashTransition("CyberStrike unreachable", "", "#e0343f", 1600)
       roleHint.textContent = (res && res.error) || "failed (need a reachable CyberStrike)"

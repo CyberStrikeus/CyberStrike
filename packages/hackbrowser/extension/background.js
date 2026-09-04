@@ -720,24 +720,25 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
     // Panel "Add credential": ENQUEUE a role for sequential setup. Its browser is spawned
     // by CyberStrike when its turn comes (the previous role's capture-started).
-    if (msg.type === "enqueue-role") {
+    // Panel "Add Credential" → open a new browser for this identity RIGHT NOW (direct spawn, not the
+    // sequential queue). msg.role = credential label; optional msg.roleName + msg.roleLevel declare a
+    // role tier the server turns into a web_role + pre-linked credential (BFLA). Needs a reachable CS
+    // (ensureSession creates/points the session there), so a down backend fails cleanly.
+    if (msg.type === "spawn-credential") {
       try {
         const sid = await ensureSession()
         const base = await csUrl()
-        // msg.role = credential label. An optional declared role tier (msg.roleName + msg.roleLevel)
-        // is sent as an object so the server seeds a web_role and links the credential to it.
         const roleName = msg.roleName && String(msg.roleName).trim()
-        const item = roleName ? { label: msg.role, role: roleName, level: msg.roleLevel } : msg.role
-        const res = await csFetch(`${base}/session/${sid}/web/role-queue`, {
+        const res = await csFetch(`${base}/session/${sid}/web/spawn-profile`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ roles: [item] }),
+          body: JSON.stringify({ url: msg.url, role: msg.role, roleName: roleName || undefined, roleLevel: msg.roleLevel }),
         })
         if (res.ok) {
           sendResponse({ ok: true })
           return
         }
-        sendResponse({ ok: false, error: `enqueue failed (${res.status})` })
+        sendResponse({ ok: false, error: `spawn failed (${res.status})` })
       } catch (e) {
         sendResponse({ ok: false, error: e && e.message ? e.message : String(e) })
       }
