@@ -668,6 +668,7 @@
   const sPage = root.getElementById("s-page")
 
   let driver = "idle" // AI | Human | Idle (3-way logo cycle); detached defaults to Idle (calm navy)
+  let lastAttached = false // last render's capture state — the logo's driver cycle is gated on it
   let settingsOpen = false
   let mountedAt = 0 // when the dock was appended — see panel-visibility (popup toggle)
   let isSpawned = false // true in a browser CyberStrike spawned (opened with a role hash)
@@ -855,8 +856,16 @@
     wRight.disabled = true
     const res = await send({ type: "start-capture", role: "Anonymous", url: location.href })
     wRight.disabled = false
-    if (res && res.ok) flashTransition("Unauthenticated recording started", "", "#9e141c", 1300)
-    else roleHint.textContent = (res && res.error) || "failed (need local CyberStrike + reachable server)"
+    if (res && res.ok) {
+      flashTransition("Unauthenticated recording started", "", "#9e141c", 1300)
+    } else {
+      // Recording couldn't start — most often CyberStrike is down. Probe to say so plainly (visible
+      // banner), and keep the detailed reason in the panel hint.
+      const r = await send({ type: "ping-cs" })
+      const reachable = !!(r && r.reachable)
+      flashTransition(reachable ? "Couldn't start recording" : "CyberStrike unreachable", "", "#e0343f", 1800)
+      roleHint.textContent = (res && res.error) || "failed (need local CyberStrike + reachable server)"
+    }
     poll()
   })
   wLeft.addEventListener("click", (e) => {
@@ -888,8 +897,7 @@
   // which MAIN model it planned with — so the user can confirm the AI actually connected (and, if
   // not, tell a backend/comms problem apart from a working run). Flashes "Connected · <model>" once.
   let aiWaitSince = 0
-  let linkState = "" // "" | capture | unreach | connecting | connected | error
-  let csReachable = null // last ping-cs result (null = not yet probed) — set on switching to AI
+  let linkState = "" // "" | connecting | connected | error
   function setLink(cls, text, model) {
     ailink.className = "ailink show " + cls
     ailinkTxt.textContent = text
@@ -908,47 +916,32 @@
     linkState = state
     if (state === "connecting") flashTransition("Connecting to CyberStrike…", "ai", "", 1400)
     else if (state === "connected") flashTransition("Connected CyberStrike", "ai", "", 1800, model ? "Model: " + model : null)
-    else if (state === "capture") flashTransition("Start capture to connect the AI", "ai", "", 1600)
-    else if (state === "unreach" || state === "error") flashTransition("CyberStrike unreachable", "", "#e0343f", 1800)
+    else if (state === "error") flashTransition("CyberStrike unreachable", "", "#e0343f", 1800)
   }
-  function updateLink(status, attached) {
+  // AI-link indicator: only while AI drives. driver is "ai" ONLY while recording (render forces Idle
+  // when detached), so reaching here means capture is on — we just report the control channel state.
+  function updateLink(status) {
     if (driver !== "ai") {
       ailink.className = "ailink"
       aiWaitSince = 0
       linkState = ""
       return
     }
-    const control = !!(status && status.control)
     const model = (status && status.model) || ""
-    if (attached && control) {
+    if (status && status.control) {
       aiWaitSince = 0
       setLink("ok", "connected", model)
       flashLink("connected", model)
       return
     }
-    if (attached && !control) {
-      // Capturing but the control channel isn't open — connecting, or (after a grace) a real failure.
-      if (!aiWaitSince) aiWaitSince = Date.now()
-      if (Date.now() - aiWaitSince > 5000) {
-        setLink("err", "no connection — is CyberStrike running?")
-        flashLink("error")
-      } else {
-        setLink("wait", "connecting to the model…")
-        flashLink("connecting")
-      }
-      return
-    }
-    // Not capturing yet: the AI needs a capture session to drive. Use the reachability probe to tell
-    // an unreachable backend apart from just-needs-capture, so a down CyberStrike is obvious here too.
-    aiWaitSince = 0
-    if (csReachable === false) {
-      setLink("err", "CyberStrike unreachable")
-      flashLink("unreach")
-    } else if (csReachable === true) {
-      setLink("wait", "start capture to connect the AI")
-      flashLink("capture")
+    // Recording but the control channel isn't open — connecting, or (after a grace) a real failure.
+    if (!aiWaitSince) aiWaitSince = Date.now()
+    if (Date.now() - aiWaitSince > 5000) {
+      setLink("err", "no connection — is CyberStrike running?")
+      flashLink("error")
     } else {
-      setLink("wait", "checking CyberStrike…") // probe still in flight
+      setLink("wait", "connecting to the model…")
+      flashLink("connecting")
     }
   }
 
@@ -961,11 +954,14 @@
 
   function render(status) {
     const attached = !!(status && status.attached)
-    // Reconcile the backend driver (ai|human) with the local 3-state (ai|human|idle). Idle is
-    // client-only — cycling to it posts "human", so a status "human" must not clobber "idle". While
-    // detached the display is left as-is (defaults to the calm navy Idle).
-    if (attached && status && status.driver) {
-      if (!(status.driver === "human" && driver === "idle")) driver = status.driver
+    lastAttached = attached // the logo's driver cycle is gated on this (only meaningful while recording)
+    // Driver display: only meaningful WHILE RECORDING. Not recording → force calm Idle (no mode, no
+    // hue). Recording → reconcile with the backend (ai|human); Idle is client-only, so a status
+    // "human" must not clobber a local "idle".
+    if (!attached) {
+      driver = "idle"
+    } else if (status && status.driver && !(status.driver === "human" && driver === "idle")) {
+      driver = status.driver
     }
     dock.classList.toggle("capturing", attached)
     dock.classList.toggle("cap-on", attached) // red satellite: record ● → stop ■
@@ -979,7 +975,7 @@
     // Capture counts are NOT computed here — they come from the backend (applyStats, fed by the
     // web-stats poll), so the panel reflects the server DB and the extension stays a thin collector.
     stateEl.textContent = !attached ? "detached" : driver === "human" ? "you drive" : driver === "idle" ? "idle" : "AI driving"
-    updateLink(status, attached)
+    updateLink(status)
 
     // Tab-edge glow reflects a REAL link, not just the toggle: AI red only when the control channel
     // to CyberStrike is actually open, Human blue while capturing, and NOTHING in Idle (or when
@@ -1091,18 +1087,22 @@
   // Logo tap → cycle the driver (AI → Human → Idle) + flash + report to the server.
   const DRV_CYCLE = ["ai", "human", "idle"]
   function cycleDriver() {
+    // Driver switching is only meaningful WHILE RECORDING. Before that the logo doesn't cycle — it
+    // just tells the user what's missing: an unreachable backend, or "start recording first".
+    if (!lastAttached) {
+      send({ type: "ping-cs" }).then((r) => {
+        if (r && r.reachable) flashTransition("Start recording to drive", "", "", 1600)
+        else flashTransition("CyberStrike unreachable", "", "#e0343f", 1800)
+      })
+      return
+    }
     driver = DRV_CYCLE[(DRV_CYCLE.indexOf(driver) + 1) % DRV_CYCLE.length]
     applyDriverHue(driver)
     if (driver === "ai") {
-      // Don't claim "AI drives" until we've actually reached CyberStrike. Probe first; the link
-      // state (connecting -> connected · model / unreachable) then drives the banner + the red hue.
-      csReachable = null
+      // Show "Connecting…" immediately; the next poll resolves it to Connected · model (or, after a
+      // grace with no control channel, CyberStrike unreachable) via updateLink(status.control).
       flashTransition("Connecting to CyberStrike…", "ai", "", 1400)
       linkState = "connecting"
-      send({ type: "ping-cs" }).then((r) => {
-        csReachable = !!(r && r.reachable)
-        poll() // refresh the link indicator + banner with the probe result
-      })
     } else {
       flashTransition(driver === "human" ? "Human Drives the Browser" : "CyberStrike Idle", driver)
     }
