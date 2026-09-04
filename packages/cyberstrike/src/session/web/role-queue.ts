@@ -17,6 +17,7 @@ export namespace RoleQueue {
   export interface Role {
     label: string
     phase: Phase
+    roleID?: string // web_role this credential should be linked to (user-declared role tier), if any
   }
 
   const bySession = new Map<string, Role[]>()
@@ -31,14 +32,29 @@ export namespace RoleQueue {
   }
   const find = (list: Role[], label: string) => list.find((r) => r.label === label)
 
-  // Add roles in order, skipping labels already queued (dedupe). Fed by both the TUI
-  // menu (a comma-separated list) and the panel "Add credential" (one at a time).
-  export function enqueue(sessionID: string, labels: string[]): void {
+  // Add roles in order, skipping labels already queued (dedupe). Fed by the TUI menu (plain label
+  // strings) and the panel "Add credential" box (a label with an optional declared role tier →
+  // `roleID`). A late roleID on an already-queued label is filled in.
+  export function enqueue(sessionID: string, items: Array<string | { label: string; roleID?: string }>): void {
     const list = roles(sessionID)
-    for (const raw of labels) {
-      const label = String(raw || "").trim()
-      if (label && !find(list, label)) list.push({ label, phase: "pending" })
+    for (const raw of items) {
+      const label = String((typeof raw === "string" ? raw : raw.label) || "").trim()
+      if (!label) continue
+      const roleID = typeof raw === "string" ? undefined : raw.roleID
+      const existing = find(list, label)
+      if (existing) {
+        if (roleID && !existing.roleID) existing.roleID = roleID
+        continue
+      }
+      list.push({ label, phase: "pending", roleID })
     }
+  }
+
+  // The queued role for a label (with its declared roleID, if any) — used to link the credential to
+  // its role when that browser's capture starts. Returns a copy; undefined if the label isn't queued.
+  export function getRole(sessionID: string, label: string): Role | undefined {
+    const r = find(roles(sessionID), String(label || "").trim())
+    return r ? { ...r } : undefined
   }
 
   // A browser's Start capture fired for `label`. Mark it capturing; if that is a NEW

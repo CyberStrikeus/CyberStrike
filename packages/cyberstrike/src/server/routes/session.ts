@@ -1010,10 +1010,25 @@ export const SessionRoutes = lazy(() =>
         },
       }),
       validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
-      validator("json", z.object({ roles: z.array(z.string()) })),
+      // A role is either a plain label (TUI) or a label with an optional declared role tier
+      // (panel "Add credential" box): { label, role?, level? }. A declared tier seeds a web_role
+      // (name + privilege level) so the authz agent can reason about vertical priv-esc immediately.
+      validator(
+        "json",
+        z.object({
+          roles: z.array(z.union([z.string(), z.object({ label: z.string(), role: z.string().optional(), level: z.number().optional() })])),
+        }),
+      ),
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
-        RoleQueue.enqueue(sessionID, c.req.valid("json").roles)
+        const items = c.req.valid("json").roles.map((it) => {
+          if (typeof it === "string") return it
+          const roleName = (it.role ?? "").trim()
+          if (!roleName) return { label: it.label }
+          const role = WebRole.add({ sessionID, name: roleName, level: it.level, discoveredFrom: "user" })
+          return { label: it.label, roleID: role.id }
+        })
+        RoleQueue.enqueue(sessionID, items)
         return c.json(RoleQueue.status(sessionID))
       },
     )
@@ -1056,6 +1071,13 @@ export const SessionRoutes = lazy(() =>
         const sessionID = c.req.valid("param").sessionID
         const body = c.req.valid("json")
         const next = RoleQueue.captureStarted(sessionID, body.role)
+        // Link this just-registered credential to the role tier the user declared for it (if any),
+        // so the authz agent can compare privilege levels (vertical priv-esc / BFLA).
+        const cur = RoleQueue.getRole(sessionID, body.role)
+        if (cur && cur.roleID) {
+          const cred = WebCredential.getByLabel(sessionID, body.role)
+          if (cred && cred.role_id !== cur.roleID) WebCredential.link({ id: cred.id, roleID: cur.roleID })
+        }
         if (!next) return c.json({ next: null, spawned: false })
         // Spawn the next role's browser on the shared session at the same URL.
         try {
