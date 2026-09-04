@@ -709,12 +709,16 @@
 
   // All CyberStrike calls go through the background (CORS-exempt); a content-script
   // fetch to localhost would be blocked by the page's CORS policy.
+  let sessionsLoaded = false // becomes true after the first successful list — poll() retries until then
   async function loadSessions() {
     const res = await send({ type: "list-sessions" })
     if (!res || !res.ok) {
-      sess.innerHTML = '<option value="">-- CyberStrike unreachable --</option>'
+      // Only show the unreachable placeholder before we've ever loaded, so a transient blip doesn't
+      // wipe a good list the user might be picking from.
+      if (!sessionsLoaded) sess.innerHTML = '<option value="">-- CyberStrike unreachable --</option>'
       return
     }
+    sessionsLoaded = true
     const active = (await chrome.storage.local.get("session")).session || ""
     sess.innerHTML = '<option value="">-- New session --</option>'
     for (const s of res.sessions || []) {
@@ -760,6 +764,7 @@
     srvPw.value = ""
     srvConnect.disabled = false
     flashTransition("Connecting to " + url.replace(/^https?:\/\//, ""), "", "", 1400)
+    sessionsLoaded = false // new server → re-pull its sessions (and retry via poll until it answers)
     loadSessions() // verify reachable + populate the session picker
     poll()
   }
@@ -862,6 +867,7 @@
     wRight.disabled = false
     if (res && res.ok) {
       flashTransition("Unauthenticated recording started", "", "#9e141c", 1300)
+      loadSessions() // recording just ensured/created a session — pull the list so it shows + selects
     } else {
       // Couldn't start — the server verifies reachability first, so a down backend comes back as
       // "CyberStrike unreachable" (also treat a dead service worker / no response as unreachable).
@@ -1909,6 +1915,9 @@
       if (chrome.runtime.lastError) return
       if (res && res.ok) applyStats(res.stats)
     })
+    // Keep trying to pull the session list until it loads once — the panel may have mounted while
+    // CyberStrike was still down; this fills the picker automatically as soon as it's reachable.
+    if (!sessionsLoaded) loadSessions()
     pollQueue()
     if (location.href !== lastUrl) {
       lastUrl = location.href
