@@ -218,6 +218,11 @@
       .rhead::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #22d3ee; box-shadow: 0 0 8px #22d3ee;
         animation: dotpulse 1.4s ease-in-out infinite; }
       @keyframes dotpulse { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
+      /* Stale: CyberStrike didn't answer the last stats poll — dim the whole HUD and freeze the live
+         dot so the (last-known) numbers don't read as a live connection. */
+      .hud.stale { opacity: .45; }
+      .hud.stale .rhead::before { animation: none; background: #4e5d6f; box-shadow: none; }
+      .hud.stale .rhead { color: #4e5d6f; }
       .rlog { display: flex; flex-direction: column; gap: 4px; }
       .rlog .rent { font-size: 11.5px; line-height: 1.35; color: #8a99ab; white-space: nowrap; overflow: hidden;
         text-overflow: ellipsis; border-left: 2px solid rgba(${CY_RGB},.55); padding: 2px 0 2px 8px; animation: slidein .25s ease; }
@@ -2034,9 +2039,13 @@
       render(res)
     })
     // Capture counts come from the backend DB (via the server's DataCollector), not a local tally.
+    // On a failed poll (CyberStrike unreachable) keep the last numbers but mark the HUD stale (dim +
+    // frozen live-dot) so they don't read as a live connection.
     chrome.runtime.sendMessage({ type: "web-stats" }, (res) => {
       if (chrome.runtime.lastError) return
-      if (res && res.ok) applyStats(res.stats)
+      const ok = !!(res && res.ok)
+      if (ok) applyStats(res.stats)
+      hudEl.classList.toggle("stale", !ok)
     })
     // Keep trying to pull the session list until it loads once — the panel may have mounted while
     // CyberStrike was still down; this fills the picker automatically as soon as it's reachable.
