@@ -228,20 +228,13 @@ const attached = new Map()
 // tabId → "ai" | "human" — co-driving state; set from the panel handover toggle.
 // Tags each forwarded record so human-driven captures are distinguishable (§6.4).
 const driverByTab = new Map()
-// tabId → capture breakdown by class (shown in the panel). Computed locally from
-// each request's resource_type — no backend needed.
-const statsByTab = new Map()
-
-function emptyStats() {
-  return { total: 0, api: 0, js: 0, html: 0, static: 0, realtime: 0, other: 0 }
-}
-
-// The panel's status shape — one source, so panel-status and set-driver can't drift.
+// The panel's status shape — one source, so panel-status and set-driver can't drift. Capture
+// COUNTS are NOT tallied here: the panel/HUD reads them from the server (GET /web/stats, sourced
+// from the backend DataCollector) so the extension stays a thin collector with no parallel tally.
 function panelStatus(tabId) {
   const ok = tabId !== undefined
   return {
     attached: ok && attached.has(tabId),
-    stats: (ok && statsByTab.get(tabId)) || emptyStats(),
     driver: (ok && driverByTab.get(tabId)) || "ai",
     // AI-link troubleshooting: is the control channel to CyberStrike open, and which model is it?
     control: !!(controlWs && controlWs.readyState === WebSocket.OPEN),
@@ -249,14 +242,6 @@ function panelStatus(tabId) {
   }
 }
 
-function classOf(resourceType) {
-  if (resourceType === "xhr" || resourceType === "fetch") return "api"
-  if (resourceType === "script") return "js"
-  if (resourceType === "document") return "html"
-  if (resourceType === "image" || resourceType === "font" || resourceType === "stylesheet" || resourceType === "media") return "static"
-  if (resourceType === "websocket" || resourceType === "eventsource") return "realtime"
-  return "other"
-}
 // This profile's credential (§3.1: one identity per profile). Set from the popup,
 // persisted in profile-local storage, stamped onto every captured record.
 let activeCredential = null
@@ -514,35 +499,6 @@ async function forward(rec) {
   }
 }
 
-// webRequest resource type → our resource_type (for the panel breakdown).
-function webReqType(t) {
-  if (t === "xmlhttprequest") return "xhr"
-  if (t === "script") return "script"
-  if (t === "main_frame" || t === "sub_frame") return "document"
-  if (t === "stylesheet") return "stylesheet"
-  if (t === "image") return "image"
-  if (t === "font") return "font"
-  if (t === "media") return "media"
-  if (t === "websocket") return "websocket"
-  return "other"
-}
-
-// Metadata for EVERY request of an attached tab → the panel breakdown (no bodies,
-// no debugger). Bodies for dynamic requests arrive separately via the fetch/XHR patch.
-chrome.webRequest.onResponseStarted.addListener(
-  (details) => {
-    if (!attached.has(details.tabId)) return
-    let stats = statsByTab.get(details.tabId)
-    if (!stats) {
-      stats = emptyStats()
-      statsByTab.set(details.tabId, stats)
-    }
-    stats.total++
-    stats[classOf(webReqType(details.type))]++
-  },
-  { urls: ["<all_urls>"] },
-)
-
 // Full request/response headers (Cookie + Set-Cookie included, via extraHeaders)
 // for XHR/fetch requests — the fetch/XHR patch can't see Cookie. Keyed by
 // tab|method|url so the patch's body can merge with these headers at ingest.
@@ -603,7 +559,6 @@ chrome.webRequest.onHeadersReceived.addListener(
 chrome.tabs.onRemoved.addListener((tabId) => {
   attached.delete(tabId)
   driverByTab.delete(tabId)
-  statsByTab.delete(tabId)
   for (const k of reqHeadersByKey.keys()) if (k.startsWith(tabId + "|")) reqHeadersByKey.delete(k)
 })
 
@@ -664,6 +619,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         reachable = !!(r && r.ok)
       } catch {}
       sendResponse({ reachable, model: lastModel })
+      return
+    }
+    // Panel/HUD capture counts — read straight from the server (DataCollector), NOT tallied in the
+    // extension, so the panel reflects the backend DB and the extension stays a thin collector.
+    if (msg.type === "web-stats") {
+      const sid = await currentSession()
+      if (!sid) return void sendResponse({ ok: false })
+      const base = await csUrl()
+      try {
+        const r = await csFetch(`${base}/session/${encodeURIComponent(sid)}/web/stats`)
+        const stats = r && r.ok ? await r.json().catch(() => null) : null
+        sendResponse(stats ? { ok: true, stats } : { ok: false })
+      } catch {
+        sendResponse({ ok: false })
+      }
       return
     }
     if (msg.type === "list-sessions") {

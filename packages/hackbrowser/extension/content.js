@@ -220,7 +220,7 @@
         <div class="hs"><span class="n" id="h-req">0</span><span class="l">Captures</span></div>
         <div class="hs"><span class="n" id="h-ep">0</span><span class="l">Endpoints</span></div>
         <div class="hs"><span class="n" id="h-js">0</span><span class="l">JS Files</span></div>
-        <div class="hs"><span class="n" id="h-pg">0</span><span class="l">Elements</span></div>
+        <div class="hs"><span class="n" id="h-pg">0</span><span class="l">Pages</span></div>
       </div>
       <div class="box reason">
         <div class="rhead">AI Reasoning</div>
@@ -593,7 +593,7 @@
               <div class="stat hl"><div class="k">Captured</div><div class="v" id="s-total">0</div></div>
               <div class="stat"><div class="k">Endpoints</div><div class="v" id="s-api">0</div></div>
               <div class="stat"><div class="k">JS files</div><div class="v" id="s-js">0</div></div>
-              <div class="stat"><div class="k">Elements</div><div class="v" id="s-page">0</div></div>
+              <div class="stat"><div class="k">Pages</div><div class="v" id="s-page">0</div></div>
             </div>
             <div class="rlog" id="rlog"></div>
           </div>
@@ -665,12 +665,10 @@
   const sTotal = root.getElementById("s-total")
   const sApi = root.getElementById("s-api")
   const sJs = root.getElementById("s-js")
-  const sStatic = root.getElementById("s-static") // may be absent (not shown in the compact panel)
   const sPage = root.getElementById("s-page")
 
   let driver = "idle" // AI | Human | Idle (3-way logo cycle); detached defaults to Idle (calm navy)
   let settingsOpen = false
-  let pageCount = 0
   let mountedAt = 0 // when the dock was appended — see panel-visibility (popup toggle)
   let isSpawned = false // true in a browser CyberStrike spawned (opened with a role hash)
 
@@ -978,18 +976,8 @@
     const wt = wRight.querySelector(".wtip")
     if (wt) wt.textContent = wRight.title
 
-    if (status && status.stats) {
-      const st = status.stats
-      sTotal.textContent = st.total || 0
-      sApi.textContent = st.api || 0
-      sJs.textContent = st.js || 0
-      if (sStatic) sStatic.textContent = st.static || 0
-      hReq.textContent = st.total || 0
-      hEp.textContent = st.api || 0
-      hJs.textContent = st.js || 0
-    }
-    sPage.textContent = pageCount
-    hPg.textContent = pageCount
+    // Capture counts are NOT computed here — they come from the backend (applyStats, fed by the
+    // web-stats poll), so the panel reflects the server DB and the extension stays a thin collector.
     stateEl.textContent = !attached ? "detached" : driver === "human" ? "you drive" : driver === "idle" ? "idle" : "AI driving"
     updateLink(status, attached)
 
@@ -1002,6 +990,24 @@
     glow.classList.toggle("on", aiLive || humanLive)
     glow.classList.toggle("ai", aiLive)
     glow.classList.toggle("human", humanLive)
+  }
+
+  // Capture counts for the panel + HUD, straight from the backend (GET /web/stats via web-stats):
+  // captures / distinct endpoints / distinct JS files / pages (HTML docs). No local tally.
+  function applyStats(s) {
+    if (!s) return
+    const captures = s.captures || 0
+    const endpoints = s.endpoints || 0
+    const js = s.js || 0
+    const pages = s.pages || 0
+    sTotal.textContent = captures
+    sApi.textContent = endpoints
+    sJs.textContent = js
+    sPage.textContent = pages
+    hReq.textContent = captures
+    hEp.textContent = endpoints
+    hJs.textContent = js
+    hPg.textContent = pages
   }
 
   // --- Drag (edge-anchored + clamped, like a chat-head widget) ----------------
@@ -1648,7 +1654,6 @@
 
   function sendObservation() {
     const obs = observePage()
-    pageCount = obs.clickables.length + obs.forms.length
     chrome.runtime.sendMessage({ type: "observe", observation: obs }, () => void chrome.runtime.lastError)
     return obs
   }
@@ -1894,6 +1899,11 @@
     chrome.runtime.sendMessage({ type: "panel-status" }, (res) => {
       if (chrome.runtime.lastError) return
       render(res)
+    })
+    // Capture counts come from the backend DB (via the server's DataCollector), not a local tally.
+    chrome.runtime.sendMessage({ type: "web-stats" }, (res) => {
+      if (chrome.runtime.lastError) return
+      if (res && res.ok) applyStats(res.stats)
     })
     pollQueue()
     if (location.href !== lastUrl) {
