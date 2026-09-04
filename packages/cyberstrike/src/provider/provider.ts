@@ -375,7 +375,7 @@ export namespace Provider {
         options: {
           headers: {
             "HTTP-Referer": "https://cyberstrike.io/",
-            "X-Title": "cyberstrike",
+            "X-Title": "CyberStrike",
           },
         },
       }
@@ -386,7 +386,7 @@ export namespace Provider {
         options: {
           headers: {
             "http-referer": "https://cyberstrike.io/",
-            "x-title": "cyberstrike",
+            "x-title": "CyberStrike",
           },
         },
       }
