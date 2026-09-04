@@ -39,6 +39,23 @@ describe("SpawnedProfiles", () => {
     expect(SpawnedProfiles.closeAll("ghost")).toBe(0)
   })
 
+  test("closeAllSessions kills every proc across ALL sessions (server teardown)", () => {
+    const a = mkProc()
+    const b = mkProc()
+    const c = mkProc()
+    SpawnedProfiles.track("s1", a)
+    SpawnedProfiles.track("s1", b)
+    SpawnedProfiles.track("s2", c)
+    expect(SpawnedProfiles.closeAllSessions()).toBe(3)
+    expect(a.kills()).toBe(1)
+    expect(b.kills()).toBe(1)
+    expect(c.kills()).toBe(1)
+    // registry drained → a second teardown closes nothing
+    expect(SpawnedProfiles.closeAllSessions()).toBe(0)
+    expect(SpawnedProfiles.count("s1")).toBe(0)
+    expect(SpawnedProfiles.count("s2")).toBe(0)
+  })
+
   test("a proc that throws on kill doesn't abort the rest", () => {
     const bad = { kill: () => { throw new Error("already dead") } }
     const good = mkProc()
