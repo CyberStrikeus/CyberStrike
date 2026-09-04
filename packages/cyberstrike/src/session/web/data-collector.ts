@@ -196,23 +196,6 @@ export namespace DataCollector {
     }
   }
 
-  // Coverage counts for the panel/HUD — read straight from the live store (uncapped, unlike
-  // latest() which slices for the navigator). captures = every recorded request; endpoints/pages =
-  // DISTINCT api endpoints / html routes; js = distinct JS files.
-  export function summary(sessionID: string): { captures: number; endpoints: number; js: number; pages: number } {
-    const s = bySession.get(sessionID)
-    if (!s) return { captures: 0, endpoints: 0, js: 0, pages: 0 }
-    const c = s.counts
-    const captures = c.api + c.html + c.js + c.static + c.realtime
-    let endpoints = 0
-    let pages = 0
-    for (const e of s.endpoints.values()) {
-      if (e.kind === "api") endpoints++
-      else pages++
-    }
-    return { captures, endpoints, js: s.jsUrls.size, pages }
-  }
-
   export function clearSession(sessionID: string): void {
     bySession.delete(sessionID)
   }

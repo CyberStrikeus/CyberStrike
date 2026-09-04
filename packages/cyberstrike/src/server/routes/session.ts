@@ -21,6 +21,7 @@ import { IngestSummary } from "../../session/ingest-summary"
 import { IngestQueue } from "../../session/ingest-queue"
 import { WebCredential } from "../../session/web/web-credential"
 import { WebRole } from "../../session/web/web-role"
+import { WebStats } from "../../session/web/web-stats"
 import { WebObject } from "../../session/web/web-object"
 import { WebFunction } from "../../session/web/web-function"
 import { WebRetest } from "../../session/web/web-retest"
@@ -1357,14 +1358,14 @@ export const SessionRoutes = lazy(() =>
       describeRoute({
         summary: "Web capture stats for the panel HUD",
         description:
-          "Live capture counts for the on-page panel/HUD, sourced from the server's DataCollector so the browser extension stays a thin collector (no parallel in-browser tally): total captured requests, distinct endpoints, distinct JS files, and pages (HTML documents) loaded.",
+          "Live capture-coverage counts for the on-page panel/HUD, read from the durable store (request / endpoint_template tables + confirmed vulnerabilities) so they match the analysis + TUI and read 0 for a fresh session: captured requests, distinct endpoints, distinct pages, confirmed vulnerabilities.",
         operationId: "session.webStats",
         responses: {
           200: {
             description: "Capture counts",
             content: {
               "application/json": {
-                schema: resolver(z.object({ captures: z.number(), endpoints: z.number(), js: z.number(), pages: z.number() })),
+                schema: resolver(z.object({ captures: z.number(), endpoints: z.number(), pages: z.number(), vulns: z.number() })),
               },
             },
           },
@@ -1373,8 +1374,7 @@ export const SessionRoutes = lazy(() =>
       }),
       validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
       async (c) => {
-        const sessionID = c.req.valid("param").sessionID
-        return c.json(DataCollector.summary(sessionID))
+        return c.json(WebStats.summary(c.req.valid("param").sessionID))
       },
     )
     .post(
