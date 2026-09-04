@@ -441,11 +441,7 @@
         background: #0b121b; color: #e8eef5; font: 13px system-ui,sans-serif; outline: none; }
       .fld:focus { border-color: rgba(34,211,238,.55); }
       .fld::placeholder { color: #4e5d6f; }
-      .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
-      .chip { padding: 5px 10px; border: 1px solid #1f2b3a; border-radius: 999px; background: #17222f; color: #8a99ab;
-        font-size: 11px; font-weight: 600; cursor: pointer; user-select: none; }
-      .chip:hover { color: #e8eef5; }
-      .chip.sel { background: rgba(34,211,238,.15); color: #22d3ee; border-color: rgba(34,211,238,.5); }
+      select.fld { -webkit-appearance: none; appearance: none; cursor: pointer; }
       .hint2 { font-size: 10.5px; color: #4e5d6f; margin-top: 9px; line-height: 1.45; }
       .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
       button.b { height: 36px; padding: 0 14px; border: 0; border-radius: 9px; font: 700 12px system-ui,sans-serif; cursor: pointer; }
@@ -460,13 +456,15 @@
           <div class="lbl">Credential name</div>
           <input class="fld" id="cbName" type="text" placeholder="e.g. orhan1" spellcheck="false" autocomplete="off" />
           <div class="lbl">User role <span class="opt">— optional, for privilege-escalation testing</span></div>
-          <input class="fld" id="cbRole" type="text" placeholder="e.g. Admin" spellcheck="false" autocomplete="off" />
-          <div class="chips" id="cbChips">
-            <span class="chip" data-role="User" data-level="1">User</span>
-            <span class="chip" data-role="Member" data-level="2">Member</span>
-            <span class="chip" data-role="Admin" data-level="3">Admin</span>
-            <span class="chip" data-role="Owner" data-level="4">Owner</span>
-          </div>
+          <select class="fld" id="cbRoleSel">
+            <option value="">None</option>
+            <option value="User" data-level="1">User</option>
+            <option value="Member" data-level="2">Member</option>
+            <option value="Admin" data-level="3">Admin</option>
+            <option value="Owner" data-level="4">Owner</option>
+            <option value="__custom">Custom…</option>
+          </select>
+          <input class="fld" id="cbRole" type="text" placeholder="Custom role name" spellcheck="false" autocomplete="off" style="margin-top:7px;display:none" />
           <div class="hint2">Opens a new browser for this identity. A role tier lets CyberStrike test vertical privilege escalation (BFLA), not just same-level IDOR.</div>
           <div class="row"><button class="b no" id="cbCancel">Cancel</button><button class="b go" id="cbGo">Open Browser</button></div>
         </div>
@@ -475,30 +473,27 @@
   `
   const cbwrap = credRoot.getElementById("cbwrap")
   const cbName = credRoot.getElementById("cbName")
-  const cbRole = credRoot.getElementById("cbRole")
-  let cbLevel = undefined // privilege level from a chosen preset chip; undefined for free-text roles
-  function cbSelectChip(el) {
-    for (const c of credRoot.querySelectorAll(".chip")) c.classList.toggle("sel", c === el)
-  }
-  for (const chip of credRoot.querySelectorAll(".chip")) {
-    chip.addEventListener("click", () => {
-      cbRole.value = chip.getAttribute("data-role")
-      cbLevel = Number(chip.getAttribute("data-level")) || undefined
-      cbSelectChip(chip)
-    })
-  }
-  // Typing a custom role clears the preset selection + its implied level (unknown ordering).
-  cbRole.addEventListener("input", () => {
-    if (![...credRoot.querySelectorAll(".chip")].some((c) => c.getAttribute("data-role") === cbRole.value)) {
-      cbLevel = undefined
-      cbSelectChip(null)
-    }
+  const cbRoleSel = credRoot.getElementById("cbRoleSel")
+  const cbRole = credRoot.getElementById("cbRole") // custom role name — shown only for the "Custom…" option
+  // Presets carry a privilege level (data-level) for vertical priv-esc ordering; "Custom…" reveals a
+  // free-text field for an app-specific role name (no implied level); "None" = no role.
+  cbRoleSel.addEventListener("change", () => {
+    const custom = cbRoleSel.value === "__custom"
+    cbRole.style.display = custom ? "" : "none"
+    if (custom) setTimeout(() => { try { cbRole.focus() } catch {} }, 0)
   })
+  function chosenRole() {
+    const v = cbRoleSel.value
+    if (!v) return { name: undefined, level: undefined }
+    if (v === "__custom") return { name: cbRole.value.trim() || undefined, level: undefined }
+    const opt = cbRoleSel.selectedOptions[0]
+    return { name: v, level: Number(opt && opt.getAttribute("data-level")) || undefined }
+  }
   function openCredBox() {
     cbName.value = ""
+    cbRoleSel.value = ""
     cbRole.value = ""
-    cbLevel = undefined
-    cbSelectChip(null)
+    cbRole.style.display = "none"
     cbwrap.classList.add("on")
     setTimeout(() => {
       try {
@@ -517,11 +512,11 @@
       } catch {}
       return
     }
-    const roleName = cbRole.value.trim() || undefined
+    const role = chosenRole()
     closeCredBox()
-    const res = await send({ type: "enqueue-role", role: label, roleName, roleLevel: roleName ? cbLevel : undefined })
+    const res = await send({ type: "enqueue-role", role: label, roleName: role.name, roleLevel: role.level })
     if (res && res.ok) {
-      roleHint.textContent = `"${label}"${roleName ? " (" + roleName + ")" : ""} queued — opens after Start capture.`
+      roleHint.textContent = `"${label}"${role.name ? " (" + role.name + ")" : ""} queued — opens after Start capture.`
       flashTransition("Credential queued: " + label, "", "", 1400)
     } else {
       flashTransition("CyberStrike unreachable", "", "#e0343f", 1600)
