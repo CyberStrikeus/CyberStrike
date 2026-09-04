@@ -478,6 +478,12 @@
       <div class="panel" id="panel">
         <div class="phead"><span class="brand">CYBERSTRIKE</span><span class="st" id="state">detached</span></div>
         <div class="pbody">
+          <label class="lbl">CyberStrike server</label>
+          <div class="credrow">
+            <input class="fld" id="srvUrl" type="text" placeholder="http://127.0.0.1:4096" spellcheck="false" />
+            <button class="mini" id="srvConnect">Connect</button>
+          </div>
+          <input class="fld" id="srvPw" type="password" placeholder="password (remote / tunnel only)" style="margin-bottom:6px" />
           <button class="ctl" id="attachBtn">Start capture</button>
           <label class="lbl">CyberStrike session</label>
           <div class="credrow">
@@ -644,6 +650,36 @@
   // Single role-aware capture toggle. START: ensure session + register the role (default
   // "anonymous") + attach, and flash a hue "Capture started with <role> role". STOP:
   // detach; on the MAIN browser, offer to close the spawned role browsers.
+  // CyberStrike server connect (URL + optional password) — lets this one extension work
+  // self-installed in any browser, not only spawned CfT. Password is only needed for a remote
+  // (tunnel) CS; a local/loopback CS skips auth.
+  const srvUrl = root.getElementById("srvUrl")
+  const srvPw = root.getElementById("srvPw")
+  const srvConnect = root.getElementById("srvConnect")
+  send({ type: "get-server" })
+    .then((s) => {
+      if (s && s.url) srvUrl.value = s.url
+    })
+    .catch(() => {})
+  async function connectServer() {
+    const url = srvUrl.value.trim()
+    if (!url) return
+    srvConnect.disabled = true
+    await send({ type: "set-server", url, password: srvPw.value })
+    srvPw.value = ""
+    srvConnect.disabled = false
+    flashTransition("Connecting to " + url.replace(/^https?:\/\//, ""), "", "", 1400)
+    loadSessions() // verify reachable + populate the session picker
+    poll()
+  }
+  srvConnect.addEventListener("click", connectServer)
+  srvPw.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") connectServer()
+  })
+  srvUrl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") connectServer()
+  })
+
   attachBtn.addEventListener("click", async () => {
     const status = await send({ type: "panel-status" })
     if (!(status && status.attached)) {

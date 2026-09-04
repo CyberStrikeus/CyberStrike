@@ -19,6 +19,26 @@ function csUrl() {
   })
 }
 
+// Basic-auth header for a REMOTE CyberStrike (behind a CF tunnel) when the user configured a
+// password via the panel's Connect. A local/loopback CS skips auth server-side, so this is empty
+// there. Username defaults to "cyberstrike" (matches the server default). One source for auth.
+async function authHeaders() {
+  const pw = await new Promise((r) => chrome.storage.local.get("cs_pw", (o) => r(o && o.cs_pw)))
+  if (!pw) return {}
+  try {
+    return { Authorization: "Basic " + btoa("cyberstrike:" + pw) }
+  } catch {
+    return {}
+  }
+}
+// fetch() to the CS server, with the auth header merged in. Used for every CS call so remote
+// (tunnel) mode works; a no-op difference for local. Uses globalThis.fetch to avoid self-recursion.
+async function csFetch(url, init) {
+  const auth = await authHeaders()
+  const i = init || {}
+  return globalThis.fetch(url, { ...i, headers: { ...(i.headers || {}), ...auth } })
+}
+
 // The active session id, falling back to storage when the in-memory value hasn't caught
 // up yet. A spawned profile writes the session from its #__cs_sess hash to storage, and
 // our activeSession only syncs via storage.onChanged — so a capture firing in that gap
@@ -49,7 +69,7 @@ async function postDriver(driver) {
   if (!sid) return
   const base = await csUrl()
   try {
-    await fetch(`${base}/session/${encodeURIComponent(sid)}/web/driver`, {
+    await csFetch(`${base}/session/${encodeURIComponent(sid)}/web/driver`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ driver: driver === "human" ? "human" : "ai" }),
@@ -66,7 +86,7 @@ async function postHold(held) {
   if (!sid) return
   const base = await csUrl()
   try {
-    await fetch(`${base}/session/${encodeURIComponent(sid)}/web/hold`, {
+    await csFetch(`${base}/session/${encodeURIComponent(sid)}/web/hold`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ held: !!held }),
@@ -84,7 +104,7 @@ async function hblog(event, data) {
   if (!sid) return
   const base = await csUrl()
   try {
-    await fetch(`${base}/session/${encodeURIComponent(sid)}/web/log`, {
+    await csFetch(`${base}/session/${encodeURIComponent(sid)}/web/log`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ source: "extension", event, data }),
@@ -100,7 +120,7 @@ async function registerCredential(label) {
   const sid = await currentSession()
   if (!sid) throw new Error("no session selected")
   const base = await csUrl()
-  const res = await fetch(`${base}/session/${sid}/web/credentials`, {
+  const res = await csFetch(`${base}/session/${sid}/web/credentials`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ label }),
@@ -127,7 +147,7 @@ async function ensureSession() {
   if (sessionCreating) return sessionCreating
   sessionCreating = (async () => {
     const base = await csUrl()
-    const res = await fetch(`${base}/session`, {
+    const res = await csFetch(`${base}/session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "{}",
@@ -428,7 +448,7 @@ async function forward(rec) {
     payload.ui_context = Object.assign({}, rec.ui_context, { hiddenParams })
   }
   try {
-    const res = await fetch(`${base}/session/ingest`, {
+    const res = await csFetch(`${base}/session/ingest`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -589,7 +609,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === "list-sessions") {
       const base = await csUrl()
       try {
-        const r = await fetch(`${base}/session?limit=20&roots=true`)
+        const r = await csFetch(`${base}/session?limit=20&roots=true`)
         if (!r.ok) {
           sendResponse({ ok: false, sessions: [] })
           return
@@ -630,6 +650,23 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       sendResponse({ ok: true })
       return
     }
+    // Connect: point THIS extension at a CyberStrike server (URL + optional password for remote/
+    // tunnel). Lets the one extension work self-installed in any browser, not only spawned CfT.
+    if (msg.type === "set-server") {
+      const patch = {}
+      if (typeof msg.url === "string" && msg.url.trim()) patch.cyberstrike = msg.url.trim().replace(/\/+$/, "")
+      patch.cs_pw = typeof msg.password === "string" ? msg.password : ""
+      chrome.storage.local.set(patch, () => {
+        controlDownSince = 0 // give the control channel a fresh start against the new server
+        controlEverOpen = false
+        sendResponse({ ok: true })
+      })
+      return true // async sendResponse
+    }
+    if (msg.type === "get-server") {
+      chrome.storage.local.get(["cyberstrike"], (o) => sendResponse({ url: (o && o.cyberstrike) || "" })) // never return the password
+      return true
+    }
     // Content-script diagnostics → forward to the per-session HackBrowser log.
     if (msg.type === "hblog") {
       void hblog(msg.event, msg.data)
@@ -653,7 +690,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       try {
         const sid = await ensureSession()
         const base = await csUrl()
-        const res = await fetch(`${base}/session/${sid}/web/role-queue`, {
+        const res = await csFetch(`${base}/session/${sid}/web/role-queue`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ roles: [msg.role] }),
@@ -678,7 +715,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       const base = await csUrl()
       try {
-        const r = await fetch(`${base}/session/${sid}/web/queue-status`)
+        const r = await csFetch(`${base}/session/${sid}/web/queue-status`)
         const d = await r.json().catch(() => null)
         sendResponse({ ok: true, status: d || { roles: [], setup: null } })
       } catch (e) {
@@ -720,7 +757,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         // if one is queued. Fire-and-forget: capture is already on locally; the panel
         // polls queue-status for the result.
         const base = await csUrl()
-        fetch(`${base}/session/${activeSession}/web/capture-started`, {
+        csFetch(`${base}/session/${activeSession}/web/capture-started`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ role: canonical, url: msg.url || "" }),
@@ -741,7 +778,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       const base = await csUrl()
       try {
-        const r = await fetch(`${base}/session/${sid}/web/spawned-count`)
+        const r = await csFetch(`${base}/session/${sid}/web/spawned-count`)
         const d = await r.json().catch(() => ({}))
         sendResponse({ ok: true, count: (d && d.count) || 0 })
       } catch (e) {
@@ -759,7 +796,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       const base = await csUrl()
       try {
-        const r = await fetch(`${base}/session/${sid}/web/close-profiles`, { method: "POST" })
+        const r = await csFetch(`${base}/session/${sid}/web/close-profiles`, { method: "POST" })
         const d = await r.json().catch(() => ({}))
         sendResponse({ ok: true, closed: (d && d.closed) || 0 })
       } catch (e) {
@@ -796,7 +833,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (obs.tech && typeof obs.tech === "object") payload.tech = obs.tech // framework fingerprint signals (P2)
         if (cred) payload.credential_id = cred.id
         try {
-          await fetch(`${base}/session/${sid}/web/observe`, {
+          await csFetch(`${base}/session/${sid}/web/observe`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
