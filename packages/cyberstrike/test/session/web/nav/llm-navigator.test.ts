@@ -155,11 +155,10 @@ describe("buildContext — the rich model prompt", () => {
     expect(ctx).toContain("React") // client fingerprint
     expect(ctx).toContain("PHP") // merged server fingerprint (P2 seam)
     expect(ctx).toContain("Focus areas")
-    expect(ctx).toContain("Routes seen in traffic, not yet visited")
-    expect(ctx).toContain("/admin")
-    expect(ctx).toContain("API endpoints seen")
-    expect(ctx).toContain("Routes mined from JS bundles") // P4.1
-    expect(ctx).toContain("/api/secret-route")
+    expect(ctx).toContain("already captured") // reframed as context, not a click target
+    expect(ctx).toContain("/admin") // the discovered UI route still appears
+    expect(ctx).toContain("/api/transfer") // API surface still listed as context
+    expect(ctx).toContain("/api/secret-route") // P4.1 JS-mined route as context
     expect(ctx).toContain("Forms (choose by form_index)")
     expect(ctx).toContain("Interactive elements")
     expect(ctx).toContain("n1")
@@ -195,6 +194,19 @@ describe("LlmNavigator.plan — model plan + fallback", () => {
       const plan = await new LlmNavigator(ask).plan(sid, snap)
       expect(plan.actions).toEqual([{ kind: "click", elementId: "n1", label: "Home" }])
     }
+  })
+
+  test("a hanging model call times out → deterministic fallback (loop never freezes)", async () => {
+    const sid = "s"
+    WebScope.ensure(sid, "https://h.test/")
+    const snap = page(sid, "https://h.test/", [{ id: "n1", tag: "a", role: "link", label: "Home", href: "/home" }])
+    await seedStrategy(sid, snap)
+    const hang: LlmNavigator.Ask = () => new Promise(() => {}) // never settles
+    const nav = new LlmNavigator(hang, 60, 25) // 25ms timeout
+    const start = Date.now()
+    const plan = await nav.plan(sid, snap)
+    expect(Date.now() - start).toBeLessThan(1000) // did not hang
+    expect(plan.actions).toEqual([{ kind: "click", elementId: "n1", label: "Home" }]) // deterministic
   })
 
   test("returns an empty plan (never calls the model) when nothing is actionable", async () => {

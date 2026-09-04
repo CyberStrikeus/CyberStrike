@@ -65,20 +65,28 @@ export namespace LlmNavigator {
 const MAX_ACTIONS = 6
 const CLICK_CAP = 60
 const FORM_CAP = 20
+const MODEL_TIMEOUT_MS = 30000 // a hung plan call must not freeze the loop → fall back to deterministic
+
+// Reject if the promise doesn't settle within ms (so a stalled model call can't stall the crawl).
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([p, new Promise<T>((_, reject) => setTimeout(() => reject(new Error("model-timeout")), ms))])
+}
 
 const SYSTEM =
-  "You are the navigator for a web-application MAPPING crawler. Your job is to explore and reach " +
-  "ALL important functionality — authentication, user/account management, settings, transactions, " +
-  "admin, search, APIs, anything business-critical — by choosing which interactive elements to " +
-  "click and which safe forms to fill, one page at a time. You do NOT test for vulnerabilities (a " +
-  "separate system does that from the collected data). You are given the current page (what it is, " +
-  "where in the app, its structure, its framework and how navigation works on it), the app's focus " +
-  "areas, coverage so far, and every safe actionable element and form. Return an ORDERED short plan " +
-  "(1-5 moves) that reaches the most valuable UNVISITED areas first; prefer new areas over " +
-  "well-covered ones and honor the focus areas. Reference an element ONLY by an element_id from the " +
-  "list, a form ONLY by a form_index from the list, and navigate ONLY to a url shown on the page. " +
-  "Emit a single `done` action only when the whole app appears fully explored. Never choose " +
-  "logout/sign-out or delete/remove controls."
+  "You are the navigator for a web-application MAPPING crawler. Your goal is BREADTH: visit as many " +
+  "distinct UI areas as possible to map the whole app — user/account pages, settings, transactions, " +
+  "admin, search, forms — by choosing which interactive elements to click and which safe forms to " +
+  "fill, one page at a time. Do NOT fixate on a single area or tunnel toward one 'valuable' target; " +
+  "spread out and reach UNVISITED pages. You do NOT test for vulnerabilities (a separate system does " +
+  "that from the collected data). IMPORTANT: API and documentation endpoints (Swagger, REST API, " +
+  "*.json, GraphQL) and everything already seen in traffic are ALREADY captured automatically — do " +
+  "NOT navigate to them just to view them; that wastes moves. Spend every move on UNVISITED " +
+  "human-facing UI. You are given the current page (what it is, where in the app, its structure and " +
+  "framework), the focus areas, coverage so far, and every safe actionable element and form. Return " +
+  "an ORDERED short plan (1-5 moves) toward NEW areas. Reference an element ONLY by an element_id " +
+  "from the list, a form ONLY by a form_index, and navigate ONLY to a url shown on the page. Keep " +
+  "`rationale` to ONE short sentence. Emit a single `done` action only when the whole app appears " +
+  "fully explored. Never choose logout/sign-out or delete/remove controls."
 
 // Safe, actionable click targets for the model — the same universe the executor can run: allow
 // policy (deny=logout / confirm=destructive are excluded — they cannot run autonomously anyway),
@@ -181,9 +189,11 @@ export function buildContext(
       : "",
     priorities.length ? `Focus areas (app priorities): ${priorities.join(", ")}` : "",
     `Coverage so far: ${cov.pages_visited} pages explored, ${cov.actions} actions used.`,
-    unvisited.length ? `Routes seen in traffic, not yet visited (navigate to reach them): ${unvisited.join(", ")}` : "",
-    apis.length ? `API endpoints seen (the app's surface): ${apis.join(", ")}` : "",
-    mined.length ? `Routes mined from JS bundles (discovered in code — may be uncalled/SPA-only): ${mined.join(", ")}` : "",
+    // Already-captured context — NOT click targets. The collector + vuln pipeline already have
+    // these; listing them helps the model understand the app, but it must NOT tunnel toward them.
+    unvisited.length ? `(context, already captured — do NOT navigate here just to view) UI routes seen: ${unvisited.join(", ")}` : "",
+    apis.length ? `(context, already captured — the app's API surface, do NOT navigate here) ${apis.join(", ")}` : "",
+    mined.length ? `(context, already captured — routes mined from JS) ${mined.join(", ")}` : "",
     forms.length ? `Forms (choose by form_index):\n${formLines.join("\n")}` : "",
     picks.length ? `Interactive elements (choose by element_id):\n${elLines.join("\n")}` : "",
   ]
@@ -248,7 +258,7 @@ const defaultAsk: LlmNavigator.Ask = async ({ system, user }) => {
   const model = await Provider.getModel(dm.providerID, dm.modelID)
   const language = await Provider.getLanguage(model)
   const schema = z.object({
-    rationale: z.string().describe("one short sentence: the plan and why").optional(),
+    rationale: z.string().describe("ONE short sentence (max ~12 words): why this next move").optional(),
     actions: z
       .array(
         z.object({
@@ -287,6 +297,7 @@ export class LlmNavigator implements Navigator {
   constructor(
     private readonly ask: LlmNavigator.Ask = defaultAsk,
     private readonly cap = CLICK_CAP,
+    private readonly timeoutMs = MODEL_TIMEOUT_MS,
   ) {}
 
   async plan(sessionID: string, snapshot: PageSnapshot): Promise<Plan> {
@@ -305,9 +316,9 @@ export class LlmNavigator implements Navigator {
 
     let raw: LlmNavigator.RawPlan | null = null
     try {
-      raw = await this.ask({ system: SYSTEM, user: buildContext(sessionID, snapshot, picks, forms, DataCollector.latest(sessionID)) })
+      raw = await withTimeout(this.ask({ system: SYSTEM, user: buildContext(sessionID, snapshot, picks, forms, DataCollector.latest(sessionID)) }), this.timeoutMs)
     } catch (e) {
-      log.debug("LlmNavigator ask failed → deterministic", { err: String(e) })
+      log.debug("LlmNavigator ask failed/timed out → deterministic", { err: String(e) })
       return this.fallback.plan(sessionID, snapshot)
     }
     const actions = raw ? mapActions(sessionID, snapshot, raw.actions, picks, forms) : []
