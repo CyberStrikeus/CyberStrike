@@ -9,6 +9,7 @@ export {
   RequestTable,
   WebCredentialTable,
   WebRoleTable,
+  WebJsTable,
   WebObjectTable,
   WebObjectValueTable,
   WebFunctionTable,

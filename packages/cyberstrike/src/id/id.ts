@@ -17,6 +17,7 @@ export namespace Identifier {
     coverage_note: "cov",
     web_credential: "wcr",
     web_role: "wrl",
+    web_js: "wjs",
     web_object: "wob",
     web_object_value: "wov",
     web_ui_observation: "wuo",

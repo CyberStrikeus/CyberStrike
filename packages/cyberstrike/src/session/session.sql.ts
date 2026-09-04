@@ -232,6 +232,29 @@ export const WebRoleTable = sqliteTable(
   ],
 )
 
+// JS files seen during capture (script responses). The request table only holds analysis-relevant
+// endpoints (JS is never ingested as a request row), so JS URLs are persisted here instead — one row
+// per (session, url) — so the panel/TUI can list them durably and a later agent can pull + review
+// each body (analyzed flags that pass).
+export const WebJsTable = sqliteTable(
+  "web_js",
+  {
+    id: text().primaryKey(),
+    session_id: text()
+      .notNull()
+      .references(() => SessionTable.id, { onDelete: "cascade" }),
+    url: text().notNull(),
+    origin: text(),
+    analyzed: integer({ mode: "boolean" }), // null/false = body not yet pulled/reviewed by an agent
+    discovered_from: text(),
+    ...Timestamps,
+  },
+  (table) => [
+    index("web_js_session_idx").on(table.session_id),
+    uniqueIndex("web_js_url_idx").on(table.session_id, table.url),
+  ],
+)
+
 export const WebObjectTable = sqliteTable(
   "web_object",
   {

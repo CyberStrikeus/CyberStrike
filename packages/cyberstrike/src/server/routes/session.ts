@@ -21,6 +21,7 @@ import { IngestSummary } from "../../session/ingest-summary"
 import { IngestQueue } from "../../session/ingest-queue"
 import { WebCredential } from "../../session/web/web-credential"
 import { WebRole } from "../../session/web/web-role"
+import { WebJs } from "../../session/web/web-js"
 import { WebStats } from "../../session/web/web-stats"
 import { WebObject } from "../../session/web/web-object"
 import { WebFunction } from "../../session/web/web-function"
@@ -1378,6 +1379,26 @@ export const SessionRoutes = lazy(() =>
         return c.json(WebStats.summary(c.req.valid("param").sessionID))
       },
     )
+    .get(
+      "/:sessionID/web/js",
+      describeRoute({
+        summary: "List captured JS files",
+        description:
+          "The JS files (script URLs) seen during capture for this session, persisted durably — the TUI 'Captures > JS Files' view lists them and a later agent pulls + reviews each body.",
+        operationId: "session.webJs",
+        responses: {
+          200: {
+            description: "JS files",
+            content: { "application/json": { schema: resolver(WebJs.Info.array()) } },
+          },
+          ...errors(404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      async (c) => {
+        return c.json(WebJs.get(c.req.valid("param").sessionID))
+      },
+    )
     .post(
       "/:sessionID/web/hold",
       describeRoute({
@@ -1767,7 +1788,7 @@ export const SessionRoutes = lazy(() =>
           // AI navigated) — the traffic substrate for the navigator's route context + the
           // server-side framework fingerprint (P4). Runs before the dedup check so duplicates and
           // race-losers still count. Never throws.
-          DataCollector.record(sessionID, {
+          const collectedKind = DataCollector.record(sessionID, {
             method: normalized.method,
             origin: normalized.origin,
             path: normalized.canonicalPath ?? normalized.normalizedPath,
@@ -1775,6 +1796,16 @@ export const SessionRoutes = lazy(() =>
             contentType: headerValue(body.response?.headers, "content-type"),
             headers: body.response?.headers,
           })
+          // JS never becomes a request row, so persist script URLs durably (dedup by url) for the
+          // panel/TUI + a later body-analysis agent.
+          if (collectedKind === "js") {
+            WebJs.add({
+              sessionID,
+              url: normalized.origin + (normalized.canonicalPath ?? normalized.normalizedPath),
+              origin: normalized.origin,
+              discoveredFrom: "capture",
+            })
+          }
 
           const isDuplicate = Request.exists({
             sessionID,
