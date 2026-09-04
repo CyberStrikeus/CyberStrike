@@ -59,6 +59,23 @@ async function postDriver(driver) {
   }
 }
 
+// Pause / resume the AI navigator while the user engages the panel (transient hold — NOT the
+// driver toggle). Fire-and-forget; a failed post must never break the hover.
+async function postHold(held) {
+  const sid = await currentSession()
+  if (!sid) return
+  const base = await csUrl()
+  try {
+    await fetch(`${base}/session/${encodeURIComponent(sid)}/web/hold`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ held: !!held }),
+    })
+  } catch (e) {
+    console.warn("[hackbrowser] hold post failed", e)
+  }
+}
+
 // Post a diagnostic event to CyberStrike's per-session HackBrowser log. The ABSENCE of these
 // on the server is the signal that the extension isn't reaching this server / isn't the current
 // build / CfT didn't load it. Fire-and-forget; never blocks the flow it observes.
@@ -265,6 +282,32 @@ function closeControl() {
 let controlWs = null
 let controlReconnectTimer = null
 
+// --- Watchdog (dead-man's-switch): don't let a spawned browser OUTLIVE CyberStrike ---------------
+// The server-side cleanup (SpawnedProfiles) kills browsers when CS exits gracefully, but it can't
+// run if CS is SIGKILLed or crashes. So the browser also self-protects: if the control channel was
+// ever up and has now been unreachable for WATCHDOG_MS, we conclude CS is gone and close this
+// browser. Gated on `controlEverOpen` so a browser that never reached CS — or a brief CS restart —
+// is not force-closed. Reusable liveness pattern (see the reuse note): a component watches its
+// controller's heartbeat and takes a fail-safe action when it's lost past a threshold.
+const WATCHDOG_MS = 45000
+let controlEverOpen = false
+let controlDownSince = 0
+function watchdogExpired() {
+  return controlEverOpen && controlDownSince > 0 && Date.now() - controlDownSince > WATCHDOG_MS
+}
+async function selfCloseBrowser() {
+  void hblog("watchdog-selfclose", { downMs: Date.now() - controlDownSince })
+  try {
+    const wins = await chrome.windows.getAll()
+    for (const w of wins) if (w.id !== undefined) await chrome.windows.remove(w.id)
+  } catch {}
+  try {
+    const tabs = await chrome.tabs.query({})
+    const ids = tabs.map((t) => t.id).filter((id) => id !== undefined)
+    if (ids.length) await chrome.tabs.remove(ids)
+  } catch {}
+}
+
 // The tab the AI drives — the (first) attached tab in this browser.
 function drivenTab() {
   for (const [tabId, on] of attached) if (on) return tabId
@@ -279,6 +322,9 @@ function scheduleControlReconnect() {
   if (controlReconnectTimer) return
   controlReconnectTimer = setTimeout(() => {
     controlReconnectTimer = null
+    // CS unreachable too long → self-close instead of reconnecting forever (the reconnect loop
+    // itself keeps the MV3 service worker alive long enough for this check to fire).
+    if (watchdogExpired()) return void selfCloseBrowser()
     connectControl()
   }, 3000)
 }
@@ -299,6 +345,8 @@ async function connectControl() {
   ws.onopen = () => {
     console.log("[hackbrowser] control WS connected")
     void hblog("control-ws-open")
+    controlEverOpen = true // watchdog: we reached CS at least once → self-protect if it later vanishes
+    controlDownSince = 0
     // Tell the server who is driving as soon as the control channel is up. The panel default
     // is "ai" (co-driving), so an un-toggled tab must still report "ai" — otherwise the server
     // never learns the driver and the AI loop never starts even though the panel shows "AI
@@ -325,7 +373,7 @@ async function connectControl() {
     }
     // Carry the framework-adaptive fields through (P5): `mode` (type: native-setter for
     // React/Vue/Angular controlled inputs) and `until` (wait op: hydration).
-    const cmd = { op: msg.op, elementId: msg.elementId, text: msg.text, url: msg.url, mode: msg.mode, until: msg.until, timeoutMs: msg.timeoutMs }
+    const cmd = { op: msg.op, elementId: msg.elementId, text: msg.text, url: msg.url, mode: msg.mode, until: msg.until, timeoutMs: msg.timeoutMs, act: msg.act, label: msg.label, intent: msg.intent }
     const ack = await new Promise((r) =>
       chrome.tabs.sendMessage(tabId, { type: "perform", cmd }, (res) => {
         void chrome.runtime.lastError
@@ -336,6 +384,7 @@ async function connectControl() {
   }
   ws.onclose = () => {
     if (controlWs === ws) controlWs = null
+    if (!controlDownSince) controlDownSince = Date.now() // watchdog: start the "CS unreachable" clock
     scheduleControlReconnect()
   }
   ws.onerror = () => {
@@ -573,6 +622,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       // Make the server authoritative on who drives (interlock + loop trigger).
       void postDriver(msg.driver === "human" ? "human" : "ai")
       sendResponse(panelStatus(tabId))
+      return
+    }
+    // Panel hover / settings-open → pause the AI navigator so the page stays stable; leave → resume.
+    if (msg.type === "set-hold") {
+      void postHold(!!msg.held)
+      sendResponse({ ok: true })
       return
     }
     // Content-script diagnostics → forward to the per-session HackBrowser log.
