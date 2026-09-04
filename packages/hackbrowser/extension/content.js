@@ -31,7 +31,7 @@
   // means a sleeping/erroring MV3 service worker resolves to undefined instead of
   // rejecting — so a click handler never dead-ends (and never leaves a button stuck
   // disabled). Every button handler uses this.
-  function send(msg) {
+  function sendOnce(msg) {
     return new Promise((resolve) => {
       try {
         chrome.runtime.sendMessage(msg, (res) => {
@@ -42,6 +42,17 @@
         resolve(undefined)
       }
     })
+  }
+  // A first message can wake an evicted MV3 service worker and come back undefined even though the
+  // backend is fine. Retry once after a short beat so a transient SW hiccup doesn't surface to the
+  // user as a spurious "CyberStrike unreachable" / failure.
+  async function send(msg) {
+    let res = await sendOnce(msg)
+    if (res === undefined) {
+      await new Promise((r) => setTimeout(r, 120))
+      res = await sendOnce(msg)
+    }
+    return res
   }
 
   // Two SEPARATE color roles (each shadow root inlines these — vars can't cross roots):
@@ -519,8 +530,16 @@
     if (res && res.ok) {
       roleHint.textContent = `Opened a browser for "${label}"${role.name ? " (" + role.name + ")" : ""} — log in there, then Start capture.`
     } else {
-      flashTransition("CyberStrike unreachable", "", "#e0343f", 1600)
-      roleHint.textContent = (res && res.error) || "failed (need a reachable CyberStrike)"
+      // Distinguish the failure so the banner isn't a blanket "unreachable": auth (wrong password),
+      // truly unreachable, or reachable-but-spawn-failed (e.g. the browser couldn't launch).
+      const err = (res && res.error) || ""
+      const banner = /auth|password/i.test(err)
+        ? "Check the CyberStrike password"
+        : !res || /unreachable/i.test(err)
+          ? "CyberStrike unreachable"
+          : "Couldn't open the browser"
+      flashTransition(banner, "", "#e0343f", 1600)
+      roleHint.textContent = err || "failed (need a reachable CyberStrike)"
     }
   }
   credRoot.getElementById("cbGo").addEventListener("click", submitCredBox)
@@ -530,7 +549,8 @@
   }) // click the dim backdrop → cancel
   credRoot.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeCredBox()
-    else if (e.key === "Enter") submitCredBox()
+    // Enter submits — but NOT while the role <select> has focus (Enter there opens/confirms it).
+    else if (e.key === "Enter" && credRoot.activeElement !== cbRoleSel) submitCredBox()
   })
 
   // --- Dock ------------------------------------------------------------------
@@ -967,11 +987,16 @@
       flashTransition("Unauthenticated recording started", "", "#9e141c", 1300)
       loadSessions() // recording just ensured/created a session — pull the list so it shows + selects
     } else {
-      // Couldn't start — the server verifies reachability first, so a down backend comes back as
-      // "CyberStrike unreachable" (also treat a dead service worker / no response as unreachable).
-      const unreachable = !res || (res.error && /unreachable/i.test(res.error))
-      flashTransition(unreachable ? "CyberStrike unreachable" : "Couldn't start recording", "", "#e0343f", 1800)
-      roleHint.textContent = (res && res.error) || "failed (need local CyberStrike + reachable server)"
+      // Couldn't start — distinguish auth (wrong password), unreachable (down / no SW response), and
+      // reachable-but-failed, so the banner tells the user what to actually fix.
+      const err = (res && res.error) || ""
+      const banner = /auth|password/i.test(err)
+        ? "Check the CyberStrike password"
+        : !res || /unreachable/i.test(err)
+          ? "CyberStrike unreachable"
+          : "Couldn't start recording"
+      flashTransition(banner, "", "#e0343f", 1800)
+      roleHint.textContent = err || "failed (need local CyberStrike + reachable server)"
       dock.classList.remove("cap-on") // record ● (never became stop ■ since capture didn't start)
     }
     poll()
@@ -1189,6 +1214,7 @@
 
   // Logo tap → cycle the driver (AI → Human → Idle) + flash + report to the server.
   const DRV_CYCLE = ["ai", "human", "idle"]
+  let driverSeq = 0 // guards against an earlier set-driver response overwriting a newer rapid tap
   function cycleDriver() {
     // Driver switching is only meaningful WHILE RECORDING. Before that the logo doesn't cycle — it
     // just tells the user what's missing: an unreachable backend, or "start recording first".
@@ -1210,8 +1236,12 @@
       flashTransition(driver === "human" ? "Human Drives the Browser" : "CyberStrike Idle", driver)
     }
     // Backend accepts only ai|human: AI drives = "ai" (CoDrive.start); Human AND Idle both pause the
-    // AI via the human interlock — Idle is that same pause, presented without the hue.
-    chrome.runtime.sendMessage({ type: "set-driver", driver: driver === "ai" ? "ai" : "human" }, (res) => render(res))
+    // AI via the human interlock — Idle is that same pause, presented without the hue. Only the LATEST
+    // tap's response may render — a stale in-flight one would clobber a newer local driver.
+    const seq = ++driverSeq
+    chrome.runtime.sendMessage({ type: "set-driver", driver: driver === "ai" ? "ai" : "human" }, (res) => {
+      if (seq === driverSeq) render(res)
+    })
   }
   makeHostDraggable(host, fab, cycleDriver)
   makeHostDraggable(hudHost, hudEl)
