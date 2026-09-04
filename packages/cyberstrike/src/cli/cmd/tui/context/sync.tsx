@@ -137,6 +137,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           protocol?: string
           operation?: string
           key_hash?: string
+          page_url?: string
         }>
       }
       web_credential: {
@@ -151,6 +152,14 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           id: string
           name: string
           level?: number
+        }>
+      }
+      web_js: {
+        [sessionID: string]: Array<{
+          id: string
+          url: string
+          origin?: string
+          analyzed?: boolean
         }>
       }
       web_object: {
@@ -220,6 +229,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       request: {},
       web_credential: {},
       web_role: {},
+      web_js: {},
       web_object: {},
       web_function: {},
       web_retest: {},
@@ -562,6 +572,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         case "web_role.updated":
           setStore("web_role", raw.properties.sessionID, raw.properties.roles)
           break
+        case "web_js.updated":
+          setStore("web_js", raw.properties.sessionID, raw.properties.js)
+          break
         case "web_object.updated":
           setStore("web_object", raw.properties.sessionID, raw.properties.objects)
           break
@@ -707,7 +720,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         async sync(sessionID: string) {
           if (fullSyncedSessions.has(sessionID)) return
           const http = (sdk.client as any).client as { get: (opts: { url: string }) => Promise<{ data?: any }> }
-          const [session, messages, todo, diff, vuln, req, wCred, wRole, wObj, wFunc, wRetest] = await Promise.all([
+          const [session, messages, todo, diff, vuln, req, wCred, wRole, wObj, wFunc, wRetest, wJs] = await Promise.all([
             sdk.client.session.get({ sessionID }, { throwOnError: true }),
             sdk.client.session.messages({ sessionID, limit: 100 }),
             sdk.client.session.todo({ sessionID }),
@@ -719,6 +732,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             http.get({ url: `/session/${sessionID}/web/objects` }).catch(() => ({ data: [] })),
             http.get({ url: `/session/${sessionID}/web/functions` }).catch(() => ({ data: [] })),
             http.get({ url: `/session/${sessionID}/web/retest-queue` }).catch(() => ({ data: { pending: [] } })),
+            http.get({ url: `/session/${sessionID}/web/js` }).catch(() => ({ data: [] })),
           ])
           setStore(
             produce((draft) => {
@@ -733,6 +747,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
               draft.web_object[sessionID] = wObj?.data ?? []
               draft.web_function[sessionID] = wFunc?.data ?? []
               draft.web_retest[sessionID] = wRetest?.data?.pending ?? []
+              draft.web_js[sessionID] = wJs?.data ?? []
               draft.message[sessionID] = messages.data!.map((x) => x.info)
               for (const message of messages.data!) {
                 draft.part[message.info.id] = message.parts

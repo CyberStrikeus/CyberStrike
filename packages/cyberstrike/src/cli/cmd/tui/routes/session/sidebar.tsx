@@ -53,6 +53,21 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
     }
     return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))
   })
+  // Distinct pages the captured requests came from (Captures > Pages).
+  const pages = createMemo(() => {
+    const seen = new Set<string>()
+    const out: string[] = []
+    for (const r of requests()) {
+      const p = r.page_url
+      if (p && !seen.has(p)) {
+        seen.add(p)
+        out.push(p)
+      }
+    }
+    return out.sort((a, b) => a.localeCompare(b))
+  })
+  // JS files seen during capture (Captures > JS Files) — durable, from web_js.
+  const jsFiles = createMemo(() => sync.data.web_js[props.sessionID] ?? [])
   const credentials = createMemo(() => sync.data.web_credential[props.sessionID] ?? [])
   const roles = createMemo(() => sync.data.web_role[props.sessionID] ?? [])
   const objects = createMemo(() => sync.data.web_object[props.sessionID] ?? [])
@@ -90,7 +105,10 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
     todo: true,
     vulnerability: true,
     lsp: true,
+    captures: true,
     requests: true,
+    pages: true,
+    jsfiles: true,
     credentials: true,
     roles: true,
     objects: true,
@@ -513,22 +531,57 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                 </Show>
               </box>
             </Show>
-            <Show when={requests().length > 0}>
+            <Show when={requests().length > 0 || jsFiles().length > 0}>
               <box>
-                <box
-                  flexDirection="row"
-                  gap={1}
-                  onMouseDown={() => requests().length > 2 && setExpanded("requests", !expanded.requests)}
-                >
-                  <Show when={requests().length > 2}>
-                    <text fg={theme.text}>{expanded.requests ? "▼" : "▶"}</text>
-                  </Show>
+                {/* Captures — everything ingested from the browsers, with Pages / Endpoints / JS sub-views */}
+                <box flexDirection="row" gap={1} onMouseDown={() => setExpanded("captures", !expanded.captures)}>
+                  <text fg={theme.text}>{expanded.captures ? "▼" : "▶"}</text>
                   <text fg={theme.text}>
-                    <b>Endpoints</b>
+                    <b>Captures</b>
                   </text>
+                  <text fg={theme.textMuted}>({requests().length})</text>
                 </box>
-                <Show when={requests().length <= 2 || expanded.requests}>
-                  <For each={requestsByHost()}>
+                <Show when={expanded.captures}>
+                  {/* Pages — distinct page_url the captures came from */}
+                  <Show when={pages().length > 0}>
+                    <box paddingLeft={1}>
+                      <box
+                        flexDirection="row"
+                        gap={1}
+                        onMouseDown={() => pages().length > 2 && setExpanded("pages", !expanded.pages)}
+                      >
+                        <Show when={pages().length > 2}>
+                          <text fg={theme.text}>{expanded.pages ? "▼" : "▶"}</text>
+                        </Show>
+                        <text fg={theme.text}>Pages</text>
+                        <text fg={theme.textMuted}>({pages().length})</text>
+                      </box>
+                      <Show when={pages().length <= 2 || expanded.pages}>
+                        <For each={pages()}>
+                          {(p) => (
+                            <text fg={theme.textMuted} wrapMode="none" style={{ paddingLeft: 2 }}>
+                              {p}
+                            </text>
+                          )}
+                        </For>
+                      </Show>
+                    </box>
+                  </Show>
+                  {/* Endpoints — distinct captured requests, grouped by host */}
+                  <box paddingLeft={1}>
+                    <box
+                      flexDirection="row"
+                      gap={1}
+                      onMouseDown={() => requests().length > 2 && setExpanded("requests", !expanded.requests)}
+                    >
+                      <Show when={requests().length > 2}>
+                        <text fg={theme.text}>{expanded.requests ? "▼" : "▶"}</text>
+                      </Show>
+                      <text fg={theme.text}>Endpoints</text>
+                      <text fg={theme.textMuted}>({requests().length})</text>
+                    </box>
+                    <Show when={requests().length <= 2 || expanded.requests}>
+                      <For each={requestsByHost()}>
                     {([host, rows]) => (
                       <box>
                         <text fg={theme.textMuted} wrapMode="none">
@@ -601,6 +654,33 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                       </box>
                     )}
                   </For>
+                    </Show>
+                  </box>
+                  {/* JS Files — durable script URLs (a later agent pulls + reviews each body) */}
+                  <Show when={jsFiles().length > 0}>
+                    <box paddingLeft={1}>
+                      <box
+                        flexDirection="row"
+                        gap={1}
+                        onMouseDown={() => jsFiles().length > 2 && setExpanded("jsfiles", !expanded.jsfiles)}
+                      >
+                        <Show when={jsFiles().length > 2}>
+                          <text fg={theme.text}>{expanded.jsfiles ? "▼" : "▶"}</text>
+                        </Show>
+                        <text fg={theme.text}>JS Files</text>
+                        <text fg={theme.textMuted}>({jsFiles().length})</text>
+                      </box>
+                      <Show when={jsFiles().length <= 2 || expanded.jsfiles}>
+                        <For each={jsFiles()}>
+                          {(j) => (
+                            <text fg={theme.textMuted} wrapMode="none" style={{ paddingLeft: 2 }}>
+                              {j.url}
+                            </text>
+                          )}
+                        </For>
+                      </Show>
+                    </box>
+                  </Show>
                 </Show>
               </box>
             </Show>
