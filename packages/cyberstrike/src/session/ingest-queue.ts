@@ -4,6 +4,44 @@ import { SessionQueueStatus } from "./queue-status"
 
 const log = Log.create({ service: "ingest-queue" })
 
+// A single ingested request's sub-agent (proxy-tester / analyzer) shouldn't run longer than this;
+// tasks are chained (sequential), so a HUNG one would stall EVERY later test on the session. On
+// timeout we abandon it and let the queue advance. FLAG: this is a deadline watchdog on the queue
+// slot — it does NOT hard-abort the underlying sub-agent (no AbortSignal is threaded into
+// SessionPrompt yet), so the hung run keeps consuming in the background until it errors on its own.
+const TASK_TIMEOUT_MS = 180_000
+
+// Run a task with a deadline. Resolves/rejects with the task's outcome if it settles in time; on
+// timeout rejects with "ingest-task-timeout" so the chain's error handler advances the queue. The
+// timer is always cleared (no leak), and a double-settle can't happen.
+function runWithTimeout(sessionID: string, task: () => Promise<unknown>, ms: number): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    let done = false
+    const timer = setTimeout(() => {
+      if (done) return
+      done = true
+      log.warn("ingest task timed out — abandoning so the queue advances", { sessionID, timeoutMs: ms })
+      reject(new Error("ingest-task-timeout"))
+    }, ms)
+    Promise.resolve()
+      .then(task)
+      .then(
+        (v) => {
+          if (done) return
+          done = true
+          clearTimeout(timer)
+          resolve(v)
+        },
+        (e) => {
+          if (done) return
+          done = true
+          clearTimeout(timer)
+          reject(e)
+        },
+      )
+  })
+}
+
 export namespace IngestQueue {
   type State = {
     chain: Promise<void>
@@ -60,14 +98,15 @@ export namespace IngestQueue {
     return s.resumeSignal
   }
 
-  export function enqueue(sessionID: string, task: () => Promise<unknown>) {
+  export function enqueue(sessionID: string, task: () => Promise<unknown>, opts?: { timeoutMs?: number }) {
     const s = getOrInit(sessionID)
     s.pending++
     publish(sessionID)
 
+    const ms = opts?.timeoutMs ?? TASK_TIMEOUT_MS
     const next = s.chain
-      .then(() => waitIfPaused(sessionID))
-      .then(task)
+      .then(() => waitIfPaused(sessionID)) // pause time is NOT counted against the task deadline
+      .then(() => runWithTimeout(sessionID, task, ms))
       .then(
         () => {},
         (err) => log.error("ingest prompt failed", { sessionID, error: err }),

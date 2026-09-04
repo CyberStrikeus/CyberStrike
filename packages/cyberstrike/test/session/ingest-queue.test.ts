@@ -207,4 +207,18 @@ describe("SessionQueueStatus", () => {
       expect(SessionQueueStatus.get(sid).paused).toBe(false)
     })
   })
+
+  test("a hung sub-agent task times out and the queue advances to the next", async () => {
+    await withInstance(async () => {
+      const sid = "qto"
+      const hung = defer() // never resolves → simulates a stuck sub-agent
+      let secondRan = false
+      IngestQueue.enqueue(sid, () => hung.promise, { timeoutMs: 20 })
+      IngestQueue.enqueue(sid, async () => void (secondRan = true), { timeoutMs: 20 })
+      // Past the first task's deadline: it's abandoned, the second runs, the queue drains.
+      await new Promise((r) => setTimeout(r, 150))
+      expect(secondRan).toBe(true)
+      expect(IngestQueue.pendingCount(sid)).toBe(0)
+    })
+  })
 })
