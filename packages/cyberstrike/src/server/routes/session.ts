@@ -1292,7 +1292,11 @@ export const SessionRoutes = lazy(() =>
         responses: {
           200: {
             description: "Current driver",
-            content: { "application/json": { schema: resolver(z.object({ ok: z.boolean(), driver: z.enum(["ai", "human"]) })) } },
+            content: {
+              "application/json": {
+                schema: resolver(z.object({ ok: z.boolean(), driver: z.enum(["ai", "human"]), model: z.string().optional() })),
+              },
+            },
           },
           ...errors(400, 404),
         },
@@ -1308,7 +1312,13 @@ export const SessionRoutes = lazy(() =>
         // any in-flight action). Idempotent — repeated "ai" posts don't stack loops.
         if (driver === "ai") CoDrive.start(sessionID)
         else CoDrive.stop(sessionID)
-        return c.json({ ok: true, driver })
+        // Report the MAIN model the co-driving loop will plan with, so the panel can confirm the
+        // AI is actually wired up (and to which model) rather than leaving the user guessing.
+        let model: string | undefined
+        try {
+          model = (await Provider.defaultModel()).modelID
+        } catch {}
+        return c.json({ ok: true, driver, model })
       },
     )
     .get(

@@ -533,6 +533,15 @@
       .rent b { color: var(--text); font-weight: 600; }
       .rent .verb { color: var(--ai); font-family: var(--mono); font-size: 10.5px; }
       @keyframes slidein { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; } }
+      /* AI link — the co-driving connection state + model, shown while AI drives (troubleshooting). */
+      .ailink { display: none; align-items: center; gap: 7px; margin-top: 9px; font-size: 10.5px; color: var(--dim); }
+      .ailink.show { display: flex; }
+      .ailink .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); flex: none; }
+      .ailink.ok .dot { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+      .ailink.wait .dot { background: var(--human); box-shadow: 0 0 7px var(--human); animation: linkpulse 1.2s ease-in-out infinite; }
+      .ailink.err .dot { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+      .ailink .mono { font-family: var(--mono); color: var(--text); }
+      @keyframes linkpulse { 0%,100% { opacity: .4; } 50% { opacity: 1; } }
       .hint { font-size: 10.5px; color: var(--faint); margin-top: 8px; min-height: 12px; }
     </style>
 
@@ -551,6 +560,7 @@
           </div>
           <input class="fld" id="srvPw" type="password" placeholder="password (remote / tunnel only)" style="margin-top:7px" />
           <button class="cta" id="attachBtn">Start capture</button>
+          <div class="ailink" id="ailink"><span class="dot"></span><span class="txt" id="ailinkTxt"></span></div>
           <div class="lbl">CyberStrike session</div>
           <div class="rowg">
             <select class="fld" id="sess"><option value="">-- New session --</option></select>
@@ -639,6 +649,8 @@
   }
   const panel = root.getElementById("panel")
   const stateEl = root.getElementById("state")
+  const ailink = root.getElementById("ailink")
+  const ailinkTxt = root.getElementById("ailinkTxt")
   const sTotal = root.getElementById("s-total")
   const sApi = root.getElementById("s-api")
   const sJs = root.getElementById("s-js")
@@ -863,6 +875,53 @@
     dock.classList.toggle("idle", d === "idle")
   }
 
+  // AI link indicator: while AI drives, show whether the control channel to CyberStrike is up and
+  // which MAIN model it planned with — so the user can confirm the AI actually connected (and, if
+  // not, tell a backend/comms problem apart from a working run). Flashes "Connected · <model>" once.
+  let aiWaitSince = 0
+  let linkConnected = false
+  function setLink(cls, text, model) {
+    ailink.className = "ailink show " + cls
+    ailinkTxt.textContent = text
+    if (model) {
+      ailinkTxt.append(" · ")
+      const m = document.createElement("span")
+      m.className = "mono"
+      m.textContent = model
+      ailinkTxt.append(m)
+    }
+  }
+  function updateLink(status, attached) {
+    if (driver !== "ai") {
+      ailink.className = "ailink"
+      aiWaitSince = 0
+      linkConnected = false
+      return
+    }
+    const control = !!(status && status.control)
+    const model = (status && status.model) || ""
+    if (!attached) {
+      setLink("wait", "start capture to connect the AI")
+      aiWaitSince = 0
+      linkConnected = false
+      return
+    }
+    if (control) {
+      aiWaitSince = 0
+      setLink("ok", "connected", model)
+      if (!linkConnected) {
+        linkConnected = true
+        flashTransition(model ? "Connected · " + model : "Connected", "ai", "", 1600)
+      }
+      return
+    }
+    // AI + capturing but the control channel isn't open yet — connecting, or (after a grace) an error.
+    linkConnected = false
+    if (!aiWaitSince) aiWaitSince = Date.now()
+    if (Date.now() - aiWaitSince > 5000) setLink("err", "no connection — is CyberStrike running?")
+    else setLink("wait", "connecting to the model…")
+  }
+
   function updateSide() {
     const cx = host.getBoundingClientRect().left + host.offsetWidth / 2
     const onRight = cx > window.innerWidth / 2
@@ -900,6 +959,7 @@
     sPage.textContent = pageCount
     hPg.textContent = pageCount
     stateEl.textContent = !attached ? "detached" : driver === "human" ? "you drive" : driver === "idle" ? "idle" : "AI driving"
+    updateLink(status, attached)
 
     // Tab-edge glow follows the driver exactly like the mockup: on for AI (red) / Human (blue),
     // off for Idle. (Default driver is Idle, so a page you're only browsing stays calm.)

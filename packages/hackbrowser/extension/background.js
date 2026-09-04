@@ -75,15 +75,21 @@ async function postDriver(driver) {
   if (!sid) return
   const base = await csUrl()
   try {
-    await csFetch(`${base}/session/${encodeURIComponent(sid)}/web/driver`, {
+    const res = await csFetch(`${base}/session/${encodeURIComponent(sid)}/web/driver`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ driver: driver === "human" ? "human" : "ai" }),
     })
+    // The server echoes the MAIN model it will plan with — surface it in the panel so the user can
+    // see the AI is actually wired up (and to which model).
+    const j = res && res.ok ? await res.json().catch(() => null) : null
+    if (j && j.model) lastModel = String(j.model)
   } catch (e) {
     console.warn("[hackbrowser] driver post failed", e)
   }
 }
+// The MAIN model reported by the last successful /web/driver POST — shown in the panel's AI link.
+let lastModel = ""
 
 // Pause / resume the AI navigator while the user engages the panel (transient hold — NOT the
 // driver toggle). Fire-and-forget; a failed post must never break the hover.
@@ -237,6 +243,9 @@ function panelStatus(tabId) {
     attached: ok && attached.has(tabId),
     stats: (ok && statsByTab.get(tabId)) || emptyStats(),
     driver: (ok && driverByTab.get(tabId)) || "ai",
+    // AI-link troubleshooting: is the control channel to CyberStrike open, and which model is it?
+    control: !!(controlWs && controlWs.readyState === WebSocket.OPEN),
+    model: lastModel,
   }
 }
 
