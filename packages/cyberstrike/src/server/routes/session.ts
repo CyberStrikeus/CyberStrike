@@ -1341,6 +1341,31 @@ export const SessionRoutes = lazy(() =>
         return c.json({ driver: WebDriver.get(sessionID) ?? null })
       },
     )
+    .get(
+      "/:sessionID/web/stats",
+      describeRoute({
+        summary: "Web capture stats for the panel HUD",
+        description:
+          "Live capture counts for the on-page panel/HUD, sourced from the server's DataCollector so the browser extension stays a thin collector (no parallel in-browser tally): total captured requests, distinct endpoints, distinct JS files, and pages (HTML documents) loaded.",
+        operationId: "session.webStats",
+        responses: {
+          200: {
+            description: "Capture counts",
+            content: {
+              "application/json": {
+                schema: resolver(z.object({ captures: z.number(), endpoints: z.number(), js: z.number(), pages: z.number() })),
+              },
+            },
+          },
+          ...errors(404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        return c.json(DataCollector.summary(sessionID))
+      },
+    )
     .post(
       "/:sessionID/web/hold",
       describeRoute({
