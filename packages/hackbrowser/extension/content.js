@@ -879,7 +879,8 @@
   // which MAIN model it planned with — so the user can confirm the AI actually connected (and, if
   // not, tell a backend/comms problem apart from a working run). Flashes "Connected · <model>" once.
   let aiWaitSince = 0
-  let linkConnected = false
+  let linkState = "" // "" | capture | unreach | connecting | connected | error
+  let csReachable = null // last ping-cs result (null = not yet probed) — set on switching to AI
   function setLink(cls, text, model) {
     ailink.className = "ailink show " + cls
     ailinkTxt.textContent = text
@@ -891,35 +892,55 @@
       ailinkTxt.append(m)
     }
   }
+  // Flash a center banner ONCE per state change, so the connection result is visible without opening
+  // the settings panel (the panel indicator is buried until the user opens it).
+  function flashLink(state, model) {
+    if (state === linkState) return
+    linkState = state
+    if (state === "connecting") flashTransition("Connecting to CyberStrike…", "ai", "", 1400)
+    else if (state === "connected") flashTransition(model ? "Connected · " + model : "Connected", "ai", "", 1600)
+    else if (state === "capture") flashTransition("Start capture to connect the AI", "ai", "", 1600)
+    else if (state === "unreach" || state === "error") flashTransition("CyberStrike unreachable", "", "#e0343f", 1800)
+  }
   function updateLink(status, attached) {
     if (driver !== "ai") {
       ailink.className = "ailink"
       aiWaitSince = 0
-      linkConnected = false
+      linkState = ""
       return
     }
     const control = !!(status && status.control)
     const model = (status && status.model) || ""
-    if (!attached) {
-      setLink("wait", "start capture to connect the AI")
-      aiWaitSince = 0
-      linkConnected = false
-      return
-    }
-    if (control) {
+    if (attached && control) {
       aiWaitSince = 0
       setLink("ok", "connected", model)
-      if (!linkConnected) {
-        linkConnected = true
-        flashTransition(model ? "Connected · " + model : "Connected", "ai", "", 1600)
+      flashLink("connected", model)
+      return
+    }
+    if (attached && !control) {
+      // Capturing but the control channel isn't open — connecting, or (after a grace) a real failure.
+      if (!aiWaitSince) aiWaitSince = Date.now()
+      if (Date.now() - aiWaitSince > 5000) {
+        setLink("err", "no connection — is CyberStrike running?")
+        flashLink("error")
+      } else {
+        setLink("wait", "connecting to the model…")
+        flashLink("connecting")
       }
       return
     }
-    // AI + capturing but the control channel isn't open yet — connecting, or (after a grace) an error.
-    linkConnected = false
-    if (!aiWaitSince) aiWaitSince = Date.now()
-    if (Date.now() - aiWaitSince > 5000) setLink("err", "no connection — is CyberStrike running?")
-    else setLink("wait", "connecting to the model…")
+    // Not capturing yet: the AI needs a capture session to drive. Use the reachability probe to tell
+    // an unreachable backend apart from just-needs-capture, so a down CyberStrike is obvious here too.
+    aiWaitSince = 0
+    if (csReachable === false) {
+      setLink("err", "CyberStrike unreachable")
+      flashLink("unreach")
+    } else if (csReachable === true) {
+      setLink("wait", "start capture to connect the AI")
+      flashLink("capture")
+    } else {
+      setLink("wait", "checking CyberStrike…") // probe still in flight
+    }
   }
 
   function updateSide() {
@@ -961,12 +982,15 @@
     stateEl.textContent = !attached ? "detached" : driver === "human" ? "you drive" : driver === "idle" ? "idle" : "AI driving"
     updateLink(status, attached)
 
-    // Tab-edge glow follows the driver exactly like the mockup: on for AI (red) / Human (blue),
-    // off for Idle. (Default driver is Idle, so a page you're only browsing stays calm.)
-    const glowing = driver === "ai" || driver === "human"
-    glow.classList.toggle("on", glowing)
-    glow.classList.toggle("ai", glowing && driver === "ai")
-    glow.classList.toggle("human", glowing && driver === "human")
+    // Tab-edge glow reflects a REAL link, not just the toggle: AI red only when the control channel
+    // to CyberStrike is actually open, Human blue while capturing, and NOTHING in Idle (or when
+    // nothing is connected) — so a page you're only browsing, or a down backend, stays calm.
+    const control = !!(status && status.control)
+    const aiLive = driver === "ai" && control
+    const humanLive = driver === "human" && attached
+    glow.classList.toggle("on", aiLive || humanLive)
+    glow.classList.toggle("ai", aiLive)
+    glow.classList.toggle("human", humanLive)
   }
 
   // --- Drag (edge-anchored + clamped, like a chat-head widget) ----------------
@@ -1052,10 +1076,19 @@
   function cycleDriver() {
     driver = DRV_CYCLE[(DRV_CYCLE.indexOf(driver) + 1) % DRV_CYCLE.length]
     applyDriverHue(driver)
-    flashTransition(
-      driver === "human" ? "Human Drives the Browser" : driver === "idle" ? "CyberStrike Idle" : "AI Drives the Browser",
-      driver, // "ai" | "human" | "idle" → the .msg color class
-    )
+    if (driver === "ai") {
+      // Don't claim "AI drives" until we've actually reached CyberStrike. Probe first; the link
+      // state (connecting -> connected · model / unreachable) then drives the banner + the red hue.
+      csReachable = null
+      flashTransition("Connecting to CyberStrike…", "ai", "", 1400)
+      linkState = "connecting"
+      send({ type: "ping-cs" }).then((r) => {
+        csReachable = !!(r && r.reachable)
+        poll() // refresh the link indicator + banner with the probe result
+      })
+    } else {
+      flashTransition(driver === "human" ? "Human Drives the Browser" : "CyberStrike Idle", driver)
+    }
     // Backend accepts only ai|human: AI drives = "ai" (CoDrive.start); Human AND Idle both pause the
     // AI via the human interlock — Idle is that same pause, presented without the hue.
     chrome.runtime.sendMessage({ type: "set-driver", driver: driver === "ai" ? "ai" : "human" }, (res) => render(res))

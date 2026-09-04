@@ -653,6 +653,19 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // List CyberStrike sessions for the panel dropdown. MUST run here (background)
     // — a content-script fetch would be CORS-blocked; background fetch is exempt
     // via host_permissions, same as the capture forward.
+    // Lightweight reachability probe for the panel's AI link — is CyberStrike answering at all, and
+    // what model did the last driver post report. Lets the panel show "connecting / connected · model
+    // / CyberStrike unreachable" even before capture (when there is no control WS yet).
+    if (msg.type === "ping-cs") {
+      const base = await csUrl()
+      let reachable = false
+      try {
+        const r = await csFetch(`${base}/session?limit=1&roots=true`)
+        reachable = !!(r && r.ok)
+      } catch {}
+      sendResponse({ reachable, model: lastModel })
+      return
+    }
     if (msg.type === "list-sessions") {
       const base = await csUrl()
       try {
