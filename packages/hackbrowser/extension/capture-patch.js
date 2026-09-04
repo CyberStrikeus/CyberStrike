@@ -23,6 +23,38 @@
     }
   }
 
+  // Native JS dialogs (alert / confirm / prompt) are BROWSER CHROME, not DOM — the content script
+  // can't see or click the OK button, and each one BLOCKS the page's JS thread synchronously, which
+  // stalls the whole co-driving loop (no observe, no act) until a human dismisses it. Override them
+  // here (MAIN world, document_start — before page scripts run) so they never block:
+  //   alert   → no-op            (page continues)
+  //   confirm → false (Cancel)   safe default, mirroring the guard's "destructive needs human confirm"
+  //   prompt  → null  (Cancel)
+  // Each is still REPORTED (an XSS alert(document.cookie) PoC stays visible in the HBLog) — the
+  // dialog is suppressed, not hidden. NOTE: beforeunload ("Leave site?") is NOT handled yet.
+  function reportDialog(kind, message) {
+    try {
+      window.postMessage({ __cs_dialog: { kind, message: String(message == null ? "" : message).slice(0, 500) } }, window.location.origin || "*")
+    } catch {
+      // ignore — best effort
+    }
+  }
+  try {
+    window.alert = function (m) {
+      reportDialog("alert", m)
+    }
+    window.confirm = function (m) {
+      reportDialog("confirm", m)
+      return false
+    }
+    window.prompt = function (m) {
+      reportDialog("prompt", m)
+      return null
+    }
+  } catch {
+    // a page that froze these properties → leave them; best effort
+  }
+
   // Header keys MUST be lowercased — background.js merges these with webRequest's
   // lowercased headers via Object.assign; mismatched case would keep BOTH keys and
   // emit duplicate Authorization/Cookie lines in the raw HTTP.

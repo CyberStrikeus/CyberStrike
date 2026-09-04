@@ -19,6 +19,9 @@
   window.__csHb2Loaded = true
 
   const LOGO_SRC = chrome.runtime.getURL("logo.png")
+  // Eye icons for the in-page reasoning-overlay (hue) on/off toggle.
+  const EYE_ON = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>`
+  const EYE_OFF = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="m1 1 22 22"/></svg>`
 
   // Message the background without ever throwing. The callback form + lastError check
   // means a sleeping/erroring MV3 service worker resolves to undefined instead of
@@ -126,6 +129,9 @@
              border:2px solid rgba(${AI_RGB},.9); opacity:0; }
       .cur.pulse .dot { animation: aiPulse .5s ease-out; }
       @keyframes aiPulse { 0%{ transform:scale(.3); opacity:.9 } 100%{ transform:scale(1.5); opacity:0 } }
+      /* "Thinking" breathing while the model plans the next move. */
+      .cur.thinking .dot { animation: aiBreathe 1.15s ease-in-out infinite; }
+      @keyframes aiBreathe { 0%,100%{ transform:scale(.55); opacity:.3 } 50%{ transform:scale(1.25); opacity:.85 } }
       .ring { position: fixed; pointer-events:none; border-radius:6px; opacity:0;
               box-shadow: 0 0 0 2px rgba(${AI_RGB},.95), 0 0 16px 3px rgba(${AI_RGB},.5); }
       .ring.flash { animation: aiRing 1s ease-out; }
@@ -145,13 +151,42 @@
   const airing = curRoot.getElementById("airing")
   const aiactEl = curRoot.getElementById("aiact")
   let aiActTimer = null
+  // In-page reasoning overlay ("hue"): the AI cursor, target ring, and activity/reason bubbles.
+  // Toggled by the panel's eye button; persisted per browser. Default ON. When OFF, all in-page
+  // AI visuals are suppressed (the panel Reasoning log still updates — that's not the "hue").
+  let hueOn = true
+  try {
+    hueOn = localStorage.getItem("cs_hue") !== "0"
+  } catch {}
+  function setHue(on) {
+    hueOn = !!on
+    try {
+      localStorage.setItem("cs_hue", hueOn ? "1" : "0")
+    } catch {}
+    if (!hueOn) {
+      aicur.classList.remove("on")
+      aiactEl.classList.remove("show")
+    }
+  }
   function aiActivity(text) {
+    if (!hueOn) return
     aiactEl.textContent = text
     aiactEl.classList.add("show")
     if (aiActTimer) clearTimeout(aiActTimer)
     aiActTimer = setTimeout(() => aiactEl.classList.remove("show"), 2600)
   }
+  // Thinking cue while the model plans (no target yet): keep the cursor visible with a breathing
+  // pulse + a persistent "planning…" bubble (no auto-hide), cleared when the next action arrives.
+  function aiThinking() {
+    if (!hueOn) return
+    aicur.classList.add("on", "thinking")
+    aiactEl.textContent = "planning next move…"
+    aiactEl.classList.add("show")
+    if (aiActTimer) clearTimeout(aiActTimer)
+  }
   function aiPointAt(el) {
+    if (!hueOn) return
+    aicur.classList.remove("thinking") // a concrete target → stop the thinking breathe
     let r
     try {
       r = el.getBoundingClientRect()
@@ -172,6 +207,7 @@
     airing.classList.add("flash")
   }
   function aiClickPulse() {
+    if (!hueOn) return
     aicur.classList.remove("pulse")
     void aicur.offsetWidth
     aicur.classList.add("pulse")
@@ -314,9 +350,28 @@
         display: inline-flex; align-items: center; justify-content: center;
         background: radial-gradient(circle at 50% 40%, #141c26, #0b0f14);
         box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07);
-        cursor: grab; user-select: none;
+        cursor: grab; user-select: none; position: relative; z-index: 2;
         transition: transform .16s ease, box-shadow .16s ease;
       }
+      /* Quick-action "wings" flanking the logo (Olympic interlock): RED = unauthenticated capture,
+         BLUE + = add credential. Tucked behind the FAB (z-index 1); peek out on hover. */
+      .wing {
+        position: absolute; top: 50%; width: 44px; height: 44px; border-radius: 50%;
+        transform: translateY(-50%) scale(.7); z-index: 1;
+        display: inline-flex; align-items: center; justify-content: center;
+        border: 0; cursor: pointer; color: #fff; font: 800 19px system-ui, sans-serif;
+        opacity: 0; pointer-events: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.16);
+        transition: opacity .18s ease, transform .18s ease, right .18s ease, left .18s ease, filter .15s ease;
+      }
+      .wing.right { right: -10px; background: radial-gradient(circle at 50% 40%, #e0343f, #b4232f); justify-content: flex-end; padding-right: 7px; }
+      .wing.left  { left:  -10px; background: radial-gradient(circle at 50% 40%, #3b82f6, #2563eb); justify-content: flex-start; padding-left: 7px; }
+      .wing .wdot { width: 11px; height: 11px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px rgba(255,255,255,.6); }
+      .wing:hover { filter: brightness(1.12); }
+      .wing:disabled { opacity: .4 !important; cursor: default; }
+      .dock:hover:not(.settings) .wing { opacity: 1; pointer-events: auto; transform: translateY(-50%) scale(1); }
+      .dock:hover:not(.settings) .wing.right { right: -32px; }
+      .dock:hover:not(.settings) .wing.left  { left:  -32px; }
       .fab:hover {
         transform: scale(1.09);
         box-shadow: 0 8px 24px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.14);
@@ -411,6 +466,12 @@
       .row:last-child { border-bottom: 0; }
       .row .k { color: var(--dim); font-size: 11px; }
       .row .v { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+      /* AI reasoning log (panel) — the persistent "why" stream. */
+      .rlbl { font-size: 10px; color: var(--faint); text-transform: uppercase; letter-spacing: .06em; display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+      .rlog { max-height: 108px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+      .rlog:empty::after { content: "waiting for the AI…"; color: var(--faint); font-size: 11px; }
+      .rent { font-size: 11px; line-height: 1.35; color: var(--dim); border-left: 2px solid rgba(${AI_RGB},.55); padding: 2px 0 2px 7px; }
+      .rent b { color: var(--text); font-weight: 600; }
     </style>
 
     <div class="dock right" id="dock">
@@ -441,12 +502,19 @@
             <div class="row"><span class="k">static assets</span><span class="v" id="s-static">0</span></div>
             <div class="row"><span class="k">page elements</span><span class="v" id="s-page">0</span></div>
           </div>
+          <div class="brk">
+            <div class="rlbl">AI reasoning</div>
+            <div class="rlog" id="rlog"></div>
+          </div>
         </div>
       </div>
       <div class="bar" id="bar">
         <span class="cap">captured <b id="b-total">0</b></span>
+        <button class="gear" id="hueBtn" title="AI reasoning overlay (hue)">${EYE_ON}</button>
         <button class="gear" id="gear" title="Details">${GEAR}</button>
       </div>
+      <button class="wing left" id="wLeft" title="Add credential (opens a new browser for a role)">+</button>
+      <button class="wing right" id="wRight" title="Start unauthenticated capture"><span class="wdot"></span></button>
       <button class="fab" id="fab" title="Toggle driver"><img src="${LOGO_SRC}" alt="CyberStrike" draggable="false" /></button>
     </div>
   `
@@ -454,6 +522,39 @@
   const dock = root.getElementById("dock")
   const fab = root.getElementById("fab")
   const gear = root.getElementById("gear")
+  // In-page reasoning-overlay (hue) toggle + the panel reasoning log.
+  const hueBtn = root.getElementById("hueBtn")
+  const rlog = root.getElementById("rlog")
+  function reflectHue() {
+    hueBtn.innerHTML = hueOn ? EYE_ON : EYE_OFF
+    hueBtn.title = hueOn ? "AI reasoning overlay: on" : "AI reasoning overlay: off"
+    hueBtn.style.color = hueOn ? "" : "var(--faint)"
+  }
+  reflectHue()
+  hueBtn.addEventListener("click", (e) => {
+    e.stopPropagation()
+    setHue(!hueOn)
+    reflectHue()
+  })
+  // Append one reasoning entry. Built with DOM nodes (never innerHTML) — label/intent come from
+  // the page/model, so string-interpolating them into HTML would be an injection into our root.
+  function addReason(act, label, intent) {
+    if (!rlog) return
+    const verb = act === "click" ? "click" : act === "type" ? "type into" : act === "navigate" ? "go to" : act === "form" ? "submit" : String(act || "act")
+    const row = document.createElement("div")
+    row.className = "rent"
+    row.append(verb + " ")
+    if (label) {
+      const b = document.createElement("b")
+      b.textContent = String(label)
+      row.append(b)
+    }
+    const why = intent && String(intent).trim()
+    if (why) row.append(" — " + String(intent).trim())
+    rlog.appendChild(row)
+    while (rlog.childElementCount > 40) rlog.removeChild(rlog.firstChild)
+    rlog.scrollTop = rlog.scrollHeight
+  }
   const stateEl = root.getElementById("state")
   const sTotal = root.getElementById("s-total")
   const sApi = root.getElementById("s-api")
@@ -472,13 +573,26 @@
   // Hover reveals the toolbar (captured + settings). JS-driven so a gap between
   // the logo and the bar doesn't drop the hover; stays open while settings is on.
   let hoverTimer = null
+  // Pause the AI while the user is engaging the panel, so a full-page navigation doesn't wipe the
+  // panel out from under them before they can click. Deduped so we don't spam the server on every
+  // pointer move; released only once the bar actually hides AND settings is closed.
+  let holdOn = false
+  function setHold(want) {
+    if (want === holdOn) return
+    holdOn = want
+    send({ type: "set-hold", held: want })
+  }
   function showBar() {
     if (hoverTimer) clearTimeout(hoverTimer)
     bar.classList.add("show")
+    setHold(true)
   }
   function hideBar() {
     hoverTimer = setTimeout(() => {
-      if (!settingsOpen) bar.classList.remove("show")
+      if (!settingsOpen) {
+        bar.classList.remove("show")
+        setHold(false)
+      }
     }, 260)
   }
   fab.addEventListener("mouseenter", showBar)
@@ -597,6 +711,31 @@
   addRole.addEventListener("click", enqueueRoleClick)
   newRole.addEventListener("keydown", (e) => {
     if (e.key === "Enter") enqueueRoleClick()
+  })
+
+  // Logo "wings": RED (right) = start unauthenticated capture; BLUE "+" (left) = add credential.
+  const wRight = root.getElementById("wRight")
+  const wLeft = root.getElementById("wLeft")
+  wRight.addEventListener("click", async (e) => {
+    e.stopPropagation()
+    const status = await send({ type: "panel-status" })
+    if (status && status.attached) return void flashTransition("Already capturing", "", "", 1100)
+    wRight.disabled = true
+    const res = await send({ type: "start-capture", role: "Anonymous", url: location.href })
+    wRight.disabled = false
+    if (res && res.ok) flashTransition("Unauthenticated capture started", "", "#b4232f", 1300)
+    else roleHint.textContent = (res && res.error) || "failed (need local CyberStrike + reachable server)"
+    poll()
+  })
+  wLeft.addEventListener("click", (e) => {
+    e.stopPropagation()
+    // Add credential needs a role NAME → open the panel focused on the role input.
+    settingsOpen = true
+    dock.classList.add("settings")
+    bar.classList.add("show")
+    try {
+      newRole.focus()
+    } catch {}
   })
 
   function updateSide() {
@@ -1256,6 +1395,9 @@
     const d = e.data
     if (!d) return
     if (d.__cs_nav) return void onNav()
+    // A native dialog the MAIN-world patch suppressed (alert/confirm/prompt) — surface it in the
+    // HBLog so it's observable (and an alert-based XSS PoC isn't lost) without blocking the loop.
+    if (d.__cs_dialog) return void send({ type: "hblog", event: "dialog-suppressed", data: d.__cs_dialog })
     const rec = d.__cs_capture
     if (!rec) return
     rec.page_url = location.href
@@ -1364,6 +1506,21 @@
         }
         if (cmd.op === "wait") {
           if (cmd.until === "hydrated") await waitHydrated(cmd.timeoutMs)
+          return sendResponse({ ok: true })
+        }
+        if (cmd.op === "narrate") {
+          // "thinking" = the model is planning (no target yet) → breathing cue, no panel entry.
+          if (cmd.act === "thinking") {
+            aiThinking()
+            return sendResponse({ ok: true })
+          }
+          // A concrete action: panel log always; in-page hue (ring + reason bubble) only when the
+          // toggle is on (aiPointAt/aiActivity self-guard on hueOn).
+          addReason(cmd.act, cmd.label, cmd.intent)
+          aicur.classList.remove("thinking") // planning done — a move was chosen
+          const tgt = cmd.elementId ? elMap.get(cmd.elementId) : null
+          if (tgt) aiPointAt(tgt)
+          if (cmd.intent || cmd.label) aiActivity(cmd.intent || cmd.label)
           return sendResponse({ ok: true })
         }
         if (cmd.op === "navigate") {
