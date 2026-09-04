@@ -947,6 +947,7 @@ export const SessionRoutes = lazy(() =>
         // AI inference. Only when a label + a role name are both given.
         const roleName = body.roleName && body.roleName.trim()
         if (body.role && roleName) {
+          await Session.get(sessionID) // 404 on a stale/bogus session before writing role/credential rows (which FK to it)
           const role = WebRole.add({ sessionID, name: roleName, level: body.roleLevel, discoveredFrom: "user" })
           WebCredential.ensure({ sessionID, label: body.role, roleID: role.id })
         }
