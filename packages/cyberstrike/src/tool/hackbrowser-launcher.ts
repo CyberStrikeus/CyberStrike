@@ -1,5 +1,5 @@
-// Hackbrowser launcher (v2) — single binding point between cyberstrike's tool system and
-// the browser-extension flow. Tool, Slash, and CLI subcommand all funnel through here.
+// Hackbrowser launcher (v2) — single binding point between cyberstrike's tool system and the
+// HackBrowser 2.0 extension flow. Tool, Slash, and CLI subcommand all funnel through here.
 //
 // No crawl worker: launchHackbrowser enqueues the roles and opens the orchestrator
 // browser (Chrome for Testing + our extension); the user drives capture and each Start
