@@ -87,6 +87,21 @@ describe("WebActExecutor — WaitHydrated for meta-frameworks (P5)", () => {
   })
 })
 
+describe("WebActExecutor — narration push (AI reasoning overlay)", () => {
+  test("sends a narrate op with the action + intent BEFORE performing", async () => {
+    const sid = "s"
+    const sent = recSocket(sid)
+    setPage(sid, "https://h/a", [{ id: "E0", tag: "a", role: "link", label: "Accounts", href: "/b" }])
+    const ex = new WebActExecutor({ settleMs: 15, pollMs: 2 })
+    await ex.run(sid, { kind: "click", elementId: "E0", label: "Accounts" }, snap(sid, "https://h/a"), "reach the most valuable unvisited area")
+
+    const narr = sent.find((c) => c.op === "narrate")
+    expect(narr).toMatchObject({ op: "narrate", act: "click", label: "Accounts", elementId: "E0", intent: "reach the most valuable unvisited area" })
+    // narration precedes the click relay
+    expect(sent.findIndex((c) => c.op === "narrate")).toBeLessThan(sent.findIndex((c) => c.op === "click"))
+  })
+})
+
 describe("ViewState / CSRF preservation by construction (P5, §6.4)", () => {
   test("form fill never types into hidden postback tokens; submit is the real button", () => {
     const sid = "s"

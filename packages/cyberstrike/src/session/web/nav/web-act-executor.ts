@@ -18,8 +18,11 @@ export class WebActExecutor implements Executor {
   private readonly hydrated = new Set<string>() // `${sessionID}\n${url}` already hydration-waited
   constructor(private readonly cfg: { settleMs: number; pollMs: number; hydrateMs?: number }) {}
 
-  async run(sessionID: string, action: Action, before: PageSnapshot): Promise<ActionResult> {
+  async run(sessionID: string, action: Action, before: PageSnapshot, intent?: string): Promise<ActionResult> {
     if (action.kind === "done") return { ok: true, status: "done", effect: "noop" }
+    // Narrate what/why to the in-browser overlay BEFORE acting (fire-and-forget; the panel/hue
+    // reflect the AI's reasoning). Best-effort — a browser without the overlay just ignores it.
+    this.narrate(sessionID, action, intent)
     // Framework-adaptive (P5, §6.4): before acting on a meta-framework page, wait for hydration —
     // its SSR HTML is inert until JS hydrates. navigate loads a NEW page, so it is exempt.
     if (action.kind !== "navigate") await this.ensureHydrated(sessionID, before)
@@ -57,6 +60,17 @@ export class WebActExecutor implements Executor {
     const submit = await WebAct.perform(sessionID, { op: "click", url, elementId: form.submitId })
     Crawl.record(sessionID, form.actionKey)
     return !submit.ok && STOP_STATUSES.has(submit.status) ? "stop" : "ok"
+  }
+
+  // Push a narration of the next action to the browser overlay (in-page hue/bubble + panel log).
+  // Fire-and-forget — never awaited, never throws. `elementId` (for click) lets the overlay
+  // highlight the exact target; `intent` is the plan's rationale (the "why").
+  private narrate(sessionID: string, action: Action, intent?: string): void {
+    const label = action.kind === "click" ? action.label ?? "" : action.kind === "form" ? action.form.label : action.kind === "navigate" ? action.url : ""
+    const elementId = action.kind === "click" ? action.elementId : undefined
+    // Cap the rationale so a verbose model can't flood the overlay/panel — one short line is enough.
+    const short = (intent ?? "").trim().slice(0, 140)
+    void WebControl.send(sessionID, { op: "narrate", act: action.kind, label, elementId, intent: short }, 2000).catch(() => {})
   }
 
   // Best-effort hydration wait for meta-framework pages, ONCE per page url. A browser that doesn't

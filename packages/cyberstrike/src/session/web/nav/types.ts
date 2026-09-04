@@ -53,8 +53,9 @@ export interface Navigator {
 }
 export interface Executor {
   // Perform the action through the shared guarded path, wait for the page to settle, and report
-  // the effect (navigated / revealed new content / no-op / blocked by guard).
-  run(sessionID: string, action: Action, before: PageSnapshot): Promise<ActionResult>
+  // the effect (navigated / revealed new content / no-op / blocked by guard). `intent` is the
+  // plan's rationale (the "why"), narrated to the browser overlay before acting (optional).
+  run(sessionID: string, action: Action, before: PageSnapshot, intent?: string): Promise<ActionResult>
 }
 
 // Material-change signature (§3.4): url + the set of ALL interactive-element action-keys on the

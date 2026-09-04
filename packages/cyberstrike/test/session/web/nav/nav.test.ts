@@ -11,6 +11,7 @@ import { Crawl } from "../../../../src/session/web/crawl"
 import { WebScope } from "../../../../src/session/web/scope"
 import { WebStrategy } from "../../../../src/session/web/strategy"
 import { Effect } from "../../../../src/session/web/effect"
+import { WebHold } from "../../../../src/session/web/hold"
 
 beforeEach(() => {
   PageState._reset()
@@ -20,6 +21,7 @@ beforeEach(() => {
   WebScope._reset()
   WebStrategy._reset()
   Effect._reset()
+  WebHold._reset()
 })
 
 type Click = PageState.Observation["clickables"][number]
@@ -153,6 +155,23 @@ describe("CoDriveSession.run — end-to-end (behavior parity)", () => {
     expect(reason).toBe("coverage-complete")
     expect(Crawl.isPageVisited(sid, "https://demo.testfire.net/account")).toBe(true)
     expect(visited.some((u) => u.includes("github.com"))).toBe(false)
+  })
+
+  test("held → the loop waits without acting; releasing it resumes the crawl", async () => {
+    const sid = "s"
+    browser(sid, { "https://h/a": [{ id: "E0", tag: "a", role: "link", label: "B", href: "/b" }], "https://h/b": [] }, "https://h/a")
+    WebHold.set(sid, true) // user is engaging the panel → pause
+    let ticks = 0
+    // Hold for the first 5 iterations (no action taken), then release → the crawl completes.
+    const reason = await CoDriveSession.withDefaults(fast).run(sid, () => {
+      if (++ticks === 5) {
+        expect(Crawl.summary(sid).actions).toBe(0) // nothing acted while held
+        WebHold.set(sid, false)
+      }
+      return true
+    })
+    expect(reason).toBe("coverage-complete")
+    expect(Crawl.isPageVisited(sid, "https://h/b")).toBe(true)
   })
 
   test("a cancel signal (driver flipped) ends the loop between steps", async () => {

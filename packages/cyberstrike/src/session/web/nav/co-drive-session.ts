@@ -8,11 +8,13 @@
 import type { Observer, Navigator, Executor, Plan, StopReason, ActionResult } from "./types"
 import { Guardrails } from "./guardrails"
 import { PageStateObserver } from "./guardrails"
+import { WebControl } from "../control"
 import { DeterministicNavigator } from "./deterministic-navigator"
 import { LlmNavigator } from "./llm-navigator"
 import { WebActExecutor } from "./web-act-executor"
 import { Crawl } from "../crawl"
 import { WebScope } from "../scope"
+import { WebHold } from "../hold"
 import { HBLog } from "../hblog"
 import { Log } from "../../../util/log"
 
@@ -59,7 +61,10 @@ export class CoDriveSession {
         executor: new WebActExecutor({ settleMs, pollMs }),
         guardrails: new Guardrails(),
       },
-      { pollMs, maxIdle: cfg?.maxIdle ?? 8 },
+      // Be patient waiting for the FIRST observation: the browser + first page can take much
+      // longer than a few polls to load, and if the loop gives up it does NOT auto-restart (only a
+      // driver toggle does) — which is why "AI" felt dead until a Human→AI toggle. ~60s at 400ms.
+      { pollMs, maxIdle: cfg?.maxIdle ?? 150 },
     )
   }
 
@@ -76,6 +81,13 @@ export class CoDriveSession {
       if (term) {
         reason = term
         break
+      }
+      // Transient pause while the user engages the panel — hold WITHOUT acting so the page stays
+      // put (a full-page nav would wipe the panel out from under them). Non-terminal: resume when
+      // released. Checked after the terminal guards so human/no-extension/budget still end the run.
+      if (WebHold.held(sessionID)) {
+        await sleep(this.cfg.pollMs)
+        continue
       }
       const snapshot = this.deps.observer.observe(sessionID)
       if (!snapshot) {
@@ -94,6 +106,10 @@ export class CoDriveSession {
 
       // (Re)plan when there is no live plan or the current one is spent (§3.4 folds in via effect).
       if (!plan || planIdx >= plan.actions.length) {
+        // Show a "thinking" cue on the browser overlay while the model plans (the biggest visible
+        // gap) so the pause reads as deliberate, not frozen. Fire-and-forget; a fast/deterministic
+        // navigator just replaces it immediately with the first action's narration.
+        void WebControl.send(sessionID, { op: "narrate", act: "thinking", intent: "" }, 2000).catch(() => {})
         plan = await this.deps.navigator.plan(sessionID, snapshot)
         planIdx = 0
         HBLog.record(sessionID, "codrive", "plan", { rationale: plan.rationale, actions: plan.actions.length })
@@ -103,7 +119,7 @@ export class CoDriveSession {
             reason = "coverage-complete"
             break
           }
-          const nav = await this.deps.executor.run(sessionID, { kind: "navigate", url: next }, snapshot)
+          const nav = await this.deps.executor.run(sessionID, { kind: "navigate", url: next }, snapshot, "backtracking to an unexplored page")
           const stop = terminalFrom(nav)
           if (stop) {
             reason = stop
@@ -128,7 +144,7 @@ export class CoDriveSession {
         label: action.kind === "click" ? action.label : action.kind === "form" ? action.form.label : action.kind === "navigate" ? action.url : "",
         url: snapshot.url,
       })
-      const result = await this.deps.executor.run(sessionID, action, snapshot)
+      const result = await this.deps.executor.run(sessionID, action, snapshot, plan.rationale)
       const stop = terminalFrom(result)
       if (stop) {
         reason = stop
