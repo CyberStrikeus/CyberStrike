@@ -1,14 +1,18 @@
 // CyberStrike HackBrowser 2.0 — panel (content script).
 //
-// Interaction:
-//   - a large transparent CyberStrike logo sits in a corner (draggable)
-//   - hover reveals a small toolbar toward center: captured count + settings gear
-//   - clicking the logo TOGGLES the driver (AI <-> Human) and flashes a soft
-//     center-screen line ("AI Driving the session" / "Human Driving the session")
-//   - the settings gear opens the breakdown panel (captured/API/JS/static/page)
-//   - while capturing, a very faint edge hue floats around the viewport:
-//     navy for AI-driven, amber for human
-// Everything is injected in closed shadow roots.
+// Interaction (final design):
+//   - a CyberStrike logo disc sits in the bottom-right corner (draggable, edge-anchored)
+//   - hovering it reveals two DETACHED satellites — navy "+" (add credential) on the left,
+//     deep-red record (start/stop unauthenticated capture) on the right — plus two sub-buttons
+//     below it: an eye (reasoning overlay / HUD toggle) and a gear (settings panel)
+//   - tapping the logo CYCLES the driver AI -> Human -> Idle, tinting the whole viewport:
+//     AI drives = deep red, Human drives = blue, Idle = navy with NO tab hue (nobody driving)
+//   - a bottom-center HUD (also draggable) shows live capture stats + the last 3 AI-reasoning
+//     lines; it rides the eye/hue toggle. The AI's synthetic cursor/ring/bubble are cyan.
+//   - the gear opens the settings panel (server connect, capture, session, roles, stats, reasoning)
+// Driver note: the server only knows ai|human — Idle is a client-only presentation of the human
+// interlock (AI paused) shown without the hue; AI drives = "ai" (CoDrive.start).
+// Everything is injected in closed shadow roots (dock, HUD, glow, transition, cursor, role, confirm).
 
 ;(function () {
   if (window !== window.top) return
@@ -40,11 +44,16 @@
     })
   }
 
-  // Driver palette — one source for the three shadow roots (glow, transition, dock),
-  // which can't share CSS vars because each has its own <style>.
-  const AI_RGB = "37,99,235"
-  const HUMAN_RGB = "240,180,41"
-  const AI_TINT = "#7ea8ff"
+  // Two SEPARATE color roles (each shadow root inlines these — vars can't cross roots):
+  //   1. Driver hue — the whole-viewport / logo mood: AI drives = deep red, Human drives = blue,
+  //      Idle = navy (glow off). Used by glow, transition banner, and the dock fab aura.
+  //   2. AI-activity cyan — the co-driving overlay (synthetic cursor, target ring, reason bubble)
+  //      and the HUD numbers. Kept distinct from the driver hue so "what the AI is touching" reads
+  //      as its own signal, not the mood color.
+  const AI_RGB = "190,30,40" // driver: AI drives (deep red)
+  const HUMAN_RGB = "55,130,246" // driver: Human drives (blue)
+  const IDLE_RGB = "41,71,168" // driver: Idle (navy) — glow stays off, only the logo breathes
+  const CY_RGB = "34,211,238" // AI-activity + HUD (cyan)
 
   // Role identity hue — SEPARATE from the driver palette above. Each role label maps
   // deterministically to a distinct color so N spawned browsers are told apart at a
@@ -62,11 +71,11 @@
   const glowRoot = glowHost.attachShadow({ mode: "closed" })
   glowRoot.innerHTML = `
     <style>
-      .glow { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .6s ease; }
-      .glow.on { animation: breathe 4s ease-in-out infinite; }
-      .glow.ai { box-shadow: inset 0 0 56px 12px rgba(${AI_RGB},.5); }
-      .glow.human { box-shadow: inset 0 0 56px 12px rgba(${HUMAN_RGB},.5); }
-      @keyframes breathe { 0%,100% { opacity: .95; } 50% { opacity: .6; } }
+      .glow { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .5s ease; }
+      .glow.on { animation: edgeBreathe 3s ease-in-out infinite; }
+      .glow.ai { box-shadow: inset 0 0 100px 18px rgba(${AI_RGB},.5); }
+      .glow.human { box-shadow: inset 0 0 100px 18px rgba(${HUMAN_RGB},.5); }
+      @keyframes edgeBreathe { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
     </style>
     <div class="glow" id="glow"></div>
   `
@@ -78,21 +87,19 @@
   const transRoot = transHost.attachShadow({ mode: "closed" })
   transRoot.innerHTML = `
     <style>
-      .trans {
-        position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-        pointer-events: none; opacity: 0; transition: opacity .45s ease, transform .45s ease;
-        transform: scale(.98);
-      }
-      .trans.show { opacity: 1; transform: scale(1); }
+      .trans { position: fixed; inset: 0; pointer-events: none; }
       .msg {
-        font: 600 19px ui-sans-serif, system-ui, -apple-system, sans-serif;
-        text-transform: uppercase; letter-spacing: .18em;
-        color: rgba(255,255,255,.95); text-shadow: 0 2px 30px rgba(0,0,0,.6);
-        padding: 15px 30px; border-radius: 12px;
-        background: rgba(10,14,20,.4); backdrop-filter: blur(3px);
+        position: absolute; top: 42%; left: 50%; transform: translate(-50%,-50%) scale(.95);
+        font: 700 32px "Space Grotesk", system-ui, -apple-system, sans-serif; letter-spacing: .01em;
+        white-space: nowrap; color: #fff; text-shadow: 0 2px 30px rgba(0,0,0,.7);
+        padding: 15px 30px; border-radius: 16px;
+        background: rgba(8,11,17,.68); backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,.14);
+        opacity: 0; transition: opacity .3s ease, transform .3s ease;
       }
-      .msg.ai { box-shadow: 0 0 0 1px rgba(${AI_RGB},.35), 0 8px 40px rgba(${AI_RGB},.2); }
-      .msg.human { box-shadow: 0 0 0 1px rgba(${HUMAN_RGB},.35), 0 8px 40px rgba(${HUMAN_RGB},.2); }
+      .trans.show .msg { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+      .msg.ai { border-color: rgba(${AI_RGB},.45); text-shadow: 0 2px 30px rgba(0,0,0,.7), 0 0 34px rgba(${AI_RGB},.7); }
+      .msg.human { border-color: rgba(${HUMAN_RGB},.45); text-shadow: 0 2px 30px rgba(0,0,0,.7), 0 0 34px rgba(${HUMAN_RGB},.7); }
+      .msg.idle { border-color: rgba(${IDLE_RGB},.45); text-shadow: 0 2px 30px rgba(0,0,0,.7), 0 0 34px rgba(${IDLE_RGB},.7); }
     </style>
     <div class="trans" id="trans"><div class="msg" id="msg"></div></div>
   `
@@ -121,36 +128,105 @@
   const curRoot = cursorHost.attachShadow({ mode: "closed" })
   curRoot.innerHTML = `
     <style>
-      .cur { position: fixed; left:-100px; top:-100px; margin:-3px 0 0 -3px; pointer-events:none;
-             opacity:0; transition: left .28s cubic-bezier(.4,0,.2,1), top .28s cubic-bezier(.4,0,.2,1), opacity .2s; }
+      .cur { position: fixed; left:-100px; top:-100px; pointer-events:none; opacity:0;
+             filter: drop-shadow(0 2px 5px rgba(0,0,0,.6));
+             transition: left .5s cubic-bezier(.4,0,.2,1), top .5s cubic-bezier(.4,0,.2,1), opacity .2s; }
       .cur.on { opacity:1; }
-      .cur svg { display:block; filter: drop-shadow(0 1px 3px rgba(0,0,0,.55)); }
-      .dot { position:absolute; left:0; top:0; width:26px; height:26px; margin:-13px 0 0 -13px; border-radius:50%;
-             border:2px solid rgba(${AI_RGB},.9); opacity:0; }
-      .cur.pulse .dot { animation: aiPulse .5s ease-out; }
-      @keyframes aiPulse { 0%{ transform:scale(.3); opacity:.9 } 100%{ transform:scale(1.5); opacity:0 } }
+      .cur svg { display:block; }
+      .dot { position:absolute; left:-13px; top:-13px; width:26px; height:26px; border-radius:50%;
+             border:2px solid rgba(${CY_RGB},.85); opacity:0; }
+      .cur.pulse .dot { animation: aiPulse .55s ease-out; }
+      @keyframes aiPulse { 0%{ transform:scale(.3); opacity:.9 } 100%{ transform:scale(1.6); opacity:0 } }
       /* "Thinking" breathing while the model plans the next move. */
       .cur.thinking .dot { animation: aiBreathe 1.15s ease-in-out infinite; }
-      @keyframes aiBreathe { 0%,100%{ transform:scale(.55); opacity:.3 } 50%{ transform:scale(1.25); opacity:.85 } }
-      .ring { position: fixed; pointer-events:none; border-radius:6px; opacity:0;
-              box-shadow: 0 0 0 2px rgba(${AI_RGB},.95), 0 0 16px 3px rgba(${AI_RGB},.5); }
-      .ring.flash { animation: aiRing 1s ease-out; }
-      @keyframes aiRing { 0%{opacity:.95} 70%{opacity:.5} 100%{opacity:0} }
-      .act { position: fixed; left:50%; top:16px; transform: translateX(-50%);
-             font: 600 12px ui-sans-serif, system-ui, -apple-system, sans-serif; letter-spacing:.01em;
-             color:#fff; background: rgba(${AI_RGB},.94); padding:7px 14px; border-radius:999px;
-             box-shadow: 0 6px 24px rgba(0,0,0,.35); opacity:0; transition: opacity .2s;
-             white-space:nowrap; max-width:72vw; overflow:hidden; text-overflow:ellipsis; }
-      .act.show { opacity:1; }
+      @keyframes aiBreathe { 0%,100%{ transform:scale(.5); opacity:.3 } 50%{ transform:scale(1.25); opacity:.85 } }
+      .ring { position: fixed; pointer-events:none; border-radius:8px; opacity:0;
+              box-shadow: 0 0 0 2px rgba(${CY_RGB},.95), 0 0 22px 4px rgba(${CY_RGB},.4);
+              transition: all .28s cubic-bezier(.4,0,.2,1); }
+      .ring.show { opacity:1; }
+      .bubble { position: fixed; max-width:300px; padding:9px 13px; border-radius:11px;
+                background: rgba(9,14,21,.95); border:1px solid rgba(${CY_RGB},.35);
+                box-shadow: 0 10px 34px rgba(0,0,0,.5); color:#dbe6f0; font: 12.5px/1.4 system-ui,-apple-system,sans-serif;
+                opacity:0; transform: translateY(4px); transition: all .2s ease; }
+      .bubble.show { opacity:1; transform:none; }
+      .bubble .who { color:#22d3ee; font-weight:700; font-family:"Space Grotesk",system-ui,sans-serif; font-size:10px;
+                     letter-spacing:.1em; text-transform:uppercase; display:block; margin-bottom:3px; }
     </style>
-    <div class="cur" id="aicur"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 2 L20 12 L13 13 L11 21 Z" fill="#fff" stroke="rgba(${AI_RGB},1)" stroke-width="1.5" stroke-linejoin="round"/></svg><div class="dot"></div></div>
+    <div class="cur" id="aicur"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 2 L20 12 L13 13 L11 21 Z" fill="#fff" stroke="rgba(${CY_RGB},1)" stroke-width="1.5" stroke-linejoin="round"/></svg><div class="dot"></div></div>
     <div class="ring" id="airing"></div>
-    <div class="act" id="aiact"></div>
+    <div class="bubble" id="aibubble"><span class="who" id="aiwho">AI · reasoning</span><span id="aibtxt"></span></div>
   `
   const aicur = curRoot.getElementById("aicur")
   const airing = curRoot.getElementById("airing")
-  const aiactEl = curRoot.getElementById("aiact")
-  let aiActTimer = null
+  const aibubble = curRoot.getElementById("aibubble")
+  const aiwho = curRoot.getElementById("aiwho")
+  const aibtxt = curRoot.getElementById("aibtxt")
+  // Position the reasoning bubble just off the cursor (mockup say(): x+20 clamped, y-54 clamped).
+  function positionBubble() {
+    const cx = parseFloat(aicur.style.left) || 0
+    const cy = parseFloat(aicur.style.top) || 0
+    aibubble.style.left = Math.min(cx + 20, window.innerWidth - 320) + "px"
+    aibubble.style.top = Math.max(cy - 54, 8) + "px"
+  }
+
+  // --- Center HUD: capture stats + live AI reasoning (bottom-center, draggable) --------------
+  // A page-centered heads-up display mirroring the panel's stats + reasoning, shown while the
+  // reasoning overlay (eye/hue) is on. Reasoning is capped to the last 3 lines. Draggable.
+  const hudHost = document.createElement("div")
+  hudHost.style.cssText = "position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:2147483646;"
+  const hudRoot = hudHost.attachShadow({ mode: "closed" })
+  hudRoot.innerHTML = `
+    <style>
+      :host { all: initial; }
+      * { box-sizing: border-box; }
+      .hud { width: min(430px, 88vw); display: flex; flex-direction: column; gap: 8px;
+        font-family: system-ui,-apple-system,"Segoe UI",sans-serif; cursor: grab; }
+      .hud:active { cursor: grabbing; }
+      .box { background: rgba(9,13,20,.82); backdrop-filter: blur(12px); border: 1px solid #1f2b3a; border-radius: 13px;
+        box-shadow: 0 18px 46px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.03); }
+      .stats { display: grid; grid-template-columns: repeat(4,1fr); padding: 11px 6px; }
+      .hs { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 2px 6px; position: relative; }
+      .hs + .hs::before { content: ""; position: absolute; left: 0; top: 16%; height: 68%; width: 1px; background: #17222f; }
+      .hs .n { font-family: ui-monospace,SFMono-Regular,Menlo,monospace; font-size: 20px; font-weight: 600; color: #22d3ee;
+        font-variant-numeric: tabular-nums; line-height: 1; text-shadow: 0 0 16px rgba(${CY_RGB},.3); }
+      .hs .l { font-size: 9px; text-transform: uppercase; letter-spacing: .05em; color: #e8eef5; font-weight: 600; }
+      .reason { padding: 9px 13px 10px; }
+      .rhead { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: #8a99ab; margin-bottom: 6px;
+        display: flex; align-items: center; gap: 6px; }
+      .rhead::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #22d3ee; box-shadow: 0 0 8px #22d3ee;
+        animation: dotpulse 1.4s ease-in-out infinite; }
+      @keyframes dotpulse { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
+      .rlog { display: flex; flex-direction: column; gap: 4px; }
+      .rlog .rent { font-size: 11.5px; line-height: 1.35; color: #8a99ab; white-space: nowrap; overflow: hidden;
+        text-overflow: ellipsis; border-left: 2px solid rgba(${CY_RGB},.55); padding: 2px 0 2px 8px; animation: slidein .25s ease; }
+      @keyframes slidein { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; } }
+      .rlog .rent b { color: #e8eef5; font-weight: 600; }
+      .rlog .rent .verb { color: #22d3ee; font-family: ui-monospace,monospace; font-size: 10.5px; }
+      .rlog:empty::after { content: "waiting for the AI…"; color: #4e5d6f; font-size: 11px; }
+    </style>
+    <div class="hud" id="hud">
+      <div class="box stats">
+        <div class="hs"><span class="n" id="h-req">0</span><span class="l">Captures</span></div>
+        <div class="hs"><span class="n" id="h-ep">0</span><span class="l">Endpoints</span></div>
+        <div class="hs"><span class="n" id="h-js">0</span><span class="l">JS Files</span></div>
+        <div class="hs"><span class="n" id="h-pg">0</span><span class="l">Pages</span></div>
+      </div>
+      <div class="box reason">
+        <div class="rhead">AI Reasoning</div>
+        <div class="rlog" id="hud-rlog"></div>
+      </div>
+    </div>
+  `
+  const hudEl = hudRoot.getElementById("hud")
+  const hReq = hudRoot.getElementById("h-req")
+  const hEp = hudRoot.getElementById("h-ep")
+  const hJs = hudRoot.getElementById("h-js")
+  const hPg = hudRoot.getElementById("h-pg")
+  const hudRlog = hudRoot.getElementById("hud-rlog")
+  function showHud(on) {
+    hudHost.style.display = on ? "" : "none"
+  }
+
   // In-page reasoning overlay ("hue"): the AI cursor, target ring, and activity/reason bubbles.
   // Toggled by the panel's eye button; persisted per browser. Default ON. When OFF, all in-page
   // AI visuals are suppressed (the panel Reasoning log still updates — that's not the "hue").
@@ -165,24 +241,28 @@
     } catch {}
     if (!hueOn) {
       aicur.classList.remove("on")
-      aiactEl.classList.remove("show")
+      aibubble.classList.remove("show")
+      airing.classList.remove("show")
     }
+    showHud(hueOn) // the center HUD rides the same reasoning-overlay toggle
   }
+  // Reasoning bubble by the cursor: "AI · reasoning" + the current intent (mockup say()).
   function aiActivity(text) {
     if (!hueOn) return
-    aiactEl.textContent = text
-    aiactEl.classList.add("show")
-    if (aiActTimer) clearTimeout(aiActTimer)
-    aiActTimer = setTimeout(() => aiactEl.classList.remove("show"), 2600)
+    aiwho.textContent = "AI · reasoning"
+    aibtxt.textContent = text
+    aibubble.classList.add("show")
+    positionBubble()
   }
-  // Thinking cue while the model plans (no target yet): keep the cursor visible with a breathing
-  // pulse + a persistent "planning…" bubble (no auto-hide), cleared when the next action arrives.
+  // Thinking cue while the model plans (no target yet): a breathing cursor pulse + "AI · thinking"
+  // bubble reading "planning next move…", cleared when the next action arrives.
   function aiThinking() {
     if (!hueOn) return
     aicur.classList.add("on", "thinking")
-    aiactEl.textContent = "planning next move…"
-    aiactEl.classList.add("show")
-    if (aiActTimer) clearTimeout(aiActTimer)
+    aiwho.textContent = "AI · thinking"
+    aibtxt.textContent = "planning next move…"
+    aibubble.classList.add("show")
+    positionBubble()
   }
   function aiPointAt(el) {
     if (!hueOn) return
@@ -202,9 +282,8 @@
     airing.style.top = r.top + "px"
     airing.style.width = r.width + "px"
     airing.style.height = r.height + "px"
-    airing.classList.remove("flash")
-    void airing.offsetWidth
-    airing.classList.add("flash")
+    airing.classList.add("show")
+    positionBubble()
   }
   function aiClickPulse() {
     if (!hueOn) return
@@ -325,7 +404,9 @@
   // --- Dock ------------------------------------------------------------------
   const host = document.createElement("div")
   host.id = "cyberstrike-panel-host"
-  host.style.cssText = "position:fixed;right:20px;bottom:20px;z-index:2147483647;"
+  // Bottom-right, but ~80px off the edges so the left/right satellites + the sub-buttons reveal
+  // fully on-screen (they pop out ±66px / 62px below). Draggable at runtime (edge-anchored + clamped).
+  host.style.cssText = "position:fixed;right:80px;bottom:84px;z-index:2147483647;"
   const root = host.attachShadow({ mode: "closed" })
 
   const GEAR = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>`
@@ -335,193 +416,173 @@
       :host { all: initial; }
       * { box-sizing: border-box; }
       .dock {
-        --panel: #0f161d; --line: #1e2a36; --text: #d7e0ea;
-        --dim: #8aa0b4; --faint: #6b7684; --ai: #2563eb; --human: #f0b429;
-        font: 12px/1.4 ui-sans-serif, system-ui, -apple-system, sans-serif;
-        color: var(--text);
-        display: flex; align-items: center; gap: 8px;
+        --panel:#121a26; --line:#1f2b3a; --line-soft:#17222f; --text:#e8eef5; --dim:#8a99ab; --faint:#4e5d6f;
+        --ai:#22d3ee; --ai-rgb:34,211,238; --human:#f5a524; --human-rgb:245,165,36; --danger:#e0343f; --blue:#3b82f6;
+        --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+        --disp:"Space Grotesk",system-ui,-apple-system,sans-serif;
+        --ui:system-ui,-apple-system,"Segoe UI",sans-serif;
+        --hue:${IDLE_RGB};
+        position: relative; font-family: var(--ui); color: var(--text);
       }
-      .dock.right { flex-direction: row-reverse; }
-      .dock.left { flex-direction: row; }
 
-      /* Round dark disc behind the logo → readable on light AND dark pages */
+      /* ---- FAB (logo) with driver-hue aura (idle=navy, AI=red, Human=blue) ---- */
       .fab {
-        flex: none; width: 52px; height: 52px; padding: 0; border: 0; border-radius: 50%;
-        display: inline-flex; align-items: center; justify-content: center;
-        background: radial-gradient(circle at 50% 40%, #141c26, #0b0f14);
-        box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07);
-        cursor: grab; user-select: none; position: relative; z-index: 2;
-        transition: transform .16s ease, box-shadow .16s ease;
+        position: relative; z-index: 3; width: 56px; height: 56px; border-radius: 50%; border: 0; padding: 0;
+        background: radial-gradient(circle at 50% 38%, #1b2635, #0a0f16);
+        display: grid; place-items: center; cursor: pointer; user-select: none;
+        box-shadow: 0 6px 20px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.08),
+                    0 0 0 2px rgba(var(--hue),.6), 0 0 24px 6px rgba(var(--hue),.5);
+        animation: hueBreathe 3s ease-in-out infinite;
+        transition: transform .16s ease, box-shadow .3s ease;
       }
-      /* Quick-action "wings" flanking the logo (Olympic interlock): RED = unauthenticated capture,
-         BLUE + = add credential. Tucked behind the FAB (z-index 1); peek out on hover. */
+      .fab:hover { transform: translateY(-1px); }
+      .fab .logo { width: 40px; height: 40px; object-fit: contain; pointer-events: none; display: block; }
+      @keyframes hueBreathe { 0%,100% { filter: brightness(.92); } 50% { filter: brightness(1.16); } }
+      @media (prefers-reduced-motion: reduce) { .fab { animation: none; } }
+
+      /* ---- satellites: navy "+" (add credential) left, red record (capture) right ---- */
       .wing {
-        position: absolute; top: 50%; width: 44px; height: 44px; border-radius: 50%;
-        transform: translateY(-50%) scale(.7); z-index: 1;
-        display: inline-flex; align-items: center; justify-content: center;
-        border: 0; cursor: pointer; color: #fff; font: 800 19px system-ui, sans-serif;
-        opacity: 0; pointer-events: none;
-        box-shadow: 0 4px 14px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.16);
-        transition: opacity .18s ease, transform .18s ease, right .18s ease, left .18s ease, filter .15s ease;
+        position: absolute; top: 50%; width: 48px; height: 48px; border-radius: 50%; border: 0; z-index: 2;
+        transform: translateY(-50%) scale(.3); opacity: 0; pointer-events: none; cursor: pointer;
+        display: grid; place-items: center; color: #fff;
+        box-shadow: 0 4px 14px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.2);
+        transition: opacity .16s ease, transform .16s ease, right .16s ease, left .16s ease, filter .14s ease;
       }
-      .wing.right { right: -10px; background: radial-gradient(circle at 50% 40%, #e0343f, #b4232f); justify-content: flex-end; padding-right: 7px; }
-      .wing.left  { left:  -10px; background: radial-gradient(circle at 50% 40%, #3b82f6, #2563eb); justify-content: flex-start; padding-left: 7px; }
-      .wing .wdot { width: 11px; height: 11px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px rgba(255,255,255,.6); }
-      .wing:hover { filter: brightness(1.12); }
+      .wing.r { right: -10px; background: radial-gradient(circle at 50% 36%, #9e141c, #560a0d); }
+      .wing.l { left: -10px; background: radial-gradient(circle at 50% 36%, #1f3570, #0b1230); font-size: 26px; font-weight: 700; line-height: 1; }
+      .wing .rec { width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 0 9px rgba(255,255,255,.6); transition: border-radius .16s ease, width .16s ease, height .16s ease; }
+      .dock.cap-on .wing.r .rec { border-radius: 4px; width: 16px; height: 16px; }
+      .wing:hover { filter: brightness(1.16); }
       .wing:disabled { opacity: .4 !important; cursor: default; }
-      .dock:hover:not(.settings) .wing { opacity: 1; pointer-events: auto; transform: translateY(-50%) scale(1); }
-      .dock:hover:not(.settings) .wing.right { right: -32px; }
-      .dock:hover:not(.settings) .wing.left  { left:  -32px; }
-      .fab:hover {
-        transform: scale(1.09);
-        box-shadow: 0 8px 24px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.14);
+      .dock.wings .wing { opacity: 1; pointer-events: auto; transform: translateY(-50%) scale(1); }
+      .dock.wings .wing.r { right: -66px; }
+      .dock.wings .wing.l { left: -66px; }
+      .wtip {
+        position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%) translateY(3px);
+        white-space: nowrap; font-size: 10.5px; letter-spacing: .02em; color: var(--text);
+        background: #0c131c; border: 1px solid var(--line); padding: 4px 9px; border-radius: 7px;
+        box-shadow: 0 6px 18px rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .15s ease, transform .15s ease;
       }
-      .fab:active { cursor: grabbing; }
-      .fab img {
-        width: 44px; height: 44px; display: block; pointer-events: none;
-      }
-      /* No rotation at all; hover just scales the disc (.fab:hover above). */
-      .fab.tapped { animation: tap .32s ease; }
-      @keyframes tap { 0% { transform: scale(1);} 40% { transform: scale(.84);} 100% { transform: scale(1);} }
-      /* Hue aura around the logo while capturing — driver-colored, gently breathing. */
-      .dock.capturing .fab { animation: fabHueAI 3.4s ease-in-out infinite; }
-      .dock.capturing.driver-human .fab { animation: fabHueHuman 3.4s ease-in-out infinite; }
-      @keyframes fabHueAI {
-        0%,100% { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(${AI_RGB},.45), 0 0 14px 2px rgba(${AI_RGB},.4); }
-        50%     { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(${AI_RGB},.65), 0 0 26px 6px rgba(${AI_RGB},.7); }
-      }
-      @keyframes fabHueHuman {
-        0%,100% { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(${HUMAN_RGB},.5), 0 0 14px 2px rgba(${HUMAN_RGB},.45); }
-        50%     { box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(${HUMAN_RGB},.7), 0 0 26px 6px rgba(${HUMAN_RGB},.75); }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .dock.capturing .fab { animation: none; box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 16px 3px rgba(${AI_RGB},.55); }
-        .dock.capturing.driver-human .fab { animation: none; box-shadow: 0 5px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 0 16px 3px rgba(${HUMAN_RGB},.6); }
-      }
+      .dock.wings .wing:hover .wtip { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-      /* Hover toolbar: captured count + settings — absolute so it never takes
-         layout space; shown via JS on hover (or while settings is open). */
-      .bar {
-        position: absolute; top: 50%;
-        display: flex; align-items: center; gap: 6px;
-        height: 30px; padding: 0 6px 0 10px;
-        background: #0b0f14; border: 1px solid var(--line); border-radius: 999px;
-        box-shadow: 0 4px 16px rgba(0,0,0,.4);
-        opacity: 0; pointer-events: none;
-        transition: opacity .15s ease, transform .15s ease;
+      /* ---- sub-buttons below the logo: eye (reasoning overlay) + gear (settings) ---- */
+      .sub {
+        position: absolute; top: 50%; left: 50%; width: 30px; height: 30px; border-radius: 50%; border: 0; z-index: 1;
+        transform: translate(-50%, -50%) scale(.4); opacity: 0; pointer-events: none; cursor: pointer;
+        background: #0c131d; color: var(--dim); display: grid; place-items: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.08);
+        transition: opacity .16s ease, transform .16s ease, color .14s ease, background .14s ease;
       }
-      .dock.right .bar { right: 62px; transform: translateY(-50%) translateX(6px); }
-      .dock.left .bar { left: 62px; transform: translateY(-50%) translateX(-6px); }
-      .dock.right .bar.show, .dock.left .bar.show { opacity: 1; transform: translateY(-50%); pointer-events: auto; }
-      .cap { font-size: 11px; color: var(--dim); white-space: nowrap; }
-      .cap b { color: var(--text); font-variant-numeric: tabular-nums; }
-      .dock.capturing.driver-ai .cap b { color: ${AI_TINT}; }
-      .dock.capturing.driver-human .cap b { color: var(--human); }
-      .gear {
-        display: inline-flex; align-items: center; justify-content: center;
-        width: 24px; height: 24px; border: 0; border-radius: 50%;
-        background: transparent; color: var(--dim); cursor: pointer;
-        transition: color .15s ease, background .15s ease;
-      }
-      .gear:hover { color: var(--text); background: #16212b; }
+      .sub:hover { color: var(--text); background: #17222f; }
+      .sub.off { color: var(--faint); }
+      .dock.wings .sub { opacity: 1; pointer-events: auto; }
+      .dock.wings .sub.eye  { transform: translate(calc(-50% - 21px), calc(-50% + 62px)) scale(1); }
+      .dock.wings .sub.gear { transform: translate(calc(-50% + 21px), calc(-50% + 62px)) scale(1); }
+      .sub svg { width: 15px; height: 15px; display: block; }
 
-      /* Settings panel (breakdown) */
+      /* ---- settings panel ---- */
       .panel {
-        position: absolute; bottom: 60px; width: 244px;
-        background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-        box-shadow: 0 14px 44px rgba(0,0,0,.5); overflow: hidden;
-        opacity: 0; transform: translateY(6px) scale(.98); pointer-events: none;
-        transition: opacity .16s ease, transform .16s ease;
+        position: absolute; right: 0; bottom: 68px; width: 268px;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 15px; overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.03);
+        opacity: 0; transform: translateY(8px) scale(.98); pointer-events: none; transform-origin: bottom right;
+        transition: opacity .18s ease, transform .18s ease;
       }
-      .dock.right .panel { right: 0; }
-      .dock.left .panel { left: 0; }
-      .dock.settings .panel { opacity: 1; transform: none; pointer-events: auto; }
-      .phead { display: flex; align-items: center; gap: 8px; padding: 11px 13px; border-bottom: 1px solid var(--line); }
-      .brand { font-weight: 700; letter-spacing: .07em; font-size: 11px; }
-      .st { margin-left: auto; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #16212b; color: var(--dim); }
-      .dock.capturing.driver-ai .st { background: rgba(${AI_RGB},.15); color: ${AI_TINT}; }
-      .dock.capturing.driver-human .st { background: rgba(${HUMAN_RGB},.15); color: var(--human); }
-      .pbody { padding: 12px 13px; display: flex; flex-direction: column; }
-      .ctl {
-        width: 100%; padding: 9px; margin-bottom: 4px; border: 0; border-radius: 9px;
-        font: 700 12px system-ui, sans-serif; cursor: pointer; color: #fff; background: var(--ai);
-        transition: filter .15s ease;
+      .dock.open .panel { opacity: 1; transform: none; pointer-events: auto; }
+      .phead {
+        display: flex; align-items: center; gap: 9px; padding: 13px 15px; border-bottom: 1px solid var(--line-soft);
+        background: linear-gradient(180deg, rgba(var(--ai-rgb),.05), transparent);
       }
-      .ctl:hover { filter: brightness(1.08); }
-      .ctl.on { background: #b4232f; }
-      .lbl { font-size: 10px; color: var(--faint); margin: 9px 0 3px; text-transform: uppercase; letter-spacing: .06em; }
+      .phead .mark { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; }
+      .phead .mark img { width: 20px; height: 20px; object-fit: contain; }
+      .phead .name { font-family: var(--disp); font-weight: 700; letter-spacing: .12em; font-size: 11.5px; }
+      .status { margin-left: auto; font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; padding: 3px 9px; border-radius: 999px; background: #182430; color: var(--dim); }
+      .dock.capturing.ai .status { background: rgba(var(--ai-rgb),.15); color: var(--ai); }
+      .dock.capturing.human .status { background: rgba(var(--human-rgb),.15); color: var(--human); }
+      .pbody { padding: 13px 15px 15px; }
+      .lbl { font-size: 9.5px; color: var(--faint); text-transform: uppercase; letter-spacing: .08em; margin: 12px 0 5px; }
+      .lbl:first-child { margin-top: 0; }
       .fld {
-        width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px;
-        background: #0b0f14; color: var(--text); font: 12px system-ui, sans-serif;
+        width: 100%; height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px;
+        background: #0b121b; color: var(--text); font-family: var(--mono); font-size: 12px; outline: none; transition: border-color .14s ease;
       }
-      .credrow { display: flex; gap: 6px; }
-      .credrow .fld { flex: 1; }
-      .mini {
-        padding: 0 12px; border: 0; border-radius: 7px; background: #16212b; color: var(--text);
-        cursor: pointer; font: 600 11px system-ui, sans-serif;
+      .fld:focus { border-color: rgba(var(--ai-rgb),.55); }
+      .fld::placeholder { color: var(--faint); font-family: var(--ui); }
+      .rowg { display: flex; gap: 7px; }
+      .rowg .fld { flex: 1; }
+      .mini { padding: 0 13px; height: 32px; border: 1px solid var(--line); border-radius: 8px; background: #17222f; color: var(--text); font-family: var(--ui); font-weight: 600; font-size: 11.5px; cursor: pointer; white-space: nowrap; transition: all .14s ease; }
+      .mini:hover { background: #1e2b3a; }
+      .mini.go { background: var(--ai); color: #06121a; border-color: var(--ai); }
+      .cta {
+        width: 100%; height: 40px; margin-top: 14px; border: 0; border-radius: 10px; cursor: pointer;
+        font-family: var(--disp); font-weight: 700; font-size: 13px; letter-spacing: .02em; color: #06121a;
+        background: linear-gradient(180deg, #3ee0f2, var(--ai)); box-shadow: 0 6px 18px rgba(var(--ai-rgb),.25); transition: filter .14s ease;
       }
-      .mini:hover { background: #1e2a36; }
-      .brk { margin-top: 11px; padding-top: 6px; border-top: 1px solid var(--line); }
-      .row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px dashed #17222d; }
-      .row:last-child { border-bottom: 0; }
-      .row .k { color: var(--dim); font-size: 11px; }
-      .row .v { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
-      /* AI reasoning log (panel) — the persistent "why" stream. */
-      .rlbl { font-size: 10px; color: var(--faint); text-transform: uppercase; letter-spacing: .06em; display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
-      .rlog { max-height: 108px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+      .cta:hover { filter: brightness(1.06); }
+      .cta.stop { background: linear-gradient(180deg, #f04a54, var(--danger)); color: #fff; box-shadow: 0 6px 18px rgba(224,52,63,.25); }
+      .brk { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+      .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .stat { background: #0c131d; border: 1px solid var(--line-soft); border-radius: 9px; padding: 8px 10px; }
+      .stat .k { font-size: 9.5px; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+      .stat .v { font-family: var(--mono); font-size: 17px; font-weight: 600; color: var(--text); margin-top: 2px; }
+      .stat.hl .v { color: var(--ai); }
+      .rlog { margin-top: 8px; max-height: 132px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; padding-right: 2px; }
+      .rlog::-webkit-scrollbar { width: 5px; } .rlog::-webkit-scrollbar-thumb { background: #223142; border-radius: 3px; }
       .rlog:empty::after { content: "waiting for the AI…"; color: var(--faint); font-size: 11px; }
-      .rent { font-size: 11px; line-height: 1.35; color: var(--dim); border-left: 2px solid rgba(${AI_RGB},.55); padding: 2px 0 2px 7px; }
+      .rent { font-size: 11.5px; line-height: 1.35; color: var(--dim); border-left: 2px solid rgba(var(--ai-rgb),.55); padding: 2px 0 2px 8px; animation: slidein .25s ease; }
       .rent b { color: var(--text); font-weight: 600; }
+      .rent .verb { color: var(--ai); font-family: var(--mono); font-size: 10.5px; }
+      @keyframes slidein { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; } }
+      .hint { font-size: 10.5px; color: var(--faint); margin-top: 8px; min-height: 12px; }
     </style>
 
-    <div class="dock right" id="dock">
+    <div class="dock" id="dock">
       <div class="panel" id="panel">
-        <div class="phead"><span class="brand">CYBERSTRIKE</span><span class="st" id="state">detached</span></div>
+        <div class="phead">
+          <span class="mark"><img src="${LOGO_SRC}" alt="" /></span>
+          <span class="name">CYBERSTRIKE</span>
+          <span class="status" id="state">detached</span>
+        </div>
         <div class="pbody">
-          <label class="lbl">CyberStrike server</label>
-          <div class="credrow">
+          <div class="lbl">CyberStrike server</div>
+          <div class="rowg">
             <input class="fld" id="srvUrl" type="text" placeholder="http://127.0.0.1:4096" spellcheck="false" />
-            <button class="mini" id="srvConnect">Connect</button>
+            <button class="mini go" id="srvConnect">Connect</button>
           </div>
-          <input class="fld" id="srvPw" type="password" placeholder="password (remote / tunnel only)" style="margin-bottom:6px" />
-          <button class="ctl" id="attachBtn">Start capture</button>
-          <label class="lbl">CyberStrike session</label>
-          <div class="credrow">
+          <input class="fld" id="srvPw" type="password" placeholder="password (remote / tunnel only)" style="margin-top:7px" />
+          <button class="cta" id="attachBtn">Start capture</button>
+          <div class="lbl">CyberStrike session</div>
+          <div class="rowg">
             <select class="fld" id="sess"><option value="">-- New session --</option></select>
-            <button class="mini" id="refreshSess" title="Reload sessions from CyberStrike">↻</button>
+            <button class="mini" id="refreshSess" title="Reload sessions from CyberStrike">&#8635;</button>
           </div>
-          <label class="lbl">This profile's role (empty = anonymous)</label>
-          <div class="credrow">
+          <div class="lbl">This profile's role (empty = anonymous)</div>
+          <div class="rowg">
             <input class="fld" id="cred" type="text" placeholder="Anonymous" />
             <button class="mini" id="setCred">Set</button>
           </div>
-          <label class="lbl">Add credential (opens a new browser)</label>
-          <div class="credrow">
+          <div class="lbl">Add credential (opens a new browser)</div>
+          <div class="rowg">
             <input class="fld" id="newRole" type="text" placeholder="e.g. user" />
             <button class="mini" id="addRole">Add</button>
           </div>
-          <div class="lbl" id="roleHint" style="min-height:13px"></div>
+          <div class="hint" id="roleHint"></div>
           <div class="brk">
-            <div class="row"><span class="k">captured</span><span class="v" id="s-total">0</span></div>
-            <div class="row"><span class="k">API endpoints</span><span class="v" id="s-api">0</span></div>
-            <div class="row"><span class="k">JavaScript files</span><span class="v" id="s-js">0</span></div>
-            <div class="row"><span class="k">static assets</span><span class="v" id="s-static">0</span></div>
-            <div class="row"><span class="k">page elements</span><span class="v" id="s-page">0</span></div>
-          </div>
-          <div class="brk">
-            <div class="rlbl">AI reasoning</div>
+            <div class="stats">
+              <div class="stat hl"><div class="k">Captured</div><div class="v" id="s-total">0</div></div>
+              <div class="stat"><div class="k">Endpoints</div><div class="v" id="s-api">0</div></div>
+              <div class="stat"><div class="k">JS files</div><div class="v" id="s-js">0</div></div>
+              <div class="stat"><div class="k">Pages</div><div class="v" id="s-page">0</div></div>
+            </div>
             <div class="rlog" id="rlog"></div>
           </div>
         </div>
       </div>
-      <div class="bar" id="bar">
-        <span class="cap">captured <b id="b-total">0</b></span>
-        <button class="gear" id="hueBtn" title="AI reasoning overlay (hue)">${EYE_ON}</button>
-        <button class="gear" id="gear" title="Details">${GEAR}</button>
-      </div>
-      <button class="wing left" id="wLeft" title="Add credential (opens a new browser for a role)">+</button>
-      <button class="wing right" id="wRight" title="Start unauthenticated capture"><span class="wdot"></span></button>
-      <button class="fab" id="fab" title="Toggle driver"><img src="${LOGO_SRC}" alt="CyberStrike" draggable="false" /></button>
+      <button class="wing l" id="wLeft" title="Add Credential/Role">+<span class="wtip">Add Credential/Role</span></button>
+      <button class="wing r" id="wRight" title="Start Unauthenticated Recording"><span class="rec"></span><span class="wtip">Start Unauthenticated Recording</span></button>
+      <button class="sub eye" id="hueBtn" title="AI reasoning overlay">${EYE_ON}</button>
+      <button class="sub gear" id="gear" title="Settings">${GEAR}</button>
+      <button class="fab" id="fab" title="Toggle driver"><img class="logo" src="${LOGO_SRC}" alt="CyberStrike" draggable="false" /></button>
     </div>
   `
 
@@ -534,7 +595,7 @@
   function reflectHue() {
     hueBtn.innerHTML = hueOn ? EYE_ON : EYE_OFF
     hueBtn.title = hueOn ? "AI reasoning overlay: on" : "AI reasoning overlay: off"
-    hueBtn.style.color = hueOn ? "" : "var(--faint)"
+    hueBtn.classList.toggle("off", !hueOn)
   }
   reflectHue()
   hueBtn.addEventListener("click", (e) => {
@@ -544,67 +605,75 @@
   })
   // Append one reasoning entry. Built with DOM nodes (never innerHTML) — label/intent come from
   // the page/model, so string-interpolating them into HTML would be an injection into our root.
-  function addReason(act, label, intent) {
-    if (!rlog) return
-    const verb = act === "click" ? "click" : act === "type" ? "type into" : act === "navigate" ? "go to" : act === "form" ? "submit" : String(act || "act")
+  function rentNode(verb, label, intent) {
     const row = document.createElement("div")
     row.className = "rent"
-    row.append(verb + " ")
+    const v = document.createElement("span")
+    v.className = "verb"
+    v.textContent = verb
+    row.append(v, " ")
     if (label) {
       const b = document.createElement("b")
       b.textContent = String(label)
       row.append(b)
     }
     const why = intent && String(intent).trim()
-    if (why) row.append(" — " + String(intent).trim())
-    rlog.appendChild(row)
-    while (rlog.childElementCount > 40) rlog.removeChild(rlog.firstChild)
-    rlog.scrollTop = rlog.scrollHeight
+    if (why) row.append(" — " + why)
+    return row
   }
+  // Append one reasoning entry to BOTH the panel log (last 40) and the center HUD (last 3). Built
+  // with DOM nodes (never innerHTML) — label/intent come from the page/model, so interpolating them
+  // into HTML would inject into our root.
+  function addReason(act, label, intent) {
+    const verb = act === "click" ? "click" : act === "type" ? "type into" : act === "navigate" ? "go to" : act === "form" ? "submit" : String(act || "act")
+    if (rlog) {
+      rlog.appendChild(rentNode(verb, label, intent))
+      while (rlog.childElementCount > 40) rlog.removeChild(rlog.firstChild)
+      rlog.scrollTop = rlog.scrollHeight
+    }
+    if (hudRlog) {
+      hudRlog.appendChild(rentNode(verb, label, intent))
+      while (hudRlog.childElementCount > 3) hudRlog.removeChild(hudRlog.firstChild)
+      hudRlog.scrollTop = hudRlog.scrollHeight
+    }
+  }
+  const panel = root.getElementById("panel")
   const stateEl = root.getElementById("state")
   const sTotal = root.getElementById("s-total")
   const sApi = root.getElementById("s-api")
   const sJs = root.getElementById("s-js")
-  const sStatic = root.getElementById("s-static")
+  const sStatic = root.getElementById("s-static") // may be absent (not shown in the compact panel)
   const sPage = root.getElementById("s-page")
-  const bTotal = root.getElementById("b-total")
-  const bar = root.getElementById("bar")
 
-  let driver = "ai"
+  let driver = "idle" // AI | Human | Idle (3-way logo cycle); detached defaults to Idle (calm navy)
   let settingsOpen = false
   let pageCount = 0
   let mountedAt = 0 // when the dock was appended — see panel-visibility (popup toggle)
   let isSpawned = false // true in a browser CyberStrike spawned (opened with a role hash)
 
-  // Hover reveals the toolbar (captured + settings). JS-driven so a gap between
-  // the logo and the bar doesn't drop the hover; stays open while settings is on.
+  // Hovering anywhere on the dock cluster (logo, satellites, sub-buttons, panel) reveals the
+  // satellites + subs AND pauses the AI (set-hold), so a full-page navigation doesn't wipe the
+  // panel out from under the user mid-interaction. A short close delay bridges the gaps between the
+  // detached pieces; the hold is released only once the cluster is left AND settings is closed.
   let hoverTimer = null
-  // Pause the AI while the user is engaging the panel, so a full-page navigation doesn't wipe the
-  // panel out from under them before they can click. Deduped so we don't spam the server on every
-  // pointer move; released only once the bar actually hides AND settings is closed.
   let holdOn = false
   function setHold(want) {
     if (want === holdOn) return
     holdOn = want
     send({ type: "set-hold", held: want })
   }
-  function showBar() {
+  function clusterOn() {
     if (hoverTimer) clearTimeout(hoverTimer)
-    bar.classList.add("show")
+    dock.classList.add("wings")
     setHold(true)
   }
-  function hideBar() {
+  function clusterOff() {
     hoverTimer = setTimeout(() => {
-      if (!settingsOpen) {
-        bar.classList.remove("show")
-        setHold(false)
-      }
+      if (settingsOpen) return
+      dock.classList.remove("wings")
+      setHold(false)
     }, 260)
   }
-  fab.addEventListener("mouseenter", showBar)
-  fab.addEventListener("mouseleave", hideBar)
-  bar.addEventListener("mouseenter", showBar)
-  bar.addEventListener("mouseleave", hideBar)
 
   // --- Settings controls: attach/detach, session, credential (no popup) ------
   const attachBtn = root.getElementById("attachBtn")
@@ -755,11 +824,17 @@
   wRight.addEventListener("click", async (e) => {
     e.stopPropagation()
     const status = await send({ type: "panel-status" })
-    if (status && status.attached) return void flashTransition("Already capturing", "", "", 1100)
+    if (status && status.attached) {
+      // Capturing → the red wing is a STOP button now (record ■). Detach.
+      await send({ type: "toggle-attach-self" })
+      flashTransition("Recording stopped", "", "", 1100)
+      poll()
+      return
+    }
     wRight.disabled = true
     const res = await send({ type: "start-capture", role: "Anonymous", url: location.href })
     wRight.disabled = false
-    if (res && res.ok) flashTransition("Unauthenticated capture started", "", "#b4232f", 1300)
+    if (res && res.ok) flashTransition("Unauthenticated recording started", "", "#9e141c", 1300)
     else roleHint.textContent = (res && res.error) || "failed (need local CyberStrike + reachable server)"
     poll()
   })
@@ -767,12 +842,26 @@
     e.stopPropagation()
     // Add credential needs a role NAME → open the panel focused on the role input.
     settingsOpen = true
-    dock.classList.add("settings")
-    bar.classList.add("show")
+    dock.classList.add("open", "wings")
     try {
       newRole.focus()
     } catch {}
   })
+
+  // Cluster hover: reveal the satellites + subs (and pause the AI) while the pointer is over any
+  // piece of the dock. Attached here, once every piece exists.
+  ;[fab, wLeft, wRight, hueBtn, gear, panel].forEach((el) => {
+    el.addEventListener("mouseenter", clusterOn)
+    el.addEventListener("mouseleave", clusterOff)
+  })
+
+  // Driver hue on the dock: idle = navy, AI drives = deep red, Human drives = blue.
+  function applyDriverHue(d) {
+    dock.style.setProperty("--hue", d === "ai" ? AI_RGB : d === "human" ? HUMAN_RGB : IDLE_RGB)
+    dock.classList.toggle("ai", d === "ai")
+    dock.classList.toggle("human", d === "human")
+    dock.classList.toggle("idle", d === "idle")
+  }
 
   function updateSide() {
     const cx = host.getBoundingClientRect().left + host.offsetWidth / 2
@@ -783,98 +872,146 @@
 
   function render(status) {
     const attached = !!(status && status.attached)
-    if (status && status.driver) driver = status.driver
+    // Reconcile the backend driver (ai|human) with the local 3-state (ai|human|idle). Idle is
+    // client-only — cycling to it posts "human", so a status "human" must not clobber "idle". While
+    // detached the display is left as-is (defaults to the calm navy Idle).
+    if (attached && status && status.driver) {
+      if (!(status.driver === "human" && driver === "idle")) driver = status.driver
+    }
     dock.classList.toggle("capturing", attached)
-    dock.classList.toggle("driver-ai", driver !== "human")
-    dock.classList.toggle("driver-human", driver === "human")
+    dock.classList.toggle("cap-on", attached) // red satellite: record ● → stop ■
+    applyDriverHue(driver)
     attachBtn.textContent = attached ? "Stop capture" : "Start capture"
-    attachBtn.classList.toggle("on", attached)
+    attachBtn.classList.toggle("stop", attached)
+    wRight.title = attached ? "Stop Recording" : "Start Unauthenticated Recording"
+    const wt = wRight.querySelector(".wtip")
+    if (wt) wt.textContent = wRight.title
 
     if (status && status.stats) {
       const st = status.stats
       sTotal.textContent = st.total || 0
       sApi.textContent = st.api || 0
       sJs.textContent = st.js || 0
-      sStatic.textContent = st.static || 0
-      bTotal.textContent = st.total || 0
+      if (sStatic) sStatic.textContent = st.static || 0
+      hReq.textContent = st.total || 0
+      hEp.textContent = st.api || 0
+      hJs.textContent = st.js || 0
     }
     sPage.textContent = pageCount
-    stateEl.textContent = !attached ? "detached" : driver === "human" ? "you drive" : "AI driving"
+    hPg.textContent = pageCount
+    stateEl.textContent = !attached ? "detached" : driver === "human" ? "you drive" : driver === "idle" ? "idle" : "AI driving"
 
-    glow.classList.toggle("on", attached)
-    glow.classList.toggle("ai", attached && driver !== "human")
-    glow.classList.toggle("human", attached && driver === "human")
+    // Tab-edge glow follows the driver exactly like the mockup: on for AI (red) / Human (blue),
+    // off for Idle. (Default driver is Idle, so a page you're only browsing stays calm.)
+    const glowing = driver === "ai" || driver === "human"
+    glow.classList.toggle("on", glowing)
+    glow.classList.toggle("ai", glowing && driver === "ai")
+    glow.classList.toggle("human", glowing && driver === "human")
   }
 
-  // --- Drag ------------------------------------------------------------------
-  let dragging = false
-  let moved = false
-  let startX = 0
-  let startY = 0
-  let origLeft = 0
-  let origTop = 0
-  function onDragStart(e) {
-    dragging = true
-    moved = false
-    const p = e.touches ? e.touches[0] : e
-    startX = p.clientX
-    startY = p.clientY
-    const r = host.getBoundingClientRect()
-    origLeft = r.left
-    origTop = r.top
-    host.style.left = origLeft + "px"
-    host.style.top = origTop + "px"
-    host.style.right = "auto"
-    host.style.bottom = "auto"
-    e.preventDefault()
-  }
-  function onDragMove(e) {
-    if (!dragging) return
-    const p = e.touches ? e.touches[0] : e
-    const dx = p.clientX - startX
-    const dy = p.clientY - startY
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true
-    host.style.left = Math.max(4, Math.min(origLeft + dx, window.innerWidth - host.offsetWidth - 4)) + "px"
-    host.style.top = Math.max(4, Math.min(origTop + dy, window.innerHeight - host.offsetHeight - 4)) + "px"
-    updateSide()
-  }
-  function onDragEnd() {
-    dragging = false
-  }
-  fab.addEventListener("mousedown", onDragStart)
-  fab.addEventListener("touchstart", onDragStart, { passive: false })
-  document.addEventListener("mousemove", onDragMove)
-  document.addEventListener("touchmove", onDragMove, { passive: false })
-  document.addEventListener("mouseup", onDragEnd)
-  document.addEventListener("touchend", onDragEnd)
-
-  // Logo click → toggle driver (not a drag) + flash transition.
-  fab.addEventListener("click", () => {
-    if (moved) {
-      moved = false
-      return
+  // --- Drag (edge-anchored + clamped, like a chat-head widget) ----------------
+  // Both the dock host and the HUD host are draggable: dropped near a corner they anchor to that
+  // corner (staying put on resize) and never land off-screen. A press that barely moves is a click
+  // (→ the handle's onClick). Same behaviour the design mockup landed on.
+  const draggedHosts = []
+  function anchorHost(el, left, top) {
+    const w = el.offsetWidth,
+      h = el.offsetHeight,
+      m = 6
+    left = Math.max(m, Math.min(left, window.innerWidth - w - m))
+    top = Math.max(m, Math.min(top, window.innerHeight - h - m))
+    if (left + w / 2 > window.innerWidth / 2) {
+      el.style.right = window.innerWidth - left - w + "px"
+      el.style.left = "auto"
+    } else {
+      el.style.left = left + "px"
+      el.style.right = "auto"
     }
-    fab.classList.remove("tapped")
-    void fab.offsetWidth
-    fab.classList.add("tapped")
-    driver = driver === "ai" ? "human" : "ai"
+    if (top + h / 2 > window.innerHeight / 2) {
+      el.style.bottom = window.innerHeight - top - h + "px"
+      el.style.top = "auto"
+    } else {
+      el.style.top = top + "px"
+      el.style.bottom = "auto"
+    }
+    el.style.transform = "none"
+  }
+  function reclampHost(el) {
+    const r = el.getBoundingClientRect()
+    anchorHost(el, r.left, r.top)
+  }
+  window.addEventListener("resize", () => draggedHosts.forEach(reclampHost))
+  function makeHostDraggable(el, handle, onClick) {
+    let sx, sy, ox, oy, mv, active
+    function down(e) {
+      const p = e.touches ? e.touches[0] : e
+      active = true
+      mv = false
+      sx = p.clientX
+      sy = p.clientY
+      const r = el.getBoundingClientRect()
+      ox = r.left
+      oy = r.top
+      e.preventDefault()
+    }
+    function move(e) {
+      if (!active) return
+      const p = e.touches ? e.touches[0] : e
+      const dx = p.clientX - sx,
+        dy = p.clientY - sy
+      if (!mv && Math.abs(dx) + Math.abs(dy) < 5) return
+      mv = true
+      el.style.left = ox + dx + "px"
+      el.style.top = oy + dy + "px"
+      el.style.right = "auto"
+      el.style.bottom = "auto"
+      el.style.transform = "none"
+      if (el === host) updateSide()
+    }
+    function up(e) {
+      if (!active) return
+      active = false
+      if (mv) {
+        const r = el.getBoundingClientRect()
+        anchorHost(el, r.left, r.top)
+        if (!draggedHosts.includes(el)) draggedHosts.push(el)
+      } else if (onClick) {
+        onClick(e)
+      }
+    }
+    handle.addEventListener("mousedown", down)
+    handle.addEventListener("touchstart", down, { passive: false })
+    document.addEventListener("mousemove", move)
+    document.addEventListener("touchmove", move, { passive: false })
+    document.addEventListener("mouseup", up)
+    document.addEventListener("touchend", up)
+  }
+
+  // Logo tap → cycle the driver (AI → Human → Idle) + flash + report to the server.
+  const DRV_CYCLE = ["ai", "human", "idle"]
+  function cycleDriver() {
+    driver = DRV_CYCLE[(DRV_CYCLE.indexOf(driver) + 1) % DRV_CYCLE.length]
+    applyDriverHue(driver)
     flashTransition(
-      driver === "human" ? "Human Driving the session" : "AI Driving the session",
-      driver === "human" ? "human" : "ai",
+      driver === "human" ? "Human Drives the Browser" : driver === "idle" ? "CyberStrike Idle" : "AI Drives the Browser",
+      driver, // "ai" | "human" | "idle" → the .msg color class
     )
-    chrome.runtime.sendMessage({ type: "set-driver", driver }, (res) => render(res))
-  })
+    // Backend accepts only ai|human: AI drives = "ai" (CoDrive.start); Human AND Idle both pause the
+    // AI via the human interlock — Idle is that same pause, presented without the hue.
+    chrome.runtime.sendMessage({ type: "set-driver", driver: driver === "ai" ? "ai" : "human" }, (res) => render(res))
+  }
+  makeHostDraggable(host, fab, cycleDriver)
+  makeHostDraggable(hudHost, hudEl)
 
   gear.addEventListener("click", (e) => {
     e.stopPropagation()
     settingsOpen = !settingsOpen
-    dock.classList.toggle("settings", settingsOpen)
-    if (settingsOpen) bar.classList.add("show")
+    dock.classList.toggle("open", settingsOpen)
+    if (settingsOpen) dock.classList.add("wings")
   })
 
-  // Auto-close the settings menu when the pointer leaves the dock — but NOT while a
-  // field inside it has focus (don't yank the panel away mid-typing). Re-entering the
-  // dock cancels a pending close.
+  // Dismiss the settings panel: pointer leaves the dock (but NOT while a field has focus — don't
+  // yank it mid-typing), a click outside the dock host, or Escape.
   let settingsTimer = null
   function cancelCloseSettings() {
     if (settingsTimer) {
@@ -882,21 +1019,33 @@
       settingsTimer = null
     }
   }
+  function dismissPanel() {
+    settingsOpen = false
+    dock.classList.remove("open", "wings")
+  }
   function closeSettings() {
     const a = root.activeElement
     if (a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) {
       settingsTimer = setTimeout(closeSettings, 400) // still editing — retry later
       return
     }
-    settingsOpen = false
-    dock.classList.remove("settings")
-    bar.classList.remove("show")
+    dismissPanel()
   }
   dock.addEventListener("mouseenter", cancelCloseSettings)
   dock.addEventListener("mouseleave", () => {
     if (!settingsOpen) return
     cancelCloseSettings()
     settingsTimer = setTimeout(closeSettings, 320)
+  })
+  document.addEventListener("click", (e) => {
+    if (!settingsOpen) return
+    // A click routed through the dock host (closed shadow root) keeps the panel open; anything
+    // else on the page dismisses it.
+    if (e.composedPath && e.composedPath().includes(host)) return
+    dismissPanel()
+  })
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && settingsOpen) dismissPanel()
   })
 
   // --- Deterministic page observation (§3.3) --------------------------------
@@ -1041,6 +1190,10 @@
   const MAX_DEEP_NODES = 4000 // shadow/iframe traversal budget per observe
   const ioVisible = new WeakMap() // el → live in-viewport truth from IntersectionObserver
   let io = null
+  let mo = null // MutationObserver — hoisted so teardown() (extension disable) can disconnect it
+  let ro = null // ResizeObserver — same
+  let pollTimer = null // the status poll interval — cleared on disable
+  let disabled = false // true once the user disables the extension from the popup
   let lastVisCount = -1
   let mutationBursts = 0
 
@@ -1360,7 +1513,7 @@
   }
   function startObservers() {
     try {
-      const mo = new MutationObserver((muts) => {
+      mo = new MutationObserver((muts) => {
         mutationBursts += muts.length
         scheduleReobserve()
       })
@@ -1370,7 +1523,7 @@
       })
     } catch {}
     try {
-      const ro = new ResizeObserver(() => scheduleReobserve())
+      ro = new ResizeObserver(() => scheduleReobserve())
       if (document.body) ro.observe(document.body)
     } catch {}
     try {
@@ -1507,7 +1660,7 @@
       const justUp = !host.isConnected || Date.now() - mountedAt < 1500
       const show =
         m.action === "show" ? true : m.action === "hide" ? false : justUp ? true : host.style.display === "none"
-      host.style.display = show ? "" : "none"
+      setPanelVisible(show)
       sendResponse({ ok: true, visible: show })
       return
     }
@@ -1646,14 +1799,17 @@
   }
 
   function mount() {
+    if (disabled) return // extension disabled from the popup → stay dormant
     if (!document.body) return
     if (document.getElementById("cyberstrike-panel-host")) return
     document.body.appendChild(glowHost)
     document.body.appendChild(transHost)
     document.body.appendChild(cursorHost)
+    document.body.appendChild(hudHost)
     document.body.appendChild(roleHost)
     document.body.appendChild(confirmHost)
     document.body.appendChild(host)
+    showHud(hueOn) // center HUD visible iff the reasoning overlay is on
     mountedAt = Date.now()
     readCredFromHash()
     updateSide()
@@ -1669,17 +1825,82 @@
       if (label) renderRole(label)
     })
     poll()
-    setInterval(poll, 1500)
+    pollTimer = setInterval(poll, 1500)
   }
 
-  // Credential is set asynchronously (hash → background register → storage), and can
-  // change (switch role) or clear (Browse anonymous). Keep the role layer in sync.
+  // Fully disable the extension for this tab (popup toggle): stop the poll + all observers, release
+  // any hold, DETACH (so the background stops capturing and drops the control channel once the last
+  // tab detaches), and remove every injected host so nothing is left running or on screen.
+  function teardown() {
+    disabled = true
+    try {
+      if (pollTimer) clearInterval(pollTimer)
+    } catch {}
+    pollTimer = null
+    try {
+      if (io) io.disconnect()
+    } catch {}
+    try {
+      if (mo) mo.disconnect()
+    } catch {}
+    try {
+      if (ro) ro.disconnect()
+    } catch {}
+    io = mo = ro = null
+    setHold(false)
+    send({ type: "detach" })
+    for (const h of [glowHost, transHost, cursorHost, hudHost, roleHost, confirmHost, host]) {
+      try {
+        h.remove()
+      } catch {}
+    }
+  }
+  // Re-enable: mount from scratch (idempotent).
+  function enable() {
+    if (!disabled) return
+    disabled = false
+    if (document.body) mount()
+    else document.addEventListener("DOMContentLoaded", mount, { once: true })
+  }
+
+  // Show/hide the WHOLE on-page presence together (popup "show / hide panel"). The dock, the center
+  // HUD, the edge glow, the AI cursor overlay, the role banner and the transition line each live in
+  // their own host — hiding only the dock would leave the HUD (and glow) floating, so toggle them as
+  // one. On show, the HUD returns to its hue-driven visibility rather than being forced on.
+  function setPanelVisible(show) {
+    const d = show ? "" : "none"
+    host.style.display = d
+    glowHost.style.display = d
+    cursorHost.style.display = d
+    roleHost.style.display = d
+    transHost.style.display = d
+    hudHost.style.display = show ? (hueOn ? "" : "none") : "none"
+  }
+
+  // Credential is set asynchronously (hash → background register → storage), and can change (switch
+  // role) or clear. The `enabled` flag is the popup's master on/off — every open tab reacts to it.
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== "local" || !changes.credential) return
-    const c = changes.credential.newValue
-    renderRole(c && c.label ? c.label : null)
+    if (area !== "local") return
+    if (changes.enabled) {
+      if (changes.enabled.newValue === false) {
+        if (!disabled) teardown()
+      } else if (disabled) {
+        enable()
+      }
+    }
+    if (changes.credential) {
+      const c = changes.credential.newValue
+      renderRole(c && c.label ? c.label : null)
+    }
   })
 
-  if (document.body) mount()
-  else document.addEventListener("DOMContentLoaded", mount)
+  // Initial mount respects the master enable flag (default ON) so a disabled extension stays dormant.
+  chrome.storage.local.get("enabled", (o) => {
+    if (o && o.enabled === false) {
+      disabled = true
+      return
+    }
+    if (document.body) mount()
+    else document.addEventListener("DOMContentLoaded", mount, { once: true })
+  })
 })()
