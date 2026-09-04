@@ -257,6 +257,12 @@ chrome.storage.local.get(["credential", "session"], (o) => {
   if (o && o.session) activeSession = o.session
 })
 chrome.storage.onChanged.addListener((changes) => {
+  // Master enable/disable from the popup. Disabling detaches every tab (content scripts also tear
+  // themselves down) so capture stops and the control channel closes — nothing keeps running.
+  if (changes.enabled && changes.enabled.newValue === false) {
+    for (const tabId of [...attached.keys()]) detach(tabId)
+    closeControl()
+  }
   if (changes.credential) activeCredential = changes.credential.newValue || null
   if (changes.session) {
     activeSession = changes.session.newValue || ""
