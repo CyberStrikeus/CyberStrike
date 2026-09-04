@@ -285,12 +285,44 @@ chrome.storage.onChanged.addListener((changes) => {
 function attach(tabId) {
   attached.set(tabId, true)
   void hblog("attach", { tabId })
+  persistCapState()
   connectControl() // AI co-driving: open the control channel once we're capturing.
 }
 function detach(tabId) {
   attached.delete(tabId)
+  driverByTab.delete(tabId) // clear the driver too — a later re-attach must start fresh ("ai"),
+  // not silently inherit a paused Human/Idle from before (which reconnect would re-post as "human").
+  persistCapState()
   if (attached.size === 0) closeControl() // nothing to drive → drop the control channel
 }
+
+// MV3 service workers are evicted when idle; `attached` / `driverByTab` live only in SW memory, so
+// an eviction would silently stop capture (the webRequest listeners gate on `attached.has`). Mirror
+// the capture state to storage and restore it when the SW wakes so capture survives an eviction.
+function persistCapState() {
+  try {
+    chrome.storage.local.set({ capState: { attached: [...attached.keys()], drivers: Object.fromEntries(driverByTab) } })
+  } catch {}
+}
+async function restoreCapState() {
+  const cap = await new Promise((r) => chrome.storage.local.get("capState", (o) => r(o && o.capState)))
+  if (!cap || !Array.isArray(cap.attached)) return
+  let any = false
+  for (const tabId of cap.attached) {
+    // Only restore tabs that still exist — a tab closed while the SW was evicted must not linger.
+    const alive = await new Promise((r) => chrome.tabs.get(tabId, (t) => r(!chrome.runtime.lastError && !!t)))
+    if (!alive) continue
+    attached.set(tabId, true)
+    const d = cap.drivers && cap.drivers[tabId]
+    if (d) driverByTab.set(tabId, d)
+    any = true
+  }
+  if (any) {
+    persistCapState() // prune any dropped (closed) tabs from storage
+    connectControl() // resume the control channel (also re-arms the SW keepalive while co-driving)
+  }
+}
+void restoreCapState()
 function closeControl() {
   if (controlReconnectTimer) {
     clearTimeout(controlReconnectTimer)
@@ -508,7 +540,18 @@ async function forward(rec) {
 // tab|method|url so the patch's body can merge with these headers at ingest.
 // Only xmlhttprequest (fetch is xmlhttprequest in MV3) is stored, so static/script
 // requests (which never reach the patch) don't accumulate.
+// tabId|method|url → captured request headers, awaiting the matching fetch/XHR-patch body. Bounded:
+// a request the patch never reports back (errored / navigated away mid-flight) would otherwise leak
+// an entry forever, so drop the oldest once we exceed the cap (Map preserves insertion order).
 const reqHeadersByKey = new Map()
+const REQ_HEADERS_CAP = 500
+function rememberReqHeaders(key, val) {
+  if (reqHeadersByKey.size >= REQ_HEADERS_CAP) {
+    const oldest = reqHeadersByKey.keys().next().value
+    if (oldest !== undefined) reqHeadersByKey.delete(oldest)
+  }
+  reqHeadersByKey.set(key, val)
+}
 function hkey(tabId, method, url) {
   return tabId + "|" + (method || "GET").toUpperCase() + "|" + url
 }
@@ -523,7 +566,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
     // xmlhttprequest: headers merge with the fetch/XHR patch body. main_frame/sub_frame:
     // full-page navigations the patch NEVER sees — capture their headers so we can ingest them.
     if (d.type !== "xmlhttprequest" && d.type !== "main_frame" && d.type !== "sub_frame") return
-    reqHeadersByKey.set(hkey(d.tabId, d.method, d.url), { req: headerArrayToObj(d.requestHeaders) })
+    rememberReqHeaders(hkey(d.tabId, d.method, d.url), { req: headerArrayToObj(d.requestHeaders) })
   },
   { urls: ["<all_urls>"] },
   ["requestHeaders", "extraHeaders"],
@@ -564,6 +607,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   attached.delete(tabId)
   driverByTab.delete(tabId)
   for (const k of reqHeadersByKey.keys()) if (k.startsWith(tabId + "|")) reqHeadersByKey.delete(k)
+  persistCapState()
 })
 
 // Popup asks us to attach/detach/status the active tab.
@@ -672,7 +716,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
     if (msg.type === "set-driver") {
       const tabId = sender.tab && sender.tab.id
-      if (tabId !== undefined) driverByTab.set(tabId, msg.driver === "human" ? "human" : "ai")
+      if (tabId !== undefined) {
+        driverByTab.set(tabId, msg.driver === "human" ? "human" : "ai")
+        persistCapState() // survive an SW eviction with the right driver
+      }
       // Make the server authoritative on who drives (interlock + loop trigger).
       void postDriver(msg.driver === "human" ? "human" : "ai")
       sendResponse(panelStatus(tabId))
@@ -779,7 +826,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const base = await csUrl()
         const ping = await csFetch(`${base}/session?limit=1&roots=true`, { signal: AbortSignal.timeout(CS_PING_MS) })
         if (!ping || !ping.ok) {
-          sendResponse({ ok: false, error: "CyberStrike unreachable" })
+          // 401 = reached the server but auth failed (wrong remote password) — a distinct, fixable
+          // problem from "unreachable", so the panel can say "check the password".
+          const err = ping && ping.status === 401 ? "authentication failed — check the password" : "CyberStrike unreachable"
+          sendResponse({ ok: false, error: err })
           return
         }
       } catch {
