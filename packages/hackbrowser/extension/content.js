@@ -91,11 +91,13 @@
       .msg {
         position: absolute; top: 42%; left: 50%; transform: translate(-50%,-50%) scale(.95);
         font: 700 32px "Space Grotesk", system-ui, -apple-system, sans-serif; letter-spacing: .01em;
-        white-space: nowrap; color: #fff; text-shadow: 0 2px 30px rgba(0,0,0,.7);
+        white-space: nowrap; text-align: center; color: #fff; text-shadow: 0 2px 30px rgba(0,0,0,.7);
         padding: 15px 30px; border-radius: 16px;
         background: rgba(8,11,17,.68); backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,.14);
         opacity: 0; transition: opacity .3s ease, transform .3s ease;
       }
+      .msub { margin-top: 7px; font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 15px; font-weight: 600; letter-spacing: 0; color: rgba(255,255,255,.72); text-shadow: 0 1px 12px rgba(0,0,0,.6); }
       .trans.show .msg { opacity: 1; transform: translate(-50%,-50%) scale(1); }
       .msg.ai { border-color: rgba(${AI_RGB},.45); text-shadow: 0 2px 30px rgba(0,0,0,.7), 0 0 34px rgba(${AI_RGB},.7); }
       .msg.human { border-color: rgba(${HUMAN_RGB},.45); text-shadow: 0 2px 30px rgba(0,0,0,.7), 0 0 34px rgba(${HUMAN_RGB},.7); }
@@ -106,9 +108,18 @@
   const trans = transRoot.getElementById("trans")
   const msg = transRoot.getElementById("msg")
   let transTimer = null
-  function flashTransition(text, cls, color, ms) {
-    msg.textContent = text
+  function flashTransition(text, cls, color, ms, sub) {
     msg.className = "msg " + (cls || "")
+    msg.textContent = ""
+    const main = document.createElement("div")
+    main.textContent = text
+    msg.append(main)
+    if (sub) {
+      const s = document.createElement("div")
+      s.className = "msub"
+      s.textContent = sub
+      msg.append(s)
+    }
     // Optional explicit color (role hue) — overrides the driver-class shadow; reset when
     // absent so driver transitions keep their CSS styling.
     msg.style.boxShadow = color ? `0 0 0 1px ${color}, 0 10px 40px -8px ${color}` : ""
@@ -209,7 +220,7 @@
         <div class="hs"><span class="n" id="h-req">0</span><span class="l">Captures</span></div>
         <div class="hs"><span class="n" id="h-ep">0</span><span class="l">Endpoints</span></div>
         <div class="hs"><span class="n" id="h-js">0</span><span class="l">JS Files</span></div>
-        <div class="hs"><span class="n" id="h-pg">0</span><span class="l">Pages</span></div>
+        <div class="hs"><span class="n" id="h-pg">0</span><span class="l">Elements</span></div>
       </div>
       <div class="box reason">
         <div class="rhead">AI Reasoning</div>
@@ -582,7 +593,7 @@
               <div class="stat hl"><div class="k">Captured</div><div class="v" id="s-total">0</div></div>
               <div class="stat"><div class="k">Endpoints</div><div class="v" id="s-api">0</div></div>
               <div class="stat"><div class="k">JS files</div><div class="v" id="s-js">0</div></div>
-              <div class="stat"><div class="k">Pages</div><div class="v" id="s-page">0</div></div>
+              <div class="stat"><div class="k">Elements</div><div class="v" id="s-page">0</div></div>
             </div>
             <div class="rlog" id="rlog"></div>
           </div>
@@ -898,7 +909,7 @@
     if (state === linkState) return
     linkState = state
     if (state === "connecting") flashTransition("Connecting to CyberStrike…", "ai", "", 1400)
-    else if (state === "connected") flashTransition(model ? "Connected · " + model : "Connected", "ai", "", 1600)
+    else if (state === "connected") flashTransition("Connected CyberStrike", "ai", "", 1800, model ? "Model: " + model : null)
     else if (state === "capture") flashTransition("Start capture to connect the AI", "ai", "", 1600)
     else if (state === "unreach" || state === "error") flashTransition("CyberStrike unreachable", "", "#e0343f", 1800)
   }
