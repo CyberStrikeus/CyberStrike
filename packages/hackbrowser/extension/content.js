@@ -412,6 +412,132 @@
   confirmRoot.getElementById("cyes").addEventListener("click", () => answerConfirm(true))
   confirmRoot.getElementById("cno").addEventListener("click", () => answerConfirm(false))
 
+  // --- "Provide New Credential" box (the "+" satellite) ----------------------
+  // A HUD prompt: a credential NAME (the new browser's label/identity) + an OPTIONAL role tier
+  // (name + privilege level). The tier seeds a web_role so CyberStrike's authz agent can test
+  // vertical privilege escalation (BFLA), not just same-level IDOR. Submitting enqueues the
+  // credential; CyberStrike spawns its browser after Start capture.
+  const credHost = document.createElement("div")
+  credHost.style.cssText = "position:fixed;inset:0;z-index:2147483647;pointer-events:none;"
+  const credRoot = credHost.attachShadow({ mode: "closed" })
+  credRoot.innerHTML = `
+    <style>
+      :host { all: initial; }
+      * { box-sizing: border-box; }
+      .wrap { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+        background: rgba(4,7,11,.55); backdrop-filter: blur(2px); pointer-events: auto;
+        font-family: system-ui,-apple-system,"Segoe UI",sans-serif; }
+      .wrap.on { display: flex; }
+      .card { width: min(340px, 88vw); background: #121a26; border: 1px solid #1f2b3a; border-radius: 15px;
+        box-shadow: 0 24px 64px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.03); overflow: hidden; }
+      .head { padding: 13px 16px; border-bottom: 1px solid #17222f; display: flex; align-items: center; gap: 9px; }
+      .head img { width: 20px; height: 20px; object-fit: contain; }
+      .head .t { font-weight: 700; letter-spacing: .04em; font-size: 13px; color: #e8eef5; }
+      .body { padding: 14px 16px 16px; }
+      .lbl { font-size: 9.5px; color: #4e5d6f; text-transform: uppercase; letter-spacing: .08em; margin: 13px 0 5px; }
+      .lbl:first-child { margin-top: 0; }
+      .opt { text-transform: none; letter-spacing: 0; font-weight: 400; }
+      .fld { width: 100%; height: 34px; padding: 0 11px; border: 1px solid #1f2b3a; border-radius: 8px;
+        background: #0b121b; color: #e8eef5; font: 13px system-ui,sans-serif; outline: none; }
+      .fld:focus { border-color: rgba(34,211,238,.55); }
+      .fld::placeholder { color: #4e5d6f; }
+      .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+      .chip { padding: 5px 10px; border: 1px solid #1f2b3a; border-radius: 999px; background: #17222f; color: #8a99ab;
+        font-size: 11px; font-weight: 600; cursor: pointer; user-select: none; }
+      .chip:hover { color: #e8eef5; }
+      .chip.sel { background: rgba(34,211,238,.15); color: #22d3ee; border-color: rgba(34,211,238,.5); }
+      .hint2 { font-size: 10.5px; color: #4e5d6f; margin-top: 9px; line-height: 1.45; }
+      .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+      button.b { height: 36px; padding: 0 14px; border: 0; border-radius: 9px; font: 700 12px system-ui,sans-serif; cursor: pointer; }
+      .b.no { background: #17222f; color: #cbd5e1; }
+      .b.go { background: linear-gradient(180deg,#3ee0f2,#22d3ee); color: #06121a; }
+      .b.go:disabled { opacity: .5; cursor: default; }
+    </style>
+    <div class="wrap" id="cbwrap">
+      <div class="card">
+        <div class="head"><img src="${LOGO_SRC}" alt="" /><span class="t">Provide New Credential</span></div>
+        <div class="body">
+          <div class="lbl">Credential name</div>
+          <input class="fld" id="cbName" type="text" placeholder="e.g. orhan1" spellcheck="false" autocomplete="off" />
+          <div class="lbl">User role <span class="opt">— optional, for privilege-escalation testing</span></div>
+          <input class="fld" id="cbRole" type="text" placeholder="e.g. Admin" spellcheck="false" autocomplete="off" />
+          <div class="chips" id="cbChips">
+            <span class="chip" data-role="User" data-level="1">User</span>
+            <span class="chip" data-role="Member" data-level="2">Member</span>
+            <span class="chip" data-role="Admin" data-level="3">Admin</span>
+            <span class="chip" data-role="Owner" data-level="4">Owner</span>
+          </div>
+          <div class="hint2">Opens a new browser for this identity. A role tier lets CyberStrike test vertical privilege escalation (BFLA), not just same-level IDOR.</div>
+          <div class="row"><button class="b no" id="cbCancel">Cancel</button><button class="b go" id="cbGo">Open Browser</button></div>
+        </div>
+      </div>
+    </div>
+  `
+  const cbwrap = credRoot.getElementById("cbwrap")
+  const cbName = credRoot.getElementById("cbName")
+  const cbRole = credRoot.getElementById("cbRole")
+  let cbLevel = undefined // privilege level from a chosen preset chip; undefined for free-text roles
+  function cbSelectChip(el) {
+    for (const c of credRoot.querySelectorAll(".chip")) c.classList.toggle("sel", c === el)
+  }
+  for (const chip of credRoot.querySelectorAll(".chip")) {
+    chip.addEventListener("click", () => {
+      cbRole.value = chip.getAttribute("data-role")
+      cbLevel = Number(chip.getAttribute("data-level")) || undefined
+      cbSelectChip(chip)
+    })
+  }
+  // Typing a custom role clears the preset selection + its implied level (unknown ordering).
+  cbRole.addEventListener("input", () => {
+    if (![...credRoot.querySelectorAll(".chip")].some((c) => c.getAttribute("data-role") === cbRole.value)) {
+      cbLevel = undefined
+      cbSelectChip(null)
+    }
+  })
+  function openCredBox() {
+    cbName.value = ""
+    cbRole.value = ""
+    cbLevel = undefined
+    cbSelectChip(null)
+    cbwrap.classList.add("on")
+    setTimeout(() => {
+      try {
+        cbName.focus()
+      } catch {}
+    }, 0)
+  }
+  function closeCredBox() {
+    cbwrap.classList.remove("on")
+  }
+  async function submitCredBox() {
+    const label = cbName.value.trim()
+    if (!label) {
+      try {
+        cbName.focus()
+      } catch {}
+      return
+    }
+    const roleName = cbRole.value.trim() || undefined
+    closeCredBox()
+    const res = await send({ type: "enqueue-role", role: label, roleName, roleLevel: roleName ? cbLevel : undefined })
+    if (res && res.ok) {
+      roleHint.textContent = `"${label}"${roleName ? " (" + roleName + ")" : ""} queued — opens after Start capture.`
+      flashTransition("Credential queued: " + label, "", "", 1400)
+    } else {
+      flashTransition("CyberStrike unreachable", "", "#e0343f", 1600)
+      roleHint.textContent = (res && res.error) || "failed (need a reachable CyberStrike)"
+    }
+  }
+  credRoot.getElementById("cbGo").addEventListener("click", submitCredBox)
+  credRoot.getElementById("cbCancel").addEventListener("click", closeCredBox)
+  cbwrap.addEventListener("click", (e) => {
+    if (e.target === cbwrap) closeCredBox()
+  }) // click the dim backdrop → cancel
+  credRoot.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeCredBox()
+    else if (e.key === "Enter") submitCredBox()
+  })
+
   // --- Dock ------------------------------------------------------------------
   const host = document.createElement("div")
   host.id = "cyberstrike-panel-host"
@@ -582,11 +708,6 @@
             <input class="fld" id="cred" type="text" placeholder="Anonymous" />
             <button class="mini" id="setCred">Set</button>
           </div>
-          <div class="lbl">Add credential (opens a new browser)</div>
-          <div class="rowg">
-            <input class="fld" id="newRole" type="text" placeholder="e.g. user" />
-            <button class="mini" id="addRole">Add</button>
-          </div>
           <div class="hint" id="roleHint"></div>
           <div class="brk">
             <div class="stats">
@@ -703,8 +824,6 @@
   const refreshSess = root.getElementById("refreshSess")
   const cred = root.getElementById("cred")
   const setCred = root.getElementById("setCred")
-  const newRole = root.getElementById("newRole")
-  const addRole = root.getElementById("addRole")
   const roleHint = root.getElementById("roleHint")
 
   // All CyberStrike calls go through the background (CORS-exempt); a content-script
@@ -826,24 +945,8 @@
     }
   })
 
-  // Add credential → ENQUEUE the role for sequential setup. Its browser opens when its
-  // turn comes (after the previous role's Start capture), not immediately — so the user
-  // sets up one identity at a time instead of juggling N windows.
-  async function enqueueRoleClick() {
-    const role = newRole.value.trim()
-    if (!role) return
-    const res = await send({ type: "enqueue-role", role })
-    if (res && res.ok) {
-      roleHint.textContent = `“${role}” queued — opens after you Start capture.`
-      newRole.value = ""
-    } else {
-      roleHint.textContent = (res && res.error) || "failed (need a session + local CyberStrike)"
-    }
-  }
-  addRole.addEventListener("click", enqueueRoleClick)
-  newRole.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") enqueueRoleClick()
-  })
+  // "Add credential" now lives in the credential box (the "+" satellite → openCredBox), which also
+  // captures an optional role tier. The old panel input row was removed in favour of it.
 
   // Logo "wings": RED (right) = start unauthenticated capture; BLUE "+" (left) = add credential.
   const wRight = root.getElementById("wRight")
@@ -880,12 +983,7 @@
   })
   wLeft.addEventListener("click", (e) => {
     e.stopPropagation()
-    // Add credential needs a role NAME → open the panel focused on the role input.
-    settingsOpen = true
-    dock.classList.add("open", "wings")
-    try {
-      newRole.focus()
-    } catch {}
+    openCredBox() // "+" → the "Provide New Credential" box (name + optional role tier)
   })
 
   // Cluster hover: reveal the satellites + subs (and pause the AI) while the pointer is over any
@@ -1935,6 +2033,7 @@
     document.body.appendChild(hudHost)
     document.body.appendChild(roleHost)
     document.body.appendChild(confirmHost)
+    document.body.appendChild(credHost)
     document.body.appendChild(host)
     showHud(hueOn) // center HUD visible iff the reasoning overlay is on
     mountedAt = Date.now()
@@ -1976,7 +2075,7 @@
     io = mo = ro = null
     setHold(false)
     send({ type: "detach" })
-    for (const h of [glowHost, transHost, cursorHost, hudHost, roleHost, confirmHost, host]) {
+    for (const h of [glowHost, transHost, cursorHost, hudHost, roleHost, confirmHost, credHost, host]) {
       try {
         h.remove()
       } catch {}
@@ -2001,6 +2100,8 @@
     cursorHost.style.display = d
     roleHost.style.display = d
     transHost.style.display = d
+    credHost.style.display = d
+    if (!show) closeCredBox() // don't leave the credential box floating when the panel is hidden
     hudHost.style.display = show ? (hueOn ? "" : "none") : "none"
   }
 

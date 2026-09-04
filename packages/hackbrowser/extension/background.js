@@ -724,10 +724,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       try {
         const sid = await ensureSession()
         const base = await csUrl()
+        // msg.role = credential label. An optional declared role tier (msg.roleName + msg.roleLevel)
+        // is sent as an object so the server seeds a web_role and links the credential to it.
+        const roleName = msg.roleName && String(msg.roleName).trim()
+        const item = roleName ? { label: msg.role, role: roleName, level: msg.roleLevel } : msg.role
         const res = await csFetch(`${base}/session/${sid}/web/role-queue`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ roles: [msg.role] }),
+          body: JSON.stringify({ roles: [item] }),
         })
         if (res.ok) {
           sendResponse({ ok: true })
