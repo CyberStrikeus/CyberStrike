@@ -41,4 +41,33 @@ describe("WebControl", () => {
     WebControl.disconnect("s1")
     expect(WebControl.connected("s1")).toBe(false)
   })
+
+  // Extension-side (auth-context) fetch used by mining.
+  function fetchSocket(sid: string, reply: (url: string) => { ok: boolean; body?: string }) {
+    WebControl.connect(sid, {
+      send: (d) => {
+        const m = JSON.parse(d)
+        if (m.op === "fetch") WebControl.onAck(JSON.stringify({ id: m.id, ...reply(m.url) }))
+      },
+    })
+  }
+
+  test("fetchText returns the extension's in-page fetched body", async () => {
+    fetchSocket("s1", (url) => ({ ok: true, body: "BODY:" + url }))
+    expect(await WebControl.fetchText("s1", "https://h/app.js")).toBe("BODY:https://h/app.js")
+  })
+
+  test("fetcher prefers the extension fetch when connected, else the server-side fallback", async () => {
+    const fallback = async (u: string) => "SERVER:" + u
+    // no extension → fallback
+    expect(await WebControl.fetcher("s2", fallback)("https://h/x")).toBe("SERVER:https://h/x")
+    // connected + body → extension wins
+    fetchSocket("s2", (url) => ({ ok: true, body: "EXT:" + url }))
+    expect(await WebControl.fetcher("s2", fallback)("https://h/x")).toBe("EXT:https://h/x")
+  })
+
+  test("fetcher falls back to server-side when the in-page fetch fails (e.g. 401)", async () => {
+    fetchSocket("s3", () => ({ ok: false }))
+    expect(await WebControl.fetcher("s3", async (u: string) => "SERVER:" + u)("https://h/x")).toBe("SERVER:https://h/x")
+  })
 })

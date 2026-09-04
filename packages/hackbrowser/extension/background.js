@@ -396,6 +396,24 @@ async function connectControl() {
       return
     }
     if (!msg || !msg.id) return
+    // Auth-context fetch (mining): the server asks us to fetch a URL from the BROWSER, so it
+    // inherits the session cookies + proxy/TLS (host_permissions also bypass CORS). No tab needed —
+    // the background does it directly. Reaches auth-gated JS bundles / API specs a server-side fetch
+    // would 401 on. Bounded + best-effort; returns the body in the ack.
+    if (msg.op === "fetch") {
+      let body = null
+      try {
+        const res = await fetch(msg.url, { credentials: "include", redirect: "follow", signal: AbortSignal.timeout(10000) })
+        if (res.ok) {
+          const text = await res.text()
+          body = text.length > 3_000_000 ? text.slice(0, 3_000_000) : text
+        }
+      } catch (e) {
+        void hblog("fetch-failed", { url: msg.url, error: String(e) })
+      }
+      controlSend(ws, body === null ? { id: msg.id, ok: false } : { id: msg.id, ok: true, body })
+      return
+    }
     console.log("[hackbrowser] perform", msg.op, msg.elementId || msg.url || "")
     void hblog("perform", { op: msg.op, target: msg.elementId || msg.url || "" })
     const tabId = drivenTab()

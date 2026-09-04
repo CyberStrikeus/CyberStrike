@@ -20,6 +20,7 @@ import { JsMine } from "./js-mine"
 import { JsSecrets } from "./js-secrets"
 import { JsSourceMap } from "./js-sourcemap"
 import { WebScope } from "./scope"
+import { WebControl } from "./control"
 import { HBLog } from "./hblog"
 import { Log } from "../../util/log"
 
@@ -115,8 +116,11 @@ export namespace JsMiner {
   // Fetch + mine the in-scope JS URLs collected for this session that haven't been mined yet, and
   // record discovered routes + secrets. Returns how many routes were newly recorded (0 when nothing
   // new or a pass is already running). Never throws.
-  export async function mineNew(sessionID: string, fetcher: Fetcher = defaultFetcher, maxPerPass = MAX_PER_PASS): Promise<number> {
+  export async function mineNew(sessionID: string, fetcherOverride?: Fetcher, maxPerPass = MAX_PER_PASS): Promise<number> {
     if (inflight.has(sessionID)) return 0
+    // Prefer the extension's in-page (authed) fetch when connected, else server-side. A test/caller
+    // can still inject an explicit fetcher.
+    const fetcher: Fetcher = fetcherOverride ?? WebControl.fetcher(sessionID, defaultFetcher)
     const done = seen(sessionID)
     const targets = DataCollector.latest(sessionID)
       .jsUrls.filter((u) => !done.has(u) && WebScope.allowed(sessionID, u))

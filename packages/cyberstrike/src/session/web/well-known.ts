@@ -13,6 +13,7 @@
 import { OpenApi } from "./openapi"
 import { DataCollector } from "./data-collector"
 import { WebScope } from "./scope"
+import { WebControl } from "./control"
 import { Crawl } from "./crawl"
 import { HBLog } from "./hblog"
 import { Server } from "../../server/server"
@@ -99,7 +100,9 @@ export namespace WellKnown {
     probed.add(sessionID)
     const origin = originOf(target)
     if (!origin) return 0
-    const fetcher = opts?.fetch ?? defaultFetcher
+    // Prefer the extension's in-page (authed) fetch when connected, else server-side — so an
+    // auth-gated swagger/openapi spec is reachable (a server-side fetch would 401).
+    const fetcher = opts?.fetch ?? WebControl.fetcher(sessionID, defaultFetcher)
     const emit = opts?.emit ?? defaultEmit
     const inScope = (u: string) => WebScope.allowed(sessionID, u)
 
