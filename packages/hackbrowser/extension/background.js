@@ -45,6 +45,10 @@ async function csFetch(url, init) {
   return globalThis.fetch(url, { ...i, headers: { ...(i.headers || {}), ...auth } })
 }
 
+// Bound reachability probes so a dead/unroutable remote host fails fast instead of hanging the UI
+// (a plain fetch to a no-route host can block for the browser default; connection-refused is quick).
+const CS_PING_MS = 5000
+
 // The active session id, falling back to storage when the in-memory value hasn't caught
 // up yet. A spawned profile writes the session from its #__cs_sess hash to storage, and
 // our activeSession only syncs via storage.onChanged — so a capture firing in that gap
@@ -615,7 +619,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       const base = await csUrl()
       let reachable = false
       try {
-        const r = await csFetch(`${base}/session?limit=1&roots=true`)
+        const r = await csFetch(`${base}/session?limit=1&roots=true`, { signal: AbortSignal.timeout(CS_PING_MS) })
         reachable = !!(r && r.ok)
       } catch {}
       sendResponse({ reachable, model: lastModel })
@@ -763,6 +767,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return
       }
       const role = (msg.role && String(msg.role).trim()) || "Anonymous"
+      // Recording needs CyberStrike (it owns the session + the capture pipeline). Verify the server
+      // is actually reachable BEFORE attaching — otherwise a stored session + cached credential let
+      // capture "start" locally with no backend, a phantom recording. A down server must fail here.
+      try {
+        const base = await csUrl()
+        const ping = await csFetch(`${base}/session?limit=1&roots=true`, { signal: AbortSignal.timeout(CS_PING_MS) })
+        if (!ping || !ping.ok) {
+          sendResponse({ ok: false, error: "CyberStrike unreachable" })
+          return
+        }
+      } catch {
+        sendResponse({ ok: false, error: "CyberStrike unreachable" })
+        return
+      }
       try {
         await ensureSession()
         // Register the role as a real credential (anonymous included) so it shows in the

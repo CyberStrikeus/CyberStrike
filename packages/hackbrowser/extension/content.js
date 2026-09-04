@@ -853,18 +853,22 @@
       poll()
       return
     }
+    // Try to start recording — this needs CyberStrike (it creates/ensures the session there). Show
+    // that we're trying, then either start, or report the backend is unreachable and reset the
+    // button to its round record shape (capture never started → not attached → no stop ■).
     wRight.disabled = true
+    flashTransition("Connecting to CyberStrike…", "ai", "", 1400)
     const res = await send({ type: "start-capture", role: "Anonymous", url: location.href })
     wRight.disabled = false
     if (res && res.ok) {
       flashTransition("Unauthenticated recording started", "", "#9e141c", 1300)
     } else {
-      // Recording couldn't start — most often CyberStrike is down. Probe to say so plainly (visible
-      // banner), and keep the detailed reason in the panel hint.
-      const r = await send({ type: "ping-cs" })
-      const reachable = !!(r && r.reachable)
-      flashTransition(reachable ? "Couldn't start recording" : "CyberStrike unreachable", "", "#e0343f", 1800)
+      // Couldn't start — the server verifies reachability first, so a down backend comes back as
+      // "CyberStrike unreachable" (also treat a dead service worker / no response as unreachable).
+      const unreachable = !res || (res.error && /unreachable/i.test(res.error))
+      flashTransition(unreachable ? "CyberStrike unreachable" : "Couldn't start recording", "", "#e0343f", 1800)
       roleHint.textContent = (res && res.error) || "failed (need local CyberStrike + reachable server)"
+      dock.classList.remove("cap-on") // record ● (never became stop ■ since capture didn't start)
     }
     poll()
   })
