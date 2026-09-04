@@ -30,6 +30,7 @@ import { RoleQueue } from "../../session/web/role-queue"
 import { PageState } from "../../session/web/page-state"
 import { WebControl } from "../../session/web/control"
 import { WebDriver } from "../../session/web/driver"
+import { WebHold } from "../../session/web/hold"
 import { CoDrive } from "../../session/web/nav/co-drive-runner"
 import { DataCollector } from "../../session/web/data-collector"
 import { HBLog } from "../../session/web/hblog"
@@ -1328,6 +1329,30 @@ export const SessionRoutes = lazy(() =>
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
         return c.json({ driver: WebDriver.get(sessionID) ?? null })
+      },
+    )
+    .post(
+      "/:sessionID/web/hold",
+      describeRoute({
+        summary: "Pause / resume the AI navigator (transient)",
+        description:
+          "While the user engages the on-page panel, the extension holds the co-driving loop so a full-page navigation doesn't wipe the panel out from under them. Distinct from the AI/Human driver toggle — the driver stays 'ai'; this only pauses navigation until released.",
+        operationId: "session.webSetHold",
+        responses: {
+          200: {
+            description: "Hold state",
+            content: { "application/json": { schema: resolver(z.object({ ok: z.boolean(), held: z.boolean() })) } },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator("json", z.object({ held: z.boolean() })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const held = c.req.valid("json").held
+        WebHold.set(sessionID, held)
+        return c.json({ ok: true, held })
       },
     )
     .post(
