@@ -9,6 +9,7 @@ import { Log } from "../util/log"
 import { Server } from "../server/server"
 import { HBLog } from "../session/web/hblog"
 import { WebScope } from "../session/web/scope"
+import { WellKnown } from "../session/web/well-known"
 import { HackbrowserStatus } from "../session/hackbrowser-status"
 import { RoleQueue } from "../session/web/role-queue"
 import { SpawnedProfiles } from "../session/web/spawned-profiles"
@@ -70,6 +71,9 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
   // Bound the AI crawl to the target domain (+ any explicit scope) so it can't wander off-site.
   WebScope.ensure(opts.sessionID, opts.target, opts.scope)
   HBLog.record(opts.sessionID, "server", "launch", { target: opts.target, csUrl: Server.url().toString(), scope: WebScope.label(opts.sessionID) })
+  // Deterministic well-known recon (Swagger/OpenAPI + robots + sitemap) — background, once. Catches
+  // API docs the AI navigator deliberately does NOT tunnel to; feeds the collector + vuln pipeline.
+  void WellKnown.probe(opts.sessionID, opts.target).catch(() => {})
   const spawn = await import("@cyberstrike-io/hackbrowser/v2-spawn")
   try {
     // Pass the ACTUAL server URL so the extension calls back to this instance even when the
