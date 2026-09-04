@@ -1591,6 +1591,9 @@
     const sess = decodeHash(h.match(/__cs_sess=([^&]+)/))
     const csUrl = decodeHash(h.match(/__cs_url=([^&]+)/))
     if (label === null && sess === null && csUrl === null) return
+    // A launch hash ⇒ this is a CyberStrike-SPAWNED profile (throwaway CfT). Marks it so the
+    // watchdog only ever self-closes spawned browsers, never a user's self-installed one.
+    chrome.storage.local.set({ spawned: true })
     history.replaceState(null, "", location.pathname + location.search || "/")
     // Point the extension at THIS server (the launcher passes its real URL — may be a non-4096
     // port when 4096 was taken). Without it the extension defaults to :4096 and can talk to a

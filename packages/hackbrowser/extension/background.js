@@ -322,6 +322,10 @@ function watchdogExpired() {
   return controlEverOpen && controlDownSince > 0 && Date.now() - controlDownSince > WATCHDOG_MS
 }
 async function selfCloseBrowser() {
+  // ONLY a spawned (throwaway CfT) profile self-closes. A user who self-installed this extension
+  // in their own browser must NEVER have their windows closed because CS went away.
+  const spawned = await new Promise((r) => chrome.storage.local.get("spawned", (o) => r(o && o.spawned)))
+  if (!spawned) return
   void hblog("watchdog-selfclose", { downMs: Date.now() - controlDownSince })
   try {
     const wins = await chrome.windows.getAll()
