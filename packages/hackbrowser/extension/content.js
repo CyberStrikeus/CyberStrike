@@ -217,10 +217,10 @@
     </style>
     <div class="hud" id="hud">
       <div class="box stats">
-        <div class="hs"><span class="n" id="h-req">0</span><span class="l">Captures</span></div>
+        <div class="hs"><span class="n" id="h-cap">0</span><span class="l">Captures</span></div>
         <div class="hs"><span class="n" id="h-ep">0</span><span class="l">Endpoints</span></div>
-        <div class="hs"><span class="n" id="h-js">0</span><span class="l">JS Files</span></div>
         <div class="hs"><span class="n" id="h-pg">0</span><span class="l">Pages</span></div>
+        <div class="hs"><span class="n" id="h-vln">0</span><span class="l">Vulns</span></div>
       </div>
       <div class="box reason">
         <div class="rhead">AI Reasoning</div>
@@ -229,10 +229,10 @@
     </div>
   `
   const hudEl = hudRoot.getElementById("hud")
-  const hReq = hudRoot.getElementById("h-req")
+  const hCap = hudRoot.getElementById("h-cap")
   const hEp = hudRoot.getElementById("h-ep")
-  const hJs = hudRoot.getElementById("h-js")
   const hPg = hudRoot.getElementById("h-pg")
+  const hVln = hudRoot.getElementById("h-vln")
   const hudRlog = hudRoot.getElementById("hud-rlog")
   function showHud(on) {
     hudHost.style.display = on ? "" : "none"
@@ -706,10 +706,10 @@
           <div class="hint" id="roleHint"></div>
           <div class="brk">
             <div class="stats">
-              <div class="stat hl"><div class="k">Captured</div><div class="v" id="s-total">0</div></div>
-              <div class="stat"><div class="k">Endpoints</div><div class="v" id="s-api">0</div></div>
-              <div class="stat"><div class="k">JS files</div><div class="v" id="s-js">0</div></div>
-              <div class="stat"><div class="k">Pages</div><div class="v" id="s-page">0</div></div>
+              <div class="stat hl"><div class="k">Captured</div><div class="v" id="s-cap">0</div></div>
+              <div class="stat"><div class="k">Endpoints</div><div class="v" id="s-ep">0</div></div>
+              <div class="stat"><div class="k">Pages</div><div class="v" id="s-pg">0</div></div>
+              <div class="stat"><div class="k">Vulns</div><div class="v" id="s-vln">0</div></div>
             </div>
             <div class="rlog" id="rlog"></div>
           </div>
@@ -778,10 +778,10 @@
   const stateEl = root.getElementById("state")
   const ailink = root.getElementById("ailink")
   const ailinkTxt = root.getElementById("ailinkTxt")
-  const sTotal = root.getElementById("s-total")
-  const sApi = root.getElementById("s-api")
-  const sJs = root.getElementById("s-js")
-  const sPage = root.getElementById("s-page")
+  const sCap = root.getElementById("s-cap")
+  const sEp = root.getElementById("s-ep")
+  const sPg = root.getElementById("s-pg")
+  const sVln = root.getElementById("s-vln")
 
   let driver = "idle" // AI | Human | Idle (3-way logo cycle); detached defaults to Idle (calm navy)
   let lastAttached = false // last render's capture state — the logo's driver cycle is gated on it
@@ -1092,21 +1092,21 @@
   }
 
   // Capture counts for the panel + HUD, straight from the backend (GET /web/stats via web-stats):
-  // captures / distinct endpoints / distinct JS files / pages (HTML docs). No local tally.
+  // captures / distinct endpoints / distinct pages / confirmed vulns — from the durable DB. No tally.
   function applyStats(s) {
     if (!s) return
     const captures = s.captures || 0
     const endpoints = s.endpoints || 0
-    const js = s.js || 0
     const pages = s.pages || 0
-    sTotal.textContent = captures
-    sApi.textContent = endpoints
-    sJs.textContent = js
-    sPage.textContent = pages
-    hReq.textContent = captures
+    const vulns = s.vulns || 0
+    sCap.textContent = captures
+    sEp.textContent = endpoints
+    sPg.textContent = pages
+    sVln.textContent = vulns
+    hCap.textContent = captures
     hEp.textContent = endpoints
-    hJs.textContent = js
     hPg.textContent = pages
+    hVln.textContent = vulns
   }
 
   // --- Drag (edge-anchored + clamped, like a chat-head widget) ----------------
