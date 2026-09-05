@@ -772,6 +772,21 @@ export namespace Agent {
           PermissionNext.fromConfig({ llmhook: "allow" }),
         )
 
+        const authnAgentPermission = PermissionNext.merge(
+          vulnAgentPermission,
+          PermissionNext.fromConfig({ authn_test: "allow" }),
+        )
+
+        const ssrfAgentPermission = PermissionNext.merge(
+          vulnAgentPermission,
+          PermissionNext.fromConfig({ ssrf_test: "allow" }),
+        )
+
+        const businessLogicPermission = PermissionNext.merge(
+          vulnAgentPermission,
+          PermissionNext.fromConfig({ business_test: "allow" }),
+        )
+
         return {
           "proxy-tester-idor": {
             name: "proxy-tester-idor",
@@ -825,7 +840,7 @@ export namespace Agent {
             hidden: true,
             prompt: authnAgent.prompt,
             prependRequestContext: true,
-            permission: vulnAgentPermission,
+            permission: authnAgentPermission,
             options: {},
           },
           "proxy-tester-business-logic": {
@@ -836,7 +851,7 @@ export namespace Agent {
             hidden: true,
             prompt: businessLogicAgent.prompt,
             prependRequestContext: true,
-            permission: vulnAgentPermission,
+            permission: businessLogicPermission,
             options: {},
           },
           "proxy-tester-ssrf": {
@@ -847,7 +862,7 @@ export namespace Agent {
             hidden: true,
             prompt: ssrfAgent.prompt,
             prependRequestContext: true,
-            permission: vulnAgentPermission,
+            permission: ssrfAgentPermission,
             options: {},
           },
           "proxy-tester-file-attacks": {

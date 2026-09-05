@@ -63,6 +63,10 @@ import { ScopeCheckTool } from "./scope-check"
 import { EnsureToolsTool } from "./ensure-tools"
 import { MethodologyStatusTool } from "./methodology-status"
 import { AttackScriptTool } from "./attack-script"
+import { AuthnTestTool } from "./webhook/authn/authn-test"
+import { SsrfTestTool } from "./webhook/ssrf/ssrf-test"
+import { BusinessTestTool } from "./webhook/business/business-test"
+import { MisconfigTestTool } from "./webhook/misconfig/misconfig-test"
 import { GenerateReportTool } from "./generate-report"
 import { EbpfTool } from "./ebpf"
 import { WinhookTool } from "./winhook"
@@ -199,6 +203,11 @@ export namespace ToolRegistry {
       WebUpdateCredentialClaimsTool,
       WebUpdateCredentialTool,
       CsrfExtractTool,
+      // Smart Tools — WSTG-aligned deterministic probes (web-workflow 2.0)
+      AuthnTestTool,
+      SsrfTestTool,
+      BusinessTestTool,
+      MisconfigTestTool,
       // Hackbrowser — autonomous crawler that produces captures the
       // proxy-analyzer ingests. Upstream of the rest of the web pipeline.
       HackbrowserTool,
