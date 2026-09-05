@@ -52,8 +52,13 @@ function pathSlots(normalizedPath: string, canonicalPath: string): ParamSlot[] {
   const out: ParamSlot[] = []
   for (let i = 0; i < t.length; i++) {
     const seg = t[i]!
-    if (seg.length > 2 && seg[0] === "{" && seg[seg.length - 1] === "}" && c[i] != null && c[i] !== "") {
-      out.push({ loc: "path", name: seg.slice(1, -1), value: c[i]! })
+    if (seg.includes("{") && seg.includes("}") && c[i] != null && c[i] !== "") {
+      // For partial placeholders like order_{ulid}, extract name inside braces
+      const m = seg.match(/\{([^}]+)\}/)
+      const name = m ? m[1]! : seg.slice(1, -1)
+      // Preserve prefix context for TypeID: order_{ulid} → name "order_{ulid}" keeps prefix
+      const slotName = seg.includes("_{ulid}") ? seg : name
+      out.push({ loc: "path", name: slotName, value: c[i]! })
     }
   }
   return out

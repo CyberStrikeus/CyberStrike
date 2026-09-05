@@ -160,6 +160,13 @@ export function scoreTemplate(
     if (isPlaceholder(tseg)) {
       // Don't let a known-static (non-empty) segment fill a placeholder slot.
       if (cls.kind === "static" && pseg !== "") return null
+      // For TypeID partial placeholder e.g. order_{ulid}, enforce prefix match
+      if (tseg.includes("_{ulid}")) {
+        const prefix = tseg.split("_{ulid}")[0]!
+        if (!pseg.startsWith(prefix + "_")) return null
+        const suffix = pseg.slice(prefix.length + 1)
+        if (!/^[0-9A-HJKMNP-TV-Z]{26}$/i.test(suffix)) return null
+      }
       score += 1
     } else {
       if (tseg !== pseg) return null
@@ -170,5 +177,6 @@ export function scoreTemplate(
 }
 
 function isPlaceholder(seg: string): boolean {
+  if (seg.includes("{") && seg.includes("}")) return true
   return seg.startsWith("{") && seg.endsWith("}") && seg.length > 2
 }
