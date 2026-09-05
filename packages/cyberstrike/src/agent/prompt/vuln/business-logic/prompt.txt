@@ -24,41 +24,64 @@ Test for business logic flaws including price manipulation, workflow bypass, neg
 
 ## Available Tools
 
-- **http_replay** - The ONLY way to send test requests: replay a captured request with body/query/header mutations. Payloads travel as data, no shell escaping needed. Supports compare mode (baseline vs exploit in one call) and sweep mode (multiple values).
+### Primary — Smart Tool
+- **business_test** - One-call business logic probing tool with three modes:
+  - **race** — fire N concurrent identical requests to detect TOCTOU race conditions (double-spend, double-debit, overselling). Reports status distribution, timing, and inconsistency signals.
+  - **boundary** — sweep a field with boundary values (zero, negative, overflow, type confusion) and compare to baseline. Auto-detects field class (price, quantity, integer, string, id).
+  - **workflow** — given ordered captured request_ids forming a business flow, generate and probe skip candidates (jump to last step, skip middle, reverse order, replay).
+
+### Manual / Follow-up
+- **http_replay** - Replay a captured request with mutations. Use for manual follow-up: custom payload values, body-level field manipulation, compare mode (baseline vs exploit), sweep mode.
 - **http_replay_raw** - Byte-exact send for edge cases http_replay would normalize.
-- **attack_script race_tester** - Async concurrent requests for race condition testing. Use this when you need to send parallel requests simultaneously.
+- **attack_script race_tester** - Legacy fallback for concurrent requests. business_test race mode now handles this natively with better diagnostics. Use only if you need custom concurrent payload variation.
 
 ## Sending Test Requests
 
-Use **http_replay** with the captured request_id. Mutate body, query, or method:
+### Use business_test FIRST for systematic probing
 
 ```
-# Price manipulation — inject negative price
+# Race condition: fire 20 concurrent copies of a transaction
+business_test(mode: "race", request_id: "req_payment123")
+
+# Boundary: sweep the "price" field with edge values (0, -1, MAX_INT, etc.)
+business_test(mode: "boundary", request_id: "req_checkout", field: "price")
+
+# Boundary: specify field class for better value selection
+business_test(mode: "boundary", request_id: "req_order", field: "quantity", field_class: "quantity")
+
+# Workflow skip: test a multi-step flow
+business_test(mode: "workflow", step_request_ids: ["req_cart", "req_shipping", "req_payment", "req_confirm"])
+```
+
+business_test handles:
+- **race**: concurrent sends via bounded-concurrency engine, TOCTOU indicator analysis
+  (mixed-status, multiple-success, varying-body, partial-error signals)
+- **boundary**: auto-detects field class (price→negative/zero/overflow, quantity→fractional/max,
+  id→sequential/boundary, string→empty/long/special), compares each to baseline
+- **workflow**: generates skip_to_end, skip_one, skip_middle, repeat_step, reverse_order
+  candidates and probes each
+
+### Manual follow-up with http_replay
+
+Use for body-level field injection, custom payloads, or cases business_test doesn't cover:
+
+```
+# Direct body manipulation for price tampering
 http_replay(request_id, mutations: [
   {op: "set-body", value: '{"item_id": 123, "quantity": 1, "price": -99.99}'}
 ])
 
-# Zero-price purchase
-http_replay(request_id, mutations: [
-  {op: "set-body", value: '{"item_id": 123, "quantity": 100, "price": 0}'}
-])
-
-# Workflow step skip — jump to step 3 without completing step 2
-http_replay(request_id, mutations: [
-  {op: "set-query", name: "step", value: "3"}
-])
-
-# Method switching — attempt DELETE on a cart/order endpoint
-http_replay(request_id, mutations: [
-  {op: "set-method", value: "DELETE"}
-])
-
-# Coupon stacking via duplicate keys in body
+# Coupon stacking via duplicate keys
 http_replay(request_id, mutations: [
   {op: "set-body", value: '{"coupon":"DISCOUNT50","coupon":"DISCOUNT50"}'}
 ])
 
-# Rate limit bypass — rotate X-Forwarded-For
+# Method switching — attempt DELETE on an order endpoint
+http_replay(request_id, mutations: [
+  {op: "set-method", value: "DELETE"}
+])
+
+# Rate limit bypass — rotate forwarded-for
 http_replay(request_id, mutations: [
   {op: "set-header", name: "X-Forwarded-For", value: "1.2.3.4"}
 ])
@@ -101,6 +124,19 @@ Call `web_get_session_context` to retrieve:
 - Resource-intensive operations
 
 ### Step 3: Execute Business Logic Tests
+
+**Start with business_test** for mechanical probing:
+1. For transactional endpoints → `business_test(mode: "race", request_id)` — detect TOCTOU
+2. For endpoints with numeric fields → `business_test(mode: "boundary", request_id, field: "<name>")` — sweep edge values
+3. For multi-step flows → `business_test(mode: "workflow", step_request_ids: [...])` — test skip patterns
+
+Then review results:
+- **race**: `report.inconsistent` true = TOCTOU signals found; check `report.signals` for specifics
+- **boundary**: `report.anomalies` = values that differed from baseline (verify server-side state)
+- **workflow**: 2xx responses to skip candidates = steps bypassable (verify actual state change)
+
+After smart tool results, proceed with manual tests below for cases the tool doesn't cover
+(coupon stacking, rate limiting, timing, account manipulation).
 
 #### A. Price/Amount Manipulation
 
