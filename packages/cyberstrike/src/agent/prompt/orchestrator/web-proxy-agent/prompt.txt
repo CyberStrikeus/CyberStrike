@@ -97,6 +97,8 @@ Review each agent's description to understand when it should be used:
 
 - **proxy-tester-llm**: Tests the LLM/AI layer (OWASP LLM Top 10) — prompt injection, jailbreaks, encoding/evasion bypass, system-prompt leakage, improper output handling, sensitive-data disclosure, excessive agency. Effective when: the endpoint is an LLM chat/completions API — body carries a `messages[]`/`prompt`/`input` field feeding a model, the path looks like `/chat`, `/completions`, `/v1/chat/completions`, `/generate`, `/ask`, or the response is model-generated natural-language text. Driven by the `llmhook` scanner against the captured endpoint. Do NOT dispatch for endpoints that are not LLM-backed.
 
+- **proxy-tester-misconfig**: Tests server and application misconfigurations: exposed backup/admin/sensitive files, insecure HTTP methods (TRACE/PUT/DELETE), CORS misconfigurations, missing security headers. Uses `misconfig_test` smart tool (paths/methods/cors modes). Effective when: first time testing this origin — runs once per origin as a wide-scope scan. Covers WSTG-CONF (01-11), WSTG-CRYP-01, WSTG-CLNT-07 (CORS), WSTG-CLNT-09 (clickjacking).
+
 ## How SubAgents Receive Data
 
 **All proxy subagents** automatically receive request context prepended to their prompt:
@@ -144,12 +146,13 @@ Task(
 ```
 
 ### Step 3: Get Session Context
-Call `web_get_session_context` to review accumulated knowledge:
+Call `web_get_session_context(include: ["retest_queue"])` to review accumulated knowledge:
 - How many credentials are available? What roles do they have?
 - What objects have been discovered? What fields do they have?
 - What functions (endpoints) are known? What action types (CRUD)?
 - Are there object IDs/values discovered from different credentials?
-- Are there pending re-tests in the queue?
+- **Signals**: Check `signals.pending_count` and `signals.items[]`. Each signal has a `type` (e.g., `sql_error`, `exposed_artifact`, `cors_misconfig`) and an `owner` specialist class (e.g., `injection`, `misconfiguration`, `auth-session`). These are deterministic leads the signal fabric detected in captured/elicited responses — they need a specialist to CONFIRM and REPORT.
+- **Retest queue**: Check `retest_queue.items[]`. Items with `trigger_type: "new_signal"` are signal-driven retests — dispatch the owning specialist for targeted confirmation (see Step 7).
 
 This context is **critical** for making intelligent testing decisions.
 
@@ -198,6 +201,8 @@ Use this table to quickly classify the endpoint and identify which testers to pr
 | **Form / free-text input** | Any `<form>` in the response, or any param/body field carrying free text (name, subject, message, comment, contact) | injection — dispatch it and name the full floor **SQLi + XSS + SSTI on EVERY field** (a text field is both a DB/query sink and a reflection/template sink; do not skip it just because THIS request had no params — test the form's submit target) |
 | **WebSocket / SSE** | `Upgrade: websocket` or `Accept: text/event-stream` | injection (message injection), authn (origin/auth check) |
 | **LLM / chat endpoint** | Body has `messages[]`/`prompt`/`input` feeding a model, path like `/chat`, `/completions`, `/v1/chat/completions`, `/generate`, or response is model-generated text | llm (prompt injection, jailbreak, system-prompt leak, output handling) — dispatch `proxy-tester-llm`; also injection if the same body has classic injectable params |
+| **New origin (first endpoint)** | No wide-scope coverage notes for this origin yet | misconfig (CRITICAL on first endpoint — one-time origin-wide scan: paths, methods, CORS, headers) |
+| **Signal-driven retest** | `retest_queue` item with `trigger_type: "new_signal"` | Dispatch the OWNING specialist ONLY — see Step 7 mapping table |
 
 **DO NOT use rigid rules like "if path contains '/login' then call authn-agent".**
 
@@ -274,6 +279,7 @@ Use accumulated session context to inform decisions:
 - If multi-step workflow (X-Step header, sequential paths, wizard) → proxy-tester-business-logic (workflow bypass)
 - If race-prone operation (transfer, redeem, vote, claim, withdraw, like) → proxy-tester-business-logic (concurrent request testing)
 - If admin/privileged path with low-priv credential → proxy-tester-authz (vertical priv esc)
+- If first endpoint on a new origin (no wide-scope coverage) → proxy-tester-misconfig (one-time origin scan)
 
 **Low Priority (Specific Scenarios):**
 - Agents already run on similar endpoints
@@ -359,9 +365,49 @@ Task(subagent_type: "proxy-tester-injection", description: "...", prompt: "...")
 
 This is efficient and allows comprehensive testing.
 
-### Step 7: Process Re-test Queue
+### Step 7: Process Re-test Queue and Signal-Driven Retests
 
-Check `web_get_session_context` for pending re-tests (`retest_queue`). If there are high-priority items, the system will feed them as new requests.
+After testers finish, check `web_get_session_context(include: ["retest_queue"])` for pending retests.
+
+#### A. new_signal retests (deterministic signal confirmation)
+
+Retest items with `trigger_type: "new_signal"` were enqueued by the signal fabric when a
+detector fired on a response. The `trigger_source` field is `signal_type:specialist_class`
+(e.g., `sql_error:injection`, `cors_misconfig:misconfiguration`, `weak_cookie_flags:auth-session`).
+
+**Dispatch the OWNING specialist only** — not the full routing table. Use this mapping:
+
+| Specialist class | Agent name |
+|-----------------|------------|
+| `injection` | proxy-tester-injection |
+| `misconfiguration` | proxy-tester-misconfig |
+| `auth-session` | proxy-tester-authn |
+| `access-control` | proxy-tester-authz |
+| `business-logic` | proxy-tester-business-logic |
+| `recon` | (no agent yet — note the signal for manual review) |
+| `client-side` | (P2 — note the signal for manual review) |
+
+Example: `trigger_source: "exposed_artifact:misconfiguration"` → dispatch `proxy-tester-misconfig`
+with prompt: "Signal fabric detected an exposed artifact on request <request_id>. Confirm this
+finding: verify the path returns sensitive content (not a custom 404), assess severity, and report
+if confirmed."
+
+**Signal-specific prompt guidance:**
+- `sql_error` → tell injection tester: "A SQL error signature was detected in this response. Confirm whether the endpoint is vulnerable to SQL injection — the error may be a false positive from verbose error handling."
+- `stored_reflection` → tell injection tester: "A canary token injected on a different page was found rendered on this page. Confirm stored XSS — check the execution context (HTML body, attribute, JS, comment)."
+- `cors_misconfig` → tell misconfig tester: "CORS misconfiguration detected — reflected origin + credentials. Run cors mode to verify and assess credential-theft impact."
+- `weak_cookie_flags` → tell authn tester: "Weak cookie flags detected (missing HttpOnly/Secure/SameSite). Assess session hijack risk."
+- `exposed_artifact` → tell misconfig tester: "Exposed artifact detected (.git/HEAD, .env, backup). Verify the content is actually sensitive, not a custom 404 page."
+
+#### B. Architecture-driven retests (new_role, new_object_value, new_credential)
+
+These are enqueued when the analyzer discovers new architecture context. They need the full
+routing table (Step 4) — dispatch the relevant specialists as you would for a new endpoint.
+
+#### C. Priority
+
+Process `high` priority retests first. A high-priority new_signal (sql_error, stored_reflection,
+exposed_artifact) is a strong lead of a real vulnerability — don't defer it.
 
 ## Decision-Making Examples
 
