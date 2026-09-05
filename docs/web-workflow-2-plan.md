@@ -304,7 +304,7 @@ POST /session/ingest ─> [ingest body-scan hook]  ─> Signal: stored_reflectio
 ### P2 — Client-side + WebProvider (OO / modular)
 
 - `tool/webhook/client.ts` + client-side agent (co-drive gated)
-- `cloud/provider-web.ts` — `WebProvider implements AssessmentProvider`; replace hardcoded registration with a provider registry (unblocks `cs-2.0-modular-packages`)
+- ~~`cloud/provider-web.ts` — `WebProvider implements AssessmentProvider`~~ **DONE** — `WebProvider implements DomainProvider` (extracted base interface; `AssessmentProvider extends DomainProvider`). Factory pattern (`WebProvider.create()`) loads skills + composes prompts. 12 agents, 16 tests / 109 assertions.
 
 ### P3 — Validation suite (see §11)
 
@@ -373,7 +373,7 @@ The real remaining P1 work is NOT a fleet of new payload tools. It is:
 1. **Agent restructuring** — WSTG-aligned specialists with THIN prompts that lean on `inject_probe` + `http_replay` + `csrf_extract` + the P0 fabric (the biggest genuine gap; prompt/registration work in `agent/agent.ts` + `agent/prompt/vuln/`).
 2. **Orchestrator consumes the fabric** — route `new_signal` retests + the `signals` context block to the owning specialist (prompt logic).
 3. **A few genuinely-missing active tools** — misconfig active-probe (wordlists + send-via-http_replay; fabric classifies), and native `authn`/`ssrf`/`business` to replace the Python scripts.
-4. **The OO `WebProvider`** registry (unchanged from §10-P2).
+4. **The OO `WebProvider`** registry — **DONE.** `DomainProvider` base interface extracted; `WebProvider implements DomainProvider` in `cloud/provider-web.ts`; `agent.ts` wired via `WebProvider.create()` (factory pattern).
 
 Net: injection + access-control mechanics are already done in the tool layer; P0 added the detection fabric; **P1's leverage is the agent layer + the ~4 genuinely-missing active probes, built to REUSE the send + detection layers rather than duplicate them.**
 
