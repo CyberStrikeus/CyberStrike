@@ -438,7 +438,7 @@ Native business-logic testing replacing Python `race_tester`. Three modes:
 | `src/tool/webhook/business/boundary.ts` | 89 | `BoundaryValues` — 5 field classes (integer/price/quantity/string/id), ~45 values, `forField()` auto-detect by field name regex, `select()` with category+limit filter. |
 | `src/tool/webhook/business/workflow.ts` | 96 | `WorkflowSkip.generate()` — 5 strategies (skip_to_end, skip_one, skip_middle, repeat_step, reverse_order) from ordered step sequences. |
 | `src/tool/webhook/business/probe.ts` | 94 | `BusinessProbe` — `race()` + `boundary()` orchestrator with `injectFn` pattern and baseline-diff anomaly detection. |
-| `src/tool/webhook/business/business-test.ts` | 153 | `BusinessTest.run` 3-mode dispatcher + `BusinessTestTool = Tool.define("business_test")` — **NOT registered** (inert). |
+| `src/tool/webhook/business/business-test.ts` | 153 | `BusinessTest.run` 3-mode dispatcher + `BusinessTestTool = Tool.define("business_test")` — registered in `tool/registry.ts`. |
 
 **Tests:** 4 files — race (7), boundary (29), workflow (10), probe (7) — all pass.
 
@@ -452,7 +452,7 @@ Active misconfiguration probing that generates the traffic the P0 signal fabric 
 |------|-------|-------------|
 | `src/tool/webhook/misconfig/wordlists.ts` | 106 | Backup suffixes (~15), named backup patterns (~12), admin paths (~26), sensitive files (~34), HTTP methods (~12). `Wordlists.select()` with category+limit filter. |
 | `src/tool/webhook/misconfig/probe.ts` | 153 | `MisconfigProbe` — `paths()` (GET wordlist paths, flag 200/403 vs 404 baseline), `methods()` (unusual HTTP methods, flag allowed), `cors()` (Origin reflection + credentials test). Backup suffixes require basePath — skipped if none given. |
-| `src/tool/webhook/misconfig/misconfig-test.ts` | 133 | `MisconfigTest.run` 3-mode dispatcher + `MisconfigTestTool = Tool.define("misconfig_test")` — **NOT registered** (inert). |
+| `src/tool/webhook/misconfig/misconfig-test.ts` | 133 | `MisconfigTest.run` 3-mode dispatcher + `MisconfigTestTool = Tool.define("misconfig_test")` — registered in `tool/registry.ts`. |
 
 **Tests:** 2 files — wordlists (11), probe (11) — all pass.
 
@@ -462,8 +462,8 @@ Active misconfiguration probing that generates the traffic the P0 signal fabric 
 
 | Item | Status | Depends on |
 |------|--------|-----------|
-| Tool registry wiring (`tool/registry.ts`) | Not started | Register authn_test + ssrf_test + business_test + misconfig_test; currently all inert |
-| Agent permission wiring (`agent/agent.ts`) | Not started | Scope tools per specialist per §04 |
+| Tool registry wiring (`tool/registry.ts`) | **Done** | `AuthnTestTool`, `SsrfTestTool`, `BusinessTestTool`, `MisconfigTestTool` registered in `all()` array |
+| Agent permission wiring (`agent/agent.ts`) | **Done (3/4)** | `authnAgentPermission` → proxy-tester-authn, `ssrfAgentPermission` → proxy-tester-ssrf, `businessLogicPermission` → proxy-tester-business-logic. misconfig_test registered but agent deferred to §05 |
 | WSTG-aligned specialist agent prompts | Not started | The biggest genuine gap — thin prompts in `agent/prompt/vuln/` |
 | Orchestrator consuming the fabric | Not started | Route `new_signal` retests + signals context to owning specialist |
 | `inject_probe` → canary registration | Deferred (risk) | Thread marker through per-probe send functions; needs live target |
