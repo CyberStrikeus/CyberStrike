@@ -23,6 +23,8 @@ export namespace Identifier {
     web_ui_observation: "wuo",
     web_function: "wfn",
     web_retest: "wrt",
+    web_canary: "wcn",
+    web_signal: "wsg",
     endpoint_template: "ept",
     intel_entry: "int",
     vrt_check: "vrc",

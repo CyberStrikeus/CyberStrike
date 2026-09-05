@@ -16,13 +16,13 @@ import { WebCredential, COMMON_AUTH_HEADERS } from "../session/web/web-credentia
 import { HttpMessage } from "../replay/message"
 import { Apply } from "../replay/apply"
 import { Send } from "../replay/send"
-import { Governor } from "../replay/governor"
-import { BackendFetch } from "../replay/backend-fetch"
 import { BackendSocket } from "../replay/backend-socket"
 import { ReplayResponse } from "../replay/response"
 import { Observe } from "../replay/observe"
 import { Mutate } from "../replay/mutate"
 import { Batch } from "../replay/batch"
+import { scanElicitedResponse, type MarkerCanary } from "../session/web/signal/ingest"
+import { governedSend } from "../replay/govern"
 
 // Encode codecs mirrored as a zod enum for the tool schema (kept in sync with
 // Encode.Codec in ../replay/encode.ts).
@@ -196,6 +196,9 @@ function applyAuthParams(
 
 // ── Governed send wrapper ─────────────────────────────────────────────────────
 
+// Thin adapter over the shared governed-send primitive (replay/govern). Keeps this
+// tool's snake_case option shape at its many call sites while the budget/breaker/
+// Send.governed logic lives in ONE place, reused by the webhook smart tools too.
 async function sendGoverned(
   msg: HttpMessage.Request,
   origin: string,
@@ -206,21 +209,12 @@ async function sendGoverned(
     signal?: AbortSignal
   },
 ): Promise<Send.Result> {
-  const budget = new Governor.GlobalBudget()
-  const breaker = new Governor.CircuitBreaker()
-  return Send.governed(
-    () =>
-      BackendFetch.send(msg, {
-        origin,
-        rejectUnauthorized: opts.insecure_tls === false,
-        totalTimeoutMs: opts.total_timeout_ms,
-        followRedirects: opts.follow_redirects,
-        signal: opts.signal,
-      }),
-    msg.method,
-    { budget, breaker },
-    {},
-  )
+  return governedSend(msg, origin, {
+    insecureTls: opts.insecure_tls,
+    totalTimeoutMs: opts.total_timeout_ms,
+    followRedirects: opts.follow_redirects,
+    signal: opts.signal,
+  })
 }
 
 // ── Diff builder ──────────────────────────────────────────────────────────────
@@ -402,6 +396,38 @@ export const HttpReplayTool = Tool.define("http_replay", {
       signal: ctx.abort,
     }
 
+    // Signal-fabric write-back (plan §07, closes B2/B3). Feed each elicited response
+    // through the same deterministic detectors + canary scan the ingest path uses, so
+    // evidence an agent surfaces here (an error page, a path disclosure) is persisted
+    // and routable instead of dying in this agent's context; and register `marker` as
+    // a canary so a later captured page that renders it is caught as stored reflection.
+    // Best-effort and never throws. Wired for single + compare (the confirm paths);
+    // sweep is intentionally not scanned per-value (up to 50 sends on the hot path, and
+    // the agent already sees each value's error signature in the sweep result).
+    const writeBack = (m: HttpMessage.Request, result: ReplayResponse.Result, withMarker: boolean) => {
+      const marker: MarkerCanary | undefined =
+        withMarker && params.marker
+          ? {
+              value: params.marker,
+              endpoint: `${m.method} ${m.target}`,
+              field: "(replay-marker)",
+              agent: ctx.agent,
+              vulnClass: "reflection",
+            }
+          : undefined
+      scanElicitedResponse({
+        sessionID,
+        requestId: params.request_id ?? `replay:${originHost}${m.target}`,
+        method: m.method,
+        url: origin + m.target,
+        result,
+        marker,
+        // Only a captured request_id maps to a real row that can be retested; a
+        // constructed target's synthetic id must not enqueue (would violate the FK).
+        sourceIsCaptured: !!params.request_id,
+      })
+    }
+
     // ── Compare mode ──────────────────────────────────────────────────────
     if (params.compare) {
       const { compare } = params
@@ -428,6 +454,9 @@ export const HttpReplayTool = Tool.define("http_replay", {
         sendGoverned(baselineMsg, origin, sendOpts),
         sendGoverned(exploitMsg, origin, sendOpts),
       ])
+      // Marker (the payload) lives on the exploit side; scan both, register once.
+      writeBack(baselineMsg, baselineResult, false)
+      writeBack(exploitMsg, exploitResult, true)
 
       const output = {
         baseline: { ...summarize(baselineResult, params.marker), curl: Apply.toCurl(baselineMsg, origin) },
@@ -493,6 +522,7 @@ export const HttpReplayTool = Tool.define("http_replay", {
     }
 
     const result = await sendGoverned(msg, origin, sendOpts)
+    writeBack(msg, result, true)
 
     const output = {
       target: { method: msg.method, origin, request_target: msg.target },

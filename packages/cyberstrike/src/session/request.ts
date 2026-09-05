@@ -345,6 +345,22 @@ export namespace Request {
     return matches(legacyRows)
   }
 
+  // The id of the (single) request row for an endpoint shape, by key_hash. Indexed
+  // lookup via request_keyhash_idx (session_id, key_hash) — cheap on the hot ingest
+  // path. Used to attach signal-fabric findings on a DUPLICATE capture to the same
+  // canonical request id as the shape's first capture, so per-shape dedup holds.
+  export function findId(sessionID: string, keyHash?: string): string | undefined {
+    if (!keyHash) return undefined
+    const row = Database.use((db) =>
+      db
+        .select({ id: RequestTable.id })
+        .from(RequestTable)
+        .where(and(eq(RequestTable.session_id, sessionID), eq(RequestTable.key_hash, keyHash)))
+        .get(),
+    )
+    return row?.id
+  }
+
   export function getByIds(sessionID: string, ids: string[]): Info[] {
     if (ids.length === 0) return []
     const all = get(sessionID)

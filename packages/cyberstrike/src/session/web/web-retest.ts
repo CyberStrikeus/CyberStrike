@@ -5,7 +5,7 @@ import { Database, eq, and, asc } from "../../storage/db"
 import { WebRetestQueueTable, RequestTable } from "../session.sql"
 import { Identifier } from "../../id/id"
 
-const TriggerType = z.enum(["new_role", "new_object_value", "new_credential"])
+const TriggerType = z.enum(["new_role", "new_object_value", "new_credential", "new_signal"])
 const Status = z.enum(["pending", "processing", "completed"])
 const Priority = z.enum(["high", "medium", "low"])
 

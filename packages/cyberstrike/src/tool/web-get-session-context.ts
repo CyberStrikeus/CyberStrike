@@ -9,6 +9,7 @@ import { Request } from "../session/request"
 import { Observation } from "../session/observation"
 import { Session } from "../session"
 import { Vulnerability } from "../session/vulnerability"
+import { SignalStore } from "../session/web/signal"
 
 const description = `Get the bounded web-application context for this session — scoped to the endpoint you are testing, so it stays small no matter how large the session grows.
 
@@ -19,6 +20,7 @@ It returns:
 - vulnerabilities: last 30 confirmed findings (dedup awareness).
 - recent_requests: the last 5 analyzed endpoints (id + method + path). For a request's full headers/body/response, call web_get_request_detail(id).
 - observations: the cross-credential IDOR shortlist (endpoints reached by 2+ credentials).
+- signals: pending cross-cutting leads the deterministic detector fabric found in captured/elicited responses (e.g. path disclosure, stack traces, server banners, weak security headers/cookies, stored-canary reflection), each tagged with the specialist that owns it.
 
 Add 'retest_queue' to include the pending re-test queue.`
 
@@ -123,6 +125,21 @@ export const WebGetSessionContextTool = Tool.define("web_get_session_context", {
         return { request_id: r?.id ?? null, method: r?.method ?? null, path: r?.path ?? null, params: s.paramNames }
       })
     context.observations = { multi_credential_count: multiCred.length, multi_credential_endpoints: multiCred }
+
+    // 7. signals — pending cross-cutting leads the deterministic detector fabric emitted on
+    //    captured/elicited responses (path disclosure, stack traces, banners, weak headers/cookies,
+    //    stored-canary reflection). Each carries the specialist that owns it. Capped for prompt size.
+    const pendingSignals = new SignalStore(sessionID).pending()
+    context.signals = {
+      pending_count: pendingSignals.length,
+      items: pendingSignals.slice(0, 30).map((s) => ({
+        id: s.id,
+        type: s.signal_type,
+        owner: s.owner,
+        request_id: s.request_id,
+        evidence: s.evidence,
+      })),
+    }
 
     if (include.includes("retest_queue")) {
       const counts = WebRetest.count(sessionID)

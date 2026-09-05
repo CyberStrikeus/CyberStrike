@@ -35,6 +35,7 @@ import { WebDriver } from "../../session/web/driver"
 import { WebHold } from "../../session/web/hold"
 import { CoDrive } from "../../session/web/nav/co-drive-runner"
 import { DataCollector } from "../../session/web/data-collector"
+import { scanCapturedResponse } from "../../session/web/signal/ingest"
 import { HBLog } from "../../session/web/hblog"
 import { FrameworkFingerprinter } from "../../session/web/tech"
 import { upgradeWebSocket } from "hono/bun"
@@ -1833,8 +1834,25 @@ export const SessionRoutes = lazy(() =>
               slots: normalized.observedParams,
             })
 
+          // Deterministic signal fabric (plan §07). Scan the RAW response body — BEFORE
+          // Request.add/processResponse stubs an HTML body (closes B1) — for cross-cutting
+          // evidence (error/path disclosure, headers, banners) and stored-canary reflection,
+          // persisting each as a routed signal. On a duplicate/race the shape's canonical
+          // request id keeps per-shape dedup; a missing id (no row yet) simply skips. Never throws.
+          const runFabric = (requestID: string | undefined) => {
+            if (!requestID) return
+            scanCapturedResponse({
+              sessionID,
+              requestId: requestID,
+              method: normalized.method,
+              url: normalized.origin + (normalized.canonicalPath ?? normalized.normalizedPath),
+              response: body.response,
+            })
+          }
+
           if (isDuplicate) {
             recordObservation()
+            runFabric(Request.findId(sessionID, normalized.keyHash))
             log.info("duplicate request skipped", {
               sessionID,
               method: normalized.method,
@@ -1880,12 +1898,14 @@ export const SessionRoutes = lazy(() =>
           // record the observation (the values are evidence regardless).
           if (!req) {
             recordObservation()
+            runFabric(Request.findId(sessionID, normalized.keyHash))
             c.status(202)
             return c.json({ sessionID, skipped: true })
           }
 
           // New endpoint shape: record the first observation, linked to the row.
           recordObservation(req.id)
+          runFabric(req.id)
 
           // Build the prompt as a thunk so the `## Observed Values` block reflects the
           // observation state at SEND time, not at enqueue time. Prompts queue (LLM calls
