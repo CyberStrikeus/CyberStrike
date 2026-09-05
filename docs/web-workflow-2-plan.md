@@ -463,8 +463,8 @@ Active misconfiguration probing that generates the traffic the P0 signal fabric 
 | Item | Status | Depends on |
 |------|--------|-----------|
 | Tool registry wiring (`tool/registry.ts`) | **Done** | `AuthnTestTool`, `SsrfTestTool`, `BusinessTestTool`, `MisconfigTestTool` registered in `all()` array |
-| Agent permission wiring (`agent/agent.ts`) | **Done (3/4)** | `authnAgentPermission` → proxy-tester-authn, `ssrfAgentPermission` → proxy-tester-ssrf, `businessLogicPermission` → proxy-tester-business-logic. misconfig_test registered but agent deferred to §05 |
+| Agent permission wiring (`agent/agent.ts`) | **Done (4/4)** | `authnAgentPermission` → proxy-tester-authn, `ssrfAgentPermission` → proxy-tester-ssrf, `businessLogicPermission` → proxy-tester-business-logic, `misconfigAgentPermission` → proxy-tester-misconfig |
 | WSTG-aligned specialist agent prompts | **Done (4/4)** | authn, ssrf, business-logic prompts updated with smart tool usage; new proxy-tester-misconfig agent created with prompt + description + agent.ts wiring (WSTG CONF-01..11 + CRYP-01) |
-| Orchestrator consuming the fabric | Not started | Route `new_signal` retests + signals context to owning specialist |
+| Orchestrator consuming the fabric | **Done** | Orchestrator prompt reads pending signals + retest_queue from session context; routes new_signal retests via specialist_class → agent-name mapping table; handles architecture-driven retests separately; priority ordering: new_signal > arch > new requests |
 | `inject_probe` → canary registration | Deferred (risk) | Thread marker through per-probe send functions; needs live target |
 | Python `attack_script` retirement | Blocked on tool wiring | jwt_tamper, ssrf_listener, race_tester — after native tools wired live |
