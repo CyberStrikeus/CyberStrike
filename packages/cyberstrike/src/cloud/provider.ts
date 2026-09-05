@@ -6,7 +6,7 @@ type PermissionRule = PermissionAction | Record<string, PermissionAction>
 
 export interface AgentSpec {
   name: string
-  role: "analyst" | "batch-verifier" | "verifier" | "followup" | "orchestrator"
+  role: "analyst" | "batch-verifier" | "verifier" | "followup" | "orchestrator" | "specialist" | "analyzer" | "support"
   group?: string
   description: string
   steps: number
@@ -14,11 +14,17 @@ export interface AgentSpec {
   prompt: string
   skills: string[]
   permissions: Record<string, PermissionRule>
+  hidden?: boolean
+  prependRequestContext?: boolean
+  useSmallModel?: boolean
 }
 
-export interface AssessmentProvider {
+export interface DomainProvider {
   key: string
+  agentSpecs(): AgentSpec[]
+}
 
+export interface AssessmentProvider extends DomainProvider {
   groups(): CloudAnalysis.GroupDef[]
   identityGroup(): CloudAnalysis.GroupDef | null
   parallelGroups(): CloudAnalysis.GroupDef[]
@@ -33,6 +39,4 @@ export interface AssessmentProvider {
   followupPrompt(chain: CloudAnalysis.FollowUp): string
 
   identityContext(rootSession: string): string
-
-  agentSpecs(): AgentSpec[]
 }
