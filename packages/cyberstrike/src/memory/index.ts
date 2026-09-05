@@ -1,6 +1,5 @@
 import { Log } from "../util/log"
 import { Instance } from "../project/instance"
-import { Global } from "../global"
 import path from "path"
 import fs from "fs/promises"
 import { existsSync } from "fs"
@@ -9,22 +8,20 @@ const log = Log.create({ service: "memory" })
 
 export namespace Memory {
   /**
-   * Get the memory directory path
-   * Uses .cyberstrike/memory/ in project root or global config
+   * Get the project-scoped memory directory path
+   * Uses Instance.directory for non-Git projects and Instance.worktree otherwise
    */
   export function getMemoryDir(): string {
-    const projectMemory = path.join(Instance.worktree, ".cyberstrike", "memory")
-    if (existsSync(path.dirname(projectMemory))) {
-      return projectMemory
-    }
-    return path.join(Global.Path.config, "memory")
+    const root = Instance.worktree === "/" ? Instance.directory : Instance.worktree
+    return path.join(root, ".cyberstrike", "memory")
   }
 
   /**
    * Get the path to MEMORY.md (long-term memory)
    */
   export function getMemoryFile(): string {
-    return path.join(Instance.worktree, ".cyberstrike", "MEMORY.md")
+    const root = Instance.worktree === "/" ? Instance.directory : Instance.worktree
+    return path.join(root, ".cyberstrike", "MEMORY.md")
   }
 
   /**
