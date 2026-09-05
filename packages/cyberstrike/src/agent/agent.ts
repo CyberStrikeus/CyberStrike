@@ -20,40 +20,13 @@ import PROMPT_MOBILE_APPLICATION from "./prompt/mobile-application.txt"
 import PROMPT_NORMALIZE_REQUEST from "./prompt/normalize-request.txt"
 import PROMPT_CYBERSTRIKE from "./prompt/cyberstrike.txt"
 import PROMPT_GENERAL from "./prompt/general.txt"
-import PROMPT_PROXY_TESTER_LLM from "./prompt/vuln/llm/prompt.txt"
-import DESC_PROXY_TESTER_LLM from "./prompt/vuln/llm/description.txt"
-
-// New folder-based agent imports
-import PROMPT_VULN_COMMON from "./prompt/vuln/common-prompt.txt"
-import PROMPT_WEB_PROXY_AGENT from "./prompt/orchestrator/web-proxy-agent/prompt.txt"
-import DESC_WEB_PROXY_AGENT from "./prompt/orchestrator/web-proxy-agent/description.txt"
-import PROMPT_PROXY_ANALYZER from "./prompt/analyzer/proxy-analyzer/prompt.txt"
-import DESC_PROXY_ANALYZER from "./prompt/analyzer/proxy-analyzer/description.txt"
-import PROMPT_PROXY_TESTER_IDOR from "./prompt/vuln/idor/prompt.txt"
-import DESC_PROXY_TESTER_IDOR from "./prompt/vuln/idor/description.txt"
-import PROMPT_PROXY_TESTER_AUTHZ from "./prompt/vuln/authz/prompt.txt"
-import DESC_PROXY_TESTER_AUTHZ from "./prompt/vuln/authz/description.txt"
-import PROMPT_PROXY_TESTER_MASS_ASSIGNMENT from "./prompt/vuln/mass-assignment/prompt.txt"
-import DESC_PROXY_TESTER_MASS_ASSIGNMENT from "./prompt/vuln/mass-assignment/description.txt"
-import PROMPT_PROXY_TESTER_INJECTION from "./prompt/vuln/injection/prompt.txt"
-import DESC_PROXY_TESTER_INJECTION from "./prompt/vuln/injection/description.txt"
-import PROMPT_PROXY_TESTER_AUTHN from "./prompt/vuln/authn/prompt.txt"
-import DESC_PROXY_TESTER_AUTHN from "./prompt/vuln/authn/description.txt"
-import PROMPT_PROXY_TESTER_BUSINESS_LOGIC from "./prompt/vuln/business-logic/prompt.txt"
-import DESC_PROXY_TESTER_BUSINESS_LOGIC from "./prompt/vuln/business-logic/description.txt"
-import PROMPT_PROXY_TESTER_SSRF from "./prompt/vuln/ssrf/prompt.txt"
-import DESC_PROXY_TESTER_SSRF from "./prompt/vuln/ssrf/description.txt"
-import PROMPT_PROXY_TESTER_FILE_ATTACKS from "./prompt/vuln/file-attacks/prompt.txt"
-import DESC_PROXY_TESTER_FILE_ATTACKS from "./prompt/vuln/file-attacks/description.txt"
-import PROMPT_PROXY_TESTER_MISCONFIG from "./prompt/vuln/misconfig/prompt.txt"
-import DESC_PROXY_TESTER_MISCONFIG from "./prompt/vuln/misconfig/description.txt"
-
 // Methodology Engine prompts — intelligence logging, coverage tracking, forced continuation
 import PROMPT_METHODOLOGY_COMMON from "./prompt/methodology/common-methodology.txt"
 import PROMPT_METHODOLOGY_CONTINUATION from "./prompt/methodology/forced-continuation.txt"
 
-// Cloud analysis pipeline — providers define agent specs
+// Domain providers define agent specs
 import { AzureProvider } from "../cloud/provider-azure"
+import { WebProvider } from "../cloud/provider-web"
 import type { AgentSpec } from "../cloud/provider"
 
 import { PermissionNext } from "@/permission/next"
@@ -61,67 +34,6 @@ import { mergeDeep, pipe, sortBy, values } from "remeda"
 import path from "path"
 import { Plugin } from "@/plugin"
 import { Skill } from "../skill"
-
-// ============================================================================
-// Skill injection for vulnerability testing sub-agents
-//
-// Two layers: (1) static WSTG skills embedded at startup via loadVulnAgent()
-// as baseline methodology, and (2) dynamic skill tool access at runtime so
-// agents can discover tech-specific or CWE-specific skills when they detect
-// the target's stack or need deeper methodology.
-// ============================================================================
-
-// Strip defensive sections (Remediation, Risk Assessment, CWE Categories,
-// References, Checklist) from skill content. Vuln testers are offensive —
-// they only need attack techniques, not fix recommendations.
-// Note: YAML frontmatter is already stripped by Skill.get() (.content field).
-function stripDefensiveSections(content: string): string {
-  if (!content) return ""
-  let result = content
-  for (const heading of ["Remediation", "Risk Assessment", "CWE Categories", "References", "Checklist"]) {
-    const re = new RegExp(`(^|\\n)## ${heading}[\\s\\S]*?(?=\\n## (?!${heading})|$)`, "g")
-    result = result.replace(re, "")
-  }
-  return result.trim()
-}
-
-// Helper function to load vulnerability agent with common prompt prepended
-// and (optionally) statically-embedded WSTG skill content.
-async function loadVulnAgent(
-  prompt: string,
-  description: string,
-  skillNames: string[] = [],
-): Promise<{ prompt: string; description: string }> {
-  // First line of description for agent.ts, full description for future use
-  const shortDesc = description.split("\n")[0].trim()
-
-  const skills = await Promise.all(skillNames.map((name) => Skill.get(name)))
-  const skillBlocks: string[] = []
-  for (let i = 0; i < skillNames.length; i++) {
-    const skill = skills[i]
-    if (!skill) continue
-    const content = stripDefensiveSections(skill.content)
-    if (content) skillBlocks.push(`<skill name="${skillNames[i]}">\n${content}\n</skill>`)
-  }
-
-  const skillSection =
-    skillBlocks.length > 0
-      ? [
-          "",
-          "",
-          "## Embedded Skill References",
-          "",
-          "Authoritative WSTG testing methodology for your specialty is statically embedded below.",
-          "Use these payloads, patterns, and procedures during testing.",
-          "",
-          skillBlocks.join("\n\n"),
-        ].join("\n")
-      : ""
-
-  // Prepend common vulnerability testing instructions to agent-specific prompt
-  const fullPrompt = `${PROMPT_VULN_COMMON}\n\n---\n\n${prompt}${skillSection}`
-  return { prompt: fullPrompt, description: shortDesc }
-}
 
 export namespace Agent {
   // Hard step-caps (Layer 1 backstop for the loop-termination fix — see
@@ -135,12 +47,12 @@ export namespace Agent {
   function specsToAgents(specs: AgentSpec[], defaults: PermissionNext.Ruleset, user: PermissionNext.Ruleset): Record<string, Info> {
     const result: Record<string, Info> = {}
     for (const spec of specs) {
-      result[spec.name] = {
+      const info: Info = {
         name: spec.name,
         description: spec.description,
         mode: "subagent",
         native: true,
-        hidden: true,
+        hidden: spec.hidden !== false,
         steps: spec.steps,
         color: spec.color,
         prompt: spec.prompt,
@@ -148,6 +60,9 @@ export namespace Agent {
         permission: PermissionNext.merge(defaults, PermissionNext.fromConfig(spec.permissions), user),
         options: {},
       }
+      if (spec.prependRequestContext) info.prependRequestContext = true
+      if (spec.useSmallModel) info.useSmallModel = true
+      result[spec.name] = info
     }
     return result
   }
@@ -450,11 +365,15 @@ export namespace Agent {
         ),
         options: {},
       },
-      // ── Cloud Analysis Pipeline (Layer 2) — provider-defined agents ──
+      // ── Domain providers — each defines its own agent specs ──
       ...(() => {
         try { return specsToAgents(new AzureProvider().agentSpecs(), defaults, user) }
         catch (e) { console.error(`[agent] failed to load cloud agents: ${e}`); return {} }
       })(),
+      ...(await (async () => {
+        try { return specsToAgents((await WebProvider.create()).agentSpecs(), defaults, user) }
+        catch (e) { console.error(`[agent] failed to load web agents: ${e}`); return {} }
+      })()),
       "internal-network": {
         name: "internal-network",
         description: "Internal network and Active Directory specialist. AD attacks, Kerberos, lateral movement.",
@@ -511,417 +430,8 @@ export namespace Agent {
         ),
         options: {},
       },
-      "proxy-agent": {
-        name: "proxy-agent",
-        description: DESC_WEB_PROXY_AGENT.split("\n")[0].trim(),
-        mode: "subagent",
-        native: true,
-        steps: STEP_CAPS.orchestrator,
-        // NOTE: proxy-agent runs on the FULL run model (no useSmallModel). Routing
-        // is the brain of the pipeline — dispatch quality matters; downgrading it to
-        // the small tier caused measured mis-/over-/under-dispatch. Only the analyzer
-        // (pure recon/extraction) runs cheap.
-        color: "blue",
-        prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n---\n\n${PROMPT_WEB_PROXY_AGENT}`,
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            // Pure orchestrator (Phase 1b, docs/proxy-pipeline-redesign): deny
-            // everything, then allow ONLY delegation + read. Findings, intel and
-            // architecture writes are the testers'/analyzer's job. This structurally
-            // removes the orchestrator overreach measured on opus (self add_intel /
-            // update_vrt_check / web_write) — the tools aren't even offered to the
-            // model. `task` MUST be allowed explicitly or delegation breaks.
-            "*": "deny",
-            task: "allow",
-            question: "allow",
-            web_get_session_context: "allow",
-            web_get_detail: "allow",
-            web_get_vulnerabilities: "allow",
-            web_get_vuln_detail: "allow",
-            get_coverage_notes: "allow",
-            methodology_status: "allow",
-            scope_check: "allow",
-          }),
-          user,
-        ),
-        options: {},
-      },
-      // Proxy Agent SubAgents
-      "proxy-analyzer": {
-        name: "proxy-analyzer",
-        description: DESC_PROXY_ANALYZER.split("\n")[0].trim(),
-        mode: "subagent",
-        native: true,
-        hidden: true,
-        steps: STEP_CAPS.analyzer,
-        useSmallModel: true, // architecture extraction, not exploitation — run cheap
-        prompt: PROMPT_PROXY_ANALYZER,
-        prependRequestContext: true,
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            "*": "deny",
-            bash: "allow",
-            webfetch: "allow",
-            http_replay: "allow",
-            web_get_session_context: "allow",
-            web_get_detail: "allow",
-            web_get_request_detail: "allow",
-            web_write_role: "allow",
-            web_write_object: "allow",
-            web_write_object_value: "allow",
-            web_write_function: "allow",
-            web_update_credential_claims: "allow",
-          }),
-          user,
-        ),
-        options: {},
-      },
-      ...(await (async () => {
-        const [
-          idorAgent,
-          authzAgent,
-          massAssignmentAgent,
-          injectionAgent,
-          authnAgent,
-          businessLogicAgent,
-          ssrfAgent,
-          fileAttacksAgent,
-          llmAgent,
-          misconfigAgent,
-        ] = await Promise.all([
-          loadVulnAgent(PROMPT_PROXY_TESTER_IDOR, DESC_PROXY_TESTER_IDOR, ["wstg-authz-04", "wstg-apit-02"]),
-          loadVulnAgent(PROMPT_PROXY_TESTER_AUTHZ, DESC_PROXY_TESTER_AUTHZ, [
-            "wstg-authz-02",
-            "wstg-authz-03",
-            "wstg-authz-01",
-          ]),
-          loadVulnAgent(PROMPT_PROXY_TESTER_MASS_ASSIGNMENT, DESC_PROXY_TESTER_MASS_ASSIGNMENT, [
-            "wstg-inpv-20",
-            "wstg-busl-02",
-          ]),
-          loadVulnAgent(PROMPT_PROXY_TESTER_INJECTION, DESC_PROXY_TESTER_INJECTION, [
-            "wstg-injection",
-            "wstg-inpv-05",
-            "wstg-inpv-12",
-            "wstg-inpv-18",
-          ]),
-          loadVulnAgent(PROMPT_PROXY_TESTER_AUTHN, DESC_PROXY_TESTER_AUTHN, [
-            "wstg-auth-session",
-            "wstg-athn-04",
-            "wstg-athn-09",
-            "wstg-athn-11",
-            "wstg-sess-10",
-          ]),
-          loadVulnAgent(PROMPT_PROXY_TESTER_BUSINESS_LOGIC, DESC_PROXY_TESTER_BUSINESS_LOGIC, [
-            "wstg-logic-client-api",
-            "wstg-busl-04",
-            "wstg-busl-10",
-          ]),
-          loadVulnAgent(PROMPT_PROXY_TESTER_SSRF, DESC_PROXY_TESTER_SSRF, ["wstg-inpv-19", "wstg-conf-13"]),
-          loadVulnAgent(PROMPT_PROXY_TESTER_FILE_ATTACKS, DESC_PROXY_TESTER_FILE_ATTACKS, [
-            "wstg-inpv-11.1",
-            "wstg-inpv-11",
-            "wstg-busl-08",
-            "wstg-busl-09",
-          ]),
-          loadVulnAgent(PROMPT_PROXY_TESTER_LLM, DESC_PROXY_TESTER_LLM, ["llm-security"]),
-          loadVulnAgent(PROMPT_PROXY_TESTER_MISCONFIG, DESC_PROXY_TESTER_MISCONFIG, [
-            "wstg-conf-01",
-            "wstg-conf-02",
-            "wstg-conf-03",
-            "wstg-conf-04",
-            "wstg-conf-05",
-            "wstg-conf-06",
-            "wstg-conf-07",
-            "wstg-conf-08",
-            "wstg-conf-09",
-            "wstg-conf-10",
-            "wstg-conf-11",
-            "wstg-cryp-01",
-          ]),
-        ])
-
-        const vulnAgentPermission = PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            "*": "deny",
-            bash: {
-              // Base: bash is allowed. The permission evaluator is ORDER-BASED
-              // (last matching rule wins, no specificity), so `*: allow` MUST come
-              // FIRST — the specific HTTP-client denies below then win over it for
-              // any command they match. (With `*: allow` last, findLast would pick
-              // it for every command and the denies would be inert.) Block HTTP
-              // clients so vuln testers funnel through http_replay — defense-in-depth
-              // with the prompt mandate. Effective by default, but a later `user`
-              // bash rule can still loosen them — unlike the destructive-SQL denies
-              // in injectionAgentPermission (merged after `user`, absolute). This is
-              // intentional: HTTP-client steering is a routing choice, not a
-              // destructive-command risk.
-              "*": "allow",
-              "*curl *": "deny",
-              "*curl.exe*": "deny",
-              "*wget *": "deny",
-              "*python*requests*": "deny",
-              "*python*urllib*": "deny",
-              "*python*aiohttp*": "deny",
-              "*python*httpx*": "deny",
-              "*python3*requests*": "deny",
-              "*python3*urllib*": "deny",
-              "*python3*aiohttp*": "deny",
-              "*python3*httpx*": "deny",
-              "*import requests*": "deny",
-              "*from requests *": "deny",
-              "*import urllib*": "deny",
-              "*import aiohttp*": "deny",
-              "*import httpx*": "deny",
-              // Block inline JS/TS execution — fetch() in bun/node/deno bypasses
-              // all Python/curl denies above.
-              "*bun -e*": "deny",
-              "*bun --eval*": "deny",
-              "*node -e*": "deny",
-              "*node --eval*": "deny",
-              "*deno eval*": "deny",
-              "*deno run *": "deny",
-              // Block raw TCP tools — can send HTTP without matching other patterns.
-              // `* nc *` catches piped/mid-command nc; `nc *` catches command-initial
-              // nc (the anchored matcher misses it otherwise) without hitting sync/ncat.
-              "* nc *": "deny",
-              "nc *": "deny",
-              "*ncat *": "deny",
-              "*socat *": "deny",
-              "*telnet *": "deny",
-              // Block base64-pipe-to-interpreter evasion pattern.
-              "*base64*| python*": "deny",
-              "*base64*| python3*": "deny",
-              "*base64*| bun*": "deny",
-              "*base64*| node*": "deny",
-            },
-            webfetch: "deny",
-            web_get_session_context: "allow",
-            web_get_detail: "allow",
-            web_get_request_detail: "allow",
-            web_get_vulnerabilities: "allow",
-            report_vulnerability: "allow",
-            triage_vulnerability: "allow",
-            // Methodology Engine tools
-            add_intel: "allow",
-            update_vrt_check: "allow",
-            record_coverage_note: "allow",
-            get_coverage_notes: "allow",
-            methodology_status: "allow",
-            scope_check: "allow",
-            attack_script: "allow",
-            skill: "allow",
-            // Structured replay engine — the ONLY way to send HTTP requests.
-            // Permission-enforced: curl/webfetch/Python HTTP denied above.
-            http_replay: "allow",
-            http_replay_raw: "allow",
-            web_update_credential: "allow",
-            csrf_extract: "allow",
-          }),
-          user,
-        )
-
-        // Injection-specific permission: blocks destructive SQL payloads and
-        // RCE primitives that the injection agent might otherwise execute via
-        // bash (curl, sqlmap, etc.). Defense-in-depth alongside prompt rules.
-        // Patterns are case-sensitive — common variants listed for both upper
-        // and lower case. User overrides cannot loosen these denies because
-        // they are merged AFTER the user ruleset.
-        const injectionAgentPermission = PermissionNext.merge(
-          vulnAgentPermission,
-          PermissionNext.fromConfig({
-            // Injection-only: deterministic payload-battery / evidence tool. Scoped to
-            // this agent (not vulnAgentPermission) to keep the blast radius narrow.
-            inject_probe: "allow",
-            bash: {
-              // Destructive SQL DDL
-              "*DROP TABLE*": "deny",
-              "*drop table*": "deny",
-              "*DROP DATABASE*": "deny",
-              "*drop database*": "deny",
-              "*DROP SCHEMA*": "deny",
-              "*drop schema*": "deny",
-              "*TRUNCATE TABLE*": "deny",
-              "*truncate table*": "deny",
-              // SQL-based file write (destructive primitive)
-              "*INTO OUTFILE*": "deny",
-              "*into outfile*": "deny",
-              "*INTO DUMPFILE*": "deny",
-              "*into dumpfile*": "deny",
-              // SQL-to-RCE primitives
-              "*xp_cmdshell*": "deny",
-              "*sp_OACreate*": "deny",
-              "*sys_exec*": "deny",
-              "*sys_eval*": "deny",
-              "*COPY * TO PROGRAM*": "deny",
-              "*copy * to program*": "deny",
-              // sqlmap dangerous flags (RCE / file write)
-              "*--os-shell*": "deny",
-              "*--os-cmd*": "deny",
-              "*--os-pwn*": "deny",
-              "*--file-write*": "deny",
-              "*--reg-add*": "deny",
-              "*--reg-del*": "deny",
-            },
-          }),
-        )
-
-        // File-attacks-specific permission: inject_probe's LFI mode (read-only Linux/Windows
-        // path-traversal file-disclosure) hands this agent the WORKING filter-bypass shape. Scoped
-        // to this agent only (not vulnAgentPermission) to keep the blast radius narrow.
-        const fileAttacksPermission = PermissionNext.merge(
-          vulnAgentPermission,
-          PermissionNext.fromConfig({ inject_probe: "allow" }),
-        )
-
-        // LLM-specific permission: the LLM tester's instrument is `llmhook` (an
-        // automated OWASP LLM Top-10 scanner that posts crafted prompts to the
-        // captured chat endpoint). Scoped to this agent only (not
-        // vulnAgentPermission) to keep the blast radius narrow — no other vuln
-        // tester needs it. It does NOT get `hackbrowser`/`browser`: the endpoint
-        // is already captured in the prepended request context, so there is
-        // nothing to crawl.
-        const llmAgentPermission = PermissionNext.merge(
-          vulnAgentPermission,
-          PermissionNext.fromConfig({ llmhook: "allow" }),
-        )
-
-        const authnAgentPermission = PermissionNext.merge(
-          vulnAgentPermission,
-          PermissionNext.fromConfig({ authn_test: "allow" }),
-        )
-
-        const ssrfAgentPermission = PermissionNext.merge(
-          vulnAgentPermission,
-          PermissionNext.fromConfig({ ssrf_test: "allow" }),
-        )
-
-        const businessLogicPermission = PermissionNext.merge(
-          vulnAgentPermission,
-          PermissionNext.fromConfig({ business_test: "allow" }),
-        )
-
-        const misconfigAgentPermission = PermissionNext.merge(
-          vulnAgentPermission,
-          PermissionNext.fromConfig({ misconfig_test: "allow" }),
-        )
-
-        return {
-          "proxy-tester-idor": {
-            name: "proxy-tester-idor",
-            description: idorAgent.description,
-            mode: "subagent" as const,
-            native: true,
-            hidden: true,
-            prompt: idorAgent.prompt,
-            prependRequestContext: true,
-            permission: vulnAgentPermission,
-            options: {},
-          },
-          "proxy-tester-authz": {
-            name: "proxy-tester-authz",
-            description: authzAgent.description,
-            mode: "subagent" as const,
-            native: true,
-            hidden: true,
-            prompt: authzAgent.prompt,
-            prependRequestContext: true,
-            permission: vulnAgentPermission,
-            options: {},
-          },
-          "proxy-tester-mass-assignment": {
-            name: "proxy-tester-mass-assignment",
-            description: massAssignmentAgent.description,
-            mode: "subagent" as const,
-            native: true,
-            hidden: true,
-            prompt: massAssignmentAgent.prompt,
-            prependRequestContext: true,
-            permission: vulnAgentPermission,
-            options: {},
-          },
-          "proxy-tester-injection": {
-            name: "proxy-tester-injection",
-            description: injectionAgent.description,
-            mode: "subagent" as const,
-            native: true,
-            hidden: true,
-            prompt: injectionAgent.prompt,
-            prependRequestContext: true,
-            permission: injectionAgentPermission,
-            options: {},
-          },
-          "proxy-tester-authn": {
-            name: "proxy-tester-authn",
-            description: authnAgent.description,
-            mode: "subagent" as const,
-            native: true,
-            hidden: true,
-            prompt: authnAgent.prompt,
-            prependRequestContext: true,
-            permission: authnAgentPermission,
-            options: {},
-          },
-          "proxy-tester-business-logic": {
-            name: "proxy-tester-business-logic",
-            description: businessLogicAgent.description,
-            mode: "subagent" as const,
-            native: true,
-            hidden: true,
-            prompt: businessLogicAgent.prompt,
-            prependRequestContext: true,
-            permission: businessLogicPermission,
-            options: {},
-          },
-          "proxy-tester-ssrf": {
-            name: "proxy-tester-ssrf",
-            description: ssrfAgent.description,
-            mode: "subagent" as const,
-            native: true,
-            hidden: true,
-            prompt: ssrfAgent.prompt,
-            prependRequestContext: true,
-            permission: ssrfAgentPermission,
-            options: {},
-          },
-          "proxy-tester-file-attacks": {
-            name: "proxy-tester-file-attacks",
-            description: fileAttacksAgent.description,
-            mode: "subagent" as const,
-            native: true,
-            hidden: true,
-            prompt: fileAttacksAgent.prompt,
-            prependRequestContext: true,
-            permission: fileAttacksPermission,
-            options: {},
-          },
-          "proxy-tester-llm": {
-            name: "proxy-tester-llm",
-            description: llmAgent.description,
-            mode: "subagent" as const,
-            native: true,
-            hidden: true,
-            prompt: llmAgent.prompt,
-            prependRequestContext: true,
-            permission: llmAgentPermission,
-            options: {},
-          },
-          "proxy-tester-misconfig": {
-            name: "proxy-tester-misconfig",
-            description: misconfigAgent.description,
-            mode: "subagent" as const,
-            native: true,
-            hidden: true,
-            prompt: misconfigAgent.prompt,
-            prependRequestContext: true,
-            permission: misconfigAgentPermission,
-            options: {},
-          },
-        }
-      })()),
+      // Web pipeline agents (proxy-agent, proxy-analyzer, proxy-tester-*)
+      // are now registered via WebProvider above.
     }
 
     for (const [key, value] of Object.entries(cfg.agent ?? {})) {
