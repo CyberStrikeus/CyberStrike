@@ -1,7 +1,7 @@
 import type { ResolvedRequest, InjPoint, SendBudget } from "../types"
 import { SSTI_EXPR, SSTI_PRODUCT, SSTI_SYNTAXES, SSTI_ALT } from "../payloads/ssti"
 import { applyPayload } from "../mutate"
-import { send, nonce } from "../send"
+import { send, nonce, type HttpSender } from "../send"
 import { blockSignal, looksBlocked, excerptOf } from "../detect"
 
 export interface SstiObservation {
@@ -15,6 +15,7 @@ export interface SstiObservation {
 }
 
 export async function probeSstiPoint(
+  sender: HttpSender,
   r: ResolvedRequest,
   point: InjPoint,
   abort: AbortSignal,
@@ -30,7 +31,7 @@ export async function probeSstiPoint(
   }
   const sleep = (ms: number) => (ms ? new Promise((res) => setTimeout(res, ms)) : Promise.resolve())
   const n = nonce()
-  const m = await send(r, applyPayload(r, point, n), abort, budget)
+  const m = await send(sender, r, applyPayload(r, point, n), abort, budget)
   if ("error" in m) {
     obs.note = `send failed: ${m.error}`
     return obs
@@ -46,7 +47,7 @@ export async function probeSstiPoint(
   obs.baseline = { status: m.status, bytes: m.text.length, ms: m.ms }
   for (const s of SSTI_SYNTAXES) {
     if (abort.aborted || budget.sent >= budget.max) break
-    const res = await send(r, applyPayload(r, point, s.wrap(SSTI_EXPR)), abort, budget)
+    const res = await send(sender, r, applyPayload(r, point, s.wrap(SSTI_EXPR)), abort, budget)
     if ("error" in res) continue
     if (looksBlocked(res.status)) {
       obs.blocked = true
@@ -58,7 +59,7 @@ export async function probeSstiPoint(
   }
   for (const a of SSTI_ALT) {
     if (abort.aborted || budget.sent >= budget.max) break
-    const res = await send(r, applyPayload(r, point, a.payload), abort, budget)
+    const res = await send(sender, r, applyPayload(r, point, a.payload), abort, budget)
     if ("error" in res) continue
     if (looksBlocked(res.status)) {
       obs.blocked = true

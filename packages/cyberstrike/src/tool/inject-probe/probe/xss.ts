@@ -1,7 +1,7 @@
 import type { ResolvedRequest, InjPoint, SendBudget } from "../types"
 import { XSS_TAGS, XSS_WEAPONS, XSS_WEAPONS_BAREARG, XSS_WEAPONS_ENCODED, XSS_BREAKOUT } from "../payloads/xss"
 import { applyPayload } from "../mutate"
-import { send, nonce } from "../send"
+import { send, nonce, type HttpSender } from "../send"
 import { blockSignal, looksBlocked, excerptOf, classifyXssContext, xssWeaponFires } from "../detect"
 
 export interface PointObservation {
@@ -19,6 +19,7 @@ export interface PointObservation {
 }
 
 export async function probeXssPoint(
+  sender: HttpSender,
   r: ResolvedRequest,
   point: InjPoint,
   abort: AbortSignal,
@@ -35,7 +36,7 @@ export async function probeXssPoint(
   }
   const sleep = (ms: number) => (ms ? new Promise((res) => setTimeout(res, ms)) : Promise.resolve())
   const n = nonce()
-  const m = await send(r, applyPayload(r, point, n), abort, budget)
+  const m = await send(sender, r, applyPayload(r, point, n), abort, budget)
   if ("error" in m) {
     obs.note = `send failed: ${m.error}`
     return obs
@@ -55,7 +56,7 @@ export async function probeXssPoint(
   for (const tag of XSS_TAGS) {
     if (abort.aborted || budget.sent >= budget.max) break
     const tn = nonce()
-    const res = await send(r, applyPayload(r, point, `<${tag}/data-p=${tn}>`), abort, budget)
+    const res = await send(sender, r, applyPayload(r, point, `<${tag}/data-p=${tn}>`), abort, budget)
     if ("error" in res) continue
     if (looksBlocked(res.status)) {
       obs.blocked = true
@@ -71,7 +72,7 @@ export async function probeXssPoint(
   const mk = obs.context && XSS_BREAKOUT[obs.context]
   if (mk && !abort.aborted && budget.sent < budget.max) {
     const tn = nonce()
-    const res = await send(r, applyPayload(r, point, mk(tn)), abort, budget)
+    const res = await send(sender, r, applyPayload(r, point, mk(tn)), abort, budget)
     if (!("error" in res) && !looksBlocked(res.status) && new RegExp(`<svg\\b[^>]*${tn}`, "i").test(res.text))
       obs.breakout = mk(tn)
   }
@@ -85,7 +86,7 @@ export async function probeXssPoint(
       const wn = nonce()
       const { payload, sig } = make(wn)
       if (!xssWeaponFires(payload, survived, ctx)) continue
-      const res = await send(r, applyPayload(r, point, payload), abort, budget)
+      const res = await send(sender, r, applyPayload(r, point, payload), abort, budget)
       if ("error" in res || looksBlocked(res.status)) continue
       if (sig.test(res.text)) {
         obs.weaponized.push(payload.replace(wn, '"XSS"'))
@@ -98,7 +99,7 @@ export async function probeXssPoint(
       const wn = nonce()
       const { payload, sig } = make(wn)
       if (!xssWeaponFires(payload, survived, ctx)) continue
-      const res = await send(r, applyPayload(r, point, payload), abort, budget)
+      const res = await send(sender, r, applyPayload(r, point, payload), abort, budget)
       if ("error" in res || looksBlocked(res.status)) continue
       if (sig.test(res.text)) obs.weaponized.push(payload.replace(wn, "XSS"))
       await sleep(delayMs)
@@ -108,7 +109,7 @@ export async function probeXssPoint(
       const wn = nonce()
       const { payload, sig } = w.probe(wn)
       if (!xssWeaponFires(payload, survived, ctx)) continue
-      const res = await send(r, applyPayload(r, point, payload), abort, budget)
+      const res = await send(sender, r, applyPayload(r, point, payload), abort, budget)
       if ("error" in res || looksBlocked(res.status)) continue
       if (sig.test(res.text)) obs.weaponized.push(w.ready)
       await sleep(delayMs)

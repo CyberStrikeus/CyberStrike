@@ -1,7 +1,7 @@
 import type { ResolvedRequest, InjPoint, SendBudget } from "../types"
 import { ERRSIG } from "../payloads/errsig"
 import { applyPayload, applyOperatorTarget } from "../mutate"
-import { send, repeatBaseline } from "../send"
+import { send, repeatBaseline, type HttpSender } from "../send"
 import { blockSignal, excerptAround } from "../detect"
 
 export interface ErrSigObservation {
@@ -23,6 +23,7 @@ export interface ErrSigObservation {
 }
 
 export async function probeErrorSigPoint(
+  sender: HttpSender,
   r: ResolvedRequest,
   point: InjPoint,
   cls: "sqli" | "nosql" | "ldap" | "xpath",
@@ -40,7 +41,7 @@ export async function probeErrorSigPoint(
     blocked: false,
   }
   const sleep = (ms: number) => (ms ? new Promise((res) => setTimeout(res, ms)) : Promise.resolve())
-  const bl = await repeatBaseline(r, point, abort, budget)
+  const bl = await repeatBaseline(sender, r, point, abort, budget)
   if (!bl.ok) {
     obs.blocked = !!bl.block
     obs.block_signal = bl.block
@@ -54,7 +55,7 @@ export async function probeErrorSigPoint(
   const floor = Math.max(16, bl.byteJitter + 8)
   for (const p of spec.payloads) {
     if (abort.aborted || budget.sent >= budget.max) break
-    const res = await send(r, applyPayload(r, point, p), abort, budget)
+    const res = await send(sender, r, applyPayload(r, point, p), abort, budget)
     if ("error" in res) {
       if (res.timeout && !obs.block_signal) obs.block_signal = "timeout/reset (possible WAF)"
       continue
@@ -79,8 +80,8 @@ export async function probeErrorSigPoint(
   }
   for (const pair of spec.boolPairs ?? []) {
     if (abort.aborted || budget.sent >= budget.max) break
-    const t = await send(r, applyPayload(r, point, pair.t), abort, budget)
-    const fr = await send(r, applyPayload(r, point, pair.f), abort, budget)
+    const t = await send(sender, r, applyPayload(r, point, pair.t), abort, budget)
+    const fr = await send(sender, r, applyPayload(r, point, pair.f), abort, budget)
     if ("error" in t || "error" in fr) continue
     if (blockSignal(t) || blockSignal(fr)) {
       obs.block_signal ??= "boolean pair blocked (WAF/rate-limit) — differential unreliable"
@@ -126,8 +127,8 @@ export async function probeErrorSigPoint(
       const tTgt = applyOperatorTarget(r, point, op.t[0], op.t[1])
       const fTgt = applyOperatorTarget(r, point, op.f[0], op.f[1])
       if (!tTgt || !fTgt) break
-      const t = await send(r, tTgt, abort, budget)
-      const fr = await send(r, fTgt, abort, budget)
+      const t = await send(sender, r, tTgt, abort, budget)
+      const fr = await send(sender, r, fTgt, abort, budget)
       if ("error" in t || "error" in fr) continue
       if (blockSignal(t) || blockSignal(fr)) {
         obs.block_signal ??= "operator pair blocked (WAF/rate-limit) — differential unreliable"

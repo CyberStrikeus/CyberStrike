@@ -1,7 +1,7 @@
 import type { ResolvedRequest, InjPoint, SendBudget } from "../types"
 import { CMD_PROBES, CMD_SEPARATORS } from "../payloads/cmd"
 import { applyPayload } from "../mutate"
-import { send, nonce } from "../send"
+import { send, nonce, type HttpSender } from "../send"
 import { blockSignal, looksBlocked, excerptAround } from "../detect"
 
 export interface CmdObservation {
@@ -15,6 +15,7 @@ export interface CmdObservation {
 }
 
 export async function probeCmdPoint(
+  sender: HttpSender,
   r: ResolvedRequest,
   point: InjPoint,
   abort: AbortSignal,
@@ -30,7 +31,7 @@ export async function probeCmdPoint(
   }
   const sleep = (ms: number) => (ms ? new Promise((res) => setTimeout(res, ms)) : Promise.resolve())
   const n = nonce()
-  const m = await send(r, applyPayload(r, point, n), abort, budget)
+  const m = await send(sender, r, applyPayload(r, point, n), abort, budget)
   if ("error" in m) {
     obs.note = `send failed: ${m.error}`
     return obs
@@ -48,7 +49,7 @@ export async function probeCmdPoint(
     let found = false
     for (const sep of CMD_SEPARATORS) {
       if (abort.aborted || budget.sent >= budget.max) break
-      const res = await send(r, applyPayload(r, point, sep.wrap(probe.cmd)), abort, budget)
+      const res = await send(sender, r, applyPayload(r, point, sep.wrap(probe.cmd)), abort, budget)
       if ("error" in res) continue
       if (looksBlocked(res.status)) {
         obs.blocked = true

@@ -1,7 +1,10 @@
 import { randomBytes } from "crypto"
 import type { ResolvedRequest, SendBudget, SendOk, SendResult, InjPoint } from "./types"
+import type { HttpSender, ProbeResponse } from "../webhook/transport"
 import { blockSignal } from "./detect"
 import { applyPayload } from "./mutate"
+
+export type { HttpSender }
 
 export function nonce(): string {
   return "m" + randomBytes(5).toString("hex")
@@ -20,10 +23,12 @@ const KEEP_HEADERS = [
   "x-cache",
 ]
 
-function extractHeaders(h: Headers): Record<string, string> {
+function extractHeaders(h: Record<string, string>): Record<string, string> {
+  const lower: Record<string, string> = {}
+  for (const [k, v] of Object.entries(h)) lower[k.toLowerCase()] = v
   const out: Record<string, string> = {}
   for (const k of KEEP_HEADERS) {
-    const v = h.get(k)
+    const v = lower[k]
     if (v) out[k] = v.slice(0, 200)
   }
   return out
@@ -37,6 +42,7 @@ export function guardHost(r: ResolvedRequest, target: URL): { ok: true } | { ok:
 export const SEND_TIMEOUT_MS = Number(process.env.INJECT_PROBE_TIMEOUT_MS) || 15_000
 
 export async function send(
+  sender: HttpSender,
   r: ResolvedRequest,
   target: { url: string; body: string; headers?: Record<string, string> },
   abort: AbortSignal,
@@ -49,28 +55,26 @@ export async function send(
   const u = new URL(target.url)
   const guard = guardHost(r, u)
   if (!guard.ok) return { error: guard.reason }
+
   const sendHeaders: Record<string, string> = { ...(target.headers ?? r.headers) }
   delete sendHeaders["content-length"]
   delete sendHeaders["host"]
-  const signal = AbortSignal.any([abort, AbortSignal.timeout(SEND_TIMEOUT_MS)])
-  const init: RequestInit & { tls?: { rejectUnauthorized: boolean } } = {
-    method: r.method,
-    headers: sendHeaders,
-    signal,
-    redirect: "manual",
-    tls: { rejectUnauthorized: false },
-  }
-  if (r.method !== "GET" && r.method !== "HEAD") init.body = target.body
+
+  const body = r.method !== "GET" && r.method !== "HEAD" ? target.body : undefined
+
   const t0 = performance.now()
-  try {
-    const resp = await fetch(u.toString(), init as RequestInit)
-    const text = (await resp.text()).slice(0, 200_000)
-    return { status: resp.status, text, ms: Math.round(performance.now() - t0), headers: extractHeaders(resp.headers) }
-  } catch (e: any) {
-    const msg = String(e?.message ?? e)
+  const result = await sender.send({ method: r.method, url: target.url, headers: sendHeaders, body })
+  const ms = Math.round(performance.now() - t0)
+
+  if ("error" in result) {
+    const msg = result.error
     const timeout = /timeout|timed ?out|aborted|reset|ECONNRESET|ETIMEDOUT|socket|EOF|closed/i.test(msg)
     return { error: msg, timeout }
   }
+
+  const resp = result as ProbeResponse
+  const text = resp.body.slice(0, 200_000)
+  return { status: resp.status, text, ms, headers: extractHeaders(resp.headers) }
 }
 
 export type Baseline =
@@ -87,6 +91,7 @@ export type Baseline =
   | { ok: false; block?: string; error?: string; timeout?: boolean }
 
 export async function repeatBaseline(
+  sender: HttpSender,
   r: ResolvedRequest,
   point: InjPoint,
   abort: AbortSignal,
@@ -101,7 +106,7 @@ export async function repeatBaseline(
   for (let i = 0; i < times; i++) {
     if (abort.aborted || budget.sent >= budget.max) break
     const n = nonce()
-    const res = await send(r, applyPayload(r, point, n), abort, budget)
+    const res = await send(sender, r, applyPayload(r, point, n), abort, budget)
     if ("error" in res) return { ok: false, error: res.error, timeout: res.timeout }
     const blk = blockSignal(res)
     if (blk) return { ok: false, block: blk }

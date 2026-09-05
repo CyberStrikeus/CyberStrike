@@ -6,6 +6,8 @@ import type { ResolvedRequest, InjPoint, SendBudget } from "./types"
 import { resolve, resolveFromTarget, enumeratePoints, validatePoints } from "./resolve"
 import { SSTI_EXPR, SSTI_PRODUCT } from "./payloads/ssti"
 import { TESTED_LABEL, NOT_TESTED_BY_CLASS } from "./payloads/errsig"
+import { SEND_TIMEOUT_MS } from "./send"
+import { ReplaySender } from "../webhook/transport"
 import { probeXssPoint } from "./probe/xss"
 import { probeSstiPoint } from "./probe/ssti"
 import { probeCmdPoint } from "./probe/cmd"
@@ -112,6 +114,12 @@ export const InjectProbeTool = Tool.define("inject_probe", {
     }
     const DELAY = 120
     const budget: SendBudget = { sent: 0, max: 120 }
+    const sender = new ReplaySender({
+      totalTimeoutMs: SEND_TIMEOUT_MS,
+      insecureTls: true,
+      followRedirects: false,
+      signal: ctx.abort,
+    })
 
     const targetInfo = {
       method: resolved.method,
@@ -160,7 +168,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
       for (const point of points) {
         if (ctx.abort.aborted || budget.sent >= budget.max) break
         if (cls === "xss") {
-          const o = await probeXssPoint(resolved, point, ctx.abort, DELAY, budget)
+          const o = await probeXssPoint(sender, resolved, point, ctx.abort, DELAY, budget)
           classObs.push(o)
           markBlocked(o, cls)
           if (o.weaponized.length > 0)
@@ -172,7 +180,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
               `xss @ ${o.point}: tag(s) [${o.surviving_tags.join(", ")}] reflected un-encoded${o.context ? ` in ${o.context} context` : ""} — weaponize one (event handler) and confirm.`,
             )
         } else if (cls === "ssti") {
-          const o = await probeSstiPoint(resolved, point, ctx.abort, DELAY, budget)
+          const o = await probeSstiPoint(sender, resolved, point, ctx.abort, DELAY, budget)
           classObs.push(o)
           markBlocked(o, cls)
           if (o.evaluated.length > 0)
@@ -180,7 +188,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
               `ssti @ ${o.point}: syntax [${o.evaluated.map((e) => e.syntax).join(", ")}] evaluated ${SSTI_EXPR}→${SSTI_PRODUCT} server-side (snippet in evaluated) — confirm engine + weaponize.`,
             )
         } else if (cls === "cmd") {
-          const o = await probeCmdPoint(resolved, point, ctx.abort, DELAY, budget)
+          const o = await probeCmdPoint(sender, resolved, point, ctx.abort, DELAY, budget)
           classObs.push(o)
           markBlocked(o, cls)
           if (o.command_output.length > 0)
@@ -188,7 +196,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
               `cmd @ ${o.point}: separator(s) [${o.command_output.map((c) => c.separator).join(", ")}] returned command output (snippet in command_output) — confirm + enumerate.`,
             )
         } else if (cls === "lfi") {
-          const o = await probeLfiPoint(resolved, point, ctx.abort, DELAY, budget)
+          const o = await probeLfiPoint(sender, resolved, point, ctx.abort, DELAY, budget)
           classObs.push(o)
           markBlocked(o, cls)
           if (o.findings.length > 0)
@@ -196,7 +204,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
               `lfi @ ${o.point}: READY traversal(s) disclosed a known OS file — technique [${[...new Set(o.findings.map((x) => x.technique))].join(", ")}] read ${[...new Set(o.findings.map((x) => x.target))].join(", ")}. Payload: ${o.findings[0]!.payload} — this SHAPE beat the filter; swap in the app target (FLAG.php/config).`,
             )
         } else {
-          const o = await probeErrorSigPoint(resolved, point, cls, ctx.abort, DELAY, budget)
+          const o = await probeErrorSigPoint(sender, resolved, point, cls, ctx.abort, DELAY, budget)
           classObs.push(o)
           markBlocked(o, cls)
           if (o.error_findings.length > 0)
