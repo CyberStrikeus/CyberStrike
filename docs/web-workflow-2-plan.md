@@ -428,13 +428,41 @@ Native SSRF testing for query-parameter vectors. Fires internal targets at a URL
 
 `resolveCapturedRequest` was extracted from authn_test's inline implementation to `webhook/resolve.ts` BEFORE ssrf_test duplicated it. Both tools import from the shared location. Future tools (business_test, etc.) reuse it.
 
+### business_test — BUILT & VERIFIED (53 tests / 238 assertions)
+
+Native business-logic testing replacing Python `race_tester`. Three modes:
+
+| File | Lines | What it does |
+|------|-------|-------------|
+| `src/tool/webhook/business/race.ts` | 112 | `RaceEngine` — concurrent sends via `Batch.run` (replay/batch.ts), timing measurement, TOCTOU indicator analysis: mixed-status, multiple-success, varying-body-length, partial-error signals. |
+| `src/tool/webhook/business/boundary.ts` | 89 | `BoundaryValues` — 5 field classes (integer/price/quantity/string/id), ~45 values, `forField()` auto-detect by field name regex, `select()` with category+limit filter. |
+| `src/tool/webhook/business/workflow.ts` | 96 | `WorkflowSkip.generate()` — 5 strategies (skip_to_end, skip_one, skip_middle, repeat_step, reverse_order) from ordered step sequences. |
+| `src/tool/webhook/business/probe.ts` | 94 | `BusinessProbe` — `race()` + `boundary()` orchestrator with `injectFn` pattern and baseline-diff anomaly detection. |
+| `src/tool/webhook/business/business-test.ts` | 153 | `BusinessTest.run` 3-mode dispatcher + `BusinessTestTool = Tool.define("business_test")` — **NOT registered** (inert). |
+
+**Tests:** 4 files — race (7), boundary (29), workflow (10), probe (7) — all pass.
+
+**UNVERIFIED:** live-network round-trip (mock HttpSender only); boundary body-length threshold (50 char) may miss subtle response differences.
+
+### misconfig_test — BUILT & VERIFIED (22 tests / 286 assertions)
+
+Active misconfiguration probing that generates the traffic the P0 signal fabric classifies. Three modes:
+
+| File | Lines | What it does |
+|------|-------|-------------|
+| `src/tool/webhook/misconfig/wordlists.ts` | 106 | Backup suffixes (~15), named backup patterns (~12), admin paths (~26), sensitive files (~34), HTTP methods (~12). `Wordlists.select()` with category+limit filter. |
+| `src/tool/webhook/misconfig/probe.ts` | 153 | `MisconfigProbe` — `paths()` (GET wordlist paths, flag 200/403 vs 404 baseline), `methods()` (unusual HTTP methods, flag allowed), `cors()` (Origin reflection + credentials test). Backup suffixes require basePath — skipped if none given. |
+| `src/tool/webhook/misconfig/misconfig-test.ts` | 133 | `MisconfigTest.run` 3-mode dispatcher + `MisconfigTestTool = Tool.define("misconfig_test")` — **NOT registered** (inert). |
+
+**Tests:** 2 files — wordlists (11), probe (11) — all pass.
+
+**UNVERIFIED:** live-network round-trip; CORS null-origin handling varies by browser/server.
+
 ### What's still NOT done in P1
 
 | Item | Status | Depends on |
 |------|--------|-----------|
-| `business_test` (race/boundary/workflow-skip/price-tamper) | Not started | Next genuine-gap tool; replaces Python `race_tester` |
-| `misconfig_test` active-probe (backup-file/admin-path/HTTP-method wordlists) | Not started | Sends via http_replay; fabric auto-classifies |
-| Tool registry wiring (`tool/registry.ts`) | Not started | Register authn_test + ssrf_test (+ future); currently inert |
+| Tool registry wiring (`tool/registry.ts`) | Not started | Register authn_test + ssrf_test + business_test + misconfig_test; currently all inert |
 | Agent permission wiring (`agent/agent.ts`) | Not started | Scope tools per specialist per §04 |
 | WSTG-aligned specialist agent prompts | Not started | The biggest genuine gap — thin prompts in `agent/prompt/vuln/` |
 | Orchestrator consuming the fabric | Not started | Route `new_signal` retests + signals context to owning specialist |
