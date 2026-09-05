@@ -45,6 +45,8 @@ import PROMPT_PROXY_TESTER_SSRF from "./prompt/vuln/ssrf/prompt.txt"
 import DESC_PROXY_TESTER_SSRF from "./prompt/vuln/ssrf/description.txt"
 import PROMPT_PROXY_TESTER_FILE_ATTACKS from "./prompt/vuln/file-attacks/prompt.txt"
 import DESC_PROXY_TESTER_FILE_ATTACKS from "./prompt/vuln/file-attacks/description.txt"
+import PROMPT_PROXY_TESTER_MISCONFIG from "./prompt/vuln/misconfig/prompt.txt"
+import DESC_PROXY_TESTER_MISCONFIG from "./prompt/vuln/misconfig/description.txt"
 
 // Methodology Engine prompts — intelligence logging, coverage tracking, forced continuation
 import PROMPT_METHODOLOGY_COMMON from "./prompt/methodology/common-methodology.txt"
@@ -587,6 +589,7 @@ export namespace Agent {
           ssrfAgent,
           fileAttacksAgent,
           llmAgent,
+          misconfigAgent,
         ] = await Promise.all([
           loadVulnAgent(PROMPT_PROXY_TESTER_IDOR, DESC_PROXY_TESTER_IDOR, ["wstg-authz-04", "wstg-apit-02"]),
           loadVulnAgent(PROMPT_PROXY_TESTER_AUTHZ, DESC_PROXY_TESTER_AUTHZ, [
@@ -624,6 +627,20 @@ export namespace Agent {
             "wstg-busl-09",
           ]),
           loadVulnAgent(PROMPT_PROXY_TESTER_LLM, DESC_PROXY_TESTER_LLM, ["llm-security"]),
+          loadVulnAgent(PROMPT_PROXY_TESTER_MISCONFIG, DESC_PROXY_TESTER_MISCONFIG, [
+            "wstg-conf-01",
+            "wstg-conf-02",
+            "wstg-conf-03",
+            "wstg-conf-04",
+            "wstg-conf-05",
+            "wstg-conf-06",
+            "wstg-conf-07",
+            "wstg-conf-08",
+            "wstg-conf-09",
+            "wstg-conf-10",
+            "wstg-conf-11",
+            "wstg-cryp-01",
+          ]),
         ])
 
         const vulnAgentPermission = PermissionNext.merge(
@@ -787,6 +804,11 @@ export namespace Agent {
           PermissionNext.fromConfig({ business_test: "allow" }),
         )
 
+        const misconfigAgentPermission = PermissionNext.merge(
+          vulnAgentPermission,
+          PermissionNext.fromConfig({ misconfig_test: "allow" }),
+        )
+
         return {
           "proxy-tester-idor": {
             name: "proxy-tester-idor",
@@ -885,6 +907,17 @@ export namespace Agent {
             prompt: llmAgent.prompt,
             prependRequestContext: true,
             permission: llmAgentPermission,
+            options: {},
+          },
+          "proxy-tester-misconfig": {
+            name: "proxy-tester-misconfig",
+            description: misconfigAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: misconfigAgent.prompt,
+            prependRequestContext: true,
+            permission: misconfigAgentPermission,
             options: {},
           },
         }
