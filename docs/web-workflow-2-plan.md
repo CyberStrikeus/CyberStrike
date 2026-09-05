@@ -468,3 +468,14 @@ Active misconfiguration probing that generates the traffic the P0 signal fabric 
 | Orchestrator consuming the fabric | **Done** | Orchestrator prompt reads pending signals + retest_queue from session context; routes new_signal retests via specialist_class → agent-name mapping table; handles architecture-driven retests separately; priority ordering: new_signal > arch > new requests |
 | `inject_probe` → canary registration | Deferred (risk) | Thread marker through per-probe send functions; needs live target |
 | Python `attack_script` retirement | Blocked on tool wiring | jwt_tamper, ssrf_listener, race_tester — after native tools wired live |
+
+### P3-A — WSTG Coverage Map Assertion — DONE (2026-09-05)
+
+Machine-readable coverage map (`src/session/web/wstg-coverage.ts`) mapping all 97 WSTG v4.2 tests to owner agent, coverage status, and mechanism. This is §11 gate 7.
+
+| File | What it does |
+|------|-------------|
+| `src/session/web/wstg-coverage.ts` | `WSTG_COVERAGE` array (97 entries), `WSTG_CATEGORIES` (12 categories), `TOTAL_WSTG_TESTS` constant. Each entry: `id`, `title`, `agent`, `status` (covered/passive/partial/deferred), `mechanism`. |
+| `test/session/web/wstg-coverage.test.ts` | 27 tests / 876 assertions. Completeness (97 entries, no gaps, no duplicates), ordering, agent cross-reference vs WebProvider, coverage statistics, load distribution. |
+
+**Coverage breakdown:** 72 covered, 15 passive, 2 partial, 8 deferred (P2 browser-dependent CLNT tests). `proxy-tester-llm` is a CyberStrike extension — not in WSTG v4.2, correctly excluded from the map.
