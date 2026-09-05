@@ -13,7 +13,8 @@ import { PermissionNext } from "@/permission/next"
 import { Request } from "../session/request"
 import { CoverageNote } from "../session/coverage-note"
 import { WebCredential } from "../session/web/web-credential"
-import { renderAccessContextLines } from "../server/routes/session"
+import { Observation } from "../session/observation"
+import { renderAccessContextLines, resolveVisitedBy } from "../server/routes/session"
 import { Truncate } from "./truncation"
 import { dispatchScopeViolation, dispatchOffLaneMessage } from "./vuln-scope"
 
@@ -219,15 +220,19 @@ export const TaskTool = Tool.define("task", async (ctx) => {
             lines.push("UNAUTHENTICATED (no credential associated with this request)")
           }
 
-          // Access Context — present only when source is hackbrowser with
-          // UI crawling enrichment. Firefox extension data has all these
-          // fields null, so renderAccessContextLines returns [].
+          // Access Context — derive visited_by from observed values so Firefox
+          // traffic gains the legitimacy signal and hackbrowser gains full multi-cred set.
+          const visitedBy = resolveVisitedBy({
+            sessionID: Session.root(ctx.sessionID),
+            keyHash: current.key_hash,
+            captureVisitedBy: current.page_visited_by,
+          })
           lines.push(
             ...renderAccessContextLines({
               triggerElement: current.trigger_element,
               elementRoles: current.element_roles,
               pageUrl: current.page_url,
-              pageVisitedBy: current.page_visited_by,
+              pageVisitedBy: visitedBy,
               uiContext: current.ui_context,
             }),
           )

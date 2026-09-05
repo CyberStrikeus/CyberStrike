@@ -3,6 +3,7 @@ import { Tool } from "./tool"
 import { Request } from "../session/request"
 import { Observation } from "../session/observation"
 import { Session } from "../session"
+import { resolveVisitedBy } from "../server/routes/session"
 
 const description = `Get detailed information for a specific HTTP request by ID.
 
@@ -54,10 +55,18 @@ export const WebGetRequestDetailTool = Tool.define("web_get_request_detail", {
     }
 
     // Access context — always include if available (small, useful for all agents)
+    // Derive visited_by from observed values so Firefox traffic gains legitimacy signal.
+    const visitedBy = request.key_hash
+      ? resolveVisitedBy({
+          sessionID,
+          keyHash: request.key_hash,
+          captureVisitedBy: request.page_visited_by,
+        })
+      : request.page_visited_by
     if (request.trigger_element) detail.trigger_element = request.trigger_element
     if (request.element_roles) detail.element_roles = request.element_roles
     if (request.page_url) detail.page_url = request.page_url
-    if (request.page_visited_by) detail.page_visited_by = request.page_visited_by
+    if (visitedBy?.length) detail.page_visited_by = visitedBy
 
     // Protocol/operation — present only for body-dispatched endpoints (GraphQL/JSON-RPC).
     if (request.protocol) detail.protocol = request.protocol
