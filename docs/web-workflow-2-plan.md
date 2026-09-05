@@ -464,7 +464,7 @@ Active misconfiguration probing that generates the traffic the P0 signal fabric 
 |------|--------|-----------|
 | Tool registry wiring (`tool/registry.ts`) | **Done** | `AuthnTestTool`, `SsrfTestTool`, `BusinessTestTool`, `MisconfigTestTool` registered in `all()` array |
 | Agent permission wiring (`agent/agent.ts`) | **Done (3/4)** | `authnAgentPermission` → proxy-tester-authn, `ssrfAgentPermission` → proxy-tester-ssrf, `businessLogicPermission` → proxy-tester-business-logic. misconfig_test registered but agent deferred to §05 |
-| WSTG-aligned specialist agent prompts | Not started | The biggest genuine gap — thin prompts in `agent/prompt/vuln/` |
+| WSTG-aligned specialist agent prompts | **Done (4/4)** | authn, ssrf, business-logic prompts updated with smart tool usage; new proxy-tester-misconfig agent created with prompt + description + agent.ts wiring (WSTG CONF-01..11 + CRYP-01) |
 | Orchestrator consuming the fabric | Not started | Route `new_signal` retests + signals context to owning specialist |
 | `inject_probe` → canary registration | Deferred (risk) | Thread marker through per-probe send functions; needs live target |
 | Python `attack_script` retirement | Blocked on tool wiring | jwt_tamper, ssrf_listener, race_tester — after native tools wired live |
