@@ -973,7 +973,7 @@ export namespace MCP {
     log.info("mcp removed", { name })
   }
 
-  export async function tools() {
+  export async function tools(ids?: string[]) {
     const result: Record<string, Tool> = {}
     const s = await state()
     const cfg = await Config.get()
@@ -981,6 +981,7 @@ export namespace MCP {
     const boltConfig = cfg.bolt ?? {}
     const clientsSnapshot = await clients()
     const defaultTimeout = cfg.experimental?.mcp_timeout
+    const selected = ids ? new Set(ids) : undefined
 
     const connectedClients = Object.entries(clientsSnapshot).filter(
       ([clientName]) => s.status[clientName]?.status === "connected",
@@ -1012,7 +1013,9 @@ export namespace MCP {
       for (const mcpTool of toolsResult.tools) {
         const sanitizedClientName = clientName.replace(/[^a-zA-Z0-9_-]/g, "_")
         const sanitizedToolName = mcpTool.name.replace(/[^a-zA-Z0-9_-]/g, "_")
-        result[sanitizedClientName + "_" + sanitizedToolName] = await convertMcpTool(mcpTool, client, timeout)
+        const id = sanitizedClientName + "_" + sanitizedToolName
+        if (selected && !selected.has(id)) continue
+        result[id] = await convertMcpTool(mcpTool, client, timeout)
       }
     }
     return result

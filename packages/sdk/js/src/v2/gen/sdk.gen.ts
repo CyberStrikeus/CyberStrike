@@ -27,6 +27,9 @@ import type {
   ConfigProvidersResponses,
   ConfigUpdateErrors,
   ConfigUpdateResponses,
+  EventLogListResponses,
+  EventLogStreamResponse,
+  EventLogStreamResponses,
   EventSubscribeResponse,
   EventSubscribeResponses,
   EventTuiCommandExecute,
@@ -65,12 +68,18 @@ import type {
   McpAuthStartErrors,
   McpAuthStartResponses,
   McpBoltToolsResponses,
+  McpCatalogResponses,
   McpConnectResponses,
   McpDisconnectResponses,
   McpLocalConfig,
   McpRemoteConfig,
   McpRemoveResponses,
   McpStatusResponses,
+  MemoryCreateResponses,
+  MemoryInvalidateResponses,
+  MemoryListResponses,
+  MemoryPromoteResponses,
+  MemorySearchResponses,
   MethodologyAssetCoverageErrors,
   MethodologyAssetCoverageResponses,
   MethodologyChainsErrors,
@@ -228,11 +237,20 @@ import type {
   SkillVerifyErrors,
   SkillVerifyResponses,
   SubtaskPartInput,
+  SystemCapabilitiesResponses,
   TextPartInput,
   ToolIdsErrors,
   ToolIdsResponses,
   ToolListErrors,
   ToolListResponses,
+  TopologyGetResponses,
+  TopologyNmapDiffResponses,
+  TopologyNmapImportResponses,
+  TopologyNmapScansResponses,
+  TopologyNoteCreateResponses,
+  TopologyNoteDeleteResponses,
+  TopologyNotesResponses,
+  TopologyNoteUpdateResponses,
   TuiAppendPromptErrors,
   TuiAppendPromptResponses,
   TuiClearPromptResponses,
@@ -3293,6 +3311,25 @@ export class Auth2 extends HeyApiClient {
 
 export class Mcp extends HeyApiClient {
   /**
+   * Get MCP catalog
+   *
+   * Get curated MCP servers, pinned install commands, and manual installation requirements.
+   */
+  public catalog<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
+    return (options?.client ?? this.client).get<McpCatalogResponses, unknown, ThrowOnError>({
+      url: "/mcp/catalog",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
    * Get MCP status
    *
    * Get the status of all Model Context Protocol (MCP) servers.
@@ -4328,6 +4365,584 @@ export class Methodology extends HeyApiClient {
   }
 }
 
+export class EventLog extends HeyApiClient {
+  /**
+   * List durable engagement events
+   *
+   * Get redacted execution events for a session in chronological order.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      before?: number
+      beforeID?: string
+      limit?: number
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "before" },
+            { in: "query", key: "beforeID" },
+            { in: "query", key: "limit" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<EventLogListResponses, unknown, ThrowOnError>({
+      url: "/event-log/session/{sessionID}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Stream engagement events
+   *
+   * Subscribe to redacted execution events for one session.
+   */
+  public stream<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError, EventLogStreamResponse>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).sse.get<EventLogStreamResponses, unknown, ThrowOnError>({
+      url: "/event-log/session/{sessionID}/stream",
+      ...options,
+      ...params,
+    })
+  }
+}
+
+export class Topology extends HeyApiClient {
+  /**
+   * Get session topology
+   *
+   * Get a redacted graph projection of session assets, hosts, endpoints, identities, and findings.
+   */
+  public get<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<TopologyGetResponses, unknown, ThrowOnError>({
+      url: "/topology/session/{sessionID}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * List target notes
+   *
+   * Get operator notes and links for topology entities.
+   */
+  public notes<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      entityID?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "entityID" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<TopologyNotesResponses, unknown, ThrowOnError>({
+      url: "/topology/session/{sessionID}/notes",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Create target note
+   *
+   * Add an operator-authored note to a topology entity.
+   */
+  public noteCreate<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      entityID: string
+      title: string
+      content: string
+      links?: Array<string>
+      tags?: Array<string>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "entityID" },
+            { in: "body", key: "title" },
+            { in: "body", key: "content" },
+            { in: "body", key: "links" },
+            { in: "body", key: "tags" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<TopologyNoteCreateResponses, unknown, ThrowOnError>({
+      url: "/topology/session/{sessionID}/notes",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * List Nmap scans
+   *
+   * Get saved parsed Nmap scans for a session.
+   */
+  public nmapScans<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<TopologyNmapScansResponses, unknown, ThrowOnError>({
+      url: "/topology/session/{sessionID}/nmap",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Import Nmap XML
+   *
+   * Parse and persist an Nmap XML scan for topology and comparison.
+   */
+  public nmapImport<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      name: string
+      xml: string
+      profile?: string
+      command?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "name" },
+            { in: "body", key: "xml" },
+            { in: "body", key: "profile" },
+            { in: "body", key: "command" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<TopologyNmapImportResponses, unknown, ThrowOnError>({
+      url: "/topology/session/{sessionID}/nmap",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Compare Nmap scans
+   *
+   * Compare hosts, ports, and service changes between two saved scans.
+   */
+  public nmapDiff<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      from: string
+      to: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "from" },
+            { in: "query", key: "to" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<TopologyNmapDiffResponses, unknown, ThrowOnError>({
+      url: "/topology/session/{sessionID}/nmap/diff",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Delete target note
+   */
+  public noteDelete<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      noteID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "path", key: "noteID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<TopologyNoteDeleteResponses, unknown, ThrowOnError>({
+      url: "/topology/session/{sessionID}/notes/{noteID}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Update target note
+   */
+  public noteUpdate<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      noteID: string
+      directory?: string
+      title?: string
+      content?: string
+      links?: Array<string>
+      tags?: Array<string>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "path", key: "noteID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "title" },
+            { in: "body", key: "content" },
+            { in: "body", key: "links" },
+            { in: "body", key: "tags" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).patch<TopologyNoteUpdateResponses, unknown, ThrowOnError>({
+      url: "/topology/session/{sessionID}/notes/{noteID}",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
+export class Memory extends HeyApiClient {
+  /**
+   * List structured memory
+   *
+   * List valid project and engagement memory with provenance.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      sessionID?: string
+      kind?: "working" | "episodic" | "semantic" | "procedural"
+      includeInvalid?: boolean
+      limit?: number
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "sessionID" },
+            { in: "query", key: "kind" },
+            { in: "query", key: "includeInvalid" },
+            { in: "query", key: "limit" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<MemoryListResponses, unknown, ThrowOnError>({
+      url: "/memory",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Create human memory
+   *
+   * Create a human-trusted project or engagement memory entry with secret redaction.
+   */
+  public create<ThrowOnError extends boolean = false>(
+    parameters: {
+      directory?: string
+      sessionID?: string
+      kind: "working" | "episodic" | "semantic" | "procedural"
+      title: string
+      content: string
+      confidence?: number
+      tags?: Array<string>
+      relatedIDs?: Array<string>
+      metadata?: {
+        [key: string]: unknown
+      }
+      validFrom?: number
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "body", key: "sessionID" },
+            { in: "body", key: "kind" },
+            { in: "body", key: "title" },
+            { in: "body", key: "content" },
+            { in: "body", key: "confidence" },
+            { in: "body", key: "tags" },
+            { in: "body", key: "relatedIDs" },
+            { in: "body", key: "metadata" },
+            { in: "body", key: "validFrom" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<MemoryCreateResponses, unknown, ThrowOnError>({
+      url: "/memory",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Search structured memory
+   *
+   * Run engagement-scoped FTS retrieval over valid memory.
+   */
+  public search<ThrowOnError extends boolean = false>(
+    parameters: {
+      directory?: string
+      query: string
+      sessionID?: string
+      kind?: "working" | "episodic" | "semantic" | "procedural"
+      limit?: number
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "query" },
+            { in: "query", key: "sessionID" },
+            { in: "query", key: "kind" },
+            { in: "query", key: "limit" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<MemorySearchResponses, unknown, ThrowOnError>({
+      url: "/memory/search",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Invalidate memory
+   *
+   * Soft-invalidate a memory entry while preserving its audit history.
+   */
+  public invalidate<ThrowOnError extends boolean = false>(
+    parameters: {
+      entryID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "entryID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<MemoryInvalidateResponses, unknown, ThrowOnError>({
+      url: "/memory/{entryID}/invalidate",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Promote evaluated memory
+   *
+   * Promote a candidate lesson to human-trusted procedural memory after evaluation gates pass.
+   */
+  public promote<ThrowOnError extends boolean = false>(
+    parameters: {
+      entryID: string
+      directory?: string
+      cases: number
+      baselinePassRate: number
+      candidatePassRate: number
+      criticalRegressions: number
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "entryID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "cases" },
+            { in: "body", key: "baselinePassRate" },
+            { in: "body", key: "candidatePassRate" },
+            { in: "body", key: "criticalRegressions" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<MemoryPromoteResponses, unknown, ThrowOnError>({
+      url: "/memory/{entryID}/promote",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
+export class System extends HeyApiClient {
+  /**
+   * Get execution-plane capabilities
+   *
+   * Get redacted host, runtime, interface, and security-tool readiness.
+   */
+  public capabilities<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
+    return (options?.client ?? this.client).get<SystemCapabilitiesResponses, unknown, ThrowOnError>({
+      url: "/system/capabilities",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class Instance extends HeyApiClient {
   /**
    * Dispose instance
@@ -4943,6 +5558,26 @@ export class CyberstrikeClient extends HeyApiClient {
   private _methodology?: Methodology
   get methodology(): Methodology {
     return (this._methodology ??= new Methodology({ client: this.client }))
+  }
+
+  private _eventLog?: EventLog
+  get eventLog(): EventLog {
+    return (this._eventLog ??= new EventLog({ client: this.client }))
+  }
+
+  private _topology?: Topology
+  get topology(): Topology {
+    return (this._topology ??= new Topology({ client: this.client }))
+  }
+
+  private _memory?: Memory
+  get memory(): Memory {
+    return (this._memory ??= new Memory({ client: this.client }))
+  }
+
+  private _system?: System
+  get system(): System {
+    return (this._system ??= new System({ client: this.client }))
   }
 
   private _instance?: Instance

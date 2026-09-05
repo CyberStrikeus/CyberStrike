@@ -42,6 +42,13 @@ export const WebCommand = cmd({
       process.exit(1)
     }
     const opts = await resolveNetworkOptions(args)
+    if (args.safe) {
+      UI.println(
+        UI.Style.TEXT_WARNING_BOLD +
+          "!  " +
+          "Safe mode enabled: user/project config is ignored and configuration changes are disabled.",
+      )
+    }
     const server = Server.listen(opts)
     UI.empty()
     UI.println(UI.logo("  "))

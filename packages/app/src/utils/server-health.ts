@@ -2,7 +2,12 @@ import { usePlatform } from "@/context/platform"
 import type { ServerConnection } from "@/context/server"
 import { basicAuth, createSdkForServer } from "./server"
 
-export type ServerHealth = { healthy: boolean; version?: string; needsAuth?: boolean }
+export type ServerHealth = {
+  healthy: boolean
+  version?: string
+  needsAuth?: boolean
+  role?: "operator" | "observer"
+}
 
 interface CheckServerHealthOptions {
   timeoutMs?: number
@@ -89,7 +94,12 @@ export async function checkServerHealth(
       if (res.status === 401) return { healthy: false, needsAuth: true }
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = (await res.json()) as { healthy?: boolean; version?: string }
-      return { healthy: data?.healthy === true, version: data?.version }
+      const role = res.headers.get("X-CyberStrike-Role")
+      return {
+        healthy: data?.healthy === true,
+        version: data?.version,
+        role: role === "observer" ? "observer" : role === "operator" ? "operator" : undefined,
+      }
     } catch (error) {
       return next(count, error)
     }

@@ -28,6 +28,10 @@ export namespace Identifier {
     chain_candidate: "chn",
     agent_performance: "apf",
     validation_violation: "vvl",
+    engagement_event: "evt",
+    target_note: "dnt",
+    memory_entry: "mem",
+    nmap_scan: "nms",
   } as const
 
   export function schema(prefix: keyof typeof prefixes) {

@@ -19,6 +19,8 @@ import { Truncate } from "./truncation"
 import { Plugin } from "@/plugin"
 
 const MAX_METADATA_LENGTH = 30_000
+const NMAP_SAFE_REFERENCES = new Set(["apt", "apt-get", "brew", "echo", "grep", "printf", "rg", "type", "whereis", "which"])
+const NMAP_REFERENCE = /(?:^|[\s"';&|()<>\\/])nmap(?:\.exe)?(?=$|[\s"';&|()<>])/i
 
 // Detect binary content in a buffer by checking for high density of
 // non-printable bytes. Printable = ASCII 0x20-0x7E, tab, newline, CR, ESC
@@ -37,6 +39,14 @@ function isBinaryBuffer(buf: Buffer): boolean {
   return nonPrintable / buf.length > 0.3
 }
 const DEFAULT_TIMEOUT = Flag.CYBERSTRIKE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS || 2 * 60 * 1000
+const executable = (value: string) =>
+  value
+    .replace(/^['"]|['"]$/g, "")
+    .trim()
+    .split(/[\\/]/)
+    .at(-1)!
+    .toLowerCase()
+    .replace(/\.exe$/, "")
 
 export const log = Log.create({ service: "bash-tool" })
 
@@ -101,6 +111,28 @@ export const BashTool = Tool.define("bash", async () => {
       const tree = await parser().then((p) => p.parse(params.command))
       if (!tree) {
         throw new Error("Failed to parse command")
+      }
+      const invokesNmap = (root: typeof tree): boolean => {
+        for (const node of root.rootNode.descendantsOfType("command")) {
+          if (!node) continue
+          const command = Array.from({ length: node.childCount }, (_, index) => node.child(index))
+            .filter(
+              (child) =>
+                !!child &&
+                ["command_name", "word", "string", "raw_string", "concatenation"].includes(child.type),
+            )
+            .map((child) => child!.text)
+          const name = executable(command[0] ?? "")
+          if (name === "nmap") return true
+          if (NMAP_SAFE_REFERENCES.has(name)) continue
+          if (NMAP_REFERENCE.test(node.text)) return true
+        }
+        return false
+      }
+      if (invokesNmap(tree)) {
+        throw new Error(
+          "Raw Nmap execution is disabled. Use nmap_scan so approval, XML evidence, scan history, and topology stay synchronized.",
+        )
       }
       const directories = new Set<string>()
       if (!Instance.containsPath(cwd)) directories.add(cwd)

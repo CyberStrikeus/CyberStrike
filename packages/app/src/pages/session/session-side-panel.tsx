@@ -39,13 +39,59 @@ import { useLayout } from "@/context/layout"
 import { useSync } from "@/context/sync"
 import { useSDK } from "@/context/sdk"
 import { Icon } from "@cyberstrike-io/ui/icon"
-import type { Message, UserMessage, Vulnerability } from "@cyberstrike-io/sdk/v2/client"
+import type { Message, SystemCapabilitiesResponse, UserMessage, Vulnerability } from "@cyberstrike-io/sdk/v2/client"
+import { useServer } from "@/context/server"
+import { MissionPanel } from "@/pages/session/mission-panel"
+import { TopologyPanel } from "@/pages/session/topology-panel"
+import { MemoryPanel } from "@/pages/session/memory-panel"
+import { useWorkbench } from "@/context/workbench"
+import type { WorkbenchChannel } from "@/pages/session/activity"
 
 const statusDot = (status: string) => {
   if (status === "connected") return "bg-icon-success-base"
   if (status === "failed") return "bg-icon-danger-base"
   if (status === "needs_auth") return "bg-icon-warning-base"
+  if (status === "available") return "bg-icon-accent-base"
   return "bg-surface-inset-base"
+}
+
+const panelChannels: Record<string, WorkbenchChannel> = {
+  "mcp-panel": "mcp",
+  "mission-panel": "mission",
+  "bolt-panel": "bolt",
+  "vulns-panel": "vulns",
+  "web-panel": "web",
+  "topology-panel": "topology",
+  "memory-panel": "memory",
+}
+
+function ChangeCount(props: { value: number }) {
+  return (
+    <Show when={props.value > 0}>
+      <span class="min-w-4 h-4 px-1 rounded-full bg-surface-accent-base text-10-medium text-text-accent-base tabular-nums">
+        {Math.min(props.value, 99)}
+      </span>
+    </Show>
+  )
+}
+
+type McpCatalogEntry = {
+  id: string
+  name: string
+  summary: string
+  tier: number
+  tools: number
+  techniques?: number
+  version: string
+  package?: string
+  repository: string
+  command?: string[]
+  default: boolean
+}
+
+type McpPanelItem = McpCatalogEntry & {
+  status: string
+  configured: boolean
 }
 
 function McpPanelList() {
@@ -53,7 +99,10 @@ function McpPanelList() {
   const sdk = useSDK()
   const dialog = useDialog()
   const language = useLanguage()
+  const server = useServer()
   const [loading, setLoading] = createSignal<string | null>(null)
+  const [catalog, setCatalog] = createSignal<McpCatalogEntry[]>([])
+  const [error, setError] = createSignal("")
   const [boltGroups, setBoltGroups] = createSignal<
     Array<{
       boltServer: string
@@ -71,7 +120,16 @@ function McpPanelList() {
       .then((x) => {
         if (x.data) sync.set("mcp", x.data)
       })
-      .catch(() => {})
+      .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)))
+  })
+
+  createEffect(() => {
+    sdk.client.mcp
+      .catalog()
+      .then((response) => {
+        if (response.data) setCatalog(response.data)
+      })
+      .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)))
   })
 
   // Fetch Bolt tool groups (re-fetch when bolt status changes)
@@ -82,24 +140,74 @@ function McpPanelList() {
       .then((x) => {
         if (x.data) setBoltGroups(x.data)
       })
-      .catch(() => {})
+      .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)))
   })
 
-  const items = createMemo(() =>
-    Object.entries(sync.data.mcp ?? {})
-      .map(([name, s]) => ({ name, status: s.status }))
-      .sort((a, b) => a.name.localeCompare(b.name)),
-  )
+  const items = createMemo<McpPanelItem[]>(() => {
+    const configured = sync.data.mcp ?? {}
+    const known = new Set(catalog().map((entry) => entry.id))
+    return [
+      ...catalog().map((entry) => ({
+        ...entry,
+        status: configured[entry.id]?.status ?? "available",
+        configured: !!configured[entry.id],
+      })),
+      ...Object.entries(configured)
+        .filter(([id]) => !known.has(id))
+        .map(([id, status]) => ({
+          id,
+          name: id,
+          summary: "Custom MCP server",
+          tier: 5,
+          tools: 0,
+          techniques: undefined,
+          version: "",
+          package: undefined,
+          repository: "",
+          command: undefined,
+          default: false,
+          status: status.status,
+          configured: true,
+        })),
+    ].sort((a, b) => a.tier - b.tier || a.name.localeCompare(b.name))
+  })
 
   const toggle = async (name: string) => {
     if (loading()) return
+    if (server.role() === "observer") return
+    if (!sync.data.mcp[name]) return
     setLoading(name)
+    setError("")
     try {
       const s = sync.data.mcp[name]
       if (s?.status === "connected") await sdk.client.mcp.disconnect({ name })
       else await sdk.client.mcp.connect({ name })
       const result = await sdk.client.mcp.status()
       if (result.data) sync.set("mcp", result.data)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const install = async (entry: McpCatalogEntry) => {
+    if (loading() || !entry.command) return
+    if (server.role() === "observer") return
+    setLoading(entry.id)
+    setError("")
+    try {
+      await sdk.client.mcp.add({
+        name: entry.id,
+        config: {
+          type: "local",
+          command: entry.command,
+        },
+      })
+      const result = await sdk.client.mcp.status()
+      if (result.data) sync.set("mcp", result.data)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause))
     } finally {
       setLoading(null)
     }
@@ -109,33 +217,79 @@ function McpPanelList() {
     <div class="flex flex-col gap-0.5">
       <div class="flex items-center justify-between px-2 py-1">
         <span class="text-11-medium text-text-weaker uppercase tracking-wider">{language.t("dialog.mcp.title")}</span>
-        <IconButton
-          icon="plus-small"
-          variant="ghost"
-          size="small"
-          onClick={() => dialog.show(() => <DialogSelectMcp />)}
-        />
+        <Show when={server.role() !== "observer"}>
+          <IconButton
+            icon="plus-small"
+            variant="ghost"
+            size="small"
+            onClick={() => dialog.show(() => <DialogSelectMcp />)}
+          />
+        </Show>
       </div>
       <Show when={items().length === 0 && boltGroups().length === 0}>
         <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("dialog.mcp.empty")}</div>
       </Show>
+      <Show when={error()}>
+        <div class="mx-2 mb-1 px-2 py-1.5 rounded bg-surface-critical-base text-11-regular text-text-critical-base">
+          {error()}
+        </div>
+      </Show>
       <For each={items()}>
         {(i) => (
-          <div
-            class="flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-surface-raised-base cursor-pointer"
-            onClick={() => toggle(i.name)}
-          >
+          <div class="flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-surface-raised-base" title={i.summary}>
             <div class="flex items-center gap-2 min-w-0">
               <span class={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDot(i.status)}`} />
-              <span class="text-12-regular truncate">{i.name}</span>
+              <div class="flex flex-col min-w-0">
+                <span class="text-12-regular truncate">{i.name}</span>
+                <span class="text-10-regular text-text-weaker truncate">
+                  {i.tools > 0 ? `${i.tools} tools` : i.status}
+                  {i.techniques ? ` · ${i.techniques} techniques` : ""}
+                </span>
+              </div>
             </div>
-            <div onClick={(e) => e.stopPropagation()}>
-              <Toggle
-                checked={i.status === "connected"}
-                disabled={loading() === i.name}
-                onChange={() => toggle(i.name)}
-              />
-            </div>
+            <Show
+              when={i.configured}
+              fallback={
+                <Show
+                  when={i.command}
+                  fallback={
+                    <a
+                      href={i.repository}
+                      target="_blank"
+                      rel="noreferrer"
+                      class="text-10-medium text-text-accent hover:underline shrink-0"
+                    >
+                      Manual
+                    </a>
+                  }
+                >
+                  <Show
+                    when={server.role() !== "observer"}
+                    fallback={<span class="text-10-medium text-text-weaker shrink-0">Available</span>}
+                  >
+                    <button
+                      type="button"
+                      class="text-10-medium text-text-accent hover:underline shrink-0"
+                      disabled={loading() === i.id}
+                      onClick={() => install(i)}
+                    >
+                      {loading() === i.id ? "Adding..." : "Add"}
+                    </button>
+                  </Show>
+                </Show>
+              }
+            >
+              <Show
+                when={server.role() !== "observer"}
+                fallback={<span class="text-10-medium text-text-weaker">{i.status}</span>}
+              >
+                <Toggle
+                  checked={i.status === "connected"}
+                  disabled={loading() === i.id}
+                  onChange={() => toggle(i.id)}
+                />
+              </Show>
+            </Show>
           </div>
         )}
       </For>
@@ -178,7 +332,9 @@ function BoltPanelList() {
   const sdk = useSDK()
   const dialog = useDialog()
   const language = useLanguage()
+  const server = useServer()
   const [loading, setLoading] = createSignal<string | null>(null)
+  const [host, setHost] = createSignal<SystemCapabilitiesResponse>()
 
   // Fetch Bolt status on mount — bootstrap may not have completed yet
   createEffect(() => {
@@ -190,6 +346,23 @@ function BoltPanelList() {
       .catch(() => {})
   })
 
+  createEffect(() => {
+    let alive = true
+    const load = () =>
+      sdk.client.system
+        .capabilities()
+        .then((result) => {
+          if (alive && result.data) setHost(result.data)
+        })
+        .catch(() => {})
+    void load()
+    const timer = setInterval(load, 10_000)
+    onCleanup(() => {
+      alive = false
+      clearInterval(timer)
+    })
+  })
+
   const items = createMemo(() =>
     Object.entries(sync.data.bolt ?? {})
       .map(([name, s]) => ({ name, status: s.status }))
@@ -198,6 +371,7 @@ function BoltPanelList() {
 
   const toggle = async (name: string) => {
     if (loading()) return
+    if (server.role() === "observer") return
     setLoading(name)
     try {
       const s = sync.data.bolt[name]
@@ -214,13 +388,49 @@ function BoltPanelList() {
     <div class="flex flex-col gap-0.5">
       <div class="flex items-center justify-between px-2 py-1">
         <span class="text-11-medium text-text-weaker uppercase tracking-wider">{language.t("dialog.bolt.title")}</span>
-        <IconButton
-          icon="plus-small"
-          variant="ghost"
-          size="small"
-          onClick={() => dialog.show(() => <DialogSelectBolt />)}
-        />
+        <Show when={server.role() !== "observer"}>
+          <IconButton
+            icon="plus-small"
+            variant="ghost"
+            size="small"
+            onClick={() => dialog.show(() => <DialogSelectBolt />)}
+          />
+        </Show>
       </div>
+      <Show when={host()}>
+        {(info) => {
+          const ready = () => info().tools.filter((tool) => tool.available)
+          const external = () =>
+            info()
+              .interfaces.flatMap((item) => item.addresses)
+              .filter((address) => !address.internal)
+          return (
+            <div class="mx-2 mb-2 p-2 rounded bg-surface-base border border-border-weak-base">
+              <div class="flex items-center gap-2">
+                <span class="size-2 rounded-full bg-icon-success-base" />
+                <span class="flex-1 text-11-medium text-text-strong truncate">{info().hostname}</span>
+                <span class="text-10-medium text-text-weaker">{info().virtualization ?? info().platform}</span>
+              </div>
+              <div class="mt-1 text-10-regular text-text-weak">
+                {info().cpu.cores} cores · {Math.round(info().memory.free / 1024 / 1024 / 1024)} GiB free ·{" "}
+                {ready().length}/{info().tools.length} tools ready
+              </div>
+              <div class="mt-1 text-10-mono text-text-weaker truncate">
+                {external().map((address) => address.address).join(" · ") || "No external interface"}
+              </div>
+              <div class="mt-2 flex flex-wrap gap-1">
+                <For each={ready().slice(0, 12)}>
+                  {(tool) => (
+                    <span class="px-1.5 py-0.5 rounded bg-surface-inset-base text-10-medium text-text-weak">
+                      {tool.name}
+                    </span>
+                  )}
+                </For>
+              </div>
+            </div>
+          )
+        }}
+      </Show>
       <Show when={items().length === 0}>
         <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("dialog.bolt.empty")}</div>
       </Show>
@@ -234,13 +444,18 @@ function BoltPanelList() {
               <span class={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDot(i.status)}`} />
               <span class="text-12-regular truncate">{i.name}</span>
             </div>
-            <div onClick={(e) => e.stopPropagation()}>
-              <Toggle
-                checked={i.status === "connected"}
-                disabled={loading() === i.name}
-                onChange={() => toggle(i.name)}
-              />
-            </div>
+            <Show
+              when={server.role() !== "observer"}
+              fallback={<span class="text-10-medium text-text-weaker">{i.status}</span>}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <Toggle
+                  checked={i.status === "connected"}
+                  disabled={loading() === i.name}
+                  onChange={() => toggle(i.name)}
+                />
+              </div>
+            </Show>
           </div>
         )}
       </For>
@@ -1002,6 +1217,14 @@ export function SessionSidePanel(props: {
   focusReviewDiff: (path: string) => void
 }) {
   const openedTabs = createMemo(() => props.openedTabs())
+  const server = useServer()
+  const workbench = useWorkbench()
+
+  createEffect(() => {
+    if (!props.open || !props.reviewOpen) return
+    const channel = panelChannels[props.activeTab()]
+    if (channel && workbench.changes(channel) > 0) workbench.ack(channel)
+  })
 
   return (
     <Show when={props.open}>
@@ -1069,17 +1292,42 @@ export function SessionSidePanel(props: {
                       </Tabs.Trigger>
                     </Show>
                     <Tabs.Trigger value="mcp-panel">
-                      <div class="flex items-center gap-1.5">MCP</div>
+                      <div class="flex items-center gap-1.5">
+                        MCP <ChangeCount value={workbench.changes("mcp")} />
+                      </div>
+                    </Tabs.Trigger>
+                    <Tabs.Trigger value="mission-panel">
+                      <div class="flex items-center gap-1.5">
+                        Mission <ChangeCount value={workbench.changes("mission")} />
+                      </div>
                     </Tabs.Trigger>
                     <Tabs.Trigger value="bolt-panel">
-                      <div class="flex items-center gap-1.5">Bolt</div>
+                      <div class="flex items-center gap-1.5">
+                        Bolt <ChangeCount value={workbench.changes("bolt")} />
+                      </div>
                     </Tabs.Trigger>
                     <Tabs.Trigger value="vulns-panel">
-                      <div class="flex items-center gap-1.5">Vulns</div>
+                      <div class="flex items-center gap-1.5">
+                        Vulns <ChangeCount value={workbench.changes("vulns")} />
+                      </div>
                     </Tabs.Trigger>
                     <Tabs.Trigger value="web-panel">
-                      <div class="flex items-center gap-1.5">Web</div>
+                      <div class="flex items-center gap-1.5">
+                        Web <ChangeCount value={workbench.changes("web")} />
+                      </div>
                     </Tabs.Trigger>
+                    <Tabs.Trigger value="topology-panel">
+                      <div class="flex items-center gap-1.5">
+                        Topology <ChangeCount value={workbench.changes("topology")} />
+                      </div>
+                    </Tabs.Trigger>
+                    <Show when={server.role() !== "observer"}>
+                      <Tabs.Trigger value="memory-panel">
+                        <div class="flex items-center gap-1.5">
+                          Memory <ChangeCount value={workbench.changes("memory")} />
+                        </div>
+                      </Tabs.Trigger>
+                    </Show>
                     <Tabs.Trigger value="todo-panel">
                       <div class="flex items-center gap-1.5">Todo</div>
                     </Tabs.Trigger>
@@ -1153,6 +1401,14 @@ export function SessionSidePanel(props: {
                   </Show>
                 </Tabs.Content>
 
+                <Tabs.Content value="mission-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                  <Show when={props.activeTab() === "mission-panel"}>
+                    <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
+                      <MissionPanel />
+                    </div>
+                  </Show>
+                </Tabs.Content>
+
                 <Tabs.Content value="bolt-panel" class="flex flex-col h-full overflow-hidden contain-strict">
                   <Show when={props.activeTab() === "bolt-panel"}>
                     <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
@@ -1176,6 +1432,22 @@ export function SessionSidePanel(props: {
                     </div>
                   </Show>
                 </Tabs.Content>
+
+                <Tabs.Content value="topology-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                  <Show when={props.activeTab() === "topology-panel"}>
+                    <TopologyPanel />
+                  </Show>
+                </Tabs.Content>
+
+                <Show when={server.role() !== "observer"}>
+                  <Tabs.Content value="memory-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                    <Show when={props.activeTab() === "memory-panel"}>
+                      <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
+                        <MemoryPanel />
+                      </div>
+                    </Show>
+                  </Tabs.Content>
+                </Show>
 
                 <Tabs.Content value="todo-panel" class="flex flex-col h-full overflow-hidden contain-strict">
                   <Show when={props.activeTab() === "todo-panel"}>

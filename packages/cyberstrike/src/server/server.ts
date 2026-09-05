@@ -42,6 +42,11 @@ import { PermissionRoutes } from "./routes/permission"
 import { GlobalRoutes } from "./routes/global"
 import { MethodologyRoutes } from "./routes/methodology"
 import { MDNS } from "./mdns"
+import { EventLogRoutes } from "./routes/event-log"
+import { ServerAuth } from "./auth"
+import { TopologyRoutes } from "./routes/topology"
+import { MemoryRoutes } from "./routes/memory"
+import { SystemRoutes } from "./routes/system"
 
 // @ts-ignore This global is needed to prevent ai-sdk from logging warnings to stdout https://github.com/vercel/ai/blob/2dc67e0ef538307f21368db32d5a12345d98831b/packages/ai/src/logger/log-warnings.ts#L85
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -72,6 +77,7 @@ export namespace Server {
             let status: ContentfulStatusCode
             if (err instanceof NotFoundError) status = 404
             else if (err instanceof Provider.ModelNotFoundError) status = 400
+            else if (err.name === "ConfigSafeModeError") status = 400
             else if (err.name.startsWith("Worktree")) status = 400
             else status = 500
             return c.json(err.toObject(), { status })
@@ -108,6 +114,7 @@ export namespace Server {
             },
             credentials: true,
             allowHeaders: ["Authorization", "Content-Type", "x-cyberstrike-directory"],
+            exposeHeaders: ["X-CyberStrike-Role"],
           }),
         )
         .use(async (c, next) => {
@@ -122,7 +129,6 @@ export namespace Server {
           const addr = ip?.address
           const loopback = addr === "127.0.0.1" || addr === "::1" || addr === "::ffff:127.0.0.1"
           const proxied = !!c.req.header("x-forwarded-for") || !!c.req.header("cf-connecting-ip")
-          if (loopback && !proxied) return next()
           // Skip auth for web UI static assets so the SPA can load in remote mode
           const p = c.req.path
           if (
@@ -131,22 +137,30 @@ export namespace Server {
             /\.(html|js|css|png|jpg|svg|ico|woff2?|ttf|webmanifest|map)$/i.test(p)
           )
             return next()
-          // Manual Basic auth check — intentionally omit WWW-Authenticate header
-          // so browsers don't show native auth dialog. The web UI uses its own form.
-          const username = Flag.CYBERSTRIKE_SERVER_USERNAME ?? "cyberstrike"
-          const header = c.req.header("authorization")
-          if (header) {
-            const match = /^Basic\s+(.+)$/i.exec(header)
-            if (match) {
-              try {
-                const decoded = new TextDecoder().decode(Uint8Array.from(atob(match[1]), (c) => c.charCodeAt(0)))
-                const sep = decoded.indexOf(":")
-                if (sep !== -1 && decoded.slice(0, sep) === username && decoded.slice(sep + 1) === password)
-                  return next()
-              } catch {}
-            }
-          }
-          return c.json({ error: "Unauthorized" }, 401)
+          const role = ServerAuth.role({
+            header: c.req.header("authorization"),
+            loopback,
+            proxied,
+            operator: {
+              username: Flag.CYBERSTRIKE_SERVER_USERNAME ?? "cyberstrike",
+              password,
+            },
+            observer: {
+              username: Flag.CYBERSTRIKE_OBSERVER_USERNAME ?? "observer",
+              password: Flag.CYBERSTRIKE_OBSERVER_PASSWORD,
+            },
+          })
+          if (!role) return c.json({ error: "Unauthorized" }, 401)
+          c.header("X-CyberStrike-Role", role)
+          if (
+            !ServerAuth.allows(role, {
+              method: c.req.method,
+              path: p,
+              upgrade: c.req.header("upgrade"),
+            })
+          )
+            return c.json({ error: "This route is unavailable to read-only observers." }, 403)
+          return next()
         })
         .use(async (c, next) => {
           const skipLogging = c.req.path === "/log"
@@ -286,6 +300,10 @@ export namespace Server {
         .route("/bolt", BoltRoutes())
         .route("/tui", TuiRoutes())
         .route("/methodology", MethodologyRoutes())
+        .route("/event-log", EventLogRoutes())
+        .route("/topology", TopologyRoutes())
+        .route("/memory", MemoryRoutes())
+        .route("/system", SystemRoutes())
         .post(
           "/instance/dispose",
           describeRoute({

@@ -42,6 +42,7 @@ export namespace LazyToolRegistry {
 
   const TOOL_CONTEXT_BUDGET = 30000
   const AVG_TOKENS_PER_TOOL = 500
+  const MAX_LOADED_TOOLS = Math.floor(TOOL_CONTEXT_BUDGET / AVG_TOKENS_PER_TOOL)
 
   export async function init(): Promise<void> {
     log.info("initializing lazy tool registry")
@@ -108,12 +109,12 @@ export namespace LazyToolRegistry {
     try {
       const toolsResult = await client.listTools()
       const sanitizedServerName = serverName.replace(/[^a-zA-Z0-9_-]/g, "_")
+      const incoming = new Set<string>()
 
       for (const mcpTool of toolsResult.tools) {
         const sanitizedToolName = mcpTool.name.replace(/[^a-zA-Z0-9_-]/g, "_")
         const id = `${sanitizedServerName}_${sanitizedToolName}`
-
-        if (lazyTools.has(id)) continue
+        incoming.add(id)
 
         const keywords = extractKeywords(mcpTool.name, mcpTool.description || "")
         const summary = (mcpTool.description || mcpTool.name).slice(0, 100)
@@ -128,6 +129,13 @@ export namespace LazyToolRegistry {
           source: "mcp",
           mcpServer: serverName,
         })
+      }
+
+      for (const tool of [...lazyTools.values()]) {
+        if (tool.mcpServer !== serverName || incoming.has(tool.id)) continue
+        lazyTools.delete(tool.id)
+        loadedTools.delete(tool.id)
+        loadedToolIds.delete(tool.id)
       }
 
       log.info("refreshed tools from server", {
@@ -195,26 +203,26 @@ export namespace LazyToolRegistry {
 
   export async function load(toolIds: string[]): Promise<LoadedTool[]> {
     const newlyLoaded: LoadedTool[] = []
-
-    const currentCount = loadedTools.size
-    const newCount = toolIds.filter((id) => !loadedToolIds.has(id)).length
-    const estimatedTokens = (currentCount + newCount) * AVG_TOKENS_PER_TOOL
-
-    if (estimatedTokens > TOOL_CONTEXT_BUDGET) {
-      log.warn("tool context budget exceeded, unloading least used tools", {
-        current: currentCount,
-        new: newCount,
-        estimated: estimatedTokens,
-        budget: TOOL_CONTEXT_BUDGET,
-      })
+    const requested = [...new Set(toolIds)].slice(0, MAX_LOADED_TOOLS)
+    const keep = new Set(requested)
+    const newCount = requested.filter((id) => !loadedToolIds.has(id)).length
+    while (loadedTools.size + newCount > MAX_LOADED_TOOLS) {
+      const victim = [...loadedTools.keys()].find((id) => !keep.has(id))
+      if (!victim) break
+      unload([victim])
     }
 
-    const mcpTools = await MCP.tools()
+    const missing = requested.filter((id) => !loadedToolIds.has(id))
+    const mcpTools = await MCP.tools(missing)
 
-    for (const id of toolIds) {
+    for (const id of requested) {
       if (loadedToolIds.has(id)) {
         const existing = loadedTools.get(id)
-        if (existing) newlyLoaded.push(existing)
+        if (existing) {
+          loadedTools.delete(id)
+          loadedTools.set(id, existing)
+          newlyLoaded.push(existing)
+        }
         continue
       }
 
