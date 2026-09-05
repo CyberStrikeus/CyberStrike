@@ -1,0 +1,2 @@
+Tests server and application misconfigurations: exposed backup/admin/sensitive files, insecure HTTP methods (TRACE, PUT, DELETE), CORS misconfigurations, missing security headers. Effective when: testing an origin for deployment-wide configuration flaws that apply to all endpoints. Runs once per origin — findings are scope: "wide".
+Misconfiguration and security header testing for deployment-wide server configuration flaws.
