@@ -376,3 +376,67 @@ The real remaining P1 work is NOT a fleet of new payload tools. It is:
 4. **The OO `WebProvider`** registry (unchanged from §10-P2).
 
 Net: injection + access-control mechanics are already done in the tool layer; P0 added the detection fabric; **P1's leverage is the agent layer + the ~4 genuinely-missing active probes, built to REUSE the send + detection layers rather than duplicate them.**
+
+---
+
+## 14 — P1 progress — smart tools + shared infrastructure (2026-09-05)
+
+### Shared transport layer — BUILT & VERIFIED
+
+All webhook smart tools share a single send path (invariant 2: no tool opens its own socket).
+
+| File | Lines | What it does |
+|------|-------|-------------|
+| `src/replay/govern.ts` | 34 | `governedSend(msg, origin, opts)` — single governed-send primitive (budget + breaker + Send.governed + BackendFetch). Extracted from http-replay's inline `sendGoverned` to eliminate duplication. |
+| `src/tool/webhook/transport.ts` | 77 | `HttpSender` interface + `ReplaySender` class (ProbeRequest → HttpMessage → governedSend → ProbeResponse). Shared DTOs: `ProbeRequest`, `ProbeResponse`. ALL webhook tools inject this — no per-tool sender. |
+| `src/tool/webhook/resolve.ts` | 33 | `resolveCapturedRequest(sessionID, requestId)` → ProbeRequest. Shared by authn_test + ssrf_test (and future tools). Scope inherently limited to session's captured hosts. |
+
+### authn_test — BUILT & VERIFIED (32 tests / 86 assertions)
+
+Native JWT attack engine replacing Python `jwt_tamper`. The tool composes: analyse a token → mint forged candidates → send each at the endpoint → report what the server ACCEPTS.
+
+| File | Lines | What it does |
+|------|-------|-------------|
+| `src/tool/webhook/authn/jwt.ts` | 223 | `Jwt` namespace: decode/tryDecode, encodeNone (4 case variants: none/None/NONE/nOnE), signHS256 (HMAC-SHA256), verifyHS256 (constant-time via timingSafeEqual), crackHS256 (17-entry weak-secret wordlist), forgeAlgNone, rs256ToHS256 (algorithm confusion with public key as HMAC secret), tamper, analyze (structural weakness report), escalationCandidates (alg:none + role/id swaps). Verified against jwt.io reference token. |
+| `src/tool/webhook/authn/probe.ts` | 130 | `TokenAcceptanceProbe` — sends forged tokens via injected `HttpSender`. Negative control: no-token request first; if endpoint answers 2xx unauthenticated (public route), no forgery counted as "accepted" (false-positive guard). `isSuccess` = 2xx only (3xx redirect = rejection, not acceptance). |
+| `src/tool/webhook/authn/authn-test.ts` | 125 | `AuthnTest.run` orchestrator: analyze → crack → mint candidates (alg:none + role/id + optional RS256→HS256 + optional weak-secret-resign) → probe acceptance. `extractBearer()` for case-insensitive Bearer/bare-JWT extraction. `AuthnTestTool = Tool.define("authn_test")` — **NOT registered in `tool/registry.ts`** (inert until wiring step). |
+
+**Tests:** `test/tool/webhook-jwt.test.ts` (20), `test/tool/webhook-token-probe.test.ts` (7), `test/tool/webhook-authn-test.test.ts` (5) — all pass.
+
+**Edge cases handled:** public-endpoint false-positive guard; 3xx login-redirect rejection; bare JWT (no "Bearer " prefix) extraction; alg:none case variants (JWT parsers case-sensitive); transport error propagation; constant-time signature comparison.
+
+**UNVERIFIED:** live-network round-trip (no target endpoint to test against; `ReplaySender` + `Tool.define.execute` verified only with mock `HttpSender`).
+
+### ssrf_test — BUILT & VERIFIED (24 tests / 143 assertions)
+
+Native SSRF testing for query-parameter vectors. Fires internal targets at a URL-bearing parameter, classifies each response with an oracle, and flags targets showing internal-resource evidence the benign baseline did not.
+
+| File | Lines | What it does |
+|------|-------|-------------|
+| `src/tool/webhook/ssrf/payloads.ts` | 137 | `SsrfPayloads` — 6 categories (~28 targets): localhost (5), cloud_metadata (7: AWS/GCP/Azure/DO/Oracle/Alibaba with required headers), internal_range (4), ip_bypass (6: decimal/hex/octal/IPv6-mapped), protocol (5: file/gopher/dict/ftp), dns_bypass (4: nip.io/@-confusion). `SsrfPayloads.select({categories, providers, limit})` for tech-aware filtering. |
+| `src/tool/webhook/ssrf/oracle.ts` | 75 | `SsrfOracle.assess(body)` → `SsrfFinding`. Cloud metadata: per-provider AND-combined markers (AccessKeyId+SecretAccessKey for AWS; access_token+Bearer for GCP; vmId+subscriptionId for Azure). Internal service banners (redis/ssh/memcached/elasticsearch). File read (/etc/passwd, win.ini). False-positive guards: single token in prose NOT flagged. |
+| `src/tool/webhook/ssrf/probe.ts` | 108 | `SsrfProbe.run()` — `detectUrlParams` auto-detects sink params (url/redirect/callback/webhook/…). Baseline comparison: only flags targets showing internal evidence the benign baseline did NOT. Per-target error capture (no throw). Informational required-header surfacing for metadata targets. |
+| `src/tool/webhook/ssrf/ssrf-test.ts` | 80 | `SsrfTest.run` orchestrator: auto-detect sink param → select targets → probe. `SsrfTestTool = Tool.define("ssrf_test")` — **NOT registered in `tool/registry.ts`** (inert). |
+
+**Tests:** `test/tool/webhook-ssrf.test.ts` (16), `test/tool/webhook-ssrf-probe.test.ts` (8) — all pass.
+
+**Edge cases handled:** baseline-diff guard (always-noisy server → no false hit); transport error per-target (no throw); metadata required-header informational; no-URL-param error; explicit param + provider filtering; double-encoding note for protocol-smuggling payloads.
+
+**UNVERIFIED:** live-network round-trip (same as authn_test); blind/OOB SSRF (response-content oracle only; needs ssrf_listener callback domain — out of scope); body/header SSRF vectors (query-param focus).
+
+### Dedup refactor (proactive, not deferred)
+
+`resolveCapturedRequest` was extracted from authn_test's inline implementation to `webhook/resolve.ts` BEFORE ssrf_test duplicated it. Both tools import from the shared location. Future tools (business_test, etc.) reuse it.
+
+### What's still NOT done in P1
+
+| Item | Status | Depends on |
+|------|--------|-----------|
+| `business_test` (race/boundary/workflow-skip/price-tamper) | Not started | Next genuine-gap tool; replaces Python `race_tester` |
+| `misconfig_test` active-probe (backup-file/admin-path/HTTP-method wordlists) | Not started | Sends via http_replay; fabric auto-classifies |
+| Tool registry wiring (`tool/registry.ts`) | Not started | Register authn_test + ssrf_test (+ future); currently inert |
+| Agent permission wiring (`agent/agent.ts`) | Not started | Scope tools per specialist per §04 |
+| WSTG-aligned specialist agent prompts | Not started | The biggest genuine gap — thin prompts in `agent/prompt/vuln/` |
+| Orchestrator consuming the fabric | Not started | Route `new_signal` retests + signals context to owning specialist |
+| `inject_probe` → canary registration | Deferred (risk) | Thread marker through per-probe send functions; needs live target |
+| Python `attack_script` retirement | Blocked on tool wiring | jwt_tamper, ssrf_listener, race_tester — after native tools wired live |
