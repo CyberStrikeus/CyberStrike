@@ -74,7 +74,7 @@ export const WSTG_COVERAGE: WstgCoverage[] = [
   { id: "WSTG-INPV-01", title: "Testing for Reflected Cross Site Scripting", agent: "proxy-tester-injection", status: "covered", mechanism: "inject_probe xss mode" },
   { id: "WSTG-INPV-02", title: "Testing for Stored Cross Site Scripting", agent: "proxy-tester-injection", status: "partial", mechanism: "inject_probe xss + canary registry (stored reflection deferred)" },
   { id: "WSTG-INPV-03", title: "Testing for HTTP Verb Tampering", agent: "proxy-tester-misconfig", status: "covered", mechanism: "misconfig_test methods mode" },
-  { id: "WSTG-INPV-04", title: "Testing for HTTP Parameter Pollution", agent: "proxy-tester-injection", status: "covered", mechanism: "inject_probe hpp mode" },
+  { id: "WSTG-INPV-04", title: "Testing for HTTP Parameter Pollution", agent: "proxy-tester-injection", status: "partial", mechanism: "http_replay manual duplicate-param testing (inject_probe HPP mode not yet built)" },
   { id: "WSTG-INPV-05", title: "Testing for SQL Injection", agent: "proxy-tester-injection", status: "covered", mechanism: "inject_probe sqli mode (per-DBMS batteries)" },
   { id: "WSTG-INPV-06", title: "Testing for LDAP Injection", agent: "proxy-tester-injection", status: "covered", mechanism: "inject_probe ldap mode" },
   { id: "WSTG-INPV-07", title: "Testing for XML Injection", agent: "proxy-tester-injection", status: "covered", mechanism: "inject_probe xml mode" },

@@ -117,7 +117,7 @@ describe("WSTG Coverage Map — coverage statistics", () => {
   }
 
   test("covered count", () => {
-    expect(countByStatus("covered")).toBe(72)
+    expect(countByStatus("covered")).toBe(71)
   })
 
   test("passive count", () => {
@@ -129,7 +129,7 @@ describe("WSTG Coverage Map — coverage statistics", () => {
   })
 
   test("partial count", () => {
-    expect(countByStatus("partial")).toBe(2)
+    expect(countByStatus("partial")).toBe(3)
   })
 
   test("all statuses sum to 97", () => {
