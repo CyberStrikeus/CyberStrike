@@ -23,17 +23,36 @@ Test for authentication bypass, session management flaws, JWT vulnerabilities, p
 
 ## Available Tools
 
-### Testing Tools
+### Primary — Smart Tool
+- **authn_test** - One-call JWT attack tool. Give it a captured request_id; it extracts the Bearer token, analyses it (alg, claims, kid/jku), cracks weak secrets, mints forged candidates (alg:none, role/id escalation, RS256→HS256 confusion if public_key provided, weak-secret resign), and SENDS each at the endpoint with a no-token negative control. Returns which forgeries the server ACCEPTS. Use this FIRST for any JWT-protected endpoint — it replaces the manual decode→forge→replay loop.
+
+### Manual / Follow-up
 - **web_get_session_context** - Query discovered credentials, roles, and session tokens
 - **report_vulnerability** - Report confirmed vulnerabilities
-- **http_replay** - PRIMARY way to send test requests: replay a captured request with field mutations (credential swap, auth removal, token replay). Payloads travel as data, no shell escaping needed.
+- **http_replay** - Replay a captured request with field mutations (credential swap, auth removal, token replay). Use for manual follow-up after authn_test, or for non-JWT auth testing (session cookies, API keys, Basic auth).
 - **http_replay_raw** - Byte-exact send for malformed tokens, smuggling, or edge cases http_replay would normalize.
-- **attack_script jwt_tamper** - Crypto operations on JWTs: alg=none, HMAC/RSA confusion, key brute-force. Use this to GENERATE tampered tokens, then send them via http_replay.
+- **attack_script jwt_tamper** - Legacy fallback for JWT crypto. authn_test now handles the same operations natively and also probes acceptance. Use jwt_tamper only if authn_test lacks a specific operation you need.
 - **web_update_credential** - Manually update a credential's auth headers.
 
 ## Sending Test Requests
 
-Use **http_replay** with the captured request_id. The engine handles auth automatically:
+### JWT-protected endpoints — use authn_test FIRST
+
+```
+# One call: analyse + forge + probe acceptance on a JWT-protected endpoint
+authn_test(request_id: "req_abc123")
+
+# If you have the server's RSA public key, test RS256→HS256 confusion too
+authn_test(request_id: "req_abc123", public_key: "-----BEGIN PUBLIC KEY-----\n...")
+```
+
+authn_test handles: alg:none forging, weak-secret cracking (rockyou-subset), RS256→HS256
+confusion, role/id claim escalation, negative control (no-token baseline). It returns
+which forgeries the server ACCEPTS vs REJECTS. Use its output to decide what to report.
+
+### Manual follow-up with http_replay
+
+Use http_replay for non-JWT auth, credential-swap testing, or confirming authn_test leads:
 
 ```
 # Swap to a different credential (strips old auth, injects new)
@@ -54,7 +73,7 @@ http_replay(request_id, credential: "cred_user_a", sweep: {
   values: ["1", "2", "3", "999"]
 })
 
-# Manual header manipulation when needed
+# Manual header manipulation for custom token tampering
 http_replay(request_id, mutations: [
   {op: "set-header", name: "Authorization", value: "Bearer <tampered_token>"}
 ])
@@ -65,9 +84,6 @@ http_replay(request_id, mutations: [
   {op: "body-set-field", name: "is_superuser", value: "true"}
 ])
 ```
-
-For JWT crypto attacks (alg=none, key confusion), use `attack_script jwt_tamper` to generate
-the tampered token, then send it via http_replay with `set-header`.
 
 ## Testing Process
 
@@ -156,72 +172,36 @@ Test registration with:
 
 If JWT token available in session context:
 
-**1. Algorithm Confusion (alg: none):**
-```javascript
-// Decode JWT, change alg to "none", remove signature
-{
-  "alg": "none",
-  "typ": "JWT"
-}
-// Send with empty signature
+**Step 1 — Run authn_test:** Call `authn_test(request_id: "<captured_request>")`. This
+automatically decodes the token, cracks weak secrets, forges all standard candidates
+(alg:none, role/id escalation, weak-secret resign), sends each at the endpoint, and
+reports which the server ACCEPTS. If you have the RSA public key, pass `public_key` too
+for RS256→HS256 confusion.
+
+**Step 2 — Interpret results:**
+- `acceptedCandidates` non-empty → forged tokens accepted, high/critical finding
+- `weakSecret` non-null → signing secret cracked, critical even if no candidate accepted yet
+- `analysis.risks` → flags kid/jku injection surfaces, missing exp, etc.
+
+**Step 3 — Manual follow-up** for cases authn_test doesn't cover:
+
+**KID (Key ID) Injection** (if `analysis.risks` mentions kid):
+```
+http_replay(request_id, mutations: [
+  {op: "set-header", name: "Authorization", value: "Bearer <token-with-kid=../../dev/null>"}
+])
 ```
 
-**2. Algorithm Confusion (RS256 to HS256):**
+**Expiration bypass** (manual check — modify exp and re-sign with cracked secret):
 ```
-// If using RS256 (asymmetric), try forcing HS256 (symmetric)
-// Use public key as HMAC secret
+# If weakSecret was found, forge a token with exp far in the future
+# and send via http_replay
 ```
-
-**3. Weak Secret Brute Force:**
-```
-// Test common secrets:
-- "secret"
-- "password"
-- "jwt_secret"
-- Application name
-```
-
-**4. Claim Manipulation:**
-```javascript
-// Modify claims and re-sign:
-{
-  "sub": "user123",
-  "role": "admin",  // Changed from "user"
-  "is_admin": true  // Added
-}
-```
-
-**5. Expiration Bypass:**
-```javascript
-// Modify exp claim to far future
-{
-  "exp": 9999999999
-}
-```
-
-**6. KID (Key ID) Injection:**
-```javascript
-// If JWT has kid header:
-{
-  "kid": "../../dev/null"
-}
-{
-  "kid": "http://attacker.com/key"
-}
-```
-
-**Testing approach:**
-1. Decode JWT from session context
-2. Test algorithm confusion attacks
-3. Test claim manipulation
-4. Check for weak signatures
-5. Test expiration handling
-6. Test key injection if kid present
 
 **Report if:**
-- Algorithm can be changed to "none"
-- Claims modifiable without detection
-- Weak secret discovered
+- authn_test shows accepted forged tokens (alg:none, confusion, weak-secret)
+- Weak secret discovered (even without accepted forgery — information disclosure)
+- kid/jku injection surfaces identified
 - Expired tokens still accepted
 
 #### C. Session Management Testing
