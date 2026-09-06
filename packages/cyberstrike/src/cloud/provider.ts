@@ -1,28 +1,17 @@
 import type { CloudAnalysis } from "./types"
 import type { ClassifiedGroup } from "./classify"
 
-export type PermissionAction = "ask" | "allow" | "deny"
-export type PermissionRule = PermissionAction | Record<string, PermissionAction>
-
-export interface AgentSpec {
-  name: string
-  role: "analyst" | "batch-verifier" | "verifier" | "followup" | "orchestrator" | "specialist" | "analyzer" | "support"
-  group?: string
-  description: string
-  steps: number
-  color: string
-  prompt: string
-  skills: string[]
-  permissions: Record<string, PermissionRule>
-  hidden?: boolean
-  prependRequestContext?: boolean
-  useSmallModel?: boolean
-}
-
-export interface DomainProvider {
-  key: string
-  agentSpecs(): AgentSpec[]
-}
+// The domain-provider contract (agents + permissions) lives in the plugin SDK so
+// installed domain packages and the host share one vocabulary. Re-exported here
+// so existing host imports (`from "./provider"`) keep working unchanged.
+export type {
+  PermissionAction,
+  PermissionRule,
+  AgentSpec,
+  DomainProvider,
+  DomainProviderFactory,
+} from "@cyberstrike-io/plugin"
+import type { DomainProvider } from "@cyberstrike-io/plugin"
 
 export interface AssessmentProvider extends DomainProvider {
   groups(): CloudAnalysis.GroupDef[]

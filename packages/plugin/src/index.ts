@@ -14,8 +14,10 @@ import type {
 
 import type { BunShell } from "./shell"
 import { type ToolDefinition } from "./tool"
+import { type DomainProviderFactory } from "./provider"
 
 export * from "./tool"
+export * from "./provider"
 
 export type ProviderContext = {
   source: "env" | "config" | "custom" | "api"
@@ -150,6 +152,16 @@ export interface Hooks {
   config?: (input: Config) => Promise<void>
   tool?: {
     [key: string]: ToolDefinition
+  }
+  /**
+   * Contribute one or more security domains (agents + sub-agents). Keyed by a
+   * stable domain key (e.g. "aws"); the value is a factory that yields the
+   * domain's provider. The host registers each into its provider registry, so an
+   * installed package's agents appear automatically. Same shape as `tool`, but
+   * for a whole domain.
+   */
+  provider?: {
+    [domainKey: string]: DomainProviderFactory
   }
   auth?: AuthHook
   /**

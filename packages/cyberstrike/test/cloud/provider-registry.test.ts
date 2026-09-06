@@ -78,4 +78,21 @@ describe("ProviderRegistry", () => {
     const names = specs.map((s) => s.name)
     expect(new Set(names).size).toBe(names.length)
   })
+
+  test("a plugin-style provider hook registers a domain whose agents then appear", async () => {
+    // Simulates what plugin/index.ts does when it loads an installed package that
+    // exports a `provider` hook: it calls registerProvider(key, factory). After
+    // that, the domain's agents are collected exactly like the built-ins.
+    const hookProvider = { aws: () => fakeProvider("aws", ["aws-orchestrator", "aws-iam", "aws-s3"]) }
+    for (const [key, factory] of Object.entries(hookProvider)) registerProvider(key, factory)
+
+    expect(registeredDomains()).toContain("aws")
+    const { specs } = await collectAgentSpecs()
+    expect(specs.some((s) => s.name === "aws-orchestrator")).toBe(true)
+    expect(specs.some((s) => s.name === "aws-iam")).toBe(true)
+    expect(specs.filter((s) => s.name.startsWith("aws-")).length).toBe(3)
+
+    // cleanup
+    registerProvider("aws", () => fakeProvider("aws", []))
+  })
 })

@@ -5,13 +5,11 @@
 // will register through the SDK `provider` hook (Phase 1b). agent.ts resolves the
 // registry instead of hardcoding `new AzureProvider()` / `WebProvider.create()`,
 // so a new domain is added by REGISTERING, never by editing the agent loader.
-import type { DomainProvider, AgentSpec } from "./provider"
+import type { DomainProvider, AgentSpec, DomainProviderFactory } from "./provider"
 import { AzureProvider } from "./provider-azure"
 import { WebProvider } from "./provider-web"
 
-// A factory yields a provider instance. It may be async (WebProvider.create loads
-// skills) or sync (new AzureProvider) — resolveProviders awaits either.
-export type DomainProviderFactory = () => DomainProvider | Promise<DomainProvider>
+export type { DomainProviderFactory }
 
 const factories = new Map<string, DomainProviderFactory>()
 

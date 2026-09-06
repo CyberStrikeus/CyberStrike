@@ -13,6 +13,7 @@ import { NamedError } from "@cyberstrike-io/util/error"
 import { CopilotAuthPlugin } from "./copilot"
 import { AnthropicAuthPlugin } from "./anthropic"
 import { gitlabAuthPlugin as GitlabAuthPlugin } from "@gitlab/opencode-gitlab-auth"
+import { registerProvider } from "../cloud/provider-registry"
 
 export namespace Plugin {
   const log = Log.create({ service: "plugin" })
@@ -98,6 +99,17 @@ export namespace Plugin {
       }
     }
 
+    // Register any domain providers a plugin contributed via its `provider` hook,
+    // so an installed domain package (e.g. @cyberstrike/aws) shows up in the agent
+    // registry. Registration is a side-effect of loading; the agent registry
+    // (built lazily, or after restart) then collects them alongside the built-ins.
+    for (const hook of hooks) {
+      for (const [key, factory] of Object.entries(hook.provider ?? {})) {
+        log.info("registering domain provider from plugin", { domain: key })
+        registerProvider(key, factory)
+      }
+    }
+
     return {
       hooks,
       input,
@@ -105,7 +117,7 @@ export namespace Plugin {
   })
 
   export async function trigger<
-    Name extends Exclude<keyof Required<Hooks>, "auth" | "event" | "tool">,
+    Name extends Exclude<keyof Required<Hooks>, "auth" | "event" | "tool" | "provider">,
     Input = Parameters<Required<Hooks>[Name]>[0],
     Output = Parameters<Required<Hooks>[Name]>[1],
   >(name: Name, input: Input, output: Output): Promise<Output> {
