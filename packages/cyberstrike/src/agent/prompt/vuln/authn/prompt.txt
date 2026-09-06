@@ -31,7 +31,7 @@ Test for authentication bypass, session management flaws, JWT vulnerabilities, p
 - **report_vulnerability** - Report confirmed vulnerabilities
 - **http_replay** - Replay a captured request with field mutations (credential swap, auth removal, token replay). Use for manual follow-up after authn_test, or for non-JWT auth testing (session cookies, API keys, Basic auth).
 - **http_replay_raw** - Byte-exact send for malformed tokens, smuggling, or edge cases http_replay would normalize.
-- **attack_script jwt_tamper** - Legacy fallback for JWT crypto. authn_test now handles the same operations natively and also probes acceptance. Use jwt_tamper only if authn_test lacks a specific operation you need.
+- **authn_test** - Native JWT attack engine: analyse → forge (alg:none, RS256→HS256, weak-secret crack, role/ID escalation) → probe acceptance in ONE call. Always prefer this over any script-based approach.
 - **web_update_credential** - Manually update a credential's auth headers.
 
 ## Sending Test Requests

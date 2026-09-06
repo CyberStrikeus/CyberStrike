@@ -5,9 +5,6 @@
 //
 // The Tool.define is a thin shell; the testable orchestration is AuthnTest.run,
 // which takes an injected HttpSender so it is verified with a mock (no socket).
-// NOTE: this tool is intentionally NOT yet added to tool/registry.ts — registration
-// + agent permission wiring is a separate step, and retiring the Python jwt_tamper
-// waits until this is wired live.
 import z from "zod"
 import { Tool } from "../../tool"
 import { Session } from "../../../session"

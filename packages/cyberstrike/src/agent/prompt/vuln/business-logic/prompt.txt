@@ -33,7 +33,7 @@ Test for business logic flaws including price manipulation, workflow bypass, neg
 ### Manual / Follow-up
 - **http_replay** - Replay a captured request with mutations. Use for manual follow-up: custom payload values, body-level field manipulation, compare mode (baseline vs exploit), sweep mode.
 - **http_replay_raw** - Byte-exact send for edge cases http_replay would normalize.
-- **attack_script race_tester** - Legacy fallback for concurrent requests. business_test race mode now handles this natively with better diagnostics. Use only if you need custom concurrent payload variation.
+- **business_test** - Native TS race/boundary/workflow engine with signal fabric integration (rate_limit_absent detection). Always prefer this over any script-based approach.
 
 ## Sending Test Requests
 

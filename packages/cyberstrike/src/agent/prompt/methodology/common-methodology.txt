@@ -44,19 +44,19 @@ Use `ensure_tools` ONLY when the user has explicitly requested active security t
 
 Use **http_replay** to send attack/modified requests — it replays captured requests
 with field mutations, carrying payloads as data (no shell escaping). For specialized
-cases (JWT crypto, race conditions, file uploads, SSRF callbacks), use `attack_script`.
+cases (file uploads, SSRF callbacks, recon), use `attack_script`. JWT attacks → authn_test. Race conditions → business_test race mode.
 
 ### Attack Scripts
 
 Use `attack_script` for specialized capabilities beyond http_replay:
-- `jwt_tamper` — JWT token crypto attacks (alg=none, key confusion)
 - `ssrf_listener` — SSRF callback server for OOB evidence
-- `race_tester` — Race conditions (async concurrency)
 - `file_upload_tester` — Upload bypass with binary polyglots
 - `cloud_storage_enum` — Bucket enumeration
 - `subdomain_takeover` — Dangling DNS
 - `github_dorker` — Secret detection
 - `wayback_endpoints` — Historical endpoints
+
+JWT attacks are handled by `authn_test` (native TS). Race conditions are handled by `business_test` race mode (native TS + signal fabric).
 
 ### Phase Awareness
 
