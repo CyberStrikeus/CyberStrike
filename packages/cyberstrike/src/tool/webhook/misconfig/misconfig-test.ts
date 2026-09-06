@@ -6,7 +6,6 @@
 // generates the traffic.
 //
 // Tool.define is a thin shell; MisconfigTest.run is the testable core.
-// NOT registered in tool/registry.ts.
 import z from "zod"
 import { Tool } from "../../tool"
 import { Session } from "../../../session"
