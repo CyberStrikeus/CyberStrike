@@ -74,32 +74,7 @@ When selecting which testing agents to launch, you have access to these speciali
 
 Review each agent's description to understand when it should be used:
 
-### Architecture Analysis
-- **hunt-analyzer**: Analyzes HTTP request/response pairs to extract application architecture information: objects (data entities), roles (user types), functions (endpoint purposes), object values (IDs for IDOR testing), and credential claims (JWT/token analysis). Writes directly to session tables for context accumulation.
-
-### Vulnerability Testing Agents
-
-- **hunt-idor**: Tests IDOR vulnerabilities by manipulating object IDs in paths, queries, and bodies. Effective when: (1) request contains numeric/UUID identifiers, OR (2) session has multiple credentials with cross-user object values, OR (3) endpoint operates on user-specific resources. Can test with single credential using ID manipulation (sequential, negative, admin IDs). A submitted user/account/owner id the server trusts to choose whose session/record applies — DISTINCT from the credential being authenticated (e.g. a `user_id` sent alongside a password, not the username itself) — satisfies (1) even on a login/auth endpoint: an endpoint can be both a login step AND an IDOR sink, so dispatch idor alongside authn. (A plain username+password login with no such separate id does not qualify.)
-
-- **hunt-authz**: Tests authorization bypass and broken access control vulnerabilities using discovered roles and credentials. Effective when: (1) session has multiple credentials with different privilege levels, OR (2) endpoint appears to require authentication/authorization, OR (3) path indicates protected functionality. Tests vertical/horizontal privilege escalation, authentication bypass, and method/path-based access control flaws.
-
-- **hunt-mass-assignment**: Tests mass assignment vulnerabilities by injecting additional fields that shouldn't be user-controllable. Effective when: (1) endpoint accepts POST/PUT/PATCH requests with body, AND (2) session has discovered objects with sensitive fields (role, price, is_admin, etc.). Tests admin/role escalation, status manipulation, financial field injection, and ownership bypass.
-
-- **hunt-injection**: Tests all injection types (SQLi, NoSQLi, XSS, SSTI, XXE, Command, LDAP). Effective when: request accepts user input in query params, body fields, or headers. Prioritizes testing based on input context (DB queries→SQLi, search→XSS, XML→XXE, templates→SSTI). Works on any endpoint with injectable parameters.
-
-- **hunt-authn**: Tests authentication bypass, session attacks, JWT flaws, password reset vulnerabilities, and credential stuffing. Effective when: endpoint performs authentication (login, SSO, MFA), manages sessions (logout, refresh), or handles credentials (registration, password reset). Can analyze JWT tokens from session context and test authentication on any protected endpoint.
-
-- **hunt-business-logic**: Tests business logic flaws: price manipulation, workflow bypass, negative values, integer overflow, rate limit abuse. Effective when: endpoint involves transactions, financial operations, multi-step workflows, or quantity-based logic. Uses session context to understand workflow sequences and identify bypass opportunities.
-
-- **hunt-ssrf**: Tests Server-Side Request Forgery by exploiting URL parameters to access internal networks, cloud metadata endpoints, and sensitive resources. Effective when: endpoint accepts URL/URI parameters (url, link, webhook, callback, redirect) or processes external resources. Tests internal IP ranges, localhost, cloud metadata (169.254.169.254), and protocol smuggling.
-
-- **hunt-file-attacks**: Tests file upload vulnerabilities, path traversal, and file inclusion attacks. Effective when: endpoint accepts file uploads (multipart/form-data), has file path parameters, or processes user-supplied filenames. Tests malicious file types (webshell, XSS via SVG), path traversal (../../etc/passwd), XXE via file upload, and zip slip.
-
-- **hunt-llm**: Tests the LLM/AI layer (OWASP LLM Top 10) — prompt injection, jailbreaks, encoding/evasion bypass, system-prompt leakage, improper output handling, sensitive-data disclosure, excessive agency. Effective when: the endpoint is an LLM chat/completions API — body carries a `messages[]`/`prompt`/`input` field feeding a model, the path looks like `/chat`, `/completions`, `/v1/chat/completions`, `/generate`, `/ask`, or the response is model-generated natural-language text. Driven by the `llmhook` scanner against the captured endpoint. Do NOT dispatch for endpoints that are not LLM-backed.
-
-- **hunt-misconfig**: Tests server and application misconfigurations: exposed backup/admin/sensitive files, insecure HTTP methods (TRACE/PUT/DELETE), CORS misconfigurations, missing security headers. Uses `misconfig_test` smart tool (paths/methods/cors modes). Effective when: first time testing this origin — runs once per origin as a wide-scope scan. Covers WSTG-CONF (01-11), WSTG-CRYP-01, WSTG-CLNT-07 (CORS), WSTG-CLNT-09 (clickjacking).
-
-- **hunt-recon**: Discovers application metadata, technology fingerprints, and information leakage. Uses `recon_test` smart tool (metafiles/fingerprint/leakage modes). Effective when: first time testing this origin — parses robots.txt/sitemap.xml/openapi.json for hidden paths, fingerprints tech stack (WordPress, Django, Spring Boot, etc.), scans response bodies for internal IPs, debug flags, TODO/FIXME comments, version strings, email addresses. Covers WSTG-INFO (02/03/05/08). Runs once per origin alongside misconfig.
+{{AGENT_ROSTER}}
 
 ## How SubAgents Receive Data
 

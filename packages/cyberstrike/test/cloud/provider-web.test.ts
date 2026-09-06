@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test"
-import { WebProvider, buildClassAgentMap, renderSignalRoutingTable, SIGNAL_ROUTING_PLACEHOLDER } from "../../src/cloud/provider-web"
+import { WebProvider, buildClassAgentMap, renderSignalRoutingTable, renderRoster, SIGNAL_ROUTING_PLACEHOLDER, AGENT_ROSTER_PLACEHOLDER } from "../../src/cloud/provider-web"
 import { SignalRouter } from "../../src/session/web/signal/router"
 import type { SpecialistClass } from "../../src/session/web/signal/types"
 import { TESTER_VRT_SCOPE, testerClass } from "../../src/tool/vuln-scope"
@@ -256,6 +256,45 @@ describe("orchestrator signal-routing table (rendered from code)", () => {
     // The prompt-composition guard is exercised via WebProvider.create() above;
     // here we assert the placeholder constant is what the .txt is expected to carry.
     expect(SIGNAL_ROUTING_PLACEHOLDER).toBe("{{SIGNAL_ROUTING_TABLE}}")
+  })
+})
+
+describe("orchestrator agent roster (rendered from code)", () => {
+  test("renderRoster lists analyzer + every specialist from their own description", async () => {
+    const provider = await WebProvider.create()
+    const specs = provider.agentSpecs()
+    const roster = renderRoster(specs)
+
+    expect(roster).toContain("### Architecture Analysis")
+    expect(roster).toContain("### Vulnerability Testing Agents")
+
+    // Every analyzer + specialist appears with its exact description; orchestrator excluded.
+    for (const s of specs) {
+      if (s.role === "analyzer" || s.role === "specialist") {
+        expect(roster).toContain(`- **${s.name}**: ${s.description}`)
+      }
+    }
+    expect(roster).not.toContain("- **hunt-agent**:")
+  })
+
+  test("composed orchestrator prompt has the roster injected, no placeholder left", async () => {
+    const provider = await WebProvider.create()
+    const orch = provider.agentSpecs().find((s) => s.name === "hunt-agent")!
+    expect(orch.prompt).not.toContain(AGENT_ROSTER_PLACEHOLDER)
+    expect(orch.prompt).toContain("### Architecture Analysis")
+    expect(orch.prompt).toContain("- **hunt-idor**:")
+    expect(orch.prompt).toContain("- **hunt-recon**:")
+  })
+
+  test("roster entry text equals each agent's spec.description (single source)", async () => {
+    // The orchestrator's roster line for an agent is exactly that agent's own
+    // description — no second hand-maintained copy that could drift.
+    const provider = await WebProvider.create()
+    const orch = provider.agentSpecs().find((s) => s.name === "hunt-agent")!
+    for (const s of provider.agentSpecs()) {
+      if (s.role !== "specialist") continue
+      expect(orch.prompt).toContain(`- **${s.name}**: ${s.description}`)
+    }
   })
 })
 

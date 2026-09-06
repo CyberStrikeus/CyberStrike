@@ -179,6 +179,29 @@ export function buildClassAgentMap(defs: ReadonlyArray<{ name: string; specialis
 // prose drift). create() throws if the orchestrator prompt lost this token.
 export const SIGNAL_ROUTING_PLACEHOLDER = "{{SIGNAL_ROUTING_TABLE}}"
 
+// Placeholder for the roster of dispatchable subagents. Rendered from each agent's
+// own description (its single source), grouped by role, so adding/removing a
+// sub-agent updates the orchestrator's roster automatically instead of drifting.
+export const AGENT_ROSTER_PLACEHOLDER = "{{AGENT_ROSTER}}"
+
+/**
+ * Render the orchestrator's roster of dispatchable subagents FROM the specs —
+ * the analyzer under "Architecture Analysis", the specialists under "Vulnerability
+ * Testing Agents". Each entry is the agent's own `description` (single source; the
+ * orchestrator no longer keeps a hand-maintained copy). The orchestrator itself
+ * and any hidden non-roster roles are excluded.
+ */
+export function renderRoster(specs: ReadonlyArray<{ name: string; role: AgentSpec["role"]; description: string }>): string {
+  const analyzers = specs.filter((s) => s.role === "analyzer")
+  const specialists = specs.filter((s) => s.role === "specialist")
+  const entry = (s: { name: string; description: string }) => `- **${s.name}**: ${s.description}`
+  const lines: string[] = ["### Architecture Analysis"]
+  for (const s of analyzers) lines.push(entry(s))
+  lines.push("", "### Vulnerability Testing Agents", "")
+  lines.push(specialists.map(entry).join("\n\n"))
+  return lines.join("\n")
+}
+
 /**
  * Render the new_signal retest routing table (SpecialistClass → agent) for the
  * orchestrator prompt, FROM the code map — not hand-written prose. Only classes a
@@ -203,18 +226,17 @@ export function renderSignalRoutingTable(
 }
 
 /**
- * Replace the routing-table placeholder in the orchestrator prompt with the
- * rendered table. Throws if the placeholder is missing — a prompt edit that drops
- * it would silently ship an orchestrator with no retest routing, so we fail loud.
+ * Replace one placeholder token in the orchestrator prompt. Throws if the token is
+ * missing — a prompt edit that drops it would silently ship an orchestrator with a
+ * missing section (no retest routing, no roster), so we fail loud at assembly.
  */
-function injectRoutingTable(agentName: string, prompt: string, table: string): string {
-  if (!prompt.includes(SIGNAL_ROUTING_PLACEHOLDER)) {
+function injectPlaceholder(agentName: string, prompt: string, token: string, value: string): string {
+  if (!prompt.includes(token)) {
     throw new Error(
-      `WebProvider: orchestrator "${agentName}" prompt is missing the ${SIGNAL_ROUTING_PLACEHOLDER} placeholder — ` +
-        `the signal-routing table cannot be injected.`,
+      `WebProvider: orchestrator "${agentName}" prompt is missing the ${token} placeholder — cannot compose it from code.`,
     )
   }
-  return prompt.replace(SIGNAL_ROUTING_PLACEHOLDER, table)
+  return prompt.replace(token, value)
 }
 
 /**
@@ -254,13 +276,27 @@ export class WebProvider implements DomainProvider {
     const classAgent = buildClassAgentMap(defs)
     assertSignalCoverage(classAgent, router)
     const routingTable = renderSignalRoutingTable(classAgent, router)
-    const specs = defs.map((d) => ({
+
+    // Normalize descriptions first: spec.description AND the rendered roster both
+    // read the same trimmed one-liner, so they can never disagree.
+    const normalized = defs.map((d) => ({ ...d, description: (d.description.split("\n")[0] ?? d.description).trim() }))
+    const roster = renderRoster(normalized)
+
+    const specs = normalized.map((d) => ({
       name: d.name,
       role: d.role,
-      description: (d.description.split("\n")[0] ?? d.description).trim(),
+      description: d.description,
       steps: d.steps ?? 50,
       color: d.color ?? "cyan",
-      prompt: d.role === "orchestrator" ? injectRoutingTable(d.name, d.prompt, routingTable) : d.prompt,
+      prompt:
+        d.role === "orchestrator"
+          ? injectPlaceholder(
+              d.name,
+              injectPlaceholder(d.name, d.prompt, SIGNAL_ROUTING_PLACEHOLDER, routingTable),
+              AGENT_ROSTER_PLACEHOLDER,
+              roster,
+            )
+          : d.prompt,
       skills: d.skills,
       permissions: d.permissions,
       hidden: d.hidden,
