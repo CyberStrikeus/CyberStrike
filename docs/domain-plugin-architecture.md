@@ -71,6 +71,33 @@ Two models, pick per domain:
 - Contract test over every registered provider: unique agent names across domains (no
   collisions), signal coverage (`assertSignalCoverage`), valid roles.
 
+## Contact surface — every way a domain package can touch the core
+
+A small example only exercises "add a new agent". Big domains (Azure, GCP, Oracle,
+mobile) need more. This is the full map of attachment points, honestly marked, so
+we know what the core contract must expose BEFORE a big domain fits — not after.
+
+| # | Contact point | Mechanism | Status |
+|---|---------------|-----------|--------|
+| C1 | **Add new agents** (main + sub-agents) | `provider` hook → `agentSpecs()` → registry | ✅ DONE, e2e tested (real local plugin) |
+| C2 | **Add new callable tools** | `tool` hook → `ToolRegistry` (`registry.ts:113`); agents allow them by name | ✅ EXISTS (host wiring present) |
+| C3 | **Permission / rule-sets** for its agents | `specsToAgents` merges defaults + spec + user | ✅ works |
+| C4 | **Report / triage integration** — its agents report findings | shared `report_vulnerability` + `vuln-scope` lane taxonomy | ⚠️ PARTIAL — a new domain's vuln classes have NO lane entry, so its agents are unscoped (like llm/misconfig/recon today). Lane taxonomy must accept per-domain classes. |
+| C5 | **Modify an EXISTING agent** (change a built-in agent's prompt/perms/model, extend its tools) | `cfg.agent` config loop (`agent.ts:401`) — config only | ⚠️ config-driven, NOT exposed to a plugin. A package cannot extend hunt-injection's tools or the web orchestrator via the hook. |
+| C6 | **Add a sub-agent INTO an existing agent's structure** (e.g. a new hunt-* under the web orchestrator) | — | ❌ NO mechanism. Agents are a flat, name-keyed set; a collision fails. The orchestrator roster is rendered from ITS OWN provider's specs, so a foreign sub-agent isn't surfaced to it. |
+| C7 | **Change an existing tool's capability** | `tool.definition` hook (edit description/params) exists in SDK | ⚠️ PARTIAL — can reshape a tool's definition, cannot extend its execution logic. |
+| C8 | **Cross-agent / cross-domain communication** (which agent may dispatch/talk to which) | `task` tool resolves ANY registered agent by name (mechanically cross-domain) + orchestrator roster + `vuln-scope` dispatch lanes | ⚠️ PARTIAL — mechanically a web orchestrator CAN `task` an aws agent, but its rendered roster lists only its own domain, so it never knows to. Cross-domain dispatch/chaining is unsurfaced. |
+| C9 | **Signal fabric** (deterministic detectors + routing) | `provider.detectors()/signalRouter()` | ❌ FACADE — `signal/ingest.ts` imports web `DETECTORS`/`SignalRouter` directly; never consumed through the provider (Phase 3). |
+| C10 | **Workflow entry-point** (how its assessment is triggered) | tool-triggered (`azurehook` → `orchestrateLayer2(new AzureProvider())`) or the web ingest route | ❌ NOT pluggable — entry is hardcoded per domain; the `provider` hook carries only `DomainProvider`, not the `AssessmentProvider` orchestrate needs (Phase 4). |
+
+### What a SMALL test package proves vs. what it does NOT
+- **Proves:** C1, C2, C3 — an installed package contributes agents + tools + rules and they appear (registry + health).
+- **Does NOT prove:** C4–C10. A big domain like Azure needs C4 (report lanes for cloud classes), C9 (its own signal detectors), C10 (its assessment workflow driven through the plugin path), and possibly C5/C6/C8 (touching or chaining with existing domains). Passing a small example is necessary but NOT sufficient for "Azure will fit."
+
+### Readiness verdict for a real package
+- **Thin, self-contained domain (agents+tools+rules only):** READY now — this is the (b) test.
+- **Azure / GCP / Oracle (full assessment domains):** NOT ready — blocked on C4 (per-domain lanes), C9 (Phase 3 signal fabric), C10 (Phase 4 pluggable workflow), plus extracting each domain's host-internal machinery (Azure alone: 8 internal deps + its `azurehook` workflow entry).
+
 ## Invariants (do not compromise)
 1. Zero core edits to add a domain — the `provider` hook is the only surface.
 2. A broken/incompatible plugin degrades gracefully (skipped + surfaced), never crashes core.
