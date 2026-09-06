@@ -168,21 +168,21 @@ metadata is lost and no SDK change is needed).
 `AzurehookTool` from built-ins — comes via the package `tool` hook), `cloud/index.ts`
 (drop azure re-exports).
 
-**Move order:** ① scaffold package ✅ ② decouple azurehook → provider-azure ✅ ③ expand
-`cyberstrike/public` with everything the cluster needs from core ✅ (Session, Vulnerability,
-VulnStatus, isActionable/isExcluded added; CORE_API_VERSION → 1.1.0) → **RESUME HERE**
-④ THE MOVE (one atomic commit): relocate the whole cluster into `packages/azure-ent/src`,
-rewire its core imports to `cyberstrike/public`, convert the 3 tools `Tool.define` → SDK
-`tool` hook, register provider + tools from the package's plugin default, and remove azure
-from core (provider-registry built-in; `AzurehookTool`/`GetCloudIntelTool`/`GetCloudGroupsTool`/
-`GetAssessGroupFindingsTool` in tool/registry; azure re-exports in cloud/index) ⑤ migrate
-azure tests into the package ⑥ verify azure runs from the package end-to-end.
+**Move order:** ① scaffold ✅ ② decouple azurehook → provider-azure ✅ ③ expand
+`cyberstrike/public` ✅ ④ THE MOVE ✅ (relocated the cluster to `packages/azure-ent/src`,
+rewired to `cyberstrike/public`, converted the 3 tools to the SDK `tool` hook, removed azure
+from core — registry built-in, 4 tools in tool/registry, cloud/index re-exports; decoupled
+`ClassifiedGroup` into `CloudAnalysis`) ⑤ migrate azure tests → N/A (core had no azure unit
+tests; the registry/health tests were updated to reflect azure-is-a-package) ⑥ verify azure
+runs from the package ✅.
 
-> **Prep (①②③) is DONE and all-green** (2308 pass): the load/register/resolve/health/version
-> infra + package scaffold + the complete `/public` boundary the cluster needs. Step ④ is
-> the single large atomic move — every dependency is now mapped and every core service the
-> cluster needs is on the boundary, so ④ is mechanical relocation + import rewiring, not
-> discovery. It is still big (≈22 files) and best done as one focused, carefully-verified commit.
+> **EXTRACTION COMPLETE.** Azure is no longer in core; it is `@cyberstrike-io-ent/azure`,
+> registering via the plugin `provider` + `tool` hooks and reaching core only through
+> `cyberstrike/public`. End-to-end verified: azure resolves from the package (13 agents,
+> 9 groups, isAssessmentProvider, 4 tools). Core all-green (tsc 0, 2308 pass, 3 pre-existing
+> fails). Remaining for the publish milestone: core ships a built `dist`+`.d.ts` for
+> `cyberstrike/public` (so external `tsc` resolves it — runtime already works), then publish
+> `@cyberstrike-io-ent/azure` to the private registry.
 
 ### Step ① done — scaffold verified at runtime
 `packages/azure-ent` exists: package.json (peerDeps `cyberstrike` + `@cyberstrike-io/plugin`,
