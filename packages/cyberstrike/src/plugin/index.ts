@@ -14,6 +14,7 @@ import { CopilotAuthPlugin } from "./copilot"
 import { AnthropicAuthPlugin } from "./anthropic"
 import { gitlabAuthPlugin as GitlabAuthPlugin } from "@gitlab/opencode-gitlab-auth"
 import { registerProvider } from "../cloud/provider-registry"
+import { buildCoreRuntime } from "../cloud/core-runtime"
 
 export namespace Plugin {
   const log = Log.create({ service: "plugin" })
@@ -44,6 +45,9 @@ export namespace Plugin {
       directory: Instance.directory,
       serverUrl: Server.url(),
       $: Bun.$,
+      // Live core runtime for domain plugins that need it (e.g. @cyberstrike-io/azure)
+      // — injected so they work in the compiled binary without importing the host.
+      core: buildCoreRuntime(),
     }
 
     for (const plugin of INTERNAL_PLUGINS) {

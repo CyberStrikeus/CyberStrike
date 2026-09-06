@@ -32,6 +32,15 @@ export type PluginInput = {
   worktree: string
   serverUrl: URL
   $: BunShell
+  /**
+   * Live core runtime the host injects (registry, orchestration, session/vuln
+   * stores, ...). A domain plugin uses these VALUES instead of importing
+   * `cyberstrike/public`, so it works inside the compiled-binary host on every OS
+   * (in-process reference passing, no module resolution). Its concrete shape is
+   * host-defined: a domain plugin narrows it with
+   * `input.core as import("cyberstrike/public").CoreRuntime`.
+   */
+  core?: unknown
 }
 
 export type Plugin = (input: PluginInput) => Promise<Hooks>

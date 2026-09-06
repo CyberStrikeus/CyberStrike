@@ -16,6 +16,10 @@
 // ── Compatibility boundary — a package pins the core API version it needs ──
 export { CORE_API_VERSION, requireCoreApi, coreApiSatisfies } from "./cloud/core-api"
 
+// ── Injected runtime — a plugin receives these VALUES via `input.core` (works in
+// the compiled binary); it imports only the TYPE here (erased at build time). ──
+export type { CoreRuntime } from "./cloud/core-runtime"
+
 // ── Contract (re-exported from the SDK so a package has one import for both) ──
 export type {
   AgentSpec,
