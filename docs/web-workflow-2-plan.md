@@ -471,6 +471,7 @@ Active misconfiguration probing that generates the traffic the P0 signal fabric 
 | `inject_probe` → signal write-back | **Done** (R4, `6e062e66c4`) | Every probe response flows through `scanProbeResponse()` → 13 passive detectors; triggered SQL errors, path disclosures, server banners auto-surfaced to orchestrator |
 | `inject_probe` → HPP + adaptive back-off | **Done** (R5, `988e1d611f`) | HPP parser-behavior detection (first-wins/last-wins/both); adaptive `BackoffState` (500ms→skip-point→2000ms) preserves send budget on WAF-protected targets |
 | `inject_probe` → unit test coverage | **Done** (R6, `3651f4b82f`) | 268 inject-probe tests (7 new + 13 modernized files), mock `HttpSender`; combined 448 tests 0 failures |
+| `recon_test` smart tool + `proxy-tester-recon` agent | **Done** (`195a29a280`) | 3-mode tool (metafiles/fingerprint/leakage), agent wired with WSTG INFO-02/03/05/08, 26 unit tests |
 | Python `attack_script` retirement | Blocked on live verification | jwt_tamper, ssrf_listener, race_tester — native TS tools built (authn_test, ssrf_test, business_test), but need live-network verification before retiring Python |
 
 ### P3-A — WSTG Coverage Map Assertion — DONE (2026-09-05)
