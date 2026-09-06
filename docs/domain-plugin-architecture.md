@@ -140,6 +140,44 @@ This public surface IS the core side of the version boundary — internal module
 3. `@cyberstrike-io-ent/azure`: peerDep core + SDK; export `provider` + `tool` hooks.
 4. Private org → publish + `.npmrc` + restricted-access CI.
 
+## Azure extraction — staged (in progress)
+
+The azure cluster is large and woven into core, so the move is staged; the tree
+stays green at every step.
+
+**Cluster to move → `packages/azure-ent` (`@cyberstrike-io-ent/azure`):**
+`cloud/provider-azure.ts`, `cloud/groups.ts`, `cloud/classify.ts`, `tool/azurehook/`
+(16 files + `assess/`), `agent/prompt/cloud/*.txt` (4 prompts). Also the two core
+tools that depend on `cloud/groups` — `tool/assess-findings.ts`, `tool/cloud-intel.ts`
+— are azure-coupled and move with the cluster (or `groups` is shared, TBD).
+
+**Stays in core, reached via `cyberstrike/public`:** `Intel`, `triageGuide/triageActions`,
+`orchestrateLayer2`, `CloudAnalysis`, the registry, the version check.
+
+**Core reference points to flip (the atomic cut-over, last):**
+`cloud/provider-registry.ts` (drop the azure built-in), `tool/registry.ts:239` (drop
+`AzurehookTool` from built-ins — comes via the package `tool` hook), `cloud/index.ts`
+(drop azure re-exports).
+
+**Move order:** ① scaffold package ✅ ② move azurehook tool + assess-cache ③ move
+provider-azure + groups + classify + prompts ④ move/settle assess-findings + cloud-intel
+⑤ flip core reference points, remove azure from core ⑥ verify azure runs via the package.
+
+### Step ① done — scaffold verified at runtime
+`packages/azure-ent` exists: package.json (peerDeps `cyberstrike` + `@cyberstrike-io/plugin`,
+`private`), tsconfig, `src/index.ts` (plugin default: `requireCoreApi("1.0.0")` + a
+`provider` hook). Runtime-verified: it resolves `cyberstrike/public`, passes the version
+check, and returns the azure domain hook.
+
+### Packaging finding — core must ship built types for external typecheck
+`cyberstrike`'s `exports` map raw source (`./*: ./src/*.ts`). At RUNTIME bun resolves it
+(including core's `@/` aliases via tsconfig paths) — the scaffold runs. But isolated
+`tsc` of a consumer pulls core's raw source and cannot resolve `@/` aliases or core's own
+strictness. So an external package cannot cleanly typecheck against core today. Fix
+(pre-publish): core exposes a **built dist + `.d.ts`** entry for `cyberstrike/public`
+(a `types`/`exports` to dist), not raw src. Runtime already works; this is a build-config
+task for the publish milestone.
+
 ## Invariants (do not compromise)
 1. Zero core edits to add a domain — the `provider` hook is the only surface.
 2. A broken/incompatible plugin degrades gracefully (skipped + surfaced), never crashes core.

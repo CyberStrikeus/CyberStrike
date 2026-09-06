@@ -1,0 +1,24 @@
+{
+  "name": "@cyberstrike-io-ent/azure",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "description": "CyberStrike Azure cloud assessment domain (paid). Installs as a plugin: npm install @cyberstrike-io-ent/azure",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@cyberstrike-io/plugin": "workspace:*",
+    "cyberstrike": "workspace:*"
+  },
+  "devDependencies": {
+    "@cyberstrike-io/plugin": "workspace:*",
+    "cyberstrike": "workspace:*",
+    "@tsconfig/node22": "catalog:",
+    "typescript": "catalog:"
+  }
+}
