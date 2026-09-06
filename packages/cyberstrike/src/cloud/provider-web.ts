@@ -1,5 +1,5 @@
 import type { DomainProvider, AgentSpec, PermissionAction, PermissionRule } from "./provider"
-import type { Detector } from "../session/web/signal/types"
+import type { Detector, SpecialistClass } from "../session/web/signal/types"
 import { DETECTORS } from "../session/web/signal/detectors"
 import { SignalRouter } from "../session/web/signal/router"
 import { Skill } from "../skill"
@@ -142,18 +142,72 @@ function mergePermissions(base: Record<string, PermissionRule>, extra: Record<st
   return result
 }
 
-type SpecDef = Omit<AgentSpec, "steps" | "color" | "group"> & { steps?: number; color?: string }
+// A specialist def may declare the signal-fabric SpecialistClass it OWNS — the
+// class the signal router routes to (`open_redirect` → `access-control`). This is
+// the single code bridge between the signal fabric's class taxonomy and the agent
+// names; the orchestrator's routing table is rendered FROM it, never hand-kept.
+type SpecDef = Omit<AgentSpec, "steps" | "color" | "group"> & {
+  steps?: number
+  color?: string
+  specialistClass?: SpecialistClass
+}
+
+/**
+ * Build the SpecialistClass → agent-name map from the specs. This is the ONLY
+ * source of truth for "which agent confirms a given signal class". Throws if two
+ * agents claim the same class (an ambiguous owner is a config bug, not a runtime
+ * guess). Pure — testable without async skill loading.
+ */
+export function buildClassAgentMap(defs: ReadonlyArray<{ name: string; specialistClass?: SpecialistClass }>): Map<SpecialistClass, string> {
+  const map = new Map<SpecialistClass, string>()
+  for (const d of defs) {
+    if (!d.specialistClass) continue
+    const existing = map.get(d.specialistClass)
+    if (existing) {
+      throw new Error(
+        `WebProvider: SpecialistClass "${d.specialistClass}" is claimed by both "${existing}" and "${d.name}" — exactly one agent may own a class.`,
+      )
+    }
+    map.set(d.specialistClass, d.name)
+  }
+  return map
+}
+
+/**
+ * Assert every class the signal router can route to has an owning agent. A signal
+ * whose owner class resolves to no agent would enqueue a retest nobody can run —
+ * so the plugin refuses to assemble rather than silently drop leads. This is the
+ * fail-fast that closes the old drift: rename/remove an owner agent and startup
+ * throws instead of the routing breaking silently in prose.
+ */
+function assertSignalCoverage(classAgent: ReadonlyMap<SpecialistClass, string>, router: SignalRouter): void {
+  const orphans = new Set<SpecialistClass>()
+  for (const type of SignalRouter.signalTypes()) {
+    const owner = router.ownerOf(type)
+    if (!classAgent.has(owner)) orphans.add(owner)
+  }
+  if (orphans.size > 0) {
+    throw new Error(
+      `WebProvider: signal owner class(es) with no agent: ${[...orphans].join(", ")}. ` +
+        `Every SpecialistClass a signal routes to must be declared as an agent's specialistClass.`,
+    )
+  }
+}
 
 export class WebProvider implements DomainProvider {
   key = "web" as const
   private specs: AgentSpec[]
+  private classAgent: ReadonlyMap<SpecialistClass, string>
 
-  private constructor(specs: AgentSpec[]) {
+  private constructor(specs: AgentSpec[], classAgent: ReadonlyMap<SpecialistClass, string>) {
     this.specs = specs
+    this.classAgent = classAgent
   }
 
   static async create(): Promise<WebProvider> {
     const defs = await buildSpecDefs()
+    const classAgent = buildClassAgentMap(defs)
+    assertSignalCoverage(classAgent, new SignalRouter())
     const specs = defs.map((d) => ({
       name: d.name,
       role: d.role,
@@ -167,11 +221,21 @@ export class WebProvider implements DomainProvider {
       prependRequestContext: d.prependRequestContext,
       useSmallModel: d.useSmallModel,
     }))
-    return new WebProvider(specs)
+    return new WebProvider(specs, classAgent)
   }
 
   agentSpecs(): AgentSpec[] {
     return this.specs
+  }
+
+  /** The agent that confirms/reports a given signal class, or undefined if none owns it. */
+  agentForClass(cls: SpecialistClass): string | undefined {
+    return this.classAgent.get(cls)
+  }
+
+  /** The full SpecialistClass → agent map (for prompt rendering + coverage tests). */
+  classAgentMap(): ReadonlyMap<SpecialistClass, string> {
+    return this.classAgent
   }
 
   detectors(): Detector[] {
@@ -274,6 +338,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     {
       name: "hunt-authz",
       role: "specialist",
+      specialistClass: "access-control",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_AUTHZ, authzSkills),
       description: DESC_HUNT_TESTER_AUTHZ,
       skills: ["wstg-authz-02", "wstg-authz-03", "wstg-authz-01"],
@@ -292,6 +357,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     {
       name: "hunt-injection",
       role: "specialist",
+      specialistClass: "injection",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_INJECTION, injectionSkills),
       description: DESC_HUNT_TESTER_INJECTION,
       skills: ["wstg-injection", "wstg-inpv-05", "wstg-inpv-12", "wstg-inpv-18"],
@@ -329,6 +395,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     {
       name: "hunt-authn",
       role: "specialist",
+      specialistClass: "auth-session",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_AUTHN, authnSkills),
       description: DESC_HUNT_TESTER_AUTHN,
       skills: ["wstg-auth-session", "wstg-athn-04", "wstg-athn-09", "wstg-athn-11", "wstg-sess-10"],
@@ -338,6 +405,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     {
       name: "hunt-business-logic",
       role: "specialist",
+      specialistClass: "business-logic",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_BUSINESS_LOGIC, businessLogicSkills),
       description: DESC_HUNT_TESTER_BUSINESS_LOGIC,
       skills: ["wstg-logic-client-api", "wstg-busl-04", "wstg-busl-10"],
@@ -347,6 +415,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     {
       name: "hunt-ssrf",
       role: "specialist",
+      specialistClass: "server-side-request",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_SSRF, ssrfSkills),
       description: DESC_HUNT_TESTER_SSRF,
       skills: ["wstg-inpv-19", "wstg-conf-13"],
@@ -365,6 +434,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     {
       name: "hunt-llm",
       role: "specialist",
+      specialistClass: "llm",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_LLM, llmSkills),
       description: DESC_HUNT_TESTER_LLM,
       skills: ["llm-security"],
@@ -374,6 +444,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     {
       name: "hunt-misconfig",
       role: "specialist",
+      specialistClass: "misconfiguration",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_MISCONFIG, misconfigSkills),
       description: DESC_HUNT_TESTER_MISCONFIG,
       skills: ["wstg-conf-01", "wstg-conf-02", "wstg-conf-03", "wstg-conf-04", "wstg-conf-05", "wstg-conf-06", "wstg-conf-07", "wstg-conf-08", "wstg-conf-09", "wstg-conf-10", "wstg-conf-11", "wstg-cryp-01"],
@@ -383,6 +454,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     {
       name: "hunt-recon",
       role: "specialist",
+      specialistClass: "recon",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_RECON, reconSkills),
       description: DESC_HUNT_TESTER_RECON,
       skills: ["wstg-info-02", "wstg-info-03", "wstg-info-05", "wstg-info-08"],

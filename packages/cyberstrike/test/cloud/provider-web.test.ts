@@ -1,5 +1,7 @@
 import { describe, test, expect } from "bun:test"
-import { WebProvider } from "../../src/cloud/provider-web"
+import { WebProvider, buildClassAgentMap } from "../../src/cloud/provider-web"
+import { SignalRouter } from "../../src/session/web/signal/router"
+import type { SpecialistClass } from "../../src/session/web/signal/types"
 
 describe("WebProvider", () => {
   test("factory creates instance with correct key", async () => {
@@ -151,5 +153,64 @@ describe("WebProvider", () => {
     for (const s of provider.agentSpecs()) {
       expect(s.description).not.toContain("\n")
     }
+  })
+})
+
+describe("SpecialistClass → agent mapping (signal-fabric bridge)", () => {
+  test("every signal owner class resolves to exactly one existing agent", async () => {
+    const provider = await WebProvider.create()
+    const names = new Set(provider.agentSpecs().map((s) => s.name))
+    const router = provider.signalRouter()
+    for (const type of SignalRouter.signalTypes()) {
+      const owner = router.ownerOf(type)
+      const agent = provider.agentForClass(owner)
+      expect(agent, `signal "${type}" owner class "${owner}" must map to an agent`).toBeDefined()
+      expect(names.has(agent!), `agent "${agent}" for class "${owner}" must exist`).toBe(true)
+    }
+  })
+
+  test("agentForClass matches the historical orchestrator routing table (drift guard)", async () => {
+    // These 6 pairs were previously hardcoded as prose in web-hunt-agent/prompt.txt
+    // (Step 7 table). They now derive from AgentSpec.specialistClass — this test
+    // fails the moment code and that (soon-to-be-rendered) table diverge.
+    const provider = await WebProvider.create()
+    const expected: Record<string, string> = {
+      injection: "hunt-injection",
+      misconfiguration: "hunt-misconfig",
+      "auth-session": "hunt-authn",
+      "access-control": "hunt-authz",
+      "business-logic": "hunt-business-logic",
+      recon: "hunt-recon",
+    }
+    for (const [cls, agent] of Object.entries(expected)) {
+      expect(provider.agentForClass(cls as SpecialistClass)).toBe(agent)
+    }
+  })
+
+  test("buildClassAgentMap rejects two agents claiming the same class", () => {
+    expect(() =>
+      buildClassAgentMap([
+        { name: "hunt-authz", specialistClass: "access-control" },
+        { name: "hunt-idor", specialistClass: "access-control" },
+      ]),
+    ).toThrow(/claimed by both/)
+  })
+
+  test("buildClassAgentMap skips agents with no specialistClass", () => {
+    const map = buildClassAgentMap([
+      { name: "hunt-idor" },
+      { name: "hunt-injection", specialistClass: "injection" },
+    ])
+    expect(map.size).toBe(1)
+    expect(map.get("injection")).toBe("hunt-injection")
+  })
+
+  test("classAgentMap exposes all owning specialists", async () => {
+    const provider = await WebProvider.create()
+    const map = provider.classAgentMap()
+    // 8 specialists declare a class; idor, mass-assignment, file-attacks do not.
+    expect(map.size).toBe(8)
+    expect(map.get("server-side-request")).toBe("hunt-ssrf")
+    expect(map.get("llm")).toBe("hunt-llm")
   })
 })
