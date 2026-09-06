@@ -99,6 +99,8 @@ Review each agent's description to understand when it should be used:
 
 - **proxy-tester-misconfig**: Tests server and application misconfigurations: exposed backup/admin/sensitive files, insecure HTTP methods (TRACE/PUT/DELETE), CORS misconfigurations, missing security headers. Uses `misconfig_test` smart tool (paths/methods/cors modes). Effective when: first time testing this origin — runs once per origin as a wide-scope scan. Covers WSTG-CONF (01-11), WSTG-CRYP-01, WSTG-CLNT-07 (CORS), WSTG-CLNT-09 (clickjacking).
 
+- **proxy-tester-recon**: Discovers application metadata, technology fingerprints, and information leakage. Uses `recon_test` smart tool (metafiles/fingerprint/leakage modes). Effective when: first time testing this origin — parses robots.txt/sitemap.xml/openapi.json for hidden paths, fingerprints tech stack (WordPress, Django, Spring Boot, etc.), scans response bodies for internal IPs, debug flags, TODO/FIXME comments, version strings, email addresses. Covers WSTG-INFO (02/03/05/08). Runs once per origin alongside misconfig.
+
 ## How SubAgents Receive Data
 
 **All proxy subagents** automatically receive request context prepended to their prompt:
@@ -201,7 +203,7 @@ Use this table to quickly classify the endpoint and identify which testers to pr
 | **Form / free-text input** | Any `<form>` in the response, or any param/body field carrying free text (name, subject, message, comment, contact) | injection — dispatch it and name the full floor **SQLi + XSS + SSTI on EVERY field** (a text field is both a DB/query sink and a reflection/template sink; do not skip it just because THIS request had no params — test the form's submit target) |
 | **WebSocket / SSE** | `Upgrade: websocket` or `Accept: text/event-stream` | injection (message injection), authn (origin/auth check) |
 | **LLM / chat endpoint** | Body has `messages[]`/`prompt`/`input` feeding a model, path like `/chat`, `/completions`, `/v1/chat/completions`, `/generate`, or response is model-generated text | llm (prompt injection, jailbreak, system-prompt leak, output handling) — dispatch `proxy-tester-llm`; also injection if the same body has classic injectable params |
-| **New origin (first endpoint)** | No wide-scope coverage notes for this origin yet | misconfig (CRITICAL on first endpoint — one-time origin-wide scan: paths, methods, CORS, headers) |
+| **New origin (first endpoint)** | No wide-scope coverage notes for this origin yet | misconfig + recon (CRITICAL on first endpoint — one-time origin-wide scan: paths, methods, CORS, headers, tech fingerprint, metadata) |
 | **Signal-driven retest** | `retest_queue` item with `trigger_type: "new_signal"` | Dispatch the OWNING specialist ONLY — see Step 7 mapping table |
 
 **DO NOT use rigid rules like "if path contains '/login' then call authn-agent".**
@@ -279,7 +281,7 @@ Use accumulated session context to inform decisions:
 - If multi-step workflow (X-Step header, sequential paths, wizard) → proxy-tester-business-logic (workflow bypass)
 - If race-prone operation (transfer, redeem, vote, claim, withdraw, like) → proxy-tester-business-logic (concurrent request testing)
 - If admin/privileged path with low-priv credential → proxy-tester-authz (vertical priv esc)
-- If first endpoint on a new origin (no wide-scope coverage) → proxy-tester-misconfig (one-time origin scan)
+- If first endpoint on a new origin (no wide-scope coverage) → proxy-tester-misconfig + proxy-tester-recon (one-time origin scan: misconfig + tech fingerprint + metadata)
 
 **Low Priority (Specific Scenarios):**
 - Agents already run on similar endpoints
@@ -384,7 +386,7 @@ detector fired on a response. The `trigger_source` field is `signal_type:special
 | `auth-session` | proxy-tester-authn |
 | `access-control` | proxy-tester-authz |
 | `business-logic` | proxy-tester-business-logic |
-| `recon` | (no agent yet — note the signal for manual review) |
+| `recon` | proxy-tester-recon |
 | `client-side` | (P2 — note the signal for manual review) |
 
 Example: `trigger_source: "exposed_artifact:misconfiguration"` → dispatch `proxy-tester-misconfig`
@@ -398,6 +400,7 @@ if confirmed."
 - `cors_misconfig` → tell misconfig tester: "CORS misconfiguration detected — reflected origin + credentials. Run cors mode to verify and assess credential-theft impact."
 - `weak_cookie_flags` → tell authn tester: "Weak cookie flags detected (missing HttpOnly/Secure/SameSite). Assess session hijack risk."
 - `exposed_artifact` → tell misconfig tester: "Exposed artifact detected (.git/HEAD, .env, backup). Verify the content is actually sensitive, not a custom 404 page."
+- `rate_limit_absent` → tell business-logic tester: "Race mode detected no rate limiting — N concurrent requests all succeeded with zero 429 responses. Confirm the endpoint lacks rate limiting and assess business impact (brute force, resource exhaustion, abuse)."
 
 #### B. Architecture-driven retests (new_role, new_object_value, new_credential)
 
