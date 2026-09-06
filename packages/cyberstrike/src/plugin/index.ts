@@ -29,6 +29,17 @@ export namespace Plugin {
     GitlabAuthPlugin as unknown as PluginInstance,
   ]
 
+  // Free-tier security domains that ship WITH core (bundledDependencies) and load
+  // by default — the user gets them out of the box, no `npm install` and no plugin
+  // config. Paid domains (e.g. @cyberstrike-io/azure-pro) are user-installed via the
+  // plugin config instead. Each is a normal domain plugin: it registers via the
+  // `provider`/`tool` hooks and reaches core through the injected input.core.
+  //
+  // Loaded by dynamic import of a VARIABLE name so tsc doesn't pull each domain's
+  // source into core's typecheck (a domain ships raw TS; it typechecks in its own
+  // package). Same reason user plugins load by dynamic import.
+  const DEFAULT_DOMAINS: string[] = ["@cyberstrike-io/azure"]
+
   const state = Instance.state(async () => {
     const client = createCyberstrikeClient({
       baseUrl: "http://localhost:4096",
@@ -54,6 +65,19 @@ export namespace Plugin {
       log.info("loading internal plugin", { name: plugin.name })
       const init = await plugin(input)
       hooks.push(init)
+    }
+
+    // Default free-tier domains — bundled with core, loaded directly (no install),
+    // and given the same injected `input.core`. A broken default domain must not
+    // take down the host, so its failure is logged and skipped.
+    for (const name of DEFAULT_DOMAINS) {
+      try {
+        const mod: any = await import(name)
+        const init = typeof mod?.default === "function" ? mod.default : mod
+        hooks.push(await init(input))
+      } catch (err) {
+        log.error("failed to load default domain", { name, error: err })
+      }
     }
 
     let plugins = config.plugin ?? []

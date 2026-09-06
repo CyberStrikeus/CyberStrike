@@ -29,12 +29,12 @@ function fakeProvider(key: string, agentNames: string[]): DomainProvider {
 }
 
 describe("ProviderRegistry", () => {
-  test("web is the built-in domain; azure is a package, not built-in", () => {
-    const domains = registeredDomains()
-    expect(domains).toContain("web")
-    // azure moved to @cyberstrike-io/azure — it registers via the plugin
-    // `provider` hook when installed, NOT as a core built-in.
-    expect(domains).not.toContain("azure")
+  test("web is the module-load built-in domain", () => {
+    // web registers here at registry module load. azure is NOT a module-load
+    // built-in — it's a default domain the plugin loader loads at runtime (ships
+    // with core as a bundled dependency via the `provider` hook + input.core), and
+    // paid domains are user-installed. So only web is guaranteed at module load.
+    expect(registeredDomains()).toContain("web")
   })
 
   test("resolveProviders loads the web built-in (agents present, no error)", async () => {

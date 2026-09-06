@@ -79,16 +79,20 @@
     "packages/azure": {
       "name": "@cyberstrike-io/azure",
       "version": "0.1.0",
-      "devDependencies": {
+      "dependencies": {
         "@cyberstrike-io/plugin": "workspace:*",
+      },
+      "devDependencies": {
         "@tsconfig/node22": "catalog:",
         "cyberstrike": "workspace:*",
         "typescript": "catalog:",
       },
       "peerDependencies": {
-        "@cyberstrike-io/plugin": "workspace:*",
-        "cyberstrike": "workspace:*",
+        "cyberstrike": "*",
       },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
     },
     "packages/console/app": {
       "name": "@cyberstrike-io/console-app",
@@ -231,6 +235,7 @@
         "@ai-sdk/xai": "2.0.51",
         "@anthropic-ai/sdk": "0.91.1",
         "@clack/prompts": "1.0.0-alpha.1",
+        "@cyberstrike-io/azure": "workspace:*",
         "@cyberstrike-io/hackbrowser": "workspace:*",
         "@cyberstrike-io/plugin": "workspace:*",
         "@cyberstrike-io/script": "workspace:*",

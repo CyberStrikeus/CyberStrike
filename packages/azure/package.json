@@ -1,25 +1,33 @@
 {
   "name": "@cyberstrike-io/azure",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
-  "description": "CyberStrike Azure cloud assessment domain (free tier). Installs as a plugin: npm install @cyberstrike-io/azure. The paid advanced tier is @cyberstrike-io/azure-pro.",
+  "description": "CyberStrike Azure cloud assessment domain. Installs as a plugin: npm install @cyberstrike-io/azure. Reaches core runtime via the host-injected input.core (works in the compiled binary).",
   "exports": {
     ".": "./src/index.ts"
   },
+  "files": [
+    "src"
+  ],
   "publishConfig": {
-    "access": "public"
+    "access": "restricted"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@cyberstrike-io/plugin": "workspace:*"
+  },
   "peerDependencies": {
-    "@cyberstrike-io/plugin": "workspace:*",
-    "cyberstrike": "workspace:*"
+    "cyberstrike": "*"
+  },
+  "peerDependenciesMeta": {
+    "cyberstrike": {
+      "optional": true
+    }
   },
   "devDependencies": {
-    "@cyberstrike-io/plugin": "workspace:*",
     "cyberstrike": "workspace:*",
     "@tsconfig/node22": "catalog:",
     "typescript": "catalog:"
