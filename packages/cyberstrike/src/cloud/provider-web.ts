@@ -32,6 +32,8 @@ import PROMPT_PROXY_TESTER_LLM from "../agent/prompt/vuln/llm/prompt.txt"
 import DESC_PROXY_TESTER_LLM from "../agent/prompt/vuln/llm/description.txt"
 import PROMPT_PROXY_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/prompt.txt"
 import DESC_PROXY_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/description.txt"
+import PROMPT_PROXY_TESTER_RECON from "../agent/prompt/vuln/recon/prompt.txt"
+import DESC_PROXY_TESTER_RECON from "../agent/prompt/vuln/recon/description.txt"
 
 type PermissionAction = "ask" | "allow" | "deny"
 type PermissionRule = PermissionAction | Record<string, PermissionAction>
@@ -208,6 +210,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     fileAttacksSkills,
     llmSkills,
     misconfigSkills,
+    reconSkills,
   ] = await Promise.all([
     loadSkills(["wstg-authz-04", "wstg-apit-02"]),
     loadSkills(["wstg-authz-02", "wstg-authz-03", "wstg-authz-01"]),
@@ -219,6 +222,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     loadSkills(["wstg-inpv-11.1", "wstg-inpv-11", "wstg-busl-08", "wstg-busl-09"]),
     loadSkills(["llm-security"]),
     loadSkills(["wstg-conf-01", "wstg-conf-02", "wstg-conf-03", "wstg-conf-04", "wstg-conf-05", "wstg-conf-06", "wstg-conf-07", "wstg-conf-08", "wstg-conf-09", "wstg-conf-10", "wstg-conf-11", "wstg-cryp-01"]),
+    loadSkills(["wstg-info-02", "wstg-info-03", "wstg-info-05", "wstg-info-08"]),
   ])
 
   function vulnPrompt(prompt: string, skills: string): string {
@@ -390,6 +394,15 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       skills: ["wstg-conf-01", "wstg-conf-02", "wstg-conf-03", "wstg-conf-04", "wstg-conf-05", "wstg-conf-06", "wstg-conf-07", "wstg-conf-08", "wstg-conf-09", "wstg-conf-10", "wstg-conf-11", "wstg-cryp-01"],
       prependRequestContext: true,
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { misconfig_test: "allow" }),
+    },
+    {
+      name: "proxy-tester-recon",
+      role: "specialist",
+      prompt: vulnPrompt(PROMPT_PROXY_TESTER_RECON, reconSkills),
+      description: DESC_PROXY_TESTER_RECON,
+      skills: ["wstg-info-02", "wstg-info-03", "wstg-info-05", "wstg-info-08"],
+      prependRequestContext: true,
+      permissions: mergePermissions(VULN_BASE_PERMISSIONS, { recon_test: "allow" }),
     },
   ]
 }
