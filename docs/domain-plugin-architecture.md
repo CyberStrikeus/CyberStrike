@@ -145,34 +145,44 @@ This public surface IS the core side of the version boundary — internal module
 The azure cluster is large and woven into core, so the move is staged; the tree
 stays green at every step.
 
-**Cluster to move → `packages/azure-ent` (`@cyberstrike-io-ent/azure`):**
+**Cluster to move → `packages/azure-ent` (`@cyberstrike-io-ent/azure`)** — code-verified,
+all azure-specific, moves as ONE unit:
 `cloud/provider-azure.ts`, `cloud/groups.ts`, `cloud/classify.ts`, `tool/azurehook/`
-(16 files + `assess/`), `agent/prompt/cloud/*.txt` (4 prompts). Also the two core
-tools that depend on `cloud/groups` — `tool/assess-findings.ts`, `tool/cloud-intel.ts`
-— are azure-coupled and move with the cluster (or `groups` is shared, TBD).
+(16 files + `assess/`, incl. `assess-cache` + `shared`), `tool/assess-findings.ts`,
+`tool/cloud-intel.ts` (both azure — use CLOUD_GROUPS + Finding + getAssessResult),
+`agent/prompt/cloud/*.txt` (4 prompts). `assess-cache` moves too (both its reader
+provider-azure and writer azurehook move together).
 
-**Stays in core, reached via `cyberstrike/public`:** `Intel`, `triageGuide/triageActions`,
-`orchestrateLayer2`, `CloudAnalysis`, the registry, the version check.
+**Stays in core, reached via `cyberstrike/public` (all exposed ✅):** the registry,
+`orchestrateLayer2`, `isAssessmentProvider`, `CloudAnalysis`, `Intel`, `Session`,
+`Vulnerability`, `VulnStatus`, `triageGuide/triageActions`, `isActionable/isExcluded`,
+the version check + SDK contract.
+
+**Tool conversion:** azurehook/assess-findings/cloud-intel are core `Tool.define`; in the
+package they become SDK `tool` hook entries (`args` raw shape, `execute → string` + set
+rich metadata via `context.metadata(...)` — the SDK ToolContext already carries it, so no
+metadata is lost and no SDK change is needed).
 
 **Core reference points to flip (the atomic cut-over, last):**
 `cloud/provider-registry.ts` (drop the azure built-in), `tool/registry.ts:239` (drop
 `AzurehookTool` from built-ins — comes via the package `tool` hook), `cloud/index.ts`
 (drop azure re-exports).
 
-**Move order:** ① scaffold package ✅ ② decouple azurehook → provider-azure ✅ (the
-tool now resolves azure purely from the registry) → **RESUME HERE** ③ expand
-`cyberstrike/public` with what the cluster needs from core (`Session`, `Vulnerability`,
-`VulnStatus`, `getAssessResult/setAssessResult` — assess-cache STAYS in core as shared
-provider↔tool state) ④ move the knot as ONE unit (provider-azure + groups + classify +
-azurehook + prompts) into the package, rewiring its core imports to `cyberstrike/public`
-⑤ move/settle assess-findings + cloud-intel ⑥ flip core reference points (drop azure
-built-in in provider-registry, `AzurehookTool` in tool/registry:239, azure re-exports in
-cloud/index) ⑦ verify azure runs from the package.
+**Move order:** ① scaffold package ✅ ② decouple azurehook → provider-azure ✅ ③ expand
+`cyberstrike/public` with everything the cluster needs from core ✅ (Session, Vulnerability,
+VulnStatus, isActionable/isExcluded added; CORE_API_VERSION → 1.1.0) → **RESUME HERE**
+④ THE MOVE (one atomic commit): relocate the whole cluster into `packages/azure-ent/src`,
+rewire its core imports to `cyberstrike/public`, convert the 3 tools `Tool.define` → SDK
+`tool` hook, register provider + tools from the package's plugin default, and remove azure
+from core (provider-registry built-in; `AzurehookTool`/`GetCloudIntelTool`/`GetCloudGroupsTool`/
+`GetAssessGroupFindingsTool` in tool/registry; azure re-exports in cloud/index) ⑤ migrate
+azure tests into the package ⑥ verify azure runs from the package end-to-end.
 
-> **Extraction is PAUSED at a stable, all-green point** (2307 pass). The knot move (③–⑦)
-> is large and risky — a dedicated session. Everything below the move is done and tested:
-> the load/register/resolve/health/version infra + the package scaffold. The blocker is
-> purely mechanical (untangling azure's own coupled code), not a core or npm defect.
+> **Prep (①②③) is DONE and all-green** (2308 pass): the load/register/resolve/health/version
+> infra + package scaffold + the complete `/public` boundary the cluster needs. Step ④ is
+> the single large atomic move — every dependency is now mapped and every core service the
+> cluster needs is on the boundary, so ④ is mechanical relocation + import rewiring, not
+> discovery. It is still big (≈22 files) and best done as one focused, carefully-verified commit.
 
 ### Step ① done — scaffold verified at runtime
 `packages/azure-ent` exists: package.json (peerDeps `cyberstrike` + `@cyberstrike-io/plugin`,
