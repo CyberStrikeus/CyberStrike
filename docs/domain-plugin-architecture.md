@@ -207,6 +207,14 @@ on every OS without importing the host; azure renamed to `@cyberstrike-io/azure`
 real `Plugin.list()` loader (26 agents). Azure's quality gate is its **runtime**
 loader tests, not isolated `tsc`.
 
+**DONE — real npm publish + install validated:** `@cyberstrike-io/azure@0.1.0`
+published to npm **private** (`--access restricted`). A clean directory OUTSIDE the
+monorepo did `npm install @cyberstrike-io/azure` (fetched from the private registry
+via the token), and the installed package loaded with an injected core → 13 agents +
+4 tools. This closes the last gap (BunProc.install from a real registry). Combined
+with the earlier `Plugin.list()` proof (host injects buildCoreRuntime → 26 agents),
+the whole distribution model is proven end-to-end with a real published package.
+
 **REMAINING (deferred, needs a focused effort):**
 - **Core shipped as consumable types (`.d.ts`) for `cyberstrike/public`.** A domain
   package only imports `cyberstrike/public` as a TYPE now (erased at runtime — runtime
