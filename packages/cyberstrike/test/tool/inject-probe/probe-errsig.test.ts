@@ -137,4 +137,37 @@ describe("probeErrorSigPoint", () => {
     expect(obs.baseline.byte_jitter).toBeGreaterThanOrEqual(0)
     expect(obs.baseline.status).toBe(200)
   })
+
+  test("encoded sqli payloads trigger error when server URL-decodes", async () => {
+    const sender: HttpSender = {
+      send: async (req) => {
+        const u = new URL(req.url)
+        const raw = u.searchParams.get("q") ?? ""
+        let decoded = raw
+        try { decoded = decodeURIComponent(raw) } catch {}
+        if (decoded.includes("'") || decoded.includes('"')) {
+          return { status: 200, body: 'You have an error in your SQL syntax near "\'"', headers: {} }
+        }
+        return { status: 200, body: "normal page", headers: {} }
+      },
+    }
+    const obs = await probeErrorSigPoint(sender, makeR(), point, "sqli", new AbortController().signal, 0, makeBudget())
+    expect(obs.error_findings.length).toBeGreaterThan(0)
+  })
+
+  test("sqli payloads include WAF-bypass encoded variants", async () => {
+    const { ERRSIG } = await import("../../../src/tool/inject-probe/payloads/errsig")
+    const payloads = ERRSIG.sqli.payloads
+    expect(payloads.some((p) => p.includes("%27"))).toBe(true)
+    expect(payloads.some((p) => p.includes("%2527"))).toBe(true)
+    expect(payloads.some((p) => p.includes("%00"))).toBe(true)
+  })
+
+  test("sqli boolean pairs include encoded variants", async () => {
+    const { ERRSIG } = await import("../../../src/tool/inject-probe/payloads/errsig")
+    const pairs = ERRSIG.sqli.boolPairs!
+    expect(pairs.some((p) => p.t.includes("%27"))).toBe(true)
+    expect(pairs.some((p) => p.t.includes("%2527"))).toBe(true)
+    expect(pairs.some((p) => p.t.includes("/*!50000"))).toBe(true)
+  })
 })
