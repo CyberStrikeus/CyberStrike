@@ -29,3 +29,14 @@ export interface AssessmentProvider extends DomainProvider {
 
   identityContext(rootSession: string): string
 }
+
+/**
+ * Narrow a DomainProvider (what the registry stores) to an AssessmentProvider
+ * (what the cloud orchestration workflow needs). A domain that runs a batch
+ * scan+verify assessment implements the richer interface; the assessment entry
+ * resolves its provider from the registry and checks this before driving it.
+ */
+export function isAssessmentProvider(p: DomainProvider): p is AssessmentProvider {
+  const a = p as Partial<AssessmentProvider>
+  return typeof a.groups === "function" && typeof a.analystPrompt === "function" && typeof a.verifyPrompt === "function"
+}

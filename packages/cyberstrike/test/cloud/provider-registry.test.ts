@@ -3,8 +3,10 @@ import {
   registerProvider,
   registeredDomains,
   resolveProviders,
+  resolveProvider,
   collectAgentSpecs,
 } from "../../src/cloud/provider-registry"
+import { isAssessmentProvider } from "../../src/cloud/provider"
 import type { DomainProvider, AgentSpec } from "../../src/cloud/provider"
 
 function fakeProvider(key: string, agentNames: string[]): DomainProvider {
@@ -94,5 +96,40 @@ describe("ProviderRegistry", () => {
 
     // cleanup
     registerProvider("aws", () => fakeProvider("aws", []))
+  })
+
+  test("resolveProvider runs only the requested domain's factory", async () => {
+    let webRan = 0
+    let awsRan = 0
+    registerProvider("resolvetest-web", () => {
+      webRan++
+      return fakeProvider("resolvetest-web", ["rw"])
+    })
+    registerProvider("resolvetest-aws", () => {
+      awsRan++
+      return fakeProvider("resolvetest-aws", ["ra"])
+    })
+    const p = await resolveProvider("resolvetest-aws")
+    expect(p?.key).toBe("resolvetest-aws")
+    expect(awsRan).toBe(1)
+    expect(webRan).toBe(0) // the other factory was NOT run
+    expect(await resolveProvider("nonexistent")).toBeUndefined()
+    // cleanup
+    registerProvider("resolvetest-web", () => fakeProvider("resolvetest-web", []))
+    registerProvider("resolvetest-aws", () => fakeProvider("resolvetest-aws", []))
+  })
+})
+
+describe("C10 — pluggable workflow entry (assessment provider resolution)", () => {
+  test("the built-in azure domain resolves from the registry as an AssessmentProvider", async () => {
+    const azure = await resolveProvider("azure")
+    expect(azure).toBeDefined()
+    expect(azure!.key).toBe("azure")
+    expect(isAssessmentProvider(azure!)).toBe(true)
+  })
+
+  test("isAssessmentProvider rejects a thin agents-only provider", () => {
+    const thin = fakeProvider("thin", ["thin-a"])
+    expect(isAssessmentProvider(thin)).toBe(false)
   })
 })

@@ -28,6 +28,22 @@ export function registeredDomains(): string[] {
   return [...factories.keys()]
 }
 
+/**
+ * Resolve a single domain's provider by key, running ONLY that domain's factory
+ * (not every registered one). Returns undefined if the domain isn't registered or
+ * its factory throws. Used by workflow entry-points (C10) to drive a domain's
+ * orchestration from the registry instead of constructing a provider by hand.
+ */
+export async function resolveProvider(key: string): Promise<DomainProvider | undefined> {
+  const factory = factories.get(key)
+  if (!factory) return undefined
+  try {
+    return await factory()
+  } catch {
+    return undefined
+  }
+}
+
 export interface ResolvedProviders {
   providers: DomainProvider[]
   errors: Array<{ key: string; error: unknown }>

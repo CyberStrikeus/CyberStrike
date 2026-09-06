@@ -173,6 +173,8 @@ import { cleanupAzure } from "./cleanup"
 import { azureAssess } from "./assess"
 import { orchestrateLayer2 } from "../../cloud/orchestrate"
 import { AzureProvider } from "../../cloud/provider-azure"
+import { resolveProvider } from "../../cloud/provider-registry"
+import { isAssessmentProvider } from "../../cloud/provider"
 
 const PROGRAMS = {
   azure_assess: {
@@ -1100,7 +1102,12 @@ export const AzurehookTool = Tool.define("azurehook", {
 
     if (program === "azure_orchestrate") {
       try {
-        const state = await orchestrateLayer2(new AzureProvider(), ctx.sessionID, ctx.messageID)
+        // Resolve the azure assessment provider from the registry (C10 — pluggable
+        // workflow entry) so an installed azure package can supply it; fall back to
+        // the built-in if the registry has no assessment-capable azure provider.
+        const resolved = await resolveProvider("azure")
+        const provider = resolved && isAssessmentProvider(resolved) ? resolved : new AzureProvider()
+        const state = await orchestrateLayer2(provider, ctx.sessionID, ctx.messageID)
         const completed = state.analystResults.filter((a) => !a.summary.startsWith("Error:"))
         const failed = state.analystResults.filter((a) => a.summary.startsWith("Error:"))
         const lines = [
