@@ -28,6 +28,7 @@ const OWNER: Record<SignalType, SpecialistClass> = {
   jwt_leak: "auth-session",
   reflected_input: "injection",
   stored_reflection: "injection",
+  rate_limit_absent: "business-logic",
 } satisfies Record<SignalType, SpecialistClass>
 
 // Retest priority per signal type — how urgently the owning specialist should
@@ -51,6 +52,7 @@ const PRIORITY: Record<SignalType, RetestPriority> = {
   missing_security_headers: "medium",
   directory_listing: "medium",
   reflected_input: "medium",
+  rate_limit_absent: "medium",
   server_banner: "low",
 } satisfies Record<SignalType, RetestPriority>
 

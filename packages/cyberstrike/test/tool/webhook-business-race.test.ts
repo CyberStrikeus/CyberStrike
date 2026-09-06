@@ -125,3 +125,58 @@ describe("RaceEngine", () => {
     expect(report.results[0].bodyLength).toBe(500)
   })
 })
+
+describe("RaceEngine — rateLimitAbsent", () => {
+  test("flags rate_limit_absent when all requests succeed with no 429", async () => {
+    const engine = new RaceEngine(alwaysOkServer())
+    const report = await engine.run({ request: req(), count: 5, concurrency: 5 })
+
+    expect(report.rateLimitAbsent).toBe(true)
+    expect(report.signals.some((s) => s.includes("rate-limit-absent"))).toBe(true)
+  })
+
+  test("does NOT flag rate_limit_absent when server returns 429", async () => {
+    let i = 0
+    const server: HttpSender = {
+      async send() {
+        return ++i <= 3
+          ? { status: 200, headers: {}, body: "ok" }
+          : { status: 429, headers: {}, body: "rate limited" }
+      },
+    }
+    const engine = new RaceEngine(server)
+    const report = await engine.run({ request: req(), count: 5, concurrency: 1 })
+
+    expect(report.rateLimitAbsent).toBe(false)
+    expect(report.signals.some((s) => s.includes("rate-limit-absent"))).toBe(false)
+  })
+
+  test("does NOT flag rate_limit_absent when all requests are rejected (403)", async () => {
+    const engine = new RaceEngine(alwaysRejectServer())
+    const report = await engine.run({ request: req(), count: 5, concurrency: 5 })
+
+    expect(report.rateLimitAbsent).toBe(false)
+    expect(report.signals.some((s) => s.includes("rate-limit-absent"))).toBe(false)
+  })
+
+  test("does NOT flag rate_limit_absent when only 1 success (needs >= 2)", async () => {
+    let sent = false
+    const server: HttpSender = {
+      async send() {
+        if (!sent) { sent = true; return { status: 200, headers: {}, body: "ok" } }
+        return { error: "connection reset" }
+      },
+    }
+    const report = await new RaceEngine(server).run({ request: req(), count: 3, concurrency: 1 })
+
+    expect(report.rateLimitAbsent).toBe(false)
+  })
+
+  test("flags on TOCTOU scenario (mixed 200+409 but no 429)", async () => {
+    const engine = new RaceEngine(racyServer(3))
+    const report = await engine.run({ request: req(), count: 10, concurrency: 10 })
+
+    expect(report.rateLimitAbsent).toBe(true)
+    expect(report.inconsistent).toBe(true)
+  })
+})

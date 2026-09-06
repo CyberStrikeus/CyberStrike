@@ -36,6 +36,7 @@ export type SignalType =
   | "jwt_leak"
   | "reflected_input"
   | "stored_reflection"
+  | "rate_limit_absent"
 
 // One response header. A DTO decoupled from the DB row shape — the ingest/replay
 // wiring adapts stored responses into this before running detectors.

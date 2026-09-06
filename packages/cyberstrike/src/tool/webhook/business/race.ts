@@ -26,6 +26,7 @@ export interface RaceReport {
   uniqueBodyLengths: number[]
   timingRange: { minMs: number; maxMs: number; medianMs: number }
   inconsistent: boolean
+  rateLimitAbsent: boolean
   signals: string[]
   results: RaceRequestResult[]
 }
@@ -129,5 +130,12 @@ function analyze(results: RaceRequestResult[], count: number, concurrency: numbe
     signals.push(`partial-error: ${errorCount}/${count} transport errors (may indicate resource contention)`)
   }
 
-  return { count, concurrency, statusDistribution: statusDist, successCount, uniqueBodyLengths, timingRange, inconsistent, signals, results }
+  const validResponses = results.filter((r) => r.status !== null).length
+  const got429 = (statusDist[429] ?? 0) > 0
+  const rateLimitAbsent = successCount >= 2 && !got429
+  if (rateLimitAbsent) {
+    signals.push(`rate-limit-absent: ${validResponses} requests, zero 429 responses`)
+  }
+
+  return { count, concurrency, statusDistribution: statusDist, successCount, uniqueBodyLengths, timingRange, inconsistent, rateLimitAbsent, signals, results }
 }

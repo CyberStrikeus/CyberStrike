@@ -7,12 +7,13 @@
 //   workflow — given ordered endpoints, try skipping steps
 //
 // The Tool.define is a thin shell; BusinessTest.run is the testable core (mock
-// HttpSender, no socket). NOT yet registered in tool/registry.ts.
+// HttpSender, no socket).
 import z from "zod"
 import { Tool } from "../../tool"
 import { Session } from "../../../session"
 import { ReplaySender, type HttpSender, type ProbeRequest } from "../transport"
 import { resolveCapturedRequest } from "../resolve"
+import { SignalStore } from "../../../session/web/signal/store"
 import { BusinessProbe, type BoundaryProbeReport } from "./probe"
 import type { RaceReport } from "./race"
 import { WorkflowSkip, type WorkflowStep } from "./workflow"
@@ -163,6 +164,15 @@ export const BusinessTestTool = Tool.define("business_test", {
         )
         if ("error" in result) return err(result.error)
         const r = result as BusinessTest.RaceResult
+        if (r.report.rateLimitAbsent) {
+          new SignalStore(sessionID).record({
+            type: "rate_limit_absent",
+            owner: "business-logic",
+            requestId: params.request_id,
+            evidence: `${r.report.count} concurrent requests, zero 429 responses (status distribution: ${Object.entries(r.report.statusDistribution).map(([s, c]) => `${s}×${c}`).join(", ")})`,
+            meta: { count: r.report.count, concurrency: r.report.concurrency, statusDistribution: r.report.statusDistribution },
+          })
+        }
         const label = r.report.inconsistent ? `TOCTOU signals detected (${r.report.signals.length})` : "no race condition detected"
         return { title: `business_test race: ${label}`, output: JSON.stringify(r.report, null, 2), metadata: {} }
       }
