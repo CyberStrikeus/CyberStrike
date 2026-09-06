@@ -11,8 +11,8 @@ describe("reportScopeViolation", () => {
       expect(reportScopeViolation("cyberstrike", "sqli", "SQL Injection")).toBeNull()
     })
 
-    test("web-application agent", () => {
-      expect(reportScopeViolation("web-application", "xss", "XSS attack")).toBeNull()
+    test("proxy-agent agent", () => {
+      expect(reportScopeViolation("proxy-agent", "xss", "XSS attack")).toBeNull()
     })
   })
 

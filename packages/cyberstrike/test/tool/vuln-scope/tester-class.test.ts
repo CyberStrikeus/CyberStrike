@@ -45,8 +45,8 @@ describe("testerClass", () => {
       expect(testerClass("cyberstrike")).toBeUndefined()
     })
 
-    test("web-application agent", () => {
-      expect(testerClass("web-application")).toBeUndefined()
+    test("proxy-agent agent", () => {
+      expect(testerClass("proxy-agent")).toBeUndefined()
     })
 
     test("unknown tester class", () => {

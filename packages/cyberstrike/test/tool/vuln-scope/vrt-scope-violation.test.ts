@@ -11,8 +11,8 @@ describe("vrtScopeViolation", () => {
       expect(vrtScopeViolation("cyberstrike", "sqli")).toBeNull()
     })
 
-    test("web-application agent", () => {
-      expect(vrtScopeViolation("web-application", "xss")).toBeNull()
+    test("proxy-agent agent", () => {
+      expect(vrtScopeViolation("proxy-agent", "xss")).toBeNull()
     })
 
     test("random agent name", () => {

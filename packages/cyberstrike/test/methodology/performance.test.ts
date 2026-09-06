@@ -84,7 +84,7 @@ describe("AgentPerformance — CRUD", () => {
       fn: async () => {
         const session = await Session.create({})
 
-        const stats = AgentPerformance.getOrCreate(session.id, "web-application")
+        const stats = AgentPerformance.getOrCreate(session.id, "proxy-agent")
         expect(stats.missionsCompleted).toBe(0)
         expect(stats.morale).toBe(70)
         expect(stats.performanceScore).toBe(0)
@@ -117,14 +117,14 @@ describe("AgentPerformance — CRUD", () => {
       fn: async () => {
         const session = await Session.create({})
 
-        AgentPerformance.recordMission(session.id, "web-application", {
+        AgentPerformance.recordMission(session.id, "proxy-agent", {
           success: true,
           findingsReported: 2,
           chainsContributed: 1,
           coverageContributed: 10,
         })
 
-        const stats = AgentPerformance.getOrCreate(session.id, "web-application")
+        const stats = AgentPerformance.getOrCreate(session.id, "proxy-agent")
         expect(stats.missionsCompleted).toBe(1)
         expect(stats.findingsReported).toBe(2)
         expect(stats.chainsContributed).toBe(1)
@@ -162,10 +162,10 @@ describe("AgentPerformance — Prompt Addendum", () => {
       fn: async () => {
         const session = await Session.create({})
 
-        const addendum = AgentPerformance.getPromptAddendum(session.id, "web-application")
+        const addendum = AgentPerformance.getPromptAddendum(session.id, "proxy-agent")
         expect(typeof addendum).toBe("string")
-        expect(addendum).toContain("STRIKER")
-        expect(addendum).toContain("aggressive")
+        expect(addendum).toContain("INTERCEPTOR")
+        expect(addendum).toContain("methodical")
 
         await Session.remove(session.id)
       },
@@ -204,15 +204,15 @@ describe("AgentPerformance — Agent Selection", () => {
     })
   })
 
-  test("selects web-application for exploit-related missions", async () => {
+  test("selects proxy-agent for exploit-related missions", async () => {
     await Instance.provide({
       directory: projectRoot,
       fn: async () => {
         const session = await Session.create({})
 
-        const selection = AgentPerformance.selectAgentForMission(session.id, "exploit development and chain building")
-        // web-application has "exploit development" and "chain building" in strengths
-        expect(selection.agent).toBe("web-application")
+        const selection = AgentPerformance.selectAgentForMission(session.id, "exploit development and OWASP coverage")
+        // proxy-agent has "exploit development" and "OWASP coverage" in strengths
+        expect(selection.agent).toBe("proxy-agent")
         expect(selection.reason).toContain("strength match")
 
         await Session.remove(session.id)
@@ -237,10 +237,10 @@ describe("AgentPerformance — Agent Selection", () => {
 
 describe("AgentPerformance — getAgentMeta", () => {
   test("returns meta for known agent", () => {
-    const meta = AgentPerformance.getAgentMeta("web-application")
+    const meta = AgentPerformance.getAgentMeta("proxy-agent")
     expect(meta).toBeDefined()
-    expect(meta!.codename).toBe("STRIKER")
-    expect(meta!.archetype).toBe("aggressive")
+    expect(meta!.codename).toBe("INTERCEPTOR")
+    expect(meta!.archetype).toBe("methodical")
     expect(meta!.strengths).toContain("exploit development")
   })
 
@@ -251,11 +251,11 @@ describe("AgentPerformance — getAgentMeta", () => {
 
   test("allAgentNames returns all registered agents", () => {
     const names = AgentPerformance.allAgentNames()
-    expect(names).toContain("web-application")
+    expect(names).toContain("proxy-agent")
     expect(names).toContain("cloud-security")
     expect(names).toContain("explore")
     expect(names).toContain("cyberstrike")
-    expect(names.length).toBeGreaterThanOrEqual(7)
+    expect(names.length).toBeGreaterThanOrEqual(6)
   })
 })
 
@@ -277,15 +277,15 @@ describe("AgentPerformance — selectAgentsForPhase", () => {
     })
   })
 
-  test("returns web-application as primary for authentication_testing", async () => {
+  test("returns proxy-agent as primary for authentication_testing", async () => {
     await Instance.provide({
       directory: projectRoot,
       fn: async () => {
         const session = await Session.create({})
 
         const agents = AgentPerformance.selectAgentsForPhase(session.id, "authentication_testing")
-        expect(agents.length).toBeGreaterThan(0)
-        expect(agents[0].name).toBe("web-application")
+        expect(agents.length).toBe(1)
+        expect(agents[0].name).toBe("proxy-agent")
         expect(agents[0].role).toBe("primary")
 
         await Session.remove(session.id)
@@ -313,8 +313,8 @@ describe("AgentPerformance — selectAgentsForPhase", () => {
       fn: async () => {
         const session = await Session.create({})
 
-        // authentication_testing has both web-application and proxy-agent
-        const agents = AgentPerformance.selectAgentsForPhase(session.id, "authentication_testing")
+        // active_recon has both explore and proxy-agent
+        const agents = AgentPerformance.selectAgentsForPhase(session.id, "active_recon")
         expect(agents.length).toBe(2)
         expect(agents[0].role).toBe("primary")
         expect(agents[1].role).toBe("secondary")

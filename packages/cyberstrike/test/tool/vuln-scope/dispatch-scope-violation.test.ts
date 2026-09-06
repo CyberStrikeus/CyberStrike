@@ -11,8 +11,8 @@ describe("dispatchScopeViolation", () => {
       expect(dispatchScopeViolation("cyberstrike", "test for XSS")).toBeNull()
     })
 
-    test("web-application subagent", () => {
-      expect(dispatchScopeViolation("web-application", "test IDOR")).toBeNull()
+    test("proxy-agent subagent", () => {
+      expect(dispatchScopeViolation("proxy-agent", "test IDOR")).toBeNull()
     })
   })
 
