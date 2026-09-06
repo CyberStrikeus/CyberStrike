@@ -117,6 +117,41 @@ export interface MarkerCanary {
   vulnClass: string
 }
 
+// ── Adapter: inject_probe-elicited responses (R4 — signal write-back) ───────────
+// inject_probe already has text-decoded bodies and a plain header record, so this
+// adapter avoids the Uint8Array encoding round-trip of scanElicitedResponse. Canary
+// registration (R3) already persists tokens before the send, so no marker param
+// is needed — canary.scan() sees them via the shared DB store.
+export function scanProbeResponse(input: {
+  sessionID: string
+  requestId: string
+  method: string
+  url: string
+  status: number
+  headers: Record<string, string>
+  body: string
+  sourceIsCaptured?: boolean
+}): number {
+  try {
+    if (!input.body) return 0
+    return scanObserved(
+      input.sessionID,
+      {
+        requestId: input.requestId,
+        url: input.url,
+        method: input.method,
+        status: input.status,
+        headers: recordToHeaders(input.headers),
+        body: input.body,
+      },
+      input.sourceIsCaptured ?? false,
+    )
+  } catch (e) {
+    log.debug("scanProbeResponse failed (ignored)", { err: String(e) })
+    return 0
+  }
+}
+
 // ── Adapter: http_replay-elicited responses (B2 + replay half of B3) ────────────
 export function scanElicitedResponse(input: {
   sessionID: string

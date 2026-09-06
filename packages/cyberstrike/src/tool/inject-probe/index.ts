@@ -6,7 +6,7 @@ import type { ResolvedRequest, InjPoint, SendBudget, RegisterCanary } from "./ty
 import { resolve, resolveFromTarget, enumeratePoints, validatePoints } from "./resolve"
 import { SSTI_EXPR, SSTI_PRODUCT } from "./payloads/ssti"
 import { TESTED_LABEL, NOT_TESTED_BY_CLASS } from "./payloads/errsig"
-import { SEND_TIMEOUT_MS } from "./send"
+import { SEND_TIMEOUT_MS, type HttpSender } from "./send"
 import { ReplaySender } from "../webhook/transport"
 import { probeXssPoint } from "./probe/xss"
 import { probeSstiPoint } from "./probe/ssti"
@@ -15,6 +15,7 @@ import { probeLfiPoint } from "./probe/lfi"
 import { probeErrorSigPoint } from "./probe/errsig"
 import { CanaryRegistry } from "../../session/web/signal/canary"
 import { DbCanaryStore } from "../../session/web/signal/store"
+import { scanProbeResponse } from "../../session/web/signal/ingest"
 
 const description = `Fire a battery of probes at ONE parameter-bearing request and return RAW OBSERVATIONS.
 
@@ -77,16 +78,15 @@ export const InjectProbeTool = Tool.define("inject_probe", {
       ),
   }),
   async execute(params, ctx) {
+    const sessionID = Session.root(ctx.sessionID)
     let resolved: ResolvedRequest | { error: string }
     if (params.request_id) {
-      const sessionID = Session.root(ctx.sessionID)
       const request = Request.get(sessionID).find((r) => r.id === params.request_id)
       if (!request) {
         return { title: "inject_probe", output: `Request "${params.request_id}" not found.`, metadata: {} }
       }
       resolved = resolve(request)
     } else if (params.target) {
-      const sessionID = Session.root(ctx.sessionID)
       const allowedHosts = new Set(
         Request.get(sessionID)
           .map((r) => r.host)
@@ -116,15 +116,34 @@ export const InjectProbeTool = Tool.define("inject_probe", {
     }
     const DELAY = 120
     const budget: SendBudget = { sent: 0, max: 120 }
-    const sender = new ReplaySender({
+    const originRequestId = params.request_id ?? `target:${resolved.url.toString()}`
+    const sourceIsCaptured = !!params.request_id
+    const canaries = new CanaryRegistry(new DbCanaryStore(sessionID))
+
+    const rawSender = new ReplaySender({
       totalTimeoutMs: SEND_TIMEOUT_MS,
       insecureTls: true,
       followRedirects: false,
       signal: ctx.abort,
     })
-
-    const canaries = new CanaryRegistry(new DbCanaryStore(Session.root(ctx.sessionID)))
-    const originRequestId = params.request_id ?? `target:${resolved.url.toString()}`
+    const sender: HttpSender = {
+      send: async (req) => {
+        const result = await rawSender.send(req)
+        if (!("error" in result)) {
+          scanProbeResponse({
+            sessionID,
+            requestId: originRequestId,
+            method: req.method,
+            url: req.url,
+            status: result.status,
+            headers: result.headers,
+            body: result.body,
+            sourceIsCaptured,
+          })
+        }
+        return result
+      },
+    }
 
     const targetInfo = {
       method: resolved.method,
