@@ -1,4 +1,4 @@
-import type { CloudAnalysis } from "./types"
+import type { CloudAnalysis } from "cyberstrike/public"
 
 export const CLOUD_GROUPS: CloudAnalysis.GroupDef[] = [
   {

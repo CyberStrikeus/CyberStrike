@@ -1,15 +1,15 @@
-import type { AssessmentProvider, AgentSpec } from "./provider"
-import type { CloudAnalysis } from "./types"
+import type { AgentSpec } from "@cyberstrike-io/plugin"
+import type { AssessmentProvider, CloudAnalysis } from "cyberstrike/public"
 import { CLOUD_GROUPS, identityGroup as azureIdentityGroup, parallelGroups as azureParallelGroups } from "./groups"
-import { getAssessResult } from "../tool/azurehook/assess-cache"
+import { getAssessResult } from "./azurehook/assess-cache"
 import { classifyGroupFindings } from "./classify"
-import { Intel } from "../methodology/intel"
-import { triageGuide, triageActions } from "../session/vulnerability-status"
+import { Intel } from "cyberstrike/public"
+import { triageGuide, triageActions } from "cyberstrike/public"
 
-import PROMPT_CLOUD_ANALYST_COMMON from "../agent/prompt/cloud/analyst-common.txt"
-import PROMPT_CLOUD_ORCHESTRATOR from "../agent/prompt/cloud/orchestrator.txt"
-import PROMPT_CLOUD_VERIFY from "../agent/prompt/cloud/verify.txt"
-import PROMPT_CLOUD_BATCH_VERIFIER from "../agent/prompt/cloud/batch-verifier.txt"
+import PROMPT_CLOUD_ANALYST_COMMON from "./prompts/analyst-common.txt"
+import PROMPT_CLOUD_ORCHESTRATOR from "./prompts/orchestrator.txt"
+import PROMPT_CLOUD_VERIFY from "./prompts/verify.txt"
+import PROMPT_CLOUD_BATCH_VERIFIER from "./prompts/batch-verifier.txt"
 
 const ANALYST_PERMISSIONS: Record<string, "ask" | "allow" | "deny"> = {
   bash: "allow", read: "allow", glob: "allow", grep: "allow",

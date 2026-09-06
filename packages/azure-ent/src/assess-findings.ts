@@ -1,11 +1,9 @@
 import z from "zod"
-import { Tool } from "./tool"
-import { Session } from "../session"
-import { Vulnerability } from "../session/vulnerability"
+import { tool } from "@cyberstrike-io/plugin"
+import { Session, Vulnerability, isActionable, isExcluded } from "cyberstrike/public"
 import { getAssessResult } from "./azurehook/assess-cache"
-import { CLOUD_GROUPS, groupByKey } from "../cloud/groups"
+import { CLOUD_GROUPS, groupByKey } from "./groups"
 import type { Finding } from "./azurehook/shared"
-import { isActionable, isExcluded } from "../session/vulnerability-status"
 
 function buildTriageMap(sessionID: string): Map<string, { status: string; vulnId: string }> {
   const vulns = Vulnerability.get(sessionID)
@@ -81,10 +79,10 @@ type Meta = {
   findings?: Finding[]
 }
 
-export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
+export const GetAssessGroupFindingsTool = tool({
   description:
     "Retrieve Layer 1 assessment findings for a specific cloud group, or a summary of all groups. Returns structured JSON. Findings are cached from the last azure_assess run — no need to re-run the pipeline.",
-  parameters: z.object({
+  args: {
     group: z
       .string()
       .optional()
@@ -97,25 +95,19 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
       .describe(
         "Slice notation 'N/T' (e.g. '1/3' = first of 3 slices). When set, only returns findings in this slice. Used by the orchestrator to split work across multiple agents.",
       ),
-  }),
-  async execute(params, ctx): Promise<{ title: string; output: string; metadata: Meta }> {
+  },
+  async execute(params, ctx): Promise<string> {
     const rootSession = Session.root(ctx.sessionID)
     const result = getAssessResult(rootSession)
 
     if (!result) {
-      return {
-        title: "Assess Findings: no cached result",
-        output: JSON.stringify({ error: "No assessment result cached. Run azurehook azure_assess first." }),
-        metadata: { available: false },
-      }
+      ctx.metadata({ title: "Assess Findings: no cached result", metadata: { available: false } satisfies Meta })
+      return JSON.stringify({ error: "No assessment result cached. Run azurehook azure_assess first." })
     }
 
     if (!result.authOk) {
-      return {
-        title: "Assess Findings: auth failed",
-        output: JSON.stringify({ error: "Last assessment failed authentication." }),
-        metadata: { available: false },
-      }
+      ctx.metadata({ title: "Assess Findings: auth failed", metadata: { available: false } satisfies Meta })
+      return JSON.stringify({ error: "Last assessment failed authentication." })
     }
 
     if (!params.group) {
@@ -155,20 +147,17 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
         skippedPhases: result.skippedPhases,
       }
 
-      return {
+      ctx.metadata({
         title: `Assess Summary: ${result.findings.length} findings across ${groups.length} groups`,
-        output: JSON.stringify(summary),
-        metadata: { available: true, totalFindings: result.findings.length, groups },
-      }
+        metadata: { available: true, totalFindings: result.findings.length, groups } satisfies Meta,
+      })
+      return JSON.stringify(summary)
     }
 
     const grp = groupByKey(params.group)
     if (!grp) {
-      return {
-        title: "Assess Findings: unknown group",
-        output: JSON.stringify({ error: `Unknown group key "${params.group}". Valid keys: ${CLOUD_GROUPS.map((g) => g.key).join(", ")}` }),
-        metadata: { available: false },
-      }
+      ctx.metadata({ title: "Assess Findings: unknown group", metadata: { available: false } satisfies Meta })
+      return JSON.stringify({ error: `Unknown group key "${params.group}". Valid keys: ${CLOUD_GROUPS.map((g) => g.key).join(", ")}` })
     }
 
     const groupResults = result.phases.flatMap((p) => p.groups).filter((g) => g.key === grp.key)
@@ -202,11 +191,11 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
         failures: [],
         permissionDenied: [],
       }
-      return {
+      ctx.metadata({
         title: `Assess Findings [${params.group}]: 0 findings`,
-        output: JSON.stringify(empty),
-        metadata: { available: true, group: params.group, findingCount: 0 },
-      }
+        metadata: { available: true, group: params.group, findingCount: 0 } satisfies Meta,
+      })
+      return JSON.stringify(empty)
     }
 
     const triageMap = buildTriageMap(rootSession)
@@ -240,16 +229,16 @@ export const GetAssessGroupFindingsTool = Tool.define("get_assess_findings", {
       permissionDenied: permDenied.map((f) => ({ program: f.program, reason: f.reason })),
     }
 
-    return {
+    ctx.metadata({
       title: `Assess Findings [${params.group}]: ${findings.length} findings${params.slice ? ` (slice ${params.slice}, ${totalBeforeSlice} total)` : ""}`,
-      output: JSON.stringify(groupOutput),
       metadata: {
         available: true,
         group: params.group,
         findingCount: findings.length,
         failureCount: failures.length,
         findings,
-      },
-    }
+      } satisfies Meta,
+    })
+    return JSON.stringify(groupOutput)
   },
 })

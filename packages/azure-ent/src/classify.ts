@@ -1,4 +1,4 @@
-import type { Finding } from "../tool/azurehook/shared"
+import type { Finding } from "./azurehook/shared"
 
 export type FindingClass = "formulaic" | "investigate"
 

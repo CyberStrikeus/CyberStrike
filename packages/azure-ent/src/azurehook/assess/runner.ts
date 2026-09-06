@@ -8,7 +8,7 @@ import type {
   ProgramResult,
   ProgramEntry,
 } from "./types"
-import { Semaphore } from "@/util/semaphore"
+import { Semaphore } from "../../util/semaphore"
 
 // ── Retry classification ──────────────────────────────────────
 

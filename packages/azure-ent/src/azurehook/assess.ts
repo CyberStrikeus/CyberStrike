@@ -6,7 +6,9 @@ import { analyzeTriage } from "./assess/triage"
 import { formatAssessResult, formatAssessResultJSON } from "./assess/format"
 import { AZURE_PHASES } from "./assess/phases"
 import { storeAssessResult } from "./assess-cache"
-import { SEV_RANK } from "@/session/vulnerability-status"
+
+// Severity ordering for sorting azure findings (self-contained in the package).
+const SEV_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
 
 const MAX_ASSESS_MS = 1_800_000
 const DEFAULT_CONCURRENCY = 5

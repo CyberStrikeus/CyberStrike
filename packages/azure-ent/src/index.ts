@@ -1,33 +1,32 @@
 // @cyberstrike-io-ent/azure — Azure cloud assessment domain (paid plugin).
 //
-// SCAFFOLD (staged extraction, docs/domain-plugin-architecture.md). The full
-// AzureProvider, the azurehook tool, cloud groups, classify, and the azure
-// prompts move into this package during the extraction; core keeps only the
-// shared runtime, reached through `cyberstrike/public`. For now this proves a
-// real workspace package builds against the two boundaries it is allowed to use:
-//   - @cyberstrike-io/plugin  (contract: Hooks, DomainProvider, AgentSpec)
-//   - cyberstrike/public      (runtime: version check, registry, orchestration)
-//
-// When installed, CyberStrike's plugin loader runs this default export and wires
-// the returned `provider` + `tool` hooks into the host — no core edits.
-import type { Hooks, PluginInput, DomainProvider } from "@cyberstrike-io/plugin"
+// Installed via `npm install @cyberstrike-io-ent/azure` (private registry). The
+// CyberStrike plugin loader runs this default export and wires the returned
+// `provider` + `tool` hooks into the host — no core edits. The azure agents +
+// azurehook/cloud-intel/assess-findings tools all live in THIS package now; the
+// package reaches core runtime only through `cyberstrike/public` (the versioned
+// boundary) and the `@cyberstrike-io/plugin` contract.
+import type { Hooks, PluginInput } from "@cyberstrike-io/plugin"
 import { requireCoreApi } from "cyberstrike/public"
+import { AzureProvider } from "./provider-azure"
+import { AzurehookTool } from "./azurehook"
+import { GetCloudIntelTool, GetCloudGroupsTool } from "./cloud-intel"
+import { GetAssessGroupFindingsTool } from "./assess-findings"
 
 export default async function azurePlugin(_input: PluginInput): Promise<Hooks> {
-  // Refuse to load against an incompatible host instead of misbehaving; the
-  // loader surfaces the throw as a health error for this domain.
-  requireCoreApi("1.0.0")
+  // Refuse to load against an incompatible host; the loader surfaces the throw as
+  // a health error for this domain instead of registering a broken domain.
+  requireCoreApi("1.1.0")
 
   return {
     provider: {
-      // The real AzureProvider (AssessmentProvider with groups/analystPrompt/…)
-      // moves here. Kept a thin DomainProvider in the scaffold so the package
-      // compiles against the boundary without the yet-to-be-moved azure machinery.
-      azure: (): DomainProvider => ({
-        key: "azure",
-        agentSpecs: () => [],
-      }),
+      azure: () => new AzureProvider(),
     },
-    // tool: { azurehook: … }  ← the azurehook tool moves here in the extraction.
+    tool: {
+      azurehook: AzurehookTool,
+      get_cloud_intel: GetCloudIntelTool,
+      get_cloud_groups: GetCloudGroupsTool,
+      get_assess_findings: GetAssessGroupFindingsTool,
+    },
   }
 }

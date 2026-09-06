@@ -1,9 +1,7 @@
 import z from "zod"
-import { Tool } from "../tool"
+import { tool } from "@cyberstrike-io/plugin"
 import type { Finding, HookResult } from "./shared"
-import { Vulnerability } from "../../session/vulnerability"
-import { Session } from "../../session"
-import { VulnStatus } from "../../session/vulnerability-status"
+import { Vulnerability, Session, VulnStatus } from "cyberstrike/public"
 
 import {
   entraEnum,
@@ -171,9 +169,9 @@ import { resourceHijack, dataDestroy, ransomwareSim, accountLockout, serviceDisr
 import { exchangeAbuse, sharepointEnum, teamsEnum, onedriveAccess } from "./m365"
 import { cleanupAzure } from "./cleanup"
 import { azureAssess } from "./assess"
-import { orchestrateLayer2 } from "../../cloud/orchestrate"
-import { resolveProvider } from "../../cloud/provider-registry"
-import { isAssessmentProvider } from "../../cloud/provider"
+import { orchestrateLayer2 } from "cyberstrike/public"
+import { resolveProvider } from "cyberstrike/public"
+import { isAssessmentProvider } from "cyberstrike/public"
 
 const PROGRAMS = {
   azure_assess: {
@@ -1062,9 +1060,9 @@ const EXECUTE_PROGRAMS = new Set<string>([
   "vm_disk_download",
 ])
 
-export const AzurehookTool = Tool.define("azurehook", {
+export const AzurehookTool = tool({
   description: `Execute an Azure post-exploitation program. 154 programs across 13 categories: recon (47), credential (14), privesc (11), persistence (11), lateral (10), evasion (11), exfil (12), compliance (18), identity (10), impact (5), m365 (4), cleanup (1). Uses az CLI and Azure REST API. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_azure before leaving.`,
-  parameters: z.object({
+  args: {
     program: z.enum(programKeys).describe(
       "Azure program to execute. Options: " +
         Object.entries(PROGRAMS)
@@ -1080,8 +1078,8 @@ export const AzurehookTool = Tool.define("azurehook", {
       .describe(
         "For impact programs (resource_hijack, data_destroy, ransomware_sim, service_disruption, vm_disk_download): actually perform the destructive action. Default false = assessment/dry-run only. Ignored for other programs.",
       ),
-  }),
-  async execute(params, ctx) {
+  },
+  async execute(params, ctx): Promise<string> {
     const effectiveTimeout = params.program === "azure_assess" ? Math.max(params.timeout_seconds, 600) : params.timeout_seconds
 
     const safeArgs = params.args.filter((a) => a !== "--execute")
@@ -1090,11 +1088,8 @@ export const AzurehookTool = Tool.define("azurehook", {
     }
 
     if (!Bun.which("az") && !NO_CLI_PROGRAMS.has(params.program)) {
-      return {
-        title: `azurehook: ${params.program}`,
-        output: "az CLI not found. Install: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli",
-        metadata: { program: params.program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 },
-      }
+      ctx.metadata({ title: `azurehook: ${params.program}`, metadata: { program: params.program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 } })
+      return "az CLI not found. Install: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli"
     }
 
     const program = params.program as Program
@@ -1108,11 +1103,8 @@ export const AzurehookTool = Tool.define("azurehook", {
         // to its package as a unit.
         const provider = await resolveProvider("azure")
         if (!provider || !isAssessmentProvider(provider)) {
-          return {
-            title: `azurehook: ${params.program}`,
-            output: "No azure assessment domain is registered. Install @cyberstrike-io-ent/azure.",
-            metadata: { program: params.program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 },
-          }
+          ctx.metadata({ title: `azurehook: ${params.program}`, metadata: { program: params.program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 } })
+          return "No azure assessment domain is registered. Install @cyberstrike-io-ent/azure."
         }
         const state = await orchestrateLayer2(provider, ctx.sessionID, ctx.messageID)
         const completed = state.analystResults.filter((a) => !a.summary.startsWith("Error:"))
@@ -1130,17 +1122,11 @@ export const AzurehookTool = Tool.define("azurehook", {
           "Analyst Results:",
           ...state.analystResults.map((a) => `  ${a.group}: verified=${a.verified} rejected=${a.rejected} elevated=${a.elevated} intel=${a.intelAdded} chains=${a.chains.length}`),
         ]
-        return {
-          title: `azurehook: azure_orchestrate — Layer 2 complete`,
-          output: lines.join("\n"),
-          metadata: { program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 },
-        }
+        ctx.metadata({ title: `azurehook: azure_orchestrate — Layer 2 complete`, metadata: { program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 } })
+        return lines.join("\n")
       } catch (e) {
-        return {
-          title: `azurehook: azure_orchestrate`,
-          output: `[-] orchestration failed: ${e instanceof Error ? e.message : String(e)}`,
-          metadata: { program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 },
-        }
+        ctx.metadata({ title: `azurehook: azure_orchestrate`, metadata: { program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 } })
+        return `[-] orchestration failed: ${e instanceof Error ? e.message : String(e)}`
       }
     }
 
@@ -1153,11 +1139,8 @@ export const AzurehookTool = Tool.define("azurehook", {
         result = await handler(safeArgs, effectiveTimeout)
       }
     } catch (e) {
-      return {
-        title: `azurehook: ${program}`,
-        output: `[-] ${program} failed: ${e instanceof Error ? e.message : String(e)}`,
-        metadata: { program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 },
-      }
+      ctx.metadata({ title: `azurehook: ${program}`, metadata: { program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 } })
+      return `[-] ${program} failed: ${e instanceof Error ? e.message : String(e)}`
     }
 
     const enriched = result.findings.map((f) => {
@@ -1199,17 +1182,14 @@ export const AzurehookTool = Tool.define("azurehook", {
         existing.add(key)
         reported++
       }
-      return {
+      ctx.metadata({
         title: `azurehook: ${program} (${enriched.length} findings, ${reported} reported${skipped ? `, ${skipped} skipped` : ""})`,
-        output: result.output,
         metadata: { program, findings: enriched, autoReported: reported, skippedDuplicates: skipped },
-      }
+      })
+      return result.output
     }
 
-    return {
-      title: `azurehook: ${program}`,
-      output: result.output,
-      metadata: { program, findings: enriched, autoReported: 0, skippedDuplicates: 0 },
-    }
+    ctx.metadata({ title: `azurehook: ${program}`, metadata: { program, findings: enriched, autoReported: 0, skippedDuplicates: 0 } })
+    return result.output
   },
 })
