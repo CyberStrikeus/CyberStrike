@@ -199,6 +199,29 @@ strictness. So an external package cannot cleanly typecheck against core today. 
 (a `types`/`exports` to dist), not raw src. Runtime already works; this is a build-config
 task for the publish milestone.
 
+## Publish milestone — status & remaining
+
+**DONE:** injection (`input.core`) so a domain plugin works in the compiled binary
+on every OS without importing the host; azure renamed to `@cyberstrike-io/azure`
+(free tier, `publishConfig.access:"public"`); azure verified end-to-end through the
+real `Plugin.list()` loader (26 agents). Azure's quality gate is its **runtime**
+loader tests, not isolated `tsc`.
+
+**REMAINING (deferred, needs a focused effort):**
+- **Core shipped as consumable types (`.d.ts`) for `cyberstrike/public`.** A domain
+  package only imports `cyberstrike/public` as a TYPE now (erased at runtime — runtime
+  works via injection), but isolated `tsc` of the package can't cleanly typecheck against
+  core's **raw source**: (1) core's `@/` aliases don't resolve in the package's context
+  (fixable with a `paths` map), and (2) irreducible friction remains — a **zod
+  version/instance skew** between the SDK's `tool()` and the package's zod, plus core
+  types degrading to `{}` through the raw-src path. A clean isolated typecheck needs core
+  to emit `.d.ts` declarations (a real build addition, since core builds a `bun --compile`
+  binary, not a typed library) + aligned zod. Until then, packages are verified by runtime
+  tests, which is sufficient (third parties INSTALL+RUN azure, they don't BUILD it).
+- **Actual `npm publish`** — remove `private:true`, `files` allow-list, then publish
+  `@cyberstrike-io/azure` (`--access public`) and the private `-pro` tiers (`--access
+  restricted`) via the org, gated on the token + explicit go-ahead.
+
 ## Invariants (do not compromise)
 1. Zero core edits to add a domain — the `provider` hook is the only surface.
 2. A broken/incompatible plugin degrades gracefully (skipped + surfaced), never crashes core.
