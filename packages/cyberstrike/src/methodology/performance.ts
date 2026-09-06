@@ -18,15 +18,10 @@ export namespace AgentPerformance {
   }
 
   const BONES: Record<string, Bones> = {
-    "web-application": {
-      codename: "STRIKER",
-      archetype: "aggressive",
-      strengths: ["exploit development", "chain building", "OWASP coverage"],
-    },
     "proxy-agent": {
       codename: "INTERCEPTOR",
       archetype: "methodical",
-      strengths: ["request analysis", "endpoint mapping", "traffic orchestration"],
+      strengths: ["request analysis", "endpoint mapping", "traffic orchestration", "exploit development", "OWASP coverage"],
     },
     explore: {
       codename: "GHOST",
@@ -300,6 +295,6 @@ export namespace AgentPerformance {
 
     candidates.sort((a, b) => b.score - a.score)
     const best = candidates[0]
-    return best ? { agent: best.name, reason: best.reason } : { agent: "web-application", reason: "default fallback" }
+    return best ? { agent: best.name, reason: best.reason } : { agent: "proxy-agent", reason: "default fallback" }
   }
 }

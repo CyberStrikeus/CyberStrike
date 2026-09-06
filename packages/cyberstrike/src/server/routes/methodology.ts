@@ -275,7 +275,6 @@ export const MethodologyRoutes = lazy(() =>
         const { sessionID } = c.req.valid("param")
         const rootSession = Session.root(sessionID)
         const agents = [
-          "web-application",
           "proxy-agent",
           "explore",
           "cloud-security",
@@ -378,7 +377,6 @@ export const MethodologyRoutes = lazy(() =>
         for (const r of requests) byMethod[r.method] = (byMethod[r.method] ?? 0) + 1
 
         const agents = [
-          "web-application",
           "proxy-agent",
           "explore",
           "cloud-security",

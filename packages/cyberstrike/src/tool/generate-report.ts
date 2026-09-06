@@ -21,7 +21,6 @@ const SEVERITY_ORDER: Record<string, number> = {
 }
 
 const AGENT_NAMES = [
-  "web-application",
   "proxy-agent",
   "explore",
   "cloud-security",
@@ -31,7 +30,6 @@ const AGENT_NAMES = [
 ] as const
 
 const AGENT_CODENAMES: Record<string, string> = {
-  "web-application": "STRIKER",
   "proxy-agent": "INTERCEPTOR",
   explore: "GHOST",
   "cloud-security": "AURORA",

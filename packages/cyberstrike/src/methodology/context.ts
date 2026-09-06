@@ -259,7 +259,7 @@ export namespace MethodologyContext {
       // Generate specific fix instructions per violation type
       if (v.gate === "per_asset_coverage" && v.affectedAsset) {
         const ranked = state.currentPhase ? AgentPerformance.selectAgentsForPhase(sessionID, state.currentPhase) : []
-        const agent = ranked[0]?.name ?? "web-application"
+        const agent = ranked[0]?.name ?? "proxy-agent"
         lines.push(`  FIX: Delegate to ${agent} — focus testing on ${v.affectedAsset}`)
       } else if (v.gate === "evidence_quality") {
         lines.push(
@@ -308,7 +308,7 @@ export namespace MethodologyContext {
         lines.push("")
         lines.push("### Coverage Gaps")
         for (const asset of neglected.slice(0, 5)) {
-          const rec = ranked.length > 0 ? ranked[0].name : "web-application"
+          const rec = ranked.length > 0 ? ranked[0].name : "proxy-agent"
           lines.push(`- **${asset.asset}**: ${asset.coveragePercent}% (avg ${Math.round(avg)}%) → delegate to ${rec}`)
         }
       }
@@ -383,8 +383,8 @@ export namespace MethodologyContext {
     // Priority 2: Blocking violations (high)
     for (const v of state.violations.filter((v) => v.severity === "blocking").slice(0, 3)) {
       const agent = state.currentPhase
-        ? (AgentPerformance.selectAgentsForPhase(sessionID, state.currentPhase)[0]?.name ?? "web-application")
-        : "web-application"
+        ? (AgentPerformance.selectAgentsForPhase(sessionID, state.currentPhase)[0]?.name ?? "proxy-agent")
+        : "proxy-agent"
       items.push({
         priority: "high",
         action: `Fix violation: ${v.gate}`,
@@ -401,7 +401,7 @@ export namespace MethodologyContext {
       items.push({
         priority: "high",
         action: `Start testing on untouched asset`,
-        agent: "web-application",
+        agent: "proxy-agent",
         asset: asset.asset,
         context: `${asset.totalChecks} VRT checks pending, 0% coverage`,
       })

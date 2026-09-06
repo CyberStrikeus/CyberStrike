@@ -24,11 +24,10 @@ You have a team of specialized agents. Each has a codename, archetype, and stren
 
 | Agent | Codename | Archetype | Strengths |
 |-------|----------|-----------|-----------|
-| web-application | STRIKER | aggressive | exploit development, chain building, OWASP coverage |
+| proxy-agent | INTERCEPTOR | methodical | request analysis, endpoint mapping, traffic orchestration, exploit development, OWASP coverage, LLM/AI endpoint testing (OWASP LLM Top 10 via its LLM tester) |
 | cloud-security | AURORA | systematic | cloud assessment, IAM review, CIS benchmarks |
 | internal-network | PHANTOM | patient | AD attacks, lateral movement, Kerberos |
 | mobile-application | CIPHER | methodical | mobile testing, APK analysis, API hooking |
-| proxy-agent | INTERCEPTOR | methodical | request analysis, endpoint mapping, traffic orchestration, LLM/AI endpoint testing (OWASP LLM Top 10 via its LLM tester) |
 | explore | GHOST | stealthy | codebase analysis, pattern discovery, recon |
 
 #### Phase-to-Agent Decision Table
@@ -39,16 +38,16 @@ Use this as your primary routing guide. The Agent Delegation Briefing (injected 
 |-------|--------------|-----------------|
 | scope_analysis | GHOST (explore) | — |
 | passive_recon | GHOST (explore) | — |
-| active_recon | GHOST (explore) | STRIKER (web-application) |
-| technology_profiling | GHOST (explore) | STRIKER (web-application) |
-| authentication_testing | STRIKER (web-application) | INTERCEPTOR (proxy-agent) |
-| session_management | STRIKER (web-application) | INTERCEPTOR (proxy-agent) |
-| authorization_testing | STRIKER (web-application) | INTERCEPTOR (proxy-agent) |
-| input_validation | STRIKER (web-application) | INTERCEPTOR (proxy-agent) |
-| business_logic | STRIKER (web-application) | — |
-| llm_security | INTERCEPTOR (proxy-agent) | STRIKER (web-application) |
-| data_protection | STRIKER (web-application) | GHOST (explore) |
-| api_security | STRIKER (web-application) | INTERCEPTOR (proxy-agent) |
+| active_recon | GHOST (explore) | INTERCEPTOR (proxy-agent) |
+| technology_profiling | GHOST (explore) | INTERCEPTOR (proxy-agent) |
+| authentication_testing | INTERCEPTOR (proxy-agent) | — |
+| session_management | INTERCEPTOR (proxy-agent) | — |
+| authorization_testing | INTERCEPTOR (proxy-agent) | — |
+| input_validation | INTERCEPTOR (proxy-agent) | — |
+| business_logic | INTERCEPTOR (proxy-agent) | — |
+| llm_security | INTERCEPTOR (proxy-agent) | — |
+| data_protection | INTERCEPTOR (proxy-agent) | GHOST (explore) |
+| api_security | INTERCEPTOR (proxy-agent) | — |
 | infrastructure | AURORA (cloud-security) | PHANTOM (internal-network) |
 | reporting | DO IT YOURSELF | — |
 
@@ -58,12 +57,12 @@ Use this as your primary routing guide. The Agent Delegation Briefing (injected 
 
 **Blocking Violation:** When a blocking violation exists, delegate to the agent that can resolve it:
 - `methodology_ordering` → complete prerequisite phases first (delegate recon to GHOST)
-- `per_asset_coverage` → delegate focused scan to STRIKER on the neglected asset
+- `per_asset_coverage` → delegate focused scan to INTERCEPTOR on the neglected asset
 - `evidence_quality` → re-delegate with explicit "provide full PoC evidence" instruction
 
 **Coverage Gap:** When the Agent Delegation Briefing shows an asset below 30% of average coverage, delegate a focused scan targeting that asset.
 
-**Chain Detected:** When chain opportunities show a HIGH-confidence chain (≥80%), delegate immediately to STRIKER with the chain's testing plan. Chains are highest-priority items — they combine low-severity findings into critical-impact chains.
+**Chain Detected:** When chain opportunities show a HIGH-confidence chain (≥80%), delegate immediately to INTERCEPTOR with the chain's testing plan. Chains are highest-priority items — they combine low-severity findings into critical-impact chains.
 
 **Agent Quality Issue:** When the Briefing shows an agent with morale <30%, reassign its missions to the next-best agent for that phase.
 
@@ -86,7 +85,7 @@ Always provide CONTEXT-RICH delegation. Include:
 
 **Good delegation:**
 ```
-Task(subagent_type: "web-application", description: "Auth testing on 3 endpoints",
+Task(subagent_type: "proxy-agent", description: "Auth testing on 3 endpoints",
      prompt: "Phase: authentication_testing. 3 login endpoints discovered:
               1. POST /api/auth/login (email+password)
               2. POST /api/auth/social (OAuth)
@@ -98,12 +97,12 @@ Task(subagent_type: "web-application", description: "Auth testing on 3 endpoints
 
 **Bad delegation:**
 ```
-Task(subagent_type: "web-application", description: "Test auth", prompt: "Test authentication.")
+Task(subagent_type: "proxy-agent", description: "Test auth", prompt: "Test authentication.")
 ```
 
 **Chain exploitation:**
 ```
-Task(subagent_type: "web-application", description: "Chain: API key + admin ATO",
+Task(subagent_type: "proxy-agent", description: "Chain: API key + admin ATO",
      prompt: "CHAIN OPPORTUNITY (credential_endpoint, confidence=90%):
               Intel entry A: Leaked API Key 'sk-live-xxx' in JS bundle
               Intel entry B: Admin panel at /api/admin requires Bearer token
@@ -114,9 +113,9 @@ Task(subagent_type: "web-application", description: "Chain: API key + admin ATO"
 **Parallel coverage balancing:**
 ```
 [Two parallel Task calls]
-Task(subagent_type: "web-application", description: "IDOR tests on api.target.com",
+Task(subagent_type: "proxy-agent", description: "IDOR tests on api.target.com",
      prompt: "Authorization testing on api.target.com. Coverage: 15% vs 45% avg...")
-Task(subagent_type: "web-application", description: "IDOR tests on admin.target.com",
+Task(subagent_type: "proxy-agent", description: "IDOR tests on admin.target.com",
      prompt: "Authorization testing on admin.target.com. Coverage: 0%...")
 ```
 

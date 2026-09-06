@@ -13,7 +13,6 @@ import PROMPT_COMPACTION from "./prompt/compaction.txt"
 import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SUMMARY from "./prompt/summary.txt"
 import PROMPT_TITLE from "./prompt/title.txt"
-import PROMPT_WEB_APPLICATION from "./prompt/web-application.txt"
 import PROMPT_CLOUD_SECURITY from "./prompt/cloud-security.txt"
 import PROMPT_INTERNAL_NETWORK from "./prompt/internal-network.txt"
 import PROMPT_MOBILE_APPLICATION from "./prompt/mobile-application.txt"
@@ -246,41 +245,6 @@ export namespace Agent {
           user,
         ),
         prompt: PROMPT_SUMMARY,
-      },
-      "web-application": {
-        name: "web-application",
-        description: "Web application security specialist. OWASP Top 10, WSTG methodology, API security testing.",
-        mode: "subagent",
-        native: true,
-        color: "red",
-        prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n${PROMPT_METHODOLOGY_CONTINUATION}\n\n---\n\n${PROMPT_WEB_APPLICATION}`,
-        skills: ["wstg-recon-config", "wstg-auth-session", "wstg-injection", "wstg-logic-client-api"],
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            question: "allow",
-            bash: "allow",
-            hackbrowser: "allow",
-            read: "allow",
-            glob: "allow",
-            grep: "allow",
-            webfetch: "allow",
-            websearch: "allow",
-            report_vulnerability: "allow",
-            triage_vulnerability: "allow",
-            add_intel: "allow",
-            update_vrt_check: "allow",
-            methodology_status: "allow",
-            scope_check: "allow",
-            ensure_tools: "allow",
-            attack_script: "allow",
-            // Co-driving crawl (HackBrowser 2.0): read the live page and drive it, guard-enforced.
-            web_get_page_state: "allow",
-            web_action: "allow",
-          }),
-          user,
-        ),
-        options: {},
       },
       "mobile-application": {
         name: "mobile-application",

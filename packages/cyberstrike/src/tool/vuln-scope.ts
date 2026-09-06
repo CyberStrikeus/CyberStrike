@@ -8,7 +8,7 @@
 // cross-role findings on a single request; o4-mini 0 — a capability-driven drift
 // that prompt rules can't stop).
 //
-// Non-tester agents (cyberstrike, web-application, …) are unrestricted.
+// Non-tester agents (cyberstrike, proxy-agent, …) are unrestricted.
 
 export const TESTER_VRT_SCOPE: Record<string, string[]> = {
   idor: ["idor", "bola"],
