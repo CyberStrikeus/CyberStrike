@@ -1,11 +1,22 @@
-# inject-probe Refactor Plan
+# inject-probe Refactor Plan — ✅ COMPLETE
 
-**Source:** `src/tool/inject-probe.ts` (1859 lines, 89KB)
+**Source:** `src/tool/inject-probe.ts` (1859 lines, 89KB) → `src/tool/inject-probe/` (17 modules)
 **Goal:** Transform from an isolated monolith into a modular, fabric-integrated, testable injection engine — without losing a single payload or security insight.
+**Status:** ALL PHASES COMPLETE (R0–R6). 7 commits on `web-workflow`. 448 tests pass (268 inject-probe + 180 signal+webhook), 0 failures, `tsc --noEmit` clean.
+
+| Phase | Commit | Date |
+|-------|--------|------|
+| R0 — Extract modules | `d08466671e` | 2026-09-05 |
+| R1 — Governed send | `63cee169db` | 2026-09-05 |
+| R2 — Shared probe runner | `908e36cb0f` | 2026-09-05 |
+| R3 — Canary registration | `e7dd40ed07` | 2026-09-05 |
+| R4 — Signal write-back | `6e062e66c4` | 2026-09-05 |
+| R5 — HPP + adaptive back-off | `988e1d611f` | 2026-09-05 |
+| R6 — Unit tests | `3651f4b82f` | 2026-09-05 |
 
 ---
 
-## Current State
+## Current State (pre-refactor, historical)
 
 A single `Tool.define("inject_probe")` containing everything: payload constants, request mutation, 5 probe functions, multipart surgery, WAF detection, context classification, and the Zod tool definition. Uses raw `fetch()` (bypasses governed send), has zero canary integration, zero signal write-back, zero unit tests.
 
@@ -33,7 +44,7 @@ A single `Tool.define("inject_probe")` containing everything: payload constants,
 
 Each phase is independently mergeable and testable. Later phases depend on earlier ones.
 
-### R0 — Extract modules (no behavior change)
+### R0 — Extract modules (no behavior change) — ✅ DONE (`d08466671e`)
 
 **Goal:** Break the monolith into importable, testable modules. No logic change, no new features.
 
@@ -71,7 +82,7 @@ src/tool/inject-probe/
 
 ---
 
-### R1 — Replace raw fetch() with injected HttpSender
+### R1 — Replace raw fetch() with injected HttpSender — ✅ DONE (`63cee169db`)
 
 **Goal:** Comply with §05 invariant-2 (all sends via governed transport). Unlock testability.
 
@@ -103,7 +114,7 @@ const result: ProbeResponse = await sender.send(probe)
 
 ---
 
-### R2 — Extract shared probe runner
+### R2 — Extract shared probe runner — ✅ DONE (`908e36cb0f`)
 
 **Goal:** Eliminate the 5× duplication of baseline → fire → check block → match → record.
 
@@ -140,7 +151,7 @@ async function runProbe<T>(
 
 ---
 
-### R3 — Canary registration
+### R3 — Canary registration — ✅ DONE (`e7dd40ed07`)
 
 **Goal:** Every marker/nonce inject_probe sends gets registered as a canary. Stored/second-order injection becomes detectable by the signal fabric.
 
@@ -175,7 +186,7 @@ async function runProbe<T>(
 
 ---
 
-### R4 — Signal write-back
+### R4 — Signal write-back — ✅ DONE (`6e062e66c4`)
 
 **Goal:** Feed inject_probe's elicited responses through the signal fabric's detectors.
 
@@ -195,7 +206,7 @@ async function runProbe<T>(
 
 ---
 
-### R5 — HPP mode + adaptive back-off
+### R5 — HPP mode + adaptive back-off — ✅ DONE (`988e1d611f`)
 
 **Goal:** Close INPV-04 gap and improve behavior on rate-limited targets.
 
@@ -219,7 +230,7 @@ Add `"hpp"` to the `vuln_type` enum. The probe sends each injection class's payl
 
 ---
 
-### R6 — Unit tests
+### R6 — Unit tests — ✅ DONE (`3651f4b82f`)
 
 **Goal:** Regression-proof every module extracted in R0-R5.
 
@@ -299,3 +310,24 @@ After R3+R4:
 | R5 | Small | 0.5 | Yes (after R0+R2) |
 | R6 | Medium-Large | 1-2 (incremental) | Yes (per module) |
 | **Total** | | **5-8 sessions** | |
+
+---
+
+## Completion Summary (2026-09-05)
+
+All 7 phases shipped in a single day on `web-workflow`. The monolith is gone.
+
+**Test coverage:** 268 inject-probe tests across 7 new + 13 modernized test files. Combined with 180 signal+webhook tests = 448 total, 0 failures.
+
+**Key outcomes:**
+- 1859-line monolith → 17 modules in `src/tool/inject-probe/`
+- Raw `fetch()` → governed transport (`ReplaySender` → `governedSend()`)
+- 5× duplicated probe loop → shared `fireLoop<P,T>` in `base.ts`
+- Zero canary registration → `CanaryRegistry` + `DbCanaryStore` for cross-response correlation
+- Zero signal write-back → `scanProbeResponse()` feeds 13 passive detectors on every response
+- No HPP → `probeHppPoint()` with parser-behavior classification (first-wins/last-wins/both)
+- No backoff → adaptive `BackoffState` machine (500ms→skip-point→2000ms)
+- Zero tests → 268 tests with mock `HttpSender`
+- vuln_type enum: 8 classes → 9 (added `hpp`)
+
+**Before/after comparison:** See `docs/inject-probe-before-after.md` for a detailed WAF-protected scenario walkthrough.
