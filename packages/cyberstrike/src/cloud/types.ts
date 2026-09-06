@@ -11,6 +11,16 @@ export namespace CloudAnalysis {
     description: string
   }
 
+  // Result shape of AssessmentProvider.classify(). Domain-agnostic: the finding
+  // arrays are `unknown[]` here (orchestration only reads their length + the key);
+  // a domain (e.g. azure) narrows the elements to its own finding type in its
+  // provider, which stays structurally assignable to this contract.
+  export interface ClassifiedGroup {
+    key: string
+    formulaic: unknown[]
+    investigate: unknown[]
+  }
+
   // ── Phase tracking ────────────────────────────────────────────
 
   export const Phase = z.enum([

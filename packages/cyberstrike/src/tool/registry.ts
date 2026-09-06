@@ -50,12 +50,10 @@ import { WebUpdateCredentialTool } from "./web-update-credential"
 import { CsrfExtractTool } from "./csrf-extract"
 import { HackbrowserTool } from "./hackbrowser"
 import { AddIntelTool } from "./intel"
-import { GetCloudIntelTool, GetCloudGroupsTool } from "./cloud-intel"
 import { CloudRecordAssetTool } from "./cloud-record-asset"
 import { CloudRecordEdgeTool } from "./cloud-record-edge"
 import { CloudRecordExposureTool } from "./cloud-record-exposure"
 import { CloudGetContextTool } from "./cloud-get-context"
-import { GetAssessGroupFindingsTool } from "./assess-findings"
 import { EnrichVulnerabilityTool } from "./enrich-vulnerability"
 import { UpdateVrtCheckTool } from "./vrt-check"
 import { RecordCoverageNoteTool, GetCoverageNotesTool } from "./coverage-note"
@@ -74,7 +72,6 @@ import { WinhookTool } from "./winhook"
 import { MachookTool } from "./machook"
 import { LinuxhookTool } from "./linuxhook"
 import { AwshookTool } from "./awshook"
-import { AzurehookTool } from "./azurehook"
 import { KubehookTool } from "./kubehook"
 import { GcphookTool } from "./gcphook"
 import { ContainerhookTool } from "./containerhook"
@@ -215,13 +212,10 @@ export namespace ToolRegistry {
       HackbrowserTool,
       // Methodology Engine Tools — intelligence, coverage, chain detection
       AddIntelTool,
-      GetCloudIntelTool,
-      GetCloudGroupsTool,
       CloudRecordAssetTool,
       CloudRecordEdgeTool,
       CloudRecordExposureTool,
       CloudGetContextTool,
-      GetAssessGroupFindingsTool,
       EnrichVulnerabilityTool,
       UpdateVrtCheckTool,
       RecordCoverageNoteTool,
@@ -236,7 +230,6 @@ export namespace ToolRegistry {
       MachookTool,
       LinuxhookTool,
       AwshookTool,
-      AzurehookTool,
       KubehookTool,
       GcphookTool,
       ContainerhookTool,

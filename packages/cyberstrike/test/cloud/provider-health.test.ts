@@ -35,12 +35,11 @@ describe("providerHealth", () => {
     expect(web!.ruleCount).toBeGreaterThan(0)
   })
 
-  test("healthy built-in registry reports ok=true and no collisions", async () => {
+  test("healthy built-in registry reports the web domain without load errors", async () => {
     const report = await providerHealth()
-    // built-ins alone are healthy (this may include leftover fake domains from
-    // other suites, but those are valid and collision-free)
-    expect(report.loadErrors.filter((e) => e.domain === "web" || e.domain === "azure")).toEqual([])
-    expect(report.totalAgents).toBeGreaterThan(13)
+    // web is the only built-in now (azure ships as a package); it must load clean.
+    expect(report.loadErrors.filter((e) => e.domain === "web")).toEqual([])
+    expect(report.totalAgents).toBeGreaterThanOrEqual(13) // web contributes 13
   })
 
   test("a broken provider shows as loaded:false with its error, ok=false", async () => {

@@ -1,5 +1,4 @@
 import type { CloudAnalysis } from "./types"
-import type { ClassifiedGroup } from "./classify"
 
 // The domain-provider contract (agents + permissions) lives in the plugin SDK so
 // installed domain packages and the host share one vocabulary. Re-exported here
@@ -20,7 +19,7 @@ export interface AssessmentProvider extends DomainProvider {
 
   validate(rootSession: string): { ok: true; totalFindings: number } | { ok: false; reason: string }
   findingCount(rootSession: string, groupKey: string): number
-  classify(rootSession: string, groups: CloudAnalysis.GroupDef[]): ClassifiedGroup[]
+  classify(rootSession: string, groups: CloudAnalysis.GroupDef[]): CloudAnalysis.ClassifiedGroup[]
 
   analystPrompt(group: CloudAnalysis.GroupDef, identityContext: string, slice?: string): string
   batchPrompt(groupKeys: string[], identityContext: string): string

@@ -29,19 +29,20 @@ function fakeProvider(key: string, agentNames: string[]): DomainProvider {
 }
 
 describe("ProviderRegistry", () => {
-  test("built-in domains web + azure are registered", () => {
+  test("web is the built-in domain; azure is a package, not built-in", () => {
     const domains = registeredDomains()
     expect(domains).toContain("web")
-    expect(domains).toContain("azure")
+    // azure moved to @cyberstrike-io-ent/azure — it registers via the plugin
+    // `provider` hook when installed, NOT as a core built-in.
+    expect(domains).not.toContain("azure")
   })
 
-  test("resolveProviders loads built-ins (web agents present)", async () => {
+  test("resolveProviders loads the web built-in (agents present, no error)", async () => {
     const { providers, errors } = await resolveProviders()
     const web = providers.find((p) => p.key === "web")
     expect(web).toBeDefined()
     expect(web!.agentSpecs().some((s) => s.name === "hunt-agent")).toBe(true)
-    // built-ins must not error
-    expect(errors.find((e) => e.key === "web" || e.key === "azure")).toBeUndefined()
+    expect(errors.find((e) => e.key === "web")).toBeUndefined()
   })
 
   test("a throwing factory is skipped, not fatal; others still resolve", async () => {
@@ -121,11 +122,30 @@ describe("ProviderRegistry", () => {
 })
 
 describe("C10 — pluggable workflow entry (assessment provider resolution)", () => {
-  test("the built-in azure domain resolves from the registry as an AssessmentProvider", async () => {
-    const azure = await resolveProvider("azure")
-    expect(azure).toBeDefined()
-    expect(azure!.key).toBe("azure")
-    expect(isAssessmentProvider(azure!)).toBe(true)
+  test("a registered assessment domain resolves from the registry and narrows", async () => {
+    // Azure now ships as a package; the C10 entry (azurehook) resolves whatever
+    // assessment provider is registered under "azure". Simulate that registration
+    // and verify the resolve + isAssessmentProvider narrowing the entry relies on.
+    registerProvider("assess-c10", () => ({
+      key: "assess-c10",
+      agentSpecs: () => [],
+      groups: () => [],
+      identityGroup: () => null,
+      parallelGroups: () => [],
+      validate: () => ({ ok: true as const, totalFindings: 0 }),
+      findingCount: () => 0,
+      classify: () => [],
+      analystPrompt: () => "",
+      batchPrompt: () => "",
+      verifyPrompt: () => "",
+      followupPrompt: () => "",
+      identityContext: () => "",
+    }))
+    const resolved = await resolveProvider("assess-c10")
+    expect(resolved).toBeDefined()
+    expect(isAssessmentProvider(resolved!)).toBe(true)
+    // cleanup
+    registerProvider("assess-c10", () => fakeProvider("assess-c10", []))
   })
 
   test("isAssessmentProvider rejects a thin agents-only provider", () => {
