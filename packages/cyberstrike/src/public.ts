@@ -13,6 +13,9 @@
 // Importing this module does not pull the whole app: it re-exports specific
 // runtime services, not the server or CLI.
 
+// ── Compatibility boundary — a package pins the core API version it needs ──
+export { CORE_API_VERSION, requireCoreApi, coreApiSatisfies } from "./cloud/core-api"
+
 // ── Contract (re-exported from the SDK so a package has one import for both) ──
 export type {
   AgentSpec,

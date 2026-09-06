@@ -28,15 +28,24 @@ describe("core public API surface", () => {
     expect(Public.registeredDomains()).toContain("web")
   })
 
+  test("exposes the compatibility boundary", () => {
+    expect(typeof Public.CORE_API_VERSION).toBe("string")
+    expect(typeof Public.requireCoreApi).toBe("function")
+    expect(typeof Public.coreApiSatisfies).toBe("function")
+  })
+
   test("the full boundary member set is present (drop = fail = version bump)", () => {
     const members = Object.keys(Public).sort()
     expect(members).toEqual(
       [
+        "CORE_API_VERSION",
         "Intel",
+        "coreApiSatisfies",
         "isAssessmentProvider",
         "orchestrateLayer2",
         "registerProvider",
         "registeredDomains",
+        "requireCoreApi",
         "resolveProvider",
         "triageActions",
         "triageGuide",
