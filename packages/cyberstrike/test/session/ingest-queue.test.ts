@@ -41,7 +41,7 @@ describe("IngestQueue.enqueue", () => {
     })
   })
 
-  test("runs tasks sequentially in enqueue order", async () => {
+  test("runs tasks concurrently up to the semaphore limit", async () => {
     await withInstance(async () => {
       const sid = "s2"
       const order: number[] = []
@@ -56,12 +56,12 @@ describe("IngestQueue.enqueue", () => {
         order.push(2)
       })
       expect(IngestQueue.pendingCount(sid)).toBe(2)
-      b.resolve() // even if b ready first, must wait for a
-      await new Promise((r) => setTimeout(r, 5))
-      expect(order).toEqual([])
+      b.resolve() // with concurrency, b can complete before a
+      await new Promise((r) => setTimeout(r, 10))
+      expect(order).toEqual([2])
       a.resolve()
       await new Promise((r) => setTimeout(r, 10))
-      expect(order).toEqual([1, 2])
+      expect(order).toEqual([2, 1])
       expect(IngestQueue.pendingCount(sid)).toBe(0)
     })
   })

@@ -1,19 +1,21 @@
 import { Instance } from "@/project/instance"
 import { Log } from "@/util/log"
+import { Semaphore } from "@/util/semaphore"
 import { SessionQueueStatus } from "./queue-status"
 
 const log = Log.create({ service: "ingest-queue" })
 
-// A single ingested request's sub-agent (hunt-tester / analyzer) shouldn't run longer than this;
-// tasks are chained (sequential), so a HUNG one would stall EVERY later test on the session. On
-// timeout we abandon it and let the queue advance. FLAG: this is a deadline watchdog on the queue
-// slot — it does NOT hard-abort the underlying sub-agent (no AbortSignal is threaded into
-// SessionPrompt yet), so the hung run keeps consuming in the background until it errors on its own.
 const TASK_TIMEOUT_MS = 180_000
 
-// Run a task with a deadline. Resolves/rejects with the task's outcome if it settles in time; on
-// timeout rejects with "ingest-task-timeout" so the chain's error handler advances the queue. The
-// timer is always cleared (no leak), and a double-settle can't happen.
+const DEFAULT_CONCURRENCY = 3
+
+function getConcurrency(): number {
+  const env = process.env.CYBERSTRIKE_INGEST_CONCURRENCY
+  if (!env) return DEFAULT_CONCURRENCY
+  const n = parseInt(env, 10)
+  return Number.isFinite(n) && n >= 1 ? n : DEFAULT_CONCURRENCY
+}
+
 function runWithTimeout(sessionID: string, task: () => Promise<unknown>, ms: number): Promise<unknown> {
   return new Promise((resolve, reject) => {
     let done = false
@@ -44,7 +46,7 @@ function runWithTimeout(sessionID: string, task: () => Promise<unknown>, ms: num
 
 export namespace IngestQueue {
   type State = {
-    chain: Promise<void>
+    sem: Semaphore
     paused: boolean
     pending: number
     resumeSignal: Promise<void> | null
@@ -60,7 +62,7 @@ export namespace IngestQueue {
     let s = state()[sessionID]
     if (!s) {
       s = {
-        chain: Promise.resolve(),
+        sem: new Semaphore(getConcurrency()),
         paused: false,
         pending: 0,
         resumeSignal: null,
@@ -104,21 +106,27 @@ export namespace IngestQueue {
     publish(sessionID)
 
     const ms = opts?.timeoutMs ?? TASK_TIMEOUT_MS
-    const next = s.chain
-      .then(() => waitIfPaused(sessionID)) // pause time is NOT counted against the task deadline
-      .then(() => runWithTimeout(sessionID, task, ms))
-      .then(
-        () => {},
-        (err) => log.error("ingest prompt failed", { sessionID, error: err }),
-      )
-      .then(() => {
+
+    // Each enqueue fires independently; the Semaphore gates concurrency (FIFO).
+    // waitIfPaused runs BEFORE acquire so paused tasks don't hold semaphore slots.
+    void (async () => {
+      try {
+        await waitIfPaused(sessionID)
+        await s.sem.acquire()
+        try {
+          await runWithTimeout(sessionID, task, ms)
+        } catch (err) {
+          log.error("ingest prompt failed", { sessionID, error: err })
+        } finally {
+          s.sem.release()
+        }
+      } finally {
         const cur = state()[sessionID]
         if (cur) cur.pending = Math.max(0, cur.pending - 1)
         publish(sessionID)
         maybeCleanup(sessionID)
-      })
-
-    s.chain = next
+      }
+    })()
   }
 
   export function pause(sessionID: string) {
