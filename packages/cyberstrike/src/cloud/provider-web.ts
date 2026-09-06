@@ -173,6 +173,50 @@ export function buildClassAgentMap(defs: ReadonlyArray<{ name: string; specialis
   return map
 }
 
+// Placeholder the orchestrator prompt carries where the SpecialistClass → agent
+// retest-routing table belongs. Replaced at assembly time with the rendered table
+// so the prompt never hand-restates a mapping that lives in code (closes the old
+// prose drift). create() throws if the orchestrator prompt lost this token.
+export const SIGNAL_ROUTING_PLACEHOLDER = "{{SIGNAL_ROUTING_TABLE}}"
+
+/**
+ * Render the new_signal retest routing table (SpecialistClass → agent) for the
+ * orchestrator prompt, FROM the code map — not hand-written prose. Only classes a
+ * signal actually routes to appear (distinct signal owners, in SignalType order);
+ * client-side has no agent and is handled as static prose in the prompt.
+ */
+export function renderSignalRoutingTable(
+  classAgent: ReadonlyMap<SpecialistClass, string>,
+  router: SignalRouter,
+): string {
+  const seen = new Set<SpecialistClass>()
+  const rows: string[] = []
+  for (const type of SignalRouter.signalTypes()) {
+    const owner = router.ownerOf(type)
+    if (seen.has(owner)) continue
+    seen.add(owner)
+    const agent = classAgent.get(owner)
+    if (!agent) continue // assertSignalCoverage guarantees this is unreachable
+    rows.push(`| \`${owner}\` | ${agent} |`)
+  }
+  return ["| Specialist class | Agent name |", "|-----------------|------------|", ...rows].join("\n")
+}
+
+/**
+ * Replace the routing-table placeholder in the orchestrator prompt with the
+ * rendered table. Throws if the placeholder is missing — a prompt edit that drops
+ * it would silently ship an orchestrator with no retest routing, so we fail loud.
+ */
+function injectRoutingTable(agentName: string, prompt: string, table: string): string {
+  if (!prompt.includes(SIGNAL_ROUTING_PLACEHOLDER)) {
+    throw new Error(
+      `WebProvider: orchestrator "${agentName}" prompt is missing the ${SIGNAL_ROUTING_PLACEHOLDER} placeholder — ` +
+        `the signal-routing table cannot be injected.`,
+    )
+  }
+  return prompt.replace(SIGNAL_ROUTING_PLACEHOLDER, table)
+}
+
 /**
  * Assert every class the signal router can route to has an owning agent. A signal
  * whose owner class resolves to no agent would enqueue a retest nobody can run —
@@ -205,16 +249,18 @@ export class WebProvider implements DomainProvider {
   }
 
   static async create(): Promise<WebProvider> {
+    const router = new SignalRouter()
     const defs = await buildSpecDefs()
     const classAgent = buildClassAgentMap(defs)
-    assertSignalCoverage(classAgent, new SignalRouter())
+    assertSignalCoverage(classAgent, router)
+    const routingTable = renderSignalRoutingTable(classAgent, router)
     const specs = defs.map((d) => ({
       name: d.name,
       role: d.role,
       description: (d.description.split("\n")[0] ?? d.description).trim(),
       steps: d.steps ?? 50,
       color: d.color ?? "cyan",
-      prompt: d.prompt,
+      prompt: d.role === "orchestrator" ? injectRoutingTable(d.name, d.prompt, routingTable) : d.prompt,
       skills: d.skills,
       permissions: d.permissions,
       hidden: d.hidden,

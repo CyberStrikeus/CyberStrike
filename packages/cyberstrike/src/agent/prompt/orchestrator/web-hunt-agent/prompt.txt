@@ -379,15 +379,9 @@ detector fired on a response. The `trigger_source` field is `signal_type:special
 
 **Dispatch the OWNING specialist only** — not the full routing table. Use this mapping:
 
-| Specialist class | Agent name |
-|-----------------|------------|
-| `injection` | hunt-injection |
-| `misconfiguration` | hunt-misconfig |
-| `auth-session` | hunt-authn |
-| `access-control` | hunt-authz |
-| `business-logic` | hunt-business-logic |
-| `recon` | hunt-recon |
-| `client-side` | (P2 — note the signal for manual review) |
+{{SIGNAL_ROUTING_TABLE}}
+
+(`client-side` signals have no P2 agent yet — note them for manual review.)
 
 Example: `trigger_source: "exposed_artifact:misconfiguration"` → dispatch `hunt-misconfig`
 with prompt: "Signal fabric detected an exposed artifact on request <request_id>. Confirm this

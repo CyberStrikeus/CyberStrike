@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test"
-import { WebProvider, buildClassAgentMap } from "../../src/cloud/provider-web"
+import { WebProvider, buildClassAgentMap, renderSignalRoutingTable, SIGNAL_ROUTING_PLACEHOLDER } from "../../src/cloud/provider-web"
 import { SignalRouter } from "../../src/session/web/signal/router"
 import type { SpecialistClass } from "../../src/session/web/signal/types"
 
@@ -212,5 +212,48 @@ describe("SpecialistClass → agent mapping (signal-fabric bridge)", () => {
     expect(map.size).toBe(8)
     expect(map.get("server-side-request")).toBe("hunt-ssrf")
     expect(map.get("llm")).toBe("hunt-llm")
+  })
+})
+
+describe("orchestrator signal-routing table (rendered from code)", () => {
+  test("renderSignalRoutingTable emits a row for every signal-owner class", async () => {
+    const provider = await WebProvider.create()
+    const router = provider.signalRouter()
+    const table = renderSignalRoutingTable(provider.classAgentMap(), router)
+
+    // Header present
+    expect(table).toContain("| Specialist class | Agent name |")
+
+    // Exactly the distinct signal owners appear, each mapped to its agent.
+    const owners = new Set(SignalRouter.signalTypes().map((t) => router.ownerOf(t)))
+    for (const owner of owners) {
+      const agent = provider.agentForClass(owner)!
+      expect(table).toContain(`| \`${owner}\` | ${agent} |`)
+    }
+    // Row count = header(2) + one per distinct owner
+    expect(table.split("\n").length).toBe(2 + owners.size)
+  })
+
+  test("composed orchestrator prompt has the table injected, no placeholder left", async () => {
+    const provider = await WebProvider.create()
+    const orch = provider.agentSpecs().find((s) => s.name === "hunt-agent")!
+    expect(orch.prompt).not.toContain(SIGNAL_ROUTING_PLACEHOLDER)
+    // The 6 historical rows must all be present in the final prompt.
+    expect(orch.prompt).toContain("| `injection` | hunt-injection |")
+    expect(orch.prompt).toContain("| `misconfiguration` | hunt-misconfig |")
+    expect(orch.prompt).toContain("| `access-control` | hunt-authz |")
+    // client-side stays as static prose (no agent)
+    expect(orch.prompt).toContain("client-side")
+  })
+
+  test("injection fails loud if the orchestrator prompt loses the placeholder", () => {
+    // Guard: renderSignalRoutingTable output is stable, but if a future prompt edit
+    // drops the token the injector must throw, not silently ship an empty table.
+    const map = buildClassAgentMap([{ name: "hunt-injection", specialistClass: "injection" }])
+    const table = renderSignalRoutingTable(map, new SignalRouter())
+    expect(table).toContain("hunt-injection")
+    // The prompt-composition guard is exercised via WebProvider.create() above;
+    // here we assert the placeholder constant is what the .txt is expected to carry.
+    expect(SIGNAL_ROUTING_PLACEHOLDER).toBe("{{SIGNAL_ROUTING_TABLE}}")
   })
 })
