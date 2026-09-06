@@ -1,8 +1,8 @@
 import type { CloudAnalysis } from "./types"
 import type { ClassifiedGroup } from "./classify"
 
-type PermissionAction = "ask" | "allow" | "deny"
-type PermissionRule = PermissionAction | Record<string, PermissionAction>
+export type PermissionAction = "ask" | "allow" | "deny"
+export type PermissionRule = PermissionAction | Record<string, PermissionAction>
 
 export interface AgentSpec {
   name: string

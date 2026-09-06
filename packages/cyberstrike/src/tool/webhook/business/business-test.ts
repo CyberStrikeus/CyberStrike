@@ -10,12 +10,11 @@
 // HttpSender, no socket).
 import z from "zod"
 import { Tool } from "../../tool"
-import { Session } from "../../../session"
-import { ReplaySender, type HttpSender, type ProbeRequest } from "../transport"
-import { resolveCapturedRequest } from "../resolve"
+import { webhookContext, toolResult, toolError } from "../define"
 import { SignalStore } from "../../../session/web/signal/store"
 import { BusinessProbe, type BoundaryProbeReport } from "./probe"
 import type { RaceReport } from "./race"
+import type { HttpSender, ProbeRequest } from "../transport"
 import { WorkflowSkip, type WorkflowStep } from "./workflow"
 
 export namespace BusinessTest {
@@ -149,23 +148,24 @@ export const BusinessTestTool = Tool.define("business_test", {
     step_request_ids: z.array(z.string()).optional().describe("workflow: ordered list of captured request_ids forming a business flow."),
   }),
   async execute(params, ctx) {
-    const sessionID = Session.root(ctx.sessionID)
-    const err = (output: string) => ({ title: "business_test", output, metadata: {} })
+    const wctx = webhookContext(ctx)
+    const NAME = "business_test"
+    const err = (msg: string) => toolError(NAME, msg)
 
     if (params.mode === "race" || params.mode === "boundary") {
       if (!params.request_id) return err("race/boundary mode requires request_id.")
-      const resolved = resolveCapturedRequest(sessionID, params.request_id)
+      const resolved = wctx.resolve(params.request_id)
       if ("error" in resolved) return err(resolved.error)
 
       if (params.mode === "race") {
         const result = await BusinessTest.run(
           { mode: "race", request: resolved, count: params.count, concurrency: params.concurrency },
-          new ReplaySender({ signal: ctx.abort }),
+          wctx.sender,
         )
         if ("error" in result) return err(result.error)
         const r = result as BusinessTest.RaceResult
         if (r.report.rateLimitAbsent) {
-          new SignalStore(sessionID).record({
+          new SignalStore(wctx.sessionID).record({
             type: "rate_limit_absent",
             owner: "business-logic",
             requestId: params.request_id,
@@ -174,20 +174,20 @@ export const BusinessTestTool = Tool.define("business_test", {
           })
         }
         const label = r.report.inconsistent ? `TOCTOU signals detected (${r.report.signals.length})` : "no race condition detected"
-        return { title: `business_test race: ${label}`, output: JSON.stringify(r.report, null, 2), metadata: {} }
+        return toolResult(NAME + " race", label, r.report)
       }
 
       // boundary
       if (!params.field) return err("boundary mode requires field (the query parameter to sweep).")
       const result = await BusinessTest.run(
         { mode: "boundary", request: resolved, field: params.field, fieldClass: params.field_class, limit: params.limit },
-        new ReplaySender({ signal: ctx.abort }),
+        wctx.sender,
       )
       if ("error" in result) return err(result.error)
       const b = result as BusinessTest.BoundaryResult
       const anomalyCount = b.report.anomalies.length
       const label = anomalyCount > 0 ? `${anomalyCount} anomal${anomalyCount === 1 ? "y" : "ies"} detected` : "no anomalies"
-      return { title: `business_test boundary: ${label}`, output: JSON.stringify(b.report, null, 2), metadata: {} }
+      return toolResult(NAME + " boundary", label, b.report)
     }
 
     // workflow
@@ -196,16 +196,16 @@ export const BusinessTestTool = Tool.define("business_test", {
     }
     const steps: WorkflowStep[] = []
     for (let i = 0; i < params.step_request_ids.length; i++) {
-      const resolved = resolveCapturedRequest(sessionID, params.step_request_ids[i])
+      const resolved = wctx.resolve(params.step_request_ids[i])
       if ("error" in resolved) return err(`Step ${i + 1}: ${resolved.error}`)
       steps.push({ name: `step-${i + 1}`, order: i + 1, request: resolved })
     }
 
-    const result = await BusinessTest.run({ mode: "workflow", steps }, new ReplaySender({ signal: ctx.abort }))
+    const result = await BusinessTest.run({ mode: "workflow", steps }, wctx.sender)
     if ("error" in result) return err(result.error)
     const w = result as BusinessTest.WorkflowResult
     const successSkips = w.probeResults.filter((r) => r.status !== null && r.status >= 200 && r.status < 300).length
     const label = successSkips > 0 ? `${successSkips} skip(s) returned 2xx (verify)` : "all skips blocked"
-    return { title: `business_test workflow: ${label}`, output: JSON.stringify(w, null, 2), metadata: {} }
+    return toolResult(NAME + " workflow", label, w)
   },
 })

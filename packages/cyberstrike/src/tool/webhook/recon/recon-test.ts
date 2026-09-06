@@ -1,9 +1,9 @@
 import z from "zod"
 import { Tool } from "../../tool"
-import { Session } from "../../../session"
+import { webhookContext, toolResult, toolError } from "../define"
 import { Request } from "../../../session/request"
-import { ReplaySender, type HttpSender } from "../transport"
 import { ReconProbe, type MetafileReport, type FingerprintReport, type LeakageReport } from "./probe"
+import type { HttpSender } from "../transport"
 
 export namespace ReconTest {
   export type Mode = "metafiles" | "fingerprint" | "leakage"
@@ -73,51 +73,44 @@ export const ReconTestTool = Tool.define("recon_test", {
     body: z.string().optional().describe("leakage: response body to scan. If omitted with request_id, fetches the request's URL and scans that response."),
   }),
   async execute(params, ctx) {
-    const sessionID = Session.root(ctx.sessionID)
-    const err = (output: string) => ({ title: "recon_test", output, metadata: {} })
+    const wctx = webhookContext(ctx)
+    const NAME = "recon_test"
+    const err = (msg: string) => toolError(NAME, msg)
 
     if (params.mode === "metafiles" || params.mode === "fingerprint") {
       let origin = params.origin
       if (!origin && params.request_id) {
-        const request = Request.get(sessionID).find((r) => r.id === params.request_id)
+        const request = Request.findById(wctx.sessionID, params.request_id)
         if (!request) return err(`Request "${params.request_id}" not found.`)
-        origin = request.origin ?? (request.host ? `${request.scheme ?? "http"}://${request.host}` : undefined)
+        origin = Request.resolveOrigin(request) ?? undefined
       }
       if (!origin) return err(`${params.mode} mode requires origin or request_id.`)
 
-      const sender = new ReplaySender({ signal: ctx.abort })
-
       if (params.mode === "metafiles") {
-        const result = await ReconTest.run({ mode: "metafiles", origin, limit: params.limit }, sender)
+        const result = await ReconTest.run({ mode: "metafiles", origin, limit: params.limit }, wctx.sender)
         const r = result as ReconTest.MetafilesResult
         const found = r.report.results.filter((x) => x.found).length
-        return {
-          title: found > 0 ? `recon_test metafiles: ${found} file(s) found, ${r.report.allUrls.length} URL(s) extracted` : "recon_test metafiles: no metafiles found",
-          output: JSON.stringify(r.report, null, 2),
-          metadata: {},
-        }
+        const label = found > 0 ? `${found} file(s) found, ${r.report.allUrls.length} URL(s) extracted` : "no metafiles found"
+        return toolResult(NAME + " metafiles", label, r.report)
       }
 
-      const result = await ReconTest.run({ mode: "fingerprint", origin, limit: params.limit }, sender)
+      const result = await ReconTest.run({ mode: "fingerprint", origin, limit: params.limit }, wctx.sender)
       const r = result as ReconTest.FingerprintResult
       const tech = r.report.detectedTech
-      return {
-        title: tech.length > 0 ? `recon_test fingerprint: ${tech.join(", ")} detected` : "recon_test fingerprint: no technologies detected",
-        output: JSON.stringify(r.report, null, 2),
-        metadata: {},
-      }
+      const label = tech.length > 0 ? `${tech.join(", ")} detected` : "no technologies detected"
+      return toolResult(NAME + " fingerprint", label, r.report)
     }
 
     // leakage mode
     let body = params.body
     let url = "unknown"
     if (!body && params.request_id) {
-      const request = Request.get(sessionID).find((r) => r.id === params.request_id)
+      const request = Request.findById(wctx.sessionID, params.request_id)
       if (!request) return err(`Request "${params.request_id}" not found.`)
-      const reqOrigin = request.origin ?? `${request.scheme ?? "http"}://${request.host ?? ""}`
+      const reqOrigin = Request.resolveOrigin(request)
+      if (!reqOrigin) return err("Could not resolve the request origin.")
       url = `${reqOrigin}${request.normalized_path}`
-      const sender = new ReplaySender({ signal: ctx.abort })
-      const resp = await sender.send({ method: "GET", url, headers: {} })
+      const resp = await wctx.sender.send({ method: "GET", url, headers: {} })
       if ("error" in resp) return err(`Could not fetch ${url}: ${resp.error}`)
       body = resp.body
     }
@@ -125,13 +118,10 @@ export const ReconTestTool = Tool.define("recon_test", {
 
     if (params.origin) url = params.origin
 
-    const result = await ReconTest.run({ mode: "leakage", url, body }, new ReplaySender({ signal: ctx.abort }))
+    const result = await ReconTest.run({ mode: "leakage", url, body }, wctx.sender)
     const r = result as ReconTest.LeakageResult
     const total = r.report.comments.length + r.report.findings.length
-    return {
-      title: total > 0 ? `recon_test leakage: ${r.report.comments.length} comment(s), ${r.report.findings.length} finding(s)` : "recon_test leakage: no leakage found",
-      output: JSON.stringify(r.report, null, 2),
-      metadata: {},
-    }
+    const label = total > 0 ? `${r.report.comments.length} comment(s), ${r.report.findings.length} finding(s)` : "no leakage found"
+    return toolResult(NAME + " leakage", label, r.report)
   },
 })

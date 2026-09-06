@@ -1,4 +1,4 @@
-import type { DomainProvider, AgentSpec } from "./provider"
+import type { DomainProvider, AgentSpec, PermissionAction, PermissionRule } from "./provider"
 import type { Detector } from "../session/web/signal/types"
 import { DETECTORS } from "../session/web/signal/detectors"
 import { SignalRouter } from "../session/web/signal/router"
@@ -34,9 +34,6 @@ import PROMPT_HUNT_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/prompt.
 import DESC_HUNT_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/description.txt"
 import PROMPT_HUNT_TESTER_RECON from "../agent/prompt/vuln/recon/prompt.txt"
 import DESC_HUNT_TESTER_RECON from "../agent/prompt/vuln/recon/description.txt"
-
-type PermissionAction = "ask" | "allow" | "deny"
-type PermissionRule = PermissionAction | Record<string, PermissionAction>
 
 function stripDefensiveSections(content: string): string {
   if (!content) return ""
@@ -145,19 +142,7 @@ function mergePermissions(base: Record<string, PermissionRule>, extra: Record<st
   return result
 }
 
-interface SpecDef {
-  name: string
-  role: AgentSpec["role"]
-  prompt: string
-  description: string
-  skills: string[]
-  permissions: Record<string, PermissionRule>
-  steps?: number
-  color?: string
-  hidden?: boolean
-  prependRequestContext?: boolean
-  useSmallModel?: boolean
-}
+type SpecDef = Omit<AgentSpec, "steps" | "color" | "group"> & { steps?: number; color?: string }
 
 export class WebProvider implements DomainProvider {
   key = "web" as const

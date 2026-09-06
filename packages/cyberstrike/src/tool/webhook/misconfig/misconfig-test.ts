@@ -8,10 +8,9 @@
 // Tool.define is a thin shell; MisconfigTest.run is the testable core.
 import z from "zod"
 import { Tool } from "../../tool"
-import { Session } from "../../../session"
-import { ReplaySender, type HttpSender, type ProbeRequest } from "../transport"
-import { resolveCapturedRequest } from "../resolve"
+import { webhookContext, toolResult, toolError } from "../define"
 import { MisconfigProbe, type PathProbeReport, type MethodProbeReport, type CorsProbeReport } from "./probe"
+import type { HttpSender, ProbeRequest } from "../transport"
 
 export namespace MisconfigTest {
   export type Mode = "paths" | "methods" | "cors"
@@ -91,13 +90,14 @@ export const MisconfigTestTool = Tool.define("misconfig_test", {
     cors_origins: z.array(z.string()).optional().describe("cors: custom Origin values to test."),
   }),
   async execute(params, ctx) {
-    const sessionID = Session.root(ctx.sessionID)
-    const err = (output: string) => ({ title: "misconfig_test", output, metadata: {} })
+    const wctx = webhookContext(ctx)
+    const NAME = "misconfig_test"
+    const err = (msg: string) => toolError(NAME, msg)
 
     if (params.mode === "paths") {
       let origin = params.origin
       if (!origin && params.request_id) {
-        const resolved = resolveCapturedRequest(sessionID, params.request_id)
+        const resolved = wctx.resolve(params.request_id)
         if ("error" in resolved) return err(resolved.error)
         try { origin = new URL(resolved.url).origin } catch { return err("Could not extract origin from request.") }
       }
@@ -105,46 +105,37 @@ export const MisconfigTestTool = Tool.define("misconfig_test", {
 
       const result = await MisconfigTest.run(
         { mode: "paths", origin, categories: params.categories, limit: params.limit, basePath: params.base_path },
-        new ReplaySender({ signal: ctx.abort }),
+        wctx.sender,
       )
       const r = result as MisconfigTest.PathsResult
       const count = r.report.interesting.length
-      return {
-        title: count > 0 ? `misconfig_test paths: ${count} interesting path(s) found` : "misconfig_test paths: nothing found",
-        output: JSON.stringify(r.report, null, 2),
-        metadata: {},
-      }
+      const label = count > 0 ? `${count} interesting path(s) found` : "nothing found"
+      return toolResult(NAME + " paths", label, r.report)
     }
 
     if (!params.request_id) return err(`${params.mode} mode requires request_id.`)
-    const resolved = resolveCapturedRequest(sessionID, params.request_id)
+    const resolved = wctx.resolve(params.request_id)
     if ("error" in resolved) return err(resolved.error)
 
     if (params.mode === "methods") {
       const result = await MisconfigTest.run(
         { mode: "methods", request: resolved },
-        new ReplaySender({ signal: ctx.abort }),
+        wctx.sender,
       )
       const r = result as MisconfigTest.MethodsResult
       const allowed = r.report.allowedMethods
-      return {
-        title: allowed.length > 0 ? `misconfig_test methods: ${allowed.join(",")} allowed` : "misconfig_test methods: only standard methods",
-        output: JSON.stringify(r.report, null, 2),
-        metadata: {},
-      }
+      const label = allowed.length > 0 ? `${allowed.join(",")} allowed` : "only standard methods"
+      return toolResult(NAME + " methods", label, r.report)
     }
 
     // cors
     const result = await MisconfigTest.run(
       { mode: "cors", request: resolved, origins: params.cors_origins },
-      new ReplaySender({ signal: ctx.abort }),
+      wctx.sender,
     )
     const c = result as MisconfigTest.CorsResult
     const vulnCount = c.report.vulnerable.length
-    return {
-      title: vulnCount > 0 ? `misconfig_test cors: ${vulnCount} vulnerable origin(s)` : "misconfig_test cors: no CORS misconfig",
-      output: JSON.stringify(c.report, null, 2),
-      metadata: {},
-    }
+    const label = vulnCount > 0 ? `${vulnCount} vulnerable origin(s)` : "no CORS misconfig"
+    return toolResult(NAME + " cors", label, c.report)
   },
 })

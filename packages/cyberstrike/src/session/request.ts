@@ -361,6 +361,19 @@ export namespace Request {
     return row?.id
   }
 
+  export function findById(sessionID: string, id: string): Info | undefined {
+    return get(sessionID).find((r) => r.id === id)
+  }
+
+  export function resolveOrigin(req: { origin?: string | null; host?: string | null; scheme?: string | null }): string | null {
+    if (req.origin) {
+      const trimmed = req.origin.replace(/\/+$/, "")
+      if (trimmed.includes("://") && !trimmed.endsWith("//")) return trimmed
+    }
+    if (req.host) return `${req.scheme ?? "https"}://${req.host}`.replace(/\/+$/, "")
+    return null
+  }
+
   export function getByIds(sessionID: string, ids: string[]): Info[] {
     if (ids.length === 0) return []
     const all = get(sessionID)

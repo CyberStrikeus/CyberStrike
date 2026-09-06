@@ -5,13 +5,10 @@
 // Facts + leads — confirm and weaponize yourself.
 //
 // The Tool.define is a thin shell; SsrfTest.run is the testable orchestration (mock
-// HttpSender, no socket). NOT yet registered in tool/registry.ts — registration +
-// agent wiring is a separate step.
+// HttpSender, no socket).
 import z from "zod"
-import { Tool } from "../../tool"
-import { Session } from "../../../session"
-import { ReplaySender, type HttpSender, type ProbeRequest } from "../transport"
-import { resolveCapturedRequest } from "../resolve"
+import { defineWebhookTool } from "../define"
+import type { HttpSender, ProbeRequest } from "../transport"
 import { SsrfPayloads, type CloudProvider, type SsrfCategory } from "./payloads"
 import { SsrfProbe, detectUrlParams, type SsrfProbeReport } from "./probe"
 
@@ -48,7 +45,8 @@ const PROVIDER = z.enum(["aws", "gcp", "azure", "digitalocean", "oracle", "aliba
 
 const DESCRIPTION = `Test a captured request for SSRF by firing internal targets (localhost, cloud metadata, RFC1918, IP-encoding bypasses, protocol handlers) at a URL-bearing query parameter, then reporting which responses reveal internal-resource evidence (cloud IAM creds, service banners, local-file reads) the benign baseline did not. Auto-detects the sink parameter (url/redirect/webhook/…) or takes one explicitly. Query-parameter SSRF; blind/OOB SSRF needs the callback listener. Facts + leads — confirm yourself.`
 
-export const SsrfTestTool = Tool.define("ssrf_test", {
+export const SsrfTestTool = defineWebhookTool({
+  name: "ssrf_test",
   description: DESCRIPTION,
   parameters: z.object({
     request_id: z.string().describe("Captured request whose URL parameter to test for SSRF."),
@@ -57,24 +55,17 @@ export const SsrfTestTool = Tool.define("ssrf_test", {
     providers: z.array(PROVIDER).optional().describe("Restrict cloud_metadata targets to these providers."),
     limit: z.number().int().positive().optional().describe("Cap the number of targets sent."),
   }),
-  async execute(params, ctx) {
-    const sessionID = Session.root(ctx.sessionID)
-    const err = (output: string) => ({ title: "ssrf_test", output, metadata: {} })
+  async run(params, ctx) {
+    const resolved = ctx.resolve(params.request_id)
+    if ("error" in resolved) return resolved
 
-    const resolved = resolveCapturedRequest(sessionID, params.request_id)
-    if ("error" in resolved) return err(resolved.error)
-
-    const report = await SsrfTest.run(
+    return SsrfTest.run(
       { request: resolved, param: params.param, categories: params.categories, providers: params.providers, limit: params.limit },
-      new ReplaySender({ signal: ctx.abort }),
+      ctx.sender,
     )
-    if ("error" in report) return err(report.error)
-
-    const hits = report.probe.hits.length
-    return {
-      title: hits > 0 ? `ssrf_test: ${hits} target(s) reached internal resources (verify)` : "ssrf_test: no internal resource reached",
-      output: JSON.stringify(report, null, 2),
-      metadata: {},
-    }
+  },
+  format(result) {
+    const hits = result.probe.hits.length
+    return hits > 0 ? `${hits} target(s) reached internal resources (verify)` : "no internal resource reached"
   },
 })
