@@ -1,8 +1,9 @@
 import type { ResolvedRequest, InjPoint, SendBudget } from "../types"
 import { SSTI_EXPR, SSTI_PRODUCT, SSTI_SYNTAXES, SSTI_ALT } from "../payloads/ssti"
 import { applyPayload } from "../mutate"
-import { send, nonce, type HttpSender } from "../send"
-import { blockSignal, looksBlocked, excerptOf } from "../detect"
+import { nonce, type HttpSender } from "../send"
+import { excerptOf } from "../detect"
+import { checkBaseline, fireLoop } from "./base"
 
 export interface SstiObservation {
   point: string
@@ -29,45 +30,37 @@ export async function probeSstiPoint(
     evaluated: [],
     blocked: false,
   }
-  const sleep = (ms: number) => (ms ? new Promise((res) => setTimeout(res, ms)) : Promise.resolve())
   const n = nonce()
-  const m = await send(sender, r, applyPayload(r, point, n), abort, budget)
-  if ("error" in m) {
-    obs.note = `send failed: ${m.error}`
+  const bl = await checkBaseline(sender, r, applyPayload(r, point, n), abort, budget)
+  if (!bl.ok) {
+    obs.note = bl.note
+    obs.blocked = bl.blocked
+    obs.block_signal = bl.block_signal
     return obs
   }
-  const bsig = blockSignal(m)
-  if (bsig) {
-    obs.blocked = true
-    obs.block_signal = bsig
-    obs.note = `baseline ${bsig} — NOT evidence of safety`
-    return obs
-  }
-  obs.marker_reflected = m.text.includes(n)
-  obs.baseline = { status: m.status, bytes: m.text.length, ms: m.ms }
-  for (const s of SSTI_SYNTAXES) {
-    if (abort.aborted || budget.sent >= budget.max) break
-    const res = await send(sender, r, applyPayload(r, point, s.wrap(SSTI_EXPR)), abort, budget)
-    if ("error" in res) continue
-    if (looksBlocked(res.status)) {
-      obs.blocked = true
-      continue
-    }
-    if (res.text.includes(SSTI_PRODUCT) && !res.text.includes(SSTI_EXPR))
-      obs.evaluated.push({ syntax: s.name, snippet: excerptOf(res.text, SSTI_PRODUCT) })
-    await sleep(delayMs)
-  }
-  for (const a of SSTI_ALT) {
-    if (abort.aborted || budget.sent >= budget.max) break
-    const res = await send(sender, r, applyPayload(r, point, a.payload), abort, budget)
-    if ("error" in res) continue
-    if (looksBlocked(res.status)) {
-      obs.blocked = true
-      continue
-    }
-    if (res.text.includes(a.product) && !res.text.includes(a.literal))
-      obs.evaluated.push({ syntax: a.name, snippet: excerptOf(res.text, a.product) })
-    await sleep(delayMs)
-  }
+  obs.marker_reflected = bl.res.text.includes(n)
+  obs.baseline = { status: bl.res.status, bytes: bl.res.text.length, ms: bl.res.ms }
+  const syntaxFindings = await fireLoop({
+    sender, r, abort, delayMs, budget, tracker: obs, statusOnly: true,
+    payloads: SSTI_SYNTAXES,
+    apply: (s) => applyPayload(r, point, s.wrap(SSTI_EXPR)),
+    match: (res, s) => {
+      if (res.text.includes(SSTI_PRODUCT) && !res.text.includes(SSTI_EXPR))
+        return { syntax: s.name, snippet: excerptOf(res.text, SSTI_PRODUCT) }
+      return null
+    },
+  })
+  obs.evaluated.push(...syntaxFindings)
+  const altFindings = await fireLoop({
+    sender, r, abort, delayMs, budget, tracker: obs, statusOnly: true,
+    payloads: SSTI_ALT,
+    apply: (a) => applyPayload(r, point, a.payload),
+    match: (res, a) => {
+      if (res.text.includes(a.product) && !res.text.includes(a.literal))
+        return { syntax: a.name, snippet: excerptOf(res.text, a.product) }
+      return null
+    },
+  })
+  obs.evaluated.push(...altFindings)
   return obs
 }

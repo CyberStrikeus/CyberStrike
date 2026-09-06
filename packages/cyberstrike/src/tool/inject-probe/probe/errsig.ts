@@ -3,6 +3,7 @@ import { ERRSIG } from "../payloads/errsig"
 import { applyPayload, applyOperatorTarget } from "../mutate"
 import { send, repeatBaseline, type HttpSender } from "../send"
 import { blockSignal, excerptAround } from "../detect"
+import { sleep, fireLoop } from "./base"
 
 export interface ErrSigObservation {
   point: string
@@ -40,7 +41,6 @@ export async function probeErrorSigPoint(
     bool_findings: [],
     blocked: false,
   }
-  const sleep = (ms: number) => (ms ? new Promise((res) => setTimeout(res, ms)) : Promise.resolve())
   const bl = await repeatBaseline(sender, r, point, abort, budget)
   if (!bl.ok) {
     obs.blocked = !!bl.block
@@ -53,31 +53,24 @@ export async function probeErrorSigPoint(
   }
   obs.baseline = { status: bl.status, bytes: bl.bytes, ms: bl.ms, byte_jitter: bl.byteJitter }
   const floor = Math.max(16, bl.byteJitter + 8)
-  for (const p of spec.payloads) {
-    if (abort.aborted || budget.sent >= budget.max) break
-    const res = await send(sender, r, applyPayload(r, point, p), abort, budget)
-    if ("error" in res) {
-      if (res.timeout && !obs.block_signal) obs.block_signal = "timeout/reset (possible WAF)"
-      continue
-    }
-    const blk = blockSignal(res)
-    if (blk) {
-      obs.blocked = true
-      obs.block_signal ??= blk
-      continue
-    }
-    const m = spec.signatures.exec(res.text)
-    if (m)
-      obs.error_findings.push({
-        payload: p,
-        status: res.status,
-        bytes: res.text.length,
-        ms: res.ms,
-        server: res.headers["server"] ?? res.headers["x-powered-by"],
-        snippet: excerptAround(res.text, m.index, m[0].length),
-      })
-    await sleep(delayMs)
-  }
+  obs.error_findings = await fireLoop({
+    sender, r, abort, delayMs, budget, tracker: obs,
+    payloads: spec.payloads,
+    apply: (p) => applyPayload(r, point, p),
+    match: (res, p) => {
+      const m = spec.signatures.exec(res.text)
+      if (m)
+        return {
+          payload: p,
+          status: res.status,
+          bytes: res.text.length,
+          ms: res.ms,
+          server: res.headers["server"] ?? res.headers["x-powered-by"],
+          snippet: excerptAround(res.text, m.index, m[0].length),
+        }
+      return null
+    },
+  })
   for (const pair of spec.boolPairs ?? []) {
     if (abort.aborted || budget.sent >= budget.max) break
     const t = await send(sender, r, applyPayload(r, point, pair.t), abort, budget)

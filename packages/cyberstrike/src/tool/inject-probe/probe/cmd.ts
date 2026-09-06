@@ -1,8 +1,9 @@
 import type { ResolvedRequest, InjPoint, SendBudget } from "../types"
 import { CMD_PROBES, CMD_SEPARATORS } from "../payloads/cmd"
 import { applyPayload } from "../mutate"
-import { send, nonce, type HttpSender } from "../send"
-import { blockSignal, looksBlocked, excerptAround } from "../detect"
+import { nonce, type HttpSender } from "../send"
+import { excerptAround } from "../detect"
+import { checkBaseline, fireLoop } from "./base"
 
 export interface CmdObservation {
   point: string
@@ -29,44 +30,30 @@ export async function probeCmdPoint(
     command_output: [],
     blocked: false,
   }
-  const sleep = (ms: number) => (ms ? new Promise((res) => setTimeout(res, ms)) : Promise.resolve())
   const n = nonce()
-  const m = await send(sender, r, applyPayload(r, point, n), abort, budget)
-  if ("error" in m) {
-    obs.note = `send failed: ${m.error}`
+  const bl = await checkBaseline(sender, r, applyPayload(r, point, n), abort, budget)
+  if (!bl.ok) {
+    obs.note = bl.note
+    obs.blocked = bl.blocked
+    obs.block_signal = bl.block_signal
     return obs
   }
-  const bsig = blockSignal(m)
-  if (bsig) {
-    obs.blocked = true
-    obs.block_signal = bsig
-    obs.note = `baseline ${bsig} — NOT evidence of safety`
-    return obs
-  }
-  obs.marker_reflected = m.text.includes(n)
-  obs.baseline = { status: m.status, bytes: m.text.length, ms: m.ms }
+  obs.marker_reflected = bl.res.text.includes(n)
+  obs.baseline = { status: bl.res.status, bytes: bl.res.text.length, ms: bl.res.ms }
   for (const probe of CMD_PROBES) {
-    let found = false
-    for (const sep of CMD_SEPARATORS) {
-      if (abort.aborted || budget.sent >= budget.max) break
-      const res = await send(sender, r, applyPayload(r, point, sep.wrap(probe.cmd)), abort, budget)
-      if ("error" in res) continue
-      if (looksBlocked(res.status)) {
-        obs.blocked = true
-        continue
-      }
-      const mm = probe.marker.exec(res.text)
-      if (mm) {
-        obs.command_output.push({
-          separator: sep.name,
-          cmd: probe.cmd,
-          snippet: excerptAround(res.text, mm.index, mm[0].length),
-        })
-        found = true
-      }
-      await sleep(delayMs)
-    }
-    if (found) break
+    if (abort.aborted || budget.sent >= budget.max) break
+    const findings = await fireLoop({
+      sender, r, abort, delayMs, budget, tracker: obs, statusOnly: true,
+      payloads: CMD_SEPARATORS,
+      apply: (sep) => applyPayload(r, point, sep.wrap(probe.cmd)),
+      match: (res, sep) => {
+        const mm = probe.marker.exec(res.text)
+        if (mm) return { separator: sep.name, cmd: probe.cmd, snippet: excerptAround(res.text, mm.index, mm[0].length) }
+        return null
+      },
+    })
+    obs.command_output.push(...findings)
+    if (findings.length > 0) break
   }
   return obs
 }

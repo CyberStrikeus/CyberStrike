@@ -2,7 +2,8 @@ import type { ResolvedRequest, InjPoint, SendBudget } from "../types"
 import { XSS_TAGS, XSS_WEAPONS, XSS_WEAPONS_BAREARG, XSS_WEAPONS_ENCODED, XSS_BREAKOUT } from "../payloads/xss"
 import { applyPayload } from "../mutate"
 import { send, nonce, type HttpSender } from "../send"
-import { blockSignal, looksBlocked, excerptOf, classifyXssContext, xssWeaponFires } from "../detect"
+import { looksBlocked, excerptOf, classifyXssContext, xssWeaponFires } from "../detect"
+import { sleep, checkBaseline, fireLoop } from "./base"
 
 export interface PointObservation {
   point: string
@@ -34,40 +35,31 @@ export async function probeXssPoint(
     weaponized: [],
     blocked: false,
   }
-  const sleep = (ms: number) => (ms ? new Promise((res) => setTimeout(res, ms)) : Promise.resolve())
   const n = nonce()
-  const m = await send(sender, r, applyPayload(r, point, n), abort, budget)
-  if ("error" in m) {
-    obs.note = `send failed: ${m.error}`
+  const bl = await checkBaseline(sender, r, applyPayload(r, point, n), abort, budget)
+  if (!bl.ok) {
+    obs.note = bl.note
+    obs.blocked = bl.blocked
+    obs.block_signal = bl.block_signal
     return obs
   }
-  const bblk = blockSignal(m)
-  if (bblk) {
-    obs.blocked = true
-    obs.block_signal = bblk
-    obs.note = `baseline ${bblk} — NOT evidence of safety`
-    return obs
-  }
-  obs.marker_reflected = m.text.includes(n)
+  obs.marker_reflected = bl.res.text.includes(n)
   if (!obs.marker_reflected) return obs
-  obs.reflection_snippet = excerptOf(m.text, n)
-  obs.context = classifyXssContext(m.text, n)
+  obs.reflection_snippet = excerptOf(bl.res.text, n)
+  obs.context = classifyXssContext(bl.res.text, n)
 
-  for (const tag of XSS_TAGS) {
-    if (abort.aborted || budget.sent >= budget.max) break
-    const tn = nonce()
-    const res = await send(sender, r, applyPayload(r, point, `<${tag}/data-p=${tn}>`), abort, budget)
-    if ("error" in res) continue
-    if (looksBlocked(res.status)) {
-      obs.blocked = true
-      continue
-    }
-    const rawTag = new RegExp(`<${tag}/data-p=${tn}`, "i").test(res.text)
-    const encoded = res.text.includes(`&lt;${tag}`) || res.text.includes(`&lt;${tag.toUpperCase()}`)
-    if (rawTag) obs.surviving_tags.push(tag)
-    if (obs.marker_html_encoded === null) obs.marker_html_encoded = encoded && !rawTag
-    await sleep(delayMs)
-  }
+  const tagPayloads = XSS_TAGS.map((tag) => ({ tag, tn: nonce() }))
+  obs.surviving_tags = await fireLoop({
+    sender, r, abort, delayMs, budget, tracker: obs, statusOnly: true,
+    payloads: tagPayloads,
+    apply: ({ tag, tn }) => applyPayload(r, point, `<${tag}/data-p=${tn}>`),
+    match: (res, { tag, tn }) => {
+      const rawTag = new RegExp(`<${tag}/data-p=${tn}`, "i").test(res.text)
+      const encoded = res.text.includes(`&lt;${tag}`) || res.text.includes(`&lt;${tag.toUpperCase()}`)
+      if (obs.marker_html_encoded === null) obs.marker_html_encoded = encoded && !rawTag
+      return rawTag ? tag : null
+    },
+  })
 
   const mk = obs.context && XSS_BREAKOUT[obs.context]
   if (mk && !abort.aborted && budget.sent < budget.max) {
