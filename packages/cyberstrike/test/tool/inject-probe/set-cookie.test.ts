@@ -1,14 +1,5 @@
 import { describe, test, expect } from "bun:test"
-
-// Standalone copy from inject-probe.ts (not exported)
-function setCookie(cookieHeader: string, name: string, value: string): string {
-  const safeVal = value.replace(/[;\r\n ]/g, "")
-  const parts = (cookieHeader ? cookieHeader.split(/;\s*/) : []).filter(
-    (p) => p && p.split("=")[0].trim().toLowerCase() !== name.toLowerCase(),
-  )
-  parts.push(`${name}=${safeVal}`)
-  return parts.join("; ")
-}
+import { setCookie } from "../../../src/tool/inject-probe/mutate"
 
 describe("setCookie", () => {
   test("adds a cookie to an empty header", () => {

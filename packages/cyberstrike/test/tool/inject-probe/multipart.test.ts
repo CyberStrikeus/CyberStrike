@@ -1,45 +1,13 @@
 import { describe, test, expect } from "bun:test"
+import {
+  multipartBoundary,
+  multipartFieldNames,
+  setMultipartField,
+} from "../../../src/tool/inject-probe/multipart"
+import type { ResolvedRequest } from "../../../src/tool/inject-probe/types"
 
-// Standalone copies from inject-probe.ts (not exported)
-function multipartBoundary(r: { contentType: string; body: string }): string | null {
-  const m = r.contentType.match(/boundary=("?)([^";]+)\1/i)
-  if (m) return m[2].trim()
-  const b = r.body.match(/^--(.+?)\r?\n/)
-  return b ? b[1].trim() : null
-}
-
-function mpFieldName(seg: string): string | null {
-  if (/filename="/i.test(seg)) return null
-  const m = seg.match(/content-disposition:[^\r\n]*\bname="([^"]+)"/i)
-  return m ? m[1] : null
-}
-
-function multipartFieldNames(body: string, boundary: string): string[] {
-  const names: string[] = []
-  for (const seg of body.split(`--${boundary}`)) {
-    const n = mpFieldName(seg)
-    if (n != null) names.push(n)
-  }
-  return names
-}
-
-function setMultipartField(body: string, boundary: string, name: string, value: string): string | null {
-  if (value.includes(`--${boundary}`)) return null
-  const delim = `--${boundary}`
-  const segments = body.split(delim)
-  for (let i = 0; i < segments.length; i++) {
-    const seg = segments[i]
-    if (mpFieldName(seg) !== name) continue
-    const sep = seg.match(/\r?\n\r?\n/)
-    if (!sep || sep.index == null) continue
-    const headEnd = sep.index + sep[0].length
-    const rest = seg.slice(headEnd)
-    const trail = rest.match(/\r?\n$/)?.[0] ?? "\r\n"
-    segments[i] = seg.slice(0, headEnd) + value + trail
-    return segments.join(delim)
-  }
-  return null
-}
+const mkReq = (contentType: string, body: string) =>
+  ({ contentType, body }) as unknown as ResolvedRequest
 
 const BOUNDARY = "----WebKitFormBoundary7MA4YWxk"
 const mkBody = (...fields: { name: string; value: string; file?: boolean }[]) => {
@@ -54,24 +22,24 @@ const mkBody = (...fields: { name: string; value: string; file?: boolean }[]) =>
 
 describe("multipartBoundary", () => {
   test("extracts boundary from content-type header", () => {
-    const r = { contentType: "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxk", body: "" }
+    const r = mkReq("multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxk", "")
     expect(multipartBoundary(r)).toBe("----WebKitFormBoundary7MA4YWxk")
   })
 
   test("extracts quoted boundary", () => {
-    const r = { contentType: 'multipart/form-data; boundary="my-boundary"', body: "" }
+    const r = mkReq('multipart/form-data; boundary="my-boundary"', "")
     expect(multipartBoundary(r)).toBe("my-boundary")
   })
 
   test("falls back to body inspection when header lacks boundary", () => {
     const body =
       '------WebKitBoundary\r\nContent-Disposition: form-data; name="test"\r\n\r\nvalue\r\n------WebKitBoundary--'
-    const r = { contentType: "multipart/form-data", body }
+    const r = mkReq("multipart/form-data", body)
     expect(multipartBoundary(r)).toBe("----WebKitBoundary")
   })
 
   test("returns null when no boundary found", () => {
-    const r = { contentType: "multipart/form-data", body: "no boundary here" }
+    const r = mkReq("multipart/form-data", "no boundary here")
     expect(multipartBoundary(r)).toBeNull()
   })
 })

@@ -1,13 +1,5 @@
 import { describe, test, expect } from "bun:test"
-
-// Standalone copy of xssWeaponFires from inject-probe.ts (not exported)
-function xssWeaponFires(payload: string, survived: boolean, ctx: string): boolean {
-  const s = payload.replace(/^\s+/, "")
-  if (s.startsWith("javascript:")) return /attribute-url/.test(ctx)
-  if (s.startsWith("<")) return survived
-  if (/^["']/.test(s)) return /attribute|javascript/.test(ctx)
-  return /javascript/.test(ctx) || survived
-}
+import { xssWeaponFires } from "../../../src/tool/inject-probe/detect"
 
 describe("xssWeaponFires", () => {
   describe("javascript: URI payloads", () => {

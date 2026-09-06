@@ -1,17 +1,5 @@
 import { describe, test, expect } from "bun:test"
-
-// Standalone copies from inject-probe.ts (not exported)
-function excerptAround(text: string, index: number, matchLen: number, radius = 90): string {
-  const start = Math.max(0, index - radius)
-  const end = Math.min(text.length, index + matchLen + radius)
-  const body = text.slice(start, end).replace(/\s+/g, " ").trim().slice(0, 320)
-  return (start > 0 ? "…" : "") + body + (end < text.length ? "…" : "")
-}
-
-function excerptOf(text: string, needle: string, radius = 90): string {
-  const i = text.indexOf(needle)
-  return i < 0 ? "" : excerptAround(text, i, needle.length, radius)
-}
+import { excerptAround, excerptOf } from "../../../src/tool/inject-probe/detect"
 
 describe("excerptAround", () => {
   test("extracts context around a match in the middle", () => {

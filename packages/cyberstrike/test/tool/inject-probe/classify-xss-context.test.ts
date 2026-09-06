@@ -1,20 +1,5 @@
 import { describe, test, expect } from "bun:test"
-
-// Standalone copy of classifyXssContext from inject-probe.ts (not exported)
-function classifyXssContext(text: string, marker: string): string {
-  const i = text.indexOf(marker)
-  if (i < 0) return "unknown"
-  const before = text.slice(Math.max(0, i - 80), i)
-  if (/<script\b[^>]*>(?:(?!<\/script>)[\s\S])*$/i.test(before)) return "javascript"
-  if (/<textarea\b[^>]*>(?:(?!<\/textarea>)[\s\S])*$/i.test(before)) return "rcdata-textarea"
-  if (/<title\b[^>]*>(?:(?!<\/title>)[\s\S])*$/i.test(before)) return "rcdata-title"
-  if (/<style\b[^>]*>(?:(?!<\/style>)[\s\S])*$/i.test(before)) return "rcdata-style"
-  const urlAttr = /(?:href|src|action|formaction|xlink:href|poster|data)\s*=\s*/i
-  if (/=\s*"[^"]*$/.test(before)) return urlAttr.test(before) ? "attribute-url-double" : "attribute-double-quote"
-  if (/=\s*'[^']*$/.test(before)) return urlAttr.test(before) ? "attribute-url-single" : "attribute-single-quote"
-  if (/<[a-z][^>]*$/i.test(before)) return "tag-name"
-  return "html-body"
-}
+import { classifyXssContext } from "../../../src/tool/inject-probe/detect"
 
 describe("classifyXssContext", () => {
   const M = "MARKER123"

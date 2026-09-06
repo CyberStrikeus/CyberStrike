@@ -1,15 +1,5 @@
 import { describe, test, expect } from "bun:test"
-
-// Standalone copy from inject-probe.ts (not exported)
-function injectPathSegment(pathname: string, indexStr: string, value: string): string {
-  const segs = pathname.split("/")
-  const nonEmpty: number[] = []
-  for (let i = 0; i < segs.length; i++) if (segs[i] !== "") nonEmpty.push(i)
-  const target = nonEmpty[Number(indexStr)]
-  if (target == null) return pathname
-  segs[target] = encodeURIComponent(value.replace(/\.\.(\/|\\)?/g, ""))
-  return segs.join("/")
-}
+import { injectPathSegment } from "../../../src/tool/inject-probe/mutate"
 
 describe("injectPathSegment", () => {
   test("replaces first non-empty segment (index 0)", () => {

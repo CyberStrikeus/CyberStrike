@@ -1,25 +1,6 @@
 import { describe, test, expect } from "bun:test"
-
-// Standalone copies from inject-probe.ts (not exported)
-const WAF_BODY =
-  /cloudflare|attention required|just a moment|checking your browser|access denied|request unsuccessful|mod_?security|incapsula|sucuri|akamai|captcha|are you a robot|ddos protection/i
-const WAF_SERVER = /cloudflare|sucuri|akamai|incapsula|mod_?security|awselb|barracuda|f5|big-?ip/i
-
-function looksBlocked(status: number): boolean {
-  return status === 403 || status === 406 || status === 429 || status === 503
-}
-
-type SendOk = { status: number; text: string; ms: number; headers: Record<string, string> }
-
-function blockSignal(res: SendOk): string | undefined {
-  if (looksBlocked(res.status)) return `HTTP ${res.status}`
-  const server = res.headers["server"] ?? ""
-  if (res.headers["cf-ray"] || res.headers["x-sucuri-id"] || WAF_SERVER.test(server)) {
-    if (WAF_BODY.test(res.text.slice(0, 4000))) return `WAF challenge (${server || "cdn header"})`
-  }
-  if (WAF_BODY.test(res.text.slice(0, 2000))) return "WAF/challenge page"
-  return undefined
-}
+import { blockSignal, looksBlocked } from "../../../src/tool/inject-probe/detect"
+import type { SendOk } from "../../../src/tool/inject-probe/types"
 
 describe("looksBlocked", () => {
   test("403 Forbidden is blocked", () => {

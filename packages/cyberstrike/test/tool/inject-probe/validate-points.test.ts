@@ -1,43 +1,6 @@
 import { describe, test, expect } from "bun:test"
-
-// Standalone copies from inject-probe.ts (not exported)
-const FORBIDDEN_HEADERS = new Set([
-  "host",
-  ":authority",
-  ":method",
-  ":path",
-  ":scheme",
-  "content-length",
-  "connection",
-  "transfer-encoding",
-  "te",
-  "upgrade",
-  "content-type",
-])
-
-type Location = "query" | "form_field" | "json_body" | "header" | "cookie" | "path"
-interface InjPoint {
-  location: Location
-  name: string
-}
-
-function validatePoints(pts: InjPoint[]): { points: InjPoint[]; rejected: { point: string; reason: string }[] } {
-  const points: InjPoint[] = []
-  const rejected: { point: string; reason: string }[] = []
-  for (const p of pts) {
-    if (p.location === "header" && FORBIDDEN_HEADERS.has(p.name.toLowerCase())) {
-      rejected.push({
-        point: `header:${p.name}`,
-        reason: "routing/framing header — refused (no response-splitting/rerouting)",
-      })
-      continue
-    }
-    points.push(p)
-  }
-  return { points, rejected }
-}
-
-const sanitizeHeaderValue = (v: string) => v.replace(/[\r\n ]/g, "")
+import { validatePoints } from "../../../src/tool/inject-probe/resolve"
+import type { InjPoint } from "../../../src/tool/inject-probe/types"
 
 describe("validatePoints", () => {
   test("accepts query parameters", () => {
@@ -61,7 +24,7 @@ describe("validatePoints", () => {
     const result = validatePoints([{ location: "header", name: "Host" }])
     expect(result.points).toHaveLength(0)
     expect(result.rejected).toHaveLength(1)
-    expect(result.rejected[0].point).toBe("header:Host")
+    expect(result.rejected[0]!.point).toBe("header:Host")
   })
 
   test("rejects Transfer-Encoding — prevents request smuggling", () => {
@@ -118,28 +81,11 @@ describe("validatePoints", () => {
   })
 })
 
-describe("sanitizeHeaderValue", () => {
-  test("strips carriage return — prevents HTTP response splitting", () => {
-    expect(sanitizeHeaderValue("value\rinjected")).toBe("valueinjected")
-  })
-
-  test("strips newline — prevents header injection", () => {
-    expect(sanitizeHeaderValue("value\nInjected: header")).toBe("valueInjected:header")
-  })
-
-  test("strips CRLF sequence", () => {
-    expect(sanitizeHeaderValue("value\r\nSet-Cookie: evil=1")).toBe("valueSet-Cookie:evil=1")
-  })
-
-  test("strips spaces", () => {
-    expect(sanitizeHeaderValue("some value here")).toBe("somevaluehere")
-  })
-
-  test("leaves clean values unchanged", () => {
-    expect(sanitizeHeaderValue("Bearer_token123")).toBe("Bearer_token123")
-  })
-
-  test("handles empty string", () => {
-    expect(sanitizeHeaderValue("")).toBe("")
+describe("sanitizeHeaderValue (tested indirectly via applyPayload)", () => {
+  // sanitizeHeaderValue is a private const in mutate.ts — tested indirectly
+  // through the applyPayload header injection path in apply-payload.test.ts.
+  // Dedicated tests for the sanitization logic are in apply-payload.test.ts.
+  test("placeholder — see apply-payload.test.ts header injection tests", () => {
+    expect(true).toBe(true)
   })
 })
