@@ -23,9 +23,8 @@ import PROMPT_GENERAL from "./prompt/general.txt"
 import PROMPT_METHODOLOGY_COMMON from "./prompt/methodology/common-methodology.txt"
 import PROMPT_METHODOLOGY_CONTINUATION from "./prompt/methodology/forced-continuation.txt"
 
-// Domain providers define agent specs
-import { AzureProvider } from "../cloud/provider-azure"
-import { WebProvider } from "../cloud/provider-web"
+// Domain providers define agent specs; the registry collects built-in + plugin domains.
+import { collectAgentSpecs } from "../cloud/provider-registry"
 import type { AgentSpec } from "../cloud/provider"
 
 import { PermissionNext } from "@/permission/next"
@@ -329,14 +328,18 @@ export namespace Agent {
         ),
         options: {},
       },
-      // ── Domain providers — each defines its own agent specs ──
-      ...(() => {
-        try { return specsToAgents(new AzureProvider().agentSpecs(), defaults, user) }
-        catch (e) { console.error(`[agent] failed to load cloud agents: ${e}`); return {} }
-      })(),
+      // ── Domain providers — collected from the registry (built-in web/azure +
+      // any installed plugin domains). Adding a domain is a registerProvider call,
+      // never an edit here. See docs/domain-plugin-architecture.md.
       ...(await (async () => {
-        try { return specsToAgents((await WebProvider.create()).agentSpecs(), defaults, user) }
-        catch (e) { console.error(`[agent] failed to load web agents: ${e}`); return {} }
+        try {
+          const { specs, errors } = await collectAgentSpecs()
+          for (const e of errors) console.error(`[agent] domain provider "${e.key}" failed to load: ${e.error}`)
+          return specsToAgents(specs, defaults, user)
+        } catch (e) {
+          console.error(`[agent] failed to collect domain agents: ${e}`)
+          return {}
+        }
       })()),
       "internal-network": {
         name: "internal-network",
@@ -394,8 +397,8 @@ export namespace Agent {
         ),
         options: {},
       },
-      // Web pipeline agents (hunt-agent, hunt-analyzer, hunt-*)
-      // are now registered via WebProvider above.
+      // Web + Azure pipeline agents are collected via the domain provider
+      // registry above (collectAgentSpecs), not hardcoded here.
     }
 
     for (const [key, value] of Object.entries(cfg.agent ?? {})) {
