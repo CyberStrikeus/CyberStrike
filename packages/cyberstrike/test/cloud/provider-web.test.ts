@@ -2,6 +2,7 @@ import { describe, test, expect } from "bun:test"
 import { WebProvider, buildClassAgentMap, renderSignalRoutingTable, SIGNAL_ROUTING_PLACEHOLDER } from "../../src/cloud/provider-web"
 import { SignalRouter } from "../../src/session/web/signal/router"
 import type { SpecialistClass } from "../../src/session/web/signal/types"
+import { TESTER_VRT_SCOPE, testerClass } from "../../src/tool/vuln-scope"
 
 describe("WebProvider", () => {
   test("factory creates instance with correct key", async () => {
@@ -255,5 +256,29 @@ describe("orchestrator signal-routing table (rendered from code)", () => {
     // The prompt-composition guard is exercised via WebProvider.create() above;
     // here we assert the placeholder constant is what the .txt is expected to carry.
     expect(SIGNAL_ROUTING_PLACEHOLDER).toBe("{{SIGNAL_ROUTING_TABLE}}")
+  })
+})
+
+describe("lane taxonomy (TESTER_VRT_SCOPE) ↔ agent roster drift guard", () => {
+  test("every lane key maps to an existing hunt-<key> specialist agent", async () => {
+    // TESTER_VRT_SCOPE is keyed by the hunt-<suffix>. A stale key (agent renamed
+    // or removed) silently disables lane enforcement — this catches it.
+    const provider = await WebProvider.create()
+    const names = new Set(provider.agentSpecs().map((s) => s.name))
+    for (const key of Object.keys(TESTER_VRT_SCOPE)) {
+      expect(names.has(`hunt-${key}`), `lane key "${key}" must have agent "hunt-${key}"`).toBe(true)
+    }
+  })
+
+  test("specialists with NO lane enforcement are exactly the known allowlist", async () => {
+    // FINDING: hunt-llm, hunt-misconfig, hunt-recon currently have no lane entry,
+    // so their report_vulnerability calls are NOT lane-scoped (testerClass→undefined).
+    // This is left as-is (they legitimately report a wide range), but a NEW lane-less
+    // specialist must be a conscious choice — adding one fails this test until the
+    // author either gives it a lane or adds it here.
+    const provider = await WebProvider.create()
+    const specialists = provider.agentSpecs().filter((s) => s.role === "specialist")
+    const laneless = specialists.filter((s) => testerClass(s.name) === undefined).map((s) => s.name).sort()
+    expect(laneless).toEqual(["hunt-llm", "hunt-misconfig", "hunt-recon"])
   })
 })
