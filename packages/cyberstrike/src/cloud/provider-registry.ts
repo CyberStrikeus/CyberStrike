@@ -2,7 +2,7 @@
 //
 // The single place the agent system collects its domain providers. The built-in
 // web domain registers here at module load; installed plugin packages (e.g.
-// @cyberstrike-io-ent/azure) register through the SDK `provider` hook. agent.ts
+// @cyberstrike-io/azure) register through the SDK `provider` hook. agent.ts
 // resolves the registry instead of hardcoding provider construction, so a new
 // domain is added by REGISTERING, never by editing the agent loader.
 import type { DomainProvider, AgentSpec, DomainProviderFactory } from "./provider"
@@ -93,6 +93,6 @@ export async function collectAgentSpecs(): Promise<{ specs: AgentSpec[]; errors:
 
 // ── Built-in domains ─────────────────────────────────────────────────────────
 // Registered once at module load. Web is the built-in (free/OSS) domain; azure and
-// other cloud domains are installed packages (@cyberstrike-io-ent/azure) that
+// other cloud domains are installed packages (@cyberstrike-io/azure) that
 // register through the plugin `provider` hook, not here.
 registerProvider("web", () => WebProvider.create())

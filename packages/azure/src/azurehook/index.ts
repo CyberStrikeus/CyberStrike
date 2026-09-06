@@ -1098,13 +1098,13 @@ export const AzurehookTool = tool({
       try {
         // The azure assessment provider comes from the registry (C10 — pluggable
         // workflow entry): the built-in registration today, an installed
-        // @cyberstrike-io-ent/azure package tomorrow. No hardcoded construction —
+        // @cyberstrike-io/azure package tomorrow. No hardcoded construction —
         // this decouples the tool from provider-azure so the azure cluster can move
         // to its package as a unit.
         const provider = await resolveProvider("azure")
         if (!provider || !isAssessmentProvider(provider)) {
           ctx.metadata({ title: `azurehook: ${params.program}`, metadata: { program: params.program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 } })
-          return "No azure assessment domain is registered. Install @cyberstrike-io-ent/azure."
+          return "No azure assessment domain is registered. Install @cyberstrike-io/azure."
         }
         const state = await orchestrateLayer2(provider, ctx.sessionID, ctx.messageID)
         const completed = state.analystResults.filter((a) => !a.summary.startsWith("Error:"))

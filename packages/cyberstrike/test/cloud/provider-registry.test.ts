@@ -32,7 +32,7 @@ describe("ProviderRegistry", () => {
   test("web is the built-in domain; azure is a package, not built-in", () => {
     const domains = registeredDomains()
     expect(domains).toContain("web")
-    // azure moved to @cyberstrike-io-ent/azure — it registers via the plugin
+    // azure moved to @cyberstrike-io/azure — it registers via the plugin
     // `provider` hook when installed, NOT as a core built-in.
     expect(domains).not.toContain("azure")
   })

@@ -1,12 +1,15 @@
 {
-  "name": "@cyberstrike-io-ent/azure",
+  "name": "@cyberstrike-io/azure",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "license": "UNLICENSED",
-  "description": "CyberStrike Azure cloud assessment domain (paid). Installs as a plugin: npm install @cyberstrike-io-ent/azure",
+  "license": "AGPL-3.0-only",
+  "description": "CyberStrike Azure cloud assessment domain (free tier). Installs as a plugin: npm install @cyberstrike-io/azure. The paid advanced tier is @cyberstrike-io/azure-pro.",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

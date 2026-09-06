@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test"
-// Faithful loader-path test for the REAL @cyberstrike-io-ent/azure package.
+// Faithful loader-path test for the REAL @cyberstrike-io/azure package.
 // It runs the package's plugin default and replays EXACTLY the loops the host's
 // plugin loader runs after import:
 //   - provider hook → registerProvider(key, factory)   (plugin/index.ts:106-109)

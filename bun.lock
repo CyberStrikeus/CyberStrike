@@ -76,8 +76,8 @@
         "vite-plugin-solid": "catalog:",
       },
     },
-    "packages/azure-ent": {
-      "name": "@cyberstrike-io-ent/azure",
+    "packages/azure": {
+      "name": "@cyberstrike-io/azure",
       "version": "0.1.0",
       "devDependencies": {
         "@cyberstrike-io/plugin": "workspace:*",
@@ -806,9 +806,9 @@
 
     "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
 
-    "@cyberstrike-io-ent/azure": ["@cyberstrike-io-ent/azure@workspace:packages/azure-ent"],
-
     "@cyberstrike-io/app": ["@cyberstrike-io/app@workspace:packages/app"],
+
+    "@cyberstrike-io/azure": ["@cyberstrike-io/azure@workspace:packages/azure"],
 
     "@cyberstrike-io/console-app": ["@cyberstrike-io/console-app@workspace:packages/console/app"],
 

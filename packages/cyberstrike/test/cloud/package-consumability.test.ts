@@ -15,7 +15,7 @@ import {
   type CloudAnalysis,
 } from "../../src/public"
 
-// Simulates @cyberstrike-io-ent/azure's provider, restricted to the public boundary.
+// Simulates @cyberstrike-io/azure's provider, restricted to the public boundary.
 class MockAzurePackageProvider implements AssessmentProvider {
   key = "azure-pkg-test"
 

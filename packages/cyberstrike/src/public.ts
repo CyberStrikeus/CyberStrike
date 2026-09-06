@@ -1,7 +1,7 @@
 // Public runtime API of @cyberstrike-io/cyberstrike (core).
 //
 // This is the ONLY surface a workflow package (@cyberstrike-io/web,
-// @cyberstrike-io-ent/azure, ...) may import from core. It is curated and
+// @cyberstrike-io/azure, ...) may import from core. It is curated and
 // versioned: it is the core side of the package-compatibility boundary
 // (docs/domain-plugin-architecture.md). Internal modules stay internal — a
 // package that reaches past this surface is not portable across core versions.

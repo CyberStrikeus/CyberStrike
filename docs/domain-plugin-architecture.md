@@ -105,7 +105,7 @@ A domain provider calls core RUNTIME services, not just types. Azure's provider 
 `orchestrateLayer2()` — behavior, which a types-only SDK cannot supply. So:
 
 ```
-@cyberstrike-io-ent/azure (workflow package)
+@cyberstrike-io/azure (workflow package)
    ├── peerDep @cyberstrike-io/plugin       (SDK = CONTRACT: types + hook shapes)
    └── peerDep @cyberstrike-io/cyberstrike   (CORE = RUNTIME: Intel, Session,
                                               orchestrateLayer2, registry, vuln-status)
@@ -137,7 +137,7 @@ This public surface IS the core side of the version boundary — internal module
 ### Revised build order
 1. **Core public API surface** (`src/public.ts` + package `exports`) — the runtime boundary.
 2. Extract azure-specific code into a package shape (groups, classify, azurehook, prompts).
-3. `@cyberstrike-io-ent/azure`: peerDep core + SDK; export `provider` + `tool` hooks.
+3. `@cyberstrike-io/azure`: peerDep core + SDK; export `provider` + `tool` hooks.
 4. Private org → publish + `.npmrc` + restricted-access CI.
 
 ## Azure extraction — staged (in progress)
@@ -145,7 +145,7 @@ This public surface IS the core side of the version boundary — internal module
 The azure cluster is large and woven into core, so the move is staged; the tree
 stays green at every step.
 
-**Cluster to move → `packages/azure-ent` (`@cyberstrike-io-ent/azure`)** — code-verified,
+**Cluster to move → `packages/azure-ent` (`@cyberstrike-io/azure`)** — code-verified,
 all azure-specific, moves as ONE unit:
 `cloud/provider-azure.ts`, `cloud/groups.ts`, `cloud/classify.ts`, `tool/azurehook/`
 (16 files + `assess/`, incl. `assess-cache` + `shared`), `tool/assess-findings.ts`,
@@ -176,13 +176,13 @@ from core — registry built-in, 4 tools in tool/registry, cloud/index re-export
 tests; the registry/health tests were updated to reflect azure-is-a-package) ⑥ verify azure
 runs from the package ✅.
 
-> **EXTRACTION COMPLETE.** Azure is no longer in core; it is `@cyberstrike-io-ent/azure`,
+> **EXTRACTION COMPLETE.** Azure is no longer in core; it is `@cyberstrike-io/azure`,
 > registering via the plugin `provider` + `tool` hooks and reaching core only through
 > `cyberstrike/public`. End-to-end verified: azure resolves from the package (13 agents,
 > 9 groups, isAssessmentProvider, 4 tools). Core all-green (tsc 0, 2308 pass, 3 pre-existing
 > fails). Remaining for the publish milestone: core ships a built `dist`+`.d.ts` for
 > `cyberstrike/public` (so external `tsc` resolves it — runtime already works), then publish
-> `@cyberstrike-io-ent/azure` to the private registry.
+> `@cyberstrike-io/azure` to the private registry.
 
 ### Step ① done — scaffold verified at runtime
 `packages/azure-ent` exists: package.json (peerDeps `cyberstrike` + `@cyberstrike-io/plugin`,

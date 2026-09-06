@@ -1,6 +1,6 @@
-// @cyberstrike-io-ent/azure — Azure cloud assessment domain (paid plugin).
+// @cyberstrike-io/azure — Azure cloud assessment domain (paid plugin).
 //
-// Installed via `npm install @cyberstrike-io-ent/azure` (private registry). The
+// Installed via `npm install @cyberstrike-io/azure` (private registry). The
 // CyberStrike plugin loader runs this default export and wires the returned
 // `provider` + `tool` hooks into the host — no core edits. The azure agents +
 // azurehook/cloud-intel/assess-findings tools all live in THIS package now; the
