@@ -13,6 +13,8 @@ import { probeSstiPoint } from "./probe/ssti"
 import { probeCmdPoint } from "./probe/cmd"
 import { probeLfiPoint } from "./probe/lfi"
 import { probeErrorSigPoint } from "./probe/errsig"
+import { probeHppPoint } from "./probe/hpp"
+import { createBackoff } from "./probe/base"
 import { CanaryRegistry } from "../../session/web/signal/canary"
 import { DbCanaryStore } from "../../session/web/signal/store"
 import { scanProbeResponse } from "../../session/web/signal/ingest"
@@ -52,10 +54,10 @@ export const InjectProbeTool = Tool.define("inject_probe", {
         "Fallback when the target is NOT a stored request (a new/unseen endpoint). Provide EITHER request_id OR target.",
       ),
     vuln_type: z
-      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi"]))
+      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi", "hpp"]))
       .min(1)
       .describe(
-        "Injection classes to probe — YOU pick the set that fits THIS endpoint (don't run every class everywhere; e.g. no xpath on a plain REST/JSON API). xss/ssti/cmd return execution-facts; sqli/nosql/ldap/xpath return error-signature (sqli also a safe AND-based boolean-differential) facts. The tool never exploits — it hands you leads.",
+        "Injection classes to probe — YOU pick the set that fits THIS endpoint (don't run every class everywhere; e.g. no xpath on a plain REST/JSON API). xss/ssti/cmd return execution-facts; sqli/nosql/ldap/xpath return error-signature (sqli also a safe AND-based boolean-differential) facts; hpp detects HTTP Parameter Pollution parser behavior (first-wins vs last-wins). The tool never exploits — it hands you leads.",
       ),
     points: z
       .array(
@@ -178,6 +180,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
       }
     }
 
+    const backoff = createBackoff(DELAY)
     const results: { class: string; observations: unknown[] }[] = []
     const leads: string[] = []
     const testedLabels: string[] = []
@@ -204,7 +207,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
           })
         }
         if (cls === "xss") {
-          const o = await probeXssPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg)
+          const o = await probeXssPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg, backoff)
           classObs.push(o)
           markBlocked(o, cls)
           if (o.weaponized.length > 0)
@@ -216,7 +219,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
               `xss @ ${o.point}: tag(s) [${o.surviving_tags.join(", ")}] reflected un-encoded${o.context ? ` in ${o.context} context` : ""} — weaponize one (event handler) and confirm.`,
             )
         } else if (cls === "ssti") {
-          const o = await probeSstiPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg)
+          const o = await probeSstiPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg, backoff)
           classObs.push(o)
           markBlocked(o, cls)
           if (o.evaluated.length > 0)
@@ -224,7 +227,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
               `ssti @ ${o.point}: syntax [${o.evaluated.map((e) => e.syntax).join(", ")}] evaluated ${SSTI_EXPR}→${SSTI_PRODUCT} server-side (snippet in evaluated) — confirm engine + weaponize.`,
             )
         } else if (cls === "cmd") {
-          const o = await probeCmdPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg)
+          const o = await probeCmdPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg, backoff)
           classObs.push(o)
           markBlocked(o, cls)
           if (o.command_output.length > 0)
@@ -232,15 +235,23 @@ export const InjectProbeTool = Tool.define("inject_probe", {
               `cmd @ ${o.point}: separator(s) [${o.command_output.map((c) => c.separator).join(", ")}] returned command output (snippet in command_output) — confirm + enumerate.`,
             )
         } else if (cls === "lfi") {
-          const o = await probeLfiPoint(sender, resolved, point, ctx.abort, DELAY, budget)
+          const o = await probeLfiPoint(sender, resolved, point, ctx.abort, DELAY, budget, backoff)
           classObs.push(o)
           markBlocked(o, cls)
           if (o.findings.length > 0)
             leads.push(
               `lfi @ ${o.point}: READY traversal(s) disclosed a known OS file — technique [${[...new Set(o.findings.map((x) => x.technique))].join(", ")}] read ${[...new Set(o.findings.map((x) => x.target))].join(", ")}. Payload: ${o.findings[0]!.payload} — this SHAPE beat the filter; swap in the app target (FLAG.php/config).`,
             )
+        } else if (cls === "hpp") {
+          const o = await probeHppPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.parser_behavior !== "inconclusive")
+            leads.push(
+              `hpp @ ${o.point}: parser behavior = ${o.parser_behavior} (append_reflected=${o.append_reflected}, prepend_reflected=${o.prepend_reflected}) — fire injection payloads at the duplicate position to exploit.`,
+            )
         } else {
-          const o = await probeErrorSigPoint(sender, resolved, point, cls, ctx.abort, DELAY, budget)
+          const o = await probeErrorSigPoint(sender, resolved, point, cls, ctx.abort, DELAY, budget, backoff)
           classObs.push(o)
           markBlocked(o, cls)
           if (o.error_findings.length > 0)
@@ -280,6 +291,9 @@ export const InjectProbeTool = Tool.define("inject_probe", {
       block_signals: blocked.length ? blocked : undefined,
       coverage: { tested: testedLabels, not_tested: [...notTested] },
       sends: { used: budget.sent, cap: budget.max, truncated },
+      backoff: backoff.totalBlocks > 0
+        ? { delay_ms: backoff.delay, total_blocks: backoff.totalBlocks, escalations: backoff.escalations }
+        : undefined,
       rejected_points: rejected.length ? rejected : undefined,
       aborted: ctx.abort.aborted || undefined,
     }

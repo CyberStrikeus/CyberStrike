@@ -138,6 +138,46 @@ export function applyLfiTarget(
   }
 }
 
+export function duplicatePayload(
+  r: ResolvedRequest,
+  point: InjPoint,
+  value: string,
+  position: "first" | "last",
+): { url: string; body: string; headers: Record<string, string> } | null {
+  const headers = { ...r.headers }
+  const u = new URL(r.url.toString())
+
+  if (point.location === "query") {
+    const original = u.searchParams.get(point.name)
+    if (original == null) return null
+    if (position === "last") {
+      u.searchParams.append(point.name, value)
+    } else {
+      u.searchParams.delete(point.name)
+      u.searchParams.append(point.name, value)
+      u.searchParams.append(point.name, original)
+    }
+    return { url: u.toString(), body: r.body, headers }
+  }
+
+  if (point.location === "form_field") {
+    if (r.contentType.includes("multipart/form-data")) return null
+    const f = new URLSearchParams(r.body)
+    const original = f.get(point.name)
+    if (original == null) return null
+    if (position === "last") {
+      f.append(point.name, value)
+    } else {
+      f.delete(point.name)
+      f.append(point.name, value)
+      f.append(point.name, original)
+    }
+    return { url: u.toString(), body: f.toString(), headers }
+  }
+
+  return null
+}
+
 export function applyPayload(
   r: ResolvedRequest,
   point: InjPoint,

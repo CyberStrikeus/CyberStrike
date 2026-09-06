@@ -3,7 +3,7 @@ import { SSTI_EXPR, SSTI_PRODUCT, SSTI_SYNTAXES, SSTI_ALT } from "../payloads/ss
 import { applyPayload } from "../mutate"
 import { nonce, type HttpSender } from "../send"
 import { excerptOf } from "../detect"
-import { checkBaseline, fireLoop } from "./base"
+import { checkBaseline, fireLoop, type BackoffState } from "./base"
 
 export interface SstiObservation {
   point: string
@@ -23,6 +23,7 @@ export async function probeSstiPoint(
   delayMs: number,
   budget: SendBudget,
   register?: RegisterCanary,
+  backoff?: BackoffState,
 ): Promise<SstiObservation> {
   const obs: SstiObservation = {
     point: `${point.location}:${point.name}`,
@@ -44,7 +45,7 @@ export async function probeSstiPoint(
   obs.baseline = { status: bl.res.status, bytes: bl.res.text.length, ms: bl.res.ms }
   register?.(SSTI_PRODUCT, "template")
   const syntaxFindings = await fireLoop({
-    sender, r, abort, delayMs, budget, tracker: obs, statusOnly: true,
+    sender, r, abort, delayMs, budget, tracker: obs, statusOnly: true, backoff,
     payloads: SSTI_SYNTAXES,
     apply: (s) => applyPayload(r, point, s.wrap(SSTI_EXPR)),
     match: (res, s) => {
@@ -56,7 +57,7 @@ export async function probeSstiPoint(
   obs.evaluated.push(...syntaxFindings)
   for (const a of SSTI_ALT) register?.(a.product, "template")
   const altFindings = await fireLoop({
-    sender, r, abort, delayMs, budget, tracker: obs, statusOnly: true,
+    sender, r, abort, delayMs, budget, tracker: obs, statusOnly: true, backoff,
     payloads: SSTI_ALT,
     apply: (a) => applyPayload(r, point, a.payload),
     match: (res, a) => {

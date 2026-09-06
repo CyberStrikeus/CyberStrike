@@ -3,7 +3,7 @@ import { ERRSIG } from "../payloads/errsig"
 import { applyPayload, applyOperatorTarget } from "../mutate"
 import { send, repeatBaseline, type HttpSender } from "../send"
 import { blockSignal, excerptAround } from "../detect"
-import { sleep, fireLoop } from "./base"
+import { sleep, fireLoop, type BackoffState, recordBlock, recordSuccess } from "./base"
 
 export interface ErrSigObservation {
   point: string
@@ -31,6 +31,7 @@ export async function probeErrorSigPoint(
   abort: AbortSignal,
   delayMs: number,
   budget: SendBudget,
+  backoff?: BackoffState,
 ): Promise<ErrSigObservation> {
   const spec = ERRSIG[cls]
   const obs: ErrSigObservation = {
@@ -54,7 +55,7 @@ export async function probeErrorSigPoint(
   obs.baseline = { status: bl.status, bytes: bl.bytes, ms: bl.ms, byte_jitter: bl.byteJitter }
   const floor = Math.max(16, bl.byteJitter + 8)
   obs.error_findings = await fireLoop({
-    sender, r, abort, delayMs, budget, tracker: obs,
+    sender, r, abort, delayMs, budget, tracker: obs, backoff,
     payloads: spec.payloads,
     apply: (p) => applyPayload(r, point, p),
     match: (res, p) => {
@@ -76,10 +77,14 @@ export async function probeErrorSigPoint(
     const t = await send(sender, r, applyPayload(r, point, pair.t), abort, budget)
     const fr = await send(sender, r, applyPayload(r, point, pair.f), abort, budget)
     if ("error" in t || "error" in fr) continue
-    if (blockSignal(t) || blockSignal(fr)) {
+    const tBlk = blockSignal(t)
+    const fBlk = blockSignal(fr)
+    if (tBlk || fBlk) {
       obs.block_signal ??= "boolean pair blocked (WAF/rate-limit) — differential unreliable"
+      if (backoff && recordBlock(backoff) === "skip-point") break
       continue
     }
+    if (backoff) recordSuccess(backoff)
     const near = (a: number, b: number) => Math.abs(a - b) <= floor
     const signals: string[] = []
     if (Math.abs(t.text.length - fr.text.length) > floor) signals.push("bytes")
@@ -107,7 +112,7 @@ export async function probeErrorSigPoint(
       differential: signals.length > 0,
       signals,
     })
-    await sleep(delayMs)
+    await sleep(backoff?.delay ?? delayMs)
   }
   if (cls === "nosql") {
     const opPairs: { t: [string, any]; f: [string, any] }[] = [
@@ -123,10 +128,14 @@ export async function probeErrorSigPoint(
       const t = await send(sender, r, tTgt, abort, budget)
       const fr = await send(sender, r, fTgt, abort, budget)
       if ("error" in t || "error" in fr) continue
-      if (blockSignal(t) || blockSignal(fr)) {
+      const tBlk = blockSignal(t)
+      const fBlk = blockSignal(fr)
+      if (tBlk || fBlk) {
         obs.block_signal ??= "operator pair blocked (WAF/rate-limit) — differential unreliable"
+        if (backoff && recordBlock(backoff) === "skip-point") break
         continue
       }
+      if (backoff) recordSuccess(backoff)
       const signals: string[] = []
       if (Math.abs(t.text.length - fr.text.length) > floor) signals.push("bytes")
       if (t.status !== fr.status) signals.push("status")
@@ -151,7 +160,7 @@ export async function probeErrorSigPoint(
         differential: signals.length > 0,
         signals,
       })
-      await sleep(delayMs)
+      await sleep(backoff?.delay ?? delayMs)
     }
   }
   return obs

@@ -3,7 +3,7 @@ import { XSS_TAGS, XSS_WEAPONS, XSS_WEAPONS_BAREARG, XSS_WEAPONS_ENCODED, XSS_BR
 import { applyPayload } from "../mutate"
 import { send, nonce, type HttpSender } from "../send"
 import { looksBlocked, excerptOf, classifyXssContext, xssWeaponFires } from "../detect"
-import { sleep, checkBaseline, fireLoop } from "./base"
+import { sleep, checkBaseline, fireLoop, type BackoffState, recordBlock, recordSuccess } from "./base"
 
 export interface PointObservation {
   point: string
@@ -27,6 +27,7 @@ export async function probeXssPoint(
   delayMs: number,
   budget: SendBudget,
   register?: RegisterCanary,
+  backoff?: BackoffState,
 ): Promise<PointObservation> {
   const obs: PointObservation = {
     point: `${point.location}:${point.name}`,
@@ -53,7 +54,7 @@ export async function probeXssPoint(
   const tagPayloads = XSS_TAGS.map((tag) => ({ tag, tn: nonce() }))
   for (const { tn } of tagPayloads) register?.(tn, "reflect")
   obs.surviving_tags = await fireLoop({
-    sender, r, abort, delayMs, budget, tracker: obs, statusOnly: true,
+    sender, r, abort, delayMs, budget, tracker: obs, statusOnly: true, backoff,
     payloads: tagPayloads,
     apply: ({ tag, tn }) => applyPayload(r, point, `<${tag}/data-p=${tn}>`),
     match: (res, { tag, tn }) => {
@@ -77,6 +78,7 @@ export async function probeXssPoint(
   const ctx = obs.context ?? ""
   const attrCtx = /attribute|javascript|rcdata/.test(ctx)
   if (survived || attrCtx) {
+    const delay = backoff?.delay ?? delayMs
     for (const make of XSS_WEAPONS) {
       if (abort.aborted || budget.sent >= budget.max) break
       const wn = nonce()
@@ -84,12 +86,18 @@ export async function probeXssPoint(
       if (!xssWeaponFires(payload, survived, ctx)) continue
       register?.(wn, "reflect")
       const res = await send(sender, r, applyPayload(r, point, payload), abort, budget)
-      if ("error" in res || looksBlocked(res.status)) continue
+      if ("error" in res) continue
+      if (looksBlocked(res.status)) {
+        obs.blocked = true
+        if (backoff && recordBlock(backoff) === "skip-point") break
+        continue
+      }
+      if (backoff) recordSuccess(backoff)
       if (sig.test(res.text)) {
         obs.weaponized.push(payload.replace(wn, '"XSS"'))
         obs.weaponized.push(payload.replace(wn, "'XSS'"))
       }
-      await sleep(delayMs)
+      await sleep(backoff?.delay ?? delay)
     }
     for (const make of XSS_WEAPONS_BAREARG) {
       if (abort.aborted || budget.sent >= budget.max) break
@@ -98,9 +106,15 @@ export async function probeXssPoint(
       if (!xssWeaponFires(payload, survived, ctx)) continue
       register?.(wn, "reflect")
       const res = await send(sender, r, applyPayload(r, point, payload), abort, budget)
-      if ("error" in res || looksBlocked(res.status)) continue
+      if ("error" in res) continue
+      if (looksBlocked(res.status)) {
+        obs.blocked = true
+        if (backoff && recordBlock(backoff) === "skip-point") break
+        continue
+      }
+      if (backoff) recordSuccess(backoff)
       if (sig.test(res.text)) obs.weaponized.push(payload.replace(wn, "XSS"))
-      await sleep(delayMs)
+      await sleep(backoff?.delay ?? delay)
     }
     for (const w of XSS_WEAPONS_ENCODED) {
       if (abort.aborted || budget.sent >= budget.max) break
@@ -109,9 +123,15 @@ export async function probeXssPoint(
       if (!xssWeaponFires(payload, survived, ctx)) continue
       register?.(wn, "reflect")
       const res = await send(sender, r, applyPayload(r, point, payload), abort, budget)
-      if ("error" in res || looksBlocked(res.status)) continue
+      if ("error" in res) continue
+      if (looksBlocked(res.status)) {
+        obs.blocked = true
+        if (backoff && recordBlock(backoff) === "skip-point") break
+        continue
+      }
+      if (backoff) recordSuccess(backoff)
       if (sig.test(res.text)) obs.weaponized.push(w.ready)
-      await sleep(delayMs)
+      await sleep(backoff?.delay ?? delay)
     }
   }
   return obs

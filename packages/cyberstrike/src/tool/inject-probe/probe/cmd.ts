@@ -3,7 +3,7 @@ import { CMD_PROBES, CMD_SEPARATORS } from "../payloads/cmd"
 import { applyPayload } from "../mutate"
 import { nonce, type HttpSender } from "../send"
 import { excerptAround } from "../detect"
-import { checkBaseline, fireLoop } from "./base"
+import { checkBaseline, fireLoop, type BackoffState } from "./base"
 
 export interface CmdObservation {
   point: string
@@ -23,6 +23,7 @@ export async function probeCmdPoint(
   delayMs: number,
   budget: SendBudget,
   register?: RegisterCanary,
+  backoff?: BackoffState,
 ): Promise<CmdObservation> {
   const obs: CmdObservation = {
     point: `${point.location}:${point.name}`,
@@ -45,7 +46,7 @@ export async function probeCmdPoint(
   for (const probe of CMD_PROBES) {
     if (abort.aborted || budget.sent >= budget.max) break
     const findings = await fireLoop({
-      sender, r, abort, delayMs, budget, tracker: obs, statusOnly: true,
+      sender, r, abort, delayMs, budget, tracker: obs, statusOnly: true, backoff,
       payloads: CMD_SEPARATORS,
       apply: (sep) => applyPayload(r, point, sep.wrap(probe.cmd)),
       match: (res, sep) => {

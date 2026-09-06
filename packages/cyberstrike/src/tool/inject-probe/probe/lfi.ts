@@ -3,7 +3,7 @@ import { LFI_TARGETS, LFI_TECHNIQUES, LFI_ABSOLUTE } from "../payloads/lfi"
 import { applyLfiTarget } from "../mutate"
 import type { HttpSender } from "../send"
 import { excerptAround } from "../detect"
-import { checkBaseline, fireLoop } from "./base"
+import { checkBaseline, fireLoop, type BackoffState } from "./base"
 
 export interface LfiObservation {
   point: string
@@ -21,6 +21,7 @@ export async function probeLfiPoint(
   abort: AbortSignal,
   delayMs: number,
   budget: SendBudget,
+  backoff?: BackoffState,
 ): Promise<LfiObservation> {
   const obs: LfiObservation = {
     point: `${point.location}:${point.name}`,
@@ -49,7 +50,7 @@ export async function probeLfiPoint(
       if (abs.os === target.os) combos.push({ target, name: abs.name, payload: abs.make(target.file) })
   }
   obs.findings = await fireLoop({
-    sender, r, abort, delayMs, budget, tracker: obs,
+    sender, r, abort, delayMs, budget, tracker: obs, backoff,
     payloads: combos,
     apply: (c) => applyLfiTarget(r, point, c.payload),
     match: (res, c) => {
