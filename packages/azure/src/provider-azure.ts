@@ -3,8 +3,7 @@ import type { AssessmentProvider, CloudAnalysis } from "cyberstrike/public"
 import { CLOUD_GROUPS, identityGroup as azureIdentityGroup, parallelGroups as azureParallelGroups } from "./groups"
 import { getAssessResult } from "./azurehook/assess-cache"
 import { classifyGroupFindings } from "./classify"
-import { Intel } from "cyberstrike/public"
-import { triageGuide, triageActions } from "cyberstrike/public"
+import { core } from "./core"
 
 import PROMPT_CLOUD_ANALYST_COMMON from "./prompts/analyst-common.txt"
 import PROMPT_CLOUD_ORCHESTRATOR from "./prompts/orchestrator.txt"
@@ -98,10 +97,10 @@ export class AzureProvider implements AssessmentProvider {
       `Rapidly triage formulaic findings across these groups: ${groupKeys.join(", ")}`,
       "",
       "For each group, call `get_assess_findings(group: '<key>')` to see findings with their triage status and vulnerability IDs.",
-      `Triage each finding using triage_vulnerability with one of: ${triageActions()}.`,
+      `Triage each finding using triage_vulnerability with one of: ${core().triageActions()}.`,
       "",
       "Status guide:",
-      triageGuide(),
+      core().triageGuide(),
       "",
       "**Escalation:** If a finding turns out to be MORE complex than expected (e.g. involves privilege escalation, lateral movement, or cross-group chain potential), do NOT attempt deep investigation. Instead, call `add_intel` with title starting with `ESCALATE:` and describe why it needs deeper analysis. The orchestrator will route it to a follow-up agent.",
       "",
@@ -127,7 +126,7 @@ export class AzureProvider implements AssessmentProvider {
   }
 
   identityContext(rootSession: string) {
-    const entries = Intel.get(rootSession)
+    const entries = core().Intel.get(rootSession)
     const identity = entries.filter((e) => e.tags.includes("group:identity"))
     if (identity.length === 0) return ""
     const lines = ["Identity analysis found:"]

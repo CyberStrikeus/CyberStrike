@@ -1,7 +1,8 @@
 import z from "zod"
 import { tool } from "@cyberstrike-io/plugin"
 import type { Finding, HookResult } from "./shared"
-import { Vulnerability, Session, VulnStatus } from "cyberstrike/public"
+import type { Vulnerability as VulnerabilityNS } from "cyberstrike/public"
+import { core } from "../core"
 
 import {
   entraEnum,
@@ -169,9 +170,6 @@ import { resourceHijack, dataDestroy, ransomwareSim, accountLockout, serviceDisr
 import { exchangeAbuse, sharepointEnum, teamsEnum, onedriveAccess } from "./m365"
 import { cleanupAzure } from "./cleanup"
 import { azureAssess } from "./assess"
-import { orchestrateLayer2 } from "cyberstrike/public"
-import { resolveProvider } from "cyberstrike/public"
-import { isAssessmentProvider } from "cyberstrike/public"
 
 const PROGRAMS = {
   azure_assess: {
@@ -1101,12 +1099,12 @@ export const AzurehookTool = tool({
         // @cyberstrike-io/azure package tomorrow. No hardcoded construction —
         // this decouples the tool from provider-azure so the azure cluster can move
         // to its package as a unit.
-        const provider = await resolveProvider("azure")
-        if (!provider || !isAssessmentProvider(provider)) {
+        const provider = await core().resolveProvider("azure")
+        if (!provider || !core().isAssessmentProvider(provider)) {
           ctx.metadata({ title: `azurehook: ${params.program}`, metadata: { program: params.program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 } })
           return "No azure assessment domain is registered. Install @cyberstrike-io/azure."
         }
-        const state = await orchestrateLayer2(provider, ctx.sessionID, ctx.messageID)
+        const state = await core().orchestrateLayer2(provider, ctx.sessionID, ctx.messageID)
         const completed = state.analystResults.filter((a) => !a.summary.startsWith("Error:"))
         const failed = state.analystResults.filter((a) => a.summary.startsWith("Error:"))
         const lines = [
@@ -1134,7 +1132,7 @@ export const AzurehookTool = tool({
     let result: HookResult
     try {
       if (program === "azure_assess") {
-        result = await azureAssess(safeArgs, effectiveTimeout, Session.root(ctx.sessionID))
+        result = await azureAssess(safeArgs, effectiveTimeout, core().Session.root(ctx.sessionID))
       } else {
         result = await handler(safeArgs, effectiveTimeout)
       }
@@ -1150,10 +1148,10 @@ export const AzurehookTool = tool({
 
     if (program === "azure_assess" && enriched.length > 0) {
       const VALID_SEV = new Set(["critical", "high", "medium", "low", "info"])
-      const rootSession = Session.root(ctx.sessionID)
+      const rootSession = core().Session.root(ctx.sessionID)
       const stripCheckId = (t: string) => t.replace(/^\[AZ-[A-Z]+-\d+\]\s*/, "")
       const existing = new Set(
-        Vulnerability.get(rootSession).map((v) => `${stripCheckId(v.title).toLowerCase()}|${(v.endpoint ?? "").toLowerCase()}`),
+        core().Vulnerability.get(rootSession).map((v) => `${stripCheckId(v.title).toLowerCase()}|${(v.endpoint ?? "").toLowerCase()}`),
       )
       let reported = 0
       let skipped = 0
@@ -1165,18 +1163,18 @@ export const AzurehookTool = tool({
           skipped++
           continue
         }
-        Vulnerability.add({
+        core().Vulnerability.add({
           sessionID: ctx.sessionID,
           messageID: ctx.messageID,
           data: {
-            severity: sev as Vulnerability.Info["severity"],
+            severity: sev as VulnerabilityNS.Info["severity"],
             title: `[${f.checkId}] ${f.title}`,
             description: f.details,
             recommendation: f.remediation,
             endpoint: f.resource,
             cwe_id: "cwe" in f ? (f as { cwe: string }).cwe : undefined,
             source_agent: "azure-assess",
-            status: VulnStatus.DRAFT,
+            status: core().VulnStatus.DRAFT,
           },
         })
         existing.add(key)

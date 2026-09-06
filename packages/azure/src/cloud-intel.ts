@@ -1,6 +1,6 @@
 import z from "zod"
 import { tool } from "@cyberstrike-io/plugin"
-import { Intel, Session } from "cyberstrike/public"
+import { core } from "./core"
 import { CLOUD_GROUPS, groupByKey } from "./groups"
 
 const CLOUD_INTEL_TYPES = new Set([
@@ -52,8 +52,8 @@ export const GetCloudIntelTool = tool({
       return `Unknown group key '${params.group}'. Valid keys: ${validKeys}`
     }
 
-    const rootSession = Session.root(ctx.sessionID)
-    let entries = Intel.get(rootSession)
+    const rootSession = core().Session.root(ctx.sessionID)
+    let entries = core().Intel.get(rootSession)
 
     if (!params.include_all) {
       entries = entries.filter((e) => CLOUD_INTEL_TYPES.has(e.type))

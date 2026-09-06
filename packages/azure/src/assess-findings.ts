@@ -1,12 +1,12 @@
 import z from "zod"
 import { tool } from "@cyberstrike-io/plugin"
-import { Session, Vulnerability, isActionable, isExcluded } from "cyberstrike/public"
+import { core } from "./core"
 import { getAssessResult } from "./azurehook/assess-cache"
 import { CLOUD_GROUPS, groupByKey } from "./groups"
 import type { Finding } from "./azurehook/shared"
 
 function buildTriageMap(sessionID: string): Map<string, { status: string; vulnId: string }> {
-  const vulns = Vulnerability.get(sessionID)
+  const vulns = core().Vulnerability.get(sessionID)
   const map = new Map<string, { status: string; vulnId: string }>()
   const stripCheckId = (t: string) => t.replace(/^\[[\w.-]+\]\s*/, "")
   for (const v of vulns) {
@@ -97,7 +97,7 @@ export const GetAssessGroupFindingsTool = tool({
       ),
   },
   async execute(params, ctx): Promise<string> {
-    const rootSession = Session.root(ctx.sessionID)
+    const rootSession = core().Session.root(ctx.sessionID)
     const result = getAssessResult(rootSession)
 
     if (!result) {
@@ -129,8 +129,8 @@ export const GetAssessGroupFindingsTool = tool({
       let verified = 0, rejected = 0, pending = 0
       for (const f of allFindings) {
         const triage = lookupTriage(f, triageMap)
-        if (isActionable(triage.status)) verified++
-        else if (isExcluded(triage.status)) rejected++
+        if (core().isActionable(triage.status)) verified++
+        else if (core().isExcluded(triage.status)) rejected++
         else pending++
       }
 

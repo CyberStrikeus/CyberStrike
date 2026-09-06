@@ -11,10 +11,14 @@ import azurePlugin from "../src/index"
 import { registerProvider, resolveProvider, collectAgentSpecs } from "cyberstrike/cloud/provider-registry"
 import { isAssessmentProvider } from "cyberstrike/cloud/provider"
 import { providerHealth } from "cyberstrike/cloud/provider-health"
+import { buildCoreRuntime } from "cyberstrike/cloud/core-runtime"
+
+// The host injects input.core; the test supplies the real runtime the same way.
+const pluginInput = () => ({ core: buildCoreRuntime() }) as any
 
 describe("azure package integrates through the real loader registration path", () => {
   test("running the package + the loader's provider loop registers azure in core", async () => {
-    const hooks = await azurePlugin({} as any)
+    const hooks = await azurePlugin(pluginInput())
 
     // EXACT loader loop (plugin/index.ts:106-109)
     for (const [key, factory] of Object.entries(hooks.provider ?? {})) {
@@ -36,7 +40,7 @@ describe("azure package integrates through the real loader registration path", (
   })
 
   test("health reports the azure domain with its agents", async () => {
-    const hooks = await azurePlugin({} as any)
+    const hooks = await azurePlugin(pluginInput())
     for (const [key, factory] of Object.entries(hooks.provider ?? {})) registerProvider(key, factory as any)
 
     const health = await providerHealth()
@@ -48,7 +52,7 @@ describe("azure package integrates through the real loader registration path", (
   })
 
   test("the package's tool hook entries are valid SDK ToolDefinitions (registerable)", async () => {
-    const hooks = await azurePlugin({} as any)
+    const hooks = await azurePlugin(pluginInput())
     // ToolRegistry.fromPlugin(id, def) requires description + args + execute; assert
     // all 4 azure tools present that shape (so the tool loop would register them).
     const tools = hooks.tool ?? {}
