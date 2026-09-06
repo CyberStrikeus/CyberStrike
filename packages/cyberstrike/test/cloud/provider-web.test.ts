@@ -19,17 +19,17 @@ describe("WebProvider", () => {
     expect(names).toEqual([
       "hunt-agent",
       "hunt-analyzer",
-      "hunt-tester-authn",
-      "hunt-tester-authz",
-      "hunt-tester-business-logic",
-      "hunt-tester-file-attacks",
-      "hunt-tester-idor",
-      "hunt-tester-injection",
-      "hunt-tester-llm",
-      "hunt-tester-mass-assignment",
-      "hunt-tester-misconfig",
-      "hunt-tester-recon",
-      "hunt-tester-ssrf",
+      "hunt-authn",
+      "hunt-authz",
+      "hunt-business-logic",
+      "hunt-file-attacks",
+      "hunt-idor",
+      "hunt-injection",
+      "hunt-llm",
+      "hunt-mass-assignment",
+      "hunt-misconfig",
+      "hunt-recon",
+      "hunt-ssrf",
     ])
   })
 
@@ -60,7 +60,7 @@ describe("WebProvider", () => {
 
   test("injection agent has destructive-SQL deny rules", async () => {
     const provider = await WebProvider.create()
-    const injection = provider.agentSpecs().find((s) => s.name === "hunt-tester-injection")!
+    const injection = provider.agentSpecs().find((s) => s.name === "hunt-injection")!
     const bash = injection.permissions.bash
     expect(typeof bash).toBe("object")
     if (typeof bash === "object") {
@@ -71,7 +71,7 @@ describe("WebProvider", () => {
 
   test("injection agent has inject_probe permission", async () => {
     const provider = await WebProvider.create()
-    const injection = provider.agentSpecs().find((s) => s.name === "hunt-tester-injection")!
+    const injection = provider.agentSpecs().find((s) => s.name === "hunt-injection")!
     expect(injection.permissions.inject_probe).toBe("allow")
   })
 
@@ -79,25 +79,25 @@ describe("WebProvider", () => {
     const provider = await WebProvider.create()
     const specs = provider.agentSpecs()
 
-    const authn = specs.find((s) => s.name === "hunt-tester-authn")!
+    const authn = specs.find((s) => s.name === "hunt-authn")!
     expect(authn.permissions.authn_test).toBe("allow")
 
-    const ssrf = specs.find((s) => s.name === "hunt-tester-ssrf")!
+    const ssrf = specs.find((s) => s.name === "hunt-ssrf")!
     expect(ssrf.permissions.ssrf_test).toBe("allow")
 
-    const business = specs.find((s) => s.name === "hunt-tester-business-logic")!
+    const business = specs.find((s) => s.name === "hunt-business-logic")!
     expect(business.permissions.business_test).toBe("allow")
 
-    const misconfig = specs.find((s) => s.name === "hunt-tester-misconfig")!
+    const misconfig = specs.find((s) => s.name === "hunt-misconfig")!
     expect(misconfig.permissions.misconfig_test).toBe("allow")
 
-    const recon = specs.find((s) => s.name === "hunt-tester-recon")!
+    const recon = specs.find((s) => s.name === "hunt-recon")!
     expect(recon.permissions.recon_test).toBe("allow")
   })
 
   test("llm agent has llmhook permission", async () => {
     const provider = await WebProvider.create()
-    const llm = provider.agentSpecs().find((s) => s.name === "hunt-tester-llm")!
+    const llm = provider.agentSpecs().find((s) => s.name === "hunt-llm")!
     expect(llm.permissions.llmhook).toBe("allow")
   })
 

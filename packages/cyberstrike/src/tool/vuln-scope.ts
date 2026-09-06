@@ -1,6 +1,6 @@
 // Lane discipline for the proxy vuln testers (Phase 2, docs/proxy-pipeline-redesign).
 //
-// A hunt-tester-<class> agent may only RECORD findings (report_vulnerability /
+// A hunt-<class> agent may only RECORD findings (report_vulnerability /
 // update_vrt_check) in its own vulnerability class. Off-class observations must
 // be handed off via add_intel(type:"vulnerability_hint"), NOT tested/recorded by
 // the wrong specialist. This is enforced structurally at the tool layer so it
@@ -70,7 +70,7 @@ export function vrtScopeViolation(
   agent: string | undefined,
   category: string,
 ): { cls: string; allowed: string[] } | null {
-  const m = agent?.match(/^hunt-tester-(.+)$/)
+  const m = agent?.match(/^hunt-(.+)$/)
   if (!m) return null
   const cls = m[1]
   const allowed = TESTER_VRT_SCOPE[cls]
@@ -145,7 +145,7 @@ export function reportScopeViolation(
   vrtCategory: string | undefined,
   title: string,
 ): { cls: string; allowed: string[] } | null {
-  const m = agent?.match(/^hunt-tester-(.+)$/)
+  const m = agent?.match(/^hunt-(.+)$/)
   if (!m) return null
   const cls = m[1]
   const allowed = TESTER_VRT_SCOPE[cls]
@@ -166,12 +166,12 @@ export function reportScopeViolation(
 }
 
 /**
- * The tester class for an agent name ("hunt-tester-idor" → "idor"), or undefined
+ * The tester class for an agent name ("hunt-idor" → "idor"), or undefined
  * if the agent is not a recognized hunt-tester. Used to scope methodology context
  * (Phase 2.3) so a tester is handed only its own lane's work/hints.
  */
 export function testerClass(agent: string | undefined): string | undefined {
-  const m = agent?.match(/^hunt-tester-(.+)$/)
+  const m = agent?.match(/^hunt-(.+)$/)
   return m && TESTER_VRT_SCOPE[m[1]] ? m[1] : undefined
 }
 
@@ -189,7 +189,7 @@ export function categoryInLane(cls: string, category: string): boolean {
 
 /**
  * Dispatch-time lane guard (Phase 4). The orchestrator routes each test to a
- * specialist; when a hunt-tester-<cls> is dispatched with an objective that
+ * specialist; when a hunt-<cls> is dispatched with an objective that
  * confidently belongs to ANOTHER class (e.g. a rate-limiting task sent to
  * business-logic), return the caller's class + the correct target so task() can
  * bounce it with a re-dispatch hint. Conservative: returns null when the target
@@ -201,7 +201,7 @@ export function dispatchScopeViolation(
   subagentType: string | undefined,
   objective: string,
 ): { cls: string; inferred: string } | null {
-  const m = subagentType?.match(/^hunt-tester-(.+)$/)
+  const m = subagentType?.match(/^hunt-(.+)$/)
   if (!m) return null
   const cls = m[1]
   if (!TESTER_VRT_SCOPE[cls]) return null
@@ -213,8 +213,8 @@ export function dispatchScopeViolation(
 /** Hand-off message shown when a tester is dispatched outside its lane. */
 export function dispatchOffLaneMessage(cls: string, inferred: string): string {
   return (
-    `Dispatch rejected: this objective is hunt-tester-${inferred}'s lane, not hunt-tester-${cls}'s. ` +
-    `Re-dispatch with subagent_type "hunt-tester-${inferred}" so the right specialist handles it — ` +
+    `Dispatch rejected: this objective is hunt-${inferred}'s lane, not hunt-${cls}'s. ` +
+    `Re-dispatch with subagent_type "hunt-${inferred}" so the right specialist handles it — ` +
     `each tester must stay in its own vulnerability class.`
   )
 }
@@ -222,7 +222,7 @@ export function dispatchOffLaneMessage(cls: string, inferred: string): string {
 /** Standard hand-off message shown when a tester records out of its lane. */
 export function offLaneMessage(cls: string, allowed: string[], category: string): string {
   return (
-    `Out of scope: as hunt-tester-${cls} you may only record findings in your own class ` +
+    `Out of scope: as hunt-${cls} you may only record findings in your own class ` +
     `(${allowed.join(", ")}). "${category}" belongs to another specialist — do NOT test or record it yourself. ` +
     `Hand it off with add_intel(type:"vulnerability_hint", ...) so the orchestrator can route it to the right tester.`
   )

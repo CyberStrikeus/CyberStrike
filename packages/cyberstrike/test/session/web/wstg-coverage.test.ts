@@ -146,15 +146,15 @@ describe("WSTG Coverage Map — coverage statistics", () => {
 describe("WSTG Coverage Map — agent load distribution", () => {
   test("every specialist agent owns at least one test (LLM excluded — not in WSTG)", async () => {
     const provider = await WebProvider.create()
-    const specialists = provider.agentSpecs().filter((s) => s.role === "specialist" && s.name !== "hunt-tester-llm")
+    const specialists = provider.agentSpecs().filter((s) => s.role === "specialist" && s.name !== "hunt-llm")
     const coverageAgents = new Set(WSTG_COVERAGE.map((c) => c.agent))
     for (const s of specialists) {
       expect(coverageAgents.has(s.name)).toBe(true)
     }
   })
 
-  test("hunt-tester-llm is extension-only (no WSTG mapping)", () => {
-    const llmEntries = WSTG_COVERAGE.filter((c) => c.agent === "hunt-tester-llm")
+  test("hunt-llm is extension-only (no WSTG mapping)", () => {
+    const llmEntries = WSTG_COVERAGE.filter((c) => c.agent === "hunt-llm")
     expect(llmEntries.length).toBe(0)
   })
 
@@ -170,7 +170,7 @@ describe("WSTG Coverage Map — agent load distribution", () => {
 
   test("injection agent covers all INPV injection tests (01-14, 18)", () => {
     const injectionTests = WSTG_COVERAGE.filter(
-      (c) => c.agent === "hunt-tester-injection" && c.id.startsWith("WSTG-INPV")
+      (c) => c.agent === "hunt-injection" && c.id.startsWith("WSTG-INPV")
     )
     const nums = injectionTests.map((c) => parseInt(c.id.split("-")[2]!, 10))
     for (const n of [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 18]) {
@@ -180,7 +180,7 @@ describe("WSTG Coverage Map — agent load distribution", () => {
 
   test("ssrf agent covers INPV 15-17, 19", () => {
     const ssrfTests = WSTG_COVERAGE.filter(
-      (c) => c.agent === "hunt-tester-ssrf" && c.id.startsWith("WSTG-INPV")
+      (c) => c.agent === "hunt-ssrf" && c.id.startsWith("WSTG-INPV")
     )
     const nums = ssrfTests.map((c) => parseInt(c.id.split("-")[2]!, 10))
     for (const n of [15, 16, 17, 19]) {
@@ -191,21 +191,21 @@ describe("WSTG Coverage Map — agent load distribution", () => {
   test("misconfig agent owns all CONF tests", () => {
     const confTests = WSTG_COVERAGE.filter((c) => c.id.startsWith("WSTG-CONF"))
     for (const c of confTests) {
-      expect(c.agent).toBe("hunt-tester-misconfig")
+      expect(c.agent).toBe("hunt-misconfig")
     }
   })
 
   test("authn agent owns all ATHN tests", () => {
     const athnTests = WSTG_COVERAGE.filter((c) => c.id.startsWith("WSTG-ATHN"))
     for (const c of athnTests) {
-      expect(c.agent).toBe("hunt-tester-authn")
+      expect(c.agent).toBe("hunt-authn")
     }
   })
 
   test("authn agent owns all SESS tests", () => {
     const sessTests = WSTG_COVERAGE.filter((c) => c.id.startsWith("WSTG-SESS"))
     for (const c of sessTests) {
-      expect(c.agent).toBe("hunt-tester-authn")
+      expect(c.agent).toBe("hunt-authn")
     }
   })
 })

@@ -119,7 +119,7 @@ export namespace MethodologyContext {
       ? coverage.untestedItems.filter((item) => categoryInLane(agentClass!, item.vrtCategory))
       : coverage.untestedItems
     if (untested.length > 0) {
-      const scope = isTester ? ` for hunt-tester-${agentClass}` : ""
+      const scope = isTester ? ` for hunt-${agentClass}` : ""
       sections.push("")
       sections.push(`## Priority Untested${scope} (${untested.length} total)`)
       for (const item of untested.slice(0, 5)) {

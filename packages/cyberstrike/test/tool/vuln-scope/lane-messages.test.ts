@@ -4,7 +4,7 @@ import { offLaneMessage, dispatchOffLaneMessage, TESTER_VRT_SCOPE } from "../../
 describe("offLaneMessage", () => {
   test("includes the tester class in message", () => {
     const msg = offLaneMessage("injection", TESTER_VRT_SCOPE["injection"], "idor")
-    expect(msg).toContain("hunt-tester-injection")
+    expect(msg).toContain("hunt-injection")
   })
 
   test("includes the offending category", () => {
@@ -33,23 +33,23 @@ describe("offLaneMessage", () => {
 describe("dispatchOffLaneMessage", () => {
   test("includes the wrong tester class", () => {
     const msg = dispatchOffLaneMessage("injection", "idor")
-    expect(msg).toContain("hunt-tester-injection")
+    expect(msg).toContain("hunt-injection")
   })
 
   test("includes the correct target tester class", () => {
     const msg = dispatchOffLaneMessage("injection", "idor")
-    expect(msg).toContain("hunt-tester-idor")
+    expect(msg).toContain("hunt-idor")
   })
 
   test("mentions re-dispatch instruction", () => {
     const msg = dispatchOffLaneMessage("authn", "file-attacks")
     expect(msg).toContain("Re-dispatch")
-    expect(msg).toContain("hunt-tester-file-attacks")
+    expect(msg).toContain("hunt-file-attacks")
   })
 
   test("identifies the objective as wrong lane", () => {
     const msg = dispatchOffLaneMessage("ssrf", "injection")
-    expect(msg).toContain("hunt-tester-injection's lane")
-    expect(msg).toContain("not hunt-tester-ssrf's")
+    expect(msg).toContain("hunt-injection's lane")
+    expect(msg).toContain("not hunt-ssrf's")
   })
 })

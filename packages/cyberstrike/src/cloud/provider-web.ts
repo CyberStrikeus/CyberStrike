@@ -278,7 +278,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       },
     },
     {
-      name: "hunt-tester-idor",
+      name: "hunt-idor",
       role: "specialist",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_IDOR, idorSkills),
       description: DESC_HUNT_TESTER_IDOR,
@@ -287,7 +287,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       permissions: VULN_BASE_PERMISSIONS,
     },
     {
-      name: "hunt-tester-authz",
+      name: "hunt-authz",
       role: "specialist",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_AUTHZ, authzSkills),
       description: DESC_HUNT_TESTER_AUTHZ,
@@ -296,7 +296,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       permissions: VULN_BASE_PERMISSIONS,
     },
     {
-      name: "hunt-tester-mass-assignment",
+      name: "hunt-mass-assignment",
       role: "specialist",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_MASS_ASSIGNMENT, massAssignmentSkills),
       description: DESC_HUNT_TESTER_MASS_ASSIGNMENT,
@@ -305,7 +305,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       permissions: VULN_BASE_PERMISSIONS,
     },
     {
-      name: "hunt-tester-injection",
+      name: "hunt-injection",
       role: "specialist",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_INJECTION, injectionSkills),
       description: DESC_HUNT_TESTER_INJECTION,
@@ -342,7 +342,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       }),
     },
     {
-      name: "hunt-tester-authn",
+      name: "hunt-authn",
       role: "specialist",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_AUTHN, authnSkills),
       description: DESC_HUNT_TESTER_AUTHN,
@@ -351,7 +351,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { authn_test: "allow" }),
     },
     {
-      name: "hunt-tester-business-logic",
+      name: "hunt-business-logic",
       role: "specialist",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_BUSINESS_LOGIC, businessLogicSkills),
       description: DESC_HUNT_TESTER_BUSINESS_LOGIC,
@@ -360,7 +360,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { business_test: "allow" }),
     },
     {
-      name: "hunt-tester-ssrf",
+      name: "hunt-ssrf",
       role: "specialist",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_SSRF, ssrfSkills),
       description: DESC_HUNT_TESTER_SSRF,
@@ -369,7 +369,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { ssrf_test: "allow" }),
     },
     {
-      name: "hunt-tester-file-attacks",
+      name: "hunt-file-attacks",
       role: "specialist",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_FILE_ATTACKS, fileAttacksSkills),
       description: DESC_HUNT_TESTER_FILE_ATTACKS,
@@ -378,7 +378,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { inject_probe: "allow" }),
     },
     {
-      name: "hunt-tester-llm",
+      name: "hunt-llm",
       role: "specialist",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_LLM, llmSkills),
       description: DESC_HUNT_TESTER_LLM,
@@ -387,7 +387,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { llmhook: "allow" }),
     },
     {
-      name: "hunt-tester-misconfig",
+      name: "hunt-misconfig",
       role: "specialist",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_MISCONFIG, misconfigSkills),
       description: DESC_HUNT_TESTER_MISCONFIG,
@@ -396,7 +396,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { misconfig_test: "allow" }),
     },
     {
-      name: "hunt-tester-recon",
+      name: "hunt-recon",
       role: "specialist",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_RECON, reconSkills),
       description: DESC_HUNT_TESTER_RECON,

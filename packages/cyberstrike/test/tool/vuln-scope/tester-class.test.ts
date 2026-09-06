@@ -3,36 +3,36 @@ import { testerClass, categoryInLane } from "../../../src/tool/vuln-scope"
 
 describe("testerClass", () => {
   describe("recognized hunt-tester agents", () => {
-    test("hunt-tester-injection returns injection", () => {
-      expect(testerClass("hunt-tester-injection")).toBe("injection")
+    test("hunt-injection returns injection", () => {
+      expect(testerClass("hunt-injection")).toBe("injection")
     })
 
-    test("hunt-tester-idor returns idor", () => {
-      expect(testerClass("hunt-tester-idor")).toBe("idor")
+    test("hunt-idor returns idor", () => {
+      expect(testerClass("hunt-idor")).toBe("idor")
     })
 
-    test("hunt-tester-ssrf returns ssrf", () => {
-      expect(testerClass("hunt-tester-ssrf")).toBe("ssrf")
+    test("hunt-ssrf returns ssrf", () => {
+      expect(testerClass("hunt-ssrf")).toBe("ssrf")
     })
 
-    test("hunt-tester-authn returns authn", () => {
-      expect(testerClass("hunt-tester-authn")).toBe("authn")
+    test("hunt-authn returns authn", () => {
+      expect(testerClass("hunt-authn")).toBe("authn")
     })
 
-    test("hunt-tester-authz returns authz", () => {
-      expect(testerClass("hunt-tester-authz")).toBe("authz")
+    test("hunt-authz returns authz", () => {
+      expect(testerClass("hunt-authz")).toBe("authz")
     })
 
-    test("hunt-tester-file-attacks returns file-attacks", () => {
-      expect(testerClass("hunt-tester-file-attacks")).toBe("file-attacks")
+    test("hunt-file-attacks returns file-attacks", () => {
+      expect(testerClass("hunt-file-attacks")).toBe("file-attacks")
     })
 
-    test("hunt-tester-mass-assignment returns mass-assignment", () => {
-      expect(testerClass("hunt-tester-mass-assignment")).toBe("mass-assignment")
+    test("hunt-mass-assignment returns mass-assignment", () => {
+      expect(testerClass("hunt-mass-assignment")).toBe("mass-assignment")
     })
 
-    test("hunt-tester-business-logic returns business-logic", () => {
-      expect(testerClass("hunt-tester-business-logic")).toBe("business-logic")
+    test("hunt-business-logic returns business-logic", () => {
+      expect(testerClass("hunt-business-logic")).toBe("business-logic")
     })
   })
 
@@ -50,7 +50,7 @@ describe("testerClass", () => {
     })
 
     test("unknown tester class", () => {
-      expect(testerClass("hunt-tester-unknown")).toBeUndefined()
+      expect(testerClass("hunt-unknown")).toBeUndefined()
     })
 
     test("empty string", () => {

@@ -22,74 +22,74 @@ describe("vrtScopeViolation", () => {
 
   describe("in-scope categories — returns null", () => {
     test("injection tester recording sqli", () => {
-      expect(vrtScopeViolation("hunt-tester-injection", "sqli")).toBeNull()
+      expect(vrtScopeViolation("hunt-injection", "sqli")).toBeNull()
     })
 
     test("injection tester recording xss", () => {
-      expect(vrtScopeViolation("hunt-tester-injection", "xss")).toBeNull()
+      expect(vrtScopeViolation("hunt-injection", "xss")).toBeNull()
     })
 
     test("injection tester recording cross-site scripting", () => {
-      expect(vrtScopeViolation("hunt-tester-injection", "cross-site scripting")).toBeNull()
+      expect(vrtScopeViolation("hunt-injection", "cross-site scripting")).toBeNull()
     })
 
     test("idor tester recording idor", () => {
-      expect(vrtScopeViolation("hunt-tester-idor", "idor")).toBeNull()
+      expect(vrtScopeViolation("hunt-idor", "idor")).toBeNull()
     })
 
     test("idor tester recording bola", () => {
-      expect(vrtScopeViolation("hunt-tester-idor", "bola")).toBeNull()
+      expect(vrtScopeViolation("hunt-idor", "bola")).toBeNull()
     })
 
     test("ssrf tester recording ssrf", () => {
-      expect(vrtScopeViolation("hunt-tester-ssrf", "ssrf")).toBeNull()
+      expect(vrtScopeViolation("hunt-ssrf", "ssrf")).toBeNull()
     })
 
     test("authn tester recording session", () => {
-      expect(vrtScopeViolation("hunt-tester-authn", "session")).toBeNull()
+      expect(vrtScopeViolation("hunt-authn", "session")).toBeNull()
     })
 
     test("authn tester recording jwt", () => {
-      expect(vrtScopeViolation("hunt-tester-authn", "jwt")).toBeNull()
+      expect(vrtScopeViolation("hunt-authn", "jwt")).toBeNull()
     })
 
     test("file-attacks tester recording path traversal", () => {
-      expect(vrtScopeViolation("hunt-tester-file-attacks", "path traversal")).toBeNull()
+      expect(vrtScopeViolation("hunt-file-attacks", "path traversal")).toBeNull()
     })
 
     test("business-logic tester recording race condition", () => {
-      expect(vrtScopeViolation("hunt-tester-business-logic", "race condition")).toBeNull()
+      expect(vrtScopeViolation("hunt-business-logic", "race condition")).toBeNull()
     })
   })
 
   describe("out-of-scope categories — returns violation", () => {
     test("injection tester recording idor", () => {
-      const result = vrtScopeViolation("hunt-tester-injection", "idor")
+      const result = vrtScopeViolation("hunt-injection", "idor")
       expect(result).not.toBeNull()
       expect(result!.cls).toBe("injection")
       expect(result!.allowed).toEqual(TESTER_VRT_SCOPE["injection"])
     })
 
     test("idor tester recording sqli", () => {
-      const result = vrtScopeViolation("hunt-tester-idor", "sqli")
+      const result = vrtScopeViolation("hunt-idor", "sqli")
       expect(result).not.toBeNull()
       expect(result!.cls).toBe("idor")
     })
 
     test("authn tester recording ssrf", () => {
-      const result = vrtScopeViolation("hunt-tester-authn", "ssrf")
+      const result = vrtScopeViolation("hunt-authn", "ssrf")
       expect(result).not.toBeNull()
       expect(result!.cls).toBe("authn")
     })
 
     test("ssrf tester recording xss", () => {
-      const result = vrtScopeViolation("hunt-tester-ssrf", "xss")
+      const result = vrtScopeViolation("hunt-ssrf", "xss")
       expect(result).not.toBeNull()
       expect(result!.cls).toBe("ssrf")
     })
 
     test("file-attacks tester recording sql injection", () => {
-      const result = vrtScopeViolation("hunt-tester-file-attacks", "sql injection")
+      const result = vrtScopeViolation("hunt-file-attacks", "sql injection")
       expect(result).not.toBeNull()
       expect(result!.cls).toBe("file-attacks")
     })
@@ -97,29 +97,29 @@ describe("vrtScopeViolation", () => {
 
   describe("substring matching — bidirectional", () => {
     test("category contains allowed term", () => {
-      expect(vrtScopeViolation("hunt-tester-injection", "blind sqli attack")).toBeNull()
+      expect(vrtScopeViolation("hunt-injection", "blind sqli attack")).toBeNull()
     })
 
     test("allowed term contains category", () => {
-      expect(vrtScopeViolation("hunt-tester-injection", "sql")).toBeNull()
+      expect(vrtScopeViolation("hunt-injection", "sql")).toBeNull()
     })
 
     test("case insensitive matching", () => {
-      expect(vrtScopeViolation("hunt-tester-injection", "SQL INJECTION")).toBeNull()
+      expect(vrtScopeViolation("hunt-injection", "SQL INJECTION")).toBeNull()
     })
   })
 
   describe("edge cases", () => {
     test("empty category — returns null (no violation)", () => {
-      expect(vrtScopeViolation("hunt-tester-injection", "")).toBeNull()
+      expect(vrtScopeViolation("hunt-injection", "")).toBeNull()
     })
 
     test("unknown tester class — returns null", () => {
-      expect(vrtScopeViolation("hunt-tester-unknown", "sqli")).toBeNull()
+      expect(vrtScopeViolation("hunt-unknown", "sqli")).toBeNull()
     })
 
     test("partial match hunt-tester prefix but not a real agent", () => {
-      expect(vrtScopeViolation("hunt-tester-", "sqli")).toBeNull()
+      expect(vrtScopeViolation("hunt-", "sqli")).toBeNull()
     })
   })
 })
