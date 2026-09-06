@@ -98,6 +98,48 @@ we know what the core contract must expose BEFORE a big domain fits — not afte
 - **Thin, self-contained domain (agents+tools+rules only):** READY now — this is the (b) test.
 - **Azure / GCP / Oracle (full assessment domains):** NOT ready — blocked on C4 (per-domain lanes), C9 (Phase 3 signal fabric), C10 (Phase 4 pluggable workflow), plus extracting each domain's host-internal machinery (Azure alone: 8 internal deps + its `azurehook` workflow entry).
 
+## Package dependency model — SDK is NOT enough; a workflow needs the core runtime
+
+A domain provider calls core RUNTIME services, not just types. Azure's provider uses
+`Intel.get()`, `triageGuide()/triageActions()`, and its workflow entry uses
+`orchestrateLayer2()` — behavior, which a types-only SDK cannot supply. So:
+
+```
+@cyberstrike-io-ent/azure (workflow package)
+   ├── peerDep @cyberstrike-io/plugin       (SDK = CONTRACT: types + hook shapes)
+   └── peerDep @cyberstrike-io/cyberstrike   (CORE = RUNTIME: Intel, Session,
+                                              orchestrateLayer2, registry, vuln-status)
+```
+
+A package pins compatible **core + SDK** versions; the core version is the runtime
+compatibility boundary ("SDK upgrade → core upgrade"). Mismatch → health `✗ incompatible`,
+not a crash.
+
+### Azure extraction map (code-verified)
+| Azure dep | Kind | Destination |
+|-----------|------|-------------|
+| `cloud/groups` (CLOUD_GROUPS) | azure data | → package |
+| `cloud/classify` (azure `Finding`) | azure logic | → package |
+| `tool/azurehook/assess-cache` | azure tool internal | → package (with azurehook) |
+| 4 azure prompts | azure content | → package |
+| `cloud/types` (CloudAnalysis) | types | package or SDK (types) |
+| `methodology/intel` (`Intel.get`) | **core runtime** | stays core → public API |
+| `session/vulnerability-status` (`triageGuide/Actions`) | **core runtime** | stays core → public API |
+| `cloud/orchestrate` (`orchestrateLayer2`) | **core runtime** | stays core → public API |
+
+### Core must expose a curated public API
+These runtime services are internal modules today (`../methodology/intel`, `../session/…`).
+For a package to import them, core exports a curated, versioned surface (`src/public.ts`):
+`Intel`, `triageGuide/triageActions`, `orchestrateLayer2`, `registerProvider/resolveProvider`,
+`isAssessmentProvider`, `AssessmentProvider`, `CloudAnalysis` types + the SDK contract re-exported.
+This public surface IS the core side of the version boundary — internal modules stay private.
+
+### Revised build order
+1. **Core public API surface** (`src/public.ts` + package `exports`) — the runtime boundary.
+2. Extract azure-specific code into a package shape (groups, classify, azurehook, prompts).
+3. `@cyberstrike-io-ent/azure`: peerDep core + SDK; export `provider` + `tool` hooks.
+4. Private org → publish + `.npmrc` + restricted-access CI.
+
 ## Invariants (do not compromise)
 1. Zero core edits to add a domain — the `provider` hook is the only surface.
 2. A broken/incompatible plugin degrades gracefully (skipped + surfaced), never crashes core.
