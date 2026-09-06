@@ -355,7 +355,7 @@ No component is "done" until it passes its gate. This is the explicit anti-half-
 Implemented and tested (49 tests / 180 assertions, 0 fail; tsgo 0 errors; full server suite no new regressions — the only 2 fails are the pre-existing `web-driver.test.ts`):
 - `src/session/web/signal/` — `types`, `detectors` (13 passive detectors), `canary` (`CanaryRegistry` + cross-response correlation), `router` (`SignalRouter`, total over SignalType + priority), `store` (`DbCanaryStore` + `SignalStore`), `signal.sql` + migration `20260905000000_web-signal-fabric`, `ingest` (`scanCapturedResponse`/`scanElicitedResponse`).
 - Wiring: ingest hook in `server/routes/session.ts` (**B1** — scans raw body before the HTML stub); `http-replay.ts` write-back + marker→canary (**B2 + replay half of B3**); `web-retest.ts` `new_signal` trigger + router→`WebRetest.enqueue` (**B4**, enqueue only; orchestrator consumption is P1); `Request.findId`; signals surfaced in `web_get_session_context`.
-- **Still P1:** orchestrator consuming `new_signal` retests. ~~smart-tool canary registration~~ **DONE** (inject_probe R3, `e7dd40ed07`; signal write-back R4, `6e062e66c4`). ~~`reflected_input` detector~~ **DONE** — emitted by inject_probe on XSS marker reflection + HPP duplicate-param reflection (not a passive detector by design; recorded to SignalStore with field/context/encoding meta). UNVERIFIED: http_replay live-network path; detector FP/FN vs real traffic (needs the §11 benchmark).
+- **Still P1:** orchestrator consuming `new_signal` retests. ~~smart-tool canary registration~~ **DONE** (inject_probe R3, `e7dd40ed07`; signal write-back R4, `6e062e66c4`). ~~`reflected_input` detector~~ **DONE** — emitted by inject_probe on XSS marker reflection + HPP duplicate-param reflection (not a passive detector by design; recorded to SignalStore with field/context/encoding meta). ~~`rate_limit_absent` signal~~ **DONE** — emitted by `business_test` race mode when N concurrent requests get ≥2 successes and zero 429s (not a passive detector; the race engine sets `rateLimitAbsent` flag, the tool handler records to SignalStore with count/concurrency/statusDistribution meta). UNVERIFIED: http_replay live-network path; detector FP/FN vs real traffic (needs the §11 benchmark).
 
 ### Existing-tool audit — the smart-tool catalog (§05) is largely REUSE, not new build
 A code audit found the web tool layer already embodies the "tool = raw facts/breadth, agent = reasoning" model. **This supersedes the "build 7 new smart tools" framing of §05/§10-P1.**
@@ -367,7 +367,7 @@ A code audit found the web tool layer already embodies the "tool = raw facts/bre
 | IDOR candidate substrate | **`Observation.endpointTree`** already gives per-param per-credential values ("RAW FACTS ONLY — owner judgment is the agent's", line 103) | **REUSE.** Auto-generating candidates with idLike heuristics would move reasoning INTO a tool — violates the reasoning-stays-with-AI invariant. |
 | misconfig/recon classification | **P0 fabric** already detects banners, headers, cookies, CORS, path disclosure, exposed artifacts, directory listing PASSIVELY on every response (incl. http_replay-elicited via B2) | **REUSE.** Active probing just needs to SEND candidate paths (via http_replay); the fabric classifies for free. |
 | `recon_test` | **NEW** — 3-mode tool (metafiles/fingerprint/leakage). Parses content of robots.txt/sitemap.xml/openapi.json (URL extraction), active tech fingerprinting (10 probes), HTML comment/IP/version/debug-flag scanning. `proxy-tester-recon` agent wired with WSTG INFO-02/03/05/08. | **DONE** — `195a29a280`. 26 unit tests pass. |
-| `authn_test`, `ssrf_test`, `business_test` | **BUILT** — native TS replacements of Python `jwt_tamper`, `ssrf_listener`, `race_tester`. All registered in `tool/registry.ts`, agents wired in `provider-web.ts`. | **DONE** — authn_test (32 tests), ssrf_test (24 tests), business_test (53 tests). Python retirement blocked on live verification only. |
+| `authn_test`, `ssrf_test`, `business_test` | **BUILT** — native TS replacements of Python `jwt_tamper`, `ssrf_listener`, `race_tester`. All registered in `tool/registry.ts`, agents wired in `provider-web.ts`. | **DONE** — authn_test (32 tests), ssrf_test (24 tests), business_test (53 tests). `jwt_tamper` and `race_tester` Python scripts **RETIRED** — removed from `AVAILABLE_SCRIPTS`, agent prompts updated to direct to native tools. `ssrf_listener` kept (OOB callback server has no TS equivalent). |
 
 ### Corrected P1 scope — ALL ITEMS DONE
 The real remaining P1 work is NOT a fleet of new payload tools. It is:
@@ -376,7 +376,7 @@ The real remaining P1 work is NOT a fleet of new payload tools. It is:
 3. **A few genuinely-missing active tools** — **DONE.** `misconfig_test` (22 tests), `authn_test` (32 tests), `ssrf_test` (24 tests), `business_test` (53 tests), `recon_test` (26 tests) — all native TS, replacing Python scripts.
 4. **The OO `WebProvider`** registry — **DONE.** `DomainProvider` base interface extracted; `WebProvider implements DomainProvider` in `cloud/provider-web.ts`; factory pattern (`WebProvider.create()`).
 
-Net: injection + access-control mechanics are already done in the tool layer; P0 added the detection fabric; **P1 is COMPLETE** — all tools built, agents wired, WSTG coverage mapped. Remaining: live-network verification (§11 gates 8-10) and Python `attack_script` retirement.
+Net: injection + access-control mechanics are already done in the tool layer; P0 added the detection fabric; **P1 is COMPLETE** — all tools built, agents wired, WSTG coverage mapped. Python `attack_script` partially retired (jwt_tamper + race_tester removed; ssrf_listener kept). Remaining: live-network verification (§11 gates 8-10).
 
 ---
 
@@ -472,7 +472,7 @@ Active misconfiguration probing that generates the traffic the P0 signal fabric 
 | `inject_probe` → HPP + adaptive back-off | **Done** (R5, `988e1d611f`) | HPP parser-behavior detection (first-wins/last-wins/both); adaptive `BackoffState` (500ms→skip-point→2000ms) preserves send budget on WAF-protected targets |
 | `inject_probe` → unit test coverage | **Done** (R6, `3651f4b82f`) | 268 inject-probe tests (7 new + 13 modernized files), mock `HttpSender`; combined 448 tests 0 failures |
 | `recon_test` smart tool + `proxy-tester-recon` agent | **Done** (`195a29a280`) | 3-mode tool (metafiles/fingerprint/leakage), agent wired with WSTG INFO-02/03/05/08, 26 unit tests |
-| Python `attack_script` retirement | Blocked on live verification | jwt_tamper, ssrf_listener, race_tester — native TS tools built (authn_test, ssrf_test, business_test), but need live-network verification before retiring Python |
+| Python `attack_script` retirement | **Partial — 2 of 3 retired** | `jwt_tamper` and `race_tester` removed from `AVAILABLE_SCRIPTS`, agent prompts updated. `ssrf_listener` kept (OOB TCP callback server — `ssrf_test` is an active probe, not a listener replacement). |
 
 ### P3-A — WSTG Coverage Map Assertion — DONE (2026-09-05)
 

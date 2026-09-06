@@ -7,10 +7,10 @@ describe("WebProvider", () => {
     expect(provider.key).toBe("web")
   })
 
-  test("agentSpecs returns 12 agents", async () => {
+  test("agentSpecs returns 13 agents", async () => {
     const provider = await WebProvider.create()
     const specs = provider.agentSpecs()
-    expect(specs.length).toBe(12)
+    expect(specs.length).toBe(13)
   })
 
   test("agent names match expected set", async () => {
@@ -28,6 +28,7 @@ describe("WebProvider", () => {
       "proxy-tester-llm",
       "proxy-tester-mass-assignment",
       "proxy-tester-misconfig",
+      "proxy-tester-recon",
       "proxy-tester-ssrf",
     ])
   })
@@ -51,7 +52,7 @@ describe("WebProvider", () => {
   test("all specialists have prependRequestContext", async () => {
     const provider = await WebProvider.create()
     const specialists = provider.agentSpecs().filter((s) => s.role === "specialist")
-    expect(specialists.length).toBe(10)
+    expect(specialists.length).toBe(11)
     for (const s of specialists) {
       expect(s.prependRequestContext).toBe(true)
     }
@@ -89,6 +90,9 @@ describe("WebProvider", () => {
 
     const misconfig = specs.find((s) => s.name === "proxy-tester-misconfig")!
     expect(misconfig.permissions.misconfig_test).toBe("allow")
+
+    const recon = specs.find((s) => s.name === "proxy-tester-recon")!
+    expect(recon.permissions.recon_test).toBe("allow")
   })
 
   test("llm agent has llmhook permission", async () => {
