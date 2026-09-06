@@ -36,4 +36,9 @@ export type { CloudAnalysis } from "./cloud/types"
 
 // ── Shared methodology / finding services a domain's agents use ──
 export { Intel } from "./methodology/intel"
-export { triageGuide, triageActions } from "./session/vulnerability-status"
+export { triageGuide, triageActions, VulnStatus } from "./session/vulnerability-status"
+
+// ── Session + vulnerability stores a domain's tool/provider reads & writes ──
+// (a domain uses Session.root, Vulnerability.get/add/Info, VulnStatus.DRAFT)
+export { Session } from "./session"
+export { Vulnerability } from "./session/vulnerability"

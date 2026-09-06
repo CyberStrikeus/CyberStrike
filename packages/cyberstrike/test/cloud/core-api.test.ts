@@ -5,10 +5,11 @@ import { providerHealth } from "../../src/cloud/provider-health"
 
 describe("core API compatibility", () => {
   test("coreApiSatisfies compares major.minor.patch", () => {
-    expect(coreApiSatisfies("1.0.0")).toBe(true) // equal
-    expect(coreApiSatisfies("0.9.0")).toBe(true) // host newer
-    expect(coreApiSatisfies("1.0.1")).toBe(false) // host older (patch)
-    expect(coreApiSatisfies("2.0.0")).toBe(false) // host older (major)
+    expect(coreApiSatisfies(CORE_API_VERSION)).toBe(true) // equal — host satisfies its own
+    expect(coreApiSatisfies("1.0.0")).toBe(true) // host is >= 1.0.0
+    expect(coreApiSatisfies("0.9.0")).toBe(true) // host much newer
+    expect(coreApiSatisfies("999.0.0")).toBe(false) // host older (major)
+    expect(coreApiSatisfies("1.999.0")).toBe(false) // host older (minor)
   })
 
   test("unparseable version never satisfies (safe default)", () => {

@@ -34,12 +34,23 @@ describe("core public API surface", () => {
     expect(typeof Public.coreApiSatisfies).toBe("function")
   })
 
+  test("exposes session + vulnerability stores a domain reads/writes", () => {
+    expect(typeof Public.Session).toBe("object")
+    expect(typeof Public.Vulnerability).toBe("object")
+    expect(typeof Public.VulnStatus).toBe("object")
+    expect(typeof Public.Session.root).toBe("function")
+    expect(typeof Public.Vulnerability.add).toBe("function")
+  })
+
   test("the full boundary member set is present (drop = fail = version bump)", () => {
     const members = Object.keys(Public).sort()
     expect(members).toEqual(
       [
         "CORE_API_VERSION",
         "Intel",
+        "Session",
+        "VulnStatus",
+        "Vulnerability",
         "coreApiSatisfies",
         "isAssessmentProvider",
         "orchestrateLayer2",

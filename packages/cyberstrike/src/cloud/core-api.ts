@@ -7,7 +7,9 @@
 // MINOR when members are added (older packages still work). A workflow package
 // calls requireCoreApi() in its provider factory to fail fast + surface a clear
 // health error instead of running against an incompatible host.
-export const CORE_API_VERSION = "1.0.0"
+// 1.1.0 — added Session, Vulnerability, VulnStatus (for the azure extraction);
+// additive, so packages pinned to >= 1.0.0 still load.
+export const CORE_API_VERSION = "1.1.0"
 
 function parse(v: string): [number, number, number] {
   const m = /^(\d+)\.(\d+)\.(\d+)/.exec((v ?? "").trim())
