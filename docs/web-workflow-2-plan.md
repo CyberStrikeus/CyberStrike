@@ -483,4 +483,4 @@ Machine-readable coverage map (`src/session/web/wstg-coverage.ts`) mapping all 9
 | `src/session/web/wstg-coverage.ts` | `WSTG_COVERAGE` array (97 entries), `WSTG_CATEGORIES` (12 categories), `TOTAL_WSTG_TESTS` constant. Each entry: `id`, `title`, `agent`, `status` (covered/passive/partial/deferred), `mechanism`. |
 | `test/session/web/wstg-coverage.test.ts` | 27 tests / 876 assertions. Completeness (97 entries, no gaps, no duplicates), ordering, agent cross-reference vs WebProvider, coverage statistics, load distribution. |
 
-**Coverage breakdown:** 72 covered, 15 passive, 2 partial, 8 deferred (P2 browser-dependent CLNT tests). `proxy-tester-llm` is a CyberStrike extension — not in WSTG v4.2, correctly excluded from the map.
+**Coverage breakdown:** 73 covered, 13 passive, 2 partial, 8 deferred (P2 browser-dependent CLNT tests). `proxy-tester-llm` is a CyberStrike extension — not in WSTG v4.2, correctly excluded from the map. `proxy-tester-recon` now owns INFO-03, INFO-05, INFO-08 (active metafile parsing + leakage scanning + tech fingerprinting).
