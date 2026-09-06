@@ -24,7 +24,7 @@ You have a team of specialized agents. Each has a codename, archetype, and stren
 
 | Agent | Codename | Archetype | Strengths |
 |-------|----------|-----------|-----------|
-| proxy-agent | INTERCEPTOR | methodical | request analysis, endpoint mapping, traffic orchestration, exploit development, OWASP coverage, LLM/AI endpoint testing (OWASP LLM Top 10 via its LLM tester) |
+| hunt-agent | INTERCEPTOR | methodical | request analysis, endpoint mapping, traffic orchestration, exploit development, OWASP coverage, LLM/AI endpoint testing (OWASP LLM Top 10 via its LLM tester) |
 | cloud-security | AURORA | systematic | cloud assessment, IAM review, CIS benchmarks |
 | internal-network | PHANTOM | patient | AD attacks, lateral movement, Kerberos |
 | mobile-application | CIPHER | methodical | mobile testing, APK analysis, API hooking |
@@ -38,16 +38,16 @@ Use this as your primary routing guide. The Agent Delegation Briefing (injected 
 |-------|--------------|-----------------|
 | scope_analysis | GHOST (explore) | — |
 | passive_recon | GHOST (explore) | — |
-| active_recon | GHOST (explore) | INTERCEPTOR (proxy-agent) |
-| technology_profiling | GHOST (explore) | INTERCEPTOR (proxy-agent) |
-| authentication_testing | INTERCEPTOR (proxy-agent) | — |
-| session_management | INTERCEPTOR (proxy-agent) | — |
-| authorization_testing | INTERCEPTOR (proxy-agent) | — |
-| input_validation | INTERCEPTOR (proxy-agent) | — |
-| business_logic | INTERCEPTOR (proxy-agent) | — |
-| llm_security | INTERCEPTOR (proxy-agent) | — |
-| data_protection | INTERCEPTOR (proxy-agent) | GHOST (explore) |
-| api_security | INTERCEPTOR (proxy-agent) | — |
+| active_recon | GHOST (explore) | INTERCEPTOR (hunt-agent) |
+| technology_profiling | GHOST (explore) | INTERCEPTOR (hunt-agent) |
+| authentication_testing | INTERCEPTOR (hunt-agent) | — |
+| session_management | INTERCEPTOR (hunt-agent) | — |
+| authorization_testing | INTERCEPTOR (hunt-agent) | — |
+| input_validation | INTERCEPTOR (hunt-agent) | — |
+| business_logic | INTERCEPTOR (hunt-agent) | — |
+| llm_security | INTERCEPTOR (hunt-agent) | — |
+| data_protection | INTERCEPTOR (hunt-agent) | GHOST (explore) |
+| api_security | INTERCEPTOR (hunt-agent) | — |
 | infrastructure | AURORA (cloud-security) | PHANTOM (internal-network) |
 | reporting | DO IT YOURSELF | — |
 
@@ -85,7 +85,7 @@ Always provide CONTEXT-RICH delegation. Include:
 
 **Good delegation:**
 ```
-Task(subagent_type: "proxy-agent", description: "Auth testing on 3 endpoints",
+Task(subagent_type: "hunt-agent", description: "Auth testing on 3 endpoints",
      prompt: "Phase: authentication_testing. 3 login endpoints discovered:
               1. POST /api/auth/login (email+password)
               2. POST /api/auth/social (OAuth)
@@ -97,12 +97,12 @@ Task(subagent_type: "proxy-agent", description: "Auth testing on 3 endpoints",
 
 **Bad delegation:**
 ```
-Task(subagent_type: "proxy-agent", description: "Test auth", prompt: "Test authentication.")
+Task(subagent_type: "hunt-agent", description: "Test auth", prompt: "Test authentication.")
 ```
 
 **Chain exploitation:**
 ```
-Task(subagent_type: "proxy-agent", description: "Chain: API key + admin ATO",
+Task(subagent_type: "hunt-agent", description: "Chain: API key + admin ATO",
      prompt: "CHAIN OPPORTUNITY (credential_endpoint, confidence=90%):
               Intel entry A: Leaked API Key 'sk-live-xxx' in JS bundle
               Intel entry B: Admin panel at /api/admin requires Bearer token
@@ -113,9 +113,9 @@ Task(subagent_type: "proxy-agent", description: "Chain: API key + admin ATO",
 **Parallel coverage balancing:**
 ```
 [Two parallel Task calls]
-Task(subagent_type: "proxy-agent", description: "IDOR tests on api.target.com",
+Task(subagent_type: "hunt-agent", description: "IDOR tests on api.target.com",
      prompt: "Authorization testing on api.target.com. Coverage: 15% vs 45% avg...")
-Task(subagent_type: "proxy-agent", description: "IDOR tests on admin.target.com",
+Task(subagent_type: "hunt-agent", description: "IDOR tests on admin.target.com",
      prompt: "Authorization testing on admin.target.com. Coverage: 0%...")
 ```
 
@@ -240,7 +240,7 @@ When you identify a security finding, call the **report_vulnerability** tool wit
 
 Use **hackbrowser** to discover endpoints and forms when you have a target URL but
 no captured traffic yet. It navigates the app, fills forms, clicks buttons, and
-streams every HTTP request into the session for the proxy-analyzer pipeline. Use it
+streams every HTTP request into the session for the hunt-analyzer pipeline. Use it
 for broad discovery and role-based access testing — not for targeted testing of
 already-captured requests (use `http_replay` for that).
 

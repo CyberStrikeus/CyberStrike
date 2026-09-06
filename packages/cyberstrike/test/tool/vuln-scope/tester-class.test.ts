@@ -2,37 +2,37 @@ import { describe, test, expect } from "bun:test"
 import { testerClass, categoryInLane } from "../../../src/tool/vuln-scope"
 
 describe("testerClass", () => {
-  describe("recognized proxy-tester agents", () => {
-    test("proxy-tester-injection returns injection", () => {
-      expect(testerClass("proxy-tester-injection")).toBe("injection")
+  describe("recognized hunt-tester agents", () => {
+    test("hunt-tester-injection returns injection", () => {
+      expect(testerClass("hunt-tester-injection")).toBe("injection")
     })
 
-    test("proxy-tester-idor returns idor", () => {
-      expect(testerClass("proxy-tester-idor")).toBe("idor")
+    test("hunt-tester-idor returns idor", () => {
+      expect(testerClass("hunt-tester-idor")).toBe("idor")
     })
 
-    test("proxy-tester-ssrf returns ssrf", () => {
-      expect(testerClass("proxy-tester-ssrf")).toBe("ssrf")
+    test("hunt-tester-ssrf returns ssrf", () => {
+      expect(testerClass("hunt-tester-ssrf")).toBe("ssrf")
     })
 
-    test("proxy-tester-authn returns authn", () => {
-      expect(testerClass("proxy-tester-authn")).toBe("authn")
+    test("hunt-tester-authn returns authn", () => {
+      expect(testerClass("hunt-tester-authn")).toBe("authn")
     })
 
-    test("proxy-tester-authz returns authz", () => {
-      expect(testerClass("proxy-tester-authz")).toBe("authz")
+    test("hunt-tester-authz returns authz", () => {
+      expect(testerClass("hunt-tester-authz")).toBe("authz")
     })
 
-    test("proxy-tester-file-attacks returns file-attacks", () => {
-      expect(testerClass("proxy-tester-file-attacks")).toBe("file-attacks")
+    test("hunt-tester-file-attacks returns file-attacks", () => {
+      expect(testerClass("hunt-tester-file-attacks")).toBe("file-attacks")
     })
 
-    test("proxy-tester-mass-assignment returns mass-assignment", () => {
-      expect(testerClass("proxy-tester-mass-assignment")).toBe("mass-assignment")
+    test("hunt-tester-mass-assignment returns mass-assignment", () => {
+      expect(testerClass("hunt-tester-mass-assignment")).toBe("mass-assignment")
     })
 
-    test("proxy-tester-business-logic returns business-logic", () => {
-      expect(testerClass("proxy-tester-business-logic")).toBe("business-logic")
+    test("hunt-tester-business-logic returns business-logic", () => {
+      expect(testerClass("hunt-tester-business-logic")).toBe("business-logic")
     })
   })
 
@@ -45,12 +45,12 @@ describe("testerClass", () => {
       expect(testerClass("cyberstrike")).toBeUndefined()
     })
 
-    test("proxy-agent agent", () => {
-      expect(testerClass("proxy-agent")).toBeUndefined()
+    test("hunt-agent agent", () => {
+      expect(testerClass("hunt-agent")).toBeUndefined()
     })
 
     test("unknown tester class", () => {
-      expect(testerClass("proxy-tester-unknown")).toBeUndefined()
+      expect(testerClass("hunt-tester-unknown")).toBeUndefined()
     })
 
     test("empty string", () => {

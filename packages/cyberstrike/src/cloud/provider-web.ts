@@ -7,33 +7,33 @@ import { Skill } from "../skill"
 import PROMPT_VULN_COMMON from "../agent/prompt/vuln/common-prompt.txt"
 import PROMPT_METHODOLOGY_COMMON from "../agent/prompt/methodology/common-methodology.txt"
 
-import PROMPT_WEB_PROXY_AGENT from "../agent/prompt/orchestrator/web-proxy-agent/prompt.txt"
-import DESC_WEB_PROXY_AGENT from "../agent/prompt/orchestrator/web-proxy-agent/description.txt"
-import PROMPT_PROXY_ANALYZER from "../agent/prompt/analyzer/proxy-analyzer/prompt.txt"
-import DESC_PROXY_ANALYZER from "../agent/prompt/analyzer/proxy-analyzer/description.txt"
+import PROMPT_WEB_HUNT_AGENT from "../agent/prompt/orchestrator/web-hunt-agent/prompt.txt"
+import DESC_WEB_HUNT_AGENT from "../agent/prompt/orchestrator/web-hunt-agent/description.txt"
+import PROMPT_HUNT_ANALYZER from "../agent/prompt/analyzer/hunt-analyzer/prompt.txt"
+import DESC_HUNT_ANALYZER from "../agent/prompt/analyzer/hunt-analyzer/description.txt"
 
-import PROMPT_PROXY_TESTER_IDOR from "../agent/prompt/vuln/idor/prompt.txt"
-import DESC_PROXY_TESTER_IDOR from "../agent/prompt/vuln/idor/description.txt"
-import PROMPT_PROXY_TESTER_AUTHZ from "../agent/prompt/vuln/authz/prompt.txt"
-import DESC_PROXY_TESTER_AUTHZ from "../agent/prompt/vuln/authz/description.txt"
-import PROMPT_PROXY_TESTER_MASS_ASSIGNMENT from "../agent/prompt/vuln/mass-assignment/prompt.txt"
-import DESC_PROXY_TESTER_MASS_ASSIGNMENT from "../agent/prompt/vuln/mass-assignment/description.txt"
-import PROMPT_PROXY_TESTER_INJECTION from "../agent/prompt/vuln/injection/prompt.txt"
-import DESC_PROXY_TESTER_INJECTION from "../agent/prompt/vuln/injection/description.txt"
-import PROMPT_PROXY_TESTER_AUTHN from "../agent/prompt/vuln/authn/prompt.txt"
-import DESC_PROXY_TESTER_AUTHN from "../agent/prompt/vuln/authn/description.txt"
-import PROMPT_PROXY_TESTER_BUSINESS_LOGIC from "../agent/prompt/vuln/business-logic/prompt.txt"
-import DESC_PROXY_TESTER_BUSINESS_LOGIC from "../agent/prompt/vuln/business-logic/description.txt"
-import PROMPT_PROXY_TESTER_SSRF from "../agent/prompt/vuln/ssrf/prompt.txt"
-import DESC_PROXY_TESTER_SSRF from "../agent/prompt/vuln/ssrf/description.txt"
-import PROMPT_PROXY_TESTER_FILE_ATTACKS from "../agent/prompt/vuln/file-attacks/prompt.txt"
-import DESC_PROXY_TESTER_FILE_ATTACKS from "../agent/prompt/vuln/file-attacks/description.txt"
-import PROMPT_PROXY_TESTER_LLM from "../agent/prompt/vuln/llm/prompt.txt"
-import DESC_PROXY_TESTER_LLM from "../agent/prompt/vuln/llm/description.txt"
-import PROMPT_PROXY_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/prompt.txt"
-import DESC_PROXY_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/description.txt"
-import PROMPT_PROXY_TESTER_RECON from "../agent/prompt/vuln/recon/prompt.txt"
-import DESC_PROXY_TESTER_RECON from "../agent/prompt/vuln/recon/description.txt"
+import PROMPT_HUNT_TESTER_IDOR from "../agent/prompt/vuln/idor/prompt.txt"
+import DESC_HUNT_TESTER_IDOR from "../agent/prompt/vuln/idor/description.txt"
+import PROMPT_HUNT_TESTER_AUTHZ from "../agent/prompt/vuln/authz/prompt.txt"
+import DESC_HUNT_TESTER_AUTHZ from "../agent/prompt/vuln/authz/description.txt"
+import PROMPT_HUNT_TESTER_MASS_ASSIGNMENT from "../agent/prompt/vuln/mass-assignment/prompt.txt"
+import DESC_HUNT_TESTER_MASS_ASSIGNMENT from "../agent/prompt/vuln/mass-assignment/description.txt"
+import PROMPT_HUNT_TESTER_INJECTION from "../agent/prompt/vuln/injection/prompt.txt"
+import DESC_HUNT_TESTER_INJECTION from "../agent/prompt/vuln/injection/description.txt"
+import PROMPT_HUNT_TESTER_AUTHN from "../agent/prompt/vuln/authn/prompt.txt"
+import DESC_HUNT_TESTER_AUTHN from "../agent/prompt/vuln/authn/description.txt"
+import PROMPT_HUNT_TESTER_BUSINESS_LOGIC from "../agent/prompt/vuln/business-logic/prompt.txt"
+import DESC_HUNT_TESTER_BUSINESS_LOGIC from "../agent/prompt/vuln/business-logic/description.txt"
+import PROMPT_HUNT_TESTER_SSRF from "../agent/prompt/vuln/ssrf/prompt.txt"
+import DESC_HUNT_TESTER_SSRF from "../agent/prompt/vuln/ssrf/description.txt"
+import PROMPT_HUNT_TESTER_FILE_ATTACKS from "../agent/prompt/vuln/file-attacks/prompt.txt"
+import DESC_HUNT_TESTER_FILE_ATTACKS from "../agent/prompt/vuln/file-attacks/description.txt"
+import PROMPT_HUNT_TESTER_LLM from "../agent/prompt/vuln/llm/prompt.txt"
+import DESC_HUNT_TESTER_LLM from "../agent/prompt/vuln/llm/description.txt"
+import PROMPT_HUNT_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/prompt.txt"
+import DESC_HUNT_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/description.txt"
+import PROMPT_HUNT_TESTER_RECON from "../agent/prompt/vuln/recon/prompt.txt"
+import DESC_HUNT_TESTER_RECON from "../agent/prompt/vuln/recon/description.txt"
 
 type PermissionAction = "ask" | "allow" | "deny"
 type PermissionRule = PermissionAction | Record<string, PermissionAction>
@@ -231,10 +231,10 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
 
   return [
     {
-      name: "proxy-agent",
+      name: "hunt-agent",
       role: "orchestrator",
-      prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n---\n\n${PROMPT_WEB_PROXY_AGENT}`,
-      description: DESC_WEB_PROXY_AGENT,
+      prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n---\n\n${PROMPT_WEB_HUNT_AGENT}`,
+      description: DESC_WEB_HUNT_AGENT,
       skills: [],
       steps: 40,
       color: "blue",
@@ -253,10 +253,10 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       },
     },
     {
-      name: "proxy-analyzer",
+      name: "hunt-analyzer",
       role: "analyzer",
-      prompt: PROMPT_PROXY_ANALYZER,
-      description: DESC_PROXY_ANALYZER,
+      prompt: PROMPT_HUNT_ANALYZER,
+      description: DESC_HUNT_ANALYZER,
       skills: [],
       steps: 20,
       hidden: true,
@@ -278,37 +278,37 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       },
     },
     {
-      name: "proxy-tester-idor",
+      name: "hunt-tester-idor",
       role: "specialist",
-      prompt: vulnPrompt(PROMPT_PROXY_TESTER_IDOR, idorSkills),
-      description: DESC_PROXY_TESTER_IDOR,
+      prompt: vulnPrompt(PROMPT_HUNT_TESTER_IDOR, idorSkills),
+      description: DESC_HUNT_TESTER_IDOR,
       skills: ["wstg-authz-04", "wstg-apit-02"],
       prependRequestContext: true,
       permissions: VULN_BASE_PERMISSIONS,
     },
     {
-      name: "proxy-tester-authz",
+      name: "hunt-tester-authz",
       role: "specialist",
-      prompt: vulnPrompt(PROMPT_PROXY_TESTER_AUTHZ, authzSkills),
-      description: DESC_PROXY_TESTER_AUTHZ,
+      prompt: vulnPrompt(PROMPT_HUNT_TESTER_AUTHZ, authzSkills),
+      description: DESC_HUNT_TESTER_AUTHZ,
       skills: ["wstg-authz-02", "wstg-authz-03", "wstg-authz-01"],
       prependRequestContext: true,
       permissions: VULN_BASE_PERMISSIONS,
     },
     {
-      name: "proxy-tester-mass-assignment",
+      name: "hunt-tester-mass-assignment",
       role: "specialist",
-      prompt: vulnPrompt(PROMPT_PROXY_TESTER_MASS_ASSIGNMENT, massAssignmentSkills),
-      description: DESC_PROXY_TESTER_MASS_ASSIGNMENT,
+      prompt: vulnPrompt(PROMPT_HUNT_TESTER_MASS_ASSIGNMENT, massAssignmentSkills),
+      description: DESC_HUNT_TESTER_MASS_ASSIGNMENT,
       skills: ["wstg-inpv-20", "wstg-busl-02"],
       prependRequestContext: true,
       permissions: VULN_BASE_PERMISSIONS,
     },
     {
-      name: "proxy-tester-injection",
+      name: "hunt-tester-injection",
       role: "specialist",
-      prompt: vulnPrompt(PROMPT_PROXY_TESTER_INJECTION, injectionSkills),
-      description: DESC_PROXY_TESTER_INJECTION,
+      prompt: vulnPrompt(PROMPT_HUNT_TESTER_INJECTION, injectionSkills),
+      description: DESC_HUNT_TESTER_INJECTION,
       skills: ["wstg-injection", "wstg-inpv-05", "wstg-inpv-12", "wstg-inpv-18"],
       prependRequestContext: true,
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, {
@@ -342,64 +342,64 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       }),
     },
     {
-      name: "proxy-tester-authn",
+      name: "hunt-tester-authn",
       role: "specialist",
-      prompt: vulnPrompt(PROMPT_PROXY_TESTER_AUTHN, authnSkills),
-      description: DESC_PROXY_TESTER_AUTHN,
+      prompt: vulnPrompt(PROMPT_HUNT_TESTER_AUTHN, authnSkills),
+      description: DESC_HUNT_TESTER_AUTHN,
       skills: ["wstg-auth-session", "wstg-athn-04", "wstg-athn-09", "wstg-athn-11", "wstg-sess-10"],
       prependRequestContext: true,
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { authn_test: "allow" }),
     },
     {
-      name: "proxy-tester-business-logic",
+      name: "hunt-tester-business-logic",
       role: "specialist",
-      prompt: vulnPrompt(PROMPT_PROXY_TESTER_BUSINESS_LOGIC, businessLogicSkills),
-      description: DESC_PROXY_TESTER_BUSINESS_LOGIC,
+      prompt: vulnPrompt(PROMPT_HUNT_TESTER_BUSINESS_LOGIC, businessLogicSkills),
+      description: DESC_HUNT_TESTER_BUSINESS_LOGIC,
       skills: ["wstg-logic-client-api", "wstg-busl-04", "wstg-busl-10"],
       prependRequestContext: true,
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { business_test: "allow" }),
     },
     {
-      name: "proxy-tester-ssrf",
+      name: "hunt-tester-ssrf",
       role: "specialist",
-      prompt: vulnPrompt(PROMPT_PROXY_TESTER_SSRF, ssrfSkills),
-      description: DESC_PROXY_TESTER_SSRF,
+      prompt: vulnPrompt(PROMPT_HUNT_TESTER_SSRF, ssrfSkills),
+      description: DESC_HUNT_TESTER_SSRF,
       skills: ["wstg-inpv-19", "wstg-conf-13"],
       prependRequestContext: true,
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { ssrf_test: "allow" }),
     },
     {
-      name: "proxy-tester-file-attacks",
+      name: "hunt-tester-file-attacks",
       role: "specialist",
-      prompt: vulnPrompt(PROMPT_PROXY_TESTER_FILE_ATTACKS, fileAttacksSkills),
-      description: DESC_PROXY_TESTER_FILE_ATTACKS,
+      prompt: vulnPrompt(PROMPT_HUNT_TESTER_FILE_ATTACKS, fileAttacksSkills),
+      description: DESC_HUNT_TESTER_FILE_ATTACKS,
       skills: ["wstg-inpv-11.1", "wstg-inpv-11", "wstg-busl-08", "wstg-busl-09"],
       prependRequestContext: true,
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { inject_probe: "allow" }),
     },
     {
-      name: "proxy-tester-llm",
+      name: "hunt-tester-llm",
       role: "specialist",
-      prompt: vulnPrompt(PROMPT_PROXY_TESTER_LLM, llmSkills),
-      description: DESC_PROXY_TESTER_LLM,
+      prompt: vulnPrompt(PROMPT_HUNT_TESTER_LLM, llmSkills),
+      description: DESC_HUNT_TESTER_LLM,
       skills: ["llm-security"],
       prependRequestContext: true,
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { llmhook: "allow" }),
     },
     {
-      name: "proxy-tester-misconfig",
+      name: "hunt-tester-misconfig",
       role: "specialist",
-      prompt: vulnPrompt(PROMPT_PROXY_TESTER_MISCONFIG, misconfigSkills),
-      description: DESC_PROXY_TESTER_MISCONFIG,
+      prompt: vulnPrompt(PROMPT_HUNT_TESTER_MISCONFIG, misconfigSkills),
+      description: DESC_HUNT_TESTER_MISCONFIG,
       skills: ["wstg-conf-01", "wstg-conf-02", "wstg-conf-03", "wstg-conf-04", "wstg-conf-05", "wstg-conf-06", "wstg-conf-07", "wstg-conf-08", "wstg-conf-09", "wstg-conf-10", "wstg-conf-11", "wstg-cryp-01"],
       prependRequestContext: true,
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { misconfig_test: "allow" }),
     },
     {
-      name: "proxy-tester-recon",
+      name: "hunt-tester-recon",
       role: "specialist",
-      prompt: vulnPrompt(PROMPT_PROXY_TESTER_RECON, reconSkills),
-      description: DESC_PROXY_TESTER_RECON,
+      prompt: vulnPrompt(PROMPT_HUNT_TESTER_RECON, reconSkills),
+      description: DESC_HUNT_TESTER_RECON,
       skills: ["wstg-info-02", "wstg-info-03", "wstg-info-05", "wstg-info-08"],
       prependRequestContext: true,
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { recon_test: "allow" }),

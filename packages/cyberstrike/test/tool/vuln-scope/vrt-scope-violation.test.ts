@@ -11,8 +11,8 @@ describe("vrtScopeViolation", () => {
       expect(vrtScopeViolation("cyberstrike", "sqli")).toBeNull()
     })
 
-    test("proxy-agent agent", () => {
-      expect(vrtScopeViolation("proxy-agent", "xss")).toBeNull()
+    test("hunt-agent agent", () => {
+      expect(vrtScopeViolation("hunt-agent", "xss")).toBeNull()
     })
 
     test("random agent name", () => {
@@ -22,74 +22,74 @@ describe("vrtScopeViolation", () => {
 
   describe("in-scope categories — returns null", () => {
     test("injection tester recording sqli", () => {
-      expect(vrtScopeViolation("proxy-tester-injection", "sqli")).toBeNull()
+      expect(vrtScopeViolation("hunt-tester-injection", "sqli")).toBeNull()
     })
 
     test("injection tester recording xss", () => {
-      expect(vrtScopeViolation("proxy-tester-injection", "xss")).toBeNull()
+      expect(vrtScopeViolation("hunt-tester-injection", "xss")).toBeNull()
     })
 
     test("injection tester recording cross-site scripting", () => {
-      expect(vrtScopeViolation("proxy-tester-injection", "cross-site scripting")).toBeNull()
+      expect(vrtScopeViolation("hunt-tester-injection", "cross-site scripting")).toBeNull()
     })
 
     test("idor tester recording idor", () => {
-      expect(vrtScopeViolation("proxy-tester-idor", "idor")).toBeNull()
+      expect(vrtScopeViolation("hunt-tester-idor", "idor")).toBeNull()
     })
 
     test("idor tester recording bola", () => {
-      expect(vrtScopeViolation("proxy-tester-idor", "bola")).toBeNull()
+      expect(vrtScopeViolation("hunt-tester-idor", "bola")).toBeNull()
     })
 
     test("ssrf tester recording ssrf", () => {
-      expect(vrtScopeViolation("proxy-tester-ssrf", "ssrf")).toBeNull()
+      expect(vrtScopeViolation("hunt-tester-ssrf", "ssrf")).toBeNull()
     })
 
     test("authn tester recording session", () => {
-      expect(vrtScopeViolation("proxy-tester-authn", "session")).toBeNull()
+      expect(vrtScopeViolation("hunt-tester-authn", "session")).toBeNull()
     })
 
     test("authn tester recording jwt", () => {
-      expect(vrtScopeViolation("proxy-tester-authn", "jwt")).toBeNull()
+      expect(vrtScopeViolation("hunt-tester-authn", "jwt")).toBeNull()
     })
 
     test("file-attacks tester recording path traversal", () => {
-      expect(vrtScopeViolation("proxy-tester-file-attacks", "path traversal")).toBeNull()
+      expect(vrtScopeViolation("hunt-tester-file-attacks", "path traversal")).toBeNull()
     })
 
     test("business-logic tester recording race condition", () => {
-      expect(vrtScopeViolation("proxy-tester-business-logic", "race condition")).toBeNull()
+      expect(vrtScopeViolation("hunt-tester-business-logic", "race condition")).toBeNull()
     })
   })
 
   describe("out-of-scope categories — returns violation", () => {
     test("injection tester recording idor", () => {
-      const result = vrtScopeViolation("proxy-tester-injection", "idor")
+      const result = vrtScopeViolation("hunt-tester-injection", "idor")
       expect(result).not.toBeNull()
       expect(result!.cls).toBe("injection")
       expect(result!.allowed).toEqual(TESTER_VRT_SCOPE["injection"])
     })
 
     test("idor tester recording sqli", () => {
-      const result = vrtScopeViolation("proxy-tester-idor", "sqli")
+      const result = vrtScopeViolation("hunt-tester-idor", "sqli")
       expect(result).not.toBeNull()
       expect(result!.cls).toBe("idor")
     })
 
     test("authn tester recording ssrf", () => {
-      const result = vrtScopeViolation("proxy-tester-authn", "ssrf")
+      const result = vrtScopeViolation("hunt-tester-authn", "ssrf")
       expect(result).not.toBeNull()
       expect(result!.cls).toBe("authn")
     })
 
     test("ssrf tester recording xss", () => {
-      const result = vrtScopeViolation("proxy-tester-ssrf", "xss")
+      const result = vrtScopeViolation("hunt-tester-ssrf", "xss")
       expect(result).not.toBeNull()
       expect(result!.cls).toBe("ssrf")
     })
 
     test("file-attacks tester recording sql injection", () => {
-      const result = vrtScopeViolation("proxy-tester-file-attacks", "sql injection")
+      const result = vrtScopeViolation("hunt-tester-file-attacks", "sql injection")
       expect(result).not.toBeNull()
       expect(result!.cls).toBe("file-attacks")
     })
@@ -97,29 +97,29 @@ describe("vrtScopeViolation", () => {
 
   describe("substring matching — bidirectional", () => {
     test("category contains allowed term", () => {
-      expect(vrtScopeViolation("proxy-tester-injection", "blind sqli attack")).toBeNull()
+      expect(vrtScopeViolation("hunt-tester-injection", "blind sqli attack")).toBeNull()
     })
 
     test("allowed term contains category", () => {
-      expect(vrtScopeViolation("proxy-tester-injection", "sql")).toBeNull()
+      expect(vrtScopeViolation("hunt-tester-injection", "sql")).toBeNull()
     })
 
     test("case insensitive matching", () => {
-      expect(vrtScopeViolation("proxy-tester-injection", "SQL INJECTION")).toBeNull()
+      expect(vrtScopeViolation("hunt-tester-injection", "SQL INJECTION")).toBeNull()
     })
   })
 
   describe("edge cases", () => {
     test("empty category — returns null (no violation)", () => {
-      expect(vrtScopeViolation("proxy-tester-injection", "")).toBeNull()
+      expect(vrtScopeViolation("hunt-tester-injection", "")).toBeNull()
     })
 
     test("unknown tester class — returns null", () => {
-      expect(vrtScopeViolation("proxy-tester-unknown", "sqli")).toBeNull()
+      expect(vrtScopeViolation("hunt-tester-unknown", "sqli")).toBeNull()
     })
 
-    test("partial match proxy-tester prefix but not a real agent", () => {
-      expect(vrtScopeViolation("proxy-tester-", "sqli")).toBeNull()
+    test("partial match hunt-tester prefix but not a real agent", () => {
+      expect(vrtScopeViolation("hunt-tester-", "sqli")).toBeNull()
     })
   })
 })

@@ -13,7 +13,7 @@ const ctxFor = (sessionID: string) => ({
   sessionID,
   messageID: "",
   callID: "",
-  agent: "proxy-agent",
+  agent: "hunt-agent",
   abort: AbortSignal.any([]),
   messages: [],
   metadata: () => {},

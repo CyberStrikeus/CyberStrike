@@ -13,7 +13,7 @@ import { launchHackbrowser } from "./hackbrowser-launcher"
 
 const DESCRIPTION = `Crawl a web application autonomously and capture HTTP requests with UI context.
 
-Use this when you have a target URL but no captured requests yet — hackbrowser will navigate the app, fill forms, click buttons, and stream every HTTP request into the current session for later vulnerability analysis. After captures arrive, the proxy-analyzer ingest pipeline analyzes them automatically.
+Use this when you have a target URL but no captured requests yet — hackbrowser will navigate the app, fill forms, click buttons, and stream every HTTP request into the current session for later vulnerability analysis. After captures arrive, the hunt-analyzer ingest pipeline analyzes them automatically.
 
 This tool runs ASYNCHRONOUSLY: it returns immediately after starting the background crawl. Captures stream into the session over the next 30s–2min. Do NOT call this tool again to "wait" for results — use web_get_session_context to inspect captured endpoints when you actually need them. The hackbrowser status (running / completed / failed) appears in the TUI sidebar.
 
@@ -71,7 +71,7 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
     // Fire and forget — launchHackbrowser returns immediately after sync
     // prep (Provider resolve, Server URL, log sink). The actual runCrawl
     // runs in a background IIFE so the chat session prompt loop unblocks
-    // and ingest queue tasks (proxy-analyzer dispatches) can run in
+    // and ingest queue tasks (hunt-analyzer dispatches) can run in
     // parallel (INTEGRATION.md §10.9 / §13.6).
     const kickOff = await launchHackbrowser({
       target: args.target,

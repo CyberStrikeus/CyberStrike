@@ -240,7 +240,7 @@ export namespace Request {
   /**
    * Two-stage dedup at the TEMPLATE level. Same endpoint shape (normalized
    * template) hit twice — even with different concrete paths like
-   * `/users/1` vs `/users/2` — must collapse to one row so proxy-agent only
+   * `/users/1` vs `/users/2` — must collapse to one row so hunt-agent only
    * analyzes the template once. The credential who hit it first wins on
    * `request.credential_id`; subsequent hits with different credentials are
    * still recorded by `WebCredential` and matched against the function via

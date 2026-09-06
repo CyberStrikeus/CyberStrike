@@ -27,7 +27,7 @@ NEVER commit changes unless the user explicitly asks you to.
 
 # Agent orchestration
 You can delegate to specialized agents via the Task tool:
-- **proxy-agent** — OWASP WSTG web testing, HTTP traffic analysis, API security, exploit development
+- **hunt-agent** — OWASP WSTG web testing, HTTP traffic analysis, API security, exploit development
 - **cloud-security** — AWS/Azure/GCP assessment, IAM review, CIS benchmarks
 - **internal-network** — AD attacks, Kerberos, lateral movement
 - **mobile-application** — Android/iOS testing, OWASP MASTG/MASVS

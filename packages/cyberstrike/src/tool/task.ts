@@ -67,7 +67,7 @@ export const TaskTool = Tool.define("task", async (ctx) => {
       if (!ctx.extra?.bypassAgentCheck) {
         // Dispatch lane guard (Phase 4): the orchestrator must route each test to
         // the specialist whose lane owns it. Bounce a confidently mis-routed
-        // proxy-tester dispatch (e.g. a rate-limiting task sent to business-logic)
+        // hunt-tester dispatch (e.g. a rate-limiting task sent to business-logic)
         // with a re-dispatch hint instead of spawning a wasted subagent. Domain
         // logic lives in vuln-scope; here we only enforce. Only autonomous dispatch
         // is constrained — explicit user @-invocation is bypassAgentCheck and skips.

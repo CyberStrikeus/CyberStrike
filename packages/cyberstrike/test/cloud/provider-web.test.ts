@@ -17,25 +17,25 @@ describe("WebProvider", () => {
     const provider = await WebProvider.create()
     const names = provider.agentSpecs().map((s) => s.name).sort()
     expect(names).toEqual([
-      "proxy-agent",
-      "proxy-analyzer",
-      "proxy-tester-authn",
-      "proxy-tester-authz",
-      "proxy-tester-business-logic",
-      "proxy-tester-file-attacks",
-      "proxy-tester-idor",
-      "proxy-tester-injection",
-      "proxy-tester-llm",
-      "proxy-tester-mass-assignment",
-      "proxy-tester-misconfig",
-      "proxy-tester-recon",
-      "proxy-tester-ssrf",
+      "hunt-agent",
+      "hunt-analyzer",
+      "hunt-tester-authn",
+      "hunt-tester-authz",
+      "hunt-tester-business-logic",
+      "hunt-tester-file-attacks",
+      "hunt-tester-idor",
+      "hunt-tester-injection",
+      "hunt-tester-llm",
+      "hunt-tester-mass-assignment",
+      "hunt-tester-misconfig",
+      "hunt-tester-recon",
+      "hunt-tester-ssrf",
     ])
   })
 
   test("orchestrator is visible (hidden=false)", async () => {
     const provider = await WebProvider.create()
-    const orch = provider.agentSpecs().find((s) => s.name === "proxy-agent")!
+    const orch = provider.agentSpecs().find((s) => s.name === "hunt-agent")!
     expect(orch.hidden).toBe(false)
     expect(orch.role).toBe("orchestrator")
     expect(orch.steps).toBe(40)
@@ -43,7 +43,7 @@ describe("WebProvider", () => {
 
   test("analyzer uses small model", async () => {
     const provider = await WebProvider.create()
-    const analyzer = provider.agentSpecs().find((s) => s.name === "proxy-analyzer")!
+    const analyzer = provider.agentSpecs().find((s) => s.name === "hunt-analyzer")!
     expect(analyzer.useSmallModel).toBe(true)
     expect(analyzer.role).toBe("analyzer")
     expect(analyzer.prependRequestContext).toBe(true)
@@ -60,7 +60,7 @@ describe("WebProvider", () => {
 
   test("injection agent has destructive-SQL deny rules", async () => {
     const provider = await WebProvider.create()
-    const injection = provider.agentSpecs().find((s) => s.name === "proxy-tester-injection")!
+    const injection = provider.agentSpecs().find((s) => s.name === "hunt-tester-injection")!
     const bash = injection.permissions.bash
     expect(typeof bash).toBe("object")
     if (typeof bash === "object") {
@@ -71,7 +71,7 @@ describe("WebProvider", () => {
 
   test("injection agent has inject_probe permission", async () => {
     const provider = await WebProvider.create()
-    const injection = provider.agentSpecs().find((s) => s.name === "proxy-tester-injection")!
+    const injection = provider.agentSpecs().find((s) => s.name === "hunt-tester-injection")!
     expect(injection.permissions.inject_probe).toBe("allow")
   })
 
@@ -79,25 +79,25 @@ describe("WebProvider", () => {
     const provider = await WebProvider.create()
     const specs = provider.agentSpecs()
 
-    const authn = specs.find((s) => s.name === "proxy-tester-authn")!
+    const authn = specs.find((s) => s.name === "hunt-tester-authn")!
     expect(authn.permissions.authn_test).toBe("allow")
 
-    const ssrf = specs.find((s) => s.name === "proxy-tester-ssrf")!
+    const ssrf = specs.find((s) => s.name === "hunt-tester-ssrf")!
     expect(ssrf.permissions.ssrf_test).toBe("allow")
 
-    const business = specs.find((s) => s.name === "proxy-tester-business-logic")!
+    const business = specs.find((s) => s.name === "hunt-tester-business-logic")!
     expect(business.permissions.business_test).toBe("allow")
 
-    const misconfig = specs.find((s) => s.name === "proxy-tester-misconfig")!
+    const misconfig = specs.find((s) => s.name === "hunt-tester-misconfig")!
     expect(misconfig.permissions.misconfig_test).toBe("allow")
 
-    const recon = specs.find((s) => s.name === "proxy-tester-recon")!
+    const recon = specs.find((s) => s.name === "hunt-tester-recon")!
     expect(recon.permissions.recon_test).toBe("allow")
   })
 
   test("llm agent has llmhook permission", async () => {
     const provider = await WebProvider.create()
-    const llm = provider.agentSpecs().find((s) => s.name === "proxy-tester-llm")!
+    const llm = provider.agentSpecs().find((s) => s.name === "hunt-tester-llm")!
     expect(llm.permissions.llmhook).toBe("allow")
   })
 
@@ -118,7 +118,7 @@ describe("WebProvider", () => {
 
   test("orchestrator denies everything except delegation + reads", async () => {
     const provider = await WebProvider.create()
-    const orch = provider.agentSpecs().find((s) => s.name === "proxy-agent")!
+    const orch = provider.agentSpecs().find((s) => s.name === "hunt-agent")!
     expect(orch.permissions["*"]).toBe("deny")
     expect(orch.permissions.task).toBe("allow")
     expect(orch.permissions.web_get_session_context).toBe("allow")

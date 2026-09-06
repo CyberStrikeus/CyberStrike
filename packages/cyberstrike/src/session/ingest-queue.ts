@@ -4,7 +4,7 @@ import { SessionQueueStatus } from "./queue-status"
 
 const log = Log.create({ service: "ingest-queue" })
 
-// A single ingested request's sub-agent (proxy-tester / analyzer) shouldn't run longer than this;
+// A single ingested request's sub-agent (hunt-tester / analyzer) shouldn't run longer than this;
 // tasks are chained (sequential), so a HUNG one would stall EVERY later test on the session. On
 // timeout we abandon it and let the queue advance. FLAG: this is a deadline watchdog on the queue
 // slot — it does NOT hard-abort the underlying sub-agent (no AbortSignal is threaded into

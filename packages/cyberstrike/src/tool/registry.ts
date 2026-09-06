@@ -211,7 +211,7 @@ export namespace ToolRegistry {
       MisconfigTestTool,
       ReconTestTool,
       // Hackbrowser — autonomous crawler that produces captures the
-      // proxy-analyzer ingests. Upstream of the rest of the web pipeline.
+      // hunt-analyzer ingests. Upstream of the rest of the web pipeline.
       HackbrowserTool,
       // Methodology Engine Tools — intelligence, coverage, chain detection
       AddIntelTool,

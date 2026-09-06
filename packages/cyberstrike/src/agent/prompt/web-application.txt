@@ -13,7 +13,7 @@ When given a target URL with no captured traffic yet, use **hackbrowser** to cra
 
 ### hackbrowser tool
 
-Launches an AI-driven crawler that navigates the app, fills forms, clicks buttons, and streams every HTTP request into the current session. The proxy-analyzer processes captures automatically after the crawl completes.
+Launches an AI-driven crawler that navigates the app, fills forms, clicks buttons, and streams every HTTP request into the current session. The hunt-analyzer processes captures automatically after the crawl completes.
 
 **Use hackbrowser when:**
 - You have a target URL but no captures yet — broad endpoint discovery before targeted testing
