@@ -172,7 +172,6 @@ import { exchangeAbuse, sharepointEnum, teamsEnum, onedriveAccess } from "./m365
 import { cleanupAzure } from "./cleanup"
 import { azureAssess } from "./assess"
 import { orchestrateLayer2 } from "../../cloud/orchestrate"
-import { AzureProvider } from "../../cloud/provider-azure"
 import { resolveProvider } from "../../cloud/provider-registry"
 import { isAssessmentProvider } from "../../cloud/provider"
 
@@ -1102,11 +1101,19 @@ export const AzurehookTool = Tool.define("azurehook", {
 
     if (program === "azure_orchestrate") {
       try {
-        // Resolve the azure assessment provider from the registry (C10 — pluggable
-        // workflow entry) so an installed azure package can supply it; fall back to
-        // the built-in if the registry has no assessment-capable azure provider.
-        const resolved = await resolveProvider("azure")
-        const provider = resolved && isAssessmentProvider(resolved) ? resolved : new AzureProvider()
+        // The azure assessment provider comes from the registry (C10 — pluggable
+        // workflow entry): the built-in registration today, an installed
+        // @cyberstrike-io-ent/azure package tomorrow. No hardcoded construction —
+        // this decouples the tool from provider-azure so the azure cluster can move
+        // to its package as a unit.
+        const provider = await resolveProvider("azure")
+        if (!provider || !isAssessmentProvider(provider)) {
+          return {
+            title: `azurehook: ${params.program}`,
+            output: "No azure assessment domain is registered. Install @cyberstrike-io-ent/azure.",
+            metadata: { program: params.program, findings: [] as Finding[], autoReported: 0, skippedDuplicates: 0 },
+          }
+        }
         const state = await orchestrateLayer2(provider, ctx.sessionID, ctx.messageID)
         const completed = state.analystResults.filter((a) => !a.summary.startsWith("Error:"))
         const failed = state.analystResults.filter((a) => a.summary.startsWith("Error:"))
