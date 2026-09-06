@@ -159,9 +159,20 @@ tools that depend on `cloud/groups` — `tool/assess-findings.ts`, `tool/cloud-i
 `AzurehookTool` from built-ins — comes via the package `tool` hook), `cloud/index.ts`
 (drop azure re-exports).
 
-**Move order:** ① scaffold package ✅ ② move azurehook tool + assess-cache ③ move
-provider-azure + groups + classify + prompts ④ move/settle assess-findings + cloud-intel
-⑤ flip core reference points, remove azure from core ⑥ verify azure runs via the package.
+**Move order:** ① scaffold package ✅ ② decouple azurehook → provider-azure ✅ (the
+tool now resolves azure purely from the registry) → **RESUME HERE** ③ expand
+`cyberstrike/public` with what the cluster needs from core (`Session`, `Vulnerability`,
+`VulnStatus`, `getAssessResult/setAssessResult` — assess-cache STAYS in core as shared
+provider↔tool state) ④ move the knot as ONE unit (provider-azure + groups + classify +
+azurehook + prompts) into the package, rewiring its core imports to `cyberstrike/public`
+⑤ move/settle assess-findings + cloud-intel ⑥ flip core reference points (drop azure
+built-in in provider-registry, `AzurehookTool` in tool/registry:239, azure re-exports in
+cloud/index) ⑦ verify azure runs from the package.
+
+> **Extraction is PAUSED at a stable, all-green point** (2307 pass). The knot move (③–⑦)
+> is large and risky — a dedicated session. Everything below the move is done and tested:
+> the load/register/resolve/health/version infra + the package scaffold. The blocker is
+> purely mechanical (untangling azure's own coupled code), not a core or npm defect.
 
 ### Step ① done — scaffold verified at runtime
 `packages/azure-ent` exists: package.json (peerDeps `cyberstrike` + `@cyberstrike-io/plugin`,
