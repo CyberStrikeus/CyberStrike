@@ -2,7 +2,7 @@ import z from "zod"
 import { Tool } from "../tool"
 import { Request } from "../../session/request"
 import { Session } from "../../session"
-import type { ResolvedRequest, InjPoint, SendBudget } from "./types"
+import type { ResolvedRequest, InjPoint, SendBudget, RegisterCanary } from "./types"
 import { resolve, resolveFromTarget, enumeratePoints, validatePoints } from "./resolve"
 import { SSTI_EXPR, SSTI_PRODUCT } from "./payloads/ssti"
 import { TESTED_LABEL, NOT_TESTED_BY_CLASS } from "./payloads/errsig"
@@ -13,6 +13,8 @@ import { probeSstiPoint } from "./probe/ssti"
 import { probeCmdPoint } from "./probe/cmd"
 import { probeLfiPoint } from "./probe/lfi"
 import { probeErrorSigPoint } from "./probe/errsig"
+import { CanaryRegistry } from "../../session/web/signal/canary"
+import { DbCanaryStore } from "../../session/web/signal/store"
 
 const description = `Fire a battery of probes at ONE parameter-bearing request and return RAW OBSERVATIONS.
 
@@ -121,6 +123,9 @@ export const InjectProbeTool = Tool.define("inject_probe", {
       signal: ctx.abort,
     })
 
+    const canaries = new CanaryRegistry(new DbCanaryStore(Session.root(ctx.sessionID)))
+    const originRequestId = params.request_id ?? `target:${resolved.url.toString()}`
+
     const targetInfo = {
       method: resolved.method,
       url: resolved.url.toString(),
@@ -167,8 +172,20 @@ export const InjectProbeTool = Tool.define("inject_probe", {
       const classObs: unknown[] = []
       for (const point of points) {
         if (ctx.abort.aborted || budget.sent >= budget.max) break
+        const field = `${point.location}:${point.name}`
+        const reg: RegisterCanary = (token, kind) => {
+          canaries.register({
+            token,
+            kind,
+            originRequestId,
+            endpoint: resolved.url.toString(),
+            field,
+            agent: ctx.agent,
+            vulnClass: cls,
+          })
+        }
         if (cls === "xss") {
-          const o = await probeXssPoint(sender, resolved, point, ctx.abort, DELAY, budget)
+          const o = await probeXssPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg)
           classObs.push(o)
           markBlocked(o, cls)
           if (o.weaponized.length > 0)
@@ -180,7 +197,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
               `xss @ ${o.point}: tag(s) [${o.surviving_tags.join(", ")}] reflected un-encoded${o.context ? ` in ${o.context} context` : ""} — weaponize one (event handler) and confirm.`,
             )
         } else if (cls === "ssti") {
-          const o = await probeSstiPoint(sender, resolved, point, ctx.abort, DELAY, budget)
+          const o = await probeSstiPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg)
           classObs.push(o)
           markBlocked(o, cls)
           if (o.evaluated.length > 0)
@@ -188,7 +205,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
               `ssti @ ${o.point}: syntax [${o.evaluated.map((e) => e.syntax).join(", ")}] evaluated ${SSTI_EXPR}→${SSTI_PRODUCT} server-side (snippet in evaluated) — confirm engine + weaponize.`,
             )
         } else if (cls === "cmd") {
-          const o = await probeCmdPoint(sender, resolved, point, ctx.abort, DELAY, budget)
+          const o = await probeCmdPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg)
           classObs.push(o)
           markBlocked(o, cls)
           if (o.command_output.length > 0)

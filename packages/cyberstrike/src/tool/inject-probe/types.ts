@@ -22,3 +22,5 @@ export interface SendBudget {
 
 export type SendOk = { status: number; text: string; ms: number; headers: Record<string, string> }
 export type SendResult = SendOk | { error: string; timeout?: boolean }
+
+export type RegisterCanary = (token: string, kind: "reflect" | "template" | "callback") => void

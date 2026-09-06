@@ -1,4 +1,4 @@
-import type { ResolvedRequest, InjPoint, SendBudget } from "../types"
+import type { ResolvedRequest, InjPoint, SendBudget, RegisterCanary } from "../types"
 import { CMD_PROBES, CMD_SEPARATORS } from "../payloads/cmd"
 import { applyPayload } from "../mutate"
 import { nonce, type HttpSender } from "../send"
@@ -22,6 +22,7 @@ export async function probeCmdPoint(
   abort: AbortSignal,
   delayMs: number,
   budget: SendBudget,
+  register?: RegisterCanary,
 ): Promise<CmdObservation> {
   const obs: CmdObservation = {
     point: `${point.location}:${point.name}`,
@@ -31,6 +32,7 @@ export async function probeCmdPoint(
     blocked: false,
   }
   const n = nonce()
+  register?.(n, "reflect")
   const bl = await checkBaseline(sender, r, applyPayload(r, point, n), abort, budget)
   if (!bl.ok) {
     obs.note = bl.note

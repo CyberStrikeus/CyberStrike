@@ -1,4 +1,4 @@
-import type { ResolvedRequest, InjPoint, SendBudget } from "../types"
+import type { ResolvedRequest, InjPoint, SendBudget, RegisterCanary } from "../types"
 import { SSTI_EXPR, SSTI_PRODUCT, SSTI_SYNTAXES, SSTI_ALT } from "../payloads/ssti"
 import { applyPayload } from "../mutate"
 import { nonce, type HttpSender } from "../send"
@@ -22,6 +22,7 @@ export async function probeSstiPoint(
   abort: AbortSignal,
   delayMs: number,
   budget: SendBudget,
+  register?: RegisterCanary,
 ): Promise<SstiObservation> {
   const obs: SstiObservation = {
     point: `${point.location}:${point.name}`,
@@ -31,6 +32,7 @@ export async function probeSstiPoint(
     blocked: false,
   }
   const n = nonce()
+  register?.(n, "reflect")
   const bl = await checkBaseline(sender, r, applyPayload(r, point, n), abort, budget)
   if (!bl.ok) {
     obs.note = bl.note
@@ -40,6 +42,7 @@ export async function probeSstiPoint(
   }
   obs.marker_reflected = bl.res.text.includes(n)
   obs.baseline = { status: bl.res.status, bytes: bl.res.text.length, ms: bl.res.ms }
+  register?.(SSTI_PRODUCT, "template")
   const syntaxFindings = await fireLoop({
     sender, r, abort, delayMs, budget, tracker: obs, statusOnly: true,
     payloads: SSTI_SYNTAXES,
@@ -51,6 +54,7 @@ export async function probeSstiPoint(
     },
   })
   obs.evaluated.push(...syntaxFindings)
+  for (const a of SSTI_ALT) register?.(a.product, "template")
   const altFindings = await fireLoop({
     sender, r, abort, delayMs, budget, tracker: obs, statusOnly: true,
     payloads: SSTI_ALT,
