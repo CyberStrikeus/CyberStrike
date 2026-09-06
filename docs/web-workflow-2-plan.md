@@ -367,16 +367,16 @@ A code audit found the web tool layer already embodies the "tool = raw facts/bre
 | IDOR candidate substrate | **`Observation.endpointTree`** already gives per-param per-credential values ("RAW FACTS ONLY — owner judgment is the agent's", line 103) | **REUSE.** Auto-generating candidates with idLike heuristics would move reasoning INTO a tool — violates the reasoning-stays-with-AI invariant. |
 | misconfig/recon classification | **P0 fabric** already detects banners, headers, cookies, CORS, path disclosure, exposed artifacts, directory listing PASSIVELY on every response (incl. http_replay-elicited via B2) | **REUSE.** Active probing just needs to SEND candidate paths (via http_replay); the fabric classifies for free. |
 | `recon_test` | **NEW** — 3-mode tool (metafiles/fingerprint/leakage). Parses content of robots.txt/sitemap.xml/openapi.json (URL extraction), active tech fingerprinting (10 probes), HTML comment/IP/version/debug-flag scanning. `proxy-tester-recon` agent wired with WSTG INFO-02/03/05/08. | **DONE** — `195a29a280`. 26 unit tests pass. |
-| `authn_test`, `ssrf_test`, `business_test` | Only Python `attack_script` variants (`jwt_tamper`, `ssrf_listener`, `race_tester`) exist; no native tool | **GENUINE GAPS** — native TS replacements (aligns with the [[next-release-todos]] attack_script conversion). |
+| `authn_test`, `ssrf_test`, `business_test` | **BUILT** — native TS replacements of Python `jwt_tamper`, `ssrf_listener`, `race_tester`. All registered in `tool/registry.ts`, agents wired in `provider-web.ts`. | **DONE** — authn_test (32 tests), ssrf_test (24 tests), business_test (53 tests). Python retirement blocked on live verification only. |
 
-### Corrected P1 scope
+### Corrected P1 scope — ALL ITEMS DONE
 The real remaining P1 work is NOT a fleet of new payload tools. It is:
-1. **Agent restructuring** — WSTG-aligned specialists with THIN prompts that lean on `inject_probe` + `http_replay` + `csrf_extract` + the P0 fabric (the biggest genuine gap; prompt/registration work in `agent/agent.ts` + `agent/prompt/vuln/`).
-2. **Orchestrator consumes the fabric** — route `new_signal` retests + the `signals` context block to the owning specialist (prompt logic).
-3. **A few genuinely-missing active tools** — misconfig active-probe (wordlists + send-via-http_replay; fabric classifies), and native `authn`/`ssrf`/`business` to replace the Python scripts.
-4. **The OO `WebProvider`** registry — **DONE.** `DomainProvider` base interface extracted; `WebProvider implements DomainProvider` in `cloud/provider-web.ts`; `agent.ts` wired via `WebProvider.create()` (factory pattern).
+1. **Agent restructuring** — **DONE.** WSTG-aligned specialists with THIN prompts: authn, ssrf, business-logic, misconfig, recon — all with prompt.txt + description.txt + `provider-web.ts` wiring.
+2. **Orchestrator consumes the fabric** — **DONE.** Orchestrator prompt reads pending signals + retest_queue; routes via specialist_class → agent-name mapping.
+3. **A few genuinely-missing active tools** — **DONE.** `misconfig_test` (22 tests), `authn_test` (32 tests), `ssrf_test` (24 tests), `business_test` (53 tests), `recon_test` (26 tests) — all native TS, replacing Python scripts.
+4. **The OO `WebProvider`** registry — **DONE.** `DomainProvider` base interface extracted; `WebProvider implements DomainProvider` in `cloud/provider-web.ts`; factory pattern (`WebProvider.create()`).
 
-Net: injection + access-control mechanics are already done in the tool layer; P0 added the detection fabric; **P1's leverage is the agent layer + the ~4 genuinely-missing active probes, built to REUSE the send + detection layers rather than duplicate them.**
+Net: injection + access-control mechanics are already done in the tool layer; P0 added the detection fabric; **P1 is COMPLETE** — all tools built, agents wired, WSTG coverage mapped. Remaining: live-network verification (§11 gates 8-10) and Python `attack_script` retirement.
 
 ---
 
