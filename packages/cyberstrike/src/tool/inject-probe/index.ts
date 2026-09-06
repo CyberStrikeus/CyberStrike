@@ -16,7 +16,7 @@ import { probeErrorSigPoint } from "./probe/errsig"
 import { probeHppPoint } from "./probe/hpp"
 import { createBackoff } from "./probe/base"
 import { CanaryRegistry } from "../../session/web/signal/canary"
-import { DbCanaryStore } from "../../session/web/signal/store"
+import { DbCanaryStore, SignalStore } from "../../session/web/signal/store"
 import { scanProbeResponse } from "../../session/web/signal/ingest"
 
 const description = `Fire a battery of probes at ONE parameter-bearing request and return RAW OBSERVATIONS.
@@ -121,6 +121,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
     const originRequestId = params.request_id ?? `target:${resolved.url.toString()}`
     const sourceIsCaptured = !!params.request_id
     const canaries = new CanaryRegistry(new DbCanaryStore(sessionID))
+    const signalStore = new SignalStore(sessionID)
 
     const rawSender = new ReplaySender({
       totalTimeoutMs: SEND_TIMEOUT_MS,
@@ -210,6 +211,15 @@ export const InjectProbeTool = Tool.define("inject_probe", {
           const o = await probeXssPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg, backoff)
           classObs.push(o)
           markBlocked(o, cls)
+          if (o.marker_reflected) {
+            signalStore.record({
+              type: "reflected_input",
+              owner: "injection",
+              requestId: originRequestId,
+              evidence: `marker reflected raw at ${field}${o.context ? ` (${o.context} context)` : ""}${o.marker_html_encoded ? " [HTML-encoded]" : ""}`,
+              meta: { field, context: o.context, html_encoded: o.marker_html_encoded, tags: o.surviving_tags.length },
+            })
+          }
           if (o.weaponized.length > 0)
             leads.push(
               `xss @ ${o.point}: READY payload(s) reflected un-encoded (copy & fire, filter-bypass already applied): ${o.weaponized.slice(0, 4).join("  |  ")} — confirm execution.`,
@@ -246,6 +256,15 @@ export const InjectProbeTool = Tool.define("inject_probe", {
           const o = await probeHppPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg, backoff)
           classObs.push(o)
           markBlocked(o, cls)
+          if (o.append_reflected || o.prepend_reflected) {
+            signalStore.record({
+              type: "reflected_input",
+              owner: "injection",
+              requestId: originRequestId,
+              evidence: `HPP duplicate-param reflected at ${field} (parser: ${o.parser_behavior})`,
+              meta: { field, parser_behavior: o.parser_behavior, append: o.append_reflected, prepend: o.prepend_reflected },
+            })
+          }
           if (o.parser_behavior !== "inconclusive")
             leads.push(
               `hpp @ ${o.point}: parser behavior = ${o.parser_behavior} (append_reflected=${o.append_reflected}, prepend_reflected=${o.prepend_reflected}) — fire injection payloads at the duplicate position to exploit.`,
