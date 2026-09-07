@@ -51,13 +51,11 @@ export const WebWriteObjectValueTool = Tool.define("web_write_object_value", {
 
     let retestsQueued = 0
     if (result.isNew) {
-      const retests = WebRetest.checkTriggers({
-        sessionID,
-        triggerType: "new_object_value",
-        triggerSource: result.value.id,
-        relatedObjectIDs: [object.id],
-      })
-      retestsQueued = retests.length
+      // A newly-discovered object value is IDOR fuel: flag every captured endpoint with it so
+      // the id-manipulation specialist re-tests using it. Endpoint-dedup means each endpoint
+      // holds ONE entry whose `object_value` flag accumulates the values — the specialist
+      // sweeps them together instead of a separate queue row per value (the old 480-row blowup).
+      retestsQueued = WebRetest.flagAll({ sessionID, type: "object_value", value: params.value, priority: "medium" })
     }
 
     const output = {

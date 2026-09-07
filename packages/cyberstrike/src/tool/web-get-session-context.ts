@@ -145,11 +145,13 @@ export const WebGetSessionContextTool = Tool.define("web_get_session_context", {
       const counts = WebRetest.count(sessionID)
       context.retest_queue = {
         pending: counts.pending,
-        processing: counts.processing,
-        completed: counts.completed,
+        examined: counts.examined,
+        // Each item is an ENDPOINT scenario: the endpoint + the accumulated flags (which
+        // roles / credentials / object-values / signals were discovered for it). The
+        // specialist tests all of these together for this endpoint.
         items: WebRetest.getPending(sessionID)
           .slice(0, 10)
-          .map((r) => ({ id: r.id, request_id: r.request_id, trigger_type: r.trigger_type, priority: r.priority })),
+          .map((r) => ({ endpoint: r.method ? `${r.method} ${r.endpoint}` : r.key_hash, priority: r.priority, flags: r.flags })),
       }
     }
 

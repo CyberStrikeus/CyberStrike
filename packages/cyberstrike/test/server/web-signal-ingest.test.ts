@@ -121,12 +121,12 @@ describe("ingest → signal fabric (real route wiring)", () => {
       const resp = { status: 500, headers: { "content-type": "text/html" }, body: "You have an error in your SQL syntax near ''" }
       expect((await ingest(app, sid, "shop.example.com", "/q", resp)).status).toBe(202)
 
-      const retest = WebRetest.getPending(sid).find((r) => r.trigger_type === "new_signal")
+      const retest = WebRetest.getPending(sid).find((r) => (r.flags.signal ?? []).length > 0)
       expect(retest).toBeDefined()
-      // Tied to a real request row and routed (source encodes type:owner).
-      expect(retest?.request_id.startsWith("req")).toBe(true)
-      expect(retest?.trigger_source).toContain("sql_error")
-      expect(retest?.trigger_source).toContain("injection")
+      // Endpoint-keyed; the signal flag value encodes type:owner for routing.
+      expect(retest?.key_hash).toBeTruthy()
+      expect(retest?.flags.signal?.[0]).toContain("sql_error")
+      expect(retest?.flags.signal?.[0]).toContain("injection")
       expect(retest?.priority).toBe("high")
     })
   })
@@ -136,7 +136,7 @@ describe("ingest → signal fabric (real route wiring)", () => {
       const resp = { status: 500, headers: { "content-type": "text/html" }, body: "SQL syntax error near X" }
       await ingest(app, sid, "shop.example.com", "/q2", resp)
       await ingest(app, sid, "shop.example.com", "/q2", resp)
-      const signalRetests = WebRetest.getPending(sid).filter((r) => r.trigger_type === "new_signal")
+      const signalRetests = WebRetest.getPending(sid).filter((r) => (r.flags.signal ?? []).length > 0)
       expect(signalRetests).toHaveLength(1)
     })
   })

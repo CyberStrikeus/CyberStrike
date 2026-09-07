@@ -123,6 +123,29 @@ export namespace Database {
     }
     sqlite.run("DROP TABLE IF EXISTS web_credential_new")
 
+    // web_retest_queue: old schema was per (request_id × trigger_source); new schema is
+    // per-endpoint (key_hash) with accumulated flags. The two are structurally incompatible
+    // and retests are transient (regenerated from live discoveries), so drop the old table and
+    // recreate it with the current shape. (The schema-driven pass below only ADDs columns to
+    // existing tables — it can't recreate a dropped one — so we recreate here.)
+    if (tableExists(sqlite, "web_retest_queue") && tableColumns(sqlite, "web_retest_queue").has("request_id")) {
+      sqlite.run("DROP TABLE web_retest_queue")
+      sqlite.run(`CREATE TABLE web_retest_queue (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL REFERENCES session(id) ON DELETE CASCADE,
+        key_hash TEXT NOT NULL,
+        status TEXT NOT NULL,
+        priority TEXT NOT NULL,
+        flags TEXT,
+        examined_flags TEXT,
+        time_created INTEGER NOT NULL,
+        time_updated INTEGER NOT NULL
+      )`)
+      sqlite.run("CREATE UNIQUE INDEX web_retest_queue_endpoint_idx ON web_retest_queue(session_id, key_hash)")
+      sqlite.run("CREATE INDEX web_retest_queue_status_idx ON web_retest_queue(session_id, status)")
+      log.info("reconciled web_retest_queue (request×trigger → per-endpoint flags)")
+    }
+
     // Phase 2: Schema-driven column reconciliation
     // Drizzle's migrator uses sqlite3_prepare_v2 which only compiles the first SQL statement.
     // Multi-statement migrations without "--> statement-breakpoint" delimiters only ran their

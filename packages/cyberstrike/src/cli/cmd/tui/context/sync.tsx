@@ -180,9 +180,10 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           id: string
           status: string
           priority: string
-          request_id: string
+          key_hash: string
           method?: string
           endpoint?: string
+          flags?: { object_value?: string[]; role?: string[]; signal?: string[]; credential?: string[] }
         }>
       }
       message: {

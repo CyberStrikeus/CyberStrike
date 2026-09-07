@@ -51,11 +51,10 @@ export const WebWriteRoleTool = Tool.define("web_write_role", {
       level: params.level,
     })
 
-    const retests = WebRetest.checkTriggers({
-      sessionID,
-      triggerType: "new_role",
-      triggerSource: role.id,
-    })
+    // A new role applies session-wide for access-control retesting: flag every captured
+    // endpoint with this role value. Endpoint-dedup means each endpoint gets ONE queue entry
+    // whose `role` flag accumulates values — no per-role duplicate rows.
+    const flagged = WebRetest.flagAll({ sessionID, type: "role", value: role.name, priority: "high" })
 
     const output = {
       role: {
@@ -64,7 +63,7 @@ export const WebWriteRoleTool = Tool.define("web_write_role", {
         level: role.level,
       },
       is_new: true,
-      retests_queued: retests.length,
+      retests_queued: flagged,
     }
 
     return {

@@ -102,7 +102,7 @@ describe("scanElicitedResponse — http_replay write-back (B2)", () => {
         // sourceIsCaptured omitted → false
       })
       expect(new SignalStore(sid).get().some((s) => s.signal_type === "sql_error")).toBe(true)
-      expect(WebRetest.getPending(sid).filter((r) => r.trigger_type === "new_signal")).toHaveLength(0)
+      expect(WebRetest.getPending(sid).filter((r) => (r.flags.signal ?? []).length > 0)).toHaveLength(0)
     })
   })
 
@@ -120,7 +120,7 @@ describe("scanElicitedResponse — http_replay write-back (B2)", () => {
       })
       expect(n).toBeGreaterThan(0)
       expect(new SignalStore(sid).get().some((s) => s.signal_type === "sql_error")).toBe(true)
-      expect(WebRetest.getPending(sid).filter((r) => r.trigger_type === "new_signal")).toHaveLength(0)
+      expect(WebRetest.getPending(sid).filter((r) => (r.flags.signal ?? []).length > 0)).toHaveLength(0)
     })
   })
 })

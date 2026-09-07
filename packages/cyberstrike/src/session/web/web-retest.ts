@@ -1,37 +1,49 @@
 import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
 import z from "zod"
-import { Database, eq, and, asc } from "../../storage/db"
+import { Database, eq, and } from "../../storage/db"
 import { WebRetestQueueTable, RequestTable } from "../session.sql"
 import { Identifier } from "../../id/id"
 
-// Upper bound on PENDING retests per session. New discoveries stop piling low/medium retests
-// once this is reached (high-priority cross-credential retests are exempt) — keeps the queue a
-// workable list instead of an unbounded backlog the loop can never finish.
-const SESSION_PENDING_CAP = 80
+// The retest queue is a SCENARIO queue keyed by simplified endpoint (key_hash) — ONE entry
+// per endpoint, never per request-instance. Each trigger family (a new role / credential /
+// object-value / signal discovered) appends its distinct VALUES to that endpoint's flags. So
+// the same endpoint is never queued twice; instead its flags accumulate, and the specialist
+// that picks it up reads all flags + observations and tests them together (sweeping values,
+// swapping credentials). An examined endpoint re-opens only when a genuinely NEW flag value
+// appears (one not in its examined snapshot) — a re-seen value is a no-op.
+const FlagType = z.enum(["object_value", "role", "signal", "credential"])
+export type FlagType = z.infer<typeof FlagType>
 
-const TriggerType = z.enum(["new_role", "new_object_value", "new_credential", "new_signal"])
-const Status = z.enum(["pending", "processing", "completed"])
+const Status = z.enum(["pending", "examined"])
 const Priority = z.enum(["high", "medium", "low"])
+
+const Flags = z
+  .object({
+    object_value: z.array(z.string()).optional(),
+    role: z.array(z.string()).optional(),
+    signal: z.array(z.string()).optional(),
+    credential: z.array(z.string()).optional(),
+  })
+  .default({})
+type Flags = z.infer<typeof Flags>
+
+const priorityOrder = { high: 0, medium: 1, low: 2 } as const
 
 export namespace WebRetest {
   export const Info = z
     .object({
       id: z.string(),
       session_id: z.string(),
-      request_id: z.string(),
-      trigger_type: TriggerType,
-      trigger_source: z.string(),
+      key_hash: z.string(),
       status: Status,
       priority: Priority,
-      // The endpoint this retest targets (resolved from request_id) — so the TUI can
-      // show WHICH endpoint is queued, not just a priority/status label.
+      flags: Flags,
+      // The endpoint this scenario targets (resolved from key_hash) — so the TUI/orchestrator
+      // sees WHICH endpoint, not just a hash.
       method: z.string().optional(),
       endpoint: z.string().optional(),
-      time: z.object({
-        created: z.number(),
-        updated: z.number(),
-      }),
+      time: z.object({ created: z.number(), updated: z.number() }),
     })
     .meta({ ref: "WebRetest" })
   export type Info = z.infer<typeof Info>
@@ -46,197 +58,125 @@ export namespace WebRetest {
     ),
   }
 
-  // Priority order for sorting
-  const priorityOrder = { high: 0, medium: 1, low: 2 }
-
-  export function enqueue(input: {
-    sessionID: string
-    requestID: string
-    triggerType: z.infer<typeof TriggerType>
-    triggerSource: string
-    priority: z.infer<typeof Priority>
-  }): Info {
-    // Check if already queued for THIS trigger source. Dedup must include
-    // trigger_source (matching checkTriggers' own guard) — otherwise a request
-    // already pending for one reason (e.g. a new_signal detection) would swallow a
-    // retest queued for a DIFFERENT reason (a new_credential cross-credential retest
-    // of the same endpoint as org1/org2), and the cross-credential intent would never
-    // surface on the queue for the orchestrator to dispatch.
-    const existing = Database.use((db) =>
-      db
-        .select()
-        .from(WebRetestQueueTable)
-        .where(
-          and(
-            eq(WebRetestQueueTable.session_id, input.sessionID),
-            eq(WebRetestQueueTable.request_id, input.requestID),
-            eq(WebRetestQueueTable.trigger_source, input.triggerSource),
-            eq(WebRetestQueueTable.status, "pending"),
-          ),
-        )
-        .get(),
-    )
-
-    if (existing) {
-      // If already queued, upgrade priority if new one is higher
-      const existingPriority = priorityOrder[existing.priority as keyof typeof priorityOrder]
-      const newPriority = priorityOrder[input.priority]
-      if (newPriority < existingPriority) {
-        return updatePriority(existing.id, input.priority)
-      }
-      return {
-        id: existing.id,
-        session_id: existing.session_id,
-        request_id: existing.request_id,
-        trigger_type: existing.trigger_type as Info["trigger_type"],
-        trigger_source: existing.trigger_source,
-        status: existing.status as Info["status"],
-        priority: existing.priority as Info["priority"],
-        time: { created: existing.time_created, updated: existing.time_updated },
-      }
-    }
-
-    const id = Identifier.ascending("web_retest")
-    const now = Date.now()
-
-    Database.use((db) => {
-      db.insert(WebRetestQueueTable)
-        .values({
-          id,
-          session_id: input.sessionID,
-          request_id: input.requestID,
-          trigger_type: input.triggerType,
-          trigger_source: input.triggerSource,
-          status: "pending",
-          priority: input.priority,
-          time_created: now,
-          time_updated: now,
-        })
-        .run()
-    })
-
-    const queue = getPending(input.sessionID)
-    Bus.publish(Event.Updated, { sessionID: input.sessionID, queue })
-
-    return {
-      id,
-      session_id: input.sessionID,
-      request_id: input.requestID,
-      trigger_type: input.triggerType,
-      trigger_source: input.triggerSource,
-      status: "pending",
-      priority: input.priority,
-      time: { created: now, updated: now },
-    }
+  function parseFlags(raw: unknown): Flags {
+    if (!raw || typeof raw !== "object") return {}
+    return raw as Flags
   }
 
-  export function updatePriority(id: string, priority: z.infer<typeof Priority>): Info {
-    const now = Date.now()
-    const row = Database.use((db) =>
-      db
-        .update(WebRetestQueueTable)
-        .set({ priority, time_updated: now })
-        .where(eq(WebRetestQueueTable.id, id))
-        .returning()
-        .get(),
-    )
+  // Merge a value into one flag family (dedup). Returns the new flags + whether it changed.
+  function addValue(flags: Flags, type: FlagType, value: string): { flags: Flags; added: boolean } {
+    const list = flags[type] ?? []
+    if (list.includes(value)) return { flags, added: false }
+    return { flags: { ...flags, [type]: [...list, value] }, added: true }
+  }
 
-    if (!row) throw new Error(`WebRetest not found: ${id}`)
+  function bumpPriority(current: string, next: z.infer<typeof Priority>): z.infer<typeof Priority> {
+    const cur = current as z.infer<typeof Priority>
+    return priorityOrder[next] < priorityOrder[cur] ? next : cur
+  }
 
-    const queue = getPending(row.session_id)
-    Bus.publish(Event.Updated, { sessionID: row.session_id, queue })
-
-    return {
-      id: row.id,
-      session_id: row.session_id,
-      request_id: row.request_id,
-      trigger_type: row.trigger_type as Info["trigger_type"],
-      trigger_source: row.trigger_source,
-      status: row.status as Info["status"],
-      priority: row.priority as Info["priority"],
-      time: { created: row.time_created, updated: row.time_updated },
-    }
+  function publish(sessionID: string): void {
+    const queue = getPending(sessionID)
+    Database.effect(() => Bus.publish(Event.Updated, { sessionID, queue }))
   }
 
   /**
-   * Mark every PENDING retest that targets `requestID` as completed — the retest's
-   * work is done once its endpoint has actually been (re)tested. Called deterministically
-   * when a tester records a coverage note or files a finding for that request, so the
-   * queue drains as testing progresses (the count goes down) instead of growing forever.
-   * Returns how many entries were closed. Publishes one queue update if anything changed.
+   * Flag ONE endpoint (key_hash) with a discovered value. Upsert semantics:
+   *  - endpoint not queued        → create it pending with this flag value
+   *  - endpoint pending           → append the value to its flags (no new row)
+   *  - endpoint already examined  → re-open (pending) only if the value is genuinely new
+   *                                 (absent from the examined snapshot); otherwise no-op
+   * Returns true if the queue changed (new row, new value, or re-open).
    */
-  export function completeForRequest(sessionID: string, requestID: string): number {
+  export function flag(input: {
+    sessionID: string
+    keyHash: string
+    type: FlagType
+    value: string
+    priority?: z.infer<typeof Priority>
+  }): boolean {
+    const priority = input.priority ?? "medium"
     const now = Date.now()
-    const closed = Database.use((db) =>
-      db
-        .update(WebRetestQueueTable)
-        .set({ status: "completed", time_updated: now })
-        .where(
-          and(
-            eq(WebRetestQueueTable.session_id, sessionID),
-            eq(WebRetestQueueTable.request_id, requestID),
-            eq(WebRetestQueueTable.status, "pending"),
-          ),
-        )
-        .returning()
-        .all(),
-    )
-    if (closed.length > 0) {
-      const queue = getPending(sessionID)
-      Database.effect(() => Bus.publish(Event.Updated, { sessionID, queue }))
-    }
-    return closed.length
-  }
-
-  export function updateStatus(id: string, status: z.infer<typeof Status>): void {
-    const now = Date.now()
-    Database.use((db) => {
+    const changed = Database.use((db) => {
       const row = db
-        .update(WebRetestQueueTable)
-        .set({ status, time_updated: now })
-        .where(eq(WebRetestQueueTable.id, id))
-        .returning()
-        .get()
-      if (row) {
-        const queue = getPending(row.session_id)
-        Database.effect(() => Bus.publish(Event.Updated, { sessionID: row.session_id, queue }))
-      }
-    })
-  }
-
-  export function next(sessionID: string): Info | undefined {
-    // Get pending items sorted by priority then time
-    const rows = Database.use((db) =>
-      db
         .select()
         .from(WebRetestQueueTable)
-        .where(and(eq(WebRetestQueueTable.session_id, sessionID), eq(WebRetestQueueTable.status, "pending")))
-        .orderBy(asc(WebRetestQueueTable.time_created))
-        .all(),
-    )
+        .where(and(eq(WebRetestQueueTable.session_id, input.sessionID), eq(WebRetestQueueTable.key_hash, input.keyHash)))
+        .get()
 
-    if (rows.length === 0) return undefined
+      if (!row) {
+        db.insert(WebRetestQueueTable)
+          .values({
+            id: Identifier.ascending("web_retest"),
+            session_id: input.sessionID,
+            key_hash: input.keyHash,
+            status: "pending",
+            priority,
+            flags: addValue({}, input.type, input.value).flags,
+            examined_flags: null,
+            time_created: now,
+            time_updated: now,
+          })
+          .run()
+        return true
+      }
 
-    // Sort by priority (high first)
-    rows.sort((a, b) => {
-      const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder]
-      const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder]
-      return aPriority - bPriority
+      const flags = parseFlags(row.flags)
+      const merged = addValue(flags, input.type, input.value)
+
+      if (row.status === "pending") {
+        if (!merged.added && bumpPriority(row.priority, priority) === row.priority) return false
+        db.update(WebRetestQueueTable)
+          .set({ flags: merged.flags, priority: bumpPriority(row.priority, priority), time_updated: now })
+          .where(eq(WebRetestQueueTable.id, row.id))
+          .run()
+        return merged.added
+      }
+
+      // examined — re-open only for a genuinely new value (not in the examined snapshot)
+      const examined = parseFlags(row.examined_flags)
+      const alreadyExamined = (examined[input.type] ?? []).includes(input.value)
+      if (alreadyExamined) return false
+      db.update(WebRetestQueueTable)
+        .set({ status: "pending", flags: merged.flags, priority: bumpPriority(row.priority, priority), time_updated: now })
+        .where(eq(WebRetestQueueTable.id, row.id))
+        .run()
+      return true
     })
-
-    const row = rows[0]
-    return {
-      id: row.id,
-      session_id: row.session_id,
-      request_id: row.request_id,
-      trigger_type: row.trigger_type as Info["trigger_type"],
-      trigger_source: row.trigger_source,
-      status: row.status as Info["status"],
-      priority: row.priority as Info["priority"],
-      time: { created: row.time_created, updated: row.time_updated },
-    }
+    if (changed) publish(input.sessionID)
+    return changed
   }
 
+  /**
+   * Flag EVERY captured endpoint in the session with a discovered value — for triggers that
+   * are session-wide, not endpoint-specific (a new role or credential applies to all
+   * endpoints for access-control retesting). Endpoint-specific triggers (a signal, an object
+   * value seen on one endpoint) use `flag` with the relevant key_hash instead.
+   */
+  export function flagAll(input: {
+    sessionID: string
+    type: FlagType
+    value: string
+    priority?: z.infer<typeof Priority>
+  }): number {
+    const keyHashes = Database.use((db) =>
+      db
+        .selectDistinct({ key_hash: RequestTable.key_hash })
+        .from(RequestTable)
+        .where(eq(RequestTable.session_id, input.sessionID))
+        .all()
+        .map((r) => r.key_hash)
+        .filter((k): k is string => !!k),
+    )
+    let changed = 0
+    for (const keyHash of keyHashes) {
+      if (flag({ sessionID: input.sessionID, keyHash, type: input.type, value: input.value, priority: input.priority }))
+        changed++
+    }
+    return changed
+  }
+
+  /** Pending scenarios, highest priority first, with each endpoint's method+path resolved. */
   export function getPending(sessionID: string): Info[] {
     const rows = Database.use((db) =>
       db
@@ -245,135 +185,98 @@ export namespace WebRetest {
         .where(and(eq(WebRetestQueueTable.session_id, sessionID), eq(WebRetestQueueTable.status, "pending")))
         .all(),
     )
-
-    // Sort by priority
     rows.sort((a, b) => {
-      const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder]
-      const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder]
-      if (aPriority !== bPriority) return aPriority - bPriority
-      return a.time_created - b.time_created
+      const pa = priorityOrder[a.priority as keyof typeof priorityOrder]
+      const pb = priorityOrder[b.priority as keyof typeof priorityOrder]
+      return pa !== pb ? pa - pb : a.time_created - b.time_created
     })
 
-    // Resolve each retest's target endpoint (method + normalized_path) in one query.
-    const reqIds = [...new Set(rows.map((r) => r.request_id))]
-    const reqMap = new Map<string, { method: string; path: string }>()
-    if (reqIds.length) {
+    // Resolve each endpoint's method+path from one representative request row (key_hash join).
+    const keyHashes = [...new Set(rows.map((r) => r.key_hash))]
+    const epMap = new Map<string, { method: string; path: string }>()
+    if (keyHashes.length) {
       Database.use((db) => {
         for (const req of db
-          .select({ id: RequestTable.id, method: RequestTable.method, path: RequestTable.normalized_path })
+          .select({ key_hash: RequestTable.key_hash, method: RequestTable.method, path: RequestTable.normalized_path })
           .from(RequestTable)
           .where(eq(RequestTable.session_id, sessionID))
           .all()) {
-          reqMap.set(req.id, { method: req.method, path: req.path })
+          if (req.key_hash && !epMap.has(req.key_hash)) epMap.set(req.key_hash, { method: req.method, path: req.path })
         }
       })
     }
 
     return rows.map((row) => {
-      const req = reqMap.get(row.request_id)
+      const ep = epMap.get(row.key_hash)
       return {
         id: row.id,
         session_id: row.session_id,
-        request_id: row.request_id,
-        trigger_type: row.trigger_type as Info["trigger_type"],
-        trigger_source: row.trigger_source,
+        key_hash: row.key_hash,
         status: row.status as Info["status"],
         priority: row.priority as Info["priority"],
-        method: req?.method,
-        endpoint: req?.path,
+        flags: parseFlags(row.flags),
+        method: ep?.method,
+        endpoint: ep?.path,
         time: { created: row.time_created, updated: row.time_updated },
       }
     })
   }
 
-  export function count(sessionID: string): { pending: number; processing: number; completed: number } {
-    const rows = Database.use((db) =>
-      db.select().from(WebRetestQueueTable).where(eq(WebRetestQueueTable.session_id, sessionID)).all(),
-    )
-
-    return {
-      pending: rows.filter((r) => r.status === "pending").length,
-      processing: rows.filter((r) => r.status === "processing").length,
-      completed: rows.filter((r) => r.status === "completed").length,
-    }
+  /** Mark an endpoint examined + snapshot its current flags (so only NEW values re-open it). */
+  export function markExamined(sessionID: string, keyHash: string): void {
+    const now = Date.now()
+    const changed = Database.use((db) => {
+      const row = db
+        .select()
+        .from(WebRetestQueueTable)
+        .where(
+          and(
+            eq(WebRetestQueueTable.session_id, sessionID),
+            eq(WebRetestQueueTable.key_hash, keyHash),
+            eq(WebRetestQueueTable.status, "pending"),
+          ),
+        )
+        .get()
+      if (!row) return false
+      db.update(WebRetestQueueTable)
+        .set({ status: "examined", examined_flags: parseFlags(row.flags), time_updated: now })
+        .where(eq(WebRetestQueueTable.id, row.id))
+        .run()
+      return true
+    })
+    if (changed) publish(sessionID)
   }
 
   /**
-   * Check if new discoveries should trigger re-tests
-   * Returns list of queued re-tests
+   * Testing a request's endpoint marks its scenario examined (drains it from the queue). The
+   * caller passes a request id (from a coverage note / finding evidence); we resolve it to the
+   * endpoint's key_hash. Returns true if a pending scenario was closed.
    */
-  export function checkTriggers(input: {
-    sessionID: string
-    triggerType: z.infer<typeof TriggerType>
-    triggerSource: string
-    relatedObjectIDs?: string[]
-    maxRetests?: number
-  }): Info[] {
-    const maxRetests = input.maxRetests ?? 20
-    const results: Info[] = []
+  export function completeForRequest(sessionID: string, requestID: string): boolean {
+    const keyHash = Database.use((db) =>
+      db
+        .select({ key_hash: RequestTable.key_hash })
+        .from(RequestTable)
+        .where(and(eq(RequestTable.session_id, sessionID), eq(RequestTable.id, requestID)))
+        .get(),
+    )?.key_hash
+    if (!keyHash) return false
+    const before = count(sessionID).pending
+    markExamined(sessionID, keyHash)
+    return count(sessionID).pending < before
+  }
 
-    // Determine priority based on trigger type and relevance
-    let priority: z.infer<typeof Priority> = "medium"
-    if (input.triggerType === "new_credential") {
-      priority = "high"
-    } else if (input.triggerType === "new_object_value" && input.relatedObjectIDs?.length) {
-      priority = "high"
-    }
-
-    // Cap total pending retests per session. checkTriggers fires on every discovery
-    // (new object value / signal / role) and each fires queues up to maxRetests requests,
-    // so an unbounded queue balloons far past what the loop can ever drain (observed 400+
-    // pending, ~5% processed). Once a healthy backlog exists, hold new low/medium retests;
-    // high-priority ones (new_credential — cross-credential access control, the highest-value
-    // retest) are still admitted so tenant-isolation testing is never starved.
-    if (priority !== "high") {
-      const pending = Database.use((db) =>
-        db
-          .select({ id: WebRetestQueueTable.id })
-          .from(WebRetestQueueTable)
-          .where(and(eq(WebRetestQueueTable.session_id, input.sessionID), eq(WebRetestQueueTable.status, "pending")))
-          .all(),
-      ).length
-      if (pending >= SESSION_PENDING_CAP) return results
-    }
-
-    // Get all requests in the session
-    const requests = Database.use((db) =>
-      db.select().from(RequestTable).where(eq(RequestTable.session_id, input.sessionID)).all(),
+  export function count(sessionID: string): { pending: number; examined: number } {
+    const rows = Database.use((db) =>
+      db
+        .select({ status: WebRetestQueueTable.status })
+        .from(WebRetestQueueTable)
+        .where(eq(WebRetestQueueTable.session_id, sessionID))
+        .all(),
     )
-
-    // Queue relevant requests for re-test
-    let added = 0
-    for (const request of requests) {
-      if (added >= maxRetests) break
-
-      // Skip if already processed in this trigger
-      const existing = Database.use((db) =>
-        db
-          .select()
-          .from(WebRetestQueueTable)
-          .where(
-            and(
-              eq(WebRetestQueueTable.request_id, request.id),
-              eq(WebRetestQueueTable.trigger_source, input.triggerSource),
-            ),
-          )
-          .get(),
-      )
-      if (existing) continue
-
-      const retest = enqueue({
-        sessionID: input.sessionID,
-        requestID: request.id,
-        triggerType: input.triggerType,
-        triggerSource: input.triggerSource,
-        priority,
-      })
-
-      results.push(retest)
-      added++
+    return {
+      pending: rows.filter((r) => r.status === "pending").length,
+      examined: rows.filter((r) => r.status === "examined").length,
     }
-
-    return results
   }
 }

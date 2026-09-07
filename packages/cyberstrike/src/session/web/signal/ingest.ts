@@ -11,6 +11,7 @@ import { CanaryRegistry, type CanaryKind } from "./canary"
 import { DbCanaryStore, SignalStore } from "./store"
 import { SignalRouter } from "./router"
 import { WebRetest } from "../web-retest"
+import { Request } from "../../request"
 import type { Header, ObservedResponse, Signal } from "./types"
 import type { ReplayResponse } from "@/replay/response"
 import { Log } from "@/util/log"
@@ -44,15 +45,21 @@ const router = new SignalRouter()
 // one request produce a single retest — the specialist re-reads all of them via context.
 function enqueueRetest(sessionID: string, s: Signal): void {
   try {
-    WebRetest.enqueue({
+    // Signal retests are endpoint-specific: flag the signal's own endpoint (resolved from
+    // the request row's key_hash) with the owning-class-tagged signal type, so a worker can
+    // route it to the right specialist. `${type}:${owner}` keeps the owning SpecialistClass
+    // in the value for deterministic dispatch.
+    const keyHash = Request.findById(sessionID, s.requestId)?.key_hash
+    if (!keyHash) return
+    WebRetest.flag({
       sessionID,
-      requestID: s.requestId,
-      triggerType: "new_signal",
-      triggerSource: `${s.type}:${router.ownerOf(s.type)}`,
+      keyHash,
+      type: "signal",
+      value: `${s.type}:${router.ownerOf(s.type)}`,
       priority: router.priorityOf(s.type),
     })
   } catch (e) {
-    log.debug("new_signal retest enqueue failed (ignored)", { err: String(e) })
+    log.debug("new_signal retest flag failed (ignored)", { err: String(e) })
   }
 }
 

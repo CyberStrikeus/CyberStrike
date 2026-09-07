@@ -840,30 +840,37 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                   </text>
                 </box>
                 <Show when={retests().length <= 2 || expanded.retests}>
-                  <For each={retests().filter((r) => r.status !== "completed")}>
-                    {(r) => (
-                      <box flexDirection="row" gap={1} paddingLeft={1}>
-                        <text
-                          flexShrink={0}
-                          style={{
-                            fg:
-                              {
-                                pending: theme.textMuted,
-                                processing: theme.warning,
-                                completed: theme.success,
-                              }[r.status] ?? theme.text,
-                          }}
-                        >
-                          •
-                        </text>
-                        <text fg={theme.accent} flexShrink={0}>
-                          {{ high: "H", medium: "M", low: "L" }[r.priority] ?? r.priority}
-                        </text>
-                        <text fg={theme.text} wrapMode="none">
-                          {r.endpoint ? `${r.method ?? ""} ${r.endpoint}`.trim() : r.request_id}
-                        </text>
-                      </box>
-                    )}
+                  <For each={retests().filter((r) => r.status === "pending")}>
+                    {(r) => {
+                      // One line per pending ENDPOINT scenario: dot + priority + endpoint +
+                      // a compact flag summary (how many roles/creds/object-values/signals
+                      // accumulated for it) so the reason it's queued is visible at a glance.
+                      const f = r.flags ?? {}
+                      const parts: string[] = []
+                      if (f.credential?.length) parts.push(`${f.credential.length}c`)
+                      if (f.role?.length) parts.push(`${f.role.length}r`)
+                      if (f.object_value?.length) parts.push(`${f.object_value.length}o`)
+                      if (f.signal?.length) parts.push(`${f.signal.length}s`)
+                      const flagSummary = parts.join(" ")
+                      return (
+                        <box flexDirection="row" gap={1} paddingLeft={1}>
+                          <text flexShrink={0} style={{ fg: theme.textMuted }}>
+                            •
+                          </text>
+                          <text fg={theme.accent} flexShrink={0}>
+                            {{ high: "H", medium: "M", low: "L" }[r.priority] ?? r.priority}
+                          </text>
+                          <text fg={theme.text} wrapMode="none">
+                            {r.endpoint ? `${r.method ?? ""} ${r.endpoint}`.trim() : r.key_hash}
+                          </text>
+                          <Show when={flagSummary}>
+                            <text fg={theme.textMuted} flexShrink={0}>
+                              [{flagSummary}]
+                            </text>
+                          </Show>
+                        </box>
+                      )
+                    }}
                   </For>
                 </Show>
               </box>

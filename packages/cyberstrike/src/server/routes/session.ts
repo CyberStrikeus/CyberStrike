@@ -1655,8 +1655,7 @@ export const SessionRoutes = lazy(() =>
                     pending: z.array(WebRetest.Info),
                     counts: z.object({
                       pending: z.number(),
-                      processing: z.number(),
-                      completed: z.number(),
+                      examined: z.number(),
                     }),
                   }),
                 ),
@@ -1839,7 +1838,7 @@ export const SessionRoutes = lazy(() =>
                 // cross-credential access-control testing (org1 vs org2 tenant isolation,
                 // BFLA) is queued deterministically the moment the role authenticates —
                 // instead of waiting for the orchestrator to happen to notice a new credential.
-                WebRetest.checkTriggers({ sessionID, triggerType: "new_credential", triggerSource: credentialID })
+                WebRetest.flagAll({ sessionID, type: "credential", value: credentialID, priority: "high" })
               }
             } catch (err) {
               log.warn("failed to capture credential auth from request", { error: (err as Error).message })
