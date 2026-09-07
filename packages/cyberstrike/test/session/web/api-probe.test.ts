@@ -3,6 +3,7 @@ import { ApiProbe } from "../../../src/session/web/api-probe"
 import { HttpMessage } from "../../../src/replay/message"
 import { Send } from "../../../src/replay/send"
 import { WebRetest } from "../../../src/session/web/web-retest"
+import { WebCredential } from "../../../src/session/web/web-credential"
 import { Request } from "../../../src/session/request"
 import { Session } from "../../../src/session"
 import { Instance } from "../../../src/project/instance"
@@ -73,6 +74,7 @@ describe("ApiProbe.runEndpoint — deterministic probe → signal fabric → spe
       const results = await ApiProbe.runEndpoint({
         sessionID: sid,
         requestId: req.id,
+        keyHash: "k_items", // a real captured row → signals queue a retest
         rawRequest: rawReq,
         origin: "https://app.example.com",
         send,
@@ -92,8 +94,81 @@ describe("ApiProbe.runEndpoint — deterministic probe → signal fabric → spe
     await withSession(async (sid) => {
       const req = Request.add({ sessionID: sid, method: "GET", normalizedPath: "/api/ok", keyHash: "k_ok" })!
       const send: ApiProbe.Sender = async () => reply(200, "{}", { "content-type": "application/json" })
-      await ApiProbe.runEndpoint({ sessionID: sid, requestId: req.id, rawRequest: raw("GET /api/ok?x=1"), origin: "https://app.example.com", send })
+      await ApiProbe.runEndpoint({ sessionID: sid, requestId: req.id, keyHash: "k_ok", rawRequest: raw("GET /api/ok?x=1"), origin: "https://app.example.com", send })
       expect(WebRetest.getPending(sid).length).toBe(0)
+    })
+  })
+})
+
+describe("ApiProbe — access-control evidence (deterministic replacement for cross-cred fan-out)", () => {
+  test("auth-strip that still returns 2xx queues an access-control retest", async () => {
+    await withSession(async (sid) => {
+      const req = Request.add({ sessionID: sid, method: "GET", normalizedPath: "/api/me", keyHash: "k_me" })!
+      // Every send returns 200 → the endpoint serves the same data with or without auth.
+      const send: ApiProbe.Sender = async () => reply(200, "{}")
+      await ApiProbe.runEndpoint({
+        sessionID: sid,
+        requestId: req.id,
+        keyHash: "k_me",
+        credentialId: "cred_owner",
+        rawRequest: raw("GET /api/me", "Authorization: Bearer t\r\n"),
+        origin: "https://app.example.com",
+        send,
+        accessControl: true,
+      })
+      const pending = WebRetest.getPending(sid).find((r) => r.key_hash === "k_me")
+      expect(pending?.flags.signal?.some((v) => v.includes("unauth_access") && v.includes("access-control"))).toBe(true)
+    })
+  })
+
+  test("cross-identity: another credential getting 2xx flags that credential (routes to authz+idor)", async () => {
+    await withSession(async (sid) => {
+      const req = Request.add({ sessionID: sid, method: "GET", normalizedPath: "/api/orders/1", keyHash: "k_ord" })!
+      // org2 has auth for this host and gets 2xx to org1's resource → cross-tenant lead.
+      const org2 = WebCredential.ensure({ sessionID: sid, label: "org2" })
+      WebCredential.captureAuthFromRaw({ sessionID: sid, credentialID: org2.id, rawRequest: raw("GET /x", "Authorization: Bearer ORG2\r\n") })
+
+      // baseline 2xx (owner), auth-strip 401 (auth enforced), cross-identity 2xx (BFLA).
+      const send: ApiProbe.Sender = async (msg) => {
+        const authz = msg.headers.find((h) => h.name.toLowerCase() === "authorization")?.value
+        if (!authz) return reply(401, "unauthorized")
+        return reply(200, "{}")
+      }
+      await ApiProbe.runEndpoint({
+        sessionID: sid,
+        requestId: req.id,
+        keyHash: "k_ord",
+        credentialId: "cred_org1",
+        rawRequest: raw("GET /api/orders/1", "Authorization: Bearer ORG1\r\n"),
+        origin: "https://app.example.com",
+        send,
+        accessControl: true,
+      })
+      const pending = WebRetest.getPending(sid).find((r) => r.key_hash === "k_ord")
+      expect(pending?.flags.credential).toContain(org2.id) // the offending identity flagged
+      // unauth was 401 → no unauth_access flag
+      expect(pending?.flags.signal?.some((v) => v.includes("unauth_access"))).not.toBe(true)
+    })
+  })
+})
+
+describe("ApiProbe.sweep — safety: only non-mutating methods are replayed autonomously", () => {
+  test("probes GET endpoints; skips POST/PUT/DELETE (mutation left to the LLM)", async () => {
+    await withSession(async (sid) => {
+      const O = { origin: "https://app.example.com", scheme: "https" as const, host: "app.example.com" }
+      Request.add({ sessionID: sid, method: "GET", normalizedPath: "/api/list", keyHash: "k_get", rawRequest: raw("GET /api/list?x=1"), ...O })
+      Request.add({ sessionID: sid, method: "POST", normalizedPath: "/api/create", keyHash: "k_post", rawRequest: raw("POST /api/create"), ...O })
+      Request.add({ sessionID: sid, method: "DELETE", normalizedPath: "/api/orders/1", keyHash: "k_del", rawRequest: raw("DELETE /api/orders/1"), ...O })
+
+      const sent: string[] = []
+      const send: ApiProbe.Sender = async (msg) => {
+        sent.push(`${msg.method} ${msg.target}`)
+        return reply(200, "{}")
+      }
+      const probed = await ApiProbe.sweep(sid, { send })
+      expect(probed).toBe(1) // only the GET endpoint
+      // no mutating method ever left the lane
+      expect(sent.some((s) => s.startsWith("POST") || s.startsWith("PUT") || s.startsWith("DELETE"))).toBe(false)
     })
   })
 })

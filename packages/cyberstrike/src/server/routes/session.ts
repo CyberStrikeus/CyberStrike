@@ -27,6 +27,7 @@ import { WebObject } from "../../session/web/web-object"
 import { WebFunction } from "../../session/web/web-function"
 import { WebRetest } from "../../session/web/web-retest"
 import { RetestWorker } from "../../session/web/retest-worker"
+import { ApiProbe } from "../../session/web/api-probe"
 import { WebScope } from "../../session/web/scope"
 import { UiObservation } from "../../session/web/ui-observation"
 import { SpawnedProfiles } from "../../session/web/spawned-profiles"
@@ -1794,6 +1795,10 @@ export const SessionRoutes = lazy(() =>
         // Ensure the retest worker is subscribed for this instance — it drains the scenario
         // queue in parallel as flags accrue (idempotent; safe to call on every ingest).
         RetestWorker.start()
+        // Wake the API-direct fast lane: it debounces a burst of ingests into one sweep that
+        // deterministically probes newly-captured endpoints (safe methods only), so a signal
+        // queues a specialist retest without an LLM sub-agent per endpoint. Idempotent.
+        ApiProbe.wake(sessionID)
 
         // Handle credential registration
         let credentialID = body.credential_id

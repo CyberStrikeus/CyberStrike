@@ -1,23 +1,33 @@
 // API-direct fast test lane (discovery-fast-testing-plan §D). The deterministic-first half of
 // testing: for every known endpoint, run a small set of cheap probes BEFORE spending any LLM, and
-// feed each response to the signal fabric. A specialist (LLM) is dispatched ONLY when a probe
-// raises a signal — the model-on-hit model that makes API-first testing fast, instead of one LLM
-// sub-agent per endpoint.
+// turn a hit into a queued specialist retest via the signal fabric / retest queue. This is the
+// model-on-hit path that makes API-first testing fast, instead of one LLM sub-agent per endpoint.
 //
-// Probes are PURE request builders (mutate a base HttpMessage); the send + signal wiring is
-// injected, so the whole lane unit-tests with a fake sender and no network/DB.
+// SAFETY: the autonomous sweep replays real requests, so it only probes SAFE (non-mutating) GET/
+// HEAD endpoints and never sends PUT/DELETE/POST autonomously — mutation is left to an LLM
+// specialist that can reason about idempotency. The probe builders themselves are PURE (mutate a
+// base HttpMessage); send + credential list are injected so the lane unit-tests with no network.
 import { HttpMessage } from "@/replay/message"
 import { Mutate } from "@/replay/mutate"
 import { Send } from "@/replay/send"
+import { Bus } from "@/bus"
 import { Database, eq } from "../../storage/db"
 import { RequestTable } from "../session.sql"
 import { WebCredential, COMMON_AUTH_HEADERS } from "./web-credential"
+import { WebRetest } from "./web-retest"
+import { WebScope } from "./scope"
+import { DataCollector } from "./data-collector"
 import { scanProbeResponse } from "./signal/ingest"
 import { governedSend } from "@/replay/govern"
+import { Instance } from "@/project/instance"
 import { Log } from "@/util/log"
 
 export namespace ApiProbe {
   const log = Log.create({ service: "api-probe" })
+
+  // Only these methods are replayed autonomously — they don't change server state.
+  const SAFE_METHODS = new Set(["GET", "HEAD"])
+  const is2xx = (s: number | null | undefined) => !!s && s >= 200 && s < 300
 
   export interface Probe {
     name: string
@@ -36,22 +46,29 @@ export namespace ApiProbe {
       .filter(Boolean)
   }
 
+  function stripAuth(msg: HttpMessage.Request): { out: HttpMessage.Request; removed: boolean } {
+    let out = msg
+    let removed = false
+    for (const h of msg.headers) {
+      if (COMMON_AUTH_HEADERS.includes(h.name.toLowerCase())) {
+        out = Mutate.removeHeader(out, h.name)
+        removed = true
+      }
+    }
+    return { out, removed }
+  }
+
+  function hostOf(origin: string): string {
+    try {
+      return new URL(origin).host.toLowerCase()
+    } catch {
+      return ""
+    }
+  }
+
   // ── The deterministic probe set ────────────────────────────────────────────
   // auth-strip: remove auth headers → unauthenticated access = broken access control.
-  const authStrip: Probe = {
-    name: "auth-strip",
-    build(base) {
-      let out = base
-      let removed = false
-      for (const h of base.headers) {
-        if (COMMON_AUTH_HEADERS.includes(h.name.toLowerCase())) {
-          out = Mutate.removeHeader(out, h.name)
-          removed = true
-        }
-      }
-      return removed ? out : null // nothing to strip → skip (endpoint was already anonymous)
-    },
-  }
+  const authStrip: Probe = { name: "auth-strip", build: (base) => (stripAuth(base).removed ? stripAuth(base).out : null) }
 
   // error-canary: inject a single quote into a query param → SQL/engine error signature.
   const errorCanary: Probe = {
@@ -65,32 +82,58 @@ export namespace ApiProbe {
     },
   }
 
-  // method-matrix: swap the method → find state-changing methods the server wrongly allows.
+  // method swap → find methods the server wrongly allows. Only non-mutating methods run autonomously.
   function methodProbe(method: string): Probe {
-    return {
-      name: `method-${method}`,
-      build(base) {
-        if (base.method.toUpperCase() === method) return null
-        return Mutate.setMethod(base, method)
-      },
-    }
+    return { name: `method-${method}`, build: (base) => (base.method.toUpperCase() === method ? null : Mutate.setMethod(base, method)) }
   }
 
+  // Full builder set (usable by an LLM specialist that reasons about idempotency).
   export const PROBES: Probe[] = [authStrip, errorCanary, methodProbe("PUT"), methodProbe("DELETE"), methodProbe("TRACE")]
+  // The subset the AUTONOMOUS sweep is allowed to send — all non-mutating.
+  const SAFE_PROBES: Probe[] = [authStrip, errorCanary, methodProbe("OPTIONS"), methodProbe("TRACE")]
 
   export type Sender = (msg: HttpMessage.Request, origin: string) => Promise<Send.Result>
 
-  // Run the probe set against ONE endpoint (a captured request's raw + origin). Each probe response
-  // is fed to the signal fabric, which enqueues a specialist retest only on a signal. Returns a
-  // per-probe summary. NEVER throws — a probe failure must not stop the sweep.
-  export async function runEndpoint(input: {
+  function headersOf(parsed: { headers: { name: string; value: string }[] }): Record<string, string> {
+    const h: Record<string, string> = {}
+    for (const x of parsed.headers) h[x.name] = x.value
+    return h
+  }
+
+  // Feed one probe response to the signal fabric; returns how many signals it raised (which, for a
+  // real captured request, each queue a specialist retest).
+  function feed(input: { sessionID: string; requestId: string; realRequest: boolean; method: string; url: string; parsed: Send.Result["response"] }): number {
+    if (!input.parsed) return 0
+    return scanProbeResponse({
+      sessionID: input.sessionID,
+      requestId: input.requestId,
+      method: input.method,
+      url: input.url,
+      status: input.parsed.status,
+      headers: headersOf(input.parsed),
+      body: new TextDecoder("latin1").decode(input.parsed.body),
+      sourceIsCaptured: input.realRequest,
+    })
+  }
+
+  export interface EndpointInput {
     sessionID: string
     requestId: string
+    keyHash?: string // present for a captured endpoint → access-control flags can be queued
+    credentialId?: string // the identity that captured it (for cross-identity comparison)
     rawRequest: string
     origin: string
     send: Sender
+    probes?: Probe[] // default: full PROBES (tests); the sweep passes SAFE_PROBES
+    accessControl?: boolean // run baseline-compared auth-strip + cross-identity (sweep: true)
     signal?: AbortSignal
-  }): Promise<{ probe: string; status: number | null; signals: number }[]> {
+  }
+
+  // Probe ONE endpoint. Non-mutating probes feed the signal fabric; when `accessControl` is set and
+  // the endpoint was captured authenticated, a baseline-compared auth-strip / cross-identity replay
+  // queues a targeted access-control retest on real evidence (2xx as the wrong identity) — the
+  // deterministic replacement for the blanket cross-cred fan-out. NEVER throws.
+  export async function runEndpoint(input: EndpointInput): Promise<{ probe: string; status: number | null; signals: number }[]> {
     let base: HttpMessage.Request
     try {
       base = HttpMessage.parse(input.rawRequest)
@@ -99,30 +142,58 @@ export namespace ApiProbe {
       return []
     }
     const out: { probe: string; status: number | null; signals: number }[] = []
-    for (const probe of PROBES) {
+    const host = hostOf(input.origin)
+
+    // ── Access-control comparison (evidence-based) ────────────────────────────
+    // Requires a captured, authenticated baseline + a real request row to anchor the retest.
+    if (input.accessControl && input.keyHash && input.credentialId) {
+      try {
+        const baseRes = await input.send(base, input.origin)
+        if (is2xx(baseRes.response?.status)) {
+          // unauth: the same request without auth → 2xx = broken access control.
+          const { out: stripped, removed } = stripAuth(base)
+          if (removed) {
+            const r = await input.send(stripped, input.origin)
+            if (is2xx(r.response?.status)) {
+              WebRetest.flag({ sessionID: input.sessionID, keyHash: input.keyHash, type: "signal", value: "unauth_access:access-control", priority: "high" })
+            }
+          }
+          // cross-identity: replay as every OTHER identity that has auth for this host → 2xx = a
+          // cross-tenant/BFLA lead. Flag the offending credential (routes to authz + idor).
+          for (const cred of WebCredential.get(input.sessionID)) {
+            if (input.signal?.aborted) break
+            if (cred.id === input.credentialId) continue
+            const auth = WebCredential.authForHost(cred.authByHost, host)
+            if (Object.keys(auth).length === 0) continue // this identity never authenticated to this host
+            let msg = stripAuth(base).out
+            for (const [name, value] of Object.entries(auth)) msg = Mutate.setHeader(msg, name, value)
+            const r = await input.send(msg, input.origin)
+            if (is2xx(r.response?.status)) {
+              WebRetest.flag({ sessionID: input.sessionID, keyHash: input.keyHash, type: "credential", value: cred.id, priority: "high" })
+            }
+          }
+        }
+      } catch (e) {
+        log.debug("api-probe: access-control comparison failed (ignored)", { err: String(e) })
+      }
+    }
+
+    // ── Signal-fabric probes ──────────────────────────────────────────────────
+    for (const probe of input.probes ?? PROBES) {
       if (input.signal?.aborted) break
       const msg = probe.build(base)
       if (!msg) continue
       try {
         const res = await input.send(msg, input.origin)
-        const parsed = res.response
-        const status = parsed?.status ?? null
-        let signals = 0
-        if (parsed) {
-          const headers: Record<string, string> = {}
-          for (const h of parsed.headers) headers[h.name] = h.value
-          signals = scanProbeResponse({
-            sessionID: input.sessionID,
-            requestId: input.requestId, // a real captured row → a signal here queues a specialist retest
-            method: msg.method,
-            url: input.origin + msg.target,
-            status: parsed.status,
-            headers,
-            body: new TextDecoder("latin1").decode(parsed.body),
-            sourceIsCaptured: true,
-          })
-        }
-        out.push({ probe: probe.name, status, signals })
+        const signals = feed({
+          sessionID: input.sessionID,
+          requestId: input.requestId,
+          realRequest: !!input.keyHash,
+          method: msg.method,
+          url: input.origin + msg.target,
+          parsed: res.response,
+        })
+        out.push({ probe: probe.name, status: res.response?.status ?? null, signals })
       } catch (e) {
         log.debug("api-probe: probe send failed (ignored)", { probe: probe.name, err: String(e) })
       }
@@ -130,24 +201,30 @@ export namespace ApiProbe {
     return out
   }
 
-  // One representative captured request per endpoint (key_hash) that has a raw request to replay.
-  interface EndpointRow {
-    keyHash: string
+  // ── Endpoint sources ────────────────────────────────────────────────────────
+  interface Target {
+    keyHash?: string
     requestId: string
+    credentialId?: string
     rawRequest: string
     origin: string
+    method: string
   }
-  function endpoints(sessionID: string): EndpointRow[] {
-    const byKey = new Map<string, EndpointRow>()
+
+  // Captured endpoints: one representative row per key_hash that has a raw request to replay.
+  function capturedTargets(sessionID: string): Target[] {
+    const byKey = new Map<string, Target>()
     Database.use((db) => {
       for (const r of db
         .select({
           key_hash: RequestTable.key_hash,
           id: RequestTable.id,
+          method: RequestTable.method,
           raw_request: RequestTable.raw_request,
           origin: RequestTable.origin,
           scheme: RequestTable.scheme,
           host: RequestTable.host,
+          credential_id: RequestTable.credential_id,
         })
         .from(RequestTable)
         .where(eq(RequestTable.session_id, sessionID))
@@ -155,30 +232,134 @@ export namespace ApiProbe {
         if (!r.key_hash || byKey.has(r.key_hash) || !r.raw_request) continue
         const origin = r.origin || (r.scheme && r.host ? `${r.scheme}://${r.host}` : "")
         if (!origin) continue
-        byKey.set(r.key_hash, { keyHash: r.key_hash, requestId: r.id, rawRequest: r.raw_request, origin })
+        byKey.set(r.key_hash, {
+          keyHash: r.key_hash,
+          requestId: r.id,
+          credentialId: r.credential_id ?? undefined,
+          rawRequest: r.raw_request,
+          origin,
+          method: (r.method ?? "GET").toUpperCase(),
+        })
       }
     })
     return [...byKey.values()]
   }
 
-  // Sweep every known endpoint with the deterministic probe set. Sender defaults to the governed
-  // backend; injectable for tests. Returns how many endpoints were probed.
-  export async function sweep(sessionID: string, opts: { send?: Sender; signal?: AbortSignal } = {}): Promise<number> {
+  // JS-mined / OpenAPI routes never fired at runtime. No captured row, so a synthetic GET request is
+  // constructed and probed (signals surface in context; no auto-retest without a real row). This is
+  // the "known-unvisited" surface the browser-driven crawl would miss.
+  function minedTargets(sessionID: string, seenOrigins: Set<string>): Target[] {
+    const out: Target[] = []
+    let data: DataCollector.CollectedData
+    try {
+      data = DataCollector.latest(sessionID)
+    } catch {
+      return out
+    }
+    const add = (method: string, absUrl: string) => {
+      let u: URL
+      try {
+        u = new URL(absUrl)
+      } catch {
+        return
+      }
+      if (!WebScope.allowed(sessionID, absUrl)) return
+      const origin = `${u.protocol}//${u.host}`
+      const target = (u.pathname || "/") + u.search
+      const raw = `${method} ${target} HTTP/1.1\r\nHost: ${u.host}\r\nAccept: */*\r\n\r\n`
+      out.push({ requestId: `mined:${method}:${absUrl}`, rawRequest: raw, origin, method: method.toUpperCase() })
+    }
+    for (const e of data.endpoints) if (e.kind === "api") add(e.method || "GET", e.origin + e.path)
+    for (const m of data.minedRoutes) add(m.method || "GET", m.url)
+    // Prefer captured coverage: skip a mined target whose origin+path we already have as captured
+    // would need path-template matching; cheap dedup by absolute string is done at the sweep level.
+    void seenOrigins
+    return out
+  }
+
+  // ── Autonomous sweep + debounced trigger ──────────────────────────────────
+  // Per-session set of already-probed endpoint keys, so re-ingest doesn't re-probe.
+  const probed = new Map<string, Set<string>>()
+  const running = new Set<string>()
+  const pending = new Set<string>()
+
+  function probedSet(sessionID: string): Set<string> {
+    let s = probed.get(sessionID)
+    if (!s) probed.set(sessionID, (s = new Set()))
+    return s
+  }
+
+  // Probe every not-yet-probed endpoint (captured + mined), SAFE methods only. Sender is injectable
+  // for tests; defaults to the governed backend. Returns how many endpoints were probed.
+  export async function sweep(sessionID: string, opts: { send?: Sender; signal?: AbortSignal; force?: boolean } = {}): Promise<number> {
     const send: Sender = opts.send ?? ((msg, origin) => governedSend(msg, origin, { signal: opts.signal }))
-    const eps = endpoints(sessionID)
-    let probed = 0
-    for (const ep of eps) {
+    const done = probedSet(sessionID)
+    const captured = capturedTargets(sessionID)
+    const seenOrigins = new Set(captured.map((c) => c.origin))
+    const targets = [...captured, ...minedTargets(sessionID, seenOrigins)]
+    let probedCount = 0
+    for (const t of targets) {
       if (opts.signal?.aborted) break
+      if (!SAFE_METHODS.has(t.method)) continue // never replay a mutating method autonomously
+      const dedupKey = t.keyHash ?? t.requestId
+      if (!opts.force && done.has(dedupKey)) continue
+      done.add(dedupKey)
       await runEndpoint({
         sessionID,
-        requestId: ep.requestId,
-        rawRequest: ep.rawRequest,
-        origin: ep.origin,
+        requestId: t.requestId,
+        keyHash: t.keyHash,
+        credentialId: t.credentialId,
+        rawRequest: t.rawRequest,
+        origin: t.origin,
         send,
+        probes: SAFE_PROBES,
+        accessControl: !!t.keyHash && !!t.credentialId,
         signal: opts.signal,
       })
-      probed++
+      probedCount++
     }
-    return probed
+    return probedCount
   }
+
+  // Debounced wake: coalesce a burst of ingests into one sweep. Idempotent while a sweep runs (a
+  // wake during a run re-runs once after, catching endpoints ingested mid-sweep).
+  const DEBOUNCE_MS = Math.max(0, Number(process.env.CYBERSTRIKE_APIPROBE_DEBOUNCE_MS) || 8000)
+  const timers = new Map<string, ReturnType<typeof setTimeout>>()
+
+  export function wake(sessionID: string): void {
+    if (running.has(sessionID)) {
+      pending.add(sessionID)
+      return
+    }
+    if (timers.has(sessionID)) return
+    timers.set(
+      sessionID,
+      setTimeout(() => {
+        timers.delete(sessionID)
+        void drain(sessionID)
+      }, DEBOUNCE_MS),
+    )
+  }
+
+  async function drain(sessionID: string): Promise<void> {
+    running.add(sessionID)
+    try {
+      await sweep(sessionID)
+    } catch (e) {
+      log.error("api-probe sweep crashed", { sessionID, err: String(e) })
+    } finally {
+      running.delete(sessionID)
+      if (pending.delete(sessionID)) wake(sessionID) // endpoints arrived mid-sweep → run once more
+    }
+  }
+
+  // Instance-scoped reset guard (mirrors other web services) — no cross-instance leakage in tests.
+  export const reset = Instance.state(() => {
+    probed.clear()
+    running.clear()
+    pending.clear()
+    for (const t of timers.values()) clearTimeout(t)
+    timers.clear()
+    return {}
+  })
 }
