@@ -164,6 +164,7 @@ export namespace JsMiner {
       if (n === 0 && remaining === 0) break
     }
     if (total > 0) {
+      log.info("js mining complete", { sessionID, routes: total, bundles: seen(sessionID).size })
       try {
         ApiProbe.wake(sessionID) // newly-mined endpoints → deterministic probe (fast scan)
       } catch {}

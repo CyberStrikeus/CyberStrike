@@ -1183,6 +1183,8 @@ export const SessionRoutes = lazy(() =>
               headers: z.record(z.string(), z.string()).optional(),
             })
             .optional(),
+          // Absolute <script src> bundle URLs (JS-first discovery) — the miner fetches + parses these.
+          js_bundles: z.array(z.string()).optional(),
         }),
       ),
       async (c) => {
@@ -1211,13 +1213,23 @@ export const SessionRoutes = lazy(() =>
               UiObservation.observe(sessionID, { credentialID: b.credential_id, pageUrl: b.url, role: el.role, label: el.label })
           }
         }
-        // JS-first discovery: the extension enumerates every <script src> on the page (which catches
-        // app-shell bundles loaded BEFORE capture started — the biggest source of missed endpoints).
-        // Feed the in-scope ones to the miner and wake it: it fetches them credentialed, follows
-        // chunk references recursively, extracts API endpoints, and those flow to the API-direct fast
-        // lane. Deterministic — no longer gated on the LLM navigator choosing to mine.
-        const scripts = (b.tech?.scripts ?? []).filter((u) => WebScope.allowed(sessionID, u))
-        if (scripts.length > 0 && DataCollector.addJsUrls(sessionID, scripts) > 0) JsMiner.wake(sessionID)
+        // JS-first discovery: the extension enumerates every <script src> (absolute URL) on the page
+        // — including app-shell bundles loaded BEFORE capture started, the biggest source of missed
+        // endpoints. (NOTE: tech.scripts is a fingerprint-keyword list, NOT bundle URLs — js_bundles
+        // is the real source.) Feed the in-scope ones to the miner and wake it: it fetches them
+        // credentialed, follows chunk references recursively, extracts API endpoints, and those flow
+        // to the API-direct fast lane. Deterministic — no longer gated on the LLM navigator.
+        const bundles = (b.js_bundles ?? []).filter((u) => WebScope.allowed(sessionID, u))
+        if (bundles.length > 0 && DataCollector.addJsUrls(sessionID, bundles) > 0) {
+          // Persist to web_js for visibility (the sidebar + DB) — discovered from the DOM, not a
+          // captured network request.
+          for (const u of bundles) {
+            try {
+              WebJs.add({ sessionID, url: u, origin: new URL(u).origin, discoveredFrom: "script-src" })
+            } catch {}
+          }
+          JsMiner.wake(sessionID)
+        }
         HBLog.record(sessionID, "server", "observe", { url: b.url, clickables: b.clickables.length, forms: (b.forms ?? []).length })
         return c.json({ ok: true, kinds })
       },

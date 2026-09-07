@@ -1719,7 +1719,28 @@
       canvas: document.querySelectorAll("canvas").length,
       dynamic: mutationBursts > 0,
       tech: collectTech(), // framework fingerprint signals (P2) — server runs FrameworkFingerprinter
+      js_bundles: scriptBundles(), // absolute <script src> URLs — the server mines these for endpoints
     }
+  }
+
+  // Every <script src> as an ABSOLUTE url — the app-shell bundles, which usually load BEFORE
+  // capture starts (so the network interceptor misses them). The server fetches these credentialed
+  // and mines them for API endpoints. Deduped, bounded; module preloads included.
+  function scriptBundles() {
+    const out = []
+    const seen = new Set()
+    const push = (u) => {
+      if (!u || seen.has(u)) return
+      if (!/^https?:\/\//i.test(u)) return
+      if (!/\.m?js(?:$|\?)/i.test(u)) return
+      seen.add(u)
+      out.push(u)
+    }
+    try {
+      for (const sc of document.querySelectorAll("script[src]")) push(sc.src)
+      for (const l of document.querySelectorAll('link[rel="modulepreload"][href],link[rel="preload"][as="script"][href]')) push(l.href)
+    } catch {}
+    return out.slice(0, 40)
   }
 
   // --- Framework fingerprint signals (P2) — raw markers only; the server classifies them ------
