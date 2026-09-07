@@ -215,6 +215,25 @@ function renderObservedValuesLines(tree: Observation.EndpointTree): string[] {
   return lines
 }
 
+// "METHOD scheme://host/path" from a raw HTTP request's request-line + Host header.
+// Returns just the request line if no Host is present, or undefined if unparseable.
+export function parseRequestTarget(rawRequest: string): string | undefined {
+  const head = rawRequest.split(/\r?\n/)
+  const requestLine = head[0]?.trim()
+  if (!requestLine) return undefined
+  const m = /^([A-Z]+)\s+(\S+)/.exec(requestLine)
+  if (!m) return undefined
+  const [, method, path] = m
+  const hostLine = head.find((l) => /^host:/i.test(l))
+  const host = hostLine ? hostLine.slice(hostLine.indexOf(":") + 1).trim() : ""
+  return host ? `${method} ${host}${path.startsWith("/") ? path : "/" + path}` : `${method} ${path}`
+}
+
+function firstLine(s: string): string {
+  const line = s.split(/\r?\n/, 1)[0]?.trim() ?? ""
+  return line.length > 120 ? line.slice(0, 120) + "…" : line
+}
+
 function buildPromptWithCredentialContext(
   rawRequest: string,
   credentialID?: string,
@@ -235,30 +254,33 @@ function buildPromptWithCredentialContext(
     lines.push("")
   }
 
-  lines.push("## Credential Context")
+  // The root ingest prompt is a DISPATCH BRIEF, not a full dump: the orchestrator only
+  // needs enough to route this endpoint to the right specialist(s). The full raw request/
+  // response + credential tokens are prepended to each specialist it dispatches (task.ts,
+  // a separate path), so they are intentionally omitted here to keep the root transcript
+  // readable. Kept: target URL, identity (label + role, not the token), a one-line
+  // response status (routing signal: 200 vs 401 vs 403), and observed values (IDOR leads).
 
+  // ## Target — method + URL parsed from the raw request line + Host header.
+  const target = parseRequestTarget(rawRequest)
+  if (target) {
+    lines.push("## Target")
+    lines.push(`${target}${operationContext ? ` (${operationContext.protocol} ${operationContext.operation})` : ""}`)
+    lines.push("")
+  }
+
+  // ## Identity — who this request was captured as: role label + auth state. NOT the token.
+  lines.push("## Identity")
   if (!credentialID) {
-    lines.push("UNAUTHENTICATED (no credential provided by browser extension)")
+    lines.push("- UNAUTHENTICATED (no credential)")
   } else {
     const cred = WebCredential.getById(credentialID)
     if (!cred) {
-      lines.push(`- credential_id: ${credentialID} (NOT FOUND in database)`)
+      lines.push(`- credential ${credentialID} (NOT FOUND)`)
     } else {
-      lines.push(`- credential_id: ${cred.id}`)
-      lines.push(`- label: ${cred.label}`)
-      if (cred.container_id) {
-        lines.push(`- container_id: ${cred.container_id}`)
-      }
-      if (Object.keys(cred.headers).length > 0) {
-        lines.push("- headers:")
-        for (const [key, value] of Object.entries(cred.headers)) {
-          const displayValue = value.length > 80 ? value.slice(0, 80) + "..." : value
-          lines.push(`  - ${key}: ${displayValue}`)
-        }
-      }
-      if (cred.role_id) {
-        lines.push(`- role_id: ${cred.role_id}`)
-      }
+      const role = cred.role_id ? WebRole.getById(cred.role_id) : undefined
+      const authed = Object.keys(cred.headers).length > 0
+      lines.push(`- ${cred.label}${role ? ` (role: ${role.name})` : ""} — ${authed ? "authenticated" : "no captured auth"}`)
     }
   }
 
@@ -270,19 +292,18 @@ function buildPromptWithCredentialContext(
     lines.push(...renderObservedValuesLines(observedValues))
   }
 
-  lines.push("")
-  lines.push("## Raw HTTP Request")
-  lines.push("```")
-  lines.push(rawRequest)
-  lines.push("```")
-
-  if (processedResponse) {
+  // ## Response — one line: status + content-type. The full body goes to the specialist.
+  const statusLine = processedResponse ? firstLine(processedResponse) : undefined
+  if (statusLine) {
     lines.push("")
-    lines.push("## Response")
-    lines.push("```")
-    lines.push(processedResponse)
-    lines.push("```")
+    lines.push(`## Response: ${statusLine}`)
   }
+
+  lines.push("")
+  lines.push("## Your job")
+  lines.push(
+    "Route this endpoint to the right specialist(s) and dispatch them. The full raw request/response and credential tokens are attached to each specialist — you do not need them here.",
+  )
 
   return lines.join("\n")
 }
