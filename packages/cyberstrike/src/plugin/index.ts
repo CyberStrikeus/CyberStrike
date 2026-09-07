@@ -15,6 +15,7 @@ import { AnthropicAuthPlugin } from "./anthropic"
 import { gitlabAuthPlugin as GitlabAuthPlugin } from "@gitlab/opencode-gitlab-auth"
 import { registerProvider } from "../cloud/provider-registry"
 import { buildCoreRuntime } from "../cloud/core-runtime"
+import { discoverDomains } from "../cloud/domain-discovery"
 
 export namespace Plugin {
   const log = Log.create({ service: "plugin" })
@@ -39,6 +40,15 @@ export namespace Plugin {
   // source into core's typecheck (a domain ships raw TS; it typechecks in its own
   // package). Same reason user plugins load by dynamic import.
   const DEFAULT_DOMAINS: string[] = ["@cyberstrike-io/azure"]
+
+  // Package name of a config.plugin spec (strip a trailing @version, keep the
+  // scope's leading @, leave file:// specs untouched) — used to dedupe against
+  // auto-discovered domains so a configured package isn't also discovery-loaded.
+  function pluginPackageName(spec: string): string {
+    if (spec.startsWith("file://")) return spec
+    const at = spec.lastIndexOf("@")
+    return at > 0 ? spec.substring(0, at) : spec
+  }
 
   const state = Instance.state(async () => {
     const client = createCyberstrikeClient({
@@ -78,6 +88,32 @@ export namespace Plugin {
       } catch (err) {
         log.error("failed to load default domain", { name, error: err })
       }
+    }
+
+    // Auto-discovered domains — packages installed in the project's node_modules
+    // that declare a `cyberstrike` manifest (domain-discovery.ts). This makes
+    // `npm install @cyberstrike-io/<domain>` "just work" with no plugin config.
+    // Skip anything already loaded (bundled defaults) or explicitly configured
+    // (loaded by the config loop below) so nothing loads twice. Incompatible or
+    // broken domains are skipped — visible via `cyberstrike domains`, never fatal.
+    const configuredNames = new Set((config.plugin ?? []).map(pluginPackageName))
+    const discovery = await discoverDomains({ skip: [...DEFAULT_DOMAINS, ...configuredNames] })
+    for (const domain of discovery.found) {
+      if (!domain.compatible) {
+        log.warn("skipping incompatible discovered domain", { name: domain.name, reason: domain.reason })
+        continue
+      }
+      try {
+        const mod: any = await import(domain.dir)
+        const init = typeof mod?.default === "function" ? mod.default : mod
+        hooks.push(await init(input))
+        log.info("loaded discovered domain", { name: domain.name, tier: domain.manifest.tier })
+      } catch (err) {
+        log.error("failed to load discovered domain", { name: domain.name, error: err })
+      }
+    }
+    for (const bad of discovery.errors) {
+      log.warn("ignoring package with a malformed cyberstrike manifest", { name: bad.name, error: bad.error })
     }
 
     let plugins = config.plugin ?? []
