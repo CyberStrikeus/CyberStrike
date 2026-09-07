@@ -45,7 +45,7 @@ export const WebWriteFunctionTool = Tool.define("web_write_function", {
       return {
         title: "web_write_function — unknown request_id",
         output: `No captured request "${params.request_id}" exists in this session. Pass a request_id from web_get_session_context / the captured endpoints — do not invent one.`,
-        metadata: {},
+        metadata: {} as Record<string, unknown>,
       }
     }
     let roleID: string | undefined
@@ -84,7 +84,7 @@ export const WebWriteFunctionTool = Tool.define("web_write_function", {
     return {
       title: `Function: ${params.name} (${params.action_type})`,
       output: JSON.stringify(output, null, 2),
-      metadata: { function: func },
+      metadata: { function: func } as Record<string, unknown>,
     }
   },
 })

@@ -44,7 +44,7 @@ describe("web_write_function — request_id FK guard", () => {
         ctxFor(sid),
       )
       expect(res.title).toContain("List_Agents")
-      expect(res.metadata?.function?.request_id).toBe(req.id)
+      expect((res.metadata as any)?.function?.request_id).toBe(req.id)
     })
   })
 })
