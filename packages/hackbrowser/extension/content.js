@@ -992,11 +992,22 @@
     // that we're trying, then either start, or report the backend is unreachable and reset the
     // button to its round record shape (capture never started → not attached → no stop ■).
     wRight.disabled = true
+    // Record AS this profile's identity, not always unauthenticated. A spawned role
+    // browser carries its role in the field / assignedCred; only a truly untagged
+    // browser falls through to Anonymous. Same resolution as the settings "Start
+    // capture" button, so both entry points tag traffic with the same identity.
+    const role = cred.value.trim() || assignedCred || "Anonymous"
     flashTransition("Connecting to CyberStrike…", "ai", "", 1400)
-    const res = await send({ type: "start-capture", role: "Anonymous", url: location.href })
+    const res = await send({ type: "start-capture", role, url: location.href })
     wRight.disabled = false
     if (res && res.ok) {
-      flashTransition("Unauthenticated recording started", "", "#9e141c", 1300)
+      const canon = (res.role || role).trim()
+      flashTransition(
+        canon.toLowerCase() === "anonymous" ? "Unauthenticated recording started" : `Recording started as ${canon}`,
+        "",
+        "#9e141c",
+        1300,
+      )
       loadSessions() // recording just ensured/created a session — pull the list so it shows + selects
     } else {
       // Couldn't start — distinguish auth (wrong password), unreachable (down / no SW response), and
@@ -2017,7 +2028,12 @@
     assignedCred = label // bind the profile's identity from the hash (survives field edits)
     cred.value = label
     renderRole(label) // shows the "<ROLE> — log in as this identity" banner
-    roleHint.textContent = `Log in as "${label}", then press Start capture.`
+    // The red record button records AS this role now (not unauthenticated) — relabel it
+    // so a spawned role browser doesn't look like it will capture anonymously.
+    wRight.title = `Start Recording as "${label}"`
+    const rtip = wRight.querySelector(".wtip")
+    if (rtip) rtip.textContent = `Start Recording as "${label}"`
+    roleHint.textContent = `Log in as "${label}", then hit Record.`
   }
 
   let lastUrl = location.href
