@@ -47,7 +47,12 @@ export namespace WebRetest {
     triggerSource: string
     priority: z.infer<typeof Priority>
   }): Info {
-    // Check if already queued
+    // Check if already queued for THIS trigger source. Dedup must include
+    // trigger_source (matching checkTriggers' own guard) — otherwise a request
+    // already pending for one reason (e.g. a new_signal detection) would swallow a
+    // retest queued for a DIFFERENT reason (a new_credential cross-credential retest
+    // of the same endpoint as org1/org2), and the cross-credential intent would never
+    // surface on the queue for the orchestrator to dispatch.
     const existing = Database.use((db) =>
       db
         .select()
@@ -56,6 +61,7 @@ export namespace WebRetest {
           and(
             eq(WebRetestQueueTable.session_id, input.sessionID),
             eq(WebRetestQueueTable.request_id, input.requestID),
+            eq(WebRetestQueueTable.trigger_source, input.triggerSource),
             eq(WebRetestQueueTable.status, "pending"),
           ),
         )
