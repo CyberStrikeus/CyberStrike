@@ -263,20 +263,20 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                 </text>
                 <Show when={hackbrowserStatus()!.phase === "crawling" || hackbrowserStatus()!.phase === "starting"}>
                   <text fg={theme.textMuted}>
-                    {hackbrowserStatus()!.pagesExplored} page
-                    {hackbrowserStatus()!.pagesExplored === 1 ? "" : "s"}
+                    {pages().length} page
+                    {pages().length === 1 ? "" : "s"}
                     {" · "}
-                    {hackbrowserStatus()!.capturedEndpoints} endpoint
-                    {hackbrowserStatus()!.capturedEndpoints === 1 ? "" : "s"}
+                    {requests().length} endpoint
+                    {requests().length === 1 ? "" : "s"}
                   </text>
                 </Show>
                 <Show when={hackbrowserStatus()!.phase === "completed"}>
                   <text fg={theme.textMuted}>
-                    {hackbrowserStatus()!.pagesExplored} page
-                    {hackbrowserStatus()!.pagesExplored === 1 ? "" : "s"}
+                    {pages().length} page
+                    {pages().length === 1 ? "" : "s"}
                     {" · "}
-                    {hackbrowserStatus()!.capturedEndpoints} endpoint
-                    {hackbrowserStatus()!.capturedEndpoints === 1 ? "" : "s"}
+                    {requests().length} endpoint
+                    {requests().length === 1 ? "" : "s"}
                   </text>
                 </Show>
                 <Show when={hackbrowserStatus()!.phase === "crawling" && hackbrowserStatus()!.currentPage}>
