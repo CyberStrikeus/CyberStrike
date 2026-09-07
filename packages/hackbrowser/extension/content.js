@@ -1621,6 +1621,67 @@
         submit_id: (sb && idOf.get(sb)) || "",
       })
     }
+
+    // Synthetic SPA forms: typeable fields NOT wrapped in a <form>, grouped with a nearby
+    // submit-like button. React/Vue apps rarely use real <form> elements — their search boxes,
+    // filters and chat inputs are bare <input>/<textarea> + a button. Without this the crawler
+    // can click links but can never TYPE into the app (e.g. never send a message to an in-app
+    // chatbot). We reuse idOf (already populated over the open-shadow-pierced observation), so a
+    // field/button only qualifies if it was captured as interactive & visible.
+    const inForm = new Set()
+    for (const f of document.querySelectorAll("form")) for (const el of f.elements) inForm.add(el)
+    const isTypeable = (el) => {
+      if (el.tagName === "TEXTAREA") return true
+      if (el.isContentEditable) return true
+      if (el.tagName === "INPUT") {
+        const t = (el.getAttribute("type") || "text").toLowerCase()
+        return !["hidden", "submit", "button", "checkbox", "radio", "file", "image", "reset"].includes(t)
+      }
+      return false
+    }
+    const synth = new Map() // container element -> { fields:Set, submit }
+    for (const el of idOf.keys()) {
+      if (!isTypeable(el) || inForm.has(el)) continue
+      // Walk up (through open shadow hosts) to the nearest ancestor that also holds a captured
+      // submit-like button — that button + these fields make one logical form.
+      let node = el
+      for (let d = 0; d < 5 && node; d++) {
+        node = node.parentElement || (node.getRootNode && node.getRootNode().host)
+        if (!node || !node.querySelectorAll) continue
+        let submit = null
+        for (const cand of node.querySelectorAll('button,[role="button"],input[type="submit"],input[type="image"]')) {
+          if (idOf.get(cand)) {
+            submit = cand
+            break
+          }
+        }
+        if (submit) {
+          let g = synth.get(node)
+          if (!g) {
+            g = { fields: new Set(), submit }
+            synth.set(node, g)
+          }
+          g.fields.add(el)
+          break
+        }
+      }
+    }
+    for (const g of synth.values()) {
+      if (forms.length >= 40) break
+      const fields = [...g.fields].map((el) => ({
+        id: idOf.get(el) || "",
+        name:
+          el.name ||
+          el.id ||
+          el.getAttribute("aria-label") ||
+          el.getAttribute("placeholder") ||
+          (el.tagName === "TEXTAREA" ? "message" : "input"),
+        type: (el.getAttribute("type") || el.tagName).toLowerCase(),
+        required: el.hasAttribute("required"),
+      }))
+      forms.push({ action: "", method: "post", fields, submit_id: idOf.get(g.submit) || "" })
+    }
+
     const links = []
     const seen = new Set()
     for (const a of document.querySelectorAll("a[href]")) {

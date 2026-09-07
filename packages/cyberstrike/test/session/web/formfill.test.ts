@@ -67,3 +67,33 @@ describe("WebFormFill.candidates — safety + fill plan", () => {
     expect(WebFormFill.candidates("s", st, ["search"])[0].score).toBeGreaterThan(WebFormFill.candidates("s", st)[0].score)
   })
 })
+
+describe("WebFormFill.candidates — synthetic SPA forms (the chatbot case)", () => {
+  // What the extension now emits for a React/Vue app: a textarea + a Send button that are NOT
+  // wrapped in a real <form>. Before the SPA-form synthesis this produced zero candidates, so
+  // the crawler could open an in-app chatbot page (/ask) but never TYPE a message into it.
+  function chatState(sid: string) {
+    PageState.set(sid, {
+      url: "https://h/ask",
+      title: "",
+      clickables: [
+        { id: "c1", tag: "textarea", role: "textbox", label: "Message", href: "" },
+        { id: "c2", tag: "button", role: "button", label: "Send", href: "" },
+      ],
+      forms: [{ action: "", method: "post", fields: [{ id: "c1", name: "message", type: "textarea", required: false }], submit_id: "c2" }],
+      links: [],
+      observed_at: Date.now(),
+    })
+    return PageState.get(sid, "https://h/ask")!
+  }
+
+  test("a bare textarea + Send button (no <form>) yields a fillable candidate", () => {
+    const cands = WebFormFill.candidates("c", chatState("c"))
+    expect(cands.length).toBe(1)
+    expect(cands[0].submitId).toBe("c2")
+    // the textarea is typed into — this is the message that reaches the chatbot
+    expect(cands[0].fills).toEqual([{ id: "c1", value: "test" }])
+    // Send is not auth/logout/destructive, so it is not skipped
+    expect(cands[0].kind).not.toBe("auth")
+  })
+})
