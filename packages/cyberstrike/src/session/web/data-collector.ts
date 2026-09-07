@@ -168,6 +168,21 @@ export namespace DataCollector {
     }
   }
 
+  // Register JS bundle URLs to mine — from the extension's `<script src>` enumeration (which catches
+  // bundles loaded BEFORE capture started, the app shell we otherwise miss) and from recursive
+  // chunk-following. Deduped; JsMiner drains new ones. Returns how many were newly added.
+  export function addJsUrls(sessionID: string, urls: string[]): number {
+    if (urls.length === 0) return 0
+    const s = store(sessionID)
+    let added = 0
+    for (const u of urls) {
+      if (!u || s.jsUrls.has(u)) continue
+      s.jsUrls.add(u)
+      added++
+    }
+    return added
+  }
+
   // Record secrets found in JS bundles / source maps (P4.2). Append-only + deduped by type+preview.
   // Only redacted previews are passed in — this store never holds a raw secret.
   export function addSecrets(sessionID: string, secrets: Secret[]): void {

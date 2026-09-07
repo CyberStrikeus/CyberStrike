@@ -143,3 +143,29 @@ describe("JsMiner.mineNew", () => {
     expect(await p1).toBe(1)
   })
 })
+
+describe("JsMiner — recursive chunk following (Phase 2)", () => {
+  test("mineAll follows a chunk reference to a second bundle and mines ITS endpoints", async () => {
+    const sid = "s-rec"
+    WebScope.ensure(sid, "https://app.test/")
+    collectJs(sid, "https://app.test", "/main.js")
+    // main.js references a lazy chunk; the chunk carries the real API route.
+    const pages: Record<string, string> = {
+      "https://app.test/main.js": `import("./feature.deed.js"); api.get("/api/health")`,
+      "https://app.test/feature.deed.js": `fetch("/api/secret-data"); axios.post("/api/admin/action")`,
+    }
+    const fetcher = async (url: string) => pages[url] ?? null
+    await JsMiner.mineAll(sid, fetcher)
+    const keys = minedKeys(sid)
+    expect(keys).toContain("GET https://app.test/api/health") // from main.js
+    expect(keys).toContain("GET https://app.test/api/secret-data") // from the FOLLOWED chunk
+    expect(keys.some((k) => k.includes("/api/admin/action"))).toBe(true)
+  })
+
+  test("addJsUrls registers script-src bundles the network capture missed", () => {
+    const sid = "s-scripts"
+    const added = DataCollector.addJsUrls(sid, ["https://app.test/app.shell.js", "https://app.test/app.shell.js"])
+    expect(added).toBe(1) // deduped
+    expect(DataCollector.latest(sid).jsUrls).toContain("https://app.test/app.shell.js")
+  })
+})

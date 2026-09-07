@@ -38,6 +38,7 @@ import { WebDriver } from "../../session/web/driver"
 import { WebHold } from "../../session/web/hold"
 import { CoDrive } from "../../session/web/nav/co-drive-runner"
 import { DataCollector } from "../../session/web/data-collector"
+import { JsMiner } from "../../session/web/js-miner"
 import { scanCapturedResponse } from "../../session/web/signal/ingest"
 import { HBLog } from "../../session/web/hblog"
 import { FrameworkFingerprinter } from "../../session/web/tech"
@@ -1210,6 +1211,13 @@ export const SessionRoutes = lazy(() =>
               UiObservation.observe(sessionID, { credentialID: b.credential_id, pageUrl: b.url, role: el.role, label: el.label })
           }
         }
+        // JS-first discovery: the extension enumerates every <script src> on the page (which catches
+        // app-shell bundles loaded BEFORE capture started — the biggest source of missed endpoints).
+        // Feed the in-scope ones to the miner and wake it: it fetches them credentialed, follows
+        // chunk references recursively, extracts API endpoints, and those flow to the API-direct fast
+        // lane. Deterministic — no longer gated on the LLM navigator choosing to mine.
+        const scripts = (b.tech?.scripts ?? []).filter((u) => WebScope.allowed(sessionID, u))
+        if (scripts.length > 0 && DataCollector.addJsUrls(sessionID, scripts) > 0) JsMiner.wake(sessionID)
         HBLog.record(sessionID, "server", "observe", { url: b.url, clickables: b.clickables.length, forms: (b.forms ?? []).length })
         return c.json({ ok: true, kinds })
       },
@@ -1884,6 +1892,7 @@ export const SessionRoutes = lazy(() =>
               origin: normalized.origin,
               discoveredFrom: "capture",
             })
+            JsMiner.wake(sessionID) // a captured JS bundle → mine it (debounced, recursive)
           }
 
           const isDuplicate = Request.exists({

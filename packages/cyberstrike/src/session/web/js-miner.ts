@@ -21,6 +21,7 @@ import { JsSecrets } from "./js-secrets"
 import { JsSourceMap } from "./js-sourcemap"
 import { WebScope } from "./scope"
 import { WebControl } from "./control"
+import { ApiProbe } from "./api-probe"
 import { HBLog } from "./hblog"
 import { Log } from "../../util/log"
 
@@ -76,6 +77,10 @@ export namespace JsMiner {
   function processText(sessionID: string, text: string, origin: string, sourceUrl: string): number {
     const routes = JsMine.mineEndpoints(text, origin, inScopeOf(sessionID))
     DataCollector.addMined(sessionID, routes)
+    // Recursive: this bundle may reference other bundles (webpack/vite chunks, dynamic imports) —
+    // register them so a later pass fetches and mines them too (they carry more endpoints).
+    const chunks = JsMine.mineChunkUrls(text, sourceUrl, inScopeOf(sessionID))
+    if (chunks.length > 0) DataCollector.addJsUrls(sessionID, chunks)
     const secrets = JsSecrets.scan(text)
     if (secrets.length > 0) {
       DataCollector.addSecrets(
@@ -144,6 +149,43 @@ export namespace JsMiner {
     return routes
   }
 
+  // Recursive drain: keep mining until no NEW bundle remains (chunk-following adds bundles as it
+  // goes), bounded by a total per-session cap so a pathological chunk graph can't run away. Then
+  // wake the API-direct fast lane so freshly-mined endpoints get probed — JS discovery → fast scan.
+  const MAX_TOTAL_BUNDLES = 60
+  export async function mineAll(sessionID: string, fetcherOverride?: Fetcher): Promise<number> {
+    let total = 0
+    for (let i = 0; i < 10; i++) {
+      if (seen(sessionID).size >= MAX_TOTAL_BUNDLES) break
+      const n = await mineNew(sessionID, fetcherOverride)
+      total += n
+      // Stop when a pass mined nothing AND left no new bundles queued (jsUrls fully drained).
+      const remaining = DataCollector.latest(sessionID).jsUrls.filter((u) => !seen(sessionID).has(u)).length
+      if (n === 0 && remaining === 0) break
+    }
+    if (total > 0) {
+      try {
+        ApiProbe.wake(sessionID) // newly-mined endpoints → deterministic probe (fast scan)
+      } catch {}
+    }
+    return total
+  }
+
+  // Debounced deterministic trigger — coalesce a burst of new script URLs into one recursive mine.
+  // Removes the old LLM-gating (mining now runs from ingest, not only when the navigator chooses to).
+  const DEBOUNCE_MS = Math.max(0, Number(process.env.CYBERSTRIKE_JSMINE_DEBOUNCE_MS) || 5000)
+  const timers = new Map<string, ReturnType<typeof setTimeout>>()
+  export function wake(sessionID: string): void {
+    if (timers.has(sessionID)) return
+    timers.set(
+      sessionID,
+      setTimeout(() => {
+        timers.delete(sessionID)
+        void mineAll(sessionID).catch((e) => log.error("js mine drain crashed", { sessionID, err: String(e) }))
+      }, DEBOUNCE_MS),
+    )
+  }
+
   function originOf(url: string): string | null {
     try {
       return new URL(url).origin
@@ -155,5 +197,7 @@ export namespace JsMiner {
   export function _reset(): void {
     minedBySession.clear()
     inflight.clear()
+    for (const t of timers.values()) clearTimeout(t)
+    timers.clear()
   }
 }

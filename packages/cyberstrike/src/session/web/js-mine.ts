@@ -70,4 +70,31 @@ export namespace JsMine {
     while ((m = API_PATH_LITERAL.exec(text))) add("GET", m[2])
     return [...out.values()]
   }
+
+  // JS-in-JS: string literals that reference ANOTHER bundle (a webpack/vite chunk, a dynamic
+  // import target, a modulepreload). Following these is the "recursive" step — the app shell loads
+  // more code that carries more endpoints. Bounded + in-scope; the miner fetches each once.
+  const JS_REF = /(["'`])([^"'`\s]+?\.m?js)(?:\?[^"'`]*)?\1/gi
+  const DYNAMIC_IMPORT = /\bimport\s*\(\s*(["'`])([^"'`]+?)\1\s*\)/gi
+
+  export function mineChunkUrls(text: string, jsUrl: string, inScope: (url: string) => boolean): string[] {
+    const base = jsUrl // resolve chunk paths relative to the bundle's own URL, not the page origin
+    const out = new Set<string>()
+    const add = (raw: string) => {
+      const cleaned = raw.trim()
+      if (!cleaned || cleaned.startsWith("data:") || cleaned.startsWith("//")) return
+      try {
+        const abs = /^https?:\/\//i.test(cleaned) ? new URL(cleaned).href : new URL(cleaned, base).href
+        if (!/\.m?js(?:$|\?)/i.test(abs)) return
+        if (abs === jsUrl) return // don't re-mine self
+        if (inScope(abs)) out.add(abs)
+      } catch {}
+    }
+    let m: RegExpExecArray | null
+    JS_REF.lastIndex = 0
+    while ((m = JS_REF.exec(text))) add(m[2])
+    DYNAMIC_IMPORT.lastIndex = 0
+    while ((m = DYNAMIC_IMPORT.exec(text))) add(m[2])
+    return [...out]
+  }
 }

@@ -54,3 +54,28 @@ describe("JsMine.mineEndpoints — deterministic route harvest", () => {
     expect(mine(`api.get("users/list")`)).toEqual([])
   })
 })
+
+describe("JsMine.mineChunkUrls — recursive chunk following", () => {
+  const JS = "https://app.test/static/js/main.abc123.js"
+  test("extracts sibling chunk .js references (relative + absolute), resolves against the bundle url", () => {
+    const text = `
+      var chunks = {"1":"chunk.1a2b.js","2":"vendor.9f8e.js"};
+      import("./lazy.deed.js");
+      loadScript("https://app.test/static/js/extra.7777.js");
+    `
+    const urls = JsMine.mineChunkUrls(text, JS, all)
+    expect(urls).toContain("https://app.test/static/js/chunk.1a2b.js")
+    expect(urls).toContain("https://app.test/static/js/lazy.deed.js")
+    expect(urls).toContain("https://app.test/static/js/extra.7777.js")
+  })
+
+  test("does not return itself, non-js refs, or out-of-scope bundles", () => {
+    const text = `"./self.js"; "styles.css"; "https://cdn.other.com/x.js";`
+    const inScope = (u: string) => u.startsWith("https://app.test")
+    const urls = JsMine.mineChunkUrls(`"main.abc123.js"; ${text}`, JS, inScope)
+    expect(urls).not.toContain(JS) // self excluded
+    expect(urls.some((u) => u.endsWith(".css"))).toBe(false)
+    expect(urls.some((u) => u.includes("cdn.other.com"))).toBe(false)
+    expect(urls).toContain("https://app.test/static/js/self.js")
+  })
+})
