@@ -55,4 +55,35 @@ describe("WebRetest.enqueue — dedup keys on trigger_source", () => {
       expect(new Set(forReq.map((r) => r.trigger_source)).size).toBe(2)
     })
   })
+
+  test("getPending resolves each retest's target endpoint (method + path)", async () => {
+    await withReq(async (sid, make) => {
+      const req = make("/api/user/1")
+      WebRetest.enqueue({ sessionID: sid, requestID: req, triggerType: "new_credential", triggerSource: "org1", priority: "high" })
+      const p = WebRetest.getPending(sid).find((r) => r.request_id === req)!
+      expect(p.method).toBe("GET")
+      expect(p.endpoint).toBe("/api/user/1")
+    })
+  })
+})
+
+describe("WebRetest.completeForRequest — deterministic completion drains the queue", () => {
+  test("closes all pending retests for a request; others remain; idempotent", async () => {
+    await withReq(async (sid, make) => {
+      const a = make("/a")
+      const b = make("/b")
+      WebRetest.enqueue({ sessionID: sid, requestID: a, triggerType: "new_credential", triggerSource: "org1", priority: "high" })
+      WebRetest.enqueue({ sessionID: sid, requestID: a, triggerType: "new_credential", triggerSource: "org2", priority: "high" })
+      WebRetest.enqueue({ sessionID: sid, requestID: b, triggerType: "new_signal", triggerSource: "sig", priority: "medium" })
+      expect(WebRetest.getPending(sid).length).toBe(3)
+
+      expect(WebRetest.completeForRequest(sid, a)).toBe(2) // both org1 + org2 for /a
+      const rest = WebRetest.getPending(sid)
+      expect(rest.length).toBe(1)
+      expect(rest[0].request_id).toBe(b) // /b untouched
+
+      expect(WebRetest.completeForRequest(sid, a)).toBe(0) // already closed — idempotent
+      expect(WebRetest.count(sid).completed).toBe(2)
+    })
+  })
 })

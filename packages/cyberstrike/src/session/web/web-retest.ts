@@ -153,6 +153,36 @@ export namespace WebRetest {
     }
   }
 
+  /**
+   * Mark every PENDING retest that targets `requestID` as completed — the retest's
+   * work is done once its endpoint has actually been (re)tested. Called deterministically
+   * when a tester records a coverage note or files a finding for that request, so the
+   * queue drains as testing progresses (the count goes down) instead of growing forever.
+   * Returns how many entries were closed. Publishes one queue update if anything changed.
+   */
+  export function completeForRequest(sessionID: string, requestID: string): number {
+    const now = Date.now()
+    const closed = Database.use((db) =>
+      db
+        .update(WebRetestQueueTable)
+        .set({ status: "completed", time_updated: now })
+        .where(
+          and(
+            eq(WebRetestQueueTable.session_id, sessionID),
+            eq(WebRetestQueueTable.request_id, requestID),
+            eq(WebRetestQueueTable.status, "pending"),
+          ),
+        )
+        .returning()
+        .all(),
+    )
+    if (closed.length > 0) {
+      const queue = getPending(sessionID)
+      Database.effect(() => Bus.publish(Event.Updated, { sessionID, queue }))
+    }
+    return closed.length
+  }
+
   export function updateStatus(id: string, status: z.infer<typeof Status>): void {
     const now = Date.now()
     Database.use((db) => {
