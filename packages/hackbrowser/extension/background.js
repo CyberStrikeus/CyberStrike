@@ -966,6 +966,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (typeof obs.canvas === "number") payload.canvas = obs.canvas
         if (typeof obs.dynamic === "boolean") payload.dynamic = obs.dynamic
         if (obs.tech && typeof obs.tech === "object") payload.tech = obs.tech // framework fingerprint signals (P2)
+        if (Array.isArray(obs.js_bundles)) payload.js_bundles = obs.js_bundles // <script src> bundle urls (JS-first discovery)
         if (cred) payload.credential_id = cred.id
         try {
           await csFetch(`${base}/session/${sid}/web/observe`, {
