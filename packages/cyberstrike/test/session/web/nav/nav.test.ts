@@ -4,6 +4,7 @@ import { DeterministicNavigator } from "../../../../src/session/web/nav/determin
 import { WebActExecutor } from "../../../../src/session/web/nav/web-act-executor"
 import { Guardrails, PageStateObserver } from "../../../../src/session/web/nav/guardrails"
 import { snapshotSignature } from "../../../../src/session/web/nav/types"
+import type { Navigator } from "../../../../src/session/web/nav/types"
 import { PageState } from "../../../../src/session/web/page-state"
 import { WebControl } from "../../../../src/session/web/control"
 import { WebDriver } from "../../../../src/session/web/driver"
@@ -178,5 +179,38 @@ describe("CoDriveSession.run — end-to-end (behavior parity)", () => {
     const sid = "s"
     browser(sid, { "https://h/a": [{ id: "E0", tag: "a", role: "link", label: "B", href: "/b" }], "https://h/b": [] }, "https://h/a")
     expect(await CoDriveSession.withDefaults(fast).run(sid, () => false)).toBe("stopped")
+  })
+})
+
+describe("CoDriveSession.run — LLM 'done' must not drop the frontier (regression)", () => {
+  test("a navigator that always says done still backtracks to discovered-but-unvisited pages", async () => {
+    const sid = "done-frontier"
+    // /a links to /b; both in scope. The navigator ALWAYS returns a `done` action — the LLM
+    // judging the app "fully explored". Before the fix, `done` broke immediately and /b (in the
+    // frontier, discovered but never visited) was silently dropped. Now `done` drains the frontier.
+    browser(
+      sid,
+      { "https://h/a": [{ id: "E0", tag: "a", role: "link", label: "B", href: "/b" }], "https://h/b": [] },
+      "https://h/a",
+    )
+    WebScope.ensure(sid, "https://h/a") // so /b is in-scope and enters the frontier
+    const alwaysDone: Navigator = {
+      async plan() {
+        return { rationale: "looks fully explored", actions: [{ kind: "done", reason: "explored" }] }
+      },
+    }
+    const session = new CoDriveSession(
+      {
+        observer: new PageStateObserver(),
+        navigator: alwaysDone,
+        executor: new WebActExecutor({ settleMs: 15, pollMs: 2 }),
+        guardrails: new Guardrails(),
+      },
+      { pollMs: 2, maxIdle: 3 },
+    )
+    const reason = await session.run(sid)
+    expect(reason).toBe("coverage-complete")
+    // The fix: /b was discovered (frontier) but unvisited when "done" fired — it must be visited.
+    expect(Crawl.isPageVisited(sid, "https://h/b")).toBe(true)
   })
 })

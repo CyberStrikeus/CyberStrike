@@ -132,8 +132,29 @@ export class CoDriveSession {
 
       const action = plan.actions[planIdx++]
       if (action.kind === "done") {
-        reason = "coverage-complete"
-        break
+        // The LLM judges the app "fully explored" — but that judgment must not override the
+        // deterministic frontier. Discovered-but-unvisited pages (Crawl.frontier) would be
+        // silently dropped if we broke here, leaving endpoints never visited/tested. So treat
+        // `done` exactly like an exhausted plan: drain the frontier first, and only accept
+        // coverage-complete when there is genuinely nothing left to visit.
+        const next = Crawl.takeFrontier(sessionID)
+        if (!next) {
+          reason = "coverage-complete"
+          break
+        }
+        const nav = await this.deps.executor.run(
+          sessionID,
+          { kind: "navigate", url: next },
+          snapshot,
+          "LLM signalled done, but unvisited pages remain — backtracking to cover them",
+        )
+        const stop = terminalFrom(nav)
+        if (stop) {
+          reason = stop
+          break
+        }
+        plan = null
+        continue
       }
       if (!alive()) {
         reason = "stopped"
