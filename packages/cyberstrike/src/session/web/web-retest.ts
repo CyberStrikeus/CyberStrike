@@ -192,16 +192,25 @@ export namespace WebRetest {
     })
 
     // Resolve each endpoint's method+path from one representative request row (key_hash join).
+    // The site root (GET /) normalizes to an EMPTY normalized_path, which would leave the endpoint
+    // label blank and make the TUI fall back to the raw key_hash — so fall back to canonical_path
+    // (always populated, "/" for the root) when normalized_path is empty.
     const keyHashes = [...new Set(rows.map((r) => r.key_hash))]
     const epMap = new Map<string, { method: string; path: string }>()
     if (keyHashes.length) {
       Database.use((db) => {
         for (const req of db
-          .select({ key_hash: RequestTable.key_hash, method: RequestTable.method, path: RequestTable.normalized_path })
+          .select({
+            key_hash: RequestTable.key_hash,
+            method: RequestTable.method,
+            path: RequestTable.normalized_path,
+            canonical: RequestTable.canonical_path,
+          })
           .from(RequestTable)
           .where(eq(RequestTable.session_id, sessionID))
           .all()) {
-          if (req.key_hash && !epMap.has(req.key_hash)) epMap.set(req.key_hash, { method: req.method, path: req.path })
+          if (req.key_hash && !epMap.has(req.key_hash))
+            epMap.set(req.key_hash, { method: req.method, path: req.path || req.canonical || "/" })
         }
       })
     }
