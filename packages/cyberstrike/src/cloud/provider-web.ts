@@ -3,6 +3,7 @@ import type { Detector, SpecialistClass } from "../session/web/signal/types"
 import { DETECTORS } from "../session/web/signal/detectors"
 import { SignalRouter } from "../session/web/signal/router"
 import { Skill } from "../skill"
+import { Log } from "../util/log"
 
 import PROMPT_VULN_COMMON from "../agent/prompt/vuln/common-prompt.txt"
 import PROMPT_METHODOLOGY_COMMON from "../agent/prompt/methodology/common-methodology.txt"
@@ -246,6 +247,28 @@ function injectPlaceholder(agentName: string, prompt: string, token: string, val
  * fail-fast that closes the old drift: rename/remove an owner agent and startup
  * throws instead of the routing breaking silently in prose.
  */
+const log = Log.create({ service: "web-provider" })
+
+// Debug/observation focus mode. Set CYBERSTRIKE_WEB_FOCUS to a comma-separated list of
+// specialist short-names (e.g. "idor,authz") to TEMPORARILY enable only those
+// specialists — the orchestrator (hunt-agent) and analyzer (hunt-analyzer) are always
+// kept, since they are the dispatch backbone and the object/context extraction the
+// testers rely on. Lets you watch one tester class in isolation without the other
+// specialists' noise. Classes left with no agent simply drop out of the routing table,
+// so their signal retests go unhandled while focused — expected in this mode. Unset the
+// env var to restore the full roster. Names match with or without the "hunt-" prefix.
+function focusSet(): Set<string> | null {
+  const raw = process.env.CYBERSTRIKE_WEB_FOCUS
+  if (!raw || !raw.trim()) return null
+  const set = new Set(
+    raw
+      .split(",")
+      .map((s) => s.trim().toLowerCase().replace(/^hunt-/, ""))
+      .filter(Boolean),
+  )
+  return set.size > 0 ? set : null
+}
+
 function assertSignalCoverage(classAgent: ReadonlyMap<SpecialistClass, string>, router: SignalRouter): void {
   const orphans = new Set<SpecialistClass>()
   for (const type of SignalRouter.signalTypes()) {
@@ -272,9 +295,21 @@ export class WebProvider implements DomainProvider {
 
   static async create(): Promise<WebProvider> {
     const router = new SignalRouter()
-    const defs = await buildSpecDefs()
+    let defs = await buildSpecDefs()
+    // Focus mode (debug): keep only the orchestrator, analyzer, and the named specialists.
+    const focus = focusSet()
+    if (focus) {
+      const short = (n: string) => n.replace(/^hunt-/, "").toLowerCase()
+      defs = defs.filter((d) => d.role === "orchestrator" || d.role === "analyzer" || focus.has(short(d.name)))
+      log.warn("CYBERSTRIKE_WEB_FOCUS active — running a reduced web agent roster", {
+        focus: [...focus],
+        enabled: defs.map((d) => d.name),
+      })
+    }
     const classAgent = buildClassAgentMap(defs)
-    assertSignalCoverage(classAgent, router)
+    // The full roster must cover every signal class; a focused roster intentionally
+    // does not, so only assert when running the complete set.
+    if (!focus) assertSignalCoverage(classAgent, router)
     const routingTable = renderSignalRoutingTable(classAgent, router)
 
     // Normalize descriptions first: spec.description AND the rendered roster both

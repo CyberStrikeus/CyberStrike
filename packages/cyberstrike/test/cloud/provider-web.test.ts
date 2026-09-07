@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect, afterEach } from "bun:test"
 import { WebProvider, buildClassAgentMap, renderSignalRoutingTable, renderRoster, SIGNAL_ROUTING_PLACEHOLDER, AGENT_ROSTER_PLACEHOLDER } from "../../src/cloud/provider-web"
 import { SignalRouter } from "../../src/session/web/signal/router"
 import type { SpecialistClass } from "../../src/session/web/signal/types"
@@ -319,5 +319,35 @@ describe("lane taxonomy (TESTER_VRT_SCOPE) ↔ agent roster drift guard", () => 
     const specialists = provider.agentSpecs().filter((s) => s.role === "specialist")
     const laneless = specialists.filter((s) => testerClass(s.name) === undefined).map((s) => s.name).sort()
     expect(laneless).toEqual(["hunt-llm", "hunt-misconfig", "hunt-recon"])
+  })
+})
+
+describe("WebProvider — CYBERSTRIKE_WEB_FOCUS (debug focus mode)", () => {
+  const KEY = "CYBERSTRIKE_WEB_FOCUS"
+  const saved = process.env[KEY]
+  afterEach(() => {
+    if (saved === undefined) delete process.env[KEY]
+    else process.env[KEY] = saved
+  })
+
+  test("focus reduces the roster to orchestrator + analyzer + named specialists", async () => {
+    process.env[KEY] = "idor,authz"
+    const names = (await WebProvider.create()).agentSpecs().map((s) => s.name).sort()
+    expect(names).toEqual(["hunt-agent", "hunt-analyzer", "hunt-authz", "hunt-idor"])
+  })
+
+  test("the hunt- prefix is optional and other specialists are dropped", async () => {
+    process.env[KEY] = "hunt-idor"
+    const names = (await WebProvider.create()).agentSpecs().map((s) => s.name)
+    expect(names).toContain("hunt-idor")
+    expect(names).toContain("hunt-agent") // orchestrator always kept
+    expect(names).toContain("hunt-analyzer") // analyzer always kept (context extraction)
+    expect(names).not.toContain("hunt-injection")
+    expect(names).not.toContain("hunt-recon")
+  })
+
+  test("unset restores the full 13-agent roster (no focus)", async () => {
+    delete process.env[KEY]
+    expect((await WebProvider.create()).agentSpecs().length).toBe(13)
   })
 })
