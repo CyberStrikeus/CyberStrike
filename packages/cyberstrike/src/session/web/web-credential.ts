@@ -113,6 +113,51 @@ export namespace WebCredential {
     return { ...existing, headers, container_id: containerID, role_id: roleID, time: { created: existing.time.created, updated: now } }
   }
 
+  // Pull the auth headers (COMMON_AUTH_HEADERS) out of a raw HTTP request string.
+  function extractAuthHeaders(rawRequest: string): Record<string, string> {
+    const out: Record<string, string> = {}
+    const head = rawRequest.split(/\r?\n\r?\n/, 1)[0] ?? ""
+    const lines = head.split(/\r?\n/)
+    // line 0 is the request line ("GET /x HTTP/1.1"); headers start at 1
+    for (let i = 1; i < lines.length; i++) {
+      const idx = lines[i].indexOf(":")
+      if (idx <= 0) continue
+      const name = lines[i].slice(0, idx).trim()
+      if (!COMMON_AUTH_HEADERS.includes(name.toLowerCase())) continue
+      const value = lines[i].slice(idx + 1).trim()
+      if (value) out[name] = value
+    }
+    return out
+  }
+
+  // Fill a credential's replayable auth from a captured request's OWN auth headers.
+  //
+  // A credential registered by spawn-profile / panel "Add role" starts as a
+  // label-only placeholder (no headers). Cross-credential replay — the whole point
+  // of a role browser: testing an endpoint AS org1 / org2 (IDOR, BFLA) — injects
+  // `credential.headers`, so an empty credential means the authz/idor agents have
+  // nothing to swap in and correctly report they cannot test as that identity.
+  //
+  // The browser extension already tags each ingested request with the capturing
+  // profile's `credential_id`, and the raw request carries that profile's real auth
+  // (Cookie / Authorization / …). So at ingest we lift those headers onto the
+  // credential. Keyed off the LIVE ingest credential_id (not the stored request row,
+  // which template-dedup collapses onto whichever identity hit the endpoint first),
+  // so each identity fills in from its own traffic even on shared endpoints. Merge,
+  // never clear; write only on change to avoid a DB write + Bus event per request.
+  export function captureAuthFromRaw(input: { sessionID: string; credentialID: string; rawRequest: string }): void {
+    const auth = extractAuthHeaders(input.rawRequest)
+    if (Object.keys(auth).length === 0) return
+    const existing = getById(input.credentialID)
+    if (!existing || existing.session_id !== input.sessionID) return
+    const merged = { ...existing.headers, ...auth }
+    const changed =
+      Object.keys(merged).length !== Object.keys(existing.headers).length ||
+      Object.keys(merged).some((k) => existing.headers[k] !== merged[k])
+    if (!changed) return
+    update({ id: input.credentialID, sessionID: input.sessionID, headers: merged })
+  }
+
   // Case-insensitive (and whitespace-trimmed) label lookup: "anonymous", "Anonymous" and
   // " Anonymous " are the SAME role, so the same identity is never duplicated over a casing
   // difference. Compared in JS over the session's (few) credentials to stay portable across

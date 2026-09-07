@@ -77,3 +77,71 @@ describe("WebCredential.ensure — idempotent by label", () => {
     })
   })
 })
+
+describe("WebCredential.captureAuthFromRaw — fill a placeholder credential from captured traffic", () => {
+  const rawWith = (auth: string) =>
+    `GET /dashboard HTTP/1.1\r\nHost: app.example.com\r\n${auth}\r\nAccept: */*\r\n\r\n`
+
+  test("lifts auth headers off a raw request onto an empty credential", async () => {
+    await withSession(async (sid) => {
+      const cred = WebCredential.ensure({ sessionID: sid, label: "org1" }) // label-only placeholder
+      expect(Object.keys(cred.headers).length).toBe(0)
+      WebCredential.captureAuthFromRaw({
+        sessionID: sid,
+        credentialID: cred.id,
+        rawRequest: rawWith("Cookie: session=abc123\r\nAuthorization: Bearer tok-org1"),
+      })
+      const after = WebCredential.getById(cred.id)!
+      expect(after.headers["Cookie"]).toBe("session=abc123")
+      expect(after.headers["Authorization"]).toBe("Bearer tok-org1")
+    })
+  })
+
+  test("only auth headers are captured (not Accept/Host/etc.)", async () => {
+    await withSession(async (sid) => {
+      const cred = WebCredential.ensure({ sessionID: sid, label: "org1" })
+      WebCredential.captureAuthFromRaw({
+        sessionID: sid,
+        credentialID: cred.id,
+        rawRequest: rawWith("X-Api-Key: k-123"),
+      })
+      const h = WebCredential.getById(cred.id)!.headers
+      expect(h["X-Api-Key"]).toBe("k-123")
+      expect(h["Host"]).toBeUndefined()
+      expect(h["Accept"]).toBeUndefined()
+    })
+  })
+
+  test("two identities on the same endpoint keep DISTINCT auth (the cross-cred substrate)", async () => {
+    await withSession(async (sid) => {
+      const org1 = WebCredential.ensure({ sessionID: sid, label: "org1" })
+      const org2 = WebCredential.ensure({ sessionID: sid, label: "org2" })
+      WebCredential.captureAuthFromRaw({ sessionID: sid, credentialID: org1.id, rawRequest: rawWith("Authorization: Bearer TOK1") })
+      WebCredential.captureAuthFromRaw({ sessionID: sid, credentialID: org2.id, rawRequest: rawWith("Authorization: Bearer TOK2") })
+      expect(WebCredential.getById(org1.id)!.headers["Authorization"]).toBe("Bearer TOK1")
+      expect(WebCredential.getById(org2.id)!.headers["Authorization"]).toBe("Bearer TOK2")
+    })
+  })
+
+  test("a request with no auth headers leaves the credential untouched", async () => {
+    await withSession(async (sid) => {
+      const cred = WebCredential.ensure({ sessionID: sid, label: "anon", headers: { Authorization: "Bearer keep" } })
+      WebCredential.captureAuthFromRaw({
+        sessionID: sid,
+        credentialID: cred.id,
+        rawRequest: `GET /public HTTP/1.1\r\nHost: app.example.com\r\nAccept: */*\r\n\r\n`,
+      })
+      // unchanged — no auth in the request, existing header preserved
+      expect(WebCredential.getById(cred.id)!.headers["Authorization"]).toBe("Bearer keep")
+    })
+  })
+
+  test("refreshes a rotated token (merge, later value wins)", async () => {
+    await withSession(async (sid) => {
+      const cred = WebCredential.ensure({ sessionID: sid, label: "org1" })
+      WebCredential.captureAuthFromRaw({ sessionID: sid, credentialID: cred.id, rawRequest: rawWith("Authorization: Bearer old") })
+      WebCredential.captureAuthFromRaw({ sessionID: sid, credentialID: cred.id, rawRequest: rawWith("Authorization: Bearer new") })
+      expect(WebCredential.getById(cred.id)!.headers["Authorization"]).toBe("Bearer new")
+    })
+  })
+})

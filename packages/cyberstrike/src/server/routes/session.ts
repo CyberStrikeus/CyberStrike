@@ -1785,6 +1785,22 @@ export const SessionRoutes = lazy(() =>
         const normalized = await runNormalize(body, sessionID, ingestDryRun)
 
         if (normalized) {
+          // Lift this request's own auth (Cookie/Authorization/…) onto the capturing
+          // credential, so a spawn-profile / "Add role" credential (a label-only
+          // placeholder) fills in the replayable auth its profile actually used —
+          // otherwise cross-credential replay as org1/org2 (IDOR/BFLA) has nothing to
+          // inject and the authz/idor agents correctly report they cannot test as that
+          // identity. Runs on every ingest (dedup skips included) and keys off the live
+          // ingest credential_id, not the template-deduped row. Never throws — a
+          // credential-fill failure must not drop the capture.
+          if (credentialID && body.text) {
+            try {
+              WebCredential.captureAuthFromRaw({ sessionID, credentialID, rawRequest: body.text })
+            } catch (err) {
+              log.warn("failed to capture credential auth from request", { error: (err as Error).message })
+            }
+          }
+
           // Collect EVERY captured request into the per-session data view (decoupled from what the
           // AI navigated) — the traffic substrate for the navigator's route context + the
           // server-side framework fingerprint (P4). Runs before the dedup check so duplicates and
