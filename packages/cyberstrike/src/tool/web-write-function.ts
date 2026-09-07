@@ -4,6 +4,7 @@ import { WebFunction } from "../session/web/web-function"
 import { WebRole } from "../session/web/web-role"
 import { WebObject } from "../session/web/web-object"
 import { Session } from "../session"
+import { Request } from "../session/request"
 
 const description = `Record an application function (endpoint purpose) discovered during analysis.
 
@@ -35,6 +36,18 @@ export const WebWriteFunctionTool = Tool.define("web_write_function", {
   }),
   async execute(params, ctx) {
     const sessionID = Session.root(ctx.sessionID)
+    // request_id is a NOT NULL foreign key to the request table. If the agent passes an
+    // id that isn't a real captured request (a hallucinated/miscopied id, or one that was
+    // dropped as out-of-scope), the insert would throw a raw SQLite FK error that means
+    // nothing to the agent and looks alarming in the UI. Validate first and return a clear
+    // tool error the agent can act on instead.
+    if (!Request.findById(sessionID, params.request_id)) {
+      return {
+        title: "web_write_function — unknown request_id",
+        output: `No captured request "${params.request_id}" exists in this session. Pass a request_id from web_get_session_context / the captured endpoints — do not invent one.`,
+        metadata: {},
+      }
+    }
     let roleID: string | undefined
     if (params.role_name) {
       const role = WebRole.getByName(sessionID, params.role_name)
