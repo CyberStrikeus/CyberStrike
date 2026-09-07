@@ -15,7 +15,6 @@ export type SpecialistClass =
   | "server-side-request"
   | "business-logic"
   | "misconfiguration"
-  | "recon"
   | "client-side"
   | "llm"
 

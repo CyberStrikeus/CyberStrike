@@ -33,8 +33,6 @@ import PROMPT_HUNT_TESTER_LLM from "../agent/prompt/vuln/llm/prompt.txt"
 import DESC_HUNT_TESTER_LLM from "../agent/prompt/vuln/llm/description.txt"
 import PROMPT_HUNT_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/prompt.txt"
 import DESC_HUNT_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/description.txt"
-import PROMPT_HUNT_TESTER_RECON from "../agent/prompt/vuln/recon/prompt.txt"
-import DESC_HUNT_TESTER_RECON from "../agent/prompt/vuln/recon/description.txt"
 
 function stripDefensiveSections(content: string): string {
   if (!content) return ""
@@ -376,7 +374,6 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     fileAttacksSkills,
     llmSkills,
     misconfigSkills,
-    reconSkills,
   ] = await Promise.all([
     loadSkills(["wstg-authz-04", "wstg-apit-02"]),
     loadSkills(["wstg-authz-02", "wstg-authz-03", "wstg-authz-01"]),
@@ -387,8 +384,12 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     loadSkills(["wstg-inpv-19", "wstg-conf-13"]),
     loadSkills(["wstg-inpv-11.1", "wstg-inpv-11", "wstg-busl-08", "wstg-busl-09"]),
     loadSkills(["llm-security"]),
-    loadSkills(["wstg-conf-01", "wstg-conf-02", "wstg-conf-03", "wstg-conf-04", "wstg-conf-05", "wstg-conf-06", "wstg-conf-07", "wstg-conf-08", "wstg-conf-09", "wstg-conf-10", "wstg-conf-11", "wstg-cryp-01"]),
-    loadSkills(["wstg-info-02", "wstg-info-03", "wstg-info-05", "wstg-info-08"]),
+    // Merged misconfig + recon skill set (CONF/CRYP config skills + INFO recon skills).
+    loadSkills([
+      "wstg-conf-01", "wstg-conf-02", "wstg-conf-03", "wstg-conf-04", "wstg-conf-05", "wstg-conf-06",
+      "wstg-conf-07", "wstg-conf-08", "wstg-conf-09", "wstg-conf-10", "wstg-conf-11", "wstg-cryp-01",
+      "wstg-info-02", "wstg-info-03", "wstg-info-05", "wstg-info-08",
+    ]),
   ])
 
   function vulnPrompt(prompt: string, skills: string): string {
@@ -559,24 +560,22 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { llmhook: "allow" }),
     },
     {
+      // Merged Security-Misconfiguration specialist: origin-wide config testing (paths, methods,
+      // CORS, security headers) AND reconnaissance (metafile parsing, tech fingerprinting, info
+      // leakage). One agent owns everything origin-level — recon feeds config testing on the same
+      // pass, so they no longer double-probe the same paths as two separate agents.
       name: "hunt-misconfig",
       role: "specialist",
       specialistClass: "misconfiguration",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_MISCONFIG, misconfigSkills),
       description: DESC_HUNT_TESTER_MISCONFIG,
-      skills: ["wstg-conf-01", "wstg-conf-02", "wstg-conf-03", "wstg-conf-04", "wstg-conf-05", "wstg-conf-06", "wstg-conf-07", "wstg-conf-08", "wstg-conf-09", "wstg-conf-10", "wstg-conf-11", "wstg-cryp-01"],
+      skills: [
+        "wstg-conf-01", "wstg-conf-02", "wstg-conf-03", "wstg-conf-04", "wstg-conf-05", "wstg-conf-06",
+        "wstg-conf-07", "wstg-conf-08", "wstg-conf-09", "wstg-conf-10", "wstg-conf-11", "wstg-cryp-01",
+        "wstg-info-02", "wstg-info-03", "wstg-info-05", "wstg-info-08",
+      ],
       prependRequestContext: true,
-      permissions: mergePermissions(VULN_BASE_PERMISSIONS, { misconfig_test: "allow" }),
-    },
-    {
-      name: "hunt-recon",
-      role: "specialist",
-      specialistClass: "recon",
-      prompt: vulnPrompt(PROMPT_HUNT_TESTER_RECON, reconSkills),
-      description: DESC_HUNT_TESTER_RECON,
-      skills: ["wstg-info-02", "wstg-info-03", "wstg-info-05", "wstg-info-08"],
-      prependRequestContext: true,
-      permissions: mergePermissions(VULN_BASE_PERMISSIONS, { recon_test: "allow" }),
+      permissions: mergePermissions(VULN_BASE_PERMISSIONS, { misconfig_test: "allow", recon_test: "allow" }),
     },
   ]
 }

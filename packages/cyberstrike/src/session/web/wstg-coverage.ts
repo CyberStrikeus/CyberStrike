@@ -12,12 +12,12 @@ export const WSTG_COVERAGE: WstgCoverage[] = [
   // ── INFO — Information Gathering (10) ─────────────────────────────────
   { id: "WSTG-INFO-01", title: "Conduct Search Engine Discovery Reconnaissance", agent: "hunt-analyzer", status: "covered", mechanism: "analyzer architecture extraction" },
   { id: "WSTG-INFO-02", title: "Fingerprint Web Server", agent: "hunt-misconfig", status: "passive", mechanism: "ServerBannerDetector + misconfig_test" },
-  { id: "WSTG-INFO-03", title: "Review Webserver Metafiles for Information Leakage", agent: "hunt-recon", status: "covered", mechanism: "recon_test metafiles mode (parse robots.txt, sitemap.xml, openapi.json — URL extraction, not just existence)" },
+  { id: "WSTG-INFO-03", title: "Review Webserver Metafiles for Information Leakage", agent: "hunt-misconfig", status: "covered", mechanism: "recon_test metafiles mode (parse robots.txt, sitemap.xml, openapi.json — URL extraction, not just existence)" },
   { id: "WSTG-INFO-04", title: "Enumerate Applications on Webserver", agent: "hunt-analyzer", status: "covered", mechanism: "analyzer architecture extraction" },
-  { id: "WSTG-INFO-05", title: "Review Webpage Content for Information Leakage", agent: "hunt-recon", status: "covered", mechanism: "recon_test leakage mode (HTML comments, internal IPs, version strings, debug flags) + passive SensitiveDataExposureDetector" },
+  { id: "WSTG-INFO-05", title: "Review Webpage Content for Information Leakage", agent: "hunt-misconfig", status: "covered", mechanism: "recon_test leakage mode (HTML comments, internal IPs, version strings, debug flags) + passive SensitiveDataExposureDetector" },
   { id: "WSTG-INFO-06", title: "Identify Application Entry Points", agent: "hunt-analyzer", status: "covered", mechanism: "analyzer endpoint/parameter extraction" },
   { id: "WSTG-INFO-07", title: "Map Execution Paths Through Application", agent: "hunt-analyzer", status: "covered", mechanism: "analyzer workflow mapping" },
-  { id: "WSTG-INFO-08", title: "Fingerprint Web Application Framework", agent: "hunt-recon", status: "covered", mechanism: "recon_test fingerprint mode (active tech detection: WordPress, Joomla, Drupal, Rails, Spring, Django, ASP.NET) + passive ServerBannerDetector" },
+  { id: "WSTG-INFO-08", title: "Fingerprint Web Application Framework", agent: "hunt-misconfig", status: "covered", mechanism: "recon_test fingerprint mode (active tech detection: WordPress, Joomla, Drupal, Rails, Spring, Django, ASP.NET) + passive ServerBannerDetector" },
   { id: "WSTG-INFO-09", title: "Map Application Architecture", agent: "hunt-analyzer", status: "covered", mechanism: "analyzer object/function/role extraction" },
   { id: "WSTG-INFO-10", title: "Map Application Admin Interfaces", agent: "hunt-misconfig", status: "covered", mechanism: "misconfig_test paths mode (admin wordlist)" },
 

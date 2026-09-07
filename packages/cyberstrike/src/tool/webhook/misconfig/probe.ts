@@ -59,6 +59,20 @@ export interface CorsProbeReport {
   vulnerable: CorsProbeResult[]
 }
 
+export interface HeaderIssue {
+  header: string
+  issue: "missing" | "weak" | "disclosure"
+  detail: string
+  severity: "low" | "medium" | "high"
+}
+
+export interface HeaderProbeReport {
+  endpoint: string
+  status: number | null
+  present: Record<string, string> // the security-relevant headers actually seen (name→value)
+  issues: HeaderIssue[]
+}
+
 const BODY_PREVIEW_LEN = 200
 const NOT_FOUND_STATUSES = new Set([404, 410])
 
@@ -180,6 +194,69 @@ export class MisconfigProbe {
       vulnerable: results.filter((r) => (r.reflected && r.acac) || (r.wildcard && r.acac)),
     }
   }
+
+  // Actively evaluate the security-header posture of a response (WSTG-CONF-07 HSTS,
+  // CLNT-09 clickjacking, plus MIME/referrer/permissions hardening and version-disclosure
+  // headers). The passive signal fabric flags MissingSecurityHeaders opportunistically; this
+  // makes it a deterministic, complete checklist the specialist can rely on.
+  async headers(input: { request: ProbeRequest }): Promise<HeaderProbeReport> {
+    const resp = await this.sender.send({ ...input.request, method: "GET" })
+    if ("error" in resp) return { endpoint: input.request.url, status: null, present: {}, issues: [] }
+    const h = lowerHeaders(resp.headers)
+    const present: Record<string, string> = {}
+    const issues: HeaderIssue[] = []
+    const isHttps = input.request.url.toLowerCase().startsWith("https")
+    const seen = (name: string) => {
+      const v = h[name.toLowerCase()]
+      if (v !== undefined) present[name] = v
+      return v
+    }
+
+    // HSTS (only meaningful on HTTPS)
+    const hsts = seen("Strict-Transport-Security")
+    if (isHttps) {
+      if (hsts === undefined) issues.push({ header: "Strict-Transport-Security", issue: "missing", detail: "no HSTS — HTTP downgrade / SSL-strip possible", severity: "medium" })
+      else {
+        const maxAge = Number(/max-age=(\d+)/i.exec(hsts)?.[1] ?? "0")
+        if (maxAge < 31536000) issues.push({ header: "Strict-Transport-Security", issue: "weak", detail: `max-age ${maxAge} < 1 year`, severity: "low" })
+        if (!/includeSubDomains/i.test(hsts)) issues.push({ header: "Strict-Transport-Security", issue: "weak", detail: "no includeSubDomains — a subdomain can bypass HSTS", severity: "low" })
+      }
+    }
+
+    // Clickjacking: X-Frame-Options OR CSP frame-ancestors must be present
+    const xfo = seen("X-Frame-Options")
+    const csp = seen("Content-Security-Policy")
+    if (!xfo && !(csp && /frame-ancestors/i.test(csp)))
+      issues.push({ header: "X-Frame-Options", issue: "missing", detail: "no X-Frame-Options and no CSP frame-ancestors → clickjacking (CWE-1021)", severity: "medium" })
+    if (!csp) issues.push({ header: "Content-Security-Policy", issue: "missing", detail: "no CSP — no defense-in-depth against XSS/injection", severity: "medium" })
+
+    // MIME sniffing
+    const nosniff = seen("X-Content-Type-Options")
+    if (!nosniff || !/nosniff/i.test(nosniff))
+      issues.push({ header: "X-Content-Type-Options", issue: "missing", detail: "no nosniff — MIME-sniffing content-type confusion", severity: "low" })
+
+    // Referrer / Permissions hardening
+    if (!seen("Referrer-Policy")) issues.push({ header: "Referrer-Policy", issue: "missing", detail: "no referrer policy — full URL may leak cross-origin", severity: "low" })
+    if (!seen("Permissions-Policy")) issues.push({ header: "Permissions-Policy", issue: "missing", detail: "no permissions policy — browser features not restricted", severity: "low" })
+
+    // Version / framework disclosure (WSTG-INFO-02 folded in): a Server/X-Powered-By carrying a
+    // version, or any X-AspNet* header, discloses the stack (CWE-200).
+    const server = seen("Server")
+    if (server && /\d/.test(server)) issues.push({ header: "Server", issue: "disclosure", detail: `discloses software/version: ${server}`, severity: "low" })
+    const xpb = seen("X-Powered-By")
+    if (xpb) issues.push({ header: "X-Powered-By", issue: "disclosure", detail: `discloses framework: ${xpb}`, severity: "low" })
+    const aspnet = seen("X-AspNet-Version") || seen("X-AspNetMvc-Version")
+    if (aspnet) issues.push({ header: "X-AspNet-Version", issue: "disclosure", detail: `discloses .NET version: ${aspnet}`, severity: "low" })
+
+    return { endpoint: input.request.url, status: resp.status, present, issues }
+  }
+}
+
+// Case-insensitive header map so lookups don't depend on the transport's casing.
+function lowerHeaders(headers: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const k of Object.keys(headers)) out[k.toLowerCase()] = headers[k]
+  return out
 }
 
 function isInteresting(status: number, baselineStatus: number | null): boolean {

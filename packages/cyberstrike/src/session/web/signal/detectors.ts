@@ -102,7 +102,7 @@ const SECRET_PATTERNS: { kind: string; re: RegExp }[] = [
 
 export class SensitiveDataExposureDetector implements Detector {
   readonly signalType = "sensitive_data_exposure" as const
-  readonly owner = "recon" as const
+  readonly owner = "misconfiguration" as const
   detect(res: ObservedResponse): Signal[] {
     const hits: string[] = []
     for (const p of SECRET_PATTERNS) if (p.re.test(res.body)) hits.push(p.kind)
@@ -140,7 +140,7 @@ const BANNER_HEADERS = ["server", "x-powered-by", "x-aspnet-version", "x-aspnetm
 
 export class ServerBannerDetector implements Detector {
   readonly signalType = "server_banner" as const
-  readonly owner = "recon" as const
+  readonly owner = "misconfiguration" as const
   detect(res: ObservedResponse): Signal[] {
     const found: string[] = []
     for (const name of BANNER_HEADERS) {

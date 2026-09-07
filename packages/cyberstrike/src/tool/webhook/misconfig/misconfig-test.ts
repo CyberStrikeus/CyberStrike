@@ -9,11 +9,11 @@
 import z from "zod"
 import { Tool } from "../../tool"
 import { webhookContext, toolResult, toolError } from "../define"
-import { MisconfigProbe, type PathProbeReport, type MethodProbeReport, type CorsProbeReport } from "./probe"
+import { MisconfigProbe, type PathProbeReport, type MethodProbeReport, type CorsProbeReport, type HeaderProbeReport } from "./probe"
 import type { HttpSender, ProbeRequest } from "../transport"
 
 export namespace MisconfigTest {
-  export type Mode = "paths" | "methods" | "cors"
+  export type Mode = "paths" | "methods" | "cors" | "headers"
 
   export interface PathsInput {
     mode: "paths"
@@ -34,12 +34,18 @@ export namespace MisconfigTest {
     origins?: string[]
   }
 
-  export type Input = PathsInput | MethodsInput | CorsInput
+  export interface HeadersInput {
+    mode: "headers"
+    request: ProbeRequest
+  }
+
+  export type Input = PathsInput | MethodsInput | CorsInput | HeadersInput
 
   export interface PathsResult { mode: "paths"; report: PathProbeReport }
   export interface MethodsResult { mode: "methods"; report: MethodProbeReport }
   export interface CorsResult { mode: "cors"; report: CorsProbeReport }
-  export type Result = PathsResult | MethodsResult | CorsResult
+  export interface HeadersResult { mode: "headers"; report: HeaderProbeReport }
+  export type Result = PathsResult | MethodsResult | CorsResult | HeadersResult
 
   export async function run(input: Input, sender: HttpSender): Promise<Result> {
     const probe = new MisconfigProbe(sender)
@@ -62,6 +68,10 @@ export namespace MisconfigTest {
         const report = await probe.cors({ request: input.request, origins: input.origins })
         return { mode: "cors", report }
       }
+      case "headers": {
+        const report = await probe.headers({ request: input.request })
+        return { mode: "headers", report }
+      }
     }
   }
 }
@@ -76,13 +86,15 @@ const DESCRIPTION = `Actively probe a target for misconfigurations. Three modes:
 
 **cors** — send Origin header variations (evil.com, subdomain confusion, null) at a captured endpoint. Flags reflected-origin + credentials=true (credential theft) or wildcard + credentials (spec violation).
 
+**headers** — evaluate the security-header posture of a captured endpoint's response: missing/weak HSTS (WSTG-CONF-07), missing X-Frame-Options / CSP frame-ancestors (clickjacking, CWE-1021), missing CSP, missing X-Content-Type-Options nosniff, missing Referrer-Policy / Permissions-Policy, and version-disclosure headers (Server/X-Powered-By/X-AspNet-Version, CWE-200). Returns a complete issue checklist with per-issue severity.
+
 Facts + leads — the agent confirms and weaponizes.`
 
 export const MisconfigTestTool = Tool.define("misconfig_test", {
   description: DESCRIPTION,
   parameters: z.object({
-    mode: z.enum(["paths", "methods", "cors"]).describe("Probe mode."),
-    request_id: z.string().optional().describe("Captured request (required for methods and cors modes)."),
+    mode: z.enum(["paths", "methods", "cors", "headers"]).describe("Probe mode."),
+    request_id: z.string().optional().describe("Captured request (required for methods, cors and headers modes)."),
     origin: z.string().optional().describe("paths: target origin (e.g. https://example.com). Defaults to the request's origin if request_id given."),
     categories: z.array(CATEGORY).optional().describe("paths: restrict to these wordlist categories."),
     limit: z.number().int().positive().optional().describe("paths: cap the number of paths probed."),
@@ -126,6 +138,14 @@ export const MisconfigTestTool = Tool.define("misconfig_test", {
       const allowed = r.report.allowedMethods
       const label = allowed.length > 0 ? `${allowed.join(",")} allowed` : "only standard methods"
       return toolResult(NAME + " methods", label, r.report)
+    }
+
+    if (params.mode === "headers") {
+      const result = await MisconfigTest.run({ mode: "headers", request: resolved }, wctx.sender)
+      const r = result as MisconfigTest.HeadersResult
+      const n = r.report.issues.length
+      const label = n > 0 ? `${n} header issue(s)` : "security headers OK"
+      return toolResult(NAME + " headers", label, r.report)
     }
 
     // cors

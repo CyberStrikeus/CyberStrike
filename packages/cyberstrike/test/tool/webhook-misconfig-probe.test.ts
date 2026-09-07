@@ -151,6 +151,73 @@ describe("MisconfigProbe.cors", () => {
   })
 })
 
+// A server that only sets HSTS (short, no includeSubDomains) and discloses its stack; missing
+// CSP / X-Frame-Options / nosniff / Referrer-Policy / Permissions-Policy.
+function weakHeaderServer(): HttpSender {
+  return {
+    async send() {
+      return {
+        status: 200,
+        headers: {
+          "Strict-Transport-Security": "max-age=3600",
+          Server: "nginx/1.18.0",
+          "X-Powered-By": "PHP/8.1.2",
+        },
+        body: "ok",
+      }
+    },
+  }
+}
+
+// A fully-hardened server: all headers present and strong, no disclosure.
+function hardenedServer(): HttpSender {
+  return {
+    async send() {
+      return {
+        status: 200,
+        headers: {
+          "Strict-Transport-Security": "max-age=63072000; includeSubDomains",
+          "Content-Security-Policy": "default-src 'self'; frame-ancestors 'none'",
+          "X-Frame-Options": "DENY",
+          "X-Content-Type-Options": "nosniff",
+          "Referrer-Policy": "no-referrer",
+          "Permissions-Policy": "geolocation=()",
+        },
+        body: "ok",
+      }
+    },
+  }
+}
+
+describe("MisconfigProbe.headers", () => {
+  test("flags weak HSTS, missing CSP/XFO/nosniff/referrer/permissions, and version disclosure", async () => {
+    const report = await new MisconfigProbe(weakHeaderServer()).headers({ request: baseReq() })
+    const headers = report.issues.map((i) => i.header)
+    // HSTS present but weak (short max-age + no includeSubDomains)
+    expect(report.issues.filter((i) => i.header === "Strict-Transport-Security" && i.issue === "weak").length).toBe(2)
+    expect(headers).toContain("Content-Security-Policy")
+    expect(headers).toContain("X-Frame-Options")
+    expect(headers).toContain("X-Content-Type-Options")
+    expect(headers).toContain("Referrer-Policy")
+    expect(headers).toContain("Permissions-Policy")
+    // version disclosure
+    expect(report.issues.some((i) => i.header === "Server" && i.issue === "disclosure")).toBe(true)
+    expect(report.issues.some((i) => i.header === "X-Powered-By" && i.issue === "disclosure")).toBe(true)
+  })
+
+  test("a fully-hardened response yields no issues", async () => {
+    const report = await new MisconfigProbe(hardenedServer()).headers({ request: baseReq() })
+    expect(report.issues).toEqual([])
+  })
+
+  test("transport error yields an empty, non-throwing report", async () => {
+    const flaky: HttpSender = { async send() { return { error: "connection refused" } } }
+    const report = await new MisconfigProbe(flaky).headers({ request: baseReq() })
+    expect(report.status).toBeNull()
+    expect(report.issues).toEqual([])
+  })
+})
+
 describe("MisconfigTest.run", () => {
   test("paths mode dispatches correctly", async () => {
     const result = await MisconfigTest.run(

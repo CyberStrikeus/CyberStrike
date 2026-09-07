@@ -10,10 +10,10 @@ describe("WebProvider", () => {
     expect(provider.key).toBe("web")
   })
 
-  test("agentSpecs returns 13 agents", async () => {
+  test("agentSpecs returns 12 agents", async () => {
     const provider = await WebProvider.create()
     const specs = provider.agentSpecs()
-    expect(specs.length).toBe(13)
+    expect(specs.length).toBe(12)
   })
 
   test("agent names match expected set", async () => {
@@ -31,7 +31,6 @@ describe("WebProvider", () => {
       "hunt-llm",
       "hunt-mass-assignment",
       "hunt-misconfig",
-      "hunt-recon",
       "hunt-ssrf",
     ])
   })
@@ -55,7 +54,7 @@ describe("WebProvider", () => {
   test("all specialists have prependRequestContext", async () => {
     const provider = await WebProvider.create()
     const specialists = provider.agentSpecs().filter((s) => s.role === "specialist")
-    expect(specialists.length).toBe(11)
+    expect(specialists.length).toBe(10)
     for (const s of specialists) {
       expect(s.prependRequestContext).toBe(true)
     }
@@ -93,9 +92,8 @@ describe("WebProvider", () => {
 
     const misconfig = specs.find((s) => s.name === "hunt-misconfig")!
     expect(misconfig.permissions.misconfig_test).toBe("allow")
-
-    const recon = specs.find((s) => s.name === "hunt-recon")!
-    expect(recon.permissions.recon_test).toBe("allow")
+    // recon was merged into hunt-misconfig — it now holds recon_test too.
+    expect(misconfig.permissions.recon_test).toBe("allow")
   })
 
   test("llm agent has llmhook permission", async () => {
@@ -181,7 +179,6 @@ describe("SpecialistClass → agent mapping (signal-fabric bridge)", () => {
       "auth-session": "hunt-authn",
       "access-control": "hunt-authz",
       "business-logic": "hunt-business-logic",
-      recon: "hunt-recon",
     }
     for (const [cls, agent] of Object.entries(expected)) {
       expect(provider.agentForClass(cls as SpecialistClass)).toBe(agent)
@@ -210,7 +207,7 @@ describe("SpecialistClass → agent mapping (signal-fabric bridge)", () => {
     const provider = await WebProvider.create()
     const map = provider.classAgentMap()
     // 8 specialists declare a class; idor, mass-assignment, file-attacks do not.
-    expect(map.size).toBe(8)
+    expect(map.size).toBe(7)
     expect(map.get("server-side-request")).toBe("hunt-ssrf")
     expect(map.get("llm")).toBe("hunt-llm")
   })
@@ -283,7 +280,7 @@ describe("orchestrator agent roster (rendered from code)", () => {
     expect(orch.prompt).not.toContain(AGENT_ROSTER_PLACEHOLDER)
     expect(orch.prompt).toContain("### Architecture Analysis")
     expect(orch.prompt).toContain("- **hunt-idor**:")
-    expect(orch.prompt).toContain("- **hunt-recon**:")
+    expect(orch.prompt).toContain("- **hunt-misconfig**:")
   })
 
   test("roster entry text equals each agent's spec.description (single source)", async () => {
@@ -310,7 +307,7 @@ describe("lane taxonomy (TESTER_VRT_SCOPE) ↔ agent roster drift guard", () => 
   })
 
   test("specialists with NO lane enforcement are exactly the known allowlist", async () => {
-    // FINDING: hunt-llm, hunt-misconfig, hunt-recon currently have no lane entry,
+    // FINDING: hunt-llm, hunt-misconfig currently have no lane entry,
     // so their report_vulnerability calls are NOT lane-scoped (testerClass→undefined).
     // This is left as-is (they legitimately report a wide range), but a NEW lane-less
     // specialist must be a conscious choice — adding one fails this test until the
@@ -318,7 +315,7 @@ describe("lane taxonomy (TESTER_VRT_SCOPE) ↔ agent roster drift guard", () => 
     const provider = await WebProvider.create()
     const specialists = provider.agentSpecs().filter((s) => s.role === "specialist")
     const laneless = specialists.filter((s) => testerClass(s.name) === undefined).map((s) => s.name).sort()
-    expect(laneless).toEqual(["hunt-llm", "hunt-misconfig", "hunt-recon"])
+    expect(laneless).toEqual(["hunt-llm", "hunt-misconfig"])
   })
 })
 
@@ -343,11 +340,11 @@ describe("WebProvider — CYBERSTRIKE_WEB_FOCUS (debug focus mode)", () => {
     expect(names).toContain("hunt-agent") // orchestrator always kept
     expect(names).toContain("hunt-analyzer") // analyzer always kept (context extraction)
     expect(names).not.toContain("hunt-injection")
-    expect(names).not.toContain("hunt-recon")
+    expect(names).not.toContain("hunt-misconfig")
   })
 
-  test("unset restores the full 13-agent roster (no focus)", async () => {
+  test("unset restores the full 12-agent roster (no focus)", async () => {
     delete process.env[KEY]
-    expect((await WebProvider.create()).agentSpecs().length).toBe(13)
+    expect((await WebProvider.create()).agentSpecs().length).toBe(12)
   })
 })

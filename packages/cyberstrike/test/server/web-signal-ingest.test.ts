@@ -73,7 +73,8 @@ describe("ingest → signal fabric (real route wiring)", () => {
       const signals = new SignalStore(sid).get()
       const banner = signals.find((s) => s.signal_type === "server_banner")
       const cookie = signals.find((s) => s.signal_type === "weak_cookie_flags")
-      expect(banner?.owner).toBe("recon")
+      // recon was merged into the security-misconfiguration specialist — server_banner now routes there.
+      expect(banner?.owner).toBe("misconfiguration")
       expect(cookie?.owner).toBe("auth-session")
     })
   })
