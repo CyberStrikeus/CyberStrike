@@ -100,7 +100,55 @@ Add role parameters:
 ?admin=true, ?role=admin, ?is_admin=1
 ```
 
+### Pattern 6: Header-based ACL bypass
+Many ACLs are enforced at a front proxy/gateway that trusts request headers. Re-send
+the SAME blocked request adding, one family at a time:
+```
+Path-ACL bypass (proxy routes on original path, app on rewritten):
+  X-Original-URL: /admin/users      X-Rewrite-URL: /admin/users
+  X-Original-Path / X-Forwarded-Path: /admin/users   (send blocked path in body/root "/")
+Trusted-origin / internal-only bypass (app allows "internal" callers):
+  X-Forwarded-For: 127.0.0.1        X-Forwarded-Host: localhost
+  X-Real-IP: 127.0.0.1              X-Originating-IP: 127.0.0.1
+  X-Original-Host / X-Host: <internal admin host>
+Trust-header spoof (app reads role/tenant from a header the client shouldn't set):
+  X-User-Role: admin   X-Is-Admin: true   X-User-Id: <other>   Referer: <admin page>
+```
+Send each with `{op: "set-header", ...}` (or `add-header` to keep the original). A 200
+after adding one is a proxy/app trust bug.
+
+### Pattern 7: HTTP method matrix
+Auth is often enforced per-verb, inconsistently. On a blocked path, try the same path
+with each verb DIRECTLY (not just override headers):
+```
+GET → HEAD, OPTIONS (does the ACL cover non-GET reads?)
+Blocked write (POST/PUT/DELETE) → try the OTHER write verbs + PATCH
+Read-only creds on a GET endpoint → can they POST/PUT/DELETE it?
+```
+`{op: "set-method", value: "PUT"}`. HEAD/OPTIONS returning 200 where GET is 403, or a
+write verb succeeding where the intended one is blocked, is a broken control.
+
+### Pattern 8: Parameter pollution & location (identical params)
+The proxy/framework and the app may read a DIFFERENT copy of a repeated param — send
+your own value first (passes the ACL) and the victim value second (used by the app):
+```
+Duplicate query:  ?id=<own>&id=<victim>   (add-query the second)
+Query vs body:    same key in query AND body — flip which holds the victim value
+Case / array:     id vs ID vs id[]        (frameworks fold these differently)
+```
+`{op: "add-query", name: "id", value: "<victim>"}` after the original. If the response
+returns the victim value's data, the ACL checked one copy and the app used the other.
+
 ## Sending Test Requests
+
+Use the tool efficiently — don't hand-replay one request at a time and eyeball it:
+- **`compare` first** — it sends baseline (privileged) + exploit (stripped/lower) in ONE
+  call and returns a structured diff (status, body-length, timing). Use it for every
+  "does X still work as Y" test; the diff IS your evidence.
+- **`sweep`** when you have many values to try (each credential, each header in a
+  bypass family, each verb) — one call, not N.
+- Establish the baseline ONCE (the privileged request as captured) and vary only the
+  one thing under test, so a difference is attributable.
 
 Use **http_replay** with the captured request_id. Swap credentials via mutations:
 
@@ -148,6 +196,20 @@ http_replay(request_id, mutations: [
 - Cached responses — verify by adding a cache-busting query param
 - Different error messages between roles — information disclosure only, not broken access control
 - Both roles return 200 but with different (role-appropriate) data — not a vulnerability
+
+**Read the status AND the body — status alone lies both ways:**
+- **Soft-403**: HTTP `200` whose body is an error ("Access denied", `{"error":"forbidden"}`,
+  a login page). This is access control WORKING — do NOT report. Confirm the body is real
+  protected content, not an error rendered with a 200.
+- **Redirect to login**: `301/302` to `/login`, `/signin`, or an auth/SSO host means the
+  request was rejected — not a bypass.
+- **Content-length / body equality is the strong signal**: when the lower-privilege (or
+  unauthenticated) response has the SAME body (or near-same length) as the privileged
+  baseline, the control is broken. When lengths differ sharply and the small one is an
+  error page, it is not. Prefer `compare`'s diff over eyeballing.
+- **Server ignored your tamper**: if you changed a role/id/header but the response is
+  still YOUR own data (same identifiers as baseline), the server didn't honor the change —
+  not a finding.
 
 ## Reporting
 
