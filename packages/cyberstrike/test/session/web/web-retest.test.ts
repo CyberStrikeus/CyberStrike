@@ -67,6 +67,33 @@ describe("WebRetest.enqueue — dedup keys on trigger_source", () => {
   })
 })
 
+describe("WebRetest.checkTriggers — session pending cap", () => {
+  test("stops piling low/medium retests past the cap, but still admits high-priority (new_credential)", async () => {
+    await withReq(async (sid, make) => {
+      // Fill the queue well past the cap (80) with medium-priority new_signal retests.
+      // Each distinct trigger_source + request is its own entry; make enough requests and
+      // fire enough triggers to blow past 80.
+      for (let i = 0; i < 100; i++) make(`/e${i}`)
+      for (let t = 0; t < 6; t++) {
+        WebRetest.checkTriggers({ sessionID: sid, triggerType: "new_signal", triggerSource: `sig${t}`, maxRetests: 100 })
+      }
+      const pendingAfterMedium = WebRetest.count(sid).pending
+      // Capped near 80 (a single trigger can overshoot by up to maxRetests, but repeated
+      // medium triggers are refused once over the cap) — nowhere near 6×100.
+      expect(pendingAfterMedium).toBeLessThan(200)
+      expect(pendingAfterMedium).toBeGreaterThanOrEqual(80)
+
+      // A medium trigger now adds nothing (over cap)…
+      const medium = WebRetest.checkTriggers({ sessionID: sid, triggerType: "new_signal", triggerSource: "sig-late", maxRetests: 100 })
+      expect(medium.length).toBe(0)
+      // …but a high-priority new_credential retest is still admitted (cross-cred isn't starved).
+      const high = WebRetest.checkTriggers({ sessionID: sid, triggerType: "new_credential", triggerSource: "wcr_org2", maxRetests: 5 })
+      expect(high.length).toBeGreaterThan(0)
+      expect(high.every((r) => r.priority === "high")).toBe(true)
+    })
+  })
+})
+
 describe("WebRetest.completeForRequest — deterministic completion drains the queue", () => {
   test("closes all pending retests for a request; others remain; idempotent", async () => {
     await withReq(async (sid, make) => {

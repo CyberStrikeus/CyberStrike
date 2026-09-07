@@ -5,6 +5,11 @@ import { Database, eq, and, asc } from "../../storage/db"
 import { WebRetestQueueTable, RequestTable } from "../session.sql"
 import { Identifier } from "../../id/id"
 
+// Upper bound on PENDING retests per session. New discoveries stop piling low/medium retests
+// once this is reached (high-priority cross-credential retests are exempt) — keeps the queue a
+// workable list instead of an unbounded backlog the loop can never finish.
+const SESSION_PENDING_CAP = 80
+
 const TriggerType = z.enum(["new_role", "new_object_value", "new_credential", "new_signal"])
 const Status = z.enum(["pending", "processing", "completed"])
 const Priority = z.enum(["high", "medium", "low"])
@@ -307,11 +312,6 @@ export namespace WebRetest {
     const maxRetests = input.maxRetests ?? 20
     const results: Info[] = []
 
-    // Get all requests in the session
-    const requests = Database.use((db) =>
-      db.select().from(RequestTable).where(eq(RequestTable.session_id, input.sessionID)).all(),
-    )
-
     // Determine priority based on trigger type and relevance
     let priority: z.infer<typeof Priority> = "medium"
     if (input.triggerType === "new_credential") {
@@ -320,10 +320,32 @@ export namespace WebRetest {
       priority = "high"
     }
 
+    // Cap total pending retests per session. checkTriggers fires on every discovery
+    // (new object value / signal / role) and each fires queues up to maxRetests requests,
+    // so an unbounded queue balloons far past what the loop can ever drain (observed 400+
+    // pending, ~5% processed). Once a healthy backlog exists, hold new low/medium retests;
+    // high-priority ones (new_credential — cross-credential access control, the highest-value
+    // retest) are still admitted so tenant-isolation testing is never starved.
+    if (priority !== "high") {
+      const pending = Database.use((db) =>
+        db
+          .select({ id: WebRetestQueueTable.id })
+          .from(WebRetestQueueTable)
+          .where(and(eq(WebRetestQueueTable.session_id, input.sessionID), eq(WebRetestQueueTable.status, "pending")))
+          .all(),
+      ).length
+      if (pending >= SESSION_PENDING_CAP) return results
+    }
+
+    // Get all requests in the session
+    const requests = Database.use((db) =>
+      db.select().from(RequestTable).where(eq(RequestTable.session_id, input.sessionID)).all(),
+    )
+
     // Queue relevant requests for re-test
-    let count = 0
+    let added = 0
     for (const request of requests) {
-      if (count >= maxRetests) break
+      if (added >= maxRetests) break
 
       // Skip if already processed in this trigger
       const existing = Database.use((db) =>
@@ -349,7 +371,7 @@ export namespace WebRetest {
       })
 
       results.push(retest)
-      count++
+      added++
     }
 
     return results
