@@ -18,25 +18,47 @@ export namespace SpawnedProfiles {
 
   // Safety net so spawned browsers NEVER outlive the server, independent of the graceful
   // per-session path (session close / TUI onExit / /hackbrowser-stop all still call closeAll).
-  // Covers: normal exit + process.exit() + a caught crash (via "exit", synchronous), and an
-  // external `kill` / system shutdown (via SIGTERM). SIGINT is left to the TUI, whose graceful
-  // quit reaches "exit" anyway — we don't hijack Ctrl+C. Armed once, on the first spawn.
-  // LIMIT: SIGKILL / a hard crash can't be caught — those can still orphan a window (a browser-
-  // side watchdog that self-closes when it can't reach CS is the stronger, separate guarantee).
+  // Armed once, on the first spawn — so a run that never spawns a browser keeps the plain
+  // default signal behaviour.
+  //
+  // The trap: process.on("exit") fires only when the event loop drains or process.exit() is
+  // called — it does NOT fire when the process is killed by a signal. So "exit" alone missed the
+  // most common way CyberStrike stops: Ctrl+C. In TUI mode the terminal is in raw mode (ISIG off),
+  // so Ctrl+C arrives as a keypress and the TUI exits via process.exit() → "exit" runs; but in
+  // `web` / `serve` mode (no TUI, cooked terminal) Ctrl+C is a real SIGINT that nothing handled,
+  // so the process died WITHOUT cleanup and left the CfT windows orphaned. SIGHUP (terminal
+  // closed) had the same gap.
+  //
+  // Fix: also handle the terminating signals. Each handler runs the (synchronous) browser kill,
+  // then removes itself and RE-RAISES the same signal — so the normal outcome still happens
+  // (default disposition terminates the process; any TUI handler that exists runs and shuts down
+  // gracefully). Teardown is therefore ADDITIVE: it never changes how the process exits, so it
+  // can't corrupt the TUI's raw-terminal restore or hang a headless server.
+  //
+  // LIMIT: SIGKILL / a hard crash still can't be caught — the browser-side watchdog (self-closes
+  // when it can't reach CS, and now survives MV3 service-worker eviction via chrome.alarms) is the
+  // stronger, independent guarantee for those.
   let armed = false
   function armExitCleanup(): void {
     if (armed) return
     armed = true
+    let done = false
     const cleanup = () => {
+      if (done) return
+      done = true
       try {
         closeAllSessions()
       } catch {}
     }
     process.on("exit", cleanup)
-    process.on("SIGTERM", () => {
-      cleanup()
-      process.exit(143)
-    })
+    for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
+      const handler = () => {
+        cleanup()
+        process.removeListener(sig, handler)
+        process.kill(process.pid, sig) // re-raise: default terminates, or a TUI handler takes over
+      }
+      process.on(sig, handler)
+    }
   }
 
   // Kill every spawned browser across ALL sessions (server teardown). Returns how many.
