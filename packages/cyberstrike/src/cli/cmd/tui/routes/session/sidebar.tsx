@@ -840,9 +840,9 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                   </text>
                 </box>
                 <Show when={retests().length <= 2 || expanded.retests}>
-                  <For each={retests()}>
+                  <For each={retests().filter((r) => r.status !== "completed")}>
                     {(r) => (
-                      <box flexDirection="row" gap={1}>
+                      <box flexDirection="row" gap={1} paddingLeft={1}>
                         <text
                           flexShrink={0}
                           style={{
@@ -857,10 +857,10 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                           •
                         </text>
                         <text fg={theme.accent} flexShrink={0}>
-                          {r.priority}
+                          {{ high: "H", medium: "M", low: "L" }[r.priority] ?? r.priority}
                         </text>
-                        <text fg={theme.textMuted} wrapMode="none">
-                          {r.status}
+                        <text fg={theme.text} wrapMode="none">
+                          {r.endpoint ? `${r.method ?? ""} ${r.endpoint}`.trim() : r.request_id}
                         </text>
                       </box>
                     )}

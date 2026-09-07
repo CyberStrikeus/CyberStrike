@@ -19,6 +19,10 @@ export namespace WebRetest {
       trigger_source: z.string(),
       status: Status,
       priority: Priority,
+      // The endpoint this retest targets (resolved from request_id) — so the TUI can
+      // show WHICH endpoint is queued, not just a priority/status label.
+      method: z.string().optional(),
+      endpoint: z.string().optional(),
       time: z.object({
         created: z.number(),
         updated: z.number(),
@@ -215,16 +219,36 @@ export namespace WebRetest {
       return a.time_created - b.time_created
     })
 
-    return rows.map((row) => ({
-      id: row.id,
-      session_id: row.session_id,
-      request_id: row.request_id,
-      trigger_type: row.trigger_type as Info["trigger_type"],
-      trigger_source: row.trigger_source,
-      status: row.status as Info["status"],
-      priority: row.priority as Info["priority"],
-      time: { created: row.time_created, updated: row.time_updated },
-    }))
+    // Resolve each retest's target endpoint (method + normalized_path) in one query.
+    const reqIds = [...new Set(rows.map((r) => r.request_id))]
+    const reqMap = new Map<string, { method: string; path: string }>()
+    if (reqIds.length) {
+      Database.use((db) => {
+        for (const req of db
+          .select({ id: RequestTable.id, method: RequestTable.method, path: RequestTable.normalized_path })
+          .from(RequestTable)
+          .where(eq(RequestTable.session_id, sessionID))
+          .all()) {
+          reqMap.set(req.id, { method: req.method, path: req.path })
+        }
+      })
+    }
+
+    return rows.map((row) => {
+      const req = reqMap.get(row.request_id)
+      return {
+        id: row.id,
+        session_id: row.session_id,
+        request_id: row.request_id,
+        trigger_type: row.trigger_type as Info["trigger_type"],
+        trigger_source: row.trigger_source,
+        status: row.status as Info["status"],
+        priority: row.priority as Info["priority"],
+        method: req?.method,
+        endpoint: req?.path,
+        time: { created: row.time_created, updated: row.time_updated },
+      }
+    })
   }
 
   export function count(sessionID: string): { pending: number; processing: number; completed: number } {
