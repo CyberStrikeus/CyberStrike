@@ -13,6 +13,7 @@ import { PermissionNext } from "@/permission/next"
 import { Request } from "../session/request"
 import { CoverageNote } from "../session/coverage-note"
 import { WebCredential } from "../session/web/web-credential"
+import { WebRetest } from "../session/web/web-retest"
 import { renderAccessContextLines } from "../server/routes/session"
 import { Truncate } from "./truncation"
 import { dispatchScopeViolation, dispatchOffLaneMessage } from "./vuln-scope"
@@ -26,6 +27,59 @@ import { dispatchScopeViolation, dispatchOffLaneMessage } from "./vuln-scope"
 // makes the extra tokens cheap. The full content stays retrievable via
 // web_get_request_detail for the rare response that still exceeds this.
 const MAX_PREPEND_BYTES = 48 * 1024
+
+// Cap how many object-value ids we inline — the analytics/IDOR extractor can gather dozens; the
+// specialist needs the shape and a representative set, not an unbounded dump into every prompt.
+const MAX_OBJECT_VALUES = 20
+
+// Render the endpoint's accumulated retest-queue flags as a "Discovered Context" block: WHAT was
+// found plus WHAT the specialist should DO with it. Empty (no lines) when the endpoint has no
+// flags — so a plain request with nothing discovered adds nothing to the brief.
+function renderDiscoveredContextLines(sessionID: string, keyHash: string | undefined): string[] {
+  if (!keyHash) return []
+  const flags = WebRetest.getFlags(sessionID, keyHash)
+  if (!flags) return []
+  const creds = flags.credential ?? []
+  const roles = flags.role ?? []
+  const objects = flags.object_value ?? []
+  const signals = flags.signal ?? []
+  if (creds.length === 0 && roles.length === 0 && objects.length === 0 && signals.length === 0) return []
+
+  const lines = [
+    "",
+    "## Discovered Context (why this endpoint is queued — test with this)",
+    "Found on this endpoint since it was first captured. Each item below implies a concrete test — do it:",
+  ]
+  if (creds.length) {
+    lines.push(
+      `- Credentials available to replay as: ${creds.join(", ")}`,
+      "  → Replay this exact request under EACH credential (http_replay compare mode). The same object/data returned under a DIFFERENT identity = broken object-level access control (IDOR). Also try it with no credential (unauthenticated).",
+    )
+  }
+  if (roles.length) {
+    lines.push(
+      `- Roles seen holding access: ${roles.join(", ")}`,
+      "  → If a lower-privilege role can reach a higher-privilege action/function here, that is BFLA / privilege escalation.",
+    )
+  }
+  if (objects.length) {
+    const shown = objects.slice(0, MAX_OBJECT_VALUES)
+    const more = objects.length - shown.length
+    lines.push(
+      `- Object identifiers observed (IDOR fuel): ${shown.join(", ")}${more > 0 ? ` … (+${more} more)` : ""}`,
+      "  → Substitute these ids into this endpoint's id/path/param slots under one credential. A value you should NOT own that still resolves = IDOR.",
+    )
+  }
+  if (signals.length) {
+    // Flag values encode "signalType:ownerClass"; show the human half.
+    const named = signals.map((s) => (s.includes(":") ? `${s.split(":")[0]} (${s.split(":")[1]})` : s))
+    lines.push(
+      `- Weaknesses already auto-detected here: ${named.join(", ")}`,
+      "  → These were flagged by the signal fabric. Confirm and exploit them — don't spend effort re-discovering them.",
+    )
+  }
+  return lines
+}
 
 const parameters = z.object({
   description: z.string().describe("A short (3-5 words) description of the task"),
@@ -218,6 +272,13 @@ export const TaskTool = Tool.define("task", async (ctx) => {
             lines.push("## Credential Context")
             lines.push("UNAUTHENTICATED (no credential associated with this request)")
           }
+
+          // Discovered Context — the retest-queue flags accumulated on THIS endpoint (key_hash).
+          // This is what makes the endpoint worth (re)testing: new identities/roles/object-ids/
+          // signals found since it was first seen. The specialist would otherwise have to cross-
+          // reference the session-wide queue itself, so inline it AND say what each flag means to
+          // do — a bare value list is useless if the agent doesn't know the action it implies.
+          lines.push(...renderDiscoveredContextLines(ctx.sessionID, current.key_hash))
 
           // Access Context — present only when source is hackbrowser with
           // UI crawling enrichment. Firefox extension data has all these

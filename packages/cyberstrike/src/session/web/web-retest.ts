@@ -257,6 +257,24 @@ export namespace WebRetest {
   }
 
   /**
+   * The accumulated flags for ONE endpoint (key_hash), regardless of pending/examined status —
+   * so a dispatch brief can inline the discovered context (new credentials/roles/object-values/
+   * signals) for the endpoint a specialist is about to test, without the specialist having to
+   * cross-reference the session-wide queue itself.
+   */
+  export function getFlags(sessionID: string, keyHash: string): Info["flags"] | undefined {
+    const row = Database.use((db) =>
+      db
+        .select({ flags: WebRetestQueueTable.flags })
+        .from(WebRetestQueueTable)
+        .where(and(eq(WebRetestQueueTable.session_id, sessionID), eq(WebRetestQueueTable.key_hash, keyHash)))
+        .get(),
+    )
+    if (!row) return undefined
+    return parseFlags(row.flags)
+  }
+
+  /**
    * Testing a request's endpoint marks its scenario examined (drains it from the queue). The
    * caller passes a request id (from a coverage note / finding evidence); we resolve it to the
    * endpoint's key_hash. Returns true if a pending scenario was closed.
