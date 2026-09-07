@@ -26,6 +26,7 @@ import { WebStats } from "../../session/web/web-stats"
 import { WebObject } from "../../session/web/web-object"
 import { WebFunction } from "../../session/web/web-function"
 import { WebRetest } from "../../session/web/web-retest"
+import { WebScope } from "../../session/web/scope"
 import { UiObservation } from "../../session/web/ui-observation"
 import { SpawnedProfiles } from "../../session/web/spawned-profiles"
 import { RoleQueue } from "../../session/web/role-queue"
@@ -1785,6 +1786,20 @@ export const SessionRoutes = lazy(() =>
         const normalized = await runNormalize(body, sessionID, ingestDryRun)
 
         if (normalized) {
+          // Deterministic scope gate — DROP out-of-scope third-party hosts (analytics,
+          // CDNs, OAuth/SSO providers, map/telemetry and other SaaS APIs the app merely
+          // calls) right here, so sub-agents never see them and never spend a
+          // per-endpoint scope_check on traffic that isn't the target.
+          // The target's registrable domain is a wildcard (*.target), established once
+          // (first-write-wins) from the page the operator is actually on; an explicit
+          // launch scope, if already set, wins. No-op until a target is known, so we
+          // never drop when scope is unresolved.
+          if (body.page_url) WebScope.ensure(sessionID, body.page_url)
+          if (!WebScope.allowed(sessionID, normalized.origin)) {
+            log.debug("ingest: dropped out-of-scope request", { origin: normalized.origin, sessionID })
+            return c.json({ sessionID, skipped: true })
+          }
+
           // Lift this request's own auth (Cookie/Authorization/…) onto the capturing
           // credential, so a spawn-profile / "Add role" credential (a label-only
           // placeholder) fills in the replayable auth its profile actually used —
