@@ -92,7 +92,15 @@ const parameters = z.object({
     )
     .optional(),
   command: z.string().describe("The command that triggered this task").optional(),
-  request_id: z.string().describe("Request ID to use as current request context (parent session).").optional(),
+  request_id: z
+    .string()
+    .describe(
+      "Request ID of the endpoint this task is about. ALWAYS pass it when the task concerns a specific " +
+        "captured request — it resolves which endpoint's request/credential/discovered-context is prepended " +
+        "to the subagent. Omitting it attaches nothing (or, if the target is ambiguous, could attach the wrong " +
+        "endpoint). Copy it from the web_get_session_context item you are dispatching for.",
+    )
+    .optional(),
   request_context: z.string().describe("Optional text to prepend before the task (e.g. extra context).").optional(),
 })
 
@@ -220,10 +228,18 @@ export const TaskTool = Tool.define("task", async (ctx) => {
       let prompt = params.prompt
       if (agent.prependRequestContext) {
         const requests = Request.get(ctx.sessionID)
-        const current =
-          (params.request_id ? requests.find((r) => r.id === params.request_id) : null) ??
-          requests.find((r) => r.status === "processing") ??
-          requests.sort((a, b) => b.time.updated - a.time.updated)[0]
+        // Resolve the endpoint this task is about — CONFIDENTLY, or not at all. A blind fallback to
+        // "any processing request" attached the WRONG endpoint's request/credential/flags whenever
+        // several requests were in flight (routine now that the RetestWorker fans out in parallel).
+        //   1. request_id passed        → use exactly that (the orchestrator is told to always pass it).
+        //   2. no id, EXACTLY ONE proc. → unambiguous, use it.
+        //   3. otherwise                → attach NO request block; tell the subagent to find its own target.
+        const processing = requests.filter((r) => r.status === "processing")
+        const current = params.request_id
+          ? requests.find((r) => r.id === params.request_id)
+          : processing.length === 1
+            ? processing[0]
+            : undefined
         const lines: string[] = []
         if (params.request_context?.trim()) lines.push(params.request_context.trim())
         if (current) {
@@ -323,6 +339,24 @@ export const TaskTool = Tool.define("task", async (ctx) => {
               "```",
             )
           }
+        } else if (params.request_id) {
+          // An id was passed but nothing matches it — do NOT attach an arbitrary request (that is
+          // the wrong-endpoint bug). Say so, so the subagent locates the target itself.
+          lines.push(
+            "## Current request",
+            `⚠️ request_id "${params.request_id}" was passed but no captured request matches it, so no ` +
+              "request / credential / discovered-context could be attached. Call web_get_session_context and " +
+              "web_get_request_detail to locate the endpoint you were asked to test before concluding anything.",
+          )
+        } else {
+          // No id and the target is ambiguous (zero or several requests in flight) — attaching one
+          // would be a guess. Attach none and point the subagent at the tools to resolve it.
+          lines.push(
+            "## Current request",
+            "⚠️ No request_id was provided and the target endpoint is ambiguous, so no request context is " +
+              "attached. Call web_get_session_context to find the exact request_id you must test, then " +
+              "web_get_request_detail for its full request/response.",
+          )
         }
         if (lines.length > 0) prompt = lines.join("\n") + "\n\n" + prompt
       }

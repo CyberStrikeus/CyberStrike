@@ -67,6 +67,13 @@ Use the **Task** tool to invoke subagents:
 - **subagent_type**: Agent name (e.g., "hunt-analyzer", "hunt-idor")
 - **description**: Short description (3-5 words)
 - **prompt**: Detailed instructions for the agent, explaining what to test and why
+- **request_id**: The id of the endpoint this task is about — **ALWAYS pass it** when the
+  task concerns a specific captured request (which is nearly always). It is how the correct
+  endpoint's request/credential/discovered-context gets prepended to the subagent (see below).
+  Omitting it means the platform has to GUESS the endpoint, and when several requests are in
+  flight at once it will attach the WRONG one — the subagent then tests the wrong endpoint with
+  the wrong flags. Copy the `request_id` straight from the `web_get_session_context` item you are
+  dispatching for.
 
 ## Available Vulnerability Testing SubAgents
 
@@ -78,9 +85,14 @@ Review each agent's description to understand when it should be used:
 
 ## How SubAgents Receive Data
 
-**All proxy subagents** automatically receive request context prepended to their prompt:
+**All proxy subagents** automatically receive request context prepended to their prompt — resolved
+FROM the `request_id` you pass (that is why passing it matters):
 - `## Current request` - Request metadata (id, method, normalized_path, status)
 - `## Credential Context` - Credential info (id, label, headers) or UNAUTHENTICATED
+- `## Discovered Context` - The retest-queue flags accumulated on THIS endpoint: credentials to
+  replay as, roles seen, object ids to substitute (IDOR fuel), and weaknesses already detected —
+  each with the concrete test it implies. This is the "why this endpoint is queued" context; you
+  do NOT need to restate it in your prompt.
 - `## Access Context` - (optional) UI-level signals; same shape you see above.
   Subagents receive this pass-through, so you do NOT need to restate form
   fields, trigger labels, or visited-by roles in your Task prompt. Focus your
@@ -88,7 +100,9 @@ Review each agent's description to understand when it should be used:
 - `## Raw HTTP Request` - Full HTTP request with headers and body
 - `## Response` - HTTP response captured by the browser extension
 
-You do NOT need to include the raw request in your prompt to subagents. Just provide clear testing instructions.
+You do NOT need to include the raw request in your prompt to subagents. Just provide clear testing
+instructions. But you MUST pass `request_id` — without it this whole block is either missing or
+attached from the wrong endpoint.
 
 ## Orchestration Workflow
 
