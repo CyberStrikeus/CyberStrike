@@ -29,6 +29,7 @@ const OWNER: Record<SignalType, SpecialistClass> = {
   reflected_input: "injection",
   stored_reflection: "injection",
   rate_limit_absent: "business-logic",
+  technology: "misconfiguration",
 } satisfies Record<SignalType, SpecialistClass>
 
 // Retest priority per signal type — how urgently the owning specialist should
@@ -54,6 +55,7 @@ const PRIORITY: Record<SignalType, RetestPriority> = {
   reflected_input: "medium",
   rate_limit_absent: "medium",
   server_banner: "low",
+  technology: "medium",
 } satisfies Record<SignalType, RetestPriority>
 
 export interface RoutedSignal {

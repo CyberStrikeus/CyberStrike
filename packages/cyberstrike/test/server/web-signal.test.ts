@@ -18,6 +18,8 @@ import {
   WeakCookieFlagsDetector,
   OpenRedirectDetector,
   ExposedArtifactDetector,
+  TechnologyDetector,
+  TechPlaybook,
 } from "../../src/session/web/signal"
 import type { Header, ObservedResponse, SignalType } from "../../src/session/web/signal"
 
@@ -145,6 +147,56 @@ describe("passive detectors — positive and negative", () => {
     expect(new ExposedArtifactDetector().detect(res({ url: "https://shop.example.com/.env", status: 404, body: "not found" }))).toHaveLength(0)
     // ordinary path → nothing
     expect(new ExposedArtifactDetector().detect(res({ url: "https://shop.example.com/index.html", status: 200, body: "<html>" }))).toHaveLength(0)
+  })
+})
+
+describe("TechnologyDetector — fingerprint → actionable technology signal", () => {
+  const d = new TechnologyDetector()
+
+  test("detects WordPress from body markers, carries the slug in meta.tech", () => {
+    const sigs = d.detect(res({ body: '<link href="/wp-content/themes/x/style.css">' }))
+    expect(sigs).toHaveLength(1)
+    expect(sigs[0].type).toBe("technology")
+    expect(sigs[0].owner).toBe("misconfiguration")
+    expect(sigs[0].meta?.tech).toBe("wordpress")
+    expect(sigs[0].meta?.token).toBe("wordpress") // per-tech dedup
+  })
+
+  test("detects a stack from a header (X-Powered-By: Express)", () => {
+    const sigs = d.detect(res({ headers: [H("X-Powered-By", "Express")] }))
+    expect(sigs.map((s) => s.meta?.tech)).toContain("express")
+  })
+
+  test("emits one signal per DISTINCT stack on a response", () => {
+    const sigs = d.detect(res({ headers: [H("X-AspNet-Version", "4.0.30319")], body: "__NEXT_DATA__ = {}" }))
+    const techs = sigs.map((s) => s.meta?.tech).sort()
+    expect(techs).toEqual(["aspnet", "nextjs"])
+  })
+
+  test("silent on a plain response with no framework markers", () => {
+    expect(d.detect(res({ body: "<html><body>hello</body></html>" }))).toHaveLength(0)
+  })
+})
+
+describe("TechPlaybook — a detected stack maps to concrete test cases", () => {
+  test("known slug returns paths + vuln classes + a directive", () => {
+    const e = TechPlaybook.get("spring-boot")!
+    expect(e.paths).toContain("/actuator/env")
+    expect(e.vulnClasses).toContain("spel-injection")
+    expect(e.directive.length).toBeGreaterThan(0)
+  })
+
+  test("render produces a prompt block for multiple stacks, skips unknowns", () => {
+    const block = TechPlaybook.render(["wordpress", "not-a-real-stack", "graphql"])
+    expect(block).toContain("WordPress")
+    expect(block).toContain("GraphQL")
+    expect(block).not.toContain("not-a-real-stack")
+  })
+
+  test("slugForLabel maps recon_test labels to playbook slugs", () => {
+    expect(TechPlaybook.slugForLabel("Spring Boot")).toBe("spring-boot")
+    expect(TechPlaybook.slugForLabel("ASP.NET")).toBe("aspnet")
+    expect(TechPlaybook.slugForLabel("Apache")).toBeUndefined() // bare web server → no playbook
   })
 })
 

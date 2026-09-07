@@ -76,4 +76,17 @@ describe("RetestWorker.buildPrompt", () => {
     expect(p).toContain("456")
     expect(p).toContain("http_replay")
   })
+
+  test("a technology signal flag injects that stack's playbook test cases", () => {
+    // The flag value is `technology:<owner>:<slug>` (3rd segment = the detected stack).
+    const p = RetestWorker.buildPrompt(scenario({ signal: ["technology:misconfiguration:spring-boot"] }))
+    expect(p).toContain("stack-specific test cases")
+    expect(p).toContain("Spring Boot")
+    expect(p).toContain("/actuator/env") // a concrete probe from the playbook
+  })
+
+  test("a non-technology signal flag does NOT inject a playbook block", () => {
+    const p = RetestWorker.buildPrompt(scenario({ signal: ["sql_error:injection"] }))
+    expect(p).not.toContain("stack-specific test cases")
+  })
 })

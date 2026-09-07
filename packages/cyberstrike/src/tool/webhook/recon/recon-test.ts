@@ -4,6 +4,8 @@ import { webhookContext, toolResult, toolError } from "../define"
 import { Request } from "../../../session/request"
 import { ReconProbe, type MetafileReport, type FingerprintReport, type LeakageReport } from "./probe"
 import type { HttpSender } from "../transport"
+import { recordTechnology } from "../../../session/web/signal/ingest"
+import { TechPlaybook } from "../../../session/web/signal/tech-playbook"
 
 export namespace ReconTest {
   export type Mode = "metafiles" | "fingerprint" | "leakage"
@@ -97,7 +99,15 @@ export const ReconTestTool = Tool.define("recon_test", {
       const result = await ReconTest.run({ mode: "fingerprint", origin, limit: params.limit }, wctx.sender)
       const r = result as ReconTest.FingerprintResult
       const tech = r.report.detectedTech
-      const label = tech.length > 0 ? `${tech.join(", ")} detected` : "no technologies detected"
+      // Make the fingerprint ACTIONABLE: record each known stack as a `technology` signal so it
+      // queues the stack's TechPlaybook (same path as the passive detector) instead of dying as
+      // tool output. Needs a real captured request row to anchor the retest — hence request_id.
+      if (params.request_id && tech.length > 0) {
+        const slugs = tech.map((t) => TechPlaybook.slugForLabel(t)).filter((s): s is string => !!s)
+        recordTechnology(wctx.sessionID, params.request_id, slugs)
+      }
+      const queued = params.request_id ? " (queued stack-specific test cases)" : " (pass request_id to queue test cases)"
+      const label = tech.length > 0 ? `${tech.join(", ")} detected${queued}` : "no technologies detected"
       return toolResult(NAME + " fingerprint", label, r.report)
     }
 

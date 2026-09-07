@@ -263,6 +263,63 @@ export class ExposedArtifactDetector implements Detector {
 // The default battery, in a stable order. Cross-response stored_reflection is
 // added by the canary layer at wiring time; reflected_input needs a per-injection
 // marker and is emitted by the smart tools, not a passive detector here.
+// Tech fingerprints — precise, low-false-positive markers per stack. header regexes match a
+// response header VALUE (name is checked separately); body regexes match the raw body. The slug
+// is what the `technology` signal carries → TechPlaybook maps it to stack-specific test cases.
+const TECH_SIGNATURES: { slug: string; header?: { name: string; re: RegExp }; body?: RegExp }[] = [
+  { slug: "wordpress", body: /\/wp-(?:content|includes)\/|wp-json/i },
+  { slug: "wordpress", header: { name: "x-generator", re: /wordpress/i } },
+  { slug: "drupal", header: { name: "x-generator", re: /drupal/i } },
+  { slug: "drupal", body: /Drupal\.settings|\/sites\/(?:all|default)\/(?:themes|modules)\//i },
+  { slug: "joomla", body: /\/media\/jui\/|Joomla!|com_content/i },
+  { slug: "spring-boot", body: /"_links"\s*:\s*\{[^}]*"self"|Whitelabel Error Page/i },
+  { slug: "django", body: /csrfmiddlewaretoken|__debug__|Django/i },
+  { slug: "flask", header: { name: "server", re: /Werkzeug/i } },
+  { slug: "rails", header: { name: "x-runtime", re: /^[\d.]+$/ } },
+  { slug: "rails", body: /csrf-param.*authenticity_token|rails-ujs/i },
+  { slug: "aspnet", header: { name: "x-aspnet-version", re: /./ } },
+  { slug: "aspnet", header: { name: "x-powered-by", re: /asp\.net/i } },
+  { slug: "aspnet", header: { name: "server", re: /Kestrel/i } },
+  { slug: "express", header: { name: "x-powered-by", re: /express/i } },
+  { slug: "nextjs", header: { name: "x-powered-by", re: /next\.js/i } },
+  { slug: "nextjs", body: /__NEXT_DATA__|\/_next\/static\//i },
+  { slug: "nuxt", body: /window\.__NUXT__|\/_nuxt\//i },
+  { slug: "laravel", body: /laravel_session|XSRF-TOKEN.*laravel/i },
+  { slug: "laravel", header: { name: "set-cookie", re: /laravel_session/i } },
+  { slug: "tomcat", header: { name: "server", re: /(?:Apache-)?Coyote|Tomcat/i } },
+  { slug: "iis", header: { name: "server", re: /Microsoft-IIS/i } },
+  { slug: "graphql", body: /"data"\s*:\s*\{.*"__schema"|GraphQL/i },
+]
+
+// Recognize the tech stack from a response's headers/body and emit ONE `technology` signal per
+// detected stack — the deterministic driver that turns a fingerprint into queued, stack-specific
+// test cases (via TechPlaybook, injected into the retest dispatch prompt). Runs on every response
+// at ingest, so a stack is flagged the moment it is seen — no dependence on the agent choosing to
+// fingerprint. meta.token = the slug so each distinct stack dedups separately.
+export class TechnologyDetector implements Detector {
+  readonly signalType = "technology" as const
+  readonly owner = "misconfiguration" as const
+  detect(res: ObservedResponse): Signal[] {
+    const found = new Set<string>()
+    for (const sig of TECH_SIGNATURES) {
+      if (found.has(sig.slug)) continue
+      if (sig.header) {
+        const v = headerValue(res.headers, sig.header.name)
+        if (v && sig.header.re.test(v)) found.add(sig.slug)
+      } else if (sig.body && res.body && sig.body.test(res.body)) {
+        found.add(sig.slug)
+      }
+    }
+    return [...found].map((slug) => ({
+      type: this.signalType,
+      owner: this.owner,
+      requestId: res.requestId,
+      evidence: `detected ${slug}`,
+      meta: { token: slug, tech: slug },
+    }))
+  }
+}
+
 export const DETECTORS: Detector[] = [
   new FullPathDisclosureDetector(),
   new StackTraceDetector(),
@@ -277,6 +334,7 @@ export const DETECTORS: Detector[] = [
   new WeakCookieFlagsDetector(),
   new OpenRedirectDetector(),
   new ExposedArtifactDetector(),
+  new TechnologyDetector(),
 ]
 
 /** Run a detector battery over one response, flattening all emitted signals. */

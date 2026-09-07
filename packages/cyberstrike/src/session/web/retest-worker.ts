@@ -19,6 +19,7 @@ import { WebRetest } from "./web-retest"
 import { WebProvider } from "@/cloud/provider-web"
 import { Instance } from "@/project/instance"
 import type { SpecialistClass } from "./signal/types"
+import { TechPlaybook } from "./signal/tech-playbook"
 
 export namespace RetestWorker {
   const log = Log.create({ service: "retest-worker" })
@@ -70,6 +71,17 @@ export namespace RetestWorker {
     if (s.flags.role?.length) lines.push(`- Roles discovered: ${s.flags.role.join(", ")}`)
     if (s.flags.object_value?.length) lines.push(`- Object values to try: ${s.flags.object_value.join(", ")}`)
     if (s.flags.signal?.length) lines.push(`- Signals: ${s.flags.signal.join(", ")}`)
+    // A technology signal carries its stack slug as a 3rd ":"-segment. Turn detected stacks into
+    // concrete, stack-specific test cases by injecting their TechPlaybook — so a fingerprint always
+    // drives real tests here, not just an agent readout.
+    const techSlugs = (s.flags.signal ?? [])
+      .filter((v) => v.startsWith("technology:"))
+      .map((v) => v.split(":")[2])
+      .filter((t): t is string => !!t)
+    const playbook = techSlugs.length ? TechPlaybook.render(techSlugs) : ""
+    if (playbook) {
+      lines.push("", "## Detected stack — run these stack-specific test cases:", playbook)
+    }
     lines.push(
       "",
       "Call web_get_session_context first for the full credential/observation context, then use http_replay (compare / sweep) to test. Record a coverage note or report a finding when done.",

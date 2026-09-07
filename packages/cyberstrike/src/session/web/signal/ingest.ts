@@ -51,15 +51,52 @@ function enqueueRetest(sessionID: string, s: Signal): void {
     // in the value for deterministic dispatch.
     const keyHash = Request.findById(sessionID, s.requestId)?.key_hash
     if (!keyHash) return
+    // A technology signal also carries its tech slug (meta.tech) as a 3rd segment, so the retest
+    // dispatch can inject that stack's TechPlaybook. resolveAgents still reads segment [1] = owner.
+    const owner = router.ownerOf(s.type)
+    const value =
+      s.type === "technology" && typeof s.meta?.tech === "string"
+        ? `${s.type}:${owner}:${s.meta.tech}`
+        : `${s.type}:${owner}`
     WebRetest.flag({
       sessionID,
       keyHash,
       type: "signal",
-      value: `${s.type}:${router.ownerOf(s.type)}`,
+      value,
       priority: router.priorityOf(s.type),
     })
   } catch (e) {
     log.debug("new_signal retest flag failed (ignored)", { err: String(e) })
+  }
+}
+
+// Record actively-detected technologies (recon_test fingerprint) as `technology` signals so the
+// active probe feeds the SAME signal→retest→playbook path as the passive TechnologyDetector.
+// `slugs` are TechPlaybook slugs (already label→slug normalized by the caller). requestId must be a
+// real captured row (its key_hash anchors the retest); a synthetic/unknown id simply records the
+// signal without a retest. NEVER throws.
+export function recordTechnology(sessionID: string, requestId: string, slugs: string[]): number {
+  try {
+    if (slugs.length === 0) return 0
+    const realRequest = !!Request.findById(sessionID, requestId)?.key_hash
+    const store = new SignalStore(sessionID)
+    let recorded = 0
+    for (const slug of new Set(slugs)) {
+      const s: Signal = {
+        type: "technology",
+        owner: router.ownerOf("technology"),
+        requestId,
+        evidence: `detected ${slug}`,
+        meta: { token: slug, tech: slug },
+      }
+      if (store.record(s).deduped) continue
+      recorded++
+      if (realRequest) enqueueRetest(sessionID, s)
+    }
+    return recorded
+  } catch (e) {
+    log.debug("recordTechnology failed (ignored)", { err: String(e) })
+    return 0
   }
 }
 

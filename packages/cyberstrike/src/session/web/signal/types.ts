@@ -36,6 +36,10 @@ export type SignalType =
   | "reflected_input"
   | "stored_reflection"
   | "rate_limit_absent"
+  // A detected technology / framework (WordPress, Spring Boot, Django…). Not a flaw itself,
+  // but a deterministic driver: it queues the stack-specific test-case playbook (TechPlaybook)
+  // so a detected stack always becomes concrete tests, not just an agent readout.
+  | "technology"
 
 // One response header. A DTO decoupled from the DB row shape — the ingest/replay
 // wiring adapts stored responses into this before running detectors.
