@@ -813,6 +813,11 @@
   let settingsOpen = false
   let mountedAt = 0 // when the dock was appended — see panel-visibility (popup toggle)
   let isSpawned = false // true in a browser CyberStrike spawned (opened with a role hash)
+  // The role label this profile was spawned with (#__cs_cred). Bound once from the launch
+  // hash and NEVER cleared, so Start capture in a spawned role browser always tags traffic
+  // as that identity even if the panel field was emptied/re-rendered — otherwise the profile
+  // silently captured as "Anonymous" and org1/org2 attribution (IDOR/BFLA) was lost.
+  let assignedCred = null
 
   // Hovering anywhere on the dock cluster (logo, satellites, sub-buttons, panel) reveals the
   // satellites + subs AND pauses the AI (set-hold), so a full-page navigation doesn't wipe the
@@ -919,7 +924,9 @@
     const status = await send({ type: "panel-status" })
     if (!(status && status.attached)) {
       attachBtn.disabled = true
-      const role = cred.value.trim() || "Anonymous"
+      // Prefer the field, then the immutable spawned identity, then Anonymous. A spawned
+      // role browser must never fall through to Anonymous just because the field is empty.
+      const role = cred.value.trim() || assignedCred || "Anonymous"
       const res = await send({ type: "start-capture", role, url: location.href })
       attachBtn.disabled = false
       if (res && res.ok) {
@@ -2007,6 +2014,7 @@
     // auto-capture (that would record login noise and there's no session yet). Pre-fill
     // the role and guide the user to log in first; they click Start capture afterward,
     // which registers the role + attaches on the shared session.
+    assignedCred = label // bind the profile's identity from the hash (survives field edits)
     cred.value = label
     renderRole(label) // shows the "<ROLE> — log in as this identity" banner
     roleHint.textContent = `Log in as "${label}", then press Start capture.`
