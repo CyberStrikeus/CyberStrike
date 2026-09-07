@@ -54,7 +54,9 @@ export function resolve(request: Request.Info): ResolvedRequest | { error: strin
   if (request.credential_id) {
     const cred = WebCredential.getById(request.credential_id)
     if (cred) {
-      for (const [k, v] of Object.entries(cred.headers)) headers[k.toLowerCase()] = v
+      // Per-origin auth: only this identity's headers for the TARGET host (url.host).
+      for (const [k, v] of Object.entries(WebCredential.authForHost(cred.authByHost, url.host)))
+        headers[k.toLowerCase()] = v
       authSource = `credential:${request.credential_id}`
     }
   } else if (fromRaw && (headers["cookie"] || headers["authorization"])) {

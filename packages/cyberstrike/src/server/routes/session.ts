@@ -1552,7 +1552,8 @@ export const SessionRoutes = lazy(() =>
           const updated = WebCredential.update({
             id: params.credentialID,
             sessionID: params.sessionID,
-            headers: body.headers,
+            // Manual API update has no host context → wildcard "*" (applies on every host).
+            headers: body.headers ? { "*": body.headers } : undefined,
             label: body.label,
             containerID: body.container_id,
             roleID: body.role_id,

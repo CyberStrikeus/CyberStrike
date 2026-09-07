@@ -177,3 +177,71 @@ describe("WebCredential.captureAuthFromRaw — fill a placeholder credential fro
     })
   })
 })
+
+describe("WebCredential — per-origin auth (auth is host-scoped, not one flat blob)", () => {
+  const raw = (host: string, auth: string) => `GET /x HTTP/1.1\r\nHost: ${host}\r\n${auth}\r\nAccept: */*\r\n\r\n`
+
+  test("a third-party analytics request does NOT clobber the app session captured for another host", async () => {
+    await withSession(async (sid) => {
+      const rol1 = WebCredential.ensure({ sessionID: sid, label: "rol1" })
+      // Portal: the real session cookie.
+      WebCredential.captureAuthFromRaw({
+        sessionID: sid,
+        credentialID: rol1.id,
+        rawRequest: raw("portal.example.com", "Cookie: app_session=REAL"),
+      })
+      // Analytics beacon on a DIFFERENT host: a Basic public-token + its own cookies. This used to
+      // overwrite the portal cookie (single flat blob, newest-wins) — the cross-origin clobber bug.
+      WebCredential.captureAuthFromRaw({
+        sessionID: sid,
+        credentialID: rol1.id,
+        rawRequest: raw("m.example.com", "Authorization: Basic public-token\r\nCookie: _ga=trk"),
+      })
+      const cred = WebCredential.getById(rol1.id)!
+      // Portal host still holds the real session, untouched by the analytics request.
+      expect(WebCredential.authForHost(cred.authByHost, "portal.example.com")["Cookie"]).toBe("app_session=REAL")
+      // Analytics host keeps its own auth, separately.
+      expect(WebCredential.authForHost(cred.authByHost, "m.example.com")["Authorization"]).toBe("Basic public-token")
+      expect(WebCredential.authForHost(cred.authByHost, "m.example.com")["Cookie"]).toBe("_ga=trk")
+    })
+  })
+
+  test("authForHost returns nothing for a host the identity never authenticated to (no wrong-host bleed)", async () => {
+    await withSession(async (sid) => {
+      const rol1 = WebCredential.ensure({ sessionID: sid, label: "rol1" })
+      WebCredential.captureAuthFromRaw({ sessionID: sid, credentialID: rol1.id, rawRequest: raw("portal.example.com", "Cookie: s=1") })
+      const cred = WebCredential.getById(rol1.id)!
+      expect(WebCredential.authForHost(cred.authByHost, "api.example.com")).toEqual({})
+    })
+  })
+
+  test("distinct hosts each keep their own scheme (cookie session vs bearer)", async () => {
+    await withSession(async (sid) => {
+      const rol1 = WebCredential.ensure({ sessionID: sid, label: "rol1" })
+      WebCredential.captureAuthFromRaw({ sessionID: sid, credentialID: rol1.id, rawRequest: raw("portal.example.com", "Cookie: sess=abc") })
+      WebCredential.captureAuthFromRaw({ sessionID: sid, credentialID: rol1.id, rawRequest: raw("api.example.com", "Authorization: Bearer JWT") })
+      const cred = WebCredential.getById(rol1.id)!
+      expect(WebCredential.authForHost(cred.authByHost, "portal.example.com")).toEqual({ Cookie: "sess=abc" })
+      expect(WebCredential.authForHost(cred.authByHost, "api.example.com")).toEqual({ Authorization: "Bearer JWT" })
+    })
+  })
+
+  test("a legacy flat header row is read as a wildcard '*' set (applies to any host)", async () => {
+    const abh = WebCredential.normalizeAuth({ Authorization: "Bearer legacy", Cookie: "s=1" })
+    expect(abh).toEqual({ "*": { Authorization: "Bearer legacy", Cookie: "s=1" } })
+    // wildcard resolves for any host (back-compat), while a per-host row does not fall through.
+    expect(WebCredential.authForHost(abh, "anything.example.com")["Authorization"]).toBe("Bearer legacy")
+  })
+
+  test("flattened `headers` view still surfaces all auth (display/presence unchanged)", async () => {
+    await withSession(async (sid) => {
+      const rol1 = WebCredential.ensure({ sessionID: sid, label: "rol1" })
+      WebCredential.captureAuthFromRaw({ sessionID: sid, credentialID: rol1.id, rawRequest: raw("portal.example.com", "Cookie: sess=abc") })
+      WebCredential.captureAuthFromRaw({ sessionID: sid, credentialID: rol1.id, rawRequest: raw("api.example.com", "Authorization: Bearer JWT") })
+      const cred = WebCredential.getById(rol1.id)!
+      expect(Object.keys(cred.headers).length).toBeGreaterThan(0) // presence check still works
+      expect(cred.headers["Cookie"]).toBe("sess=abc")
+      expect(cred.headers["Authorization"]).toBe("Bearer JWT")
+    })
+  })
+})

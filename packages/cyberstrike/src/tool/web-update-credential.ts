@@ -36,7 +36,8 @@ export const WebUpdateCredentialTool = Tool.define("web_update_credential", {
     const updated = WebCredential.update({
       id: params.credential_id,
       sessionID,
-      headers: params.headers,
+      // A manual override has no host context → wildcard "*" so it applies on every host.
+      headers: { "*": params.headers },
     })
 
     if (!updated) {

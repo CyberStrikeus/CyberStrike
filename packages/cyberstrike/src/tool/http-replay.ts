@@ -178,8 +178,13 @@ function stripAuthHeaders(msg: HttpMessage.Request): HttpMessage.Request {
 function applyCredential(msg: HttpMessage.Request, credentialID: string): HttpMessage.Request | { error: string } {
   const cred = WebCredential.getById(credentialID)
   if (!cred) return { error: `Credential "${credentialID}" not found in this session.` }
+  // Auth is per-origin: apply the identity's auth FOR THE TARGET HOST only. If this identity never
+  // authenticated to this host, its auth set is empty and the request goes out unauthenticated (a
+  // truthful "this identity has no session here"), instead of injecting another host's session.
+  const host = (msg.headers.find((h) => h.name.toLowerCase() === "host")?.value ?? "").toLowerCase()
+  const auth = WebCredential.authForHost(cred.authByHost, host)
   let out = stripAuthHeaders(msg)
-  for (const [name, value] of Object.entries(cred.headers)) {
+  for (const [name, value] of Object.entries(auth)) {
     out = Mutate.setHeader(out, name, value)
   }
   return out

@@ -203,7 +203,9 @@ export const WebCredentialTable = sqliteTable(
       .references(() => SessionTable.id, { onDelete: "cascade" }),
     label: text().notNull(),
     // Generic header storage: { "Authorization": "Bearer xxx", "Cookie": "session=abc" }
-    headers: text({ mode: "json" }).$type<Record<string, string>>().notNull(),
+    // Per-host auth: host → { headerName: value }. Legacy rows are a flat header map and are
+    // normalized (wrapped under "*") on read. See WebCredential.AuthByHost.
+    headers: text({ mode: "json" }).$type<Record<string, Record<string, string>>>().notNull(),
     container_id: text(), // Firefox container ID for sync
     role_id: text(),
     ...Timestamps,
