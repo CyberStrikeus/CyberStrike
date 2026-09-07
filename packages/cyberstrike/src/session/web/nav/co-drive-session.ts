@@ -171,9 +171,15 @@ export class CoDriveSession {
         reason = stop
         break
       }
-      // Material change (navigation / new content) ⇒ re-plan next iteration; a no-op just advances
-      // to the next action already queued in the current plan.
-      if (result.effect === "navigated" || result.effect === "revealed") plan = null
+      // Material change ⇒ re-plan next iteration; a no-op advances to the next queued action.
+      // EXCEPTION: input actions (type/select/check/press) are the steps of a deliberate sequence
+      // — fill email, fill password, submit. Typing mutates the DOM (validation UI, controlled-input
+      // re-render) which reads as "revealed", but that must NOT abort the queued follow-up steps or
+      // the crawler re-plans after every keystroke and re-fills the first field forever. Only a real
+      // navigation re-plans an input action; click/hover keep re-planning on revealed (new UI opened).
+      const inputAction =
+        action.kind === "type" || action.kind === "select" || action.kind === "check" || action.kind === "press"
+      if (result.effect === "navigated" || (result.effect === "revealed" && !inputAction)) plan = null
     }
 
     HBLog.record(sessionID, "codrive", "stop", { reason, actions: Crawl.summary(sessionID).actions, pages: Crawl.summary(sessionID).pages_visited })

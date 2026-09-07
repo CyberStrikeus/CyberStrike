@@ -4,7 +4,7 @@ import { DeterministicNavigator } from "../../../../src/session/web/nav/determin
 import { WebActExecutor } from "../../../../src/session/web/nav/web-act-executor"
 import { Guardrails, PageStateObserver } from "../../../../src/session/web/nav/guardrails"
 import { snapshotSignature } from "../../../../src/session/web/nav/types"
-import type { Navigator } from "../../../../src/session/web/nav/types"
+import type { Navigator, Observer, Executor, Action, ActionResult, PageSnapshot } from "../../../../src/session/web/nav/types"
 import { PageState } from "../../../../src/session/web/page-state"
 import { WebControl } from "../../../../src/session/web/control"
 import { WebDriver } from "../../../../src/session/web/driver"
@@ -76,6 +76,56 @@ describe("DeterministicNavigator.plan", () => {
 
     PageState.set("s", { url: "https://h/leaf", title: "", clickables: [], forms: [], links: [], observed_at: 2 })
     expect((await nav.plan("s", snap("s", "https://h/leaf"))).actions).toEqual([])
+  })
+})
+
+describe("CoDriveSession — a multi-step input plan runs to completion", () => {
+  test("[type, type, click] all execute — a type's 'revealed' effect does NOT abort the plan", async () => {
+    const sid = "s"
+    WebControl.connect(sid, { send: () => {} }) // guardrails: something is connected
+    WebScope.ensure(sid, "https://h/login")
+    PageState.set(sid, {
+      url: "https://h/login",
+      title: "",
+      clickables: [
+        { id: "email", tag: "input", role: "textbox", label: "Email", href: "" },
+        { id: "pw", tag: "input", role: "", label: "Password", href: "" },
+        { id: "go", tag: "button", role: "", label: "Sign in", href: "" },
+      ],
+      forms: [],
+      links: [],
+      observed_at: 1,
+    })
+
+    const recorded: string[] = []
+    let planCall = 0
+    const navigator: Navigator = {
+      async plan(): Promise<{ rationale: string; actions: Action[] }> {
+        planCall++
+        if (planCall === 1)
+          return {
+            rationale: "login",
+            actions: [
+              { kind: "type", elementId: "email", text: "u@x.test", label: "Email" },
+              { kind: "type", elementId: "pw", text: "pw", label: "Password" },
+              { kind: "click", elementId: "go", label: "Sign in" },
+            ],
+          }
+        return { rationale: "done", actions: [{ kind: "done", reason: "explored" }] }
+      },
+    }
+    const observer: Observer = { observe: () => PageState.get(sid, "https://h/login") as PageSnapshot }
+    const executor: Executor = {
+      async run(_sid: string, action: Action): Promise<ActionResult> {
+        recorded.push(`${action.kind}:${"elementId" in action ? action.elementId : ""}`)
+        // Typing mutates the DOM → "revealed" (the exact effect that used to abort the plan and make
+        // the crawler re-type the first field forever). The submit click navigates.
+        return { ok: true, status: "ok", effect: action.kind === "click" ? "navigated" : "revealed" }
+      },
+    }
+    const session = new CoDriveSession({ observer, navigator, executor, guardrails: new Guardrails() }, { pollMs: 1, maxIdle: 3 })
+    await session.run(sid)
+    expect(recorded).toEqual(["type:email", "type:pw", "click:go"])
   })
 })
 
