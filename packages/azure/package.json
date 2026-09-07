@@ -7,6 +7,12 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "cyberstrike": {
+    "coreApi": "1.1.0",
+    "domains": ["azure"],
+    "tools": ["azurehook", "get_cloud_intel", "get_cloud_groups", "get_assess_findings"],
+    "tier": "free"
+  },
   "files": [
     "src"
   ],
@@ -17,7 +23,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@cyberstrike-io/plugin": "workspace:*"
+    "@cyberstrike-io/plugin": "workspace:*",
+    "zod": "catalog:"
   },
   "peerDependencies": {
     "cyberstrike": "*"

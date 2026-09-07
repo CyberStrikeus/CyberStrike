@@ -81,6 +81,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@cyberstrike-io/plugin": "workspace:*",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@tsconfig/node22": "catalog:",
