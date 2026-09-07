@@ -1795,7 +1795,15 @@ export const SessionRoutes = lazy(() =>
           // credential-fill failure must not drop the capture.
           if (credentialID && body.text) {
             try {
-              WebCredential.captureAuthFromRaw({ sessionID, credentialID, rawRequest: body.text })
+              const firstAuth = WebCredential.captureAuthFromRaw({ sessionID, credentialID, rawRequest: body.text })
+              if (firstAuth) {
+                // A new authenticated identity just became replayable. Re-test the endpoints
+                // already captured (by anonymous / other roles) AS this identity, so
+                // cross-credential access-control testing (org1 vs org2 tenant isolation,
+                // BFLA) is queued deterministically the moment the role authenticates —
+                // instead of waiting for the orchestrator to happen to notice a new credential.
+                WebRetest.checkTriggers({ sessionID, triggerType: "new_credential", triggerSource: credentialID })
+              }
             } catch (err) {
               log.warn("failed to capture credential auth from request", { error: (err as Error).message })
             }

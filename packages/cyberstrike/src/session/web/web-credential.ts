@@ -145,17 +145,22 @@ export namespace WebCredential {
   // which template-dedup collapses onto whichever identity hit the endpoint first),
   // so each identity fills in from its own traffic even on shared endpoints. Merge,
   // never clear; write only on change to avoid a DB write + Bus event per request.
-  export function captureAuthFromRaw(input: { sessionID: string; credentialID: string; rawRequest: string }): void {
+  // Returns true only when THIS call first made a real alternate identity replayable —
+  // i.e. the credential had no auth before, now does, and it is not the anonymous
+  // baseline. The caller uses that edge to queue cross-credential retests exactly once.
+  export function captureAuthFromRaw(input: { sessionID: string; credentialID: string; rawRequest: string }): boolean {
     const auth = extractAuthHeaders(input.rawRequest)
-    if (Object.keys(auth).length === 0) return
+    if (Object.keys(auth).length === 0) return false
     const existing = getById(input.credentialID)
-    if (!existing || existing.session_id !== input.sessionID) return
+    if (!existing || existing.session_id !== input.sessionID) return false
     const merged = { ...existing.headers, ...auth }
     const changed =
       Object.keys(merged).length !== Object.keys(existing.headers).length ||
       Object.keys(merged).some((k) => existing.headers[k] !== merged[k])
-    if (!changed) return
+    if (!changed) return false
     update({ id: input.credentialID, sessionID: input.sessionID, headers: merged })
+    const wasEmpty = Object.keys(existing.headers).length === 0
+    return wasEmpty && existing.label.trim().toLowerCase() !== "anonymous"
   }
 
   // Case-insensitive (and whitespace-trimmed) label lookup: "anonymous", "Anonymous" and

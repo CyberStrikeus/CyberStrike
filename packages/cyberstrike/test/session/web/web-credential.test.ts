@@ -144,4 +144,36 @@ describe("WebCredential.captureAuthFromRaw — fill a placeholder credential fro
       expect(WebCredential.getById(cred.id)!.headers["Authorization"]).toBe("Bearer new")
     })
   })
+
+  test("returns true ONCE — the empty→authenticated transition of a real identity", async () => {
+    await withSession(async (sid) => {
+      const cred = WebCredential.ensure({ sessionID: sid, label: "org1" })
+      // first auth on a previously-empty non-anonymous credential → the retest trigger edge
+      const first = WebCredential.captureAuthFromRaw({ sessionID: sid, credentialID: cred.id, rawRequest: rawWith("Authorization: Bearer t1") })
+      expect(first).toBe(true)
+      // a later token change is NOT a first-population → no re-trigger
+      const again = WebCredential.captureAuthFromRaw({ sessionID: sid, credentialID: cred.id, rawRequest: rawWith("Authorization: Bearer t2") })
+      expect(again).toBe(false)
+    })
+  })
+
+  test("returns false for the anonymous baseline (no cross-cred retest for it)", async () => {
+    await withSession(async (sid) => {
+      const anon = WebCredential.ensure({ sessionID: sid, label: "Anonymous" })
+      const r = WebCredential.captureAuthFromRaw({ sessionID: sid, credentialID: anon.id, rawRequest: rawWith("Cookie: s=1") })
+      expect(r).toBe(false)
+    })
+  })
+
+  test("returns false when the request carries no auth (nothing became replayable)", async () => {
+    await withSession(async (sid) => {
+      const cred = WebCredential.ensure({ sessionID: sid, label: "org1" })
+      const r = WebCredential.captureAuthFromRaw({
+        sessionID: sid,
+        credentialID: cred.id,
+        rawRequest: `GET /public HTTP/1.1\r\nHost: app.example.com\r\nAccept: */*\r\n\r\n`,
+      })
+      expect(r).toBe(false)
+    })
+  })
 })
