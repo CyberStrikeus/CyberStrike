@@ -16,6 +16,17 @@ export type PageSnapshot = PageState.StatePayload
 // Type/Submit-with-values/Scroll/Back are added with the framework strategies (P5).
 export type Action =
   | { kind: "click"; elementId: string; label?: string }
+  // Type a model-chosen value into ANY typeable field (input/textarea/contenteditable) —
+  // search boxes, filters, chat/message composers, login email/password, any input — so the
+  // crawler interacts like a human and triggers the endpoints those fields drive, not just
+  // clicks links. Decoupled from WebFormFill's pre-computed form values.
+  | { kind: "type"; elementId: string; text: string; label?: string }
+  // The rest of the human-interaction set — so the AI can operate ANY widget on ANY framework:
+  | { kind: "select"; elementId: string; value: string; label?: string } // choose a dropdown option
+  | { kind: "check"; elementId: string; checked: boolean; label?: string } // toggle checkbox/radio/switch
+  | { kind: "hover"; elementId: string; label?: string } // reveal hover menus
+  | { kind: "scroll"; elementId?: string } // reveal lazy/virtualized/below-the-fold content
+  | { kind: "press"; elementId?: string; key: string } // press a key (Enter submits a form-less field)
   | { kind: "navigate"; url: string }
   | { kind: "form"; form: WebFormFill.FormCandidate }
   | { kind: "done"; reason: string }

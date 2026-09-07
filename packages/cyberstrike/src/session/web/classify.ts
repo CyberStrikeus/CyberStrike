@@ -58,6 +58,8 @@ export interface Clickable {
   testid?: string // data-testid / data-test / data-cy — a stable handle the AI can reason about
   shadow?: boolean // lives inside an (open) shadow root
   frame?: string // iframe src when the element lives inside a frame (absent = top document)
+  type?: string // input type (email/tel/date/number/password/…) or "select" — so the AI enters a valid value
+  options?: string[] // a <select>'s option labels — so the AI picks a real option, not a guess
 }
 
 // Annotate every clickable in place; returns a kind-count summary for logging.

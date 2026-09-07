@@ -16,11 +16,17 @@ describe("WebFormFill.valueFor — benign deterministic values", () => {
     expect(WebFormFill.valueFor({ name: "", type: "number" })).toBe("1")
     expect(WebFormFill.valueFor({ name: "q", type: "search" })).toBe("test")
     expect(WebFormFill.valueFor({ name: "comment", type: "textarea" })).toBe("test")
-    // never auto-enter these
-    expect(WebFormFill.valueFor({ name: "", type: "password" })).toBeNull()
+    // password is now filled — a non-login form (signup / change-password) can't submit without it,
+    // and login-class forms are skipped whole at the candidate level (SKIP), not here.
+    expect(WebFormFill.valueFor({ name: "", type: "password" })).toBe("Test1234!Aa")
+    // structural / non-text controls stay null (select/checkbox/radio are handled by fillFor's ops)
     expect(WebFormFill.valueFor({ name: "", type: "hidden" })).toBeNull()
     expect(WebFormFill.valueFor({ name: "", type: "file" })).toBeNull()
     expect(WebFormFill.valueFor({ name: "", type: "checkbox" })).toBeNull()
+    // fillFor gives non-text controls their own op
+    expect(WebFormFill.fillFor({ name: "", type: "checkbox" })).toEqual({ op: "check", value: "true" })
+    expect(WebFormFill.fillFor({ name: "", type: "select-one" })).toEqual({ op: "select", value: "" })
+    expect(WebFormFill.fillFor({ name: "", type: "email" })).toEqual({ op: "type", value: "test@example.com" })
   })
 })
 
@@ -51,7 +57,7 @@ describe("WebFormFill.candidates — safety + fill plan", () => {
     expect(cands.length).toBe(1)
     expect(cands[0].kind).toBe("query")
     expect(cands[0].submitId).toBe("s1")
-    expect(cands[0].fills).toEqual([{ id: "f1", value: "test" }])
+    expect(cands[0].fills).toEqual([{ id: "f1", value: "test", op: "type" }])
   })
 
   test("an already-submitted form is not offered again", () => {
@@ -92,8 +98,44 @@ describe("WebFormFill.candidates — synthetic SPA forms (the chatbot case)", ()
     expect(cands.length).toBe(1)
     expect(cands[0].submitId).toBe("c2")
     // the textarea is typed into — this is the message that reaches the chatbot
-    expect(cands[0].fills).toEqual([{ id: "c1", value: "test" }])
+    expect(cands[0].fills).toEqual([{ id: "c1", value: "test", op: "type" }])
     // Send is not auth/logout/destructive, so it is not skipped
     expect(cands[0].kind).not.toBe("auth")
+  })
+})
+
+describe("WebFormFill.candidates — a full form (dropdown + checkbox + password), not just text", () => {
+  test("select/checkbox/radio/password each get the right fill op so the form actually completes", () => {
+    const sid = "reg"
+    PageState.set(sid, {
+      url: "https://h/signup",
+      title: "",
+      clickables: [{ id: "b", tag: "button", role: "button", label: "Create account", href: "" }],
+      forms: [
+        {
+          action: "/signup",
+          method: "post",
+          fields: [
+            { id: "email", name: "email", type: "email", required: true },
+            { id: "pw", name: "password", type: "password", required: true },
+            { id: "country", name: "country", type: "select-one", required: true },
+            { id: "agree", name: "tos", type: "checkbox", required: true },
+            { id: "plan", name: "plan", type: "radio", required: false },
+          ],
+          submit_id: "b",
+        },
+      ],
+      links: [],
+      observed_at: Date.now(),
+    })
+    const cands = WebFormFill.candidates(sid, PageState.get(sid, "https://h/signup")!)
+    expect(cands.length).toBe(1)
+    expect(cands[0].fills).toEqual([
+      { id: "email", value: "test@example.com", op: "type" },
+      { id: "pw", value: "Test1234!Aa", op: "type" }, // password now filled (non-login form)
+      { id: "country", value: "", op: "select" }, // "" → extension picks first valid option
+      { id: "agree", value: "true", op: "check" },
+      { id: "plan", value: "true", op: "check" },
+    ])
   })
 })

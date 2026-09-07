@@ -65,6 +65,88 @@ describe("clickPool — the safe, actionable universe the model chooses from", (
     ])
     expect(clickPool(sid, snap).map((p) => p.id)).toEqual(["u", "v"])
   })
+
+  test("marks text fields typeable (input/textarea/contenteditable/textbox) and buttons/links not", () => {
+    const sid = "s"
+    WebScope.ensure(sid, "https://app.example.com/")
+    const snap = page(sid, "https://app.example.com/", [
+      { id: "email", tag: "input", role: "textbox", label: "Email", href: "" },
+      { id: "pw", tag: "input", role: "", label: "Password", href: "" },
+      { id: "msg", tag: "textarea", role: "", label: "Message", href: "" },
+      { id: "rich", tag: "div", role: "", label: "Body", href: "", why: "contenteditable" },
+      { id: "cb", tag: "input", role: "checkbox", label: "Agree", href: "" },
+      { id: "btn", tag: "button", role: "", label: "Sign in", href: "" },
+      { id: "lnk", tag: "a", role: "link", label: "Home", href: "/home" },
+    ])
+    const typeable = new Set(clickPool(sid, snap).filter((p) => p.typeable).map((p) => p.id))
+    expect(typeable).toEqual(new Set(["email", "pw", "msg", "rich"])) // NOT checkbox/button/link
+  })
+})
+
+describe("mapActions — type action (human-like text entry into any field)", () => {
+  test("accepts a type action for a typeable field; drops unknown and duplicate ids", () => {
+    const sid = "s"
+    WebScope.ensure(sid, "https://h.test/")
+    // Login inputs reach the model as picks — perception captures them as clickables even though
+    // WebFormFill skips the login FORM. So the model can type into them directly (the login case).
+    const snap = page(sid, "https://h.test/login", [
+      { id: "email", tag: "input", role: "textbox", label: "Email", href: "" },
+      { id: "pw", tag: "input", role: "", label: "Password", href: "" },
+    ])
+    const picks = clickPool(sid, snap)
+    const actions = mapActions(
+      sid,
+      snap,
+      [
+        { kind: "type", element_id: "email", text: "user@corp.test" },
+        { kind: "type", element_id: "pw", text: "s3cret" },
+        { kind: "type", element_id: "ghost", text: "x" }, // unknown → dropped
+        { kind: "type", element_id: "email", text: "dup" }, // duplicate id → dropped
+      ],
+      picks,
+      [],
+    )
+    expect(actions).toEqual([
+      { kind: "type", elementId: "email", text: "user@corp.test", label: "Email" },
+      { kind: "type", elementId: "pw", text: "s3cret", label: "Password" },
+    ])
+  })
+
+  test("maps the full action set: select, check, hover, scroll (element-less), press", () => {
+    const sid = "s"
+    WebScope.ensure(sid, "https://h.test/")
+    const snap = page(sid, "https://h.test/f", [
+      { id: "country", tag: "select", role: "combobox", label: "Country", href: "" },
+      { id: "agree", tag: "input", role: "checkbox", label: "Agree", href: "" },
+      { id: "menu", tag: "div", role: "button", label: "Menu", href: "", why: "role" },
+      { id: "q", tag: "input", role: "searchbox", label: "Search", href: "" },
+    ])
+    const picks = clickPool(sid, snap)
+    // affordances surfaced to the model
+    expect(picks.find((p) => p.id === "country")?.selectable).toBe(true)
+    expect(picks.find((p) => p.id === "q")?.typeable).toBe(true)
+
+    const actions = mapActions(
+      sid,
+      snap,
+      [
+        { kind: "select", element_id: "country", value: "Germany" },
+        { kind: "check", element_id: "agree", checked: true },
+        { kind: "hover", element_id: "menu" },
+        { kind: "scroll" }, // element-less page scroll
+        { kind: "press", element_id: "q", key: "Enter" }, // submit a form-less search box
+      ],
+      picks,
+      [],
+    )
+    expect(actions).toEqual([
+      { kind: "select", elementId: "country", value: "Germany", label: "Country" },
+      { kind: "check", elementId: "agree", checked: true, label: "Agree" },
+      { kind: "hover", elementId: "menu", label: "Menu" },
+      { kind: "scroll", elementId: undefined },
+      { kind: "press", elementId: "q", key: "Enter" },
+    ])
+  })
 })
 
 describe("mapActions — validate raw model output against the live snapshot", () => {

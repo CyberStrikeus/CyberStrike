@@ -18,28 +18,39 @@ export namespace WebFormFill {
   // don't fill a form we won't submit.
   const SKIP: ReadonlySet<ElementKind> = new Set<ElementKind>(["auth", "logout", "destructive"])
 
+  // How a single field is filled: type text, select a dropdown option, or toggle a box.
+  export interface Fill {
+    id: string
+    value: string
+    op: "type" | "select" | "check"
+  }
+
   export interface FormCandidate {
     actionKey: string
     submitId: string
     label: string
     kind?: ElementKind
-    fills: { id: string; value: string }[]
+    fills: Fill[]
     score: number
   }
 
-  // Benign, human-plausible value for a field, or null to leave it (hidden/checkbox/select/
-  // password/file — not free-text, or unsafe to auto-enter). Single source for the defaults.
+  // Benign, human-plausible TEXT value for a field, or null for a non-text-typeable field
+  // (structural controls). Select / checkbox / radio are NOT text — they go through fillFor's
+  // dedicated ops, so they are excluded here.
   export function valueFor(field: { name: string; type: string }): string | null {
     const type = (field.type || "text").toLowerCase()
     const name = (field.name || "").toLowerCase()
-    if (["hidden", "submit", "button", "reset", "image", "file", "checkbox", "radio", "color", "range", "select", "select-one", "select-multiple", "password"].includes(type))
+    if (
+      ["hidden", "submit", "button", "reset", "image", "file", "color", "checkbox", "radio", "select", "select-one", "select-multiple"].includes(type)
+    )
       return null
     // Substring matching (not \b) — real field names glue words with underscores/camelCase
     // (user_email, firstName), where a word boundary would miss.
+    if (type === "password" || name.includes("password") || name.includes("passwd")) return "Test1234!Aa"
     if (type === "email" || name.includes("email")) return "test@example.com"
     if (type === "tel" || name.includes("phone") || name.includes("mobile")) return "5551234567"
     if (type === "url" || name.includes("website")) return "https://example.com"
-    if (type === "number") return "1"
+    if (type === "number" || type === "range") return "1"
     if (type === "date") return "2020-01-01"
     if (type === "month") return "2020-01"
     if (type === "week") return "2020-W01"
@@ -47,6 +58,19 @@ export namespace WebFormFill {
     if (type === "search" || name.includes("search") || name === "q") return "test"
     if (name.includes("name")) return "Test User"
     return "test" // text / textarea / anything else typeable
+  }
+
+  // The complete fill for a field — op + value — or null to leave it (structural controls). This
+  // is what lets a deterministic form fill complete a REAL form: dropdowns get an option, required
+  // checkboxes/radios get toggled, password/text get values. A select value of "" tells the
+  // extension to pick the first valid option (we don't know the option list server-side).
+  export function fillFor(field: { name: string; type: string }): { op: Fill["op"]; value: string } | null {
+    const type = (field.type || "text").toLowerCase()
+    if (["hidden", "submit", "button", "reset", "image", "file", "color"].includes(type)) return null
+    if (type === "checkbox" || type === "radio") return { op: "check", value: "true" }
+    if (type === "select" || type === "select-one" || type === "select-multiple") return { op: "select", value: "" }
+    const v = valueFor(field)
+    return v === null ? null : { op: "type", value: v }
   }
 
   function prioritized(label: string, action: string, priorities: string[]): boolean {
@@ -67,12 +91,12 @@ export namespace WebFormFill {
       const label = submit.label || "submit"
       const key = Crawl.actionKey(state.url, { role: "form", label, href: form.action })
       if (Crawl.isActed(sessionID, key)) continue
-      const fills: { id: string; value: string }[] = []
+      const fills: Fill[] = []
       for (const f of form.fields) {
         if (!f.id) continue
-        const v = valueFor(f)
-        if (v === null) continue
-        fills.push({ id: f.id, value: v })
+        const ff = fillFor(f)
+        if (!ff) continue
+        fills.push({ id: f.id, value: ff.value, op: ff.op })
       }
       if (fills.length === 0) continue
       let score = submit.kind === "query" ? 4 : submit.kind === "mutating" ? 3 : 2

@@ -1599,6 +1599,19 @@
       if (frameSrc) c.frame = frameSrc
       const rootNode = el.getRootNode && el.getRootNode()
       if (rootNode && rootNode !== document && rootNode.host) c.shadow = true
+      // Input TYPE (email/tel/date/number/password…) and select OPTIONS — so the AI enters a
+      // format-valid value and picks a real option instead of guessing from the label alone.
+      if (tag === "input") {
+        const it = el.getAttribute("type")
+        if (it) c.type = it.toLowerCase()
+      } else if (tag === "select") {
+        c.type = "select"
+        const opts = [...el.options]
+          .map((o) => (o.textContent || o.value || "").trim())
+          .filter(Boolean)
+          .slice(0, 12)
+        if (opts.length) c.options = opts
+      }
       clickables.push(c)
     }
     reregisterIO(tracked)
@@ -1981,6 +1994,26 @@
     el.dispatchEvent(new Event("change", { bubbles: true }))
   }
 
+  // Set a <select> to the option matching `value` (by value, then exact text, then substring) and
+  // fire input+change so frameworks see it. A non-<select> custom dropdown can't be set directly —
+  // return false so the driver falls back to click (open) + click (option). Framework-agnostic:
+  // native selects work everywhere; custom widgets are driven by the generic click path.
+  function selectOption(el, value) {
+    if (!el || el.tagName !== "SELECT") return false
+    const v = String(value == null ? "" : value).trim().toLowerCase()
+    const opts = [...el.options]
+    const opt =
+      opts.find((o) => o.value.toLowerCase() === v) ||
+      opts.find((o) => (o.textContent || "").trim().toLowerCase() === v) ||
+      opts.find((o) => (o.textContent || "").toLowerCase().includes(v)) ||
+      (v === "" ? opts.find((o) => !o.disabled) : undefined)
+    if (!opt) return false
+    el.value = opt.value
+    el.dispatchEvent(new Event("input", { bubbles: true }))
+    el.dispatchEvent(new Event("change", { bubbles: true }))
+    return true
+  }
+
   // Best-effort hydration wait (P5): meta-framework SSR HTML is inert until its JS hydrates. We
   // can't observe framework-internal hydration from an isolated content script, so we approximate:
   // wait for document-complete, then two animation frames + a short settle (hydration runs right
@@ -2058,6 +2091,75 @@
           aiActivity("AI navigates → " + cmd.url)
           await csleep(200)
           location.href = cmd.url
+          return sendResponse({ ok: true })
+        }
+        if (cmd.op === "select") {
+          const el = elMap.get(cmd.elementId)
+          if (!el) return sendResponse({ ok: false, error: "element not found" })
+          el.scrollIntoView({ block: "center" })
+          await csleep(60)
+          const value = cmd.value != null ? cmd.value : cmd.text
+          aiActivity("AI selects: " + String(value ?? ""))
+          aiPointAt(el)
+          await csleep(220)
+          // Native <select> set directly; a custom dropdown falls back to a click to open it (the
+          // driver then clicks the revealed option as a normal element).
+          if (selectOption(el, value)) return sendResponse({ ok: true })
+          el.click()
+          return sendResponse({ ok: true, opened: true })
+        }
+        if (cmd.op === "check") {
+          const el = elMap.get(cmd.elementId)
+          if (!el) return sendResponse({ ok: false, error: "element not found" })
+          el.scrollIntoView({ block: "center" })
+          await csleep(60)
+          const want = cmd.checked !== false // default = check
+          aiActivity("AI " + (want ? "checks" : "unchecks") + ": " + (labelOf(el) || "box"))
+          aiPointAt(el)
+          await csleep(220)
+          if ("checked" in el && el.checked !== want) el.click() // click toggles native + ARIA widgets
+          else if (!("checked" in el)) el.click()
+          return sendResponse({ ok: true })
+        }
+        if (cmd.op === "hover") {
+          const el = elMap.get(cmd.elementId)
+          if (!el) return sendResponse({ ok: false, error: "element not found" })
+          el.scrollIntoView({ block: "center" })
+          await csleep(60)
+          aiActivity("AI hovers: " + (labelOf(el) || el.tagName.toLowerCase()))
+          aiPointAt(el)
+          await csleep(220)
+          for (const t of ["pointerover", "mouseover", "pointerenter", "mouseenter", "mousemove"])
+            el.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window }))
+          await csleep(250) // let a hover menu open before the next observation
+          return sendResponse({ ok: true })
+        }
+        if (cmd.op === "scroll") {
+          // Reveal lazy / virtualized / below-the-fold content. Target an element, or page down.
+          aiActivity("AI scrolls")
+          if (cmd.elementId) {
+            const el = elMap.get(cmd.elementId)
+            if (el) el.scrollIntoView({ block: "center" })
+          } else {
+            const dy = cmd.dy != null ? Number(cmd.dy) : Math.round(window.innerHeight * 0.85)
+            window.scrollBy({ top: dy, left: 0, behavior: "auto" })
+          }
+          await csleep(450) // lazy loaders fire on scroll — give them a beat
+          return sendResponse({ ok: true })
+        }
+        if (cmd.op === "press") {
+          // Press a key: Enter to submit a form-less search box, Escape to close, arrows for widgets.
+          const el = cmd.elementId ? elMap.get(cmd.elementId) : document.activeElement || document.body
+          if (!el) return sendResponse({ ok: false, error: "element not found" })
+          const key = cmd.key || "Enter"
+          try {
+            el.focus()
+          } catch {}
+          aiActivity("AI presses " + key)
+          aiPointAt(el)
+          await csleep(150)
+          for (const t of ["keydown", "keypress", "keyup"])
+            el.dispatchEvent(new KeyboardEvent(t, { key, bubbles: true, cancelable: true }))
           return sendResponse({ ok: true })
         }
         sendResponse({ ok: false, error: "unknown op" })

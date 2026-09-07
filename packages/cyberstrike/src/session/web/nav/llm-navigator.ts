@@ -33,8 +33,12 @@ export namespace LlmNavigator {
   // (element_id must exist and be safe, form_index in range, navigate url in-scope + known)
   // before it is trusted; the model can never invent a target or reach a guarded control.
   export interface RawAction {
-    kind: "click" | "navigate" | "form" | "done"
+    kind: "click" | "type" | "select" | "check" | "hover" | "scroll" | "press" | "navigate" | "form" | "done"
     element_id?: string
+    text?: string // kind=type: the value to enter into element_id
+    value?: string // kind=select: the option to choose
+    checked?: boolean // kind=check: desired state (default true)
+    key?: string // kind=press: key name (default Enter)
     url?: string
     form_index?: number
     reason?: string
@@ -59,10 +63,17 @@ export namespace LlmNavigator {
     aria?: Record<string, string>
     target?: string
     visited: boolean
+    typeable?: boolean // accepts text (input/textarea/contenteditable) → a `type` action target
+    selectable?: boolean // a dropdown (select/combobox/listbox) → a `select` action target
+    type?: string // input type (email/tel/date/number/password/…) → enter a format-valid value
+    options?: string[] // a <select>'s options → choose one of these, don't guess
   }
 }
 
-const MAX_ACTIONS = 6
+// A plan can be long enough to fill a real multi-field form (e.g. 10+ inputs) plus its submit in
+// ONE pass — element ids are stable within a plan (no re-observe between actions), so a single
+// long plan is more robust than splitting a form across re-plans.
+const MAX_ACTIONS = 15
 const CLICK_CAP = 60
 const FORM_CAP = 20
 const MODEL_TIMEOUT_MS = 30000 // a hung plan call must not freeze the loop → fall back to deterministic
@@ -85,19 +96,54 @@ const SYSTEM =
   "framework), the focus areas, coverage so far, and every safe actionable element and form. Return " +
   "an ORDERED short plan (1-5 moves) toward NEW areas. Reference an element ONLY by an element_id " +
   "from the list, a form ONLY by a form_index, and navigate ONLY to a url shown on the page. Keep " +
-  "`rationale` to ONE short sentence. FORMS ARE COVERAGE: before leaving a page (or emitting `done`), " +
-  "if it lists an un-submitted form — a search box, a filter, a settings form, or a message/chat/ask " +
-  "input — FILL and submit it. These exercise the app and surface endpoints even when they do not " +
-  "lead to a new URL, so filling them is progress, not a detour. In particular, if the app has a " +
-  "chat/assistant/message composer, send a message through it. Emit a single `done` action only when " +
-  "the whole app appears fully explored AND no un-submitted forms remain. Never choose logout/sign-out " +
-  "or delete/remove controls."
+  "`rationale` to ONE short sentence. " +
+  "INTERACT LIKE A HUMAN — TYPE, don't just click: to enter text into ANY field (marked `typeable` " +
+  "in the element list — a search box, a filter, a message/chat/ask composer, a login email or " +
+  "password, any input), emit a `type` action with that field's element_id and a `text` value YOU " +
+  "choose that is realistic and appropriate for the field (a plausible search term, a real chat " +
+  "message; for a login, the credentials given in the credential/page context). Then click the " +
+  "field's submit / search / Sign-in button. Entering values and submitting is how the app's real " +
+  "endpoints get triggered and captured — a click alone on an empty field does nothing. When a form " +
+  "has SEVERAL fields (e.g. email AND password), put a `type` for EVERY field PLUS the submit click " +
+  "in ONE plan, in order — never submit a partially-filled form and never plan just the first field. " +
+  "Fill EVERY typeable field on the page before leaving it. Use `form` only for the simple pre-listed forms; " +
+  "prefer `type` for entering values. " +
+  "You have the FULL human action set — use the one that fits each element: `click` (buttons, links, " +
+  "tabs), `type` (typeable fields), `select` (an element marked `selectable` — a dropdown; give the " +
+  "option in `value`), `check` (a checkbox/radio/switch; `checked` true/false), `hover` (reveal a " +
+  "menu that only appears on mouseover), `scroll` (no element_id: page down to load lazy/infinite " +
+  "content; or an element_id to bring it into view), `press` (a key such as Enter to submit a search " +
+  "box that has no button — element_id optional). Operate every kind of widget the page has. " +
+  "Do NOT invent passwords for a login you have no credentials " +
+  "for — if a login blocks you and no credentials are in context, emit `done` with reason " +
+  "'login required — operator must authenticate' instead of clicking Sign-in on empty fields. " +
+  "FORMS ARE COVERAGE: never leave a page (or emit `done`) with an un-submitted form or un-filled " +
+  "typeable field still on it. Emit a single `done` only when the whole app appears fully explored " +
+  "AND nothing typeable remains. Never choose logout/sign-out or delete/remove controls."
 
 // Safe, actionable click targets for the model — the same universe the executor can run: allow
 // policy (deny=logout / confirm=destructive are excluded — they cannot run autonomously anyway),
 // enabled, not already acted on this page, and (for links) in-scope. Unvisited targets first so
 // the model's attention lands on the frontier when the list is capped. This is the ONE place that
 // widens beyond Rank's nav/query set to the full interactive surface (the pivot's core).
+// A field accepts typed text if its role/tag/interactivity says so — used to mark `type` targets.
+const TYPEABLE_ROLES = new Set(["textbox", "searchbox", "combobox", "spinbutton"])
+const NON_TYPEABLE_INPUT_ROLES = new Set(["button", "checkbox", "radio", "switch", "slider", "menuitemcheckbox", "menuitemradio"])
+function isTypeable(c: { role?: string; tag?: string; why?: string }): boolean {
+  const role = (c.role ?? "").toLowerCase()
+  const tag = (c.tag ?? "").toLowerCase()
+  if (TYPEABLE_ROLES.has(role)) return true
+  if (tag === "textarea") return true
+  if (tag === "input" && !NON_TYPEABLE_INPUT_ROLES.has(role)) return true
+  if ((c.why ?? "").includes("contenteditable")) return true
+  return false
+}
+// A dropdown to choose an option from (native <select> or an ARIA combobox/listbox widget).
+function isSelectable(c: { role?: string; tag?: string }): boolean {
+  const role = (c.role ?? "").toLowerCase()
+  return (c.tag ?? "").toLowerCase() === "select" || role === "combobox" || role === "listbox"
+}
+
 export function clickPool(sessionID: string, snapshot: PageSnapshot, cap = CLICK_CAP): LlmNavigator.Pick[] {
   const out: LlmNavigator.Pick[] = []
   for (const c of snapshot.clickables) {
@@ -116,6 +162,10 @@ export function clickPool(sessionID: string, snapshot: PageSnapshot, cap = CLICK
       aria: c.aria,
       target,
       visited: target ? Crawl.isPageVisited(sessionID, target) : false,
+      typeable: isTypeable(c),
+      selectable: isSelectable(c),
+      type: c.type,
+      options: c.options,
     })
     if (out.length >= cap * 2) break // hard-bound the scan on pathological pages
   }
@@ -179,10 +229,17 @@ export function buildContext(
   const elLines = picks.map((p) => {
     const bits: string[] = []
     if (p.section) bits.push(`in: ${p.section}`)
+    // The input type (email/date/tel…) tells the model what value shape is valid; the select's
+    // options tell it exactly which values are choosable.
+    if (p.type && p.type !== "select") bits.push(`input=${p.type}`)
+    if (p.options && p.options.length) bits.push(`options: ${p.options.join(" | ")}`)
     if (p.why) bits.push(p.why)
     if (p.aria && Object.keys(p.aria).length) bits.push(`aria=${JSON.stringify(p.aria)}`)
     const tail = p.target ? ` -> ${p.target}${p.visited ? " [visited]" : ""}` : ""
-    return `  - ${p.id} [${p.kind}] "${p.label}"${bits.length ? ` (${bits.join("; ")})` : ""}${tail}`
+    // Mark the affordance so the model emits the RIGHT action (type into typeable, select a
+    // dropdown) instead of a bare click.
+    const aff = p.typeable ? ",typeable" : p.selectable ? ",selectable" : ""
+    return `  - ${p.id} [${p.kind}${aff}] "${p.label}"${bits.length ? ` (${bits.join("; ")})` : ""}${tail}`
   })
   return [
     `URL: ${snapshot.url}`,
@@ -218,8 +275,13 @@ export function mapActions(
   forms: WebFormFill.FormCandidate[],
 ): Action[] {
   const byId = new Map(picks.map((p) => [p.id, p]))
+  // Ids the model may type into: any pick + any form field (a login form skipped by WebFormFill
+  // still exposes its inputs as picks, so its fields remain typeable targets here).
+  const formFieldIds = new Set<string>()
+  for (const f of forms) for (const x of f.fills) if (x.id) formFieldIds.add(x.id)
   const out: Action[] = []
   const usedClick = new Set<string>()
+  const usedType = new Set<string>()
   const usedForm = new Set<number>()
   const usedNav = new Set<string>()
   for (const a of raw) {
@@ -227,6 +289,48 @@ export function mapActions(
     if (a.kind === "done") {
       out.push({ kind: "done", reason: a.reason?.trim() || "explored" })
       break // done ends the plan — nothing after it matters
+    }
+    if (a.kind === "type") {
+      if (!a.element_id || a.text == null || usedType.has(a.element_id)) continue
+      const p = byId.get(a.element_id)
+      if (!p && !formFieldIds.has(a.element_id)) continue // must be a real, on-page field
+      usedType.add(a.element_id)
+      out.push({ kind: "type", elementId: a.element_id, text: String(a.text), label: p?.label })
+      continue
+    }
+    if (a.kind === "select") {
+      if (!a.element_id || a.value == null) continue
+      const p = byId.get(a.element_id)
+      if (!p && !formFieldIds.has(a.element_id)) continue
+      out.push({ kind: "select", elementId: a.element_id, value: String(a.value), label: p?.label })
+      continue
+    }
+    if (a.kind === "check") {
+      if (!a.element_id) continue
+      const p = byId.get(a.element_id)
+      if (!p && !formFieldIds.has(a.element_id)) continue
+      out.push({ kind: "check", elementId: a.element_id, checked: a.checked !== false, label: p?.label })
+      continue
+    }
+    if (a.kind === "hover") {
+      if (!a.element_id) continue
+      const p = byId.get(a.element_id)
+      if (!p) continue
+      out.push({ kind: "hover", elementId: a.element_id, label: p.label })
+      continue
+    }
+    if (a.kind === "scroll") {
+      // Element-optional: a page scroll (no id) or scroll a known element into view.
+      const p = a.element_id ? byId.get(a.element_id) : undefined
+      if (a.element_id && !p) continue
+      out.push({ kind: "scroll", elementId: p?.id })
+      continue
+    }
+    if (a.kind === "press") {
+      const p = a.element_id ? byId.get(a.element_id) : undefined
+      if (a.element_id && !p && !formFieldIds.has(a.element_id)) continue
+      out.push({ kind: "press", elementId: a.element_id || undefined, key: a.key || "Enter" })
+      continue
     }
     if (a.kind === "form") {
       if (a.form_index == null || usedForm.has(a.form_index)) continue
@@ -267,16 +371,20 @@ const defaultAsk: LlmNavigator.Ask = async ({ system, user }) => {
     actions: z
       .array(
         z.object({
-          kind: z.enum(["click", "navigate", "form", "done"]),
-          element_id: z.string().describe("id of an element from the list (for kind=click)").optional(),
+          kind: z.enum(["click", "type", "select", "check", "hover", "scroll", "press", "navigate", "form", "done"]),
+          element_id: z.string().describe("id of an element from the list (click/type/select/check/hover; optional for scroll/press)").optional(),
+          text: z.string().describe("the value to enter into element_id (for kind=type)").optional(),
+          value: z.string().describe("the option to choose (for kind=select)").optional(),
+          checked: z.boolean().describe("desired state, default true (for kind=check)").optional(),
+          key: z.string().describe("key to press, e.g. Enter (for kind=press)").optional(),
           url: z.string().describe("a url shown on the page (for kind=navigate)").optional(),
           form_index: z.number().int().describe("index of a form from the list (for kind=form)").optional(),
           reason: z.string().optional(),
         }),
       )
       .min(1)
-      .max(6)
-      .describe("ordered next moves, best first"),
+      .max(15)
+      .describe("ordered next moves, best first (fill a whole form + submit in one plan)"),
   })
   const result = streamText({
     model: language,

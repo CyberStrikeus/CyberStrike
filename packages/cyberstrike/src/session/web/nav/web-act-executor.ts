@@ -40,6 +40,36 @@ export class WebActExecutor implements Executor {
       return this.settleAndEffect(sessionID, before.url, beforeSig, "ok")
     }
 
+    if (action.kind === "type") {
+      // Human-like keystrokes into any typeable field (native-setter path handles React/Vue/
+      // Angular controlled inputs — same op the form filler uses). Mark acted so the loop can't
+      // re-type the same field and spin; a submit is a separate click action the model plans next.
+      const r = await WebAct.perform(sessionID, { op: "type", url: before.url, elementId: action.elementId, text: action.text })
+      if (!r.ok) {
+        if (!STOP_STATUSES.has(r.status)) Crawl.record(sessionID, Crawl.actionKey(before.url, findEl(before, action.elementId)))
+        return { ok: false, status: r.status, effect: STOP_STATUSES.has(r.status) ? "blocked" : "noop" }
+      }
+      return this.settleAndEffect(sessionID, before.url, beforeSig, "ok")
+    }
+
+    // The rest of the human-interaction set — one gated path each (WebAct guards + budgets them).
+    if (action.kind === "select" || action.kind === "check" || action.kind === "hover" || action.kind === "scroll" || action.kind === "press") {
+      const r = await WebAct.perform(sessionID, {
+        op: action.kind,
+        url: before.url,
+        elementId: "elementId" in action ? action.elementId : undefined,
+        value: action.kind === "select" ? action.value : undefined,
+        checked: action.kind === "check" ? action.checked : undefined,
+        key: action.kind === "press" ? action.key : undefined,
+      })
+      if (!r.ok) {
+        if (!STOP_STATUSES.has(r.status) && "elementId" in action && action.elementId)
+          Crawl.record(sessionID, Crawl.actionKey(before.url, findEl(before, action.elementId)))
+        return { ok: false, status: r.status, effect: STOP_STATUSES.has(r.status) ? "blocked" : "noop" }
+      }
+      return this.settleAndEffect(sessionID, before.url, beforeSig, "ok")
+    }
+
     // click
     const r = await WebAct.perform(sessionID, { op: "click", url: before.url, elementId: action.elementId })
     if (!r.ok) {
@@ -54,7 +84,14 @@ export class WebActExecutor implements Executor {
   // "stop" only when the whole loop should end. Recorded so it is not refilled.
   private async executeForm(sessionID: string, url: string, form: WebFormFill.FormCandidate): Promise<"ok" | "stop"> {
     for (const fill of form.fills) {
-      const r = await WebAct.perform(sessionID, { op: "type", url, elementId: fill.id, text: fill.value })
+      // Each field is filled by the op its control needs — type text, select a dropdown option,
+      // toggle a checkbox/radio — so a real form (not just a search box) actually completes.
+      const r =
+        fill.op === "select"
+          ? await WebAct.perform(sessionID, { op: "select", url, elementId: fill.id, value: fill.value })
+          : fill.op === "check"
+            ? await WebAct.perform(sessionID, { op: "check", url, elementId: fill.id, checked: fill.value !== "false" })
+            : await WebAct.perform(sessionID, { op: "type", url, elementId: fill.id, text: fill.value })
       if (!r.ok && STOP_STATUSES.has(r.status)) return "stop"
     }
     const submit = await WebAct.perform(sessionID, { op: "click", url, elementId: form.submitId })
@@ -66,8 +103,17 @@ export class WebActExecutor implements Executor {
   // Fire-and-forget — never awaited, never throws. `elementId` (for click) lets the overlay
   // highlight the exact target; `intent` is the plan's rationale (the "why").
   private narrate(sessionID: string, action: Action, intent?: string): void {
-    const label = action.kind === "click" ? action.label ?? "" : action.kind === "form" ? action.form.label : action.kind === "navigate" ? action.url : ""
-    const elementId = action.kind === "click" ? action.elementId : undefined
+    const label =
+      action.kind === "click"
+        ? action.label ?? ""
+        : action.kind === "type"
+          ? `${action.label ? action.label + ": " : ""}${action.text}`
+          : action.kind === "form"
+            ? action.form.label
+            : action.kind === "navigate"
+              ? action.url
+              : ""
+    const elementId = "elementId" in action ? action.elementId : undefined
     // Cap the rationale so a verbose model can't flood the overlay/panel — one short line is enough.
     const short = (intent ?? "").trim().slice(0, 140)
     void WebControl.send(sessionID, { op: "narrate", act: action.kind, label, elementId, intent: short }, 2000).catch(() => {})
