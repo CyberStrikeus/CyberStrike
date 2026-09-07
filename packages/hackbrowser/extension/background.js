@@ -354,9 +354,43 @@ let controlReconnectTimer = null
 const WATCHDOG_MS = 45000
 let controlEverOpen = false
 let controlDownSince = 0
+// controlEverOpen / controlDownSince are SW-memory globals, so an MV3 service-worker eviction
+// (Chrome kills an idle SW at ~30s — BELOW WATCHDOG_MS) both stops the setTimeout reconnect loop
+// AND resets these to false/0, which made watchdogExpired() unable to ever fire again — the exact
+// scenario the dead-man's-switch exists for. Mirror the state to storage (same pattern as
+// persistCapState) and restore it whenever the SW wakes, so the watchdog spans an eviction.
+function setWatchdog(ever, downSince) {
+  controlEverOpen = ever
+  controlDownSince = downSince
+  try {
+    chrome.storage.local.set({ watchdog: { ever, downSince } })
+  } catch {}
+}
+async function loadWatchdog() {
+  const w = await new Promise((r) => chrome.storage.local.get("watchdog", (o) => r(o && o.watchdog)))
+  if (!w) return
+  controlEverOpen = !!w.ever
+  controlDownSince = w.downSince || 0
+}
 function watchdogExpired() {
   return controlEverOpen && controlDownSince > 0 && Date.now() - controlDownSince > WATCHDOG_MS
 }
+// The eviction-proof backstop: an alarm wakes the SW even after Chrome evicted it, so the check
+// runs regardless of whether the reconnect loop is still alive. Created once (not re-created on
+// every SW start, which would reset its schedule). 30s is the current chrome.alarms floor; paired
+// with the 45s threshold the worst-case self-close latency is ~45–75s after CS vanishes.
+const WATCHDOG_ALARM = "cs-watchdog"
+try {
+  chrome.alarms.get(WATCHDOG_ALARM, (a) => {
+    if (!a) chrome.alarms.create(WATCHDOG_ALARM, { periodInMinutes: 0.5 })
+  })
+  chrome.alarms.onAlarm.addListener(async (a) => {
+    if (a.name !== WATCHDOG_ALARM) return
+    await loadWatchdog() // the SW may have just woken with empty globals
+    if (watchdogExpired()) await selfCloseBrowser()
+  })
+} catch {}
+void loadWatchdog() // restore watchdog state on SW startup (survives eviction)
 async function selfCloseBrowser() {
   // ONLY a spawned (throwaway CfT) profile self-closes. A user who self-installed this extension
   // in their own browser must NEVER have their windows closed because CS went away.
@@ -415,8 +449,7 @@ async function connectControl() {
   ws.onopen = () => {
     console.log("[hackbrowser] control WS connected")
     void hblog("control-ws-open")
-    controlEverOpen = true // watchdog: we reached CS at least once → self-protect if it later vanishes
-    controlDownSince = 0
+    setWatchdog(true, 0) // watchdog: we reached CS at least once → self-protect if it later vanishes
     // Tell the server who is driving as soon as the control channel is up. The panel default
     // is "ai" (co-driving), so an un-toggled tab must still report "ai" — otherwise the server
     // never learns the driver and the AI loop never starts even though the panel shows "AI
@@ -472,7 +505,7 @@ async function connectControl() {
   }
   ws.onclose = () => {
     if (controlWs === ws) controlWs = null
-    if (!controlDownSince) controlDownSince = Date.now() // watchdog: start the "CS unreachable" clock
+    if (!controlDownSince) setWatchdog(controlEverOpen, Date.now()) // watchdog: start the "CS unreachable" clock
     scheduleControlReconnect()
   }
   ws.onerror = () => {
@@ -738,8 +771,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       if (typeof msg.url === "string" && msg.url.trim()) patch.cyberstrike = msg.url.trim().replace(/\/+$/, "")
       patch.cs_pw = typeof msg.password === "string" ? msg.password : ""
       chrome.storage.local.set(patch, () => {
-        controlDownSince = 0 // give the control channel a fresh start against the new server
-        controlEverOpen = false
+        setWatchdog(false, 0) // give the control channel a fresh start against the new server
         sendResponse({ ok: true })
       })
       return true // async sendResponse

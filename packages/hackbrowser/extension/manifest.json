@@ -3,7 +3,7 @@
   "name": "CyberStrike HackBrowser 2.0",
   "version": "0.1.1",
   "description": "Streams full browser network traffic to CyberStrike for security testing.",
-  "permissions": ["webRequest", "tabs", "storage", "webNavigation", "scripting"],
+  "permissions": ["webRequest", "tabs", "storage", "webNavigation", "scripting", "alarms"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
