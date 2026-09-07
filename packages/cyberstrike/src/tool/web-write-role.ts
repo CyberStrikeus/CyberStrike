@@ -51,10 +51,17 @@ export const WebWriteRoleTool = Tool.define("web_write_role", {
       level: params.level,
     })
 
-    // A new role applies session-wide for access-control retesting: flag every captured
-    // endpoint with this role value. Endpoint-dedup means each endpoint gets ONE queue entry
-    // whose `role` flag accumulates values — no per-role duplicate rows.
-    const flagged = WebRetest.flagAll({ sessionID, type: "role", value: role.name, priority: "high" })
+    // A new role applies session-wide for access-control retesting — but TARGETED: only endpoints
+    // with an access-control surface (skip static assets), so the queue tracks real attack surface
+    // instead of one retest per JS/CSS/image. Endpoint-dedup means each endpoint gets ONE queue
+    // entry whose `role` flag accumulates values — no per-role duplicate rows.
+    const flagged = WebRetest.flagMatching({
+      sessionID,
+      type: "role",
+      value: role.name,
+      priority: "high",
+      match: WebRetest.isAccessControlSurface,
+    })
 
     const output = {
       role: {

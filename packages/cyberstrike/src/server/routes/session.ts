@@ -1842,9 +1842,16 @@ export const SessionRoutes = lazy(() =>
                 // A new authenticated identity just became replayable. Re-test the endpoints
                 // already captured (by anonymous / other roles) AS this identity, so
                 // cross-credential access-control testing (org1 vs org2 tenant isolation,
-                // BFLA) is queued deterministically the moment the role authenticates —
-                // instead of waiting for the orchestrator to happen to notice a new credential.
-                WebRetest.flagAll({ sessionID, type: "credential", value: credentialID, priority: "high" })
+                // BFLA) is queued the moment the role authenticates. TARGETED: only real app
+                // endpoints (skip static assets — a bundle/image has no access-control surface),
+                // so a new credential no longer floods the queue with one retest per JS/CSS/image.
+                WebRetest.flagMatching({
+                  sessionID,
+                  type: "credential",
+                  value: credentialID,
+                  priority: "high",
+                  match: WebRetest.isAccessControlSurface,
+                })
               }
             } catch (err) {
               log.warn("failed to capture credential auth from request", { error: (err as Error).message })

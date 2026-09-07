@@ -51,11 +51,17 @@ export const WebWriteObjectValueTool = Tool.define("web_write_object_value", {
 
     let retestsQueued = 0
     if (result.isNew) {
-      // A newly-discovered object value is IDOR fuel: flag every captured endpoint with it so
-      // the id-manipulation specialist re-tests using it. Endpoint-dedup means each endpoint
-      // holds ONE entry whose `object_value` flag accumulates the values — the specialist
-      // sweeps them together instead of a separate queue row per value (the old 480-row blowup).
-      retestsQueued = WebRetest.flagAll({ sessionID, type: "object_value", value: params.value, priority: "medium" })
+      // A newly-discovered object value is IDOR fuel — but TARGETED: only flag object-referencing
+      // endpoints (a path param, a numeric/uuid segment, query/body params, or an /api/ path). A
+      // parameter-less static page can't have IDOR, so it is never flagged. Endpoint-dedup means
+      // each endpoint holds ONE entry whose `object_value` flag accumulates the values.
+      retestsQueued = WebRetest.flagMatching({
+        sessionID,
+        type: "object_value",
+        value: params.value,
+        priority: "medium",
+        match: WebRetest.isObjectReferencing,
+      })
     }
 
     const output = {

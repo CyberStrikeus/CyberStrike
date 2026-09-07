@@ -74,22 +74,47 @@ describe("WebRetest.markExamined / re-open", () => {
   })
 })
 
-describe("WebRetest.flagAll — session-wide (one entry per endpoint, deduped)", () => {
-  test("flags every captured endpoint once; same value again adds nothing", async () => {
+describe("WebRetest.flagMatching — TARGETED session-wide (relevance-filtered, deduped)", () => {
+  const anyEndpoint = () => true
+
+  test("flags matching endpoints once; same value again adds nothing; a new value accumulates", async () => {
     await withSession(async (sid) => {
       Request.add({ sessionID: sid, method: "GET", normalizedPath: "/a", keyHash: "k_a" })
       Request.add({ sessionID: sid, method: "POST", normalizedPath: "/b", keyHash: "k_b" })
-      const n1 = WebRetest.flagAll({ sessionID: sid, type: "credential", value: "org1", priority: "high" })
+      const n1 = WebRetest.flagMatching({ sessionID: sid, type: "credential", value: "org1", priority: "high", match: anyEndpoint })
       expect(n1).toBe(2) // one entry per distinct endpoint
       expect(WebRetest.getPending(sid).length).toBe(2)
       // same credential again → no change (already flagged)
-      expect(WebRetest.flagAll({ sessionID: sid, type: "credential", value: "org1" })).toBe(0)
+      expect(WebRetest.flagMatching({ sessionID: sid, type: "credential", value: "org1", match: anyEndpoint })).toBe(0)
       expect(WebRetest.getPending(sid).length).toBe(2)
       // a DIFFERENT credential → accumulates on the same 2 entries, still 2 rows
-      expect(WebRetest.flagAll({ sessionID: sid, type: "credential", value: "org2" })).toBe(2)
+      expect(WebRetest.flagMatching({ sessionID: sid, type: "credential", value: "org2", match: anyEndpoint })).toBe(2)
       expect(WebRetest.getPending(sid).length).toBe(2)
       const a = WebRetest.getPending(sid).find((r) => r.endpoint === "/a")!
       expect(a.flags.credential).toEqual(["org1", "org2"])
+    })
+  })
+
+  test("access-control surface EXCLUDES static assets (a credential no longer floods js/css/images)", async () => {
+    await withSession(async (sid) => {
+      Request.add({ sessionID: sid, method: "GET", normalizedPath: "/api/users/me", keyHash: "k_api" })
+      Request.add({ sessionID: sid, method: "GET", normalizedPath: "/static/app.bundle.js", keyHash: "k_js" })
+      Request.add({ sessionID: sid, method: "GET", normalizedPath: "/assets/logo.png", keyHash: "k_img" })
+      const n = WebRetest.flagMatching({ sessionID: sid, type: "credential", value: "org1", match: WebRetest.isAccessControlSurface })
+      expect(n).toBe(1) // only the API endpoint — the .js and .png are skipped
+      expect(WebRetest.getPending(sid).map((r) => r.endpoint)).toEqual(["/api/users/me"])
+    })
+  })
+
+  test("object_value flags ONLY object-referencing endpoints (path param / api / query), not plain pages", async () => {
+    await withSession(async (sid) => {
+      Request.add({ sessionID: sid, method: "GET", normalizedPath: "/api/orders/{id}", keyHash: "k_ord" }) // path param → yes
+      Request.add({ sessionID: sid, method: "GET", normalizedPath: "/api/users/me", keyHash: "k_me" }) // /api/ → yes
+      Request.add({ sessionID: sid, method: "GET", normalizedPath: "/about", keyHash: "k_about" }) // plain page, no param → no
+      Request.add({ sessionID: sid, method: "GET", normalizedPath: "/app.js", keyHash: "k_js2" }) // static → no
+      const n = WebRetest.flagMatching({ sessionID: sid, type: "object_value", value: "456", match: WebRetest.isObjectReferencing })
+      expect(n).toBe(2)
+      expect(WebRetest.getPending(sid).map((r) => r.endpoint).sort()).toEqual(["/api/orders/{id}", "/api/users/me"])
     })
   })
 

@@ -153,24 +153,86 @@ export namespace WebRetest {
    * endpoints for access-control retesting). Endpoint-specific triggers (a signal, an object
    * value seen on one endpoint) use `flag` with the relevant key_hash instead.
    */
-  export function flagAll(input: {
+  // Endpoint metadata a relevance predicate judges (one representative request row per key_hash).
+  export interface EndpointMeta {
+    keyHash: string
+    method: string
+    path: string
+    contentType: string
+    hasQuery: boolean
+    hasBody: boolean
+    authenticated: boolean
+  }
+
+  // A static asset (js/css/image/font/media/map) has NO access-control or IDOR surface — a new
+  // credential/role/object-value must never queue a retest against it. This is the single biggest
+  // source of the old flagAll flood (every bundle/image got a cross-cred retest).
+  const STATIC_RE = /\.(?:js|mjs|css|map|png|jpe?g|gif|svg|ico|webp|avif|woff2?|ttf|eot|otf|mp4|webm|mp3|pdf|wasm)(?:$|\?)/i
+  function isStaticAsset(e: EndpointMeta): boolean {
+    if (STATIC_RE.test(e.path)) return true
+    const ct = e.contentType.toLowerCase()
+    return /^(?:image|font|audio|video)\//.test(ct) || ct.includes("text/css") || ct.includes("javascript") || ct.includes("ecmascript")
+  }
+
+  // An endpoint with access-control surface — anything that isn't a static asset. A new
+  // credential/role is worth retesting here (BFLA / cross-tenant), but never against a bundle/image.
+  export function isAccessControlSurface(e: EndpointMeta): boolean {
+    return !isStaticAsset(e)
+  }
+
+  // An object-referencing endpoint — where substituting an id could expose another tenant's object
+  // (IDOR). Requires a path parameter, a numeric/uuid path segment, query/body params, or an API
+  // path. A parameter-less static page cannot have IDOR, so an object_value never flags it.
+  const UUID_OR_NUM_SEG = /\/(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:$|\/)/i
+  export function isObjectReferencing(e: EndpointMeta): boolean {
+    if (isStaticAsset(e)) return false
+    return e.path.includes("{") || UUID_OR_NUM_SEG.test(e.path) || e.hasQuery || e.hasBody || /\/api(?:\/|$)/i.test(e.path)
+  }
+
+  // Flag only the endpoints a relevance predicate selects — the targeted replacement for the old
+  // blanket flagAll. A session-wide trigger (new credential/role/object-value) still applies across
+  // endpoints, but ONLY the ones where that value can actually matter, so the retest queue stays
+  // proportional to real attack surface instead of exploding over every captured request.
+  export function flagMatching(input: {
     sessionID: string
     type: FlagType
     value: string
     priority?: z.infer<typeof Priority>
+    match: (e: EndpointMeta) => boolean
   }): number {
-    const keyHashes = Database.use((db) =>
-      db
-        .selectDistinct({ key_hash: RequestTable.key_hash })
+    // One representative row per key_hash (first seen wins) with the columns the predicate needs.
+    const byKey = new Map<string, EndpointMeta>()
+    Database.use((db) => {
+      for (const r of db
+        .select({
+          key_hash: RequestTable.key_hash,
+          method: RequestTable.method,
+          normalized_path: RequestTable.normalized_path,
+          canonical_path: RequestTable.canonical_path,
+          content_type: RequestTable.response_content_type,
+          query_hash: RequestTable.query_hash,
+          body_hash: RequestTable.body_hash,
+          credential_id: RequestTable.credential_id,
+        })
         .from(RequestTable)
         .where(eq(RequestTable.session_id, input.sessionID))
-        .all()
-        .map((r) => r.key_hash)
-        .filter((k): k is string => !!k),
-    )
+        .all()) {
+        if (!r.key_hash || byKey.has(r.key_hash)) continue
+        byKey.set(r.key_hash, {
+          keyHash: r.key_hash,
+          method: r.method ?? "GET",
+          path: r.normalized_path || r.canonical_path || "/",
+          contentType: r.content_type ?? "",
+          hasQuery: !!r.query_hash,
+          hasBody: !!r.body_hash,
+          authenticated: !!r.credential_id,
+        })
+      }
+    })
     let changed = 0
-    for (const keyHash of keyHashes) {
-      if (flag({ sessionID: input.sessionID, keyHash, type: input.type, value: input.value, priority: input.priority }))
+    for (const e of byKey.values()) {
+      if (!input.match(e)) continue
+      if (flag({ sessionID: input.sessionID, keyHash: e.keyHash, type: input.type, value: input.value, priority: input.priority }))
         changed++
     }
     return changed
