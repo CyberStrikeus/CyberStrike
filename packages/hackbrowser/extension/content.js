@@ -533,7 +533,7 @@
     flashTransition("Opening browser for " + label + "…", "ai", "", 1400)
     const res = await send({ type: "spawn-credential", role: label, roleName: role.name, roleLevel: role.level, url: location.href })
     if (res && res.ok) {
-      roleHint.textContent = `Opened a browser for "${label}"${role.name ? " (" + role.name + ")" : ""} — log in there, then Start capture.`
+      roleHint.textContent = `Opened a browser for "${label}"${role.name ? " (" + role.name + ")" : ""} — log in there, then hit Record.`
     } else {
       // Distinguish the failure so the banner isn't a blanket "unreachable": auth (wrong password),
       // truly unreachable, or reachable-but-spawn-failed (e.g. the browser couldn't launch).
@@ -716,7 +716,7 @@
             <button class="mini go" id="srvConnect">Connect</button>
           </div>
           <input class="fld" id="srvPw" type="password" placeholder="password (remote / tunnel only)" style="margin-top:7px" />
-          <button class="cta" id="attachBtn">Start capture</button>
+          <button class="cta" id="attachBtn">Start Record</button>
           <div class="ailink" id="ailink"><span class="dot"></span><span class="txt" id="ailinkTxt"></span></div>
           <div class="lbl">CyberStrike session</div>
           <div class="rowg">
@@ -741,7 +741,7 @@
         </div>
       </div>
       <button class="wing l" id="wLeft" title="Add Credential/Role">+<span class="wtip">Add Credential/Role</span></button>
-      <button class="wing r" id="wRight" title="Start Unauthenticated Recording"><span class="rec"></span><span class="wtip">Start Unauthenticated Recording</span></button>
+      <button class="wing r" id="wRight" title="Start Record"><span class="rec"></span><span class="wtip">Start Record</span></button>
       <button class="sub eye" id="hueBtn" title="AI reasoning overlay">${EYE_ON}</button>
       <button class="sub gear" id="gear" title="Settings">${GEAR}</button>
       <button class="fab" id="fab" title="Toggle driver"><img class="logo" src="${LOGO_SRC}" alt="CyberStrike" draggable="false" /></button>
@@ -936,7 +936,7 @@
           flashTransition(`"${shown}" role already exists — continuing`, "", roleColor(shown), 1600)
           roleHint.textContent = `Reusing the existing "${shown}" role.`
         } else {
-          flashTransition(`Capture started with ${shown} role`, "", roleColor(shown), 1200)
+          flashTransition(`Recording started as ${shown}`, "", roleColor(shown), 1200)
         }
         loadSessions()
       } else {
@@ -1003,7 +1003,7 @@
     if (res && res.ok) {
       const canon = (res.role || role).trim()
       flashTransition(
-        canon.toLowerCase() === "anonymous" ? "Unauthenticated recording started" : `Recording started as ${canon}`,
+        canon.toLowerCase() === "anonymous" ? "Recording started" : `Recording started as ${canon}`,
         "",
         "#9e141c",
         1300,
@@ -1117,11 +1117,17 @@
     dock.classList.toggle("capturing", attached)
     dock.classList.toggle("cap-on", attached) // red satellite: record ● → stop ■
     applyDriverHue(driver)
-    attachBtn.textContent = attached ? "Stop capture" : "Start capture"
+    // One consistent capture label across both entry points (the settings CTA and the red
+    // record wing): "Stop Record" while capturing, else "Start Record" — plus the profile's
+    // role when one is assigned, so a spawned role browser never reads "unauthenticated".
+    const roleTag =
+      assignedCred && assignedCred.trim() && assignedCred.trim().toLowerCase() !== "anonymous" ? assignedCred.trim() : ""
+    const capLabel = attached ? "Stop Record" : roleTag ? `Start Record as ${roleTag}` : "Start Record"
+    attachBtn.textContent = capLabel
     attachBtn.classList.toggle("stop", attached)
-    wRight.title = attached ? "Stop Recording" : "Start Unauthenticated Recording"
+    wRight.title = capLabel
     const wt = wRight.querySelector(".wtip")
-    if (wt) wt.textContent = wRight.title
+    if (wt) wt.textContent = capLabel
 
     // Capture counts are NOT computed here — they come from the backend (applyStats, fed by the
     // web-stats poll), so the panel reflects the server DB and the extension stays a thin collector.
@@ -2028,11 +2034,8 @@
     assignedCred = label // bind the profile's identity from the hash (survives field edits)
     cred.value = label
     renderRole(label) // shows the "<ROLE> — log in as this identity" banner
-    // The red record button records AS this role now (not unauthenticated) — relabel it
-    // so a spawned role browser doesn't look like it will capture anonymously.
-    wRight.title = `Start Recording as "${label}"`
-    const rtip = wRight.querySelector(".wtip")
-    if (rtip) rtip.textContent = `Start Recording as "${label}"`
+    // The red record button's label is driven by render() (role-aware "Start Record as …"),
+    // so it stays correct across polls — nothing to set here.
     roleHint.textContent = `Log in as "${label}", then hit Record.`
   }
 
@@ -2049,7 +2052,7 @@
         roleHint.textContent =
           setup.phase === "spawning"
             ? `Spawning “${setup.label}” browser…`
-            : `Please sign in as “${setup.label}” in the new window, then Start capture there.`
+            : `Please sign in as “${setup.label}” in the new window, then hit Record there.`
       } else if (hadSetup) {
         hadSetup = false
         roleHint.textContent = ""
