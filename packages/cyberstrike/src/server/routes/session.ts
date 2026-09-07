@@ -1797,6 +1797,7 @@ export const SessionRoutes = lazy(() =>
             try {
               const firstAuth = WebCredential.captureAuthFromRaw({ sessionID, credentialID, rawRequest: body.text })
               if (firstAuth) {
+                log.info("new authenticated identity — queuing cross-credential retests", { sessionID, credentialID })
                 // A new authenticated identity just became replayable. Re-test the endpoints
                 // already captured (by anonymous / other roles) AS this identity, so
                 // cross-credential access-control testing (org1 vs org2 tenant isolation,
