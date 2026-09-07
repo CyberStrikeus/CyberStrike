@@ -819,6 +819,15 @@
   // silently captured as "Anonymous" and org1/org2 attribution (IDOR/BFLA) was lost.
   let assignedCred = null
 
+  // Session keep-alive tick counter. A spawned role browser's captured session token expires
+  // during a long assessment while the browser sits idle after the crawl — so the testers'
+  // replays 401 on a dead token. While attached (assessment active) and carrying a real
+  // identity, we re-request the current page every KEEPALIVE_EVERY poll ticks: a same-origin
+  // credentialed GET keeps the session cookie alive and, via webRequest capture → ingest,
+  // refreshes the stored credential's auth (captureAuthFromRaw). ~2 min at the 1500ms poll.
+  let keepAliveTick = 0
+  const KEEPALIVE_EVERY = 80
+
   // Hovering anywhere on the dock cluster (logo, satellites, sub-buttons, panel) reveals the
   // satellites + subs AND pauses the AI (set-hold), so a full-page navigation doesn't wipe the
   // panel out from under the user mid-interaction. A short close delay bridges the gaps between the
@@ -2085,6 +2094,22 @@
     if (location.href !== lastUrl) {
       lastUrl = location.href
       sendObservation()
+    }
+    // Session keep-alive (spawned role browser with a real identity, while capturing). Skips
+    // anonymous (no session to keep) and detached (assessment not active for this tab). The
+    // request is same-origin + credentialed, so it renews the session cookie without CORS,
+    // and the webRequest listener captures it → ingest → credential auth refreshed. Errors
+    // are swallowed — a failed keep-alive must never disrupt the page or the panel.
+    const hasIdentity = isSpawned && assignedCred && assignedCred.trim().toLowerCase() !== "anonymous"
+    if (hasIdentity && lastAttached) {
+      if (++keepAliveTick >= KEEPALIVE_EVERY) {
+        keepAliveTick = 0
+        try {
+          fetch(location.href, { credentials: "include", cache: "no-store" }).catch(() => {})
+        } catch {}
+      }
+    } else {
+      keepAliveTick = 0 // reset while idle/detached so the timer starts fresh on re-attach
     }
   }
 
