@@ -26,6 +26,7 @@ import { WebStats } from "../../session/web/web-stats"
 import { WebObject } from "../../session/web/web-object"
 import { WebFunction } from "../../session/web/web-function"
 import { WebRetest } from "../../session/web/web-retest"
+import { RetestWorker } from "../../session/web/retest-worker"
 import { WebScope } from "../../session/web/scope"
 import { UiObservation } from "../../session/web/ui-observation"
 import { SpawnedProfiles } from "../../session/web/spawned-profiles"
@@ -1788,6 +1789,10 @@ export const SessionRoutes = lazy(() =>
           const session = await Session.create({})
           sessionID = session.id
         }
+
+        // Ensure the retest worker is subscribed for this instance — it drains the scenario
+        // queue in parallel as flags accrue (idempotent; safe to call on every ingest).
+        RetestWorker.start()
 
         // Handle credential registration
         let credentialID = body.credential_id
