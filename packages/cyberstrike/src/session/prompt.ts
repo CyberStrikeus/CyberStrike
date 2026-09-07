@@ -1102,7 +1102,21 @@ export namespace SessionPrompt {
       { modelID: input.model.api.id, providerID: input.model.providerID },
       input.agent,
     )) {
-      const schema = ProviderTransform.schema(input.model, z.toJSONSchema(item.parameters))
+      // A tool's parameter schema must be a valid zod (v4) schema so it can be
+      // rendered to JSON Schema for the model. A plugin/domain tool built against a
+      // mismatched zod copy (version skew) has no `._zod` and would throw here —
+      // that must not take down the whole agent's prompt, so skip the offending
+      // tool with a clear log rather than crashing. Its domain still loads.
+      let schema: unknown
+      try {
+        schema = ProviderTransform.schema(input.model, z.toJSONSchema(item.parameters))
+      } catch (err) {
+        log.error("skipping tool with an unrenderable parameter schema", {
+          tool: item.id,
+          error: err instanceof Error ? err.message : String(err),
+        })
+        continue
+      }
       tools[item.id] = tool({
         id: item.id as any,
         description: item.description,
