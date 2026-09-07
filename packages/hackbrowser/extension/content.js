@@ -2032,6 +2032,10 @@
     // the role and guide the user to log in first; they click Start capture afterward,
     // which registers the role + attaches on the shared session.
     assignedCred = label // bind the profile's identity from the hash (survives field edits)
+    // Persist the identity so EVERY tab of this spawned profile knows its role — a
+    // magic-link / SSO login opened in a NEW tab carries no #__cs_cred hash and would
+    // otherwise fall back to Anonymous, tagging the authenticated traffic wrong.
+    chrome.storage.local.set({ spawnedCred: label })
     cred.value = label
     renderRole(label) // shows the "<ROLE> — log in as this identity" banner
     // The red record button's label is driven by render() (role-aware "Start Record as …"),
@@ -2105,8 +2109,17 @@
     startObservers()
     sendObservation()
     loadSessions()
-    chrome.storage.local.get("credential", (o) => {
-      const label = o && o.credential ? o.credential.label || "" : ""
+    chrome.storage.local.get(["credential", "spawnedCred"], (o) => {
+      const active = o && o.credential ? o.credential.label || "" : ""
+      const spawned = o && o.spawnedCred ? o.spawnedCred : ""
+      // A spawned role profile persists its identity (spawnedCred) so EVERY tab knows it —
+      // including a magic-link / SSO login opened in a NEW tab with no #__cs_cred hash — so
+      // Start Record there tags the right identity instead of Anonymous.
+      if (spawned && !assignedCred) {
+        isSpawned = true
+        assignedCred = spawned
+      }
+      const label = spawned || active
       // Don't clobber a role already pre-filled by readCredFromHash (spawned browser).
       if (!cred.value) cred.value = label || "Anonymous"
       if (label) renderRole(label)
