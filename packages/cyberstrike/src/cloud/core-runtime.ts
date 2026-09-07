@@ -19,6 +19,7 @@ import { Intel } from "../methodology/intel"
 import { triageGuide, triageActions, VulnStatus, isActionable, isExcluded } from "../session/vulnerability-status"
 import { Session } from "../session"
 import { Vulnerability } from "../session/vulnerability"
+import { buildWebKit, type WebKit } from "./web-kit"
 
 export interface CoreRuntime {
   CORE_API_VERSION: string
@@ -36,6 +37,10 @@ export interface CoreRuntime {
   triageActions: typeof triageActions
   isActionable: typeof isActionable
   isExcluded: typeof isExcluded
+  // Domain building-block kits — reusable primitives a plugin composes into its
+  // own tools (the "Lego" surface). `web` ships the HTTP replay / signal fabric
+  // blocks; new kits (e.g. `cloud`) are added in later core versions.
+  web: WebKit
 }
 
 /** Build the runtime bundle the host injects into every plugin's `input.core`. */
@@ -56,5 +61,6 @@ export function buildCoreRuntime(): CoreRuntime {
     triageActions,
     isActionable,
     isExcluded,
+    web: buildWebKit(),
   }
 }

@@ -46,3 +46,10 @@ export { triageGuide, triageActions, VulnStatus, isActionable, isExcluded } from
 // (a domain uses Session.root, Vulnerability.get/add/Info, VulnStatus.DRAFT)
 export { Session } from "./session"
 export { Vulnerability } from "./session/vulnerability"
+
+// ── Web building-block kit (values arrive via input.core.web; TYPES here) ──
+// A domain plugin composes these to build its own web tools. The runtime VALUES
+// travel through injection; a plugin imports only these TYPES (erased at build).
+export type { WebKit, WebSignalKit } from "./cloud/web-kit"
+export type { ProbeRequest, ProbeResponse, HttpSender, ReplaySenderOptions } from "./tool/webhook/transport"
+export type { WebhookContext, WebhookToolDef, ToolOutput } from "./tool/webhook/define"

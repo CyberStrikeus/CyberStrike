@@ -9,7 +9,10 @@
 // health error instead of running against an incompatible host.
 // 1.1.0 — added Session, Vulnerability, VulnStatus (for the azure extraction);
 // additive, so packages pinned to >= 1.0.0 still load.
-export const CORE_API_VERSION = "1.1.0"
+// 1.2.0 — added the web building-block kit (`CoreRuntime.web`: governed send,
+// replay engine, captured-traffic store, webhook tool shells, signal fabric) so a
+// domain plugin can build its own web tools; additive, older packages still load.
+export const CORE_API_VERSION = "1.2.0"
 
 function parse(v: string): [number, number, number] {
   const m = /^(\d+)\.(\d+)\.(\d+)/.exec((v ?? "").trim())
