@@ -11,6 +11,7 @@ import { Chain } from "../methodology/chain"
 import { Validation } from "../methodology/validation"
 import { Request } from "../session/request"
 import { AgentPerformance } from "../methodology/performance"
+import { renderFinding } from "./report-format"
 
 const SEVERITY_ORDER: Record<string, number> = {
   critical: 0,
@@ -87,7 +88,7 @@ export const GenerateReportTool = Tool.define("generate_report", {
       parts.push("---\n\n<!-- AI: executive_summary -->\n\n---\n\n<!-- AI: risk_assessment -->")
     }
 
-    if (sections.includes("findings")) parts.push(formatVulnTable(vulns))
+    if (sections.includes("findings")) parts.push(formatVulnTable(vulns, ctx.sessionID))
 
     if (sections.includes("coverage")) parts.push(formatCoverage(coverage, assetCoverage, coverageNotes))
 
@@ -157,7 +158,7 @@ function formatHeader(
   ].join("\n")
 }
 
-function formatVulnTable(vulns: Vulnerability.Info[]): string {
+function formatVulnTable(vulns: Vulnerability.Info[], sessionID: string): string {
   if (vulns.length === 0) return "## Vulnerability Findings\n\nNo vulnerabilities discovered."
 
   const sorted = [...vulns].sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 4) - (SEVERITY_ORDER[b.severity] ?? 4))
@@ -167,7 +168,10 @@ function formatVulnTable(vulns: Vulnerability.Info[]): string {
   lines.push("| # | Severity | Title | Endpoint | CWE | Status |")
   lines.push("|---|----------|-------|----------|-----|--------|")
 
-  const details: string[] = ["", "### Finding Details"]
+  // Each finding is rendered in the mandatory Bugcrowd template (report-format.ts),
+  // with a deterministic curl + full raw HTTP request/response in Steps To Reproduce
+  // pulled from the finding's evidence_request_ids.
+  const details: string[] = []
 
   for (const v of sorted) {
     const sev = v.severity.toUpperCase()
@@ -176,30 +180,7 @@ function formatVulnTable(vulns: Vulnerability.Info[]): string {
 
     lines.push(`| ${ref} | ${sev} | ${v.title} | ${v.endpoint ?? "—"} | ${v.cwe_id ?? "—"} | ${v.status} |`)
 
-    details.push("")
-    details.push(`#### [${ref}] ${v.title}`)
-    details.push(`- **Severity:** ${sev}`)
-    if (v.endpoint) details.push(`- **Endpoint:** ${v.endpoint}`)
-    if (v.cwe_id) details.push(`- **CWE:** ${v.cwe_id}`)
-    if (v.attack_vector) details.push(`- **Attack Vector:** ${v.attack_vector}`)
-    if (v.business_impact) details.push(`- **Business Impact:** ${v.business_impact}`)
-    details.push("")
-    details.push(`**Description:** ${v.description}`)
-    if (v.steps_to_reproduce) {
-      details.push("")
-      details.push(`**Steps to Reproduce:** ${v.steps_to_reproduce}`)
-    }
-    if (v.poc) {
-      details.push("")
-      details.push("**Proof of Concept:**")
-      details.push("```")
-      details.push(v.poc)
-      details.push("```")
-    }
-    if (v.recommendation) {
-      details.push("")
-      details.push(`**Recommendation:** ${v.recommendation}`)
-    }
+    details.push("", "---", "", renderFinding(v, sessionID, ref))
   }
 
   return lines.join("\n") + "\n" + details.join("\n")
