@@ -85,8 +85,13 @@ const SYSTEM =
   "framework), the focus areas, coverage so far, and every safe actionable element and form. Return " +
   "an ORDERED short plan (1-5 moves) toward NEW areas. Reference an element ONLY by an element_id " +
   "from the list, a form ONLY by a form_index, and navigate ONLY to a url shown on the page. Keep " +
-  "`rationale` to ONE short sentence. Emit a single `done` action only when the whole app appears " +
-  "fully explored. Never choose logout/sign-out or delete/remove controls."
+  "`rationale` to ONE short sentence. FORMS ARE COVERAGE: before leaving a page (or emitting `done`), " +
+  "if it lists an un-submitted form — a search box, a filter, a settings form, or a message/chat/ask " +
+  "input — FILL and submit it. These exercise the app and surface endpoints even when they do not " +
+  "lead to a new URL, so filling them is progress, not a detour. In particular, if the app has a " +
+  "chat/assistant/message composer, send a message through it. Emit a single `done` action only when " +
+  "the whole app appears fully explored AND no un-submitted forms remain. Never choose logout/sign-out " +
+  "or delete/remove controls."
 
 // Safe, actionable click targets for the model — the same universe the executor can run: allow
 // policy (deny=logout / confirm=destructive are excluded — they cannot run autonomously anyway),
