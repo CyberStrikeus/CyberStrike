@@ -386,12 +386,19 @@ const defaultAsk: LlmNavigator.Ask = async ({ system, user }) => {
       .max(15)
       .describe("ordered next moves, best first (fill a whole form + submit in one plan)"),
   })
+  // A THINKING/reasoning model rejects both a forced tool_choice ("Thinking mode does not support
+  // this tool_choice") and a non-default temperature — either one makes the API call throw, which
+  // silently fails EVERY plan and drops the crawl to the deterministic single-link fallback (the
+  // "AI navigator is mediocre / it browses a bit then stops" symptom). So for a reasoning model
+  // use toolChoice "auto" (it still calls the sole offered tool, steered by the system prompt) and
+  // leave temperature unset; keep the stricter "required" + temperature 0 for non-reasoning models.
+  const reasoning = !!model.capabilities.reasoning
   const result = streamText({
     model: language,
-    temperature: 0,
+    ...(reasoning ? {} : { temperature: 0 }),
     maxOutputTokens: ProviderTransform.maxOutputTokens(model),
     tools: { plan_moves: tool({ description: "Report the ordered next navigation moves.", inputSchema: schema }) },
-    toolChoice: "required",
+    toolChoice: reasoning ? "auto" : "required",
     messages: [
       { role: "system", content: system },
       { role: "user", content: user },
@@ -431,12 +438,18 @@ export class LlmNavigator implements Navigator {
     try {
       raw = await withTimeout(this.ask({ system: SYSTEM, user: buildContext(sessionID, snapshot, picks, forms, DataCollector.latest(sessionID)) }), this.timeoutMs)
     } catch (e) {
+      // Surface WHY the model plan failed in the diagnostic log, not just server stderr — a silent
+      // fallback is how the whole crawl ran "deterministic single-link" for a session without anyone
+      // noticing the model never engaged. `err` (e.g. the tool_choice/temperature API errors) is the
+      // actionable bit; the crawl still degrades gracefully to the deterministic pick.
       log.debug("LlmNavigator ask failed/timed out → deterministic", { err: String(e) })
+      HBLog.record(sessionID, "codrive", "llm-fallback", { reason: "ask-failed", err: String(e).slice(0, 200) })
       return this.fallback.plan(sessionID, snapshot)
     }
     const actions = raw ? mapActions(sessionID, snapshot, raw.actions, picks, forms) : []
     if (actions.length === 0) {
       // Model unreachable / declined / produced nothing usable → deterministic top pick.
+      HBLog.record(sessionID, "codrive", "llm-fallback", { reason: raw ? "actions-unusable" : "ask-null" })
       return this.fallback.plan(sessionID, snapshot)
     }
     HBLog.record(sessionID, "codrive", "plan", { by: "llm", rationale: raw?.rationale ?? "", actions: actions.length })
