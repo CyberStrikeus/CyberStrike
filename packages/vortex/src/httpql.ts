@@ -20,7 +20,7 @@
 //   req.body.params.staff_name:~"'"
 import type { Transaction } from "./transaction"
 import { header } from "./transaction"
-import { params } from "./params"
+import { params, responseFields, requestBodyKind, responseBodyKind } from "./params"
 import { endpointKey, normalizePath } from "./endpoint"
 import { contentType } from "./scope"
 import { requestCookies, responseCookies } from "./cookies"
@@ -160,6 +160,7 @@ function resolveField(tx: Transaction, field: string): string | number | undefin
     if (rest.startsWith("cookie.")) return requestCookies(tx)[rest.slice("cookie.".length)]
     if (rest === "graphql.op") return graphql(tx)?.operationName
     if (rest === "graphql.query") return graphql(tx)?.query
+    if (rest === "bodyKind") return requestBodyKind(tx)
     return undefined
   }
   if (head === "resp") {
@@ -167,6 +168,8 @@ function resolveField(tx: Transaction, field: string): string | number | undefin
     if (rest === "status") return tx.response.status
     if (rest === "body") return tx.response.body
     if (rest === "contentType") return contentType(tx)
+    if (rest === "bodyKind") return responseBodyKind(tx)
+    if (rest.startsWith("body.")) return responseFields(tx)[rest.slice("body.".length)]
     if (rest.startsWith("header.")) return header(tx.response.headers, rest.slice("header.".length))
     if (rest.startsWith("cookie.")) {
       const want = rest.slice("cookie.".length).toLowerCase()

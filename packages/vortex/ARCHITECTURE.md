@@ -223,9 +223,15 @@ atom  := field op value
 ```
 
 **Fields**: `req.method`, `req.url`, `req.path`, `req.body`, `req.header.<name>`, `req.query.<name>`,
-`req.body.<dotpath>`, `req.cookie.<name>`, `req.graphql.op`, `req.graphql.query`, `resp.status`,
-`resp.body`, `resp.contentType`, `resp.header.<name>`, `resp.cookie.<name>`, `host`, `identity`,
-`source`, `endpoint`.
+`req.body.<dotpath>`, `req.cookie.<name>`, `req.graphql.op`, `req.graphql.query`, `req.bodyKind`,
+`resp.status`, `resp.body`, `resp.body.<dotpath>`, `resp.contentType`, `resp.bodyKind`,
+`resp.header.<name>`, `resp.cookie.<name>`, `host`, `identity`, `source`, `endpoint`.
+
+Both request and response bodies are handled uniformly by the **body model** (`body.ts`):
+content-type (with a content sniff fallback) classifies the `BodyKind`
+(`json`/`graphql`/`form`/`multipart`/`xml`/`html`/`text`/`binary`/`empty`) and extracts a flat
+field map for the structured kinds — so `req.body.x` and `resp.body.x` both work, across media
+types (XML leaf extraction is best-effort, no external parser).
 
 **Operators**: `:` equals (case-insensitive strings / numeric) · `!=` not-equals · `:~` or `~`
 case-insensitive regex · `>` `<` `>=` `<=` numeric.
