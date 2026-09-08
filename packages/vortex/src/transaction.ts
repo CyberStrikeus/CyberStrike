@@ -4,9 +4,12 @@
 // what lets deterministic rules cover the whole corpus instead of leaving detection to whichever
 // endpoint an agent happens to poke.
 
-// Where a transaction came from — so rules/queries can scope (e.g. "cloud responses only") and so
-// the UI can show provenance. Not an exhaustive protocol list; HTTP(S) only for now.
-export type Source = "browser" | "replay" | "cloud" | "import"
+// Where a transaction came from — which ingestion adapter produced it — so rules/queries can scope
+// (e.g. "cloud responses only") and the UI can show provenance. HTTP(S) only for now.
+//   browser = hackbrowser extension · proxy = MITM/forward proxy (mobile/non-browser clients) ·
+//   cloud = an sdk-ingest report from our own code · replay = made by Vortex's own send engine ·
+//   import = loaded from a HAR/offline capture.
+export type Source = "browser" | "proxy" | "cloud" | "replay" | "import"
 
 export type Severity = "info" | "low" | "medium" | "high" | "critical"
 
