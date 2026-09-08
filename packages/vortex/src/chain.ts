@@ -19,6 +19,7 @@ import type { Transaction } from "./transaction"
 import type { CorpusRule, Signal } from "./rule"
 import { compile, fieldValue } from "./httpql"
 import { endpointKey } from "./endpoint"
+import { sharedValues } from "./taint"
 
 const CANDIDATE_CAP = 500 // per step, guard the join against a pathological corpus
 const SIGNAL_CAP = 50
@@ -35,8 +36,12 @@ export const ChainRuleSchema = z
             as: z.string(), // alias other steps reference (e.g. "leak")
             when: z.string().optional(), // HTTPQL over THIS step's transaction
             link: z
-              .array(z.object({ field: z.string(), to: z.string() })) // this.field === <alias.field>
+              .array(z.object({ field: z.string(), to: z.string() })) // this.field === <alias.field> (KNOWN field)
               .optional(),
+            // VALUE-based join (field-name agnostic): this request reuses a correlatable value that
+            // appeared in <alias>'s response — the robust way to find a chain when you don't know
+            // (or the app doesn't consistently name) the token/id field across thousands of requests.
+            reuses: z.string().optional(),
           })
           .strict(),
       )
@@ -49,9 +54,10 @@ export const ChainRuleSchema = z
 
 export type ChainRule = z.infer<typeof ChainRuleSchema>
 
-function interpolate(template: string, bindings: Record<string, Transaction>): string {
+function interpolate(template: string, bindings: Record<string, Transaction>, shared: string): string {
   return template.replace(/\{([^}]+)\}/g, (_, ref) => {
     const path = String(ref).trim()
+    if (path === "shared") return shared // the correlated value a `reuses` link matched on
     const dot = path.indexOf(".")
     if (dot === -1) return ""
     const tx = bindings[path.slice(0, dot)]
@@ -77,7 +83,7 @@ export function compileChain(rule: ChainRule): CorpusRule {
     evaluate(txs: Transaction[]): Signal[] {
       const out: Signal[] = []
 
-      const solve = (i: number, bindings: Record<string, Transaction>, used: Set<string>): void => {
+      const solve = (i: number, bindings: Record<string, Transaction>, used: Set<string>, shared: string): void => {
         if (out.length >= SIGNAL_CAP) return
         if (i === rule.steps.length) {
           const last = bindings[rule.steps[rule.steps.length - 1]!.as]!
@@ -87,8 +93,8 @@ export function compileChain(rule: ChainRule): CorpusRule {
             transactionId: last.id,
             severity: rule.severity,
             category: rule.category,
-            title: rule.message ? interpolate(rule.message, bindings) : `${rule.id}: ${endpoints}`,
-            evidence: rule.evidence ? interpolate(rule.evidence, bindings) : endpoints,
+            title: rule.message ? interpolate(rule.message, bindings, shared) : `${rule.id}: ${endpoints}`,
+            evidence: rule.evidence ? interpolate(rule.evidence, bindings, shared) : shared ? `${endpoints} (shared: ${shared})` : endpoints,
             dedupKey: `${rule.id}:${endpoints}`,
           })
           return
@@ -101,7 +107,7 @@ export function compileChain(rule: ChainRule): CorpusRule {
           if (seen >= CANDIDATE_CAP) break
           if (used.has(tx.id)) continue // a transaction fills at most one step
           if (q && !q.test(tx)) continue
-          // links: this step's field must equal a bound earlier step's field (non-empty)
+          // KNOWN-field links: this step's field must equal a bound earlier step's field.
           if (step.link) {
             let ok = true
             for (const l of step.link) {
@@ -114,13 +120,21 @@ export function compileChain(rule: ChainRule): CorpusRule {
             }
             if (!ok) continue
           }
+          // VALUE-based link: this request reuses a correlatable value from <reuses>'s response.
+          let nextShared = shared
+          if (step.reuses) {
+            const src = bindings[step.reuses]
+            const shared2 = src ? sharedValues(src, tx) : []
+            if (shared2.length === 0) continue
+            nextShared = shared2[0]!
+          }
           seen++
           if (rule.distinctIdentity && Object.values(bindings).some((b) => (b.identity ?? "") === (tx.identity ?? ""))) continue
-          solve(i + 1, { ...bindings, [step.as]: tx }, new Set([...used, tx.id]))
+          solve(i + 1, { ...bindings, [step.as]: tx }, new Set([...used, tx.id]), nextShared)
         }
       }
 
-      solve(0, {}, new Set())
+      solve(0, {}, new Set(), "")
       return out
     },
   }

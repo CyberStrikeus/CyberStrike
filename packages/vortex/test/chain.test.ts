@@ -75,6 +75,49 @@ describe("chain rule — multi-step correlation via link (HTTPQL per step)", () 
     expect(compileChain(idorChain).evaluate([org1, org1self])).toHaveLength(0)
   })
 
+  test("VALUE-based 'reuses' link finds the chain WITHOUT knowing the field name (3000-request reality)", () => {
+    // The token is called different things on each side (resp field 'x', request header/param) and
+    // buried among noise. Value correlation finds it regardless of name — a 32-hex token that
+    // appears in a response later appears in a request.
+    const TOKEN = "9f8c2a1b7e4d40c3a1b2c3d4e5f6a7b8"
+    const generic: ChainRule = {
+      id: "response-value-reused-in-request",
+      category: "auth-session",
+      severity: "high",
+      steps: [
+        { as: "src", when: "resp.status:200" },
+        { as: "sink", when: "resp.status:200", reuses: "src" },
+      ],
+      message: "value {shared} from {src.endpoint} reused in request to {sink.endpoint}",
+    }
+    const corpus: Transaction[] = [
+      req("GET", "/a", 200, JSON.stringify({ csrf: 1, misc: "hello" })), // noise (no correlatable value)
+      req("POST", "/api/verify", 200, JSON.stringify({ magic: TOKEN, other: "ok" })), // leaks the token under field 'magic'
+      req("GET", "/b", 200, "{}"),
+      req("POST", `/api/consume?t=${TOKEN}`, 200, "{}"), // reuses it under a DIFFERENT name 't'
+    ]
+    const sigs = compileChain(generic).evaluate(corpus)
+    expect(sigs).toHaveLength(1)
+    expect(sigs[0].title).toContain(TOKEN)
+    expect(sigs[0].title).toContain("/api/verify")
+    expect(sigs[0].title).toContain("/api/consume")
+  })
+
+  test("value correlation ignores short/common values (no coincidental chains)", () => {
+    const generic: ChainRule = {
+      id: "vr",
+      category: "x",
+      severity: "low",
+      steps: [
+        { as: "src", when: "resp.status:200" },
+        { as: "sink", when: "resp.status:200", reuses: "src" },
+      ],
+    }
+    // both share the value "1" and "ok" — too short/common to be a real dataflow signal
+    const corpus: Transaction[] = [req("GET", "/a", 200, JSON.stringify({ page: "1", state: "ok" })), req("GET", "/b?page=1&state=ok", 200, "{}")]
+    expect(compileChain(generic).evaluate(corpus)).toHaveLength(0)
+  })
+
   test("parseChains validates an agent's JSON chain rule", () => {
     const parsed = parseChains([resetChain])
     expect(parsed).toHaveLength(1)
