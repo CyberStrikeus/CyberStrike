@@ -78,6 +78,30 @@ describe("Crawl frontier (dead-end backtracking)", () => {
   })
 })
 
+describe("Crawl revisit queue (SPA list→detail→back→next-row)", () => {
+  test("revisit re-queues an already-visited page; takeFrontier hands it out after the frontier drains", () => {
+    const sid = "s"
+    const list = "https://h/modules"
+    Crawl.markPage(sid, list) // the list page is already visited
+    // Clicking row1 routed to its detail page mid-plan → the loop re-queues the list for its
+    // remaining rows. A plain frontier discover() would refuse it (already visited) — revisit is
+    // the queue that bypasses the visited-check exactly for this case.
+    Crawl.discover(sid, [list]) // refused: visited
+    Crawl.revisit(sid, list)
+    expect(Crawl.takeFrontier(sid)).toBe(list) // returned so the next row can be clicked
+    expect(Crawl.takeFrontier(sid)).toBeUndefined() // drained — no infinite loop
+  })
+  test("the fresh frontier is exhausted BEFORE the revisit queue (breadth first, backtrack last)", () => {
+    const sid = "s"
+    Crawl.markPage(sid, "https://h/modules")
+    Crawl.revisit(sid, "https://h/modules") // a page to come back to
+    Crawl.discover(sid, ["https://h/new"]) // an unseen page
+    expect(Crawl.takeFrontier(sid)).toBe("https://h/new") // fresh ground first
+    expect(Crawl.takeFrontier(sid)).toBe("https://h/modules") // then the revisit
+    expect(Crawl.takeFrontier(sid)).toBeUndefined()
+  })
+})
+
 describe("Crawl frontier — a marked-visited url cannot re-enter (redirect-spin guard)", () => {
   test("markPage(url) stops discover() from re-adding it, so a redirecting frontier url won't spin", () => {
     const sid = "s"

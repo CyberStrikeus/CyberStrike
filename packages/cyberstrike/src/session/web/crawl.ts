@@ -19,13 +19,14 @@ export namespace Crawl {
     pages: Set<string> // urls the crawl has observed / landed on
     acted: Set<string> // action keys already performed (cycle guard)
     frontier: Set<string> // discovered-but-not-yet-visited urls (dead-end backtrack target)
+    revisit: Set<string> // ALREADY-visited pages with un-acted controls left — come back for them
   }
 
   const bySession = new Map<string, State>()
   function state(sessionID: string): State {
     let s = bySession.get(sessionID)
     if (!s) {
-      s = { budget: DEFAULT_BUDGET, actions: 0, pages: new Set(), acted: new Set(), frontier: new Set() }
+      s = { budget: DEFAULT_BUDGET, actions: 0, pages: new Set(), acted: new Set(), frontier: new Set(), revisit: new Set() }
       bySession.set(sessionID, s)
     }
     return s
@@ -63,13 +64,29 @@ export namespace Crawl {
     const s = state(sessionID)
     for (const u of urls) if (u && !s.pages.has(u)) s.frontier.add(u)
   }
-  // Pop one still-unvisited discovered url (skipping any since-visited), or undefined when the
-  // frontier is exhausted (true coverage). Drains, so each frontier url is tried at most once.
+  // Re-queue an ALREADY-visited page that still has un-acted controls, so the loop comes back to
+  // it once fresh ground is exhausted. This is what turns a SPA list→detail route into full
+  // coverage: clicking a list row routes to its detail page (a client-side URL change), which
+  // aborts the rest of the list plan; without this the crawl would drill into ONE row and never
+  // return. The page is already in `pages`, so it needs its own queue — takeFrontier's
+  // unvisited-check would otherwise skip it forever.
+  export function revisit(sessionID: string, url: string): void {
+    if (url) state(sessionID).revisit.add(url)
+  }
+  // Pop one still-unvisited discovered url (skipping any since-visited); when the frontier is
+  // exhausted, fall back to the revisit queue (visited pages with work left). undefined only when
+  // BOTH are empty (true coverage). Drains both, so each url is handed out at most once per queue.
   export function takeFrontier(sessionID: string): string | undefined {
     const s = state(sessionID)
     for (const u of s.frontier) {
       s.frontier.delete(u)
       if (!s.pages.has(u)) return u
+    }
+    // Fresh ground exhausted — return to a page that still has un-acted controls (SPA list whose
+    // remaining rows we never clicked because the first click routed us to a detail page).
+    for (const u of s.revisit) {
+      s.revisit.delete(u)
+      return u
     }
     return undefined
   }
