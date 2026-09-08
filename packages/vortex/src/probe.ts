@@ -15,7 +15,7 @@ import type { Signal } from "./rule"
 import { compile } from "./expr"
 import { fieldValue } from "./fields"
 import { endpointKey } from "./endpoint"
-import { brokeOut } from "./canary"
+import { brokeOut, reflects, mintTemplateCanary, TEMPLATE_PLACEHOLDER } from "./canary"
 import type { Apply } from "./send"
 
 export const ProbeRuleSchema = z
@@ -32,7 +32,7 @@ export const ProbeRuleSchema = z
         canary: z.boolean().optional(), // track a canary + enable detect:"reflected"
       })
       .strict(),
-    detect: z.string(), // DSL expression over the PROBE response, or the literal "reflected"
+    detect: z.string(), // DSL expr over the PROBE response, or literal "reflected" (canary) / "evaluated" (SSTI template canary)
     message: z.string().optional(),
   })
   .strict()
@@ -51,8 +51,9 @@ function interpolate(template: string, tx: Parameters<Sender>[0]): string {
 
 export function compileProbe(rule: ProbeRule): ActiveRule {
   const selectQ = compile(rule.select)
-  const detectReflected = rule.detect === "reflected"
-  const detectQ = detectReflected ? undefined : compile(rule.detect)
+  const detectReflected = rule.detect === "reflected" // same-request canary reflection
+  const detectEvaluated = rule.detect === "evaluated" // template canary: injected expr's product surfaced (SSTI)
+  const detectQ = detectReflected || detectEvaluated ? undefined : compile(rule.detect)
   return {
     id: rule.id,
     title: rule.id,
@@ -67,11 +68,19 @@ export function compileProbe(rule: ProbeRule): ActiveRule {
         if (seen.has(key)) continue
         seen.add(key)
         for (const payload of rule.inject.payloads) {
+          // TEMPLATE canary (SSTI): mint a unique-product marker, substitute {template} with the
+          // expression, and prove the engine EVALUATED it by finding the product in the response.
+          const tc = detectEvaluated ? mintTemplateCanary() : undefined
+          const sendPayload = tc ? payload.split(TEMPLATE_PLACEHOLDER).join(tc.expr) : payload
           const res = await send(tx, {
-            mutations: [mutationFor(rule.inject, payload)],
-            canary: rule.inject.canary ? { field: rule.inject.name, vulnClass: rule.category } : undefined,
+            mutations: [mutationFor(rule.inject, sendPayload)],
+            canary: rule.inject.canary && !detectEvaluated ? { field: rule.inject.name, vulnClass: rule.category } : undefined,
           })
-          const hit = detectReflected ? !!res.canaryReflected : !!detectQ?.test(res.transaction)
+          const hit = detectReflected
+            ? !!res.canaryReflected
+            : detectEvaluated
+              ? !!tc && reflects(res.transaction.response?.body, tc.marker)
+              : !!detectQ?.test(res.transaction)
           if (!hit) continue
           // Reflected leads: if the payload's markup survived UNescaped, it's likely injectable —
           // elevate the severity (a bare reflection stays at the rule's declared level).

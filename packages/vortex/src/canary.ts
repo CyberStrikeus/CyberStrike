@@ -96,6 +96,10 @@ export function mintTemplateCanary(): TemplateCanary {
 // The placeholder a caller puts in a payload where the minted token should go: value "…{canary}…".
 export const CANARY_PLACEHOLDER = "{canary}"
 
+// The placeholder for a TEMPLATE canary's expression (SSTI): a payload like "{{ {template} }}" gets
+// {template} replaced by mintTemplateCanary().expr, and the response is checked for its `marker`.
+export const TEMPLATE_PLACEHOLDER = "{template}"
+
 // Build the Canary record for a token injected at a transaction.
 export function canaryFor(token: string, tx: Transaction, opts: { kind?: CanaryKind; field?: string; vulnClass?: string; agent?: string } = {}): Canary {
   return {

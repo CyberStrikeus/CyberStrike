@@ -15,9 +15,19 @@ const echo: Sender = (input, opts) => send(input, { ...opts, transport: async (r
 const rawReflect: Sender = (input, opts) => send(input, { ...opts, transport: async (req) => res(200, decodeURIComponent(req.target)) })
 const sqlErr: Sender = (input, opts) => send(input, { ...opts, transport: async () => res(500, "You have an error in your SQL syntax") })
 const clean: Sender = (input, opts) => send(input, { ...opts, transport: async () => res(200, "<html>fine</html>") })
+// A vulnerable SSTI target: EVALUATES an a*b expression in the injected value and returns the product.
+const sstiEval: Sender = (input, opts) =>
+  send(input, {
+    ...opts,
+    transport: async (req) => {
+      const m = decodeURIComponent(req.target).match(/(\d+)\*(\d+)/)
+      return res(200, m ? `result: ${Number(m[1]) * Number(m[2])}` : "no eval")
+    },
+  })
+const passwd: Sender = (input, opts) => send(input, { ...opts, transport: async () => res(200, "root:x:0:0:root:/root:/bin/bash") })
 
 describe("ProbeRule → ActiveRule (the active DSL shape)", () => {
-  const [xss, sqli] = compileProbes(probeRules)
+  const [xss, sqli, ssti, pt] = compileProbes(probeRules)
 
   test("reflected-xss fires when the canary bounces back (detect: reflected)", async () => {
     const sigs = await xss!.probe([tx("a", "/search?q=hi")], echo)
@@ -43,12 +53,27 @@ describe("ProbeRule → ActiveRule (the active DSL shape)", () => {
     expect(sigs).toHaveLength(1)
     expect(sigs[0].severity).toBe("high")
   })
+  test("ssti-probe (detect: evaluated) fires when the injected expression's product surfaces", async () => {
+    const sigs = await ssti!.probe([tx("a", "/page?q=hi")], sstiEval)
+    expect(sigs).toHaveLength(1)
+    expect(sigs[0].ruleId).toBe("ssti-probe")
+    expect(sigs[0].severity).toBe("critical")
+  })
+  test("ssti-probe does NOT fire when the template is echoed literally (no eval)", async () => {
+    // `clean` returns a fixed body that never contains the minted product → no false positive
+    expect(await ssti!.probe([tx("a", "/page?q=hi")], clean)).toHaveLength(0)
+  })
+  test("path-traversal-probe fires on an /etc/passwd signature", async () => {
+    const sigs = await pt!.probe([tx("a", "/download?file=a.txt")], passwd)
+    expect(sigs).toHaveLength(1)
+    expect(sigs[0].severity).toBe("high")
+  })
   test("one probe set per endpoint (no fan-out) + runActiveRules aggregates", async () => {
     const sigs = await runActiveRules([sqli!], [tx("a", "/item?id=1"), tx("b", "/item?id=2")], sqlErr)
     expect(sigs).toHaveLength(1) // same endpoint /item?id={} → probed once
   })
   test("parseProbes validates an agent's JSON probe rule", () => {
-    expect(parseProbes(probeRules)).toHaveLength(2)
+    expect(parseProbes(probeRules)).toHaveLength(4)
     expect(() => parseProbes([{ id: "x", category: "c", severity: "high", select: "resp.status == 200", inject: { into: "query", payloads: [] }, detect: "reflected" }])).toThrow() // empty payloads + missing name
   })
 })
