@@ -76,10 +76,11 @@ function pathObjects(tx: Transaction): ObjectRef[] {
   const out: ObjectRef[] = []
   const segs = pathname(tx.request.url).split("/").filter(Boolean)
   for (let i = 0; i < segs.length; i++) {
-    const shape = identifierShape(segs[i]!)
+    const seg = segs[i]!.split(";")[0]! // strip matrix params (/users/42;v=2 → 42)
+    const shape = identifierShape(seg)
     if (!shape) continue
-    const resource = i > 0 ? segs[i - 1]!.toLowerCase() : undefined
-    out.push({ ref: `${resource ?? "path"}:${segs[i]}`, value: segs[i]!, shape, in: "path", name: resource, resource })
+    const resource = i > 0 ? segs[i - 1]!.split(";")[0]!.toLowerCase() : undefined
+    out.push({ ref: `${resource ?? "path"}:${seg}`, value: seg, shape, in: "path", name: resource, resource })
   }
   return out
 }
@@ -114,7 +115,13 @@ function graphqlOp(gql: GraphQL): { type: "query" | "mutation" | "subscription";
   const m = gql.query.match(/\b(query|mutation|subscription)\b/i)
   const type = (m ? m[1]!.toLowerCase() : "query") as "query" | "mutation" | "subscription"
   const brace = gql.query.indexOf("{") // the operation's selection set opener (after any $var defs)
-  const rootField = brace >= 0 ? (gql.query.slice(brace + 1).match(/[A-Za-z_][A-Za-z0-9_]*/)?.[0] ?? undefined) : undefined
+  let rootField: string | undefined
+  if (brace >= 0) {
+    // first field of the selection set; unwrap an alias ("o: updateOrder" → updateOrder). Anchored
+    // to the FIRST field so a nested `role: x` deeper in the query can't be mistaken for it.
+    const m2 = gql.query.slice(brace + 1).replace(/^\s+/, "").match(/^([A-Za-z_]\w*)\s*(:)?\s*([A-Za-z_]\w*)?/)
+    rootField = m2 ? (m2[2] === ":" && m2[3] ? m2[3] : m2[1]) : undefined
+  }
   return { type, rootField }
 }
 function graphqlCrud(op: { type: string; rootField?: string }): Crud {
@@ -161,7 +168,11 @@ function bearerClaims(tx: Transaction): Record<string, unknown> | undefined {
 }
 function pickStr(c: Record<string, unknown> | undefined, ...keys: string[]): string | undefined {
   if (!c) return undefined
-  for (const k of keys) if (typeof c[k] === "string" && c[k]) return c[k] as string
+  for (const k of keys) {
+    const v = c[k]
+    if (typeof v === "string" && v) return v
+    if (typeof v === "number") return String(v) // a numeric `sub` is still the principal
+  }
   return undefined
 }
 function claimRoles(c: Record<string, unknown> | undefined): string[] | undefined {

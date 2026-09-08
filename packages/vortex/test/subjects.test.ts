@@ -94,6 +94,22 @@ describe("subjects — deterministic object/function/role extraction", () => {
     expect(s.function.endpoint).toBe("POST api.test/graphql#listUsers")
   })
 
+  test("GraphQL alias is unwrapped to the real root field (regression)", () => {
+    const s = subjects(tx({ method: "POST", url: "https://api.test/graphql", headers: [{ name: "content-type", value: "application/json" }], body: JSON.stringify({ query: "mutation { o: updateOrder(id: $id){ id } }", variables: { id: "6512a1b2c3d4e5f60718293a" } }) }))
+    expect(s.function.endpoint).toBe("POST api.test/graphql#updateOrder") // NOT #o (the alias)
+    expect(s.objects.map((o) => o.ref)).toEqual(["order:6512a1b2c3d4e5f60718293a"])
+  })
+
+  test("matrix params on a path segment don't hide the id (regression)", () => {
+    const s = subjects(tx({ url: "https://app.test/users/42;v=2/" }))
+    expect(s.objects.map((o) => o.ref)).toEqual(["users:42"])
+  })
+
+  test("a numeric JWT sub is still the principal (regression)", () => {
+    const jwt = `h.${Buffer.from(JSON.stringify({ sub: 4021 })).toString("base64url")}.s`
+    expect(subjects(tx({ url: "https://app.test/api/me", headers: [{ name: "authorization", value: `Bearer ${jwt}` }] })).role).toBe("4021")
+  })
+
   test("JWT bearer: role = subject, plus roles + scopes from claims", () => {
     const payload = Buffer.from(JSON.stringify({ sub: "user-4021", roles: ["admin", "billing"], scope: "orders:write orders:read" })).toString("base64url")
     const jwt = `${Buffer.from(JSON.stringify({ alg: "HS256" })).toString("base64url")}.${payload}.sig`
