@@ -38,7 +38,15 @@ export interface CoDriveConfig {
 }
 
 export class CoDriveSession {
-  constructor(private readonly deps: CoDriveDeps, private readonly cfg: CoDriveConfig) {}
+  // `revisitOnNavAway`: when a mid-plan action navigates away, re-queue the page we left so the
+  // loop returns to exercise its remaining un-acted controls (SPA list→detail→back→next-row).
+  // Only safe when the navigator tracks acted controls and re-plans deterministically on return
+  // (ExhaustiveNavigator) — off for the LLM brain, which decides for itself when a page is done.
+  constructor(
+    private readonly deps: CoDriveDeps,
+    private readonly cfg: CoDriveConfig,
+    private readonly revisitOnNavAway = false,
+  ) {}
 
   // Wire the DETERMINISTIC collaborators — the no-model brain. This is the safe default used as
   // the fallback shape and in tests (fast, no live model). Production uses withLlm().
@@ -58,10 +66,18 @@ export class CoDriveSession {
   // fires destructive controls (reset/delete/bulk-action) to capture their bodies — it MUTATES the
   // target, so it is an explicit opt-in, never the default. Logout is always skipped.
   static withExhaustive(aggressive: boolean, cfg?: Partial<CoDriveConfig> & { settleMs?: number }): CoDriveSession {
-    return CoDriveSession.build(new ExhaustiveNavigator(aggressive), cfg, aggressive)
+    // Exhaustive breadth is the one mode that wants revisit-on-nav-away: its deterministic
+    // navigator re-plans each returned-to page and skips acted controls, so the list→detail→back
+    // loop terminates cleanly (one more row per return) instead of the LLM re-deciding each time.
+    return CoDriveSession.build(new ExhaustiveNavigator(aggressive), cfg, aggressive, true)
   }
 
-  private static build(navigator: Navigator, cfg?: Partial<CoDriveConfig> & { settleMs?: number }, aggressive = false): CoDriveSession {
+  private static build(
+    navigator: Navigator,
+    cfg?: Partial<CoDriveConfig> & { settleMs?: number },
+    aggressive = false,
+    revisitOnNavAway = false,
+  ): CoDriveSession {
     const settleMs = cfg?.settleMs ?? 1500
     const pollMs = cfg?.pollMs ?? 400
     return new CoDriveSession(
@@ -75,6 +91,7 @@ export class CoDriveSession {
       // longer than a few polls to load, and if the loop gives up it does NOT auto-restart (only a
       // driver toggle does) — which is why "AI" felt dead until a Human→AI toggle. ~60s at 400ms.
       { pollMs, maxIdle: cfg?.maxIdle ?? 150 },
+      revisitOnNavAway,
     )
   }
 
@@ -195,7 +212,19 @@ export class CoDriveSession {
       // navigation re-plans an input action; click/hover keep re-planning on revealed (new UI opened).
       const inputAction =
         action.kind === "type" || action.kind === "select" || action.kind === "check" || action.kind === "press"
-      if (result.effect === "navigated" || (result.effect === "revealed" && !inputAction)) plan = null
+      if (result.effect === "navigated") {
+        // We navigated away mid-plan — typically a SPA list row that client-routed to its detail
+        // page. Every action still queued (planIdx..end) belongs to the page we just left and is
+        // about to be dropped by the re-plan. Re-queue that page so, once the frontier drains, the
+        // loop returns and the navigator picks the NEXT un-acted control: list → detail (capture
+        // its deep GET/POST endpoints with real bodies) → back → next row, until the list is spent.
+        if (this.revisitOnNavAway && planIdx < plan.actions.length) Crawl.revisit(sessionID, snapshot.url)
+        plan = null
+      } else if (result.effect === "revealed" && !inputAction) {
+        // Same-URL reveal (a panel/modal opened in place, no route change): just re-plan the
+        // current page — the navigator naturally moves to the next un-acted control there.
+        plan = null
+      }
     }
 
     HBLog.record(sessionID, "codrive", "stop", { reason, actions: Crawl.summary(sessionID).actions, pages: Crawl.summary(sessionID).pages_visited })

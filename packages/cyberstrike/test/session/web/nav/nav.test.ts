@@ -266,6 +266,108 @@ describe("CoDriveSession.run — LLM 'done' must not drop the frontier (regressi
   })
 })
 
+describe("CoDriveSession.run — revisit-on-nav-away covers every SPA list row (list→detail→back→next)", () => {
+  test("clicking row1 client-routes to its detail page; the loop returns to the list and clicks row2", async () => {
+    const sid = "spa"
+    const list = "https://h/modules"
+    WebControl.connect(sid, { send: () => {} }) // guardrails: something connected
+    WebScope.ensure(sid, list)
+    // Two list rows with NO href — they client-route via JS (the case the frontier can't seed).
+    const rows: Click[] = [
+      { id: "r1", tag: "div", role: "button", label: "Row 1", href: "" },
+      { id: "r2", tag: "div", role: "button", label: "Row 2", href: "" },
+    ]
+    const detailFor: Record<string, string> = { r1: "https://h/modules/1", r2: "https://h/modules/2" }
+    let url = list
+
+    const observer: Observer = {
+      observe: () =>
+        ({
+          url,
+          title: url,
+          clickables: url === list ? rows : [], // detail pages are dead-ends here
+          forms: [],
+          links: [],
+          observed_at: Date.now(),
+        }) as PageSnapshot,
+    }
+    // Exhaustive-style: plan every row not yet acted; a detail page has nothing to do.
+    const navigator: Navigator = {
+      async plan(_sid: string, snap: PageSnapshot): Promise<{ rationale: string; actions: Action[] }> {
+        if (snap.url !== list) return { rationale: "detail dead-end", actions: [] }
+        const actions = rows
+          .filter((r) => !Crawl.isActed(sid, Crawl.actionKey(list, r)))
+          .map((r) => ({ kind: "click", elementId: r.id, label: r.label }) as Action)
+        return { rationale: "exercise rows", actions }
+      },
+    }
+    const clicked: string[] = []
+    const executor: Executor = {
+      async run(_sid: string, action: Action): Promise<ActionResult> {
+        if (action.kind === "navigate") {
+          url = action.url // backtrack to the list
+          return { ok: true, status: "ok", effect: "navigated" }
+        }
+        if (action.kind === "click" && "elementId" in action) {
+          clicked.push(action.elementId)
+          const row = rows.find((r) => r.id === action.elementId)!
+          Crawl.record(sid, Crawl.actionKey(list, row)) // mimic WebAct's acted-tracking
+          url = detailFor[action.elementId] // the click client-routes to the detail page
+          return { ok: true, status: "ok", effect: "navigated" }
+        }
+        return { ok: true, status: "ok", effect: "noop" }
+      },
+    }
+    const session = new CoDriveSession({ observer, navigator, executor, guardrails: new Guardrails() }, { pollMs: 1, maxIdle: 3 }, true)
+    const reason = await session.run(sid)
+    // Without the revisit queue the crawl clicks r1, routes to its detail page, and never returns —
+    // r2's detail endpoints are never captured. With it, BOTH rows are exercised.
+    expect(clicked).toEqual(["r1", "r2"])
+    expect(reason).toBe("coverage-complete")
+  })
+
+  test("revisitOnNavAway=false (LLM default): a mid-plan route does NOT re-queue the origin page", async () => {
+    const sid = "norevisit"
+    const list = "https://h/modules"
+    WebControl.connect(sid, { send: () => {} })
+    WebScope.ensure(sid, list)
+    const rows: Click[] = [
+      { id: "r1", tag: "div", role: "button", label: "Row 1", href: "" },
+      { id: "r2", tag: "div", role: "button", label: "Row 2", href: "" },
+    ]
+    let url = list
+    const observer: Observer = {
+      observe: () =>
+        ({ url, title: url, clickables: url === list ? rows : [], forms: [], links: [], observed_at: Date.now() }) as PageSnapshot,
+    }
+    const navigator: Navigator = {
+      async plan(_sid: string, snap: PageSnapshot): Promise<{ rationale: string; actions: Action[] }> {
+        if (snap.url !== list) return { rationale: "dead-end", actions: [] }
+        const actions = rows
+          .filter((r) => !Crawl.isActed(sid, Crawl.actionKey(list, r)))
+          .map((r) => ({ kind: "click", elementId: r.id, label: r.label }) as Action)
+        return { rationale: "rows", actions }
+      },
+    }
+    const clicked: string[] = []
+    const executor: Executor = {
+      async run(_sid: string, action: Action): Promise<ActionResult> {
+        if (action.kind === "click" && "elementId" in action) {
+          clicked.push(action.elementId)
+          Crawl.record(sid, Crawl.actionKey(list, rows.find((r) => r.id === action.elementId)!))
+          url = "https://h/modules/1"
+          return { ok: true, status: "ok", effect: "navigated" }
+        }
+        return { ok: true, status: "ok", effect: "noop" }
+      },
+    }
+    // Third arg omitted → revisitOnNavAway defaults false (the production LLM brain's behavior).
+    const session = new CoDriveSession({ observer, navigator, executor, guardrails: new Guardrails() }, { pollMs: 1, maxIdle: 3 })
+    await session.run(sid)
+    expect(clicked).toEqual(["r1"]) // routed away after r1; NOT re-queued, so r2 is never reached
+  })
+})
+
 describe("WebAct.perform — aggressive gate (exhaustive crawl clicks destructive; logout still denied)", () => {
   test("confirm-policy (destructive) is blocked by default, allowed with aggressive; deny (logout) always blocked", async () => {
     const sid = "s"
