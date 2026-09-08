@@ -17,7 +17,9 @@ export interface Lead {
   transactionId: string // → send() with this to reproduce/confirm
   function: Subjects["function"] // method + endpoint + CRUD (BFLA axis)
   objects: Subjects["objects"] // resource ids touched (BOLA/IDOR axis)
-  role?: string // identity it ran under (RBAC axis)
+  role?: string // principal it ran under (identity, else JWT subject) — RBAC axis
+  roles?: string[] // JWT roles/authorities, when present
+  scopes?: string[] // JWT/OAuth scopes, when present
   replaySafe: boolean // false ⇒ replaying would burn the live session (see reason) — don't
   reason?: string // why replay is unsafe (present only when !replaySafe)
   raw: RawView // the full raw request (+ response) INLINE, for detailed inspection
@@ -33,6 +35,8 @@ export function lead(tx: Transaction, signal: Signal): Lead {
     function: s.function,
     objects: s.objects,
     role: s.role,
+    roles: s.roles,
+    scopes: s.scopes,
     replaySafe: rs.safe,
     reason: rs.reason,
     raw: rawView(tx),

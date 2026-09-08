@@ -73,6 +73,42 @@ describe("subjects — deterministic object/function/role extraction", () => {
     expect(s.objects[0]).toMatchObject({ ref: "order:ORD-2024-XY", shape: "opaque", in: "query" })
   })
 
+  test("GraphQL: function = operation root field + CRUD; objects from id-shaped variables, named by the operation", () => {
+    const s = subjects(
+      tx(
+        {
+          method: "POST",
+          url: "https://api.test/graphql",
+          headers: [{ name: "content-type", value: "application/json" }],
+          body: JSON.stringify({ operationName: "UpdateOrder", query: "mutation UpdateOrder($id: ID!, $qty: Int!){ updateOrder(id:$id, qty:$qty){ id } }", variables: { id: "550e8400-e29b-41d4-a716-446655440000", qty: 3 } }),
+        },
+      ),
+    )
+    expect(s.function).toEqual({ method: "POST", endpoint: "POST api.test/graphql#updateOrder", crud: "update" })
+    expect(s.objects.map((o) => o.ref)).toEqual(["order:550e8400-e29b-41d4-a716-446655440000"]) // NOT "variables:..."; qty (not id) skipped
+  })
+
+  test("GraphQL query root field infers read", () => {
+    const s = subjects(tx({ method: "POST", url: "https://api.test/graphql", headers: [{ name: "content-type", value: "application/json" }], body: JSON.stringify({ query: "query { listUsers { id } }" }) }))
+    expect(s.function.crud).toBe("read")
+    expect(s.function.endpoint).toBe("POST api.test/graphql#listUsers")
+  })
+
+  test("JWT bearer: role = subject, plus roles + scopes from claims", () => {
+    const payload = Buffer.from(JSON.stringify({ sub: "user-4021", roles: ["admin", "billing"], scope: "orders:write orders:read" })).toString("base64url")
+    const jwt = `${Buffer.from(JSON.stringify({ alg: "HS256" })).toString("base64url")}.${payload}.sig`
+    const s = subjects(tx({ url: "https://app.test/api/me", headers: [{ name: "authorization", value: `Bearer ${jwt}` }] }))
+    expect(s.role).toBe("user-4021")
+    expect(s.roles).toEqual(["admin", "billing"])
+    expect(s.scopes).toEqual(["orders:write", "orders:read"])
+  })
+
+  test("explicit identity wins over the JWT subject", () => {
+    const jwt = `x.${Buffer.from(JSON.stringify({ sub: "token-sub" })).toString("base64url")}.s`
+    const s = subjects(tx({ url: "https://app.test/x", headers: [{ name: "authorization", value: `Bearer ${jwt}` }] }, "assigned-role"))
+    expect(s.role).toBe("assigned-role")
+  })
+
   test("comprehensive real browser request: path + query + nested body + id-ish headers, clean resource names", () => {
     const s = subjects(
       tx(

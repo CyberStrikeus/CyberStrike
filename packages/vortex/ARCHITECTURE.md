@@ -299,6 +299,19 @@ the session), and the raw request/response **inline** for inspection. `leads(sto
 it in bulk. This is the producer→consumer handoff: the agent reads one object and knows what/where/
 who/how-to-reproduce, no LLM in the assembly.
 
+**`subjects(tx)`** is the deterministic extractor behind `lead`'s function/objects/role — the parser
+that reads a transaction's who/what/which from **everywhere** a value lives: the URI path (id-shaped
+segment named by the preceding resource noun), the query, id-ish headers, and the request body
+**including nested structures** (the flattened dotpath map — `order.id`, `items.0.productId`). Two
+protocol-aware paths beyond the generic scan: **GraphQL** (every operation rides one `POST /graphql`,
+so the function is derived from the operation's root field — `…/graphql#updateOrder`, CRUD from the
+field verb — and objects come from the id-shaped *variables* named by the operation, not the literal
+`variables.` path), and **JWT** (the Authorization bearer is decoded read-only for the acting
+principal → `role`, plus `roles`/`scopes` — the RBAC truth, vs. an assigned identity label). It errs
+toward recall (a candidate is a lead, not a proof). Known limits (deferred, documented): non-id
+path slugs (`/users/johndoe`) and repeated query params (`?id=1&id=2`, kept last-only) are not
+mined; byte-exact/inline-GraphQL-args parsing is out of scope.
+
 Two rule shapes, both deterministic:
 
 - **`Rule`** — evaluates ONE transaction. Header hygiene, error signatures, reflection, sensitive
