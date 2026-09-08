@@ -109,6 +109,9 @@ const SYSTEM =
   "in ONE plan, in order — never submit a partially-filled form and never plan just the first field. " +
   "Fill EVERY typeable field on the page before leaving it. Use `form` only for the simple pre-listed forms; " +
   "prefer `type` for entering values. " +
+  "SET the dropdowns and filters too: a `selectable` element (a filter like 'Click to select…', a " +
+  "period/category/status picker) each drive a DIFFERENT server request when set — `select` at least " +
+  "one before leaving a filter-driven page; that is often where the app's richest endpoints live. " +
   "You have the FULL human action set — use the one that fits each element: `click` (buttons, links, " +
   "tabs), `type` (typeable fields), `select` (an element marked `selectable` — a dropdown; give the " +
   "option in `value`), `check` (a checkbox/radio/switch; `checked` true/false), `hover` (reveal a " +

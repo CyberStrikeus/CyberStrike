@@ -2058,6 +2058,37 @@
   // fire input+change so frameworks see it. A non-<select> custom dropdown can't be set directly —
   // return false so the driver falls back to click (open) + click (option). Framework-agnostic:
   // native selects work everywhere; custom widgets are driven by the generic click path.
+  // A CUSTOM combobox (div/button with role=combobox or aria-haspopup, NOT a native <select>) is a
+  // two-step control: click to open, then click an option that renders — often in a portal at the
+  // end of <body>. The filter dropdowns that drive analytics dashboards ("Click to select…") are
+  // all this shape, so leaving the pick to the crawl loop (which usually wanders off before picking)
+  // meant they were never exercised — and each filter value is a distinct data-fetch endpoint. Do
+  // the whole open→pick here so one `select` reliably sets it (matching `value`, else first option).
+  async function pickFromCustomDropdown(trigger, value) {
+    trigger.click() // open the listbox
+    const want = String(value == null ? "" : value).trim().toLowerCase()
+    const deadline = Date.now() + 1200
+    let opts = []
+    while (Date.now() < deadline) {
+      await csleep(80)
+      opts = [...document.querySelectorAll('[role="option"],[role="menuitemradio"],[role="menuitem"]')].filter(
+        (o) => visible(o) && (o.textContent || "").trim() && o.getAttribute("aria-disabled") !== "true",
+      )
+      if (opts.length) break
+    }
+    if (!opts.length) return false // nothing rendered → leave it open; the loop may still pick
+    let opt = null
+    if (want)
+      opt =
+        opts.find((o) => (o.textContent || "").trim().toLowerCase() === want) ||
+        opts.find((o) => (o.textContent || "").toLowerCase().includes(want))
+    if (!opt) opt = opts[0] // no value asked (or no match) → first real option still fires the filter request
+    opt.scrollIntoView({ block: "center" })
+    await csleep(80)
+    opt.click()
+    return true
+  }
+
   function selectOption(el, value) {
     if (!el || el.tagName !== "SELECT") return false
     const v = String(value == null ? "" : value).trim().toLowerCase()
@@ -2162,11 +2193,12 @@
           aiActivity("AI selects: " + String(value ?? ""))
           aiPointAt(el)
           await csleep(220)
-          // Native <select> set directly; a custom dropdown falls back to a click to open it (the
-          // driver then clicks the revealed option as a normal element).
+          // Native <select> set directly; a CUSTOM dropdown is opened AND an option is picked here
+          // (one atomic select), so a filter dropdown actually fires its data-fetch request instead
+          // of being left open for the loop to wander away from.
           if (selectOption(el, value)) return sendResponse({ ok: true })
-          el.click()
-          return sendResponse({ ok: true, opened: true })
+          const picked = await pickFromCustomDropdown(el, value)
+          return sendResponse({ ok: true, picked, opened: !picked })
         }
         if (cmd.op === "check") {
           const el = elMap.get(cmd.elementId)
