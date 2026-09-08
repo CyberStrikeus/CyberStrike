@@ -72,6 +72,41 @@ describe("subjects — deterministic object/function/role extraction", () => {
     const s = subjects(tx({ url: "https://app.test/s?orderId=ORD-2024-XY" }))
     expect(s.objects[0]).toMatchObject({ ref: "order:ORD-2024-XY", shape: "opaque", in: "query" })
   })
+
+  test("comprehensive real browser request: path + query + nested body + id-ish headers, clean resource names", () => {
+    const s = subjects(
+      tx(
+        {
+          method: "POST",
+          url: "https://app.test/api/v2/orgs/12/users/550e8400-e29b-41d4-a716-446655440000/orders?ref=ORD-99&limit=20",
+          headers: [
+            { name: "Content-Type", value: "application/json" },
+            { name: "X-Account-Id", value: "88" }, // hyphenated header → clean lowercased resource, no dangling "-"
+            { name: "Cookie", value: "session=abc; theme=dark" }, // not id-ish → not an object
+          ],
+          body: JSON.stringify({
+            customer: { id: 4021, email: "b@x.com" },
+            items: [{ productId: "6512a1b2c3d4e5f60718293a" }, { productId: 7 }],
+            shipping: { addressId: 55 }, // must be "address", NOT "addres" (sid mid-word bug)
+          }),
+        },
+        "org12-admin",
+      ),
+    )
+    const refs = s.objects.map((o) => o.ref)
+    expect(s.function.endpoint).toBe("POST app.test/api/v2/orgs/{id}/users/{uuid}/orders")
+    expect(s.function.crud).toBe("create")
+    expect(s.role).toBe("org12-admin")
+    expect(refs).toContain("orgs:12")
+    expect(refs).toContain("users:550e8400-e29b-41d4-a716-446655440000")
+    expect(refs).toContain("customer:4021") // nested object
+    expect(refs).toContain("product:6512a1b2c3d4e5f60718293a") // nested array, objectid shape
+    expect(refs).toContain("product:7") // nested array, int
+    expect(refs).toContain("address:55") // regression: NOT "addres"
+    expect(refs).toContain("x-account:88") // regression: NOT "x-account-", lowercased
+    expect(refs.some((r) => r.startsWith("session"))).toBe(false) // cookie not mined as object
+    expect(refs).not.toContain("limit:20") // not id-ish, not id-shaped
+  })
 })
 
 function crudFor(method: string) {

@@ -40,17 +40,33 @@ function idishKey(key: string): boolean {
 }
 // Guess the resource noun. Strip an id suffix off the leaf ("user_id"→"user", "orderId"→"order");
 // when the leaf is PURELY an id-word (a nested "order.id"), fall back to the parent dotpath segment
-// ("order.id"→"order", "items.0.id"→"items", skipping array indices).
-const ID_SUFFIX = /[._-]?(id|ids|uuid|guid|oid|sid|pid|gid|ref|no|num|code)$/i
+// ("order.id"→"order", "items.0.id"→"items", skipping array indices). The suffix must sit on a
+// BOUNDARY — a separator (_id/-id/.id) or camelCase (…Id) — so short words (sid/pid) can't eat mid-
+// word letters ("addressId" must stay "address", not become "addres").
+const ID_WORD = /^(id|ids|uuid|guid|oid|sid|pid|gid|ref|no|num|code)$/i
+// Strip an id suffix off a leaf name. Two passes so casing is handled without eating mid-word
+// letters: (1) camelCase `…Id`/`…Uuid` — case-SENSITIVE, so "valid" is never trimmed to "val";
+// (2) a separator + id-word (`_id`, `-Id`, `.uuid`) — case-insensitive, the separator preventing
+// mid-word matches like "address"→"addres"; (3) drop any separator left dangling ("x-account-").
+function stripLeaf(leaf: string): string {
+  return leaf
+    .replace(/(Id|Ids|Uuid|Guid)$/, "")
+    .replace(/[._-](?:id|ids|uuid|guid|oid|sid|pid|gid|ref|no|num|code)$/i, "")
+    .replace(/[._-]+$/, "")
+}
 function resourceOf(key: string): string {
   const parts = key.split(".")
   const leaf = parts[parts.length - 1] ?? key
-  const leafStem = leaf.replace(ID_SUFFIX, "").replace(/Id$/, "")
-  if (leafStem) return leafStem
-  for (let i = parts.length - 2; i >= 0; i--) {
-    if (!/^\d+$/.test(parts[i]!)) return parts[i]! // parent segment, skipping array indices
+  let r = ID_WORD.test(leaf) ? "" : stripLeaf(leaf)
+  if (!r) {
+    for (let i = parts.length - 2; i >= 0; i--) {
+      if (!/^\d+$/.test(parts[i]!)) {
+        r = parts[i]!
+        break
+      }
+    }
   }
-  return leaf
+  return (r || leaf).toLowerCase()
 }
 function pathname(url: string): string {
   try {
@@ -77,7 +93,7 @@ export function subjects(tx: Transaction): Subjects {
   for (let i = 0; i < segs.length; i++) {
     const shape = identifierShape(segs[i]!)
     if (!shape) continue
-    const resource = i > 0 ? segs[i - 1] : undefined
+    const resource = i > 0 ? segs[i - 1]!.toLowerCase() : undefined
     push({ ref: `${resource ?? "path"}:${segs[i]}`, value: segs[i]!, shape, in: "path", name: resource, resource })
   }
 
