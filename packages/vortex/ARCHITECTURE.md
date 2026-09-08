@@ -155,6 +155,7 @@ the core small, testable, and reusable while every domain's knowledge stays in i
 | `TrafficStore` interface + `MemoryStore` | `store.ts` | ✅ |
 | Durable session-scoped `SqliteStore` | `sqlite-store.ts` | ✅ |
 | `Rule` / `CorpusRule` / `Signal` / dedup / `RuleRegistry` | `rule.ts` | ✅ |
+| Signal store (persisted "flags" in the store) + `scan()` (rules→stored signals over observed) | `store.ts` / `scan.ts` | ✅ |
 | Baseline rules (header hygiene) | `rules/headers.ts` | ✅ |
 | Baseline corpus rules (access-control surface) | `rules/access.ts` | ✅ |
 | HTTPQL-lite (parser + evaluator + resolver) | `httpql.ts` | ✅ |

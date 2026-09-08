@@ -8,8 +8,9 @@
 // (Drizzle), it provides an adapter implementing TrafficStore instead of using this.
 import { Database } from "bun:sqlite"
 import type { Transaction } from "./transaction"
-import type { TrafficStore } from "./store"
+import { signalKey, type TrafficStore } from "./store"
 import type { Discovered } from "./discovery"
+import type { Signal } from "./rule"
 
 interface Row {
   data: string
@@ -42,6 +43,18 @@ export class SqliteStore implements TrafficStore {
          kind TEXT NOT NULL,
          data TEXT NOT NULL,
          PRIMARY KEY (session, id)
+       )`,
+    )
+    this.db.run(
+      `CREATE TABLE IF NOT EXISTS vortex_signal (
+         session TEXT NOT NULL,
+         key TEXT NOT NULL,
+         rule_id TEXT,
+         severity TEXT,
+         category TEXT,
+         transaction_id TEXT,
+         data TEXT NOT NULL,
+         PRIMARY KEY (session, key)
        )`,
     )
   }
@@ -100,8 +113,40 @@ export class SqliteStore implements TrafficStore {
     return rows.map((r) => JSON.parse(r.data) as Discovered)
   }
 
+  addSignals(signals: Signal[]): number {
+    let added = 0
+    const exists = this.db.query<{ n: number }, [string, string]>(`SELECT COUNT(*) AS n FROM vortex_signal WHERE session = ? AND key = ?`)
+    for (const s of signals) {
+      const key = signalKey(s)
+      const had = (exists.get(this.session, key)?.n ?? 0) > 0
+      this.db.run(`INSERT OR REPLACE INTO vortex_signal (session, key, rule_id, severity, category, transaction_id, data) VALUES (?, ?, ?, ?, ?, ?, ?)`, [
+        this.session,
+        key,
+        s.ruleId,
+        s.severity,
+        s.category,
+        s.transactionId,
+        JSON.stringify(s),
+      ])
+      if (!had) added++
+    }
+    return added
+  }
+
+  signals(filter?: { ruleId?: string; severity?: Signal["severity"]; transactionId?: string; category?: string }): Signal[] {
+    const clauses = ["session = ?"]
+    const args: string[] = [this.session]
+    if (filter?.ruleId) (clauses.push("rule_id = ?"), args.push(filter.ruleId))
+    if (filter?.severity) (clauses.push("severity = ?"), args.push(filter.severity))
+    if (filter?.transactionId) (clauses.push("transaction_id = ?"), args.push(filter.transactionId))
+    if (filter?.category) (clauses.push("category = ?"), args.push(filter.category))
+    const rows = this.db.query<Row, string[]>(`SELECT data FROM vortex_signal WHERE ${clauses.join(" AND ")}`).all(...args)
+    return rows.map((r) => JSON.parse(r.data) as Signal)
+  }
+
   clear(): void {
     this.db.run(`DELETE FROM vortex_transaction WHERE session = ?`, [this.session])
     this.db.run(`DELETE FROM vortex_discovered WHERE session = ?`, [this.session])
+    this.db.run(`DELETE FROM vortex_signal WHERE session = ?`, [this.session])
   }
 }

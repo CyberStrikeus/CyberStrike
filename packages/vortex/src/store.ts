@@ -4,6 +4,7 @@
 // so nothing above the store cares where the bytes live.
 import type { Transaction } from "./transaction"
 import type { Discovered } from "./discovery"
+import type { Signal } from "./rule"
 
 export interface TrafficStore {
   // Insert (or replace by id). Returns the stored transaction.
@@ -18,11 +19,40 @@ export interface TrafficStore {
   // by id; returns how many were NEW. `discovered(kind?)` lists them.
   addDiscovered(items: Discovered[]): number
   discovered(kind?: Discovered["kind"]): Discovered[]
+  // Signal store — what the rules caught, persisted (a first-class model entity, "flags" on the
+  // traffic). Deduped by signal identity; returns how many were NEW. `signals(filter?)` reads them.
+  addSignals(signals: Signal[]): number
+  signals(filter?: { ruleId?: string; severity?: Signal["severity"]; transactionId?: string; category?: string }): Signal[]
+}
+
+// The dedup identity of a signal — its dedupKey, else per (rule, transaction, title). Shared by the
+// stores so the same finding never persists twice.
+export function signalKey(s: Signal): string {
+  return s.dedupKey ?? `${s.ruleId}:${s.transactionId}:${s.title}`
 }
 
 export class MemoryStore implements TrafficStore {
   private readonly byId = new Map<string, Transaction>()
   private readonly discoveredById = new Map<string, Discovered>()
+  private readonly signalByKey = new Map<string, Signal>()
+
+  addSignals(signals: Signal[]): number {
+    let added = 0
+    for (const s of signals) {
+      const key = signalKey(s)
+      if (!this.signalByKey.has(key)) added++
+      this.signalByKey.set(key, s)
+    }
+    return added
+  }
+  signals(filter?: { ruleId?: string; severity?: Signal["severity"]; transactionId?: string; category?: string }): Signal[] {
+    let out = [...this.signalByKey.values()]
+    if (filter?.ruleId) out = out.filter((s) => s.ruleId === filter.ruleId)
+    if (filter?.severity) out = out.filter((s) => s.severity === filter.severity)
+    if (filter?.transactionId) out = out.filter((s) => s.transactionId === filter.transactionId)
+    if (filter?.category) out = out.filter((s) => s.category === filter.category)
+    return out
+  }
 
   add(tx: Transaction): Transaction {
     this.byId.set(tx.id, tx)
@@ -55,5 +85,6 @@ export class MemoryStore implements TrafficStore {
   clear(): void {
     this.byId.clear()
     this.discoveredById.clear()
+    this.signalByKey.clear()
   }
 }
