@@ -11,7 +11,8 @@
 //   term  := "(" or ")" | atom
 //   atom  := field op value
 //   field := dotted path, e.g. resp.status | req.header.content-type | req.body.params.staff_name
-//   op    := ":" (eq) | "!=" (ne) | ":~" or "~" (regex, case-insensitive) | ">" | "<" | ">=" | "<="
+//   op    := ":" (eq) | "!=" (ne) | ":~" or "~" (regex, case-insensitive) | "~=" (literal contains,
+//            case-insensitive — no regex metachar escaping) | ">" | "<" | ">=" | "<="
 //   value := "double quoted" | bareword     (the value "*" with ":" means EXISTS: `field:*`)
 //
 // Examples:
@@ -29,8 +30,8 @@ import { graphql } from "./graphql"
 
 export class QueryError extends Error {}
 
-type Op = ":" | "!=" | ":~" | "~" | ">" | "<" | ">=" | "<="
-type Atom = { type: "atom"; field: string; op: Op; value: string }
+type Op = ":" | "!=" | ":~" | "~" | "~=" | ">" | "<" | ">=" | "<="
+type Atom = { type: "atom"; field: string; op: Op; value: string; re?: RegExp }
 type Node =
   | Atom
   | { type: "and"; left: Node; right: Node }
@@ -40,8 +41,8 @@ type Node =
 // --- tokenizer -------------------------------------------------------------
 type Token = { t: "(" } | { t: ")" } | { t: "AND" } | { t: "OR" } | { t: "NOT" } | ({ t: "atom" } & Omit<Atom, "type">)
 
-// Longest first so multi-char ops win: ":~"/">=" before ":"/">", etc.
-const OPS: Op[] = [":~", ">=", "<=", "!=", ":", "~", ">", "<"]
+// Longest first so multi-char ops win: ":~"/"~="/">=" before ":"/"~"/">", etc.
+const OPS: Op[] = [":~", "~=", ">=", "<=", "!=", ":", "~", ">", "<"]
 const FIELD_CHAR = /[A-Za-z0-9_.\-]/
 
 function tokenize(input: string): Token[] {
@@ -140,7 +141,16 @@ function parse(input: string): Node {
     }
     if (tok.t === "atom") {
       eat()
-      return { type: "atom", field: tok.field, op: tok.op, value: tok.value }
+      // Compile the regex ONCE here (parse time), not per-transaction in applyOp.
+      let re: RegExp | undefined
+      if (tok.op === "~" || tok.op === ":~") {
+        try {
+          re = new RegExp(tok.value, "i")
+        } catch {
+          throw new QueryError(`Invalid regex: ${tok.value}`)
+        }
+      }
+      return { type: "atom", field: tok.field, op: tok.op, value: tok.value, re }
     }
     throw new QueryError(`Unexpected token "${tok.t}"`)
   }
@@ -217,19 +227,13 @@ export function fieldValue(tx: Transaction, field: string): string | number | un
 }
 
 // --- evaluation ------------------------------------------------------------
-function applyOp(actual: string | number | undefined, op: Op, value: string): boolean {
+function applyOp(actual: string | number | undefined, op: Op, value: string, re?: RegExp): boolean {
   // Presence check: `field:*` matches when the field has a non-empty value. (A literal "*" is
   // essentially never a value to match; use a regex if you truly need one.)
   if (op === ":" && value === "*") return actual !== undefined && String(actual) !== ""
-  if (op === "~" || op === ":~") {
-    let re: RegExp
-    try {
-      re = new RegExp(value, "i")
-    } catch {
-      throw new QueryError(`Invalid regex: ${value}`)
-    }
-    return re.test(String(actual ?? ""))
-  }
+  if (op === "~" || op === ":~") return re!.test(String(actual ?? "")) // re precompiled at parse time
+  // Literal substring, case-insensitive — no regex metachar escaping (safe for '../', '$1.00', etc.)
+  if (op === "~=") return String(actual ?? "").toLowerCase().includes(value.toLowerCase())
   if (op === ":" || op === "!=") {
     const eq =
       typeof actual === "number" ? String(actual) === value || actual === Number(value) : String(actual ?? "").toLowerCase() === value.toLowerCase()
@@ -249,7 +253,7 @@ function evalNode(node: Node, tx: Transaction): boolean {
   if (node.type === "and") return evalNode(node.left, tx) && evalNode(node.right, tx)
   if (node.type === "or") return evalNode(node.left, tx) || evalNode(node.right, tx)
   if (node.type === "not") return !evalNode(node.child, tx)
-  return applyOp(resolveField(tx, node.field), node.op, node.value)
+  return applyOp(resolveField(tx, node.field), node.op, node.value, node.re)
 }
 
 // A compiled query: parse once, run over many transactions.

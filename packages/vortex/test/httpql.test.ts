@@ -67,6 +67,13 @@ describe("HTTPQL-lite", () => {
     expect(query(corpus, "resp.status>=400 AND NOT resp.status:403").map((t) => t.id)).toEqual(["b"])
     expect(query(corpus, "NOT (resp.status:200 OR resp.status:500)").map((t) => t.id)).toEqual(["c"])
   })
+  test("~= literal contains (case-insensitive, no regex metachar escaping)", () => {
+    expect(query(corpus, 'resp.body~="syntax error"').map((t) => t.id)).toEqual(["b"])
+    expect(query(corpus, 'resp.body~="SYNTAX"').map((t) => t.id)).toEqual(["b"]) // case-insensitive
+    // "?debug" is a valid literal but an INVALID regex (? quantifies nothing) — ~= handles it, :~ throws
+    expect(query(corpus, 'req.url~="?debug"').map((t) => t.id)).toEqual(["a"])
+    expect(() => query(corpus, 'req.url:~"?debug"')).toThrow(QueryError)
+  })
   test("syntax errors throw QueryError", () => {
     expect(() => query(corpus, "resp.status")).toThrow(QueryError)
     expect(() => query(corpus, "(resp.status:200")).toThrow(QueryError)
