@@ -291,6 +291,14 @@ is fine at session scale).
 
 ## 9. Rules & signals
 
+**The agent boundary — `lead(tx, signal)`.** A bare `Signal` is thin; to act on it an agent would
+do 4-5 lookups. `lead()` assembles the whole actionable picture deterministically into one record:
+the signal, the `transactionId` (→ `send()` to reproduce), `subjects` (function = method+endpoint+
+CRUD, objects = resource ids, role = identity), the `replaySafe` verdict (so it never blindly burns
+the session), and the raw request/response **inline** for inspection. `leads(store, signals?)` does
+it in bulk. This is the producer→consumer handoff: the agent reads one object and knows what/where/
+who/how-to-reproduce, no LLM in the assembly.
+
 Two rule shapes, both deterministic:
 
 - **`Rule`** — evaluates ONE transaction. Header hygiene, error signatures, reflection, sensitive

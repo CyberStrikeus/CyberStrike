@@ -19,6 +19,9 @@ export type { IdShape } from "./endpoint"
 // nested body, so a Signal is self-describing (agent consumes context, doesn't author it).
 export type { Subjects, ObjectRef, Site, Crud } from "./subjects"
 export { subjects } from "./subjects"
+// The producer→consumer boundary object: Signal + subjects + raw + replay-safety in one record.
+export type { Lead } from "./lead"
+export { lead, leads } from "./lead"
 export type { Params } from "./params"
 export { params, responseFields, requestBodyKind, responseBodyKind } from "./params"
 export type { BodyKind, BodyView } from "./body"
