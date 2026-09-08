@@ -312,6 +312,16 @@ toward recall (a candidate is a lead, not a proof). Known limits (deferred, docu
 path slugs (`/users/johndoe`) and repeated query params (`?id=1&id=2`, kept last-only) are not
 mined; byte-exact/inline-GraphQL-args parsing is out of scope.
 
+**`inventory(store)`** lifts `subjects` from per-request to the corpus: it aggregates every
+transaction and canonicalizes by VALUE — the same `order:42` across many requests is ONE record
+carrying which roles reached it, through which functions, in which transactions. This is the object/
+function GRAPH the agent QUERIES (rather than re-deriving per request): `objectsByResource`,
+`objectsForRole`, `transactionsForObject` (the txs to replay under another role to confirm). The
+aggregation is where deterministic access-control leads fall out for free — `crossRoleObjects` (an
+object reached under >1 role → IDOR/BOLA candidate) and `crossRoleFunctions` (a function called by
+>1 role → BFLA surface). The agent gets a lead's own objects inline (via `lead`) AND can query this
+graph for anything else it wants.
+
 Two rule shapes, both deterministic:
 
 - **`Rule`** — evaluates ONE transaction. Header hygiene, error signatures, reflection, sensitive

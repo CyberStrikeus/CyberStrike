@@ -22,6 +22,10 @@ export { subjects } from "./subjects"
 // The producer→consumer boundary object: Signal + subjects + raw + replay-safety in one record.
 export type { Lead } from "./lead"
 export { lead, leads } from "./lead"
+// The corpus-wide object & function graph the agent queries — same object under >1 role = an IDOR
+// lead, same function under >1 role = a BFLA surface, all deterministic.
+export type { Inventory, ObjectRecord, FunctionRecord } from "./inventory"
+export { inventory, crossRoleObjects, crossRoleFunctions, objectsByResource, objectsForRole, transactionsForObject } from "./inventory"
 export type { Params } from "./params"
 export { params, responseFields, requestBodyKind, responseBodyKind } from "./params"
 export type { BodyKind, BodyView } from "./body"
