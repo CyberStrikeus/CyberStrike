@@ -25,6 +25,10 @@ export type { Rule, CorpusRule, Signal } from "./rule"
 export { RuleRegistry, dedupe } from "./rule"
 export type { CompiledQuery } from "./httpql"
 export { compile, query, QueryError } from "./httpql"
+// The send engine (raw-HTTP mutate/send/observe) and the Transaction bridge.
+export * as Engine from "./send"
+export type { RequestSpec, SendOptions, SendResult } from "./replay"
+export { send, toRequest, buildRequest } from "./replay"
 
 import { RuleRegistry } from "./rule"
 import { headerRules } from "./rules/headers"
