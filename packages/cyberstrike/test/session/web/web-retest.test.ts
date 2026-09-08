@@ -72,6 +72,27 @@ describe("WebRetest.markExamined / re-open", () => {
       expect(p[0].flags.role).toEqual(["Admin", "Owner"])
     })
   })
+
+  test("a NEW object_value on an examined endpoint is recorded but does NOT re-open (anti-redundancy)", async () => {
+    await withSession(async (sid) => {
+      WebRetest.flag({ sessionID: sid, keyHash: K, type: "object_value", value: "id-1" })
+      WebRetest.markExamined(sid, K)
+      expect(WebRetest.getPending(sid).length).toBe(0)
+
+      // more object values keep arriving (fresh UUIDs seen on the endpoint) — the first IDOR pass
+      // already swept a representative set, so these must NOT re-run the specialist.
+      expect(WebRetest.flag({ sessionID: sid, keyHash: K, type: "object_value", value: "id-2" })).toBe(false)
+      expect(WebRetest.flag({ sessionID: sid, keyHash: K, type: "object_value", value: "id-3" })).toBe(false)
+      expect(WebRetest.getPending(sid).length).toBe(0) // stayed examined — no re-dispatch
+
+      // but the values ARE recorded so a later brief still lists them
+      expect(WebRetest.getFlags(sid, K)?.object_value).toEqual(["id-1", "id-2", "id-3"])
+
+      // a NEW credential is a genuinely new test dimension → still re-opens
+      expect(WebRetest.flag({ sessionID: sid, keyHash: K, type: "credential", value: "org2" })).toBe(true)
+      expect(WebRetest.getPending(sid).length).toBe(1)
+    })
+  })
 })
 
 describe("WebRetest.flagMatching — TARGETED session-wide (relevance-filtered, deduped)", () => {

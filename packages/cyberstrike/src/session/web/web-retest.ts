@@ -137,6 +137,19 @@ export namespace WebRetest {
       const examined = parseFlags(row.examined_flags)
       const alreadyExamined = (examined[input.type] ?? []).includes(input.value)
       if (alreadyExamined) return false
+
+      // object_value churns constantly — every fresh UUID/param seen on the endpoint adds one — and
+      // the FIRST IDOR pass already sweeps a representative set. Re-opening for each additional value
+      // just re-runs the same specialists on the same endpoint (the dominant source of redundant
+      // dispatch: one endpoint fanned out 7× to the same agent). So a new object_value on an already-
+      // examined endpoint is RECORDED (the brief still lists it) but does NOT re-open the scenario. A
+      // new credential / role / signal is a genuinely new TEST DIMENSION and still re-opens below.
+      if (input.type === "object_value") {
+        if (!merged.added) return false
+        db.update(WebRetestQueueTable).set({ flags: merged.flags, time_updated: now }).where(eq(WebRetestQueueTable.id, row.id)).run()
+        return false // recorded, but not re-opened → no re-dispatch
+      }
+
       db.update(WebRetestQueueTable)
         .set({ status: "pending", flags: merged.flags, priority: bumpPriority(row.priority, priority), time_updated: now })
         .where(eq(WebRetestQueueTable.id, row.id))
