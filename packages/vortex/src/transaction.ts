@@ -39,6 +39,10 @@ export interface Transaction {
   // The identity (credential/role label) this transaction was made under, when known — the axis
   // cross-identity access-control analysis compares along. Undefined = anonymous / unknown.
   identity?: string
+  // Replay lineage: the id of the transaction this one was DERIVED from (a replay/mutation of a
+  // captured request). Undefined for originally-observed traffic. Lets the engine tie a probe back
+  // to the request it came from and compare the two.
+  derivedFrom?: string
   request: Request
   response?: Response
   timing?: { startedAt: number; ms?: number }
