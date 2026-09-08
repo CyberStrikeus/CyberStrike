@@ -58,7 +58,7 @@ export interface Transaction {
   redirectChain?: string[] // the URL hops that led here (or that this request kicked off)
   timing?: { startedAt?: number; ms?: number; ttfbMs?: number }
   // Technology markers attached by an extractor (e.g. JS mining → ["next", "spring"]). Lets tech-
-  // specific rules match via HTTPQL `tech:~spring`. Written by ingestExtract, not by the wire.
+  // specific rules match via the DSL, e.g. `contains(tech, "spring")`. Written by ingestExtract.
   tech?: string[]
 }
 

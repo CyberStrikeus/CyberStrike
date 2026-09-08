@@ -1,6 +1,6 @@
 // GraphQL awareness. GraphQL rides over HTTP as a JSON body ({query, operationName, variables}) or
 // a ?query= on GET, but it's a distinct surface: authz is per-resolver, injection lives in the
-// query/variables. Surfacing it structurally lets rules/HTTPQL target the operation and its
+// query/variables. Surfacing it structurally lets rules/the DSL target the operation and its
 // variables instead of treating the whole thing as an opaque JSON blob.
 import type { Transaction } from "./transaction"
 import { header } from "./transaction"

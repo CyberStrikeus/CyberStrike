@@ -1,7 +1,7 @@
 // Structured cookie model. Cookies drive both auth (session theft / fixation) and CSRF/SameSite
 // analysis, so the engine needs them as parsed objects — not a raw Set-Cookie string a rule has to
 // re-parse every time. `responseCookies` powers the cookie-hardening rule; `requestCookies` and the
-// parsed attributes feed HTTPQL cookie fields.
+// parsed attributes feed the DSL cookie fields.
 import type { Transaction } from "./transaction"
 import { header, headerAll } from "./transaction"
 

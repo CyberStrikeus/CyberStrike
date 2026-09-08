@@ -3,7 +3,8 @@
 // Shape of the thing: every request/response the platform sees becomes a `Transaction` in a
 // `TrafficStore`; a `RuleRegistry` runs deterministic per-transaction `Rule`s AND cross-transaction
 // `CorpusRule`s over that traffic to emit `Signal`s (deduped) without waiting on agent initiative.
-// HTTPQL-lite (a query layer over the store) lands next.
+// The DSL engine (expr.ts) is the one predicate language — for both agent queries and rule
+// conditions — with a function library (decode/hash/version/regex/len) over the field vocabulary.
 export type { Source, Severity, Header, Request, Response, Transaction } from "./transaction"
 export { header, headerAll, hasHeader } from "./transaction"
 export type { TrafficStore } from "./store"
@@ -28,8 +29,8 @@ export { groupByEndpoint, groupByShape, identities } from "./corpus"
 export { requestShape } from "./shape"
 export type { Rule, CorpusRule, Signal } from "./rule"
 export { RuleRegistry, dedupe } from "./rule"
-export type { CompiledQuery, CompileOptions } from "./httpql"
-export { compile, query, QueryError } from "./httpql"
+export type { Compiled, CompileOptions, Value } from "./expr"
+export { compile, query, ExprError, functionNames } from "./expr"
 // The send engine (raw-HTTP mutate/send/observe) and the Transaction bridge.
 export * as Engine from "./send"
 export type { RequestSpec, SendOptions, SendResult } from "./replay"
@@ -47,7 +48,7 @@ import { accessRules } from "./rules/access"
 import { signatureRules } from "./rules/signatures"
 import { compileRules } from "./declarative"
 
-// The declarative rule DSL (LLM-friendly: a rule is {when: HTTPQL, message, severity} data).
+// The declarative rule DSL (LLM-friendly: a rule is {when: DSL-expression, message, severity} data).
 export type { DeclarativeRule } from "./declarative"
 export { DeclarativeRuleSchema, compileRule, compileRules, parseRules } from "./declarative"
 export type { ChainRule } from "./chain"
@@ -55,7 +56,7 @@ export { ChainRuleSchema, compileChain, parseChains } from "./chain"
 export { correlatable, responseValues, requestValues, sharedValues } from "./taint"
 export type { Extract, Discovered } from "./discovery"
 export { ingestExtract, discoveredId } from "./discovery"
-export { fieldValue } from "./httpql"
+export { fieldValue } from "./fields"
 export { signatureRules } from "./rules/signatures"
 
 // The baseline rule set — everything OSS. Per-transaction hygiene + response-signature (declarative)

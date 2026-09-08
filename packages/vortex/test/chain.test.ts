@@ -22,8 +22,8 @@ const resetChain: ChainRule = {
   category: "auth-session",
   severity: "critical",
   steps: [
-    { as: "leak", when: "resp.body.reset_token:~." }, // a response carrying a reset_token
-    { as: "use", when: "resp.status:200", link: [{ field: "req.query.token", to: "leak.resp.body.reset_token" }] },
+    { as: "leak", when: "resp.body.reset_token" }, // a response carrying a reset_token (truthy = present)
+    { as: "use", when: "resp.status == 200", link: [{ field: "req.query.token", to: "leak.resp.body.reset_token" }] },
   ],
   message: "Reset token leaked by {leak.endpoint} was reused at {use.endpoint}",
 }
@@ -63,8 +63,8 @@ describe("chain rule — multi-step correlation via link (HTTPQL per step)", () 
       severity: "high",
       distinctIdentity: true,
       steps: [
-        { as: "owner", when: "resp.body.account_id:~." }, // A's response exposes an account_id
-        { as: "attacker", when: "resp.status:200", link: [{ field: "req.query.account", to: "owner.resp.body.account_id" }] }, // B accesses it
+        { as: "owner", when: "resp.body.account_id" }, // A's response exposes an account_id (truthy = present)
+        { as: "attacker", when: "resp.status == 200", link: [{ field: "req.query.account", to: "owner.resp.body.account_id" }] }, // B accesses it
       ],
       message: "{owner.identity}'s account_id reached by {attacker.identity} at {attacker.endpoint}",
     }
@@ -85,8 +85,8 @@ describe("chain rule — multi-step correlation via link (HTTPQL per step)", () 
       category: "auth-session",
       severity: "high",
       steps: [
-        { as: "src", when: "resp.status:200" },
-        { as: "sink", when: "resp.status:200", reuses: "src" },
+        { as: "src", when: "resp.status == 200" },
+        { as: "sink", when: "resp.status == 200", reuses: "src" },
       ],
       message: "value {shared} from {src.endpoint} reused in request to {sink.endpoint}",
     }
@@ -109,8 +109,8 @@ describe("chain rule — multi-step correlation via link (HTTPQL per step)", () 
       category: "x",
       severity: "low",
       steps: [
-        { as: "src", when: "resp.status:200" },
-        { as: "sink", when: "resp.status:200", reuses: "src" },
+        { as: "src", when: "resp.status == 200" },
+        { as: "sink", when: "resp.status == 200", reuses: "src" },
       ],
     }
     // both share the value "1" and "ok" — too short/common to be a real dataflow signal

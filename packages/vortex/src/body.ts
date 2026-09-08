@@ -2,7 +2,7 @@
 // XML, HTML, form-urlencoded, multipart, GraphQL, plaintext, binary — and request and response
 // often differ (POST JSON → HTML error page; GET → JSON). This classifies the kind by content-type
 // (falling back to a light content sniff) and extracts a flat name→value field map for the
-// structured kinds, so rules and HTTPQL can address fields in EITHER direction (req.body.x AND
+// structured kinds, so rules and the DSL can address fields in EITHER direction (req.body.x AND
 // resp.body.x).
 import type { Header } from "./transaction"
 import { header } from "./transaction"

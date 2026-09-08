@@ -64,9 +64,9 @@ describe("weak-cookie-flags uses the parsed model", () => {
 describe("HTTPQL cookie fields", () => {
   const corpus = [tx("session=s1; theme=dark", ["auth=t1; HttpOnly"])]
   test("req.cookie.<name> and resp.cookie.<name>", () => {
-    expect(query(corpus, "req.cookie.session:s1")).toHaveLength(1)
-    expect(query(corpus, "req.cookie.theme:dark")).toHaveLength(1)
-    expect(query(corpus, "resp.cookie.auth:t1")).toHaveLength(1)
-    expect(query(corpus, "req.cookie.session:nope")).toHaveLength(0)
+    expect(query(corpus, 'req.cookie.session == "s1"')).toHaveLength(1)
+    expect(query(corpus, 'req.cookie.theme == "dark"')).toHaveLength(1)
+    expect(query(corpus, 'resp.cookie.auth == "t1"')).toHaveLength(1)
+    expect(query(corpus, 'req.cookie.session == "nope"')).toHaveLength(0)
   })
 })

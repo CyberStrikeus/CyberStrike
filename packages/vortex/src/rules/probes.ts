@@ -9,7 +9,7 @@ export const probeRules: ProbeRule[] = [
     id: "reflected-xss-lead",
     category: "injection",
     severity: "medium",
-    select: "resp.bodyKind:html AND req.query.q:*",
+    select: 'resp.bodyKind == "html" && req.query.q',
     inject: { into: "query", name: "q", payloads: ["<vx>{canary}</vx>"], canary: true },
     detect: "reflected", // the canary bounced back into the response → reflection lead
     message: "reflected input at {endpoint} (param q)",
@@ -18,9 +18,9 @@ export const probeRules: ProbeRule[] = [
     id: "sql-error-probe",
     category: "injection",
     severity: "high",
-    select: "req.query.id:*",
+    select: "req.query.id",
     inject: { into: "query", name: "id", payloads: ["'", "1' OR '1'='1"] },
-    detect: 'resp.body:~"SQL syntax" OR resp.body:~"SQLSTATE" OR resp.body:~"unterminated quoted string"',
+    detect: 'regex("SQL syntax|SQLSTATE|unterminated quoted string", resp.body)',
     message: "SQL error provoked at {endpoint} (param id)",
   },
 ]

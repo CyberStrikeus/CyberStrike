@@ -1,18 +1,19 @@
 // ProbeRule — the ACTIVE declarative rule (the DSL's third shape). Where DeclarativeRule matches a
 // captured response and ChainRule correlates, a ProbeRule SENDS: pick candidate transactions
-// (`select` = HTTPQL), inject a payload into a parameter (`inject`), send it, and fire when the
-// probe's response matches (`detect` = HTTPQL over the response, or the literal "reflected" = the
-// canary bounced back). It compiles to an ActiveRule, so it runs through the same send()/canary
-// machinery — this is inject-probe's playbooks expressed as LLM-readable data.
+// (`select` = DSL expression), inject a payload into a parameter (`inject`), send it, and fire when
+// the probe's response matches (`detect` = DSL expression over the response, or the literal
+// "reflected" = the canary bounced back). It compiles to an ActiveRule, so it runs through the same
+// send()/canary machinery — this is inject-probe's playbooks expressed as LLM-readable data.
 //
 //   { "id": "reflected-xss", "category": "injection", "severity": "medium",
-//     "select": "resp.bodyKind:html AND req.query.q:*",
+//     "select": "resp.bodyKind == \"html\" && req.query.q",
 //     "inject": { "into": "query", "name": "q", "payloads": ["<vx>{canary}</vx>"], "canary": true },
 //     "detect": "reflected", "message": "reflected input at {endpoint} (q)" }
 import z from "zod"
 import type { ActiveRule, Sender } from "./active"
 import type { Signal } from "./rule"
-import { compile, fieldValue } from "./httpql"
+import { compile } from "./expr"
+import { fieldValue } from "./fields"
 import { endpointKey } from "./endpoint"
 import { brokeOut } from "./canary"
 import type { Apply } from "./send"
@@ -22,7 +23,7 @@ export const ProbeRuleSchema = z
     id: z.string(),
     category: z.string(),
     severity: z.enum(["info", "low", "medium", "high", "critical"]),
-    select: z.string(), // HTTPQL — which captured transactions to probe
+    select: z.string(), // DSL expression — which captured transactions to probe
     inject: z
       .object({
         into: z.enum(["query", "body", "header"]),
@@ -31,7 +32,7 @@ export const ProbeRuleSchema = z
         canary: z.boolean().optional(), // track a canary + enable detect:"reflected"
       })
       .strict(),
-    detect: z.string(), // HTTPQL over the PROBE response, or the literal "reflected"
+    detect: z.string(), // DSL expression over the PROBE response, or the literal "reflected"
     message: z.string().optional(),
   })
   .strict()

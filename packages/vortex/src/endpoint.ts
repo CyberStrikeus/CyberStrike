@@ -1,5 +1,5 @@
 // Endpoint normalization: collapse the volatile parts of a path (ids) so that many request
-// INSTANCES fold onto one logical ENDPOINT. Without this, rules and HTTPQL can't group "the same
+// INSTANCES fold onto one logical ENDPOINT. Without this, rules and the DSL can't group "the same
 // endpoint" — and a per-response rule fires once per instance (the 100x server-banner noise we
 // saw). `endpointKey(tx)` is the stable identity every corpus-level operation groups by.
 import type { Transaction } from "./transaction"

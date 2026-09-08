@@ -16,7 +16,7 @@ in development on branch `vortex`. Everything is OSS for now.
 - [5. The consumer boundary (generic core vs domain plugins)](#5-the-consumer-boundary)
 - [6. Core components](#6-core-components)
 - [7. Data model — the Transaction](#7-data-model--the-transaction)
-- [8. HTTPQL-lite](#8-httpql-lite)
+- [8. The DSL engine](#8-the-dsl-engine-exprts)
 - [9. Rules & signals](#9-rules--signals)
 - [10. The active engine (send) and the proxy](#10-the-active-engine-send-and-the-proxy)
 - [11. SDK / plugin surface](#11-sdk--plugin-surface)
@@ -54,7 +54,7 @@ store. The rule/query layer runs over the store. Signals flow out to a host cons
   browser              ──▶  browser  (hackbrowser extension) ─┐
   mobile app / any     ──▶  proxy    (MITM / forward)         ─┤
     non-browser client                                         │
-  our own code (cloud) ──▶  sdk-ingest (report a fetch)       ─┼──▶  store  +  rules / HTTPQL  ──▶  signals ──▶ host
+  our own code (cloud) ──▶  sdk-ingest (report a fetch)       ─┼──▶  store  +  rules / DSL  ──▶  signals ──▶ host
   a request we make    ──▶  send-through (Vortex sends it)    ─┤            +  send  +  proxy         (retest /
   offline capture      ──▶  har-import (HAR file)             ─┘                                       agents)
 ```
@@ -122,7 +122,7 @@ it after the fact.
 ## 5. The consumer boundary
 
 **Vortex core is generic.** It understands HTTP and nothing else — no Azure, no web app specifics.
-Its public surface is: the store, the rule engine, HTTPQL, the send engine, the proxy, and the
+Its public surface is: the store, the rule engine, the DSL, the send engine, the proxy, and the
 plugin interface.
 
 A **consumer** is a package that (1) feeds a source in via an adapter, and (2) registers its
@@ -132,7 +132,7 @@ consumer, never in the core.
 ```
   vortex (core, generic)                consumers (feed a source + register rules)
   ─────────────────────                 ───────────────────────────────────────────
-  store / rules / HTTPQL                azure    → sdk-ingest/send-through + cloud rules (IMDS,
+  store / rules / DSL                azure    → sdk-ingest/send-through + cloud rules (IMDS,
   send / proxy / plugin API                        management-API, Graph consent, …)
                                         cyberstrike/web → browser adapter + web rules
                                         (future) mobile → proxy adapter + mobile rules
@@ -159,7 +159,8 @@ the core small, testable, and reusable while every domain's knowledge stays in i
 | Canary correlation (mint + `{canary}` in send + same-request reflect + stored-reflection scan; reflection-CONTEXT scoring — html-text/script/attr → severity; `brokeOut` = markup survived unescaped → likely injectable; `mintTemplateCanary` unique-product SSTI marker) | `canary.ts` | ✅ |
 | Baseline rules (header hygiene) | `rules/headers.ts` | ✅ |
 | Baseline corpus rules (access-control surface) | `rules/access.ts` | ✅ |
-| HTTPQL-lite (parser + evaluator + resolver) | `httpql.ts` | ✅ |
+| DSL engine (parser + evaluator + function library) | `expr.ts` | ✅ |
+| Field vocabulary (dotted-path resolver + raw grep fields) | `fields.ts` | ✅ |
 | Send engine (mutate + send + observe) | `send/*` | ⏳ (roadmap E) |
 | Proxy (MITM/forward) | `proxy/*` | ⏳ (roadmap J) |
 | SDK / plugin interface | `plugin.ts` | ⏳ (roadmap F) |
@@ -209,41 +210,49 @@ breakdown, redirect chains.
 
 ---
 
-## 8. HTTPQL-lite
+## 8. The DSL engine (`expr.ts`)
 
-A small query language over the corpus so you can pull "the requests matching this shape" out of
-thousands without writing TypeScript. Two consumers: an agent tool ("query the captured corpus")
-and declarative rules (roadmap D). A pragmatic subset of Caido's HTTPQL, not a full grammar.
+**ONE predicate language** for both consumers — an agent tool ("query the captured corpus") and the
+rule layer (declarative/chain/probe conditions). Inspired by [projectdiscovery/dsl](https://github.com/projectdiscovery/dsl)
+(Nuclei): a small expression language whose power is a **function library** over the transaction, so
+a rule is expressive DATA — the interesting half of detection (decode, hash, version-compare, len,
+regex, a field as another field's operand) that a plain `field op value` query can't express.
 
-**Grammar**
-```
-query := or
-or    := and ("OR" and)*
-and   := term ("AND" term)*
-term  := "(" or ")" | atom
-atom  := field op value
-```
+It is not a second language beside a query DSL — it **subsumes** one. The field vocabulary is the
+variable set; `resp.status == 500` is the whole of what a `field:value` atom used to be; and now you
+can also write `compare_versions(resp.header.server, "< 2.4.50")`.
 
-**Fields**: `req.method`, `req.url`, `req.path`, `req.body`, `req.header.<name>`, `req.query.<name>`,
-`req.body.<dotpath>`, `req.cookie.<name>`, `req.graphql.op`, `req.graphql.query`, `req.bodyKind`,
-`resp.status`, `resp.body`, `resp.body.<dotpath>`, `resp.contentType`, `resp.bodyKind`,
-`resp.header.<name>`, `resp.cookie.<name>`, `host`, `identity`, `source`, `endpoint`, `httpVersion`,
-`timeMs`, `tls.version`, `tls.cipher`.
+**Grammar** (low→high precedence): `||` · `&&` · `!` · comparison (`== != > < >= <=`) · `+ -` · `* /`
+· postfix `[index]` · primary (number / string / `true`/`false`/`null` / function-call / field /
+`( … )`). A **field** is a dotted path resolved through `fields.ts`; a **function** is a single ident
+followed by `(`.
+
+**Fields** (the variable vocabulary, `fields.ts`): `req.method`, `req.url`, `req.path`, `req.body`,
+`req.header.<name>`, `req.query.<name>`, `req.body.<dotpath>`, `req.cookie.<name>`, `req.graphql.op`,
+`req.graphql.query`, `req.bodyKind`, `resp.status`, `resp.body`, `resp.body.<dotpath>`,
+`resp.contentType`, `resp.bodyKind`, `resp.header.<name>`, `resp.cookie.<name>`, `host`, `identity`,
+`source`, `endpoint`, `httpVersion`, `timeMs`, `tls.version`, `tls.cipher`.
+
+**Function library**: string (`contains` `icontains` `starts_with` `ends_with` `regex(pat,subj)`
+`len` `lower` `upper` `trim` `split` `replace`) · encoding (`base64_decode` `url_decode`
+`hex_decode`) · hashing (`md5` `sha256`) · version (`compare_versions(v, "< 2.4.50")`) · structural
+(`is_json`, `count_header("req"|"resp", name)`) · JWT (`jwt_header` `jwt_payload` `jwt_alg`). Unknown
+functions are rejected at PARSE time (a rule can't call into anything else); regexes compile once and
+cache. Growing this list is how the engine gains reach — a new detection is often a new function.
 
 **Grep-everywhere fields** — for the agent that does NOT know where a string lives (URI? a header?
 request or response body?): `raw` (whole request+response text), `req.raw`, `resp.raw`, and bare
-`req.header`/`resp.header` (all headers joined). `raw~="q=test"` finds it in ONE atom across all of
-them — the answer to "find this across 3000 transactions without enumerating fields". These are the
-BROAD tool (a grep is inherently noisy on a large corpus); when the location is known a structured
-field (`req.query.q:test`) is an exact match with zero noise. Built lazily, so a structured-field
-query never pays to reconstruct raw text.
+`req.header`/`resp.header` (all headers joined). `contains(raw, "q=test")` finds it in ONE expression
+across all of them. These are the BROAD tool (a grep is noisy on a large corpus); when the location
+is known a structured field (`req.query.q == "test"`) is exact, zero-noise. Built lazily, so a
+structured lookup never pays to reconstruct raw text.
 
 **Agent scope gate.** Left in an agent's field menu, `raw` is a footgun: told it exists, an agent
-reaches for `raw~=` on every query and every result becomes a noisy grep, defeating the structured
-fields. So the agent query path compiles with `{ grep: false }`, which REJECTS the grep-everywhere
-fields with a QueryError that redirects to the structured ones. Rules and WE-authored code compile
-in full scope and keep `raw`. Same engine, two affordances: broad power for the platform, a
-low-noise structured menu for the agent.
+reaches for it on every query and every result becomes a noisy grep. So the agent path compiles with
+`{ grep: false }`, which REJECTS the grep-everywhere fields (even nested inside a function) with an
+`ExprError` that redirects to the structured fields. Rules and WE-authored code compile in full scope
+and keep `raw`. Same engine, two affordances: broad power for the platform, a low-noise structured
+menu for the agent.
 
 Both request and response bodies are handled uniformly by the **body model** (`body.ts`):
 content-type (with a content sniff fallback) classifies the `BodyKind`
@@ -251,31 +260,29 @@ content-type (with a content sniff fallback) classifies the `BodyKind`
 field map for the structured kinds — so `req.body.x` and `resp.body.x` both work, across media
 types (XML leaf extraction is best-effort, no external parser).
 
-**Operators**: `:` equals (case-insensitive strings / numeric) · `!=` not-equals · `:~` or `~`
-case-insensitive regex · `~=` case-insensitive **literal contains** (no regex-metachar escaping —
-safe for `../`, `$1.00`, `?debug`) · `field:*` exists (non-empty) · `NOT` · `>` `<` `>=` `<=` numeric.
-The named-operator set some query languages expose (`IS`/`IS_NOT`/`CONTAINS`/`IS_EMPTY`/
-`IS_NOT_EMPTY`) is intentionally NOT added — every one of those semantics is already a symbol here
-(`:` / `!=` / `~=` / `NOT field:*` / `field:*`), so named aliases would only bloat the grammar.
-
-**Values**: `"double quoted"` (may contain spaces) or bareword.
+**Truthiness** (the query/rule predicate): `undefined`/`""`/`0`/`false`/`[]` are false, else true —
+so a bare field `req.query.q` is the "exists & non-empty" test (what `field:*` used to be), and `!x`
+is its negation. `==`/`!=` compare numbers numerically, else by string; `> < >= <=` are numeric.
 
 **Examples**
 ```
-resp.status>=500
-resp.status>=500 AND req.method:POST
-resp.header.server:~uvicorn OR resp.body:~"SQL syntax"
-(resp.status:403 OR resp.status:200) AND identity:org1
-req.body.params.staff_name:~"'"
+resp.status >= 500
+resp.status >= 500 && req.method == "POST"
+regex("uvicorn", resp.header.server) || contains(resp.body, "SQL syntax")
+(resp.status == 403 || resp.status == 200) && identity == "org1"
+compare_versions(resp.header.server, "< 2.4.50")
+jwt_alg(req.header.authorization) == "none"
+starts_with(resp.header.location, req.query.next)          // open redirect: field-in-field
+contains(resp.header.content-type, "json") && !is_json(resp.body)
 ```
 
-API: `compile(q)` → reusable `{ test(tx), filter(txs) }`; `query(txs, q)` convenience; `QueryError`
-on bad syntax.
+API: `compile(src, { grep? })` → reusable `{ eval(tx), test(tx), filter(txs) }`; `query(txs, src)`
+convenience; `functionNames` for a capability listing; `ExprError` on a bad expression or unknown
+function.
 
-**Planned (roadmap C):** a few more operators if a rule needs them (starts/ends, in-set, ranges);
-saved queries; **SQL pushdown** so a query runs as an indexed SQL `WHERE` instead of a full scan.
-(Done: cookies/timing/body/graphql/tech/tls fields, `field:*` exists, `NOT`, `~=` literal contains,
-and regexes now compile once at parse time — not per transaction.)
+**Planned:** grow the function library as rules need it (starts/ends variants, more encoders, entropy,
+IP/CIDR helpers); saved expressions; **SQL pushdown** for the pure structured subset (perf — full-scan
+is fine at session scale).
 
 ---
 
@@ -312,10 +319,11 @@ header rule skips a `.js` bundle or a 301 instead of flagging every one.
 one at a glance and emits it as JSON:
 ```json
 { "id": "sql-error", "category": "injection", "severity": "high",
-  "when": "resp.body:~\"SQL syntax\" OR resp.body:~\"SQLSTATE\"",
+  "when": "regex(\"SQL syntax|SQLSTATE\", resp.body)",
   "message": "SQL error signature in {endpoint}", "dedupBy": "endpoint" }
 ```
-`when` is HTTPQL (same field vocabulary as queries); `message`/`evidence` interpolate `{field}`.
+`when` is a DSL expression (same field vocabulary + function library); `message`/`evidence`
+interpolate `{field}`.
 `compileRule()` turns one into a normal per-transaction Rule; `parseRules()` validates untrusted
 JSON. The built-in signature rules (SQL error / stack trace / leaked secret) are themselves written
 in this DSL (dogfooded).
@@ -324,9 +332,9 @@ in this DSL (dogfooded).
 - **`DeclarativeRule {when}`** → `Rule` — passive, matches one response.
 - **`ChainRule {steps, link/reuses}`** → `CorpusRule` — multi-step correlation (value-based `reuses`
   finds chains without knowing field names).
-- **`ProbeRule {select, inject, detect}`** → `ActiveRule` — ACTIVE: `select` (HTTPQL) picks
+- **`ProbeRule {select, inject, detect}`** → `ActiveRule` — ACTIVE: `select` (DSL expr) picks
   candidates, `inject` puts a payload (with `{canary}`) into a param, send()s it, and `detect`
-  (HTTPQL over the probe response, or `"reflected"` = canary bounced) fires the signal. This is
+  (DSL expr over the probe response, or `"reflected"` = canary bounced) fires the signal. This is
   inject-probe's playbooks as data; agents rarely author these (WE ship a catalog), agents mostly
   query + consume signals.
 
@@ -394,12 +402,12 @@ first.
 
 | Area | Scope | Status |
 |---|---|---|
-| **(done)** | Transaction + normalization + params + lineage; Memory/Sqlite stores; Rule/CorpusRule + dedup + scope; baseline rules; HTTPQL-lite | ✅ |
+| **(done)** | Transaction + normalization + params + lineage; Memory/Sqlite stores; Rule/CorpusRule + dedup + scope; baseline rules; DSL engine (expr + function library) | ✅ |
 | **Extraction seam** | ✅ Vortex is ready to receive an EXTRACTOR's output: `Extract {endpoints, jsUrls, tech, secrets}` contract, `Transaction.tech`, a discovery inventory in the store (memory + persisted SQLite, session-scoped), and `ingestExtract()` (tech→tx, endpoints/JS→inventory). The extractor itself (`@cyberstrike-io/jsmine`, pure text→Extract) is built in a SEPARATE branch and just feeds this seam. | ✅ (jsmine separate) |
 | **A. Model completeness** | ✅ cookie model; ✅ req+resp body across media types (JSON/form/multipart/XML/HTML/text/graphql); ✅ HTTP version/TLS/timing/redirect-chain fields; ✅ request-shape (template/dup). Remaining: body decode (gzip/br) — belongs to the transport (E). | ✅ (decode → E) |
 | **E. Active engine (send)** | ✅ engine ported (mutate/send/observe/governed/backends); ✅ agent-agnostic `send()` bridge (captured replay + fresh build); ✅ ActiveRule abstraction + auth-strip (deterministic probe→diff→signal). Deferred: Intruder attack modes (sniper/battering-ram/pitchfork/cluster-bomb) — small, added later; body gzip/br decode. | ✅ (modes deferred) |
-| **D. Detection depth** | declarative (HTTPQL) rules; passive rule set (error signatures, reflection, sensitive data, open redirect, …); corpus rules (IDOR, privesc, param pollution, rate-limit, enumeration); active rules (auth-strip, method-matrix, header-audit, CORS, cache-poison); signal→finding promotion; rule packs | ⏳ |
-| **C. HTTPQL completeness** | ✅ exists (`field:*`) + `NOT` (absent/negation) operators; rich field set (cookies, body, graphql, tech, timing, tls). Deferred: SQL pushdown (perf — full-scan is fine at session scale), saved queries. | ✅ (pushdown deferred) |
+| **D. Detection depth** | declarative (DSL) rules; passive rule set (error signatures, reflection, sensitive data, open redirect, …); corpus rules (IDOR, privesc, param pollution, rate-limit, enumeration); active rules (auth-strip, method-matrix, header-audit, CORS, cache-poison); signal→finding promotion; rule packs | ⏳ |
+| **C. DSL engine** | ✅ one predicate language (expr) for agent queries + rule conditions; function library (decode/hash/version/regex/len/jwt/is_json); rich field set (cookies, body, graphql, tech, timing, tls); agent-scope grep gate. Deferred: SQL pushdown for the structured subset, saved expressions, more functions as rules need them. | ✅ (pushdown deferred) |
 | **B. Store / scale** | ✅ HAR import (`fromHar`/`parseHar`) + export (`toHar`) — the offline adapter; ✅ agent-safety scope (`isObserved`/`observed`). Deferred: pagination/iteration, retention/eviction. | ✅ (paging deferred) |
 | **J. Proxy** | HTTP(S) forward/MITM proxy (TLS CA), scope, WS passthrough — the non-browser/mobile adapter | ⏳ |
 | **F. SDK / plugin** | stable versioned API; plugin interface (rules / resolvers / mutations); adapter helpers | ⏳ |

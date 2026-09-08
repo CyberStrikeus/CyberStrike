@@ -1,4 +1,4 @@
-// The traffic store: where every Transaction lands so the rule layer and (soon) HTTPQL can run
+// The traffic store: where every Transaction lands so the rule layer and (soon) the DSL can run
 // over the whole corpus. This is an INTERFACE first — the in-memory implementation below is the
 // default and the test/embedded store; a SQLite/Drizzle-backed one will implement the same shape
 // so nothing above the store cares where the bytes live.
@@ -12,7 +12,7 @@ export interface TrafficStore {
   add(tx: Transaction): Transaction
   get(id: string): Transaction | undefined
   all(): Transaction[]
-  // Every transaction matching a predicate — the escape hatch until HTTPQL lands.
+  // Every transaction matching a predicate — the escape hatch until the DSL lands.
   where(predicate: (tx: Transaction) => boolean): Transaction[]
   size(): number
   clear(): void

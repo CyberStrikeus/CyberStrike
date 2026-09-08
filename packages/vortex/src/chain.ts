@@ -1,15 +1,15 @@
 // Chain rules — the correlation DSL for MULTI-STEP (chained) vulnerabilities. A single per-
 // transaction `when` can't express "a value that appeared in response A is used in request B": that
 // needs correlation across transactions. A chain rule is still LLM-friendly DATA: an ordered list
-// of steps, each an HTTPQL `when` over ITS OWN transaction, plus `link`s that JOIN a field of the
-// current step to a field of an already-bound earlier step (the shared value that makes it a
+// of steps, each a `when` DSL expression over ITS OWN transaction, plus `link`s that JOIN a field of
+// the current step to a field of an already-bound earlier step (the shared value that makes it a
 // chain). Deterministic — a nested join over the corpus, bounded so it can't blow up.
 //
 //   {
 //     "id": "reset-token-leak-reuse", "category": "auth-session", "severity": "critical",
 //     "steps": [
-//       { "as": "leak", "when": "resp.body.reset_token:~." },
-//       { "as": "use",  "when": "resp.status:200",
+//       { "as": "leak", "when": "resp.body.reset_token" },
+//       { "as": "use",  "when": "resp.status == 200",
 //         "link": [{ "field": "req.query.token", "to": "leak.resp.body.reset_token" }] }
 //     ],
 //     "message": "Reset token leaked by {leak.endpoint} was reused at {use.endpoint}"
@@ -17,7 +17,8 @@
 import z from "zod"
 import type { Transaction } from "./transaction"
 import type { CorpusRule, Signal } from "./rule"
-import { compile, fieldValue } from "./httpql"
+import { compile } from "./expr"
+import { fieldValue } from "./fields"
 import { endpointKey } from "./endpoint"
 import { sharedValues } from "./taint"
 
@@ -34,7 +35,7 @@ export const ChainRuleSchema = z
         z
           .object({
             as: z.string(), // alias other steps reference (e.g. "leak")
-            when: z.string().optional(), // HTTPQL over THIS step's transaction
+            when: z.string().optional(), // DSL expression over THIS step's transaction
             link: z
               .array(z.object({ field: z.string(), to: z.string() })) // this.field === <alias.field> (KNOWN field)
               .optional(),

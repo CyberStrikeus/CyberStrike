@@ -227,7 +227,13 @@ function tokenize(src: string): Tok[] {
       while (i < n && src[i] !== quote) {
         if (src[i] === "\\" && i + 1 < n) {
           const nx = src[i + 1]!
-          s += nx === "n" ? "\n" : nx === "t" ? "\t" : nx
+          // Recognized escapes only; ANY other \x is preserved verbatim (backslash kept) so regex
+          // metacharacters — \w \d \s \. \( — survive into regex()/patterns.
+          if (nx === "n") s += "\n"
+          else if (nx === "t") s += "\t"
+          else if (nx === "r") s += "\r"
+          else if (nx === "\\" || nx === '"' || nx === "'") s += nx
+          else s += "\\" + nx
           i += 2
           continue
         }

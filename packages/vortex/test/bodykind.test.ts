@@ -62,8 +62,8 @@ describe("response body is parsed too (not just request)", () => {
       tx("json", JSON.stringify({ customerId: "c-1" }), "application/json"),
       tx("html", "<html>error</html>", "text/html"),
     ]
-    expect(query(corpus, "resp.body.customerId:c-1").map((t) => t.id)).toEqual(["json"])
-    expect(query(corpus, "resp.bodyKind:html").map((t) => t.id)).toEqual(["html"])
-    expect(query(corpus, "resp.bodyKind:json").map((t) => t.id)).toEqual(["json"])
+    expect(query(corpus, 'resp.body.customerId == "c-1"').map((t) => t.id)).toEqual(["json"])
+    expect(query(corpus, 'resp.bodyKind == "html"').map((t) => t.id)).toEqual(["html"])
+    expect(query(corpus, 'resp.bodyKind == "json"').map((t) => t.id)).toEqual(["json"])
   })
 })

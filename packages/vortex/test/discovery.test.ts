@@ -36,12 +36,12 @@ describe("Vortex is ready to receive an extractor's output (input/output + DB si
     expect(store.discovered()).toHaveLength(3)
   })
 
-  test("attached tech is queryable via HTTPQL tech:~", () => {
+  test("attached tech is queryable via the DSL", () => {
     const store = new MemoryStore()
     store.add(tx("a"))
     ingestExtract(store, "a", extract)
-    expect(query(store.all(), "tech:~spring")).toHaveLength(1)
-    expect(query(store.all(), "tech:~django")).toHaveLength(0)
+    expect(query(store.all(), 'contains(tech, "spring")')).toHaveLength(1)
+    expect(query(store.all(), 'contains(tech, "django")')).toHaveLength(0)
   })
 
   test("discovery inventory persists (SqliteStore) and is session-scoped", () => {

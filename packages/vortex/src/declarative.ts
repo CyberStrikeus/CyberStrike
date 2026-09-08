@@ -1,17 +1,18 @@
-// Declarative rules — the LLM-friendly rule DSL. A rule is DATA, not code: an HTTPQL `when` query
+// Declarative rules — the LLM-friendly rule DSL. A rule is DATA, not code: a `when` DSL expression
 // plus a signal template. An agent can author or read one at a glance and emit it as JSON, so
 // detection logic can be added without writing TypeScript.
 //
 //   { "id": "sql-error", "category": "injection", "severity": "high",
-//     "when": "resp.body:~\"SQL syntax\" OR resp.body:~\"SQLSTATE\"",
+//     "when": "regex(\"SQL syntax|SQLSTATE\", resp.body)",
 //     "message": "SQL error signature in {endpoint}", "dedupBy": "endpoint" }
 //
-// `when` is HTTPQL (same field vocabulary as queries); `message`/`evidence` support {field}
-// interpolation. compileRule() turns one into a normal per-transaction Rule, so declarative and
-// hand-written rules run through the exact same engine.
+// `when` is a DSL expression (expr.ts — same field vocabulary + a function library);
+// `message`/`evidence` support {field} interpolation. compileRule() turns one into a normal
+// per-transaction Rule, so declarative and hand-written rules run through the exact same engine.
 import z from "zod"
 import type { Rule, Signal } from "./rule"
-import { compile, fieldValue } from "./httpql"
+import { compile } from "./expr"
+import { fieldValue } from "./fields"
 
 export const DeclarativeRuleSchema = z
   .object({
@@ -19,7 +20,7 @@ export const DeclarativeRuleSchema = z
     title: z.string().optional(),
     category: z.string(),
     severity: z.enum(["info", "low", "medium", "high", "critical"]),
-    when: z.string(), // HTTPQL query — the rule fires on a transaction it matches
+    when: z.string(), // DSL expression — the rule fires on a transaction whose evaluation is truthy
     message: z.string().optional(), // signal title; supports {field} interpolation
     evidence: z.string().optional(), // supports {field} interpolation
     dedupBy: z.string().optional(), // a field path to collapse on (e.g. "endpoint"); default per (rule, tx)
@@ -28,13 +29,13 @@ export const DeclarativeRuleSchema = z
 
 export type DeclarativeRule = z.infer<typeof DeclarativeRuleSchema>
 
-// Replace {field.path} with the transaction's value for that field (same vocabulary as HTTPQL).
+// Replace {field.path} with the transaction's value for that field (same vocabulary as the DSL).
 function interpolate(template: string, tx: Parameters<Rule["evaluate"]>[0]): string {
   return template.replace(/\{([^}]+)\}/g, (_, path) => String(fieldValue(tx, String(path).trim()) ?? ""))
 }
 
-// Compile ONE declarative rule into a per-transaction Rule. Throws (QueryError) if `when` is not
-// valid HTTPQL — surfaced at load time, not silently ignored.
+// Compile ONE declarative rule into a per-transaction Rule. Throws (ExprError) if `when` is not a
+// valid DSL expression — surfaced at load time, not silently ignored.
 export function compileRule(dr: DeclarativeRule): Rule {
   const q = compile(dr.when)
   return {

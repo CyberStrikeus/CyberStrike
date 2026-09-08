@@ -100,4 +100,14 @@ describe("DSL engine — index, arithmetic, agent-scope gate", () => {
     const corpus = [tx({ id: "a", response: { status: 500, headers: [], body: "" } }), tx({ id: "b", response: { status: 200, headers: [], body: "" } })]
     expect(query(corpus, "resp.status >= 500").map((t) => t.id)).toEqual(["a"])
   })
+  test("grep-everywhere fields (full scope): raw / req.raw / resp.raw / bare header find X anywhere", () => {
+    const c = [
+      tx({ id: "h", request: { method: "GET", url: "https://app.test/x", headers: [{ name: "x-trace", value: "canary-777" }] }, response: { status: 200, headers: [], body: "boring" } }),
+      tx({ id: "r", request: { method: "GET", url: "https://app.test/y", headers: [] }, response: { status: 200, headers: [], body: "found canary-777 here" } }),
+    ]
+    expect(query(c, 'contains(req.header, "canary-777")').map((t) => t.id)).toEqual(["h"]) // ALL request headers
+    expect(query(c, 'contains(req.raw, "canary-777")').map((t) => t.id)).toEqual(["h"])
+    expect(query(c, 'contains(resp.raw, "canary-777")').map((t) => t.id)).toEqual(["r"])
+    expect(query(c, 'contains(raw, "canary-777")').map((t) => t.id).sort()).toEqual(["h", "r"]) // either place
+  })
 })

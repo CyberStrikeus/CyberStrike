@@ -49,6 +49,6 @@ describe("ProbeRule → ActiveRule (the active DSL shape)", () => {
   })
   test("parseProbes validates an agent's JSON probe rule", () => {
     expect(parseProbes(probeRules)).toHaveLength(2)
-    expect(() => parseProbes([{ id: "x", category: "c", severity: "high", select: "resp.status:200", inject: { into: "query", payloads: [] }, detect: "reflected" }])).toThrow() // empty payloads + missing name
+    expect(() => parseProbes([{ id: "x", category: "c", severity: "high", select: "resp.status == 200", inject: { into: "query", payloads: [] }, detect: "reflected" }])).toThrow() // empty payloads + missing name
   })
 })

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { Transaction } from "../src/index"
-import { compileRule, compileRules, parseRules, signatureRules, defaultRegistry, QueryError } from "../src/index"
+import { compileRule, compileRules, parseRules, signatureRules, defaultRegistry, ExprError } from "../src/index"
 
 function tx(id: string, status: number, body: string, path = "/api/x"): Transaction {
   return {
@@ -13,18 +13,18 @@ function tx(id: string, status: number, body: string, path = "/api/x"): Transact
 }
 
 describe("declarative rule DSL", () => {
-  test("a {when: HTTPQL} rule compiles to a Rule that fires on a match", () => {
-    const rule = compileRule({ id: "err5xx", category: "misconfiguration", severity: "medium", when: "resp.status>=500" })
+  test("a {when: DSL expr} rule compiles to a Rule that fires on a match", () => {
+    const rule = compileRule({ id: "err5xx", category: "misconfiguration", severity: "medium", when: "resp.status >= 500" })
     expect(rule.evaluate(tx("a", 500, ""))).toHaveLength(1)
     expect(rule.evaluate(tx("b", 200, ""))).toHaveLength(0)
   })
 
-  test("message/evidence interpolate {field} with the same vocabulary as HTTPQL", () => {
+  test("message/evidence interpolate {field} with the same vocabulary as the DSL", () => {
     const rule = compileRule({
       id: "r",
       category: "x",
       severity: "low",
-      when: "resp.status:500",
+      when: "resp.status == 500",
       message: "fail on {req.method} {req.path}",
       evidence: "status={resp.status}",
     })
@@ -35,20 +35,21 @@ describe("declarative rule DSL", () => {
 
   test("dedupBy collapses per field via the registry", () => {
     const reg = defaultRegistry()
-    reg.register(compileRule({ id: "d", category: "x", severity: "low", when: "resp.status:500", dedupBy: "endpoint" }))
+    reg.register(compileRule({ id: "d", category: "x", severity: "low", when: "resp.status == 500", dedupBy: "endpoint" }))
     const sigs = reg.analyze([tx("a", 500, ""), tx("b", 500, "")]).filter((s) => s.ruleId === "d")
     expect(sigs).toHaveLength(1) // same endpoint → one signal
   })
 
   test("parseRules validates untrusted JSON (an agent's output) and rejects bad rules", () => {
-    const ok = parseRules([{ id: "x", category: "c", severity: "high", when: "resp.status:200" }])
+    const ok = parseRules([{ id: "x", category: "c", severity: "high", when: "resp.status == 200" }])
     expect(ok).toHaveLength(1)
-    expect(() => parseRules([{ id: "x", category: "c", severity: "nope", when: "resp.status:200" }])).toThrow()
+    expect(() => parseRules([{ id: "x", category: "c", severity: "nope", when: "resp.status == 200" }])).toThrow()
     expect(() => parseRules([{ id: "x", category: "c", severity: "high" }])).toThrow() // missing when
   })
 
-  test("a bad HTTPQL 'when' fails at compile, not silently", () => {
-    expect(() => compileRule({ id: "x", category: "c", severity: "low", when: "resp.status" })).toThrow(QueryError)
+  test("a bad DSL 'when' fails at compile, not silently", () => {
+    expect(() => compileRule({ id: "x", category: "c", severity: "low", when: "resp.status == " })).toThrow(ExprError)
+    expect(() => compileRule({ id: "y", category: "c", severity: "low", when: "nope(resp.body)" })).toThrow(ExprError)
   })
 })
 

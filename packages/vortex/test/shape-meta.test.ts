@@ -35,8 +35,8 @@ describe("A.3 — transport metadata persists and is queryable", () => {
       tx("h2", "/a", { httpVersion: "2", timing: { ms: 10 }, tls: { version: "TLS1.3" } }),
       tx("h1", "/b", { httpVersion: "1.1", timing: { ms: 900 }, tls: { version: "TLS1.2" } }),
     ]
-    expect(query(corpus, "httpVersion:2").map((t) => t.id)).toEqual(["h2"])
-    expect(query(corpus, "timeMs>=500").map((t) => t.id)).toEqual(["h1"])
-    expect(query(corpus, "tls.version:~1.3").map((t) => t.id)).toEqual(["h2"])
+    expect(query(corpus, 'httpVersion == "2"').map((t) => t.id)).toEqual(["h2"])
+    expect(query(corpus, "timeMs >= 500").map((t) => t.id)).toEqual(["h1"])
+    expect(query(corpus, 'contains(tls.version, "1.3")').map((t) => t.id)).toEqual(["h2"])
   })
 })

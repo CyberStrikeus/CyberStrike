@@ -31,7 +31,7 @@ describe("multipart/form-data param extraction", () => {
 
   test("HTTPQL can target a multipart file's filename (upload-attack surface)", () => {
     const corpus = [tx("/upload", body, `multipart/form-data; boundary=${boundary}`)]
-    expect(query(corpus, "req.body.avatar.filename:~svg")).toHaveLength(1)
+    expect(query(corpus, 'contains(req.body.avatar.filename, "svg")')).toHaveLength(1)
   })
 })
 
@@ -53,8 +53,8 @@ describe("GraphQL awareness", () => {
   })
   test("HTTPQL graphql fields + variables via flattened body", () => {
     const corpus = [tx("/graphql", gqlBody, "application/json")]
-    expect(query(corpus, "req.graphql.op:GetUser")).toHaveLength(1)
-    expect(query(corpus, "req.graphql.query:~user")).toHaveLength(1)
-    expect(query(corpus, "req.body.variables.id:42")).toHaveLength(1) // variables reachable via JSON flatten
+    expect(query(corpus, 'req.graphql.op == "GetUser"')).toHaveLength(1)
+    expect(query(corpus, 'contains(req.graphql.query, "user")')).toHaveLength(1)
+    expect(query(corpus, "req.body.variables.id == 42")).toHaveLength(1) // variables reachable via JSON flatten
   })
 })
