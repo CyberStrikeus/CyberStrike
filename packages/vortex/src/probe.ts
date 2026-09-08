@@ -14,6 +14,7 @@ import type { ActiveRule, Sender } from "./active"
 import type { Signal } from "./rule"
 import { compile, fieldValue } from "./httpql"
 import { endpointKey } from "./endpoint"
+import { brokeOut } from "./canary"
 import type { Apply } from "./send"
 
 export const ProbeRuleSchema = z
@@ -71,13 +72,18 @@ export function compileProbe(rule: ProbeRule): ActiveRule {
           })
           const hit = detectReflected ? !!res.canaryReflected : !!detectQ?.test(res.transaction)
           if (!hit) continue
+          // Reflected leads: if the payload's markup survived UNescaped, it's likely injectable —
+          // elevate the severity (a bare reflection stays at the rule's declared level).
+          const injectable = detectReflected && res.canary ? brokeOut(res.transaction.response?.body, payload, res.canary.token) : false
           out.push({
             ruleId: rule.id,
             transactionId: res.transaction.id,
-            severity: rule.severity,
+            severity: injectable ? "high" : rule.severity,
             category: rule.category,
             title: rule.message ? interpolate(rule.message, res.transaction) : `${rule.id} at ${key}`,
-            evidence: `payload into ${rule.inject.into}.${rule.inject.name} on ${key}`,
+            evidence: injectable
+              ? `payload into ${rule.inject.into}.${rule.inject.name} on ${key} — markup reflected UNESCAPED (likely injectable)`
+              : `payload into ${rule.inject.into}.${rule.inject.name} on ${key}`,
             dedupKey: `${rule.id}:${key}`,
           })
           break // one confirmation per endpoint is enough

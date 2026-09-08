@@ -156,7 +156,7 @@ the core small, testable, and reusable while every domain's knowledge stays in i
 | Durable session-scoped `SqliteStore` | `sqlite-store.ts` | ✅ |
 | `Rule` / `CorpusRule` / `Signal` / dedup / `RuleRegistry` | `rule.ts` | ✅ |
 | Signal store (persisted "flags" in the store) + `scan()` (rules→stored signals over observed) | `store.ts` / `scan.ts` | ✅ |
-| Canary correlation (mint + `{canary}` in send + same-request reflect + stored-reflection scan) | `canary.ts` | ✅ |
+| Canary correlation (mint + `{canary}` in send + same-request reflect + stored-reflection scan; reflection-CONTEXT scoring — html-text/script/attr → severity; `brokeOut` = markup survived unescaped → likely injectable; `mintTemplateCanary` unique-product SSTI marker) | `canary.ts` | ✅ |
 | Baseline rules (header hygiene) | `rules/headers.ts` | ✅ |
 | Baseline corpus rules (access-control surface) | `rules/access.ts` | ✅ |
 | HTTPQL-lite (parser + evaluator + resolver) | `httpql.ts` | ✅ |
@@ -237,7 +237,11 @@ field map for the structured kinds — so `req.body.x` and `resp.body.x` both wo
 types (XML leaf extraction is best-effort, no external parser).
 
 **Operators**: `:` equals (case-insensitive strings / numeric) · `!=` not-equals · `:~` or `~`
-case-insensitive regex · `>` `<` `>=` `<=` numeric.
+case-insensitive regex · `~=` case-insensitive **literal contains** (no regex-metachar escaping —
+safe for `../`, `$1.00`, `?debug`) · `field:*` exists (non-empty) · `NOT` · `>` `<` `>=` `<=` numeric.
+The named-operator set some query languages expose (`IS`/`IS_NOT`/`CONTAINS`/`IS_EMPTY`/
+`IS_NOT_EMPTY`) is intentionally NOT added — every one of those semantics is already a symbol here
+(`:` / `!=` / `~=` / `NOT field:*` / `field:*`), so named aliases would only bloat the grammar.
 
 **Values**: `"double quoted"` (may contain spaces) or bareword.
 
@@ -253,9 +257,10 @@ req.body.params.staff_name:~"'"
 API: `compile(q)` → reusable `{ test(tx), filter(txs) }`; `query(txs, q)` convenience; `QueryError`
 on bad syntax.
 
-**Planned (roadmap C):** more fields (cookies, timing, body-size, tags, ip); more operators
-(contains/starts/ends, in-set, exists/absent, NOT, ranges); saved queries; **SQL pushdown** so a
-query runs as an indexed SQL `WHERE` instead of a full scan.
+**Planned (roadmap C):** a few more operators if a rule needs them (starts/ends, in-set, ranges);
+saved queries; **SQL pushdown** so a query runs as an indexed SQL `WHERE` instead of a full scan.
+(Done: cookies/timing/body/graphql/tech/tls fields, `field:*` exists, `NOT`, `~=` literal contains,
+and regexes now compile once at parse time — not per transaction.)
 
 ---
 
