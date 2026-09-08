@@ -1,19 +1,22 @@
-// The deterministic rule layer. A Rule looks at a Transaction and emits zero or more Signals —
-// no LLM, no agent initiative. This is the piece that guarantees the BASICS (missing headers,
-// weak cookies, banners, error signatures) are caught on EVERY transaction, so agents are left to
-// verify/exploit pre-surfaced candidates instead of discovering them by luck.
+// The deterministic rule layer. Two rule shapes:
+//   - Rule       : looks at ONE transaction (header hygiene, error signatures, reflection).
+//   - CorpusRule : looks at the WHOLE corpus (cross-transaction / cross-identity — the pentest
+//                  core: "endpoint reachable under A and B", auth-strip diffs, IDOR surface).
+// Both emit Signals. Signals carry a `dedupKey` so the same finding on the same logical endpoint
+// collapses to one instead of firing per request (the 100x banner noise).
 import type { Transaction, Severity } from "./transaction"
 
-// A finding candidate produced by a rule. Deliberately lightweight: it points AT a transaction and
-// says what/why. Turning a signal into a confirmed vulnerability is a later (agent) step.
 export interface Signal {
   ruleId: string
   transactionId: string
   severity: Severity
   category: string
   title: string
-  // Short human-readable proof ("missing: HSTS, CSP" / "Server: uvicorn"). Keep it one line.
   evidence?: string
+  // Identity for de-duplication. Two signals with the same dedupKey are the same finding; the
+  // registry keeps the first. A rule that wants endpoint-level (not instance-level) dedup sets it
+  // to something like `${ruleId}:${endpointKey}`. Left unset ⇒ deduped per (ruleId, tx, title).
+  dedupKey?: string
 }
 
 export interface Rule {
@@ -21,15 +24,36 @@ export interface Rule {
   title: string
   category: string
   severity: Severity
-  // Pure + deterministic: same transaction in ⇒ same signals out, no side effects. Return [] when
-  // the rule does not fire. A rule that needs a response should no-op when `tx.response` is absent.
+  // Pure + deterministic. Return [] when it does not fire; no-op when a needed response is absent.
   evaluate(tx: Transaction): Signal[]
 }
 
-// A registry so consumers (the web pipeline, cloud modules) can assemble a rule set and run it.
-// Kept dead-simple: register rules, run them over one transaction or the whole store.
+// A rule over the whole corpus — it receives every transaction and correlates across them.
+export interface CorpusRule {
+  id: string
+  title: string
+  category: string
+  severity: Severity
+  evaluate(txs: Transaction[]): Signal[]
+}
+
+// Keep the first signal per dedupKey. Signals without one fall back to a per-(rule,tx,title) key,
+// so a rule firing twice identically on one transaction still collapses.
+export function dedupe(signals: Signal[]): Signal[] {
+  const seen = new Set<string>()
+  const out: Signal[] = []
+  for (const s of signals) {
+    const key = s.dedupKey ?? `${s.ruleId}:${s.transactionId}:${s.title}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(s)
+  }
+  return out
+}
+
 export class RuleRegistry {
   private readonly rules: Rule[] = []
+  private readonly corpusRules: CorpusRule[] = []
 
   register(rule: Rule): this {
     this.rules.push(rule)
@@ -39,21 +63,35 @@ export class RuleRegistry {
     for (const r of rules) this.register(r)
     return this
   }
+  registerCorpus(rule: CorpusRule): this {
+    this.corpusRules.push(rule)
+    return this
+  }
+  registerCorpusAll(rules: CorpusRule[]): this {
+    for (const r of rules) this.registerCorpus(r)
+    return this
+  }
   list(): Rule[] {
     return [...this.rules]
   }
-  // Run every rule over one transaction, collecting all signals.
+  listCorpus(): CorpusRule[] {
+    return [...this.corpusRules]
+  }
+
+  // Every per-transaction rule over ONE transaction (raw, not deduped — one tx can't self-collide
+  // meaningfully, and callers streaming per-tx want the raw hits).
   run(tx: Transaction): Signal[] {
     const out: Signal[] = []
-    for (const rule of this.rules) {
-      for (const sig of rule.evaluate(tx)) out.push(sig)
-    }
+    for (const rule of this.rules) for (const sig of rule.evaluate(tx)) out.push(sig)
     return out
   }
-  // Run over many transactions (e.g. store.all()).
-  runAll(txs: Transaction[]): Signal[] {
+
+  // The main entry: run per-transaction rules over EVERY transaction AND corpus rules over the
+  // whole set, then dedup. This is what turns a body of traffic into a clean signal set.
+  analyze(txs: Transaction[]): Signal[] {
     const out: Signal[] = []
     for (const tx of txs) for (const sig of this.run(tx)) out.push(sig)
-    return out
+    for (const rule of this.corpusRules) for (const sig of rule.evaluate(txs)) out.push(sig)
+    return dedupe(out)
   }
 }

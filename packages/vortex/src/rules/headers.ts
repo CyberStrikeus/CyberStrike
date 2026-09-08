@@ -6,6 +6,8 @@
 import type { Transaction } from "../transaction"
 import { header, headerAll } from "../transaction"
 import type { Rule, Signal } from "../rule"
+import { endpointKey } from "../endpoint"
+import { isContentResponse } from "../scope"
 
 function sig(ruleId: string, tx: Transaction, over: Partial<Signal> & Pick<Signal, "severity" | "category" | "title">): Signal {
   return { ruleId, transactionId: tx.id, ...over }
@@ -30,8 +32,10 @@ export const missingSecurityHeaders: Rule = {
   category: "misconfiguration",
   severity: "low",
   evaluate(tx) {
-    if (!tx.response) return []
-    const headers = tx.response.headers
+    // Only real content responses — not redirects, not static assets (a .js bundle or a 301 doesn't
+    // need CSP the way a document/API does; firing there is pure noise).
+    if (!isContentResponse(tx)) return []
+    const headers = tx.response!.headers
     const csp = header(headers, "content-security-policy")
     const missing: string[] = []
     for (const req of REQUIRED) {
@@ -40,7 +44,16 @@ export const missingSecurityHeaders: Rule = {
       missing.push(req.label)
     }
     if (missing.length === 0) return []
-    return [sig(this.id, tx, { severity: "low", category: "misconfiguration", title: "Missing security headers", evidence: `missing: ${missing.join(", ")}` })]
+    return [
+      sig(this.id, tx, {
+        severity: "low",
+        category: "misconfiguration",
+        title: "Missing security headers",
+        evidence: `missing: ${missing.join(", ")}`,
+        // Endpoint + which headers — so 100 instances of one endpoint collapse to one signal.
+        dedupKey: `${this.id}:${endpointKey(tx)}:${missing.join(",")}`,
+      }),
+    ]
   },
 }
 
@@ -67,7 +80,15 @@ export const weakCookieFlags: Rule = {
       if (!attrs.includes("secure")) lacks.push("Secure")
       if (!attrs.some((a) => a.startsWith("samesite"))) lacks.push("SameSite")
       if (lacks.length === 0) continue
-      out.push(sig(this.id, tx, { severity: "medium", category: "misconfiguration", title: `Cookie "${name}" missing ${lacks.join(", ")}`, evidence: raw.slice(0, 120) }))
+      out.push(
+        sig(this.id, tx, {
+          severity: "medium",
+          category: "misconfiguration",
+          title: `Cookie "${name}" missing ${lacks.join(", ")}`,
+          evidence: raw.slice(0, 120),
+          dedupKey: `${this.id}:${endpointKey(tx)}:${name}`,
+        }),
+      )
     }
     return out
   },
@@ -85,8 +106,10 @@ export const serverBanner: Rule = {
     const out: Signal[] = []
     const server = header(tx.response.headers, "server")
     const powered = header(tx.response.headers, "x-powered-by")
-    if (server) out.push(sig(this.id, tx, { severity: "info", category: "misconfiguration", title: "Server banner disclosed", evidence: `Server: ${server}` }))
-    if (powered) out.push(sig(this.id, tx, { severity: "info", category: "misconfiguration", title: "X-Powered-By disclosed", evidence: `X-Powered-By: ${powered}` }))
+    // A banner is per-SERVER, not per-endpoint — dedup by host+value so one host yields one signal,
+    // not one per request.
+    if (server) out.push(sig(this.id, tx, { severity: "info", category: "misconfiguration", title: "Server banner disclosed", evidence: `Server: ${server}`, dedupKey: `${this.id}:${tx.host}:server:${server}` }))
+    if (powered) out.push(sig(this.id, tx, { severity: "info", category: "misconfiguration", title: "X-Powered-By disclosed", evidence: `X-Powered-By: ${powered}`, dedupKey: `${this.id}:${tx.host}:powered:${powered}` }))
     return out
   },
 }
