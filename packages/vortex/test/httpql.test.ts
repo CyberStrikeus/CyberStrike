@@ -55,6 +55,18 @@ describe("HTTPQL-lite", () => {
     const q = compile("resp.status>=400")
     expect(q.filter(corpus).map((t) => t.id).sort()).toEqual(["b", "c"])
   })
+  test("exists (field:*) and absent (NOT field:*)", () => {
+    // /a has ?debug=1 (query.debug present); /b and /c do not
+    expect(query(corpus, "req.query.debug:*").map((t) => t.id)).toEqual(["a"])
+    expect(query(corpus, "NOT req.query.debug:*").map((t) => t.id).sort()).toEqual(["b", "c"])
+    // header presence
+    expect(query(corpus, "resp.header.server:*").map((t) => t.id).sort()).toEqual(["a", "b"])
+  })
+  test("NOT negates and groups with parens", () => {
+    expect(query(corpus, "NOT resp.status:200").map((t) => t.id).sort()).toEqual(["b", "c"])
+    expect(query(corpus, "resp.status>=400 AND NOT resp.status:403").map((t) => t.id)).toEqual(["b"])
+    expect(query(corpus, "NOT (resp.status:200 OR resp.status:500)").map((t) => t.id)).toEqual(["c"])
+  })
   test("syntax errors throw QueryError", () => {
     expect(() => query(corpus, "resp.status")).toThrow(QueryError)
     expect(() => query(corpus, "(resp.status:200")).toThrow(QueryError)

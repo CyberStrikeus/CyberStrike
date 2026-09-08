@@ -6,12 +6,13 @@
 // Grammar:
 //   query := or
 //   or    := and ("OR" and)*
-//   and   := term ("AND" term)*
+//   and   := unary ("AND" unary)*
+//   unary := "NOT" unary | term
 //   term  := "(" or ")" | atom
 //   atom  := field op value
 //   field := dotted path, e.g. resp.status | req.header.content-type | req.body.params.staff_name
 //   op    := ":" (eq) | "!=" (ne) | ":~" or "~" (regex, case-insensitive) | ">" | "<" | ">=" | "<="
-//   value := "double quoted" | bareword
+//   value := "double quoted" | bareword     (the value "*" with ":" means EXISTS: `field:*`)
 //
 // Examples:
 //   resp.status:500
@@ -30,10 +31,14 @@ export class QueryError extends Error {}
 
 type Op = ":" | "!=" | ":~" | "~" | ">" | "<" | ">=" | "<="
 type Atom = { type: "atom"; field: string; op: Op; value: string }
-type Node = Atom | { type: "and"; left: Node; right: Node } | { type: "or"; left: Node; right: Node }
+type Node =
+  | Atom
+  | { type: "and"; left: Node; right: Node }
+  | { type: "or"; left: Node; right: Node }
+  | { type: "not"; child: Node }
 
 // --- tokenizer -------------------------------------------------------------
-type Token = { t: "(" } | { t: ")" } | { t: "AND" } | { t: "OR" } | ({ t: "atom" } & Omit<Atom, "type">)
+type Token = { t: "(" } | { t: ")" } | { t: "AND" } | { t: "OR" } | { t: "NOT" } | ({ t: "atom" } & Omit<Atom, "type">)
 
 // Longest first so multi-char ops win: ":~"/">=" before ":"/">", etc.
 const OPS: Op[] = [":~", ">=", "<=", "!=", ":", "~", ">", "<"]
@@ -65,7 +70,7 @@ function tokenize(input: string): Token[] {
     const upper = word.toUpperCase()
     const opAhead = OPS.find((op) => input.startsWith(op, i))
     if (!opAhead) {
-      if (upper === "AND" || upper === "OR") {
+      if (upper === "AND" || upper === "OR" || upper === "NOT") {
         tokens.push({ t: upper })
         continue
       }
@@ -109,12 +114,19 @@ function parse(input: string): Node {
     return left
   }
   function parseAnd(): Node {
-    let left = parseTerm()
+    let left = parseUnary()
     while (peek()?.t === "AND") {
       eat()
-      left = { type: "and", left, right: parseTerm() }
+      left = { type: "and", left, right: parseUnary() }
     }
     return left
+  }
+  function parseUnary(): Node {
+    if (peek()?.t === "NOT") {
+      eat()
+      return { type: "not", child: parseUnary() }
+    }
+    return parseTerm()
   }
   function parseTerm(): Node {
     const tok = peek()
@@ -206,6 +218,9 @@ export function fieldValue(tx: Transaction, field: string): string | number | un
 
 // --- evaluation ------------------------------------------------------------
 function applyOp(actual: string | number | undefined, op: Op, value: string): boolean {
+  // Presence check: `field:*` matches when the field has a non-empty value. (A literal "*" is
+  // essentially never a value to match; use a regex if you truly need one.)
+  if (op === ":" && value === "*") return actual !== undefined && String(actual) !== ""
   if (op === "~" || op === ":~") {
     let re: RegExp
     try {
@@ -233,6 +248,7 @@ function applyOp(actual: string | number | undefined, op: Op, value: string): bo
 function evalNode(node: Node, tx: Transaction): boolean {
   if (node.type === "and") return evalNode(node.left, tx) && evalNode(node.right, tx)
   if (node.type === "or") return evalNode(node.left, tx) || evalNode(node.right, tx)
+  if (node.type === "not") return !evalNode(node.child, tx)
   return applyOp(resolveField(tx, node.field), node.op, node.value)
 }
 

@@ -367,7 +367,7 @@ first.
 | **A. Model completeness** | ✅ cookie model; ✅ req+resp body across media types (JSON/form/multipart/XML/HTML/text/graphql); ✅ HTTP version/TLS/timing/redirect-chain fields; ✅ request-shape (template/dup). Remaining: body decode (gzip/br) — belongs to the transport (E). | ✅ (decode → E) |
 | **E. Active engine (send)** | ✅ engine ported (mutate/send/observe/governed/backends); ✅ agent-agnostic `send()` bridge (captured replay + fresh build); ✅ ActiveRule abstraction + auth-strip (deterministic probe→diff→signal). Deferred: Intruder attack modes (sniper/battering-ram/pitchfork/cluster-bomb) — small, added later; body gzip/br decode. | ✅ (modes deferred) |
 | **D. Detection depth** | declarative (HTTPQL) rules; passive rule set (error signatures, reflection, sensitive data, open redirect, …); corpus rules (IDOR, privesc, param pollution, rate-limit, enumeration); active rules (auth-strip, method-matrix, header-audit, CORS, cache-poison); signal→finding promotion; rule packs | ⏳ |
-| **C. HTTPQL completeness** | more fields/operators; saved queries; SQL pushdown | ⏳ |
+| **C. HTTPQL completeness** | ✅ exists (`field:*`) + `NOT` (absent/negation) operators; rich field set (cookies, body, graphql, tech, timing, tls). Deferred: SQL pushdown (perf — full-scan is fine at session scale), saved queries. | ✅ (pushdown deferred) |
 | **B. Store / scale** | HAR import/export; pagination/iteration; retention/eviction; concurrency safety | ⏳ |
 | **J. Proxy** | HTTP(S) forward/MITM proxy (TLS CA), scope, WS passthrough — the non-browser/mobile adapter | ⏳ |
 | **F. SDK / plugin** | stable versioned API; plugin interface (rules / resolvers / mutations); adapter helpers | ⏳ |
