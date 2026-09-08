@@ -40,6 +40,10 @@ export { compile, query, ExprError, functionNames } from "./expr"
 export * as Engine from "./send"
 export type { RequestSpec, SendOptions, SendResult } from "./replay"
 export { send, toRequest, buildRequest } from "./replay"
+// Replay safety — refuse to replay a request that would destroy the live session (single-use-token
+// reuse), fresh-token substitution, and the benign auth-stale (refresh-needed) signal.
+export type { ReplaySafety, TokenRef, TokenKind, TokenSite } from "./replay-safety"
+export { replaySafety, isAuthStale, ReplayUnsafeError } from "./replay-safety"
 export type { ActiveRule, Sender } from "./active"
 export { runActiveRules } from "./active"
 export { activeRules, authStrip } from "./rules/authstrip"

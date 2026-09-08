@@ -466,6 +466,28 @@ store or the passive-detection flow:
 - Agents interact by READ (query) + APPEND (send → replay) + authoring rules — not by deleting or
   overwriting observed traffic.
 
+### Session safety — a replay must not DESTROY the live auth
+
+Corpus safety (above) is about not mis-flagging; session safety is about not killing the auth the
+whole assessment runs on. Some IdPs expire the session the instant a single-use token is reused — the
+browser used it once (legit), a replay is the second use → the session dies. Vortex can't defeat that
+server policy, so it refuses to trigger it:
+
+- **`replaySafety(tx)`** (`replay-safety.ts`) flags a captured request as unsafe when replaying it
+  would burn the session: an **auth-exchange endpoint** (`/login`, `/oauth/token`, `/refresh`, …), a
+  response that **minted/rotated a session cookie**, or a **hard single-use token** (OAuth `code`,
+  PKCE `code_verifier`, `refresh_token`, `grant_type`). `send()` **refuses** such a replay by default
+  (`ReplayUnsafeError`); `allowUnsafeReplay` overrides deliberately. ProbeRules skip unsafe candidates
+  outright — so a probe never burns the session.
+- **Fresh-token substitution.** Rotating tokens (CSRF/nonce) are listed in `singleUse`; a
+  `SendOptions.resolveToken` hook lets the host supply the CURRENT value (from the live session) so
+  the replay carries a fresh token instead of the stale capture — the repeater-grade behavior.
+- **`isAuthStale(tx)`** is the separate BENIGN signal (401 / login-redirect) → the host refreshes
+  auth (a hackbrowser keep-alive keeps `WebCredential` fresh; refresh keeps the session ALIVE, the
+  guard keeps replay from KILLING it) and retries. Vortex owns the seam (the guard + the hooks); the
+  refresh mechanism and fresh-token source live in the CyberStrike web adapter (generic core stays
+  generic).
+
 ## 13. Non-goals / deferred
 
 - **A GUI proxy product** (Caido/Burp desktop). Vortex is a headless library; the browser adapter is

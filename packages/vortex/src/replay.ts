@@ -10,6 +10,8 @@ import type { Transaction, Header, Response as VxResponse } from "./transaction"
 import { HttpMessage, Apply, Send, BackendFetch, ReplayResponse } from "./send"
 import type { Canary, CanaryKind } from "./canary"
 import { mintCanary, reflects, canaryFor, CANARY_PLACEHOLDER } from "./canary"
+import type { TokenRef } from "./replay-safety"
+import { replaySafety, ReplayUnsafeError } from "./replay-safety"
 
 // Build a fresh request from a simple spec.
 export interface RequestSpec {
@@ -32,6 +34,13 @@ export interface SendOptions {
   // after the send report whether it reflected in THIS response (same-request). Register the
   // returned canary in the store for later cross-request (stored) scanning.
   canary?: { kind?: CanaryKind; field?: string; vulnClass?: string; agent?: string }
+  // Replay safety: by default send() REFUSES to replay a CAPTURED request that replaySafety() flags
+  // as session-destroying (auth-exchange endpoint / session-minting response / hard single-use
+  // token). Set true only to deliberately replay such a request.
+  allowUnsafeReplay?: boolean
+  // Fresh-token resolver: for each single-use / rotating token field in the captured request, return
+  // its CURRENT value (from the live session) to substitute instead of replaying the stale capture.
+  resolveToken?: (t: TokenRef) => string | undefined
   // Test/customisation seam: perform the ONE real send. Defaults to the fetch backend. A test
   // passes a stub so `send()` is exercised end-to-end with no network.
   transport?: (req: HttpMessage.Request, origin: string) => Promise<ReplayResponse.Result>
@@ -51,6 +60,14 @@ function headerList(headers: Record<string, string> | Header[] | undefined): Hea
   if (!headers) return []
   if (Array.isArray(headers)) return headers
   return Object.entries(headers).map(([name, value]) => ({ name, value: String(value) }))
+}
+
+// A mutation that sets a single-use token field to a freshly-resolved value, by where it lives.
+function tokenMutation(t: TokenRef, value: string): Apply.Mutation {
+  if (t.in === "query") return { op: "set-query", name: t.name, value }
+  if (t.in === "header") return { op: "set-header", name: t.name, value }
+  if (t.in === "cookie") return { op: "set-cookie", name: t.name, value }
+  return { op: "body-set-field", name: t.name, value }
 }
 
 function originAndTarget(url: string): { origin: string; target: string; host: string } {
@@ -117,14 +134,28 @@ export async function send(
   opts: SendOptions = {},
 ): Promise<SendResult> {
   const base = resolve(input)
+  // Replay-safety guard + fresh-token substitution — only for a CAPTURED replay (base.from set); a
+  // freshly-built request reuses no captured token, so it's never session-destroying.
+  const resolverMuts: Apply.Mutation[] = []
+  if (base.from) {
+    const rs = replaySafety(base.from)
+    if (!rs.safe && !opts.allowUnsafeReplay) throw new ReplayUnsafeError(`refusing to replay ${base.from.id}: ${rs.reason} (set allowUnsafeReplay to override)`)
+    if (opts.resolveToken) {
+      for (const t of rs.singleUse) {
+        const fresh = opts.resolveToken(t)
+        if (fresh != null) resolverMuts.push(tokenMutation(t, fresh))
+      }
+    }
+  }
   // Canary: mint a token and substitute it for "{canary}" in the mutation values, so the payload a
-  // caller wrote (e.g. "<x>{canary}</x>") carries a unique, trackable marker.
+  // caller wrote (e.g. "<x>{canary}</x>") carries a unique, trackable marker. Resolver mutations go
+  // first so an explicit caller mutation on the same field still wins.
   const token = opts.canary ? mintCanary() : undefined
-  const muts =
-    token && opts.mutations
-      ? opts.mutations.map((m) => ("value" in m && typeof m.value === "string" ? { ...m, value: m.value.split(CANARY_PLACEHOLDER).join(token) } : m))
-      : opts.mutations
-  const req = muts && muts.length ? Apply.mutations(base.req, muts) : base.req
+  const combined = [...resolverMuts, ...(opts.mutations ?? [])]
+  const muts = token
+    ? combined.map((m) => ("value" in m && typeof m.value === "string" ? { ...m, value: m.value.split(CANARY_PLACEHOLDER).join(token) } : m))
+    : combined
+  const req = muts.length ? Apply.mutations(base.req, muts) : base.req
   const transport =
     opts.transport ??
     ((r, origin) => BackendFetch.send(r, { origin, totalTimeoutMs: opts.timeoutMs, rejectUnauthorized: opts.rejectUnauthorized, followRedirects: opts.followRedirects }))

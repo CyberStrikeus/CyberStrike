@@ -17,6 +17,7 @@ import { compile } from "./expr"
 import { fieldValue } from "./fields"
 import { endpointKey } from "./endpoint"
 import { brokeOut, reflects, mintTemplateCanary, TEMPLATE_PLACEHOLDER } from "./canary"
+import { replaySafety } from "./replay-safety"
 import type { Apply } from "./send"
 
 export const ProbeRuleSchema = z
@@ -66,6 +67,7 @@ export function compileProbe(rule: ProbeRule): ActiveRule {
       const seen = new Set<string>() // one probe set per endpoint — no fan-out
       for (const tx of txs) {
         if (!selectQ.test(tx)) continue
+        if (!replaySafety(tx).safe) continue // never probe a session-minting / one-time-token request (would burn the session)
         const key = endpointKey(tx)
         if (seen.has(key)) continue
         seen.add(key)
