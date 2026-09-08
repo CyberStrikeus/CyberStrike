@@ -28,6 +28,7 @@ export namespace WebAct {
     key?: string // press: key name (default "Enter")
     dy?: number // scroll: pixels (default ~85% viewport)
     typeMode?: ExecStrategy.TypeMode // override; default is derived from the page's framework (P5)
+    aggressive?: boolean // exhaustive crawl: allow confirm-policy (destructive) actions; logout still denied
   }
   export type Status =
     | "ok"
@@ -104,9 +105,13 @@ export namespace WebAct {
 
     // Guard first — a blocked action never happened, so it must NOT consume budget.
     const policy = actionPolicy(el.kind)
+    // deny (logout) is ALWAYS blocked — clicking it just ends the crawl, no value.
     if (policy === "deny")
       return { ok: false, status: "denied", policy, kind: el.kind, label: el.label, message: `guard denied ${el.kind} "${el.label}"` }
-    if (policy === "confirm")
+    // confirm (destructive: reset/delete/bulk-action) normally needs a human. In AGGRESSIVE mode
+    // (exhaustive crawl, opt-in) it is allowed — triggering it captures the real POST body, at the
+    // cost of mutating the target. A deliberate operator choice, never the default.
+    if (policy === "confirm" && !input.aggressive)
       return { ok: false, status: "confirm", policy, kind: el.kind, label: el.label, message: `${el.kind} "${el.label}" needs human confirmation` }
 
     if (Crawl.overBudget(sessionID)) return budget(sessionID)

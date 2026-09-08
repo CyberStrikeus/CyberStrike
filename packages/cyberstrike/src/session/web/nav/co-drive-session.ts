@@ -11,6 +11,7 @@ import { PageStateObserver } from "./guardrails"
 import { WebControl } from "../control"
 import { DeterministicNavigator } from "./deterministic-navigator"
 import { LlmNavigator } from "./llm-navigator"
+import { ExhaustiveNavigator } from "./exhaustive-navigator"
 import { WebActExecutor } from "./web-act-executor"
 import { Crawl } from "../crawl"
 import { WebScope } from "../scope"
@@ -51,14 +52,23 @@ export class CoDriveSession {
     return CoDriveSession.build(new LlmNavigator(), cfg)
   }
 
-  private static build(navigator: Navigator, cfg?: Partial<CoDriveConfig> & { settleMs?: number }): CoDriveSession {
+  // 1.1.16-style EXHAUSTIVE breadth: deterministically exercise EVERY interactive control on every
+  // page so the browser triggers each endpoint and the capture layer records its REAL request body
+  // (the only way to get a POST's payload — JS mining gives shape, not body). `aggressive` also
+  // fires destructive controls (reset/delete/bulk-action) to capture their bodies — it MUTATES the
+  // target, so it is an explicit opt-in, never the default. Logout is always skipped.
+  static withExhaustive(aggressive: boolean, cfg?: Partial<CoDriveConfig> & { settleMs?: number }): CoDriveSession {
+    return CoDriveSession.build(new ExhaustiveNavigator(aggressive), cfg, aggressive)
+  }
+
+  private static build(navigator: Navigator, cfg?: Partial<CoDriveConfig> & { settleMs?: number }, aggressive = false): CoDriveSession {
     const settleMs = cfg?.settleMs ?? 1500
     const pollMs = cfg?.pollMs ?? 400
     return new CoDriveSession(
       {
         observer: new PageStateObserver(),
         navigator,
-        executor: new WebActExecutor({ settleMs, pollMs }),
+        executor: new WebActExecutor({ settleMs, pollMs, aggressive }),
         guardrails: new Guardrails(),
       },
       // Be patient waiting for the FIRST observation: the browser + first page can take much

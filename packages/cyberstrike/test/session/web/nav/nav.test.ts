@@ -7,6 +7,7 @@ import { snapshotSignature } from "../../../../src/session/web/nav/types"
 import type { Navigator, Observer, Executor, Action, ActionResult, PageSnapshot } from "../../../../src/session/web/nav/types"
 import { PageState } from "../../../../src/session/web/page-state"
 import { WebControl } from "../../../../src/session/web/control"
+import { WebAct } from "../../../../src/session/web/act"
 import { WebDriver } from "../../../../src/session/web/driver"
 import { Crawl } from "../../../../src/session/web/crawl"
 import { WebScope } from "../../../../src/session/web/scope"
@@ -262,5 +263,37 @@ describe("CoDriveSession.run — LLM 'done' must not drop the frontier (regressi
     expect(reason).toBe("coverage-complete")
     // The fix: /b was discovered (frontier) but unvisited when "done" fired — it must be visited.
     expect(Crawl.isPageVisited(sid, "https://h/b")).toBe(true)
+  })
+})
+
+describe("WebAct.perform — aggressive gate (exhaustive crawl clicks destructive; logout still denied)", () => {
+  test("confirm-policy (destructive) is blocked by default, allowed with aggressive; deny (logout) always blocked", async () => {
+    const sid = "s"
+    let sent = 0
+    WebControl.connect(sid, {
+      send(data: string) {
+        const m = JSON.parse(data)
+        if (m.op === "click") sent++
+        WebControl.onAck(JSON.stringify({ id: m.id, ok: true }))
+      },
+    })
+    WebScope.ensure(sid, "https://h/")
+    PageState.set(sid, {
+      url: "https://h/",
+      title: "",
+      clickables: [
+        { id: "del", tag: "button", role: "", label: "Delete account", href: "" }, // destructive → confirm
+        { id: "lo", tag: "a", role: "link", label: "Log out", href: "/logout" }, // logout → deny
+      ],
+      forms: [],
+      links: [],
+      observed_at: 1,
+    })
+    // default: destructive needs confirmation → blocked
+    expect((await WebAct.perform(sid, { op: "click", url: "https://h/", elementId: "del" })).status).toBe("confirm")
+    // aggressive: destructive goes through
+    expect((await WebAct.perform(sid, { op: "click", url: "https://h/", elementId: "del", aggressive: true })).ok).toBe(true)
+    // logout is denied even with aggressive
+    expect((await WebAct.perform(sid, { op: "click", url: "https://h/", elementId: "lo", aggressive: true })).status).toBe("denied")
   })
 })

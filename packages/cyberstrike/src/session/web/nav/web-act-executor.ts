@@ -16,7 +16,7 @@ const DEFAULT_HYDRATE_MS = 4000
 
 export class WebActExecutor implements Executor {
   private readonly hydrated = new Set<string>() // `${sessionID}\n${url}` already hydration-waited
-  constructor(private readonly cfg: { settleMs: number; pollMs: number; hydrateMs?: number }) {}
+  constructor(private readonly cfg: { settleMs: number; pollMs: number; hydrateMs?: number; aggressive?: boolean }) {}
 
   async run(sessionID: string, action: Action, before: PageSnapshot, intent?: string): Promise<ActionResult> {
     if (action.kind === "done") return { ok: true, status: "done", effect: "noop" }
@@ -71,7 +71,7 @@ export class WebActExecutor implements Executor {
     }
 
     // click
-    const r = await WebAct.perform(sessionID, { op: "click", url: before.url, elementId: action.elementId })
+    const r = await WebAct.perform(sessionID, { op: "click", url: before.url, elementId: action.elementId, aggressive: this.cfg.aggressive })
     if (!r.ok) {
       // Guard-blocked / stale element: mark it acted so the loop can't re-pick and spin.
       if (!STOP_STATUSES.has(r.status)) Crawl.record(sessionID, Crawl.actionKey(before.url, findEl(before, action.elementId)))
@@ -94,7 +94,7 @@ export class WebActExecutor implements Executor {
             : await WebAct.perform(sessionID, { op: "type", url, elementId: fill.id, text: fill.value })
       if (!r.ok && STOP_STATUSES.has(r.status)) return "stop"
     }
-    const submit = await WebAct.perform(sessionID, { op: "click", url, elementId: form.submitId })
+    const submit = await WebAct.perform(sessionID, { op: "click", url, elementId: form.submitId, aggressive: this.cfg.aggressive })
     Crawl.record(sessionID, form.actionKey)
     return !submit.ok && STOP_STATUSES.has(submit.status) ? "stop" : "ok"
   }

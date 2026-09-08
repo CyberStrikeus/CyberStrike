@@ -18,7 +18,15 @@ export namespace CoDrive {
   // Production builds the LLM-brained session per start; tests swap in a deterministic one so the
   // route→runner→session chain is exercised end-to-end without a live model. `start(sid, session)`
   // still takes precedence for direct-injection unit tests.
-  const DEFAULT_FACTORY = () => CoDriveSession.withLlm()
+  // Default = LLM co-driver. CYBERSTRIKE_WEB_EXHAUSTIVE switches to 1.1.16-style exhaustive breadth
+  // (deterministically exercise every control on every page → capture real request bodies). Set it
+  // to "aggressive" to ALSO fire destructive controls (mutates the target — opt-in); any other
+  // truthy value = exhaustive but non-destructive.
+  const DEFAULT_FACTORY = () => {
+    const mode = (process.env.CYBERSTRIKE_WEB_EXHAUSTIVE ?? "").toLowerCase()
+    if (!mode) return CoDriveSession.withLlm()
+    return CoDriveSession.withExhaustive(mode === "aggressive")
+  }
   let factory: () => CoDriveSession = DEFAULT_FACTORY
   export function _setFactory(f: (() => CoDriveSession) | null): void {
     factory = f ?? DEFAULT_FACTORY
