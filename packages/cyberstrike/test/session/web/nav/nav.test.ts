@@ -173,6 +173,9 @@ describe("CoDriveSession — a multi-step input plan runs to completion", () => 
     const observer: Observer = { observe: () => PageState.get(sid, "https://h/login") as PageSnapshot }
     const executor: Executor = {
       async run(_sid: string, action: Action): Promise<ActionResult> {
+        // A scroll is the loop's load-more probe once the plan is spent — it reveals nothing here, so
+        // it's a noop and is NOT part of the deliberate input sequence under test.
+        if (action.kind === "scroll") return { ok: true, status: "ok", effect: "noop" }
         recorded.push(`${action.kind}:${"elementId" in action ? action.elementId : ""}`)
         // Typing mutates the DOM → "revealed" (the exact effect that used to abort the plan and make
         // the crawler re-type the first field forever). The submit click navigates.
@@ -468,6 +471,54 @@ describe("CoDriveSession.run — idle-watch resumes instead of dying on a transi
     const reason = await new CoDriveSession({ observer, navigator, executor, guardrails: new Guardrails() }, { pollMs: 1, maxIdle: 6 }).run(sid)
     expect(clicked).toEqual(["d1"]) // it woke back up and crawled the dashboard control
     expect(reason).toBe("coverage-complete") // and still terminated cleanly once truly done
+  })
+})
+
+describe("CoDriveSession.run — scroll-to-load-more reaches virtualized rows before leaving the page", () => {
+  test("a row that only renders after scrolling still gets exercised", async () => {
+    const sid = "virt"
+    const list = "https://h/list"
+    WebControl.connect(sid, { send: () => {} })
+    WebScope.ensure(sid, list)
+    const row1: Click = { id: "r1", tag: "div", role: "button", label: "Row 1", href: "" }
+    const row2: Click = { id: "r2", tag: "div", role: "button", label: "Row 2", href: "" }
+    let scrolled = false // row2 only renders once the virtualized list has been scrolled
+
+    const observer: Observer = {
+      observe: () =>
+        ({ url: list, title: "", clickables: scrolled ? [row1, row2] : [row1], forms: [], links: [], observed_at: Date.now() }) as unknown as PageSnapshot,
+    }
+    const navigator: Navigator = {
+      async plan(): Promise<{ rationale: string; actions: Action[] }> {
+        const rows = scrolled ? [row1, row2] : [row1]
+        const actions = rows
+          .filter((r) => !Crawl.isActed(sid, Crawl.actionKey(list, r)))
+          .map((r) => ({ kind: "click", elementId: r.id, label: r.label }) as Action)
+        return { rationale: "rows", actions }
+      },
+    }
+    const clicked: string[] = []
+    const executor: Executor = {
+      async run(_sid: string, action: Action): Promise<ActionResult> {
+        if (action.kind === "scroll") {
+          if (!scrolled) {
+            scrolled = true // the scroll loads the next window of rows
+            return { ok: true, status: "ok", effect: "revealed" }
+          }
+          return { ok: true, status: "ok", effect: "noop" } // nothing left to load
+        }
+        if (action.kind === "click" && "elementId" in action) {
+          clicked.push(action.elementId)
+          Crawl.record(sid, Crawl.actionKey(list, action.elementId === "r1" ? row1 : row2))
+        }
+        return { ok: true, status: "ok", effect: "noop" }
+      },
+    }
+    const reason = await new CoDriveSession({ observer, navigator, executor, guardrails: new Guardrails() }, { pollMs: 1, maxIdle: 3 }).run(sid)
+    // r2 is unreachable until a scroll loads it; the load-more probe (run when the page first looks
+    // exhausted) surfaces it so BOTH rows are exercised.
+    expect(clicked).toEqual(["r1", "r2"])
+    expect(reason).toBe("coverage-complete")
   })
 })
 

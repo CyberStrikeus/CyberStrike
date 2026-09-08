@@ -21,6 +21,9 @@ import { HBLog } from "../hblog"
 import { Log } from "../../../util/log"
 
 const log = Log.create({ service: "co-drive" })
+// Max scroll-to-load-more attempts per url before a page is accepted as exhausted (bounds a real
+// infinite-scroll list; a non-scrolling page stops after the first no-op scroll anyway).
+const SCROLL_LIMIT = 12
 const STOP_EFFECT: Record<string, StopReason> = {
   "human-driving": "human-took-over",
   "no-extension": "no-extension-connected",
@@ -111,6 +114,18 @@ export class CoDriveSession {
     // genuine coverage-complete and end — so a finite site (and every test) still terminates.
     let exhaustedSig: string | null = null
     let quiet = 0
+    // Per-url scroll budget: a virtualized/infinite list only renders the rows in view, so before we
+    // declare a page exhausted we scroll to load more (and their detail endpoints). "revealed" ⇒ new
+    // content → the caller re-plans over the new rows. Bounded so a non-scrolling page costs at most
+    // one no-op scroll, and a real infinite list can't scroll without end.
+    const scrolls = new Map<string, number>()
+    const loadMore = async (snap: PageSnapshot): Promise<boolean> => {
+      const n = scrolls.get(snap.url) ?? 0
+      if (n >= SCROLL_LIMIT) return false
+      scrolls.set(snap.url, n + 1)
+      const r = await this.deps.executor.run(sessionID, { kind: "scroll" }, snap, "loading more of a lazy/virtualized list")
+      return r.ok && r.effect === "revealed"
+    }
 
     while (alive()) {
       const term = this.deps.guardrails.terminal(sessionID)
@@ -168,6 +183,12 @@ export class CoDriveSession {
         planIdx = 0
         HBLog.record(sessionID, "codrive", "plan", { rationale: plan.rationale, actions: plan.actions.length })
         if (plan.actions.length === 0) {
+          // Page looks exhausted — but first scroll to load more of any lazy/virtualized list; if new
+          // rows appear, re-plan over them instead of leaving the page.
+          if (await loadMore(snapshot)) {
+            plan = null
+            continue
+          }
           const next = Crawl.takeFrontier(sessionID)
           if (!next) {
             // Nothing left to visit — but do NOT end. Enter idle-watch: remember what "done" looked
@@ -200,6 +221,12 @@ export class CoDriveSession {
         // silently dropped if we broke here, leaving endpoints never visited/tested. So treat
         // `done` exactly like an exhausted plan: drain the frontier first, and only accept
         // coverage-complete when there is genuinely nothing left to visit.
+        // But first, like the empty-plan branch, scroll to load more of any lazy/virtualized list —
+        // the LLM can't judge "fully explored" if half the rows haven't rendered yet.
+        if (await loadMore(snapshot)) {
+          plan = null
+          continue
+        }
         const next = Crawl.takeFrontier(sessionID)
         if (!next) {
           // Like the empty-plan branch: nothing left, but don't end — idle-watch and resume on change.
