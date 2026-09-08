@@ -46,6 +46,8 @@ export class ExhaustiveNavigator implements Navigator {
       // Policy: allow always; confirm (destructive) only in aggressive mode; deny (logout) never.
       if (c.policy === "deny") continue
       if (c.policy === "confirm" && !this.aggressive) continue
+      // A global menu opener already opened once elsewhere reveals the same items — don't re-open it.
+      if (Crawl.isMenuOpener(c) && Crawl.isMenuOpened(sessionID, Crawl.menuKey(c))) continue
       if (Crawl.isActed(sessionID, Crawl.actionKey(snapshot.url, c))) continue
       // A link out of scope is not a click target (navigation is bounded to the target domain).
       if (c.href) {

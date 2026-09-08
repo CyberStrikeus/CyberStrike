@@ -129,6 +129,9 @@ export namespace WebAct {
     const ack = await WebControl.send(sessionID, cmd, input.op === "type" ? 30000 : 5000)
     if (!ack.ok) return { ok: false, status: "relay-failed", message: relayMessage(ack.error), error: ack.error, label: el.label }
     Crawl.record(sessionID, key)
+    // Opening a menu/popup records it url-independently so the same global menu (e.g. the header
+    // user menu) isn't re-opened on every page — the navigators skip an already-opened menu.
+    if (input.op === "click" && Crawl.isMenuOpener(el)) Crawl.recordMenu(sessionID, Crawl.menuKey(el))
     const label = el.label || input.elementId
     return {
       ok: true,

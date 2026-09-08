@@ -123,6 +123,29 @@ describe("ExhaustiveNavigator.plan — modal focus", () => {
   })
 })
 
+describe("menu-opener dedup — a global menu is opened at most once per crawl", () => {
+  test("ExhaustiveNavigator plans a menu opener when fresh, skips it once opened", async () => {
+    const sid = "menu"
+    const menuBtn = { id: "u", tag: "button", role: "button", label: "User menu", href: "", aria: { haspopup: "menu" } }
+    const other = { id: "o", tag: "a", role: "link", label: "Reports", href: "/reports" }
+    PageState.set(sid, { url: "https://h/p", title: "", clickables: [menuBtn as any, other as any], forms: [], links: [], observed_at: 1 })
+    WebScope.ensure(sid, "https://h/p")
+    const s = snap(sid, "https://h/p")
+    const ids = async () => (await new ExhaustiveNavigator().plan(sid, s)).actions.flatMap((a) => (a.kind === "click" ? [a.elementId] : []))
+    expect(await ids()).toContain("u") // fresh → the menu is exercised once
+    Crawl.recordMenu(sid, Crawl.menuKey(menuBtn))
+    const after = await ids()
+    expect(after).not.toContain("u") // already opened elsewhere → skipped
+    expect(after).toContain("o") // other controls unaffected
+  })
+  test("a combobox (haspopup=listbox) is NOT treated as a menu — filters stay openable", () => {
+    expect(Crawl.isMenuOpener({ aria: { haspopup: "listbox" } })).toBe(false)
+    expect(Crawl.isMenuOpener({ aria: { haspopup: "menu" } })).toBe(true)
+    expect(Crawl.isMenuOpener({ aria: { haspopup: "true" } })).toBe(true)
+    expect(Crawl.isMenuOpener({})).toBe(false)
+  })
+})
+
 describe("DeterministicNavigator.plan", () => {
   test("plans the top nav link; empty plan when the page is exhausted", async () => {
     PageState.set("s", { url: "https://h/a", title: "", clickables: [{ id: "e1", tag: "a", role: "link", label: "Home", href: "/home" }], forms: [], links: [], observed_at: 1 })

@@ -20,13 +20,14 @@ export namespace Crawl {
     acted: Set<string> // action keys already performed (cycle guard)
     frontier: Set<string> // discovered-but-not-yet-visited urls (dead-end backtrack target)
     revisit: Set<string> // ALREADY-visited pages with un-acted controls left — come back for them
+    menusOpened: Set<string> // menu-opener keys already opened once (url-independent, anti-repeat)
   }
 
   const bySession = new Map<string, State>()
   function state(sessionID: string): State {
     let s = bySession.get(sessionID)
     if (!s) {
-      s = { budget: DEFAULT_BUDGET, actions: 0, pages: new Set(), acted: new Set(), frontier: new Set(), revisit: new Set() }
+      s = { budget: DEFAULT_BUDGET, actions: 0, pages: new Set(), acted: new Set(), frontier: new Set(), revisit: new Set(), menusOpened: new Set() }
       bySession.set(sessionID, s)
     }
     return s
@@ -45,6 +46,26 @@ export namespace Crawl {
   // Navigation target has no element — its identity is just the destination url.
   export function navKey(url: string): string {
     return `nav\n${url}`
+  }
+
+  // A menu/popup opener — a control that reveals a menu (aria-haspopup=menu|true), e.g. a header
+  // user menu. NOT a combobox (haspopup=listbox): those are filters we DO want to open and pick.
+  export function isMenuOpener(el: { aria?: Record<string, string> }): boolean {
+    const hp = el.aria?.haspopup
+    return hp === "menu" || hp === "true"
+  }
+  // Page-INDEPENDENT identity for a menu opener. A global header menu (user menu → profile/settings/
+  // logout) is the same control on every page; keyed by role:label it is recognized as one menu no
+  // matter where it appears, so it is opened at most once per crawl instead of on every page.
+  export function menuKey(el: { role?: string; label?: string }): string {
+    return `${(el.role || "").toLowerCase()}:${(el.label || "").replace(/\s+/g, " ").trim().toLowerCase()}`
+  }
+  export function recordMenu(sessionID: string, key: string): void {
+    const s = state(sessionID)
+    s.menusOpened.add(key)
+  }
+  export function isMenuOpened(sessionID: string, key: string): boolean {
+    return state(sessionID).menusOpened.has(key)
   }
 
   export function setBudget(sessionID: string, n: number): void {

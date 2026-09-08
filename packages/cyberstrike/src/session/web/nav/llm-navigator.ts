@@ -153,6 +153,9 @@ export function clickPool(sessionID: string, snapshot: PageSnapshot, cap = CLICK
   for (const c of snapshot.clickables) {
     if (c.policy !== "allow") continue
     if (c.disabled) continue
+    // A global menu opener (header user menu → profile/settings/logout) is the SAME control on every
+    // page; opening it everywhere just burns budget. Once opened anywhere, skip it thereafter.
+    if (Crawl.isMenuOpener(c) && Crawl.isMenuOpened(sessionID, Crawl.menuKey(c))) continue
     const key = Crawl.actionKey(snapshot.url, c)
     if (Crawl.isActed(sessionID, key)) continue
     const target = c.href ? WebScope.resolve(c.href, snapshot.url) : undefined
