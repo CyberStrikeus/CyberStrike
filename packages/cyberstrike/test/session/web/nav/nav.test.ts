@@ -289,7 +289,7 @@ describe("CoDriveSession.run — revisit-on-nav-away covers every SPA list row (
           forms: [],
           links: [],
           observed_at: Date.now(),
-        }) as PageSnapshot,
+        }) as unknown as PageSnapshot,
     }
     // Exhaustive-style: plan every row not yet acted; a detail page has nothing to do.
     const navigator: Navigator = {
@@ -338,7 +338,7 @@ describe("CoDriveSession.run — revisit-on-nav-away covers every SPA list row (
     let url = list
     const observer: Observer = {
       observe: () =>
-        ({ url, title: url, clickables: url === list ? rows : [], forms: [], links: [], observed_at: Date.now() }) as PageSnapshot,
+        ({ url, title: url, clickables: url === list ? rows : [], forms: [], links: [], observed_at: Date.now() }) as unknown as PageSnapshot,
     }
     const navigator: Navigator = {
       async plan(_sid: string, snap: PageSnapshot): Promise<{ rationale: string; actions: Action[] }> {
@@ -365,6 +365,54 @@ describe("CoDriveSession.run — revisit-on-nav-away covers every SPA list row (
     const session = new CoDriveSession({ observer, navigator, executor, guardrails: new Guardrails() }, { pollMs: 1, maxIdle: 3 })
     await session.run(sid)
     expect(clicked).toEqual(["r1"]) // routed away after r1; NOT re-queued, so r2 is never reached
+  })
+})
+
+describe("CoDriveSession.run — idle-watch resumes instead of dying on a transient login/no-access page", () => {
+  test("exhausting a login page does NOT end the run; when the dashboard loads, the crawl resumes", async () => {
+    const sid = "idle"
+    WebControl.connect(sid, { send: () => {} })
+    WebScope.ensure(sid, "https://h/login")
+    // The browser sits on a bare login/no-access page for the first few polls (nothing to crawl),
+    // then the real dashboard loads — exactly the race that used to kill the crawl one poll early.
+    let call = 0
+    const dashBtn: Click = { id: "d1", tag: "button", role: "", label: "Open module", href: "" }
+    const observer: Observer = {
+      observe: () => {
+        call++
+        const onDash = call >= 3
+        return {
+          url: onDash ? "https://h/review/" : "https://h/login",
+          title: "",
+          clickables: onDash ? [dashBtn] : [],
+          forms: [],
+          links: [],
+          observed_at: Date.now(),
+        } as unknown as PageSnapshot
+      },
+    }
+    const navigator: Navigator = {
+      async plan(_sid: string, snap: PageSnapshot): Promise<{ rationale: string; actions: Action[] }> {
+        const acts = snap.clickables
+          .filter((c) => !Crawl.isActed(sid, Crawl.actionKey(snap.url, c)))
+          .map((c) => ({ kind: "click", elementId: c.id, label: c.label }) as Action)
+        return { rationale: "plan", actions: acts }
+      },
+    }
+    const clicked: string[] = []
+    const executor: Executor = {
+      async run(_sid: string, action: Action, before: PageSnapshot): Promise<ActionResult> {
+        if (action.kind === "click" && "elementId" in action) {
+          clicked.push(action.elementId)
+          Crawl.record(sid, Crawl.actionKey(before.url, dashBtn))
+        }
+        return { ok: true, status: "ok", effect: "noop" }
+      },
+    }
+    // maxIdle:6 gives the dashboard (call 3) time to appear before idle-watch would complete.
+    const reason = await new CoDriveSession({ observer, navigator, executor, guardrails: new Guardrails() }, { pollMs: 1, maxIdle: 6 }).run(sid)
+    expect(clicked).toEqual(["d1"]) // it woke back up and crawled the dashboard control
+    expect(reason).toBe("coverage-complete") // and still terminated cleanly once truly done
   })
 })
 

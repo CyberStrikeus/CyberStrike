@@ -5,7 +5,8 @@
 //
 // Driven in production by LlmNavigator (withLlm) via the CoDrive runner, which the /web/driver
 // route starts/stops; DeterministicNavigator (withDefaults) is the no-model fallback + test brain.
-import type { Observer, Navigator, Executor, Plan, StopReason, ActionResult } from "./types"
+import type { Observer, Navigator, Executor, Plan, StopReason, ActionResult, PageSnapshot } from "./types"
+import { snapshotSignature } from "./types"
 import { Guardrails } from "./guardrails"
 import { PageStateObserver } from "./guardrails"
 import { WebControl } from "../control"
@@ -102,6 +103,14 @@ export class CoDriveSession {
     let plan: Plan | null = null
     let planIdx = 0
     let reason: StopReason = "stopped"
+    // Idle-watch: the page signature we had when we exhausted everything reachable. Non-null means
+    // "nothing left to do — watch and wait". Cleared the instant the page changes materially (login
+    // completes, a dashboard finishes loading, the user navigates) so the crawl resumes on its own
+    // instead of dying on a transient login/no-access page and needing a manual restart. `quiet`
+    // counts consecutive unchanged observations while watching; after maxIdle of them we accept a
+    // genuine coverage-complete and end — so a finite site (and every test) still terminates.
+    let exhaustedSig: string | null = null
+    let quiet = 0
 
     while (alive()) {
       const term = this.deps.guardrails.terminal(sessionID)
@@ -131,6 +140,24 @@ export class CoDriveSession {
       // Remember discovered in-scope targets so a dead end can backtrack.
       Crawl.discover(sessionID, snapshot.links.filter((u) => WebScope.allowed(sessionID, u)))
 
+      // Idle-watch gate: if we already exhausted everything, keep observing WITHOUT acting until the
+      // page changes. Same page/sig ⇒ still nothing to do; poll again, and after maxIdle unchanged
+      // polls accept coverage-complete and end (so a finite site terminates). A material change (new
+      // URL or new controls) ⇒ clear the flag and fall through to re-plan — the crawl resumes itself.
+      if (exhaustedSig !== null) {
+        if (exhaustedSig === sigOf(snapshot)) {
+          if (++quiet > this.cfg.maxIdle) {
+            reason = "coverage-complete"
+            break
+          }
+          await sleep(this.cfg.pollMs)
+          continue
+        }
+        exhaustedSig = null
+        quiet = 0
+        plan = null
+      }
+
       // (Re)plan when there is no live plan or the current one is spent (§3.4 folds in via effect).
       if (!plan || planIdx >= plan.actions.length) {
         // Show a "thinking" cue on the browser overlay while the model plans (the biggest visible
@@ -143,8 +170,12 @@ export class CoDriveSession {
         if (plan.actions.length === 0) {
           const next = Crawl.takeFrontier(sessionID)
           if (!next) {
-            reason = "coverage-complete"
-            break
+            // Nothing left to visit — but do NOT end. Enter idle-watch: remember what "done" looked
+            // like and keep observing. If the page later changes (login lands, dashboard hydrates,
+            // user navigates), the gate above resumes the crawl. Only human/no-extension/budget end.
+            exhaustedSig = sigOf(snapshot)
+            await sleep(this.cfg.pollMs)
+            continue
           }
           // Mark the REQUESTED url visited now — a url that redirects (or client-routes) to a
           // different landed url would otherwise never be marked (only the landed url is), so
@@ -171,8 +202,10 @@ export class CoDriveSession {
         // coverage-complete when there is genuinely nothing left to visit.
         const next = Crawl.takeFrontier(sessionID)
         if (!next) {
-          reason = "coverage-complete"
-          break
+          // Like the empty-plan branch: nothing left, but don't end — idle-watch and resume on change.
+          exhaustedSig = sigOf(snapshot)
+          await sleep(this.cfg.pollMs)
+          continue
         }
         Crawl.markPage(sessionID, next) // see the empty-plan branch: prevents a redirecting url re-entering the frontier
         const nav = await this.deps.executor.run(
@@ -231,6 +264,13 @@ export class CoDriveSession {
     log.info("stop", { sessionID, reason })
     return reason
   }
+}
+
+// Stable identity of a page for idle-watch change-detection: url + form count + sorted control
+// keys (snapshotSignature already folds the url in). Deliberately NOT time-based, so re-observing
+// an unchanged page yields the same string and idle-watch can tell "still nothing" from "changed".
+function sigOf(snapshot: PageSnapshot): string {
+  return snapshotSignature(snapshot)
 }
 
 function terminalFrom(result: ActionResult): StopReason | null {
