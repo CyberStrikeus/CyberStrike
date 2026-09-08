@@ -40,6 +40,31 @@ describe("DSL engine — core", () => {
   })
 })
 
+describe("DSL engine — function library coverage + regex guards", () => {
+  const t = tx({ id: "f", response: { status: 200, headers: [], body: "Hello World" } })
+  test("encoding + string functions round-trip", () => {
+    expect(compile('base64_decode("aGk=") == "hi"').test(t)).toBe(true)
+    expect(compile('hex_decode("6869") == "hi"').test(t)).toBe(true)
+    expect(compile('url_decode("a%20b") == "a b"').test(t)).toBe(true)
+    expect(compile('upper("ab") == "AB"').test(t)).toBe(true)
+    expect(compile('trim("  x  ") == "x"').test(t)).toBe(true)
+    expect(compile('replace("a.b.c", ".", "-") == "a-b-c"').test(t)).toBe(true)
+    expect(compile('ends_with("report.pdf", ".pdf")').test(t)).toBe(true)
+    expect(compile('sha256("") == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"').test(t)).toBe(true)
+  })
+  test("string escapes preserve regex metachars (\\d stays \\d, not d)", () => {
+    expect(compile('regex("\\d+", "x9")').test(t)).toBe(true) // matches the digit
+    expect(compile('regex("\\d+", "xdz")').test(t)).toBe(false) // no digit — if \d had become d this would be wrongly true
+    expect(compile('regex("\\bWorld\\b", resp.body)').test(t)).toBe(true) // \b word boundary survived
+  })
+  test("regex guard: overlong pattern rejected, agent scope bans regex()", () => {
+    const long = '"' + "a".repeat(2100) + '"'
+    expect(() => compile(`regex(${long}, resp.body)`).test(t)).toThrow(ExprError) // pattern > MAX_PATTERN
+    expect(() => compile('regex("x", resp.body)', { grep: false })).toThrow(ExprError) // agent scope: no regex (ReDoS surface)
+    expect(compile('contains(resp.body, "World")', { grep: false }).test(t)).toBe(true) // agent uses the linear contains instead
+  })
+})
+
 // ── The 5 scenarios HTTPQL could NOT express ────────────────────────────────
 describe("DSL engine — the five expr-only scenarios", () => {
   test("1. decode-then-inspect: JWT alg:none", () => {

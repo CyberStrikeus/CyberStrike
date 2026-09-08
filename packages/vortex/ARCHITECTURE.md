@@ -250,9 +250,12 @@ structured lookup never pays to reconstruct raw text.
 **Agent scope gate.** Left in an agent's field menu, `raw` is a footgun: told it exists, an agent
 reaches for it on every query and every result becomes a noisy grep. So the agent path compiles with
 `{ grep: false }`, which REJECTS the grep-everywhere fields (even nested inside a function) with an
-`ExprError` that redirects to the structured fields. Rules and WE-authored code compile in full scope
-and keep `raw`. Same engine, two affordances: broad power for the platform, a low-noise structured
-menu for the agent.
+`ExprError` that redirects to the structured fields. It also bans `regex()` in agent scope — that is
+the untrusted-**ReDoS** surface, so an agent uses the linear `contains`/`icontains` instead; a
+WE-authored rule keeps `regex()` (trusted pattern), guarded defense-in-depth by a pattern-length cap
+and a scanned-subject cap (JS regex has no timeout; a full guarantee would need RE2). Rules and
+WE-authored code compile in full scope and keep `raw`. Same engine, two affordances: broad power for
+the platform, a low-noise safe menu for the agent.
 
 Both request and response bodies are handled uniformly by the **body model** (`body.ts`):
 content-type (with a content sniff fallback) classifies the `BodyKind`

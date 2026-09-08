@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { DeclarativeRule, Transaction } from "../src/index"
-import { selectRules, parsePack, mergePacks, loadPackDir, contextFromCorpus } from "../src/index"
+import { selectRules, parsePack, mergePacks, loadPackDir, contextFromCorpus, compileRules, RuleRegistry } from "../src/index"
 
 const rules: DeclarativeRule[] = [
   { id: "a", category: "misconfig", severity: "low", when: "resp.status == 200", tags: ["hygiene"] },
@@ -49,6 +49,25 @@ describe("rule packs — parse / merge / context / load", () => {
   })
   test("contextFromCorpus unions tech markers across the corpus", () => {
     expect(contextFromCorpus([tx("a", ["spring"]), tx("b", ["spring", "nginx"])]).tech!.sort()).toEqual(["nginx", "spring"])
+  })
+  test("pack → select → compile → FIRE (the whole point: selected rules actually run and signal)", () => {
+    const pack = parsePack({
+      declarative: [
+        { id: "sqlerr", category: "injection", severity: "high", when: 'regex("SQL syntax", resp.body)', tags: ["injection"], dedupBy: "endpoint" },
+        { id: "hygiene", category: "misconfig", severity: "low", when: "resp.status == 200", tags: ["hygiene"] },
+      ],
+    })
+    const selected = selectRules(pack.declarative!, { tags: ["injection"] }) // pick ONLY the injection rule
+    const reg = new RuleRegistry().registerAll(compileRules(selected))
+    const t: Transaction = {
+      id: "x",
+      source: "browser",
+      host: "app.test",
+      request: { method: "GET", url: "https://app.test/q", headers: [] },
+      response: { status: 500, headers: [], body: "You have an error in your SQL syntax" },
+    }
+    // the selected rule compiled + fired; the un-selected hygiene rule is not in the registry, so no signal
+    expect(reg.analyze([t]).map((s) => s.ruleId)).toEqual(["sqlerr"])
   })
   test("loadPackDir reads + merges *.json from a directory (files = source of truth)", async () => {
     const { mkdtemp, writeFile } = await import("node:fs/promises")

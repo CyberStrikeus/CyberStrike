@@ -59,8 +59,17 @@ function eq(a: Value, b: Value): boolean {
 // header lists). Unknown names are rejected at PARSE time, so a rule can't call into anything else.
 type Fn = (args: Value[], tx: Transaction) => Value
 
+// ReDoS defense. The real fix for UNTRUSTED expressions is that `regex()` is full-scope-only —
+// agent scope (grep:false) rejects it (see FULL_SCOPE_ONLY), so an agent can't supply a
+// catastrophic pattern; it uses the linear `contains`/`icontains` instead. For WE-authored rules the
+// pattern is trusted, and these two caps are hygiene/defense-in-depth: JS regex is synchronous with
+// no timeout, so we bound both the pattern and the subject rather than pretend to detect every ReDoS
+// shape (a full guarantee would need RE2 or a worker timeout — out of scope here).
+const MAX_PATTERN = 2000 // reject an absurdly long authored pattern
+const MAX_SUBJECT = 1_000_000 // only scan the first 1MB of a value (a match past it is missed — safety trade)
 const reCache = new Map<string, RegExp>()
 function rx(pattern: string): RegExp {
+  if (pattern.length > MAX_PATTERN) throw new ExprError(`regex pattern too long (${pattern.length} > ${MAX_PATTERN})`)
   let re = reCache.get(pattern)
   if (!re) {
     try {
@@ -71,6 +80,9 @@ function rx(pattern: string): RegExp {
     reCache.set(pattern, re)
   }
   return re
+}
+function runRegex(pattern: string, subject: string): boolean {
+  return rx(pattern).test(subject.length > MAX_SUBJECT ? subject.slice(0, MAX_SUBJECT) : subject)
 }
 
 // base64url (JWT) → utf8, tolerant of missing padding and -_ alphabet.
@@ -119,7 +131,7 @@ const FUNCTIONS: Record<string, Fn> = {
   icontains: (a) => str(a[0]).toLowerCase().includes(str(a[1]).toLowerCase()),
   starts_with: (a) => str(a[0]).startsWith(str(a[1])),
   ends_with: (a) => str(a[0]).endsWith(str(a[1])),
-  regex: (a) => rx(str(a[0])).test(str(a[1])), // regex(pattern, subject) — case-insensitive
+  regex: (a) => runRegex(str(a[0]), str(a[1])), // regex(pattern, subject) — case-insensitive, capped subject
   len: (a) => (Array.isArray(a[0]) ? a[0].length : str(a[0]).length),
   lower: (a) => str(a[0]).toLowerCase(),
   upper: (a) => str(a[0]).toUpperCase(),
@@ -440,13 +452,19 @@ function evalNode(node: Node, tx: Transaction): Value {
 }
 
 // --- agent-scope gate -------------------------------------------------------
-function firstGrepField(node: Node): string | undefined {
+// Functions an agent (grep:false) may NOT call. `regex` is the untrusted-ReDoS surface — an agent
+// uses the linear `contains`/`icontains` instead; WE-authored rules keep regex in full scope.
+const FULL_SCOPE_ONLY = new Set(["regex"])
+
+// First thing that makes an expression full-scope-only: a grep-everywhere field, or a restricted
+// function call (checked by name, then recursively through args/operands).
+function firstRestricted(node: Node): string | undefined {
   if (node.k === "field") return GREP_FIELDS.has(node.path) ? node.path : undefined
   if (node.k === "lit") return undefined
-  if (node.k === "call") return node.args.map(firstGrepField).find(Boolean)
-  if (node.k === "index") return firstGrepField(node.target) ?? firstGrepField(node.index)
-  if (node.k === "unary") return firstGrepField(node.e)
-  return firstGrepField(node.l) ?? firstGrepField(node.r)
+  if (node.k === "call") return FULL_SCOPE_ONLY.has(node.name) ? `${node.name}()` : node.args.map(firstRestricted).find(Boolean)
+  if (node.k === "index") return firstRestricted(node.target) ?? firstRestricted(node.index)
+  if (node.k === "unary") return firstRestricted(node.e)
+  return firstRestricted(node.l) ?? firstRestricted(node.r)
 }
 
 // --- public API -------------------------------------------------------------
@@ -465,10 +483,10 @@ export interface Compiled {
 export function compile(src: string, opts: CompileOptions = {}): Compiled {
   const ast = parse(src)
   if (opts.grep === false) {
-    const g = firstGrepField(ast)
+    const g = firstRestricted(ast)
     if (g)
       throw new ExprError(
-        `Field "${g}" is a broad full-text grep, disabled here. Name where you expect the value: req.query.<name>, req.body.<dotpath>, req.header.<name>, resp.body, resp.header.<name>.`,
+        `"${g}" is disabled in agent scope. For a field: name where you expect the value (req.query.<name>, req.body.<dotpath>, req.header.<name>, resp.body). Instead of regex() use contains()/icontains() (linear, no ReDoS).`,
       )
   }
   return {
