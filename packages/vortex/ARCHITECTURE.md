@@ -300,6 +300,16 @@ one at a glance and emits it as JSON:
 JSON. The built-in signature rules (SQL error / stack trace / leaked secret) are themselves written
 in this DSL (dogfooded).
 
+**The DSL has three shapes, one per engine primitive — all authored as data:**
+- **`DeclarativeRule {when}`** → `Rule` — passive, matches one response.
+- **`ChainRule {steps, link/reuses}`** → `CorpusRule` — multi-step correlation (value-based `reuses`
+  finds chains without knowing field names).
+- **`ProbeRule {select, inject, detect}`** → `ActiveRule` — ACTIVE: `select` (HTTPQL) picks
+  candidates, `inject` puts a payload (with `{canary}`) into a param, send()s it, and `detect`
+  (HTTPQL over the probe response, or `"reflected"` = canary bounced) fires the signal. This is
+  inject-probe's playbooks as data; agents rarely author these (WE ship a catalog), agents mostly
+  query + consume signals.
+
 **Still planned (roadmap D):**
 - More passive rules: SQL/stack/XXE/SSRF error signatures, reflected-input / XSS candidate,
   sensitive-data-in-response (PII / tokens / keys), open redirect, verbose errors, directory
