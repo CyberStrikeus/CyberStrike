@@ -45,6 +45,8 @@ export { DeclarativeRuleSchema, compileRule, compileRules, parseRules } from "./
 export type { ChainRule } from "./chain"
 export { ChainRuleSchema, compileChain, parseChains } from "./chain"
 export { correlatable, responseValues, requestValues, sharedValues } from "./taint"
+export type { Extract, Discovered } from "./discovery"
+export { ingestExtract, discoveredId } from "./discovery"
 export { fieldValue } from "./httpql"
 export { signatureRules } from "./rules/signatures"
 

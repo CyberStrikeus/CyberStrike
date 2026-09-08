@@ -149,6 +149,7 @@ function resolveField(tx: Transaction, field: string): string | number | undefin
   if (head === "identity") return tx.identity
   if (head === "source") return tx.source
   if (head === "endpoint") return endpointKey(tx)
+  if (head === "tech") return (tx.tech ?? []).join(",") // extractor-attached markers; `tech:~spring`
   if (head === "httpVersion") return tx.httpVersion
   if (head === "timeMs") return tx.timing?.ms
   if (head === "tls") {

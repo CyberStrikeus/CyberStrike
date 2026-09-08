@@ -57,6 +57,9 @@ export interface Transaction {
   tls?: { version?: string; cipher?: string; sni?: string }
   redirectChain?: string[] // the URL hops that led here (or that this request kicked off)
   timing?: { startedAt?: number; ms?: number; ttfbMs?: number }
+  // Technology markers attached by an extractor (e.g. JS mining → ["next", "spring"]). Lets tech-
+  // specific rules match via HTTPQL `tech:~spring`. Written by ingestExtract, not by the wire.
+  tech?: string[]
 }
 
 // Case-insensitive header lookup returning the FIRST match's value, or undefined. Header names are

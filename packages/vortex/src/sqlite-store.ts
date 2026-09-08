@@ -9,6 +9,7 @@
 import { Database } from "bun:sqlite"
 import type { Transaction } from "./transaction"
 import type { TrafficStore } from "./store"
+import type { Discovered } from "./discovery"
 
 interface Row {
   data: string
@@ -34,6 +35,15 @@ export class SqliteStore implements TrafficStore {
        )`,
     )
     this.db.run(`CREATE INDEX IF NOT EXISTS vortex_transaction_session ON vortex_transaction(session)`)
+    this.db.run(
+      `CREATE TABLE IF NOT EXISTS vortex_discovered (
+         session TEXT NOT NULL,
+         id TEXT NOT NULL,
+         kind TEXT NOT NULL,
+         data TEXT NOT NULL,
+         PRIMARY KEY (session, id)
+       )`,
+    )
   }
 
   add(tx: Transaction): Transaction {
@@ -72,7 +82,26 @@ export class SqliteStore implements TrafficStore {
     return row?.n ?? 0
   }
 
+  addDiscovered(items: Discovered[]): number {
+    let added = 0
+    const exists = this.db.query<{ n: number }, [string, string]>(`SELECT COUNT(*) AS n FROM vortex_discovered WHERE session = ? AND id = ?`)
+    for (const it of items) {
+      const had = (exists.get(this.session, it.id)?.n ?? 0) > 0
+      this.db.run(`INSERT OR REPLACE INTO vortex_discovered (session, id, kind, data) VALUES (?, ?, ?, ?)`, [this.session, it.id, it.kind, JSON.stringify(it)])
+      if (!had) added++
+    }
+    return added
+  }
+
+  discovered(kind?: Discovered["kind"]): Discovered[] {
+    const rows = kind
+      ? this.db.query<Row, [string, string]>(`SELECT data FROM vortex_discovered WHERE session = ? AND kind = ?`).all(this.session, kind)
+      : this.db.query<Row, [string]>(`SELECT data FROM vortex_discovered WHERE session = ?`).all(this.session)
+    return rows.map((r) => JSON.parse(r.data) as Discovered)
+  }
+
   clear(): void {
     this.db.run(`DELETE FROM vortex_transaction WHERE session = ?`, [this.session])
+    this.db.run(`DELETE FROM vortex_discovered WHERE session = ?`, [this.session])
   }
 }
