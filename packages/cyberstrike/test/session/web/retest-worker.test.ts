@@ -10,7 +10,7 @@ async function withInstance(fn: () => Promise<void>) {
   await Instance.provide({ directory: dir.path, fn })
 }
 
-function scenario(flags: WebRetest.Info["flags"]): WebRetest.Info {
+function scenario(flags: WebRetest.Info["flags"], method = "POST", endpoint = "/api/flags"): WebRetest.Info {
   return {
     id: "r1",
     session_id: "s",
@@ -18,8 +18,8 @@ function scenario(flags: WebRetest.Info["flags"]): WebRetest.Info {
     status: "pending",
     priority: "high",
     flags,
-    method: "POST",
-    endpoint: "/api/flags",
+    method,
+    endpoint,
     time: { created: 0, updated: 0 },
   }
 }
@@ -48,10 +48,24 @@ describe("RetestWorker.resolveAgents — scenario → specialist routing", () =>
     })
   })
 
-  test("an object value routes to idor", async () => {
+  test("an object value on a non-injectable GET routes to idor only", async () => {
     await withInstance(async () => {
-      const agents = await RetestWorker.resolveAgents(scenario({ object_value: ["456"] }))
+      // A plain GET whose path names no query/search/filter operation is not an injection surface.
+      const agents = await RetestWorker.resolveAgents(scenario({ object_value: ["456" ] }, "GET", "/customers/123"))
       expect(agents).toEqual(["hunt-idor"])
+    })
+  })
+
+  test("an injection surface (body method) routes to hunt-injection", async () => {
+    await withInstance(async () => {
+      // A POST carries a body to inject into → injection specialist, even with no injection signal.
+      const post = await RetestWorker.resolveAgents(scenario({ object_value: ["1"] }, "POST", "/api/run-query"))
+      expect(post).toContain("hunt-injection")
+      // A GET whose path names a query/filter operation is parameterized → also injection.
+      const getFilter = await RetestWorker.resolveAgents(scenario({}, "GET", "/api/filter-options"))
+      expect(getFilter).toContain("hunt-injection")
+      // A plain nav GET is not.
+      expect(RetestWorker.isInjectionSurface(scenario({}, "GET", "/dashboard"))).toBe(false)
     })
   })
 
