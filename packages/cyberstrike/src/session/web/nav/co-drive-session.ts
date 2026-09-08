@@ -129,6 +129,11 @@ export class CoDriveSession {
             reason = "coverage-complete"
             break
           }
+          // Mark the REQUESTED url visited now — a url that redirects (or client-routes) to a
+          // different landed url would otherwise never be marked (only the landed url is), so
+          // discover() would re-add it every observe and the frontier would spin forever
+          // (exhaustive mode drains the frontier hard, which is what surfaced this).
+          Crawl.markPage(sessionID, next)
           const nav = await this.deps.executor.run(sessionID, { kind: "navigate", url: next }, snapshot, "backtracking to an unexplored page")
           const stop = terminalFrom(nav)
           if (stop) {
@@ -152,6 +157,7 @@ export class CoDriveSession {
           reason = "coverage-complete"
           break
         }
+        Crawl.markPage(sessionID, next) // see the empty-plan branch: prevents a redirecting url re-entering the frontier
         const nav = await this.deps.executor.run(
           sessionID,
           { kind: "navigate", url: next },

@@ -77,3 +77,20 @@ describe("Crawl frontier (dead-end backtracking)", () => {
     expect(Crawl.takeFrontier("s")).toBeUndefined() // /b never queued, /c now visited
   })
 })
+
+describe("Crawl frontier — a marked-visited url cannot re-enter (redirect-spin guard)", () => {
+  test("markPage(url) stops discover() from re-adding it, so a redirecting frontier url won't spin", () => {
+    const sid = "s"
+    // A page links to /review/ (which redirects to /review/dashboard when navigated).
+    Crawl.discover(sid, ["https://h/review/"])
+    // The loop takes it and marks the REQUESTED url visited (the fix) before navigating.
+    const next = Crawl.takeFrontier(sid)
+    expect(next).toBe("https://h/review/")
+    Crawl.markPage(sid, next!)
+    // Navigation lands on the redirect target; that page again links back to /review/.
+    Crawl.markPage(sid, "https://h/review/dashboard")
+    Crawl.discover(sid, ["https://h/review/"]) // re-seen link
+    // /review/ must NOT re-enter the frontier — it's marked visited → no spin.
+    expect(Crawl.takeFrontier(sid)).toBeUndefined()
+  })
+})
