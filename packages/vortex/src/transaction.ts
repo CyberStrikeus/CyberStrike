@@ -34,6 +34,9 @@ export interface Response {
 
 export interface Transaction {
   id: string
+  // The assessment/session this traffic belongs to. A store may be scoped to one session; keeping
+  // it on the transaction lets a shared store separate them and lets persistence index by it.
+  session?: string
   source: Source
   host: string
   // The identity (credential/role label) this transaction was made under, when known — the axis

@@ -8,6 +8,7 @@ export type { Source, Severity, Header, Request, Response, Transaction } from ".
 export { header, headerAll, hasHeader } from "./transaction"
 export type { TrafficStore } from "./store"
 export { MemoryStore } from "./store"
+export { SqliteStore } from "./sqlite-store"
 export { normalizePath, endpointKey } from "./endpoint"
 export type { Params } from "./params"
 export { params } from "./params"
