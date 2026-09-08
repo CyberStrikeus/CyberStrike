@@ -13,6 +13,7 @@
 import { streamText, tool } from "ai"
 import z from "zod"
 import type { Navigator, Plan, Action, PageSnapshot } from "./types"
+import { modalSnapshot } from "./types"
 import { DeterministicNavigator } from "./deterministic-navigator"
 import { Crawl } from "../crawl"
 import { WebScope } from "../scope"
@@ -243,6 +244,10 @@ export function buildContext(
   })
   return [
     `URL: ${snapshot.url}`,
+    // A modal is open and the element/form lists below are already restricted to it — the only way
+    // forward is THROUGH it: fill its fields and submit (captures the real request), or cancel/close
+    // it. Do NOT try to navigate elsewhere; the page behind it is inert until the dialog is gone.
+    snapshot.modal_open ? `A MODAL DIALOG is open. Complete it (fill its fields + submit) or close/cancel it before anything else — the rest of the page is blocked.` : "",
     snapshot.description ? `Page: ${snapshot.description}` : "",
     tech ? `Tech: ${FrameworkFingerprinter.describe(tech)}` : "",
     snapshot.location && snapshot.location.length ? `Location: ${snapshot.location.join(" > ")}` : "",
@@ -428,15 +433,19 @@ export class LlmNavigator implements Navigator {
     // plans this is a no-op; discovered routes accrue into DataCollector for the NEXT context build.
     void JsMiner.mineNew(sessionID).catch(() => {})
 
+    // A modal dialog traps interaction — plan only over its controls (fill + submit, or cancel) so
+    // the model completes/closes it instead of steering to the inert background behind it. Mining
+    // above still runs over the full page; only the PLAN is scoped.
+    const snap = modalSnapshot(snapshot)
     const priorities = WebStrategy.get(sessionID)?.priorities ?? []
-    const picks = clickPool(sessionID, snapshot, this.cap)
-    const forms = WebFormFill.candidates(sessionID, snapshot, priorities).slice(0, FORM_CAP)
+    const picks = clickPool(sessionID, snap, this.cap)
+    const forms = WebFormFill.candidates(sessionID, snap, priorities).slice(0, FORM_CAP)
     // Nothing safe/actionable here → empty plan so the orchestrator backtracks via the frontier.
     if (picks.length === 0 && forms.length === 0) return { rationale: "nothing actionable on this page", actions: [] }
 
     let raw: LlmNavigator.RawPlan | null = null
     try {
-      raw = await withTimeout(this.ask({ system: SYSTEM, user: buildContext(sessionID, snapshot, picks, forms, DataCollector.latest(sessionID)) }), this.timeoutMs)
+      raw = await withTimeout(this.ask({ system: SYSTEM, user: buildContext(sessionID, snap, picks, forms, DataCollector.latest(sessionID)) }), this.timeoutMs)
     } catch (e) {
       // Surface WHY the model plan failed in the diagnostic log, not just server stderr — a silent
       // fallback is how the whole crawl ran "deterministic single-link" for a session without anyone
@@ -446,7 +455,7 @@ export class LlmNavigator implements Navigator {
       HBLog.record(sessionID, "codrive", "llm-fallback", { reason: "ask-failed", err: String(e).slice(0, 200) })
       return this.fallback.plan(sessionID, snapshot)
     }
-    const actions = raw ? mapActions(sessionID, snapshot, raw.actions, picks, forms) : []
+    const actions = raw ? mapActions(sessionID, snap, raw.actions, picks, forms) : []
     if (actions.length === 0) {
       // Model unreachable / declined / produced nothing usable → deterministic top pick.
       HBLog.record(sessionID, "codrive", "llm-fallback", { reason: raw ? "actions-unusable" : "ask-null" })

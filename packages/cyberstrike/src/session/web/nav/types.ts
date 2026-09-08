@@ -77,5 +77,18 @@ export function snapshotSignature(snapshot: PageSnapshot): string {
   return `${snapshot.url}\n${snapshot.forms.length}\n${keys.join("|")}`
 }
 
+// When a modal dialog is open it traps interaction: every control behind it is inert, yet still in
+// the DOM — so a navigator planning over the full page keeps clicking the dead background instead of
+// filling/closing the dialog. Return a snapshot whose clickables/forms are restricted to the modal
+// so ALL navigators (they share these fields) focus on it. Falls back to the full page when nothing
+// is tagged (no modal, or the extension couldn't tag one) so it can never blind the crawler.
+export function modalSnapshot(snapshot: PageSnapshot): PageSnapshot {
+  if (!snapshot.modal_open) return snapshot
+  const clickables = snapshot.clickables.filter((c) => c.in_modal)
+  const forms = (snapshot.forms ?? []).filter((f) => f.in_modal)
+  if (clickables.length === 0 && forms.length === 0) return snapshot
+  return { ...snapshot, clickables, forms }
+}
+
 // Re-export the executor status type location for impls without a runtime import cycle.
 export type { WebAct }

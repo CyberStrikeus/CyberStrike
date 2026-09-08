@@ -9,6 +9,7 @@
 // INCLUDED only when the executor is in aggressive mode — capturing their real bodies mutates the
 // target, so that is a deliberate opt-in (CYBERSTRIKE_WEB_EXHAUSTIVE), not the silent default.
 import type { Navigator, Plan, PageSnapshot, Action } from "./types"
+import { modalSnapshot } from "./types"
 import { WebFormFill } from "../formfill"
 import { WebStrategy } from "../strategy"
 import { WebScope } from "../scope"
@@ -23,7 +24,10 @@ export class ExhaustiveNavigator implements Navigator {
   // too (their capture mutates the target). Logout (deny) is never planned. Default false = safe.
   constructor(private readonly aggressive = false) {}
 
-  async plan(sessionID: string, snapshot: PageSnapshot): Promise<Plan> {
+  async plan(sessionID: string, snapshotRaw: PageSnapshot): Promise<Plan> {
+    // When a modal is open, exercise ONLY its controls (its form + Save/Cancel) — capturing the
+    // dialog's real request is the point, and clicking the trapped background does nothing.
+    const snapshot = modalSnapshot(snapshotRaw)
     const priorities = WebStrategy.get(sessionID)?.priorities ?? []
     const actions: Action[] = []
 

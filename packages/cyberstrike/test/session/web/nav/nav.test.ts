@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test"
 import { CoDriveSession } from "../../../../src/session/web/nav/co-drive-session"
 import { DeterministicNavigator } from "../../../../src/session/web/nav/deterministic-navigator"
+import { ExhaustiveNavigator } from "../../../../src/session/web/nav/exhaustive-navigator"
 import { WebActExecutor } from "../../../../src/session/web/nav/web-act-executor"
 import { Guardrails, PageStateObserver } from "../../../../src/session/web/nav/guardrails"
-import { snapshotSignature } from "../../../../src/session/web/nav/types"
+import { snapshotSignature, modalSnapshot } from "../../../../src/session/web/nav/types"
 import type { Navigator, Observer, Executor, Action, ActionResult, PageSnapshot } from "../../../../src/session/web/nav/types"
 import { PageState } from "../../../../src/session/web/page-state"
 import { WebControl } from "../../../../src/session/web/control"
@@ -65,6 +66,60 @@ describe("snapshotSignature (material-change detection)", () => {
     // a new element appears → different
     PageState.set("s", { url: "https://h/a", title: "", clickables: [{ id: "e1", tag: "a", role: "link", label: "X", href: "/x" }, { id: "e2", tag: "a", role: "link", label: "Y", href: "/y" }], forms: [], links: [], observed_at: 3 })
     expect(snapshotSignature(snap("s", "https://h/a"))).not.toBe(a1)
+  })
+})
+
+describe("modalSnapshot (focus the navigator on an open modal)", () => {
+  const mk = (over: Partial<PageState.StatePayload>) =>
+    ({ url: "https://h/p", title: "", clickables: [], forms: [], links: [], ...over }) as unknown as PageSnapshot
+  test("no modal → returns the snapshot unchanged", () => {
+    const s = mk({ clickables: [{ id: "a", tag: "a", role: "link", label: "X", href: "/x", policy: "allow" } as any] })
+    expect(modalSnapshot(s)).toBe(s)
+  })
+  test("modal open → restricts clickables and forms to the ones inside it", () => {
+    const s = mk({
+      modal_open: true,
+      clickables: [
+        { id: "bg", tag: "a", role: "link", label: "Nav", href: "/n", policy: "allow" } as any,
+        { id: "save", tag: "button", role: "", label: "Save", href: "", policy: "allow", in_modal: true } as any,
+      ],
+      forms: [
+        { action: "", method: "get", fields: [], submit_id: "x" } as any,
+        { action: "", method: "post", fields: [], submit_id: "save", in_modal: true } as any,
+      ],
+    })
+    const out = modalSnapshot(s)
+    expect(out.clickables.map((c) => c.id)).toEqual(["save"])
+    expect(out.forms.map((f) => f.submit_id)).toEqual(["save"])
+  })
+  test("modal open but nothing tagged → falls back to the full page (never blinds the crawler)", () => {
+    const s = mk({ modal_open: true, clickables: [{ id: "a", tag: "a", role: "link", label: "X", href: "/x", policy: "allow" } as any] })
+    expect(modalSnapshot(s)).toBe(s)
+  })
+})
+
+describe("ExhaustiveNavigator.plan — modal focus", () => {
+  test("with a modal open, it exercises ONLY the modal's controls, not the background nav", async () => {
+    const sid = "m"
+    PageState.set(sid, {
+      url: "https://h/dash",
+      title: "",
+      modal_open: true,
+      clickables: [
+        { id: "nav", tag: "a", role: "link", label: "Analytics", href: "/analytics" },
+        { id: "save", tag: "button", role: "", label: "Save", href: "", in_modal: true },
+        { id: "close", tag: "button", role: "", label: "Cancel", href: "", in_modal: true },
+      ],
+      forms: [],
+      links: [],
+      observed_at: 1,
+    })
+    WebScope.ensure(sid, "https://h/dash")
+    const plan = await new ExhaustiveNavigator().plan(sid, snap(sid, "https://h/dash"))
+    const ids = plan.actions.flatMap((a) => (a.kind === "click" ? [a.elementId] : []))
+    // The background "Analytics" link is scoped out; only the modal's own buttons are planned.
+    expect(ids).not.toContain("nav")
+    expect(ids).toEqual(expect.arrayContaining(["save", "close"]))
   })
 })
 

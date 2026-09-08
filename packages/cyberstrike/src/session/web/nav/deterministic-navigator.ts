@@ -5,15 +5,19 @@
 // empty plan when the page is exhausted so the orchestrator can backtrack via the frontier.
 // This wraps Rank / WebFormFill / WebStrategy — it does not re-implement them.
 import type { Navigator, Plan, PageSnapshot } from "./types"
+import { modalSnapshot } from "./types"
 import { Rank } from "../rank"
 import { WebFormFill } from "../formfill"
 import { WebStrategy } from "../strategy"
 
 export class DeterministicNavigator implements Navigator {
   async plan(sessionID: string, snapshot: PageSnapshot): Promise<Plan> {
+    // A modal dialog traps interaction — plan only over its controls so we complete/close it
+    // instead of ranking the inert background behind it.
+    const snap = modalSnapshot(snapshot)
     const priorities = WebStrategy.get(sessionID)?.priorities ?? []
-    const clicks = Rank.candidates(sessionID, snapshot, priorities)
-    const forms = WebFormFill.candidates(sessionID, snapshot, priorities)
+    const clicks = Rank.candidates(sessionID, snap, priorities)
+    const forms = WebFormFill.candidates(sessionID, snap, priorities)
 
     const topClick = clicks[0]
     const topForm = forms[0]

@@ -54,6 +54,7 @@ export interface Clickable {
   aria?: Record<string, string> // aria state the AI needs: expanded|haspopup|controls|checked|selected|current|disabled|label
   disabled?: boolean // disabled attr or aria-disabled — present but not actionable
   in_viewport?: boolean // currently within the viewport (vs. rendered but scrolled off)
+  in_modal?: boolean // inside the open modal dialog — the only actionable surface while one is up
   section?: string // nearest landmark/heading path — where in the page this element sits
   testid?: string // data-testid / data-test / data-cy — a stable handle the AI can reason about
   shadow?: boolean // lives inside an (open) shadow root

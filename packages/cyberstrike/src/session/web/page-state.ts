@@ -15,6 +15,7 @@ export namespace PageState {
     method: string
     fields: { id?: string; name: string; type: string; required: boolean }[]
     submit_id?: string // element id of the form's submit control (for autonomous fill+submit)
+    in_modal?: boolean // this form lives inside the open modal dialog
   }
   // The page's structural map — landmarks/frames/description give the AI orientation
   // ("what page am I on, where in the app") without re-reading the DOM.
@@ -43,6 +44,7 @@ export namespace PageState {
     canvas?: number // count of <canvas> — UIs we can flag but not introspect
     dynamic?: boolean // page mutates after load (SPA / async content)
     tech?: TechStack // framework fingerprint (P2) — how navigation works on this app
+    modal_open?: boolean // a modal dialog is trapping interaction (see Clickable.in_modal)
     observed_at?: number // epoch ms of this observation
   }
 
@@ -84,6 +86,7 @@ export namespace PageState {
     canvas?: number
     dynamic?: boolean
     tech?: TechStack
+    modal_open?: boolean
     observed_at?: number
   }
 
@@ -108,6 +111,7 @@ export namespace PageState {
       canvas: obs.canvas,
       dynamic: obs.dynamic,
       tech: obs.tech,
+      modal_open: obs.modal_open,
       observed_at: obs.observed_at,
     }
   }

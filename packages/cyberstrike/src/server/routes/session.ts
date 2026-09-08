@@ -1147,6 +1147,7 @@ export const SessionRoutes = lazy(() =>
               aria: z.record(z.string(), z.string()).optional(),
               disabled: z.boolean().optional(),
               in_viewport: z.boolean().optional(),
+              in_modal: z.boolean().optional(),
               section: z.string().optional(),
               testid: z.string().optional(),
               shadow: z.boolean().optional(),
@@ -1160,6 +1161,7 @@ export const SessionRoutes = lazy(() =>
                 method: z.string(),
                 fields: z.array(z.object({ id: z.string().optional(), name: z.string(), type: z.string(), required: z.boolean() })),
                 submit_id: z.string().optional(),
+                in_modal: z.boolean().optional(),
               }),
             )
             .optional(),
@@ -1185,6 +1187,8 @@ export const SessionRoutes = lazy(() =>
             .optional(),
           // Absolute <script src> bundle URLs (JS-first discovery) — the miner fetches + parses these.
           js_bundles: z.array(z.string()).optional(),
+          // A modal dialog is trapping interaction — the navigator restricts itself to in_modal controls.
+          modal_open: z.boolean().optional(),
         }),
       ),
       async (c) => {
@@ -1205,6 +1209,7 @@ export const SessionRoutes = lazy(() =>
           canvas: b.canvas,
           dynamic: b.dynamic,
           tech: b.tech ? FrameworkFingerprinter.detect(b.tech) : undefined,
+          modal_open: b.modal_open,
           observed_at: Date.now(),
         })
         if (b.credential_id) {
