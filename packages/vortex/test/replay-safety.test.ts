@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test"
-import type { Transaction, TokenRef } from "../src/index"
-import { replaySafety, isAuthStale, ReplayUnsafeError, send, Engine } from "../src/index"
+import type { Transaction, TokenRef, Sender } from "../src/index"
+import { replaySafety, isAuthStale, ReplayUnsafeError, send, compileProbe, Engine } from "../src/index"
+
+const res = (status: number, body: string): Engine.ReplayResponse.Result => ({ response: { version: "HTTP/1.1", status, reason: "", headers: [], body: new TextEncoder().encode(body) }, timing: { totalMs: 1 } })
 
 const enc = new TextEncoder()
 // Echo transport: reflect the serialized request back, so mutations are observable end-to-end.
@@ -61,12 +63,60 @@ describe("send() honours the guard + fresh-token resolver", () => {
     const r = await send({ method: "POST", url: "https://app.test/oauth/token" }, { transport: echo }) // spec, not a captured tx
     expect(r.result.response?.status).toBe(200)
   })
+
+  test("resolveToken substitutes across query / header / cookie sites too", async () => {
+    const fresh = (t: TokenRef) => "FRESH"
+    // query
+    const q = await send(tx({ method: "POST", url: "https://app.test/api/x?_csrf=OLD" }), { resolveToken: fresh, transport: echo })
+    expect(q.transaction.request.url).toContain("FRESH")
+    // header
+    const h = await send(tx({ method: "POST", url: "https://app.test/api/x", headers: [{ name: "x-csrf-token", value: "OLD" }] }), { resolveToken: fresh, transport: echo })
+    expect(h.transaction.request.headers.find((x) => x.name.toLowerCase() === "x-csrf-token")?.value).toBe("FRESH")
+    // cookie (edits the request Cookie header, not a response Set-Cookie)
+    const c = await send(tx({ method: "POST", url: "https://app.test/api/x", headers: [{ name: "cookie", value: "_csrf=OLD; theme=dark" }] }), { resolveToken: fresh, transport: echo })
+    const cookie = c.transaction.request.headers.find((x) => x.name.toLowerCase() === "cookie")?.value ?? ""
+    expect(cookie).toContain("_csrf=FRESH")
+    expect(cookie).toContain("theme=dark") // untouched neighbour
+  })
+
+  test("the ORIGINAL captured transaction is never mutated by a guarded/substituted send", async () => {
+    const orig = tx({ method: "POST", url: "https://app.test/api/orders?_csrf=OLD", headers: [{ name: "content-type", value: "application/json" }, { name: "cookie", value: "_csrf=OLD" }], body: JSON.stringify({ _csrf: "OLD", qty: 1 }) })
+    const snapshot = structuredClone(orig)
+    await send(orig, { resolveToken: () => "FRESH", mutations: [{ op: "set-query", name: "qty", value: "9" }], transport: echo })
+    expect(orig).toEqual(snapshot) // send built a fresh replay; the captured original is byte-for-byte intact
+  })
+})
+
+describe("ProbeRule never probes an unsafe (session-minting) candidate", () => {
+  test("skips the unsafe tx, sends only the safe one", async () => {
+    const ar = compileProbe({ id: "p", category: "injection", severity: "high", select: "req.query.id", inject: { into: "query", name: "id", payloads: ["'"] }, detect: 'regex("SQL", resp.body)' })
+    const calls: string[] = []
+    const rec: Sender = (input, opts) => {
+      calls.push((input as Transaction).id)
+      return send(input, { ...opts, transport: async () => res(200, "ok") })
+    }
+    const corpus: Transaction[] = [
+      { id: "safe", source: "browser", host: "app.test", request: { method: "GET", url: "https://app.test/items?id=1", headers: [] } },
+      { id: "unsafe", source: "browser", host: "app.test", request: { method: "POST", url: "https://app.test/oauth/token?id=2", headers: [] } }, // matches select, but auth-exchange
+    ]
+    await ar.probe(corpus, rec)
+    expect(calls).toEqual(["safe"]) // the unsafe /oauth/token was skipped before any send
+  })
 })
 
 describe("isAuthStale — the benign 'session expired, refresh me' signal", () => {
-  test("401 and login-redirects are stale; 200 is not", () => {
+  test("401 and login-redirects are stale; a normal 200 is not", () => {
     expect(isAuthStale(tx({}, { status: 401, headers: [], body: "" }))).toBe(true)
     expect(isAuthStale(tx({}, { status: 302, headers: [{ name: "location", value: "https://app.test/login?next=/x" }], body: "" }))).toBe(true)
     expect(isAuthStale(tx({}, { status: 200, headers: [], body: "ok" }))).toBe(false)
+  })
+  test("a login PAGE returned in place of the resource is stale (SPA/form apps)", () => {
+    const loginBody = '<!doctype html><form><input type="password" name="pw"></form>'
+    expect(isAuthStale(tx({}, { status: 200, headers: [{ name: "content-type", value: "text/html" }], body: loginBody }))).toBe(true)
+    expect(isAuthStale(tx({}, { status: 403, headers: [{ name: "content-type", value: "text/html" }], body: loginBody }))).toBe(true)
+    // a real access-control 403 (JSON, no login page) is NOT stale — must not be masked as a logout
+    expect(isAuthStale(tx({}, { status: 403, headers: [{ name: "content-type", value: "application/json" }], body: '{"error":"forbidden"}' }))).toBe(false)
+    // an html page without a password field is not a login page
+    expect(isAuthStale(tx({}, { status: 200, headers: [{ name: "content-type", value: "text/html" }], body: "<html>dashboard</html>" }))).toBe(false)
   })
 })

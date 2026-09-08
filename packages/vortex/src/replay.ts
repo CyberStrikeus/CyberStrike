@@ -36,7 +36,10 @@ export interface SendOptions {
   canary?: { kind?: CanaryKind; field?: string; vulnClass?: string; agent?: string }
   // Replay safety: by default send() REFUSES to replay a CAPTURED request that replaySafety() flags
   // as session-destroying (auth-exchange endpoint / session-minting response / hard single-use
-  // token). Set true only to deliberately replay such a request.
+  // token). Set true only to deliberately replay such a request. CONTRACT: the guard applies only
+  // when a captured `Transaction` is passed (send resolves its `from`); a bare `{req,origin}` /
+  // RequestSpec is treated as caller-constructed and is NOT guarded — so to replay a captured
+  // request under the guard, pass the Transaction, not a pre-built request.
   allowUnsafeReplay?: boolean
   // Fresh-token resolver: for each single-use / rotating token field in the captured request, return
   // its CURRENT value (from the live session) to substitute instead of replaying the stale capture.

@@ -110,13 +110,23 @@ export function replaySafety(tx: Transaction): ReplaySafety {
 }
 
 const LOGIN_LOCATION = /\/(login|log-in|signin|sign-in|auth|authorize|sso|saml|account\/login|session\/new|oauth)/i
+const PASSWORD_FIELD = /<input[^>]+(type|name)=["']?password/i
 
-// The benign "session expired" signal — the host should refresh auth and retry (vs. replaySafety,
-// which is the DESTRUCTIVE-replay guard). Conservative: a 401, or a redirect aimed at a login page.
+// The benign "session expired, refresh me" signal — distinct from replaySafety (the DESTRUCTIVE-
+// replay guard). Conservative on purpose: a bare 403 is NOT treated as stale (a real access-control
+// 403 is a FINDING, not a logout — mislabelling it would mask it and trigger a needless refresh).
+// Stale = 401, a redirect to a login page, or a login PAGE returned in place of the resource
+// (SPA/form apps: an html body carrying a password field — a replay that came back logged out).
 export function isAuthStale(tx: Transaction): boolean {
   const r = tx.response
   if (!r) return false
   if (r.status === 401) return true
   if (r.status >= 300 && r.status < 400) return LOGIN_LOCATION.test(header(r.headers, "location") ?? "")
+  if (r.status === 200 || r.status === 403) {
+    const ct = (header(r.headers, "content-type") ?? "").toLowerCase()
+    const body = r.body ?? ""
+    const isHtml = ct.includes("html") || /^\s*<(!doctype|html)/i.test(body)
+    return isHtml && PASSWORD_FIELD.test(body)
+  }
   return false
 }
