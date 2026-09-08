@@ -1948,6 +1948,15 @@
   // since a content-script history patch can't see the page's own pushState calls.
   function onNav() {
     if (!lastTrigger || Date.now() - lastTrigger.ts > NAV_GRACE_MS) lastTrigger = null
+    // A SPA route change (pushState/popstate/hash) updates location.href with NO page load, so the
+    // co-drive loop would only learn the new URL on the next 1500ms poll — which races its own
+    // 1500ms settle and can misread a client-route (list row → detail page) as a mere in-place
+    // reveal. React to it now: sync lastUrl (so the poll doesn't fire a duplicate) and push a
+    // debounced observation, so PageState reflects the detail URL well within the settle window.
+    if (location.href !== lastUrl) {
+      lastUrl = location.href
+      scheduleReobserve()
+    }
   }
   window.addEventListener("popstate", onNav)
   window.addEventListener("hashchange", onNav)
