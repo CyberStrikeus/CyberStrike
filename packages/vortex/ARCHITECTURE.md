@@ -286,8 +286,19 @@ header rule skips a `.js` bundle or a 301 instead of flagging every one.
   surface.
 - `unauthenticated-reach` (corpus) — an authenticated endpoint also served anonymously.
 
-**Planned (roadmap D):**
-- **Declarative rules**: a rule = `{ query: HTTPQL, signal }`, so a rule can be added without TS.
+**Declarative rules (the LLM-friendly DSL)** — a rule is DATA, not code, so an agent reads/writes
+one at a glance and emits it as JSON:
+```json
+{ "id": "sql-error", "category": "injection", "severity": "high",
+  "when": "resp.body:~\"SQL syntax\" OR resp.body:~\"SQLSTATE\"",
+  "message": "SQL error signature in {endpoint}", "dedupBy": "endpoint" }
+```
+`when` is HTTPQL (same field vocabulary as queries); `message`/`evidence` interpolate `{field}`.
+`compileRule()` turns one into a normal per-transaction Rule; `parseRules()` validates untrusted
+JSON. The built-in signature rules (SQL error / stack trace / leaked secret) are themselves written
+in this DSL (dogfooded).
+
+**Still planned (roadmap D):**
 - More passive rules: SQL/stack/XXE/SSRF error signatures, reflected-input / XSS candidate,
   sensitive-data-in-response (PII / tokens / keys), open redirect, verbose errors, directory
   listing, mixed content.

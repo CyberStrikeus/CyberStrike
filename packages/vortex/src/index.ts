@@ -36,10 +36,18 @@ export { activeRules, authStrip } from "./rules/authstrip"
 import { RuleRegistry } from "./rule"
 import { headerRules } from "./rules/headers"
 import { accessRules } from "./rules/access"
+import { signatureRules } from "./rules/signatures"
+import { compileRules } from "./declarative"
 
-// The baseline rule set — everything OSS. Per-transaction hygiene rules + cross-transaction
-// access-control rules. `defaultRegistry()` returns a fresh registry preloaded with both.
-export const baselineRules = [...headerRules]
+// The declarative rule DSL (LLM-friendly: a rule is {when: HTTPQL, message, severity} data).
+export type { DeclarativeRule } from "./declarative"
+export { DeclarativeRuleSchema, compileRule, compileRules, parseRules } from "./declarative"
+export { fieldValue } from "./httpql"
+export { signatureRules } from "./rules/signatures"
+
+// The baseline rule set — everything OSS. Per-transaction hygiene + response-signature (declarative)
+// rules + cross-transaction access-control rules. `defaultRegistry()` preloads them all.
+export const baselineRules = [...headerRules, ...compileRules(signatureRules)]
 export const baselineCorpusRules = [...accessRules]
 
 export function defaultRegistry(): RuleRegistry {

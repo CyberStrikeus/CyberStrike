@@ -196,6 +196,13 @@ function safePath(url: string): string {
   }
 }
 
+// Resolve one field path against a transaction to its scalar value (or undefined). Exposed so the
+// declarative-rule layer can interpolate `{field}` templates using the SAME field vocabulary as
+// HTTPQL queries — one field model for both.
+export function fieldValue(tx: Transaction, field: string): string | number | undefined {
+  return resolveField(tx, field)
+}
+
 // --- evaluation ------------------------------------------------------------
 function applyOp(actual: string | number | undefined, op: Op, value: string): boolean {
   if (op === "~" || op === ":~") {
