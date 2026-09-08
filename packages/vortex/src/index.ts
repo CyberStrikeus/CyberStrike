@@ -13,7 +13,12 @@ export { SqliteStore } from "./sqlite-store"
 export { scan, recordSignals, scanStored } from "./scan"
 export type { Canary, CanaryKind, ReflectionContext, TemplateCanary } from "./canary"
 export { mintCanary, reflects, canaryFor, scanCanaries, CANARY_PLACEHOLDER, TEMPLATE_PLACEHOLDER, reflectionContext, brokeOut, mintTemplateCanary } from "./canary"
-export { normalizePath, endpointKey } from "./endpoint"
+export { normalizePath, endpointKey, identifierShape } from "./endpoint"
+export type { IdShape } from "./endpoint"
+// The object/function/role extractor — deterministic "who/what/which" from URI + query + headers +
+// nested body, so a Signal is self-describing (agent consumes context, doesn't author it).
+export type { Subjects, ObjectRef, Site, Crud } from "./subjects"
+export { subjects } from "./subjects"
 export type { Params } from "./params"
 export { params, responseFields, requestBodyKind, responseBodyKind } from "./params"
 export type { BodyKind, BodyView } from "./body"

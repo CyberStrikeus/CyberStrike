@@ -9,12 +9,24 @@ const NUMERIC = /^\d+$/
 // A long hex/base-ish token (session id, hash, opaque id) — not a UUID but clearly an identifier.
 const LONG_TOKEN = /^[0-9a-f]{16,}$/i
 
+// The identifier SHAPE of a value (or undefined when it isn't identifier-shaped). Shared by path
+// normalization and the object extractor (subjects.ts), so both classify ids the same way.
+export type IdShape = "uuid" | "int" | "objectid" | "hex"
+export function identifierShape(v: string): IdShape | undefined {
+  if (UUID.test(v)) return "uuid"
+  if (NUMERIC.test(v)) return "int"
+  if (/^[0-9a-f]{24}$/i.test(v)) return "objectid" // Mongo ObjectId
+  if (LONG_TOKEN.test(v)) return "hex"
+  return undefined
+}
+
 // Replace one path segment with a placeholder when it looks like an identifier; keep real names.
 function normalizeSegment(seg: string): string {
   if (seg === "") return seg
-  if (UUID.test(seg)) return "{uuid}"
-  if (NUMERIC.test(seg)) return "{id}"
-  if (LONG_TOKEN.test(seg)) return "{hex}"
+  const shape = identifierShape(seg)
+  if (shape === "uuid") return "{uuid}"
+  if (shape === "int") return "{id}"
+  if (shape === "objectid" || shape === "hex") return "{hex}"
   return seg
 }
 
