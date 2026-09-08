@@ -149,6 +149,13 @@ function resolveField(tx: Transaction, field: string): string | number | undefin
   if (head === "identity") return tx.identity
   if (head === "source") return tx.source
   if (head === "endpoint") return endpointKey(tx)
+  if (head === "httpVersion") return tx.httpVersion
+  if (head === "timeMs") return tx.timing?.ms
+  if (head === "tls") {
+    if (parts[1] === "version") return tx.tls?.version
+    if (parts[1] === "cipher") return tx.tls?.cipher
+    return undefined
+  }
   if (head === "req") {
     if (rest === "method") return tx.request.method
     if (rest === "url") return tx.request.url

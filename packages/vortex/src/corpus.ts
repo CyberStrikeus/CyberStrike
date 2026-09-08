@@ -3,6 +3,7 @@
 // request at a time.
 import type { Transaction } from "./transaction"
 import { endpointKey } from "./endpoint"
+import { requestShape } from "./shape"
 
 // Group transactions by their logical endpoint (method + host + normalized path). This is how a
 // corpus rule sees "all the times we hit THIS endpoint" across instances and identities.
@@ -10,6 +11,19 @@ export function groupByEndpoint(txs: Transaction[]): Map<string, Transaction[]> 
   const out = new Map<string, Transaction[]>()
   for (const tx of txs) {
     const key = endpointKey(tx)
+    const list = out.get(key)
+    if (list) list.push(tx)
+    else out.set(key, [tx])
+  }
+  return out
+}
+
+// Group by request SHAPE (endpoint + parameter-name set) — finer than endpoint, so near-identical
+// requests that differ only in values collapse together. Used to dedup traffic and map operations.
+export function groupByShape(txs: Transaction[]): Map<string, Transaction[]> {
+  const out = new Map<string, Transaction[]>()
+  for (const tx of txs) {
+    const key = requestShape(tx)
     const list = out.get(key)
     if (list) list.push(tx)
     else out.set(key, [tx])

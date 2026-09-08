@@ -51,7 +51,12 @@ export interface Transaction {
   derivedFrom?: string
   request: Request
   response?: Response
-  timing?: { startedAt: number; ms?: number }
+  // Wire/transport metadata — populated by the adapter that has it (proxy, send engine); absent for
+  // adapters that don't (a HAR import may lack TLS/timing). All optional so any adapter can omit.
+  httpVersion?: string // "1.1" | "2" | "3"
+  tls?: { version?: string; cipher?: string; sni?: string }
+  redirectChain?: string[] // the URL hops that led here (or that this request kicked off)
+  timing?: { startedAt?: number; ms?: number; ttfbMs?: number }
 }
 
 // Case-insensitive header lookup returning the FIRST match's value, or undefined. Header names are
