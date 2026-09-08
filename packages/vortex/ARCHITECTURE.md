@@ -234,9 +234,16 @@ atom  := field op value
 request or response body?): `raw` (whole request+response text), `req.raw`, `resp.raw`, and bare
 `req.header`/`resp.header` (all headers joined). `raw~="q=test"` finds it in ONE atom across all of
 them — the answer to "find this across 3000 transactions without enumerating fields". These are the
-BROAD tool (a grep is inherently noisy on a large corpus); when the agent knows the location it
-should prefer a structured field (`req.query.q:test` is an exact match, zero noise). Built lazily,
-so a structured-field query never pays to reconstruct raw text.
+BROAD tool (a grep is inherently noisy on a large corpus); when the location is known a structured
+field (`req.query.q:test`) is an exact match with zero noise. Built lazily, so a structured-field
+query never pays to reconstruct raw text.
+
+**Agent scope gate.** Left in an agent's field menu, `raw` is a footgun: told it exists, an agent
+reaches for `raw~=` on every query and every result becomes a noisy grep, defeating the structured
+fields. So the agent query path compiles with `{ grep: false }`, which REJECTS the grep-everywhere
+fields with a QueryError that redirects to the structured ones. Rules and WE-authored code compile
+in full scope and keep `raw`. Same engine, two affordances: broad power for the platform, a
+low-noise structured menu for the agent.
 
 Both request and response bodies are handled uniformly by the **body model** (`body.ts`):
 content-type (with a content sniff fallback) classifies the `BodyKind`

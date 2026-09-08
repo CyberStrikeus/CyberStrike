@@ -280,21 +280,47 @@ function evalNode(node: Node, tx: Transaction): boolean {
   return applyOp(resolveField(tx, node.field), node.op, node.value, node.re)
 }
 
+// The grep-everywhere fields — a broad, inherently-noisy full-text scan. Powerful for WE-authored
+// rules and an explicit locate/search path, but a FOOTGUN in an agent's hand: told they exist, an
+// agent defaults to `raw~=` on every query and every result becomes a noisy grep, defeating the
+// point of the structured fields. So the agent query path disables them (see CompileOptions.grep).
+const GREP_FIELDS = new Set(["raw", "req.raw", "resp.raw", "req.header", "resp.header"])
+
+function firstGrepField(node: Node): string | undefined {
+  if (node.type === "atom") return GREP_FIELDS.has(node.field) ? node.field : undefined
+  if (node.type === "not") return firstGrepField(node.child)
+  return firstGrepField(node.left) ?? firstGrepField(node.right)
+}
+
+export interface CompileOptions {
+  // `grep: false` = AGENT scope: reject the grep-everywhere fields so an agent can't lazily full-text
+  // scan; it must name where it expects the value (or use a dedicated locate tool). Default (rules,
+  // WE-authored code) allows them.
+  grep?: boolean
+}
+
 // A compiled query: parse once, run over many transactions.
 export interface CompiledQuery {
   test(tx: Transaction): boolean
   filter(txs: Transaction[]): Transaction[]
 }
 
-export function compile(query: string): CompiledQuery {
+export function compile(query: string, opts: CompileOptions = {}): CompiledQuery {
   const ast = parse(query)
+  if (opts.grep === false) {
+    const g = firstGrepField(ast)
+    if (g)
+      throw new QueryError(
+        `Field "${g}" is a broad full-text grep, disabled here. Name where you expect the value: req.query.<name>, req.body.<dotpath>, req.header.<name>, resp.body, resp.header.<name>.`,
+      )
+  }
   return {
     test: (tx) => evalNode(ast, tx),
     filter: (txs) => txs.filter((tx) => evalNode(ast, tx)),
   }
 }
 
-// Convenience: run a query string over a set of transactions.
-export function query(txs: Transaction[], queryString: string): Transaction[] {
-  return compile(queryString).filter(txs)
+// Convenience: run a query string over a set of transactions. Pass { grep: false } for agent scope.
+export function query(txs: Transaction[], queryString: string, opts?: CompileOptions): Transaction[] {
+  return compile(queryString, opts).filter(txs)
 }

@@ -90,6 +90,18 @@ describe("HTTPQL-lite", () => {
     expect(query(c2, 'resp.raw~="canary-777"').map((t) => t.id)).toEqual(["r"])
     expect(query(c2, 'raw~="canary-777"').map((t) => t.id).sort()).toEqual(["h", "r"]) // either place
   })
+  test("agent scope (grep:false) rejects the grep-everywhere fields, still allows structured ones", () => {
+    // an agent can't lazily full-text scan — it must name where it expects the value
+    expect(() => query(corpus, 'raw~="debug=1"', { grep: false })).toThrow(QueryError)
+    expect(() => query(corpus, 'req.raw~="x"', { grep: false })).toThrow(QueryError)
+    expect(() => query(corpus, 'req.header~="x"', { grep: false })).toThrow(QueryError) // bare = all headers
+    expect(() => query(corpus, "resp.status:500 OR raw~=x", { grep: false })).toThrow(QueryError) // even nested
+    // structured fields (including a NAMED header) are fine in agent scope
+    expect(query(corpus, "req.query.debug:1", { grep: false }).map((t) => t.id)).toEqual(["a"])
+    expect(query(corpus, "resp.header.server:~uvicorn", { grep: false }).map((t) => t.id)).toEqual(["a"])
+    // full scope (default — rules/WE-authored) still allows grep
+    expect(query(corpus, 'raw~="debug=1"').map((t) => t.id)).toEqual(["a"])
+  })
   test("syntax errors throw QueryError", () => {
     expect(() => query(corpus, "resp.status")).toThrow(QueryError)
     expect(() => query(corpus, "(resp.status:200")).toThrow(QueryError)

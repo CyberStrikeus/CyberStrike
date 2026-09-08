@@ -28,7 +28,7 @@ export { groupByEndpoint, groupByShape, identities } from "./corpus"
 export { requestShape } from "./shape"
 export type { Rule, CorpusRule, Signal } from "./rule"
 export { RuleRegistry, dedupe } from "./rule"
-export type { CompiledQuery } from "./httpql"
+export type { CompiledQuery, CompileOptions } from "./httpql"
 export { compile, query, QueryError } from "./httpql"
 // The send engine (raw-HTTP mutate/send/observe) and the Transaction bridge.
 export * as Engine from "./send"
