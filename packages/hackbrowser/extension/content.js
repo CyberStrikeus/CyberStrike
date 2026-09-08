@@ -1553,10 +1553,37 @@
     )
   }
 
+  // The topmost VISIBLE modal dialog, or null. A modal traps interaction: everything behind it is
+  // inert, yet it stays in the DOM and would otherwise flood the observation — so the AI keeps
+  // planning clicks on the dead background instead of filling/closing the dialog (the "modal opens
+  // but it goes to the page behind it" symptom). We flag it so the navigator focuses on the modal.
+  function topModal() {
+    let nodes
+    try {
+      nodes = document.querySelectorAll('[role="dialog"],[aria-modal="true"],dialog[open]')
+    } catch {
+      return null
+    }
+    let best = null
+    let bestZ = -1
+    for (const el of nodes) {
+      if (!visible(el)) continue
+      if (el.getAttribute && el.getAttribute("aria-modal") === "false") continue // an explicit non-modal popover
+      const z = parseInt((getComputedStyle(el).zIndex || "0"), 10)
+      const zz = Number.isFinite(z) ? z : 0
+      if (zz >= bestZ) {
+        bestZ = zz
+        best = el
+      }
+    }
+    return best
+  }
+
   function observePage() {
     const clickables = []
     elMap.clear()
     idOf.clear()
+    const modalRoot = topModal()
     const raw = []
     deepCollect(OBSERVE_SEL, document, "", raw, { n: 0 })
     // Second pass: cursor:pointer elements with no semantic/attribute hint (divs "made
@@ -1591,6 +1618,7 @@
       const aria = ariaOf(el)
       if (Object.keys(aria).length) c.aria = aria
       if (isDisabled(el)) c.disabled = true
+      if (modalRoot && modalRoot.contains(el)) c.in_modal = true
       c.in_viewport = inViewport(el)
       const section = componentPath(el)
       if (section) c.section = section.slice(0, 120)
@@ -1632,6 +1660,7 @@
         method: (f.getAttribute("method") || "get").toLowerCase(),
         fields,
         submit_id: (sb && idOf.get(sb)) || "",
+        ...(modalRoot && modalRoot.contains(f) ? { in_modal: true } : {}),
       })
     }
 
@@ -1692,7 +1721,7 @@
         type: (el.getAttribute("type") || el.tagName).toLowerCase(),
         required: el.hasAttribute("required"),
       }))
-      forms.push({ action: "", method: "post", fields, submit_id: idOf.get(g.submit) || "" })
+      forms.push({ action: "", method: "post", fields, submit_id: idOf.get(g.submit) || "", ...(modalRoot && modalRoot.contains(g.submit) ? { in_modal: true } : {}) })
     }
 
     const links = []
@@ -1712,6 +1741,7 @@
       clickables,
       forms,
       links,
+      modal_open: !!modalRoot,
       description: pageDescription(),
       location: pageLocation(),
       landmarks: landmarksOf(),
