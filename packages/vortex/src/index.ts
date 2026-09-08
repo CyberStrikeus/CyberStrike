@@ -42,6 +42,8 @@ import { compileRules } from "./declarative"
 // The declarative rule DSL (LLM-friendly: a rule is {when: HTTPQL, message, severity} data).
 export type { DeclarativeRule } from "./declarative"
 export { DeclarativeRuleSchema, compileRule, compileRules, parseRules } from "./declarative"
+export type { ChainRule } from "./chain"
+export { ChainRuleSchema, compileChain, parseChains } from "./chain"
 export { fieldValue } from "./httpql"
 export { signatureRules } from "./rules/signatures"
 
