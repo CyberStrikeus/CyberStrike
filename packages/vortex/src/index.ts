@@ -16,6 +16,8 @@ export { contentType, isStaticAsset, isRedirect, isSuccess, isContentResponse } 
 export { groupByEndpoint, identities } from "./corpus"
 export type { Rule, CorpusRule, Signal } from "./rule"
 export { RuleRegistry, dedupe } from "./rule"
+export type { CompiledQuery } from "./httpql"
+export { compile, query, QueryError } from "./httpql"
 
 import { RuleRegistry } from "./rule"
 import { headerRules } from "./rules/headers"
