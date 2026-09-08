@@ -74,6 +74,22 @@ describe("HTTPQL-lite", () => {
     expect(query(corpus, 'req.url~="?debug"').map((t) => t.id)).toEqual(["a"])
     expect(() => query(corpus, 'req.url:~"?debug"')).toThrow(QueryError)
   })
+  test("grep-everywhere: raw / req.raw / resp.raw / bare header find a string regardless of location", () => {
+    // a token that lives ONLY in a request header, and one that lives ONLY in the response body
+    const c2 = [
+      tx({ id: "h", request: { method: "GET", url: "https://app.test/x", headers: [{ name: "x-trace", value: "canary-777" }] }, response: { status: 200, headers: [], body: "boring" } }),
+      tx({ id: "r", request: { method: "GET", url: "https://app.test/y", headers: [] }, response: { status: 200, headers: [], body: "found canary-777 here" } }),
+    ]
+    // an agent that does NOT know where q=test lives finds /a's URL query in one atom
+    expect(query(corpus, 'raw~="q=test"')).toHaveLength(0) // corpus has no q=test
+    expect(query(corpus, 'raw~="debug=1"').map((t) => t.id)).toEqual(["a"]) // URL query, via raw
+    expect(query(corpus, 'raw~="SQL syntax"').map((t) => t.id)).toEqual(["b"]) // response body, via raw
+    // header-only vs body-only tokens, found without naming the header / picking req-vs-resp
+    expect(query(c2, 'req.header~="canary-777"').map((t) => t.id)).toEqual(["h"]) // ALL headers
+    expect(query(c2, 'req.raw~="canary-777"').map((t) => t.id)).toEqual(["h"])
+    expect(query(c2, 'resp.raw~="canary-777"').map((t) => t.id)).toEqual(["r"])
+    expect(query(c2, 'raw~="canary-777"').map((t) => t.id).sort()).toEqual(["h", "r"]) // either place
+  })
   test("syntax errors throw QueryError", () => {
     expect(() => query(corpus, "resp.status")).toThrow(QueryError)
     expect(() => query(corpus, "(resp.status:200")).toThrow(QueryError)

@@ -230,6 +230,14 @@ atom  := field op value
 `resp.header.<name>`, `resp.cookie.<name>`, `host`, `identity`, `source`, `endpoint`, `httpVersion`,
 `timeMs`, `tls.version`, `tls.cipher`.
 
+**Grep-everywhere fields** — for the agent that does NOT know where a string lives (URI? a header?
+request or response body?): `raw` (whole request+response text), `req.raw`, `resp.raw`, and bare
+`req.header`/`resp.header` (all headers joined). `raw~="q=test"` finds it in ONE atom across all of
+them — the answer to "find this across 3000 transactions without enumerating fields". These are the
+BROAD tool (a grep is inherently noisy on a large corpus); when the agent knows the location it
+should prefer a structured field (`req.query.q:test` is an exact match, zero noise). Built lazily,
+so a structured-field query never pays to reconstruct raw text.
+
 Both request and response bodies are handled uniformly by the **body model** (`body.ts`):
 content-type (with a content sniff fallback) classifies the `BodyKind`
 (`json`/`graphql`/`form`/`multipart`/`xml`/`html`/`text`/`binary`/`empty`) and extracts a flat

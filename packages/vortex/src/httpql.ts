@@ -11,6 +11,8 @@
 //   term  := "(" or ")" | atom
 //   atom  := field op value
 //   field := dotted path, e.g. resp.status | req.header.content-type | req.body.params.staff_name
+//            grep-everywhere: `raw` (whole request+response text), `req.raw`, `resp.raw`, or bare
+//            `req.header`/`resp.header` (all headers) — for "find X wherever it is" in one atom
 //   op    := ":" (eq) | "!=" (ne) | ":~" or "~" (regex, case-insensitive) | "~=" (literal contains,
 //            case-insensitive — no regex metachar escaping) | ">" | "<" | ">=" | "<="
 //   value := "double quoted" | bareword     (the value "*" with ":" means EXISTS: `field:*`)
@@ -20,7 +22,7 @@
 //   resp.status>=500 AND req.method:POST
 //   resp.header.server:~uvicorn OR resp.body:~"SQL syntax"
 //   req.body.params.staff_name:~"'"
-import type { Transaction } from "./transaction"
+import type { Transaction, Header } from "./transaction"
 import { header } from "./transaction"
 import { params, responseFields, requestBodyKind, responseBodyKind } from "./params"
 import { endpointKey, normalizePath } from "./endpoint"
@@ -179,11 +181,14 @@ function resolveField(tx: Transaction, field: string): string | number | undefin
     if (parts[1] === "cipher") return tx.tls?.cipher
     return undefined
   }
+  if (head === "raw") return rawRequest(tx) + (tx.response ? "\n\n" + rawResponse(tx) : "") // grep everywhere
   if (head === "req") {
     if (rest === "method") return tx.request.method
     if (rest === "url") return tx.request.url
     if (rest === "path") return normalizePath(safePath(tx.request.url))
     if (rest === "body") return tx.request.body
+    if (rest === "raw") return rawRequest(tx) // full request text: line + all headers + body
+    if (rest === "header") return allHeaders(tx.request.headers) // ALL headers (grep across header names/values)
     if (rest.startsWith("header.")) return header(tx.request.headers, rest.slice("header.".length))
     if (rest.startsWith("query.")) return params(tx).query[rest.slice("query.".length)]
     if (rest.startsWith("body.")) return params(tx).body[rest.slice("body.".length)]
@@ -199,6 +204,8 @@ function resolveField(tx: Transaction, field: string): string | number | undefin
     if (rest === "body") return tx.response.body
     if (rest === "contentType") return contentType(tx)
     if (rest === "bodyKind") return responseBodyKind(tx)
+    if (rest === "raw") return rawResponse(tx) // full response text: status line + all headers + body
+    if (rest === "header") return allHeaders(tx.response.headers) // ALL headers
     if (rest.startsWith("body.")) return responseFields(tx)[rest.slice("body.".length)]
     if (rest.startsWith("header.")) return header(tx.response.headers, rest.slice("header.".length))
     if (rest.startsWith("cookie.")) {
@@ -208,6 +215,23 @@ function resolveField(tx: Transaction, field: string): string | number | undefin
     return undefined
   }
   return undefined
+}
+
+// Raw-message reconstruction for the grep-everywhere fields (raw / req.raw / resp.raw). Not
+// byte-exact wire format — a searchable text join of line + headers + body, which is what a
+// `~=`/`:~` grep needs. Built lazily (only when a query touches these fields), so the common
+// structured-field query pays nothing.
+function allHeaders(headers: Header[]): string {
+  return headers.map((h) => `${h.name}: ${h.value}`).join("\n")
+}
+function rawRequest(tx: Transaction): string {
+  const head = `${tx.request.method} ${tx.request.url}\n${allHeaders(tx.request.headers)}`
+  return tx.request.body ? `${head}\n\n${tx.request.body}` : head
+}
+function rawResponse(tx: Transaction): string {
+  if (!tx.response) return ""
+  const head = `${tx.response.status}\n${allHeaders(tx.response.headers)}`
+  return tx.response.body ? `${head}\n\n${tx.response.body}` : head
 }
 
 function safePath(url: string): string {
