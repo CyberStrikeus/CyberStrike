@@ -23,6 +23,7 @@ import { header } from "./transaction"
 import { params } from "./params"
 import { endpointKey, normalizePath } from "./endpoint"
 import { contentType } from "./scope"
+import { requestCookies, responseCookies } from "./cookies"
 
 export class QueryError extends Error {}
 
@@ -155,6 +156,7 @@ function resolveField(tx: Transaction, field: string): string | number | undefin
     if (rest.startsWith("header.")) return header(tx.request.headers, rest.slice("header.".length))
     if (rest.startsWith("query.")) return params(tx).query[rest.slice("query.".length)]
     if (rest.startsWith("body.")) return params(tx).body[rest.slice("body.".length)]
+    if (rest.startsWith("cookie.")) return requestCookies(tx)[rest.slice("cookie.".length)]
     return undefined
   }
   if (head === "resp") {
@@ -163,6 +165,10 @@ function resolveField(tx: Transaction, field: string): string | number | undefin
     if (rest === "body") return tx.response.body
     if (rest === "contentType") return contentType(tx)
     if (rest.startsWith("header.")) return header(tx.response.headers, rest.slice("header.".length))
+    if (rest.startsWith("cookie.")) {
+      const want = rest.slice("cookie.".length).toLowerCase()
+      return responseCookies(tx).find((c) => c.name.toLowerCase() === want)?.value
+    }
     return undefined
   }
   return undefined

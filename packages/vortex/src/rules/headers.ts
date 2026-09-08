@@ -4,10 +4,11 @@
 // eyeballed the one endpoint it happened to replay. A rule fires on EVERY transaction that has a
 // response, so coverage no longer depends on agent initiative.
 import type { Transaction } from "../transaction"
-import { header, headerAll } from "../transaction"
+import { header } from "../transaction"
 import type { Rule, Signal } from "../rule"
 import { endpointKey } from "../endpoint"
 import { isContentResponse } from "../scope"
+import { responseCookies } from "../cookies"
 
 function sig(ruleId: string, tx: Transaction, over: Partial<Signal> & Pick<Signal, "severity" | "category" | "title">): Signal {
   return { ruleId, transactionId: tx.id, ...over }
@@ -67,26 +68,19 @@ export const weakCookieFlags: Rule = {
   evaluate(tx) {
     if (!tx.response) return []
     const out: Signal[] = []
-    for (const raw of headerAll(tx.response.headers, "set-cookie")) {
-      const name = raw.split("=", 1)[0]?.trim() || "(cookie)"
-      // Attributes are ";"-separated and case-insensitive; checking the attribute tokens avoids a
-      // false match when the cookie's NAME/VALUE happens to contain "secure"/"samesite".
-      const attrs = raw
-        .split(";")
-        .slice(1)
-        .map((a) => a.trim().toLowerCase())
+    for (const cookie of responseCookies(tx)) {
       const lacks: string[] = []
-      if (!attrs.includes("httponly")) lacks.push("HttpOnly")
-      if (!attrs.includes("secure")) lacks.push("Secure")
-      if (!attrs.some((a) => a.startsWith("samesite"))) lacks.push("SameSite")
+      if (!cookie.httpOnly) lacks.push("HttpOnly")
+      if (!cookie.secure) lacks.push("Secure")
+      if (!cookie.sameSite) lacks.push("SameSite")
       if (lacks.length === 0) continue
       out.push(
         sig(this.id, tx, {
           severity: "medium",
           category: "misconfiguration",
-          title: `Cookie "${name}" missing ${lacks.join(", ")}`,
-          evidence: raw.slice(0, 120),
-          dedupKey: `${this.id}:${endpointKey(tx)}:${name}`,
+          title: `Cookie "${cookie.name || "(cookie)"}" missing ${lacks.join(", ")}`,
+          evidence: `${cookie.name}: ${lacks.join(", ")} not set`,
+          dedupKey: `${this.id}:${endpointKey(tx)}:${cookie.name}`,
         }),
       )
     }
