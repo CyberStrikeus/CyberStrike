@@ -36,3 +36,18 @@ export function isContentResponse(tx: Transaction): boolean {
   if (isStaticAsset(tx)) return false
   return true
 }
+
+// OBSERVED traffic — what the app actually served/received (browser, proxy, cloud, import), as
+// opposed to `replay`: transactions the ENGINE/agent sent as probes (payloads, canaries). Passive
+// detection MUST run over observed traffic only, or an agent's own injected payload/canary would be
+// re-ingested and mis-flagged as the app's behavior (a self-inflicted false finding / feedback
+// loop). Replay transactions are inputs to ACTIVE rules' diffs — the rule that sent the canary
+// interprets it — never passive subjects. Fresh replay ids also can't overwrite observed rows.
+export function isObserved(tx: Transaction): boolean {
+  return tx.source !== "replay"
+}
+
+// The observed subset of a set — the safe corpus for passive rules/queries.
+export function observed(txs: Transaction[]): Transaction[] {
+  return txs.filter(isObserved)
+}

@@ -368,7 +368,7 @@ first.
 | **E. Active engine (send)** | ✅ engine ported (mutate/send/observe/governed/backends); ✅ agent-agnostic `send()` bridge (captured replay + fresh build); ✅ ActiveRule abstraction + auth-strip (deterministic probe→diff→signal). Deferred: Intruder attack modes (sniper/battering-ram/pitchfork/cluster-bomb) — small, added later; body gzip/br decode. | ✅ (modes deferred) |
 | **D. Detection depth** | declarative (HTTPQL) rules; passive rule set (error signatures, reflection, sensitive data, open redirect, …); corpus rules (IDOR, privesc, param pollution, rate-limit, enumeration); active rules (auth-strip, method-matrix, header-audit, CORS, cache-poison); signal→finding promotion; rule packs | ⏳ |
 | **C. HTTPQL completeness** | ✅ exists (`field:*`) + `NOT` (absent/negation) operators; rich field set (cookies, body, graphql, tech, timing, tls). Deferred: SQL pushdown (perf — full-scan is fine at session scale), saved queries. | ✅ (pushdown deferred) |
-| **B. Store / scale** | HAR import/export; pagination/iteration; retention/eviction; concurrency safety | ⏳ |
+| **B. Store / scale** | ✅ HAR import (`fromHar`/`parseHar`) + export (`toHar`) — the offline adapter; ✅ agent-safety scope (`isObserved`/`observed`). Deferred: pagination/iteration, retention/eviction. | ✅ (paging deferred) |
 | **J. Proxy** | HTTP(S) forward/MITM proxy (TLS CA), scope, WS passthrough — the non-browser/mobile adapter | ⏳ |
 | **F. SDK / plugin** | stable versioned API; plugin interface (rules / resolvers / mutations); adapter helpers | ⏳ |
 | **G. Consumer contract** | the interface a host uses to route Vortex signals into its own retest/agent flow (defined in Vortex; implemented at wiring) | ⏳ |
@@ -381,6 +381,21 @@ send (E) is required by active rules and the proxy; the proxy (J) is an adapter 
 ready; wiring is last so the live pipeline is only touched once Vortex is complete.
 
 ---
+
+## 12a. Safety — agent probes must not corrupt the corpus or flow
+
+Agents (and active rules) SEND — they inject payloads and canaries. That must never poison the
+store or the passive-detection flow:
+- Every engine-sent transaction is `source: "replay"` with a fresh `vx_` id, so it is **appended,
+  never overwriting** an observed row.
+- Passive rules/queries run over **`observed()`** (everything except `replay`). An agent's own
+  injected payload or reflected canary is therefore **not re-ingested and mis-flagged** as the
+  app's behavior (no self-inflicted false finding / feedback loop).
+- **Canaries** are the province of ACTIVE rules: the rule that sent the canary interprets the
+  reflection (via `Observe.reflection`). Passive rules ignore replay, so a canary echo is never a
+  passive "reflected input" finding.
+- Agents interact by READ (query) + APPEND (send → replay) + authoring rules — not by deleting or
+  overwriting observed traffic.
 
 ## 13. Non-goals / deferred
 
