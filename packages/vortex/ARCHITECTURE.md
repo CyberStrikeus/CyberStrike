@@ -223,8 +223,9 @@ atom  := field op value
 ```
 
 **Fields**: `req.method`, `req.url`, `req.path`, `req.body`, `req.header.<name>`, `req.query.<name>`,
-`req.body.<dotpath>`, `req.cookie.<name>`, `resp.status`, `resp.body`, `resp.contentType`,
-`resp.header.<name>`, `resp.cookie.<name>`, `host`, `identity`, `source`, `endpoint`.
+`req.body.<dotpath>`, `req.cookie.<name>`, `req.graphql.op`, `req.graphql.query`, `resp.status`,
+`resp.body`, `resp.contentType`, `resp.header.<name>`, `resp.cookie.<name>`, `host`, `identity`,
+`source`, `endpoint`.
 
 **Operators**: `:` equals (case-insensitive strings / numeric) · `!=` not-equals · `:~` or `~`
 case-insensitive regex · `>` `<` `>=` `<=` numeric.

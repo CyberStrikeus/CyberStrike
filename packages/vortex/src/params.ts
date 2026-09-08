@@ -54,7 +54,8 @@ function parseQuery(url: string): Record<string, string> {
 function parseBody(tx: Transaction): Record<string, string> {
   const body = tx.request.body
   if (!body) return {}
-  const ct = (header(tx.request.headers, "content-type") ?? "").toLowerCase()
+  const ctRaw = header(tx.request.headers, "content-type") ?? ""
+  const ct = ctRaw.toLowerCase()
   if (ct.includes("application/json") || (body.trim().startsWith("{") && body.trim().endsWith("}"))) {
     try {
       const out: Record<string, string> = {}
@@ -71,7 +72,42 @@ function parseBody(tx: Transaction): Record<string, string> {
     } catch {}
     return out
   }
+  if (ct.includes("multipart/form-data")) {
+    // Extract the boundary from the ORIGINAL-case header — the boundary token is case-sensitive and
+    // must match the body's delimiter exactly (lowercasing it breaks the split).
+    const boundary = /boundary=("?)([^";]+)\1/i.exec(ctRaw)?.[2]
+    if (boundary) return parseMultipart(body, boundary)
+  }
   return {}
+}
+
+// Extract the FIELDS of a multipart/form-data body: text field name→value, and file part
+// name→"<file:filename>" (plus name.filename). Binary file content itself is not surfaced — the
+// point is the field/attachment SHAPE (a file-upload endpoint's parameters), not the bytes.
+function parseMultipart(body: string, boundary: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  const marker = `--${boundary}`
+  for (const raw of body.split(marker)) {
+    const part = raw.replace(/^\r?\n/, "")
+    if (part === "" || part === "--" || part === "--\r\n") continue
+    const sep = part.search(/\r?\n\r?\n/)
+    if (sep === -1) continue
+    const head = part.slice(0, sep)
+    const content = part.slice(sep).replace(/^\r?\n\r?\n/, "").replace(/\r?\n$/, "")
+    const cd = /content-disposition:[^\r\n]*/i.exec(head)?.[0] ?? ""
+    const name = /\bname=("?)([^";\r\n]+)\1/i.exec(cd)?.[2]
+    if (!name) continue
+    const filename = /\bfilename=("?)([^";\r\n]*)\1/i.exec(cd)?.[2]
+    if (filename !== undefined) {
+      out[name] = `<file:${filename}>`
+      out[`${name}.filename`] = filename
+      if (Object.keys(out).length >= MAX_KEYS) break
+      continue
+    }
+    out[name] = content.slice(0, 500)
+    if (Object.keys(out).length >= MAX_KEYS) break
+  }
+  return out
 }
 
 export function params(tx: Transaction): Params {

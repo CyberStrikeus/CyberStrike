@@ -24,6 +24,7 @@ import { params } from "./params"
 import { endpointKey, normalizePath } from "./endpoint"
 import { contentType } from "./scope"
 import { requestCookies, responseCookies } from "./cookies"
+import { graphql } from "./graphql"
 
 export class QueryError extends Error {}
 
@@ -157,6 +158,8 @@ function resolveField(tx: Transaction, field: string): string | number | undefin
     if (rest.startsWith("query.")) return params(tx).query[rest.slice("query.".length)]
     if (rest.startsWith("body.")) return params(tx).body[rest.slice("body.".length)]
     if (rest.startsWith("cookie.")) return requestCookies(tx)[rest.slice("cookie.".length)]
+    if (rest === "graphql.op") return graphql(tx)?.operationName
+    if (rest === "graphql.query") return graphql(tx)?.query
     return undefined
   }
   if (head === "resp") {
