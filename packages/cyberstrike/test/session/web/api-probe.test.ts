@@ -4,6 +4,7 @@ import { HttpMessage } from "../../../src/replay/message"
 import { Send } from "../../../src/replay/send"
 import { WebRetest } from "../../../src/session/web/web-retest"
 import { WebCredential } from "../../../src/session/web/web-credential"
+import { WebScope } from "../../../src/session/web/scope"
 import { Request } from "../../../src/session/request"
 import { Session } from "../../../src/session"
 import { Instance } from "../../../src/project/instance"
@@ -148,6 +149,56 @@ describe("ApiProbe — access-control evidence (deterministic replacement for cr
       expect(pending?.flags.credential).toContain(org2.id) // the offending identity flagged
       // unauth was 401 → no unauth_access flag
       expect(pending?.flags.signal?.some((v) => v.includes("unauth_access"))).not.toBe(true)
+    })
+  })
+})
+
+describe("ApiProbe — mined-endpoint access-control scenario (authed + unauthed, materialize on hit)", () => {
+  test("unauth JSON 2xx on a mined endpoint → materializes a js-mined row + flags broken access control", async () => {
+    await withSession(async (sid) => {
+      WebScope.ensure(sid, "https://app.example.com/")
+      const org1 = WebCredential.ensure({ sessionID: sid, label: "org1" })
+      WebCredential.captureAuthFromRaw({ sessionID: sid, credentialID: org1.id, rawRequest: raw("GET /x", "Authorization: Bearer ORG1\r\n") })
+
+      // Endpoint returns JSON data with AND without auth → broken access control.
+      const send: ApiProbe.Sender = async () => reply(200, '{"secret":"data"}', { "content-type": "application/json" })
+      await ApiProbe.runEndpoint({
+        sessionID: sid,
+        requestId: "mined:GET:https://app.example.com/api/secrets",
+        rawRequest: raw("GET /api/secrets"),
+        origin: "https://app.example.com",
+        method: "GET",
+        send,
+        minedAuthCheck: true,
+      })
+      // materialized as a real row so it can dispatch + report
+      const req = Request.get(sid).find((r) => r.normalized_path === "/api/secrets")
+      expect(req).toBeDefined()
+      // flagged broken access control on that endpoint
+      const pending = WebRetest.getPending(sid).find((r) => r.endpoint === "/api/secrets")
+      expect(pending?.flags.signal?.some((v) => v.includes("unauth_access"))).toBe(true)
+    })
+  })
+
+  test("SPA catch-all: unauth returns 200 + HTML shell → NOT flagged (no false positive)", async () => {
+    await withSession(async (sid) => {
+      WebScope.ensure(sid, "https://app.example.com/")
+      const org1 = WebCredential.ensure({ sessionID: sid, label: "org1" })
+      WebCredential.captureAuthFromRaw({ sessionID: sid, credentialID: org1.id, rawRequest: raw("GET /x", "Authorization: Bearer ORG1\r\n") })
+      // Any path returns the SPA index.html with 200 — the classic false-positive trap.
+      const send: ApiProbe.Sender = async () => reply(200, "<html>app shell</html>", { "content-type": "text/html" })
+      await ApiProbe.runEndpoint({
+        sessionID: sid,
+        requestId: "mined:GET:https://app.example.com/api/whatever",
+        rawRequest: raw("GET /api/whatever"),
+        origin: "https://app.example.com",
+        method: "GET",
+        send,
+        minedAuthCheck: true,
+      })
+      // HTML shell → not real API data → no materialization, no flag
+      expect(Request.get(sid).find((r) => r.normalized_path === "/api/whatever")).toBeUndefined()
+      expect(WebRetest.getPending(sid).length).toBe(0)
     })
   })
 })

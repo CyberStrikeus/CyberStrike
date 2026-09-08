@@ -9,7 +9,7 @@ import { processResponse, type ResponseInput } from "./response-processor"
 
 const Status = z.enum(["queued", "processing", "processed"])
 const Method = z.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"])
-const NormSource = z.enum(["tier1", "tier2", "tier3", "failed"])
+const NormSource = z.enum(["tier1", "tier2", "tier3", "failed", "js-mined"])
 
 export namespace Request {
   export const Info = z

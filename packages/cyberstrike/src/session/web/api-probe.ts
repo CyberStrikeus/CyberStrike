@@ -17,10 +17,12 @@ import { WebCredential, COMMON_AUTH_HEADERS } from "./web-credential"
 import { WebRetest } from "./web-retest"
 import { WebScope } from "./scope"
 import { DataCollector } from "./data-collector"
+import { Request } from "../request"
 import { scanProbeResponse } from "./signal/ingest"
 import { governedSend } from "@/replay/govern"
 import { Instance } from "@/project/instance"
 import { Log } from "@/util/log"
+import { createHash } from "node:crypto"
 
 export namespace ApiProbe {
   const log = Log.create({ service: "api-probe" })
@@ -126,7 +128,51 @@ export namespace ApiProbe {
     send: Sender
     probes?: Probe[] // default: full PROBES (tests); the sweep passes SAFE_PROBES
     accessControl?: boolean // run baseline-compared auth-strip + cross-identity (sweep: true)
+    minedAuthCheck?: boolean // mined endpoint (no captured row): run authed-vs-unauthed, materialize on hit
+    method?: string // mined endpoint's method (for materialization)
+    sourceLabel?: string // provenance for a materialized mined endpoint (e.g. "js-mined")
     signal?: AbortSignal
+  }
+
+  // Stable synthetic key_hash for a mined endpoint (method + template path), matching the 16-hex
+  // shape of captured key_hashes so it flows through the retest queue / dispatch identically.
+  function minedKeyHash(method: string, target: string): string {
+    const path = target.split("?")[0]
+    return createHash("sha1").update(`${method} ${path}`).digest("hex").slice(0, 16)
+  }
+
+  // A JSON (not HTML) 2xx — real API data, not an SPA catch-all shell (which returns 200 + index.html
+  // for any path and would false-positive an access-control check).
+  function isJsonOk(parsed: Send.Result["response"]): boolean {
+    if (!is2xx(parsed?.status)) return false
+    const ct = (parsed!.headers.find((h) => h.name.toLowerCase() === "content-type")?.value ?? "").toLowerCase()
+    return ct.includes("json") || (!ct.includes("html") && !ct.includes("text/"))
+  }
+
+  // Materialize a mined endpoint as a real Request row ONLY when a scenario found something worth
+  // escalating — so a hit dispatches a specialist + shows in the report, WITHOUT creating a row for
+  // all 82 mined endpoints (the fan-out we avoid). Records provenance. Returns the key_hash.
+  function materializeMined(sessionID: string, method: string, origin: string, target: string, rawRequest: string): string {
+    const keyHash = minedKeyHash(method, target)
+    try {
+      let host = ""
+      try {
+        host = new URL(origin).host
+      } catch {}
+      Request.add({
+        sessionID,
+        method: method as "GET" | "HEAD",
+        normalizedPath: target.split("?")[0],
+        rawRequest,
+        origin,
+        host: host || undefined,
+        keyHash,
+        normSource: "js-mined",
+      })
+    } catch (e) {
+      log.debug("api-probe: materializeMined failed (ignored)", { err: String(e) })
+    }
+    return keyHash
   }
 
   // Probe ONE endpoint. Non-mutating probes feed the signal fabric; when `accessControl` is set and
@@ -175,6 +221,40 @@ export namespace ApiProbe {
         }
       } catch (e) {
         log.debug("api-probe: access-control comparison failed (ignored)", { err: String(e) })
+      }
+    }
+
+    // ── Mined-endpoint access-control scenario (no captured row) ──────────────
+    // A JS-mined endpoint was never visited, so it has no row/baseline. Run the scenario the user
+    // asked for: send it with EVERY auth header the session's identity holds for this host (cookie /
+    // bearer / x-api-key / whatever was captured — via authForHost, not just cookie) AND send it
+    // unauthenticated. If the UNAUTH send returns real API data (JSON 2xx, not the SPA shell), that
+    // is broken access control — materialize the endpoint as a row ONLY THEN (so a hit dispatches a
+    // specialist + shows in the report) and flag it. No row for the endpoints that behave correctly.
+    if (input.minedAuthCheck && !input.keyHash) {
+      try {
+        const creds = WebCredential.get(input.sessionID).filter((c) => Object.keys(WebCredential.authForHost(c.authByHost, host)).length > 0)
+        const unauth = await input.send(stripAuth(base).out, input.origin)
+        const unauthOk = isJsonOk(unauth.response)
+        // With a credential: confirm the endpoint is real (authed serves data) so unauth-2xx isn't a
+        // generic public page. Without a credential we can only note unauth data exposure.
+        let authedOk = creds.length === 0
+        for (const cred of creds) {
+          if (input.signal?.aborted) break
+          let msg = stripAuth(base).out
+          for (const [name, value] of Object.entries(WebCredential.authForHost(cred.authByHost, host))) msg = Mutate.setHeader(msg, name, value)
+          const r = await input.send(msg, input.origin)
+          if (isJsonOk(r.response)) authedOk = true
+        }
+        if (unauthOk && authedOk) {
+          const method = input.method ?? base.method
+          const target = base.target
+          const kh = materializeMined(input.sessionID, method, input.origin, target, input.rawRequest)
+          WebRetest.flag({ sessionID: input.sessionID, keyHash: kh, type: "signal", value: "unauth_access:access-control", priority: "high" })
+          out.push({ probe: "mined-unauth-access", status: unauth.response?.status ?? null, signals: 1 })
+        }
+      } catch (e) {
+        log.debug("api-probe: mined access-control failed (ignored)", { err: String(e) })
       }
     }
 
@@ -311,9 +391,12 @@ export namespace ApiProbe {
         credentialId: t.credentialId,
         rawRequest: t.rawRequest,
         origin: t.origin,
+        method: t.method,
         send,
         probes: SAFE_PROBES,
         accessControl: !!t.keyHash && !!t.credentialId,
+        minedAuthCheck: !t.keyHash, // a mined endpoint (no captured row) → authed-vs-unauthed scenario
+        sourceLabel: "js-mined",
         signal: opts.signal,
       })
       probedCount++
