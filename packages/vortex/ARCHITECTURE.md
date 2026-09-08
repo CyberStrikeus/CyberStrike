@@ -349,6 +349,32 @@ in this DSL (dogfooded).
 - **Signal → finding** promotion: confidence, correlation across transactions, evidence chain,
   severity scoring, triage state. Rule packs with enable/disable + config.
 
+### Rule distribution & scale (the ~20k-rule question)
+
+Two tiers, because a fixed dozen and a Nuclei-scale corpus want opposite handling:
+
+- **Baseline (built-in)** — the small always-on core (hygiene / signatures / access), authored in
+  TS in `rules/*.ts`, compiled into the engine. `defaultRegistry()` preloads them.
+- **Rule packs (files)** — the large corpus. **Source of truth is files** (JSON), versioned
+  SEPARATELY from the engine (the nuclei-templates model) and loaded at RUNTIME — never baked into a
+  build, because rules change far more often than the engine and a rule update must not require a
+  release. A pack (`pack.ts`) groups the three shapes; `loadPackDir(dir)` merges every `*.json`.
+
+At ~20k you never compile-and-run all of them — you **select** (`selectRules`, `rule-meta.ts`). Every
+rule carries selection metadata (`tags`, `requires.tech`); the selector filters by
+tags/severity/category and prunes tech-gated rules the corpus can't satisfy (`contextFromCorpus`
+gives the tech seen), then only the survivors compile. A SQLite metadata **index** over the pack
+files is a possible later cache for fast selection — a rebuildable index, NOT the source of truth and
+NOT the session traffic DB. A `nuclei-template → Vortex-rule` converter is a plausible import path
+(most of Nuclei's 20k are CVE/version/exposure checks expressible via `compare_versions`/`regex`/
+`ProbeRule`), but the ~20k is the scale target, not a day-one bulk import.
+
+**Packaging (plan C):** Vortex stays a workspace package (`@cyberstrike-io/vortex`) while the API
+settles and the first consumer (CyberStrike web) is wired end-to-end; it is then extracted to its own
+repo + npm for standalone OSS embeddability (cloud/mobile/third-party). The boundary is kept
+extraction-cheap NOW — Vortex imports nothing outside itself (only `zod` + Bun); consumers import
+Vortex, never the reverse.
+
 ---
 
 ## 10. The active engine (send) and the proxy

@@ -12,6 +12,7 @@
 import z from "zod"
 import type { ActiveRule, Sender } from "./active"
 import type { Signal } from "./rule"
+import { RuleMetaShape } from "./rule-meta"
 import { compile } from "./expr"
 import { fieldValue } from "./fields"
 import { endpointKey } from "./endpoint"
@@ -34,6 +35,7 @@ export const ProbeRuleSchema = z
       .strict(),
     detect: z.string(), // DSL expr over the PROBE response, or literal "reflected" (canary) / "evaluated" (SSTI template canary)
     message: z.string().optional(),
+    ...RuleMetaShape, // tags / requires — for selection at scale
   })
   .strict()
 

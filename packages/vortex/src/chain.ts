@@ -21,6 +21,7 @@ import { compile } from "./expr"
 import { fieldValue } from "./fields"
 import { endpointKey } from "./endpoint"
 import { sharedValues } from "./taint"
+import { RuleMetaShape } from "./rule-meta"
 
 const CANDIDATE_CAP = 500 // per step, guard the join against a pathological corpus
 const SIGNAL_CAP = 50
@@ -50,6 +51,7 @@ export const ChainRuleSchema = z
     message: z.string().optional(), // supports {alias.field} interpolation over the bound steps
     evidence: z.string().optional(),
     distinctIdentity: z.boolean().optional(), // require the bound transactions to be different identities (IDOR/privesc chains)
+    ...RuleMetaShape, // tags / requires — for selection at scale
   })
   .strict()
 

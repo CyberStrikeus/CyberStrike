@@ -13,6 +13,7 @@ import z from "zod"
 import type { Rule, Signal } from "./rule"
 import { compile } from "./expr"
 import { fieldValue } from "./fields"
+import { RuleMetaShape } from "./rule-meta"
 
 export const DeclarativeRuleSchema = z
   .object({
@@ -24,6 +25,7 @@ export const DeclarativeRuleSchema = z
     message: z.string().optional(), // signal title; supports {field} interpolation
     evidence: z.string().optional(), // supports {field} interpolation
     dedupBy: z.string().optional(), // a field path to collapse on (e.g. "endpoint"); default per (rule, tx)
+    ...RuleMetaShape, // tags / requires — for selection at scale
   })
   .strict()
 

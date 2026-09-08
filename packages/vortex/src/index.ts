@@ -41,6 +41,12 @@ export { activeRules, authStrip } from "./rules/authstrip"
 export type { ProbeRule } from "./probe"
 export { ProbeRuleSchema, compileProbe, compileProbes, parseProbes } from "./probe"
 export { probeRules } from "./rules/probes"
+// Rule selection metadata (tags/requires) + the file-distributed rule-pack loader — the scale path
+// (~20k rules): select a subset by tags/severity/category + tech, compile only the survivors.
+export type { RuleMeta, Selection, Context } from "./rule-meta"
+export { RuleMetaShape, selectRules } from "./rule-meta"
+export type { Pack } from "./pack"
+export { PackSchema, parsePack, mergePacks, loadPackDir, contextFromCorpus } from "./pack"
 
 import { RuleRegistry } from "./rule"
 import { headerRules } from "./rules/headers"
