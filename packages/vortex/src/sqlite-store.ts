@@ -11,6 +11,7 @@ import type { Transaction } from "./transaction"
 import { signalKey, type TrafficStore } from "./store"
 import type { Discovered } from "./discovery"
 import type { Signal } from "./rule"
+import type { Canary } from "./canary"
 
 interface Row {
   data: string
@@ -57,6 +58,7 @@ export class SqliteStore implements TrafficStore {
          PRIMARY KEY (session, key)
        )`,
     )
+    this.db.run(`CREATE TABLE IF NOT EXISTS vortex_canary (session TEXT NOT NULL, token TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY (session, token))`)
   }
 
   add(tx: Transaction): Transaction {
@@ -144,9 +146,24 @@ export class SqliteStore implements TrafficStore {
     return rows.map((r) => JSON.parse(r.data) as Signal)
   }
 
+  addCanaries(canaries: Canary[]): number {
+    let added = 0
+    const exists = this.db.query<{ n: number }, [string, string]>(`SELECT COUNT(*) AS n FROM vortex_canary WHERE session = ? AND token = ?`)
+    for (const c of canaries) {
+      const had = (exists.get(this.session, c.token)?.n ?? 0) > 0
+      this.db.run(`INSERT OR REPLACE INTO vortex_canary (session, token, data) VALUES (?, ?, ?)`, [this.session, c.token, JSON.stringify(c)])
+      if (!had) added++
+    }
+    return added
+  }
+  canaries(): Canary[] {
+    return this.db.query<Row, [string]>(`SELECT data FROM vortex_canary WHERE session = ?`).all(this.session).map((r) => JSON.parse(r.data) as Canary)
+  }
+
   clear(): void {
     this.db.run(`DELETE FROM vortex_transaction WHERE session = ?`, [this.session])
     this.db.run(`DELETE FROM vortex_discovered WHERE session = ?`, [this.session])
     this.db.run(`DELETE FROM vortex_signal WHERE session = ?`, [this.session])
+    this.db.run(`DELETE FROM vortex_canary WHERE session = ?`, [this.session])
   }
 }

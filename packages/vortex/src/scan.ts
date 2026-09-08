@@ -6,9 +6,18 @@
 import type { TrafficStore } from "./store"
 import type { RuleRegistry, Signal } from "./rule"
 import { observed } from "./scope"
+import { scanCanaries } from "./canary"
 
 export function scan(store: TrafficStore, registry: RuleRegistry): Signal[] {
   const signals = registry.analyze(observed(store.all()))
+  store.addSignals(signals)
+  return signals
+}
+
+// Scan the store's observed responses against its registered canaries for cross-request (stored)
+// reflections, and persist the resulting signals. Run after new observed traffic arrives.
+export function scanStored(store: TrafficStore): Signal[] {
+  const signals = scanCanaries(store.all(), store.canaries())
   store.addSignals(signals)
   return signals
 }

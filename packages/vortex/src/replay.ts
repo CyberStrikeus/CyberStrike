@@ -8,6 +8,8 @@
 //   - buildRequest(spec) : build a FRESH raw request from scratch.
 import type { Transaction, Header, Response as VxResponse } from "./transaction"
 import { HttpMessage, Apply, Send, BackendFetch, ReplayResponse } from "./send"
+import type { Canary, CanaryKind } from "./canary"
+import { mintCanary, reflects, canaryFor, CANARY_PLACEHOLDER } from "./canary"
 
 // Build a fresh request from a simple spec.
 export interface RequestSpec {
@@ -26,6 +28,10 @@ export interface SendOptions {
   rejectUnauthorized?: boolean
   followRedirects?: boolean
   governors?: Send.Governors
+  // Track a canary: mint a unique token, substitute it for "{canary}" in the mutation values, and
+  // after the send report whether it reflected in THIS response (same-request). Register the
+  // returned canary in the store for later cross-request (stored) scanning.
+  canary?: { kind?: CanaryKind; field?: string; vulnClass?: string; agent?: string }
   // Test/customisation seam: perform the ONE real send. Defaults to the fetch backend. A test
   // passes a stub so `send()` is exercised end-to-end with no network.
   transport?: (req: HttpMessage.Request, origin: string) => Promise<ReplayResponse.Result>
@@ -34,6 +40,8 @@ export interface SendOptions {
 export interface SendResult {
   transaction: Transaction // the replay itself — source "replay", derivedFrom the origin request
   result: Send.Result // raw engine result (status/headers/body/timing/attempts/skipped)
+  canary?: Canary // present when opts.canary was set — register it in the store for stored-reflection
+  canaryReflected?: boolean // did the canary reflect in THIS (same-request) response?
 }
 
 const enc = new TextEncoder()
@@ -109,7 +117,14 @@ export async function send(
   opts: SendOptions = {},
 ): Promise<SendResult> {
   const base = resolve(input)
-  const req = opts.mutations && opts.mutations.length ? Apply.mutations(base.req, opts.mutations) : base.req
+  // Canary: mint a token and substitute it for "{canary}" in the mutation values, so the payload a
+  // caller wrote (e.g. "<x>{canary}</x>") carries a unique, trackable marker.
+  const token = opts.canary ? mintCanary() : undefined
+  const muts =
+    token && opts.mutations
+      ? opts.mutations.map((m) => ("value" in m && typeof m.value === "string" ? { ...m, value: m.value.split(CANARY_PLACEHOLDER).join(token) } : m))
+      : opts.mutations
+  const req = muts && muts.length ? Apply.mutations(base.req, muts) : base.req
   const transport =
     opts.transport ??
     ((r, origin) => BackendFetch.send(r, { origin, totalTimeoutMs: opts.timeoutMs, rejectUnauthorized: opts.rejectUnauthorized, followRedirects: opts.followRedirects }))
@@ -131,5 +146,7 @@ export async function send(
     response: toResponse(result),
     timing: { ms: result.timing.totalMs, ttfbMs: result.timing.ttfbMs },
   }
-  return { transaction, result }
+  if (!token) return { transaction, result }
+  const canary = canaryFor(token, transaction, opts.canary ?? {})
+  return { transaction, result, canary, canaryReflected: reflects(transaction.response?.body, token) }
 }

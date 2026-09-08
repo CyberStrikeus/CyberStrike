@@ -5,6 +5,7 @@
 import type { Transaction } from "./transaction"
 import type { Discovered } from "./discovery"
 import type { Signal } from "./rule"
+import type { Canary } from "./canary"
 
 export interface TrafficStore {
   // Insert (or replace by id). Returns the stored transaction.
@@ -23,6 +24,10 @@ export interface TrafficStore {
   // traffic). Deduped by signal identity; returns how many were NEW. `signals(filter?)` reads them.
   addSignals(signals: Signal[]): number
   signals(filter?: { ruleId?: string; severity?: Signal["severity"]; transactionId?: string; category?: string }): Signal[]
+  // Canary registry — injected markers, so a later OBSERVED response can be scanned for cross-request
+  // (stored) reflection. Deduped by token; returns how many were NEW.
+  addCanaries(canaries: Canary[]): number
+  canaries(): Canary[]
 }
 
 // The dedup identity of a signal — its dedupKey, else per (rule, transaction, title). Shared by the
@@ -35,6 +40,19 @@ export class MemoryStore implements TrafficStore {
   private readonly byId = new Map<string, Transaction>()
   private readonly discoveredById = new Map<string, Discovered>()
   private readonly signalByKey = new Map<string, Signal>()
+  private readonly canaryByToken = new Map<string, Canary>()
+
+  addCanaries(canaries: Canary[]): number {
+    let added = 0
+    for (const c of canaries) {
+      if (!this.canaryByToken.has(c.token)) added++
+      this.canaryByToken.set(c.token, c)
+    }
+    return added
+  }
+  canaries(): Canary[] {
+    return [...this.canaryByToken.values()]
+  }
 
   addSignals(signals: Signal[]): number {
     let added = 0
@@ -86,5 +104,6 @@ export class MemoryStore implements TrafficStore {
     this.byId.clear()
     this.discoveredById.clear()
     this.signalByKey.clear()
+    this.canaryByToken.clear()
   }
 }
