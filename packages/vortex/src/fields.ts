@@ -81,6 +81,20 @@ function rawResponse(tx: Transaction): string {
   return tx.response.body ? `${head}\n\n${tx.response.body}` : head
 }
 
+// Public raw render of a stored transaction, for on-demand DETAILED INSPECTION by id
+// (`store.get(id)` → `rawView`). Distinct from the grep-everywhere `raw` FIELD (which the agent
+// query gate blocks, to stop noisy corpus scans) and from `http_replay` (which SENDS) — this only
+// READS what was already captured, no request goes out. It is a reconstruction (request line +
+// headers + body / status line + headers + body), NOT byte-exact wire bytes (casing/whitespace not
+// guaranteed; byte-exact — e.g. for smuggling — needs the proxy adapter to keep original bytes).
+export interface RawView {
+  request: string
+  response?: string
+}
+export function rawView(tx: Transaction): RawView {
+  return { request: rawRequest(tx), response: tx.response ? rawResponse(tx) : undefined }
+}
+
 function safePath(url: string): string {
   try {
     return new URL(url).pathname

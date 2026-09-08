@@ -62,7 +62,8 @@ export { ChainRuleSchema, compileChain, parseChains } from "./chain"
 export { correlatable, responseValues, requestValues, sharedValues } from "./taint"
 export type { Extract, Discovered } from "./discovery"
 export { ingestExtract, discoveredId } from "./discovery"
-export { fieldValue } from "./fields"
+export type { RawView } from "./fields"
+export { fieldValue, rawView } from "./fields"
 export { signatureRules } from "./rules/signatures"
 
 // The baseline rule set — everything OSS. Per-transaction hygiene + response-signature (declarative)

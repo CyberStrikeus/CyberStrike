@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import type { Transaction } from "../src/index"
 import { compile, query, ExprError } from "../src/expr"
+import { rawView } from "../src/index"
 
 // base64url encode (JWT segments)
 const b64url = (o: unknown) =>
@@ -37,6 +38,25 @@ describe("DSL engine — core", () => {
     expect(() => compile("nope(resp.body)")).toThrow(ExprError)
     expect(() => compile("")).toThrow(ExprError)
     expect(() => compile("resp.status == 500 500")).toThrow(ExprError)
+  })
+})
+
+describe("rawView — fetch a stored transaction's raw for inspection (read-only, by id)", () => {
+  test("renders request + response as raw text (reconstruction)", () => {
+    const t = tx({
+      id: "r",
+      request: { method: "POST", url: "https://app.test/x?a=1", headers: [{ name: "content-type", value: "application/json" }], body: '{"q":1}' },
+      response: { status: 200, headers: [{ name: "server", value: "nginx" }], body: "ok" },
+    })
+    const rv = rawView(t)
+    expect(rv.request).toContain("POST https://app.test/x?a=1")
+    expect(rv.request).toContain("content-type: application/json")
+    expect(rv.request).toContain('{"q":1}')
+    expect(rv.response).toContain("200")
+    expect(rv.response).toContain("server: nginx")
+  })
+  test("response is undefined when the transaction never got one", () => {
+    expect(rawView(tx({ id: "n" })).response).toBeUndefined()
   })
 })
 
