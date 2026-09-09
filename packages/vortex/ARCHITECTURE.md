@@ -474,7 +474,12 @@ Vortex is a library first. Its public API (roadmap F) is the stable contract con
 - **Send**: `vortex.send(request)` (roadmap E).
 - **Signals out**: `onSignal(cb)` / a signal stream.
 
-Everything is versioned; the plugin interface is the seam that keeps the core generic.
+Everything is versioned; the plugin interface is the seam that keeps the core generic. Concretely
+(`contract.ts`): **`SourceAdapter`** (`ingest(raw) → Transaction`, + `feed()`), **`VortexPlugin`** +
+**`registerPlugin()`** (contribute rules/chains/probes, returns the active rules), and
+**`CORE_API_VERSION`** with a semver handshake (a plugin's `requiresCore` is checked, incompatible
+ones rejected with `PluginError`). The module header also PINS the public/internal boundary — the
+`Engine.*` namespace and the expr/fields internals are explicitly NOT part of the contract.
 
 ### Two tiers: platform SDK vs agent surface
 

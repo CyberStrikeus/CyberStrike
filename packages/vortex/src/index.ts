@@ -33,6 +33,9 @@ export { valueOccurrences, untestedEndpoints } from "./pivot"
 // (agentCapabilities) a consumer adapts into its tool framework. SDK-produced fixed tools.
 export type { Vortex, Capability, LeadFilter } from "./agent"
 export { forAgent, agentCapabilities } from "./agent"
+// The consumer contract: source-adapter + plugin interfaces + the CORE_API_VERSION handshake.
+export type { SourceAdapter, VortexPlugin } from "./contract"
+export { CORE_API_VERSION, feed, registerPlugin, PluginError } from "./contract"
 export type { Params } from "./params"
 export { params, responseFields, requestBodyKind, responseBodyKind } from "./params"
 export type { BodyKind, BodyView } from "./body"
