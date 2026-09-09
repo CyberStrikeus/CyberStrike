@@ -133,6 +133,34 @@ function classInfo(cwe?: string | null): ClassInfo | undefined {
   return n ? CLASS_LIBRARY[n] : undefined
 }
 
+// OWASP Top-10 (2021) category per CWE, shown as a tag on the finding. Extend alongside CLASS_LIBRARY.
+const OWASP_BY_CWE: Record<string, string> = {
+  "639": "A01:2021 – Broken Access Control",
+  "284": "A01:2021 – Broken Access Control",
+  "285": "A01:2021 – Broken Access Control",
+  "79": "A03:2021 – Injection",
+  "89": "A03:2021 – Injection",
+  "918": "A10:2021 – Server-Side Request Forgery (SSRF)",
+}
+function owaspFor(cwe?: string | null): string | undefined {
+  const n = cweNumber(cwe)
+  return n ? OWASP_BY_CWE[n] : undefined
+}
+
+// Agent-written free text (description / steps / poc / impact) may carry its OWN markdown headings.
+// A leading `#` there becomes a top-level title when the finding is pasted into a tracker, colliding
+// with the report's #/## hierarchy. Demote any heading line to bold so the report's own structure is
+// the only heading hierarchy.
+function demoteHeadings(text: string): string {
+  return text.replace(/^\s{0,3}#{1,6}[ \t]+(.*)$/gm, "**$1**")
+}
+
+// A CWE id normalized to the "CWE-89" tag form.
+function cweTag(cwe?: string | null): string | undefined {
+  const n = cweNumber(cwe)
+  return n ? `CWE-${n}` : cwe ?? undefined
+}
+
 /** Build the deterministic curl for a captured request (from its raw HTTP + origin). */
 function curlFor(req: Request.Info): string | undefined {
   if (!req.raw_request) return undefined
@@ -194,45 +222,59 @@ export function renderFinding(v: Vulnerability.Info, sessionID: string, ref?: st
   const affected = v.endpoint ?? "—"
 
   const lines: string[] = []
+  // H1 = the only top-level title. Everything below is H2 so a paste into a tracker keeps one clean
+  // heading hierarchy (title → sections).
   lines.push(`# ${ref ? `[${ref}] ` : ""}${v.title}`, "")
-  lines.push(`Affected Resource: ${affected}`, "")
-  lines.push(`Weakness: ${weakness}${v.cwe_id ? ` (${v.cwe_id})` : ""}`, "")
-  lines.push(`Severity: ${sev}${v.candidate ? " (CANDIDATE — unconfirmed)" : ""}`, "")
 
-  lines.push("", "## Vulnerability Overview", "")
-  lines.push(info?.overview ?? `This finding is a ${weakness}. ${v.description}`)
+  // Metadata tags, incl. CWE + OWASP, on one scannable line.
+  const tags: string[] = [`**Severity:** ${sev}${v.candidate ? " (CANDIDATE — unconfirmed)" : ""}`, `**Weakness:** ${weakness}`]
+  const cwe = cweTag(v.cwe_id)
+  if (cwe) tags.push(`**CWE:** [${cwe}](https://cwe.mitre.org/data/definitions/${cweNumber(v.cwe_id)}.html)`)
+  const owasp = owaspFor(v.cwe_id)
+  if (owasp) tags.push(`**OWASP:** ${owasp}`)
+  lines.push(tags.join("  •  "), "")
+  lines.push(`**Affected Resource:** \`${affected}\``, "")
 
-  lines.push("", "### Finding Details", "")
-  lines.push(v.description)
-  if (v.attack_vector) lines.push("", `Attack vector: ${v.attack_vector}.`)
+  // ── Description ──
+  lines.push("", "## Description", "")
+  lines.push(info?.overview ?? `This finding is a ${weakness}.`)
+  if (v.description && v.description.trim()) lines.push("", demoteHeadings(v.description.trim()))
+  if (v.attack_vector) lines.push("", `**Attack vector:** ${v.attack_vector}.`)
 
-  lines.push("", "### Steps To Reproduce", "")
-  if (v.steps_to_reproduce && v.steps_to_reproduce.trim()) {
-    lines.push(v.steps_to_reproduce.trim(), "")
-  }
+  // ── Steps to Reproduce ── developer-friendly: numbered prose (headings demoted) + a deterministic
+  // copy-paste curl and the raw request/response, each fenced as code so payloads read as code.
+  lines.push("", "## Steps to Reproduce", "")
+  if (v.steps_to_reproduce && v.steps_to_reproduce.trim()) lines.push(demoteHeadings(v.steps_to_reproduce.trim()), "")
   lines.push(...renderReproduction(sessionID, v.evidence_request_ids))
-  // Any extra agent-written PoC (e.g. a crafted body the capture lacked) is kept verbatim.
-  if (v.poc && v.poc.trim()) lines.push("Additional proof of concept:", "", "```", v.poc.trim(), "```", "")
 
-  lines.push("", "## Recommendations", "", "To address this finding, implement the following:", "")
+  // ── Proof of Concept ── the agent's crafted PoC, fenced so any `#`/payload reads as code, never a
+  // heading, when pasted.
+  if (v.poc && v.poc.trim()) {
+    lines.push("", "## Proof of Concept", "", "```http", v.poc.trim(), "```")
+  }
+
+  // ── Business Impact ──
+  lines.push("", "## Business Impact", "")
+  const impacts = v.business_impact && v.business_impact.trim() ? [demoteHeadings(v.business_impact.trim())] : (info?.impacts ?? ["**Security Impact**: An attacker could exploit this finding as described above."])
+  lines.push(...bullets(impacts))
+
+  // ── Recommendations ──
+  lines.push("", "## Recommendations", "")
   const recs = info?.recommendations ?? (v.recommendation ? [v.recommendation] : ["**Remediation**: Address the root cause described above."])
   lines.push(...bullets(recs))
-  if (info && v.recommendation && v.recommendation.trim()) lines.push("", `Instance-specific note: ${v.recommendation.trim()}`)
+  if (info && v.recommendation && v.recommendation.trim()) lines.push("", `**Instance-specific note:** ${demoteHeadings(v.recommendation.trim())}`)
 
-  lines.push("", "## References", "", "See the following for more information:", "")
+  // ── References ──
+  lines.push("", "## References", "")
   const refs = (v.references && v.references.length ? v.references : undefined) ?? info?.references ?? []
   if (refs.length) {
     for (const r of refs) {
       const [name, url] = r.includes("|") ? r.split("|") : [r, r]
-      lines.push(`  - [${name}](${url})`)
+      lines.push(`- [${name}](${url})`)
     }
   } else {
-    lines.push("  - _No references provided._")
+    lines.push("- _No references provided._")
   }
-
-  lines.push("", "## Impacts", "", "If not addressed, this finding could lead to the following:", "")
-  const impacts = v.business_impact && v.business_impact.trim() ? [v.business_impact.trim()] : (info?.impacts ?? ["**Security Impact**: An attacker could exploit this finding as described above."])
-  lines.push(...bullets(impacts))
 
   return lines.join("\n")
 }
