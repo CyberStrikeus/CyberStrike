@@ -78,7 +78,9 @@ import { signatureRules } from "./rules/signatures"
 import { misconfigRules } from "./rules/misconfig"
 import { authRules } from "./rules/auth"
 import { cveRules } from "./rules/cve"
+import { chainRules } from "./rules/chains"
 import { compileRules } from "./declarative"
+import { compileChain } from "./chain"
 
 // The declarative rule DSL (LLM-friendly: a rule is {when: DSL-expression, message, severity} data).
 export type { DeclarativeRule } from "./declarative"
@@ -98,7 +100,8 @@ export const baselineRules = [...headerRules, ...compileRules(signatureRules), .
 export { misconfigRules } from "./rules/misconfig"
 export { authRules } from "./rules/auth"
 export { cveRules } from "./rules/cve"
-export const baselineCorpusRules = [...accessRules]
+export const baselineCorpusRules = [...accessRules, ...chainRules.map(compileChain)]
+export { chainRules } from "./rules/chains"
 
 export function defaultRegistry(): RuleRegistry {
   return new RuleRegistry().registerAll(baselineRules).registerCorpusAll(baselineCorpusRules)
