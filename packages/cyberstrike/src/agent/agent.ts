@@ -19,6 +19,7 @@ import PROMPT_MOBILE_APPLICATION from "./prompt/mobile-application.txt"
 import PROMPT_NORMALIZE_REQUEST from "./prompt/normalize-request.txt"
 import PROMPT_CYBERSTRIKE from "./prompt/cyberstrike.txt"
 import PROMPT_GENERAL from "./prompt/general.txt"
+import PROMPT_VORTEX_TEST_INJECTION from "./prompt/vortex-test-injection.txt"
 // Methodology Engine prompts — intelligence logging, coverage tracking, forced continuation
 import PROMPT_METHODOLOGY_COMMON from "./prompt/methodology/common-methodology.txt"
 import PROMPT_METHODOLOGY_CONTINUATION from "./prompt/methodology/forced-continuation.txt"
@@ -155,6 +156,32 @@ export namespace Agent {
         ),
         options: {},
         mode: "subagent",
+        native: true,
+      },
+      "vortex-test-injection": {
+        name: "vortex-test-injection",
+        description: "TEST agent (temporary) — hunts INJECTION vulnerabilities entirely through the Vortex engine. Remove after the Vortex trial.",
+        prompt: PROMPT_VORTEX_TEST_INJECTION,
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            // Its whole surface: the Vortex read tools + CS http_replay + report. Everything else off.
+            "*": "deny",
+            vortex_leads: "allow",
+            vortex_inspect: "allow",
+            vortex_query: "allow",
+            vortex_objects: "allow",
+            vortex_functions: "allow",
+            vortex_cross_role: "allow",
+            vortex_where_value: "allow",
+            vortex_untested: "allow",
+            http_replay: "allow",
+            report_vulnerability: "allow",
+          }),
+          user,
+        ),
+        options: {},
+        mode: "all",
         native: true,
       },
       explore: {

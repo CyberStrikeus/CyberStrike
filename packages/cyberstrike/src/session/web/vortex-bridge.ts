@@ -3,7 +3,7 @@
 // Vortex engine (rules → signals → subjects → inventory → leads) runs over the live web corpus in
 // parallel with the existing CS signal fabric (verify-first; the fabric retires once Vortex proves
 // out). Never throws — must not break the ingest path.
-import { SqliteStore, defaultRegistry, leads, endpointKey, type TrafficStore, type Transaction, type Header, type Lead } from "@cyberstrike-io/vortex"
+import { SqliteStore, defaultRegistry, leads, endpointKey, forAgent, type Vortex, type TrafficStore, type Transaction, type Header, type Lead } from "@cyberstrike-io/vortex"
 import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
@@ -32,6 +32,11 @@ function storeFor(sessionID: string): TrafficStore {
 }
 export function dropSession(sessionID: string): void {
   stores.delete(sessionID)
+}
+
+// The narrow agent facade over this session's Vortex store — what the Vortex agent tools call.
+export function vortexApi(sessionID: string): Vortex {
+  return forAgent(storeFor(sessionID))
 }
 
 // Parse a raw HTTP request (the extension's captured text) into headers + body. First line is the
