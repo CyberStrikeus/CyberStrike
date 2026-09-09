@@ -93,8 +93,13 @@ export function mutationForPoint(pt: InjectPoint, value: string): Apply.Mutation
 
 function errorSignature(sigs: RegExp[] | undefined, body: string | undefined, baseline: string | undefined): RegExp | undefined {
   if (!sigs || !body) return undefined
+  // Differential: fire only when the signature is in the probe body AND we have a baseline proving
+  // it was NOT already there. No baseline (the baseline send failed / had no body) ⇒ we cannot diff
+  // ⇒ do NOT fire — otherwise `!(undefined && …)` would fire on any signature, a false positive on
+  // error-like chrome that may have always been present.
+  if (baseline === undefined) return undefined
   for (const re of sigs) {
-    if (re.test(body) && !(baseline && re.test(baseline))) return re
+    if (re.test(body) && !re.test(baseline)) return re
   }
   return undefined
 }
@@ -123,6 +128,18 @@ export async function probeInjectPoints(
   const out: Signal[] = []
   const baselineByTx = new Map<string, string | undefined>()
 
+  // A single failed send (timeout / connection reset / TLS / the target momentarily down) must NOT
+  // abort the whole probing pass and lose the signals + coverage gathered so far. Swallow the throw
+  // and treat it as "no result" for that one send; the point still gets coverage (clean) so it is
+  // marked probed and not retried in a storm.
+  const trySend = async (input: Parameters<Sender>[0], o?: Parameters<Sender>[1]): Promise<Awaited<ReturnType<Sender>> | undefined> => {
+    try {
+      return await send(input, o)
+    } catch {
+      return undefined
+    }
+  }
+
   for (const pt of points) {
     const tx = resolveTx(pt.transactionId)
     if (!tx) continue
@@ -130,8 +147,8 @@ export async function probeInjectPoints(
 
     // Baseline body for the tx (one send, cached) — the differential reference for error detection.
     if (!baselineByTx.has(tx.id)) {
-      const base = await send(tx)
-      baselineByTx.set(tx.id, base.transaction.response?.body)
+      const base = await trySend(tx)
+      baselineByTx.set(tx.id, base?.transaction.response?.body)
     }
     const baseline = baselineByTx.get(tx.id)
     const endpoint = endpointKey(tx)
@@ -149,7 +166,7 @@ export async function probeInjectPoints(
     const ensureIsolatedBaseline = async () => {
       if (isolatedBaselineReady) return
       isolatedBaselineReady = true
-      if (isolationBlanks.length > 0) isolatedBaseline = (await send(tx, { mutations: isolationBlanks })).transaction.response?.body
+      if (isolationBlanks.length > 0) isolatedBaseline = (await trySend(tx, { mutations: isolationBlanks }))?.transaction.response?.body
     }
 
     for (const cls of classes) {
@@ -169,10 +186,11 @@ export async function probeInjectPoints(
           const tc = cls.detect === "evaluated" ? mintTemplateCanary() : undefined
           const value = tc ? payload.split(TEMPLATE_PLACEHOLDER).join(tc.expr) : payload
           const mutations = strategy === "isolated" ? [...isolationBlanks, mutationForPoint(pt, value)] : [mutationForPoint(pt, value)]
-          const res = await send(tx, {
+          const res = await trySend(tx, {
             mutations,
             canary: cls.detect === "reflected" ? { field: pt.dotpath, vulnClass: cls.category } : undefined,
           })
+          if (!res) continue // send failed (timeout/reset/TLS) — skip this payload, don't abort the pass
           const body = res.transaction.response?.body
 
           let hit = false

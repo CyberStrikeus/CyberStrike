@@ -146,6 +146,40 @@ describe("probe strategies — full vs isolated", () => {
   })
 })
 
+describe("resilience — send failures + baseline gaps (C1 / B2)", () => {
+  test("C1: a throwing send is skipped, not fatal — other txs still probed", async () => {
+    const tA = tx("bad", "https://app.test/a?id=1")
+    const tB = tx("good", "https://app.test/b?id=2")
+    const s: Sender = async (input, opts) => {
+      const t = input as Transaction
+      if (t.id === "bad") throw new Error("connection reset") // every send for tA fails
+      const isPayload = (opts?.mutations ?? []).some((m) => (m as { op: string; name?: string; value?: string }).op === "set-query" && (m as { name?: string }).name === "id" && (m as { value?: string }).value !== "")
+      return {
+        transaction: { ...t, response: { status: 200, headers: [], body: isPayload ? "you have an error in your SQL syntax" : "ok" } },
+        result: { response: { version: "HTTP/1.1", status: 200, reason: "OK", headers: [], body: new Uint8Array() }, timing: { totalMs: 1 }, attempts: 1 },
+      } as SendResult
+    }
+    const points = [...injectPoints(tA), ...injectPoints(tB)]
+    const sigs = await probeInjectPoints(points, resolver(tA, tB), s, { classes: ["sqli-error"] })
+    expect(sigs.some((x) => x.transactionId === "good")).toBe(true) // tB found despite tA throwing on every send
+    expect(sigs.some((x) => x.transactionId === "bad")).toBe(false)
+  })
+
+  test("B2: no baseline (baseline send failed) does NOT fire an error signal (avoids false positive)", async () => {
+    const t = tx("nb", "https://app.test/x?id=1")
+    const s: Sender = async (input, opts) => {
+      if (!opts?.mutations) throw new Error("baseline timeout") // baseline send fails → baseline undefined
+      // every probe returns an error string — but with no baseline we cannot diff, so must not fire
+      return {
+        transaction: { ...(input as Transaction), response: { status: 200, headers: [], body: "you have an error in your SQL syntax" } },
+        result: { response: { version: "HTTP/1.1", status: 200, reason: "OK", headers: [], body: new Uint8Array() }, timing: { totalMs: 1 }, attempts: 1 },
+      } as SendResult
+    }
+    const sigs = await probeInjectPoints(injectPoints(t), resolver(t), s, { classes: ["sqli-error"] })
+    expect(sigs.filter((x) => x.ruleId === "sqli-error")).toHaveLength(0)
+  })
+})
+
 describe("probeSession — store-driven probing + coverage (phase 4)", () => {
   test("persists signals + per-(param,class) coverage and marks points probed", async () => {
     const store = new MemoryStore()
