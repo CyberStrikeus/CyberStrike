@@ -50,7 +50,8 @@ describe("injectPoints enumeration", () => {
   test("id-shaped path segments are points; static route words are not", () => {
     const pts = injectPoints(jsonTx("t4", "https://app.test/review/api/customers/ea8722b0-dcd4-4fed-8c1f-d5952857dd16/dashboard"))
     const uuidSeg = pts.find((p) => p.location === "path")
-    expect(uuidSeg?.dotpath).toBe("3") // 0:review 1:api 2:customers 3:<uuid> 4:dashboard
+    // index matches Mutate.setPathParam (leading "" kept): ""=0 review=1 api=2 customers=3 <uuid>=4
+    expect(uuidSeg?.dotpath).toBe("4")
     expect(uuidSeg?.valueType).toBe("uuid")
     expect(uuidSeg?.name).toBe("customers")
     expect(pts.filter((p) => p.location === "path").length).toBe(1) // only the uuid, not the words
@@ -58,7 +59,9 @@ describe("injectPoints enumeration", () => {
 
   test("numeric path id is a point", () => {
     const pts = injectPoints(jsonTx("t5", "https://app.test/orders/12345"))
-    expect(find(pts, "path", "1")?.valueType).toBe("number")
+    // ""=0 orders=1 12345=2
+    expect(find(pts, "path", "2")?.valueType).toBe("number")
+    expect(find(pts, "path", "2")?.name).toBe("orders")
   })
 
   test("only injectable headers become points", () => {

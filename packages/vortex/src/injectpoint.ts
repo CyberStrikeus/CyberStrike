@@ -112,10 +112,13 @@ export function injectPoints(tx: Transaction): InjectPoint[] {
   for (const k in p.query) push("query", k, p.query[k], k)
   for (const k in p.body) push("body", k, p.body[k], k.split(".").pop())
 
-  const segs = pathname(tx.request.url).split("/").filter(Boolean)
+  // Path segment index MUST match Mutate.setPathParam's convention: it splits on "/" WITHOUT
+  // dropping the empty leading segment, so `/a/b` → ["", "a", "b"] and `b` is index 2. Keep the
+  // leading "" here so a point's dotpath is directly usable as the set-path-param index in probing.
+  const segs = pathname(tx.request.url).split("/")
   for (let i = 0; i < segs.length; i++) {
     const seg = segs[i]!
-    if (isVariableSegment(seg)) push("path", String(i), seg, segs[i - 1])
+    if (seg && isVariableSegment(seg)) push("path", String(i), seg, segs[i - 1] || undefined)
   }
 
   for (const h of tx.request.headers) {
