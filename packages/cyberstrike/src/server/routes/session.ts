@@ -40,6 +40,7 @@ import { CoDrive } from "../../session/web/nav/co-drive-runner"
 import { DataCollector } from "../../session/web/data-collector"
 import { JsMiner } from "../../session/web/js-miner"
 import { scanCapturedResponse } from "../../session/web/signal/ingest"
+import { ingestBrowserTransaction, vortexReport } from "../../session/web/vortex-bridge"
 import { HBLog } from "../../session/web/hblog"
 import { FrameworkFingerprinter } from "../../session/web/tech"
 import { upgradeWebSocket } from "hono/bun"
@@ -1668,6 +1669,17 @@ export const SessionRoutes = lazy(() =>
       },
     )
     .get(
+      "/:sessionID/vortex",
+      describeRoute({
+        summary: "Vortex report",
+        description: "Run the Vortex engine over the session's live web corpus and return leads + counts.",
+        operationId: "session.vortexReport",
+        responses: { 200: { description: "Vortex report" } },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => c.json(vortexReport(c.req.valid("param").sessionID)),
+    )
+    .get(
       "/:sessionID/web/retest-queue",
       describeRoute({
         summary: "Get web retest queue",
@@ -2010,6 +2022,20 @@ export const SessionRoutes = lazy(() =>
           // New endpoint shape: record the first observation, linked to the row.
           recordObservation(req.id)
           runFabric(req.id)
+
+          // Parallel Vortex feed (browser SourceAdapter): the same capture becomes a Vortex
+          // Transaction so the Vortex engine runs over the live web corpus, verify-first alongside
+          // the CS signal fabric above. Never throws.
+          ingestBrowserTransaction({
+            sessionID,
+            requestID: req.id,
+            method: normalized.method,
+            url: normalized.origin + (normalized.canonicalPath ?? normalized.normalizedPath),
+            host: normalized.host,
+            identity: credentialID,
+            rawRequest: truncatedRawRequest,
+            response: body.response,
+          })
 
           // Build the prompt as a thunk so the `## Observed Values` block reflects the
           // observation state at SEND time, not at enqueue time. Prompts queue (LLM calls

@@ -75,6 +75,7 @@
     "@actions/core": "1.11.1",
     "@actions/github": "6.0.1",
     "@cyberstrike-io/azure": "workspace:*",
+    "@cyberstrike-io/vortex": "workspace:*",
     "@agentclientprotocol/sdk": "0.14.1",
     "@ai-sdk/alibaba": "0.0.12",
     "@ai-sdk/amazon-bedrock": "3.0.79",
