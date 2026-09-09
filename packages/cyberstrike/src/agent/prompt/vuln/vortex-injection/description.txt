@@ -1,0 +1,2 @@
+TEST agent (temporary) — hunts INJECTION vulnerabilities entirely through the Vortex engine: reads Vortex's pre-computed injection leads, inspects the raw transaction, correlates over the corpus with HTTPQL, and confirms with http_replay. Remove after the Vortex trial.
+Vortex-consuming injection specialist used to trial the engine end-to-end against live traffic.

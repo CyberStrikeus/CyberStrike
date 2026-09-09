@@ -33,6 +33,16 @@ import PROMPT_HUNT_TESTER_LLM from "../agent/prompt/vuln/llm/prompt.txt"
 import DESC_HUNT_TESTER_LLM from "../agent/prompt/vuln/llm/description.txt"
 import PROMPT_HUNT_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/prompt.txt"
 import DESC_HUNT_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/description.txt"
+import PROMPT_VORTEX_TEST_INJECTION from "../agent/prompt/vuln/vortex-injection/prompt.txt"
+import DESC_VORTEX_TEST_INJECTION from "../agent/prompt/vuln/vortex-injection/description.txt"
+
+// Vortex trial (temporary). When CYBERSTRIKE_VORTEX_INJECTION is set, the injection
+// SpecialistClass is owned by `vortex-test-injection` — a test agent that hunts injection
+// ENTIRELY through the Vortex engine (leads → inspect → query → http_replay confirm) instead
+// of hunt-injection. Opt-in and removable: unset the env var to restore hunt-injection, and
+// pair with CYBERSTRIKE_WEB_FOCUS=vortex-test-injection to run it in isolation for the trial.
+const VORTEX_INJECTION_TRIAL =
+  process.env.CYBERSTRIKE_VORTEX_INJECTION === "1" || process.env.CYBERSTRIKE_VORTEX_INJECTION === "true"
 
 function stripDefensiveSections(content: string): string {
   if (!content) return ""
@@ -475,7 +485,10 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     {
       name: "hunt-injection",
       role: "specialist",
-      specialistClass: "injection",
+      // During the Vortex trial the injection class is owned by vortex-test-injection instead
+      // (see VORTEX_INJECTION_TRIAL). hunt-injection stays in the roster but stops being the
+      // routed owner, so retest-worker's agentForClass("injection") dispatches the Vortex agent.
+      specialistClass: VORTEX_INJECTION_TRIAL ? undefined : "injection",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_INJECTION, injectionSkills),
       description: DESC_HUNT_TESTER_INJECTION,
       skills: ["wstg-injection", "wstg-inpv-05", "wstg-inpv-12", "wstg-inpv-18"],
@@ -510,6 +523,35 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
         },
       }),
     },
+    // Vortex trial agent — only joins the roster (and claims the injection class) when the
+    // trial flag is set. Consumes the Vortex engine: reads pre-computed injection leads, inspects
+    // the raw transaction, correlates over the corpus (HTTPQL), and confirms with http_replay.
+    ...(VORTEX_INJECTION_TRIAL
+      ? [
+          {
+            name: "vortex-test-injection",
+            role: "specialist" as const,
+            specialistClass: "injection" as SpecialistClass,
+            // Built through the same convention as every other vuln specialist: the common
+            // methodology preamble + the injection skill pack wrap the Vortex-consumer body,
+            // and the description comes from its description.txt (not an inline string).
+            prompt: vulnPrompt(PROMPT_VORTEX_TEST_INJECTION, injectionSkills),
+            description: DESC_VORTEX_TEST_INJECTION,
+            skills: ["wstg-injection", "wstg-inpv-05", "wstg-inpv-12", "wstg-inpv-18"],
+            prependRequestContext: true,
+            permissions: mergePermissions(VULN_BASE_PERMISSIONS, {
+              vortex_leads: "allow",
+              vortex_inspect: "allow",
+              vortex_query: "allow",
+              vortex_objects: "allow",
+              vortex_functions: "allow",
+              vortex_cross_role: "allow",
+              vortex_where_value: "allow",
+              vortex_untested: "allow",
+            }),
+          },
+        ]
+      : []),
     {
       name: "hunt-authn",
       role: "specialist",
