@@ -26,7 +26,11 @@ export namespace RetestWorker {
   // Concurrent specialist spawns. Separate pool from IngestQueue (new-endpoint triage); both
   // share the LLM rate limit, so this defaults small and is env-tunable.
   const CONCURRENCY = Math.max(1, Number(process.env.CYBERSTRIKE_RETEST_CONCURRENCY) || 3)
-  const DISPATCH_TIMEOUT_MS = 180_000
+  // Per-dispatch wall-clock cap. A specialist's injection sweep legitimately runs many minutes
+  // (slow replays, 8-10 params tested one by one), so there is NO cap by default — the old fixed
+  // 180s cut heavy endpoints (incl. the prime SQLi target) off mid-test. Set
+  // CYBERSTRIKE_RETEST_DISPATCH_TIMEOUT_MS to a positive ms value only to re-enable a safety cap.
+  const DISPATCH_TIMEOUT_MS = Math.max(0, Number(process.env.CYBERSTRIKE_RETEST_DISPATCH_TIMEOUT_MS) || 0)
 
   // One loop per session at a time (a running loop re-reads getPending until empty, so a wake
   // during a run is absorbed by the next iteration rather than starting a second loop).
@@ -130,7 +134,9 @@ export namespace RetestWorker {
       title: `Retest ${s.method ?? ""} ${s.endpoint ?? s.key_hash} (@${agentName} subagent)`.trim(),
     })
     const parts = await SessionPrompt.resolvePromptParts(buildPrompt(s, agentName))
-    await withTimeout(SessionPrompt.prompt({ sessionID: child.id, agent: agentName, model, parts }), DISPATCH_TIMEOUT_MS)
+    const run = SessionPrompt.prompt({ sessionID: child.id, agent: agentName, model, parts })
+    // No cap by default (DISPATCH_TIMEOUT_MS = 0); wrap only when a positive cap is configured.
+    await (DISPATCH_TIMEOUT_MS > 0 ? withTimeout(run, DISPATCH_TIMEOUT_MS) : run)
   }
 
   async function loop(sessionID: string): Promise<void> {
