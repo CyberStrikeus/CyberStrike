@@ -97,6 +97,10 @@ export { ChainRuleSchema, compileChain, parseChains } from "./chain"
 export { correlatable, responseValues, requestValues, sharedValues } from "./taint"
 export type { Extract, Discovered } from "./discovery"
 export { ingestExtract, discoveredId } from "./discovery"
+// Crawl — the discovery producer (shallow scaffold; deepened separately). Walks same-host links via
+// a Sender, stores fetched traffic, records endpoints/script-URLs into the discovered inventory.
+export type { CrawlOptions, CrawlResult } from "./crawl"
+export { crawl } from "./crawl"
 export type { RawView } from "./fields"
 export { fieldValue, rawView } from "./fields"
 export { signatureRules } from "./rules/signatures"
