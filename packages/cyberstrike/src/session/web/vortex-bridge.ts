@@ -3,7 +3,7 @@
 // Vortex engine (rules → signals → subjects → inventory → leads) runs over the live web corpus in
 // parallel with the existing CS signal fabric (verify-first; the fabric retires once Vortex proves
 // out). Never throws — must not break the ingest path.
-import { SqliteStore, defaultRegistry, leads, endpointKey, forAgent, type Vortex, type TrafficStore, type Transaction, type Header, type Lead } from "@cyberstrike-io/vortex"
+import { SqliteStore, defaultRegistry, leads, endpointKey, forAgent, injectPoints, probeSession, send, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender } from "@cyberstrike-io/vortex"
 import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
@@ -90,7 +90,11 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
     store.add(tx)
     const sigs = registry.run(tx) // per-transaction rules on the new tx
     const added = store.addSignals(sigs)
-    log.info("vortex ingest", { sessionID: i.sessionID, endpoint: endpointKey(tx), transactions: store.size(), newSignals: added, ruleIds: sigs.map((s) => s.ruleId) })
+    // Enumerate + persist this request's injection points (issue #9). Cheap, no network — just parse
+    // every query/body-dotpath/path/header input into the inventory so active probing (vortexProbe,
+    // gated) and coverage can run off it. Never throws.
+    const points = store.addInjectPoints(injectPoints(tx))
+    log.info("vortex ingest", { sessionID: i.sessionID, endpoint: endpointKey(tx), transactions: store.size(), newSignals: added, newParams: points, ruleIds: sigs.map((s) => s.ruleId) })
     return { transactions: store.size(), signals: store.signals().length }
   } catch (e) {
     log.debug("vortex ingest failed (ignored)", { err: String(e) })
@@ -108,4 +112,34 @@ export function vortexReport(sessionID: string): { transactions: number; signals
     log.debug("vortex analyze failed (ignored)", { err: String(e) })
   }
   return { transactions: store.size(), signals: store.signals().length, leads: leads(store) }
+}
+
+// ACTIVE injection probing on the live corpus — the ONLY path in Vortex that SENDS attacker payloads
+// to the target. Double-gated so nothing fires by accident: (1) it only runs when explicitly called
+// (never inline in ingest), and (2) it is a no-op unless CYBERSTRIKE_VORTEX_ACTIVE_PROBE is set.
+// When on, it probes each not-yet-probed inject point through a governed, rate-limited, replay-safe
+// sender and persists the signals + coverage. Never throws.
+const ACTIVE_PROBE = process.env.CYBERSTRIKE_VORTEX_ACTIVE_PROBE === "1" || process.env.CYBERSTRIKE_VORTEX_ACTIVE_PROBE === "true"
+const PROBE_MIN_INTERVAL_MS = Math.max(0, Number(process.env.CYBERSTRIKE_VORTEX_PROBE_INTERVAL_MS) || 200) // ~5 rps default
+
+export async function vortexProbe(sessionID: string): Promise<{ enabled: boolean; probed: number; signals: number }> {
+  if (!ACTIVE_PROBE) return { enabled: false, probed: 0, signals: 0 }
+  const store = storeFor(sessionID)
+  // Rate-limited, governed sender: a small pre-send delay caps throughput (probeSession sends
+  // sequentially), and Vortex's own send() enforces replay-safety + a per-send timeout.
+  let last = 0
+  const sender: Sender = async (input, opts) => {
+    const wait = PROBE_MIN_INTERVAL_MS - (Date.now() - last)
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait))
+    last = Date.now()
+    return send(input, { ...opts, timeoutMs: opts?.timeoutMs ?? 15_000, followRedirects: false })
+  }
+  try {
+    const res = await probeSession(store, sender)
+    log.info("vortex active-probe", { sessionID, probed: res.probed, signals: res.signals.length })
+    return { enabled: true, probed: res.probed, signals: res.signals.length }
+  } catch (e) {
+    log.debug("vortex active-probe failed (ignored)", { err: String(e) })
+    return { enabled: true, probed: 0, signals: 0 }
+  }
 }

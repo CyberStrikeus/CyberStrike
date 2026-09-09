@@ -40,7 +40,7 @@ import { CoDrive } from "../../session/web/nav/co-drive-runner"
 import { DataCollector } from "../../session/web/data-collector"
 import { JsMiner } from "../../session/web/js-miner"
 import { scanCapturedResponse } from "../../session/web/signal/ingest"
-import { ingestBrowserTransaction, vortexReport } from "../../session/web/vortex-bridge"
+import { ingestBrowserTransaction, vortexReport, vortexProbe } from "../../session/web/vortex-bridge"
 import { HBLog } from "../../session/web/hblog"
 import { FrameworkFingerprinter } from "../../session/web/tech"
 import { upgradeWebSocket } from "hono/bun"
@@ -1678,6 +1678,18 @@ export const SessionRoutes = lazy(() =>
       }),
       validator("param", z.object({ sessionID: z.string() })),
       async (c) => c.json(vortexReport(c.req.valid("param").sessionID)),
+    )
+    .post(
+      "/:sessionID/vortex/probe",
+      describeRoute({
+        summary: "Vortex active probe",
+        description:
+          "Actively probe the session's enumerated injection points (sends payloads to the target). No-op unless CYBERSTRIKE_VORTEX_ACTIVE_PROBE is set; governed + replay-safe. Returns probed/signal counts.",
+        operationId: "session.vortexProbe",
+        responses: { 200: { description: "Vortex active-probe result" } },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => c.json(await vortexProbe(c.req.valid("param").sessionID)),
     )
     .get(
       "/:sessionID/web/retest-queue",
