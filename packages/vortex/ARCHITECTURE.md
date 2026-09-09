@@ -162,9 +162,14 @@ the core small, testable, and reusable while every domain's knowledge stays in i
 | DSL engine — rule/matcher language (parser + evaluator + function library) | `expr.ts` | ✅ |
 | HTTPQL — agent query interface (SELECT, no functions, `:~` regex operator) | `httpql.ts` | ✅ |
 | Field vocabulary (dotted-path resolver + raw grep fields), shared by both | `fields.ts` | ✅ |
-| Send engine (mutate + send + observe) | `send/*` | ⏳ (roadmap E) |
-| Proxy (MITM/forward) | `proxy/*` | ⏳ (roadmap J) |
-| SDK / plugin interface | `plugin.ts` | ⏳ (roadmap F) |
+| Rule catalog (22 DSL rules: declarative/chain/probe) + selection metadata | `rules/*` · `rule-meta.ts` · `pack.ts` | ✅ |
+| `subjects(tx)` object/function/role extractor (URI/header/nested-body + GraphQL + JWT) | `subjects.ts` | ✅ |
+| `inventory(store)` corpus object/function graph + cross-role IDOR/BFLA | `inventory.ts` | ✅ |
+| `lead(tx, signal)` producer→consumer boundary object + pivot getters | `lead.ts` · `pivot.ts` | ✅ |
+| Agent surface (narrow facade + framework-neutral tool descriptors) | `agent.ts` | ✅ |
+| Consumer contract (SourceAdapter / VortexPlugin / CORE_API_VERSION) | `contract.ts` | ✅ |
+| Send engine (mutate + send + observe) + replay-safety guard | `send/*` · `replay.ts` · `replay-safety.ts` | ✅ |
+| Proxy (MITM/forward) | `adapters/proxy.ts` | ⏳ (roadmap J — issue #6) |
 
 ---
 
