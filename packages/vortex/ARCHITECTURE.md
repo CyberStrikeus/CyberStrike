@@ -476,6 +476,29 @@ Vortex is a library first. Its public API (roadmap F) is the stable contract con
 
 Everything is versioned; the plugin interface is the seam that keeps the core generic.
 
+### Two tiers: platform SDK vs agent surface
+
+The API has **two audiences**, and they get different surfaces:
+
+- **Platform SDK (consumer/developer)** — the broad programmatic API above: assemble Vortex (build
+  the store, register rules, feed adapters, author rule-packs), then BUILD the agent's tools. This is
+  where an SDK belongs.
+- **Agent surface (`forAgent` + `agentCapabilities`)** — a NARROW, curated facade the agent actually
+  sees: `leads / inspect / search / objects / functions / crossRole / whereValue / untested / send`.
+  Read-mostly with exactly **two open-ended inputs** — an HTTPQL `search` (grep-gated) and a full
+  `send`/`http_replay` (replay a capture OR craft a fresh/raw request; replay-safety guard on). It
+  does NOT expose the RuleRegistry, the expr compiler, the send-engine internals, or store mutation —
+  so the agent can't be confused by a huge surface or corrupt the corpus, and the guards are baked in.
+
+The agent gets **SDK-produced fixed tools, not the SDK to code against.** `agentCapabilities` are
+framework-neutral descriptors (`{ name, description, input: zodSchema, run(api, args) }`); a consumer
+writes a ~10-line adapter mapping them to its tool framework (opencode `Tool.define` / MCP / Anthropic
+tools) — Vortex owns the capability set + schemas (the contract), the host owns the tool-format
+adapter, so the same engine embeds anywhere. Exposing the tools over **MCP** additionally turns the
+in-process over-privilege boundary (an agent could otherwise import internals) into a process-enforced
+one. Over-privilege hardening itself is the consumer's agent-sandbox / tool-allowlist job, not
+Vortex's runtime concern — Vortex's part is making the narrow facade the path of least resistance.
+
 ---
 
 ## 12. Roadmap

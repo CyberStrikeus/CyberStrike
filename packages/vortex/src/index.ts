@@ -29,6 +29,10 @@ export { inventory, crossRoleObjects, crossRoleFunctions, objectsByResource, obj
 // Pivot getters — "confirmed one, hunt the rest": where a value flows, and untested attack surface.
 export type { Occurrence } from "./pivot"
 export { valueOccurrences, untestedEndpoints } from "./pivot"
+// The AGENT surface: a narrow curated facade (forAgent) + framework-neutral tool descriptors
+// (agentCapabilities) a consumer adapts into its tool framework. SDK-produced fixed tools.
+export type { Vortex, Capability, LeadFilter } from "./agent"
+export { forAgent, agentCapabilities } from "./agent"
 export type { Params } from "./params"
 export { params, responseFields, requestBodyKind, responseBodyKind } from "./params"
 export type { BodyKind, BodyView } from "./body"

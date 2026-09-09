@@ -1,0 +1,179 @@
+// The AGENT surface — a narrow, curated facade over Vortex, plus framework-neutral tool descriptors.
+// The platform (a consumer) ASSEMBLES Vortex with the broad API (store, rule engine, adapters);
+// the AGENT only ever sees this facade: read-mostly, with exactly two open-ended inputs (an HTTPQL
+// `search` and a full `send`/http_replay incl. craft-your-own requests), everything else typed. It
+// does NOT expose the RuleRegistry, the expr compiler, the send-engine internals, or store mutation
+// — so an agent can't be confused by a huge surface or corrupt the corpus. Guards are baked in
+// (search is grep-gated; send keeps the replay-safety guard).
+//
+// Vortex stays framework-agnostic: it ships the facade + `agentCapabilities` (name + description +
+// zod input + handler); a consumer writes a ~10-line adapter to its tool framework (opencode
+// Tool.define / MCP / Anthropic tools). SDK-produced FIXED tools — the agent calls them, it does not
+// write code against the SDK.
+import z from "zod"
+import type { TrafficStore } from "./store"
+import type { Transaction } from "./transaction"
+import type { Signal } from "./rule"
+import type { Lead } from "./lead"
+import type { RawView } from "./fields"
+import type { ObjectRecord, FunctionRecord } from "./inventory"
+import type { Occurrence } from "./pivot"
+import type { Discovered } from "./discovery"
+import type { RequestSpec, SendOptions, SendResult } from "./replay"
+import { leads } from "./lead"
+import { rawView } from "./fields"
+import { query as httpqlQuery } from "./httpql"
+import { inventory, crossRoleObjects, crossRoleFunctions } from "./inventory"
+import { valueOccurrences, untestedEndpoints } from "./pivot"
+import { send as coreSend } from "./replay"
+
+export interface LeadFilter {
+  category?: string
+  severity?: Signal["severity"]
+  limit?: number
+}
+
+// The narrow facade a consumer hands its agents.
+export interface Vortex {
+  // the fed findings (agent doesn't hunt — these are pre-computed)
+  leads(f?: LeadFilter): Lead[]
+  // inspect ONE transaction verbatim (exact bytes for evidence + crafting the next step)
+  inspect(id: string): RawView | undefined
+  // OPEN-ENDED read: HTTPQL SELECT over the corpus (grep-gated, ReDoS-safe, no functions)
+  search(httpql: string): Transaction[]
+  // the object/function graph (correlation), pre-aggregated
+  objects(f?: { resource?: string; role?: string }): ObjectRecord[]
+  functions(): FunctionRecord[]
+  crossRole(): { objects: ObjectRecord[]; functions: FunctionRecord[] } // deterministic IDOR / BFLA leads
+  whereValue(v: string): Occurrence[] // where a value (spotted in a rawView) flows
+  untested(): Discovered[] // discovered-but-unrequested attack surface
+  // OPEN-ENDED act: replay a captured request OR craft a fresh one; replay-safety guard stays on
+  send(input: string | RequestSpec, opts?: SendOptions): Promise<SendResult>
+}
+
+// Build the agent facade over a store. Read-only over the store's current signals/traffic; the
+// platform runs the rules (analyze → addSignals) — the agent just consumes.
+export function forAgent(store: TrafficStore): Vortex {
+  return {
+    leads: (f) => {
+      const sigs = store.signals({ category: f?.category, severity: f?.severity })
+      const out = leads(store, sigs)
+      return f?.limit ? out.slice(0, f.limit) : out
+    },
+    inspect: (id) => {
+      const tx = store.get(id)
+      return tx ? rawView(tx) : undefined
+    },
+    search: (httpql) => httpqlQuery(store.all(), httpql, { grep: false }), // agent scope: no raw grep
+    objects: (f) => {
+      let objs = inventory(store).objects
+      if (f?.resource) objs = objs.filter((o) => o.resource === f.resource)
+      if (f?.role) objs = objs.filter((o) => o.roles.includes(f.role!))
+      return objs
+    },
+    functions: () => inventory(store).functions,
+    crossRole: () => {
+      const inv = inventory(store)
+      return { objects: crossRoleObjects(inv), functions: crossRoleFunctions(inv) }
+    },
+    whereValue: (v) => valueOccurrences(store, v),
+    untested: () => untestedEndpoints(store),
+    send: (input, opts) => {
+      const resolved = typeof input === "string" ? store.get(input) : input
+      if (!resolved) throw new Error(`unknown request_id: ${input}`)
+      return coreSend(resolved, opts) // replay-safety guard on by default; caller opts-in to unsafe
+    },
+  }
+}
+
+// ── framework-neutral tool descriptors ──────────────────────────────────────
+export interface Capability {
+  name: string
+  description: string
+  input: z.ZodType
+  run(api: Vortex, args: unknown): unknown
+}
+
+const MUTATION = z.object({ op: z.string(), name: z.string().optional(), value: z.string().optional() }).strict()
+
+// Trim a SendResult to an agent-friendly fact set (not the internal engine object).
+function replayFacts(r: SendResult) {
+  const resp = r.result.response
+  return {
+    transaction_id: r.transaction.id,
+    status: resp?.status,
+    time_ms: r.transaction.timing?.ms,
+    headers: r.transaction.response?.headers,
+    body: r.transaction.response?.body?.slice(0, 4000),
+    canary_reflected: r.canaryReflected,
+  }
+}
+
+export const agentCapabilities: Capability[] = [
+  {
+    name: "vortex_leads",
+    description: "List pending findings as actionable leads (signal + endpoint/objects/role + raw inline). The agent's starting point — these are pre-computed by the engine, not hunted.",
+    input: z.object({ category: z.string().optional(), severity: z.enum(["info", "low", "medium", "high", "critical"]).optional(), limit: z.number().int().positive().optional() }).strict(),
+    run: (api, a) => api.leads(a as LeadFilter),
+  },
+  {
+    name: "vortex_inspect",
+    description: "Get the full, verbatim raw request+response of ONE transaction by id — the exact bytes, for evidence and for crafting the next probe.",
+    input: z.object({ id: z.string() }).strict(),
+    run: (api, a) => api.inspect((a as { id: string }).id),
+  },
+  {
+    name: "vortex_query",
+    description: "Search the traffic corpus with HTTPQL (field:op:value + AND/OR/NOT, :~ regex, field:* exists). Use to find requests matching a shape — same param elsewhere, an error signature, a value across endpoints. Structured SELECT only, no functions.",
+    input: z.object({ httpql: z.string() }).strict(),
+    run: (api, a) => api.search((a as { httpql: string }).httpql).map((t) => ({ id: t.id, method: t.request.method, url: t.request.url, status: t.response?.status })),
+  },
+  {
+    name: "vortex_objects",
+    description: "List resource objects seen across the corpus (canonicalized by value), optionally filtered by resource type or role. For BOLA/IDOR reasoning.",
+    input: z.object({ resource: z.string().optional(), role: z.string().optional() }).strict(),
+    run: (api, a) => api.objects(a as { resource?: string; role?: string }),
+  },
+  {
+    name: "vortex_functions",
+    description: "List the functions (method + endpoint + CRUD) seen across the corpus, with which roles called each. For BFLA reasoning.",
+    input: z.object({}).strict(),
+    run: (api) => api.functions(),
+  },
+  {
+    name: "vortex_cross_role",
+    description: "Deterministic access-control leads: objects reached under more than one role (IDOR/BOLA candidates) and functions called under more than one role (BFLA surface).",
+    input: z.object({}).strict(),
+    run: (api) => api.crossRole(),
+  },
+  {
+    name: "vortex_where_value",
+    description: "Find every transaction carrying a value (and the field it's in) — the pivot from a value spotted in a raw response (a leaked token, an internal host, an object id) to where else it flows.",
+    input: z.object({ value: z.string() }).strict(),
+    run: (api, a) => api.whereValue((a as { value: string }).value),
+  },
+  {
+    name: "vortex_untested",
+    description: "Endpoints the crawl discovered but no request ever hit — untested attack surface to expand a finding to.",
+    input: z.object({}).strict(),
+    run: (api) => api.untested(),
+  },
+  {
+    name: "http_replay",
+    description: "Send a request to CONFIRM or WEAPONIZE — replay a captured request by request_id, or craft a fresh one (target). Apply field mutations. Returns facts (status/timing/headers/body). A replay that would burn the live session (auth-exchange / single-use token) is refused unless allow_unsafe_replay.",
+    input: z
+      .object({
+        request_id: z.string().optional(),
+        target: z.object({ method: z.string(), url: z.string(), headers: z.record(z.string(), z.string()).optional(), body: z.string().optional() }).optional(),
+        mutations: z.array(MUTATION).optional(),
+        allow_unsafe_replay: z.boolean().optional(),
+      })
+      .strict(),
+    run: async (api, a) => {
+      const args = a as { request_id?: string; target?: RequestSpec; mutations?: never[]; allow_unsafe_replay?: boolean }
+      const input = args.request_id ?? args.target
+      if (!input) throw new Error("http_replay needs request_id or target")
+      return replayFacts(await api.send(input, { mutations: args.mutations, allowUnsafeReplay: args.allow_unsafe_replay }))
+    },
+  },
+]
