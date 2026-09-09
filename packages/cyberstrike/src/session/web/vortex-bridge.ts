@@ -3,18 +3,29 @@
 // Vortex engine (rules → signals → subjects → inventory → leads) runs over the live web corpus in
 // parallel with the existing CS signal fabric (verify-first; the fabric retires once Vortex proves
 // out). Never throws — must not break the ingest path.
-import { MemoryStore, defaultRegistry, leads, endpointKey, type Transaction, type Header, type Lead } from "@cyberstrike-io/vortex"
+import { SqliteStore, defaultRegistry, leads, endpointKey, type TrafficStore, type Transaction, type Header, type Lead } from "@cyberstrike-io/vortex"
+import { Database } from "bun:sqlite"
+import { Global } from "@/global"
 import { Log } from "@/util/log"
+import path from "path"
 
 const log = Log.create({ service: "vortex-bridge" })
 
-// One Vortex store per session; the rule registry (baseline catalog) is shared across sessions.
-const stores = new Map<string, MemoryStore>()
+// One DURABLE, session-scoped Vortex store per session — backed by a single shared bun:sqlite file
+// under the app data dir (SqliteStore scopes every op by session, so one file holds all sessions
+// without bleeding). Survives restarts and holds thousands of requests (not memory). The rule
+// registry (baseline catalog) is shared across sessions.
+let db: Database | undefined
+function database(): Database {
+  if (!db) db = new Database(path.join(Global.Path.data, "vortex.db"))
+  return db
+}
+const stores = new Map<string, TrafficStore>()
 const registry = defaultRegistry()
-function storeFor(sessionID: string): MemoryStore {
+function storeFor(sessionID: string): TrafficStore {
   let s = stores.get(sessionID)
   if (!s) {
-    s = new MemoryStore()
+    s = new SqliteStore(database(), sessionID)
     stores.set(sessionID, s)
   }
   return s
