@@ -95,6 +95,9 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
     // gated) and coverage can run off it. Never throws.
     const points = store.addInjectPoints(injectPoints(tx))
     log.info("vortex ingest", { sessionID: i.sessionID, endpoint: endpointKey(tx), transactions: store.size(), newSignals: added, newParams: points, ruleIds: sigs.map((s) => s.ruleId) })
+    // Auto-probe the new points in the background when active probing is enabled (no-op otherwise).
+    // Fire-and-forget: must not block or break the ingest path.
+    kickProbe(i.sessionID)
     return { transactions: store.size(), signals: store.signals().length }
   } catch (e) {
     log.debug("vortex ingest failed (ignored)", { err: String(e) })
@@ -114,32 +117,55 @@ export function vortexReport(sessionID: string): { transactions: number; signals
   return { transactions: store.size(), signals: store.signals().length, leads: leads(store) }
 }
 
-// ACTIVE injection probing on the live corpus — the ONLY path in Vortex that SENDS attacker payloads
-// to the target. Double-gated so nothing fires by accident: (1) it only runs when explicitly called
-// (never inline in ingest), and (2) it is a no-op unless CYBERSTRIKE_VORTEX_ACTIVE_PROBE is set.
-// When on, it probes each not-yet-probed inject point through a governed, rate-limited, replay-safe
-// sender and persists the signals + coverage. Never throws.
+// ACTIVE injection probing on the live corpus — the path in Vortex that SENDS payloads to the
+// target (that IS how a probe produces a signal). Gated by CYBERSTRIKE_VORTEX_ACTIVE_PROBE: setting
+// it is the deliberate opt-in, and when set, probing runs automatically in the BACKGROUND after
+// ingest (no manual trigger needed). Off by default. Every send is rate-limited + replay-safe
+// (Vortex's send() refuses session-minting requests). Never throws.
 const ACTIVE_PROBE = process.env.CYBERSTRIKE_VORTEX_ACTIVE_PROBE === "1" || process.env.CYBERSTRIKE_VORTEX_ACTIVE_PROBE === "true"
 const PROBE_MIN_INTERVAL_MS = Math.max(0, Number(process.env.CYBERSTRIKE_VORTEX_PROBE_INTERVAL_MS) || 200) // ~5 rps default
 
-export async function vortexProbe(sessionID: string): Promise<{ enabled: boolean; probed: number; signals: number }> {
-  if (!ACTIVE_PROBE) return { enabled: false, probed: 0, signals: 0 }
-  const store = storeFor(sessionID)
-  // Rate-limited, governed sender: a small pre-send delay caps throughput (probeSession sends
-  // sequentially), and Vortex's own send() enforces replay-safety + a per-send timeout.
+// A rate-limited, governed sender: a small pre-send delay caps throughput (probeSession sends
+// sequentially), and Vortex's own send() enforces replay-safety + a per-send timeout.
+function probeSender(): Sender {
   let last = 0
-  const sender: Sender = async (input, opts) => {
+  return async (input, opts) => {
     const wait = PROBE_MIN_INTERVAL_MS - (Date.now() - last)
     if (wait > 0) await new Promise((r) => setTimeout(r, wait))
     last = Date.now()
     return send(input, { ...opts, timeoutMs: opts?.timeoutMs ?? 15_000, followRedirects: false })
   }
+}
+
+// One probing pass over a session's not-yet-probed inject points. Persists signals + coverage.
+export async function vortexProbe(sessionID: string): Promise<{ enabled: boolean; probed: number; signals: number }> {
+  if (!ACTIVE_PROBE) return { enabled: false, probed: 0, signals: 0 }
   try {
-    const res = await probeSession(store, sender)
+    const res = await probeSession(storeFor(sessionID), probeSender())
     log.info("vortex active-probe", { sessionID, probed: res.probed, signals: res.signals.length })
     return { enabled: true, probed: res.probed, signals: res.signals.length }
   } catch (e) {
     log.debug("vortex active-probe failed (ignored)", { err: String(e) })
     return { enabled: true, probed: 0, signals: 0 }
   }
+}
+
+// Background auto-probe: when enabled, drain a session's unprobed points off the ingest path (fire-
+// and-forget, never awaited by ingest). One loop per session at a time — a run in progress absorbs
+// new ingests via its re-check, so ingest never blocks and probes never stampede.
+const probing = new Set<string>()
+export function kickProbe(sessionID: string): void {
+  if (!ACTIVE_PROBE || probing.has(sessionID)) return
+  probing.add(sessionID)
+  void (async () => {
+    try {
+      for (let pass = 0; pass < 50; pass++) {
+        if (storeFor(sessionID).injectPoints({ probed: false }).length === 0) break
+        const res = await vortexProbe(sessionID)
+        if (res.probed === 0) break
+      }
+    } finally {
+      probing.delete(sessionID)
+    }
+  })()
 }
