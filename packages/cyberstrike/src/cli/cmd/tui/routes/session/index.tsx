@@ -585,7 +585,7 @@ export function Session() {
             onGenerate={() => {
               prompt.set({
                 input:
-                  "Generate final report with generate_report tool. Fill all AI sections and save to .cyberstrike/reports/",
+                  "Call the generate_report tool. It has already SAVED the full report — with every finding embedded — to .cyberstrike/reports/. Open that saved file and fill ONLY the `<!-- AI: ... -->` placeholders (Executive Summary, Risk Assessment, Remediation Priorities). Do NOT remove, rewrite, or re-order the findings.",
                 parts: [],
               })
             }}
