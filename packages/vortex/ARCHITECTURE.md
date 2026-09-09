@@ -246,7 +246,8 @@ followed by `(`.
 `req.header.<name>`, `req.query.<name>`, `req.body.<dotpath>`, `req.cookie.<name>`, `req.graphql.op`,
 `req.graphql.query`, `req.bodyKind`, `resp.status`, `resp.body`, `resp.body.<dotpath>`,
 `resp.contentType`, `resp.bodyKind`, `resp.header.<name>`, `resp.cookie.<name>`, `host`, `identity`,
-`source`, `endpoint`, `httpVersion`, `timeMs`, `tls.version`, `tls.cipher`.
+`source`, `endpoint`, `httpVersion`, `timeMs`, `tls.version`, `tls.cipher`, `id`, `session`,
+`derivedFrom` (replay lineage — `derivedFrom:tx_42` = every replay of tx_42).
 
 **Function library**: string (`contains` `icontains` `starts_with` `ends_with` `regex(pat,subj)`
 `len` `lower` `upper` `trim` `split` `replace`) · encoding (`base64_decode` `url_decode`

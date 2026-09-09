@@ -31,6 +31,13 @@ describe("HTTPQL — the agent query interface (SELECT over the traffic DB)", ()
     expect(q('resp.body:~"eyJ[A-Za-z0-9_-]{6,}[.]eyJ"')).toEqual(["t6"]) // leaked JWT
     expect(q('resp.status:500 AND resp.body:~"SQL syntax"')).toEqual(["t7"]) // SQL error
   })
+  test("id / session / derivedFrom — get-by-id and replay lineage", () => {
+    const replay: Transaction = { id: "vx_1", source: "replay", host: "app.test", derivedFrom: "t1", session: "s1", request: { method: "GET", url: "https://app.test/api/orders/42", headers: [] } }
+    const withReplay = [...corpus, replay]
+    expect(Httpql.query(withReplay, "id:vx_1").map((t) => t.id)).toEqual(["vx_1"])
+    expect(Httpql.query(withReplay, "derivedFrom:t1").map((t) => t.id)).toEqual(["vx_1"]) // all replays of t1
+    expect(Httpql.query(withReplay, "session:s1").map((t) => t.id)).toEqual(["vx_1"])
+  })
   test("agent scope still gates the grep-everywhere fields", () => {
     expect(() => q('raw:~"x"', { grep: false })).toThrow(Httpql.QueryError)
     expect(q("resp.status:500", { grep: false })).toEqual(["t7"]) // structured fields fine in agent scope

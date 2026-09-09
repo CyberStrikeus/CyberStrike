@@ -16,6 +16,9 @@ export function fieldValue(tx: Transaction, field: string): string | number | un
   const parts = field.split(".")
   const head = parts[0]
   const rest = parts.slice(1).join(".")
+  if (head === "id") return tx.id
+  if (head === "session") return tx.session
+  if (head === "derivedFrom") return tx.derivedFrom // replay lineage — `derivedFrom:tx_42` = all replays of tx_42
   if (head === "host") return tx.host
   if (head === "identity") return tx.identity
   if (head === "source") return tx.source
