@@ -133,3 +133,18 @@ export function injectPoints(tx: Transaction): InjectPoint[] {
 export function injectPointKey(pt: InjectPoint): string {
   return key(pt.transactionId, pt.location, pt.dotpath)
 }
+
+// Per-(param, payload-class) probe outcome — the auditable "which parameter was tested, with what,
+// and what happened" record (issue #9 phase 4). One row per class attempted against a point.
+export interface Coverage {
+  paramId: string // InjectPoint.id
+  transactionId: string
+  payloadClass: string // e.g. "sqli-error"
+  result: "hit" | "clean"
+  signalId?: string // the produced signal's dedupKey, when result === "hit"
+  at: number // epoch ms
+}
+
+export function coverageKey(c: Coverage): string {
+  return `${c.paramId}:${c.payloadClass}`
+}

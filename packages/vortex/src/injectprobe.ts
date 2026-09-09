@@ -13,7 +13,8 @@ import type { Signal } from "./rule"
 import { dedupe } from "./rule"
 import type { Sender } from "./active"
 import type { Apply } from "./send"
-import type { InjectPoint } from "./injectpoint"
+import type { InjectPoint, Coverage } from "./injectpoint"
+import type { TrafficStore } from "./store"
 import { replaySafety } from "./replay-safety"
 import { reflects, brokeOut, mintTemplateCanary, TEMPLATE_PLACEHOLDER } from "./canary"
 import { endpointKey } from "./endpoint"
@@ -100,6 +101,9 @@ function errorSignature(sigs: RegExp[] | undefined, body: string | undefined, ba
 export interface ProbeOptions {
   // Restrict to these class ids (default: all of injectionPayloads).
   classes?: string[]
+  // Called once per (point, class) actually attempted, with the outcome — the coverage hook. Not
+  // called for points skipped by replay-safety or a missing tx (those were never probed).
+  onResult?: (c: Omit<Coverage, "at">) => void
   // Skip a point whose value type makes a class pointless (e.g. don't bother with none). Kept
   // permissive by default — an id-typed path param IS a valid SQLi target (validation may pass it
   // through), so we do NOT skip by type here.
@@ -175,7 +179,42 @@ export async function probeInjectPoints(
         })
         confirmed = true
       }
+      opts.onResult?.({
+        paramId: pt.id,
+        transactionId: pt.transactionId,
+        payloadClass: cls.id,
+        result: confirmed ? "hit" : "clean",
+        signalId: confirmed ? `${cls.id}:${pt.id}` : undefined,
+      })
     }
   }
   return dedupe(out)
+}
+
+// Convenience over a store: probe its (by default not-yet-probed) inject points with a real sender,
+// then persist the signals + per-(param,class) coverage and mark the points probed. This is what the
+// bridge calls — inventory in, signals + auditable coverage out. Bound your sends with a governed
+// `send`; this helper does not rate-limit on its own.
+export async function probeSession(
+  store: TrafficStore,
+  send: Sender,
+  opts: ProbeOptions & { onlyUnprobed?: boolean } = {},
+): Promise<{ signals: Signal[]; coverage: Coverage[]; probed: number }> {
+  const points = opts.onlyUnprobed === false ? store.injectPoints() : store.injectPoints({ probed: false })
+  const coverage: Coverage[] = []
+  const signals = await probeInjectPoints(points, (id) => store.get(id), send, {
+    ...opts,
+    onResult: (c) => {
+      coverage.push({ ...c, at: Date.now() })
+      opts.onResult?.(c)
+    },
+  })
+  store.addSignals(signals)
+  store.recordCoverage(coverage)
+  // Mark only the points we actually attempted (those that produced coverage — replay-unsafe /
+  // unresolvable points were skipped and must stay unprobed so a later pass can retry them).
+  const attempted = new Set(coverage.map((c) => c.paramId))
+  const marked = points.filter((p) => attempted.has(p.id)).map((p) => ({ ...p, probed: true }))
+  store.addInjectPoints(marked)
+  return { signals, coverage, probed: marked.length }
 }

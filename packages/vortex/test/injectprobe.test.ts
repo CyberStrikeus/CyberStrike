@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { Transaction, SendResult, Sender } from "../src/index"
-import { injectPoints, probeInjectPoints, leads, MemoryStore } from "../src/index"
+import { injectPoints, probeInjectPoints, probeSession, leads, MemoryStore } from "../src/index"
 
 function tx(id: string, url: string): Transaction {
   return { id, session: "s1", source: "browser", host: "app.test", request: { method: "GET", url, headers: [] }, response: { status: 200, headers: [], body: "ok" } }
@@ -111,5 +111,53 @@ describe("probeInjectPoints — inventory-driven injection probing", () => {
     const sql = sigs.filter((x) => x.ruleId === "sqli-error")
     expect(sql).toHaveLength(1)
     expect(sql[0].evidence).toContain("path.2")
+  })
+})
+
+describe("probeSession — store-driven probing + coverage (phase 4)", () => {
+  test("persists signals + per-(param,class) coverage and marks points probed", async () => {
+    const store = new MemoryStore()
+    const t = tx("S1", "https://app.test/items?id=5")
+    store.add(t)
+    store.addInjectPoints(injectPoints(t)) // 1 query point "id"
+    const s = makeSender((_i, opts) => (opts?.mutations?.[0]?.op === "set-query" ? { body: "you have an error in your SQL syntax" } : { body: "ok" }))
+
+    const res = await probeSession(store, s.send)
+
+    // a signal was produced + persisted
+    expect(res.signals.some((x) => x.ruleId === "sqli-error")).toBe(true)
+    expect(store.signals({ category: "injection" }).length).toBeGreaterThan(0)
+    // coverage: one row per class attempted on the point; the sqli one is a hit, the rest clean
+    const cov = store.coverage({ transactionId: "S1" })
+    expect(cov.length).toBe(4) // sqli-error, xss-reflected, ssti, path-traversal
+    expect(cov.find((c) => c.payloadClass === "sqli-error")?.result).toBe("hit")
+    expect(cov.find((c) => c.payloadClass === "xss-reflected")?.result).toBe("clean")
+    // the point is now marked probed
+    expect(store.injectPoints({ probed: true }).length).toBe(1)
+    expect(store.injectPoints({ probed: false }).length).toBe(0)
+  })
+
+  test("onlyUnprobed default skips already-probed points on a second pass", async () => {
+    const store = new MemoryStore()
+    const t = tx("S2", "https://app.test/items?id=5")
+    store.add(t)
+    store.addInjectPoints(injectPoints(t))
+    const s = makeSender(() => ({ body: "ok" }))
+    await probeSession(store, s.send) // marks probed
+    const before = s.calls.length
+    await probeSession(store, s.send) // second pass: nothing unprobed → no new sends
+    expect(s.calls.length).toBe(before)
+  })
+
+  test("replay-unsafe points are never marked probed (retryable later)", async () => {
+    const store = new MemoryStore()
+    const t = tx("S3", "https://app.test/api/login?next=x")
+    store.add(t)
+    store.addInjectPoints(injectPoints(t))
+    const s = makeSender(() => ({ body: "ok" }))
+    const res = await probeSession(store, s.send)
+    expect(res.probed).toBe(0)
+    expect(store.injectPoints({ probed: true }).length).toBe(0)
+    expect(store.coverage().length).toBe(0)
   })
 })

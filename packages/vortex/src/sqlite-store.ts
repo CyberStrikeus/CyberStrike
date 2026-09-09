@@ -12,8 +12,8 @@ import { signalKey, type TrafficStore } from "./store"
 import type { Discovered } from "./discovery"
 import type { Signal } from "./rule"
 import type { Canary } from "./canary"
-import type { InjectPoint } from "./injectpoint"
-import { injectPointKey } from "./injectpoint"
+import type { InjectPoint, Coverage } from "./injectpoint"
+import { injectPointKey, coverageKey } from "./injectpoint"
 
 interface Row {
   data: string
@@ -74,6 +74,19 @@ export class SqliteStore implements TrafficStore {
        )`,
     )
     this.db.run(`CREATE INDEX IF NOT EXISTS vortex_param_tx ON vortex_param(session, transaction_id)`)
+    this.db.run(
+      `CREATE TABLE IF NOT EXISTS vortex_param_coverage (
+         session TEXT NOT NULL,
+         key TEXT NOT NULL,
+         param_id TEXT,
+         transaction_id TEXT,
+         payload_class TEXT,
+         result TEXT,
+         data TEXT NOT NULL,
+         PRIMARY KEY (session, key)
+       )`,
+    )
+    this.db.run(`CREATE INDEX IF NOT EXISTS vortex_param_coverage_tx ON vortex_param_coverage(session, transaction_id)`)
   }
 
   add(tx: Transaction): Transaction {
@@ -207,11 +220,42 @@ export class SqliteStore implements TrafficStore {
     return rows.map((r) => JSON.parse(r.data) as InjectPoint)
   }
 
+  recordCoverage(entries: Coverage[]): number {
+    let added = 0
+    const exists = this.db.query<{ n: number }, [string, string]>(`SELECT COUNT(*) AS n FROM vortex_param_coverage WHERE session = ? AND key = ?`)
+    for (const c of entries) {
+      const k = coverageKey(c)
+      const had = (exists.get(this.session, k)?.n ?? 0) > 0
+      this.db.run(`INSERT OR REPLACE INTO vortex_param_coverage (session, key, param_id, transaction_id, payload_class, result, data) VALUES (?, ?, ?, ?, ?, ?, ?)`, [
+        this.session,
+        k,
+        c.paramId,
+        c.transactionId,
+        c.payloadClass,
+        c.result,
+        JSON.stringify(c),
+      ])
+      if (!had) added++
+    }
+    return added
+  }
+
+  coverage(filter?: { transactionId?: string; paramId?: string; result?: Coverage["result"] }): Coverage[] {
+    const clauses = ["session = ?"]
+    const args: string[] = [this.session]
+    if (filter?.transactionId) (clauses.push("transaction_id = ?"), args.push(filter.transactionId))
+    if (filter?.paramId) (clauses.push("param_id = ?"), args.push(filter.paramId))
+    if (filter?.result) (clauses.push("result = ?"), args.push(filter.result))
+    const rows = this.db.query<Row, string[]>(`SELECT data FROM vortex_param_coverage WHERE ${clauses.join(" AND ")}`).all(...args)
+    return rows.map((r) => JSON.parse(r.data) as Coverage)
+  }
+
   clear(): void {
     this.db.run(`DELETE FROM vortex_transaction WHERE session = ?`, [this.session])
     this.db.run(`DELETE FROM vortex_discovered WHERE session = ?`, [this.session])
     this.db.run(`DELETE FROM vortex_signal WHERE session = ?`, [this.session])
     this.db.run(`DELETE FROM vortex_canary WHERE session = ?`, [this.session])
     this.db.run(`DELETE FROM vortex_param WHERE session = ?`, [this.session])
+    this.db.run(`DELETE FROM vortex_param_coverage WHERE session = ?`, [this.session])
   }
 }

@@ -6,8 +6,8 @@ import type { Transaction } from "./transaction"
 import type { Discovered } from "./discovery"
 import type { Signal } from "./rule"
 import type { Canary } from "./canary"
-import type { InjectPoint } from "./injectpoint"
-import { injectPointKey } from "./injectpoint"
+import type { InjectPoint, Coverage } from "./injectpoint"
+import { injectPointKey, coverageKey } from "./injectpoint"
 
 export interface TrafficStore {
   // Insert (or replace by id). Returns the stored transaction.
@@ -36,6 +36,10 @@ export interface TrafficStore {
   // reads them back, optionally filtered.
   addInjectPoints(points: InjectPoint[]): number
   injectPoints(filter?: { transactionId?: string; location?: InjectPoint["location"]; probed?: boolean }): InjectPoint[]
+  // Probe coverage — one row per (param, payload class) attempted, hit or clean, so "which parameter
+  // was tested and with what result" is auditable. Upsert by (paramId, payloadClass); returns NEW count.
+  recordCoverage(entries: Coverage[]): number
+  coverage(filter?: { transactionId?: string; paramId?: string; result?: Coverage["result"] }): Coverage[]
 }
 
 // The dedup identity of a signal — its dedupKey, else per (rule, transaction, title). Shared by the
@@ -50,6 +54,24 @@ export class MemoryStore implements TrafficStore {
   private readonly signalByKey = new Map<string, Signal>()
   private readonly canaryByToken = new Map<string, Canary>()
   private readonly injectPointById = new Map<string, InjectPoint>()
+  private readonly coverageByKey = new Map<string, Coverage>()
+
+  recordCoverage(entries: Coverage[]): number {
+    let added = 0
+    for (const c of entries) {
+      const k = coverageKey(c)
+      if (!this.coverageByKey.has(k)) added++
+      this.coverageByKey.set(k, c)
+    }
+    return added
+  }
+  coverage(filter?: { transactionId?: string; paramId?: string; result?: Coverage["result"] }): Coverage[] {
+    let out = [...this.coverageByKey.values()]
+    if (filter?.transactionId) out = out.filter((c) => c.transactionId === filter.transactionId)
+    if (filter?.paramId) out = out.filter((c) => c.paramId === filter.paramId)
+    if (filter?.result) out = out.filter((c) => c.result === filter.result)
+    return out
+  }
 
   addInjectPoints(points: InjectPoint[]): number {
     let added = 0
@@ -134,5 +156,6 @@ export class MemoryStore implements TrafficStore {
     this.signalByKey.clear()
     this.canaryByToken.clear()
     this.injectPointById.clear()
+    this.coverageByKey.clear()
   }
 }
