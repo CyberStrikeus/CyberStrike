@@ -114,6 +114,38 @@ describe("probeInjectPoints — inventory-driven injection probing", () => {
   })
 })
 
+describe("probe strategies — full vs isolated", () => {
+  test("a sibling param masks the sink in full context; the isolated pass reaches it", async () => {
+    const t = tx("iso1", "https://app.test/items?id=5&gate=block")
+    const cov: { paramId: string; payloadClass: string; result: string; strategy?: string }[] = []
+    // The SQL error only surfaces when `gate` is blanked (isolation) AND `id` carries a real payload.
+    const s = makeSender((_i, opts) => {
+      const muts = opts?.mutations ?? []
+      const idMut = muts.find((m) => m.op === "set-query" && m.name === "id")
+      const gateBlanked = muts.some((m) => m.op === "set-query" && m.name === "gate" && m.value === "")
+      if (idMut && idMut.value !== "" && gateBlanked) return { body: "you have an error in your SQL syntax" }
+      return { body: "ok" }
+    })
+    const sigs = await probeInjectPoints(injectPoints(t), resolver(t), s.send, { classes: ["sqli-error"], onResult: (c) => cov.push(c) })
+    const sql = sigs.filter((x) => x.ruleId === "sqli-error")
+    expect(sql).toHaveLength(1)
+    expect(sql[0].evidence).toContain("[isolated]")
+    expect(sql[0].param).toEqual({ location: "query", dotpath: "id", name: "id" })
+    const idCov = cov.find((c) => c.paramId === "iso1:query:id")
+    expect(idCov?.result).toBe("hit")
+    expect(idCov?.strategy).toBe("isolated")
+  })
+
+  test("full-context hit does not escalate to isolation (strategy=full)", async () => {
+    const t = tx("iso2", "https://app.test/items?id=5&other=x")
+    const cov: { paramId: string; strategy?: string }[] = []
+    const s = makeSender((_i, opts) => (opts?.mutations?.some((m) => m.op === "set-query" && m.name === "id" && m.value !== "") ? { body: "you have an error in your SQL syntax" } : { body: "ok" }))
+    const sigs = await probeInjectPoints(injectPoints(t), resolver(t), s.send, { classes: ["sqli-error"], onResult: (c) => cov.push(c) })
+    expect(sigs.find((x) => x.ruleId === "sqli-error")?.evidence).toContain("[full]")
+    expect(cov.find((c) => c.paramId === "iso2:query:id")?.strategy).toBe("full")
+  })
+})
+
 describe("probeSession — store-driven probing + coverage (phase 4)", () => {
   test("persists signals + per-(param,class) coverage and marks points probed", async () => {
     const store = new MemoryStore()

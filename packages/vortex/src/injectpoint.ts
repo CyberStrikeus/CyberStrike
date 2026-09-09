@@ -141,6 +141,10 @@ export interface Coverage {
   transactionId: string
   payloadClass: string // e.g. "sqli-error"
   result: "hit" | "clean"
+  // Which probe strategy determined the outcome: "full" = all sibling params kept (realistic
+  // context); "isolated" = other value params blanked to reach a sink a sibling was masking. On a
+  // hit, the confirming strategy; on clean, "isolated" (both were tried).
+  strategy?: "full" | "isolated"
   signalId?: string // the produced signal's dedupKey, when result === "hit"
   at: number // epoch ms
 }

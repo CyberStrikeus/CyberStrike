@@ -14,6 +14,7 @@ import { dedupe } from "./rule"
 import type { Sender } from "./active"
 import type { Apply } from "./send"
 import type { InjectPoint, Coverage } from "./injectpoint"
+import { injectPoints } from "./injectpoint"
 import type { TrafficStore } from "./store"
 import { replaySafety } from "./replay-safety"
 import { reflects, brokeOut, mintTemplateCanary, TEMPLATE_PLACEHOLDER } from "./canary"
@@ -135,55 +136,85 @@ export async function probeInjectPoints(
     const baseline = baselineByTx.get(tx.id)
     const endpoint = endpointKey(tx)
 
+    // Isolation mutations: blank every OTHER value param (query/body) of this request, keeping path
+    // and headers (structural). Only used as a fallback when full-context probing is clean — to
+    // reach a sink a sibling param was masking. Its own baseline (others blanked, target original)
+    // is fetched lazily so the error differential is correct and costs one extra send only when
+    // isolation is actually reached.
+    const isolationBlanks = injectPoints(tx)
+      .filter((o) => (o.location === "query" || o.location === "body") && !(o.location === pt.location && o.dotpath === pt.dotpath))
+      .map((o) => mutationForPoint(o, ""))
+    let isolatedBaseline: string | undefined
+    let isolatedBaselineReady = false
+    const ensureIsolatedBaseline = async () => {
+      if (isolatedBaselineReady) return
+      isolatedBaselineReady = true
+      if (isolationBlanks.length > 0) isolatedBaseline = (await send(tx, { mutations: isolationBlanks })).transaction.response?.body
+    }
+
     for (const cls of classes) {
       let confirmed = false
-      for (const payload of cls.payloads) {
+      let hitStrategy: "full" | "isolated" | undefined
+      // full first (realistic, all siblings present); isolated only if full found nothing — bounds
+      // the extra sends to the cases a sibling might have masked.
+      for (const strategy of ["full", "isolated"] as const) {
         if (confirmed) break
-        const tc = cls.detect === "evaluated" ? mintTemplateCanary() : undefined
-        const value = tc ? payload.split(TEMPLATE_PLACEHOLDER).join(tc.expr) : payload
-        const res = await send(tx, {
-          mutations: [mutationForPoint(pt, value)],
-          canary: cls.detect === "reflected" ? { field: pt.dotpath, vulnClass: cls.category } : undefined,
-        })
-        const body = res.transaction.response?.body
-
-        let hit = false
-        let evidence = ""
-        let severity: Severity = cls.severity
-        if (cls.detect === "reflected") {
-          hit = !!res.canaryReflected
-          if (hit) {
-            const injectable = res.canary ? brokeOut(body, value, res.canary.token) : false
-            severity = injectable ? "high" : cls.severity
-            evidence = injectable ? "canary reflected UNESCAPED (likely injectable)" : "canary reflected"
-          }
-        } else if (cls.detect === "evaluated") {
-          hit = !!tc && reflects(body, tc.marker)
-          if (hit) evidence = "template expression evaluated (SSTI)"
-        } else {
-          const sig = errorSignature(cls.signatures, body, baseline)
-          hit = !!sig
-          if (hit) evidence = `error signature surfaced (absent from baseline): ${sig}`
+        if (strategy === "isolated") {
+          if (isolationBlanks.length === 0) break // single-param request — nothing to isolate
+          await ensureIsolatedBaseline()
         }
-        if (!hit) continue
+        const baseForErr = strategy === "isolated" ? isolatedBaseline : baseline
+        for (const payload of cls.payloads) {
+          if (confirmed) break
+          const tc = cls.detect === "evaluated" ? mintTemplateCanary() : undefined
+          const value = tc ? payload.split(TEMPLATE_PLACEHOLDER).join(tc.expr) : payload
+          const mutations = strategy === "isolated" ? [...isolationBlanks, mutationForPoint(pt, value)] : [mutationForPoint(pt, value)]
+          const res = await send(tx, {
+            mutations,
+            canary: cls.detect === "reflected" ? { field: pt.dotpath, vulnClass: cls.category } : undefined,
+          })
+          const body = res.transaction.response?.body
 
-        out.push({
-          ruleId: cls.id,
-          transactionId: res.transaction.id,
-          severity,
-          category: cls.category,
-          title: `${cls.id} at ${endpoint} (${pt.location} ${pt.name ?? pt.dotpath})`,
-          evidence: `payload into ${pt.location}.${pt.dotpath} on ${endpoint} — ${evidence}`,
-          param: { location: pt.location, dotpath: pt.dotpath, name: pt.name },
-          dedupKey: `${cls.id}:${pt.id}`,
-        })
-        confirmed = true
+          let hit = false
+          let evidence = ""
+          let severity: Severity = cls.severity
+          if (cls.detect === "reflected") {
+            hit = !!res.canaryReflected
+            if (hit) {
+              const injectable = res.canary ? brokeOut(body, value, res.canary.token) : false
+              severity = injectable ? "high" : cls.severity
+              evidence = injectable ? "canary reflected UNESCAPED (likely injectable)" : "canary reflected"
+            }
+          } else if (cls.detect === "evaluated") {
+            hit = !!tc && reflects(body, tc.marker)
+            if (hit) evidence = "template expression evaluated (SSTI)"
+          } else {
+            const sig = errorSignature(cls.signatures, body, baseForErr)
+            hit = !!sig
+            if (hit) evidence = `error signature surfaced (absent from baseline): ${sig}`
+          }
+          if (!hit) continue
+
+          out.push({
+            ruleId: cls.id,
+            transactionId: res.transaction.id,
+            severity,
+            category: cls.category,
+            title: `${cls.id} at ${endpoint} (${pt.location} ${pt.name ?? pt.dotpath})`,
+            evidence: `payload into ${pt.location}.${pt.dotpath} on ${endpoint} [${strategy}] — ${evidence}`,
+            param: { location: pt.location, dotpath: pt.dotpath, name: pt.name },
+            dedupKey: `${cls.id}:${pt.id}`,
+          })
+          confirmed = true
+          hitStrategy = strategy
+        }
       }
       opts.onResult?.({
         paramId: pt.id,
         transactionId: pt.transactionId,
         payloadClass: cls.id,
         result: confirmed ? "hit" : "clean",
+        strategy: hitStrategy ?? (isolationBlanks.length > 0 ? "isolated" : "full"),
         signalId: confirmed ? `${cls.id}:${pt.id}` : undefined,
       })
     }
