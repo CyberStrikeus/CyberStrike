@@ -12,6 +12,8 @@ import { signalKey, type TrafficStore } from "./store"
 import type { Discovered } from "./discovery"
 import type { Signal } from "./rule"
 import type { Canary } from "./canary"
+import type { InjectPoint } from "./injectpoint"
+import { injectPointKey } from "./injectpoint"
 
 interface Row {
   data: string
@@ -59,6 +61,19 @@ export class SqliteStore implements TrafficStore {
        )`,
     )
     this.db.run(`CREATE TABLE IF NOT EXISTS vortex_canary (session TEXT NOT NULL, token TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY (session, token))`)
+    this.db.run(
+      `CREATE TABLE IF NOT EXISTS vortex_param (
+         session TEXT NOT NULL,
+         key TEXT NOT NULL,
+         transaction_id TEXT,
+         location TEXT,
+         dotpath TEXT,
+         probed INTEGER DEFAULT 0,
+         data TEXT NOT NULL,
+         PRIMARY KEY (session, key)
+       )`,
+    )
+    this.db.run(`CREATE INDEX IF NOT EXISTS vortex_param_tx ON vortex_param(session, transaction_id)`)
   }
 
   add(tx: Transaction): Transaction {
@@ -160,10 +175,43 @@ export class SqliteStore implements TrafficStore {
     return this.db.query<Row, [string]>(`SELECT data FROM vortex_canary WHERE session = ?`).all(this.session).map((r) => JSON.parse(r.data) as Canary)
   }
 
+  addInjectPoints(points: InjectPoint[]): number {
+    let added = 0
+    const prior = this.db.query<{ probed: number }, [string, string]>(`SELECT probed FROM vortex_param WHERE session = ? AND key = ?`)
+    for (const pt of points) {
+      const k = injectPointKey(pt)
+      const existing = prior.get(this.session, k)
+      const probed = pt.probed !== undefined ? (pt.probed ? 1 : 0) : (existing?.probed ?? 0)
+      const stored: InjectPoint = { ...pt, id: k, session: this.session, probed: probed === 1 }
+      this.db.run(`INSERT OR REPLACE INTO vortex_param (session, key, transaction_id, location, dotpath, probed, data) VALUES (?, ?, ?, ?, ?, ?, ?)`, [
+        this.session,
+        k,
+        pt.transactionId,
+        pt.location,
+        pt.dotpath,
+        probed,
+        JSON.stringify(stored),
+      ])
+      if (!existing) added++
+    }
+    return added
+  }
+
+  injectPoints(filter?: { transactionId?: string; location?: InjectPoint["location"]; probed?: boolean }): InjectPoint[] {
+    const clauses = ["session = ?"]
+    const args: (string | number)[] = [this.session]
+    if (filter?.transactionId) (clauses.push("transaction_id = ?"), args.push(filter.transactionId))
+    if (filter?.location) (clauses.push("location = ?"), args.push(filter.location))
+    if (filter?.probed !== undefined) (clauses.push("probed = ?"), args.push(filter.probed ? 1 : 0))
+    const rows = this.db.query<Row, (string | number)[]>(`SELECT data FROM vortex_param WHERE ${clauses.join(" AND ")}`).all(...args)
+    return rows.map((r) => JSON.parse(r.data) as InjectPoint)
+  }
+
   clear(): void {
     this.db.run(`DELETE FROM vortex_transaction WHERE session = ?`, [this.session])
     this.db.run(`DELETE FROM vortex_discovered WHERE session = ?`, [this.session])
     this.db.run(`DELETE FROM vortex_signal WHERE session = ?`, [this.session])
     this.db.run(`DELETE FROM vortex_canary WHERE session = ?`, [this.session])
+    this.db.run(`DELETE FROM vortex_param WHERE session = ?`, [this.session])
   }
 }

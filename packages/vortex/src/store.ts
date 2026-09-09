@@ -6,6 +6,8 @@ import type { Transaction } from "./transaction"
 import type { Discovered } from "./discovery"
 import type { Signal } from "./rule"
 import type { Canary } from "./canary"
+import type { InjectPoint } from "./injectpoint"
+import { injectPointKey } from "./injectpoint"
 
 export interface TrafficStore {
   // Insert (or replace by id). Returns the stored transaction.
@@ -28,6 +30,12 @@ export interface TrafficStore {
   // (stored) reflection. Deduped by token; returns how many were NEW.
   addCanaries(canaries: Canary[]): number
   canaries(): Canary[]
+  // Injection-point inventory — every attacker-controllable input enumerated per transaction (issue
+  // #141). Upsert by point identity (tx + location + dotpath); returns how many were NEW. A re-add of
+  // an existing point PRESERVES its `probed` flag unless the incoming point sets one. `injectPoints`
+  // reads them back, optionally filtered.
+  addInjectPoints(points: InjectPoint[]): number
+  injectPoints(filter?: { transactionId?: string; location?: InjectPoint["location"]; probed?: boolean }): InjectPoint[]
 }
 
 // The dedup identity of a signal — its dedupKey, else per (rule, transaction, title). Shared by the
@@ -41,6 +49,26 @@ export class MemoryStore implements TrafficStore {
   private readonly discoveredById = new Map<string, Discovered>()
   private readonly signalByKey = new Map<string, Signal>()
   private readonly canaryByToken = new Map<string, Canary>()
+  private readonly injectPointById = new Map<string, InjectPoint>()
+
+  addInjectPoints(points: InjectPoint[]): number {
+    let added = 0
+    for (const pt of points) {
+      const k = injectPointKey(pt)
+      const existing = this.injectPointById.get(k)
+      if (!existing) added++
+      // A re-add keeps the prior probed flag unless the incoming point sets one.
+      this.injectPointById.set(k, { ...pt, id: k, probed: pt.probed ?? existing?.probed })
+    }
+    return added
+  }
+  injectPoints(filter?: { transactionId?: string; location?: InjectPoint["location"]; probed?: boolean }): InjectPoint[] {
+    let out = [...this.injectPointById.values()]
+    if (filter?.transactionId) out = out.filter((p) => p.transactionId === filter.transactionId)
+    if (filter?.location) out = out.filter((p) => p.location === filter.location)
+    if (filter?.probed !== undefined) out = out.filter((p) => !!p.probed === filter.probed)
+    return out
+  }
 
   addCanaries(canaries: Canary[]): number {
     let added = 0
@@ -105,5 +133,6 @@ export class MemoryStore implements TrafficStore {
     this.discoveredById.clear()
     this.signalByKey.clear()
     this.canaryByToken.clear()
+    this.injectPointById.clear()
   }
 }
