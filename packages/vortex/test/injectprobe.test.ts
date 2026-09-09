@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { Transaction, SendResult, Sender } from "../src/index"
-import { injectPoints, probeInjectPoints } from "../src/index"
+import { injectPoints, probeInjectPoints, leads, MemoryStore } from "../src/index"
 
 function tx(id: string, url: string): Transaction {
   return { id, session: "s1", source: "browser", host: "app.test", request: { method: "GET", url, headers: [] }, response: { status: 200, headers: [], body: "ok" } }
@@ -79,6 +79,24 @@ describe("probeInjectPoints — inventory-driven injection probing", () => {
     const sigs = await probeInjectPoints(injectPoints(t), resolver(t), s.send)
     expect(s.calls).toHaveLength(0) // guard fired before any send
     expect(sigs).toHaveLength(0)
+  })
+
+  test("phase 3: probe signal carries structured param, and leads() surfaces it as lead.parameter", async () => {
+    const t = tx("L1", "https://app.test/items?id=5")
+    const store = new MemoryStore()
+    store.add(t)
+    const s = makeSender((_i, opts) => (opts?.mutations?.[0]?.op === "set-query" ? { body: "you have an error in your SQL syntax" } : { body: "ok" }))
+    const sigs = await probeInjectPoints(injectPoints(t), (id) => store.get(id), s.send)
+    const sql = sigs.find((x) => x.ruleId === "sqli-error")!
+    // signal carries the exact parameter, not just prose
+    expect(sql.param).toEqual({ location: "query", dotpath: "id", name: "id" })
+    // and a lead surfaces it structurally for the agent
+    store.addSignals(sigs)
+    const injectionLeads = leads(store, store.signals({ category: "injection" }))
+    const lead = injectionLeads.find((l) => l.signal.ruleId === "sqli-error")!
+    expect(lead.parameter).toEqual({ location: "query", dotpath: "id", name: "id" })
+    expect(lead.transactionId).toBe("L1")
+    expect(lead.replaySafe).toBe(true)
   })
 
   test("path-param SQLi (the id-in-path case) fires with the path index named", async () => {

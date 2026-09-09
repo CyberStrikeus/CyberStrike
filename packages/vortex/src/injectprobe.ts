@@ -170,6 +170,7 @@ export async function probeInjectPoints(
           category: cls.category,
           title: `${cls.id} at ${endpoint} (${pt.location} ${pt.name ?? pt.dotpath})`,
           evidence: `payload into ${pt.location}.${pt.dotpath} on ${endpoint} — ${evidence}`,
+          param: { location: pt.location, dotpath: pt.dotpath, name: pt.name },
           dedupKey: `${cls.id}:${pt.id}`,
         })
         confirmed = true

@@ -6,6 +6,14 @@
 // collapses to one instead of firing per request (the 100x banner noise).
 import type { Transaction, Severity } from "./transaction"
 
+// When a signal was produced by probing a specific input, the exact parameter it fired on — so a
+// lead hands the agent the precise injection point structurally, not just prose in `evidence`.
+export interface SignalParam {
+  location: "query" | "body" | "path" | "header"
+  dotpath: string
+  name?: string
+}
+
 export interface Signal {
   ruleId: string
   transactionId: string
@@ -13,6 +21,9 @@ export interface Signal {
   category: string
   title: string
   evidence?: string
+  // The exact parameter this fired on, when the signal came from probing an inject point (issue #9).
+  // Absent for passive/corpus signals that aren't parameter-scoped.
+  param?: SignalParam
   // Identity for de-duplication. Two signals with the same dedupKey are the same finding; the
   // registry keeps the first. A rule that wants endpoint-level (not instance-level) dedup sets it
   // to something like `${ruleId}:${endpointKey}`. Left unset ⇒ deduped per (ruleId, tx, title).

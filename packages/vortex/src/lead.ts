@@ -4,7 +4,7 @@
 // so the agent reads a single object and knows WHAT fired, WHERE (function/object), under WHICH
 // role, HOW to reproduce (transactionId → send), and whether replay is safe. No LLM in the assembly.
 import type { Transaction } from "./transaction"
-import type { Signal } from "./rule"
+import type { Signal, SignalParam } from "./rule"
 import type { TrafficStore } from "./store"
 import type { Subjects } from "./subjects"
 import { subjects } from "./subjects"
@@ -22,6 +22,8 @@ export interface Lead {
   scopes?: string[] // JWT/OAuth scopes, when present
   replaySafe: boolean // false ⇒ replaying would burn the live session (see reason) — don't
   reason?: string // why replay is unsafe (present only when !replaySafe)
+  parameter?: SignalParam // the exact injection point this fired on (probe-derived signals) — the
+  // agent injects HERE to confirm/weaponize, no guessing which param
   raw: RawView // the full raw request (+ response) INLINE, for detailed inspection
 }
 
@@ -39,6 +41,7 @@ export function lead(tx: Transaction, signal: Signal): Lead {
     scopes: s.scopes,
     replaySafe: rs.safe,
     reason: rs.reason,
+    parameter: signal.param,
     raw: rawView(tx),
   }
 }
