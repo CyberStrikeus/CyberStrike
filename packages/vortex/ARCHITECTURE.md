@@ -16,7 +16,7 @@ in development on branch `vortex`. Everything is OSS for now.
 - [5. The consumer boundary (generic core vs domain plugins)](#5-the-consumer-boundary)
 - [6. Core components](#6-core-components)
 - [7. Data model — the Transaction](#7-data-model--the-transaction)
-- [8. The DSL engine](#8-the-dsl-engine-exprts)
+- [8. Two query surfaces — DSL engine (rules) & HTTPQL (agent)](#8-two-query-surfaces--the-dsl-engine-rules-and-httpql-agent)
 - [9. Rules & signals](#9-rules--signals)
 - [10. The active engine (send) and the proxy](#10-the-active-engine-send-and-the-proxy)
 - [11. SDK / plugin surface](#11-sdk--plugin-surface)
@@ -159,8 +159,9 @@ the core small, testable, and reusable while every domain's knowledge stays in i
 | Canary correlation (mint + `{canary}` in send + same-request reflect + stored-reflection scan; reflection-CONTEXT scoring — html-text/script/attr → severity; `brokeOut` = markup survived unescaped → likely injectable; `mintTemplateCanary` unique-product SSTI marker) | `canary.ts` | ✅ |
 | Baseline rules (header hygiene) | `rules/headers.ts` | ✅ |
 | Baseline corpus rules (access-control surface) | `rules/access.ts` | ✅ |
-| DSL engine (parser + evaluator + function library) | `expr.ts` | ✅ |
-| Field vocabulary (dotted-path resolver + raw grep fields) | `fields.ts` | ✅ |
+| DSL engine — rule/matcher language (parser + evaluator + function library) | `expr.ts` | ✅ |
+| HTTPQL — agent query interface (SELECT, no functions, `:~` regex operator) | `httpql.ts` | ✅ |
+| Field vocabulary (dotted-path resolver + raw grep fields), shared by both | `fields.ts` | ✅ |
 | Send engine (mutate + send + observe) | `send/*` | ⏳ (roadmap E) |
 | Proxy (MITM/forward) | `proxy/*` | ⏳ (roadmap J) |
 | SDK / plugin interface | `plugin.ts` | ⏳ (roadmap F) |
@@ -210,17 +211,31 @@ breakdown, redirect chains.
 
 ---
 
-## 8. The DSL engine (`expr.ts`)
+## 8. Two query surfaces — the DSL engine (rules) and HTTPQL (agent)
 
-**ONE predicate language** for both consumers — an agent tool ("query the captured corpus") and the
-rule layer (declarative/chain/probe conditions). Inspired by [projectdiscovery/dsl](https://github.com/projectdiscovery/dsl)
+There are **two languages for two actors**, sharing one field model (`fields.ts`):
+
+- **DSL engine (`expr.ts`) — OURS, the rule/matcher language.** Passive/active/chain rule conditions
+  → signals. Its power is a **function library** (decode, hash, `compare_versions`, `regex`, `jwt_*`,
+  a field as another field's operand) — the interesting half of detection a plain `field op value`
+  query can't express. WE author rules with it; agents never do.
+- **HTTPQL (`httpql.ts`) — the AGENT's query interface.** A pure SELECT over the traffic DB
+  (`field op value` atoms + `AND/OR/NOT` + parens + a bounded `:~` regex operator), **no function
+  library**. It's what we hand the agent to pull related requests/responses/params out of the corpus.
+
+Why two, tested: the DSL, made agent-safe, has to **ban `regex()`** (ReDoS), which blocks the exact
+searches an agent needs — "find a leaked JWT", "find a SQL error". HTTPQL's `:~` gives that as a
+bounded operator with no function surface. So the DSL is powerful-but-wrong for the agent, and HTTPQL
+is the right-sized SELECT. Aggregate/relational lookups (objects/functions across the corpus, cross-
+role) are the **inventory getters**, not either query language. Rows the agent can't express as one
+predicate are served by the getters; open-ended per-request search is HTTPQL; detection is the DSL.
+
+### The DSL engine (`expr.ts`)
+
+The rule-side language. Inspired by [projectdiscovery/dsl](https://github.com/projectdiscovery/dsl)
 (Nuclei): a small expression language whose power is a **function library** over the transaction, so
-a rule is expressive DATA — the interesting half of detection (decode, hash, version-compare, len,
-regex, a field as another field's operand) that a plain `field op value` query can't express.
-
-It is not a second language beside a query DSL — it **subsumes** one. The field vocabulary is the
-variable set; `resp.status == 500` is the whole of what a `field:value` atom used to be; and now you
-can also write `compare_versions(resp.header.server, "< 2.4.50")`.
+a rule is expressive DATA. The field vocabulary is the variable set; `resp.status == 500`,
+`compare_versions(resp.header.server, "< 2.4.50")`, `jwt_alg(req.header.authorization) == "none"`.
 
 **Grammar** (low→high precedence): `||` · `&&` · `!` · comparison (`== != > < >= <=`) · `+ -` · `* /`
 · postfix `[index]` · primary (number / string / `true`/`false`/`null` / function-call / field /

@@ -41,8 +41,12 @@ export { groupByEndpoint, groupByShape, identities } from "./corpus"
 export { requestShape } from "./shape"
 export type { Rule, CorpusRule, Signal } from "./rule"
 export { RuleRegistry, dedupe } from "./rule"
+// The DSL engine (expr) — OUR rule/matcher language (functions, active/passive/chain → signals).
 export type { Compiled, CompileOptions, Value } from "./expr"
 export { compile, query, ExprError, functionNames } from "./expr"
+// HTTPQL — the AGENT's query interface (pure SELECT over the traffic DB, no function library). A
+// separate surface for a separate actor: `Httpql.query(txs, "resp.status:500 AND resp.body:~SQL")`.
+export * as Httpql from "./httpql"
 // The send engine (raw-HTTP mutate/send/observe) and the Transaction bridge.
 export * as Engine from "./send"
 export type { RequestSpec, SendOptions, SendResult } from "./replay"
