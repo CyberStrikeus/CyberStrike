@@ -43,5 +43,40 @@ export const probeRules: ProbeRule[] = [
     inject: { into: "query", name: "file", payloads: ["../../../../../../etc/passwd", "..%2f..%2f..%2f..%2f..%2fetc%2fpasswd"] },
     detect: 'regex("root:.*:0:0:", resp.body)', // /etc/passwd signature
     message: "path traversal at {endpoint} (param file)",
+    tags: ["injection", "lfi"],
+  },
+  {
+    // Redirect param → does Location point off to our canary host? detect over the probe response.
+    id: "open-redirect-probe",
+    category: "redirect",
+    severity: "medium",
+    select: "req.query.next",
+    inject: { into: "query", name: "next", payloads: ["https://vxredir.example/x", "//vxredir.example/x"] },
+    detect: 'starts_with(resp.header.location, "https://vxredir.example") || starts_with(resp.header.location, "//vxredir.example")',
+    message: "open redirect at {endpoint} (param next)",
+    tags: ["redirect"],
+  },
+  {
+    // CRLF in a param that reaches a response header → does our injected header surface?
+    id: "crlf-header-injection-probe",
+    category: "injection",
+    severity: "high",
+    select: "req.query.next",
+    inject: { into: "query", name: "next", payloads: ["%0d%0aVX-Injected:1", "\r\nVX-Injected:1"] },
+    detect: "resp.header.vx-injected", // the injected header appeared in the response
+    message: "CRLF / header injection at {endpoint} (param next)",
+    tags: ["injection", "crlf"],
+  },
+  {
+    // Time-based command injection: a shell-metachar payload that sleeps. Single-shot threshold (a
+    // real deployment diffs against a baseline); a slow probe response is a strong lead.
+    id: "command-injection-time-probe",
+    category: "injection",
+    severity: "critical",
+    select: "req.query.host",
+    inject: { into: "query", name: "host", payloads: ["127.0.0.1; sleep 5", "127.0.0.1 && sleep 5", "$(sleep 5)"] },
+    detect: "timeMs > 4000",
+    message: "possible time-based command injection at {endpoint} (param host)",
+    tags: ["injection", "rce"],
   },
 ]

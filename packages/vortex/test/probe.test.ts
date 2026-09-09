@@ -25,9 +25,17 @@ const sstiEval: Sender = (input, opts) =>
     },
   })
 const passwd: Sender = (input, opts) => send(input, { ...opts, transport: async () => res(200, "root:x:0:0:root:/root:/bin/bash") })
+// Fuller response with headers / timing for the redirect / CRLF / time-based probes.
+const resFull = (status: number, headers: [string, string][], body: string, ms = 1): Engine.ReplayResponse.Result => ({
+  response: { version: "HTTP/1.1", status, reason: "", headers: headers.map(([name, value]) => ({ name, value })), body: enc.encode(body) },
+  timing: { totalMs: ms },
+})
+const redir: Sender = (input, opts) => send(input, { ...opts, transport: async () => resFull(302, [["location", "https://vxredir.example/x"]], "") })
+const crlfEcho: Sender = (input, opts) => send(input, { ...opts, transport: async () => resFull(200, [["vx-injected", "1"]], "ok") }) // server reflected the injected header
+const slow: Sender = (input, opts) => send(input, { ...opts, transport: async () => resFull(200, [], "ok", 5000) }) // sleep landed → slow
 
 describe("ProbeRule → ActiveRule (the active DSL shape)", () => {
-  const [xss, sqli, ssti, pt] = compileProbes(probeRules)
+  const [xss, sqli, ssti, pt, openRedir, crlf, cmdi] = compileProbes(probeRules)
 
   test("reflected-xss fires when the canary bounces back (detect: reflected)", async () => {
     const sigs = await xss!.probe([tx("a", "/search?q=hi")], echo)
@@ -72,8 +80,26 @@ describe("ProbeRule → ActiveRule (the active DSL shape)", () => {
     const sigs = await runActiveRules([sqli!], [tx("a", "/item?id=1"), tx("b", "/item?id=2")], sqlErr)
     expect(sigs).toHaveLength(1) // same endpoint /item?id={} → probed once
   })
+  test("open-redirect-probe fires when Location points to the canary host", async () => {
+    // NOTE: not /login — that's an auth-exchange endpoint the replay-safety guard skips (would burn
+    // the session). A plain redirect endpoint is fair game.
+    const sigs = await openRedir!.probe([tx("a", "/page?next=/home")], redir)
+    expect(sigs).toHaveLength(1)
+    expect(sigs[0].ruleId).toBe("open-redirect-probe")
+    expect(await openRedir!.probe([tx("a", "/page?next=/home")], clean)).toHaveLength(0) // no Location → no fire
+  })
+  test("crlf-header-injection-probe fires when the injected header surfaces", async () => {
+    expect((await crlf!.probe([tx("a", "/go?next=/x")], crlfEcho)).map((s) => s.ruleId)).toEqual(["crlf-header-injection-probe"])
+    expect(await crlf!.probe([tx("a", "/go?next=/x")], clean)).toHaveLength(0)
+  })
+  test("command-injection-time-probe fires when the probe response is slow (sleep landed)", async () => {
+    const sigs = await cmdi!.probe([tx("a", "/ping?host=127.0.0.1")], slow)
+    expect(sigs).toHaveLength(1)
+    expect(sigs[0].severity).toBe("critical")
+    expect(await cmdi!.probe([tx("a", "/ping?host=127.0.0.1")], clean)).toHaveLength(0) // fast → no fire
+  })
   test("parseProbes validates an agent's JSON probe rule", () => {
-    expect(parseProbes(probeRules)).toHaveLength(4)
+    expect(parseProbes(probeRules)).toHaveLength(7)
     expect(() => parseProbes([{ id: "x", category: "c", severity: "high", select: "resp.status == 200", inject: { into: "query", payloads: [] }, detect: "reflected" }])).toThrow() // empty payloads + missing name
   })
 })
