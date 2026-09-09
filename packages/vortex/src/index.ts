@@ -26,6 +26,9 @@ export { lead, leads } from "./lead"
 // lead, same function under >1 role = a BFLA surface, all deterministic.
 export type { Inventory, ObjectRecord, FunctionRecord } from "./inventory"
 export { inventory, crossRoleObjects, crossRoleFunctions, objectsByResource, objectsForRole, transactionsForObject } from "./inventory"
+// Pivot getters — "confirmed one, hunt the rest": where a value flows, and untested attack surface.
+export type { Occurrence } from "./pivot"
+export { valueOccurrences, untestedEndpoints } from "./pivot"
 export type { Params } from "./params"
 export { params, responseFields, requestBodyKind, responseBodyKind } from "./params"
 export type { BodyKind, BodyView } from "./body"

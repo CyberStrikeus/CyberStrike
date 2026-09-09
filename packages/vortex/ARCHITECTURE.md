@@ -338,6 +338,13 @@ object reached under >1 role → IDOR/BOLA candidate) and `crossRoleFunctions` (
 >1 role → BFLA surface). The agent gets a lead's own objects inline (via `lead`) AND can query this
 graph for anything else it wants.
 
+**Pivot getters** — the "confirmed one, hunt the rest" moves that are neither a per-request HTTPQL
+SELECT nor a per-object inventory lookup. `valueOccurrences(store, v)` finds every transaction
+carrying a value (and the field it's in) — the pivot from a value spotted in a `rawView` (a leaked
+token, an internal host, an object id) to "where else does this flow". `untestedEndpoints(store)`
+returns endpoints the crawl/JS-mine DISCOVERED but no request ever hit (compared by normalized path)
+— the attack surface not yet exercised, so a finding expands to its untested siblings.
+
 Two rule shapes, both deterministic:
 
 - **`Rule`** — evaluates ONE transaction. Header hygiene, error signatures, reflection, sensitive
