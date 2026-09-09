@@ -76,6 +76,8 @@ import { headerRules } from "./rules/headers"
 import { accessRules } from "./rules/access"
 import { signatureRules } from "./rules/signatures"
 import { misconfigRules } from "./rules/misconfig"
+import { authRules } from "./rules/auth"
+import { cveRules } from "./rules/cve"
 import { compileRules } from "./declarative"
 
 // The declarative rule DSL (LLM-friendly: a rule is {when: DSL-expression, message, severity} data).
@@ -92,8 +94,10 @@ export { signatureRules } from "./rules/signatures"
 
 // The baseline rule set — everything OSS. Per-transaction hygiene + response-signature (declarative)
 // rules + cross-transaction access-control rules. `defaultRegistry()` preloads them all.
-export const baselineRules = [...headerRules, ...compileRules(signatureRules), ...compileRules(misconfigRules)]
+export const baselineRules = [...headerRules, ...compileRules(signatureRules), ...compileRules(misconfigRules), ...compileRules(authRules), ...compileRules(cveRules)]
 export { misconfigRules } from "./rules/misconfig"
+export { authRules } from "./rules/auth"
+export { cveRules } from "./rules/cve"
 export const baselineCorpusRules = [...accessRules]
 
 export function defaultRegistry(): RuleRegistry {
