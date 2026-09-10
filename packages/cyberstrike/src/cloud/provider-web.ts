@@ -548,6 +548,39 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
               vortex_cross_role: "allow",
               vortex_where_value: "allow",
               vortex_untested: "allow",
+              // Full parameter inventory + coverage — the coverage-contract denominator (see prompt.txt).
+              vortex_inject_points: "allow",
+              // Active probing: the agent does NOT only consume Vortex's pre-computed leads — where the
+              // deterministic auto-probe skipped a point, it probes that point itself (payload battery +
+              // canary per injection class, read-only detection). Same denylist as hunt-injection so the
+              // active surface can't be turned into a destructive/OOB action via bash.
+              inject_probe: "allow",
+              bash: {
+                "*DROP TABLE*": "deny",
+                "*drop table*": "deny",
+                "*DROP DATABASE*": "deny",
+                "*drop database*": "deny",
+                "*DROP SCHEMA*": "deny",
+                "*drop schema*": "deny",
+                "*TRUNCATE TABLE*": "deny",
+                "*truncate table*": "deny",
+                "*INTO OUTFILE*": "deny",
+                "*into outfile*": "deny",
+                "*INTO DUMPFILE*": "deny",
+                "*into dumpfile*": "deny",
+                "*xp_cmdshell*": "deny",
+                "*sp_OACreate*": "deny",
+                "*sys_exec*": "deny",
+                "*sys_eval*": "deny",
+                "*COPY * TO PROGRAM*": "deny",
+                "*copy * to program*": "deny",
+                "*--os-shell*": "deny",
+                "*--os-cmd*": "deny",
+                "*--os-pwn*": "deny",
+                "*--file-write*": "deny",
+                "*--reg-add*": "deny",
+                "*--reg-del*": "deny",
+              },
             }),
           },
         ]
