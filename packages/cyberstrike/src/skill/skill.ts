@@ -67,6 +67,18 @@ export namespace Skill {
   const CYBERSTRIKE_SKILL_GLOB = new Bun.Glob("{skill,skills}/**/SKILL.md")
   const SKILL_GLOB = new Bun.Glob("**/SKILL.md")
 
+  // Run `fn` over `items` at most `limit` at a time. Skill loading opens each file (parse + read),
+  // so loading thousands of external skills with an unbounded Promise.all can exhaust file
+  // descriptors (EMFILE/ENFILE). A bounded pool keeps concurrent opens capped regardless of count.
+  async function mapLimit<T>(items: T[], limit: number, fn: (t: T) => Promise<void>): Promise<void> {
+    let i = 0
+    const worker = async () => {
+      while (i < items.length) await fn(items[i++]!)
+    }
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
+  }
+  const SKILL_LOAD_CONCURRENCY = 48
+
   export const state = Instance.state(async () => {
     const skills: Record<string, Info> = {}
     const dirs = new Set<string>()
@@ -98,7 +110,16 @@ export namespace Skill {
       dirs.add(path.dirname(match))
 
       const raw = md.data as Record<string, unknown>
-      const fileContent = await Bun.file(match).text()
+      let fileContent: string
+      try {
+        fileContent = await Bun.file(match).text()
+      } catch (err) {
+        // A per-file I/O failure — most importantly EMFILE/ENFILE when the machine is out of file
+        // descriptors — must NOT crash the whole skill load and abort startup. Skip this one skill
+        // and keep going; a crowded machine then loses a few skills instead of failing to boot.
+        log.warn("skill load skipped (io error)", { skill: match, err: String(err) })
+        return
+      }
       const verified = await SkillSigning.verify({
         content: fileContent,
         sha256: typeof raw.sha256 === "string" ? raw.sha256 : undefined,
@@ -154,7 +175,7 @@ export namespace Skill {
           dot: true,
         }),
       )
-        .then((matches) => Promise.all(matches.map(addSkill)))
+        .then((matches) => mapLimit(matches, SKILL_LOAD_CONCURRENCY, addSkill))
         .catch((error) => {
           log.error(`failed to scan ${scope} skills`, { dir: root, error })
         })
