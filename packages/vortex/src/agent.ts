@@ -1,4 +1,7 @@
 // The AGENT surface — a narrow, curated facade over Vortex, plus framework-neutral tool descriptors.
+// This module is the PUBLIC "@cyberstrike-io/vortex/agent" export (see package.json). It exposes ONLY
+// the facade + agentCapabilities — never the store, rule engine, or send internals — so agent-facing
+// consumers physically cannot import past it. The platform assembler imports the package ROOT instead.
 // The platform (a consumer) ASSEMBLES Vortex with the broad API (store, rule engine, adapters);
 // the AGENT only ever sees this facade: read-mostly, with exactly two open-ended inputs (an HTTPQL
 // `search` and a full `send`/http_replay incl. craft-your-own requests), everything else typed. It

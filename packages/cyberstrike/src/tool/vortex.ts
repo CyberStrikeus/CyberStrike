@@ -2,7 +2,12 @@
 // adapted into CS Tool.define. This is the ONLY surface a Vortex-consuming agent gets: query the
 // corpus, read leads, inspect a transaction, correlate, and http_replay — all over the session's
 // Vortex store. (SDK-produced fixed tools; the agent calls them, it doesn't code against the SDK.)
-import { agentCapabilities } from "@cyberstrike-io/vortex"
+// Import from the "/agent" subpath, NOT the package root: that entry exposes ONLY the sanctioned
+// agent surface (forAgent + agentCapabilities + facade types) — never the store, rule engine, or
+// send internals. This makes the agent↔Vortex boundary structural and reviewable: agent-facing code
+// imports "@cyberstrike-io/vortex/agent"; only the platform assembler (vortex-bridge) imports the
+// package root for the full assembly API.
+import { agentCapabilities } from "@cyberstrike-io/vortex/agent"
 import { Tool } from "./tool"
 import { Session } from "../session"
 import { vortexApi } from "../session/web/vortex-bridge"

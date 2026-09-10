@@ -5,7 +5,8 @@
   "license": "AGPL-3.0-only",
   "description": "Vortex — CyberStrike's HTTP traffic engine: a unified store every request/response flows into (browser capture, replay, cloud), a deterministic rule layer that turns that traffic into signals without waiting on agent initiative, and (soon) an HTTPQL-lite query layer over the corpus.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./agent": "./src/agent.ts"
   },
   "files": ["src"],
   "publishConfig": {
