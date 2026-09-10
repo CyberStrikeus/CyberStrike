@@ -27,6 +27,8 @@ import { query as httpqlQuery } from "./httpql"
 import { inventory, crossRoleObjects, crossRoleFunctions } from "./inventory"
 import { valueOccurrences, untestedEndpoints } from "./pivot"
 import { send as coreSend } from "./replay"
+import { probeInjectPoints } from "./injectprobe"
+import type { Sender } from "./active"
 
 export interface LeadFilter {
   category?: string
@@ -47,6 +49,13 @@ export interface InjectPointFilter {
   probed?: boolean
 }
 
+export interface ProbeArgs {
+  // Restrict to these Vortex payload-class ids (default: all).
+  classes?: string[]
+  // false = probe EVERY point; default/omitted = only the points Vortex's auto-probe hasn't touched.
+  onlyUnprobed?: boolean
+}
+
 // The narrow facade a consumer hands its agents.
 export interface Vortex {
   // the fed findings (agent doesn't hunt — these are pre-computed)
@@ -64,13 +73,18 @@ export interface Vortex {
   // the FULL parameter inventory (every query/body/path/header input), each with its coverage — the
   // coverage-contract denominator: the agent tests EVERY point, it does not trust auto-probe to be complete
   injectPoints(f?: InjectPointFilter): InjectPointView[]
+  // ACTIVELY probe inject points with Vortex's own prober (payload battery + canary per class) and
+  // RETURN the signals it produced. Deliberately does NOT persist to the store — an agent's own probe
+  // attempts must never mark Vortex's coverage/signals; only Vortex's autonomous auto-probe writes the
+  // store. The agent tracks its own coverage against the (read-only) inject-point inventory.
+  probe(opts?: ProbeArgs): Promise<{ attempted: number; signals: Signal[] }>
   // OPEN-ENDED act: replay a captured request OR craft a fresh one; replay-safety guard stays on
   send(input: string | RequestSpec, opts?: SendOptions): Promise<SendResult>
 }
 
 // Build the agent facade over a store. Read-only over the store's current signals/traffic; the
 // platform runs the rules (analyze → addSignals) — the agent just consumes.
-export function forAgent(store: TrafficStore): Vortex {
+export function forAgent(store: TrafficStore, sender?: Sender): Vortex {
   return {
     leads: (f) => {
       const sigs = store.signals({ category: f?.category, severity: f?.severity })
@@ -102,6 +116,15 @@ export function forAgent(store: TrafficStore): Vortex {
           .coverage({ paramId: pt.id })
           .map((c) => ({ payloadClass: c.payloadClass, result: c.result, strategy: c.strategy, signalId: c.signalId })),
       })),
+    probe: async (opts) => {
+      if (!sender) throw new Error("active probing is not wired in this context (no sender)")
+      const points = opts?.onlyUnprobed === false ? store.injectPoints() : store.injectPoints({ probed: false })
+      // probeInjectPoints RETURNS signals and does NOT persist — coverage persistence is the caller's
+      // job, and here the caller (an agent) must not write to Vortex. So the agent gets its findings
+      // back to confirm/report, and the Vortex store (coverage, probed flag, signals) is untouched.
+      const signals = await probeInjectPoints(points, (id) => store.get(id), sender, { classes: opts?.classes })
+      return { attempted: points.length, signals }
+    },
     send: (input, opts) => {
       const resolved = typeof input === "string" ? store.get(input) : input
       if (!resolved) throw new Error(`unknown request_id: ${input}`)
@@ -188,6 +211,13 @@ export const agentCapabilities: Capability[] = [
       "The FULL parameter inventory — every attacker-controllable input enumerated deterministically (query key, body dotpath incl. nested objects & array elements, id-shaped path segment, injectable header), each with its value type, the engine's `probed` flag, and its per-class probe coverage (payloadClass + hit/clean). This is your COVERAGE CONTRACT's denominator: you must ensure EVERY point is tested — do NOT trust the engine's rule-based auto-probe to be complete. Filter {probed:false} for the untested backlog to work first; {} for the full set to verify nothing was skipped; {location:\"body\"} to focus a surface.",
     input: z.object({ location: z.enum(["query", "body", "path", "header"]).optional(), probed: z.boolean().optional() }).strict(),
     run: (api, a) => api.injectPoints(a as InjectPointFilter),
+  },
+  {
+    name: "vortex_probe",
+    description:
+      "ACTIVELY probe inject points with Vortex's own prober: for each point it sends the payload battery + canary per class and RETURNS the signals it produced (reflection / evaluated-template / error-signature). It does NOT write to Vortex — your probe attempts never mark Vortex's coverage or add to its signals; only Vortex's own auto-probe does. So treat the returned signals as YOUR leads: confirm each with http_replay, and track your own coverage against vortex_inject_points (which stays read-only). Default probes the points Vortex hasn't auto-probed; {onlyUnprobed:false} probes every point; {classes:[...]} restricts. Classes: sqli-error, xss-reflected, ssti, path-traversal. Replay-unsafe requests are skipped automatically.",
+    input: z.object({ classes: z.array(z.enum(["sqli-error", "xss-reflected", "ssti", "path-traversal"])).optional(), onlyUnprobed: z.boolean().optional() }).strict(),
+    run: (api, a) => api.probe(a as ProbeArgs),
   },
   {
     name: "http_replay",
