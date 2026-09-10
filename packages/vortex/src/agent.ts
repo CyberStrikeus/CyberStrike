@@ -20,6 +20,7 @@ import type { ObjectRecord, FunctionRecord } from "./inventory"
 import type { Occurrence } from "./pivot"
 import type { Discovered } from "./discovery"
 import type { RequestSpec, SendOptions, SendResult } from "./replay"
+import type { InjectPoint, InjectLocation, Coverage } from "./injectpoint"
 import { leads } from "./lead"
 import { rawView } from "./fields"
 import { query as httpqlQuery } from "./httpql"
@@ -31,6 +32,19 @@ export interface LeadFilter {
   category?: string
   severity?: Signal["severity"]
   limit?: number
+}
+
+// An inject point enriched with its probe coverage — one auditable row of "which parameter, tested
+// with what, and the outcome". `probed` is the engine's auto-probe flag; `coverage` is the per-class
+// ledger (empty = this point has never been probed by the engine). This is what lets the agent hold
+// itself to the coverage contract instead of trusting the engine's determinism.
+export interface InjectPointView extends InjectPoint {
+  coverage: { payloadClass: string; result: Coverage["result"]; strategy?: Coverage["strategy"]; signalId?: string }[]
+}
+
+export interface InjectPointFilter {
+  location?: InjectLocation
+  probed?: boolean
 }
 
 // The narrow facade a consumer hands its agents.
@@ -47,6 +61,9 @@ export interface Vortex {
   crossRole(): { objects: ObjectRecord[]; functions: FunctionRecord[] } // deterministic IDOR / BFLA leads
   whereValue(v: string): Occurrence[] // where a value (spotted in a rawView) flows
   untested(): Discovered[] // discovered-but-unrequested attack surface
+  // the FULL parameter inventory (every query/body/path/header input), each with its coverage — the
+  // coverage-contract denominator: the agent tests EVERY point, it does not trust auto-probe to be complete
+  injectPoints(f?: InjectPointFilter): InjectPointView[]
   // OPEN-ENDED act: replay a captured request OR craft a fresh one; replay-safety guard stays on
   send(input: string | RequestSpec, opts?: SendOptions): Promise<SendResult>
 }
@@ -78,6 +95,13 @@ export function forAgent(store: TrafficStore): Vortex {
     },
     whereValue: (v) => valueOccurrences(store, v),
     untested: () => untestedEndpoints(store),
+    injectPoints: (f) =>
+      store.injectPoints(f).map((pt) => ({
+        ...pt,
+        coverage: store
+          .coverage({ paramId: pt.id })
+          .map((c) => ({ payloadClass: c.payloadClass, result: c.result, strategy: c.strategy, signalId: c.signalId })),
+      })),
     send: (input, opts) => {
       const resolved = typeof input === "string" ? store.get(input) : input
       if (!resolved) throw new Error(`unknown request_id: ${input}`)
@@ -157,6 +181,13 @@ export const agentCapabilities: Capability[] = [
     description: "Endpoints the crawl discovered but no request ever hit — untested attack surface to expand a finding to.",
     input: z.object({}).strict(),
     run: (api) => api.untested(),
+  },
+  {
+    name: "vortex_inject_points",
+    description:
+      "The FULL parameter inventory — every attacker-controllable input enumerated deterministically (query key, body dotpath incl. nested objects & array elements, id-shaped path segment, injectable header), each with its value type, the engine's `probed` flag, and its per-class probe coverage (payloadClass + hit/clean). This is your COVERAGE CONTRACT's denominator: you must ensure EVERY point is tested — do NOT trust the engine's rule-based auto-probe to be complete. Filter {probed:false} for the untested backlog to work first; {} for the full set to verify nothing was skipped; {location:\"body\"} to focus a surface.",
+    input: z.object({ location: z.enum(["query", "body", "path", "header"]).optional(), probed: z.boolean().optional() }).strict(),
+    run: (api, a) => api.injectPoints(a as InjectPointFilter),
   },
   {
     name: "http_replay",
