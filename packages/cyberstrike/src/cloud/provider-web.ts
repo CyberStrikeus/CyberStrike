@@ -550,11 +550,13 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
               vortex_untested: "allow",
               // Full parameter inventory + coverage — the coverage-contract denominator (see prompt.txt).
               vortex_inject_points: "allow",
-              // Active probing: the agent does NOT only consume Vortex's pre-computed leads — where the
-              // deterministic auto-probe skipped a point, it probes that point itself (payload battery +
-              // canary per injection class, read-only detection). Same denylist as hunt-injection so the
-              // active surface can't be turned into a destructive/OOB action via bash.
-              inject_probe: "allow",
+              // Active probing, VORTEX-NATIVE: where the deterministic auto-probe skipped a point, the
+              // agent probes it itself with Vortex's own prober. vortex_probe RETURNS its findings and
+              // does NOT write to Vortex — the agent's probe attempts never mark Vortex's coverage or
+              // signals (only Vortex's autonomous auto-probe writes the store). The agent tracks its own
+              // coverage against the read-only vortex_inject_points inventory. Bash denylist kept as
+              // defense-in-depth for the agent's bash surface (attack_script etc.).
+              vortex_probe: "allow",
               bash: {
                 "*DROP TABLE*": "deny",
                 "*drop table*": "deny",

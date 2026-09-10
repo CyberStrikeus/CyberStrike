@@ -36,7 +36,10 @@ export function dropSession(sessionID: string): void {
 
 // The narrow agent facade over this session's Vortex store — what the Vortex agent tools call.
 export function vortexApi(sessionID: string): Vortex {
-  return forAgent(storeFor(sessionID))
+  // Pass the governed, rate-limited sender so the agent's vortex_probe can actively probe on demand.
+  // vortex_probe RETURNS its findings and does NOT persist to the store — an agent's probe attempts
+  // never mark Vortex's coverage; only this session's autonomous auto-probe writes it.
+  return forAgent(storeFor(sessionID), probeSender())
 }
 
 // Parse a raw HTTP request (the extension's captured text) into headers + body. First line is the
