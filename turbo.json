@@ -3,7 +3,12 @@
   "globalEnv": ["CI", "CYBERSTRIKE_DISABLE_SHARE"],
   "globalPassThroughEnv": ["CI", "CYBERSTRIKE_DISABLE_SHARE"],
   "tasks": {
-    "typecheck": {},
+    "typecheck": {
+      "dependsOn": ["^build:types"]
+    },
+    "build:types": {
+      "outputs": ["dist/types/**"]
+    },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]

@@ -58,7 +58,7 @@ export async function managedIdentity(args: string[], timeout: number): Promise<
       output.push(`[-] Token request failed: HTTP ${resp.status}`)
       return { output: output.join("\n"), findings: [] }
     }
-    const token = await resp.json()
+    const token = (await resp.json()) as { token_type?: string; expires_on?: string; access_token?: string }
     output.push(`[+] Access token obtained for resource: ${resource}`)
     output.push(`    Token type: ${token.token_type}`)
     output.push(`    Expires: ${token.expires_on}`)
@@ -69,7 +69,7 @@ export async function managedIdentity(args: string[], timeout: number): Promise<
       signal: AbortSignal.timeout(ms),
     })
     if (instance.ok) {
-      const meta = await instance.json()
+      const meta = (await instance.json()) as { compute?: { name?: string; location?: string; resourceGroupName?: string; subscriptionId?: string } }
       output.push(`\n[+] VM: ${meta.compute?.name}`)
       output.push(`    Location: ${meta.compute?.location}`)
       output.push(`    ResourceGroup: ${meta.compute?.resourceGroupName}`)

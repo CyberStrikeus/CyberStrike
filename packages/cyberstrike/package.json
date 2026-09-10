@@ -33,6 +33,7 @@
     "test": "bun test --timeout 30000",
     "eval:cloud": "bun run ./src/cloud/eval/runner.ts",
     "build": "bun run script/build.ts",
+    "build:types": "tsc -p tsconfig.dts.json || true",
     "dev": "bun run --conditions=browser ./src/index.ts",
     "clean": "rm -rf node_modules dist",
     "db": "bun drizzle-kit"
@@ -41,6 +42,10 @@
     "cyberstrike": "./bin/cyberstrike"
   },
   "exports": {
+    "./public": {
+      "types": "./dist/types/public.d.ts",
+      "default": "./src/public.ts"
+    },
     "./*": "./src/*.ts"
   },
   "devDependencies": {

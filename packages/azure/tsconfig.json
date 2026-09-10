@@ -5,8 +5,9 @@
     "noEmit": true,
     "module": "preserve",
     "moduleResolution": "bundler",
-    "lib": ["es2022"],
-    "strict": true
+    "lib": ["es2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "skipLibCheck": true
   },
   "include": ["src"]
 }

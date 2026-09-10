@@ -5,7 +5,9 @@ import type { PermissionNext } from "../permission/next"
 import { Truncate } from "./truncation"
 
 export namespace Tool {
-  interface Metadata {
+  // Exported so declaration emit can name it (it appears in ToolRegistry.state/tools return types);
+  // a non-exported namespace member can't be referenced in the generated .d.ts.
+  export interface Metadata {
     [key: string]: any
   }
 
