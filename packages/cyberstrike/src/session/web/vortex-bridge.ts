@@ -3,7 +3,7 @@
 // Vortex engine (rules → signals → subjects → inventory → leads) runs over the live web corpus in
 // parallel with the existing CS signal fabric (verify-first; the fabric retires once Vortex proves
 // out). Never throws — must not break the ingest path.
-import { SqliteStore, defaultRegistry, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal } from "@cyberstrike-io/vortex"
+import { SqliteStore, defaultRegistry, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type CanaryKind } from "@cyberstrike-io/vortex"
 import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
@@ -109,7 +109,13 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
     // Vortex-found lead reaches its owning specialist without waiting on agent initiative. Additive
     // to the CS signal fabric that scanned the same response; dedup collapses any overlap.
     const routed = bridgeSignals(i.sessionID, store, sigs)
-    log.info("vortex ingest", { sessionID: i.sessionID, endpoint: endpointKey(tx), transactions: store.size(), newSignals: added, newParams: points, routed, ruleIds: sigs.map((s) => s.ruleId) })
+    // Cross-request canary correlation (#15 step 2): scan the observed corpus for any registered
+    // canary that renders in a DIFFERENT transaction than it was injected at — a STORED reflection.
+    // Emits Vortex `stored-reflection` signals (category "injection"), which the bridge routes to the
+    // input-validation specialist like any other Vortex signal. No-op until a canary is registered.
+    const stored = scanStored(store)
+    if (stored.length > 0) bridgeSignals(i.sessionID, store, stored)
+    log.info("vortex ingest", { sessionID: i.sessionID, endpoint: endpointKey(tx), transactions: store.size(), newSignals: added, newParams: points, routed, stored: stored.length, ruleIds: sigs.map((s) => s.ruleId) })
     // Auto-probe the new points in the background when active probing is enabled (no-op otherwise).
     // Fire-and-forget: must not block or break the ingest path.
     kickProbe(i.sessionID)
@@ -272,6 +278,25 @@ export function kickProbe(sessionID: string): void {
       probing.delete(sessionID)
     }
   })()
+}
+
+// Register a canary token into this session's Vortex store (#15 step 2), so a later observed page
+// that renders it is caught as a cross-request STORED reflection by scanStored at the next ingest.
+// Called alongside the CS CanaryRegistry from the agent tools (inject_probe / http_replay) during
+// the migration. `requestId` anchors the origin transaction; a synthetic/unknown id (a constructed
+// target with no Vortex tx) is skipped — the CS canary still covers that case. Never throws.
+export function vortexRegisterCanary(
+  sessionID: string,
+  input: { token: string; kind?: CanaryKind; requestId: string; field?: string; vulnClass?: string; agent?: string },
+): void {
+  try {
+    const store = storeFor(sessionID)
+    const tx = store.get(input.requestId)
+    if (!tx) return
+    store.addCanaries([canaryFor(input.token, tx, { kind: input.kind, field: input.field, vulnClass: input.vulnClass, agent: input.agent })])
+  } catch (e) {
+    log.debug("vortex canary register failed (ignored)", { err: String(e) })
+  }
 }
 
 // ── Vortex signals → retest pipeline bridge (issue #14) ─────────────────────────────

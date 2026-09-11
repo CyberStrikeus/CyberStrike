@@ -11,6 +11,7 @@ import { CanaryRegistry, type CanaryKind } from "./canary"
 import { DbCanaryStore, SignalStore } from "./store"
 import { SignalRouter } from "./router"
 import { WebRetest } from "../web-retest"
+import { vortexRegisterCanary } from "../vortex-bridge"
 import { Request } from "../../request"
 import type { Header, ObservedResponse, Signal } from "./types"
 import type { ReplayResponse } from "@/replay/response"
@@ -222,6 +223,16 @@ export function scanElicitedResponse(input: {
         field: input.marker.field,
         agent: input.marker.agent,
         vulnClass: input.marker.vulnClass,
+      })
+      // Also register into Vortex (#15 step 2) so its scanStored catches a cross-page stored
+      // reflection and routes it via the signal bridge. No-op for a synthetic target id.
+      vortexRegisterCanary(input.sessionID, {
+        token: input.marker.value,
+        kind: input.marker.kind ?? "reflect",
+        requestId: input.requestId,
+        field: input.marker.field,
+        vulnClass: input.marker.vulnClass,
+        agent: input.marker.agent,
       })
     }
     const parsed = input.result.response

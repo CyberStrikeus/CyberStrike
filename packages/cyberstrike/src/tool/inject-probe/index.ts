@@ -18,6 +18,7 @@ import { createBackoff } from "./probe/base"
 import { CanaryRegistry } from "../../session/web/signal/canary"
 import { DbCanaryStore, SignalStore } from "../../session/web/signal/store"
 import { scanProbeResponse } from "../../session/web/signal/ingest"
+import { vortexRegisterCanary } from "../../session/web/vortex-bridge"
 
 const description = `Fire a battery of probes at ONE parameter-bearing request and return RAW OBSERVATIONS.
 
@@ -206,6 +207,9 @@ export const InjectProbeTool = Tool.define("inject_probe", {
             agent: ctx.agent,
             vulnClass: cls,
           })
+          // Also register into Vortex (#15 step 2), so its scanStored catches a cross-page stored
+          // reflection and routes it via the signal bridge. No-op for a synthetic target id.
+          vortexRegisterCanary(sessionID, { token, kind, requestId: originRequestId, field, vulnClass: cls, agent: ctx.agent })
         }
         if (cls === "xss") {
           const o = await probeXssPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg, backoff)
