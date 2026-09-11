@@ -155,6 +155,16 @@ function demoteHeadings(text: string): string {
   return text.replace(/^\s{0,3}#{1,6}[ \t]+(.*)$/gm, "**$1**")
 }
 
+// Fence code (curl / raw HTTP / payloads) so a leading `#` reads as a comment in a code block, NEVER
+// a Markdown heading. The fence is a run of backticks LONGER than any backtick-run inside the content,
+// so an embedded ``` can't break out and leak the remainder as headings (use ``` normally, ```` when
+// the content already contains ```). Optional language tag for raw HTTP; PoC (curl/shell) uses none.
+function fence(code: string, lang = ""): string {
+  const longest = (code.match(/`+/g) ?? []).reduce((m, r) => Math.max(m, r.length), 0)
+  const ticks = "`".repeat(Math.max(3, longest + 1))
+  return `${ticks}${lang}\n${code}\n${ticks}`
+}
+
 // A CWE id normalized to the "CWE-89" tag form.
 function cweTag(cwe?: string | null): string | undefined {
   const n = cweNumber(cwe)
@@ -193,12 +203,12 @@ function renderReproduction(sessionID: string, evidenceIds: string[] | undefined
     out.push(`**Evidence ${i} — \`${req.method} ${url}\`**`, "")
     const curl = curlFor(req)
     if (curl) {
-      out.push("curl:", "", "```bash", curl, "```", "")
+      out.push("curl:", "", fence(curl, "bash"), "")
     }
-    out.push("Raw HTTP Request:", "", "```http", (req.raw_request ?? "").slice(0, 8000), "```", "")
+    out.push("Raw HTTP Request:", "", fence((req.raw_request ?? "").slice(0, 8000), "http"), "")
     if (req.response_status) {
       const head = `HTTP ${req.response_status}${req.response_content_type ? ` (${req.response_content_type})` : ""}`
-      out.push("Response:", "", "```http", head, "", (req.processed_response ?? "").slice(0, 4000), "```", "")
+      out.push("Response:", "", fence(`${head}\n\n${(req.processed_response ?? "").slice(0, 4000)}`, "http"), "")
     }
     i++
   }
@@ -250,7 +260,7 @@ export function renderFinding(v: Vulnerability.Info, sessionID: string, ref?: st
   // ── Proof of Concept ── the agent's crafted PoC, fenced so any `#`/payload reads as code, never a
   // heading, when pasted.
   if (v.poc && v.poc.trim()) {
-    lines.push("", "## Proof of Concept", "", "```http", v.poc.trim(), "```")
+    lines.push("", "## Proof of Concept", "", fence(v.poc.trim()))
   }
 
   // ── Business Impact ──
