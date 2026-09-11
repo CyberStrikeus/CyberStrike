@@ -72,6 +72,8 @@ export interface BrowserIngest {
   host: string
   identity?: string // the credential/role this ran under
   pageUrl?: string // the page the request was captured from (for the Vortex-sourced Captures > Pages view)
+  normalizedPath?: string // the platform's display path (so the Vortex captures view shows the same path)
+  keyHash?: string // the platform's per-endpoint key (so observations resolve off Vortex rows, no drift)
   rawRequest?: string
   response?: { status?: number; headers?: Record<string, string>; body?: string }
 }
@@ -89,6 +91,8 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
       host: i.host,
       identity: i.identity,
       pageUrl: i.pageUrl,
+      normalizedPath: i.normalizedPath,
+      keyHash: i.keyHash,
       request: { method: i.method, url: i.url, headers: parsed.headers, body: parsed.body },
       response: i.response ? { status: i.response.status ?? 0, headers: recordToHeaders(i.response.headers), body: i.response.body } : undefined,
     }
@@ -146,24 +150,59 @@ export function vortexDiscoverJs(sessionID: string, url: string): void {
 // the TUI sidebar reads (no divergent session-web copy). `requests` are the captured transactions
 // (the sidebar groups them by host and derives distinct pages from pageUrl); `jsFiles` are the
 // discovered JS assets. Pure reads over the store.
-export function vortexCaptures(sessionID: string): {
-  requests: { id: string; method: string; host: string; url: string; status?: number; identity?: string; pageUrl?: string }[]
-  jsFiles: { url: string; hit: boolean }[]
-} {
+export interface VortexCaptureRequest {
+  id: string
+  method: string
+  host: string
+  // snake_case to match the fields the TUI sidebar row already reads (near drop-in repoint).
+  normalized_path: string
+  page_url?: string
+  key_hash?: string // present → the per-endpoint observations expansion resolves off this Vortex row
+  status?: number
+  identity?: string
+}
+
+function pathFromUrl(url: string): string {
+  try {
+    return new URL(url).pathname
+  } catch {
+    const q = url.indexOf("?")
+    const noQuery = q === -1 ? url : url.slice(0, q)
+    return noQuery.replace(/^[a-z]+:\/\/[^/]+/i, "") || "/"
+  }
+}
+
+export function vortexCaptures(sessionID: string): { requests: VortexCaptureRequest[]; jsFiles: { url: string; hit: boolean }[] } {
   // A read the TUI polls; a store failure must degrade to an empty view, never 500 the route and
   // blank the sidebar. Return-empty-on-error keeps the sidebar rendering (as "no captures yet")
   // instead of erroring, and the failure is logged for diagnosis.
   try {
     const store = storeFor(sessionID)
-    const requests = store.all().map((t) => ({
-      id: t.id,
-      method: t.request.method,
-      host: t.host,
-      url: t.request.url,
-      status: t.response?.status,
-      identity: t.identity,
-      pageUrl: t.pageUrl,
-    }))
+    // One row per ENDPOINT (matching the sidebar's "endpoints" label), not per transaction — the same
+    // request hit N times must not show N times. Dedup by key_hash when present, else method+path.
+    // First occurrence wins, but a later transaction that has a response upgrades the kept row so the
+    // status dot reflects a real response rather than a pending first hit.
+    const byEndpoint = new Map<string, VortexCaptureRequest>()
+    for (const t of store.all()) {
+      const normalized_path = t.normalizedPath ?? pathFromUrl(t.request.url)
+      const dedupKey = t.keyHash ?? `${t.request.method} ${t.host}${normalized_path}`
+      const existing = byEndpoint.get(dedupKey)
+      if (existing) {
+        if (existing.status === undefined && t.response?.status !== undefined) existing.status = t.response.status
+        continue
+      }
+      byEndpoint.set(dedupKey, {
+        id: t.id,
+        method: t.request.method,
+        host: t.host,
+        normalized_path,
+        page_url: t.pageUrl,
+        key_hash: t.keyHash,
+        status: t.response?.status,
+        identity: t.identity,
+      })
+    }
+    const requests = [...byEndpoint.values()]
     const jsFiles = store.discovered("js").map((d) => ({ url: d.value, hit: d.hit }))
     return { requests, jsFiles }
   } catch (e) {

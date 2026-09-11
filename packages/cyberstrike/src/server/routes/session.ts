@@ -2056,6 +2056,8 @@ export const SessionRoutes = lazy(() =>
             host: normalized.host,
             identity: credentialID,
             pageUrl: body.page_url,
+            normalizedPath: normalized.normalizedPath,
+            keyHash: normalized.keyHash,
             rawRequest: truncatedRawRequest,
             response: body.response,
           })
