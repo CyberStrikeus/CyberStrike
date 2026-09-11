@@ -41,6 +41,7 @@ import { DataCollector } from "../../session/web/data-collector"
 import { JsMiner } from "../../session/web/js-miner"
 import { scanCapturedResponse } from "../../session/web/signal/ingest"
 import { ingestBrowserTransaction, vortexReport, vortexProbe, vortexDiscoverJs, vortexCaptures, vortexSignals } from "../../session/web/vortex-bridge"
+import { Identifier } from "../../id/id"
 import { HBLog } from "../../session/web/hblog"
 import { FrameworkFingerprinter } from "../../session/web/tech"
 import { upgradeWebSocket } from "hono/bun"
@@ -2000,9 +2001,34 @@ export const SessionRoutes = lazy(() =>
             })
           }
 
+          // Slice 0 (three-surface plan, docs/three-surface-architecture.md): feed EVERY meaningful
+          // hit to Vortex — not only the first of each endpoint shape — so Vortex holds the full
+          // traffic. The same endpoint seen under different identities/values is the cross-identity /
+          // IDOR substrate Vortex's rules need; before this it only ever saw the first hit per shape.
+          // The duplicate branches call this ONLY when the observation was new (a fresh
+          // key_hash × credential × value combo), so literal repeats add no ingest work.
+          const feedVortex = (requestID: string) =>
+            ingestBrowserTransaction({
+              sessionID,
+              requestID,
+              method: normalized.method,
+              url: normalized.origin + (normalized.canonicalPath ?? normalized.normalizedPath),
+              host: normalized.host,
+              identity: credentialID,
+              pageUrl: body.page_url,
+              normalizedPath: normalized.normalizedPath,
+              keyHash: normalized.keyHash,
+              rawRequest: truncateRawRequest(body.text),
+              response: body.response,
+            })
+
           if (isDuplicate) {
-            recordObservation()
+            const newObs = recordObservation()
             runFabric(Request.findId(sessionID, normalized.keyHash))
+            // A repeat of a known endpoint SHAPE, but a new identity/value combo → still new
+            // cross-identity substrate for Vortex; feed it (fresh tx id, no CS row needed). A truly
+            // identical repeat (newObs === false) is skipped.
+            if (newObs) feedVortex(Identifier.ascending("request"))
             log.info("duplicate request skipped", {
               sessionID,
               method: normalized.method,
@@ -2047,8 +2073,9 @@ export const SessionRoutes = lazy(() =>
           // duplicate — no row was created, so skip the LLM enqueue, but still
           // record the observation (the values are evidence regardless).
           if (!req) {
-            recordObservation()
+            const newObs = recordObservation()
             runFabric(Request.findId(sessionID, normalized.keyHash))
+            if (newObs) feedVortex(Identifier.ascending("request"))
             c.status(202)
             return c.json({ sessionID, skipped: true })
           }
@@ -2057,22 +2084,9 @@ export const SessionRoutes = lazy(() =>
           recordObservation(req.id)
           runFabric(req.id)
 
-          // Parallel Vortex feed (browser SourceAdapter): the same capture becomes a Vortex
-          // Transaction so the Vortex engine runs over the live web corpus, verify-first alongside
-          // the CS signal fabric above. Never throws.
-          ingestBrowserTransaction({
-            sessionID,
-            requestID: req.id,
-            method: normalized.method,
-            url: normalized.origin + (normalized.canonicalPath ?? normalized.normalizedPath),
-            host: normalized.host,
-            identity: credentialID,
-            pageUrl: body.page_url,
-            normalizedPath: normalized.normalizedPath,
-            keyHash: normalized.keyHash,
-            rawRequest: truncatedRawRequest,
-            response: body.response,
-          })
+          // Vortex feed for a new endpoint shape (uses the real CS request id). Duplicate branches
+          // feed too (slice 0) via feedVortex, so Vortex holds the full traffic. Never throws.
+          feedVortex(req.id)
 
           // Build the prompt as a thunk so the `## Observed Values` block reflects the
           // observation state at SEND time, not at enqueue time. Prompts queue (LLM calls

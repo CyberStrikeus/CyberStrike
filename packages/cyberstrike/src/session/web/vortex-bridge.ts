@@ -112,10 +112,16 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
     // Cross-request canary correlation (#15 step 2): scan the observed corpus for any registered
     // canary that renders in a DIFFERENT transaction than it was injected at — a STORED reflection.
     // Emits Vortex `stored-reflection` signals (category "injection"), which the bridge routes to the
-    // input-validation specialist like any other Vortex signal. No-op until a canary is registered.
-    const stored = scanStored(store)
-    if (stored.length > 0) bridgeSignals(i.sessionID, store, stored)
-    log.info("vortex ingest", { sessionID: i.sessionID, endpoint: endpointKey(tx), transactions: store.size(), newSignals: added, newParams: points, routed, stored: stored.length, ruleIds: sigs.map((s) => s.ruleId) })
+    // input-validation specialist like any other Vortex signal. GUARDED on canary presence: with no
+    // canary registered (the whole crawl phase, before an agent injects) scanStored is skipped, so
+    // per-hit ingest — now on EVERY hit (slice 0) — never pays the O(txs) corpus scan for nothing.
+    let stored = 0
+    if (store.canaries().length > 0) {
+      const storedSignals = scanStored(store)
+      stored = storedSignals.length
+      if (stored > 0) bridgeSignals(i.sessionID, store, storedSignals)
+    }
+    log.info("vortex ingest", { sessionID: i.sessionID, endpoint: endpointKey(tx), transactions: store.size(), newSignals: added, newParams: points, routed, stored, ruleIds: sigs.map((s) => s.ruleId) })
     // Auto-probe the new points in the background when active probing is enabled (no-op otherwise).
     // Fire-and-forget: must not block or break the ingest path.
     kickProbe(i.sessionID)
