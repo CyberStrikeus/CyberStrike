@@ -17,12 +17,20 @@ const log = Log.create({ service: "vortex-bridge" })
 // under the app data dir (SqliteStore scopes every op by session, so one file holds all sessions
 // without bleeding). Survives restarts and holds thousands of requests (not memory). The rule
 // registry (baseline catalog) is shared across sessions.
+const stores = new Map<string, TrafficStore>()
 let db: Database | undefined
+let dbPath: string | undefined
 function database(): Database {
-  if (!db) db = new Database(path.join(Global.Path.data, "vortex.db"))
+  const p = path.join(Global.Path.data, "vortex.db")
+  // Re-open (and drop the per-session store cache) when the data dir changes — e.g. a new Instance in
+  // tests, or a project switch. In production the path is stable, so this opens exactly once.
+  if (!db || dbPath !== p) {
+    db = new Database(p)
+    dbPath = p
+    stores.clear()
+  }
   return db
 }
-const stores = new Map<string, TrafficStore>()
 const registry = defaultRegistry()
 function storeFor(sessionID: string): TrafficStore {
   let s = stores.get(sessionID)

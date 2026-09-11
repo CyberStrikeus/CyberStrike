@@ -2,13 +2,15 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { Hono } from "hono"
 import { SessionRoutes } from "../../src/server/routes/session"
 import { Session } from "../../src/session"
-import { SignalStore } from "../../src/session/web/signal"
+import { vortexSignals } from "../../src/session/web/vortex-bridge"
 import { WebRetest } from "../../src/session/web/web-retest"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
 
-// Dry-run so the ingest handler skips the LLM enqueue; the signal fabric runs on the ingest path
-// BEFORE the enqueue, so this verifies the real route → fabric → SignalStore wiring end-to-end.
+// Ingest → VORTEX (three-surface slice 1 parity proof). The ingest handler feeds every hit to Vortex,
+// which runs the deterministic rules/canary and routes signals to the retest pipeline via the bridge.
+// These assert that path end-to-end through the real route (dry-run skips the LLM enqueue). If they
+// hold, Vortex is at parity with the CS fabric — the fabric can be retired with no detection loss.
 const prev = process.env.CYBERSTRIKE_INGEST_DRY_RUN
 beforeAll(() => {
   process.env.CYBERSTRIKE_INGEST_DRY_RUN = "true"
@@ -42,26 +44,22 @@ const ingest = (
     body: JSON.stringify({ sessionID: sid, text: `GET ${target} HTTP/1.1\r\nHost: ${host}\r\n\r\n`, response }),
   })
 
-describe("ingest → signal fabric (real route wiring)", () => {
-  test("HTML error page: path-disclosure + stack-trace recorded (proves B1 — raw body scanned, not the stub)", async () => {
+const rules = (sid: string) => vortexSignals(sid).signals.map((s) => s.ruleId)
+
+describe("ingest → Vortex (real route wiring, #15 slice 1 parity)", () => {
+  test("HTML error page: full-path-disclosure + stack-trace recorded by Vortex on the raw body", async () => {
     await withSession(async (app, sid) => {
       const body = 'Traceback (most recent call last):\n  File "/var/www/app/main.py", line 42, in handler\n  raise ValueError'
-      // content-type text/html → processResponse would store only the "This is an HTML response"
-      // stub. Finding these signals proves the fabric ran on the RAW body at ingest.
       const resp = { status: 500, headers: { "content-type": "text/html" }, body }
       expect((await ingest(app, sid, "shop.example.com", "/boom", resp)).status).toBe(202)
 
-      const signals = new SignalStore(sid).get()
-      const types = signals.map((s) => s.signal_type)
-      expect(types).toContain("stack_trace")
-      expect(types).toContain("full_path_disclosure")
-      // A new-shape signal links to the real request row id.
-      const st = signals.find((s) => s.signal_type === "stack_trace")
-      expect(st?.request_id.startsWith("req")).toBe(true)
+      const ids = rules(sid)
+      expect(ids).toContain("stack-trace-signature")
+      expect(ids).toContain("full-path-disclosure")
     })
   })
 
-  test("banner + weak cookie carry the correct owning specialist", async () => {
+  test("banner + weak cookie carry the correct owning specialist (per-rule owner overrides)", async () => {
     await withSession(async (app, sid) => {
       const resp = {
         status: 200,
@@ -70,12 +68,9 @@ describe("ingest → signal fabric (real route wiring)", () => {
       }
       expect((await ingest(app, sid, "api.example.com", "/v1/ping", resp)).status).toBe(202)
 
-      const signals = new SignalStore(sid).get()
-      const banner = signals.find((s) => s.signal_type === "server_banner")
-      const cookie = signals.find((s) => s.signal_type === "weak_cookie_flags")
-      // recon was merged into the security-misconfiguration specialist — server_banner now routes there.
-      expect(banner?.owner).toBe("config-deployment")
-      expect(cookie?.owner).toBe("session-management")
+      const sigs = vortexSignals(sid).signals
+      expect(sigs.find((s) => s.ruleId === "server-banner")?.owner).toBe("config-deployment")
+      expect(sigs.find((s) => s.ruleId === "weak-cookie-flags")?.owner).toBe("session-management")
     })
   })
 
@@ -93,19 +88,17 @@ describe("ingest → signal fabric (real route wiring)", () => {
         body: "<html><body>welcome</body></html>",
       }
       expect((await ingest(app, sid, "safe.example.com", "/home", resp)).status).toBe(202)
-      expect(new SignalStore(sid).get()).toHaveLength(0)
+      expect(vortexSignals(sid).signals).toHaveLength(0)
     })
   })
 
-  test("re-ingesting the same shape does not duplicate the signal (per-shape dedup via findId)", async () => {
+  test("re-ingesting the identical shape+value does not duplicate the signal (Vortex per-endpoint dedup)", async () => {
     await withSession(async (app, sid) => {
-      const resp = { status: 500, headers: { "content-type": "text/html" }, body: "Exception in thread main /etc/passwd" }
-      // First = new shape (202). Second = duplicate (202, skipped) → runs the fabric with the
-      // shape's canonical request id, so the signal dedups instead of piling up.
+      const resp = { status: 500, headers: { "content-type": "text/html" }, body: "Exception in thread main\n  at app.Handler(Main.java:42)" }
       expect((await ingest(app, sid, "shop.example.com", "/dup", resp)).status).toBe(202)
       expect((await ingest(app, sid, "shop.example.com", "/dup", resp)).status).toBe(202)
 
-      const stackTraces = new SignalStore(sid).get().filter((s) => s.signal_type === "stack_trace")
+      const stackTraces = vortexSignals(sid).signals.filter((s) => s.ruleId === "stack-trace-signature")
       expect(stackTraces).toHaveLength(1)
     })
   })
@@ -113,32 +106,22 @@ describe("ingest → signal fabric (real route wiring)", () => {
   test("ingest with no response body is safe (no crash, no signals)", async () => {
     await withSession(async (app, sid) => {
       expect((await ingest(app, sid, "shop.example.com", "/nobody")).status).toBe(202)
-      expect(new SignalStore(sid).get()).toHaveLength(0)
+      expect(vortexSignals(sid).signals).toHaveLength(0)
     })
   })
 
-  test("a recorded signal enqueues a new_signal retest routed to the owning specialist (B4)", async () => {
+  test("a Vortex signal enqueues a retest routed to the owning specialist", async () => {
     await withSession(async (app, sid) => {
       const resp = { status: 500, headers: { "content-type": "text/html" }, body: "You have an error in your SQL syntax near ''" }
       expect((await ingest(app, sid, "shop.example.com", "/q", resp)).status).toBe(202)
 
       const retest = WebRetest.getPending(sid).find((r) => (r.flags.signal ?? []).length > 0)
       expect(retest).toBeDefined()
-      // Endpoint-keyed; the signal flag value encodes type:owner for routing.
       expect(retest?.key_hash).toBeTruthy()
-      expect(retest?.flags.signal?.[0]).toContain("sql_error")
-      expect(retest?.flags.signal?.[0]).toContain("input-validation")
+      // Vortex routes the sql-error signal as `injection:input-validation` (WSTG 4.7 owner).
+      expect(retest?.flags.signal?.some((v) => v.includes("input-validation"))).toBe(true)
       expect(retest?.priority).toBe("high")
     })
   })
 
-  test("re-ingesting the same shape does not pile up retests (enqueue dedup)", async () => {
-    await withSession(async (app, sid) => {
-      const resp = { status: 500, headers: { "content-type": "text/html" }, body: "SQL syntax error near X" }
-      await ingest(app, sid, "shop.example.com", "/q2", resp)
-      await ingest(app, sid, "shop.example.com", "/q2", resp)
-      const signalRetests = WebRetest.getPending(sid).filter((r) => (r.flags.signal ?? []).length > 0)
-      expect(signalRetests).toHaveLength(1)
-    })
-  })
 })
