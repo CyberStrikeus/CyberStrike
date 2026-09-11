@@ -33,16 +33,20 @@ import PROMPT_HUNT_TESTER_LLM from "../agent/prompt/vuln/llm/prompt.txt"
 import DESC_HUNT_TESTER_LLM from "../agent/prompt/vuln/llm/description.txt"
 import PROMPT_HUNT_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/prompt.txt"
 import DESC_HUNT_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/description.txt"
-import PROMPT_VORTEX_TEST_INJECTION from "../agent/prompt/vuln/vortex-injection/prompt.txt"
-import DESC_VORTEX_TEST_INJECTION from "../agent/prompt/vuln/vortex-injection/description.txt"
+import PROMPT_WEB_INPUT_VALIDATION from "../agent/prompt/vuln/web-input-validation/prompt.txt"
+import DESC_WEB_INPUT_VALIDATION from "../agent/prompt/vuln/web-input-validation/description.txt"
 
-// Vortex trial (temporary). When CYBERSTRIKE_VORTEX_INJECTION is set, the injection
-// SpecialistClass is owned by `vortex-test-injection` — a test agent that hunts injection
-// ENTIRELY through the Vortex engine (leads → inspect → query → http_replay confirm) instead
-// of hunt-injection. Opt-in and removable: unset the env var to restore hunt-injection, and
-// pair with CYBERSTRIKE_WEB_FOCUS=vortex-test-injection to run it in isolation for the trial.
-const VORTEX_INJECTION_TRIAL =
-  process.env.CYBERSTRIKE_VORTEX_INJECTION === "1" || process.env.CYBERSTRIKE_VORTEX_INJECTION === "true"
+// WSTG 4.7 Input Validation, Vortex-native. When enabled, the `input-validation` SpecialistClass is
+// owned by the `web-input-validation` specialist (all of WSTG 4.7: injection/SSRF/file/mass-assignment
+// …) instead of hunt-injection, which then cedes the class. Opt-in and removable during the WSTG
+// agent build-out: unset the env var to restore the legacy hunt-injection path, and pair with
+// CYBERSTRIKE_WEB_FOCUS=web-input-validation to run it in isolation. CYBERSTRIKE_VORTEX_INJECTION is
+// accepted as the superseded alias for continuity.
+const WEB_INPUT_VALIDATION =
+  process.env.CYBERSTRIKE_WEB_INPUT_VALIDATION === "1" ||
+  process.env.CYBERSTRIKE_WEB_INPUT_VALIDATION === "true" ||
+  process.env.CYBERSTRIKE_VORTEX_INJECTION === "1" ||
+  process.env.CYBERSTRIKE_VORTEX_INJECTION === "true"
 
 function stripDefensiveSections(content: string): string {
   if (!content) return ""
@@ -277,16 +281,37 @@ function focusSet(): Set<string> | null {
   return set.size > 0 ? set : null
 }
 
+// WSTG classes whose dedicated `web-*` specialist has not been built YET (staged WSTG agent
+// build-out). A signal routing to one of these is still detected and RECORDED — it just doesn't
+// auto-dispatch a specialist until that specialist exists. Listed explicitly so an UNEXPECTED orphan
+// (a real config bug) still throws, while these known-pending ones only warn. Remove a class from
+// here the moment its web-* specialist is added.
+export const PENDING_WSTG_CLASSES: ReadonlySet<SpecialistClass> = new Set<SpecialistClass>([
+  "information-gathering", // web-info-gathering  (WSTG 4.1) — not built yet
+  "identity-management", //  web-identity-mgmt    (WSTG 4.3) — not built yet
+  "session-management", //   web-session-mgmt     (WSTG 4.6) — not built yet
+  "error-handling", //       web-error-handling   (WSTG 4.8) — not built yet
+  "weak-cryptography", //    web-weak-crypto      (WSTG 4.9) — not built yet
+  "client-side", //          web-client-side      (WSTG 4.11) — not built yet
+])
+
 function assertSignalCoverage(classAgent: ReadonlyMap<SpecialistClass, string>, router: SignalRouter): void {
   const orphans = new Set<SpecialistClass>()
   for (const type of SignalRouter.signalTypes()) {
     const owner = router.ownerOf(type)
     if (!classAgent.has(owner)) orphans.add(owner)
   }
-  if (orphans.size > 0) {
+  const unexpected = [...orphans].filter((c) => !PENDING_WSTG_CLASSES.has(c))
+  const pending = [...orphans].filter((c) => PENDING_WSTG_CLASSES.has(c))
+  if (pending.length > 0) {
+    // Staged: signals for these route + record but don't auto-dispatch until the specialist is built.
+    log.warn("web signal classes detected but their WSTG specialist is not built yet (staged)", { pending })
+  }
+  if (unexpected.length > 0) {
     throw new Error(
-      `WebProvider: signal owner class(es) with no agent: ${[...orphans].join(", ")}. ` +
-        `Every SpecialistClass a signal routes to must be declared as an agent's specialistClass.`,
+      `WebProvider: signal owner class(es) with no agent: ${unexpected.join(", ")}. ` +
+        `Every SpecialistClass a signal routes to must be declared as an agent's specialistClass ` +
+        `(or, if it's a not-yet-built WSTG specialist, added to PENDING_WSTG_CLASSES).`,
     )
   }
 }
@@ -466,7 +491,7 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     {
       name: "hunt-authz",
       role: "specialist",
-      specialistClass: "access-control",
+      specialistClass: "authorization",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_AUTHZ, authzSkills),
       description: DESC_HUNT_TESTER_AUTHZ,
       skills: ["wstg-authz-02", "wstg-authz-03", "wstg-authz-01"],
@@ -485,10 +510,10 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     {
       name: "hunt-injection",
       role: "specialist",
-      // During the Vortex trial the injection class is owned by vortex-test-injection instead
-      // (see VORTEX_INJECTION_TRIAL). hunt-injection stays in the roster but stops being the
-      // routed owner, so retest-worker's agentForClass("injection") dispatches the Vortex agent.
-      specialistClass: VORTEX_INJECTION_TRIAL ? undefined : "injection",
+      // When the WSTG input-validation specialist is enabled it owns the class (WSTG 4.7); hunt-injection
+      // stays in the roster but cedes ownership, so retest-worker's agentForClass("input-validation")
+      // dispatches web-input-validation. Otherwise hunt-injection remains the input-validation owner.
+      specialistClass: WEB_INPUT_VALIDATION ? undefined : "input-validation",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_INJECTION, injectionSkills),
       description: DESC_HUNT_TESTER_INJECTION,
       skills: ["wstg-injection", "wstg-inpv-05", "wstg-inpv-12", "wstg-inpv-18"],
@@ -523,21 +548,22 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
         },
       }),
     },
-    // Vortex trial agent — only joins the roster (and claims the injection class) when the
-    // trial flag is set. Consumes the Vortex engine: reads pre-computed injection leads, inspects
-    // the raw transaction, correlates over the corpus (HTTPQL), and confirms with http_replay.
-    ...(VORTEX_INJECTION_TRIAL
+    // WSTG 4.7 Input Validation specialist (Vortex-native) — the single agent for injection, SSRF,
+    // file upload, mass assignment, path traversal, etc. Joins the roster and owns the class only when
+    // WEB_INPUT_VALIDATION is enabled; hunt-injection then cedes. Reads Vortex's pre-computed leads +
+    // inject-point inventory, actively probes (vortex_probe + inject_probe), confirms with http_replay.
+    ...(WEB_INPUT_VALIDATION
       ? [
           {
-            name: "vortex-test-injection",
+            name: "web-input-validation",
             role: "specialist" as const,
-            specialistClass: "injection" as SpecialistClass,
+            specialistClass: "input-validation" as SpecialistClass,
             // Built through the same convention as every other vuln specialist: the common
             // methodology preamble + the injection skill pack wrap the Vortex-consumer body,
             // and the description comes from its description.txt (not an inline string).
-            prompt: vulnPrompt(PROMPT_VORTEX_TEST_INJECTION, injectionSkills),
-            description: DESC_VORTEX_TEST_INJECTION,
-            skills: ["wstg-injection", "wstg-inpv-05", "wstg-inpv-12", "wstg-inpv-18"],
+            prompt: vulnPrompt(PROMPT_WEB_INPUT_VALIDATION, injectionSkills),
+            description: DESC_WEB_INPUT_VALIDATION,
+            skills: ["wstg-injection", "wstg-inpv-05", "wstg-inpv-12", "wstg-inpv-18", "wstg-inpv-19", "wstg-inpv-11"],
             prependRequestContext: true,
             permissions: mergePermissions(VULN_BASE_PERMISSIONS, {
               vortex_leads: "allow",
@@ -557,6 +583,9 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
               // coverage against the read-only vortex_inject_points inventory. Bash denylist kept as
               // defense-in-depth for the agent's bash surface (attack_script etc.).
               vortex_probe: "allow",
+              // The richer per-class probe battery for classes vortex_probe doesn't cover natively
+              // (command, LDAP, XPath, NoSQL, HPP, LFI). Read-only detection — hands the agent leads.
+              inject_probe: "allow",
               bash: {
                 "*DROP TABLE*": "deny",
                 "*drop table*": "deny",
@@ -590,7 +619,9 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     {
       name: "hunt-authn",
       role: "specialist",
-      specialistClass: "auth-session",
+      // auth-session split into WSTG 4.4 (authentication) + 4.6 (session-management); hunt-authn owns
+      // authentication until the dedicated web-authentication / web-session-mgmt specialists are built.
+      specialistClass: "authentication",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_AUTHN, authnSkills),
       description: DESC_HUNT_TESTER_AUTHN,
       skills: ["wstg-auth-session", "wstg-athn-04", "wstg-athn-09", "wstg-athn-11", "wstg-sess-10"],
@@ -610,7 +641,8 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     {
       name: "hunt-ssrf",
       role: "specialist",
-      specialistClass: "server-side-request",
+      // SSRF folds into WSTG 4.7 input-validation (owned by web-input-validation); hunt-ssrf stays in
+      // the roster as a dispatch-by-name specialist but no longer owns a routed class.
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_SSRF, ssrfSkills),
       description: DESC_HUNT_TESTER_SSRF,
       skills: ["wstg-inpv-19", "wstg-conf-13"],
@@ -643,7 +675,9 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
       // pass, so they no longer double-probe the same paths as two separate agents.
       name: "hunt-misconfig",
       role: "specialist",
-      specialistClass: "misconfiguration",
+      // WSTG 4.2 Configuration & Deployment Management (was "misconfiguration"); owns config-deployment
+      // until the dedicated web-config-deploy specialist is built.
+      specialistClass: "config-deployment",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_MISCONFIG, misconfigSkills),
       description: DESC_HUNT_TESTER_MISCONFIG,
       skills: [
