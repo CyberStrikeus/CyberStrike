@@ -40,7 +40,7 @@ import { CoDrive } from "../../session/web/nav/co-drive-runner"
 import { DataCollector } from "../../session/web/data-collector"
 import { JsMiner } from "../../session/web/js-miner"
 import { scanCapturedResponse } from "../../session/web/signal/ingest"
-import { ingestBrowserTransaction, vortexReport, vortexProbe } from "../../session/web/vortex-bridge"
+import { ingestBrowserTransaction, vortexReport, vortexProbe, vortexDiscoverJs, vortexCaptures } from "../../session/web/vortex-bridge"
 import { HBLog } from "../../session/web/hblog"
 import { FrameworkFingerprinter } from "../../session/web/tech"
 import { upgradeWebSocket } from "hono/bun"
@@ -1232,6 +1232,7 @@ export const SessionRoutes = lazy(() =>
           for (const u of bundles) {
             try {
               WebJs.add({ sessionID, url: u, origin: new URL(u).origin, discoveredFrom: "script-src" })
+              vortexDiscoverJs(sessionID, u) // mirror into Vortex — the single source the Captures view reads
             } catch {}
           }
           JsMiner.wake(sessionID)
@@ -1692,6 +1693,18 @@ export const SessionRoutes = lazy(() =>
       async (c) => c.json(await vortexProbe(c.req.valid("param").sessionID)),
     )
     .get(
+      "/:sessionID/vortex/captures",
+      describeRoute({
+        summary: "Vortex captures",
+        description:
+          "The captured surface sourced from the session's Vortex store (the single source of truth the TUI Captures view reads): requests (transactions) + discovered JS files. Pages are derived from each request's pageUrl.",
+        operationId: "session.vortexCaptures",
+        responses: { 200: { description: "Vortex-sourced captures" } },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => c.json(vortexCaptures(c.req.valid("param").sessionID)),
+    )
+    .get(
       "/:sessionID/web/retest-queue",
       describeRoute({
         summary: "Get web retest queue",
@@ -1927,12 +1940,9 @@ export const SessionRoutes = lazy(() =>
           // JS never becomes a request row, so persist script URLs durably (dedup by url) for the
           // panel/TUI + a later body-analysis agent.
           if (collectedKind === "js") {
-            WebJs.add({
-              sessionID,
-              url: normalized.origin + (normalized.canonicalPath ?? normalized.normalizedPath),
-              origin: normalized.origin,
-              discoveredFrom: "capture",
-            })
+            const jsUrl = normalized.origin + (normalized.canonicalPath ?? normalized.normalizedPath)
+            WebJs.add({ sessionID, url: jsUrl, origin: normalized.origin, discoveredFrom: "capture" })
+            vortexDiscoverJs(sessionID, jsUrl) // mirror into Vortex — the single source the Captures view reads
             JsMiner.wake(sessionID) // a captured JS bundle → mine it (debounced, recursive)
           }
 
@@ -2045,6 +2055,7 @@ export const SessionRoutes = lazy(() =>
             url: normalized.origin + (normalized.canonicalPath ?? normalized.normalizedPath),
             host: normalized.host,
             identity: credentialID,
+            pageUrl: body.page_url,
             rawRequest: truncatedRawRequest,
             response: body.response,
           })

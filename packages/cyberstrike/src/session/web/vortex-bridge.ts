@@ -3,7 +3,7 @@
 // Vortex engine (rules → signals → subjects → inventory → leads) runs over the live web corpus in
 // parallel with the existing CS signal fabric (verify-first; the fabric retires once Vortex proves
 // out). Never throws — must not break the ingest path.
-import { SqliteStore, defaultRegistry, leads, endpointKey, forAgent, injectPoints, probeSession, send, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender } from "@cyberstrike-io/vortex"
+import { SqliteStore, defaultRegistry, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender } from "@cyberstrike-io/vortex"
 import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
@@ -71,6 +71,7 @@ export interface BrowserIngest {
   url: string
   host: string
   identity?: string // the credential/role this ran under
+  pageUrl?: string // the page the request was captured from (for the Vortex-sourced Captures > Pages view)
   rawRequest?: string
   response?: { status?: number; headers?: Record<string, string>; body?: string }
 }
@@ -87,6 +88,7 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
       source: "browser",
       host: i.host,
       identity: i.identity,
+      pageUrl: i.pageUrl,
       request: { method: i.method, url: i.url, headers: parsed.headers, body: parsed.body },
       response: i.response ? { status: i.response.status ?? 0, headers: recordToHeaders(i.response.headers), body: i.response.body } : undefined,
     }
@@ -118,6 +120,41 @@ export function vortexReport(sessionID: string): { transactions: number; signals
     log.debug("vortex analyze failed (ignored)", { err: String(e) })
   }
   return { transactions: store.size(), signals: store.signals().length, leads: leads(store) }
+}
+
+// Record a discovered JS asset in the session's Vortex store so JS is visible from the ONE source
+// (the Captures > JS Files view reads Vortex, not a separate web_js copy). Best-effort — a failure
+// here must never break capture. Deduped by (kind,value) inside the store.
+export function vortexDiscoverJs(sessionID: string, url: string): void {
+  const u = String(url || "").trim()
+  if (!u) return
+  try {
+    storeFor(sessionID).addDiscovered([{ id: discoveredId("js", u), kind: "js", value: u, source: "extract", hit: false }])
+  } catch (e) {
+    log.debug("vortex discover-js failed (ignored)", { err: String(e) })
+  }
+}
+
+// The Captures view, sourced entirely from the session's Vortex store — the single source of truth
+// the TUI sidebar reads (no divergent session-web copy). `requests` are the captured transactions
+// (the sidebar groups them by host and derives distinct pages from pageUrl); `jsFiles` are the
+// discovered JS assets. Pure reads over the store.
+export function vortexCaptures(sessionID: string): {
+  requests: { id: string; method: string; host: string; url: string; status?: number; identity?: string; pageUrl?: string }[]
+  jsFiles: { url: string; hit: boolean }[]
+} {
+  const store = storeFor(sessionID)
+  const requests = store.all().map((t) => ({
+    id: t.id,
+    method: t.request.method,
+    host: t.host,
+    url: t.request.url,
+    status: t.response?.status,
+    identity: t.identity,
+    pageUrl: t.pageUrl,
+  }))
+  const jsFiles = store.discovered("js").map((d) => ({ url: d.value, hit: d.hit }))
+  return { requests, jsFiles }
 }
 
 // ACTIVE injection probing on the live corpus — the path in Vortex that SENDS payloads to the
