@@ -98,6 +98,11 @@ describe("renderFinding — Bugcrowd template", () => {
       expect(md).toContain("## Vulnerability Overview")
       expect(md).toContain("## Impacts")
       expect(md).toContain("Weakness: CWE-99999")
+      // No curated library + no agent-provided content → the verbatim [REQUIRED --…] guidance
+      // renders as a visible TODO (the agent reads the same guidance in report_vulnerability.txt).
+      expect(md).toContain("[REQUIRED -- Provide a general description of the finding type")
+      expect(md).toContain("[REQUIRED -- Provide a high-level recommendation for remediating")
+      expect(md).toContain("[REQUIRED - Provide 1-3 bullet points")
     })
   })
 })

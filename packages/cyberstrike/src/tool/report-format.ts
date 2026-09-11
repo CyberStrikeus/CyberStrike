@@ -20,6 +20,25 @@ import { HttpMessage } from "../replay/message"
 import { Apply } from "../replay/apply"
 import type { Vulnerability } from "../session/vulnerability"
 
+// Verbatim per-section guidance from the Bugcrowd template. Emitted as the placeholder when a
+// section has no content (the agent's field AND the curated per-CWE library are both absent), so a
+// REQUIRED section is never silently blank and the author sees exactly what to write. The vulnerability
+// agent reads the SAME guidance in report_vulnerability.txt and authors each section accordingly.
+const GUIDANCE = {
+  overview:
+    '[REQUIRED -- Provide a general description of the finding type. This paragraph describes the type of finding, and *not* the specific instance that you found. For example, what is a Cross-Site Scripting (XSS) vulnerability, and not which instances of XSS did you discover. Introduce any key terms or information that would help the reader understand how their application is affected by it. Try to answer the questions "What is the problem?" and "How could an attacker exploit it?"]',
+  findingDetails:
+    "[REQUIRED -- Provide a high-level summary of the vulnerability finding that your team discovered. Include a vulnerability description for this specific instance, and which endpoints, parameters, functions or pages are affected.]",
+  steps:
+    "[REQUIRED -- Provide a step by step on how to reproduce the vulnerability finding. Provide screenshots, curl commands, Burp Suite evidence, HTTP Requests and responses, or whatever you feel necessary to create thorough reproduction steps.]",
+  recommendations:
+    "[REQUIRED -- Provide a high-level recommendation for remediating the vulnerability finding, giving the customer some topics for further research, rather than specific lines of code to change. Write the recommendation in imperative (command) form, in a bulleted list with bolded head words.]",
+  references:
+    "[Optional - Provide any useful references related to the vulnerability you found, such as links to vulnerability blogs or details, CWE, CVEs, and exploits PoC, OWASP cheat sheets, or other resources.]",
+  impacts:
+    "[REQUIRED - Provide 1-3 bullet points describing what could happen for this specific vulnerability if not addressed. Write about what a hypothetical attacker could do, and use a bolded head word similar to the Recommendation format.]",
+}
+
 interface ClassInfo {
   weakness: string // human name shown on the "Weakness:" line
   overview: string // 1-2 sentences: what this finding TYPE is + how it is exploited
@@ -248,12 +267,13 @@ export function renderFinding(v: Vulnerability.Info, sessionID: string, ref?: st
 
   // ## Vulnerability Overview — the finding TYPE (curated per-CWE), not this specific instance.
   lines.push("", "## Vulnerability Overview", "")
-  lines.push(info?.overview ?? `This finding is a ${weakness}.`)
+  lines.push(info?.overview ?? GUIDANCE.overview)
 
   // ### Finding Details — this specific instance: what/where (endpoint, parameters), + attack vector.
   lines.push("", "### Finding Details", "")
   const details: string[] = []
   if (v.description && v.description.trim()) details.push(demoteHeadings(v.description.trim()))
+  else details.push(GUIDANCE.findingDetails)
   details.push(`Affected: \`${affected}\`.`)
   if (v.attack_vector) details.push(`**Attack vector:** ${v.attack_vector}.`)
   lines.push(details.join("\n\n"))
@@ -267,7 +287,7 @@ export function renderFinding(v: Vulnerability.Info, sessionID: string, ref?: st
 
   // ## Recommendations — imperative bullets with bolded head words.
   lines.push("", "## Recommendations", "", "To address this finding, implement the following:", "")
-  const recs = info?.recommendations ?? (v.recommendation ? [v.recommendation] : ["**Remediation**: Address the root cause described above."])
+  const recs = info?.recommendations ?? (v.recommendation ? [v.recommendation] : [GUIDANCE.recommendations])
   lines.push(...bullets(recs))
   if (info && v.recommendation && v.recommendation.trim()) lines.push("", `**Instance-specific note:** ${demoteHeadings(v.recommendation.trim())}`)
 
@@ -280,12 +300,12 @@ export function renderFinding(v: Vulnerability.Info, sessionID: string, ref?: st
       lines.push(`  - [${name}](${url})`)
     }
   } else {
-    lines.push("  - _No references provided._")
+    lines.push(`  ${GUIDANCE.references}`)
   }
 
   // ## Impacts — 1-3 bullets: what an attacker could do if this is not addressed.
   lines.push("", "## Impacts", "", "If not addressed, this finding could lead to the following:", "")
-  const impacts = v.business_impact && v.business_impact.trim() ? [demoteHeadings(v.business_impact.trim())] : (info?.impacts ?? ["**Security Impact**: An attacker could exploit this finding as described above."])
+  const impacts = v.business_impact && v.business_impact.trim() ? [demoteHeadings(v.business_impact.trim())] : (info?.impacts ?? [GUIDANCE.impacts])
   lines.push(...bullets(impacts))
 
   return lines.join("\n")
