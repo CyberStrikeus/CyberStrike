@@ -37,6 +37,8 @@ import PROMPT_WEB_INPUT_VALIDATION from "../agent/prompt/vuln/web-input-validati
 import DESC_WEB_INPUT_VALIDATION from "../agent/prompt/vuln/web-input-validation/description.txt"
 import PROMPT_WEB_AUTHORIZATION from "../agent/prompt/vuln/web-authorization/prompt.txt"
 import DESC_WEB_AUTHORIZATION from "../agent/prompt/vuln/web-authorization/description.txt"
+import PROMPT_WEB_AUTHENTICATION from "../agent/prompt/vuln/web-authentication/prompt.txt"
+import DESC_WEB_AUTHENTICATION from "../agent/prompt/vuln/web-authentication/description.txt"
 
 // WSTG 4.7 Input Validation, Vortex-native. When enabled, the `input-validation` SpecialistClass is
 // owned by the `web-input-validation` specialist (all of WSTG 4.7: injection/SSRF/file/mass-assignment
@@ -56,6 +58,12 @@ const WEB_INPUT_VALIDATION =
 // to run it in isolation.
 const WEB_AUTHORIZATION =
   process.env.CYBERSTRIKE_WEB_AUTHORIZATION === "1" || process.env.CYBERSTRIKE_WEB_AUTHORIZATION === "true"
+
+// WSTG 4.4 Authentication, Vortex-native. When enabled, web-authentication owns the `authentication`
+// class (credential transport, default creds, lockout, auth-schema bypass, JWT weaknesses, reset flows)
+// instead of hunt-authn, which cedes. Opt-in during the WSTG build-out.
+const WEB_AUTHENTICATION =
+  process.env.CYBERSTRIKE_WEB_AUTHENTICATION === "1" || process.env.CYBERSTRIKE_WEB_AUTHENTICATION === "true"
 
 function stripDefensiveSections(content: string): string {
   if (!content) return ""
@@ -653,12 +661,39 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
           },
         ]
       : []),
+    // WSTG 4.4 Authentication specialist (Vortex-native) — maps the auth surface from Vortex leads and
+    // confirms with crafted http_replay (token strip/forge, transport downgrade, default creds, JWT
+    // tamper, lockout). Read-only over Vortex (read facade + http_replay; no probe). Owns the class
+    // only when WEB_AUTHENTICATION is enabled.
+    ...(WEB_AUTHENTICATION
+      ? [
+          {
+            name: "web-authentication",
+            role: "specialist" as const,
+            specialistClass: "authentication" as SpecialistClass,
+            prompt: vulnPrompt(PROMPT_WEB_AUTHENTICATION, authnSkills),
+            description: DESC_WEB_AUTHENTICATION,
+            skills: ["wstg-auth-session", "wstg-athn-04", "wstg-athn-09", "wstg-athn-11", "wstg-sess-10"],
+            prependRequestContext: true,
+            permissions: mergePermissions(VULN_BASE_PERMISSIONS, {
+              vortex_leads: "allow",
+              vortex_inspect: "allow",
+              vortex_query: "allow",
+              vortex_objects: "allow",
+              vortex_functions: "allow",
+              vortex_where_value: "allow",
+              vortex_untested: "allow",
+            }),
+          },
+        ]
+      : []),
     {
       name: "hunt-authn",
       role: "specialist",
-      // auth-session split into WSTG 4.4 (authentication) + 4.6 (session-management); hunt-authn owns
-      // authentication until the dedicated web-authentication / web-session-mgmt specialists are built.
-      specialistClass: "authentication",
+      // auth-session split into WSTG 4.4 (authentication) + 4.6 (session-management). hunt-authn owns
+      // authentication until web-authentication is enabled (then it cedes); session-management stays
+      // pending until web-session-mgmt is built.
+      specialistClass: WEB_AUTHENTICATION ? undefined : "authentication",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_AUTHN, authnSkills),
       description: DESC_HUNT_TESTER_AUTHN,
       skills: ["wstg-auth-session", "wstg-athn-04", "wstg-athn-09", "wstg-athn-11", "wstg-sess-10"],
