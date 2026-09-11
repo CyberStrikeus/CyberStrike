@@ -63,6 +63,7 @@ import { EnsureToolsTool } from "./ensure-tools"
 import { MethodologyStatusTool } from "./methodology-status"
 import { AttackScriptTool } from "./attack-script"
 import { AuthnTestTool } from "./webhook/authn/authn-test"
+import { LoginProbeTool } from "./webhook/authn/login-probe"
 import { SsrfTestTool } from "./webhook/ssrf/ssrf-test"
 import { BusinessTestTool } from "./webhook/business/business-test"
 import { MisconfigTestTool } from "./webhook/misconfig/misconfig-test"
@@ -205,6 +206,7 @@ export namespace ToolRegistry {
       CsrfExtractTool,
       // Smart Tools — WSTG-aligned deterministic probes (web-workflow 2.0)
       AuthnTestTool,
+      LoginProbeTool,
       SsrfTestTool,
       BusinessTestTool,
       MisconfigTestTool,
