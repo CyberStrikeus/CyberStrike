@@ -214,7 +214,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
           if (o.marker_reflected) {
             signalStore.record({
               type: "reflected_input",
-              owner: "injection",
+              owner: "input-validation",
               requestId: originRequestId,
               evidence: `marker reflected raw at ${field}${o.context ? ` (${o.context} context)` : ""}${o.marker_html_encoded ? " [HTML-encoded]" : ""}`,
               meta: { field, context: o.context, html_encoded: o.marker_html_encoded, tags: o.surviving_tags.length },
@@ -259,7 +259,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
           if (o.append_reflected || o.prepend_reflected) {
             signalStore.record({
               type: "reflected_input",
-              owner: "injection",
+              owner: "input-validation",
               requestId: originRequestId,
               evidence: `HPP duplicate-param reflected at ${field} (parser: ${o.parser_behavior})`,
               meta: { field, parser_behavior: o.parser_behavior, append: o.append_reflected, prepend: o.prepend_reflected },

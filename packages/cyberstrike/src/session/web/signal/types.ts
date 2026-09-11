@@ -7,16 +7,22 @@
 // trivially. Nothing here decides "vulnerable" — a signal is a routed LEAD the
 // owning specialist then confirms.
 
-// The WSTG-aligned specialist agents a signal can be routed to (plan §04).
+// The specialist agents a signal can be routed to — one class per OWASP WSTG v4.2 top-level
+// category (4.1–4.11), plus `llm` for LLM/AI surfaces (outside WSTG). This is the authoritative
+// web agent taxonomy; the `web-*` specialists own exactly these classes.
 export type SpecialistClass =
-  | "injection"
-  | "access-control"
-  | "auth-session"
-  | "server-side-request"
-  | "business-logic"
-  | "misconfiguration"
-  | "client-side"
-  | "llm"
+  | "information-gathering" // WSTG 4.1
+  | "config-deployment" //     WSTG 4.2
+  | "identity-management" //   WSTG 4.3
+  | "authentication" //        WSTG 4.4
+  | "authorization" //         WSTG 4.5
+  | "session-management" //    WSTG 4.6
+  | "input-validation" //      WSTG 4.7  (injection, SSRF, file-upload, mass-assignment, header injection)
+  | "error-handling" //        WSTG 4.8
+  | "weak-cryptography" //     WSTG 4.9
+  | "business-logic" //        WSTG 4.10
+  | "client-side" //           WSTG 4.11 (DOM-XSS, CORS, open redirect, postMessage, clickjacking)
+  | "llm" //                   LLM / AI surfaces (not a WSTG category)
 
 // Every cross-cutting signal the passive detectors can emit (plan §06).
 export type SignalType =

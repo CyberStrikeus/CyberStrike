@@ -44,7 +44,7 @@ const WIN_PATH = /[A-Za-z]:\\(?:[\w.\-]+\\)+[\w.\-]+/
 
 export class FullPathDisclosureDetector implements Detector {
   readonly signalType = "full_path_disclosure" as const
-  readonly owner = "misconfiguration" as const
+  readonly owner = "error-handling" as const
   detect(res: ObservedResponse): Signal[] {
     const m = res.body.match(UNIX_PATH) ?? res.body.match(WIN_PATH)
     if (!m) return []
@@ -54,7 +54,7 @@ export class FullPathDisclosureDetector implements Detector {
 
 export class StackTraceDetector implements Detector {
   readonly signalType = "stack_trace" as const
-  readonly owner = "misconfiguration" as const
+  readonly owner = "error-handling" as const
   detect(res: ObservedResponse): Signal[] {
     if (!Observe.errorSignatures(res.body).includes("stacktrace")) return []
     const at = res.body.search(/Traceback|Exception in thread|at [\w.$]+\(/)
@@ -71,7 +71,7 @@ export class StackTraceDetector implements Detector {
 
 export class SqlErrorDetector implements Detector {
   readonly signalType = "sql_error" as const
-  readonly owner = "injection" as const
+  readonly owner = "input-validation" as const
   detect(res: ObservedResponse): Signal[] {
     const classes = Observe.errorSignatures(res.body)
     if (!classes.includes("sqli")) return []
@@ -83,7 +83,7 @@ export class SqlErrorDetector implements Detector {
 
 export class DirectoryListingDetector implements Detector {
   readonly signalType = "directory_listing" as const
-  readonly owner = "misconfiguration" as const
+  readonly owner = "config-deployment" as const
   detect(res: ObservedResponse): Signal[] {
     if (!/<title>\s*Index of \//i.test(res.body) && !(/Index of \//.test(res.body) && /Parent Directory/i.test(res.body)))
       return []
@@ -102,7 +102,7 @@ const SECRET_PATTERNS: { kind: string; re: RegExp }[] = [
 
 export class SensitiveDataExposureDetector implements Detector {
   readonly signalType = "sensitive_data_exposure" as const
-  readonly owner = "misconfiguration" as const
+  readonly owner = "information-gathering" as const
   detect(res: ObservedResponse): Signal[] {
     const hits: string[] = []
     for (const p of SECRET_PATTERNS) if (p.re.test(res.body)) hits.push(p.kind)
@@ -113,7 +113,7 @@ export class SensitiveDataExposureDetector implements Detector {
 
 export class GraphqlIntrospectionDetector implements Detector {
   readonly signalType = "graphql_introspection" as const
-  readonly owner = "access-control" as const
+  readonly owner = "information-gathering" as const
   detect(res: ObservedResponse): Signal[] {
     if (!isJson(res)) return []
     if (!res.body.includes("__schema")) return []
@@ -127,7 +127,7 @@ const JWT_RE = /eyJ[A-Za-z0-9_-]{5,}\.eyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}/
 
 export class JwtLeakDetector implements Detector {
   readonly signalType = "jwt_leak" as const
-  readonly owner = "auth-session" as const
+  readonly owner = "authentication" as const
   detect(res: ObservedResponse): Signal[] {
     if (!JWT_RE.test(res.body)) return []
     return [{ type: this.signalType, owner: this.owner, requestId: res.requestId, evidence: "JWT structure present in response body" }]
@@ -140,7 +140,7 @@ const BANNER_HEADERS = ["server", "x-powered-by", "x-aspnet-version", "x-aspnetm
 
 export class ServerBannerDetector implements Detector {
   readonly signalType = "server_banner" as const
-  readonly owner = "misconfiguration" as const
+  readonly owner = "config-deployment" as const
   detect(res: ObservedResponse): Signal[] {
     const found: string[] = []
     for (const name of BANNER_HEADERS) {
@@ -156,7 +156,7 @@ const SECURITY_HEADERS = ["content-security-policy", "strict-transport-security"
 
 export class MissingSecurityHeadersDetector implements Detector {
   readonly signalType = "missing_security_headers" as const
-  readonly owner = "misconfiguration" as const
+  readonly owner = "config-deployment" as const
   detect(res: ObservedResponse): Signal[] {
     // Only meaningful for a rendered document that succeeded.
     if (!isHtml(res) || res.status >= 400) return []
@@ -168,7 +168,7 @@ export class MissingSecurityHeadersDetector implements Detector {
 
 export class CorsMisconfigDetector implements Detector {
   readonly signalType = "cors_misconfig" as const
-  readonly owner = "misconfiguration" as const
+  readonly owner = "client-side" as const
   detect(res: ObservedResponse): Signal[] {
     const acao = headerValue(res.headers, "access-control-allow-origin")
     if (!acao) return []
@@ -182,7 +182,7 @@ export class CorsMisconfigDetector implements Detector {
 
 export class WeakCookieFlagsDetector implements Detector {
   readonly signalType = "weak_cookie_flags" as const
-  readonly owner = "auth-session" as const
+  readonly owner = "session-management" as const
   detect(res: ObservedResponse): Signal[] {
     const cookies = headerValues(res.headers, "set-cookie")
     if (cookies.length === 0) return []
@@ -205,7 +205,7 @@ export class WeakCookieFlagsDetector implements Detector {
 
 export class OpenRedirectDetector implements Detector {
   readonly signalType = "open_redirect" as const
-  readonly owner = "access-control" as const
+  readonly owner = "client-side" as const
   detect(res: ObservedResponse): Signal[] {
     if (res.status < 300 || res.status >= 400) return []
     const loc = headerValue(res.headers, "location")
@@ -243,7 +243,7 @@ const ARTIFACT_RE = /(?:\/\.git(?:\/|$)|\/\.svn\/|\/\.env$|\/\.htaccess$|\/web\.
 
 export class ExposedArtifactDetector implements Detector {
   readonly signalType = "exposed_artifact" as const
-  readonly owner = "misconfiguration" as const
+  readonly owner = "config-deployment" as const
   detect(res: ObservedResponse): Signal[] {
     if (res.status !== 200 || res.body.length === 0) return []
     let path = res.url
@@ -298,7 +298,7 @@ const TECH_SIGNATURES: { slug: string; header?: { name: string; re: RegExp }; bo
 // fingerprint. meta.token = the slug so each distinct stack dedups separately.
 export class TechnologyDetector implements Detector {
   readonly signalType = "technology" as const
-  readonly owner = "misconfiguration" as const
+  readonly owner = "information-gathering" as const
   detect(res: ObservedResponse): Signal[] {
     const found = new Set<string>()
     for (const sig of TECH_SIGNATURES) {

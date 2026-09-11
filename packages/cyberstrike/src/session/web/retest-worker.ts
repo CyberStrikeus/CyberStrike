@@ -69,18 +69,23 @@ export namespace RetestWorker {
       const a = owner ? await agentForClass(owner) : undefined
       if (a) agents.add(a)
     }
-    // A new credential or role = a new identity to test access control with → authz + idor.
+    // A new credential or role = a new identity to test access control with → the authorization
+    // (WSTG 4.5) specialist, which owns BOLA/BFLA/IDOR under the WSTG taxonomy.
     if ((s.flags.credential?.length ?? 0) > 0 || (s.flags.role?.length ?? 0) > 0) {
-      const authz = await agentForClass("access-control")
+      const authz = await agentForClass("authorization")
       if (authz) agents.add(authz)
-      agents.add("hunt-idor")
+      else agents.add("hunt-idor") // fallback until the WSTG authorization specialist owns the class
     }
-    // A new object value = IDOR fuel.
-    if ((s.flags.object_value?.length ?? 0) > 0) agents.add("hunt-idor")
-    // An injection surface (body method / parameterized query endpoint) → injection specialist.
+    // A new object value = IDOR fuel → authorization specialist (fallback to hunt-idor).
+    if ((s.flags.object_value?.length ?? 0) > 0) {
+      const authz = await agentForClass("authorization")
+      agents.add(authz ?? "hunt-idor")
+    }
+    // An input-validation surface (body method / parameterized query endpoint) → the input-validation
+    // (WSTG 4.7) specialist, which owns injection/SSRF/file-upload/mass-assignment.
     if (isInjectionSurface(s)) {
-      const inj = await agentForClass("injection")
-      if (inj) agents.add(inj)
+      const iv = await agentForClass("input-validation")
+      if (iv) agents.add(iv)
     }
     return [...agents]
   }

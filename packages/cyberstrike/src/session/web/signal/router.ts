@@ -13,23 +13,23 @@ import type { Signal, SignalType, SpecialistClass } from "./types"
 // is chosen here for deterministic routing; the primary hands off in-band if the
 // confirmation shows the finding belongs to the secondary.
 const OWNER: Record<SignalType, SpecialistClass> = {
-  full_path_disclosure: "misconfiguration",
-  stack_trace: "misconfiguration",
-  sql_error: "injection",
-  server_banner: "misconfiguration",
-  directory_listing: "misconfiguration",
-  missing_security_headers: "misconfiguration",
-  cors_misconfig: "misconfiguration",
-  weak_cookie_flags: "auth-session",
-  sensitive_data_exposure: "misconfiguration",
-  open_redirect: "access-control",
-  graphql_introspection: "access-control",
-  exposed_artifact: "misconfiguration",
-  jwt_leak: "auth-session",
-  reflected_input: "injection",
-  stored_reflection: "injection",
-  rate_limit_absent: "business-logic",
-  technology: "misconfiguration",
+  full_path_disclosure: "error-handling", //     4.8 — path leaked via an error/verbose response
+  stack_trace: "error-handling", //              4.8 — WSTG-ERRH: stack traces / verbose errors
+  sql_error: "input-validation", //              4.7 — SQL error signature = injection surface
+  server_banner: "config-deployment", //         4.2 — WSTG-CONF: version/banner disclosure
+  directory_listing: "config-deployment", //     4.2 — WSTG-CONF-04
+  missing_security_headers: "config-deployment", // 4.2 — WSTG-CONF: HTTP security headers
+  cors_misconfig: "client-side", //              4.11 — WSTG-CLNT-07: CORS
+  weak_cookie_flags: "session-management", //     4.6 — WSTG-SESS-02: cookie attributes
+  sensitive_data_exposure: "information-gathering", // 4.1 — WSTG-INFO-05: content info leakage
+  open_redirect: "client-side", //               4.11 — WSTG-CLNT-04: client-side URL redirect
+  graphql_introspection: "information-gathering", // 4.1 — schema/introspection disclosure
+  exposed_artifact: "config-deployment", //       4.2 — WSTG-CONF: exposed files/artifacts
+  jwt_leak: "authentication", //                 4.4 — JWT is an authentication credential
+  reflected_input: "input-validation", //        4.7 — reflection → XSS/injection surface
+  stored_reflection: "input-validation", //      4.7 — stored reflection → XSS surface
+  rate_limit_absent: "business-logic", //        4.10 — WSTG-BUSL: anti-automation
+  technology: "information-gathering", //        4.1 — WSTG-INFO-02/08: tech fingerprint
 } satisfies Record<SignalType, SpecialistClass>
 
 // Retest priority per signal type — how urgently the owning specialist should

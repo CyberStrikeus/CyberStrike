@@ -108,7 +108,7 @@ export class CanaryRegistry {
         type: "stored_reflection",
         // Deterministic single owner (plan §06). The injection specialist confirms
         // the execution context; it hands DOM-only render sinks to client-side.
-        owner: "injection",
+        owner: "input-validation",
         requestId: input.requestId,
         evidence: `canary ${c.token} injected at ${c.endpoint} (${c.field}) renders at ${input.url ?? input.requestId}`,
         meta: {
