@@ -44,7 +44,11 @@ export namespace RetestWorker {
   }
 
   async function agentForClass(cls: SpecialistClass): Promise<string | undefined> {
-    return (await provider()).agentForClass(cls)
+    // Route via the DomainProvider CONTRACT method (specialistClasses), not a host-specific method,
+    // so this keeps working when the web domain ships as a self-contained package that provides the
+    // same map. Falls back to agentForClass for any provider that predates the contract method.
+    const p = await provider()
+    return p.specialistClasses?.()?.[cls] ?? p.agentForClass(cls)
   }
 
   // An endpoint that takes attacker-controllable input an interpreter might consume — the injection

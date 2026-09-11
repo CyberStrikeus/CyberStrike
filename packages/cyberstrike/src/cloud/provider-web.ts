@@ -413,6 +413,12 @@ export class WebProvider implements DomainProvider {
     return this.classAgent
   }
 
+  /** DomainProvider contract: class → agent as a portable plain map, so the routing travels WITH the
+   *  domain (the seam a self-contained web npm package will provide the same way). */
+  specialistClasses(): Record<string, string> {
+    return Object.fromEntries(this.classAgent)
+  }
+
   detectors(): Detector[] {
     return DETECTORS
   }

@@ -42,6 +42,17 @@ export interface AgentSpec {
 export interface DomainProvider {
   key: string
   agentSpecs(): AgentSpec[]
+
+  /**
+   * Optional signal-class → agent-name routing this domain owns: when the host's deterministic
+   * retest pipeline has a signal of class C, it dispatches to `specialistClasses()[C]`. A domain
+   * that routes its specialists by class (e.g. web, by WSTG category) declares the map HERE so the
+   * routing travels WITH the package — required for a domain to ship as a self-contained npm package
+   * (open-core: a primitive public build and an advanced private build are drop-in swaps). Domains
+   * that group differently (e.g. cloud) omit it. Keys/values are plain strings so the SDK stays
+   * host-dependency-free; the host validates the class names against its own taxonomy.
+   */
+  specialistClasses?(): Record<string, string>
 }
 
 /**
