@@ -64,8 +64,15 @@ Each slice: (a) build/wire the Vortex (or agentic) side to full parity, (b) repo
   per-endpoint for signals. Unlocks: no duplicate-response gap, agents can query the full corpus.
   *(Prereq for cleanly retiring the signal fabric.)*
 - **Slice 1 — Retire the signal fabric (#15).** Context section 7 already reads Vortex; canary +
-  14 detectors + technology already mapped. After Slice 0, remove `runFabric`/`scanCapturedResponse`
-  at ingest and the `SignalStore` passive path. Live-verify parity first.
+  14 detectors + technology mapped; routing parity via `ownerForSignal` (per-rule owner overrides).
+  **BLOCKED on DETECTION parity** — attempting the removal surfaced that Vortex's regex rules are
+  NARROWER than the CS `Observe`-based heuristics: e.g. the CS stack-trace detector matches
+  "Exception in thread …", the Vortex `stack-trace-signature` regex does not; the CS full-path
+  detector and Vortex `full-path-disclosure` both require ≥2 path segments. Before removing the
+  producer, WIDEN the Vortex rules to match the CS heuristics (stack traces, error signatures, path
+  disclosure, …) and prove it with the ingest-route tests rewritten to assert the Vortex path — that
+  test rewrite IS the parity proof. Until then the CS fabric stays running IN PARALLEL (harmless
+  redundancy; the agent context already reads Vortex). Do NOT remove the producer on partial parity.
 - **Slice 2 — Credentials/identity → Vortex.** Capture auth material into Vortex identity; agents
   read identity from Vortex. Remove the CS `WebCredential` dependency from analysis paths.
 - **Slice 3 — Objects/functions/values → Vortex.** The biggest parity item: move the analyzer's
