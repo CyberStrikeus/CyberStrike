@@ -39,6 +39,8 @@ import PROMPT_WEB_AUTHORIZATION from "../agent/prompt/vuln/web-authorization/pro
 import DESC_WEB_AUTHORIZATION from "../agent/prompt/vuln/web-authorization/description.txt"
 import PROMPT_WEB_AUTHENTICATION from "../agent/prompt/vuln/web-authentication/prompt.txt"
 import DESC_WEB_AUTHENTICATION from "../agent/prompt/vuln/web-authentication/description.txt"
+import PROMPT_WEB_SESSION_MGMT from "../agent/prompt/vuln/web-session-mgmt/prompt.txt"
+import DESC_WEB_SESSION_MGMT from "../agent/prompt/vuln/web-session-mgmt/description.txt"
 
 // WSTG 4.7 Input Validation, Vortex-native. When enabled, the `input-validation` SpecialistClass is
 // owned by the `web-input-validation` specialist (all of WSTG 4.7: injection/SSRF/file/mass-assignment
@@ -64,6 +66,12 @@ const WEB_AUTHORIZATION =
 // instead of hunt-authn, which cedes. Opt-in during the WSTG build-out.
 const WEB_AUTHENTICATION =
   process.env.CYBERSTRIKE_WEB_AUTHENTICATION === "1" || process.env.CYBERSTRIKE_WEB_AUTHENTICATION === "true"
+
+// WSTG 4.6 Session Management, Vortex-native. A NEW class (no hunt-* owned it — auth-session's session
+// half): session-management stays in PENDING_WSTG_CLASSES until this is enabled, at which point
+// web-session-mgmt owns it (cookie attrs, fixation, CSRF, logout, timeout, hijacking). Opt-in.
+const WEB_SESSION_MGMT =
+  process.env.CYBERSTRIKE_WEB_SESSION_MGMT === "1" || process.env.CYBERSTRIKE_WEB_SESSION_MGMT === "true"
 
 function stripDefensiveSections(content: string): string {
   if (!content) return ""
@@ -674,6 +682,32 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
             prompt: vulnPrompt(PROMPT_WEB_AUTHENTICATION, authnSkills),
             description: DESC_WEB_AUTHENTICATION,
             skills: ["wstg-auth-session", "wstg-athn-04", "wstg-athn-09", "wstg-athn-11", "wstg-sess-10"],
+            prependRequestContext: true,
+            permissions: mergePermissions(VULN_BASE_PERMISSIONS, {
+              vortex_leads: "allow",
+              vortex_inspect: "allow",
+              vortex_query: "allow",
+              vortex_objects: "allow",
+              vortex_functions: "allow",
+              vortex_where_value: "allow",
+              vortex_untested: "allow",
+            }),
+          },
+        ]
+      : []),
+    // WSTG 4.6 Session Management specialist (Vortex-native) — the session half of the old auth-session
+    // split. Reads session leads + inspects the cookie/session lifecycle and confirms with reuse/craft
+    // replays (fixation, logout, CSRF via csrf_extract, hijacking). Read-only over Vortex (read facade +
+    // http_replay + csrf_extract). NEW class: owns session-management only when WEB_SESSION_MGMT is on.
+    ...(WEB_SESSION_MGMT
+      ? [
+          {
+            name: "web-session-mgmt",
+            role: "specialist" as const,
+            specialistClass: "session-management" as SpecialistClass,
+            prompt: vulnPrompt(PROMPT_WEB_SESSION_MGMT, authnSkills),
+            description: DESC_WEB_SESSION_MGMT,
+            skills: ["wstg-sess-10", "wstg-auth-session"],
             prependRequestContext: true,
             permissions: mergePermissions(VULN_BASE_PERMISSIONS, {
               vortex_leads: "allow",
