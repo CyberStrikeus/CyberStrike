@@ -341,6 +341,7 @@ export interface VortexSignalView {
   category: string
   severity: string
   title: string
+  requestId: string // the originating transaction id (== the CS request id — works with web_get_request_detail)
   method?: string
   endpoint?: string
   keyHash?: string
@@ -362,6 +363,7 @@ export function vortexSignals(sessionID: string): { signals: VortexSignalView[] 
         category: s.category,
         severity: s.severity,
         title: s.title,
+        requestId: s.transactionId,
         method: tx?.request.method,
         endpoint: tx?.normalizedPath,
         keyHash,
