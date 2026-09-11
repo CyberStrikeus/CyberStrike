@@ -39,7 +39,10 @@ export namespace Plugin {
   // Loaded by dynamic import of a VARIABLE name so tsc doesn't pull each domain's
   // source into core's typecheck (a domain ships raw TS; it typechecks in its own
   // package). Same reason user plugins load by dynamic import.
-  const DEFAULT_DOMAINS: string[] = ["@cyberstrike-io/azure"]
+  // Web loads first: it is the primary free-tier domain (hackbrowser's web pipeline),
+  // and was previously hardcoded at module-load in provider-registry.ts. It now loads
+  // through the same plugin path as every other domain package.
+  const DEFAULT_DOMAINS: string[] = ["@cyberstrike-io/web", "@cyberstrike-io/azure"]
 
   // Package name of a config.plugin spec (strip a trailing @version, keep the
   // scope's leading @, leave file:// specs untouched) — used to dedupe against

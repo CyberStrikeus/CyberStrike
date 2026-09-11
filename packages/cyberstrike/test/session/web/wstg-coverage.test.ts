@@ -6,7 +6,7 @@ import {
   type CoverageStatus,
   type WstgCoverage,
 } from "../../../src/session/web/wstg-coverage"
-import { WebProvider } from "../../../src/cloud/provider-web"
+import { WebProvider } from "@cyberstrike-io/web"
 
 describe("WSTG Coverage Map — completeness gate (§11 gate 7)", () => {
   test("total entry count equals TOTAL_WSTG_TESTS (97)", () => {
@@ -89,7 +89,7 @@ describe("WSTG Coverage Map — completeness gate (§11 gate 7)", () => {
 
 describe("WSTG Coverage Map — agent cross-reference", () => {
   test("every non-deferred agent exists in WebProvider", async () => {
-    const provider = await WebProvider.create()
+    const provider = new WebProvider()
     const agentNames = new Set(provider.agentSpecs().map((s) => s.name))
     const nonDeferred = WSTG_COVERAGE.filter((c) => c.status !== "deferred")
     for (const c of nonDeferred) {
@@ -145,7 +145,7 @@ describe("WSTG Coverage Map — coverage statistics", () => {
 
 describe("WSTG Coverage Map — agent load distribution", () => {
   test("every specialist agent owns at least one test (LLM excluded — not in WSTG)", async () => {
-    const provider = await WebProvider.create()
+    const provider = new WebProvider()
     const specialists = provider.agentSpecs().filter((s) => s.role === "specialist" && s.name !== "hunt-llm")
     const coverageAgents = new Set(WSTG_COVERAGE.map((c) => c.agent))
     for (const s of specialists) {

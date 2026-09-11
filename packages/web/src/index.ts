@@ -10,6 +10,11 @@ import type { CoreRuntime } from "cyberstrike/public"
 import { setCore, core } from "./core"
 import { WebProvider } from "./provider-web"
 
+// Named re-export so the host (and tests) can source the roster directly:
+// `import { WebProvider } from "@cyberstrike-io/web"`. The default export below is the
+// plugin the loader runs; this is the provider class it registers.
+export { WebProvider } from "./provider-web"
+
 export default async function webPlugin(input: PluginInput): Promise<Hooks> {
   // Capture the host-injected runtime FIRST, then refuse an incompatible host.
   setCore(input.core as CoreRuntime)

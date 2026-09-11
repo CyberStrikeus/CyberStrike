@@ -1,7 +1,15 @@
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect, beforeAll } from "bun:test"
 import { providerHealth, formatHealthReport } from "../../src/cloud/provider-health"
 import { registerProvider } from "../../src/cloud/provider-registry"
 import type { DomainProvider, AgentSpec } from "../../src/cloud/provider"
+import { WebProvider } from "@cyberstrike-io/web"
+
+// Web is no longer hardcoded at module load — it registers via the plugin loader during bootstrap
+// (Plugin.init). This unit test doesn't boot the plugin system, so register the web domain directly,
+// exactly as the loader would, before the health checks that expect the built-in web domain.
+beforeAll(() => {
+  registerProvider("web", () => new WebProvider())
+})
 
 function fakeProvider(key: string, specs: Partial<AgentSpec>[]): DomainProvider {
   return {

@@ -16,7 +16,7 @@ import { withTimeout } from "@/util/timeout"
 import { Session } from "@/session"
 import { SessionPrompt } from "@/session/prompt"
 import { WebRetest } from "./web-retest"
-import { WebProvider } from "@/cloud/provider-web"
+import { resolveProvider } from "@/cloud/provider-registry"
 import { Instance } from "@/project/instance"
 import type { SpecialistClass } from "./signal/types"
 import { TechPlaybook } from "./signal/tech-playbook"
@@ -36,19 +36,19 @@ export namespace RetestWorker {
   // during a run is absorbed by the next iteration rather than starting a second loop).
   const running = new Set<string>()
 
-  // WebProvider carries the SpecialistClass→agent map; build it once, lazily.
-  let providerPromise: Promise<WebProvider> | undefined
-  function provider(): Promise<WebProvider> {
-    if (!providerPromise) providerPromise = WebProvider.create()
-    return providerPromise
+  // The web domain's SpecialistClass→agent map, resolved from the registry via the DomainProvider
+  // CONTRACT (specialistClasses) — NOT a concrete host class. The web domain ships as a self-contained
+  // package (@cyberstrike-io/web) registered through the plugin loader; resolving by key keeps this
+  // worker decoupled from where the provider lives. Cached once (the roster is static per process).
+  let classMapPromise: Promise<Record<string, string>> | undefined
+  function classMap(): Promise<Record<string, string>> {
+    if (!classMapPromise)
+      classMapPromise = resolveProvider("web").then((p) => p?.specialistClasses?.() ?? {})
+    return classMapPromise
   }
 
   async function agentForClass(cls: SpecialistClass): Promise<string | undefined> {
-    // Route via the DomainProvider CONTRACT method (specialistClasses), not a host-specific method,
-    // so this keeps working when the web domain ships as a self-contained package that provides the
-    // same map. Falls back to agentForClass for any provider that predates the contract method.
-    const p = await provider()
-    return p.specialistClasses?.()?.[cls] ?? p.agentForClass(cls)
+    return (await classMap())[cls]
   }
 
   // An endpoint that takes attacker-controllable input an interpreter might consume — the injection

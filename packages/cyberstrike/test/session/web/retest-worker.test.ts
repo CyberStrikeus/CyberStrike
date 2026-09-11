@@ -1,9 +1,19 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test, beforeAll } from "bun:test"
 import { RetestWorker } from "../../../src/session/web/retest-worker"
 import type { WebRetest } from "../../../src/session/web/web-retest"
 import { Session } from "../../../src/session"
 import { Instance } from "../../../src/project/instance"
+import { registerProvider } from "../../../src/cloud/provider-registry"
+import { WebProvider } from "@cyberstrike-io/web"
 import { tmpdir } from "../../fixture/fixture"
+
+// resolveAgents routes signal classes through resolveProvider("web") (the DomainProvider contract).
+// At runtime the plugin loader registers the web domain during bootstrap; in this unit test we
+// register it directly so the class→agent map is populated before the first resolveAgents call
+// (retest-worker memoizes the map on first use).
+beforeAll(() => {
+  registerProvider("web", () => new WebProvider())
+})
 
 async function withInstance(fn: () => Promise<void>) {
   await using dir = await tmpdir({ git: true })

@@ -74,12 +74,14 @@
     "zod-to-json-schema": "3.24.5"
   },
   "bundledDependencies": [
-    "@cyberstrike-io/azure"
+    "@cyberstrike-io/azure",
+    "@cyberstrike-io/web"
   ],
   "dependencies": {
     "@actions/core": "1.11.1",
     "@actions/github": "6.0.1",
     "@cyberstrike-io/azure": "workspace:*",
+    "@cyberstrike-io/web": "workspace:*",
     "@cyberstrike-io/vortex": "workspace:*",
     "@agentclientprotocol/sdk": "0.14.1",
     "@ai-sdk/alibaba": "0.0.12",
