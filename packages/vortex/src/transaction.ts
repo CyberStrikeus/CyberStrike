@@ -60,6 +60,10 @@ export interface Transaction {
   // Technology markers attached by an extractor (e.g. JS mining → ["next", "spring"]). Lets tech-
   // specific rules match via the DSL, e.g. `contains(tech, "spring")`. Written by ingestExtract.
   tech?: string[]
+  // The page the request was captured FROM (browser adapter only) — the document URL open when the
+  // extension observed this request. Absent for adapters without a page context (proxy/import/replay).
+  // Lets Vortex be the single source for the "which pages were captured" view, not a second store.
+  pageUrl?: string
 }
 
 // Case-insensitive header lookup returning the FIRST match's value, or undefined. Header names are
