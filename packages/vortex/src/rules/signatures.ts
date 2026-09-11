@@ -9,7 +9,10 @@ export const signatureRules: DeclarativeRule[] = [
     id: "sql-error-signature",
     category: "injection",
     severity: "high",
-    when: 'regex("SQL syntax|SQLSTATE|ORA-[0-9]{4,}|You have an error in your SQL|unterminated quoted string", resp.body)',
+    // Superset of the CS Observe sqli battery (#15 detection parity): MySQL/PG/Oracle/MSSQL/SQLite
+    // driver errors + the classic quotation/syntax messages. Widened so retiring the CS fabric loses
+    // no coverage.
+    when: 'regex("SQL syntax|mysql_fetch|valid MySQL result|You have an error in your SQL|SQLSTATE|ORA-[0-9]{4,}|PostgreSQL.*ERROR|SQLite3?::|Unclosed quotation mark|quoted string not properly terminated|unterminated quoted string|Incorrect syntax near", resp.body)',
     message: "SQL error signature in the response of {endpoint}",
     evidence: "{resp.status} on {req.method} {req.path}",
     dedupBy: "endpoint",
@@ -18,7 +21,9 @@ export const signatureRules: DeclarativeRule[] = [
     id: "stack-trace-signature",
     category: "misconfiguration",
     severity: "medium",
-    when: 'regex("Traceback [(]most recent call last[)]|at [\\w.$]+[(][\\w.]+:[0-9]+[)]|System[.]Exception", resp.body)',
+    // Superset of the CS Observe stacktrace battery (#15 detection parity): the Python traceback, a
+    // JVM "Exception in thread", a .NET System.Exception, and a Java-style `at pkg.Class(File:line)`.
+    when: 'regex("Traceback [(]most recent call last[)]|Exception in thread|at [\\w.$]+[(][\\w.]+:[0-9]+[)]|System[.]Exception", resp.body)',
     message: "Stack trace / verbose error leaked by {endpoint}",
     dedupBy: "endpoint",
   },
@@ -26,7 +31,9 @@ export const signatureRules: DeclarativeRule[] = [
     id: "secret-in-response",
     category: "info-disclosure",
     severity: "high",
-    when: 'regex("-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|eyJ[A-Za-z0-9_-]{10,}[.]eyJ", resp.body)',
+    // Superset of the CS SECRET_PATTERNS (#15 detection parity): private keys, AWS access-key ids
+    // (long-term AKIA + temporary ASIA), Google API keys (AIza…), Slack tokens (xox…), and a JWT.
+    when: 'regex("-----BEGIN [A-Z ]*PRIVATE KEY-----|(AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|xox[baprs]-[0-9A-Za-z-]{10,}|eyJ[A-Za-z0-9_-]{10,}[.]eyJ", resp.body)',
     message: "Sensitive material (key/token) in the response of {endpoint}",
     dedupBy: "endpoint",
   },

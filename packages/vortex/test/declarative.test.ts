@@ -74,6 +74,18 @@ describe("built-in signature rules (declarative, dogfooded)", () => {
     expect(run(tx("b", 500, "Could not open C:\\inetpub\\wwwroot\\app\\web.config")).some((x) => x.ruleId === "full-path-disclosure")).toBe(true)
     expect(run(tx("c", 200, "see https://app.test/var/report for details")).some((x) => x.ruleId === "full-path-disclosure")).toBe(false)
   })
+  test("detection-parity: widened patterns fire on the cases the CS Observe battery caught (#15)", () => {
+    // sql-error superset: MySQL fetch, PostgreSQL, MSSQL "Incorrect syntax near"
+    expect(run(tx("a", 500, "Warning: mysql_fetch_array() expects parameter 1")).some((x) => x.ruleId === "sql-error-signature")).toBe(true)
+    expect(run(tx("b", 500, "PostgreSQL query failed: ERROR: syntax error at or near")).some((x) => x.ruleId === "sql-error-signature")).toBe(true)
+    expect(run(tx("c", 500, "Incorrect syntax near ')'.")).some((x) => x.ruleId === "sql-error-signature")).toBe(true)
+    // stack-trace superset: JVM "Exception in thread"
+    expect(run(tx("d", 500, 'Exception in thread "main" java.lang.NullPointerException')).some((x) => x.ruleId === "stack-trace-signature")).toBe(true)
+    // secret superset: Google API key, Slack token, AWS temporary (ASIA) key
+    expect(run(tx("e", 200, "key: AIzaSyA1234567890abcdef1234567890abcdefx")).some((x) => x.ruleId === "secret-in-response")).toBe(true)
+    expect(run(tx("f", 200, "token=xoxb-1234567890-abcdefghij")).some((x) => x.ruleId === "secret-in-response")).toBe(true)
+    expect(run(tx("g", 200, "aws=ASIAIOSFODNN7EXAMPLE")).some((x) => x.ruleId === "secret-in-response")).toBe(true)
+  })
   test("clean response yields nothing", () => {
     expect(run(tx("a", 200, "{\"ok\":true}"))).toHaveLength(0)
   })
