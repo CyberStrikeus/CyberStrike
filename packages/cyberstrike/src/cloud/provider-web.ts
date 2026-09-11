@@ -35,6 +35,8 @@ import PROMPT_HUNT_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/prompt.
 import DESC_HUNT_TESTER_MISCONFIG from "../agent/prompt/vuln/misconfig/description.txt"
 import PROMPT_WEB_INPUT_VALIDATION from "../agent/prompt/vuln/web-input-validation/prompt.txt"
 import DESC_WEB_INPUT_VALIDATION from "../agent/prompt/vuln/web-input-validation/description.txt"
+import PROMPT_WEB_AUTHORIZATION from "../agent/prompt/vuln/web-authorization/prompt.txt"
+import DESC_WEB_AUTHORIZATION from "../agent/prompt/vuln/web-authorization/description.txt"
 
 // WSTG 4.7 Input Validation, Vortex-native. When enabled, the `input-validation` SpecialistClass is
 // owned by the `web-input-validation` specialist (all of WSTG 4.7: injection/SSRF/file/mass-assignment
@@ -47,6 +49,13 @@ const WEB_INPUT_VALIDATION =
   process.env.CYBERSTRIKE_WEB_INPUT_VALIDATION === "true" ||
   process.env.CYBERSTRIKE_VORTEX_INJECTION === "1" ||
   process.env.CYBERSTRIKE_VORTEX_INJECTION === "true"
+
+// WSTG 4.5 Authorization, Vortex-native. When enabled, web-authorization owns the `authorization` class
+// (IDOR/BOLA, BFLA, privesc, schema-bypass, OAuth) instead of hunt-authz, which cedes. Opt-in during the
+// WSTG agent build-out: unset to restore hunt-authz; pair with CYBERSTRIKE_WEB_FOCUS=web-authorization
+// to run it in isolation.
+const WEB_AUTHORIZATION =
+  process.env.CYBERSTRIKE_WEB_AUTHORIZATION === "1" || process.env.CYBERSTRIKE_WEB_AUTHORIZATION === "true"
 
 function stripDefensiveSections(content: string): string {
   if (!content) return ""
@@ -491,7 +500,9 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
     {
       name: "hunt-authz",
       role: "specialist",
-      specialistClass: "authorization",
+      // web-authorization (WSTG 4.5) owns the class when enabled; hunt-authz then cedes but stays in
+      // the roster, so retest-worker's agentForClass("authorization") dispatches the Vortex specialist.
+      specialistClass: WEB_AUTHORIZATION ? undefined : "authorization",
       prompt: vulnPrompt(PROMPT_HUNT_TESTER_AUTHZ, authzSkills),
       description: DESC_HUNT_TESTER_AUTHZ,
       skills: ["wstg-authz-02", "wstg-authz-03", "wstg-authz-01"],
@@ -612,6 +623,32 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
                 "*--reg-add*": "deny",
                 "*--reg-del*": "deny",
               },
+            }),
+          },
+        ]
+      : []),
+    // WSTG 4.5 Authorization specialist (Vortex-native) — reads the deterministic cross-identity leads
+    // and confirms with credential-swap replays. Read-only over Vortex: the read facade + http_replay
+    // only (no probe, no store writes). Joins + owns the class only when WEB_AUTHORIZATION is enabled.
+    ...(WEB_AUTHORIZATION
+      ? [
+          {
+            name: "web-authorization",
+            role: "specialist" as const,
+            specialistClass: "authorization" as SpecialistClass,
+            prompt: vulnPrompt(PROMPT_WEB_AUTHORIZATION, authzSkills),
+            description: DESC_WEB_AUTHORIZATION,
+            skills: ["wstg-authz-01", "wstg-authz-02", "wstg-authz-03", "wstg-authz-04", "wstg-apit-02"],
+            prependRequestContext: true,
+            permissions: mergePermissions(VULN_BASE_PERMISSIONS, {
+              vortex_leads: "allow",
+              vortex_inspect: "allow",
+              vortex_query: "allow",
+              vortex_objects: "allow",
+              vortex_functions: "allow",
+              vortex_cross_role: "allow",
+              vortex_where_value: "allow",
+              vortex_untested: "allow",
             }),
           },
         ]
