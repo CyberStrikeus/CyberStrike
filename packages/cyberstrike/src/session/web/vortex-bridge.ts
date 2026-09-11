@@ -105,7 +105,11 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
     kickProbe(i.sessionID)
     return { transactions: store.size(), signals: store.signals().length }
   } catch (e) {
-    log.debug("vortex ingest failed (ignored)", { err: String(e) })
+    // A capture that fails to ingest is absent from the Vortex store — and therefore from the
+    // Vortex-sourced Captures view and from everything agents see. WARN (not debug) so this drift
+    // from what was actually captured is diagnosable; still swallowed so one bad request never
+    // aborts the capture stream.
+    log.warn("vortex ingest failed — request absent from Vortex source", { sessionID: i.sessionID, requestID: i.requestID, err: String(e) })
     return { transactions: 0, signals: 0 }
   }
 }
