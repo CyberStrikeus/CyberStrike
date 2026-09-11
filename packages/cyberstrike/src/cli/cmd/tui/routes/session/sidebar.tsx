@@ -71,6 +71,9 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   // JS files seen during capture (Captures > JS Files) — from Vortex's discovered inventory (single
   // source), via the same /vortex/captures poll as the endpoints above.
   const jsFiles = createMemo(() => sync.data.vortex_captures[props.sessionID]?.jsFiles ?? [])
+  // Vortex Signals (issue #14) — what Vortex found on its own + each one's retest-pipeline status,
+  // via GET /vortex/signals (polled alongside captures below).
+  const vortexSignalList = createMemo(() => sync.data.vortex_signals[props.sessionID]?.signals ?? [])
   const credentials = createMemo(() => sync.data.web_credential[props.sessionID] ?? [])
   const roles = createMemo(() => sync.data.web_role[props.sessionID] ?? [])
   const objects = createMemo(() => sync.data.web_object[props.sessionID] ?? [])
@@ -101,16 +104,20 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   })
   onCleanup(() => clearTimeout(usageTimer))
 
-  // Keep the Captures view live off Vortex while the sidebar is mounted: fetch immediately on open,
-  // then a light 2s poll. refreshCaptures is best-effort (keeps the last snapshot on failure), so a
-  // transient error never blanks the sidebar.
+  // Keep the Vortex-sourced views (Captures + Signals) live while the sidebar is mounted: fetch
+  // immediately on open, then a light 2s poll. Both refreshers are best-effort (keep the last
+  // snapshot on failure), so a transient error never blanks the sidebar.
   let capturesTimer: ReturnType<typeof setInterval> | undefined
   createEffect(() => {
     const sid = props.sessionID
     clearInterval(capturesTimer)
     if (!sid) return
     void sync.refreshCaptures(sid)
-    capturesTimer = setInterval(() => void sync.refreshCaptures(sid), 2000)
+    void sync.refreshSignals(sid)
+    capturesTimer = setInterval(() => {
+      void sync.refreshCaptures(sid)
+      void sync.refreshSignals(sid)
+    }, 2000)
   })
   onCleanup(() => clearInterval(capturesTimer))
 
@@ -121,6 +128,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
     todo: true,
     vulnerability: true,
     lsp: true,
+    signals: true,
     captures: true,
     requests: true,
     pages: true,
@@ -541,6 +549,52 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                             )}
                           </For>
                         </Show>
+                      </box>
+                    )}
+                  </For>
+                </Show>
+              </box>
+            </Show>
+            <Show when={vortexSignalList().length > 0}>
+              <box>
+                {/* Vortex Signals (issue #14) — what Vortex found on its own, and where each one is in
+                    the retest pipeline: routed → owning specialist, then queued / examined (picked up). */}
+                <box flexDirection="row" gap={1} onMouseDown={() => setExpanded("signals", !expanded.signals)}>
+                  <text fg={theme.text}>{expanded.signals ? "▼" : "▶"}</text>
+                  <text fg={theme.text}>
+                    <b>Vortex Signals</b> ({vortexSignalList().length})
+                  </text>
+                </box>
+                <Show when={expanded.signals}>
+                  <For each={vortexSignalList()}>
+                    {(s) => (
+                      <box flexDirection="row" gap={1} paddingLeft={1}>
+                        <text
+                          flexShrink={0}
+                          style={{
+                            fg:
+                              {
+                                critical: theme.error,
+                                high: theme.warning,
+                                medium: theme.text,
+                                low: theme.textMuted,
+                                info: theme.textMuted,
+                              }[s.severity] ?? theme.text,
+                          }}
+                        >
+                          •
+                        </text>
+                        <box flexDirection="column">
+                          <text fg={theme.text} wrapMode="word">
+                            [{s.category}] {s.title}
+                          </text>
+                          <text fg={theme.textMuted} wrapMode="word">
+                            {s.routed
+                              ? `→ ${s.owner ?? s.category}${s.status === "examined" ? " · examined" : s.status === "pending" ? " · queued" : " · routing…"}`
+                              : "· surfaced (not auto-routed)"}
+                            {s.endpoint ? ` · ${s.method ? `${s.method} ` : ""}${s.endpoint}` : ""}
+                          </text>
+                        </box>
                       </box>
                     )}
                   </For>

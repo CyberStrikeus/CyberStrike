@@ -170,6 +170,13 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           jsFiles: Array<{ url: string; hit: boolean }>
         }
       }
+      // The Vortex Signals view (issue #14), from GET /vortex/signals — what Vortex found on its own,
+      // which class owns each, whether it auto-routed, and its endpoint's retest-queue status.
+      vortex_signals: {
+        [sessionID: string]: {
+          signals: Array<{ ruleId: string; category: string; severity: string; title: string; method?: string; endpoint?: string; keyHash?: string; owner?: string; routed: boolean; status?: "pending" | "examined" }>
+        }
+      }
       web_object: {
         [sessionID: string]: Array<{
           id: string
@@ -243,6 +250,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       web_role: {},
       web_js: {},
       vortex_captures: {},
+      vortex_signals: {},
       web_object: {},
       web_function: {},
       web_retest: {},
@@ -326,6 +334,18 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         if (c && Array.isArray(c.requests) && Array.isArray(c.jsFiles)) setStore("vortex_captures", sessionID, c)
       } catch {
         /* ignore — sidebar keeps the last captures snapshot */
+      }
+    }
+
+    // Poll the Vortex-sourced signals for a session (issue #14) — what Vortex found on its own +
+    // each one's retest-pipeline status. Best-effort: keep the last snapshot on failure.
+    async function refreshSignals(sessionID: string) {
+      try {
+        const r = await sdk.fetch(`${sdk.url}/session/${sessionID}/vortex/signals`)
+        const s = (await r.json()) as (typeof store)["vortex_signals"][string]
+        if (s && Array.isArray(s.signals)) setStore("vortex_signals", sessionID, s)
+      } catch {
+        /* ignore — sidebar keeps the last signals snapshot */
       }
     }
 
@@ -723,6 +743,8 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       fetchObservations,
       // Poll the Vortex-sourced captures for a session (sidebar Captures single source).
       refreshCaptures,
+      // Poll the Vortex-sourced signals for a session (sidebar Vortex Signals view, issue #14).
+      refreshSignals,
       get status() {
         return store.status
       },
