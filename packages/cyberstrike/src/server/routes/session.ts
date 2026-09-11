@@ -40,7 +40,7 @@ import { CoDrive } from "../../session/web/nav/co-drive-runner"
 import { DataCollector } from "../../session/web/data-collector"
 import { JsMiner } from "../../session/web/js-miner"
 import { scanCapturedResponse } from "../../session/web/signal/ingest"
-import { ingestBrowserTransaction, vortexReport, vortexProbe, vortexDiscoverJs, vortexCaptures } from "../../session/web/vortex-bridge"
+import { ingestBrowserTransaction, vortexReport, vortexProbe, vortexDiscoverJs, vortexCaptures, vortexSignals } from "../../session/web/vortex-bridge"
 import { HBLog } from "../../session/web/hblog"
 import { FrameworkFingerprinter } from "../../session/web/tech"
 import { upgradeWebSocket } from "hono/bun"
@@ -1703,6 +1703,18 @@ export const SessionRoutes = lazy(() =>
       }),
       validator("param", z.object({ sessionID: z.string() })),
       async (c) => c.json(vortexCaptures(c.req.valid("param").sessionID)),
+    )
+    .get(
+      "/:sessionID/vortex/signals",
+      describeRoute({
+        summary: "Vortex signals",
+        description:
+          "Every deterministic signal Vortex produced for this session (passive rules + active probe), with its owning WSTG class, whether it auto-routed into the retest pipeline, and its endpoint's retest-queue status — the source for the TUI 'Vortex Signals' view (issue #14).",
+        operationId: "session.vortexSignals",
+        responses: { 200: { description: "Vortex-sourced signals + routing status" } },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => c.json(vortexSignals(c.req.valid("param").sessionID)),
     )
     .get(
       "/:sessionID/web/retest-queue",

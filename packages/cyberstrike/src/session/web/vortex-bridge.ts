@@ -3,10 +3,12 @@
 // Vortex engine (rules → signals → subjects → inventory → leads) runs over the live web corpus in
 // parallel with the existing CS signal fabric (verify-first; the fabric retires once Vortex proves
 // out). Never throws — must not break the ingest path.
-import { SqliteStore, defaultRegistry, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender } from "@cyberstrike-io/vortex"
+import { SqliteStore, defaultRegistry, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal } from "@cyberstrike-io/vortex"
 import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
+import { WebRetest } from "./web-retest"
+import { categoryToClass, signalPriority, shouldRoute, type VortexSeverity } from "./signal/vortex-route"
 import path from "path"
 
 const log = Log.create({ service: "vortex-bridge" })
@@ -103,7 +105,11 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
     // every query/body-dotpath/path/header input into the inventory so active probing (vortexProbe,
     // gated) and coverage can run off it. Never throws.
     const points = store.addInjectPoints(injectPoints(tx))
-    log.info("vortex ingest", { sessionID: i.sessionID, endpoint: endpointKey(tx), transactions: store.size(), newSignals: added, newParams: points, ruleIds: sigs.map((s) => s.ruleId) })
+    // Route the new passive signals into the deterministic retest pipeline (issue #14), so a
+    // Vortex-found lead reaches its owning specialist without waiting on agent initiative. Additive
+    // to the CS signal fabric that scanned the same response; dedup collapses any overlap.
+    const routed = bridgeSignals(i.sessionID, store, sigs)
+    log.info("vortex ingest", { sessionID: i.sessionID, endpoint: endpointKey(tx), transactions: store.size(), newSignals: added, newParams: points, routed, ruleIds: sigs.map((s) => s.ruleId) })
     // Auto-probe the new points in the background when active probing is enabled (no-op otherwise).
     // Fire-and-forget: must not block or break the ingest path.
     kickProbe(i.sessionID)
@@ -235,8 +241,12 @@ function probeSender(): Sender {
 export async function vortexProbe(sessionID: string): Promise<{ enabled: boolean; probed: number; signals: number }> {
   if (!ACTIVE_PROBE) return { enabled: false, probed: 0, signals: 0 }
   try {
-    const res = await probeSession(storeFor(sessionID), probeSender())
-    log.info("vortex active-probe", { sessionID, probed: res.probed, signals: res.signals.length })
+    const store = storeFor(sessionID)
+    const res = await probeSession(store, probeSender())
+    // Route the actively-probed signals into the retest pipeline (issue #14) — an active-probe
+    // hit is exactly the high-value lead a specialist should confirm without waiting on initiative.
+    const routed = bridgeSignals(sessionID, store, res.signals)
+    log.info("vortex active-probe", { sessionID, probed: res.probed, signals: res.signals.length, routed })
     return { enabled: true, probed: res.probed, signals: res.signals.length }
   } catch (e) {
     log.debug("vortex active-probe failed (ignored)", { err: String(e) })
@@ -262,4 +272,78 @@ export function kickProbe(sessionID: string): void {
       probing.delete(sessionID)
     }
   })()
+}
+
+// ── Vortex signals → retest pipeline bridge (issue #14) ─────────────────────────────
+// Route freshly-produced Vortex signals into the deterministic retest queue so the OWNING WSTG
+// specialist confirms them — instead of leaving it to an agent's initiative to read vortex_leads
+// (the best-effort fragility the retest-worker exists to remove). Additive to the CS signal fabric
+// + traffic-driven feeds; dedup is free (WebRetest.flag keys per (key_hash,value), Vortex dedups
+// signals per dedupKey). Priority-gated (shouldRoute): only medium+ with an owning class auto-spawn;
+// low/info + unmapped categories stay visible in the sidebar but never burn a specialist. Never
+// throws — a routing failure must never break the ingest or probe path.
+function bridgeSignals(sessionID: string, store: TrafficStore, signals: Signal[]): number {
+  let routed = 0
+  for (const s of signals) {
+    try {
+      const severity = s.severity as VortexSeverity
+      if (!shouldRoute(s.category, severity)) continue
+      const owner = categoryToClass(s.category)
+      if (!owner) continue
+      const keyHash = store.get(s.transactionId)?.keyHash
+      if (!keyHash) continue // no platform key_hash on this tx ⇒ can't anchor a retest (still recorded in Vortex)
+      WebRetest.flag({ sessionID, keyHash, type: "signal", value: `${s.category}:${owner}`, priority: signalPriority(severity) })
+      routed++
+    } catch (e) {
+      log.debug("vortex signal bridge failed (ignored)", { ruleId: s.ruleId, err: String(e) })
+    }
+  }
+  return routed
+}
+
+// The TUI "Vortex Signals" sidebar view (issue #14): every persisted Vortex signal with its owning
+// class, whether it auto-routed, and its endpoint's retest-queue status (pending = queued for a
+// specialist, examined = an agent has worked it) — so the operator SEES what Vortex found, what is
+// queued, and what got picked up. Degrades to empty on error (never blanks the sidebar hard).
+export interface VortexSignalView {
+  ruleId: string
+  category: string
+  severity: string
+  title: string
+  method?: string
+  endpoint?: string
+  keyHash?: string
+  owner?: string
+  routed: boolean
+  status?: "pending" | "examined"
+}
+
+export function vortexSignals(sessionID: string): { signals: VortexSignalView[] } {
+  try {
+    const store = storeFor(sessionID)
+    const statusMap = WebRetest.statusByKeyHash(sessionID)
+    const out: VortexSignalView[] = []
+    for (const s of store.signals()) {
+      const tx = store.get(s.transactionId)
+      const keyHash = tx?.keyHash
+      out.push({
+        ruleId: s.ruleId,
+        category: s.category,
+        severity: s.severity,
+        title: s.title,
+        method: tx?.request.method,
+        endpoint: tx?.normalizedPath,
+        keyHash,
+        owner: categoryToClass(s.category),
+        routed: shouldRoute(s.category, s.severity as VortexSeverity),
+        status: keyHash ? statusMap[keyHash] : undefined,
+      })
+    }
+    const rank: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
+    out.sort((a, b) => (rank[a.severity] ?? 5) - (rank[b.severity] ?? 5))
+    return { signals: out }
+  } catch (e) {
+    log.warn("vortexSignals read failed — returning empty", { sessionID, err: String(e) })
+    return { signals: [] }
+  }
 }

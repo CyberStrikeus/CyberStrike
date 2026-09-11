@@ -306,6 +306,25 @@ export namespace WebRetest {
     })
   }
 
+  /**
+   * Current queue status per endpoint (key_hash → "pending" | "examined"), for read-only
+   * views that need to show whether a scenario is still queued or an agent has picked it up
+   * (e.g. the TUI "Vortex Signals" section, issue #14). A key_hash absent from the map was
+   * never queued.
+   */
+  export function statusByKeyHash(sessionID: string): Record<string, Info["status"]> {
+    const rows = Database.use((db) =>
+      db
+        .select({ key_hash: WebRetestQueueTable.key_hash, status: WebRetestQueueTable.status })
+        .from(WebRetestQueueTable)
+        .where(eq(WebRetestQueueTable.session_id, sessionID))
+        .all(),
+    )
+    const out: Record<string, Info["status"]> = {}
+    for (const r of rows) out[r.key_hash] = r.status as Info["status"]
+    return out
+  }
+
   /** Mark an endpoint examined + snapshot its current flags (so only NEW values re-open it). */
   export function markExamined(sessionID: string, keyHash: string): void {
     const now = Date.now()
