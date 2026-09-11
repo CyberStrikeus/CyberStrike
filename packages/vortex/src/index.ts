@@ -87,6 +87,7 @@ import { headerRules } from "./rules/headers"
 import { accessRules } from "./rules/access"
 import { signatureRules } from "./rules/signatures"
 import { misconfigRules } from "./rules/misconfig"
+import { techRules } from "./rules/tech"
 import { authRules } from "./rules/auth"
 import { cveRules } from "./rules/cve"
 import { chainRules } from "./rules/chains"
@@ -111,8 +112,9 @@ export { signatureRules } from "./rules/signatures"
 
 // The baseline rule set — everything OSS. Per-transaction hygiene + response-signature (declarative)
 // rules + cross-transaction access-control rules. `defaultRegistry()` preloads them all.
-export const baselineRules = [...headerRules, ...compileRules(signatureRules), ...compileRules(misconfigRules), ...compileRules(authRules), ...compileRules(cveRules)]
+export const baselineRules = [...headerRules, ...compileRules(signatureRules), ...compileRules(misconfigRules), ...compileRules(techRules), ...compileRules(authRules), ...compileRules(cveRules)]
 export { misconfigRules } from "./rules/misconfig"
+export { techRules } from "./rules/tech"
 export { authRules } from "./rules/auth"
 export { cveRules } from "./rules/cve"
 export const baselineCorpusRules = [...accessRules, ...chainRules.map(compileChain)]

@@ -19,6 +19,7 @@ const CATEGORY_OWNER: Record<string, SpecialistClass> = {
   "auth-session": "session-management",
   redirect: "client-side",
   "vulnerable-component": "config-deployment",
+  technology: "information-gathering",
 }
 
 export function categoryToClass(category: string): SpecialistClass | undefined {
@@ -35,7 +36,12 @@ export function signalPriority(severity: VortexSeverity): "high" | "medium" | "l
 // Only medium+ signals auto-spawn a specialist (the volume gate — low/info Vortex leads,
 // e.g. an informational header note, stay visible in the sidebar but don't burn an LLM
 // spawn). A signal is routable only if it ALSO has an owning class.
+// Exception: `technology` always routes despite being info-severity — it does not spawn an
+// agent of its own (information-gathering owns it, and a tech-only flag resolves to no agent),
+// it exists to TAG the endpoint with its stack slug so any later retest injects the matching
+// TechPlaybook. Dropping it would lose that enrichment (full CS-parity requirement, #15).
 export function shouldRoute(category: string, severity: VortexSeverity): boolean {
   if (!categoryToClass(category)) return false
+  if (category === "technology") return true
   return severity === "critical" || severity === "high" || severity === "medium"
 }

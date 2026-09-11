@@ -317,7 +317,13 @@ function bridgeSignals(sessionID: string, store: TrafficStore, signals: Signal[]
       if (!owner) continue
       const keyHash = store.get(s.transactionId)?.keyHash
       if (!keyHash) continue // no platform key_hash on this tx ⇒ can't anchor a retest (still recorded in Vortex)
-      WebRetest.flag({ sessionID, keyHash, type: "signal", value: `${s.category}:${owner}`, priority: signalPriority(severity) })
+      // A technology signal carries its stack slug as a 3rd ":"-segment (ruleId `tech-<slug>`), so the
+      // retest dispatch injects that stack's TechPlaybook — parity with the CS technology path.
+      const value =
+        s.category === "technology"
+          ? `${s.category}:${owner}:${s.ruleId.replace(/^tech-/, "")}`
+          : `${s.category}:${owner}`
+      WebRetest.flag({ sessionID, keyHash, type: "signal", value, priority: signalPriority(severity) })
       routed++
     } catch (e) {
       log.debug("vortex signal bridge failed (ignored)", { ruleId: s.ruleId, err: String(e) })

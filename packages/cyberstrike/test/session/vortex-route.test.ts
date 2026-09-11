@@ -11,6 +11,7 @@ describe("categoryToClass", () => {
     expect(categoryToClass("auth-session")).toBe("session-management")
     expect(categoryToClass("redirect")).toBe("client-side")
     expect(categoryToClass("vulnerable-component")).toBe("config-deployment")
+    expect(categoryToClass("technology")).toBe("information-gathering")
   })
 
   test("an unknown category has no owner (surfaced, not routed)", () => {
@@ -43,5 +44,10 @@ describe("shouldRoute — the volume gate", () => {
   test("an unmapped category never routes even at high severity", () => {
     expect(shouldRoute("something-new", "high")).toBe(false)
     expect(shouldRoute("something-new", "critical")).toBe(false)
+  })
+
+  test("technology always routes despite info severity (it tags the endpoint with its stack slug)", () => {
+    expect(shouldRoute("technology", "info")).toBe(true)
+    expect(shouldRoute("technology", "low")).toBe(true)
   })
 })
