@@ -33,11 +33,13 @@ describe("RetestWorker.resolveAgents — scenario → specialist routing", () =>
     })
   })
 
-  test("a new credential routes to access-control specialists (authz + idor)", async () => {
+  test("a new credential routes to the authorization specialist (WSTG 4.5 owns IDOR/BOLA/BFLA)", async () => {
     await withInstance(async () => {
       const agents = await RetestWorker.resolveAgents(scenario({ credential: ["org1"] }))
+      // Under the WSTG taxonomy authorization owns access-control incl. IDOR, so a new identity
+      // routes to that one specialist — not a separate hunt-idor (kept only as a fallback when
+      // no agent owns the authorization class).
       expect(agents).toContain("hunt-authz")
-      expect(agents).toContain("hunt-idor")
     })
   })
 
@@ -48,11 +50,12 @@ describe("RetestWorker.resolveAgents — scenario → specialist routing", () =>
     })
   })
 
-  test("an object value on a non-injectable GET routes to idor only", async () => {
+  test("an object value on a non-injectable GET routes to the authorization specialist only", async () => {
     await withInstance(async () => {
-      // A plain GET whose path names no query/search/filter operation is not an injection surface.
+      // A plain GET whose path names no query/search/filter operation is not an injection surface,
+      // so an object value (IDOR fuel) routes only to authorization (which owns IDOR under WSTG).
       const agents = await RetestWorker.resolveAgents(scenario({ object_value: ["456" ] }, "GET", "/customers/123"))
-      expect(agents).toEqual(["hunt-idor"])
+      expect(agents).toEqual(["hunt-authz"])
     })
   })
 
@@ -72,12 +75,12 @@ describe("RetestWorker.resolveAgents — scenario → specialist routing", () =>
   test("mixed flags union the specialists, deduped", async () => {
     await withInstance(async () => {
       const agents = await RetestWorker.resolveAgents(
-        scenario({ credential: ["org1"], object_value: ["1"], signal: ["cors_misconfig:misconfiguration"] }),
+        scenario({ credential: ["org1"], object_value: ["1"], signal: ["sql_error:injection"] }),
       )
-      // access-control (authz+idor) + misconfig owner; idor appears once
-      expect(agents.filter((a) => a === "hunt-idor").length).toBe(1)
+      // credential + object_value both route to authorization, deduped to one; plus the signal's owner.
+      expect(agents.filter((a) => a === "hunt-authz").length).toBe(1)
       expect(agents).toContain("hunt-authz")
-      expect(agents).toContain("hunt-misconfig")
+      expect(agents).toContain("hunt-injection")
     })
   })
 })

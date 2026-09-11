@@ -84,10 +84,11 @@ describe("ApiProbe.runEndpoint — deterministic probe → signal fabric → spe
       const canary = results.find((r) => r.probe === "error-canary")!
       expect(canary.signals).toBeGreaterThan(0)
 
-      // and a specialist retest was queued for this endpoint, routed to injection (sql_error owner)
+      // and a specialist retest was queued for this endpoint, routed to input-validation
+      // (the WSTG 4.7 owner of sql_error — injection folds into input-validation).
       const pending = WebRetest.getPending(sid).find((r) => r.key_hash === "k_items")
       expect(pending).toBeDefined()
-      expect(pending!.flags.signal?.some((v) => v.includes("sql_error") && v.includes("injection"))).toBe(true)
+      expect(pending!.flags.signal?.some((v) => v.includes("sql_error") && v.includes("input-validation"))).toBe(true)
     })
   })
 
