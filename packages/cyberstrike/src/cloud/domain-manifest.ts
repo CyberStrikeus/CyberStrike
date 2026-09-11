@@ -26,6 +26,9 @@ export const DomainManifest = z
     domains: z.array(z.string()).optional(),
     tools: z.array(z.string()).optional(),
     tier: z.enum(["free", "pro"]).optional(),
+    // Informational grouping for `cyberstrike domains` listing (e.g. "cloud" for
+    // azure/gcp/aws/oracle, "mobile" for android/ios). Top-level domains omit it.
+    category: z.string().optional(),
   })
   .strict()
 
