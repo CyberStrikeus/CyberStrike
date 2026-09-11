@@ -1,0 +1,2 @@
+Tests all injection types (SQLi, NoSQLi, XSS, SSTI, XXE, Command, LDAP). Effective when: request accepts user input in query params, body fields, or headers. Prioritizes testing based on input context (DB queries→SQLi, search→XSS, XML→XXE, templates→SSTI). Works on any endpoint with injectable parameters.
+Comprehensive injection vulnerability scanner supporting SQL, NoSQL, XSS, SSTI, XXE, Command, and LDAP injection attacks.

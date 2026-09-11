@@ -1,0 +1,2 @@
+Analyzes HTTP request/response pairs to extract application architecture information: objects (data entities), roles (user types), functions (endpoint purposes), object values (IDs for IDOR testing), and credential claims (JWT/token analysis). Writes directly to session tables for context accumulation.
+Architecture extraction agent that builds the knowledge base for all vulnerability testing agents.

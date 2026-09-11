@@ -1,0 +1,2 @@
+Tests file upload vulnerabilities, path traversal, and file inclusion attacks. Effective when: endpoint accepts file uploads (multipart/form-data), has file path parameters, or processes user-supplied filenames. Tests malicious file types (webshell, XSS via SVG), path traversal (../../etc/passwd), XXE via file upload, and zip slip.
+File handling security testing including upload validation, path traversal, and file inclusion vulnerabilities.

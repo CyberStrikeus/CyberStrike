@@ -1,0 +1,2 @@
+Tests authentication bypass, session attacks, JWT flaws, password reset vulnerabilities, and credential stuffing. Effective when: endpoint performs authentication (login, SSO, MFA), manages sessions (logout, refresh), or handles credentials (registration, password reset). Can analyze JWT tokens from session context and test authentication on any protected endpoint.
+Authentication and session security testing including JWT analysis, bypass attempts, and credential management flaws.

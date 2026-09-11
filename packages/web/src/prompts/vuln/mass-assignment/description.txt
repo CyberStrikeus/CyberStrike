@@ -1,0 +1,2 @@
+Tests mass assignment vulnerabilities by injecting additional fields that shouldn't be user-controllable. Effective when: (1) endpoint accepts POST/PUT/PATCH requests with body, AND (2) session has discovered objects with sensitive fields (role, price, is_admin, etc.). Tests admin/role escalation, status manipulation, financial field injection, and ownership bypass.
+Mass assignment vulnerability testing for parameter injection and privilege escalation via extra fields.

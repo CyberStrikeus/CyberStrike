@@ -1,0 +1,2 @@
+Tests authorization bypass and broken access control vulnerabilities using discovered roles and credentials. Effective when: (1) session has multiple credentials with different privilege levels, OR (2) endpoint appears to require authentication/authorization, OR (3) path indicates protected functionality. Tests vertical/horizontal privilege escalation, authentication bypass, and method/path-based access control flaws.
+Comprehensive broken access control testing for privilege escalation and authorization bypass vulnerabilities.
