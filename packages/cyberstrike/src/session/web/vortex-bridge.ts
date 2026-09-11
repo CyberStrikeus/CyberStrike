@@ -131,7 +131,10 @@ export function vortexDiscoverJs(sessionID: string, url: string): void {
   try {
     storeFor(sessionID).addDiscovered([{ id: discoveredId("js", u), kind: "js", value: u, source: "extract", hit: false }])
   } catch (e) {
-    log.debug("vortex discover-js failed (ignored)", { err: String(e) })
+    // Best-effort so a store hiccup never breaks capture — but WARN (not debug): a swallowed failure
+    // means Vortex silently misses a JS asset the session-web copy still has, i.e. the single source
+    // drifts. Surfaced so such a gap is diagnosable, not invisible.
+    log.warn("vortex discover-js failed — JS missing from Vortex source", { sessionID, url: u, err: String(e) })
   }
 }
 
@@ -143,18 +146,26 @@ export function vortexCaptures(sessionID: string): {
   requests: { id: string; method: string; host: string; url: string; status?: number; identity?: string; pageUrl?: string }[]
   jsFiles: { url: string; hit: boolean }[]
 } {
-  const store = storeFor(sessionID)
-  const requests = store.all().map((t) => ({
-    id: t.id,
-    method: t.request.method,
-    host: t.host,
-    url: t.request.url,
-    status: t.response?.status,
-    identity: t.identity,
-    pageUrl: t.pageUrl,
-  }))
-  const jsFiles = store.discovered("js").map((d) => ({ url: d.value, hit: d.hit }))
-  return { requests, jsFiles }
+  // A read the TUI polls; a store failure must degrade to an empty view, never 500 the route and
+  // blank the sidebar. Return-empty-on-error keeps the sidebar rendering (as "no captures yet")
+  // instead of erroring, and the failure is logged for diagnosis.
+  try {
+    const store = storeFor(sessionID)
+    const requests = store.all().map((t) => ({
+      id: t.id,
+      method: t.request.method,
+      host: t.host,
+      url: t.request.url,
+      status: t.response?.status,
+      identity: t.identity,
+      pageUrl: t.pageUrl,
+    }))
+    const jsFiles = store.discovered("js").map((d) => ({ url: d.value, hit: d.hit }))
+    return { requests, jsFiles }
+  } catch (e) {
+    log.warn("vortexCaptures read failed — returning empty", { sessionID, err: String(e) })
+    return { requests: [], jsFiles: [] }
+  }
 }
 
 // ACTIVE injection probing on the live corpus — the path in Vortex that SENDS payloads to the
