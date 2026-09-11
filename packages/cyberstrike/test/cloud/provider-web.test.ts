@@ -1,5 +1,5 @@
 import { describe, test, expect, afterEach } from "bun:test"
-import { WebProvider, buildClassAgentMap, renderSignalRoutingTable, renderRoster, SIGNAL_ROUTING_PLACEHOLDER, AGENT_ROSTER_PLACEHOLDER } from "../../src/cloud/provider-web"
+import { WebProvider, buildClassAgentMap, renderSignalRoutingTable, renderRoster, PENDING_WSTG_CLASSES, SIGNAL_ROUTING_PLACEHOLDER, AGENT_ROSTER_PLACEHOLDER } from "../../src/cloud/provider-web"
 import { SignalRouter } from "../../src/session/web/signal/router"
 import type { SpecialistClass } from "../../src/session/web/signal/types"
 import { TESTER_VRT_SCOPE, testerClass } from "../../src/tool/vuln-scope"
@@ -156,13 +156,16 @@ describe("WebProvider", () => {
 })
 
 describe("SpecialistClass → agent mapping (signal-fabric bridge)", () => {
-  test("every signal owner class resolves to exactly one existing agent", async () => {
+  test("every signal owner class resolves to one existing agent OR is a known pending WSTG class", async () => {
     const provider = await WebProvider.create()
     const names = new Set(provider.agentSpecs().map((s) => s.name))
     const router = provider.signalRouter()
     for (const type of SignalRouter.signalTypes()) {
       const owner = router.ownerOf(type)
       const agent = provider.agentForClass(owner)
+      // A WSTG class whose web-* specialist isn't built yet is allowed to have no agent (staged):
+      // its signals are recorded but not auto-dispatched until the specialist exists.
+      if (PENDING_WSTG_CLASSES.has(owner)) continue
       expect(agent, `signal "${type}" owner class "${owner}" must map to an agent`).toBeDefined()
       expect(names.has(agent!), `agent "${agent}" for class "${owner}" must exist`).toBe(true)
     }
@@ -174,10 +177,10 @@ describe("SpecialistClass → agent mapping (signal-fabric bridge)", () => {
     // fails the moment code and that (soon-to-be-rendered) table diverge.
     const provider = await WebProvider.create()
     const expected: Record<string, string> = {
-      injection: "hunt-injection",
-      misconfiguration: "hunt-misconfig",
-      "auth-session": "hunt-authn",
-      "access-control": "hunt-authz",
+      "input-validation": "hunt-injection",
+      "config-deployment": "hunt-misconfig",
+      authentication: "hunt-authn",
+      authorization: "hunt-authz",
       "business-logic": "hunt-business-logic",
     }
     for (const [cls, agent] of Object.entries(expected)) {
@@ -188,8 +191,8 @@ describe("SpecialistClass → agent mapping (signal-fabric bridge)", () => {
   test("buildClassAgentMap rejects two agents claiming the same class", () => {
     expect(() =>
       buildClassAgentMap([
-        { name: "hunt-authz", specialistClass: "access-control" },
-        { name: "hunt-idor", specialistClass: "access-control" },
+        { name: "hunt-authz", specialistClass: "authorization" },
+        { name: "hunt-idor", specialistClass: "authorization" },
       ]),
     ).toThrow(/claimed by both/)
   })
@@ -197,18 +200,21 @@ describe("SpecialistClass → agent mapping (signal-fabric bridge)", () => {
   test("buildClassAgentMap skips agents with no specialistClass", () => {
     const map = buildClassAgentMap([
       { name: "hunt-idor" },
-      { name: "hunt-injection", specialistClass: "injection" },
+      { name: "hunt-injection", specialistClass: "input-validation" },
     ])
     expect(map.size).toBe(1)
-    expect(map.get("injection")).toBe("hunt-injection")
+    expect(map.get("input-validation")).toBe("hunt-injection")
   })
 
   test("classAgentMap exposes all owning specialists", async () => {
     const provider = await WebProvider.create()
     const map = provider.classAgentMap()
-    // 8 specialists declare a class; idor, mass-assignment, file-attacks do not.
-    expect(map.size).toBe(7)
-    expect(map.get("server-side-request")).toBe("hunt-ssrf")
+    // 6 specialists declare a WSTG class by default (WEB_INPUT_VALIDATION off): hunt-injection
+    // (input-validation), hunt-authz (authorization), hunt-authn (authentication), hunt-misconfig
+    // (config-deployment), hunt-business-logic (business-logic), hunt-llm (llm). idor, mass-assignment,
+    // file-attacks, ssrf are dispatch-by-name (no owned class).
+    expect(map.size).toBe(6)
+    expect(map.get("input-validation")).toBe("hunt-injection")
     expect(map.get("llm")).toBe("hunt-llm")
   })
 })
@@ -222,32 +228,36 @@ describe("orchestrator signal-routing table (rendered from code)", () => {
     // Header present
     expect(table).toContain("| Specialist class | Agent name |")
 
-    // Exactly the distinct signal owners appear, each mapped to its agent.
-    const owners = new Set(SignalRouter.signalTypes().map((t) => router.ownerOf(t)))
-    for (const owner of owners) {
+    // Exactly the distinct OWNED signal owners appear, each mapped to its agent. A pending WSTG class
+    // (specialist not built yet) is not in the class→agent map, so it gets no row.
+    const owners = [...new Set(SignalRouter.signalTypes().map((t) => router.ownerOf(t)))]
+    const owned = owners.filter((o) => !PENDING_WSTG_CLASSES.has(o))
+    for (const owner of owned) {
       const agent = provider.agentForClass(owner)!
       expect(table).toContain(`| \`${owner}\` | ${agent} |`)
     }
-    // Row count = header(2) + one per distinct owner
-    expect(table.split("\n").length).toBe(2 + owners.size)
+    // Row count = header(2) + one per distinct OWNED owner
+    expect(table.split("\n").length).toBe(2 + owned.length)
   })
 
   test("composed orchestrator prompt has the table injected, no placeholder left", async () => {
     const provider = await WebProvider.create()
     const orch = provider.agentSpecs().find((s) => s.name === "hunt-agent")!
     expect(orch.prompt).not.toContain(SIGNAL_ROUTING_PLACEHOLDER)
-    // The 6 historical rows must all be present in the final prompt.
-    expect(orch.prompt).toContain("| `injection` | hunt-injection |")
-    expect(orch.prompt).toContain("| `misconfiguration` | hunt-misconfig |")
-    expect(orch.prompt).toContain("| `access-control` | hunt-authz |")
-    // client-side stays as static prose (no agent)
+    // Signal-routed + owned WSTG classes render a row in the final prompt (post-taxonomy). NOTE:
+    // `authorization` has an agent (hunt-authz) but no PASSIVE signal routes to it — it's driven by
+    // credential/role discovery in the retest worker, not a detector — so it correctly has no row.
+    expect(orch.prompt).toContain("| `input-validation` | hunt-injection |")
+    expect(orch.prompt).toContain("| `config-deployment` | hunt-misconfig |")
+    expect(orch.prompt).toContain("| `authentication` | hunt-authn |")
+    // client-side is a pending WSTG class (no agent yet) — stays as static prose, not a table row
     expect(orch.prompt).toContain("client-side")
   })
 
   test("injection fails loud if the orchestrator prompt loses the placeholder", () => {
     // Guard: renderSignalRoutingTable output is stable, but if a future prompt edit
     // drops the token the injector must throw, not silently ship an empty table.
-    const map = buildClassAgentMap([{ name: "hunt-injection", specialistClass: "injection" }])
+    const map = buildClassAgentMap([{ name: "hunt-injection", specialistClass: "input-validation" }])
     const table = renderSignalRoutingTable(map, new SignalRouter())
     expect(table).toContain("hunt-injection")
     // The prompt-composition guard is exercised via WebProvider.create() above;

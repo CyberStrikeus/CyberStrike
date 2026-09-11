@@ -32,7 +32,7 @@ async function withTwoSessions(fn: (a: string, b: string) => Promise<void> | voi
 
 const sig = (over: Partial<Signal> = {}): Signal => ({
   type: over.type ?? "sql_error",
-  owner: over.owner ?? "injection",
+  owner: over.owner ?? "input-validation",
   requestId: over.requestId ?? "req_1",
   evidence: over.evidence ?? "DBMS error",
   meta: over.meta,
@@ -94,7 +94,7 @@ describe("SignalStore (real DB)", () => {
       const all = store.get()
       expect(all).toHaveLength(1)
       expect(all[0].signal_type).toBe("sql_error")
-      expect(all[0].owner).toBe("injection")
+      expect(all[0].owner).toBe("input-validation")
       expect(all[0].status).toBe("pending")
       expect(all[0].meta).toEqual({ foo: "bar", n: 3 })
     })

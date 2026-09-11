@@ -51,7 +51,7 @@ describe("scanElicitedResponse — http_replay write-back (B2)", () => {
       const signals = new SignalStore(sid).get()
       const sqlErr = signals.find((s) => s.signal_type === "sql_error")
       expect(sqlErr).toBeDefined()
-      expect(sqlErr?.owner).toBe("injection")
+      expect(sqlErr?.owner).toBe("input-validation")
       expect(sqlErr?.request_id).toBe("req_src")
     })
   })
@@ -73,7 +73,7 @@ describe("scanElicitedResponse — http_replay write-back (B2)", () => {
       })
       const cookie = new SignalStore(sid).get().find((s) => s.signal_type === "weak_cookie_flags")
       expect(cookie).toBeDefined()
-      expect(cookie?.owner).toBe("auth-session")
+      expect(cookie?.owner).toBe("session-management")
     })
   })
 
@@ -149,7 +149,7 @@ describe("marker → canary registration (replay half of B3)", () => {
 
       const stored = new SignalStore(sid).get().find((s) => s.signal_type === "stored_reflection")
       expect(stored).toBeDefined()
-      expect(stored?.owner).toBe("injection")
+      expect(stored?.owner).toBe("input-validation")
       expect(stored?.meta?.injectSite).toBe("req_A")
       expect(stored?.meta?.renderSite).toBe("req_B")
     })

@@ -74,8 +74,8 @@ describe("ingest → signal fabric (real route wiring)", () => {
       const banner = signals.find((s) => s.signal_type === "server_banner")
       const cookie = signals.find((s) => s.signal_type === "weak_cookie_flags")
       // recon was merged into the security-misconfiguration specialist — server_banner now routes there.
-      expect(banner?.owner).toBe("misconfiguration")
-      expect(cookie?.owner).toBe("auth-session")
+      expect(banner?.owner).toBe("config-deployment")
+      expect(cookie?.owner).toBe("session-management")
     })
   })
 
@@ -127,7 +127,7 @@ describe("ingest → signal fabric (real route wiring)", () => {
       // Endpoint-keyed; the signal flag value encodes type:owner for routing.
       expect(retest?.key_hash).toBeTruthy()
       expect(retest?.flags.signal?.[0]).toContain("sql_error")
-      expect(retest?.flags.signal?.[0]).toContain("injection")
+      expect(retest?.flags.signal?.[0]).toContain("input-validation")
       expect(retest?.priority).toBe("high")
     })
   })

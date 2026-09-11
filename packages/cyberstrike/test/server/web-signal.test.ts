@@ -157,7 +157,7 @@ describe("TechnologyDetector — fingerprint → actionable technology signal", 
     const sigs = d.detect(res({ body: '<link href="/wp-content/themes/x/style.css">' }))
     expect(sigs).toHaveLength(1)
     expect(sigs[0].type).toBe("technology")
-    expect(sigs[0].owner).toBe("misconfiguration")
+    expect(sigs[0].owner).toBe("information-gathering")
     expect(sigs[0].meta?.tech).toBe("wordpress")
     expect(sigs[0].meta?.token).toBe("wordpress") // per-tech dedup
   })
@@ -294,9 +294,9 @@ describe("SignalRouter", () => {
 
   test("route() returns the table owner for a signal", () => {
     const router = new SignalRouter()
-    expect(router.route({ type: "sql_error", owner: "injection", requestId: "r", evidence: "x" }).specialist).toBe("injection")
-    expect(router.route({ type: "cors_misconfig", owner: "misconfiguration", requestId: "r", evidence: "x" }).specialist).toBe("misconfiguration")
-    expect(router.route({ type: "weak_cookie_flags", owner: "auth-session", requestId: "r", evidence: "x" }).specialist).toBe("auth-session")
+    expect(router.route({ type: "sql_error", owner: "input-validation", requestId: "r", evidence: "x" }).specialist).toBe("input-validation")
+    expect(router.route({ type: "cors_misconfig", owner: "client-side", requestId: "r", evidence: "x" }).specialist).toBe("client-side")
+    expect(router.route({ type: "weak_cookie_flags", owner: "session-management", requestId: "r", evidence: "x" }).specialist).toBe("session-management")
   })
 
   test("unknown signal type throws (no silent drop)", () => {
