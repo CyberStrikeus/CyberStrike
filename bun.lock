@@ -25,6 +25,26 @@
         "turbo": "2.9.14",
       },
     },
+    "packages/android": {
+      "name": "@cyberstrike-io/android",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@tsconfig/node22": "catalog:",
+        "@types/node": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "cyberstrike": "*",
+      },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
+    },
     "packages/app": {
       "name": "@cyberstrike-io/app",
       "version": "1.1.16",
@@ -75,6 +95,46 @@
         "vite-plugin-icons-spritesheet": "3.0.1",
         "vite-plugin-solid": "catalog:",
       },
+    },
+    "packages/attack-surface-mapping": {
+      "name": "@cyberstrike-io/attack-surface-mapping",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@tsconfig/node22": "catalog:",
+        "@types/node": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "cyberstrike": "*",
+      },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
+    },
+    "packages/aws": {
+      "name": "@cyberstrike-io/aws",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@tsconfig/node22": "catalog:",
+        "@types/node": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "cyberstrike": "*",
+      },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
     },
     "packages/azure": {
       "name": "@cyberstrike-io/azure",
@@ -366,6 +426,26 @@
         "typescript": "catalog:",
       },
     },
+    "packages/gcp": {
+      "name": "@cyberstrike-io/gcp",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@tsconfig/node22": "catalog:",
+        "@types/node": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "cyberstrike": "*",
+      },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
+    },
     "packages/hackbrowser": {
       "name": "@cyberstrike-io/hackbrowser",
       "version": "1.1.16",
@@ -373,6 +453,46 @@
         "@types/node": "catalog:",
         "typescript": "catalog:",
       },
+    },
+    "packages/ios": {
+      "name": "@cyberstrike-io/ios",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@tsconfig/node22": "catalog:",
+        "@types/node": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "cyberstrike": "*",
+      },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
+    },
+    "packages/oracle": {
+      "name": "@cyberstrike-io/oracle",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@tsconfig/node22": "catalog:",
+        "@types/node": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "cyberstrike": "*",
+      },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
     },
     "packages/plugin": {
       "name": "@cyberstrike-io/plugin",
@@ -387,6 +507,46 @@
         "@typescript/native-preview": "catalog:",
         "typescript": "catalog:",
       },
+    },
+    "packages/red-team": {
+      "name": "@cyberstrike-io/red-team",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@tsconfig/node22": "catalog:",
+        "@types/node": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "cyberstrike": "*",
+      },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
+    },
+    "packages/saas": {
+      "name": "@cyberstrike-io/saas",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@tsconfig/node22": "catalog:",
+        "@types/node": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "cyberstrike": "*",
+      },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
     },
     "packages/script": {
       "name": "@cyberstrike-io/script",
@@ -482,6 +642,26 @@
         "@types/bun": "catalog:",
         "typescript": "catalog:",
       },
+    },
+    "packages/web": {
+      "name": "@cyberstrike-io/web",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@tsconfig/node22": "catalog:",
+        "@types/node": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "cyberstrike": "*",
+      },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
     },
   },
   "trustedDependencies": [
@@ -825,7 +1005,13 @@
 
     "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
 
+    "@cyberstrike-io/android": ["@cyberstrike-io/android@workspace:packages/android"],
+
     "@cyberstrike-io/app": ["@cyberstrike-io/app@workspace:packages/app"],
+
+    "@cyberstrike-io/attack-surface-mapping": ["@cyberstrike-io/attack-surface-mapping@workspace:packages/attack-surface-mapping"],
+
+    "@cyberstrike-io/aws": ["@cyberstrike-io/aws@workspace:packages/aws"],
 
     "@cyberstrike-io/azure": ["@cyberstrike-io/azure@workspace:packages/azure"],
 
@@ -843,9 +1029,19 @@
 
     "@cyberstrike-io/function": ["@cyberstrike-io/function@workspace:packages/function"],
 
+    "@cyberstrike-io/gcp": ["@cyberstrike-io/gcp@workspace:packages/gcp"],
+
     "@cyberstrike-io/hackbrowser": ["@cyberstrike-io/hackbrowser@workspace:packages/hackbrowser"],
 
+    "@cyberstrike-io/ios": ["@cyberstrike-io/ios@workspace:packages/ios"],
+
+    "@cyberstrike-io/oracle": ["@cyberstrike-io/oracle@workspace:packages/oracle"],
+
     "@cyberstrike-io/plugin": ["@cyberstrike-io/plugin@workspace:packages/plugin"],
+
+    "@cyberstrike-io/red-team": ["@cyberstrike-io/red-team@workspace:packages/red-team"],
+
+    "@cyberstrike-io/saas": ["@cyberstrike-io/saas@workspace:packages/saas"],
 
     "@cyberstrike-io/script": ["@cyberstrike-io/script@workspace:packages/script"],
 
@@ -858,6 +1054,8 @@
     "@cyberstrike-io/util": ["@cyberstrike-io/util@workspace:packages/util"],
 
     "@cyberstrike-io/vortex": ["@cyberstrike-io/vortex@workspace:packages/vortex"],
+
+    "@cyberstrike-io/web": ["@cyberstrike-io/web@workspace:packages/web"],
 
     "@dimforge/rapier2d-simd-compat": ["@dimforge/rapier2d-simd-compat@0.17.3", "", {}, "sha512-bijvwWz6NHsNj5e5i1vtd3dU2pDhthSaTUZSh14DUGGKJfw8eMnlWZsxwHBxB/a3AXVNDjL9abuHw1k9FGR+jg=="],
 

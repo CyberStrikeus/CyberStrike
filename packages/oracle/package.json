@@ -1,0 +1,42 @@
+{
+  "name": "@cyberstrike-io/oracle",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "CyberStrike Oracle Cloud (OCI) assessment domain (template stub). Installs as a plugin; reaches core runtime via the host-injected input.core (works in the compiled binary).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "cyberstrike": {
+    "coreApi": "1.2.0",
+    "category": "cloud",
+    "domains": ["oracle"],
+    "tools": [],
+    "tier": "free"
+  },
+  "files": ["src"],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cyberstrike-io/plugin": "workspace:*",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "cyberstrike": "*"
+  },
+  "peerDependenciesMeta": {
+    "cyberstrike": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "cyberstrike": "workspace:*",
+    "@types/node": "catalog:",
+    "@tsconfig/node22": "catalog:",
+    "typescript": "catalog:"
+  }
+}
