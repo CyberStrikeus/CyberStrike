@@ -691,6 +691,13 @@ async function buildSpecDefs(): Promise<SpecDef[]> {
               vortex_functions: "allow",
               vortex_where_value: "allow",
               vortex_untested: "allow",
+              // JWT/bearer forgery engine (alg:none, weak-secret, RS256→HS256, role/id swap) — the
+              // concrete weapon behind the prompt's JWT sub-test. Sends forged variants with a no-token
+              // negative control; hands the agent leads, never a verdict.
+              authn_test: "allow",
+              // Default-credential spray + weak-lockout probe (WSTG 4.4.2 / 4.4.3) — embedded common-cred
+              // battery against the login form, plus an N-failure lockout/throttle observation.
+              login_probe: "allow",
             }),
           },
         ]
