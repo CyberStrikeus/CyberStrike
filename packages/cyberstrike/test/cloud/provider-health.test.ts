@@ -26,10 +26,10 @@ describe("providerHealth", () => {
     const web = report.domains.find((d) => d.domain === "web")
     expect(web).toBeDefined()
     expect(web!.loaded).toBe(true)
-    expect(web!.agents).toBe(13)
+    expect(web!.agents).toBe(12)
     expect(web!.byRole.orchestrator).toBe(1)
     expect(web!.byRole.analyzer).toBe(1)
-    expect(web!.byRole.specialist).toBe(11)
+    expect(web!.byRole.specialist).toBe(10)
     // web agents call tools (http_replay, web_get_session_context, ...) — non-zero
     expect(web!.tools).toBeGreaterThan(0)
     expect(web!.ruleCount).toBeGreaterThan(0)
@@ -39,7 +39,7 @@ describe("providerHealth", () => {
     const report = await providerHealth()
     // web is the only built-in now (azure ships as a package); it must load clean.
     expect(report.loadErrors.filter((e) => e.domain === "web")).toEqual([])
-    expect(report.totalAgents).toBeGreaterThanOrEqual(13) // web contributes 13
+    expect(report.totalAgents).toBeGreaterThanOrEqual(12) // web contributes 12 (default roster, flags off)
   })
 
   test("a broken provider shows as loaded:false with its error, ok=false", async () => {
@@ -88,6 +88,6 @@ describe("providerHealth", () => {
     const report = await providerHealth()
     const text = formatHealthReport(report)
     expect(text).toContain("Domains:")
-    expect(text).toMatch(/✓ web — 13 agents/)
+    expect(text).toMatch(/✓ web — 12 agents/)
   })
 })
