@@ -37,27 +37,40 @@ consciously justify any you skip.
 
 # WSTG 4.4 sub-test coverage — you MUST consider EACH; do not stop at the easy ones
 
-- 4.4.1 Credential transport — is the login / token / reset request ever sent over HTTP, or does the
-  page load auth assets over mixed content? Replay the login over http:// and see if it is accepted.
+- 4.4.1 Credential transport — DETERMINISTIC first: `vortex_query` for auth requests
+  (endpoint:~(?i)(login|token|signin|reset) OR req.header.authorization:* OR req.body:~(?i)password),
+  then `vortex_inspect` each and read its scheme — any captured over http:// is cleartext transport.
+  Then ACTIVE: `http_replay` the login with the scheme forced to http:// — accepted (not a 301→https)
+  ⇒ the server serves auth over cleartext. Also check for mixed-content auth asset loads.
 - 4.4.2 Default credentials — `login_probe {mode:"default-creds"}` sprays the embedded common-cred
   battery (+ guesses derived from the captured username) at the login form and reports which pairs LOOK
   successful (judged against a known-bad negative control). Each hit is a LEAD — log in for real via
   http_replay to confirm. Mind the CSRF warning it emits.
 - 4.4.3 Weak lockout — `login_probe {mode:"lockout"}` fires N failed logins for one account and watches
   for throttle / lockout / CAPTCHA / latency escalation; no signal across N ⇒ a weak-lockout lead.
-- 4.4.4 Auth-schema bypass — replay an authed request with NO / stripped / forged / expired token or
-  cookie; force-browse an authed page unauthenticated. Does it still return authed content?
-- 4.4.5 Vulnerable "remember me" — inspect the persistent-auth cookie/token: is it a reversible/among
-  guessable value, does it survive password change, is it bound to the device? Replay it.
-- 4.4.6 Browser-cache — do auth/sensitive responses lack Cache-Control: no-store / set cacheable
-  headers, so a shared machine keeps them? (Set-Cookie/response headers are the evidence.)
-- 4.4.7 Weak password policy — can the register / change-password flow set a trivially weak password
-  (short, common)? Replay the set-password request with "123456".
-- 4.4.8 Weak security question — are recovery questions guessable/enumerable, or answers unthrottled?
-- 4.4.9 Weak password change / reset — is the reset token predictable/reusable/long-lived, is the
-  change-password endpoint missing the current-password check, does reset leak the token in a URL?
-- 4.4.10 Weaker alternative channel — does a mobile/API/legacy endpoint authenticate the same identity
-  with weaker checks (no lockout, no MFA, HTTP)? Compare the alternate auth path to the primary.
+- 4.4.4 Auth-schema bypass — `http_replay` an authed request THREE ways and compare: (a) unchanged
+  (the authed baseline), (b) auth cookie/header STRIPPED (the negative control), (c) a forged / expired /
+  other-identity credential. The endpoint is GATED only if (b) is rejected (401/redirect to login); ONLY
+  then does (c) still returning baseline-authed content prove a bypass. If (b) already succeeds the route
+  is public — not a finding. Never skip the (b) control (it is the false-positive gate).
+- 4.4.5 Vulnerable "remember me" — `vortex_inspect` the persistent-auth cookie/token: is the value
+  reversible/decodable or guessable (base64/JWT/predictable)? `http_replay` it in a fresh context (does
+  it grant access with no login?), and replay it AFTER a password change (still valid ⇒ not invalidated).
+  Check it is not bound to device/IP.
+- 4.4.6 Browser-cache — DETERMINISTIC: `vortex_query` the sensitive/authed responses (resp.header.set-cookie:*
+  OR endpoint:~(?i)(account|profile|token)) and flag those whose `resp.header.cache-control` is absent or
+  lacks no-store/private (regex `:~(?i)(public|max-age)` or NOT `:~(?i)no-store`). The response headers ARE
+  the evidence — no replay needed.
+- 4.4.7 Weak password policy — `http_replay` the register / change-password request with a trivially weak
+  value ("123456", "a"); a 2xx with no policy error ⇒ weak policy. Try short, all-numeric, and username==password.
+- 4.4.8 Weak security question — `vortex_query` the recovery flow; are the questions fixed/guessable, and
+  does `http_replay` of repeated wrong answers show NO throttling? App-specific — reason from the flow.
+- 4.4.9 Weak password change / reset — `vortex_where_value` the reset token to see if it leaks into a URL/
+  referrer/body (exposure). `http_replay` to (i) REUSE a consumed reset token (still valid ⇒ not single-use),
+  and (ii) hit change-password WITHOUT the current-password field (accepted ⇒ missing re-auth check).
+- 4.4.10 Weaker alternative channel — `vortex_query` for alternate auth surfaces
+  (endpoint:~(?i)(mobile|/api/|/v[0-9]|legacy|oauth|sso)); `http_replay` the SAME identity through the
+  alternate path and compare its controls (lockout, MFA, transport) to the primary — a weaker one is the finding.
 - JWT/bearer — `authn_test {request_id}` analyses the token (alg:none, weak secret, RS256→HS256
   confusion, kid/jku, role/id claims), mints forged variants, SENDS each, and reports which the server
   ACCEPTS (with a no-token negative control). Accepted forgeries are LEADS — confirm and weaponize.
