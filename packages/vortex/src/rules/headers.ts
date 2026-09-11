@@ -104,6 +104,11 @@ export const serverBanner: Rule = {
     // not one per request.
     if (server) out.push(sig(this.id, tx, { severity: "info", category: "misconfiguration", title: "Server banner disclosed", evidence: `Server: ${server}`, dedupKey: `${this.id}:${tx.host}:server:${server}` }))
     if (powered) out.push(sig(this.id, tx, { severity: "info", category: "misconfiguration", title: "X-Powered-By disclosed", evidence: `X-Powered-By: ${powered}`, dedupKey: `${this.id}:${tx.host}:powered:${powered}` }))
+    // Framework/version banners the CS detector also surfaced (parity, #15).
+    for (const name of ["x-aspnet-version", "x-aspnetmvc-version", "x-generator"]) {
+      const v = header(tx.response.headers, name)
+      if (v) out.push(sig(this.id, tx, { severity: "info", category: "misconfiguration", title: `${name} disclosed`, evidence: `${name}: ${v}`, dedupKey: `${this.id}:${tx.host}:${name}:${v}` }))
+    }
     return out
   },
 }

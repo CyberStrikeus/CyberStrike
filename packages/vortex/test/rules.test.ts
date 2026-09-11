@@ -67,6 +67,10 @@ describe("server-banner", () => {
     expect(s).toHaveLength(2)
     expect(s.map((x) => x.evidence)).toEqual(["Server: uvicorn", "X-Powered-By: Express"])
   })
+  test("also fires for framework/version banners (x-aspnet-version, x-generator) — CS parity", () => {
+    const s = serverBanner.evaluate(tx([h("x-aspnet-version", "4.0.30319"), h("x-generator", "Drupal 9")]))
+    expect(s.map((x) => x.evidence)).toEqual(["x-aspnet-version: 4.0.30319", "x-generator: Drupal 9"])
+  })
 })
 
 describe("defaultRegistry", () => {
