@@ -4,13 +4,14 @@
 // referenced by the finding's evidence_request_ids, never from LLM prose.
 //
 //   # <title>
-//   Affected Resource: …   Weakness: …   Severity: …
-//   ## Vulnerability Overview          (general description of the finding TYPE)
-//   ### Finding Details                (this specific instance)
-//   ### Steps To Reproduce             (numbered steps + curl + raw request/response)
-//   ## Recommendations                 (imperative bullets)
-//   ## References
-//   ## Impacts                         (bullets: what an attacker could do)
+//   Affected Resource: …
+//   Weakness: …   CWE: …   Severity: …
+//   ## Vulnerability Overview          (general description of the finding TYPE, curated per-CWE)
+//   ### Finding Details                (this specific instance: endpoints/params affected)
+//   ### Steps To Reproduce             (numbered steps + deterministic curl + raw request/response)
+//   ## Recommendations                 ("To address this finding…" + imperative bullets)
+//   ## References                      ("See the following…" + links)
+//   ## Impacts                         ("If not addressed…" + 1-3 bullets: what an attacker could do)
 //
 // "Vulnerability Overview" is the finding TYPE, not the instance, so it is a curated
 // per-class paragraph (consistent, high quality) keyed by CWE — not per-finding prose.
@@ -232,59 +233,60 @@ export function renderFinding(v: Vulnerability.Info, sessionID: string, ref?: st
   const affected = v.endpoint ?? "—"
 
   const lines: string[] = []
-  // H1 = the only top-level title. Everything below is H2 so a paste into a tracker keeps one clean
-  // heading hierarchy (title → sections).
+  // H1 = the only top-level title. Sections follow the exact Bugcrowd template.
   lines.push(`# ${ref ? `[${ref}] ` : ""}${v.title}`, "")
 
-  // Metadata tags, incl. CWE + OWASP, on one scannable line.
-  const tags: string[] = [`**Severity:** ${sev}${v.candidate ? " (CANDIDATE — unconfirmed)" : ""}`, `**Weakness:** ${weakness}`]
+  // Metadata block (plain labels, per the Bugcrowd template): Affected Resource, then a blank line,
+  // then Weakness / CWE / Severity — each on its own line.
+  lines.push(`Affected Resource: \`${affected}\``, "")
+  lines.push(`Weakness: ${weakness}`)
   const cwe = cweTag(v.cwe_id)
-  if (cwe) tags.push(`**CWE:** [${cwe}](https://cwe.mitre.org/data/definitions/${cweNumber(v.cwe_id)}.html)`)
+  if (cwe) lines.push(`CWE: [${cwe}](https://cwe.mitre.org/data/definitions/${cweNumber(v.cwe_id)}.html)`)
   const owasp = owaspFor(v.cwe_id)
-  if (owasp) tags.push(`**OWASP:** ${owasp}`)
-  lines.push(tags.join("  •  "), "")
-  lines.push(`**Affected Resource:** \`${affected}\``, "")
+  if (owasp) lines.push(`OWASP: ${owasp}`)
+  lines.push(`Severity: ${sev}${v.candidate ? " (CANDIDATE — unconfirmed)" : ""}`)
 
-  // ── Description ──
-  lines.push("", "## Description", "")
+  // ## Vulnerability Overview — the finding TYPE (curated per-CWE), not this specific instance.
+  lines.push("", "## Vulnerability Overview", "")
   lines.push(info?.overview ?? `This finding is a ${weakness}.`)
-  if (v.description && v.description.trim()) lines.push("", demoteHeadings(v.description.trim()))
-  if (v.attack_vector) lines.push("", `**Attack vector:** ${v.attack_vector}.`)
 
-  // ── Steps to Reproduce ── developer-friendly: numbered prose (headings demoted) + a deterministic
-  // copy-paste curl and the raw request/response, each fenced as code so payloads read as code.
-  lines.push("", "## Steps to Reproduce", "")
+  // ### Finding Details — this specific instance: what/where (endpoint, parameters), + attack vector.
+  lines.push("", "### Finding Details", "")
+  const details: string[] = []
+  if (v.description && v.description.trim()) details.push(demoteHeadings(v.description.trim()))
+  details.push(`Affected: \`${affected}\`.`)
+  if (v.attack_vector) details.push(`**Attack vector:** ${v.attack_vector}.`)
+  lines.push(details.join("\n\n"))
+
+  // ### Steps To Reproduce — numbered prose (headings demoted) + a deterministic copy-paste curl and
+  // the raw request/response, each fenced as code. The agent's PoC (if any) folds in here.
+  lines.push("", "### Steps To Reproduce", "")
   if (v.steps_to_reproduce && v.steps_to_reproduce.trim()) lines.push(demoteHeadings(v.steps_to_reproduce.trim()), "")
   lines.push(...renderReproduction(sessionID, v.evidence_request_ids))
+  if (v.poc && v.poc.trim()) lines.push("", "Proof of concept:", "", fence(v.poc.trim()))
 
-  // ── Proof of Concept ── the agent's crafted PoC, fenced so any `#`/payload reads as code, never a
-  // heading, when pasted.
-  if (v.poc && v.poc.trim()) {
-    lines.push("", "## Proof of Concept", "", fence(v.poc.trim()))
-  }
-
-  // ── Business Impact ──
-  lines.push("", "## Business Impact", "")
-  const impacts = v.business_impact && v.business_impact.trim() ? [demoteHeadings(v.business_impact.trim())] : (info?.impacts ?? ["**Security Impact**: An attacker could exploit this finding as described above."])
-  lines.push(...bullets(impacts))
-
-  // ── Recommendations ──
-  lines.push("", "## Recommendations", "")
+  // ## Recommendations — imperative bullets with bolded head words.
+  lines.push("", "## Recommendations", "", "To address this finding, implement the following:", "")
   const recs = info?.recommendations ?? (v.recommendation ? [v.recommendation] : ["**Remediation**: Address the root cause described above."])
   lines.push(...bullets(recs))
   if (info && v.recommendation && v.recommendation.trim()) lines.push("", `**Instance-specific note:** ${demoteHeadings(v.recommendation.trim())}`)
 
-  // ── References ──
-  lines.push("", "## References", "")
+  // ## References
+  lines.push("", "## References", "", "See the following for more information:", "")
   const refs = (v.references && v.references.length ? v.references : undefined) ?? info?.references ?? []
   if (refs.length) {
     for (const r of refs) {
       const [name, url] = r.includes("|") ? r.split("|") : [r, r]
-      lines.push(`- [${name}](${url})`)
+      lines.push(`  - [${name}](${url})`)
     }
   } else {
-    lines.push("- _No references provided._")
+    lines.push("  - _No references provided._")
   }
+
+  // ## Impacts — 1-3 bullets: what an attacker could do if this is not addressed.
+  lines.push("", "## Impacts", "", "If not addressed, this finding could lead to the following:", "")
+  const impacts = v.business_impact && v.business_impact.trim() ? [demoteHeadings(v.business_impact.trim())] : (info?.impacts ?? ["**Security Impact**: An attacker could exploit this finding as described above."])
+  lines.push(...bullets(impacts))
 
   return lines.join("\n")
 }
