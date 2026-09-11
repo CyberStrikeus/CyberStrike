@@ -26,6 +26,26 @@ export function categoryToClass(category: string): SpecialistClass | undefined {
   return CATEGORY_OWNER[category]
 }
 
+// Per-RULE owner overrides, where a rule's correct WSTG owner is finer than its broad Vortex
+// category. Vortex categorizes coarsely (e.g. weak cookies, stack traces and CORS are all
+// "misconfiguration"), but the CS signal fabric routed each to a specific specialist — these keep
+// that parity so a signal still reaches the right owner after the fabric is retired (#15 slice 1).
+const RULE_OWNER: Record<string, SpecialistClass> = {
+  "weak-cookie-flags": "session-management", // a session-cookie hardening issue (WSTG 4.6)
+  "stack-trace-signature": "error-handling", // verbose error (WSTG 4.8)
+  "full-path-disclosure": "error-handling",
+  "cors-origin-reflection-with-credentials": "client-side", // CORS is client-side-exploitable (WSTG 4.11)
+  "cors-wildcard-origin": "client-side",
+  "graphql-introspection-enabled": "information-gathering", // schema disclosure (WSTG 4.1)
+}
+
+// The owning specialist for a signal: a per-rule override when the rule's WSTG owner is finer than
+// its category, else the category default. Used by both the retest bridge and the sidebar view so
+// they agree on ownership.
+export function ownerForSignal(ruleId: string, category: string): SpecialistClass | undefined {
+  return RULE_OWNER[ruleId] ?? categoryToClass(category)
+}
+
 // Retest queue priority is a coarser 3-level scale than Vortex severity.
 export function signalPriority(severity: VortexSeverity): "high" | "medium" | "low" {
   if (severity === "critical" || severity === "high") return "high"

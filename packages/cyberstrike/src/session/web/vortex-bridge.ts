@@ -8,7 +8,7 @@ import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
 import { WebRetest } from "./web-retest"
-import { categoryToClass, signalPriority, shouldRoute, type VortexSeverity } from "./signal/vortex-route"
+import { ownerForSignal, signalPriority, shouldRoute, type VortexSeverity } from "./signal/vortex-route"
 import path from "path"
 
 const log = Log.create({ service: "vortex-bridge" })
@@ -319,7 +319,7 @@ function bridgeSignals(sessionID: string, store: TrafficStore, signals: Signal[]
     try {
       const severity = s.severity as VortexSeverity
       if (!shouldRoute(s.category, severity)) continue
-      const owner = categoryToClass(s.category)
+      const owner = ownerForSignal(s.ruleId, s.category)
       if (!owner) continue
       const keyHash = store.get(s.transactionId)?.keyHash
       if (!keyHash) continue // no platform key_hash on this tx ⇒ can't anchor a retest (still recorded in Vortex)
@@ -373,7 +373,7 @@ export function vortexSignals(sessionID: string): { signals: VortexSignalView[] 
         method: tx?.request.method,
         endpoint: tx?.normalizedPath,
         keyHash,
-        owner: categoryToClass(s.category),
+        owner: ownerForSignal(s.ruleId, s.category),
         routed: shouldRoute(s.category, s.severity as VortexSeverity),
         status: keyHash ? statusMap[keyHash] : undefined,
       })

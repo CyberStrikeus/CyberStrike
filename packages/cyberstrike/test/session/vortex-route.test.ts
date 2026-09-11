@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { categoryToClass, signalPriority, shouldRoute } from "../../src/session/web/signal/vortex-route"
+import { categoryToClass, ownerForSignal, signalPriority, shouldRoute } from "../../src/session/web/signal/vortex-route"
 
 describe("categoryToClass", () => {
   test("maps every Vortex category to its owning WSTG class", () => {
@@ -16,6 +16,23 @@ describe("categoryToClass", () => {
 
   test("an unknown category has no owner (surfaced, not routed)", () => {
     expect(categoryToClass("something-new")).toBeUndefined()
+  })
+})
+
+describe("ownerForSignal — per-rule owner overrides finer than the category", () => {
+  test("rules whose WSTG owner is finer than their Vortex category are overridden", () => {
+    // weak cookies / stack traces / CORS are all category "misconfiguration" in Vortex, but each has
+    // a distinct WSTG owner (CS-fabric parity).
+    expect(ownerForSignal("weak-cookie-flags", "misconfiguration")).toBe("session-management")
+    expect(ownerForSignal("stack-trace-signature", "misconfiguration")).toBe("error-handling")
+    expect(ownerForSignal("full-path-disclosure", "misconfiguration")).toBe("error-handling")
+    expect(ownerForSignal("cors-origin-reflection-with-credentials", "misconfiguration")).toBe("client-side")
+    expect(ownerForSignal("graphql-introspection-enabled", "misconfiguration")).toBe("information-gathering")
+  })
+  test("a rule with no override falls back to its category owner", () => {
+    expect(ownerForSignal("server-banner", "misconfiguration")).toBe("config-deployment")
+    expect(ownerForSignal("sql-error-signature", "injection")).toBe("input-validation")
+    expect(ownerForSignal("secret-in-response", "info-disclosure")).toBe("information-gathering")
   })
 })
 
