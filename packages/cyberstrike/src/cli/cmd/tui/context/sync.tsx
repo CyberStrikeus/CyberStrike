@@ -162,6 +162,14 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           analyzed?: boolean
         }>
       }
+      // The Captures view, sourced from the session's Vortex store (single source of truth) via
+      // GET /vortex/captures — the sidebar reads THIS, not the session-web request/web_js copies.
+      vortex_captures: {
+        [sessionID: string]: {
+          requests: Array<{ id: string; method: string; host: string; port?: number; normalized_path: string; page_url?: string; key_hash?: string; status?: number; identity?: string; operation?: string }>
+          jsFiles: Array<{ url: string; hit: boolean }>
+        }
+      }
       web_object: {
         [sessionID: string]: Array<{
           id: string
@@ -234,6 +242,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       web_credential: {},
       web_role: {},
       web_js: {},
+      vortex_captures: {},
       web_object: {},
       web_function: {},
       web_retest: {},
@@ -304,6 +313,19 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         if (tree && Array.isArray(tree.params)) setStore("request_observation", keyHash, tree)
       } catch {
         /* ignore — expanded row simply shows nothing */
+      }
+    }
+
+    // Poll the Vortex-sourced captures for a session — the sidebar's single source of truth
+    // (requests + JS files, from GET /vortex/captures). Best-effort: on failure keep the last
+    // snapshot rather than blanking the sidebar.
+    async function refreshCaptures(sessionID: string) {
+      try {
+        const r = await sdk.fetch(`${sdk.url}/session/${sessionID}/vortex/captures`)
+        const c = (await r.json()) as (typeof store)["vortex_captures"][string]
+        if (c && Array.isArray(c.requests) && Array.isArray(c.jsFiles)) setStore("vortex_captures", sessionID, c)
+      } catch {
+        /* ignore — sidebar keeps the last captures snapshot */
       }
     }
 
@@ -699,6 +721,8 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       refreshUsage,
       // Fetch per-endpoint observed values on demand (sidebar expand).
       fetchObservations,
+      // Poll the Vortex-sourced captures for a session (sidebar Captures single source).
+      refreshCaptures,
       get status() {
         return store.status
       },

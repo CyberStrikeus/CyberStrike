@@ -39,7 +39,9 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
       })
       .filter((g) => g.items.length > 0)
   })
-  const requests = createMemo(() => sync.data.request[props.sessionID] ?? [])
+  // Captures endpoints — sourced from Vortex (the single source agents work on), not the session-web
+  // request copy. Repointed via sync.data.vortex_captures (GET /vortex/captures, polled below).
+  const requests = createMemo(() => sync.data.vortex_captures[props.sessionID]?.requests ?? [])
   // Group endpoints by host for sidebar — narrow column can't fit
   // method+host+path on one line, so we render the host once per group
   // and let each row use the full width for its path.
@@ -66,8 +68,9 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
     }
     return out.sort((a, b) => a.localeCompare(b))
   })
-  // JS files seen during capture (Captures > JS Files) — durable, from web_js.
-  const jsFiles = createMemo(() => sync.data.web_js[props.sessionID] ?? [])
+  // JS files seen during capture (Captures > JS Files) — from Vortex's discovered inventory (single
+  // source), via the same /vortex/captures poll as the endpoints above.
+  const jsFiles = createMemo(() => sync.data.vortex_captures[props.sessionID]?.jsFiles ?? [])
   const credentials = createMemo(() => sync.data.web_credential[props.sessionID] ?? [])
   const roles = createMemo(() => sync.data.web_role[props.sessionID] ?? [])
   const objects = createMemo(() => sync.data.web_object[props.sessionID] ?? [])
@@ -97,6 +100,19 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
     usageTimer = setTimeout(() => sid && void sync.refreshUsage(sid), 1200)
   })
   onCleanup(() => clearTimeout(usageTimer))
+
+  // Keep the Captures view live off Vortex while the sidebar is mounted: fetch immediately on open,
+  // then a light 2s poll. refreshCaptures is best-effort (keeps the last snapshot on failure), so a
+  // transient error never blanks the sidebar.
+  let capturesTimer: ReturnType<typeof setInterval> | undefined
+  createEffect(() => {
+    const sid = props.sessionID
+    clearInterval(capturesTimer)
+    if (!sid) return
+    void sync.refreshCaptures(sid)
+    capturesTimer = setInterval(() => void sync.refreshCaptures(sid), 2000)
+  })
+  onCleanup(() => clearInterval(capturesTimer))
 
   const [expanded, setExpanded] = createStore({
     mcp: true,
@@ -597,12 +613,17 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                                 <text
                                   flexShrink={0}
                                   style={{
+                                    // Color by HTTP status class (Vortex-sourced rows carry the response
+                                    // status, not the session-web processing lifecycle): 2xx ok, 4xx warn,
+                                    // 5xx danger, else neutral.
                                     fg:
-                                      {
-                                        queued: theme.textMuted,
-                                        processing: theme.warning,
-                                        processed: theme.success,
-                                      }[r.status] ?? theme.text,
+                                      r.status && r.status >= 500
+                                        ? theme.error
+                                        : r.status && r.status >= 400
+                                          ? theme.warning
+                                          : r.status && r.status >= 200 && r.status < 300
+                                            ? theme.success
+                                            : theme.textMuted,
                                   }}
                                 >
                                   •
