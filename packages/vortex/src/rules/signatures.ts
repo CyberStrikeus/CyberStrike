@@ -30,4 +30,16 @@ export const signatureRules: DeclarativeRule[] = [
     message: "Sensitive material (key/token) in the response of {endpoint}",
     dedupBy: "endpoint",
   },
+  {
+    // An absolute filesystem path leaking in a body (verbose error / debug output) — discloses the
+    // server's layout. Depth/root-gated + length-bounded so it does not match an ordinary URL path and
+    // stays ReDoS-safe. Ported from the CS FullPathDisclosureDetector (signal-fabric parity, #15).
+    id: "full-path-disclosure",
+    category: "misconfiguration",
+    severity: "low",
+    when: 'regex("(?:/(?:var|etc|home|usr|opt|srv|www|app)/[\\w.\\-]+/[\\w./\\-]{1,110})|(?:[A-Za-z]:\\\\\\\\[\\w.\\\\\\\\/\\-]{3,120})", resp.body)',
+    message: "Filesystem path disclosed in the response of {endpoint}",
+    dedupBy: "endpoint",
+    tags: ["info-disclosure"],
+  },
 ]

@@ -69,6 +69,11 @@ describe("built-in signature rules (declarative, dogfooded)", () => {
     expect(run(tx("a", 200, "-----BEGIN RSA PRIVATE KEY-----\nMII...")).some((x) => x.ruleId === "secret-in-response")).toBe(true)
     expect(run(tx("b", 200, "key=AKIAIOSFODNN7EXAMPLE")).some((x) => x.ruleId === "secret-in-response")).toBe(true)
   })
+  test("full-path-disclosure fires on a leaked filesystem path (unix + windows), not an ordinary URL", () => {
+    expect(run(tx("a", 500, "Warning: include(/var/www/html/app/config.php): failed")).some((x) => x.ruleId === "full-path-disclosure")).toBe(true)
+    expect(run(tx("b", 500, "Could not open C:\\inetpub\\wwwroot\\app\\web.config")).some((x) => x.ruleId === "full-path-disclosure")).toBe(true)
+    expect(run(tx("c", 200, "see https://app.test/var/report for details")).some((x) => x.ruleId === "full-path-disclosure")).toBe(false)
+  })
   test("clean response yields nothing", () => {
     expect(run(tx("a", 200, "{\"ok\":true}"))).toHaveLength(0)
   })

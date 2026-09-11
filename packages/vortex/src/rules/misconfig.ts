@@ -69,4 +69,31 @@ export const misconfigRules: DeclarativeRule[] = [
     dedupBy: "endpoint",
     tags: ["info-disclosure"],
   },
+  {
+    // Passive open redirect: a 3xx whose Location is an OFF-ORIGIN absolute/protocol-relative URL that
+    // is REFLECTED verbatim from the request (the redirect target came from attacker input). Catches
+    // the un-encoded reflected case seen in captured traffic; the encoded/host-only cases are left to
+    // the active open-redirect-probe. Ported from the CS OpenRedirectDetector (#15).
+    id: "open-redirect-reflected",
+    category: "redirect",
+    severity: "medium",
+    when: 'resp.status >= 300 && resp.status < 400 && regex("^https?://|^//", resp.header.location) && contains(req.url, resp.header.location)',
+    message: "Reflected open redirect at {endpoint} → {resp.header.location}",
+    evidence: "{resp.status} Location: {resp.header.location}",
+    dedupBy: "endpoint",
+    tags: ["redirect"],
+  },
+  {
+    // A VCS/config/backup artifact served with a 200 — source, secrets or config exposed under the
+    // webroot (.git, .env, .htaccess, web.config, .DS_Store, *.bak/old/sql/zip/…). Path-matched +
+    // status-gated to stay low-false-positive. Ported from the CS ExposedArtifactDetector (#15).
+    id: "exposed-artifact",
+    category: "misconfiguration",
+    severity: "medium",
+    when: 'resp.status == 200 && regex("/\\.git(/|$)|/\\.svn/|/\\.env$|/\\.htaccess$|/web\\.config$|/\\.DS_Store$|\\.(bak|old|swp|orig|sql|tar|tgz|zip)($|\\?)", req.path)',
+    message: "Exposed artifact served at {endpoint}",
+    evidence: "200 on {req.method} {req.path}",
+    dedupBy: "endpoint",
+    tags: ["exposure", "misconfig"],
+  },
 ]
