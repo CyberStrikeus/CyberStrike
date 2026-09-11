@@ -39,7 +39,6 @@ import { WebHold } from "../../session/web/hold"
 import { CoDrive } from "../../session/web/nav/co-drive-runner"
 import { DataCollector } from "../../session/web/data-collector"
 import { JsMiner } from "../../session/web/js-miner"
-import { scanCapturedResponse } from "../../session/web/signal/ingest"
 import { ingestBrowserTransaction, vortexReport, vortexProbe, vortexDiscoverJs, vortexCaptures, vortexSignals } from "../../session/web/vortex-bridge"
 import { Identifier } from "../../id/id"
 import { HBLog } from "../../session/web/hblog"
@@ -1985,21 +1984,12 @@ export const SessionRoutes = lazy(() =>
               slots: normalized.observedParams,
             })
 
-          // Deterministic signal fabric (plan §07). Scan the RAW response body — BEFORE
-          // Request.add/processResponse stubs an HTML body (closes B1) — for cross-cutting
-          // evidence (error/path disclosure, headers, banners) and stored-canary reflection,
-          // persisting each as a routed signal. On a duplicate/race the shape's canonical
-          // request id keeps per-shape dedup; a missing id (no row yet) simply skips. Never throws.
-          const runFabric = (requestID: string | undefined) => {
-            if (!requestID) return
-            scanCapturedResponse({
-              sessionID,
-              requestId: requestID,
-              method: normalized.method,
-              url: normalized.origin + (normalized.canonicalPath ?? normalized.normalizedPath),
-              response: body.response,
-            })
-          }
+          // Slice 1 (three-surface plan): the CS passive signal fabric that used to scan the raw
+          // response here (runFabric → scanCapturedResponse) is RETIRED. Vortex now sees the full
+          // traffic (slice 0), runs the equivalent rules + canary at ingest (detection parity proven
+          // by the ingest-route tests), and routes signals to the retest pipeline via the #14 bridge —
+          // so passive detection is no longer duplicated here. The signal/ detector modules remain in
+          // the tree (consumed by the agent-elicited scanProbeResponse/scanElicitedResponse paths).
 
           // Slice 0 (three-surface plan, docs/three-surface-architecture.md): feed EVERY meaningful
           // hit to Vortex — not only the first of each endpoint shape — so Vortex holds the full
@@ -2024,7 +2014,6 @@ export const SessionRoutes = lazy(() =>
 
           if (isDuplicate) {
             const newObs = recordObservation()
-            runFabric(Request.findId(sessionID, normalized.keyHash))
             // A repeat of a known endpoint SHAPE, but a new identity/value combo → still new
             // cross-identity substrate for Vortex; feed it (fresh tx id, no CS row needed). A truly
             // identical repeat (newObs === false) is skipped.
@@ -2074,7 +2063,6 @@ export const SessionRoutes = lazy(() =>
           // record the observation (the values are evidence regardless).
           if (!req) {
             const newObs = recordObservation()
-            runFabric(Request.findId(sessionID, normalized.keyHash))
             if (newObs) feedVortex(Identifier.ascending("request"))
             c.status(202)
             return c.json({ sessionID, skipped: true })
@@ -2082,7 +2070,6 @@ export const SessionRoutes = lazy(() =>
 
           // New endpoint shape: record the first observation, linked to the row.
           recordObservation(req.id)
-          runFabric(req.id)
 
           // Vortex feed for a new endpoint shape (uses the real CS request id). Duplicate branches
           // feed too (slice 0) via feedVortex, so Vortex holds the full traffic. Never throws.
