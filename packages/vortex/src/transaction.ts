@@ -64,6 +64,12 @@ export interface Transaction {
   // extension observed this request. Absent for adapters without a page context (proxy/import/replay).
   // Lets Vortex be the single source for the "which pages were captured" view, not a second store.
   pageUrl?: string
+  // Capture identity/normalization the ingesting platform computed (browser adapter): the display
+  // path and the stable key_hash the platform keys per-endpoint state by. Carried so the Vortex
+  // captures view is a FEATURE-COMPLETE mirror — the same key_hash means per-endpoint observations
+  // resolve identically off Vortex rows, with no re-normalization drift. Optional; other adapters omit.
+  normalizedPath?: string
+  keyHash?: string
 }
 
 // Case-insensitive header lookup returning the FIRST match's value, or undefined. Header names are
