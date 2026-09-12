@@ -79,6 +79,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const objects = createMemo(() => sync.data.web_object[props.sessionID] ?? [])
   const functions = createMemo(() => sync.data.web_function[props.sessionID] ?? [])
   const retests = createMemo(() => sync.data.web_retest[props.sessionID] ?? [])
+  const lifecycle = createMemo(() => sync.data.inspection_lifecycle[props.sessionID])
   const messages = createMemo(() => sync.data.message[props.sessionID] ?? [])
   const queueStatus = createMemo(() => sync.data.session_queue_status?.[props.sessionID])
   const hackbrowserStatus = createMemo(() => sync.data.session_hackbrowser_status?.[props.sessionID])
@@ -899,6 +900,38 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                 </Show>
               </box>
             </Show>
+            <Show when={lifecycle()}>
+              {(lc) => {
+                const phaseLabel = () => {
+                  const p = lc().phase
+                  if (p === "idle") return "Idle"
+                  if (p === "discovering") return "Discovering"
+                  if (p === "inspecting") return "Inspecting"
+                  if (p === "draining") return "Draining"
+                  if (p === "complete") return "Complete"
+                  return p
+                }
+                const phaseColor = () => {
+                  const p = lc().phase
+                  if (p === "idle") return theme.textMuted
+                  if (p === "complete") return theme.success
+                  return theme.accent
+                }
+                return (
+                  <box flexDirection="row" gap={1} paddingBottom={1}>
+                    <text fg={theme.text}>
+                      <b>Phase</b>
+                    </text>
+                    <text fg={phaseColor()}>{phaseLabel()}</text>
+                    <Show when={lc().counts.total > 0}>
+                      <text fg={theme.textMuted}>
+                        ({lc().counts.examined}/{lc().counts.total})
+                      </text>
+                    </Show>
+                  </box>
+                )
+              }}
+            </Show>
             <Show when={retests().length > 0}>
               <box>
                 <box
@@ -910,7 +943,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                     <text fg={theme.text}>{expanded.retests ? "▼" : "▶"}</text>
                   </Show>
                   <text fg={theme.text}>
-                    <b>Retest Queue</b>
+                    <b>Inspection Queue</b>
                     <span style={{ fg: theme.textMuted }}> ({retests().length})</span>
                   </text>
                 </box>

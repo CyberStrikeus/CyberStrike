@@ -201,6 +201,13 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           flags?: { object_value?: string[]; role?: string[]; signal?: string[]; credential?: string[] }
         }>
       }
+      inspection_lifecycle: {
+        [sessionID: string]: {
+          phase: "idle" | "discovering" | "inspecting" | "draining" | "complete"
+          sources: Array<{ name: string; active: boolean }>
+          counts: { pending: number; examined: number; total: number }
+        }
+      }
       message: {
         [sessionID: string]: Message[]
       }
@@ -254,6 +261,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       web_object: {},
       web_function: {},
       web_retest: {},
+      inspection_lifecycle: {},
       message: {},
       part: {},
       lsp: [],
@@ -630,6 +638,13 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         case "web_retest.updated":
           setStore("web_retest", raw.properties.sessionID, raw.properties.queue)
           break
+        case "session.phase":
+          setStore("inspection_lifecycle", raw.properties.sessionID, {
+            phase: raw.properties.phase,
+            sources: [],
+            counts: { pending: 0, examined: 0, total: 0 },
+          })
+          break
       }
     })
 
@@ -770,7 +785,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         async sync(sessionID: string) {
           if (fullSyncedSessions.has(sessionID)) return
           const http = (sdk.client as any).client as { get: (opts: { url: string }) => Promise<{ data?: any }> }
-          const [session, messages, todo, diff, vuln, req, wCred, wRole, wObj, wFunc, wRetest, wJs] = await Promise.all([
+          const [session, messages, todo, diff, vuln, req, wCred, wRole, wObj, wFunc, wRetest, wJs, iLifecycle] = await Promise.all([
             sdk.client.session.get({ sessionID }, { throwOnError: true }),
             sdk.client.session.messages({ sessionID, limit: 100 }),
             sdk.client.session.todo({ sessionID }),
@@ -783,6 +798,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             http.get({ url: `/session/${sessionID}/web/functions` }).catch(() => ({ data: [] })),
             http.get({ url: `/session/${sessionID}/web/retest-queue` }).catch(() => ({ data: { pending: [] } })),
             http.get({ url: `/session/${sessionID}/web/js` }).catch(() => ({ data: [] })),
+            http.get({ url: `/session/${sessionID}/inspection/lifecycle` }).catch(() => ({ data: { phase: "idle", sources: [], counts: { pending: 0, examined: 0, total: 0 } } })),
           ])
           setStore(
             produce((draft) => {
@@ -798,6 +814,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
               draft.web_function[sessionID] = wFunc?.data ?? []
               draft.web_retest[sessionID] = wRetest?.data?.pending ?? []
               draft.web_js[sessionID] = wJs?.data ?? []
+              draft.inspection_lifecycle[sessionID] = iLifecycle?.data ?? { phase: "idle", sources: [], counts: { pending: 0, examined: 0, total: 0 } }
               draft.message[sessionID] = messages.data!.map((x) => x.info)
               for (const message of messages.data!) {
                 draft.part[message.info.id] = message.parts
