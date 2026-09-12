@@ -1948,8 +1948,30 @@
     } catch {}
   }
 
-  function sendObservation() {
+  // Signature of the INTERACTIVE surface — url + modal state + the clickable/form identity set. Cosmetic
+  // DOM churn a live SPA emits constantly (class/style/aria flips, spinners, real-time widgets, pusher
+  // heartbeats) does NOT change this, so re-observations that carry the same actionable page are skipped.
+  // A real change (SPA route, new/removed clickable or form, modal open/close, changed label/href) does
+  // change it, so it still re-observes. Excludes volatile fields (dynamic/tech/canvas/frames) by design.
+  function observationSignature(obs) {
+    const clicks = (obs.clickables || [])
+      .map((c) => `${c.role}|${c.label}|${c.href}|${c.disabled ? 1 : 0}|${c.in_modal ? 1 : 0}`)
+      .join("~")
+    const forms = (obs.forms || [])
+      .map((f) => `${f.submit_id}:${(f.fields || []).map((x) => `${x.name || x.id || ""}/${x.type || ""}`).join(",")}`)
+      .join("~")
+    return `${obs.url}#${obs.modal_open ? 1 : 0}#${clicks}#${forms}`
+  }
+  let lastObsSig = null
+
+  // force=true for INTENTIONAL observations (initial mount, SPA navigation) — always sent. The live
+  // MutationObserver/Resize/Intersection path (scheduleReobserve) calls WITHOUT force, so an unchanged
+  // interactive surface is not re-POSTed — this is what stops the same page being observed every 800ms.
+  function sendObservation(force) {
     const obs = observePage()
+    const sig = observationSignature(obs)
+    if (!force && sig === lastObsSig) return obs // identical actionable page — skip the redundant POST
+    lastObsSig = sig
     chrome.runtime.sendMessage({ type: "observe", observation: obs }, () => void chrome.runtime.lastError)
     return obs
   }
@@ -2348,7 +2370,7 @@
     pollQueue()
     if (location.href !== lastUrl) {
       lastUrl = location.href
-      sendObservation()
+      sendObservation(true) // navigation is an intentional observe — always send
     }
     // Session keep-alive (spawned role browser with a real identity, while capturing). Skips
     // anonymous (no session to keep) and detached (assessment not active for this tab). The
@@ -2387,7 +2409,7 @@
     // Diagnostics: proves THIS content script (current build) is running in the tab.
     send({ type: "hblog", event: "content-mounted", data: { url: location.href } })
     startObservers()
-    sendObservation()
+    sendObservation(true) // initial observation on mount — always send
     loadSessions()
     chrome.storage.local.get(["credential", "spawnedCred"], (o) => {
       const active = o && o.credential ? o.credential.label || "" : ""
