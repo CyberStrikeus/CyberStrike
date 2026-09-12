@@ -27,6 +27,7 @@ import { WebObject } from "../../session/web/web-object"
 import { WebFunction } from "../../session/web/web-function"
 import { WebRetest } from "../../session/web/web-retest"
 import { RetestWorker } from "../../session/web/retest-worker"
+import { ensureWebInspection, getWebInspection } from "../../inspection"
 import { ApiProbe } from "../../session/web/api-probe"
 import { WebScope } from "../../session/web/scope"
 import { UiObservation } from "../../session/web/ui-observation"
@@ -1750,6 +1751,38 @@ export const SessionRoutes = lazy(() =>
         return c.json({ pending, counts })
       },
     )
+    .get(
+      "/:sessionID/inspection/lifecycle",
+      describeRoute({
+        summary: "Get inspection lifecycle",
+        description: "Retrieve the current inspection phase, activity sources, and queue counts.",
+        operationId: "session.inspectionLifecycle",
+        responses: {
+          200: {
+            description: "Lifecycle snapshot",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.object({
+                    phase: z.enum(["idle", "discovering", "inspecting", "draining", "complete"]),
+                    sources: z.array(z.object({ name: z.string(), active: z.boolean() })),
+                    counts: z.object({ pending: z.number(), examined: z.number(), total: z.number() }),
+                  }),
+                ),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const inst = getWebInspection(sessionID)
+        if (!inst) return c.json({ phase: "idle" as const, sources: [], counts: { pending: 0, examined: 0, total: 0 } })
+        return c.json(inst.lifecycle.snapshot())
+      },
+    )
     .post(
       "/",
       describeRoute({
@@ -1869,6 +1902,7 @@ export const SessionRoutes = lazy(() =>
         // Ensure the retest worker is subscribed for this instance — it drains the scenario
         // queue in parallel as flags accrue (idempotent; safe to call on every ingest).
         RetestWorker.start()
+        ensureWebInspection(sessionID)
         // Wake the API-direct fast lane: it debounces a burst of ingests into one sweep that
         // deterministically probes newly-captured endpoints (safe methods only), so a signal
         // queues a specialist retest without an LLM sub-agent per endpoint. Idempotent.
