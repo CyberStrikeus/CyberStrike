@@ -16,6 +16,19 @@ export const authRules: DeclarativeRule[] = [
     tags: ["auth", "jwt"],
   },
   {
+    // A JWT (header.payload.signature) appears in the response body — the server is leaking a
+    // session/auth token that an attacker can replay. Full three-segment match to avoid false
+    // positives on partial base64. Ported from the CS JwtLeakDetector (signal-fabric parity, #15).
+    id: "jwt-leak-response",
+    category: "auth",
+    severity: "high",
+    when: 'regex("eyJ[A-Za-z0-9_-]{5,}\\.eyJ[A-Za-z0-9_-]{5,}\\.[A-Za-z0-9_-]{5,}", resp.body)',
+    message: "JWT leaked in the response body of {endpoint}",
+    evidence: "{resp.status} on {req.method} {req.path}",
+    dedupBy: "endpoint",
+    tags: ["auth", "jwt"],
+  },
+  {
     // A secret in the query string ends up in logs, Referer, and browser history.
     id: "secret-in-url",
     category: "info-disclosure",

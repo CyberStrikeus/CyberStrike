@@ -32,8 +32,9 @@ export const signatureRules: DeclarativeRule[] = [
     category: "info-disclosure",
     severity: "high",
     // Superset of the CS SECRET_PATTERNS (#15 detection parity): private keys, AWS access-key ids
-    // (long-term AKIA + temporary ASIA), Google API keys (AIza…), Slack tokens (xox…), and a JWT.
-    when: 'regex("-----BEGIN [A-Z ]*PRIVATE KEY-----|(AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|xox[baprs]-[0-9A-Za-z-]{10,}|eyJ[A-Za-z0-9_-]{10,}[.]eyJ", resp.body)',
+    // (long-term AKIA + temporary ASIA), Google API keys (AIza…), Slack tokens (xox…).
+    // JWT moved to the dedicated jwt-leak-response rule in auth.ts (separate category + routing).
+    when: 'regex("-----BEGIN [A-Z ]*PRIVATE KEY-----|(AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|xox[baprs]-[0-9A-Za-z-]{10,}", resp.body)',
     message: "Sensitive material (key/token) in the response of {endpoint}",
     dedupBy: "endpoint",
   },
