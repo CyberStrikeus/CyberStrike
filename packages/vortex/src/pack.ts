@@ -6,6 +6,7 @@ import z from "zod"
 import type { Transaction } from "./transaction"
 import { DeclarativeRuleSchema, type DeclarativeRule } from "./declarative"
 import { ChainRuleSchema, type ChainRule } from "./chain"
+import { AggregateRuleSchema, type AggregateRule } from "./aggregate"
 import { ProbeRuleSchema, type ProbeRule } from "./probe"
 import type { Context } from "./rule-meta"
 
@@ -14,6 +15,7 @@ export const PackSchema = z
     name: z.string().optional(),
     declarative: z.array(DeclarativeRuleSchema).optional(),
     chains: z.array(ChainRuleSchema).optional(),
+    aggregates: z.array(AggregateRuleSchema).optional(),
     probes: z.array(ProbeRuleSchema).optional(),
   })
   .strict()
@@ -27,10 +29,11 @@ export function parsePack(input: unknown): Pack {
 
 // Merge many packs into one (concatenate each shape). Used after loading a directory of pack files.
 export function mergePacks(packs: Pack[]): Pack {
-  const out: Required<Omit<Pack, "name">> = { declarative: [], chains: [], probes: [] }
+  const out: Required<Omit<Pack, "name">> = { declarative: [], chains: [], aggregates: [], probes: [] }
   for (const p of packs) {
     if (p.declarative) out.declarative.push(...p.declarative)
     if (p.chains) out.chains.push(...p.chains)
+    if (p.aggregates) out.aggregates.push(...p.aggregates)
     if (p.probes) out.probes.push(...p.probes)
   }
   return out
@@ -54,4 +57,4 @@ export function contextFromCorpus(txs: Transaction[]): Context {
   return { tech: [...tech] }
 }
 
-export type { DeclarativeRule, ChainRule, ProbeRule }
+export type { DeclarativeRule, ChainRule, AggregateRule, ProbeRule }

@@ -91,14 +91,20 @@ import { techRules } from "./rules/tech"
 import { authRules } from "./rules/auth"
 import { cveRules } from "./rules/cve"
 import { chainRules } from "./rules/chains"
+import { aggregateRules } from "./rules/aggregates"
 import { compileRules } from "./declarative"
 import { compileChain } from "./chain"
+import { compileAggregates } from "./aggregate"
 
 // The declarative rule DSL (LLM-friendly: a rule is {when: DSL-expression, message, severity} data).
 export type { DeclarativeRule } from "./declarative"
 export { DeclarativeRuleSchema, compileRule, compileRules, parseRules } from "./declarative"
 export type { ChainRule } from "./chain"
 export { ChainRuleSchema, compileChain, parseChains } from "./chain"
+// Aggregate rules (LLM-friendly: same per-tx `when` + an `aggregate` block that collapses all matches
+// into ONE finding listing every affected endpoint — one finding, many URLs).
+export type { AggregateRule } from "./aggregate"
+export { AggregateRuleSchema, compileAggregate, compileAggregates, parseAggregates } from "./aggregate"
 export { correlatable, responseValues, requestValues, sharedValues } from "./taint"
 export type { Extract, Discovered } from "./discovery"
 export { ingestExtract, discoveredId } from "./discovery"
@@ -117,8 +123,9 @@ export { misconfigRules } from "./rules/misconfig"
 export { techRules } from "./rules/tech"
 export { authRules } from "./rules/auth"
 export { cveRules } from "./rules/cve"
-export const baselineCorpusRules = [...accessRules, ...chainRules.map(compileChain)]
+export const baselineCorpusRules = [...accessRules, ...chainRules.map(compileChain), ...compileAggregates(aggregateRules)]
 export { chainRules } from "./rules/chains"
+export { aggregateRules } from "./rules/aggregates"
 
 export function defaultRegistry(): RuleRegistry {
   return new RuleRegistry().registerAll(baselineRules).registerCorpusAll(baselineCorpusRules)

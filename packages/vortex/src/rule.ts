@@ -105,4 +105,14 @@ export class RuleRegistry {
     for (const rule of this.corpusRules) for (const sig of rule.evaluate(txs)) out.push(sig)
     return dedupe(out)
   }
+
+  // Run ONLY the corpus (cross-transaction) rules over the whole set, deduped. Per-transaction rules
+  // are captured incrementally at ingest (run(tx) per hit), so a read path that needs the
+  // cross-transaction findings — access-control, chains, aggregate "one finding, many URLs" — gets
+  // them here WITHOUT re-running every per-tx rule over the whole corpus again.
+  analyzeCorpus(txs: Transaction[]): Signal[] {
+    const out: Signal[] = []
+    for (const rule of this.corpusRules) for (const sig of rule.evaluate(txs)) out.push(sig)
+    return dedupe(out)
+  }
 }

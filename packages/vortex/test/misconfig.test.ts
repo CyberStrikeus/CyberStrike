@@ -15,17 +15,8 @@ function tx(over: { reqHeaders?: [string, string][]; respHeaders?: [string, stri
 const fired = (t: Transaction) => rules.flatMap((r) => r.evaluate(t)).map((s) => s.ruleId)
 
 describe("misconfig catalog — each rule fires on a true positive and stays quiet on a clean one", () => {
-  test("cors-origin-reflection-with-credentials", () => {
-    expect(fired(tx({ reqHeaders: [["origin", "https://evil.com"]], respHeaders: [["access-control-allow-origin", "https://evil.com"], ["access-control-allow-credentials", "true"]] }))).toContain("cors-origin-reflection-with-credentials")
-    // reflection WITHOUT credentials → does not fire
-    expect(fired(tx({ reqHeaders: [["origin", "https://evil.com"]], respHeaders: [["access-control-allow-origin", "https://evil.com"]] }))).not.toContain("cors-origin-reflection-with-credentials")
-    // two absent headers must NOT match (empty==empty guard)
-    expect(fired(tx({}))).not.toContain("cors-origin-reflection-with-credentials")
-  })
-  test("cors-wildcard-origin", () => {
-    expect(fired(tx({ respHeaders: [["access-control-allow-origin", "*"]] }))).toContain("cors-wildcard-origin")
-    expect(fired(tx({ respHeaders: [["access-control-allow-origin", "https://app.test"]] }))).not.toContain("cors-wildcard-origin")
-  })
+  // NOTE: the CORS rules moved to the aggregate suite (aggregate.test.ts) — they now emit ONE finding
+  // listing every affected endpoint instead of one signal per endpoint (issue #17).
   test("directory-listing", () => {
     expect(fired(tx({ body: "<html><title>Index of /var/www</title>..." }))).toContain("directory-listing")
     expect(fired(tx({ body: "<html><title>Dashboard</title>" }))).not.toContain("directory-listing")

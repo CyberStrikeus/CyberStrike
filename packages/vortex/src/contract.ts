@@ -23,6 +23,8 @@ import type { DeclarativeRule } from "./declarative"
 import { compileRules } from "./declarative"
 import type { ChainRule } from "./chain"
 import { compileChain } from "./chain"
+import type { AggregateRule } from "./aggregate"
+import { compileAggregates } from "./aggregate"
 import type { ProbeRule } from "./probe"
 import { compileProbes } from "./probe"
 
@@ -63,6 +65,7 @@ export interface VortexPlugin {
   requiresCore?: string // semver range against CORE_API_VERSION, e.g. "^1.0.0"; omit = any
   rules?: DeclarativeRule[] // passive, compiled to Rule
   chains?: ChainRule[] // cross-transaction, compiled to CorpusRule
+  aggregates?: AggregateRule[] // cross-transaction rollup ("one finding, many URLs"), compiled to CorpusRule
   probes?: ProbeRule[] // active, compiled to ActiveRule (run via runActiveRules, not the registry)
   perTxRules?: Rule[] // hand-written per-transaction rules
   corpusRules?: CorpusRule[] // hand-written corpus rules
@@ -93,6 +96,7 @@ export function registerPlugin(registry: RuleRegistry, plugin: VortexPlugin): Ac
   if (plugin.rules) registry.registerAll(compileRules(plugin.rules))
   if (plugin.perTxRules) registry.registerAll(plugin.perTxRules)
   if (plugin.chains) registry.registerCorpusAll(plugin.chains.map(compileChain))
+  if (plugin.aggregates) registry.registerCorpusAll(compileAggregates(plugin.aggregates))
   if (plugin.corpusRules) registry.registerCorpusAll(plugin.corpusRules)
   return plugin.probes ? compileProbes(plugin.probes) : []
 }

@@ -4,28 +4,9 @@
 import type { DeclarativeRule } from "../declarative"
 
 export const misconfigRules: DeclarativeRule[] = [
-  {
-    // The dangerous CORS combo: the server REFLECTS the request Origin AND allows credentials — any
-    // site can read authenticated responses. Field-to-field (ACAO == the request's Origin), guarded
-    // so two empty headers don't match. `*` + credentials is the separate (weaker) wildcard rule.
-    id: "cors-origin-reflection-with-credentials",
-    category: "misconfiguration",
-    severity: "high",
-    when: 'req.header.origin && resp.header.access-control-allow-origin == req.header.origin && icontains(resp.header.access-control-allow-credentials, "true")',
-    message: "CORS reflects Origin and allows credentials at {endpoint} — any origin can read authenticated responses",
-    evidence: "ACAO={resp.header.access-control-allow-origin} ACAC={resp.header.access-control-allow-credentials}",
-    dedupBy: "endpoint",
-    tags: ["cors", "misconfig"],
-  },
-  {
-    id: "cors-wildcard-origin",
-    category: "misconfiguration",
-    severity: "low",
-    when: 'resp.header.access-control-allow-origin == "*"',
-    message: "Wildcard CORS (Access-Control-Allow-Origin: *) at {endpoint}",
-    dedupBy: "endpoint",
-    tags: ["cors", "misconfig"],
-  },
+  // NOTE: the CORS rules (origin-reflection-with-credentials, wildcard-origin) moved to
+  // ../aggregates.ts — they recur across many URLs, so they now emit ONE finding listing every
+  // affected endpoint (aggregate rule) instead of one signal per endpoint. See issue #17.
   {
     id: "directory-listing",
     category: "misconfiguration",
