@@ -7,6 +7,7 @@
 // These types are intentionally self-contained (primitives + PermissionRule) so
 // the SDK gains no host dependency. Richer per-domain capabilities (signal
 // detectors, routers) stay in the host and are layered on top there.
+import type { InspectionRouter, RouterContext } from "./inspection"
 
 export type PermissionAction = "ask" | "allow" | "deny"
 export type PermissionRule = PermissionAction | Record<string, PermissionAction>
@@ -53,6 +54,12 @@ export interface DomainProvider {
    * host-dependency-free; the host validates the class names against its own taxonomy.
    */
   specialistClasses?(): Record<string, string>
+
+  /** Create an InspectionRouter for the host's inspection dispatcher. The domain
+   *  owns the routing logic — which evidence patterns map to which specialists —
+   *  so the dispatcher stays domain-agnostic. Context carries session-level config
+   *  (workflow, scope) the router may use to adjust priorities or skip classes. */
+  createRouter?(context?: RouterContext): InspectionRouter
 }
 
 /**

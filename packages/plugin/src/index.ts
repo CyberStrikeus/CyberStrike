@@ -18,6 +18,7 @@ import { type DomainProviderFactory } from "./provider"
 
 export * from "./tool"
 export * from "./provider"
+export * from "./inspection"
 
 export type ProviderContext = {
   source: "env" | "config" | "custom" | "api"
