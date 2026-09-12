@@ -355,6 +355,9 @@ export interface VortexSignalView {
   category: string
   severity: string
   title: string
+  // Free-form supporting detail. For aggregate ("one finding, many URLs") signals this carries the
+  // enumerated affected-endpoint list — the report needs it, so it must reach the agent, not be dropped.
+  evidence?: string
   requestId: string // the originating transaction id (== the CS request id — works with web_get_request_detail)
   method?: string
   endpoint?: string
@@ -367,6 +370,16 @@ export interface VortexSignalView {
 export function vortexSignals(sessionID: string): { signals: VortexSignalView[] } {
   try {
     const store = storeFor(sessionID)
+    // Materialize cross-transaction findings before reading. Per-tx rules run incrementally at ingest,
+    // but CORPUS rules (access-control, chains, and the aggregate "one finding, many URLs" rules —
+    // CORS etc.) only fire over the whole corpus. Run just those here (cheap: corpus rules only) and
+    // persist them; addSignals dedups by dedupKey, so this is idempotent across repeated reads. Without
+    // it an aggregate finding never reaches the sidebar or the agent's session context.
+    try {
+      store.addSignals(registry.analyzeCorpus(store.all()))
+    } catch (e) {
+      log.debug("vortex corpus analyze failed (ignored)", { err: String(e) })
+    }
     const statusMap = WebRetest.statusByKeyHash(sessionID)
     const out: VortexSignalView[] = []
     for (const s of store.signals()) {
@@ -377,6 +390,7 @@ export function vortexSignals(sessionID: string): { signals: VortexSignalView[] 
         category: s.category,
         severity: s.severity,
         title: s.title,
+        evidence: s.evidence,
         requestId: s.transactionId,
         method: tx?.request.method,
         endpoint: tx?.normalizedPath,

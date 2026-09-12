@@ -140,7 +140,9 @@ export const WebGetSessionContextTool = Tool.define("web_get_session_context", {
         owner: s.owner,
         request_id: s.requestId,
         endpoint: s.endpoint,
-        evidence: s.title,
+        // Title, plus any supporting evidence — for an aggregate finding the evidence enumerates every
+        // affected endpoint (one finding, many URLs), which the report needs.
+        evidence: s.evidence ? `${s.title} — ${s.evidence}` : s.title,
       })),
     }
 
