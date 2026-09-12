@@ -1,0 +1,104 @@
+import { BusEvent } from "@/bus/bus-event"
+import { Bus } from "@/bus"
+import z from "zod"
+import { Log } from "@/util/log"
+import type { ActivitySource, SessionPhase } from "@cyberstrike-io/plugin"
+import { InspectionQueue } from "./queue"
+
+const log = Log.create({ service: "session-lifecycle" })
+
+const PhaseSchema = z.enum(["idle", "discovering", "inspecting", "draining", "complete"])
+
+const PhaseChangedEvent = BusEvent.define(
+  "session.phase",
+  z.object({
+    sessionID: z.string(),
+    domain: z.string(),
+    phase: PhaseSchema,
+    previous: PhaseSchema,
+  }),
+)
+
+export class SessionLifecycle {
+  readonly sessionID: string
+  readonly domain: string
+  private readonly queue: InspectionQueue
+  private readonly sources: ActivitySource[] = []
+  private current: SessionPhase = "idle"
+  private pollTimer: ReturnType<typeof setInterval> | null = null
+
+  static readonly Event = { PhaseChanged: PhaseChangedEvent }
+
+  constructor(sessionID: string, domain: string, queue: InspectionQueue) {
+    this.sessionID = sessionID
+    this.domain = domain
+    this.queue = queue
+  }
+
+  get phase(): SessionPhase {
+    return this.current
+  }
+
+  addSource(source: ActivitySource): void {
+    this.sources.push(source)
+  }
+
+  removeSource(name: string): void {
+    const idx = this.sources.findIndex((s) => s.name === name)
+    if (idx >= 0) this.sources.splice(idx, 1)
+  }
+
+  start(intervalMs = 2000): void {
+    if (this.pollTimer) return
+    this.pollTimer = setInterval(() => this.tick(), intervalMs)
+    Bus.subscribe(InspectionQueue.Event.Updated, (e) => {
+      if (e.properties.sessionID === this.sessionID && e.properties.domain === this.domain) {
+        this.tick()
+      }
+    })
+    this.tick()
+  }
+
+  stop(): void {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = null
+    }
+  }
+
+  private tick(): void {
+    const next = this.derive()
+    if (next === this.current) return
+    const previous = this.current
+    this.current = next
+    log.info("phase transition", { sessionID: this.sessionID, domain: this.domain, from: previous, to: next })
+    Bus.publish(SessionLifecycle.Event.PhaseChanged, {
+      sessionID: this.sessionID,
+      domain: this.domain,
+      phase: next,
+      previous,
+    })
+    if (next === "complete") this.stop()
+  }
+
+  private derive(): SessionPhase {
+    const anySourceActive = this.sources.some((s) => s.isActive())
+    const counts = this.queue.count()
+
+    if (counts.total === 0 && !anySourceActive) return "idle"
+    if (counts.total === 0 && anySourceActive) return "discovering"
+    if (counts.pending > 0 && anySourceActive) return "inspecting"
+    if (counts.pending > 0 && !anySourceActive) return "draining"
+    if (counts.pending === 0 && !anySourceActive) return "complete"
+
+    return "inspecting"
+  }
+
+  snapshot(): { phase: SessionPhase; sources: { name: string; active: boolean }[]; counts: { pending: number; examined: number; total: number } } {
+    return {
+      phase: this.current,
+      sources: this.sources.map((s) => ({ name: s.name, active: s.isActive() })),
+      counts: this.queue.count(),
+    }
+  }
+}
