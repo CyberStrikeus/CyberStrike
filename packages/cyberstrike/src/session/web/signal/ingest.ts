@@ -11,7 +11,7 @@ import { CanaryRegistry, type CanaryKind } from "./canary"
 import { DbCanaryStore, SignalStore } from "./store"
 import { SignalRouter } from "./router"
 import { WebRetest } from "../web-retest"
-import { vortexRegisterCanary } from "../vortex-bridge"
+import { vortexRegisterCanary, vortexScanProbeResponse } from "../vortex-bridge"
 import { Request } from "../../request"
 import type { Header, ObservedResponse, Signal } from "./types"
 import type { ReplayResponse } from "@/replay/response"
@@ -179,6 +179,16 @@ export function scanProbeResponse(input: {
 }): number {
   try {
     if (!input.body) return 0
+    // Dual-write (#15 step 2): also run Vortex rules over the probe response so findings
+    // appear in the Vortex-sourced view and route via the Vortex→retest bridge.
+    vortexScanProbeResponse(input.sessionID, {
+      requestId: input.requestId,
+      method: input.method,
+      url: input.url,
+      status: input.status,
+      headers: input.headers,
+      body: input.body,
+    })
     return scanObserved(
       input.sessionID,
       {
@@ -238,6 +248,17 @@ export function scanElicitedResponse(input: {
     const parsed = input.result.response
     if (!parsed) return 0
     const body = new TextDecoder("latin1").decode(parsed.body)
+    const headerRecord: Record<string, string> = {}
+    for (const h of parsed.headers) headerRecord[h.name] = h.value
+    // Dual-write (#15 step 2): also run Vortex rules over the elicited response.
+    vortexScanProbeResponse(input.sessionID, {
+      requestId: input.requestId,
+      method: input.method,
+      url: input.url,
+      status: parsed.status,
+      headers: headerRecord,
+      body,
+    })
     return scanObserved(
       input.sessionID,
       {

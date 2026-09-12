@@ -313,6 +313,74 @@ export function vortexRegisterCanary(
   }
 }
 
+// ── Programmatic signal recording (#15 step 2) ────────────────────────────────────────
+// Write a tool-produced signal (reflected_input, rate_limit_absent, etc.) directly into
+// the session's Vortex store AND route it through the retest bridge — so tool findings
+// appear in vortexSignals() (the agent's context) and trigger the right specialist
+// exactly as passive Vortex-rule signals do. `transactionId` must be a Vortex-known tx
+// id (a captured request id). Never throws — a write failure is swallowed and logged,
+// just like the rest of the bridge.
+export function vortexRecordSignal(
+  sessionID: string,
+  input: { ruleId: string; transactionId: string; category: string; severity: string; title: string; evidence?: string },
+): void {
+  try {
+    const store = storeFor(sessionID)
+    const tx = store.get(input.transactionId)
+    if (!tx) return
+    const sig: Signal = {
+      ruleId: input.ruleId,
+      transactionId: input.transactionId,
+      severity: input.severity as "high" | "medium" | "low" | "info",
+      category: input.category,
+      title: input.title,
+      evidence: input.evidence,
+      dedupKey: `${input.ruleId}:${endpointKey(tx)}`,
+    }
+    store.addSignals([sig])
+    bridgeSignals(sessionID, store, [sig])
+  } catch (e) {
+    log.debug("vortexRecordSignal failed (ignored)", { err: String(e) })
+  }
+}
+
+// Run Vortex rules over a probe response that didn't come through the browser ingest
+// path (inject_probe / http_replay tool sends). Creates a synthetic transaction scoped
+// to the origin request, runs the per-tx rule registry, persists + bridges the signals.
+// Never throws — a failure must not break the probe loop.
+export function vortexScanProbeResponse(
+  sessionID: string,
+  input: { requestId: string; method: string; url: string; status: number; headers: Record<string, string>; body: string },
+): number {
+  try {
+    const store = storeFor(sessionID)
+    const originTx = store.get(input.requestId)
+    if (!originTx) return 0
+    const headers: Header[] = []
+    for (const name in input.headers) headers.push({ name, value: input.headers[name]! })
+    const probeTx: Transaction = {
+      id: `probe:${input.requestId}:${Date.now()}`,
+      session: sessionID,
+      source: "replay",
+      host: originTx.host,
+      keyHash: originTx.keyHash,
+      normalizedPath: originTx.normalizedPath,
+      request: { method: input.method, url: input.url, headers: originTx.request.headers, body: undefined },
+      response: { status: input.status, headers, body: input.body },
+    }
+    const sigs = registry.run(probeTx)
+    if (sigs.length === 0) return 0
+    // Anchor signals to the ORIGIN transaction so they show up under the right endpoint.
+    const anchored = sigs.map((s) => ({ ...s, transactionId: input.requestId }))
+    store.addSignals(anchored)
+    bridgeSignals(sessionID, store, anchored)
+    return anchored.length
+  } catch (e) {
+    log.debug("vortexScanProbeResponse failed (ignored)", { err: String(e) })
+    return 0
+  }
+}
+
 // ── Vortex signals → retest pipeline bridge (issue #14) ─────────────────────────────
 // Route freshly-produced Vortex signals into the deterministic retest queue so the OWNING WSTG
 // specialist confirms them — instead of leaving it to an agent's initiative to read vortex_leads

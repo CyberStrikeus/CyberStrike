@@ -34,9 +34,16 @@ import {
   scanProbeResponse,
   scanElicitedResponse,
 } from "../session/web/signal"
+import {
+  vortexRegisterCanary,
+  vortexRecordSignal,
+  vortexScanProbeResponse,
+  vortexSignals,
+} from "../session/web/vortex-bridge"
 
 /** Signal-fabric subsystem: detect → route → persist → verify web findings. */
 export interface WebSignalKit {
+  /** @deprecated Use the vortex.* equivalents — CS signal fabric retires once Vortex proves out (#15). */
   SignalStore: typeof SignalStore
   SignalRouter: typeof SignalRouter
   CanaryRegistry: typeof CanaryRegistry
@@ -45,6 +52,12 @@ export interface WebSignalKit {
   scanCapturedResponse: typeof scanCapturedResponse
   scanProbeResponse: typeof scanProbeResponse
   scanElicitedResponse: typeof scanElicitedResponse
+  vortex: {
+    registerCanary(sessionID: string, input: { token: string; kind?: string; requestId: string; field?: string; vulnClass?: string; agent?: string }): void
+    recordSignal(sessionID: string, input: { ruleId: string; transactionId: string; category: string; severity: string; title: string; evidence?: string }): void
+    scanProbeResponse(sessionID: string, input: { requestId: string; method: string; url: string; status: number; headers: Record<string, string>; body: string }): number
+    signals(sessionID: string): { signals: { ruleId: string; category: string; severity: string; title: string; evidence?: string; requestId: string; endpoint?: string; owner?: string; routed: boolean; status?: "pending" | "examined" }[] }
+  }
 }
 
 /** The web building blocks a domain plugin composes into its own web tools. */
@@ -102,6 +115,12 @@ export function buildWebKit(): WebKit {
       scanCapturedResponse,
       scanProbeResponse,
       scanElicitedResponse,
+      vortex: {
+        registerCanary: vortexRegisterCanary,
+        recordSignal: vortexRecordSignal,
+        scanProbeResponse: vortexScanProbeResponse,
+        signals: vortexSignals,
+      },
     },
   }
 }

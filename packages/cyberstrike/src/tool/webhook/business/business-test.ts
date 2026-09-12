@@ -12,6 +12,7 @@ import z from "zod"
 import { Tool } from "../../tool"
 import { webhookContext, toolResult, toolError } from "../define"
 import { SignalStore } from "../../../session/web/signal/store"
+import { vortexRecordSignal } from "../../../session/web/vortex-bridge"
 import { BusinessProbe, type BoundaryProbeReport } from "./probe"
 import type { RaceReport } from "./race"
 import type { HttpSender, ProbeRequest } from "../transport"
@@ -165,12 +166,21 @@ export const BusinessTestTool = Tool.define("business_test", {
         if ("error" in result) return err(result.error)
         const r = result as BusinessTest.RaceResult
         if (r.report.rateLimitAbsent) {
+          const rateEvidence = `${r.report.count} concurrent requests, zero 429 responses (status distribution: ${Object.entries(r.report.statusDistribution).map(([s, c]) => `${s}×${c}`).join(", ")})`
           new SignalStore(wctx.sessionID).record({
             type: "rate_limit_absent",
             owner: "business-logic",
             requestId: params.request_id,
-            evidence: `${r.report.count} concurrent requests, zero 429 responses (status distribution: ${Object.entries(r.report.statusDistribution).map(([s, c]) => `${s}×${c}`).join(", ")})`,
+            evidence: rateEvidence,
             meta: { count: r.report.count, concurrency: r.report.concurrency, statusDistribution: r.report.statusDistribution },
+          })
+          vortexRecordSignal(wctx.sessionID, {
+            ruleId: "rate-limit-absent",
+            transactionId: params.request_id,
+            category: "business-logic",
+            severity: "medium",
+            title: "No rate limiting detected",
+            evidence: rateEvidence,
           })
         }
         const label = r.report.inconsistent ? `TOCTOU signals detected (${r.report.signals.length})` : "no race condition detected"

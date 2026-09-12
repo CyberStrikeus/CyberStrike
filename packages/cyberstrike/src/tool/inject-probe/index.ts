@@ -18,7 +18,7 @@ import { createBackoff } from "./probe/base"
 import { CanaryRegistry } from "../../session/web/signal/canary"
 import { DbCanaryStore, SignalStore } from "../../session/web/signal/store"
 import { scanProbeResponse } from "../../session/web/signal/ingest"
-import { vortexRegisterCanary } from "../../session/web/vortex-bridge"
+import { vortexRegisterCanary, vortexRecordSignal, vortexScanProbeResponse } from "../../session/web/vortex-bridge"
 
 const description = `Fire a battery of probes at ONE parameter-bearing request and return RAW OBSERVATIONS.
 
@@ -144,6 +144,14 @@ export const InjectProbeTool = Tool.define("inject_probe", {
             body: result.body,
             sourceIsCaptured,
           })
+          vortexScanProbeResponse(sessionID, {
+            requestId: originRequestId,
+            method: req.method,
+            url: req.url,
+            status: result.status,
+            headers: result.headers,
+            body: result.body,
+          })
         }
         return result
       },
@@ -216,12 +224,21 @@ export const InjectProbeTool = Tool.define("inject_probe", {
           classObs.push(o)
           markBlocked(o, cls)
           if (o.marker_reflected) {
+            const reflectEvidence = `marker reflected raw at ${field}${o.context ? ` (${o.context} context)` : ""}${o.marker_html_encoded ? " [HTML-encoded]" : ""}`
             signalStore.record({
               type: "reflected_input",
               owner: "input-validation",
               requestId: originRequestId,
-              evidence: `marker reflected raw at ${field}${o.context ? ` (${o.context} context)` : ""}${o.marker_html_encoded ? " [HTML-encoded]" : ""}`,
+              evidence: reflectEvidence,
               meta: { field, context: o.context, html_encoded: o.marker_html_encoded, tags: o.surviving_tags.length },
+            })
+            vortexRecordSignal(sessionID, {
+              ruleId: "reflected-input-xss",
+              transactionId: originRequestId,
+              category: "injection",
+              severity: "medium",
+              title: "Reflected input (XSS surface)",
+              evidence: reflectEvidence,
             })
           }
           if (o.weaponized.length > 0)
@@ -261,12 +278,21 @@ export const InjectProbeTool = Tool.define("inject_probe", {
           classObs.push(o)
           markBlocked(o, cls)
           if (o.append_reflected || o.prepend_reflected) {
+            const hppEvidence = `HPP duplicate-param reflected at ${field} (parser: ${o.parser_behavior})`
             signalStore.record({
               type: "reflected_input",
               owner: "input-validation",
               requestId: originRequestId,
-              evidence: `HPP duplicate-param reflected at ${field} (parser: ${o.parser_behavior})`,
+              evidence: hppEvidence,
               meta: { field, parser_behavior: o.parser_behavior, append: o.append_reflected, prepend: o.prepend_reflected },
+            })
+            vortexRecordSignal(sessionID, {
+              ruleId: "reflected-input-hpp",
+              transactionId: originRequestId,
+              category: "injection",
+              severity: "medium",
+              title: "HPP duplicate-param reflected",
+              evidence: hppEvidence,
             })
           }
           if (o.parser_behavior !== "inconclusive")
