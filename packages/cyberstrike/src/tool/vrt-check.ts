@@ -39,7 +39,7 @@ export const UpdateVrtCheckTool = Tool.define("update_vrt_check", {
       .describe("Evidence supporting the test result. Required for 'tested_vulnerable' status."),
   }),
   async execute(params, ctx) {
-    // Lane discipline: a hunt-tester may only record VRT checks in its own
+    // Lane discipline: a wstg-tester may only record VRT checks in its own
     // vulnerability class. Off-class checks are rejected (not written) with a
     // hand-off hint — structural, capability-agnostic (Phase 2).
     const violation = vrtScopeViolation(ctx.agent, params.vrt_category)

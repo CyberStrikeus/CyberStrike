@@ -35,7 +35,7 @@ import { Skill } from "../skill"
 
 export namespace Agent {
   // Hard step-caps (Layer 1 backstop for the loop-termination fix — see
-  // AGENT_LOOP_TERMINATION_SPEC.md). Single tuning point. NOTE: hunt-* are
+  // AGENT_LOOP_TERMINATION_SPEC.md). Single tuning point. NOTE: wstg-* are
   // deliberately left at their existing default of 50 (see the `startsWith` guard
   // below — lowering them regressed findings); only the two genuinely-uncapped
   // orchestration agents get a cap here. Enforcement (tool-strip + break on the
@@ -457,7 +457,7 @@ export namespace Agent {
     // price). The cap is soft (forces a text wrap-up at the limit, prompt.ts) and only
     // applies when not explicitly configured, so user config still overrides.
     for (const name in result) {
-      if (result[name].steps == null && name.startsWith("hunt-")) result[name].steps = 60
+      if (result[name].steps == null && name.startsWith("wstg-")) result[name].steps = 60
     }
 
     return result

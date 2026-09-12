@@ -53,7 +53,7 @@ export namespace RetestWorker {
 
   // An endpoint that takes attacker-controllable input an interpreter might consume — the injection
   // surface. Every body method carries a request body to inject into; a GET whose path names a
-  // query/search/filter/report/template/etc. operation is parameterized too. Routed to hunt-injection
+  // query/search/filter/report/template/etc. operation is parameterized too. Routed to wstg-input-validation
   // so SQL/command/template injection is a FIRST-CLASS route, not something the orchestrator has to
   // notice by hand (observed: a query-template runner — the obvious SQLi target — got a tiny slice of
   // dispatches because injection was only ever spawned manually; the flag fabric never routed to it).
@@ -78,12 +78,11 @@ export namespace RetestWorker {
     if ((s.flags.credential?.length ?? 0) > 0 || (s.flags.role?.length ?? 0) > 0) {
       const authz = await agentForClass("authorization")
       if (authz) agents.add(authz)
-      else agents.add("hunt-idor") // fallback until the WSTG authorization specialist owns the class
     }
-    // A new object value = IDOR fuel → authorization specialist (fallback to hunt-idor).
+    // A new object value = IDOR fuel → authorization specialist.
     if ((s.flags.object_value?.length ?? 0) > 0) {
       const authz = await agentForClass("authorization")
-      agents.add(authz ?? "hunt-idor")
+      if (authz) agents.add(authz)
     }
     // An input-validation surface (body method / parameterized query endpoint) → the input-validation
     // (WSTG 4.7) specialist, which owns injection/SSRF/file-upload/mass-assignment.

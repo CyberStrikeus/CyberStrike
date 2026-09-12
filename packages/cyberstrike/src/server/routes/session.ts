@@ -2149,7 +2149,7 @@ export const SessionRoutes = lazy(() =>
             log.info("prompt preview:\n" + buildPrompt())
             Request.updateStatus({ id: req.id, status: "processed" })
           } else {
-            const agentName = body.agent ?? "hunt-agent"
+            const agentName = body.agent ?? "wstg-agent"
             const source = `${normalized.method} ${normalized.normalizedPath}`
             IngestQueue.enqueue(sessionID, async () => {
               Request.updateStatus({ id: req.id, status: "processing" })
@@ -2187,7 +2187,7 @@ export const SessionRoutes = lazy(() =>
             log.info("ingest dry-run (text)", { sessionID })
             log.info("prompt preview:\n" + promptText)
           } else {
-            const agentName = body.agent ?? "hunt-agent"
+            const agentName = body.agent ?? "wstg-agent"
             IngestQueue.enqueue(sessionID, async () => {
               const before = IngestSummary.snapshot(sessionID)
               await SessionPrompt.prompt({

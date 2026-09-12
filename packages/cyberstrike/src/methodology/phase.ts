@@ -63,7 +63,7 @@ export namespace Phase {
       minDeliverables: 1,
       relatedVrtCategories: [],
       appliesTo: ["wildcard", "single"],
-      agents: ["explore", "hunt-agent"],
+      agents: ["explore", "wstg-agent"],
     },
     {
       id: "technology_profiling",
@@ -73,7 +73,7 @@ export namespace Phase {
       minDeliverables: 1,
       relatedVrtCategories: ["Known CVE", "Framework Vuln"],
       appliesTo: ["wildcard", "single"],
-      agents: ["explore", "hunt-agent"],
+      agents: ["explore", "wstg-agent"],
     },
     {
       id: "authentication_testing",
@@ -83,7 +83,7 @@ export namespace Phase {
       minDeliverables: 1,
       relatedVrtCategories: ["Auth Bypass", "Default Creds"],
       appliesTo: ["wildcard", "single"],
-      agents: ["hunt-agent"],
+      agents: ["wstg-agent"],
     },
     {
       id: "session_management",
@@ -93,7 +93,7 @@ export namespace Phase {
       minDeliverables: 1,
       relatedVrtCategories: ["Info Disclosure"],
       appliesTo: ["wildcard", "single"],
-      agents: ["hunt-agent"],
+      agents: ["wstg-agent"],
     },
     {
       id: "authorization_testing",
@@ -103,7 +103,7 @@ export namespace Phase {
       minDeliverables: 1,
       relatedVrtCategories: ["IDOR", "Privilege Escalation", "Auth Bypass", "CORS"],
       appliesTo: ["wildcard", "single"],
-      agents: ["hunt-agent"],
+      agents: ["wstg-agent"],
     },
     {
       id: "input_validation",
@@ -113,7 +113,7 @@ export namespace Phase {
       minDeliverables: 1,
       relatedVrtCategories: ["SQLi", "XSS", "SSTI", "Command Injection", "SSRF"],
       appliesTo: ["wildcard", "single"],
-      agents: ["hunt-agent"],
+      agents: ["wstg-agent"],
     },
     {
       id: "business_logic",
@@ -123,7 +123,7 @@ export namespace Phase {
       minDeliverables: 0,
       relatedVrtCategories: ["Race Condition", "Chain Test"],
       appliesTo: ["wildcard", "single"],
-      agents: ["hunt-agent"],
+      agents: ["wstg-agent"],
     },
     {
       id: "data_protection",
@@ -133,7 +133,7 @@ export namespace Phase {
       minDeliverables: 0,
       relatedVrtCategories: ["Info Disclosure"],
       appliesTo: ["wildcard", "single"],
-      agents: ["hunt-agent", "explore"],
+      agents: ["wstg-agent", "explore"],
     },
     {
       id: "api_security",
@@ -143,7 +143,7 @@ export namespace Phase {
       minDeliverables: 0,
       relatedVrtCategories: ["IDOR", "Auth Bypass", "SSRF", "Info Disclosure"],
       appliesTo: ["wildcard", "single"],
-      agents: ["hunt-agent"],
+      agents: ["wstg-agent"],
     },
     {
       id: "infrastructure",

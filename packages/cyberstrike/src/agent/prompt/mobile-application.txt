@@ -27,7 +27,7 @@ Determine what you have before choosing your approach.
 → Skills: `skill search --tech frida,objection,dynamic-analysis`
 
 **Only backend API known:**
-→ Treat as web application — use hunt-agent workflow
+→ Treat as web application — use wstg-agent workflow
 → Enumerate endpoints from decompiled code first if APK available
 
 ## Decision Loop

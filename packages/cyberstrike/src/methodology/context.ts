@@ -20,7 +20,7 @@ export namespace MethodologyContext {
    * Returns null if methodology is not active (no intel entries).
    */
   /**
-   * @param agentClass when set to a hunt-tester class (e.g. "idor"), the context
+   * @param agentClass when set to a wstg-tester class (e.g. "input-validation"), the context
    *   is scoped to that lane (Phase 2.3): the untested-items list is filtered to
    *   the lane and orchestrator-only sections (delegation briefing, work queue)
    *   are dropped — a tester is handed only its own work, not the routing view.
@@ -119,7 +119,7 @@ export namespace MethodologyContext {
       ? coverage.untestedItems.filter((item) => categoryInLane(agentClass!, item.vrtCategory))
       : coverage.untestedItems
     if (untested.length > 0) {
-      const scope = isTester ? ` for hunt-${agentClass}` : ""
+      const scope = isTester ? ` for wstg-${agentClass}` : ""
       sections.push("")
       sections.push(`## Priority Untested${scope} (${untested.length} total)`)
       for (const item of untested.slice(0, 5)) {
@@ -259,7 +259,7 @@ export namespace MethodologyContext {
       // Generate specific fix instructions per violation type
       if (v.gate === "per_asset_coverage" && v.affectedAsset) {
         const ranked = state.currentPhase ? AgentPerformance.selectAgentsForPhase(sessionID, state.currentPhase) : []
-        const agent = ranked[0]?.name ?? "hunt-agent"
+        const agent = ranked[0]?.name ?? "wstg-agent"
         lines.push(`  FIX: Delegate to ${agent} — focus testing on ${v.affectedAsset}`)
       } else if (v.gate === "evidence_quality") {
         lines.push(
@@ -308,7 +308,7 @@ export namespace MethodologyContext {
         lines.push("")
         lines.push("### Coverage Gaps")
         for (const asset of neglected.slice(0, 5)) {
-          const rec = ranked.length > 0 ? ranked[0].name : "hunt-agent"
+          const rec = ranked.length > 0 ? ranked[0].name : "wstg-agent"
           lines.push(`- **${asset.asset}**: ${asset.coveragePercent}% (avg ${Math.round(avg)}%) → delegate to ${rec}`)
         }
       }
@@ -383,8 +383,8 @@ export namespace MethodologyContext {
     // Priority 2: Blocking violations (high)
     for (const v of state.violations.filter((v) => v.severity === "blocking").slice(0, 3)) {
       const agent = state.currentPhase
-        ? (AgentPerformance.selectAgentsForPhase(sessionID, state.currentPhase)[0]?.name ?? "hunt-agent")
-        : "hunt-agent"
+        ? (AgentPerformance.selectAgentsForPhase(sessionID, state.currentPhase)[0]?.name ?? "wstg-agent")
+        : "wstg-agent"
       items.push({
         priority: "high",
         action: `Fix violation: ${v.gate}`,
@@ -401,7 +401,7 @@ export namespace MethodologyContext {
       items.push({
         priority: "high",
         action: `Start testing on untouched asset`,
-        agent: "hunt-agent",
+        agent: "wstg-agent",
         asset: asset.asset,
         context: `${asset.totalChecks} VRT checks pending, 0% coverage`,
       })

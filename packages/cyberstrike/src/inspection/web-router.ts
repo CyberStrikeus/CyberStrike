@@ -34,11 +34,11 @@ export class WebInspectionRouter implements InspectionRouter {
       if (ev.type === "credential" || ev.type === "role") {
         const authz = await agentForClass("authorization")
         if (authz) agents.add(authz)
-        else agents.add("hunt-idor")
+        else { /* classMap should always resolve authorization now */ }
       }
       if (ev.type === "object_value") {
         const authz = await agentForClass("authorization")
-        agents.add(authz ?? "hunt-idor")
+        if (authz) agents.add(authz)
       }
     }
     if (isInjectionSurface(target)) {
@@ -71,7 +71,7 @@ export class WebInspectionRouter implements InspectionRouter {
       lines.push("", "## Detected stack — run these stack-specific test cases:", playbook)
     }
 
-    if (agent.includes("injection") && isInjectionSurface(target)) {
+    if ((agent.includes("input-validation") || agent.includes("injection")) && isInjectionSurface(target)) {
       lines.push(
         "",
         "## Injection surface — discover parameters before fuzzing:",
