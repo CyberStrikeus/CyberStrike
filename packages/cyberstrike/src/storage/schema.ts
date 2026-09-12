@@ -31,3 +31,4 @@ export {
   CloudEdgeTable,
   CloudExposureTable,
 } from "../cloud/inventory.sql"
+export { InspectionQueueTable } from "../inspection/schema"
