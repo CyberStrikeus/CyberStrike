@@ -146,6 +146,18 @@ export namespace Database {
       log.info("reconciled web_retest_queue (request×trigger → per-endpoint flags)")
     }
 
+    // inspection_queue: migrate existing web_retest_queue rows into the new domain-agnostic table.
+    // Runs once — after migration creates inspection_queue, before web_retest_queue is eventually dropped.
+    if (tableExists(sqlite, "web_retest_queue") && tableExists(sqlite, "inspection_queue")) {
+      const migrated = sqlite.prepare("SELECT COUNT(*) as c FROM inspection_queue WHERE domain = 'web'").get() as { c: number }
+      if (migrated.c === 0) {
+        sqlite.run(`INSERT OR IGNORE INTO inspection_queue (id, session_id, domain, target_key, target_label, target_meta, status, priority, evidence, examined_evidence, time_created, time_updated)
+          SELECT id, session_id, 'web', key_hash, NULL, NULL, status, priority, flags, examined_flags, time_created, time_updated
+          FROM web_retest_queue`)
+        log.info("migrated web_retest_queue rows into inspection_queue")
+      }
+    }
+
     // Phase 2: Schema-driven column reconciliation
     // Drizzle's migrator uses sqlite3_prepare_v2 which only compiles the first SQL statement.
     // Multi-statement migrations without "--> statement-breakpoint" delimiters only ran their
