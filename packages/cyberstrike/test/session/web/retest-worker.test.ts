@@ -37,9 +37,9 @@ function scenario(flags: WebRetest.Info["flags"], method = "POST", endpoint = "/
 describe("RetestWorker.resolveAgents — scenario → specialist routing", () => {
   test("a signal flag routes to its owning specialist (value encodes type:owner)", async () => {
     await withInstance(async () => {
-      // sql_error is owned by the injection class → hunt-injection
-      const agents = await RetestWorker.resolveAgents(scenario({ signal: ["sql_error:injection"] }))
-      expect(agents).toContain("hunt-injection")
+      // sql_error is owned by the input-validation class → wstg-input-validation
+      const agents = await RetestWorker.resolveAgents(scenario({ signal: ["sql_error:input-validation"] }))
+      expect(agents).toContain("wstg-input-validation")
     })
   })
 
@@ -47,16 +47,15 @@ describe("RetestWorker.resolveAgents — scenario → specialist routing", () =>
     await withInstance(async () => {
       const agents = await RetestWorker.resolveAgents(scenario({ credential: ["org1"] }))
       // Under the WSTG taxonomy authorization owns access-control incl. IDOR, so a new identity
-      // routes to that one specialist — not a separate hunt-idor (kept only as a fallback when
-      // no agent owns the authorization class).
-      expect(agents).toContain("hunt-authz")
+      // routes to the authorization specialist.
+      expect(agents).toContain("wstg-authorization")
     })
   })
 
   test("a new role also routes to access-control", async () => {
     await withInstance(async () => {
       const agents = await RetestWorker.resolveAgents(scenario({ role: ["Admin"] }))
-      expect(agents).toContain("hunt-authz")
+      expect(agents).toContain("wstg-authorization")
     })
   })
 
@@ -65,18 +64,18 @@ describe("RetestWorker.resolveAgents — scenario → specialist routing", () =>
       // A plain GET whose path names no query/search/filter operation is not an injection surface,
       // so an object value (IDOR fuel) routes only to authorization (which owns IDOR under WSTG).
       const agents = await RetestWorker.resolveAgents(scenario({ object_value: ["456" ] }, "GET", "/customers/123"))
-      expect(agents).toEqual(["hunt-authz"])
+      expect(agents).toEqual(["wstg-authorization"])
     })
   })
 
-  test("an injection surface (body method) routes to hunt-injection", async () => {
+  test("an injection surface (body method) routes to wstg-input-validation", async () => {
     await withInstance(async () => {
-      // A POST carries a body to inject into → injection specialist, even with no injection signal.
+      // A POST carries a body to inject into → input-validation specialist, even with no injection signal.
       const post = await RetestWorker.resolveAgents(scenario({ object_value: ["1"] }, "POST", "/api/run-query"))
-      expect(post).toContain("hunt-injection")
-      // A GET whose path names a query/filter operation is parameterized → also injection.
+      expect(post).toContain("wstg-input-validation")
+      // A GET whose path names a query/filter operation is parameterized → also input-validation.
       const getFilter = await RetestWorker.resolveAgents(scenario({}, "GET", "/api/filter-options"))
-      expect(getFilter).toContain("hunt-injection")
+      expect(getFilter).toContain("wstg-input-validation")
       // A plain nav GET is not.
       expect(RetestWorker.isInjectionSurface(scenario({}, "GET", "/dashboard"))).toBe(false)
     })
@@ -85,12 +84,12 @@ describe("RetestWorker.resolveAgents — scenario → specialist routing", () =>
   test("mixed flags union the specialists, deduped", async () => {
     await withInstance(async () => {
       const agents = await RetestWorker.resolveAgents(
-        scenario({ credential: ["org1"], object_value: ["1"], signal: ["sql_error:injection"] }),
+        scenario({ credential: ["org1"], object_value: ["1"], signal: ["sql_error:input-validation"] }),
       )
       // credential + object_value both route to authorization, deduped to one; plus the signal's owner.
-      expect(agents.filter((a) => a === "hunt-authz").length).toBe(1)
-      expect(agents).toContain("hunt-authz")
-      expect(agents).toContain("hunt-injection")
+      expect(agents.filter((a) => a === "wstg-authorization").length).toBe(1)
+      expect(agents).toContain("wstg-authorization")
+      expect(agents).toContain("wstg-input-validation")
     })
   })
 })
@@ -106,14 +105,14 @@ describe("RetestWorker.buildPrompt", () => {
 
   test("a technology signal flag injects that stack's playbook test cases", () => {
     // The flag value is `technology:<owner>:<slug>` (3rd segment = the detected stack).
-    const p = RetestWorker.buildPrompt(scenario({ signal: ["technology:misconfiguration:spring-boot"] }))
+    const p = RetestWorker.buildPrompt(scenario({ signal: ["technology:config-deploy:spring-boot"] }))
     expect(p).toContain("stack-specific test cases")
     expect(p).toContain("Spring Boot")
     expect(p).toContain("/actuator/env") // a concrete probe from the playbook
   })
 
   test("a non-technology signal flag does NOT inject a playbook block", () => {
-    const p = RetestWorker.buildPrompt(scenario({ signal: ["sql_error:injection"] }))
+    const p = RetestWorker.buildPrompt(scenario({ signal: ["sql_error:input-validation"] }))
     expect(p).not.toContain("stack-specific test cases")
   })
 })

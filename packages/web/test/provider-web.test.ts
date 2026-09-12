@@ -13,37 +13,39 @@ describe("WebProvider", () => {
     expect(new WebProvider().key).toBe("web")
   })
 
-  test("agentSpecs returns 12 agents (default flags)", () => {
-    expect(new WebProvider().agentSpecs().length).toBe(12)
+  test("agentSpecs returns 14 agents", () => {
+    expect(new WebProvider().agentSpecs().length).toBe(14)
   })
 
   test("agent names match expected set", () => {
     const names = new WebProvider().agentSpecs().map((s) => s.name).sort()
     expect(names).toEqual([
-      "hunt-agent",
-      "hunt-analyzer",
-      "hunt-authn",
-      "hunt-authz",
-      "hunt-business-logic",
-      "hunt-file-attacks",
-      "hunt-idor",
-      "hunt-injection",
-      "hunt-llm",
-      "hunt-mass-assignment",
-      "hunt-misconfig",
-      "hunt-ssrf",
+      "wstg-agent",
+      "wstg-analyzer",
+      "wstg-authentication",
+      "wstg-authorization",
+      "wstg-business-logic",
+      "wstg-client-side",
+      "wstg-config-deploy",
+      "wstg-cryptography",
+      "wstg-error-handling",
+      "wstg-identity-mgmt",
+      "wstg-info-gathering",
+      "wstg-input-validation",
+      "wstg-llm",
+      "wstg-session-mgmt",
     ])
   })
 
   test("orchestrator is visible (hidden=false)", () => {
-    const orch = new WebProvider().agentSpecs().find((s) => s.name === "hunt-agent")!
+    const orch = new WebProvider().agentSpecs().find((s) => s.name === "wstg-agent")!
     expect(orch.hidden).toBe(false)
     expect(orch.role).toBe("orchestrator")
     expect(orch.steps).toBe(40)
   })
 
   test("analyzer uses small model", () => {
-    const analyzer = new WebProvider().agentSpecs().find((s) => s.name === "hunt-analyzer")!
+    const analyzer = new WebProvider().agentSpecs().find((s) => s.name === "wstg-analyzer")!
     expect(analyzer.useSmallModel).toBe(true)
     expect(analyzer.role).toBe("analyzer")
     expect(analyzer.prependRequestContext).toBe(true)
@@ -51,13 +53,13 @@ describe("WebProvider", () => {
 
   test("all specialists have prependRequestContext", () => {
     const specialists = new WebProvider().agentSpecs().filter((s) => s.role === "specialist")
-    expect(specialists.length).toBe(10)
+    expect(specialists.length).toBe(12)
     for (const s of specialists) expect(s.prependRequestContext).toBe(true)
   })
 
-  test("injection agent has destructive-SQL deny rules", () => {
-    const injection = new WebProvider().agentSpecs().find((s) => s.name === "hunt-injection")!
-    const bash = injection.permissions.bash
+  test("input-validation agent has destructive-SQL deny rules", () => {
+    const iv = new WebProvider().agentSpecs().find((s) => s.name === "wstg-input-validation")!
+    const bash = iv.permissions.bash
     expect(typeof bash).toBe("object")
     if (typeof bash === "object") {
       expect(bash["*DROP TABLE*"]).toBe("deny")
@@ -65,24 +67,22 @@ describe("WebProvider", () => {
     }
   })
 
-  test("injection agent has inject_probe permission", () => {
-    const injection = new WebProvider().agentSpecs().find((s) => s.name === "hunt-injection")!
-    expect(injection.permissions.inject_probe).toBe("allow")
+  test("input-validation agent has inject_probe permission", () => {
+    const iv = new WebProvider().agentSpecs().find((s) => s.name === "wstg-input-validation")!
+    expect(iv.permissions.inject_probe).toBe("allow")
   })
 
   test("smart tool agents have their tool permissions", () => {
     const specs = new WebProvider().agentSpecs()
-    expect(specs.find((s) => s.name === "hunt-authn")!.permissions.authn_test).toBe("allow")
-    expect(specs.find((s) => s.name === "hunt-ssrf")!.permissions.ssrf_test).toBe("allow")
-    expect(specs.find((s) => s.name === "hunt-business-logic")!.permissions.business_test).toBe("allow")
-    const misconfig = specs.find((s) => s.name === "hunt-misconfig")!
-    expect(misconfig.permissions.misconfig_test).toBe("allow")
-    // recon was merged into hunt-misconfig — it now holds recon_test too.
-    expect(misconfig.permissions.recon_test).toBe("allow")
+    expect(specs.find((s) => s.name === "wstg-authentication")!.permissions.authn_test).toBe("allow")
+    expect(specs.find((s) => s.name === "wstg-business-logic")!.permissions.business_test).toBe("allow")
+    const config = specs.find((s) => s.name === "wstg-config-deploy")!
+    expect(config.permissions.misconfig_test).toBe("allow")
+    expect(config.permissions.recon_test).toBe("allow")
   })
 
   test("llm agent has llmhook permission", () => {
-    const llm = new WebProvider().agentSpecs().find((s) => s.name === "hunt-llm")!
+    const llm = new WebProvider().agentSpecs().find((s) => s.name === "wstg-llm")!
     expect(llm.permissions.llmhook).toBe("allow")
   })
 
@@ -101,7 +101,7 @@ describe("WebProvider", () => {
   })
 
   test("orchestrator denies everything except delegation + reads", () => {
-    const orch = new WebProvider().agentSpecs().find((s) => s.name === "hunt-agent")!
+    const orch = new WebProvider().agentSpecs().find((s) => s.name === "wstg-agent")!
     expect(orch.permissions["*"]).toBe("deny")
     expect(orch.permissions.task).toBe("allow")
     expect(orch.permissions.web_get_session_context).toBe("allow")
@@ -119,25 +119,36 @@ describe("WebProvider", () => {
   })
 
   test("skills are referenced by name (not baked into the prompt)", () => {
-    // Skills load at runtime via the `skill` tool (azure pattern); each spec keeps its skills:[] and
-    // the prompt no longer embeds skill content. Guard the roster keeps naming its WSTG packs.
-    const injection = new WebProvider().agentSpecs().find((s) => s.name === "hunt-injection")!
-    expect(injection.skills).toContain("wstg-injection")
-    expect(injection.prompt).not.toContain("Embedded Skill References")
+    const iv = new WebProvider().agentSpecs().find((s) => s.name === "wstg-input-validation")!
+    expect(iv.skills).toContain("wstg-injection")
+    expect(iv.prompt).not.toContain("Embedded Skill References")
+  })
+
+  test("all specialists have Vortex read permissions", () => {
+    const specialists = new WebProvider().agentSpecs().filter((s) => s.role === "specialist")
+    for (const s of specialists) {
+      expect(s.permissions.vortex_query).toBe("allow")
+      expect(s.permissions.vortex_inspect).toBe("allow")
+    }
   })
 })
 
 describe("SpecialistClass → agent mapping", () => {
-  test("specialistClasses matches the historical orchestrator routing table (drift guard)", () => {
-    // These pairs were once hardcoded as prose in web-hunt-agent/prompt.txt (Step 7 table). They now
-    // derive from AgentSpec.specialistClass — this fails the moment code and that table diverge.
+  test("specialistClasses matches the WSTG-aligned routing table", () => {
     const map = new WebProvider().specialistClasses()
     const expected: Record<string, string> = {
-      "input-validation": "hunt-injection",
-      "config-deployment": "hunt-misconfig",
-      authentication: "hunt-authn",
-      authorization: "hunt-authz",
-      "business-logic": "hunt-business-logic",
+      "info-gathering": "wstg-info-gathering",
+      "config-deployment": "wstg-config-deploy",
+      "identity-management": "wstg-identity-mgmt",
+      authentication: "wstg-authentication",
+      authorization: "wstg-authorization",
+      "session-management": "wstg-session-mgmt",
+      "input-validation": "wstg-input-validation",
+      "error-handling": "wstg-error-handling",
+      cryptography: "wstg-cryptography",
+      "business-logic": "wstg-business-logic",
+      "client-side": "wstg-client-side",
+      llm: "wstg-llm",
     }
     for (const [cls, agent] of Object.entries(expected)) expect(map[cls]).toBe(agent)
   })
@@ -145,30 +156,28 @@ describe("SpecialistClass → agent mapping", () => {
   test("buildClassAgentMap rejects two agents claiming the same class", () => {
     expect(() =>
       buildClassAgentMap([
-        { name: "hunt-authz", specialistClass: "authorization" },
-        { name: "hunt-idor", specialistClass: "authorization" },
+        { name: "wstg-authorization", specialistClass: "authorization" },
+        { name: "wstg-idor", specialistClass: "authorization" },
       ]),
     ).toThrow(/claimed by both/)
   })
 
   test("buildClassAgentMap skips agents with no specialistClass", () => {
     const map = buildClassAgentMap([
-      { name: "hunt-idor" },
-      { name: "hunt-injection", specialistClass: "input-validation" },
+      { name: "wstg-agent" },
+      { name: "wstg-input-validation", specialistClass: "input-validation" },
     ])
     expect(map.size).toBe(1)
-    expect(map.get("input-validation")).toBe("hunt-injection")
+    expect(map.get("input-validation")).toBe("wstg-input-validation")
   })
 
-  test("specialistClasses exposes exactly the owning specialists", () => {
-    // 6 specialists declare a WSTG class by default (WEB_INPUT_VALIDATION off): hunt-injection
-    // (input-validation), hunt-authz (authorization), hunt-authn (authentication), hunt-misconfig
-    // (config-deployment), hunt-business-logic (business-logic), hunt-llm (llm). idor, mass-assignment,
-    // file-attacks, ssrf are dispatch-by-name (no owned class).
+  test("specialistClasses exposes exactly 12 owning specialists", () => {
     const map = new WebProvider().specialistClasses()
-    expect(Object.keys(map).length).toBe(6)
-    expect(map["input-validation"]).toBe("hunt-injection")
-    expect(map["llm"]).toBe("hunt-llm")
+    expect(Object.keys(map).length).toBe(12)
+    expect(map["input-validation"]).toBe("wstg-input-validation")
+    expect(map["llm"]).toBe("wstg-llm")
+    expect(map["authorization"]).toBe("wstg-authorization")
+    expect(map["client-side"]).toBe("wstg-client-side")
   })
 })
 
@@ -179,23 +188,21 @@ describe("orchestrator signal-routing table (rendered from code)", () => {
     const table = renderSignalRoutingTable(map)
     expect(table).toContain("| Specialist class | Agent name |")
     for (const [owner, agent] of map) expect(table).toContain(`| \`${owner}\` | ${agent} |`)
-    // Row count = header(2) + one per owned class.
     expect(table.split("\n").length).toBe(2 + map.size)
   })
 
   test("composed orchestrator prompt has the table injected, no placeholder left", () => {
-    const orch = new WebProvider().agentSpecs().find((s) => s.name === "hunt-agent")!
+    const orch = new WebProvider().agentSpecs().find((s) => s.name === "wstg-agent")!
     expect(orch.prompt).not.toContain(SIGNAL_ROUTING_PLACEHOLDER)
-    expect(orch.prompt).toContain("| `input-validation` | hunt-injection |")
-    expect(orch.prompt).toContain("| `config-deployment` | hunt-misconfig |")
-    expect(orch.prompt).toContain("| `authentication` | hunt-authn |")
-    // client-side has no built specialist — it stays as static prose in the prompt, not a table row.
-    expect(orch.prompt).toContain("client-side")
+    expect(orch.prompt).toContain("| `input-validation` | wstg-input-validation |")
+    expect(orch.prompt).toContain("| `config-deployment` | wstg-config-deploy |")
+    expect(orch.prompt).toContain("| `authentication` | wstg-authentication |")
+    expect(orch.prompt).toContain("| `client-side` | wstg-client-side |")
   })
 
   test("the placeholder constant matches the token the .txt carries", () => {
-    const map = buildClassAgentMap([{ name: "hunt-injection", specialistClass: "input-validation" }])
-    expect(renderSignalRoutingTable(map)).toContain("hunt-injection")
+    const map = buildClassAgentMap([{ name: "wstg-input-validation", specialistClass: "input-validation" }])
+    expect(renderSignalRoutingTable(map)).toContain("wstg-input-validation")
     expect(SIGNAL_ROUTING_PLACEHOLDER).toBe("{{SIGNAL_ROUTING_TABLE}}")
   })
 })
@@ -211,19 +218,19 @@ describe("orchestrator agent roster (rendered from code)", () => {
         expect(roster).toContain(`- **${s.name}**: ${s.description}`)
       }
     }
-    expect(roster).not.toContain("- **hunt-agent**:")
+    expect(roster).not.toContain("- **wstg-agent**:")
   })
 
   test("composed orchestrator prompt has the roster injected, no placeholder left", () => {
-    const orch = new WebProvider().agentSpecs().find((s) => s.name === "hunt-agent")!
+    const orch = new WebProvider().agentSpecs().find((s) => s.name === "wstg-agent")!
     expect(orch.prompt).not.toContain(AGENT_ROSTER_PLACEHOLDER)
     expect(orch.prompt).toContain("### Architecture Analysis")
-    expect(orch.prompt).toContain("- **hunt-idor**:")
-    expect(orch.prompt).toContain("- **hunt-misconfig**:")
+    expect(orch.prompt).toContain("- **wstg-input-validation**:")
+    expect(orch.prompt).toContain("- **wstg-config-deploy**:")
   })
 
   test("roster entry text equals each agent's spec.description (single source)", () => {
-    const orch = new WebProvider().agentSpecs().find((s) => s.name === "hunt-agent")!
+    const orch = new WebProvider().agentSpecs().find((s) => s.name === "wstg-agent")!
     for (const s of new WebProvider().agentSpecs()) {
       if (s.role !== "specialist") continue
       expect(orch.prompt).toContain(`- **${s.name}**: ${s.description}`)
@@ -240,23 +247,23 @@ describe("WebProvider — CYBERSTRIKE_WEB_FOCUS (debug focus mode)", () => {
   })
 
   test("focus reduces the roster to orchestrator + analyzer + named specialists", () => {
-    process.env[KEY] = "idor,authz"
+    process.env[KEY] = "input-validation,authorization"
     const names = new WebProvider().agentSpecs().map((s) => s.name).sort()
-    expect(names).toEqual(["hunt-agent", "hunt-analyzer", "hunt-authz", "hunt-idor"])
+    expect(names).toEqual(["wstg-agent", "wstg-analyzer", "wstg-authorization", "wstg-input-validation"])
   })
 
-  test("the hunt- prefix is optional and other specialists are dropped", () => {
-    process.env[KEY] = "hunt-idor"
+  test("the wstg- prefix is optional and other specialists are dropped", () => {
+    process.env[KEY] = "wstg-authorization"
     const names = new WebProvider().agentSpecs().map((s) => s.name)
-    expect(names).toContain("hunt-idor")
-    expect(names).toContain("hunt-agent") // orchestrator always kept
-    expect(names).toContain("hunt-analyzer") // analyzer always kept (context extraction)
-    expect(names).not.toContain("hunt-injection")
-    expect(names).not.toContain("hunt-misconfig")
+    expect(names).toContain("wstg-authorization")
+    expect(names).toContain("wstg-agent")
+    expect(names).toContain("wstg-analyzer")
+    expect(names).not.toContain("wstg-input-validation")
+    expect(names).not.toContain("wstg-config-deploy")
   })
 
-  test("unset restores the full 12-agent roster (no focus)", () => {
+  test("unset restores the full 14-agent roster (no focus)", () => {
     delete process.env[KEY]
-    expect(new WebProvider().agentSpecs().length).toBe(12)
+    expect(new WebProvider().agentSpecs().length).toBe(14)
   })
 })

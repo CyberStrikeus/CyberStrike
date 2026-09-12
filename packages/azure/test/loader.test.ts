@@ -36,7 +36,7 @@ describe("azure package integrates through the real loader registration path", (
     const azureAgents = specs.filter((s) => azure!.agentSpecs().some((a) => a.name === s.name))
     expect(azureAgents.length).toBe(13)
     // web is still there too (both domains coexist)
-    expect(specs.some((s) => s.name === "hunt-agent")).toBe(true)
+    expect(specs.some((s) => s.name === "wstg-agent")).toBe(true)
   })
 
   test("health reports the azure domain with its agents", async () => {

@@ -34,10 +34,10 @@ describe("providerHealth", () => {
     const web = report.domains.find((d) => d.domain === "web")
     expect(web).toBeDefined()
     expect(web!.loaded).toBe(true)
-    expect(web!.agents).toBe(12)
+    expect(web!.agents).toBe(14)
     expect(web!.byRole.orchestrator).toBe(1)
     expect(web!.byRole.analyzer).toBe(1)
-    expect(web!.byRole.specialist).toBe(10)
+    expect(web!.byRole.specialist).toBe(12)
     // web agents call tools (http_replay, web_get_session_context, ...) — non-zero
     expect(web!.tools).toBeGreaterThan(0)
     expect(web!.ruleCount).toBeGreaterThan(0)
@@ -47,7 +47,7 @@ describe("providerHealth", () => {
     const report = await providerHealth()
     // web is the only built-in now (azure ships as a package); it must load clean.
     expect(report.loadErrors.filter((e) => e.domain === "web")).toEqual([])
-    expect(report.totalAgents).toBeGreaterThanOrEqual(12) // web contributes 12 (default roster, flags off)
+    expect(report.totalAgents).toBeGreaterThanOrEqual(14) // web contributes 14 (wstg-* roster, no flags)
   })
 
   test("a broken provider shows as loaded:false with its error, ok=false", async () => {
@@ -65,9 +65,9 @@ describe("providerHealth", () => {
   })
 
   test("cross-domain agent-name collision is reported (not thrown)", async () => {
-    registerProvider("twin", () => fakeProvider("twin", [{ name: "hunt-agent" }]))
+    registerProvider("twin", () => fakeProvider("twin", [{ name: "wstg-agent" }]))
     const report = await providerHealth()
-    const collision = report.collisions.find((c) => c.agent === "hunt-agent")
+    const collision = report.collisions.find((c) => c.agent === "wstg-agent")
     expect(collision).toBeDefined()
     expect(collision!.domains).toContain("web")
     expect(collision!.domains).toContain("twin")
@@ -96,6 +96,6 @@ describe("providerHealth", () => {
     const report = await providerHealth()
     const text = formatHealthReport(report)
     expect(text).toContain("Domains:")
-    expect(text).toMatch(/✓ web — 12 agents/)
+    expect(text).toMatch(/✓ web — 14 agents/)
   })
 })

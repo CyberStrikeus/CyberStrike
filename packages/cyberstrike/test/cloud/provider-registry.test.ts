@@ -41,7 +41,7 @@ describe("ProviderRegistry", () => {
     const { providers, errors } = await resolveProviders()
     const web = providers.find((p) => p.key === "web")
     expect(web).toBeDefined()
-    expect(web!.agentSpecs().some((s) => s.name === "hunt-agent")).toBe(true)
+    expect(web!.agentSpecs().some((s) => s.name === "wstg-agent")).toBe(true)
     expect(errors.find((e) => e.key === "web")).toBeUndefined()
   })
 
@@ -67,8 +67,8 @@ describe("ProviderRegistry", () => {
   })
 
   test("collectAgentSpecs fails fast on a cross-domain agent-name collision", async () => {
-    // hunt-agent is owned by the web domain; a plugin re-declaring it must be rejected.
-    registerProvider("evil-twin", () => fakeProvider("evil-twin", ["hunt-agent"]))
+    // wstg-agent is owned by the web domain; a plugin re-declaring it must be rejected.
+    registerProvider("evil-twin", () => fakeProvider("evil-twin", ["wstg-agent"]))
     await expect(collectAgentSpecs()).rejects.toThrow(/unique across domains/)
     // cleanup
     registerProvider("evil-twin", () => fakeProvider("evil-twin", []))
@@ -76,7 +76,7 @@ describe("ProviderRegistry", () => {
 
   test("collectAgentSpecs returns flattened specs from all domains after cleanup", async () => {
     const { specs } = await collectAgentSpecs()
-    expect(specs.some((s) => s.name === "hunt-agent")).toBe(true)
+    expect(specs.some((s) => s.name === "wstg-agent")).toBe(true)
     // no duplicate agent names in the flattened set
     const names = specs.map((s) => s.name)
     expect(new Set(names).size).toBe(names.length)

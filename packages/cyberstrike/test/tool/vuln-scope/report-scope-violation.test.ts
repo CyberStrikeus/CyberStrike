@@ -11,88 +11,88 @@ describe("reportScopeViolation", () => {
       expect(reportScopeViolation("cyberstrike", "sqli", "SQL Injection")).toBeNull()
     })
 
-    test("hunt-agent agent", () => {
-      expect(reportScopeViolation("hunt-agent", "xss", "XSS attack")).toBeNull()
+    test("wstg-agent orchestrator", () => {
+      expect(reportScopeViolation("wstg-agent", "xss", "XSS attack")).toBeNull()
     })
   })
 
   describe("in-scope category + matching title — null", () => {
-    test("injection tester, sqli category, sqli title", () => {
-      expect(reportScopeViolation("hunt-injection", "sqli", "SQL Injection in search")).toBeNull()
+    test("input-validation tester, sqli category, sqli title", () => {
+      expect(reportScopeViolation("wstg-input-validation", "sqli", "SQL Injection in search")).toBeNull()
     })
 
-    test("idor tester, idor category, idor title", () => {
-      expect(reportScopeViolation("hunt-idor", "idor", "IDOR in user endpoint")).toBeNull()
+    test("authorization tester, idor category, idor title", () => {
+      expect(reportScopeViolation("wstg-authorization", "idor", "IDOR in user endpoint")).toBeNull()
     })
 
-    test("ssrf tester, ssrf category, ssrf title", () => {
-      expect(reportScopeViolation("hunt-ssrf", "ssrf", "SSRF via webhook")).toBeNull()
+    test("input-validation tester, ssrf category, ssrf title", () => {
+      expect(reportScopeViolation("wstg-input-validation", "ssrf", "SSRF via webhook")).toBeNull()
     })
   })
 
   describe("out-of-scope category — violation returned", () => {
-    test("injection tester with idor category", () => {
-      const result = reportScopeViolation("hunt-injection", "idor", "IDOR in profile")
+    test("input-validation tester with idor category", () => {
+      const result = reportScopeViolation("wstg-input-validation", "idor", "IDOR in profile")
       expect(result).not.toBeNull()
-      expect(result!.cls).toBe("injection")
+      expect(result!.cls).toBe("input-validation")
     })
 
-    test("idor tester with sqli category", () => {
-      const result = reportScopeViolation("hunt-idor", "sqli", "SQL Injection")
+    test("authorization tester with sqli category", () => {
+      const result = reportScopeViolation("wstg-authorization", "sqli", "SQL Injection")
       expect(result).not.toBeNull()
-      expect(result!.cls).toBe("idor")
+      expect(result!.cls).toBe("authorization")
     })
   })
 
   describe("anti-spoof: in-scope category but title reveals different class", () => {
-    test("injection tester claims sqli but title says IDOR", () => {
-      const result = reportScopeViolation("hunt-injection", "sqli", "IDOR in user profile endpoint")
+    test("input-validation tester claims sqli but title says IDOR", () => {
+      const result = reportScopeViolation("wstg-input-validation", "sqli", "IDOR in user profile endpoint")
       expect(result).not.toBeNull()
-      expect(result!.cls).toBe("injection")
+      expect(result!.cls).toBe("input-validation")
     })
 
-    test("idor tester claims bola but title says SQL Injection", () => {
-      const result = reportScopeViolation("hunt-idor", "bola", "SQL Injection in search parameter")
+    test("authorization tester claims bola but title says SQL Injection", () => {
+      const result = reportScopeViolation("wstg-authorization", "bola", "SQL Injection in search parameter")
       expect(result).not.toBeNull()
-      expect(result!.cls).toBe("idor")
+      expect(result!.cls).toBe("authorization")
     })
 
-    test("authn tester claims session but title says path traversal", () => {
-      const result = reportScopeViolation("hunt-authn", "session", "Path Traversal in file download")
+    test("authentication tester claims session but title says path traversal", () => {
+      const result = reportScopeViolation("wstg-authentication", "session", "Path Traversal in file download")
       expect(result).not.toBeNull()
-      expect(result!.cls).toBe("authn")
+      expect(result!.cls).toBe("authentication")
     })
   })
 
   describe("unclassifiable title — no anti-spoof rejection", () => {
-    test("injection tester with in-scope category and generic title", () => {
-      expect(reportScopeViolation("hunt-injection", "sqli", "Security issue in endpoint")).toBeNull()
+    test("input-validation tester with in-scope category and generic title", () => {
+      expect(reportScopeViolation("wstg-input-validation", "sqli", "Security issue in endpoint")).toBeNull()
     })
 
-    test("idor tester with in-scope category and generic title", () => {
-      expect(reportScopeViolation("hunt-idor", "idor", "Vulnerable endpoint found")).toBeNull()
+    test("authorization tester with in-scope category and generic title", () => {
+      expect(reportScopeViolation("wstg-authorization", "idor", "Vulnerable endpoint found")).toBeNull()
     })
   })
 
   describe("no explicit category — title-only inference", () => {
-    test("injection tester, no category, injection title — null", () => {
-      expect(reportScopeViolation("hunt-injection", undefined, "SQL Injection in login")).toBeNull()
+    test("input-validation tester, no category, injection title — null", () => {
+      expect(reportScopeViolation("wstg-input-validation", undefined, "SQL Injection in login")).toBeNull()
     })
 
-    test("injection tester, no category, idor title — violation", () => {
-      const result = reportScopeViolation("hunt-injection", undefined, "IDOR in user profile")
+    test("input-validation tester, no category, idor title — violation", () => {
+      const result = reportScopeViolation("wstg-input-validation", undefined, "IDOR in user profile")
       expect(result).not.toBeNull()
-      expect(result!.cls).toBe("injection")
+      expect(result!.cls).toBe("input-validation")
     })
 
-    test("injection tester, no category, generic title — null", () => {
-      expect(reportScopeViolation("hunt-injection", undefined, "Found a security issue")).toBeNull()
+    test("input-validation tester, no category, generic title — null", () => {
+      expect(reportScopeViolation("wstg-input-validation", undefined, "Found a security issue")).toBeNull()
     })
   })
 
   describe("unknown tester class — null", () => {
-    test("hunt-nonexistent", () => {
-      expect(reportScopeViolation("hunt-nonexistent", "sqli", "SQL Injection")).toBeNull()
+    test("wstg-nonexistent", () => {
+      expect(reportScopeViolation("wstg-nonexistent", "sqli", "SQL Injection")).toBeNull()
     })
   })
 })

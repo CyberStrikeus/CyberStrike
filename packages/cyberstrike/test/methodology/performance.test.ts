@@ -84,7 +84,7 @@ describe("AgentPerformance — CRUD", () => {
       fn: async () => {
         const session = await Session.create({})
 
-        const stats = AgentPerformance.getOrCreate(session.id, "hunt-agent")
+        const stats = AgentPerformance.getOrCreate(session.id, "wstg-agent")
         expect(stats.missionsCompleted).toBe(0)
         expect(stats.morale).toBe(70)
         expect(stats.performanceScore).toBe(0)
@@ -117,14 +117,14 @@ describe("AgentPerformance — CRUD", () => {
       fn: async () => {
         const session = await Session.create({})
 
-        AgentPerformance.recordMission(session.id, "hunt-agent", {
+        AgentPerformance.recordMission(session.id, "wstg-agent", {
           success: true,
           findingsReported: 2,
           chainsContributed: 1,
           coverageContributed: 10,
         })
 
-        const stats = AgentPerformance.getOrCreate(session.id, "hunt-agent")
+        const stats = AgentPerformance.getOrCreate(session.id, "wstg-agent")
         expect(stats.missionsCompleted).toBe(1)
         expect(stats.findingsReported).toBe(2)
         expect(stats.chainsContributed).toBe(1)
@@ -162,7 +162,7 @@ describe("AgentPerformance — Prompt Addendum", () => {
       fn: async () => {
         const session = await Session.create({})
 
-        const addendum = AgentPerformance.getPromptAddendum(session.id, "hunt-agent")
+        const addendum = AgentPerformance.getPromptAddendum(session.id, "wstg-agent")
         expect(typeof addendum).toBe("string")
         expect(addendum).toContain("INTERCEPTOR")
         expect(addendum).toContain("methodical")
@@ -204,15 +204,15 @@ describe("AgentPerformance — Agent Selection", () => {
     })
   })
 
-  test("selects hunt-agent for exploit-related missions", async () => {
+  test("selects wstg-agent for exploit-related missions", async () => {
     await Instance.provide({
       directory: projectRoot,
       fn: async () => {
         const session = await Session.create({})
 
         const selection = AgentPerformance.selectAgentForMission(session.id, "exploit development and OWASP coverage")
-        // hunt-agent has "exploit development" and "OWASP coverage" in strengths
-        expect(selection.agent).toBe("hunt-agent")
+        // wstg-agent has "exploit development" and "OWASP coverage" in strengths
+        expect(selection.agent).toBe("wstg-agent")
         expect(selection.reason).toContain("strength match")
 
         await Session.remove(session.id)
@@ -237,7 +237,7 @@ describe("AgentPerformance — Agent Selection", () => {
 
 describe("AgentPerformance — getAgentMeta", () => {
   test("returns meta for known agent", () => {
-    const meta = AgentPerformance.getAgentMeta("hunt-agent")
+    const meta = AgentPerformance.getAgentMeta("wstg-agent")
     expect(meta).toBeDefined()
     expect(meta!.codename).toBe("INTERCEPTOR")
     expect(meta!.archetype).toBe("methodical")
@@ -251,7 +251,7 @@ describe("AgentPerformance — getAgentMeta", () => {
 
   test("allAgentNames returns all registered agents", () => {
     const names = AgentPerformance.allAgentNames()
-    expect(names).toContain("hunt-agent")
+    expect(names).toContain("wstg-agent")
     expect(names).toContain("cloud-security")
     expect(names).toContain("explore")
     expect(names).toContain("cyberstrike")
@@ -277,7 +277,7 @@ describe("AgentPerformance — selectAgentsForPhase", () => {
     })
   })
 
-  test("returns hunt-agent as primary for authentication_testing", async () => {
+  test("returns wstg-agent as primary for authentication_testing", async () => {
     await Instance.provide({
       directory: projectRoot,
       fn: async () => {
@@ -285,7 +285,7 @@ describe("AgentPerformance — selectAgentsForPhase", () => {
 
         const agents = AgentPerformance.selectAgentsForPhase(session.id, "authentication_testing")
         expect(agents.length).toBe(1)
-        expect(agents[0].name).toBe("hunt-agent")
+        expect(agents[0].name).toBe("wstg-agent")
         expect(agents[0].role).toBe("primary")
 
         await Session.remove(session.id)
@@ -313,7 +313,7 @@ describe("AgentPerformance — selectAgentsForPhase", () => {
       fn: async () => {
         const session = await Session.create({})
 
-        // active_recon has both explore and hunt-agent
+        // active_recon has both explore and wstg-agent
         const agents = AgentPerformance.selectAgentsForPhase(session.id, "active_recon")
         expect(agents.length).toBe(2)
         expect(agents[0].role).toBe("primary")

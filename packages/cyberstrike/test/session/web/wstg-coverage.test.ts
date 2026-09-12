@@ -97,10 +97,10 @@ describe("WSTG Coverage Map — agent cross-reference", () => {
     }
   })
 
-  test("deferred entries reference 'client-side' agent (P2)", () => {
+  test("deferred entries reference 'wstg-client-side' agent (P2)", () => {
     const deferred = WSTG_COVERAGE.filter((c) => c.status === "deferred")
     for (const c of deferred) {
-      expect(c.agent).toBe("client-side")
+      expect(c.agent).toBe("wstg-client-side")
       expect(c.mechanism).toContain("P2")
     }
   })
@@ -144,17 +144,18 @@ describe("WSTG Coverage Map — coverage statistics", () => {
 })
 
 describe("WSTG Coverage Map — agent load distribution", () => {
-  test("every specialist agent owns at least one test (LLM excluded — not in WSTG)", async () => {
+  test("every specialist agent owns at least one test (extension-only agents excluded)", async () => {
     const provider = new WebProvider()
-    const specialists = provider.agentSpecs().filter((s) => s.role === "specialist" && s.name !== "hunt-llm")
+    const excluded = new Set(["wstg-llm", "wstg-info-gathering", "wstg-identity-mgmt"])
+    const specialists = provider.agentSpecs().filter((s) => s.role === "specialist" && !excluded.has(s.name))
     const coverageAgents = new Set(WSTG_COVERAGE.map((c) => c.agent))
     for (const s of specialists) {
       expect(coverageAgents.has(s.name)).toBe(true)
     }
   })
 
-  test("hunt-llm is extension-only (no WSTG mapping)", () => {
-    const llmEntries = WSTG_COVERAGE.filter((c) => c.agent === "hunt-llm")
+  test("wstg-llm is extension-only (no WSTG mapping)", () => {
+    const llmEntries = WSTG_COVERAGE.filter((c) => c.agent === "wstg-llm")
     expect(llmEntries.length).toBe(0)
   })
 
@@ -168,44 +169,48 @@ describe("WSTG Coverage Map — agent load distribution", () => {
     }
   })
 
-  test("injection agent covers all INPV injection tests (01-14, 18)", () => {
-    const injectionTests = WSTG_COVERAGE.filter(
-      (c) => c.agent === "hunt-injection" && c.id.startsWith("WSTG-INPV")
+  test("input-validation agent covers all INPV tests except INPV-03 (01-02, 04-19)", () => {
+    const inpvTests = WSTG_COVERAGE.filter(
+      (c) => c.agent === "wstg-input-validation" && c.id.startsWith("WSTG-INPV")
     )
-    const nums = injectionTests.map((c) => parseInt(c.id.split("-")[2]!, 10))
-    for (const n of [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 18]) {
+    const nums = inpvTests.map((c) => parseInt(c.id.split("-")[2]!, 10))
+    for (const n of [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]) {
       expect(nums).toContain(n)
     }
   })
 
-  test("ssrf agent covers INPV 15-17, 19", () => {
-    const ssrfTests = WSTG_COVERAGE.filter(
-      (c) => c.agent === "hunt-ssrf" && c.id.startsWith("WSTG-INPV")
-    )
-    const nums = ssrfTests.map((c) => parseInt(c.id.split("-")[2]!, 10))
-    for (const n of [15, 16, 17, 19]) {
-      expect(nums).toContain(n)
-    }
-  })
-
-  test("misconfig agent owns all CONF tests", () => {
+  test("config-deploy agent owns all CONF tests", () => {
     const confTests = WSTG_COVERAGE.filter((c) => c.id.startsWith("WSTG-CONF"))
     for (const c of confTests) {
-      expect(c.agent).toBe("hunt-misconfig")
+      expect(c.agent).toBe("wstg-config-deploy")
     }
   })
 
-  test("authn agent owns all ATHN tests", () => {
+  test("authentication agent owns all ATHN tests", () => {
     const athnTests = WSTG_COVERAGE.filter((c) => c.id.startsWith("WSTG-ATHN"))
     for (const c of athnTests) {
-      expect(c.agent).toBe("hunt-authn")
+      expect(c.agent).toBe("wstg-authentication")
     }
   })
 
-  test("authn agent owns all SESS tests", () => {
+  test("session-mgmt agent owns all SESS tests", () => {
     const sessTests = WSTG_COVERAGE.filter((c) => c.id.startsWith("WSTG-SESS"))
     for (const c of sessTests) {
-      expect(c.agent).toBe("hunt-authn")
+      expect(c.agent).toBe("wstg-session-mgmt")
+    }
+  })
+
+  test("error-handling agent owns all ERRH tests", () => {
+    const errhTests = WSTG_COVERAGE.filter((c) => c.id.startsWith("WSTG-ERRH"))
+    for (const c of errhTests) {
+      expect(c.agent).toBe("wstg-error-handling")
+    }
+  })
+
+  test("cryptography agent owns all CRYP tests", () => {
+    const crypTests = WSTG_COVERAGE.filter((c) => c.id.startsWith("WSTG-CRYP"))
+    for (const c of crypTests) {
+      expect(c.agent).toBe("wstg-cryptography")
     }
   })
 })

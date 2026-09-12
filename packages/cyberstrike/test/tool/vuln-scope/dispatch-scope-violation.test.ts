@@ -11,72 +11,72 @@ describe("dispatchScopeViolation", () => {
       expect(dispatchScopeViolation("cyberstrike", "test for XSS")).toBeNull()
     })
 
-    test("hunt-agent subagent", () => {
-      expect(dispatchScopeViolation("hunt-agent", "test IDOR")).toBeNull()
+    test("wstg-agent subagent", () => {
+      expect(dispatchScopeViolation("wstg-agent", "test IDOR")).toBeNull()
     })
   })
 
   describe("correct dispatch — null", () => {
-    test("injection tester dispatched for sqli objective", () => {
-      expect(dispatchScopeViolation("hunt-injection", "Test for SQL injection in search")).toBeNull()
+    test("input-validation tester dispatched for sqli objective", () => {
+      expect(dispatchScopeViolation("wstg-input-validation", "Test for SQL injection in search")).toBeNull()
     })
 
-    test("idor tester dispatched for idor objective", () => {
-      expect(dispatchScopeViolation("hunt-idor", "Check IDOR in user endpoint")).toBeNull()
+    test("authorization tester dispatched for idor objective", () => {
+      expect(dispatchScopeViolation("wstg-authorization", "Check IDOR in user endpoint")).toBeNull()
     })
 
-    test("ssrf tester dispatched for ssrf objective", () => {
-      expect(dispatchScopeViolation("hunt-ssrf", "Test SSRF via webhook URL")).toBeNull()
+    test("input-validation tester dispatched for ssrf objective", () => {
+      expect(dispatchScopeViolation("wstg-input-validation", "Test SSRF via webhook URL")).toBeNull()
     })
 
-    test("authn tester dispatched for auth objective", () => {
-      expect(dispatchScopeViolation("hunt-authn", "Test brute force on login")).toBeNull()
+    test("authentication tester dispatched for auth objective", () => {
+      expect(dispatchScopeViolation("wstg-authentication", "Test brute force on login")).toBeNull()
     })
   })
 
   describe("wrong dispatch — returns violation", () => {
-    test("injection tester dispatched for idor objective", () => {
-      const result = dispatchScopeViolation("hunt-injection", "Check for IDOR in /api/users")
+    test("input-validation tester dispatched for idor objective", () => {
+      const result = dispatchScopeViolation("wstg-input-validation", "Check for IDOR in /api/users")
       expect(result).not.toBeNull()
-      expect(result!.cls).toBe("injection")
-      expect(result!.inferred).toBe("idor")
+      expect(result!.cls).toBe("input-validation")
+      expect(result!.inferred).toBe("authorization")
     })
 
-    test("idor tester dispatched for sqli objective", () => {
-      const result = dispatchScopeViolation("hunt-idor", "Test SQL injection in search")
+    test("authorization tester dispatched for sqli objective", () => {
+      const result = dispatchScopeViolation("wstg-authorization", "Test SQL injection in search")
       expect(result).not.toBeNull()
-      expect(result!.cls).toBe("idor")
-      expect(result!.inferred).toBe("injection")
+      expect(result!.cls).toBe("authorization")
+      expect(result!.inferred).toBe("input-validation")
     })
 
-    test("authn tester dispatched for path traversal objective", () => {
-      const result = dispatchScopeViolation("hunt-authn", "Test Path Traversal in file download")
+    test("authentication tester dispatched for path traversal objective", () => {
+      const result = dispatchScopeViolation("wstg-authentication", "Test Path Traversal in file download")
       expect(result).not.toBeNull()
-      expect(result!.cls).toBe("authn")
-      expect(result!.inferred).toBe("file-attacks")
+      expect(result!.cls).toBe("authentication")
+      expect(result!.inferred).toBe("input-validation")
     })
 
     test("business-logic tester dispatched for ssrf objective", () => {
-      const result = dispatchScopeViolation("hunt-business-logic", "Test SSRF via URL param")
+      const result = dispatchScopeViolation("wstg-business-logic", "Test SSRF via URL param")
       expect(result).not.toBeNull()
       expect(result!.cls).toBe("business-logic")
-      expect(result!.inferred).toBe("ssrf")
+      expect(result!.inferred).toBe("input-validation")
     })
   })
 
   describe("ambiguous objective — conservative null", () => {
     test("generic objective that cannot be classified", () => {
-      expect(dispatchScopeViolation("hunt-injection", "Test the security of this endpoint")).toBeNull()
+      expect(dispatchScopeViolation("wstg-input-validation", "Test the security of this endpoint")).toBeNull()
     })
 
     test("empty objective", () => {
-      expect(dispatchScopeViolation("hunt-injection", "")).toBeNull()
+      expect(dispatchScopeViolation("wstg-input-validation", "")).toBeNull()
     })
   })
 
   describe("unknown tester class — null", () => {
-    test("hunt-nonexistent", () => {
-      expect(dispatchScopeViolation("hunt-nonexistent", "Test SQL injection")).toBeNull()
+    test("wstg-nonexistent", () => {
+      expect(dispatchScopeViolation("wstg-nonexistent", "Test SQL injection")).toBeNull()
     })
   })
 })
