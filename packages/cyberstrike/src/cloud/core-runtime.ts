@@ -20,6 +20,7 @@ import { triageGuide, triageActions, VulnStatus, isActionable, isExcluded } from
 import { Session } from "../session"
 import { Vulnerability } from "../session/vulnerability"
 import { buildWebKit, type WebKit } from "./web-kit"
+import { registerVortexExtractor } from "../session/web/vortex-bridge"
 
 export interface CoreRuntime {
   CORE_API_VERSION: string
@@ -41,6 +42,11 @@ export interface CoreRuntime {
   // own tools (the "Lego" surface). `web` ships the HTTP replay / signal fabric
   // blocks; new kits (e.g. `cloud`) are added in later core versions.
   web: WebKit
+  // Register a Vortex plugin (rules + imperative onTransaction extractors) onto the shared web
+  // ingest registry — the seam an Enterprise add-on (e.g. @cyberstrike-io/jsmine via
+  // @cyberstrike-io/enterprise-vortex) uses to wire JS mining into ingest without the host importing
+  // it. Added in core API 1.3.0.
+  registerVortexExtractor: typeof registerVortexExtractor
 }
 
 /** Build the runtime bundle the host injects into every plugin's `input.core`. */
@@ -62,5 +68,6 @@ export function buildCoreRuntime(): CoreRuntime {
     isActionable,
     isExcluded,
     web: buildWebKit(),
+    registerVortexExtractor,
   }
 }
