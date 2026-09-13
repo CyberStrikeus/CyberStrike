@@ -79,8 +79,18 @@ export async function mineDiscoveredJs(
     const abs = resolve(next.value, opts.baseUrl)
     const party = classifyScript(next.value.startsWith("http") ? next.value : abs, seedHost)
     if (party !== "first-party") {
+      // CDN / third-party bundle: never mined (secrets/endpoints in a vendor bundle are noise), and
+      // its body is not stored. But the version lives in the URL, so record a body-less reference
+      // transaction — the version→CVE rules read `req.url` and flag an outdated/vulnerable library
+      // (info/low vulnerable-component) on the next scan, without fetching the vendor body.
       skipped.push(abs)
-      store.addDiscovered([{ ...next, hit: true }]) // mark seen; leave tech detection to core rules
+      store.add({
+        id: `cdnref:${abs}`,
+        source: "browser",
+        host: hostOf(abs) ?? seedHost ?? "",
+        request: { method: "GET", url: abs, headers: [] },
+      })
+      store.addDiscovered([{ ...next, hit: true }])
       continue
     }
 

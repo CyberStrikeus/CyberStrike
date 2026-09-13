@@ -26,14 +26,16 @@ const MAIN_JS =
 // Lazy chunk discovered from the main bundle — another endpoint + another secret.
 const LAZY_JS = `(()=>{fetch("/api/admin/config");var g="${GOOGLE}";})();`
 
-// CDN/vendor bundle — MUST NOT be mined (its "endpoint" must never surface).
-const CDN_JS = `/*! vue v3 */ (function(){fetch("/should/NOT/be/mined")})();`
+// CDN/vendor bundle — an OUTDATED jQuery. MUST NOT be mined (its "endpoint" must never surface),
+// but its version (in the URL) must be flagged as an outdated vulnerable component.
+const CDN_URL = "https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js"
+const CDN_JS = `/*! jQuery 3.4.1 */ (function(){fetch("/should/NOT/be/mined")})();`
 
 const ORIGIN = "https://app.test"
 function serve(url: string): string {
   if (url === `${ORIGIN}/static/js/main.abc123.js`) return MAIN_JS
   if (url === `${ORIGIN}/static/js/settings.def456.js`) return LAZY_JS
-  if (url === "https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js") return CDN_JS
+  if (url === CDN_URL) return CDN_JS
   return ""
 }
 function fakeSender(): { send: Sender; hits: string[] } {
@@ -69,13 +71,13 @@ describe("advanced scenario — does the engine catch the target end-to-end?", (
       response: {
         status: 200,
         headers: [["server", "nginx"], ["x-powered-by", "Express"]].map(([name, value]) => ({ name, value })),
-        body: `<!doctype html><html><body><div id="app"></div><script src="/static/js/main.abc123.js"></script><script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script></body></html>`,
+        body: `<!doctype html><html><body><div id="app"></div><script src="/static/js/main.abc123.js"></script><script src="${CDN_URL}"></script></body></html>`,
       },
     }
     store.add(page)
     store.addDiscovered([
       { id: discoveredId("js", "/static/js/main.abc123.js"), kind: "js", value: "/static/js/main.abc123.js", hit: false },
-      { id: discoveredId("js", "https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"), kind: "js", value: "https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js", hit: false },
+      { id: discoveredId("js", CDN_URL), kind: "js", value: CDN_URL, hit: false },
     ])
 
     // 2) The recursive JS-mining pass: fetch first-party bundles, mine, follow new first-party JS.
@@ -90,8 +92,8 @@ describe("advanced scenario — does the engine catch the target end-to-end?", (
         `${ORIGIN}/static/js/main.abc123.js.map`, // source map is discovered + followed (exposes originals)
       ]),
     )
-    expect(res.skipped).toContain("https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js")
-    expect(hits).not.toContain("https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js") // CDN never fetched
+    expect(res.skipped).toContain(CDN_URL)
+    expect(hits).not.toContain(CDN_URL) // CDN never fetched (body never stored)
 
     // --- endpoints caught (resolved to absolute) ---
     const eps = store.discovered("endpoint").map((d) => d.value)
@@ -125,6 +127,16 @@ describe("advanced scenario — does the engine catch the target end-to-end?", (
     expect(techSigs).toContain("tech-ws-nginx") // Server header
     expect(techSigs).toContain("tech-lang-nodejs") // X-Powered-By: Express
     expect(techSigs).toContain("tech-express") // Express framework banner
+
+    // --- CDN skipped from MINING but still flagged as an outdated vulnerable component ---
+    // The skipped CDN bundle left a body-less reference tx (req.url only); the version→CVE rule reads
+    // req.url and reports the outdated jQuery as an info/low-severity vulnerable-component — exactly
+    // what should be reported for a stale vendor lib, without ever mining or storing its body.
+    const allSigs = scan(store, registry)
+    const jqCve = allSigs.find((s) => s.ruleId === "jquery-xss-cve-2020-11022")
+    expect(jqCve).toBeDefined()
+    expect(jqCve?.severity).toBe("low")
+    expect(jqCve?.category).toBe("vulnerable-component")
   })
 
   test("ingest-path parity: the plugin hook mines a JS tx via extract()", () => {
