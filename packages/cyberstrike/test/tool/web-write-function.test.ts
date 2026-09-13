@@ -9,7 +9,7 @@ const ctxFor = (sessionID: string) => ({
   sessionID,
   messageID: "",
   callID: "",
-  agent: "wstg-analyzer",
+  agent: "wstg-agent",
   abort: AbortSignal.any([]),
   messages: [],
   metadata: () => {},

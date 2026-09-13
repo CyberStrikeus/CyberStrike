@@ -13,15 +13,14 @@ describe("WebProvider", () => {
     expect(new WebProvider().key).toBe("web")
   })
 
-  test("agentSpecs returns 14 agents", () => {
-    expect(new WebProvider().agentSpecs().length).toBe(14)
+  test("agentSpecs returns 13 agents", () => {
+    expect(new WebProvider().agentSpecs().length).toBe(13)
   })
 
   test("agent names match expected set", () => {
     const names = new WebProvider().agentSpecs().map((s) => s.name).sort()
     expect(names).toEqual([
       "wstg-agent",
-      "wstg-analyzer",
       "wstg-authentication",
       "wstg-authorization",
       "wstg-business-logic",
@@ -42,13 +41,6 @@ describe("WebProvider", () => {
     expect(orch.hidden).toBe(false)
     expect(orch.role).toBe("orchestrator")
     expect(orch.steps).toBe(40)
-  })
-
-  test("analyzer uses small model", () => {
-    const analyzer = new WebProvider().agentSpecs().find((s) => s.name === "wstg-analyzer")!
-    expect(analyzer.useSmallModel).toBe(true)
-    expect(analyzer.role).toBe("analyzer")
-    expect(analyzer.prependRequestContext).toBe(true)
   })
 
   test("all specialists have prependRequestContext", () => {
@@ -208,13 +200,12 @@ describe("orchestrator signal-routing table (rendered from code)", () => {
 })
 
 describe("orchestrator agent roster (rendered from code)", () => {
-  test("renderRoster lists analyzer + every specialist from their own description", () => {
+  test("renderRoster lists every specialist from their own description", () => {
     const specs = new WebProvider().agentSpecs()
     const roster = renderRoster(specs)
-    expect(roster).toContain("### Architecture Analysis")
     expect(roster).toContain("### Vulnerability Testing Agents")
     for (const s of specs) {
-      if (s.role === "analyzer" || s.role === "specialist") {
+      if (s.role === "specialist") {
         expect(roster).toContain(`- **${s.name}**: ${s.description}`)
       }
     }
@@ -224,7 +215,7 @@ describe("orchestrator agent roster (rendered from code)", () => {
   test("composed orchestrator prompt has the roster injected, no placeholder left", () => {
     const orch = new WebProvider().agentSpecs().find((s) => s.name === "wstg-agent")!
     expect(orch.prompt).not.toContain(AGENT_ROSTER_PLACEHOLDER)
-    expect(orch.prompt).toContain("### Architecture Analysis")
+    expect(orch.prompt).toContain("### Vulnerability Testing Agents")
     expect(orch.prompt).toContain("- **wstg-input-validation**:")
     expect(orch.prompt).toContain("- **wstg-config-deploy**:")
   })
@@ -246,10 +237,10 @@ describe("WebProvider — CYBERSTRIKE_WEB_FOCUS (debug focus mode)", () => {
     else process.env[KEY] = saved
   })
 
-  test("focus reduces the roster to orchestrator + analyzer + named specialists", () => {
+  test("focus reduces the roster to orchestrator + named specialists", () => {
     process.env[KEY] = "input-validation,authorization"
     const names = new WebProvider().agentSpecs().map((s) => s.name).sort()
-    expect(names).toEqual(["wstg-agent", "wstg-analyzer", "wstg-authorization", "wstg-input-validation"])
+    expect(names).toEqual(["wstg-agent", "wstg-authorization", "wstg-input-validation"])
   })
 
   test("the wstg- prefix is optional and other specialists are dropped", () => {
@@ -257,13 +248,12 @@ describe("WebProvider — CYBERSTRIKE_WEB_FOCUS (debug focus mode)", () => {
     const names = new WebProvider().agentSpecs().map((s) => s.name)
     expect(names).toContain("wstg-authorization")
     expect(names).toContain("wstg-agent")
-    expect(names).toContain("wstg-analyzer")
     expect(names).not.toContain("wstg-input-validation")
     expect(names).not.toContain("wstg-config-deploy")
   })
 
-  test("unset restores the full 14-agent roster (no focus)", () => {
+  test("unset restores the full 13-agent roster (no focus)", () => {
     delete process.env[KEY]
-    expect(new WebProvider().agentSpecs().length).toBe(14)
+    expect(new WebProvider().agentSpecs().length).toBe(13)
   })
 })
