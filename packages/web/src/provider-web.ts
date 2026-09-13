@@ -19,11 +19,9 @@ import type { AgentSpec, DomainProvider, PermissionRule } from "@cyberstrike-io/
 import PROMPT_VULN_COMMON from "./prompts/vuln/common-prompt.txt"
 import PROMPT_METHODOLOGY_COMMON from "./prompts/methodology/common-methodology.txt"
 
-// ── Orchestrator + Analyzer ──
+// ── Orchestrator ──
 import PROMPT_WSTG_AGENT from "./prompts/orchestrator/wstg-agent/prompt.txt"
 import DESC_WSTG_AGENT from "./prompts/orchestrator/wstg-agent/description.txt"
-import PROMPT_WSTG_ANALYZER from "./prompts/analyzer/wstg-analyzer/prompt.txt"
-import DESC_WSTG_ANALYZER from "./prompts/analyzer/wstg-analyzer/description.txt"
 
 // ── WSTG 4.1 Information Gathering ──
 import PROMPT_WSTG_INFO_GATHERING from "./prompts/vuln/wstg-info-gathering/prompt.txt"
@@ -161,12 +159,9 @@ export const SIGNAL_ROUTING_PLACEHOLDER = "{{SIGNAL_ROUTING_TABLE}}"
 export const AGENT_ROSTER_PLACEHOLDER = "{{AGENT_ROSTER}}"
 
 export function renderRoster(specs: ReadonlyArray<{ name: string; role: AgentSpec["role"]; description: string }>): string {
-  const analyzers = specs.filter((s) => s.role === "analyzer")
   const specialists = specs.filter((s) => s.role === "specialist")
   const entry = (s: { name: string; description: string }) => `- **${s.name}**: ${s.description}`
-  const lines: string[] = ["### Architecture Analysis"]
-  for (const s of analyzers) lines.push(entry(s))
-  lines.push("", "### Vulnerability Testing Agents", "")
+  const lines: string[] = ["### Vulnerability Testing Agents", ""]
   lines.push(specialists.map(entry).join("\n\n"))
   return lines.join("\n")
 }
@@ -190,7 +185,7 @@ function injectPlaceholder(agentName: string, prompt: string, token: string, val
 
 // Debug/observation focus mode. Set CYBERSTRIKE_WEB_FOCUS to a comma-separated list of specialist
 // short-names (e.g. "input-validation,authorization") to TEMPORARILY enable only those specialists.
-// The orchestrator (wstg-agent) and analyzer (wstg-analyzer) are always kept.
+// The orchestrator (wstg-agent) is always kept.
 function focusSet(): Set<string> | null {
   const raw = process.env.CYBERSTRIKE_WEB_FOCUS
   if (!raw || !raw.trim()) return null
@@ -272,32 +267,6 @@ function buildSpecDefs(): SpecDef[] {
         scope_check: "allow",
       },
     },
-    {
-      name: "wstg-analyzer",
-      role: "analyzer",
-      prompt: PROMPT_WSTG_ANALYZER,
-      description: DESC_WSTG_ANALYZER,
-      skills: [],
-      steps: 20,
-      hidden: true,
-      useSmallModel: true,
-      prependRequestContext: true,
-      permissions: {
-        "*": "deny",
-        bash: "allow",
-        webfetch: "allow",
-        http_replay: "allow",
-        web_get_session_context: "allow",
-        web_get_detail: "allow",
-        web_get_request_detail: "allow",
-        web_write_role: "allow",
-        web_write_object: "allow",
-        web_write_object_value: "allow",
-        web_write_function: "allow",
-        web_update_credential_claims: "allow",
-      },
-    },
-
     // ── WSTG 4.1 Information Gathering ──
     {
       name: "wstg-info-gathering",
@@ -468,7 +437,7 @@ export class WebProvider implements DomainProvider {
     const focus = focusSet()
     if (focus) {
       const short = (n: string) => n.replace(/^wstg-/, "").toLowerCase()
-      defs = defs.filter((d) => d.role === "orchestrator" || d.role === "analyzer" || focus.has(short(d.name)))
+      defs = defs.filter((d) => d.role === "orchestrator" || focus.has(short(d.name)))
       console.warn(
         `[web-provider] CYBERSTRIKE_WEB_FOCUS active — reduced roster: ${defs.map((d) => d.name).join(", ")}`,
       )
