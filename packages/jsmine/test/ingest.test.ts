@@ -1,0 +1,44 @@
+import { describe, expect, test } from "bun:test"
+import type { Transaction } from "@cyberstrike-io/vortex"
+import { MemoryStore } from "@cyberstrike-io/vortex"
+import { mineInto } from "../src/ingest"
+
+function tx(id: string): Transaction {
+  return { id, source: "browser", host: "app.test", request: { method: "GET", url: "https://app.test/js/app.js", headers: [] }, response: { status: 200, headers: [], body: "" } }
+}
+
+describe("mineInto — mine a JS body into a Vortex store", () => {
+  test("endpoints/jsUrls land in the discovered inventory", () => {
+    const store = new MemoryStore()
+    store.add(tx("a"))
+    const res = mineInto(store, "a", 'fetch("/api/v1/users"); import("/static/x.js")', { baseUrl: "https://app.test/js/app.js" })
+    expect(res.discovered).toBe(2)
+    expect(store.discovered("endpoint").map((d) => d.value)).toContain("https://app.test/api/v1/users")
+    expect(store.discovered("js").map((d) => d.value)).toContain("https://app.test/static/x.js")
+  })
+
+  test("mined secrets become high-severity info-disclosure signals (redacted, deduped)", () => {
+    const store = new MemoryStore()
+    store.add(tx("a"))
+    const body = 'var k="AKIAIOSFODNN7EXAMPLE"; var p="-----BEGIN RSA PRIVATE KEY-----";'
+    const res = mineInto(store, "a", body)
+    expect(res.secrets).toBe(2)
+    const sigs = store.signals({ ruleId: "jsmine-secret" })
+    expect(sigs).toHaveLength(2)
+    const aws = sigs.find((s) => s.title.includes("aws-access-key"))
+    expect(aws?.severity).toBe("high")
+    expect(aws?.category).toBe("info-disclosure")
+    expect(aws?.evidence).toBe("AKIA…(20 chars)") // redacted — no cleartext in the signal layer
+    // re-mining the same body is idempotent (dedupKey carries the full value)
+    expect(mineInto(store, "a", body).secrets).toBe(0)
+    expect(store.signals({ ruleId: "jsmine-secret" })).toHaveLength(2)
+  })
+
+  test("a clean JS body writes nothing", () => {
+    const store = new MemoryStore()
+    store.add(tx("a"))
+    const res = mineInto(store, "a", "function f(a,b){return a+b}")
+    expect(res.discovered).toBe(0)
+    expect(res.secrets).toBe(0)
+  })
+})

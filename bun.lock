@@ -475,6 +475,18 @@
         "cyberstrike",
       ],
     },
+    "packages/jsmine": {
+      "name": "@cyberstrike-io/jsmine",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/vortex": "workspace:*",
+      },
+      "devDependencies": {
+        "@tsconfig/bun": "catalog:",
+        "@types/bun": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "packages/oracle": {
       "name": "@cyberstrike-io/oracle",
       "version": "0.1.0",
@@ -1035,6 +1047,8 @@
     "@cyberstrike-io/hackbrowser": ["@cyberstrike-io/hackbrowser@workspace:packages/hackbrowser"],
 
     "@cyberstrike-io/ios": ["@cyberstrike-io/ios@workspace:packages/ios"],
+
+    "@cyberstrike-io/jsmine": ["@cyberstrike-io/jsmine@workspace:packages/jsmine"],
 
     "@cyberstrike-io/oracle": ["@cyberstrike-io/oracle@workspace:packages/oracle"],
 
