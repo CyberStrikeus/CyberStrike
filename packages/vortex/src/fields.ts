@@ -29,6 +29,7 @@ export function fieldValue(tx: Transaction, field: string): string | number | un
   if (head === "tls") {
     if (parts[1] === "version") return tx.tls?.version
     if (parts[1] === "cipher") return tx.tls?.cipher
+    if (parts[1] === "issuer") return tx.tls?.issuer
     return undefined
   }
   if (head === "raw") return rawRequest(tx) + (tx.response ? "\n\n" + rawResponse(tx) : "") // grep everywhere
