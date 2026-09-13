@@ -3,11 +3,14 @@
 // Vortex engine (rules → signals → subjects → inventory → leads) runs over the live web corpus in
 // parallel with the existing CS signal fabric (verify-first; the fabric retires once Vortex proves
 // out). Never throws — must not break the ingest path.
-import { SqliteStore, defaultRegistry, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type CanaryKind } from "@cyberstrike-io/vortex"
+import { SqliteStore, defaultRegistry, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, subjects, humanName, params, responseFields as txResponseFields, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type CanaryKind } from "@cyberstrike-io/vortex"
 import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
 import { WebRetest } from "./web-retest"
+import { WebObject } from "./web-object"
+import { WebFunction } from "./web-function"
+import { WebRole } from "./web-role"
 import { ownerForSignal, signalPriority, shouldRoute, type VortexSeverity } from "./signal/vortex-route"
 import path from "path"
 
@@ -107,6 +110,7 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
       response: i.response ? { status: i.response.status ?? 0, headers: recordToHeaders(i.response.headers), body: i.response.body } : undefined,
     }
     store.add(tx)
+    bridgeSubjects(i.sessionID, tx, i.requestID)
     const sigs = registry.run(tx) // per-transaction rules on the new tx
     const added = store.addSignals(sigs)
     // Enumerate + persist this request's injection points (issue #9). Cheap, no network — just parse
@@ -141,6 +145,57 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
     // aborts the capture stream.
     log.warn("vortex ingest failed — request absent from Vortex source", { sessionID: i.sessionID, requestID: i.requestID, err: String(e) })
     return { transactions: 0, signals: 0 }
+  }
+}
+
+// Vortex→WebObject/WebFunction/WebRole bridge (Part D): deterministic extraction replaces wstg-analyzer.
+// Runs subjects() on the transaction and writes to the SQLite tables the TUI sidebar, session context,
+// and ingest-summary all read from — so all downstream consumers work without change.
+function bridgeSubjects(sessionID: string, tx: Transaction, requestID: string): void {
+  try {
+    const s = subjects(tx)
+    const p = params(tx)
+    const respFields = txResponseFields(tx)
+    const allReqFields = Object.keys({ ...p.query, ...p.body })
+    const allRespFields = Object.keys(respFields)
+
+    if (s.role) {
+      const existing = WebRole.getByName(sessionID, s.role)
+      if (!existing) WebRole.add({ sessionID, name: s.role, discoveredFrom: "vortex" })
+    }
+
+    const roleObj = s.role ? WebRole.getByName(sessionID, s.role) : undefined
+
+    for (const o of s.objects) {
+      const obj = WebObject.add({
+        sessionID,
+        name: o.resource ?? o.ref,
+        fields: allReqFields.concat(allRespFields),
+        sensitiveFields: allReqFields.concat(allRespFields).filter((f) => /^(password|passwd|pwd|secret|token|api_?key|private_?key|access_?key|ssn|social_?security|credit_?card|card_?number|cvv|cvc|pin|auth|authorization|session|cookie|bearer)/i.test(f.split(".").pop() ?? f)),
+        idFields: allReqFields.concat(allRespFields).filter((f) => /(_id|Id|_uuid|_ref|_key)$|^id$/i.test(f.split(".").pop() ?? f)),
+        discoveredFrom: "vortex",
+      })
+      WebObject.addValue({
+        sessionID,
+        objectID: obj.id,
+        fieldName: o.name ?? "id",
+        value: o.value,
+        credentialID: tx.identity,
+        discoveredFrom: "vortex",
+      })
+    }
+
+    const funcName = humanName(s.function.method, s.function.endpoint)
+    WebFunction.add({
+      sessionID,
+      name: funcName,
+      actionType: s.function.crud,
+      requestID,
+      roleID: roleObj?.id,
+      objects: s.objects.map((o) => o.ref),
+    })
+  } catch (e) {
+    log.debug("bridgeSubjects failed (ignored)", { sessionID, err: String(e) })
   }
 }
 

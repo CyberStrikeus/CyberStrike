@@ -1965,6 +1965,20 @@ export const SessionRoutes = lazy(() =>
                   priority: "high",
                   match: WebRetest.isAccessControlSurface,
                 })
+
+                // Credential→role bridge: extract JWT roles and link deterministically
+                const cred = WebCredential.getById(credentialID)
+                if (cred && !cred.role_id) {
+                  const claims = WebCredential.extractJWTClaims(cred.headers)
+                  if (claims) {
+                    const raw = claims.role ?? (Array.isArray(claims.roles) ? claims.roles[0] : claims.roles) ?? claims.group ?? (Array.isArray(claims.groups) ? claims.groups[0] : claims.groups)
+                    const roleName = typeof raw === "string" ? raw : undefined
+                    if (roleName) {
+                      const role = WebRole.getByName(sessionID, roleName) ?? WebRole.add({ sessionID, name: roleName, discoveredFrom: "jwt" })
+                      WebCredential.link({ id: credentialID, roleID: role.id })
+                    }
+                  }
+                }
               }
             } catch (err) {
               log.warn("failed to capture credential auth from request", { error: (err as Error).message })
