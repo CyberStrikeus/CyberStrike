@@ -17,6 +17,7 @@
       "devDependencies": {
         "@actions/artifact": "5.0.1",
         "@tsconfig/bun": "catalog:",
+        "@types/bun": "catalog:",
         "husky": "9.1.7",
         "prettier": "3.6.2",
         "quansync": "1.0.0",
