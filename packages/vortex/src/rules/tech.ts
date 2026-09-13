@@ -46,7 +46,7 @@ export const techRules: DeclarativeRule[] = [
     id: "tech-django",
     category: "technology",
     severity: "info",
-    when: 'regex("csrfmiddlewaretoken|__debug__|django", resp.body)',
+    when: 'regex("csrfmiddlewaretoken|__debug__|djangoproject|/static/admin/", resp.body)',
     message: "Technology detected: django at {endpoint}",
     dedupBy: "endpoint",
     tags: ["tech"],
