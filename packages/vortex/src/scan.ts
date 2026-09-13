@@ -26,3 +26,11 @@ export function scanStored(store: TrafficStore): Signal[] {
 export function recordSignals(store: TrafficStore, signals: Signal[]): number {
   return store.addSignals(signals)
 }
+
+// extract() — run the registry's transaction hooks (imperative extractors, e.g. jsmine) over the
+// OBSERVED corpus. Hooks write their own side effects into the store (discovered endpoints/JS,
+// signals), so unlike scan() there is nothing to return. Run after new observed traffic arrives, the
+// same way scan() is. A hook that throws is isolated inside runHooks and never breaks the pass.
+export function extract(store: TrafficStore, registry: RuleRegistry): void {
+  for (const tx of observed(store.all())) registry.runHooks(store, tx)
+}

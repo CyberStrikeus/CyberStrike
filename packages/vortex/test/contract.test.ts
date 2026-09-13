@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { Transaction, SourceAdapter, VortexPlugin } from "../src/index"
-import { MemoryStore, RuleRegistry, feed, registerPlugin, PluginError, CORE_API_VERSION, runActiveRules, send } from "../src/index"
+import { MemoryStore, RuleRegistry, feed, registerPlugin, PluginError, CORE_API_VERSION, runActiveRules, send, extract, ingestExtract } from "../src/index"
 
 describe("consumer contract — SourceAdapter", () => {
   test("feed() runs an adapter over raw events into the store, skipping undefined", () => {
@@ -45,5 +45,52 @@ describe("consumer contract — VortexPlugin + registerPlugin", () => {
   test("a compatible caret range and an omitted requiresCore both pass", () => {
     expect(() => registerPlugin(new RuleRegistry(), { name: "ok", version: "1.0.0", requiresCore: "^1.0.0" })).not.toThrow()
     expect(() => registerPlugin(new RuleRegistry(), { name: "any", version: "1.0.0" })).not.toThrow()
+  })
+})
+
+describe("consumer contract — onTransaction extractor hook (the jsmine seam)", () => {
+  function jsTx(id: string, body: string): Transaction {
+    return { id, source: "browser", host: "app.test", request: { method: "GET", url: `https://app.test/${id}.js`, headers: [] }, response: { status: 200, headers: [], body } }
+  }
+
+  test("registerPlugin wires onTransaction hooks; extract() runs them over observed traffic", () => {
+    const store = new MemoryStore()
+    store.add(jsTx("app", 'fetch("/api/v1/users")'))
+    const reg = new RuleRegistry()
+    // a stand-in extractor plugin (the shape jsmine implements) — core never imports the real one
+    const plugin: VortexPlugin = {
+      name: "fake-extractor",
+      version: "1.0.0",
+      onTransaction: [(s, tx) => ingestExtract(s, tx.id, { endpoints: ["/api/v1/users"], jsUrls: [], tech: ["demo"], secrets: [] })],
+    }
+    registerPlugin(reg, plugin)
+    expect(reg.listHooks()).toHaveLength(1)
+
+    extract(store, reg) // core invokes the hook over the observed corpus
+    expect(store.discovered("endpoint").map((d) => d.value)).toContain("/api/v1/users")
+    expect(store.get("app")?.tech).toContain("demo")
+  })
+
+  test("a throwing hook is isolated — never breaks the pass or other hooks", () => {
+    const store = new MemoryStore()
+    store.add(jsTx("app", "x"))
+    const reg = new RuleRegistry()
+    let ran = false
+    registerPlugin(reg, {
+      name: "boom",
+      version: "1.0.0",
+      onTransaction: [
+        () => {
+          throw new Error("hook blew up")
+        },
+        (s, tx) => {
+          ran = true
+          ingestExtract(s, tx.id, { endpoints: ["/ok"], jsUrls: [], tech: [], secrets: [] })
+        },
+      ],
+    })
+    expect(() => extract(store, reg)).not.toThrow()
+    expect(ran).toBe(true) // the second hook still ran
+    expect(store.discovered("endpoint").map((d) => d.value)).toContain("/ok")
   })
 })

@@ -5,6 +5,15 @@
 // Both emit Signals. Signals carry a `dedupKey` so the same finding on the same logical endpoint
 // collapses to one instead of firing per request (the 100x banner noise).
 import type { Transaction, Severity } from "./transaction"
+import type { TrafficStore } from "./store"
+
+// A per-transaction side-effecting hook a plugin registers to run over ingested traffic. Unlike a
+// Rule (which returns Signals for the registry to collect), a hook is handed the store and a
+// transaction and does its own work — it is the seam for imperative EXTRACTORS (e.g. the Enterprise
+// jsmine miner: parse a JS body → write discovered endpoints/JS + secret signals). Core owns WHEN
+// hooks run (see scan.ts `extract`); the plugin owns WHAT they do. Lets the free core invoke a paid
+// extractor through an interface it owns, without importing the plugin (dependency inversion).
+export type TransactionHook = (store: TrafficStore, tx: Transaction) => void
 
 // When a signal was produced by probing a specific input, the exact parameter it fired on — so a
 // lead hands the agent the precise injection point structurally, not just prose in `evidence`.
@@ -65,6 +74,7 @@ export function dedupe(signals: Signal[]): Signal[] {
 export class RuleRegistry {
   private readonly rules: Rule[] = []
   private readonly corpusRules: CorpusRule[] = []
+  private readonly hooks: TransactionHook[] = []
 
   register(rule: Rule): this {
     this.rules.push(rule)
@@ -82,11 +92,34 @@ export class RuleRegistry {
     for (const r of rules) this.registerCorpus(r)
     return this
   }
+  registerHook(hook: TransactionHook): this {
+    this.hooks.push(hook)
+    return this
+  }
+  registerHookAll(hooks: TransactionHook[]): this {
+    for (const h of hooks) this.registerHook(h)
+    return this
+  }
   list(): Rule[] {
     return [...this.rules]
   }
   listCorpus(): CorpusRule[] {
     return [...this.corpusRules]
+  }
+  listHooks(): TransactionHook[] {
+    return [...this.hooks]
+  }
+
+  // Run every registered transaction hook over ONE transaction. A throwing hook is isolated so one
+  // plugin's failure never breaks ingest or the other hooks. Side effects land in `store`.
+  runHooks(store: TrafficStore, tx: Transaction): void {
+    for (const hook of this.hooks) {
+      try {
+        hook(store, tx)
+      } catch {
+        // a hook must never break the pipeline — swallow and continue
+      }
+    }
   }
 
   // Every per-transaction rule over ONE transaction (raw, not deduped — one tx can't self-collide

@@ -16,7 +16,7 @@
 //   fields resolver internals. Consumers should not import these directly.
 import type { Source, Transaction } from "./transaction"
 import type { TrafficStore } from "./store"
-import type { Rule, CorpusRule } from "./rule"
+import type { Rule, CorpusRule, TransactionHook } from "./rule"
 import type { ActiveRule } from "./active"
 import { RuleRegistry } from "./rule"
 import type { DeclarativeRule } from "./declarative"
@@ -69,6 +69,11 @@ export interface VortexPlugin {
   probes?: ProbeRule[] // active, compiled to ActiveRule (run via runActiveRules, not the registry)
   perTxRules?: Rule[] // hand-written per-transaction rules
   corpusRules?: CorpusRule[] // hand-written corpus rules
+  // Imperative per-transaction extractors (e.g. the Enterprise jsmine miner). Run via scan.ts
+  // `extract(store, registry)`; each is handed the store + a transaction and does its own work
+  // (parse a body → write discovered endpoints/JS + signals). The seam that lets core invoke a paid
+  // extractor without importing it — core owns the registry, the plugin implements the hook.
+  onTransaction?: TransactionHook[]
 }
 
 // Minimal semver check against CORE_API_VERSION: supports "^x.y.z" (same major, >=), ">=x.y.z", and
@@ -98,5 +103,6 @@ export function registerPlugin(registry: RuleRegistry, plugin: VortexPlugin): Ac
   if (plugin.chains) registry.registerCorpusAll(plugin.chains.map(compileChain))
   if (plugin.aggregates) registry.registerCorpusAll(compileAggregates(plugin.aggregates))
   if (plugin.corpusRules) registry.registerCorpusAll(plugin.corpusRules)
+  if (plugin.onTransaction) registry.registerHookAll(plugin.onTransaction)
   return plugin.probes ? compileProbes(plugin.probes) : []
 }
