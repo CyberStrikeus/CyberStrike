@@ -7,6 +7,7 @@
 import type { TrafficStore } from "./store"
 import { subjects } from "./subjects"
 import type { Crud } from "./subjects"
+import { params, responseFields as txResponseFields } from "./params"
 
 export interface ObjectRecord {
   ref: string // "order:42"
@@ -17,6 +18,9 @@ export interface ObjectRecord {
   endpoints: string[] // functions it appeared in
   sites: string[] // where it lived (path/query/body/header)
   transactions: string[] // every tx touching it (→ send() to replay under another role)
+  fields: string[] // all field names from request + response body across transactions
+  sensitiveFields: string[] // subset matching SENSITIVE_RE
+  idFields: string[] // subset matching ID_RE
 }
 
 export interface FunctionRecord {
@@ -25,11 +29,44 @@ export interface FunctionRecord {
   roles: string[] // identities that called it — >1 ⇒ BFLA surface to check
   objects: string[] // object refs it touched
   transactions: string[]
+  requestFields: string[] // all request body/query param names
+  responseFields: string[] // all response body field names
+  hiddenInputs: string[] // hidden input names from HTML response
 }
 
 export interface Inventory {
   objects: ObjectRecord[]
   functions: FunctionRecord[]
+}
+
+const SENSITIVE_RE = /^(password|passwd|pwd|secret|token|api_?key|private_?key|access_?key|ssn|social_?security|credit_?card|card_?number|cvv|cvc|pin|auth|authorization|session|cookie|bearer)/i
+const ID_RE = /(_id|Id|_uuid|_ref|_key)$|^id$/i
+const HIDDEN_PREFIX = "hidden."
+
+function isSensitive(name: string): boolean {
+  const leaf = name.split(".").pop() ?? name
+  return SENSITIVE_RE.test(leaf)
+}
+function isIdField(name: string): boolean {
+  const leaf = name.split(".").pop() ?? name
+  return ID_RE.test(leaf)
+}
+
+const CRUD_VERB: Record<string, string> = { GET: "Get", HEAD: "Get", POST: "Create", PUT: "Update", PATCH: "Update", DELETE: "Delete" }
+export function humanName(method: string, endpoint: string): string {
+  const verb = CRUD_VERB[method.toUpperCase()] ?? "Call"
+  const path = endpoint.includes("/") ? endpoint.replace(/^[A-Z]+\s+/, "").replace(/^[^/]*/, "") : endpoint
+  const segs = path.split("/").filter(Boolean)
+  let noun = ""
+  for (let i = segs.length - 1; i >= 0; i--) {
+    if (!/^\{.*\}$/.test(segs[i]!) && !/^\d+$/.test(segs[i]!)) {
+      noun = segs[i]!
+      break
+    }
+  }
+  if (!noun) noun = "Resource"
+  const singular = noun.endsWith("s") && noun.length > 3 ? noun.slice(0, -1) : noun
+  return `${verb}_${singular.charAt(0).toUpperCase()}${singular.slice(1)}`
 }
 
 function addUniq(arr: string[], v: string | undefined) {
@@ -42,19 +79,34 @@ export function inventory(store: TrafficStore): Inventory {
   const fns = new Map<string, FunctionRecord>()
   for (const tx of store.all()) {
     const s = subjects(tx)
-    const fr = fns.get(s.function.endpoint) ?? { endpoint: s.function.endpoint, crud: s.function.crud, roles: [], objects: [], transactions: [] }
+    const p = params(tx)
+    const respFields = txResponseFields(tx)
+    const allReqFields = Object.keys({ ...p.query, ...p.body })
+    const allRespFields = Object.keys(respFields)
+    const hiddens = allRespFields.filter((k) => k.startsWith(HIDDEN_PREFIX)).map((k) => k.slice(HIDDEN_PREFIX.length))
+
+    const fr = fns.get(s.function.endpoint) ?? { endpoint: s.function.endpoint, crud: s.function.crud, roles: [], objects: [], transactions: [], requestFields: [], responseFields: [], hiddenInputs: [] }
     addUniq(fr.transactions, tx.id)
     addUniq(fr.roles, s.role)
     for (const o of s.objects) addUniq(fr.objects, o.ref)
+    for (const f of allReqFields) addUniq(fr.requestFields, f)
+    for (const f of allRespFields) addUniq(fr.responseFields, f)
+    for (const h of hiddens) addUniq(fr.hiddenInputs, h)
     fns.set(s.function.endpoint, fr)
 
+    const txFields = [...allReqFields, ...allRespFields]
     for (const o of s.objects) {
-      const or = objs.get(o.ref) ?? { ref: o.ref, resource: o.resource ?? "", value: o.value, shapes: [], roles: [], endpoints: [], sites: [], transactions: [] }
+      const or = objs.get(o.ref) ?? { ref: o.ref, resource: o.resource ?? "", value: o.value, shapes: [], roles: [], endpoints: [], sites: [], transactions: [], fields: [], sensitiveFields: [], idFields: [] }
       addUniq(or.shapes, o.shape)
       addUniq(or.roles, s.role)
       addUniq(or.endpoints, s.function.endpoint)
       addUniq(or.sites, o.in)
       addUniq(or.transactions, tx.id)
+      for (const f of txFields) {
+        addUniq(or.fields, f)
+        if (isSensitive(f)) addUniq(or.sensitiveFields, f)
+        if (isIdField(f)) addUniq(or.idFields, f)
+      }
       objs.set(o.ref, or)
     }
   }
