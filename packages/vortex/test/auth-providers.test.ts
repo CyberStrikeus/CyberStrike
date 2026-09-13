@@ -117,6 +117,63 @@ describe("auth-provider fingerprint rules", () => {
     expect(fired(tx({ body: '<script src="https://cdn.gigya.com/js/gigya.js?apikey=abc">' }))).toContain("tech-sap-cdc")
   })
 
+  // --- Additional providers ---
+  test("auth0 lock (dedicated widget)", () => {
+    expect(fired(tx({ body: 'var lock = new Auth0Lock("clientId", "tenant.auth0.com")' }))).toContain("tech-auth0-lock")
+  })
+
+  test("oxi social login", () => {
+    expect(fired(tx({ body: '<div class="oxi-social-login">' }))).toContain("tech-oxi-social-login")
+  })
+
+  test("growave", () => {
+    expect(fired(tx({ body: '<div class="gw-social-login" data-app="growave.io">' }))).toContain("tech-growave")
+  })
+
+  test("getsocial", () => {
+    expect(fired(tx({ body: '<script src="https://api.at.getsocial/widget/v1/sdk.js">' }))).toContain("tech-getsocial")
+  })
+
+  test("authorized.by", () => {
+    expect(fired(tx({ body: '<script src="https://authorized.by/sdk.js">' }))).toContain("tech-authorized-by")
+  })
+
+  test("socure", () => {
+    expect(fired(tx({ body: '<script src="https://websdk.socure.com/bundle.js"></script>' }))).toContain("tech-socure")
+  })
+
+  test("vouched", () => {
+    expect(fired(tx({ body: '<script src="https://static.vouched.id/widget/vouched-2.0.0.js">' }))).toContain("tech-vouched")
+  })
+
+  test("ulogin", () => {
+    expect(fired(tx({ body: '<script src="https://u.ulogin.ru/js/ulogin.js">' }))).toContain("tech-ulogin")
+  })
+
+  test("userbase", () => {
+    expect(fired(tx({ body: "import userbase from 'userbase-js'; Userbase.init({ appId: 'abc' })" }))).toContain("tech-userbase")
+  })
+
+  test("ringcaptcha", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.ringcaptcha.com/widget/v2/bundle.min.js">' }))).toContain("tech-ringcaptcha")
+  })
+
+  test("metamap (mati)", () => {
+    expect(fired(tx({ body: '<script src="https://web-button.getmati.com/button.js">' }))).toContain("tech-metamap")
+  })
+
+  test("alliance auth", () => {
+    expect(fired(tx({ body: '<link rel="stylesheet" href="/static/allianceauth/css/auth.css">' }))).toContain("tech-alliance-auth")
+  })
+
+  test("wwpass", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.wwpass.com/packages/wwpass-frontend/2.0/wwpass-frontend.js">' }))).toContain("tech-wwpass")
+  })
+
+  test("applied csr24", () => {
+    expect(fired(tx({ body: '<iframe src="https://csr24.com/login/widget">' }))).toContain("tech-applied-csr24")
+  })
+
   // --- False positive guard ---
   test("a plain page triggers no auth-provider rules", () => {
     expect(fired(tx({ body: "<html><body>Hello world</body></html>" }))).toHaveLength(0)
@@ -130,7 +187,7 @@ describe("auth-provider fingerprint rules", () => {
     for (const r of authProviderRules) expect(r.tags).toContain("auth-provider")
   })
 
-  test("rule count matches expected (25 providers)", () => {
-    expect(authProviderRules.length).toBe(25)
+  test("rule count matches expected (39 providers — Authy/Twilio Authy share one rule)", () => {
+    expect(authProviderRules.length).toBe(39)
   })
 })
