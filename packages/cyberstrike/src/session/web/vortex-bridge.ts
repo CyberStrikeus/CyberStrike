@@ -3,7 +3,7 @@
 // Vortex engine (rules → signals → subjects → inventory → leads) runs over the live web corpus in
 // parallel with the existing CS signal fabric (verify-first; the fabric retires once Vortex proves
 // out). Never throws — must not break the ingest path.
-import { SqliteStore, defaultRegistry, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, subjects, humanName, params, responseFields as txResponseFields, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type CanaryKind } from "@cyberstrike-io/vortex"
+import { SqliteStore, defaultRegistry, registerPlugin, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, subjects, humanName, params, responseFields as txResponseFields, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type CanaryKind, type VortexPlugin } from "@cyberstrike-io/vortex"
 import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
@@ -45,6 +45,16 @@ function storeFor(sessionID: string): TrafficStore {
 }
 export function dropSession(sessionID: string): void {
   stores.delete(sessionID)
+}
+
+// Enterprise extension seam: register a Vortex plugin (e.g. jsmine's JS-miner) onto the shared
+// registry so its per-transaction hooks run at ingest (see the extractor block in
+// ingestBrowserTransaction). Called ONCE by an Enterprise-only bootstrap at startup — core
+// cyberstrike never imports the plugin package, so the free build simply never calls this and the
+// hook list stays empty (the ingest block is a guarded no-op). Idempotent-friendly: the shared
+// registry is process-wide, so one registration covers every session.
+export function registerVortexExtractor(plugin: VortexPlugin): void {
+  registerPlugin(registry, plugin)
 }
 
 // The narrow agent facade over this session's Vortex store — what the Vortex agent tools call.
@@ -121,6 +131,14 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
     // Vortex-found lead reaches its owning specialist without waiting on agent initiative. Additive
     // to the CS signal fabric that scanned the same response; dedup collapses any overlap.
     const routed = bridgeSignals(i.sessionID, store, sigs)
+    // Extractor plugins (Enterprise jsmine JS-miner) — run any registered per-transaction hooks and
+    // bridge what they produce: discovered endpoints/JS land in the inventory, secret signals route
+    // to their WSTG owner (information-gathering). Re-bridging this tx's already-routed signals is
+    // idempotent (WebRetest dedups). No-op on the free/default build — no extractor plugin registered.
+    if (registry.listHooks().length > 0) {
+      registry.runHooks(store, tx)
+      bridgeSignals(i.sessionID, store, store.signals({ transactionId: tx.id }))
+    }
     // Cross-request canary correlation (#15 step 2): scan the observed corpus for any registered
     // canary that renders in a DIFFERENT transaction than it was injected at — a STORED reflection.
     // Emits Vortex `stored-reflection` signals (category "injection"), which the bridge routes to the
