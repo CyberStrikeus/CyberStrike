@@ -240,7 +240,7 @@ When you identify a security finding, call the **report_vulnerability** tool wit
 
 Use **hackbrowser** to discover endpoints and forms when you have a target URL but
 no captured traffic yet. It navigates the app, fills forms, clicks buttons, and
-streams every HTTP request into the session for the wstg-analyzer pipeline. Use it
+streams every HTTP request into the session for the Vortex ingest pipeline. Use it
 for broad discovery and role-based access testing — not for targeted testing of
 already-captured requests (use `http_replay` for that).
 

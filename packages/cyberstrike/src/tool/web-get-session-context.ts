@@ -14,7 +14,7 @@ import { vortexSignals } from "../session/web/vortex-bridge"
 const description = `Get the bounded web-application context for this session — scoped to the endpoint you are testing, so it stays small no matter how large the session grows.
 
 It returns:
-- recent: the objects + functions the analyzer just extracted for the CURRENT endpoint, WITH their schema and observed values (the IDs each credential saw — your IDOR/mass-assignment substrate). This is everything you normally need; you do NOT have to fetch anything.
+- recent: the objects + functions Vortex extracted for the CURRENT endpoint, WITH their schema and observed values (the IDs each credential saw — your IDOR/mass-assignment substrate). This is everything you normally need; you do NOT have to fetch anything.
 - catalog: the NAMES of every object/function/role discovered app-wide (no schemas/values). For any name you want full detail on, call web_get_detail(kind, id).
 - credentials: auth credentials (tracking-cookie noise stripped).
 - vulnerabilities: last 30 confirmed findings (dedup awareness).
