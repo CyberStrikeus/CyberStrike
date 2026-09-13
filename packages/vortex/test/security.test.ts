@@ -187,6 +187,292 @@ describe("security & bot-management fingerprint rules", () => {
     expect(fired(tx({ body: '<link rel="me" href="https://keybase.io/verify?user=testuser">' }))).toContain("tech-keybase")
   })
 
+  // --- Fraud / Risk (continued) ---
+  test("Riskified", () => {
+    expect(fired(tx({ body: '<script src="https://beacon.riskified.com/beacon.js"></script>' }))).toContain("tech-riskified")
+  })
+
+  test("NoFraud", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.nofraud.com/js/nf.js"></script>' }))).toContain("tech-nofraud")
+  })
+
+  test("Seon", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.seon.io/js/seon-sdk.js"></script>' }))).toContain("tech-seon")
+  })
+
+  test("ThreatMetrix", () => {
+    expect(fired(tx({ body: '<script src="https://h.online-metrix.net/fp/tags.js"></script>' }))).toContain("tech-threatmetrix")
+  })
+
+  test("Konduto", () => {
+    expect(fired(tx({ body: "Konduto.init({ publicKey: 'abc' })" }))).toContain("tech-konduto")
+  })
+
+  test("Kount", () => {
+    expect(fired(tx({ body: '<script src="https://ka.kount.net/collect/sdk.js"></script>' }))).toContain("tech-kount")
+  })
+
+  test("Sardine", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.sardine.ai/sdk.js"></script>' }))).toContain("tech-sardine")
+  })
+
+  test("BuySafe", () => {
+    expect(fired(tx({ body: '<script src="https://seal.buysafe.com/guarantee.js"></script>' }))).toContain("tech-buysafe")
+  })
+
+  test("FraudLabs Pro", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.fraudlabspro.com/s.js"></script>' }))).toContain("tech-fraudlabs-pro")
+  })
+
+  test("Covery", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.covery.ai/covery-sdk.js"></script>' }))).toContain("tech-covery")
+  })
+
+  test("Accertify", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.accertify.com/accertify-sdk.js"></script>' }))).toContain("tech-accertify")
+  })
+
+  test("SecureMetrics", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.securemetrics.com/sm.js"></script>' }))).toContain("tech-securemetrics")
+  })
+
+  test("Norton Shopping Guarantee", () => {
+    expect(fired(tx({ body: '<script src="https://norton.com/shopping-guarantee/seal.js"></script>' }))).toContain("tech-norton-shopping")
+  })
+
+  // --- CAPTCHAs (continued) ---
+  test("Slider Captcha", () => {
+    expect(fired(tx({ body: '<script src="/js/slidercaptcha.js"></script>' }))).toContain("tech-slider-captcha")
+  })
+
+  test("AWS WAF Captcha via body", () => {
+    expect(fired(tx({ body: '<script src="https://awswaf.com/captcha/challenge.js"></script>' }))).toContain("tech-aws-waf-captcha")
+  })
+
+  test("AWS WAF Captcha via header", () => {
+    expect(fired(tx({ respHeaders: [["x-amzn-waf-action", "captcha"]] }))).toContain("tech-aws-waf-captcha")
+  })
+
+  test("MTCaptcha", () => {
+    expect(fired(tx({ body: '<script src="https://service.mtcaptcha.com/mtcaptcha.min.js"></script>' }))).toContain("tech-mtcaptcha")
+  })
+
+  test("Tencent Captcha", () => {
+    expect(fired(tx({ body: '<script src="https://ssl.captcha.qq.com/TCaptcha.js"></script>' }))).toContain("tech-tencent-captcha")
+  })
+
+  test("Alibaba Captcha", () => {
+    expect(fired(tx({ body: '<script src="https://g.alicdn.com/sd/nvc/1.1.112/guide.js"></script>' }))).toContain("tech-alibaba-captcha")
+  })
+
+  test("ARCaptcha", () => {
+    expect(fired(tx({ body: '<script src="https://arcaptcha.ir/widget.js"></script>' }))).toContain("tech-arcaptcha")
+  })
+
+  test("VAPTCHA", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.vaptcha.com/v3.js"></script>' }))).toContain("tech-vaptcha")
+  })
+
+  // --- WAFs / Server Security ---
+  test("Fortinet FortiGate via server header", () => {
+    expect(fired(tx({ respHeaders: [["server", "FortiGate"]] }))).toContain("tech-fortinet-fortigate")
+  })
+
+  test("Fortinet FortiGate via x-fortigate-id header", () => {
+    expect(fired(tx({ respHeaders: [["x-fortigate-id", "FGT60F123"]] }))).toContain("tech-fortinet-fortigate")
+  })
+
+  test("Imunify360", () => {
+    expect(fired(tx({ body: '<div class="imunify360-captcha">' }))).toContain("tech-imunify360")
+  })
+
+  test("Cloud Guard", () => {
+    expect(fired(tx({ body: '<script src="https://cloudguard.com/agent.js"></script>' }))).toContain("tech-cloud-guard")
+  })
+
+  test("WAR.PE", () => {
+    expect(fired(tx({ respHeaders: [["server", "war.pe"]] }))).toContain("tech-war-pe")
+  })
+
+  // --- WordPress Security (continued) ---
+  test("SiteGuard WP Plugin", () => {
+    expect(fired(tx({ body: '<link rel="stylesheet" href="/wp-content/plugins/siteguard/css/login.css">' }))).toContain("tech-siteguard-wp")
+  })
+
+  test("Limit Login Attempts Reloaded", () => {
+    expect(fired(tx({ body: '<script src="/wp-content/plugins/limit-login-attempts-reloaded/js/main.js"></script>' }))).toContain("tech-limit-login-attempts")
+  })
+
+  test("AntiBot.Cloud", () => {
+    expect(fired(tx({ body: '<script src="https://antibot.cloud/abc_challenge.js"></script>' }))).toContain("tech-antibot-cloud")
+  })
+
+  // --- Auth protocols ---
+  test("SPNEGO via WWW-Authenticate", () => {
+    expect(fired(tx({ respHeaders: [["www-authenticate", "Negotiate"]] }))).toContain("tech-spnego")
+  })
+
+  test("NTLM via WWW-Authenticate", () => {
+    expect(fired(tx({ respHeaders: [["www-authenticate", "NTLM"]] }))).toContain("tech-ntlm")
+  })
+
+  test("Digest auth via WWW-Authenticate", () => {
+    expect(fired(tx({ respHeaders: [["www-authenticate", 'Digest realm="app", nonce="abc"']] }))).toContain("tech-digest-auth")
+  })
+
+  // --- JS Protection / Obfuscation ---
+  test("Jscrambler", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.jscrambler.com/client.js"></script>' }))).toContain("tech-jscrambler")
+  })
+
+  test("FUGU", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.fugu.io/fugu-beacon.js"></script>' }))).toContain("tech-fugu")
+  })
+
+  // --- Misc ---
+  test("Blue Triangle", () => {
+    expect(fired(tx({ body: '<script src="https://d.btttag.com/btt.js"></script>' }))).toContain("tech-blue-triangle")
+  })
+
+  test("SafeBase", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.safebase.io/widget.js"></script>' }))).toContain("tech-safebase")
+  })
+
+  test("Kiprotect (Klaro)", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.kiprotect.com/klaro/latest/klaro.js"></script>' }))).toContain("tech-kiprotect")
+  })
+
+  test("Negate", () => {
+    expect(fired(tx({ body: '<script src="https://negate.bot/sdk.js"></script>' }))).toContain("tech-negate")
+  })
+
+  test("SnapHost", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.snaphost.com/snaphost-widget.js"></script>' }))).toContain("tech-snaphost")
+  })
+
+  test("Bugcrowd", () => {
+    expect(fired(tx({ body: '<script src="https://bugcrowd.com/embed.js"></script>' }))).toContain("tech-bugcrowd")
+  })
+
+  test("Proxmox Mail Gateway", () => {
+    expect(fired(tx({ respHeaders: [["server", "proxmox"]] }))).toContain("tech-proxmox-mail-gw")
+  })
+
+  // --- Privacy / Compliance ---
+  test("privIQ", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.priviq.com/priviq-consent.js"></script>' }))).toContain("tech-priviq")
+  })
+
+  test("Drata", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.drata.com/drata-trust.js"></script>' }))).toContain("tech-drata")
+  })
+
+  test("Dataships", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.dataships.io/dataships-consent.js"></script>' }))).toContain("tech-dataships")
+  })
+
+  test("Vanta", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.vanta.com/vanta-trust.js"></script>' }))).toContain("tech-vanta")
+  })
+
+  test("Skyflow", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.skyflow.com/skyflow-sdk.js"></script>' }))).toContain("tech-skyflow")
+  })
+
+  // --- Auth / Identity (continued) ---
+  test("Hanko", () => {
+    expect(fired(tx({ body: "<hanko-auth api=\"https://auth.hanko.io\"></hanko-auth>" }))).toContain("tech-hanko")
+  })
+
+  test("Token of Trust", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.tokenoftrust.com/token-of-trust.js"></script>' }))).toContain("tech-token-of-trust")
+  })
+
+  test("Regula", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.regulaforensics.com/regula-sdk.js"></script>' }))).toContain("tech-regula")
+  })
+
+  test("Kerberos via WWW-Authenticate", () => {
+    expect(fired(tx({ respHeaders: [["www-authenticate", "Kerberos"]] }))).toContain("tech-kerberos")
+  })
+
+  // --- CAPTCHAs (continued) ---
+  test("Mollom", () => {
+    expect(fired(tx({ body: '<div class="mollom-captcha" id="mollom"></div>' }))).toContain("tech-mollom")
+  })
+
+  test("adCAPTCHA", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.adcaptcha.com/adcaptcha-widget.js"></script>' }))).toContain("tech-adcaptcha")
+  })
+
+  test("Solve Media", () => {
+    expect(fired(tx({ body: '<script src="https://api.solvemedia.com/papi/challenge.script"></script>' }))).toContain("tech-solve-media")
+  })
+
+  test("CoinHive Captcha", () => {
+    expect(fired(tx({ body: '<script src="https://authedmine.com/lib/captcha.min.js"></script>' }))).toContain("tech-coinhive-captcha")
+  })
+
+  test("Picatcha", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.picatcha.com/picatcha-widget.js"></script>' }))).toContain("tech-picatcha")
+  })
+
+  // --- WAF / DDoS Protection (continued) ---
+  test("RapidSec", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.rapidsec.com/rapidsec-csp.js"></script>' }))).toContain("tech-rapidsec")
+  })
+
+  test("Preeco", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.preeco.io/preeco-shield.js"></script>' }))).toContain("tech-preeco")
+  })
+
+  test("TMW Shield", () => {
+    expect(fired(tx({ respHeaders: [["server", "tmw-shield"]] }))).toContain("tech-tmw-shield")
+  })
+
+  test("Combahton FlowShield", () => {
+    expect(fired(tx({ respHeaders: [["server", "flowshield"]] }))).toContain("tech-combahton-flowshield")
+  })
+
+  test("BudgetGuard", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.budgetguard.io/BudgetGuard.js"></script>' }))).toContain("tech-budgetguard")
+  })
+
+  // --- Fraud / Risk (continued) ---
+  test("ClickReport", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.clickreport.com/cr.js"></script>' }))).toContain("tech-clickreport")
+  })
+
+  test("Clear", () => {
+    expect(fired(tx({ body: '<script src="https://clear.co/sdk/ClearSDK.js"></script>' }))).toContain("tech-clear")
+  })
+
+  test("Apruvd", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.apruvd.com/apruvd-sdk.js"></script>' }))).toContain("tech-apruvd")
+  })
+
+  test("NorthWhistle", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.northwhistle.com/nw.js"></script>' }))).toContain("tech-northwhistle")
+  })
+
+  // --- Client-side Security ---
+  test("c/side", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.c-side.dev/cside-monitor.js"></script>' }))).toContain("tech-cside")
+  })
+
+  test("Sqreen via header", () => {
+    expect(fired(tx({ respHeaders: [["x-sqreen-id", "abc123"]] }))).toContain("tech-sqreen")
+  })
+
+  test("Human Presence", () => {
+    expect(fired(tx({ body: '<script src="https://cdn.humanpresence.io/human-presence.js"></script>' }))).toContain("tech-human-presence")
+  })
+
+  // --- Hardware / Crypto ---
+  test("Trezor Connect", () => {
+    expect(fired(tx({ body: '<script src="https://connect.trezor.io/9/trezor-connect.js"></script>' }))).toContain("tech-trezor")
+  })
+
   // --- Structural ---
   test("a plain page triggers no security rules", () => {
     expect(fired(tx({ body: "<html><body>Hello world</body></html>" }))).toHaveLength(0)
@@ -200,7 +486,7 @@ describe("security & bot-management fingerprint rules", () => {
     for (const r of securityRules) expect(r.tags).toContain("security")
   })
 
-  test("rule count is 40", () => {
-    expect(securityRules.length).toBe(40)
+  test("rule count is 106", () => {
+    expect(securityRules.length).toBe(106)
   })
 })
