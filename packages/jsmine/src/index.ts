@@ -4,3 +4,6 @@
 export type { MineOptions } from "./jsmine"
 export { mine } from "./jsmine"
 export { mineInto } from "./ingest"
+// The recursive JS-mining crawl pass over the discovered inventory (first-party fetch + mine).
+export type { MineCrawlOptions } from "./crawl"
+export { mineDiscoveredJs, classifyScript } from "./crawl"
