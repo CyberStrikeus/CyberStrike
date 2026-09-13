@@ -53,6 +53,11 @@ const MAP_EXT = /\.(?:m?js)\.map(?:$|[?#])/i
 const SERVER_EXT = /\.(?:php|phtml|asp|aspx|ashx|asmx|jsp|jspx|do|action|cgi|pl|py|rb|json|xml|txt|wsdl|svc)(?:$|[?#])/i
 const ROUTEY = /^\/?(?:api|v[0-9]+|graphql|gql|rest|rpc|wp-json|oauth|auth|admin|internal|_next\/data|services?|users?|account|session|login|logout|token|upload|download|search|query|export)\b/i
 const NOISE = /^(?:https?:$|[a-z]+\/[a-z0-9.+-]+$|[0-9.]+$|#|\s|@)/i
+// XML/RDF namespace + DTD URIs (embedded office/xml libs leak these as absolute URLs) — not endpoints.
+const NAMESPACE_URL = /\.w3\.org\/|purl\.org\/|ns\.adobe\.com\/|json-schema\.org\/|openxmlformats\.org\/|schemas?\.(?:microsoft|android|openxmlformats|xmlsoap)\.com\/|\/data\/dtd\/|www\.w3\.org|xmlns/i
+// Template-literal / comment artefacts where the host itself is a wildcard or punctuation
+// (`https://*/`, `http://[*]`, `//# sourceURL=`) — never a real endpoint.
+const JUNK_URL = /^(?:https?:\/\/|\/\/)[^a-z0-9]/i
 
 function looksMime(s: string): boolean {
   return /^(?:text|application|image|audio|video|font|multipart)\/[a-z0-9.+-]+$/i.test(s)
@@ -106,11 +111,12 @@ type Kind = "endpoint" | "js" | null
 function classify(lit: string): Kind {
   const s = lit.trim()
   if (!s || s.length > 400) return null
-  if (looksMime(s) || NOISE.test(s)) return null
+  if (looksMime(s) || NOISE.test(s) || JUNK_URL.test(s)) return null
 
   if (/^(?:https?:\/\/|wss?:\/\/|\/\/)[^\s"'<>]{2,}/i.test(s)) {
     if (MAP_EXT.test(s) || JS_EXT.test(s)) return "js"
     if (ASSET_EXT.test(s)) return null
+    if (NAMESPACE_URL.test(s)) return null // XML namespace / DTD URI, not an endpoint
     return "endpoint"
   }
 
@@ -171,7 +177,13 @@ function secretsIn(text: string, lits: string[], entropy: boolean): string[] {
   }
   ASSIGN_RE.lastIndex = 0
   for (let m = ASSIGN_RE.exec(text); m; m = ASSIGN_RE.exec(text)) {
-    if (!PLACEHOLDER_RE.test(m[1]!)) out.push(m[0])
+    const val = m[1]!
+    // Real bundles assign secret-ish NAMES to non-secret values constantly — mostly readable
+    // identifiers ("secretKey":"defaultSecret", "authToken":"authTokenHeader") or env labels. Entropy
+    // can't separate those from a genuine hex digest (an MD5-ish key and a word both sit ~3.1), so gate
+    // on shape instead: a genuine hardcoded key is long AND carries a digit; a readable identifier
+    // rarely does. Drops the label FP class while keeping real keys/tokens/hashes.
+    if (!PLACEHOLDER_RE.test(val) && val.length >= 12 && /\d/.test(val)) out.push(m[0])
   }
   if (entropy) {
     for (const lit of lits) {

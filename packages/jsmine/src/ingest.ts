@@ -46,5 +46,23 @@ export function mineInto(store: TrafficStore, transactionId: string, text: strin
     }))
     secrets = store.addSignals(sigs)
   }
+
+  // Source maps disclosed by a script's sourceMappingURL — a low-severity info-disclosure lead: the
+  // .map (if served) reconstructs the original, un-minified source. Reported separately from the
+  // secret findings so a reviewer sees the exposed-source-map surface at a glance.
+  const maps = extract.jsUrls.filter((u) => /\.(?:m?js)\.map(?:$|[?#])/i.test(u))
+  if (maps.length) {
+    store.addSignals(
+      maps.map((m) => ({
+        ruleId: "jsmine-sourcemap",
+        transactionId,
+        severity: "low" as const,
+        category: "info-disclosure",
+        title: "Source map referenced (verify it is served)",
+        evidence: m,
+        dedupKey: `jsmine-sourcemap:${m}`,
+      })),
+    )
+  }
   return { discovered: base.discovered, tech: base.tech, secrets }
 }

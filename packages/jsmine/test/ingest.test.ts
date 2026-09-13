@@ -34,6 +34,20 @@ describe("mineInto — mine a JS body into a Vortex store", () => {
     expect(store.signals({ ruleId: "jsmine-secret" })).toHaveLength(2)
   })
 
+  test("a referenced source map becomes a low-severity info-disclosure signal", () => {
+    const store = new MemoryStore()
+    store.add(tx("a"))
+    mineInto(store, "a", 'fetch("/api/x");\n//# sourceMappingURL=app.7f8a.js.map', { baseUrl: "https://app.test/js/app.js" })
+    const sigs = store.signals({ ruleId: "jsmine-sourcemap" })
+    expect(sigs).toHaveLength(1)
+    expect(sigs[0]?.severity).toBe("low")
+    expect(sigs[0]?.category).toBe("info-disclosure")
+    expect(sigs[0]?.evidence).toBe("https://app.test/js/app.7f8a.js.map")
+    // deduped per map URL — re-mining does not double-report
+    mineInto(store, "a", 'fetch("/api/x");\n//# sourceMappingURL=app.7f8a.js.map', { baseUrl: "https://app.test/js/app.js" })
+    expect(store.signals({ ruleId: "jsmine-sourcemap" })).toHaveLength(1)
+  })
+
   test("a clean JS body writes nothing", () => {
     const store = new MemoryStore()
     store.add(tx("a"))
