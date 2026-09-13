@@ -7,3 +7,5 @@ export { mineInto } from "./ingest"
 // The recursive JS-mining crawl pass over the discovered inventory (first-party fetch + mine).
 export type { MineCrawlOptions } from "./crawl"
 export { mineDiscoveredJs, classifyScript } from "./crawl"
+// The Vortex plugin wrapper — registerPlugin(registry, jsmine.plugin()) wires mining into the engine.
+export { plugin } from "./plugin"
