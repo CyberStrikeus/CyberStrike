@@ -202,7 +202,7 @@ export const TaskTool = Tool.define("task", async (ctx) => {
 
       // Inherit the caller's INTENDED model — its user-message model, NOT the
       // assistant message's model. The assistant model reflects the model actually
-      // run, which for a useSmallModel caller (orchestrator/analyzer) is already
+      // run, which for a useSmallModel caller (orchestrator) is already
       // downgraded; inheriting it would force every dispatched tester onto the
       // small tier too. The user message keeps the original tier. The subagent's
       // own useSmallModel downgrade (if any) is applied at run time in the

@@ -211,8 +211,8 @@ export namespace ToolRegistry {
       BusinessTestTool,
       MisconfigTestTool,
       ReconTestTool,
-      // Hackbrowser — autonomous crawler that produces captures the
-      // web-analyzer ingests. Upstream of the rest of the web pipeline.
+      // Hackbrowser — autonomous crawler that produces captures for
+      // the Vortex ingest pipeline. Upstream of the rest of the web pipeline.
       HackbrowserTool,
       // Methodology Engine Tools — intelligence, coverage, chain detection
       AddIntelTool,

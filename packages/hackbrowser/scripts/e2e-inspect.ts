@@ -168,7 +168,7 @@ for (const r of requests) {
 }
 console.log(`  — per credential: ${[...perCred.entries()].map(([k, v]) => `${k}=${v}`).join(", ")}`)
 
-// ---- Web Functions (proxy-analyzer interpretation) ----
+// ---- Web Functions (Vortex-extracted) ----
 type FuncRow = {
   id: string
   name: string
@@ -217,7 +217,7 @@ for (const f of functions) {
   )
 }
 
-// ---- Web Objects (proxy-analyzer interpretation) ----
+// ---- Web Objects (Vortex-extracted) ----
 section(`Web Objects interpreted (${objects.length})`)
 for (const o of objects) {
   const fields = o.fields ? (JSON.parse(o.fields) as string[]).join(",") : "-"
@@ -226,7 +226,7 @@ for (const o of objects) {
   console.log(`  ${o.name}:  fields=[${fields}]  sensitive=[${sens}]  id=[${ids}]`)
 }
 
-// ---- Object Values (optional, shows what proxy-analyzer seeded) ----
+// ---- Object Values (optional, shows what Vortex seeded) ----
 type ValRow = { object_id: string; field_name: string; value: string; credential_id: string | null }
 const values = db
   .query<ValRow, [string]>(
