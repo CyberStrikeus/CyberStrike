@@ -40,7 +40,7 @@ export namespace Agent {
   // below — lowering them regressed findings); only the two genuinely-uncapped
   // orchestration agents get a cap here. Enforcement (tool-strip + break on the
   // capped turn) lives in session/prompt.ts.
-  const STEP_CAPS = { orchestrator: 40, analyzer: 20 } as const
+  const STEP_CAPS = { orchestrator: 40 } as const
 
   function specsToAgents(specs: AgentSpec[], defaults: PermissionNext.Ruleset, user: PermissionNext.Ruleset): Record<string, Info> {
     const result: Record<string, Info> = {}
@@ -84,7 +84,7 @@ export namespace Agent {
         .optional(),
       // Run this agent on the provider's SMALL tier (Phase 1.3, docs/
       // proxy-pipeline-redesign) regardless of the session model — for cheap,
-      // routing/extraction-only agents (orchestrator, analyzer). Resolved via
+      // routing-only agents (orchestrator). Resolved via
       // Provider.getSmallModel(<session provider>).
       useSmallModel: z.boolean().optional(),
       variant: z.string().optional(),
