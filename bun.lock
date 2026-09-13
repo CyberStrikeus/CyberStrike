@@ -411,6 +411,27 @@
         "vite": "catalog:",
       },
     },
+    "packages/enterprise-vortex": {
+      "name": "@cyberstrike-io/enterprise-vortex",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/jsmine": "workspace:*",
+      },
+      "devDependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "@cyberstrike-io/vortex": "workspace:*",
+        "@tsconfig/bun": "catalog:",
+        "@types/bun": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "cyberstrike": "*",
+      },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
+    },
     "packages/function": {
       "name": "@cyberstrike-io/function",
       "version": "1.1.16",
@@ -1039,6 +1060,8 @@
     "@cyberstrike-io/console-resource": ["@cyberstrike-io/console-resource@workspace:packages/console/resource"],
 
     "@cyberstrike-io/enterprise": ["@cyberstrike-io/enterprise@workspace:packages/enterprise"],
+
+    "@cyberstrike-io/enterprise-vortex": ["@cyberstrike-io/enterprise-vortex@workspace:packages/enterprise-vortex"],
 
     "@cyberstrike-io/function": ["@cyberstrike-io/function@workspace:packages/function"],
 
