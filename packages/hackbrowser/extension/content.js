@@ -1750,7 +1750,71 @@
       dynamic: mutationBursts > 0,
       tech: collectTech(), // framework fingerprint signals (P2) — server runs FrameworkFingerprinter
       js_bundles: scriptBundles(), // absolute <script src> URLs — the server mines these for endpoints
+      runtime_libs: readLibs(), // libs actually EXECUTED at runtime, with real versions (referenced-vs-loaded, #22)
+      resources: pageResources(), // what the page actually LOADED (performance timing) — CDN incl., load evidence
     }
+  }
+
+  // Libraries actually PRESENT AT RUNTIME, with their real versions — read from page globals via the
+  // MAIN-world probe (like readGlobals). This is EXECUTION evidence: a lib whose global is live truly
+  // loaded and ran, and its runtime version beats a URL-guessed one for CVE matching (#22 sub-task 4).
+  // Returns ["jquery@3.4.1","react@18.2.0",…]. Only libs that expose a global are visible (bundled
+  // ESM libs won't appear) — the server treats their absence as "unconfirmed", never "not present".
+  function readLibs() {
+    try {
+      const s = document.createElement("script")
+      s.textContent =
+        "(function(){try{var w=window,o=[];" +
+        "function v(n,x){try{if(x==null)return;x=(''+x).replace(/[^0-9A-Za-z.\\-]/g,'').slice(0,24);if(x)o.push(n+'@'+x);}catch(e){}}" +
+        "try{if(w.jQuery&&w.jQuery.fn)v('jquery',w.jQuery.fn.jquery)}catch(e){}" +
+        "try{if(w.React)v('react',w.React.version)}catch(e){}" +
+        "try{if(w.angular&&w.angular.version)v('angularjs',w.angular.version.full)}catch(e){}" +
+        "try{if(w.Vue)v('vue',w.Vue.version)}catch(e){}" +
+        "try{if(w._&&w._.VERSION)v('lodash',w._.VERSION)}catch(e){}" +
+        "try{if(w.moment)v('moment',w.moment.version)}catch(e){}" +
+        "try{if(w.bootstrap&&w.bootstrap.Tooltip)v('bootstrap',w.bootstrap.Tooltip.VERSION)}catch(e){}" +
+        "try{if(w.d3)v('d3',w.d3.version)}catch(e){}" +
+        "try{if(w.Highcharts)v('highcharts',w.Highcharts.version)}catch(e){}" +
+        "try{if(w.Handlebars)v('handlebars',w.Handlebars.VERSION)}catch(e){}" +
+        "try{if(w.Backbone)v('backbone',w.Backbone.VERSION)}catch(e){}" +
+        "try{if(w.axios)v('axios',w.axios.VERSION)}catch(e){}" +
+        "try{if(w.Chart)v('chartjs',w.Chart.version)}catch(e){}" +
+        "try{if(w.THREE)v('three',w.THREE.REVISION)}catch(e){}" +
+        "try{if(w.gsap)v('gsap',w.gsap.version)}catch(e){}" +
+        "try{if(w.Ember)v('ember',w.Ember.VERSION)}catch(e){}" +
+        "document.documentElement.setAttribute('data-cs-libs',o.join(';'));}catch(e){}})();"
+      document.documentElement.appendChild(s)
+      s.remove()
+      const v = document.documentElement.getAttribute("data-cs-libs") || ""
+      document.documentElement.removeAttribute("data-cs-libs")
+      return v ? v.split(";").filter(Boolean).slice(0, 40) : []
+    } catch {
+      return []
+    }
+  }
+
+  // What the page actually LOADED, from PerformanceResourceTiming — the browser's own record of every
+  // fetched resource. Kept to JS-relevant loads: initiatorType "script" (loaded+executed, incl. dynamic
+  // import), or a "link" whose URL is a JS module (preload/modulepreload — loaded, maybe not executed).
+  // transferSize 0 = served from cache / preload not consumed. INCLUDES cross-origin/CDN URLs (name +
+  // initiatorType are visible even when timing is opaque) — the authoritative "did it load" evidence.
+  function pageResources() {
+    const out = []
+    try {
+      const seen = new Set()
+      for (const e of performance.getEntriesByType("resource")) {
+        const it = e.initiatorType
+        const u = e.name
+        if (!/^https?:\/\//i.test(u)) continue
+        const isJs = /\.m?js(?:$|\?)/i.test(u)
+        if (it !== "script" && !(it === "link" && isJs)) continue // only script executions + JS preloads
+        if (seen.has(u)) continue
+        seen.add(u)
+        out.push({ url: u, type: it, size: e.transferSize || 0 })
+        if (out.length >= 200) break
+      }
+    } catch {}
+    return out
   }
 
   // Every <script src> as an ABSOLUTE url — the app-shell bundles, which usually load BEFORE

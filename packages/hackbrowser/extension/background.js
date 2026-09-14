@@ -967,6 +967,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (typeof obs.dynamic === "boolean") payload.dynamic = obs.dynamic
         if (obs.tech && typeof obs.tech === "object") payload.tech = obs.tech // framework fingerprint signals (P2)
         if (Array.isArray(obs.js_bundles)) payload.js_bundles = obs.js_bundles // <script src> bundle urls (JS-first discovery)
+        if (Array.isArray(obs.runtime_libs)) payload.runtime_libs = obs.runtime_libs // libs executed at runtime w/ versions (#22)
+        if (Array.isArray(obs.resources)) payload.resources = obs.resources // performance resource loads — load evidence (#22)
         if (typeof obs.modal_open === "boolean") payload.modal_open = obs.modal_open // a modal dialog is trapping interaction
         if (cred) payload.credential_id = cred.id
         try {
