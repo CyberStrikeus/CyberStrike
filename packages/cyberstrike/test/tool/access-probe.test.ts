@@ -50,6 +50,26 @@ describe("classifyAccess — cross-identity decision-differential", () => {
     expect(classifyAccess(OWNER, {}, "bob", "credential").verdict).toBe("error")
   })
 
+  test("read: 404 → enforced (hide-not-found), not a break", () => {
+    expect(classifyAccess(OWNER, { status: 404, body: "not found" }, "bob", "credential").verdict).toBe("enforced")
+  })
+
+  test("WRITE: swapped identity gets 2xx → BROKEN (BFLA), judged on status + flags a write ran", () => {
+    const f = classifyAccess({}, { status: 200, body: `{"ok":true}` }, "bob", "credential", true)
+    expect(f.verdict).toBe("broken")
+    expect(f.note).toMatch(/BFLA|state-changing|write ran/i)
+  })
+
+  test("WRITE: swapped identity denied (403) → enforced", () => {
+    expect(classifyAccess({}, { status: 403, body: "no" }, "bob", "credential", true).verdict).toBe("enforced")
+  })
+
+  test("WRITE: unauthenticated allowed to write (201) → BROKEN (missing authz on a write)", () => {
+    const f = classifyAccess({}, { status: 201, body: "" }, "unauthenticated", "unauthenticated", true)
+    expect(f.verdict).toBe("broken")
+    expect(f.note).toContain("UNAUTHENTICATED")
+  })
+
   test("near-identical body (>=90% tokens) still → broken", () => {
     // same object, one field reformatted — still the owner's data
     const f = classifyAccess(

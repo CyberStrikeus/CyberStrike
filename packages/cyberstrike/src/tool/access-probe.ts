@@ -51,7 +51,10 @@ export function tokenSimilarity(a: string, b: string): number {
 const BROKEN_SIM = 0.9
 
 // Pure decision-differential: compare a swapped/anon response to the owner's legitimate one.
-export function classifyAccess(owner: AccessResp, swapped: AccessResp, identity: string, kind: AccessFinding["kind"]): AccessFinding {
+// `stateChanging` = the request is a write (POST/PUT/PATCH/DELETE): the FINDING is that the action was
+// AUTHORIZED for the wrong identity (a 2xx), judged on status rather than body — and it means a write
+// actually ran under that identity, which the note flags for side-effect verification.
+export function classifyAccess(owner: AccessResp, swapped: AccessResp, identity: string, kind: AccessFinding["kind"], stateChanging = false): AccessFinding {
   const base = { identity, kind, owner_status: owner.status, swapped_status: swapped.status }
   if (swapped.error || swapped.status == null) return { ...base, verdict: "error", similarity: 0, note: swapped.error ?? "no response from swapped identity" }
   const ss = swapped.status
@@ -62,9 +65,20 @@ export function classifyAccess(owner: AccessResp, swapped: AccessResp, identity:
   const who = kind === "unauthenticated" ? "an UNAUTHENTICATED request" : `identity "${identity}"`
 
   // The server denied the swap — access control is enforced (the safe/expected outcome).
-  if (ss === 401 || ss === 403 || ss === 404 || (ss >= 300 && ss < 400)) {
+  if (ss === 401 || ss === 403 || (ss >= 300 && ss < 400)) {
     return { ...base, verdict: "enforced", similarity: sim, note: `${who} was denied (status ${ss}) — access control enforced` }
   }
+
+  // Write endpoint: the action being ALLOWED (2xx) for the wrong identity IS the break (BFLA / object
+  // write), judged on status — a write demonstrably ran under this identity.
+  if (stateChanging) {
+    if (swapOk) return { ...base, verdict: "broken", similarity: sim, note: `${who} was ALLOWED to perform this state-changing ${"request"} (status ${ss}) — Broken Access Control / BFLA. A write ran under this identity — verify authorization AND any side effects (created/modified/deleted data).` }
+    if (ss === 404) return { ...base, verdict: "weak-lead", similarity: sim, note: `${who} got 404 on a write — possibly object-scoped away, possibly hidden; verify` }
+    return { ...base, verdict: "enforced", similarity: sim, note: `${who} status ${ss} on a write — not clearly authorized` }
+  }
+
+  // Read endpoint: enforcement often returns 404 (hide-not-found), so treat 404 as enforced here.
+  if (ss === 404) return { ...base, verdict: "enforced", similarity: sim, note: `${who} was denied (status 404 — object hidden) — access control enforced` }
   // The swap succeeded AND returned the owner's response — Broken Access Control.
   if (ownerOk && swapOk && sim >= BROKEN_SIM) {
     return { ...base, verdict: "broken", similarity: sim, note: `${who} received the owner's response (status ${ss}, body ${Math.round(sim * 100)}% identical) — Broken Access Control (IDOR/BOLA or missing authz)` }
@@ -88,6 +102,11 @@ export const AccessProbeTool = Tool.define("access_probe", {
   parameters: z.object({
     request_id: z.string().describe("A captured request to test cross-identity (e.g. an IDOR/BOLA candidate from vortex_cross_role → vortex_inspect)."),
     include_unauthenticated: z.boolean().optional().default(true).describe("Also replay with all auth stripped, to detect missing authorization (default true)."),
+    safe_only: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe("If true, refuse state-changing methods (POST/PUT/PATCH/DELETE) instead of testing them. Default false — a write endpoint is where BFLA matters most, so it IS tested; the result flags that a write ran under the swapped identity so you verify side effects. Set true on a production target where a duplicate write is unacceptable."),
   }),
   async execute(params, ctx) {
     const sessionID = Session.root(ctx.sessionID)
@@ -96,9 +115,10 @@ export const AccessProbeTool = Tool.define("access_probe", {
     const request = Request.get(sessionID).find((r) => r.id === params.request_id)
     if (!request) return out(`Request "${params.request_id}" not found in this session.`)
     if (!request.raw_request) return out(`Request "${params.request_id}" has no raw_request to replay.`)
-    if (!SAFE_METHODS.has(request.method.toUpperCase()))
+    const stateChanging = !SAFE_METHODS.has(request.method.toUpperCase())
+    if (stateChanging && params.safe_only)
       return out(
-        `Refusing to auto-replay a ${request.method} request under other identities — that could mutate another identity's data. Confirm state-changing authorization manually with http_replay compare (baseline vs a swapped credential).`,
+        `safe_only is set and this is a ${request.method} (state-changing) request — skipped. Re-run with safe_only=false to test write authorization (a write will then run under each swapped identity), or confirm manually with http_replay.`,
       )
 
     const o = originOf(request)
@@ -120,9 +140,14 @@ export const AccessProbeTool = Tool.define("access_probe", {
       return out(`Could not parse request: ${e instanceof Error ? e.message : String(e)}`)
     }
 
-    // Owner baseline: the captured request carries the owner's own auth, so this is the legitimate response.
-    const ownerResp = await sendDecoded(baseMsg, origin, ctx.abort)
-    if (ownerResp.error) return out(`Owner baseline send failed: ${ownerResp.error} — cannot compare.`)
+    // Owner baseline: the captured request carries the owner's own auth, so this is the legitimate
+    // response — but only re-send it for READS. Re-sending a write would duplicate the owner's action;
+    // for writes we judge each swap on STATUS alone (was the action authorized for the wrong identity).
+    let ownerResp: AccessResp = {}
+    if (!stateChanging) {
+      ownerResp = await sendDecoded(baseMsg, origin, ctx.abort)
+      if (ownerResp.error) return out(`Owner baseline send failed: ${ownerResp.error} — cannot compare.`)
+    }
 
     const ownerCred = request.credential_id
     const others = WebCredential.get(sessionID)
@@ -135,11 +160,11 @@ export const AccessProbeTool = Tool.define("access_probe", {
       const swapped = applyCredential(baseMsg, cred.id)
       if ("error" in swapped) continue
       const resp = await sendDecoded(swapped, origin, ctx.abort)
-      findings.push(classifyAccess(ownerResp, resp, cred.label, "credential"))
+      findings.push(classifyAccess(ownerResp, resp, cred.label, "credential", stateChanging))
     }
     if (params.include_unauthenticated && !ctx.abort.aborted) {
       const resp = await sendDecoded(stripAuthHeaders(baseMsg), origin, ctx.abort)
-      findings.push(classifyAccess(ownerResp, resp, "unauthenticated", "unauthenticated"))
+      findings.push(classifyAccess(ownerResp, resp, "unauthenticated", "unauthenticated", stateChanging))
     }
 
     const broken = findings.filter((f) => f.verdict === "broken")
@@ -149,7 +174,10 @@ export const AccessProbeTool = Tool.define("access_probe", {
       ...weak.map((f) => `lead — ${f.note}`),
     ]
     const evidence = {
-      note: "OBSERVATIONS ONLY — a 'broken' verdict is a strong deterministic lead (a swapped/anon identity got the owner's response); confirm the leaked data is genuinely the owner's before reporting. SAFE (read) methods only.",
+      note: "OBSERVATIONS ONLY — a 'broken' verdict is a strong deterministic lead (a swapped/anon identity got the owner's response, or a write was authorized for it); confirm before reporting.",
+      warning: stateChanging
+        ? `STATE-CHANGING (${request.method}): this replayed the request under each swapped identity, so a write may have created/modified/deleted data under them — verify side effects. (owner baseline was NOT re-sent, to avoid duplicating the owner's own write.)`
+        : undefined,
       request_id: params.request_id,
       method: request.method,
       owner_status: ownerResp.status,
