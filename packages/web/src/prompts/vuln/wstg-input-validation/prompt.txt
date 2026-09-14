@@ -32,8 +32,11 @@ Concrete Vortex-native test per item:
   (craft a raw request via `http_replay_raw`).
 - WSTG-INPV-16 HTTP Incoming Requests — inspect which raw/unusual/oversized/malformed requests the server
   accepts and processes (via vortex_inspect + crafted http_replay), and what that exposes.
-- WSTG-INPV-17 Host Header Injection — http_replay with a tampered Host / X-Forwarded-Host; reset-poisoning,
-  cache poisoning, routing.
+- WSTG-INPV-17 Host Header Injection — `inject_probe` vuln_type `host_header`: spoofs X-Forwarded-Host /
+  X-Forwarded-Server / X-Host / Forwarded with a marker domain and reports if the app reflects it into a
+  body link, the Location redirect, or a Set-Cookie domain. Run it on link-generating endpoints
+  (password-reset, invite, verify-email). Escalate a hit (poison a reset link, cache-key analysis) and
+  confirm. The real Host: line is pinned by the send layer, so this covers the forwarding-header vector.
 - WSTG-INPV-18 Server-Side Template Injection (SSTI) — vortex_probe ssti / inject_probe ssti; template-expr
   canary that breaks out and evaluates.
 - WSTG-INPV-19 Server-Side Request Forgery (SSRF) — internal/metadata URL into a URL-taking param; observe

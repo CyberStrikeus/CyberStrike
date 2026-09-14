@@ -17,6 +17,7 @@ import { probeHppPoint } from "./probe/hpp"
 import { probeCrlfPoint } from "./probe/crlf"
 import { probeMassAssign } from "./probe/mass-assign"
 import { MASS_ASSIGN_NOT_TESTED } from "./payloads/mass-assign"
+import { probeHostHeader, HOST_HEADER_NOT_TESTED } from "./probe/host-header"
 import { createBackoff } from "./probe/base"
 import { CanaryRegistry } from "../../session/web/signal/canary"
 import { DbCanaryStore, SignalStore } from "../../session/web/signal/store"
@@ -58,7 +59,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
         "Fallback when the target is NOT a stored request (a new/unseen endpoint). Provide EITHER request_id OR target.",
       ),
     vuln_type: z
-      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi", "hpp", "mass_assign", "crlf"]))
+      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi", "hpp", "mass_assign", "crlf", "host_header"]))
       .min(1)
       .describe(
         "Injection classes to probe — YOU pick the set that fits THIS endpoint (don't run every class everywhere; e.g. no xpath on a plain REST/JSON API). xss/ssti/cmd return execution-facts; sqli/nosql/ldap/xpath return error-signature (sqli also a safe AND-based boolean-differential) facts; hpp detects HTTP Parameter Pollution parser behavior (first-wins vs last-wins). mass_assign (WSTG-INPV-20) is body-level (ignores points): it adds curated privileged fields (role/isAdmin/owner/permissions…) to a JSON/form WRITE body and reports which the server accepted + echoed — run it on write endpoints (POST/PUT/PATCH) that bind an object. The tool never exploits — it hands you leads.",
@@ -224,6 +225,24 @@ export const InjectProbeTool = Tool.define("inject_probe", {
         results.push({ class: cls, observations: classObs })
         testedLabels.push("mass_assign: body privileged-field binding")
         notTested.add(MASS_ASSIGN_NOT_TESTED)
+        continue
+      }
+      // host_header is also request-level (spoofs forwarding-host headers, ignores points).
+      if (cls === "host_header") {
+        if (!ctx.abort.aborted && budget.sent < budget.max) {
+          const o = await probeHostHeader(sender, resolved, ctx.abort, DELAY, budget, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.reflected.length > 0) {
+            const detail = o.reflected.map((x) => `${x.header}→${x.where}`).join(", ")
+            leads.push(
+              `host_header @ request: the app REFLECTED an attacker-controlled forwarding host [${detail}] — password-reset-link / web-cache poisoning surface; escalate (poison a reset link, cache-key analysis) and confirm.`,
+            )
+          }
+        }
+        results.push({ class: cls, observations: classObs })
+        testedLabels.push("host_header: X-Forwarded-Host & friends reflection")
+        notTested.add(HOST_HEADER_NOT_TESTED)
         continue
       }
       for (const point of points) {
