@@ -10,7 +10,7 @@ import { runDetectors } from "./detectors"
 import { CanaryRegistry, type CanaryKind } from "./canary"
 import { DbCanaryStore, SignalStore } from "./store"
 import { SignalRouter } from "./router"
-import { WebRetest } from "../web-retest"
+import { WebInspect } from "../web-inspect"
 import { vortexRegisterCanary, vortexScanProbeResponse } from "../vortex-bridge"
 import { Request } from "../../request"
 import type { Header, ObservedResponse, Signal } from "./types"
@@ -59,7 +59,7 @@ function enqueueRetest(sessionID: string, s: Signal): void {
       s.type === "technology" && typeof s.meta?.tech === "string"
         ? `${s.type}:${owner}:${s.meta.tech}`
         : `${s.type}:${owner}`
-    WebRetest.flag({
+    WebInspect.flag({
       sessionID,
       keyHash,
       type: "signal",

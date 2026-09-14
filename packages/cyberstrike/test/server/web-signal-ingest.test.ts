@@ -3,7 +3,7 @@ import { Hono } from "hono"
 import { SessionRoutes } from "../../src/server/routes/session"
 import { Session } from "../../src/session"
 import { vortexSignals } from "../../src/session/web/vortex-bridge"
-import { WebRetest } from "../../src/session/web/web-retest"
+import { WebInspect } from "../../src/session/web/web-inspect"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
 
@@ -115,7 +115,7 @@ describe("ingest → Vortex (real route wiring, #15 slice 1 parity)", () => {
       const resp = { status: 500, headers: { "content-type": "text/html" }, body: "You have an error in your SQL syntax near ''" }
       expect((await ingest(app, sid, "shop.example.com", "/q", resp)).status).toBe(202)
 
-      const retest = WebRetest.getPending(sid).find((r) => (r.flags.signal ?? []).length > 0)
+      const retest = WebInspect.getPending(sid).find((r) => (r.flags.signal ?? []).length > 0)
       expect(retest).toBeDefined()
       expect(retest?.key_hash).toBeTruthy()
       // Vortex routes the sql-error signal as `injection:input-validation` (WSTG 4.7 owner).

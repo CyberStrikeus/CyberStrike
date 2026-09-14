@@ -4,7 +4,7 @@ import { WebCredential } from "../session/web/web-credential"
 import { WebRole } from "../session/web/web-role"
 import { WebObject } from "../session/web/web-object"
 import { WebFunction } from "../session/web/web-function"
-import { WebRetest } from "../session/web/web-retest"
+import { WebInspect } from "../session/web/web-inspect"
 import { Request } from "../session/request"
 import { Observation } from "../session/observation"
 import { Session } from "../session"
@@ -147,14 +147,14 @@ export const WebGetSessionContextTool = Tool.define("web_get_session_context", {
     }
 
     if (include.includes("retest_queue")) {
-      const counts = WebRetest.count(sessionID)
+      const counts = WebInspect.count(sessionID)
       context.retest_queue = {
         pending: counts.pending,
         examined: counts.examined,
         // Each item is an ENDPOINT scenario: the endpoint + the accumulated flags (which
         // roles / credentials / object-values / signals were discovered for it). The
         // specialist tests all of these together for this endpoint.
-        items: WebRetest.getPending(sessionID)
+        items: WebInspect.getPending(sessionID)
           .slice(0, 10)
           .map((r) => ({ endpoint: r.method ? `${r.method} ${r.endpoint}` : r.key_hash, priority: r.priority, flags: r.flags })),
       }

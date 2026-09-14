@@ -24,6 +24,9 @@ export class InspectionDispatcher {
   }
 
   wake(): void {
+    // Dry-run (the ingest test flag) means "don't actually run agents" — leave the queue pending so
+    // coverage/assertions see it, and never spawn a child session (no live LLM calls in tests).
+    if (process.env.CYBERSTRIKE_INGEST_DRY_RUN === "true") return
     if (this.running) return
     this.running = true
     void this.loop()

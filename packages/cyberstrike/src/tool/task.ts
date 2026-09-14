@@ -13,7 +13,7 @@ import { PermissionNext } from "@/permission/next"
 import { Request } from "../session/request"
 import { CoverageNote } from "../session/coverage-note"
 import { WebCredential } from "../session/web/web-credential"
-import { WebRetest } from "../session/web/web-retest"
+import { WebInspect } from "../session/web/web-inspect"
 import { renderAccessContextLines } from "../server/routes/session"
 import { Truncate } from "./truncation"
 import { dispatchScopeViolation, dispatchOffLaneMessage } from "./vuln-scope"
@@ -37,7 +37,7 @@ const MAX_OBJECT_VALUES = 20
 // flags — so a plain request with nothing discovered adds nothing to the brief.
 function renderDiscoveredContextLines(sessionID: string, keyHash: string | undefined): string[] {
   if (!keyHash) return []
-  const flags = WebRetest.getFlags(sessionID, keyHash)
+  const flags = WebInspect.getFlags(sessionID, keyHash)
   if (!flags) return []
   const creds = flags.credential ?? []
   const roles = flags.role ?? []

@@ -25,7 +25,7 @@ import { WebJs } from "../../session/web/web-js"
 import { WebStats } from "../../session/web/web-stats"
 import { WebObject } from "../../session/web/web-object"
 import { WebFunction } from "../../session/web/web-function"
-import { WebRetest } from "../../session/web/web-retest"
+import { WebInspect } from "../../session/web/web-inspect"
 import { RetestWorker } from "../../session/web/retest-worker"
 import { ensureWebInspection, getWebInspection } from "../../inspection"
 import { ApiProbe } from "../../session/web/api-probe"
@@ -1740,7 +1740,7 @@ export const SessionRoutes = lazy(() =>
               "application/json": {
                 schema: resolver(
                   z.object({
-                    pending: z.array(WebRetest.Info),
+                    pending: z.array(WebInspect.Info),
                     counts: z.object({
                       pending: z.number(),
                       examined: z.number(),
@@ -1756,8 +1756,8 @@ export const SessionRoutes = lazy(() =>
       validator("param", z.object({ sessionID: z.string() })),
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
-        const pending = WebRetest.getPending(sessionID)
-        const counts = WebRetest.count(sessionID)
+        const pending = WebInspect.getPending(sessionID)
+        const counts = WebInspect.count(sessionID)
         return c.json({ pending, counts })
       },
     )
@@ -1968,12 +1968,12 @@ export const SessionRoutes = lazy(() =>
                 // BFLA) is queued the moment the role authenticates. TARGETED: only real app
                 // endpoints (skip static assets — a bundle/image has no access-control surface),
                 // so a new credential no longer floods the queue with one retest per JS/CSS/image.
-                WebRetest.flagMatching({
+                WebInspect.flagMatching({
                   sessionID,
                   type: "credential",
                   value: credentialID,
                   priority: "high",
-                  match: WebRetest.isAccessControlSurface,
+                  match: WebInspect.isAccessControlSurface,
                 })
 
                 // Credential→role bridge: extract JWT roles and link deterministically

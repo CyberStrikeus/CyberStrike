@@ -14,7 +14,7 @@ import { Bus } from "@/bus"
 import { Database, eq } from "../../storage/db"
 import { RequestTable } from "../session.sql"
 import { WebCredential, COMMON_AUTH_HEADERS } from "./web-credential"
-import { WebRetest } from "./web-retest"
+import { WebInspect } from "./web-inspect"
 import { WebScope } from "./scope"
 import { DataCollector } from "./data-collector"
 import { Request } from "../request"
@@ -201,7 +201,7 @@ export namespace ApiProbe {
           if (removed) {
             const r = await input.send(stripped, input.origin)
             if (is2xx(r.response?.status)) {
-              WebRetest.flag({ sessionID: input.sessionID, keyHash: input.keyHash, type: "signal", value: "unauth_access:access-control", priority: "high" })
+              WebInspect.flag({ sessionID: input.sessionID, keyHash: input.keyHash, type: "signal", value: "unauth_access:access-control", priority: "high" })
             }
           }
           // cross-identity: replay as every OTHER identity that has auth for this host → 2xx = a
@@ -215,7 +215,7 @@ export namespace ApiProbe {
             for (const [name, value] of Object.entries(auth)) msg = Mutate.setHeader(msg, name, value)
             const r = await input.send(msg, input.origin)
             if (is2xx(r.response?.status)) {
-              WebRetest.flag({ sessionID: input.sessionID, keyHash: input.keyHash, type: "credential", value: cred.id, priority: "high" })
+              WebInspect.flag({ sessionID: input.sessionID, keyHash: input.keyHash, type: "credential", value: cred.id, priority: "high" })
             }
           }
         }
@@ -250,7 +250,7 @@ export namespace ApiProbe {
           const method = input.method ?? base.method
           const target = base.target
           const kh = materializeMined(input.sessionID, method, input.origin, target, input.rawRequest)
-          WebRetest.flag({ sessionID: input.sessionID, keyHash: kh, type: "signal", value: "unauth_access:access-control", priority: "high" })
+          WebInspect.flag({ sessionID: input.sessionID, keyHash: kh, type: "signal", value: "unauth_access:access-control", priority: "high" })
           out.push({ probe: "mined-unauth-access", status: unauth.response?.status ?? null, signals: 1 })
         }
       } catch (e) {

@@ -7,7 +7,7 @@ import { SqliteStore, defaultRegistry, registerPlugin, leads, endpointKey, forAg
 import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
-import { WebRetest } from "./web-retest"
+import { WebInspect } from "./web-inspect"
 import { WebObject } from "./web-object"
 import { WebFunction } from "./web-function"
 import { WebRole } from "./web-role"
@@ -134,7 +134,7 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
     // Extractor plugins (Enterprise jsmine JS-miner) — run any registered per-transaction hooks and
     // bridge what they produce: discovered endpoints/JS land in the inventory, secret signals route
     // to their WSTG owner (information-gathering). Re-bridging this tx's already-routed signals is
-    // idempotent (WebRetest dedups). No-op on the free/default build — no extractor plugin registered.
+    // idempotent (WebInspect dedups). No-op on the free/default build — no extractor plugin registered.
     if (registry.listHooks().length > 0) {
       registry.runHooks(store, tx)
       bridgeSignals(i.sessionID, store, store.signals({ transactionId: tx.id }))
@@ -607,7 +607,7 @@ export function vortexScanProbeResponse(
 // Route freshly-produced Vortex signals into the deterministic retest queue so the OWNING WSTG
 // specialist confirms them — instead of leaving it to an agent's initiative to read vortex_leads
 // (the best-effort fragility the retest-worker exists to remove). Additive to the CS signal fabric
-// + traffic-driven feeds; dedup is free (WebRetest.flag keys per (key_hash,value), Vortex dedups
+// + traffic-driven feeds; dedup is free (WebInspect.flag keys per (key_hash,value), Vortex dedups
 // signals per dedupKey). Priority-gated (shouldRoute): only medium+ with an owning class auto-spawn;
 // low/info + unmapped categories stay visible in the sidebar but never burn a specialist. Never
 // throws — a routing failure must never break the ingest or probe path.
@@ -627,7 +627,7 @@ function bridgeSignals(sessionID: string, store: TrafficStore, signals: Signal[]
         s.category === "technology"
           ? `${s.category}:${owner}:${s.ruleId.replace(/^tech-/, "")}`
           : `${s.category}:${owner}`
-      WebRetest.flag({ sessionID, keyHash, type: "signal", value, priority: signalPriority(severity) })
+      WebInspect.flag({ sessionID, keyHash, type: "signal", value, priority: signalPriority(severity) })
       routed++
     } catch (e) {
       log.debug("vortex signal bridge failed (ignored)", { ruleId: s.ruleId, err: String(e) })
@@ -674,7 +674,7 @@ export function vortexSignals(sessionID: string): { signals: VortexSignalView[] 
     } catch (e) {
       log.debug("vortex corpus analyze failed (ignored)", { err: String(e) })
     }
-    const statusMap = WebRetest.statusByKeyHash(sessionID)
+    const statusMap = WebInspect.statusByKeyHash(sessionID)
     // Referenced-vs-loaded reconciliation (#22): a JS-origin finding inherits the load state of the
     // asset it fired on, so a finding on JS the app never actually loaded is flagged + down-ranked.
     const loadByUrl = new Map<string, LoadState | undefined>(store.discovered("js").map((d) => [d.value, d.loadState]))

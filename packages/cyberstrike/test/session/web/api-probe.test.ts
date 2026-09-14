@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { ApiProbe } from "../../../src/session/web/api-probe"
 import { HttpMessage } from "../../../src/replay/message"
 import { Send } from "../../../src/replay/send"
-import { WebRetest } from "../../../src/session/web/web-retest"
+import { WebInspect } from "../../../src/session/web/web-inspect"
 import { WebCredential } from "../../../src/session/web/web-credential"
 import { WebScope } from "../../../src/session/web/scope"
 import { Request } from "../../../src/session/request"
@@ -86,7 +86,7 @@ describe("ApiProbe.runEndpoint — deterministic probe → signal fabric → spe
 
       // and a specialist retest was queued for this endpoint, routed to input-validation
       // (the WSTG 4.7 owner of sql_error — injection folds into input-validation).
-      const pending = WebRetest.getPending(sid).find((r) => r.key_hash === "k_items")
+      const pending = WebInspect.getPending(sid).find((r) => r.key_hash === "k_items")
       expect(pending).toBeDefined()
       expect(pending!.flags.signal?.some((v) => v.includes("sql_error") && v.includes("input-validation"))).toBe(true)
     })
@@ -97,7 +97,7 @@ describe("ApiProbe.runEndpoint — deterministic probe → signal fabric → spe
       const req = Request.add({ sessionID: sid, method: "GET", normalizedPath: "/api/ok", keyHash: "k_ok" })!
       const send: ApiProbe.Sender = async () => reply(200, "{}", { "content-type": "application/json" })
       await ApiProbe.runEndpoint({ sessionID: sid, requestId: req.id, keyHash: "k_ok", rawRequest: raw("GET /api/ok?x=1"), origin: "https://app.example.com", send })
-      expect(WebRetest.getPending(sid).length).toBe(0)
+      expect(WebInspect.getPending(sid).length).toBe(0)
     })
   })
 })
@@ -118,7 +118,7 @@ describe("ApiProbe — access-control evidence (deterministic replacement for cr
         send,
         accessControl: true,
       })
-      const pending = WebRetest.getPending(sid).find((r) => r.key_hash === "k_me")
+      const pending = WebInspect.getPending(sid).find((r) => r.key_hash === "k_me")
       expect(pending?.flags.signal?.some((v) => v.includes("unauth_access") && v.includes("access-control"))).toBe(true)
     })
   })
@@ -146,7 +146,7 @@ describe("ApiProbe — access-control evidence (deterministic replacement for cr
         send,
         accessControl: true,
       })
-      const pending = WebRetest.getPending(sid).find((r) => r.key_hash === "k_ord")
+      const pending = WebInspect.getPending(sid).find((r) => r.key_hash === "k_ord")
       expect(pending?.flags.credential).toContain(org2.id) // the offending identity flagged
       // unauth was 401 → no unauth_access flag
       expect(pending?.flags.signal?.some((v) => v.includes("unauth_access"))).not.toBe(true)
@@ -176,7 +176,7 @@ describe("ApiProbe — mined-endpoint access-control scenario (authed + unauthed
       const req = Request.get(sid).find((r) => r.normalized_path === "/api/secrets")
       expect(req).toBeDefined()
       // flagged broken access control on that endpoint
-      const pending = WebRetest.getPending(sid).find((r) => r.endpoint === "/api/secrets")
+      const pending = WebInspect.getPending(sid).find((r) => r.endpoint === "/api/secrets")
       expect(pending?.flags.signal?.some((v) => v.includes("unauth_access"))).toBe(true)
     })
   })
@@ -199,7 +199,7 @@ describe("ApiProbe — mined-endpoint access-control scenario (authed + unauthed
       })
       // HTML shell → not real API data → no materialization, no flag
       expect(Request.get(sid).find((r) => r.normalized_path === "/api/whatever")).toBeUndefined()
-      expect(WebRetest.getPending(sid).length).toBe(0)
+      expect(WebInspect.getPending(sid).length).toBe(0)
     })
   })
 })

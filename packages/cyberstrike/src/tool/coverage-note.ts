@@ -2,7 +2,7 @@ import z from "zod"
 import { Tool } from "./tool"
 import { CoverageNote } from "../session/coverage-note"
 import { Session } from "../session"
-import { WebRetest } from "../session/web/web-retest"
+import { WebInspect } from "../session/web/web-inspect"
 
 export const RecordCoverageNoteTool = Tool.define("record_coverage_note", {
   description:
@@ -60,7 +60,7 @@ export const RecordCoverageNoteTool = Tool.define("record_coverage_note", {
     })
     // Testing this request's endpoint closes any pending retests queued for it, so the
     // retest queue drains as coverage accrues (deterministic completion, plan A).
-    if (params.request_id) WebRetest.completeForRequest(Session.root(ctx.sessionID), params.request_id)
+    if (params.request_id) WebInspect.completeForRequest(Session.root(ctx.sessionID), params.request_id)
     return {
       title: `Coverage: ${params.class} @ ${params.asset} (${params.scope})`,
       output: `Recorded — ${params.class} on ${params.asset} can be skipped${params.scope === "wide" ? " across this origin" : ""}. (${rec.id})`,
