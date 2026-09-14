@@ -13,7 +13,6 @@ export {
   WebObjectTable,
   WebObjectValueTable,
   WebFunctionTable,
-  WebRetestQueueTable,
   EndpointTemplateTable,
 } from "../session/session.sql"
 export { SessionShareTable } from "../share/share.sql"

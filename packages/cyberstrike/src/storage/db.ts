@@ -123,39 +123,24 @@ export namespace Database {
     }
     sqlite.run("DROP TABLE IF EXISTS web_credential_new")
 
-    // web_retest_queue: old schema was per (request_id × trigger_source); new schema is
-    // per-endpoint (key_hash) with accumulated flags. The two are structurally incompatible
-    // and retests are transient (regenerated from live discoveries), so drop the old table and
-    // recreate it with the current shape. (The schema-driven pass below only ADDs columns to
-    // existing tables — it can't recreate a dropped one — so we recreate here.)
-    if (tableExists(sqlite, "web_retest_queue") && tableColumns(sqlite, "web_retest_queue").has("request_id")) {
-      sqlite.run("DROP TABLE web_retest_queue")
-      sqlite.run(`CREATE TABLE web_retest_queue (
-        id TEXT PRIMARY KEY,
-        session_id TEXT NOT NULL REFERENCES session(id) ON DELETE CASCADE,
-        key_hash TEXT NOT NULL,
-        status TEXT NOT NULL,
-        priority TEXT NOT NULL,
-        flags TEXT,
-        examined_flags TEXT,
-        time_created INTEGER NOT NULL,
-        time_updated INTEGER NOT NULL
-      )`)
-      sqlite.run("CREATE UNIQUE INDEX web_retest_queue_endpoint_idx ON web_retest_queue(session_id, key_hash)")
-      sqlite.run("CREATE INDEX web_retest_queue_status_idx ON web_retest_queue(session_id, status)")
-      log.info("reconciled web_retest_queue (request×trigger → per-endpoint flags)")
-    }
-
-    // inspection_queue: migrate existing web_retest_queue rows into the new domain-agnostic table.
-    // Runs once — after migration creates inspection_queue, before web_retest_queue is eventually dropped.
+    // web_retest_queue is fully retired (#19) — the live path is inspection_queue. reconcile() runs
+    // AFTER migrate() created inspection_queue, so the target always exists here; the tableExists guard
+    // keeps the drop data-loss-safe regardless. Migrate any existing per-endpoint (key_hash-shaped)
+    // rows into inspection_queue one last time, then drop the old table for good. Very old
+    // request_id-shaped rows were always transient (regenerated from live discoveries) — dropped, not
+    // migrated.
     if (tableExists(sqlite, "web_retest_queue") && tableExists(sqlite, "inspection_queue")) {
-      const migrated = sqlite.prepare("SELECT COUNT(*) as c FROM inspection_queue WHERE domain = 'web'").get() as { c: number }
-      if (migrated.c === 0) {
-        sqlite.run(`INSERT OR IGNORE INTO inspection_queue (id, session_id, domain, target_key, target_label, target_meta, status, priority, evidence, examined_evidence, time_created, time_updated)
-          SELECT id, session_id, 'web', key_hash, NULL, NULL, status, priority, flags, examined_flags, time_created, time_updated
-          FROM web_retest_queue`)
-        log.info("migrated web_retest_queue rows into inspection_queue")
+      if (tableColumns(sqlite, "web_retest_queue").has("key_hash")) {
+        const migrated = sqlite.prepare("SELECT COUNT(*) as c FROM inspection_queue WHERE domain = 'web'").get() as { c: number }
+        if (migrated.c === 0) {
+          sqlite.run(`INSERT OR IGNORE INTO inspection_queue (id, session_id, domain, target_key, target_label, target_meta, status, priority, evidence, examined_evidence, time_created, time_updated)
+            SELECT id, session_id, 'web', key_hash, NULL, NULL, status, priority, flags, examined_flags, time_created, time_updated
+            FROM web_retest_queue`)
+          log.info("migrated web_retest_queue rows into inspection_queue")
+        }
       }
+      sqlite.run("DROP TABLE IF EXISTS web_retest_queue")
+      log.info("dropped retired web_retest_queue table (#19)")
     }
 
     // Phase 2: Schema-driven column reconciliation

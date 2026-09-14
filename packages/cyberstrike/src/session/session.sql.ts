@@ -445,32 +445,3 @@ export const CoverageNoteTable = sqliteTable(
   ],
 )
 
-export const WebRetestQueueTable = sqliteTable(
-  "web_retest_queue",
-  {
-    id: text().primaryKey(),
-    session_id: text()
-      .notNull()
-      .references(() => SessionTable.id, { onDelete: "cascade" }),
-    // Simplified-endpoint anchor (joins to request.key_hash). ONE row per (session,
-    // key_hash) — the endpoint is the retest unit, not the request instance, so the same
-    // endpoint is never queued twice. Not a FK: the endpoint concept outlives any single
-    // request row.
-    key_hash: text().notNull(),
-    status: text().notNull(), // "pending" | "examined"
-    priority: text().notNull(), // high, medium, low
-    // Accumulated retest flags: each trigger family collects the distinct VALUES seen for
-    // this endpoint (roles/credentials/object-values/signals). A new value on a pending
-    // endpoint just appends here (no new row); a new value on an already-examined endpoint
-    // flips it back to pending. The specialist reads all of these + observations at dispatch.
-    flags: text({ mode: "json" }).$type<{ object_value?: string[]; role?: string[]; signal?: string[]; credential?: string[] }>(),
-    // Snapshot of `flags` taken when the endpoint was last examined — so a genuinely new
-    // value (absent here) can re-open it, while re-seen values do not.
-    examined_flags: text({ mode: "json" }).$type<{ object_value?: string[]; role?: string[]; signal?: string[]; credential?: string[] }>(),
-    ...Timestamps,
-  },
-  (table) => [
-    uniqueIndex("web_retest_queue_endpoint_idx").on(table.session_id, table.key_hash),
-    index("web_retest_queue_status_idx").on(table.session_id, table.status),
-  ],
-)
