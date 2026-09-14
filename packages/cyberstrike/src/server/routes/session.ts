@@ -26,7 +26,7 @@ import { WebStats } from "../../session/web/web-stats"
 import { WebObject } from "../../session/web/web-object"
 import { WebFunction } from "../../session/web/web-function"
 import { WebInspect } from "../../session/web/web-inspect"
-import { ensureWebInspection, getWebInspection, addWebActivitySource } from "../../inspection"
+import { ensureWebInspection, getWebInspection, addWebActivitySource, ensureAssessmentNotifier } from "../../inspection"
 import { ApiProbe } from "../../session/web/api-probe"
 import { WebScope } from "../../session/web/scope"
 import { UiObservation } from "../../session/web/ui-observation"
@@ -1912,6 +1912,7 @@ export const SessionRoutes = lazy(() =>
         // owning WSTG specialist per flagged endpoint) and the lifecycle tracks phase → complete.
         // Idempotent; safe on every ingest. (Replaced the old WebRetest/RetestWorker path — #19.)
         ensureWebInspection(sessionID)
+        ensureAssessmentNotifier() // POST a webhook when a session reaches phase "complete" (#19)
         // Register activity sources so the lifecycle knows the session is still producing work — this
         // keeps the phase at inspecting/discovering (never a premature "complete", which stops the
         // lifecycle for good) while traffic is still flowing or the miner/prober is running (#19).
