@@ -10,8 +10,11 @@ Concrete Vortex-native test per item:
   context (HTML/attr/JS), then replay an executing payload.
 - WSTG-INPV-02 Stored XSS — inject a canary via one request, confirm it renders on a LATER captured or
   replayed page (cross-page canary), not just its own response.
-- WSTG-INPV-03 HTTP Verb Tampering — http_replay the request with alternate methods (PUT/DELETE/PATCH/
-  HEAD/arbitrary); does the server honor an unintended verb?
+- WSTG-INPV-03 HTTP Verb Tampering — `inject_probe` vuln_type `verb`: a SAFE method matrix
+  (HEAD/OPTIONS/GET + an arbitrary verb, never PUT/DELETE/PATCH) + the Allow header. It flags a
+  method-based access-control bypass (base method denied, an alt method 2xx), an accepted arbitrary
+  verb, and surfaces Allow-advertised state-changing methods. Those destructive verbs are NOT fired —
+  confirm them MANUALLY with `http_replay` only when in scope and safe.
 - WSTG-INPV-04 HTTP Parameter Pollution — inject_probe hpp; duplicate a param, observe first/last-wins
   parser behavior and whether it bypasses a control.
 - WSTG-INPV-05 SQL Injection — vortex_probe sqli-error / inject_probe sqli (error + safe boolean/AND

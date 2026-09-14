@@ -17,6 +17,7 @@ const KEEP_HEADERS = [
   "www-authenticate",
   "content-type",
   "set-cookie",
+  "allow", // advertised methods — HTTP verb-tampering (WSTG-INPV-03)
   "cf-ray",
   "x-sucuri-id",
   "x-akamai-transformed",

@@ -18,6 +18,7 @@ import { probeCrlfPoint } from "./probe/crlf"
 import { probeMassAssign } from "./probe/mass-assign"
 import { MASS_ASSIGN_NOT_TESTED } from "./payloads/mass-assign"
 import { probeHostHeader, HOST_HEADER_NOT_TESTED } from "./probe/host-header"
+import { probeVerbTampering, VERB_NOT_TESTED } from "./probe/verb"
 import { createBackoff } from "./probe/base"
 import { CanaryRegistry } from "../../session/web/signal/canary"
 import { DbCanaryStore, SignalStore } from "../../session/web/signal/store"
@@ -59,7 +60,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
         "Fallback when the target is NOT a stored request (a new/unseen endpoint). Provide EITHER request_id OR target.",
       ),
     vuln_type: z
-      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi", "hpp", "mass_assign", "crlf", "host_header"]))
+      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi", "hpp", "mass_assign", "crlf", "host_header", "verb"]))
       .min(1)
       .describe(
         "Injection classes to probe — YOU pick the set that fits THIS endpoint (don't run every class everywhere; e.g. no xpath on a plain REST/JSON API). xss/ssti/cmd return execution-facts; sqli/nosql/ldap/xpath return error-signature (sqli also a safe AND-based boolean-differential) facts; hpp detects HTTP Parameter Pollution parser behavior (first-wins vs last-wins). mass_assign (WSTG-INPV-20) is body-level (ignores points): it adds curated privileged fields (role/isAdmin/owner/permissions…) to a JSON/form WRITE body and reports which the server accepted + echoed — run it on write endpoints (POST/PUT/PATCH) that bind an object. The tool never exploits — it hands you leads.",
@@ -243,6 +244,30 @@ export const InjectProbeTool = Tool.define("inject_probe", {
         results.push({ class: cls, observations: classObs })
         testedLabels.push("host_header: X-Forwarded-Host & friends reflection")
         notTested.add(HOST_HEADER_NOT_TESTED)
+        continue
+      }
+      // verb is request-level: a SAFE method matrix (never fires PUT/DELETE/PATCH) + Allow.
+      if (cls === "verb") {
+        if (!ctx.abort.aborted && budget.sent < budget.max) {
+          const o = await probeVerbTampering(sender, resolved, ctx.abort, DELAY, budget, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.bypass.length > 0)
+            leads.push(
+              `verb @ request: method-based access control BYPASSED — base ${o.baseline.method} → ${o.baseline.status}, but ${o.bypass.map((b) => `${b.method}→${b.to}`).join(", ")}. The control keys on the verb; confirm the data is actually served/acted on.`,
+            )
+          if (o.arbitrary_verb_accepted)
+            leads.push(
+              `verb @ request: the server accepted an ARBITRARY method (${"CSPROBE"}) with a 2xx — unknown verbs reach a handler (method-ACL bypass surface); verify what it exposes.`,
+            )
+          if (o.dangerous_methods_allowed.length > 0)
+            leads.push(
+              `verb @ request: Allow advertises state-changing method(s) [${o.dangerous_methods_allowed.join(", ")}] — NOT fired by the probe (destructive); confirm MANUALLY via http_replay whether they are honored without auth.`,
+            )
+        }
+        results.push({ class: cls, observations: classObs })
+        testedLabels.push("verb: safe method-matrix + Allow (no destructive verbs fired)")
+        notTested.add(VERB_NOT_TESTED)
         continue
       }
       for (const point of points) {
