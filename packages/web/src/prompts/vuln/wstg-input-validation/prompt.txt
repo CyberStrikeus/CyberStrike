@@ -19,10 +19,14 @@ Concrete Vortex-native test per item:
   parser behavior and whether it bypasses a control.
 - WSTG-INPV-05 SQL Injection — vortex_probe sqli-error / inject_probe sqli (error + safe boolean/AND
   differential); escalate a confirmed error to UNION.
-- WSTG-INPV-06 LDAP Injection — inject_probe ldap; LDAP metacharacters into directory-query params.
+- WSTG-INPV-06 LDAP Injection — inject_probe ldap; LDAP metacharacters into directory-query params. It
+  returns error-signatures AND a filter boolean-differential (`*)(cn=*)` matches-all vs a no-match
+  filter) — a true/false differential confirms blind LDAP injection / auth-bypass beyond error strings.
 - WSTG-INPV-07 XML / XXE Injection — inject XML entities into XML bodies; external entity → file read/SSRF.
 - WSTG-INPV-08 SSI Injection — inject SSI directives (<!--#exec/include-->) where includes are rendered.
-- WSTG-INPV-09 XPath Injection — inject_probe xpath; XPath metacharacters into query-over-XML params.
+- WSTG-INPV-09 XPath Injection — inject_probe xpath; XPath metacharacters into query-over-XML params. It
+  returns error-signatures AND a boolean-differential (`' or '1'='1` vs `'2`) — a true/false differential
+  confirms blind XPath injection beyond error strings. (NoSQL likewise: `[$ne]`/`[$eq]` operator differential.)
 - WSTG-INPV-10 IMAP/SMTP Injection — CRLF into mail-related params (contact/invite/subject) → header inj.
 - WSTG-INPV-11 Code Injection (incl. LFI/RFI) — inject_probe lfi; file/path + code-eval params.
 - WSTG-INPV-12 Command Injection — inject_probe cmd; READ-ONLY id/ver behind shell separators, time-based.
