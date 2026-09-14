@@ -14,6 +14,8 @@ import { probeCmdPoint } from "./probe/cmd"
 import { probeLfiPoint } from "./probe/lfi"
 import { probeErrorSigPoint } from "./probe/errsig"
 import { probeHppPoint } from "./probe/hpp"
+import { probeMassAssign } from "./probe/mass-assign"
+import { MASS_ASSIGN_NOT_TESTED } from "./payloads/mass-assign"
 import { createBackoff } from "./probe/base"
 import { CanaryRegistry } from "../../session/web/signal/canary"
 import { DbCanaryStore, SignalStore } from "../../session/web/signal/store"
@@ -55,10 +57,10 @@ export const InjectProbeTool = Tool.define("inject_probe", {
         "Fallback when the target is NOT a stored request (a new/unseen endpoint). Provide EITHER request_id OR target.",
       ),
     vuln_type: z
-      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi", "hpp"]))
+      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi", "hpp", "mass_assign"]))
       .min(1)
       .describe(
-        "Injection classes to probe — YOU pick the set that fits THIS endpoint (don't run every class everywhere; e.g. no xpath on a plain REST/JSON API). xss/ssti/cmd return execution-facts; sqli/nosql/ldap/xpath return error-signature (sqli also a safe AND-based boolean-differential) facts; hpp detects HTTP Parameter Pollution parser behavior (first-wins vs last-wins). The tool never exploits — it hands you leads.",
+        "Injection classes to probe — YOU pick the set that fits THIS endpoint (don't run every class everywhere; e.g. no xpath on a plain REST/JSON API). xss/ssti/cmd return execution-facts; sqli/nosql/ldap/xpath return error-signature (sqli also a safe AND-based boolean-differential) facts; hpp detects HTTP Parameter Pollution parser behavior (first-wins vs last-wins). mass_assign (WSTG-INPV-20) is body-level (ignores points): it adds curated privileged fields (role/isAdmin/owner/permissions…) to a JSON/form WRITE body and reports which the server accepted + echoed — run it on write endpoints (POST/PUT/PATCH) that bind an object. The tool never exploits — it hands you leads.",
       ),
     points: z
       .array(
@@ -202,6 +204,27 @@ export const InjectProbeTool = Tool.define("inject_probe", {
     }
     for (const cls of params.vuln_type) {
       const classObs: unknown[] = []
+      // mass_assign is BODY-level (no injection point): add curated privileged fields to the write body
+      // once and report which the server accepted. Handled here, then skip the per-point loop.
+      if (cls === "mass_assign") {
+        if (!ctx.abort.aborted && budget.sent < budget.max) {
+          const o = await probeMassAssign(sender, resolved, ctx.abort, DELAY, budget, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.bound.length > 0)
+            leads.push(
+              `mass_assign @ body: server ACCEPTED + echoed injected privileged field(s) [${o.bound.map((b) => b.field).join(", ")}] — mass-assignment binding; escalate with the real value (e.g. role=admin / isAdmin=true) and confirm the privilege/ownership impact.`,
+            )
+          else if (o.reflected_keys.length > 0)
+            leads.push(
+              `mass_assign @ body: injected key(s) [${o.reflected_keys.join(", ")}] surfaced in the response (weaker than an echoed value) — verify they actually bind.`,
+            )
+        }
+        results.push({ class: cls, observations: classObs })
+        testedLabels.push("mass_assign: body privileged-field binding")
+        notTested.add(MASS_ASSIGN_NOT_TESTED)
+        continue
+      }
       for (const point of points) {
         if (ctx.abort.aborted || budget.sent >= budget.max) break
         const field = `${point.location}:${point.name}`

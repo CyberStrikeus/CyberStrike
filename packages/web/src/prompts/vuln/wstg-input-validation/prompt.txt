@@ -34,8 +34,13 @@ Concrete Vortex-native test per item:
   canary that breaks out and evaluates.
 - WSTG-INPV-19 Server-Side Request Forgery (SSRF) — internal/metadata URL into a URL-taking param; observe
   the server-side fetch.
-- WSTG-INPV-20 Mass Assignment — add extra privileged fields (role/isAdmin/owner) to the body, replay,
-  observe whether they bind.
+- WSTG-INPV-20 Mass Assignment — `inject_probe` with vuln_type `mass_assign` on WRITE endpoints
+  (POST/PUT/PATCH carrying a JSON or form body). It adds a curated set of privileged fields
+  (role/isAdmin/owner/permissions/plan/credit…) and reports which the server ACCEPTED + echoed. FIND the
+  sensible targets first with HTTPQL: `vortex_query` for object-write requests (e.g. method in
+  POST/PUT/PATCH with a body — profile/user/account/order/settings update endpoints). On a confirmed
+  binding, escalate with the REAL value (role=admin / isAdmin=true / owner=<other-id>) via `http_replay`
+  and confirm the privilege/ownership impact before reporting.
 - Also folded here (input-shaped): unrestricted file upload, path traversal, NoSQL injection.
 
 IGNORE authentication, authorization, session, business-logic, config, crypto, error-handling and
