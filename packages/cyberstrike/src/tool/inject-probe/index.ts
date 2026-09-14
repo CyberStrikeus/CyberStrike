@@ -15,6 +15,7 @@ import { probeLfiPoint } from "./probe/lfi"
 import { probeErrorSigPoint } from "./probe/errsig"
 import { probeHppPoint } from "./probe/hpp"
 import { probeCrlfPoint } from "./probe/crlf"
+import { probeTimeBlindPoint } from "./probe/time-blind"
 import { probeMassAssign } from "./probe/mass-assign"
 import { MASS_ASSIGN_NOT_TESTED } from "./payloads/mass-assign"
 import { probeHostHeader, HOST_HEADER_NOT_TESTED } from "./probe/host-header"
@@ -60,7 +61,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
         "Fallback when the target is NOT a stored request (a new/unseen endpoint). Provide EITHER request_id OR target.",
       ),
     vuln_type: z
-      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi", "hpp", "mass_assign", "crlf", "host_header", "verb"]))
+      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi", "hpp", "mass_assign", "crlf", "host_header", "verb", "time_blind"]))
       .min(1)
       .describe(
         "Injection classes to probe — YOU pick the set that fits THIS endpoint (don't run every class everywhere; e.g. no xpath on a plain REST/JSON API). xss/ssti/cmd return execution-facts; sqli/nosql/ldap/xpath return error-signature AND a true/false differential (sqli AND-based boolean, nosql $ne/$eq/$regex operator, ldap/xpath filter boolean) — a confirmation channel beyond FP-prone error strings; hpp detects HTTP Parameter Pollution parser behavior (first-wins vs last-wins). mass_assign (WSTG-INPV-20) is body-level (ignores points): it adds curated privileged fields (role/isAdmin/owner/permissions…) to a JSON/form WRITE body and reports which the server accepted + echoed — run it on write endpoints (POST/PUT/PATCH) that bind an object. The tool never exploits — it hands you leads.",
@@ -376,6 +377,16 @@ export const InjectProbeTool = Tool.define("inject_probe", {
             leads.push(
               `hpp @ ${o.point}: parser behavior = ${o.parser_behavior} (append_reflected=${o.append_reflected}, prepend_reflected=${o.prepend_reflected}) — fire injection payloads at the duplicate position to exploit.`,
             )
+        } else if (cls === "time_blind") {
+          const o = await probeTimeBlindPoint(sender, resolved, point, ctx.abort, DELAY, budget, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.findings.length > 0) {
+            const f = o.findings[0]!
+            leads.push(
+              `time_blind @ ${o.point}: an injected ${f.family} delay SCALES the response (${f.injected_delay_s}s → +${f.observed_delta_ms}ms over ${o.base_ms}ms baseline), while the zero-delay and false-condition controls stayed fast — blind time-based injection (${o.findings.map((x) => x.engine).join("/")}); escalate (conditional-timing extraction) and confirm.`,
+            )
+          }
         } else if (cls === "crlf") {
           const o = await probeCrlfPoint(sender, resolved, point, ctx.abort, DELAY, budget, backoff)
           classObs.push(o)

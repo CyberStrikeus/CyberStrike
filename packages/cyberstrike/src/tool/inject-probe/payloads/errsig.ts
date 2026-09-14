@@ -147,6 +147,7 @@ export const TESTED_LABEL: Record<string, string> = {
   lfi: "lfi: read-only path-traversal file-disclosure (Linux + Windows)",
   hpp: "hpp: HTTP Parameter Pollution — duplicate-parameter parser behavior (first-wins vs last-wins)",
   crlf: "crlf: injected-header echo (HTTP response-splitting / header-injection)",
+  time_blind: "time_blind: dose-response + conditional timing (blind SQLi / OS command)",
 }
 
 import { XSS_NOT_TESTED } from "./xss"
@@ -155,6 +156,7 @@ import { CMD_NOT_TESTED } from "./cmd"
 import { LFI_NOT_TESTED } from "./lfi"
 import { HPP_NOT_TESTED } from "../probe/hpp"
 import { CRLF_NOT_TESTED } from "../probe/crlf"
+import { TIME_BLIND_NOT_TESTED } from "./time-blind"
 
 export const NOT_TESTED_BY_CLASS: Record<string, string[]> = {
   xss: XSS_NOT_TESTED,
@@ -167,4 +169,5 @@ export const NOT_TESTED_BY_CLASS: Record<string, string[]> = {
   lfi: LFI_NOT_TESTED,
   hpp: HPP_NOT_TESTED,
   crlf: CRLF_NOT_TESTED,
+  time_blind: TIME_BLIND_NOT_TESTED,
 }

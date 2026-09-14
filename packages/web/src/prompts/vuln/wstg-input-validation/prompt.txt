@@ -18,7 +18,9 @@ Concrete Vortex-native test per item:
 - WSTG-INPV-04 HTTP Parameter Pollution — inject_probe hpp; duplicate a param, observe first/last-wins
   parser behavior and whether it bypasses a control.
 - WSTG-INPV-05 SQL Injection — vortex_probe sqli-error / inject_probe sqli (error + safe boolean/AND
-  differential); escalate a confirmed error to UNION.
+  differential); escalate a confirmed error to UNION. For BLIND SQLi with no error/differential, use
+  inject_probe `time_blind` — it confirms a time-based injection via dose-response (delay scales with the
+  injected SLEEP) + a conditional pair, jitter-safe. (bounded: modest delay, holds server threads.)
 - WSTG-INPV-06 LDAP Injection — inject_probe ldap; LDAP metacharacters into directory-query params. It
   returns error-signatures AND a filter boolean-differential (`*)(cn=*)` matches-all vs a no-match
   filter) — a true/false differential confirms blind LDAP injection / auth-bypass beyond error strings.
@@ -29,7 +31,10 @@ Concrete Vortex-native test per item:
   confirms blind XPath injection beyond error strings. (NoSQL likewise: `[$ne]`/`[$eq]` operator differential.)
 - WSTG-INPV-10 IMAP/SMTP Injection — CRLF into mail-related params (contact/invite/subject) → header inj.
 - WSTG-INPV-11 Code Injection (incl. LFI/RFI) — inject_probe lfi; file/path + code-eval params.
-- WSTG-INPV-12 Command Injection — inject_probe cmd; READ-ONLY id/ver behind shell separators, time-based.
+- WSTG-INPV-12 Command Injection — inject_probe cmd (READ-ONLY id/ver behind shell separators). For
+  BLIND command injection (no output reflected), use inject_probe `time_blind` — injected `sleep`
+  dose-response + conditional confirmation (jitter-safe). OOB (DNS/HTTP callback) confirmation is the
+  separate collaborator's job.
 - WSTG-INPV-13 Format String — %s/%x/%n into params handled by C-style formatters.
 - WSTG-INPV-14 Incubated — a stored payload that fires later in a DIFFERENT flow (chain store→trigger).
 - WSTG-INPV-15 HTTP Splitting/Smuggling — `inject_probe` vuln_type `crlf` on params that flow into a
