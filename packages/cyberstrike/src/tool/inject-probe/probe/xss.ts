@@ -4,6 +4,7 @@ import { applyPayload } from "../mutate"
 import { send, nonce, type HttpSender } from "../send"
 import { looksBlocked, excerptOf, classifyXssContext, xssWeaponFires } from "../detect"
 import { sleep, checkBaseline, fireLoop, type BackoffState, recordBlock, recordSuccess } from "./base"
+import { buildXssPoc, cspNote, type XssPoc } from "../poc"
 
 export interface PointObservation {
   point: string
@@ -14,6 +15,10 @@ export interface PointObservation {
   surviving_tags: string[]
   weaponized: string[]
   breakout?: string
+  // A ready-to-use PoC built from the confirmed-firing payload (clickable URL / self-submitting HTML /
+  // curl, per injection location), plus a CSP caveat when the response may block it at runtime (#22).
+  poc?: XssPoc
+  poc_csp_note?: string
   block_signal?: string
   blocked: boolean
   note?: string
@@ -50,6 +55,10 @@ export async function probeXssPoint(
   if (!obs.marker_reflected) return obs
   obs.reflection_snippet = excerptOf(bl.res.text, n)
   obs.context = classifyXssContext(bl.res.text, n)
+  // Capture a CSP caveat once, off the baseline response — a reflected-un-encoded payload isn't
+  // guaranteed to execute if CSP blocks inline/handlers (#22 honesty note on the PoC).
+  const cspHeader = Object.entries(bl.res.headers).find(([k]) => k.toLowerCase() === "content-security-policy")?.[1]
+  obs.poc_csp_note = cspNote(cspHeader)
 
   const tagPayloads = XSS_TAGS.map((tag) => ({ tag, tn: nonce() }))
   for (const { tn } of tagPayloads) register?.(tn, "reflect")
@@ -134,5 +143,8 @@ export async function probeXssPoint(
       await sleep(backoff?.delay ?? delay)
     }
   }
+  // A confirmed-firing payload → build a hand-off-ready PoC (clickable URL / self-submit HTML / curl,
+  // per injection location). Only when a weapon actually reflected un-encoded, so the PoC is real.
+  if (obs.weaponized.length > 0) obs.poc = buildXssPoc(r, point, obs.weaponized[0]!)
   return obs
 }

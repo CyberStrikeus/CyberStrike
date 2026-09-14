@@ -241,10 +241,19 @@ export const InjectProbeTool = Tool.define("inject_probe", {
               evidence: reflectEvidence,
             })
           }
-          if (o.weaponized.length > 0)
+          if (o.weaponized.length > 0) {
+            const poc = o.poc
+            const pocLine = poc
+              ? poc.kind === "url"
+                ? ` PoC (open in a browser → alert fires): ${poc.poc_url}`
+                : poc.kind === "form"
+                  ? ` PoC: save the poc HTML (in results) as .html and open it — it auto-submits the POST. curl: ${poc.poc_curl}`
+                  : ` PoC (${poc.location} — not a clickable link): ${poc.poc_curl}`
+              : ""
             leads.push(
-              `xss @ ${o.point}: READY payload(s) reflected un-encoded (copy & fire, filter-bypass already applied): ${o.weaponized.slice(0, 4).join("  |  ")} — confirm execution.`,
+              `xss @ ${o.point}: READY payload(s) reflected un-encoded (filter-bypass already applied): ${o.weaponized.slice(0, 4).join("  |  ")}.${pocLine}${o.poc_csp_note ? " " + o.poc_csp_note : ""} → put the PoC in the finding's poc field.`,
             )
+          }
           else if (o.surviving_tags.length > 0)
             leads.push(
               `xss @ ${o.point}: tag(s) [${o.surviving_tags.join(", ")}] reflected un-encoded${o.context ? ` in ${o.context} context` : ""} — weaponize one (event handler) and confirm.`,
