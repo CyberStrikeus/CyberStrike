@@ -14,6 +14,7 @@ import { probeCmdPoint } from "./probe/cmd"
 import { probeLfiPoint } from "./probe/lfi"
 import { probeErrorSigPoint } from "./probe/errsig"
 import { probeHppPoint } from "./probe/hpp"
+import { probeCrlfPoint } from "./probe/crlf"
 import { probeMassAssign } from "./probe/mass-assign"
 import { MASS_ASSIGN_NOT_TESTED } from "./payloads/mass-assign"
 import { createBackoff } from "./probe/base"
@@ -57,7 +58,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
         "Fallback when the target is NOT a stored request (a new/unseen endpoint). Provide EITHER request_id OR target.",
       ),
     vuln_type: z
-      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi", "hpp", "mass_assign"]))
+      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi", "hpp", "mass_assign", "crlf"]))
       .min(1)
       .describe(
         "Injection classes to probe — YOU pick the set that fits THIS endpoint (don't run every class everywhere; e.g. no xpath on a plain REST/JSON API). xss/ssti/cmd return execution-facts; sqli/nosql/ldap/xpath return error-signature (sqli also a safe AND-based boolean-differential) facts; hpp detects HTTP Parameter Pollution parser behavior (first-wins vs last-wins). mass_assign (WSTG-INPV-20) is body-level (ignores points): it adds curated privileged fields (role/isAdmin/owner/permissions…) to a JSON/form WRITE body and reports which the server accepted + echoed — run it on write endpoints (POST/PUT/PATCH) that bind an object. The tool never exploits — it hands you leads.",
@@ -330,6 +331,14 @@ export const InjectProbeTool = Tool.define("inject_probe", {
           if (o.parser_behavior !== "inconclusive")
             leads.push(
               `hpp @ ${o.point}: parser behavior = ${o.parser_behavior} (append_reflected=${o.append_reflected}, prepend_reflected=${o.prepend_reflected}) — fire injection payloads at the duplicate position to exploit.`,
+            )
+        } else if (cls === "crlf") {
+          const o = await probeCrlfPoint(sender, resolved, point, ctx.abort, DELAY, budget, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.injected_header)
+            leads.push(
+              `crlf @ ${o.point}: the server EMITTED an attacker-injected response header [${o.header_name}] via CR-LF in the param${o.set_cookie_injected ? " (into Set-Cookie — session-fixation surface)" : ""} — HTTP response-splitting/header-injection; escalate (cache poisoning, cookie fixation, header-based XSS) and confirm.`,
             )
         } else {
           const o = await probeErrorSigPoint(sender, resolved, point, cls, ctx.abort, DELAY, budget, backoff)

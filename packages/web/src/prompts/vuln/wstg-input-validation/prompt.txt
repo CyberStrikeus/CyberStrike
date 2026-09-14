@@ -25,7 +25,11 @@ Concrete Vortex-native test per item:
 - WSTG-INPV-12 Command Injection — inject_probe cmd; READ-ONLY id/ver behind shell separators, time-based.
 - WSTG-INPV-13 Format String — %s/%x/%n into params handled by C-style formatters.
 - WSTG-INPV-14 Incubated — a stored payload that fires later in a DIFFERENT flow (chain store→trigger).
-- WSTG-INPV-15 HTTP Splitting/Smuggling — CRLF in headers/params; TE/CL desync via a crafted raw request.
+- WSTG-INPV-15 HTTP Splitting/Smuggling — `inject_probe` vuln_type `crlf` on params that flow into a
+  response header (redirect `next`/`url`/`return`, language/theme cookies): it injects a CR-LF + a
+  Set-Cookie and reports if the server emits the attacker-controlled header (response splitting / cookie
+  injection). Escalate to cache poisoning / cookie fixation. TE/CL request-smuggling desync stays manual
+  (craft a raw request via `http_replay_raw`).
 - WSTG-INPV-16 HTTP Incoming Requests — inspect which raw/unusual/oversized/malformed requests the server
   accepts and processes (via vortex_inspect + crafted http_replay), and what that exposes.
 - WSTG-INPV-17 Host Header Injection — http_replay with a tampered Host / X-Forwarded-Host; reset-poisoning,
