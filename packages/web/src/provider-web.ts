@@ -332,7 +332,7 @@ function buildSpecDefs(): SpecDef[] {
       description: DESC_WSTG_AUTHORIZATION,
       skills: ["wstg-authz-01", "wstg-authz-02", "wstg-authz-03", "wstg-authz-04", "wstg-apit-02"],
       prependRequestContext: true,
-      permissions: mergePermissions(VULN_BASE_PERMISSIONS, VORTEX_READ_PERMISSIONS),
+      permissions: mergePermissions(VULN_BASE_PERMISSIONS, { access_probe: "allow", ...VORTEX_READ_PERMISSIONS }),
     },
 
     // ── WSTG 4.6 Session Management ──

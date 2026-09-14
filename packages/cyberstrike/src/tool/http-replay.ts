@@ -85,7 +85,7 @@ const COMPARE_SIDE = z.object({
 })
 
 // Derive a sendable origin (scheme://host[:port]) from a captured request.
-function originOf(request: Request.Info): string | { error: string } {
+export function originOf(request: Request.Info): string | { error: string } {
   const host = request.host ?? (request.origin ? safeURL(request.origin)?.host : undefined)
   if (!host) return { error: "request has no host/origin — cannot resolve a sendable origin" }
   if (request.origin) return request.origin.replace(/\/+$/, "")
@@ -105,7 +105,7 @@ function safeURL(u: string): URL | undefined {
 // Every attack request must target a host the crawl already captured — closes
 // the SSRF-shaped hole where a mutated Host/target could aim at an arbitrary
 // host. Empty allowlist is refused, not waved through.
-function inScope(sessionID: string, host: string): boolean {
+export function inScope(sessionID: string, host: string): boolean {
   const allowed = new Set(
     Request.get(sessionID)
       .map((r) => r.host)
@@ -167,7 +167,7 @@ function summarize(result: ReplayResponse.Result, marker?: string): Record<strin
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
 
-function stripAuthHeaders(msg: HttpMessage.Request): HttpMessage.Request {
+export function stripAuthHeaders(msg: HttpMessage.Request): HttpMessage.Request {
   let out = msg
   for (const h of COMMON_AUTH_HEADERS) {
     out = Mutate.removeHeader(out, h)
@@ -175,7 +175,7 @@ function stripAuthHeaders(msg: HttpMessage.Request): HttpMessage.Request {
   return out
 }
 
-function applyCredential(msg: HttpMessage.Request, credentialID: string): HttpMessage.Request | { error: string } {
+export function applyCredential(msg: HttpMessage.Request, credentialID: string): HttpMessage.Request | { error: string } {
   const cred = WebCredential.getById(credentialID)
   if (!cred) return { error: `Credential "${credentialID}" not found in this session.` }
   // Auth is per-origin: apply the identity's auth FOR THE TARGET HOST only. If this identity never
@@ -204,7 +204,7 @@ function applyAuthParams(
 // Thin adapter over the shared governed-send primitive (replay/govern). Keeps this
 // tool's snake_case option shape at its many call sites while the budget/breaker/
 // Send.governed logic lives in ONE place, reused by the webhook smart tools too.
-async function sendGoverned(
+export async function sendGoverned(
   msg: HttpMessage.Request,
   origin: string,
   opts: {

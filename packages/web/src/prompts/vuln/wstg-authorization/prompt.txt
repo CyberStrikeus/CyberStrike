@@ -43,7 +43,12 @@ justify any you skip (e.g. an object legitimately shared across roles).
   traffic reference identity A's id? does an id cross a tenant boundary in a response?).
 - vortex_query {httpql} — same endpoint/object under a different identity (fields: identity, endpoint,
   req.path, req.method, resp.status).
-- http_replay — CONFIRM: replay a captured request UNDER A DIFFERENT CREDENTIAL (the credential-swap
+- access_probe {request_id} — DETERMINISTIC CONFIRM for a READ endpoint (GET/HEAD). Replays the captured
+  request under EVERY other session credential AND unauthenticated in one pass, and reports which
+  identities received the OWNER's response (verdict "broken" = IDOR/BOLA or missing authz) vs were denied
+  ("enforced"). Prefer this over hand-swapping credentials — it covers the whole identity matrix
+  systematically. State-changing requests are refused by it (confirm those manually with http_replay).
+- http_replay — CONFIRM (manual / state-changing): replay a captured request UNDER A DIFFERENT CREDENTIAL (the credential-swap
   surface); read status + body. A 2xx returning the other identity's data on a swapped credential is the
   proof. Also replay with method/verb and path/case variants for schema-bypass (4.5.2).
 - report_vulnerability — report each CONFIRMED finding with BOTH the legitimate and the swapped-credential
@@ -54,9 +59,11 @@ justify any you skip (e.g. an object legitimately shared across roles).
 1. `vortex_cross_role` → read the IDOR/BOLA + BFLA candidates.
 2. Pick a candidate; `vortex_inspect` a transaction for the exact request + the identity that made it;
    identify a DIFFERENT identity that should NOT have access.
-3. CONFIRM with `http_replay` under the other identity's credential. Same object/data to the wrong
-   identity, or a higher-privileged function reached, = Broken Access Control. For 4.5.2, also try
-   method/verb swaps and path/case/forced-browsing variants; for 4.5.3, low→high role replays.
+3. CONFIRM. For a READ endpoint (GET/HEAD): run `access_probe {request_id}` — it swaps EVERY identity +
+   unauthenticated in one deterministic pass and returns the "broken"/"enforced" verdict per identity.
+   For state-changing requests (POST/PUT/DELETE) or method/case/forced-browsing variants (4.5.2) and
+   low→high role replays (4.5.3): use `http_replay` under the other identity's credential manually. Same
+   object/data to the wrong identity, or a higher-privileged function reached, = Broken Access Control.
 4. Correlate: `vortex_where_value` to trace an id across identities/tenants; `vortex_objects`/
    `vortex_functions` to expand to sibling objects/functions of the same shape.
 5. `report_vulnerability` per CONFIRMED finding, with the two-identity evidence and WSTG sub-class.
