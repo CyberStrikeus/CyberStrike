@@ -810,7 +810,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             http.get({ url: `/session/${sessionID}/web/roles` }).catch(() => ({ data: [] })),
             http.get({ url: `/session/${sessionID}/web/objects` }).catch(() => ({ data: [] })),
             http.get({ url: `/session/${sessionID}/web/functions` }).catch(() => ({ data: [] })),
-            http.get({ url: `/session/${sessionID}/web/retest-queue` }).catch(() => ({ data: { pending: [] } })),
+            http.get({ url: `/session/${sessionID}/inspection/queue` }).catch(() => ({ data: { pending: [] } })),
             http.get({ url: `/session/${sessionID}/web/js` }).catch(() => ({ data: [] })),
             http.get({ url: `/session/${sessionID}/inspection/lifecycle` }).catch(() => ({ data: { phase: "idle", sources: [], counts: { pending: 0, examined: 0, total: 0 } } })),
           ])

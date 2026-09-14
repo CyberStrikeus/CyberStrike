@@ -208,8 +208,8 @@ import type {
   SessionWebFunctionsResponses,
   SessionWebObjectsErrors,
   SessionWebObjectsResponses,
-  SessionWebRetestQueueErrors,
-  SessionWebRetestQueueResponses,
+  SessionInspectionQueueErrors,
+  SessionInspectionQueueResponses,
   SessionWebRolesErrors,
   SessionWebRolesResponses,
   SkillChainErrors,
@@ -1819,7 +1819,7 @@ export class Session extends HeyApiClient {
    *
    * Retrieve pending retests triggered by new discoveries.
    */
-  public webRetestQueue<ThrowOnError extends boolean = false>(
+  public inspectionQueue<ThrowOnError extends boolean = false>(
     parameters: {
       sessionID: string
       directory?: string
@@ -1838,11 +1838,11 @@ export class Session extends HeyApiClient {
       ],
     )
     return (options?.client ?? this.client).get<
-      SessionWebRetestQueueResponses,
-      SessionWebRetestQueueErrors,
+      SessionInspectionQueueResponses,
+      SessionInspectionQueueErrors,
       ThrowOnError
     >({
-      url: "/session/{sessionID}/web/retest-queue",
+      url: "/session/{sessionID}/inspection/queue",
       ...options,
       ...params,
     })

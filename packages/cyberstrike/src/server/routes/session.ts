@@ -1727,14 +1727,14 @@ export const SessionRoutes = lazy(() =>
       async (c) => c.json(vortexSignals(c.req.valid("param").sessionID)),
     )
     .get(
-      "/:sessionID/web/retest-queue",
+      "/:sessionID/inspection/queue",
       describeRoute({
-        summary: "Get web retest queue",
-        description: "Retrieve pending retests triggered by new discoveries.",
-        operationId: "session.webRetestQueue",
+        summary: "Get inspection queue",
+        description: "Retrieve pending inspection targets flagged by new discoveries.",
+        operationId: "session.inspectionQueue",
         responses: {
           200: {
-            description: "Retest queue",
+            description: "Inspection queue",
             content: {
               "application/json": {
                 schema: resolver(

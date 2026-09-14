@@ -4169,7 +4169,7 @@ export type SessionWebFunctionsResponses = {
 
 export type SessionWebFunctionsResponse = SessionWebFunctionsResponses[keyof SessionWebFunctionsResponses]
 
-export type SessionWebRetestQueueData = {
+export type SessionInspectionQueueData = {
   body?: never
   path: {
     sessionID: string
@@ -4177,10 +4177,10 @@ export type SessionWebRetestQueueData = {
   query?: {
     directory?: string
   }
-  url: "/session/{sessionID}/web/retest-queue"
+  url: "/session/{sessionID}/inspection/queue"
 }
 
-export type SessionWebRetestQueueErrors = {
+export type SessionInspectionQueueErrors = {
   /**
    * Bad request
    */
@@ -4191,9 +4191,9 @@ export type SessionWebRetestQueueErrors = {
   404: NotFoundError
 }
 
-export type SessionWebRetestQueueError = SessionWebRetestQueueErrors[keyof SessionWebRetestQueueErrors]
+export type SessionInspectionQueueError = SessionInspectionQueueErrors[keyof SessionInspectionQueueErrors]
 
-export type SessionWebRetestQueueResponses = {
+export type SessionInspectionQueueResponses = {
   /**
    * Retest queue
    */
@@ -4207,7 +4207,7 @@ export type SessionWebRetestQueueResponses = {
   }
 }
 
-export type SessionWebRetestQueueResponse = SessionWebRetestQueueResponses[keyof SessionWebRetestQueueResponses]
+export type SessionInspectionQueueResponse = SessionInspectionQueueResponses[keyof SessionInspectionQueueResponses]
 
 export type SessionIngestData = {
   body?: {
