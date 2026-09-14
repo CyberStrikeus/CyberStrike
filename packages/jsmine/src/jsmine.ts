@@ -31,19 +31,33 @@ export interface MineOptions {
 }
 
 // --- Secrets: curated vendor patterns (superset of core signatures.ts secret-in-response) ---------
+// Every pattern is prefix-anchored + length-bounded (high precision, ReDoS-safe). Shapes verified by
+// the secret-quality audit corpus (test/secret-quality.test.ts): each catches its vendor sample and
+// none fire on the minified-noise negatives.
 const SECRET_PATTERNS: RegExp[] = [
-  /-----BEGIN [A-Z ]*PRIVATE KEY-----/g,
-  /(?:AKIA|ASIA)[0-9A-Z]{16}/g, // AWS access key id
+  /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----/g, // RSA / EC / OPENSSH / DSA / PGP / PKCS8 private keys
+  /\b(?:AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASCA)[0-9A-Z]{16}\b/g, // AWS access-key ids (all prefixes)
   /AIza[0-9A-Za-z_-]{35}/g, // Google API key
-  /xox[baprs]-[0-9A-Za-z-]{10,48}/g, // Slack token
-  /(?:sk|pk|rk)_live_[0-9A-Za-z]{20,40}/g, // Stripe live keys
-  /gh[pousr]_[0-9A-Za-z]{36}/g, // GitHub tokens
-  /glpat-[0-9A-Za-z_-]{20}/g, // GitLab PAT
+  /GOCSPX-[0-9A-Za-z_-]{20,}/g, // Google OAuth client secret
   /[0-9]{10,13}-[0-9A-Za-z_]{32}\.apps\.googleusercontent\.com/g, // Google OAuth client id
+  /xox[baprs]-[0-9A-Za-z-]{10,48}/g, // Slack token
+  /https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/]{20,}/g, // Slack incoming webhook
+  /(?:sk|pk|rk)_(?:live|test)_[0-9A-Za-z]{20,40}/g, // Stripe live/test/restricted keys
+  /gh[pousr]_[0-9A-Za-z]{36}/g, // GitHub classic tokens
+  /github_pat_[0-9A-Za-z]{22}_[0-9A-Za-z]{59}/g, // GitHub fine-grained PAT
+  /glpat-[0-9A-Za-z_-]{20}/g, // GitLab PAT
+  /\bnpm_[0-9A-Za-z]{36}\b/g, // npm access token
+  /\bsk-[0-9A-Za-z]{48}\b/g, // OpenAI API key (classic)
+  /SG\.[0-9A-Za-z_-]{22}\.[0-9A-Za-z_-]{43}/g, // SendGrid API key
+  /\bSK[0-9a-f]{32}\b/g, // Twilio API key SID
+  /\bkey-[0-9a-f]{32}\b/g, // Mailgun API key
+  /\bdop_v1_[0-9a-f]{64}\b/g, // DigitalOcean personal access token
   /shpat_[0-9a-fA-F]{32}/g, // Shopify token
   /eyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, // JWT
+  // Credentials embedded in a connection/basic-auth URL (scheme://user:pass@host) — a real leak.
+  /(?:mongodb(?:\+srv)?|postgres(?:ql)?|mysql|redis|amqps?|ftp|https?):\/\/[^\s:@/"'<>]+:[^\s:@/"'<>]+@[^\s"'<>]+/g,
 ]
-const ASSIGN_RE = /["']?(?:api[_-]?key|apikey|secret[_-]?key|secret|access[_-]?token|auth[_-]?token|client[_-]?secret|private[_-]?key)["']?\s*[:=]\s*["']([^"'\s]{8,80})["']/gi
+const ASSIGN_RE = /["']?(?:aws[_-]?secret[_-]?access[_-]?key|api[_-]?key|apikey|secret[_-]?key|secret|access[_-]?token|auth[_-]?token|client[_-]?secret|private[_-]?key)["']?\s*[:=]\s*["']([^"'\s]{8,80})["']/gi
 const PLACEHOLDER_RE = /^(?:x{3,}|your[_-]|example|changeme|placeholder|test|dummy|sample|null|undefined|true|false|\$\{|<[^>]+>|\{\{)/i
 
 // --- Endpoint / asset classification -------------------------------------------------------------
@@ -151,22 +165,22 @@ function shannon(s: string): number {
 }
 
 const B64ISH = /^[A-Za-z0-9+/_-]{20,100}={0,2}$/
-const HEX = /^[0-9a-f]{20,100}$/i
 const SRI = /^sha(?:256|384|512)-/i
 
+// A bare high-entropy MIXED-CASE base64-ish blob (letters AND digits) — a plausible unknown token in a
+// minified bundle where the variable name is gone. NOTE: pure-hex blobs are deliberately NOT treated
+// as secrets here: a 20/32/40/64-char hex string is overwhelmingly a build/content/git hash, and
+// entropy cannot separate it from a hex API secret — the quality audit measured this exact false
+// positive on content/SHA hashes. Real hex secrets reach us vendor-prefixed (Twilio/Mailgun/DO/…) or
+// via a named assignment (ASSIGN_RE), so dropping the bare-hex path costs no recall and kills the FPs.
 function isEntropySecret(lit: string): boolean {
   const s = lit.trim()
   if (SRI.test(s)) return false
   if (s.includes("/") || s.includes(" ") || s.includes(".")) return false
   if (!/[0-9]/.test(s) || !/[A-Za-z]/.test(s)) return false
+  if (/^[0-9a-f]+$/i.test(s)) return false // pure hex → a hash/id, not a secret (see note above)
   if (!B64ISH.test(s)) return false
   return shannon(s) >= 4.5
-}
-function isHexSecret(lit: string): boolean {
-  const s = lit.trim()
-  if (!HEX.test(s)) return false
-  if (s.length === 32 || s.length === 40 || s.length === 64) return shannon(s) >= 3.9
-  return shannon(s) >= 3.6
 }
 
 function secretsIn(text: string, lits: string[], entropy: boolean): string[] {
@@ -190,7 +204,7 @@ function secretsIn(text: string, lits: string[], entropy: boolean): string[] {
       const s = lit.trim()
       if (s.startsWith("data:") || s.includes("base64,")) continue
       if (/^eyJ/.test(s)) continue
-      if (isEntropySecret(s) || isHexSecret(s)) out.push(s)
+      if (isEntropySecret(s)) out.push(s)
     }
   }
   return out

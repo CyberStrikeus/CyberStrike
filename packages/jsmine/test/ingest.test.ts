@@ -34,6 +34,21 @@ describe("mineInto — mine a JS body into a Vortex store", () => {
     expect(store.signals({ ruleId: "jsmine-secret" })).toHaveLength(2)
   })
 
+  test("new vendor shapes are labeled correctly in the signal title", () => {
+    const store = new MemoryStore()
+    store.add(tx("a"))
+    const body = [
+      `k1="sk_test_${"a".repeat(24)}"`,
+      `u="mongodb+srv://admin:s3cretP4ss@c0.mongodb.net/db"`,
+      `t="SK${"0123456789abcdef0123456789abcdef"}"`,
+    ].join(";")
+    mineInto(store, "a", body)
+    const titles = store.signals({ ruleId: "jsmine-secret" }).map((s) => s.title)
+    expect(titles.some((t) => t.includes("stripe-key"))).toBe(true)
+    expect(titles.some((t) => t.includes("connection-string-credentials"))).toBe(true)
+    expect(titles.some((t) => t.includes("twilio-api-key"))).toBe(true)
+  })
+
   test("a referenced source map becomes a low-severity info-disclosure signal", () => {
     const store = new MemoryStore()
     store.add(tx("a"))

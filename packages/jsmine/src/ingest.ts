@@ -9,18 +9,30 @@ import type { TrafficStore, Signal } from "@cyberstrike-io/vortex"
 import { ingestExtract } from "@cyberstrike-io/vortex"
 import { mine, type MineOptions } from "./jsmine"
 
-// Label a mined secret by its shape (for signal evidence).
+// Label a mined secret by its shape (for signal evidence). Ordered most-specific first; must stay in
+// sync with the SECRET_PATTERNS / ASSIGN_RE shapes in jsmine.ts (see test/secret-quality.test.ts).
 function secretKind(s: string): string {
   if (s.startsWith("-----BEGIN")) return "private-key"
-  if (/^(?:AKIA|ASIA)/.test(s)) return "aws-access-key"
+  if (/^(?:AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASCA)[0-9A-Z]{16}/.test(s)) return "aws-access-key"
+  if (/^aws[_-]?secret[_-]?access[_-]?key/i.test(s)) return "aws-secret-access-key"
   if (s.startsWith("AIza")) return "google-api-key"
-  if (/^(?:sk|pk|rk)_live_/.test(s)) return "stripe-key"
+  if (s.startsWith("GOCSPX-")) return "google-oauth-secret"
+  if (s.endsWith("apps.googleusercontent.com")) return "google-oauth-client"
+  if (s.startsWith("https://hooks.slack.com/")) return "slack-webhook"
+  if (s.startsWith("xox")) return "slack-token"
+  if (/^(?:sk|pk|rk)_(?:live|test)_/.test(s)) return "stripe-key"
+  if (s.startsWith("github_pat_")) return "github-fine-grained-pat"
   if (/^gh[pousr]_/.test(s)) return "github-token"
   if (s.startsWith("glpat-")) return "gitlab-token"
+  if (s.startsWith("npm_")) return "npm-token"
+  if (/^sk-[0-9A-Za-z]{48}/.test(s)) return "openai-key"
+  if (/^SG\.[0-9A-Za-z_-]{22}\./.test(s)) return "sendgrid-key"
+  if (/^SK[0-9a-f]{32}/.test(s)) return "twilio-api-key"
+  if (/^key-[0-9a-f]{32}/.test(s)) return "mailgun-key"
+  if (s.startsWith("dop_v1_")) return "digitalocean-token"
   if (s.startsWith("shpat_")) return "shopify-token"
-  if (s.startsWith("xox")) return "slack-token"
   if (s.startsWith("eyJ")) return "jwt"
-  if (s.endsWith("apps.googleusercontent.com")) return "google-oauth-client"
+  if (/^(?:mongodb(?:\+srv)?|postgres(?:ql)?|mysql|redis|amqps?|ftp|https?):\/\/[^\s:@/]+:[^\s:@/]+@/.test(s)) return "connection-string-credentials"
   return "hardcoded-credential"
 }
 
