@@ -90,6 +90,22 @@ export function classifyAccess(owner: AccessResp, swapped: AccessResp, identity:
   return { ...base, verdict: "enforced", similarity: sim, note: `${who} status ${ss} (owner ${os ?? "?"}) — not a clear access break` }
 }
 
+// Orchestration core (testable): send the owner baseline (reads only) + each pre-built identity variant
+// through an injectable sender, and classify every swap. Generic over the message type so a scenario
+// test can drive it with a fake multi-identity app, while the tool passes real HttpMessage.Requests.
+export async function runAccessMatrix<T>(
+  input: { ownerMsg: T; stateChanging: boolean; variants: { identity: string; kind: AccessFinding["kind"]; msg: T }[] },
+  send: (msg: T) => Promise<AccessResp>,
+): Promise<{ owner: AccessResp; findings: AccessFinding[] }> {
+  const owner: AccessResp = input.stateChanging ? {} : await send(input.ownerMsg)
+  const findings: AccessFinding[] = []
+  if (!input.stateChanging && owner.error) return { owner, findings }
+  for (const v of input.variants) {
+    findings.push(classifyAccess(owner, await send(v.msg), v.identity, v.kind, input.stateChanging))
+  }
+  return { owner, findings }
+}
+
 async function sendDecoded(msg: HttpMessage.Request, origin: string, abort: AbortSignal): Promise<AccessResp> {
   const r = await sendGoverned(msg, origin, { signal: abort })
   if (r.error || !r.response) return { error: r.error?.message ?? "no response (transport error)" }
@@ -140,32 +156,21 @@ export const AccessProbeTool = Tool.define("access_probe", {
       return out(`Could not parse request: ${e instanceof Error ? e.message : String(e)}`)
     }
 
-    // Owner baseline: the captured request carries the owner's own auth, so this is the legitimate
-    // response — but only re-send it for READS. Re-sending a write would duplicate the owner's action;
-    // for writes we judge each swap on STATUS alone (was the action authorized for the wrong identity).
-    let ownerResp: AccessResp = {}
-    if (!stateChanging) {
-      ownerResp = await sendDecoded(baseMsg, origin, ctx.abort)
-      if (ownerResp.error) return out(`Owner baseline send failed: ${ownerResp.error} — cannot compare.`)
-    }
-
+    // Build the identity matrix: every OTHER session credential (host-scoped swap) + unauthenticated.
     const ownerCred = request.credential_id
-    const others = WebCredential.get(sessionID)
-      .filter((c) => c.id !== ownerCred)
-      .slice(0, MAX_IDENTITIES)
-
-    const findings: AccessFinding[] = []
-    for (const cred of others) {
-      if (ctx.abort.aborted) break
+    const variants: { identity: string; kind: AccessFinding["kind"]; msg: HttpMessage.Request }[] = []
+    for (const cred of WebCredential.get(sessionID).filter((c) => c.id !== ownerCred).slice(0, MAX_IDENTITIES)) {
       const swapped = applyCredential(baseMsg, cred.id)
-      if ("error" in swapped) continue
-      const resp = await sendDecoded(swapped, origin, ctx.abort)
-      findings.push(classifyAccess(ownerResp, resp, cred.label, "credential", stateChanging))
+      if (!("error" in swapped)) variants.push({ identity: cred.label, kind: "credential", msg: swapped })
     }
-    if (params.include_unauthenticated && !ctx.abort.aborted) {
-      const resp = await sendDecoded(stripAuthHeaders(baseMsg), origin, ctx.abort)
-      findings.push(classifyAccess(ownerResp, resp, "unauthenticated", "unauthenticated", stateChanging))
-    }
+    if (params.include_unauthenticated) variants.push({ identity: "unauthenticated", kind: "unauthenticated", msg: stripAuthHeaders(baseMsg) })
+
+    // Owner baseline (reads only — a write baseline would duplicate the owner's own mutation) + swaps.
+    const { owner: ownerResp, findings } = await runAccessMatrix(
+      { ownerMsg: baseMsg, stateChanging, variants },
+      (msg) => sendDecoded(msg, origin, ctx.abort),
+    )
+    if (!stateChanging && ownerResp.error) return out(`Owner baseline send failed: ${ownerResp.error} — cannot compare.`)
 
     const broken = findings.filter((f) => f.verdict === "broken")
     const weak = findings.filter((f) => f.verdict === "weak-lead")
