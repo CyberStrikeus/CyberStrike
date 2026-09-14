@@ -39,7 +39,13 @@ export class InspectionDispatcher {
     this.running = true
     void this.loop()
       .catch((e) => log.error("inspection loop crashed", { sessionID: this.queue.sessionID, domain: this.queue.domain, err: String(e) }))
-      .finally(() => { this.running = false })
+      .finally(() => {
+        this.running = false
+        // Re-arm against a lost wakeup: an item flagged in the window between the loop's last
+        // empty-check and here hit `if (this.running) return` above and was dropped. If anything is
+        // still pending, drain again. Safe from looping — every drained item is marked examined.
+        if (this.queue.pending().length > 0) this.wake()
+      })
   }
 
   private async loop(): Promise<void> {
