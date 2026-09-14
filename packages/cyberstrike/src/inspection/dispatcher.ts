@@ -53,8 +53,11 @@ export class InspectionDispatcher {
         const target = { key: item.target_key, label: item.target_label ?? item.target_key, meta: item.target_meta ?? {} }
         const evidence = this.queue.evidenceFor(item.target_key)
         const agents = await this.router.resolve(target, evidence)
-        if (agents.length === 0) continue
+        // Triage counts as examined: mark BEFORE the no-agent check, so an item that maps to no
+        // applicable specialist still drains the queue instead of parking it in "draining" forever
+        // (which would mean "complete" — and its webhook — never fires). #19.
         this.queue.markExamined(item.target_key)
+        if (agents.length === 0) continue
         for (const agent of agents) {
           tasks.push(
             (async () => {
