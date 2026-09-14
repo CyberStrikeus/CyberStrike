@@ -44,6 +44,30 @@ const RULES: Rule[] = [
   { kind: "internal-address", severity: "low", re: /\b(10\.\d{1,3}|192\.168|172\.(1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}\b|\b[\w-]+\.(internal|local|corp|lan|intranet)\b/, note: "internal IP / hostname — network topology disclosure" },
 ]
 
+// A DB/injection error disclosure means the endpoint is an injection candidate owned by input-validation.
+// Map those disclosure kinds to the InspectionQueue signal value (`<type>:<owner-class>`) the router uses
+// to dispatch the owning specialist. Pure — the tool sends the actual flag.
+const INJECTION_SIGNAL: Record<string, string> = {
+  "db-error-sqli": "sql_error:input-validation",
+  "db-error-nosql": "nosql_error:input-validation",
+  "db-error-ldap": "ldap_error:input-validation",
+  "db-error-xpath": "xpath_error:input-validation",
+}
+
+// Distinct input-validation handoff signals implied by a set of disclosures (deduped, order-stable).
+export function injectionHandoff(disclosures: { kind: string }[]): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const d of disclosures) {
+    const v = INJECTION_SIGNAL[d.kind]
+    if (v && !seen.has(v)) {
+      seen.add(v)
+      out.push(v)
+    }
+  }
+  return out
+}
+
 function snippet(text: string, index: number, len: number): string {
   const start = Math.max(0, index - 20)
   return text.slice(start, Math.min(text.length, index + len + 60)).replace(/\s+/g, " ").trim()

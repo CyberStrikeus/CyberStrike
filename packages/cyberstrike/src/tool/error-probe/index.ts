@@ -13,7 +13,8 @@ import { Session } from "../../session"
 import { Request } from "../../session/request"
 import { HttpMessage } from "../../replay/message"
 import { originOf, inScope, sendGoverned } from "../http-replay"
-import { classifyErrorDisclosure } from "./signatures"
+import { WebInspect } from "../../session/web/web-inspect"
+import { classifyErrorDisclosure, injectionHandoff } from "./signatures"
 import { errorVariants } from "./mutate"
 import { runErrorProbe, type ErrResp, type ErrFinding } from "./probe"
 
@@ -27,7 +28,7 @@ async function sendDecoded(msg: HttpMessage.Request, origin: string, abort: Abor
 
 export const ErrorProbeTool = Tool.define("error_probe", {
   description:
-    "Deterministic error-handling probe (WSTG-ERRH). READ-ONLY layer (always, sends nothing): classifies the endpoint's already-captured response for leaked diagnostics — framework debug pages (Werkzeug/Django/Rails/Symfony/ASP.NET/Spring/Express), stack traces, filesystem-path and internal-address disclosure, and verbose DB/runtime errors. ACTIVE layer (optional): replays structural malformations (broken JSON, object↔array type confusion, wrong content-type, invalid %-escape — NOT injection payloads) and reports any disclosure the normal response lacked. Safe methods are replayed freely; a write is malformed+replayed too (flagged) unless safe_only=true.",
+    "Deterministic error-handling probe (WSTG-ERRH). READ-ONLY layer (always, sends nothing): classifies the endpoint's already-captured response for leaked diagnostics — framework debug pages (Werkzeug/Django/Rails/Symfony/ASP.NET/Spring/Express), stack traces, filesystem-path and internal-address disclosure, and verbose DB/runtime errors. ACTIVE layer (optional): replays structural malformations (broken JSON, object↔array type confusion, wrong content-type, invalid %-escape — NOT injection payloads) and reports any disclosure the normal response lacked. Safe methods are replayed freely; a write is malformed+replayed too (flagged) unless safe_only=true. If a DB/injection error string is seen, it deterministically flags the endpoint into the inspection queue for the input-validation specialist to confirm — report only the verbose-error disclosure yourself.",
   parameters: z.object({
     request_id: z.string().describe("A captured request whose endpoint to test for verbose/improper error handling."),
     active: z.boolean().optional().default(true).describe("Also send structural malformations to try to elicit an error (default true). Set false for a pure read-only classification of the captured response."),
@@ -74,11 +75,21 @@ export const ErrorProbeTool = Tool.define("error_probe", {
       }
     }
 
-    const triggered = params.active && typeof active === "object" && active !== null && "findings" in active
-      ? (active as { findings: ErrFinding[] }).findings.filter((f) => f.triggered)
+    const activeFindings = params.active && typeof active === "object" && active !== null && "findings" in active
+      ? (active as { findings: ErrFinding[] }).findings
       : []
+    const triggered = activeFindings.filter((f) => f.triggered)
     const highCaptured = captured.filter((d) => d.severity === "high")
     const total = captured.length + triggered.length
+
+    // Deterministic cross-specialist handoff (see #28): a DB/injection error string means the endpoint is
+    // an injection candidate. Flag it into the InspectionQueue with an input-validation-owned signal so
+    // the dispatcher spawns the input-validation specialist to CONFIRM with inject_probe. error-handling
+    // reports its OWN verbose-error finding and does NOT exploit the injection. We flag explicitly because
+    // agent-sent replay responses are not re-ingested into the signal fabric (so auto-routing wouldn't
+    // otherwise fire). The confirming specialist owns the SQLi report + its intel entry.
+    const handoff = request.key_hash ? injectionHandoff([...captured, ...activeFindings.flatMap((f) => f.disclosures)]) : []
+    for (const value of handoff) WebInspect.flag({ sessionID, keyHash: request.key_hash!, type: "signal", value, priority: "high" })
 
     const evidence = {
       note: "OBSERVATIONS ONLY — a debug page / stack trace / path disclosure is a WSTG-ERRH finding; confirm and report with the leaked snippet as evidence. 'triggered' = the malformation produced a leak the normal response did not.",
@@ -87,6 +98,11 @@ export const ErrorProbeTool = Tool.define("error_probe", {
       method: request.method,
       captured_response_disclosures: captured.length ? captured : ["captured response leaked no diagnostics"],
       active_probe: active,
+      handoff: handoff.length
+        ? `flagged this endpoint into the inspection queue for the input-validation specialist to confirm injection (${handoff.join(", ")}). Report only the verbose-error disclosure yourself; the SQLi/NoSQL/etc. is input-validation's to confirm + report.`
+        : request.key_hash
+          ? "no injection-class error string — nothing handed off to input-validation"
+          : "no key_hash on this request — could not flag the inspection queue (handoff skipped)",
     }
     const title =
       highCaptured.length || triggered.some((f) => f.disclosures.some((d) => d.severity === "high"))

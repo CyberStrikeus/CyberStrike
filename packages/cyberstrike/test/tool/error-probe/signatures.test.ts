@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test"
-import { classifyErrorDisclosure } from "../../../src/tool/error-probe/signatures"
+import { classifyErrorDisclosure, injectionHandoff } from "../../../src/tool/error-probe/signatures"
 
 const kinds = (body: string) => classifyErrorDisclosure(body).map((d) => d.kind)
 
@@ -46,5 +46,22 @@ describe("error-probe/signatures — classifyErrorDisclosure", () => {
   test("each disclosure carries an evidence snippet", () => {
     const d = classifyErrorDisclosure("prefix... /home/deploy/app/secret.rb:8:in `call' ...suffix")
     expect(d.find((x) => x.kind === "error-ruby")?.matched).toContain(".rb:8:in")
+  })
+})
+
+describe("error-probe/signatures — injectionHandoff", () => {
+  test("maps DB-error disclosures to distinct input-validation signals", () => {
+    const h = injectionHandoff([{ kind: "db-error-sqli" }, { kind: "db-error-nosql" }, { kind: "db-error-sqli" }, { kind: "stacktrace" }, { kind: "debug-page-django" }])
+    expect(h).toEqual(["sql_error:input-validation", "nosql_error:input-validation"]) // sqli deduped; non-DB kinds ignored
+  })
+
+  test("no DB error → no handoff", () => {
+    expect(injectionHandoff([{ kind: "path-disclosure-unix" }, { kind: "debug-page-werkzeug" }])).toEqual([])
+  })
+
+  test("every handoff value carries the input-validation owner (router dispatch contract)", () => {
+    for (const v of injectionHandoff([{ kind: "db-error-ldap" }, { kind: "db-error-xpath" }])) {
+      expect(v.split(":")[1]).toBe("input-validation")
+    }
   })
 })

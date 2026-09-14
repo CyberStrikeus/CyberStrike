@@ -67,7 +67,10 @@ malformations deterministically in one call; use http_replay for the cases it do
   ACTIVE (default on): replays structural malformations (broken JSON, object↔array type confusion, wrong
   content-type, invalid %-escape) and marks any disclosure the baseline response did NOT have as
   'triggered'. It is NOT injection (that is 4.7). Fall back to http_replay for the malformations it does
-  not cover (oversized value, division-by-zero, non-existent id, omitted required field).
+  not cover (oversized value, division-by-zero, non-existent id, omitted required field). When it sees a
+  DB/injection error string (SQL/NoSQL/LDAP/XPath), it AUTO-FLAGS the endpoint into the inspection queue
+  for the input-validation specialist to confirm the injection — you report ONLY the verbose-error
+  disclosure (4.8); the SQLi/etc. is input-validation's to confirm and report. Do not exploit it yourself.
 - http_replay — send malformed requests to trigger error paths, compare responses
 - vortex_query — query for error-status responses and error-pattern signals (read-only)
 - vortex_inspect — inspect a transaction's full response body for error content (read-only)
