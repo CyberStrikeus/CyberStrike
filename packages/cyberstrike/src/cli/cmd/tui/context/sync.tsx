@@ -635,8 +635,22 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         case "web_function.updated":
           setStore("web_function", raw.properties.sessionID, raw.properties.functions)
           break
-        case "web_retest.updated":
-          setStore("web_retest", raw.properties.sessionID, raw.properties.queue)
+        case "inspection.updated":
+          // The inspection queue (#19) replaced the old WebRetest queue. Map its Target+Evidence items
+          // to the sidebar's row shape (key_hash/method/endpoint/flags) so the queue updates live.
+          setStore(
+            "web_retest",
+            raw.properties.sessionID,
+            (raw.properties.queue as Array<Record<string, any>>).map((it) => ({
+              id: it.id,
+              status: it.status,
+              priority: it.priority,
+              key_hash: it.target_key,
+              method: it.target_meta?.method,
+              endpoint: it.target_label,
+              flags: it.evidence,
+            })),
+          )
           break
         case "session.phase":
           setStore("inspection_lifecycle", raw.properties.sessionID, {

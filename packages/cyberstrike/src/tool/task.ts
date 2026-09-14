@@ -230,7 +230,7 @@ export const TaskTool = Tool.define("task", async (ctx) => {
         const requests = Request.get(ctx.sessionID)
         // Resolve the endpoint this task is about — CONFIDENTLY, or not at all. A blind fallback to
         // "any processing request" attached the WRONG endpoint's request/credential/flags whenever
-        // several requests were in flight (routine now that the RetestWorker fans out in parallel).
+        // several requests were in flight (routine now that the inspection dispatcher fans out in parallel).
         //   1. request_id passed        → use exactly that (the orchestrator is told to always pass it).
         //   2. no id, EXACTLY ONE proc. → unambiguous, use it.
         //   3. otherwise                → attach NO request block; tell the subagent to find its own target.

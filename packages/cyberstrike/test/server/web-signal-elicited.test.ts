@@ -3,7 +3,7 @@ import { Session } from "../../src/session"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
 import { scanElicitedResponse, scanCapturedResponse, SignalStore } from "../../src/session/web/signal"
-import { WebRetest } from "../../src/session/web/web-retest"
+import { WebInspect } from "../../src/session/web/web-inspect"
 import type { ReplayResponse } from "../../src/replay/response"
 
 async function withSession(fn: (sid: string) => Promise<void> | void) {
@@ -102,7 +102,7 @@ describe("scanElicitedResponse — http_replay write-back (B2)", () => {
         // sourceIsCaptured omitted → false
       })
       expect(new SignalStore(sid).get().some((s) => s.signal_type === "sql_error")).toBe(true)
-      expect(WebRetest.getPending(sid).filter((r) => (r.flags.signal ?? []).length > 0)).toHaveLength(0)
+      expect(WebInspect.getPending(sid).filter((r) => (r.flags.signal ?? []).length > 0)).toHaveLength(0)
     })
   })
 
@@ -120,7 +120,7 @@ describe("scanElicitedResponse — http_replay write-back (B2)", () => {
       })
       expect(n).toBeGreaterThan(0)
       expect(new SignalStore(sid).get().some((s) => s.signal_type === "sql_error")).toBe(true)
-      expect(WebRetest.getPending(sid).filter((r) => (r.flags.signal ?? []).length > 0)).toHaveLength(0)
+      expect(WebInspect.getPending(sid).filter((r) => (r.flags.signal ?? []).length > 0)).toHaveLength(0)
     })
   })
 })

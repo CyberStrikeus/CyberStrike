@@ -26,7 +26,6 @@ import { WebStats } from "../../session/web/web-stats"
 import { WebObject } from "../../session/web/web-object"
 import { WebFunction } from "../../session/web/web-function"
 import { WebInspect } from "../../session/web/web-inspect"
-import { RetestWorker } from "../../session/web/retest-worker"
 import { ensureWebInspection, getWebInspection, addWebActivitySource } from "../../inspection"
 import { ApiProbe } from "../../session/web/api-probe"
 import { WebScope } from "../../session/web/scope"
@@ -1909,9 +1908,9 @@ export const SessionRoutes = lazy(() =>
           sessionID = session.id
         }
 
-        // Ensure the retest worker is subscribed for this instance — it drains the scenario
-        // queue in parallel as flags accrue (idempotent; safe to call on every ingest).
-        RetestWorker.start()
+        // Start the inspection stack for this session: the dispatcher drains the queue (spawns the
+        // owning WSTG specialist per flagged endpoint) and the lifecycle tracks phase → complete.
+        // Idempotent; safe on every ingest. (Replaced the old WebRetest/RetestWorker path — #19.)
         ensureWebInspection(sessionID)
         // Register activity sources so the lifecycle knows the session is still producing work — this
         // keeps the phase at inspecting/discovering (never a premature "complete", which stops the
