@@ -15,6 +15,7 @@
 // KNOWN LIMIT: this fetches server-side, so auth-gated JS (rare — bundles are usually public
 // static assets) may 401; the 1.x discovery-core mined inside the authed browser context. An
 // extension-side fetch is the future fix — flagged, not built here.
+import * as VortexBridge from "./vortex-bridge"
 import { DataCollector } from "./data-collector"
 import { JsMine } from "./js-mine"
 import { JsSecrets } from "./js-secrets"
@@ -142,6 +143,11 @@ export namespace JsMiner {
         if (!text) continue
         routes += processText(sessionID, text, origin, url)
         routes += await processSourceMap(sessionID, text, url, origin, fetcher, done)
+        // Persist the fetched (first-party, in-scope) bundle body into Vortex as an OBSERVED
+        // transaction so the DSL rule engine + the Enterprise jsmine extractor run over the actual
+        // script — offline and re-scannable (issue #22). Legacy JsMine/JsSecrets above still run; this
+        // is additive while web detection converges on Vortex (#15). Never throws.
+        VortexBridge.ingestJsBody(sessionID, url, text)
       }
     } finally {
       inflight.delete(sessionID)

@@ -166,6 +166,55 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
   }
 }
 
+// JS-body ingest (issue #22). The capture extension can't read response bodies (MV3), so first-party
+// JS bundles are fetched out-of-band by JsMiner. Persist each fetched body into Vortex as an OBSERVED
+// transaction so the full DSL rule engine (secret-in-response, tech/version, vuln-library, the JS rule
+// packs) runs over the script AND — when the Enterprise jsmine extractor is registered — its hook
+// mines endpoints/secrets/source maps. This makes JS analysis re-scannable OFFLINE (no re-fetch): a
+// new rule sweeps the stored bodies. Scope: JsMiner only fetches in-scope (first-party) JS; CDN/vendor
+// bundles are out-of-scope, so they never reach here — they stay URL-only (vortexDiscoverJs) and their
+// version is flagged by the req.url→CVE rules without storing the vendor body. Body is size-capped and
+// the tx id is URL-stable, so re-mining the same bundle REPLACES its row rather than duplicating it.
+const JS_BODY_CAP = Math.max(0, Number(process.env.CYBERSTRIKE_VORTEX_JS_BODY_CAP) || 2_000_000)
+export function ingestJsBody(sessionID: string, url: string, body: string, status = 200): { signals: number } {
+  try {
+    if (!url || !body) return { signals: 0 }
+    let host: string
+    try {
+      host = new URL(url).host
+    } catch {
+      return { signals: 0 } // a non-absolute ref never becomes a transaction
+    }
+    const store = storeFor(sessionID)
+    const text = body.length > JS_BODY_CAP ? body.slice(0, JS_BODY_CAP) : body
+    const tx: Transaction = {
+      id: `jsbody:${url}`, // URL-stable → idempotent (INSERT OR REPLACE): one row per bundle, re-mine safe
+      session: sessionID,
+      source: "browser", // OBSERVED — so scan()/extract() include it (a "replay" tx would be excluded)
+      host,
+      pageUrl: url,
+      request: { method: "GET", url, headers: [] },
+      response: { status, headers: [{ name: "content-type", value: "application/javascript" }], body: text },
+    }
+    store.add(tx)
+    const sigs = registry.run(tx) // core DSL rules over the JS body (secret-in-response / tech / cve / JS packs)
+    const added = store.addSignals(sigs)
+    let routed = bridgeSignals(sessionID, store, sigs)
+    // Enterprise extractor (jsmine): endpoints/JS land in the inventory, secret + source-map signals
+    // route to their WSTG owner. No-op on the free build (no hook registered).
+    if (registry.listHooks().length > 0) {
+      registry.runHooks(store, tx)
+      routed += bridgeSignals(sessionID, store, store.signals({ transactionId: tx.id }))
+    }
+    log.info("vortex js-body ingest", { sessionID, url, bytes: text.length, newSignals: added, routed, ruleIds: sigs.map((s) => s.ruleId) })
+    return { signals: added }
+  } catch (e) {
+    // Best-effort — a JS body that fails to ingest is simply not analyzed; never break the mining pass.
+    log.warn("vortex js-body ingest failed", { sessionID, url, err: String(e) })
+    return { signals: 0 }
+  }
+}
+
 // Vortex→WebObject/WebFunction/WebRole bridge (Part D): deterministic extraction replaces wstg-analyzer.
 // Runs subjects() on the transaction and writes to the SQLite tables the TUI sidebar, session context,
 // and ingest-summary all read from — so all downstream consumers work without change.
