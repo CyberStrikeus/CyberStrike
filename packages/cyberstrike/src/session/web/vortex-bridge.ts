@@ -45,6 +45,22 @@ function storeFor(sessionID: string): TrafficStore {
 }
 export function dropSession(sessionID: string): void {
   stores.delete(sessionID)
+  lastIngestAt.delete(sessionID)
+}
+
+// Ingest-activity grace window — an ActivitySource for the SessionLifecycle (#19). Bumped on every hit
+// (browser tx, JS body, load/runtime evidence); "active" while traffic flowed within the grace, so the
+// lifecycle stays "inspecting"/"discovering" (not prematurely "complete") while the app is still being
+// crawled/observed. The lifecycle polls every 2s, so an ~8s window means complete lands a few ticks
+// after traffic truly stops.
+const INGEST_GRACE_MS = Math.max(2000, Number(process.env.CYBERSTRIKE_INGEST_GRACE_MS) || 8000)
+const lastIngestAt = new Map<string, number>()
+function bumpActivity(sessionID: string): void {
+  lastIngestAt.set(sessionID, Date.now())
+}
+export function ingestActive(sessionID: string): boolean {
+  const t = lastIngestAt.get(sessionID)
+  return t !== undefined && Date.now() - t < INGEST_GRACE_MS
 }
 
 // Enterprise extension seam: register a Vortex plugin (e.g. jsmine's JS-miner) onto the shared
@@ -105,6 +121,7 @@ export interface BrowserIngest {
 // rules over it (cheap; corpus/chain rules run in vortexReport). Returns running counts.
 export function ingestBrowserTransaction(i: BrowserIngest): { transactions: number; signals: number } {
   try {
+    bumpActivity(i.sessionID)
     const store = storeFor(i.sessionID)
     const parsed = i.rawRequest ? parseRawRequest(i.rawRequest) : { headers: [] as Header[], body: undefined }
     const tx: Transaction = {
@@ -179,6 +196,7 @@ const JS_BODY_CAP = Math.max(0, Number(process.env.CYBERSTRIKE_VORTEX_JS_BODY_CA
 export function ingestJsBody(sessionID: string, url: string, body: string, status = 200): { signals: number } {
   try {
     if (!url || !body) return { signals: 0 }
+    bumpActivity(sessionID)
     let host: string
     try {
       host = new URL(url).host
@@ -229,6 +247,7 @@ type LoadState = NonNullable<Discovered["loadState"]>
 // NOT scope-filtered: a CDN/vendor load is evidence, not a probe target. Returns rows touched.
 export function vortexRecordLoads(sessionID: string, resources: { url: string; type: string; size: number }[]): number {
   try {
+    bumpActivity(sessionID)
     const store = storeFor(sessionID)
     const existing = new Map(store.discovered("js").map((d) => [d.value, d]))
     const items: Discovered[] = []
@@ -277,6 +296,7 @@ function cmpVersion(a: string, b: string): number {
 // the direct answer to "we ship it but don't load it": the global is live, so it demonstrably ran.
 export function vortexRecordRuntimeLibs(sessionID: string, libs: string[], pageUrl?: string): number {
   try {
+    bumpActivity(sessionID)
     const store = storeFor(sessionID)
     const txId = `runtime:${sessionID}` // synthetic observed anchor — a runtime fact has no HTTP tx of its own
     if (!store.get(txId)) {

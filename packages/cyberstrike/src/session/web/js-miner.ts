@@ -201,6 +201,12 @@ export namespace JsMiner {
     }
   }
 
+  // True while this session could still produce mined endpoints/JS — a pass is running or a debounced
+  // wake is pending. Feeds the SessionLifecycle so "complete" waits for mining to settle (#19).
+  export function isActive(sessionID: string): boolean {
+    return inflight.has(sessionID) || timers.has(sessionID)
+  }
+
   export function _reset(): void {
     minedBySession.clear()
     inflight.clear()

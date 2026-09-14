@@ -40,6 +40,8 @@ export class SessionLifecycle {
   }
 
   addSource(source: ActivitySource): void {
+    // Idempotent by name — the ingest bootstrap re-registers on every hit; keep one per name.
+    if (this.sources.some((s) => s.name === source.name)) return
     this.sources.push(source)
   }
 

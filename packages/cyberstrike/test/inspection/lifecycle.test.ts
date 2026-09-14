@@ -75,6 +75,33 @@ describe("SessionLifecycle", () => {
       expect(lc.phase).toBe("complete")
     }))
 
+  test("all examined BUT a source still active → NOT complete (premature-completion guard)", () =>
+    run((sid) => {
+      const q = new InspectionQueue(sid, "web")
+      q.flag({ key: "ep1", label: "ep1", meta: {} }, { type: "s", value: "v", priority: "medium" })
+      q.markExamined("ep1") // queue momentarily drained…
+      let active = true
+      const lc = new SessionLifecycle(sid, "web", q)
+      lc.addSource({ name: "crawler", isActive: () => active }) // …but the crawler is still discovering
+      ;(lc as any).tick()
+      expect(lc.phase).not.toBe("complete") // must HOLD — a premature complete would stop() the lifecycle
+      active = false // crawler settles
+      ;(lc as any).tick()
+      expect(lc.phase).toBe("complete") // now genuinely done
+    }))
+
+  test("addSource is idempotent by name (re-registered every ingest)", () =>
+    run((sid) => {
+      const q = new InspectionQueue(sid, "web")
+      q.flag({ key: "a", label: "a", meta: {} }, { type: "s", value: "v", priority: "medium" })
+      const lc = new SessionLifecycle(sid, "web", q)
+      lc.addSource(makeSource("crawler", true))
+      lc.addSource(makeSource("crawler", true))
+      lc.addSource(makeSource("crawler", true))
+      ;(lc as any).tick()
+      expect(lc.snapshot().sources).toHaveLength(1)
+    }))
+
   test("snapshot returns correct structure", () =>
     run((sid) => {
       const q = new InspectionQueue(sid, "web")

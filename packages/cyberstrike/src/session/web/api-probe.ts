@@ -424,6 +424,12 @@ export namespace ApiProbe {
     )
   }
 
+  // True while this session's deterministic probe could still produce flags — a sweep is running, a
+  // re-run is queued, or a debounced wake is pending. Feeds the SessionLifecycle (#19).
+  export function isActive(sessionID: string): boolean {
+    return running.has(sessionID) || pending.has(sessionID) || timers.has(sessionID)
+  }
+
   async function drain(sessionID: string): Promise<void> {
     running.add(sessionID)
     try {
