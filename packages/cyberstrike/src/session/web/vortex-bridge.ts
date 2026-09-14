@@ -3,7 +3,7 @@
 // Vortex engine (rules → signals → subjects → inventory → leads) runs over the live web corpus in
 // parallel with the existing CS signal fabric (verify-first; the fabric retires once Vortex proves
 // out). Never throws — must not break the ingest path.
-import { SqliteStore, defaultRegistry, registerPlugin, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, subjects, humanName, params, responseFields as txResponseFields, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type CanaryKind, type VortexPlugin } from "@cyberstrike-io/vortex"
+import { SqliteStore, defaultRegistry, registerPlugin, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, subjects, humanName, params, responseFields as txResponseFields, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type CanaryKind, type VortexPlugin, type Discovered } from "@cyberstrike-io/vortex"
 import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
@@ -215,6 +215,99 @@ export function ingestJsBody(sessionID: string, url: string, body: string, statu
   }
 }
 
+// --- Referenced-vs-loaded evidence (issue #22) ---------------------------------------------------
+// A JS asset can be shipped/referenced without the app ever loading it — reporting a vuln in such a
+// dead asset is the classic "we don't load that" false positive. The capture extension now reports the
+// browser's OWN load record (PerformanceResourceTiming) and the libraries live at runtime; we persist
+// both so a JS finding can be scoped to what the app truly loaded/executed.
+
+const LOAD_RANK: Record<string, number> = { referenced: 0, preloaded: 1, loaded: 2, executed: 3 }
+type LoadState = NonNullable<Discovered["loadState"]>
+
+// Record what the page actually LOADED (from performance timing). Upserts each JS URL's loadState in
+// the discovered inventory, keeping the strongest state seen (never downgrades executed→referenced).
+// NOT scope-filtered: a CDN/vendor load is evidence, not a probe target. Returns rows touched.
+export function vortexRecordLoads(sessionID: string, resources: { url: string; type: string; size: number }[]): number {
+  try {
+    const store = storeFor(sessionID)
+    const existing = new Map(store.discovered("js").map((d) => [d.value, d]))
+    const items: Discovered[] = []
+    for (const r of resources) {
+      if (!r.url || !/^https?:\/\//i.test(r.url)) continue
+      const incoming: LoadState = r.type === "script" ? "executed" : r.size > 0 ? "loaded" : "preloaded"
+      const prev = existing.get(r.url)
+      const loadState: LoadState = prev?.loadState && LOAD_RANK[prev.loadState]! >= LOAD_RANK[incoming]! ? prev.loadState : incoming
+      items.push({ id: discoveredId("js", r.url), kind: "js", value: r.url, fromTransaction: prev?.fromTransaction, source: prev?.source ?? "perf", hit: true, loadState })
+    }
+    if (!items.length) return 0
+    store.addDiscovered(items)
+    log.info("vortex record loads", { sessionID, count: items.length })
+    return items.length
+  } catch (e) {
+    log.warn("vortex record loads failed", { sessionID, err: String(e) })
+    return 0
+  }
+}
+
+// Known-vulnerable library versions, matched against the RUNTIME version (a live global) — the highest
+// confidence there is: the library provably loaded AND executed. Complements the URL-based cve.ts rules
+// (which fire on a CDN <script src> version) and covers bundled libs that expose a global but have no
+// standalone URL. `below` is exclusive; angularjs 1.x is wholly EOL, so any version is flagged.
+const RUNTIME_VULN: { lib: string; below: string; severity: Signal["severity"]; note: string }[] = [
+  { lib: "jquery", below: "3.5.0", severity: "medium", note: "XSS via htmlPrefilter (CVE-2020-11022/11023) — upgrade ≥3.5.0" },
+  { lib: "lodash", below: "4.17.21", severity: "high", note: "prototype pollution / ReDoS (CVE-2020-8203, CVE-2021-23337) — upgrade ≥4.17.21" },
+  { lib: "moment", below: "2.29.4", severity: "medium", note: "ReDoS + path traversal (CVE-2022-24785, CVE-2022-31129) — upgrade ≥2.29.4" },
+  { lib: "bootstrap", below: "4.3.1", severity: "medium", note: "XSS in data-* attributes (CVE-2019-8331) — upgrade ≥4.3.1" },
+  { lib: "handlebars", below: "4.7.7", severity: "high", note: "prototype pollution / RCE in compiler (CVE-2019-19919, CVE-2021-23369) — upgrade ≥4.7.7" },
+  { lib: "axios", below: "0.21.2", severity: "medium", note: "SSRF + credential leak on redirect (CVE-2020-28168, CVE-2021-3749) — upgrade ≥0.21.2" },
+  { lib: "angularjs", below: "999.0.0", severity: "medium", note: "AngularJS 1.x is End-of-Life — no security fixes; migrate off" },
+]
+function cmpVersion(a: string, b: string): number {
+  const pa = a.split(".").map((n) => parseInt(n, 10) || 0)
+  const pb = b.split(".").map((n) => parseInt(n, 10) || 0)
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0)
+    if (d !== 0) return d < 0 ? -1 : 1
+  }
+  return 0
+}
+
+// Record libraries executing at runtime ("name@version"). Each becomes a high-confidence technology
+// signal, and a known-vulnerable version becomes a runtime-CONFIRMED vulnerable-component finding —
+// the direct answer to "we ship it but don't load it": the global is live, so it demonstrably ran.
+export function vortexRecordRuntimeLibs(sessionID: string, libs: string[], pageUrl?: string): number {
+  try {
+    const store = storeFor(sessionID)
+    const txId = `runtime:${sessionID}` // synthetic observed anchor — a runtime fact has no HTTP tx of its own
+    if (!store.get(txId)) {
+      let host = "runtime"
+      try {
+        if (pageUrl) host = new URL(pageUrl).host
+      } catch {}
+      store.add({ id: txId, session: sessionID, source: "browser", host, pageUrl, request: { method: "GET", url: pageUrl ?? "about:runtime", headers: [] } } as Transaction)
+    }
+    const sigs: Signal[] = []
+    for (const entry of libs) {
+      const at = entry.indexOf("@")
+      if (at <= 0) continue
+      const lib = entry.slice(0, at).toLowerCase()
+      const version = entry.slice(at + 1)
+      if (!version) continue
+      sigs.push({ ruleId: "runtime-library", transactionId: txId, severity: "info", category: "technology", title: `Runtime library: ${lib} ${version}`, evidence: entry, dedupKey: `runtime-library:${lib}:${version}` })
+      const vuln = RUNTIME_VULN.find((v) => v.lib === lib && cmpVersion(version, v.below) < 0)
+      if (vuln) sigs.push({ ruleId: `runtime-vuln-${lib}`, transactionId: txId, severity: vuln.severity, category: "vulnerable-component", title: `Outdated ${lib} ${version} (runtime-confirmed loaded): ${vuln.note}`, evidence: entry, dedupKey: `runtime-vuln:${lib}:${version}` })
+    }
+    if (!sigs.length) return 0
+    const added = store.addSignals(sigs)
+    bridgeSignals(sessionID, store, sigs)
+    log.info("vortex record runtime libs", { sessionID, libs: libs.length, newSignals: added })
+    return added
+  } catch (e) {
+    log.warn("vortex record runtime libs failed", { sessionID, err: String(e) })
+    return 0
+  }
+}
+
 // Vortex→WebObject/WebFunction/WebRole bridge (Part D): deterministic extraction replaces wstg-analyzer.
 // Runs subjects() on the transaction and writes to the SQLite tables the TUI sidebar, session context,
 // and ingest-summary all read from — so all downstream consumers work without change.
@@ -281,11 +374,18 @@ export function vortexReport(sessionID: string): { transactions: number; signals
 // Record a discovered JS asset in the session's Vortex store so JS is visible from the ONE source
 // (the Captures > JS Files view reads Vortex, not a separate web_js copy). Best-effort — a failure
 // here must never break capture. Deduped by (kind,value) inside the store.
-export function vortexDiscoverJs(sessionID: string, url: string): void {
+export function vortexDiscoverJs(sessionID: string, url: string, loadState?: LoadState): void {
   const u = String(url || "").trim()
   if (!u) return
   try {
-    storeFor(sessionID).addDiscovered([{ id: discoveredId("js", u), kind: "js", value: u, source: "extract", hit: false }])
+    const store = storeFor(sessionID)
+    // Keep the strongest load state ever seen for this URL (a later "referenced" must not clobber an
+    // earlier "loaded"/"executed"). #22: script-src ⇒ referenced, a captured network response ⇒ loaded.
+    const prev = store.discovered("js").find((d) => d.value === u)
+    let state = loadState
+    if (prev?.loadState && (!state || LOAD_RANK[prev.loadState]! >= LOAD_RANK[state]!)) state = prev.loadState
+    const hit = state === "loaded" || state === "executed" ? true : (prev?.hit ?? false)
+    store.addDiscovered([{ id: discoveredId("js", u), kind: "js", value: u, source: prev?.source ?? "extract", fromTransaction: prev?.fromTransaction, hit, loadState: state }])
   } catch (e) {
     // Best-effort so a store hiccup never breaks capture — but WARN (not debug): a swallowed failure
     // means Vortex silently misses a JS asset the session-web copy still has, i.e. the single source
@@ -555,6 +655,10 @@ export interface VortexSignalView {
   owner?: string
   routed: boolean
   status?: "pending" | "examined"
+  // For a JS-origin finding: whether the app actually loaded/executed the asset it fired on (#22).
+  // "referenced" = shipped but the page was never observed loading it → the finding is down-ranked
+  // (the classic "we don't load that" false positive). Absent for non-JS findings and unknown loads.
+  loadState?: LoadState
 }
 
 export function vortexSignals(sessionID: string): { signals: VortexSignalView[] } {
@@ -571,6 +675,16 @@ export function vortexSignals(sessionID: string): { signals: VortexSignalView[] 
       log.debug("vortex corpus analyze failed (ignored)", { err: String(e) })
     }
     const statusMap = WebRetest.statusByKeyHash(sessionID)
+    // Referenced-vs-loaded reconciliation (#22): a JS-origin finding inherits the load state of the
+    // asset it fired on, so a finding on JS the app never actually loaded is flagged + down-ranked.
+    const loadByUrl = new Map<string, LoadState | undefined>(store.discovered("js").map((d) => [d.value, d.loadState]))
+    const loadStateFor = (s: Signal, tx?: Transaction): LoadState | undefined => {
+      if (s.transactionId.startsWith("runtime:")) return "executed" // a live global provably ran
+      const url = tx?.request.url
+      if (!url) return undefined
+      if (loadByUrl.has(url)) return loadByUrl.get(url)
+      return undefined
+    }
     const out: VortexSignalView[] = []
     for (const s of store.signals()) {
       const tx = store.get(s.transactionId)
@@ -588,10 +702,15 @@ export function vortexSignals(sessionID: string): { signals: VortexSignalView[] 
         owner: ownerForSignal(s.ruleId, s.category),
         routed: shouldRoute(s.category, s.severity as VortexSeverity),
         status: keyHash ? statusMap[keyHash] : undefined,
+        loadState: loadStateFor(s, tx),
       })
     }
     const rank: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
-    out.sort((a, b) => (rank[a.severity] ?? 5) - (rank[b.severity] ?? 5))
+    // Within a severity, sort by how strongly the asset loaded (executed → referenced), so a
+    // "referenced, never loaded" finding sinks below confirmed-loaded ones. Non-JS findings (no
+    // loadState) sit neutrally in the middle so their order is unchanged.
+    const loadOrder = (ls?: LoadState) => (ls === undefined ? 2 : LOAD_RANK[ls]!)
+    out.sort((a, b) => (rank[a.severity] ?? 5) - (rank[b.severity] ?? 5) || loadOrder(b.loadState) - loadOrder(a.loadState))
     return { signals: out }
   } catch (e) {
     log.warn("vortexSignals read failed — returning empty", { sessionID, err: String(e) })

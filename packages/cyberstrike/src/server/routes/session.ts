@@ -40,7 +40,7 @@ import { WebHold } from "../../session/web/hold"
 import { CoDrive } from "../../session/web/nav/co-drive-runner"
 import { DataCollector } from "../../session/web/data-collector"
 import { JsMiner } from "../../session/web/js-miner"
-import { ingestBrowserTransaction, vortexReport, vortexProbe, vortexDiscoverJs, vortexCaptures, vortexSignals } from "../../session/web/vortex-bridge"
+import { ingestBrowserTransaction, vortexReport, vortexProbe, vortexDiscoverJs, vortexCaptures, vortexSignals, vortexRecordLoads, vortexRecordRuntimeLibs } from "../../session/web/vortex-bridge"
 import { Identifier } from "../../id/id"
 import { HBLog } from "../../session/web/hblog"
 import { FrameworkFingerprinter } from "../../session/web/tech"
@@ -1189,6 +1189,11 @@ export const SessionRoutes = lazy(() =>
             .optional(),
           // Absolute <script src> bundle URLs (JS-first discovery) — the miner fetches + parses these.
           js_bundles: z.array(z.string()).optional(),
+          // Libraries executing at runtime, "name@version" (referenced-vs-loaded, #22) — the strongest
+          // load+execution evidence (a live global) and the real version for CVE matching.
+          runtime_libs: z.array(z.string()).optional(),
+          // What the page actually LOADED (PerformanceResourceTiming) — {url, initiatorType, transferSize}.
+          resources: z.array(z.object({ url: z.string(), type: z.string(), size: z.number() })).optional(),
           // A modal dialog is trapping interaction — the navigator restricts itself to in_modal controls.
           modal_open: z.boolean().optional(),
         }),
@@ -1233,11 +1238,16 @@ export const SessionRoutes = lazy(() =>
           for (const u of bundles) {
             try {
               WebJs.add({ sessionID, url: u, origin: new URL(u).origin, discoveredFrom: "script-src" })
-              vortexDiscoverJs(sessionID, u) // mirror into Vortex — the single source the Captures view reads
+              vortexDiscoverJs(sessionID, u, "referenced") // DOM <script src> — referenced, load not yet observed (#22)
             } catch {}
           }
           JsMiner.wake(sessionID)
         }
+        // Referenced-vs-loaded evidence (#22). NOT scope-filtered: a CDN load is EVIDENCE the app
+        // pulled the asset in, not a probe target — recording it is exactly how we later prove a
+        // vuln-lib finding is real (or down-rank it as "referenced, never loaded"). Never throws.
+        if (Array.isArray(b.resources) && b.resources.length > 0) vortexRecordLoads(sessionID, b.resources)
+        if (Array.isArray(b.runtime_libs) && b.runtime_libs.length > 0) vortexRecordRuntimeLibs(sessionID, b.runtime_libs, b.url)
         HBLog.record(sessionID, "server", "observe", { url: b.url, clickables: b.clickables.length, forms: (b.forms ?? []).length })
         return c.json({ ok: true, kinds })
       },
@@ -2002,7 +2012,7 @@ export const SessionRoutes = lazy(() =>
           if (collectedKind === "js") {
             const jsUrl = normalized.origin + (normalized.canonicalPath ?? normalized.normalizedPath)
             WebJs.add({ sessionID, url: jsUrl, origin: normalized.origin, discoveredFrom: "capture" })
-            vortexDiscoverJs(sessionID, jsUrl) // mirror into Vortex — the single source the Captures view reads
+            vortexDiscoverJs(sessionID, jsUrl, "loaded") // captured network response — the app actually loaded it (#22)
             JsMiner.wake(sessionID) // a captured JS bundle → mine it (debounced, recursive)
           }
 
