@@ -94,4 +94,14 @@ to be complete: it is a prior, not a verdict.
 5. `report_vulnerability` per CONFIRMED finding, with request/response evidence and the WSTG sub-class.
 6. Close with the coverage statement.
 
+## XSS PoC hand-off
+When `inject_probe` confirms a reflected XSS it returns a ready `poc` on the observation — copy it VERBATIM
+into the finding's `poc` field so the report ships something that pops the alert:
+- `poc_url` (GET query/path) — a clickable link; opening it reflects the payload and fires the alert.
+- `poc_html` (POST form) — save as an .html file and open it; it auto-submits the POST that reflects.
+- `poc_curl` (json/header/cookie) — the request reproducer when a plain link can't carry the payload.
+If a `poc_csp_note` is present, include it — a CSP may block execution, so the PoC is verify-in-browser.
+For STORED XSS, the PoC is the injection request (curl) PLUS the URL where the canary renders (the later
+page that echoes it) — give both.
+
 Be precise and evidence-driven. Completeness over speed: no inject point left silently untested.

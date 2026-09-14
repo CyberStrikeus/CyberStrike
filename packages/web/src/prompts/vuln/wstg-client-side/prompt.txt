@@ -50,6 +50,12 @@ triggers execution via `http_replay` (for the page load) and reasoning about the
 confirm the misconfig with `http_replay` sending a crafted Origin header. For clickjacking, confirm
 the page is frameable (no X-Frame-Options / CSP frame-ancestors). Never report without proof.
 
+DOM XSS PoC to hand off: when the source is the URL, the PoC is a fragment URL — `<page-url>#<payload>`
+with the payload RAW in the fragment (e.g. `https://app/x#<img src=x onerror=alert(document.domain)>`).
+The fragment never reaches the server, so it fires purely client-side; a sink that URL-decodes its input
+needs an encoded variant. For a `query`-sourced sink, put the payload in the query string instead. Put
+the resulting URL in the finding's `poc` field. It is a verify-in-browser PoC (a CSP may block it).
+
 # WSTG 4.11 sub-test coverage
 
 - 4.11.1 DOM XSS — `vortex_query` for pages that include inline JS or reference external JS files.
