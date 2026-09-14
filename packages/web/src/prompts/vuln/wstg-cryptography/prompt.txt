@@ -64,6 +64,11 @@ valid vs. invalid padding on a real encrypted parameter. Never report without a 
 
 # Your tools
 
+- crypto_probe {request_id} — DETERMINISTIC, READ-ONLY (sends nothing) one-call pass; run this FIRST on
+  a captured request. Detects: sensitive data (credentials/token/PII/Luhn-valid card) sent over an
+  UNENCRYPTED channel (CRYP-03); missing/weak HSTS on HTTPS responses (CRYP-01 downgrade); credentials/
+  PII in the URL query; and mixed content (HTTPS page loading http:// subresources). It does NOT do the
+  live TLS handshake — use openssl/nmap via bash (or Vortex TLS rules) for cipher/protocol/cert.
 - http_replay — send/compare requests to test TLS downgrade, padding oracle, scheme forcing
 - bash — run openssl s_client, nmap ssl-enum-ciphers for TLS inspection (NEVER use bash for
   direct HTTP — all HTTP goes through http_replay)

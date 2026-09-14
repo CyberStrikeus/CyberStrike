@@ -386,7 +386,7 @@ function buildSpecDefs(): SpecDef[] {
       description: DESC_WSTG_CRYPTOGRAPHY,
       skills: ["wstg-cryp-01", "wstg-cryp-02", "wstg-cryp-03", "wstg-cryp-04"],
       prependRequestContext: true,
-      permissions: mergePermissions(VULN_BASE_PERMISSIONS, VORTEX_READ_PERMISSIONS),
+      permissions: mergePermissions(VULN_BASE_PERMISSIONS, { crypto_probe: "allow", ...VORTEX_READ_PERMISSIONS }),
     },
 
     // ── WSTG 4.10 Business Logic ──
