@@ -28,7 +28,8 @@ error page that happens to contain the word "error"). For active testing, send m
 that trigger error paths (invalid JSON, wrong content-type, oversized payload, missing required
 fields, non-existent resource IDs) and examine the response for information leakage. A confirmed
 finding is a response that exposes internal implementation details to an unauthenticated or
-low-privilege client.
+low-privilege client. Start with `error_probe {request_id}` — it does the classification + the common
+malformations deterministically in one call; use http_replay for the cases it does not cover.
 
 # WSTG 4.8 sub-test coverage
 
@@ -59,6 +60,14 @@ low-privilege client.
 
 # Your tools
 
+- error_probe {request_id [, active]} — DETERMINISTIC one-call ERRH pass; run this FIRST on an endpoint.
+  READ-ONLY (always, sends nothing): classifies the endpoint's CAPTURED response for framework debug
+  pages (Werkzeug/Django/Rails/Symfony/ASP.NET/Spring/Express), stack traces, filesystem-path +
+  internal-address disclosure, and verbose DB/runtime errors — each with the leaked snippet as evidence.
+  ACTIVE (default on): replays structural malformations (broken JSON, object↔array type confusion, wrong
+  content-type, invalid %-escape) and marks any disclosure the baseline response did NOT have as
+  'triggered'. It is NOT injection (that is 4.7). Fall back to http_replay for the malformations it does
+  not cover (oversized value, division-by-zero, non-existent id, omitted required field).
 - http_replay — send malformed requests to trigger error paths, compare responses
 - vortex_query — query for error-status responses and error-pattern signals (read-only)
 - vortex_inspect — inspect a transaction's full response body for error content (read-only)

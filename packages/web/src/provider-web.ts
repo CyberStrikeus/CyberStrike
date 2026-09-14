@@ -374,7 +374,7 @@ function buildSpecDefs(): SpecDef[] {
       description: DESC_WSTG_ERROR_HANDLING,
       skills: ["wstg-errh-01", "wstg-errh-02"],
       prependRequestContext: true,
-      permissions: mergePermissions(VULN_BASE_PERMISSIONS, VORTEX_READ_PERMISSIONS),
+      permissions: mergePermissions(VULN_BASE_PERMISSIONS, { error_probe: "allow", ...VORTEX_READ_PERMISSIONS }),
     },
 
     // ── WSTG 4.9 Cryptography ──
