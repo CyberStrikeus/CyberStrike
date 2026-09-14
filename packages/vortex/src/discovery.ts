@@ -22,6 +22,12 @@ export interface Discovered {
   fromTransaction?: string
   source?: string
   hit: boolean
+  // Whether the PAGE actually pulled this asset in (referenced-vs-loaded, issue #22). Set from the
+  // browser's own load record (PerformanceResourceTiming): "executed" = ran as a script,
+  // "loaded"/"preloaded" = fetched (maybe not run), "referenced" = only named in the DOM/another
+  // bundle. Undefined when unknown. A finding on a "referenced"-only asset is down-ranked (the app may
+  // ship but never load it — the classic "we don't load that" false positive).
+  loadState?: "executed" | "loaded" | "preloaded" | "referenced"
 }
 
 export function discoveredId(kind: Discovered["kind"], value: string): string {
