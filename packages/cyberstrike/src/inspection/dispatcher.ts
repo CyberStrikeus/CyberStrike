@@ -23,6 +23,14 @@ export class InspectionDispatcher {
     this.router = router
   }
 
+  // True while a drain loop is in flight — which, because loop() awaits Promise.allSettled(tasks) each
+  // pass, stays true for the WHOLE duration that dispatched specialist child-sessions are running. Fed
+  // to the SessionLifecycle as an activity source so "complete" waits for the specialists to finish,
+  // not merely for the queue to be dispatched (#19).
+  get active(): boolean {
+    return this.running
+  }
+
   wake(): void {
     // Dry-run (the ingest test flag) means "don't actually run agents" — leave the queue pending so
     // coverage/assertions see it, and never spawn a child session (no live LLM calls in tests).

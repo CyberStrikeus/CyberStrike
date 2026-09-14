@@ -3,6 +3,7 @@ import path from "path"
 import { Instance } from "../../src/project/instance"
 import { Session } from "../../src/session"
 import { InspectionQueue } from "../../src/inspection/queue"
+import { InspectionDispatcher } from "../../src/inspection/dispatcher"
 import { SessionLifecycle } from "../../src/inspection/lifecycle"
 import { Log } from "../../src/util/log"
 import type { ActivitySource } from "@cyberstrike-io/plugin"
@@ -88,6 +89,23 @@ describe("SessionLifecycle", () => {
       active = false // crawler settles
       ;(lc as any).tick()
       expect(lc.phase).toBe("complete") // now genuinely done
+    }))
+
+  test("dispatcher.active source holds off complete while specialists run (#19)", () =>
+    run((sid) => {
+      const q = new InspectionQueue(sid, "web")
+      q.flag({ key: "ep1", label: "ep1", meta: {} }, { type: "s", value: "v", priority: "medium" })
+      q.markExamined("ep1") // queue dispatched + drained — the old bug fired "complete" right here…
+      const router = { resolve: async () => [], prompt: () => "" } as any
+      const dispatcher = new InspectionDispatcher(q, router)
+      ;(dispatcher as any).running = true // …but a spawned specialist child-session is still running
+      const lc = new SessionLifecycle(sid, "web", q)
+      lc.addSource({ name: "specialist", isActive: () => dispatcher.active }) // exact web-bridge wiring
+      ;(lc as any).tick()
+      expect(lc.phase).not.toBe("complete") // HOLD — specialist in flight
+      ;(dispatcher as any).running = false // specialist finishes, loop's finally clears running
+      ;(lc as any).tick()
+      expect(lc.phase).toBe("complete") // now the assessment is genuinely done
     }))
 
   test("addSource is idempotent by name (re-registered every ingest)", () =>

@@ -35,6 +35,10 @@ export function ensureWebInspection(sessionID: string): Inst {
   if (!inst.started) {
     InspectionDispatcher.register(inst.dispatcher)
     InspectionDispatcher.start()
+    // Specialist-in-flight source: while the dispatcher is draining the queue it is running spawned
+    // WSTG child-sessions, so the lifecycle must not settle to "complete" yet. Registered here (not the
+    // ingest bootstrap) so it is always present whenever inspection is actually started (#19).
+    inst.lifecycle.addSource({ name: "specialist", isActive: () => inst.dispatcher.active })
     inst.lifecycle.start()
     inst.started = true
   }
