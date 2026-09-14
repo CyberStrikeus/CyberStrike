@@ -64,13 +64,16 @@ where it must not is the proof. Never report without a confirming replay; for co
   req.method, endpoint, req.path.
 - vortex_where_value {value} — pivot a session id across the corpus (does it appear in a URL/referrer/
   body, is a pre-auth id reused post-auth, does it cross identities?).
-- session_probe {request_id} — DETERMINISTIC CONFIRM for the SESSION TOKEN itself. On a captured authed
-  request it (a) scores the session cookie's entropy/structure — a short, low-entropy, or structured id
-  is guessable/forgeable (4.6.1 schema, 4.6.9 hijacking); (b) when the session token is a JWT, tests it
-  for alg:none acceptance, signature-not-validated (tampered claim replayed), and a WEAK HMAC SECRET (a
-  dictionary hit forges arbitrary sessions — a standalone break). JWT acceptance is judged against a
-  no-token control, so it never false-positives on a non-gated endpoint. A forgeable/guessable session
-  token IS session hijacking (4.6.9). Run this before eyeballing the cookie.
+- session_probe {request_id [, public_key]} — DETERMINISTIC CONFIRM for the SESSION TOKEN itself. On a
+  captured authed request it (a) scores the session cookie's entropy/structure — a short, low-entropy, or
+  structured id is guessable/forgeable (4.6.1 schema, 4.6.9 hijacking); (b) when the session token is a
+  JWT, tests it for alg:none, signature-not-validated (tampered claim), WEAK HMAC SECRET (dictionary —
+  a standalone break), kid path-traversal-to-empty-key, expired-token acceptance, and RS256→HS256 alg
+  confusion (pass public_key from jwks.json / a cert). It also flags jku/x5u/jwk key-resolution surface
+  (SSRF/OOB — pursue with a collaborator). JWT acceptance is judged against a no-token control, so it
+  never false-positives on a non-gated endpoint. A forgeable/guessable session token IS session hijacking
+  (4.6.9). Run this before eyeballing the cookie; if the token is RS/PS/ES, fetch the public key and
+  re-run with public_key to test alg confusion.
 - csrf_extract — pull anti-CSRF tokens from a captured response for 4.6.5 replay tests.
 - vortex_objects / vortex_functions / vortex_untested — expand to sibling session/state-changing surfaces.
 - http_replay — CONFIRM: reuse/craft a session (pre-auth id post-login, post-logout replay, CSRF token

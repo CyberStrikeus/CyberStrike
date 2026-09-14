@@ -8,6 +8,8 @@ import {
   forgeNone,
   forgeTamperedClaim,
   forgeResigned,
+  forgeAlgConfusion,
+  forgeKidEmptyKey,
   analyzeJwtStatic,
 } from "../../../src/tool/session-probe/jwt"
 
@@ -78,6 +80,32 @@ describe("session-probe/jwt", () => {
     const forged = parseJwt(forgeResigned(j, "secret", { role: "admin" }))!
     expect(forged.payload.role).toBe("admin")
     expect(verifyHmac(forged, "secret")).toBe(true)
+  })
+
+  test("forgeAlgConfusion re-signs HS256 with the public key as the HMAC secret", () => {
+    // Simulate an RS256 token (header alg RS256, opaque sig) and confuse it to HS256 keyed on the pubkey.
+    const pub = "-----BEGIN PUBLIC KEY-----\nMFkwEw...fake-pem...AB\n-----END PUBLIC KEY-----"
+    const rs = parseJwt(`${b64url({ alg: "RS256", typ: "JWT" })}.${b64url({ sub: "u1" })}.c2ln`)!
+    const forged = parseJwt(forgeAlgConfusion(rs, pub, { role: "admin" }))!
+    expect(String(forged.header.alg)).toBe("HS256")
+    expect(forged.payload.role).toBe("admin")
+    // A server confusing RS→HS verifies HS256 with the public key → this token verifies under `pub`.
+    expect(verifyHmac(forged, pub)).toBe(true)
+  })
+
+  test("forgeKidEmptyKey sets a traversal kid and signs with the empty key", () => {
+    const j = parseJwt(signHs256({ sub: "u1" }, "secret"))!
+    const forged = parseJwt(forgeKidEmptyKey(j))!
+    expect(String(forged.header.kid)).toContain("/dev/null")
+    expect(String(forged.header.alg)).toBe("HS256")
+    expect(verifyHmac(forged, "")).toBe(true) // verifies under the empty key
+  })
+
+  test("analyzeJwtStatic reports rsa + key-resolution header surface", () => {
+    const withKid = parseJwt(`${b64url({ alg: "RS256", kid: "keys/1", jku: "https://x/jwks" })}.${b64url({ sub: "u1" })}.c2ln`)!
+    const s = analyzeJwtStatic(withKid)
+    expect(s.rsa).toBe(true)
+    expect(s.header_surface.sort()).toEqual(["jku", "kid"])
   })
 
   test("analyzeJwtStatic flags alg:none issued, weak secret, and expiry", () => {
