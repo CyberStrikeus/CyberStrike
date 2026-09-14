@@ -47,6 +47,19 @@ describe("Vortex JS-body ingest (issue #22)", () => {
     })
   })
 
+  test("the tech-detection DSL packs fire over a stored JS body (not just secret rules)", async () => {
+    await withSession(async (sid) => {
+      // a JS bundle carrying real framework markers the tech-* packs match
+      const url = "https://app.test/static/vendor.js"
+      const body = `import ReactDOM from "react-dom";/* react.production.min.js */var s="react-redux.min.js";`
+      ingestJsBody(sid, url, body)
+      const ids = ruleIds(sid)
+      // the 1000+ tech packs run over JavaScript now — proving JS is a first-class rule surface
+      expect(ids).toContain("tech-js-react")
+      expect(ids.some((r) => r.startsWith("tech-"))).toBe(true)
+    })
+  })
+
   test("idempotent: re-ingesting the same bundle URL replaces its row, never duplicates", async () => {
     await withSession(async (sid) => {
       const url = "https://app.test/app.js"
