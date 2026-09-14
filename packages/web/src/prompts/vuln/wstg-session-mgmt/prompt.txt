@@ -73,7 +73,11 @@ where it must not is the proof. Never report without a confirming replay; for co
   (SSRF/OOB — pursue with a collaborator). JWT acceptance is judged against a no-token control, so it
   never false-positives on a non-gated endpoint. A forgeable/guessable session token IS session hijacking
   (4.6.9). Run this before eyeballing the cookie; if the token is RS/PS/ES, fetch the public key and
-  re-run with public_key to test alg confusion.
+  re-run with public_key to test alg confusion. It ALSO does read-only checks (no replay, zero flow
+  risk): Set-Cookie attributes on the session cookie (Secure/HttpOnly/SameSite, __Host-/__Secure- prefix
+  contracts, over-broad Domain — 4.6.2) and session-id exposure in the URL (4.6.4). NOTE: session_probe
+  never logs out or re-auths — fixation (4.6.3) and logout (4.6.6) you must drive yourself with
+  http_replay, and only when it won't disrupt the shared live session (prefer end-of-run).
 - csrf_extract — pull anti-CSRF tokens from a captured response for 4.6.5 replay tests.
 - vortex_objects / vortex_functions / vortex_untested — expand to sibling session/state-changing surfaces.
 - http_replay — CONFIRM: reuse/craft a session (pre-auth id post-login, post-logout replay, CSRF token

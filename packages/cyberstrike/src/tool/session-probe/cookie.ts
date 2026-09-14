@@ -73,6 +73,74 @@ export interface CookieVerdict {
   note: string
 }
 
+// ── Set-Cookie attribute analysis (WSTG-SESS-02) — read-only, no replay ────────────────────────────
+
+export interface SetCookie {
+  name: string
+  value: string
+  secure: boolean
+  httpOnly: boolean
+  sameSite?: string
+  domain?: string
+  path?: string
+}
+
+// Split a (possibly record-collapsed) Set-Cookie header value into individual cookies. Splits on a comma
+// that introduces a new `name=` pair, so the comma inside `Expires=Wed, 09 Jun 2021 …` does not split.
+export function splitSetCookies(raw: string): string[] {
+  return raw
+    .split(/,(?=\s*[^;=,\s]+=)/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+export function parseSetCookie(line: string): SetCookie {
+  const parts = line.split(";").map((p) => p.trim())
+  const first = parts[0] ?? ""
+  const eq = first.indexOf("=")
+  const attrs = parts.slice(1)
+  const attr = (k: string) => attrs.find((a) => a.toLowerCase() === k || a.toLowerCase().startsWith(k + "="))
+  const attrVal = (k: string) => {
+    const a = attr(k)
+    if (!a) return undefined
+    const i = a.indexOf("=")
+    return i < 0 ? "" : a.slice(i + 1).trim()
+  }
+  return {
+    name: eq < 0 ? first : first.slice(0, eq),
+    value: eq < 0 ? "" : first.slice(eq + 1),
+    secure: !!attr("secure"),
+    httpOnly: !!attr("httponly"),
+    sameSite: attrVal("samesite"),
+    domain: attrVal("domain"),
+    path: attrVal("path"),
+  }
+}
+
+export interface CookieAttrFinding {
+  kind: string
+  note: string
+}
+
+// Deterministic attribute weaknesses on a SESSION Set-Cookie. `scheme` is the request scheme, so a
+// missing Secure over https/http can be judged for interception. Complements the passive
+// weak_cookie_flags signal with prefix-misuse and domain-scope checks.
+export function analyzeCookieAttributes(scheme: string, c: SetCookie): CookieAttrFinding[] {
+  const out: CookieAttrFinding[] = []
+  if (!c.httpOnly) out.push({ kind: "cookie-missing-httponly", note: `session cookie "${c.name}" has no HttpOnly — readable by JavaScript, so an XSS steals the session` })
+  if (!c.secure) out.push({ kind: "cookie-missing-secure", note: `session cookie "${c.name}" has no Secure — it is sent over cleartext HTTP and can be intercepted${scheme === "http" ? " (this capture WAS over http)" : ""}` })
+  const ss = (c.sameSite ?? "").toLowerCase()
+  if (!ss) out.push({ kind: "cookie-samesite-absent", note: `session cookie "${c.name}" has no SameSite — cross-site requests carry it (CSRF exposure unless otherwise mitigated)` })
+  else if (ss === "none" && !c.secure) out.push({ kind: "cookie-samesite-none-insecure", note: `session cookie "${c.name}" is SameSite=None without Secure — invalid; browsers may drop it and it is cross-site + cleartext` })
+  if (c.domain && c.domain.startsWith(".")) out.push({ kind: "cookie-domain-too-broad", note: `session cookie "${c.name}" is scoped to Domain=${c.domain} (all subdomains) — a single vulnerable subdomain can read the session` })
+  // Cookie-prefix contract: __Host- requires Secure + Path=/ + NO Domain; __Secure- requires Secure.
+  if (c.name.startsWith("__Host-") && (!c.secure || c.domain || c.path !== "/"))
+    out.push({ kind: "cookie-host-prefix-violated", note: `"${c.name}" claims the __Host- prefix but violates its contract (needs Secure, Path=/, no Domain) — the prefix's protection is void` })
+  if (c.name.startsWith("__Secure-") && !c.secure)
+    out.push({ kind: "cookie-secure-prefix-violated", note: `"${c.name}" claims the __Secure- prefix but is not Secure — prefix protection void` })
+  return out
+}
+
 // Deterministic verdict for one session cookie. Thresholds: a session id should carry ≳64 bits of
 // entropy over ≳16 chars (OWASP ASVS 3.2). Structure short-circuits to a break regardless of length.
 export function classifyCookieEntropy(name: string, value: string, minBits = 64): CookieVerdict {

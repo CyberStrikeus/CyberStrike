@@ -16,7 +16,7 @@ import { HttpMessage } from "../../replay/message"
 import { Mutate } from "../../replay/mutate"
 import { originOf, inScope, stripAuthHeaders, sendGoverned } from "../http-replay"
 import { findJwts, analyzeJwtStatic, forgeNone, forgeTamperedClaim, forgeResigned, forgeAlgConfusion, forgeKidEmptyKey, findWeakSecret, type FoundJwt } from "./jwt"
-import { parseCookieHeader, isSessionCookie, classifyCookieEntropy } from "./cookie"
+import { parseCookieHeader, isSessionCookie, classifyCookieEntropy, splitSetCookies, parseSetCookie, analyzeCookieAttributes } from "./cookie"
 import { runJwtAcceptance, type SessResp } from "./probe"
 
 const SAFE_METHODS = new Set(["GET", "HEAD"])
@@ -107,13 +107,29 @@ export const SessionProbeTool = Tool.define("session_probe", {
 
     const cookieHdr = headerValue(baseMsg, "cookie")
     const cookieFindings: Record<string, unknown>[] = []
-    if (cookieHdr) {
-      for (const c of parseCookieHeader(cookieHdr)) {
+    const sessionCookies = cookieHdr ? parseCookieHeader(cookieHdr).filter((c) => isSessionCookie(c.name)) : []
+    for (const c of sessionCookies) {
+      const v = classifyCookieEntropy(c.name, c.value)
+      if (v.verdict !== "ok") cookieFindings.push({ kind: `session-cookie-${v.verdict}`, name: v.name, bits: v.bits, length: v.length, note: v.note })
+    }
+
+    // Set-Cookie attribute analysis (read-only) — Secure / HttpOnly / SameSite / prefix / Domain scope on
+    // the SESSION cookie, from the captured RESPONSE. Complements the passive weak_cookie_flags signal.
+    const setCookieRaw = Object.entries(request.response_headers ?? {}).find(([k]) => k.toLowerCase() === "set-cookie")?.[1]
+    if (setCookieRaw) {
+      const scheme = request.scheme ?? (origin.startsWith("https") ? "https" : "http")
+      for (const line of splitSetCookies(setCookieRaw)) {
+        const c = parseSetCookie(line)
         if (!isSessionCookie(c.name)) continue
-        const v = classifyCookieEntropy(c.name, c.value)
-        if (v.verdict !== "ok") cookieFindings.push({ kind: `session-cookie-${v.verdict}`, name: v.name, bits: v.bits, length: v.length, note: v.note })
+        for (const f of analyzeCookieAttributes(scheme, c)) cookieFindings.push({ ...f })
       }
     }
+
+    // Session-id exposure in the URL (WSTG-SESS-04) — read-only. If the session token (cookie value or a
+    // JWT) appears in the request-target or the page URL, it leaks via history/referrer/proxy/logs.
+    const url = `${baseMsg.target} ${request.page_url ?? ""}`
+    const exposedTokens = [...sessionCookies.map((c) => c.value), ...jwts.map((j) => j.raw)].filter((val) => val.length >= 8 && url.includes(val))
+    if (exposedTokens.length) cookieFindings.push({ kind: "session-id-in-url", note: `the session token appears in the URL/query (WSTG-SESS-04) — exposed via browser history, Referer headers, proxies, and server logs` })
 
     // ── Active JWT-acceptance replay (with a no-token control) ────────────────────
     const stateChanging = !SAFE_METHODS.has(request.method.toUpperCase())
