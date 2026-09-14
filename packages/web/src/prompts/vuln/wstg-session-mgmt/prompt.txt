@@ -64,6 +64,13 @@ where it must not is the proof. Never report without a confirming replay; for co
   req.method, endpoint, req.path.
 - vortex_where_value {value} — pivot a session id across the corpus (does it appear in a URL/referrer/
   body, is a pre-auth id reused post-auth, does it cross identities?).
+- session_probe {request_id} — DETERMINISTIC CONFIRM for the SESSION TOKEN itself. On a captured authed
+  request it (a) scores the session cookie's entropy/structure — a short, low-entropy, or structured id
+  is guessable/forgeable (4.6.1 schema, 4.6.9 hijacking); (b) when the session token is a JWT, tests it
+  for alg:none acceptance, signature-not-validated (tampered claim replayed), and a WEAK HMAC SECRET (a
+  dictionary hit forges arbitrary sessions — a standalone break). JWT acceptance is judged against a
+  no-token control, so it never false-positives on a non-gated endpoint. A forgeable/guessable session
+  token IS session hijacking (4.6.9). Run this before eyeballing the cookie.
 - csrf_extract — pull anti-CSRF tokens from a captured response for 4.6.5 replay tests.
 - vortex_objects / vortex_functions / vortex_untested — expand to sibling session/state-changing surfaces.
 - http_replay — CONFIRM: reuse/craft a session (pre-auth id post-login, post-logout replay, CSRF token
@@ -75,12 +82,14 @@ where it must not is the proof. Never report without a confirming replay; for co
 1. `vortex_leads {category:"session-management"}` + `vortex_query` to map the session surface (Set-Cookie
    responses, cookie-bearing requests, logout endpoint, state-changing requests).
 2. `vortex_inspect` the session lifecycle: issuance, binding, attributes, logout, timeout behavior.
-3. CONFIRM with `http_replay`: cookie attributes (4.6.2, header evidence), fixation (4.6.3), logout
+3. `session_probe {request_id}` on an authed request FIRST — deterministic session-token strength +
+   JWT integrity (entropy/structure, alg:none, signature-not-validated, weak secret) in one pass.
+4. CONFIRM with `http_replay`: cookie attributes (4.6.2, header evidence), fixation (4.6.3), logout
    invalidation (4.6.6), CSRF via `csrf_extract` + token-stripped replay (4.6.5), cross-identity reuse
    (4.6.9). Judge each response.
-4. Correlate with `vortex_where_value` (session id exposure/reuse) and expand to sibling surfaces.
-5. `report_vulnerability` per CONFIRMED finding with request/response evidence + WSTG sub-class.
-6. Close with a coverage note: session surfaces confirmed, cleared, consciously skipped (why).
+5. Correlate with `vortex_where_value` (session id exposure/reuse) and expand to sibling surfaces.
+6. `report_vulnerability` per CONFIRMED finding with request/response evidence + WSTG sub-class.
+7. Close with a coverage note: session surfaces confirmed, cleared, consciously skipped (why).
 
 Be precise and evidence-driven. Completeness over speed: a cookie or session id is not a finding until a
 replay proves the session is mis-scoped, not rotated, not destroyed, or reusable.

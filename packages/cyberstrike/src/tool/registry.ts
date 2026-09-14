@@ -44,6 +44,7 @@ import { WebActionTool } from "./web-action"
 import { InjectProbeTool } from "./inject-probe"
 import { HttpReplayTool, HttpReplayRawTool } from "./http-replay"
 import { AccessProbeTool } from "./access-probe"
+import { SessionProbeTool } from "./session-probe"
 import { VortexTools } from "./vortex"
 import { WebGetVulnerabilitiesTool } from "./web-get-vulnerabilities"
 import { WebGetVulnDetailTool } from "./web-get-vuln-detail"
@@ -198,6 +199,7 @@ export namespace ToolRegistry {
       WebActionTool,
       InjectProbeTool,
       AccessProbeTool,
+      SessionProbeTool,
       HttpReplayTool,
       HttpReplayRawTool,
       ...VortexTools,

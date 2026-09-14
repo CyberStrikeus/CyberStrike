@@ -344,7 +344,7 @@ function buildSpecDefs(): SpecDef[] {
       description: DESC_WSTG_SESSION_MGMT,
       skills: ["wstg-sess-10", "wstg-auth-session"],
       prependRequestContext: true,
-      permissions: mergePermissions(VULN_BASE_PERMISSIONS, VORTEX_READ_PERMISSIONS),
+      permissions: mergePermissions(VULN_BASE_PERMISSIONS, { session_probe: "allow", ...VORTEX_READ_PERMISSIONS }),
     },
 
     // ── WSTG 4.7 Input Validation ──
