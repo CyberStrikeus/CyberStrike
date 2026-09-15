@@ -10,6 +10,6 @@ export function setCore(c: CoreRuntime): void {
 /** The host-injected core runtime. Throws if the plugin ran without injection
  *  (an incompatible host) rather than crashing with a confusing undefined error. */
 export function core(): CoreRuntime {
-  if (!injected) throw new Error("@cyberstrike-io/saas: core runtime not injected — incompatible CyberStrike host.")
+  if (!injected) throw new Error("@cyberstrike-io/sast: core runtime not injected — incompatible CyberStrike host.")
   return injected
 }

@@ -562,8 +562,8 @@
         "cyberstrike",
       ],
     },
-    "packages/saas": {
-      "name": "@cyberstrike-io/saas",
+    "packages/sast": {
+      "name": "@cyberstrike-io/sast",
       "version": "0.1.0",
       "dependencies": {
         "@cyberstrike-io/plugin": "workspace:*",
@@ -1079,7 +1079,7 @@
 
     "@cyberstrike-io/red-team": ["@cyberstrike-io/red-team@workspace:packages/red-team"],
 
-    "@cyberstrike-io/saas": ["@cyberstrike-io/saas@workspace:packages/saas"],
+    "@cyberstrike-io/sast": ["@cyberstrike-io/sast@workspace:packages/sast"],
 
     "@cyberstrike-io/script": ["@cyberstrike-io/script@workspace:packages/script"],
 
