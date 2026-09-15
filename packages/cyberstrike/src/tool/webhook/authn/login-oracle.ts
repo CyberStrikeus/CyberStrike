@@ -133,6 +133,28 @@ export function judge(base: Fingerprint, cand: Fingerprint, jitter: number): Suc
   return { looksSuccessful, signals, strong }
 }
 
+export interface EnumJudgement {
+  diverged: boolean
+  signals: string[]
+}
+
+// Username-enumeration oracle (WSTG 4.4). Compare a CANDIDATE username's response (wrong password) to the
+// KNOWN-INVALID baseline (a random username, wrong password). A material divergence — different status,
+// different error marker, a body-size gap beyond jitter, or a response markedly slower (a valid account
+// running password hashing) — means the app reveals which usernames exist. Distinct from the login-success
+// oracle: here ANY reliable difference from "user does not exist" is the leak, not a move toward auth.
+export function enumDivergence(invalid: Fingerprint, cand: Fingerprint, jitter: number, invalidMs: number, candMs: number): EnumJudgement {
+  const signals: string[] = []
+  if (cand.status !== invalid.status) signals.push(`status differs: invalid-user ${invalid.status} → candidate ${cand.status}`)
+  if (cand.hasErrorMarker !== invalid.hasErrorMarker)
+    signals.push(`login-error marker ${invalid.hasErrorMarker ? "present for invalid user but ABSENT for candidate" : "absent for invalid user but PRESENT for candidate"} — distinct responses`)
+  if (Math.abs(cand.bytes - invalid.bytes) > jitter + 24) signals.push(`response body size differs ${invalid.bytes}→${cand.bytes}B (jitter ${jitter}) — distinct responses`)
+  // Timing is noisy over a network — require a large multiplier AND absolute gap, and label it a lead.
+  if (invalidMs > 0 && candMs > invalidMs * 1.5 && candMs - invalidMs > 60)
+    signals.push(`response ~${Math.round((candMs / invalidMs) * 10) / 10}× slower than the invalid-user baseline (${invalidMs}→${candMs}ms) — timing oracle (a valid account triggers password hashing); confirm with repeats`)
+  return { diverged: signals.length > 0, signals }
+}
+
 function isLoginward(location: string): boolean {
   return /login|signin|sign-in|auth|error|denied|fail|logon|account\/login/i.test(location)
 }
@@ -347,6 +369,100 @@ export namespace LoginProbe {
     }
   }
 
+  const MAX_ENUM = 25
+
+  export interface EnumerateInput {
+    request: ProbeRequest
+    usernameField?: string
+    passwordField?: string
+    usernames?: string[] // candidates to test; default = the captured request's own username
+    delayMs?: number
+  }
+
+  export interface EnumerateReport {
+    mode: "enumerate"
+    loginField: { username: string; password: string; contentType: string }
+    invalidBaseline: { status: number; bytes: number; ms: number } | null
+    tested: number
+    leaks: { username: string; status: number | null; ms: number; signals: string[] }[]
+    results: { username: string; status: number | null; ms: number; diverged: boolean; signals: string[]; error?: string }[]
+    stoppedEarly?: string
+    note: string
+  }
+
+  // WSTG 4.4 — username/account enumeration. Establish the "user does not exist" fingerprint (a random
+  // username, wrong password, sampled for timing + jitter), then send each candidate username with a WRONG
+  // password and flag any whose response diverges from that baseline. Wrong passwords + distinct usernames
+  // (1 attempt each) mean no single account is hammered — far safer than the lockout mode.
+  export async function enumerate(input: EnumerateInput, sender: HttpSender): Promise<EnumerateReport | { error: string }> {
+    const parsed = parseRequest(input.request)
+    if (parsed.parseError) return { error: parsed.parseError }
+    const detected = detectFields(parsed)
+    const userField = input.usernameField ?? detected.usernameField
+    const passField = input.passwordField ?? detected.passwordField
+    if (!userField || !passField)
+      return { error: `Could not identify login fields (found: [${Object.keys(parsed.fields).join(", ") || "none"}]). Pass username_field and password_field.` }
+
+    const candidates = dedupeStr((input.usernames && input.usernames.length ? input.usernames : [detected.capturedUsername]).filter((u): u is string => !!u)).slice(0, MAX_ENUM)
+    if (candidates.length === 0) return { error: "No candidate username to test — pass `usernames` or use a captured request whose username field is populated." }
+
+    // Known-invalid baseline: a random username the server cannot know, wrong password, sampled 3× for a
+    // timing median + body jitter. A blocked baseline aborts (NOT evidence of safety).
+    const invMs: number[] = []
+    let invFp: Fingerprint | undefined
+    let invBytes: number[] = []
+    for (let i = 0; i < 3; i++) {
+      const t0 = performance.now()
+      const res = await sendPair(sender, input.request, parsed, userField, passField, { username: `zz_${rand()}_${rand()}`, password: `zz_${rand()}` })
+      const ms = Math.round(performance.now() - t0)
+      if ("error" in res) return { error: `known-invalid baseline failed: ${res.error} — cannot judge enumeration (NOT evidence of safety).` }
+      const blk = blockReason(res)
+      if (blk) return { error: `known-invalid baseline BLOCKED (${blk}) — the login is shielded; enumeration suppressed (NOT evidence of safety).` }
+      if (!invFp) invFp = fingerprint(res)
+      invMs.push(ms)
+      invBytes.push(res.body.length)
+    }
+    const invalidMs = median(invMs)
+    const jitter = Math.max(...invBytes) - Math.min(...invBytes)
+
+    const results: EnumerateReport["results"] = []
+    let stoppedEarly: string | undefined
+    for (const username of candidates) {
+      const t0 = performance.now()
+      const res = await sendPair(sender, input.request, parsed, userField, passField, { username, password: `zz_${rand()}` })
+      const ms = Math.round(performance.now() - t0)
+      if ("error" in res) {
+        results.push({ username, status: null, ms, diverged: false, signals: [], error: res.error })
+        continue
+      }
+      const shield = blockReason(res) ?? lockoutReason(res)
+      if (shield) {
+        stoppedEarly = `stopped after ${results.length + 1} candidate(s): ${shield} — remaining NOT tested (shield/throttle, NOT safety).`
+        results.push({ username, status: res.status, ms, diverged: false, signals: [`shielded: ${shield}`] })
+        break
+      }
+      const j = enumDivergence(invFp!, fingerprint(res), jitter, invalidMs, ms)
+      results.push({ username, status: res.status, ms, diverged: j.diverged, signals: j.signals })
+      if (input.delayMs && input.delayMs > 0) await sleep(input.delayMs)
+    }
+
+    const leaks = results.filter((r) => r.diverged).map((r) => ({ username: r.username, status: r.status, ms: r.ms, signals: r.signals }))
+    return {
+      mode: "enumerate",
+      loginField: { username: userField, password: passField, contentType: parsed.kind },
+      invalidBaseline: invFp ? { status: invFp.status, bytes: invFp.bytes, ms: invalidMs } : null,
+      tested: results.length,
+      leaks,
+      results,
+      stoppedEarly,
+      note:
+        (leaks.length > 0
+          ? `${leaks.length} username(s) produce a response that DIVERGES from the "user does not exist" baseline — username-enumeration LEAD (the app reveals which accounts exist). Confirm the differential is stable (repeat), then report. `
+          : `no candidate diverged from the invalid-user baseline — the login returns a uniform response for valid and invalid usernames (good). `) +
+        "Wrong passwords were used and each username was tried once, so no account was locked. Observations, not verdicts.",
+    }
+  }
+
   async function sendPair(
     sender: HttpSender,
     req: ProbeRequest,
@@ -373,6 +489,10 @@ function dedupe(pairs: CredPair[]): CredPair[] {
     out.push(p)
   }
   return out
+}
+
+function dedupeStr(xs: string[]): string[] {
+  return [...new Set(xs)]
 }
 
 function median(xs: number[]): number {

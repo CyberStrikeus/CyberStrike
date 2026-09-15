@@ -79,8 +79,12 @@ consciously justify any you skip.
 
 - login_probe {mode, request_id} — the login-attack tool. mode:"default-creds" sprays the embedded
   common-cred battery at the login form (differential success oracle + known-bad negative control, stops
-  on WAF/lockout); mode:"lockout" fires N failed logins and watches for throttle/lockout/CAPTCHA. Leads,
-  not verdicts — confirm with http_replay. Covers WSTG 4.4.2 / 4.4.3.
+  on WAF/lockout); mode:"lockout" fires N failed logins and watches for throttle/lockout/CAPTCHA;
+  mode:"enumerate" {usernames} sends each candidate username with a WRONG password and flags any whose
+  response DIVERGES from a "user does not exist" baseline (status / error-marker / body-size / markedly
+  slower = a valid account hitting password hashing) — username/account enumeration, no account locked
+  (wrong passwords, one try per distinct username). Leads, not verdicts — confirm with http_replay.
+  Covers WSTG 4.4.2 / 4.4.3 + username enumeration.
 - authn_test {request_id} — JWT/bearer forgery engine (alg:none, weak secret, RS256→HS256, role/id swap);
   sends each forged token and reports which the server accepts (no-token negative control). Covers JWT.
 - vortex_leads {category:"authentication"} — pre-computed authentication leads (jwt leaks, etc.).

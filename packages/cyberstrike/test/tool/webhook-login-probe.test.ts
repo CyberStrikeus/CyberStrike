@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { LoginProbe, judge, fingerprint, blockReason, lockoutReason } from "../../src/tool/webhook/authn/login-oracle"
+import { LoginProbe, judge, fingerprint, blockReason, lockoutReason, enumDivergence } from "../../src/tool/webhook/authn/login-oracle"
 import { parseRequest, detectFields, renderCredentialRequest, DEFAULT_CREDS } from "../../src/tool/webhook/authn/login-creds"
 import type { HttpSender, ProbeRequest, ProbeResponse } from "../../src/tool/webhook/authn/probe"
 
@@ -179,6 +179,72 @@ describe("LoginProbe.lockout", () => {
   test("errors without a username to test", async () => {
     const noUser: ProbeRequest = { method: "POST", url: "https://app.example.com/login", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "username=&password=x" }
     const report = await LoginProbe.lockout({ request: noUser }, { async send() { return { status: 200, headers: {}, body: "" } } })
+    expect("error" in report).toBe(true)
+  })
+})
+
+describe("oracle unit — enumDivergence", () => {
+  const invalid = fingerprint({ status: 200, headers: {}, body: "No such user." })
+  test("status difference diverges", () => {
+    const cand = fingerprint({ status: 401, headers: {}, body: "No such user." })
+    expect(enumDivergence(invalid, cand, 0, 40, 42).diverged).toBe(true)
+  })
+  test("error-marker difference diverges (not-found vs wrong-password)", () => {
+    const cand = fingerprint({ status: 200, headers: {}, body: "Password incorrect" })
+    expect(enumDivergence(invalid, cand, 0, 40, 42).signals.some((s) => /error marker/i.test(s))).toBe(true)
+  })
+  test("body-size gap beyond jitter diverges", () => {
+    const cand = fingerprint({ status: 200, headers: {}, body: "No such user." + "x".repeat(200) })
+    expect(enumDivergence(invalid, cand, 0, 40, 42).diverged).toBe(true)
+  })
+  test("timing: a markedly slower candidate diverges (valid user hits hashing)", () => {
+    const cand = fingerprint({ status: 200, headers: {}, body: "No such user." })
+    expect(enumDivergence(invalid, cand, 0, 40, 250).signals.some((s) => /slower/i.test(s))).toBe(true)
+    // small jitter must NOT flag
+    expect(enumDivergence(invalid, cand, 0, 40, 55).diverged).toBe(false)
+  })
+  test("identical response does NOT diverge", () => {
+    const cand = fingerprint({ status: 200, headers: {}, body: "No such user." })
+    expect(enumDivergence(invalid, cand, 0, 40, 42).diverged).toBe(false)
+  })
+})
+
+describe("LoginProbe.enumerate", () => {
+  // An enumerating app: a valid username gets a distinct "wrong password" response; unknown users get "no such user".
+  const enumApp: HttpSender = {
+    async send(req: ProbeRequest): Promise<ProbeResponse> {
+      const u = new URLSearchParams(req.body ?? "").get("username") ?? ""
+      if (u === "alice") return { status: 200, headers: {}, body: "Password incorrect for this account, please try again or reset it." }
+      return { status: 200, headers: {}, body: "No such user." }
+    },
+  }
+
+  test("flags a username whose response diverges from the invalid-user baseline", async () => {
+    const report = await LoginProbe.enumerate({ request: loginReq(), usernames: ["alice", "ghost_nobody"] }, enumApp)
+    expect("error" in report).toBe(false)
+    if ("error" in report) return
+    expect(report.leaks.map((l) => l.username)).toContain("alice")
+    expect(report.leaks.map((l) => l.username)).not.toContain("ghost_nobody")
+  })
+
+  test("a uniform login (same response for all usernames) yields no enumeration", async () => {
+    const uniform: HttpSender = { async send() { return { status: 200, headers: {}, body: "Invalid username or password." } } }
+    const report = await LoginProbe.enumerate({ request: loginReq(), usernames: ["alice", "bob"] }, uniform)
+    expect("error" in report).toBe(false)
+    if ("error" in report) return
+    expect(report.leaks).toHaveLength(0)
+    expect(report.tested).toBe(2)
+  })
+
+  test("a blocked baseline aborts (not evidence of safety)", async () => {
+    const wafd: HttpSender = { async send() { return { status: 403, headers: {}, body: "Access denied" } } }
+    const report = await LoginProbe.enumerate({ request: loginReq() }, wafd)
+    expect("error" in report).toBe(true)
+  })
+
+  test("no candidate username → error", async () => {
+    const noUser: ProbeRequest = { method: "POST", url: "https://app.example.com/login", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "username=&password=x" }
+    const report = await LoginProbe.enumerate({ request: noUser }, { async send() { return { status: 200, headers: {}, body: "" } } })
     expect("error" in report).toBe(true)
   })
 })
