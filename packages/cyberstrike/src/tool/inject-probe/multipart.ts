@@ -22,6 +22,50 @@ export function multipartFieldNames(body: string, boundary: string): string[] {
   return names
 }
 
+// The name of a part that carries a FILE (has a filename=) — the counterpart to mpFieldName, which
+// skips file parts.
+export function mpFileFieldName(seg: string): string | null {
+  if (!/filename="/i.test(seg)) return null
+  const m = seg.match(/content-disposition:[^\r\n]*\bname="([^"]+)"/i)
+  return m ? m[1]! : null
+}
+
+// The first file-upload field in a multipart body (the part the file-upload probe mutates).
+export function firstFileField(body: string, boundary: string): string | null {
+  for (const seg of body.split(`--${boundary}`)) {
+    const n = mpFileFieldName(seg)
+    if (n != null) return n
+  }
+  return null
+}
+
+// Replace a file part's filename, Content-Type, and content in one shot (for the file-upload probe). The
+// Content-Type line is rewritten if present, else inserted after the disposition line.
+export function setMultipartFile(
+  body: string,
+  boundary: string,
+  name: string,
+  file: { filename: string; contentType: string; content: string },
+): string | null {
+  if (file.content.includes(`--${boundary}`) || file.filename.includes('"')) return null
+  const delim = `--${boundary}`
+  const segments = body.split(delim)
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i]!
+    if (mpFileFieldName(seg) !== name) continue
+    const sep = seg.match(/\r?\n\r?\n/)
+    if (!sep || sep.index == null) continue
+    let head = seg.slice(0, sep.index)
+    const trail = seg.slice(sep.index + sep[0].length).match(/\r?\n$/)?.[0] ?? "\r\n"
+    head = head.replace(/(\bfilename=")[^"]*(")/i, `$1${file.filename}$2`)
+    if (/content-type:/i.test(head)) head = head.replace(/(content-type:\s*)[^\r\n]*/i, `$1${file.contentType}`)
+    else head = head.replace(/(content-disposition:[^\r\n]*)/i, `$1\r\nContent-Type: ${file.contentType}`)
+    segments[i] = `${head}\r\n\r\n${file.content}${trail}`
+    return segments.join(delim)
+  }
+  return null
+}
+
 export function setMultipartField(body: string, boundary: string, name: string, value: string): string | null {
   if (value.includes(`--${boundary}`)) return null
   const delim = `--${boundary}`
