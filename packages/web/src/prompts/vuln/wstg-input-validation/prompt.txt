@@ -60,7 +60,14 @@ Concrete Vortex-native test per item:
   POST/PUT/PATCH with a body — profile/user/account/order/settings update endpoints). On a confirmed
   binding, escalate with the REAL value (role=admin / isAdmin=true / owner=<other-id>) via `http_replay`
   and confirm the privilege/ownership impact before reporting.
-- Also folded here (input-shaped): unrestricted file upload, path traversal, NoSQL injection.
+- WSTG-INPV-09 Unrestricted file upload — `inject_probe` with vuln_type `file_upload` on a captured
+  multipart upload (POST/PUT with a file part). It runs the full matrix — dangerous extensions +
+  blacklist-bypass spellings (double ext, case, trailing dot/space, %00, ::$DATA), content-type spoof,
+  GIF-magic content-sniff bypass, filename path-traversal, SVG/HTML content, .htaccess/web.config —
+  against a known-good image baseline, reports which dangerous files were ACCEPTED, and (when the
+  response reveals the stored URL) fetches it to classify STORED vs EXECUTED (RCE). It uploads REAL
+  files, so run it where creating files is acceptable; confirm impact before reporting.
+- Also folded here (input-shaped): path traversal, NoSQL injection.
 
 IGNORE authentication, authorization, session, business-logic, config, crypto, error-handling and
 client-side-only findings — those belong to the other WSTG specialists, not you.

@@ -17,6 +17,7 @@ import { probeHppPoint } from "./probe/hpp"
 import { probeCrlfPoint } from "./probe/crlf"
 import { probeTimeBlindPoint } from "./probe/time-blind"
 import { probeMassAssign } from "./probe/mass-assign"
+import { probeFileUpload } from "./probe/file-upload"
 import { MASS_ASSIGN_NOT_TESTED } from "./payloads/mass-assign"
 import { probeHostHeader, HOST_HEADER_NOT_TESTED } from "./probe/host-header"
 import { probeVerbTampering, VERB_NOT_TESTED } from "./probe/verb"
@@ -61,10 +62,10 @@ export const InjectProbeTool = Tool.define("inject_probe", {
         "Fallback when the target is NOT a stored request (a new/unseen endpoint). Provide EITHER request_id OR target.",
       ),
     vuln_type: z
-      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi", "hpp", "mass_assign", "crlf", "host_header", "verb", "time_blind"]))
+      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi", "hpp", "mass_assign", "crlf", "host_header", "verb", "time_blind", "file_upload"]))
       .min(1)
       .describe(
-        "Injection classes to probe — YOU pick the set that fits THIS endpoint (don't run every class everywhere; e.g. no xpath on a plain REST/JSON API). xss/ssti/cmd return execution-facts; sqli/nosql/ldap/xpath return error-signature AND a true/false differential (sqli AND-based boolean, nosql $ne/$eq/$regex operator, ldap/xpath filter boolean) — a confirmation channel beyond FP-prone error strings; hpp detects HTTP Parameter Pollution parser behavior (first-wins vs last-wins). mass_assign (WSTG-INPV-20) is body-level (ignores points): it adds curated privileged fields (role/isAdmin/owner/permissions…) to a JSON/form WRITE body and reports which the server accepted + echoed — run it on write endpoints (POST/PUT/PATCH) that bind an object. The tool never exploits — it hands you leads.",
+        "Injection classes to probe — YOU pick the set that fits THIS endpoint (don't run every class everywhere; e.g. no xpath on a plain REST/JSON API). xss/ssti/cmd return execution-facts; sqli/nosql/ldap/xpath return error-signature AND a true/false differential (sqli AND-based boolean, nosql $ne/$eq/$regex operator, ldap/xpath filter boolean) — a confirmation channel beyond FP-prone error strings; hpp detects HTTP Parameter Pollution parser behavior (first-wins vs last-wins). mass_assign (WSTG-INPV-20) is body-level (ignores points): it adds curated privileged fields (role/isAdmin/owner/permissions…) to a JSON/form WRITE body and reports which the server accepted + echoed — run it on write endpoints (POST/PUT/PATCH) that bind an object. file_upload (WSTG-INPV-09) is request-level too: on a captured multipart upload it runs the full matrix (dangerous extensions + blacklist-bypass spellings, content-type spoof, GIF-magic content-sniff bypass, filename path-traversal, SVG/HTML content, .htaccess/web.config) against a known-good image baseline, reports which dangerous files the server ACCEPTED, and — when the response reveals the stored URL — fetches it to classify STORED (served verbatim) vs EXECUTED (RCE). It uploads REAL files. The tool never exploits — it hands you leads.",
       ),
     points: z
       .array(
@@ -227,6 +228,24 @@ export const InjectProbeTool = Tool.define("inject_probe", {
         results.push({ class: cls, observations: classObs })
         testedLabels.push("mass_assign: body privileged-field binding")
         notTested.add(MASS_ASSIGN_NOT_TESTED)
+        continue
+      }
+      // file_upload is REQUEST-level (mutates the multipart file part, ignores injection points): runs the
+      // full extension/content-type/magic-byte/filename-path/content/config matrix against a known-good
+      // image baseline; an accepted dangerous file is the finding, a retrieved canary confirms stored/RCE.
+      if (cls === "file_upload") {
+        if (!ctx.abort.aborted && budget.sent < budget.max) {
+          const o = await probeFileUpload(sender, resolved, ctx.abort, DELAY, budget, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          for (const e of o.executed)
+            leads.push(`file_upload @ ${o.point}: uploaded "${e.filename}" was RETRIEVED AND EXECUTED (RCE) at ${e.stored_url} — ${e.danger}. Confirm and report critical.`)
+          for (const a of o.accepted_dangerous.filter((x) => x.retrieved !== "executed"))
+            leads.push(`file_upload @ ${o.point}: dangerous file "${a.filename}" (${a.category}) was ACCEPTED — ${a.danger}${a.retrieved === "verbatim" ? ` (served VERBATIM at ${a.stored_url} — stored-XSS/served-content risk)` : ""}. Verify retrieval/execution.`)
+          if (!o.baseline_accepted && o.note) blockSignals.add(`file_upload @ ${o.point}: ${o.note}`)
+        }
+        results.push({ class: cls, observations: classObs })
+        testedLabels.push("file_upload: extension/content-type/magic-byte/filename-path/content/config matrix vs baseline")
         continue
       }
       // host_header is also request-level (spoofs forwarding-host headers, ignores points).
