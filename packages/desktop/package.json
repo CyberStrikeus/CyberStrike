@@ -1,0 +1,20 @@
+{
+  "name": "@cyberstrike-io/desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "CyberStrike desktop app (Electron shell). Launches the local CyberStrike server and loads its web UI in a native window. MVP: thin wrapper; packaging/auto-update/native-pty layered later.",
+  "main": "./src/main/index.mjs",
+  "scripts": {
+    "dev": "electron .",
+    "package": "electron-builder --config electron-builder.yml",
+    "package:mac": "electron-builder --mac --config electron-builder.yml",
+    "package:win": "electron-builder --win --config electron-builder.yml",
+    "package:linux": "electron-builder --linux --config electron-builder.yml"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  }
+}
