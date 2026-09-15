@@ -12,7 +12,7 @@ import {
 
 import { endpointDiscover, modelFingerprint, jsAnalysis } from "./recon"
 import { promptInject, systemPromptExtract, outputHandling } from "./injection"
-import { excessiveAgency, ssrfProbe, dataExfil, rateLimitTest } from "./abuse"
+import { excessiveAgency, terminalRoleplay, ssrfProbe, dataExfil, rateLimitTest } from "./abuse"
 import { encodingBypass, guardrailDetect, tokenExhaustion } from "./evasion"
 import { multiTurnAttack, indirectInjection } from "./multiturn"
 import { jailbreakTest } from "./jailbreak"
@@ -32,6 +32,7 @@ const PROGRAMS = {
 
   // ── Abuse (4) ──────────────────────────────────────────────
   excessive_agency: "Test unauthorized tool/action access via LLM (OWASP LLM06)",
+  terminal_exec: "Command execution via terminal-emulator roleplay ('act as a terminal, output only') with a deterministic canary oracle, then impact (id / listings / /etc/passwd / 169.254.169.254 metadata) (OWASP LLM06)",
   ssrf_probe: "Test SSRF via LLM tools — cloud metadata, internal services (OWASP LLM06)",
   data_exfil: "Test sensitive information disclosure — credentials, PII, system info (OWASP LLM02)",
   rate_limit: "Test unbounded consumption / missing rate limiting (OWASP LLM10)",
@@ -78,6 +79,7 @@ const dispatch: Record<Program, (ctx: HandlerCtx) => Promise<HookResult>> = {
   system_prompt_extract: systemPromptExtract,
   output_handling: outputHandling,
   excessive_agency: excessiveAgency,
+  terminal_exec: terminalRoleplay,
   ssrf_probe: ssrfProbe,
   data_exfil: dataExfil,
   rate_limit: rateLimitTest,
