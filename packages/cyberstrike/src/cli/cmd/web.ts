@@ -30,7 +30,12 @@ function getNetworkIPs() {
 
 export const WebCommand = cmd({
   command: "web",
-  builder: (yargs) => withNetworkOptions(yargs),
+  builder: (yargs) =>
+    withNetworkOptions(yargs).option("open", {
+      type: "boolean",
+      default: true,
+      describe: "Open the web interface in the default browser. Use --no-open for embedded/desktop hosts that load the UI themselves.",
+    }),
   describe: "start cyberstrike server and open web interface",
   handler: async (args) => {
     if (!Flag.CYBERSTRIKE_SERVER_PASSWORD) {
@@ -72,12 +77,12 @@ export const WebCommand = cmd({
         )
       }
 
-      // Open localhost in browser
-      open(localhostUrl.toString()).catch(() => {})
+      // Open localhost in browser (unless the host embeds the UI, e.g. the desktop shell)
+      if (args.open !== false) open(localhostUrl.toString()).catch(() => {})
     } else {
       const displayUrl = server.url.toString()
       UI.println(UI.Style.TEXT_INFO_BOLD + "  Web interface:    ", UI.Style.TEXT_NORMAL, displayUrl)
-      open(displayUrl).catch(() => {})
+      if (args.open !== false) open(displayUrl).catch(() => {})
     }
 
     await new Promise(() => {})
