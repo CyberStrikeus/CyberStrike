@@ -320,6 +320,38 @@ export class TechnologyDetector implements Detector {
   }
 }
 
+// A chat/completions-style request path. Strong ones (…/chat/completions, …/messages) are LLM-specific;
+// combined with the response-shape check below the false-positive rate stays low.
+const LLM_PATH = /\/(?:v\d+\/)?(?:chat\/completions|completions|messages|responses|engines\/[\w.-]+\/completions|generate|invoke|predict)(?:\/|$|\?)/i
+// A model-completion RESPONSE shape: OpenAI (object:chat.completion, choices[].message/delta,
+// finish_reason), Anthropic (type:message + role:assistant + content[].text, stop_reason), or an SSE
+// token stream. Distinctive enough to stand alone as a signal.
+const LLM_RESP = /"object"\s*:\s*"(?:chat\.completion|text_completion)"|"choices"\s*:\s*\[\s*\{[\s\S]{0,160}?"(?:message|delta|text)"|"(?:finish_reason|stop_reason)"\s*:\s*"|"type"\s*:\s*"message"[\s\S]{0,200}?"role"\s*:\s*"assistant"/i
+
+function pathOf(url: string): string {
+  try {
+    const u = new URL(url)
+    return u.pathname + u.search
+  } catch {
+    return url
+  }
+}
+
+// LLM/AI endpoint (routes to the `llm` specialist). Fires on a chat/completions-style request path OR a
+// model-completion response shape, so an AI surface is inspected deterministically — not only when the
+// orchestrator happens to recognise one. A LEAD; the llm specialist confirms with llmhook.
+export class LlmEndpointDetector implements Detector {
+  readonly signalType = "llm_endpoint" as const
+  readonly owner = "llm" as const
+  detect(res: ObservedResponse): Signal[] {
+    const path = pathOf(res.url)
+    const pathHit = LLM_PATH.test(path)
+    const respHit = LLM_RESP.test(res.body.slice(0, 4000))
+    if (!pathHit && !respHit) return []
+    return [{ type: this.signalType, owner: this.owner, requestId: res.requestId, evidence: respHit ? "model-completion response shape" : `LLM-style endpoint ${path}` }]
+  }
+}
+
 export const DETECTORS: Detector[] = [
   new FullPathDisclosureDetector(),
   new StackTraceDetector(),
@@ -335,6 +367,7 @@ export const DETECTORS: Detector[] = [
   new OpenRedirectDetector(),
   new ExposedArtifactDetector(),
   new TechnologyDetector(),
+  new LlmEndpointDetector(),
 ]
 
 /** Run a detector battery over one response, flattening all emitted signals. */

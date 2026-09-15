@@ -19,6 +19,7 @@ import {
   OpenRedirectDetector,
   ExposedArtifactDetector,
   TechnologyDetector,
+  LlmEndpointDetector,
   TechPlaybook,
 } from "../../src/session/web/signal"
 import type { Header, ObservedResponse, SignalType } from "../../src/session/web/signal"
@@ -199,6 +200,25 @@ describe("TechPlaybook — a detected stack maps to concrete test cases", () => 
     expect(TechPlaybook.slugForLabel("Apache")).toBeUndefined() // bare web server → no playbook
   })
 })
+
+  test("llm_endpoint — path signature and response-shape signature; silent otherwise", () => {
+    const d = new LlmEndpointDetector()
+    // Strong path
+    expect(d.detect(res({ url: "https://ai.example.com/v1/chat/completions", method: "POST", body: "{}" }))).toHaveLength(1)
+    expect(d.detect(res({ url: "https://ai.example.com/v1/messages", method: "POST" }))).toHaveLength(1)
+    // Response shape (OpenAI + Anthropic), even on a nondescript path
+    expect(d.detect(res({ url: "https://app.example.com/api/x", body: '{"object":"chat.completion","choices":[{"message":{"role":"assistant","content":"hi"}}]}' }))).toHaveLength(1)
+    expect(d.detect(res({ url: "https://app.example.com/api/x", body: '{"type":"message","role":"assistant","content":[{"type":"text","text":"hi"}],"stop_reason":"end_turn"}' }))).toHaveLength(1)
+    // Not an LLM surface
+    expect(d.detect(res({ url: "https://shop.example.com/products?id=1", body: '{"items":[]}' }))).toHaveLength(0)
+    expect(d.detect(res({ url: "https://shop.example.com/checkout", body: "<html>ok</html>" }))).toHaveLength(0)
+  })
+
+  test("llm_endpoint routes to the llm specialist", () => {
+    const sigs = new LlmEndpointDetector().detect(res({ url: "https://ai.example.com/v1/chat/completions", method: "POST", body: "{}" }))
+    expect(sigs[0].owner).toBe("llm")
+    expect(new SignalRouter().ownerOf("llm_endpoint")).toBe("llm")
+  })
 
 // ── runDetectors aggregation ───────────────────────────────────────────────────
 

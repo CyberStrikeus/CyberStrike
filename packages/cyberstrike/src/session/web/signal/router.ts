@@ -30,6 +30,7 @@ const OWNER: Record<SignalType, SpecialistClass> = {
   stored_reflection: "input-validation", //      4.7 — stored reflection → XSS surface
   rate_limit_absent: "business-logic", //        4.10 — WSTG-BUSL: anti-automation
   technology: "information-gathering", //        4.1 — WSTG-INFO-02/08: tech fingerprint
+  llm_endpoint: "llm", //                        LLM/AI surface → the llm specialist (OWASP LLM Top 10)
 } satisfies Record<SignalType, SpecialistClass>
 
 // Retest priority per signal type — how urgently the owning specialist should
@@ -56,6 +57,7 @@ const PRIORITY: Record<SignalType, RetestPriority> = {
   rate_limit_absent: "medium",
   server_banner: "low",
   technology: "medium",
+  llm_endpoint: "high", // an unguarded LLM surface is high-leverage (prompt injection, data exfil, agency)
 } satisfies Record<SignalType, RetestPriority>
 
 export interface RoutedSignal {

@@ -46,6 +46,10 @@ export type SignalType =
   // but a deterministic driver: it queues the stack-specific test-case playbook (TechPlaybook)
   // so a detected stack always becomes concrete tests, not just an agent readout.
   | "technology"
+  // A captured LLM/AI endpoint (chat/completions-style path, or a model-completion response shape).
+  // Routes to the `llm` specialist so LLM endpoints are inspected deterministically instead of only
+  // when the orchestrator happens to notice one.
+  | "llm_endpoint"
 
 // One response header. A DTO decoupled from the DB row shape — the ingest/replay
 // wiring adapts stored responses into this before running detectors.
