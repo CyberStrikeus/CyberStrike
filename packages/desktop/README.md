@@ -6,9 +6,13 @@ UI in a native window.
 ## Status: MVP (dev-mode)
 
 This is a **thin wrapper** (architecture "Model B"): the main process spawns `cyberstrike web --no-open`
-on a free loopback port, waits until it answers, then opens a `BrowserWindow` on that URL. Because the
-window talks to `127.0.0.1`, it skips auth — no password prompt. There is **no bundled renderer**; the UI
-is the server's already-served web app (`packages/app/dist` via the backend).
+on **`127.0.0.1:4096`** (attaching to an already-running server if one is there), waits until it answers,
+then opens a `BrowserWindow` on that URL. Because the window talks to `127.0.0.1`, it skips auth — no
+password prompt. There is **no bundled renderer**; the UI is the server's already-served web app
+(`packages/app/dist` via the backend).
+
+Port 4096 is required, not arbitrary: the HackBrowser capture extension ingests captured traffic to
+`http://127.0.0.1:4096/session/ingest`, so the desktop's server must own that port for ingest to land.
 
 ## Run (dev)
 

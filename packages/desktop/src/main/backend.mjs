@@ -2,7 +2,6 @@
 // --no-open`) and resolves once it answers, so the window can load its URL. Dev only for now: it runs the
 // CLI from source via bun; a packaged build will spawn a bundled server binary instead (TODO).
 import { spawn } from "node:child_process"
-import { createServer } from "node:net"
 import { randomBytes } from "node:crypto"
 import { fileURLToPath } from "node:url"
 import { dirname, join } from "node:path"
@@ -12,16 +11,9 @@ const here = dirname(fileURLToPath(import.meta.url))
 // packages/desktop/src/main → packages/cyberstrike/src/index.ts
 const CYBERSTRIKE_ENTRY = join(here, "..", "..", "..", "cyberstrike", "src", "index.ts")
 
-function freePort() {
-  return new Promise((resolve, reject) => {
-    const srv = createServer()
-    srv.on("error", reject)
-    srv.listen(0, "127.0.0.1", () => {
-      const port = srv.address().port
-      srv.close(() => resolve(port))
-    })
-  })
-}
+// MUST be 4096: the HackBrowser capture extension ingests to http://127.0.0.1:4096/session/ingest by
+// default, so the desktop's server has to own that port or captured traffic never reaches it.
+const PORT = 4096
 
 // GET the URL; resolve true on ANY HTTP response (even 401 — the server is up), false on connection error.
 function ping(url) {
@@ -48,18 +40,26 @@ async function waitReady(url, child, timeoutMs = 30000) {
   throw new Error(`server did not become ready at ${url} within ${timeoutMs}ms`)
 }
 
-/** Start the CyberStrike server and wait until it answers. Returns { url, child }. */
+/** Start (or attach to) the CyberStrike server on :4096 and wait until it answers. Returns { url, child }
+ *  (child null when attaching to an already-running server). */
 export async function startBackend(logger = console) {
-  const port = await freePort()
-  const url = `http://127.0.0.1:${port}/`
+  const url = `http://127.0.0.1:${PORT}/`
+
+  // Attach-or-spawn: if something already serves :4096 (a CLI `cyberstrike web` the user started, or the
+  // extension's expected server), reuse it instead of double-spawning. The extension targets this port
+  // either way, so ingest lands on whichever instance owns 4096.
+  if (await ping(url)) {
+    logger.info?.(`[cyberstrike-desktop] attaching to existing server at ${url}`)
+    return { url, child: null }
+  }
+
   // Loopback requests skip auth, so the window needs no password — but `web` refuses to start without one,
   // so hand it a random ephemeral secret the user never sees.
   const password = randomBytes(24).toString("base64url")
-
   logger.info?.(`[cyberstrike-desktop] starting server on ${url}`)
   const child = spawn(
     "bun",
-    ["run", "--conditions=browser", CYBERSTRIKE_ENTRY, "web", "--no-open", "--hostname", "127.0.0.1", "--port", String(port)],
+    ["run", "--conditions=browser", CYBERSTRIKE_ENTRY, "web", "--no-open", "--hostname", "127.0.0.1", "--port", String(PORT)],
     {
       env: { ...process.env, CYBERSTRIKE_SERVER_PASSWORD: password },
       stdio: ["ignore", "pipe", "pipe"],
