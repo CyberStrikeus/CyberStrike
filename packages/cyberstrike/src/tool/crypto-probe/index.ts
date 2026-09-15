@@ -7,7 +7,10 @@ import { Tool } from "../tool"
 import { Session } from "../../session"
 import { Request } from "../../session/request"
 import { HttpMessage } from "../../replay/message"
+import { inScope } from "../http-replay"
 import { findSensitive, classifyHsts, findMixedContent, type Sensitive } from "./signatures"
+import { classifyCipher, classifyProtocol, classifyCert } from "./tls"
+import { probeTls } from "./handshake"
 
 function headerValue(msg: HttpMessage.Request, name: string): string | undefined {
   return msg.headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value
@@ -15,9 +18,14 @@ function headerValue(msg: HttpMessage.Request, name: string): string | undefined
 
 export const CryptoProbeTool = Tool.define("crypto_probe", {
   description:
-    "Deterministic cryptography probe (WSTG-CRYP) — fully READ-ONLY over the captured request+response (sends nothing, zero risk). Detects: sensitive data (credentials/token/PII/Luhn-valid card) sent over an UNENCRYPTED channel (CRYP-03); missing or weak HSTS on HTTPS responses (CRYP-01 downgrade protection); credentials/PII carried in the URL query (logged/cached/Referer); and mixed content (an HTTPS response loading http:// subresources). Complements Vortex TLS rules; it does not do the live TLS-handshake cipher/protocol check.",
+    "Deterministic cryptography probe (WSTG-CRYP) — fully READ-ONLY over the captured request+response (sends nothing, zero risk). Detects: sensitive data (credentials/token/PII/Luhn-valid card) sent over an UNENCRYPTED channel (CRYP-03); missing or weak HSTS on HTTPS responses (CRYP-01 downgrade protection); credentials/PII carried in the URL query (logged/cached/Referer); and mixed content (an HTTPS response loading http:// subresources). With tls_handshake=true it also does a live, scope-gated TLS handshake (the only part that opens a connection — read-only, no HTTP request) to check the negotiated protocol/cipher, accepted legacy protocols (TLSv1/1.1), and the certificate (expiry/self-signed/hostname mismatch).",
   parameters: z.object({
     request_id: z.string().describe("A captured request to analyze for transport-encryption weaknesses."),
+    tls_handshake: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe("Also perform a live TLS handshake to the host (the ONE part that opens a connection — a read-only handshake, no HTTP request) to deterministically check the negotiated protocol/cipher, accepted legacy protocols (TLSv1/1.1), and the certificate (expiry/self-signed/hostname). Scope-gated. Default false keeps crypto_probe fully send-free."),
   }),
   async execute(params, ctx) {
     const sessionID = Session.root(ctx.sessionID)
@@ -67,12 +75,46 @@ export const CryptoProbeTool = Tool.define("crypto_probe", {
       }
     }
 
+    // Live TLS handshake (WSTG-CRYP-01) — the one part that opens a connection; opt-in + scope-gated.
+    let tls: unknown = "tls_handshake not requested (read-only capture analysis only)"
+    if (params.tls_handshake) {
+      if (scheme !== "https") tls = `scheme is ${scheme ?? "unknown"} — no TLS handshake to test`
+      else {
+        const host = request.host ?? (() => { try { return new URL(request.origin ?? "").hostname } catch { return "" } })()
+        const port = request.port ?? 443
+        if (!host) tls = "could not resolve host for the TLS handshake"
+        else if (!inScope(sessionID, host)) return out(`Refusing TLS handshake to "${host}": not among this session's captured in-scope hosts.`)
+        else {
+          const r = await probeTls(host, port)
+          if (!r.negotiated.ok) tls = { host, port, error: r.negotiated.error ?? "handshake failed" }
+          else {
+            const tlsFindings = [
+              ...classifyProtocol(r.negotiated.protocol, r.legacyAccepted),
+              ...(classifyCipher(r.negotiated.cipher) ? [classifyCipher(r.negotiated.cipher)!] : []),
+              ...(r.negotiated.cert ? classifyCert(r.negotiated.cert, host, Date.now()) : []),
+            ]
+            for (const f of tlsFindings) findings.push({ ...f })
+            tls = {
+              host,
+              port,
+              negotiated_protocol: r.negotiated.protocol,
+              negotiated_cipher: r.negotiated.cipher,
+              legacy_accepted: r.legacyAccepted,
+              legacy_untestable: r.legacyUntestable.length ? `${r.legacyUntestable.join(", ")} (local TLS lib can't offer these — test with openssl)` : [],
+              findings: tlsFindings.length ? tlsFindings : ["negotiated protocol/cipher/cert look sound"],
+            }
+          }
+        }
+      }
+    }
+
     const high = findings.filter((f) => f.severity === "high")
     const evidence = {
       note: "OBSERVATIONS ONLY (read-only, nothing sent) — confirm and report with the captured request/response as evidence. Channel-encryption lens; the live TLS cipher/protocol handshake is not covered here (see Vortex TLS rules / an external TLS scan).",
       request_id: params.request_id,
       scheme: scheme ?? "(unknown — no scheme/origin on this row)",
       findings: findings.length ? findings : ["no transport-encryption weakness detected on this request"],
+      tls_handshake: tls,
     }
     const title = high.length
       ? `crypto_probe: ${high.length} HIGH transport finding(s) (cleartext sensitive data) — verify`
