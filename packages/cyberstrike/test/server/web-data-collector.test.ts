@@ -40,7 +40,7 @@ const ingest = (app: Hono, sid: string, host: string, target: string, response?:
 describe("ingest → DataCollector (real route wiring)", () => {
   test("captured traffic populates the per-session collected view", async () => {
     await withSession(async (app, sid) => {
-      const host = "demo.testfire.net"
+      const host = "demo.example.com"
       const html = { status: 200, headers: { "content-type": "text/html", "x-powered-by": "PHP/8.2.0", "set-cookie": "PHPSESSID=abc; Path=/" }, body: "" }
       const js = { status: 200, headers: { "content-type": "application/javascript" }, body: "" }
       const api = { status: 200, headers: { "content-type": "application/json" }, body: "{}" }

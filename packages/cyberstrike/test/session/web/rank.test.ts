@@ -51,12 +51,12 @@ describe("Rank.candidates", () => {
   })
 
   test("drops out-of-scope links (external hosts) but keeps in-scope ones", () => {
-    const st = state("s", "https://demo.testfire.net/", [
+    const st = state("s", "https://demo.example.com/", [
       { id: "in", tag: "a", role: "link", label: "Account", href: "/account" },
-      { id: "sub", tag: "a", role: "link", label: "App", href: "https://app.testfire.net/x" },
+      { id: "sub", tag: "a", role: "link", label: "App", href: "https://app.example.com/x" },
       { id: "ext", tag: "a", role: "link", label: "Source on GitHub", href: "https://github.com/HCL/AltoroJ" },
     ])
-    WebScope.ensure("s", "https://demo.testfire.net/")
+    WebScope.ensure("s", "https://demo.example.com/")
     const ids = Rank.candidates("s", st).map((c) => c.id).sort()
     expect(ids).toEqual(["in", "sub"]) // github excluded
   })

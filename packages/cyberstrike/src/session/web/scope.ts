@@ -8,7 +8,7 @@
 // small multi-part-TLD table (good enough to keep the crawl home; not a security boundary).
 export namespace WebScope {
   interface S {
-    domain: string // auto registrable domain of the origin (e.g. testfire.net)
+    domain: string // auto registrable domain of the origin (e.g. example.com)
     patterns: string[] // explicit scope patterns (exact host or *.example.com)
   }
   const bySession = new Map<string, S>()
@@ -58,7 +58,7 @@ export namespace WebScope {
   export function get(sessionID: string): S | undefined {
     return bySession.get(sessionID)
   }
-  // Human-readable scope, e.g. "*.testfire.net" (+ any explicit patterns) — the domain match
+  // Human-readable scope, e.g. "*.example.com" (+ any explicit patterns) — the domain match
   // is registrable-domain equality, which is exactly "the domain and all its subdomains".
   export function label(sessionID: string): string {
     const s = bySession.get(sessionID)

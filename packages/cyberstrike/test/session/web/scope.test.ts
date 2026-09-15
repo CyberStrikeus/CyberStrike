@@ -5,7 +5,7 @@ beforeEach(() => WebScope._reset())
 
 describe("WebScope.registrable", () => {
   test("derives the registrable domain (incl. two-part TLDs)", () => {
-    expect(WebScope.registrable("demo.testfire.net")).toBe("testfire.net")
+    expect(WebScope.registrable("demo.example.com")).toBe("example.com")
     expect(WebScope.registrable("github.com")).toBe("github.com")
     expect(WebScope.registrable("x.com")).toBe("x.com")
     expect(WebScope.registrable("shop.example.co.uk")).toBe("example.co.uk")
@@ -14,9 +14,9 @@ describe("WebScope.registrable", () => {
 
 describe("WebScope.allowed", () => {
   test("same domain + subdomains in scope; external + non-http out", () => {
-    WebScope.ensure("s", "http://demo.testfire.net/login.jsp")
-    expect(WebScope.allowed("s", "http://demo.testfire.net/account")).toBe(true)
-    expect(WebScope.allowed("s", "https://app.testfire.net/x")).toBe(true) // subdomain, same registrable
+    WebScope.ensure("s", "http://demo.example.com/login.jsp")
+    expect(WebScope.allowed("s", "http://demo.example.com/account")).toBe(true)
+    expect(WebScope.allowed("s", "https://app.example.com/x")).toBe(true) // subdomain, same registrable
     expect(WebScope.allowed("s", "https://github.com/HCL/AltoroJ")).toBe(false) // the real bug
     expect(WebScope.allowed("s", "mailto:a@b.com")).toBe(false)
     expect(WebScope.allowed("s", "javascript:void(0)")).toBe(false)
@@ -35,8 +35,8 @@ describe("WebScope.allowed", () => {
   })
 
   test("label renders the scope as *.domain (+ patterns)", () => {
-    WebScope.ensure("s", "http://demo.testfire.net/")
-    expect(WebScope.label("s")).toBe("*.testfire.net")
+    WebScope.ensure("s", "http://demo.example.com/")
+    expect(WebScope.label("s")).toBe("*.example.com")
     WebScope.ensure("s2", "http://a.example.com/", ["*.partner.org"])
     expect(WebScope.label("s2")).toBe("*.example.com, *.partner.org")
   })

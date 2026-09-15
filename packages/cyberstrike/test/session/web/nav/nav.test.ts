@@ -278,15 +278,15 @@ describe("CoDriveSession.run — end-to-end (behavior parity)", () => {
     const sid = "s"
     const visited: string[] = []
     browser(sid, {
-      "https://demo.testfire.net/": [
+      "https://demo.example.com/": [
         { id: "E0", tag: "a", role: "link", label: "Account", href: "/account" },
         { id: "E1", tag: "a", role: "link", label: "GitHub", href: "https://github.com/x/y" },
       ],
-      "https://demo.testfire.net/account": [],
-    }, "https://demo.testfire.net/", visited)
+      "https://demo.example.com/account": [],
+    }, "https://demo.example.com/", visited)
     const reason = await CoDriveSession.withDefaults(fast).run(sid)
     expect(reason).toBe("coverage-complete")
-    expect(Crawl.isPageVisited(sid, "https://demo.testfire.net/account")).toBe(true)
+    expect(Crawl.isPageVisited(sid, "https://demo.example.com/account")).toBe(true)
     expect(visited.some((u) => u.includes("github.com"))).toBe(false)
   })
 

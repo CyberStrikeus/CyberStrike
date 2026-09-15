@@ -179,21 +179,21 @@ describe("mapActions — validate raw model output against the live snapshot", (
 
   test("navigate is accepted only for an in-scope url present on the page", () => {
     const sid = "s"
-    WebScope.ensure(sid, "https://demo.testfire.net/")
-    const links = ["https://demo.testfire.net/app", "https://github.com/x/y"]
-    const snap = page(sid, "https://demo.testfire.net/", [], [], links)
+    WebScope.ensure(sid, "https://demo.example.com/")
+    const links = ["https://demo.example.com/app", "https://github.com/x/y"]
+    const snap = page(sid, "https://demo.example.com/", [], [], links)
     const actions = mapActions(
       sid,
       snap,
       [
         { kind: "navigate", url: "/app" }, // in scope + known → kept (resolved)
         { kind: "navigate", url: "https://github.com/x/y" }, // known but out of scope → dropped
-        { kind: "navigate", url: "https://demo.testfire.net/unknown" }, // in scope but not on page → dropped
+        { kind: "navigate", url: "https://demo.example.com/unknown" }, // in scope but not on page → dropped
       ],
       [],
       [],
     )
-    expect(actions).toEqual([{ kind: "navigate", url: "https://demo.testfire.net/app" }])
+    expect(actions).toEqual([{ kind: "navigate", url: "https://demo.example.com/app" }])
   })
 
   test("form is accepted by in-range index; out-of-range dropped", () => {
