@@ -47,6 +47,7 @@ import { AccessProbeTool } from "./access-probe"
 import { SessionProbeTool } from "./session-probe"
 import { ErrorProbeTool } from "./error-probe"
 import { CryptoProbeTool } from "./crypto-probe"
+import { IdentityProbeTool } from "./identity-probe"
 import { VortexTools } from "./vortex"
 import { WebGetVulnerabilitiesTool } from "./web-get-vulnerabilities"
 import { WebGetVulnDetailTool } from "./web-get-vuln-detail"
@@ -204,6 +205,7 @@ export namespace ToolRegistry {
       SessionProbeTool,
       ErrorProbeTool,
       CryptoProbeTool,
+      IdentityProbeTool,
       HttpReplayTool,
       HttpReplayRawTool,
       ...VortexTools,

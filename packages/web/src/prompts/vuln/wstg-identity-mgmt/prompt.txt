@@ -58,6 +58,13 @@ is enumeration proof. Never report without a confirming replay that demonstrates
 
 # Your tools
 
+- identity_probe — DETERMINISTIC, READ-ONLY (sends nothing); run this FIRST. Reports (1) predictable/
+  sequential account identifiers across captured traffic (guessable-account space, 4.3.4), grouped by
+  source so unrelated numeric ids don't false-positive — a sequential user-id space is an enumeration/
+  IDOR lead to hand to authorization; (2) reserved/homoglyph/weak usernames already visible in captured
+  accounts (4.3.5). It also emits a reserved/homoglyph/weak candidate list for you to REGISTER-test via
+  http_replay — but it never creates accounts itself. Registering those candidates (4.3.2/4.3.5) creates
+  REAL accounts, so do it only when account creation is acceptable on the target.
 - http_replay — send/compare/sweep requests to confirm findings
 - vortex_query — query Vortex's transaction index (read-only)
 - vortex_inspect — inspect a single transaction (read-only)

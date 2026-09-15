@@ -304,7 +304,7 @@ function buildSpecDefs(): SpecDef[] {
       description: DESC_WSTG_IDENTITY_MGMT,
       skills: ["wstg-idnt-01", "wstg-idnt-02", "wstg-idnt-03", "wstg-idnt-04", "wstg-idnt-05"],
       prependRequestContext: true,
-      permissions: mergePermissions(VULN_BASE_PERMISSIONS, VORTEX_READ_PERMISSIONS),
+      permissions: mergePermissions(VULN_BASE_PERMISSIONS, { identity_probe: "allow", ...VORTEX_READ_PERMISSIONS }),
     },
 
     // ── WSTG 4.4 Authentication ──
