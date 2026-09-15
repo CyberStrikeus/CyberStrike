@@ -39,10 +39,11 @@ export namespace Plugin {
   // Loaded by dynamic import of a VARIABLE name so tsc doesn't pull each domain's
   // source into core's typecheck (a domain ships raw TS; it typechecks in its own
   // package). Same reason user plugins load by dynamic import.
-  // Web loads first: it is the primary free-tier domain (hackbrowser's web pipeline),
-  // and was previously hardcoded at module-load in provider-registry.ts. It now loads
-  // through the same plugin path as every other domain package.
-  const DEFAULT_DOMAINS: string[] = ["@cyberstrike-io/web", "@cyberstrike-io/azure"]
+  // Web is the only DEFAULT (free-tier, AGPL open core) domain hardcoded here. Paid domains — the cloud
+  // providers (azure/aws/gcp/oracle) and any other commercial package — are NOT named by the open core;
+  // they load via auto-discovery when their package is present (Enterprise repo/build) and are simply
+  // absent from the public mirror where those dirs are excluded. Same split as the jsmine Vortex plugin.
+  const DEFAULT_DOMAINS: string[] = ["@cyberstrike-io/web"]
 
   // Package name of a config.plugin spec (strip a trailing @version, keep the
   // scope's leading @, leave file:// specs untouched) — used to dedupe against
