@@ -2,7 +2,8 @@
   "name": "@cyberstrike-io/gcp",
   "version": "0.1.0",
   "type": "module",
-  "license": "AGPL-3.0-only",
+  "private": true,
+  "license": "UNLICENSED",
   "description": "CyberStrike Google Cloud (GCP) assessment domain (template stub). Installs as a plugin; reaches core runtime via the host-injected input.core (works in the compiled binary).",
   "exports": {
     ".": "./src/index.ts"
@@ -12,7 +13,7 @@
     "category": "cloud",
     "domains": ["gcp"],
     "tools": [],
-    "tier": "free"
+    "tier": "pro"
   },
   "files": ["src"],
   "publishConfig": {

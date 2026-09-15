@@ -2,8 +2,9 @@
   "name": "@cyberstrike-io/azure",
   "version": "0.1.0",
   "type": "module",
-  "license": "AGPL-3.0-only",
-  "description": "CyberStrike Azure cloud assessment domain. Installs as a plugin: npm install @cyberstrike-io/azure. Reaches core runtime via the host-injected input.core (works in the compiled binary).",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "CyberStrike Azure cloud assessment domain. Commercial/Enterprise feature — NOT part of the AGPL open core; ships only in the Enterprise repo. Installs as a plugin and reaches core runtime via the host-injected input.core.",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -11,7 +12,7 @@
     "coreApi": "1.1.0",
     "domains": ["azure"],
     "tools": ["azurehook", "get_cloud_intel", "get_cloud_groups", "get_assess_findings"],
-    "tier": "free"
+    "tier": "pro"
   },
   "files": [
     "src"
