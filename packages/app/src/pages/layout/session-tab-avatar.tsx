@@ -27,3 +27,25 @@ export function SessionTabAvatar(props: {
     />
   )
 }
+
+// Presentational avatar used by the v2 home session rows. Same single-server
+// deviation as SessionTabAvatar above: renders the project avatar only. Upstream
+// overlays live per-session progress/unread state that this fork does not adopt,
+// so `unread`/`loading` here are honored only insofar as the project avatar can
+// show an unread dot; the busy spinner overlay is not shown.
+export function SessionTabAvatarView(props: {
+  project?: LocalProject
+  directory: string
+  revealProjectOnHover?: boolean
+  unread?: boolean
+  loading?: boolean
+}) {
+  return (
+    <ProjectAvatar
+      fallback={displayName(props.project ?? { worktree: props.directory })}
+      src={getProjectAvatarSource(props.project?.id, props.project?.icon)}
+      variant={getProjectAvatarVariant(props.project?.icon?.color)}
+      unread={!!props.unread}
+    />
+  )
+}

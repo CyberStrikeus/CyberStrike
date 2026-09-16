@@ -1,6 +1,8 @@
 import { getFilename } from "@cyberstrike-io/util/path"
 import { type Session } from "@cyberstrike-io/sdk/v2/client"
 import { pathKey } from "@/utils/path-key"
+import type { ServerConnection } from "@/context/server"
+import type { HomeProjectSelection } from "@/context/layout"
 
 export const workspaceKey = (directory: string) => {
   const drive = directory.match(/^([A-Za-z]:)[\\/]+$/)
@@ -73,6 +75,37 @@ export function projectForSession<T extends { id?: string; worktree: string; san
     (project) =>
       pathKey(project.worktree) === directory || project.sandboxes?.some((sandbox) => pathKey(sandbox) === directory),
   )
+}
+
+export function compareSessionTime(a: Session, b: Session) {
+  const updated = (b.time.updated ?? b.time.created) - (a.time.updated ?? a.time.created)
+  if (updated !== 0) return updated
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+}
+
+export function toggleHomeProjectSelection(
+  current: HomeProjectSelection | undefined,
+  server: ServerConnection.Key,
+  directory: string,
+): HomeProjectSelection {
+  if (current?.server === server && current.directory === directory) return { server }
+  return { server, directory }
+}
+
+export function closeHomeProject(
+  selected: HomeProjectSelection | undefined,
+  server: ServerConnection.Key,
+  projects: { close: (directory: string) => void },
+  directory: string,
+) {
+  projects.close(directory)
+  if (selected?.server === server && selected.directory === directory) return { server }
+  return selected
+}
+
+export function homeProjectDirectories(result: string | string[] | null) {
+  if (!result) return []
+  return Array.isArray(result) ? result : [result]
 }
 
 export const errorMessage = (err: unknown, fallback: string) => {
