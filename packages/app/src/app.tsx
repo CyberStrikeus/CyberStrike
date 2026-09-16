@@ -35,14 +35,23 @@ import NewLayout from "@/pages/layout-new"
 import DirectoryLayout from "@/pages/directory-layout"
 import { ErrorPage } from "./pages/error"
 const Home = lazy(() => import("@/pages/home"))
+const HomeV2 = lazy(() => import("@/pages/home-v2"))
 const Session = lazy(() => import("@/pages/session"))
 const Loading = () => <div class="size-full" />
 
-const HomeRoute = () => (
-  <Suspense fallback={<Loading />}>
-    <Home />
-  </Suspense>
-)
+// Flag OFF renders the legacy home unchanged. Flag ON renders the ported v2 home,
+// which reads useGlobal()/useTabs() — both provided only by the flag-on ShellLayout
+// branch that mounts GlobalProvider/TabsProvider around this route.
+const HomeRoute = () => {
+  const settings = useSettings()
+  return (
+    <Suspense fallback={<Loading />}>
+      <Show when={settings.general.newLayoutDesigns()} fallback={<Home />}>
+        <HomeV2 />
+      </Show>
+    </Suspense>
+  )
+}
 
 const SessionRoute = () => (
   <SessionProviders>
