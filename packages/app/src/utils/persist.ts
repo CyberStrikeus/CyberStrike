@@ -3,12 +3,21 @@ import { makePersisted, type AsyncStorage, type SyncStorage } from "@solid-primi
 import { checksum } from "@cyberstrike-io/util/encode"
 import { createResource, type Accessor } from "solid-js"
 import type { SetStoreFunction, Store } from "solid-js/store"
+import { ScopedKey, ServerScope, type ServerScope as ServerScopeValue } from "@/utils/server-scope"
 
 type InitType = Promise<string> | string | null
-type PersistedWithReady<T> = [Store<T>, SetStoreFunction<T>, InitType, Accessor<boolean>]
+type PersistedWithReady<T> = [
+  Store<T>,
+  SetStoreFunction<T>,
+  InitType,
+  Accessor<boolean> & { promise: undefined | Promise<any> },
+]
 
 type PersistTarget = {
+  draft?: boolean
   storage?: string
+  scope?: "window"
+  legacyStorageNames?: string[]
   key: string
   legacy?: string[]
   migrate?: (value: unknown) => unknown
@@ -16,6 +25,7 @@ type PersistTarget = {
 
 const LEGACY_STORAGE = "default.dat"
 const GLOBAL_STORAGE = "cyberstrike.global.dat"
+const WINDOW_STORAGE = "cyberstrike.window"
 const LOCAL_PREFIX = "cyberstrike."
 const fallback = new Map<string, boolean>()
 
@@ -209,6 +219,25 @@ function workspaceStorage(dir: string) {
   return `cyberstrike.workspace.${head}.${sum}.dat`
 }
 
+function draftStorage(draftID: string) {
+  const head = (draftID.slice(0, 12) || "draft").replace(/[^a-zA-Z0-9._-]/g, "-")
+  const sum = checksum(draftID) ?? "0"
+  return `cyberstrike.draft.${head}.${sum}.dat`
+}
+
+function windowStorage(windowID: string) {
+  const safe = (windowID || "browser").replace(/[^a-zA-Z0-9._-]/g, "-")
+  return `${WINDOW_STORAGE}.${safe}.dat`
+}
+
+// Server-scoped workspace target. For the single local server (ServerScope.local)
+// this keeps the existing storage-key algorithm so previously-persisted data is
+// preserved; a non-local scope namespaces the workspace under its scoped key.
+function serverWorkspaceTarget(scope: ServerScopeValue, dir: string, key: string, legacy?: string[]): PersistTarget {
+  if (scope !== ServerScope.local) return { storage: workspaceStorage(ScopedKey.from(scope, dir)), key }
+  return { storage: workspaceStorage(dir), key, legacy }
+}
+
 function localStorageWithPrefix(prefix: string): SyncStorage {
   const base = `${prefix}:`
   const scope = `prefix:${prefix}`
@@ -296,33 +325,85 @@ function localStorageDirect(): SyncStorage {
   }
 }
 
+const DRAFT_PERSISTED_KEYS = ["prompt", "comments", "file-view", "layout"]
+
+export function draftPersistedKeys() {
+  return DRAFT_PERSISTED_KEYS
+}
+
 export const PersistTesting = {
   localStorageDirect,
   localStorageWithPrefix,
   normalize,
+  resolveTarget,
+  windowStorage,
+  workspaceStorage,
 }
 
 export const Persist = {
   global(key: string, legacy?: string[]): PersistTarget {
     return { storage: GLOBAL_STORAGE, key, legacy }
   },
+  window(key: string, legacy?: string[]): PersistTarget {
+    return { scope: "window", key, legacy }
+  },
+  draft(draftID: string, key: string, legacy?: string[]): PersistTarget {
+    return { storage: draftStorage(draftID), key: `draft:${key}`, legacy }
+  },
+  serverGlobal(scope: ServerScopeValue, key: string, legacy?: string[]): PersistTarget {
+    if (scope === ServerScope.local) return Persist.global(key, legacy)
+    return { storage: GLOBAL_STORAGE, key: ScopedKey.from(scope, key) }
+  },
   workspace(dir: string, key: string, legacy?: string[]): PersistTarget {
-    return { storage: workspaceStorage(dir), key: `workspace:${key}`, legacy }
+    return serverWorkspaceTarget(ServerScope.local, dir, `workspace:${key}`, legacy)
+  },
+  serverWorkspace(scope: ServerScopeValue, dir: string, key: string, legacy?: string[]): PersistTarget {
+    return serverWorkspaceTarget(scope, dir, `workspace:${key}`, legacy)
   },
   session(dir: string, session: string, key: string, legacy?: string[]): PersistTarget {
-    return { storage: workspaceStorage(dir), key: `session:${session}:${key}`, legacy }
+    return serverWorkspaceTarget(ServerScope.local, dir, `session:${session}:${key}`, legacy)
+  },
+  serverSession(scope: ServerScopeValue, dir: string, session: string, key: string, legacy?: string[]): PersistTarget {
+    return serverWorkspaceTarget(scope, dir, `session:${session}:${key}`, legacy)
   },
   scoped(dir: string, session: string | undefined, key: string, legacy?: string[]): PersistTarget {
     if (session) return Persist.session(dir, session, key, legacy)
     return Persist.workspace(dir, key, legacy)
   },
+  serverScoped(scope: ServerScopeValue, dir: string, session: string | undefined, key: string, legacy?: string[]) {
+    if (session) return Persist.serverSession(scope, dir, session, key, legacy)
+    return Persist.serverWorkspace(scope, dir, key, legacy)
+  },
+  prompt(target: PersistTarget): PersistTarget {
+    return { ...target, draft: true }
+  },
 }
 
-export function removePersisted(target: { storage?: string; key: string }, platform?: Platform) {
+function resolveTarget(target: PersistTarget, platform: Platform): PersistTarget {
+  if (target.scope !== "window") return target
+  if (platform.platform === "desktop" && !platform.windowID) return { ...target, storage: GLOBAL_STORAGE }
+  const windowID = platform.platform === "desktop" ? (platform.windowID ?? "browser") : "browser"
+  return {
+    ...target,
+    storage: windowStorage(windowID),
+  }
+}
+
+export function removePersisted(
+  target: { draft?: boolean; storage?: string; legacyStorageNames?: string[]; key: string },
+  platform?: Platform,
+) {
+  if (target.draft && platform?.draftStore) {
+    void platform.draftStore.removeItem(`${target.storage ?? "default"}:${target.key}`)
+  }
   const isDesktop = platform?.platform === "desktop" && !!platform.storage
 
   if (isDesktop) {
-    return platform.storage?.(target.storage)?.removeItem(target.key)
+    void platform.storage?.(target.storage)?.removeItem(target.key)
+    for (const storage of target.legacyStorageNames ?? []) {
+      void platform.storage?.(storage)?.removeItem(target.key)
+    }
+    return
   }
 
   if (!target.storage) {
@@ -331,21 +412,34 @@ export function removePersisted(target: { storage?: string; key: string }, platf
   }
 
   localStorageWithPrefix(target.storage).removeItem(target.key)
+  for (const storage of target.legacyStorageNames ?? []) {
+    localStorageWithPrefix(storage).removeItem(target.key)
+  }
 }
 
 export function persisted<T>(
   target: string | PersistTarget,
   store: [Store<T>, SetStoreFunction<T>],
+  platformOverride?: Platform,
 ): PersistedWithReady<T> {
-  const platform = usePlatform()
-  const config: PersistTarget = typeof target === "string" ? { key: target } : target
+  const platform = platformOverride ?? usePlatform()
+  const config = resolveTarget(typeof target === "string" ? { key: target } : target, platform)
 
   const defaults = snapshot(store[0])
   const legacy = config.legacy ?? []
 
   const isDesktop = platform.platform === "desktop" && !!platform.storage
+  const draft = config.draft ? platform.draftStore : undefined
 
   const currentStorage = (() => {
+    if (draft) {
+      const prefix = `${config.storage ?? "default"}:`
+      return {
+        getItem: (key: string) => draft.getItem(prefix + key),
+        setItem: (key: string, value: string) => draft.setItem(prefix + key, value),
+        removeItem: (key: string) => draft.removeItem(prefix + key),
+      } satisfies AsyncStorage
+    }
     if (isDesktop) return platform.storage?.(config.storage)
     if (!config.storage) return localStorageDirect()
     return localStorageWithPrefix(config.storage)
@@ -358,7 +452,7 @@ export function persisted<T>(
   })()
 
   const storage = (() => {
-    if (!isDesktop) {
+    if (!isDesktop && !draft) {
       const current = currentStorage as SyncStorage
       const legacyStore = legacyStorage as SyncStorage
 
@@ -459,5 +553,12 @@ export function persisted<T>(
     { initialValue: !isAsync },
   )
 
-  return [state, setState, init, () => ready() === true]
+  return [
+    state,
+    setState,
+    init,
+    Object.assign(() => ready() === true, {
+      promise: init instanceof Promise ? init : undefined,
+    }),
+  ]
 }

@@ -1,6 +1,9 @@
 import { createSimpleContext } from "@cyberstrike-io/ui/context"
 import { AsyncStorage, SyncStorage } from "@solid-primitives/storage"
 import type { Accessor } from "solid-js"
+import type { DraftStore } from "@/utils/draft-store"
+
+type UpdaterState = { status: "idle" | "checking" | "installing" | "ready" | "error"; version?: string }
 
 type PickerPaths = string | string[] | null
 type OpenDirectoryPickerOptions = { title?: string; multiple?: boolean }
@@ -86,6 +89,27 @@ export type Platform = {
 
   /** Read image from clipboard (desktop only) */
   readClipboardImage?(): Promise<File | null>
+
+  /** Fullscreen state of the desktop window (desktop only) */
+  windowFullscreen?: Accessor<boolean>
+
+  /** Stable window identifier for per-window persistence (desktop only) */
+  windowID?: string
+
+  /** Async blob-aware draft store used to persist prompt drafts (optional) */
+  draftStore?: DraftStore
+
+  /** Auto-updater surface (desktop only) */
+  updater?: {
+    state(): UpdaterState
+    install(): Promise<void> | void
+  }
+
+  /** Open an external URL (desktop native menu action) */
+  openExternal?(url: string): void
+
+  /** Run a native desktop menu action by id (desktop only) */
+  runDesktopMenuAction?(action: string): Promise<void> | void
 }
 
 export type DisplayBackend = "auto" | "wayland"
