@@ -657,6 +657,21 @@ export const dict = {
   "common.archive": "Archive",
   "common.delete": "Delete",
   "common.close": "Close",
+  "help.tabs.toast.ariaLabel": "Introducing Tabs. Organize your work and active sessions with tabs",
+  "help.tabs.toast.dismiss": "Dismiss Tabs information",
+  "help.tabs.title": "Introducing Tabs",
+  "help.tabs.description": "Organize your work and active sessions with tabs",
+  "help.tabs.date": "July 14",
+  "help.tabs.introduction": "CyberStrike is now built around tabs.",
+  "help.tabs.sessions":
+    "Start a new session in a tab, or open an existing session from any of your projects. Open a new tab when you're starting something new, and close it when you're done.",
+  "help.tabs.organize":
+    "Keeping a few tabs open makes it easier to organize your active sessions. Rename tabs to something memorable if you plan to keep them around.",
+  "help.tabs.home":
+    "You'll find all your sessions and projects on the new Home screen. Selecting a session opens it in a tab.",
+  "help.tabs.persistence": "When you reopen the app, your tabs are still open.",
+  "help.tabs.worktrees":
+    "The new design does not support Git Worktrees yet, it's coming soon. So if you'd prefer to continue using the previous layout, you can switch between layouts in Settings. Just keep in mind that the new layout will become permanent in a few weeks.",
   "common.edit": "Edit",
   "common.loadMore": "Load more",
   "common.key.esc": "ESC",
