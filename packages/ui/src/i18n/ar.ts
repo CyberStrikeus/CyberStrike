@@ -19,7 +19,9 @@ export const dict = {
   "ui.lineComment.editorLabel.prefix": "جارٍ التعليق على ",
   "ui.lineComment.editorLabel.suffix": "",
   "ui.lineComment.placeholder": "أضف تعليقًا",
+  "ui.lineComment.contextPlaceholder": "أضف سياقًا لهذا التغيير",
   "ui.lineComment.submit": "تعليق",
+  "ui.lineComment.cancel": "إلغاء",
 
   "ui.sessionTurn.steps.show": "إظهار الخطوات",
   "ui.sessionTurn.steps.hide": "إخفاء الخطوات",
@@ -80,12 +82,15 @@ export const dict = {
   "ui.common.question.other": "أسئلة",
 
   "ui.common.add": "إضافة",
+  "ui.common.clear": "مسح",
   "ui.common.cancel": "إلغاء",
   "ui.common.confirm": "تأكيد",
   "ui.common.dismiss": "رفض",
   "ui.common.close": "إغلاق",
   "ui.common.next": "التالي",
   "ui.common.submit": "إرسال",
+
+  "ui.tabs.close": "إغلاق علامة التبويب",
 
   "ui.permission.deny": "رفض",
   "ui.permission.allowAlways": "السماح دائمًا",

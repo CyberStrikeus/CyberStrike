@@ -23,7 +23,9 @@ export const dict = {
   "ui.lineComment.editorLabel.prefix": "正在评论 ",
   "ui.lineComment.editorLabel.suffix": "",
   "ui.lineComment.placeholder": "添加评论",
+  "ui.lineComment.contextPlaceholder": "添加此更改的上下文",
   "ui.lineComment.submit": "评论",
+  "ui.lineComment.cancel": "取消",
 
   "ui.sessionTurn.steps.show": "显示步骤",
   "ui.sessionTurn.steps.hide": "隐藏步骤",
@@ -84,12 +86,15 @@ export const dict = {
   "ui.common.question.other": "个问题",
 
   "ui.common.add": "添加",
+  "ui.common.clear": "清除",
   "ui.common.cancel": "取消",
   "ui.common.confirm": "确认",
   "ui.common.dismiss": "忽略",
   "ui.common.close": "关闭",
   "ui.common.next": "下一步",
   "ui.common.submit": "提交",
+
+  "ui.tabs.close": "关闭标签页",
 
   "ui.permission.deny": "拒绝",
   "ui.permission.allowAlways": "始终允许",

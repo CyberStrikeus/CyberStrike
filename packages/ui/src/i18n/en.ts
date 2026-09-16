@@ -19,7 +19,9 @@ export const dict = {
   "ui.lineComment.editorLabel.prefix": "Commenting on ",
   "ui.lineComment.editorLabel.suffix": "",
   "ui.lineComment.placeholder": "Add comment",
+  "ui.lineComment.contextPlaceholder": "Add context for this change",
   "ui.lineComment.submit": "Comment",
+  "ui.lineComment.cancel": "Cancel",
 
   "ui.sessionTurn.steps.show": "Show steps",
   "ui.sessionTurn.steps.hide": "Hide steps",
@@ -80,12 +82,15 @@ export const dict = {
   "ui.common.question.other": "questions",
 
   "ui.common.add": "Add",
+  "ui.common.clear": "Clear",
   "ui.common.cancel": "Cancel",
   "ui.common.confirm": "Confirm",
   "ui.common.dismiss": "Dismiss",
   "ui.common.close": "Close",
   "ui.common.next": "Next",
   "ui.common.submit": "Submit",
+
+  "ui.tabs.close": "Close tab",
 
   "ui.permission.deny": "Deny",
   "ui.permission.allowAlways": "Allow always",

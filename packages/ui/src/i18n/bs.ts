@@ -23,7 +23,9 @@ export const dict = {
   "ui.lineComment.editorLabel.prefix": "Komentarišeš ",
   "ui.lineComment.editorLabel.suffix": "",
   "ui.lineComment.placeholder": "Dodaj komentar",
+  "ui.lineComment.contextPlaceholder": "Dodaj kontekst za ovu izmjenu",
   "ui.lineComment.submit": "Komentariši",
+  "ui.lineComment.cancel": "Otkaži",
 
   "ui.sessionTurn.steps.show": "Prikaži korake",
   "ui.sessionTurn.steps.hide": "Sakrij korake",
@@ -84,12 +86,15 @@ export const dict = {
   "ui.common.question.other": "pitanja",
 
   "ui.common.add": "Dodaj",
+  "ui.common.clear": "Očisti",
   "ui.common.cancel": "Otkaži",
   "ui.common.confirm": "Potvrdi",
   "ui.common.dismiss": "Odbaci",
   "ui.common.close": "Zatvori",
   "ui.common.next": "Dalje",
   "ui.common.submit": "Pošalji",
+
+  "ui.tabs.close": "Zatvori karticu",
 
   "ui.permission.deny": "Zabrani",
   "ui.permission.allowAlways": "Uvijek dozvoli",

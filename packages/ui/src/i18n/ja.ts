@@ -19,7 +19,9 @@ export const dict = {
   "ui.lineComment.editorLabel.prefix": "",
   "ui.lineComment.editorLabel.suffix": "へのコメントを作成中",
   "ui.lineComment.placeholder": "コメントを追加",
+  "ui.lineComment.contextPlaceholder": "この変更に関するコンテキストを追加",
   "ui.lineComment.submit": "コメント",
+  "ui.lineComment.cancel": "キャンセル",
   "ui.sessionTurn.steps.show": "ステップを表示",
   "ui.sessionTurn.steps.hide": "ステップを隠す",
   "ui.sessionTurn.summary.response": "応答",
@@ -79,12 +81,15 @@ export const dict = {
   "ui.common.question.other": "質問",
 
   "ui.common.add": "追加",
+  "ui.common.clear": "消去",
   "ui.common.cancel": "キャンセル",
   "ui.common.confirm": "確認",
   "ui.common.dismiss": "閉じる",
   "ui.common.close": "閉じる",
   "ui.common.next": "次へ",
   "ui.common.submit": "送信",
+
+  "ui.tabs.close": "タブを閉じる",
 
   "ui.permission.deny": "拒否",
   "ui.permission.allowAlways": "常に許可",

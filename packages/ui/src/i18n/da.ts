@@ -19,7 +19,9 @@ export const dict = {
   "ui.lineComment.editorLabel.prefix": "Kommenterer på ",
   "ui.lineComment.editorLabel.suffix": "",
   "ui.lineComment.placeholder": "Tilføj kommentar",
+  "ui.lineComment.contextPlaceholder": "Tilføj kontekst til denne ændring",
   "ui.lineComment.submit": "Kommenter",
+  "ui.lineComment.cancel": "Annuller",
   "ui.sessionTurn.steps.show": "Vis trin",
   "ui.sessionTurn.steps.hide": "Skjul trin",
   "ui.sessionTurn.summary.response": "Svar",
@@ -79,12 +81,15 @@ export const dict = {
   "ui.common.question.other": "spørgsmål",
 
   "ui.common.add": "Tilføj",
+  "ui.common.clear": "Ryd",
   "ui.common.cancel": "Annuller",
   "ui.common.confirm": "Bekræft",
   "ui.common.dismiss": "Afvis",
   "ui.common.close": "Luk",
   "ui.common.next": "Næste",
   "ui.common.submit": "Indsend",
+
+  "ui.tabs.close": "Luk fane",
 
   "ui.permission.deny": "Afvis",
   "ui.permission.allowAlways": "Tillad altid",

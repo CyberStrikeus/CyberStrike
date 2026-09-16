@@ -19,7 +19,9 @@ export const dict = {
   "ui.lineComment.editorLabel.prefix": "กำลังแสดงความคิดเห็นบน ",
   "ui.lineComment.editorLabel.suffix": "",
   "ui.lineComment.placeholder": "เพิ่มความคิดเห็น",
+  "ui.lineComment.contextPlaceholder": "เพิ่มบริบทสำหรับการเปลี่ยนแปลงนี้",
   "ui.lineComment.submit": "แสดงความคิดเห็น",
+  "ui.lineComment.cancel": "ยกเลิก",
 
   "ui.sessionTurn.steps.show": "แสดงขั้นตอน",
   "ui.sessionTurn.steps.hide": "ซ่อนขั้นตอน",
@@ -80,12 +82,15 @@ export const dict = {
   "ui.common.question.other": "คำถาม",
 
   "ui.common.add": "เพิ่ม",
+  "ui.common.clear": "ล้าง",
   "ui.common.cancel": "ยกเลิก",
   "ui.common.confirm": "ยืนยัน",
   "ui.common.dismiss": "ปิด",
   "ui.common.close": "ปิด",
   "ui.common.next": "ถัดไป",
   "ui.common.submit": "ส่ง",
+
+  "ui.tabs.close": "ปิดแท็บ",
 
   "ui.permission.deny": "ปฏิเสธ",
   "ui.permission.allowAlways": "อนุญาตเสมอ",

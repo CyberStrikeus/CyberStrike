@@ -22,7 +22,9 @@ export const dict: Record<Keys, string> = {
   "ui.lineComment.editorLabel.prefix": "Kommenterer på ",
   "ui.lineComment.editorLabel.suffix": "",
   "ui.lineComment.placeholder": "Legg til kommentar",
+  "ui.lineComment.contextPlaceholder": "Legg til kontekst for denne endringen",
   "ui.lineComment.submit": "Kommenter",
+  "ui.lineComment.cancel": "Avbryt",
 
   "ui.sessionTurn.steps.show": "Vis trinn",
   "ui.sessionTurn.steps.hide": "Skjul trinn",
@@ -83,12 +85,15 @@ export const dict: Record<Keys, string> = {
   "ui.common.question.other": "spørsmål",
 
   "ui.common.add": "Legg til",
+  "ui.common.clear": "Tøm",
   "ui.common.cancel": "Avbryt",
   "ui.common.confirm": "Bekreft",
   "ui.common.dismiss": "Avvis",
   "ui.common.close": "Lukk",
   "ui.common.next": "Neste",
   "ui.common.submit": "Send inn",
+
+  "ui.tabs.close": "Lukk fane",
 
   "ui.permission.deny": "Avslå",
   "ui.permission.allowAlways": "Tillat alltid",

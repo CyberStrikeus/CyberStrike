@@ -19,7 +19,9 @@ export const dict = {
   "ui.lineComment.editorLabel.prefix": "",
   "ui.lineComment.editorLabel.suffix": "에 댓글 작성 중",
   "ui.lineComment.placeholder": "댓글 추가",
+  "ui.lineComment.contextPlaceholder": "이 변경 사항에 대한 컨텍스트 추가",
   "ui.lineComment.submit": "댓글",
+  "ui.lineComment.cancel": "취소",
 
   "ui.sessionTurn.steps.show": "단계 표시",
   "ui.sessionTurn.steps.hide": "단계 숨기기",
@@ -80,12 +82,15 @@ export const dict = {
   "ui.common.question.other": "질문",
 
   "ui.common.add": "추가",
+  "ui.common.clear": "지우기",
   "ui.common.cancel": "취소",
   "ui.common.confirm": "확인",
   "ui.common.dismiss": "닫기",
   "ui.common.close": "닫기",
   "ui.common.next": "다음",
   "ui.common.submit": "제출",
+
+  "ui.tabs.close": "탭 닫기",
 
   "ui.permission.deny": "거부",
   "ui.permission.allowAlways": "항상 허용",
