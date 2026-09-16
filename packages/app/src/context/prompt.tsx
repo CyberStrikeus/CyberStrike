@@ -5,6 +5,18 @@ import { useParams } from "@solidjs/router"
 import type { FileSelection } from "@/context/file"
 import { Persist, persisted } from "@/utils/persist"
 import { checksum } from "@cyberstrike-io/util/encode"
+import { createPromptSession as createScopedPromptSession, type PromptSession } from "./prompt-state"
+import { useTabs, type Tab } from "./tabs"
+
+export type { PromptSession, PromptModel } from "./prompt-state"
+
+// Binds a per-tab prompt state into the tab's memory slot so the v2 tab strip
+// can read draft/session prompt models (e.g. to seed a new tab's model).
+export const createTabPromptState = (
+  tabs: ReturnType<typeof useTabs>,
+  tab: Tab,
+  ...args: Parameters<typeof createScopedPromptSession>
+) => tabs.state(tab, "prompt", () => createScopedPromptSession(...args))
 
 interface PartBase {
   content: string
@@ -145,10 +157,10 @@ function createPromptActions(
 const WORKSPACE_KEY = "__workspace__"
 const MAX_PROMPT_SESSIONS = 20
 
-type PromptSession = ReturnType<typeof createPromptSession>
+type LegacyPromptSession = ReturnType<typeof createPromptSession>
 
 type PromptCacheEntry = {
-  value: PromptSession
+  value: LegacyPromptSession
   dispose: VoidFunction
 }
 
