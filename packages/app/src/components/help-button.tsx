@@ -6,7 +6,7 @@ import { Drawer, DrawerClose, DrawerContent } from "@/components/ui/drawer"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
 import { useLanguage } from "@/context/language"
-import introducingTabsVideo from "@/assets/help/introducing-tabs.mp4"
+import introducingTabsVideo from "@/assets/help/product-tour.mp4"
 import homeImage from "@/assets/help/home.png"
 import tabsImage from "@/assets/help/tabs.png"
 
