@@ -8,8 +8,9 @@ import { dirname, join } from "node:path"
 import * as http from "node:http"
 
 const here = dirname(fileURLToPath(import.meta.url))
-// packages/desktop/src/main → packages/cyberstrike/src/index.ts
-const CYBERSTRIKE_ENTRY = join(here, "..", "..", "..", "cyberstrike", "src", "index.ts")
+// packages/desktop/src/main → packages/cyberstrike
+const CYBERSTRIKE_DIR = join(here, "..", "..", "..", "cyberstrike")
+const CYBERSTRIKE_ENTRY = join(CYBERSTRIKE_DIR, "src", "index.ts")
 
 // MUST be 4096: the HackBrowser capture extension ingests to http://127.0.0.1:4096/session/ingest by
 // default, so the desktop's server has to own that port or captured traffic never reaches it.
@@ -59,8 +60,11 @@ export async function startBackend(logger = console) {
   logger.info?.(`[cyberstrike-desktop] starting server on ${url}`)
   const child = spawn(
     "bun",
-    ["run", "--conditions=browser", CYBERSTRIKE_ENTRY, "web", "--no-open", "--hostname", "127.0.0.1", "--port", String(PORT)],
+    ["run", CYBERSTRIKE_ENTRY, "web", "--no-open", "--hostname", "127.0.0.1", "--port", String(PORT)],
     {
+      // Run from the cyberstrike package dir: bun resolves the CLI's deps (e.g. react/jsx-dev-runtime
+      // pulled in by the TUI command tree) relative to cwd, so spawning from elsewhere breaks resolution.
+      cwd: CYBERSTRIKE_DIR,
       env: { ...process.env, CYBERSTRIKE_SERVER_PASSWORD: password },
       stdio: ["ignore", "pipe", "pipe"],
     },
