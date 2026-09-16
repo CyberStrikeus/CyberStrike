@@ -25,6 +25,7 @@ export interface Settings {
     newLayoutDesigns: boolean
     mobileTitlebarPosition: "top" | "bottom"
     showNavigation: boolean
+    tabsToastDismissed: boolean
   }
   updates: {
     startup: boolean
@@ -50,6 +51,7 @@ const defaultSettings: Settings = {
     newLayoutDesigns: false,
     mobileTitlebarPosition: "top",
     showNavigation: true,
+    tabsToastDismissed: false,
   },
   updates: {
     startup: true,
@@ -144,6 +146,14 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         showNavigation: withFallback(() => store.general?.showNavigation, defaultSettings.general.showNavigation),
         setShowNavigation(value: boolean) {
           setStore("general", "showNavigation", value)
+        },
+        // Tabs "Introducing Tabs" toast. Displays until dismissed; the stored
+        // `tabsToastDismissed` flag persists dismissal across launches. (Upstream
+        // gates the initial display on launch/version transition state this fork
+        // does not track; here it simply shows until the user dismisses it.)
+        shouldDisplayTabsToast: createMemo(() => !(store.general?.tabsToastDismissed ?? false)),
+        dismissTabsToast() {
+          setStore("general", "tabsToastDismissed", true)
         },
       },
       updates: {
