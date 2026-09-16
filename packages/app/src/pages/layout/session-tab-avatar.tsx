@@ -2,15 +2,11 @@ import type { LocalProject } from "@/context/layout"
 import { getProjectAvatarVariant } from "@/context/layout"
 import type { ServerConnection } from "@/context/server"
 import { displayName, getProjectAvatarSource } from "@/pages/layout/helpers"
+import { useSessionTabAvatarState } from "@/pages/layout/project-avatar-state"
 import { ProjectAvatar } from "@cyberstrike-io/ui/v2/project-avatar-v2"
+import { SessionProgressIndicatorV2 } from "@cyberstrike-io/ui/v2/session-progress-indicator-v2"
+import { Show } from "solid-js"
 
-// NOTE (single-server deviation): upstream's SessionTabAvatar overlays a live
-// session-progress / unread indicator sourced from the upstream session-ui
-// package (session-progress-indicator-v2) plus a multi-server
-// project-avatar-state session-status store. This fork deliberately does not
-// adopt that session-ui / multi-server session-status layer, so this renders the
-// project avatar only. The tab's project-avatar design is preserved; live
-// per-session progress/unread state is not shown.
 export function SessionTabAvatar(props: {
   project?: LocalProject
   directory: string
@@ -18,34 +14,47 @@ export function SessionTabAvatar(props: {
   server: ServerConnection.Key
   revealProjectOnHover?: boolean
 }) {
+  const state = useSessionTabAvatarState(
+    () => props.server,
+    () => props.directory,
+    () => props.sessionId,
+  )
   return (
-    <ProjectAvatar
-      fallback={displayName(props.project ?? { worktree: props.directory })}
-      src={getProjectAvatarSource(props.project?.id, props.project?.icon)}
-      variant={getProjectAvatarVariant(props.project?.icon?.color)}
-      unread={false}
+    <SessionTabAvatarView
+      project={props.project}
+      directory={props.directory}
+      revealProjectOnHover={props.revealProjectOnHover}
+      unread={state.unread()}
+      loading={state.loading()}
     />
   )
 }
 
-// Presentational avatar used by the v2 home session rows. Same single-server
-// deviation as SessionTabAvatar above: renders the project avatar only. Upstream
-// overlays live per-session progress/unread state that this fork does not adopt,
-// so `unread`/`loading` here are honored only insofar as the project avatar can
-// show an unread dot; the busy spinner overlay is not shown.
 export function SessionTabAvatarView(props: {
   project?: LocalProject
   directory: string
   revealProjectOnHover?: boolean
-  unread?: boolean
-  loading?: boolean
+  unread: boolean
+  loading: boolean
 }) {
-  return (
+  const projectAvatar = () => (
     <ProjectAvatar
       fallback={displayName(props.project ?? { worktree: props.directory })}
       src={getProjectAvatarSource(props.project?.id, props.project?.icon)}
       variant={getProjectAvatarVariant(props.project?.icon?.color)}
-      unread={!!props.unread}
+      unread={props.unread}
     />
+  )
+  return (
+    <Show when={props.loading} fallback={projectAvatar()}>
+      <span class="relative block size-4 shrink-0">
+        <SessionProgressIndicatorV2
+          class={`absolute inset-0 ${props.revealProjectOnHover === false ? "" : "group-hover:invisible"}`}
+        />
+        <Show when={props.revealProjectOnHover !== false}>
+          <span class="invisible absolute inset-0 group-hover:visible">{projectAvatar()}</span>
+        </Show>
+      </span>
+    </Show>
   )
 }
