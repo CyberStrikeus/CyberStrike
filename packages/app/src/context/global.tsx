@@ -103,6 +103,19 @@ function createServerCtx(
     },
   }
 
+  // File / project endpoints used by the home project.add flow. Upstream's
+  // `location` object maps onto our v2 SDK's `directory` query param.
+  const fileApi = {
+    list(input: { path: string; location?: { directory?: string } }) {
+      return sdk.client.file.list({ path: input.path, directory: input.location?.directory })
+    },
+  }
+  const projectApi = {
+    current(input?: { location?: { directory?: string } }) {
+      return sdk.client.project.current({ directory: input?.location?.directory }).then((r) => r.data!)
+    },
+  }
+
   const session = {
     peek(sessionID: string): Session | undefined {
       return known[sessionID]
@@ -160,6 +173,8 @@ function createServerCtx(
       scope: ServerScope.local,
       api: {
         session: sessionApi,
+        file: fileApi,
+        project: projectApi,
       },
     },
     sync: {
@@ -168,6 +183,9 @@ function createServerCtx(
       },
       session,
       ensureDirSyncContext,
+      // Per-directory child store (session/status/permission/project). Mirrors
+      // upstream ServerCtx.sync.child; backed by the shared global-sync manager.
+      child: sync.child,
     },
     projects,
   }

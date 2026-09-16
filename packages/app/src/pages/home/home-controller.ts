@@ -86,17 +86,24 @@ export function createHomeController() {
           return
         setSelection(toggleHomeProjectSelection(selection(), key, directory))
       },
-      // Single-server mapping: upstream inspects the target directory via the
-      // per-server SDK (file.list / project.current / project.initGit) before
-      // opening. This fork opens the directory through the shared project store
-      // (which loads its sessions); the empty-directory git-init nicety is
-      // omitted — an added directory is simply opened and selected.
+      // Inspect the target directory via the per-server SDK (file.list ->
+      // project.current) before opening, and record the resolved project id on
+      // the directory's child store — 1:1 with upstream, except the empty-dir
+      // `project.initGit` step: the v2 SDK exposes no project.initGit (it is a
+      // v1-only endpoint), so empty directories resolve through project.current
+      // without a client-side git init.
       add: (conn: ServerConnection.Any, directories: string[]) => {
         const directory = directories[0]
         if (!directory) return
         const ctx = global.ensureServerCtx(conn)
         directories.forEach((item) => {
           if (ctx.projects.list().some((project) => project.worktree === item)) return
+          const location = { directory: item }
+          void ctx.sdk.api.file
+            .list({ path: ".", location })
+            .then(() => ctx.sdk.api.project.current({ location }))
+            .then((project) => ctx.sync.child(item, { bootstrap: false })[1]("project", project.id))
+            .catch(() => undefined)
           ctx.projects.open(item)
         })
         ctx.projects.touch(directory)
