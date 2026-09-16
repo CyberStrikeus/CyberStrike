@@ -26,6 +26,7 @@ import { ServerConnection, useServer } from "./server"
 import { useGlobalSDK } from "./global-sdk"
 import { useGlobalSync } from "./global-sync"
 import { ServerScope } from "@/utils/server-scope"
+import type { ServerHealth } from "@/utils/server-health"
 import type { LocalProject } from "./layout"
 
 function isLocalHost(url: string) {
@@ -47,7 +48,7 @@ export const { use: useGlobal, provider: GlobalProvider } = createSimpleContext(
       const key = ServerConnection.key(conn)
       const existing = cache.get(key)
       if (existing) return existing
-      const ctx = createServerCtx(conn, sdk, sync, server.projects.list)
+      const ctx = createServerCtx(conn, sdk, sync, server)
       cache.set(key, ctx)
       return ctx
     }
@@ -55,6 +56,14 @@ export const { use: useGlobal, provider: GlobalProvider } = createSimpleContext(
     return {
       servers: {
         list: () => (server.current ? [server.current] : []),
+        // Single-server health map keyed by the active connection. The home tree
+        // reads `health[key]?.healthy` to disable actions on an unreachable
+        // server; our fork tracks one connection's health in `useServer()`.
+        get health(): Record<ServerConnection.Key, ServerHealth> {
+          const conn = server.current
+          if (!conn) return {}
+          return { [ServerConnection.key(conn)]: { healthy: server.healthy() !== false } }
+        },
       },
       ensureServerCtx(conn: ServerConnection.Any) {
         return ensureServerCtx(conn)
@@ -67,8 +76,9 @@ function createServerCtx(
   conn: ServerConnection.Any,
   sdk: ReturnType<typeof useGlobalSDK>,
   sync: ReturnType<typeof useGlobalSync>,
-  storedProjects: () => { worktree: string; expanded: boolean }[],
+  server: ReturnType<typeof useServer>,
 ) {
+  const storedProjects = server.projects.list
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -128,6 +138,18 @@ function createServerCtx(
         expanded: stored.get(project.worktree) ?? false,
       }))
     },
+    // Home fallbacks/actions mapped onto the single-server project store.
+    // `recentlyClosed` degrades to empty: this fork does not persist a
+    // closed-project history the way upstream's multi-server layer does.
+    recentlyClosed: (): LocalProject[] => [],
+    last: () => server.projects.last(),
+    open: (directory: string) => {
+      server.projects.open(directory)
+      void Promise.resolve(sync.project.loadSessions(directory)).catch(() => {})
+    },
+    close: (directory: string) => server.projects.close(directory),
+    touch: (directory: string) => server.projects.touch(directory),
+    move: (worktree: string, index: number) => server.projects.move(worktree, index),
   }
 
   return {
