@@ -1,5 +1,6 @@
 import { getFilename } from "@cyberstrike-io/util/path"
 import { type Session } from "@cyberstrike-io/sdk/v2/client"
+import { pathKey } from "@/utils/path-key"
 
 export const workspaceKey = (directory: string) => {
   const drive = directory.match(/^([A-Za-z]:)[\\/]+$/)
@@ -52,6 +53,27 @@ export function getDraggableId(event: unknown): string | undefined {
 
 export const displayName = (project: { name?: string; worktree: string }) =>
   project.name || getFilename(project.worktree)
+
+export function getProjectAvatarSource(id?: string, icon?: { color?: string; url?: string; override?: string }) {
+  void id
+  if (icon?.override) return icon.override
+  if (icon?.color) return undefined
+  return icon?.url
+}
+
+export function projectForSession<T extends { id?: string; worktree: string; sandboxes?: string[] }>(
+  session: Session,
+  projects: T[],
+  byID: Map<string, T> = new Map(projects.flatMap((project) => (project.id ? [[project.id, project] as const] : []))),
+) {
+  const direct = byID.get(session.projectID)
+  if (direct) return direct
+  const directory = pathKey(session.directory)
+  return projects.find(
+    (project) =>
+      pathKey(project.worktree) === directory || project.sandboxes?.some((sandbox) => pathKey(sandbox) === directory),
+  )
+}
 
 export const errorMessage = (err: unknown, fallback: string) => {
   if (err && typeof err === "object" && "data" in err) {

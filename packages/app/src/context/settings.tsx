@@ -23,6 +23,8 @@ export interface Settings {
     autoSave: boolean
     releaseNotes: boolean
     newLayoutDesigns: boolean
+    mobileTitlebarPosition: "top" | "bottom"
+    showNavigation: boolean
   }
   updates: {
     startup: boolean
@@ -46,6 +48,8 @@ const defaultSettings: Settings = {
     // Phase B v2-shell adoption flag. Default FALSE keeps the legacy layout as
     // the only rendered shell; flip to true to render the ported v2 NewLayout.
     newLayoutDesigns: false,
+    mobileTitlebarPosition: "top",
+    showNavigation: true,
   },
   updates: {
     startup: true,
@@ -129,6 +133,17 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         ),
         setNewLayoutDesigns(value: boolean) {
           setStore("general", "newLayoutDesigns", value)
+        },
+        mobileTitlebarPosition: withFallback(
+          () => store.general?.mobileTitlebarPosition,
+          defaultSettings.general.mobileTitlebarPosition,
+        ),
+        setMobileTitlebarPosition(value: "top" | "bottom") {
+          setStore("general", "mobileTitlebarPosition", value)
+        },
+        showNavigation: withFallback(() => store.general?.showNavigation, defaultSettings.general.showNavigation),
+        setShowNavigation(value: boolean) {
+          setStore("general", "showNavigation", value)
         },
       },
       updates: {

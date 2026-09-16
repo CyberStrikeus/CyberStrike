@@ -1,13 +1,17 @@
-import { createStore, produce } from "solid-js/store"
+import { createStore, produce, reconcile } from "solid-js/store"
 import { batch, createEffect, createMemo, onCleanup, onMount, type Accessor } from "solid-js"
+import { useLocation } from "@solidjs/router"
 import { createSimpleContext } from "@cyberstrike-io/ui/context"
 import { useGlobalSync } from "./global-sync"
 import { useGlobalSDK } from "./global-sdk"
-import { useServer } from "./server"
+import { ServerConnection, useServer } from "./server"
 import { usePlatform } from "./platform"
 import { Project } from "@cyberstrike-io/sdk/v2"
 import { Persist, persisted, removePersisted } from "@/utils/persist"
 import { same } from "@/utils/same"
+import { decode64 } from "@/utils/base64"
+import { requireServerKey } from "@/utils/session-route"
+import type { ProjectAvatarVariant } from "@cyberstrike-io/ui/v2/project-avatar-v2"
 import { createScrollPersistence, type SessionScroll } from "./layout-scroll"
 
 const AVATAR_COLOR_KEYS = ["pink", "mint", "orange", "purple", "cyan", "lime"] as const
@@ -49,7 +53,62 @@ type TabHandoff = {
 
 export type LocalProject = Partial<Project> & { worktree: string; expanded: boolean }
 
+export type HomeProjectSelection = { server: ServerConnection.Key; directory?: string }
+
 export type ReviewDiffStyle = "unified" | "split"
+
+export type LayoutRoute =
+  | { type: "home" }
+  | { type: "draft"; draftID: string; server?: ServerConnection.Key }
+  | { type: "dir-new-sesssion"; dir: string; dirBase64: string; server?: ServerConnection.Key }
+  | { type: "session"; sessionId: string; server?: ServerConnection.Key }
+
+export const currentRoute = (pathname: string, search: string): LayoutRoute => {
+  const parts = pathname.split("/").filter(Boolean)
+  if (parts.length === 0) return { type: "home" }
+
+  if (parts[0] === "new-session") {
+    const draftID = new URLSearchParams(search).get("draftId")
+    if (!draftID) return { type: "home" }
+    return { type: "draft", draftID }
+  }
+
+  if (parts[0] === "server" && parts[2] === "session" && parts[3]) {
+    return {
+      type: "session",
+      sessionId: parts[3],
+      server: requireServerKey(parts[1]),
+    }
+  }
+
+  const dirBase64 = parts[0]
+  const dir = decode64(dirBase64)
+  if (!dir) return { type: "home" }
+
+  if (parts[1] !== "session") return { type: "home" }
+
+  const id = parts[2]
+  if (id) return { type: "session", sessionId: id }
+  return { type: "dir-new-sesssion", dir, dirBase64 }
+}
+
+export function getProjectAvatarVariant(key?: string): ProjectAvatarVariant {
+  if (key === "mint") return "cyan"
+  if (key === "lime") return "green"
+  if (
+    key === "orange" ||
+    key === "yellow" ||
+    key === "cyan" ||
+    key === "green" ||
+    key === "red" ||
+    key === "pink" ||
+    key === "blue" ||
+    key === "purple" ||
+    key === "gray"
+  )
+    return key
+  return "gray"
+}
 
 export function ensureSessionKey(key: string, touch: (key: string) => void, seed: (key: string) => void) {
   touch(key)
@@ -190,8 +249,21 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         handoff: {
           tabs: undefined as TabHandoff | undefined,
         },
+        home: {
+          selection: { server: server.key } as HomeProjectSelection,
+        },
       }),
     )
+
+    const location = useLocation()
+    // Route resolution for the v2 shell. Single-server: an explicit server in the
+    // URL is honoured; otherwise the active server.key is used (drafts included).
+    const route = createMemo<LayoutRoute>(() => {
+      const value = currentRoute(location.pathname, location.search)
+      if (value.type === "home") return value
+      if (value.server) return value
+      return { ...value, server: server.key }
+    })
 
     const MAX_SESSION_KEYS = 50
     const PENDING_MESSAGE_TTL_MS = 2 * 60 * 1000
@@ -485,6 +557,13 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
 
     return {
       ready,
+      route,
+      home: {
+        selection: createMemo(() => store.home?.selection ?? ({ server: server.key } as HomeProjectSelection)),
+        setSelection(selection: HomeProjectSelection) {
+          setStore("home", "selection", reconcile(selection))
+        },
+      },
       handoff: {
         tabs: createMemo(() => store.handoff?.tabs),
         setTabs(dir: string, id: string) {

@@ -145,11 +145,11 @@ export function matchKeybind(keybinds: Keybind[], event: KeyboardEvent): boolean
   return false
 }
 
-export function formatKeybind(config: string): string {
-  if (!config || config === "none") return ""
+export function formatKeybindParts(config: string): string[] {
+  if (!config || config === "none") return []
 
   const keybinds = parseKeybind(config)
-  if (keybinds.length === 0) return ""
+  if (keybinds.length === 0) return []
 
   const kb = keybinds[0]
   const parts: string[] = []
@@ -174,6 +174,12 @@ export function formatKeybind(config: string): string {
     parts.push(displayKey)
   }
 
+  return parts
+}
+
+export function formatKeybind(config: string): string {
+  const parts = formatKeybindParts(config)
+  if (parts.length === 0) return ""
   return IS_MAC ? parts.join("") : parts.join("+")
 }
 
@@ -373,6 +379,21 @@ export const { use: useCommand, provider: CommandProvider } = createSimpleContex
         const config = bind(base, meta?.keybind)
         if (!config) return ""
         return formatKeybind(config)
+      },
+      // Like keybind() but returns the individual key tokens (for KeybindV2).
+      keybindParts(id: string) {
+        if (id === PALETTE_ID) {
+          return formatKeybindParts(settings.keybinds.get(PALETTE_ID) ?? DEFAULT_PALETTE_KEYBIND)
+        }
+
+        const base = actionId(id)
+        const option = options().find((x) => actionId(x.id) === base)
+        if (option?.keybind) return formatKeybindParts(option.keybind)
+
+        const meta = catalog[base]
+        const config = bind(base, meta?.keybind)
+        if (!config) return []
+        return formatKeybindParts(config)
       },
       show: showPalette,
       keybinds(enabled: boolean) {
