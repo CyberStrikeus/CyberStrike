@@ -3,6 +3,7 @@ import { dict as en } from "./en"
 type Keys = keyof typeof en
 
 export const dict = {
+  "ui.scrollView.ariaLabel": "可滚动内容",
   "ui.sessionReview.title": "会话变更",
   "ui.sessionReview.title.lastTurn": "上一轮变更",
   "ui.sessionReview.diffStyle.unified": "统一",

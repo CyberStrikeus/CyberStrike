@@ -1,4 +1,5 @@
 export const dict = {
+  "ui.scrollView.ariaLabel": "contenido desplazable",
   "ui.sessionReview.title": "Cambios de la sesión",
   "ui.sessionReview.title.lastTurn": "Cambios del último turno",
   "ui.sessionReview.diffStyle.unified": "Unificado",
