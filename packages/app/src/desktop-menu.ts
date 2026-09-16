@@ -279,7 +279,7 @@ export const DESKTOP_MENU: DesktopMenu[] = [
     id: "help",
     labelKey: "desktop.menu.help",
     items: [
-      { type: "item", labelKey: "desktop.menu.documentation", href: "https://cyberstrike.io/docs" },
+      { type: "item", labelKey: "desktop.menu.documentation", href: "https://docs.cyberstrike.io" },
       {
         type: "item",
         labelKey: "desktop.menu.supportForum",
