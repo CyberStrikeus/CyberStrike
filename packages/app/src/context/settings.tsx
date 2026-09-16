@@ -46,9 +46,8 @@ const defaultSettings: Settings = {
   general: {
     autoSave: true,
     releaseNotes: true,
-    // Phase B v2-shell adoption flag. Default FALSE keeps the legacy layout as
-    // the only rendered shell; flip to true to render the ported v2 NewLayout.
-    newLayoutDesigns: false,
+    // v2 tabbed shell is the default. Set false to fall back to the legacy layout.
+    newLayoutDesigns: true,
     mobileTitlebarPosition: "top",
     showNavigation: true,
     tabsToastDismissed: false,
