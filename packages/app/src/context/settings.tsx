@@ -22,6 +22,7 @@ export interface Settings {
   general: {
     autoSave: boolean
     releaseNotes: boolean
+    newLayoutDesigns: boolean
   }
   updates: {
     startup: boolean
@@ -42,6 +43,9 @@ const defaultSettings: Settings = {
   general: {
     autoSave: true,
     releaseNotes: true,
+    // Phase B v2-shell adoption flag. Default FALSE keeps the legacy layout as
+    // the only rendered shell; flip to true to render the ported v2 NewLayout.
+    newLayoutDesigns: false,
   },
   updates: {
     startup: true,
@@ -118,6 +122,13 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         releaseNotes: withFallback(() => store.general?.releaseNotes, defaultSettings.general.releaseNotes),
         setReleaseNotes(value: boolean) {
           setStore("general", "releaseNotes", value)
+        },
+        newLayoutDesigns: withFallback(
+          () => store.general?.newLayoutDesigns,
+          defaultSettings.general.newLayoutDesigns,
+        ),
+        setNewLayoutDesigns(value: boolean) {
+          setStore("general", "newLayoutDesigns", value)
         },
       },
       updates: {

@@ -16,7 +16,6 @@ import { LayoutProvider } from "@/context/layout"
 import { GlobalSDKProvider } from "@/context/global-sdk"
 import { normalizeServerUrl, ServerProvider, useServer } from "@/context/server"
 import { HubConnectScreen } from "@/components/hub-connect"
-import { SettingsProvider } from "@/context/settings"
 import { TerminalProvider } from "@/context/terminal"
 import { PromptProvider } from "@/context/prompt"
 import { FileProvider } from "@/context/file"
@@ -28,7 +27,10 @@ import { CommandProvider } from "@/context/command"
 import { LanguageProvider, useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { HighlightsProvider } from "@/context/highlights"
+import { SettingsProvider, useSettings } from "@/context/settings"
+import { TabsProvider } from "@/context/tabs"
 import Layout from "@/pages/layout"
+import NewLayout from "@/pages/layout-new"
 import DirectoryLayout from "@/pages/directory-layout"
 import { ErrorPage } from "./pages/error"
 const Home = lazy(() => import("@/pages/home"))
@@ -67,6 +69,21 @@ function MarkedProviderWithNativeParser(props: ParentProps) {
   return <MarkedProvider nativeParser={platform.parseMarkdown}>{props.children}</MarkedProvider>
 }
 
+// Branches the rendered shell on the `newLayoutDesigns` flag. Default (flag OFF)
+// renders the legacy `Layout` unchanged. Flag ON mounts the single-server tabs
+// adapter and renders the ported v2 `NewLayout`. Nothing about the legacy path
+// changes when the flag is off.
+function ShellLayout(props: ParentProps) {
+  const settings = useSettings()
+  return (
+    <Show when={settings.general.newLayoutDesigns()} fallback={<Layout>{props.children}</Layout>}>
+      <TabsProvider>
+        <NewLayout>{props.children}</NewLayout>
+      </TabsProvider>
+    </Show>
+  )
+}
+
 function AppShellProviders(props: ParentProps) {
   return (
     <SettingsProvider>
@@ -76,7 +93,7 @@ function AppShellProviders(props: ParentProps) {
             <ModelsProvider>
               <CommandProvider>
                 <HighlightsProvider>
-                  <Layout>{props.children}</Layout>
+                  <ShellLayout>{props.children}</ShellLayout>
                 </HighlightsProvider>
               </CommandProvider>
             </ModelsProvider>
