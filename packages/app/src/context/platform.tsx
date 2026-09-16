@@ -110,6 +110,9 @@ export type Platform = {
 
   /** Run a native desktop menu action by id (desktop only) */
   runDesktopMenuAction?(action: string): Promise<void> | void
+
+  /** Force focus styles on all interactive elements (dev diagnostics; desktop only) */
+  setForceFocus?(enabled: boolean): Promise<void>
 }
 
 export type DisplayBackend = "auto" | "wayland"
