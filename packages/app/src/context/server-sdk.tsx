@@ -1,11 +1,16 @@
-// Single-server ADAPTER (Phase B v2-shell spike).
+// Single-server thin map over the GLOBAL adapter.
 //
-// Upstream's v2 shell scopes the SDK per active server via a `ServerSDKProvider`
-// keyed on `ServerConnection.Key`. CyberStrike has exactly one server, so its
-// SDK already lives in the always-mounted `context/global-sdk` singleton. This
-// module re-presents that singleton under the v2 contract name so ported shell
-// pieces can `useServerSDK()` without a multi-server registry underneath.
-import { useGlobalSDK } from "./global-sdk"
+// Upstream scopes the SDK per active server via a ServerSDKProvider keyed on
+// ServerConnection.Key. CyberStrike has one server, so its SDK lives in the
+// GLOBAL adapter's single ServerCtx. This presents that ctx's `sdk` under the
+// v2 contract name for any consumer that reaches for `useServerSDK()`.
+import { useGlobal, type ServerCtx } from "./global"
+import { useServer } from "./server"
 
-export const useServerSDK = useGlobalSDK
-export { GlobalSDKProvider as ServerSDKProvider } from "./global-sdk"
+export function useServerSDK(): ServerCtx["sdk"] {
+  const global = useGlobal()
+  const server = useServer()
+  const conn = server.current
+  if (!conn) throw new Error("No server available")
+  return global.ensureServerCtx(conn).sdk
+}

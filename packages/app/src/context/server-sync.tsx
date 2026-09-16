@@ -1,12 +1,16 @@
-// Single-server ADAPTER (Phase B v2-shell spike).
+// Single-server thin map over the GLOBAL adapter.
 //
-// Upstream's v2 shell scopes sync state per active server via a
-// `ServerSyncProvider` keyed on `ServerConnection.Key`, and exposes
-// `useServerSync().session.lineage` to resolve a session's ancestry. CyberStrike
-// is single-server: its sync state lives in the always-mounted
-// `context/global-sync` singleton. This module re-presents that singleton under
-// the v2 contract name so ported shell pieces can `useServerSync()`.
-import { useGlobalSync } from "./global-sync"
+// Upstream scopes sync state per active server via a ServerSyncProvider keyed on
+// ServerConnection.Key. CyberStrike has one server, so its sync state lives in
+// the GLOBAL adapter's single ServerCtx. This presents that ctx's `sync` under
+// the v2 contract name for any consumer that reaches for `useServerSync()`.
+import { useGlobal, type ServerCtx } from "./global"
+import { useServer } from "./server"
 
-export const useServerSync = useGlobalSync
-export { GlobalSyncProvider as ServerSyncProvider } from "./global-sync"
+export function useServerSync(): ServerCtx["sync"] {
+  const global = useGlobal()
+  const server = useServer()
+  const conn = server.current
+  if (!conn) throw new Error("No server available")
+  return global.ensureServerCtx(conn).sync
+}
