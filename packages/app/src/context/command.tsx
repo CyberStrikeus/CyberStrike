@@ -58,8 +58,18 @@ export interface CommandOption {
   slash?: string
   suggested?: boolean
   disabled?: boolean
+  hidden?: boolean
   onSelect?: (source?: "palette" | "keybind" | "slash") => void
   onHighlight?: () => (() => void) | void
+}
+
+// Options eligible for the command palette: exclude disabled, hidden, suggested,
+// and the file.open command (handled by the file picker, not the palette).
+export function commandPaletteOptions(options: CommandOption[]) {
+  return options.filter(
+    (option) =>
+      !option.disabled && !option.hidden && !option.id.startsWith(SUGGESTED_PREFIX) && option.id !== "file.open",
+  )
 }
 
 type CommandSource = "palette" | "keybind" | "slash"
