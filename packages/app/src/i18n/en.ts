@@ -46,6 +46,7 @@ export const dict = {
   "command.session.list": "Switch session",
   "command.file.open": "Open file",
   "command.tab.close": "Close tab",
+  "command.tab.reopenClosed": "Reopen closed tab",
   "command.context.addSelection": "Add selection to context",
   "command.context.addSelection.description": "Add selected lines from the current file",
   "command.input.focus": "Focus input",
@@ -563,10 +564,15 @@ export const dict = {
   "notification.session.error.title": "Session error",
   "notification.session.error.fallbackDescription": "An error occurred",
 
+  "home.title": "Home",
   "home.recentProjects": "Recent projects",
   "home.empty.title": "No recent projects",
   "home.empty.description": "Get started by opening a local project",
 
+  "titlebar.update": "Update",
+  "titlebar.updateVersion": "Update to {version}",
+
+  "session.tab.unknown": "Unknown session",
   "session.tab.session": "Session",
   "session.tab.review": "Review",
   "session.tab.context": "Context & LLM",

@@ -4,7 +4,6 @@ import {
   createResource,
   createSignal,
   Match,
-  on,
   onMount,
   Show,
   Switch,
@@ -53,11 +52,9 @@ export type TitlebarUpdate = {
 }
 
 export function useTitlebarRightMount() {
-  const language = useLanguage()
   const [mount, setMount] = createSignal<HTMLElement | null>(null)
   const sync = () => setMount(document.getElementById("cyberstrike-titlebar-right"))
   onMount(sync)
-  createEffect(on(language.direction, sync, { defer: true }))
   return mount
 }
 
@@ -487,7 +484,7 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                     aria-label={language.t("command.sidebar.toggle")}
                     aria-expanded={layout.sidebar.opened()}
                   >
-                    <Icon size="small" name={layout.sidebar.opened() ? "sidebar-active" : "sidebar"} />
+                    <Icon size="small" name="layout-left-partial" />
                   </Button>
                 </TooltipKeybind>
                 <div class="hidden xl:flex items-center shrink-0">
@@ -540,7 +537,7 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                         <Tooltip placement="bottom" value={language.t("common.goBack")} openDelay={800}>
                           <Button
                             variant="ghost"
-                            icon="chevron-left"
+                            icon="arrow-left"
                             class="titlebar-icon w-6 h-6 p-0 box-border"
                             disabled={!canBack()}
                             onClick={back}
