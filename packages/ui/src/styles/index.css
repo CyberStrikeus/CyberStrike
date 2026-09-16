@@ -3,6 +3,10 @@
 @import "./colors.css" layer(theme);
 @import "./theme.css" layer(theme);
 
+/* v2 design-token layer (static): defines only `--v2-*` custom properties so v2
+   components resolve their tokens at runtime. Additive — self-wraps in @layer theme. */
+@import "../v2/styles/tailwind.css";
+
 @import "./base.css" layer(base);
 @import "katex/dist/katex.min.css" layer(base);
 
