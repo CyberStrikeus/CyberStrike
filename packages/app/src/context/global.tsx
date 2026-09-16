@@ -101,6 +101,19 @@ function createServerCtx(
     rename(input: { sessionID: string; title: string }): Promise<unknown> {
       return sdk.client.session.update({ sessionID: input.sessionID, title: input.title }).then((r) => r.data)
     },
+    // Cross-project session search for the home command palette. Upstream's v1
+    // `parentID: null` (root sessions) maps onto the v2 `roots` query flag.
+    list(
+      input: { parentID: string | null; search?: string; limit?: number },
+      options?: { signal?: AbortSignal },
+    ): Promise<{ data: Session[] }> {
+      return sdk.client.session
+        .list(
+          { roots: input.parentID === null ? true : undefined, search: input.search, limit: input.limit },
+          { signal: options?.signal },
+        )
+        .then((r) => ({ data: (r.data ?? []) as Session[] }))
+    },
   }
 
   // File / project endpoints used by the home project.add flow. Upstream's
