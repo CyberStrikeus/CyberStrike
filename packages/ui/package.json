@@ -20,7 +20,9 @@
     "./icons/file-type": "./src/components/file-icons/types.ts",
     "./icons/app": "./src/components/app-icons/types.ts",
     "./fonts/*": "./src/assets/fonts/*",
-    "./audio/*": "./src/assets/audio/*"
+    "./audio/*": "./src/assets/audio/*",
+    "./v2/*.css": "./src/v2/components/*.css",
+    "./v2/*": "./src/v2/components/*.tsx"
   },
   "scripts": {
     "typecheck": "tsgo --noEmit",
