@@ -54,6 +54,14 @@ export type Locale =
   | "th"
   | "bs"
 
+export type Direction = "ltr" | "rtl"
+
+const RTL_LOCALES: ReadonlySet<Locale> = new Set(["ar"])
+
+function localeDirection(locale: Locale): Direction {
+  return RTL_LOCALES.has(locale) ? "rtl" : "ltr"
+}
+
 type RawDictionary = typeof en & typeof uiEn
 type Dictionary = i18n.Flatten<RawDictionary>
 
@@ -200,9 +208,19 @@ export const { use: useLanguage, provider: LanguageProvider } = createSimpleCont
 
     const label = (value: Locale) => t(LABEL_KEY[value])
 
+    // Text direction: derived from the locale, with an explicit override the
+    // dev DebugBar can toggle. `intl` exposes the current locale tag for
+    // direction-aware consumers (e.g. Kobalte's isRTL). Default direction tracks
+    // the locale (ltr for every non-RTL locale), so document.dir is unchanged in
+    // the common case.
+    const [layout, setLayout] = createStore({ direction: undefined as Direction | undefined })
+    const direction = createMemo<Direction>(() => layout.direction ?? localeDirection(locale()))
+    const intl = createMemo<Locale>(() => locale())
+
     createEffect(() => {
       if (typeof document !== "object") return
       document.documentElement.lang = locale()
+      document.documentElement.dir = direction()
       document.cookie = cookie(locale())
     })
 
@@ -212,8 +230,13 @@ export const { use: useLanguage, provider: LanguageProvider } = createSimpleCont
       locales: LOCALES,
       label,
       t,
+      intl,
+      direction,
       setLocale(next: Locale) {
         setStore("locale", next)
+      },
+      setDirection(next: Direction) {
+        setLayout("direction", next === localeDirection(locale()) ? undefined : next)
       },
     }
   },
