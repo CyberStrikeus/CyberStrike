@@ -1,6 +1,8 @@
 import type { Session } from "@cyberstrike-io/sdk/v2/client"
 import { DateTime } from "luxon"
 import { type Accessor, createEffect, createMemo, type JSX, startTransition } from "solid-js"
+import { useDialog } from "@cyberstrike-io/ui/context/dialog"
+import { useCommand } from "@/context/command"
 import { useGlobalSync } from "@/context/global-sync"
 import type { LocalProject } from "@/context/layout"
 import { useLanguage } from "@/context/language"
@@ -38,8 +40,44 @@ export type OpenSessionOptions = { background?: boolean }
 // the recent list is populated on mount.
 export function createHomeSessionsController(home: HomeController) {
   const tabs = useTabs()
+  const command = useCommand()
+  const dialog = useDialog()
   const language = useLanguage()
   const globalSync = useGlobalSync()
+
+  // Home command palette: a hidden command that lazily opens DialogHomeCommandPaletteV2
+  // (cross-project session search + command entries) against the focused server.
+  command.register("home.palette", () => [
+    {
+      id: "command.palette",
+      title: language.t("command.palette"),
+      hidden: true,
+      onSelect: async () => {
+        const conn = home.server.focused()
+        if (!conn) return
+        const ctx = home.server.focusedContext()
+        if (!ctx) return
+        const { DialogHomeCommandPaletteV2 } = await import("@/components/dialog-command-palette-v2")
+        void dialog.show(() => (
+          <DialogHomeCommandPaletteV2
+            server={conn}
+            onSelectSession={(entry) => {
+              if (!entry.sessionID || !entry.directory || !entry.server) return
+              const sessionID = entry.sessionID
+              const server = entry.server
+              const directory = entry.project?.worktree ?? entry.directory
+              ctx.projects.open(directory)
+              ctx.projects.touch(directory)
+              void startTransition(() => {
+                const tab = tabs.addSessionTab({ server, sessionId: sessionID })
+                tabs.select(tab)
+              })
+            }}
+          />
+        ))
+      },
+    },
+  ])
 
   const listedDirectories = createMemo(() => home.project.list().flatMap(directories))
 

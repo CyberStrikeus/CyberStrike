@@ -106,6 +106,7 @@ export const dict = {
   "session.report.exported": "Report downloaded successfully",
 
   "palette.search.placeholder": "Search files, commands, sessions, and skills",
+  "palette.search.placeholder.home": "Search commands and sessions",
   "palette.empty": "No results found",
   "palette.group.commands": "Commands",
   "palette.group.files": "Files",
