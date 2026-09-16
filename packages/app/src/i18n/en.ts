@@ -672,6 +672,26 @@ export const dict = {
   "sidebar.gettingStarted.line2": "Connect any provider to use models, inc. Claude, GPT, Gemini etc.",
   "sidebar.project.recentSessions": "Recent sessions",
   "sidebar.project.viewAllSessions": "View all sessions",
+  "sidebar.project.clearNotifications": "Clear notifications",
+
+  "home.projects": "Projects",
+  "home.project.add": "Add project",
+  "home.recentlyClosed": "Recently closed",
+  "home.server.collapse": "Collapse server projects",
+  "home.server.expand": "Expand server projects",
+  "home.sessions.search.placeholder": "Search sessions",
+  "home.sessions.search.placeholder.scoped": "Search sessions in {{scope}}",
+  "home.sessions.search.sessions": "Sessions",
+  "home.sessions.search.noResults": "No sessions found for {{query}}",
+  "home.sessions.empty": "Nothing here yet",
+  "home.sessions.empty.description": "Create a session to get started",
+  "home.sessions.group.today": "Today",
+  "home.sessions.group.yesterday": "Yesterday",
+  "home.sessions.group.older": "Older",
+
+  "session.header.reveal.finder": "Reveal in Finder",
+  "session.header.reveal.fileExplorer": "Reveal in File Explorer",
+  "session.header.reveal.containingFolder": "Open containing folder",
 
   "app.name.desktop": "CyberStrike Desktop",
 
