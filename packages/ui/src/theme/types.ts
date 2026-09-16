@@ -18,9 +18,28 @@ export interface ThemeSeedColors {
   diffDelete: HexColor
 }
 
+export interface ThemePaletteColors {
+  neutral: HexColor
+  ink: HexColor
+  primary: HexColor
+  success: HexColor
+  warning: HexColor
+  error: HexColor
+  info: HexColor
+  accent?: HexColor
+  interactive?: HexColor
+  diffAdd?: HexColor
+  diffDelete?: HexColor
+}
+
 export interface ThemeVariant {
   seeds: ThemeSeedColors
+  // v2-only: a palette input for the v2 primitive-ramp generator (see theme/v2/resolve.ts).
+  // Kept optional/additive here (unlike upstream's discriminated `seeds | palette` union) so
+  // every existing v1 theme (which only ever supplies `seeds`) keeps typechecking unchanged.
+  palette?: ThemePaletteColors
   overrides?: Record<string, ColorValue>
+  v2Overrides?: Record<string, V2ColorValue>
 }
 
 export interface DesktopTheme {
@@ -50,4 +69,8 @@ export type CssVarRef = `var(--${string})`
 
 export type ColorValue = HexColor | CssVarRef
 
+export type V2ColorValue = HexColor | CssVarRef | string
+
 export type ResolvedTheme = Record<ThemeToken, ColorValue>
+
+export type ResolvedV2Theme = Record<string, V2ColorValue>

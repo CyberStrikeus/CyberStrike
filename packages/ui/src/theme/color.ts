@@ -121,7 +121,42 @@ export function generateScale(seed: HexColor, isDark: boolean): HexColor[] {
   return scale
 }
 
-export function generateNeutralScale(seed: HexColor, isDark: boolean): HexColor[] {
+function clamp(v: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, v))
+}
+
+/**
+ * v2-only overload: when `ink` is supplied, derives the neutral ramp by mixing
+ * toward `ink` (used by theme/v2/resolve.ts for palette-based v2 themes). Ported
+ * from upstream/dev's generateNeutralScale. The 2-arg call (no `ink`) is used by
+ * v1 theme resolution and keeps our own CyberStrike-tuned curve below unchanged.
+ */
+export function generateNeutralScale(seed: HexColor, isDark: boolean, ink?: HexColor): HexColor[] {
+  if (ink) {
+    const base = hexToOklch(seed)
+    const lift = (tone: number) =>
+      oklchToHex({
+        l: base.l + (1 - base.l) * tone,
+        c: base.c * Math.max(0, 1 - tone),
+        h: base.h,
+      })
+    const sink = (tone: number) =>
+      oklchToHex({
+        l: base.l * (1 - tone),
+        c: base.c * Math.max(0, 1 - tone * (isDark ? 0.12 : 0.3)),
+        h: base.h,
+      })
+    const bg = isDark
+      ? sink(clamp(0.19 + Math.max(0, base.l - 0.12) * 0.33 + base.c * 1.95, 0.17, 0.27))
+      : base.l < 0.82
+        ? lift(0.86)
+        : lift(clamp(0.1 + base.c * 3.2 + Math.max(0, 0.95 - base.l) * 0.35, 0.1, 0.28))
+    const steps = isDark
+      ? [0, 0.018, 0.039, 0.064, 0.097, 0.143, 0.212, 0.31, 0.46, 0.649, 0.845, 0.984]
+      : [0, 0.022, 0.042, 0.068, 0.102, 0.146, 0.208, 0.296, 0.432, 0.61, 0.81, 0.965]
+    return steps.map((step) => mixColors(bg, ink, step))
+  }
+
   const base = hexToOklch(seed)
   const scale: HexColor[] = []
   const neutralChroma = Math.min(base.c, 0.02)
@@ -191,4 +226,38 @@ export function darken(color: HexColor, amount: number): HexColor {
 export function withAlpha(color: HexColor, alpha: number): string {
   const { r, g, b } = hexToRgb(color)
   return `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${alpha})`
+}
+
+// v2-only helpers below (theme/v2/*) — ported from upstream/dev, additive.
+
+export function shift(color: HexColor, value: { l?: number; c?: number; h?: number }): HexColor {
+  const base = hexToOklch(color)
+  return oklchToHex({
+    l: base.l + (value.l ?? 0),
+    c: base.c * (value.c ?? 1),
+    h: base.h + (value.h ?? 0),
+  })
+}
+
+export function contrastRatio(foreground: HexColor, background: HexColor) {
+  const linear = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
+  const luminance = (hex: HexColor) => {
+    const { r, g, b } = hexToRgb(hex)
+    return 0.2126 * linear(r) + 0.587 * linear(g) + 0.0722 * linear(b)
+  }
+  const fg = luminance(foreground)
+  const bg = luminance(background)
+  const lighter = Math.max(fg, bg)
+  const darker = Math.min(fg, bg)
+  return (lighter + 0.05) / (darker + 0.05)
+}
+
+export function blend(color: HexColor, background: HexColor, alpha: number): HexColor {
+  const fg = hexToRgb(color)
+  const bg = hexToRgb(background)
+  return rgbToHex(
+    fg.r * alpha + bg.r * (1 - alpha),
+    fg.g * alpha + bg.g * (1 - alpha),
+    fg.b * alpha + bg.b * (1 - alpha),
+  )
 }
