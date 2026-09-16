@@ -29,6 +29,7 @@ import { usePlatform } from "@/context/platform"
 import { HighlightsProvider } from "@/context/highlights"
 import { SettingsProvider, useSettings } from "@/context/settings"
 import { TabsProvider } from "@/context/tabs"
+import { GlobalProvider } from "@/context/global"
 import Layout from "@/pages/layout"
 import NewLayout from "@/pages/layout-new"
 import DirectoryLayout from "@/pages/directory-layout"
@@ -77,9 +78,11 @@ function ShellLayout(props: ParentProps) {
   const settings = useSettings()
   return (
     <Show when={settings.general.newLayoutDesigns()} fallback={<Layout>{props.children}</Layout>}>
-      <TabsProvider>
-        <NewLayout>{props.children}</NewLayout>
-      </TabsProvider>
+      <GlobalProvider>
+        <TabsProvider>
+          <NewLayout>{props.children}</NewLayout>
+        </TabsProvider>
+      </GlobalProvider>
     </Show>
   )
 }
