@@ -12,7 +12,7 @@
     "category": "mobile",
     "domains": ["android"],
     "tools": [],
-    "tier": "free"
+    "tier": "pro"
   },
   "files": ["src"],
   "publishConfig": {

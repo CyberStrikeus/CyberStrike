@@ -11,7 +11,7 @@
     "coreApi": "1.2.0",
     "domains": ["red-team"],
     "tools": [],
-    "tier": "free"
+    "tier": "pro"
   },
   "files": ["src"],
   "publishConfig": {
