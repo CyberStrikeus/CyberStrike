@@ -2,6 +2,7 @@ import "@/index.css"
 import { createMemo, ErrorBoundary, Match, Show, Suspense, Switch, lazy, type JSX, type ParentProps } from "solid-js"
 import { Router, Route, Navigate } from "@solidjs/router"
 import { MetaProvider } from "@solidjs/meta"
+import { QueryClient, QueryClientProvider } from "@tanstack/solid-query"
 import { Font } from "@cyberstrike-io/ui/font"
 import { MarkedProvider } from "@cyberstrike-io/ui/context/marked"
 import { DiffComponentProvider } from "@cyberstrike-io/ui/context/diff"
@@ -162,6 +163,22 @@ const resolveDefaultServerUrl = (props: {
   return props.origin
 }
 
+// Single top-level TanStack Query client. Ported v2 components (e.g. the titlebar
+// tab-nav rename via createMutation) resolve their client from this provider;
+// without it useQueryClient() is undefined and mutations crash at defaultMutationOptions.
+function QueryProvider(props: ParentProps) {
+  const client = new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnReconnect: false,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+      },
+    },
+  })
+  return <QueryClientProvider client={client}>{props.children}</QueryClientProvider>
+}
+
 export function AppBaseProviders(props: ParentProps) {
   return (
     <MetaProvider>
@@ -173,7 +190,9 @@ export function AppBaseProviders(props: ParentProps) {
               <DialogProvider>
                 <MarkedProviderWithNativeParser>
                   <DiffComponentProvider component={Diff}>
-                    <CodeComponentProvider component={Code}>{props.children}</CodeComponentProvider>
+                    <CodeComponentProvider component={Code}>
+                      <QueryProvider>{props.children}</QueryProvider>
+                    </CodeComponentProvider>
                   </DiffComponentProvider>
                 </MarkedProviderWithNativeParser>
               </DialogProvider>
