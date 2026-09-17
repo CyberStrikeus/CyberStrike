@@ -16,6 +16,7 @@ import { gitlabAuthPlugin as GitlabAuthPlugin } from "@gitlab/opencode-gitlab-au
 import { registerProvider } from "../cloud/provider-registry"
 import { buildCoreRuntime } from "../cloud/core-runtime"
 import { discoverDomains } from "../cloud/domain-discovery"
+import { Tier } from "../tier/tier"
 
 export namespace Plugin {
   const log = Log.create({ service: "plugin" })
@@ -105,6 +106,13 @@ export namespace Plugin {
     for (const domain of discovery.found) {
       if (!domain.compatible) {
         log.warn("skipping incompatible discovered domain", { name: domain.name, reason: domain.reason })
+        continue
+      }
+      // Tier gate (issue #35): the free/public build refuses pro/enterprise domains
+      // (aws/azure/gcp/oracle/etc.); raising CYBERSTRIKE_TIER unlocks them.
+      const domainTier = domain.manifest.tier ?? "free"
+      if (!Tier.allows(domainTier)) {
+        log.info("skipped domain above active tier", { name: domain.name, tier: domainTier, active: Tier.active() })
         continue
       }
       try {
