@@ -6,7 +6,7 @@
 //     "coreApi": "1.2.0",           // minimum core API it needs (>=), see core-api.ts
 //     "domains": ["aws"],           // domain keys it registers (informational)
 //     "tools":   ["aws_iam_probe"], // tool ids it contributes (informational)
-//     "tier":    "pro"              // "free" | "pro" (informational)
+//     "tier":    "pro"              // "free" | "pro" | "enterprise"
 //   }
 //
 // The manifest is a declaration, not the source of truth: the real registration
@@ -25,7 +25,7 @@ export const DomainManifest = z
       .optional(),
     domains: z.array(z.string()).optional(),
     tools: z.array(z.string()).optional(),
-    tier: z.enum(["free", "pro"]).optional(),
+    tier: z.enum(["free", "pro", "enterprise"]).optional(),
     // Informational grouping for `cyberstrike domains` listing (e.g. "cloud" for
     // azure/gcp/aws/oracle, "mobile" for android/ios). Top-level domains omit it.
     category: z.string().optional(),
