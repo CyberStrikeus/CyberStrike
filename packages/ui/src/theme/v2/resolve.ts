@@ -82,11 +82,36 @@ function seedTone(neutral: HexColor, l: number): HexColor {
   return oklchToHexFit({ l, c: Math.min(base.c, 0.02), h: base.h })
 }
 
+/**
+ * Amplify a dark background's chroma so each theme's neutral hue actually reads as
+ * chrome instead of collapsing to the same near-black. Palette neutrals of dark
+ * themes carry real but tiny chroma (e.g. github 0.014, matrix 0.011, dracula
+ * 0.019); at background lightness that low chroma is imperceptible, so cobalt2,
+ * github, matrix, everforest, rosepine, … all rendered as an identical neutral
+ * near-black even though their hues differ. Upstream's shared neutral-scale math
+ * (faithfully ported in color.ts / this file) has the same limitation, so this is
+ * a deliberate v2 divergence: scale the neutral's chroma up (capped) so the hue
+ * registers, preserving its lightness and hue exactly.
+ *
+ * Genuinely achromatic neutrals stay untouched via `GATE` — cs-1's warm grey
+ * (chroma ~0.006) falls below it, so the default theme resolves byte-identically.
+ * Only dark mode is adjusted; light chrome does not collapse and is left as-is.
+ */
+const BG_TINT_GATE = 0.009
+const BG_TINT_FACTOR = 3
+const BG_TINT_CAP = 0.05
+function tintBackground(neutral: HexColor, isDark: boolean): HexColor {
+  if (!isDark) return neutral
+  const base = hexToOklch(neutral)
+  if (base.c < BG_TINT_GATE) return neutral
+  return oklchToHexFit({ l: base.l, c: Math.min(base.c * BG_TINT_FACTOR, BG_TINT_CAP), h: base.h })
+}
+
 function readPalette(variant: ThemeVariant, isDark: boolean): PaletteInput {
   if ("palette" in variant && variant.palette) {
     const palette = variant.palette
     return {
-      neutral: palette.neutral,
+      neutral: tintBackground(palette.neutral, isDark),
       ink: palette.ink,
       primary: palette.primary,
       accent: palette.accent ?? palette.info,
@@ -102,7 +127,7 @@ function readPalette(variant: ThemeVariant, isDark: boolean): PaletteInput {
   if ("seeds" in variant && variant.seeds) {
     const seeds = variant.seeds
     return {
-      neutral: seedTone(seeds.neutral, isDark ? 0.17 : 0.985),
+      neutral: tintBackground(seedTone(seeds.neutral, isDark ? 0.17 : 0.985), isDark),
       ink: seedTone(seeds.neutral, isDark ? 0.96 : 0.16),
       primary: seeds.primary,
       accent: seeds.interactive,
