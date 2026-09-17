@@ -32,6 +32,7 @@ import { mergeDeep, pipe, sortBy, values } from "remeda"
 import path from "path"
 import { Plugin } from "@/plugin"
 import { Skill } from "../skill"
+import { Tier } from "../tier/tier"
 
 export namespace Agent {
   // Hard step-caps (Layer 1 backstop for the loop-termination fix — see
@@ -93,6 +94,9 @@ export namespace Agent {
       options: z.record(z.string(), z.any()),
       steps: z.number().int().positive().optional(),
       prependRequestContext: z.boolean().optional(),
+      // Minimum runtime tier that unlocks this agent (Tier gate, issue #35). Absent
+      // means "free" — visible in every build. See src/tier/tier.ts.
+      tier: z.enum(["free", "pro", "enterprise"]).optional(),
     })
     .meta({
       ref: "Agent",
@@ -251,6 +255,7 @@ export namespace Agent {
           "Mobile application security specialist. Android/iOS testing, OWASP MASTG/MASVS, static/dynamic analysis, Frida/Objection.",
         mode: "subagent",
         native: true,
+        tier: "pro",
         color: "magenta",
         prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n${PROMPT_METHODOLOGY_CONTINUATION}\n\n---\n\n${PROMPT_MOBILE_APPLICATION}`,
         permission: PermissionNext.merge(
@@ -280,6 +285,7 @@ export namespace Agent {
         description: "Cloud security specialist. AWS, Azure, GCP security testing. IAM, CIS benchmarks.",
         mode: "subagent",
         native: true,
+        tier: "pro",
         color: "cyan",
         prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n${PROMPT_METHODOLOGY_CONTINUATION}\n\n---\n\n${PROMPT_CLOUD_SECURITY}`,
         skills: [
@@ -346,6 +352,7 @@ export namespace Agent {
         description: "Internal network and Active Directory specialist. AD attacks, Kerberos, lateral movement.",
         mode: "subagent",
         native: true,
+        tier: "pro",
         color: "yellow",
         prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n${PROMPT_METHODOLOGY_CONTINUATION}\n\n---\n\n${PROMPT_INTERNAL_NETWORK}`,
         skills: [
@@ -458,6 +465,15 @@ export namespace Agent {
     // applies when not explicitly configured, so user config still overrides.
     for (const name in result) {
       if (result[name].steps == null && name.startsWith("wstg-")) result[name].steps = 60
+    }
+
+    // Tier gate (issue #35): drop any agent whose minimum tier is above the active
+    // runtime tier. Untagged agents are free and always survive. The default (free)
+    // build therefore hides mobile-application / cloud-security / internal-network;
+    // CYBERSTRIKE_TIER=pro (or enterprise) brings them back.
+    for (const name in result) {
+      if (Tier.allows(result[name].tier ?? "free")) continue
+      delete result[name]
     }
 
     return result
