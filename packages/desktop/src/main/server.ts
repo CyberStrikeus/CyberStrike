@@ -1,7 +1,7 @@
+import { spawn } from "node:child_process"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { app, utilityProcess } from "electron"
-import type { Details } from "electron"
+import { app } from "electron"
 import { getLogger } from "./logging"
 import { getUserShell, loadShellEnv } from "./shell-env"
 import { getStore } from "./store"
@@ -9,14 +9,8 @@ import { DEFAULT_SERVER_URL_KEY } from "./store-keys"
 
 export type HealthCheck = { wait: Promise<void> }
 
-type SidecarMessage =
-  | { type: "ready" }
-  | { type: "stopped" }
-  | { type: "error"; error: { message: string; stack?: string } }
-
 export type SidecarListener = { stop: () => Promise<void> }
 
-const SIDECAR_SERVICE_NAME = "cyberstrike server"
 const SIDECAR_START_STALL_TIMEOUT = 60_000
 const SIDECAR_STOP_TIMEOUT = 6_000
 
@@ -54,109 +48,70 @@ export function preferAppEnv(userDataPath: string) {
   return shellEnv
 }
 
+// Resolve how to launch the CyberStrike server. Packaged: the bundled compiled binary under
+// resources. Dev: run the CLI from source via bun (matches the proven pre-port spawn recipe —
+// run from the cyberstrike package dir so bun resolves the CLI's deps relative to cwd).
+function resolveServerLaunch(hostname: string, port: number) {
+  const baseArgs = ["web", "--no-open", "--hostname", hostname, "--port", String(port)]
+  if (app.isPackaged) {
+    const binaryName = process.platform === "win32" ? "cyberstrike.exe" : "cyberstrike"
+    const binary = join(process.resourcesPath, "cyberstrike", "bin", binaryName)
+    return { command: binary, args: baseArgs, cwd: dirname(binary) }
+  }
+  // out/main/index.js → out → desktop → packages → cyberstrike
+  const here = dirname(fileURLToPath(import.meta.url))
+  const cyberstrikeDir = join(here, "..", "..", "..", "cyberstrike")
+  const entry = join(cyberstrikeDir, "src", "index.ts")
+  return { command: "bun", args: ["run", entry, ...baseArgs], cwd: cyberstrikeDir }
+}
+
+// Start the local CyberStrike server as a managed child process on 4096. Our server is
+// bun-coupled (Bun.serve, $, …), so it runs as its own bun process rather than in-process
+// under Electron's Node runtime. Loopback requests skip auth, so the renderer connects with
+// no credentials; the password is still passed so the CLI (which requires one) will start.
 export async function spawnLocalServer(
   hostname: string,
   port: number,
   password: string,
   options: SpawnLocalServerOptions,
 ) {
-  const sidecar = join(dirname(fileURLToPath(import.meta.url)), "sidecar.js")
-  const child = utilityProcess.fork(sidecar, [], {
-    cwd: process.cwd(),
-    env: createSidecarEnv(),
-    serviceName: SIDECAR_SERVICE_NAME,
-    stdio: "pipe",
+  const launch = resolveServerLaunch(hostname, port)
+  const child = spawn(launch.command, launch.args, {
+    cwd: launch.cwd,
+    env: { ...createSidecarEnv(), CYBERSTRIKE_SERVER_PASSWORD: password },
+    stdio: ["ignore", "pipe", "pipe"],
   })
+
   let exited = false
   const exit = defer<number>()
 
-  const onProcessGone = (_event: unknown, details: Details) => {
-    if (details.type !== "Utility" || details.name !== SIDECAR_SERVICE_NAME) return
-    options.onStderr?.(`utility process gone reason=${details.reason} exitCode=${details.exitCode}`)
-  }
-
-  app.on("child-process-gone", onProcessGone)
   child.once("exit", (code) => {
     exited = true
-    app.off("child-process-gone", onProcessGone)
-    options.onExit?.(code)
-    exit.resolve(code)
+    options.onExit?.(code ?? 0)
+    exit.resolve(code ?? 0)
   })
-  child.on("error", (error) => options.onStderr?.(`utility process error: ${serializeError(error).message}`))
-
+  child.on("error", (error) => options.onStderr?.(`server spawn error: ${serializeError(error).message}`))
   child.stdout?.on("data", (chunk: Buffer) => options.onStdout?.(chunk.toString("utf8").trimEnd()))
   child.stderr?.on("data", (chunk: Buffer) => options.onStderr?.(chunk.toString("utf8").trimEnd()))
-
-  await new Promise<void>((resolve, reject) => {
-    let done = false
-    let timeout: NodeJS.Timeout
-
-    const fail = (error: Error) => {
-      if (done) return
-      done = true
-      cleanup()
-      reject(error)
-    }
-
-    const refreshTimeout = () => {
-      clearTimeout(timeout)
-      timeout = setTimeout(() => {
-        fail(new Error(`Sidecar did not become ready within ${SIDECAR_START_STALL_TIMEOUT}ms: ${sidecar}`))
-      }, SIDECAR_START_STALL_TIMEOUT)
-    }
-
-    const onMessage = (message: SidecarMessage) => {
-      if (message.type === "ready") {
-        if (done) return
-        done = true
-        cleanup()
-        resolve()
-        return
-      }
-      if (message.type === "error") {
-        fail(Object.assign(new Error(message.error.message), { stack: message.error.stack }))
-      }
-    }
-    const onExit = (code: number) => {
-      fail(new Error(`Sidecar exited before ready with code ${code}`))
-    }
-    const cleanup = () => {
-      clearTimeout(timeout)
-      child.off("message", onMessage)
-      child.off("exit", onExit)
-    }
-
-    child.on("message", onMessage)
-    child.on("exit", onExit)
-    refreshTimeout()
-    child.postMessage({
-      type: "start",
-      hostname,
-      port,
-      password,
-      userDataPath: options.userDataPath,
-    })
-  }).catch((error) => {
-    if (!exited) child.kill()
-    throw error
-  })
 
   const wait = (async () => {
     const url = `http://${hostname}:${port}`
     let healthy = false
     const gone = exit.promise.then((code) => {
       if (healthy) return
-      throw new Error(`Sidecar exited before health check passed with code ${code}`)
+      throw new Error(`Server exited before health check passed with code ${code}`)
     })
 
     const ready = async () => {
-      while (true) {
-        await new Promise((resolve) => setTimeout(resolve, 100))
+      const deadline = Date.now() + SIDECAR_START_STALL_TIMEOUT
+      while (Date.now() < deadline) {
+        await delay(150)
         if (await checkHealth(url, password)) {
           healthy = true
           return
         }
       }
+      throw new Error(`Server did not become ready within ${SIDECAR_START_STALL_TIMEOUT}ms`)
     }
 
     await Promise.race([ready(), gone])
@@ -169,11 +124,11 @@ export async function spawnLocalServer(
       stop: () => {
         if (stopping) return stopping
         if (exited) return Promise.resolve()
-        child.postMessage({ type: "stop" })
+        child.kill()
         stopping = Promise.race([
           exit.promise.then(() => undefined),
           delay(SIDECAR_STOP_TIMEOUT).then(() => {
-            if (!exited) child.kill()
+            if (!exited) child.kill("SIGKILL")
           }),
         ])
         return stopping
@@ -186,14 +141,16 @@ export async function spawnLocalServer(
 export async function checkHealth(url: string, password?: string | null): Promise<boolean> {
   let healthUrls: URL[]
   try {
-    healthUrls = [new URL("/api/health", url), new URL("/global/health", url)]
+    // "/" first: our server answers on the root over loopback (auth skipped). The /api and
+    // /global health paths are kept as fallbacks for other server variants.
+    healthUrls = [new URL("/", url), new URL("/api/health", url), new URL("/global/health", url)]
   } catch {
     return false
   }
 
   const headers = new Headers()
   if (password) {
-    const auth = Buffer.from(`opencode:${password}`).toString("base64")
+    const auth = Buffer.from(`cyberstrike:${password}`).toString("base64")
     headers.set("authorization", `Basic ${auth}`)
   }
 
@@ -204,7 +161,8 @@ export async function checkHealth(url: string, password?: string | null): Promis
         headers,
         signal: AbortSignal.timeout(3000),
       })
-      if (res.ok) return true
+      // Any answer (including 401) means the server process is up and listening.
+      if (res.status < 500) return true
     } catch {}
   }
   return false
