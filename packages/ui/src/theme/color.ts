@@ -3,14 +3,16 @@ import type { HexColor, OklchColor } from "./types"
 export function hexToRgb(hex: HexColor): { r: number; g: number; b: number } {
   const h = hex.replace("#", "")
   const full =
-    h.length === 3
+    h.length === 3 || h.length === 4
       ? h
           .split("")
           .map((c) => c + c)
           .join("")
       : h
+  // Drop any alpha channel (#rrggbbaa / #rgba) before parsing — matches upstream.
+  const rgb = full.length === 8 ? full.slice(0, 6) : full
 
-  const num = parseInt(full, 16)
+  const num = parseInt(rgb, 16)
   return {
     r: ((num >> 16) & 255) / 255,
     g: ((num >> 8) & 255) / 255,
@@ -240,11 +242,15 @@ export function generateAlphaScale(scale: HexColor[], isDark: boolean): HexColor
 export function mixColors(color1: HexColor, color2: HexColor, amount: number): HexColor {
   const c1 = hexToOklch(color1)
   const c2 = hexToOklch(color2)
+  // Interpolate hue the short way around the wheel and gamut-fit the result — the
+  // upstream/dev behaviour. Only the v2 neutral ramp (generateNeutralScale's ink
+  // branch) calls mixColors; the v1 resolver never does, so this stays v2-only.
+  const delta = ((((c2.h - c1.h) % 360) + 540) % 360) - 180
 
-  return oklchToHex({
+  return oklchToHexFit({
     l: c1.l + (c2.l - c1.l) * amount,
     c: c1.c + (c2.c - c1.c) * amount,
-    h: c1.h + (c2.h - c1.h) * amount,
+    h: c1.h + delta * amount,
   })
 }
 
