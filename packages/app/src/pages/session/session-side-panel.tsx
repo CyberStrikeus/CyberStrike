@@ -13,6 +13,9 @@ import {
 import { useParams } from "@solidjs/router"
 import { Tabs } from "@cyberstrike-io/ui/tabs"
 import { IconButton } from "@cyberstrike-io/ui/icon-button"
+import { Button } from "@cyberstrike-io/ui/button"
+import { Spinner } from "@cyberstrike-io/ui/spinner"
+import { showToast } from "@cyberstrike-io/ui/toast"
 import { Tooltip, TooltipKeybind } from "@cyberstrike-io/ui/tooltip"
 import { ResizeHandle } from "@cyberstrike-io/ui/resize-handle"
 import { Mark } from "@cyberstrike-io/ui/logo"
@@ -40,7 +43,7 @@ import { useLayout } from "@/context/layout"
 import { useSync } from "@/context/sync"
 import { useSDK } from "@/context/sdk"
 import { Icon } from "@cyberstrike-io/ui/icon"
-import type { Message, UserMessage, Vulnerability } from "@cyberstrike-io/sdk/v2/client"
+import type { Message, UserMessage, Vulnerability, HackbrowserStatus, HackbrowserPhase } from "@cyberstrike-io/sdk/v2/client"
 
 const statusDot = (status: string) => {
   if (status === "connected") return "bg-icon-success-base"
@@ -945,6 +948,152 @@ function WebContextPanelList() {
   )
 }
 
+const hackbrowserPhaseDot = (phase: HackbrowserPhase) => {
+  if (phase === "crawling") return "bg-icon-success-base"
+  if (phase === "starting") return "bg-icon-warning-base"
+  if (phase === "completed") return "bg-icon-success-base"
+  return "bg-icon-danger-base"
+}
+
+const hackbrowserPhaseBadge = (phase: HackbrowserPhase) => {
+  if (phase === "crawling") return "bg-surface-accent-base text-text-accent-base"
+  if (phase === "starting") return "bg-surface-warning-base text-text-warning-base"
+  if (phase === "completed") return "bg-surface-success-base text-text-success-base"
+  return "bg-surface-critical-base text-text-critical-base"
+}
+
+function HackbrowserPanelList() {
+  const sdk = useSDK()
+  const language = useLanguage()
+  const params = useParams()
+
+  const sessionID = () => params.id ?? ""
+  const [status, setStatus] = createSignal<HackbrowserStatus | undefined>(undefined)
+  const [stopping, setStopping] = createSignal(false)
+
+  // Bootstrap from the status map on mount / session change, then live-subscribe.
+  createEffect(() => {
+    const id = sessionID()
+    setStatus(undefined)
+    if (!id) return
+    sdk.client.session
+      .hackbrowserStatus()
+      .then((x) => {
+        if (sessionID() !== id) return
+        setStatus(x.data?.[id])
+      })
+      .catch(() => {})
+  })
+
+  createEffect(() => {
+    const unsub = sdk.event.on("session.hackbrowser.status", (event) => {
+      if (event.properties.sessionID !== sessionID()) return
+      setStatus(event.properties.status)
+    })
+    onCleanup(unsub)
+  })
+
+  const phase = () => status()?.phase
+  const isActivePhase = () => phase() === "starting" || phase() === "crawling"
+
+  const phaseLabel = (p: HackbrowserPhase) => {
+    if (p === "starting") return language.t("hackbrowser.phase.starting")
+    if (p === "crawling") return language.t("hackbrowser.phase.crawling")
+    if (p === "completed") return language.t("hackbrowser.phase.completed")
+    return language.t("hackbrowser.phase.failed")
+  }
+
+  const stop = async () => {
+    const id = sessionID()
+    if (!id || stopping()) return
+    setStopping(true)
+    try {
+      const result = await sdk.client.session.hackbrowserStop({ sessionID: id })
+      showToast({
+        title: language.t("hackbrowser.title"),
+        description: result.data ? language.t("hackbrowser.stop.requested") : language.t("hackbrowser.stop.none"),
+        variant: result.data ? "success" : "default",
+      })
+    } catch {
+      showToast({ title: language.t("hackbrowser.stop.failed"), variant: "error" })
+    } finally {
+      setStopping(false)
+    }
+  }
+
+  return (
+    <div class="flex flex-col gap-0.5">
+      <div class="flex items-center justify-between px-2 py-1">
+        <span class="text-11-medium text-text-weaker uppercase tracking-wider">{language.t("hackbrowser.title")}</span>
+      </div>
+
+      <Show when={!sessionID()}>
+        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("hackbrowser.noSession")}</div>
+      </Show>
+
+      <Show when={sessionID() && !status()}>
+        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("hackbrowser.empty")}</div>
+      </Show>
+
+      <Show when={status()}>
+        {(s) => (
+          <div class="flex flex-col gap-2 px-2 py-1">
+            <div class="flex items-center gap-2">
+              <Show
+                when={isActivePhase()}
+                fallback={<span class={`w-1.5 h-1.5 rounded-full shrink-0 ${hackbrowserPhaseDot(s().phase)}`} />}
+              >
+                <Spinner class="w-3.5 h-3.5 text-icon-accent-base" />
+              </Show>
+              <span class={`text-10-medium px-1.5 py-0.5 rounded ${hackbrowserPhaseBadge(s().phase)}`}>
+                {phaseLabel(s().phase)}
+              </span>
+            </div>
+
+            <div class="text-12-regular text-text-base break-all">{s().targetUrl}</div>
+
+            <div class="flex items-center gap-1.5 text-11-regular text-text-weaker">
+              <span>
+                {s().pagesExplored} {language.t("hackbrowser.counter.pages")}
+              </span>
+              <span>·</span>
+              <span>
+                {s().capturedEndpoints} {language.t("hackbrowser.counter.endpoints")}
+              </span>
+            </div>
+
+            <Show when={s().currentPage}>
+              <div class="flex flex-col gap-0.5">
+                <span class="text-11-medium text-text-weaker uppercase tracking-wider">
+                  {language.t("hackbrowser.currentPage")}
+                </span>
+                <span class="text-11-regular text-text-base break-all">{s().currentPage}</span>
+              </div>
+            </Show>
+
+            <Show when={s().errors.length > 0}>
+              <div class="flex flex-col gap-0.5">
+                <span class="text-11-medium text-text-weaker uppercase tracking-wider">
+                  {language.t("hackbrowser.errors")}
+                </span>
+                <For each={s().errors}>
+                  {(err) => <span class="text-11-regular text-text-critical-base break-words">{err}</span>}
+                </For>
+              </div>
+            </Show>
+
+            <Show when={isActivePhase()}>
+              <Button variant="primary" size="small" disabled={stopping()} onClick={stop}>
+                {language.t("hackbrowser.stop")}
+              </Button>
+            </Show>
+          </div>
+        )}
+      </Show>
+    </div>
+  )
+}
+
 type SessionSidePanelViewModel = {
   messages: () => Message[]
   visibleUserMessages: () => UserMessage[]
@@ -1068,6 +1217,9 @@ export function SessionSidePanel(props: {
                     <Tabs.Trigger value="vulns-panel">
                       <div class="flex items-center gap-1.5">Vulns</div>
                     </Tabs.Trigger>
+                    <Tabs.Trigger value="hackbrowser-panel">
+                      <div class="flex items-center gap-1.5">{props.language.t("hackbrowser.title")}</div>
+                    </Tabs.Trigger>
                     <Tabs.Trigger value="web-panel">
                       <div class="flex items-center gap-1.5">Web</div>
                     </Tabs.Trigger>
@@ -1154,6 +1306,14 @@ export function SessionSidePanel(props: {
                   <Show when={props.activeTab() === "vulns-panel"}>
                     <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
                       <VulnsPanelList />
+                    </div>
+                  </Show>
+                </Tabs.Content>
+
+                <Tabs.Content value="hackbrowser-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                  <Show when={props.activeTab() === "hackbrowser-panel"}>
+                    <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
+                      <HackbrowserPanelList />
                     </div>
                   </Show>
                 </Tabs.Content>
