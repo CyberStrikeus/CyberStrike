@@ -4,6 +4,7 @@ import { createSimpleContext } from "@cyberstrike-io/ui/context"
 import { showToast } from "@cyberstrike-io/ui/toast"
 import { useParams } from "@solidjs/router"
 import { getFilename } from "@cyberstrike-io/util/path"
+import { base64Encode } from "@cyberstrike-io/util/encode"
 import { useSDK } from "./sdk"
 import { useSync } from "./sync"
 import { useLanguage } from "@/context/language"
@@ -61,7 +62,9 @@ export const { use: useFile, provider: FileProvider } = createSimpleContext({
 
     const scope = createMemo(() => sdk.directory)
     const path = createPathHelpers(scope)
-    const tabs = layout.tabs(() => `${params.dir}${params.id ? "/" + params.id : ""}`)
+    const tabs = layout.tabs(
+      () => `${params.dir ?? base64Encode(sdk.directory)}${params.id ? "/" + params.id : ""}`,
+    )
 
     const inflight = new Map<string, Promise<void>>()
     const [store, setStore] = createStore<{

@@ -5,6 +5,7 @@ import { useParams } from "@solidjs/router"
 import { useSDK } from "./sdk"
 import type { Platform } from "./platform"
 import { Persist, persisted, removePersisted } from "@/utils/persist"
+import { base64Encode } from "@cyberstrike-io/util/encode"
 
 export type LocalPTY = {
   id: string
@@ -320,7 +321,9 @@ export const { use: useTerminal, provider: TerminalProvider } = createSimpleCont
       return entry.value
     }
 
-    const workspace = createMemo(() => loadWorkspace(params.dir!, params.id))
+    // Fall back to the SDK's real directory on the /new-session draft route, which has
+    // no :dir param (see prompt.tsx for the full rationale).
+    const workspace = createMemo(() => loadWorkspace(params.dir ?? base64Encode(sdk.directory), params.id))
 
     return {
       ready: () => workspace().ready(),

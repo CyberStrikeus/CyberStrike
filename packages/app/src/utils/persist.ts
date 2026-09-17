@@ -214,8 +214,12 @@ function normalize(defaults: unknown, raw: string, migrate?: (value: unknown) =>
 }
 
 function workspaceStorage(dir: string) {
-  const head = dir.slice(0, 12) || "workspace"
-  const sum = checksum(dir) ?? "0"
+  // Defensive: a missing dir must not crash the whole app at the storage-key layer
+  // (a null-directory route once reached here as undefined). Callers resolve a real
+  // directory; this only keeps a stray undefined from throwing on .slice.
+  const safe = dir ?? ""
+  const head = safe.slice(0, 12) || "workspace"
+  const sum = checksum(safe) ?? "0"
   return `cyberstrike.workspace.${head}.${sum}.dat`
 }
 

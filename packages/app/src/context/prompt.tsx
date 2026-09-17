@@ -4,8 +4,9 @@ import { batch, createMemo, createRoot, onCleanup } from "solid-js"
 import { useParams } from "@solidjs/router"
 import type { FileSelection } from "@/context/file"
 import { Persist, persisted } from "@/utils/persist"
-import { checksum } from "@cyberstrike-io/util/encode"
+import { base64Encode, checksum } from "@cyberstrike-io/util/encode"
 import { createPromptSession as createScopedPromptSession, type PromptSession } from "./prompt-state"
+import { useSDK } from "./sdk"
 import { useTabs, type Tab } from "./tabs"
 
 export type { PromptSession, PromptModel } from "./prompt-state"
@@ -212,6 +213,7 @@ export const { use: usePrompt, provider: PromptProvider } = createSimpleContext(
   gate: false,
   init: () => {
     const params = useParams()
+    const sdk = useSDK()
     const cache = new Map<string, PromptCacheEntry>()
 
     const disposeAll = () => {
@@ -252,7 +254,11 @@ export const { use: usePrompt, provider: PromptProvider } = createSimpleContext(
       return entry.value
     }
 
-    const session = createMemo(() => load(params.dir!, params.id))
+    // The /:dir route provides params.dir (the base64 URL segment); the /new-session
+    // draft route has no :dir param, so fall back to the base64 of the SDK's real
+    // directory — the same workspace key the /:dir flow uses for that directory —
+    // instead of undefined (which crashed Persist.scoped → dir.slice on the draft route).
+    const session = createMemo(() => load(params.dir ?? base64Encode(sdk.directory), params.id))
 
     return {
       ready: () => session().ready(),
