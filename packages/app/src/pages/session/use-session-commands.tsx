@@ -15,6 +15,7 @@ import { DialogSelectFile } from "@/components/dialog-select-file"
 import { DialogSelectModel } from "@/components/dialog-select-model"
 import { DialogSelectMcp } from "@/components/dialog-select-mcp"
 import { DialogSelectBolt } from "@/components/dialog-select-bolt"
+import { DialogHackbrowserLaunch } from "@/components/dialog-hackbrowser-launch"
 import { DialogSelectVulnerability } from "@/components/dialog-select-vulnerability"
 import { DialogSelectAgent } from "@/components/dialog-select-agent"
 import { DialogSelectSession } from "@/components/dialog-select-session"
@@ -72,6 +73,19 @@ export const useSessionCommands = (input: SessionCommandContext) => {
   const mcpCommand = withCategory(input.language.t("command.category.mcp"))
   const agentCommand = withCategory(input.language.t("command.category.agent"))
   const permissionsCommand = withCategory(input.language.t("command.category.permissions"))
+
+  const openHackbrowserPanel = () => {
+    input.tabs().open("hackbrowser-panel")
+    if (!input.view().reviewPanel.opened()) input.view().reviewPanel.open()
+  }
+
+  const toggleHackbrowserPanel = () => {
+    if (input.tabs().active() === "hackbrowser-panel") {
+      input.tabs().close("hackbrowser-panel")
+      return
+    }
+    openHackbrowserPanel()
+  }
 
   const sessionCommands = createMemo(() => [
     sessionCommand({
@@ -253,6 +267,28 @@ export const useSessionCommands = (input: SessionCommandContext) => {
       description: input.language.t("command.vulnerability.view.description"),
       slash: "vulns",
       onSelect: () => input.dialog.show(() => <DialogSelectVulnerability />),
+    }),
+    mcpCommand({
+      id: "hackbrowser.launch",
+      title: input.language.t("command.hackbrowser.launch"),
+      description: input.language.t("command.hackbrowser.launch.description"),
+      slash: "hackbrowser",
+      disabled: !input.params.id,
+      onSelect: () => {
+        const sessionID = input.params.id
+        if (!sessionID) return
+        input.dialog.show(() => (
+          <DialogHackbrowserLaunch sessionID={sessionID} onLaunched={openHackbrowserPanel} />
+        ))
+      },
+    }),
+    mcpCommand({
+      id: "hackbrowser.panel",
+      title: input.language.t("command.hackbrowser.panel"),
+      description: input.language.t("command.hackbrowser.panel.description"),
+      slash: "hackbrowser-panel",
+      disabled: !input.params.id,
+      onSelect: () => toggleHackbrowserPanel(),
     }),
     agentCommand({
       id: "agent.list",
