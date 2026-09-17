@@ -764,6 +764,7 @@
     },
   },
   "trustedDependencies": [
+    "electron",
     "esbuild",
     "web-tree-sitter",
     "tree-sitter-bash",
