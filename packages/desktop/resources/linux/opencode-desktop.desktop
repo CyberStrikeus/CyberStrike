@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=CyberStrike
+Exec=/opt/CyberStrike/io.cyberstrike.desktop %U
+Terminal=false
+Type=Application
+Icon=io.cyberstrike.desktop
+StartupWMClass=io.cyberstrike.desktop
+NoDisplay=true
+Comment=Open source AI coding agent
+Categories=Development;
