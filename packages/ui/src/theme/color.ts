@@ -91,9 +91,50 @@ export function hexToOklch(hex: HexColor): OklchColor {
   return rgbToOklch(r, g, b)
 }
 
+function hue(v: number) {
+  return ((v % 360) + 360) % 360
+}
+
+/**
+ * Gamut-map an OKLCH color into sRGB by reducing chroma until it fits, keeping
+ * lightness and hue. Ported from upstream/dev. Prevents per-channel clipping
+ * (which shifts hue, e.g. blue → cyan) when a generated ramp step is out of the
+ * sRGB gamut. For in-gamut colors this is an exact no-op, so v1 rendering — whose
+ * seeds/steps stay in gamut — is unchanged.
+ */
+export function fitOklch(oklch: OklchColor): OklchColor {
+  const base = {
+    l: Math.max(0, Math.min(1, oklch.l)),
+    c: Math.max(0, oklch.c),
+    h: hue(oklch.h),
+  }
+
+  const rgb = oklchToRgb(base)
+  if (rgb.r >= 0 && rgb.r <= 1 && rgb.g >= 0 && rgb.g <= 1 && rgb.b >= 0 && rgb.b <= 1) {
+    return base
+  }
+
+  let c = base.c
+  for (let i = 0; i < 24; i++) {
+    c *= 0.9
+    const next = { ...base, c }
+    const out = oklchToRgb(next)
+    if (out.r >= 0 && out.r <= 1 && out.g >= 0 && out.g <= 1 && out.b >= 0 && out.b <= 1) {
+      return next
+    }
+  }
+
+  return { ...base, c: 0 }
+}
+
 export function oklchToHex(oklch: OklchColor): HexColor {
   const { r, g, b } = oklchToRgb(oklch)
   return rgbToHex(r, g, b)
+}
+
+/** v2-only: gamut-fitted OKLCH → hex (see fitOklch). Keeps v1 oklchToHex raw. */
+export function oklchToHexFit(oklch: OklchColor): HexColor {
+  return oklchToHex(fitOklch(oklch))
 }
 
 export function generateScale(seed: HexColor, isDark: boolean): HexColor[] {
