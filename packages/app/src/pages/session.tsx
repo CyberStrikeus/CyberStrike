@@ -233,8 +233,19 @@ export default function Page() {
   }
 
   const isDesktop = createMediaQuery("(min-width: 1024px)")
-  const desktopReviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened())
-  const desktopFileTreeOpen = createMemo(() => isDesktop() && layout.fileTree.opened())
+  // A session is "active" once it has messages. The new-session empty state (no id,
+  // or an id whose messages are loaded and empty) keeps the clean centered layout with
+  // no Review/Status side panels. During load (messages not yet fetched) we treat it as
+  // active so opening an existing session doesn't flash the empty layout.
+  const sessionActive = createMemo(() => {
+    const id = params.id
+    if (!id) return false
+    const list = sync.data.message[id]
+    if (list === undefined) return true
+    return list.length > 0
+  })
+  const desktopReviewOpen = createMemo(() => sessionActive() && isDesktop() && view().reviewPanel.opened())
+  const desktopFileTreeOpen = createMemo(() => sessionActive() && isDesktop() && layout.fileTree.opened())
   const desktopSidePanelOpen = createMemo(() => desktopReviewOpen() || desktopFileTreeOpen())
   const sessionPanelWidth = createMemo(() => {
     if (!desktopSidePanelOpen()) return "100%"
