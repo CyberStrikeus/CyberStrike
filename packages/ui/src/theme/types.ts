@@ -33,10 +33,12 @@ export interface ThemePaletteColors {
 }
 
 export interface ThemeVariant {
-  seeds: ThemeSeedColors
-  // v2-only: a palette input for the v2 primitive-ramp generator (see theme/v2/resolve.ts).
-  // Kept optional/additive here (unlike upstream's discriminated `seeds | palette` union) so
-  // every existing v1 theme (which only ever supplies `seeds`) keeps typechecking unchanged.
+  // A variant supplies EITHER `seeds` (v1 fork themes) or `palette` (upstream v2
+  // themes); both resolvers accept either and derive the missing shape from the
+  // one present (see theme/resolve.ts `seedsOf` and theme/v2/resolve.ts
+  // `readPalette`). At least one must be present.
+  seeds?: ThemeSeedColors
+  // v2 palette input for the v2 primitive-ramp generator (see theme/v2/resolve.ts).
   palette?: ThemePaletteColors
   overrides?: Record<string, ColorValue>
   v2Overrides?: Record<string, V2ColorValue>

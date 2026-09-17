@@ -1,8 +1,32 @@
-import type { ColorValue, DesktopTheme, HexColor, ResolvedTheme, ThemeVariant } from "./types"
+import type { ColorValue, DesktopTheme, HexColor, ResolvedTheme, ThemeSeedColors, ThemeVariant } from "./types"
 import { generateNeutralScale, generateScale, hexToOklch, oklchToHex, withAlpha } from "./color"
 
+/**
+ * v1 resolution keys off `seeds`. Upstream v2 themes ship only a `palette`, so
+ * derive an equivalent seed set from it (the v1 ramp generators only need these
+ * nine hues). Fork themes that already carry `seeds` are returned unchanged, so
+ * their v1 rendering stays byte-identical.
+ */
+function seedsOf(variant: ThemeVariant): ThemeSeedColors {
+  if (variant.seeds) return variant.seeds
+  const p = variant.palette
+  if (!p) throw new Error("Theme variant requires `seeds` or `palette`")
+  return {
+    neutral: p.neutral,
+    primary: p.primary,
+    success: p.success,
+    warning: p.warning,
+    error: p.error,
+    info: p.info,
+    interactive: p.interactive ?? p.accent ?? p.primary,
+    diffAdd: p.diffAdd ?? p.success,
+    diffDelete: p.diffDelete ?? p.error,
+  }
+}
+
 export function resolveThemeVariant(variant: ThemeVariant, isDark: boolean): ResolvedTheme {
-  const { seeds, overrides = {} } = variant
+  const seeds = seedsOf(variant)
+  const overrides = variant.overrides ?? {}
 
   const neutral = generateNeutralScale(seeds.neutral, isDark)
   const primary = generateScale(seeds.primary, isDark)
