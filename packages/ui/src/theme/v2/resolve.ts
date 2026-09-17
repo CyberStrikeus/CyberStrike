@@ -1,6 +1,6 @@
 // @refresh reload
 
-import { generateNeutralScale, hexToOklch, oklchToHex, shift } from "../color"
+import { generateNeutralScale, hexToOklch, oklchToHexFit, shift } from "../color"
 import { mapV2Foreground } from "./foreground"
 import { mapV2Semantics, mergeV2Tokens } from "./mapping"
 import type { DesktopTheme, HexColor, ResolvedV2Theme, ThemeVariant, V2ColorValue } from "../types"
@@ -47,7 +47,7 @@ function generateV2HueScale(seed: HexColor, isDark: boolean): HexColor[] {
   const chromaMultipliers = [0.28, 0.48, 0.68, 0.86, 1.02, 1.28, 1.34, 1.28, 1.18, 1.08, 0.98, 0.88]
 
   return lightSteps.map((l, i) =>
-    oklchToHex({
+    oklchToHexFit({
       l,
       c: base.c * chromaMultipliers[i]! * chromaBoost,
       h: base.h,
@@ -69,7 +69,20 @@ function assignHueRamp(prefix: string, scale: HexColor[]): Record<string, V2Colo
   return tokens
 }
 
-function readPalette(variant: ThemeVariant): PaletteInput {
+/**
+ * Derive a v2 background/ink pair from a v1 seed neutral. v1 seeds carry a single
+ * mid-tone `neutral`; the v2 grey ramp instead needs an extreme background tone
+ * plus an opposite ink tone (see palette themes' neutral/ink). We push the seed's
+ * lightness to the mode-appropriate extreme while keeping its hue and a little of
+ * its chroma, so each theme's grey ramp stays faintly tinted (e.g. cs-1's warm
+ * grey stays near-neutral, a bluish neutral stays cool) but spans the full range.
+ */
+function seedTone(neutral: HexColor, l: number): HexColor {
+  const base = hexToOklch(neutral)
+  return oklchToHexFit({ l, c: Math.min(base.c, 0.02), h: base.h })
+}
+
+function readPalette(variant: ThemeVariant, isDark: boolean): PaletteInput {
   if ("palette" in variant && variant.palette) {
     const palette = variant.palette
     return {
@@ -89,10 +102,10 @@ function readPalette(variant: ThemeVariant): PaletteInput {
   if ("seeds" in variant && variant.seeds) {
     const seeds = variant.seeds
     return {
-      neutral: seeds.neutral,
-      ink: seeds.neutral,
+      neutral: seedTone(seeds.neutral, isDark ? 0.17 : 0.985),
+      ink: seedTone(seeds.neutral, isDark ? 0.96 : 0.16),
       primary: seeds.primary,
-      accent: seeds.info,
+      accent: seeds.interactive,
       success: seeds.success,
       warning: seeds.warning,
       error: seeds.error,
@@ -107,7 +120,7 @@ function readPalette(variant: ThemeVariant): PaletteInput {
 
 /** Build v2 primitive ramps (100 = lightest). Alpha ramps are static in `v2/styles/colors.css`. */
 export function generateV2Primitives(variant: ThemeVariant, isDark: boolean): Record<string, V2ColorValue> {
-  const colors = readPalette(variant)
+  const colors = readPalette(variant, isDark)
   const grey = generateV2NeutralScale(colors.neutral, colors.ink, isDark)
   const blue = generateV2HueScale(colors.interactive, isDark)
   const green = generateV2HueScale(colors.success, isDark)
@@ -135,7 +148,7 @@ export function generateV2Primitives(variant: ThemeVariant, isDark: boolean): Re
 export function resolveThemeVariantV2(variant: ThemeVariant, isDark: boolean): ResolvedV2Theme {
   const primitives = generateV2Primitives(variant, isDark)
   const semantics = mapV2Semantics(isDark)
-  const foreground = mapV2Foreground(readPalette(variant).ink, isDark, primitives, variant.overrides)
+  const foreground = mapV2Foreground(readPalette(variant, isDark).ink, isDark, primitives, variant.overrides)
   return mergeV2Tokens(primitives, semantics, foreground, variant.v2Overrides ?? {})
 }
 
