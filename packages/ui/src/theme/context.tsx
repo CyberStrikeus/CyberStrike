@@ -2,6 +2,7 @@ import { onMount, onCleanup, createEffect } from "solid-js"
 import { createStore } from "solid-js/store"
 import type { DesktopTheme } from "./types"
 import { resolveThemeVariant, themeToCss } from "./resolve"
+import { resolveThemeVariantV2, themeV2ToCss } from "./v2/resolve"
 import { DEFAULT_THEMES } from "./default-themes"
 import { createSimpleContext } from "../context/helper"
 
@@ -34,10 +35,14 @@ function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "da
   const variant = isDark ? theme.dark : theme.light
   const tokens = resolveThemeVariant(variant, isDark)
   const css = themeToCss(tokens)
+  // Also drive the v2 `--v2-*` tokens so the v2 UI re-colors per theme. Emitted
+  // unlayered on :root, these override the static defaults in v2/styles/*.css
+  // (which stay as the pre-JS fallback). See theme/v2/resolve.ts.
+  const v2 = themeV2ToCss(resolveThemeVariantV2(variant, isDark))
 
   if (themeId !== "cs-1") {
     try {
-      localStorage.setItem(isDark ? STORAGE_KEYS.THEME_CSS_DARK : STORAGE_KEYS.THEME_CSS_LIGHT, css)
+      localStorage.setItem(isDark ? STORAGE_KEYS.THEME_CSS_DARK : STORAGE_KEYS.THEME_CSS_LIGHT, `${css}\n  ${v2}`)
     } catch {}
   }
 
@@ -45,6 +50,7 @@ function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "da
   color-scheme: ${mode};
   --text-mix-blend-mode: ${isDark ? "plus-lighter" : "multiply"};
   ${css}
+  ${v2}
 }`
 
   document.getElementById("cs-theme-preload")?.remove()
@@ -60,8 +66,9 @@ function cacheThemeVariants(theme: DesktopTheme, themeId: string) {
     const variant = isDark ? theme.dark : theme.light
     const tokens = resolveThemeVariant(variant, isDark)
     const css = themeToCss(tokens)
+    const v2 = themeV2ToCss(resolveThemeVariantV2(variant, isDark))
     try {
-      localStorage.setItem(isDark ? STORAGE_KEYS.THEME_CSS_DARK : STORAGE_KEYS.THEME_CSS_LIGHT, css)
+      localStorage.setItem(isDark ? STORAGE_KEYS.THEME_CSS_DARK : STORAGE_KEYS.THEME_CSS_LIGHT, `${css}\n  ${v2}`)
     } catch {}
   }
 }
