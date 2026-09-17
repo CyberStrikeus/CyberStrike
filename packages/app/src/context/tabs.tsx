@@ -360,16 +360,8 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
         if (recentKey() !== key) setRecentKey(key)
       },
       toggleHome(input: { home: boolean; current?: Tab }) {
-        if (input.home) {
-          const tab = store.find((tab) => tabKey(tab) === recentKey())
-          if (tab) navigateTab(tab)
-          return
-        }
-        if (input.current) {
-          setRecentKey(tabKey(input.current))
-          navigate("/")
-          return
-        }
+        // Home always goes home, regardless of the current screen (no toggle-to-recent).
+        if (input.current) setRecentKey(tabKey(input.current))
         navigate("/")
       },
       state<T>(tab: Tab, name: string, init: () => T) {
