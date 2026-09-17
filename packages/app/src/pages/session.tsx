@@ -892,7 +892,7 @@ export default function Page() {
   }
 
   const contextOpen = createMemo(() => tabs().active() === "context" || tabs().all().includes("context"))
-  const panelTabSet = new Set(["mcp-panel", "bolt-panel", "vulns-panel", "todo-panel", "skills-panel"])
+  const panelTabSet = new Set(["mcp-panel", "bolt-panel", "vulns-panel", "hackbrowser-panel", "todo-panel", "skills-panel"])
   const openedTabs = createMemo(() =>
     tabs()
       .all()
