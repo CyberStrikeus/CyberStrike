@@ -11,7 +11,8 @@ import {
   type JSX,
   type ParentProps,
 } from "solid-js"
-import { Router, Route, Navigate, useParams } from "@solidjs/router"
+import { Router, Route, Navigate, useParams, useSearchParams } from "@solidjs/router"
+import { base64Encode } from "@cyberstrike-io/util/encode"
 import { MetaProvider } from "@solidjs/meta"
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query"
 import { Font } from "@cyberstrike-io/ui/font"
@@ -22,7 +23,7 @@ import { I18nProvider } from "@cyberstrike-io/ui/context"
 import { Diff } from "@cyberstrike-io/ui/diff"
 import { Code } from "@cyberstrike-io/ui/code"
 import { ThemeProvider } from "@cyberstrike-io/ui/theme"
-import { GlobalSyncProvider } from "@/context/global-sync"
+import { GlobalSyncProvider, useGlobalSync } from "@/context/global-sync"
 import { PermissionProvider } from "@/context/permission"
 import { LayoutProvider } from "@/context/layout"
 import { GlobalSDKProvider, useGlobalSDK } from "@/context/global-sdk"
@@ -40,11 +41,11 @@ import { LanguageProvider, useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { HighlightsProvider } from "@/context/highlights"
 import { SettingsProvider, useSettings } from "@/context/settings"
-import { TabsProvider } from "@/context/tabs"
+import { TabsProvider, useTabs, type DraftTab } from "@/context/tabs"
 import { GlobalProvider } from "@/context/global"
 import Layout from "@/pages/layout"
 import NewLayout from "@/pages/layout-new"
-import DirectoryLayout from "@/pages/directory-layout"
+import DirectoryLayout, { DirectoryProviders } from "@/pages/directory-layout"
 import { legacySessionHref } from "@/utils/session-route"
 import { ErrorPage } from "./pages/error"
 const Home = lazy(() => import("@/pages/home"))
@@ -76,14 +77,58 @@ const SessionRoute = () => (
 
 const SessionIndexRoute = () => <Navigate href="session" />
 
-// Session tabs build a server-scoped href (/server/<base64(key)>/session/<id>) via
-// utils/session-route `sessionHref`. This single-server fork renders sessions on the
-// directory-based route (/<base64(dir)>/session/<id>) set up by DirectoryLayout, so a
-// server-scoped URL matches no route and renders blank when a tab is reopened. Resolve
-// the session's directory from the (single) server, then redirect to the canonical
-// directory-based URL where DirectoryLayout establishes the per-directory context the
-// Session view needs. Uses only always-mounted providers (global SDK), so it is safe
-// regardless of the newLayoutDesigns shell branch.
+// The v2 tab machine sends drafts to /new-session?draftId=… (context/tabs.tsx
+// `draftHref`). Without a matching route, "/new-session" fell through to /:dir with
+// dir="new-session"; DirectoryLayout's decode64("new-session") is not valid base64 and
+// yields U+FFFD replacement bytes, which became useSDK().directory and were written as
+// the created session's `directory` — so sessions could not be located/rendered by
+// directory (blank sessions, broken tab-return). This route resolves the draft's real
+// target directory (single-server) and renders the new-session composer inside the same
+// per-directory context DirectoryLayout establishes, keyed on that real path — so
+// useSDK().directory is a real project path and submit.ts creates a correct session.
+const DraftRoute = () => {
+  const settings = useSettings()
+  return (
+    <Show when={settings.general.newLayoutDesigns()} fallback={<Navigate href="/" />}>
+      <DraftComposer />
+    </Show>
+  )
+}
+
+const DraftComposer = () => {
+  const [search] = useSearchParams<{ draftId?: string }>()
+  const tabs = useTabs()
+  const globalSync = useGlobalSync()
+  // Resolve the draft's target directory from its DraftTab; fall back to the current
+  // single-server project so the composer always mounts on a real path, never on the
+  // string "new-session".
+  const directory = createMemo(() => {
+    const id = search.draftId
+    const draft = id
+      ? tabs.store.find((tab): tab is DraftTab => tab.type === "draft" && tab.draftID === id)
+      : undefined
+    if (draft?.directory) return draft.directory
+    return globalSync.data.project[0]?.worktree ?? ""
+  })
+  return (
+    <Show when={tabs.ready()} fallback={<Loading />}>
+      <Show when={directory()} keyed fallback={<Navigate href="/" />}>
+        {(dir) => (
+          <DirectoryProviders directory={() => dir} dirBase64={() => base64Encode(dir)}>
+            <SessionProviders>
+              <Suspense fallback={<Loading />}>
+                <Session />
+              </Suspense>
+            </SessionProviders>
+          </DirectoryProviders>
+        )}
+      </Show>
+    </Show>
+  )
+}
+
+// Session view needs. Uses only the always-mounted global SDK, so it is safe regardless
+// of the newLayoutDesigns shell branch.
 const ServerSessionRoute = () => {
   const params = useParams<{ key: string; id: string }>()
   const sdk = useGlobalSDK()
@@ -303,6 +348,7 @@ export function AppInterface(props: { defaultUrl?: string; children?: JSX.Elemen
                 root={(routerProps) => <RouterRoot appChildren={props.children}>{routerProps.children}</RouterRoot>}
               >
                 <Route path="/" component={HomeRoute} />
+                <Route path="/new-session" component={DraftRoute} />
                 <Route path="/server/:key/session/:id" component={ServerSessionRoute} />
                 <Route path="/:dir" component={DirectoryLayout}>
                   <Route path="/" component={SessionIndexRoute} />
