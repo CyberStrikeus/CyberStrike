@@ -8,8 +8,35 @@ import { getDirectory, getFilename } from "@cyberstrike-io/util/path"
 
 const MAIN_WORKTREE = "main"
 const CREATE_WORKTREE = "create"
+// Clean centered empty-session layout: the wordmark watermark and the metadata sit
+// centered in the column, above the docked (and, on desktop, centered) composer. The
+// bottom padding reserves room for the prompt dock so nothing hides behind it.
 const ROOT_CLASS =
-  "size-full flex flex-col justify-end items-start gap-4 flex-[1_0_0] self-stretch max-w-200 mx-auto 2xl:max-w-[1000px] px-6 pb-[calc(var(--prompt-height,11.25rem)+64px)]"
+  "size-full flex flex-col justify-center items-center gap-10 px-6 pb-[calc(var(--prompt-height,11.25rem)+48px)]"
+
+// Big, faint "cyberstrike" text wordmark rendered with the app display font
+// (Space Grotesk Variable). Heavy weight, large responsive size, tight tracking and
+// low opacity so it reads as a centered watermark. Not the emblem, not an SVG
+// letterform path — a simple styled text node.
+function CyberStrikeWordmark() {
+  return (
+    <div
+      data-component="session-new-wordmark"
+      aria-hidden="true"
+      class="select-none pointer-events-none whitespace-nowrap text-text-weaker"
+      style={{
+        "font-family": "'Space Grotesk Variable', system-ui, sans-serif",
+        "font-weight": "700",
+        "font-size": "clamp(2.75rem, 9vw, 6.5rem)",
+        "line-height": "1",
+        "letter-spacing": "-0.04em",
+        opacity: "0.45",
+      }}
+    >
+      cyberstrike
+    </div>
+  )
+}
 
 interface NewSessionViewProps {
   worktree: string
@@ -50,33 +77,35 @@ export function NewSessionView(props: NewSessionViewProps) {
 
   return (
     <div class={ROOT_CLASS}>
-      <div class="text-20-medium text-text-weaker">{language.t("command.session.new")}</div>
-      <div class="flex justify-center items-center gap-3">
-        <Icon name="folder" size="small" />
-        <div class="text-12-medium text-text-weak select-text">
-          {getDirectory(projectRoot())}
-          <span class="text-text-strong">{getFilename(projectRoot())}</span>
-        </div>
-      </div>
-      <div class="flex justify-center items-center gap-1">
-        <Icon name="branch" size="small" />
-        <div class="text-12-medium text-text-weak select-text ml-2">{label(current())}</div>
-      </div>
-      <Show when={sync.project}>
-        {(project) => (
-          <div class="flex justify-center items-center gap-3">
-            <Icon name="pencil-line" size="small" />
-            <div class="text-12-medium text-text-weak">
-              {language.t("session.new.lastModified")}&nbsp;
-              <span class="text-text-strong">
-                {DateTime.fromMillis(project().time.updated ?? project().time.created)
-                  .setLocale(language.locale())
-                  .toRelative()}
-              </span>
-            </div>
+      <CyberStrikeWordmark />
+      <div class="flex flex-col items-center gap-3 text-center">
+        <div class="flex justify-center items-center gap-2">
+          <Icon name="folder" size="small" />
+          <div class="text-12-medium text-text-weak select-text">
+            {getDirectory(projectRoot())}
+            <span class="text-text-strong">{getFilename(projectRoot())}</span>
           </div>
-        )}
-      </Show>
+        </div>
+        <div class="flex justify-center items-center gap-2">
+          <Icon name="branch" size="small" />
+          <div class="text-12-medium text-text-weak select-text">{label(current())}</div>
+        </div>
+        <Show when={sync.project}>
+          {(project) => (
+            <div class="flex justify-center items-center gap-2">
+              <Icon name="pencil-line" size="small" />
+              <div class="text-12-medium text-text-weak">
+                {language.t("session.new.lastModified")}&nbsp;
+                <span class="text-text-strong">
+                  {DateTime.fromMillis(project().time.updated ?? project().time.created)
+                    .setLocale(language.locale())
+                    .toRelative()}
+                </span>
+              </div>
+            </div>
+          )}
+        </Show>
+      </div>
     </div>
   )
 }
