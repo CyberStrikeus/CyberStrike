@@ -1,6 +1,17 @@
 import "@/index.css"
-import { createMemo, ErrorBoundary, Match, Show, Suspense, Switch, lazy, type JSX, type ParentProps } from "solid-js"
-import { Router, Route, Navigate } from "@solidjs/router"
+import {
+  createMemo,
+  createResource,
+  ErrorBoundary,
+  Match,
+  Show,
+  Suspense,
+  Switch,
+  lazy,
+  type JSX,
+  type ParentProps,
+} from "solid-js"
+import { Router, Route, Navigate, useParams } from "@solidjs/router"
 import { MetaProvider } from "@solidjs/meta"
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query"
 import { Font } from "@cyberstrike-io/ui/font"
@@ -14,7 +25,7 @@ import { ThemeProvider } from "@cyberstrike-io/ui/theme"
 import { GlobalSyncProvider } from "@/context/global-sync"
 import { PermissionProvider } from "@/context/permission"
 import { LayoutProvider } from "@/context/layout"
-import { GlobalSDKProvider } from "@/context/global-sdk"
+import { GlobalSDKProvider, useGlobalSDK } from "@/context/global-sdk"
 import { normalizeServerUrl, ServerProvider, useServer } from "@/context/server"
 import { HubConnectScreen } from "@/components/hub-connect"
 import { TerminalProvider } from "@/context/terminal"
@@ -34,6 +45,7 @@ import { GlobalProvider } from "@/context/global"
 import Layout from "@/pages/layout"
 import NewLayout from "@/pages/layout-new"
 import DirectoryLayout from "@/pages/directory-layout"
+import { legacySessionHref } from "@/utils/session-route"
 import { ErrorPage } from "./pages/error"
 const Home = lazy(() => import("@/pages/home"))
 const HomeV2 = lazy(() => import("@/pages/home-v2"))
@@ -63,6 +75,34 @@ const SessionRoute = () => (
 )
 
 const SessionIndexRoute = () => <Navigate href="session" />
+
+// Session tabs build a server-scoped href (/server/<base64(key)>/session/<id>) via
+// utils/session-route `sessionHref`. This single-server fork renders sessions on the
+// directory-based route (/<base64(dir)>/session/<id>) set up by DirectoryLayout, so a
+// server-scoped URL matches no route and renders blank when a tab is reopened. Resolve
+// the session's directory from the (single) server, then redirect to the canonical
+// directory-based URL where DirectoryLayout establishes the per-directory context the
+// Session view needs. Uses only always-mounted providers (global SDK), so it is safe
+// regardless of the newLayoutDesigns shell branch.
+const ServerSessionRoute = () => {
+  const params = useParams<{ key: string; id: string }>()
+  const sdk = useGlobalSDK()
+  const [directory] = createResource(
+    () => params.id,
+    (sessionID) =>
+      sdk.client.session
+        .get({ sessionID })
+        .then((response) => response.data?.directory)
+        .catch(() => undefined),
+  )
+  return (
+    <Suspense fallback={<Loading />}>
+      <Show when={directory()} fallback={<Loading />}>
+        {(dir) => <Navigate href={legacySessionHref(dir(), params.id)} />}
+      </Show>
+    </Suspense>
+  )
+}
 
 function UiI18nBridge(props: ParentProps) {
   const language = useLanguage()
@@ -263,6 +303,7 @@ export function AppInterface(props: { defaultUrl?: string; children?: JSX.Elemen
                 root={(routerProps) => <RouterRoot appChildren={props.children}>{routerProps.children}</RouterRoot>}
               >
                 <Route path="/" component={HomeRoute} />
+                <Route path="/server/:key/session/:id" component={ServerSessionRoute} />
                 <Route path="/:dir" component={DirectoryLayout}>
                   <Route path="/" component={SessionIndexRoute} />
                   <Route path="/session/:id?" component={SessionRoute} />
