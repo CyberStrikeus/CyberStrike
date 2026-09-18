@@ -20,6 +20,41 @@ import { Truncate } from "@/tool/truncation"
 export namespace SessionProcessor {
   const DOOM_LOOP_THRESHOLD = 3
   const log = Log.create({ service: "session.processor" })
+  // A provider stream that yields NO event for this long is treated as stalled (a hung/flaky stream):
+  // the read is abandoned and a StreamIdleError is thrown into the existing retry path, so a fresh
+  // request is attempted instead of the loop parking on the dead stream forever. The timer resets on
+  // EVERY stream event (deltas, tool-call/tool-result, …), so it only fires on TOTAL silence — set it
+  // generously above the slowest single tool round-trip. 0 disables. Env: CYBERSTRIKE_STREAM_IDLE_TIMEOUT_MS.
+  const STREAM_IDLE_TIMEOUT_MS = Math.max(0, Number(process.env.CYBERSTRIKE_STREAM_IDLE_TIMEOUT_MS) || 600_000)
+
+  // Await the iterator's next value, but reject with StreamIdleError if it doesn't settle within idleMs.
+  // The pending next() is left with a no-op catch so its later settlement (e.g. when the caller closes
+  // the stream via iterator.return()) never surfaces as an unhandled rejection.
+  export async function nextWithIdleTimeout<T>(
+    iterator: AsyncIterator<T>,
+    idleMs: number,
+  ): Promise<IteratorResult<T>> {
+    const nextP = iterator.next()
+    if (idleMs <= 0) return nextP
+    nextP.catch(() => {})
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const idleP = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        // Retryable APIError → flows through the existing retry path (fresh request), and if retries
+        // exhaust it surfaces as a normal message error (session goes idle) rather than hanging forever.
+        () =>
+          reject(
+            new MessageV2.APIError({ message: `Provider sent no stream output for ${idleMs}ms (stalled)`, isRetryable: true }),
+          ),
+        idleMs,
+      )
+    })
+    try {
+      return await Promise.race([nextP, idleP])
+    } finally {
+      if (timer) clearTimeout(timer)
+    }
+  }
 
   export type Info = Awaited<ReturnType<typeof create>>
   export type Result = Awaited<ReturnType<Info["process"]>>
@@ -53,9 +88,14 @@ export namespace SessionProcessor {
             let reasoningMap: Record<string, MessageV2.ReasoningPart> = {}
             const stream = await LLM.stream(streamInput)
 
-            for await (const value of stream.fullStream) {
-              input.abort.throwIfAborted()
-              switch (value.type) {
+            const iterator = stream.fullStream[Symbol.asyncIterator]()
+            try {
+              while (true) {
+                const step = await nextWithIdleTimeout(iterator, STREAM_IDLE_TIMEOUT_MS)
+                if (step.done) break
+                const value = step.value
+                input.abort.throwIfAborted()
+                switch (value.type) {
                 case "start":
                   SessionStatus.set(input.sessionID, { type: "busy" })
                   break
@@ -360,7 +400,14 @@ export namespace SessionProcessor {
                   })
                   continue
               }
-              if (needsCompaction) break
+                if (needsCompaction) break
+              }
+            } finally {
+              // Close the underlying stream on break/throw (incl. an idle-timeout abandon) so a hung
+              // request is released rather than leaked — mirrors what `for await` did automatically.
+              try {
+                await iterator.return?.()
+              } catch {}
             }
           } catch (e: any) {
             if (input.abort.aborted) {

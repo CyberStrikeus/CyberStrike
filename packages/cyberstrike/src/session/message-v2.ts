@@ -868,6 +868,11 @@ export namespace MessageV2 {
         ).toObject()
       case MessageV2.OutputLengthError.isInstance(e):
         return e
+      // Preserve an APIError we threw ourselves (e.g. the stream-idle timeout) — without this it would
+      // fall through to the `e instanceof Error` case below and be flattened into an Unknown, losing its
+      // isRetryable flag and message.
+      case MessageV2.APIError.isInstance(e):
+        return e.toObject()
       case LoadAPIKeyError.isInstance(e):
         return new MessageV2.AuthError(
           {
