@@ -11,7 +11,7 @@
     "coreApi": "1.2.0",
     "domains": ["sast"],
     "tools": [],
-    "tier": "pro"
+    "tier": "enterprise"
   },
   "files": ["src"],
   "publishConfig": {
