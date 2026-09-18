@@ -504,3 +504,11 @@ export function query(txs: Transaction[], src: string, opts?: CompileOptions): T
 
 // The registered function names — for docs / an agent-facing capability listing.
 export const functionNames: string[] = Object.keys(FUNCTIONS)
+
+// The parsed AST of an expression — exposed so the sound rule pre-filter (precondition.ts) can derive
+// which literals a `when` provably requires, without re-implementing the parser. Throws (ExprError) on
+// a malformed expression, exactly like compile().
+export type ExprNode = Node
+export function astOf(src: string): Node {
+  return parse(src)
+}
