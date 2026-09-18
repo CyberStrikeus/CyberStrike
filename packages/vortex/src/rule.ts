@@ -6,6 +6,8 @@
 // collapses to one instead of firing per request (the 100x banner noise).
 import type { Transaction, Severity } from "./transaction"
 import type { TrafficStore } from "./store"
+import type { Precondition } from "./precondition"
+import { LiteralScanner, satisfiable, literalsOf, haystackOf } from "./prefilter"
 
 // A per-transaction side-effecting hook a plugin registers to run over ingested traffic. Unlike a
 // Rule (which returns Signals for the registry to collect), a hook is handed the store and a
@@ -46,6 +48,10 @@ export interface Rule {
   severity: Severity
   // Pure + deterministic. Return [] when it does not fire; no-op when a needed response is absent.
   evaluate(tx: Transaction): Signal[]
+  // Optional SOUND pre-filter precondition (#40 P2): the registry may skip this rule for a transaction
+  // whose raw text lacks the required literals — proven safe because those literals are necessary for a
+  // match. Absent ⇒ the rule always runs (fail-open); nothing is ever wrongly skipped.
+  precondition?: Precondition
 }
 
 // Optional per-run context a corpus rule may use. `valueIndex` is a pre-built (or incrementally
@@ -83,9 +89,13 @@ export class RuleRegistry {
   private readonly rules: Rule[] = []
   private readonly corpusRules: CorpusRule[] = []
   private readonly hooks: TransactionHook[] = []
+  // Lazily-built literal scanner over every rule precondition (#40 P2); invalidated whenever a rule is
+  // registered so it always reflects the current rule set.
+  private scanner: LiteralScanner | undefined
 
   register(rule: Rule): this {
     this.rules.push(rule)
+    this.scanner = undefined
     return this
   }
   registerAll(rules: Rule[]): this {
@@ -131,11 +141,35 @@ export class RuleRegistry {
   }
 
   // Every per-transaction rule over ONE transaction (raw, not deduped — one tx can't self-collide
-  // meaningfully, and callers streaming per-tx want the raw hits).
+  // meaningfully, and callers streaming per-tx want the raw hits). Sound-prefiltered (#40 P2): a rule
+  // whose precondition's required literals are absent from the transaction's raw text is skipped — it
+  // provably cannot match. Rules without a precondition (fail-open) always run. Result is identical to
+  // runAll() — locked by an equivalence test.
   run(tx: Transaction): Signal[] {
+    const present = this.ensureScanner().present(haystackOf(tx))
+    const out: Signal[] = []
+    for (const rule of this.rules) {
+      if (rule.precondition && !satisfiable(rule.precondition, present)) continue
+      for (const sig of rule.evaluate(tx)) out.push(sig)
+    }
+    return out
+  }
+
+  // Run EVERY per-transaction rule with no pre-filtering — the reference the prefiltered run() must
+  // match. Used by the equivalence test (and available as an escape hatch).
+  runAll(tx: Transaction): Signal[] {
     const out: Signal[] = []
     for (const rule of this.rules) for (const sig of rule.evaluate(tx)) out.push(sig)
     return out
+  }
+
+  private ensureScanner(): LiteralScanner {
+    if (!this.scanner) {
+      const lits: string[] = []
+      for (const r of this.rules) if (r.precondition) literalsOf(r.precondition, lits)
+      this.scanner = new LiteralScanner(lits)
+    }
+    return this.scanner
   }
 
   // The main entry: run per-transaction rules over EVERY transaction AND corpus rules over the

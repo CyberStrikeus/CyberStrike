@@ -14,6 +14,7 @@ import type { Rule, Signal } from "./rule"
 import { compile } from "./expr"
 import { fieldValue } from "./fields"
 import { RuleMetaShape } from "./rule-meta"
+import { preconditionOf } from "./precondition"
 
 export const DeclarativeRuleSchema = z
   .object({
@@ -45,6 +46,9 @@ export function compileRule(dr: DeclarativeRule): Rule {
     title: dr.title ?? dr.id,
     category: dr.category,
     severity: dr.severity,
+    // Sound pre-filter precondition derived from `when` (#40 P2) — lets the registry skip this rule for a
+    // transaction whose raw text lacks the required literals.
+    precondition: preconditionOf(dr.when),
     evaluate(tx) {
       if (!q.test(tx)) return []
       const dedupKey = dr.dedupBy ? `${dr.id}:${fieldValue(tx, dr.dedupBy) ?? ""}` : undefined

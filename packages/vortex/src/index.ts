@@ -189,3 +189,4 @@ export { accessRules, crossIdentityAccess, unauthenticatedReach } from "./rules/
 export { idorRules, numericIdEnumerable } from "./rules/idor"
 export { idorActiveRules, numericIdNeighbor } from "./rules/idor-active"
 export { AccessMatcher, ChainValueIndex } from "./corpus-incremental"
+export { preconditionOf, regexFactors, type Precondition } from "./precondition"
