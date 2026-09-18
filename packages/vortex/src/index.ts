@@ -188,3 +188,4 @@ export { headerRules, missingSecurityHeaders, weakCookieFlags, serverBanner } fr
 export { accessRules, crossIdentityAccess, unauthenticatedReach } from "./rules/access"
 export { idorRules, numericIdEnumerable } from "./rules/idor"
 export { idorActiveRules, numericIdNeighbor } from "./rules/idor-active"
+export { AccessMatcher } from "./corpus-incremental"

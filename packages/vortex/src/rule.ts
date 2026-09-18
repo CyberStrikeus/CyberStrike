@@ -143,9 +143,15 @@ export class RuleRegistry {
   // are captured incrementally at ingest (run(tx) per hit), so a read path that needs the
   // cross-transaction findings — access-control, chains, aggregate "one finding, many URLs" — gets
   // them here WITHOUT re-running every per-tx rule over the whole corpus again.
-  analyzeCorpus(txs: Transaction[]): Signal[] {
+  // `include` optionally restricts which corpus rules run (default: all) — used by callers that drive
+  // some corpus rules incrementally (e.g. the bridge's AccessMatcher) and so must skip their batch twins
+  // to avoid recomputing them. Existing callers pass nothing and get every corpus rule as before.
+  analyzeCorpus(txs: Transaction[], include?: (rule: CorpusRule) => boolean): Signal[] {
     const out: Signal[] = []
-    for (const rule of this.corpusRules) for (const sig of rule.evaluate(txs)) out.push(sig)
+    for (const rule of this.corpusRules) {
+      if (include && !include(rule)) continue
+      for (const sig of rule.evaluate(txs)) out.push(sig)
+    }
     return dedupe(out)
   }
 }
