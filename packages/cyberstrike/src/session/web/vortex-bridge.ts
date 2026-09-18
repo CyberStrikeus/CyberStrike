@@ -3,7 +3,7 @@
 // Vortex engine (rules → signals → subjects → inventory → leads) runs over the live web corpus in
 // parallel with the existing CS signal fabric (verify-first; the fabric retires once Vortex proves
 // out). Never throws — must not break the ingest path.
-import { SqliteStore, defaultRegistry, registerPlugin, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, subjects, humanName, params, responseFields as txResponseFields, header, AccessMatcher, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type CanaryKind, type VortexPlugin, type Discovered } from "@cyberstrike-io/vortex"
+import { SqliteStore, defaultRegistry, registerPlugin, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, subjects, humanName, params, responseFields as txResponseFields, header, AccessMatcher, ChainValueIndex, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type CanaryKind, type VortexPlugin, type Discovered } from "@cyberstrike-io/vortex"
 import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
@@ -53,6 +53,7 @@ export function dropSession(sessionID: string): void {
   lastCorpusRunAt.delete(sessionID)
   signalsCache.delete(sessionID)
   accessMatchers.delete(sessionID)
+  chainIndexes.delete(sessionID)
 }
 
 // Ingest-activity grace window — an ActivitySource for the SessionLifecycle (#19). Bumped on every hit
@@ -116,6 +117,25 @@ function accessMatcherFor(sessionID: string): AccessMatcher {
   return m
 }
 
+// The chain value-reuse index, maintained INCREMENTALLY (issue #40 P1c): fed each tx at ingest and
+// passed to the batch chain rules via the corpus context, so the join index is not rebuilt over the
+// whole corpus on every run. Byte-identical to the index the chain would build itself, so candidates —
+// and thus signals — are unchanged. Lazily hydrated from the store on first use (restart-safe).
+const chainIndexes = new Map<string, ChainValueIndex>()
+function chainIndexFor(sessionID: string): ChainValueIndex {
+  let idx = chainIndexes.get(sessionID)
+  if (!idx) {
+    idx = new ChainValueIndex()
+    try {
+      for (const t of storeFor(sessionID).all()) idx.observe(t)
+    } catch (e) {
+      log.debug("chain value index hydrate failed (ignored)", { sessionID, err: String(e) })
+    }
+    chainIndexes.set(sessionID, idx)
+  }
+  return idx
+}
+
 // Run the corpus rules over the current corpus and persist (addSignals dedups). Marks the run time and
 // drops the view cache. Best-effort — a store hiccup must never break the read/ingest that called it.
 function runCorpusAnalysis(sessionID: string): void {
@@ -123,7 +143,9 @@ function runCorpusAnalysis(sessionID: string): void {
     const store = storeFor(sessionID)
     // Batch corpus rules EXCEPT access (chains use the P1a value-index; aggregates), then the access
     // matcher's incrementally-maintained findings. Both persist via addSignals (dedup by dedupKey).
-    store.addSignals(registry.analyzeCorpus(store.all(), (r) => !ACCESS_RULE_IDS.has(r.id)))
+    store.addSignals(
+      registry.analyzeCorpus(store.all(), (r) => !ACCESS_RULE_IDS.has(r.id), { valueIndex: chainIndexFor(sessionID).map() }),
+    )
     store.addSignals(accessMatcherFor(sessionID).signals())
   } catch (e) {
     log.debug("vortex corpus analyze failed (ignored)", { sessionID, err: String(e) })
@@ -254,6 +276,7 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
     }
     store.add(tx)
     accessMatcherFor(i.sessionID).observe(tx) // incremental access-control corpus matching (#40 P1c)
+    chainIndexFor(i.sessionID).observe(tx) // incremental chain value-reuse index (#40 P1c)
     bridgeSubjects(i.sessionID, tx, i.requestID)
     const sigs = registry.run(tx) // per-transaction rules on the new tx
     const added = store.addSignals(sigs)
@@ -333,6 +356,7 @@ export function ingestJsBody(sessionID: string, url: string, body: string, statu
     }
     store.add(tx)
     accessMatcherFor(sessionID).observe(tx) // incremental access-control corpus matching (#40 P1c)
+    chainIndexFor(sessionID).observe(tx) // incremental chain value-reuse index (#40 P1c)
     const sigs = registry.run(tx) // core DSL rules over the JS body (secret-in-response / tech / cve / JS packs)
     const added = store.addSignals(sigs)
     let routed = bridgeSignals(sessionID, store, sigs)
