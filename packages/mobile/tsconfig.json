@@ -1,5 +1,0 @@
-{
-  "$schema": "https://json.schemastore.org/tsconfig.json",
-  "extends": "../../tsconfig.domain.base.json",
-  "include": ["src"]
-}

@@ -26,26 +26,6 @@
         "turbo": "2.9.14",
       },
     },
-    "packages/android": {
-      "name": "@cyberstrike-io/android",
-      "version": "0.1.0",
-      "dependencies": {
-        "@cyberstrike-io/plugin": "workspace:*",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@tsconfig/node22": "catalog:",
-        "@types/node": "catalog:",
-        "cyberstrike": "workspace:*",
-        "typescript": "catalog:",
-      },
-      "peerDependencies": {
-        "cyberstrike": "*",
-      },
-      "optionalPeers": [
-        "cyberstrike",
-      ],
-    },
     "packages/app": {
       "name": "@cyberstrike-io/app",
       "version": "1.1.16",
@@ -106,83 +86,6 @@
         "vite-plugin-icons-spritesheet": "3.0.1",
         "vite-plugin-solid": "catalog:",
       },
-    },
-    "packages/attack-surface-mapping": {
-      "name": "@cyberstrike-io/attack-surface-mapping",
-      "version": "0.1.0",
-      "dependencies": {
-        "@cyberstrike-io/plugin": "workspace:*",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@tsconfig/node22": "catalog:",
-        "@types/node": "catalog:",
-        "cyberstrike": "workspace:*",
-        "typescript": "catalog:",
-      },
-      "peerDependencies": {
-        "cyberstrike": "*",
-      },
-      "optionalPeers": [
-        "cyberstrike",
-      ],
-    },
-    "packages/aws": {
-      "name": "@cyberstrike-io/aws",
-      "version": "0.1.0",
-      "dependencies": {
-        "@cyberstrike-io/plugin": "workspace:*",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@tsconfig/node22": "catalog:",
-        "@types/node": "catalog:",
-        "cyberstrike": "workspace:*",
-        "typescript": "catalog:",
-      },
-      "peerDependencies": {
-        "cyberstrike": "*",
-      },
-      "optionalPeers": [
-        "cyberstrike",
-      ],
-    },
-    "packages/azure": {
-      "name": "@cyberstrike-io/azure",
-      "version": "0.1.0",
-      "dependencies": {
-        "@cyberstrike-io/plugin": "workspace:*",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@tsconfig/node22": "catalog:",
-        "cyberstrike": "workspace:*",
-        "typescript": "catalog:",
-      },
-      "peerDependencies": {
-        "cyberstrike": "*",
-      },
-      "optionalPeers": [
-        "cyberstrike",
-      ],
-    },
-    "packages/cloud": {
-      "name": "@cyberstrike-io/cloud",
-      "version": "0.1.0",
-      "dependencies": {
-        "@cyberstrike-io/plugin": "workspace:*",
-      },
-      "devDependencies": {
-        "@tsconfig/node22": "catalog:",
-        "cyberstrike": "workspace:*",
-        "typescript": "catalog:",
-      },
-      "peerDependencies": {
-        "cyberstrike": "*",
-      },
-      "optionalPeers": [
-        "cyberstrike",
-      ],
     },
     "packages/console/app": {
       "name": "@cyberstrike-io/console-app",
@@ -464,56 +367,6 @@
         "@parcel/watcher-win32-x64": "2.5.1",
       },
     },
-    "packages/enterprise": {
-      "name": "@cyberstrike-io/enterprise",
-      "version": "1.1.16",
-      "dependencies": {
-        "@cyberstrike-io/ui": "workspace:*",
-        "@cyberstrike-io/util": "workspace:*",
-        "@pierre/diffs": "catalog:",
-        "@solidjs/meta": "catalog:",
-        "@solidjs/router": "catalog:",
-        "@solidjs/start": "catalog:",
-        "aws4fetch": "^1.0.20",
-        "hono": "catalog:",
-        "hono-openapi": "catalog:",
-        "js-base64": "3.7.7",
-        "luxon": "catalog:",
-        "nitro": "3.0.260429-beta",
-        "solid-js": "catalog:",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@cloudflare/workers-types": "catalog:",
-        "@tailwindcss/vite": "catalog:",
-        "@types/luxon": "catalog:",
-        "@typescript/native-preview": "catalog:",
-        "tailwindcss": "catalog:",
-        "typescript": "catalog:",
-        "vite": "catalog:",
-      },
-    },
-    "packages/enterprise-vortex": {
-      "name": "@cyberstrike-io/enterprise-vortex",
-      "version": "0.1.0",
-      "dependencies": {
-        "@cyberstrike-io/jsmine": "workspace:*",
-      },
-      "devDependencies": {
-        "@cyberstrike-io/plugin": "workspace:*",
-        "@cyberstrike-io/vortex": "workspace:*",
-        "@tsconfig/bun": "catalog:",
-        "@types/bun": "catalog:",
-        "cyberstrike": "workspace:*",
-        "typescript": "catalog:",
-      },
-      "peerDependencies": {
-        "cyberstrike": "*",
-      },
-      "optionalPeers": [
-        "cyberstrike",
-      ],
-    },
     "packages/function": {
       "name": "@cyberstrike-io/function",
       "version": "1.1.16",
@@ -530,26 +383,6 @@
         "typescript": "catalog:",
       },
     },
-    "packages/gcp": {
-      "name": "@cyberstrike-io/gcp",
-      "version": "0.1.0",
-      "dependencies": {
-        "@cyberstrike-io/plugin": "workspace:*",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@tsconfig/node22": "catalog:",
-        "@types/node": "catalog:",
-        "cyberstrike": "workspace:*",
-        "typescript": "catalog:",
-      },
-      "peerDependencies": {
-        "cyberstrike": "*",
-      },
-      "optionalPeers": [
-        "cyberstrike",
-      ],
-    },
     "packages/hackbrowser": {
       "name": "@cyberstrike-io/hackbrowser",
       "version": "1.1.16",
@@ -557,94 +390,6 @@
         "@types/node": "catalog:",
         "typescript": "catalog:",
       },
-    },
-    "packages/internal-network": {
-      "name": "@cyberstrike-io/internal-network",
-      "version": "0.1.0",
-      "dependencies": {
-        "@cyberstrike-io/plugin": "workspace:*",
-      },
-      "devDependencies": {
-        "@tsconfig/node22": "catalog:",
-        "cyberstrike": "workspace:*",
-        "typescript": "catalog:",
-      },
-      "peerDependencies": {
-        "cyberstrike": "*",
-      },
-      "optionalPeers": [
-        "cyberstrike",
-      ],
-    },
-    "packages/ios": {
-      "name": "@cyberstrike-io/ios",
-      "version": "0.1.0",
-      "dependencies": {
-        "@cyberstrike-io/plugin": "workspace:*",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@tsconfig/node22": "catalog:",
-        "@types/node": "catalog:",
-        "cyberstrike": "workspace:*",
-        "typescript": "catalog:",
-      },
-      "peerDependencies": {
-        "cyberstrike": "*",
-      },
-      "optionalPeers": [
-        "cyberstrike",
-      ],
-    },
-    "packages/jsmine": {
-      "name": "@cyberstrike-io/jsmine",
-      "version": "0.1.0",
-      "dependencies": {
-        "@cyberstrike-io/vortex": "workspace:*",
-      },
-      "devDependencies": {
-        "@tsconfig/bun": "catalog:",
-        "@types/bun": "catalog:",
-        "typescript": "catalog:",
-      },
-    },
-    "packages/mobile": {
-      "name": "@cyberstrike-io/mobile",
-      "version": "0.1.0",
-      "dependencies": {
-        "@cyberstrike-io/plugin": "workspace:*",
-      },
-      "devDependencies": {
-        "@tsconfig/node22": "catalog:",
-        "cyberstrike": "workspace:*",
-        "typescript": "catalog:",
-      },
-      "peerDependencies": {
-        "cyberstrike": "*",
-      },
-      "optionalPeers": [
-        "cyberstrike",
-      ],
-    },
-    "packages/oracle": {
-      "name": "@cyberstrike-io/oracle",
-      "version": "0.1.0",
-      "dependencies": {
-        "@cyberstrike-io/plugin": "workspace:*",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@tsconfig/node22": "catalog:",
-        "@types/node": "catalog:",
-        "cyberstrike": "workspace:*",
-        "typescript": "catalog:",
-      },
-      "peerDependencies": {
-        "cyberstrike": "*",
-      },
-      "optionalPeers": [
-        "cyberstrike",
-      ],
     },
     "packages/plugin": {
       "name": "@cyberstrike-io/plugin",
@@ -659,46 +404,6 @@
         "@typescript/native-preview": "catalog:",
         "typescript": "catalog:",
       },
-    },
-    "packages/red-team": {
-      "name": "@cyberstrike-io/red-team",
-      "version": "0.1.0",
-      "dependencies": {
-        "@cyberstrike-io/plugin": "workspace:*",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@tsconfig/node22": "catalog:",
-        "@types/node": "catalog:",
-        "cyberstrike": "workspace:*",
-        "typescript": "catalog:",
-      },
-      "peerDependencies": {
-        "cyberstrike": "*",
-      },
-      "optionalPeers": [
-        "cyberstrike",
-      ],
-    },
-    "packages/sast": {
-      "name": "@cyberstrike-io/sast",
-      "version": "0.1.0",
-      "dependencies": {
-        "@cyberstrike-io/plugin": "workspace:*",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@tsconfig/node22": "catalog:",
-        "@types/node": "catalog:",
-        "cyberstrike": "workspace:*",
-        "typescript": "catalog:",
-      },
-      "peerDependencies": {
-        "cyberstrike": "*",
-      },
-      "optionalPeers": [
-        "cyberstrike",
-      ],
     },
     "packages/script": {
       "name": "@cyberstrike-io/script",
@@ -1174,17 +879,7 @@
 
     "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
 
-    "@cyberstrike-io/android": ["@cyberstrike-io/android@workspace:packages/android"],
-
     "@cyberstrike-io/app": ["@cyberstrike-io/app@workspace:packages/app"],
-
-    "@cyberstrike-io/attack-surface-mapping": ["@cyberstrike-io/attack-surface-mapping@workspace:packages/attack-surface-mapping"],
-
-    "@cyberstrike-io/aws": ["@cyberstrike-io/aws@workspace:packages/aws"],
-
-    "@cyberstrike-io/azure": ["@cyberstrike-io/azure@workspace:packages/azure"],
-
-    "@cyberstrike-io/cloud": ["@cyberstrike-io/cloud@workspace:packages/cloud"],
 
     "@cyberstrike-io/console-app": ["@cyberstrike-io/console-app@workspace:packages/console/app"],
 
@@ -1198,31 +893,11 @@
 
     "@cyberstrike-io/desktop": ["@cyberstrike-io/desktop@workspace:packages/desktop"],
 
-    "@cyberstrike-io/enterprise": ["@cyberstrike-io/enterprise@workspace:packages/enterprise"],
-
-    "@cyberstrike-io/enterprise-vortex": ["@cyberstrike-io/enterprise-vortex@workspace:packages/enterprise-vortex"],
-
     "@cyberstrike-io/function": ["@cyberstrike-io/function@workspace:packages/function"],
-
-    "@cyberstrike-io/gcp": ["@cyberstrike-io/gcp@workspace:packages/gcp"],
 
     "@cyberstrike-io/hackbrowser": ["@cyberstrike-io/hackbrowser@workspace:packages/hackbrowser"],
 
-    "@cyberstrike-io/internal-network": ["@cyberstrike-io/internal-network@workspace:packages/internal-network"],
-
-    "@cyberstrike-io/ios": ["@cyberstrike-io/ios@workspace:packages/ios"],
-
-    "@cyberstrike-io/jsmine": ["@cyberstrike-io/jsmine@workspace:packages/jsmine"],
-
-    "@cyberstrike-io/mobile": ["@cyberstrike-io/mobile@workspace:packages/mobile"],
-
-    "@cyberstrike-io/oracle": ["@cyberstrike-io/oracle@workspace:packages/oracle"],
-
     "@cyberstrike-io/plugin": ["@cyberstrike-io/plugin@workspace:packages/plugin"],
-
-    "@cyberstrike-io/red-team": ["@cyberstrike-io/red-team@workspace:packages/red-team"],
-
-    "@cyberstrike-io/sast": ["@cyberstrike-io/sast@workspace:packages/sast"],
 
     "@cyberstrike-io/script": ["@cyberstrike-io/script@workspace:packages/script"],
 
@@ -3375,8 +3050,6 @@
     "jose": ["jose@6.0.11", "", {}, "sha512-QxG7EaliDARm1O1S8BGakqncGT9s25bKL1WSf6/oa17Tkqwi8D2ZNglqCF+DsYF88/rV66Q/Q2mFAy697E1DUg=="],
 
     "jpeg-js": ["jpeg-js@0.4.4", "", {}, "sha512-WZzeDOEtTOBK4Mdsar0IqEU5sMr3vSV2RqkAIzUEV2BHnUfKGyswWFPFwK5EeDo93K3FohSHbLAjj0s1Wzd+dg=="],
-
-    "js-base64": ["js-base64@3.7.7", "", {}, "sha512-7rCnleh0z2CkXhH67J8K1Ytz0b2Y+yxTPL+/KOJoa20hfnVQ/3/T6W/KflYI4bRHRagNeXeU2bkNGI3v1oS/lw=="],
 
     "js-beautify": ["js-beautify@1.15.4", "", { "dependencies": { "config-chain": "^1.1.13", "editorconfig": "^1.0.4", "glob": "^10.4.2", "js-cookie": "^3.0.5", "nopt": "^7.2.1" }, "bin": { "css-beautify": "js/bin/css-beautify.js", "html-beautify": "js/bin/html-beautify.js", "js-beautify": "js/bin/js-beautify.js" } }, "sha512-9/KXeZUKKJwqCXUdBxFJ3vPh467OCckSBmYDwSK/EtV090K+iMJ7zx2S3HLVDIWFQdqMIsZWbnaGiba18aWhaA=="],
 
