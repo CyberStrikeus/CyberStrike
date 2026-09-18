@@ -1,0 +1,43 @@
+{
+  "name": "@cyberstrike-io/cloud",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "CyberStrike cloud security specialist domain (AWS/Azure/GCP, IAM, CIS benchmarks). Commercial/Enterprise feature — NOT part of the AGPL open core; ships only in the Enterprise repo. Installs as a plugin and reaches core runtime via the host-injected input.core.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "cyberstrike": {
+    "coreApi": "1.1.0",
+    "domains": ["cloud"],
+    "tools": [],
+    "tier": "pro",
+    "category": "cloud"
+  },
+  "files": [
+    "src"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cyberstrike-io/plugin": "workspace:*"
+  },
+  "peerDependencies": {
+    "cyberstrike": "*"
+  },
+  "peerDependenciesMeta": {
+    "cyberstrike": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "cyberstrike": "workspace:*",
+    "@tsconfig/node22": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -13,15 +13,14 @@ import PROMPT_COMPACTION from "./prompt/compaction.txt"
 import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SUMMARY from "./prompt/summary.txt"
 import PROMPT_TITLE from "./prompt/title.txt"
-import PROMPT_CLOUD_SECURITY from "./prompt/cloud-security.txt"
-import PROMPT_INTERNAL_NETWORK from "./prompt/internal-network.txt"
-import PROMPT_MOBILE_APPLICATION from "./prompt/mobile-application.txt"
 import PROMPT_NORMALIZE_REQUEST from "./prompt/normalize-request.txt"
 import PROMPT_CYBERSTRIKE from "./prompt/cyberstrike.txt"
 import PROMPT_GENERAL from "./prompt/general.txt"
-// Methodology Engine prompts — intelligence logging, coverage tracking, forced continuation
+// Methodology Engine prompt — intelligence logging, coverage tracking (shared by the
+// primary cyberstrike agent). The forced-continuation preamble and the mobile/cloud/
+// internal-network specialist prompts moved OUT to their own pro domain packages
+// (@cyberstrike-io/{mobile,cloud,internal-network}), collected via collectAgentSpecs.
 import PROMPT_METHODOLOGY_COMMON from "./prompt/methodology/common-methodology.txt"
-import PROMPT_METHODOLOGY_CONTINUATION from "./prompt/methodology/forced-continuation.txt"
 
 // Domain providers define agent specs; the registry collects built-in + plugin domains.
 import { collectAgentSpecs } from "../cloud/provider-registry"
@@ -249,91 +248,6 @@ export namespace Agent {
         ),
         prompt: PROMPT_SUMMARY,
       },
-      "mobile-application": {
-        name: "mobile-application",
-        description:
-          "Mobile application security specialist. Android/iOS testing, OWASP MASTG/MASVS, static/dynamic analysis, Frida/Objection.",
-        mode: "subagent",
-        native: true,
-        tier: "pro",
-        color: "magenta",
-        prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n${PROMPT_METHODOLOGY_CONTINUATION}\n\n---\n\n${PROMPT_MOBILE_APPLICATION}`,
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            question: "allow",
-            bash: "allow",
-            hackbrowser: "allow",
-            read: "allow",
-            glob: "allow",
-            grep: "allow",
-            report_vulnerability: "allow",
-            triage_vulnerability: "allow",
-            add_intel: "allow",
-            update_vrt_check: "allow",
-            methodology_status: "allow",
-            scope_check: "allow",
-            ensure_tools: "allow",
-            attack_script: "allow",
-          }),
-          user,
-        ),
-        options: {},
-      },
-      "cloud-security": {
-        name: "cloud-security",
-        description: "Cloud security specialist. AWS, Azure, GCP security testing. IAM, CIS benchmarks.",
-        mode: "subagent",
-        native: true,
-        tier: "pro",
-        color: "cyan",
-        prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n${PROMPT_METHODOLOGY_CONTINUATION}\n\n---\n\n${PROMPT_CLOUD_SECURITY}`,
-        skills: [
-          "cis-aws-foundations-2.1.1",
-          "cis-aws-foundations-2.2",
-          "cis-aws-foundations-3.1.1",
-          "cis-aws-foundations-4.1",
-          "cis-aws-foundations-5.1",
-          "cis-aws-foundations-6.2",
-          "aws-postexploit",
-          "azure-postexploit",
-          "k8s-postexploit",
-          "gcp-postexploit",
-          "cloud-assessment",
-          "k8s-assessment",
-          "ci-assessment",
-        ],
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            question: "allow",
-            bash: "allow",
-            hackbrowser: "allow",
-            read: "allow",
-            glob: "allow",
-            grep: "allow",
-            report_vulnerability: "allow",
-            triage_vulnerability: "allow",
-            add_intel: "allow",
-            update_vrt_check: "allow",
-            methodology_status: "allow",
-            scope_check: "allow",
-            ensure_tools: "allow",
-            attack_script: "allow",
-            awshook: "allow",
-            azurehook: "allow",
-            kubehook: "allow",
-            gcphook: "allow",
-            containerhook: "allow",
-            iachook: "allow",
-            cloud_audit: "allow",
-            k8s_audit: "allow",
-            ci_audit: "allow",
-          }),
-          user,
-        ),
-        options: {},
-      },
       // ── Domain providers — collected from the registry (built-in web/azure +
       // any installed plugin domains). Adding a domain is a registerProvider call,
       // never an edit here. See docs/domain-plugin-architecture.md.
@@ -347,65 +261,9 @@ export namespace Agent {
           return {}
         }
       })()),
-      "internal-network": {
-        name: "internal-network",
-        description: "Internal network and Active Directory specialist. AD attacks, Kerberos, lateral movement.",
-        mode: "subagent",
-        native: true,
-        tier: "pro",
-        color: "yellow",
-        prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n${PROMPT_METHODOLOGY_CONTINUATION}\n\n---\n\n${PROMPT_INTERNAL_NETWORK}`,
-        skills: [
-          "ad-security",
-          "kerberos-attacks",
-          "ebpf-attacks",
-          "windows-postexploit",
-          "linux-postexploit",
-          "macos-postexploit",
-          "aws-postexploit",
-          "azure-postexploit",
-          "k8s-postexploit",
-          "gcp-postexploit",
-          "cicd-attacks",
-        ],
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            question: "allow",
-            bash: "allow",
-            hackbrowser: "allow",
-            read: "allow",
-            glob: "allow",
-            grep: "allow",
-            report_vulnerability: "allow",
-            triage_vulnerability: "allow",
-            add_intel: "allow",
-            update_vrt_check: "allow",
-            methodology_status: "allow",
-            scope_check: "allow",
-            ensure_tools: "allow",
-            attack_script: "allow",
-            ebpf: "allow",
-            winhook: "allow",
-            machook: "allow",
-            linuxhook: "allow",
-            awshook: "allow",
-            azurehook: "allow",
-            kubehook: "allow",
-            gcphook: "allow",
-            containerhook: "allow",
-            iachook: "allow",
-            cloud_audit: "allow",
-            k8s_audit: "allow",
-            ci_audit: "allow",
-            cipipe: "allow",
-          }),
-          user,
-        ),
-        options: {},
-      },
-      // Web + Azure pipeline agents are collected via the domain provider
-      // registry above (collectAgentSpecs), not hardcoded here.
+      // Web/Azure pipeline agents AND the mobile-application / cloud-security /
+      // internal-network specialists are collected via the domain provider registry
+      // above (collectAgentSpecs), not hardcoded here.
     }
 
     for (const [key, value] of Object.entries(cfg.agent ?? {})) {

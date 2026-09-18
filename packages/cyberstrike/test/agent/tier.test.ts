@@ -63,7 +63,13 @@ test("free build hides pro domain specialist agents", async () => {
   })
 })
 
-test("pro build exposes pro domain specialist agents", async () => {
+// After the open-core split (Step 2) the three specialists are no longer hardcoded
+// in core — they ship as pro domain packages (@cyberstrike-io/mobile, /cloud,
+// /internal-network) collected via domain discovery. A bare instance without those
+// packages installed therefore does NOT expose them even under CYBERSTRIKE_TIER=pro;
+// that they are provided when installed is covered by each package's own loader test,
+// and the pro/free gate itself by the plugin discovery tier check.
+test("pro domain specialists are no longer hardcoded in core", async () => {
   process.env["CYBERSTRIKE_TIER"] = "pro"
   await using tmp = await tmpdir()
   await Instance.provide({
@@ -71,7 +77,7 @@ test("pro build exposes pro domain specialist agents", async () => {
     fn: async () => {
       const names = (await Agent.list()).map((a) => a.name)
       expect(names).toContain("cyberstrike")
-      for (const name of PRO_AGENTS) expect(names).toContain(name)
+      for (const name of PRO_AGENTS) expect(names).not.toContain(name)
     },
   })
 })

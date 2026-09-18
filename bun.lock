@@ -166,6 +166,24 @@
         "cyberstrike",
       ],
     },
+    "packages/cloud": {
+      "name": "@cyberstrike-io/cloud",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+      },
+      "devDependencies": {
+        "@tsconfig/node22": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "cyberstrike": "*",
+      },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
+    },
     "packages/console/app": {
       "name": "@cyberstrike-io/console-app",
       "version": "1.1.16",
@@ -540,6 +558,24 @@
         "typescript": "catalog:",
       },
     },
+    "packages/internal-network": {
+      "name": "@cyberstrike-io/internal-network",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+      },
+      "devDependencies": {
+        "@tsconfig/node22": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "cyberstrike": "*",
+      },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
+    },
     "packages/ios": {
       "name": "@cyberstrike-io/ios",
       "version": "0.1.0",
@@ -571,6 +607,24 @@
         "@types/bun": "catalog:",
         "typescript": "catalog:",
       },
+    },
+    "packages/mobile": {
+      "name": "@cyberstrike-io/mobile",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+      },
+      "devDependencies": {
+        "@tsconfig/node22": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "cyberstrike": "*",
+      },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
     },
     "packages/oracle": {
       "name": "@cyberstrike-io/oracle",
@@ -1130,6 +1184,8 @@
 
     "@cyberstrike-io/azure": ["@cyberstrike-io/azure@workspace:packages/azure"],
 
+    "@cyberstrike-io/cloud": ["@cyberstrike-io/cloud@workspace:packages/cloud"],
+
     "@cyberstrike-io/console-app": ["@cyberstrike-io/console-app@workspace:packages/console/app"],
 
     "@cyberstrike-io/console-core": ["@cyberstrike-io/console-core@workspace:packages/console/core"],
@@ -1152,9 +1208,13 @@
 
     "@cyberstrike-io/hackbrowser": ["@cyberstrike-io/hackbrowser@workspace:packages/hackbrowser"],
 
+    "@cyberstrike-io/internal-network": ["@cyberstrike-io/internal-network@workspace:packages/internal-network"],
+
     "@cyberstrike-io/ios": ["@cyberstrike-io/ios@workspace:packages/ios"],
 
     "@cyberstrike-io/jsmine": ["@cyberstrike-io/jsmine@workspace:packages/jsmine"],
+
+    "@cyberstrike-io/mobile": ["@cyberstrike-io/mobile@workspace:packages/mobile"],
 
     "@cyberstrike-io/oracle": ["@cyberstrike-io/oracle@workspace:packages/oracle"],
 

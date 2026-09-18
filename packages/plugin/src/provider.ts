@@ -25,10 +25,15 @@ export interface AgentSpec {
     | "support"
   group?: string
   description: string
-  steps: number
+  // Soft per-agent turn budget. Optional: an agent that ships WITHOUT a cap (e.g. a
+  // standalone specialist) omits it, and the host leaves its turn budget unbounded —
+  // matching the pre-extraction behavior of agents that set no `steps`.
+  steps?: number
   color: string
   prompt: string
-  skills: string[]
+  // Skills the agent preloads. Optional: an agent with no preloaded skills omits it
+  // (equivalent to the host receiving `undefined`), rather than being forced to pass `[]`.
+  skills?: string[]
   permissions: Record<string, PermissionRule>
   hidden?: boolean
   prependRequestContext?: boolean
