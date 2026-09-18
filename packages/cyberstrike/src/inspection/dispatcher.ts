@@ -48,10 +48,6 @@ export class InspectionDispatcher {
     // Dry-run (the ingest test flag) means "don't actually run agents" — leave the queue pending so
     // coverage/assertions see it, and never spawn a child session (no live LLM calls in tests).
     if (process.env.CYBERSTRIKE_INGEST_DRY_RUN === "true") return
-    // Re-open stale in-flight leases even when a drain is already running: a mid-flight crash/restart
-    // can leave items "dispatched" with no runItem to resolve them; a fresh wake (e.g. new ingest) is
-    // our chance to reclaim them. Idempotent — only reclaims items past the lease TTL (issue #38).
-    this.queue.reclaimStale(DISPATCH_LEASE_MS)
     if (this.running) return
     this.running = true
     void this.loop()
