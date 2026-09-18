@@ -35,6 +35,14 @@ export function isPaid(tier: string | undefined): boolean {
   return tier !== undefined && PAID_TIERS.has(tier)
 }
 
+// Paid packages that are NOT discoverable domains (libraries / build artifacts, not
+// agent/provider domains). They intentionally carry NO `cyberstrike` manifest: adding
+// one would make domain auto-discovery try to load them as domains (init(input) on a
+// non-domain export → error/side-effect in pro builds). They still must be stripped
+// from the public mirror, so they are listed explicitly here. Every entry is a paid
+// package that is available to pro AND enterprise (like the tiered domains).
+const NON_DOMAIN_PAID = new Set(["packages/jsmine", "packages/enterprise"])
+
 /** Scan `packages/*` and read each one's package.json tier declaration. */
 export async function scanPackages(repoRoot: string): Promise<DomainTier[]> {
   const glob = new Glob("packages/*/package.json")
@@ -64,7 +72,7 @@ export async function computeStripPlan(repoRoot: string): Promise<StripPlan> {
   const keep: string[] = []
   const untiered: string[] = []
   for (const p of pkgs) {
-    if (isPaid(p.tier)) strip.push(p.dir)
+    if (isPaid(p.tier) || NON_DOMAIN_PAID.has(p.dir)) strip.push(p.dir)
     else if (p.tier === "free") keep.push(p.dir)
     else untiered.push(p.dir)
   }

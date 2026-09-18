@@ -11,7 +11,7 @@
     "coreApi": "1.2.0",
     "domains": ["attack-surface-mapping"],
     "tools": [],
-    "tier": "enterprise"
+    "tier": "pro"
   },
   "files": ["src"],
   "publishConfig": {

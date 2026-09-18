@@ -17,7 +17,7 @@
     "category": "vortex",
     "domains": [],
     "tools": [],
-    "tier": "enterprise"
+    "tier": "pro"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
