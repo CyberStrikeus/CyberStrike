@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, test } from "bun:test"
 import { Instance } from "../../../src/project/instance"
 import { Session } from "../../../src/session"
 import { tmpdir } from "../../fixture/fixture"
-import { ingestJsBody, vortexSignals, vortexReport } from "../../../src/session/web/vortex-bridge"
+import { ingestJsBody, vortexSignals, vortexReport, vortexCaptures, ingestBrowserTransaction } from "../../../src/session/web/vortex-bridge"
 import { JsMiner } from "../../../src/session/web/js-miner"
 import { DataCollector } from "../../../src/session/web/data-collector"
 import { WebScope } from "../../../src/session/web/scope"
@@ -76,6 +76,56 @@ describe("Vortex JS-body ingest (issue #22)", () => {
       expect(ingestJsBody(sid, "/relative/app.js", "fetch('/api/x')").signals).toBe(0)
       expect(ingestJsBody(sid, "https://app.test/empty.js", "").signals).toBe(0)
       expect(vortexReport(sid).transactions).toBe(0)
+    })
+  })
+
+  // #37 — static assets (JS bundles, CSS, images) are captured transactions but are NOT endpoints.
+  // The Captures > Endpoints view (vortexCaptures.requests) must exclude them; they belong only under
+  // Captures > JS Files. Before the fix, every `.js` chunk inflated Endpoints (count == total captures).
+  test("static JS/CSS captures are excluded from Endpoints, real APIs kept (#37)", async () => {
+    await withSession(async (sid) => {
+      const host = "app.test"
+      // a real API endpoint — must survive
+      ingestBrowserTransaction({
+        sessionID: sid,
+        requestID: "req-api",
+        method: "GET",
+        url: "https://app.test/api/users",
+        host,
+        normalizedPath: "/api/users",
+        response: { status: 200, headers: { "content-type": "application/json" } },
+      })
+      // a SvelteKit JS chunk — must NOT appear as an endpoint (by extension AND content-type)
+      ingestBrowserTransaction({
+        sessionID: sid,
+        requestID: "req-js",
+        method: "GET",
+        url: "https://app.test/_app/immutable/chunks/AbC123.js",
+        host,
+        normalizedPath: "/_app/immutable/chunks/AbC123.js",
+        response: { status: 200, headers: { "content-type": "application/javascript" } },
+      })
+      // a CSS asset — likewise excluded
+      ingestBrowserTransaction({
+        sessionID: sid,
+        requestID: "req-css",
+        method: "GET",
+        url: "https://app.test/_app/immutable/assets/app.DeF456.css",
+        host,
+        normalizedPath: "/_app/immutable/assets/app.DeF456.css",
+        response: { status: 200, headers: { "content-type": "text/css" } },
+      })
+
+      // all three ARE stored as transactions (we keep JS bodies for jsmine) — we only filter the VIEW
+      expect(vortexReport(sid).transactions).toBe(3)
+
+      const caps = vortexCaptures(sid)
+      const paths = caps.requests.map((r) => r.normalized_path)
+      expect(paths).toContain("/api/users")
+      expect(paths).not.toContain("/_app/immutable/chunks/AbC123.js")
+      expect(paths).not.toContain("/_app/immutable/assets/app.DeF456.css")
+      // Endpoints is now the real endpoints only — not "every capture"
+      expect(caps.requests.length).toBe(1)
     })
   })
 

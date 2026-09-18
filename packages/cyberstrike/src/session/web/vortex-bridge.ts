@@ -3,7 +3,7 @@
 // Vortex engine (rules → signals → subjects → inventory → leads) runs over the live web corpus in
 // parallel with the existing CS signal fabric (verify-first; the fabric retires once Vortex proves
 // out). Never throws — must not break the ingest path.
-import { SqliteStore, defaultRegistry, registerPlugin, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, subjects, humanName, params, responseFields as txResponseFields, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type CanaryKind, type VortexPlugin, type Discovered } from "@cyberstrike-io/vortex"
+import { SqliteStore, defaultRegistry, registerPlugin, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, subjects, humanName, params, responseFields as txResponseFields, header, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type CanaryKind, type VortexPlugin, type Discovered } from "@cyberstrike-io/vortex"
 import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
@@ -12,6 +12,7 @@ import { WebObject } from "./web-object"
 import { WebFunction } from "./web-function"
 import { WebRole } from "./web-role"
 import { ownerForSignal, signalPriority, shouldRoute, type VortexSeverity } from "./signal/vortex-route"
+import { DataCollector } from "./data-collector"
 import path from "path"
 
 const log = Log.create({ service: "vortex-bridge" })
@@ -452,6 +453,11 @@ export function vortexCaptures(sessionID: string): { requests: VortexCaptureRequ
     // status dot reflects a real response rather than a pending first hit.
     const byEndpoint = new Map<string, VortexCaptureRequest>()
     for (const t of store.all()) {
+      // Static assets (JS bundles, CSS, images, fonts) are NOT endpoints — they belong only under
+      // Captures > JS Files (JS) and must never inflate the Endpoints list (#37). Classify on the real
+      // URL path (carries the extension) + response content-type, same predicate the ingest gate uses.
+      const kind = DataCollector.classify(pathFromUrl(t.request.url), header(t.response?.headers ?? [], "content-type"))
+      if (kind === "js" || kind === "static") continue
       const normalized_path = t.normalizedPath ?? pathFromUrl(t.request.url)
       const dedupKey = t.keyHash ?? `${t.request.method} ${t.host}${normalized_path}`
       const existing = byEndpoint.get(dedupKey)

@@ -45,6 +45,13 @@ import { useSDK } from "@/context/sdk"
 import { Icon } from "@cyberstrike-io/ui/icon"
 import type { Message, UserMessage, Vulnerability, HackbrowserStatus, HackbrowserPhase } from "@cyberstrike-io/sdk/v2/client"
 
+// Static assets (JS bundles, CSS, images, fonts) are NOT endpoints — they must never show under the
+// Endpoints section (#37). Mirrors the server-side DataCollector classifier (JS_RE + STATIC_RE) so
+// pre-fix or cached request rows are filtered out at display too, not only new ingests.
+const STATIC_PATH_RE =
+  /\.(?:m?js|css|map|png|jpe?g|gif|svg|ico|webp|avif|woff2?|ttf|eot|otf|mp4|webm|mp3|wav|pdf|wasm)(?:$|\?|#)/i
+const isStaticPath = (p: unknown): boolean => typeof p === "string" && STATIC_PATH_RE.test(p)
+
 const statusDot = (status: string) => {
   if (status === "connected") return "bg-icon-success-base"
   if (status === "failed") return "bg-icon-danger-base"
@@ -806,7 +813,7 @@ function WebContextPanelList() {
     const id = sessionID()
     if (!id) return []
     const s = section()
-    if (s === "endpoints") return sync.data.request[id] ?? []
+    if (s === "endpoints") return (sync.data.request[id] ?? []).filter((r) => !isStaticPath(r.normalized_path))
     if (s === "roles") return sync.data.web_role[id] ?? []
     if (s === "credentials") return sync.data.web_credential[id] ?? []
     if (s === "objects") return sync.data.web_object[id] ?? []
@@ -818,7 +825,7 @@ function WebContextPanelList() {
     const id = sessionID()
     if (!id) return 0
     return (
-      (sync.data.request[id]?.length ?? 0) +
+      (sync.data.request[id]?.filter((r) => !isStaticPath(r.normalized_path)).length ?? 0) +
       (sync.data.web_role[id]?.length ?? 0) +
       (sync.data.web_credential[id]?.length ?? 0) +
       (sync.data.web_object[id]?.length ?? 0) +
