@@ -47,6 +47,11 @@ function storeFor(sessionID: string): TrafficStore {
 export function dropSession(sessionID: string): void {
   stores.delete(sessionID)
   lastIngestAt.delete(sessionID)
+  const t = corpusTimers.get(sessionID)
+  if (t) clearTimeout(t.timer)
+  corpusTimers.delete(sessionID)
+  lastCorpusRunAt.delete(sessionID)
+  signalsCache.delete(sessionID)
 }
 
 // Ingest-activity grace window — an ActivitySource for the SessionLifecycle (#19). Bumped on every hit
@@ -58,10 +63,95 @@ const INGEST_GRACE_MS = Math.max(2000, Number(process.env.CYBERSTRIKE_INGEST_GRA
 const lastIngestAt = new Map<string, number>()
 function bumpActivity(sessionID: string): void {
   lastIngestAt.set(sessionID, Date.now())
+  // New traffic invalidates the view cache (so the next read reflects the just-added signals, not a
+  // stale snapshot) and schedules a debounced corpus recompute in the BACKGROUND (so that next read
+  // finds fresh corpus findings already materialized instead of running the scan itself). The read's
+  // own stale-gate is the correctness backstop. During idle (no traffic) the cache is left intact, which
+  // is exactly when collapsing the 2s poll matters. (#40)
+  signalsCache.delete(sessionID)
+  scheduleCorpusAnalysis(sessionID)
 }
 export function ingestActive(sessionID: string): boolean {
   const t = lastIngestAt.get(sessionID)
   return t !== undefined && Date.now() - t < INGEST_GRACE_MS
+}
+
+// ── Corpus analysis OFF the hot read path (issue #40) ─────────────────────────────────────────────
+// Cross-transaction (CorpusRule) findings used to be recomputed on EVERY vortexSignals read — an
+// O(all_txs × corpus_rules) scan on a 2s-polled endpoint. Because bun:sqlite is synchronous, a slow
+// scan on a fast poll stacks up and starves the event loop (the server goes unreachable). Two guards:
+//   1. Recompute only when the corpus actually CHANGED since the last run (lastIngestAt > lastCorpusRunAt)
+//      — idle polling never re-scans, which is what wedged it.
+//   2. Run it debounced at ingest so active crawling keeps signals fresh in the background, off the read.
+// The read then just projects the already-persisted signals. (P1 will make the scan itself incremental.)
+const lastCorpusRunAt = new Map<string, number>()
+const CORPUS_DEBOUNCE_MS = Math.max(100, Number(process.env.CYBERSTRIKE_VORTEX_CORPUS_DEBOUNCE_MS) || 1500)
+const CORPUS_MAX_WAIT_MS = Math.max(CORPUS_DEBOUNCE_MS, Number(process.env.CYBERSTRIKE_VORTEX_CORPUS_MAX_WAIT_MS) || 5000)
+const corpusTimers = new Map<string, { timer: ReturnType<typeof setTimeout>; since: number }>()
+
+// Short-TTL cache of the built signals VIEW, so the 2s sidebar poll doesn't repeat the per-signal
+// projection (tx lookups + status join) every tick. Invalidated whenever corpus analysis persists.
+const SIGNALS_CACHE_TTL_MS = Math.max(0, Number(process.env.CYBERSTRIKE_VORTEX_SIGNALS_CACHE_TTL_MS) || 1000)
+const signalsCache = new Map<string, { at: number; value: { signals: VortexSignalView[] } }>()
+
+// Run the corpus rules over the current corpus and persist (addSignals dedups). Marks the run time and
+// drops the view cache. Best-effort — a store hiccup must never break the read/ingest that called it.
+function runCorpusAnalysis(sessionID: string): void {
+  try {
+    const store = storeFor(sessionID)
+    store.addSignals(registry.analyzeCorpus(store.all()))
+  } catch (e) {
+    log.debug("vortex corpus analyze failed (ignored)", { sessionID, err: String(e) })
+  } finally {
+    lastCorpusRunAt.set(sessionID, Date.now())
+    signalsCache.delete(sessionID)
+  }
+}
+
+// True when new traffic has arrived since the last corpus run (or it has never run this process) —
+// i.e. the corpus findings are stale and worth recomputing.
+function corpusStale(sessionID: string): boolean {
+  const corpusAt = lastCorpusRunAt.get(sessionID) ?? 0
+  if (corpusAt === 0) return true
+  return (lastIngestAt.get(sessionID) ?? 0) > corpusAt
+}
+
+// Debounce a corpus recompute onto the ingest path: a burst of hits coalesces into one run (with a
+// max-wait cap so continuous ingest still refreshes periodically). Fire-and-forget via setTimeout so
+// ingest itself stays fast. Skipped under the ingest dry-run flag (tests assert the pending queue).
+export function scheduleCorpusAnalysis(sessionID: string): void {
+  if (process.env.CYBERSTRIKE_INGEST_DRY_RUN === "true") return
+  const now = Date.now()
+  const existing = corpusTimers.get(sessionID)
+  if (existing) {
+    clearTimeout(existing.timer)
+    if (now - existing.since >= CORPUS_MAX_WAIT_MS) {
+      corpusTimers.delete(sessionID)
+      runCorpusAnalysis(sessionID)
+      return
+    }
+    existing.timer = setTimeout(() => {
+      corpusTimers.delete(sessionID)
+      runCorpusAnalysis(sessionID)
+    }, CORPUS_DEBOUNCE_MS)
+    return
+  }
+  const timer = setTimeout(() => {
+    corpusTimers.delete(sessionID)
+    runCorpusAnalysis(sessionID)
+  }, CORPUS_DEBOUNCE_MS)
+  corpusTimers.set(sessionID, { timer, since: now })
+}
+
+// Force a synchronous corpus recompute now (cancels any pending debounce). For callers/tests that need
+// corpus findings materialized immediately rather than on the next debounce tick.
+export function flushCorpusAnalysis(sessionID: string): void {
+  const existing = corpusTimers.get(sessionID)
+  if (existing) {
+    clearTimeout(existing.timer)
+    corpusTimers.delete(sessionID)
+  }
+  runCorpusAnalysis(sessionID)
 }
 
 // Enterprise extension seam: register a Vortex plugin (e.g. jsmine's JS-miner) onto the shared
@@ -688,18 +778,17 @@ export interface VortexSignalView {
 }
 
 export function vortexSignals(sessionID: string): { signals: VortexSignalView[] } {
+  // Short-TTL view cache collapses the 2s poll so back-to-back ticks don't rebuild the projection.
+  const cached = signalsCache.get(sessionID)
+  if (cached && Date.now() - cached.at < SIGNALS_CACHE_TTL_MS) return cached.value
   try {
     const store = storeFor(sessionID)
-    // Materialize cross-transaction findings before reading. Per-tx rules run incrementally at ingest,
-    // but CORPUS rules (access-control, chains, and the aggregate "one finding, many URLs" rules —
-    // CORS etc.) only fire over the whole corpus. Run just those here (cheap: corpus rules only) and
-    // persist them; addSignals dedups by dedupKey, so this is idempotent across repeated reads. Without
-    // it an aggregate finding never reaches the sidebar or the agent's session context.
-    try {
-      store.addSignals(registry.analyzeCorpus(store.all()))
-    } catch (e) {
-      log.debug("vortex corpus analyze failed (ignored)", { err: String(e) })
-    }
+    // CORPUS rules (access-control, chains, aggregate "one finding, many URLs" — CORS etc.) fire over
+    // the whole corpus. Recompute them ONLY when new traffic has arrived since the last run (or on the
+    // first read this process); idle polling reuses the persisted signals. This is the fix for the
+    // O(all_txs × corpus_rules) re-scan that ran on EVERY 2s poll and wedged the event loop (#40).
+    // addSignals dedups by dedupKey, so a recompute is idempotent. (P1 makes the scan itself incremental.)
+    if (corpusStale(sessionID)) runCorpusAnalysis(sessionID)
     const statusMap = WebInspect.statusByKeyHash(sessionID)
     // Referenced-vs-loaded reconciliation (#22): a JS-origin finding inherits the load state of the
     // asset it fired on, so a finding on JS the app never actually loaded is flagged + down-ranked.
@@ -737,7 +826,9 @@ export function vortexSignals(sessionID: string): { signals: VortexSignalView[] 
     // loadState) sit neutrally in the middle so their order is unchanged.
     const loadOrder = (ls?: LoadState) => (ls === undefined ? 2 : LOAD_RANK[ls]!)
     out.sort((a, b) => (rank[a.severity] ?? 5) - (rank[b.severity] ?? 5) || loadOrder(b.loadState) - loadOrder(a.loadState))
-    return { signals: out }
+    const result = { signals: out }
+    signalsCache.set(sessionID, { at: Date.now(), value: result })
+    return result
   } catch (e) {
     log.warn("vortexSignals read failed — returning empty", { sessionID, err: String(e) })
     return { signals: [] }
