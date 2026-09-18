@@ -59,13 +59,18 @@ stays as a backstop, and the index has no false exclusions (its values are exact
 `sharedValues` intersects on), so the result set is identical — proven by the unchanged chain/access
 suites plus a scale test (a real chain found among 3000 noise txs, fast).
 
-**P1b — endpoint/identity clustering (remaining).** The group-by-endpoint access rules are O(txs) but
-redundant across runs; feed them a **distinct (endpoint, identity, success) projection** (keeping the
-first representative) so an endpoint hit N times contributes O(distinct combos), not N.
+**P1b/P1c — incremental corpus ✅ (done, subsumes P1b).** The corpus is now maintained incrementally at
+ingest instead of re-scanned per run:
+- **Access (Rete alpha-node):** `AccessMatcher` keeps per-endpoint identity/success aggregates, fed each
+  tx at ingest (`observe`, O(1)), read in O(result) (`signals`). Byte-equivalent to the batch access
+  CorpusRules (equivalence test over 40 random corpora). The bridge drives it and excludes the batch
+  twins from `analyzeCorpus`.
+- **Chain (Rete beta-join index):** `ChainValueIndex` maintains the `value → tx ids` reuse index
+  incrementally at ingest and is passed to the chain rules via `CorpusContext`, so the join index is
+  never rebuilt over the whole corpus. Byte-equivalent to the self-built index (equivalence test).
 
-**P1c — true incremental (`observe`/`flush`, remaining).** Maintain the index and projections
-incrementally as txs arrive (Rete alpha/beta) so even building them is O(new_tx), not O(all_txs); the
-whole corpus is never re-scanned.
+Both are restart-safe (lazy hydrate from the store) and guarded by the detection-parity floor. Net: the
+corpus work is O(new_tx) at ingest + O(result) at read; the whole corpus is never re-scanned.
 
 ### P2 — tens of thousands of RULES
 - **Rule inverted index**: index rules by preconditions (method, content-type, tech fingerprint, param presence, required trigram/literal); for a tx/endpoint pull only applicable rules — the other ~10k are never touched. Extends `selectRules` from a subset filter to a per-fact index lookup.
