@@ -19,6 +19,9 @@ import type { TrafficStore } from "./store"
 import { replaySafety } from "./replay-safety"
 import { reflects, brokeOut, mintTemplateCanary, TEMPLATE_PLACEHOLDER } from "./canary"
 import { endpointKey } from "./endpoint"
+import { runActiveRules } from "./active"
+import { idorActiveRules } from "./rules/idor-active"
+import { observed } from "./scope"
 
 export type DetectMode = "reflected" | "evaluated" | "error"
 
@@ -251,13 +254,17 @@ export async function probeSession(
 ): Promise<{ signals: Signal[]; coverage: Coverage[]; probed: number }> {
   const points = opts.onlyUnprobed === false ? store.injectPoints() : store.injectPoints({ probed: false })
   const coverage: Coverage[] = []
-  const signals = await probeInjectPoints(points, (id) => store.get(id), send, {
+  const injectSignals = await probeInjectPoints(points, (id) => store.get(id), send, {
     ...opts,
     onResult: (c) => {
       coverage.push({ ...c, at: Date.now() })
       opts.onResult?.(c)
     },
   })
+  // Neighbour-ID BOLA/IDOR probing runs alongside injection probing on the same governed sender, over
+  // the observed corpus (never replays). Its own work is bounded (one probe per endpoint+path-param).
+  const activeSignals = await runActiveRules(idorActiveRules, observed(store.all()), send)
+  const signals = [...injectSignals, ...activeSignals]
   store.addSignals(signals)
   store.recordCoverage(coverage)
   // Mark only the points we actually attempted (those that produced coverage — replay-unsafe /

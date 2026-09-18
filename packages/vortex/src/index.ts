@@ -187,3 +187,4 @@ export function defaultRegistry(): RuleRegistry {
 export { headerRules, missingSecurityHeaders, weakCookieFlags, serverBanner } from "./rules/headers"
 export { accessRules, crossIdentityAccess, unauthenticatedReach } from "./rules/access"
 export { idorRules, numericIdEnumerable } from "./rules/idor"
+export { idorActiveRules, numericIdNeighbor } from "./rules/idor-active"
