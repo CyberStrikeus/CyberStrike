@@ -21,13 +21,13 @@ export namespace SessionProcessor {
   const DOOM_LOOP_THRESHOLD = 3
   const log = Log.create({ service: "session.processor" })
   // A provider stream that yields NO event for this long is treated as stalled (a hung/flaky stream):
-  // the read is abandoned and a StreamIdleError is thrown into the existing retry path, so a fresh
+  // the read is abandoned and a retryable APIError is thrown into the existing retry path, so a fresh
   // request is attempted instead of the loop parking on the dead stream forever. The timer resets on
   // EVERY stream event (deltas, tool-call/tool-result, …), so it only fires on TOTAL silence — set it
   // generously above the slowest single tool round-trip. 0 disables. Env: CYBERSTRIKE_STREAM_IDLE_TIMEOUT_MS.
   const STREAM_IDLE_TIMEOUT_MS = Math.max(0, Number(process.env.CYBERSTRIKE_STREAM_IDLE_TIMEOUT_MS) || 600_000)
 
-  // Await the iterator's next value, but reject with StreamIdleError if it doesn't settle within idleMs.
+  // Await the iterator's next value, but reject with a retryable APIError if it doesn't settle within idleMs.
   // The pending next() is left with a no-op catch so its later settlement (e.g. when the caller closes
   // the stream via iterator.return()) never surfaces as an unhandled rejection.
   export async function nextWithIdleTimeout<T>(
@@ -404,10 +404,11 @@ export namespace SessionProcessor {
               }
             } finally {
               // Close the underlying stream on break/throw (incl. an idle-timeout abandon) so a hung
-              // request is released rather than leaked — mirrors what `for await` did automatically.
-              try {
-                await iterator.return?.()
-              } catch {}
+              // request is released rather than leaked. Fire-and-forget on purpose — do NOT await: a
+              // stalled stream's return() can itself block on the same dead resource, which would
+              // re-introduce the very hang the idle-timeout exists to break. The no-op catch keeps its
+              // eventual rejection from surfacing as an unhandled rejection.
+              void Promise.resolve(iterator.return?.()).catch(() => {})
             }
           } catch (e: any) {
             if (input.abort.aborted) {
