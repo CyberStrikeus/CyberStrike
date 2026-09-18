@@ -49,8 +49,23 @@ Env: `CYBERSTRIKE_VORTEX_CORPUS_DEBOUNCE_MS` (1500), `…_CORPUS_MAX_WAIT_MS` (5
 Limitation carried into P1: a single corpus recompute is still `O(txs × corpus_rules)` — P0 only removes the *repeated* re-scan on the poll, not the per-run cost.
 
 ### P1 — incremental corpus + endpoint clustering (the real scale fix)
-- Change `CorpusRule` from `evaluate(allTxs)` to incremental **`observe(tx)` + `flush()`** (Rete alpha/beta): each new tx updates only its partial state and emits newly-completed signals; the whole corpus is never re-scanned.
-- Feed corpus rules a **distinct endpoint/identity projection** (`endpoint_template`), not raw requests: 10k requests → ~N endpoints → `O(endpoints × rules)`.
+
+**P1a — chain value-reuse index ✅ (done).** The dominant corpus cost was the chain solver's value-reuse
+join: for each bound step it scanned *every* transaction and parsed its request (`sharedValues`), i.e.
+O(txs^steps) with a per-pair parse — the actual ~5 s. Now `chain.ts` builds a one-pass inverted index
+`correlatable value → tx ids whose request carries it`; a `reuses` step consults only the transactions
+that share a value with the bound source instead of scanning all of them. The `sharedValues`-empty check
+stays as a backstop, and the index has no false exclusions (its values are exactly the correlatable ones
+`sharedValues` intersects on), so the result set is identical — proven by the unchanged chain/access
+suites plus a scale test (a real chain found among 3000 noise txs, fast).
+
+**P1b — endpoint/identity clustering (remaining).** The group-by-endpoint access rules are O(txs) but
+redundant across runs; feed them a **distinct (endpoint, identity, success) projection** (keeping the
+first representative) so an endpoint hit N times contributes O(distinct combos), not N.
+
+**P1c — true incremental (`observe`/`flush`, remaining).** Maintain the index and projections
+incrementally as txs arrive (Rete alpha/beta) so even building them is O(new_tx), not O(all_txs); the
+whole corpus is never re-scanned.
 
 ### P2 — tens of thousands of RULES
 - **Rule inverted index**: index rules by preconditions (method, content-type, tech fingerprint, param presence, required trigram/literal); for a tx/endpoint pull only applicable rules — the other ~10k are never touched. Extends `selectRules` from a subset filter to a per-fact index lookup.

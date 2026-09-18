@@ -20,7 +20,7 @@ import type { CorpusRule, Signal } from "./rule"
 import { compile } from "./expr"
 import { fieldValue } from "./fields"
 import { endpointKey } from "./endpoint"
-import { sharedValues } from "./taint"
+import { sharedValues, requestValues, responseValues, correlatable } from "./taint"
 import { RuleMetaShape } from "./rule-meta"
 
 const CANDIDATE_CAP = 500 // per step, guard the join against a pathological corpus
@@ -76,6 +76,39 @@ function refValue(ref: string, bindings: Record<string, Transaction>): string | 
   return tx ? fieldValue(tx, ref.slice(dot + 1)) : undefined
 }
 
+// Inverted index for the value-reuse join (#40 P1): map each CORRELATABLE value carried by some
+// request to the ids of the transactions whose request carries it. A `reuses` step can then consider
+// only the transactions that share a value with the bound source — instead of scanning every
+// transaction and parsing its request — turning the O(txs^steps) value-join into ~O(matching
+// candidates). Only correlatable values are indexed: `sharedValues` intersects with responseValues,
+// which are already correlatable, so a non-correlatable request value can never be the shared one.
+function buildRequestValueIndex(txs: Transaction[]): Map<string, Set<string>> {
+  const idx = new Map<string, Set<string>>()
+  for (const tx of txs) {
+    for (const v of requestValues(tx)) {
+      if (!correlatable(v)) continue
+      let s = idx.get(v)
+      if (!s) {
+        s = new Set<string>()
+        idx.set(v, s)
+      }
+      s.add(tx.id)
+    }
+  }
+  return idx
+}
+
+// The transaction ids whose request carries any value the source's response exposes — exactly the set
+// for which sharedValues(src, tx) is non-empty, so pre-filtering to it is behavior-preserving.
+function candidatesSharing(src: Transaction, idx: Map<string, Set<string>>): Set<string> {
+  const out = new Set<string>()
+  for (const v of responseValues(src)) {
+    const s = idx.get(v)
+    if (s) for (const id of s) out.add(id)
+  }
+  return out
+}
+
 export function compileChain(rule: ChainRule): CorpusRule {
   const compiled = rule.steps.map((s) => (s.when ? compile(s.when) : undefined))
   return {
@@ -85,6 +118,8 @@ export function compileChain(rule: ChainRule): CorpusRule {
     severity: rule.severity,
     evaluate(txs: Transaction[]): Signal[] {
       const out: Signal[] = []
+      // Value index for reuses-joins — built once per corpus, only when a step actually uses `reuses`.
+      const reqValueIndex = rule.steps.some((s) => s.reuses) ? buildRequestValueIndex(txs) : undefined
 
       const solve = (i: number, bindings: Record<string, Transaction>, used: Set<string>, shared: string): void => {
         if (out.length >= SIGNAL_CAP) return
@@ -104,11 +139,21 @@ export function compileChain(rule: ChainRule): CorpusRule {
         }
         const step = rule.steps[i]!
         const q = compiled[i]
+        // For a value-reuse step, restrict to the transactions that share a value with the bound source
+        // (index lookup) — exactly the set for which sharedValues below is non-empty, so this only skips
+        // work, never a real match. Empty set when the source isn't bound (matches the naive no-match).
+        const candidates =
+          step.reuses && reqValueIndex
+            ? bindings[step.reuses]
+              ? candidatesSharing(bindings[step.reuses]!, reqValueIndex)
+              : new Set<string>()
+            : undefined
         let seen = 0
         for (const tx of txs) {
           if (out.length >= SIGNAL_CAP) return
           if (seen >= CANDIDATE_CAP) break
           if (used.has(tx.id)) continue // a transaction fills at most one step
+          if (candidates && !candidates.has(tx.id)) continue // value-index pre-filter (== sharedValues empty)
           if (q && !q.test(tx)) continue
           // KNOWN-field links: this step's field must equal a bound earlier step's field.
           if (step.link) {
