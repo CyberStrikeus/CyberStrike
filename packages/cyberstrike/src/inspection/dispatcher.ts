@@ -155,19 +155,25 @@ export class InspectionDispatcher {
     })
     const parts = await SessionPrompt.resolvePromptParts(promptText)
     const run = SessionPrompt.prompt({ sessionID: child.id, agent: agentName, model, parts })
+    if (DISPATCH_TIMEOUT_MS <= 0) {
+      await run
+      return
+    }
     // On timeout, cancel the hung child (withTimeout only rejects the wrapper — it does NOT abort the
     // underlying run), so a stalled specialist is actually stopped before the item is retried (#38).
-    await (DISPATCH_TIMEOUT_MS > 0
-      ? withTimeout(run, DISPATCH_TIMEOUT_MS, () => {
-          log.warn("inspection dispatch timed out — cancelling child", {
-            child: child.id,
-            target: item.target_key,
-            agent: agentName,
-            ms: DISPATCH_TIMEOUT_MS,
-          })
-          SessionPrompt.cancel(child.id)
-        })
-      : run)
+    // withTimeout only wires a `.then` onto `run`, so once the wrapper has rejected on timeout the
+    // orphaned `run` can still settle on its own — a post-cancel rejection would then be unhandled.
+    // Attach a no-op catch to swallow that late settlement.
+    run.catch(() => {})
+    await withTimeout(run, DISPATCH_TIMEOUT_MS, () => {
+      log.warn("inspection dispatch timed out — cancelling child", {
+        child: child.id,
+        target: item.target_key,
+        agent: agentName,
+        ms: DISPATCH_TIMEOUT_MS,
+      })
+      SessionPrompt.cancel(child.id)
+    })
   }
 
   // ── Static: auto-wake subscription ────────────────────────────────
