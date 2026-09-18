@@ -85,6 +85,7 @@ export { PackSchema, parsePack, mergePacks, loadPackDir, contextFromCorpus } fro
 import { RuleRegistry } from "./rule"
 import { headerRules } from "./rules/headers"
 import { accessRules } from "./rules/access"
+import { idorRules } from "./rules/idor"
 import { signatureRules } from "./rules/signatures"
 import { misconfigRules } from "./rules/misconfig"
 import { techRules } from "./rules/tech"
@@ -144,7 +145,7 @@ export { signatureRules } from "./rules/signatures"
 
 // The baseline rule set — everything OSS. Per-transaction hygiene + response-signature (declarative)
 // rules + cross-transaction access-control rules. `defaultRegistry()` preloads them all.
-export const baselineRules = [...headerRules, ...compileRules(signatureRules), ...compileRules(misconfigRules), ...compileRules(techRules), ...compileRules(authProviderRules), ...compileRules(tlsCaRules), ...compileRules(securityRules), ...compileRules(cdnRules), ...compileRules(containerRules), ...compileRules(databaseRules), ...compileRules(loadBalancerRules), ...compileRules(paasRules), ...compileRules(dbManagerRules), ...compileRules(accessibilityRules), ...compileRules(developmentRules), ...compileRules(editorRules), ...compileRules(jsFrameworkRules), ...compileRules(jsGraphicsRules), ...compileRules(jsLibraryRules), ...compileRules(pageBuilderRules), ...compileRules(languageRules), ...compileRules(uiFrameworkRules), ...compileRules(webFrameworkRules), ...compileRules(hostingPanelRules), ...compileRules(contentCurationRules), ...compileRules(issueTrackerRules), ...compileRules(webServerRules), ...compileRules(reverseProxyRules), ...compileRules(osRules), ...compileRules(cmsRules), ...compileRules(authRules), ...compileRules(cveRules)]
+export const baselineRules = [...headerRules, ...idorRules, ...compileRules(signatureRules), ...compileRules(misconfigRules), ...compileRules(techRules), ...compileRules(authProviderRules), ...compileRules(tlsCaRules), ...compileRules(securityRules), ...compileRules(cdnRules), ...compileRules(containerRules), ...compileRules(databaseRules), ...compileRules(loadBalancerRules), ...compileRules(paasRules), ...compileRules(dbManagerRules), ...compileRules(accessibilityRules), ...compileRules(developmentRules), ...compileRules(editorRules), ...compileRules(jsFrameworkRules), ...compileRules(jsGraphicsRules), ...compileRules(jsLibraryRules), ...compileRules(pageBuilderRules), ...compileRules(languageRules), ...compileRules(uiFrameworkRules), ...compileRules(webFrameworkRules), ...compileRules(hostingPanelRules), ...compileRules(contentCurationRules), ...compileRules(issueTrackerRules), ...compileRules(webServerRules), ...compileRules(reverseProxyRules), ...compileRules(osRules), ...compileRules(cmsRules), ...compileRules(authRules), ...compileRules(cveRules)]
 export { misconfigRules } from "./rules/misconfig"
 export { techRules } from "./rules/tech"
 export { authRules } from "./rules/auth"
@@ -185,3 +186,4 @@ export function defaultRegistry(): RuleRegistry {
 
 export { headerRules, missingSecurityHeaders, weakCookieFlags, serverBanner } from "./rules/headers"
 export { accessRules, crossIdentityAccess, unauthenticatedReach } from "./rules/access"
+export { idorRules, numericIdEnumerable } from "./rules/idor"
