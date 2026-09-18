@@ -610,7 +610,9 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                   <text fg={theme.text}>
                     <b>Captures</b>
                   </text>
-                  <text fg={theme.textMuted}>({requests().length})</text>
+                  {/* Total captured surface = real endpoints + JS files (the two artifact buckets).
+                      Pages is a derived grouping of these, not an additive bucket, so it's excluded. */}
+                  <text fg={theme.textMuted}>({requests().length + jsFiles().length})</text>
                 </box>
                 <Show when={expanded.captures}>
                   {/* Pages — distinct page_url the captures came from */}
