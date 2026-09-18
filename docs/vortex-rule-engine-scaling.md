@@ -72,9 +72,22 @@ ingest instead of re-scanned per run:
 Both are restart-safe (lazy hydrate from the store) and guarded by the detection-parity floor. Net: the
 corpus work is O(new_tx) at ingest + O(result) at read; the whole corpus is never re-scanned.
 
-### P2 — tens of thousands of RULES
-- **Rule inverted index**: index rules by preconditions (method, content-type, tech fingerprint, param presence, required trigram/literal); for a tx/endpoint pull only applicable rules — the other ~10k are never touched. Extends `selectRules` from a subset filter to a per-fact index lookup.
-- **Content pre-scan**: before a body-scanning DSL/regex rule runs, a cheap substring/trigram check on a rule-declared required literal; skip if absent.
+### P2 — tens of thousands of RULES ✅ (done, sound + lossless)
+Evaluate only the applicable rules per transaction, the way Nuclei/Semgrep do, **without losing a single
+detection**:
+- **Sound preconditions** (`precondition.ts`): from each rule's `when`, derive a boolean formula over
+  "required literal present" — contains/regex over raw fields only, grouped alternations as disjunction
+  sets. Any uncertainty → `unconditional` (fail-open). Soundness property tested on the real patterns.
+- **Aho-Corasick prefilter** (`prefilter.ts`): one automaton over all rule literals; a single linear pass
+  over the transaction's raw text yields present literals — cost independent of the rule count. This IS
+  the content pre-scan.
+- **`registry.run` prunes** a rule only when its precondition is unsatisfiable; precondition-less rules
+  always run. **Detection guarantee is a test:** `run() ≡ runAll()` over the real registry for
+  trigger-rich / trigger-free / random transactions — pruning a rule that would fire fails it. Plus the
+  detection-parity floor.
+
+Not done, because it would be unsound: gating a rule on a tech fingerprint that might have failed to
+detect. Kept fail-open.
 
 ### P3 — safety / long-term
 - **Bounded output**: paginate/cap the signals & captures lists so payload/work is independent of corpus size.
