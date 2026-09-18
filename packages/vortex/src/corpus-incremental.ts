@@ -8,6 +8,7 @@ import type { Transaction } from "./transaction"
 import type { Signal } from "./rule"
 import { endpointKey } from "./endpoint"
 import { isSuccess } from "./scope"
+import { requestValues, correlatable } from "./taint"
 
 const ANON = "(anonymous)"
 
@@ -74,5 +75,32 @@ export class AccessMatcher {
       }
     }
     return out
+  }
+}
+
+// Incrementally-maintained request-value index for chain value-reuse joins (#40 P1c). Fed one tx at a
+// time (observe), it holds `correlatable value → ids of txs whose request carries it` — byte-identical
+// to chain.ts's one-pass buildRequestValueIndex over the same txs, so passing map() to a chain via the
+// CorpusContext yields the exact same reuse candidates (and thus signals) without rebuilding it per run.
+export class ChainValueIndex {
+  private readonly index = new Map<string, Set<string>>()
+  private readonly seen = new Set<string>()
+
+  observe(tx: Transaction): void {
+    if (this.seen.has(tx.id)) return
+    this.seen.add(tx.id)
+    for (const v of requestValues(tx)) {
+      if (!correlatable(v)) continue
+      let s = this.index.get(v)
+      if (!s) {
+        s = new Set<string>()
+        this.index.set(v, s)
+      }
+      s.add(tx.id)
+    }
+  }
+
+  map(): Map<string, Set<string>> {
+    return this.index
   }
 }

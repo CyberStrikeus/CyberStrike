@@ -48,13 +48,21 @@ export interface Rule {
   evaluate(tx: Transaction): Signal[]
 }
 
+// Optional per-run context a corpus rule may use. `valueIndex` is a pre-built (or incrementally
+// maintained) request-value index for value-reuse joins (chains), so a caller that maintains it does
+// not force each chain to rebuild it over the whole corpus. Absent ⇒ the rule builds what it needs
+// itself, preserving standalone behaviour. (#40 P1c)
+export interface CorpusContext {
+  valueIndex?: Map<string, Set<string>>
+}
+
 // A rule over the whole corpus — it receives every transaction and correlates across them.
 export interface CorpusRule {
   id: string
   title: string
   category: string
   severity: Severity
-  evaluate(txs: Transaction[]): Signal[]
+  evaluate(txs: Transaction[], ctx?: CorpusContext): Signal[]
 }
 
 // Keep the first signal per dedupKey. Signals without one fall back to a per-(rule,tx,title) key,
@@ -146,11 +154,11 @@ export class RuleRegistry {
   // `include` optionally restricts which corpus rules run (default: all) — used by callers that drive
   // some corpus rules incrementally (e.g. the bridge's AccessMatcher) and so must skip their batch twins
   // to avoid recomputing them. Existing callers pass nothing and get every corpus rule as before.
-  analyzeCorpus(txs: Transaction[], include?: (rule: CorpusRule) => boolean): Signal[] {
+  analyzeCorpus(txs: Transaction[], include?: (rule: CorpusRule) => boolean, ctx?: CorpusContext): Signal[] {
     const out: Signal[] = []
     for (const rule of this.corpusRules) {
       if (include && !include(rule)) continue
-      for (const sig of rule.evaluate(txs)) out.push(sig)
+      for (const sig of rule.evaluate(txs, ctx)) out.push(sig)
     }
     return dedupe(out)
   }

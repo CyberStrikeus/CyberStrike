@@ -16,7 +16,7 @@
 //   }
 import z from "zod"
 import type { Transaction } from "./transaction"
-import type { CorpusRule, Signal } from "./rule"
+import type { CorpusRule, CorpusContext, Signal } from "./rule"
 import { compile } from "./expr"
 import { fieldValue } from "./fields"
 import { endpointKey } from "./endpoint"
@@ -116,10 +116,14 @@ export function compileChain(rule: ChainRule): CorpusRule {
     title: rule.id,
     category: rule.category,
     severity: rule.severity,
-    evaluate(txs: Transaction[]): Signal[] {
+    evaluate(txs: Transaction[], ctx?: CorpusContext): Signal[] {
       const out: Signal[] = []
-      // Value index for reuses-joins — built once per corpus, only when a step actually uses `reuses`.
-      const reqValueIndex = rule.steps.some((s) => s.reuses) ? buildRequestValueIndex(txs) : undefined
+      // Value index for reuses-joins. Use the caller's maintained index when provided (the bridge keeps
+      // it incrementally, #40 P1c); otherwise build it once here — same content either way, so identical
+      // candidates and identical signals. Only needed when a step actually uses `reuses`.
+      const reqValueIndex = rule.steps.some((s) => s.reuses)
+        ? ctx?.valueIndex ?? buildRequestValueIndex(txs)
+        : undefined
 
       const solve = (i: number, bindings: Record<string, Transaction>, used: Set<string>, shared: string): void => {
         if (out.length >= SIGNAL_CAP) return
