@@ -56,7 +56,7 @@ export interface WebSignalKit {
     registerCanary(sessionID: string, input: { token: string; kind?: string; requestId: string; field?: string; vulnClass?: string; agent?: string }): void
     recordSignal(sessionID: string, input: { ruleId: string; transactionId: string; category: string; severity: string; title: string; evidence?: string }): void
     scanProbeResponse(sessionID: string, input: { requestId: string; method: string; url: string; status: number; headers: Record<string, string>; body: string }): number
-    signals(sessionID: string): { signals: { ruleId: string; category: string; severity: string; title: string; evidence?: string; requestId: string; endpoint?: string; owner?: string; routed: boolean; status?: "pending" | "examined" }[] }
+    signals(sessionID: string): { signals: { ruleId: string; category: string; severity: string; title: string; evidence?: string; requestId: string; endpoint?: string; owner?: string; routed: boolean; status?: "pending" | "dispatched" | "examined" }[] }
   }
 }
 

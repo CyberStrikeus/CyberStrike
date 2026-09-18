@@ -190,4 +190,68 @@ describe("InspectionQueue", () => {
       const pending = q.pending()
       expect(pending[0].priority).toBe("high")
     }))
+
+  // ── Lease-based recovery (issue #38) ─────────────────────────────
+
+  test("markDispatched: leaves pending() list but stays outstanding in count()", () =>
+    run((sid) => {
+      const q = new InspectionQueue(sid, DOMAIN)
+      q.flag({ key: "ep", label: "ep", meta: {} }, { type: "s", value: "v", priority: "medium" })
+      q.markDispatched("ep")
+      // excluded from the drain list → never double-dispatched
+      expect(q.pending().length).toBe(0)
+      // but still counted as outstanding → lifecycle won't report "complete" mid-flight
+      expect(q.count().pending).toBe(1)
+      expect(q.count().examined).toBe(0)
+      expect(q.isEmpty()).toBe(false)
+      expect(q.statusByTargetKey().ep).toBe("dispatched")
+    }))
+
+  test("resetToPending: re-opens a dispatched item for another drain pass", () =>
+    run((sid) => {
+      const q = new InspectionQueue(sid, DOMAIN)
+      q.flag({ key: "ep", label: "ep", meta: {} }, { type: "s", value: "v", priority: "medium" })
+      q.markDispatched("ep")
+      expect(q.pending().length).toBe(0)
+      q.resetToPending("ep")
+      expect(q.pending().length).toBe(1)
+      expect(q.statusByTargetKey().ep).toBe("pending")
+    }))
+
+  test("markExamined transitions a dispatched item to examined (specialist finished)", () =>
+    run((sid) => {
+      const q = new InspectionQueue(sid, DOMAIN)
+      q.flag({ key: "ep", label: "ep", meta: {} }, { type: "s", value: "v", priority: "medium" })
+      q.markDispatched("ep")
+      q.markExamined("ep")
+      expect(q.statusByTargetKey().ep).toBe("examined")
+      expect(q.count().pending).toBe(0)
+      expect(q.count().examined).toBe(1)
+    }))
+
+  test("reclaimStale: re-opens a dispatched item whose lease expired, keeps fresh ones", () =>
+    run(async (sid) => {
+      const q = new InspectionQueue(sid, DOMAIN)
+      q.flag({ key: "ep", label: "ep", meta: {} }, { type: "s", value: "v", priority: "medium" })
+      q.markDispatched("ep")
+      await Bun.sleep(5)
+      // a huge lease → the lease has NOT expired → not reclaimed
+      expect(q.reclaimStale(60_000)).toBe(0)
+      expect(q.statusByTargetKey().ep).toBe("dispatched")
+      // a tiny lease → the 5ms-old lease is stale → reclaimed to pending (re-inspected, not skipped)
+      expect(q.reclaimStale(1)).toBe(1)
+      expect(q.statusByTargetKey().ep).toBe("pending")
+      expect(q.pending().length).toBe(1)
+    }))
+
+  test("new evidence on a dispatched item accumulates without resetting the lease", () =>
+    run((sid) => {
+      const q = new InspectionQueue(sid, DOMAIN)
+      q.flag({ key: "ep", label: "ep", meta: {} }, { type: "s", value: "v1", priority: "medium" })
+      q.markDispatched("ep")
+      q.flag({ key: "ep", label: "ep", meta: {} }, { type: "s", value: "v2", priority: "high" })
+      // still in-flight (not yanked back to pending mid-dispatch → no concurrent double-dispatch)
+      expect(q.statusByTargetKey().ep).toBe("dispatched")
+      expect(q.pending().length).toBe(0)
+    }))
 })

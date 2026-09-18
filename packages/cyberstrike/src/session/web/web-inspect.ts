@@ -34,7 +34,7 @@ export namespace WebInspect {
       id: z.string(),
       session_id: z.string(),
       key_hash: z.string(),
-      status: z.enum(["pending", "examined"]),
+      status: z.enum(["pending", "dispatched", "examined"]),
       priority: Priority,
       flags: Flags,
       method: z.string().optional(),
@@ -185,7 +185,7 @@ export namespace WebInspect {
   export function count(sessionID: string): { pending: number; examined: number; total: number } {
     return getWebInspection(sessionID).queue.count()
   }
-  export function statusByKeyHash(sessionID: string): Record<string, "pending" | "examined"> {
+  export function statusByKeyHash(sessionID: string): Record<string, "pending" | "dispatched" | "examined"> {
     return getWebInspection(sessionID).queue.statusByTargetKey()
   }
   export function getFlags(sessionID: string, keyHash: string): Flags {

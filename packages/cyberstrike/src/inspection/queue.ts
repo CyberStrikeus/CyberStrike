@@ -1,13 +1,17 @@
 import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
 import z from "zod"
-import { Database, eq, and } from "@/storage/db"
+import { Database, eq, and, lt, inArray } from "@/storage/db"
 import { InspectionQueueTable } from "./schema"
 import { Identifier } from "@/id/id"
 import type { InspectionTarget, Evidence, EvidencePriority } from "@cyberstrike-io/plugin"
 
 const Priority = z.enum(["high", "medium", "low"])
-const Status = z.enum(["pending", "examined"])
+// "dispatched" is the in-flight lease state: an item handed to a specialist child-session but not yet
+// confirmed examined. It is NOT in `pending()` (so it's never double-dispatched) but IS counted as
+// outstanding by `count()` (so the lifecycle never reports "complete" while a specialist is running).
+// The lease timestamp is `time_updated` (set on markDispatched); reclaimStale re-opens stale leases.
+const Status = z.enum(["pending", "dispatched", "examined"])
 
 type EvidenceMap = Record<string, string[]>
 
@@ -99,7 +103,11 @@ export class InspectionQueue {
           .run()
       }
 
-      if (row.status === "pending") {
+      // pending OR dispatched (in-flight): accumulate evidence + bump priority, but keep the status —
+      // never reset an in-flight lease back to pending here (that would let it be dispatched a second
+      // time concurrently). New evidence on an in-flight item is recorded; if it warrants a re-look the
+      // reclaim/complete path re-opens it.
+      if (row.status === "pending" || row.status === "dispatched") {
         if (!merged.added && bumpPriority(row.priority, priority) === row.priority) return false
         db.update(InspectionQueueTable)
           .set({
@@ -194,7 +202,10 @@ export class InspectionQueue {
         )
         .all(),
     )
-    const pending = rows.filter((r) => r.status === "pending").length
+    // `dispatched` (in-flight) counts as OUTSTANDING alongside pending, so the lifecycle stays
+    // "inspecting"/"draining" — never "complete" — while a specialist is still running or its lease is
+    // unreclaimed. `pending()` (the drain list) still excludes dispatched, so this never re-dispatches.
+    const pending = rows.filter((r) => r.status === "pending" || r.status === "dispatched").length
     const examined = rows.filter((r) => r.status === "examined").length
     return { pending, examined, total: pending + examined }
   }
@@ -226,7 +237,7 @@ export class InspectionQueue {
     return out
   }
 
-  statusByTargetKey(): Record<string, "pending" | "examined"> {
+  statusByTargetKey(): Record<string, "pending" | "dispatched" | "examined"> {
     const rows = Database.use((db) =>
       db
         .select({
@@ -242,8 +253,8 @@ export class InspectionQueue {
         )
         .all(),
     )
-    const out: Record<string, "pending" | "examined"> = {}
-    for (const r of rows) out[r.target_key] = r.status as "pending" | "examined"
+    const out: Record<string, "pending" | "dispatched" | "examined"> = {}
+    for (const r of rows) out[r.target_key] = r.status as "pending" | "dispatched" | "examined"
     return out
   }
 
@@ -260,7 +271,9 @@ export class InspectionQueue {
             eq(InspectionQueueTable.session_id, this.sessionID),
             eq(InspectionQueueTable.domain, this.domain),
             eq(InspectionQueueTable.target_key, targetKey),
-            eq(InspectionQueueTable.status, "pending"),
+            // pending (drained at triage / direct) OR dispatched (a specialist finished) → examined.
+            // Already-examined items are skipped so re-examine is a no-op (no redundant publish).
+            inArray(InspectionQueueTable.status, ["pending", "dispatched"]),
           ),
         )
         .get()
@@ -276,6 +289,73 @@ export class InspectionQueue {
       return true
     })
     if (changed) this.publish()
+  }
+
+  // ── Lease (in-flight recovery, issue #38) ───────────────────────
+
+  // pending → dispatched: claim the item as in-flight before handing it to a specialist. Excluded
+  // from pending() so it isn't dispatched again; time_updated becomes the lease start.
+  markDispatched(targetKey: string): void {
+    if (this.transition(targetKey, "pending", "dispatched")) this.publish()
+  }
+
+  // dispatched → pending: the dispatch failed (or all specialists errored/timed out) — re-open the item
+  // for another drain pass so its inspection is NOT skipped.
+  resetToPending(targetKey: string): void {
+    if (this.transition(targetKey, "dispatched", "pending")) this.publish()
+  }
+
+  // Atomic status transition guarded on the current status (select-then-update in one Database.use).
+  // Returns whether a row actually moved, so callers only publish on a real change.
+  private transition(targetKey: string, from: string, to: string): boolean {
+    const now = Date.now()
+    return Database.use((db) => {
+      const row = db
+        .select({ id: InspectionQueueTable.id })
+        .from(InspectionQueueTable)
+        .where(
+          and(
+            eq(InspectionQueueTable.session_id, this.sessionID),
+            eq(InspectionQueueTable.domain, this.domain),
+            eq(InspectionQueueTable.target_key, targetKey),
+            eq(InspectionQueueTable.status, from),
+          ),
+        )
+        .get()
+      if (!row) return false
+      db.update(InspectionQueueTable).set({ status: to, time_updated: now }).where(eq(InspectionQueueTable.id, row.id)).run()
+      return true
+    })
+  }
+
+  // Re-open every dispatched item whose lease is older than `leaseMs` — the dispatcher crashed or was
+  // restarted mid-flight, leaving the item stuck "dispatched". Returns how many were reclaimed.
+  reclaimStale(leaseMs: number): number {
+    const now = Date.now()
+    const cutoff = now - Math.max(0, leaseMs)
+    const reclaimed = Database.use((db) => {
+      const stale = db
+        .select({ id: InspectionQueueTable.id })
+        .from(InspectionQueueTable)
+        .where(
+          and(
+            eq(InspectionQueueTable.session_id, this.sessionID),
+            eq(InspectionQueueTable.domain, this.domain),
+            eq(InspectionQueueTable.status, "dispatched"),
+            lt(InspectionQueueTable.time_updated, cutoff),
+          ),
+        )
+        .all()
+      for (const row of stale) {
+        db.update(InspectionQueueTable)
+          .set({ status: "pending", time_updated: now })
+          .where(eq(InspectionQueueTable.id, row.id))
+          .run()
+      }
+      return stale.length
+    })
+    if (reclaimed > 0) this.publish()
+    return reclaimed
   }
 
   // ── Internal ────────────────────────────────────────────────────
@@ -381,7 +461,7 @@ function toInfo(row: {
     target_key: row.target_key,
     target_label: row.target_label ?? undefined,
     target_meta: (row.target_meta as Record<string, unknown>) ?? undefined,
-    status: row.status as "pending" | "examined",
+    status: row.status as "pending" | "dispatched" | "examined",
     priority: row.priority as EvidencePriority,
     evidence: parseMap(row.evidence),
     time: { created: row.time_created, updated: row.time_updated },

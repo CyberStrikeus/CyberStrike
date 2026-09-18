@@ -680,7 +680,7 @@ export interface VortexSignalView {
   keyHash?: string
   owner?: string
   routed: boolean
-  status?: "pending" | "examined"
+  status?: "pending" | "dispatched" | "examined"
   // For a JS-origin finding: whether the app actually loaded/executed the asset it fired on (#22).
   // "referenced" = shipped but the page was never observed loading it → the finding is down-ranked
   // (the classic "we don't load that" false positive). Absent for non-JS findings and unknown loads.
