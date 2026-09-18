@@ -3,6 +3,7 @@ import { Hono } from "hono"
 import { SessionRoutes } from "../../src/server/routes/session"
 import { Session } from "../../src/session"
 import { DataCollector } from "../../src/session/web/data-collector"
+import { EndpointTemplate } from "../../src/session/web/endpoint-template"
 import { Instance } from "../../src/project/instance"
 import { tmpdir } from "../fixture/fixture"
 
@@ -58,6 +59,33 @@ describe("ingest → DataCollector (real route wiring)", () => {
       // server-side tech signals came through the response headers.
       expect(d.server.headers["x-powered-by"]).toBe("PHP/8.2.0")
       expect(d.server.cookies).toContain("PHPSESSID")
+    })
+  })
+
+  // #37 — a SvelteKit app's /_app/immutable/*.js chunks (and CSS/images) were double-listed
+  // under Endpoints alongside JS Files. Static assets must NOT become endpoint rows/templates.
+  test("static JS/CSS assets are skipped, not turned into endpoints (#37)", async () => {
+    await withSession(async (app, sid) => {
+      const host = "demo.example.com"
+      const html = { status: 200, headers: { "content-type": "text/html" }, body: "" }
+      const js = { status: 200, headers: { "content-type": "application/javascript" }, body: "" }
+      const css = { status: 200, headers: { "content-type": "text/css" }, body: "" }
+      const api = { status: 200, headers: { "content-type": "application/json" }, body: "{}" }
+
+      await ingest(app, sid, host, "/account", html)
+      const jsRes = await ingest(app, sid, host, "/_app/immutable/chunks/BYu1abcd.js", js)
+      await ingest(app, sid, host, "/_app/immutable/entry/app.abc.css", css)
+      await ingest(app, sid, host, "/api/users", api)
+
+      // The JS asset is accepted but explicitly skipped as a non-endpoint.
+      expect(await jsRes.json()).toMatchObject({ skipped: true, kind: "js" })
+
+      // Only the real routes are endpoint templates — the JS chunk + CSS are not.
+      const templates = EndpointTemplate.get(sid).map((t) => t.template)
+      expect(templates.some((t) => t.includes("/api/users"))).toBe(true)
+      expect(templates.some((t) => t.includes("/account"))).toBe(true)
+      expect(templates.some((t) => t.includes("immutable"))).toBe(false)
+      expect(templates.some((t) => t.endsWith(".css"))).toBe(false)
     })
   })
 })

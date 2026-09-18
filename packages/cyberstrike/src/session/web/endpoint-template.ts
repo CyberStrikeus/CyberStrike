@@ -155,6 +155,12 @@ export namespace EndpointTemplate {
     })
   }
 
+  // Drop a template by id. Used when a shape that was speculatively upserted turns out to
+  // be a non-endpoint (e.g. a static JS/CSS asset the ingest classifies after normalization).
+  export function remove(id: string): void {
+    Database.use((db) => db.delete(EndpointTemplateTable).where(eq(EndpointTemplateTable.id, id)).run())
+  }
+
   function findExact(input: UpsertInput): Info | undefined {
     const row = Database.use((db) =>
       db

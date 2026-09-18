@@ -38,6 +38,7 @@ import { WebDriver } from "../../session/web/driver"
 import { WebHold } from "../../session/web/hold"
 import { CoDrive } from "../../session/web/nav/co-drive-runner"
 import { DataCollector } from "../../session/web/data-collector"
+import { EndpointTemplate } from "../../session/web/endpoint-template"
 import { JsMiner } from "../../session/web/js-miner"
 import { ingestBrowserTransaction, vortexReport, vortexProbe, vortexDiscoverJs, vortexCaptures, vortexSignals, vortexRecordLoads, vortexRecordRuntimeLibs, ingestActive } from "../../session/web/vortex-bridge"
 import { Identifier } from "../../id/id"
@@ -2021,6 +2022,18 @@ export const SessionRoutes = lazy(() =>
             WebJs.add({ sessionID, url: jsUrl, origin: normalized.origin, discoveredFrom: "capture" })
             vortexDiscoverJs(sessionID, jsUrl, "loaded") // captured network response — the app actually loaded it (#22)
             JsMiner.wake(sessionID) // a captured JS bundle → mine it (debounced, recursive)
+          }
+
+          // Static assets (JS bundles, CSS, images, fonts) are NOT endpoints. They are counted
+          // for coverage above (and JS bundles persisted to web_js for the JS Files panel +
+          // mining); do NOT create a request row / endpoint template / retest prompt for them.
+          // Without this gate a SvelteKit app's /_app/immutable/*.js chunks double-listed under
+          // Endpoints alongside JS Files (#37). The endpoint template speculatively created by
+          // runNormalize above is dropped here since it is never linked to a request row.
+          if (collectedKind === "js" || collectedKind === "static") {
+            if (normalized.templateId) EndpointTemplate.remove(normalized.templateId)
+            c.status(202)
+            return c.json({ sessionID, skipped: true, kind: collectedKind })
           }
 
           const isDuplicate = Request.exists({
