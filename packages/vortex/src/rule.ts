@@ -7,7 +7,7 @@
 import type { Transaction, Severity } from "./transaction"
 import type { TrafficStore } from "./store"
 import type { Precondition } from "./precondition"
-import { LiteralScanner, satisfiable, literalsOf, haystackOf } from "./prefilter"
+import { RulePrefilter, haystackOf } from "./prefilter"
 
 // A per-transaction side-effecting hook a plugin registers to run over ingested traffic. Unlike a
 // Rule (which returns Signals for the registry to collect), a hook is handed the store and a
@@ -89,13 +89,13 @@ export class RuleRegistry {
   private readonly rules: Rule[] = []
   private readonly corpusRules: CorpusRule[] = []
   private readonly hooks: TransactionHook[] = []
-  // Lazily-built literal scanner over every rule precondition (#40 P2); invalidated whenever a rule is
-  // registered so it always reflects the current rule set.
-  private scanner: LiteralScanner | undefined
+  // Lazily-built rule pre-filter (#40 P2); invalidated whenever a rule is registered so it always
+  // reflects the current rule set.
+  private prefilter: RulePrefilter | undefined
 
   register(rule: Rule): this {
     this.rules.push(rule)
-    this.scanner = undefined
+    this.prefilter = undefined
     return this
   }
   registerAll(rules: Rule[]): this {
@@ -146,11 +146,9 @@ export class RuleRegistry {
   // provably cannot match. Rules without a precondition (fail-open) always run. Result is identical to
   // runAll() — locked by an equivalence test.
   run(tx: Transaction): Signal[] {
-    const present = this.ensureScanner().present(haystackOf(tx))
     const out: Signal[] = []
-    for (const rule of this.rules) {
-      if (rule.precondition && !satisfiable(rule.precondition, present)) continue
-      for (const sig of rule.evaluate(tx)) out.push(sig)
+    for (const i of this.ensurePrefilter().candidates(haystackOf(tx))) {
+      for (const sig of this.rules[i]!.evaluate(tx)) out.push(sig)
     }
     return out
   }
@@ -163,13 +161,9 @@ export class RuleRegistry {
     return out
   }
 
-  private ensureScanner(): LiteralScanner {
-    if (!this.scanner) {
-      const lits: string[] = []
-      for (const r of this.rules) if (r.precondition) literalsOf(r.precondition, lits)
-      this.scanner = new LiteralScanner(lits)
-    }
-    return this.scanner
+  private ensurePrefilter(): RulePrefilter {
+    if (!this.prefilter) this.prefilter = new RulePrefilter(this.rules)
+    return this.prefilter
   }
 
   // The main entry: run per-transaction rules over EVERY transaction AND corpus rules over the

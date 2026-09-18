@@ -60,6 +60,56 @@ export class LiteralScanner {
   }
 }
 
+// A per-registry rule pre-filter: an Aho-Corasick scanner over all rule literals PLUS a reverse index
+// (literal → the rules that require it), so selecting the rules to evaluate for a transaction is
+// O(present literals + always-run rules) — independent of the total rule count. That is what lets 20k+
+// rules run per transaction. Sound: a rule is a candidate only via `always` (fail-open) or by having a
+// present literal AND a satisfiable precondition; a rule whose required literal is absent is never a
+// candidate — and it provably could not have matched.
+export class RulePrefilter {
+  private readonly scanner: LiteralScanner
+  private readonly byLiteral = new Map<string, number[]>() // literal → indices of rules that reference it
+  private readonly always: number[] = [] // indices of rules with no prunable precondition (always run)
+  private readonly pre: (Precondition | undefined)[]
+
+  constructor(rules: { precondition?: Precondition }[]) {
+    this.pre = rules.map((r) => r.precondition)
+    const lits = new Set<string>()
+    rules.forEach((r, i) => {
+      const p = r.precondition
+      if (!p || p.kind === "unconditional") {
+        this.always.push(i)
+        return
+      }
+      const rl = literalsOf(p)
+      if (rl.length === 0) {
+        this.always.push(i) // defensive: a precondition with no literal can't prune
+        return
+      }
+      for (const l of rl) {
+        lits.add(l)
+        const arr = this.byLiteral.get(l)
+        if (arr) arr.push(i)
+        else this.byLiteral.set(l, [i])
+      }
+    })
+    this.scanner = new LiteralScanner(lits)
+  }
+
+  // The rule indices to evaluate for `haystack` (lowercased), in ascending order so the output matches
+  // an unfiltered pass. = always-run rules ∪ rules with a present literal whose full precondition holds.
+  candidates(haystack: string): number[] {
+    const present = this.scanner.present(haystack)
+    const set = new Set<number>(this.always)
+    for (const lit of present) {
+      const rs = this.byLiteral.get(lit)
+      if (!rs) continue
+      for (const i of rs) if (!set.has(i) && satisfiable(this.pre[i]!, present)) set.add(i)
+    }
+    return [...set].sort((a, b) => a - b)
+  }
+}
+
 // Can this precondition hold given the set of present literals? Unconditional always can (fail-open).
 export function satisfiable(pre: Precondition, present: Set<string>): boolean {
   if (pre.kind === "unconditional") return true
