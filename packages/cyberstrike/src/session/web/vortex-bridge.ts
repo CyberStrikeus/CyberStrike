@@ -3,7 +3,7 @@
 // Vortex engine (rules → signals → subjects → inventory → leads) runs over the live web corpus in
 // parallel with the existing CS signal fabric (verify-first; the fabric retires once Vortex proves
 // out). Never throws — must not break the ingest path.
-import { SqliteStore, defaultRegistry, registerPlugin, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, subjects, humanName, params, responseFields as txResponseFields, header, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type CanaryKind, type VortexPlugin, type Discovered } from "@cyberstrike-io/vortex"
+import { SqliteStore, defaultRegistry, registerPlugin, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, subjects, humanName, params, responseFields as txResponseFields, header, AccessMatcher, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type CanaryKind, type VortexPlugin, type Discovered } from "@cyberstrike-io/vortex"
 import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
@@ -52,6 +52,7 @@ export function dropSession(sessionID: string): void {
   corpusTimers.delete(sessionID)
   lastCorpusRunAt.delete(sessionID)
   signalsCache.delete(sessionID)
+  accessMatchers.delete(sessionID)
 }
 
 // Ingest-activity grace window — an ActivitySource for the SessionLifecycle (#19). Bumped on every hit
@@ -94,12 +95,36 @@ const corpusTimers = new Map<string, { timer: ReturnType<typeof setTimeout>; sin
 const SIGNALS_CACHE_TTL_MS = Math.max(0, Number(process.env.CYBERSTRIKE_VORTEX_SIGNALS_CACHE_TTL_MS) || 1000)
 const signalsCache = new Map<string, { at: number; value: { signals: VortexSignalView[] } }>()
 
+// Access-control corpus findings are driven INCREMENTALLY (issue #40 P1c): a per-session AccessMatcher
+// is fed each tx at ingest, so it never re-groups the whole corpus. It is proven byte-equivalent to the
+// batch access CorpusRules (corpus-incremental equivalence test), and those batch twins are excluded
+// from runCorpusAnalysis below to avoid recomputing them. Lazily hydrated from the store on first use,
+// so a restart (empty in-memory matcher, populated store) still reflects prior traffic.
+const ACCESS_RULE_IDS = new Set(["cross-identity-access", "unauthenticated-reach"])
+const accessMatchers = new Map<string, AccessMatcher>()
+function accessMatcherFor(sessionID: string): AccessMatcher {
+  let m = accessMatchers.get(sessionID)
+  if (!m) {
+    m = new AccessMatcher()
+    try {
+      for (const t of storeFor(sessionID).all()) m.observe(t)
+    } catch (e) {
+      log.debug("access matcher hydrate failed (ignored)", { sessionID, err: String(e) })
+    }
+    accessMatchers.set(sessionID, m)
+  }
+  return m
+}
+
 // Run the corpus rules over the current corpus and persist (addSignals dedups). Marks the run time and
 // drops the view cache. Best-effort — a store hiccup must never break the read/ingest that called it.
 function runCorpusAnalysis(sessionID: string): void {
   try {
     const store = storeFor(sessionID)
-    store.addSignals(registry.analyzeCorpus(store.all()))
+    // Batch corpus rules EXCEPT access (chains use the P1a value-index; aggregates), then the access
+    // matcher's incrementally-maintained findings. Both persist via addSignals (dedup by dedupKey).
+    store.addSignals(registry.analyzeCorpus(store.all(), (r) => !ACCESS_RULE_IDS.has(r.id)))
+    store.addSignals(accessMatcherFor(sessionID).signals())
   } catch (e) {
     log.debug("vortex corpus analyze failed (ignored)", { sessionID, err: String(e) })
   } finally {
@@ -228,6 +253,7 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
       response: i.response ? { status: i.response.status ?? 0, headers: recordToHeaders(i.response.headers), body: i.response.body } : undefined,
     }
     store.add(tx)
+    accessMatcherFor(i.sessionID).observe(tx) // incremental access-control corpus matching (#40 P1c)
     bridgeSubjects(i.sessionID, tx, i.requestID)
     const sigs = registry.run(tx) // per-transaction rules on the new tx
     const added = store.addSignals(sigs)
@@ -306,6 +332,7 @@ export function ingestJsBody(sessionID: string, url: string, body: string, statu
       response: { status, headers: [{ name: "content-type", value: "application/javascript" }], body: text },
     }
     store.add(tx)
+    accessMatcherFor(sessionID).observe(tx) // incremental access-control corpus matching (#40 P1c)
     const sigs = registry.run(tx) // core DSL rules over the JS body (secret-in-response / tech / cve / JS packs)
     const added = store.addSignals(sigs)
     let routed = bridgeSignals(sessionID, store, sigs)
