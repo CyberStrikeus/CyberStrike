@@ -27,6 +27,9 @@ export class InspectionDispatcher {
   private readonly queue: InspectionQueue
   private readonly router: InspectionRouter
   private running = false
+  // Called once the queue has fully drained (no pending items, loop finished) — the seam the auto-triage
+  // runner hooks so it can finalize draft findings before the lifecycle reaches "complete" (#41).
+  onDrain: (() => void) | undefined
   // Per-target failed-attempt counter (in-memory; a restart resets it, which is fine — worst case a
   // target gets a couple extra retries after a restart). Bounds the retry loop (issue #38).
   private readonly attempts = new Map<string, number>()
@@ -58,6 +61,9 @@ export class InspectionDispatcher {
         // empty-check and here hit `if (this.running) return` above and was dropped. If anything is
         // still pending, drain again. Safe from looping — every drained item is marked examined.
         if (this.queue.pending().length > 0) this.wake()
+        // Fully drained → let the auto-triage runner finalize any draft findings (#41). Synchronous, so
+        // its `active` flag is set before the lifecycle next evaluates "complete".
+        else this.onDrain?.()
       })
   }
 

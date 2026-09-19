@@ -2,12 +2,14 @@ import { InspectionQueue } from "./queue"
 import { InspectionDispatcher } from "./dispatcher"
 import { SessionLifecycle } from "./lifecycle"
 import { WebInspectionRouter } from "./web-router"
+import { TriageRunner } from "./triage"
 import type { ActivitySource } from "@cyberstrike-io/plugin"
 
 interface Inst {
   queue: InspectionQueue
   dispatcher: InspectionDispatcher
   lifecycle: SessionLifecycle
+  triage: TriageRunner
   started: boolean
 }
 const instances = new Map<string, Inst>()
@@ -23,7 +25,8 @@ export function getWebInspection(sessionID: string): Inst {
   const router = new WebInspectionRouter()
   const dispatcher = new InspectionDispatcher(queue, router)
   const lifecycle = new SessionLifecycle(sessionID, "web", queue)
-  const inst: Inst = { queue, dispatcher, lifecycle, started: false }
+  const triage = new TriageRunner(sessionID)
+  const inst: Inst = { queue, dispatcher, lifecycle, triage, started: false }
   instances.set(sessionID, inst)
   return inst
 }
@@ -39,6 +42,10 @@ export function ensureWebInspection(sessionID: string): Inst {
     // WSTG child-sessions, so the lifecycle must not settle to "complete" yet. Registered here (not the
     // ingest bootstrap) so it is always present whenever inspection is actually started (#19).
     inst.lifecycle.addSource({ name: "specialist", isActive: () => inst.dispatcher.active })
+    // Auto-triage (#41): when the queue drains, finalize draft findings; keep the lifecycle out of
+    // "complete" while a triage pass is in flight, so "complete" means scanned AND triaged.
+    inst.dispatcher.onDrain = () => inst.triage.wake()
+    inst.lifecycle.addSource({ name: "triage", isActive: () => inst.triage.active })
     inst.lifecycle.start()
     inst.started = true
   }

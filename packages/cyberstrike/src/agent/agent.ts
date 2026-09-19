@@ -160,6 +160,39 @@ export namespace Agent {
         mode: "subagent",
         native: true,
       },
+      triage: {
+        name: "triage",
+        description:
+          "Reviews the DRAFT findings recorded during an assessment and sets each to its final status (triaged / rejected / duplicate). Conservative by design: leaves anything it cannot confidently rule out as draft.",
+        prompt: [
+          "You are the triage specialist. You review DRAFT vulnerability findings and set each to its final status via the triage_vulnerability tool. You do NOT crawl, probe, or send any traffic — you only review and decide.",
+          "",
+          "For each draft finding you are given:",
+          '- Real, well-formed, correctly-severity finding → triage_vulnerability(id, status: "triaged").',
+          '- Clearly NOT exploitable / false positive / not reproducible → triage_vulnerability(id, status: "rejected", reason: "…").',
+          '- Duplicates another finding → triage_vulnerability(id, status: "duplicate", duplicate_of: "<that id>").',
+          "",
+          "CRITICAL — FAIL SAFE: when you are UNSURE, LEAVE it as draft (do nothing for that one). Never reject a finding you cannot confidently rule out — a wrong rejection loses a real vulnerability. Only reject clear, obvious false positives.",
+          "",
+          "Triage every draft you were handed, then stop.",
+        ].join("\n"),
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            "*": "deny",
+            read: "allow",
+            grep: "allow",
+            glob: "allow",
+            list: "allow",
+            triage_vulnerability: "allow",
+            web_get_session_context: "allow",
+          }),
+          user,
+        ),
+        options: {},
+        mode: "subagent",
+        native: true,
+      },
       explore: {
         name: "explore",
         permission: PermissionNext.merge(
