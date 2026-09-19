@@ -28,6 +28,7 @@ import { useExit } from "./exit"
 import { useArgs } from "./args"
 import { batch, onMount } from "solid-js"
 import { Log } from "@/util/log"
+import { singleflight } from "@/util/singleflight"
 import type { Path } from "@cyberstrike-io/sdk"
 
 export const { use: useSync, provider: SyncProvider } = createSimpleContext({
@@ -577,7 +578,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
     const exit = useExit()
     const args = useArgs()
 
-    async function bootstrap() {
+    const bootstrap = singleflight(async function () {
       console.log("bootstrapping")
       const start = Date.now() - 30 * 24 * 60 * 60 * 1000
       const sessionListPromise = sdk.client.session
@@ -664,7 +665,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           })
           await exit(e)
         })
-    }
+    })
 
     onMount(() => {
       bootstrap()
