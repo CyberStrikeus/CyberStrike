@@ -9,6 +9,35 @@
 const power = document.getElementById("power")
 const toggle = document.getElementById("toggle")
 const hint = document.getElementById("hint")
+const server = document.getElementById("server")
+const save = document.getElementById("save")
+
+// Server target. In a managed spawn the server URL rides in on the target-URL hash (#__cs_url); a
+// MANUALLY load-unpacked extension has no hash, so this field is how the operator points it at the
+// running CyberStrike (default 127.0.0.1:4096, or a random port when 4096 was taken). background.js
+// reads the `cyberstrike` storage key (falling back to the default), so writing it here is all that's
+// needed to (re)bind.
+const DEFAULT_CS = "http://127.0.0.1:4096"
+chrome.storage.local.get("cyberstrike", (o) => {
+  server.value = (o && o.cyberstrike) || DEFAULT_CS
+})
+
+save.addEventListener("click", async () => {
+  let base = (server.value || "").trim().replace(/\/+$/, "")
+  if (base && !/^https?:\/\//i.test(base)) base = "http://" + base
+  try {
+    new URL(base)
+  } catch {
+    hint.textContent = "invalid server URL"
+    return
+  }
+  // A new server means any stored session/credential belongs to the OLD server — clear them so the
+  // next capture rebinds (background's ensureSession re-creates one against the new base).
+  await chrome.storage.local.set({ cyberstrike: base })
+  await chrome.storage.local.remove(["session", "credential"])
+  server.value = base
+  hint.textContent = "saved — reload the page to rebind"
+})
 
 async function activeTab() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true })

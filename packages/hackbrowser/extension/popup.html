@@ -77,6 +77,26 @@
         opacity: 0.45;
         cursor: default;
       }
+      .inp {
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 8px;
+        padding: 8px 9px;
+        border: 1px solid #1f2b38;
+        border-radius: 7px;
+        background: #0e151d;
+        color: #d7e0ea;
+        font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .inp:focus {
+        outline: none;
+        border-color: #1f6feb;
+      }
+      hr.sep {
+        border: 0;
+        border-top: 1px solid #16212b;
+        margin: 14px 0;
+      }
       p {
         margin: 12px 0 0;
         font-size: 11px;
@@ -99,6 +119,10 @@
     </div>
     <button id="toggle" class="act">Show / hide panel</button>
     <p>All controls live in the on-page panel — click the CyberStrike logo. Turn the extension off to stop it completely: no capture, nothing running in the background.</p>
+    <hr class="sep" />
+    <div class="row"><span class="lbl">CyberStrike server</span></div>
+    <input id="server" class="inp" placeholder="http://127.0.0.1:4096" spellcheck="false" autocapitalize="off" autocomplete="off" />
+    <button id="save" class="act" style="margin-top: 8px">Save &amp; rebind session</button>
     <div class="hint" id="hint"></div>
     <script src="popup.js"></script>
   </body>
