@@ -7,6 +7,7 @@ import path from "path"
 import { Instance } from "../../src/project/instance"
 import { Session } from "../../src/session"
 import { Vulnerability } from "../../src/session/vulnerability"
+import { normalizeStatus, VulnStatus } from "../../src/session/vulnerability-status"
 import { TriageRunner } from "../../src/inspection/triage"
 import { InspectionQueue } from "../../src/inspection/queue"
 import { InspectionDispatcher } from "../../src/inspection/dispatcher"
@@ -35,7 +36,7 @@ function run(fn: (sessionID: string) => void | Promise<void>) {
 class TestTriage extends TriageRunner {
   readonly passes: string[][] = []
   private gate: (() => void) | null = null
-  protected async run(drafts: Vulnerability.Info[]): Promise<void> {
+  protected override async run(drafts: Vulnerability.Info[]): Promise<void> {
     this.passes.push(drafts.map((d) => d.id!))
     await new Promise<void>((r) => {
       this.gate = r
@@ -60,7 +61,7 @@ describe("TriageRunner (#41)", () => {
       expect(t.passes).toEqual([])
     }))
 
-  test("reviews all drafts once; a left-as-draft finding is NOT re-triaged (no loop)", () =>
+  test("CODE-ENFORCED: no finding left in draft after a pass, even when the agent triages nothing", () =>
     run(async (sid) => {
       const a = addDraft(sid, "A")
       const b = addDraft(sid, "B")
@@ -71,12 +72,16 @@ describe("TriageRunner (#41)", () => {
       expect(t.passes).toEqual([[a.id, b.id]])
 
       t.release()
-      await Bun.sleep(5) // let the finally + re-arm run
-      expect(t.active).toBe(false)
+      await Bun.sleep(5) // let run + finalize + re-arm run
 
-      // Both are still draft (the stub changed nothing). Waking again must NOT re-triage them.
+      // The stub agent changed nothing, but the deterministic finalize promoted both OUT of draft.
+      const statuses = Vulnerability.get(sid).map((v) => normalizeStatus(v.status ?? VulnStatus.DRAFT))
+      expect(statuses.filter((s) => s === VulnStatus.DRAFT)).toEqual([]) // NO finding left in draft
+      expect(statuses.filter((s) => s === VulnStatus.TRIAGED).length).toBe(2) // promoted, never rejected
+
+      // Nothing left in draft → waking again does no work (no loop).
       t.wake()
-      expect(t.passes.length).toBe(1) // no second pass → no loop
+      expect(t.passes.length).toBe(1)
       expect(t.active).toBe(false)
     }))
 

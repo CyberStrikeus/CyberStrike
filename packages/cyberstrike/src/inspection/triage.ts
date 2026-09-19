@@ -51,12 +51,38 @@ export class TriageRunner {
     if (drafts.length === 0) return
     this.running = true
     for (const d of drafts) if (d.id) this.attempted.add(d.id)
-    void this.run(drafts)
+    void this.pass(drafts)
       .catch((e) => log.error("triage pass failed", { sessionID: this.sessionID, err: String(e) }))
       .finally(() => {
         this.running = false
         if (this.freshDrafts().length > 0) this.wake() // a NEW draft landed during triage → another pass
       })
+  }
+
+  // One pass: the LLM agent reviews the drafts, then a DETERMINISTIC finalize guarantees none is left in
+  // draft — regardless of what the agent did (or if it failed). `finalize` runs in a `finally` so the
+  // guarantee holds even when the dispatch throws or times out.
+  private async pass(drafts: Vulnerability.Info[]): Promise<void> {
+    try {
+      await this.run(drafts)
+    } finally {
+      this.finalize(drafts)
+    }
+  }
+
+  // CODE-ENFORCED, not left to the LLM: any finding from this pass still in `draft` is promoted to
+  // `triaged` via the Vulnerability store. Promotion (never rejection) so a real finding is never lost —
+  // it surfaces as an active finding for human review instead of sitting in draft. (#41)
+  private finalize(drafts: Vulnerability.Info[]): void {
+    const byId = new Map(Vulnerability.get(this.sessionID).map((v) => [v.id, v]))
+    for (const d of drafts) {
+      if (!d.id) continue
+      const cur = byId.get(d.id)
+      if (cur && normalizeStatus(cur.status ?? VulnStatus.DRAFT) === VulnStatus.DRAFT) {
+        Vulnerability.update({ sessionID: this.sessionID, id: d.id, status: VulnStatus.TRIAGED })
+        log.info("auto-promoted un-triaged draft → triaged (no finding left in draft)", { sessionID: this.sessionID, id: d.id })
+      }
+    }
   }
 
   // protected so tests can substitute the actual agent dispatch (no live LLM).
