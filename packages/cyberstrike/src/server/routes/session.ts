@@ -40,7 +40,7 @@ import { CoDrive } from "../../session/web/nav/co-drive-runner"
 import { DataCollector } from "../../session/web/data-collector"
 import { EndpointTemplate } from "../../session/web/endpoint-template"
 import { JsMiner } from "../../session/web/js-miner"
-import { ingestBrowserTransaction, vortexReport, vortexProbe, vortexDiscoverJs, vortexCaptures, vortexSignals, vortexRecordLoads, vortexRecordRuntimeLibs, ingestActive } from "../../session/web/vortex-bridge"
+import { ingestBrowserTransaction, vortexReport, vortexProbe, vortexDiscoverJs, vortexCaptures, vortexSignals, vortexRecordLoads, vortexRecordRuntimeLibs, ingestActive, routeAllSignals } from "../../session/web/vortex-bridge"
 import { Identifier } from "../../id/id"
 import { HBLog } from "../../session/web/hblog"
 import { FrameworkFingerprinter } from "../../session/web/tech"
@@ -1726,6 +1726,22 @@ export const SessionRoutes = lazy(() =>
       }),
       validator("param", z.object({ sessionID: z.string() })),
       async (c) => c.json(vortexSignals(c.req.valid("param").sessionID)),
+    )
+    .post(
+      "/:sessionID/inspection/route-signals",
+      describeRoute({
+        summary: "Force-route surfaced signals",
+        description:
+          "Operator action: flag EVERY owned Vortex signal for a specialist, ignoring the medium+ auto-route gate — so surfaced-but-not-auto-routed leads (e.g. a low-severity cross-identity-access = IDOR/BFLA candidate) get actively tested on demand. Idempotent; wakes the dispatcher.",
+        operationId: "session.routeSignals",
+        responses: { 200: { description: "How many signals were flagged for a specialist" } },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        ensureWebInspection(sessionID) // register dispatcher + lifecycle (idempotent) before flagging
+        return c.json(routeAllSignals(sessionID))
+      },
     )
     .get(
       "/:sessionID/inspection/queue",

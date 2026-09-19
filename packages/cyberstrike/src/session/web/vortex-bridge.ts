@@ -803,6 +803,33 @@ function bridgeSignals(sessionID: string, store: TrafficStore, signals: Signal[]
   return routed
 }
 
+// Operator action (manual force-route): flag EVERY owned signal already recorded for the session,
+// IGNORING the shouldRoute severity gate — so a surfaced-but-not-auto-routed lead (e.g. a low-severity
+// `cross-identity-access` = IDOR/BFLA candidate) gets a specialist on demand. Reads the persisted
+// signals (each carries its keyHash + resolved owner), so no re-ingest is needed. WebInspect.flag
+// dedups, so re-running is a no-op; the queue Updated event wakes the dispatcher. Returns counts.
+export function routeAllSignals(sessionID: string): { flagged: number; total: number; skipped: number } {
+  const view = vortexSignals(sessionID).signals
+  let flagged = 0
+  let skipped = 0
+  for (const s of view) {
+    const owner = ownerForSignal(s.ruleId, s.category)
+    if (!owner || !s.keyHash) {
+      skipped++
+      continue
+    }
+    const value =
+      s.category === "technology" ? `${s.category}:${owner}:${s.ruleId.replace(/^tech-/, "")}` : `${s.category}:${owner}`
+    try {
+      if (WebInspect.flag({ sessionID, keyHash: s.keyHash, type: "signal", value, priority: signalPriority(s.severity as VortexSeverity) }))
+        flagged++
+    } catch (e) {
+      log.debug("manual signal route failed (ignored)", { ruleId: s.ruleId, err: String(e) })
+    }
+  }
+  return { flagged, total: view.length, skipped }
+}
+
 // The TUI "Vortex Signals" sidebar view (issue #14): every persisted Vortex signal with its owning
 // class, whether it auto-routed, and its endpoint's retest-queue status (pending = queued for a
 // specialist, examined = an agent has worked it) — so the operator SEES what Vortex found, what is
