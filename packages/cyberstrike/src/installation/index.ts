@@ -220,9 +220,10 @@ export namespace Installation {
         return reg.endsWith("/") ? reg.slice(0, -1) : reg
       })
       const channel = CHANNEL
-      return fetch(`${registry}/cyberstrike/${channel}`)
+      const url = `${registry}/@cyberstrike-io%2Fcyberstrike/${channel}`
+      return fetch(url)
         .then((res) => {
-          if (!res.ok) throw new Error(res.statusText)
+          if (!res.ok) throw new Error(`${res.status} ${res.statusText}: ${url}`)
           return res.json()
         })
         .then((data: any) => data.version)
