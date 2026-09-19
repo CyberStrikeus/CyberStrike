@@ -111,6 +111,12 @@ export const VulnerabilityTable = sqliteTable(
     source_agent: text(),
     candidate: text(),
     duplicate_of: text(), // triage link: this finding is a duplicate of <vuln id>
+    // Systemic-class aggregation (issue #45): a config-level finding (CORS, security-headers, cookie-
+    // flags, …) is ONE issue across many endpoints. aggregate_key = `${class}|${host}|${variant}`
+    // identifies the single aggregate finding; affected_endpoints holds its JSON string[] of endpoints.
+    // NULL on ordinary per-endpoint findings. Both auto-added to existing DBs by the ADD COLUMN pass.
+    aggregate_key: text(),
+    affected_endpoints: text(),
     position: integer().notNull(),
     ...Timestamps,
   },

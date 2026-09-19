@@ -125,6 +125,41 @@ export function classifyFindingTitle(title: string): string | null {
   return null
 }
 
+// Systemic / config-level finding classes (issue #45): a finding here is inherently "one issue, MANY
+// endpoints" — a site-wide CORS policy, missing headers, cookie flags — so it must aggregate into a
+// SINGLE finding with an affected-endpoints list, the way a real pentest reports it (not one row per
+// endpoint). Endpoint-specific classes (IDOR/XSS/SQLi/SSRF/auth-bypass) are deliberately NOT here —
+// each is a distinct vuln. `variant` splits a class where the sub-issues are genuinely different
+// (CORS credentialed origin-reflection vs. plain wildcard) so they never over-collapse into one.
+// Note: classifyFindingTitle has no CORS/header/cookie-systemic bucket, so this is a separate lane.
+export function aggregateSignature(title: string): { cls: string; variant: string } | null {
+  const s = (title ?? "").toLowerCase()
+  if (/\bcors\b|cross-origin|access-control-allow-origin/.test(s)) {
+    const reflect = /reflect|arbitrary origin|mirror|echo(es|ed)? (the )?origin/.test(s)
+    return { cls: "cors", variant: reflect ? "origin-reflection" : "wildcard" }
+  }
+  if (/clickjack|x-frame-options|frame-ancestors|missing (csp|content-security-policy|hsts|strict-transport|security header)|security header/.test(s))
+    return { cls: "security-headers", variant: "missing" }
+  if (/cookie[^.]*(httponly|samesite|secure)|(httponly|samesite|secure)[^.]*cookie|cookie flag/.test(s))
+    return { cls: "cookie-flags", variant: "weak" }
+  if (/stack trace|full[- ]?path disclosure|internal exception|verbose error|server (banner|version)|version disclos/.test(s))
+    return { cls: "info-disclosure", variant: "verbose" }
+  return null
+}
+
+const AGGREGATE_TITLES: Record<string, string> = {
+  "cors|origin-reflection": "CORS reflects arbitrary Origin (credentialed cross-origin access)",
+  "cors|wildcard": "Permissive wildcard CORS (Access-Control-Allow-Origin: *)",
+  "security-headers|missing": "Missing security headers / clickjacking protection",
+  "cookie-flags|weak": "Cookies set without hardening flags (HttpOnly / SameSite / Secure)",
+  "info-disclosure|verbose": "Information disclosure (verbose errors / stack traces / version banners)",
+}
+// The consolidated title for an aggregate finding, carrying the affected-endpoint count.
+export function aggregateTitleFor(cls: string, variant: string, n: number): string {
+  const base = AGGREGATE_TITLES[`${cls}|${variant}`] ?? `${cls} (${variant})`
+  return `${base} — ${n} endpoint${n === 1 ? "" : "s"}`
+}
+
 // Execution-dependent finding classes: ones where "it exists" needs an OBSERVED
 // trigger (alert/flag/checker output), not just a reflected/echoed byte. Derived
 // deterministically from title+cwe — the model's vrt_category is NEVER trusted.
