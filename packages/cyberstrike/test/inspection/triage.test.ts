@@ -8,6 +8,9 @@ import { Instance } from "../../src/project/instance"
 import { Session } from "../../src/session"
 import { Vulnerability } from "../../src/session/vulnerability"
 import { TriageRunner } from "../../src/inspection/triage"
+import { InspectionQueue } from "../../src/inspection/queue"
+import { InspectionDispatcher } from "../../src/inspection/dispatcher"
+import { SessionLifecycle } from "../../src/inspection/lifecycle"
 import { Log } from "../../src/util/log"
 
 const projectRoot = path.join(__dirname, "../..")
@@ -88,5 +91,41 @@ describe("TriageRunner (#41)", () => {
       const c = addDraft(sid, "C") // arrives after the first pass
       t.wake()
       expect(t.passes).toEqual([[a.id], [c.id]])
+    }))
+
+  // INTEGRATION: the triage source actually holds the lifecycle out of "complete" until triage finishes.
+  test("triage source holds off 'complete' until triage finishes (#41)", () =>
+    run(async (sid) => {
+      const q = new InspectionQueue(sid, "web")
+      q.flag({ key: "ep1", label: "ep1", meta: {} }, { type: "s", value: "v", priority: "medium" })
+      q.markExamined("ep1") // inspection queue drained (pending 0, one examined)
+      addDraft(sid, "A") // …but a draft is awaiting triage
+      const t = new TestTriage(sid)
+      const lc = new SessionLifecycle(sid, "web", q)
+      lc.addSource({ name: "triage", isActive: () => t.active }) // exact web-bridge wiring
+
+      t.wake() // triage pass starts (stub holds it in flight)
+      ;(lc as any).tick()
+      expect(lc.phase).not.toBe("complete") // HOLD — triage in flight
+
+      t.release()
+      await Bun.sleep(5) // triage finishes
+      ;(lc as any).tick()
+      expect(lc.phase).toBe("complete") // now scanned AND triaged
+    }))
+
+  // WIRING: the dispatcher invokes onDrain when the queue fully drains (the seam triage hooks).
+  test("dispatcher fires onDrain when the queue drains (#41)", () =>
+    run(async (sid) => {
+      const q = new InspectionQueue(sid, "web")
+      const router = { resolve: async () => [], prompt: () => "" } as unknown as ConstructorParameters<typeof InspectionDispatcher>[1]
+      const d = new InspectionDispatcher(q, router)
+      let drained = 0
+      d.onDrain = () => {
+        drained++
+      }
+      d.wake() // empty queue → loop returns, finally sees pending 0 → onDrain
+      await Bun.sleep(200)
+      expect(drained).toBeGreaterThan(0)
     }))
 })

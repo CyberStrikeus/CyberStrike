@@ -678,3 +678,23 @@ test("defaultAgent throws when all primary agents are disabled", async () => {
     },
   })
 })
+
+test("triage agent exists as a subagent that can triage but not crawl/probe (#41)", async () => {
+  await using tmp = await tmpdir()
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const triage = (await Agent.list()).find((a) => a.name === "triage")
+      expect(triage).toBeDefined()
+      expect(triage?.mode).toBe("subagent")
+      // can triage + read
+      expect(evalPerm(triage, "triage_vulnerability")).toBe("allow")
+      expect(evalPerm(triage, "read")).toBe("allow")
+      // must NOT send traffic or mutate — it only reviews
+      expect(evalPerm(triage, "bash")).toBe("deny")
+      expect(evalPerm(triage, "hackbrowser")).toBe("deny")
+      expect(evalPerm(triage, "http_replay")).toBe("deny")
+      expect(evalPerm(triage, "report_vulnerability")).toBe("deny")
+    },
+  })
+})
