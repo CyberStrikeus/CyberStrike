@@ -1,4 +1,4 @@
-// CyberStrike HackBrowser 2.0 — panel (content script).
+// CyberStrike HackBrowser — panel (content script).
 //
 // Interaction (final design):
 //   - a CyberStrike logo disc sits in the bottom-right corner (draggable, edge-anchored)

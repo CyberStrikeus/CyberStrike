@@ -1,4 +1,4 @@
-// CyberStrike HackBrowser 2.0 — background service worker.
+// CyberStrike HackBrowser — background service worker.
 //
 // NO chrome.debugger (so no "…started debugging this browser" bar). Capture is:
 //   - dynamic request/response bodies (xhr/fetch) via the MAIN-world fetch/XHR

@@ -1,4 +1,4 @@
-// CyberStrike HackBrowser 2.0 — MAIN-world capture patch.
+// CyberStrike HackBrowser — MAIN-world capture patch.
 //
 // Runs in the PAGE's JS context (world: MAIN) and wraps fetch + XMLHttpRequest so
 // we can read DYNAMIC request/response bodies WITHOUT chrome.debugger — so no
