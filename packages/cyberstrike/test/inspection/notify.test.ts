@@ -8,6 +8,7 @@ describe("buildCompletePayload — assessment-complete webhook payload", () => {
       "web",
       { examined: 5, total: 6 },
       [{ severity: "high" }, { severity: "high" }, { severity: "medium" }, { severity: "info" }],
+      3, // awaitingTriage
       1_700_000_000_000,
     )
     expect(p.event).toBe("assessment.complete")
@@ -16,6 +17,7 @@ describe("buildCompletePayload — assessment-complete webhook payload", () => {
     expect(p.endpoints).toEqual({ examined: 5, total: 6 })
     expect(p.findings.total).toBe(4)
     expect(p.findings.bySeverity).toEqual({ high: 2, medium: 1, info: 1 })
+    expect(p.findings.awaitingTriage).toBe(3)
     expect(p.at).toBe(new Date(1_700_000_000_000).toISOString())
   })
 
