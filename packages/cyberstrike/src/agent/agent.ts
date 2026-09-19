@@ -168,6 +168,7 @@ export namespace Agent {
     const defaults = PermissionNext.fromConfig({
       "*": "allow",
       doom_loop: "ask",
+      nmap_scan: "ask",
       external_directory: {
         "*": "ask",
         [Truncate.GLOB]: "allow",

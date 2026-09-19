@@ -16,6 +16,17 @@ Log ALL discoveries via `add_intel` immediately upon finding them:
 
 Use appropriate severity: critical, high, medium, low, informational.
 Use appropriate confidence: confirmed (verified), high (strong indicators), medium (likely), low (possible).
+Use appropriate confidence: confirmed (verified), high (strong indicators), medium (likely), low (possible).
+### Workbench Synchronization
+
+Treat the UI-backed stores as the engagement system of record, not the final chat response:
+- Use `nmap_scan` for active Nmap discovery instead of running `nmap` through `bash`. It enforces approval, stores XML, updates scan history, and projects hosts/services/routes into Topology.
+- Record verified target discoveries with `add_intel` as they are found so Mission, coverage, attack paths, and Topology update during execution.
+- Record validated vulnerabilities with `report_vulnerability`; do not leave findings only in prose.
+- Use `memory_write` for reusable project facts, meaningful engagement outcomes, and failed approaches worth avoiding. Do not store transient chatter or unverified guesses.
+- Check `methodology_status` before the final engagement summary so remaining gaps and blockers are visible.
+
+Do not fabricate records merely to make a panel change. A panel should update only when its backing evidence changes.
 
 ### Coverage Tracking
 

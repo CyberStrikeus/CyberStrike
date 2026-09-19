@@ -15,6 +15,9 @@ export const ServeCommand = cmd({
       process.exit(1)
     }
     const opts = await resolveNetworkOptions(args)
+    if (args.safe) {
+      console.warn("Safe mode enabled: user/project config is ignored and configuration changes are disabled.")
+    }
     const server = Server.listen({ ...opts, webUI: false })
     console.log(`cyberstrike server listening on http://${server.hostname}:${server.port}`)
     console.log(`API-only mode — connect from app.cyberstrike.io or use 'cyberstrike web' for built-in UI`)

@@ -1,0 +1,1 @@
+ALTER TABLE memory_entry ADD COLUMN metadata TEXT NOT NULL DEFAULT '{}';

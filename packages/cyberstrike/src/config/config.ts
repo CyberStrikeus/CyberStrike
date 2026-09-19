@@ -32,6 +32,7 @@ import { PackageRegistry } from "@/bun/registry"
 import { proxied } from "@/util/proxied"
 import { iife } from "@/util/iife"
 import { Control } from "@/control"
+import { McpCatalog } from "@/mcp/catalog"
 
 export namespace Config {
   const ModelId = z.string().meta({ $ref: "https://models.dev/model-schema.json#/$defs/Model" })
@@ -78,64 +79,10 @@ export namespace Config {
     // Managed config directory is enterprise-only and always overrides everything above.
     let result: Info = {}
 
-    // Built-in security MCP servers (lowest precedence — user config overrides)
-    result.mcp = {
-      // --- Tier 1: Core Security ---
-      "github-security": {
-        type: "local",
-        command: ["npx", "-y", "github-security-mcp"],
-        enabled: false,
-      },
-      cve: {
-        type: "local",
-        command: ["npx", "-y", "cve-mcp"],
-        enabled: false,
-      },
-      osint: {
-        type: "local",
-        command: ["npx", "-y", "osint-mcp-server"],
-        enabled: false,
-      },
-      "cloud-audit": {
-        type: "local",
-        command: ["npx", "-y", "cloud-audit-mcp"],
-        enabled: false,
-      },
-      // --- Tier 2: Extended Intelligence ---
-      darknet: {
-        type: "local",
-        command: ["npx", "-y", "darknet-mcp-server"],
-        enabled: false,
-      },
-      "dns-security": {
-        type: "local",
-        command: ["npx", "-y", "dns-security-mcp"],
-        enabled: false,
-      },
-      "supply-chain": {
-        type: "local",
-        command: ["npx", "-y", "supply-chain-mcp-server"],
-        enabled: false,
-      },
-      // --- Tier 3: Specialist ---
-      "mcp-scanner": {
-        type: "local",
-        command: ["npx", "-y", "mcp-security-scanner"],
-        enabled: false,
-      },
-      steganography: {
-        type: "local",
-        command: ["npx", "-y", "steganography-mcp"],
-        enabled: false,
-      },
-      satellite: {
-        type: "local",
-        command: ["npx", "-y", "satellite-mcp"],
-        enabled: false,
-      },
-    }
+    // Runnable built-ins only. Manual and optional entries remain discoverable via the catalog.
+    result.mcp = McpCatalog.defaults()
 
-    for (const [key, value] of Object.entries(auth)) {
+    for (const [key, value] of Object.entries(Flag.CYBERSTRIKE_SAFE_MODE ? {} : auth)) {
       if (value.type === "wellknown") {
         process.env[value.key] = value.token
         log.debug("fetching remote config", { url: `${key}/.well-known/cyberstrike` })
@@ -157,16 +104,16 @@ export namespace Config {
     }
 
     // Global user config overrides remote config.
-    result = merge(result, await global())
+    if (!Flag.CYBERSTRIKE_SAFE_MODE) result = merge(result, await global())
 
     // Custom config path overrides global config.
-    if (Flag.CYBERSTRIKE_CONFIG) {
+    if (Flag.CYBERSTRIKE_CONFIG && !Flag.CYBERSTRIKE_SAFE_MODE) {
       result = merge(result, await loadFile(Flag.CYBERSTRIKE_CONFIG))
       log.debug("loaded custom config", { path: Flag.CYBERSTRIKE_CONFIG })
     }
 
     // Project config overrides global and remote config.
-    if (!Flag.CYBERSTRIKE_DISABLE_PROJECT_CONFIG) {
+    if (!Flag.CYBERSTRIKE_DISABLE_PROJECT_CONFIG && !Flag.CYBERSTRIKE_SAFE_MODE) {
       for (const file of ["cyberstrike.jsonc", "cyberstrike.json"]) {
         const found = await Filesystem.findUp(file, Instance.directory, Instance.worktree)
         for (const resolved of found.toReversed()) {
@@ -179,30 +126,32 @@ export namespace Config {
     result.mode = result.mode || {}
     result.plugin = result.plugin || []
 
-    const directories = [
-      Global.Path.config,
-      // Only scan project .cyberstrike/ directories when project discovery is enabled
-      ...(!Flag.CYBERSTRIKE_DISABLE_PROJECT_CONFIG
-        ? await Array.fromAsync(
+    const directories = Flag.CYBERSTRIKE_SAFE_MODE
+      ? []
+      : [
+          Global.Path.config,
+          // Only scan project .cyberstrike/ directories when project discovery is enabled
+          ...(!Flag.CYBERSTRIKE_DISABLE_PROJECT_CONFIG
+            ? await Array.fromAsync(
+                Filesystem.up({
+                  targets: [".cyberstrike"],
+                  start: Instance.directory,
+                  stop: Instance.worktree,
+                }),
+              )
+            : []),
+          // Always scan ~/.cyberstrike/ (user home directory)
+          ...(await Array.fromAsync(
             Filesystem.up({
               targets: [".cyberstrike"],
-              start: Instance.directory,
-              stop: Instance.worktree,
+              start: Global.Path.home,
+              stop: Global.Path.home,
             }),
-          )
-        : []),
-      // Always scan ~/.cyberstrike/ (user home directory)
-      ...(await Array.fromAsync(
-        Filesystem.up({
-          targets: [".cyberstrike"],
-          start: Global.Path.home,
-          stop: Global.Path.home,
-        }),
-      )),
-    ]
+          )),
+        ]
 
     // .cyberstrike directory config overrides (project and global) config sources.
-    if (Flag.CYBERSTRIKE_CONFIG_DIR) {
+    if (Flag.CYBERSTRIKE_CONFIG_DIR && !Flag.CYBERSTRIKE_SAFE_MODE) {
       directories.push(Flag.CYBERSTRIKE_CONFIG_DIR)
       log.debug("loading config from CYBERSTRIKE_CONFIG_DIR", { path: Flag.CYBERSTRIKE_CONFIG_DIR })
     }
@@ -235,7 +184,7 @@ export namespace Config {
     }
 
     // Inline config content overrides all non-managed config sources.
-    if (Flag.CYBERSTRIKE_CONFIG_CONTENT) {
+    if (Flag.CYBERSTRIKE_CONFIG_CONTENT && !Flag.CYBERSTRIKE_SAFE_MODE) {
       result = merge(result, JSON.parse(Flag.CYBERSTRIKE_CONFIG_CONTENT))
       log.debug("loaded custom config from CYBERSTRIKE_CONFIG_CONTENT")
     }
@@ -1176,6 +1125,10 @@ export namespace Config {
         .record(z.string(), Provider)
         .optional()
         .describe("Custom provider configurations and model overrides"),
+      extension: z
+        .record(z.string(), z.unknown())
+        .optional()
+        .describe("Namespaced configuration for plugins and external integrations"),
       mcp: z
         .record(
           z.string(),
@@ -1292,6 +1245,7 @@ export namespace Config {
   export type Info = z.output<typeof Info>
 
   export const global = lazy(async () => {
+    if (Flag.CYBERSTRIKE_SAFE_MODE) return {}
     let result: Info = pipe(
       {},
       mergeDeep(await loadFile(path.join(Global.Path.config, "config.json"))),
@@ -1450,6 +1404,13 @@ export namespace Config {
     }),
   )
 
+  export const SafeModeError = NamedError.create(
+    "ConfigSafeModeError",
+    z.object({
+      message: z.string(),
+    }),
+  )
+
   export async function get() {
     return state().then((x) => x.config)
   }
@@ -1531,6 +1492,11 @@ export namespace Config {
   }
 
   export async function updateGlobal(config: Info) {
+    if (Flag.CYBERSTRIKE_SAFE_MODE) {
+      throw new SafeModeError({
+        message: "Configuration changes are disabled in safe mode. Fix the config file and restart normally.",
+      })
+    }
     const filepath = globalConfigFile()
     const before = await Bun.file(filepath)
       .text()

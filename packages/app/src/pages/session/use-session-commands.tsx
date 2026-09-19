@@ -53,6 +53,7 @@ export type SessionCommandContext = {
   setActiveMessage: (message: UserMessage | undefined) => void
   addSelectionToContext: (path: string, selection: FileSelection) => void
   focusInput: () => void
+  newTerminal: () => void
 }
 
 const withCategory = (category: string) => {
@@ -184,10 +185,7 @@ export const useSessionCommands = (input: SessionCommandContext) => {
       title: input.language.t("command.terminal.new"),
       description: input.language.t("command.terminal.new.description"),
       keybind: "ctrl+alt+t",
-      onSelect: () => {
-        if (input.terminal.all().length > 0) input.terminal.new()
-        input.view().terminal.open()
-      },
+      onSelect: input.newTerminal,
     }),
     viewCommand({
       id: "steps.toggle",

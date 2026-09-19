@@ -1,0 +1,19 @@
+[Unit]
+Description=CyberStrike Web UI
+Documentation=https://github.com/CyberStrikeus/CyberStrike
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=BROWSER=none
+Environment=CYBERSTRIKE_DISABLE_AUTOUPDATE=true
+EnvironmentFile=%h/.config/cyberstrike/web.env
+ExecStart=%h/.cyberstrike/bin/cyberstrike web --hostname 127.0.0.1 --port 4096
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+UMask=0077
+
+[Install]
+WantedBy=default.target

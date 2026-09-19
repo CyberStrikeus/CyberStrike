@@ -9,7 +9,9 @@ import { questionSubtitle } from "@/pages/session/session-prompt-helpers"
 export function SessionPromptDock(props: {
   centered: boolean
   questionRequest: () => QuestionRequest | undefined
-  permissionRequest: () => { patterns: string[]; permission: string } | undefined
+  permissionRequest: () =>
+    | { patterns: string[]; permission: string; metadata?: Record<string, unknown> }
+    | undefined
   blocked: boolean
   promptReady: boolean
   handoffPrompt?: string
@@ -68,7 +70,7 @@ export function SessionPromptDock(props: {
                       : perm.permission,
                 }}
               >
-                <Show when={perm.patterns.length > 0}>
+                <Show when={perm.patterns.length > 0 && perm.permission !== "nmap_scan"}>
                   <div class="flex flex-col gap-1 py-2 px-3 max-h-40 overflow-y-auto no-scrollbar">
                     <For each={perm.patterns}>
                       {(pattern) => <code class="text-12-regular text-text-base break-all">{pattern}</code>}
@@ -78,6 +80,25 @@ export function SessionPromptDock(props: {
                 <Show when={perm.permission === "doom_loop"}>
                   <div class="text-12-regular text-text-weak pb-2 px-3">
                     {props.t("settings.permissions.tool.doom_loop.description")}
+                  </div>
+                </Show>
+                <Show when={perm.permission === "nmap_scan"}>
+                  <div class="mx-3 mb-2 p-2 rounded bg-surface-warning-base text-text-warning-base">
+                    <div class="text-11-medium">Active network scan</div>
+                    <div class="mt-1 text-10-regular">
+                      Target: {String(perm.metadata?.target ?? perm.patterns[0] ?? "unknown")} ·{" "}
+                      Profile: {String(perm.metadata?.profile ?? "service")}
+                      {perm.metadata?.ports ? ` · Ports: ${String(perm.metadata.ports)}` : ""}
+                      {perm.metadata?.privileged ? " · Elevated execution" : ""}
+                    </div>
+                    <Show when={perm.metadata?.command}>
+                      <code class="block mt-1 text-10-mono text-text-base break-all">
+                        {String(perm.metadata?.command)}
+                      </code>
+                    </Show>
+                    <div class="mt-1 text-10-regular">
+                      Approval saves canonical XML and updates scan history and Topology.
+                    </div>
                   </div>
                 </Show>
               </BasicTool>

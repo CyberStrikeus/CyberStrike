@@ -8,6 +8,30 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 
 ## [Unreleased]
 
+### Added
+
+- Durable, redacted engagement event log with live SSE, correlation IDs, activity timeline/lanes, filters, and JSONL export
+- Mission posture and topology panels for methodology coverage, validation, attack chains, agents, assets, hosts, endpoints, findings, and target notes
+- Approval-gated Nmap scan profiles, canonical XML ingestion, saved scan history, host/service/route topology, and scan comparison
+- Structured project/session memory with FTS5, provenance, trust, confidence, secret redaction, invalidation, failure reflection, and evaluation-gated procedural promotion
+- Server-enforced read-only observer role and typed local execution-plane capability inventory
+- Version-pinned MCP catalog with manual/optional install states and three additional owner-maintained integrations
+- Safe recovery startup with `--safe` and namespaced extension configuration
+- Target-selectable source builds and a localhost-only systemd user service template for Kali/Linux deployments
+- Always-visible live workbench status with resilient activity streaming, meaningful change badges, and event-driven Mission, Topology, and Memory refresh
+
+### Changed
+
+- MCP tool materialization now filters schemas before conversion and enforces real context-budget eviction
+- Agent methodology now routes Nmap through the approval-gated `nmap_scan` system of record and explicitly records verified discoveries, findings, and reusable memory for workbench projection
+
+### Fixed
+
+- Release and local-binary installs now deploy the bundled HackBrowser worker to the runtime data directory
+- Web update checks now honor disabled auto-updates, avoiding false upgrade prompts for managed source builds
+- Hidden workbench panels no longer miss live changes or depend on visible-only polling; repeated session lifecycle events and reconnect gaps are recovered
+- Nmap permissions now identify active/elevated execution, privileged profiles use non-interactive sudo when required, and Topology explains why generic shell output is not graphable
+
 ## [1.1.16] — 2026-08-08
 
 ### Added

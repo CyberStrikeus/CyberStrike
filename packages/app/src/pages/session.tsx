@@ -58,6 +58,8 @@ import { SessionPromptDock } from "@/pages/session/session-prompt-dock"
 import { SessionMobileTabs } from "@/pages/session/session-mobile-tabs"
 import { SessionSidePanel } from "@/pages/session/session-side-panel"
 import { useSessionHashScroll } from "@/pages/session/use-session-hash-scroll"
+import { useServer } from "@/context/server"
+import { WorkbenchBar } from "@/pages/session/workbench-bar"
 
 type HandoffSession = {
   prompt: string
@@ -102,6 +104,8 @@ export default function Page() {
   const prompt = usePrompt()
   const comments = useComments()
   const permission = usePermission()
+  const server = useServer()
+  const observer = createMemo(() => server.role() === "observer")
 
   const permRequest = createMemo(() => {
     const sessionID = params.id
@@ -118,6 +122,7 @@ export default function Page() {
   const blocked = createMemo(() => !!permRequest() || !!questionRequest())
 
   const [ui, setUi] = createStore({
+    activity: false,
     responding: false,
     pendingMessage: undefined as string | undefined,
     scrollGesture: 0,
@@ -688,6 +693,8 @@ export default function Page() {
       setUi("autoCreated", false)
       return
     }
+    if (ui.activity) return
+    if (observer()) return
     if (!terminal.ready() || terminal.all().length !== 0 || ui.autoCreated) return
     terminal.new()
     setUi("autoCreated", true)
@@ -697,7 +704,7 @@ export default function Page() {
     on(
       () => terminal.all().length,
       (count, prevCount) => {
-        if (prevCount !== undefined && prevCount > 0 && count === 0) {
+        if (prevCount !== undefined && prevCount > 0 && count === 0 && !ui.activity) {
           if (view().terminal.opened()) {
             view().terminal.toggle()
           }
@@ -733,6 +740,16 @@ export default function Page() {
   )
 
   const status = createMemo(() => sync.data.session_status[params.id ?? ""] ?? idle)
+  const openActivity = () => {
+    setUi("activity", true)
+    if (!view().terminal.opened()) view().terminal.open()
+  }
+  const newTerminal = () => {
+    setUi("activity", false)
+    setUi("autoCreated", true)
+    view().terminal.open()
+    terminal.new()
+  }
 
   createEffect(
     on(
@@ -741,6 +758,7 @@ export default function Page() {
         setStore("messageId", undefined)
         setStore("expanded", {})
         setStore("changes", "session")
+        setUi("activity", false)
         setUi("autoCreated", false)
       },
       { defer: true },
@@ -881,7 +899,17 @@ export default function Page() {
   }
 
   const contextOpen = createMemo(() => tabs().active() === "context" || tabs().all().includes("context"))
-  const panelTabSet = new Set(["mcp-panel", "bolt-panel", "vulns-panel", "todo-panel", "skills-panel"])
+  const panelTabSet = new Set([
+    "mission-panel",
+    "mcp-panel",
+    "bolt-panel",
+    "vulns-panel",
+    "web-panel",
+    "topology-panel",
+    "memory-panel",
+    "todo-panel",
+    "skills-panel",
+  ])
   const openedTabs = createMemo(() =>
     tabs()
       .all()
@@ -944,6 +972,7 @@ export default function Page() {
     setActiveMessage,
     addSelectionToContext,
     focusInput,
+    newTerminal,
   })
 
   const openReviewFile = createOpenReviewFile({
@@ -1558,6 +1587,14 @@ export default function Page() {
   return (
     <div class="relative bg-background-base size-full overflow-hidden flex flex-col">
       <SessionHeader />
+      <WorkbenchBar
+        busy={status().type === "busy"}
+        observer={observer()}
+        onActivity={openActivity}
+        onMission={() => openTab("mission-panel")}
+        onTopology={() => openTab("topology-panel")}
+        onMemory={() => openTab("memory-panel")}
+      />
       <div
         class="flex-1 min-h-0 flex"
         classList={{
@@ -1688,27 +1725,36 @@ export default function Page() {
             </Switch>
           </div>
 
-          <SessionPromptDock
-            centered={centered()}
-            questionRequest={questionRequest}
-            permissionRequest={permRequest}
-            blocked={blocked()}
-            promptReady={prompt.ready()}
-            handoffPrompt={handoff.session.get(sessionKey())?.prompt}
-            t={language.t as (key: string, vars?: Record<string, string | number | boolean>) => string}
-            responding={ui.responding}
-            onDecide={decide}
-            inputRef={(el) => {
-              inputRef = el
-            }}
-            newSessionWorktree={newSessionWorktree()}
-            onNewSessionWorktreeReset={() => setStore("newSessionWorktree", "main")}
-            onSubmit={() => {
-              comments.clear()
-              resumeScroll()
-            }}
-            setPromptDockRef={(el) => (promptDock = el)}
-          />
+          <Show
+            when={!observer()}
+            fallback={
+              <div class="mx-auto mb-6 px-3 py-2 rounded-md bg-surface-base text-12-regular text-text-weak">
+                Read-only observer mode
+              </div>
+            }
+          >
+            <SessionPromptDock
+              centered={centered()}
+              questionRequest={questionRequest}
+              permissionRequest={permRequest}
+              blocked={blocked()}
+              promptReady={prompt.ready()}
+              handoffPrompt={handoff.session.get(sessionKey())?.prompt}
+              t={language.t as (key: string, vars?: Record<string, string | number | boolean>) => string}
+              responding={ui.responding}
+              onDecide={decide}
+              inputRef={(el) => {
+                inputRef = el
+              }}
+              newSessionWorktree={newSessionWorktree()}
+              onNewSessionWorktreeReset={() => setStore("newSessionWorktree", "main")}
+              onSubmit={() => {
+                comments.clear()
+                resumeScroll()
+              }}
+              setPromptDockRef={(el) => (promptDock = el)}
+            />
+          </Show>
 
           <Show when={desktopReviewOpen()}>
             <ResizeHandle
@@ -1768,8 +1814,15 @@ export default function Page() {
         open={view().terminal.opened()}
         height={layout.terminal.height()}
         resize={layout.terminal.resize}
-        close={view().terminal.close}
+        close={() => {
+          view().terminal.close()
+          setUi("activity", false)
+        }}
+        activity={ui.activity}
+        setActivity={(value) => setUi("activity", value)}
+        newTerminal={newTerminal}
         terminal={terminal}
+        readOnly={observer()}
         language={language}
         command={command}
         handoff={() => handoff.terminal.get(params.dir!) ?? []}

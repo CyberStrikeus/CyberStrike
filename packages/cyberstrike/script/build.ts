@@ -114,9 +114,20 @@ const allTargets: {
   },
 ]
 
+const suffix = (item: (typeof allTargets)[number]) =>
+  [
+    item.os === "win32" ? "windows" : item.os,
+    item.arch,
+    item.avx2 === false ? "baseline" : undefined,
+    item.abi === undefined ? undefined : item.abi,
+  ]
+    .filter(Boolean)
+    .join("-")
+
 // CI-only: build just one OS when set (windows/linux/darwin). Empty or "all" = every platform.
 const buildOSRaw = process.env.CYBERSTRIKE_BUILD_OS?.trim()
 const buildOS = buildOSRaw && buildOSRaw !== "all" ? buildOSRaw : undefined
+const requested = process.env.CYBERSTRIKE_BUILD_TARGET?.trim().replace(/^cyberstrike-/, "")
 const targets = (singleFlag
   ? allTargets.filter((item) => {
       if (item.os !== process.platform || item.arch !== process.arch) {
@@ -138,10 +149,15 @@ const targets = (singleFlag
     })
   : allTargets
 ).filter((item) => {
-  if (!buildOS) return true
   const os = item.os === "win32" ? "windows" : item.os
-  return os === buildOS
+  if (buildOS && os !== buildOS) return false
+  if (requested && suffix(item) !== requested) return false
+  return true
 })
+
+if (targets.length === 0) {
+  throw new Error(`No build target matched CYBERSTRIKE_BUILD_TARGET=${requested}`)
+}
 
 await $`rm -rf dist`
 
@@ -151,16 +167,7 @@ if (!skipInstall) {
   await $`bun install --os="*" --cpu="*" @parcel/watcher@${pkg.dependencies["@parcel/watcher"]}`
 }
 for (const item of targets) {
-  const name = [
-    pkg.name,
-    // changing to win32 flags npm for some reason
-    item.os === "win32" ? "windows" : item.os,
-    item.arch,
-    item.avx2 === false ? "baseline" : undefined,
-    item.abi === undefined ? undefined : item.abi,
-  ]
-    .filter(Boolean)
-    .join("-")
+  const name = `${pkg.name}-${suffix(item)}`
   console.log(`building ${name}`)
   await $`mkdir -p dist/${name}/bin`
 

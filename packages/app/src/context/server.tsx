@@ -2,7 +2,7 @@ import { createSimpleContext } from "@cyberstrike-io/ui/context"
 import { type Accessor, batch, createEffect, createMemo, onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Persist, persisted } from "@/utils/persist"
-import { useCheckServerHealth } from "@/utils/server-health"
+import { useCheckServerHealth, type ServerHealth } from "@/utils/server-health"
 
 type StoredProject = { worktree: string; expanded: boolean }
 type StoredServer = string | ServerConnection.HttpBase | ServerConnection.Http
@@ -97,6 +97,7 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       active: "" as ServerConnection.Key | "",
       healthy: undefined as boolean | undefined,
       needsAuth: false,
+      role: undefined as ServerHealth["role"],
     })
 
     const healthy = () => state.healthy
@@ -161,6 +162,7 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
             if (!alive) return
             setState("healthy", result.healthy)
             setState("needsAuth", !!result.needsAuth)
+            setState("role", result.role)
           })
           .finally(() => {
             busy = false
@@ -246,6 +248,7 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       ready: isReady,
       healthy,
       needsAuth,
+      role: () => state.role,
       isLocal,
       get key() {
         return state.active as ServerConnection.Key

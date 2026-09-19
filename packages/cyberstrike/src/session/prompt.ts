@@ -56,6 +56,7 @@ import { toolSig, READ_ONLY_TOOLS } from "./stuck/signals"
 import { StuckDetector, DEFAULT_STUCK_CONFIG } from "./stuck/stuck-detector"
 import { RepeatDetector } from "./stuck/repeat-detector"
 import STUCK_WRAP_UP from "./prompt/stuck-wrap-up.txt"
+import { MemoryStore } from "@/memory/store"
 
 // @ts-ignore
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -778,6 +779,8 @@ export namespace SessionPrompt {
       // (non-tester) gets the full routing view.
       const methodologyCtx = MethodologyContext.generate(Session.root(sessionID), testerClass(lastUser.agent))
       if (methodologyCtx) system.push(methodologyCtx)
+      const memoryCtx = MemoryStore.context(Session.root(sessionID))
+      if (memoryCtx) system.push(memoryCtx)
 
       // Inject MCP tool availability info so the LLM knows to use tool_search
       const mcpLazyStats = LazyToolRegistry.stats()

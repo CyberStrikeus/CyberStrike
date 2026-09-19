@@ -12,13 +12,18 @@ import { useTerminal } from "@/context/terminal"
 import { useLanguage } from "@/context/language"
 import { useCommand } from "@/context/command"
 import { terminalTabLabel } from "@/pages/session/terminal-label"
+import { ActivityPanel } from "@/pages/session/activity-panel"
 
 export function TerminalPanel(props: {
   open: boolean
   height: number
   resize: (value: number) => void
   close: () => void
+  activity: boolean
+  setActivity: (value: boolean) => void
+  newTerminal: () => void
   terminal: ReturnType<typeof useTerminal>
+  readOnly: boolean
   language: ReturnType<typeof useLanguage>
   command: ReturnType<typeof useCommand>
   handoff: () => string[]
@@ -31,7 +36,6 @@ export function TerminalPanel(props: {
   const all = createMemo(() => props.terminal.all())
   const ids = createMemo(() => all().map((pty) => pty.id))
   const byId = createMemo(() => new Map(all().map((pty) => [pty.id, pty])))
-
   return (
     <Show when={props.open}>
       <div
@@ -85,61 +89,84 @@ export function TerminalPanel(props: {
             <div class="flex flex-col h-full">
               <Tabs
                 variant="alt"
-                value={props.terminal.active()}
-                onChange={(id) => props.terminal.open(id)}
+                value={props.activity ? "activity" : props.terminal.active()}
+                onChange={(id) => {
+                  if (id === "activity") {
+                    props.setActivity(true)
+                    return
+                  }
+                  props.setActivity(false)
+                  props.terminal.open(id)
+                }}
                 class="!h-auto !flex-none"
               >
                 <Tabs.List class="h-10">
-                  <SortableProvider ids={ids()}>
-                    <For each={all()}>
-                      {(pty) => (
-                        <SortableTerminalTab
-                          terminal={pty}
-                          onClose={() => {
-                            props.close()
-                            props.onCloseTab()
-                          }}
+                  <Tabs.Trigger value="activity">
+                    <div class="flex items-center gap-1.5">
+                      <span class="size-1.5 rounded-full bg-icon-success-base" />
+                      Activity
+                    </div>
+                  </Tabs.Trigger>
+                  <Show when={!props.readOnly}>
+                    <SortableProvider ids={ids()}>
+                      <For each={all()}>
+                        {(pty) => (
+                          <SortableTerminalTab
+                            terminal={pty}
+                            onClose={() => {
+                              props.close()
+                              props.onCloseTab()
+                            }}
+                          />
+                        )}
+                      </For>
+                    </SortableProvider>
+                    <div class="h-full flex items-center justify-center">
+                      <TooltipKeybind
+                        title={props.language.t("command.terminal.new")}
+                        keybind={props.command.keybind("terminal.new")}
+                        class="flex items-center"
+                      >
+                        <IconButton
+                          icon="plus-small"
+                          variant="ghost"
+                          iconSize="large"
+                          onClick={props.newTerminal}
+                          aria-label={props.language.t("command.terminal.new")}
                         />
-                      )}
-                    </For>
-                  </SortableProvider>
-                  <div class="h-full flex items-center justify-center">
-                    <TooltipKeybind
-                      title={props.language.t("command.terminal.new")}
-                      keybind={props.command.keybind("terminal.new")}
-                      class="flex items-center"
-                    >
-                      <IconButton
-                        icon="plus-small"
-                        variant="ghost"
-                        iconSize="large"
-                        onClick={props.terminal.new}
-                        aria-label={props.language.t("command.terminal.new")}
-                      />
-                    </TooltipKeybind>
-                  </div>
+                      </TooltipKeybind>
+                    </div>
+                  </Show>
                 </Tabs.List>
               </Tabs>
               <div class="flex-1 min-h-0 relative">
-                <For each={all()}>
-                  {(pty) => (
-                    <div
-                      id={`terminal-wrapper-${pty.id}`}
-                      class="absolute inset-0"
-                      style={{
-                        display: props.terminal.active() === pty.id ? "block" : "none",
-                      }}
-                    >
-                      <Show when={pty.id} keyed>
-                        <Terminal
-                          pty={pty}
-                          onCleanup={props.terminal.update}
-                          onConnectError={() => props.terminal.clone(pty.id)}
-                        />
-                      </Show>
-                    </div>
-                  )}
-                </For>
+                <Show when={props.activity}>
+                  <div class="absolute inset-0">
+                    <ActivityPanel />
+                  </div>
+                </Show>
+                <Show when={!props.readOnly}>
+                  <For each={all()}>
+                    {(pty) => (
+                      <div
+                        id={`terminal-wrapper-${pty.id}`}
+                        class="absolute inset-0"
+                        style={{
+                          display: props.terminal.active() === pty.id ? "block" : "none",
+                          visibility: props.activity ? "hidden" : "visible",
+                        }}
+                      >
+                        <Show when={pty.id} keyed>
+                          <Terminal
+                            pty={pty}
+                            onCleanup={props.terminal.update}
+                            onConnectError={() => props.terminal.clone(pty.id)}
+                          />
+                        </Show>
+                      </div>
+                    )}
+                  </For>
+                </Show>
               </div>
             </div>
             <DragOverlay>
