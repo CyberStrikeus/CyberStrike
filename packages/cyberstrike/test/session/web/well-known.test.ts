@@ -66,3 +66,28 @@ describe("WellKnown.probe", () => {
     expect(n).toBe(0)
   })
 })
+
+describe("WellKnown.ingestSpec (deterministic correlation of a CAPTURED spec)", () => {
+  test("a spec seen in traffic → its routes are enumerated + emitted for scanning (not just flagged)", async () => {
+    const sid = "s"
+    WebScope.ensure(sid, TARGET)
+    const s = stub()
+    // The spec came in as a captured/found response — enumerate WITHOUT any agent following up.
+    const n = await WellKnown.ingestSpec(sid, "https://demo.h.test/swagger.json", SPEC, { emit: s.emit })
+    expect(n).toBe(2)
+    expect(s.emitted).toContain("GET https://demo.h.test/api/users <openapi-captured>")
+    expect(s.emitted).toContain("GET https://demo.h.test/api/orders/{id} <openapi-captured>")
+    expect(DataCollector.latest(sid).minedRoutes.map((r) => r.url)).toContain("https://demo.h.test/api/users")
+
+    // Deduped per spec — the same spec captured again does not re-fan-out.
+    expect(await WellKnown.ingestSpec(sid, "https://demo.h.test/swagger.json", SPEC, { emit: s.emit })).toBe(0)
+  })
+
+  test("a non-spec response body → no-op (cheap reject, never throws)", async () => {
+    const sid = "s"
+    WebScope.ensure(sid, TARGET)
+    const s = stub()
+    expect(await WellKnown.ingestSpec(sid, "https://demo.h.test/app.js", "console.log(1)", { emit: s.emit })).toBe(0)
+    expect(s.emitted).toHaveLength(0)
+  })
+})

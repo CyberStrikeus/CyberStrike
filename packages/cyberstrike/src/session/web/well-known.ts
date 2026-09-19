@@ -144,7 +144,37 @@ export namespace WellKnown {
     return n
   }
 
+  // Parse an ALREADY-captured OpenAPI/Swagger spec — one seen in traffic, or surfaced by any sub-agent
+  // as a finding — and emit its routes into the pipeline. This is the deterministic correlation the
+  // sub-agents DON'T do on their own: a specialist flags "spec exposed" and stops, so its documented
+  // endpoints were never enumerated. Here, ANY spec that reaches ingest ALWAYS gets its endpoints
+  // enumerated + scanned (as the captured identity, so it's authenticated coverage), not just flagged —
+  // no reliance on an agent thinking to follow up. Deduped per spec so a repeated capture doesn't
+  // re-fan-out. Never throws.
+  const specsSeen = new Set<string>()
+  export async function ingestSpec(sessionID: string, specUrl: string, specText: string, opts?: { emit?: Emit }): Promise<number> {
+    try {
+      if (!specText || !OpenApi.looksLikeSpec(specText)) return 0
+      const key = `${sessionID} ${specUrl}`
+      if (specsSeen.has(key)) return 0
+      specsSeen.add(key)
+      const emit = opts?.emit ?? defaultEmit
+      const inScope = (u: string) => WebScope.allowed(sessionID, u)
+      const routes = [...new Map(OpenApi.parse(specText, specUrl, inScope).map((e) => [`${e.method} ${e.url}`, e])).values()].slice(0, MAX_EMIT)
+      if (routes.length === 0) return 0
+      DataCollector.addMined(sessionID, routes)
+      for (const r of routes) await emit(sessionID, r.method, r.url, "openapi-captured")
+      HBLog.record(sessionID, "server", "spec-ingested", { specUrl, routes: routes.length })
+      log.info("captured OpenAPI spec enumerated → endpoints queued for scanning", { sessionID, specUrl, routes: routes.length })
+      return routes.length
+    } catch (e) {
+      log.debug("ingestSpec failed (ignored)", { specUrl, err: String(e) })
+      return 0
+    }
+  }
+
   export function _reset(): void {
     probed.clear()
+    specsSeen.clear()
   }
 }

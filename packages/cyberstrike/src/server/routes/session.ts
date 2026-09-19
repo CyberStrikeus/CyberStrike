@@ -26,6 +26,7 @@ import { WebStats } from "../../session/web/web-stats"
 import { WebObject } from "../../session/web/web-object"
 import { WebFunction } from "../../session/web/web-function"
 import { WebInspect } from "../../session/web/web-inspect"
+import { WellKnown } from "../../session/web/well-known"
 import { ensureWebInspection, getWebInspection, addWebActivitySource, ensureAssessmentNotifier } from "../../inspection"
 import { ApiProbe } from "../../session/web/api-probe"
 import { WebScope } from "../../session/web/scope"
@@ -2031,6 +2032,16 @@ export const SessionRoutes = lazy(() =>
             contentType: headerValue(body.response?.headers, "content-type"),
             headers: body.response?.headers,
           })
+          // Deterministic OpenAPI/Swagger coverage — NOT left to a sub-agent's initiative (a specialist
+          // flags "spec exposed" and stops, so its endpoints were never enumerated). 1) If THIS response
+          // is itself a spec (seen in traffic OR surfaced as a finding), enumerate its routes and queue
+          // them for scanning as the captured identity — authenticated coverage. 2) Once per session,
+          // proactively fetch the well-known spec paths too. Both fire-and-forget; both dedup internally.
+          if (body.response?.body) {
+            const specUrl = normalized.origin + (normalized.canonicalPath ?? normalized.normalizedPath)
+            void WellKnown.ingestSpec(sessionID, specUrl, body.response.body).catch(() => {})
+          }
+          void WellKnown.probe(sessionID, normalized.origin).catch(() => {})
           // JS never becomes a request row, so persist script URLs durably (dedup by url) for the
           // panel/TUI + a later body-analysis agent.
           if (collectedKind === "js") {
