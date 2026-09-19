@@ -26,6 +26,7 @@ export class SessionLifecycle {
   private readonly sources: ActivitySource[] = []
   private current: SessionPhase = "idle"
   private pollTimer: ReturnType<typeof setInterval> | null = null
+  private intervalMs = 2000
 
   static readonly Event = { PhaseChanged: PhaseChangedEvent }
 
@@ -52,7 +53,8 @@ export class SessionLifecycle {
 
   start(intervalMs = 2000): void {
     if (this.pollTimer) return
-    this.pollTimer = setInterval(() => this.tick(), intervalMs)
+    this.intervalMs = intervalMs
+    this.pollTimer = setInterval(() => this.tick(), this.intervalMs)
     Bus.subscribe(InspectionQueue.Event.Updated, (e) => {
       if (e.properties.sessionID === this.sessionID && e.properties.domain === this.domain) {
         this.tick()
@@ -68,6 +70,17 @@ export class SessionLifecycle {
     }
   }
 
+  // Re-arm the heartbeat if it isn't running. The poll is what turns silent state changes — a source
+  // (dispatcher/triage/miner/probe) flipping back to inactive with NO queue event — into a phase
+  // transition. It is stopped on "complete" (idle sessions must not poll forever; destroy is not
+  // reliably called), so any transition BACK into an active phase must restart it, or the lifecycle
+  // could never re-derive "complete" and would stick at "inspecting" (#43). The subscription set up in
+  // start() persists across stop(), so we only re-arm the timer here.
+  private ensurePoll(): void {
+    if (this.pollTimer) return
+    this.pollTimer = setInterval(() => this.tick(), this.intervalMs)
+  }
+
   private tick(): void {
     const next = this.derive()
     if (next === this.current) return
@@ -80,7 +93,11 @@ export class SessionLifecycle {
       phase: next,
       previous,
     })
+    // "complete" is terminal for the poll (stop the heartbeat so an idle session costs nothing), but NOT
+    // terminal for the session: late traffic can pull the phase back into activity. Any transition into a
+    // non-complete phase re-arms the poll so the eventual silent settle back to "complete" is caught (#43).
     if (next === "complete") this.stop()
+    else this.ensurePoll()
   }
 
   private derive(): SessionPhase {
