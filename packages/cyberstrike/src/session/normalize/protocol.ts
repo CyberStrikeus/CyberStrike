@@ -17,7 +17,7 @@ import { parseXmlToObject } from "./xml"
 import { extractInlineArgPaths } from "./graphql-inline"
 
 export interface OperationInfo {
-  protocol: "graphql" | "jsonrpc"
+  protocol: "graphql" | "jsonrpc" | "trpc" | "grpc-web"
   operation: string // human label, e.g. "mutation:deleteUser", "user.delete"
   opKeyHash: string // 16-char dedup discriminator (values stripped)
 }
@@ -444,6 +444,12 @@ function parseMultipartFields(body: string): BodyField[] {
  * before the parse was unified (guarded by a golden characterization test).
  */
 export function bodyKeyShapeHash(body: string | undefined, contentType: string | undefined): string | undefined {
+  const ct = (contentType ?? "").toLowerCase()
+  // gRPC-Web binary bodies are not JSON-parseable; provide a stable shape hash so
+  // the endpoint does not fragment per body value (fallback would be value-bearing bodyHash).
+  if (ct.includes("grpc-web") || ct.includes("application/grpc")) {
+    return sha16("grpc-web-shape")
+  }
   const parsed = parseBody(body, contentType)
   switch (parsed.kind) {
     case "json": {
@@ -472,13 +478,92 @@ export function bodyKeyShapeHash(body: string | undefined, contentType: string |
  * plain REST (the caller then falls back to body_hash/query_hash dedup).
  * Deterministic, pure — safe for the tier0 parser.
  */
+function trpcFrom(query: string, path: string): OperationInfo | undefined {
+  // tRPC is an operation-over-URL protocol like GraphQL: procedures live in the
+  // path after /trpc/ (comma-separated, batch=1) and inputs in query `input`.
+  // Normalize to per-operation identity so /trpc/a,b?batch=1 does not fragment.
+  const m = path.match(/\/trpc\/([^?]+)/i)
+  if (!m) return undefined
+  const rawProcs = m[1]!
+  const procedures = rawProcs
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .sort()
+  if (procedures.length === 0) return undefined
+  const params = new URLSearchParams(query)
+  const inputRaw = params.get("input")
+  let keyShape: string[] = []
+  if (inputRaw) {
+    try {
+      const parsed = JSON.parse(inputRaw)
+      // tRPC batch wraps under numeric keys: {"0":{"json":{...}}}
+      // Unwrap to get real input shape; values stripped.
+      const toShape = (v: unknown): string[] => {
+        if (!v || typeof v !== "object") return []
+        const obj = v as Record<string, unknown>
+        const numericKeys = Object.keys(obj).filter((k) => /^\d+$/.test(k))
+        if (numericKeys.length > 0) {
+          const merged: Record<string, unknown> = {}
+          for (const k of numericKeys) {
+            const j = (obj[k] as Record<string, unknown> | undefined)?.json
+            if (j && typeof j === "object") Object.assign(merged, j)
+            else if (j) merged[k] = j
+          }
+          return keyPaths(merged).sort()
+        }
+        const j = obj.json
+        if (j && typeof j === "object") return keyPaths(j).sort()
+        return keyPaths(obj).sort()
+      }
+      // For batch, shape is union of per-procedure shapes
+      if (procedures.length > 1) {
+        const perProc = Object.keys(parsed as Record<string, unknown>).sort()
+        const all: string[] = []
+        for (const k of perProc) all.push(...toShape((parsed as Record<string, unknown>)[k]))
+        keyShape = [...new Set(all)].sort()
+      } else {
+        keyShape = toShape(parsed)
+      }
+    } catch {
+      // ignore parse failure
+    }
+  }
+  const label = procedures.length === 1 ? procedures[0]! : `batch[${procedures.join(",")}]`
+  const keyParts = ["trpc", procedures.join(","), keyShape.join(",")]
+  return { protocol: "trpc", operation: label, opKeyHash: sha16(keyParts.join("<|>")) }
+}
+
 export function extractOperation(input: {
   method: string
   bodyContentType?: string
   body?: string
   query?: string // raw URL query string (without leading '?')
+  path?: string // canonical path for tRPC detection
 }): OperationInfo | undefined {
   const ct = input.bodyContentType ?? ""
+  const lowerCt = ct.toLowerCase()
+
+  // tRPC — path-based procedures, query-carried inputs. Check before GraphQL
+  // because tRPC may also have ?input JSON.
+  const pathForTrpc = input.path ?? ""
+  if (pathForTrpc.toLowerCase().includes("/trpc/")) {
+    const trpc = trpcFrom(input.query ?? "", pathForTrpc)
+    if (trpc) return trpc
+  }
+  // Also detect tRPC from query when path not supplied (caller passes only query)
+  if (input.query && input.query.includes("batch=") && pathForTrpc === "") {
+    // opportunistic: if query looks like trpc batch, try generic
+    const maybe = trpcFrom(input.query, "/trpc/" + (new URLSearchParams(input.query).get("trpc") ?? ""))
+    if (maybe) return maybe
+  }
+
+  // gRPC-Web — content-type based, no body JSON. Alias the path as operation so
+  // each service/method is its own endpoint, but body values do not fragment.
+  if (lowerCt.includes("grpc-web") || lowerCt.includes("application/grpc")) {
+    const op = (input.path ?? "").replace(/^\//, "") || "grpc"
+    return { protocol: "grpc-web", operation: op, opKeyHash: sha16("grpc-web<|>" + op) }
+  }
 
   // GraphQL-over-GET: the query lives in the URL, not the body. (queryKeyHash
   // keys on param names only, so without this `?query=A` and `?query=B` would
@@ -487,6 +572,11 @@ export function extractOperation(input: {
     const params = new URLSearchParams(input.query)
     const q = params.get("query")
     if (q && q.includes("{")) return graphqlFrom(q, params.get("variables"))
+    // tRPC GET fallback when extractOperation called without path (parser passes path)
+    if (pathForTrpc.toLowerCase().includes("/trpc/")) {
+      const t = trpcFrom(input.query, pathForTrpc)
+      if (t) return t
+    }
     return undefined
   }
 

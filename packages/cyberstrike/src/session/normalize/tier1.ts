@@ -22,12 +22,18 @@ const DYNAMIC_PATTERNS: ReadonlyArray<readonly [RegExp, Placeholder, string]> = 
   [/^[0-9a-f]{12,}$/i, "{hash}", "hex hash >=12 chars"],
   // ULID — 26-char Crockford base32 (excludes I/L/O/U). Placed AFTER hex so a
   // 26-char all-hex string keeps {hash}; real ULIDs carry g–z letters and won't
-  // collide. Case-insensitive because segments arrive lowercased. Slotted to the
-  // shared {id} (not a new placeholder) so it is stable regardless of which
-  // provider's Tier-3 would otherwise guess {uuid} vs {id}. Other modern IDs
-  // (KSUID/nanoid/cuid/base62/Stripe/TypeID) use broader, case-sensitive alphabets
-  // with real false-positive risk, so they stay ambiguous for Tier 3.
-  [/^[0-9A-HJKMNP-TV-Z]{26}$/i, "{id}", "ULID (Crockford base32, 26 chars)"],
+  // collide.
+  [/^[0-9A-HJKMNP-TV-Z]{26}$/i, "{ulid}", "ULID (Crockford base32, 26 chars)"],
+  // KSUID — 27-char base62 (0-9A-Za-z). Length + mixed case keeps false positives low.
+  [/^[0-9A-Za-z]{27}$/, "{id}", "KSUID (27-char base62)"],
+  // nanoid — 21-char URL-safe (A-Za-z0-9_-). Exact 21 avoids over-matching short slugs.
+  [/^[A-Za-z0-9_-]{21}$/, "{id}", "nanoid (21-char)"],
+  // cuid / cuid2 — starts with 'c' then 24+ lowercase alphanumeric
+  [/^c[a-z0-9]{24,}$/, "{id}", "cuid/cuid2"],
+  // Stripe-style prefixed ids — e.g. cus_, price_, prod_, sub_, ch_, in_, etc.
+  [/^[a-z]{2,10}_[A-Za-z0-9]{14,}$/, "{id}", "Stripe-style prefixed id"],
+  // base62-ish opaque ids — 16+ alphanumeric with mixed case (case-sensitive)
+  [/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])[A-Za-z0-9_-]{16,}$/, "{id}", "base62 mixed-case id"],
 ]
 
 // Tight static patterns — anything unrecognized falls through to "ambiguous"
@@ -60,12 +66,21 @@ function classifySegment(segment: string): SegmentClassification {
   // indices align with tier 2 template segments.
   if (segment === "") return { kind: "static", literal: "", reason: "path root" }
 
+  // TypeID — <type>_<ulid> preserves the type prefix so polymorphic endpoints
+  // like /node/order_<ulid> vs /node/user_<ulid> do not collapse. The suffix is
+  // the 26-char ULID; the prefix is lowercase type discriminator.
+  const typeIdMatch = segment.match(/^([a-z][a-z0-9_]*)_([0-9A-HJKMNP-TV-Z]{26})$/i)
+  if (typeIdMatch) {
+    const prefix = typeIdMatch[1]!.toLowerCase()
+    return { kind: "dynamic", placeholder: `${prefix}_{ulid}`, reason: "TypeID (prefix + ULID)" }
+  }
+
   for (const [pattern, placeholder, reason] of DYNAMIC_PATTERNS) {
     if (pattern.test(segment)) return { kind: "dynamic", placeholder, reason }
   }
 
   for (const [pattern, reason] of STATIC_PATTERNS) {
-    if (pattern.test(segment)) return { kind: "static", literal: segment, reason }
+    if (pattern.test(segment)) return { kind: "static", literal: segment.toLowerCase(), reason }
   }
 
   return { kind: "ambiguous", literal: segment, reason: "no deterministic pattern matched" }
