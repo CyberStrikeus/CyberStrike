@@ -906,3 +906,449 @@ export async function sagemakerPrivesc(args: string[], timeout: number): Promise
 
   return { output: output.join("\n"), findings }
 }
+
+const PRIVESC_VECTORS = [
+  {
+    id: "AWS-PRIVESC-AUTO-001",
+    name: "CreatePolicyVersion",
+    actions: ["iam:CreatePolicyVersion"],
+    desc: "Create a new policy version with admin permissions, set as default",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-002",
+    name: "SetDefaultPolicyVersion",
+    actions: ["iam:SetDefaultPolicyVersion"],
+    desc: "Roll back to an older, more permissive policy version",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-003",
+    name: "AttachUserPolicy",
+    actions: ["iam:AttachUserPolicy"],
+    desc: "Attach AdministratorAccess (or any managed policy) to own user",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-004",
+    name: "AttachRolePolicy",
+    actions: ["iam:AttachRolePolicy"],
+    desc: "Attach AdministratorAccess to a role the caller can assume",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-005",
+    name: "PutUserPolicy",
+    actions: ["iam:PutUserPolicy"],
+    desc: "Add inline admin policy to own user",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-006",
+    name: "PutRolePolicy",
+    actions: ["iam:PutRolePolicy"],
+    desc: "Add inline admin policy to a role the caller can assume",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-007",
+    name: "CreateLoginProfile",
+    actions: ["iam:CreateLoginProfile"],
+    desc: "Create console login for any IAM user (password takeover)",
+    cwe: "CWE-287",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-008",
+    name: "UpdateLoginProfile",
+    actions: ["iam:UpdateLoginProfile"],
+    desc: "Reset any IAM user's console password",
+    cwe: "CWE-287",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-009",
+    name: "AddUserToGroup",
+    actions: ["iam:AddUserToGroup"],
+    desc: "Join a privileged IAM group",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-010",
+    name: "UpdateAssumeRolePolicy",
+    actions: ["iam:UpdateAssumeRolePolicy"],
+    desc: "Modify a role's trust policy so current identity can assume it",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-011",
+    name: "PassRole+Lambda",
+    actions: ["iam:PassRole", "lambda:CreateFunction", "lambda:InvokeFunction"],
+    desc: "Create a Lambda with a high-priv role and invoke it to execute as that role",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-012",
+    name: "PassRole+EC2",
+    actions: ["iam:PassRole", "ec2:RunInstances"],
+    desc: "Launch an EC2 instance with a high-priv instance profile",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-013",
+    name: "PassRole+Glue",
+    actions: ["iam:PassRole", "glue:CreateDevEndpoint"],
+    desc: "Create a Glue dev endpoint with a high-priv role for code execution",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-014",
+    name: "PassRole+CloudFormation",
+    actions: ["iam:PassRole", "cloudformation:CreateStack"],
+    desc: "Create a CFN stack that provisions IAM resources using a service role",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-015",
+    name: "SSMSendCommand",
+    actions: ["ssm:SendCommand"],
+    desc: "Execute commands on instances with high-priv instance profiles via SSM",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-016",
+    name: "EC2InstanceConnect",
+    actions: ["ec2-instance-connect:SendSSHPublicKey"],
+    desc: "Push SSH key to an instance to gain OS-level access and harvest instance profile credentials",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-017",
+    name: "CreateAccessKey",
+    actions: ["iam:CreateAccessKey"],
+    desc: "Create access keys for any IAM user — long-lived credential theft",
+    cwe: "CWE-287",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-018",
+    name: "PassRole+SageMaker",
+    actions: ["iam:PassRole", "sagemaker:CreateNotebookInstance"],
+    desc: "Create a SageMaker notebook with a high-priv role for interactive shell access",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-019",
+    name: "PassRole+DataPipeline",
+    actions: ["iam:PassRole", "datapipeline:CreatePipeline", "datapipeline:PutPipelineDefinition"],
+    desc: "Create a Data Pipeline that runs shell commands as a high-priv role",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-020",
+    name: "PassRole+CodeBuild",
+    actions: ["iam:PassRole", "codebuild:CreateProject", "codebuild:StartBuild"],
+    desc: "Create a CodeBuild project with a high-priv role to execute arbitrary commands",
+    cwe: "CWE-269",
+  },
+  {
+    id: "AWS-PRIVESC-AUTO-021",
+    name: "LambdaUpdateCode",
+    actions: ["lambda:UpdateFunctionCode"],
+    desc: "Replace an existing Lambda's code to hijack its execution role",
+    cwe: "CWE-269",
+  },
+] as const
+
+export async function autoPrivescScan(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Automated Privilege Escalation Path Scanner\n"]
+  const verbose = hasFlag(args, "--verbose")
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] Not authenticated: ${id.stderr.trim()}`, findings }
+  const identity = tryJson(id.stdout) || {}
+  const callerArn = identity.Arn as string || ""
+  output.push(`[+] Caller: ${callerArn}`)
+  output.push(`    Account: ${identity.Account}\n`)
+
+  const isUser = callerArn.includes(":user/")
+  const isRole = callerArn.includes(":assumed-role/") || callerArn.includes(":role/")
+  const entityName = callerArn.split("/").pop() || ""
+  const entityType = isUser ? "user" : "role"
+
+  let sourceArn = callerArn
+  if (isRole && callerArn.includes(":assumed-role/")) {
+    const roleName = callerArn.split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${identity.Account}:role/${roleName}`
+  }
+
+  output.push(`[*] Phase 1: Testing permissions via iam:SimulatePrincipalPolicy...\n`)
+
+  const simulateAvailable = await aws(
+    [
+      "iam", "simulate-principal-policy",
+      "--policy-source-arn", sourceArn,
+      "--action-names", "sts:GetCallerIdentity",
+      "--query", "EvaluationResults[0].EvalDecision",
+    ],
+    profile, region, timeout,
+  )
+
+  const useSimulation = simulateAvailable.exitCode === 0
+  if (!useSimulation) {
+    output.push(`[!] simulate-principal-policy unavailable (${simulateAvailable.stderr.trim().split("\n")[0]})`)
+    output.push(`[*] Falling back to Phase 2: policy document analysis...\n`)
+  }
+
+  const viablePaths: Array<{ vector: typeof PRIVESC_VECTORS[number]; allowed: string[] }> = []
+
+  if (useSimulation) {
+    for (const vector of PRIVESC_VECTORS) {
+      const sim = await aws(
+        [
+          "iam", "simulate-principal-policy",
+          "--policy-source-arn", sourceArn,
+          "--action-names", ...vector.actions,
+          "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+        ],
+        profile, region, timeout,
+      )
+      if (sim.exitCode !== 0) continue
+
+      const results = tryJson(sim.stdout) || []
+      const allowed = results
+        .filter((r: [string, string]) => r[1] === "allowed")
+        .map((r: [string, string]) => r[0])
+
+      if (allowed.length === vector.actions.length) {
+        viablePaths.push({ vector, allowed })
+        output.push(`[!] VIABLE: ${vector.name} — ${vector.desc}`)
+        output.push(`    Actions: ${allowed.join(", ")}`)
+      } else if (allowed.length > 0 && verbose) {
+        output.push(`[~] PARTIAL: ${vector.name} — ${allowed.join(", ")} allowed, missing ${vector.actions.filter((a: string) => !allowed.includes(a)).join(", ")}`)
+      }
+    }
+
+    output.push(`\n[+] Phase 1 complete: ${viablePaths.length} viable paths found via simulation\n`)
+  }
+
+  if (!useSimulation) {
+    output.push(`[*] Phase 2: Analyzing attached policy documents...\n`)
+
+    const allActions = new Set<string>()
+
+    if (isUser) {
+      const attached = await aws(
+        ["iam", "list-attached-user-policies", "--user-name", entityName, "--query", "AttachedPolicies[].PolicyArn"],
+        profile, region, timeout,
+      )
+      for (const policyArn of tryJson(attached.stdout) || []) {
+        const actions = await extractPolicyActions(policyArn as string, profile, region, timeout)
+        for (const a of actions) allActions.add(a)
+      }
+
+      const inline = await aws(
+        ["iam", "list-user-policies", "--user-name", entityName, "--query", "PolicyNames"],
+        profile, region, timeout,
+      )
+      for (const polName of tryJson(inline.stdout) || []) {
+        const pol = await aws(
+          ["iam", "get-user-policy", "--user-name", entityName, "--policy-name", polName],
+          profile, region, timeout,
+        )
+        const doc = tryJson(pol.stdout)?.PolicyDocument || {}
+        for (const a of extractActionsFromDocument(doc)) allActions.add(a)
+      }
+
+      const groups = await aws(
+        ["iam", "list-groups-for-user", "--user-name", entityName, "--query", "Groups[].GroupName"],
+        profile, region, timeout,
+      )
+      for (const groupName of tryJson(groups.stdout) || []) {
+        const gAttached = await aws(
+          ["iam", "list-attached-group-policies", "--group-name", groupName, "--query", "AttachedPolicies[].PolicyArn"],
+          profile, region, timeout,
+        )
+        for (const policyArn of tryJson(gAttached.stdout) || []) {
+          const actions = await extractPolicyActions(policyArn as string, profile, region, timeout)
+          for (const a of actions) allActions.add(a)
+        }
+        const gInline = await aws(
+          ["iam", "list-group-policies", "--group-name", groupName, "--query", "PolicyNames"],
+          profile, region, timeout,
+        )
+        for (const polName of tryJson(gInline.stdout) || []) {
+          const pol = await aws(
+            ["iam", "get-group-policy", "--group-name", groupName, "--policy-name", polName],
+            profile, region, timeout,
+          )
+          const doc = tryJson(pol.stdout)?.PolicyDocument || {}
+          for (const a of extractActionsFromDocument(doc)) allActions.add(a)
+        }
+      }
+    } else {
+      const roleName = callerArn.includes(":assumed-role/")
+        ? callerArn.split("/")[1] || ""
+        : entityName
+
+      const attached = await aws(
+        ["iam", "list-attached-role-policies", "--role-name", roleName, "--query", "AttachedPolicies[].PolicyArn"],
+        profile, region, timeout,
+      )
+      for (const policyArn of tryJson(attached.stdout) || []) {
+        const actions = await extractPolicyActions(policyArn as string, profile, region, timeout)
+        for (const a of actions) allActions.add(a)
+      }
+
+      const inline = await aws(
+        ["iam", "list-role-policies", "--role-name", roleName, "--query", "PolicyNames"],
+        profile, region, timeout,
+      )
+      for (const polName of tryJson(inline.stdout) || []) {
+        const pol = await aws(
+          ["iam", "get-role-policy", "--role-name", roleName, "--policy-name", polName],
+          profile, region, timeout,
+        )
+        const doc = tryJson(pol.stdout)?.PolicyDocument || {}
+        for (const a of extractActionsFromDocument(doc)) allActions.add(a)
+      }
+    }
+
+    output.push(`[+] Extracted ${allActions.size} unique allowed actions from policy documents\n`)
+
+    for (const vector of PRIVESC_VECTORS) {
+      const matched = vector.actions.filter((a) => actionMatches(a, allActions))
+      if (matched.length === vector.actions.length) {
+        viablePaths.push({ vector, allowed: [...vector.actions] })
+        output.push(`[!] VIABLE: ${vector.name} — ${vector.desc}`)
+        output.push(`    Actions: ${vector.actions.join(", ")}`)
+      } else if (matched.length > 0 && verbose) {
+        output.push(`[~] PARTIAL: ${vector.name} — has ${matched.join(", ")}, missing ${vector.actions.filter((a) => !matched.includes(a)).join(", ")}`)
+      }
+    }
+
+    output.push(`\n[+] Phase 2 complete: ${viablePaths.length} viable paths found via policy analysis\n`)
+  }
+
+  if (isRole) {
+    output.push(`[*] Phase 3: Checking assumable high-privilege roles...\n`)
+
+    const roles = await aws(["iam", "list-roles", "--max-items", "100"], profile, region, timeout)
+    const roleList = tryJson(roles.stdout)?.Roles || []
+    let assumableHighPriv = 0
+
+    for (const role of roleList) {
+      const rAttached = await aws(
+        ["iam", "list-attached-role-policies", "--role-name", role.RoleName, "--query", "AttachedPolicies[].PolicyName"],
+        profile, region, timeout,
+      )
+      const policies = tryJson(rAttached.stdout) || []
+      const isHighPriv = policies.some((p: string) => /AdministratorAccess|PowerUserAccess|IAMFullAccess/.test(p))
+      if (!isHighPriv) continue
+
+      if (useSimulation) {
+        const sim = await aws(
+          [
+            "iam", "simulate-principal-policy",
+            "--policy-source-arn", sourceArn,
+            "--action-names", "sts:AssumeRole",
+            "--resource-arns", role.Arn,
+            "--query", "EvaluationResults[0].EvalDecision",
+          ],
+          profile, region, timeout,
+        )
+        if (sim.exitCode === 0 && tryJson(sim.stdout) === "allowed") {
+          assumableHighPriv++
+          output.push(`[!] Can assume high-priv role: ${role.RoleName} (${policies.join(", ")})`)
+          findings.push({
+            checkId: "AWS-PRIVESC-AUTO-ASSUME",
+            provider: "aws",
+            severity: "critical",
+            status: "FAIL",
+            resource: role.Arn,
+            title: `Can assume high-priv role ${role.RoleName}`,
+            details: `Policies: ${policies.join(", ")}. sts:AssumeRole allowed via simulation.`,
+            remediation: "Restrict AssumeRolePolicyDocument or reduce role privileges",
+            cwe: "CWE-269",
+          })
+        }
+      }
+    }
+
+    if (assumableHighPriv > 0) output.push(`\n[+] Assumable high-priv roles: ${assumableHighPriv}`)
+  }
+
+  for (const path of viablePaths) {
+    findings.push({
+      checkId: path.vector.id,
+      provider: "aws",
+      severity: "critical",
+      status: "FAIL",
+      resource: callerArn,
+      title: `Privesc path: ${path.vector.name}`,
+      details: `${path.vector.desc}. Allowed actions: ${path.allowed.join(", ")}`,
+      remediation: `Deny ${path.allowed.join(", ")} on the ${entityType}'s policies, or apply a permission boundary`,
+      cwe: path.vector.cwe,
+    })
+  }
+
+  output.push(`\n${"═".repeat(60)}`)
+  output.push(`[*] RESULTS: ${viablePaths.length} privilege escalation paths found`)
+  output.push(`${"═".repeat(60)}`)
+  if (viablePaths.length === 0) {
+    output.push(`[+] No automated privesc paths detected for ${entityName}`)
+  } else {
+    output.push(`\n[!] Attack plan:`)
+    for (let i = 0; i < viablePaths.length; i++) {
+      const p = viablePaths[i]
+      output.push(`  ${i + 1}. ${p.vector.name}: ${p.vector.desc}`)
+    }
+    output.push(`\n[*] Use specific programs to exploit (e.g., iam_privesc --method passrole, policy_version_rollback, etc.)`)
+  }
+  output.push(`[*] Total findings: ${findings.length}`)
+
+  return { output: output.join("\n"), findings }
+}
+
+async function extractPolicyActions(
+  policyArn: string,
+  profile: string | undefined,
+  region: string | undefined,
+  timeout: number,
+): Promise<string[]> {
+  const meta = await aws(
+    ["iam", "get-policy", "--policy-arn", policyArn, "--query", "Policy.DefaultVersionId"],
+    profile, region, timeout,
+  )
+  const versionId = tryJson(meta.stdout)
+  if (!versionId) return []
+
+  const ver = await aws(
+    ["iam", "get-policy-version", "--policy-arn", policyArn, "--version-id", versionId],
+    profile, region, timeout,
+  )
+  const doc = tryJson(ver.stdout)?.PolicyVersion?.Document || {}
+  return extractActionsFromDocument(doc)
+}
+
+function extractActionsFromDocument(doc: Record<string, unknown>): string[] {
+  const stmts = Array.isArray(doc.Statement) ? doc.Statement : [doc.Statement].filter(Boolean)
+  const actions: string[] = []
+  for (const s of stmts) {
+    if (s.Effect !== "Allow") continue
+    const a = Array.isArray(s.Action) ? s.Action : [s.Action]
+    actions.push(...a.filter(Boolean))
+  }
+  return actions
+}
+
+function actionMatches(target: string, available: Set<string>): boolean {
+  if (available.has("*")) return true
+  if (available.has(target)) return true
+  const [svc] = target.split(":")
+  if (available.has(`${svc}:*`)) return true
+  for (const a of available) {
+    if (a.endsWith("*") && target.startsWith(a.slice(0, -1))) return true
+  }
+  return false
+}

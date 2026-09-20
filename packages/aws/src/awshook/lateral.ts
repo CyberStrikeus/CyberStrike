@@ -718,3 +718,475 @@ export async function ssmSession(args: string[], timeout: number): Promise<HookR
 
   return { output: output.join("\n"), findings }
 }
+
+export async function eksLateral(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] EKS Cluster Lateral Movement Assessment\n"]
+
+  const clusters = await aws(["eks", "list-clusters", "--query", "clusters"], profile, region, timeout)
+  if (clusters.exitCode !== 0) return { output: `[-] Cannot list EKS clusters: ${clusters.stderr.trim()}`, findings }
+  const clusterNames = (tryJson(clusters.stdout) || []) as string[]
+  output.push(`[+] EKS Clusters: ${clusterNames.length}\n`)
+
+  if (clusterNames.length === 0) return { output: output.join("\n"), findings }
+
+  for (const name of clusterNames) {
+    output.push(`── ${name} ──`)
+
+    const desc = await aws(["eks", "describe-cluster", "--name", name], profile, region, timeout)
+    if (desc.exitCode !== 0) {
+      output.push(`    [-] Cannot describe cluster: ${desc.stderr.trim().split("\n")[0]}`)
+      continue
+    }
+    const cluster = tryJson(desc.stdout)?.cluster
+    if (!cluster) continue
+
+    const endpoint = cluster.endpoint as string | undefined
+    const version = cluster.version as string | undefined
+    const status = cluster.status as string | undefined
+    const publicAccess = cluster.resourcesVpcConfig?.endpointPublicAccess
+    const privateAccess = cluster.resourcesVpcConfig?.endpointPrivateAccess
+    const publicCidrs = (cluster.resourcesVpcConfig?.publicAccessCidrs || []) as string[]
+    const authMode = cluster.accessConfig?.authenticationMode as string | undefined
+    const logging = ((cluster.logging?.clusterLogging || []) as Array<Record<string, unknown>>).find(
+      (l) => l.enabled === true,
+    )
+
+    output.push(`    Version: ${version}  Status: ${status}`)
+    output.push(`    Endpoint: ${endpoint}`)
+    output.push(`    Public access: ${publicAccess}  Private access: ${privateAccess}`)
+    output.push(`    Auth mode: ${authMode || "CONFIG_MAP"}`)
+    if (publicAccess && publicCidrs.includes("0.0.0.0/0")) {
+      output.push(`    [!] Public endpoint open to 0.0.0.0/0`)
+      findings.push({
+        checkId: "AWS-LATERAL-EKS-001",
+        provider: "aws",
+        severity: "high",
+        status: "FAIL",
+        resource: `eks://${name}`,
+        title: `EKS cluster ${name} has public endpoint open to all`,
+        details: `Cluster API server is publicly accessible from 0.0.0.0/0 — anyone with valid credentials can reach it`,
+        remediation: "Restrict publicAccessCidrs to specific IPs or disable public endpoint",
+      })
+    }
+
+    if (!logging) {
+      output.push(`    [!] Audit logging disabled — lateral movement will be invisible`)
+      findings.push({
+        checkId: "AWS-LATERAL-EKS-002",
+        provider: "aws",
+        severity: "medium",
+        status: "FAIL",
+        resource: `eks://${name}`,
+        title: `EKS cluster ${name} has no audit logging`,
+        details: "Cluster logging is disabled — API calls and authentication events are not recorded",
+        remediation: "Enable audit and authenticator logging for the EKS cluster",
+      })
+    }
+
+    const accessEntries = await aws(
+      ["eks", "list-access-entries", "--cluster-name", name, "--query", "accessEntries"],
+      profile,
+      region,
+      timeout,
+    )
+    if (accessEntries.exitCode === 0) {
+      const entries = (tryJson(accessEntries.stdout) || []) as string[]
+      output.push(`    Access entries: ${entries.length}`)
+      for (const entry of entries.slice(0, 15)) {
+        const detail = await aws(
+          ["eks", "describe-access-entry", "--cluster-name", name, "--principal-arn", entry],
+          profile,
+          region,
+          timeout,
+        )
+        if (detail.exitCode !== 0) continue
+        const ae = tryJson(detail.stdout)?.accessEntry
+        if (!ae) continue
+        const aType = ae.type as string | undefined
+        const kubeGroups = ae.kubernetesGroups as string[] | undefined
+        output.push(`      ${entry.split("/").pop()} — type: ${aType}, k8s groups: ${(kubeGroups || []).join(",")}`)
+
+        if ((kubeGroups || []).some((g: string) => g === "system:masters")) {
+          findings.push({
+            checkId: "AWS-LATERAL-EKS-003",
+            provider: "aws",
+            severity: "critical",
+            status: "FAIL",
+            resource: `eks://${name}/${entry.split("/").pop()}`,
+            title: `EKS cluster-admin via system:masters: ${entry.split("/").pop()}`,
+            details: `Principal ${entry} has system:masters group — full cluster admin privileges`,
+            remediation: "Replace system:masters with scoped RBAC ClusterRoleBinding",
+          })
+        }
+
+        const policies = await aws(
+          [
+            "eks",
+            "list-associated-access-policies",
+            "--cluster-name",
+            name,
+            "--principal-arn",
+            entry,
+            "--query",
+            "associatedAccessPolicies[].{policyArn:policyArn,scope:accessScope.type}",
+          ],
+          profile,
+          region,
+          timeout,
+        )
+        if (policies.exitCode === 0) {
+          const pl = tryJson(policies.stdout) || []
+          for (const p of pl) {
+            const policyName = String(p.policyArn || "").split("/").pop()
+            if (policyName === "AmazonEKSClusterAdminPolicy") {
+              output.push(`        [!] Has AmazonEKSClusterAdminPolicy (scope: ${p.scope})`)
+            }
+          }
+        }
+      }
+    }
+
+    const oidcProviders = await aws(
+      ["iam", "list-open-id-connect-providers", "--query", "OpenIDConnectProviderList[].Arn"],
+      profile,
+      region,
+      timeout,
+    )
+    if (oidcProviders.exitCode === 0) {
+      const providers = (tryJson(oidcProviders.stdout) || []) as string[]
+      const oidcIssuer = (cluster.identity?.oidc?.issuer as string | undefined)?.replace("https://", "")
+      const eksProviders = providers.filter((p) => oidcIssuer && p.includes(oidcIssuer.split("/").pop() || "__none__"))
+
+      if (eksProviders.length > 0) {
+        output.push(`    IRSA OIDC provider: ${eksProviders[0]}`)
+
+        const roles = await aws(["iam", "list-roles", "--max-items", "200"], profile, region, timeout)
+        if (roles.exitCode === 0) {
+          const roleList = tryJson(roles.stdout)?.Roles || []
+          const irsaRoles: Array<{ name: string; arn: string; ns: string; sa: string }> = []
+
+          for (const role of roleList) {
+            const statements = role.AssumeRolePolicyDocument?.Statement || []
+            for (const stmt of statements) {
+              if (stmt.Effect !== "Allow") continue
+              const federated = stmt.Principal?.Federated
+              if (!federated || !eksProviders.some((ep) => federated.includes(ep.split("/").pop()!))) continue
+
+              const condition = stmt.Condition?.StringEquals || stmt.Condition?.StringLike || {}
+              let sa = "unknown"
+              let ns = "unknown"
+              for (const [key, val] of Object.entries(condition)) {
+                if (key.includes(":sub")) {
+                  const parts = String(val).split(":")
+                  if (parts.length >= 2) {
+                    ns = parts[parts.length - 2] || ns
+                    sa = parts[parts.length - 1] || sa
+                  }
+                }
+              }
+              irsaRoles.push({ name: role.RoleName, arn: role.Arn, ns, sa })
+            }
+          }
+
+          if (irsaRoles.length > 0) {
+            output.push(`    IRSA roles: ${irsaRoles.length}`)
+            for (const ir of irsaRoles) {
+              output.push(`      ${ir.name} — ns:${ir.ns} sa:${ir.sa}`)
+
+              const attached = await aws(
+                [
+                  "iam",
+                  "list-attached-role-policies",
+                  "--role-name",
+                  ir.name,
+                  "--query",
+                  "AttachedPolicies[].PolicyArn",
+                ],
+                profile,
+                region,
+                timeout,
+              )
+              if (attached.exitCode === 0) {
+                const pols = (tryJson(attached.stdout) || []) as string[]
+                const dangerous = pols.filter(
+                  (p) =>
+                    p.includes("AdministratorAccess") ||
+                    p.includes("PowerUser") ||
+                    p.includes("FullAccess") ||
+                    p.includes("AmazonS3FullAccess") ||
+                    p.includes("AmazonEC2FullAccess"),
+                )
+                if (dangerous.length > 0) {
+                  output.push(`        [!] Overprivileged: ${dangerous.map((d) => d.split("/").pop()).join(", ")}`)
+                  findings.push({
+                    checkId: "AWS-LATERAL-EKS-IRSA-001",
+                    provider: "aws",
+                    severity: "critical",
+                    status: "FAIL",
+                    resource: `eks://${name}/irsa/${ir.name}`,
+                    title: `Overprivileged IRSA role: ${ir.name} (${ir.ns}/${ir.sa})`,
+                    details: `Pod in ${ir.ns}/${ir.sa} gets ${dangerous.map((d) => d.split("/").pop()).join(", ")} — compromise this pod to get AWS admin`,
+                    remediation: "Apply least-privilege policy; never attach *FullAccess to IRSA roles",
+                  })
+                }
+              }
+            }
+          }
+        }
+      } else {
+        output.push(`    IRSA: not configured (no OIDC provider for this cluster)`)
+      }
+    }
+
+    const nodegroups = await aws(
+      ["eks", "list-nodegroups", "--cluster-name", name, "--query", "nodegroups"],
+      profile,
+      region,
+      timeout,
+    )
+    if (nodegroups.exitCode === 0) {
+      const ngs = (tryJson(nodegroups.stdout) || []) as string[]
+      output.push(`    Node groups: ${ngs.length}`)
+      for (const ng of ngs) {
+        const ngDesc = await aws(
+          ["eks", "describe-nodegroup", "--cluster-name", name, "--nodegroup-name", ng, "--query", "nodegroup.{role:nodeRole,instanceTypes:instanceTypes,amiType:amiType,desiredSize:scalingConfig.desiredSize}"],
+          profile,
+          region,
+          timeout,
+        )
+        if (ngDesc.exitCode === 0) {
+          const n = tryJson(ngDesc.stdout)
+          if (n) {
+            output.push(`      ${ng}: ${(n.instanceTypes || []).join(",")} x${n.desiredSize} (${n.amiType})`)
+            output.push(`        Node role: ${String(n.role || "").split("/").pop()}`)
+          }
+        }
+      }
+    }
+
+    output.push("")
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function lambdaVpcPivot(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Lambda VPC Network Pivot Analysis\n"]
+
+  const funcs = await aws(
+    ["lambda", "list-functions", "--query", "Functions[].[FunctionName,Runtime,Role,VpcConfig]"],
+    profile,
+    region,
+    timeout,
+  )
+  if (funcs.exitCode !== 0) return { output: `[-] Cannot list Lambda functions: ${funcs.stderr.trim()}`, findings }
+  const funcList = tryJson(funcs.stdout) || []
+
+  const vpcFuncs: Array<{
+    name: string
+    runtime: string
+    role: string
+    vpcId: string
+    subnetIds: string[]
+    sgIds: string[]
+  }> = []
+
+  for (const f of funcList) {
+    const vpc = f[3] as Record<string, unknown> | null
+    if (!vpc) continue
+    const subnetIds = (vpc.SubnetIds || []) as string[]
+    if (subnetIds.length === 0) continue
+    vpcFuncs.push({
+      name: f[0],
+      runtime: f[1],
+      role: String(f[2] || "").split("/").pop() || "",
+      vpcId: vpc.VpcId as string,
+      subnetIds,
+      sgIds: (vpc.SecurityGroupIds || []) as string[],
+    })
+  }
+
+  output.push(`[+] Total functions: ${funcList.length}`)
+  output.push(`[+] VPC-attached functions: ${vpcFuncs.length}\n`)
+
+  if (vpcFuncs.length === 0) {
+    output.push("[-] No VPC-attached Lambda functions found — no network pivot possible")
+    return { output: output.join("\n"), findings }
+  }
+
+  const subnetToResources = new Map<string, string[]>()
+
+  const rdsInstances = await aws(
+    [
+      "rds",
+      "describe-db-instances",
+      "--query",
+      "DBInstances[].[DBInstanceIdentifier,Engine,Endpoint.Address,Endpoint.Port,DBSubnetGroup.Subnets[].SubnetIdentifier]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
+  if (rdsInstances.exitCode === 0) {
+    const dbs = tryJson(rdsInstances.stdout) || []
+    for (const db of dbs) {
+      const subnets = (db[4] || []) as string[]
+      const label = `RDS:${db[0]}(${db[1]}) → ${db[2]}:${db[3]}`
+      for (const s of subnets) {
+        if (!subnetToResources.has(s)) subnetToResources.set(s, [])
+        subnetToResources.get(s)!.push(label)
+      }
+    }
+  }
+
+  const caches = await aws(
+    [
+      "elasticache",
+      "describe-cache-clusters",
+      "--show-cache-node-info",
+      "--query",
+      "CacheClusters[].[CacheClusterId,Engine,CacheNodes[0].Endpoint.Address,CacheNodes[0].Endpoint.Port,CacheSubnetGroupName]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
+  if (caches.exitCode === 0) {
+    const cl = tryJson(caches.stdout) || []
+    for (const c of cl) {
+      if (!c[4]) continue
+      const subnetGroup = await aws(
+        [
+          "elasticache",
+          "describe-cache-subnet-groups",
+          "--cache-subnet-group-name",
+          c[4],
+          "--query",
+          "CacheSubnetGroups[0].Subnets[].SubnetIdentifier",
+        ],
+        profile,
+        region,
+        timeout,
+      )
+      if (subnetGroup.exitCode === 0) {
+        const subnets = (tryJson(subnetGroup.stdout) || []) as string[]
+        const label = `ElastiCache:${c[0]}(${c[1]}) → ${c[2]}:${c[3]}`
+        for (const s of subnets) {
+          if (!subnetToResources.has(s)) subnetToResources.set(s, [])
+          subnetToResources.get(s)!.push(label)
+        }
+      }
+    }
+  }
+
+  const opensearch = await aws(
+    ["opensearch", "list-domain-names", "--query", "DomainNames[].DomainName"],
+    profile,
+    region,
+    timeout,
+  )
+  if (opensearch.exitCode === 0) {
+    const domains = (tryJson(opensearch.stdout) || []) as string[]
+    for (const d of domains) {
+      const domainDesc = await aws(
+        [
+          "opensearch",
+          "describe-domain",
+          "--domain-name",
+          d,
+          "--query",
+          "DomainStatus.{endpoint:Endpoints,subnets:VPCOptions.SubnetIds}",
+        ],
+        profile,
+        region,
+        timeout,
+      )
+      if (domainDesc.exitCode === 0) {
+        const dd = tryJson(domainDesc.stdout)
+        const subnets = (dd?.subnets || []) as string[]
+        const ep = dd?.endpoint ? JSON.stringify(dd.endpoint) : d
+        const label = `OpenSearch:${d} → ${ep}`
+        for (const s of subnets) {
+          if (!subnetToResources.has(s)) subnetToResources.set(s, [])
+          subnetToResources.get(s)!.push(label)
+        }
+      }
+    }
+  }
+
+  const efsResult = await aws(
+    ["efs", "describe-file-systems", "--query", "FileSystems[].[FileSystemId,Name,SizeInBytes.Value]"],
+    profile,
+    region,
+    timeout,
+  )
+  if (efsResult.exitCode === 0) {
+    const fsList = tryJson(efsResult.stdout) || []
+    for (const fs of fsList) {
+      const targets = await aws(
+        [
+          "efs",
+          "describe-mount-targets",
+          "--file-system-id",
+          fs[0],
+          "--query",
+          "MountTargets[].{subnet:SubnetId,ip:IpAddress}",
+        ],
+        profile,
+        region,
+        timeout,
+      )
+      if (targets.exitCode === 0) {
+        const mts = tryJson(targets.stdout) || []
+        for (const mt of mts) {
+          const label = `EFS:${fs[0]}(${fs[1] || "unnamed"}) → ${mt.ip}:2049`
+          if (!subnetToResources.has(mt.subnet)) subnetToResources.set(mt.subnet, [])
+          subnetToResources.get(mt.subnet)!.push(label)
+        }
+      }
+    }
+  }
+
+  for (const fn of vpcFuncs) {
+    output.push(`── ${fn.name} ──`)
+    output.push(`    Runtime: ${fn.runtime}  Role: ${fn.role}`)
+    output.push(`    VPC: ${fn.vpcId}`)
+    output.push(`    Subnets: ${fn.subnetIds.join(", ")}`)
+    output.push(`    Security groups: ${fn.sgIds.join(", ")}`)
+
+    const reachable: string[] = []
+    for (const sid of fn.subnetIds) {
+      const resources = subnetToResources.get(sid)
+      if (resources) reachable.push(...resources)
+    }
+
+    const unique = [...new Set(reachable)]
+    if (unique.length > 0) {
+      output.push(`    [!] Reachable internal resources (${unique.length}):`)
+      for (const r of unique) output.push(`        → ${r}`)
+
+      findings.push({
+        checkId: "AWS-LATERAL-VPC-PIVOT-001",
+        provider: "aws",
+        severity: "medium",
+        status: "FOUND",
+        resource: `lambda://${fn.name}`,
+        title: `Lambda ${fn.name} can reach ${unique.length} internal resource(s)`,
+        details: `VPC-attached Lambda in ${fn.vpcId} (subnets: ${fn.subnetIds.join(",")}) can pivot to: ${unique.slice(0, 3).join("; ")}${unique.length > 3 ? ` +${unique.length - 3} more` : ""}`,
+        remediation: "Restrict Lambda security group outbound rules; ensure databases require IAM/TLS auth",
+      })
+    } else {
+      output.push(`    No known internal resources found in same subnets`)
+    }
+
+    output.push("")
+  }
+
+  return { output: output.join("\n"), findings }
+}

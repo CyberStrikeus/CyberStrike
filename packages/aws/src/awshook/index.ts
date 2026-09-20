@@ -57,6 +57,9 @@ import {
   publicExposureScan,
   stalePermissionRecon,
   tagComplianceAudit,
+  publicEbsSnapshotEnum,
+  publicRdsSnapshotEnum,
+  crossServicePolicyAudit,
 } from "./recon"
 import {
   metadataHarvest,
@@ -70,6 +73,9 @@ import {
   cfnSecretExtract,
   codecommitCred,
   ciCdSecretExtract,
+  ec2UserData,
+  lambdaEnvHarvest,
+  ssmParameterMine,
 } from "./credential"
 import {
   iamPrivesc,
@@ -82,6 +88,7 @@ import {
   ec2Privesc,
   permissionBoundaryBypass,
   sagemakerPrivesc,
+  autoPrivescScan,
 } from "./privesc"
 import {
   lambdaBackdoor,
@@ -105,6 +112,8 @@ import {
   lightsailExec,
   codeExecLambda,
   ssmSession,
+  eksLateral,
+  lambdaVpcPivot,
 } from "./lateral"
 import {
   cloudtrailBlind,
@@ -138,6 +147,8 @@ import {
   cloudwatchLogsDump,
   snsSqsSiphon,
   kinesisTap,
+  s3VersionRecovery,
+  s3ReplicationExfil,
 } from "./exfil"
 import {
   cisBenchmark,
@@ -181,6 +192,8 @@ import {
   resourcePolicyAudit,
   groupMembershipAudit,
   permissionBoundaryAudit,
+  iamPolicySimulation,
+  confusedDeputyDetect,
 } from "./identity"
 import {
   resourceHijack,
@@ -199,7 +212,7 @@ import {
 } from "./impact"
 
 const PROGRAMS = {
-  // ── Recon (51) ──
+  // ── Recon (54) ──
   iam_enum: {
     description:
       "Enumerate IAM users, roles, policies, and analyze for privilege escalation paths (PassRole, wildcard policies, inline policy abuse)",
@@ -420,8 +433,20 @@ const PROGRAMS = {
     description: "Tag compliance — scan EC2/RDS/S3/Lambda for required tags (Environment, Owner, CostCenter), report untagged resources",
     args: "[--profile PROFILE] [--region REGION]",
   },
+  public_ebs_snapshot_enum: {
+    description: "Find publicly shared EBS snapshots — createVolumePermission check, restorableByUserIds:all cross-check (Pacu technique)",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  public_rds_snapshot_enum: {
+    description: "Find publicly shared RDS DB/cluster snapshots — include-public + include-shared attribute analysis",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  cross_service_policy_audit: {
+    description: "Cross-service resource-based policy scanner — SQS, SNS, Lambda, KMS, ECR, Secrets Manager policies for external/wildcard access",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
 
-  // ── Credential Harvesting (11) ──
+  // ── Credential Harvesting (14) ──
   metadata_harvest: {
     description:
       "Extract IAM role credentials from EC2/ECS/Lambda metadata endpoints (169.254.169.254). Supports IMDSv1 and IMDSv2",
@@ -473,8 +498,20 @@ const PROGRAMS = {
       "Extract secrets from CI/CD: CodePipeline artifact stores, CodeBuild env vars (plaintext/SSM/Secrets Manager refs), CodeStar connections",
     args: "[--profile PROFILE] [--region REGION]",
   },
+  ec2_user_data: {
+    description: "Extract EC2 instance UserData (base64-decoded) — harvest bootstrap passwords, API keys, DB connection strings (Pacu ec2__download_userdata)",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  lambda_env_harvest: {
+    description: "Harvest Lambda function environment variables — scan for PASSWORD, SECRET, KEY, TOKEN, JWT, DB_ patterns across all functions (CloudFox env-vars)",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  ssm_parameter_mine: {
+    description: "Deep SSM Parameter Store mining — recursive parameter enumeration, SecureString decryption, secret pattern scanning in values",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
 
-  // ── Privilege Escalation (10) ──
+  // ── Privilege Escalation (11) ──
   iam_privesc: {
     description:
       "Exploit IAM misconfigurations for privilege escalation: PassRole+Lambda, AssumeRole chaining, AttachUserPolicy, CreateLoginProfile, CreateAccessKey",
@@ -518,6 +555,10 @@ const PROGRAMS = {
   sagemaker_privesc: {
     description: "Exploit SageMaker notebooks/training jobs with high-privilege execution roles for credential access",
     args: "[--role-arn ARN] [--profile PROFILE] [--region REGION]",
+  },
+  auto_privesc_scan: {
+    description: "Automated privilege escalation path discovery — simulate-principal-policy against 21+ Rhino Security vectors (PassRole+Lambda, AttachPolicy, CreatePolicyVersion, UpdateAssumeRolePolicy, etc.), policy document fallback, assumable high-priv role detection (Pacu iam__privesc_scan)",
+    args: "[--profile PROFILE] [--region REGION]",
   },
 
   // ── Persistence (11) ──
@@ -572,7 +613,7 @@ const PROGRAMS = {
     args: "[--cluster NAME] [--task-definition DEF] [--command CMD] [--schedule EXPR] [--rule-name NAME] [--list] [--profile PROFILE] [--region REGION]",
   },
 
-  // ── Lateral Movement (8) ──
+  // ── Lateral Movement (10) ──
   ssm_exec: {
     description:
       "Execute commands on EC2 instances via AWS Systems Manager RunCommand — no SSH or direct network access required",
@@ -608,6 +649,14 @@ const PROGRAMS = {
     description:
       "SSM Session Manager for interactive shell, port forwarding (local and remote host), with session logging check",
     args: "[--instance-id ID] [--port-forward LOCAL:REMOTE] [--remote-host HOST] [--profile PROFILE] [--region REGION]",
+  },
+  eks_lateral: {
+    description: "EKS cluster lateral movement — access entries, system:masters check, IRSA OIDC role inspection, overprivileged pod detection, public endpoint audit",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  lambda_vpc_pivot: {
+    description: "Lambda VPC pivot analysis — cross-reference VPC-attached Lambda subnets with RDS, ElastiCache, OpenSearch, EFS to map internal reachable resources",
+    args: "[--profile PROFILE] [--region REGION]",
   },
 
   // ── Defense Evasion (13) ──
@@ -669,7 +718,7 @@ const PROGRAMS = {
     args: "--action <status|exclude_kms|exclude_s3_data|management_read_only|restore> [--trail-name NAME] [--profile PROFILE] [--region REGION]",
   },
 
-  // ── Exfiltration & Cleanup (16) ──
+  // ── Exfiltration & Cleanup (18) ──
   s3_dump: {
     description:
       "List all S3 buckets, identify sensitive files (.env, backups, credentials, .pem, .key), and optionally download high-value targets",
@@ -744,6 +793,14 @@ const PROGRAMS = {
   kinesis_tap: {
     description: "Tap Kinesis data streams — enumerate streams/shards and read records for real-time data interception",
     args: "[--stream-name NAME] [--limit N] [--profile PROFILE] [--region REGION]",
+  },
+  s3_version_recovery: {
+    description: "S3 versioning abuse — find 'deleted' objects still recoverable via delete markers, check MFA Delete enforcement, count non-current versions with potential secrets",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  s3_replication_exfil: {
+    description: "S3 replication rule audit — detect cross-account replication, simulate-principal-policy to check if caller can add replication rules for persistent exfil",
+    args: "[--profile PROFILE] [--region REGION]",
   },
 
   // ── Compliance (18) ──
@@ -820,7 +877,7 @@ const PROGRAMS = {
     args: "[--profile PROFILE] [--region REGION]",
   },
 
-  // ── Identity (21) ──
+  // ── Identity (23) ──
   sts_session_enum: {
     description: "Enumerate STS capabilities — session duration, federation token generation, wildcard trust roles",
     args: "[--profile PROFILE] [--region REGION]",
@@ -903,6 +960,14 @@ const PROGRAMS = {
   },
   permission_boundary_audit: {
     description: "Permission boundary inventory — roles/users with/without boundaries, boundary policy analysis, coverage gaps",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  iam_policy_simulation: {
+    description: "General-purpose IAM permission check via simulate-principal-policy — test dangerous actions across data access, admin, network, compute categories for any principal",
+    args: "[--target ARN] [--profile PROFILE] [--region REGION]",
+  },
+  confused_deputy_detect: {
+    description: "Confused deputy detection — find service-trusted IAM roles missing aws:SourceAccount/aws:SourceArn conditions, flag high-priv ones as critical",
     args: "[--profile PROFILE] [--region REGION]",
   },
 
@@ -1268,6 +1333,50 @@ const CWE_MAP: Record<string, string> = {
   "AWS-IMPACT-DNS-002": "CWE-284",
   "AWS-IMPACT-NET-001": "CWE-284",
   "AWS-IMPACT-NET-002": "CWE-284",
+  "AWS-CRED-USERDATA-001": "CWE-312",
+  "AWS-CRED-USERDATA-002": "CWE-200",
+  "AWS-CRED-LAMBDA-ENV-001": "CWE-312",
+  "AWS-CRED-SSM-001": "CWE-522",
+  "AWS-CRED-SSM-002": "CWE-522",
+  "AWS-CRED-SSM-003": "CWE-522",
+  "AWS-RECON-EBS-PUBLIC-001": "CWE-284",
+  "AWS-RECON-RDS-PUBLIC-001": "CWE-284",
+  "AWS-RECON-RDS-PUBLIC-002": "CWE-284",
+  "AWS-RECON-RESPOLICY-001": "CWE-732",
+  "AWS-RECON-RESPOLICY-002": "CWE-284",
+  "AWS-PRIVESC-AUTO-001": "CWE-269",
+  "AWS-PRIVESC-AUTO-002": "CWE-269",
+  "AWS-PRIVESC-AUTO-003": "CWE-269",
+  "AWS-PRIVESC-AUTO-004": "CWE-269",
+  "AWS-PRIVESC-AUTO-005": "CWE-269",
+  "AWS-PRIVESC-AUTO-006": "CWE-269",
+  "AWS-PRIVESC-AUTO-007": "CWE-269",
+  "AWS-PRIVESC-AUTO-008": "CWE-269",
+  "AWS-PRIVESC-AUTO-009": "CWE-269",
+  "AWS-PRIVESC-AUTO-010": "CWE-269",
+  "AWS-PRIVESC-AUTO-011": "CWE-269",
+  "AWS-PRIVESC-AUTO-012": "CWE-269",
+  "AWS-PRIVESC-AUTO-013": "CWE-269",
+  "AWS-PRIVESC-AUTO-014": "CWE-269",
+  "AWS-PRIVESC-AUTO-015": "CWE-269",
+  "AWS-PRIVESC-AUTO-016": "CWE-269",
+  "AWS-PRIVESC-AUTO-017": "CWE-269",
+  "AWS-PRIVESC-AUTO-018": "CWE-269",
+  "AWS-PRIVESC-AUTO-019": "CWE-269",
+  "AWS-PRIVESC-AUTO-020": "CWE-269",
+  "AWS-PRIVESC-AUTO-021": "CWE-269",
+  "AWS-PRIVESC-AUTO-ASSUME": "CWE-269",
+  "AWS-IDENTITY-DEPUTY-001": "CWE-441",
+  "AWS-IDENTITY-SIM-001": "CWE-269",
+  "AWS-LATERAL-EKS-001": "CWE-284",
+  "AWS-LATERAL-EKS-002": "CWE-269",
+  "AWS-LATERAL-EKS-003": "CWE-269",
+  "AWS-LATERAL-EKS-IRSA-001": "CWE-269",
+  "AWS-LATERAL-VPC-PIVOT-001": "CWE-284",
+  "AWS-EXFIL-S3VER-001": "CWE-200",
+  "AWS-EXFIL-S3MFA-001": "CWE-284",
+  "AWS-EXFIL-S3REP-001": "CWE-200",
+  "AWS-EXFIL-S3REP-002": "CWE-284",
 }
 
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
@@ -1325,6 +1434,9 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   public_exposure_scan: publicExposureScan,
   stale_permission_audit_recon: stalePermissionRecon,
   tag_compliance_audit: tagComplianceAudit,
+  public_ebs_snapshot_enum: publicEbsSnapshotEnum,
+  public_rds_snapshot_enum: publicRdsSnapshotEnum,
+  cross_service_policy_audit: crossServicePolicyAudit,
   // credential
   metadata_harvest: (args) => metadataHarvest(args),
   secrets_dump: secretsDump,
@@ -1337,6 +1449,9 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   cfn_secret_extract: cfnSecretExtract,
   codecommit_cred: codecommitCred,
   ci_cd_secret_extract: ciCdSecretExtract,
+  ec2_user_data: ec2UserData,
+  lambda_env_harvest: lambdaEnvHarvest,
+  ssm_parameter_mine: ssmParameterMine,
   // privesc
   iam_privesc: iamPrivesc,
   policy_version_rollback: policyVersionRollback,
@@ -1348,6 +1463,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   ec2_privesc: ec2Privesc,
   permission_boundary_bypass: permissionBoundaryBypass,
   sagemaker_privesc: sagemakerPrivesc,
+  auto_privesc_scan: autoPrivescScan,
   // persistence
   lambda_backdoor: lambdaBackdoor,
   iam_backdoor: iamBackdoor,
@@ -1369,6 +1485,8 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   lightsail_exec: lightsailExec,
   code_exec_lambda: codeExecLambda,
   ssm_session: ssmSession,
+  eks_lateral: eksLateral,
+  lambda_vpc_pivot: lambdaVpcPivot,
   // evasion
   cloudtrail_blind: cloudtrailBlind,
   guardduty_evade: guarddutyEvade,
@@ -1400,6 +1518,8 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   cloudwatch_logs_dump: cloudwatchLogsDump,
   sns_sqs_siphon: snsSqsSiphon,
   kinesis_tap: kinesisTap,
+  s3_version_recovery: s3VersionRecovery,
+  s3_replication_exfil: s3ReplicationExfil,
   // compliance
   cis_benchmark: cisBenchmark,
   access_key_rotation: accessKeyRotation,
@@ -1441,6 +1561,8 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   resource_policy_audit: resourcePolicyAudit,
   group_membership_audit: groupMembershipAudit,
   permission_boundary_audit: permissionBoundaryAudit,
+  iam_policy_simulation: iamPolicySimulation,
+  confused_deputy_detect: confusedDeputyDetect,
   // impact
   resource_hijack: resourceHijack,
   data_destroy: dataDestroy,
@@ -1458,7 +1580,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
 }
 
 export const AwshookTool = tool({
-  description: `AWS offensive security toolkit — the PRIMARY tool for any AWS security assessment, pentest, or audit when AWS credentials are available. 172 programs across 10 kill-chain categories: recon (51), credential harvesting (11), privilege escalation (10), persistence (11), lateral movement (8), defense evasion (13), exfiltration & cleanup (16), compliance (18), identity (21), impact (13). Start with recon programs (iam_enum, ec2_enum, s3_enum, service_recon, public_exposure_scan) to discover assets and misconfigurations, then progress through the kill chain. For compliance posture: cis_benchmark, encryption_audit, logging_audit, network_segmentation_audit, account_security_audit, mfa_audit, root_account_audit. For identity deep-dive: identity_summary, role_trust_audit, cross_account_trust_audit, resource_policy_audit, permission_boundary_audit, iam_access_last_used. For impact assessment: resource_deletion_capability, data_destruction_paths, billing_impact_analysis, dns_hijack_capability. Prefer this over cloud_audit — awshook covers everything cloud_audit does PLUS finds exploitable paths. Uses aws CLI (no Python/SDK). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
+  description: `AWS offensive security toolkit — the PRIMARY tool for any AWS security assessment, pentest, or audit when AWS credentials are available. 185 programs across 10 kill-chain categories: recon (54), credential harvesting (14), privilege escalation (11), persistence (11), lateral movement (10), defense evasion (13), exfiltration & cleanup (18), compliance (18), identity (23), impact (13). Key capabilities: auto_privesc_scan (automated 21-vector Pacu-style privesc path discovery via simulate-principal-policy), iam_policy_simulation (effective permission check for any principal), confused_deputy_detect (service trust misconfig), ec2_user_data + lambda_env_harvest + ssm_parameter_mine (credential harvesting trifecta), public_ebs_snapshot_enum + public_rds_snapshot_enum (public cloud data exposure), cross_service_policy_audit (S3/SQS/SNS/Lambda/KMS resource policy scanner), eks_lateral + lambda_vpc_pivot (cross-service lateral movement), s3_version_recovery + s3_replication_exfil (advanced exfil). Start with recon programs to discover assets, then auto_privesc_scan to find attack paths. Uses aws CLI (no Python/SDK). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
   args: {
     program: z.enum(programKeys).describe(
       "AWS program to execute. Options: " +

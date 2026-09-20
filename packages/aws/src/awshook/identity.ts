@@ -1284,3 +1284,271 @@ export async function permissionBoundaryAudit(args: string[], timeout: number): 
   output.push(`\n[*] Summary: ${findings.length} permission boundary issues found`)
   return { output: output.join("\n"), findings }
 }
+
+const DANGEROUS_ACTIONS: Record<string, string[]> = {
+  "Data Access": [
+    "s3:GetObject", "s3:ListBucket", "s3:GetBucketPolicy",
+    "dynamodb:GetItem", "dynamodb:Scan", "dynamodb:Query",
+    "rds:CopyDBSnapshot", "rds:CopyDBClusterSnapshot",
+    "secretsmanager:GetSecretValue", "ssm:GetParameter", "ssm:GetParameters",
+    "kms:Decrypt", "kms:ReEncrypt*",
+    "lambda:GetFunction",
+    "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage",
+    "codecommit:GetRepository", "codecommit:GitPull",
+  ],
+  "IAM Admin": [
+    "iam:CreateUser", "iam:CreateRole", "iam:CreatePolicy",
+    "iam:AttachUserPolicy", "iam:AttachRolePolicy", "iam:PutUserPolicy", "iam:PutRolePolicy",
+    "iam:CreateAccessKey", "iam:CreateLoginProfile", "iam:UpdateLoginProfile",
+    "iam:PassRole", "iam:UpdateAssumeRolePolicy", "iam:AddUserToGroup",
+    "iam:DeleteUserPermissionsBoundary", "iam:DeleteRolePermissionsBoundary",
+    "sts:AssumeRole",
+  ],
+  "Network": [
+    "ec2:AuthorizeSecurityGroupIngress", "ec2:AuthorizeSecurityGroupEgress",
+    "ec2:CreateVpcPeeringConnection", "ec2:AcceptVpcPeeringConnection",
+    "ec2:ModifyInstanceAttribute",
+    "route53:ChangeResourceRecordSets",
+  ],
+  "Compute": [
+    "lambda:CreateFunction", "lambda:UpdateFunctionCode", "lambda:InvokeFunction",
+    "ecs:RunTask", "ecs:ExecuteCommand",
+    "ec2:RunInstances",
+    "ssm:SendCommand", "ssm:StartSession",
+    "codebuild:CreateProject", "codebuild:StartBuild",
+    "glue:CreateDevEndpoint", "glue:CreateJob",
+    "sagemaker:CreateNotebookInstance",
+  ],
+  "Defense Evasion": [
+    "cloudtrail:StopLogging", "cloudtrail:DeleteTrail", "cloudtrail:UpdateTrail",
+    "guardduty:DeleteDetector", "guardduty:CreateFilter",
+    "config:StopConfigurationRecorder", "config:DeleteConfigRule",
+    "securityhub:DisableSecurityHub",
+    "logs:DeleteLogGroup", "logs:DeleteLogStream",
+  ],
+  "Persistence": [
+    "iam:CreateAccessKey",
+    "lambda:AddPermission", "lambda:CreateEventSourceMapping",
+    "events:PutRule", "events:PutTargets",
+    "ssm:CreateDocument",
+    "ec2:CreateKeyPair",
+  ],
+}
+
+export async function iamPolicySimulation(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const target = argVal(args, "--target")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] IAM Policy Simulation — Effective Permission Analysis\n"]
+
+  let sourceArn: string
+  if (target) {
+    sourceArn = target
+    output.push(`[+] Target principal: ${sourceArn}`)
+  } else {
+    const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+    if (id.exitCode !== 0) return { output: `[-] Not authenticated: ${id.stderr.trim()}`, findings }
+    const identity = tryJson(id.stdout) || {}
+    sourceArn = identity.Arn as string || ""
+    if (sourceArn.includes(":assumed-role/")) {
+      const roleName = sourceArn.split("/")[1] || ""
+      sourceArn = `arn:aws:iam::${identity.Account}:role/${roleName}`
+    }
+    output.push(`[+] Current identity: ${sourceArn}`)
+  }
+
+  const sim = await aws(
+    [
+      "iam", "simulate-principal-policy",
+      "--policy-source-arn", sourceArn,
+      "--action-names", "sts:GetCallerIdentity",
+      "--query", "EvaluationResults[0].EvalDecision",
+    ],
+    profile, region, timeout,
+  )
+  if (sim.exitCode !== 0) {
+    output.push(`[-] simulate-principal-policy unavailable: ${sim.stderr.trim().split("\n")[0]}`)
+    output.push(`[*] This requires iam:SimulatePrincipalPolicy permission`)
+    return { output: output.join("\n"), findings }
+  }
+
+  const summary: Record<string, { allowed: string[]; denied: string[] }> = {}
+  let totalAllowed = 0
+  let totalDenied = 0
+
+  for (const [category, actions] of Object.entries(DANGEROUS_ACTIONS)) {
+    summary[category] = { allowed: [], denied: [] }
+
+    const batchSize = 10
+    for (let i = 0; i < actions.length; i += batchSize) {
+      const batch = actions.slice(i, i + batchSize)
+      const result = await aws(
+        [
+          "iam", "simulate-principal-policy",
+          "--policy-source-arn", sourceArn,
+          "--action-names", ...batch,
+          "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+        ],
+        profile, region, timeout,
+      )
+      if (result.exitCode !== 0) continue
+
+      const evals = tryJson(result.stdout) || []
+      for (const [action, decision] of evals) {
+        if (decision === "allowed") {
+          summary[category].allowed.push(action)
+          totalAllowed++
+        } else {
+          summary[category].denied.push(action)
+          totalDenied++
+        }
+      }
+    }
+  }
+
+  output.push(`\n${"═".repeat(60)}`)
+  output.push(`[*] Effective Permissions: ${totalAllowed} allowed / ${totalDenied} denied`)
+  output.push(`${"═".repeat(60)}\n`)
+
+  for (const [category, result] of Object.entries(summary)) {
+    const marker = result.allowed.length > 0 ? "[!]" : "[+]"
+    output.push(`${marker} ${category}: ${result.allowed.length} allowed, ${result.denied.length} denied`)
+    if (result.allowed.length > 0) {
+      for (const a of result.allowed) output.push(`    ✓ ${a}`)
+    }
+  }
+
+  const criticalCategories = ["IAM Admin", "Defense Evasion"]
+  for (const cat of criticalCategories) {
+    const s = summary[cat]
+    if (!s || s.allowed.length === 0) continue
+    findings.push({
+      checkId: "AWS-POLSIM-001",
+      provider: "aws",
+      severity: "critical",
+      status: "FAIL",
+      resource: sourceArn,
+      title: `${s.allowed.length} dangerous ${cat} actions allowed`,
+      details: `Allowed: ${s.allowed.join(", ")}`,
+      remediation: `Restrict or deny: ${s.allowed.join(", ")} via IAM policy or SCP`,
+      cwe: "CWE-269",
+    })
+  }
+
+  const dataActions = summary["Data Access"]
+  if (dataActions && dataActions.allowed.length > 5) {
+    findings.push({
+      checkId: "AWS-POLSIM-002",
+      provider: "aws",
+      severity: "high",
+      status: "FAIL",
+      resource: sourceArn,
+      title: `Broad data access: ${dataActions.allowed.length} data retrieval actions allowed`,
+      details: `Allowed: ${dataActions.allowed.join(", ")}`,
+      remediation: "Apply resource-level restrictions or reduce attached policies",
+      cwe: "CWE-284",
+    })
+  }
+
+  const computeActions = summary["Compute"]
+  if (computeActions && computeActions.allowed.length > 3) {
+    findings.push({
+      checkId: "AWS-POLSIM-003",
+      provider: "aws",
+      severity: "high",
+      status: "FAIL",
+      resource: sourceArn,
+      title: `${computeActions.allowed.length} compute execution actions allowed`,
+      details: `Allowed: ${computeActions.allowed.join(", ")} — can run arbitrary code in AWS`,
+      remediation: "Restrict compute actions to specific resources",
+      cwe: "CWE-269",
+    })
+  }
+
+  output.push(`\n[*] Summary: ${totalAllowed} dangerous permissions allowed, ${findings.length} issues`)
+  return { output: output.join("\n"), findings }
+}
+
+export async function confusedDeputyDetect(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Confused Deputy Detection — Scanning role trust policies...\n"]
+
+  const roles = await aws(["iam", "list-roles", "--max-items", "200"], profile, region, timeout)
+  if (roles.exitCode !== 0) return { output: `[-] Failed to list roles: ${roles.stderr.trim()}`, findings }
+  const roleList = tryJson(roles.stdout)?.Roles || []
+  output.push(`[+] Total roles: ${roleList.length}`)
+
+  let vulnerableCount = 0
+  let checkedCount = 0
+  let safeCount = 0
+
+  for (const role of roleList) {
+    if (role.Path === "/aws-service-role/") continue
+
+    const statements = role.AssumeRolePolicyDocument?.Statement || []
+    for (const stmt of statements) {
+      if (stmt.Effect !== "Allow") continue
+      const principals = extractPrincipals(stmt.Principal)
+      const servicePrincipals = principals.filter((p: string) => p.endsWith(".amazonaws.com"))
+      if (servicePrincipals.length === 0) continue
+
+      checkedCount++
+
+      const conditions = stmt.Condition || {}
+      const conditionKeys = new Set<string>()
+      for (const op of Object.values(conditions) as Record<string, unknown>[]) {
+        for (const key of Object.keys(op)) conditionKeys.add(key)
+      }
+
+      const hasSourceAccount = conditionKeys.has("aws:SourceAccount")
+      const hasSourceArn = conditionKeys.has("aws:SourceArn")
+      const hasSourceOrgId = conditionKeys.has("aws:SourceOrgID")
+      const hasCalledVia = conditionKeys.has("aws:CalledVia")
+      const hasViaAWSService = conditionKeys.has("aws:ViaAWSService")
+
+      const isProtected = hasSourceAccount || hasSourceArn || hasSourceOrgId || hasCalledVia || hasViaAWSService
+
+      if (isProtected) {
+        safeCount++
+        continue
+      }
+
+      vulnerableCount++
+      const services = servicePrincipals.join(", ")
+
+      const attached = await aws(
+        ["iam", "list-attached-role-policies", "--role-name", role.RoleName, "--query", "AttachedPolicies[].PolicyName"],
+        profile, region, timeout,
+      )
+      const policies = tryJson(attached.stdout) || []
+      const isHighPriv = policies.some((p: string) => /AdministratorAccess|PowerUserAccess|FullAccess/.test(p))
+      const severity = isHighPriv ? "critical" : "high"
+
+      output.push(`[!] ${role.RoleName} — trusts ${services} without source conditions`)
+      if (isHighPriv) output.push(`    [!!] HIGH-PRIV: ${policies.join(", ")}`)
+
+      findings.push({
+        checkId: "AWS-IDENTITY-DEPUTY-001",
+        provider: "aws",
+        severity,
+        status: "FAIL",
+        resource: `iam://role/${role.RoleName}`,
+        title: `Role ${role.RoleName} vulnerable to confused deputy (${services})`,
+        details: `Trusted services: ${services}. No aws:SourceAccount, aws:SourceArn or aws:SourceOrgID condition. Policies: ${policies.join(", ") || "none"}.${isHighPriv ? " HIGH-PRIVILEGE ROLE — an attacker in another account can exploit the trusted service to assume this role." : ""}`,
+        remediation: `Add Condition: {"StringEquals": {"aws:SourceAccount": "<YOUR_ACCOUNT_ID>"}} to the trust policy for ${role.RoleName}`,
+        cwe: "CWE-441",
+      })
+    }
+  }
+
+  output.push(`\n${"═".repeat(60)}`)
+  output.push(`[*] Checked ${checkedCount} roles with service trust policies`)
+  output.push(`[+] Protected: ${safeCount} (have source conditions)`)
+  output.push(`[!] Vulnerable: ${vulnerableCount} (missing source conditions)`)
+  output.push(`[*] Total findings: ${findings.length}`)
+
+  return { output: output.join("\n"), findings }
+}

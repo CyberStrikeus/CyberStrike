@@ -5783,7 +5783,7 @@ export async function publicRdsSnapshotEnum(args: string[], timeout: number): Pr
   return { output: output.join("\n"), findings }
 }
 
-export async function resourcePolicyAudit(args: string[], timeout: number): Promise<HookResult> {
+export async function crossServicePolicyAudit(args: string[], timeout: number): Promise<HookResult> {
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
   const findings: Finding[] = []

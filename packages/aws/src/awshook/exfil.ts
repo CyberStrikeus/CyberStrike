@@ -1864,3 +1864,262 @@ export async function kinesisTap(args: string[], timeout: number): Promise<HookR
 
   return { output: output.join("\n"), findings }
 }
+
+export async function s3VersionRecovery(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const targetBucket = argVal(args, "--bucket")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] S3 Versioning & Deleted Object Recovery\n"]
+
+  const bucketsCmd = targetBucket
+    ? null
+    : await aws(["s3api", "list-buckets", "--query", "Buckets[].Name"], profile, region, timeout)
+  const buckets = targetBucket
+    ? [targetBucket]
+    : bucketsCmd?.exitCode === 0
+      ? ((tryJson(bucketsCmd.stdout) || []) as string[])
+      : []
+
+  if (buckets.length === 0) return { output: output.join("\n") + "\n[-] No buckets accessible", findings }
+  output.push(`[+] Scanning ${buckets.length} bucket(s)\n`)
+
+  let totalRecoverable = 0
+
+  for (const bucket of buckets) {
+    const ver = await aws(["s3api", "get-bucket-versioning", "--bucket", bucket], profile, region, timeout)
+    if (ver.exitCode !== 0) {
+      output.push(`[-] ${bucket}: access denied`)
+      continue
+    }
+    const verStatus = tryJson(ver.stdout)
+    const versioningEnabled = verStatus?.Status === "Enabled"
+    const mfaDelete = verStatus?.MFADelete === "Enabled"
+
+    if (!versioningEnabled) {
+      output.push(`[·] ${bucket}: versioning disabled — skip`)
+      continue
+    }
+
+    output.push(`── ${bucket} ──`)
+    output.push(`    Versioning: ENABLED  MFA Delete: ${mfaDelete ? "ENABLED" : "DISABLED"}`)
+
+    if (!mfaDelete) {
+      findings.push({
+        checkId: "AWS-EXFIL-S3MFA-001",
+        provider: "aws",
+        severity: "high",
+        status: "FAIL",
+        resource: `s3://${bucket}`,
+        title: `S3 bucket ${bucket} has no MFA Delete protection`,
+        details: "Versioning enabled but MFA Delete is off — attacker can permanently delete object versions without MFA",
+        remediation: "Enable MFA Delete: aws s3api put-bucket-versioning --bucket BUCKET --versioning-configuration Status=Enabled,MFADelete=Enabled --mfa 'SERIAL CODE'",
+      })
+    }
+
+    const deleteMarkers = await aws(
+      [
+        "s3api",
+        "list-object-versions",
+        "--bucket",
+        bucket,
+        "--query",
+        "DeleteMarkers[].{Key:Key,VersionId:VersionId,LastModified:LastModified}",
+        "--max-keys",
+        "100",
+      ],
+      profile,
+      region,
+      timeout,
+    )
+    if (deleteMarkers.exitCode !== 0) {
+      output.push(`    [-] Cannot list versions: ${deleteMarkers.stderr.trim().split("\n")[0]}`)
+      continue
+    }
+
+    const markers = tryJson(deleteMarkers.stdout) || []
+    if (markers.length === 0) {
+      output.push(`    No deleted objects found`)
+      continue
+    }
+
+    output.push(`    [!] Deleted objects recoverable: ${markers.length}`)
+    totalRecoverable += markers.length
+
+    const seen = new Set<string>()
+    for (const m of markers.slice(0, 15)) {
+      if (seen.has(m.Key)) continue
+      seen.add(m.Key)
+      output.push(`      ${m.Key} (deleted: ${m.LastModified})`)
+    }
+    if (markers.length > 15) output.push(`      ... and ${markers.length - 15} more`)
+
+    output.push(`    Recovery: aws s3api delete-object --bucket ${bucket} --key KEY --version-id DELETE_MARKER_VERSION_ID`)
+
+    findings.push({
+      checkId: "AWS-EXFIL-S3VER-001",
+      provider: "aws",
+      severity: "medium",
+      status: "FOUND",
+      resource: `s3://${bucket}`,
+      title: `${markers.length} recoverable deleted objects in ${bucket}`,
+      details: `Versioned bucket has ${markers.length} delete markers — remove them to restore "deleted" files (e.g. ${markers[0]?.Key || "unknown"})`,
+      remediation: "Permanently delete old versions if not needed, or enable lifecycle rules for noncurrent version expiration",
+    })
+
+    const oldVersions = await aws(
+      [
+        "s3api",
+        "list-object-versions",
+        "--bucket",
+        bucket,
+        "--query",
+        "Versions[?IsLatest==`false`] | length(@)",
+        "--max-keys",
+        "200",
+      ],
+      profile,
+      region,
+      timeout,
+    )
+    if (oldVersions.exitCode === 0) {
+      const count = tryJson(oldVersions.stdout) || 0
+      if (count > 0) {
+        output.push(`    [!] Non-current versions (old copies): ${count}`)
+        output.push(`        Previous versions of overwritten files — may contain secrets from before rotation`)
+      }
+    }
+
+    output.push("")
+  }
+
+  output.push(`[+] Total recoverable deleted objects across all buckets: ${totalRecoverable}`)
+  return { output: output.join("\n"), findings }
+}
+
+export async function s3ReplicationExfil(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const targetBucket = argVal(args, "--bucket")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] S3 Replication Rule Audit & Exfil Assessment\n"]
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const identity = tryJson(id.stdout)
+  const callerArn = identity?.Arn as string | undefined
+  const ownAccount = identity?.Account as string | undefined
+
+  const bucketsCmd = targetBucket
+    ? null
+    : await aws(["s3api", "list-buckets", "--query", "Buckets[].Name"], profile, region, timeout)
+  const buckets = targetBucket
+    ? [targetBucket]
+    : bucketsCmd?.exitCode === 0
+      ? ((tryJson(bucketsCmd.stdout) || []) as string[])
+      : []
+
+  if (buckets.length === 0) return { output: output.join("\n") + "\n[-] No buckets accessible", findings }
+  output.push(`[+] Caller: ${callerArn}`)
+  output.push(`[+] Scanning ${buckets.length} bucket(s)\n`)
+
+  let canAddReplication = 0
+
+  for (const bucket of buckets) {
+    const repl = await aws(["s3api", "get-bucket-replication", "--bucket", bucket], profile, region, timeout)
+
+    if (repl.exitCode === 0) {
+      const config = tryJson(repl.stdout)?.ReplicationConfiguration
+      const role = config?.Role as string | undefined
+      const rules = (config?.Rules || []) as Array<Record<string, unknown>>
+
+      output.push(`── ${bucket} ──`)
+      output.push(`    Replication role: ${role || "N/A"}`)
+      output.push(`    Rules: ${rules.length}`)
+
+      for (const rule of rules) {
+        const dest = rule.Destination as Record<string, unknown> | undefined
+        const destBucket = dest?.Bucket as string | undefined
+        const destAccount = dest?.Account as string | undefined
+        const status = rule.Status as string | undefined
+        const destName = destBucket?.split(":::")[1] || destBucket
+
+        output.push(`      ${rule.ID || "unnamed"}: ${status}`)
+        output.push(`        Destination: ${destName}${destAccount ? ` (account: ${destAccount})` : ""}`)
+
+        if (destAccount && destAccount !== ownAccount) {
+          output.push(`        [!] Cross-account replication to ${destAccount}`)
+          findings.push({
+            checkId: "AWS-EXFIL-S3REP-001",
+            provider: "aws",
+            severity: "high",
+            status: "FOUND",
+            resource: `s3://${bucket}`,
+            title: `Cross-account S3 replication: ${bucket} → ${destName}`,
+            details: `Bucket replicates to account ${destAccount} (${destName}) — data leaves this account automatically`,
+            remediation: "Verify destination account is trusted; remove if unauthorized",
+          })
+        }
+
+        const encConfig = dest?.EncryptionConfiguration as Record<string, unknown> | undefined
+        if (!encConfig) {
+          output.push(`        [!] No encryption in transit for replication`)
+        }
+      }
+    } else {
+      if (repl.stderr.includes("ReplicationConfigurationNotFoundError")) {
+        // no replication — check if we can add one
+      } else {
+        continue
+      }
+    }
+
+    if (callerArn) {
+      const sim = await aws(
+        [
+          "iam",
+          "simulate-principal-policy",
+          "--policy-source-arn",
+          callerArn,
+          "--action-names",
+          "s3:PutReplicationConfiguration",
+          "--resource-arns",
+          `arn:aws:s3:::${bucket}`,
+          "--query",
+          "EvaluationResults[0].EvalDecision",
+        ],
+        profile,
+        region,
+        timeout,
+      )
+      if (sim.exitCode === 0) {
+        const decision = tryJson(sim.stdout) || sim.stdout.trim().replace(/"/g, "")
+        if (decision === "allowed") {
+          canAddReplication++
+          output.push(`    [!] Current identity CAN add replication rules to ${bucket}`)
+          output.push(`        Attack: add rule replicating to attacker-controlled bucket for persistent exfil`)
+          findings.push({
+            checkId: "AWS-EXFIL-S3REP-002",
+            provider: "aws",
+            severity: "critical",
+            status: "FAIL",
+            resource: `s3://${bucket}`,
+            title: `Can add S3 replication to ${bucket} — persistent exfil possible`,
+            details: `Current identity has s3:PutReplicationConfiguration on ${bucket} — can silently replicate all new objects to attacker bucket`,
+            remediation: "Restrict s3:PutReplicationConfiguration to admin roles; monitor CloudTrail for PutBucketReplication events",
+          })
+        }
+      }
+    }
+  }
+
+  output.push(`\n[+] Buckets where replication can be added: ${canAddReplication}`)
+  if (canAddReplication > 0) {
+    output.push(`[*] Persistent exfil via replication:`)
+    output.push(`    1. Create destination bucket in attacker account`)
+    output.push(`    2. Create IAM role with s3:ReplicateObject trust`)
+    output.push(`    3. aws s3api put-bucket-replication --bucket TARGET --replication-configuration ...`)
+    output.push(`    4. All new objects auto-replicate — survives individual object cleanup`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
