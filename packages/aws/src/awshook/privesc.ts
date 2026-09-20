@@ -19,10 +19,59 @@ export async function iamPrivesc(args: string[], timeout: number): Promise<HookR
     const roles = tryJson(r.stdout) || []
     if (roles.length === 0) return { output: `[-] Role not found: ${roleArn}`, findings: [] }
     const trust = roles[0].AssumeRolePolicyDocument
-    return {
-      output: `[+] Role: ${roleArn}\n[+] Trust policy:\n${JSON.stringify(trust, null, 2)}\n[*] Check if current identity can iam:PassRole + lambda:CreateFunction`,
-      findings: [],
+    const out = [`[+] Role: ${roleArn}`, `[+] Trust policy:`, JSON.stringify(trust, null, 2)]
+
+    const callerId = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+    const callerArn = tryJson(callerId.stdout)?.Arn || ""
+    let callerSourceArn = callerArn
+    if (callerArn.includes(":assumed-role/")) {
+      const account = tryJson(callerId.stdout)?.Account || ""
+      const roleName = callerArn.split("/")[1] || ""
+      callerSourceArn = `arn:aws:iam::${account}:role/${roleName}`
     }
+
+    const passRoleSim = await aws(
+      [
+        "iam", "simulate-principal-policy",
+        "--policy-source-arn", callerSourceArn,
+        "--action-names", "iam:PassRole",
+        "--resource-arns", roleArn,
+        "--query", "EvaluationResults[0].EvalDecision",
+      ],
+      profile, region, timeout,
+    )
+    if (passRoleSim.exitCode === 0) {
+      const decision = tryJson(passRoleSim.stdout)
+      if (decision === "allowed") {
+        out.push(`\n[+] PassRole CONFIRMED — can pass this role to a service`)
+        const lambdaSim = await aws(
+          [
+            "iam", "simulate-principal-policy",
+            "--policy-source-arn", callerSourceArn,
+            "--action-names", "lambda:CreateFunction", "lambda:InvokeFunction",
+            "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+          ],
+          profile, region, timeout,
+        )
+        if (lambdaSim.exitCode === 0) {
+          const results = tryJson(lambdaSim.stdout) || []
+          const allowed = results.filter((x: [string, string]) => x[1] === "allowed").map((x: [string, string]) => x[0])
+          if (allowed.length === 2) {
+            out.push(`[+] Lambda create+invoke CONFIRMED — full PassRole+Lambda privesc path viable`)
+            out.push(`[*] Next: lambda_privesc --role-arn ${roleArn}`)
+          } else {
+            out.push(`[~] Lambda partial: ${allowed.join(", ") || "none"} allowed`)
+            out.push(`[*] Try other PassRole targets: cloudformation_privesc, glue_privesc, ec2_privesc`)
+          }
+        }
+      } else {
+        out.push(`\n[-] PassRole DENIED for this role — cannot pass ${roleArn}`)
+      }
+    } else {
+      out.push(`\n[*] Cannot simulate (no iam:SimulatePrincipalPolicy permission) — check manually`)
+    }
+
+    return { output: out.join("\n"), findings: [] }
   }
 
   if (method === "assumerole") {
@@ -585,7 +634,33 @@ export async function ssmPrivesc(args: string[], timeout: number): Promise<HookR
     output.push(`[+] SSM-managed instances: ${il.length}`)
     for (const i of il) {
       output.push(`    ${i[0]} (${i[1]}) — ${i[2]} — role: ${i[3] || "none"}`)
-      if (i[3] && /admin|full|poweruser/i.test(i[3])) {
+      if (!i[3]) continue
+      const roleName = (i[3] as string).split("/").pop() || (i[3] as string)
+      let isHighPriv = /admin|full|poweruser/i.test(roleName)
+
+      if (!isHighPriv) {
+        const rp = await aws(
+          ["iam", "list-attached-role-policies", "--role-name", roleName, "--query", "AttachedPolicies[].PolicyArn"],
+          profile, region, timeout,
+        )
+        if (rp.exitCode === 0) {
+          const pols = tryJson(rp.stdout) || []
+          const dangerous = ["AdministratorAccess", "PowerUserAccess", "IAMFullAccess"]
+          isHighPriv = pols.some((p: string) => dangerous.some((d) => p.includes(d)))
+          if (!isHighPriv) {
+            for (const polArn of pols) {
+              const actions = await extractPolicyActions(polArn as string, profile, region, timeout)
+              if (actions.includes("*") || actions.some((a) => a === "iam:*")) {
+                isHighPriv = true
+                break
+              }
+            }
+          }
+        }
+      }
+
+      if (isHighPriv) {
+        output.push(`      [!] HIGH-PRIV — SSM exec on this instance yields elevated credentials`)
         findings.push({
           checkId: "AWS-PRIVESC-007",
           provider: "aws",
@@ -593,7 +668,7 @@ export async function ssmPrivesc(args: string[], timeout: number): Promise<HookR
           status: "FOUND",
           resource: `ec2:${i[0]}`,
           title: `High-priv instance profile: ${i[0]}`,
-          details: `Instance ${i[0]} has role ${i[3]} — SSM exec gives those privileges`,
+          details: `Instance ${i[0]} has role ${roleName} — SSM exec gives those privileges`,
           remediation: "Apply least-privilege instance profile",
         })
       }
@@ -1230,7 +1305,7 @@ export async function autoPrivescScan(args: string[], timeout: number): Promise<
     output.push(`\n[+] Phase 2 complete: ${viablePaths.length} viable paths found via policy analysis\n`)
   }
 
-  if (isRole) {
+  {
     output.push(`[*] Phase 3: Checking assumable high-privilege roles...\n`)
 
     const roles = await aws(["iam", "list-roles", "--max-items", "100"], profile, region, timeout)
@@ -1272,10 +1347,45 @@ export async function autoPrivescScan(args: string[], timeout: number): Promise<
             cwe: "CWE-269",
           })
         }
+      } else {
+        const trustDoc = role.AssumeRolePolicyDocument
+        const stmts = trustDoc?.Statement || []
+        for (const stmt of stmts) {
+          if (stmt.Effect !== "Allow") continue
+          const principals = extractTrustPrincipals(stmt.Principal)
+          const account = identity.Account as string || ""
+          const callerMatch = principals.some((p: string) =>
+            p === "*" ||
+            p === callerArn ||
+            p === sourceArn ||
+            p === `arn:aws:iam::${account}:root` ||
+            (isRole && p.includes(`:role/`) && p === sourceArn) ||
+            (isUser && p.includes(`:user/`) && p === callerArn)
+          )
+          if (callerMatch) {
+            assumableHighPriv++
+            const method = principals.includes("*") ? "wildcard trust (Principal:*)" : "trust policy matches caller"
+            output.push(`[!] Can likely assume high-priv role: ${role.RoleName} (${policies.join(", ")})`)
+            output.push(`    Reason: ${method}`)
+            findings.push({
+              checkId: "AWS-PRIVESC-AUTO-ASSUME",
+              provider: "aws",
+              severity: "critical",
+              status: "FAIL",
+              resource: role.Arn,
+              title: `Can assume high-priv role ${role.RoleName}`,
+              details: `Policies: ${policies.join(", ")}. Trust policy analysis: ${method}.`,
+              remediation: "Restrict AssumeRolePolicyDocument or reduce role privileges",
+              cwe: "CWE-269",
+            })
+            break
+          }
+        }
       }
     }
 
     if (assumableHighPriv > 0) output.push(`\n[+] Assumable high-priv roles: ${assumableHighPriv}`)
+    else output.push(`[+] No assumable high-priv roles found`)
   }
 
   for (const path of viablePaths) {
@@ -1303,9 +1413,14 @@ export async function autoPrivescScan(args: string[], timeout: number): Promise<
       const p = viablePaths[i]
       output.push(`  ${i + 1}. ${p.vector.name}: ${p.vector.desc}`)
     }
-    output.push(`\n[*] Use specific programs to exploit (e.g., iam_privesc --method passrole, policy_version_rollback, etc.)`)
+
+    output.push(`\n[*] Exploit Commands:`)
+    for (const p of viablePaths) {
+      const cmd = mapVectorToCommand(p.vector.name, callerArn, sourceArn)
+      if (cmd) output.push(`  → ${p.vector.name}: awshook ${cmd}`)
+    }
   }
-  output.push(`[*] Total findings: ${findings.length}`)
+  output.push(`\n[*] Total findings: ${findings.length}`)
 
   return { output: output.join("\n"), findings }
 }
@@ -1340,6 +1455,66 @@ function extractActionsFromDocument(doc: Record<string, unknown>): string[] {
     actions.push(...a.filter(Boolean))
   }
   return actions
+}
+
+function extractTrustPrincipals(principal: unknown): string[] {
+  if (!principal) return []
+  if (typeof principal === "string") return [principal]
+  const obj = principal as Record<string, unknown>
+  const results: string[] = []
+  for (const key of ["AWS", "Service", "Federated"]) {
+    const v = obj[key]
+    if (!v) continue
+    if (typeof v === "string") results.push(v)
+    else if (Array.isArray(v)) results.push(...v.filter((x): x is string => typeof x === "string"))
+  }
+  return results
+}
+
+function mapVectorToCommand(vectorName: string, callerArn: string, sourceArn: string): string | null {
+  const profileFlag = ""
+  switch (vectorName) {
+    case "CreatePolicyVersion":
+    case "SetDefaultPolicyVersion":
+      return `policy_version_rollback --rollback ${profileFlag}`
+    case "AttachUserPolicy":
+    case "AttachRolePolicy":
+      return `iam_privesc --method attach_policy ${profileFlag}`
+    case "PutUserPolicy":
+    case "PutRolePolicy":
+      return `iam_privesc --method attach_policy ${profileFlag}`
+    case "CreateLoginProfile":
+    case "UpdateLoginProfile":
+      return `iam_privesc --method create_login ${profileFlag}`
+    case "CreateAccessKey":
+      return `iam_privesc --method create_key ${profileFlag}`
+    case "AddUserToGroup":
+      return `iam_privesc --method attach_policy ${profileFlag}`
+    case "UpdateAssumeRolePolicy":
+      return `iam_privesc --method assumerole --role-arn <TARGET_ROLE> ${profileFlag}`
+    case "PassRole+Lambda":
+      return `lambda_privesc --role-arn <HIGH_PRIV_ROLE> ${profileFlag}`
+    case "PassRole+EC2":
+      return `ec2_privesc --instance-profile-arn <PROFILE_ARN> ${profileFlag}`
+    case "PassRole+Glue":
+      return `glue_privesc --role-arn <HIGH_PRIV_ROLE> ${profileFlag}`
+    case "PassRole+CloudFormation":
+      return `cloudformation_privesc --role-arn <HIGH_PRIV_ROLE> ${profileFlag}`
+    case "PassRole+SageMaker":
+      return `sagemaker_privesc --role-arn <HIGH_PRIV_ROLE> ${profileFlag}`
+    case "PassRole+CodeBuild":
+      return `iam_privesc --method passrole --role-arn <HIGH_PRIV_ROLE> ${profileFlag}`
+    case "PassRole+DataPipeline":
+      return `iam_privesc --method passrole --role-arn <HIGH_PRIV_ROLE> ${profileFlag}`
+    case "SSMSendCommand":
+      return `ssm_exec --instance-id <HIGH_PRIV_INSTANCE> --command "curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/" ${profileFlag}`
+    case "EC2InstanceConnect":
+      return `ec2_privesc --instance-profile-arn <PROFILE_ARN> ${profileFlag}`
+    case "LambdaUpdateCode":
+      return `lambda_privesc --role-arn <EXISTING_LAMBDA_ROLE> ${profileFlag}`
+    default:
+      return null
+  }
 }
 
 function actionMatches(target: string, available: Set<string>): boolean {
