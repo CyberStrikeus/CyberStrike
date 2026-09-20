@@ -182,8 +182,9 @@ export async function iamDeepAudit(args: string[], timeout: number): Promise<Hoo
   output.push(`\n[*] Summary: ${findings.length} IAM issues found (users + roles)`)
 
   output.push(`\n[*] Detection:`)
-  output.push(`  CloudTrail: ListUsers, ListUserPolicies, ListAttachedUserPolicies, ListAccessKeys, GetAccessKeyLastUsed`)
-  output.push(`  CloudTrail: ListRoles, ListRolePolicies, ListAttachedRolePolicies, ListPolicyVersions, GetPolicyVersion`)
+  output.push(`  CloudTrail: ListUsers, ListUserPolicies, GetUserPolicy, ListAccessKeys, GetAccessKeyLastUsed`)
+  output.push(`  CloudTrail: GetCallerIdentity, ListRoles, ListRolePolicies, GetRolePolicy, ListAttachedRolePolicies`)
+  output.push(`  CloudTrail: GetPolicy, GetPolicyVersion`)
   output.push(`  OPSEC: high-volume IAM enumeration — generates many events per user/role; unusual outside audit contexts`)
 
   return { output: output.join("\n"), findings }
@@ -949,7 +950,7 @@ export async function groupMembershipAudit(args: string[], timeout: number): Pro
   output.push(`[*] Summary: ${findings.length} group membership issues found`)
 
   output.push(`\n[*] Detection:`)
-  output.push(`  CloudTrail: ListGroups, GetGroup, ListGroupPolicies, ListAttachedGroupPolicies, GetPolicy`)
+  output.push(`  CloudTrail: ListGroups, GetGroup, ListGroupPolicies, ListAttachedGroupPolicies, GetGroupPolicy`)
   output.push(`  CloudTrail: ListUsers, ListGroupsForUser`)
   output.push(`  OPSEC: group+user enumeration is low-signal — standard IAM audit pattern`)
 
