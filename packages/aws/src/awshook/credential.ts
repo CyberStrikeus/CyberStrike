@@ -1145,18 +1145,40 @@ export async function ec2UserData(args: string[], timeout: number): Promise<Hook
     output.push(`[+] ${id} (${name}, ${state}) — UserData ${decoded.length} bytes`)
     output.push(`    Preview: ${preview}${lines.length > 3 ? "..." : ""}`)
 
+    const assignPattern = /^(?:export\s+)?(\w*(?:password|passwd|secret|api.?key|token|private.?key|connection.?string|db.?(?:host|pass|user|url)|redis|mongo|mysql|postgres|jdbc|aws_access|aws_secret|bearer|authorization)\w*)\s*[=:]\s*['"]?(.+?)['"]?\s*$/i
+    const yamlPattern = /^\s*(password|secret|token|key|credential|auth|private_key|api_key|db_password|master_password)\s*:\s*['"]?(.+?)['"]?\s*$/i
+    const dockerEnvPattern = /^\s*-e\s+(\w*(?:password|secret|key|token|auth)\w*)=(.+)\s*$/i
+    const awsProfilePattern = /^\s*(aws_access_key_id|aws_secret_access_key|aws_session_token)\s*=\s*(.+)\s*$/i
+
+    const extracted: Array<{ line: number; key: string; value: string }> = []
     const matchedLines: string[] = []
+
     for (let i = 0; i < lines.length; i++) {
-      if (secretPattern.test(lines[i])) {
-        matchedLines.push(`    L${i + 1}: ${lines[i].trim().slice(0, 120)}`)
+      const line = lines[i].trim()
+      if (line.startsWith("#") || line.startsWith("//")) continue
+
+      let m: RegExpMatchArray | null = null
+      m = line.match(assignPattern) || line.match(yamlPattern) || line.match(dockerEnvPattern) || line.match(awsProfilePattern)
+
+      if (m) {
+        extracted.push({ line: i + 1, key: m[1], value: m[2] })
+        matchedLines.push(`    L${i + 1}: ${m[1]} = ${m[2]}`)
+      } else if (secretPattern.test(line) && /[=:]/.test(line)) {
+        matchedLines.push(`    L${i + 1}: ${line}`)
       }
     }
 
     if (matchedLines.length > 0) {
       secretsFound += matchedLines.length
-      output.push(`    [!] ${matchedLines.length} potential secret(s):`)
-      for (const m of matchedLines.slice(0, 10)) output.push(m)
-      if (matchedLines.length > 10) output.push(`    ... and ${matchedLines.length - 10} more`)
+      if (extracted.length > 0) {
+        output.push(`    [*] Extracted Credentials (${extracted.length}):`)
+        for (const e of extracted.slice(0, 20)) output.push(`    L${e.line}: ${e.key} = ${e.value}`)
+        if (extracted.length > 20) output.push(`    ... and ${extracted.length - 20} more`)
+      }
+      if (matchedLines.length > extracted.length) {
+        output.push(`    [*] Additional secret lines (${matchedLines.length - extracted.length}):`)
+        for (const m of matchedLines.filter((_, i) => i >= extracted.length).slice(0, 10)) output.push(m)
+      }
 
       findings.push({
         checkId: "AWS-CRED-USERDATA-001",
@@ -1165,7 +1187,9 @@ export async function ec2UserData(args: string[], timeout: number): Promise<Hook
         status: "EXTRACTED",
         resource: `ec2://${id}`,
         title: `Secrets in UserData: ${id} (${name})`,
-        details: `${matchedLines.length} secret pattern(s) found in ${decoded.length}-byte UserData script`,
+        details: extracted.length > 0
+          ? `${extracted.length} credential(s) extracted: ${extracted.slice(0, 5).map((e) => `${e.key}=${e.value}`).join("; ")}${extracted.length > 5 ? ` +${extracted.length - 5} more` : ""}`
+          : `${matchedLines.length} secret pattern(s) in ${decoded.length}-byte UserData`,
         remediation: "Move secrets to Secrets Manager/SSM Parameter Store, reference via cloud-init dynamic lookup",
       })
     } else {
@@ -1235,9 +1259,20 @@ export async function lambdaEnvHarvest(args: string[], timeout: number): Promise
     if (secrets.length > 0) {
       secretVars += secrets.length
       output.push(`[!] ${name} (${runtime}) — ${keys.length} env vars, ${secrets.length} secrets:`)
+      const harvested: Record<string, string> = {}
       for (const s of secrets) {
         const val = env[s]
-        output.push(`    ${s} = [SECRET — ${val.length} chars]`)
+        harvested[s] = val
+        output.push(`    ${s} = ${val}`)
+      }
+      const akid = keys.find((k) => /^AWS_ACCESS_KEY_ID$/i.test(k) || /^AKIA|^ASIA/.test(env[k] || ""))
+      if (akid) {
+        const sak = keys.find((k) => /SECRET|AWS_SECRET/i.test(k))
+        if (sak) {
+          output.push(`    [!!] AWS credential pair: ${akid}=${env[akid]}  ${sak}=${env[sak]}`)
+          const sess = keys.find((k) => /SESSION_TOKEN|SECURITY_TOKEN/i.test(k))
+          if (sess) output.push(`    [!!] Session token: ${sess}=${env[sess]}`)
+        }
       }
       findings.push({
         checkId: "AWS-CRED-LAMBDA-ENV-001",
@@ -1246,7 +1281,7 @@ export async function lambdaEnvHarvest(args: string[], timeout: number): Promise
         status: "EXTRACTED",
         resource: `lambda://${name}`,
         title: `Secrets in Lambda env: ${name}`,
-        details: `${secrets.length} secret-named env var(s): ${secrets.slice(0, 5).join(", ")}${secrets.length > 5 ? ` +${secrets.length - 5} more` : ""}`,
+        details: `${secrets.length} secret(s): ${Object.entries(harvested).map(([k, v]) => `${k}=${v}`).join("; ")}`,
         remediation: "Use Secrets Manager with Lambda extension, or SSM Parameter Store, instead of plaintext env vars",
       })
     } else if (keys.length > 0) {
@@ -1301,7 +1336,17 @@ export async function ssmParameterMine(args: string[], timeout: number): Promise
       if (val.exitCode === 0 && val.stdout.trim()) {
         secretsFound++
         const v = val.stdout.trim()
-        output.push(`[!] ${name} (SecureString) = [DECRYPTED — ${v.length} chars]`)
+        output.push(`[!] ${name} (SecureString) = ${v}`)
+        const parsed = tryJson(v) as Record<string, unknown> | null
+        if (parsed && typeof parsed === "object") {
+          const sensitiveKeys = Object.keys(parsed).filter((k) => secretPattern.test(k))
+          if (sensitiveKeys.length > 0) {
+            output.push(`    [*] JSON credential fields:`)
+            for (const sk of sensitiveKeys) output.push(`      ${sk} = ${String(parsed[sk])}`)
+          }
+        }
+        const connMatch = v.match(/:\/\/([^:]+):([^@]+)@/)
+        if (connMatch) output.push(`    [*] Connection string creds: user=${connMatch[1]} pass=${connMatch[2]}`)
         findings.push({
           checkId: "AWS-CRED-SSM-001",
           provider: "aws",
@@ -1309,7 +1354,7 @@ export async function ssmParameterMine(args: string[], timeout: number): Promise
           status: "EXTRACTED",
           resource: `ssm://${name}`,
           title: `SecureString decrypted: ${name}`,
-          details: `SSM SecureString parameter decrypted successfully (${v.length} chars)${desc ? ` — "${desc}"` : ""}`,
+          details: `Value: ${v}${desc ? ` — "${desc}"` : ""}`,
           remediation: "Restrict ssm:GetParameter with kms:Decrypt to minimum required principals",
         })
       } else {
@@ -1330,7 +1375,15 @@ export async function ssmParameterMine(args: string[], timeout: number): Promise
     const v = val.stdout.trim()
     if (secretPattern.test(name) || secretPattern.test(v)) {
       secretsFound++
-      output.push(`[!] ${name} (${type}) = [SECRET PATTERN — ${v.length} chars]`)
+      output.push(`[!] ${name} (${type}) = ${v}`)
+      const parsed = tryJson(v) as Record<string, unknown> | null
+      if (parsed && typeof parsed === "object") {
+        const sensitiveKeys = Object.keys(parsed).filter((k) => secretPattern.test(k))
+        if (sensitiveKeys.length > 0) {
+          output.push(`    [*] JSON credential fields:`)
+          for (const sk of sensitiveKeys) output.push(`      ${sk} = ${String(parsed[sk])}`)
+        }
+      }
       findings.push({
         checkId: "AWS-CRED-SSM-002",
         provider: "aws",
@@ -1338,7 +1391,7 @@ export async function ssmParameterMine(args: string[], timeout: number): Promise
         status: "FOUND",
         resource: `ssm://${name}`,
         title: `Secret in plaintext parameter: ${name}`,
-        details: `Parameter stored as ${type} (not SecureString) but contains secret pattern (${v.length} chars)`,
+        details: `Value: ${v} — stored as ${type} (not SecureString)`,
         remediation: "Migrate to SecureString type with KMS encryption",
       })
     } else {
@@ -1368,7 +1421,7 @@ export async function ssmParameterMine(args: string[], timeout: number): Promise
       const ppVal = pp[2] as string
       if (ppVal && (secretPattern.test(ppName) || secretPattern.test(ppVal))) {
         secretsFound++
-        output.push(`[!] ${ppName} (${ppType}, path discovery) = [SECRET — ${ppVal.length} chars]`)
+        output.push(`[!] ${ppName} (${ppType}, path discovery) = ${ppVal}`)
         findings.push({
           checkId: "AWS-CRED-SSM-003",
           provider: "aws",
@@ -1376,7 +1429,7 @@ export async function ssmParameterMine(args: string[], timeout: number): Promise
           status: "FOUND",
           resource: `ssm://${ppName}`,
           title: `Secret found via path enumeration: ${ppName}`,
-          details: `Discovered under ${prefix} — ${ppType} parameter with secret content (${ppVal.length} chars)`,
+          details: `Value: ${ppVal} — discovered under ${prefix}`,
           remediation: "Restrict ssm:GetParametersByPath, use SecureString for sensitive values",
         })
       }
@@ -1389,4 +1442,40 @@ export async function ssmParameterMine(args: string[], timeout: number): Promise
 
   output.push(`\n[*] Summary: ${secretsFound} secrets extracted, ${decryptFailed} decrypt denied, ${pl.length + discoveredPaths.length} total parameters`)
   return { output: output.join("\n"), findings }
+}
+
+export async function validateAwsCredential(
+  accessKeyId: string,
+  secretAccessKey: string,
+  sessionToken?: string,
+): Promise<{ valid: boolean; identity: string | null; account: string | null; error: string | null }> {
+  const env: Record<string, string> = {
+    ...process.env as Record<string, string>,
+    AWS_ACCESS_KEY_ID: accessKeyId,
+    AWS_SECRET_ACCESS_KEY: secretAccessKey,
+  }
+  if (sessionToken) env.AWS_SESSION_TOKEN = sessionToken
+  delete env.AWS_PROFILE
+  delete env.AWS_DEFAULT_PROFILE
+
+  const proc = Bun.spawn(["aws", "sts", "get-caller-identity", "--output", "json"], {
+    env,
+    stdout: "pipe",
+    stderr: "pipe",
+  })
+  const stdout = await new Response(proc.stdout).text()
+  const stderr = await new Response(proc.stderr).text()
+  await proc.exited
+
+  if (proc.exitCode !== 0) {
+    return { valid: false, identity: null, account: null, error: stderr.trim() }
+  }
+
+  const result = JSON.parse(stdout) as Record<string, string>
+  return {
+    valid: true,
+    identity: result.Arn || null,
+    account: result.Account || null,
+    error: null,
+  }
 }
