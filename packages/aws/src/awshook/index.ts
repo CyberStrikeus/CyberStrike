@@ -111,6 +111,42 @@ import {
   snsSqsSiphon,
   kinesisTap,
 } from "./exfil"
+import {
+  cloudtrailAudit,
+  configAudit,
+  guarddutyAudit,
+  securityHubAudit,
+  iamPasswordPolicyAudit,
+  iamMfaAudit,
+  s3PublicAccessAudit,
+  encryptionAudit,
+  loggingAudit,
+  networkAudit,
+  accessAnalyzerAudit,
+  inspectorAudit,
+  resourceTagAudit,
+  rootAccountAudit,
+  vpcEndpointAudit,
+  backupAudit,
+} from "./compliance"
+import {
+  stsSessionEnum,
+  crossAccountTrustEnum,
+  iamDeepAudit,
+  stalePermissionAudit,
+  ssoDeepEnum,
+  cognitoSecurityAudit,
+  serviceLinkedRoleEnum,
+  organizationPolicyEnum,
+  passwordSprayAws,
+} from "./identity"
+import {
+  resourceHijack,
+  dataDestroy,
+  ransomwareSim,
+  serviceDisruption,
+  cryptominerDeploy,
+} from "./impact"
 
 const PROGRAMS = {
   // ── Recon (23) ──
@@ -547,6 +583,132 @@ const PROGRAMS = {
     description: "Tap Kinesis data streams — enumerate streams/shards and read records for real-time data interception",
     args: "[--stream-name NAME] [--limit N] [--profile PROFILE] [--region REGION]",
   },
+
+  // ── Compliance (16) ──
+  cloudtrail_audit: {
+    description: "Audit CloudTrail configuration — multi-region, logging, log validation, CMK encryption, CloudWatch integration (CIS 3.x)",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  config_audit: {
+    description: "Audit AWS Config — recorders, recording scope, config rules, conformance packs (CIS 3.5)",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  guardduty_audit: {
+    description: "Audit GuardDuty — detectors, data sources, active findings by severity (CIS 4.15)",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  security_hub_audit: {
+    description: "Audit Security Hub — enabled standards, critical findings, auto-enable controls",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  iam_password_policy_audit: {
+    description: "Audit IAM password policy — length, complexity, rotation, reuse prevention (CIS 1.8-1.14)",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  iam_mfa_audit: {
+    description: "Audit MFA compliance — root MFA, console users without MFA (CIS 1.5-1.6)",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  s3_public_access_audit: {
+    description: "Audit S3 public access — account-level block, per-bucket block settings (CIS 2.1.5)",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  encryption_audit: {
+    description: "Audit encryption at rest — EBS default encryption, unencrypted RDS, S3 bucket encryption (CIS 2.x)",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  logging_audit: {
+    description: "Audit logging — VPC flow logs, S3 access logging coverage",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  network_audit: {
+    description: "Audit network security — open security groups (SSH/RDP/ALL to 0.0.0.0/0), NACLs, default SGs (CIS 5.x)",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  access_analyzer_audit: {
+    description: "Audit IAM Access Analyzer — active analyzers, external access findings (CIS 1.20)",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  inspector_audit: {
+    description: "Audit Amazon Inspector — scanning status for EC2/ECR/Lambda, coverage statistics",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  resource_tag_audit: {
+    description: "Audit resource tagging compliance — check EC2/RDS for required tags (Environment, Owner, Project)",
+    args: "[--required-tags TAG1,TAG2] [--profile PROFILE] [--region REGION]",
+  },
+  root_account_audit: {
+    description: "Audit root account security — MFA, access keys, account aliases (CIS 1.4-1.5)",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  vpc_endpoint_audit: {
+    description: "Audit VPC endpoints — overly permissive policies, missing endpoints for critical services",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  backup_audit: {
+    description: "Audit AWS Backup — vaults, plans, encryption, protected resource coverage",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+
+  // ── Identity (9) ──
+  sts_session_enum: {
+    description: "Enumerate STS capabilities — session duration, federation token generation, wildcard trust roles",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  cross_account_trust_enum: {
+    description: "Enumerate all cross-account trust relationships — roles trusting external accounts, missing ExternalId conditions",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  iam_deep_audit: {
+    description: "Deep IAM audit — inline policies with wildcards, stale access keys, orphaned users, key age",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  stale_permission_audit: {
+    description: "Audit stale permissions — admin policies, service wildcards, unused roles >90 days",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  sso_deep_enum: {
+    description: "Deep SSO/IAM Identity Center enum — permission sets, session durations, inline policies, identity store users/groups",
+    args: "[--instance-arn ARN] [--profile PROFILE] [--region REGION]",
+  },
+  cognito_security_audit: {
+    description: "Audit Cognito security — user pool MFA, password policy, app client auth flows, identity pool unauth access",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  service_linked_role_enum: {
+    description: "Enumerate AWS service-linked roles — which services have created roles, service footprint",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  organization_policy_enum: {
+    description: "Enumerate Organization SCPs — policy content, targets, feature set, guardrail coverage",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+  password_spray_aws: {
+    description: "IAM password spray assessment — enumerate console users, identify weak-password candidates (non-destructive)",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
+
+  // ── Impact (5) ──
+  resource_hijack: {
+    description: "Assess resource hijack vectors — EC2 user-data injection, Lambda code injection, S3 website defacement",
+    args: "[--execute] [--profile PROFILE] [--region REGION]",
+  },
+  data_destroy: {
+    description: "Assess data destruction vectors — unversioned S3, unprotected RDS/DynamoDB, deletion protection gaps",
+    args: "[--execute] [--profile PROFILE] [--region REGION]",
+  },
+  ransomware_sim: {
+    description: "Ransomware simulation assessment — KMS key creation, S3 re-encryption capability, MFA Delete gaps",
+    args: "[--execute] [--profile PROFILE] [--region REGION]",
+  },
+  service_disruption: {
+    description: "Assess service disruption vectors — SG modification, ASG scale-to-zero, DNS hijack, LB deletion",
+    args: "[--execute] [--profile PROFILE] [--region REGION]",
+  },
+  cryptominer_deploy: {
+    description: "Assess compute hijack surface — EC2 launch capability, Lambda create, vCPU quotas, cost alert gaps",
+    args: "[--execute] [--profile PROFILE] [--region REGION]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -803,10 +965,43 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   cloudwatch_logs_dump: cloudwatchLogsDump,
   sns_sqs_siphon: snsSqsSiphon,
   kinesis_tap: kinesisTap,
+  // compliance
+  cloudtrail_audit: cloudtrailAudit,
+  config_audit: configAudit,
+  guardduty_audit: guarddutyAudit,
+  security_hub_audit: securityHubAudit,
+  iam_password_policy_audit: iamPasswordPolicyAudit,
+  iam_mfa_audit: iamMfaAudit,
+  s3_public_access_audit: s3PublicAccessAudit,
+  encryption_audit: encryptionAudit,
+  logging_audit: loggingAudit,
+  network_audit: networkAudit,
+  access_analyzer_audit: accessAnalyzerAudit,
+  inspector_audit: inspectorAudit,
+  resource_tag_audit: resourceTagAudit,
+  root_account_audit: rootAccountAudit,
+  vpc_endpoint_audit: vpcEndpointAudit,
+  backup_audit: backupAudit,
+  // identity
+  sts_session_enum: stsSessionEnum,
+  cross_account_trust_enum: crossAccountTrustEnum,
+  iam_deep_audit: iamDeepAudit,
+  stale_permission_audit: stalePermissionAudit,
+  sso_deep_enum: ssoDeepEnum,
+  cognito_security_audit: cognitoSecurityAudit,
+  service_linked_role_enum: serviceLinkedRoleEnum,
+  organization_policy_enum: organizationPolicyEnum,
+  password_spray_aws: passwordSprayAws,
+  // impact
+  resource_hijack: resourceHijack,
+  data_destroy: dataDestroy,
+  ransomware_sim: ransomwareSim,
+  service_disruption: serviceDisruption,
+  cryptominer_deploy: cryptominerDeploy,
 }
 
 export const AwshookTool = tool({
-  description: `AWS offensive security toolkit — the PRIMARY tool for any AWS security assessment, pentest, or audit when AWS credentials are available. 92 programs across 7 kill-chain phases: recon (23), credential harvesting (11), privilege escalation (10), persistence (11), lateral movement (8), defense evasion (13), exfiltration & cleanup (16). Start with recon programs (iam_enum, ec2_enum, s3_enum, service_recon) to discover assets and misconfigurations, then progress through the kill chain. Prefer this over cloud_audit — awshook recon covers everything cloud_audit does PLUS finds exploitable paths. Uses aws CLI (no Python/SDK). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
+  description: `AWS offensive security toolkit — the PRIMARY tool for any AWS security assessment, pentest, or audit when AWS credentials are available. 122+ programs across 10 categories: recon (23), credential harvesting (11), privilege escalation (10), persistence (11), lateral movement (8), defense evasion (13), exfiltration & cleanup (16), compliance (16), identity (9), impact (5). Start with recon programs (iam_enum, ec2_enum, s3_enum, service_recon) to discover assets and misconfigurations, then progress through the kill chain. For compliance posture: cloudtrail_audit, config_audit, guardduty_audit, network_audit. For identity deep-dive: iam_deep_audit, cross_account_trust_enum, sso_deep_enum. Prefer this over cloud_audit — awshook covers everything cloud_audit does PLUS finds exploitable paths. Uses aws CLI (no Python/SDK). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
   args: {
     program: z.enum(programKeys).describe(
       "AWS program to execute. Options: " +
