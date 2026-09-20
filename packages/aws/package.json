@@ -1,0 +1,27 @@
+{
+  "name": "@cyberstrike-io/aws",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "CyberStrike AWS cloud assessment domain. Installs as a plugin: npm install @cyberstrike-io/aws.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@cyberstrike-io/plugin": "workspace:*",
+    "cyberstrike": "workspace:*"
+  },
+  "devDependencies": {
+    "@cyberstrike-io/plugin": "workspace:*",
+    "cyberstrike": "workspace:*",
+    "@tsconfig/node22": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -87,6 +87,20 @@
         "vite-plugin-solid": "catalog:",
       },
     },
+    "packages/aws": {
+      "name": "@cyberstrike-io/aws",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "@tsconfig/node22": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "cyberstrike": "workspace:*",
+      },
+    },
     "packages/console/app": {
       "name": "@cyberstrike-io/console-app",
       "version": "1.1.16",
@@ -880,6 +894,8 @@
     "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
 
     "@cyberstrike-io/app": ["@cyberstrike-io/app@workspace:packages/app"],
+
+    "@cyberstrike-io/aws": ["@cyberstrike-io/aws@workspace:packages/aws"],
 
     "@cyberstrike-io/console-app": ["@cyberstrike-io/console-app@workspace:packages/console/app"],
 
