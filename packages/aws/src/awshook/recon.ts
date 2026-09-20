@@ -5856,7 +5856,20 @@ export async function crossServicePolicyAudit(args: string[], timeout: number): 
     }
   }
 
-  output.push("[*] Scanning SQS queue policies...\n")
+  output.push("[*] Scanning S3 bucket policies...\n")
+  const buckets = await aws(["s3api", "list-buckets", "--query", "Buckets[].Name"], profile, region, timeout)
+  if (buckets.exitCode === 0) {
+    const bucketNames = (tryJson(buckets.stdout) || []) as string[]
+    output.push(`[+] S3 Buckets: ${bucketNames.length}`)
+    for (const bucket of bucketNames.slice(0, 30)) {
+      const pol = await aws(["s3api", "get-bucket-policy", "--bucket", bucket], profile, region, timeout)
+      if (pol.exitCode !== 0) continue
+      const policyStr = (tryJson(pol.stdout)?.Policy || pol.stdout.trim()) as string
+      if (policyStr) analyzePolicy(policyStr, "s3", bucket)
+    }
+  }
+
+  output.push("\n[*] Scanning SQS queue policies...\n")
   const queues = await aws(["sqs", "list-queues"], profile, region, timeout)
   if (queues.exitCode === 0) {
     const urls = (tryJson(queues.stdout)?.QueueUrls || []) as string[]
@@ -5948,6 +5961,6 @@ export async function crossServicePolicyAudit(args: string[], timeout: number): 
   }
 
   const totalFindings = findings.length
-  output.push(`\n[*] Summary: ${totalFindings} resource policy issues found across SQS, SNS, KMS, Secrets Manager, ECR, Lambda`)
+  output.push(`\n[*] Summary: ${totalFindings} resource policy issues found across S3, SQS, SNS, KMS, Secrets Manager, ECR, Lambda`)
   return { output: output.join("\n"), findings }
 }

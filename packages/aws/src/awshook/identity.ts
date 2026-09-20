@@ -1,58 +1,6 @@
 import { aws, run, argVal, hasFlag, tryJson } from "./shared"
 import type { Finding, HookResult } from "./shared"
 
-export async function stsSessionEnum(args: string[], timeout: number): Promise<HookResult> {
-  const profile = argVal(args, "--profile")
-  const region = argVal(args, "--region")
-  const findings: Finding[] = []
-  const output: string[] = ["[*] Enumerating STS session and federation capabilities...\n"]
-
-  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
-  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
-  const identity = tryJson(id.stdout) || {}
-  output.push(`[+] Identity: ${identity.Arn}`)
-  output.push(`    Account: ${identity.Account}, UserId: ${identity.UserId}`)
-
-  const isRole = (identity.Arn || "").includes(":assumed-role/")
-  const isUser = (identity.Arn || "").includes(":user/")
-  output.push(`    Type: ${isRole ? "assumed-role" : isUser ? "IAM user" : "other"}`)
-
-  if (isRole) {
-    const roleName = (identity.Arn || "").split("/")[1] || ""
-    const role = await aws(["iam", "get-role", "--role-name", roleName], profile, region, timeout)
-    const r = tryJson(role.stdout)?.Role || {}
-    output.push(`\n[+] Current role: ${roleName}`)
-    output.push(`    MaxSessionDuration: ${r.MaxSessionDuration}s`)
-    output.push(`    AssumeRolePolicy: ${JSON.stringify(r.AssumeRolePolicyDocument?.Statement?.length || 0)} statements`)
-
-    if ((r.MaxSessionDuration || 3600) > 3600) {
-      findings.push({ checkId: "AWS-STS-001", provider: "aws", severity: "medium", status: "FAIL", resource: `iam://role/${roleName}`, title: `Role ${roleName} allows sessions > 1 hour (${r.MaxSessionDuration}s)`, details: "Long-lived sessions increase exposure window after credential theft", remediation: "Reduce MaxSessionDuration to 3600" })
-    }
-  }
-
-  if (isUser) {
-    const userName = (identity.Arn || "").split("/").pop() || ""
-    const fedToken = await aws(["sts", "get-federation-token", "--name", "audit-test", "--duration-seconds", "900", "--policy", '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"sts:GetCallerIdentity","Resource":"*"}]}'], profile, region, timeout)
-    if (fedToken.exitCode === 0) {
-      output.push(`\n[!] Can generate federation tokens (console access without MFA)`)
-      findings.push({ checkId: "AWS-STS-002", provider: "aws", severity: "high", status: "FAIL", resource: `iam://user/${userName}`, title: `User ${userName} can generate federation tokens`, details: "Federation tokens enable AWS Console access without MFA — persistence vector", remediation: "Add IAM policy denying sts:GetFederationToken or require MFA condition" })
-    }
-  }
-
-  const roles = await aws(["iam", "list-roles", "--query", "Roles[?AssumeRolePolicyDocument.Statement[?Principal.Service=='sts.amazonaws.com' || Principal=='*']].[RoleName,Arn]"], profile, region, timeout)
-  const wildcardRoles = tryJson(roles.stdout) || []
-  if (wildcardRoles.length > 0) {
-    output.push(`\n[!] Roles assumable by any principal: ${wildcardRoles.length}`)
-    for (const r of wildcardRoles.slice(0, 10)) {
-      output.push(`    ${r[0]}`)
-      findings.push({ checkId: "AWS-STS-003", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://role/${r[0]}`, title: `Role ${r[0]} has wildcard trust policy`, details: "Any AWS principal can assume this role", remediation: "Restrict AssumeRolePolicyDocument to specific accounts/services" })
-    }
-  }
-
-  output.push(`\n[*] Summary: ${findings.length} identity issues found`)
-  return { output: output.join("\n"), findings }
-}
-
 function extractPrincipals(principal: unknown): string[] {
   if (!principal) return []
   if (typeof principal === "string") return [principal]
@@ -209,20 +157,19 @@ export async function iamDeepAudit(args: string[], timeout: number): Promise<Hoo
       }
     }
 
-    // Last used — flag roles unused >180 days
+    // Last used — flag roles unused >90 days
     const lastUsed = role.RoleLastUsed as Record<string, unknown> | undefined
     if (lastUsed?.LastUsedDate) {
       const lastDate = new Date(lastUsed.LastUsedDate as string).getTime()
       const age = Math.floor((Date.now() - lastDate) / (1000 * 60 * 60 * 24))
-      if (age > 180) {
+      if (age > 90) {
         unusedRoles++
         findings.push({ checkId: "AWS-IDENTITY-ROLE-DEEP-002", provider: "aws", severity: "medium", status: "FAIL", resource: `iam://role/${rName}`, title: `Role ${rName} unused for ${age} days`, details: `Last used: ${lastUsed.LastUsedDate} in ${lastUsed.LastUsedRegion || "unknown"} — stale role with active permissions`, remediation: `Review and delete unused role: aws iam delete-role --role-name ${rName}` })
       }
     } else {
-      // RoleLastUsed absent means never used (or created before tracking)
       const created = new Date(role.CreateDate as string).getTime()
       const roleAge = Math.floor((Date.now() - created) / (1000 * 60 * 60 * 24))
-      if (roleAge > 180) {
+      if (roleAge > 90) {
         unusedRoles++
         findings.push({ checkId: "AWS-IDENTITY-ROLE-DEEP-002", provider: "aws", severity: "medium", status: "FAIL", resource: `iam://role/${rName}`, title: `Role ${rName} never used (${roleAge} days old)`, details: `Created ${role.CreateDate}, never assumed — orphaned role`, remediation: `Delete unused role: aws iam delete-role --role-name ${rName}` })
       }
@@ -230,64 +177,9 @@ export async function iamDeepAudit(args: string[], timeout: number): Promise<Hoo
   }
 
   output.push(`[+] Admin-level roles: ${adminRoles}`)
-  output.push(`[+] Unused roles (>180d): ${unusedRoles}`)
+  output.push(`[+] Unused roles (>90d): ${unusedRoles}`)
   output.push(`[+] Dangerous trust policies: ${dangerousTrust}`)
   output.push(`\n[*] Summary: ${findings.length} IAM issues found (users + roles)`)
-  return { output: output.join("\n"), findings }
-}
-
-export async function stalePermissionAudit(args: string[], timeout: number): Promise<HookResult> {
-  const profile = argVal(args, "--profile")
-  const region = argVal(args, "--region")
-  const findings: Finding[] = []
-  const output: string[] = ["[*] Auditing stale/unused IAM permissions...\n"]
-
-  const policies = await aws(["iam", "list-policies", "--scope", "Local", "--only-attached", "--query", "Policies[].[PolicyName,Arn,AttachmentCount,CreateDate]"], profile, region, timeout)
-  const policyList = tryJson(policies.stdout) || []
-  output.push(`[+] Customer-managed attached policies: ${policyList.length}`)
-
-  for (const p of policyList) {
-    const versions = await aws(["iam", "list-policy-versions", "--policy-arn", p[1], "--query", "Versions[].[VersionId,IsDefaultVersion,CreateDate]"], profile, region, timeout)
-    const vList = tryJson(versions.stdout) || []
-    const defaultVer = vList.find((v: unknown[]) => v[1] === true)
-    if (defaultVer) {
-      const pol = await aws(["iam", "get-policy-version", "--policy-arn", p[1], "--version-id", defaultVer[0]], profile, region, timeout)
-      const doc = tryJson(pol.stdout)?.PolicyVersion?.Document || {}
-      const stmts = Array.isArray(doc.Statement) ? doc.Statement : [doc.Statement].filter(Boolean)
-      for (const s of stmts) {
-        if (s.Effect !== "Allow") continue
-        const actions = Array.isArray(s.Action) ? s.Action : [s.Action]
-        const resources = Array.isArray(s.Resource) ? s.Resource : [s.Resource]
-        if (actions.some((a: string) => a === "*") && resources.some((r: string) => r === "*")) {
-          findings.push({ checkId: "AWS-PERM-001", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://policy/${p[0]}`, title: `Policy ${p[0]} grants full admin (Action:* Resource:*)`, details: `Attached to ${p[2]} entities. Created: ${p[3]}`, remediation: "Replace with least-privilege policy" })
-        }
-        const wildcardSvc = actions.filter((a: string) => a !== "*" && a.endsWith(":*"))
-        if (wildcardSvc.length > 3) {
-          findings.push({ checkId: "AWS-PERM-002", provider: "aws", severity: "high", status: "FAIL", resource: `iam://policy/${p[0]}`, title: `Policy ${p[0]} has ${wildcardSvc.length} service-level wildcards`, details: `Services: ${wildcardSvc.slice(0, 5).join(", ")}...`, remediation: "Scope down to specific actions per service" })
-        }
-      }
-    }
-  }
-
-  const roles = await aws(["iam", "list-roles", "--query", "Roles[?Path!='/aws-service-role/'].[RoleName,Arn,CreateDate]"], profile, region, timeout)
-  const roleList = tryJson(roles.stdout) || []
-  let staleRoles = 0
-  for (const r of roleList.slice(0, 50)) {
-    const lastUsed = await aws(["iam", "get-role", "--role-name", r[0], "--query", "Role.RoleLastUsed"], profile, region, timeout)
-    const lu = tryJson(lastUsed.stdout) || {}
-    if (!lu.LastUsedDate) {
-      const created = new Date(r[2]).getTime()
-      const age = Math.floor((Date.now() - created) / (1000 * 60 * 60 * 24))
-      if (age > 90) {
-        staleRoles++
-        if (staleRoles <= 5) output.push(`[!] Stale role: ${r[0]} (created ${age} days ago, never used)`)
-        findings.push({ checkId: "AWS-PERM-003", provider: "aws", severity: "medium", status: "FAIL", resource: `iam://role/${r[0]}`, title: `Role ${r[0]} unused for ${age}+ days`, details: "Never assumed since creation", remediation: `Review and delete if not needed: aws iam delete-role --role-name ${r[0]}` })
-      }
-    }
-  }
-  output.push(`[+] Stale roles (>90 days, never used): ${staleRoles}`)
-
-  output.push(`\n[*] Summary: ${findings.length} permission issues found`)
   return { output: output.join("\n"), findings }
 }
 
@@ -334,10 +226,49 @@ export async function cognitoSecurityAudit(args: string[], timeout: number): Pro
   const idPools = await aws(["cognito-identity", "list-identity-pools", "--max-results", "60"], profile, region, timeout)
   const idPoolList = tryJson(idPools.stdout)?.IdentityPools || []
   output.push(`\n[+] Identity pools: ${idPoolList.length}`)
-  for (const ip of idPoolList) {
-    if (ip.AllowUnauthenticatedIdentities) {
-      findings.push({ checkId: "AWS-COGN-005", provider: "aws", severity: "high", status: "FAIL", resource: `cognito-identity://${ip.IdentityPoolId}`, title: `Identity pool ${ip.IdentityPoolName} allows unauthenticated access`, details: "Unauthenticated identities can assume the unauth role — check its permissions", remediation: "Disable unauthenticated access or restrict the unauth role" })
-      output.push(`[!] ${ip.IdentityPoolName}: allows unauthenticated identities`)
+
+  for (const idPool of idPoolList) {
+    const detail = await aws(["cognito-identity", "describe-identity-pool", "--identity-pool-id", idPool.IdentityPoolId], profile, region, timeout)
+    const d = tryJson(detail.stdout) || {}
+    output.push(`\n  Pool: ${d.IdentityPoolName} (${d.IdentityPoolId})`)
+    output.push(`    AllowUnauthenticated: ${d.AllowUnauthenticatedIdentities}`)
+    output.push(`    Providers: ${(d.CognitoIdentityProviders || []).length}, OIDC: ${Object.keys(d.OpenIdConnectProviderARNs || {}).length}, SAML: ${(d.SamlProviderARNs || []).length}`)
+
+    if (d.AllowUnauthenticatedIdentities) {
+      findings.push({ checkId: "AWS-COGN-005", provider: "aws", severity: "high", status: "FAIL", resource: `cognito-identity://${d.IdentityPoolId}`, title: `Identity pool ${d.IdentityPoolName} allows unauthenticated identities`, details: "Unauthenticated users can obtain AWS credentials — check role permissions", remediation: "Disable AllowUnauthenticatedIdentities or restrict unauth role to minimal permissions" })
+
+      const roles = await aws(["cognito-identity", "get-identity-pool-roles", "--identity-pool-id", idPool.IdentityPoolId], profile, region, timeout)
+      const roleData = tryJson(roles.stdout) || {}
+      const unauthRoleArn = roleData.Roles?.unauthenticated
+      if (unauthRoleArn) {
+        const roleName = unauthRoleArn.split("/").pop() || ""
+        output.push(`    Unauth role: ${roleName}`)
+
+        const attached = await aws(["iam", "list-attached-role-policies", "--role-name", roleName, "--query", "AttachedPolicies[].PolicyName"], profile, region, timeout)
+        const attachedPolicies = tryJson(attached.stdout) || []
+        output.push(`    Unauth policies: ${attachedPolicies.join(", ") || "none"}`)
+
+        const dangerousPolicies = ["AdministratorAccess", "PowerUserAccess", "AmazonS3FullAccess", "AmazonDynamoDBFullAccess"]
+        for (const pol of attachedPolicies) {
+          if (dangerousPolicies.includes(pol)) {
+            findings.push({ checkId: "AWS-COGN-006", provider: "aws", severity: "critical", status: "FAIL", resource: `cognito-identity://${d.IdentityPoolId}/unauth-role`, title: `Unauth role for ${d.IdentityPoolName} has ${pol}`, details: `Unauthenticated users get ${pol} — full access without login`, remediation: `Remove ${pol} from unauthenticated role ${roleName}` })
+          }
+        }
+
+        const inlinePolicies = await aws(["iam", "list-role-policies", "--role-name", roleName, "--query", "PolicyNames"], profile, region, timeout)
+        const inlineList = tryJson(inlinePolicies.stdout) || []
+        for (const polName of inlineList) {
+          const polDoc = await aws(["iam", "get-role-policy", "--role-name", roleName, "--policy-name", polName], profile, region, timeout)
+          const doc = tryJson(polDoc.stdout)?.PolicyDocument || {}
+          const stmts = doc.Statement || []
+          for (const s of stmts) {
+            const actions = Array.isArray(s.Action) ? s.Action : [s.Action]
+            if (s.Effect === "Allow" && actions.includes("*")) {
+              findings.push({ checkId: "AWS-COGN-006", provider: "aws", severity: "critical", status: "FAIL", resource: `cognito-identity://${d.IdentityPoolId}/unauth-role`, title: `Unauth role inline policy has Action:*`, details: `Inline policy ${polName} on unauth role grants full access`, remediation: `Scope down inline policy ${polName} on role ${roleName}` })
+            }
+          }
+        }
+      }
     }
   }
 
@@ -567,115 +498,6 @@ export async function roleTrustAudit(args: string[], timeout: number): Promise<H
 
   output.push(`\n[+] Wildcard: ${wildcardCount}, Cross-account: ${crossAccountCount}, Unusual services: ${unusualServiceCount}, Confused deputy: ${confusedDeputyCount}`)
   output.push(`[*] Summary: ${findings.length} trust policy issues found`)
-  return { output: output.join("\n"), findings }
-}
-
-export async function crossAccountTrustAudit(args: string[], timeout: number): Promise<HookResult> {
-  const profile = argVal(args, "--profile")
-  const region = argVal(args, "--region")
-  const findings: Finding[] = []
-  const output: string[] = ["[*] Cross-account trust audit (IAM roles, S3, KMS, SQS)...\n"]
-
-  const id = await aws(["sts", "get-caller-identity", "--query", "Account", "--output", "text"], profile, region, timeout)
-  const ownAccount = id.stdout.trim()
-
-  // IAM role cross-account trusts
-  const roles = await aws(["iam", "list-roles", "--max-items", "200"], profile, region, timeout)
-  const roleList = tryJson(roles.stdout)?.Roles || []
-  let roleXAcct = 0
-  for (const role of roleList) {
-    const statements = role.AssumeRolePolicyDocument?.Statement || []
-    for (const stmt of statements) {
-      if (stmt.Effect !== "Allow") continue
-      const principals = extractPrincipals(stmt.Principal)
-      for (const p of principals) {
-        const match = p.match(/^arn:aws:iam::(\d+):/)
-        if (match && match[1] !== ownAccount) {
-          roleXAcct++
-          if (roleXAcct <= 10) output.push(`[!] Role ${role.RoleName} ← account ${match[1]}`)
-        }
-        if (p === "*") {
-          findings.push({ checkId: "AWS-XACCT-002", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://role/${role.RoleName}`, title: `Role ${role.RoleName} trusts ANY principal (*)`, details: "Wildcard principal — any AWS entity can assume", remediation: "Restrict to specific accounts/services" })
-        }
-      }
-    }
-  }
-  output.push(`[+] IAM roles with cross-account trust: ${roleXAcct}`)
-
-  // S3 bucket policy cross-account
-  const buckets = await aws(["s3api", "list-buckets", "--query", "Buckets[].Name"], profile, region, timeout)
-  const bucketList = tryJson(buckets.stdout) || []
-  let s3XAcct = 0
-  for (const bucket of bucketList.slice(0, 30)) {
-    const pol = await aws(["s3api", "get-bucket-policy", "--bucket", bucket], profile, region, timeout)
-    if (pol.exitCode !== 0) continue
-    const doc = tryJson(tryJson(pol.stdout)?.Policy || pol.stdout) || {}
-    const stmts = doc.Statement || []
-    for (const stmt of stmts) {
-      const principals = extractPrincipals(stmt.Principal)
-      for (const p of principals) {
-        if (p === "*" && stmt.Effect === "Allow") {
-          s3XAcct++
-          findings.push({ checkId: "AWS-XACCT-001", provider: "aws", severity: "high", status: "FAIL", resource: `s3://${bucket}`, title: `S3 bucket ${bucket} policy allows Principal:*`, details: "Bucket policy grants access to any AWS principal", remediation: "Restrict bucket policy to specific accounts or use conditions" })
-        }
-        const match = p.match(/^arn:aws:iam::(\d+):/)
-        if (match && match[1] !== ownAccount) {
-          s3XAcct++
-          output.push(`[!] S3 ${bucket} ← account ${match[1]}`)
-        }
-      }
-    }
-  }
-  output.push(`[+] S3 buckets with cross-account access: ${s3XAcct}`)
-
-  // KMS key cross-account
-  const keys = await aws(["kms", "list-keys", "--query", "Keys[].KeyId"], profile, region, timeout)
-  const keyList = tryJson(keys.stdout) || []
-  let kmsXAcct = 0
-  for (const keyId of keyList.slice(0, 20)) {
-    const pol = await aws(["kms", "get-key-policy", "--key-id", keyId, "--policy-name", "default"], profile, region, timeout)
-    if (pol.exitCode !== 0) continue
-    const doc = tryJson(pol.stdout) || {}
-    const policyDoc = tryJson(doc.Policy || "") || doc
-    const stmts = policyDoc.Statement || []
-    for (const stmt of stmts) {
-      if (stmt.Effect !== "Allow") continue
-      const principals = extractPrincipals(stmt.Principal)
-      for (const p of principals) {
-        const match = p.match(/^arn:aws:iam::(\d+):/)
-        if (match && match[1] !== ownAccount) {
-          kmsXAcct++
-          output.push(`[!] KMS ${keyId.slice(0, 8)}... ← account ${match[1]}`)
-        }
-      }
-    }
-  }
-  output.push(`[+] KMS keys with cross-account access: ${kmsXAcct}`)
-
-  // SQS cross-account
-  const queues = await aws(["sqs", "list-queues"], profile, region, timeout)
-  const queueUrls = tryJson(queues.stdout)?.QueueUrls || []
-  let sqsXAcct = 0
-  for (const url of queueUrls.slice(0, 20)) {
-    const attrs = await aws(["sqs", "get-queue-attributes", "--queue-url", url, "--attribute-names", "Policy"], profile, region, timeout)
-    const policy = tryJson(attrs.stdout)?.Attributes?.Policy
-    if (!policy) continue
-    const doc = tryJson(policy) || {}
-    const stmts = doc.Statement || []
-    for (const stmt of stmts) {
-      if (stmt.Effect !== "Allow") continue
-      const principals = extractPrincipals(stmt.Principal)
-      for (const p of principals) {
-        if (p === "*") {
-          sqsXAcct++
-          findings.push({ checkId: "AWS-XACCT-001", provider: "aws", severity: "high", status: "FAIL", resource: `sqs://${url.split("/").pop()}`, title: `SQS queue ${url.split("/").pop()} allows Principal:*`, details: "Queue policy grants access to any principal", remediation: "Restrict SQS policy to specific accounts" })
-        }
-      }
-    }
-  }
-  output.push(`[+] SQS queues with cross-account access: ${sqsXAcct}`)
-
-  output.push(`\n[*] Summary: ${findings.length} cross-account issues found`)
   return { output: output.join("\n"), findings }
 }
 
@@ -920,71 +742,6 @@ export async function ssoPermissionAudit(args: string[], timeout: number): Promi
   return { output: output.join("\n"), findings }
 }
 
-export async function cognitoIdentityAudit(args: string[], timeout: number): Promise<HookResult> {
-  const profile = argVal(args, "--profile")
-  const region = argVal(args, "--region")
-  const findings: Finding[] = []
-  const output: string[] = ["[*] Auditing Cognito identity pools...\n"]
-
-  const pools = await aws(["cognito-identity", "list-identity-pools", "--max-results", "60"], profile, region, timeout)
-  if (pools.exitCode !== 0) return { output: `[-] Failed to list identity pools: ${pools.stderr.trim()}`, findings }
-  const poolList = tryJson(pools.stdout)?.IdentityPools || []
-  output.push(`[+] Identity pools: ${poolList.length}`)
-
-  for (const pool of poolList) {
-    const detail = await aws(["cognito-identity", "describe-identity-pool", "--identity-pool-id", pool.IdentityPoolId], profile, region, timeout)
-    const d = tryJson(detail.stdout) || {}
-    output.push(`\n  Pool: ${d.IdentityPoolName} (${d.IdentityPoolId})`)
-    output.push(`    AllowUnauthenticated: ${d.AllowUnauthenticatedIdentities}`)
-    output.push(`    Providers: ${(d.CognitoIdentityProviders || []).length}`)
-    output.push(`    OIDC: ${Object.keys(d.OpenIdConnectProviderARNs || {}).length}`)
-    output.push(`    SAML: ${(d.SamlProviderARNs || []).length}`)
-
-    if (d.AllowUnauthenticatedIdentities) {
-      findings.push({ checkId: "AWS-COGID-001", provider: "aws", severity: "high", status: "FAIL", resource: `cognito-identity://${d.IdentityPoolId}`, title: `Identity pool ${d.IdentityPoolName} allows unauthenticated identities`, details: "Unauthenticated users can obtain AWS credentials — check role permissions", remediation: "Disable AllowUnauthenticatedIdentities or restrict unauth role to minimal permissions" })
-
-      // Check unauthenticated role permissions
-      const roles = await aws(["cognito-identity", "get-identity-pool-roles", "--identity-pool-id", pool.IdentityPoolId], profile, region, timeout)
-      const roleData = tryJson(roles.stdout) || {}
-      const unauthRoleArn = roleData.Roles?.unauthenticated
-      if (unauthRoleArn) {
-        const roleName = unauthRoleArn.split("/").pop() || ""
-        output.push(`    Unauth role: ${roleName}`)
-        const role = await aws(["iam", "get-role", "--role-name", roleName], profile, region, timeout)
-        const r = tryJson(role.stdout)?.Role || {}
-
-        const attached = await aws(["iam", "list-attached-role-policies", "--role-name", roleName, "--query", "AttachedPolicies[].PolicyName"], profile, region, timeout)
-        const attachedPolicies = tryJson(attached.stdout) || []
-        output.push(`    Unauth policies: ${attachedPolicies.join(", ") || "none"}`)
-
-        const dangerousPolicies = ["AdministratorAccess", "PowerUserAccess", "AmazonS3FullAccess", "AmazonDynamoDBFullAccess"]
-        for (const pol of attachedPolicies) {
-          if (dangerousPolicies.includes(pol)) {
-            findings.push({ checkId: "AWS-COGID-002", provider: "aws", severity: "critical", status: "FAIL", resource: `cognito-identity://${d.IdentityPoolId}/unauth-role`, title: `Unauth role for ${d.IdentityPoolName} has ${pol}`, details: `Unauthenticated users get ${pol} — full access without login`, remediation: `Remove ${pol} from unauthenticated role ${roleName}` })
-          }
-        }
-
-        const inlinePolicies = await aws(["iam", "list-role-policies", "--role-name", roleName, "--query", "PolicyNames"], profile, region, timeout)
-        const inlineList = tryJson(inlinePolicies.stdout) || []
-        for (const polName of inlineList) {
-          const polDoc = await aws(["iam", "get-role-policy", "--role-name", roleName, "--policy-name", polName], profile, region, timeout)
-          const doc = tryJson(polDoc.stdout)?.PolicyDocument || {}
-          const stmts = doc.Statement || []
-          for (const s of stmts) {
-            const actions = Array.isArray(s.Action) ? s.Action : [s.Action]
-            if (s.Effect === "Allow" && actions.includes("*")) {
-              findings.push({ checkId: "AWS-COGID-002", provider: "aws", severity: "critical", status: "FAIL", resource: `cognito-identity://${d.IdentityPoolId}/unauth-role`, title: `Unauth role inline policy has Action:*`, details: `Inline policy ${polName} on unauth role grants full access`, remediation: `Scope down inline policy ${polName} on role ${roleName}` })
-            }
-          }
-        }
-      }
-    }
-  }
-
-  output.push(`\n[*] Summary: ${findings.length} Cognito identity pool issues found`)
-  return { output: output.join("\n"), findings }
-}
-
 export async function stsSessionAudit(args: string[], timeout: number): Promise<HookResult> {
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
@@ -1018,8 +775,8 @@ export async function stsSessionAudit(args: string[], timeout: number): Promise<
 
   output.push(`\n[+] Roles with > 4h max session: ${longSessionCount}/${Math.min(roleList.length, 50)}`)
 
-  // Check current session type
   const isRole = (identity.Arn || "").includes(":assumed-role/")
+  const isUser = (identity.Arn || "").includes(":user/")
   if (isRole) {
     const roleName = (identity.Arn || "").split("/")[1] || ""
     const sessionToken = await aws(["sts", "get-session-token", "--duration-seconds", "900"], profile, region, timeout)
@@ -1029,105 +786,16 @@ export async function stsSessionAudit(args: string[], timeout: number): Promise<
     output.push(`[+] Current role: ${roleName}`)
   }
 
+  if (isUser) {
+    const userName = (identity.Arn || "").split("/").pop() || ""
+    const fedToken = await aws(["sts", "get-federation-token", "--name", "audit-test", "--duration-seconds", "900", "--policy", '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"sts:GetCallerIdentity","Resource":"*"}]}'], profile, region, timeout)
+    if (fedToken.exitCode === 0) {
+      output.push(`\n[!] Can generate federation tokens (console access without MFA)`)
+      findings.push({ checkId: "AWS-STSSESS-002", provider: "aws", severity: "high", status: "FAIL", resource: `iam://user/${userName}`, title: `User ${userName} can generate federation tokens`, details: "Federation tokens enable AWS Console access without MFA — persistence vector", remediation: "Add IAM policy denying sts:GetFederationToken or require MFA condition" })
+    }
+  }
+
   output.push(`\n[*] Summary: ${findings.length} session issues found`)
-  return { output: output.join("\n"), findings }
-}
-
-export async function resourcePolicyAudit(args: string[], timeout: number): Promise<HookResult> {
-  const profile = argVal(args, "--profile")
-  const region = argVal(args, "--region")
-  const findings: Finding[] = []
-  const output: string[] = ["[*] Auditing resource-based policies for Principal:*...\n"]
-
-  // S3 bucket policies
-  const buckets = await aws(["s3api", "list-buckets", "--query", "Buckets[].Name"], profile, region, timeout)
-  const bucketList = tryJson(buckets.stdout) || []
-  let s3Open = 0
-  for (const bucket of bucketList.slice(0, 30)) {
-    const pol = await aws(["s3api", "get-bucket-policy", "--bucket", bucket], profile, region, timeout)
-    if (pol.exitCode !== 0) continue
-    const doc = tryJson(tryJson(pol.stdout)?.Policy || pol.stdout) || {}
-    const stmts = doc.Statement || []
-    for (const stmt of stmts) {
-      if (stmt.Effect !== "Allow") continue
-      const principals = extractPrincipals(stmt.Principal)
-      if (principals.includes("*") && !stmt.Condition) {
-        s3Open++
-        findings.push({ checkId: "AWS-RESPOL-001", provider: "aws", severity: "critical", status: "FAIL", resource: `s3://${bucket}`, title: `S3 ${bucket} policy allows Principal:* without conditions`, details: `Actions: ${JSON.stringify(stmt.Action)}`, remediation: "Add conditions or restrict to specific principals" })
-        output.push(`[!] S3 ${bucket}: Principal:* without conditions`)
-      }
-    }
-  }
-  output.push(`[+] S3 buckets with open policies: ${s3Open}`)
-
-  // Lambda function policies
-  const lambdas = await aws(["lambda", "list-functions", "--query", "Functions[].FunctionName"], profile, region, timeout)
-  const lambdaList = tryJson(lambdas.stdout) || []
-  let lambdaOpen = 0
-  for (const fn of lambdaList.slice(0, 30)) {
-    const pol = await aws(["lambda", "get-policy", "--function-name", fn], profile, region, timeout)
-    if (pol.exitCode !== 0) continue
-    const doc = tryJson(tryJson(pol.stdout)?.Policy || pol.stdout) || {}
-    const stmts = doc.Statement || []
-    for (const stmt of stmts) {
-      if (stmt.Effect !== "Allow") continue
-      const principals = extractPrincipals(stmt.Principal)
-      if (principals.includes("*") && !stmt.Condition) {
-        lambdaOpen++
-        findings.push({ checkId: "AWS-RESPOL-002", provider: "aws", severity: "high", status: "FAIL", resource: `lambda://${fn}`, title: `Lambda ${fn} policy allows Principal:* invocation`, details: "Any AWS entity can invoke this function", remediation: "Restrict to specific account/service principals" })
-        output.push(`[!] Lambda ${fn}: Principal:*`)
-      }
-    }
-  }
-  output.push(`[+] Lambda functions with open policies: ${lambdaOpen}`)
-
-  // SQS queue policies
-  const queues = await aws(["sqs", "list-queues"], profile, region, timeout)
-  const queueUrls = tryJson(queues.stdout)?.QueueUrls || []
-  let sqsOpen = 0
-  for (const url of queueUrls.slice(0, 20)) {
-    const attrs = await aws(["sqs", "get-queue-attributes", "--queue-url", url, "--attribute-names", "Policy"], profile, region, timeout)
-    const policy = tryJson(attrs.stdout)?.Attributes?.Policy
-    if (!policy) continue
-    const doc = tryJson(policy) || {}
-    const stmts = doc.Statement || []
-    for (const stmt of stmts) {
-      if (stmt.Effect !== "Allow") continue
-      const principals = extractPrincipals(stmt.Principal)
-      if (principals.includes("*") && !stmt.Condition) {
-        sqsOpen++
-        const queueName = url.split("/").pop() || url
-        findings.push({ checkId: "AWS-RESPOL-003", provider: "aws", severity: "high", status: "FAIL", resource: `sqs://${queueName}`, title: `SQS ${queueName} allows Principal:* without conditions`, details: "Any entity can send/receive messages", remediation: "Restrict SQS policy to specific accounts or add conditions" })
-        output.push(`[!] SQS ${queueName}: Principal:*`)
-      }
-    }
-  }
-  output.push(`[+] SQS queues with open policies: ${sqsOpen}`)
-
-  // SNS topic policies
-  const topics = await aws(["sns", "list-topics", "--query", "Topics[].TopicArn"], profile, region, timeout)
-  const topicList = tryJson(topics.stdout) || []
-  let snsOpen = 0
-  for (const arn of topicList.slice(0, 20)) {
-    const attrs = await aws(["sns", "get-topic-attributes", "--topic-arn", arn], profile, region, timeout)
-    const policy = tryJson(attrs.stdout)?.Attributes?.Policy
-    if (!policy) continue
-    const doc = tryJson(policy) || {}
-    const stmts = doc.Statement || []
-    for (const stmt of stmts) {
-      if (stmt.Effect !== "Allow") continue
-      const principals = extractPrincipals(stmt.Principal)
-      if (principals.includes("*") && !stmt.Condition) {
-        snsOpen++
-        const topicName = arn.split(":").pop() || arn
-        findings.push({ checkId: "AWS-RESPOL-004", provider: "aws", severity: "high", status: "FAIL", resource: `sns://${topicName}`, title: `SNS ${topicName} allows Principal:* without conditions`, details: "Any entity can publish/subscribe", remediation: "Restrict SNS policy to specific accounts or add conditions" })
-        output.push(`[!] SNS ${topicName}: Principal:*`)
-      }
-    }
-  }
-  output.push(`[+] SNS topics with open policies: ${snsOpen}`)
-
-  output.push(`\n[*] Summary: ${findings.length} overly permissive resource policies found`)
   return { output: output.join("\n"), findings }
 }
 
