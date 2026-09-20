@@ -188,10 +188,7 @@ import {
 } from "./identity"
 import {
   resourceHijack,
-  dataDestroy,
   ransomwareSim,
-  serviceDisruption,
-  cryptominerDeploy,
   resourceDeletionCapability,
   serviceDisruptionAnalysis,
   dataDestructionPaths,
@@ -925,25 +922,13 @@ const PROGRAMS = {
     description: "General-purpose IAM permission check via simulate-principal-policy — test dangerous actions across data access, admin, network, compute categories for any principal",
     args: "[--target ARN] [--profile PROFILE] [--region REGION]",
   },
-  // ── Impact (13) ──
+  // ── Impact (10) ──
   resource_hijack: {
     description: "Assess resource hijack vectors — EC2 user-data injection, Lambda code injection, S3 website defacement",
     args: "[--execute] [--profile PROFILE] [--region REGION]",
   },
-  data_destroy: {
-    description: "Assess data destruction vectors — unversioned S3, unprotected RDS/DynamoDB, deletion protection gaps",
-    args: "[--execute] [--profile PROFILE] [--region REGION]",
-  },
   ransomware_sim: {
     description: "Ransomware simulation assessment — KMS key creation, S3 re-encryption capability, MFA Delete gaps",
-    args: "[--execute] [--profile PROFILE] [--region REGION]",
-  },
-  service_disruption: {
-    description: "Assess service disruption vectors — SG modification, ASG scale-to-zero, DNS hijack, LB deletion",
-    args: "[--execute] [--profile PROFILE] [--region REGION]",
-  },
-  cryptominer_deploy: {
-    description: "Assess compute hijack surface — EC2 launch capability, Lambda create, vCPU quotas, cost alert gaps",
     args: "[--execute] [--profile PROFILE] [--region REGION]",
   },
   resource_deletion_capability: {
@@ -1276,6 +1261,7 @@ const CWE_MAP: Record<string, string> = {
   "AWS-IMPACT-DEL-001": "CWE-284",
   "AWS-IMPACT-DEL-002": "CWE-693",
   "AWS-IMPACT-DISRUPT-001": "CWE-284",
+  "AWS-IMPACT-DISRUPT-002": "CWE-284",
   "AWS-IMPACT-DATADEST-001": "CWE-693",
   "AWS-IMPACT-DATADEST-002": "CWE-693",
   "AWS-IMPACT-DATADEST-003": "CWE-693",
@@ -1511,10 +1497,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   iam_policy_simulation: iamPolicySimulation,
   // impact
   resource_hijack: resourceHijack,
-  data_destroy: dataDestroy,
   ransomware_sim: ransomwareSim,
-  service_disruption: serviceDisruption,
-  cryptominer_deploy: cryptominerDeploy,
   resource_deletion_capability: resourceDeletionCapability,
   service_disruption_analysis: serviceDisruptionAnalysis,
   data_destruction_paths: dataDestructionPaths,
@@ -1526,7 +1509,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
 }
 
 export const AwshookTool = tool({
-  description: `AWS offensive security toolkit — the PRIMARY tool for any AWS security assessment, pentest, or audit when AWS credentials are available. 176 programs across 10 kill-chain categories: recon (54), credential harvesting (14), privilege escalation (11), persistence (11), lateral movement (10), defense evasion (13), exfiltration & cleanup (18), compliance (18), identity (14), impact (13). Key capabilities: auto_privesc_scan (automated 21-vector Pacu-style privesc path discovery via simulate-principal-policy), iam_policy_simulation (effective permission check for any principal), role_trust_audit (wildcard/cross-account/confused deputy in one pass), ec2_user_data + lambda_env_harvest + ssm_parameter_mine (credential harvesting trifecta), public_ebs_snapshot_enum + public_rds_snapshot_enum (public cloud data exposure), cross_service_policy_audit (S3/SQS/SNS/Lambda/KMS/ECR/SecretsManager resource policy scanner), eks_lateral + lambda_vpc_pivot (cross-service lateral movement), s3_version_recovery + s3_replication_exfil (advanced exfil). Start with recon programs to discover assets, then auto_privesc_scan to find attack paths. Uses aws CLI (no Python/SDK). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
+  description: `AWS offensive security toolkit — the PRIMARY tool for any AWS security assessment, pentest, or audit when AWS credentials are available. 173 programs across 10 kill-chain categories: recon (54), credential harvesting (14), privilege escalation (11), persistence (11), lateral movement (10), defense evasion (13), exfiltration & cleanup (18), compliance (18), identity (14), impact (10). Key capabilities: auto_privesc_scan (automated 21-vector Pacu-style privesc path discovery via simulate-principal-policy), iam_policy_simulation (effective permission check for any principal), role_trust_audit (wildcard/cross-account/confused deputy in one pass), ec2_user_data + lambda_env_harvest + ssm_parameter_mine (credential harvesting trifecta), public_ebs_snapshot_enum + public_rds_snapshot_enum (public cloud data exposure), cross_service_policy_audit (S3/SQS/SNS/Lambda/KMS/ECR/SecretsManager resource policy scanner), eks_lateral + lambda_vpc_pivot (cross-service lateral movement), s3_version_recovery + s3_replication_exfil (advanced exfil). Start with recon programs to discover assets, then auto_privesc_scan to find attack paths. Uses aws CLI (no Python/SDK). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
   args: {
     program: z.enum(programKeys).describe(
       "AWS program to execute. Options: " +
