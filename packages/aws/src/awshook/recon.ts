@@ -373,6 +373,28 @@ export async function s3Enum(args: string[], timeout: number): Promise<HookResul
       }
     }
 
+    const cors = await aws(["s3api", "get-bucket-cors", "--bucket", b[0]], profile, region, timeout)
+    if (cors.exitCode === 0) {
+      const rules = (tryJson(cors.stdout)?.CORSRules || []) as Array<Record<string, unknown>>
+      for (const rule of rules) {
+        const origins = (rule.AllowedOrigins || []) as string[]
+        const methods = (rule.AllowedMethods || []) as string[]
+        if (origins.includes("*")) {
+          output.push(`    [!] CORS allows all origins: methods=${methods.join(",")}`)
+          findings.push({
+            checkId: "AWS-S3-CORS-001",
+            provider: "aws",
+            severity: "medium",
+            status: "FAIL",
+            resource: `s3:${b[0]}`,
+            title: `Wildcard CORS origin: ${b[0]}`,
+            details: `Bucket allows CORS from any origin (*) with methods: ${methods.join(", ")}`,
+            remediation: "Restrict AllowedOrigins to specific domains",
+          })
+        }
+      }
+    }
+
     const acl = await aws(["s3api", "get-bucket-acl", "--bucket", b[0]], profile, region, timeout)
     if (acl.exitCode === 0) {
       const grants = tryJson(acl.stdout)?.Grants || []
@@ -443,6 +465,62 @@ export async function lambdaEnum(args: string[], timeout: number): Promise<HookR
 
       if (config?.VpcConfig?.SubnetIds?.length > 0) {
         output.push(`    VPC: ${config.VpcConfig.VpcId} (${config.VpcConfig.SubnetIds.length} subnets)`)
+      }
+
+      const furl = await aws(
+        ["lambda", "get-function-url-config", "--function-name", f[0]],
+        profile,
+        region,
+        timeout,
+      )
+      if (furl.exitCode === 0) {
+        const urlCfg = tryJson(furl.stdout) as Record<string, unknown> | null
+        if (urlCfg) {
+          const authType = urlCfg.AuthType as string
+          output.push(`    Function URL: ${urlCfg.FunctionUrl}  Auth: ${authType}`)
+          if (authType === "NONE") {
+            findings.push({
+              checkId: "AWS-LAMBDA-URL-001",
+              provider: "aws",
+              severity: "high",
+              status: "FAIL",
+              resource: `lambda:${f[0]}`,
+              title: `Lambda function URL without auth: ${f[0]}`,
+              details: `Function URL ${urlCfg.FunctionUrl} has AuthType=NONE — publicly invocable without IAM credentials`,
+              remediation: "Set AuthType=AWS_IAM or add application-level authentication",
+            })
+          }
+        }
+      }
+
+      const fpol = await aws(["lambda", "get-policy", "--function-name", f[0]], profile, region, timeout)
+      if (fpol.exitCode === 0) {
+        const policyStr = (tryJson(fpol.stdout) as Record<string, unknown>)?.Policy as string | undefined
+        if (policyStr) {
+          const policyDoc = tryJson(policyStr) as Record<string, unknown> | null
+          const stmts = (policyDoc?.Statement || []) as Array<Record<string, unknown>>
+          for (const stmt of stmts) {
+            if (stmt.Effect !== "Allow") continue
+            const principal = stmt.Principal as unknown
+            const principalStr = typeof principal === "string" ? principal : JSON.stringify(principal)
+            if (principalStr === "*" || principalStr.includes('"*"')) {
+              const condition = stmt.Condition as Record<string, unknown> | undefined
+              if (!condition) {
+                findings.push({
+                  checkId: "AWS-LAMBDA-POLICY-001",
+                  provider: "aws",
+                  severity: "critical",
+                  status: "FAIL",
+                  resource: `lambda:${f[0]}`,
+                  title: `Lambda open resource policy: ${f[0]}`,
+                  details: `Resource-based policy allows Principal:* without conditions — any account can invoke`,
+                  remediation: "Restrict Principal to specific accounts or add aws:SourceAccount condition",
+                })
+                output.push(`    [!] Resource policy: Principal:* without conditions`)
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -1551,19 +1629,67 @@ export async function apigwEnum(args: string[], timeout: number): Promise<HookRe
       }
 
       const resources = await aws(
-        ["apigateway", "get-resources", "--rest-api-id", a[0], "--query", "items[].[path,resourceMethods]"],
+        ["apigateway", "get-resources", "--rest-api-id", a[0]],
         profile,
         region,
         timeout,
       )
       if (resources.exitCode === 0) {
-        const rl = tryJson(resources.stdout) || []
-        for (const r of rl) {
-          if (r[1]) {
-            const methods = Object.keys(r[1])
-            output.push(`    ${r[0]}  Methods: ${methods.join(", ")}`)
+        const items = (tryJson(resources.stdout)?.items || []) as Array<Record<string, unknown>>
+        for (const item of items) {
+          const path = item.path as string
+          const resMethods = item.resourceMethods as Record<string, Record<string, unknown>> | undefined
+          if (!resMethods) continue
+          const methodNames = Object.keys(resMethods).filter((m) => m !== "OPTIONS")
+          output.push(`    ${path}  Methods: ${methodNames.join(", ")}`)
+
+          for (const method of methodNames) {
+            const m = await aws(
+              ["apigateway", "get-method", "--rest-api-id", a[0], "--resource-id", String(item.id), "--http-method", method],
+              profile,
+              region,
+              timeout,
+            )
+            if (m.exitCode !== 0) continue
+            const md = tryJson(m.stdout) as Record<string, unknown> | null
+            if (!md) continue
+            const authType = md.authorizationType as string
+            const apiKeyRequired = md.apiKeyRequired as boolean
+            if (authType === "NONE" && !apiKeyRequired) {
+              output.push(`      [!] ${method} ${path}: NO authorization`)
+              findings.push({
+                checkId: "AWS-APIGW-METHOD-001",
+                provider: "aws",
+                severity: "high",
+                status: "FAIL",
+                resource: `apigateway:${a[0]}:${method}:${path}`,
+                title: `Unauthenticated REST method: ${method} ${path} on ${a[1]}`,
+                details: `authorizationType=NONE, apiKeyRequired=false — endpoint is publicly accessible without credentials`,
+                remediation: "Add IAM, Cognito, or Lambda authorizer; or require API key",
+              })
+            }
           }
         }
+      }
+
+      const wafAssoc = await aws(
+        ["wafv2", "get-web-acl-for-resource", "--resource-arn", `arn:aws:apigateway:${region || "us-east-1"}::/restapis/${a[0]}/stages/prod`],
+        profile,
+        region,
+        timeout,
+      )
+      if (wafAssoc.exitCode !== 0 || !tryJson(wafAssoc.stdout)?.WebACL) {
+        output.push(`    [!] No WAF associated with API`)
+        findings.push({
+          checkId: "AWS-APIGW-WAF-001",
+          provider: "aws",
+          severity: "medium",
+          status: "WARN",
+          resource: `apigateway:${a[0]}`,
+          title: `API Gateway without WAF: ${a[1]}`,
+          details: `REST API ${a[1]} has no WAFv2 Web ACL associated — no request filtering`,
+          remediation: "Associate a WAFv2 Web ACL with the API Gateway stage",
+        })
       }
 
       const keys = await aws(
@@ -5453,5 +5579,375 @@ export async function tagComplianceAudit(args: string[], timeout: number): Promi
     })
   }
 
+  return { output: output.join("\n"), findings }
+}
+
+export async function publicEbsSnapshotEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Public EBS Snapshot Enumeration\n"]
+
+  const id = await aws(["sts", "get-caller-identity", "--query", "Account", "--output", "text"], profile, region, timeout)
+  const account = id.stdout.trim()
+  if (!account) return { output: "[-] Cannot determine account ID", findings }
+
+  const snaps = await aws(
+    ["ec2", "describe-snapshots", "--owner-ids", account, "--query", "Snapshots[].[SnapshotId,VolumeSize,StartTime,Description,Encrypted]"],
+    profile,
+    region,
+    timeout,
+  )
+  if (snaps.exitCode !== 0) return { output: `[-] Cannot list snapshots: ${snaps.stderr.trim()}`, findings }
+  const snapList = (tryJson(snaps.stdout) || []) as Array<unknown[]>
+  output.push(`[+] Account snapshots: ${snapList.length}\n`)
+
+  let publicCount = 0
+  for (const snap of snapList) {
+    const snapId = snap[0] as string
+    const attr = await aws(
+      ["ec2", "describe-snapshot-attribute", "--snapshot-id", snapId, "--attribute", "createVolumePermission"],
+      profile,
+      region,
+      timeout,
+    )
+    if (attr.exitCode !== 0) continue
+    const perms = tryJson(attr.stdout) as Record<string, unknown> | null
+    const grants = (perms?.CreateVolumePermissions || []) as Array<Record<string, unknown>>
+    const isPublic = grants.some((g) => g.Group === "all")
+    const crossAccount = grants.filter((g) => g.UserId && g.UserId !== account)
+
+    if (isPublic) {
+      publicCount++
+      output.push(`  [!] ${snapId}: PUBLIC (${snap[1]} GB, ${snap[4] ? "encrypted" : "UNENCRYPTED"})`)
+      output.push(`      Description: ${snap[3] || "none"}`)
+      findings.push({
+        checkId: "AWS-RECON-EBS-PUBLIC-001",
+        provider: "aws",
+        severity: "critical",
+        status: "FAIL",
+        resource: `ec2:snapshot:${snapId}`,
+        title: `Publicly shared EBS snapshot: ${snapId}`,
+        details: `Snapshot ${snapId} (${snap[1]} GB) is shared with ALL AWS accounts — anyone can copy and mount it to extract data`,
+        remediation: "aws ec2 modify-snapshot-attribute --snapshot-id " + snapId + " --attribute createVolumePermission --operation-type remove --group-names all",
+      })
+    }
+
+    if (crossAccount.length > 0) {
+      const accounts = crossAccount.map((g) => g.UserId).join(", ")
+      output.push(`  [*] ${snapId}: shared with ${crossAccount.length} external account(s): ${accounts}`)
+      findings.push({
+        checkId: "AWS-RECON-EBS-XACCOUNT-001",
+        provider: "aws",
+        severity: "high",
+        status: "WARN",
+        resource: `ec2:snapshot:${snapId}`,
+        title: `Cross-account EBS snapshot: ${snapId}`,
+        details: `Snapshot shared with external accounts: ${accounts}`,
+        remediation: "Verify cross-account sharing is intentional; remove unnecessary grants",
+      })
+    }
+  }
+
+  output.push(`\n[*] Summary: ${publicCount} public snapshots out of ${snapList.length} total`)
+
+  const publicShared = await aws(
+    ["ec2", "describe-snapshots", "--restorable-by-user-ids", "all", "--owner-ids", account, "--query", "Snapshots[].SnapshotId"],
+    profile,
+    region,
+    timeout,
+  )
+  if (publicShared.exitCode === 0) {
+    const pubIds = (tryJson(publicShared.stdout) || []) as string[]
+    if (pubIds.length > 0 && pubIds.length !== publicCount) {
+      output.push(`[+] Cross-check via --restorable-by-user-ids all: ${pubIds.length} public snapshots`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function publicRdsSnapshotEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Public RDS Snapshot Enumeration\n"]
+
+  const snaps = await aws(
+    ["rds", "describe-db-snapshots", "--snapshot-type", "manual"],
+    profile,
+    region,
+    timeout,
+  )
+  if (snaps.exitCode !== 0) return { output: `[-] Cannot list RDS snapshots: ${snaps.stderr.trim()}`, findings }
+  const snapList = (tryJson(snaps.stdout)?.DBSnapshots || []) as Array<Record<string, unknown>>
+  output.push(`[+] Manual DB Snapshots: ${snapList.length}\n`)
+
+  let publicCount = 0
+  for (const snap of snapList) {
+    const snapId = snap.DBSnapshotIdentifier as string
+    const dbId = snap.DBInstanceIdentifier as string
+    const engine = snap.Engine as string
+    const size = snap.AllocatedStorage as number
+    const encrypted = snap.Encrypted as boolean
+
+    const attr = await aws(
+      ["rds", "describe-db-snapshot-attributes", "--db-snapshot-identifier", snapId],
+      profile,
+      region,
+      timeout,
+    )
+    if (attr.exitCode !== 0) continue
+    const result = tryJson(attr.stdout)?.DBSnapshotAttributesResult as Record<string, unknown> | null
+    const attrs = (result?.DBSnapshotAttributes || []) as Array<Record<string, unknown>>
+    const restoreAttr = attrs.find((a) => a.AttributeName === "restore")
+    const values = (restoreAttr?.AttributeValues || []) as string[]
+    const isPublic = values.includes("all")
+
+    if (isPublic) {
+      publicCount++
+      output.push(`  [!] ${snapId}: PUBLIC (${engine}, ${size} GB, ${encrypted ? "encrypted" : "UNENCRYPTED"})`)
+      output.push(`      Source DB: ${dbId}`)
+      findings.push({
+        checkId: "AWS-RECON-RDS-PUBLIC-001",
+        provider: "aws",
+        severity: "critical",
+        status: "FAIL",
+        resource: `rds:snapshot:${snapId}`,
+        title: `Publicly shared RDS snapshot: ${snapId}`,
+        details: `RDS snapshot (${engine}, ${size} GB) from ${dbId} is public — anyone can restore and read the database`,
+        remediation: "aws rds modify-db-snapshot-attribute --db-snapshot-identifier " + snapId + " --attribute-name restore --values-to-remove all",
+      })
+    }
+
+    const crossAccounts = values.filter((v) => v !== "all" && /^\d{12}$/.test(v))
+    if (crossAccounts.length > 0) {
+      output.push(`  [*] ${snapId}: shared with ${crossAccounts.length} account(s): ${crossAccounts.join(", ")}`)
+      findings.push({
+        checkId: "AWS-RECON-RDS-XACCOUNT-001",
+        provider: "aws",
+        severity: "medium",
+        status: "WARN",
+        resource: `rds:snapshot:${snapId}`,
+        title: `Cross-account RDS snapshot: ${snapId}`,
+        details: `Shared with accounts: ${crossAccounts.join(", ")}`,
+        remediation: "Verify cross-account sharing is intentional",
+      })
+    }
+  }
+
+  const clusterSnaps = await aws(
+    ["rds", "describe-db-cluster-snapshots", "--snapshot-type", "manual"],
+    profile,
+    region,
+    timeout,
+  )
+  if (clusterSnaps.exitCode === 0) {
+    const clList = (tryJson(clusterSnaps.stdout)?.DBClusterSnapshots || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Manual Cluster Snapshots: ${clList.length}`)
+
+    for (const snap of clList) {
+      const snapId = snap.DBClusterSnapshotIdentifier as string
+      const clusterId = snap.DBClusterIdentifier as string
+      const engine = snap.Engine as string
+
+      const attr = await aws(
+        ["rds", "describe-db-cluster-snapshot-attributes", "--db-cluster-snapshot-identifier", snapId],
+        profile,
+        region,
+        timeout,
+      )
+      if (attr.exitCode !== 0) continue
+      const result = tryJson(attr.stdout)?.DBClusterSnapshotAttributesResult as Record<string, unknown> | null
+      const attrs = (result?.DBClusterSnapshotAttributes || []) as Array<Record<string, unknown>>
+      const restoreAttr = attrs.find((a) => a.AttributeName === "restore")
+      const values = (restoreAttr?.AttributeValues || []) as string[]
+      if (values.includes("all")) {
+        publicCount++
+        output.push(`  [!] ${snapId}: PUBLIC cluster snapshot (${engine}, cluster: ${clusterId})`)
+        findings.push({
+          checkId: "AWS-RECON-RDS-PUBLIC-002",
+          provider: "aws",
+          severity: "critical",
+          status: "FAIL",
+          resource: `rds:cluster-snapshot:${snapId}`,
+          title: `Publicly shared RDS cluster snapshot: ${snapId}`,
+          details: `Cluster snapshot (${engine}) from ${clusterId} is public`,
+          remediation: "aws rds modify-db-cluster-snapshot-attribute --db-cluster-snapshot-identifier " + snapId + " --attribute-name restore --values-to-remove all",
+        })
+      }
+    }
+  }
+
+  output.push(`\n[*] Summary: ${publicCount} public snapshots found`)
+  return { output: output.join("\n"), findings }
+}
+
+export async function resourcePolicyAudit(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Cross-Service Resource Policy Audit\n"]
+
+  const id = await aws(["sts", "get-caller-identity", "--query", "Account", "--output", "text"], profile, region, timeout)
+  const ownAccount = id.stdout.trim()
+
+  function extractAwsPrincipals(principal: unknown): string[] {
+    if (typeof principal === "string") return [principal]
+    if (typeof principal !== "object" || !principal) return []
+    const obj = principal as Record<string, unknown>
+    const awsVal = obj.AWS
+    if (typeof awsVal === "string") return [awsVal]
+    if (Array.isArray(awsVal)) return awsVal.filter((v): v is string => typeof v === "string")
+    return []
+  }
+
+  function analyzePolicy(policyJson: string, serviceName: string, resourceId: string) {
+    const doc = tryJson(policyJson) as Record<string, unknown> | null
+    if (!doc) return
+    const statements = (Array.isArray(doc.Statement) ? doc.Statement : []) as Array<Record<string, unknown>>
+
+    for (const stmt of statements) {
+      if (stmt.Effect !== "Allow") continue
+      const principal = stmt.Principal as unknown
+      const condition = stmt.Condition as Record<string, unknown> | undefined
+      const action = stmt.Action as string | string[]
+      const actionStr = Array.isArray(action) ? action.join(", ") : String(action || "*")
+
+      if (!principal) continue
+      const principalStr = typeof principal === "string" ? principal : JSON.stringify(principal)
+
+      if (principalStr === "*" || principalStr === '{"AWS":"*"}' || principalStr.includes('"*"')) {
+        if (!condition) {
+          output.push(`  [!] ${serviceName}/${resourceId}: Principal:* WITHOUT conditions — fully open`)
+          findings.push({
+            checkId: "AWS-RECON-RESPOLICY-001",
+            provider: "aws",
+            severity: "critical",
+            status: "FAIL",
+            resource: `${serviceName}:${resourceId}`,
+            title: `Open resource policy: ${serviceName}/${resourceId}`,
+            details: `Resource policy allows Principal:* with no conditions. Actions: ${actionStr}`,
+            remediation: "Restrict Principal to specific accounts/services or add conditions (aws:SourceAccount, aws:SourceArn)",
+          })
+        } else {
+          output.push(`  [*] ${serviceName}/${resourceId}: Principal:* with conditions`)
+        }
+      }
+
+      const awsPrincipals = extractAwsPrincipals(principal)
+      for (const p of awsPrincipals) {
+        const acctMatch = p.match(/:(\d{12}):/)
+        if (acctMatch && acctMatch[1] !== ownAccount) {
+          output.push(`  [*] ${serviceName}/${resourceId}: cross-account access from ${acctMatch[1]}`)
+          findings.push({
+            checkId: "AWS-RECON-RESPOLICY-002",
+            provider: "aws",
+            severity: "medium",
+            status: "WARN",
+            resource: `${serviceName}:${resourceId}`,
+            title: `Cross-account resource policy: ${serviceName}/${resourceId}`,
+            details: `Allows access from account ${acctMatch[1]}. Actions: ${actionStr}`,
+            remediation: "Verify cross-account access is intentional and needed",
+          })
+          break
+        }
+      }
+    }
+  }
+
+  output.push("[*] Scanning SQS queue policies...\n")
+  const queues = await aws(["sqs", "list-queues"], profile, region, timeout)
+  if (queues.exitCode === 0) {
+    const urls = (tryJson(queues.stdout)?.QueueUrls || []) as string[]
+    output.push(`[+] SQS Queues: ${urls.length}`)
+    for (const url of urls) {
+      const name = url.split("/").pop() || url
+      const attrs = await aws(
+        ["sqs", "get-queue-attributes", "--queue-url", url, "--attribute-names", "Policy"],
+        profile,
+        region,
+        timeout,
+      )
+      if (attrs.exitCode !== 0) continue
+      const policy = (tryJson(attrs.stdout)?.Attributes?.Policy || "") as string
+      if (policy) analyzePolicy(policy, "sqs", name)
+    }
+  }
+
+  output.push("\n[*] Scanning SNS topic policies...\n")
+  const topics = await aws(["sns", "list-topics", "--query", "Topics[].TopicArn"], profile, region, timeout)
+  if (topics.exitCode === 0) {
+    const arns = (tryJson(topics.stdout) || []) as string[]
+    output.push(`[+] SNS Topics: ${arns.length}`)
+    for (const arn of arns) {
+      const name = arn.split(":").pop() || arn
+      const attrs = await aws(["sns", "get-topic-attributes", "--topic-arn", arn], profile, region, timeout)
+      if (attrs.exitCode !== 0) continue
+      const policy = (tryJson(attrs.stdout)?.Attributes?.Policy || "") as string
+      if (policy) analyzePolicy(policy, "sns", name)
+    }
+  }
+
+  output.push("\n[*] Scanning KMS key policies...\n")
+  const keys = await aws(["kms", "list-keys", "--query", "Keys[].KeyId"], profile, region, timeout)
+  if (keys.exitCode === 0) {
+    const keyIds = (tryJson(keys.stdout) || []) as string[]
+    output.push(`[+] KMS Keys: ${keyIds.length}`)
+    for (const keyId of keyIds) {
+      const desc = await aws(["kms", "describe-key", "--key-id", keyId, "--query", "KeyMetadata.[KeyManager,KeyState]"], profile, region, timeout)
+      if (desc.exitCode !== 0) continue
+      const meta = tryJson(desc.stdout) as unknown[] | null
+      if (!meta || meta[0] === "AWS" || meta[1] !== "Enabled") continue
+
+      const pol = await aws(["kms", "get-key-policy", "--key-id", keyId, "--policy-name", "default"], profile, region, timeout)
+      if (pol.exitCode !== 0) continue
+      const policyStr = (tryJson(pol.stdout)?.Policy || pol.stdout.trim()) as string
+      if (policyStr) analyzePolicy(policyStr, "kms", keyId.slice(0, 8))
+    }
+  }
+
+  output.push("\n[*] Scanning Secrets Manager resource policies...\n")
+  const secrets = await aws(["secretsmanager", "list-secrets", "--query", "SecretList[].ARN"], profile, region, timeout)
+  if (secrets.exitCode === 0) {
+    const arns = (tryJson(secrets.stdout) || []) as string[]
+    output.push(`[+] Secrets: ${arns.length}`)
+    for (const arn of arns) {
+      const name = arn.split(":").pop() || arn
+      const pol = await aws(["secretsmanager", "get-resource-policy", "--secret-id", arn], profile, region, timeout)
+      if (pol.exitCode !== 0) continue
+      const policyStr = (tryJson(pol.stdout)?.ResourcePolicy || "") as string
+      if (policyStr) analyzePolicy(policyStr, "secretsmanager", name)
+    }
+  }
+
+  output.push("\n[*] Scanning ECR repository policies...\n")
+  const repos = await aws(["ecr", "describe-repositories", "--query", "repositories[].repositoryName"], profile, region, timeout)
+  if (repos.exitCode === 0) {
+    const names = (tryJson(repos.stdout) || []) as string[]
+    output.push(`[+] ECR Repos: ${names.length}`)
+    for (const name of names) {
+      const pol = await aws(["ecr", "get-repository-policy", "--repository-name", name], profile, region, timeout)
+      if (pol.exitCode !== 0) continue
+      const policyStr = (tryJson(pol.stdout)?.policyText || "") as string
+      if (policyStr) analyzePolicy(policyStr, "ecr", name)
+    }
+  }
+
+  output.push("\n[*] Scanning Lambda function resource policies...\n")
+  const funcs = await aws(["lambda", "list-functions", "--query", "Functions[].FunctionName"], profile, region, timeout)
+  if (funcs.exitCode === 0) {
+    const names = (tryJson(funcs.stdout) || []) as string[]
+    output.push(`[+] Lambda Functions: ${names.length}`)
+    for (const name of names) {
+      const pol = await aws(["lambda", "get-policy", "--function-name", name], profile, region, timeout)
+      if (pol.exitCode !== 0) continue
+      const policyStr = (tryJson(pol.stdout)?.Policy || "") as string
+      if (policyStr) analyzePolicy(policyStr, "lambda", name)
+    }
+  }
+
+  const totalFindings = findings.length
+  output.push(`\n[*] Summary: ${totalFindings} resource policy issues found across SQS, SNS, KMS, Secrets Manager, ECR, Lambda`)
   return { output: output.join("\n"), findings }
 }
