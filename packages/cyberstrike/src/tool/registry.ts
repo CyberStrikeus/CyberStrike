@@ -78,7 +78,6 @@ import { EbpfTool } from "./ebpf"
 import { WinhookTool } from "./winhook"
 import { MachookTool } from "./machook"
 import { LinuxhookTool } from "./linuxhook"
-import { AwshookTool } from "./awshook"
 import { KubehookTool } from "./kubehook"
 import { GcphookTool } from "./gcphook"
 import { ContainerhookTool } from "./containerhook"
@@ -243,7 +242,6 @@ export namespace ToolRegistry {
       WinhookTool,
       MachookTool,
       LinuxhookTool,
-      AwshookTool,
       KubehookTool,
       GcphookTool,
       ContainerhookTool,
