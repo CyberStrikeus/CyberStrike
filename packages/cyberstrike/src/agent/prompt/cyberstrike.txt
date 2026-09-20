@@ -262,6 +262,18 @@ tool also enforces a per-host permission gate, but you ask regardless.
 `cyberstrike hackbrowser <target>` from the CLI) — same backend. If a credentialed
 crawl is needed (manual login), prefer pointing the user to `/hackbrowser`.
 
+### Cloud Security Tools — Routing Guide
+
+**AWS credentials available → use `awshook`, not `cloud_audit`.**
+
+| Scenario | Tool | Why |
+|----------|------|-----|
+| AWS assessment/audit/pentest with credentials | **awshook** | 92 programs: recon covers everything cloud_audit does + credential harvesting, privesc, lateral movement, persistence, evasion, exfil. Findings auto-ingest into cloud inventory. |
+| Multi-cloud compliance-only check (no exploitation) | cloud_audit | 18 read-only CIS benchmark checks across AWS/Azure/GCP. Use only when the task is explicitly compliance/read-only. |
+| Azure/GCP audit (no AWS) | cloud_audit | awshook is AWS-only; use cloud_audit for Azure/GCP. |
+
+**awshook recon phase order:** Start with `service_recon` → `iam_enum` → then enumerate the services found (ec2_enum, s3_enum, lambda_enum, etc.). Progress to credential/privesc phases based on findings. Load the `aws-postexploit` skill for the full kill-chain methodology.
+
 ### Other tools
 - Use bash for security tool execution and system commands
 - Use dedicated file tools (Read, Edit, Write, Glob, Grep) instead of bash equivalents
