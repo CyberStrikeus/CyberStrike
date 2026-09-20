@@ -1092,3 +1092,301 @@ export async function ciCdSecretExtract(args: string[], timeout: number): Promis
 
   return { output: output.join("\n"), findings }
 }
+
+export async function ec2UserData(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] EC2 Instance UserData Extraction (Pacu ec2__download_userdata)\n"]
+
+  const secretPattern =
+    /(?:password|passwd|secret|api.?key|token|private.?key|connection.?string|db.?(?:host|pass|user|url)|redis|mongo|mysql|postgres|jdbc|aws_access|aws_secret|bearer|authorization)/i
+
+  const instances = await aws(
+    ["ec2", "describe-instances", "--query", "Reservations[].Instances[].[InstanceId,State.Name,Tags[?Key=='Name'].Value|[0],InstanceType,LaunchTime]"],
+    profile,
+    region,
+    timeout,
+  )
+  if (instances.exitCode !== 0) {
+    return { output: `[-] Cannot list instances: ${instances.stderr.trim()}`, findings }
+  }
+
+  const list = (tryJson(instances.stdout) || []) as Array<unknown[]>
+  output.push(`[+] Instances: ${list.length} total\n`)
+
+  let harvested = 0
+  let secretsFound = 0
+
+  for (const inst of list) {
+    const id = inst[0] as string
+    const state = inst[1] as string
+    const name = (inst[2] as string) || "unnamed"
+
+    const ud = await aws(
+      ["ec2", "describe-instance-attribute", "--instance-id", id, "--attribute", "userData", "--query", "UserData.Value", "--output", "text"],
+      profile,
+      region,
+      timeout,
+    )
+    if (ud.exitCode !== 0 || !ud.stdout.trim() || ud.stdout.trim() === "None") continue
+
+    harvested++
+    const raw = ud.stdout.trim()
+    let decoded: string
+    try {
+      decoded = Buffer.from(raw, "base64").toString("utf-8")
+    } catch {
+      decoded = raw
+    }
+
+    const lines = decoded.split("\n")
+    const preview = lines.slice(0, 3).join(" ").slice(0, 120)
+    output.push(`[+] ${id} (${name}, ${state}) — UserData ${decoded.length} bytes`)
+    output.push(`    Preview: ${preview}${lines.length > 3 ? "..." : ""}`)
+
+    const matchedLines: string[] = []
+    for (let i = 0; i < lines.length; i++) {
+      if (secretPattern.test(lines[i])) {
+        matchedLines.push(`    L${i + 1}: ${lines[i].trim().slice(0, 120)}`)
+      }
+    }
+
+    if (matchedLines.length > 0) {
+      secretsFound += matchedLines.length
+      output.push(`    [!] ${matchedLines.length} potential secret(s):`)
+      for (const m of matchedLines.slice(0, 10)) output.push(m)
+      if (matchedLines.length > 10) output.push(`    ... and ${matchedLines.length - 10} more`)
+
+      findings.push({
+        checkId: "AWS-CRED-USERDATA-001",
+        provider: "aws",
+        severity: "high",
+        status: "EXTRACTED",
+        resource: `ec2://${id}`,
+        title: `Secrets in UserData: ${id} (${name})`,
+        details: `${matchedLines.length} secret pattern(s) found in ${decoded.length}-byte UserData script`,
+        remediation: "Move secrets to Secrets Manager/SSM Parameter Store, reference via cloud-init dynamic lookup",
+      })
+    } else {
+      findings.push({
+        checkId: "AWS-CRED-USERDATA-002",
+        provider: "aws",
+        severity: "medium",
+        status: "FOUND",
+        resource: `ec2://${id}`,
+        title: `UserData present: ${id} (${name})`,
+        details: `${decoded.length}-byte UserData — may contain sensitive bootstrap config (${lines.length} lines)`,
+        remediation: "Review UserData for hardcoded credentials or internal endpoints",
+      })
+    }
+  }
+
+  output.push(`\n[*] Summary: ${harvested} instances with UserData, ${secretsFound} secret patterns found`)
+  return { output: output.join("\n"), findings }
+}
+
+export async function lambdaEnvHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Lambda Environment Variable Harvest (CloudFox env-vars)\n"]
+
+  const secretPattern =
+    /(?:PASSWORD|PASSWD|SECRET|API.?KEY|TOKEN|PRIVATE|AUTH|JWT|DB_|REDIS_|MONGO_|MYSQL_|POSTGRES_|DATABASE_|CONNECTION|CREDENTIAL|BEARER|MASTER_KEY|ENCRYPTION)/i
+
+  const funcs = await aws(
+    ["lambda", "list-functions", "--query", "Functions[].[FunctionName,Runtime,FunctionArn]"],
+    profile,
+    region,
+    timeout,
+  )
+  if (funcs.exitCode !== 0) {
+    return { output: `[-] Cannot list functions: ${funcs.stderr.trim()}`, findings }
+  }
+
+  const fl = (tryJson(funcs.stdout) || []) as Array<unknown[]>
+  output.push(`[+] Lambda functions: ${fl.length}\n`)
+
+  let totalEnvVars = 0
+  let secretVars = 0
+
+  for (const fn of fl) {
+    const name = fn[0] as string
+    const runtime = fn[1] as string
+
+    const config = await aws(
+      ["lambda", "get-function-configuration", "--function-name", name, "--query", "{env:Environment.Variables,role:Role,vpc:VpcConfig.VpcId,layers:Layers[].Arn}"],
+      profile,
+      region,
+      timeout,
+    )
+    if (config.exitCode !== 0) continue
+
+    const cfg = tryJson(config.stdout) as Record<string, unknown> | null
+    if (!cfg) continue
+    const env = cfg.env as Record<string, string> | null
+    if (!env || Object.keys(env).length === 0) continue
+
+    const keys = Object.keys(env)
+    totalEnvVars += keys.length
+    const secrets = keys.filter((k) => secretPattern.test(k))
+
+    if (secrets.length > 0) {
+      secretVars += secrets.length
+      output.push(`[!] ${name} (${runtime}) — ${keys.length} env vars, ${secrets.length} secrets:`)
+      for (const s of secrets) {
+        const val = env[s]
+        output.push(`    ${s} = [SECRET — ${val.length} chars]`)
+      }
+      findings.push({
+        checkId: "AWS-CRED-LAMBDA-ENV-001",
+        provider: "aws",
+        severity: "high",
+        status: "EXTRACTED",
+        resource: `lambda://${name}`,
+        title: `Secrets in Lambda env: ${name}`,
+        details: `${secrets.length} secret-named env var(s): ${secrets.slice(0, 5).join(", ")}${secrets.length > 5 ? ` +${secrets.length - 5} more` : ""}`,
+        remediation: "Use Secrets Manager with Lambda extension, or SSM Parameter Store, instead of plaintext env vars",
+      })
+    } else if (keys.length > 0) {
+      output.push(`[+] ${name} (${runtime}) — ${keys.length} env vars: ${keys.slice(0, 8).join(", ")}${keys.length > 8 ? "..." : ""}`)
+    }
+  }
+
+  output.push(`\n[*] Summary: ${totalEnvVars} total env vars across ${fl.length} functions, ${secretVars} secret patterns`)
+  return { output: output.join("\n"), findings }
+}
+
+export async function ssmParameterMine(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] SSM Parameter Store Deep Mining\n"]
+
+  const secretPattern =
+    /(?:password|passwd|secret|api.?key|token|private|auth|jwt|credential|connection|master|encryption|db|redis|mongo|mysql|postgres)/i
+
+  const params = await aws(
+    ["ssm", "describe-parameters", "--query", "Parameters[].[Name,Type,Description,LastModifiedDate]"],
+    profile,
+    region,
+    timeout,
+  )
+  if (params.exitCode !== 0) {
+    return { output: `[-] Cannot list parameters: ${params.stderr.trim()}`, findings }
+  }
+
+  const pl = (tryJson(params.stdout) || []) as Array<unknown[]>
+  const secureCount = pl.filter((p) => p[1] === "SecureString").length
+  const stringCount = pl.filter((p) => p[1] === "String").length
+  const stringListCount = pl.filter((p) => p[1] === "StringList").length
+  output.push(`[+] Parameters: ${pl.length} total — ${secureCount} SecureString, ${stringCount} String, ${stringListCount} StringList\n`)
+
+  let secretsFound = 0
+  let decryptFailed = 0
+
+  for (const p of pl) {
+    const name = p[0] as string
+    const type = p[1] as string
+    const desc = (p[2] as string) || ""
+
+    if (type === "SecureString") {
+      const val = await aws(
+        ["ssm", "get-parameter", "--name", name, "--with-decryption", "--query", "Parameter.Value", "--output", "text"],
+        profile,
+        region,
+        timeout,
+      )
+      if (val.exitCode === 0 && val.stdout.trim()) {
+        secretsFound++
+        const v = val.stdout.trim()
+        output.push(`[!] ${name} (SecureString) = [DECRYPTED — ${v.length} chars]`)
+        findings.push({
+          checkId: "AWS-CRED-SSM-001",
+          provider: "aws",
+          severity: "high",
+          status: "EXTRACTED",
+          resource: `ssm://${name}`,
+          title: `SecureString decrypted: ${name}`,
+          details: `SSM SecureString parameter decrypted successfully (${v.length} chars)${desc ? ` — "${desc}"` : ""}`,
+          remediation: "Restrict ssm:GetParameter with kms:Decrypt to minimum required principals",
+        })
+      } else {
+        decryptFailed++
+        output.push(`[-] ${name} (SecureString) — decrypt denied (KMS access required)`)
+      }
+      continue
+    }
+
+    const val = await aws(
+      ["ssm", "get-parameter", "--name", name, "--query", "Parameter.Value", "--output", "text"],
+      profile,
+      region,
+      timeout,
+    )
+    if (val.exitCode !== 0) continue
+
+    const v = val.stdout.trim()
+    if (secretPattern.test(name) || secretPattern.test(v)) {
+      secretsFound++
+      output.push(`[!] ${name} (${type}) = [SECRET PATTERN — ${v.length} chars]`)
+      findings.push({
+        checkId: "AWS-CRED-SSM-002",
+        provider: "aws",
+        severity: "high",
+        status: "FOUND",
+        resource: `ssm://${name}`,
+        title: `Secret in plaintext parameter: ${name}`,
+        details: `Parameter stored as ${type} (not SecureString) but contains secret pattern (${v.length} chars)`,
+        remediation: "Migrate to SecureString type with KMS encryption",
+      })
+    } else {
+      output.push(`[+] ${name} (${type}) — ${v.length} chars`)
+    }
+  }
+
+  const commonPaths = ["/prod/", "/production/", "/database/", "/api/", "/credentials/", "/secrets/", "/config/"]
+  const checkedPaths = new Set(pl.map((p) => p[0] as string))
+  const discoveredPaths: string[] = []
+
+  for (const prefix of commonPaths) {
+    const pathParams = await aws(
+      ["ssm", "get-parameters-by-path", "--path", prefix, "--recursive", "--query", "Parameters[].[Name,Type,Value]"],
+      profile,
+      region,
+      timeout,
+    )
+    if (pathParams.exitCode !== 0) continue
+    const pathList = (tryJson(pathParams.stdout) || []) as Array<unknown[]>
+    for (const pp of pathList) {
+      const ppName = pp[0] as string
+      if (checkedPaths.has(ppName)) continue
+      checkedPaths.add(ppName)
+      discoveredPaths.push(ppName)
+      const ppType = pp[1] as string
+      const ppVal = pp[2] as string
+      if (ppVal && (secretPattern.test(ppName) || secretPattern.test(ppVal))) {
+        secretsFound++
+        output.push(`[!] ${ppName} (${ppType}, path discovery) = [SECRET — ${ppVal.length} chars]`)
+        findings.push({
+          checkId: "AWS-CRED-SSM-003",
+          provider: "aws",
+          severity: "high",
+          status: "FOUND",
+          resource: `ssm://${ppName}`,
+          title: `Secret found via path enumeration: ${ppName}`,
+          details: `Discovered under ${prefix} — ${ppType} parameter with secret content (${ppVal.length} chars)`,
+          remediation: "Restrict ssm:GetParametersByPath, use SecureString for sensitive values",
+        })
+      }
+    }
+  }
+
+  if (discoveredPaths.length > 0) {
+    output.push(`\n[+] Path discovery found ${discoveredPaths.length} additional parameter(s) not in top-level listing`)
+  }
+
+  output.push(`\n[*] Summary: ${secretsFound} secrets extracted, ${decryptFailed} decrypt denied, ${pl.length + discoveredPaths.length} total parameters`)
+  return { output: output.join("\n"), findings }
+}
