@@ -48,6 +48,9 @@ export async function metadataHarvest(args: string[]): Promise<HookResult> {
             output.push(`[-] ${name}: HTTP ${resp.status}`)
           }
         }
+        output.push(`\n[*] Detection:`)
+        output.push(`  CloudTrail: IMDS calls are NOT logged in CloudTrail`)
+        output.push(`  GuardDuty: UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS (if harvested creds used from outside EC2)`)
         return { output: output.join("\n"), findings: [] }
       }
     } catch {
@@ -71,6 +74,10 @@ export async function metadataHarvest(args: string[]): Promise<HookResult> {
     output.push("[-] Cannot reach metadata endpoint (not on EC2?)")
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: IMDS calls are NOT logged in CloudTrail`)
+  output.push(`  GuardDuty: UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS (if harvested creds used from outside EC2)`)
+
   return { output: output.join("\n"), findings: [] }
 }
 
@@ -79,6 +86,18 @@ export async function secretsDump(args: string[], timeout: number): Promise<Hook
   const region = argVal(args, "--region")
   const service = argVal(args, "--service") || "all"
   const output: string[] = ["[*] AWS Secrets Dump\n"]
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["secretsmanager:GetSecretValue", "secretsmanager:ListSecrets", "ssm:GetParameter", "ssm:DescribeParameters"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    output.push(`[+] Pre-flight: ${allowed.length}/${actions.length} secret access actions allowed`)
+    if (allowed.length > 0) output.push(`[!] Allowed: ${allowed.join(", ")}`)
+    output.push("")
+  }
 
   if (service === "secretsmanager" || service === "all") {
     const r = await aws(
@@ -130,6 +149,10 @@ export async function secretsDump(args: string[], timeout: number): Promise<Hook
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetSecretValue (HIGH — each call logged), ListSecrets, GetParameter, DescribeParameters`)
+  output.push(`  GuardDuty: CredentialAccess:IAMUser/AnomalousBehavior (unusual secret access patterns)`)
+
   return { output: output.join("\n"), findings: [] }
 }
 
@@ -138,6 +161,18 @@ export async function accessKeyEnum(args: string[], timeout: number): Promise<Ho
   const region = argVal(args, "--region")
   const findings: Finding[] = []
   const output: string[] = ["[*] IAM Access Key Enumeration\n"]
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["iam:ListUsers", "iam:ListAccessKeys", "iam:GetAccessKeyLastUsed"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    output.push(`[+] Pre-flight: ${allowed.length}/${actions.length} IAM enum actions allowed`)
+    if (allowed.length > 0) output.push(`[!] Allowed: ${allowed.join(", ")}`)
+    output.push("")
+  }
 
   const users = await aws(["iam", "list-users", "--query", "Users[].UserName"], profile, region, timeout)
   if (users.exitCode !== 0) return { output: `[-] Cannot list users: ${users.stderr.trim()}`, findings }
@@ -204,6 +239,11 @@ export async function accessKeyEnum(args: string[], timeout: number): Promise<Ho
   }
 
   output.push(`\n[*] Summary: ${total} keys total, ${active} active`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListUsers, ListAccessKeys, GetAccessKeyLastUsed`)
+  output.push(`  GuardDuty: Recon:IAMUser/MaliciousIPCaller (IAM enum from unusual IP)`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -216,6 +256,15 @@ export async function roleCredential(args: string[], timeout: number): Promise<H
   const externalId = argVal(args, "--external-id")
 
   if (!roleArn) return { output: "ERROR: --role-arn required", findings: [] }
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", "sts:AssumeRole", "--resource-arns", roleArn], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const decision = results[0]?.EvalDecision || "implicitDeny"
+    if (decision !== "allowed") return { output: `[-] Pre-flight: sts:AssumeRole denied for ${roleArn} (IAM policy)`, findings: [] }
+  }
 
   const cmdArgs = [
     "sts",
@@ -247,6 +296,10 @@ export async function roleCredential(args: string[], timeout: number): Promise<H
     `    export AWS_SESSION_TOKEN=${creds.SessionToken}`,
   ]
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: AssumeRole (logged in BOTH source and target account)`)
+  output.push(`  GuardDuty: UnauthorizedAccess:IAMUser/MaliciousIPCaller, Discovery:IAMUser/AnomalousBehavior`)
+
   return {
     output: output.join("\n"),
     findings: [
@@ -269,6 +322,15 @@ export async function federationToken(args: string[], timeout: number): Promise<
   const region = argVal(args, "--region")
   const name = argVal(args, "--name") || "cyberstrike"
   const duration = argVal(args, "--duration") || "43200"
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", "sts:GetFederationToken"], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const decision = results[0]?.EvalDecision || "implicitDeny"
+    if (decision !== "allowed") return { output: `[-] Pre-flight: sts:GetFederationToken denied by IAM policy`, findings: [] }
+  }
 
   const r = await aws(
     [
@@ -314,6 +376,10 @@ export async function federationToken(args: string[], timeout: number): Promise<
     `    https://signin.aws.amazon.com/federation?Action=getSigninToken&Session=${encodeURIComponent(JSON.stringify({ sessionId: creds.AccessKeyId, sessionKey: creds.SecretAccessKey, sessionToken: creds.SessionToken }))}`,
   ]
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetFederationToken (VERY HIGH signal — rarely legitimate outside admin workflows)`)
+  output.push(`  GuardDuty: Persistence:IAMUser/AnomalousBehavior (unexpected console access creation)`)
+
   return {
     output: output.join("\n"),
     findings: [
@@ -336,6 +402,18 @@ export async function ecrToken(args: string[], timeout: number): Promise<HookRes
   const region = argVal(args, "--region")
   const output: string[] = ["[*] ECR Registry Token Extraction\n"]
   const findings: Finding[] = []
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["ecr:GetAuthorizationToken", "ecr:DescribeRepositories", "ecr:BatchGetImage"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    output.push(`[+] Pre-flight: ${allowed.length}/${actions.length} ECR actions allowed`)
+    if (allowed.length > 0) output.push(`[!] Allowed: ${allowed.join(", ")}`)
+    output.push("")
+  }
 
   const auth = await aws(
     ["ecr", "get-authorization-token", "--query", "authorizationData[].[proxyEndpoint,expiresAt,authorizationToken]"],
@@ -395,6 +473,10 @@ export async function ecrToken(args: string[], timeout: number): Promise<HookRes
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetAuthorizationToken, DescribeRepositories, ListImages, BatchGetImage`)
+  output.push(`  Note: ECR token grants docker pull/push — image contents may contain embedded secrets`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -405,6 +487,16 @@ export async function consoleLogin(args: string[], timeout: number): Promise<Hoo
   const region = argVal(args, "--region")
 
   if (!username) return { output: "ERROR: --user-name required", findings: [] }
+
+  const caller = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(caller.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["iam:CreateLoginProfile", "iam:UpdateLoginProfile", "iam:GetLoginProfile"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    if (allowed.length === 0) return { output: `[-] Pre-flight: no console login modification actions allowed`, findings: [] }
+  }
 
   const pw = password || `CyStr!ke${Date.now().toString(36)}`
 
@@ -419,7 +511,7 @@ export async function consoleLogin(args: string[], timeout: number): Promise<Hoo
     )
     if (r.exitCode !== 0) return { output: `[-] update-login-profile failed: ${r.stderr.trim()}`, findings: [] }
     return {
-      output: `[+] Console login updated for ${username}\n    Password: ${pw}`,
+      output: `[+] Console login updated for ${username}\n    Password: ${pw}\n\n[*] Detection:\n  CloudTrail: UpdateLoginProfile (HIGH — password change)\n  GuardDuty: Persistence:IAMUser/UserPermissions`,
       findings: [
         {
           checkId: "AWS-CRED-006",
@@ -451,6 +543,10 @@ export async function consoleLogin(args: string[], timeout: number): Promise<Hoo
       `[+] Console login created for ${username}`,
       `    Password: ${pw}`,
       `    Console URL: https://${account || "ACCOUNT_ID"}.signin.aws.amazon.com/console`,
+      ``,
+      `[*] Detection:`,
+      `  CloudTrail: CreateLoginProfile (HIGH — new console access)`,
+      `  GuardDuty: Persistence:IAMUser/UserPermissions`,
     ].join("\n"),
     findings: [
       {
@@ -474,6 +570,18 @@ export async function cognitoToken(args: string[], timeout: number): Promise<Hoo
   const identityPoolId = argVal(args, "--identity-pool-id")
   const findings: Finding[] = []
   const output: string[] = ["[*] Cognito Token Extraction\n"]
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["cognito-idp:ListUserPools", "cognito-idp:DescribeUserPoolClient", "cognito-identity:GetCredentialsForIdentity", "cognito-identity:GetId"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    output.push(`[+] Pre-flight: ${allowed.length}/${actions.length} Cognito actions allowed`)
+    if (allowed.length > 0) output.push(`[!] Allowed: ${allowed.join(", ")}`)
+    output.push("")
+  }
 
   if (!poolId && !identityPoolId) {
     const pools = await aws(
@@ -650,6 +758,10 @@ export async function cognitoToken(args: string[], timeout: number): Promise<Hoo
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListUserPools, DescribeUserPool, ListUsers, DescribeUserPoolClient, ListIdentityPools, GetId, GetCredentialsForIdentity`)
+  output.push(`  Note: DescribeUserPoolClient exposes client secrets; GetCredentialsForIdentity returns AWS creds from identity pool`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -659,6 +771,18 @@ export async function cfnSecretExtract(args: string[], timeout: number): Promise
   const stackName = argVal(args, "--stack-name")
   const findings: Finding[] = []
   const output: string[] = ["[*] CloudFormation Secret Extraction\n"]
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["cloudformation:ListStacks", "cloudformation:DescribeStacks", "cloudformation:GetTemplate"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    output.push(`[+] Pre-flight: ${allowed.length}/${actions.length} CFN actions allowed`)
+    if (allowed.length > 0) output.push(`[!] Allowed: ${allowed.join(", ")}`)
+    output.push("")
+  }
 
   const secretPattern =
     /(?:password|secret|key|token|api.?key|credential|connection.?string|db.?pass|rds.?pass|auth|private|master)/i
@@ -790,6 +914,11 @@ export async function cfnSecretExtract(args: string[], timeout: number): Promise
   }
 
   output.push(`\n[+] Scan complete: ${findings.length} potential secrets found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListStacks, DescribeStacks, GetTemplate (HIGH — exposes stack parameters and template body)`)
+  output.push(`  Note: GetTemplate can reveal NoEcho parameter defaults and hardcoded credentials in templates`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -798,6 +927,18 @@ export async function codecommitCred(args: string[], timeout: number): Promise<H
   const region = argVal(args, "--region")
   const findings: Finding[] = []
   const output: string[] = ["[*] CodeCommit Credential Enumeration\n"]
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["codecommit:ListRepositories", "codecommit:GetRepository", "iam:ListServiceSpecificCredentials", "iam:ListSSHPublicKeys"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    output.push(`[+] Pre-flight: ${allowed.length}/${actions.length} CodeCommit actions allowed`)
+    if (allowed.length > 0) output.push(`[!] Allowed: ${allowed.join(", ")}`)
+    output.push("")
+  }
 
   const repos = await aws(
     ["codecommit", "list-repositories", "--query", "repositories[].[repositoryName,repositoryId]"],
@@ -913,6 +1054,10 @@ export async function codecommitCred(args: string[], timeout: number): Promise<H
     output.push(`\n[+] Credential has codecommit:GetRepository access — can clone repos`)
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListRepositories, GetRepository, ListServiceSpecificCredentials, ListSSHPublicKeys`)
+  output.push(`  Note: ListServiceSpecificCredentials reveals HTTPS Git credentials for CodeCommit`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -921,6 +1066,18 @@ export async function ciCdSecretExtract(args: string[], timeout: number): Promis
   const region = argVal(args, "--region")
   const findings: Finding[] = []
   const output: string[] = ["[*] CI/CD Secret Extraction (CodePipeline + CodeBuild)\n"]
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["codepipeline:GetPipeline", "codepipeline:ListPipelines", "codebuild:BatchGetProjects", "codebuild:ListProjects"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    output.push(`[+] Pre-flight: ${allowed.length}/${actions.length} CI/CD actions allowed`)
+    if (allowed.length > 0) output.push(`[!] Allowed: ${allowed.join(", ")}`)
+    output.push("")
+  }
 
   const secretPattern = /(?:password|secret|key|token|api.?key|credential|private|auth|db.?pass)/i
 
@@ -1090,6 +1247,10 @@ export async function ciCdSecretExtract(args: string[], timeout: number): Promis
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListPipelines, GetPipeline, ListProjects, BatchGetProjects, ListConnections`)
+  output.push(`  Note: GetPipeline exposes artifact bucket + action configs; BatchGetProjects reveals plaintext env vars`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -1098,6 +1259,18 @@ export async function ec2UserData(args: string[], timeout: number): Promise<Hook
   const region = argVal(args, "--region")
   const findings: Finding[] = []
   const output: string[] = ["[*] EC2 Instance UserData Extraction (Pacu ec2__download_userdata)\n"]
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["ec2:DescribeInstances", "ec2:DescribeInstanceAttribute"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    output.push(`[+] Pre-flight: ${allowed.length}/${actions.length} EC2 UserData actions allowed`)
+    if (allowed.length > 0) output.push(`[!] Allowed: ${allowed.join(", ")}`)
+    output.push("")
+  }
 
   const secretPattern =
     /(?:password|passwd|secret|api.?key|token|private.?key|connection.?string|db.?(?:host|pass|user|url)|redis|mongo|mysql|postgres|jdbc|aws_access|aws_secret|bearer|authorization)/i
@@ -1218,6 +1391,11 @@ export async function ec2UserData(args: string[], timeout: number): Promise<Hook
   }
 
   output.push(`\n[*] Summary: ${harvested} instances with UserData, ${secretsFound} secret patterns found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeInstances, DescribeInstanceAttribute (userData attribute — HIGH signal)`)
+  output.push(`  Note: Mass DescribeInstanceAttribute calls for userData are a strong indicator of credential harvesting`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -1226,6 +1404,18 @@ export async function lambdaEnvHarvest(args: string[], timeout: number): Promise
   const region = argVal(args, "--region")
   const findings: Finding[] = []
   const output: string[] = ["[*] Lambda Environment Variable Harvest (CloudFox env-vars)\n"]
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["lambda:ListFunctions", "lambda:GetFunctionConfiguration"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    output.push(`[+] Pre-flight: ${allowed.length}/${actions.length} Lambda env harvest actions allowed`)
+    if (allowed.length > 0) output.push(`[!] Allowed: ${allowed.join(", ")}`)
+    output.push("")
+  }
 
   const secretPattern =
     /(?:PASSWORD|PASSWD|SECRET|API.?KEY|TOKEN|PRIVATE|AUTH|JWT|DB_|REDIS_|MONGO_|MYSQL_|POSTGRES_|DATABASE_|CONNECTION|CREDENTIAL|BEARER|MASTER_KEY|ENCRYPTION)/i
@@ -1308,6 +1498,11 @@ export async function lambdaEnvHarvest(args: string[], timeout: number): Promise
   }
 
   output.push(`\n[*] Summary: ${totalEnvVars} total env vars across ${fl.length} functions, ${secretVars} secret patterns`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListFunctions, GetFunctionConfiguration (exposes env vars including secrets)`)
+  output.push(`  Note: Mass GetFunctionConfiguration calls across all functions is a strong credential harvesting indicator`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -1316,6 +1511,18 @@ export async function ssmParameterMine(args: string[], timeout: number): Promise
   const region = argVal(args, "--region")
   const findings: Finding[] = []
   const output: string[] = ["[*] SSM Parameter Store Deep Mining\n"]
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = (tryJson(id.stdout) || {}).Arn || ""
+  if (callerArn) {
+    const actions = ["ssm:DescribeParameters", "ssm:GetParameter", "ssm:GetParametersByPath"]
+    const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...actions], profile, region, timeout)
+    const results = tryJson(sim.stdout)?.EvaluationResults || []
+    const allowed = results.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+    output.push(`[+] Pre-flight: ${allowed.length}/${actions.length} SSM parameter actions allowed`)
+    if (allowed.length > 0) output.push(`[!] Allowed: ${allowed.join(", ")}`)
+    output.push("")
+  }
 
   const secretPattern =
     /(?:password|passwd|secret|api.?key|token|private|auth|jwt|credential|connection|master|encryption|db|redis|mongo|mysql|postgres)/i
@@ -1459,6 +1666,12 @@ export async function ssmParameterMine(args: string[], timeout: number): Promise
   }
 
   output.push(`\n[*] Summary: ${secretsFound} secrets extracted, ${decryptFailed} decrypt denied, ${pl.length + discoveredPaths.length} total parameters`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeParameters, GetParameter (with --with-decryption = kms:Decrypt), GetParametersByPath`)
+  output.push(`  GuardDuty: CredentialAccess:IAMUser/AnomalousBehavior (bulk parameter access)`)
+  output.push(`  Note: GetParameter with --with-decryption triggers KMS Decrypt event — very high signal`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -1490,6 +1703,8 @@ export async function validateAwsCredential(
   }
 
   const result = JSON.parse(stdout) as Record<string, string>
+  // Detection: CloudTrail: GetCallerIdentity (benign, but using harvested creds from external IP triggers
+  // GuardDuty: UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS)
   return {
     valid: true,
     identity: result.Arn || null,
