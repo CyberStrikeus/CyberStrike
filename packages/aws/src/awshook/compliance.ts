@@ -151,6 +151,10 @@ export async function cisBenchmark(args: string[], timeout: number): Promise<Hoo
   }
 
   output.push(`\n[*] CIS Benchmark Summary: ${findings.length} issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeTrails, GetTrailStatus, GetAccountPasswordPolicy, GetAccountSummary, DescribeSecurityGroups`)
+  output.push(`  OPSEC: CIS benchmark scan generates events across IAM, CloudTrail, EC2 — high-volume audit footprint`)
   return { output: output.join("\n"), findings }
 }
 
@@ -253,6 +257,10 @@ export async function accessKeyRotation(args: string[], timeout: number): Promis
   }
 
   output.push(`\n[*] Summary: ${totalKeys} active keys, ${over90} >90d, ${over180} >180d, ${neverUsed} never used, ${findings.length} findings`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListUsers, ListAccessKeys, GetAccessKeyLastUsed`)
+  output.push(`  OPSEC: Per-user key enumeration generates N×ListAccessKeys + N×GetAccessKeyLastUsed events — burst visible in CloudTrail`)
   return { output: output.join("\n"), findings }
 }
 
@@ -355,6 +363,9 @@ export async function mfaAudit(args: string[], timeout: number): Promise<HookRes
   }
 
   output.push(`\n[*] Summary: ${consoleUsers} console users, ${noMfaCount} without MFA, ${findings.length} findings`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetAccountSummary, ListVirtualMFADevices, ListUsers, GetLoginProfile, ListMFADevices`)
   return { output: output.join("\n"), findings }
 }
 
@@ -496,6 +507,9 @@ export async function passwordPolicyCheck(args: string[], timeout: number): Prom
 
   const passCount = 7 - findings.length
   output.push(`\n[*] Summary: ${passCount}/7 checks passed, ${findings.length} findings`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetAccountPasswordPolicy`)
   return { output: output.join("\n"), findings }
 }
 
@@ -604,6 +618,10 @@ export async function rootAccountAudit(args: string[], timeout: number): Promise
   }
 
   output.push(`\n[*] Summary: ${findings.length} root account security issues`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetAccountSummary, GenerateCredentialReport, GetCredentialReport`)
+  output.push(`  Note: Root account queries and credential report generation are high-signal — uncommon outside audits`)
   return { output: output.join("\n"), findings }
 }
 
@@ -773,6 +791,10 @@ export async function encryptionAudit(args: string[], timeout: number): Promise<
   }
 
   output.push(`\n[*] Summary: ${findings.length} encryption issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetEbsEncryptionByDefault, ListBuckets, GetBucketEncryption, DescribeDBInstances, ListTables, DescribeTable, DescribeFileSystems, ListQueues, GetQueueAttributes`)
+  output.push(`  Note: Cross-service encryption audit — events span EC2, S3, RDS, DynamoDB, EFS, SQS`)
   return { output: output.join("\n"), findings }
 }
 
@@ -927,6 +949,10 @@ export async function publicAccessAudit(args: string[], timeout: number): Promis
   }
 
   output.push(`\n[*] Summary: ${findings.length} public access issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetCallerIdentity, GetPublicAccessBlock (S3 + S3Control), ListBuckets, DescribeDBInstances, DescribeInstances, DescribeClusters (Redshift)`)
+  output.push(`  GuardDuty: Recon:EC2/PortProbeUnprotectedPort`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1102,6 +1128,10 @@ export async function loggingAudit(args: string[], timeout: number): Promise<Hoo
   }
 
   output.push(`\n[*] Summary: ${findings.length} logging issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeTrails, GetEventSelectors, DescribeVpcs, DescribeFlowLogs, ListBuckets, GetBucketLogging, DescribeLoadBalancers, DescribeLoadBalancerAttributes, DescribeDBInstances`)
+  output.push(`  Note: Meta — auditing the audit trail itself; defenders may alert on CloudTrail/FlowLog enumeration`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1249,6 +1279,9 @@ export async function networkSegmentationAudit(args: string[], timeout: number):
   }
 
   output.push(`\n[*] Summary: ${findings.length} network segmentation issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeVpcs, DescribeSecurityGroups, DescribeNetworkAcls, DescribeInstances`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1354,6 +1387,10 @@ export async function dataClassificationAudit(args: string[], timeout: number): 
   }
 
   output.push(`\n[*] Summary: ${findings.length} data classification issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeVolumes, GetMacieSession, DescribeDBInstances`)
+  output.push(`  Note: Macie session check reveals whether automated sensitive data discovery is active`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1506,6 +1543,9 @@ export async function backupComplianceAudit(args: string[], timeout: number): Pr
   }
 
   output.push(`\n[*] Summary: ${findings.length} backup compliance issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListBackupPlans, ListProtectedResources, DescribeDBInstances, ListBuckets, GetBucketVersioning, ListTables, DescribeContinuousBackups`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1665,6 +1705,10 @@ export async function iamBestPractices(args: string[], timeout: number): Promise
   }
 
   output.push(`\n[*] Summary: ${findings.length} IAM best practice issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListUsers, ListUserPolicies, ListAttachedUserPolicies, ListGroups, GetGroup, GenerateServiceLastAccessedDetails, GetServiceLastAccessedDetails`)
+  output.push(`  Note: Comprehensive IAM audit — per-user policy enumeration generates high event volume`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1757,6 +1801,9 @@ export async function vpcFlowLogAudit(args: string[], timeout: number): Promise<
   }
 
   output.push(`\n[*] Summary: ${covered} VPCs with flow logs, ${uncovered} without, ${findings.length} findings`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeVpcs, DescribeFlowLogs`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1869,6 +1916,9 @@ export async function s3PublicAudit(args: string[], timeout: number): Promise<Ho
   }
 
   output.push(`\n[*] Summary: ${findings.length} S3 public exposure issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListBuckets, GetBucketPolicyStatus, GetBucketAcl, GetBucketPolicy, GetBucketWebsite`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1991,6 +2041,9 @@ export async function rdsPublicAudit(args: string[], timeout: number): Promise<H
   }
 
   output.push(`\n[*] Summary: ${findings.length} RDS security issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeDBInstances`)
   return { output: output.join("\n"), findings }
 }
 
@@ -2106,6 +2159,10 @@ export async function secretRotationAudit(args: string[], timeout: number): Prom
   }
 
   output.push(`\n[*] Summary: ${findings.length} rotation issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListSecrets, ListKeys, DescribeKey, GetKeyRotationStatus`)
+  output.push(`  Note: KMS key and Secrets Manager enumeration reveals cryptographic and secret infrastructure`)
   return { output: output.join("\n"), findings }
 }
 
@@ -2233,6 +2290,9 @@ export async function serviceQuotaAudit(args: string[], timeout: number): Promis
   }
 
   output.push(`\n[*] Summary: ${findings.length} quota utilization warnings`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetAccountSummary, GetServiceQuota, GetAWSDefaultServiceQuota`)
   return { output: output.join("\n"), findings }
 }
 
@@ -2456,5 +2516,9 @@ export async function accountSecurityAudit(args: string[], timeout: number): Pro
   }
 
   output.push(`\n[*] Summary: ${findings.length} account security issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetCallerIdentity, DescribeOrganization, ListPolicies, GetPublicAccessBlock, GetEbsEncryptionByDefault, GetInstanceMetadataDefaults, GetAccountAuthorizationDetails, GetPolicyVersion, DescribeInstances`)
+  output.push(`  Note: Account-level security posture audit — GetAccountAuthorizationDetails returns full IAM dump, very high-signal`)
   return { output: output.join("\n"), findings }
 }
