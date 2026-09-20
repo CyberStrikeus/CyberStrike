@@ -1,4 +1,4 @@
-import { aws, argVal, hasFlag, tryJson } from "./shared"
+import { aws, run, argVal, hasFlag, tryJson } from "./shared"
 import type { Finding, HookResult } from "./shared"
 
 export async function ssmExec(args: string[], timeout: number): Promise<HookResult> {
@@ -941,6 +941,68 @@ export async function eksLateral(args: string[], timeout: number): Promise<HookR
       }
     }
 
+    // ── Attempt EKS API access via get-token ──
+    if (endpoint) {
+      const tokenArgs = ["eks", "get-token", "--cluster-name", name]
+      if (profile) tokenArgs.push("--profile", profile)
+      if (region) tokenArgs.push("--region", region)
+      tokenArgs.push("--output", "json", "--no-cli-pager")
+      const tokenResult = await run("aws", tokenArgs, timeout)
+      if (tokenResult.exitCode === 0) {
+        const tokenData = tryJson(tokenResult.stdout)
+        const token = tokenData?.status?.token as string | undefined
+        if (token) {
+          output.push(`    [+] EKS token obtained: ${token.slice(0, 24)}...`)
+
+          const nsResult = await run("curl", ["-sk", "-m", "10", "-H", `Authorization: Bearer ${token}`, `${endpoint}/api/v1/namespaces`], timeout)
+          if (nsResult.exitCode === 0) {
+            const nsData = tryJson(nsResult.stdout)
+            const nsList = nsData?.items || []
+            if (nsList.length > 0) {
+              const nsNames = nsList.map((n: Record<string, Record<string, string>>) => n.metadata?.name).filter(Boolean)
+              output.push(`    [+] K8s API access CONFIRMED — ${nsNames.length} namespaces: ${nsNames.slice(0, 10).join(", ")}${nsNames.length > 10 ? ` +${nsNames.length - 10} more` : ""}`)
+
+              const podResult = await run("curl", ["-sk", "-m", "10", "-H", `Authorization: Bearer ${token}`, `${endpoint}/api/v1/pods?limit=20`], timeout)
+              if (podResult.exitCode === 0) {
+                const podData = tryJson(podResult.stdout)
+                const podList = podData?.items || []
+                if (podList.length > 0) {
+                  output.push(`    [+] Pod enumeration: ${podList.length} pods visible`)
+                  for (const pod of podList.slice(0, 8)) {
+                    const pMeta = pod.metadata || {}
+                    const pStatus = pod.status?.phase || "Unknown"
+                    const containers = (pod.spec?.containers || []).map((c: Record<string, string>) => c.name).join(",")
+                    output.push(`        ${pMeta.namespace}/${pMeta.name} (${pStatus}) — containers: ${containers}`)
+                  }
+                  if (podList.length > 8) output.push(`        ... +${podList.length - 8} more pods`)
+                }
+              }
+
+              const secretResult = await run("curl", ["-sk", "-m", "10", "-H", `Authorization: Bearer ${token}`, `${endpoint}/api/v1/secrets?limit=5`], timeout)
+              const secretAccess = secretResult.exitCode === 0 && !tryJson(secretResult.stdout)?.message
+
+              findings.push({
+                checkId: "AWS-LATERAL-EKS-API-001",
+                provider: "aws",
+                severity: "critical",
+                status: "CONFIRMED",
+                resource: `eks://${name}`,
+                title: `Full K8s API access on EKS cluster ${name}`,
+                details: `Token-based access confirmed: ${nsNames.length} namespaces, ${(tryJson(podResult?.stdout || "{}")?.items || []).length} pods visible${secretAccess ? ", secrets readable" : ""}`,
+                remediation: "Review aws-auth ConfigMap and EKS access entries; restrict caller's IAM permissions for eks:*",
+              })
+            } else if (nsData?.message) {
+              output.push(`    [-] K8s API denied: ${String(nsData.message).slice(0, 120)}`)
+            }
+          } else {
+            output.push(`    [-] K8s API unreachable from this network (endpoint may require VPC/private access)`)
+          }
+        }
+      } else {
+        output.push(`    [-] Cannot get EKS token: ${tokenResult.stderr.trim().split("\n")[0]}`)
+      }
+    }
+
     const nodegroups = await aws(
       ["eks", "list-nodegroups", "--cluster-name", name, "--query", "nodegroups"],
       profile,
@@ -1020,14 +1082,23 @@ export async function lambdaVpcPivot(args: string[], timeout: number): Promise<H
     return { output: output.join("\n"), findings }
   }
 
-  const subnetToResources = new Map<string, string[]>()
+  const callerId = await aws(["sts", "get-caller-identity", "--query", "Arn", "--output", "text"], profile, region, timeout)
+  const callerArn = callerId.exitCode === 0 ? callerId.stdout.trim() : ""
+
+  type InternalTarget = { label: string; port: number; sgIds: string[] }
+  const subnetToTargets = new Map<string, InternalTarget[]>()
+
+  function addTarget(subnet: string, target: InternalTarget) {
+    if (!subnetToTargets.has(subnet)) subnetToTargets.set(subnet, [])
+    subnetToTargets.get(subnet)!.push(target)
+  }
 
   const rdsInstances = await aws(
     [
       "rds",
       "describe-db-instances",
       "--query",
-      "DBInstances[].[DBInstanceIdentifier,Engine,Endpoint.Address,Endpoint.Port,DBSubnetGroup.Subnets[].SubnetIdentifier]",
+      "DBInstances[].[DBInstanceIdentifier,Engine,Endpoint.Address,Endpoint.Port,DBSubnetGroup.Subnets[].SubnetIdentifier,VpcSecurityGroups[].VpcSecurityGroupId]",
     ],
     profile,
     region,
@@ -1037,11 +1108,10 @@ export async function lambdaVpcPivot(args: string[], timeout: number): Promise<H
     const dbs = tryJson(rdsInstances.stdout) || []
     for (const db of dbs) {
       const subnets = (db[4] || []) as string[]
+      const sgIds = (db[5] || []) as string[]
+      const port = Number(db[3]) || 3306
       const label = `RDS:${db[0]}(${db[1]}) → ${db[2]}:${db[3]}`
-      for (const s of subnets) {
-        if (!subnetToResources.has(s)) subnetToResources.set(s, [])
-        subnetToResources.get(s)!.push(label)
-      }
+      for (const s of subnets) addTarget(s, { label, port, sgIds })
     }
   }
 
@@ -1051,7 +1121,7 @@ export async function lambdaVpcPivot(args: string[], timeout: number): Promise<H
       "describe-cache-clusters",
       "--show-cache-node-info",
       "--query",
-      "CacheClusters[].[CacheClusterId,Engine,CacheNodes[0].Endpoint.Address,CacheNodes[0].Endpoint.Port,CacheSubnetGroupName]",
+      "CacheClusters[].[CacheClusterId,Engine,CacheNodes[0].Endpoint.Address,CacheNodes[0].Endpoint.Port,CacheSubnetGroupName,SecurityGroups[].SecurityGroupId]",
     ],
     profile,
     region,
@@ -1061,6 +1131,8 @@ export async function lambdaVpcPivot(args: string[], timeout: number): Promise<H
     const cl = tryJson(caches.stdout) || []
     for (const c of cl) {
       if (!c[4]) continue
+      const cacheSgIds = (c[5] || []) as string[]
+      const port = Number(c[3]) || 6379
       const subnetGroup = await aws(
         [
           "elasticache",
@@ -1077,10 +1149,7 @@ export async function lambdaVpcPivot(args: string[], timeout: number): Promise<H
       if (subnetGroup.exitCode === 0) {
         const subnets = (tryJson(subnetGroup.stdout) || []) as string[]
         const label = `ElastiCache:${c[0]}(${c[1]}) → ${c[2]}:${c[3]}`
-        for (const s of subnets) {
-          if (!subnetToResources.has(s)) subnetToResources.set(s, [])
-          subnetToResources.get(s)!.push(label)
-        }
+        for (const s of subnets) addTarget(s, { label, port, sgIds: cacheSgIds })
       }
     }
   }
@@ -1101,7 +1170,7 @@ export async function lambdaVpcPivot(args: string[], timeout: number): Promise<H
           "--domain-name",
           d,
           "--query",
-          "DomainStatus.{endpoint:Endpoints,subnets:VPCOptions.SubnetIds}",
+          "DomainStatus.{endpoint:Endpoints,subnets:VPCOptions.SubnetIds,sgIds:VPCOptions.SecurityGroupIds}",
         ],
         profile,
         region,
@@ -1110,12 +1179,10 @@ export async function lambdaVpcPivot(args: string[], timeout: number): Promise<H
       if (domainDesc.exitCode === 0) {
         const dd = tryJson(domainDesc.stdout)
         const subnets = (dd?.subnets || []) as string[]
+        const osSgIds = (dd?.sgIds || []) as string[]
         const ep = dd?.endpoint ? JSON.stringify(dd.endpoint) : d
         const label = `OpenSearch:${d} → ${ep}`
-        for (const s of subnets) {
-          if (!subnetToResources.has(s)) subnetToResources.set(s, [])
-          subnetToResources.get(s)!.push(label)
-        }
+        for (const s of subnets) addTarget(s, { label, port: 443, sgIds: osSgIds })
       }
     }
   }
@@ -1136,7 +1203,7 @@ export async function lambdaVpcPivot(args: string[], timeout: number): Promise<H
           "--file-system-id",
           fs[0],
           "--query",
-          "MountTargets[].{subnet:SubnetId,ip:IpAddress}",
+          "MountTargets[].{subnet:SubnetId,ip:IpAddress,MountTargetId:MountTargetId}",
         ],
         profile,
         region,
@@ -1146,11 +1213,59 @@ export async function lambdaVpcPivot(args: string[], timeout: number): Promise<H
         const mts = tryJson(targets.stdout) || []
         for (const mt of mts) {
           const label = `EFS:${fs[0]}(${fs[1] || "unnamed"}) → ${mt.ip}:2049`
-          if (!subnetToResources.has(mt.subnet)) subnetToResources.set(mt.subnet, [])
-          subnetToResources.get(mt.subnet)!.push(label)
+          const mtSgIds: string[] = []
+          if (mt.MountTargetId) {
+            const sgResult = await aws(["efs", "describe-mount-target-security-groups", "--mount-target-id", mt.MountTargetId], profile, region, timeout)
+            if (sgResult.exitCode === 0) mtSgIds.push(...(tryJson(sgResult.stdout)?.SecurityGroups || []))
+          }
+          addTarget(mt.subnet, { label, port: 2049, sgIds: mtSgIds })
         }
       }
     }
+  }
+
+  const sgCache = new Map<string, Record<string, unknown>>()
+  async function getSg(sgId: string): Promise<Record<string, unknown> | null> {
+    if (sgCache.has(sgId)) return sgCache.get(sgId)!
+    const r = await aws(["ec2", "describe-security-groups", "--group-ids", sgId], profile, region, timeout)
+    if (r.exitCode !== 0) return null
+    const sgs = tryJson(r.stdout)?.SecurityGroups || []
+    const sg = sgs[0] || null
+    if (sg) sgCache.set(sgId, sg)
+    return sg
+  }
+
+  function sgAllowsEgress(sg: Record<string, unknown>, port: number): boolean {
+    const perms = (sg.IpPermissionsEgress || []) as Array<Record<string, unknown>>
+    for (const rule of perms) {
+      const proto = rule.IpProtocol as string
+      if (proto === "-1") return true
+      if (proto !== "tcp" && proto !== "6") continue
+      const from = (rule.FromPort as number) || 0
+      const to = (rule.ToPort as number) || 65535
+      if (port >= from && port <= to) return true
+    }
+    return false
+  }
+
+  function sgAllowsIngress(sg: Record<string, unknown>, port: number, sourceSgIds: string[]): boolean {
+    const perms = (sg.IpPermissions || []) as Array<Record<string, unknown>>
+    for (const rule of perms) {
+      const proto = rule.IpProtocol as string
+      if (proto !== "-1" && proto !== "tcp" && proto !== "6") continue
+      const from = (rule.FromPort as number) || 0
+      const to = (rule.ToPort as number) || 65535
+      if (proto !== "-1" && (port < from || port > to)) continue
+      const pairs = (rule.UserIdGroupPairs || []) as Array<Record<string, string>>
+      for (const pair of pairs) {
+        if (sourceSgIds.includes(pair.GroupId)) return true
+      }
+      const ranges = (rule.IpRanges || []) as Array<Record<string, string>>
+      for (const range of ranges) {
+        if (range.CidrIp === "0.0.0.0/0") return true
+      }
+    }
+    return false
   }
 
   for (const fn of vpcFuncs) {
@@ -1160,29 +1275,93 @@ export async function lambdaVpcPivot(args: string[], timeout: number): Promise<H
     output.push(`    Subnets: ${fn.subnetIds.join(", ")}`)
     output.push(`    Security groups: ${fn.sgIds.join(", ")}`)
 
-    const reachable: string[] = []
+    const candidates: InternalTarget[] = []
     for (const sid of fn.subnetIds) {
-      const resources = subnetToResources.get(sid)
-      if (resources) reachable.push(...resources)
+      const targets = subnetToTargets.get(sid)
+      if (targets) candidates.push(...targets)
     }
 
-    const unique = [...new Set(reachable)]
-    if (unique.length > 0) {
-      output.push(`    [!] Reachable internal resources (${unique.length}):`)
-      for (const r of unique) output.push(`        → ${r}`)
+    const seen = new Set<string>()
+    const unique = candidates.filter((t) => {
+      if (seen.has(t.label)) return false
+      seen.add(t.label)
+      return true
+    })
 
-      findings.push({
-        checkId: "AWS-LATERAL-VPC-PIVOT-001",
-        provider: "aws",
-        severity: "medium",
-        status: "FOUND",
-        resource: `lambda://${fn.name}`,
-        title: `Lambda ${fn.name} can reach ${unique.length} internal resource(s)`,
-        details: `VPC-attached Lambda in ${fn.vpcId} (subnets: ${fn.subnetIds.join(",")}) can pivot to: ${unique.slice(0, 3).join("; ")}${unique.length > 3 ? ` +${unique.length - 3} more` : ""}`,
-        remediation: "Restrict Lambda security group outbound rules; ensure databases require IAM/TLS auth",
-      })
-    } else {
+    if (unique.length === 0) {
       output.push(`    No known internal resources found in same subnets`)
+      output.push("")
+      continue
+    }
+
+    output.push(`    Internal resources in same subnets: ${unique.length}`)
+    let confirmedCount = 0
+
+    for (const target of unique) {
+      let egressOk = false
+      for (const sgId of fn.sgIds) {
+        const sg = await getSg(sgId)
+        if (sg && sgAllowsEgress(sg, target.port)) { egressOk = true; break }
+      }
+
+      let ingressOk = false
+      for (const tSgId of target.sgIds) {
+        const sg = await getSg(tSgId)
+        if (sg && sgAllowsIngress(sg, target.port, fn.sgIds)) { ingressOk = true; break }
+      }
+
+      if (target.sgIds.length === 0) ingressOk = true
+
+      if (egressOk && ingressOk) {
+        output.push(`        [+] CONFIRMED: ${fn.name} → ${target.label}  (egress ✓, ingress ✓)`)
+        confirmedCount++
+      } else if (egressOk && !ingressOk) {
+        output.push(`        [-] BLOCKED:   ${fn.name} → ${target.label}  (egress ✓, ingress ✗ — target SG blocks)`)
+      } else if (!egressOk) {
+        output.push(`        [-] BLOCKED:   ${fn.name} → ${target.label}  (egress ✗ — Lambda SG blocks port ${target.port})`)
+      }
+    }
+
+    if (confirmedCount > 0) {
+      let canInvoke = false
+      if (callerArn) {
+        const funcArn = `arn:aws:lambda:${region || "us-east-1"}:*:function:${fn.name}`
+        const sim = await aws([
+          "iam", "simulate-principal-policy",
+          "--policy-source-arn", callerArn,
+          "--action-names", "lambda:InvokeFunction",
+          "--resource-arns", funcArn,
+          "--query", "EvaluationResults[0].EvalDecision",
+          "--output", "text",
+        ], profile, region, timeout)
+        if (sim.exitCode === 0 && sim.stdout.trim() === "allowed") canInvoke = true
+      }
+
+      if (canInvoke) {
+        output.push(`    [!] EXPLOITABLE: Can invoke ${fn.name} to pivot to ${confirmedCount} internal target(s)`)
+        output.push(`        → Use: code_exec_lambda --function-name ${fn.name}`)
+        findings.push({
+          checkId: "AWS-LATERAL-VPC-PIVOT-001",
+          provider: "aws",
+          severity: "critical",
+          status: "EXPLOITABLE",
+          resource: `lambda://${fn.name}`,
+          title: `Exploitable Lambda pivot: ${fn.name} → ${confirmedCount} internal resource(s)`,
+          details: `Current identity can invoke this VPC Lambda and SG rules confirm network path to ${confirmedCount} internal targets — use code_exec_lambda to exploit`,
+          remediation: "Restrict lambda:InvokeFunction; tighten Lambda SG outbound and target SG inbound rules",
+        })
+      } else {
+        findings.push({
+          checkId: "AWS-LATERAL-VPC-PIVOT-001",
+          provider: "aws",
+          severity: "medium",
+          status: "CONFIRMED",
+          resource: `lambda://${fn.name}`,
+          title: `Lambda ${fn.name}: SG-confirmed path to ${confirmedCount} internal resource(s)`,
+          details: `Network path confirmed via SG analysis but current identity ${canInvoke === false ? "cannot invoke this Lambda" : "invocability unknown"}`,
+          remediation: "Restrict Lambda security group outbound rules; ensure databases require IAM/TLS auth",
+        })
+      }
     }
 
     output.push("")
