@@ -2730,3 +2730,2728 @@ export async function elbEnum(args: string[], timeout: number): Promise<HookResu
 
   return { output: output.join("\n"), findings }
 }
+
+export async function dynamodbEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] DynamoDB Table Enumeration\n"]
+
+  const tables = await aws(["dynamodb", "list-tables"], profile, region, timeout)
+  if (tables.exitCode !== 0) return { output: `[-] Cannot list DynamoDB tables: ${tables.stderr.trim()}`, findings }
+  const tableNames = (tryJson(tables.stdout)?.TableNames || []) as string[]
+  output.push(`[+] DynamoDB Tables: ${tableNames.length}\n`)
+
+  for (const name of tableNames) {
+    const desc = await aws(["dynamodb", "describe-table", "--table-name", name], profile, region, timeout)
+    if (desc.exitCode !== 0) {
+      output.push(`  [-] ${name}: failed to describe`)
+      continue
+    }
+    const table = tryJson(desc.stdout)?.Table as Record<string, unknown> | undefined
+    if (!table) continue
+
+    const status = table.TableStatus as string
+    const itemCount = table.ItemCount as number
+    const sizeBytes = table.TableSizeBytes as number
+    const billing = (table.BillingModeSummary as Record<string, unknown>)?.BillingMode || "PROVISIONED"
+    output.push(`  [+] ${name} (${status}, ${billing})`)
+    output.push(`      Items: ${itemCount}, Size: ${(sizeBytes / 1024 / 1024).toFixed(2)} MB`)
+
+    const sse = table.SSEDescription as Record<string, unknown> | undefined
+    if (!sse || sse.Status !== "ENABLED") {
+      output.push(`      [!] Server-side encryption: NOT using KMS`)
+      findings.push({
+        checkId: "AWS-DYNAMO-001",
+        provider: "aws",
+        severity: "medium",
+        status: "WARN",
+        resource: `dynamodb:table:${name}`,
+        title: `DynamoDB table without KMS encryption: ${name}`,
+        details: `Table ${name} uses default encryption (AWS owned key) instead of customer-managed KMS`,
+        remediation: "Enable SSE with a customer-managed KMS key for sensitive tables",
+      })
+    } else {
+      output.push(`      Encryption: ${sse.SSEType} (${sse.Status})`)
+    }
+
+    const streams = table.StreamSpecification as Record<string, unknown> | undefined
+    if (streams?.StreamEnabled) {
+      output.push(`      Streams: ${streams.StreamViewType}`)
+    }
+
+    const gsis = (table.GlobalSecondaryIndexes || []) as Array<Record<string, unknown>>
+    if (gsis.length > 0) {
+      output.push(`      GSIs: ${gsis.map((g) => g.IndexName).join(", ")}`)
+    }
+
+    const backup = await aws(
+      ["dynamodb", "describe-continuous-backups", "--table-name", name],
+      profile,
+      region,
+      timeout,
+    )
+    if (backup.exitCode === 0) {
+      const cb = tryJson(backup.stdout)?.ContinuousBackupsDescription as Record<string, unknown> | undefined
+      const pitr = cb?.PointInTimeRecoveryDescription as Record<string, unknown> | undefined
+      if (!pitr || pitr.PointInTimeRecoveryStatus !== "ENABLED") {
+        output.push(`      [!] Point-in-Time Recovery: DISABLED`)
+        findings.push({
+          checkId: "AWS-DYNAMO-002",
+          provider: "aws",
+          severity: "medium",
+          status: "FAIL",
+          resource: `dynamodb:table:${name}`,
+          title: `PITR disabled: ${name}`,
+          details: `Table ${name} does not have Point-in-Time Recovery enabled — data loss risk`,
+          remediation: "Enable PITR for critical DynamoDB tables",
+        })
+      } else {
+        output.push(`      PITR: ENABLED`)
+      }
+    }
+
+    if (billing === "PROVISIONED") {
+      const rcu = (table.ProvisionedThroughput as Record<string, unknown>)?.ReadCapacityUnits
+      const wcu = (table.ProvisionedThroughput as Record<string, unknown>)?.WriteCapacityUnits
+      output.push(`      Throughput: RCU=${rcu}, WCU=${wcu}`)
+    }
+  }
+
+  if (tableNames.length > 0 && findings.length === 0) {
+    findings.push({
+      checkId: "AWS-DYNAMO-003",
+      provider: "aws",
+      severity: "info",
+      status: "INFO",
+      resource: "dynamodb",
+      title: `DynamoDB: ${tableNames.length} table(s) enumerated`,
+      details: `All ${tableNames.length} tables passed basic security checks (encryption, PITR)`,
+      remediation: "Continue monitoring DynamoDB security posture",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function cognitoEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Cognito Enumeration\n"]
+
+  const pools = await aws(
+    ["cognito-idp", "list-user-pools", "--max-results", "60"],
+    profile,
+    region,
+    timeout,
+  )
+  if (pools.exitCode === 0) {
+    const userPools = (tryJson(pools.stdout)?.UserPools || []) as Array<Record<string, unknown>>
+    output.push(`[+] User Pools: ${userPools.length}`)
+
+    for (const pool of userPools) {
+      const poolId = pool.Id as string
+      const poolName = pool.Name as string
+      output.push(`\n  [+] ${poolName} (${poolId})`)
+
+      const desc = await aws(
+        ["cognito-idp", "describe-user-pool", "--user-pool-id", poolId],
+        profile,
+        region,
+        timeout,
+      )
+      if (desc.exitCode !== 0) continue
+      const up = tryJson(desc.stdout)?.UserPool as Record<string, unknown> | undefined
+      if (!up) continue
+
+      const mfa = up.MfaConfiguration as string
+      output.push(`      MFA: ${mfa}`)
+      if (mfa === "OFF") {
+        findings.push({
+          checkId: "AWS-COGNITO-ENUM-001",
+          provider: "aws",
+          severity: "high",
+          status: "FAIL",
+          resource: `cognito:user-pool:${poolId}`,
+          title: `Cognito User Pool MFA disabled: ${poolName}`,
+          details: `User Pool ${poolName} (${poolId}) has MFA set to OFF`,
+          remediation: "Enable MFA (OPTIONAL or ON) for the user pool",
+        })
+      }
+
+      const pwPolicy = up.Policies as Record<string, Record<string, unknown>> | undefined
+      const pp = pwPolicy?.PasswordPolicy
+      if (pp) {
+        output.push(
+          `      Password Policy: min=${pp.MinimumLength}, upper=${pp.RequireUppercase}, lower=${pp.RequireLowercase}, numbers=${pp.RequireNumbers}, symbols=${pp.RequireSymbols}`,
+        )
+        if ((pp.MinimumLength as number) < 12) {
+          findings.push({
+            checkId: "AWS-COGNITO-ENUM-001",
+            provider: "aws",
+            severity: "medium",
+            status: "WARN",
+            resource: `cognito:user-pool:${poolId}`,
+            title: `Weak password policy: ${poolName}`,
+            details: `Minimum password length is ${pp.MinimumLength} (recommended: 12+)`,
+            remediation: "Increase minimum password length to at least 12 characters",
+          })
+        }
+      }
+
+      const triggers = up.LambdaConfig as Record<string, unknown> | undefined
+      if (triggers && Object.keys(triggers).length > 0) {
+        output.push(`      Lambda Triggers: ${Object.keys(triggers).join(", ")}`)
+      }
+    }
+  } else {
+    output.push(`[-] Cannot list user pools: ${pools.stderr.trim()}`)
+  }
+
+  const idPools = await aws(
+    ["cognito-identity", "list-identity-pools", "--max-results", "60"],
+    profile,
+    region,
+    timeout,
+  )
+  if (idPools.exitCode === 0) {
+    const identityPools = (tryJson(idPools.stdout)?.IdentityPools || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Identity Pools: ${identityPools.length}`)
+
+    for (const ip of identityPools) {
+      const ipId = ip.IdentityPoolId as string
+      const ipName = ip.IdentityPoolName as string
+
+      const desc = await aws(
+        ["cognito-identity", "describe-identity-pool", "--identity-pool-id", ipId],
+        profile,
+        region,
+        timeout,
+      )
+      if (desc.exitCode !== 0) continue
+      const pool = tryJson(desc.stdout) as Record<string, unknown> | null
+      if (!pool) continue
+
+      const allowUnauth = pool.AllowUnauthenticatedIdentities as boolean
+      output.push(`  [+] ${ipName} (${ipId}) — unauthenticated: ${allowUnauth}`)
+
+      if (allowUnauth) {
+        findings.push({
+          checkId: "AWS-COGNITO-ENUM-002",
+          provider: "aws",
+          severity: "high",
+          status: "FAIL",
+          resource: `cognito:identity-pool:${ipId}`,
+          title: `Unauthenticated identities allowed: ${ipName}`,
+          details: `Identity Pool ${ipName} (${ipId}) allows unauthenticated access — attackers can obtain temporary AWS credentials`,
+          remediation: "Disable AllowUnauthenticatedIdentities unless explicitly required",
+        })
+      }
+
+      const providers = (pool.CognitoIdentityProviders || []) as Array<Record<string, unknown>>
+      if (providers.length > 0) {
+        output.push(`      Providers: ${providers.map((p) => p.ProviderName).join(", ")}`)
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function stsEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] STS/Federation Enumeration\n"]
+
+  const oidcProviders = await aws(
+    ["iam", "list-open-id-connect-providers", "--query", "OpenIDConnectProviderList[].Arn"],
+    profile,
+    region,
+    timeout,
+  )
+  if (oidcProviders.exitCode === 0) {
+    const arns = (tryJson(oidcProviders.stdout) || []) as string[]
+    output.push(`[+] OIDC Providers: ${arns.length}`)
+
+    for (const arn of arns) {
+      const detail = await aws(
+        ["iam", "get-open-id-connect-provider", "--open-id-connect-provider-arn", arn],
+        profile,
+        region,
+        timeout,
+      )
+      if (detail.exitCode !== 0) continue
+      const provider = tryJson(detail.stdout) as Record<string, unknown> | null
+      if (!provider) continue
+
+      const url = provider.Url as string
+      const thumbprints = (provider.ThumbprintList || []) as string[]
+      const audiences = (provider.ClientIDList || []) as string[]
+      output.push(`\n  [+] OIDC: ${url}`)
+      output.push(`      Thumbprints: ${thumbprints.length}`)
+      output.push(`      Audiences: ${audiences.join(", ")}`)
+
+      if (thumbprints.length === 0) {
+        findings.push({
+          checkId: "AWS-STS-ENUM-001",
+          provider: "aws",
+          severity: "high",
+          status: "FAIL",
+          resource: arn,
+          title: `OIDC provider missing thumbprint validation: ${url}`,
+          details: `OIDC provider ${url} has no thumbprints configured — certificate validation may be bypassed`,
+          remediation: "Add valid thumbprints to the OIDC provider for certificate pinning",
+        })
+      }
+    }
+  }
+
+  const samlProviders = await aws(
+    ["iam", "list-saml-providers", "--query", "SAMLProviderList[]"],
+    profile,
+    region,
+    timeout,
+  )
+  if (samlProviders.exitCode === 0) {
+    const spList = (tryJson(samlProviders.stdout) || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] SAML Providers: ${spList.length}`)
+
+    for (const sp of spList) {
+      const arn = sp.Arn as string
+      const created = sp.CreateDate as string
+      const valid = sp.ValidUntil as string
+      output.push(`  [+] ${arn}`)
+      output.push(`      Created: ${created}, Valid Until: ${valid}`)
+
+      if (valid) {
+        const expiry = new Date(valid)
+        const now = new Date()
+        if (expiry < now) {
+          findings.push({
+            checkId: "AWS-STS-ENUM-001",
+            provider: "aws",
+            severity: "medium",
+            status: "WARN",
+            resource: arn,
+            title: `Expired SAML provider: ${arn}`,
+            details: `SAML provider metadata expired on ${valid}`,
+            remediation: "Update SAML provider metadata with current certificate",
+          })
+        }
+      }
+
+      const detail = await aws(
+        ["iam", "get-saml-provider", "--saml-provider-arn", arn],
+        profile,
+        region,
+        timeout,
+      )
+      if (detail.exitCode === 0) {
+        const saml = tryJson(detail.stdout) as Record<string, unknown> | null
+        if (saml) {
+          const metadata = saml.SAMLMetadataDocument as string | undefined
+          if (metadata) {
+            output.push(`      Metadata: ${metadata.length} bytes`)
+          }
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function secretsManagerEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Secrets Manager Enumeration\n"]
+
+  const secrets = await aws(["secretsmanager", "list-secrets"], profile, region, timeout)
+  if (secrets.exitCode !== 0) return { output: `[-] Cannot list secrets: ${secrets.stderr.trim()}`, findings }
+  const secretList = (tryJson(secrets.stdout)?.SecretList || []) as Array<Record<string, unknown>>
+  output.push(`[+] Secrets: ${secretList.length}\n`)
+
+  const now = Date.now()
+  const dayMs = 86400000
+
+  for (const s of secretList) {
+    const name = s.Name as string
+    const arn = s.ARN as string
+    const rotationEnabled = s.RotationEnabled as boolean
+    const lastRotated = s.LastRotatedDate as string | undefined
+    const lastAccessed = s.LastAccessedDate as string | undefined
+
+    output.push(`  [+] ${name}`)
+    output.push(`      ARN: ${arn}`)
+    output.push(`      Rotation: ${rotationEnabled ? "ENABLED" : "DISABLED"}`)
+
+    if (!rotationEnabled) {
+      findings.push({
+        checkId: "AWS-SM-001",
+        provider: "aws",
+        severity: "high",
+        status: "FAIL",
+        resource: arn,
+        title: `Secret without rotation: ${name}`,
+        details: `Secret ${name} does not have automatic rotation enabled`,
+        remediation: "Enable automatic rotation with a Lambda rotation function",
+      })
+    }
+
+    if (lastRotated) {
+      const age = Math.floor((now - new Date(lastRotated).getTime()) / dayMs)
+      output.push(`      Last Rotated: ${lastRotated} (${age} days ago)`)
+    }
+
+    if (lastAccessed) {
+      const age = Math.floor((now - new Date(lastAccessed).getTime()) / dayMs)
+      output.push(`      Last Accessed: ${lastAccessed} (${age} days ago)`)
+      if (age > 90) {
+        findings.push({
+          checkId: "AWS-SM-002",
+          provider: "aws",
+          severity: "low",
+          status: "WARN",
+          resource: arn,
+          title: `Stale secret: ${name}`,
+          details: `Secret ${name} was last accessed ${age} days ago — may be unused`,
+          remediation: "Review if this secret is still needed; delete unused secrets",
+        })
+      }
+    }
+
+    const policy = await aws(
+      ["secretsmanager", "get-resource-policy", "--secret-id", arn],
+      profile,
+      region,
+      timeout,
+    )
+    if (policy.exitCode === 0) {
+      const rp = tryJson(policy.stdout) as Record<string, unknown> | null
+      if (rp?.ResourcePolicy) {
+        const policyDoc = typeof rp.ResourcePolicy === "string" ? rp.ResourcePolicy : JSON.stringify(rp.ResourcePolicy)
+        if (policyDoc.includes('"*"') || policyDoc.includes("\"*\"")) {
+          output.push(`      [!] Resource policy allows broad access`)
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function ssmEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] SSM Enumeration\n"]
+
+  const instances = await aws(
+    ["ssm", "describe-instance-information"],
+    profile,
+    region,
+    timeout,
+  )
+  if (instances.exitCode === 0) {
+    const instList = (tryJson(instances.stdout)?.InstanceInformationList || []) as Array<Record<string, unknown>>
+    output.push(`[+] Managed Instances: ${instList.length}`)
+    for (const inst of instList) {
+      const id = inst.InstanceId as string
+      const platform = inst.PlatformType as string
+      const version = inst.PlatformVersion as string
+      const agentVer = inst.AgentVersion as string
+      const pingStatus = inst.PingStatus as string
+      output.push(`  [+] ${id} (${platform} ${version}, Agent: ${agentVer}, Ping: ${pingStatus})`)
+    }
+  }
+
+  const docs = await aws(
+    ["ssm", "list-documents", "--document-filter-list", "Key=Owner,Values=Self"],
+    profile,
+    region,
+    timeout,
+  )
+  if (docs.exitCode === 0) {
+    const docList = (tryJson(docs.stdout)?.DocumentIdentifiers || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Custom SSM Documents: ${docList.length}`)
+    for (const doc of docList) {
+      const name = doc.Name as string
+      const docType = doc.DocumentType as string
+      const format = doc.DocumentFormat as string
+      output.push(`  [+] ${name} (${docType}, ${format})`)
+    }
+  }
+
+  const params = await aws(
+    ["ssm", "describe-parameters", "--query", "Parameters[].{Name:Name,Type:Type}"],
+    profile,
+    region,
+    timeout,
+  )
+  if (params.exitCode === 0) {
+    const paramList = (tryJson(params.stdout) || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] SSM Parameters: ${paramList.length}`)
+    let secureCount = 0
+    let stringCount = 0
+    for (const p of paramList) {
+      if (p.Type === "SecureString") secureCount++
+      else stringCount++
+    }
+    output.push(`      SecureString: ${secureCount}, String/StringList: ${stringCount}`)
+    if (stringCount > 0) {
+      output.push(`      [!] ${stringCount} parameter(s) stored as plain String (not SecureString)`)
+    }
+  }
+
+  const mw = await aws(["ssm", "describe-maintenance-windows"], profile, region, timeout)
+  if (mw.exitCode === 0) {
+    const windows = (tryJson(mw.stdout)?.WindowIdentities || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Maintenance Windows: ${windows.length}`)
+    for (const w of windows) {
+      const name = w.Name as string
+      const enabled = w.Enabled as boolean
+      output.push(`  [+] ${name} (enabled: ${enabled})`)
+    }
+  }
+
+  findings.push({
+    checkId: "AWS-SSM-ENUM-001",
+    provider: "aws",
+    severity: "info",
+    status: "INFO",
+    resource: "ssm",
+    title: "SSM inventory enumerated",
+    details: "SSM managed instances, documents, parameters, and maintenance windows inventoried",
+    remediation: "Review SSM configuration for least-privilege document access",
+  })
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function sagemakerEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] SageMaker Enumeration\n"]
+
+  const notebooks = await aws(
+    ["sagemaker", "list-notebook-instances"],
+    profile,
+    region,
+    timeout,
+  )
+  if (notebooks.exitCode === 0) {
+    const nbList = (tryJson(notebooks.stdout)?.NotebookInstances || []) as Array<Record<string, unknown>>
+    output.push(`[+] Notebook Instances: ${nbList.length}`)
+
+    for (const nb of nbList) {
+      const name = nb.NotebookInstanceName as string
+      const status = nb.NotebookInstanceStatus as string
+      const arn = nb.NotebookInstanceArn as string
+      output.push(`\n  [+] ${name} (${status})`)
+
+      const desc = await aws(
+        ["sagemaker", "describe-notebook-instance", "--notebook-instance-name", name],
+        profile,
+        region,
+        timeout,
+      )
+      if (desc.exitCode !== 0) continue
+      const detail = tryJson(desc.stdout) as Record<string, unknown> | null
+      if (!detail) continue
+
+      const rootAccess = detail.RootAccess as string
+      const directInternet = detail.DirectInternetAccess as string
+      const kmsKey = detail.KmsKeyId as string | undefined
+      const instanceType = detail.InstanceType as string
+      const subnet = detail.SubnetId as string | undefined
+
+      output.push(`      Type: ${instanceType}`)
+      output.push(`      Root Access: ${rootAccess}`)
+      output.push(`      Direct Internet: ${directInternet}`)
+      output.push(`      KMS Key: ${kmsKey || "None (default encryption)"}`)
+      output.push(`      Subnet: ${subnet || "No VPC"}`)
+
+      if (rootAccess === "Enabled" && directInternet === "Enabled") {
+        findings.push({
+          checkId: "AWS-SAGEMAKER-001",
+          provider: "aws",
+          severity: "high",
+          status: "FAIL",
+          resource: arn,
+          title: `SageMaker notebook root+internet: ${name}`,
+          details: `Notebook ${name} has both root access and direct internet access enabled — high risk for code execution`,
+          remediation: "Disable RootAccess and/or DirectInternetAccess; use VPC networking",
+        })
+      } else if (rootAccess === "Enabled") {
+        findings.push({
+          checkId: "AWS-SAGEMAKER-001",
+          provider: "aws",
+          severity: "medium",
+          status: "WARN",
+          resource: arn,
+          title: `SageMaker notebook root access enabled: ${name}`,
+          details: `Notebook ${name} has root access enabled`,
+          remediation: "Disable root access unless required for development",
+        })
+      }
+
+      if (!kmsKey) {
+        findings.push({
+          checkId: "AWS-SAGEMAKER-002",
+          provider: "aws",
+          severity: "medium",
+          status: "WARN",
+          resource: arn,
+          title: `SageMaker notebook without KMS encryption: ${name}`,
+          details: `Notebook ${name} does not use a customer-managed KMS key`,
+          remediation: "Configure a KMS key for notebook instance encryption",
+        })
+      }
+    }
+  }
+
+  const endpoints = await aws(["sagemaker", "list-endpoints"], profile, region, timeout)
+  if (endpoints.exitCode === 0) {
+    const epList = (tryJson(endpoints.stdout)?.Endpoints || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] SageMaker Endpoints: ${epList.length}`)
+    for (const ep of epList) {
+      const name = ep.EndpointName as string
+      const status = ep.EndpointStatus as string
+      output.push(`  [+] ${name} (${status})`)
+    }
+  }
+
+  const jobs = await aws(
+    ["sagemaker", "list-training-jobs", "--sort-by", "CreationTime", "--sort-order", "Descending", "--max-results", "10"],
+    profile,
+    region,
+    timeout,
+  )
+  if (jobs.exitCode === 0) {
+    const jobList = (tryJson(jobs.stdout)?.TrainingJobSummaries || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Recent Training Jobs: ${jobList.length}`)
+    for (const j of jobList) {
+      const name = j.TrainingJobName as string
+      const status = j.TrainingJobStatus as string
+      output.push(`  [+] ${name} (${status})`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function stepFunctionsEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Step Functions Enumeration\n"]
+
+  const machines = await aws(["stepfunctions", "list-state-machines"], profile, region, timeout)
+  if (machines.exitCode !== 0) return { output: `[-] Cannot list state machines: ${machines.stderr.trim()}`, findings }
+  const smList = (tryJson(machines.stdout)?.stateMachines || []) as Array<Record<string, unknown>>
+  output.push(`[+] State Machines: ${smList.length}\n`)
+
+  for (const sm of smList) {
+    const arn = sm.stateMachineArn as string
+    const name = sm.name as string
+    const smType = sm.type as string
+    output.push(`  [+] ${name} (${smType})`)
+
+    const desc = await aws(
+      ["stepfunctions", "describe-state-machine", "--state-machine-arn", arn],
+      profile,
+      region,
+      timeout,
+    )
+    if (desc.exitCode !== 0) continue
+    const detail = tryJson(desc.stdout) as Record<string, unknown> | null
+    if (!detail) continue
+
+    const roleArn = detail.roleArn as string
+    const logging = detail.loggingConfiguration as Record<string, unknown> | undefined
+    const logLevel = logging?.level as string | undefined
+
+    output.push(`      Role: ${roleArn}`)
+    output.push(`      Logging Level: ${logLevel || "OFF"}`)
+
+    if (!logLevel || logLevel === "OFF") {
+      findings.push({
+        checkId: "AWS-STEPFN-001",
+        provider: "aws",
+        severity: "medium",
+        status: "FAIL",
+        resource: arn,
+        title: `Step Functions without logging: ${name}`,
+        details: `State machine ${name} has logging disabled — no audit trail for execution`,
+        remediation: "Enable CloudWatch Logs logging at ALL or ERROR level",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function glueEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Glue Enumeration\n"]
+
+  const dbs = await aws(["glue", "get-databases"], profile, region, timeout)
+  if (dbs.exitCode === 0) {
+    const dbList = (tryJson(dbs.stdout)?.DatabaseList || []) as Array<Record<string, unknown>>
+    output.push(`[+] Glue Databases: ${dbList.length}`)
+    for (const db of dbList) {
+      output.push(`  [+] ${db.Name} — ${db.Description || "(no description)"}`)
+    }
+  }
+
+  const crawlers = await aws(["glue", "get-crawlers"], profile, region, timeout)
+  if (crawlers.exitCode === 0) {
+    const crawlerList = (tryJson(crawlers.stdout)?.Crawlers || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Glue Crawlers: ${crawlerList.length}`)
+    for (const c of crawlerList) {
+      const name = c.Name as string
+      const state = c.State as string
+      const role = c.Role as string
+      output.push(`  [+] ${name} (${state}, Role: ${role})`)
+    }
+  }
+
+  const jobs = await aws(["glue", "get-jobs"], profile, region, timeout)
+  if (jobs.exitCode === 0) {
+    const jobList = (tryJson(jobs.stdout)?.Jobs || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Glue Jobs: ${jobList.length}`)
+    for (const j of jobList) {
+      const name = j.Name as string
+      const secConfig = j.SecurityConfiguration as string | undefined
+      const role = j.Role as string
+      output.push(`  [+] ${name} (Role: ${role})`)
+      if (!secConfig) {
+        output.push(`      [!] No SecurityConfiguration attached`)
+        findings.push({
+          checkId: "AWS-GLUE-001",
+          provider: "aws",
+          severity: "medium",
+          status: "WARN",
+          resource: `glue:job:${name}`,
+          title: `Glue job without security configuration: ${name}`,
+          details: `Glue job ${name} has no SecurityConfiguration — data at rest/transit may not be encrypted`,
+          remediation: "Attach a SecurityConfiguration with encryption settings to the Glue job",
+        })
+      } else {
+        output.push(`      Security Config: ${secConfig}`)
+      }
+    }
+  }
+
+  const devEndpoints = await aws(["glue", "get-dev-endpoints"], profile, region, timeout)
+  if (devEndpoints.exitCode === 0) {
+    const epList = (tryJson(devEndpoints.stdout)?.DevEndpoints || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Glue Dev Endpoints: ${epList.length}`)
+    for (const ep of epList) {
+      const name = ep.EndpointName as string
+      const status = ep.Status as string
+      const subnet = ep.SubnetId as string | undefined
+      const publicKey = ep.PublicKey as string | undefined
+      output.push(`  [+] ${name} (${status})`)
+      output.push(`      Subnet: ${subnet || "No VPC (PUBLIC)"}`)
+
+      if (!subnet) {
+        findings.push({
+          checkId: "AWS-GLUE-002",
+          provider: "aws",
+          severity: "high",
+          status: "FAIL",
+          resource: `glue:dev-endpoint:${name}`,
+          title: `Public Glue Dev Endpoint: ${name}`,
+          details: `Dev Endpoint ${name} has no SubnetId — exposed to public internet`,
+          remediation: "Move Dev Endpoint into a VPC subnet or decommission it",
+        })
+      }
+
+      if (publicKey) {
+        output.push(`      Public Key: configured`)
+      }
+    }
+  } else if (!devEndpoints.stderr.includes("AccessDeniedException")) {
+    output.push(`\n[-] Cannot list dev endpoints: ${devEndpoints.stderr.trim()}`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function codepipelineEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] CodePipeline Enumeration\n"]
+
+  const pipelines = await aws(["codepipeline", "list-pipelines"], profile, region, timeout)
+  if (pipelines.exitCode !== 0) return { output: `[-] Cannot list pipelines: ${pipelines.stderr.trim()}`, findings }
+  const pipeList = (tryJson(pipelines.stdout)?.pipelines || []) as Array<Record<string, unknown>>
+  output.push(`[+] Pipelines: ${pipeList.length}\n`)
+
+  for (const p of pipeList) {
+    const name = p.name as string
+    output.push(`  [+] ${name}`)
+
+    const detail = await aws(["codepipeline", "get-pipeline", "--name", name], profile, region, timeout)
+    if (detail.exitCode !== 0) continue
+    const pipeline = tryJson(detail.stdout)?.pipeline as Record<string, unknown> | undefined
+    if (!pipeline) continue
+
+    const stages = (pipeline.stages || []) as Array<Record<string, unknown>>
+    output.push(`      Stages: ${stages.length}`)
+
+    const artifactStore = pipeline.artifactStore as Record<string, unknown> | undefined
+    if (artifactStore) {
+      const storeType = artifactStore.type as string
+      const encKey = artifactStore.encryptionKey as Record<string, unknown> | undefined
+      output.push(`      Artifact Store: ${storeType}`)
+      if (!encKey) {
+        output.push(`      [!] Artifact store uses default encryption`)
+        findings.push({
+          checkId: "AWS-CODEPIPELINE-001",
+          provider: "aws",
+          severity: "medium",
+          status: "WARN",
+          resource: `codepipeline:${name}`,
+          title: `Unencrypted artifact store: ${name}`,
+          details: `Pipeline ${name} uses default S3 encryption for artifacts — no KMS key configured`,
+          remediation: "Configure a KMS encryption key on the pipeline artifact store",
+        })
+      }
+    }
+
+    for (const stage of stages) {
+      const stageName = stage.name as string
+      const actions = (stage.actions || []) as Array<Record<string, unknown>>
+      for (const action of actions) {
+        const actionName = action.name as string
+        const config = action.configuration as Record<string, unknown> | undefined
+        const roleArn = action.roleArn as string | undefined
+
+        if (roleArn && roleArn.includes(":iam::") && config) {
+          const actionAccountId = roleArn.split(":")[4]
+          const pipelineRoleArn = pipeline.roleArn as string
+          const pipelineAccountId = pipelineRoleArn ? pipelineRoleArn.split(":")[4] : ""
+          if (actionAccountId && pipelineAccountId && actionAccountId !== pipelineAccountId) {
+            output.push(`      [!] Cross-account action: ${stageName}/${actionName} → account ${actionAccountId}`)
+            findings.push({
+              checkId: "AWS-CODEPIPELINE-002",
+              provider: "aws",
+              severity: "medium",
+              status: "INFO",
+              resource: `codepipeline:${name}:${stageName}:${actionName}`,
+              title: `Cross-account pipeline action: ${name}/${stageName}/${actionName}`,
+              details: `Action assumes role in account ${actionAccountId} (pipeline is in ${pipelineAccountId})`,
+              remediation: "Verify cross-account IAM roles follow least-privilege principle",
+            })
+          }
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function eventbridgeEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] EventBridge Enumeration\n"]
+
+  const buses = await aws(["events", "list-event-buses"], profile, region, timeout)
+  if (buses.exitCode !== 0) return { output: `[-] Cannot list event buses: ${buses.stderr.trim()}`, findings }
+  const busList = (tryJson(buses.stdout)?.EventBuses || []) as Array<Record<string, unknown>>
+  output.push(`[+] Event Buses: ${busList.length}\n`)
+
+  for (const bus of busList) {
+    const name = bus.Name as string
+    const arn = bus.Arn as string
+    const policy = bus.Policy as string | undefined
+    output.push(`  [+] ${name}`)
+    output.push(`      ARN: ${arn}`)
+
+    if (policy) {
+      const policyDoc = tryJson(policy) as Record<string, unknown> | null
+      if (policyDoc) {
+        const statements = (policyDoc.Statement || []) as Array<Record<string, unknown>>
+        for (const stmt of statements) {
+          const principal = stmt.Principal as unknown
+          const effect = stmt.Effect as string
+          const principalStr = typeof principal === "string" ? principal : JSON.stringify(principal)
+          if (effect === "Allow" && (principalStr === '"*"' || principalStr === "*" || principalStr.includes('"*"'))) {
+            output.push(`      [!] Event bus policy allows Principal: *`)
+            findings.push({
+              checkId: "AWS-EB-001",
+              provider: "aws",
+              severity: "high",
+              status: "FAIL",
+              resource: arn,
+              title: `EventBridge bus open policy: ${name}`,
+              details: `Event bus ${name} has a policy with Principal: * — any AWS account can send events`,
+              remediation: "Restrict the event bus policy to specific accounts/principals",
+            })
+          }
+        }
+      }
+    }
+  }
+
+  const rules = await aws(["events", "list-rules"], profile, region, timeout)
+  if (rules.exitCode === 0) {
+    const ruleList = (tryJson(rules.stdout)?.Rules || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] EventBridge Rules: ${ruleList.length}`)
+    for (const rule of ruleList) {
+      const name = rule.Name as string
+      const state = rule.State as string
+      const bus = rule.EventBusName as string
+      output.push(`  [+] ${name} (${state}, bus: ${bus})`)
+
+      const targets = await aws(
+        ["events", "list-targets-by-rule", "--rule", name, "--event-bus-name", bus],
+        profile,
+        region,
+        timeout,
+      )
+      if (targets.exitCode === 0) {
+        const targetList = (tryJson(targets.stdout)?.Targets || []) as Array<Record<string, unknown>>
+        output.push(`      Targets: ${targetList.length}`)
+        for (const t of targetList) {
+          output.push(`        → ${t.Arn}`)
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function wafEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] WAF v2 Enumeration\n"]
+
+  const regionalAcls = await aws(
+    ["wafv2", "list-web-acls", "--scope", "REGIONAL"],
+    profile,
+    region,
+    timeout,
+  )
+  if (regionalAcls.exitCode === 0) {
+    const acls = (tryJson(regionalAcls.stdout)?.WebACLs || []) as Array<Record<string, unknown>>
+    output.push(`[+] Regional Web ACLs: ${acls.length}`)
+
+    for (const acl of acls) {
+      const name = acl.Name as string
+      const id = acl.Id as string
+      const arn = acl.ARN as string
+      output.push(`\n  [+] ${name} (${id})`)
+
+      const detail = await aws(
+        ["wafv2", "get-web-acl", "--name", name, "--scope", "REGIONAL", "--id", id],
+        profile,
+        region,
+        timeout,
+      )
+      if (detail.exitCode !== 0) continue
+      const webAcl = tryJson(detail.stdout)?.WebACL as Record<string, unknown> | undefined
+      if (!webAcl) continue
+
+      const rules = (webAcl.Rules || []) as Array<Record<string, unknown>>
+      const defaultAction = webAcl.DefaultAction as Record<string, unknown>
+      output.push(`      Rules: ${rules.length}`)
+      output.push(`      Default Action: ${Object.keys(defaultAction || {}).join(",")}`)
+
+      for (const rule of rules) {
+        const rName = rule.Name as string
+        const stmt = rule.Statement as Record<string, unknown>
+        if (stmt?.ManagedRuleGroupStatement) {
+          const mrg = stmt.ManagedRuleGroupStatement as Record<string, unknown>
+          output.push(`      Managed Rule: ${mrg.VendorName}/${mrg.Name}`)
+        } else {
+          output.push(`      Rule: ${rName}`)
+        }
+      }
+    }
+  }
+
+  const cfAcls = await aws(
+    ["wafv2", "list-web-acls", "--scope", "CLOUDFRONT", "--region", "us-east-1"],
+    profile,
+    undefined,
+    timeout,
+  )
+  if (cfAcls.exitCode === 0) {
+    const acls = (tryJson(cfAcls.stdout)?.WebACLs || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] CloudFront Web ACLs: ${acls.length}`)
+
+    for (const acl of acls) {
+      const name = acl.Name as string
+      const id = acl.Id as string
+      output.push(`  [+] ${name} (${id})`)
+
+      const detail = await aws(
+        ["wafv2", "get-web-acl", "--name", name, "--scope", "CLOUDFRONT", "--id", id, "--region", "us-east-1"],
+        profile,
+        undefined,
+        timeout,
+      )
+      if (detail.exitCode !== 0) continue
+      const webAcl = tryJson(detail.stdout)?.WebACL as Record<string, unknown> | undefined
+      if (!webAcl) continue
+
+      const rules = (webAcl.Rules || []) as Array<Record<string, unknown>>
+      output.push(`      Rules: ${rules.length}`)
+    }
+  }
+
+  const ipSets = await aws(
+    ["wafv2", "list-ip-sets", "--scope", "REGIONAL"],
+    profile,
+    region,
+    timeout,
+  )
+  if (ipSets.exitCode === 0) {
+    const sets = (tryJson(ipSets.stdout)?.IPSets || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Regional IP Sets: ${sets.length}`)
+    for (const s of sets) {
+      output.push(`  [+] ${s.Name} (${s.Id})`)
+    }
+  }
+
+  findings.push({
+    checkId: "AWS-WAF-ENUM-001",
+    provider: "aws",
+    severity: "info",
+    status: "INFO",
+    resource: "wafv2",
+    title: "WAF configuration enumerated",
+    details: "WAFv2 Web ACLs, rules, managed rule groups, and IP sets inventoried",
+    remediation: "Review WAF rules for coverage against OWASP Top 10",
+  })
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function cloudtrailEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] CloudTrail Enumeration\n"]
+
+  const trails = await aws(["cloudtrail", "describe-trails"], profile, region, timeout)
+  if (trails.exitCode !== 0) return { output: `[-] Cannot describe trails: ${trails.stderr.trim()}`, findings }
+  const trailList = (tryJson(trails.stdout)?.trailList || []) as Array<Record<string, unknown>>
+  output.push(`[+] CloudTrail Trails: ${trailList.length}\n`)
+
+  if (trailList.length === 0) {
+    findings.push({
+      checkId: "AWS-CT-ENUM-001",
+      provider: "aws",
+      severity: "critical",
+      status: "FAIL",
+      resource: "cloudtrail",
+      title: "No CloudTrail trails configured",
+      details: "No CloudTrail trails exist in this region — API activity is not being logged",
+      remediation: "Create a multi-region CloudTrail trail with S3 and CloudWatch Logs delivery",
+    })
+    return { output: output.join("\n"), findings }
+  }
+
+  for (const trail of trailList) {
+    const name = trail.Name as string
+    const arn = trail.TrailARN as string
+    const isMultiRegion = trail.IsMultiRegionTrail as boolean
+    const logGroup = trail.CloudWatchLogsLogGroupArn as string | undefined
+    const s3Bucket = trail.S3BucketName as string
+    const isOrg = trail.IsOrganizationTrail as boolean
+    const kmsKey = trail.KmsKeyId as string | undefined
+
+    output.push(`  [+] ${name}`)
+    output.push(`      ARN: ${arn}`)
+    output.push(`      Multi-Region: ${isMultiRegion}`)
+    output.push(`      Organization Trail: ${isOrg}`)
+    output.push(`      S3 Bucket: ${s3Bucket}`)
+    output.push(`      CloudWatch Logs: ${logGroup || "None"}`)
+    output.push(`      KMS Key: ${kmsKey || "None (SSE-S3)"}`)
+
+    if (!isMultiRegion) {
+      findings.push({
+        checkId: "AWS-CT-ENUM-001",
+        provider: "aws",
+        severity: "high",
+        status: "FAIL",
+        resource: arn,
+        title: `CloudTrail not multi-region: ${name}`,
+        details: `Trail ${name} is single-region — API calls in other regions are not captured`,
+        remediation: "Enable multi-region logging for comprehensive audit coverage",
+      })
+    }
+
+    const status = await aws(
+      ["cloudtrail", "get-trail-status", "--name", name],
+      profile,
+      region,
+      timeout,
+    )
+    if (status.exitCode === 0) {
+      const st = tryJson(status.stdout) as Record<string, unknown> | null
+      if (st) {
+        const isLogging = st.IsLogging as boolean
+        output.push(`      Is Logging: ${isLogging}`)
+
+        if (!isLogging) {
+          findings.push({
+            checkId: "AWS-CT-ENUM-002",
+            provider: "aws",
+            severity: "critical",
+            status: "FAIL",
+            resource: arn,
+            title: `CloudTrail not logging: ${name}`,
+            details: `Trail ${name} exists but logging is stopped — no audit events being recorded`,
+            remediation: "Start logging immediately: aws cloudtrail start-logging --name " + name,
+          })
+        }
+
+        if (st.LatestDeliveryError) {
+          output.push(`      [!] Delivery Error: ${st.LatestDeliveryError}`)
+        }
+      }
+    }
+
+    const selectors = await aws(
+      ["cloudtrail", "get-event-selectors", "--trail-name", name],
+      profile,
+      region,
+      timeout,
+    )
+    if (selectors.exitCode === 0) {
+      const sel = tryJson(selectors.stdout) as Record<string, unknown> | null
+      if (sel) {
+        const eventSelectors = (sel.EventSelectors || []) as Array<Record<string, unknown>>
+        const advancedSelectors = (sel.AdvancedEventSelectors || []) as Array<Record<string, unknown>>
+        output.push(`      Event Selectors: ${eventSelectors.length}, Advanced: ${advancedSelectors.length}`)
+
+        let hasInsights = false
+        if (sel.InsightSelectors) {
+          const insights = sel.InsightSelectors as Array<Record<string, unknown>>
+          hasInsights = insights.length > 0
+        }
+
+        if (!hasInsights) {
+          findings.push({
+            checkId: "AWS-CT-ENUM-003",
+            provider: "aws",
+            severity: "low",
+            status: "WARN",
+            resource: arn,
+            title: `No insight selectors: ${name}`,
+            details: `Trail ${name} does not have CloudTrail Insights enabled for anomaly detection`,
+            remediation: "Enable CloudTrail Insights to detect unusual API activity",
+          })
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function configEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] AWS Config Enumeration\n"]
+
+  const recorders = await aws(
+    ["configservice", "describe-configuration-recorders"],
+    profile,
+    region,
+    timeout,
+  )
+  if (recorders.exitCode === 0) {
+    const recList = (tryJson(recorders.stdout)?.ConfigurationRecorders || []) as Array<Record<string, unknown>>
+    output.push(`[+] Configuration Recorders: ${recList.length}`)
+
+    if (recList.length === 0) {
+      findings.push({
+        checkId: "AWS-CONFIG-ENUM-001",
+        provider: "aws",
+        severity: "high",
+        status: "FAIL",
+        resource: "configservice",
+        title: "No AWS Config recorders configured",
+        details: "No configuration recorders exist — resource changes are not being tracked",
+        remediation: "Create an AWS Config configuration recorder to track resource changes",
+      })
+    }
+
+    for (const rec of recList) {
+      const name = rec.name as string
+      const roleArn = rec.roleARN as string
+      const recording = rec.recordingGroup as Record<string, unknown> | undefined
+      output.push(`  [+] ${name}`)
+      output.push(`      Role: ${roleArn}`)
+      if (recording) {
+        output.push(`      All Resources: ${recording.allSupported}`)
+        output.push(`      Include Global: ${recording.includeGlobalResourceTypes}`)
+      }
+    }
+  }
+
+  const recorderStatus = await aws(
+    ["configservice", "describe-configuration-recorder-status"],
+    profile,
+    region,
+    timeout,
+  )
+  if (recorderStatus.exitCode === 0) {
+    const statusList = (tryJson(recorderStatus.stdout)?.ConfigurationRecordersStatus || []) as Array<Record<string, unknown>>
+    for (const st of statusList) {
+      const name = st.name as string
+      const recording = st.recording as boolean
+      const lastStatus = st.lastStatus as string
+      output.push(`\n      Recorder ${name}: recording=${recording}, lastStatus=${lastStatus}`)
+
+      if (!recording) {
+        findings.push({
+          checkId: "AWS-CONFIG-ENUM-001",
+          provider: "aws",
+          severity: "high",
+          status: "FAIL",
+          resource: `configservice:recorder:${name}`,
+          title: `Config recorder not recording: ${name}`,
+          details: `Configuration recorder ${name} exists but is not currently recording`,
+          remediation: "Start the configuration recorder: aws configservice start-configuration-recorder",
+        })
+      }
+    }
+  }
+
+  const channels = await aws(
+    ["configservice", "describe-delivery-channels"],
+    profile,
+    region,
+    timeout,
+  )
+  if (channels.exitCode === 0) {
+    const chList = (tryJson(channels.stdout)?.DeliveryChannels || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Delivery Channels: ${chList.length}`)
+    for (const ch of chList) {
+      const name = ch.name as string
+      const bucket = ch.s3BucketName as string
+      const sns = ch.snsTopicARN as string | undefined
+      output.push(`  [+] ${name} → S3: ${bucket}${sns ? ", SNS: " + sns : ""}`)
+    }
+  }
+
+  const compliance = await aws(
+    ["configservice", "describe-compliance-by-config-rule", "--compliance-types", "NON_COMPLIANT"],
+    profile,
+    region,
+    timeout,
+  )
+  if (compliance.exitCode === 0) {
+    const rules = (tryJson(compliance.stdout)?.ComplianceByConfigRules || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Non-Compliant Config Rules: ${rules.length}`)
+    for (const r of rules) {
+      const ruleName = r.ConfigRuleName as string
+      output.push(`  [!] ${ruleName}: NON_COMPLIANT`)
+    }
+
+    if (rules.length > 0) {
+      findings.push({
+        checkId: "AWS-CONFIG-ENUM-002",
+        provider: "aws",
+        severity: "medium",
+        status: "WARN",
+        resource: "configservice",
+        title: `${rules.length} non-compliant Config rules`,
+        details: `Found ${rules.length} Config rules in NON_COMPLIANT state: ${rules.slice(0, 5).map((r) => r.ConfigRuleName).join(", ")}${rules.length > 5 ? "..." : ""}`,
+        remediation: "Review and remediate non-compliant Config rules",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function guarddutyEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] GuardDuty Enumeration\n"]
+
+  const detectors = await aws(["guardduty", "list-detectors"], profile, region, timeout)
+  if (detectors.exitCode !== 0) return { output: `[-] Cannot list detectors: ${detectors.stderr.trim()}`, findings }
+  const detectorIds = (tryJson(detectors.stdout)?.DetectorIds || []) as string[]
+  output.push(`[+] GuardDuty Detectors: ${detectorIds.length}`)
+
+  if (detectorIds.length === 0) {
+    findings.push({
+      checkId: "AWS-GD-ENUM-001",
+      provider: "aws",
+      severity: "high",
+      status: "FAIL",
+      resource: "guardduty",
+      title: "GuardDuty not enabled",
+      details: "No GuardDuty detectors found in this region — threat detection is disabled",
+      remediation: "Enable GuardDuty to detect malicious activity and unauthorized behavior",
+    })
+    return { output: output.join("\n"), findings }
+  }
+
+  for (const id of detectorIds) {
+    const detail = await aws(
+      ["guardduty", "get-detector", "--detector-id", id],
+      profile,
+      region,
+      timeout,
+    )
+    if (detail.exitCode !== 0) continue
+    const det = tryJson(detail.stdout) as Record<string, unknown> | null
+    if (!det) continue
+
+    const status = det.Status as string
+    const created = det.CreatedAt as string
+    const updated = det.UpdatedAt as string
+    output.push(`\n  [+] Detector: ${id}`)
+    output.push(`      Status: ${status}`)
+    output.push(`      Created: ${created}`)
+    output.push(`      Updated: ${updated}`)
+
+    if (status !== "ENABLED") {
+      findings.push({
+        checkId: "AWS-GD-ENUM-001",
+        provider: "aws",
+        severity: "high",
+        status: "FAIL",
+        resource: `guardduty:detector:${id}`,
+        title: `GuardDuty detector disabled: ${id}`,
+        details: `GuardDuty detector ${id} exists but status is ${status}`,
+        remediation: "Enable the GuardDuty detector",
+      })
+    }
+
+    const features = (det.Features || []) as Array<Record<string, unknown>>
+    if (features.length > 0) {
+      output.push(`      Features:`)
+      for (const f of features) {
+        output.push(`        ${f.Name}: ${f.Status}`)
+      }
+    }
+
+    const findingsStats = await aws(
+      ["guardduty", "get-findings-statistics", "--detector-id", id, "--finding-statistic-types", "COUNT_BY_SEVERITY"],
+      profile,
+      region,
+      timeout,
+    )
+    if (findingsStats.exitCode === 0) {
+      const stats = tryJson(findingsStats.stdout)?.FindingStatistics as Record<string, unknown> | undefined
+      if (stats?.CountBySeverity) {
+        const bySev = stats.CountBySeverity as Record<string, number>
+        output.push(`      Finding Counts by Severity:`)
+        let highCount = 0
+        for (const [sev, count] of Object.entries(bySev)) {
+          output.push(`        Severity ${sev}: ${count}`)
+          const sevNum = parseFloat(sev)
+          if (sevNum >= 7) highCount += count
+        }
+
+        if (highCount > 0) {
+          findings.push({
+            checkId: "AWS-GD-ENUM-002",
+            provider: "aws",
+            severity: "high",
+            status: "FAIL",
+            resource: `guardduty:detector:${id}`,
+            title: `GuardDuty high-severity findings: ${highCount}`,
+            details: `GuardDuty detected ${highCount} high/critical severity finding(s) that require investigation`,
+            remediation: "Review and triage high-severity GuardDuty findings immediately",
+          })
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function securityHubEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Security Hub Enumeration\n"]
+
+  const hub = await aws(["securityhub", "describe-hub"], profile, region, timeout)
+  if (hub.exitCode !== 0) {
+    output.push(`[-] Security Hub not enabled: ${hub.stderr.trim()}`)
+    findings.push({
+      checkId: "AWS-SECHUB-ENUM-001",
+      provider: "aws",
+      severity: "high",
+      status: "FAIL",
+      resource: "securityhub",
+      title: "Security Hub not enabled",
+      details: "AWS Security Hub is not enabled in this region",
+      remediation: "Enable Security Hub for centralized security findings and compliance checks",
+    })
+    return { output: output.join("\n"), findings }
+  }
+
+  const hubInfo = tryJson(hub.stdout) as Record<string, unknown> | null
+  if (hubInfo) {
+    output.push(`[+] Security Hub: ENABLED`)
+    output.push(`    Hub ARN: ${hubInfo.HubArn}`)
+    output.push(`    Subscribed: ${hubInfo.SubscribedAt}`)
+    output.push(`    Auto-Enable Controls: ${hubInfo.AutoEnableControls}`)
+  }
+
+  const standards = await aws(["securityhub", "get-enabled-standards"], profile, region, timeout)
+  if (standards.exitCode === 0) {
+    const stdList = (tryJson(standards.stdout)?.StandardsSubscriptions || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Enabled Standards: ${stdList.length}`)
+    for (const std of stdList) {
+      const arn = std.StandardsArn as string
+      const status = std.StandardsStatus as string
+      output.push(`  [+] ${arn} (${status})`)
+    }
+  }
+
+  const criticalFindings = await aws(
+    [
+      "securityhub",
+      "get-findings",
+      "--filters",
+      '{"SeverityLabel":[{"Value":"CRITICAL","Comparison":"EQUALS"}]}',
+      "--max-results",
+      "20",
+    ],
+    profile,
+    region,
+    timeout,
+  )
+  if (criticalFindings.exitCode === 0) {
+    const fList = (tryJson(criticalFindings.stdout)?.Findings || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Critical Findings (up to 20): ${fList.length}`)
+    for (const f of fList) {
+      const title = f.Title as string
+      const resource = (f.Resources as Array<Record<string, unknown>>)?.[0]
+      output.push(`  [!] ${title}`)
+      if (resource) output.push(`      Resource: ${resource.Type} — ${resource.Id}`)
+    }
+
+    if (fList.length > 0) {
+      findings.push({
+        checkId: "AWS-SECHUB-ENUM-001",
+        provider: "aws",
+        severity: "critical",
+        status: "FAIL",
+        resource: "securityhub",
+        title: `Security Hub: ${fList.length} critical finding(s)`,
+        details: `Found ${fList.length} CRITICAL severity findings in Security Hub`,
+        remediation: "Review and remediate critical Security Hub findings immediately",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function inspectorEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Inspector v2 Enumeration\n"]
+
+  const status = await aws(["inspector2", "batch-get-account-status"], profile, region, timeout)
+  if (status.exitCode !== 0) {
+    output.push(`[-] Inspector v2 not available: ${status.stderr.trim()}`)
+    return { output: output.join("\n"), findings }
+  }
+
+  const accounts = (tryJson(status.stdout)?.accounts || []) as Array<Record<string, unknown>>
+  for (const acct of accounts) {
+    const accountId = acct.accountId as string
+    const state = acct.state as Record<string, unknown> | undefined
+    const stateStatus = state?.status as string
+    output.push(`[+] Account ${accountId}: ${stateStatus}`)
+
+    const resourceState = acct.resourceState as Record<string, unknown> | undefined
+    if (resourceState) {
+      const ec2 = resourceState.ec2 as Record<string, unknown> | undefined
+      const ecr = resourceState.ecr as Record<string, unknown> | undefined
+      const lambda = resourceState.lambda as Record<string, unknown> | undefined
+      output.push(`    EC2 scanning: ${(ec2?.status as string) || "UNKNOWN"}`)
+      output.push(`    ECR scanning: ${(ecr?.status as string) || "UNKNOWN"}`)
+      output.push(`    Lambda scanning: ${(lambda?.status as string) || "UNKNOWN"}`)
+
+      if (stateStatus !== "ENABLED") {
+        findings.push({
+          checkId: "AWS-INSPECTOR-ENUM-001",
+          provider: "aws",
+          severity: "high",
+          status: "FAIL",
+          resource: `inspector2:account:${accountId}`,
+          title: `Inspector scanning not fully enabled: ${accountId}`,
+          details: `Inspector v2 status is ${stateStatus} for account ${accountId}`,
+          remediation: "Enable all Inspector v2 scan types (EC2, ECR, Lambda)",
+        })
+      }
+    }
+  }
+
+  const coverage = await aws(
+    ["inspector2", "list-coverage", "--filter-criteria", "{}", "--max-results", "50"],
+    profile,
+    region,
+    timeout,
+  )
+  if (coverage.exitCode === 0) {
+    const resources = (tryJson(coverage.stdout)?.coveredResources || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Covered Resources (up to 50): ${resources.length}`)
+    const byType: Record<string, number> = {}
+    for (const r of resources) {
+      const rType = r.resourceType as string
+      byType[rType] = (byType[rType] || 0) + 1
+    }
+    for (const [type, count] of Object.entries(byType)) {
+      output.push(`    ${type}: ${count}`)
+    }
+  }
+
+  const aggregations = await aws(
+    ["inspector2", "list-finding-aggregations", "--aggregation-type", "SEVERITY"],
+    profile,
+    region,
+    timeout,
+  )
+  if (aggregations.exitCode === 0) {
+    const responses = (tryJson(aggregations.stdout)?.responses || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Finding Aggregations by Severity:`)
+    for (const r of responses) {
+      const severity = r.severityCount as Record<string, unknown> | undefined
+      if (severity) {
+        output.push(`    Critical: ${severity.all || 0}`)
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function backupEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] AWS Backup Enumeration\n"]
+
+  const plans = await aws(["backup", "list-backup-plans"], profile, region, timeout)
+  if (plans.exitCode === 0) {
+    const planList = (tryJson(plans.stdout)?.BackupPlansList || []) as Array<Record<string, unknown>>
+    output.push(`[+] Backup Plans: ${planList.length}`)
+    for (const p of planList) {
+      const name = p.BackupPlanName as string
+      const id = p.BackupPlanId as string
+      output.push(`  [+] ${name} (${id})`)
+    }
+  }
+
+  const vaults = await aws(["backup", "list-backup-vaults"], profile, region, timeout)
+  if (vaults.exitCode !== 0) return { output: `[-] Cannot list backup vaults: ${vaults.stderr.trim()}`, findings }
+  const vaultList = (tryJson(vaults.stdout)?.BackupVaultList || []) as Array<Record<string, unknown>>
+  output.push(`\n[+] Backup Vaults: ${vaultList.length}`)
+
+  for (const v of vaultList) {
+    const name = v.BackupVaultName as string
+    const arn = v.BackupVaultArn as string
+    const encrypted = v.EncryptionKeyArn as string | undefined
+    const recoveryPoints = v.NumberOfRecoveryPoints as number
+    output.push(`\n  [+] ${name}`)
+    output.push(`      ARN: ${arn}`)
+    output.push(`      Encryption: ${encrypted || "Default"}`)
+    output.push(`      Recovery Points: ${recoveryPoints}`)
+
+    const rp = await aws(
+      ["backup", "list-recovery-points-by-backup-vault", "--backup-vault-name", name, "--max-results", "20"],
+      profile,
+      region,
+      timeout,
+    )
+    if (rp.exitCode === 0) {
+      const rpList = (tryJson(rp.stdout)?.RecoveryPoints || []) as Array<Record<string, unknown>>
+      output.push(`      Recent Recovery Points: ${rpList.length}`)
+      for (const point of rpList.slice(0, 5)) {
+        const arn = point.RecoveryPointArn as string
+        const resType = point.ResourceType as string
+        const created = point.CreationDate as string
+        const status = point.Status as string
+        output.push(`        ${resType}: ${status} (${created})`)
+      }
+    }
+
+    const policy = await aws(
+      ["backup", "get-backup-vault-access-policy", "--backup-vault-name", name],
+      profile,
+      region,
+      timeout,
+    )
+    if (policy.exitCode === 0) {
+      const vaultPolicy = tryJson(policy.stdout) as Record<string, unknown> | null
+      if (vaultPolicy?.Policy) {
+        const policyDoc = typeof vaultPolicy.Policy === "string" ? vaultPolicy.Policy : JSON.stringify(vaultPolicy.Policy)
+        if (policyDoc.includes('"*"') || policyDoc.includes("\"*\"")) {
+          output.push(`      [!] Vault access policy allows broad access (Principal: *)`)
+          findings.push({
+            checkId: "AWS-BACKUP-010",
+            provider: "aws",
+            severity: "high",
+            status: "FAIL",
+            resource: arn,
+            title: `Backup vault open policy: ${name}`,
+            details: `Backup vault ${name} has an access policy with Principal: * — any account can access backups`,
+            remediation: "Restrict vault access policy to specific accounts and principals",
+          })
+        }
+      }
+    }
+
+    if (recoveryPoints === 0) {
+      findings.push({
+        checkId: "AWS-BACKUP-011",
+        provider: "aws",
+        severity: "medium",
+        status: "WARN",
+        resource: arn,
+        title: `Empty backup vault: ${name}`,
+        details: `Backup vault ${name} has zero recovery points — either backups are not running or vault is unused`,
+        remediation: "Verify backup plans are configured and running for critical resources",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function athenaEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Athena Enumeration\n"]
+
+  const workgroups = await aws(["athena", "list-work-groups"], profile, region, timeout)
+  if (workgroups.exitCode === 0) {
+    const wgList = (tryJson(workgroups.stdout)?.WorkGroups || []) as Array<Record<string, unknown>>
+    output.push(`[+] Athena Work Groups: ${wgList.length}`)
+
+    for (const wg of wgList) {
+      const name = wg.Name as string
+      const state = wg.State as string
+      output.push(`\n  [+] ${name} (${state})`)
+
+      const detail = await aws(
+        ["athena", "get-work-group", "--work-group", name],
+        profile,
+        region,
+        timeout,
+      )
+      if (detail.exitCode !== 0) continue
+      const workGroup = tryJson(detail.stdout)?.WorkGroup as Record<string, unknown> | undefined
+      if (!workGroup) continue
+
+      const config = workGroup.Configuration as Record<string, unknown> | undefined
+      if (config) {
+        const resultConfig = config.ResultConfiguration as Record<string, unknown> | undefined
+        const encConfig = resultConfig?.EncryptionConfiguration as Record<string, unknown> | undefined
+        const outputLocation = resultConfig?.OutputLocation as string
+
+        output.push(`      Output: ${outputLocation || "Not configured"}`)
+
+        if (!encConfig) {
+          output.push(`      [!] Result encryption: NOT configured`)
+          findings.push({
+            checkId: "AWS-ATHENA-001",
+            provider: "aws",
+            severity: "medium",
+            status: "FAIL",
+            resource: `athena:workgroup:${name}`,
+            title: `Athena workgroup without encryption: ${name}`,
+            details: `Workgroup ${name} does not encrypt query results — data at rest may be exposed`,
+            remediation: "Configure EncryptionConfiguration on the workgroup's ResultConfiguration",
+          })
+        } else {
+          const encType = encConfig.EncryptionOption as string
+          output.push(`      Encryption: ${encType}`)
+        }
+
+        const enforceConfig = config.EnforceWorkGroupConfiguration as boolean
+        output.push(`      Enforce Config: ${enforceConfig}`)
+      }
+    }
+  }
+
+  const catalogs = await aws(["athena", "list-data-catalogs"], profile, region, timeout)
+  if (catalogs.exitCode === 0) {
+    const catList = (tryJson(catalogs.stdout)?.DataCatalogsSummary || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] Data Catalogs: ${catList.length}`)
+    for (const cat of catList) {
+      output.push(`  [+] ${cat.CatalogName} (${cat.Type})`)
+    }
+  }
+
+  const queries = await aws(["athena", "list-named-queries"], profile, region, timeout)
+  if (queries.exitCode === 0) {
+    const qList = (tryJson(queries.stdout)?.NamedQueryIds || []) as string[]
+    output.push(`\n[+] Named Queries: ${qList.length}`)
+
+    findings.push({
+      checkId: "AWS-ATHENA-002",
+      provider: "aws",
+      severity: "info",
+      status: "INFO",
+      resource: "athena",
+      title: `Athena: ${qList.length} named queries found`,
+      details: "Saved queries may contain information about data schema and access patterns",
+      remediation: "Review named queries for sensitive data references",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function emrEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] EMR Enumeration\n"]
+
+  const clusters = await aws(["emr", "list-clusters", "--active"], profile, region, timeout)
+  if (clusters.exitCode !== 0) return { output: `[-] Cannot list EMR clusters: ${clusters.stderr.trim()}`, findings }
+  const clusterList = (tryJson(clusters.stdout)?.Clusters || []) as Array<Record<string, unknown>>
+  output.push(`[+] Active EMR Clusters: ${clusterList.length}\n`)
+
+  for (const cl of clusterList) {
+    const id = cl.Id as string
+    const name = cl.Name as string
+    const status = (cl.Status as Record<string, unknown>)?.State as string
+    output.push(`  [+] ${name} (${id}, ${status})`)
+
+    const desc = await aws(
+      ["emr", "describe-cluster", "--cluster-id", id],
+      profile,
+      region,
+      timeout,
+    )
+    if (desc.exitCode !== 0) continue
+    const cluster = tryJson(desc.stdout)?.Cluster as Record<string, unknown> | undefined
+    if (!cluster) continue
+
+    const visibleToAll = cluster.VisibleToAllUsers as boolean
+    const secConfig = cluster.SecurityConfiguration as string | undefined
+    const autoTerminate = cluster.AutoTerminate as boolean
+    const apps = (cluster.Applications || []) as Array<Record<string, unknown>>
+
+    output.push(`      Visible to All Users: ${visibleToAll}`)
+    output.push(`      Security Config: ${secConfig || "None"}`)
+    output.push(`      Auto Terminate: ${autoTerminate}`)
+    output.push(`      Applications: ${apps.map((a) => a.Name).join(", ")}`)
+
+    if (visibleToAll) {
+      findings.push({
+        checkId: "AWS-EMR-001",
+        provider: "aws",
+        severity: "medium",
+        status: "WARN",
+        resource: `emr:cluster:${id}`,
+        title: `EMR cluster visible to all users: ${name}`,
+        details: `Cluster ${name} (${id}) has VisibleToAllUsers=true — all IAM users in the account can view and access`,
+        remediation: "Set VisibleToAllUsers to false and use IAM policies for access control",
+      })
+    }
+
+    if (!secConfig) {
+      findings.push({
+        checkId: "AWS-EMR-002",
+        provider: "aws",
+        severity: "high",
+        status: "FAIL",
+        resource: `emr:cluster:${id}`,
+        title: `EMR cluster without security configuration: ${name}`,
+        details: `Cluster ${name} (${id}) has no SecurityConfiguration — data in transit/at rest may not be encrypted`,
+        remediation: "Create and attach an EMR SecurityConfiguration with encryption and authentication settings",
+      })
+    }
+
+    const ec2 = cluster.Ec2InstanceAttributes as Record<string, unknown> | undefined
+    if (ec2) {
+      const subnet = ec2.Ec2SubnetId as string | undefined
+      const keyName = ec2.Ec2KeyName as string | undefined
+      output.push(`      Subnet: ${subnet || "No VPC"}`)
+      output.push(`      Key Pair: ${keyName || "None"}`)
+    }
+  }
+
+  const secConfigs = await aws(["emr", "list-security-configurations"], profile, region, timeout)
+  if (secConfigs.exitCode === 0) {
+    const scList = (tryJson(secConfigs.stdout)?.SecurityConfigurations || []) as Array<Record<string, unknown>>
+    output.push(`\n[+] EMR Security Configurations: ${scList.length}`)
+    for (const sc of scList) {
+      output.push(`  [+] ${sc.Name} (created: ${sc.CreationDateTime})`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function mskEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] MSK (Managed Kafka) Enumeration\n"]
+
+  const clusters = await aws(["kafka", "list-clusters-v2"], profile, region, timeout)
+  if (clusters.exitCode !== 0) return { output: `[-] Cannot list MSK clusters: ${clusters.stderr.trim()}`, findings }
+  const clusterList = (tryJson(clusters.stdout)?.ClusterInfoList || []) as Array<Record<string, unknown>>
+  output.push(`[+] MSK Clusters: ${clusterList.length}\n`)
+
+  for (const cl of clusterList) {
+    const arn = cl.ClusterArn as string
+    const name = cl.ClusterName as string
+    const clType = cl.ClusterType as string
+    const state = cl.State as string
+    output.push(`  [+] ${name} (${clType}, ${state})`)
+
+    const desc = await aws(
+      ["kafka", "describe-cluster-v2", "--cluster-arn", arn],
+      profile,
+      region,
+      timeout,
+    )
+    if (desc.exitCode !== 0) continue
+    const cluster = tryJson(desc.stdout)?.ClusterInfo as Record<string, unknown> | undefined
+    if (!cluster) continue
+
+    if (clType === "PROVISIONED") {
+      const provisioned = cluster.Provisioned as Record<string, unknown> | undefined
+      if (provisioned) {
+        const clientAuth = provisioned.ClientAuthentication as Record<string, unknown> | undefined
+        const encryption = provisioned.EncryptionInfo as Record<string, unknown> | undefined
+        const monitoring = provisioned.OpenMonitoring as Record<string, unknown> | undefined
+        const brokerCount = provisioned.NumberOfBrokerNodes as number
+
+        output.push(`      Broker Nodes: ${brokerCount}`)
+
+        if (clientAuth) {
+          const sasl = clientAuth.Sasl as Record<string, unknown> | undefined
+          const tls = clientAuth.Tls as Record<string, unknown> | undefined
+          const unauthAccess = clientAuth.Unauthenticated as Record<string, unknown> | undefined
+          output.push(`      Auth: SASL=${!!sasl}, TLS=${!!tls}, Unauthenticated=${!!(unauthAccess as Record<string, unknown>)?.Enabled}`)
+
+          if ((unauthAccess as Record<string, unknown>)?.Enabled) {
+            findings.push({
+              checkId: "AWS-MSK-001",
+              provider: "aws",
+              severity: "high",
+              status: "FAIL",
+              resource: arn,
+              title: `MSK unauthenticated access enabled: ${name}`,
+              details: `MSK cluster ${name} allows unauthenticated client connections`,
+              remediation: "Disable unauthenticated access and enable SASL/TLS authentication",
+            })
+          }
+        } else {
+          output.push(`      [!] No client authentication configured`)
+          findings.push({
+            checkId: "AWS-MSK-001",
+            provider: "aws",
+            severity: "high",
+            status: "FAIL",
+            resource: arn,
+            title: `MSK no authentication: ${name}`,
+            details: `MSK cluster ${name} has no client authentication configured`,
+            remediation: "Configure SASL/SCRAM or TLS client authentication",
+          })
+        }
+
+        if (encryption) {
+          const inTransit = encryption.EncryptionInTransit as Record<string, unknown> | undefined
+          const atRest = encryption.EncryptionAtRest as Record<string, unknown> | undefined
+          const clientBroker = inTransit?.ClientBroker as string
+          output.push(`      Encryption in transit: ${clientBroker || "UNKNOWN"}`)
+          output.push(`      Encryption at rest: ${atRest ? "KMS" : "Default"}`)
+
+          if (clientBroker === "PLAINTEXT") {
+            findings.push({
+              checkId: "AWS-MSK-002",
+              provider: "aws",
+              severity: "high",
+              status: "FAIL",
+              resource: arn,
+              title: `MSK plaintext traffic: ${name}`,
+              details: `MSK cluster ${name} allows plaintext client-broker communication`,
+              remediation: "Set ClientBroker encryption to TLS or TLS_PLAINTEXT",
+            })
+          }
+        }
+
+        if (monitoring) {
+          output.push(`      Open Monitoring: configured`)
+        }
+      }
+    } else if (clType === "SERVERLESS") {
+      output.push(`      Type: Serverless (managed security)`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function ecrEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] ECR Enumeration\n"]
+
+  const repos = await aws(["ecr", "describe-repositories"], profile, region, timeout)
+  if (repos.exitCode !== 0) return { output: `[-] Cannot list ECR repos: ${repos.stderr.trim()}`, findings }
+  const repoList = (tryJson(repos.stdout)?.repositories || []) as Array<Record<string, unknown>>
+  output.push(`[+] ECR Repositories: ${repoList.length}\n`)
+
+  for (const repo of repoList) {
+    const name = repo.repositoryName as string
+    const arn = repo.repositoryArn as string
+    const uri = repo.repositoryUri as string
+    const scanOnPush = (repo.imageScanningConfiguration as Record<string, unknown>)?.scanOnPush as boolean
+    const tagMutability = repo.imageTagMutability as string
+    const encryption = (repo.encryptionConfiguration as Record<string, unknown>)?.encryptionType as string
+
+    output.push(`  [+] ${name}`)
+    output.push(`      URI: ${uri}`)
+    output.push(`      Scan on Push: ${scanOnPush}`)
+    output.push(`      Tag Mutability: ${tagMutability}`)
+    output.push(`      Encryption: ${encryption || "AES256"}`)
+
+    if (!scanOnPush) {
+      findings.push({
+        checkId: "AWS-ECR-ENUM-001",
+        provider: "aws",
+        severity: "medium",
+        status: "FAIL",
+        resource: arn,
+        title: `ECR scan on push disabled: ${name}`,
+        details: `Repository ${name} does not automatically scan images on push — vulnerabilities may go undetected`,
+        remediation: "Enable image scan on push for the ECR repository",
+      })
+    }
+
+    if (tagMutability === "MUTABLE") {
+      output.push(`      [!] Tags are mutable — image tags can be overwritten`)
+    }
+
+    const policy = await aws(
+      ["ecr", "get-repository-policy", "--repository-name", name],
+      profile,
+      region,
+      timeout,
+    )
+    if (policy.exitCode === 0) {
+      const policyText = tryJson(policy.stdout)?.policyText as string | undefined
+      if (policyText) {
+        const policyDoc = tryJson(policyText) as Record<string, unknown> | null
+        if (policyDoc) {
+          const statements = (policyDoc.Statement || []) as Array<Record<string, unknown>>
+          for (const stmt of statements) {
+            const principal = stmt.Principal as unknown
+            const principalStr = typeof principal === "string" ? principal : JSON.stringify(principal)
+            if (principalStr === "*" || principalStr === '"*"' || principalStr.includes('"*"')) {
+              output.push(`      [!] Repository policy allows Principal: *`)
+              findings.push({
+                checkId: "AWS-ECR-ENUM-002",
+                provider: "aws",
+                severity: "high",
+                status: "FAIL",
+                resource: arn,
+                title: `ECR open repository policy: ${name}`,
+                details: `Repository ${name} has a policy with Principal: * — any account can pull images`,
+                remediation: "Restrict repository policy to specific AWS accounts or IAM principals",
+              })
+              break
+            }
+          }
+        }
+      }
+    }
+
+    const scan = await aws(
+      ["ecr", "describe-image-scan-findings", "--repository-name", name, "--image-id", "imageTag=latest"],
+      profile,
+      region,
+      timeout,
+    )
+    if (scan.exitCode === 0) {
+      const scanResult = tryJson(scan.stdout) as Record<string, unknown> | null
+      if (scanResult?.imageScanFindings) {
+        const scanFindings = scanResult.imageScanFindings as Record<string, unknown>
+        const counts = scanFindings.findingSeverityCounts as Record<string, number> | undefined
+        if (counts) {
+          output.push(`      Scan Findings: CRITICAL=${counts.CRITICAL || 0}, HIGH=${counts.HIGH || 0}, MEDIUM=${counts.MEDIUM || 0}`)
+        }
+      }
+    }
+
+    const lifecycle = await aws(
+      ["ecr", "get-lifecycle-policy", "--repository-name", name],
+      profile,
+      region,
+      timeout,
+    )
+    if (lifecycle.exitCode === 0) {
+      output.push(`      Lifecycle Policy: configured`)
+    } else {
+      output.push(`      Lifecycle Policy: NOT configured`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function appRunnerEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] App Runner Enumeration\n"]
+
+  const services = await aws(["apprunner", "list-services"], profile, region, timeout)
+  if (services.exitCode !== 0) return { output: `[-] Cannot list App Runner services: ${services.stderr.trim()}`, findings }
+  const svcList = (tryJson(services.stdout)?.ServiceSummaryList || []) as Array<Record<string, unknown>>
+  output.push(`[+] App Runner Services: ${svcList.length}\n`)
+
+  for (const svc of svcList) {
+    const name = svc.ServiceName as string
+    const arn = svc.ServiceArn as string
+    const status = svc.Status as string
+    const url = svc.ServiceUrl as string
+    output.push(`  [+] ${name} (${status})`)
+    output.push(`      URL: ${url}`)
+    output.push(`      ARN: ${arn}`)
+
+    const desc = await aws(
+      ["apprunner", "describe-service", "--service-arn", arn],
+      profile,
+      region,
+      timeout,
+    )
+    if (desc.exitCode !== 0) continue
+    const service = tryJson(desc.stdout)?.Service as Record<string, unknown> | undefined
+    if (!service) continue
+
+    const networkConfig = service.NetworkConfiguration as Record<string, unknown> | undefined
+    const sourceConfig = service.SourceConfiguration as Record<string, unknown> | undefined
+    const healthCheck = service.HealthCheckConfiguration as Record<string, unknown> | undefined
+    const autoScaling = service.AutoScalingConfigurationSummary as Record<string, unknown> | undefined
+
+    if (networkConfig) {
+      const egress = networkConfig.EgressConfiguration as Record<string, unknown> | undefined
+      const ingress = networkConfig.IngressConfiguration as Record<string, unknown> | undefined
+      const egressType = egress?.EgressType as string
+      output.push(`      Egress: ${egressType || "DEFAULT"}`)
+      if (ingress) {
+        output.push(`      Public Ingress: ${(ingress as Record<string, unknown>).IsPubliclyAccessible}`)
+      }
+
+      const vpcConnector = egress?.VpcConnectorArn as string | undefined
+      output.push(`      VPC Connector: ${vpcConnector || "None"}`)
+    }
+
+    if (healthCheck) {
+      const protocol = healthCheck.Protocol as string
+      const path = healthCheck.Path as string | undefined
+      output.push(`      Health Check: ${protocol}${path ? " " + path : ""}`)
+    }
+
+    if (autoScaling) {
+      output.push(`      Auto Scaling: ${autoScaling.AutoScalingConfigurationName}`)
+    }
+
+    findings.push({
+      checkId: "AWS-APPRUNNER-001",
+      provider: "aws",
+      severity: "info",
+      status: "INFO",
+      resource: arn,
+      title: `App Runner service: ${name}`,
+      details: `Service ${name} at ${url} — review network configuration and access controls`,
+      remediation: "Ensure VPC connector is used for private resource access; review auto-scaling limits",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function amplifyEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Amplify Enumeration\n"]
+
+  const apps = await aws(["amplify", "list-apps"], profile, region, timeout)
+  if (apps.exitCode !== 0) return { output: `[-] Cannot list Amplify apps: ${apps.stderr.trim()}`, findings }
+  const appList = (tryJson(apps.stdout)?.apps || []) as Array<Record<string, unknown>>
+  output.push(`[+] Amplify Apps: ${appList.length}\n`)
+
+  for (const app of appList) {
+    const appId = app.appId as string
+    const name = app.name as string
+    const defaultDomain = app.defaultDomain as string
+    const platform = app.platform as string
+    const repository = app.repository as string | undefined
+    const basicAuthCreds = app.basicAuthCredentials as string | undefined
+    const enableBasicAuth = app.enableBasicAuth as boolean
+
+    output.push(`  [+] ${name} (${appId})`)
+    output.push(`      Domain: ${defaultDomain}`)
+    output.push(`      Platform: ${platform}`)
+    if (repository) output.push(`      Repository: ${repository}`)
+    output.push(`      Basic Auth: ${enableBasicAuth ? "ENABLED" : "DISABLED"}`)
+
+    const branches = await aws(
+      ["amplify", "list-branches", "--app-id", appId],
+      profile,
+      region,
+      timeout,
+    )
+    if (branches.exitCode === 0) {
+      const branchList = (tryJson(branches.stdout)?.branches || []) as Array<Record<string, unknown>>
+      output.push(`      Branches: ${branchList.length}`)
+      for (const branch of branchList) {
+        const branchName = branch.branchName as string
+        const stage = branch.stage as string
+        const branchAuth = branch.enableBasicAuth as boolean
+        const displayName = branch.displayName as string
+        output.push(`        ${branchName} (${stage}${branchAuth ? ", auth: ON" : ""})`)
+
+        if (stage === "PRODUCTION" && !branchAuth && !enableBasicAuth) {
+          output.push(`          [*] Production branch without basic auth — expected if public`)
+        }
+      }
+    }
+  }
+
+  findings.push({
+    checkId: "AWS-AMPLIFY-001",
+    provider: "aws",
+    severity: "info",
+    status: "INFO",
+    resource: "amplify",
+    title: `Amplify: ${appList.length} app(s) enumerated`,
+    details: `Found ${appList.length} Amplify apps — review branch deployment settings and basic auth configuration`,
+    remediation: "Ensure non-production branches have basic auth enabled to prevent data leakage",
+  })
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function acmEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] ACM Certificate Enumeration\n"]
+
+  const certs = await aws(
+    ["acm", "list-certificates", "--certificate-statuses", "ISSUED", "PENDING_VALIDATION", "EXPIRED"],
+    profile,
+    region,
+    timeout,
+  )
+  if (certs.exitCode !== 0) return { output: `[-] Cannot list certificates: ${certs.stderr.trim()}`, findings }
+  const certList = (tryJson(certs.stdout)?.CertificateSummaryList || []) as Array<Record<string, unknown>>
+  output.push(`[+] ACM Certificates: ${certList.length}\n`)
+
+  const now = Date.now()
+  const dayMs = 86400000
+  const thirtyDays = 30 * dayMs
+
+  for (const cert of certList) {
+    const arn = cert.CertificateArn as string
+    const domain = cert.DomainName as string
+    const status = cert.Status as string
+    output.push(`  [+] ${domain} (${status})`)
+    output.push(`      ARN: ${arn}`)
+
+    if (status === "EXPIRED") {
+      findings.push({
+        checkId: "AWS-ACM-001",
+        provider: "aws",
+        severity: "high",
+        status: "FAIL",
+        resource: arn,
+        title: `Expired certificate: ${domain}`,
+        details: `ACM certificate for ${domain} has expired`,
+        remediation: "Renew or replace the expired certificate",
+      })
+    }
+
+    const desc = await aws(
+      ["acm", "describe-certificate", "--certificate-arn", arn],
+      profile,
+      region,
+      timeout,
+    )
+    if (desc.exitCode !== 0) continue
+    const detail = tryJson(desc.stdout)?.Certificate as Record<string, unknown> | undefined
+    if (!detail) continue
+
+    const notAfter = detail.NotAfter as string | undefined
+    const keyAlg = detail.KeyAlgorithm as string
+    const type = detail.Type as string
+    const issuer = detail.Issuer as string
+    const sans = (detail.SubjectAlternativeNames || []) as string[]
+    const inUseBy = (detail.InUseBy || []) as string[]
+
+    output.push(`      Type: ${type}`)
+    output.push(`      Issuer: ${issuer}`)
+    output.push(`      Key Algorithm: ${keyAlg}`)
+    output.push(`      SANs: ${sans.join(", ")}`)
+    output.push(`      In Use By: ${inUseBy.length} resource(s)`)
+
+    if (notAfter) {
+      const expiryMs = new Date(notAfter).getTime()
+      const daysUntilExpiry = Math.floor((expiryMs - now) / dayMs)
+      output.push(`      Expires: ${notAfter} (${daysUntilExpiry} days)`)
+
+      if (daysUntilExpiry > 0 && daysUntilExpiry <= 30) {
+        findings.push({
+          checkId: "AWS-ACM-001",
+          provider: "aws",
+          severity: "high",
+          status: "WARN",
+          resource: arn,
+          title: `Certificate expiring soon: ${domain}`,
+          details: `Certificate for ${domain} expires in ${daysUntilExpiry} days (${notAfter})`,
+          remediation: "Renew the certificate before expiry; ensure DNS validation is active for auto-renewal",
+        })
+      }
+    }
+
+    if (keyAlg === "RSA_1024") {
+      findings.push({
+        checkId: "AWS-ACM-002",
+        provider: "aws",
+        severity: "high",
+        status: "FAIL",
+        resource: arn,
+        title: `Weak key algorithm: ${domain}`,
+        details: `Certificate for ${domain} uses ${keyAlg} which is considered insecure`,
+        remediation: "Re-issue the certificate with RSA_2048 or ECDSA_P256 or stronger",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function transferFamilyEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Transfer Family Enumeration\n"]
+
+  const servers = await aws(["transfer", "list-servers"], profile, region, timeout)
+  if (servers.exitCode !== 0) return { output: `[-] Cannot list Transfer servers: ${servers.stderr.trim()}`, findings }
+  const serverList = (tryJson(servers.stdout)?.Servers || []) as Array<Record<string, unknown>>
+  output.push(`[+] Transfer Family Servers: ${serverList.length}\n`)
+
+  for (const srv of serverList) {
+    const serverId = srv.ServerId as string
+    const arn = srv.Arn as string
+    const state = srv.State as string
+    const endpointType = srv.EndpointType as string
+    const idProvider = srv.IdentityProviderType as string
+    const domain = srv.Domain as string
+    const protocols = (srv.Protocols || []) as string[]
+
+    output.push(`  [+] ${serverId} (${state})`)
+    output.push(`      ARN: ${arn}`)
+    output.push(`      Endpoint Type: ${endpointType}`)
+    output.push(`      Identity Provider: ${idProvider}`)
+    output.push(`      Domain: ${domain}`)
+    output.push(`      Protocols: ${protocols.join(", ")}`)
+
+    const desc = await aws(
+      ["transfer", "describe-server", "--server-id", serverId],
+      profile,
+      region,
+      timeout,
+    )
+    if (desc.exitCode === 0) {
+      const detail = tryJson(desc.stdout)?.Server as Record<string, unknown> | undefined
+      if (detail) {
+        const loggingRole = detail.LoggingRole as string | undefined
+        const securityPolicy = detail.SecurityPolicyName as string | undefined
+        output.push(`      Security Policy: ${securityPolicy || "TransferSecurityPolicy-2018-11"}`)
+        output.push(`      Logging Role: ${loggingRole || "None"}`)
+
+        if (!loggingRole) {
+          output.push(`      [!] No logging role configured`)
+        }
+      }
+    }
+
+    if (endpointType === "PUBLIC") {
+      findings.push({
+        checkId: "AWS-TRANSFER-001",
+        provider: "aws",
+        severity: "medium",
+        status: "WARN",
+        resource: arn,
+        title: `Public Transfer Family endpoint: ${serverId}`,
+        details: `Transfer server ${serverId} uses a PUBLIC endpoint — accessible from the internet`,
+        remediation: "Use VPC endpoint type for private access, or restrict with security groups",
+      })
+    }
+
+    if (protocols.includes("FTP")) {
+      findings.push({
+        checkId: "AWS-TRANSFER-001",
+        provider: "aws",
+        severity: "high",
+        status: "FAIL",
+        resource: arn,
+        title: `Transfer server uses FTP: ${serverId}`,
+        details: `Transfer server ${serverId} supports FTP (unencrypted) protocol`,
+        remediation: "Use SFTP or FTPS instead of plain FTP for encrypted file transfer",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function publicExposureScan(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Public Exposure Scan — Attack Surface Summary\n"]
+  let totalPublic = 0
+
+  const eips = await aws(
+    ["ec2", "describe-addresses", "--query", "Addresses[]"],
+    profile,
+    region,
+    timeout,
+  )
+  if (eips.exitCode === 0) {
+    const addresses = (tryJson(eips.stdout) || []) as Array<Record<string, unknown>>
+    output.push(`[+] Elastic IPs: ${addresses.length}`)
+    for (const addr of addresses) {
+      const publicIp = addr.PublicIp as string
+      const instanceId = addr.InstanceId as string | undefined
+      const assocId = addr.AssociationId as string | undefined
+      output.push(`  ${publicIp} → ${instanceId || assocId || "unattached"}`)
+      if (!instanceId && !assocId) {
+        output.push(`    [!] Unattached EIP — wasting cost and may be claimed if released`)
+      }
+    }
+    totalPublic += addresses.length
+  }
+
+  const elbs = await aws(
+    [
+      "elbv2",
+      "describe-load-balancers",
+      "--query",
+      "LoadBalancers[?Scheme=='internet-facing'].[LoadBalancerArn,DNSName,Type]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
+  if (elbs.exitCode === 0) {
+    const elbList = (tryJson(elbs.stdout) || []) as Array<unknown[]>
+    output.push(`\n[+] Internet-Facing Load Balancers: ${elbList.length}`)
+    for (const lb of elbList) {
+      output.push(`  ${lb[1]} (${lb[2]})`)
+    }
+    totalPublic += elbList.length
+  }
+
+  const rds = await aws(
+    [
+      "rds",
+      "describe-db-instances",
+      "--query",
+      "DBInstances[?PubliclyAccessible==`true`].[DBInstanceIdentifier,Endpoint.Address,Engine]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
+  if (rds.exitCode === 0) {
+    const rdsList = (tryJson(rds.stdout) || []) as Array<unknown[]>
+    output.push(`\n[+] Public RDS Instances: ${rdsList.length}`)
+    for (const db of rdsList) {
+      output.push(`  ${db[0]} (${db[2]}) — ${db[1]}`)
+    }
+    if (rdsList.length > 0) {
+      findings.push({
+        checkId: "AWS-EXPOSURE-001",
+        provider: "aws",
+        severity: "critical",
+        status: "FAIL",
+        resource: "rds",
+        title: `${rdsList.length} public RDS instance(s)`,
+        details: `Found ${rdsList.length} publicly accessible RDS instances: ${rdsList.map((d) => d[0]).join(", ")}`,
+        remediation: "Disable public accessibility on RDS instances; use VPC peering or bastion hosts",
+      })
+    }
+    totalPublic += rdsList.length
+  }
+
+  const s3websites = await aws(
+    ["s3api", "list-buckets", "--query", "Buckets[].Name"],
+    profile,
+    region,
+    timeout,
+  )
+  if (s3websites.exitCode === 0) {
+    const bucketNames = (tryJson(s3websites.stdout) || []) as string[]
+    let websiteCount = 0
+    for (const bucket of bucketNames.slice(0, 20)) {
+      const ws = await aws(
+        ["s3api", "get-bucket-website", "--bucket", bucket],
+        profile,
+        region,
+        timeout,
+      )
+      if (ws.exitCode === 0) {
+        websiteCount++
+        output.push(`  S3 Website: ${bucket}`)
+      }
+    }
+    output.push(`\n[+] S3 Buckets with Website Hosting: ${websiteCount}`)
+    totalPublic += websiteCount
+  }
+
+  const cf = await aws(
+    ["cloudfront", "list-distributions", "--query", "DistributionList.Items[].[Id,DomainName,Status]"],
+    profile,
+    undefined,
+    timeout,
+  )
+  if (cf.exitCode === 0) {
+    const cfList = (tryJson(cf.stdout) || []) as Array<unknown[]>
+    output.push(`\n[+] CloudFront Distributions: ${cfList.length}`)
+    for (const d of cfList) {
+      output.push(`  ${d[0]} — ${d[1]} (${d[2]})`)
+    }
+    totalPublic += cfList.length
+  }
+
+  const apigw = await aws(["apigateway", "get-rest-apis"], profile, region, timeout)
+  if (apigw.exitCode === 0) {
+    const apis = (tryJson(apigw.stdout)?.items || []) as Array<Record<string, unknown>>
+    const publicApis = apis.filter((a) => {
+      const endpointConfig = a.endpointConfiguration as Record<string, unknown> | undefined
+      const types = (endpointConfig?.types || []) as string[]
+      return types.includes("EDGE") || types.includes("REGIONAL")
+    })
+    output.push(`\n[+] Public API Gateway REST APIs: ${publicApis.length}`)
+    for (const api of publicApis) {
+      output.push(`  ${api.name} (${api.id})`)
+    }
+    if (publicApis.length > 0) {
+      findings.push({
+        checkId: "AWS-EXPOSURE-002",
+        provider: "aws",
+        severity: "medium",
+        status: "INFO",
+        resource: "apigateway",
+        title: `${publicApis.length} public API Gateway(s)`,
+        details: `Found ${publicApis.length} EDGE/REGIONAL API Gateways accessible from the internet`,
+        remediation: "Review API Gateway authorization settings; use PRIVATE endpoint type for internal APIs",
+      })
+    }
+    totalPublic += publicApis.length
+  }
+
+  output.push(`\n[*] Total Public-Facing Resources: ${totalPublic}`)
+  findings.push({
+    checkId: "AWS-EXPOSURE-003",
+    provider: "aws",
+    severity: totalPublic > 10 ? "high" : "medium",
+    status: totalPublic > 10 ? "WARN" : "INFO",
+    resource: "public-exposure",
+    title: `Attack surface: ${totalPublic} public-facing resources`,
+    details: `Enumerated ${totalPublic} internet-facing resources across EIPs, ELBs, RDS, S3, CloudFront, and API Gateway`,
+    remediation: "Review each public resource for necessity; minimize attack surface",
+  })
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function stalePermissionAudit(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Stale Permission Audit — IAM Credential Report\n"]
+
+  const gen = await aws(["iam", "generate-credential-report"], profile, region, timeout)
+  if (gen.exitCode !== 0) {
+    return { output: `[-] Cannot generate credential report: ${gen.stderr.trim()}`, findings }
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 3000))
+
+  const report = await aws(["iam", "get-credential-report"], profile, region, timeout)
+  if (report.exitCode !== 0) {
+    return { output: `[-] Cannot get credential report: ${report.stderr.trim()}`, findings }
+  }
+
+  const reportData = tryJson(report.stdout) as Record<string, unknown> | null
+  if (!reportData?.Content) {
+    return { output: `[-] Credential report empty`, findings }
+  }
+
+  const csv = Buffer.from(reportData.Content as string, "base64").toString("utf-8")
+  const lines = csv.split("\n").filter((l) => l.trim())
+  const headers = lines[0].split(",")
+  const userIdx = headers.indexOf("user")
+  const pwLastUsedIdx = headers.indexOf("password_last_used")
+  const pwEnabledIdx = headers.indexOf("password_enabled")
+  const ak1ActiveIdx = headers.indexOf("access_key_1_active")
+  const ak1LastUsedIdx = headers.indexOf("access_key_1_last_used_date")
+  const ak1LastRotatedIdx = headers.indexOf("access_key_1_last_rotated")
+  const ak2ActiveIdx = headers.indexOf("access_key_2_active")
+  const ak2LastUsedIdx = headers.indexOf("access_key_2_last_used_date")
+  const ak2LastRotatedIdx = headers.indexOf("access_key_2_last_rotated")
+  const mfaIdx = headers.indexOf("mfa_active")
+
+  const now = Date.now()
+  const dayMs = 86400000
+  let staleKeys = 0
+  let stalePasswords = 0
+  let noMfa = 0
+
+  output.push(`[+] Users in credential report: ${lines.length - 1}\n`)
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(",")
+    const user = cols[userIdx]
+    if (user === "<root_account>") {
+      const rootMfa = cols[mfaIdx]
+      if (rootMfa === "false") {
+        output.push(`  [!] ROOT ACCOUNT: MFA NOT ENABLED`)
+        findings.push({
+          checkId: "AWS-STALE-001",
+          provider: "aws",
+          severity: "critical",
+          status: "FAIL",
+          resource: "iam:root",
+          title: "Root account MFA not enabled",
+          details: "The AWS root account does not have MFA enabled — highest privilege account",
+          remediation: "Enable MFA on the root account immediately",
+        })
+      }
+      continue
+    }
+
+    const issues: string[] = []
+
+    const pwEnabled = cols[pwEnabledIdx]
+    const pwLastUsed = cols[pwLastUsedIdx]
+    if (pwEnabled === "true" && pwLastUsed && pwLastUsed !== "N/A" && pwLastUsed !== "no_information") {
+      const age = Math.floor((now - new Date(pwLastUsed).getTime()) / dayMs)
+      if (age > 90) {
+        issues.push(`password unused ${age}d`)
+        stalePasswords++
+      }
+    }
+
+    for (const [activeIdx, lastUsedIdx, lastRotatedIdx, keyNum] of [
+      [ak1ActiveIdx, ak1LastUsedIdx, ak1LastRotatedIdx, "1"],
+      [ak2ActiveIdx, ak2LastUsedIdx, ak2LastRotatedIdx, "2"],
+    ] as Array<[number, number, number, string]>) {
+      if (cols[activeIdx] === "true") {
+        if (cols[lastRotatedIdx] && cols[lastRotatedIdx] !== "N/A") {
+          const rotAge = Math.floor((now - new Date(cols[lastRotatedIdx]).getTime()) / dayMs)
+          if (rotAge > 90) {
+            issues.push(`key${keyNum} age ${rotAge}d`)
+            staleKeys++
+          }
+        }
+        if (cols[lastUsedIdx] && cols[lastUsedIdx] !== "N/A" && cols[lastUsedIdx] !== "no_information") {
+          const useAge = Math.floor((now - new Date(cols[lastUsedIdx]).getTime()) / dayMs)
+          if (useAge > 90) {
+            issues.push(`key${keyNum} unused ${useAge}d`)
+          }
+        }
+      }
+    }
+
+    const mfa = cols[mfaIdx]
+    if (mfa === "false" && pwEnabled === "true") {
+      issues.push("no MFA")
+      noMfa++
+    }
+
+    if (issues.length > 0) {
+      output.push(`  [!] ${user}: ${issues.join(", ")}`)
+    }
+  }
+
+  output.push(`\n[*] Summary:`)
+  output.push(`    Stale access keys (>90d): ${staleKeys}`)
+  output.push(`    Stale passwords (>90d): ${stalePasswords}`)
+  output.push(`    Users without MFA: ${noMfa}`)
+
+  if (staleKeys > 0) {
+    findings.push({
+      checkId: "AWS-STALE-001",
+      provider: "aws",
+      severity: "high",
+      status: "FAIL",
+      resource: "iam",
+      title: `${staleKeys} stale access key(s) older than 90 days`,
+      details: `Found ${staleKeys} active access keys that haven't been rotated in 90+ days`,
+      remediation: "Rotate or deactivate access keys that are older than 90 days",
+    })
+  }
+
+  if (stalePasswords > 0) {
+    findings.push({
+      checkId: "AWS-STALE-002",
+      provider: "aws",
+      severity: "medium",
+      status: "WARN",
+      resource: "iam",
+      title: `${stalePasswords} stale password(s) unused for 90+ days`,
+      details: `Found ${stalePasswords} users with console passwords not used in 90+ days`,
+      remediation: "Disable console access for users who no longer need it",
+    })
+  }
+
+  if (noMfa > 0) {
+    findings.push({
+      checkId: "AWS-STALE-003",
+      provider: "aws",
+      severity: "high",
+      status: "FAIL",
+      resource: "iam",
+      title: `${noMfa} console user(s) without MFA`,
+      details: `Found ${noMfa} IAM users with console access but no MFA enabled`,
+      remediation: "Enable MFA for all IAM users with console access",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function tagComplianceAudit(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Tag Compliance Audit\n"]
+
+  const requiredTags = ["Environment", "Owner", "CostCenter"]
+  output.push(`[*] Required tags: ${requiredTags.join(", ")}\n`)
+
+  const resourceTypes = [
+    "ec2:instance",
+    "ec2:volume",
+    "rds:db",
+    "s3",
+    "lambda:function",
+    "elasticloadbalancing:loadbalancer",
+    "dynamodb:table",
+  ]
+
+  const summary: Record<string, { total: number; missing: Record<string, number> }> = {}
+
+  for (const resType of resourceTypes) {
+    const resources = await aws(
+      [
+        "resourcegroupstaggingapi",
+        "get-resources",
+        "--resource-type-filters",
+        resType,
+      ],
+      profile,
+      region,
+      timeout,
+    )
+    if (resources.exitCode !== 0) continue
+
+    const resList = (tryJson(resources.stdout)?.ResourceTagMappingList || []) as Array<Record<string, unknown>>
+    const missing: Record<string, number> = {}
+    for (const tag of requiredTags) missing[tag] = 0
+
+    for (const res of resList) {
+      const tags = (res.Tags || []) as Array<Record<string, unknown>>
+      const tagKeys = tags.map((t) => t.Key as string)
+
+      for (const required of requiredTags) {
+        if (!tagKeys.includes(required)) {
+          missing[required]++
+        }
+      }
+    }
+
+    summary[resType] = { total: resList.length, missing }
+
+    if (resList.length > 0) {
+      output.push(`[+] ${resType}: ${resList.length} resources`)
+      for (const tag of requiredTags) {
+        if (missing[tag] > 0) {
+          output.push(`    Missing "${tag}": ${missing[tag]}/${resList.length}`)
+        }
+      }
+    }
+  }
+
+  let totalMissing = 0
+  let totalResources = 0
+  for (const [resType, data] of Object.entries(summary)) {
+    totalResources += data.total
+    for (const count of Object.values(data.missing)) {
+      totalMissing += count
+    }
+  }
+
+  output.push(`\n[*] Summary: ${totalResources} resources, ${totalMissing} missing tag instances`)
+
+  if (totalMissing > 0) {
+    findings.push({
+      checkId: "AWS-TAG-001",
+      provider: "aws",
+      severity: "low",
+      status: "WARN",
+      resource: "tagging",
+      title: `${totalMissing} missing required tags across ${totalResources} resources`,
+      details: `Required tags (${requiredTags.join(", ")}) are missing on ${totalMissing} resource-tag combinations across ${Object.keys(summary).length} resource types`,
+      remediation: "Implement AWS Config rules or SCPs to enforce required tags; use Tag Editor for bulk tagging",
+    })
+  } else if (totalResources > 0) {
+    findings.push({
+      checkId: "AWS-TAG-001",
+      provider: "aws",
+      severity: "info",
+      status: "INFO",
+      resource: "tagging",
+      title: `All ${totalResources} resources have required tags`,
+      details: `All checked resources have the required tags: ${requiredTags.join(", ")}`,
+      remediation: "Continue enforcing tag compliance",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
