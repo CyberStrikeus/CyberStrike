@@ -336,6 +336,7 @@ export async function organizationPolicyEnum(args: string[], timeout: number): P
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: DescribeOrganization, ListPolicies, DescribePolicy, ListTargetsForPolicy`)
+  output.push(`  GuardDuty: Recon:IAMUser/MaliciousIPCaller.Custom (Organizations enumeration from unusual source)`)
   output.push(`  OPSEC: Organizations API calls are management-account level — unusual from member accounts`)
   output.push(`  OPSEC: SCP enumeration reveals org security posture — high-value intel for attackers`)
 
@@ -380,8 +381,9 @@ export async function passwordSprayAws(args: string[], timeout: number): Promise
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: ListUsers, GetLoginProfile (per user — N events for N users)`)
+  output.push(`  GuardDuty: UnauthorizedAccess:IAMUser/ConsoleLoginSuccess.B (brute force/spray detection)`)
   output.push(`  OPSEC: GetLoginProfile per-user enumeration is HIGH signal — bulk enumeration unusual outside audit`)
-  output.push(`  OPSEC: actual console login attempts generate ConsoleLogin events in us-east-1 CloudTrail`)
+  output.push(`  OPSEC: actual password spray generates many failed ConsoleLogin events in us-east-1 CloudTrail — trivially detectable`)
 
   return { output: output.join("\n"), findings }
 }
@@ -795,6 +797,7 @@ export async function ssoPermissionAudit(args: string[], timeout: number): Promi
   output.push(`  CloudTrail: ListInstances, ListPermissionSets, DescribePermissionSet, ListManagedPoliciesInPermissionSet`)
   output.push(`  CloudTrail: GetInlinePolicyForPermissionSet, ListCustomerManagedPolicyReferencesInPermissionSet`)
   output.push(`  CloudTrail: ListUsers, ListGroups (Identity Store)`)
+  output.push(`  GuardDuty: Recon:IAMUser/MaliciousIPCaller.Custom (SSO enumeration may trigger IAM recon alerts)`)
   output.push(`  OPSEC: SSO enumeration is moderate signal — reveals org-wide access structure; unusual from non-admin identities`)
 
   return { output: output.join("\n"), findings }
