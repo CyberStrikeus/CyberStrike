@@ -162,7 +162,120 @@ export async function iamDeepAudit(args: string[], timeout: number): Promise<Hoo
     }
   }
 
-  output.push(`\n[*] Summary: ${findings.length} IAM issues found`)
+  // ── Role deep analysis ──
+  const id = await aws(["sts", "get-caller-identity", "--query", "Account", "--output", "text"], profile, region, timeout)
+  const ownAccount = id.stdout.trim()
+  const rolesRes = await aws(["iam", "list-roles", "--max-items", "200"], profile, region, timeout)
+  const roleList = tryJson(rolesRes.stdout)?.Roles || []
+  output.push(`\n[*] IAM Roles: ${roleList.length}`)
+
+  let adminRoles = 0
+  let unusedRoles = 0
+  let dangerousTrust = 0
+
+  for (const role of roleList) {
+    const rName = role.RoleName as string
+    if ((role.Path as string || "").startsWith("/aws-service-role/")) continue
+
+    // Inline policies — check for Action:* Resource:*
+    const inlineRes = await aws(["iam", "list-role-policies", "--role-name", rName, "--query", "PolicyNames"], profile, region, timeout)
+    const inlinePols = tryJson(inlineRes.stdout) || []
+    for (const pName of inlinePols) {
+      const pol = await aws(["iam", "get-role-policy", "--role-name", rName, "--policy-name", pName as string], profile, region, timeout)
+      const doc = tryJson(pol.stdout)?.PolicyDocument || {}
+      const stmts = Array.isArray(doc.Statement) ? doc.Statement : [doc.Statement].filter(Boolean)
+      for (const s of stmts) {
+        if (s.Effect !== "Allow") continue
+        const actions = Array.isArray(s.Action) ? s.Action : [s.Action]
+        const resources = Array.isArray(s.Resource) ? s.Resource : [s.Resource]
+        if (actions.includes("*") && resources.includes("*")) {
+          adminRoles++
+          output.push(`[!] ${rName}: inline policy ${pName} grants Action:* Resource:*`)
+          findings.push({ checkId: "AWS-IDENTITY-ROLE-DEEP-001", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://role/${rName}/inline/${pName}`, title: `Role ${rName} has admin-level inline policy ${pName}`, details: `Inline policy with Action:* Resource:* — full account admin`, remediation: `Replace inline policy with least-privilege managed policy` })
+        }
+      }
+    }
+
+    // Managed policies — inspect actual policy document for wildcards
+    const attachedRes = await aws(["iam", "list-attached-role-policies", "--role-name", rName, "--query", "AttachedPolicies[].[PolicyName,PolicyArn]"], profile, region, timeout)
+    const attachedPols = tryJson(attachedRes.stdout) || []
+    for (const ap of attachedPols) {
+      const polArn = ap[1] as string
+      const polName = ap[0] as string
+      // Skip AWS-managed AdministratorAccess — already obvious
+      if (polArn.startsWith("arn:aws:iam::aws:policy/AdministratorAccess")) {
+        adminRoles++
+        output.push(`[!] ${rName}: AdministratorAccess managed policy attached`)
+        findings.push({ checkId: "AWS-IDENTITY-ROLE-DEEP-001", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://role/${rName}`, title: `Role ${rName} has AdministratorAccess`, details: `AWS-managed AdministratorAccess attached — full account admin`, remediation: `Detach AdministratorAccess and replace with scoped policy` })
+        continue
+      }
+      // Check customer-managed policies for hidden admin
+      if (!polArn.startsWith("arn:aws:iam::aws:policy/")) {
+        const verRes = await aws(["iam", "get-policy", "--policy-arn", polArn, "--query", "Policy.DefaultVersionId", "--output", "text"], profile, region, timeout)
+        const verId = verRes.stdout.trim()
+        if (verId) {
+          const polDoc = await aws(["iam", "get-policy-version", "--policy-arn", polArn, "--version-id", verId, "--query", "PolicyVersion.Document"], profile, region, timeout)
+          const doc = tryJson(polDoc.stdout) || {}
+          const stmts = Array.isArray(doc.Statement) ? doc.Statement : [doc.Statement].filter(Boolean)
+          for (const s of stmts) {
+            if (s.Effect !== "Allow") continue
+            const actions = Array.isArray(s.Action) ? s.Action : [s.Action]
+            const resources = Array.isArray(s.Resource) ? s.Resource : [s.Resource]
+            if (actions.includes("*") && resources.includes("*")) {
+              adminRoles++
+              output.push(`[!] ${rName}: managed policy ${polName} grants Action:* Resource:*`)
+              findings.push({ checkId: "AWS-IDENTITY-ROLE-DEEP-001", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://role/${rName}/managed/${polName}`, title: `Role ${rName}: policy ${polName} grants full admin`, details: `Customer-managed policy with Action:* Resource:* — hidden admin`, remediation: `Audit and scope down policy ${polName}` })
+            }
+          }
+        }
+      }
+    }
+
+    // Trust policy — wildcard or cross-account without ExternalId
+    const stmts = role.AssumeRolePolicyDocument?.Statement || []
+    for (const stmt of stmts) {
+      if (stmt.Effect !== "Allow") continue
+      const principals = extractPrincipals(stmt.Principal)
+      for (const p of principals) {
+        if (p === "*") {
+          dangerousTrust++
+          findings.push({ checkId: "AWS-IDENTITY-ROLE-DEEP-003", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://role/${rName}`, title: `Role ${rName} trust policy has Principal:*`, details: `Any entity can assume this role — wildcard trust`, remediation: `Restrict trust policy to specific accounts/services` })
+        }
+        const acctMatch = p.match(/^arn:aws:iam::(\d+):/)
+        if (acctMatch && acctMatch[1] !== ownAccount) {
+          const hasExtId = stmt.Condition?.StringEquals?.["sts:ExternalId"]
+          if (!hasExtId) {
+            dangerousTrust++
+            findings.push({ checkId: "AWS-IDENTITY-ROLE-DEEP-003", provider: "aws", severity: "high", status: "FAIL", resource: `iam://role/${rName}`, title: `Role ${rName} cross-account trust (${acctMatch[1]}) without ExternalId`, details: `Trusted account ${acctMatch[1]} can assume without ExternalId — confused deputy`, remediation: `Add sts:ExternalId condition to trust policy` })
+          }
+        }
+      }
+    }
+
+    // Last used — flag roles unused >180 days
+    const lastUsed = role.RoleLastUsed as Record<string, unknown> | undefined
+    if (lastUsed?.LastUsedDate) {
+      const lastDate = new Date(lastUsed.LastUsedDate as string).getTime()
+      const age = Math.floor((Date.now() - lastDate) / (1000 * 60 * 60 * 24))
+      if (age > 180) {
+        unusedRoles++
+        findings.push({ checkId: "AWS-IDENTITY-ROLE-DEEP-002", provider: "aws", severity: "medium", status: "FAIL", resource: `iam://role/${rName}`, title: `Role ${rName} unused for ${age} days`, details: `Last used: ${lastUsed.LastUsedDate} in ${lastUsed.LastUsedRegion || "unknown"} — stale role with active permissions`, remediation: `Review and delete unused role: aws iam delete-role --role-name ${rName}` })
+      }
+    } else {
+      // RoleLastUsed absent means never used (or created before tracking)
+      const created = new Date(role.CreateDate as string).getTime()
+      const roleAge = Math.floor((Date.now() - created) / (1000 * 60 * 60 * 24))
+      if (roleAge > 180) {
+        unusedRoles++
+        findings.push({ checkId: "AWS-IDENTITY-ROLE-DEEP-002", provider: "aws", severity: "medium", status: "FAIL", resource: `iam://role/${rName}`, title: `Role ${rName} never used (${roleAge} days old)`, details: `Created ${role.CreateDate}, never assumed — orphaned role`, remediation: `Delete unused role: aws iam delete-role --role-name ${rName}` })
+      }
+    }
+  }
+
+  output.push(`[+] Admin-level roles: ${adminRoles}`)
+  output.push(`[+] Unused roles (>180d): ${unusedRoles}`)
+  output.push(`[+] Dangerous trust policies: ${dangerousTrust}`)
+  output.push(`\n[*] Summary: ${findings.length} IAM issues found (users + roles)`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1407,15 +1520,97 @@ export async function iamPolicySimulation(args: string[], timeout: number): Prom
     }
   }
 
+  // ── Phase 2: Resource-scoped re-testing for allowed actions ──
+  const accountMatch = sourceArn.match(/:(\d{12}):/)
+  const accountId = accountMatch ? accountMatch[1] : ""
+  const regionVal = region || "us-east-1"
+
+  const RESOURCE_SCOPE_MAP: Record<string, string> = {
+    "s3:GetObject": `arn:aws:s3:::*/*`,
+    "s3:ListBucket": `arn:aws:s3:::*`,
+    "s3:GetBucketPolicy": `arn:aws:s3:::*`,
+    "dynamodb:GetItem": `arn:aws:dynamodb:${regionVal}:${accountId}:table/*`,
+    "dynamodb:Scan": `arn:aws:dynamodb:${regionVal}:${accountId}:table/*`,
+    "dynamodb:Query": `arn:aws:dynamodb:${regionVal}:${accountId}:table/*`,
+    "secretsmanager:GetSecretValue": `arn:aws:secretsmanager:${regionVal}:${accountId}:secret:*`,
+    "ssm:GetParameter": `arn:aws:ssm:${regionVal}:${accountId}:parameter/*`,
+    "ssm:GetParameters": `arn:aws:ssm:${regionVal}:${accountId}:parameter/*`,
+    "kms:Decrypt": `arn:aws:kms:${regionVal}:${accountId}:key/*`,
+    "lambda:GetFunction": `arn:aws:lambda:${regionVal}:${accountId}:function:*`,
+    "lambda:CreateFunction": `arn:aws:lambda:${regionVal}:${accountId}:function:*`,
+    "lambda:InvokeFunction": `arn:aws:lambda:${regionVal}:${accountId}:function:*`,
+    "ec2:RunInstances": `*`,
+    "ecs:RunTask": `arn:aws:ecs:${regionVal}:${accountId}:task-definition/*`,
+  }
+
+  const allAllowed = Object.values(summary).flatMap((s) => s.allowed)
+  const scopeTestable = allAllowed.filter((a) => RESOURCE_SCOPE_MAP[a])
+  const resourceScoped: { action: string; universal: boolean }[] = []
+
+  if (scopeTestable.length > 0 && accountId) {
+    output.push(`\n[*] Resource-scope analysis: re-testing ${scopeTestable.length} allowed actions with wildcard resource ARNs...`)
+
+    for (let i = 0; i < scopeTestable.length; i += 5) {
+      const batch = scopeTestable.slice(i, i + 5)
+      for (const action of batch) {
+        const resourceArn = RESOURCE_SCOPE_MAP[action]
+        const scopeResult = await aws(
+          [
+            "iam", "simulate-principal-policy",
+            "--policy-source-arn", sourceArn,
+            "--action-names", action,
+            "--resource-arns", resourceArn,
+            "--query", "EvaluationResults[0].EvalDecision",
+            "--output", "text",
+          ],
+          profile, region, timeout,
+        )
+        const decision = scopeResult.stdout.trim()
+        const universal = decision === "allowed"
+        resourceScoped.push({ action, universal })
+      }
+    }
+
+    const universalAccess = resourceScoped.filter((r) => r.universal)
+    const constrainedAccess = resourceScoped.filter((r) => !r.universal)
+
+    if (universalAccess.length > 0) {
+      output.push(`[!] UNIVERSAL access (all resources): ${universalAccess.length} actions`)
+      for (const r of universalAccess) output.push(`    ⚠ ${r.action} — allowed on ALL ${RESOURCE_SCOPE_MAP[r.action]}`)
+    }
+    if (constrainedAccess.length > 0) {
+      output.push(`[+] Resource-constrained: ${constrainedAccess.length} actions (allowed by identity, but denied on wildcard resource)`)
+      for (const r of constrainedAccess) output.push(`    ○ ${r.action} — identity-allowed but resource-restricted`)
+    }
+
+    if (universalAccess.length > 3) {
+      findings.push({
+        checkId: "AWS-POLSIM-004",
+        provider: "aws",
+        severity: "critical",
+        status: "FAIL",
+        resource: sourceArn,
+        title: `${universalAccess.length} actions with universal resource access`,
+        details: `Actions allowed on ALL resources: ${universalAccess.map((r) => r.action).join(", ")}`,
+        remediation: "Apply resource-level conditions to restrict scope",
+        cwe: "CWE-269",
+      })
+    }
+  }
+
   output.push(`\n${"═".repeat(60)}`)
-  output.push(`[*] Effective Permissions: ${totalAllowed} allowed / ${totalDenied} denied`)
+  output.push(`[*] Effective Permissions: ${totalAllowed} allowed / ${totalDenied} denied${resourceScoped.length > 0 ? ` (${resourceScoped.filter((r) => r.universal).length} universal)` : ""}`)
   output.push(`${"═".repeat(60)}\n`)
 
   for (const [category, result] of Object.entries(summary)) {
     const marker = result.allowed.length > 0 ? "[!]" : "[+]"
     output.push(`${marker} ${category}: ${result.allowed.length} allowed, ${result.denied.length} denied`)
     if (result.allowed.length > 0) {
-      for (const a of result.allowed) output.push(`    ✓ ${a}`)
+      for (const a of result.allowed) {
+        const scopeInfo = resourceScoped.find((r) => r.action === a)
+        const scopeLabel = scopeInfo ? (scopeInfo.universal ? " ⚠ UNIVERSAL" : " (resource-constrained)") : ""
+        output.push(`    ✓ ${a}${scopeLabel}`)
+      }
     }
   }
 
