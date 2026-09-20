@@ -27,6 +27,30 @@ export async function ssmExec(args: string[], timeout: number): Promise<HookResu
   if (instances.length === 0) return { output: "[-] No SSM-managed instances found", findings: [] }
 
   const output = [`[*] SSM RunCommand — ${instances.length} target(s)\n`]
+
+  const callerId = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = tryJson(callerId.stdout)?.Arn || ""
+  let sourceArn = callerArn as string
+  if (sourceArn.includes(":assumed-role/")) {
+    const account = tryJson(callerId.stdout)?.Account || ""
+    const rn = sourceArn.split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${account}:role/${rn}`
+  }
+  const sim = await aws(
+    [
+      "iam", "simulate-principal-policy",
+      "--policy-source-arn", sourceArn,
+      "--action-names", "ssm:SendCommand", "ssm:GetCommandInvocation",
+      "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+    ],
+    profile, region, timeout,
+  )
+  if (sim.exitCode === 0) {
+    const results = tryJson(sim.stdout) || []
+    for (const r of results) output.push(`[${r[1] === "allowed" ? "+" : "-"}] Pre-flight: ${r[0]} — ${r[1]}`)
+    output.push("")
+  }
+
   for (const id of instances) {
     const r = await aws(
       [
@@ -65,6 +89,10 @@ export async function ssmExec(args: string[], timeout: number): Promise<HookResu
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: SendCommand, GetCommandInvocation, DescribeInstanceInformation`)
+  output.push(`  GuardDuty: UnauthorizedAccess:EC2/MetadataDNSRebind (if IMDS queried)`)
+  output.push(`  OPSEC: Full command + output stored in SSM Command History — visible in console`)
   return { output: output.join("\n"), findings: [] }
 }
 
@@ -80,11 +108,35 @@ export async function ecsExec(args: string[], timeout: number): Promise<HookResu
 
   if (!cluster) return { output: "ERROR: --cluster required", findings }
 
+  const callerId = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = tryJson(callerId.stdout)?.Arn || ""
+  let sourceArn = callerArn as string
+  if (sourceArn.includes(":assumed-role/")) {
+    const account = tryJson(callerId.stdout)?.Account || ""
+    const rn = sourceArn.split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${account}:role/${rn}`
+  }
+  const preflightLines: string[] = []
+  const sim = await aws(
+    [
+      "iam", "simulate-principal-policy",
+      "--policy-source-arn", sourceArn,
+      "--action-names", "ecs:ExecuteCommand", "ecs:ListTasks", "ecs:DescribeTasks",
+      "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+    ],
+    profile, region, timeout,
+  )
+  if (sim.exitCode === 0) {
+    const results = tryJson(sim.stdout) || []
+    for (const r of results) preflightLines.push(`[${r[1] === "allowed" ? "+" : "-"}] Pre-flight: ${r[0]} — ${r[1]}`)
+    preflightLines.push("")
+  }
+
   if (!task && !allTasks) {
     const r = await aws(["ecs", "list-clusters", "--query", "clusterArns"], profile, region, timeout)
     if (r.exitCode === 0) {
       const clusters = tryJson(r.stdout) || []
-      const output = [`[*] ECS Clusters: ${clusters.length}\n`]
+      const output = [`[*] ECS Clusters: ${clusters.length}\n`, ...preflightLines]
       for (const c of clusters) output.push(`    ${c}`)
 
       const tasks = await aws(
@@ -120,9 +172,10 @@ export async function ecsExec(args: string[], timeout: number): Promise<HookResu
         }
       }
       output.push("\n[*] Use --task TASK --container CONTAINER --command CMD to execute")
+      output.push(`\n[*] Detection:\n  CloudTrail: ListClusters, ListTasks, DescribeTasks`)
       return { output: output.join("\n"), findings }
     }
-    return { output: "[-] Cannot list clusters", findings }
+    return { output: "[-] Cannot list clusters\n\n[*] Detection:\n  CloudTrail: ListClusters", findings }
   }
 
   if (!command) return { output: "ERROR: --command required for execution", findings }
@@ -139,7 +192,7 @@ export async function ecsExec(args: string[], timeout: number): Promise<HookResu
       })()
     : [task!]
 
-  const output = [`[*] ECS Exec — cluster: ${cluster}, targets: ${targetTasks.length}\n`]
+  const output = [`[*] ECS Exec — cluster: ${cluster}, targets: ${targetTasks.length}\n`, ...preflightLines]
 
   for (const t of targetTasks) {
     const execArgs = ["ecs", "execute-command", "--cluster", cluster, "--task", t, "--command", command]
@@ -169,6 +222,10 @@ export async function ecsExec(args: string[], timeout: number): Promise<HookResu
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ExecuteCommand, ListTasks, DescribeTasks`)
+  output.push(`  GuardDuty: N/A (ECS Exec doesn't trigger GuardDuty directly)`)
+  output.push(`  OPSEC: ECS Exec sessions logged to CloudWatch Logs if task logging enabled — check task definition`)
   return { output: output.join("\n"), findings }
 }
 
@@ -177,6 +234,28 @@ export async function crossAccountEnum(args: string[], timeout: number): Promise
   const region = argVal(args, "--region")
   const findings: Finding[] = []
   const output: string[] = ["[*] Cross-Account Trust Enumeration\n"]
+
+  const callerInfo = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  let sourceArn = (tryJson(callerInfo.stdout)?.Arn || "") as string
+  if (sourceArn.includes(":assumed-role/")) {
+    const account = tryJson(callerInfo.stdout)?.Account || ""
+    const rn = sourceArn.split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${account}:role/${rn}`
+  }
+  const sim = await aws(
+    [
+      "iam", "simulate-principal-policy",
+      "--policy-source-arn", sourceArn,
+      "--action-names", "iam:ListRoles", "iam:GetRole", "sts:AssumeRole",
+      "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+    ],
+    profile, region, timeout,
+  )
+  if (sim.exitCode === 0) {
+    const results = tryJson(sim.stdout) || []
+    for (const r of results) output.push(`[${r[1] === "allowed" ? "+" : "-"}] Pre-flight: ${r[0]} — ${r[1]}`)
+    output.push("")
+  }
 
   const id = await aws(["sts", "get-caller-identity", "--query", "Account"], profile, region, timeout)
   const currentAccount = tryJson(id.stdout)
@@ -250,6 +329,10 @@ export async function crossAccountEnum(args: string[], timeout: number): Promise
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListRoles, GetRole, AssumeRole`)
+  output.push(`  GuardDuty: UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS (if cross-account)`)
+  output.push(`  OPSEC: AssumeRole events appear in BOTH source and target account CloudTrail`)
   return { output: output.join("\n"), findings }
 }
 
@@ -314,6 +397,9 @@ export async function vpcPeeringEnum(args: string[], timeout: number): Promise<H
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeVpcPeeringConnections, DescribeRouteTables`)
+  output.push(`  OPSEC: Read-only enumeration — low alert signal but high volume may trigger anomaly rules`)
   return { output: output.join("\n"), findings }
 }
 
@@ -415,6 +501,9 @@ export async function transitGatewayEnum(args: string[], timeout: number): Promi
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeTransitGateways, DescribeTransitGatewayAttachments, DescribeTransitGatewayRouteTables, SearchTransitGatewayRoutes`)
+  output.push(`  OPSEC: Read-only network topology enum — defenders rarely alert on TGW describe calls`)
   return { output: output.join("\n"), findings }
 }
 
@@ -425,6 +514,29 @@ export async function lightsailExec(args: string[], timeout: number): Promise<Ho
   const region = argVal(args, "--region")
   const output: string[] = ["[*] Lightsail Instance Enumeration\n"]
   const findings: Finding[] = []
+
+  const callerId = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = tryJson(callerId.stdout)?.Arn || ""
+  let sourceArn = callerArn as string
+  if (sourceArn.includes(":assumed-role/")) {
+    const account = tryJson(callerId.stdout)?.Account || ""
+    const rn = sourceArn.split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${account}:role/${rn}`
+  }
+  const sim = await aws(
+    [
+      "iam", "simulate-principal-policy",
+      "--policy-source-arn", sourceArn,
+      "--action-names", "lightsail:GetInstances", "lightsail:DownloadDefaultKeyPair",
+      "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+    ],
+    profile, region, timeout,
+  )
+  if (sim.exitCode === 0) {
+    const results = tryJson(sim.stdout) || []
+    for (const r of results) output.push(`[${r[1] === "allowed" ? "+" : "-"}] Pre-flight: ${r[0]} — ${r[1]}`)
+    output.push("")
+  }
 
   const instances = await aws(
     [
@@ -487,6 +599,9 @@ export async function lightsailExec(args: string[], timeout: number): Promise<Ho
   output.push(`    2. ssh -i key.pem <user>@<public_ip> '${command}'`)
   output.push(`    3. Or use SSM if agent is installed`)
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetInstances, GetKeyPairs, DownloadDefaultKeyPair`)
+  output.push(`  OPSEC: DownloadDefaultKeyPair is a high-signal event — grants SSH to all instances using default key`)
   return { output: output.join("\n"), findings }
 }
 
@@ -498,6 +613,30 @@ export async function codeExecLambda(args: string[], timeout: number): Promise<H
   const region = argVal(args, "--region")
   const output: string[] = ["[*] Lambda Code Execution\n"]
   const findings: Finding[] = []
+
+  const callerId = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = tryJson(callerId.stdout)?.Arn || ""
+  let sourceArn = callerArn as string
+  if (sourceArn.includes(":assumed-role/")) {
+    const account = tryJson(callerId.stdout)?.Account || ""
+    const rn = sourceArn.split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${account}:role/${rn}`
+  }
+  if (funcName) {
+    const sim = await aws(
+      [
+        "iam", "simulate-principal-policy",
+        "--policy-source-arn", sourceArn,
+        "--action-names", "lambda:InvokeFunction",
+        "--query", "EvaluationResults[0].EvalDecision",
+      ],
+      profile, region, timeout,
+    )
+    if (sim.exitCode === 0) {
+      const decision = tryJson(sim.stdout)
+      output.push(`[${decision === "allowed" ? "+" : "-"}] Pre-flight: lambda:InvokeFunction — ${decision}\n`)
+    }
+  }
 
   if (!funcName) {
     const funcs = await aws(
@@ -556,6 +695,10 @@ export async function codeExecLambda(args: string[], timeout: number): Promise<H
     output.push(`[-] Invocation failed: ${r.stderr.trim()}`)
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: Invoke20150331, ListFunctions20150331`)
+  output.push(`  GuardDuty: N/A (Lambda invocation doesn't trigger GuardDuty directly)`)
+  output.push(`  OPSEC: Lambda CloudWatch Logs contain function output — check log group /aws/lambda/${funcName || "<name>"}`)
   return { output: output.join("\n"), findings }
 }
 
@@ -567,6 +710,29 @@ export async function ssmSession(args: string[], timeout: number): Promise<HookR
   const remoteHost = argVal(args, "--remote-host")
   const findings: Finding[] = []
   const output: string[] = ["[*] SSM Session Manager — Interactive Shell & Port Forwarding\n"]
+
+  const callerId = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = tryJson(callerId.stdout)?.Arn || ""
+  let sourceArn = callerArn as string
+  if (sourceArn.includes(":assumed-role/")) {
+    const account = tryJson(callerId.stdout)?.Account || ""
+    const rn = sourceArn.split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${account}:role/${rn}`
+  }
+  const sim = await aws(
+    [
+      "iam", "simulate-principal-policy",
+      "--policy-source-arn", sourceArn,
+      "--action-names", "ssm:StartSession", "ssm:DescribeInstanceInformation",
+      "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+    ],
+    profile, region, timeout,
+  )
+  if (sim.exitCode === 0) {
+    const results = tryJson(sim.stdout) || []
+    for (const r of results) output.push(`[${r[1] === "allowed" ? "+" : "-"}] Pre-flight: ${r[0]} — ${r[1]}`)
+    output.push("")
+  }
 
   const instances = await aws(
     [
@@ -716,6 +882,10 @@ export async function ssmSession(args: string[], timeout: number): Promise<HookR
     })
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: StartSession, DescribeInstanceInformation, GetDocument`)
+  output.push(`  GuardDuty: N/A (SSM sessions don't trigger GuardDuty directly)`)
+  output.push(`  OPSEC: Session activity optionally logged to CloudWatch/S3 — check SSM-SessionManagerRunShell preferences`)
   return { output: output.join("\n"), findings }
 }
 
@@ -724,6 +894,29 @@ export async function eksLateral(args: string[], timeout: number): Promise<HookR
   const region = argVal(args, "--region")
   const findings: Finding[] = []
   const output: string[] = ["[*] EKS Cluster Lateral Movement Assessment\n"]
+
+  const callerId = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const callerArn = tryJson(callerId.stdout)?.Arn || ""
+  let sourceArn = callerArn as string
+  if (sourceArn.includes(":assumed-role/")) {
+    const account = tryJson(callerId.stdout)?.Account || ""
+    const rn = sourceArn.split("/")[1] || ""
+    sourceArn = `arn:aws:iam::${account}:role/${rn}`
+  }
+  const sim = await aws(
+    [
+      "iam", "simulate-principal-policy",
+      "--policy-source-arn", sourceArn,
+      "--action-names", "eks:ListClusters", "eks:DescribeCluster", "eks:ListAccessEntries", "eks:ListNodegroups",
+      "--query", "EvaluationResults[].[EvalActionName,EvalDecision]",
+    ],
+    profile, region, timeout,
+  )
+  if (sim.exitCode === 0) {
+    const results = tryJson(sim.stdout) || []
+    for (const r of results) output.push(`[${r[1] === "allowed" ? "+" : "-"}] Pre-flight: ${r[0]} — ${r[1]}`)
+    output.push("")
+  }
 
   const clusters = await aws(["eks", "list-clusters", "--query", "clusters"], profile, region, timeout)
   if (clusters.exitCode !== 0) return { output: `[-] Cannot list EKS clusters: ${clusters.stderr.trim()}`, findings }
@@ -1032,6 +1225,10 @@ export async function eksLateral(args: string[], timeout: number): Promise<HookR
     output.push("")
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListClusters, DescribeCluster, ListAccessEntries, DescribeAccessEntry, ListNodegroups, DescribeNodegroup`)
+  output.push(`  K8s audit: EKS API calls (list namespaces, pods, secrets) logged if cluster audit logging enabled`)
+  output.push(`  OPSEC: eks:get-token generates a pre-signed STS URL — no separate CloudTrail event for K8s API calls themselves`)
   return { output: output.join("\n"), findings }
 }
 
