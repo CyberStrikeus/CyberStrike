@@ -47,6 +47,10 @@ export { triageGuide, triageActions, VulnStatus, isActionable, isExcluded } from
 export { Session } from "./session"
 export { Vulnerability } from "./session/vulnerability"
 
+// ── Cloud inventory — domain packages record discovered assets & exposures ──
+export { CloudAsset, CloudExposure } from "./cloud/inventory"
+export type { AssetKind, ExposureType } from "./cloud/inventory"
+
 // ── Web building-block kit (values arrive via input.core.web; TYPES here) ──
 // A domain plugin composes these to build its own web tools. The runtime VALUES
 // travel through injection; a plugin imports only these TYPES (erased at build).
