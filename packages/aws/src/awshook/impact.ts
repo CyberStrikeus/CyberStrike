@@ -50,6 +50,23 @@ export async function resourceHijack(args: string[], timeout: number): Promise<H
     }
   }
 
+  // Pre-flight permission check
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const identity = tryJson(id.stdout) || {}
+  const callerArn = identity.Arn || ""
+  const hijackActions = ["ec2:ModifyInstanceAttribute", "lambda:UpdateFunctionCode", "s3:PutObject", "ec2:CreateImage", "ec2:ModifyImageAttribute"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...hijackActions], profile, region, timeout)
+  const simResults = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = simResults.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+  if (allowed.length > 0) {
+    output.push(`\n[!] Hijack actions allowed: ${allowed.join(", ")}`)
+    findings.push({ checkId: "AWS-IMPACT-HIJACK-001", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://${callerArn}`, title: `${allowed.length} resource hijack actions allowed`, details: `Allowed: ${allowed.join(", ")} — can modify EC2 user-data, inject Lambda code, overwrite S3 content`, remediation: "Restrict ec2:ModifyInstanceAttribute, lambda:UpdateFunctionCode, s3:PutObject to authorized roles" })
+  }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ModifyInstanceAttribute, UpdateFunctionCode20150331v2, PutObject, CreateImage`)
+  output.push(`  GuardDuty: UnauthorizedAccess:EC2/TorClient, Impact:EC2/BitcoinDomainRequest`)
+
   output.push(`\n[*] Summary: ${findings.length} hijack vectors identified`)
   return { output: output.join("\n"), findings }
 }
@@ -69,16 +86,19 @@ export async function ransomwareSim(args: string[], timeout: number): Promise<Ho
   const keys = tryJson(kms.stdout) || []
   output.push(`[+] KMS keys: ${keys.length}`)
 
-  let canCreateKey = false
-  const testKey = await aws(["kms", "create-key", "--description", "ransomware-sim-test-DELETE-ME", "--tags", "TagKey=cyberstrike,TagValue=test"], profile, region, timeout)
-  if (testKey.exitCode === 0) {
-    canCreateKey = true
-    const keyId = tryJson(testKey.stdout)?.KeyMetadata?.KeyId
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const identity = tryJson(id.stdout) || {}
+  const callerArn = identity.Arn || ""
+  const ransomActions = ["kms:CreateKey", "kms:Encrypt", "kms:ScheduleKeyDeletion", "s3:PutObject", "s3:DeleteObject"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...ransomActions], profile, region, timeout)
+  const simResults = tryJson(sim.stdout)?.EvaluationResults || []
+  const simAllowed = simResults.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+  output.push(`[+] Ransomware-relevant actions allowed: ${simAllowed.length}/${ransomActions.length}`)
+  if (simAllowed.length > 0) output.push(`[!] Allowed: ${simAllowed.join(", ")}`)
+
+  const canCreateKey = simAllowed.includes("kms:CreateKey")
+  if (canCreateKey) {
     output.push(`[!] Can create KMS keys — ransomware encryption possible`)
-    if (keyId) {
-      await aws(["kms", "schedule-key-deletion", "--key-id", keyId, "--pending-window-in-days", "7"], profile, region, timeout)
-      output.push(`[*] Test key ${keyId} scheduled for deletion`)
-    }
     findings.push({ checkId: "AWS-RANSOM-001", provider: "aws", severity: "critical", status: "FAIL", resource: "kms://create", title: "Can create KMS keys — ransomware vector", details: "Attacker can create a key, re-encrypt S3 objects with it, then schedule key deletion", remediation: "Restrict kms:CreateKey to admin roles, enable S3 versioning + MFA Delete" })
   } else {
     output.push("[+] Cannot create KMS keys (kms:CreateKey denied)")
@@ -107,6 +127,10 @@ export async function ransomwareSim(args: string[], timeout: number): Promise<Ho
   if (unencrypted.length > 0) {
     output.push(`[!] Unencrypted volumes: ${unencrypted.length} — snapshot+encrypt+replace attack possible`)
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: CreateKey, Encrypt, ScheduleKeyDeletion, PutObject, DeleteObject`)
+  output.push(`  GuardDuty: Impact:S3/MaliciousIPCaller, Exfiltration:S3/ObjectRead.Unusual`)
 
   output.push(`\n[*] Summary: ${findings.length} ransomware vectors identified`)
   return { output: output.join("\n"), findings }
@@ -177,6 +201,10 @@ export async function resourceDeletionCapability(args: string[], timeout: number
   if (rdsUnprotected.length > 0 || dynamoUnprotected > 0) {
     findings.push({ checkId: "AWS-IMPACT-DEL-002", provider: "aws", severity: "high", status: "FAIL", resource: "deletion-protection://missing", title: `${rdsUnprotected.length} RDS + ${dynamoUnprotected} DynamoDB resources lack deletion protection`, details: "Resources can be permanently deleted without safeguard", remediation: "Enable deletion protection on all production databases" })
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: TerminateInstances, DeleteDBInstance, DeleteBucket, DeleteFunction, DeleteTable`)
+  output.push(`  GuardDuty: Impact:EC2/WinRMBruteForce, Impact:S3/MaliciousIPCaller`)
 
   output.push(`\n[*] Summary: ${findings.length} deletion capability issues found`)
   return { output: output.join("\n"), findings }
@@ -253,6 +281,10 @@ export async function serviceDisruptionAnalysis(args: string[], timeout: number)
   } else {
     output.push("\n[+] No disruptive actions allowed via IAM simulation")
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: StopInstances, TerminateInstances, StopTask, DeleteService, DeleteLoadBalancer, UpdateAutoScalingGroup`)
+  output.push(`  GuardDuty: Impact:EC2/DenialOfService.Dns, Impact:EC2/DenialOfService.Tcp`)
 
   output.push(`\n[*] Summary: ${findings.length} disruption risks identified`)
   return { output: output.join("\n"), findings }
@@ -334,6 +366,22 @@ export async function dataDestructionPaths(args: string[], timeout: number): Pro
   }
   output.push(`[+] EBS volumes without any snapshot: ${noSnap}/${Math.min(volumes.length, 20)}`)
 
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const identity = tryJson(id.stdout) || {}
+  const callerArn = identity.Arn || ""
+  const destroyActions = ["s3:DeleteObject", "s3:DeleteBucket", "rds:DeleteDBInstance", "dynamodb:DeleteTable", "ec2:DeleteVolume", "ec2:DeleteSnapshot"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...destroyActions], profile, region, timeout)
+  const simResults = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = simResults.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+  if (allowed.length > 0) {
+    output.push(`\n[!] Destruction actions allowed: ${allowed.join(", ")}`)
+    findings.push({ checkId: "AWS-IMPACT-DATADEST-004", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://${callerArn}`, title: `${allowed.length} data destruction actions allowed`, details: `Allowed: ${allowed.join(", ")} — can permanently delete unversioned S3, unprotected RDS/DynamoDB, EBS volumes`, remediation: "Restrict data deletion actions via IAM policies or SCPs, enable deletion protection" })
+  }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DeleteObject, DeleteBucket, DeleteDBInstance, DeleteTable, DeleteVolume, DeleteSnapshot`)
+  output.push(`  GuardDuty: Impact:S3/MaliciousIPCaller, Exfiltration:S3/ObjectRead.Unusual`)
+
   output.push(`\n[*] Summary: ${findings.length} data destruction risks found`)
   return { output: output.join("\n"), findings }
 }
@@ -392,6 +440,10 @@ export async function accountLockoutRisk(args: string[], timeout: number): Promi
   const roleList = tryJson(roles.stdout) || []
   output.push(`[+] Roles that could be deleted: ${roleList.length}`)
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DeleteUser, DeactivateMFADevice, UpdateLoginProfile, DeleteAccessKey, DeleteRole`)
+  output.push(`  GuardDuty: CredentialAccess:IAMUser/AnomalousBehavior, Persistence:IAMUser/AnomalousBehavior`)
+
   output.push(`\n[*] Summary: ${allowed.length} lockout actions allowed, ${findings.length} issues found`)
   return { output: output.join("\n"), findings }
 }
@@ -410,9 +462,17 @@ export async function cryptoMiningCheck(args: string[], timeout: number): Promis
     output.push(`    Types: ${(gpuList as string[]).slice(0, 10).join(", ")}${gpuList.length > 10 ? "..." : ""}`)
   }
 
-  // EC2 launch capability
-  const canLaunch = await aws(["ec2", "describe-instances", "--dry-run", "--filters", "Name=instance-state-name,Values=running"], profile, region, timeout)
-  const canLaunchEc2 = canLaunch.stderr.includes("DryRunOperation")
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const identity = tryJson(id.stdout) || {}
+  const callerArn = identity.Arn || ""
+  const miningActions = ["ec2:RunInstances", "lambda:CreateFunction", "batch:CreateComputeEnvironment", "sagemaker:CreateEndpoint"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...miningActions], profile, region, timeout)
+  const simResults = tryJson(sim.stdout)?.EvaluationResults || []
+  const simAllowed = simResults.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+  output.push(`[+] Compute launch actions allowed: ${simAllowed.length}/${miningActions.length}`)
+  if (simAllowed.length > 0) output.push(`[!] Allowed: ${simAllowed.join(", ")}`)
+
+  const canLaunchEc2 = simAllowed.includes("ec2:RunInstances")
   output.push(`[+] EC2 RunInstances: ${canLaunchEc2 ? "ALLOWED" : "denied"}`)
 
   // Lambda concurrency
@@ -450,6 +510,10 @@ export async function cryptoMiningCheck(args: string[], timeout: number): Promis
   } else if (hasCompute) {
     findings.push({ checkId: "AWS-IMPACT-CRYPTO-001", provider: "aws", severity: "high", status: "FAIL", resource: "compute://mining-surface", title: "Compute resources available for CPU-based mining", details: `EC2: ${canLaunchEc2}, Lambda: ${lambdaCfg.ConcurrentExecutions || "?"}, Batch: ${batchEnvs.length}`, remediation: "Set billing alerts and restrict compute launch permissions" })
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: RunInstances, CreateFunction20150331, CreateComputeEnvironment, CreateEndpoint`)
+  output.push(`  GuardDuty: CryptoCurrency:EC2/BitcoinTool.B, Impact:EC2/BitcoinDomainRequest.Reputation`)
 
   output.push(`\n[*] Summary: ${findings.length} mining deployment risks found`)
   return { output: output.join("\n"), findings }
@@ -507,6 +571,23 @@ export async function billingImpactAnalysis(args: string[], timeout: number): Pr
     output.push(`  ${s[1]}: $${s[2]}/hr, expires: ${s[3]}`)
   }
 
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const identity = tryJson(id.stdout) || {}
+  const callerArn = identity.Arn || ""
+  const billingActions = ["ce:GetCostAndUsage", "budgets:ModifyBudget", "service-quotas:RequestServiceQuotaIncrease", "organizations:LeaveOrganization"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...billingActions], profile, region, timeout)
+  const simResults = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = simResults.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+  if (allowed.length > 0) {
+    output.push(`\n[!] Billing-related actions allowed: ${allowed.join(", ")}`)
+    if (allowed.includes("organizations:LeaveOrganization")) {
+      findings.push({ checkId: "AWS-IMPACT-BILLING-002", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://${callerArn}`, title: "Can leave AWS Organization — billing/SCP bypass", details: "organizations:LeaveOrganization removes SCP guardrails and consolidated billing", remediation: "Restrict organizations:LeaveOrganization via SCP on member accounts" })
+    }
+    if (allowed.includes("service-quotas:RequestServiceQuotaIncrease")) {
+      findings.push({ checkId: "AWS-IMPACT-BILLING-003", provider: "aws", severity: "high", status: "FAIL", resource: `iam://${callerArn}`, title: "Can request service quota increases — cost escalation vector", details: "Increasing vCPU/instance quotas enables larger compute deployments", remediation: "Restrict service-quotas:RequestServiceQuotaIncrease to admin roles" })
+    }
+  }
+
   // Assess expansion risk
   const quotaOnDemand = await aws(["service-quotas", "get-service-quota", "--service-code", "ec2", "--quota-code", "L-1216C47A"], profile, region, timeout)
   const vCPULimit = tryJson(quotaOnDemand.stdout)?.Quota?.Value
@@ -515,6 +596,10 @@ export async function billingImpactAnalysis(args: string[], timeout: number): Pr
   if (vCPULimit && vCPULimit > 100) {
     findings.push({ checkId: "AWS-IMPACT-BILLING-001", provider: "aws", severity: "high", status: "FAIL", resource: "billing://expansion-risk", title: `High compute limit (${vCPULimit} vCPUs) — potential for significant cost spike`, details: `Current vCPU limit allows launching up to ${vCPULimit} vCPUs — at $0.10/vCPU/hr this is $${(vCPULimit * 0.1 * 24 * 30).toFixed(0)}/month potential`, remediation: "Reduce vCPU quotas, set AWS Budgets with alerts, enable billing alarms" })
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetCostAndUsage, ModifyBudget, RequestServiceQuotaIncrease, LeaveOrganization`)
+  output.push(`  GuardDuty: Stealth:IAMUser/CloudTrailLoggingDisabled (org leave often precedes evasion)`)
 
   output.push(`\n[*] Summary: ${findings.length} billing impact risks found`)
   return { output: output.join("\n"), findings }
@@ -570,6 +655,22 @@ export async function dnsHijackCapability(args: string[], timeout: number): Prom
   if (cfList.length > 0) {
     findings.push({ checkId: "AWS-IMPACT-DNS-002", provider: "aws", severity: "medium", status: "FAIL", resource: "cloudfront://distributions", title: `${cfList.length} CloudFront distributions — origin hijack possible`, details: "Modifying origin configuration can redirect traffic to attacker-controlled server", remediation: "Restrict cloudfront:UpdateDistribution to admin roles" })
   }
+
+  const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+  const identity = tryJson(id.stdout) || {}
+  const callerArn = identity.Arn || ""
+  const dnsActions = ["route53:ChangeResourceRecordSets", "route53:DeleteHostedZone", "cloudfront:UpdateDistribution", "cloudfront:DeleteDistribution"]
+  const sim = await aws(["iam", "simulate-principal-policy", "--policy-source-arn", callerArn, "--action-names", ...dnsActions], profile, region, timeout)
+  const simResults = tryJson(sim.stdout)?.EvaluationResults || []
+  const allowed = simResults.filter((r: Record<string, string>) => r.EvalDecision === "allowed").map((r: Record<string, string>) => r.EvalActionName)
+  if (allowed.length > 0) {
+    output.push(`\n[!] DNS/CDN modification actions allowed: ${allowed.join(", ")}`)
+    findings.push({ checkId: "AWS-IMPACT-DNS-003", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://${callerArn}`, title: `${allowed.length} DNS/CDN hijack actions allowed`, details: `Allowed: ${allowed.join(", ")} — can redirect DNS records or modify CloudFront origins`, remediation: "Restrict Route53 and CloudFront modification actions to admin roles" })
+  }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ChangeResourceRecordSets, DeleteHostedZone, UpdateDistribution, DeleteDistribution`)
+  output.push(`  GuardDuty: Impact:EC2/AbusedDomainRequest.Reputation`)
 
   output.push(`\n[*] Summary: ${findings.length} DNS/traffic hijack risks found`)
   return { output: output.join("\n"), findings }
@@ -656,6 +757,10 @@ export async function networkDisruptionCapability(args: string[], timeout: numbe
   if (totalNetResources > 20) {
     findings.push({ checkId: "AWS-IMPACT-NET-002", provider: "aws", severity: "high", status: "FAIL", resource: "network://blast-radius", title: `${totalNetResources} network resources — high blast radius for disruption`, details: `${vpcList.length} VPCs, ${subnetList.length} subnets, ${sgList.length} SGs, ${natList.length} NATs, ${vpnList.length} VPNs, ${dxList.length} DX — deleting key components causes cascading outage`, remediation: "Segment networks, restrict delete permissions, use AWS Backup for network config" })
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DeleteSecurityGroup, RevokeSecurityGroupIngress, DeleteSubnet, DeleteVpc, DeleteNatGateway`)
+  output.push(`  GuardDuty: Impact:EC2/DenialOfService.Dns, Recon:EC2/Portscan`)
 
   output.push(`\n[*] Summary: ${findings.length} network disruption risks found`)
   return { output: output.join("\n"), findings }
