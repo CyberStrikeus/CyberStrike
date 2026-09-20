@@ -397,6 +397,20 @@
         "typescript": "catalog:",
       },
     },
+    "packages/gcp": {
+      "name": "@cyberstrike-io/gcp",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "@tsconfig/node22": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "cyberstrike": "workspace:*",
+      },
+    },
     "packages/hackbrowser": {
       "name": "@cyberstrike-io/hackbrowser",
       "version": "1.1.16",
@@ -910,6 +924,8 @@
     "@cyberstrike-io/desktop": ["@cyberstrike-io/desktop@workspace:packages/desktop"],
 
     "@cyberstrike-io/function": ["@cyberstrike-io/function@workspace:packages/function"],
+
+    "@cyberstrike-io/gcp": ["@cyberstrike-io/gcp@workspace:packages/gcp"],
 
     "@cyberstrike-io/hackbrowser": ["@cyberstrike-io/hackbrowser@workspace:packages/hackbrowser"],
 
