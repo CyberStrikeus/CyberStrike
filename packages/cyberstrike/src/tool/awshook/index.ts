@@ -2,6 +2,8 @@ import z from "zod"
 import { Tool } from "../tool"
 import { run } from "./shared"
 import type { Finding, HookResult } from "./shared"
+import { ingestFindings } from "./ingest"
+import { Session } from "../../session"
 
 import {
   iamEnum,
@@ -804,7 +806,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
 }
 
 export const AwshookTool = Tool.define("awshook", {
-  description: `Execute an AWS post-exploitation program after compromising IAM credentials or EC2 instance. Uses aws CLI (no Python/SDK dependency). 92 programs across 7 categories: recon (23), credential (11), privesc (10), persistence (11), lateral (8), evasion (13), exfil (16). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
+  description: `AWS offensive security toolkit — the PRIMARY tool for any AWS security assessment, pentest, or audit when AWS credentials are available. 92 programs across 7 kill-chain phases: recon (23), credential harvesting (11), privilege escalation (10), persistence (11), lateral movement (8), defense evasion (13), exfiltration & cleanup (16). Start with recon programs (iam_enum, ec2_enum, s3_enum, service_recon) to discover assets and misconfigurations, then progress through the kill chain. Prefer this over cloud_audit — awshook recon covers everything cloud_audit does PLUS finds exploitable paths. Uses aws CLI (no Python/SDK). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
   parameters: z.object({
     program: z.enum(programKeys).describe(
       "AWS program to execute. Options: " +
@@ -815,7 +817,7 @@ export const AwshookTool = Tool.define("awshook", {
     args: z.array(z.string()).describe("Arguments to pass to the program"),
     timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
-  async execute(params) {
+  async execute(params, ctx) {
     if (!Bun.which("aws")) {
       return {
         title: `awshook: ${params.program}`,
@@ -832,6 +834,15 @@ export const AwshookTool = Tool.define("awshook", {
         ...f,
         cwe: CWE_MAP[f.checkId] || undefined,
       }))
+
+      if (enriched.length > 0) {
+        const sessionID = Session.root(ctx.sessionID)
+        const ingested = ingestFindings(sessionID, enriched, ctx.agent ?? "awshook")
+        if (ingested.assets > 0 || ingested.exposures > 0) {
+          result.output += `\n\n[inventory] ${ingested.assets} assets, ${ingested.exposures} exposures recorded`
+        }
+      }
+
       return {
         title: `awshook: ${params.program}`,
         output: result.output,
