@@ -1,0 +1,89 @@
+export type Finding = {
+  checkId: string
+  provider: string
+  severity: string
+  status: string
+  resource: string
+  title: string
+  details: string
+  remediation: string
+}
+
+export type HookResult = { output: string; findings: Finding[] }
+
+const MAX_OUTPUT_BYTES = 5 * 1024 * 1024
+
+async function readCapped(stream: ReadableStream | null): Promise<string> {
+  if (!stream) return ""
+  const reader = stream.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    if (value) {
+      total += value.byteLength
+      if (total > MAX_OUTPUT_BYTES) {
+        chunks.push(value.subarray(0, value.byteLength - (total - MAX_OUTPUT_BYTES)))
+        reader.cancel()
+        break
+      }
+      chunks.push(value)
+    }
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks))
+}
+
+export async function run(
+  cmd: string,
+  args: string[],
+  timeout: number,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  let proc: ReturnType<typeof Bun.spawn>
+  try {
+    proc = Bun.spawn([cmd, ...args], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env },
+    })
+  } catch (e) {
+    return { stdout: "", stderr: e instanceof Error ? e.message : String(e), exitCode: 127 }
+  }
+  const ms = timeout * 1000
+  let killed = false
+  const timer = setTimeout(() => {
+    killed = true
+    proc.kill(9)
+  }, ms)
+
+  const [exitCode, stdout, stderr] = await Promise.all([
+    proc.exited,
+    readCapped(proc.stdout as ReadableStream),
+    readCapped(proc.stderr as ReadableStream),
+  ])
+  clearTimeout(timer)
+
+  return { stdout, stderr, exitCode: killed ? 124 : exitCode }
+}
+
+export function az(args: string[], sub: string | undefined, timeout: number) {
+  const extra = sub ? ["--subscription", sub] : []
+  return run("az", [...args, ...extra, "-o", "json"], timeout)
+}
+
+export function argVal(args: string[], flag: string): string | undefined {
+  const i = args.indexOf(flag)
+  return i >= 0 && i + 1 < args.length ? args[i + 1] : undefined
+}
+
+export function hasFlag(args: string[], flag: string): boolean {
+  return args.includes(flag)
+}
+
+export function tryJson(s: string) {
+  try {
+    return JSON.parse(s)
+  } catch {
+    return null
+  }
+}

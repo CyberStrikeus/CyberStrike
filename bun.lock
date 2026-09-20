@@ -101,6 +101,25 @@
         "cyberstrike": "workspace:*",
       },
     },
+    "packages/azure": {
+      "name": "@cyberstrike-io/azure",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@tsconfig/node22": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "cyberstrike": "*",
+      },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
+    },
     "packages/console/app": {
       "name": "@cyberstrike-io/console-app",
       "version": "1.1.16",
@@ -910,6 +929,8 @@
     "@cyberstrike-io/app": ["@cyberstrike-io/app@workspace:packages/app"],
 
     "@cyberstrike-io/aws": ["@cyberstrike-io/aws@workspace:packages/aws"],
+
+    "@cyberstrike-io/azure": ["@cyberstrike-io/azure@workspace:packages/azure"],
 
     "@cyberstrike-io/console-app": ["@cyberstrike-io/console-app@workspace:packages/console/app"],
 
