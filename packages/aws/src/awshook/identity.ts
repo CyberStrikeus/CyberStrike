@@ -53,49 +53,6 @@ export async function stsSessionEnum(args: string[], timeout: number): Promise<H
   return { output: output.join("\n"), findings }
 }
 
-export async function crossAccountTrustEnum(args: string[], timeout: number): Promise<HookResult> {
-  const profile = argVal(args, "--profile")
-  const region = argVal(args, "--region")
-  const findings: Finding[] = []
-  const output: string[] = ["[*] Enumerating cross-account trust relationships...\n"]
-
-  const id = await aws(["sts", "get-caller-identity", "--query", "Account", "--output", "text"], profile, region, timeout)
-  const ownAccount = id.stdout.trim()
-
-  const roles = await aws(["iam", "list-roles", "--max-items", "200"], profile, region, timeout)
-  const roleList = tryJson(roles.stdout)?.Roles || []
-  output.push(`[+] Total roles: ${roleList.length}`)
-
-  let crossCount = 0
-  for (const role of roleList) {
-    const statements = role.AssumeRolePolicyDocument?.Statement || []
-    for (const stmt of statements) {
-      if (stmt.Effect !== "Allow") continue
-      const principals = extractPrincipals(stmt.Principal)
-      for (const p of principals) {
-        const match = p.match(/^arn:aws:iam::(\d+):/)
-        if (match && match[1] !== ownAccount) {
-          crossCount++
-          const hasCondition = stmt.Condition && Object.keys(stmt.Condition).length > 0
-          const hasExternalId = stmt.Condition?.StringEquals?.["sts:ExternalId"]
-          output.push(`[!] ${role.RoleName} ← account ${match[1]}${hasExternalId ? " (ExternalId)" : hasCondition ? " (conditional)" : " (NO conditions)"}`)
-
-          if (!hasCondition) {
-            findings.push({ checkId: "AWS-XACCT-001", provider: "aws", severity: "high", status: "FAIL", resource: `iam://role/${role.RoleName}`, title: `Cross-account role ${role.RoleName} trusts ${match[1]} without conditions`, details: "No ExternalId or condition — confused deputy risk", remediation: "Add sts:ExternalId condition to the trust policy" })
-          }
-        }
-        if (p === "*") {
-          findings.push({ checkId: "AWS-XACCT-002", provider: "aws", severity: "critical", status: "FAIL", resource: `iam://role/${role.RoleName}`, title: `Role ${role.RoleName} trusts ANY principal (*)`, details: "Wildcard principal in assume role policy", remediation: "Restrict to specific AWS account or service principals" })
-        }
-      }
-    }
-  }
-
-  output.push(`\n[+] Cross-account trust relationships: ${crossCount}`)
-  output.push(`[*] Summary: ${findings.length} issues found`)
-  return { output: output.join("\n"), findings }
-}
-
 function extractPrincipals(principal: unknown): string[] {
   if (!principal) return []
   if (typeof principal === "string") return [principal]
@@ -334,73 +291,6 @@ export async function stalePermissionAudit(args: string[], timeout: number): Pro
   return { output: output.join("\n"), findings }
 }
 
-export async function ssoDeepEnum(args: string[], timeout: number): Promise<HookResult> {
-  const profile = argVal(args, "--profile")
-  const region = argVal(args, "--region")
-  const findings: Finding[] = []
-  const output: string[] = ["[*] Deep SSO/IAM Identity Center enumeration...\n"]
-
-  const instances = await aws(["sso-admin", "list-instances"], profile, region, timeout)
-  if (instances.exitCode !== 0) return { output: `[-] SSO not configured or no access: ${instances.stderr.trim()}`, findings }
-  const instList = tryJson(instances.stdout)?.Instances || []
-
-  if (instList.length === 0) {
-    output.push("[-] No SSO instances found")
-    return { output: output.join("\n"), findings }
-  }
-
-  for (const inst of instList) {
-    const arn = inst.InstanceArn
-    const storeId = inst.IdentityStoreId
-    output.push(`[+] SSO Instance: ${arn}`)
-    output.push(`    Identity Store: ${storeId}`)
-
-    const permSets = await aws(["sso-admin", "list-permission-sets", "--instance-arn", arn, "--max-results", "100"], profile, region, timeout)
-    const psArns = tryJson(permSets.stdout)?.PermissionSets || []
-    output.push(`    Permission sets: ${psArns.length}`)
-
-    for (const psArn of psArns.slice(0, 20)) {
-      const ps = await aws(["sso-admin", "describe-permission-set", "--instance-arn", arn, "--permission-set-arn", psArn], profile, region, timeout)
-      const detail = tryJson(ps.stdout)?.PermissionSet || {}
-      const duration = detail.SessionDuration || "PT1H"
-      output.push(`\n    PermissionSet: ${detail.Name}`)
-      output.push(`      SessionDuration: ${duration}, Relay: ${detail.RelayState || "none"}`)
-
-      const durationHours = parseInt(duration.replace(/PT(\d+)H.*/, "$1")) || 1
-      if (durationHours > 8) {
-        findings.push({ checkId: "AWS-SSO-001", provider: "aws", severity: "medium", status: "FAIL", resource: `sso://permission-set/${detail.Name}`, title: `Permission set ${detail.Name} session duration ${duration} exceeds 8 hours`, details: "Long sessions increase exposure after credential compromise", remediation: "Reduce session duration to 8 hours or less" })
-      }
-
-      const inlinePolicy = await aws(["sso-admin", "get-inline-policy-for-permission-set", "--instance-arn", arn, "--permission-set-arn", psArn], profile, region, timeout)
-      const inline = tryJson(inlinePolicy.stdout)?.InlinePolicy
-      if (inline) {
-        const doc = tryJson(inline) || {}
-        const stmts = doc.Statement || []
-        for (const s of stmts) {
-          const actions = Array.isArray(s.Action) ? s.Action : [s.Action]
-          if (s.Effect === "Allow" && actions.includes("*")) {
-            findings.push({ checkId: "AWS-SSO-002", provider: "aws", severity: "critical", status: "FAIL", resource: `sso://permission-set/${detail.Name}`, title: `SSO permission set ${detail.Name} has Action:* inline policy`, details: "Full admin through SSO — review if intentional", remediation: "Replace with least-privilege managed policy" })
-          }
-        }
-      }
-    }
-
-    const users = await aws(["identitystore", "list-users", "--identity-store-id", storeId, "--max-results", "100"], profile, region, timeout)
-    const userList = tryJson(users.stdout)?.Users || []
-    output.push(`\n    Identity Store users: ${userList.length}`)
-    for (const u of userList.slice(0, 10)) {
-      output.push(`      ${u.UserName || u.DisplayName} (${u.UserId})`)
-    }
-
-    const groups = await aws(["identitystore", "list-groups", "--identity-store-id", storeId, "--max-results", "100"], profile, region, timeout)
-    const groupList = tryJson(groups.stdout)?.Groups || []
-    output.push(`    Identity Store groups: ${groupList.length}`)
-  }
-
-  output.push(`\n[*] Summary: ${findings.length} SSO issues found`)
-  return { output: output.join("\n"), findings }
-}
-
 export async function cognitoSecurityAudit(args: string[], timeout: number): Promise<HookResult> {
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
@@ -452,32 +342,6 @@ export async function cognitoSecurityAudit(args: string[], timeout: number): Pro
   }
 
   output.push(`\n[*] Summary: ${findings.length} Cognito issues found`)
-  return { output: output.join("\n"), findings }
-}
-
-export async function serviceLinkedRoleEnum(args: string[], timeout: number): Promise<HookResult> {
-  const profile = argVal(args, "--profile")
-  const region = argVal(args, "--region")
-  const findings: Finding[] = []
-  const output: string[] = ["[*] Enumerating service-linked roles...\n"]
-
-  const roles = await aws(["iam", "list-roles", "--path-prefix", "/aws-service-role/", "--query", "Roles[].[RoleName,Arn,CreateDate]"], profile, region, timeout)
-  const roleList = tryJson(roles.stdout) || []
-  output.push(`[+] Service-linked roles: ${roleList.length}`)
-
-  const serviceMap = new Map<string, number>()
-  for (const r of roleList) {
-    const svc = (r[0] as string).split("_")[0] || r[0]
-    serviceMap.set(svc, (serviceMap.get(svc) || 0) + 1)
-    output.push(`  ${r[0]}`)
-  }
-
-  output.push(`\n[+] Services with linked roles: ${serviceMap.size}`)
-  for (const [svc, count] of serviceMap) {
-    output.push(`  ${svc}: ${count}`)
-  }
-
-  output.push(`\n[*] Summary: ${roleList.length} service-linked roles (informational)`)
   return { output: output.join("\n"), findings }
 }
 
@@ -642,6 +506,7 @@ export async function roleTrustAudit(args: string[], timeout: number): Promise<H
   let wildcardCount = 0
   let crossAccountCount = 0
   let unusualServiceCount = 0
+  let confusedDeputyCount = 0
   const knownServices = new Set([
     "ec2.amazonaws.com", "lambda.amazonaws.com", "ecs-tasks.amazonaws.com", "eks.amazonaws.com",
     "rds.amazonaws.com", "s3.amazonaws.com", "cloudformation.amazonaws.com", "codebuild.amazonaws.com",
@@ -652,6 +517,7 @@ export async function roleTrustAudit(args: string[], timeout: number): Promise<H
   ])
 
   for (const role of roleList) {
+    if (role.Path === "/aws-service-role/") continue
     const statements = role.AssumeRolePolicyDocument?.Statement || []
     for (const stmt of statements) {
       if (stmt.Effect !== "Allow") continue
@@ -672,16 +538,34 @@ export async function roleTrustAudit(args: string[], timeout: number): Promise<H
           findings.push({ checkId: "AWS-RTRUST-002", provider: "aws", severity: "high", status: "FAIL", resource: `iam://role/${role.RoleName}`, title: `Role ${role.RoleName} trusts external account ${acctMatch[1]}`, details: `Cross-account trust${hasExternalId ? " with ExternalId condition" : " WITHOUT ExternalId — confused deputy risk"}`, remediation: hasExternalId ? "Verify external account ownership" : "Add sts:ExternalId condition to trust policy" })
         }
 
-        if (p.endsWith(".amazonaws.com") && !knownServices.has(p)) {
-          unusualServiceCount++
-          output.push(`[?] ${role.RoleName}: unusual service principal ${p}`)
-          findings.push({ checkId: "AWS-RTRUST-003", provider: "aws", severity: "low", status: "FAIL", resource: `iam://role/${role.RoleName}`, title: `Role ${role.RoleName} trusts unusual service: ${p}`, details: "Service principal not in common set — verify legitimacy", remediation: "Review if this service principal is expected" })
+        if (p.endsWith(".amazonaws.com")) {
+          if (!knownServices.has(p)) {
+            unusualServiceCount++
+            output.push(`[?] ${role.RoleName}: unusual service principal ${p}`)
+            findings.push({ checkId: "AWS-RTRUST-003", provider: "aws", severity: "low", status: "FAIL", resource: `iam://role/${role.RoleName}`, title: `Role ${role.RoleName} trusts unusual service: ${p}`, details: "Service principal not in common set — verify legitimacy", remediation: "Review if this service principal is expected" })
+          }
+
+          const conditions = stmt.Condition || {}
+          const conditionKeys = new Set<string>()
+          for (const op of Object.values(conditions) as Record<string, unknown>[]) {
+            for (const key of Object.keys(op)) conditionKeys.add(key)
+          }
+          const hasSourceGuard = conditionKeys.has("aws:SourceAccount") || conditionKeys.has("aws:SourceArn") || conditionKeys.has("aws:SourceOrgID") || conditionKeys.has("aws:CalledVia") || conditionKeys.has("aws:ViaAWSService")
+          if (!hasSourceGuard) {
+            confusedDeputyCount++
+            const attached = await aws(["iam", "list-attached-role-policies", "--role-name", role.RoleName, "--query", "AttachedPolicies[].PolicyName"], profile, region, timeout)
+            const policies = tryJson(attached.stdout) || []
+            const isHighPriv = policies.some((pol: string) => /AdministratorAccess|PowerUserAccess|FullAccess/.test(pol))
+            const severity = isHighPriv ? "critical" : "high"
+            output.push(`[!] ${role.RoleName}: confused deputy — trusts ${p} without source conditions${isHighPriv ? " [HIGH-PRIV]" : ""}`)
+            findings.push({ checkId: "AWS-RTRUST-004", provider: "aws", severity, status: "FAIL", resource: `iam://role/${role.RoleName}`, title: `Role ${role.RoleName} vulnerable to confused deputy (${p})`, details: `Service ${p} trusted without aws:SourceAccount/SourceArn/SourceOrgID. Policies: ${policies.join(", ") || "none"}.${isHighPriv ? " HIGH-PRIVILEGE — attacker in another account can exploit." : ""}`, remediation: `Add Condition: {"StringEquals": {"aws:SourceAccount": "${ownAccount}"}} to trust policy`, cwe: "CWE-441" })
+          }
         }
       }
     }
   }
 
-  output.push(`\n[+] Wildcard trusts: ${wildcardCount}, Cross-account: ${crossAccountCount}, Unusual services: ${unusualServiceCount}`)
+  output.push(`\n[+] Wildcard: ${wildcardCount}, Cross-account: ${crossAccountCount}, Unusual services: ${unusualServiceCount}, Confused deputy: ${confusedDeputyCount}`)
   output.push(`[*] Summary: ${findings.length} trust policy issues found`)
   return { output: output.join("\n"), findings }
 }
@@ -1015,6 +899,20 @@ export async function ssoPermissionAudit(args: string[], timeout: number): Promi
         }
         output.push(`    Inline policy: yes (${stmts.length} statements)`)
       }
+    }
+
+    const storeId = inst.IdentityStoreId
+    if (storeId) {
+      const users = await aws(["identitystore", "list-users", "--identity-store-id", storeId, "--max-results", "100"], profile, region, timeout)
+      const userList = tryJson(users.stdout)?.Users || []
+      output.push(`\n  Identity Store users: ${userList.length}`)
+      for (const u of userList.slice(0, 10)) {
+        output.push(`    ${u.UserName || u.DisplayName} (${u.UserId})`)
+      }
+
+      const groups = await aws(["identitystore", "list-groups", "--identity-store-id", storeId, "--max-results", "100"], profile, region, timeout)
+      const groupList = tryJson(groups.stdout)?.Groups || []
+      output.push(`  Identity Store groups: ${groupList.length}`)
     }
   }
 
@@ -1665,85 +1563,3 @@ export async function iamPolicySimulation(args: string[], timeout: number): Prom
   return { output: output.join("\n"), findings }
 }
 
-export async function confusedDeputyDetect(args: string[], timeout: number): Promise<HookResult> {
-  const profile = argVal(args, "--profile")
-  const region = argVal(args, "--region")
-  const findings: Finding[] = []
-  const output: string[] = ["[*] Confused Deputy Detection — Scanning role trust policies...\n"]
-
-  const roles = await aws(["iam", "list-roles", "--max-items", "200"], profile, region, timeout)
-  if (roles.exitCode !== 0) return { output: `[-] Failed to list roles: ${roles.stderr.trim()}`, findings }
-  const roleList = tryJson(roles.stdout)?.Roles || []
-  output.push(`[+] Total roles: ${roleList.length}`)
-
-  let vulnerableCount = 0
-  let checkedCount = 0
-  let safeCount = 0
-
-  for (const role of roleList) {
-    if (role.Path === "/aws-service-role/") continue
-
-    const statements = role.AssumeRolePolicyDocument?.Statement || []
-    for (const stmt of statements) {
-      if (stmt.Effect !== "Allow") continue
-      const principals = extractPrincipals(stmt.Principal)
-      const servicePrincipals = principals.filter((p: string) => p.endsWith(".amazonaws.com"))
-      if (servicePrincipals.length === 0) continue
-
-      checkedCount++
-
-      const conditions = stmt.Condition || {}
-      const conditionKeys = new Set<string>()
-      for (const op of Object.values(conditions) as Record<string, unknown>[]) {
-        for (const key of Object.keys(op)) conditionKeys.add(key)
-      }
-
-      const hasSourceAccount = conditionKeys.has("aws:SourceAccount")
-      const hasSourceArn = conditionKeys.has("aws:SourceArn")
-      const hasSourceOrgId = conditionKeys.has("aws:SourceOrgID")
-      const hasCalledVia = conditionKeys.has("aws:CalledVia")
-      const hasViaAWSService = conditionKeys.has("aws:ViaAWSService")
-
-      const isProtected = hasSourceAccount || hasSourceArn || hasSourceOrgId || hasCalledVia || hasViaAWSService
-
-      if (isProtected) {
-        safeCount++
-        continue
-      }
-
-      vulnerableCount++
-      const services = servicePrincipals.join(", ")
-
-      const attached = await aws(
-        ["iam", "list-attached-role-policies", "--role-name", role.RoleName, "--query", "AttachedPolicies[].PolicyName"],
-        profile, region, timeout,
-      )
-      const policies = tryJson(attached.stdout) || []
-      const isHighPriv = policies.some((p: string) => /AdministratorAccess|PowerUserAccess|FullAccess/.test(p))
-      const severity = isHighPriv ? "critical" : "high"
-
-      output.push(`[!] ${role.RoleName} — trusts ${services} without source conditions`)
-      if (isHighPriv) output.push(`    [!!] HIGH-PRIV: ${policies.join(", ")}`)
-
-      findings.push({
-        checkId: "AWS-IDENTITY-DEPUTY-001",
-        provider: "aws",
-        severity,
-        status: "FAIL",
-        resource: `iam://role/${role.RoleName}`,
-        title: `Role ${role.RoleName} vulnerable to confused deputy (${services})`,
-        details: `Trusted services: ${services}. No aws:SourceAccount, aws:SourceArn or aws:SourceOrgID condition. Policies: ${policies.join(", ") || "none"}.${isHighPriv ? " HIGH-PRIVILEGE ROLE — an attacker in another account can exploit the trusted service to assume this role." : ""}`,
-        remediation: `Add Condition: {"StringEquals": {"aws:SourceAccount": "<YOUR_ACCOUNT_ID>"}} to the trust policy for ${role.RoleName}`,
-        cwe: "CWE-441",
-      })
-    }
-  }
-
-  output.push(`\n${"═".repeat(60)}`)
-  output.push(`[*] Checked ${checkedCount} roles with service trust policies`)
-  output.push(`[+] Protected: ${safeCount} (have source conditions)`)
-  output.push(`[!] Vulnerable: ${vulnerableCount} (missing source conditions)`)
-  output.push(`[*] Total findings: ${findings.length}`)
-
-  return { output: output.join("\n"), findings }
-}

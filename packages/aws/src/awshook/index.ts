@@ -172,12 +172,9 @@ import {
 } from "./compliance"
 import {
   stsSessionEnum,
-  crossAccountTrustEnum,
   iamDeepAudit,
   stalePermissionAudit,
-  ssoDeepEnum,
   cognitoSecurityAudit,
-  serviceLinkedRoleEnum,
   organizationPolicyEnum,
   passwordSprayAws,
   identitySummary,
@@ -193,7 +190,6 @@ import {
   groupMembershipAudit,
   permissionBoundaryAudit,
   iamPolicySimulation,
-  confusedDeputyDetect,
 } from "./identity"
 import {
   resourceHijack,
@@ -877,13 +873,9 @@ const PROGRAMS = {
     args: "[--profile PROFILE] [--region REGION]",
   },
 
-  // ── Identity (23) ──
+  // ── Identity (19) ──
   sts_session_enum: {
     description: "Enumerate STS capabilities — session duration, federation token generation, wildcard trust roles",
-    args: "[--profile PROFILE] [--region REGION]",
-  },
-  cross_account_trust_enum: {
-    description: "Enumerate all cross-account trust relationships — roles trusting external accounts, missing ExternalId conditions",
     args: "[--profile PROFILE] [--region REGION]",
   },
   iam_deep_audit: {
@@ -894,16 +886,8 @@ const PROGRAMS = {
     description: "Audit stale permissions — admin policies, service wildcards, unused roles >90 days",
     args: "[--profile PROFILE] [--region REGION]",
   },
-  sso_deep_enum: {
-    description: "Deep SSO/IAM Identity Center enum — permission sets, session durations, inline policies, identity store users/groups",
-    args: "[--instance-arn ARN] [--profile PROFILE] [--region REGION]",
-  },
   cognito_security_audit: {
     description: "Audit Cognito security — user pool MFA, password policy, app client auth flows, identity pool unauth access",
-    args: "[--profile PROFILE] [--region REGION]",
-  },
-  service_linked_role_enum: {
-    description: "Enumerate AWS service-linked roles — which services have created roles, service footprint",
     args: "[--profile PROFILE] [--region REGION]",
   },
   organization_policy_enum: {
@@ -966,11 +950,6 @@ const PROGRAMS = {
     description: "General-purpose IAM permission check via simulate-principal-policy — test dangerous actions across data access, admin, network, compute categories for any principal",
     args: "[--target ARN] [--profile PROFILE] [--region REGION]",
   },
-  confused_deputy_detect: {
-    description: "Confused deputy detection — find service-trusted IAM roles missing aws:SourceAccount/aws:SourceArn conditions, flag high-priv ones as critical",
-    args: "[--profile PROFILE] [--region REGION]",
-  },
-
   // ── Impact (13) ──
   resource_hijack: {
     description: "Assess resource hijack vectors — EC2 user-data injection, Lambda code injection, S3 website defacement",
@@ -1050,7 +1029,6 @@ const CWE_MAP: Record<string, string> = {
   "AWS-ECS-002": "CWE-312",
   "AWS-EKS-001": "CWE-284",
   "AWS-R53-001": "CWE-284",
-  "AWS-SSO-001": "CWE-269",
   "AWS-ORG-001": "CWE-200",
   "AWS-CRED-001": "CWE-522",
   "AWS-CRED-002": "CWE-522",
@@ -1368,7 +1346,7 @@ const CWE_MAP: Record<string, string> = {
   "AWS-PRIVESC-AUTO-020": "CWE-269",
   "AWS-PRIVESC-AUTO-021": "CWE-269",
   "AWS-PRIVESC-AUTO-ASSUME": "CWE-269",
-  "AWS-IDENTITY-DEPUTY-001": "CWE-441",
+  "AWS-RTRUST-004": "CWE-441",
   "AWS-IDENTITY-SIM-001": "CWE-269",
   "AWS-LATERAL-EKS-001": "CWE-284",
   "AWS-LATERAL-EKS-002": "CWE-269",
@@ -1543,12 +1521,9 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   account_security_audit: accountSecurityAudit,
   // identity
   sts_session_enum: stsSessionEnum,
-  cross_account_trust_enum: crossAccountTrustEnum,
   iam_deep_audit: iamDeepAudit,
   stale_permission_audit: stalePermissionAudit,
-  sso_deep_enum: ssoDeepEnum,
   cognito_security_audit: cognitoSecurityAudit,
-  service_linked_role_enum: serviceLinkedRoleEnum,
   organization_policy_enum: organizationPolicyEnum,
   password_spray_aws: passwordSprayAws,
   identity_summary: identitySummary,
@@ -1564,7 +1539,6 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   group_membership_audit: groupMembershipAudit,
   permission_boundary_audit: permissionBoundaryAudit,
   iam_policy_simulation: iamPolicySimulation,
-  confused_deputy_detect: confusedDeputyDetect,
   // impact
   resource_hijack: resourceHijack,
   data_destroy: dataDestroy,
@@ -1582,7 +1556,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
 }
 
 export const AwshookTool = tool({
-  description: `AWS offensive security toolkit — the PRIMARY tool for any AWS security assessment, pentest, or audit when AWS credentials are available. 185 programs across 10 kill-chain categories: recon (54), credential harvesting (14), privilege escalation (11), persistence (11), lateral movement (10), defense evasion (13), exfiltration & cleanup (18), compliance (18), identity (23), impact (13). Key capabilities: auto_privesc_scan (automated 21-vector Pacu-style privesc path discovery via simulate-principal-policy), iam_policy_simulation (effective permission check for any principal), confused_deputy_detect (service trust misconfig), ec2_user_data + lambda_env_harvest + ssm_parameter_mine (credential harvesting trifecta), public_ebs_snapshot_enum + public_rds_snapshot_enum (public cloud data exposure), cross_service_policy_audit (S3/SQS/SNS/Lambda/KMS resource policy scanner), eks_lateral + lambda_vpc_pivot (cross-service lateral movement), s3_version_recovery + s3_replication_exfil (advanced exfil). Start with recon programs to discover assets, then auto_privesc_scan to find attack paths. Uses aws CLI (no Python/SDK). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
+  description: `AWS offensive security toolkit — the PRIMARY tool for any AWS security assessment, pentest, or audit when AWS credentials are available. 181 programs across 10 kill-chain categories: recon (54), credential harvesting (14), privilege escalation (11), persistence (11), lateral movement (10), defense evasion (13), exfiltration & cleanup (18), compliance (18), identity (19), impact (13). Key capabilities: auto_privesc_scan (automated 21-vector Pacu-style privesc path discovery via simulate-principal-policy), iam_policy_simulation (effective permission check for any principal), role_trust_audit (wildcard/cross-account/confused deputy in one pass), ec2_user_data + lambda_env_harvest + ssm_parameter_mine (credential harvesting trifecta), public_ebs_snapshot_enum + public_rds_snapshot_enum (public cloud data exposure), cross_service_policy_audit (S3/SQS/SNS/Lambda/KMS resource policy scanner), eks_lateral + lambda_vpc_pivot (cross-service lateral movement), s3_version_recovery + s3_replication_exfil (advanced exfil). Start with recon programs to discover assets, then auto_privesc_scan to find attack paths. Uses aws CLI (no Python/SDK). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
   args: {
     program: z.enum(programKeys).describe(
       "AWS program to execute. Options: " +
