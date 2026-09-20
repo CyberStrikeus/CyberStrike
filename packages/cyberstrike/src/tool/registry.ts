@@ -79,7 +79,6 @@ import { WinhookTool } from "./winhook"
 import { MachookTool } from "./machook"
 import { LinuxhookTool } from "./linuxhook"
 import { KubehookTool } from "./kubehook"
-import { GcphookTool } from "./gcphook"
 import { ContainerhookTool } from "./containerhook"
 import { IachookTool } from "./iachook"
 import { LlmhookTool } from "./llmhook"
@@ -243,7 +242,6 @@ export namespace ToolRegistry {
       MachookTool,
       LinuxhookTool,
       KubehookTool,
-      GcphookTool,
       ContainerhookTool,
       IachookTool,
       LlmhookTool,
