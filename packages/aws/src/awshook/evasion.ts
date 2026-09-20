@@ -136,6 +136,13 @@ export async function cloudtrailBlind(args: string[], timeout: number): Promise<
     return { output: output.join("\n"), findings }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: StopLogging, PutEventSelectors, DeleteTrail, DescribeTrails, GetTrailStatus`)
+  output.push(`  GuardDuty: Stealth:IAMUser/CloudTrailLoggingDisabled (HIGH — fires on StopLogging)`)
+  output.push(`  OPSEC: StopLogging itself is logged BEFORE logging stops — always visible retroactively`)
+  output.push(`  OPSEC: PutEventSelectors does NOT trigger GuardDuty — stealthier than StopLogging`)
+  output.push(`  OPSEC: S3 log deletion visible via S3 data events if a second trail captures them`)
+
   return { output: output.join("\n") + `\nERROR: Unknown action: ${action}`, findings }
 }
 
@@ -269,6 +276,13 @@ export async function guarddutyEvade(args: string[], timeout: number): Promise<H
     output.push(`\n[*] Viable actions: ${viable.length > 0 ? viable.join(", ") : "NONE — all evasion vectors blocked"}`)
     output.push(`[*] Use --action suspend|suppress|filter [--execute]`)
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: UpdateDetector, CreateFilter, DeleteFilter, ArchiveFindings, ListDetectors, GetDetector`)
+  output.push(`  GuardDuty: meta-irony — UpdateDetector with enable=false fires a finding BEFORE the detector is disabled`)
+  output.push(`  OPSEC: suspend is NOISIEST (GuardDuty fires + org admin notified); filter is stealthiest (auto-archive, no alert)`)
+  output.push(`  OPSEC: ArchiveFindings is moderate signal — bulk archive of high-severity findings is suspicious in audit`)
+  output.push(`  OPSEC: org-managed detectors cannot be suspended from member account — escalation required`)
 
   return { output: output.join("\n"), findings }
 }
@@ -453,6 +467,12 @@ export async function vpcFlowDisable(args: string[], timeout: number): Promise<H
     output.push(`\n[*] Viable: ${allowed.has("ec2:DeleteFlowLogs") ? "delete" : "NONE — deletion blocked"}`)
     output.push(`[*] Use --action delete [--execute]`)
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeFlowLogs, DeleteFlowLogs`)
+  output.push(`  GuardDuty: N/A — no specific finding for flow log deletion, but GuardDuty uses flow logs for network-based detections`)
+  output.push(`  OPSEC: DeleteFlowLogs is HIGH signal — most orgs have Config rules or Security Hub checks for missing flow logs`)
+  output.push(`  OPSEC: deleting the flow log stops NEW logs — existing S3/CloudWatch logs persist and contain historical evidence`)
 
   return { output: output.join("\n"), findings }
 }
@@ -1536,6 +1556,13 @@ export async function cloudtrailSelectorTamper(args: string[], timeout: number):
     const r = await aws(["cloudtrail", "put-event-selectors", "--trail-name", trail, "--event-selectors", JSON.stringify(restored)], profile, region, timeout)
     output.push(r.exitCode === 0 ? `[+] Event selectors restored to full logging on ${trail}` : `[-] Failed: ${r.stderr.slice(0, 200)}`)
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: PutEventSelectors, GetEventSelectors, DescribeTrails`)
+  output.push(`  GuardDuty: N/A — selector changes do NOT trigger GuardDuty (unlike StopLogging)`)
+  output.push(`  OPSEC: PutEventSelectors IS logged by CloudTrail before the change takes effect — attacker's own modification is visible`)
+  output.push(`  OPSEC: preferred over StopLogging because no GuardDuty Stealth finding fires; only Config rules and custom CloudWatch alerts catch it`)
+  output.push(`  OPSEC: exclude_kms is lowest-signal (common for noise reduction); management_read_only is moderate; exclude_s3_data is high-signal`)
 
   return { output: output.join("\n"), findings }
 }
