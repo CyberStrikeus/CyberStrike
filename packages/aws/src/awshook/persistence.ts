@@ -88,6 +88,12 @@ export async function lambdaBackdoor(args: string[], timeout: number): Promise<H
     findings.push({ checkId: "AWS-PERSIST-LAMBDA-003", provider: "aws", severity: "critical", status: "PLANNED", resource: `lambda://${funcName}`, title: `Lambda creation backdoor planned: ${funcName}`, details: `New function with callback to ${callbackUrl}`, remediation: `Delete: aws lambda delete-function --function-name ${funcName}` })
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetFunction20150331v2, UpdateFunctionCode20150331v2, UpdateFunctionConfiguration20150331v2, CreateFunction20150331`)
+  output.push(`  CloudTrail: ListFunctions20150331 (enumeration), GetFunctionCodeSigningConfig`)
+  output.push(`  GuardDuty: UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.InsideAWS`)
+  output.push(`  OPSEC: UpdateFunctionCode is VERY high-signal — most orgs deploy via CI/CD, manual update is anomalous`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -329,6 +335,12 @@ export async function ssmDocumentBackdoor(args: string[], timeout: number): Prom
 
   findings.push({ checkId: "AWS-PERSIST-SSM-003", provider: "aws", severity: "critical", status: "CREATED", resource: `ssm:doc:${docName}`, title: `SSM document backdoor: ${docName}`, details: `Custom document executes: ${command}. ${online.length} online instances available.`, remediation: `aws ssm delete-document --name ${docName}` })
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: CreateDocument, SendCommand, DescribeInstanceInformation, ListDocuments`)
+  output.push(`  CloudTrail: UpdateDocument, DeleteDocument (cleanup attempt)`)
+  output.push(`  GuardDuty: N/A — SSM commands not directly monitored by GuardDuty`)
+  output.push(`  OPSEC: CreateDocument is moderate signal; SendCommand to many instances is HIGH signal; custom documents with shell commands are suspicious in audit`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -416,6 +428,13 @@ export async function codebuildBackdoor(args: string[], timeout: number): Promis
   } else if (canCreate && !roleArn) {
     output.push(`\n[*] Use --role-arn <arn> to create new backdoor project`)
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: CreateProject, UpdateProject, StartBuild, BatchGetProjects, ListProjects`)
+  output.push(`  CloudTrail: PassRole (when creating project with service role)`)
+  output.push(`  GuardDuty: N/A — CodeBuild not monitored by default`)
+  output.push(`  OPSEC: UpdateProject modifying buildspec is HIGH signal in audit — change persists across all future builds`)
+  output.push(`  OPSEC: new project from NO_SOURCE with env dump is VERY suspicious in build history`)
 
   return { output: output.join("\n"), findings }
 }
@@ -510,6 +529,13 @@ export async function amiBackdoor(args: string[], timeout: number): Promise<Hook
   if (canShare) output.push(`[+] Share: aws ec2 modify-image-attribute --image-id ${imageId} --launch-permission "Add=[{UserId=<attacker-account>}]"`)
 
   findings.push({ checkId: "AWS-PERSIST-AMI-004", provider: "aws", severity: "critical", status: "CREATED", resource: `ec2:ami:${imageId}`, title: `Backdoored AMI created: ${imageId}`, details: `AMI from ${instanceId} — all data preserved. Cleanup: deregister + delete snapshots`, remediation: `aws ec2 deregister-image --image-id ${imageId}` })
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: CreateImage, DescribeImages, DescribeImageAttribute, ModifyImageAttribute, DescribeInstances`)
+  output.push(`  CloudTrail: DeregisterImage (cleanup attempt)`)
+  output.push(`  GuardDuty: N/A — AMI operations not directly monitored`)
+  output.push(`  OPSEC: CreateImage is moderate signal; ModifyImageAttribute adding cross-account launch permission is HIGH signal`)
+  output.push(`  OPSEC: public AMI sharing (Group=all) is EXTREMELY high-signal — triggers AWS Trusted Advisor and Config rules`)
 
   return { output: output.join("\n"), findings }
 }
