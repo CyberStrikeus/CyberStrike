@@ -366,6 +366,7 @@ export async function mfaAudit(args: string[], timeout: number): Promise<HookRes
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: GetAccountSummary, ListVirtualMFADevices, ListUsers, GetLoginProfile, ListMFADevices`)
+  output.push(`  OPSEC: Per-user GetLoginProfile + ListMFADevices generates N events; high volume from non-admin identity is unusual`)
   return { output: output.join("\n"), findings }
 }
 
@@ -510,6 +511,7 @@ export async function passwordPolicyCheck(args: string[], timeout: number): Prom
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: GetAccountPasswordPolicy`)
+  output.push(`  OPSEC: Single read-only call — minimal footprint, standard admin activity`)
   return { output: output.join("\n"), findings }
 }
 
@@ -621,7 +623,7 @@ export async function rootAccountAudit(args: string[], timeout: number): Promise
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: GetAccountSummary, GenerateCredentialReport, GetCredentialReport`)
-  output.push(`  Note: Root account queries and credential report generation are high-signal — uncommon outside audits`)
+  output.push(`  OPSEC: Root account queries and credential report generation are high-signal — uncommon outside audits`)
   return { output: output.join("\n"), findings }
 }
 
@@ -794,7 +796,7 @@ export async function encryptionAudit(args: string[], timeout: number): Promise<
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: GetEbsEncryptionByDefault, ListBuckets, GetBucketEncryption, DescribeDBInstances, ListTables, DescribeTable, DescribeFileSystems, ListQueues, GetQueueAttributes`)
-  output.push(`  Note: Cross-service encryption audit — events span EC2, S3, RDS, DynamoDB, EFS, SQS`)
+  output.push(`  OPSEC: Cross-service encryption audit — events span EC2, S3, RDS, DynamoDB, EFS, SQS; pattern may trigger anomaly rules`)
   return { output: output.join("\n"), findings }
 }
 
@@ -953,6 +955,7 @@ export async function publicAccessAudit(args: string[], timeout: number): Promis
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: GetCallerIdentity, GetPublicAccessBlock (S3 + S3Control), ListBuckets, DescribeDBInstances, DescribeInstances, DescribeClusters (Redshift)`)
   output.push(`  GuardDuty: Recon:EC2/PortProbeUnprotectedPort`)
+  output.push(`  OPSEC: Cross-service public exposure scan — events span STS, S3, S3Control, RDS, EC2, Redshift`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1131,7 +1134,7 @@ export async function loggingAudit(args: string[], timeout: number): Promise<Hoo
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: DescribeTrails, GetEventSelectors, DescribeVpcs, DescribeFlowLogs, ListBuckets, GetBucketLogging, DescribeLoadBalancers, DescribeLoadBalancerAttributes, DescribeDBInstances`)
-  output.push(`  Note: Meta — auditing the audit trail itself; defenders may alert on CloudTrail/FlowLog enumeration`)
+  output.push(`  OPSEC: Meta — auditing the audit trail itself; defenders may alert on CloudTrail/FlowLog enumeration`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1282,6 +1285,7 @@ export async function networkSegmentationAudit(args: string[], timeout: number):
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: DescribeVpcs, DescribeSecurityGroups, DescribeNetworkAcls, DescribeInstances`)
+  output.push(`  OPSEC: Standard EC2 read calls — low individual signal, but network-focused enumeration pattern may trigger anomaly rules`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1390,7 +1394,7 @@ export async function dataClassificationAudit(args: string[], timeout: number): 
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: DescribeVolumes, GetMacieSession, DescribeDBInstances`)
-  output.push(`  Note: Macie session check reveals whether automated sensitive data discovery is active`)
+  output.push(`  OPSEC: Macie session check reveals whether automated sensitive data discovery is active`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1546,6 +1550,7 @@ export async function backupComplianceAudit(args: string[], timeout: number): Pr
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: ListBackupPlans, ListProtectedResources, DescribeDBInstances, ListBuckets, GetBucketVersioning, ListTables, DescribeContinuousBackups`)
+  output.push(`  OPSEC: Cross-service backup enumeration — ListBackupPlans + ListProtectedResources reveal disaster recovery posture`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1708,7 +1713,7 @@ export async function iamBestPractices(args: string[], timeout: number): Promise
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: ListUsers, ListUserPolicies, ListAttachedUserPolicies, ListGroups, GetGroup, GenerateServiceLastAccessedDetails, GetServiceLastAccessedDetails`)
-  output.push(`  Note: Comprehensive IAM audit — per-user policy enumeration generates high event volume`)
+  output.push(`  OPSEC: Comprehensive IAM audit — per-user policy enumeration generates high event volume`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1804,6 +1809,7 @@ export async function vpcFlowLogAudit(args: string[], timeout: number): Promise<
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: DescribeVpcs, DescribeFlowLogs`)
+  output.push(`  OPSEC: Low-signal reads — but enumerating flow log coverage reveals network monitoring gaps to attackers`)
   return { output: output.join("\n"), findings }
 }
 
@@ -1919,6 +1925,7 @@ export async function s3PublicAudit(args: string[], timeout: number): Promise<Ho
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: ListBuckets, GetBucketPolicyStatus, GetBucketAcl, GetBucketPolicy, GetBucketWebsite`)
+  output.push(`  OPSEC: Per-bucket policy/ACL enumeration generates N events; S3 data events trail may log these reads`)
   return { output: output.join("\n"), findings }
 }
 
@@ -2044,6 +2051,7 @@ export async function rdsPublicAudit(args: string[], timeout: number): Promise<H
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: DescribeDBInstances`)
+  output.push(`  OPSEC: Single DescribeDBInstances call — minimal footprint, standard operational query`)
   return { output: output.join("\n"), findings }
 }
 
@@ -2162,7 +2170,7 @@ export async function secretRotationAudit(args: string[], timeout: number): Prom
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: ListSecrets, ListKeys, DescribeKey, GetKeyRotationStatus`)
-  output.push(`  Note: KMS key and Secrets Manager enumeration reveals cryptographic and secret infrastructure`)
+  output.push(`  OPSEC: KMS key and Secrets Manager enumeration reveals cryptographic and secret infrastructure — DescribeKey on many keys is unusual`)
   return { output: output.join("\n"), findings }
 }
 
@@ -2292,7 +2300,8 @@ export async function serviceQuotaAudit(args: string[], timeout: number): Promis
   output.push(`\n[*] Summary: ${findings.length} quota utilization warnings`)
 
   output.push(`\n[*] Detection:`)
-  output.push(`  CloudTrail: GetAccountSummary, GetServiceQuota, GetAWSDefaultServiceQuota`)
+  output.push(`  CloudTrail: GetServiceQuota, GetAWSDefaultServiceQuota, DescribeInstances, DescribeAddresses, DescribeVpcs, DescribeSecurityGroups, GetAccountSummary`)
+  output.push(`  OPSEC: Quota queries are low-signal; the usage commands (Describe*) are standard operational calls`)
   return { output: output.join("\n"), findings }
 }
 
@@ -2519,6 +2528,6 @@ export async function accountSecurityAudit(args: string[], timeout: number): Pro
 
   output.push(`\n[*] Detection:`)
   output.push(`  CloudTrail: GetCallerIdentity, DescribeOrganization, ListPolicies, GetPublicAccessBlock, GetEbsEncryptionByDefault, GetInstanceMetadataDefaults, GetAccountAuthorizationDetails, GetPolicyVersion, DescribeInstances`)
-  output.push(`  Note: Account-level security posture audit — GetAccountAuthorizationDetails returns full IAM dump, very high-signal`)
+  output.push(`  OPSEC: Account-level security posture audit — GetAccountAuthorizationDetails returns full IAM dump, very high-signal`)
   return { output: output.join("\n"), findings }
 }
