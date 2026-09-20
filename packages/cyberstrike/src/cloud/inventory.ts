@@ -19,6 +19,7 @@ import z from "zod"
 // ── Asset Kinds ────────────────────────────────────────────
 
 export const AssetKind = z.enum([
+  // Azure
   "vm",
   "vmss",
   "aks",
@@ -63,6 +64,39 @@ export const AssetKind = z.enum([
   "sentinel_workspace",
   "monitor_workspace",
   "recovery_vault",
+  // AWS
+  "ec2_instance",
+  "s3_bucket",
+  "lambda_function",
+  "iam_role",
+  "iam_user",
+  "iam_policy",
+  "rds_instance",
+  "ecs_cluster",
+  "ecs_service",
+  "eks_cluster",
+  "vpc",
+  "security_group",
+  "ebs_volume",
+  "sns_topic",
+  "sqs_queue",
+  "dynamodb_table",
+  "cloudformation_stack",
+  "api_gateway",
+  "cloudfront_distribution",
+  "route53_zone",
+  "secrets_manager",
+  "ssm_parameter",
+  "kms_key",
+  "opensearch_domain",
+  "elasticache_cluster",
+  "redshift_cluster",
+  "efs_filesystem",
+  "elb",
+  "cognito_pool",
+  "ecr_repository",
+  "sso_instance",
+  "aws_account",
   "other",
 ])
 export type AssetKind = z.infer<typeof AssetKind>
@@ -119,6 +153,19 @@ export const ExposureType = z.enum([
   "excessive_permission",
   "no_mfa",
   "guest_access",
+  // AWS-specific
+  "wildcard_policy",
+  "public_snapshot",
+  "public_bucket",
+  "metadata_exposed",
+  "unencrypted_storage",
+  "unencrypted_transport",
+  "logging_disabled",
+  "secret_in_env",
+  "secret_in_template",
+  "cross_account_trust",
+  "privilege_escalation_path",
+  "no_auth",
   "other",
 ])
 export type ExposureType = z.infer<typeof ExposureType>
