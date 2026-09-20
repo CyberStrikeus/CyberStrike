@@ -5199,7 +5199,7 @@ export async function publicExposureScan(args: string[], timeout: number): Promi
   return { output: output.join("\n"), findings }
 }
 
-export async function stalePermissionAudit(args: string[], timeout: number): Promise<HookResult> {
+export async function stalePermissionRecon(args: string[], timeout: number): Promise<HookResult> {
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
   const findings: Finding[] = []

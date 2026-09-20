@@ -55,7 +55,7 @@ import {
   acmEnum,
   transferFamilyEnum,
   publicExposureScan,
-  stalePermissionAudit as stalePermissionAuditRecon,
+  stalePermissionRecon,
   tagComplianceAudit,
 } from "./recon"
 import {
@@ -1323,7 +1323,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   acm_enum: acmEnum,
   transfer_family_enum: transferFamilyEnum,
   public_exposure_scan: publicExposureScan,
-  stale_permission_audit_recon: stalePermissionAuditRecon,
+  stale_permission_audit_recon: stalePermissionRecon,
   tag_compliance_audit: tagComplianceAudit,
   // credential
   metadata_harvest: (args) => metadataHarvest(args),
