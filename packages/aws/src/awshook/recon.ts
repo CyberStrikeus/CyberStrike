@@ -118,6 +118,10 @@ export async function iamEnum(args: string[], timeout: number): Promise<HookResu
     output.push(`\n[*] Account Summary: ${s.Users} users, ${s.Roles} roles, ${s.Groups} groups, ${s.Policies} policies`)
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetCallerIdentity, ListUsers, ListRoles, ListPolicies, GetPolicy, GetPolicyVersion, GetAccountSummary`)
+  output.push(`  GuardDuty: Recon:IAMUser/MaliciousIPCaller (IAM enum from unusual IP)`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -277,6 +281,10 @@ export async function ec2Enum(args: string[], timeout: number): Promise<HookResu
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeInstances, DescribeSecurityGroups, DescribeKeyPairs, DescribeImages, DescribeInstanceAttribute`)
+  output.push(`  GuardDuty: Recon:EC2/PortProbeUnprotectedPort, Recon:EC2/Portscan`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -417,6 +425,10 @@ export async function s3Enum(args: string[], timeout: number): Promise<HookResul
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListBuckets, GetBucketPolicy, GetBucketAcl, GetBucketEncryption, GetBucketVersioning, GetPublicAccessBlock, GetBucketCors`)
+  output.push(`  Note: S3 data-event logging requires a separate CloudTrail trail configuration`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -549,6 +561,9 @@ export async function lambdaEnum(args: string[], timeout: number): Promise<HookR
     for (const m of ml) output.push(`    ${(m[0] || "").split(":").pop()} ← ${m[1]} (${m[2]})`)
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListFunctions, GetFunctionConfiguration, GetPolicy, GetFunctionUrlConfig, ListLayers, ListEventSourceMappings`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -668,6 +683,9 @@ export async function vpcEnum(args: string[], timeout: number): Promise<HookResu
       for (const p of pl) output.push(`    ${p[0]}: ${p[1]} <-> ${p[2]} (${p[3]})`)
     }
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeVpcs, DescribeSubnets, DescribeRouteTables, DescribeNatGateways, DescribeVpcEndpoints, DescribeVpcPeeringConnections`)
 
   return { output: output.join("\n"), findings }
 }
@@ -792,6 +810,9 @@ export async function rdsEnum(args: string[], timeout: number): Promise<HookResu
       }
     }
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeDBInstances, DescribeDBClusters, DescribeDBSubnetGroups, DescribeDBSnapshots`)
 
   return { output: output.join("\n"), findings }
 }
@@ -930,6 +951,9 @@ export async function ecsEnum(args: string[], timeout: number): Promise<HookResu
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListClusters, DescribeClusters, ListServices, DescribeServices, ListTasks, DescribeTasks, ListTaskDefinitions, DescribeTaskDefinition`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -1024,6 +1048,10 @@ export async function eksEnum(args: string[], timeout: number): Promise<HookResu
     const oidc = cluster.identity?.oidc?.issuer
     if (oidc) output.push(`      OIDC: ${oidc}`)
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListClusters, DescribeCluster`)
+  output.push(`  Note: EKS API server audit logs are separate from CloudTrail`)
 
   return { output: output.join("\n"), findings }
 }
@@ -1126,6 +1154,10 @@ export async function ssoEnum(args: string[], timeout: number): Promise<HookResu
     output.push(`\n[+] Organization Accounts: ${acctList.length}`)
     for (const a of acctList.slice(0, 20)) output.push(`    ${a[0]} — ${a[1]} (${a[2]})`)
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListInstances, ListPermissionSets, DescribePermissionSet, ListAccountAssignments`)
+  output.push(`  Note: SSO enum is high-signal — few legitimate reasons for unprivileged users`)
 
   return { output: output.join("\n"), findings }
 }
@@ -1241,6 +1273,10 @@ export async function orgEnum(args: string[], timeout: number): Promise<HookResu
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeOrganization, ListAccounts, ListRoots, ListDelegatedAdministrators`)
+  output.push(`  Note: Organization calls require management account or delegated admin — access itself is a finding`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -1340,6 +1376,9 @@ export async function route53Enum(args: string[], timeout: number): Promise<Hook
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListHostedZones, ListResourceRecordSets, GetHostedZone`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -1408,6 +1447,9 @@ export async function serviceRecon(args: string[], timeout: number): Promise<Hoo
       output.push(`    ${svc.name}: access denied or unavailable`)
     }
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetCallerIdentity, ListAccountAliases`)
 
   return { output: output.join("\n"), findings: [] }
 }
@@ -1586,6 +1628,10 @@ export async function cfnEnum(args: string[], timeout: number): Promise<HookResu
       for (const e of el) output.push(`    ${e[0]} = ${e[1]}`)
     }
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListStacks, DescribeStacks, GetTemplate, ListStackResources`)
+  output.push(`  Note: GetTemplate may expose secrets embedded in stack parameters`)
 
   return { output: output.join("\n"), findings }
 }
@@ -1786,6 +1832,9 @@ export async function apigwEnum(args: string[], timeout: number): Promise<HookRe
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetRestApis, GetResources, GetStages, GetApiKeys, GetAuthorizers (REST API); GetApis, GetRoutes, GetStages, GetAuthorizers (HTTP/WS)`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -1937,6 +1986,9 @@ export async function snsSqsEnum(args: string[], timeout: number): Promise<HookR
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListTopics, GetTopicAttributes, ListSubscriptions, ListQueues, GetQueueAttributes`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -2043,6 +2095,9 @@ export async function cloudwatchEnum(args: string[], timeout: number): Promise<H
     const count = tryJson(metrics.stdout) ?? 0
     output.push(`\n[+] Total custom metrics: ${count}`)
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeAlarms, ListMetrics, ListDashboards, DescribeLogGroups`)
 
   return { output: output.join("\n"), findings }
 }
@@ -2173,6 +2228,9 @@ export async function elasticacheEnum(args: string[], timeout: number): Promise<
       for (const sn of snl) output.push(`  ${sn[0]}  Cluster: ${sn[1]}  Status: ${sn[2]}  Engine: ${sn[3]}`)
     }
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeCacheClusters, DescribeReplicationGroups, DescribeCacheSubnetGroups`)
 
   return { output: output.join("\n"), findings }
 }
@@ -2335,6 +2393,10 @@ export async function redshiftEnum(args: string[], timeout: number): Promise<Hoo
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeClusters, DescribeClusterSubnetGroups, DescribeClusterParameterGroups, GetClusterCredentials`)
+  output.push(`  Note: GetClusterCredentials is high-signal — generates temporary database credentials`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -2390,6 +2452,10 @@ export async function multiRegionScan(args: string[], timeout: number): Promise<
 
   const active = Object.entries(summary).filter(([, c]) => Object.values(c).some((v) => v > 0))
   output.push(`\n[*] Summary: resources in ${active.length}/${regions.length} regions`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeRegions, ListBuckets + per-region service calls`)
+  output.push(`  Note: Cross-region scanning generates CloudTrail events in EACH region scanned`)
 
   return { output: output.join("\n"), findings }
 }
@@ -2494,6 +2560,10 @@ export async function kmsEnum(args: string[], timeout: number): Promise<HookResu
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListKeys, DescribeKey, ListAliases, GetKeyPolicy, GetKeyRotationStatus`)
+  output.push(`  Note: KMS key enumeration is high-signal — often precedes crypto operations or ransomware`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -2596,6 +2666,9 @@ export async function opensearchEnum(args: string[], timeout: number): Promise<H
       }
     }
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListDomainNames, DescribeDomain, DescribeDomainConfig`)
 
   return { output: output.join("\n"), findings }
 }
@@ -2721,6 +2794,9 @@ export async function efsEnum(args: string[], timeout: number): Promise<HookResu
       }
     }
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeFileSystems, DescribeMountTargets, DescribeFileSystemPolicy`)
 
   return { output: output.join("\n"), findings }
 }
@@ -2854,6 +2930,9 @@ export async function elbEnum(args: string[], timeout: number): Promise<HookResu
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeLoadBalancers, DescribeTargetGroups, DescribeTargetHealth, DescribeListeners, DescribeRules`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -2956,6 +3035,9 @@ export async function dynamodbEnum(args: string[], timeout: number): Promise<Hoo
       remediation: "Continue monitoring DynamoDB security posture",
     })
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListTables, DescribeTable, DescribeContinuousBackups, ListTagsOfResource`)
 
   return { output: output.join("\n"), findings }
 }
@@ -3082,6 +3164,9 @@ export async function cognitoEnum(args: string[], timeout: number): Promise<Hook
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListUserPools, DescribeUserPool, ListUserPoolClients, DescribeUserPoolClient, ListIdentityPools`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -3186,6 +3271,10 @@ export async function stsEnum(args: string[], timeout: number): Promise<HookResu
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetCallerIdentity, GetSessionToken, GetAccessKeyInfo, DecodeAuthorizationMessage`)
+  output.push(`  Note: STS events are logged in both the caller region and us-east-1 global endpoint`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -3265,6 +3354,10 @@ export async function secretsManagerEnum(args: string[], timeout: number): Promi
       }
     }
   }
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListSecrets, DescribeSecret, GetResourcePolicy`)
+  output.push(`  Note: GetSecretValue (not called here) is high-severity — this enum deliberately avoids it`)
 
   return { output: output.join("\n"), findings }
 }
@@ -3354,6 +3447,9 @@ export async function ssmEnum(args: string[], timeout: number): Promise<HookResu
     remediation: "Review SSM configuration for least-privilege document access",
   })
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeInstanceInformation, ListDocuments, DescribeParameters, DescribeMaintenanceWindows (SSM)`)
+  output.push(`  Note: SSM parameter access may expose secrets — SecureString parameters are high-value targets`)
   return { output: output.join("\n"), findings }
 }
 
@@ -3467,6 +3563,8 @@ export async function sagemakerEnum(args: string[], timeout: number): Promise<Ho
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListNotebookInstances, DescribeNotebookInstance, ListEndpoints, ListTrainingJobs (SageMaker)`)
   return { output: output.join("\n"), findings }
 }
 
@@ -3518,6 +3616,8 @@ export async function stepFunctionsEnum(args: string[], timeout: number): Promis
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListStateMachines, DescribeStateMachine (Step Functions)`)
   return { output: output.join("\n"), findings }
 }
 
@@ -3608,6 +3708,9 @@ export async function glueEnum(args: string[], timeout: number): Promise<HookRes
     output.push(`\n[-] Cannot list dev endpoints: ${devEndpoints.stderr.trim()}`)
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetDatabases, GetCrawlers, GetJobs, GetDevEndpoints (Glue)`)
+  output.push(`  Note: Glue dev endpoints are high-value compute targets — public endpoints are critical findings`)
   return { output: output.join("\n"), findings }
 }
 
@@ -3684,6 +3787,9 @@ export async function codepipelineEnum(args: string[], timeout: number): Promise
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListPipelines, GetPipeline (CodePipeline)`)
+  output.push(`  Note: Pipeline definitions may expose deployment credentials and cross-account role ARNs`)
   return { output: output.join("\n"), findings }
 }
 
@@ -3757,6 +3863,8 @@ export async function eventbridgeEnum(args: string[], timeout: number): Promise<
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListEventBuses, ListRules, ListTargetsByRule (EventBridge)`)
   return { output: output.join("\n"), findings }
 }
 
@@ -3865,6 +3973,9 @@ export async function wafEnum(args: string[], timeout: number): Promise<HookResu
     remediation: "Review WAF rules for coverage against OWASP Top 10",
   })
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListWebACLs, GetWebACL, ListIPSets, ListRegexPatternSets (WAFv2)`)
+  output.push(`  Note: WAF config reveals rule bypass opportunities — enum is high-signal recon activity`)
   return { output: output.join("\n"), findings }
 }
 
@@ -3989,6 +4100,9 @@ export async function cloudtrailEnum(args: string[], timeout: number): Promise<H
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeTrails, GetTrailStatus, GetEventSelectors (CloudTrail)`)
+  output.push(`  Note: Meta — enumerating the monitoring system itself; high-signal activity that may trigger SIEM alerts`)
   return { output: output.join("\n"), findings }
 }
 
@@ -4108,6 +4222,9 @@ export async function configEnum(args: string[], timeout: number): Promise<HookR
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeConfigurationRecorders, DescribeConfigurationRecorderStatus, DescribeDeliveryChannels, DescribeComplianceByConfigRule`)
+  output.push(`  Note: Config enum reveals compliance monitoring gaps — attackers use this to identify blind spots`)
   return { output: output.join("\n"), findings }
 }
 
@@ -4210,6 +4327,9 @@ export async function guarddutyEnum(args: string[], timeout: number): Promise<Ho
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListDetectors, GetDetector, GetFindingsStatistics (GuardDuty)`)
+  output.push(`  Note: Meta — querying threat detection system itself; extremely high-signal recon indicator`)
   return { output: output.join("\n"), findings }
 }
 
@@ -4291,6 +4411,9 @@ export async function securityHubEnum(args: string[], timeout: number): Promise<
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeHub, GetEnabledStandards, GetFindings, ListMembers (Security Hub)`)
+  output.push(`  Note: Security Hub reveals aggregated security posture — findings query is high-signal`)
   return { output: output.join("\n"), findings }
 }
 
@@ -4373,6 +4496,9 @@ export async function inspectorEnum(args: string[], timeout: number): Promise<Ho
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: BatchGetAccountStatus, ListCoverage, ListFindingAggregations (Inspector v2)`)
+  output.push(`  Note: Inspector findings reveal known vulnerabilities — attacker goldmine for exploit selection`)
   return { output: output.join("\n"), findings }
 }
 
@@ -4466,6 +4592,8 @@ export async function backupEnum(args: string[], timeout: number): Promise<HookR
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListBackupPlans, ListBackupVaults, ListRecoveryPointsByBackupVault, GetBackupVaultAccessPolicy`)
   return { output: output.join("\n"), findings }
 }
 
@@ -4552,6 +4680,9 @@ export async function athenaEnum(args: string[], timeout: number): Promise<HookR
     })
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListWorkGroups, GetWorkGroup, ListDataCatalogs, ListNamedQueries`)
+  output.push(`  Note: Athena queries may expose data lake contents and access patterns`)
   return { output: output.join("\n"), findings }
 }
 
@@ -4636,6 +4767,9 @@ export async function emrEnum(args: string[], timeout: number): Promise<HookResu
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListClusters, DescribeCluster, ListSecurityConfigurations (EMR)`)
+  output.push(`  Note: EMR clusters are high-value compute targets — cluster details reveal instance types and access paths`)
   return { output: output.join("\n"), findings }
 }
 
@@ -4739,6 +4873,9 @@ export async function mskEnum(args: string[], timeout: number): Promise<HookResu
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListClustersV2, DescribeClusterV2 (MSK/Kafka)`)
+  output.push(`  Note: Kafka clusters contain real-time data streams — auth/encryption config reveals attack surface`)
   return { output: output.join("\n"), findings }
 }
 
@@ -4848,6 +4985,9 @@ export async function ecrEnum(args: string[], timeout: number): Promise<HookResu
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeRepositories, DescribeImages, GetRepositoryPolicy, GetLifecyclePolicy, DescribeImageScanFindings`)
+  output.push(`  Note: Container images may contain embedded secrets — image scan findings reveal known CVEs`)
   return { output: output.join("\n"), findings }
 }
 
@@ -4921,6 +5061,8 @@ export async function appRunnerEnum(args: string[], timeout: number): Promise<Ho
     })
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListServices, DescribeService (App Runner)`)
   return { output: output.join("\n"), findings }
 }
 
@@ -4984,6 +5126,9 @@ export async function amplifyEnum(args: string[], timeout: number): Promise<Hook
     remediation: "Ensure non-production branches have basic auth enabled to prevent data leakage",
   })
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListApps, ListBranches (Amplify)`)
+  output.push(`  Note: Amplify enum may expose frontend build configs and repository URLs`)
   return { output: output.join("\n"), findings }
 }
 
@@ -5083,6 +5228,9 @@ export async function acmEnum(args: string[], timeout: number): Promise<HookResu
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListCertificates, DescribeCertificate, ListTagsForCertificate`)
+  output.push(`  Note: Certificate enum reveals TLS infrastructure and domain names`)
   return { output: output.join("\n"), findings }
 }
 
@@ -5160,6 +5308,9 @@ export async function transferFamilyEnum(args: string[], timeout: number): Promi
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListServers, DescribeServer, ListUsers (Transfer Family)`)
+  output.push(`  Note: SFTP servers are file transfer entry points — enum reveals access paths`)
   return { output: output.join("\n"), findings }
 }
 
@@ -5322,6 +5473,9 @@ export async function publicExposureScan(args: string[], timeout: number): Promi
     remediation: "Review each public resource for necessity; minimize attack surface",
   })
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeAddresses, DescribeLoadBalancers, DescribeDBInstances, ListBuckets, GetBucketWebsite, ListDistributions, GetRestApis`)
+  output.push(`  GuardDuty: Recon:EC2/PortProbeUnprotectedPort`)
   return { output: output.join("\n"), findings }
 }
 
@@ -5479,6 +5633,9 @@ export async function stalePermissionRecon(args: string[], timeout: number): Pro
     })
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GenerateCredentialReport, GetCredentialReport, ListAccessKeys, GetAccessKeyLastUsed`)
+  output.push(`  Note: Credential report generation is logged and uncommon — high-signal IAM reconnaissance indicator`)
   return { output: output.join("\n"), findings }
 }
 
@@ -5579,6 +5736,8 @@ export async function tagComplianceAudit(args: string[], timeout: number): Promi
     })
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetResources (ResourceGroupsTaggingAPI)`)
   return { output: output.join("\n"), findings }
 }
 
@@ -5664,6 +5823,9 @@ export async function publicEbsSnapshotEnum(args: string[], timeout: number): Pr
     }
   }
 
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetCallerIdentity, DescribeSnapshots, DescribeSnapshotAttribute`)
+  output.push(`  Note: Public snapshot enum can find data from other accounts — snapshot attribute queries are uncommon`)
   return { output: output.join("\n"), findings }
 }
 
@@ -5780,6 +5942,10 @@ export async function publicRdsSnapshotEnum(args: string[], timeout: number): Pr
   }
 
   output.push(`\n[*] Summary: ${publicCount} public snapshots found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeDBSnapshots, DescribeDBSnapshotAttributes, DescribeDBClusterSnapshots, DescribeDBClusterSnapshotAttributes`)
+  output.push(`  Note: Public RDS snapshots are a known data exfil vector — snapshot attribute queries are uncommon and high-signal`)
   return { output: output.join("\n"), findings }
 }
 
@@ -5962,5 +6128,9 @@ export async function crossServicePolicyAudit(args: string[], timeout: number): 
 
   const totalFindings = findings.length
   output.push(`\n[*] Summary: ${totalFindings} resource policy issues found across S3, SQS, SNS, KMS, Secrets Manager, ECR, Lambda`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListBuckets, GetBucketPolicy, ListTopics, GetTopicAttributes, ListQueues, GetQueueAttributes, ListKeys, GetKeyPolicy, DescribeKey, ListFunctions, GetPolicy, DescribeRepositories, GetRepositoryPolicy, ListSecrets, GetResourcePolicy`)
+  output.push(`  Note: Cross-service policy audit generates events across 7+ services — high-volume, correlatable`)
   return { output: output.join("\n"), findings }
 }
