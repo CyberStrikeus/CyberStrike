@@ -1179,6 +1179,17 @@ export async function ec2UserData(args: string[], timeout: number): Promise<Hook
         output.push(`    [*] Additional secret lines (${matchedLines.length - extracted.length}):`)
         for (const m of matchedLines.filter((_, i) => i >= extracted.length).slice(0, 10)) output.push(m)
       }
+      const akEntry = extracted.find((e) => /aws_access_key_id/i.test(e.key))
+      const skEntry = extracted.find((e) => /aws_secret_access_key/i.test(e.key))
+      if (akEntry && skEntry) {
+        const vr = await validateAwsCredential(akEntry.value, skEntry.value)
+        if (vr.valid) {
+          output.push(`    [!!] VALIDATED AWS creds — identity: ${vr.identity}, account: ${vr.account}`)
+          findings.push({ checkId: "AWS-CRED-USERDATA-003", provider: "aws", severity: "critical", status: "VALIDATED", resource: `ec2://${id}`, title: `Live AWS credentials in UserData: ${id}`, details: `Validated: ${vr.identity} (account ${vr.account})`, remediation: "Rotate credentials immediately, use instance profile instead of static keys in UserData" })
+        } else {
+          output.push(`    [!] AWS credential validation failed: ${vr.error}`)
+        }
+      }
 
       findings.push({
         checkId: "AWS-CRED-USERDATA-001",
@@ -1272,6 +1283,13 @@ export async function lambdaEnvHarvest(args: string[], timeout: number): Promise
           output.push(`    [!!] AWS credential pair: ${akid}=${env[akid]}  ${sak}=${env[sak]}`)
           const sess = keys.find((k) => /SESSION_TOKEN|SECURITY_TOKEN/i.test(k))
           if (sess) output.push(`    [!!] Session token: ${sess}=${env[sess]}`)
+          const vr = await validateAwsCredential(env[akid] || "", env[sak] || "", sess ? (env[sess] || undefined) : undefined)
+          if (vr.valid) {
+            output.push(`    [!!] VALIDATED — identity: ${vr.identity}, account: ${vr.account}`)
+            findings.push({ checkId: "AWS-CRED-LAMBDA-ENV-002", provider: "aws", severity: "critical", status: "VALIDATED", resource: `lambda://${name}`, title: `Live AWS credentials in Lambda env: ${name}`, details: `Validated: ${vr.identity} (account ${vr.account})`, remediation: "Rotate credentials immediately, use IAM execution role instead of static keys" })
+          } else {
+            output.push(`    [!] Credential validation failed: ${vr.error}`)
+          }
         }
       }
       findings.push({
