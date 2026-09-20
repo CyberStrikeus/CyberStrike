@@ -1564,5 +1564,9 @@ export async function lambdaVpcPivot(args: string[], timeout: number): Promise<H
     output.push("")
   }
 
+  output.push(`[*] Detection:`)
+  output.push(`  CloudTrail: ListFunctions20150331, DescribeDBInstances, DescribeCacheClusters, ListDomainNames, DescribeFileSystems, DescribeSecurityGroups`)
+  output.push(`  CloudTrail: SimulatePrincipalPolicy, Invoke20150331 (if exploited)`)
+  output.push(`  OPSEC: Pure analysis phase is read-only; actual pivot via code_exec_lambda creates Lambda invocation events`)
   return { output: output.join("\n"), findings }
 }
