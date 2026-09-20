@@ -180,6 +180,12 @@ export async function iamDeepAudit(args: string[], timeout: number): Promise<Hoo
   output.push(`[+] Unused roles (>90d): ${unusedRoles}`)
   output.push(`[+] Dangerous trust policies: ${dangerousTrust}`)
   output.push(`\n[*] Summary: ${findings.length} IAM issues found (users + roles)`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListUsers, ListUserPolicies, ListAttachedUserPolicies, ListAccessKeys, GetAccessKeyLastUsed`)
+  output.push(`  CloudTrail: ListRoles, ListRolePolicies, ListAttachedRolePolicies, ListPolicyVersions, GetPolicyVersion`)
+  output.push(`  OPSEC: high-volume IAM enumeration — generates many events per user/role; unusual outside audit contexts`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -273,6 +279,13 @@ export async function cognitoSecurityAudit(args: string[], timeout: number): Pro
   }
 
   output.push(`\n[*] Summary: ${findings.length} Cognito issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListUserPools, DescribeUserPool, ListUserPoolClients, DescribeUserPoolClient`)
+  output.push(`  CloudTrail: ListIdentityPools, DescribeIdentityPool, GetIdentityPoolRoles`)
+  output.push(`  CloudTrail: ListAttachedRolePolicies, ListRolePolicies, GetRolePolicy (role enumeration)`)
+  output.push(`  OPSEC: Cognito enumeration is low-signal in isolation but correlates with identity attack patterns`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -320,6 +333,12 @@ export async function organizationPolicyEnum(args: string[], timeout: number): P
   }
 
   output.push(`\n[*] Summary: ${findings.length} organization issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: DescribeOrganization, ListPolicies, DescribePolicy, ListTargetsForPolicy`)
+  output.push(`  OPSEC: Organizations API calls are management-account level — unusual from member accounts`)
+  output.push(`  OPSEC: SCP enumeration reveals org security posture — high-value intel for attackers`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -358,6 +377,12 @@ export async function passwordSprayAws(args: string[], timeout: number): Promise
   output.push(`[*] Console login URL: https://<account-id>.signin.aws.amazon.com/console`)
 
   output.push(`\n[*] Summary: ${consoleUsers} targets identified, ${findings.length} issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListUsers, GetLoginProfile (per user — N events for N users)`)
+  output.push(`  OPSEC: GetLoginProfile per-user enumeration is HIGH signal — bulk enumeration unusual outside audit`)
+  output.push(`  OPSEC: actual console login attempts generate ConsoleLogin events in us-east-1 CloudTrail`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -417,6 +442,12 @@ export async function identitySummary(args: string[], timeout: number): Promise<
 
   output.push(`\n[*] Landscape: ${userList.length} users, ${roleList.length} roles, ${groupList.length} groups, ${oidcList.length} OIDC, ${samlList.length} SAML, ${ssoInstances.length} SSO`)
   output.push(`[*] Summary: ${findings.length} identity issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetAccountSummary, ListUsers, ListRoles, ListGroups, ListOpenIDConnectProviders, ListSAMLProviders`)
+  output.push(`  CloudTrail: ListInstances (SSO)`)
+  output.push(`  OPSEC: broad IAM enumeration — generates events across multiple IAM subsystems in a single sweep`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -498,6 +529,11 @@ export async function roleTrustAudit(args: string[], timeout: number): Promise<H
 
   output.push(`\n[+] Wildcard: ${wildcardCount}, Cross-account: ${crossAccountCount}, Unusual services: ${unusualServiceCount}, Confused deputy: ${confusedDeputyCount}`)
   output.push(`[*] Summary: ${findings.length} trust policy issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetCallerIdentity, ListRoles, ListAttachedRolePolicies`)
+  output.push(`  OPSEC: ListRoles + per-role policy enumeration generates many events — correlates with privilege escalation recon`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -553,6 +589,11 @@ export async function serviceLinkedRoles(args: string[], timeout: number): Promi
   }
 
   output.push(`\n[*] Summary: ${roleList.length} SLRs, ${unusedCount} stale, ${findings.length} issues`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListRoles, GetRole, ListAttachedRolePolicies`)
+  output.push(`  OPSEC: SLR enumeration is low-signal — looks like routine compliance scanning`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -606,6 +647,11 @@ export async function iamAccessLastUsed(args: string[], timeout: number): Promis
   }
 
   output.push(`\n[*] Summary: ${findings.length} overprivileged roles found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListRoles, GenerateServiceLastAccessedDetails, GetServiceLastAccessedDetails`)
+  output.push(`  OPSEC: GenerateServiceLastAccessedDetails is moderate signal — per-role access analysis unusual outside compliance tools`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -660,6 +706,11 @@ export async function identityProviderEnum(args: string[], timeout: number): Pro
   }
 
   output.push(`\n[*] Summary: ${oidcList.length} OIDC, ${samlList.length} SAML, ${findings.length} issues`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListOpenIDConnectProviders, GetOpenIDConnectProvider, ListSAMLProviders, GetSAMLProvider`)
+  output.push(`  OPSEC: IdP enumeration is low-signal — standard audit activity; but reveals federation configuration for token forging attacks`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -739,6 +790,13 @@ export async function ssoPermissionAudit(args: string[], timeout: number): Promi
   }
 
   output.push(`\n[*] Summary: ${findings.length} SSO permission issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListInstances, ListPermissionSets, DescribePermissionSet, ListManagedPoliciesInPermissionSet`)
+  output.push(`  CloudTrail: GetInlinePolicyForPermissionSet, ListCustomerManagedPolicyReferencesInPermissionSet`)
+  output.push(`  CloudTrail: ListUsers, ListGroups (Identity Store)`)
+  output.push(`  OPSEC: SSO enumeration is moderate signal — reveals org-wide access structure; unusual from non-admin identities`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -796,6 +854,13 @@ export async function stsSessionAudit(args: string[], timeout: number): Promise<
   }
 
   output.push(`\n[*] Summary: ${findings.length} session issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: GetCallerIdentity, ListRoles, GetRole, GetSessionToken, GetFederationToken`)
+  output.push(`  GuardDuty: UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS (if credentials used externally)`)
+  output.push(`  OPSEC: GetFederationToken is HIGH signal — rarely used legitimately; enables console access without MFA`)
+  output.push(`  OPSEC: GetSessionToken with long duration is moderate signal — persistence indicator`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -879,6 +944,12 @@ export async function groupMembershipAudit(args: string[], timeout: number): Pro
 
   output.push(`\n[+] Empty groups: ${emptyGroups.length}, Admin groups: ${adminGroups.length}, Ungrouped users: ${ungrouped}`)
   output.push(`[*] Summary: ${findings.length} group membership issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListGroups, GetGroup, ListGroupPolicies, ListAttachedGroupPolicies, GetPolicy`)
+  output.push(`  CloudTrail: ListUsers, ListGroupsForUser`)
+  output.push(`  OPSEC: group+user enumeration is low-signal — standard IAM audit pattern`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -961,6 +1032,11 @@ export async function permissionBoundaryAudit(args: string[], timeout: number): 
   }
 
   output.push(`\n[*] Summary: ${findings.length} permission boundary issues found`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: ListUsers, ListRoles, GetCallerIdentity, ListPolicyVersions, GetPolicyVersion`)
+  output.push(`  OPSEC: permission boundary analysis is low-signal — looks like compliance scanning; reveals where guardrails are weak`)
+
   return { output: output.join("\n"), findings }
 }
 
@@ -1228,6 +1304,13 @@ export async function iamPolicySimulation(args: string[], timeout: number): Prom
   }
 
   output.push(`\n[*] Summary: ${totalAllowed} dangerous permissions allowed, ${findings.length} issues`)
+
+  output.push(`\n[*] Detection:`)
+  output.push(`  CloudTrail: SimulatePrincipalPolicy (per batch — multiple calls for full simulation)`)
+  output.push(`  CloudTrail: GetCallerIdentity`)
+  output.push(`  OPSEC: SimulatePrincipalPolicy is moderate signal — reveals what the caller is testing; bulk simulation is a pre-attack recon indicator`)
+  output.push(`  OPSEC: attackers use this to find which dangerous actions they can perform before attempting them`)
+
   return { output: output.join("\n"), findings }
 }
 
