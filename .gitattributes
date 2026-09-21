@@ -1,0 +1,20 @@
+# Pro/Enterprise packages — excluded from git archive exports.
+# For public mirror sync, use scripts/sync-public.sh instead.
+packages/brain/ export-ignore
+packages/aws/ export-ignore
+packages/azure/ export-ignore
+packages/gcp/ export-ignore
+packages/oracle/ export-ignore
+packages/cloud/ export-ignore
+packages/mobile/ export-ignore
+packages/internal-network/ export-ignore
+packages/identity/ export-ignore
+packages/containers/ export-ignore
+packages/enterprise/ export-ignore
+packages/enterprise-vortex/ export-ignore
+packages/attack-surface-mapping/ export-ignore
+packages/sast/ export-ignore
+packages/red-team/ export-ignore
+packages/android/ export-ignore
+packages/ios/ export-ignore
+scripts/sync-public.sh export-ignore
