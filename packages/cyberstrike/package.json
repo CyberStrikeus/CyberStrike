@@ -79,6 +79,7 @@
   "dependencies": {
     "@actions/core": "1.11.1",
     "@actions/github": "6.0.1",
+    "@cyberstrike-io/brain": "workspace:*",
     "@cyberstrike-io/web": "workspace:*",
     "@cyberstrike-io/vortex": "workspace:*",
     "@agentclientprotocol/sdk": "0.14.1",

@@ -30,6 +30,7 @@ import { SessionCommand } from "./cli/cmd/session"
 import { ProviderCommand } from "./cli/cmd/provider"
 import { SkillCommand } from "./cli/cmd/skill"
 import { DomainsCommand } from "./cli/cmd/domains"
+import { BrainCommand } from "./cli/cmd/brain"
 import path from "path"
 import { Global } from "./global"
 import { JsonMigration } from "./storage/json-migration"
@@ -146,6 +147,7 @@ const cli = yargs(hideBin(process.argv))
   .command(ProviderCommand)
   .command(SkillCommand)
   .command(DomainsCommand)
+  .command(BrainCommand)
   .fail((msg, err) => {
     if (
       msg?.startsWith("Unknown argument") ||
