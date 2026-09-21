@@ -9,6 +9,7 @@ import { BrainSession } from "./session"
 import { License } from "./license"
 import { Runner } from "./runner"
 import { Playbook } from "./playbook"
+import { Wallet } from "./wallet"
 import { ClientMessage } from "./protocol"
 import { createAnthropic } from "@ai-sdk/anthropic"
 
@@ -33,6 +34,18 @@ app.get("/v1/domains", (c) => {
   })
 })
 
+app.get("/v1/wallet/:orgId", (c) => {
+  const orgId = c.req.param("orgId")
+  const balance = Wallet.getBalance(orgId)
+  return c.json(balance)
+})
+
+app.get("/v1/wallet/:orgId/usage", (c) => {
+  const orgId = c.req.param("orgId")
+  const since = c.req.query("since") ? Number(c.req.query("since")) : undefined
+  return c.json({ usage: Wallet.getUsage(orgId, since) })
+})
+
 type WSData = { sessionId?: string }
 
 function handleMessage(session: BrainSession, raw: string) {
@@ -54,9 +67,19 @@ function handleMessage(session: BrainSession, raw: string) {
       break
 
     case "request": {
-      const anthropic = createAnthropic({
-        apiKey: process.env["ANTHROPIC_API_KEY"],
-      })
+      // BYO-key: use client's key (ephemeral, cleared on disconnect).
+      // Managed: use our key, debit credits.
+      const apiKey = session.getModelKey() ?? process.env["ANTHROPIC_API_KEY"]
+      if (!apiKey) {
+        session.send({
+          type: "error",
+          requestId: msg.id,
+          code: "no_api_key",
+          message: "no API key configured",
+        })
+        break
+      }
+      const anthropic = createAnthropic({ apiKey })
       const model = anthropic("claude-sonnet-4-20250514")
       Runner.run({
         requestId: msg.id,
@@ -64,6 +87,8 @@ function handleMessage(session: BrainSession, raw: string) {
         model,
         domain: msg.domain,
         message: msg.message,
+        orgId: session.orgId,
+        byoKey: session.byoKey,
         context: msg.context,
       })
       break
@@ -109,7 +134,8 @@ const server = Bun.serve({
         }
 
         const sessionId = crypto.randomUUID()
-        const session = new BrainSession(sessionId, result.tier)
+        const orgId = result.org ?? sessionId
+        const session = new BrainSession(sessionId, result.tier, orgId, connectMsg.modelKey)
         session.attach(ws as any)
         sessions.set(sessionId, session)
         ws.data.sessionId = sessionId
@@ -141,6 +167,7 @@ const server = Bun.serve({
       if (sessionId) {
         const session = sessions.get(sessionId)
         if (session) {
+          session.clearModelKey()
           session.detach()
           sessions.delete(sessionId)
         }

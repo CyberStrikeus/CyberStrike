@@ -6,7 +6,11 @@
 import { streamText, tool, jsonSchema, type ToolSet, type LanguageModel, type ModelMessage } from "ai"
 import { BrainSession } from "./session"
 import { Playbook } from "./playbook"
+import { Wallet } from "./wallet"
+import { Log } from "./log"
 import { ulid } from "ulid"
+
+const log = Log.create("runner")
 
 export namespace Runner {
   export type RunInput = {
@@ -15,6 +19,8 @@ export namespace Runner {
     model: LanguageModel
     domain: string
     message: string
+    orgId: string
+    byoKey: boolean
     context?: Record<string, unknown>
   }
 
@@ -41,6 +47,20 @@ export namespace Runner {
       return
     }
 
+    // Credit check (skip for BYO-key — user pays their provider directly)
+    if (!input.byoKey) {
+      const estimated = Wallet.estimateCost(input.domain)
+      if (!Wallet.hasCredits(input.orgId, estimated)) {
+        input.session.send({
+          type: "error",
+          requestId: input.requestId,
+          code: "insufficient_credits",
+          message: `not enough credits (need ~${estimated}, check your balance)`,
+        })
+        return
+      }
+    }
+
     const abort = input.session.createAbort(input.requestId)
     const tools = buildToolSchemas(playbook.tools)
 
@@ -50,6 +70,8 @@ export namespace Runner {
 
     let step = 0
     const maxSteps = playbook.maxSteps ?? 30
+    let totalInputTokens = 0
+    let totalOutputTokens = 0
 
     try {
       while (step < maxSteps) {
@@ -94,6 +116,11 @@ export namespace Runner {
               break
           }
         }
+
+        // Track token usage from this step
+        const usage = await result.usage
+        totalInputTokens += usage.inputTokens ?? 0
+        totalOutputTokens += usage.outputTokens ?? 0
 
         if (toolCalls.length === 0) {
           const text = await result.text
@@ -157,6 +184,21 @@ export namespace Runner {
         })
       }
     } finally {
+      // Debit credits (skip for BYO-key)
+      if (!input.byoKey && (totalInputTokens > 0 || totalOutputTokens > 0)) {
+        const usage = Wallet.debit(input.orgId, {
+          requestId: input.requestId,
+          inputTokens: totalInputTokens,
+          outputTokens: totalOutputTokens,
+        })
+        log.info("request complete", {
+          requestId: input.requestId,
+          steps: step,
+          creditsUsed: usage.creditsUsed,
+          inputTokens: totalInputTokens,
+          outputTokens: totalOutputTokens,
+        })
+      }
       input.session.cleanupRequest(input.requestId)
     }
   }

@@ -10,6 +10,9 @@ import type { BrainMessage, ClientMessage } from "./protocol"
 export class BrainSession {
   readonly id: string
   readonly tier: "pro" | "enterprise"
+  readonly orgId: string
+  readonly byoKey: boolean
+  private modelKey: string | undefined
   private ws: ServerWebSocket<{ sessionId: string }> | null = null
   private pending = new Map<string, {
     resolve: (result: unknown) => void
@@ -17,9 +20,20 @@ export class BrainSession {
   }>()
   private abortControllers = new Map<string, AbortController>()
 
-  constructor(id: string, tier: "pro" | "enterprise") {
+  constructor(id: string, tier: "pro" | "enterprise", orgId: string, modelKey?: string) {
     this.id = id
     this.tier = tier
+    this.orgId = orgId
+    this.byoKey = !!modelKey
+    this.modelKey = modelKey
+  }
+
+  getModelKey(): string | undefined {
+    return this.modelKey
+  }
+
+  clearModelKey() {
+    this.modelKey = undefined
   }
 
   attach(ws: ServerWebSocket<{ sessionId: string }>) {
