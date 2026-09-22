@@ -1,33 +1,40 @@
 // @refresh reload
-import "@fontsource-variable/space-grotesk"
 
 import {
+  ACCEPTED_FILE_EXTENSIONS,
   AppBaseProviders,
   AppInterface,
+  loadLocaleDict,
+  normalizeLocale,
+  type Locale,
   type Platform,
   PlatformProvider,
+  createDraftStore,
+  ServerConnection,
   useCommand,
-  handleNotificationClick,
+  useWslServers,
+  useLanguage,
 } from "@cyberstrike-io/app"
-import type { DesktopMenuAction } from "@cyberstrike-io/app/desktop-menu"
+import type { UpdaterState } from "@cyberstrike-io/app/updater"
 import * as Sentry from "@sentry/solid"
 import type { AsyncStorage } from "@solid-primitives/storage"
-import { createEffect } from "solid-js"
+import { createMemoryHistory, MemoryRouter, type BaseRouterProps } from "@solidjs/router"
+import { createEffect, createMemo, createResource, createSignal, onCleanup, Show } from "solid-js"
 import { render } from "solid-js/web"
 import pkg from "../../package.json"
+import { t } from "./i18n"
+import { initializationData } from "./initialization"
+import { DesktopFirstLaunchOnboarding } from "./onboarding"
 import { resetZoom, setPinchZoomEnabled, webviewZoom, zoomIn, zoomOut } from "./webview-zoom"
 import { windowFullscreen } from "./window-fullscreen"
+import { availableStartupServer, readyWslConnections } from "./wsl/connections"
 import "./styles.css"
+import { Splash } from "@cyberstrike-io/ui/logo"
 import { useTheme } from "@cyberstrike-io/ui/theme/context"
-
-// The desktop server is a local sidecar the main process starts on 4096. Loopback requests
-// skip auth, so the renderer connects with no credentials (see main/server.ts). Pinned to 4096
-// for the HackBrowser capture extension's ingest endpoint.
-const SIDECAR_URL = "http://127.0.0.1:4096"
 
 const root = document.getElementById("root")
 if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
-  throw new Error("Root element #root not found")
+  throw new Error(t("desktop.error.dev.rootNotFound"))
 }
 
 if (import.meta.env.VITE_SENTRY_DSN) {
@@ -53,7 +60,14 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   })
 }
 
+const [updaterState, setUpdaterState] = createSignal<UpdaterState>({ status: "disabled" })
+void window.api.updater.subscribe(setUpdaterState)
+
 const deepLinkEvent = "cyberstrike:deep-link"
+
+type DesktopWindowState = {
+  id?: string
+}
 
 const emitDeepLinks = (urls: string[]) => {
   if (urls.length === 0) return
@@ -68,76 +82,179 @@ const listenForDeepLinks = () => {
   return window.api.onDeepLink((urls) => emitDeepLinks(urls))
 }
 
-const detectOs = (): "macos" | "windows" | "linux" | undefined => {
-  const ua = navigator.userAgent
-  if (ua.includes("Mac")) return "macos"
-  if (ua.includes("Windows")) return "windows"
-  if (ua.includes("Linux")) return "linux"
-  return undefined
+function windowLastActiveUrlKey(windowID: string) {
+  return `cyberstrike.desktop.window.${windowID}.last-active-url`
 }
 
-const createStorageFactory = () => {
-  const cache = new Map<string, AsyncStorage>()
-  const build = (name: string): AsyncStorage => {
-    const store: AsyncStorage = {
-      getItem: (key: string) => window.api.storeGet(name, key),
-      setItem: (key: string, value: string) => window.api.storeSet(name, key, value),
-      removeItem: (key: string) => window.api.storeDelete(name, key),
-      clear: () => window.api.storeClear(name),
-      key: async (index: number) => (await window.api.storeKeys(name))[index],
-      getLength: () => window.api.storeLength(name),
-      get length() {
-        return store.getLength()
-      },
-    }
-    return store
-  }
-  return (name = "default.dat") => {
-    const cached = cache.get(name)
-    if (cached) return cached
-    const store = build(name)
-    cache.set(name, store)
-    return store
-  }
+function getLastActiveUrl(windowID: string) {
+  if (typeof localStorage !== "object") return "/"
+  try {
+    const value = localStorage.getItem(windowLastActiveUrlKey(windowID))
+    if (value?.startsWith("/") && !value.startsWith("//")) return value
+  } catch {}
+  return "/"
 }
 
-const createPlatform = (windowID: string | undefined): Platform => {
-  const os = detectOs()
+function setLastActiveUrl(windowID: string, value: string) {
+  if (typeof localStorage !== "object") return
+  try {
+    localStorage.setItem(windowLastActiveUrlKey(windowID), value)
+  } catch {}
+}
+
+function DesktopMemoryRouter(props: BaseRouterProps & { windowID: string }) {
+  const history = createMemoryHistory()
+  const initialUrl = getLastActiveUrl(props.windowID)
+  if (initialUrl !== "/") history.set({ value: initialUrl, replace: true, scroll: false })
+  onCleanup(history.listen((value) => setLastActiveUrl(props.windowID, value)))
+  return <MemoryRouter {...props} history={history} />
+}
+
+const createPlatform = (windowState: DesktopWindowState): Platform => {
+  const attachmentPaths = new WeakMap<File, string>()
+  const os = (() => {
+    const ua = navigator.userAgent
+    if (ua.includes("Mac")) return "macos"
+    if (ua.includes("Windows")) return "windows"
+    if (ua.includes("Linux")) return "linux"
+    return undefined
+  })()
 
   const runDesktopMenuAction: Platform["runDesktopMenuAction"] = (action) => {
-    if (action === "view.resetZoom") return resetZoom()
-    if (action === "view.zoomIn") return zoomIn()
-    if (action === "view.zoomOut") return zoomOut()
-    return window.api.runDesktopMenuAction(action as DesktopMenuAction)
+    switch (action) {
+      case "view.resetZoom":
+        resetZoom()
+        return
+      case "view.zoomIn":
+        zoomIn()
+        return
+      case "view.zoomOut":
+        zoomOut()
+        return
+    }
+
+    return window.api.runDesktopMenuAction(action)
   }
+
+  const storage = (() => {
+    const cache = new Map<string, AsyncStorage>()
+
+    const createStorage = (name: string) => {
+      const api: AsyncStorage = {
+        getItem: (key: string) => window.api.storeGet(name, key),
+        setItem: (key: string, value: string) => window.api.storeSet(name, key, value),
+        removeItem: (key: string) => window.api.storeDelete(name, key),
+        clear: () => window.api.storeClear(name),
+        key: async (index: number) => (await window.api.storeKeys(name))[index],
+        getLength: () => window.api.storeLength(name),
+        get length() {
+          return api.getLength()
+        },
+      }
+      return api
+    }
+
+    return (name = "default.dat") => {
+      const cached = cache.get(name)
+      if (cached) return cached
+      const api = createStorage(name)
+      cache.set(name, api)
+      return api
+    }
+  })()
+
+  const wslServersApi = os === "windows" ? window.api.wslServers : undefined
 
   return {
     platform: "desktop",
     os,
     version: pkg.version,
-    windowID,
+    windowID: windowState.id,
 
-    openLink: (url) => window.api.openExternal(url),
-
-    openPath: async (path, appName) => {
-      if (os === "windows") {
-        const resolved = appName ? await window.api.resolveAppPath(appName).catch(() => null) : null
-        return window.api.openPath(path, resolved ?? undefined)
-      }
-      return window.api.openPath(path, appName)
+    async openDirectoryPickerDialog(opts) {
+      return window.api.openDirectoryPicker({
+        multiple: opts?.multiple ?? false,
+        title: opts?.title,
+      })
     },
+
+    async openAttachmentPickerDialog(opts, onFile) {
+      const result = await window.api.openFilePicker({
+        multiple: opts?.multiple ?? false,
+        title: opts?.title,
+        defaultPath: opts?.defaultPath,
+        extensions: opts?.extensions ?? ACCEPTED_FILE_EXTENSIONS,
+      })
+      if (!result) return
+      try {
+        for (const file of result.files) {
+          const selected = new File([await window.api.readPickedFile(result.token, file.path)], file.name)
+          attachmentPaths.set(selected, file.path)
+          await onFile(selected)
+        }
+      } finally {
+        await window.api.releasePickedFiles(result.token)
+      }
+    },
+
+    getPathForFile(file) {
+      return attachmentPaths.get(file) ?? window.api.getPathForFile(file)
+    },
+
+    async saveFilePickerDialog(opts) {
+      return window.api.saveFilePicker({
+        title: opts?.title,
+        defaultPath: opts?.defaultPath,
+      })
+    },
+
+    openExternal(url: string) {
+      window.api.openExternal(url)
+    },
+    openLocalFile(url: string) {
+      window.api.openLocalFile(url)
+    },
+    async openPath(path: string, app?: string) {
+      if (os === "windows") {
+        const resolvedApp = app ? await window.api.resolveAppPath(app).catch(() => null) : null
+        return window.api.openPath(path, resolvedApp ?? undefined)
+      }
+      return window.api.openPath(path, app)
+    },
+    async revealPath(path: string) {
+      return window.api.revealPath(path)
+    },
+
+    storage,
+    draftStore: createDraftStore({
+      get: window.api.draftGet,
+      set: window.api.draftSet,
+      remove: window.api.draftDelete,
+      putBlob: (blob) => blob.arrayBuffer().then(window.api.draftBlobPut),
+      getBlob: (id) => window.api.draftBlobGet(id).then((data) => data && new Blob([data])),
+    }),
+
+    updater: {
+      state: updaterState,
+      check: () => window.api.updater.check(),
+      install: () => window.api.updater.install(),
+    },
+
+    exportDebugLogs: () => window.api.exportDebugLogs(),
+
+    setForceFocus: (enabled) => window.api.setForceFocus(enabled),
+
+    recordFatalRendererError: (error) => window.api.recordFatalRendererError(error),
 
     restart: async () => {
       await window.api.killSidecar().catch(() => undefined)
       window.api.relaunch()
     },
 
-    back: () => window.history.back(),
-    forward: () => window.history.forward(),
-
-    notify: async (title, description, href) => {
+    notify: async (title, description, onClick) => {
       const focused = await window.api.getWindowFocused().catch(() => document.hasFocus())
       if (focused) return
+
       const notification = new Notification(title, {
         body: description ?? "",
         icon: "https://cyberstrike.io/favicon-96x96-v3.png",
@@ -145,69 +262,191 @@ const createPlatform = (windowID: string | undefined): Platform => {
       notification.onclick = () => {
         void window.api.showWindow()
         void window.api.setWindowFocus()
-        handleNotificationClick(href)
+        onClick?.()
         notification.close()
       }
     },
 
-    openDirectoryPickerDialog: (opts) =>
-      window.api.openDirectoryPicker({ multiple: opts?.multiple ?? false, title: opts?.title }),
+    fetch: (input, init) => {
+      if (input instanceof Request) return fetch(input)
+      return fetch(input, init)
+    },
 
-    storage: createStorageFactory(),
+    getDefaultServer: async () => {
+      const url = await window.api.getDefaultServerUrl().catch(() => null)
+      if (!url) return null
+      return ServerConnection.Key.make(url)
+    },
 
-    getDefaultServerUrl: () => window.api.getDefaultServerUrl().catch(() => null),
-    setDefaultServerUrl: (url) => window.api.setDefaultServerUrl(url),
+    setDefaultServer: async (url: string | null) => {
+      await window.api.setDefaultServerUrl(url)
+    },
 
-    getDisplayBackend: () => window.api.getDisplayBackend().catch(() => null),
-    setDisplayBackend: (backend) => window.api.setDisplayBackend(backend),
+    wslServers: wslServersApi,
+
+    getDisplayBackend: async () => {
+      return window.api.getDisplayBackend().catch(() => null)
+    },
+
+    setDisplayBackend: async (backend) => {
+      await window.api.setDisplayBackend(backend)
+    },
 
     webviewZoom,
+
     windowFullscreen,
 
-    checkAppExists: (appName) => window.api.checkAppExists(appName),
+    getPinchZoomEnabled: () => window.api.getPinchZoomEnabled(),
 
-    readClipboardImage: async () => {
-      const image = await window.api.readClipboardImage().catch(() => null)
-      if (!image) return null
-      const blob = new Blob([image.buffer], { type: "image/png" })
-      return new File([blob], `pasted-image-${Date.now()}.png`, { type: "image/png" })
-    },
+    setPinchZoomEnabled,
 
     runDesktopMenuAction,
 
-    setForceFocus: (enabled) => window.api.setForceFocus(enabled),
+    checkAppExists: async (appName: string) => {
+      return window.api.checkAppExists(appName)
+    },
+
+    async readClipboardImage() {
+      const image = await window.api.readClipboardImage().catch(() => null)
+      if (!image) return null
+      const blob = new Blob([image.buffer], { type: "image/png" })
+      return new File([blob], `pasted-image-${Date.now()}.png`, {
+        type: "image/png",
+      })
+    },
   }
 }
 
 let menuTrigger = null as null | ((id: string) => void)
-window.api.onMenuCommand((id) => menuTrigger?.(id))
+window.api.onMenuCommand((id) => {
+  menuTrigger?.(id)
+})
 listenForDeepLinks()
-void setPinchZoomEnabled
 
-// Bridges native menu commands into the command palette and syncs the native window background
-// to the active theme. Renders inside AppInterface so useCommand()/useTheme() resolve.
-function DesktopBridge() {
-  const cmd = useCommand()
-  menuTrigger = (id) => cmd.trigger(id)
-  const theme = useTheme()
-  createEffect(() => {
-    theme.themeId()
-    theme.mode()
-    const bg = getComputedStyle(document.documentElement).getPropertyValue("--background-base").trim()
-    if (bg) void window.api.setBackgroundColor(bg)
-  })
-  return null
+function LoadingSplash() {
+  return (
+    <div class="h-dvh w-screen flex flex-col items-center justify-center bg-background-base">
+      <Splash class="w-16 h-20 opacity-50 animate-pulse" />
+    </div>
+  )
+}
+
+function DesktopRoot(props: { windowState: DesktopWindowState }) {
+  const platform = createPlatform(props.windowState)
+  const loadLocale = async () => {
+    const current = await platform.storage?.("cyberstrike.global.dat").getItem("language")
+    const legacy = current ? undefined : await platform.storage?.().getItem("language.v1")
+    const raw = current ?? legacy
+    if (!raw) return
+    const locale = raw.match(/"locale"\s*:\s*"([^"]+)"/)?.[1]
+    if (!locale) return
+    const next = normalizeLocale(locale)
+    if (next !== "en") await loadLocaleDict(next)
+    return next satisfies Locale
+  }
+
+  // Fetch sidecar credentials (available immediately, before health check)
+  const [sidecar] = createResource(() => window.api.awaitInitialization())
+
+  const [defaultServer] = createResource(() => platform.getDefaultServer?.())
+  const [locale] = createResource(loadLocale)
+  const router = (props: BaseRouterProps) => (
+    <DesktopMemoryRouter {...props} windowID={platform.windowID ?? "browser"} />
+  )
+  const onboarding = Promise.withResolvers<void>()
+
+  function Inner() {
+    const cmd = useCommand()
+    menuTrigger = (id) => cmd.trigger(id)
+
+    const theme = useTheme()
+
+    createEffect(() => {
+      theme.themeId()
+      theme.mode()
+      const bg = getComputedStyle(document.documentElement).getPropertyValue("--background-base").trim()
+      if (bg) {
+        void window.api.setBackgroundColor(bg)
+      }
+    })
+
+    return null
+  }
+
+  function App() {
+    const wslServers = useWslServers()
+    const language = useLanguage()
+    const ready = createMemo(
+      () => !defaultServer.loading && !sidecar.loading && !locale.loading && !wslServers.isLoading,
+    )
+    const servers = createMemo(() => {
+      const data = initializationData(sidecar)
+      const list: ServerConnection.Any[] = []
+      if (data) {
+        list.push({
+          displayName: language.t("desktop.server.local"),
+          type: "sidecar",
+          variant: "base",
+          http: {
+            url: data.url,
+            username: data.username ?? undefined,
+            password: data.password ?? undefined,
+          },
+        })
+      }
+      list.push(...readyWslConnections(wslServers.data, language.t("wsl.server.label")))
+      return list
+    })
+    const effectiveDefaultServer = createMemo(() =>
+      ServerConnection.Key.make(availableStartupServer(defaultServer.latest, wslServers.data)),
+    )
+    return (
+      <Show when={ready()} fallback={<LoadingSplash />}>
+        <Show when={effectiveDefaultServer()} keyed>
+          {(key) => (
+            <AppInterface
+              defaultServer={key}
+              servers={servers()}
+              router={router}
+              startup={onboarding.promise}
+              serverScoped={
+                <DesktopFirstLaunchOnboarding
+                  initialUrl={getLastActiveUrl(platform.windowID ?? "browser")}
+                  onLoaded={onboarding.resolve}
+                />
+              }
+            >
+              <Inner />
+            </AppInterface>
+          )}
+        </Show>
+      </Show>
+    )
+  }
+
+  return (
+    <PlatformProvider value={platform}>
+      <AppBaseProviders
+        locale={locale.latest}
+        onNativeTranslations={(bundle) => void window.api.setNativeTranslations(bundle).catch(() => undefined)}
+      >
+        <Show when={true}>{(_) => <App />}</Show>
+      </AppBaseProviders>
+    </PlatformProvider>
+  )
 }
 
 render(() => {
-  const platform = createPlatform(undefined)
+  const [windowState] = createResource(async () => {
+    const api = window.api as typeof window.api & {
+      getWindowID?: () => Promise<string>
+    }
+    return { id: await api.getWindowID?.() }
+  })
+
   return (
-    <PlatformProvider value={platform}>
-      <AppBaseProviders>
-        <AppInterface defaultUrl={SIDECAR_URL} isSidecar>
-          <DesktopBridge />
-        </AppInterface>
-      </AppBaseProviders>
-    </PlatformProvider>
+    <Show when={windowState.latest} fallback={<LoadingSplash />} keyed>
+      {(state) => <DesktopRoot windowState={state} />}
+    </Show>
   )
 }, root!)
