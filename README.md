@@ -43,6 +43,7 @@
   <a href="#how-it-works">How It Works</a> ·
   <a href="#agents">Agents</a> ·
   <a href="#hackbrowser">HackBrowser</a> ·
+  <a href="#vortex">Vortex</a> ·
   <a href="#bolt--mcp">Bolt & MCP</a> ·
   <a href="#web-ui">Web UI</a> ·
   <a href="#installation">Installation</a> ·
@@ -80,7 +81,7 @@ CyberStrike injects offensive security methodology — OWASP testing procedures,
 You describe the target. CyberStrike selects the right agent, loads relevant skills from a library of 7,600+ methodology documents, picks tools, and runs the assessment. Findings are confirmed with a 3-gate protocol (baseline → attack → response diff) — speculative results are discarded.
 
 **What you bring:** An API key for any supported LLM (or run fully offline with Ollama).
-**What CyberStrike adds:** 7,600+ security skills, 56+ built-in tools, 176+ MCP tools, and domain-specific agents that know how to chain them.
+**What CyberStrike adds:** 7,600+ security skills, 56+ built-in tools, 1,000+ MCP tools across 15+ servers, and domain-specific agents that know how to chain them.
 
 **Bring any model:**
 
@@ -107,11 +108,12 @@ Switch agents with `Tab`. Each one carries domain-specific methodology and testi
 |-------|-------------|
 | **cyberstrike** | Full-access primary agent — recon, exploitation, reporting |
 | **wstg-agent** | OWASP WSTG orchestrator + 12 specialist sub-agents for web testing |
-| **cloud-security** | AWS, Azure, GCP — IAM misconfigs, CIS benchmarks, exposed resources |
-| **internal-network** | Active Directory, Kerberos, lateral movement, pivoting |
-| **mobile-application** | Android/iOS with Frida/Objection, MASTG/MASVS compliance |
+| **general** | General-purpose security assistant |
+| **explore** | Read-only reconnaissance and analysis |
 
 The web pipeline runs 8 parallel testers on intercepted traffic: IDOR, authorization bypass, mass assignment, injection, authentication, business logic, SSRF, and file attacks.
+
+> **CyberStrike Pro** adds cloud security (AWS/Azure/GCP), internal network (Active Directory, Kerberos), and mobile application (Android/iOS, Frida) agents. [Learn more →](https://cyberstrike.io)
 
 ---
 
@@ -123,20 +125,32 @@ Browse manually or let it crawl autonomously with multiple accounts. Every HTTP 
 
 ---
 
+### Vortex
+
+HTTP traffic engine for security testing. Intercept, filter, and analyze requests with a purpose-built DSL. Write rules as data — portable, versionable, composable — and let the canary engine verify findings automatically.
+
+If you've used Caido or Burp Suite's proxy: Vortex is the same concept, native to CyberStrike's agent pipeline.
+
+---
+
 ### Bolt & MCP
 
 **Bolt** runs your security tools on remote servers. Deploy on any VPS or Docker container, pair with Ed25519 keys, and control from your terminal. One CyberStrike instance orchestrates many Bolt servers — each with its own toolkit and network position.
 
-**MCP servers** extend CyberStrike with 176+ additional security tools:
+**MCP servers** extend CyberStrike with 1,000+ additional security tools across 15+ servers:
 
 | Server | Tools | Domain |
 |--------|-------|--------|
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | 39 | Browser security testing |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | 38 | Cloud security — AWS, Azure, GCP |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39 | GitHub security posture |
 | [cve-mcp](https://github.com/badchars/cve-mcp) | 23 | CVE intelligence — NVD, EPSS, KEV, GHSA |
-| [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT — Shodan, VirusTotal, Censys, DNS |
+| [osint-mcp-server](https://github.com/badchars/osint-mcp-server) | 37 | OSINT — Shodan, VirusTotal, Censys, DNS |
+| [dns-security-mcp](https://github.com/badchars/dns-security-mcp) | 104 | DNS security & DNSSEC auditing |
+| [fingerprint-mcp](https://github.com/badchars/fingerprint-mcp) | 103 | TCP/TLS/SSH/HTTP fingerprinting |
+| [supply-chain-mcp-server](https://github.com/badchars/supply-chain-mcp-server) | 90 | Supply chain — npm, PyPI, Go, OSV |
 
-All open source. All installable with `npx`.
+Plus [steganography](https://github.com/badchars/steganography-mcp), [LOLBins](https://github.com/badchars/living-off-the-land-lolbins-mcp-server), [WiFi security](https://github.com/badchars/wifi-security-mcp-server), [dark web intelligence](https://github.com/badchars/darknet-mcp-server), [satellite/GEOINT](https://github.com/badchars/satellite-mcp), [MCP server scanning](https://github.com/badchars/mcp-security-scanner), and [firmware RE](https://github.com/badchars/firmware-re-vulnerability-mcp-server). All open source, all installable with `npx`.
 
 ---
 
