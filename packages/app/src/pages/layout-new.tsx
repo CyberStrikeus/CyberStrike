@@ -2,9 +2,7 @@ import { createEffect, Suspense, type ParentProps } from "solid-js"
 import { createStore } from "solid-js/store"
 import { DebugBar } from "@/components/debug-bar"
 import { TabsInfoPopup } from "@/components/help-button"
-// The real ported v2 Titlebar lives in titlebar-v2.tsx so the legacy
-// components/titlebar.tsx (used by the legacy pages/layout.tsx) stays untouched.
-import { Titlebar, type TitlebarUpdate } from "@/components/titlebar-v2"
+import { Titlebar, type TitlebarUpdate } from "@/components/titlebar"
 import { usePlatform } from "@/context/platform"
 import { setV2Toast, ToastRegion } from "@/utils/toast"
 

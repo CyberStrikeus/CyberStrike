@@ -1,5 +1,5 @@
 import { createStore, produce, reconcile } from "solid-js/store"
-import type { FileNode } from "@cyberstrike-io/sdk/v2"
+import type { FileNode } from "@opencode-ai/sdk/v2"
 
 type DirectoryState = {
   expanded: boolean
@@ -127,6 +127,9 @@ export function createFileTreeStore(options: TreeStoreOptions) {
     return promise
   }
 
+  // `list: false` marks a directory expanded without fetching its children, for
+  // trees whose nodes are synthesized from a filter; listing directories that
+  // only exist on a diff's base branch fails and surfaces error toasts.
   const expandDir = (input: string, behavior?: { list?: boolean }) => {
     const dir = options.normalizeDir(input)
     ensureDir(dir)

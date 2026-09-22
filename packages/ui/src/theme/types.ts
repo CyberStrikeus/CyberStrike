@@ -32,17 +32,14 @@ export interface ThemePaletteColors {
   diffDelete?: HexColor
 }
 
-export interface ThemeVariant {
-  // A variant supplies EITHER `seeds` (v1 fork themes) or `palette` (upstream v2
-  // themes); both resolvers accept either and derive the missing shape from the
-  // one present (see theme/resolve.ts `seedsOf` and theme/v2/resolve.ts
-  // `readPalette`). At least one must be present.
-  seeds?: ThemeSeedColors
-  // v2 palette input for the v2 primitive-ramp generator (see theme/v2/resolve.ts).
-  palette?: ThemePaletteColors
+type ThemeVariantBase = {
   overrides?: Record<string, ColorValue>
   v2Overrides?: Record<string, V2ColorValue>
 }
+
+export type ThemeVariant =
+  | ({ seeds: ThemeSeedColors; palette?: never } & ThemeVariantBase)
+  | ({ palette: ThemePaletteColors; seeds?: never } & ThemeVariantBase)
 
 export interface DesktopTheme {
   $schema?: string

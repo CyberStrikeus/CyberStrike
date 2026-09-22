@@ -5,22 +5,25 @@ import { isSortable, useSortable } from "@dnd-kit/solid/sortable"
 import { AutoScroller, Feedback, PointerActivationConstraints } from "@dnd-kit/dom"
 import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers"
 import { RestrictToElement } from "@dnd-kit/dom/modifiers"
-import { ScrollView } from "@cyberstrike-io/ui/scroll-view"
-import { ProjectAvatar } from "@cyberstrike-io/ui/v2/project-avatar-v2"
-import { Icon as IconV2 } from "@cyberstrike-io/ui/v2/icon"
-import { IconButtonV2 } from "@cyberstrike-io/ui/v2/icon-button-v2"
-import { MenuV2 } from "@cyberstrike-io/ui/v2/menu-v2"
-import { TooltipV2 } from "@cyberstrike-io/ui/v2/tooltip-v2"
+import { ScrollView } from "@opencode-ai/ui/scroll-view"
+import { ProjectAvatar } from "@opencode-ai/ui/v2/project-avatar-v2"
+import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
+import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
+import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { getProjectAvatarVariant, type HomeProjectSelection, type LocalProject } from "@/context/layout"
 import { ServerConnection } from "@/context/server"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { displayName, getProjectAvatarSource } from "@/pages/layout/helpers"
+import { ServerRowMenuView, serverMenuLabels } from "@/components/server/server-row-menu"
+import { ServerHealthIndicator } from "@/components/server/server-row"
 import { type ServerHealth } from "@/utils/server-health"
 import { fileManagerApp } from "@/utils/file-manager"
 
 const HOME_PROJECT_NAV_LABEL = "min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
 
+const serverContextMenuID = (server: ServerConnection.Any) => `server:${ServerConnection.key(server)}`
 const projectContextMenuID = (server: ServerConnection.Any, directory: string) =>
   `project:${ServerConnection.key(server)}:${directory}`
 
@@ -125,6 +128,7 @@ export function HomeProjectsView(props: HomeProjectsViewProps) {
                     <HomeServerRow
                       server={item}
                       {...props}
+                      {...contextMenuProps}
                       selected={props.selection().server === ServerConnection.key(item) && !props.selection().directory}
                       collapsed={collapsed()}
                       health={props.serverHealth(item)}
@@ -178,15 +182,18 @@ export function HomeUtilityNav(props: {
   )
 }
 
-// Single-server fork: this multi-server row only renders when more than one
-// connection exists, which never happens here. It is kept for the view's
-// structure; upstream's server context menu (ServerRowMenuView) and shared
-// ServerHealthIndicator are replaced by an inline health dot.
 function HomeServerRow(props: {
   language: HomeProjectsViewProps["language"]
   projectsForServer: HomeProjectsViewProps["projectsForServer"]
+  contextMenuOpen: HomeProjectsContextMenuProps["contextMenuOpen"]
+  canDefaultServer: HomeProjectsViewProps["canDefaultServer"]
+  defaultServerKey: HomeProjectsViewProps["defaultServerKey"]
   onFocusServer: HomeProjectsViewProps["onFocusServer"]
   onToggleCollapsed: HomeProjectsViewProps["onToggleCollapsed"]
+  onEditServer: HomeProjectsViewProps["onEditServer"]
+  onSetDefaultServer: HomeProjectsViewProps["onSetDefaultServer"]
+  onRemoveServer: HomeProjectsViewProps["onRemoveServer"]
+  onSetContextMenuOpen: HomeProjectsContextMenuProps["onSetContextMenuOpen"]
   onChooseProject: HomeProjectsViewProps["onChooseProject"]
   server: ServerConnection.Any
   selected: boolean
@@ -195,6 +202,11 @@ function HomeServerRow(props: {
 }) {
   const healthy = () => !!props.health?.healthy
   const canToggle = () => healthy() && props.projectsForServer(props.server).length > 0
+  const contextMenuID = () => serverContextMenuID(props.server)
+  onCleanup(() => {
+    const id = contextMenuID()
+    if (props.contextMenuOpen(id)) props.onSetContextMenuOpen(id, false)
+  })
   return (
     <div class="group/server relative flex h-7 min-w-0 items-center rounded-[6px]">
       <HomeProjectNavButton
@@ -235,25 +247,43 @@ function HomeServerRow(props: {
           />
         </span>
         <div class="flex size-4 shrink-0 items-center justify-center -mr-0.5">
-          <span
-            aria-hidden="true"
-            class="size-1.5 rounded-full"
-            classList={{
-              "bg-v2-icon-icon-muted": props.health?.healthy !== false,
-              "bg-v2-icon-icon-critical": props.health?.healthy === false,
-            }}
-          />
+          <ServerHealthIndicator health={props.health} />
         </div>
         <span class="flex min-w-0 items-center gap-1">
           <span class={HOME_PROJECT_NAV_LABEL}>{props.server.displayName ?? new URL(props.server.http.url).host}</span>
+          <Show when={props.server.label}>
+            {(label) => (
+              <span
+                class={`
+                  shrink-0 rounded-[3px] border border-v2-border-border-base px-1 py-0.5
+                  text-[9px] leading-none text-v2-text-text-muted
+                `}
+              >
+                {label()}
+              </span>
+            )}
+          </Show>
         </span>
       </HomeProjectNavButton>
       <div
         class={`
           hover-reveal absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-1
-          group-hover/server:opacity-100 focus-within:opacity-100
+          group-hover/server:opacity-100 focus-within:opacity-100 data-[menu=true]:opacity-100
         `}
+        data-menu={props.contextMenuOpen(contextMenuID())}
       >
+        <ServerRowMenuView
+          server={props.server}
+          labels={serverMenuLabels(props.language)}
+          canDefault={props.canDefaultServer()}
+          isDefault={props.defaultServerKey() === ServerConnection.key(props.server)}
+          onEdit={props.onEditServer}
+          onSetDefault={() => props.onSetDefaultServer(props.server)}
+          onRemoveDefault={() => props.onSetDefaultServer(undefined)}
+          onRemove={() => props.onRemoveServer(props.server)}
+          open={props.contextMenuOpen(contextMenuID())}
+          onOpenChange={(open) => props.onSetContextMenuOpen(contextMenuID(), open)}
+        />
         <TooltipV2 class="flex shrink-0 items-center" placement="bottom" value={props.language.t("home.project.add")}>
           <IconButtonV2
             data-action="home-add-project"

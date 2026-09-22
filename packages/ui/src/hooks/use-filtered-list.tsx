@@ -8,11 +8,11 @@ export interface FilteredListProps<T> {
   items: T[] | ((filter: string) => T[] | Promise<T[]>)
   key: (item: T) => string
   filterKeys?: string[]
-  skipFilter?: (item: T) => boolean
   current?: T
   groupBy?: (x: T) => string
   sortBy?: (a: T, b: T) => number
   sortGroupsBy?: (a: { category: string; items: T[] }, b: { category: string; items: T[] }) => number
+  skipFilter?: (item: T) => boolean
   onSelect?: (value: T | undefined, index: number) => void
   noInitialSelection?: boolean
 }

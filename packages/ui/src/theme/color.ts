@@ -1,5 +1,13 @@
 import type { HexColor, OklchColor } from "./types"
 
+function clamp(v: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, v))
+}
+
+function hue(v: number) {
+  return ((v % 360) + 360) % 360
+}
+
 export function hexToRgb(hex: HexColor): { r: number; g: number; b: number } {
   const h = hex.replace("#", "")
   const full =
@@ -9,7 +17,6 @@ export function hexToRgb(hex: HexColor): { r: number; g: number; b: number } {
           .map((c) => c + c)
           .join("")
       : h
-  // Drop any alpha channel (#rrggbbaa / #rgba) before parsing — matches upstream.
   const rgb = full.length === 8 ? full.slice(0, 6) : full
 
   const num = parseInt(rgb, 16)
@@ -22,7 +29,7 @@ export function hexToRgb(hex: HexColor): { r: number; g: number; b: number } {
 
 export function rgbToHex(r: number, g: number, b: number): HexColor {
   const toHex = (v: number) => {
-    const clamped = Math.max(0, Math.min(1, v))
+    const clamped = clamp(v, 0, 1)
     const int = Math.round(clamped * 255)
     return int.toString(16).padStart(2, "0")
   }
@@ -93,20 +100,9 @@ export function hexToOklch(hex: HexColor): OklchColor {
   return rgbToOklch(r, g, b)
 }
 
-function hue(v: number) {
-  return ((v % 360) + 360) % 360
-}
-
-/**
- * Gamut-map an OKLCH color into sRGB by reducing chroma until it fits, keeping
- * lightness and hue. Ported from upstream/dev. Prevents per-channel clipping
- * (which shifts hue, e.g. blue → cyan) when a generated ramp step is out of the
- * sRGB gamut. For in-gamut colors this is an exact no-op, so v1 rendering — whose
- * seeds/steps stay in gamut — is unchanged.
- */
 export function fitOklch(oklch: OklchColor): OklchColor {
   const base = {
-    l: Math.max(0, Math.min(1, oklch.l)),
+    l: clamp(oklch.l, 0, 1),
     c: Math.max(0, oklch.c),
     h: hue(oklch.h),
   }
@@ -130,13 +126,8 @@ export function fitOklch(oklch: OklchColor): OklchColor {
 }
 
 export function oklchToHex(oklch: OklchColor): HexColor {
-  const { r, g, b } = oklchToRgb(oklch)
+  const { r, g, b } = oklchToRgb(fitOklch(oklch))
   return rgbToHex(r, g, b)
-}
-
-/** v2-only: gamut-fitted OKLCH → hex (see fitOklch). Keeps v1 oklchToHex raw. */
-export function oklchToHexFit(oklch: OklchColor): HexColor {
-  return oklchToHex(fitOklch(oklch))
 }
 
 export function generateScale(seed: HexColor, isDark: boolean): HexColor[] {
@@ -144,12 +135,25 @@ export function generateScale(seed: HexColor, isDark: boolean): HexColor[] {
   const scale: HexColor[] = []
 
   const lightSteps = isDark
-    ? [0.15, 0.18, 0.22, 0.26, 0.32, 0.38, 0.46, 0.56, base.l, base.l - 0.05, 0.75, 0.93]
-    : [0.99, 0.97, 0.94, 0.9, 0.85, 0.79, 0.72, 0.64, base.l, base.l + 0.05, 0.45, 0.25]
+    ? [
+        0.118,
+        0.138,
+        0.167,
+        0.202,
+        0.246,
+        0.304,
+        0.378,
+        0.468,
+        clamp(base.l * 0.825, 0.53, 0.705),
+        clamp(base.l * 0.89, 0.61, 0.79),
+        clamp(base.l + 0.033, 0.868, 0.943),
+        0.984,
+      ]
+    : [0.993, 0.983, 0.962, 0.936, 0.906, 0.866, 0.811, 0.74, base.l, Math.max(0, base.l - 0.036), 0.49, 0.27]
 
   const chromaMultipliers = isDark
-    ? [0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.85, 1, 1, 0.9, 0.6]
-    : [0.1, 0.15, 0.25, 0.35, 0.45, 0.55, 0.7, 0.85, 1, 1, 0.95, 0.85]
+    ? [0.52, 0.68, 0.86, 1.02, 1.14, 1.24, 1.36, 1.48, 1.56, 1.64, 1.62, 1.15]
+    : [0.12, 0.24, 0.46, 0.68, 0.84, 0.98, 1.08, 1.16, 1.22, 1.26, 1.18, 0.98]
 
   for (let i = 0; i < 12; i++) {
     scale.push(
@@ -164,16 +168,6 @@ export function generateScale(seed: HexColor, isDark: boolean): HexColor[] {
   return scale
 }
 
-function clamp(v: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, v))
-}
-
-/**
- * v2-only overload: when `ink` is supplied, derives the neutral ramp by mixing
- * toward `ink` (used by theme/v2/resolve.ts for palette-based v2 themes). Ported
- * from upstream/dev's generateNeutralScale. The 2-arg call (no `ink`) is used by
- * v1 theme resolution and keeps our own CyberStrike-tuned curve below unchanged.
- */
 export function generateNeutralScale(seed: HexColor, isDark: boolean, ink?: HexColor): HexColor[] {
   if (ink) {
     const base = hexToOklch(seed)
@@ -202,11 +196,11 @@ export function generateNeutralScale(seed: HexColor, isDark: boolean, ink?: HexC
 
   const base = hexToOklch(seed)
   const scale: HexColor[] = []
-  const neutralChroma = Math.min(base.c, 0.02)
+  const neutralChroma = Math.min(base.c, isDark ? 0.068 : 0.04)
 
   const lightSteps = isDark
-    ? [0.13, 0.16, 0.2, 0.24, 0.28, 0.33, 0.4, 0.52, 0.58, 0.66, 0.82, 0.96]
-    : [0.995, 0.98, 0.96, 0.94, 0.91, 0.88, 0.84, 0.78, 0.62, 0.56, 0.46, 0.2]
+    ? [0.138, 0.156, 0.178, 0.202, 0.232, 0.272, 0.326, 0.404, clamp(base.l * 0.83, 0.43, 0.55), 0.596, 0.719, 0.956]
+    : [0.991, 0.979, 0.964, 0.946, 0.931, 0.913, 0.891, 0.83, base.l, 0.617, 0.542, 0.205]
 
   for (let i = 0; i < 12; i++) {
     scale.push(
@@ -242,40 +236,14 @@ export function generateAlphaScale(scale: HexColor[], isDark: boolean): HexColor
 export function mixColors(color1: HexColor, color2: HexColor, amount: number): HexColor {
   const c1 = hexToOklch(color1)
   const c2 = hexToOklch(color2)
-  // Interpolate hue the short way around the wheel and gamut-fit the result — the
-  // upstream/dev behaviour. Only the v2 neutral ramp (generateNeutralScale's ink
-  // branch) calls mixColors; the v1 resolver never does, so this stays v2-only.
   const delta = ((((c2.h - c1.h) % 360) + 540) % 360) - 180
 
-  return oklchToHexFit({
+  return oklchToHex({
     l: c1.l + (c2.l - c1.l) * amount,
     c: c1.c + (c2.c - c1.c) * amount,
     h: c1.h + delta * amount,
   })
 }
-
-export function lighten(color: HexColor, amount: number): HexColor {
-  const oklch = hexToOklch(color)
-  return oklchToHex({
-    ...oklch,
-    l: Math.min(1, oklch.l + amount),
-  })
-}
-
-export function darken(color: HexColor, amount: number): HexColor {
-  const oklch = hexToOklch(color)
-  return oklchToHex({
-    ...oklch,
-    l: Math.max(0, oklch.l - amount),
-  })
-}
-
-export function withAlpha(color: HexColor, alpha: number): string {
-  const { r, g, b } = hexToRgb(color)
-  return `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${alpha})`
-}
-
-// v2-only helpers below (theme/v2/*) — ported from upstream/dev, additive.
 
 export function shift(color: HexColor, value: { l?: number; c?: number; h?: number }): HexColor {
   const base = hexToOklch(color)
@@ -307,4 +275,25 @@ export function blend(color: HexColor, background: HexColor, alpha: number): Hex
     fg.g * alpha + bg.g * (1 - alpha),
     fg.b * alpha + bg.b * (1 - alpha),
   )
+}
+
+export function lighten(color: HexColor, amount: number): HexColor {
+  const oklch = hexToOklch(color)
+  return oklchToHex({
+    ...oklch,
+    l: clamp(oklch.l + amount, 0, 1),
+  })
+}
+
+export function darken(color: HexColor, amount: number): HexColor {
+  const oklch = hexToOklch(color)
+  return oklchToHex({
+    ...oklch,
+    l: clamp(oklch.l - amount, 0, 1),
+  })
+}
+
+export function withAlpha(color: HexColor, alpha: number): string {
+  const { r, g, b } = hexToRgb(color)
+  return `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${alpha})`
 }

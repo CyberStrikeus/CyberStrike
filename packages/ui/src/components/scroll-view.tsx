@@ -172,9 +172,7 @@ export function ScrollView(props: ScrollViewProps) {
 
   const updateThumb = () => {
     if (!viewportRef) return
-    const scrollTop = viewportRef.scrollTop
-    const scrollHeight = viewportRef.scrollHeight
-    const clientHeight = viewportRef.clientHeight
+    const { scrollTop, scrollHeight, clientHeight } = viewportRef
 
     if (scrollHeight <= clientHeight || scrollHeight === 0) {
       setState("showThumb", false)
@@ -246,8 +244,7 @@ export function ScrollView(props: ScrollViewProps) {
     thumbRef.setPointerCapture(e.pointerId)
 
     const onPointerMove = (e: PointerEvent) => {
-      const scrollHeight = viewportRef.scrollHeight
-      const clientHeight = viewportRef.clientHeight
+      const { scrollHeight, clientHeight } = viewportRef
       viewportRef.scrollTop = scrollTopFromThumbPointer({
         pointer: e.clientY,
         viewportTop: track.getBoundingClientRect().top,

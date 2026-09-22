@@ -1,68 +1,89 @@
-// Single-server GLOBAL adapter.
-//
-// Upstream opencode ships a multi-server data layer (context/global.tsx +
-// server-sdk/server-sync engines + the global-sync/* subtree). CyberStrike is a
-// single-server fork whose data lives in the always-mounted `context/global-sdk`
-// + `context/global-sync` singletons. This adapter re-presents that singleton
-// under the small `useGlobal()`/`ServerCtx` surface the ported v2 tab/titlebar
-// tree reads — it does NOT reintroduce upstream's multi-server engines.
-//
-// Surface consumed by the ported tree:
-//   useGlobal().servers.list()                          -> ServerConnection.Any[]
-//   useGlobal().ensureServerCtx(conn)                   -> ServerCtx
-//   ServerCtx.sdk.api.session.get({ sessionID })        -> Promise<Session>
-//   ServerCtx.sdk.api.session.rename({ sessionID, title })
-//   ServerCtx.sdk.scope                                 -> ServerScope
-//   ServerCtx.sync.data.path                            -> { home?, ... }
-//   ServerCtx.sync.session.peek/remember/resolve
-//   ServerCtx.sync.ensureDirSyncContext(dir).session.sync(id)
-//   ServerCtx.projects.list()                           -> LocalProject[]
-import { createSimpleContext } from "@cyberstrike-io/ui/context"
-import { createMemo } from "solid-js"
+import { createSimpleContext } from "@opencode-ai/ui/context"
+import { createEffect, createMemo, createRoot } from "solid-js"
 import { createStore } from "solid-js/store"
+import { createServerProjects, RECENTLY_CLOSED_DISPLAY_LIMIT, ServerConnection, useServer } from "./server"
+import { pathKey } from "@/utils/path-key"
+import { useServerHealth } from "@/utils/server-health"
+import { createServerSdkContext } from "./server-sdk"
+import { createServerSyncContext } from "./server-sync"
+import { getOwner } from "solid-js/web"
 import { QueryClient } from "@tanstack/solid-query"
-import type { Session } from "@cyberstrike-io/sdk/v2/client"
-import { ServerConnection, useServer } from "./server"
-import { useGlobalSDK } from "./global-sdk"
-import { useGlobalSync } from "./global-sync"
-import { ServerScope } from "@/utils/server-scope"
-import type { ServerHealth } from "@/utils/server-health"
-import type { LocalProject } from "./layout"
-
-function isLocalHost(url: string) {
-  const host = url.replace(/^https?:\/\//, "").split(":")[0]
-  return host === "localhost" || host === "127.0.0.1"
-}
+import type { ServerScope } from "@/utils/server-scope"
 
 export const { use: useGlobal, provider: GlobalProvider } = createSimpleContext({
   name: "Global",
   init: () => {
     const server = useServer()
-    const sdk = useGlobalSDK()
-    const sync = useGlobalSync()
+    const serverHealth = useServerHealth(
+      () => server.list,
+      () => true,
+    )
+    const [store, setStore] = createStore({
+      settings: {
+        serverKey: undefined as ServerConnection.Key | undefined,
+      },
+    })
 
-    // Single connection, so the ServerCtx cache holds at most one entry.
-    const cache = new Map<ServerConnection.Key, ServerCtx>()
+    const settingsServer = createMemo(() => {
+      const list = server.list
+      return list.find((conn) => ServerConnection.key(conn) === store.settings.serverKey) ?? list[0]
+    })
 
-    const ensureServerCtx = (conn: ServerConnection.Any): ServerCtx => {
+    createEffect(() => {
+      const conn = settingsServer()
+      const key = conn ? ServerConnection.key(conn) : undefined
+      if (store.settings.serverKey !== key) setStore("settings", "serverKey", key)
+    })
+
+    const serverCtxs = new Map<
+      ServerConnection.Key,
+      { dispose: () => void; serverCtx: ReturnType<typeof createServerCtx> }
+    >()
+
+    const owner = getOwner()
+
+    const ensureServerCtx = (conn: ServerConnection.Any) => {
       const key = ServerConnection.key(conn)
-      const existing = cache.get(key)
-      if (existing) return existing
-      const ctx = createServerCtx(conn, sdk, sync, server)
-      cache.set(key, ctx)
-      return ctx
+      const existing = serverCtxs.get(key)
+      if (existing) return existing.serverCtx
+      const root = createRoot((dispose) => {
+        const serverCtx = createServerCtx(conn, server.scope(key), server.projects.forServer(key))
+        return { dispose, serverCtx }
+      }, owner as any)
+      serverCtxs.set(key, root)
+      return root.serverCtx
     }
+
+    createMemo(() => {
+      for (const conn of server.list) {
+        ensureServerCtx(conn)
+      }
+    })
+
+    createEffect(() => {
+      for (const [key] of serverCtxs) {
+        if (!server.list.find((conn) => ServerConnection.key(conn) === key)) {
+          const { dispose } = serverCtxs.get(key)!
+          dispose()
+          serverCtxs.delete(key)
+        }
+      }
+    })
 
     return {
       servers: {
-        list: () => (server.current ? [server.current] : []),
-        // Single-server health map keyed by the active connection. The home tree
-        // reads `health[key]?.healthy` to disable actions on an unreachable
-        // server; our fork tracks one connection's health in `useServer()`.
-        get health(): Record<ServerConnection.Key, ServerHealth> {
-          const conn = server.current
-          if (!conn) return {}
-          return { [ServerConnection.key(conn)]: { healthy: server.healthy() !== false } }
+        list: () => server.list,
+        health: serverHealth,
+      },
+      settings: {
+        server: {
+          get key() {
+            return store.settings.serverKey
+          },
+          selected: settingsServer,
+          set(key: ServerConnection.Key) {
+            if (store.settings.serverKey !== key) setStore("settings", "serverKey", key)
+          },
         },
       },
       ensureServerCtx(conn: ServerConnection.Any) {
@@ -74,11 +95,9 @@ export const { use: useGlobal, provider: GlobalProvider } = createSimpleContext(
 
 function createServerCtx(
   conn: ServerConnection.Any,
-  sdk: ReturnType<typeof useGlobalSDK>,
-  sync: ReturnType<typeof useGlobalSync>,
-  server: ReturnType<typeof useServer>,
+  scope: ServerScope,
+  projects: ReturnType<typeof createServerProjects>,
 ) {
-  const storedProjects = server.projects.list
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -88,120 +107,55 @@ function createServerCtx(
       },
     },
   })
+  const sdk = createServerSdkContext(conn, scope)
+  const sync = createServerSyncContext(sdk)
 
-  // Session-info memory backing tab titles. Seeded/updated by remember(); read
-  // by peek(); resolve() falls back to a live fetch and caches the result.
-  const [known, setKnown] = createStore<Record<string, Session>>({})
+  function enrich(project: { worktree: string; expanded: boolean }) {
+    const [childStore] = sync.child(project.worktree, { bootstrap: false })
+    const projectID = childStore.project
+    const metadata = projectID
+      ? sync.data.project.find((x) => x.id === projectID)
+      : sync.data.project.find((x) => x.worktree === project.worktree)
 
-  const sessionApi = {
-    get(input: { sessionID: string }): Promise<Session> {
-      return sdk.client.session.get({ sessionID: input.sessionID }).then((r) => r.data as Session)
-    },
-    // Our SDK has no session.rename; the title update maps onto session.update.
-    rename(input: { sessionID: string; title: string }): Promise<unknown> {
-      return sdk.client.session.update({ sessionID: input.sessionID, title: input.title }).then((r) => r.data)
-    },
-    // Cross-project session search for the home command palette. Upstream's v1
-    // `parentID: null` (root sessions) maps onto the v2 `roots` query flag.
-    list(
-      input: { parentID: string | null; search?: string; limit?: number },
-      options?: { signal?: AbortSignal },
-    ): Promise<{ data: Session[] }> {
-      return sdk.client.session
-        .list(
-          { roots: input.parentID === null ? true : undefined, search: input.search, limit: input.limit },
-          { signal: options?.signal },
-        )
-        .then((r) => ({ data: (r.data ?? []) as Session[] }))
-    },
+    // Preserve local icon override from per-workspace localStorage cache (childStore.icon).
+    // Without this, different subdirectories of the same git repo would share the same
+    // icon from the database instead of using their individual overrides.
+    const base = { ...metadata, ...project }
+    if (childStore.icon) {
+      return { ...base, icon: { ...base.icon, override: childStore.icon } }
+    }
+    return base
   }
 
-  // File / project endpoints used by the home project.add flow. Upstream's
-  // `location` object maps onto our v2 SDK's `directory` query param.
-  const fileApi = {
-    list(input: { path: string; location?: { directory?: string } }) {
-      return sdk.client.file.list({ path: input.path, directory: input.location?.directory })
-    },
-  }
-  const projectApi = {
-    current(input?: { location?: { directory?: string } }) {
-      return sdk.client.project.current({ directory: input?.location?.directory }).then((r) => r.data!)
-    },
-  }
-
-  const session = {
-    peek(sessionID: string): Session | undefined {
-      return known[sessionID]
-    },
-    remember(value: Session) {
-      setKnown(value.id, value)
-    },
-    async resolve(sessionID: string): Promise<Session | undefined> {
-      const cached = known[sessionID]
-      if (cached) return cached
-      const value = await sessionApi.get({ sessionID })
-      if (value) setKnown(value.id, value)
-      return value
-    },
-  }
-
-  // Upstream warms per-directory session content via its dir-sync engine, which
-  // this fork deliberately does not have. Best-effort map onto our single-server
-  // global-sync directory session loader; failures are swallowed by callers.
-  const ensureDirSyncContext = (directory: string) => ({
-    session: {
-      async sync(_sessionID: string) {
-        await Promise.resolve(sync.project.loadSessions(directory)).catch(() => {})
-      },
-    },
+  const projectsList = createMemo(() => projects.list().map(enrich))
+  const recentlyClosedList = createMemo(() => {
+    const known = new Set(sync.data.project.map((project) => pathKey(project.worktree)))
+    return projects
+      .recentlyClosed()
+      .filter((worktree) => known.has(pathKey(worktree)))
+      .slice(0, RECENTLY_CLOSED_DISPLAY_LIMIT)
+      .map((worktree) => enrich({ worktree, expanded: false }))
   })
 
-  const projects = {
-    list: (): LocalProject[] => {
-      const stored = new Map(storedProjects().map((project) => [project.worktree, project.expanded]))
-      return sync.data.project.map((project) => ({
-        ...project,
-        expanded: stored.get(project.worktree) ?? false,
-      }))
-    },
-    // Home fallbacks/actions mapped onto the single-server project store.
-    // `recentlyClosed` degrades to empty: this fork does not persist a
-    // closed-project history the way upstream's multi-server layer does.
-    recentlyClosed: (): LocalProject[] => [],
-    last: () => server.projects.last(),
-    open: (directory: string) => {
-      server.projects.open(directory)
-      void Promise.resolve(sync.project.loadSessions(directory)).catch(() => {})
-    },
-    close: (directory: string) => server.projects.close(directory),
-    touch: (directory: string) => server.projects.touch(directory),
-    move: (worktree: string, index: number) => server.projects.move(worktree, index),
-  }
+  const isLocal =
+    (conn?.type === "sidecar" && conn.variant === "base") || (conn?.type === "http" && isLocalHost(conn.http.url))
 
   return {
     queryClient,
-    isLocal: isLocalHost(conn.http.url),
-    scope: ServerScope.local,
-    sdk: {
-      scope: ServerScope.local,
-      api: {
-        session: sessionApi,
-        file: fileApi,
-        project: projectApi,
-      },
+    sdk,
+    sync,
+    isLocal,
+    projects: {
+      ...projects,
+      list: projectsList,
+      recentlyClosed: recentlyClosedList,
     },
-    sync: {
-      get data() {
-        return sync.data
-      },
-      session,
-      ensureDirSyncContext,
-      // Per-directory child store (session/status/permission/project). Mirrors
-      // upstream ServerCtx.sync.child; backed by the shared global-sync manager.
-      child: sync.child,
-    },
-    projects,
   }
 }
 
 export type ServerCtx = ReturnType<typeof createServerCtx>
+
+function isLocalHost(url: string) {
+  const host = url.replace(/^https?:\/\//, "").split(":")[0]
+  if (host === "localhost" || host === "127.0.0.1") return "local"
+}

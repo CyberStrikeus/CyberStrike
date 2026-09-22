@@ -1,23 +1,21 @@
 import type {
   Agent,
-  Command,
   Config,
-  FileDiff,
   LspStatus,
-  McpStatus,
   Message,
   Part,
   Path,
   PermissionRequest,
-  Project,
-  ProviderListResponse,
   QuestionRequest,
+  ReferenceInfo,
   Session,
   SessionStatus,
   Todo,
   VcsInfo,
-  Vulnerability,
-} from "@cyberstrike-io/sdk/v2/client"
+} from "@opencode-ai/sdk/v2/client"
+import type { FileDiffInfo } from "@opencode-ai/client/promise"
+import { NormalizedProviderListResponse } from "@opencode-ai/session-ui/context"
+import type { CommandInfo, McpResource, McpServer, SessionMessageInfo } from "@opencode-ai/client/promise"
 import type { Accessor } from "solid-js"
 import type { SetStoreFunction, Store } from "solid-js/store"
 
@@ -35,11 +33,13 @@ export type ProjectMeta = {
 export type State = {
   status: "loading" | "partial" | "complete"
   agent: Agent[]
-  command: Command[]
+  command: CommandInfo[]
+  reference: ReferenceInfo[]
   project: string
   projectMeta: ProjectMeta | undefined
   icon: string | undefined
-  provider: ProviderListResponse
+  provider_ready: boolean
+  provider: NormalizedProviderListResponse
   config: Config
   path: Path
   session: Session[]
@@ -47,60 +47,41 @@ export type State = {
   session_status: {
     [sessionID: string]: SessionStatus
   }
+  session_working(id: string): boolean
   session_diff: {
-    [sessionID: string]: FileDiff[]
+    [sessionID: string]: FileDiffInfo[]
   }
   todo: {
     [sessionID: string]: Todo[]
   }
-  vulnerability: {
-    [sessionID: string]: Vulnerability[]
-  }
-  request: {
-    [sessionID: string]: Record<string, unknown>[]
-  }
-  web_credential: {
-    [sessionID: string]: Record<string, unknown>[]
-  }
-  web_role: {
-    [sessionID: string]: Record<string, unknown>[]
-  }
-  web_object: {
-    [sessionID: string]: Record<string, unknown>[]
-  }
-  web_function: {
-    [sessionID: string]: Record<string, unknown>[]
-  }
-  bolt: {
-    [name: string]: McpStatus
-  }
-  skill: Array<{
-    name: string
-    description: string
-    verified?: string
-    category?: string
-    owasp_id?: string
-    tech_stack?: string[]
-    cwe_ids?: string[]
-    chains_with?: string[]
-  }>
   permission: {
     [sessionID: string]: PermissionRequest[]
   }
   question: {
     [sessionID: string]: QuestionRequest[]
   }
+  mcp_ready: boolean
   mcp: {
-    [name: string]: McpStatus
+    [name: string]: McpServer["status"]
   }
+  mcp_resource: {
+    [key: string]: McpResource
+  }
+  lsp_ready: boolean
   lsp: LspStatus[]
   vcs: VcsInfo | undefined
   limit: number
   message: {
     [sessionID: string]: Message[]
   }
+  session_message: {
+    [sessionID: string]: SessionMessageInfo[]
+  }
   part: {
     [messageID: string]: Part[]
+  }
+  part_text_accum_delta: {
+    [partID: string]: string
   }
 }
 
@@ -124,6 +105,7 @@ export type IconCache = {
 
 export type ChildOptions = {
   bootstrap?: boolean
+  mcp?: boolean
 }
 
 export type DirState = {
@@ -145,19 +127,6 @@ export type DisposeCheck = {
   pinned: boolean
   booting: boolean
   loadingSessions: boolean
-}
-
-export type RootLoadArgs = {
-  directory: string
-  limit: number
-  list: (query: { directory: string; roots: true; limit?: number }) => Promise<{ data?: Session[] }>
-  onFallback: () => void
-}
-
-export type RootLoadResult = {
-  data?: Session[]
-  limit: number
-  limited: boolean
 }
 
 export const MAX_DIR_STORES = 30

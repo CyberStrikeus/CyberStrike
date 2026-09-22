@@ -1,8 +1,10 @@
 import { Component, For, Show } from "solid-js"
-import { FileIcon } from "@cyberstrike-io/ui/file-icon"
-import { IconButton } from "@cyberstrike-io/ui/icon-button"
-import { Tooltip } from "@cyberstrike-io/ui/tooltip"
-import { getDirectory, getFilename, getFilenameTruncated } from "@cyberstrike-io/util/path"
+import { Dynamic } from "solid-js/web"
+import { FileIcon } from "@opencode-ai/ui/file-icon"
+import { IconButton } from "@opencode-ai/ui/icon-button"
+import { Tooltip } from "@opencode-ai/ui/tooltip"
+import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
+import { getDirectory, getFilename, getFilenameTruncated } from "@opencode-ai/core/util/path"
 import type { ContextItem } from "@/context/prompt"
 
 type PromptContextItem = ContextItem & { key: string }
@@ -12,6 +14,7 @@ type ContextItemsProps = {
   active: (item: PromptContextItem) => boolean
   openComment: (item: PromptContextItem) => void
   remove: (item: PromptContextItem) => void
+  newLayoutDesigns: boolean
   t: (key: string) => string
 }
 
@@ -27,31 +30,37 @@ export const PromptContextItems: Component<ContextItemsProps> = (props) => {
             const selected = props.active(item)
 
             return (
-              <Tooltip
+              <Dynamic
+                component={props.newLayoutDesigns ? TooltipV2 : Tooltip}
                 value={
                   <span class="flex max-w-[300px]">
-                    <span class="text-text-invert-base truncate-start [unicode-bidi:plaintext] min-w-0">
+                    <span
+                      classList={{
+                        "truncate-start [unicode-bidi:plaintext] min-w-0": true,
+                        "text-v2-text-text-muted": props.newLayoutDesigns,
+                        "text-text-invert-base": !props.newLayoutDesigns,
+                      }}
+                    >
                       {directory}
                     </span>
                     <span class="shrink-0">{filename}</span>
                   </span>
                 }
                 placement="top"
-                openDelay={2000}
+                openDelay={800}
               >
                 <div
                   classList={{
-                    "group shrink-0 flex flex-col rounded-[6px] pl-2 pr-1 py-1 max-w-[200px] h-12 transition-all transition-transform shadow-xs-border hover:shadow-xs-border-hover": true,
-                    "cursor-pointer hover:bg-surface-interactive-weak": !!item.commentID && !selected,
-                    "cursor-pointer bg-surface-interactive-hover hover:bg-surface-interactive-hover shadow-xs-border-hover":
-                      selected,
+                    "group shrink-0 flex flex-col rounded-[6px] pl-2 pr-1 py-1 max-w-[200px] h-12 cursor-default transition-all transition-transform shadow-xs-border hover:shadow-xs-border-hover": true,
+                    "hover:bg-surface-interactive-weak": !!item.commentID && !selected,
+                    "bg-surface-interactive-hover hover:bg-surface-interactive-hover shadow-xs-border-hover": selected,
                     "bg-background-stronger": !selected,
                   }}
                   onClick={() => props.openComment(item)}
                 >
                   <div class="flex items-center gap-1.5">
                     <FileIcon node={{ path: item.path, type: "file" }} class="shrink-0 size-3.5" />
-                    <div class="flex items-center text-11-regular min-w-0 font-medium">
+                    <div class="flex items-center text-[12px] min-w-0 font-medium leading-5">
                       <span class="text-text-strong whitespace-nowrap">{label}</span>
                       <Show when={item.selection}>
                         {(sel) => (
@@ -79,7 +88,7 @@ export const PromptContextItems: Component<ContextItemsProps> = (props) => {
                     {(comment) => <div class="text-12-regular text-text-strong ml-5 pr-1 truncate">{comment()}</div>}
                   </Show>
                 </div>
-              </Tooltip>
+              </Dynamic>
             )
           }}
         </For>

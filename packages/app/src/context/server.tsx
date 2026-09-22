@@ -1,12 +1,24 @@
-import { createSimpleContext } from "@cyberstrike-io/ui/context"
-import { type Accessor, batch, createEffect, createMemo, onCleanup } from "solid-js"
-import { createStore } from "solid-js/store"
+import { createSimpleContext } from "@opencode-ai/ui/context"
+import { type Accessor, batch, createMemo } from "solid-js"
+import { createStore, type SetStoreFunction, type Store } from "solid-js/store"
 import { Persist, persisted } from "@/utils/persist"
-import { useCheckServerHealth } from "@/utils/server-health"
+import { pathKey } from "@/utils/path-key"
+import { ServerScope } from "@/utils/server-scope"
 
 type StoredProject = { worktree: string; expanded: boolean }
 type StoredServer = string | ServerConnection.HttpBase | ServerConnection.Http
+type ServerProjectState = {
+  projects: Record<string, StoredProject[]>
+  lastProject: Record<string, string>
+  recentlyClosed: Record<string, string[]>
+}
 const HEALTH_POLL_INTERVAL_MS = 10_000
+// The store retains more history than is displayed. Consumers filter recently closed entries
+// against the live project list (dropping deleted projects) and then cap the visible count via
+// RECENTLY_CLOSED_DISPLAY_LIMIT. Retaining extra history ensures entries that are temporarily
+// filtered out do not evict still-visible ones from the persisted store.
+const RECENTLY_CLOSED_HISTORY_LIMIT = 16
+export const RECENTLY_CLOSED_DISPLAY_LIMIT = 5
 
 export function normalizeServerUrl(input: string) {
   const trimmed = input.trim()
@@ -21,25 +33,153 @@ export function serverName(conn?: ServerConnection.Any, ignoreDisplayName = fals
   return conn.http.url.replace(/^https?:\/\//, "").replace(/\/+$/, "")
 }
 
-/** @deprecated use serverName(conn) instead */
-export function serverDisplayName(url: string) {
-  if (!url) return ""
-  return url.replace(/^https?:\/\//, "").replace(/\/+$/, "")
-}
-
-function projectsKey(key: ServerConnection.Key) {
-  if (!key) return ""
-  if (isLocalHost(key)) return "local"
-  return key
-}
-
 function isLocalHost(url: string) {
   const host = url.replace(/^https?:\/\//, "").split(":")[0]
   if (host === "localhost" || host === "127.0.0.1") return "local"
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+export function migrateCanonicalLocalServerState(value: unknown, canonicalLocalServer?: ServerConnection.Key) {
+  if (!canonicalLocalServer || canonicalLocalServer === "local") return value
+  if (!isRecord(value)) return value
+  const projects = isRecord(value.projects) ? value.projects : undefined
+  const lastProject = isRecord(value.lastProject) ? value.lastProject : undefined
+  const previousProjects = projects?.[canonicalLocalServer]
+  const previousLastProject = lastProject?.[canonicalLocalServer]
+  if (!Array.isArray(previousProjects) && typeof previousLastProject !== "string") return value
+
+  const next = { ...value }
+  if (projects && Array.isArray(previousProjects)) {
+    const local = Array.isArray(projects.local) ? projects.local : []
+    const worktrees = new Set(
+      local.flatMap((project) => (isRecord(project) && typeof project.worktree === "string" ? [project.worktree] : [])),
+    )
+    const migrated = previousProjects.filter((project) => {
+      if (!isRecord(project) || typeof project.worktree !== "string") return true
+      if (worktrees.has(project.worktree)) return false
+      worktrees.add(project.worktree)
+      return true
+    })
+    const nextProjects: Record<string, unknown> = { ...projects, local: [...local, ...migrated] }
+    delete nextProjects[canonicalLocalServer]
+    next.projects = nextProjects
+  }
+  if (lastProject && typeof previousLastProject === "string") {
+    const nextLastProject = { ...lastProject }
+    if (typeof nextLastProject.local !== "string") nextLastProject.local = previousLastProject
+    delete nextLastProject[canonicalLocalServer]
+    next.lastProject = nextLastProject
+  }
+  return next
+}
+
+export function createServerProjects<T extends ServerProjectState>(input: {
+  scope: Accessor<ServerScope>
+  store: Store<T>
+  setStore: SetStoreFunction<T>
+}) {
+  const setStore = input.setStore as unknown as SetStoreFunction<ServerProjectState>
+  const current = () => input.store.projects[input.scope()] ?? []
+  const currentClosed = () => input.store.recentlyClosed?.[input.scope()] ?? []
+  const remove = (directory: string) => {
+    setStore(
+      "projects",
+      input.scope(),
+      current().filter((project) => project.worktree !== directory),
+    )
+  }
+  return {
+    list: current,
+    recentlyClosed: currentClosed,
+    remove,
+    open(directory: string) {
+      const scope = input.scope()
+      const key = pathKey(directory)
+      const closed = currentClosed()
+      if (closed.some((worktree) => pathKey(worktree) === key)) {
+        setStore(
+          "recentlyClosed",
+          scope,
+          closed.filter((worktree) => pathKey(worktree) !== key),
+        )
+      }
+      if (current().some((project) => project.worktree === directory)) return
+      setStore("projects", scope, [{ worktree: directory, expanded: true }, ...current()])
+    },
+    // User-initiated close: removes the project and records it in recently closed.
+    // Internal, non-user removals (e.g. sandbox/worktree normalization) should use remove().
+    close(directory: string) {
+      remove(directory)
+      const key = pathKey(directory)
+      const closed = [directory, ...currentClosed().filter((worktree) => pathKey(worktree) !== key)].slice(
+        0,
+        RECENTLY_CLOSED_HISTORY_LIMIT,
+      )
+      setStore("recentlyClosed", input.scope(), closed)
+    },
+    expand(directory: string) {
+      const index = current().findIndex((project) => project.worktree === directory)
+      if (index !== -1) setStore("projects", input.scope(), index, "expanded", true)
+    },
+    collapse(directory: string) {
+      const index = current().findIndex((project) => project.worktree === directory)
+      if (index !== -1) setStore("projects", input.scope(), index, "expanded", false)
+    },
+    move(directory: string, toIndex: number) {
+      const fromIndex = current().findIndex((project) => project.worktree === directory)
+      if (fromIndex === -1 || fromIndex === toIndex) return
+      const next = [...current()]
+      const [item] = next.splice(fromIndex, 1)
+      next.splice(toIndex, 0, item)
+      setStore("projects", input.scope(), next)
+    },
+    last() {
+      return input.store.lastProject[input.scope()]
+    },
+    touch(directory: string) {
+      setStore("lastProject", input.scope(), directory)
+    },
+  }
+}
+
+export function resolveServerList(input: {
+  props?: Array<ServerConnection.Any>
+  stored: StoredServer[]
+}): Array<ServerConnection.Any> {
+  const deduped = new Map<ServerConnection.Key, ServerConnection.Any>(
+    input.props?.map((v) => [ServerConnection.key(v), v]) ?? [],
+  )
+
+  for (const value of input.stored) {
+    const conn: ServerConnection.Http =
+      typeof value === "string"
+        ? {
+            type: "http" as const,
+            http: { url: value },
+          }
+        : "http" in value
+          ? value
+          : { type: "http", http: value }
+    const key = ServerConnection.key(conn)
+
+    const existing = deduped.get(key)
+    if (existing)
+      deduped.set(key, {
+        ...existing,
+        ...conn,
+        http: { ...existing.http, ...conn.http },
+      })
+    else deduped.set(key, conn)
+  }
+
+  return [...deduped.values()]
+}
+
 export namespace ServerConnection {
-  type Base = { displayName?: string }
+  type Base = { displayName?: string; label?: string }
 
   export type HttpBase = {
     url: string
@@ -47,145 +187,112 @@ export namespace ServerConnection {
     password?: string
   }
 
+  // Regular web connections
   export type Http = {
     type: "http"
     http: HttpBase
+    authToken?: boolean
   } & Base
 
-  export type Any = Http
+  export type Sidecar = {
+    type: "sidecar"
+    http: HttpBase
+  } & (
+    | // Regular desktop server
+    { variant: "base" }
+    // WSL server (windows only)
+    | {
+        variant: "wsl"
+        distro: string
+      }
+  ) &
+    Base
+
+  // Remote server desktop can SSH into
+  export type Ssh = {
+    type: "ssh"
+    host: string
+    // SSH client exposes an HTTP server for the app to use as a proxy
+    http: HttpBase
+  } & Base
+
+  export type Any =
+    | Http
+    // All these are desktop-only
+    | (Sidecar | Ssh)
 
   export const key = (conn: Any): Key => {
-    return Key.make(conn.http.url)
+    switch (conn.type) {
+      case "http":
+        return Key.make(conn.http.url)
+      case "sidecar": {
+        if (conn.variant === "wsl") return Key.make(`wsl:${conn.distro}`)
+        return Key.make("sidecar")
+      }
+      case "ssh":
+        return Key.make(`ssh:${conn.host}`)
+    }
   }
 
   export type Key = string & { _brand: "Key" }
   export const Key = { make: (v: string) => v as Key }
+
+  export const builtin = (conn: Any) => conn.type === "sidecar" && conn.variant === "base"
+  export const local = (conn?: Any) =>
+    !!conn && (builtin(conn) || (conn.type === "http" && isLocalHost(conn.http.url) === "local"))
 }
 
-const url = (x: StoredServer) => (typeof x === "string" ? x : "type" in x ? x.http.url : x.url)
+export function nextServerAfterRemoval(
+  servers: ServerConnection.Any[],
+  removed: ServerConnection.Key,
+  fallback: ServerConnection.Key,
+) {
+  const remaining = servers.filter((server) => ServerConnection.key(server) !== removed)
+  const next = remaining.find((server) => ServerConnection.key(server) === fallback) ?? remaining[0]
+  return next ? ServerConnection.key(next) : fallback
+}
 
 export const { use: useServer, provider: ServerProvider } = createSimpleContext({
   name: "Server",
-  init: (props: { defaultUrl: string; isSidecar?: boolean }) => {
-    const checkServerHealth = useCheckServerHealth()
-
+  gate: true,
+  init: (props: {
+    defaultServer: ServerConnection.Key
+    canonicalLocalServer?: ServerConnection.Key
+    servers?: Array<ServerConnection.Any>
+  }) => {
     const [store, setStore, _, ready] = persisted(
-      Persist.global("server", ["server.v3"]),
+      {
+        ...Persist.global("server", ["server.v3"]),
+        migrate: (value) => migrateCanonicalLocalServerState(value, props.canonicalLocalServer),
+      },
       createStore({
         list: [] as StoredServer[],
-        currentSidecarUrl: "",
         projects: {} as Record<string, StoredProject[]>,
         lastProject: {} as Record<string, string>,
+        recentlyClosed: {} as Record<string, string[]>,
       }),
     )
 
+    const url = (x: StoredServer) => (typeof x === "string" ? x : "type" in x ? x.http.url : x.url)
+
     const allServers = createMemo((): Array<ServerConnection.Any> => {
-      const servers = store.list.map((value) =>
-        typeof value === "string"
-          ? { type: "http" as const, http: { url: value } }
-          : "type" in value
-            ? value
-            : { type: "http" as const, http: value },
-      )
-
-      const deduped = new Map(servers.map((conn) => [ServerConnection.key(conn), conn]))
-
-      return [...deduped.values()]
+      return resolveServerList({ stored: store.list, props: props.servers })
     })
 
     const [state, setState] = createStore({
-      active: "" as ServerConnection.Key | "",
-      healthy: undefined as boolean | undefined,
-      needsAuth: false,
+      active: props.defaultServer,
     })
 
-    const healthy = () => state.healthy
-    const needsAuth = () => state.needsAuth
-
-    const defaultKey = () => {
-      const normalized = normalizeServerUrl(props.defaultUrl)
-      return normalized ? ServerConnection.Key.make(normalized) : ("" as ServerConnection.Key)
-    }
-
-    function reconcileStartup() {
-      const fallback = defaultKey()
-      if (!fallback) {
-        // Prefer non-localhost server (HTTPS origins can't reach localhost due to PNA)
-        const preferred = store.list.find((x) => !isLocalHost(url(x))) ?? store.list[0]
-        if (preferred) {
-          setState("active", ServerConnection.Key.make(url(preferred)))
-        }
-        return
-      }
-
-      const previousSidecarUrl = normalizeServerUrl(store.currentSidecarUrl)
-      const list = previousSidecarUrl ? store.list.filter((x) => url(x) !== previousSidecarUrl) : store.list
-      if (!props.isSidecar) {
-        const exists = list.some((x) => url(x) === fallback)
-        const nextList = exists
-          ? list
-          : [...list, { type: "http" as const, http: { url: fallback } } satisfies ServerConnection.Http]
-        batch(() => {
-          setStore("list", nextList)
-          if (store.currentSidecarUrl) setStore("currentSidecarUrl", "")
-          setState("active", fallback)
-        })
-        return
-      }
-
-      const exists = list.some((x) => url(x) === fallback)
-      const nextList = exists
-        ? list
-        : [...list, { type: "http" as const, http: { url: fallback } } satisfies ServerConnection.Http]
-      batch(() => {
-        setStore("list", nextList)
-        setStore("currentSidecarUrl", fallback)
-        setState("active", fallback)
-      })
-    }
-
-    function startHealthPolling(conn: ServerConnection.Any) {
-      // HTTPS origins cannot reach HTTP localhost (Chrome PNA blocks it)
-      if (typeof window !== "undefined" && window.location.protocol === "https:" && isLocalHost(conn.http.url)) {
-        setState("healthy", false)
-        return () => {}
-      }
-      let alive = true
-      let busy = false
-
-      const run = () => {
-        if (busy) return
-        busy = true
-        void check(conn)
-          .then((result) => {
-            if (!alive) return
-            setState("healthy", result.healthy)
-            setState("needsAuth", !!result.needsAuth)
-          })
-          .finally(() => {
-            busy = false
-          })
-      }
-
-      run()
-      const interval = setInterval(run, HEALTH_POLL_INTERVAL_MS)
-      return () => {
-        alive = false
-        clearInterval(interval)
-      }
-    }
-
-    function setActive(input: ServerConnection.Key | string) {
-      const key = input as ServerConnection.Key
-      if (state.active !== key) setState("active", key)
+    function setActive(input: ServerConnection.Key) {
+      if (state.active !== input) setState("active", input)
     }
 
     function add(input: ServerConnection.Http) {
-      const normalized = normalizeServerUrl(input.http.url)
-      if (!normalized) return
-      const conn = { ...input, http: { ...input.http, url: normalized } }
+      const url_ = normalizeServerUrl(input.http.url)
+      if (!url_) return
+      const conn: ServerConnection.Http = { ...input, authToken: undefined, http: { ...input.http, url: url_ } }
       return batch(() => {
-        const existing = store.list.findIndex((x) => url(x) === normalized)
+        const existing = store.list.findIndex((x) => url(x) === url_)
         if (existing !== -1) {
           setStore("list", existing, conn)
         } else {
@@ -196,62 +303,40 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       })
     }
 
-    function remove(key: ServerConnection.Key | string) {
+    function remove(key: ServerConnection.Key) {
+      const next = nextServerAfterRemoval(allServers(), key, props.defaultServer)
       const list = store.list.filter((x) => url(x) !== key)
       batch(() => {
         setStore("list", list)
-        if (state.active === key) {
-          const next = list[0]
-          setState("active", next ? ServerConnection.Key.make(url(next)) : defaultKey())
-        }
+        if (state.active === key) setState("active", next)
       })
     }
 
-    createEffect(() => {
-      if (!ready()) return
-      if (state.active) return
-      reconcileStartup()
-    })
+    const isReady = Object.assign(
+      createMemo(() => ready() && !!state.active),
+      { promise: ready.promise },
+    )
 
-    const isReady = createMemo(() => {
-      if (!ready()) return false
-      // In hub mode (no defaultUrl, no stored servers), ready even without active server
-      // so HubGate can render and show the connect screen
-      if (!state.active && !props.defaultUrl && store.list.length === 0) return true
-      return !!state.active
-    })
-
-    const check = (conn: ServerConnection.Any) => checkServerHealth(conn.http)
-
+    const scope = (key = state.active) => ServerScope.fromServerKey(key, props.canonicalLocalServer)
+    const projects = createServerProjects({ scope, store, setStore })
+    const projectStores = new Map<ServerConnection.Key, ReturnType<typeof createServerProjects>>()
+    const projectsForServer = (key: ServerConnection.Key) => {
+      const existing = projectStores.get(key)
+      if (existing) return existing
+      const next = createServerProjects({ scope: () => scope(key), store, setStore })
+      projectStores.set(key, next)
+      return next
+    }
     const current: Accessor<ServerConnection.Any | undefined> = createMemo(
       () => allServers().find((s) => ServerConnection.key(s) === state.active) ?? allServers()[0],
     )
-
-    createEffect(() => {
-      const c = current()
-      if (!c) return
-
-      setState("healthy", undefined)
-      onCleanup(startHealthPolling(c))
-    })
-
-    const origin = createMemo(() => projectsKey(state.active as ServerConnection.Key))
-    const projectsList = createMemo(() => store.projects[origin()] ?? [])
-    const isLocal = createMemo(() => {
-      const c = current()
-      return c ? !!isLocalHost(c.http.url) : false
-    })
+    const isLocal = createMemo(() => ServerConnection.local(current()))
 
     return {
       ready: isReady,
-      healthy,
-      needsAuth,
       isLocal,
       get key() {
-        return state.active as ServerConnection.Key
-      },
-      get url() {
-        return current()?.http.url ?? ""
+        return state.active
       },
       get name() {
         return serverName(current())
@@ -265,60 +350,10 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       setActive,
       add,
       remove,
+      scope,
       projects: {
-        list: projectsList,
-        open(directory: string) {
-          const k = origin()
-          if (!k) return
-          const cur = store.projects[k] ?? []
-          if (cur.find((x) => x.worktree === directory)) return
-          setStore("projects", k, [{ worktree: directory, expanded: true }, ...cur])
-        },
-        close(directory: string) {
-          const k = origin()
-          if (!k) return
-          const cur = store.projects[k] ?? []
-          setStore(
-            "projects",
-            k,
-            cur.filter((x) => x.worktree !== directory),
-          )
-        },
-        expand(directory: string) {
-          const k = origin()
-          if (!k) return
-          const cur = store.projects[k] ?? []
-          const index = cur.findIndex((x) => x.worktree === directory)
-          if (index !== -1) setStore("projects", k, index, "expanded", true)
-        },
-        collapse(directory: string) {
-          const k = origin()
-          if (!k) return
-          const cur = store.projects[k] ?? []
-          const index = cur.findIndex((x) => x.worktree === directory)
-          if (index !== -1) setStore("projects", k, index, "expanded", false)
-        },
-        move(directory: string, toIndex: number) {
-          const k = origin()
-          if (!k) return
-          const cur = store.projects[k] ?? []
-          const fromIndex = cur.findIndex((x) => x.worktree === directory)
-          if (fromIndex === -1 || fromIndex === toIndex) return
-          const result = [...cur]
-          const [item] = result.splice(fromIndex, 1)
-          result.splice(toIndex, 0, item)
-          setStore("projects", k, result)
-        },
-        last() {
-          const k = origin()
-          if (!k) return
-          return store.lastProject[k]
-        },
-        touch(directory: string) {
-          const k = origin()
-          if (!k) return
-          setStore("lastProject", k, directory)
-        },
+        ...projects,
+        forServer: projectsForServer,
       },
     }
   },

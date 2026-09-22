@@ -55,6 +55,7 @@ export function createHomeSessionSearchController(home: HomeController, sessions
       id: "home.sessions.search.focus",
       title: placeholder(),
       keybind: "mod+f",
+      hidden: true,
       onSelect: focus,
     },
   ])

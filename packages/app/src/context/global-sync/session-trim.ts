@@ -1,4 +1,4 @@
-import type { PermissionRequest, Session } from "@cyberstrike-io/sdk/v2/client"
+import type { PermissionRequest, Session } from "@opencode-ai/sdk/v2/client"
 import { cmp } from "./utils"
 import { SESSION_RECENT_LIMIT, SESSION_RECENT_WINDOW } from "./types"
 
@@ -41,6 +41,7 @@ export function trimSessions(
     .filter((s) => !s.time?.archived)
     .sort((a, b) => cmp(a.id, b.id))
   const roots = all.filter((s) => !s.parentID)
+  roots.sort(compareSessionRecent)
   const children = all.filter((s) => !!s.parentID)
   const base = roots.slice(0, limit)
   const recent = takeRecentSessions(roots.slice(limit), SESSION_RECENT_LIMIT, cutoff)

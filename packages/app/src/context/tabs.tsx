@@ -1,5 +1,5 @@
-import type { Session } from "@cyberstrike-io/sdk/v2/client"
-import { createSimpleContext } from "@cyberstrike-io/ui/context"
+import type { Session } from "@opencode-ai/sdk/v2/client"
+import { createSimpleContext } from "@opencode-ai/ui/context"
 import { createStore, produce } from "solid-js/store"
 import { Persist, persisted, removePersisted, draftPersistedKeys } from "@/utils/persist"
 import { ServerConnection, useServer } from "./server"
@@ -360,8 +360,16 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
         if (recentKey() !== key) setRecentKey(key)
       },
       toggleHome(input: { home: boolean; current?: Tab }) {
-        // Home always goes home, regardless of the current screen (no toggle-to-recent).
-        if (input.current) setRecentKey(tabKey(input.current))
+        if (input.home) {
+          const tab = store.find((tab) => tabKey(tab) === recentKey())
+          if (tab) navigateTab(tab)
+          return
+        }
+        if (input.current) {
+          setRecentKey(tabKey(input.current))
+          navigate("/")
+          return
+        }
         navigate("/")
       },
       state<T>(tab: Tab, name: string, init: () => T) {

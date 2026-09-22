@@ -3,23 +3,25 @@ import { createEffect, createMemo, For, Show, type Accessor, type JSX } from "so
 import { createStore } from "solid-js/store"
 import { createSortable } from "@thisbeyond/solid-dnd"
 import { createMediaQuery } from "@solid-primitives/media"
-import { base64Encode } from "@cyberstrike-io/util/encode"
-import { getFilename } from "@cyberstrike-io/util/path"
-import { Button } from "@cyberstrike-io/ui/button"
-import { Collapsible } from "@cyberstrike-io/ui/collapsible"
-import { DropdownMenu } from "@cyberstrike-io/ui/dropdown-menu"
-import { Icon } from "@cyberstrike-io/ui/icon"
-import { IconButton } from "@cyberstrike-io/ui/icon-button"
-import { Spinner } from "@cyberstrike-io/ui/spinner"
-import { Tooltip } from "@cyberstrike-io/ui/tooltip"
-import { type Session } from "@cyberstrike-io/sdk/v2/client"
+import { base64Encode } from "@opencode-ai/core/util/encode"
+import { getFilename } from "@opencode-ai/core/util/path"
+import { Button } from "@opencode-ai/ui/button"
+import { Collapsible } from "@opencode-ai/ui/collapsible"
+import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
+import { Icon } from "@opencode-ai/ui/icon"
+import { IconButton } from "@opencode-ai/ui/icon-button"
+import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
+import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+import { Spinner } from "@opencode-ai/ui/spinner"
+import { Tooltip } from "@opencode-ai/ui/tooltip"
+import { type Session } from "@opencode-ai/sdk/v2/client"
 import { type LocalProject } from "@/context/layout"
-import { useGlobalSync } from "@/context/global-sync"
-import { useGlobalSDK } from "@/context/global-sdk"
+import { useServerSync, useQueryOptions } from "@/context/server-sync"
 import { useLanguage } from "@/context/language"
-import { showToast } from "@cyberstrike-io/ui/toast"
+import { pathKey } from "@/utils/path-key"
 import { NewSessionItem, SessionItem, SessionSkeleton } from "./sidebar-items"
-import { childMapByParent, sortedRootSessions } from "./helpers"
+import { sortedRootSessions } from "./helpers"
+import { useIsFetching } from "@tanstack/solid-query"
 
 type InlineEditorComponent = (props: {
   id: string
@@ -34,11 +36,9 @@ type InlineEditorComponent = (props: {
 
 export type WorkspaceSidebarContext = {
   currentDir: Accessor<string>
+  navList: Accessor<Session[]>
   sidebarExpanded: Accessor<boolean>
   sidebarHovering: Accessor<boolean>
-  nav: Accessor<HTMLElement | undefined>
-  hoverSession: Accessor<string | undefined>
-  setHoverSession: (id: string | undefined) => void
   clearHoverProjectSoon: () => void
   prefetchSession: (session: Session, priority?: "high" | "low") => void
   archiveSession: (session: Session) => Promise<void>
@@ -62,7 +62,7 @@ export const WorkspaceDragOverlay = (props: {
   activeWorkspace: Accessor<string | undefined>
   workspaceLabel: (directory: string, branch?: string, projectId?: string) => string
 }): JSX.Element => {
-  const globalSync = useGlobalSync()
+  const serverSync = useServerSync()
   const language = useLanguage()
   const label = createMemo(() => {
     const project = props.sidebarProject()
@@ -70,7 +70,7 @@ export const WorkspaceDragOverlay = (props: {
     const directory = props.activeWorkspace()
     if (!directory) return
 
-    const [workspaceStore] = globalSync.child(directory, { bootstrap: false })
+    const [workspaceStore] = serverSync().child(directory, { bootstrap: false })
     const kind =
       directory === project.worktree ? language.t("workspace.type.local") : language.t("workspace.type.sandbox")
     const name = props.workspaceLabel(directory, workspaceStore.vcs?.branch, project.id)
@@ -146,8 +146,6 @@ const WorkspaceActions = (props: {
   setMenuOpen: (open: boolean) => void
   setPendingRename: (value: boolean) => void
   sidebarHovering: Accessor<boolean>
-  mobile?: boolean
-  nav: Accessor<HTMLElement | undefined>
   touch: Accessor<boolean>
   language: ReturnType<typeof useLanguage>
   workspaceValue: Accessor<string>
@@ -155,7 +153,6 @@ const WorkspaceActions = (props: {
   showResetWorkspaceDialog: WorkspaceSidebarContext["showResetWorkspaceDialog"]
   showDeleteWorkspaceDialog: WorkspaceSidebarContext["showDeleteWorkspaceDialog"]
   root: string
-  setHoverSession: WorkspaceSidebarContext["setHoverSession"]
   clearHoverProjectSoon: WorkspaceSidebarContext["clearHoverProjectSoon"]
   navigateToNewSession: () => void
 }): JSX.Element => (
@@ -184,7 +181,7 @@ const WorkspaceActions = (props: {
           aria-label={props.language.t("common.moreOptions")}
         />
       </Tooltip>
-      <DropdownMenu.Portal mount={!props.mobile ? props.nav() : undefined}>
+      <DropdownMenu.Portal>
         <DropdownMenu.Content
           onCloseAutoFocus={(event) => {
             if (!props.pendingRename()) return
@@ -219,9 +216,10 @@ const WorkspaceActions = (props: {
     </DropdownMenu>
     <Show when={!props.touch()}>
       <Tooltip value={props.language.t("command.session.new")} placement="top">
-        <IconButton
-          icon="plus-small"
+        <IconButtonV2
+          icon={<IconV2 name="edit" size="small" />}
           variant="ghost"
+          size="small"
           class="size-6 rounded-md opacity-0 pointer-events-none group-hover/workspace:opacity-100 group-hover/workspace:pointer-events-auto group-focus-within/workspace:opacity-100 group-focus-within/workspace:pointer-events-auto"
           data-action="workspace-new-session"
           data-workspace={base64Encode(props.directory)}
@@ -229,7 +227,6 @@ const WorkspaceActions = (props: {
           onClick={(event) => {
             event.preventDefault()
             event.stopPropagation()
-            props.setHoverSession(undefined)
             props.clearHoverProjectSoon()
             props.navigateToNewSession()
           }}
@@ -246,19 +243,17 @@ const WorkspaceSessionList = (props: {
   showNew: Accessor<boolean>
   loading: Accessor<boolean>
   sessions: Accessor<Session[]>
-  children: Accessor<Map<string, string[]>>
   hasMore: Accessor<boolean>
   loadMore: () => Promise<void>
   language: ReturnType<typeof useLanguage>
 }): JSX.Element => (
-  <nav class="flex flex-col gap-1 px-2">
+  <nav class="flex flex-col gap-1">
     <Show when={props.showNew()}>
       <NewSessionItem
         slug={props.slug()}
         mobile={props.mobile}
         sidebarExpanded={props.ctx.sidebarExpanded}
         clearHoverProjectSoon={props.ctx.clearHoverProjectSoon}
-        setHoverSession={props.ctx.setHoverSession}
       />
     </Show>
     <Show when={props.loading()}>
@@ -268,14 +263,12 @@ const WorkspaceSessionList = (props: {
       {(session) => (
         <SessionItem
           session={session}
+          list={props.sessions()}
+          navList={props.ctx.navList}
           slug={props.slug()}
           mobile={props.mobile}
-          children={props.children()}
+          showChild
           sidebarExpanded={props.ctx.sidebarExpanded}
-          sidebarHovering={props.ctx.sidebarHovering}
-          nav={props.ctx.nav}
-          hoverSession={props.ctx.hoverSession}
-          setHoverSession={props.ctx.setHoverSession}
           clearHoverProjectSoon={props.ctx.clearHoverProjectSoon}
           prefetchSession={props.ctx.prefetchSession}
           archiveSession={props.ctx.archiveSession}
@@ -286,10 +279,10 @@ const WorkspaceSessionList = (props: {
       <div class="relative w-full py-1">
         <Button
           variant="ghost"
-          class="flex w-full text-left justify-start text-14-regular text-text-weak pl-9 pr-10"
+          class="flex w-full text-left justify-start text-14-regular text-text-weak pl-2 pr-10"
           size="large"
           onClick={(e: MouseEvent) => {
-            props.loadMore()
+            void props.loadMore()
             ;(e.currentTarget as HTMLButtonElement).blur()
           }}
         >
@@ -309,20 +302,19 @@ export const SortableWorkspace = (props: {
 }): JSX.Element => {
   const navigate = useNavigate()
   const params = useParams()
-  const globalSync = useGlobalSync()
-  const globalSDK = useGlobalSDK()
+  const serverSync = useServerSync()
+  const queryOptions = useQueryOptions()
   const language = useLanguage()
   const sortable = createSortable(props.directory)
-  const [workspaceStore, setWorkspaceStore] = globalSync.child(props.directory, { bootstrap: false })
+  const [workspaceStore, setWorkspaceStore] = serverSync().child(props.directory, { bootstrap: false })
   const [menu, setMenu] = createStore({
     open: false,
     pendingRename: false,
   })
   const slug = createMemo(() => base64Encode(props.directory))
   const sessions = createMemo(() => sortedRootSessions(workspaceStore, props.sortNow()))
-  const children = createMemo(() => childMapByParent(workspaceStore.session))
   const local = createMemo(() => props.directory === props.project.worktree)
-  const active = createMemo(() => props.ctx.currentDir() === props.directory)
+  const active = createMemo(() => pathKey(props.ctx.currentDir()) === pathKey(props.directory))
   const workspaceValue = createMemo(() => {
     const branch = workspaceStore.vcs?.branch
     const name = branch ?? getFilename(props.directory)
@@ -330,40 +322,35 @@ export const SortableWorkspace = (props: {
   })
   const open = createMemo(() => props.ctx.workspaceExpanded(props.directory, local()))
   const boot = createMemo(() => open() || active())
-  const booted = createMemo((prev) => prev || workspaceStore.status === "complete", false)
-  const hasMore = createMemo(() => workspaceStore.sessionTotal > sessions().length)
+  const count = createMemo(() => sessions()?.length ?? 0)
+  const hasMore = createMemo(() => workspaceStore.sessionTotal > count())
+  const fetching = useIsFetching(() => queryOptions().sessions(pathKey(props.directory)))
   const busy = createMemo(() => props.ctx.isBusy(props.directory))
-  const wasBusy = createMemo((prev) => prev || busy(), false)
-  const loading = createMemo(() => open() && !booted() && sessions().length === 0 && !wasBusy())
+  const loading = () => fetching() > 0 && count() === 0
   const touch = createMediaQuery("(hover: none)")
-  const showNew = createMemo(() => !loading() && (touch() || sessions().length === 0 || (active() && !params.id)))
+  const showNew = createMemo(() => !loading() && (touch() || count() === 0 || (active() && !params.id)))
   const loadMore = async () => {
     setWorkspaceStore("limit", (limit) => (limit ?? 0) + 5)
-    await globalSync.project.loadSessions(props.directory)
-  }
-
-  const createNewSession = async () => {
-    const client = globalSDK.createClient({
-      directory: props.directory,
-      throwOnError: true,
-    })
-    try {
-      const result = await client.session.create()
-      const session = result.data
-      if (session) {
-        navigate(`/${slug()}/session/${session.id}`)
-        return
-      }
-    } catch (err) {
-      showToast({
-        title: language.t("prompt.toast.sessionCreateFailed.title"),
-        description: err instanceof Error ? err.message : language.t("common.requestFailed"),
-      })
-    }
-    navigate(`/${slug()}/session`)
+    await serverSync().project.loadSessions(props.directory)
   }
 
   const workspaceEditActive = createMemo(() => props.ctx.editorOpen(`workspace:${props.directory}`))
+  const header = () => (
+    <WorkspaceHeader
+      local={local}
+      busy={busy}
+      open={open}
+      directory={props.directory}
+      language={language}
+      branch={() => workspaceStore.vcs?.branch}
+      workspaceValue={workspaceValue}
+      workspaceEditActive={workspaceEditActive}
+      InlineEditor={props.ctx.InlineEditor}
+      renameWorkspace={props.ctx.renameWorkspace}
+      setEditor={props.ctx.setEditor}
+      projectId={props.project.id}
+    />
+  )
 
   const openWrapper = (value: boolean) => {
     props.ctx.setWorkspaceExpanded(props.directory, value)
@@ -373,7 +360,7 @@ export const SortableWorkspace = (props: {
 
   createEffect(() => {
     if (!boot()) return
-    globalSync.child(props.directory, { bootstrap: true })
+    serverSync().child(props.directory, { bootstrap: true })
   })
 
   return (
@@ -386,7 +373,7 @@ export const SortableWorkspace = (props: {
       }}
     >
       <Collapsible variant="ghost" open={open()} class="shrink-0" onOpenChange={openWrapper}>
-        <div class="px-2 py-1">
+        <div class="py-1">
           <div
             class="group/workspace relative"
             data-component="workspace-item"
@@ -403,20 +390,7 @@ export const SortableWorkspace = (props: {
                     data-action="workspace-toggle"
                     data-workspace={base64Encode(props.directory)}
                   >
-                    <WorkspaceHeader
-                      local={local}
-                      busy={busy}
-                      open={open}
-                      directory={props.directory}
-                      language={language}
-                      branch={() => workspaceStore.vcs?.branch}
-                      workspaceValue={workspaceValue}
-                      workspaceEditActive={workspaceEditActive}
-                      InlineEditor={props.ctx.InlineEditor}
-                      renameWorkspace={props.ctx.renameWorkspace}
-                      setEditor={props.ctx.setEditor}
-                      projectId={props.project.id}
-                    />
+                    {header()}
                   </Collapsible.Trigger>
                 }
               >
@@ -425,20 +399,7 @@ export const SortableWorkspace = (props: {
                     menu.open ? "pr-16" : "pr-2"
                   } group-hover/workspace:pr-16 group-focus-within/workspace:pr-16`}
                 >
-                  <WorkspaceHeader
-                    local={local}
-                    busy={busy}
-                    open={open}
-                    directory={props.directory}
-                    language={language}
-                    branch={() => workspaceStore.vcs?.branch}
-                    workspaceValue={workspaceValue}
-                    workspaceEditActive={workspaceEditActive}
-                    InlineEditor={props.ctx.InlineEditor}
-                    renameWorkspace={props.ctx.renameWorkspace}
-                    setEditor={props.ctx.setEditor}
-                    projectId={props.project.id}
-                  />
+                  {header()}
                 </div>
               </Show>
               <WorkspaceActions
@@ -450,8 +411,6 @@ export const SortableWorkspace = (props: {
                 setMenuOpen={(open) => setMenu("open", open)}
                 setPendingRename={(value) => setMenu("pendingRename", value)}
                 sidebarHovering={props.ctx.sidebarHovering}
-                mobile={props.mobile}
-                nav={props.ctx.nav}
                 touch={touch}
                 language={language}
                 workspaceValue={workspaceValue}
@@ -459,9 +418,8 @@ export const SortableWorkspace = (props: {
                 showResetWorkspaceDialog={props.ctx.showResetWorkspaceDialog}
                 showDeleteWorkspaceDialog={props.ctx.showDeleteWorkspaceDialog}
                 root={props.project.worktree}
-                setHoverSession={props.ctx.setHoverSession}
                 clearHoverProjectSoon={props.ctx.clearHoverProjectSoon}
-                navigateToNewSession={createNewSession}
+                navigateToNewSession={() => navigate(`/${slug()}/session`)}
               />
             </div>
           </div>
@@ -475,7 +433,6 @@ export const SortableWorkspace = (props: {
             showNew={showNew}
             loading={loading}
             sessions={sessions}
-            children={children}
             hasMore={hasMore}
             loadMore={loadMore}
             language={language}
@@ -492,21 +449,22 @@ export const LocalWorkspace = (props: {
   sortNow: Accessor<number>
   mobile?: boolean
 }): JSX.Element => {
-  const globalSync = useGlobalSync()
+  const serverSync = useServerSync()
+  const queryOptions = useQueryOptions()
   const language = useLanguage()
   const workspace = createMemo(() => {
-    const [store, setStore] = globalSync.child(props.project.worktree)
+    const [store, setStore] = serverSync().child(props.project.worktree)
     return { store, setStore }
   })
   const slug = createMemo(() => base64Encode(props.project.worktree))
   const sessions = createMemo(() => sortedRootSessions(workspace().store, props.sortNow()))
-  const children = createMemo(() => childMapByParent(workspace().store.session))
-  const booted = createMemo((prev) => prev || workspace().store.status === "complete", false)
-  const loading = createMemo(() => !booted() && sessions().length === 0)
-  const hasMore = createMemo(() => workspace().store.sessionTotal > sessions().length)
+  const count = createMemo(() => sessions()?.length ?? 0)
+  const fetching = useIsFetching(() => queryOptions().sessions(pathKey(props.project.worktree)))
+  const hasMore = createMemo(() => workspace().store.sessionTotal > count())
+  const loading = () => fetching() > 0 && count() === 0
   const loadMore = async () => {
     workspace().setStore("limit", (limit) => (limit ?? 0) + 5)
-    await globalSync.project.loadSessions(props.project.worktree)
+    await serverSync().project.loadSessions(props.project.worktree)
   }
 
   return (
@@ -514,44 +472,17 @@ export const LocalWorkspace = (props: {
       ref={(el) => props.ctx.setScrollContainerRef(el, props.mobile)}
       class="size-full flex flex-col py-2 overflow-y-auto no-scrollbar [overflow-anchor:none]"
     >
-      <nav class="flex flex-col gap-1 px-2">
-        <Show when={loading()}>
-          <SessionSkeleton />
-        </Show>
-        <For each={sessions()}>
-          {(session) => (
-            <SessionItem
-              session={session}
-              slug={slug()}
-              mobile={props.mobile}
-              children={children()}
-              sidebarExpanded={props.ctx.sidebarExpanded}
-              sidebarHovering={props.ctx.sidebarHovering}
-              nav={props.ctx.nav}
-              hoverSession={props.ctx.hoverSession}
-              setHoverSession={props.ctx.setHoverSession}
-              clearHoverProjectSoon={props.ctx.clearHoverProjectSoon}
-              prefetchSession={props.ctx.prefetchSession}
-              archiveSession={props.ctx.archiveSession}
-            />
-          )}
-        </For>
-        <Show when={hasMore()}>
-          <div class="relative w-full py-1">
-            <Button
-              variant="ghost"
-              class="flex w-full text-left justify-start text-14-regular text-text-weak pl-9 pr-10"
-              size="large"
-              onClick={(e: MouseEvent) => {
-                loadMore()
-                ;(e.currentTarget as HTMLButtonElement).blur()
-              }}
-            >
-              {language.t("common.loadMore")}
-            </Button>
-          </div>
-        </Show>
-      </nav>
+      <WorkspaceSessionList
+        slug={slug}
+        mobile={props.mobile}
+        ctx={props.ctx}
+        showNew={() => false}
+        loading={loading}
+        sessions={sessions}
+        hasMore={hasMore}
+        loadMore={loadMore}
+        language={language}
+      />
     </div>
   )
 }

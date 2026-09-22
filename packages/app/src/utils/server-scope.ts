@@ -58,3 +58,16 @@ export const ScopedKey = {
     return `${ScopedKey.from(scope, ...parts)}${separator}`
   },
 }
+
+export function migrateLegacySessionStateKeys(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value
+  const entries = Object.entries(value)
+  if (entries.every(([key]) => key.includes(separator))) return value
+  const scoped = Object.fromEntries(entries.filter(([key]) => key.includes(separator)))
+  for (const [key, item] of entries) {
+    if (key.includes(separator)) continue
+    const next = SessionStateKey.from(ServerScope.local, SessionRouteKey.fromLegacy(key))
+    if (!(next in scoped)) scoped[next] = item
+  }
+  return scoped
+}

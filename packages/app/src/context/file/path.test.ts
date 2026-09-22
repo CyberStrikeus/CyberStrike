@@ -13,6 +13,37 @@ describe("file path helpers", () => {
     expect(path.pathFromTab("other://src/app.ts")).toBeUndefined()
   })
 
+  test("normalizes Windows absolute paths with mixed separators", () => {
+    const path = createPathHelpers(() => "C:\\repo")
+    expect(path.normalize("C:\\repo\\src\\app.ts")).toBe("src\\app.ts")
+    expect(path.normalize("C:/repo/src/app.ts")).toBe("src/app.ts")
+    expect(path.normalize("file://C:/repo/src/app.ts")).toBe("src/app.ts")
+    expect(path.normalize("c:\\repo\\src\\app.ts")).toBe("src\\app.ts")
+  })
+
+  test("normalizes Windows directory separators", () => {
+    const path = createPathHelpers(() => "C:\\repo")
+    expect(path.normalizeDir("frontend\\")).toBe("frontend")
+    expect(path.normalizeDir("frontend\\src\\")).toBe("frontend/src")
+    expect(path.normalizeDir("C:\\repo\\frontend\\")).toBe("frontend")
+  })
+
+  test("normalizes separators for Windows roots written with forward slashes", () => {
+    const path = createPathHelpers(() => "C:/repo")
+    expect(path.normalizeDir("frontend\\src\\")).toBe("frontend/src")
+  })
+
+  test("normalizes separators for Windows UNC roots", () => {
+    const path = createPathHelpers(() => "\\\\server\\share")
+    expect(path.normalizeDir("\\\\server\\share\\frontend\\")).toBe("frontend")
+  })
+
+  test("preserves backslashes in POSIX directory names", () => {
+    const path = createPathHelpers(() => "/repo")
+    expect(path.normalizeDir("literal\\name\\")).toBe("literal\\name\\")
+    expect(path.normalizeDir("literal\\name/")).toBe("literal\\name")
+  })
+
   test("keeps query/hash stripping behavior stable", () => {
     expect(stripQueryAndHash("a/b.ts#L12?x=1")).toBe("a/b.ts")
     expect(stripQueryAndHash("a/b.ts?x=1#L12")).toBe("a/b.ts")
@@ -78,12 +109,12 @@ describe("encodeFilePath", () => {
 
   describe("macOS paths", () => {
     test("should handle macOS absolute path", () => {
-      const macPath = "/Users/kelvin/Projects/cyberstrike/README.md"
+      const macPath = "/Users/kelvin/Projects/opencode/README.md"
       const result = encodeFilePath(macPath)
       const fileUrl = `file://${result}`
 
       expect(() => new URL(fileUrl)).not.toThrow()
-      expect(result).toBe("/Users/kelvin/Projects/cyberstrike/README.md")
+      expect(result).toBe("/Users/kelvin/Projects/opencode/README.md")
     })
 
     test("should handle macOS path with spaces", () => {
@@ -98,7 +129,7 @@ describe("encodeFilePath", () => {
 
   describe("Windows paths", () => {
     test("should handle Windows absolute path with backslashes", () => {
-      const windowsPath = "D:\\dev\\projects\\cyberstrike\\README.bs.md"
+      const windowsPath = "D:\\dev\\projects\\opencode\\README.bs.md"
       const result = encodeFilePath(windowsPath)
       const fileUrl = `file://${result}`
 
@@ -108,17 +139,17 @@ describe("encodeFilePath", () => {
       const url = new URL(fileUrl)
       expect(url.protocol).toBe("file:")
       expect(url.pathname).toContain("README.bs.md")
-      expect(result).toBe("/D:/dev/projects/cyberstrike/README.bs.md")
+      expect(result).toBe("/D:/dev/projects/opencode/README.bs.md")
     })
 
     test("should handle mixed separator path (Windows + Unix)", () => {
       // This is what happens in build-request-parts.ts when concatenating paths
-      const mixedPath = "D:\\dev\\projects\\cyberstrike/README.bs.md"
+      const mixedPath = "D:\\dev\\projects\\opencode/README.bs.md"
       const result = encodeFilePath(mixedPath)
       const fileUrl = `file://${result}`
 
       expect(() => new URL(fileUrl)).not.toThrow()
-      expect(result).toBe("/D:/dev/projects/cyberstrike/README.bs.md")
+      expect(result).toBe("/D:/dev/projects/opencode/README.bs.md")
     })
 
     test("should handle Windows path with spaces", () => {
@@ -159,13 +190,13 @@ describe("encodeFilePath", () => {
 
     test("should NOT create invalid URL like the bug report", () => {
       // This is the exact scenario from bug report by @alexyaroshuk
-      const windowsPath = "D:\\dev\\projects\\cyberstrike\\README.bs.md"
+      const windowsPath = "D:\\dev\\projects\\opencode\\README.bs.md"
       const result = encodeFilePath(windowsPath)
       const fileUrl = `file://${result}`
 
-      // The bug was creating: file://D%3A%5Cdev%5Cprojects%5Ccyberstrike/README.bs.md
+      // The bug was creating: file://D%3A%5Cdev%5Cprojects%5Copencode/README.bs.md
       expect(result).not.toContain("%5C") // Should not have encoded backslashes
-      expect(result).not.toBe("D%3A%5Cdev%5Cprojects%5Ccyberstrike/README.bs.md")
+      expect(result).not.toBe("D%3A%5Cdev%5Cprojects%5Copencode/README.bs.md")
 
       // Should be valid
       expect(() => new URL(fileUrl)).not.toThrow()

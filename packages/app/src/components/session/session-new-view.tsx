@@ -3,44 +3,16 @@ import { DateTime } from "luxon"
 import { useSync } from "@/context/sync"
 import { useSDK } from "@/context/sdk"
 import { useLanguage } from "@/context/language"
-import { Icon } from "@cyberstrike-io/ui/icon"
-import { getDirectory, getFilename } from "@cyberstrike-io/util/path"
+import { Icon } from "@opencode-ai/ui/icon"
+import { Mark } from "@opencode-ai/ui/logo"
+import { getDirectory, getFilename } from "@opencode-ai/core/util/path"
 
 const MAIN_WORKTREE = "main"
 const CREATE_WORKTREE = "create"
-// Clean centered empty-session layout: the wordmark watermark and the metadata sit
-// centered in the column, above the docked (and, on desktop, centered) composer. The
-// bottom padding reserves room for the prompt dock so nothing hides behind it.
-const ROOT_CLASS =
-  "size-full flex flex-col justify-center items-center gap-10 px-6 pb-[calc(var(--prompt-height,11.25rem)+48px)]"
-
-// Big, faint "cyberstrike" text wordmark rendered with the app display font
-// (Space Grotesk Variable). Heavy weight, large responsive size, tight tracking and
-// low opacity so it reads as a centered watermark. Not the emblem, not an SVG
-// letterform path — a simple styled text node.
-function CyberStrikeWordmark() {
-  return (
-    <div
-      data-component="session-new-wordmark"
-      aria-hidden="true"
-      class="select-none pointer-events-none whitespace-nowrap text-text-weaker"
-      style={{
-        "font-family": "'Space Grotesk Variable', system-ui, sans-serif",
-        "font-weight": "700",
-        "font-size": "clamp(2.75rem, 9vw, 6.5rem)",
-        "line-height": "1",
-        "letter-spacing": "-0.04em",
-        opacity: "0.45",
-      }}
-    >
-      CyberStrike
-    </div>
-  )
-}
+const ROOT_CLASS = "size-full flex flex-col"
 
 interface NewSessionViewProps {
   worktree: string
-  onWorktreeChange: (value: string) => void
 }
 
 export function NewSessionView(props: NewSessionViewProps) {
@@ -48,24 +20,24 @@ export function NewSessionView(props: NewSessionViewProps) {
   const sdk = useSDK()
   const language = useLanguage()
 
-  const sandboxes = createMemo(() => sync.project?.sandboxes ?? [])
+  const sandboxes = createMemo(() => sync().project?.sandboxes ?? [])
   const options = createMemo(() => [MAIN_WORKTREE, ...sandboxes(), CREATE_WORKTREE])
   const current = createMemo(() => {
     const selection = props.worktree
     if (options().includes(selection)) return selection
     return MAIN_WORKTREE
   })
-  const projectRoot = createMemo(() => sync.project?.worktree ?? sdk.directory)
+  const projectRoot = createMemo(() => sync().project?.worktree ?? sdk().directory)
   const isWorktree = createMemo(() => {
-    const project = sync.project
+    const project = sync().project
     if (!project) return false
-    return sdk.directory !== project.worktree
+    return sdk().directory !== project.worktree
   })
 
   const label = (value: string) => {
     if (value === MAIN_WORKTREE) {
       if (isWorktree()) return language.t("session.new.worktree.main")
-      const branch = sync.data.vcs?.branch
+      const branch = sync().data.vcs?.branch
       if (branch) return language.t("session.new.worktree.mainWithBranch", { branch })
       return language.t("session.new.worktree.main")
     }
@@ -77,34 +49,42 @@ export function NewSessionView(props: NewSessionViewProps) {
 
   return (
     <div class={ROOT_CLASS}>
-      <CyberStrikeWordmark />
-      <div class="flex flex-col items-center gap-3 text-center">
-        <div class="flex justify-center items-center gap-2">
-          <Icon name="folder" size="small" />
-          <div class="text-12-medium text-text-weak select-text">
-            {getDirectory(projectRoot())}
-            <span class="text-text-strong">{getFilename(projectRoot())}</span>
+      <div class="h-12 shrink-0" aria-hidden />
+      <div class="flex-1 px-6 pb-30 flex items-center justify-center text-center">
+        <div class="w-full max-w-200 flex flex-col items-center text-center gap-4">
+          <div class="flex flex-col items-center gap-6">
+            <Mark class="w-10" />
+            <div class="text-20-medium text-text-strong">{language.t("session.new.title")}</div>
           </div>
-        </div>
-        <div class="flex justify-center items-center gap-2">
-          <Icon name="branch" size="small" />
-          <div class="text-12-medium text-text-weak select-text">{label(current())}</div>
-        </div>
-        <Show when={sync.project}>
-          {(project) => (
-            <div class="flex justify-center items-center gap-2">
-              <Icon name="pencil-line" size="small" />
-              <div class="text-12-medium text-text-weak">
-                {language.t("session.new.lastModified")}&nbsp;
-                <span class="text-text-strong">
-                  {DateTime.fromMillis(project().time.updated ?? project().time.created)
-                    .setLocale(language.locale())
-                    .toRelative()}
-                </span>
+          <div class="w-full flex flex-col gap-4 items-center">
+            <div class="flex items-start justify-center gap-3 min-h-5">
+              <div class="text-12-medium text-text-weak select-text leading-5 min-w-0 max-w-160 break-words text-center">
+                {getDirectory(projectRoot())}
+                <span class="text-text-strong">{getFilename(projectRoot())}</span>
               </div>
             </div>
-          )}
-        </Show>
+            <div class="flex items-start justify-center gap-1.5 min-h-5">
+              <Icon name="branch" size="small" class="mt-0.5 shrink-0" />
+              <div class="text-12-medium text-text-weak select-text leading-5 min-w-0 max-w-160 break-words text-center">
+                {label(current())}
+              </div>
+            </div>
+            <Show when={sync().project}>
+              {(project) => (
+                <div class="flex items-start justify-center gap-3 min-h-5">
+                  <div class="text-12-medium text-text-weak leading-5 min-w-0 max-w-160 break-words text-center">
+                    {language.t("session.new.lastModified")}&nbsp;
+                    <span class="text-text-strong">
+                      {DateTime.fromMillis(project().time.updated ?? project().time.created)
+                        .setLocale(language.intl())
+                        .toRelative()}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </Show>
+          </div>
+        </div>
       </div>
     </div>
   )

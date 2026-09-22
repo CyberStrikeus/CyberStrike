@@ -1,20 +1,29 @@
-import type { Session } from "@cyberstrike-io/sdk/v2/client"
+import type { Session } from "@opencode-ai/sdk/v2/client"
+import { preloadMarkdown } from "@opencode-ai/session-ui/markdown-cache"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { useQuery } from "@tanstack/solid-query"
 import { DateTime } from "luxon"
-import { type Accessor, createEffect, createMemo, type JSX, startTransition } from "solid-js"
-import { useDialog } from "@cyberstrike-io/ui/context/dialog"
+import { type Accessor, createEffect, createMemo, createRoot, type JSX, startTransition } from "solid-js"
+import { produce } from "solid-js/store"
 import { useCommand } from "@/context/command"
-import { useGlobalSync } from "@/context/global-sync"
+import {
+  loadHomeSessionIndex,
+  retainHomeSessions,
+  type HomeSessionEvents,
+} from "@/context/global-sync/home-session-index"
 import type { LocalProject } from "@/context/layout"
 import { useLanguage } from "@/context/language"
 import { ServerConnection } from "@/context/server"
 import { sessionHasOpenTab, useTabs } from "@/context/tabs"
-import { compareSessionTime, displayName, projectForSession } from "@/pages/layout/helpers"
+import { compareSessionTime, displayName, errorMessage, projectForSession } from "@/pages/layout/helpers"
 import { useSessionTabAvatarState } from "@/pages/layout/project-avatar-state"
 import { pathKey } from "@/utils/path-key"
+import { showToast } from "@/utils/toast"
+import { Binary } from "@opencode-ai/core/util/binary"
+import { archiveHomeSession } from "../home-session-archive"
 import type { HomeController } from "./home-controller"
 
 const HOME_SESSION_LIMIT = 64
-
 export type HomeSessionRecord = {
   session: Session
   project: LocalProject
@@ -29,24 +38,99 @@ export type HomeSessionGroup = {
 
 export type OpenSessionOptions = { background?: boolean }
 
-// Single-server mapping: upstream builds a cross-project session index by calling
-// the per-server v2 `session.list` endpoint and retaining it in a `homeSessions`
-// cache on the sync layer. This fork does not maintain that index; instead the
-// home sessions list is sourced from the per-directory child stores that the
-// shared global-sync already populates for the projects tracked on the home
-// screen. Consequence: sessions of projects that have never been opened/loaded
-// are not surfaced here (they load lazily when a directory's sessions are
-// requested). The controller triggers `loadSessions` for every listed project so
-// the recent list is populated on mount.
 export function createHomeSessionsController(home: HomeController) {
   const tabs = useTabs()
   const command = useCommand()
   const dialog = useDialog()
   const language = useLanguage()
-  const globalSync = useGlobalSync()
+  const projectDirectories = createMemo(() => {
+    const project = home.project.selected()
+    if (!project) return home.project.list().flatMap(directories)
+    return directories(project)
+  })
+  const projectByID = createMemo(
+    () => new Map(home.project.list().flatMap((project) => (project.id ? [[project.id, project] as const] : []))),
+  )
+  const homeSessions = () => home.server.focusedSync().homeSessions
+  const sessionEventLoad = useQuery(() => ({
+    queryKey: homeSessions().eventsKey,
+    queryFn: async (): Promise<HomeSessionEvents> => ({ sequence: 0, entries: [] }),
+    initialData: { sequence: 0, entries: [] } satisfies HomeSessionEvents,
+    enabled: false,
+  }))
+  const sessionLoad = useQuery(() => ({
+    queryKey: homeSessions().indexKey,
+    enabled: !!home.server.focusedContext(),
+    queryFn: async ({ signal }) => {
+      const ctx = home.server.focusedContext()
+      if (!ctx) return { sessions: [], eventSequence: 0 }
+      const cache = homeSessions()
+      const eventSequence = cache.eventSequence()
+      const index = await loadHomeSessionIndex(
+        (input, options) => ctx.sdk.client.v2.session.list(input, options),
+        eventSequence,
+        signal,
+      )
+      cache.complete(eventSequence)
+      return index
+    },
+    retry: false,
+    staleTime: 30_000,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+  }))
+  const indexedSessions = createMemo(() =>
+    retainHomeSessions(
+      homeSessions().sessions(sessionLoad.data, sessionEventLoad.data),
+      HOME_SESSION_LIMIT,
+      Date.now(),
+    ),
+  )
+  const allRecords = createMemo(() =>
+    buildHomeSessionRecords({
+      sessions: indexedSessions,
+      projectDirectories,
+      projects: home.project.list,
+      projectByID,
+    }),
+  )
+  const records = createMemo(() => allRecords().slice(0, HOME_SESSION_LIMIT))
+  const groups = createMemo(() => groupSessions(records(), language))
+  const prefetched = new Set<string>()
 
-  // Home command palette: a hidden command that lazily opens DialogHomeCommandPaletteV2
-  // (cross-project session search + command entries) against the focused server.
+  createEffect(() => {
+    const ctx = home.server.focusedContext()
+    const conn = home.server.focused()
+    if (!ctx || !conn) return
+    records()
+      .slice(0, 2)
+      .forEach((record) => {
+        const key = `${ServerConnection.key(conn)}\0${record.session.id}`
+        if (prefetched.has(key)) return
+        prefetched.add(key)
+        createRoot((dispose) => {
+          try {
+            void ctx.sync.session
+              .sync(record.session.id)
+              .then(() =>
+                Promise.all(
+                  (ctx.sync.session.data.message[record.session.id] ?? []).flatMap((message) =>
+                    (ctx.sync.session.data.part[message.id] ?? []).flatMap((part) => {
+                      if (part.type !== "text" || !part.text) return []
+                      return preloadMarkdown(part.text, part.id)
+                    }),
+                  ),
+                ),
+              )
+              .catch(() => {})
+              .finally(dispose)
+          } catch {
+            dispose()
+          }
+        })
+      })
+  })
+
   command.register("home.palette", () => [
     {
       id: "command.palette",
@@ -79,40 +163,6 @@ export function createHomeSessionsController(home: HomeController) {
     },
   ])
 
-  const listedDirectories = createMemo(() => home.project.list().flatMap(directories))
-
-  createEffect(() => {
-    listedDirectories().forEach((directory) => {
-      void Promise.resolve(globalSync.project.loadSessions(directory)).catch(() => {})
-    })
-  })
-
-  const projectDirectories = createMemo(() => {
-    const project = home.project.selected()
-    if (!project) return home.project.list().flatMap(directories)
-    return directories(project)
-  })
-  const projectByID = createMemo(
-    () => new Map(home.project.list().flatMap((project) => (project.id ? [[project.id, project] as const] : []))),
-  )
-
-  const indexedSessions = createMemo(() =>
-    listedDirectories().flatMap(
-      (directory) => globalSync.child(directory, { bootstrap: false })[0].session ?? [],
-    ),
-  )
-
-  const allRecords = createMemo(() =>
-    buildHomeSessionRecords({
-      sessions: indexedSessions,
-      projectDirectories,
-      projects: home.project.list,
-      projectByID,
-    }),
-  )
-  const records = createMemo(() => allRecords().slice(0, HOME_SESSION_LIMIT))
-  const groups = createMemo(() => groupSessions(records(), language))
-
   return {
     copy: {
       language,
@@ -120,7 +170,7 @@ export function createHomeSessionsController(home: HomeController) {
     data: {
       records,
       groups,
-      loading: () => !globalSync.ready,
+      loading: () => sessionLoad.isLoading,
       searchRecords: allRecords,
     },
     session: {
@@ -154,10 +204,37 @@ export function createHomeSessionsController(home: HomeController) {
           tabs.select(tab)
         })
       },
-      // Session archiving is behind a disabled flag in the view (SHOW_HOME_SESSION_ARCHIVE)
-      // and depended on upstream's per-server v1 SDK + homeSessions cache, neither of
-      // which this fork's home data layer maps. Kept as an inert async no-op.
-      archive: async (_session: Session) => {},
+      archive: async (session: Session) => {
+        const conn = home.server.focused()
+        const ctx = home.server.focusedContext()
+        if (!conn || !ctx) return
+        const [, setStore] = ctx.sync.child(session.directory)
+        if ((await ctx.sdk.protocol) !== "v1") return
+        await archiveHomeSession({
+          server: ServerConnection.key(conn),
+          session,
+          archive: (sessionID) =>
+            ctx.sdk.client.session.update({
+              sessionID,
+              directory: session.directory,
+              time: { archived: Date.now() },
+            }),
+          remove: () => {
+            setStore(
+              produce((draft) => {
+                const match = Binary.search(draft.session, session.id, (item) => item.id)
+                if (match.found) draft.session.splice(match.index, 1)
+              }),
+            )
+            homeSessions().remove(session.id)
+          },
+          onError: (cause) =>
+            showToast({
+              title: language.t("common.requestFailed"),
+              description: errorMessage(cause, language.t("common.requestFailed")),
+            }),
+        })
+      },
     },
     tab: {
       isOpen: (record: HomeSessionRecord) =>

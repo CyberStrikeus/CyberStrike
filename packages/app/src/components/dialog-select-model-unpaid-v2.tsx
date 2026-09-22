@@ -1,21 +1,19 @@
-import { DialogBody, DialogHeader, DialogTitle, DialogV2 } from "@cyberstrike-io/ui/v2/dialog-v2"
-import { Icon } from "@cyberstrike-io/ui/v2/icon"
-import { ProviderIcon } from "@cyberstrike-io/ui/provider-icon"
-import type { IconName } from "@cyberstrike-io/ui/icons/provider"
-import { Tag } from "@cyberstrike-io/ui/v2/badge-v2"
-import { TooltipV2 } from "@cyberstrike-io/ui/v2/tooltip-v2"
-import { useDialog } from "@cyberstrike-io/ui/context/dialog"
-import { useTheme } from "@cyberstrike-io/ui/theme"
+import { DialogBody, DialogHeader, DialogTitle, DialogV2 } from "@opencode-ai/ui/v2/dialog-v2"
+import { Icon } from "@opencode-ai/ui/v2/icon"
+import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
+import { Tag } from "@opencode-ai/ui/v2/badge-v2"
+import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { useTheme } from "@opencode-ai/ui/theme"
 import { createMemo, onCleanup, onMount, type Component, For, Show } from "solid-js"
 import { useLocal } from "@/context/local"
-import { popularProviders, useProviders } from "@/hooks/use-providers"
+import { useProviders } from "@/hooks/use-providers"
+import { decode64 } from "@/utils/base64"
 import { useLanguage } from "@/context/language"
-import { DialogConnectProvider } from "./dialog-connect-provider"
-import { DialogSelectProvider } from "./dialog-select-provider"
 import { ModelTooltip } from "./model-tooltip"
 
 type ModelState = ReturnType<typeof useLocal>["model"]
-const featuredProviders = ["cyberstrike", "openai", "anthropic", "google", "github-copilot"]
+const featuredProviders = ["opencode", "opencode-go", "openai", "anthropic", "google", "github-copilot"]
 const displayModelName = (name: string) => name.replace(/\s+(?:\(free\)|free)$/i, "")
 
 export const DialogSelectModelUnpaidV2: Component<{ model?: ModelState }> = (props) => {
@@ -23,7 +21,8 @@ export const DialogSelectModelUnpaidV2: Component<{ model?: ModelState }> = (pro
   const model = props.model ?? local.model
   const dialog = useDialog()
   const theme = useTheme()
-  const providers = useProviders()
+  const directory = () => decode64(local.slug())
+  const providers = useProviders(directory)
   const language = useLanguage()
   const modelKey = (item: ReturnType<ModelState["list"]>[number]) => `${item.provider.id}:${item.id}`
   const currentKey = createMemo(() => {
@@ -31,15 +30,15 @@ export const DialogSelectModelUnpaidV2: Component<{ model?: ModelState }> = (pro
     return c ? `${c.provider.id}:${c.id}` : undefined
   })
   const isFree = (item: ReturnType<ModelState["list"]>[number]) =>
-    item.provider.id === "cyberstrike" && (!item.cost || item.cost.input === 0)
+    item.provider.id === "opencode" && (!item.cost || item.cost.input === 0)
   const freeModels = createMemo(() => model.list().filter(isFree))
 
-  const openProvider = (provider: string) => {
-    dialog.show(() => <DialogConnectProvider provider={provider} />)
-  }
-
-  const openAllProviders = () => {
-    dialog.show(() => <DialogSelectProvider />)
+  const openProviders = (provider?: string) => {
+    void import("./dialog-connect-provider").then((x) => {
+      const controller = x.useProviderConnectController()
+      controller.select(provider)
+      void dialog.show(() => <x.DialogConnectProvider controller={controller} directory={directory} />)
+    })
   }
 
   const selectModel = (item: ReturnType<ModelState["list"]>[number]) => {
@@ -96,6 +95,7 @@ export const DialogSelectModelUnpaidV2: Component<{ model?: ModelState }> = (pro
                       model={{ ...item, name: displayModelName(item.name) }}
                       latest={item.latest}
                       free={isFree(item)}
+                      v2
                     />
                   }
                 >
@@ -127,8 +127,7 @@ export const DialogSelectModelUnpaidV2: Component<{ model?: ModelState }> = (pro
               </div>
               <div class="grid w-full grid-cols-1 gap-y-1.5 gap-x-2 sm:grid-cols-2">
                 <For
-                  each={providers
-                    .popular()
+                  each={[...providers.popular()]
                     .filter((provider) => featuredProviders.includes(provider.id))
                     .sort((a, b) => featuredProviders.indexOf(a.id) - featuredProviders.indexOf(b.id))}
                 >
@@ -142,14 +141,18 @@ export const DialogSelectModelUnpaidV2: Component<{ model?: ModelState }> = (pro
                           theme.mode() !== "dark",
                         "border-[0.5px] border-v2-border-border-strong": theme.mode() === "dark",
                       }}
-                      onClick={() => openProvider(provider.id)}
+                      onClick={() => openProviders(provider.id)}
                     >
-                      <ProviderIcon id={provider.id as IconName} class="mt-0.5 size-4 shrink-0 text-v2-icon-icon-base" />
+                      <ProviderIcon id={provider.id} class="mt-0.5 size-4 shrink-0 text-v2-icon-icon-base" />
                       <span class="flex min-w-0 flex-col">
                         <span class="truncate">{provider.name}</span>
-                        <Show when={provider.id === "cyberstrike"}>
+                        <Show when={provider.id === "opencode" || provider.id === "opencode-go"}>
                           <span class="truncate font-[440] text-v2-text-text-muted">
-                            {language.t("dialog.provider.tag.recommended")}
+                            {language.t(
+                              provider.id === "opencode"
+                                ? "dialog.provider.opencode.tagline"
+                                : "dialog.provider.opencodeGo.tagline",
+                            )}
                           </span>
                         </Show>
                       </span>
@@ -159,9 +162,9 @@ export const DialogSelectModelUnpaidV2: Component<{ model?: ModelState }> = (pro
                 <button
                   type="button"
                   class="col-span-full flex h-8 w-full scroll-my-3.5 items-center justify-start rounded-md px-3 text-left text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-muted [font-family:var(--v2-font-family-sans)] [font-variation-settings:'slnt'_0] hover:bg-v2-overlay-simple-overlay-hover focus:bg-v2-overlay-simple-overlay-hover focus:outline-none"
-                  onClick={openAllProviders}
+                  onClick={() => openProviders()}
                 >
-                  {language.t("dialog.provider.viewAll")}
+                  {language.t("dialog.model.unpaid.viewMoreProviders")}
                 </button>
               </div>
             </div>

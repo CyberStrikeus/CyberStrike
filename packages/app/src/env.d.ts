@@ -1,8 +1,11 @@
-import "solid-js"
-
 interface ImportMetaEnv {
-  readonly VITE_CYBERSTRIKE_SERVER_HOST: string
-  readonly VITE_CYBERSTRIKE_SERVER_PORT: string
+  readonly VITE_OPENCODE_SERVER_HOST: string
+  readonly VITE_OPENCODE_SERVER_PORT: string
+  readonly VITE_OPENCODE_CHANNEL?: "dev" | "beta" | "prod"
+
+  readonly VITE_SENTRY_DSN?: string
+  readonly VITE_SENTRY_ENVIRONMENT?: string
+  readonly VITE_SENTRY_RELEASE?: string
 }
 
 interface ImportMeta {
@@ -19,7 +22,7 @@ declare module "*.mp4" {
   export default src
 }
 
-declare module "solid-js" {
+export declare module "solid-js" {
   namespace JSX {
     interface Directives {
       sortable: true

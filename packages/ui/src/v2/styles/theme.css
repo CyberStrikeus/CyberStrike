@@ -1,13 +1,19 @@
 @layer theme {
-  /*
-   * v2 token layer (static). Defines only `--v2-*` custom properties so v2
-   * components (e.g. file-tree-v2) resolve their tokens at runtime. This is the
-   * default (light) palette on :root; explicit light/dark opt-in via the
-   * [data-color-scheme] blocks below. Intentionally does NOT set `color-scheme`
-   * or non-namespaced tokens on :root, so importing it never changes v1
-   * default rendering.
-   */
+  html[data-theme="oc-2"] body:not([data-new-layout]) {
+    --text-diff-add-base: light-dark(#167517, #c4ffc0);
+    --text-diff-delete-base: light-dark(#fa3012, #ec2f14);
+    --syntax-comment: light-dark(#7a7a7a, #8f8f8f);
+    --syntax-keyword: light-dark(#a753ae, #edb2f1);
+    --syntax-string: #00ceb9;
+    --syntax-primitive: light-dark(#034cff, #8cb0ff);
+    --syntax-property: light-dark(#a753ae, #fab283);
+    --syntax-type: light-dark(#8a6f00, #fcd53a);
+    --syntax-critical: light-dark(#ff8c00, #fab283);
+  }
+
   :root {
+    color-scheme: light;
+
     /* ── Background ── */
     --v2-background-bg-base: var(--v2-grey-50);
     --v2-background-bg-deep: var(--v2-grey-100);
@@ -134,6 +140,7 @@
     --v2-illustration-illustration-layer-02: var(--v2-grey-400);
     --v2-illustration-illustration-layer-03: var(--v2-grey-500);
 
+    --font-family-text: "Inter", sans-serif;
     --v2-font-family-sans: "Inter", sans-serif;
   }
 

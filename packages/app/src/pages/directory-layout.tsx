@@ -1,88 +1,108 @@
-import { createEffect, createMemo, Show, type Accessor, type ParentProps } from "solid-js"
-import { createStore } from "solid-js/store"
-import { useNavigate, useParams } from "@solidjs/router"
-import { SDKProvider, useSDK } from "@/context/sdk"
-import { SyncProvider, useSync } from "@/context/sync"
-import { LocalProvider } from "@/context/local"
-
-import { DataProvider } from "@cyberstrike-io/ui/context"
-import type { QuestionAnswer } from "@cyberstrike-io/sdk/v2"
-import { decode64 } from "@/utils/base64"
-import { showToast } from "@cyberstrike-io/ui/toast"
+import { DataProvider } from "@opencode-ai/session-ui/context"
+import { showToast } from "@/utils/toast"
+import { base64Encode } from "@opencode-ai/core/util/encode"
+import { useLocation, useNavigate, useParams } from "@solidjs/router"
+import { type Accessor, createEffect, createMemo, createResource, onCleanup, type ParentProps, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
-import { agentColor } from "@/utils/agent"
+import { LocalProvider } from "@/context/local"
+import { SDKProvider } from "@/context/sdk"
+import { useSync } from "@/context/sync"
+import { decode64 } from "@/utils/base64"
+import { Schema } from "effect"
+import type { ServerConnection } from "@/context/server"
+import { sessionHref } from "@/utils/session-route"
+import { useServerSync } from "@/context/server-sync"
 
-// `dirBase64` overrides the URL segment used when building session hrefs. The /:dir
-// route leaves it undefined and falls back to params.dir; the /new-session draft route
-// has no :dir param, so it passes the base64 of the draft's resolved directory instead.
-export function DirectoryDataProvider(props: ParentProps<{ directory: string; dirBase64?: string }>) {
-  const params = useParams()
+export function DirectoryDataProvider(
+  props: ParentProps<{
+    directory: string | Accessor<string>
+    draftID?: string
+    server?: Accessor<ServerConnection.Key | undefined>
+  }>,
+) {
+  const location = useLocation()
   const navigate = useNavigate()
+  const params = useParams()
   const sync = useSync()
-  const sdk = useSDK()
-
-  const dirSegment = () => props.dirBase64 ?? params.dir
-
-  const resolveAgentColor = (name: string) => {
-    const visible = sync.data.agent.filter((a) => a.mode !== "subagent" && !a.hidden)
-    const index = visible.findIndex((a) => a.name === name)
-    const agent = index >= 0 ? visible[index] : sync.data.agent.find((a) => a.name === name)
-    return agentColor(name, agent?.color, index >= 0 ? index : undefined)
+  const serverSync = useServerSync()
+  const directory = () => (typeof props.directory === "function" ? props.directory() : props.directory)
+  const slug = createMemo(() => base64Encode(directory()))
+  const href = (sessionID: string) => {
+    const server = props.server?.()
+    if (server) return sessionHref(server, sessionID)
+    return `/${slug()}/session/${sessionID}`
   }
 
+  createEffect(() => {
+    // A draft lives at /new-session?draftId=… and has no directory segment to normalize.
+    if (props.draftID || props.server?.()) return
+    const next = sync().data.path.directory
+    if (!next || next === directory()) return
+    const path = location.pathname.slice(slug().length + 1)
+    navigate(`/${base64Encode(next)}${path}${location.search}${location.hash}`, { replace: true })
+  })
+
+  createResource(
+    () => params.id,
+    (id) =>
+      sync()
+        .session.sync(id)
+        .catch(() => {}),
+  )
+
+  createEffect(() => {
+    const sessionID = params.id
+    if (!sessionID) return
+    serverSync().session.pin(sessionID)
+    onCleanup(() => serverSync().session.unpin(sessionID))
+  })
+
   return (
-    <DataProvider
-      data={sync.data}
-      directory={props.directory}
-      onPermissionRespond={(input: {
-        sessionID: string
-        permissionID: string
-        response: "once" | "always" | "reject"
-      }) => sdk.client.permission.respond(input)}
-      onQuestionReply={(input: { requestID: string; answers: QuestionAnswer[] }) => sdk.client.question.reply(input)}
-      onQuestionReject={(input: { requestID: string }) => sdk.client.question.reject(input)}
-      onNavigateToSession={(sessionID: string) => navigate(`/${dirSegment()}/session/${sessionID}`)}
-      onSessionHref={(sessionID: string) => `/${dirSegment()}/session/${sessionID}`}
-      onSyncSession={(sessionID: string) => sync.session.sync(sessionID)}
-      agentColor={resolveAgentColor}
-    >
-      <LocalProvider>{props.children}</LocalProvider>
-    </DataProvider>
+    <Show when={directory()} keyed>
+      {(directory) => (
+        <DataProvider
+          data={sync().data}
+          directory={directory}
+          sessionID={params.id}
+          onNavigateToSession={(sessionID: string) => navigate(href(sessionID))}
+          onSessionHref={href}
+        >
+          <LocalProvider>{props.children}</LocalProvider>
+        </DataProvider>
+      )}
+    </Show>
   )
 }
 
-// The per-directory context stack (SDK → Sync → Data → Local) shared by the /:dir
-// route and the /new-session draft route. Keeping it in one place means the draft
-// composer renders inside exactly the same context DirectoryLayout establishes, just
-// keyed on a directory resolved from the draft instead of the URL segment.
-export function DirectoryProviders(
-  props: ParentProps<{ directory: Accessor<string>; dirBase64?: Accessor<string> }>,
-) {
-  return (
-    <SDKProvider directory={props.directory}>
-      <SyncProvider>
-        <DirectoryDataProvider directory={props.directory()} dirBase64={props.dirBase64?.()}>
-          {props.children}
-        </DirectoryDataProvider>
-      </SyncProvider>
-    </SDKProvider>
-  )
+export const ProjectDirString = Schema.String.pipe(Schema.brand("ProjectDirString"))
+export type ProjectDirString = Schema.Schema.Type<typeof ProjectDirString>
+
+export function decodeDirectory(dir: string): ProjectDirString | undefined {
+  const decoded = decode64(dir)
+  if (!decoded) return
+  return ProjectDirString.make(decoded)
 }
 
 export default function Layout(props: ParentProps) {
   const params = useParams()
-  const navigate = useNavigate()
   const language = useLanguage()
-  const [store, setStore] = createStore({ invalid: "" })
-  const directory = createMemo(() => {
-    return decode64(params.dir) ?? ""
+  const navigate = useNavigate()
+  let invalid = ""
+
+  const resolved = createMemo(() => {
+    if (!params.dir) return ""
+    return decodeDirectory(params.dir) ?? ""
   })
 
   createEffect(() => {
-    if (!params.dir) return
-    if (directory()) return
-    if (store.invalid === params.dir) return
-    setStore("invalid", params.dir)
+    const dir = params.dir
+    if (!dir) return
+    if (resolved()) {
+      invalid = ""
+      return
+    }
+    if (invalid === dir) return
+    invalid = dir
     showToast({
       variant: "error",
       title: language.t("common.requestFailed"),
@@ -90,9 +110,14 @@ export default function Layout(props: ParentProps) {
     })
     navigate("/", { replace: true })
   })
+
   return (
-    <Show when={directory()}>
-      <DirectoryProviders directory={directory}>{props.children}</DirectoryProviders>
+    <Show when={resolved()} keyed>
+      {(resolved) => (
+        <SDKProvider directory={resolved}>
+          <DirectoryDataProvider directory={resolved}>{props.children}</DirectoryDataProvider>
+        </SDKProvider>
+      )}
     </Show>
   )
 }

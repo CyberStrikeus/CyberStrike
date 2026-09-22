@@ -1,5 +1,7 @@
-import { DialogSelectDirectory } from "@/components/dialog-select-directory"
-import { DialogSettings } from "@/components/dialog-settings"
+import { useDirectoryPicker } from "@/components/directory-picker"
+import { useServerManagementController } from "@/components/dialog-select-server"
+import { useSettingsCommand } from "@/components/settings-dialog"
+import { DialogServerV2 } from "@/components/settings-v2/dialog-server-v2"
 import { type LocalProject } from "@/context/layout"
 import { useLanguage } from "@/context/language"
 import { useNotification } from "@/context/notification"
@@ -8,21 +10,19 @@ import { ServerConnection } from "@/context/server"
 import { closeHomeProject, errorMessage, homeProjectDirectories } from "@/pages/layout/helpers"
 import { Persist, persisted } from "@/utils/persist"
 import { showToast } from "@/utils/toast"
-import { useDialog } from "@cyberstrike-io/ui/context/dialog"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { createResource } from "solid-js"
 import { createStore } from "solid-js/store"
 import type { HomeController } from "./home-controller"
 
-function isLocalHost(url: string) {
-  const host = url.replace(/^https?:\/\//, "").split(":")[0]
-  return host === "localhost" || host === "127.0.0.1"
-}
-
 export function createHomeProjectsController(home: HomeController) {
   const platform = usePlatform()
+  const pickDirectory = useDirectoryPicker()
   const dialog = useDialog()
   const language = useLanguage()
   const notification = useNotification()
+  const openSettings = useSettingsCommand()
+  const serverManagement = useServerManagementController({ navigateOnAdd: false })
   const [_state, setState, _, ready] = persisted(
     Persist.global("home.servers", ["home.servers.v1"]),
     createStore({ collapsed: {} as Record<string, boolean> }),
@@ -37,37 +37,7 @@ export function createHomeProjectsController(home: HomeController) {
   }
 
   function canRevealProject(conn: ServerConnection.Any) {
-    return platform.platform === "desktop" && !!platform.openPath && isLocalHost(conn.http.url)
-  }
-
-  // Single-server mapping: the "add project" picker maps onto this fork's
-  // existing directory-select dialog (upstream routed through a platform-aware
-  // useDirectoryPicker with a v2 dialog variant).
-  function pickDirectory(input: {
-    title?: string
-    multiple?: boolean
-    onSelect: (result: string | string[] | null) => void
-  }) {
-    let selected = false
-    const onSelect = (result: string | string[] | null) => {
-      selected = result !== null
-      input.onSelect(result)
-    }
-    const cancel = () => {
-      if (!selected) input.onSelect(null)
-    }
-    dialog.show(() => <DialogSelectDirectory title={input.title} multiple={input.multiple} onSelect={onSelect} />, cancel)
-  }
-
-  // Single-server fork: multi-server management (default server / remove / edit)
-  // is never surfaced because the home tree only renders the server row branch
-  // when there is more than one connection. These are inert stubs kept for the
-  // view's typed contract.
-  const serverManagement = {
-    canDefault: () => false,
-    defaultKey: () => undefined as ServerConnection.Key | null | undefined,
-    setDefault: (_key: ServerConnection.Key | null) => {},
-    handleRemove: (_key: ServerConnection.Key) => {},
+    return platform.platform === "desktop" && !!platform.openPath && ServerConnection.local(conn)
   }
 
   return {
@@ -91,7 +61,7 @@ export function createHomeProjectsController(home: HomeController) {
       setDefault: (conn: ServerConnection.Any | undefined) =>
         serverManagement.setDefault(conn ? ServerConnection.key(conn) : null),
       remove: (conn: ServerConnection.Any) => serverManagement.handleRemove(ServerConnection.key(conn)),
-      edit: (_conn: ServerConnection.Http) => {},
+      edit: (conn: ServerConnection.Http) => dialog.show(() => <DialogServerV2 mode="edit" server={conn} />),
       focus: home.selection.focusServer,
     },
     project: {
@@ -101,22 +71,25 @@ export function createHomeProjectsController(home: HomeController) {
       select: home.project.select,
       add: home.project.add,
       openNewSession: home.project.openProjectNewSession,
-      edit: (_conn: ServerConnection.Any, project: LocalProject) => {
-        void import("@/components/dialog-edit-project").then(({ DialogEditProject }) => {
-          void dialog.show(() => <DialogEditProject project={project} />)
+      edit: (conn: ServerConnection.Any, project: LocalProject) => {
+        void import("@/components/dialog-edit-project-v2").then(({ DialogEditProjectV2 }) => {
+          void dialog.show(() => <DialogEditProjectV2 server={conn} project={project} />)
         })
       },
-      unseenCount: (_conn: ServerConnection.Any, project: LocalProject) => {
-        return directories(project).reduce((total, directory) => total + notification.project.unseenCount(directory), 0)
+      unseenCount: (conn: ServerConnection.Any, project: LocalProject) => {
+        const state = notification.ensureServerState(ServerConnection.key(conn))
+        return directories(project).reduce((total, directory) => total + state.project.unseenCount(directory), 0)
       },
-      clearNotifications: (_conn: ServerConnection.Any, project: LocalProject) => {
+      clearNotifications: (conn: ServerConnection.Any, project: LocalProject) => {
+        const state = notification.ensureServerState(ServerConnection.key(conn))
         directories(project)
-          .filter((directory) => notification.project.unseenCount(directory) > 0)
-          .forEach((directory) => notification.project.markViewed(directory))
+          .filter((directory) => state.project.unseenCount(directory) > 0)
+          .forEach((directory) => state.project.markViewed(directory))
       },
       choose: (conn: ServerConnection.Any) => {
         if (home.server.health(conn)?.healthy === false) return
         pickDirectory({
+          server: conn,
           title: language.t("command.project.open"),
           multiple: true,
           onSelect: (result) => home.project.add(conn, homeProjectDirectories(result)),
@@ -146,8 +119,8 @@ export function createHomeProjectsController(home: HomeController) {
       },
     },
     utility: {
-      settings: () => dialog.show(() => <DialogSettings />),
-      help: () => platform.openExternal?.("https://cyberstrike.io"),
+      settings: openSettings,
+      help: () => platform.openExternal("https://opencode.ai/desktop-feedback"),
     },
   }
 }

@@ -1,1464 +1,864 @@
+import { For, Match, Show, Switch, createEffect, createMemo, onCleanup, type JSX } from "solid-js"
+import { createStore } from "solid-js/store"
+import { createMediaQuery } from "@solid-primitives/media"
+import { DragDropProvider as DndKitProvider, PointerSensor } from "@dnd-kit/solid"
+import { isSortable } from "@dnd-kit/solid/sortable"
+import { Accessibility, AutoScroller, Feedback, PointerActivationConstraints } from "@dnd-kit/dom"
+import { RestrictToHorizontalAxis } from "@dnd-kit/abstract/modifiers"
+import { RestrictToElement } from "@dnd-kit/dom/modifiers"
 import {
-  createEffect,
-  For,
-  Match,
-  Show,
-  Switch,
-  createMemo,
-  createSignal,
-  onCleanup,
-  type JSX,
-  type ValidComponent,
-} from "solid-js"
-import { useParams } from "@solidjs/router"
-import { Tabs } from "@cyberstrike-io/ui/tabs"
-import { IconButton } from "@cyberstrike-io/ui/icon-button"
-import { Button } from "@cyberstrike-io/ui/button"
-import { Spinner } from "@cyberstrike-io/ui/spinner"
-import { showToast } from "@cyberstrike-io/ui/toast"
-import { Tooltip, TooltipKeybind } from "@cyberstrike-io/ui/tooltip"
-import { ResizeHandle } from "@cyberstrike-io/ui/resize-handle"
-import { Mark } from "@cyberstrike-io/ui/logo"
-import { Switch as Toggle } from "@cyberstrike-io/ui/switch"
+  DragDropProvider,
+  DragDropSensors,
+  DragOverlay,
+  SortableProvider,
+  closestCenter,
+  type DragEvent,
+} from "@thisbeyond/solid-dnd"
+import { Tabs } from "@opencode-ai/ui/tabs"
+import { IconButton } from "@opencode-ai/ui/icon-button"
+import { Icon } from "@opencode-ai/ui/icon"
+import { TooltipKeybind } from "@opencode-ai/ui/tooltip"
+import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
+import { Mark } from "@opencode-ai/ui/logo"
+import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
+import { KeybindV2 } from "@opencode-ai/ui/v2/keybind-v2"
+import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
+import type { SnapshotFileDiff, VcsFileDiff } from "@opencode-ai/sdk/v2"
+import type { FileDiffInfo } from "@opencode-ai/client/promise"
+import { ConstrainDragYAxis, getDraggableId } from "@/utils/solid-dnd"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
+
 import FileTree from "@/components/file-tree"
+import { normalizeFileTreeV2Path } from "@/components/file-tree-v2-model"
 import { SessionContextUsage } from "@/components/session-context-usage"
-import { SessionContextTab, SortableTab, FileVisual } from "@/components/session"
-import { DialogSelectFile } from "@/components/dialog-select-file"
-import { DialogSelectMcp } from "@/components/dialog-select-mcp"
-import { DialogSelectBolt } from "@/components/dialog-select-bolt"
-import { createFileTabListSync } from "@/pages/session/file-tab-scroll"
-import { FileTabContent } from "@/pages/session/file-tabs"
-import { StickyAddButton } from "@/pages/session/review-tab"
-import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCenter } from "@thisbeyond/solid-dnd"
-import { ConstrainDragYAxis } from "@/utils/solid-dnd"
-import { copyVulnToClipboard } from "@/utils/vulnerability"
-import { normalizeStatus, groupOrder, STATUS_DISPLAY, isDimmed, isActive, defaultCollapsed, statusLabel } from "@/utils/vulnerability-status"
-import type { DragEvent } from "@thisbeyond/solid-dnd"
-import { useComments } from "@/context/comments"
+
+const reviewTabID = "session-side-panel-review-tab"
+const reviewTabPanelID = "session-side-panel-review-tabpanel"
+const fileBrowserTabPanelID = "session-side-panel-file-browser-tabpanel"
+import { SessionContextTab, SortableTab, SortableTabV2, FileVisual } from "@/components/session"
+import { OpenInAppV2 } from "@/components/session/open-in-app-v2"
 import { useCommand } from "@/context/command"
-import { useDialog } from "@cyberstrike-io/ui/context/dialog"
 import { useFile, type SelectedLineRange } from "@/context/file"
 import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
-import { useSync } from "@/context/sync"
 import { useSDK } from "@/context/sdk"
-import { Icon } from "@cyberstrike-io/ui/icon"
-import type { Message, UserMessage, Vulnerability, HackbrowserStatus, HackbrowserPhase } from "@cyberstrike-io/sdk/v2/client"
-
-// Static assets (JS bundles, CSS, images, fonts) are NOT endpoints — they must never show under the
-// Endpoints section (#37). Mirrors the server-side DataCollector classifier (JS_RE + STATIC_RE) so
-// pre-fix or cached request rows are filtered out at display too, not only new ingests.
-const STATIC_PATH_RE =
-  /\.(?:m?js|css|map|png|jpe?g|gif|svg|ico|webp|avif|woff2?|ttf|eot|otf|mp4|webm|mp3|wav|pdf|wasm)(?:$|\?|#)/i
-const isStaticPath = (p: unknown): boolean => typeof p === "string" && STATIC_PATH_RE.test(p)
-
-const statusDot = (status: string) => {
-  if (status === "connected") return "bg-icon-success-base"
-  if (status === "failed") return "bg-icon-danger-base"
-  if (status === "needs_auth") return "bg-icon-warning-base"
-  return "bg-surface-inset-base"
-}
-
-function McpPanelList() {
-  const sync = useSync()
-  const sdk = useSDK()
-  const dialog = useDialog()
-  const language = useLanguage()
-  const [loading, setLoading] = createSignal<string | null>(null)
-  const [boltGroups, setBoltGroups] = createSignal<
-    Array<{
-      boltServer: string
-      name: string
-      type: string
-      version?: string
-      tools: Array<{ name: string; description: string }>
-    }>
-  >([])
-
-  // Fetch MCP status on mount — bootstrap may not have completed yet
-  createEffect(() => {
-    sdk.client.mcp
-      .status()
-      .then((x) => {
-        if (x.data) sync.set("mcp", x.data)
-      })
-      .catch(() => {})
-  })
-
-  // Fetch Bolt tool groups (re-fetch when bolt status changes)
-  createEffect(() => {
-    const _ = sync.data.bolt
-    sdk.client.mcp
-      .boltTools()
-      .then((x) => {
-        if (x.data) setBoltGroups(x.data)
-      })
-      .catch(() => {})
-  })
-
-  const items = createMemo(() =>
-    Object.entries(sync.data.mcp ?? {})
-      .map(([name, s]) => ({ name, status: s.status }))
-      .sort((a, b) => a.name.localeCompare(b.name)),
-  )
-
-  const toggle = async (name: string) => {
-    if (loading()) return
-    setLoading(name)
-    try {
-      const s = sync.data.mcp[name]
-      if (s?.status === "connected") await sdk.client.mcp.disconnect({ name })
-      else await sdk.client.mcp.connect({ name })
-      const result = await sdk.client.mcp.status()
-      if (result.data) sync.set("mcp", result.data)
-    } finally {
-      setLoading(null)
-    }
-  }
-
-  return (
-    <div class="flex flex-col gap-0.5">
-      <div class="flex items-center justify-between px-2 py-1">
-        <span class="text-11-medium text-text-weaker uppercase tracking-wider">{language.t("dialog.mcp.title")}</span>
-        <IconButton
-          icon="plus-small"
-          variant="ghost"
-          size="small"
-          onClick={() => dialog.show(() => <DialogSelectMcp />)}
-        />
-      </div>
-      <Show when={items().length === 0 && boltGroups().length === 0}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("dialog.mcp.empty")}</div>
-      </Show>
-      <For each={items()}>
-        {(i) => (
-          <div
-            class="flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-surface-raised-base cursor-pointer"
-            onClick={() => toggle(i.name)}
-          >
-            <div class="flex items-center gap-2 min-w-0">
-              <span class={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDot(i.status)}`} />
-              <span class="text-12-regular truncate">{i.name}</span>
-            </div>
-            <div onClick={(e) => e.stopPropagation()}>
-              <Toggle
-                checked={i.status === "connected"}
-                disabled={loading() === i.name}
-                onChange={() => toggle(i.name)}
-              />
-            </div>
-          </div>
-        )}
-      </For>
-      <Show when={boltGroups().length > 0}>
-        <div class="px-2 py-1 mt-1 border-t border-border-weak-base">
-          <span class="text-11-medium text-text-weaker uppercase tracking-wider">From Bolt</span>
-        </div>
-        <For each={boltGroups()}>
-          {(g) => (
-            <div
-              class="flex items-center justify-between gap-2 px-2 py-1 rounded"
-              classList={{ "opacity-40": g.tools.length === 0 }}
-            >
-              <div class="flex items-center gap-2 min-w-0">
-                <span
-                  class="w-1.5 h-1.5 rounded-full shrink-0"
-                  classList={{
-                    "bg-icon-success-base": g.tools.length > 0,
-                    "bg-surface-inset-base": g.tools.length === 0,
-                  }}
-                />
-                <span class="text-12-regular truncate">{g.name}</span>
-                <span class="text-10-medium px-1.5 py-0.5 rounded bg-surface-base text-text-weaker shrink-0">
-                  {g.boltServer}
-                </span>
-              </div>
-              <span class="text-11-regular text-text-weaker shrink-0">
-                {g.tools.length} {g.tools.length === 1 ? "tool" : "tools"}
-              </span>
-            </div>
-          )}
-        </For>
-      </Show>
-    </div>
-  )
-}
-
-function BoltPanelList() {
-  const sync = useSync()
-  const sdk = useSDK()
-  const dialog = useDialog()
-  const language = useLanguage()
-  const [loading, setLoading] = createSignal<string | null>(null)
-
-  // Fetch Bolt status on mount — bootstrap may not have completed yet
-  createEffect(() => {
-    sdk.client.bolt
-      .status()
-      .then((x) => {
-        if (x.data) sync.set("bolt", x.data)
-      })
-      .catch(() => {})
-  })
-
-  const items = createMemo(() =>
-    Object.entries(sync.data.bolt ?? {})
-      .map(([name, s]) => ({ name, status: s.status }))
-      .sort((a, b) => a.name.localeCompare(b.name)),
-  )
-
-  const toggle = async (name: string) => {
-    if (loading()) return
-    setLoading(name)
-    try {
-      const s = sync.data.bolt[name]
-      if (s?.status === "connected") await sdk.client.bolt.disconnect({ name })
-      else await sdk.client.bolt.connect({ name })
-      const result = await sdk.client.bolt.status()
-      if (result.data) sync.set("bolt", result.data)
-    } finally {
-      setLoading(null)
-    }
-  }
-
-  return (
-    <div class="flex flex-col gap-0.5">
-      <div class="flex items-center justify-between px-2 py-1">
-        <span class="text-11-medium text-text-weaker uppercase tracking-wider">{language.t("dialog.bolt.title")}</span>
-        <IconButton
-          icon="plus-small"
-          variant="ghost"
-          size="small"
-          onClick={() => dialog.show(() => <DialogSelectBolt />)}
-        />
-      </div>
-      <Show when={items().length === 0}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("dialog.bolt.empty")}</div>
-      </Show>
-      <For each={items()}>
-        {(i) => (
-          <div
-            class="flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-surface-raised-base cursor-pointer"
-            onClick={() => toggle(i.name)}
-          >
-            <div class="flex items-center gap-2 min-w-0">
-              <span class={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDot(i.status)}`} />
-              <span class="text-12-regular truncate">{i.name}</span>
-            </div>
-            <div onClick={(e) => e.stopPropagation()}>
-              <Toggle
-                checked={i.status === "connected"}
-                disabled={loading() === i.name}
-                onChange={() => toggle(i.name)}
-              />
-            </div>
-          </div>
-        )}
-      </For>
-    </div>
-  )
-}
-
-const severityDot = (severity: Vulnerability["severity"]) => {
-  if (severity === "critical") return "bg-icon-critical-base"
-  if (severity === "high") return "bg-icon-warning-base"
-  if (severity === "medium") return "bg-icon-accent-base"
-  return "bg-border-weak-base"
-}
-
-const severityOrder = { critical: 0, high: 1, medium: 2, low: 3, info: 4 } as const
-
-const severityLabel = (severity: Vulnerability["severity"]) => {
-  if (severity === "critical") return "CRITICAL"
-  if (severity === "high") return "HIGH"
-  if (severity === "medium") return "MEDIUM"
-  if (severity === "low") return "LOW"
-  return "INFO"
-}
-
-const severityBadge = (severity: Vulnerability["severity"]) => {
-  if (severity === "critical") return "bg-surface-critical-base text-text-critical-base"
-  if (severity === "high") return "bg-surface-warning-base text-text-warning-base"
-  if (severity === "medium") return "bg-surface-accent-base text-text-accent-base"
-  return "bg-surface-base text-text-weaker"
-}
-
-
-function CopyVulnButton(props: { vuln: Parameters<typeof copyVulnToClipboard>[0]; iconOnly?: boolean }): JSX.Element {
-  const [copied, setCopied] = createSignal(false)
-
-  const copy = (e: MouseEvent) => {
-    e.stopPropagation()
-    copyVulnToClipboard(props.vuln).then((ok) => {
-      if (ok) {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      }
-    })
-  }
-
-  return (
-    <button
-      onClick={copy}
-      class="flex items-center gap-1 text-10-medium text-text-weaker hover:text-text-base transition-colors cursor-pointer select-none"
-      title="Copy vulnerability details"
-    >
-      <Icon name={copied() ? "check" : "copy"} size="small" />
-      <Show when={!props.iconOnly}>
-        <span>{copied() ? "Copied!" : "Copy"}</span>
-      </Show>
-    </button>
-  )
-}
-
-function VulnDetailSection(props: { label: string; content: string | undefined }): JSX.Element {
-  return (
-    <Show when={props.content}>
-      {(text) => (
-        <div class="flex flex-col gap-0.5">
-          <span class="text-11-medium text-text-weaker uppercase tracking-wider">{props.label}</span>
-          <div class="text-12-regular text-text-base whitespace-pre-wrap break-words select-text">{text()}</div>
-        </div>
-      )}
-    </Show>
-  )
-}
-
-function VulnsPanelList() {
-  const sync = useSync()
-  const language = useLanguage()
-  const params = useParams()
-
-  const sessionID = () => params.id ?? ""
-  const [expanded, setExpanded] = createSignal<string | undefined>(undefined)
-
-  createEffect(() => {
-    const id = sessionID()
-    if (!id) return
-    void sync.session.vulnerability(id)
-  })
-
-  const items = createMemo(() => {
-    const id = sessionID()
-    if (!id) return []
-    const list = sync.data.vulnerability?.[id] ?? []
-    return list.slice().sort((a, b) => {
-      const sa = severityOrder[a.severity] ?? 4
-      const sb = severityOrder[b.severity] ?? 4
-      if (sa !== sb) return sa - sb
-      return (a.title ?? "").localeCompare(b.title ?? "")
-    })
-  })
-
-  const openCount = createMemo(() => items().filter((v) => isActive(v.status ?? "draft")).length)
-
-  const vulnGroups = createMemo(() => {
-    const all = items()
-    const order = groupOrder()
-    return order
-      .map((key) => {
-        const display = STATUS_DISPLAY[key]
-        const matched = all.filter((v) => normalizeStatus(v.status ?? "draft") === key)
-        return { key, label: display.label, symbol: display.symbol, items: matched }
-      })
-      .filter((g) => g.items.length > 0)
-  })
-  const [collapsedGroups, setCollapsedGroups] = createSignal<Record<string, boolean>>(defaultCollapsed())
-  const toggleGroup = (key: string) => setCollapsedGroups((p) => ({ ...p, [key]: !p[key] }))
-  const canonicalTitle = (v: ReturnType<typeof items>[number]) =>
-    v.duplicate_of ? items().find((x) => x.id === v.duplicate_of)?.title : undefined
-
-  const toggle = (id: string) => {
-    setExpanded((prev) => (prev === id ? undefined : id))
-  }
-
-  return (
-    <div class="flex flex-col gap-0.5">
-      <div class="flex items-center justify-between px-2 py-1">
-        <span class="text-11-medium text-text-weaker uppercase tracking-wider">
-          {language.t("dialog.vulnerability.title")} ({openCount()})
-        </span>
-      </div>
-      <Show when={!sessionID()}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
-          {language.t("dialog.vulnerability.noSession")}
-        </div>
-      </Show>
-      <Show when={sessionID() && items().length === 0}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
-          {language.t("dialog.vulnerability.empty")}
-        </div>
-      </Show>
-      <For each={vulnGroups()}>
-        {(g) => (
-          <div class="flex flex-col">
-            <div
-              class="flex items-center gap-1.5 px-2 py-1 cursor-pointer text-text-weaker"
-              on:click={() => toggleGroup(g.key)}
-            >
-              <Icon
-                name={collapsedGroups()[g.key] ? "chevron-right" : "chevron-down"}
-                size="small"
-                class="shrink-0 text-icon-weak"
-              />
-              <span class="text-11-medium uppercase tracking-wider">
-                {g.symbol} {g.label} ({g.items.length})
-              </span>
-            </div>
-            <Show when={!collapsedGroups()[g.key]}>
-              <For each={g.items}>
-                {(v) => {
-                  const id = () => v.id ?? v.title
-                  const isExpanded = () => expanded() === id()
-                  return (
-                    <div
-                      class="group flex flex-col rounded transition-colors hover:bg-surface-raised-base-hover"
-                      classList={{ "opacity-50": isDimmed(v.status ?? "draft") }}
-                    >
-                      <div class="flex items-start gap-2 px-2 py-1.5 cursor-pointer" on:click={() => toggle(id())}>
-                        <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDot(v.severity)}`} />
-                        <div class="flex flex-col min-w-0 flex-1">
-                          <span class="text-12-regular text-text-strong" classList={{ truncate: !isExpanded() }}>
-                            {v.title}
-                          </span>
-                          <span class="text-11-regular text-text-weaker truncate">
-                            {v.severity.toUpperCase()}
-                            {v.cwe_id ? ` · CWE-${v.cwe_id}` : ""}
-                            {v.file ? ` · ${v.file}${v.line_start ? `:${v.line_start}` : ""}` : ""}
-                            {v.status === "duplicate" && canonicalTitle(v) ? ` · → ${canonicalTitle(v)}` : ""}
-                          </span>
-                        </div>
-                        <Show
-                          when={isExpanded()}
-                          fallback={
-                            <span class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                              <CopyVulnButton vuln={v} iconOnly />
-                            </span>
-                          }
-                        >
-                          <CopyVulnButton vuln={v} />
-                        </Show>
-                        <Icon
-                          name={isExpanded() ? "chevron-down" : "chevron-right"}
-                          size="small"
-                          class="shrink-0 mt-0.5 text-icon-weak"
-                        />
-                      </div>
-                      <Show when={isExpanded()}>
-                        <div class="flex flex-col gap-2.5 px-2 pb-2.5 pt-0.5 ml-3.5 border-l border-border-weak-base select-text">
-                          <div class="flex items-center gap-1.5 flex-wrap">
-                            <span class={`text-10-medium px-1.5 py-0.5 rounded ${severityBadge(v.severity)}`}>
-                              {severityLabel(v.severity)}
-                            </span>
-                            <span class="text-10-medium px-1.5 py-0.5 rounded bg-surface-base text-text-weaker">
-                              {statusLabel(v.status ?? "open")}
-                            </span>
-                            <Show when={v.cwe_id}>
-                              <span class="text-10-medium px-1.5 py-0.5 rounded bg-surface-base text-text-weaker">
-                                CWE-{v.cwe_id}
-                              </span>
-                            </Show>
-                          </div>
-                          <Show when={v.file}>
-                            <div class="flex flex-col gap-0.5">
-                              <span class="text-11-medium text-text-weaker uppercase tracking-wider">Location</span>
-                              <span class="text-12-regular text-text-base font-mono">
-                                {v.file}
-                                {v.line_start ? `:${v.line_start}` : ""}
-                                {v.line_end && v.line_end !== v.line_start ? `-${v.line_end}` : ""}
-                              </span>
-                            </div>
-                          </Show>
-                          <VulnDetailSection label="Description" content={v.description} />
-                          <VulnDetailSection label="Steps to Reproduce" content={v.steps_to_reproduce} />
-                          <VulnDetailSection label="Proof of Concept" content={v.poc} />
-                          <VulnDetailSection label="Business Impact" content={v.business_impact} />
-                          <VulnDetailSection label="Recommendation" content={v.recommendation} />
-                        </div>
-                      </Show>
-                    </div>
-                  )
-                }}
-              </For>
-            </Show>
-          </div>
-        )}
-      </For>
-    </div>
-  )
-}
-
-function SkillsPanelList() {
-  const sync = useSync()
-  const sdk = useSDK()
-
-  createEffect(() => {
-    sdk.client.skill
-      .list()
-      .then((x) => {
-        if (x.data) sync.set("skill", x.data)
-      })
-      .catch(() => {})
-  })
-
-  const [search, setSearch] = createSignal("")
-  const [expanded, setExpanded] = createSignal<Record<string, boolean>>({})
-  const [detail, setDetail] = createSignal<string | null>(null)
-  const [detailContent, setDetailContent] = createSignal<string | null>(null)
-  const [detailLoading, setDetailLoading] = createSignal(false)
-
-  const items = createMemo(() => {
-    const raw = sync.data.skill ?? []
-    const q = search().toLowerCase()
-    const filtered = q
-      ? raw.filter(
-          (s) =>
-            s.name.toLowerCase().includes(q) ||
-            s.description.toLowerCase().includes(q) ||
-            (s.category ?? "").toLowerCase().includes(q),
-        )
-      : raw
-    return filtered
-      .slice()
-      .sort((a, b) => (a.category ?? "").localeCompare(b.category ?? "") || a.name.localeCompare(b.name))
-  })
-
-  const categories = createMemo(() => {
-    const cats = new Map<string, typeof items extends () => (infer T)[] ? T[] : never>()
-    for (const s of items()) {
-      const cat = s.category ?? "other"
-      const list = cats.get(cat)
-      if (list) list.push(s)
-      else cats.set(cat, [s])
-    }
-    return cats
-  })
-
-  const toggle = (cat: string) => {
-    setExpanded((prev) => ({ ...prev, [cat]: !prev[cat] }))
-  }
-
-  const toggleDetail = (name: string) => {
-    if (detail() === name) {
-      setDetail(null)
-      setDetailContent(null)
-      return
-    }
-    setDetail(name)
-    setDetailContent(null)
-    setDetailLoading(true)
-    sdk.client.skill
-      .get({ name })
-      .then((x) => {
-        if (detail() !== name) return
-        setDetailContent(x.data?.content ?? null)
-      })
-      .catch(() => {})
-      .finally(() => setDetailLoading(false))
-  }
-
-  const verifiedDot = (v?: string) => {
-    if (v === "official") return "bg-icon-success-base"
-    if (v === "tampered") return "bg-icon-critical-base"
-    return "bg-icon-warning-base"
-  }
-
-  const verifiedLabel = (v?: string) => {
-    if (v === "official") return "Official"
-    if (v === "community") return "Community"
-    if (v === "tampered") return "Tampered"
-    return "Unverified"
-  }
-
-  return (
-    <div class="flex flex-col gap-0.5">
-      <div class="flex items-center justify-between px-2 py-1">
-        <span class="text-11-medium text-text-weaker uppercase tracking-wider">Skills ({items().length})</span>
-      </div>
-      <div class="px-2 pb-1">
-        <input
-          type="text"
-          placeholder="Search skills..."
-          value={search()}
-          onInput={(e) => setSearch(e.currentTarget.value)}
-          class="w-full px-2 py-1 text-12-regular bg-surface-inset-base border border-border-base rounded outline-none focus:border-border-strong placeholder:text-text-weaker"
-        />
-      </div>
-      <Show when={items().length === 0}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
-          {search() ? "No matching skills" : "No skills loaded"}
-        </div>
-      </Show>
-      <For each={Array.from(categories())}>
-        {([cat, skills]) => {
-          const open = () => !!expanded()[cat] || !!search()
-          return (
-            <>
-              <button
-                class="flex items-center gap-1 px-2 py-1 mt-0.5 w-full text-left hover:bg-surface-dimmer/50 rounded cursor-pointer"
-                onClick={() => toggle(cat)}
-              >
-                <span
-                  class="text-text-weaker transition-transform duration-150 text-[10px]"
-                  style={{ transform: open() ? "rotate(90deg)" : "rotate(0deg)" }}
-                >
-                  {"\u25B6"}
-                </span>
-                <span class="text-11-medium text-text-weaker uppercase tracking-wider flex-1">
-                  {cat} ({skills.length})
-                </span>
-              </button>
-              <Show when={open()}>
-                <For each={skills}>
-                  {(s) => (
-                    <div class="flex flex-col">
-                      <button
-                        class="flex items-center gap-2 px-2 pl-5 py-1 rounded w-full text-left hover:bg-surface-dimmer/50 cursor-pointer"
-                        classList={{ "bg-surface-dimmer/30": detail() === s.name }}
-                        onClick={() => toggleDetail(s.name)}
-                      >
-                        <span class={`w-1.5 h-1.5 rounded-full shrink-0 ${verifiedDot(s.verified)}`} />
-                        <div class="flex flex-col min-w-0 flex-1">
-                          <span class="text-12-regular truncate">{s.name}</span>
-                          <span class="text-11-regular text-text-weaker truncate">{s.description}</span>
-                        </div>
-                      </button>
-                      <Show when={detail() === s.name}>
-                        <div class="mx-2 ml-5 mb-1 p-2 rounded bg-surface-inset-base text-11-regular">
-                          <div class="flex flex-wrap gap-x-3 gap-y-1 text-text-weak mb-2">
-                            <span>{verifiedLabel(s.verified)}</span>
-                            <Show when={s.owasp_id}>
-                              <span>{s.owasp_id}</span>
-                            </Show>
-                            <Show when={s.category}>
-                              <span>{s.category}</span>
-                            </Show>
-                          </div>
-                          <Show when={s.tech_stack?.length}>
-                            <div class="flex flex-wrap gap-1 mb-2">
-                              <For each={s.tech_stack}>
-                                {(t) => (
-                                  <span class="px-1.5 py-0.5 rounded bg-surface-dimmer-base text-10-regular text-text-weak">
-                                    {t}
-                                  </span>
-                                )}
-                              </For>
-                            </div>
-                          </Show>
-                          <Show when={s.cwe_ids?.length}>
-                            <div class="flex flex-wrap gap-1 mb-2">
-                              <For each={s.cwe_ids}>
-                                {(c) => (
-                                  <span class="px-1.5 py-0.5 rounded bg-surface-dimmer-base text-10-regular text-text-weak">
-                                    {c}
-                                  </span>
-                                )}
-                              </For>
-                            </div>
-                          </Show>
-                          <Show when={detailLoading()}>
-                            <div class="text-text-weaker">Loading...</div>
-                          </Show>
-                          <Show when={detailContent()}>
-                            <div class="mt-1 text-text-base whitespace-pre-wrap break-words text-11-regular leading-relaxed">
-                              {detailContent()}
-                            </div>
-                          </Show>
-                        </div>
-                      </Show>
-                    </div>
-                  )}
-                </For>
-              </Show>
-            </>
-          )
-        }}
-      </For>
-    </div>
-  )
-}
-
-function TodoPanelList() {
-  const sync = useSync()
-  const language = useLanguage()
-  const params = useParams()
-
-  const sessionID = () => params.id ?? ""
-
-  createEffect(() => {
-    const id = sessionID()
-    if (!id) return
-    void sync.session.todo(id)
-  })
-
-  const items = createMemo(() => {
-    const id = sessionID()
-    if (!id) return []
-    return sync.data.todo[id] ?? []
-  })
-
-  const activeCount = createMemo(
-    () => items().filter((t) => t.status !== "completed" && t.status !== "cancelled").length,
-  )
-
-  return (
-    <div class="flex flex-col gap-0.5">
-      <div class="flex items-center justify-between px-2 py-1">
-        <span class="text-11-medium text-text-weaker uppercase tracking-wider">
-          {language.t("dialog.todo.title")} ({activeCount()})
-        </span>
-      </div>
-      <Show when={!sessionID()}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("dialog.todo.noSession")}</div>
-      </Show>
-      <Show when={sessionID() && items().length === 0}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("dialog.todo.empty")}</div>
-      </Show>
-      <For each={items()}>
-        {(t) => (
-          <div
-            class="flex items-start gap-2 px-2 py-1 rounded"
-            classList={{ "opacity-50": t.status === "completed" || t.status === "cancelled" }}
-          >
-            <Icon
-              name={t.status === "completed" ? "check" : t.status === "in_progress" ? "dash" : "circle-check"}
-              size="small"
-              classList={{
-                "shrink-0 mt-0.5": true,
-                "text-icon-success-base": t.status === "completed",
-                "text-icon-warning-base": t.status === "in_progress",
-                "text-icon-weak": t.status === "pending" || t.status === "cancelled",
-              }}
-            />
-            <span class="text-12-regular">{t.content}</span>
-          </div>
-        )}
-      </For>
-    </div>
-  )
-}
-
-type WebSection = "endpoints" | "roles" | "credentials" | "objects" | "functions"
-
-const webSections: { id: WebSection; label: string }[] = [
-  { id: "endpoints", label: "Endpoints" },
-  { id: "roles", label: "Roles" },
-  { id: "credentials", label: "Credentials" },
-  { id: "objects", label: "Objects" },
-  { id: "functions", label: "Functions" },
-]
-
-const endpointStatusColor = (status: string) => {
-  if (status === "processed") return "bg-icon-success-base"
-  if (status === "processing") return "bg-icon-warning-base"
-  return "bg-surface-inset-base"
-}
-
-const functionActionColor = (action: string) => {
-  if (action === "create") return "text-icon-success-base"
-  if (action === "read") return "text-icon-accent-base"
-  if (action === "update") return "text-icon-warning-base"
-  if (action === "delete") return "text-icon-danger-base"
-  return "text-text-weak"
-}
-
-type ObsTree = {
-  params: { name: string; byCredential: { credentialID: string | null; values: string[]; redacted: boolean }[] }[]
-}
-
-function WebContextPanelList() {
-  const sync = useSync()
-  const sdk = useSDK()
-  const language = useLanguage()
-  const params = useParams()
-  const [section, setSection] = createSignal<WebSection>("endpoints")
-  // Per-endpoint expand state (by request id) + fetched observed-value trees (by key_hash).
-  const [expandedEp, setExpandedEp] = createSignal<Record<string, boolean>>({})
-  const [obsTree, setObsTree] = createSignal<Record<string, ObsTree>>({})
-
-  const sessionID = () => params.id ?? ""
-  const credLabel = (id: string | null) =>
-    id == null
-      ? "anon"
-      : (((sync.data.web_credential[sessionID()] ?? []) as { id: string; label: string }[]).find((c) => c.id === id)
-          ?.label ?? id.slice(0, 6))
-  const toggleEndpoint = async (v: Record<string, unknown>) => {
-    const id = v.id as string
-    const open = !expandedEp()[id]
-    setExpandedEp({ ...expandedEp(), [id]: open })
-    // Fetch by request id (always present; the SDK can strip key_hash from the list).
-    if (open && !obsTree()[id]) {
-      try {
-        const r = await sdk.fetch(`/session/${sessionID()}/observations?id=${encodeURIComponent(id)}`)
-        const tree = (await r.json()) as ObsTree
-        if (tree && Array.isArray(tree.params)) setObsTree({ ...obsTree(), [id]: tree })
-      } catch {
-        /* ignore — expanded row simply shows nothing */
-      }
-    }
-  }
-
-  // Fetch web context for active session
-  createEffect(() => {
-    const id = sessionID()
-    if (!id) return
-    void sync.session.request(id)
-    void sync.session.webCredentials(id)
-    void sync.session.webRoles(id)
-    void sync.session.webObjects(id)
-    void sync.session.webFunctions(id)
-  })
-
-  const items = createMemo(() => {
-    const id = sessionID()
-    if (!id) return []
-    const s = section()
-    if (s === "endpoints") return (sync.data.request[id] ?? []).filter((r) => !isStaticPath(r.normalized_path))
-    if (s === "roles") return sync.data.web_role[id] ?? []
-    if (s === "credentials") return sync.data.web_credential[id] ?? []
-    if (s === "objects") return sync.data.web_object[id] ?? []
-    if (s === "functions") return sync.data.web_function[id] ?? []
-    return []
-  })
-
-  const totalCount = createMemo(() => {
-    const id = sessionID()
-    if (!id) return 0
-    return (
-      (sync.data.request[id]?.filter((r) => !isStaticPath(r.normalized_path)).length ?? 0) +
-      (sync.data.web_role[id]?.length ?? 0) +
-      (sync.data.web_credential[id]?.length ?? 0) +
-      (sync.data.web_object[id]?.length ?? 0) +
-      (sync.data.web_function[id]?.length ?? 0)
-    )
-  })
-
-  return (
-    <div class="flex flex-col gap-0.5">
-      <div class="flex items-center justify-between px-2 py-1">
-        <span class="text-11-medium text-text-weaker uppercase tracking-wider">
-          {language.t("dialog.web.title")} ({totalCount()})
-        </span>
-      </div>
-
-      {/* Section pills */}
-      <div class="flex items-center gap-1 px-2 py-1 flex-wrap">
-        <For each={webSections}>
-          {(s) => (
-            <button
-              class="px-2 py-0.5 rounded text-11-medium cursor-pointer border-none"
-              classList={{
-                "bg-surface-base text-text-strong": s.id === section(),
-                "bg-transparent text-text-weak hover:text-text-base": s.id !== section(),
-              }}
-              onClick={() => setSection(s.id)}
-            >
-              {s.label}
-            </button>
-          )}
-        </For>
-      </div>
-
-      <Show when={!sessionID()}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("dialog.web.noSession")}</div>
-      </Show>
-      <Show when={sessionID() && items().length === 0}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("dialog.web.empty")}</div>
-      </Show>
-      <For each={items()}>
-        {(item) => {
-          const v = item as Record<string, unknown>
-          return (
-            <div class="flex items-start gap-2 px-2 py-1 rounded">
-              <Show when={section() === "endpoints"}>
-                <div class="flex flex-col w-full gap-0.5">
-                  <div class="flex items-center gap-1.5 cursor-pointer" onClick={() => toggleEndpoint(v)}>
-                    <span class="text-11-regular text-text-muted shrink-0">
-                      {expandedEp()[v.id as string] ? "▾" : "▸"}
-                    </span>
-                    <span class={`w-1.5 h-1.5 rounded-full shrink-0 ${endpointStatusColor(v.status as string)}`} />
-                    <span class="text-12-medium text-text-accent shrink-0">{v.method as string}</span>
-                    <span class="text-12-regular truncate">{v.normalized_path as string}</span>
-                    <Show when={v.operation as string | undefined}>
-                      <span class="text-12-regular text-text-muted shrink-0">· {v.operation as string}</span>
-                    </Show>
-                  </div>
-                  <Show when={expandedEp()[v.id as string]}>
-                    <div class="flex flex-col gap-0.5 pl-5">
-                      <For each={obsTree()[v.id as string]?.params ?? []}>
-                        {(p) => (
-                          <div class="flex flex-col">
-                            <span class="text-11-regular text-text-muted">{p.name}</span>
-                            <For each={p.byCredential}>
-                              {(bc) => (
-                                <div class="flex gap-1.5 pl-3">
-                                  <span class="text-11-medium text-text-accent shrink-0">
-                                    {credLabel(bc.credentialID)}
-                                  </span>
-                                  <span class="text-11-regular truncate">
-                                    → {bc.redacted ? "[redacted]" : bc.values.join(", ")}
-                                  </span>
-                                </div>
-                              )}
-                            </For>
-                          </div>
-                        )}
-                      </For>
-                      <Show when={obsTree()[v.id as string] && (obsTree()[v.id as string]?.params ?? []).length === 0}>
-                        <span class="text-11-regular text-text-weak pl-3">(no observed values)</span>
-                      </Show>
-                    </div>
-                  </Show>
-                </div>
-              </Show>
-              <Show when={section() === "roles"}>
-                <span class="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 bg-icon-accent-base" />
-                <div class="flex flex-col min-w-0 flex-1">
-                  <span class="text-12-regular truncate">
-                    {v.name as string}
-                    {v.level != null ? ` L${v.level}` : ""}
-                  </span>
-                </div>
-              </Show>
-              <Show when={section() === "credentials"}>
-                <span class="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 bg-icon-success-base" />
-                <div class="flex items-center gap-1.5 min-w-0 flex-1">
-                  <span class="text-12-medium text-text-accent shrink-0">{(v.type as string) ?? "auth"}</span>
-                  <span class="text-12-regular truncate">{v.label as string}</span>
-                </div>
-              </Show>
-              <Show when={section() === "objects"}>
-                <span class="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 bg-surface-inset-base" />
-                <span class="text-12-regular truncate">{v.name as string}</span>
-              </Show>
-              <Show when={section() === "functions"}>
-                <Icon
-                  name="dash"
-                  size="small"
-                  classList={{
-                    "shrink-0 mt-0.5": true,
-                    [functionActionColor(v.action_type as string)]: true,
-                  }}
-                />
-                <div class="flex items-center gap-1.5 min-w-0 flex-1">
-                  <span class="text-12-medium text-text-weaker shrink-0">
-                    {String(v.action_type).charAt(0).toUpperCase()}
-                  </span>
-                  <span class="text-12-regular truncate">{v.name as string}</span>
-                </div>
-              </Show>
-            </div>
-          )
-        }}
-      </For>
-    </div>
-  )
-}
-
-const hackbrowserPhaseDot = (phase: HackbrowserPhase) => {
-  if (phase === "crawling") return "bg-icon-success-base"
-  if (phase === "starting") return "bg-icon-warning-base"
-  if (phase === "completed") return "bg-icon-success-base"
-  return "bg-icon-danger-base"
-}
-
-const hackbrowserPhaseBadge = (phase: HackbrowserPhase) => {
-  if (phase === "crawling") return "bg-surface-accent-base text-text-accent-base"
-  if (phase === "starting") return "bg-surface-warning-base text-text-warning-base"
-  if (phase === "completed") return "bg-surface-success-base text-text-success-base"
-  return "bg-surface-critical-base text-text-critical-base"
-}
-
-function HackbrowserPanelList() {
-  const sdk = useSDK()
-  const language = useLanguage()
-  const params = useParams()
-
-  const sessionID = () => params.id ?? ""
-  const [status, setStatus] = createSignal<HackbrowserStatus | undefined>(undefined)
-  const [stopping, setStopping] = createSignal(false)
-
-  // Bootstrap from the status map on mount / session change, then live-subscribe.
-  createEffect(() => {
-    const id = sessionID()
-    setStatus(undefined)
-    if (!id) return
-    sdk.client.session
-      .hackbrowserStatus()
-      .then((x) => {
-        if (sessionID() !== id) return
-        setStatus(x.data?.[id])
-      })
-      .catch(() => {})
-  })
-
-  createEffect(() => {
-    const unsub = sdk.event.on("session.hackbrowser.status", (event) => {
-      if (event.properties.sessionID !== sessionID()) return
-      setStatus(event.properties.status)
-    })
-    onCleanup(unsub)
-  })
-
-  const phase = () => status()?.phase
-  const isActivePhase = () => phase() === "starting" || phase() === "crawling"
-
-  const phaseLabel = (p: HackbrowserPhase) => {
-    if (p === "starting") return language.t("hackbrowser.phase.starting")
-    if (p === "crawling") return language.t("hackbrowser.phase.crawling")
-    if (p === "completed") return language.t("hackbrowser.phase.completed")
-    return language.t("hackbrowser.phase.failed")
-  }
-
-  const stop = async () => {
-    const id = sessionID()
-    if (!id || stopping()) return
-    setStopping(true)
-    try {
-      const result = await sdk.client.session.hackbrowserStop({ sessionID: id })
-      showToast({
-        title: language.t("hackbrowser.title"),
-        description: result.data ? language.t("hackbrowser.stop.requested") : language.t("hackbrowser.stop.none"),
-        variant: result.data ? "success" : "default",
-      })
-    } catch {
-      showToast({ title: language.t("hackbrowser.stop.failed"), variant: "error" })
-    } finally {
-      setStopping(false)
-    }
-  }
-
-  return (
-    <div class="flex flex-col gap-0.5">
-      <div class="flex items-center justify-between px-2 py-1">
-        <span class="text-11-medium text-text-weaker uppercase tracking-wider">{language.t("hackbrowser.title")}</span>
-      </div>
-
-      <Show when={!sessionID()}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("hackbrowser.noSession")}</div>
-      </Show>
-
-      <Show when={sessionID() && !status()}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("hackbrowser.empty")}</div>
-      </Show>
-
-      <Show when={status()}>
-        {(s) => (
-          <div class="flex flex-col gap-2 px-2 py-1">
-            <div class="flex items-center gap-2">
-              <Show
-                when={isActivePhase()}
-                fallback={<span class={`w-1.5 h-1.5 rounded-full shrink-0 ${hackbrowserPhaseDot(s().phase)}`} />}
-              >
-                <Spinner class="w-3.5 h-3.5 text-icon-accent-base" />
-              </Show>
-              <span class={`text-10-medium px-1.5 py-0.5 rounded ${hackbrowserPhaseBadge(s().phase)}`}>
-                {phaseLabel(s().phase)}
-              </span>
-            </div>
-
-            <div class="text-12-regular text-text-base break-all">{s().targetUrl}</div>
-
-            <div class="flex items-center gap-1.5 text-11-regular text-text-weaker">
-              <span>
-                {s().pagesExplored} {language.t("hackbrowser.counter.pages")}
-              </span>
-              <span>·</span>
-              <span>
-                {s().capturedEndpoints} {language.t("hackbrowser.counter.endpoints")}
-              </span>
-            </div>
-
-            <Show when={s().currentPage}>
-              <div class="flex flex-col gap-0.5">
-                <span class="text-11-medium text-text-weaker uppercase tracking-wider">
-                  {language.t("hackbrowser.currentPage")}
-                </span>
-                <span class="text-11-regular text-text-base break-all">{s().currentPage}</span>
-              </div>
-            </Show>
-
-            <Show when={s().errors.length > 0}>
-              <div class="flex flex-col gap-0.5">
-                <span class="text-11-medium text-text-weaker uppercase tracking-wider">
-                  {language.t("hackbrowser.errors")}
-                </span>
-                <For each={s().errors}>
-                  {(err) => <span class="text-11-regular text-text-critical-base break-words">{err}</span>}
-                </For>
-              </div>
-            </Show>
-
-            <Show when={isActivePhase()}>
-              <Button variant="primary" size="small" disabled={stopping()} onClick={stop}>
-                {language.t("hackbrowser.stop")}
-              </Button>
-            </Show>
-          </div>
-        )}
-      </Show>
-    </div>
-  )
-}
-
-type SessionSidePanelViewModel = {
-  messages: () => Message[]
-  visibleUserMessages: () => UserMessage[]
-  view: () => ReturnType<ReturnType<typeof useLayout>["view"]>
-  info: () => ReturnType<ReturnType<typeof useSync>["session"]["get"]>
+import { useSettings } from "@/context/settings"
+import { createFileTabListSync } from "@/pages/session/file-tab-scroll"
+import { FileTabContent } from "@/pages/session/file-tabs"
+import {
+  SESSION_OPEN_FILE_TAB,
+  createOpenSessionFileTab,
+  createSessionTabs,
+  getTabReorderIndex,
+  shouldShowFileTree,
+  type Sizing,
+} from "@/pages/session/helpers"
+import { setSessionHandoff } from "@/pages/session/handoff"
+import { useSessionLayout } from "@/pages/session/session-layout"
+import { SessionFileBrowserTab, type SessionFileBrowserState } from "@/pages/session/v2/session-file-browser-tab"
+
+type ReviewDiff = FileDiffInfo | SnapshotFileDiff | VcsFileDiff
+type RenderDiff = FileDiffInfo | (SnapshotFileDiff & { file: string }) | VcsFileDiff
+const FILE_TREE_WIDTH_MIN = 240
+
+function renderDiff(value: ReviewDiff): value is RenderDiff {
+  return typeof value.file === "string"
 }
 
 export function SessionSidePanel(props: {
-  open: boolean
-  reviewOpen: boolean
-  language: ReturnType<typeof useLanguage>
-  layout: ReturnType<typeof useLayout>
-  command: ReturnType<typeof useCommand>
-  dialog: ReturnType<typeof useDialog>
-  file: ReturnType<typeof useFile>
-  comments: ReturnType<typeof useComments>
-  hasReview: boolean
-  reviewCount: number
-  reviewTab: boolean
-  contextOpen: () => boolean
-  openedTabs: () => string[]
-  activeTab: () => string
-  activeFileTab: () => string | undefined
-  tabs: () => ReturnType<ReturnType<typeof useLayout>["tabs"]>
-  openTab: (value: string) => void
-  showAllFiles: () => void
+  canReview: () => boolean
+  diffs: () => ReviewDiff[]
+  diffsReady: () => boolean
+  empty: () => string
+  hasReview: () => boolean
+  reviewHasFocusableContent: () => boolean
+  reviewCount: () => number
   reviewPanel: () => JSX.Element
-  vm: SessionSidePanelViewModel
-  handoffFiles: () => Record<string, SelectedLineRange | null> | undefined
-  codeComponent: NonNullable<ValidComponent>
-  addCommentToContext: (input: {
-    file: string
-    selection: SelectedLineRange
-    comment: string
-    preview?: string
-    origin?: "review" | "file"
-  }) => void
-  activeDraggable: () => string | undefined
-  onDragStart: (event: unknown) => void
-  onDragEnd: () => void
-  onDragOver: (event: DragEvent) => void
-  fileTreeTab: () => "changes" | "all"
-  setFileTreeTabValue: (value: string) => void
-  diffsReady: boolean
-  diffFiles: string[]
-  kinds: Map<string, "add" | "del" | "mix">
+  reviewSidebarToggle?: (disabled: boolean) => JSX.Element
+  fileBrowserState?: SessionFileBrowserState
   activeDiff?: string
   focusReviewDiff: (path: string) => void
+  reviewSnap: boolean
+  size: Sizing
+  stacked?: boolean
 }) {
-  const openedTabs = createMemo(() => props.openedTabs())
+  const layout = useLayout()
+  const settings = useSettings()
+  const file = useFile()
+  const language = useLanguage()
+  const command = useCommand()
+  const dialog = useDialog()
+  const sdk = useSDK()
+  const { sessionKey, tabs, view, params } = useSessionLayout()
+  const projectDirectory = createMemo(() => sdk().directory)
+
+  const isDesktop = createMediaQuery("(min-width: 768px)")
+  const shown = settings.visibility.fileTree
+
+  const reviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened())
+  const fileOpen = createMemo(
+    () =>
+      isDesktop() &&
+      shouldShowFileTree({
+        visible: shown(),
+        opened: layout.fileTree.opened(),
+      }),
+  )
+  const open = createMemo(() => reviewOpen() || fileOpen())
+  const fileTreeWidth = createMemo(() => Math.max(FILE_TREE_WIDTH_MIN, layout.fileTree.width()))
+  const reviewTab = createMemo(() => isDesktop())
+  const panelWidth = createMemo(() => {
+    if (!open()) return "0px"
+    if (reviewOpen()) return "auto"
+    return `${fileTreeWidth()}px`
+  })
+  const treeWidth = createMemo(() => (fileOpen() ? `${fileTreeWidth()}px` : "0px"))
+
+  const diffs = createMemo(() => props.diffs().filter(renderDiff))
+  const diffFiles = createMemo(() => diffs().map((d) => d.file))
+  const kinds = createMemo(() => {
+    const merge = (a: "add" | "del" | "mix" | undefined, b: "add" | "del" | "mix") => {
+      if (!a) return b
+      if (a === b) return a
+      return "mix" as const
+    }
+
+    const out = new Map<string, "add" | "del" | "mix">()
+    for (const diff of diffs()) {
+      const file = normalizeFileTreeV2Path(diff.file)
+      const kind = diff.status === "added" ? "add" : diff.status === "deleted" ? "del" : "mix"
+
+      out.set(file, kind)
+
+      const parts = file.split("/")
+      for (const [idx] of parts.slice(0, -1).entries()) {
+        const dir = parts.slice(0, idx + 1).join("/")
+        if (!dir) continue
+        out.set(dir, merge(out.get(dir), kind))
+      }
+    }
+    return out
+  })
+
+  const empty = (msg: string) => (
+    <div class="h-full flex flex-col">
+      <div class="h-6 shrink-0" aria-hidden />
+      <div class="flex-1 pb-64 flex items-center justify-center text-center">
+        <div class="text-12-regular text-text-weak">{msg}</div>
+      </div>
+    </div>
+  )
+
+  const nofiles = createMemo(() => {
+    const state = file.tree.state("")
+    if (!state?.loaded) return false
+    return file.tree.children("").length === 0
+  })
+
+  const normalizeTab = (tab: string) => {
+    if (!tab.startsWith("file://")) return tab
+    return file.tab(tab)
+  }
+
+  const openReviewPanel = () => {
+    if (!view().reviewPanel.opened()) view().reviewPanel.open()
+  }
+
+  const openTab = createOpenSessionFileTab({
+    normalizeTab,
+    openTab: tabs().open,
+    pathFromTab: file.pathFromTab,
+    loadFile: file.load,
+    openReviewPanel,
+    setActive: tabs().setActive,
+  })
+
+  const tabState = createSessionTabs({
+    tabs,
+    pathFromTab: file.pathFromTab,
+    normalizeTab,
+    review: reviewTab,
+    hasReview: props.canReview,
+    fileBrowser: () => !!props.fileBrowserState,
+  })
+  const contextOpen = tabState.contextOpen
+  const openFileOpen = tabState.openFileOpen
+  const panelTabs = tabState.panelTabs
+  const openedTabs = tabState.openedTabs
+  const activeTab = tabState.activeTab
+  const activeFileTab = tabState.activeFileTab
+
+  const fileTreeTab = () => layout.fileTree.tab()
+
+  const setFileTreeTabValue = (value: string) => {
+    if (value !== "changes" && value !== "all") return
+    layout.fileTree.setTab(value)
+  }
+
+  const showAllFiles = () => {
+    if (fileTreeTab() !== "changes") return
+    layout.fileTree.setTab("all")
+  }
+
+  let fileFilter: HTMLInputElement | undefined
+  let tabList: HTMLDivElement | undefined
+  const temporaryTab = tabs().preview
+  const previewTab = (value: string) => {
+    const next = normalizeTab(value)
+    tabs().previewTab(next)
+    const path = file.pathFromTab(next)
+    if (path) void file.load(path)
+    openReviewPanel()
+    queueMicrotask(() => tabs().setActive(next))
+  }
+  const openFileBrowser = () => {
+    previewTab(SESSION_OPEN_FILE_TAB)
+    queueMicrotask(() => fileFilter?.focus())
+  }
+  const activateTab = (value: string) => {
+    const next = normalizeTab(value)
+    const path = file.pathFromTab(next)
+    if (path) void file.load(path)
+    openReviewPanel()
+    tabs().setActive(next)
+  }
+  const browserTab = createMemo(() => {
+    if (!props.fileBrowserState) return undefined
+    const active = activeTab()
+    if (active === SESSION_OPEN_FILE_TAB) return SESSION_OPEN_FILE_TAB
+    if (active && file.pathFromTab(active)) return active
+    return activeFileTab()
+  })
+  // Keep the file-browser shell mounted while any file tab exists. Kobalte briefly
+  // selects Review while the tab For replaces a preview trigger, which would
+  // otherwise dispose the sidebar and reset scroll.
+  const fileBrowserMounted = createMemo(() => {
+    if (!props.fileBrowserState) return false
+    return openedTabs().length > 0 || openFileOpen() || !!browserTab()
+  })
+  const fileBrowserVisible = createMemo(() => {
+    const active = activeTab()
+    return active !== "review" && active !== "context" && active !== "empty"
+  })
+  const openFileKeybind = createMemo(() => command.keybindParts("file.open"))
+  const closeTabKeybind = createMemo(() => command.keybindParts("tab.close"))
+  const [store, setStore] = createStore({
+    activeDraggable: undefined as string | undefined,
+  })
+
+  const handleDragStart = (event: unknown) => {
+    const id = getDraggableId(event)
+    if (!id) return
+    setStore("activeDraggable", id)
+  }
+
+  const handleDragOver = (event: DragEvent) => {
+    const { draggable, droppable } = event
+    if (!draggable || !droppable) return
+
+    const currentTabs = tabs().all()
+    const toIndex = getTabReorderIndex(currentTabs, draggable.id.toString(), droppable.id.toString())
+    if (toIndex === undefined) return
+    tabs().move(draggable.id.toString(), toIndex)
+  }
+
+  const handleDragEnd = () => {
+    setStore("activeDraggable", undefined)
+  }
+
+  createEffect(() => {
+    if (!file.ready()) return
+
+    setSessionHandoff(sessionKey(), {
+      files: tabs()
+        .all()
+        .reduce<Record<string, SelectedLineRange | null>>((acc, tab) => {
+          const path = file.pathFromTab(tab)
+          if (!path) return acc
+
+          const selected = file.selectedLines(path)
+          acc[path] =
+            selected && typeof selected === "object" && "start" in selected && "end" in selected
+              ? (selected as SelectedLineRange)
+              : null
+
+          return acc
+        }, {}),
+    })
+  })
 
   return (
-    <Show when={props.open}>
+    <Show when={isDesktop() && !(settings.general.newLayoutDesigns() && !params.id)}>
       <aside
         id="review-panel"
-        aria-label={props.language.t("session.panel.reviewAndFiles")}
-        class="relative min-w-0 h-full border-l border-border-weak-base flex"
+        aria-label={language.t("session.panel.reviewAndFiles")}
+        aria-hidden={!open()}
+        inert={!open()}
+        class="relative min-w-0 flex overflow-hidden"
         classList={{
-          "flex-1": props.reviewOpen,
-          "shrink-0": !props.reviewOpen,
+          "bg-v2-background-bg-base": settings.general.newLayoutDesigns(),
+          "bg-background-base": !settings.general.newLayoutDesigns(),
+          "h-full shrink-0": !props.stacked,
+          "h-full min-h-0": props.stacked,
+          "pointer-events-none": !open(),
+          "transition-[width] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] motion-reduce:transition-none":
+            !props.size.active() && !props.reviewSnap,
+          "rounded-[10px] shadow-[var(--v2-elevation-raised)] overflow-hidden": settings.general.newLayoutDesigns(),
+          "flex-1": reviewOpen(),
         }}
-        style={{ width: props.reviewOpen ? undefined : `${props.layout.fileTree.width()}px` }}
+        style={{ width: panelWidth() }}
       >
-        <Show when={props.reviewOpen}>
-          <div class="flex-1 min-w-0 h-full">
-            <DragDropProvider
-              onDragStart={props.onDragStart}
-              onDragEnd={props.onDragEnd}
-              onDragOver={props.onDragOver}
-              collisionDetector={closestCenter}
-            >
-              <DragDropSensors />
-              <ConstrainDragYAxis />
-              <Tabs value={props.activeTab()} onChange={props.openTab}>
-                <div class="sticky top-0 shrink-0 flex">
-                  <Tabs.List
-                    ref={(el: HTMLDivElement) => {
-                      const stop = createFileTabListSync({ el, contextOpen: props.contextOpen })
-                      onCleanup(stop)
-                    }}
-                  >
-                    <Show when={props.reviewTab}>
-                      <Tabs.Trigger value="review" classes={{ button: "!pl-6" }}>
-                        <div class="flex items-center gap-1.5">
-                          <div>{props.language.t("session.tab.review")}</div>
-                          <Show when={props.hasReview}>
-                            <div class="text-12-medium text-text-strong h-4 px-2 flex flex-col items-center justify-center rounded-full bg-surface-base">
-                              {props.reviewCount}
+        <Show when={open()}>
+          <div
+            class="size-full flex"
+            classList={{
+              "border-l border-border-weaker-base": !settings.general.newLayoutDesigns(),
+            }}
+          >
+            <Show when={reviewOpen()}>
+              <div
+                class="relative min-w-0 h-full flex-1 overflow-hidden"
+                classList={{
+                  "bg-v2-background-bg-base": settings.general.newLayoutDesigns(),
+                  "bg-background-base": !settings.general.newLayoutDesigns(),
+                }}
+              >
+                <div
+                  class="size-full min-w-0 h-full"
+                  classList={{
+                    "bg-v2-background-bg-base": settings.general.newLayoutDesigns(),
+                    "bg-background-base": !settings.general.newLayoutDesigns(),
+                  }}
+                >
+                  <Show
+                    when={props.fileBrowserState}
+                    fallback={
+                      <DragDropProvider
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={handleDragOver}
+                        collisionDetector={closestCenter}
+                      >
+                        <DragDropSensors />
+                        <ConstrainDragYAxis />
+                        <Tabs value={activeTab()} onChange={activateTab}>
+                          <div class="sticky top-0 shrink-0 flex">
+                            <Tabs.List
+                              ref={(el: HTMLDivElement) => {
+                                const stop = createFileTabListSync({ el, contextOpen })
+                                onCleanup(stop)
+                              }}
+                            >
+                              <Show when={reviewTab() && props.canReview()}>
+                                <Tabs.Trigger
+                                  value="review"
+                                  id={reviewTabID}
+                                  aria-controls={activeTab() === "review" ? reviewTabPanelID : undefined}
+                                >
+                                  <div class="flex items-center gap-1.5">
+                                    <div>{language.t("session.tab.review")}</div>
+                                    <Show when={props.hasReview()}>
+                                      <div>{props.reviewCount()}</div>
+                                    </Show>
+                                  </div>
+                                </Tabs.Trigger>
+                              </Show>
+                              <Show when={contextOpen()}>
+                                <Tabs.Trigger
+                                  value="context"
+                                  closeButton={
+                                    <TooltipKeybind
+                                      title={language.t("common.closeTab")}
+                                      keybind={command.keybind("tab.close")}
+                                      placement="bottom"
+                                      gutter={10}
+                                    >
+                                      <IconButton
+                                        icon="close-small"
+                                        variant="ghost"
+                                        class="h-5 w-5"
+                                        onClick={() => tabs().close("context")}
+                                        aria-label={language.t("common.closeTab")}
+                                      />
+                                    </TooltipKeybind>
+                                  }
+                                  hideCloseButton
+                                  onMiddleClick={() => tabs().close("context")}
+                                >
+                                  <div class="flex items-center gap-2">
+                                    <SessionContextUsage variant="indicator" />
+                                    <div>{language.t("session.tab.context")}</div>
+                                  </div>
+                                </Tabs.Trigger>
+                              </Show>
+                              <SortableProvider ids={openedTabs()}>
+                                <For each={panelTabs()}>
+                                  {(tab) => (
+                                    <Show
+                                      when={tab === SESSION_OPEN_FILE_TAB}
+                                      fallback={
+                                        <SortableTab
+                                          tab={tab}
+                                          temporary={temporaryTab() === tab}
+                                          onTabClose={tabs().close}
+                                          onTabDoubleClick={temporaryTab() === tab ? openTab : undefined}
+                                        />
+                                      }
+                                    >
+                                      <Tabs.Trigger
+                                        value={SESSION_OPEN_FILE_TAB}
+                                        closeButton={
+                                          <TooltipKeybind
+                                            title={language.t("common.closeTab")}
+                                            keybind={command.keybind("tab.close")}
+                                            placement="bottom"
+                                            gutter={10}
+                                          >
+                                            <IconButton
+                                              icon="close-small"
+                                              variant="ghost"
+                                              class="h-5 w-5"
+                                              onClick={() => tabs().close(SESSION_OPEN_FILE_TAB)}
+                                              aria-label={language.t("common.closeTab")}
+                                            />
+                                          </TooltipKeybind>
+                                        }
+                                        hideCloseButton
+                                        onMiddleClick={() => tabs().close(SESSION_OPEN_FILE_TAB)}
+                                      >
+                                        <div class="flex items-center gap-1.5 italic">
+                                          <Icon name="open-file" size="small" />
+                                          <span>{language.t("command.file.open")}</span>
+                                        </div>
+                                      </Tabs.Trigger>
+                                    </Show>
+                                  )}
+                                </For>
+                              </SortableProvider>
+                              <div
+                                class="h-full shrink-0 sticky right-0 z-10 flex items-center justify-center pr-3"
+                                classList={{
+                                  "bg-v2-background-bg-base": settings.general.newLayoutDesigns(),
+                                  "bg-background-stronger": !settings.general.newLayoutDesigns(),
+                                }}
+                              >
+                                <TooltipKeybind
+                                  title={language.t("command.file.open")}
+                                  keybind={command.keybind("file.open")}
+                                  class="flex items-center"
+                                >
+                                  <IconButton
+                                    icon="plus-small"
+                                    variant="ghost"
+                                    iconSize="large"
+                                    class="!rounded-md"
+                                    onClick={() => {
+                                      void import("@/components/dialog-select-file").then((x) => {
+                                        dialog.show(() => <x.DialogSelectFile mode="files" onOpenFile={showAllFiles} />)
+                                      })
+                                    }}
+                                    aria-label={language.t("command.file.open")}
+                                  />
+                                </TooltipKeybind>
+                              </div>
+                            </Tabs.List>
+                          </div>
+
+                          <Show when={reviewTab() && props.canReview() && activeTab() === "review"}>
+                            <div
+                              id={reviewTabPanelID}
+                              role="tabpanel"
+                              aria-labelledby={reviewTabID}
+                              tabIndex={props.reviewHasFocusableContent() ? undefined : 0}
+                              data-slot="tabs-content"
+                              class="flex flex-col h-full overflow-hidden contain-strict"
+                            >
+                              {props.reviewPanel()}
                             </div>
                           </Show>
-                        </div>
-                      </Tabs.Trigger>
-                    </Show>
-                    <Tabs.Trigger
-                      value="context"
-                      closeButton={
-                        <Tooltip value={props.language.t("common.closeTab")} placement="bottom">
-                          <IconButton
-                            icon="close-small"
-                            variant="ghost"
-                            class="h-5 w-5"
-                            onClick={() => props.tabs().close("context")}
-                            aria-label={props.language.t("common.closeTab")}
-                          />
-                        </Tooltip>
-                      }
-                      hideCloseButton
-                      onMiddleClick={() => props.tabs().close("context")}
+
+                          <Show when={activeTab() === "empty"}>
+                            <Tabs.Content value="empty" class="flex flex-col h-full overflow-hidden contain-strict">
+                              <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
+                                <div class="h-full px-6 pb-42 -mt-4 flex flex-col items-center justify-center text-center gap-6">
+                                  <Mark class="w-14 opacity-10" />
+                                  <div class="text-14-regular text-text-weak max-w-56">
+                                    {language.t("session.files.selectToOpen")}
+                                  </div>
+                                </div>
+                              </div>
+                            </Tabs.Content>
+                          </Show>
+
+                          <Show when={activeTab() === "context"}>
+                            <Tabs.Content value="context" class="flex flex-col h-full overflow-hidden contain-strict">
+                              <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
+                                <SessionContextTab />
+                              </div>
+                            </Tabs.Content>
+                          </Show>
+
+                          <Show when={activeFileTab()} keyed>
+                            {(tab) => <FileTabContent tab={tab} />}
+                          </Show>
+                        </Tabs>
+                        <DragOverlay>
+                          <Show when={store.activeDraggable} keyed>
+                            {(tab) => {
+                              const path = file.pathFromTab(tab)
+                              return (
+                                <div data-component="tabs-drag-preview">
+                                  <Show when={path}>
+                                    {(p) => <FileVisual active path={p()} temporary={temporaryTab() === tab} />}
+                                  </Show>
+                                </div>
+                              )
+                            }}
+                          </Show>
+                        </DragOverlay>
+                      </DragDropProvider>
+                    }
+                  >
+                    <DndKitProvider
+                      sensors={[
+                        PointerSensor.configure({
+                          activationConstraints: [new PointerActivationConstraints.Distance({ value: 4 })],
+                          preventActivation: (event) =>
+                            event.target instanceof Element &&
+                            (!!event.target.closest('[data-slot="tabs-trigger-close-button"]') ||
+                              !!event.target.closest(".session-review-v2-open-in-app-slot")),
+                        }),
+                      ]}
+                      modifiers={[
+                        RestrictToHorizontalAxis,
+                        RestrictToElement.configure({ element: () => tabList ?? null }),
+                      ]}
+                      plugins={(defaults) => [
+                        ...defaults.filter((plugin) => plugin !== Accessibility),
+                        AutoScroller.configure({ acceleration: 8, threshold: { x: 0.05, y: 0 } }),
+                        Feedback.configure({ dropAnimation: null }),
+                      ]}
+                      onDragEnd={(event) => {
+                        const source = event.operation.source
+                        if (event.canceled || !isSortable(source) || source.initialIndex === source.index) return
+                        tabs().move(source.id.toString(), source.index)
+                      }}
                     >
-                      <div class="flex items-center gap-2">
-                        <SessionContextUsage variant="indicator" />
-                        <div>{props.language.t("session.tab.context")}</div>
-                      </div>
-                    </Tabs.Trigger>
-                    <Tabs.Trigger value="mcp-panel">
-                      <div class="flex items-center gap-1.5">MCP Servers</div>
-                    </Tabs.Trigger>
-                    <Tabs.Trigger value="bolt-panel">
-                      <div class="flex items-center gap-1.5">Bolt</div>
-                    </Tabs.Trigger>
-                    <Tabs.Trigger value="vulns-panel">
-                      <div class="flex items-center gap-1.5">Vulns</div>
-                    </Tabs.Trigger>
-                    <Tabs.Trigger value="hackbrowser-panel">
-                      <div class="flex items-center gap-1.5">{props.language.t("hackbrowser.title")}</div>
-                    </Tabs.Trigger>
-                    <Tabs.Trigger value="web-panel">
-                      <div class="flex items-center gap-1.5">Web</div>
-                    </Tabs.Trigger>
-                    <Tabs.Trigger value="todo-panel">
-                      <div class="flex items-center gap-1.5">Todo</div>
-                    </Tabs.Trigger>
-                    <Tabs.Trigger value="skills-panel">
-                      <div class="flex items-center gap-1.5">Skills</div>
-                    </Tabs.Trigger>
-                    <SortableProvider ids={openedTabs()}>
-                      <For each={openedTabs()}>
-                        {(tab) => <SortableTab tab={tab} onTabClose={props.tabs().close} />}
-                      </For>
-                    </SortableProvider>
-                    <StickyAddButton>
-                      <TooltipKeybind
-                        title={props.language.t("command.file.open")}
-                        keybind={props.command.keybind("file.open")}
-                        class="flex items-center"
-                      >
-                        <IconButton
-                          icon="plus-small"
-                          variant="ghost"
-                          iconSize="large"
-                          onClick={() =>
-                            props.dialog.show(() => <DialogSelectFile mode="files" onOpenFile={props.showAllFiles} />)
-                          }
-                          aria-label={props.language.t("command.file.open")}
-                        />
-                      </TooltipKeybind>
-                    </StickyAddButton>
-                  </Tabs.List>
-                </div>
-
-                <Show when={props.reviewTab}>
-                  <Tabs.Content value="review" class="flex flex-col h-full overflow-hidden contain-strict">
-                    <Show when={props.activeTab() === "review"}>{props.reviewPanel()}</Show>
-                  </Tabs.Content>
-                </Show>
-
-                <Tabs.Content value="empty" class="flex flex-col h-full overflow-hidden contain-strict">
-                  <Show when={props.activeTab() === "empty"}>
-                    <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
-                      <div class="h-full px-6 pb-42 flex flex-col items-center justify-center text-center gap-6">
-                        <Mark class="w-14 opacity-10" />
-                        <div class="text-14-regular text-text-weak max-w-56">
-                          {props.language.t("session.files.selectToOpen")}
-                        </div>
-                      </div>
-                    </div>
-                  </Show>
-                </Tabs.Content>
-
-                <Tabs.Content value="context" class="flex flex-col h-full overflow-hidden contain-strict">
-                  <Show when={props.activeTab() === "context"}>
-                    <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
-                      <SessionContextTab
-                        messages={props.vm.messages}
-                        visibleUserMessages={props.vm.visibleUserMessages}
-                        view={props.vm.view}
-                        info={props.vm.info}
-                      />
-                    </div>
-                  </Show>
-                </Tabs.Content>
-
-                <Tabs.Content value="mcp-panel" class="flex flex-col h-full overflow-hidden contain-strict">
-                  <Show when={props.activeTab() === "mcp-panel"}>
-                    <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
-                      <McpPanelList />
-                    </div>
-                  </Show>
-                </Tabs.Content>
-
-                <Tabs.Content value="bolt-panel" class="flex flex-col h-full overflow-hidden contain-strict">
-                  <Show when={props.activeTab() === "bolt-panel"}>
-                    <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
-                      <BoltPanelList />
-                    </div>
-                  </Show>
-                </Tabs.Content>
-
-                <Tabs.Content value="vulns-panel" class="flex flex-col h-full overflow-hidden">
-                  <Show when={props.activeTab() === "vulns-panel"}>
-                    <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
-                      <VulnsPanelList />
-                    </div>
-                  </Show>
-                </Tabs.Content>
-
-                <Tabs.Content value="hackbrowser-panel" class="flex flex-col h-full overflow-hidden contain-strict">
-                  <Show when={props.activeTab() === "hackbrowser-panel"}>
-                    <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
-                      <HackbrowserPanelList />
-                    </div>
-                  </Show>
-                </Tabs.Content>
-
-                <Tabs.Content value="web-panel" class="flex flex-col h-full overflow-hidden contain-strict">
-                  <Show when={props.activeTab() === "web-panel"}>
-                    <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
-                      <WebContextPanelList />
-                    </div>
-                  </Show>
-                </Tabs.Content>
-
-                <Tabs.Content value="todo-panel" class="flex flex-col h-full overflow-hidden contain-strict">
-                  <Show when={props.activeTab() === "todo-panel"}>
-                    <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
-                      <TodoPanelList />
-                    </div>
-                  </Show>
-                </Tabs.Content>
-
-                <Tabs.Content value="skills-panel" class="flex flex-col h-full overflow-hidden contain-strict">
-                  <Show when={props.activeTab() === "skills-panel"}>
-                    <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
-                      <SkillsPanelList />
-                    </div>
-                  </Show>
-                </Tabs.Content>
-
-                <Show when={props.activeFileTab()} keyed>
-                  {(tab) => (
-                    <FileTabContent
-                      tab={tab}
-                      activeTab={props.activeTab}
-                      tabs={props.tabs}
-                      view={props.vm.view}
-                      handoffFiles={props.handoffFiles}
-                      file={props.file}
-                      comments={props.comments}
-                      language={props.language}
-                      codeComponent={props.codeComponent}
-                      addCommentToContext={props.addCommentToContext}
-                    />
-                  )}
-                </Show>
-              </Tabs>
-              <DragOverlay>
-                <Show when={props.activeDraggable()}>
-                  {(tab) => {
-                    const path = createMemo(() => props.file.pathFromTab(tab()))
-                    return (
-                      <div class="relative px-6 h-12 flex items-center bg-background-stronger border-x border-border-weak-base border-b border-b-transparent">
-                        <Show when={path()}>{(p) => <FileVisual active path={p()} />}</Show>
-                      </div>
-                    )
-                  }}
-                </Show>
-              </DragOverlay>
-            </DragDropProvider>
-          </div>
-        </Show>
-
-        <Show when={props.layout.fileTree.opened()}>
-          <div
-            id="file-tree-panel"
-            class="relative shrink-0 h-full"
-            style={{ width: `${props.layout.fileTree.width()}px` }}
-          >
-            <div
-              class="h-full flex flex-col overflow-hidden group/filetree"
-              classList={{ "border-l border-border-weak-base": props.reviewOpen }}
-            >
-              <Tabs
-                variant="pill"
-                value={props.fileTreeTab()}
-                onChange={props.setFileTreeTabValue}
-                class="h-full"
-                data-scope="filetree"
-              >
-                <Tabs.List>
-                  <Tabs.Trigger value="changes" class="flex-1" classes={{ button: "w-full" }}>
-                    {props.reviewCount}{" "}
-                    {props.language.t(
-                      props.reviewCount === 1 ? "session.review.change.one" : "session.review.change.other",
-                    )}
-                  </Tabs.Trigger>
-                  <Tabs.Trigger value="all" class="flex-1" classes={{ button: "w-full" }}>
-                    {props.language.t("session.files.all")}
-                  </Tabs.Trigger>
-                </Tabs.List>
-                <Tabs.Content value="changes" class="bg-background-base px-3 py-0">
-                  <Switch>
-                    <Match when={props.hasReview}>
-                      <Show
-                        when={props.diffsReady}
-                        fallback={
-                          <div class="px-2 py-2 text-12-regular text-text-weak">
-                            {props.language.t("common.loading")}
-                            {props.language.t("common.loading.ellipsis")}
+                      <Tabs value={activeTab()} onChange={activateTab}>
+                        <div class="session-review-v2-tabs-bar sticky top-0 shrink-0 flex items-center">
+                          <Tabs.List
+                            ref={(el: HTMLDivElement) => {
+                              tabList = el
+                              const stop = createFileTabListSync({ el, contextOpen })
+                              onCleanup(stop)
+                            }}
+                          >
+                            <Show when={props.reviewSidebarToggle}>
+                              {(toggle) => (
+                                <div class="session-review-v2-sidebar-toggle-slot h-full shrink-0 sticky left-0 z-10 flex items-center justify-center bg-v2-background-bg-base">
+                                  {toggle()(activeTab() === SESSION_OPEN_FILE_TAB)}
+                                </div>
+                              )}
+                            </Show>
+                            <Show when={reviewTab() && props.canReview()}>
+                              <Tabs.Trigger
+                                value="review"
+                                id={reviewTabID}
+                                aria-controls={activeTab() === "review" ? reviewTabPanelID : undefined}
+                              >
+                                {props.hasReview()
+                                  ? language.t("session.review.filesChanged", { count: props.reviewCount() })
+                                  : language.t("session.tab.review")}
+                              </Tabs.Trigger>
+                            </Show>
+                            <Show when={contextOpen()}>
+                              <Tabs.Trigger
+                                value="context"
+                                closeButton={
+                                  <TooltipV2
+                                    value={
+                                      <>
+                                        {language.t("common.closeTab")}
+                                        <Show when={closeTabKeybind().length > 0}>
+                                          <KeybindV2 keys={closeTabKeybind()} variant="neutral" />
+                                        </Show>
+                                      </>
+                                    }
+                                    placement="bottom"
+                                    gutter={10}
+                                  >
+                                    <IconButton
+                                      icon="close-small"
+                                      variant="ghost"
+                                      class="h-5 w-5"
+                                      onClick={() => tabs().close("context")}
+                                      aria-label={language.t("common.closeTab")}
+                                    />
+                                  </TooltipV2>
+                                }
+                                hideCloseButton
+                                onMiddleClick={() => tabs().close("context")}
+                              >
+                                <div class="flex items-center gap-2">
+                                  <SessionContextUsage variant="indicator" />
+                                  <div>{language.t("session.tab.context")}</div>
+                                </div>
+                              </Tabs.Trigger>
+                            </Show>
+                            <For each={panelTabs()}>
+                              {(tab) => (
+                                <Show
+                                  when={tab === SESSION_OPEN_FILE_TAB}
+                                  fallback={
+                                    <SortableTabV2
+                                      tab={tab}
+                                      index={() => tabs().all().indexOf(tab)}
+                                      temporary={temporaryTab() === tab}
+                                      onTabClose={tabs().close}
+                                      onTabDoubleClick={temporaryTab() === tab ? openTab : undefined}
+                                    />
+                                  }
+                                >
+                                  <Tabs.Trigger
+                                    value={SESSION_OPEN_FILE_TAB}
+                                    closeButton={
+                                      <TooltipV2
+                                        value={
+                                          <>
+                                            {language.t("common.closeTab")}
+                                            <Show when={closeTabKeybind().length > 0}>
+                                              <KeybindV2 keys={closeTabKeybind()} variant="neutral" />
+                                            </Show>
+                                          </>
+                                        }
+                                        placement="bottom"
+                                        gutter={10}
+                                      >
+                                        <IconButton
+                                          icon="close-small"
+                                          variant="ghost"
+                                          class="h-5 w-5"
+                                          onClick={() => tabs().close(SESSION_OPEN_FILE_TAB)}
+                                          aria-label={language.t("common.closeTab")}
+                                        />
+                                      </TooltipV2>
+                                    }
+                                    hideCloseButton
+                                    onMiddleClick={() => tabs().close(SESSION_OPEN_FILE_TAB)}
+                                  >
+                                    <div class="flex items-center gap-1.5 italic">
+                                      <Icon name="open-file" size="small" />
+                                      <span>{language.t("command.file.open")}</span>
+                                    </div>
+                                  </Tabs.Trigger>
+                                </Show>
+                              )}
+                            </For>
+                            <div
+                              class="h-full shrink-0 sticky right-0 z-10 flex items-center justify-center"
+                              classList={{
+                                "bg-v2-background-bg-base": settings.general.newLayoutDesigns(),
+                                "bg-background-stronger": !settings.general.newLayoutDesigns(),
+                              }}
+                            >
+                              <TooltipV2
+                                value={
+                                  <>
+                                    {language.t("command.file.open")}
+                                    <Show when={openFileKeybind().length > 0}>
+                                      <KeybindV2 keys={openFileKeybind()} variant="neutral" />
+                                    </Show>
+                                  </>
+                                }
+                                placement="bottom"
+                                class="flex items-center"
+                              >
+                                <IconButtonV2
+                                  icon={<Icon name="plus-small" />}
+                                  variant="ghost-muted"
+                                  size="large"
+                                  onClick={() => openFileBrowser()}
+                                  aria-label={language.t("command.file.open")}
+                                />
+                              </TooltipV2>
+                            </div>
+                          </Tabs.List>
+                          <div
+                            class="session-review-v2-open-in-app-slot shrink-0 flex items-center pr-3"
+                            onPointerDown={(event) => event.stopPropagation()}
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <OpenInAppV2 directory={projectDirectory} />
                           </div>
-                        }
-                      >
-                        <FileTree
-                          path=""
-                          allowed={props.diffFiles}
-                          kinds={props.kinds}
-                          draggable={false}
-                          active={props.activeDiff}
-                          onFileClick={(node) => props.focusReviewDiff(node.path)}
-                        />
-                      </Show>
-                    </Match>
-                    <Match when={true}>
-                      <div class="mt-8 text-center text-12-regular text-text-weak">
-                        {props.language.t("session.review.noChanges")}
-                      </div>
-                    </Match>
-                  </Switch>
-                </Tabs.Content>
-                <Tabs.Content value="all" class="bg-background-base px-3 py-0">
-                  <FileTree
-                    path=""
-                    modified={props.diffFiles}
-                    kinds={props.kinds}
-                    onFileClick={(node) => props.openTab(props.file.tab(node.path))}
-                  />
-                </Tabs.Content>
-              </Tabs>
-            </div>
-            <ResizeHandle
-              direction="horizontal"
-              edge="start"
-              size={props.layout.fileTree.width()}
-              min={200}
-              max={480}
-              collapseThreshold={160}
-              onResize={props.layout.fileTree.resize}
-              onCollapse={props.layout.fileTree.close}
-            />
+                        </div>
+
+                        <Show when={reviewTab() && props.canReview() && activeTab() === "review"}>
+                          <div
+                            id={reviewTabPanelID}
+                            role="tabpanel"
+                            aria-labelledby={reviewTabID}
+                            tabIndex={props.reviewHasFocusableContent() ? undefined : 0}
+                            data-slot="tabs-content"
+                            class="flex flex-col h-full overflow-hidden contain-strict"
+                          >
+                            {props.reviewPanel()}
+                          </div>
+                        </Show>
+
+                        <Show when={activeTab() === "empty"}>
+                          <Tabs.Content value="empty" class="flex flex-col h-full overflow-hidden contain-strict">
+                            <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
+                              <div class="h-full px-6 pb-42 -mt-4 flex flex-col items-center justify-center text-center gap-6">
+                                <Mark class="w-14 opacity-10" />
+                                <div class="text-14-regular text-text-weak max-w-56">
+                                  {language.t("session.files.selectToOpen")}
+                                </div>
+                              </div>
+                            </div>
+                          </Tabs.Content>
+                        </Show>
+
+                        <Show when={activeTab() === "context"}>
+                          <Tabs.Content value="context" class="flex flex-col h-full overflow-hidden contain-strict">
+                            <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
+                              <SessionContextTab />
+                            </div>
+                          </Tabs.Content>
+                        </Show>
+
+                        <Show when={fileBrowserMounted()}>
+                          <div
+                            id={fileBrowserTabPanelID}
+                            role="tabpanel"
+                            data-slot="tabs-content"
+                            class="h-full min-h-0 overflow-hidden"
+                            classList={{ hidden: !fileBrowserVisible() }}
+                            inert={!fileBrowserVisible() || undefined}
+                          >
+                            <SessionFileBrowserTab
+                              tab={browserTab() ?? activeFileTab() ?? SESSION_OPEN_FILE_TAB}
+                              placeholder={
+                                (browserTab() ?? activeFileTab() ?? SESSION_OPEN_FILE_TAB) === SESSION_OPEN_FILE_TAB
+                              }
+                              active={file.pathFromTab(browserTab() ?? activeFileTab() ?? "")}
+                              kinds={kinds()}
+                              state={props.fileBrowserState!}
+                              onSelect={(path) => previewTab(file.tab(path))}
+                              onSelectPermanent={(path) => openTab(file.tab(path))}
+                              filterRef={(element) => (fileFilter = element)}
+                            />
+                          </div>
+                        </Show>
+                      </Tabs>
+                    </DndKitProvider>
+                  </Show>
+                </div>
+              </div>
+            </Show>
+
+            <Show when={fileOpen()}>
+              <div
+                id="file-tree-panel"
+                class="relative min-w-0 h-full shrink-0 overflow-hidden"
+                classList={{
+                  "transition-[width] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] motion-reduce:transition-none":
+                    !props.size.active(),
+                }}
+                style={{ width: treeWidth() }}
+              >
+                <div
+                  class="h-full flex flex-col overflow-hidden group/filetree"
+                  classList={{ "border-l border-border-weaker-base": reviewOpen() }}
+                >
+                  <Tabs
+                    variant="pill"
+                    value={fileTreeTab()}
+                    onChange={setFileTreeTabValue}
+                    class="h-full"
+                    data-scope="filetree"
+                  >
+                    <Tabs.List>
+                      <Tabs.Trigger value="changes" class="flex-1" classes={{ button: "w-full" }}>
+                        <Show
+                          when={settings.general.newLayoutDesigns()}
+                          fallback={
+                            <>
+                              {props.reviewCount()}{" "}
+                              {language.t(
+                                props.reviewCount() === 1 ? "session.review.change.one" : "session.review.change.other",
+                              )}
+                            </>
+                          }
+                        >
+                          {language.t("session.review.filesChanged", { count: props.reviewCount() })}
+                        </Show>
+                      </Tabs.Trigger>
+                      <Tabs.Trigger value="all" class="flex-1" classes={{ button: "w-full" }}>
+                        {language.t("session.files.all")}
+                      </Tabs.Trigger>
+                    </Tabs.List>
+                    <Show when={fileTreeTab() === "changes"}>
+                      <Tabs.Content value="changes" class="bg-background-stronger px-3 py-0">
+                        <Switch>
+                          <Match when={props.hasReview() || !props.diffsReady()}>
+                            <Show
+                              when={props.diffsReady()}
+                              fallback={
+                                <div class="px-2 py-2 text-12-regular text-text-weak">
+                                  {language.t("common.loading")}
+                                  {language.t("common.loading.ellipsis")}
+                                </div>
+                              }
+                            >
+                              <FileTree
+                                path=""
+                                class="pt-3"
+                                allowed={diffFiles()}
+                                kinds={kinds()}
+                                draggable={false}
+                                active={props.activeDiff}
+                                onFileClick={(node) => props.focusReviewDiff(node.path)}
+                              />
+                            </Show>
+                          </Match>
+                        </Switch>
+                      </Tabs.Content>
+                    </Show>
+                    <Show when={fileTreeTab() === "all"}>
+                      <Tabs.Content value="all" class="bg-background-stronger px-3 py-0">
+                        <Switch>
+                          <Match when={nofiles()}>{empty(language.t("session.files.empty"))}</Match>
+                          <Match when={true}>
+                            <FileTree
+                              path=""
+                              class="pt-3"
+                              modified={diffFiles()}
+                              kinds={kinds()}
+                              onFileClick={(node) => openTab(file.tab(node.path))}
+                            />
+                          </Match>
+                        </Switch>
+                      </Tabs.Content>
+                    </Show>
+                  </Tabs>
+                </div>
+                <Show when={fileOpen()}>
+                  <div onPointerDown={() => props.size.start()}>
+                    <ResizeHandle
+                      direction="horizontal"
+                      edge="start"
+                      size={fileTreeWidth()}
+                      min={FILE_TREE_WIDTH_MIN}
+                      max={480}
+                      onResize={(width) => {
+                        props.size.touch()
+                        layout.fileTree.resize(width)
+                      }}
+                    />
+                  </div>
+                </Show>
+              </div>
+            </Show>
           </div>
         </Show>
       </aside>

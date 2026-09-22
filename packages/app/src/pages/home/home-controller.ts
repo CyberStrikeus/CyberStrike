@@ -21,11 +21,11 @@ export function createHomeController() {
     if (!conn) return undefined
     return global.ensureServerCtx(conn)
   })
-  // This fork's useServerSync() returns the sync surface object directly (the
-  // single-server adapter), not an accessor like upstream's multi-server hook.
-  const focusedSync = () => focusedServerCtx()?.sync ?? sync
+  const focusedSync = () => focusedServerCtx()?.sync ?? sync()
   const projects = createMemo(() => focusedServerCtx()?.projects.list() ?? layout.projects.list())
-  const recentlyClosed = createMemo(() => focusedServerCtx()?.projects.recentlyClosed() ?? [])
+  const recentlyClosed = createMemo(
+    () => focusedServerCtx()?.projects.recentlyClosed() ?? layout.projects.recentlyClosed(),
+  )
   const homedir = createMemo(() => focusedSync().data.path.home ?? "")
   const selectedProject = createMemo(() => projects().find((project) => project.worktree === selection().directory))
   const newSessionProject = createMemo(
@@ -86,12 +86,6 @@ export function createHomeController() {
           return
         setSelection(toggleHomeProjectSelection(selection(), key, directory))
       },
-      // Inspect the target directory via the per-server SDK (file.list ->
-      // project.current) before opening, and record the resolved project id on
-      // the directory's child store — 1:1 with upstream, except the empty-dir
-      // `project.initGit` step: the v2 SDK exposes no project.initGit (it is a
-      // v1-only endpoint), so empty directories resolve through project.current
-      // without a client-side git init.
       add: (conn: ServerConnection.Any, directories: string[]) => {
         const directory = directories[0]
         if (!directory) return
@@ -101,7 +95,11 @@ export function createHomeController() {
           const location = { directory: item }
           void ctx.sdk.api.file
             .list({ path: ".", location })
-            .then(() => ctx.sdk.api.project.current({ location }))
+            .then(async (files) => {
+              if (files.data.length > 0) return ctx.sdk.api.project.current({ location })
+              const result = await ctx.sdk.client.project.initGit({ directory: item })
+              return result.data ?? ctx.sdk.api.project.current({ location })
+            })
             .then((project) => ctx.sync.child(item, { bootstrap: false })[1]("project", project.id))
             .catch(() => undefined)
           ctx.projects.open(item)

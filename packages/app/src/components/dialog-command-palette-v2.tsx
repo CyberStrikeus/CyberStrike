@@ -1,11 +1,11 @@
-import { getDirectory, getFilename } from "@cyberstrike-io/util/path"
-import { FileIcon } from "@cyberstrike-io/ui/file-icon"
-import { ScrollView } from "@cyberstrike-io/ui/scroll-view"
-import { Dialog, DialogBody } from "@cyberstrike-io/ui/v2/dialog-v2"
-import { Icon } from "@cyberstrike-io/ui/v2/icon"
-import { KeybindV2 } from "@cyberstrike-io/ui/v2/keybind-v2"
-import { TextInputV2 } from "@cyberstrike-io/ui/v2/text-input-v2"
-import { useDialog } from "@cyberstrike-io/ui/context/dialog"
+import { getDirectory, getFilename } from "@opencode-ai/core/util/path"
+import { FileIcon } from "@opencode-ai/ui/file-icon"
+import { ScrollView } from "@opencode-ai/ui/scroll-view"
+import { Dialog, DialogBody } from "@opencode-ai/ui/v2/dialog-v2"
+import { Icon } from "@opencode-ai/ui/v2/icon"
+import { KeybindV2 } from "@opencode-ai/ui/v2/keybind-v2"
+import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { createEffect, createMemo, createResource, createSignal, For, Match, onCleanup, Show, Switch } from "solid-js"
 import { commandPaletteOptions, formatKeybindParts, useCommand } from "@/context/command"
 import { useGlobal } from "@/context/global"
@@ -16,17 +16,13 @@ import { SessionTabAvatar } from "@/pages/layout/session-tab-avatar"
 import { getRelativeTime } from "@/utils/time"
 import {
   createCommandPaletteCommandEntry,
+  createCommandPaletteFileEntry,
+  createCommandPaletteModel,
   createServerSessionEntries,
   uniqueCommandPaletteEntries,
   type CommandPaletteEntry,
 } from "./command-palette"
 import "./dialog-command-palette-v2.css"
-
-// Scope note: upstream's file additionally exports `DialogCommandPaletteV2` (the
-// in-session file+command palette built on `createCommandPaletteModel`). That
-// model depends on `@/pages/session/session-layout` (`useSessionLayout`) which
-// this fork's session layer does not provide, so only the home command palette
-// (`DialogHomeCommandPaletteV2`) is ported here.
 
 function groups(entries: CommandPaletteEntry[]) {
   const map = new Map<string, CommandPaletteEntry[]>()
@@ -37,6 +33,32 @@ function groups(entries: CommandPaletteEntry[]) {
 function matchesEntry(entry: CommandPaletteEntry, query: string) {
   const value = query.toLowerCase()
   return [entry.title, entry.description, entry.category].some((text) => text?.toLowerCase().includes(value))
+}
+
+export function DialogCommandPaletteV2(props: { onOpenFile?: (path: string) => void }) {
+  const palette = createCommandPaletteModel(props)
+  const loadItems = async (text: string) => {
+    const q = text.trim()
+    if (!q) return [...palette.preferredCommandEntries(), ...palette.recentFileEntries()]
+
+    const [files, nextSessions] = await Promise.all([palette.file.searchFiles(q), Promise.resolve(palette.sessions(q))])
+    const category = palette.language.t("palette.group.files")
+    return [
+      ...palette.commandEntries().filter((entry) => matchesEntry(entry, q)),
+      ...nextSessions,
+      ...files.map((path) => createCommandPaletteFileEntry(path, category)),
+    ]
+  }
+
+  return (
+    <CommandPaletteView
+      placeholder={palette.language.t("palette.search.placeholder")}
+      loadItems={loadItems}
+      highlight={palette.highlight}
+      select={palette.select}
+      close={palette.close}
+    />
+  )
 }
 
 export function DialogHomeCommandPaletteV2(props: {
@@ -273,7 +295,7 @@ function PaletteRow(props: {
             </div>
           </div>
           <Show when={props.item.keybind}>
-            <KeybindV2 keys={formatKeybindParts(props.item.keybind ?? "")} variant="neutral" />
+            <KeybindV2 keys={formatKeybindParts(props.item.keybind ?? "", props.language.t)} variant="neutral" />
           </Show>
         </Match>
         <Match when={props.item.type === "session"}>
@@ -310,7 +332,7 @@ function PaletteRow(props: {
           </div>
           <Show when={props.item.updated}>
             <span class="command-palette-v2-meta">
-              {getRelativeTime(new Date(props.item.updated!).toISOString())}
+              {getRelativeTime(new Date(props.item.updated!).toISOString(), props.language.t)}
             </span>
           </Show>
         </Match>

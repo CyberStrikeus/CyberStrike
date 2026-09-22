@@ -1,6 +1,6 @@
 // @refresh reload
 
-import { generateNeutralScale, hexToOklch, oklchToHexFit, shift } from "../color"
+import { generateNeutralScale, hexToOklch, oklchToHex, shift } from "../color"
 import { mapV2Foreground } from "./foreground"
 import { mapV2Semantics, mergeV2Tokens } from "./mapping"
 import type { DesktopTheme, HexColor, ResolvedV2Theme, ThemeVariant, V2ColorValue } from "../types"
@@ -47,7 +47,7 @@ function generateV2HueScale(seed: HexColor, isDark: boolean): HexColor[] {
   const chromaMultipliers = [0.28, 0.48, 0.68, 0.86, 1.02, 1.28, 1.34, 1.28, 1.18, 1.08, 0.98, 0.88]
 
   return lightSteps.map((l, i) =>
-    oklchToHexFit({
+    oklchToHex({
       l,
       c: base.c * chromaMultipliers[i]! * chromaBoost,
       h: base.h,
@@ -69,49 +69,11 @@ function assignHueRamp(prefix: string, scale: HexColor[]): Record<string, V2Colo
   return tokens
 }
 
-/**
- * Derive a v2 background/ink pair from a v1 seed neutral. v1 seeds carry a single
- * mid-tone `neutral`; the v2 grey ramp instead needs an extreme background tone
- * plus an opposite ink tone (see palette themes' neutral/ink). We push the seed's
- * lightness to the mode-appropriate extreme while keeping its hue and a little of
- * its chroma, so each theme's grey ramp stays faintly tinted (e.g. cs-1's warm
- * grey stays near-neutral, a bluish neutral stays cool) but spans the full range.
- */
-function seedTone(neutral: HexColor, l: number): HexColor {
-  const base = hexToOklch(neutral)
-  return oklchToHexFit({ l, c: Math.min(base.c, 0.02), h: base.h })
-}
-
-/**
- * Amplify a dark background's chroma so each theme's neutral hue actually reads as
- * chrome instead of collapsing to the same near-black. Palette neutrals of dark
- * themes carry real but tiny chroma (e.g. github 0.014, matrix 0.011, dracula
- * 0.019); at background lightness that low chroma is imperceptible, so cobalt2,
- * github, matrix, everforest, rosepine, … all rendered as an identical neutral
- * near-black even though their hues differ. Upstream's shared neutral-scale math
- * (faithfully ported in color.ts / this file) has the same limitation, so this is
- * a deliberate v2 divergence: scale the neutral's chroma up (capped) so the hue
- * registers, preserving its lightness and hue exactly.
- *
- * Genuinely achromatic neutrals stay untouched via `GATE` — cs-1's warm grey
- * (chroma ~0.006) falls below it, so the default theme resolves byte-identically.
- * Only dark mode is adjusted; light chrome does not collapse and is left as-is.
- */
-const BG_TINT_GATE = 0.009
-const BG_TINT_FACTOR = 3
-const BG_TINT_CAP = 0.05
-function tintBackground(neutral: HexColor, isDark: boolean): HexColor {
-  if (!isDark) return neutral
-  const base = hexToOklch(neutral)
-  if (base.c < BG_TINT_GATE) return neutral
-  return oklchToHexFit({ l: base.l, c: Math.min(base.c * BG_TINT_FACTOR, BG_TINT_CAP), h: base.h })
-}
-
-function readPalette(variant: ThemeVariant, isDark: boolean): PaletteInput {
+function readPalette(variant: ThemeVariant): PaletteInput {
   if ("palette" in variant && variant.palette) {
     const palette = variant.palette
     return {
-      neutral: tintBackground(palette.neutral, isDark),
+      neutral: palette.neutral,
       ink: palette.ink,
       primary: palette.primary,
       accent: palette.accent ?? palette.info,
@@ -127,10 +89,10 @@ function readPalette(variant: ThemeVariant, isDark: boolean): PaletteInput {
   if ("seeds" in variant && variant.seeds) {
     const seeds = variant.seeds
     return {
-      neutral: tintBackground(seedTone(seeds.neutral, isDark ? 0.17 : 0.985), isDark),
-      ink: seedTone(seeds.neutral, isDark ? 0.96 : 0.16),
+      neutral: seeds.neutral,
+      ink: seeds.neutral,
       primary: seeds.primary,
-      accent: seeds.interactive,
+      accent: seeds.info,
       success: seeds.success,
       warning: seeds.warning,
       error: seeds.error,
@@ -145,7 +107,7 @@ function readPalette(variant: ThemeVariant, isDark: boolean): PaletteInput {
 
 /** Build v2 primitive ramps (100 = lightest). Alpha ramps are static in `v2/styles/colors.css`. */
 export function generateV2Primitives(variant: ThemeVariant, isDark: boolean): Record<string, V2ColorValue> {
-  const colors = readPalette(variant, isDark)
+  const colors = readPalette(variant)
   const grey = generateV2NeutralScale(colors.neutral, colors.ink, isDark)
   const blue = generateV2HueScale(colors.interactive, isDark)
   const green = generateV2HueScale(colors.success, isDark)
@@ -173,7 +135,7 @@ export function generateV2Primitives(variant: ThemeVariant, isDark: boolean): Re
 export function resolveThemeVariantV2(variant: ThemeVariant, isDark: boolean): ResolvedV2Theme {
   const primitives = generateV2Primitives(variant, isDark)
   const semantics = mapV2Semantics(isDark)
-  const foreground = mapV2Foreground(readPalette(variant, isDark).ink, isDark, primitives, variant.overrides)
+  const foreground = mapV2Foreground(readPalette(variant).ink, isDark, primitives, variant.overrides)
   return mergeV2Tokens(primitives, semantics, foreground, variant.v2Overrides ?? {})
 }
 

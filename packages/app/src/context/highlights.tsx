@@ -1,13 +1,13 @@
-import { createEffect, createSignal, onCleanup } from "solid-js"
+import { createEffect, onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
-import { createSimpleContext } from "@cyberstrike-io/ui/context"
-import { useDialog } from "@cyberstrike-io/ui/context/dialog"
+import { createSimpleContext } from "@opencode-ai/ui/context"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
 import { persisted } from "@/utils/persist"
 import { DialogReleaseNotes, type Highlight } from "@/components/dialog-release-notes"
 
-const CHANGELOG_URL = "https://cyberstrike.io/changelog.json"
+const CHANGELOG_URL = "https://opencode.ai/changelog.json"
 
 type Store = {
   version?: string
@@ -146,8 +146,10 @@ export const { use: useHighlights, provider: HighlightsProvider } = createSimple
     const settings = useSettings()
     const [store, setStore, _, ready] = persisted("highlights.v1", createStore<Store>({ version: undefined }))
 
-    const [from, setFrom] = createSignal<string | undefined>(undefined)
-    const [to, setTo] = createSignal<string | undefined>(undefined)
+    const [range, setRange] = createStore({
+      from: undefined as string | undefined,
+      to: undefined as string | undefined,
+    })
     const state = { started: false }
     let timer: ReturnType<typeof setTimeout> | undefined
 
@@ -214,15 +216,14 @@ export const { use: useHighlights, provider: HighlightsProvider } = createSimple
 
       if (previous === platform.version) return
 
-      setFrom(previous)
-      setTo(platform.version)
+      setRange({ from: previous, to: platform.version })
       start(previous)
     })
 
     return {
       ready,
-      from,
-      to,
+      from: () => range.from,
+      to: () => range.to,
       get last() {
         return store.version
       },

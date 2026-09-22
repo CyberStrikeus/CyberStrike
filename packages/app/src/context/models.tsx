@@ -1,8 +1,8 @@
-import { createMemo } from "solid-js"
+import { type Accessor, createMemo, createResource } from "solid-js"
 import { createStore } from "solid-js/store"
 import { DateTime } from "luxon"
 import { filter, firstBy, flat, groupBy, mapValues, pipe, uniqueBy, values } from "remeda"
-import { createSimpleContext } from "@cyberstrike-io/ui/context"
+import { createSimpleContext } from "@opencode-ai/ui/context"
 import { useProviders } from "@/hooks/use-providers"
 import { Persist, persisted } from "@/utils/persist"
 
@@ -24,8 +24,9 @@ function modelKey(model: ModelKey) {
 
 export const { use: useModels, provider: ModelsProvider } = createSimpleContext({
   name: "Models",
-  init: () => {
-    const providers = useProviders()
+  gate: false,
+  init: (props: { directory?: Accessor<string | undefined> } = {}) => {
+    const providers = useProviders(() => props.directory?.())
 
     const [store, setStore, _, ready] = persisted(
       Persist.global("model", ["model.v1"]),
@@ -144,6 +145,15 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
       setStore("variant", key, value)
     }
 
+    const [recentModels] = createResource(
+      async () => {
+        const recent = store.recent
+        await ready.promise
+        return recent
+      },
+      (p) => p,
+      { initialValue: [] },
+    )
     return {
       ready,
       list,
@@ -151,7 +161,7 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
       visible,
       setVisibility,
       recent: {
-        list: createMemo(() => store.recent),
+        list: () => recentModels()!,
         push,
       },
       variant: {
