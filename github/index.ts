@@ -6,7 +6,7 @@ import * as core from "@actions/core"
 import * as github from "@actions/github"
 import type { Context as GitHubContext } from "@actions/github/lib/context"
 import type { IssueCommentEvent, PullRequestReviewCommentEvent } from "@octokit/webhooks-types"
-import { createCyberstrikeClient } from "@cyberstrike-io/sdk"
+import { createOpencodeClient } from "@cyberstrike-io/sdk"
 import { spawn } from "node:child_process"
 
 type GitHubAuthor = {
@@ -232,7 +232,7 @@ function createCyberstrike() {
   const port = 4096
   const url = `http://${host}:${port}`
   const proc = spawn(`cyberstrike`, [`serve`, `--hostname=${host}`, `--port=${port}`])
-  const client = createCyberstrikeClient({ baseUrl: url })
+  const client = createOpencodeClient({ baseUrl: url })
 
   return {
     server: { url, close: () => proc.kill() },

@@ -1,4 +1,4 @@
-import { createCyberstrikeClient, type Event } from "@cyberstrike-io/sdk/v2"
+import { createOpencodeClient, type Event } from "@cyberstrike-io/sdk/v2"
 import { createSimpleContext } from "./helper"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
 import { batch, onCleanup, onMount } from "solid-js"
@@ -17,7 +17,7 @@ export const { use: useSDK, provider: SDKProvider } = createSimpleContext({
     events?: EventSource
   }) => {
     const abort = new AbortController()
-    const sdk = createCyberstrikeClient({
+    const sdk = createOpencodeClient({
       baseUrl: props.url,
       signal: abort.signal,
       directory: props.directory,
