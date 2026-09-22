@@ -33,7 +33,7 @@ function CyberStrikeWordmark() {
         opacity: "0.45",
       }}
     >
-      cyberstrike
+      CyberStrike
     </div>
   )
 }
