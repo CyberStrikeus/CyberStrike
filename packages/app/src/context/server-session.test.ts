@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
-import type { retry } from "@opencode-ai/core/util/retry"
-import type { OpenCodeEvent, SessionApi } from "@opencode-ai/client/promise"
-import type { Message, OpencodeClient, Part, Session } from "@opencode-ai/sdk/v2/client"
+import type { retry } from "@cyberstrike-io/core/util/retry"
+import type { OpenCodeEvent, SessionApi } from "@cyberstrike-io/client/promise"
+import type { Message, OpencodeClient, Part, Session } from "@cyberstrike-io/sdk/v2/client"
 import { createServerSession } from "./server-session"
 import type { ServerApi } from "@/utils/server"
 

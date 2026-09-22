@@ -1,17 +1,17 @@
-import type { IntegrationMethod, IntegrationOauthConnectOutput } from "@opencode-ai/client/promise"
-import { Button } from "@opencode-ai/ui/button"
-import { useDialog } from "@opencode-ai/ui/context/dialog"
-import { Dialog } from "@opencode-ai/ui/dialog"
-import { Icon } from "@opencode-ai/ui/icon"
-import { IconButton } from "@opencode-ai/ui/icon-button"
-import { List, type ListRef } from "@opencode-ai/ui/list"
-import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
-import { Spinner } from "@opencode-ai/ui/spinner"
-import { Tag } from "@opencode-ai/ui/tag"
-import { TextField } from "@opencode-ai/ui/text-field"
-import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
-import { DialogBody, DialogHeader, DialogTitle, DialogV2 } from "@opencode-ai/ui/v2/dialog-v2"
-import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
+import type { IntegrationMethod, IntegrationOauthConnectOutput } from "@cyberstrike-io/client/promise"
+import { Button } from "@cyberstrike-io/ui/button"
+import { useDialog } from "@cyberstrike-io/ui/context/dialog"
+import { Dialog } from "@cyberstrike-io/ui/dialog"
+import { Icon } from "@cyberstrike-io/ui/icon"
+import { IconButton } from "@cyberstrike-io/ui/icon-button"
+import { List, type ListRef } from "@cyberstrike-io/ui/list"
+import { ProviderIcon } from "@cyberstrike-io/ui/provider-icon"
+import { Spinner } from "@cyberstrike-io/ui/spinner"
+import { Tag } from "@cyberstrike-io/ui/tag"
+import { TextField } from "@cyberstrike-io/ui/text-field"
+import { ButtonV2 } from "@cyberstrike-io/ui/v2/button-v2"
+import { DialogBody, DialogHeader, DialogTitle, DialogV2 } from "@cyberstrike-io/ui/v2/dialog-v2"
+import { TextInputV2 } from "@cyberstrike-io/ui/v2/text-input-v2"
 import { showToast } from "@/utils/toast"
 import {
   type Accessor,
@@ -167,7 +167,7 @@ function ProviderPicker(props: {
     if (id === "anthropic") return language.t("dialog.provider.anthropic.note")
     if (id === "openai") return language.t("dialog.provider.openai.note")
     if (id.startsWith("github-copilot")) return language.t("dialog.provider.copilot.note")
-    if (id === "opencode-go") return language.t("dialog.provider.opencodeGo.tagline")
+    if (id === "cyberstrike-go") return language.t("dialog.provider.opencodeGo.tagline")
     return undefined
   }
 
@@ -206,17 +206,17 @@ function ProviderPicker(props: {
         <div class="px-1.25 w-full flex items-center gap-x-3">
           <ProviderIcon data-slot="list-item-extra-icon" id={i.id} />
           <span>{i.name}</span>
-          <Show when={i.id === "opencode"}>
+          <Show when={i.id === "cyberstrike"}>
             <div class="text-14-regular text-text-weak">{language.t("dialog.provider.opencode.tagline")}</div>
           </Show>
           <Show when={i.id === CUSTOM_ID}>
             <Tag>{language.t("settings.providers.tag.custom")}</Tag>
           </Show>
-          <Show when={i.id === "opencode"}>
+          <Show when={i.id === "cyberstrike"}>
             <Tag>{language.t("dialog.provider.tag.recommended")}</Tag>
           </Show>
           <Show when={note(i.id)}>{(value) => <div class="text-14-regular text-text-weak">{value()}</div>}</Show>
-          <Show when={i.id === "opencode-go"}>
+          <Show when={i.id === "cyberstrike-go"}>
             <Tag>{language.t("dialog.provider.tag.recommended")}</Tag>
           </Show>
         </div>
@@ -237,7 +237,7 @@ function ProviderPickerV2(props: {
     active: undefined as string | undefined,
     connecting: undefined as string | undefined,
   })
-  const featured = ["opencode", "opencode-go", "anthropic", "openai", "google", "openrouter", "vercel"]
+  const featured = ["cyberstrike", "cyberstrike-go", "anthropic", "openai", "google", "openrouter", "vercel"]
   const custom = () => ({ id: CUSTOM_ID, name: language.t("dialog.provider.custom.label") })
   const all = createMemo(() => {
     language.locale()
@@ -334,10 +334,10 @@ function ProviderPickerV2(props: {
                       >
                         <ProviderIcon id={provider.id} class="size-4 shrink-0 text-v2-icon-icon-base" />
                         <span class="min-w-0 truncate font-[530] text-v2-text-text-base">{provider.name}</span>
-                        <Show when={provider.id === "opencode" || provider.id === "opencode-go"}>
+                        <Show when={provider.id === "cyberstrike" || provider.id === "cyberstrike-go"}>
                           <span class="min-w-0 truncate font-[440] text-v2-text-text-muted">
                             {language.t(
-                              provider.id === "opencode"
+                              provider.id === "cyberstrike"
                                 ? "dialog.provider.opencode.tagline"
                                 : "dialog.provider.opencodeGo.tagline",
                             )}
@@ -562,7 +562,7 @@ function ProviderConnection(props: {
         })
         .then((x) => {
           if (!alive.value) return
-          if (props.provider === "opencode" && platform.platform === "desktop") {
+          if (props.provider === "cyberstrike" && platform.platform === "desktop") {
             const url = new URL(x.data.url)
             url.searchParams.set("client_id", "opencode-desktop")
             x.data.url = url.href
@@ -840,7 +840,7 @@ function ProviderConnection(props: {
       return (
         <div class="flex flex-col gap-5 px-3 text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-muted">
           <Show
-            when={provider().id === "opencode"}
+            when={provider().id === "cyberstrike"}
             fallback={language.t("provider.connect.apiKey.description", { provider: provider().name })}
           >
             <div class="flex flex-col gap-5">
@@ -849,7 +849,7 @@ function ProviderConnection(props: {
               <div>
                 {language.t("provider.connect.opencodeZen.visit.prefix")}
                 <ExternalLink
-                  href="https://opencode.ai/zen"
+                  href="https://cyberstrike.io/zen"
                   class="text-v2-text-text-base focus-visible:rounded-xs focus-visible:outline-2 focus-visible:outline-v2-border-border-focus"
                 >
                   {language.t("provider.connect.opencodeZen.visit.link")}
@@ -892,13 +892,13 @@ function ProviderConnection(props: {
     return (
       <div class="flex flex-col gap-6">
         <Switch>
-          <Match when={provider().id === "opencode"}>
+          <Match when={provider().id === "cyberstrike"}>
             <div class="flex flex-col gap-4">
               <div class="text-14-regular text-text-base">{language.t("provider.connect.opencodeZen.line1")}</div>
               <div class="text-14-regular text-text-base">{language.t("provider.connect.opencodeZen.line2")}</div>
               <div class="text-14-regular text-text-base">
                 {language.t("provider.connect.opencodeZen.visit.prefix")}
-                <ExternalLink href="https://opencode.ai/zen" tabIndex={-1}>
+                <ExternalLink href="https://cyberstrike.io/zen" tabIndex={-1}>
                   {language.t("provider.connect.opencodeZen.visit.link")}
                 </ExternalLink>
                 {language.t("provider.connect.opencodeZen.visit.suffix")}

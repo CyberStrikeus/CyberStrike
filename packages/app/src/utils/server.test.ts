@@ -7,7 +7,7 @@ describe("authFromToken", () => {
   })
 
   test("defaults blank username to opencode", () => {
-    expect(authFromToken(btoa(":secret"))).toEqual({ username: "opencode", password: "secret" })
+    expect(authFromToken(btoa(":secret"))).toEqual({ username: "cyberstrike", password: "secret" })
   })
 
   test("ignores malformed tokens", () => {

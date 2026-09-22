@@ -1,6 +1,6 @@
-import { Tag } from "@opencode-ai/ui/v2/badge-v2"
-import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
-import { Switch } from "@opencode-ai/ui/v2/switch-v2"
+import { Tag } from "@cyberstrike-io/ui/v2/badge-v2"
+import { ButtonV2 } from "@cyberstrike-io/ui/v2/button-v2"
+import { Switch } from "@cyberstrike-io/ui/v2/switch-v2"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
 

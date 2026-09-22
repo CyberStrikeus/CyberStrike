@@ -4,7 +4,7 @@ import {
   type Project,
   type ProviderAuthResponse,
   type ProviderListResponse,
-  createCyberstrikeClient,
+  createOpencodeClient,
 } from "@cyberstrike-io/sdk/v2/client"
 import { createStore, produce, reconcile } from "solid-js/store"
 import { useGlobalSDK } from "./global-sdk"
@@ -73,7 +73,7 @@ function createGlobalSync() {
     loadSessionsFallback: 0,
   }
 
-  const sdkCache = new Map<string, ReturnType<typeof createCyberstrikeClient>>()
+  const sdkCache = new Map<string, ReturnType<typeof createOpencodeClient>>()
   const booting = new Map<string, Promise<void>>()
   const sessionLoads = new Map<string, Promise<void>>()
   const sessionMeta = new Map<string, { limit: number }>()

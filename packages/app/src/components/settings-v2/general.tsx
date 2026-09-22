@@ -1,10 +1,10 @@
 import { Component, Show, createMemo, createResource } from "solid-js"
 import { createMediaQuery } from "@solid-primitives/media"
-import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
-import { SelectV2 } from "@opencode-ai/ui/v2/select-v2"
-import { Switch } from "@opencode-ai/ui/v2/switch-v2"
-import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
-import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { ButtonV2 } from "@cyberstrike-io/ui/v2/button-v2"
+import { SelectV2 } from "@cyberstrike-io/ui/v2/select-v2"
+import { Switch } from "@cyberstrike-io/ui/v2/switch-v2"
+import { TextInputV2 } from "@cyberstrike-io/ui/v2/text-input-v2"
+import { useDialog } from "@cyberstrike-io/ui/context/dialog"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useUpdaterAction } from "../updater-action"
@@ -150,7 +150,7 @@ const AppearanceSection: Component<{ controller: AppearanceSettingsController }>
           description={
             <>
               {language.t("settings.general.row.theme.description")}{" "}
-              <ExternalLink class="settings-v2-link" href="https://opencode.ai/docs/themes/">
+              <ExternalLink class="settings-v2-link" href="https://cyberstrike.io/docs/themes/">
                 {language.t("common.learnMore")}
               </ExternalLink>
             </>

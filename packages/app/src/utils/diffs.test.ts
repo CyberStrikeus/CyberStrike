@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
-import type { SnapshotFileDiff } from "@opencode-ai/sdk/v2"
-import type { FileDiffInfo } from "@opencode-ai/client/promise"
-import type { Message } from "@opencode-ai/sdk/v2/client"
+import type { SnapshotFileDiff } from "@cyberstrike-io/sdk/v2"
+import type { FileDiffInfo } from "@cyberstrike-io/client/promise"
+import type { Message } from "@cyberstrike-io/sdk/v2/client"
 import { diffs, message } from "./diffs"
 
 const item = {

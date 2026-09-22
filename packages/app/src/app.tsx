@@ -1,12 +1,12 @@
 import "@/index.css"
 import * as Sentry from "@sentry/solid"
-import { I18nProvider } from "@opencode-ai/ui/context"
-import { DialogProvider } from "@opencode-ai/ui/context/dialog"
-import { FileComponentProvider } from "@opencode-ai/ui/context/file"
-import { File } from "@opencode-ai/session-ui/file"
-import { Font } from "@opencode-ai/ui/font"
-import { Splash } from "@opencode-ai/ui/logo"
-import { ThemeProvider } from "@opencode-ai/ui/theme/context"
+import { I18nProvider } from "@cyberstrike-io/ui/context"
+import { DialogProvider } from "@cyberstrike-io/ui/context/dialog"
+import { FileComponentProvider } from "@cyberstrike-io/ui/context/file"
+import { File } from "@cyberstrike-io/session-ui/file"
+import { Font } from "@cyberstrike-io/ui/font"
+import { Splash } from "@cyberstrike-io/ui/logo"
+import { ThemeProvider } from "@cyberstrike-io/ui/theme/context"
 import { MetaProvider } from "@solidjs/meta"
 import {
   type BaseRouterProps,
@@ -20,7 +20,7 @@ import {
 } from "@solidjs/router"
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query"
 import { Effect } from "effect"
-import { base64Encode } from "@opencode-ai/core/util/encode"
+import { base64Encode } from "@cyberstrike-io/core/util/encode"
 import {
   type Component,
   createEffect,

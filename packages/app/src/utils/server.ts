@@ -1,10 +1,10 @@
-import { createOpencodeClient } from "@opencode-ai/sdk/v2/client"
-import { OpenCode, type OpenCodeClient } from "@opencode-ai/client/promise"
+import { createOpencodeClient } from "@cyberstrike-io/sdk/v2/client"
+import { OpenCode, type OpenCodeClient } from "@cyberstrike-io/client/promise"
 import type { ServerConnection } from "@/context/server"
 import { decode64 } from "@/utils/base64"
 
 export function authTokenFromCredentials(input: { username?: string; password: string }) {
-  return btoa(`${input.username ?? "opencode"}:${input.password}`)
+  return btoa(`${input.username ?? "cyberstrike"}:${input.password}`)
 }
 
 export function authFromToken(token: string | null) {
@@ -13,7 +13,7 @@ export function authFromToken(token: string | null) {
   const separator = decoded.indexOf(":")
   if (separator === -1) return
   return {
-    username: decoded.slice(0, separator) || "opencode",
+    username: decoded.slice(0, separator) || "cyberstrike",
     password: decoded.slice(separator + 1),
   }
 }

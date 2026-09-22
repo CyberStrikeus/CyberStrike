@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { QueryClient } from "@tanstack/solid-query"
-import type { Session, SessionV2Info } from "@opencode-ai/sdk/v2/client"
+import type { Session, SessionV2Info } from "@cyberstrike-io/sdk/v2/client"
 import {
   applyHomeSessionEvent,
   appendHomeSessionEvent,
