@@ -1,6 +1,6 @@
-import { Location } from "@opencode-ai/core/location"
-import { Project } from "@opencode-ai/core/project"
-import { AbsolutePath } from "@opencode-ai/core/schema"
+import { Location } from "@cyberstrike-io/core/location"
+import { Project } from "@cyberstrike-io/core/project"
+import { AbsolutePath } from "@cyberstrike-io/core/schema"
 import { Effect, Layer } from "effect"
 import { tmpdir } from "./tmpdir"
 

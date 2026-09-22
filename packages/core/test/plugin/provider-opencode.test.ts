@@ -1,15 +1,15 @@
 import { describe, expect } from "bun:test"
 import { Effect } from "effect"
 import { HttpClient, HttpClientResponse } from "effect/unstable/http"
-import { Catalog } from "@opencode-ai/core/catalog"
-import { Credential } from "@opencode-ai/core/credential"
-import { EventV2 } from "@opencode-ai/core/event"
-import { Integration } from "@opencode-ai/core/integration"
-import { ModelV2 } from "@opencode-ai/core/model"
-import { PluginV2 } from "@opencode-ai/core/plugin"
-import { PluginHost } from "@opencode-ai/core/plugin/host"
-import { OpencodePlugin } from "@opencode-ai/core/plugin/provider/opencode"
-import { ProviderV2 } from "@opencode-ai/core/provider"
+import { Catalog } from "@cyberstrike-io/core/catalog"
+import { Credential } from "@cyberstrike-io/core/credential"
+import { EventV2 } from "@cyberstrike-io/core/event"
+import { Integration } from "@cyberstrike-io/core/integration"
+import { ModelV2 } from "@cyberstrike-io/core/model"
+import { PluginV2 } from "@cyberstrike-io/core/plugin"
+import { PluginHost } from "@cyberstrike-io/core/plugin/host"
+import { OpencodePlugin } from "@cyberstrike-io/core/plugin/provider/opencode"
+import { ProviderV2 } from "@cyberstrike-io/core/provider"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"
 
@@ -74,7 +74,7 @@ describe("OpencodePlugin", () => {
   it.effect("registers account and service account methods", () =>
     Effect.gen(function* () {
       yield* addPlugin()
-      expect((yield* (yield* Integration.Service).get(Integration.ID.make("opencode")))?.methods).toEqual([
+      expect((yield* (yield* Integration.Service).get(Integration.ID.make("cyberstrike")))?.methods).toEqual([
         {
           id: Integration.MethodID.make("device"),
           type: "oauth",
@@ -104,7 +104,7 @@ describe("OpencodePlugin", () => {
       yield* addPlugin(http)
       const integration = yield* Integration.Service
       const attempt = yield* integration.connection.oauth({
-        integrationID: Integration.ID.make("opencode"),
+        integrationID: Integration.ID.make("cyberstrike"),
         methodID: Integration.MethodID.make("device"),
         inputs: {},
       })
@@ -132,7 +132,7 @@ describe("OpencodePlugin", () => {
       const integration = yield* Integration.Service
       const error = yield* integration.connection
         .oauth({
-          integrationID: Integration.ID.make("opencode"),
+          integrationID: Integration.ID.make("cyberstrike"),
           methodID: Integration.MethodID.make("device"),
           inputs: {},
         })
@@ -201,7 +201,7 @@ describe("OpencodePlugin", () => {
             draft.model.update(ProviderV2.ID.make("remote"), ModelV2.ID.make("stale"), () => {})
           })
           yield* credentials.create({
-            integrationID: Integration.ID.make("opencode"),
+            integrationID: Integration.ID.make("cyberstrike"),
             value: Credential.Key.make({
               type: "key",
               key: "secret",
@@ -216,12 +216,12 @@ describe("OpencodePlugin", () => {
           const provider = required(
             yield* eventually(
               catalog.provider.get(ProviderV2.ID.make("remote")),
-              (item) => item?.integrationID === Integration.ID.make("opencode"),
+              (item) => item?.integrationID === Integration.ID.make("cyberstrike"),
             ),
           )
           expect(provider).toMatchObject({
             name: "Remote",
-            integrationID: "opencode",
+            integrationID: "cyberstrike",
             api: {
               type: "aisdk",
               package: "@ai-sdk/openai-compatible",
@@ -370,7 +370,7 @@ describe("OpencodePlugin", () => {
         const integrations = yield* Integration.Service
         yield* integrations.transform((editor) => {
           editor.method.update({
-            integrationID: Integration.ID.make("opencode"),
+            integrationID: Integration.ID.make("cyberstrike"),
             method: { type: "env", names: ["CUSTOM_OPENCODE_API_KEY"] },
           })
         })

@@ -1,4 +1,4 @@
-import { define } from "@opencode-ai/plugin/v2/promise"
+import { define } from "@cyberstrike-io/plugin/v2/promise"
 
 export default define({
   id: "directory-plugin",

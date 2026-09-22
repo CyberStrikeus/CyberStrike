@@ -1,8 +1,8 @@
 import { describe, expect } from "bun:test"
 import { Effect } from "effect"
-import { AppNodeBuilder } from "@opencode-ai/core/effect/app-node-builder"
-import { SkillPlugin } from "@opencode-ai/core/plugin/skill"
-import { SkillV2 } from "@opencode-ai/core/skill"
+import { AppNodeBuilder } from "@cyberstrike-io/core/effect/app-node-builder"
+import { SkillPlugin } from "@cyberstrike-io/core/plugin/skill"
+import { SkillV2 } from "@cyberstrike-io/core/skill"
 import { testEffect } from "../lib/effect"
 import { host } from "./host"
 

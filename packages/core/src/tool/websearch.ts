@@ -1,6 +1,6 @@
 export * as WebSearchTool from "./websearch"
 
-import { ToolFailure } from "@opencode-ai/llm"
+import { ToolFailure } from "@cyberstrike-io/llm"
 import { Context, Duration, Effect, Layer, Schema } from "effect"
 import { HttpClient, HttpClientRequest } from "effect/unstable/http"
 import { makeLocationNode } from "../effect/app-node"

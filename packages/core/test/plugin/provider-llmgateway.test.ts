@@ -1,12 +1,12 @@
 import { describe, expect } from "bun:test"
 import { Effect } from "effect"
-import { Catalog } from "@opencode-ai/core/catalog"
-import { Integration } from "@opencode-ai/core/integration"
-import { PluginV2 } from "@opencode-ai/core/plugin"
-import { PluginHost } from "@opencode-ai/core/plugin/host"
-import { ProviderPlugins } from "@opencode-ai/core/plugin/provider"
-import { LLMGatewayPlugin } from "@opencode-ai/core/plugin/provider/llmgateway"
-import { ProviderV2 } from "@opencode-ai/core/provider"
+import { Catalog } from "@cyberstrike-io/core/catalog"
+import { Integration } from "@cyberstrike-io/core/integration"
+import { PluginV2 } from "@cyberstrike-io/core/plugin"
+import { PluginHost } from "@cyberstrike-io/core/plugin/host"
+import { ProviderPlugins } from "@cyberstrike-io/core/plugin/provider"
+import { LLMGatewayPlugin } from "@cyberstrike-io/core/plugin/provider/llmgateway"
+import { ProviderV2 } from "@cyberstrike-io/core/provider"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"
 
@@ -47,8 +47,8 @@ describe("LLMGatewayPlugin", () => {
       expect((yield* catalog.provider.get(ProviderV2.ID.make("llmgateway")))?.request.headers).toEqual({
         Existing: "value",
         "HTTP-Referer": "https://opencode.ai/",
-        "X-Title": "opencode",
-        "X-Source": "opencode",
+        "X-Title": "cyberstrike",
+        "X-Source": "cyberstrike",
       })
       expect((yield* catalog.provider.get(ProviderV2.ID.openrouter))?.request.headers).toEqual({})
     }),

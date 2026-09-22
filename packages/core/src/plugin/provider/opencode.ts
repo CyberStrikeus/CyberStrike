@@ -1,8 +1,8 @@
 import { Duration, Effect, Schema, Semaphore, Stream } from "effect"
 import type { Scope } from "effect"
-import type { IntegrationOAuthMethodRegistration } from "@opencode-ai/plugin/v2/effect/integration"
-import { define } from "@opencode-ai/plugin/v2/effect/plugin"
-import type { CredentialValue } from "@opencode-ai/sdk/v2/types"
+import type { IntegrationOAuthMethodRegistration } from "@cyberstrike-io/plugin/v2/effect/integration"
+import { define } from "@cyberstrike-io/plugin/v2/effect/plugin"
+import type { CredentialValue } from "@cyberstrike-io/sdk/v2/types"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 import { EventV2 } from "../../event"
 import { Credential } from "../../credential"
@@ -36,7 +36,7 @@ const Org = Schema.Struct({ id: Schema.String, name: Schema.String })
 
 function oauth(http: HttpClient.HttpClient) {
   return {
-    integrationID: Integration.ID.make("opencode"),
+    integrationID: Integration.ID.make("cyberstrike"),
     method: {
       id: methodID,
       type: "oauth",
@@ -84,7 +84,7 @@ function oauth(http: HttpClient.HttpClient) {
 }
 
 export const OpencodePlugin = define<HttpClient.HttpClient | EventV2.Service | Scope.Scope>({
-  id: "opencode",
+  id: "cyberstrike",
   effect: Effect.fn(function* (ctx) {
     const events = yield* EventV2.Service
     const http = yield* HttpClient.HttpClient
@@ -93,7 +93,7 @@ export const OpencodePlugin = define<HttpClient.HttpClient | EventV2.Service | S
     let providers: typeof ConfigV1.Info.Type.provider | undefined
 
     const load = Effect.fn("OpencodePlugin.load")(function* () {
-      const connection = yield* ctx.integration.connection.active("opencode")
+      const connection = yield* ctx.integration.connection.active("cyberstrike")
       const credential = connection
         ? yield* ctx.integration.connection.resolve(connection).pipe(Effect.catch(() => Effect.succeed(undefined)))
         : undefined
@@ -108,18 +108,18 @@ export const OpencodePlugin = define<HttpClient.HttpClient | EventV2.Service | S
     })
 
     yield* ctx.integration.transform((draft) => {
-      draft.update("opencode", (integration) => {
+      draft.update("cyberstrike", (integration) => {
         integration.name = "OpenCode"
       })
       draft.method.update(oauth(http))
-      draft.method.update({ integrationID: "opencode", method: { type: "key", label: "API key (service account)" } })
+      draft.method.update({ integrationID: "cyberstrike", method: { type: "key", label: "API key (service account)" } })
     })
 
-    connected = (yield* ctx.integration.connection.active("opencode")) !== undefined
+    connected = (yield* ctx.integration.connection.active("cyberstrike")) !== undefined
     yield* ctx.catalog.transform((catalog) => {
       for (const [providerID, item] of Object.entries(providers ?? {})) {
         catalog.provider.update(providerID, (provider) => {
-          provider.integrationID = Integration.ID.make("opencode")
+          provider.integrationID = Integration.ID.make("cyberstrike")
           if (item.name !== undefined) provider.name = item.name
           provider.api = item.npm
             ? { type: "aisdk", package: item.npm, url: item.api }
@@ -188,7 +188,7 @@ export const OpencodePlugin = define<HttpClient.HttpClient | EventV2.Service | S
 
     const refresh = () => loading.withPermit(load().pipe(Effect.andThen(ctx.catalog.reload())))
     yield* events.subscribe(Integration.Event.ConnectionUpdated).pipe(
-      Stream.filter((event) => event.data.integrationID === Integration.ID.make("opencode")),
+      Stream.filter((event) => event.data.integrationID === Integration.ID.make("cyberstrike")),
       Stream.runForEach(refresh),
       Effect.forkScoped({ startImmediately: true }),
     )

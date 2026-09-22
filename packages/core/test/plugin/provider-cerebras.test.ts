@@ -1,12 +1,12 @@
-import { AISDK } from "@opencode-ai/core/aisdk"
+import { AISDK } from "@cyberstrike-io/core/aisdk"
 import { describe, expect, mock } from "bun:test"
 import { Effect } from "effect"
-import { Catalog } from "@opencode-ai/core/catalog"
-import { ModelV2 } from "@opencode-ai/core/model"
-import { PluginV2 } from "@opencode-ai/core/plugin"
-import { PluginHost } from "@opencode-ai/core/plugin/host"
-import { CerebrasPlugin } from "@opencode-ai/core/plugin/provider/cerebras"
-import { ProviderV2 } from "@opencode-ai/core/provider"
+import { Catalog } from "@cyberstrike-io/core/catalog"
+import { ModelV2 } from "@cyberstrike-io/core/model"
+import { PluginV2 } from "@cyberstrike-io/core/plugin"
+import { PluginHost } from "@cyberstrike-io/core/plugin/host"
+import { CerebrasPlugin } from "@cyberstrike-io/core/plugin/provider/cerebras"
+import { ProviderV2 } from "@cyberstrike-io/core/provider"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"
 
@@ -43,7 +43,7 @@ describe("CerebrasPlugin", () => {
       yield* addPlugin()
       expect((yield* catalog.provider.get(ProviderV2.ID.make("cerebras")))?.request.headers).toEqual({
         Existing: "1",
-        "X-Cerebras-3rd-Party-Integration": "opencode",
+        "X-Cerebras-3rd-Party-Integration": "cyberstrike",
       })
     }),
   )

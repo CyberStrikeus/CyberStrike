@@ -1,10 +1,10 @@
 import { describe, expect } from "bun:test"
 import { Effect, Layer } from "effect"
-import { AppNodeBuilder } from "@opencode-ai/core/effect/app-node-builder"
-import { AbsolutePath } from "@opencode-ai/core/schema"
-import { Reference } from "@opencode-ai/core/reference"
-import { ReferenceGuidance } from "@opencode-ai/core/reference/guidance"
-import { SystemContext } from "@opencode-ai/core/system-context/index"
+import { AppNodeBuilder } from "@cyberstrike-io/core/effect/app-node-builder"
+import { AbsolutePath } from "@cyberstrike-io/core/schema"
+import { Reference } from "@cyberstrike-io/core/reference"
+import { ReferenceGuidance } from "@cyberstrike-io/core/reference/guidance"
+import { SystemContext } from "@cyberstrike-io/core/system-context/index"
 import { it } from "./lib/effect"
 
 const guidanceLayer = (referenceLayer: Layer.Layer<Reference.Service>) =>
