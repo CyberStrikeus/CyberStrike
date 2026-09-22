@@ -51,12 +51,12 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@cyberstrike-io/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/@cyberstrike-io/cyberstrike?style=for-the-badge&color=1e40af" /></a>
-  <a href="https://www.npmjs.com/package/@cyberstrike-io/cyberstrike"><img alt="Downloads" src="https://img.shields.io/npm/dm/@cyberstrike-io/cyberstrike?style=for-the-badge&color=1e40af" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/CyberStrikeus/CyberStrike?style=for-the-badge&color=1e40af" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=for-the-badge&branch=dev" /></a>
-  <a href="https://discord.gg/snunAaHf6U"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=for-the-badge&label=discord&color=1e40af" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-1e40af?style=for-the-badge" /></a>
+  <a href="https://www.npmjs.com/package/@cyberstrike-io/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/@cyberstrike-io/cyberstrike?style=flat&color=1e40af" /></a>
+  <a href="https://www.npmjs.com/package/@cyberstrike-io/cyberstrike"><img alt="Downloads" src="https://img.shields.io/npm/dm/@cyberstrike-io/cyberstrike?style=flat&color=1e40af" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/CyberStrikeus/CyberStrike?style=flat&color=1e40af" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat&branch=dev" /></a>
+  <a href="https://discord.gg/snunAaHf6U"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat&label=discord&color=1e40af" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-1e40af?style=flat" /></a>
 </p>
 
 ---
