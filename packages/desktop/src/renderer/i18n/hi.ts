@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "अद्यतन स्थापित करने में विफल",
   "desktop.cli.installed.title": "CLI स्थापित",
   "desktop.cli.installed.message":
-    "CLI को {{path}} पर इंस्टॉल किया गया\n\n'opencode' कमांड का उपयोग करने के लिए अपना टर्मिनल पुनः आरंभ करें।",
+    "CLI को {{path}} पर इंस्टॉल किया गया\n\n'cyberstrike' कमांड का उपयोग करने के लिए अपना टर्मिनल पुनः आरंभ करें।",
   "desktop.cli.failed.title": "स्थापना विफल",
   "desktop.cli.failed.message": "CLI इंस्टॉल करने में विफल: {{error}}",
 

@@ -18,7 +18,7 @@ export const dict: Record<string, string> = {
   "desktop.updater.installFailed.title": "යාවත්කාලීන කිරීම අසාර්ථක විය",
   "desktop.updater.installFailed.message": "යාවත්කාලීන ස්ථාපනය කිරීමට අසමත් විය",
   "desktop.cli.installed.title": "CLI ස්ථාපනය කර ඇත",
-  "desktop.cli.installed.message": "CLI {{path}}\n\n'opencode' විධානය භාවිතා කිරීමට ඔබගේ ටර්මිනලය නැවත ආරම්භ කරන්න.",
+  "desktop.cli.installed.message": "CLI {{path}}\n\n'cyberstrike' විධානය භාවිතා කිරීමට ඔබගේ ටර්මිනලය නැවත ආරම්භ කරන්න.",
   "desktop.cli.failed.title": "ස්ථාපනය අසාර්ථක විය",
   "desktop.cli.failed.message": "CLI ස්ථාපනය කිරීමට අසමත් විය: {{error}}",
 

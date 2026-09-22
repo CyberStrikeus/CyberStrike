@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "Värskenduse installimine ebaõnnestus",
   "desktop.cli.installed.title": "CLI installitud",
   "desktop.cli.installed.message":
-    "CLI installitud asukohta {{path}}\n\nKäsu „opencode” kasutamiseks taaskäivitage terminal.",
+    "CLI installitud asukohta {{path}}\n\nKäsu „cyberstrike” kasutamiseks taaskäivitage terminal.",
   "desktop.cli.failed.title": "Installimine ebaõnnestus",
   "desktop.cli.failed.message": "CLI installimine ebaõnnestus: {{error}}",
 

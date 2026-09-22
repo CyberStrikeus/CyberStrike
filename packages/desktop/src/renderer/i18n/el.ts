@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "Αποτυχία εγκατάστασης ενημέρωσης",
   "desktop.cli.installed.title": "Το CLI εγκαταστάθηκε",
   "desktop.cli.installed.message":
-    "CLI εγκατεστημένο στο {{path}}\n\nΕπανεκκινήστε το τερματικό σας για να χρησιμοποιήσετε την εντολή 'opencode'.",
+    "CLI εγκατεστημένο στο {{path}}\n\nΕπανεκκινήστε το τερματικό σας για να χρησιμοποιήσετε την εντολή 'cyberstrike'.",
   "desktop.cli.failed.title": "Η εγκατάσταση απέτυχε",
   "desktop.cli.failed.message": "Απέτυχε η εγκατάσταση του CLI: {{error}}",
 

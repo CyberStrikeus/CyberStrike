@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "အပ်ဒိတ်ကို ထည့်သွင်းရန် မအောင်မြင်ပါ။",
   "desktop.cli.installed.title": "CLI ထည့်သွင်းထားသည်။",
   "desktop.cli.installed.message":
-    "CLI ကို {{path}} တွင် ထည့်သွင်းထားသည်။\n\n'opencode' ကွန်မန်းကို အသုံးပြုရန် Terminal ကို ပြန်လည်စတင်ပါ။",
+    "CLI ကို {{path}} တွင် ထည့်သွင်းထားသည်။\n\n'cyberstrike' ကွန်မန်းကို အသုံးပြုရန် Terminal ကို ပြန်လည်စတင်ပါ။",
   "desktop.cli.failed.title": "ထည့်သွင်းခြင်း မအောင်မြင်ပါ။",
   "desktop.cli.failed.message": "CLI- {{error}} ကို ထည့်သွင်းရန် မအောင်မြင်ပါ။",
 

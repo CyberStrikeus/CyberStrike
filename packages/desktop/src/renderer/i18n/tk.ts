@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "Täzelenmäni gurup bilmedi",
   "desktop.cli.installed.title": "CLI Guruldy",
   "desktop.cli.installed.message":
-    "CLI {{path}} salgysyna guruldy\n\n'opencode' buýrugyny ulanmak üçin terminalyňyzy täzeden açyň.",
+    "CLI {{path}} salgysyna guruldy\n\n'cyberstrike' buýrugyny ulanmak üçin terminalyňyzy täzeden açyň.",
   "desktop.cli.failed.title": "Gurmak şowsuz",
   "desktop.cli.failed.message": "CLI gurup bilmedi: {{error}}",
 

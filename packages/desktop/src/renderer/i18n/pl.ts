@@ -22,7 +22,7 @@ export const dict = {
 
   "desktop.cli.installed.title": "Zainstalowano interfejs CLI",
   "desktop.cli.installed.message":
-    "Interfejs CLI zainstalowano w {{path}}\n\nUruchom ponownie terminal, aby użyć polecenia „opencode”.",
+    "Interfejs CLI zainstalowano w {{path}}\n\nUruchom ponownie terminal, aby użyć polecenia „cyberstrike”.",
   "desktop.cli.failed.title": "Instalacja nie powiodła się",
   "desktop.cli.failed.message": "Nie udało się zainstalować CLI: {{error}}",
 

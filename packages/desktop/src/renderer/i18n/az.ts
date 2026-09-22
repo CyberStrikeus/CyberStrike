@@ -22,7 +22,7 @@ export const dict = {
 
   "desktop.cli.installed.title": "CLI quraşdırıldı",
   "desktop.cli.installed.message":
-    "CLI {{path}} ünvanına quraşdırıldı\n\n'opencode' əmrindən istifadə etmək üçün terminalı yenidən başladın.",
+    "CLI {{path}} ünvanına quraşdırıldı\n\n'cyberstrike' əmrindən istifadə etmək üçün terminalı yenidən başladın.",
   "desktop.cli.failed.title": "Quraşdırma uğursuz oldu",
   "desktop.cli.failed.message": "CLI quraşdırıla bilmədi: {{error}}",
 

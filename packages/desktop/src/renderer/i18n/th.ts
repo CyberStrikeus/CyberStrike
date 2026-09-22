@@ -21,7 +21,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "ไม่สามารถติดตั้งการอัปเดตได้",
 
   "desktop.cli.installed.title": "ติดตั้ง CLI แล้ว",
-  "desktop.cli.installed.message": "ติดตั้ง CLI ที่ {{path}} แล้ว\n\nเริ่มเทอร์มินัลใหม่เพื่อใช้คำสั่ง 'opencode'",
+  "desktop.cli.installed.message": "ติดตั้ง CLI ที่ {{path}} แล้ว\n\nเริ่มเทอร์มินัลใหม่เพื่อใช้คำสั่ง 'cyberstrike'",
   "desktop.cli.failed.title": "การติดตั้งล้มเหลว",
   "desktop.cli.failed.message": "ไม่สามารถติดตั้ง CLI ได้: {{error}}",
 

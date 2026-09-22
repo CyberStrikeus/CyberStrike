@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "Nepavyko įdiegti naujinimo",
   "desktop.cli.installed.title": "CLI įdiegtas",
   "desktop.cli.installed.message":
-    "CLI įdiegtas į {{path}}\n\nIš naujo paleiskite terminalą, kad galėtumėte naudoti komandą 'opencode'.",
+    "CLI įdiegtas į {{path}}\n\nIš naujo paleiskite terminalą, kad galėtumėte naudoti komandą 'cyberstrike'.",
   "desktop.cli.failed.title": "Diegimas nepavyko",
   "desktop.cli.failed.message": "Nepavyko įdiegti CLI: {{error}}",
 

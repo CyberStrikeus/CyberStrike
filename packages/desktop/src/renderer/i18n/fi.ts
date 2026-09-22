@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "Päivityksen asentaminen epäonnistui",
   "desktop.cli.installed.title": "CLI on asennettu",
   "desktop.cli.installed.message":
-    "CLI on asennettu polkuun {{path}}\n\nKäynnistä terminaali uudelleen, jotta voit käyttää 'opencode'-komentoa.",
+    "CLI on asennettu polkuun {{path}}\n\nKäynnistä terminaali uudelleen, jotta voit käyttää 'cyberstrike'-komentoa.",
   "desktop.cli.failed.title": "Asennus epäonnistui",
   "desktop.cli.failed.message": "CLI:n asennus epäonnistui: {{error}}",
 

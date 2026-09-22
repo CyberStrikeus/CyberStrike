@@ -18,7 +18,7 @@ export const dict = {
   "desktop.updater.installFailed.title": "Cập nhật không thành công",
   "desktop.updater.installFailed.message": "Không cài đặt được bản cập nhật",
   "desktop.cli.installed.title": "Đã cài đặt CLI",
-  "desktop.cli.installed.message": "Đã cài đặt CLI vào {{path}}\n\nKhởi động lại terminal để sử dụng lệnh 'opencode'.",
+  "desktop.cli.installed.message": "Đã cài đặt CLI vào {{path}}\n\nKhởi động lại terminal để sử dụng lệnh 'cyberstrike'.",
   "desktop.cli.failed.title": "Cài đặt không thành công",
   "desktop.cli.failed.message": "Không cài đặt được CLI: {{error}}",
 

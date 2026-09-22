@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "បានបរាជ័យក្នុងការដំឡើងបច្ចុប្បន្នភាព",
   "desktop.cli.installed.title": "CLI បានដំឡើង",
   "desktop.cli.installed.message":
-    "CLI បានដំឡើងទៅ {{path}}\n\nចាប់ផ្តើមស្ថានីយរបស់អ្នកឡើងវិញ ដើម្បីប្រើពាក្យបញ្ជា 'opencode' ។",
+    "CLI បានដំឡើងទៅ {{path}}\n\nចាប់ផ្តើមស្ថានីយរបស់អ្នកឡើងវិញ ដើម្បីប្រើពាក្យបញ្ជា 'cyberstrike' ។",
   "desktop.cli.failed.title": "ការដំឡើងបរាជ័យ",
   "desktop.cli.failed.message": "បរាជ័យក្នុងការដំឡើង CLI៖ {{error}}",
 

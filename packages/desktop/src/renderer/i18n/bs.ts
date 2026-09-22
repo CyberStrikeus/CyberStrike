@@ -22,7 +22,7 @@ export const dict = {
 
   "desktop.cli.installed.title": "CLI instaliran",
   "desktop.cli.installed.message":
-    "CLI je instaliran u {{path}}\n\nPonovo pokreni terminal da bi koristio komandu 'opencode'.",
+    "CLI je instaliran u {{path}}\n\nPonovo pokreni terminal da bi koristio komandu 'cyberstrike'.",
   "desktop.cli.failed.title": "Instalacija nije uspjela",
   "desktop.cli.failed.message": "Neuspjela instalacija CLI-a: {{error}}",
 

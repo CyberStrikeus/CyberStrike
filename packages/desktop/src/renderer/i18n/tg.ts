@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "Навсозӣ насб карда нашуд",
   "desktop.cli.installed.title": "CLI насб карда шуд",
   "desktop.cli.installed.message":
-    "CLI ба {{path}} насб карда шудааст\n\nБарои истифодаи фармони 'opencode' терминали худро аз нав оғоз кунед.",
+    "CLI ба {{path}} насб карда шудааст\n\nБарои истифодаи фармони 'cyberstrike' терминали худро аз нав оғоз кунед.",
   "desktop.cli.failed.title": "Насб карда нашуд",
   "desktop.cli.failed.message": "Насб карда нашуд CLI: {{error}}",
 

@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "Шинэчлэлтийг суулгаж чадсангүй",
   "desktop.cli.installed.title": "CLI Суулгасан",
   "desktop.cli.installed.message":
-    "CLI {{path}}-д суулгасан\n\n'opencode' командыг ашиглахын тулд терминалаа дахин эхлүүлнэ үү.",
+    "CLI {{path}}-д суулгасан\n\n'cyberstrike' командыг ашиглахын тулд терминалаа дахин эхлүүлнэ үү.",
   "desktop.cli.failed.title": "Суулгалт амжилтгүй боллоо",
   "desktop.cli.failed.message": "CLI суулгаж чадсангүй: {{error}}",
 

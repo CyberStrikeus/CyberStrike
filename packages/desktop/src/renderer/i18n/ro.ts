@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "Nu s-a putut instala actualizarea",
   "desktop.cli.installed.title": "CLI instalat",
   "desktop.cli.installed.message":
-    "CLI a fost instalat în {{path}}\n\nRepornește terminalul pentru a folosi comanda 'opencode'.",
+    "CLI a fost instalat în {{path}}\n\nRepornește terminalul pentru a folosi comanda 'cyberstrike'.",
   "desktop.cli.failed.title": "Instalarea a eșuat",
   "desktop.cli.failed.message": "Nu s-a putut instala CLI: {{error}}",
 

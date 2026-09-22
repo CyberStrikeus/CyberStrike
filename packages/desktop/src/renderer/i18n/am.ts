@@ -17,7 +17,7 @@ export const dict = {
   "desktop.updater.installFailed.title": "ዝማኔ አልተሳካም",
   "desktop.updater.installFailed.message": "ዝማኔን መጫን አልተሳካም",
   "desktop.cli.installed.title": "CLI ተጭኗል",
-  "desktop.cli.installed.message": "CLI ወደ {{path}} ተጭኗል\n\nየ'opencode' ትዕዛዝን ለመጠቀም ተርሚናልዎን እንደገና ያስጀምሩት።",
+  "desktop.cli.installed.message": "CLI ወደ {{path}} ተጭኗል\n\nየ'cyberstrike' ትዕዛዝን ለመጠቀም ተርሚናልዎን እንደገና ያስጀምሩት።",
   "desktop.cli.failed.title": "መጫኑ አልተሳካም",
   "desktop.cli.failed.message": "CLIን መጫን አልተሳካም፦ {{error}}",
 

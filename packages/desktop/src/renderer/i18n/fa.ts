@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "به روز رسانی نصب نشد",
   "desktop.cli.installed.title": "CLI نصب شده است",
   "desktop.cli.installed.message":
-    "CLI روی {{path}} نصب شد\n\nترمینال خود را مجددا راه اندازی کنید تا از دستور 'opencode' استفاده کنید.",
+    "CLI روی {{path}} نصب شد\n\nترمینال خود را مجددا راه اندازی کنید تا از دستور 'cyberstrike' استفاده کنید.",
   "desktop.cli.failed.title": "نصب ناموفق بود",
   "desktop.cli.failed.message": "CLI نصب نشد: {{error}}",
 

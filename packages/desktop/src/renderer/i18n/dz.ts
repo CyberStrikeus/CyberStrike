@@ -19,7 +19,7 @@ export const dict: Record<string, string> = {
   "desktop.updater.installFailed.message": "དུས་མཐུན་གཞི་བཙུགས་འབད་ནི་ལུ་འཐུས་ཤོར་འབྱུང་ཡོདཔ།",
   "desktop.cli.installed.title": "CLI བཙུགས་ཡོདཔ།",
   "desktop.cli.installed.message":
-    "CLI {{path}}\n\nལུ་གཞི་བཙུགས་འབད་ནུག 'opencode' བརྡ་བཀོད་ལག་ལེན་འཐབ་ནིའི་དོན་ལུ་ ཁྱོད་རའི་ཊར་མི་ནཱལ་དེ་ལོག་འགོ་བཙུགས།",
+    "CLI {{path}}\n\nལུ་གཞི་བཙུགས་འབད་ནུག 'cyberstrike' བརྡ་བཀོད་ལག་ལེན་འཐབ་ནིའི་དོན་ལུ་ ཁྱོད་རའི་ཊར་མི་ནཱལ་དེ་ལོག་འགོ་བཙུགས།",
   "desktop.cli.failed.title": "གཞི་བཙུགས་འཐུས་ཤོར་འབྱུང་ཡོདཔ།",
   "desktop.cli.failed.message": "CLI: {{error}} གཞི་བཙུགས་འབད་ནི་ལུ་འཐུས་ཤོར་འབྱུང་ཡོདཔ།",
 

@@ -22,7 +22,7 @@ export const dict = {
 
   "desktop.cli.installed.title": "Interface en ligne de commande installée",
   "desktop.cli.installed.message":
-    "Interface en ligne de commande installée dans {{path}}\n\nRedémarrez votre terminal pour utiliser la commande 'opencode'.",
+    "Interface en ligne de commande installée dans {{path}}\n\nRedémarrez votre terminal pour utiliser la commande 'cyberstrike'.",
   "desktop.cli.failed.title": "Échec de l'installation",
   "desktop.cli.failed.message": "Impossible d'installer l'interface en ligne de commande : {{error}}",
 

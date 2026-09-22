@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "Nepodarilo sa nainštalovať aktualizáciu",
   "desktop.cli.installed.title": "CLI nainštalované",
   "desktop.cli.installed.message":
-    "CLI bolo nainštalované do {{path}}\n\nReštartujte terminál, aby ste mohli používať príkaz 'opencode'.",
+    "CLI bolo nainštalované do {{path}}\n\nReštartujte terminál, aby ste mohli používať príkaz 'cyberstrike'.",
   "desktop.cli.failed.title": "Inštalácia zlyhala",
   "desktop.cli.failed.message": "Nepodarilo sa nainštalovať CLI: {{error}}",
 

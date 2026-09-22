@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "Det gick inte att installera uppdateringen",
   "desktop.cli.installed.title": "CLI installerat",
   "desktop.cli.installed.message":
-    "CLI installerat i {{path}}\n\nStarta om terminalen för att använda kommandot 'opencode'.",
+    "CLI installerat i {{path}}\n\nStarta om terminalen för att använda kommandot 'cyberstrike'.",
   "desktop.cli.failed.title": "Installationen misslyckades",
   "desktop.cli.failed.message": "Det gick inte att installera CLI: {{error}}",
 

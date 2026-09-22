@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "Tað eydnaðist ikki at seta upp dagføring",
   "desktop.cli.installed.title": "CLI Sett upp",
   "desktop.cli.installed.message":
-    "CLI sett upp í {{path}}\n\nEndurbyrja terminalin fyri at brúka skipanina 'opencode'.",
+    "CLI sett upp í {{path}}\n\nEndurbyrja terminalin fyri at brúka skipanina 'cyberstrike'.",
   "desktop.cli.failed.title": "Innleggingin miseydnaðist",
   "desktop.cli.failed.message": "Tað eydnaðist ikki at seta upp CLI: {{error}}",
 

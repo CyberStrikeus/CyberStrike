@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "Neizdevās instalēt atjauninājumu",
   "desktop.cli.installed.title": "CLI instalēts",
   "desktop.cli.installed.message":
-    "CLI instalēts uz {{path}}\n\nRestartējiet termināli, lai izmantotu komandu 'opencode'.",
+    "CLI instalēts uz {{path}}\n\nRestartējiet termināli, lai izmantotu komandu 'cyberstrike'.",
   "desktop.cli.failed.title": "Instalēšana neizdevās",
   "desktop.cli.failed.message": "Neizdevās instalēt CLI: {{error}}",
 

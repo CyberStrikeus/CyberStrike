@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "اپ ڈیٹ انسٹال نئیں ہو سکی",
   "desktop.cli.installed.title": "CLI انسٹال ہو گیا",
   "desktop.cli.installed.message":
-    "CLI {{path}} تے انسٹال کیتا گیا\n\n'opencode' کمانڈ ورتن لئی اپنے ٹرمینل نوں دوبارہ شروع کرو۔",
+    "CLI {{path}} تے انسٹال کیتا گیا\n\n'cyberstrike' کمانڈ ورتن لئی اپنے ٹرمینل نوں دوبارہ شروع کرو۔",
   "desktop.cli.failed.title": "تنصیب ناکام ہو گئی",
   "desktop.cli.failed.message": "CLI انسٹال نئیں ہو سکی: {{error}}",
 

@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "އަޕްޑޭޓް އިންސްޓޯލް ކުރަން ނާކާމިޔާބުވިއެވެ",
   "desktop.cli.installed.title": "CLI އިންސްޓޯލް ކުރެވިއްޖެއެވެ",
   "desktop.cli.installed.message":
-    "CLI އިންސްޓޯލްކޮށްފައިވަނީ {{path}} އަށެވެ\n\n'opencode' ކޮމާންޑް ބޭނުން ކުރުމަށް ޓާމިނަލް އަލުން ސްޓާޓް ކުރާށެވެ.",
+    "CLI އިންސްޓޯލްކޮށްފައިވަނީ {{path}} އަށެވެ\n\n'cyberstrike' ކޮމާންޑް ބޭނުން ކުރުމަށް ޓާމިނަލް އަލުން ސްޓާޓް ކުރާށެވެ.",
   "desktop.cli.failed.title": "އިންސްޓޯލް ކުރުން ފެއިލްވެއްޖެ",
   "desktop.cli.failed.message": "CLI: {{error}} އިންސްޓޯލް ކުރަން ނާކާމިޔާބު",
 

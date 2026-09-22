@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "Yangilanishni oʻrnatib boʻlmadi",
   "desktop.cli.installed.title": "CLI o'rnatildi",
   "desktop.cli.installed.message":
-    "CLI {{path}} manziliga o'rnatildi\n\n'opencode' buyrug'ini ishlatish uchun terminalni qayta ishga tushiring.",
+    "CLI {{path}} manziliga o'rnatildi\n\n'cyberstrike' buyrug'ini ishlatish uchun terminalni qayta ishga tushiring.",
   "desktop.cli.failed.title": "Oʻrnatish amalga oshmadi",
   "desktop.cli.failed.message": "CLI: {{error}} oʻrnatib boʻlmadi",
 

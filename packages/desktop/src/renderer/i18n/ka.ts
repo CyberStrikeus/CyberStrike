@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "განახლების დაყენება ვერ მოხერხდა",
   "desktop.cli.installed.title": "CLI დაინსტალირებულია",
   "desktop.cli.installed.message":
-    "CLI დაინსტალირებულია {{path}}-ზე\n\nგადატვირთეთ ტერმინალი „opencode“ ბრძანების გამოსაყენებლად.",
+    "CLI დაინსტალირებულია {{path}}-ზე\n\nგადატვირთეთ ტერმინალი „cyberstrike“ ბრძანების გამოსაყენებლად.",
   "desktop.cli.failed.title": "ინსტალაცია ვერ მოხერხდა",
   "desktop.cli.failed.message": "ვერ დაინსტალირდა CLI: {{error}}",
 

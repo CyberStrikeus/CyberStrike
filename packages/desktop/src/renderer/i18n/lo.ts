@@ -18,7 +18,7 @@ export const dict = {
   "desktop.updater.installFailed.title": "ການອັບເດດລົ້ມເຫລວ",
   "desktop.updater.installFailed.message": "ລົ້ມເຫລວໃນການຕິດຕັ້ງອັບເດດ",
   "desktop.cli.installed.title": "CLI ຕິດຕັ້ງ",
-  "desktop.cli.installed.message": "ຕິດຕັ້ງ CLI ໄວ້ທີ່ {{path}}\n\nຣີສະຕາດເທີມິນອນເພື່ອໃຊ້ຄຳສັ່ງ 'opencode'.",
+  "desktop.cli.installed.message": "ຕິດຕັ້ງ CLI ໄວ້ທີ່ {{path}}\n\nຣີສະຕາດເທີມິນອນເພື່ອໃຊ້ຄຳສັ່ງ 'cyberstrike'.",
   "desktop.cli.failed.title": "ການຕິດຕັ້ງລົ້ມເຫລວ",
   "desktop.cli.failed.message": "ລົ້ມເຫລວໃນການຕິດຕັ້ງ CLI: {{error}}",
 

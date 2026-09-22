@@ -19,7 +19,7 @@ export const dict = {
   "desktop.updater.installFailed.message": "Installeren van update is mislukt",
   "desktop.cli.installed.title": "CLI geïnstalleerd",
   "desktop.cli.installed.message":
-    "CLI geïnstalleerd op {{path}}\n\nStart je terminal opnieuw om de opdracht 'opencode' te gebruiken.",
+    "CLI geïnstalleerd op {{path}}\n\nStart je terminal opnieuw om de opdracht 'cyberstrike' te gebruiken.",
   "desktop.cli.failed.title": "Installatie mislukt",
   "desktop.cli.failed.message": "Installeren van CLI is mislukt: {{error}}",
 
