@@ -2,7 +2,7 @@ import { type Accessor, createMemo, For, type JSX, onCleanup, Show, splitProps }
 import { createStore } from "solid-js/store"
 import { DragDropProvider, PointerSensor } from "@dnd-kit/solid"
 import { isSortable, useSortable } from "@dnd-kit/solid/sortable"
-import { AutoScroller, Feedback, PointerActivationConstraints } from "@dnd-kit/dom"
+import { AutoScroller, Feedback, PointerActivationConstraints, Scroller } from "@dnd-kit/dom"
 import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers"
 import { RestrictToElement } from "@dnd-kit/dom/modifiers"
 import { ScrollView } from "@cyberstrike-io/ui/scroll-view"
@@ -329,6 +329,7 @@ function HomeProjectList(props: HomeProjectListProps) {
       modifiers={[RestrictToVerticalAxis, RestrictToElement.configure({ element: () => listRef })]}
       plugins={(defaults) => [
         ...defaults.filter((plugin) => plugin !== AutoScroller && plugin !== Feedback),
+        Scroller,
         AutoScroller.configure({ acceleration: 8, threshold: { x: 0, y: 0.05 } }),
         Feedback.configure({ dropAnimation: null }),
       ]}
