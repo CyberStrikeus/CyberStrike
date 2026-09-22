@@ -1,7 +1,7 @@
 import { cmd } from "./cmd"
 import { bootstrap } from "../bootstrap"
 import { Server } from "../../server/server"
-import { createCyberstrikeClient } from "@cyberstrike-io/sdk/v2"
+import { createOpencodeClient } from "@cyberstrike-io/sdk/v2"
 import { launchHackbrowser, stopHackbrowser } from "../../tool/hackbrowser-launcher"
 import { tui } from "./tui/app"
 import { UI } from "../ui"
@@ -46,7 +46,7 @@ export const HackbrowserCommand = cmd({
       // ingest loopback uses Server.url() which is only set after listen().
       const server = Server.listen({ port: 0, hostname: "127.0.0.1" })
       const serverUrl = server.url.toString().replace(/\/$/, "")
-      const sdk = createCyberstrikeClient({ baseUrl: serverUrl, directory: process.cwd() })
+      const sdk = createOpencodeClient({ baseUrl: serverUrl, directory: process.cwd() })
 
       const sessionResult = await sdk.session.create({ title: `hackbrowser: ${args.target}` })
       const sessionID = sessionResult.data?.id

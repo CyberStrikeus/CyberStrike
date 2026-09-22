@@ -2,7 +2,7 @@ import type { Hooks, PluginInput, Plugin as PluginInstance } from "@cyberstrike-
 import { Config } from "../config/config"
 import { Bus } from "../bus"
 import { Log } from "../util/log"
-import { createCyberstrikeClient } from "@cyberstrike-io/sdk"
+import { createOpencodeClient } from "@cyberstrike-io/sdk"
 import { Server } from "../server/server"
 import { BunProc } from "../bun"
 import { Instance } from "../project/instance"
@@ -56,7 +56,7 @@ export namespace Plugin {
   }
 
   const state = Instance.state(async () => {
-    const client = createCyberstrikeClient({
+    const client = createOpencodeClient({
       baseUrl: "http://localhost:4096",
       directory: Instance.directory,
       // @ts-ignore - fetch type incompatibility

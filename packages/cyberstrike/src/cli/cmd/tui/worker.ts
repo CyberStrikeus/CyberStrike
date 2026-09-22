@@ -7,7 +7,7 @@ import { Rpc } from "@/util/rpc"
 import { upgrade } from "@/cli/upgrade"
 import { Config } from "@/config/config"
 import { GlobalBus } from "@/bus/global"
-import { createCyberstrikeClient, type Event } from "@cyberstrike-io/sdk/v2"
+import { createOpencodeClient, type Event } from "@cyberstrike-io/sdk/v2"
 import type { BunWebSocketData } from "hono/bun"
 import { Flag } from "@/flag/flag"
 
@@ -56,7 +56,7 @@ const startEventStream = (directory: string) => {
     return Server.App().fetch(request)
   }) as typeof globalThis.fetch
 
-  const sdk = createCyberstrikeClient({
+  const sdk = createOpencodeClient({
     baseUrl: "http://cyberstrike.internal",
     directory,
     fetch: fetchFn,
