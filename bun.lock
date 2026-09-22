@@ -378,6 +378,7 @@
         "@actions/artifact": "4.0.0",
         "@cyberstrike-io/app": "workspace:*",
         "@cyberstrike-io/ui": "workspace:*",
+        "@fontsource-variable/space-grotesk": "5.2.10",
         "@lydell/node-pty": "catalog:",
         "@sentry/solid": "catalog:",
         "@sentry/vite-plugin": "catalog:",
@@ -417,7 +418,7 @@
     },
     "packages/docs": {
       "name": "@cyberstrike-io/docs",
-      "version": "1.5.0",
+      "version": "1.5.1",
       "dependencies": {
         "@astrojs/mdx": "4.3.12",
         "@astrojs/rss": "4.0.14",
