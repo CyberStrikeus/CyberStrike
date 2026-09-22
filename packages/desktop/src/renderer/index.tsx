@@ -1,4 +1,5 @@
 // @refresh reload
+import "@fontsource-variable/space-grotesk"
 
 import {
   AppBaseProviders,
