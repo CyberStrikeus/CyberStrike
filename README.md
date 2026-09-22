@@ -40,13 +40,13 @@
 
 <p align="center">
   <a href="#quick-start">Quick Start</a> ·
+  <a href="#who-is-this-for">Who Is This For</a> ·
   <a href="#how-it-works">How It Works</a> ·
   <a href="#agents">Agents</a> ·
   <a href="#hackbrowser">HackBrowser</a> ·
   <a href="#vortex">Vortex</a> ·
   <a href="#bolt--mcp">Bolt & MCP</a> ·
   <a href="#web-ui">Web UI</a> ·
-  <a href="#installation">Installation</a> ·
   <a href="https://docs.cyberstrike.io">Docs</a>
 </p>
 
@@ -66,11 +66,20 @@
 npm i -g @cyberstrike-io/cyberstrike@latest && cyberstrike
 ```
 
-CyberStrike launches in your terminal, asks for your LLM provider on first run, and you're ready. Tell it what to test — it handles the rest.
+CyberStrike launches in your terminal, asks for your LLM provider on first run, and you're ready. No separate AI costs — it runs on top of your existing Claude, OpenAI, or any other LLM subscription.
 
-> **Already have a Claude Code or OpenAI subscription?** CyberStrike runs on top of your existing AI plan. No separate API costs.
+Point it at a target. CyberStrike runs reconnaissance, finds attack surfaces, tests for vulnerabilities, and delivers a report — each finding with severity, proof-of-concept requests, CWE mapping, and remediation steps. No manual tool chaining, no copy-pasting between terminals.
 
 Explore the full documentation at **[docs.cyberstrike.io](https://docs.cyberstrike.io)**.
+
+---
+
+### Who Is This For
+
+- **Pentesters** — Automate the repetitive parts. Let agents handle recon and initial testing while you focus on the creative attack chains that need human intuition.
+- **Bug Bounty Hunters** — Faster reconnaissance, wider coverage, consistent methodology across programs. CyberStrike doesn't get tired at 3am.
+- **Security Teams** — Run structured OWASP assessments with reproducible methodology. Get reports that map to standards your compliance team understands.
+- **Security Researchers** — Extend CyberStrike with custom agents, skills, and MCP servers. The plugin system makes it a platform, not just a tool.
 
 ---
 
@@ -80,10 +89,9 @@ CyberStrike injects offensive security methodology — OWASP testing procedures,
 
 You describe the target. CyberStrike selects the right agent, loads relevant skills from a library of 7,600+ methodology documents, picks tools, and runs the assessment. Findings are confirmed with a 3-gate protocol (baseline → attack → response diff) — speculative results are discarded.
 
-**What you bring:** An API key for any supported LLM (or run fully offline with Ollama).
-**What CyberStrike adds:** 7,600+ security skills, 56+ built-in tools, 1,000+ MCP tools across 15+ servers, and domain-specific agents that know how to chain them.
-
-**Bring any model:**
+<details>
+<summary><b>Supported AI providers (150+)</b></summary>
+<br>
 
 | Provider | Models | Notes |
 |----------|--------|-------|
@@ -98,6 +106,8 @@ You describe the target. CyberStrike selects the right agent, loads relevant ski
 
 Plus Groq, Mistral, xAI, DeepSeek, Cerebras, Cohere, Together AI, and any OpenAI-compatible endpoint — [150+ providers total](https://models.dev).
 
+</details>
+
 ---
 
 ### Agents
@@ -111,7 +121,7 @@ Switch agents with `Tab`. Each one carries domain-specific methodology and testi
 | **general** | General-purpose security assistant |
 | **explore** | Read-only reconnaissance and analysis |
 
-The web pipeline runs 8 parallel testers on intercepted traffic: IDOR, authorization bypass, mass assignment, injection, authentication, business logic, SSRF, and file attacks.
+The web pipeline runs 8 parallel testers on intercepted traffic — testing access control, injection, authentication, business logic, and file security across every request.
 
 > **CyberStrike Pro** adds cloud security (AWS/Azure/GCP), internal network (Active Directory, Kerberos), and mobile application (Android/iOS, Frida) agents. [Learn more →](https://cyberstrike.io)
 
@@ -137,7 +147,7 @@ If you've used Caido or Burp Suite's proxy: Vortex is the same concept, native t
 
 **Bolt** runs your security tools on remote servers. Deploy on any VPS or Docker container, pair with Ed25519 keys, and control from your terminal. One CyberStrike instance orchestrates many Bolt servers — each with its own toolkit and network position.
 
-**MCP servers** extend CyberStrike with 1,000+ additional security tools across 15+ servers:
+**MCP servers** extend CyberStrike with specialized security tools:
 
 | Server | Tools | Domain |
 |--------|-------|--------|
@@ -146,11 +156,8 @@ If you've used Caido or Burp Suite's proxy: Vortex is the same concept, native t
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39 | GitHub security posture |
 | [cve-mcp](https://github.com/badchars/cve-mcp) | 23 | CVE intelligence — NVD, EPSS, KEV, GHSA |
 | [osint-mcp-server](https://github.com/badchars/osint-mcp-server) | 37 | OSINT — Shodan, VirusTotal, Censys, DNS |
-| [dns-security-mcp](https://github.com/badchars/dns-security-mcp) | 104 | DNS security & DNSSEC auditing |
-| [fingerprint-mcp](https://github.com/badchars/fingerprint-mcp) | 103 | TCP/TLS/SSH/HTTP fingerprinting |
-| [supply-chain-mcp-server](https://github.com/badchars/supply-chain-mcp-server) | 90 | Supply chain — npm, PyPI, Go, OSV |
 
-Plus [steganography](https://github.com/badchars/steganography-mcp), [LOLBins](https://github.com/badchars/living-off-the-land-lolbins-mcp-server), [WiFi security](https://github.com/badchars/wifi-security-mcp-server), [dark web intelligence](https://github.com/badchars/darknet-mcp-server), [satellite/GEOINT](https://github.com/badchars/satellite-mcp), [MCP server scanning](https://github.com/badchars/mcp-security-scanner), and [firmware RE](https://github.com/badchars/firmware-re-vulnerability-mcp-server). All open source, all installable with `npx`.
+All open source. All installable with `npx`. More security MCP servers at [github.com/badchars](https://github.com/badchars).
 
 ---
 
@@ -180,15 +187,6 @@ scoop install cyberstrike
 # Linux / macOS (curl)
 curl -fsSL https://cyberstrike.io/install.sh | bash
 ```
-
----
-
-### Who Is This For
-
-- **Pentesters** — Automate the repetitive parts. Let agents handle recon and initial testing while you focus on the creative attack chains that need human intuition.
-- **Bug Bounty Hunters** — Faster reconnaissance, wider coverage, consistent methodology across programs. CyberStrike doesn't get tired at 3am.
-- **Security Teams** — Run structured OWASP assessments with reproducible methodology. Get reports that map to standards your compliance team understands.
-- **Security Researchers** — Extend CyberStrike with custom agents, skills, and MCP servers. The plugin system makes it a platform, not just a tool.
 
 ---
 
