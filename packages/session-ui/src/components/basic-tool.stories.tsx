@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { createSignal } from "solid-js"
 import * as mod from "./basic-tool"
-import { create } from "@opencode-ai/ui/storybook/scaffold"
+import { create } from "@cyberstrike-io/ui/storybook/scaffold"
 
 const docs = `### Overview
 Expandable tool panel with a structured trigger and optional details.

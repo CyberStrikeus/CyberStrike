@@ -1,11 +1,11 @@
-import { useFilteredList } from "@opencode-ai/ui/hooks"
-import { getDirectory, getFilename } from "@opencode-ai/core/util/path"
+import { useFilteredList } from "@cyberstrike-io/ui/hooks"
+import { getDirectory, getFilename } from "@cyberstrike-io/core/util/path"
 import { createSignal, For, onMount, Show, splitProps, type JSX } from "solid-js"
-import { Button } from "@opencode-ai/ui/button"
-import { FileIcon } from "@opencode-ai/ui/file-icon"
-import { Icon } from "@opencode-ai/ui/icon"
+import { Button } from "@cyberstrike-io/ui/button"
+import { FileIcon } from "@cyberstrike-io/ui/file-icon"
+import { Icon } from "@cyberstrike-io/ui/icon"
 import { installLineCommentStyles } from "./line-comment-styles"
-import { useI18n } from "@opencode-ai/ui/context/i18n"
+import { useI18n } from "@cyberstrike-io/ui/context/i18n"
 
 installLineCommentStyles()
 

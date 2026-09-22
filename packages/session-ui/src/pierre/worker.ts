@@ -1,6 +1,6 @@
 import { WorkerPoolManager } from "@pierre/diffs/worker"
 import ShikiWorkerUrl from "@pierre/diffs/worker/worker.js?worker&url"
-import { registerOpenCodeTheme } from "@opencode-ai/ui/context/marked-theme-register"
+import { registerOpenCodeTheme } from "@cyberstrike-io/ui/context/marked-theme-register"
 
 registerOpenCodeTheme()
 
@@ -22,7 +22,7 @@ function createPool(lineDiffType: "none" | "word-alt") {
       poolSize: 2,
     },
     {
-      theme: "OpenCode",
+      theme: "CyberStrike",
       lineDiffType,
       preferredHighlighter: "shiki-wasm",
     },
