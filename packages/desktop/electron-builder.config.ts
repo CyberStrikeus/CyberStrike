@@ -42,7 +42,7 @@ const APP_IDS = {
 } as const
 
 const getBase = (appId: string): Configuration => ({
-  artifactName: "opencode-desktop-${os}-${arch}.${ext}",
+  artifactName: "cyberstrike-desktop-${os}-${arch}.${ext}",
   directories: {
     output: "dist",
     buildResources: "resources",
@@ -79,15 +79,16 @@ const getBase = (appId: string): Configuration => ({
     gatekeeperAssess: false,
     entitlements: "resources/entitlements.plist",
     entitlementsInherit: "resources/entitlements.plist",
-    notarize: true,
+    notarize: process.env.GITHUB_ACTIONS === "true",
+    identity: process.env.GITHUB_ACTIONS === "true" ? undefined : null,
     target: ["dmg", "zip"],
   },
   dmg: {
-    sign: true,
+    sign: process.env.GITHUB_ACTIONS === "true",
   },
   protocols: {
     name: "CyberStrike",
-    schemes: ["opencode"],
+    schemes: ["cyberstrike"],
   },
   win: {
     icon: `resources/icons/icon.ico`,
@@ -129,7 +130,7 @@ function getConfig() {
         appId,
         productName: "CyberStrike Dev",
         deb: { fpm: [metainfoFpm(appId)] },
-        rpm: { packageName: "opencode-dev", fpm: [metainfoFpm(appId)] },
+        rpm: { packageName: "cyberstrike-dev", fpm: [metainfoFpm(appId)] },
       }
     }
     case "beta": {
@@ -137,10 +138,10 @@ function getConfig() {
         ...base,
         appId,
         productName: "CyberStrike Beta",
-        protocols: { name: "CyberStrike Beta", schemes: ["opencode"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "opencode-beta", channel: "latest" },
+        protocols: { name: "CyberStrike Beta", schemes: ["cyberstrike"] },
+        publish: { provider: "github", owner: "CyberStrikeus", repo: "CyberStrike-Enterprise", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId)] },
-        rpm: { packageName: "opencode-beta", fpm: [metainfoFpm(appId)] },
+        rpm: { packageName: "cyberstrike-beta", fpm: [metainfoFpm(appId)] },
       }
     }
     case "prod": {
@@ -148,10 +149,10 @@ function getConfig() {
         ...base,
         appId,
         productName: "CyberStrike",
-        protocols: { name: "CyberStrike", schemes: ["opencode"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "opencode", channel: "latest" },
+        protocols: { name: "CyberStrike", schemes: ["cyberstrike"] },
+        publish: { provider: "github", owner: "CyberStrikeus", repo: "CyberStrike-Enterprise", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
-        rpm: { packageName: "opencode", fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
+        rpm: { packageName: "cyberstrike", fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
       }
     }
   }
