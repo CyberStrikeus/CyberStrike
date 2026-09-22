@@ -1,0 +1,276 @@
+---
+title: Environment Variables
+description: Configure Cyberstrike using environment variables
+sidebar:
+  order: 4
+  label: Environment Variables
+---
+
+Environment variables configure provider credentials and toggle runtime behavior — useful for CI/CD and containerized environments.
+
+<Aside variant="info">
+  Cyberstrike does **not** read settings like the model, agent, or theme from environment variables. Those live in the config file (see [Configuration Reference](/docs/configuration)). The `CYBERSTRIKE_*` variables below are limited to credentials, config paths, and behavior toggles.
+</Aside>
+
+{/* TODO: Screenshot - Environment variables in terminal */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: env-vars-terminal.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Setting environment variables in terminal</p>
+</div>
+
+## Provider API Keys
+
+Provider keys use the SDK's standard variable names. See [AI Providers](/docs/providers) for the full list.
+
+### Anthropic
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-api03-..."
+```
+
+### OpenAI
+
+```bash
+export OPENAI_API_KEY="sk-proj-..."
+```
+
+### Google (Gemini)
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+# GEMINI_API_KEY is also accepted
+```
+
+### OpenRouter
+
+```bash
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+### Groq
+
+```bash
+export GROQ_API_KEY="gsk_..."
+```
+
+### Azure OpenAI
+
+```bash
+export AZURE_RESOURCE_NAME="your-resource"
+export AZURE_API_KEY="..."
+```
+
+### AWS Bedrock
+
+```bash
+export AWS_ACCESS_KEY_ID="AKIA..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+# or a bearer token:
+export AWS_BEARER_TOKEN_BEDROCK="..."
+```
+
+## Config Path Variables
+
+| Variable | Description |
+|----------|-------------|
+| `CYBERSTRIKE_CONFIG` | Full path to a custom config file |
+| `CYBERSTRIKE_CONFIG_DIR` | Additional `.cyberstrike` directory to scan |
+| `CYBERSTRIKE_CONFIG_CONTENT` | Inline JSON config (overrides file sources) |
+| `CYBERSTRIKE_DISABLE_PROJECT_CONFIG` | Set truthy to skip loading project config |
+| `CYBERSTRIKE_PERMISSION` | Permission override as a JSON string |
+
+## Behavior Flags
+
+These variables toggle runtime behavior. Boolean flags are enabled when set to a truthy value (`1`, `true`).
+
+| Variable | Description |
+|----------|-------------|
+| `CYBERSTRIKE_AUTO_SHARE` | Auto-share newly created sessions |
+| `CYBERSTRIKE_DISABLE_AUTOUPDATE` | Disable automatic updates |
+| `CYBERSTRIKE_DISABLE_AUTOCOMPACT` | Disable automatic context compaction |
+| `CYBERSTRIKE_DISABLE_PRUNE` | Disable pruning of old tool outputs |
+| `CYBERSTRIKE_DISABLE_TERMINAL_TITLE` | Don't update the terminal title |
+| `CYBERSTRIKE_DISABLE_DEFAULT_PLUGINS` | Skip loading the built-in plugins |
+| `CYBERSTRIKE_DISABLE_LSP_DOWNLOAD` | Don't download LSP servers |
+| `CYBERSTRIKE_DISABLE_MODELS_FETCH` | Don't fetch the remote model catalog |
+| `CYBERSTRIKE_DISABLE_EXTERNAL_SKILLS` | Skip loading external skills |
+| `CYBERSTRIKE_ENABLE_EXA` | Enable Exa-backed web search |
+| `CYBERSTRIKE_MODELS_URL` | Override the model catalog URL |
+| `CYBERSTRIKE_MODELS_PATH` | Load the model catalog from a local path |
+
+### Server Credentials
+
+Used by `cyberstrike serve` and `cyberstrike web`:
+
+```bash
+export CYBERSTRIKE_SERVER_PASSWORD="..."   # required to start the server
+export CYBERSTRIKE_SERVER_USERNAME="admin" # optional, defaults exist
+```
+
+## Referencing Variables in Config
+
+Config files support two substitutions — and only these two:
+
+### Environment Variables — `{env:VAR}`
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+`{env:VAR}` is replaced with the value of `VAR`, or an empty string if unset. Shell-style `${VAR}`, `$VAR`, and default-value syntax (`{env:VAR:-default}`) are **not** supported.
+
+### File Contents — `{file:path}`
+
+```json
+{
+  "instructions": ["{file:./SECURITY.md}"]
+}
+```
+
+Paths may be relative to the config file, absolute, or start with `~/` for the home directory.
+
+## Permission Overrides for Automation
+
+`cyberstrike run` (non-interactive) auto-rejects any tool call that would otherwise prompt. To pre-approve tools in CI, pass a JSON permission map via `CYBERSTRIKE_PERMISSION`:
+
+```bash
+export CYBERSTRIKE_PERMISSION='{"bash":"allow","edit":"allow","read":"allow"}'
+```
+
+The value follows the same shape as the config `permission` field. See [Permissions](/docs/permissions).
+
+## Shell Configuration
+
+### Bash / Zsh
+
+```bash title="~/.bashrc / ~/.zshrc"
+export ANTHROPIC_API_KEY="sk-ant-..."
+export CYBERSTRIKE_AUTO_SHARE=1
+```
+
+### Fish
+
+```fish title="~/.config/fish/config.fish"
+set -gx ANTHROPIC_API_KEY "sk-ant-..."
+set -gx CYBERSTRIKE_AUTO_SHARE 1
+```
+
+## .env Files
+
+```bash title=".env"
+ANTHROPIC_API_KEY=sk-ant-...
+CYBERSTRIKE_PERMISSION={"bash":"allow"}
+```
+
+```bash
+# Load before launching
+source .env && cyberstrike
+```
+
+<Aside variant="caution">
+  Never commit `.env` files to version control. Add `.env` to `.gitignore`.
+</Aside>
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+env:
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow","edit":"allow"}'
+
+steps:
+  - name: Security Scan
+    run: cyberstrike run "scan for vulnerabilities"
+```
+
+### GitLab CI
+
+```yaml
+variables:
+  CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow"}'
+
+security_scan:
+  script:
+    - cyberstrike run "analyze code for security issues"
+```
+
+## Docker
+
+### Docker Run
+
+```bash
+docker run -it \
+  -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+  -e CYBERSTRIKE_PERMISSION='{"bash":"allow"}' \
+  cyberstrike/cyberstrike
+```
+
+### Docker Compose
+
+```yaml title="docker-compose.yml"
+services:
+  cyberstrike:
+    image: cyberstrike/cyberstrike
+    environment:
+      - ANTHROPIC_API_KEY
+      - CYBERSTRIKE_AUTO_SHARE=1
+    env_file:
+      - .env
+```
+
+## Priority Order
+
+Config sources are merged in this order (highest wins):
+
+```
+1. Command line arguments
+2. Enterprise managed config
+3. CYBERSTRIKE_CONFIG_CONTENT (inline JSON)
+4. .cyberstrike/ directory config
+5. Project config (cyberstrike.json / .jsonc)
+6. CYBERSTRIKE_CONFIG (custom file)
+7. Global config (~/.config/cyberstrike/)
+8. Remote .well-known/cyberstrike
+9. Default values
+```
+
+See the [Configuration Reference](/docs/configuration#configuration-hierarchy) for details.
+
+## Checking Variables
+
+```bash
+# List active Cyberstrike variables
+env | grep CYBERSTRIKE
+
+# Check a provider key is set (without printing it fully)
+echo "${ANTHROPIC_API_KEY:0:12}..."
+```
+
+## Security
+
+1. Never echo full API keys
+2. Use secrets management in CI/CD
+3. Rotate keys periodically
+4. Restrict `.env` permissions: `chmod 600 .env`
+
+<Aside variant="tip">
+  Use a secrets manager like HashiCorp Vault, AWS Secrets Manager, or 1Password CLI for production environments.
+</Aside>
+
+## Related Documentation
+
+- [Configuration Reference](/docs/configuration) - All configuration options
+- [Project Config](/docs/configuration/project-config) - Project settings
+- [Global Config](/docs/configuration/global-config) - Global settings
+- [Authentication](/docs/getting-started/authentication) - Auth setup

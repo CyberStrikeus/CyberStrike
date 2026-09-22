@@ -1,0 +1,197 @@
+---
+title: Context Management
+description: View and manage discovered web application context — credentials, roles, objects, functions, and vulnerabilities — using TUI commands
+sidebar:
+  order: 2
+  label: Context Management
+---
+
+As the proxy-agent processes captured requests, it builds a progressive picture of the target application. This accumulated knowledge — credentials, roles, objects, functions, and discovered vulnerabilities — is called **session context**.
+
+Two TUI commands give you direct access to this context during a testing session.
+
+## /web
+
+```
+/web
+```
+
+**Aliases:** `/endpoints` `/roles` `/credentials`
+
+Opens an interactive dialog showing everything the proxy-agent has learned about the target application so far. The dialog has five sections you can navigate between.
+
+### Endpoints
+
+Lists all HTTP requests captured and processed in the session:
+
+| Column | Description |
+|--------|-------------|
+| Method | HTTP method (GET, POST, PUT, PATCH, DELETE) |
+| Path | Normalized endpoint path |
+| Status | Processing status (queued, processing, processed) |
+
+Use this to track which parts of the application have been analyzed and identify any endpoints still queued for testing.
+
+### Roles
+
+Lists user roles discovered by `proxy-analyzer` across all processed requests:
+
+| Column | Description |
+|--------|-------------|
+| Name | Role identifier (e.g. `admin`, `user`, `guest`) |
+| Level | Privilege level — higher numbers indicate more access |
+
+Roles are extracted from responses (JWT claims, role fields in JSON), API documentation patterns, and endpoint naming conventions. They are used by `proxy-tester-authz` to determine whether privilege escalation is possible.
+
+### Credentials
+
+Lists all registered credentials and the authentication headers the extension has captured for each:
+
+| Column | Description |
+|--------|-------------|
+| Label | Human-readable name (e.g. `admin-user`) |
+| Type | Authentication scheme (Bearer, Cookie, API Key, etc.) |
+| Role | Linked role if the proxy-analyzer identified one |
+| Container | Firefox container ID |
+
+Select a credential to view its full auth headers and any claims extracted from JWT tokens.
+
+### Objects
+
+Lists data entities discovered by `proxy-analyzer`:
+
+| Column | Description |
+|--------|-------------|
+| Name | Entity name (e.g. `User`, `Order`, `Product`) |
+| Fields | All known fields for this entity |
+| Sensitive Fields | Fields flagged as security-relevant (e.g. `role`, `price`, `is_admin`) |
+| ID Fields | Fields used as identifiers for IDOR testing |
+
+Select an object to see discovered values — specific IDs associated with each credential. These values are what `proxy-tester-idor` uses to test whether Credential A can access IDs belonging to Credential B.
+
+### Functions
+
+Lists endpoint-to-function mappings extracted by `proxy-analyzer`:
+
+| Column | Description |
+|--------|-------------|
+| Name | Function label (e.g. `Login`, `Create Order`, `Delete User`) |
+| Action Type | CRUD classification: `create`, `read`, `update`, `delete`, `auth` |
+| Objects | Data entities this function operates on |
+| Role | Role required to use this function (if identified) |
+
+Functions give the proxy-agent a semantic understanding of the application — not just which endpoints exist, but what they do and who can call them. This is used for business logic testing and authorization analysis.
+
+### Navigation
+
+| Key | Action |
+|-----|--------|
+| `←` `→` | Switch between sections |
+| `↑` `↓` | Navigate items |
+| `Enter` | View detailed information |
+| `Esc` | Close dialog or go back |
+| `h` `l` | Switch sections (vim mode) |
+| `j` `k` | Navigate items (vim mode) |
+
+---
+
+## /vulnerabilities
+
+```
+/vulnerabilities
+```
+
+**Aliases:** `/vuln` `/vulns`
+
+Opens the vulnerability viewer, listing all findings reported by the proxy-testing subagents.
+
+### Vulnerability Fields
+
+Each finding includes:
+
+| Field | Description |
+|-------|-------------|
+| Severity | `critical` `high` `medium` `low` `info` |
+| Title | Short description of the vulnerability |
+| CWE ID | Common Weakness Enumeration identifier |
+| Location | Affected endpoint, file, or parameter |
+| Description | Full explanation of the issue |
+| Steps to Reproduce | Exact request sequence to trigger the vulnerability |
+| Business Impact | What an attacker could achieve |
+| Proof of Concept | Request/response evidence |
+| Recommendation | How to fix the issue |
+| Status | `new` `approved` `duplicate` `open` `fixed` `ignored` (defaults to `new`) |
+
+### Navigation
+
+| Key | Action |
+|-----|--------|
+| `↑` `↓` | Navigate vulnerabilities |
+| `Enter` | View full details |
+| `c` | Copy vulnerability to clipboard |
+| `Esc` | Close or go back |
+
+### Severity Reference
+
+| Severity | CVSS Range | Example |
+|----------|-----------|---------|
+| Critical | 9.0 – 10.0 | Auth bypass granting admin access, RCE |
+| High | 7.0 – 8.9 | IDOR exposing other users' data, Stored XSS |
+| Medium | 4.0 – 6.9 | Reflected XSS, CSRF, information disclosure |
+| Low | 0.1 – 3.9 | Missing security headers, verbose errors |
+| Info | – | Architecture observations, non-exploitable findings |
+
+---
+
+## How Context Accumulates
+
+Session context is not pre-populated — it builds progressively as the proxy-agent processes captured requests:
+
+```
+Request 1: POST /api/login
+  → proxy-analyzer discovers: User object, "admin" role, credential claims in JWT
+
+Request 2: GET /api/orders/573
+  → proxy-analyzer discovers: Order object, ID field, value "573" for admin credential
+  → proxy-tester-idor tests: orders/572, /574, /1, /0 — finds no IDOR
+
+Request 3: POST /api/orders
+  → proxy-analyzer discovers: Order creation function, "total" and "discount" fields
+  → proxy-tester-mass-assignment tests: inject discount field → FINDING: mass assignment
+
+Request 4: GET /api/admin/users (logged in as regular-user)
+  → proxy-tester-authz tests: access with regular-user credential
+  → FINDING: admin endpoint accessible without admin role
+```
+
+Each new request adds to the knowledge base. Later requests benefit from context discovered by earlier ones — for example, IDOR testing becomes more precise once the proxy-analyzer has associated specific object IDs with specific credentials.
+
+## Programmatic Access
+
+The `web_get_session_context` tool returns a **bounded, endpoint-scoped** view — it stays small no matter how large the session grows. Its core (always returned) is:
+
+| Section | Contents |
+|---------|----------|
+| `recent` | Objects and functions the analyzer just extracted for the **current** endpoint, inline with their schema and the values each credential observed (the IDOR / mass-assignment substrate) — no fetch needed for the common case |
+| `catalog` | The **names** of every object, function, and role discovered app-wide (no schemas/values) — pull full detail with `web_get_detail(kind, id)` |
+| `credentials` | Auth credentials (tracking-cookie noise stripped) |
+| `vulnerabilities` | The last 30 confirmed findings |
+| `recent_requests` | The last 5 analyzed endpoints (id, method, path) — pull full detail with `web_get_request_detail(id)` |
+| `observations` | The cross-credential IDOR shortlist (endpoints reached by 2+ credentials) |
+
+Pass `include: ["retest_queue"]` to also return the pending re-test queue.
+
+You can also ask the agent directly:
+
+```
+> What roles have been discovered in this session?
+> Show me all objects with sensitive fields
+> List all vulnerabilities found so far
+> Which credentials do we have and what roles are they linked to?
+```
+
+## Related Documentation
+
+- [Web Proxy Testing Overview](/docs/web-testing) - How all components fit together
+- [Firefox Extension](/docs/tools/firefox-extension) - Capturing browser traffic
+- [Proxy Agent](/docs/agents/proxy-agent) - How the proxy-agent selects and runs tests

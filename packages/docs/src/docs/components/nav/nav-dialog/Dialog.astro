@@ -1,0 +1,179 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+type Props = HTMLAttributes<"div">;
+
+const { class: className, ...rest } = Astro.props;
+---
+
+<div class:list={["starwind-dialog", className]} {...rest}>
+  <slot />
+</div>
+
+<script>
+  /**
+   * Handles the functionality of a dialog component
+   * Manages state, animations, and accessibility
+   */
+  class DialogHandler {
+    private trigger: HTMLButtonElement;
+    private dialog: HTMLDialogElement;
+    private closeButtons: NodeListOf<HTMLButtonElement>;
+    private backdrop: HTMLElement;
+    /**
+     * The duration of the animation in milliseconds. This is used to calculate the
+     * duration of close animation before hiding the dialog and backdrop
+     */
+    private animationDuration: number;
+
+    constructor(dialogWrapper: HTMLElement, dialogNumber: number) {
+      this.dialog = dialogWrapper.querySelector("dialog")!;
+      this.backdrop = dialogWrapper.querySelector(".starwind-dialog-backdrop")!;
+
+      // animationDuration is set with inline styles through passed prop to DialogContent
+      const animationDurationString = this.dialog.style.animationDuration;
+      if (animationDurationString.endsWith("ms")) {
+        this.animationDuration = parseFloat(animationDurationString);
+      } else if (animationDurationString.endsWith("s")) {
+        // using something like @playform/compress might optimize to use "s" instead of "ms"
+        this.animationDuration = parseFloat(animationDurationString) * 1000;
+      } else {
+        this.animationDuration = 200;
+      }
+
+      // if trigger is set with asChild, use the first child element for trigger button
+      const tempTrigger = dialogWrapper.querySelector(".starwind-dialog-trigger") as HTMLElement;
+      if (tempTrigger?.hasAttribute("data-as-child")) {
+        this.trigger = tempTrigger.firstElementChild as HTMLButtonElement;
+      } else {
+        this.trigger = tempTrigger as HTMLButtonElement;
+      }
+
+      // if closeButtons are set with asChild, swap the wrapper with its first child
+      const tempCloseButtons = dialogWrapper.querySelectorAll(
+        ".starwind-dialog-close",
+      ) as NodeListOf<HTMLElement>;
+      tempCloseButtons.forEach((button: HTMLElement) => {
+        if (button.hasAttribute("data-as-child")) {
+          const childElement = button.firstElementChild;
+          if (childElement) {
+            childElement.classList.add("starwind-dialog-close");
+            button.parentNode?.replaceChild(childElement, button);
+          }
+        }
+        return button;
+      });
+
+      this.closeButtons = dialogWrapper.querySelectorAll(
+        ".starwind-dialog-close",
+      ) as NodeListOf<HTMLButtonElement>;
+
+      // if any elements are not there, exit
+      if (!this.trigger || !this.dialog || !this.backdrop) return;
+
+      this.setupAccessibility(dialogNumber);
+      this.setupEvents();
+    }
+
+    private setupAccessibility(dialogNumber: number): void {
+      // get the first heading element in the dialog
+      const firstHeading = this.dialog.querySelector("h1, h2, h3, h4, h5, h6");
+      if (firstHeading) {
+        // create a unique ID for the heading
+        firstHeading.id = `starwind-dialog${dialogNumber}-heading`;
+        // set the aria-labelledby attribute to the first heading element
+        this.dialog.setAttribute("aria-labelledby", firstHeading.id);
+      }
+    }
+
+    private setupEvents(): void {
+      this.trigger?.addEventListener("click", () => {
+        this.open();
+      });
+
+      // Add click handlers to all close buttons
+      this.closeButtons?.forEach((button) => {
+        button.addEventListener("click", () => {
+          this.close();
+        });
+      });
+
+      // Close on click outside
+      this.dialog.addEventListener("click", (e) => {
+        const dialogDimensions = this.dialog.getBoundingClientRect();
+        const clickedInDialog =
+          e.clientX >= dialogDimensions.left &&
+          e.clientX <= dialogDimensions.right &&
+          e.clientY >= dialogDimensions.top &&
+          e.clientY <= dialogDimensions.bottom;
+
+        if (!clickedInDialog) {
+          this.close();
+        }
+      });
+
+      // Handle escape key
+      this.dialog.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          // prevent default dialog closing behavior so we can add closing animation
+          e.preventDefault();
+          this.close();
+        }
+      });
+
+      // Intercept form submissions to handle dialog close
+      const forms = this.dialog.querySelectorAll("form");
+      forms.forEach((form) => {
+        form.addEventListener("submit", (e) => {
+          /**
+           * Default form.method = "dialog" submissions cause the dialog to close
+           * Default form.method = "post" submissions do not close the dialog
+           * Here we intercept the form submission and manage the dialog closing if method = "dialog"
+           * so we can add closing animation
+           * Normal form event listeners for "submit" will still get the form data
+           */
+          if (form.method === "dialog") {
+            e.preventDefault();
+            this.close();
+          }
+        });
+      });
+    }
+
+    private open(): void {
+      this.dialog.showModal();
+      document.body.classList.add("overflow-hidden");
+      this.backdrop.classList.remove("hidden");
+      this.backdrop.dataset.state = "open";
+      this.dialog.dataset.state = "open";
+    }
+
+    private close(): void {
+      document.body.classList.remove("overflow-hidden");
+      this.dialog.dataset.state = "closed";
+      this.backdrop.dataset.state = "closed";
+
+      // Wait for animation to finish before hiding backdrop
+      setTimeout(() => {
+        this.backdrop.classList.add("hidden");
+        this.dialog.close();
+      }, this.animationDuration - 10);
+    }
+  }
+
+  // Store instances in a WeakMap to avoid memory leaks
+  const dialogInstances = new WeakMap<HTMLElement, DialogHandler>();
+
+  // Initialize all dialogs
+  const setupDialogs = () => {
+    document.querySelectorAll(".starwind-dialog").forEach((dialogWrapper, idx) => {
+      const wrapper = dialogWrapper as HTMLElement;
+      if (!dialogInstances.has(wrapper)) {
+        dialogInstances.set(wrapper, new DialogHandler(wrapper, idx));
+      }
+    });
+  };
+
+  setupDialogs();
+  document.addEventListener("astro:after-swap", setupDialogs);
+</script>

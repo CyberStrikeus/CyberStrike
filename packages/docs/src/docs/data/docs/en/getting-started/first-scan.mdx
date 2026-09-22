@@ -1,0 +1,216 @@
+---
+title: First Security Scan
+description: Run your first security assessment with Cyberstrike
+sidebar:
+  order: 4
+  label: First Scan
+---
+
+This guide walks you through running your first security scan with Cyberstrike, from launching the TUI to interpreting results.
+
+## Launching Cyberstrike
+
+Start Cyberstrike in your target directory:
+
+```bash
+cd /path/to/target
+cyberstrike
+```
+
+The terminal user interface (TUI) displays:
+
+- **Input prompt** at the bottom for commands
+- **Response area** in the center for AI output
+- **Status bar** showing model and token usage
+
+## Agents
+
+You run the `cyberstrike` primary agent (the default). It automatically delegates to specialized subagents — `web-application`, `cloud-security`, `internal-network`, `mobile-application`, `proxy-agent` — based on what the assessment needs. Just describe the target and goal:
+
+```bash
+cyberstrike run "test example.com for OWASP Top 10 issues"
+```
+
+The `--agent` flag selects the *primary* agent only (`cyberstrike` built-in, or a custom one you define). See [Security Agents](/docs/agents) for what each subagent does.
+
+## Basic Reconnaissance
+
+Start with information gathering:
+
+```
+> Perform reconnaissance on example.com
+```
+
+The agent will:
+
+1. Enumerate subdomains
+2. Identify technologies
+3. Discover endpoints
+4. Map the attack surface
+
+## Web Application Scan
+
+For web application testing:
+
+```
+> Launch the browser and scan https://target.com for vulnerabilities
+```
+
+The agent will:
+
+1. Launch browser with traffic capture
+2. Spider the application
+3. Test for common vulnerabilities
+4. Report findings with evidence
+
+### Example Session
+
+```
+> Navigate to https://target.com/login and test for SQL injection
+
+[Launching browser...]
+[Navigating to login page...]
+[Testing username field...]
+[Testing password field...]
+
+FINDING: SQL Injection
+━━━━━━━━━━━━━━━━━━━━━━━━
+WSTG-ID: WSTG-INPV-05
+Location: POST /api/login
+Parameter: username
+Payload: admin' OR '1'='1 --
+Severity: High (CVSS 8.6)
+Evidence: Response contains SQL error message
+```
+
+## Quick Scan Mode
+
+Run a single command without entering interactive mode:
+
+```bash
+cyberstrike run "scan example.com for open ports and services"
+```
+
+With file attachment:
+
+```bash
+cyberstrike run "analyze this code for vulnerabilities" -f src/auth.ts
+```
+
+## Understanding Output
+
+### Finding Format
+
+When a vulnerability is recorded for a session, it uses the following fields (matching the agent’s `report_vulnerability` input and the stored session record):
+
+**Required**
+
+- `title` — Short name of the finding
+- `severity` — One of: `critical`, `high`, `medium`, `low`, `info`
+- `description` — Detailed explanation of the finding
+
+**Optional**
+
+- `id` — Assigned when the finding is persisted in a session
+- `cwe_id` — CWE identifier when applicable (e.g. `CWE-79`)
+- `file` — Path to the affected file
+- `line_start` / `line_end` — Line range in that file
+- `steps_to_reproduce` — Numbered steps to reproduce
+- `poc` — Proof of concept (steps, request, or description)
+- `business_impact` — Impact on the business
+- `recommendation` — Fix or mitigation guidance
+- `status` — `open`, `fixed`, or `ignored` (default `open`)
+- `message_id` — Link to the chat message that reported the finding, when set
+- `time` — `created` and `updated` timestamps (milliseconds), when persisted
+
+Example layout (illustrative):
+
+```
+FINDING: [title]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Severity: [critical | high | medium | low | info]
+Description: [description]
+CWE ID: [cwe_id, optional]
+File: [file, optional]
+Lines: [line_start–line_end, optional]
+Steps to reproduce: [steps_to_reproduce, optional]
+Proof of concept: [poc, optional]
+Business impact: [business_impact, optional]
+Recommendation: [recommendation, optional]
+Status: [open | fixed | ignored]
+```
+
+### Severity Levels
+
+| Level | CVSS | Description |
+|-------|------|-------------|
+| Critical | 9.0-10.0 | Immediate exploitation risk |
+| High | 7.0-8.9 | Significant security impact |
+| Medium | 4.0-6.9 | Moderate risk |
+| Low | 0.1-3.9 | Minor security concern |
+| Info | 0.0 | Informational finding |
+
+## Saving Results
+
+### Export Session
+
+```
+/share
+```
+
+Creates a shareable link to the session.
+
+### Export HAR File
+
+For browser-based testing:
+
+```
+> Export the captured traffic to HAR file
+```
+
+### Memory Storage
+
+Save important findings to memory:
+
+```
+> Remember that the target uses PostgreSQL 14.2 on port 5432
+```
+
+## Common Scan Types
+
+### Subdomain Enumeration
+
+```
+> Enumerate all subdomains for target.com
+```
+
+### Port Scanning
+
+```
+> Scan 10.0.0.0/24 for open ports
+```
+
+### Vulnerability Scanning
+
+```
+> Run nuclei templates against https://target.com
+```
+
+### API Testing
+
+```
+> Test the REST API at https://api.target.com for OWASP Top 10
+```
+
+## Next Steps
+
+After your first scan:
+
+1. Review [Security Agents](/docs/agents) for specialized testing
+2. Learn about [Tools](/docs/tools) for manual testing
+3. Configure [Permissions](/docs/permissions) for automation
+4. Set up [MCP servers](/docs/mcp) for extended capabilities
+
+<Aside variant="tip">
+  Use `/compact` to summarize long sessions and continue testing without losing context.
+</Aside>

@@ -1,0 +1,77 @@
+---
+import TocLink from "./TocLink.astro";
+
+interface Props {
+  headings: import("astro").MarkdownHeading[];
+  minHeadingLevel?: number;
+}
+
+const { headings, minHeadingLevel = 2 } = Astro.props as Props;
+
+// console.log(JSON.stringify(headings, null, 4));
+---
+
+<div class="space-y-4">
+  <p class="font-medium">On this page</p>
+  <nav class="space-y-2">
+    {
+      headings.map((heading) => (
+        <TocLink heading={heading} class="toc-link" minHeadingLevel={minHeadingLevel} />
+      ))
+    }
+  </nav>
+</div>
+
+<!-- uses intersection observer to highlight which heading is in view -->
+<script>
+  // Wrapper for Blog post content
+  let wrappingElement: Element | null;
+  let observeHeaderTags: IntersectionObserver;
+  let allHeaderTags: NodeListOf<Element>;
+
+  // Function that runs when the Intersection Observer fires
+  function setCurrent(e: IntersectionObserverEntry[]) {
+    const allSectionLinks = document.querySelectorAll(".toc-link");
+    e.map((i) => {
+      if (i.isIntersecting === true) {
+        allSectionLinks.forEach((link) => link.classList.remove("docs-nav__link--sidebar-current"));
+
+        // require the href matching, and ".toc-link" class
+        // this is in case you have other header links elsewhere in the post
+        const targetLink = document.querySelector(`a[href="#${i.target.id}"].toc-link`);
+
+        if (targetLink) targetLink.classList.add("docs-nav__link--sidebar-current");
+      }
+    });
+  }
+
+  function initTOC() {
+    wrappingElement = document.querySelector(".docs-markdown-content");
+    if (wrappingElement !== null) {
+      // Get all H2/H3 tags from the post
+      allHeaderTags = wrappingElement.querySelectorAll(":scope > h2, :scope > h3, :scope > h4");
+    }
+
+    // Intersection Observer Options
+    const options: IntersectionObserverInit = {
+      root: null,
+      rootMargin: "-20% 0px -40% 0px",
+      threshold: [1],
+    };
+
+    // Each Intersection Observer runs setCurrent
+    observeHeaderTags = new IntersectionObserver(setCurrent, options);
+    if (wrappingElement === null) {
+      return;
+    }
+    allHeaderTags.forEach((tag) => {
+      observeHeaderTags.observe(tag);
+    });
+  }
+
+  // runs on initial page load
+  initTOC();
+
+  // runs on view transitions navigation. Not needed if item has "transition:persist"
+  document.addEventListener("astro:after-swap", initTOC);
+</script>

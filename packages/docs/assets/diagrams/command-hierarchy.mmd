@@ -1,0 +1,28 @@
+---
+title: cyberstrike command hierarchy
+---
+flowchart TD
+    root(["cyberstrike"]):::root --> tui["(default) [project]<br/>launch TUI"]
+    root --> run["run &quot;prompt&quot;<br/>headless"]
+    root --> auth["auth"]
+    root --> mcp["mcp"]
+    root --> srv["serve · web<br/>HTTP server"]
+    root --> hb["hackbrowser &lt;target&gt;"]
+    root --> gh["github"]
+    root --> core["agent · models · provider<br/>session · skill"]
+    root --> util["export · import<br/>upgrade · uninstall · pr &lt;n&gt;"]
+
+    auth --> auth1["login [url]"]
+    auth --> auth2["logout"]
+    auth --> auth3["list"]
+
+    mcp --> mcp1["list"]
+    mcp --> mcp2["add"]
+    mcp --> mcp3["auth"]
+    mcp --> mcp4["logout"]
+    mcp --> mcp5["debug &lt;name&gt;"]
+
+    gh --> gh1["install"]
+    gh --> gh2["run"]
+
+    classDef root fill:#0b1220,stroke:#00ff88,stroke-width:2px,color:#00ff88;

@@ -1,0 +1,35 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+type Props = HTMLAttributes<"button"> & {
+  /**
+   * When true, the component will render its child element with a simple wrapper instead of a button component
+   */
+  asChild?: boolean;
+};
+
+const { class: className, asChild = false, ...rest } = Astro.props;
+
+// Get the first child element if asChild is true
+let hasChildren = false;
+if (Astro.slots.has("default")) {
+  hasChildren = true;
+}
+---
+
+{
+  asChild && hasChildren ? (
+    <div class="starwind-dialog-trigger" data-as-child>
+      <slot />
+    </div>
+  ) : (
+    <button
+      type="button"
+      aria-haspopup="dialog"
+      class:list={["starwind-dialog-trigger", className]}
+      {...rest}
+    >
+      <slot />
+    </button>
+  )
+}

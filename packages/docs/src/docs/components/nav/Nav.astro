@@ -1,0 +1,91 @@
+---
+// icons
+import Menu from "@tabler/icons/outline/menu.svg";
+
+import DocsLogo from "@/docs/components/docs-logo/DocsLogo.astro";
+import LanguageSelect from "@/docs/components/language-select/LanguageSelect.astro";
+import MobileLanguageSelect from "@/docs/components/language-select/MobileLanguageSelect.astro";
+import NavLink from "@/docs/components/nav/NavLink.astro";
+import SidebarNav from "@/docs/components/nav/SidebarNav.astro";
+import Search from "@/docs/components/search/Search.astro";
+import SocialIconNav from "@/docs/components/social/SocialIconNav.astro";
+import ThemeToggle from "@/docs/components/theme-toggle/ThemeToggle.astro";
+import { locales } from "@/docs/config/siteSettings.json";
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+import { getLocalizedRoute } from "@/docs/js/translationUtils";
+import { getTranslatedData } from "@/docs/js/translationUtils";
+
+import latestVersion from "@/docs/data/latest-version.json";
+
+import { Dialog, DialogContent, DialogTrigger } from "./nav-dialog";
+
+interface Props {
+  sectionId?: string;
+}
+
+const { sectionId = "main" } = Astro.props;
+const currLocale = getLocaleFromUrl(Astro.url);
+const navData = getTranslatedData("navData", currLocale);
+const siteData = getTranslatedData("siteData", currLocale);
+---
+
+<div class="docs-site-container flex h-(--nav-height) items-center border-x">
+  {/* Mobile Sidebar Dialog */}
+  <Dialog>
+    <DialogTrigger aria-label="Toggle Menu" class="docs-nav__link--base mr-1 -ml-2 p-1.5 md:hidden">
+      <Menu class="size-5" />
+    </DialogTrigger>
+    <DialogContent
+      animationDuration={300}
+      class="h-[calc(100vh-var(--nav-height))-1px] rounded-none"
+    >
+      <div class="overflow-x-hidden overflow-y-auto">
+        <SidebarNav sectionId={sectionId}>
+          <div slot="after-links" class="flex justify-between">
+            <ThemeToggle />
+            {locales.length > 1 && <MobileLanguageSelect />}
+          </div>
+        </SidebarNav>
+      </div>
+    </DialogContent>
+  </Dialog>
+  {/* Rest of the navbar */}
+  <nav class="flex flex-1 items-center justify-between">
+    <div class="flex items-center space-x-6">
+      <DocsLogo />
+
+      <ul class="hidden items-center space-x-2 md:flex">
+        {
+          navData.map((navItem) => (
+            <li>
+              <NavLink {navItem} class="px-2" />
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+    <div class="flex items-center">
+      <div class="hidden lg:flex">
+        <div class="flex items-center space-x-0">
+          {siteData.navSocials?.map((social) => <SocialIconNav {...social} size="sm" />)}
+        </div>
+
+        <div class="bg-border mx-2 h-8 w-px"></div>
+
+        <a
+          href="/docs/resources/changelog/"
+          class="text-muted-foreground hover:text-foreground hover:bg-muted mr-2 flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
+          title="View changelog"
+        >
+          {latestVersion.version}
+        </a>
+      </div>
+
+      <Search />
+
+      <ThemeToggle class="hidden md:flex" size="sm" />
+
+      {locales.length > 1 && <LanguageSelect class="ml-1 hidden md:flex" />}
+    </div>
+  </nav>
+</div>

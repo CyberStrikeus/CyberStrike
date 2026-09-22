@@ -1,0 +1,329 @@
+---
+title: HackBrowser
+description: AI-driven autonomous web crawler that captures HTTP requests with UI context for proxy-agent analysis
+sidebar:
+  order: 7
+  label: HackBrowser
+---
+
+HackBrowser is Cyberstrike's autonomous web crawler. It opens a Chromium browser, lets an LLM navigate the target application by reading the accessibility tree, and forwards every captured HTTP request — enriched with UI context — to `POST /session/ingest`. From there, the [proxy-agent](/docs/agents/proxy-agent) pipeline analyzes and tests each request the same way it processes traffic from the [Firefox Extension](/docs/tools/firefox-extension).
+
+## When to Use HackBrowser
+
+| Use case | Pick |
+|----------|------|
+| Manual exploration with multiple roles | [Firefox Extension](/docs/tools/firefox-extension) |
+| Unattended automated crawl | **HackBrowser** |
+| Need UI form context (`readonly`, `hidden`, `disabled` flags) on captures | **HackBrowser** |
+| Existing pre-authenticated browser session | Either — Firefox Extension is simpler |
+
+The two paths are not mutually exclusive. Both feed the same `/session/ingest` endpoint and the same proxy-agent pipeline. You can mix them within a single session.
+
+## How It Works
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  Chromium (Playwright)                                             │
+│  ├── Scanner    — DOM → accessibility tree (RawElement[])          │
+│  ├── Navigator  — LLM call → page plan (form/click tasks)          │
+│  ├── Executor   — Plan → Playwright actions                        │
+│  ├── Capture    — HTTP requests + ui_context snapshot              │
+│  └── Live panel — Shadow-DOM telemetry overlay (visible mode)      │
+└────────────────────────┬───────────────────────────────────────────┘
+                         │ POST /session/ingest (HTTP loopback)
+                         │   text + response + ui_context + access_context
+                         ▼
+┌────────────────────────────────────────────────────────────────────┐
+│  Cyberstrike API                                                   │
+│  ├── Normalize → deduplicate → Request.add                         │
+│  └── IngestQueue → SessionPrompt(agent="proxy-agent")              │
+└────────────────────────┬───────────────────────────────────────────┘
+                         ▼
+                proxy-agent → proxy-analyzer + 8 vulnerability testers
+```
+
+Unlike the Firefox Extension, HackBrowser drives the browser itself. The LLM sees the page as an accessibility tree (button labels, input roles, ARIA attributes) and decides which forms to fill and which buttons to click. Every captured request includes a `ui_context` snapshot — the form fields, their flags (`readonly`, `disabled`, `hidden`), and any request parameters not present in the UI — which the proxy-analyzer and `proxy-tester-mass-assignment` use to identify suspicious request shapes.
+
+## Three Entry Points
+
+The same crawl engine powers three entry points. Pick whichever fits your context.
+
+| Entry point | Form | When to use |
+|-------------|------|-------------|
+| `cyberstrike hackbrowser <target>` | CLI subcommand | Start a new TUI session bound to a fresh crawl |
+| `/hackbrowser` | TUI slash command | Launch a crawl inside an already-open session |
+| `hackbrowser` tool | LLM-callable tool | Agent decides to crawl based on the conversation |
+
+All three call the same launcher (`launchHackbrowser`), use the same `WorkerOptions` schema, and write progress to the same `HackbrowserStatus` sidebar entry.
+
+### CLI Subcommand
+
+Start Cyberstrike, create a session, and launch a crawl in one command:
+
+```bash
+cyberstrike hackbrowser https://shop.example.com
+```
+
+Options:
+
+| Flag | Description |
+|------|-------------|
+| `--scope <pattern>` | Hostname scope pattern (e.g. `*.example.com`). Repeatable. Defaults to `*.{eTLD+1}` derived from the target URL. |
+| `--exclude <label>` | UI label the planner must skip (e.g. `"Delete Account"`). Repeatable. Semantic match. |
+| `--steps <n>` | Maximum pages to crawl. Defaults to 50. |
+| `--credential <label>` | Credential to crawl as. Repeatable. Forces visible browser for manual login. |
+| `--headfull` | Run the browser in visible mode. Forced when `--credential` is set. |
+
+The TUI opens immediately and the crawl runs in the background. Captures stream into the session as the crawl progresses.
+
+### Slash Command
+
+Inside an existing session:
+
+```
+/hackbrowser
+```
+
+Opens a launch dialog with fields for target URL, credentials, scope, exclude labels, steps, and headless mode. The session ID is implicit — captures land in the current session.
+
+To cancel an in-flight crawl:
+
+```
+/hackbrowser-stop
+```
+
+This command is only visible while a crawl is in `starting` or `crawling` phase. The browser finishes the current page's pending tasks, closes cleanly, and writes a final status. Cancellation is treated as a normal lifecycle exit, not a failure.
+
+### Tool
+
+The agent can launch HackBrowser autonomously when the conversation calls for it (e.g. "test this app", "we have a target URL but no captured requests"). The tool returns immediately after starting the background crawl — captures stream into the session over the next 30 seconds to 2 minutes.
+
+Parameters:
+
+| Parameter | Description |
+|-----------|-------------|
+| `target` | Target URL (required) |
+| `credentials` | Array of credential IDs to crawl as. Forces `headless: false`. |
+| `scope` | Hostname patterns to bound capture |
+| `exclude` | UI labels to skip |
+| `steps` | Max pages (default 50) |
+| `headless` | Visible browser when `false`. Forced to `false` when credentials provided. |
+
+The tool does not block on completion. The agent inspects results via [`web_get_session_context`](/docs/web-testing/context-management) when needed, not by re-calling the tool.
+
+## Crawl Phases
+
+A typical crawl progresses through three phases:
+
+```
+1. Anonymous
+   └── BFS-explore the public surface, defer auth pages (login/register/logout)
+
+2. Authenticated transition (one of these)
+   ├── --credential admin       — manual login, browser opens visibly
+   ├── (saved session file)     — load cookies, skip login [standalone CLI only]
+   └── deferred-auth ordering    — register → login → logout
+
+3. Post-login re-discovery
+   └── Re-queue all visited pages for fingerprint-based re-exploration.
+       Pages with unchanged fingerprint are skipped (no LLM call).
+```
+
+The crawler respects a per-URL revisit cap (2 visits per credential) and a path-pattern enqueue cap so a buggy app or an infinite-paging UI cannot stall the crawl.
+
+## Multi-Credential Crawls
+
+Pass two or more `--credential` flags (or `credentials: [...]` to the tool) to run a sequential per-role crawl:
+
+```bash
+cyberstrike hackbrowser https://shop.example.com \
+  --credential admin \
+  --credential customer
+```
+
+For each credential, HackBrowser opens a visible Chromium window, waits for you to log in manually, then runs the full crawl tagged with that credential ID. Captures from each crawl are tagged distinctly, so the proxy-agent can compare what each role can access.
+
+<Aside variant="caution">
+  **Manual login only.** In the current release, every credential requires a human present for the login step. Without a user, the crawl will hang at the login wait. See [Planned: Unattended Login](#planned-unattended-login) below.
+</Aside>
+
+### Planned: Unattended Login
+
+The crawl engine already implements three unattended login paths internally; they are exposed in the standalone CLI but not yet wired through the `cyberstrike hackbrowser` subcommand, the `/hackbrowser` slash command, or the `hackbrowser` tool. Wiring them through is on the roadmap.
+
+| Planned flag | Behavior | Use case |
+|--------------|----------|----------|
+| `--session <path>` | Load cookies from a previously saved session file | CI runs with pre-authenticated sessions |
+| `--save-session <path>` | Save cookies after a successful login for reuse | One-time interactive login, then unattended re-runs |
+| `--user <name>` / `--pass <secret>` | Fill the discovered login form automatically | Fully unattended crawls against simple form-based auth |
+
+Until these are exposed, fully unattended multi-role testing is best done through the [Firefox Extension](/docs/tools/firefox-extension) with Firefox Containers, where you log in once per container and capture happens transparently.
+
+### Page Diff and Element Availability
+
+In multi-credential mode, after every credential visits the same page, HackBrowser sends a **page-diff** record to `/session/ingest`:
+
+- Which credentials reached the page (`visited_by`)
+- Which interactive elements each credential could see (e.g. `button:Delete User → ["admin"]`)
+- Whether the page DOM fingerprint matched across credentials
+
+The proxy-agent uses this signal to detect role-based access differences without needing to retest every endpoint per credential.
+
+## UI Context Payload
+
+The differentiator over the Firefox Extension is the `ui_context` block attached to every capture. It contains the form structure at the moment the request fired:
+
+```json
+{
+  "text": "PUT /api/users/42 HTTP/1.1\r\n...",
+  "sessionID": "session-abc123",
+  "credential_id": "web_credential-admin",
+  "scheme": "https",
+  "response": { "status": 200, "headers": {...}, "body": "..." },
+  "ui_context": {
+    "pageUrl": "https://shop.example.com/settings/profile",
+    "pageTitle": "Edit Profile",
+    "componentPath": "Settings > Profile",
+    "formName": "Update Profile",
+    "fields": [
+      { "name": "email",    "type": "text",   "isReadOnly": true,  "isHidden": false, "value": "..." },
+      { "name": "username", "type": "text",   "isReadOnly": false, "isHidden": false, "value": "..." },
+      { "name": "role",     "type": "hidden", "isReadOnly": false, "isHidden": true,  "value": "user" }
+    ],
+    "hiddenParams": ["account_id", "_csrf"]
+  },
+  "trigger_element": "button:Save",
+  "element_roles": ["admin"],
+  "page_url": "/settings/profile",
+  "page_visited_by": ["admin", "customer"]
+}
+```
+
+The proxy-analyzer and `proxy-tester-mass-assignment` use these signals to flag suspicious shapes:
+
+- Field is `readonly` in UI but sent in the request → test if the server enforces it
+- Field has `type=hidden` → mass-assignment candidate
+- Request parameter is in `hiddenParams` (no UI element exists at all) → highest-risk hidden parameter
+- Element is `visible_to: ["admin"]` only → test the same endpoint with a non-admin credential
+
+## Network Scope
+
+By default, HackBrowser captures requests whose hostname matches `*.{eTLD+1}` of the target URL — derived using the [Public Suffix List](https://publicsuffix.org/). For `https://shop.example.com`, that means anything under `*.example.com` is captured.
+
+Override the default by passing `--scope` (CLI) or `scope: [...]` (tool/slash). Multiple scopes are unioned:
+
+```bash
+cyberstrike hackbrowser https://app.example.com \
+  --scope app.example.com \
+  --scope api.example.com
+```
+
+Scope is a network filter. It does not stop the browser from navigating to out-of-scope hosts (e.g. third-party SSO providers during login) — those navigations work, but their traffic is not forwarded to the API.
+
+## Excluding Sensitive Actions
+
+Use `--exclude` to keep the planner away from labels you do not want triggered during a crawl:
+
+```bash
+cyberstrike hackbrowser https://app.example.com \
+  --exclude "Delete Account" \
+  --exclude "Cancel Subscription" \
+  --exclude "Wipe Data"
+```
+
+Exclude is a **semantic** match against the LLM's task plan, not a regex. Pass labels the way they appear in the UI — the planner is instructed to never plan tasks matching those labels.
+
+This is independent of the WSTG-disabled actions inside the proxy-agent dispatcher (which can already filter destructive payloads at the testing layer). Use `--exclude` to prevent the crawler from clicking the button in the first place.
+
+## Live Telemetry Panel
+
+When the browser runs in visible mode, HackBrowser injects a Shadow-DOM panel on every page. The panel shows real-time crawl events — page transitions, plan decisions, captured requests, intelligence signals (empty-state detection, revisit triggers), credential switches.
+
+Disable the panel with `--no-panel` (standalone CLI). When invoked through the tool or slash command, the panel is on whenever `headless: false`.
+
+The panel does not affect any tests run against the page. It uses Shadow DOM to fully isolate styles from the target application.
+
+## Status Sidebar
+
+While a crawl is running, the TUI sidebar shows a `Hackbrowser` section with:
+
+- Phase: `starting` → `crawling` → `completed` / `failed`
+- Target URL
+- Pages explored
+- Captured endpoints
+- Current page (during `crawling`)
+- Cost (after `completed`)
+
+The sidebar updates live via SSE as `CSEvent` records flow from the worker subprocess to the parent.
+
+Successful crawls only update the sidebar — they do not write a synthetic message to the chat. This is intentional: surfacing success in chat would tempt the agent into polling the tool repeatedly. Failures, on the other hand, write a synthetic user message so the agent can see the error in its next turn.
+
+## Cancellation
+
+Three ways to cancel an in-flight crawl:
+
+| Trigger | Behavior |
+|---------|----------|
+| `/hackbrowser-stop` slash command | Reliable. Sends abort to worker via IPC. |
+| `Esc` on the active chat turn (tool launch only) | Forwards `ctx.abort` to the worker. |
+| Closing the TUI (CLI subcommand) | `onExit` calls `stopHackbrowser` to release Playwright. |
+
+In all cases the agent finishes the current page's pending tasks before exiting. The browser closes cleanly. Status transitions to `completed`, not `failed` — cancellation is normal.
+
+<Aside variant="info">
+  **Cancellation latency.** The agent checks for the abort signal at iteration boundaries (between BFS pages). LLM calls in progress are not cancelled at the SDK layer. Worst case is one full page's worth of work after `/hackbrowser-stop` is issued.
+</Aside>
+
+## Re-Entrance
+
+Only one HackBrowser run is allowed per session. Attempting to launch a second crawl in the same session while the first is active throws an error — runs are not queued. To start a new crawl, either:
+
+1. Wait for the current run to complete or cancel it, **or**
+2. Create a fresh session
+
+This is enforced at the launcher level for tool, slash, and CLI subcommand alike.
+
+## Troubleshooting
+
+### Chromium browser is not installed
+
+```
+Chromium browser is not installed at /Users/.../chrome.app/...
+Run: bunx playwright install chromium
+```
+
+The HackBrowser worker uses Playwright's bundled Chromium. Install it once with the command shown in the error. The same cache is shared across `bunx playwright install` and `npx playwright install`.
+
+### playwright is not installed
+
+```
+playwright is not installed. Run:
+  npm install --prefix ~/.local/share/cyberstrike playwright
+  npx playwright install chromium
+```
+
+The Playwright JavaScript package itself was not found. This can happen on minimal installations. Run the two commands shown to install the npm package and the Chromium browser binary.
+
+### hackbrowser worker not found
+
+```
+hackbrowser worker not found at ~/.local/share/cyberstrike/bin/hackbrowser-worker.js.
+Re-install cyberstrike (npm install -g @cyberstrike-io/cyberstrike) to set it up.
+```
+
+The worker JavaScript bundle is placed by the postinstall script. Re-install Cyberstrike to recreate it.
+
+### multi-credential mode requires headless: false
+
+Multi-credential crawls always use manual login. Re-run with the browser visible, or fall back to single-credential mode.
+
+### hackbrowser already running for session
+
+The current session has an active crawl. Wait for it to finish or run `/hackbrowser-stop` first.
+
+## Related Documentation
+
+- [Web Proxy Testing](/docs/web-testing) — Full workflow including HackBrowser and the Firefox Extension
+- [Firefox Extension](/docs/tools/firefox-extension) — Manual-browsing alternative with Firefox Containers
+- [Proxy Agent](/docs/agents/proxy-agent) — How captured requests are analyzed and tested
+- [Context Management](/docs/web-testing/context-management) — Inspecting accumulated session context in the TUI

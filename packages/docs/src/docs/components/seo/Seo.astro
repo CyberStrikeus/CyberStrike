@@ -1,0 +1,84 @@
+---
+import { getImage } from "astro:assets";
+import { type CollectionEntry } from "astro:content";
+import { SEO } from "astro-seo";
+
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+import { getTranslatedData } from "@/docs/js/translationUtils";
+
+import HrefLang from "./HrefLang.astro";
+
+const currLocale = getLocaleFromUrl(Astro.url);
+const siteData = getTranslatedData("siteData", currLocale);
+
+interface Props {
+  title: string;
+  description: string;
+  image?: ImageMetadata;
+  noindex?: boolean;
+}
+
+const { title, description, image, noindex = false } = Astro.props;
+
+let optimizedImage;
+let jsonLD;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
+
+if (image) {
+  optimizedImage = await getImage({
+    src: image,
+    format: "webp",
+    quality: "high",
+    width: 1200,
+  });
+}
+
+function trimEndSlash(str: string) {
+  if (str[str.length - 1] === "/") {
+    return str.slice(0, -1);
+  } else {
+    return str;
+  }
+}
+
+// put together the image URL
+const imageUrl =
+  trimEndSlash(Astro.site?.toString() || "") + (optimizedImage?.src || siteData.defaultImage.src);
+---
+
+<SEO
+  title={title}
+  description={description}
+  canonical={canonicalUrl.toString()}
+  openGraph={{
+    basic: {
+      title: title,
+      type: "website",
+      image: imageUrl,
+      url: canonicalUrl.toString(),
+    },
+    optional: {
+      description: description,
+      siteName: siteData.title,
+    },
+    image: {
+      type: "image/webp",
+      width: optimizedImage?.attributes.width || "1200",
+      height: optimizedImage?.attributes.height || "800",
+      alt: title,
+    },
+  }}
+  twitter={{
+    site: "@" + siteData.author.twitter,
+    creator: "@" + siteData.author.twitter,
+    card: "summary_large_image",
+    title: title,
+    description: description,
+    image: imageUrl,
+  }}
+  noindex={noindex}
+  nofollow={noindex}
+/>
+
+<!-- hreflang attributes -->
+<HrefLang />

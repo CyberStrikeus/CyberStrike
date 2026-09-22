@@ -1,0 +1,157 @@
+---
+import astronaut from "@images/404/astronaut-nobg.png";
+import { Image } from "astro:assets";
+
+import Button from "@/docs/components/button/Button.astro";
+import { docsRoute } from "@/docs/js/docsUtils";
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+import { getLocalizedRoute } from "@/docs/js/translationUtils";
+import BaseLayoutDocs from "@/docs/layouts/BaseLayoutDocs.astro";
+import Docs404Layout from "@/docs/layouts/Docs404Layout.astro";
+
+const currLocale = getLocaleFromUrl(Astro.url);
+---
+
+<Docs404Layout title="404" description="Error 404 page not found." noindex={true}>
+  <!-- Animated Stars Background -->
+  <div class="dark bg-background text-foreground">
+    <div class="absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+      <div class="stars"></div>
+      <div class="stars2"></div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="docs-site-container relative z-10">
+      <div class="flex min-h-screen flex-col items-center justify-center text-center">
+        <div class="animate-astroFloat">
+          <!-- <div> -->
+          <!-- 404 Text -->
+          <h1 class="text-[10rem] leading-none font-bold">
+            <span class="from-primary bg-gradient-to-r to-white bg-clip-text text-transparent">
+              404
+            </span>
+          </h1>
+
+          <!-- Message -->
+          <p class="mb-4 text-2xl font-bold md:text-4xl">Houston, we have a problem!</p>
+          <p class="mb-8 max-w-lg text-xl text-gray-400">
+            The page you're looking for has drifted into deep space or never existed in the first
+            place.
+          </p>
+
+          <!-- Action Buttons -->
+          <div class="flex flex-wrap justify-center gap-4">
+            <Button
+              href={getLocalizedRoute(currLocale, `/${docsRoute}/getting-started/`)}
+              variant="secondary"
+            >
+              Return Home
+            </Button>
+          </div>
+        </div>
+
+        <!-- Floating Astronaut -->
+        <div class="astronaut absolute h-32 w-32 md:h-48 md:w-48">
+          <Image src={astronaut} alt="Astronaut floating in space" class="h-full w-full" />
+        </div>
+      </div>
+    </div>
+  </div>
+</Docs404Layout>
+
+<style>
+  /* Floating Animation */
+  @keyframes astroFloat {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .animate-astroFloat {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: astroFloat 8s ease-in-out infinite;
+    }
+  }
+
+  /* Astronaut Animation */
+  .astronaut {
+    top: 20%;
+    right: 10%;
+    animation: astronaut 15s ease-in-out infinite;
+    z-index: 20;
+  }
+
+  @keyframes astronaut {
+    0% {
+      transform: translate(0, 0) rotate(0deg);
+    }
+    25% {
+      transform: translate(50px, 50px) rotate(45deg);
+    }
+    50% {
+      transform: translate(0, 100px) rotate(90deg);
+    }
+    75% {
+      transform: translate(-50px, 50px) rotate(45deg);
+    }
+    100% {
+      transform: translate(0, 0) rotate(0deg);
+    }
+  }
+
+  /* Stars Animation */
+  .stars,
+  .stars2 {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+  }
+
+  .stars {
+    background: transparent;
+    animation: twinkle 4s ease-in-out infinite;
+    background-image:
+      radial-gradient(1px 1px at 13% 17%, white, rgba(0, 0, 0, 0)),
+      radial-gradient(1px 1px at 28% 42%, white, rgba(0, 0, 0, 0)),
+      radial-gradient(2px 2px at 35% 75%, white, rgba(0, 0, 0, 0)),
+      radial-gradient(1px 1px at 45% 23%, white, rgba(0, 0, 0, 0)),
+      radial-gradient(2px 2px at 58% 87%, white, rgba(0, 0, 0, 0)),
+      radial-gradient(1px 1px at 63% 32%, white, rgba(0, 0, 0, 0)),
+      radial-gradient(1px 1px at 77% 65%, white, rgba(0, 0, 0, 0)),
+      radial-gradient(2px 2px at 85% 15%, white, rgba(0, 0, 0, 0)),
+      radial-gradient(1px 1px at 93% 88%, white, rgba(0, 0, 0, 0));
+    background-size: 750px 750px;
+  }
+
+  .stars2 {
+    background: transparent;
+    animation: twinkle 6s ease-in-out infinite;
+    animation-delay: 1s;
+    background-image:
+      radial-gradient(2px 2px at 8% 72%, white, rgba(0, 0, 0, 0)),
+      radial-gradient(2px 2px at 24% 93%, white, rgba(0, 0, 0, 0)),
+      radial-gradient(2px 2px at 42% 12%, white, rgba(0, 0, 0, 0)),
+      radial-gradient(2px 2px at 53% 55%, white, rgba(0, 0, 0, 0)),
+      radial-gradient(2px 2px at 67% 83%, white, rgba(0, 0, 0, 0)),
+      radial-gradient(2px 2px at 88% 35%, white, rgba(0, 0, 0, 0));
+    background-size: 900px 900px;
+    opacity: 0.5;
+  }
+
+  @keyframes twinkle {
+    0%,
+    100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+</style>

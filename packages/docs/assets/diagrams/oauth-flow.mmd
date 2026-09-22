@@ -1,0 +1,20 @@
+---
+title: MCP OAuth flow
+config:
+  flowchart:
+    htmlLabels: false
+    rankSpacing: 30
+    nodeSpacing: 26
+    padding: 12
+---
+flowchart TD
+    A["Server requires OAuth<br/>(detected from metadata)"]:::start --> B{"clientId set?"}
+    B -->|no| C["Dynamic client registration<br/>(RFC 7591)"]
+    B -->|yes| D["Open browser to authorize"]
+    C --> D
+    D --> E["You log in &amp; grant access"]
+    E --> F["Code exchanged for tokens<br/>(local callback)"]
+    F --> G["Tokens stored +<br/>auto-refreshed"]:::ok
+
+    classDef start fill:#0b1220,stroke:#00d4ff,stroke-width:2px,color:#00d4ff;
+    classDef ok fill:#0b1220,stroke:#00ff88,stroke-width:2px,color:#00ff88;

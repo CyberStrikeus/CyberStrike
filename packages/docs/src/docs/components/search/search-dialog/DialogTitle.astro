@@ -1,0 +1,16 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+type Props = Omit<HTMLAttributes<"h2">, "id"> & {
+  /**
+   * The content to be rendered inside the dialog title
+   */
+  children: any;
+};
+
+const { class: className, ...rest } = Astro.props;
+---
+
+<h2 class:list={["text-2xl leading-none font-semibold tracking-tight", className]} {...rest}>
+  <slot />
+</h2>

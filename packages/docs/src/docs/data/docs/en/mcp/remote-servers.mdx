@@ -1,0 +1,116 @@
+---
+title: Remote MCP Servers
+description: Connect to remote MCP servers over HTTP/SSE
+sidebar:
+  order: 4
+  label: Remote Servers
+---
+
+Remote MCP servers connect over HTTP/HTTPS, enabling access to hosted services and shared infrastructure. Transport is StreamableHTTP (with SSE fallback).
+
+<Aside variant="tip">
+  **Looking for security tools?** See [Bolt](/docs/mcp/bolt) for pre-installed security tools. Note that Bolt is configured under its own top-level `bolt` key, not under `mcp`.
+</Aside>
+
+<img src="/docs/images/diagrams/remote-mcp-architecture.svg" alt="Cyberstrike's MCP client connects to a remote MCP server over StreamableHTTP/SSE using a header or OAuth token" className="my-6" />
+
+## Configuration Schema
+
+A remote server is one entry in the flat `mcp` map, keyed by server name:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "mcp": {
+    "my-remote": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "headers": { "Authorization": "Bearer {env:MY_TOKEN}" },
+      "enabled": true,
+      "timeout": 5000
+    }
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `"remote"` | Required. Selects an HTTP-based server. |
+| `url` | string | Required. The server endpoint. |
+| `headers` | object | Optional. Headers sent with each request (e.g. an API key). |
+| `oauth` | object \| `false` | Optional. OAuth config; set `false` to disable OAuth auto-detection. See [OAuth](/docs/mcp/oauth). |
+| `enabled` | boolean | Optional. Connect on launch (default: true). |
+| `timeout` | number | Optional. Request timeout in ms (default: 5000). |
+
+<Aside variant="caution">
+  The `mcp` object is a **flat map** keyed by server name — there is no `servers` wrapper. Transport is StreamableHTTP/SSE only (there is no WebSocket transport), and the schema is strict: `retry`, `keepalive`, `proxy`, TLS/`ca`/`cert`, and load-balancing fields do **not** exist.
+</Aside>
+
+## Adding via the TUI
+
+Type `/mcps` to open the MCP manager, press `a` to add, and choose **Remote**. Enter the server **URL**; the server **name** is auto-derived from the hostname (dots become hyphens). Cyberstrike tests the connection before saving. This writes exactly the schema shown above.
+
+## Authentication
+
+### API key via header
+
+Send a static token or API key as a request header. Use `{env:VAR}` so the secret isn't stored in the config file:
+
+```json
+{
+  "mcp": {
+    "github-remote": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": { "Authorization": "Bearer {env:GITHUB_TOKEN}" }
+    }
+  }
+}
+```
+
+### OAuth
+
+For servers that use OAuth, add an `oauth` block (or let Cyberstrike auto-detect it). When `clientId` is omitted, dynamic client registration (RFC 7591) is attempted:
+
+```json
+{
+  "mcp": {
+    "oauth-server": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "oauth": { "scope": "read write" }
+    }
+  }
+}
+```
+
+Authorize with `cyberstrike mcp auth <name>`. See [OAuth](/docs/mcp/oauth) for the full flow. Set `"oauth": false` to opt out of OAuth auto-detection.
+
+## Enabling, Disabling & Timeouts
+
+Set `enabled: false` to keep a server configured but disconnected (or toggle it in `/mcps`). Raise `timeout` (ms) for slow endpoints:
+
+```json
+{
+  "mcp": {
+    "slow-remote": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "enabled": false,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+## Troubleshooting
+
+- **Auth failures** — verify the header or run `cyberstrike mcp auth <name>` for OAuth servers; inspect with `cyberstrike mcp debug <name>`.
+- **Timeouts** — increase `timeout`, or confirm the endpoint is reachable.
+- **Config rejected** — the schema is strict; use the flat map with `type: "remote"` + `url`, and only the fields listed above.
+
+## Related Documentation
+
+- [Bolt / MCP Overview](/docs/mcp) - Architecture and concepts
+- [OAuth](/docs/mcp/oauth) - OAuth authentication flow
+- [Local Servers](/docs/mcp/local-servers) - Local stdio MCP configuration
+- [Creating Servers](/docs/mcp/creating-servers) - Build custom servers

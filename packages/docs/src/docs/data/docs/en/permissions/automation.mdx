@@ -1,0 +1,123 @@
+---
+title: Automation
+description: Configure permissions for CI/CD and automated workflows
+sidebar:
+  order: 4
+  label: Automation
+---
+
+In non-interactive runs (`cyberstrike run`), there is nobody to answer permission prompts — so any tool that *would* prompt is **auto-rejected**. To let a pipeline do real work, pre-approve the tools it needs.
+
+<img src="/docs/images/diagrams/cicd-workflow.svg" alt="Headless run permission flow: a tool that is pre-approved via CYBERSTRIKE_PERMISSION or config runs; one that would prompt is auto-rejected; results go to stdout as JSON" className="my-6 mx-auto max-w-sm" />
+
+## Pre-Approving Tools
+
+There is no "auto mode" flag. Grant permissions two ways:
+
+**1. `CYBERSTRIKE_PERMISSION` env var** — a JSON permission map (same shape as the config `permission` field):
+
+```bash
+export CYBERSTRIKE_PERMISSION='{"bash":"allow","read":"allow","edit":{"reports/**":"allow"}}'
+cyberstrike run "scan this codebase for security issues" --format json > report.json
+```
+
+**2. Config `permission`** — commit safe defaults, deny the dangerous bits (see [Patterns](/docs/permissions/patterns)):
+
+```json title="cyberstrike.json"
+{
+  "permission": {
+    "read": "allow",
+    "bash": { "*": "allow", "rm -rf *": "deny", "sudo *": "deny" },
+    "edit": { "reports/**": "allow", ".env*": "deny" }
+  }
+}
+```
+
+Output goes to stdout; use `--format json` for machine-readable results.
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml title=".github/workflows/security-scan.yml"
+name: Security Scan
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install -g @cyberstrike-io/cyberstrike@latest
+      - name: Run Security Scan
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow","edit":{"reports/**":"allow"}}'
+        run: cyberstrike run "scan this codebase for security vulnerabilities" --format json > security-report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: security-report.json
+```
+
+### GitLab CI
+
+```yaml title=".gitlab-ci.yml"
+security-scan:
+  image: node:20
+  variables:
+    CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow"}'
+  script:
+    - npm install -g @cyberstrike-io/cyberstrike@latest
+    - cyberstrike run "analyze code for vulnerabilities" --format json > report.json
+  artifacts:
+    paths:
+      - report.json
+```
+
+## Batch & Scheduled Runs
+
+Loop over targets, or drive it from cron — the same `CYBERSTRIKE_PERMISSION` (or config) rules apply:
+
+```bash title="scan-targets.sh"
+#!/bin/bash
+export CYBERSTRIKE_PERMISSION='{"bash":"allow"}'
+while read -r target; do
+  cyberstrike run "scan $target for open ports and services" --format json > "reports/${target}.json"
+done < targets.txt
+```
+
+```bash
+# Daily scan at 02:00
+0 2 * * * CYBERSTRIKE_PERMISSION='{"bash":"allow"}' /usr/local/bin/cyberstrike run "daily security scan" >> /var/log/cyberstrike.log 2>&1
+```
+
+## Exit Codes & Output
+
+`cyberstrike run` writes results to stdout (`--format json` for JSON) and returns `0` on success, a non-zero code on error or interruption. Parse the JSON for findings:
+
+```bash
+cyberstrike run "scan target" --format json | jq '.'
+```
+
+## Security Considerations
+
+- **Least privilege** — only `allow` the tools the job needs; keep an explicit `deny` for `rm -rf *`, `sudo *`, and secret paths.
+- **Secrets** — inject API keys from your CI secret store, never commit them.
+- **Isolation** — run in a container with a constrained network where possible.
+
+<Aside variant="caution">
+  Always keep deny rules for destructive commands when pre-approving `bash` in automation.
+</Aside>
+
+## Related Documentation
+
+- [Permissions Overview](/docs/permissions) - The permission model and keys
+- [Patterns](/docs/permissions/patterns) - Glob pattern syntax
+- [Environment Variables](/docs/configuration/environment-variables) - `CYBERSTRIKE_PERMISSION`
+- [CLI Run Command](/docs/cli/run-command) - Non-interactive execution

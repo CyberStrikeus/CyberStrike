@@ -1,0 +1,72 @@
+---
+title: Auth Commands
+description: Manage authentication credentials for AI providers
+sidebar:
+  order: 3
+  label: Auth Commands
+---
+
+The `cyberstrike auth` commands manage AI-provider credentials. There are exactly three subcommands — `login`, `logout`, and `list` — and none of them take flags; each is interactive.
+
+{/* TODO: Screenshot - Auth command interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: auth-commands.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Authentication command interface</p>
+</div>
+
+## `auth login`
+
+```bash
+cyberstrike auth login [url]
+```
+
+Starts an interactive login. Cyberstrike shows a provider list (built from the models catalog) and prompts for the API key or OAuth flow. The optional `url` positional pre-selects a well-known provider URL; the provider is otherwise chosen from the menu — you do **not** pass the provider as a flag.
+
+```
+? Select provider
+❯ cyberstrike (recommended)
+  anthropic (Claude Max or API key)
+  github-copilot
+  openai (ChatGPT Plus/Pro or API key)
+  google
+  openrouter
+  …
+```
+
+Credentials are stored in the data directory (`~/.local/share/cyberstrike/auth.json`).
+
+## `auth list`
+
+```bash
+cyberstrike auth list   # alias: ls
+```
+
+Lists the providers you have credentials for.
+
+## `auth logout`
+
+```bash
+cyberstrike auth logout
+```
+
+Interactively select a stored credential to remove.
+
+<Aside variant="caution">
+  There is no `auth status`, `auth verify`, `auth refresh`, or `auth switch` command, and no `--key`/`--oauth`/`--json`/`--all` flags. Login is always the interactive `auth login` flow.
+</Aside>
+
+## Environment Variables
+
+Instead of storing credentials, you can provide provider keys via environment variables — see [AI Providers](/docs/providers) and [Environment Variables](/docs/configuration/environment-variables). For example:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+## Related Documentation
+
+- [AI Providers](/docs/providers) - Per-provider setup
+- [Authentication](/docs/getting-started/authentication) - First-time auth
+- [CLI Reference](/docs/cli) - All commands

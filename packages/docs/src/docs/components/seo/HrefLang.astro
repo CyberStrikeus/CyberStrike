@@ -1,0 +1,28 @@
+---
+import { locales } from "@/docs/config/siteSettings.json";
+import { defaultLocale } from "@/docs/config/siteSettings.json";
+import { getLocalizedPathname } from "@/docs/js/translationUtils";
+
+// Precompute the localized paths for each locale (since getLocalizedPathname is async)
+const localizedPaths = Object.fromEntries(
+  await Promise.all(
+    locales.map(async (lang) => [lang, await getLocalizedPathname(lang, Astro.url)]),
+  ),
+);
+---
+
+{
+  locales.length > 1 &&
+    locales.map((lang) => (
+      <>
+        <link rel="alternate" hreflang={lang} href={Astro.url.origin + localizedPaths[lang]} />
+        {lang === defaultLocale && (
+          <link
+            rel="alternate"
+            hreflang="x-default"
+            href={Astro.url.origin + localizedPaths[defaultLocale]}
+          />
+        )}
+      </>
+    ))
+}

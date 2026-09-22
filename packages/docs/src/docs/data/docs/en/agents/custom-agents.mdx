@@ -1,0 +1,109 @@
+---
+title: Custom Agents
+description: Create specialized security agents for Cyberstrike
+sidebar:
+  order: 8
+  label: Custom Agents
+---
+
+Create custom agents with their own system prompt, model, and permissions. Agents are Markdown files with YAML frontmatter.
+
+{/* TODO: Screenshot - Custom agent configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: custom-agent-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Custom agent configuration file</p>
+</div>
+
+## File & Location
+
+Custom agents are `*.md` files in an `agent/` or `agents/` directory inside any `.cyberstrike/` folder (project or `~/.cyberstrike/`). The agent's id is its filename.
+
+```
+.cyberstrike/
+└── agents/
+    ├── api-security.md
+    └── compliance-audit.md
+```
+
+## Frontmatter
+
+```markdown title=".cyberstrike/agents/api-security.md"
+---
+description: Specialized agent for REST and GraphQL API testing
+mode: primary
+model: anthropic/claude-sonnet-4-20250514
+permission:
+  bash: { "*": "ask", "rm -rf *": "deny" }
+  edit: allow
+---
+
+You are an expert API security tester specializing in REST and GraphQL APIs.
+Follow the OWASP API Security Top 10 …
+```
+
+The body (after the frontmatter) is the system prompt.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `description` | string | What the agent is for |
+| `mode` | `primary` \| `subagent` \| `all` | `primary` agents can be run directly; `subagent` agents are delegated to via the task tool |
+| `model` | string | `provider/model` override |
+| `temperature`, `top_p` | number | Sampling controls |
+| `steps` | number | Max agentic iterations |
+| `color` | string | Hex or theme color |
+| `permission` | object | Per-tool permissions (see [Permissions](/docs/permissions)) |
+| `hidden`, `disable` | boolean | Hide from the picker / disable |
+
+<Aside variant="caution">
+  Restrict tools with the `permission` field. The old `tools:` map is **deprecated**, and there is no `allowedCommands` field — command restrictions are `permission.bash` glob rules (e.g. `bash: { "nmap *": "allow" }`).
+</Aside>
+
+## Primary vs Subagent
+
+Only **primary** agents can be selected with `--agent` or `default_agent`. If you want your agent to be runnable directly, set `mode: primary`. Otherwise it behaves as a subagent that the `cyberstrike` agent can delegate to.
+
+```markdown
+---
+description: Read-only auditor
+mode: primary
+permission:
+  edit: deny
+  bash: deny
+  read: allow
+  glob: allow
+  grep: allow
+---
+
+You are a read-only security auditor …
+```
+
+## Using a Custom Agent
+
+Once it's a primary agent, select it:
+
+```bash
+cyberstrike --agent api-security
+```
+
+Or set it as the default in `cyberstrike.json`:
+
+```json
+{
+  "default_agent": "api-security"
+}
+```
+
+Browse agents in the TUI with `/agents`.
+
+## Best Practices
+
+1. **Focused scope** — one clear purpose per agent.
+2. **Least privilege** — allow only the tools the agent needs via `permission`.
+3. **Clear prompt** — be specific about methodology and output format.
+4. **Version control** — commit `.cyberstrike/agents/` with the project.
+
+## Related Documentation
+
+- [Security Agents](/docs/agents) - Built-in agents and delegation
+- [Permissions](/docs/permissions) - The `permission` field
+- [Configuration](/docs/configuration) - Project and global config

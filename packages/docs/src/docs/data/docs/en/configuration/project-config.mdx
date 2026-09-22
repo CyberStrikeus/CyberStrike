@@ -1,0 +1,259 @@
+---
+title: Project Configuration
+description: Configure Cyberstrike settings for individual projects
+sidebar:
+  order: 2
+  label: Project Config
+---
+
+Project configuration customizes Cyberstrike behavior for specific projects, overriding global settings when present.
+
+{/* TODO: Screenshot - Project configuration file */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: project-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Project configuration file structure</p>
+</div>
+
+## File Location
+
+Project configuration is stored in `cyberstrike.json` (or `cyberstrike.jsonc`) at the project root. Cyberstrike walks up from the working directory, so a config in any parent folder is picked up:
+
+```
+my-project/
+├── cyberstrike.json     ← Project config
+├── src/
+├── package.json
+└── ...
+```
+
+## Creating Project Config
+
+There is no init command — create the file manually:
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## Basic Settings
+
+### Model Selection
+
+```json
+{
+  "model": "anthropic/claude-opus-4-5-20251101"
+}
+```
+
+### Default Agent
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+`default_agent` must be a primary agent; it falls back to `cyberstrike` if unset or invalid.
+
+### Custom Instructions
+
+`instructions` is a list of **files or glob patterns** whose contents are appended to the system prompt (it is not inline prose). Lists are union-merged with the global config:
+
+```json
+{
+  "instructions": [
+    "SECURITY.md",
+    "docs/security-guidelines.md",
+    ".cursor/rules/*.md"
+  ]
+}
+```
+
+## Provider Configuration
+
+Configure providers under `provider`. There is no `provider.default` key — the active provider follows from `model` (`provider/model`):
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    },
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+See [AI Providers](/docs/providers) for per-provider details.
+
+## Permissions
+
+Permissions map a tool name to an action (`ask`, `allow`, `deny`) or to a glob → action map. There are no allow/deny arrays and no permission "modes":
+
+```json
+{
+  "permission": {
+    "read": "allow",
+    "bash": {
+      "npm test": "allow",
+      "npm run lint": "allow",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "reports/**": "allow",
+      ".env*": "deny"
+    }
+  }
+}
+```
+
+Only `*` and `?` are supported as wildcards. See [Permissions](/docs/permissions) for the full model and the complete list of permission keys.
+
+## MCP Servers
+
+MCP servers are declared as a flat map under `mcp`, keyed by server name. Local servers use `type: "local"` with a single `command` array:
+
+```json
+{
+  "mcp": {
+    "project-tools": {
+      "type": "local",
+      "command": ["node", "./tools/mcp-server.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+Project `mcp` entries are merged on top of global ones. To turn off an inherited server, set its `enabled` to `false`:
+
+```json
+{
+  "mcp": {
+    "some-global-server": { "enabled": false }
+  }
+}
+```
+
+## Custom Agents
+
+Define project agents as Markdown files under `.cyberstrike/agents/` (see [Custom Agents](/docs/agents/custom-agents)), then select one as the default:
+
+```json
+{
+  "default_agent": "project-scanner"
+}
+```
+
+## Full Example
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "cyberstrike",
+  "instructions": ["docs/SECURITY.md"],
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+
+  "permission": {
+    "read": "allow",
+    "bash": { "npm *": "allow", "git status": "allow", "rm *": "deny" },
+    "edit": { "reports/**": "allow", ".env*": "deny" }
+  },
+
+  "mcp": {
+    "db-tools": {
+      "type": "local",
+      "command": ["node", "./tools/db-mcp.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+## Configuration Inheritance
+
+Project config is merged on top of global and remote config:
+
+```
+Remote / well-known config (base)
+      ↓
+Global config (~/.config/cyberstrike/)
+      ↓
+Custom config (CYBERSTRIKE_CONFIG)
+      ↓
+Project config (cyberstrike.json)
+      ↓
+.cyberstrike/ directory config
+      ↓
+CYBERSTRIKE_CONFIG_CONTENT / managed config / CLI args (override)
+```
+
+See the [Configuration Reference](/docs/configuration#configuration-hierarchy) for the complete priority order.
+
+### Merge Behavior
+
+| Setting | Behavior |
+|---------|----------|
+| Scalars | Replaced |
+| Objects | Deep-merged |
+| Arrays | Replaced — **except** `plugin` and `instructions`, which are union-merged |
+
+## Schema Validation
+
+Add the schema reference for IDE autocomplete and validation:
+
+```json
+{
+  "$schema": "https://cyberstrike.io/config.json"
+}
+```
+
+## Git Integration
+
+### Commit Project Config
+
+```bash
+git add cyberstrike.json
+git commit -m "Add Cyberstrike project configuration"
+```
+
+### Ignore Sensitive Data
+
+```text title=".gitignore"
+# Ignore local session data
+.cyberstrike/sessions/
+```
+
+## Best Practices
+
+1. **Version control** - Commit project config for team sharing
+2. **Use env references** - Never hardcode API keys (`{env:VAR}`)
+3. **Document instructions** - Point `instructions` at your security docs
+4. **Minimal permissions** - Only allow what's needed
+5. **Personal overrides** - Use `CYBERSTRIKE_CONFIG` for settings that shouldn't be committed
+
+<Aside variant="tip">
+  Commit `cyberstrike.json` for team sharing. Use environment variables or `CYBERSTRIKE_CONFIG` for personal overrides that shouldn't be committed.
+</Aside>
+
+## Related Documentation
+
+- [Configuration Reference](/docs/configuration) - Full guide
+- [Global Config](/docs/configuration/global-config) - Global settings
+- [Environment Variables](/docs/configuration/environment-variables) - Env var reference

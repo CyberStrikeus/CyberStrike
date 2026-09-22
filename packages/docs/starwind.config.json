@@ -1,0 +1,67 @@
+{
+  "$schema": "https://starwind.dev/config-schema.json",
+  "tailwind": {
+    "css": "src/styles/starwind.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  },
+  "componentDir": "src/docs/components",
+  "components": [
+    {
+      "name": "accordion",
+      "version": "1.1.0"
+    },
+    {
+      "name": "alert",
+      "version": "1.1.1"
+    },
+    {
+      "name": "badge",
+      "version": "1.1.1"
+    },
+    {
+      "name": "button",
+      "version": "2.0.1"
+    },
+    {
+      "name": "card",
+      "version": "1.1.0"
+    },
+    {
+      "name": "checkbox",
+      "version": "1.2.0"
+    },
+    {
+      "name": "dialog",
+      "version": "1.1.3"
+    },
+    {
+      "name": "input",
+      "version": "1.1.1"
+    },
+    {
+      "name": "label",
+      "version": "1.1.1"
+    },
+    {
+      "name": "select",
+      "version": "1.3.2"
+    },
+    {
+      "name": "switch",
+      "version": "1.1.0"
+    },
+    {
+      "name": "tabs",
+      "version": "1.2.0"
+    },
+    {
+      "name": "textarea",
+      "version": "1.1.1"
+    },
+    {
+      "name": "tooltip",
+      "version": "1.1.2"
+    }
+  ]
+}

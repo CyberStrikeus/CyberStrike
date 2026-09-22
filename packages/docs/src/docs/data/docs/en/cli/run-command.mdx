@@ -1,0 +1,95 @@
+---
+title: Run Command
+description: Execute a single prompt without interactive mode
+sidebar:
+  order: 2
+  label: Run Command
+---
+
+`cyberstrike run` executes a single prompt non-interactively — ideal for automation and scripting. In this mode there is nobody to answer permission prompts, so any tool that would prompt is auto-rejected (see [Automation](/docs/permissions/automation)).
+
+{/* TODO: Screenshot - Run command output */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: run-command-output.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Run command execution output</p>
+</div>
+
+## Basic Usage
+
+```bash
+cyberstrike run "your prompt here"
+```
+
+The prompt is also read from stdin when the input is piped:
+
+```bash
+echo "summarize the findings in report.json" | cyberstrike run
+```
+
+## Options
+
+| Flag | Alias | Description |
+|------|-------|-------------|
+| `--model` | `-m` | Model to use, as `provider/model` |
+| `--agent` | | Primary agent to use (only `cyberstrike` ships built-in) |
+| `--format` | | Output format: `default` or `json` (default: `default`) |
+| `--file` | `-f` | File(s) to attach to the message (repeatable) |
+| `--continue` | `-c` | Continue the last session |
+| `--session` | `-s` | Session id to continue |
+| `--fork` | | Fork the session before continuing (needs `--continue`/`--session`) |
+| `--share` | | Share the session |
+| `--title` | | Title for the session |
+| `--variant` | | Model variant / reasoning effort (e.g. `high`, `max`, `minimal`) |
+| `--thinking` | | Show thinking blocks |
+| `--attach` | | Attach to a running server (e.g. `http://localhost:4096`) |
+| `--dir` | | Directory to run in (remote path when attaching) |
+| `--port` | | Port for the local server |
+| `--command` | | Run a named command; use the message for its arguments |
+
+<Aside variant="caution">
+  There is no `--output`, `--permission`, `--timeout`, `--verbose`, or `--quiet` flag. Output control is `--format` (`default` | `json`); reasoning display is `--thinking`.
+</Aside>
+
+## Examples
+
+### JSON output for scripting
+
+```bash
+cyberstrike run "scan example.com for OWASP Top 10 issues" --format json > report.json
+```
+
+### Pick a model and attach files
+
+```bash
+cyberstrike run "review this code for auth bugs" \
+  -m anthropic/claude-sonnet-4-20250514 \
+  -f src/auth.ts -f src/session.ts
+```
+
+### Continue or fork a session
+
+```bash
+cyberstrike run "now test the admin endpoints" --continue
+cyberstrike run "try a different payload" --session <id> --fork
+```
+
+## Permissions in `run`
+
+Because prompts can't be answered non-interactively, pre-approve the tools a script needs with the `CYBERSTRIKE_PERMISSION` env var or the config `permission` field:
+
+```bash
+CYBERSTRIKE_PERMISSION='{"bash":"allow","read":"allow"}' \
+  cyberstrike run "enumerate services on the host" --format json
+```
+
+See [Automation](/docs/permissions/automation) for CI patterns.
+
+## Exit Codes
+
+`cyberstrike run` returns `0` on success and a non-zero code on error (e.g. invalid arguments) or interruption.
+
+## Related Documentation
+
+- [CLI Reference](/docs/cli) - All commands
+- [Automation](/docs/permissions/automation) - CI/CD and pre-approved permissions
+- [Usage: CLI](/docs/usage/cli) - Non-interactive usage

@@ -1,0 +1,16 @@
+{
+  "extends": "astro/tsconfigs/base",
+  "compilerOptions": {
+    "strictNullChecks": true,
+    "allowJs": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@images/*": ["src/assets/images/*"],
+      "@videos/*": ["src/assets/videos/*"]
+    }
+  }
+}

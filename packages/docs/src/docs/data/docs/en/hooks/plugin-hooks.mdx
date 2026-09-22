@@ -1,0 +1,154 @@
+---
+title: Plugin Hooks
+description: The hooks a Cyberstrike plugin can implement
+sidebar:
+  order: 2
+  label: Plugin Hooks
+---
+
+A plugin is a function `(input) => Promise<Hooks>` that returns an object of hook functions. Each hook receives an `input` (read-only context) and, for most hooks, an `output` object you **mutate** to change behavior. Throwing from a hook aborts the operation.
+
+<img src="/docs/images/diagrams/plugin-hook-architecture.svg" alt="Plugin hook execution flow: chat.params/chat.headers before the LLM call, permission.ask before a tool, tool.execute.before to modify args or block, then tool.execute.after to transform output" className="my-6 mx-auto max-w-xs" />
+
+See [Creating Plugins](/docs/hooks/creating-plugins) for how to scaffold and register a plugin. This page is the reference for every hook.
+
+## Hook Reference
+
+| Hook | When it runs | You can… |
+|------|--------------|----------|
+| `event` | On any bus event | Observe events (logging, analytics) |
+| `config` | After config loads | Inspect/adjust the loaded config |
+| `tool` | Registration | Add custom tools (map of name → definition) |
+| `auth` | Registration | Add a custom auth provider |
+| `chat.message` | A user message is received | Read/append message parts |
+| `chat.params` | Before an LLM call | Change `temperature`, `topP`, `topK`, `options` |
+| `chat.headers` | Before an LLM request | Add/modify request `headers` |
+| `permission.ask` | A permission is requested | Set `status` to `allow`/`deny`/`ask` |
+| `command.execute.before` | A slash command runs | Inject `parts` |
+| `tool.execute.before` | Before a tool runs | Modify `args`, or throw to block |
+| `tool.execute.after` | After a tool runs | Transform `title`/`output`/`metadata` |
+| `tool.definition` | Tool sent to the LLM | Rewrite a tool's `description`/`parameters` |
+| `shell.env` | A shell command runs | Add environment variables |
+| `experimental.chat.messages.transform` | Before an LLM call | Rewrite the full message list |
+| `experimental.chat.system.transform` | Before an LLM call | Rewrite the system prompt array |
+| `experimental.session.compacting` | Before compaction | Add context or replace the compaction prompt |
+| `experimental.text.complete` | A text part completes | Rewrite the completed text |
+
+## Signatures
+
+Every hook is `async` and returns `Promise<void>`.
+
+### Tools
+
+```typescript
+"tool.execute.before"?: (
+  input: { tool: string; sessionID: string; callID: string },
+  output: { args: any },
+) => Promise<void>
+
+"tool.execute.after"?: (
+  input: { tool: string; sessionID: string; callID: string; args: any },
+  output: { title: string; output: string; metadata: any },
+) => Promise<void>
+
+"tool.definition"?: (
+  input: { toolID: string },
+  output: { description: string; parameters: any },
+) => Promise<void>
+```
+
+To **block** a tool, throw from `tool.execute.before`:
+
+```typescript
+"tool.execute.before": async (input, output) => {
+  if (input.tool === "bash" && /rm\s+-rf/.test(output.args.command)) {
+    throw new Error("blocked: rm -rf")
+  }
+}
+```
+
+### Permissions
+
+```typescript
+"permission.ask"?: (
+  input: Permission,
+  output: { status: "ask" | "deny" | "allow" },
+) => Promise<void>
+```
+
+```typescript
+"permission.ask": async (input, output) => {
+  if (input.type === "read") output.status = "allow"
+}
+```
+
+### Chat
+
+```typescript
+"chat.message"?: (
+  input: { sessionID: string; agent?: string; model?: { providerID: string; modelID: string }; messageID?: string; variant?: string },
+  output: { message: UserMessage; parts: Part[] },
+) => Promise<void>
+
+"chat.params"?: (
+  input: { sessionID: string; agent: string; model: Model; provider: ProviderContext; message: UserMessage },
+  output: { temperature: number; topP: number; topK: number; options: Record<string, any> },
+) => Promise<void>
+
+"chat.headers"?: (
+  input: { sessionID: string; agent: string; model: Model; provider: ProviderContext; message: UserMessage },
+  output: { headers: Record<string, string> },
+) => Promise<void>
+```
+
+### Commands & Shell
+
+```typescript
+"command.execute.before"?: (
+  input: { command: string; sessionID: string; arguments: string },
+  output: { parts: Part[] },
+) => Promise<void>
+
+"shell.env"?: (
+  input: { cwd: string },
+  output: { env: Record<string, string> },
+) => Promise<void>
+```
+
+### Lifecycle
+
+```typescript
+event?:  (input: { event: Event }) => Promise<void>
+config?: (input: Config) => Promise<void>
+```
+
+### Experimental
+
+```typescript
+"experimental.chat.messages.transform"?: (input: {}, output: { messages: { info: Message; parts: Part[] }[] }) => Promise<void>
+"experimental.chat.system.transform"?:   (input: { sessionID?: string; model: Model }, output: { system: string[] }) => Promise<void>
+"experimental.session.compacting"?:      (input: { sessionID: string }, output: { context: string[]; prompt?: string }) => Promise<void>
+"experimental.text.complete"?:           (input: { sessionID: string; messageID: string; partID: string }, output: { text: string }) => Promise<void>
+```
+
+## Custom Tools & Auth
+
+The `tool` and `auth` hooks register capabilities rather than react to events:
+
+```typescript
+return {
+  tool: {
+    my_scanner: {
+      description: "Custom vulnerability scanner",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] },
+      execute: async (args) => ({ title: `Scanned ${args.target}`, output: await scan(args.target) }),
+    },
+  },
+}
+```
+
+## Related Documentation
+
+- [Hooks Overview](/docs/hooks) - Concepts and examples
+- [Creating Plugins](/docs/hooks/creating-plugins) - Scaffold, register, and test a plugin
+- [Configuration](/docs/configuration) - The `plugin` config key

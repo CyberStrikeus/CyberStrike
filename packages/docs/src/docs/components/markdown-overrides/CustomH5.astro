@@ -1,0 +1,21 @@
+---
+import { Icon } from "astro-icon/components";
+
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+import { getLocalizedPathname } from "@/docs/js/translationUtils";
+
+const currLocale = getLocaleFromUrl(Astro.url);
+
+const { id, ...rest }: Record<string, any> = Astro.props;
+
+const domain = Astro.url.origin + (await getLocalizedPathname(currLocale, Astro.url)); // pulls from astro.config.mjs
+// console.log(domain + "#" + id);
+---
+
+<h5
+  id={id}
+  {...rest}
+  class="group flex scroll-mt-[calc(var(--nav-height)+3rem)] flex-wrap items-baseline gap-2 lg:scroll-mt-[calc(var(--nav-height)+1rem)]"
+>
+  <slot />
+</h5>

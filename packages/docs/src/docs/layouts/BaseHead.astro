@@ -1,0 +1,79 @@
+---
+import { type CollectionEntry } from "astro:content";
+import { ClientRouter } from "astro:transitions";
+
+import Seo from "@/docs/components/seo/Seo.astro";
+import siteSettings from "@/docs/config/siteSettings.json";
+
+export interface Props {
+  title: string;
+  description: string;
+  image?: ImageMetadata;
+  noindex?: boolean;
+}
+
+const { title, description, image, noindex = false } = Astro.props as Props;
+
+import SpaceGroteskVariable from "@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2";
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width" initial-scale="1.0" />
+
+<!-- local font preload for better performance -->
+<link rel="preload" href={SpaceGroteskVariable} as="font" type="font/woff2" crossorigin="anonymous" />
+
+<!-- Favicons -->
+<link rel="icon" type="image/svg+xml" href="/favicons/favicon.svg?v=9" />
+<link rel="icon" href="/favicons/favicon.svg?v=9" />
+<link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png?v=9" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon.svg?v=9" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon.svg?v=9" />
+<link rel="shortcut icon" href="/favicons/favicon.svg?v=9" />
+<meta name="theme-color" content="#000000" />
+<meta name="application-name" content="Cyberstrike" />
+<meta name="apple-mobile-web-app-title" content="Cyberstrike" />
+<link rel="manifest" href="/favicons/site.webmanifest?v=9" />
+
+<!-- other -->
+<meta name="generator" content={Astro.generator} />
+<link rel="sitemap" href="/sitemap-index.xml" />
+
+<!-- Theme change setup. Run early to eliminate Flash of inAccurate coloR Theme (FART) -->
+<script is:inline>
+  function initTheme() {
+    const colorTheme = localStorage.getItem("colorTheme");
+    if (!colorTheme) {
+      // set dark theme initially
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("colorTheme", "dark");
+
+      // if no color theme yet, use the users preferences (uncomment the below code, and comment out the above code to use this instead)
+      // if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      // 	document.documentElement.classList.add("dark");
+      // 	localStorage.setItem("colorTheme", "dark");
+      // } else {
+      // 	document.documentElement.classList.remove("dark");
+      // 	localStorage.setItem("colorTheme", "light");
+      // }
+    } else {
+      // If there is, assign the theme based on the value in local storage
+      if (colorTheme === "dark") {
+        document.documentElement.classList.add("dark");
+      } else if (colorTheme === "light") {
+        document.documentElement.classList.remove("dark");
+      }
+    }
+  }
+
+  // runs on initial page load
+  initTheme();
+
+  // runs on view transitions navigation
+  document.addEventListener("astro:after-swap", initTheme);
+</script>
+
+<Seo title={title} description={description} image={image} noindex={noindex} />
+
+<!-- no fallback as I saw issues with firefox fallback -->
+{siteSettings.useViewTransitions && <ClientRouter fallback="none" />}

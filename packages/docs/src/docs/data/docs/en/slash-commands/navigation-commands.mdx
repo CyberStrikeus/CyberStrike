@@ -1,0 +1,38 @@
+---
+title: Navigation Commands
+description: Slash commands for pickers, dialogs, and interface navigation
+sidebar:
+  order: 3
+  label: Navigation Commands
+---
+
+These slash commands open pickers and dialogs. Type `/` in the TUI to see the command list (or press `Ctrl+P`).
+
+<img src="/docs/images/gifs/navigation-commands.gif" alt="Opening the command list and navigating the pickers" className="rounded-lg shadow-lg my-6 w-full" />
+
+## Pickers & Dialogs
+
+| Command | Opens |
+|---------|-------|
+| `/models` | Model picker |
+| `/agents` | Agent picker |
+| `/themes` | Theme picker |
+| `/mcps` | MCP server manager |
+| `/bolt` | Bolt server manager |
+| `/connect` | Connect / authenticate a provider |
+| `/sessions` (`/resume`, `/continue`) | Session picker |
+| `/editor` | Open the message in your external editor |
+| `/skills` | Browse loaded skills |
+| `/help` | Show help |
+| `/status` | Show status |
+| `/exit` | Exit Cyberstrike |
+
+<Aside variant="caution">
+  Command names are plural: `/models`, `/themes`, `/mcps` (not `/model`, `/theme`, `/mcp`). There is no `/provider`, `/vim`, `/config`, `/permission`, `/files`, `/cd`, `/tools`, `/version`, `/doctor`, `/docs`, `/changelog`, `/cost`, or `/context` command — those don't exist.
+</Aside>
+
+## Related Documentation
+
+- [Slash Commands](/docs/slash-commands) - Full command list
+- [Session Commands](/docs/slash-commands/session-commands) - Session lifecycle
+- [Keyboard Shortcuts](/docs/getting-started/keyboard-shortcuts) - Key bindings

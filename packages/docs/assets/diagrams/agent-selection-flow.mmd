@@ -1,0 +1,22 @@
+---
+title: cyberstrike delegates to specialized subagents
+config:
+  flowchart:
+    htmlLabels: false
+    rankSpacing: 48
+    nodeSpacing: 26
+    padding: 10
+---
+flowchart TD
+    U(["you run: cyberstrike"]):::start --> P["cyberstrike — primary agent"]:::primary
+    P -->|"delegates via task tool, by task"| WA["web-application<br/>OWASP WSTG"]
+    P --> CS["cloud-security<br/>AWS · Azure · GCP · K8s"]
+    P --> IN["internal-network<br/>network · Active Directory"]
+    P --> MA["mobile-application<br/>MASTG · MASVS"]
+    P --> PX["proxy-agent<br/>proxy-captured traffic"]:::primary
+    P --> GE["general · explore<br/>utility subagents"]:::sub
+    PX --> PT["proxy-analyzer +<br/>8 proxy-tester-* subagents"]:::sub
+
+    classDef start fill:#0b1220,stroke:#00d4ff,stroke-width:2px,color:#00d4ff;
+    classDef primary fill:#0b1220,stroke:#00ff88,stroke-width:2px,color:#00ff88;
+    classDef sub fill:#0b1220,stroke:#555,color:#9fb3c8;

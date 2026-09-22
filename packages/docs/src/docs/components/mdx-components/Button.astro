@@ -1,0 +1,66 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+interface Props extends HTMLAttributes<"button">, Omit<HTMLAttributes<"a">, "type"> {
+  /**
+   * Sets the variant of the button
+   * @default "primary"
+   */
+  variant?:
+    | "primary"
+    | "secondary"
+    | "outline"
+    | "ghost"
+    | "info"
+    | "success"
+    | "warning"
+    | "error";
+  /**
+   * Sets the size of the button
+   * @default "md"
+   */
+  size?: "sm" | "md" | "lg" | "icon";
+}
+
+const { variant = "secondary", size = "md", class: className, ...rest } = Astro.props;
+
+const Tag = Astro.props.href ? "a" : "button";
+---
+
+<Tag
+  class:list={[
+    "not-content mt-4",
+    "inline-flex items-center justify-center gap-1.5 rounded-full font-medium whitespace-nowrap transition-colors",
+    "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+    "focus-visible:outline-2 focus-visible:outline-offset-2",
+    "disabled:pointer-events-none disabled:opacity-50",
+    {
+      "bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:outline-primary":
+        variant === "primary",
+      "bg-secondary text-secondary-foreground hover:bg-secondary/90 focus-visible:outline-secondary":
+        variant === "secondary",
+      "border-input hover:bg-input hover:text-foreground focus-visible:outline-outline border":
+        variant === "outline",
+      "hover:bg-foreground/10 hover:text-foreground focus-visible:outline-outline bg-transparent":
+        variant === "ghost",
+      "bg-info text-info-foreground hover:bg-info/90 focus-visible:outline-info":
+        variant === "info",
+      "bg-success text-success-foreground hover:bg-success/90 focus-visible:outline-success":
+        variant === "success",
+      "bg-warning text-warning-foreground hover:bg-warning/90 focus-visible:outline-warning":
+        variant === "warning",
+      "bg-error text-error-foreground hover:bg-error/90 focus-visible:outline-error":
+        variant === "error",
+    },
+    {
+      "h-9 px-3 py-2 text-sm": size === "sm",
+      "h-11 px-4 py-2 text-base": size === "md",
+      "h-12 px-8 py-2 text-lg": size === "lg",
+      "h-11 w-11": size === "icon",
+    },
+    className,
+  ]}
+  {...rest}
+>
+  <slot />
+</Tag>

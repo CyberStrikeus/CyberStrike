@@ -1,0 +1,21 @@
+---
+title: Configuration priority (highest wins)
+config:
+  flowchart:
+    htmlLabels: false
+    rankSpacing: 28
+    nodeSpacing: 20
+    padding: 10
+---
+flowchart TD
+    A["Command-line arguments"]:::top --> B["Managed / enterprise config"]
+    B --> C["CYBERSTRIKE_CONFIG_CONTENT"]
+    C --> D[".cyberstrike/ directory"]
+    D --> E["Project config"]
+    E --> F["CYBERSTRIKE_CONFIG"]
+    F --> G["Global config"]
+    G --> H["Remote / well-known"]
+    H --> I["Default values"]:::bottom
+
+    classDef top fill:#0b1220,stroke:#00ff88,stroke-width:2px,color:#00ff88;
+    classDef bottom fill:#0b1220,stroke:#555,color:#9fb3c8;

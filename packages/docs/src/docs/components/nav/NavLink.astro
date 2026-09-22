@@ -1,0 +1,59 @@
+---
+import ArrowUpRight from "@tabler/icons/outline/arrow-up-right.svg";
+
+import type { navLinkItem } from "@/docs/config/types/configDataTypes";
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+import { getLocalizedRoute } from "@/docs/js/translationUtils";
+
+/**
+ * Compares two paths ensuring they both have trailing slashes for consistency
+ * @param path1 First path to compare
+ * @param path2 Second path to compare
+ * @returns boolean indicating if the paths are equal
+ */
+const comparePathsWithTrailingSlash = (path1: string, path2: string): boolean => {
+  const ensureTrailingSlash = (path: string): string => (path.endsWith("/") ? path : `${path}/`);
+
+  return ensureTrailingSlash(path1) === ensureTrailingSlash(path2);
+};
+
+interface Props {
+  navItem: navLinkItem;
+  class?: string;
+}
+
+const { navItem, class: className } = Astro.props;
+const { link, text, newTab = false } = navItem;
+
+// get the current page locale to use in links to other pages
+const currLocale = getLocaleFromUrl(Astro.url);
+
+const domain = import.meta.env.SITE; // pulls from astro.config.mjs
+let actualLink: string;
+if (!link.includes(domain) && !link.startsWith("/") && !link.startsWith("#")) {
+  // it is an external link
+  actualLink = link;
+} else {
+  // internal link, so we need to add the locale to the link
+  actualLink = getLocalizedRoute(currLocale, link);
+}
+
+const currentPath = comparePathsWithTrailingSlash(Astro.url.pathname, actualLink);
+---
+
+<a
+  href={actualLink}
+  class:list={[
+    "docs-primary-focus relative flex h-8 items-center justify-center px-2 text-sm",
+    className,
+    {
+      "docs-nav__link--current": currentPath,
+      "docs-nav__link--base": !currentPath,
+    },
+  ]}
+  {...newTab && { target: "_blank", rel: "noopener noreferrer" }}
+  aria-label={text}
+>
+  {text}
+  {newTab && <ArrowUpRight class="absolute top-1.5 -right-0.5 size-2.5" aria-hidden="true" />}
+</a>

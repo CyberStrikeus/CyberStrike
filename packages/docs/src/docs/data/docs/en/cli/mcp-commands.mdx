@@ -1,0 +1,67 @@
+---
+title: MCP Commands
+description: Manage MCP servers from the command line
+sidebar:
+  order: 4
+  label: MCP Commands
+---
+
+The `cyberstrike mcp` commands manage Model Context Protocol servers. There are five subcommands: `list`, `add`, `auth`, `logout`, and `debug`.
+
+{/* TODO: Screenshot - MCP command interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: mcp-commands.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">MCP command interface</p>
+</div>
+
+<Aside variant="caution">
+  Server config lives in `cyberstrike.json` (see [Local](/docs/mcp/local-servers) / [Remote](/docs/mcp/remote-servers) servers), and servers are managed interactively in the `/mcps` TUI dialog. There are no `mcp status`, `health`, `start`/`stop`/`restart`, `remove`, `config`, `tools`, `logs`, `export`/`import`, `install`, or `update` commands.
+</Aside>
+
+## `mcp list`
+
+```bash
+cyberstrike mcp list   # alias: ls
+```
+
+Lists the configured MCP servers.
+
+## `mcp add`
+
+```bash
+cyberstrike mcp add
+```
+
+Fully interactive — it prompts for local vs remote, the command or URL, and a name, then tests the connection before saving. It takes **no** positional name or flags; to script server setup, write the entry into `cyberstrike.json` directly.
+
+## `mcp auth`
+
+```bash
+cyberstrike mcp auth [name]        # authorize an OAuth server
+cyberstrike mcp auth list          # list OAuth-authorized servers
+```
+
+Authorizes a remote server that uses OAuth (opens the browser if needed). See [OAuth](/docs/mcp/oauth).
+
+## `mcp logout`
+
+```bash
+cyberstrike mcp logout [name]
+```
+
+Removes stored OAuth credentials for a server.
+
+## `mcp debug`
+
+```bash
+cyberstrike mcp debug <name>
+```
+
+Inspects a server's connection — useful when a server fails to load or its tools don't appear.
+
+## Related Documentation
+
+- [Bolt / MCP Overview](/docs/mcp) - MCP basics
+- [Local Servers](/docs/mcp/local-servers) - Local server config
+- [Remote Servers](/docs/mcp/remote-servers) - Remote server config
+- [OAuth](/docs/mcp/oauth) - OAuth authentication

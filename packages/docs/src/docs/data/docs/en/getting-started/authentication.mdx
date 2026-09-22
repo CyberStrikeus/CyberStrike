@@ -1,0 +1,248 @@
+---
+title: Authentication
+description: Configure AI provider credentials for Cyberstrike
+sidebar:
+  order: 3
+  label: Authentication
+---
+
+Cyberstrike requires authentication with at least one AI provider to function. This guide covers setting up credentials for supported providers.
+
+## Interactive Login
+
+The simplest way to authenticate:
+
+```bash
+cyberstrike auth login
+```
+
+Select your provider from the interactive menu:
+
+```
+? Select provider
+❯ cyberstrike (recommended)
+  anthropic (Claude Max or API key)
+  github-copilot
+  openai (ChatGPT Plus/Pro or API key)
+  google
+  openrouter
+  …
+```
+
+The list is built dynamically from the models catalog and ordered by priority (`cyberstrike`, `anthropic`, `github-copilot`, `openai`, `google`, `openrouter`, …), so the exact entries may vary. It's an autocomplete prompt, not a fixed menu.
+
+## Provider-Specific Setup
+
+### Anthropic
+
+1. Get your API key from [console.anthropic.com](https://console.anthropic.com)
+2. Run authentication:
+
+```bash
+cyberstrike auth login
+# Select: Anthropic
+# Enter your API key
+```
+
+### OpenAI
+
+1. Get your API key from [platform.openai.com](https://platform.openai.com)
+2. Run authentication:
+
+```bash
+cyberstrike auth login
+# Select: OpenAI
+# Enter your API key
+```
+
+### OpenRouter
+
+OpenRouter provides access to multiple models with a free tier:
+
+1. Get your API key from [openrouter.ai/keys](https://openrouter.ai/keys)
+2. Run authentication:
+
+```bash
+cyberstrike auth login
+# Select: OpenRouter
+# Enter your API key
+```
+
+### Google Gemini
+
+1. Get your API key from [ai.google.dev](https://ai.google.dev)
+2. Run authentication:
+
+```bash
+cyberstrike auth login
+# Select: Google
+# Enter your API key
+```
+
+### Ollama (Local)
+
+Ollama requires no API key but needs to be running:
+
+```bash
+# Start Ollama
+ollama serve
+
+# Pull a model
+ollama pull llama3.3
+
+# Use with Cyberstrike
+cyberstrike --model ollama/llama3.3
+```
+
+## Environment Variables
+
+Set credentials via environment variables for CI/CD or automation:
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+
+# Groq
+export GROQ_API_KEY="gsk_..."
+```
+
+Add to your shell profile for persistence:
+
+```bash
+# ~/.bashrc or ~/.zshrc
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+## Configuration File
+
+Store credentials in the config file:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="tip">
+  Use `{env:VAR_NAME}` syntax to reference environment variables in config files.
+</Aside>
+
+## Managing Credentials
+
+### List Stored Credentials
+
+```bash
+cyberstrike auth list
+```
+
+Output:
+
+```
+Credentials ~/.local/share/cyberstrike/auth.json
+  Anthropic api
+  OpenRouter api
+
+Environment
+  ANTHROPIC_API_KEY
+```
+
+### Remove Credentials
+
+```bash
+cyberstrike auth logout
+# Select provider to remove
+```
+
+### Switch Provider
+
+```bash
+# Use different provider for session
+cyberstrike --model openai/gpt-4o
+
+# Set default in config
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## Enterprise Authentication
+
+### AWS Bedrock
+
+```bash
+# Configure AWS credentials
+aws configure
+
+# Or via environment
+export AWS_ACCESS_KEY_ID="..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+```
+
+### Azure OpenAI
+
+```bash
+export AZURE_API_KEY="..."
+export AZURE_RESOURCE_NAME="your-resource"
+```
+
+### Google Vertex AI
+
+```bash
+gcloud auth application-default login
+```
+
+## Security Best Practices
+
+1. **Never commit API keys** to version control
+2. **Use environment variables** for sensitive values
+3. **Rotate keys regularly** for security
+4. **Use scoped keys** when available
+5. **Monitor usage** on provider dashboards
+
+## Troubleshooting
+
+### Invalid API Key
+
+```
+Error: Invalid API key
+```
+
+1. Verify key is correct (no extra spaces)
+2. Check key has not expired
+3. Ensure billing is active on provider
+
+### Rate Limits
+
+```
+Error: Rate limit exceeded
+```
+
+1. Wait and retry
+2. Check provider dashboard for limits
+3. Consider upgrading your plan
+
+### Network Issues
+
+```
+Error: Connection refused
+```
+
+1. Check internet connection
+2. Verify no proxy/firewall blocking
+3. Try different network

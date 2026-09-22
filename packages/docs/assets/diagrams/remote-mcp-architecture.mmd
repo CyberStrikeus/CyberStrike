@@ -1,0 +1,16 @@
+---
+title: Remote MCP architecture
+config:
+  flowchart:
+    htmlLabels: false
+    rankSpacing: 46
+    nodeSpacing: 30
+    padding: 12
+---
+flowchart LR
+    A["AI agent"]:::cs --> C["MCP client"]:::cs
+    C -->|"StreamableHTTP / SSE<br/>header or OAuth token"| R["Remote MCP server"]:::rem
+    R --> T["tools &amp; resources"]:::rem
+
+    classDef cs fill:#0b1220,stroke:#00d4ff,color:#00d4ff;
+    classDef rem fill:#0b1220,stroke:#00ff88,color:#00ff88;

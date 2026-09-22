@@ -1,0 +1,46 @@
+---
+import Check from "@tabler/icons/outline/check.svg";
+import type { HTMLAttributes } from "astro/types";
+import { tv } from "tailwind-variants";
+
+type Props = HTMLAttributes<"div"> & {
+  /**
+   * The value associated with this select item
+   */
+  value: string;
+  /**
+   * Whether this select item is disabled and cannot be selected
+   */
+  disabled?: boolean;
+};
+
+const selectItem = tv({
+  base: [
+    "relative flex w-full cursor-default items-center rounded-sm py-1.5 pr-2 pl-8 outline-none select-none",
+    "focus:bg-accent focus:text-accent-foreground",
+    "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+    "not-aria-selected:[&_svg]:hidden aria-selected:[&_svg]:flex",
+  ],
+});
+
+const selectItemIcon = tv({ base: "absolute left-2 size-3.5 items-center justify-center" });
+
+const { class: className, value, disabled, ...rest } = Astro.props;
+---
+
+<div
+  class={selectItem({ class: className })}
+  data-value={value}
+  data-disabled={disabled}
+  aria-selected="false"
+  role="option"
+  tabindex="0"
+  {...rest}
+>
+  <span class={selectItemIcon()}>
+    <Check class="size-4" />
+  </span>
+  <span>
+    <slot />
+  </span>
+</div>

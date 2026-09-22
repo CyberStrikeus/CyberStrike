@@ -1,0 +1,323 @@
+---
+title: Global Configuration
+description: Configure Cyberstrike settings that apply to all projects
+sidebar:
+  order: 3
+  label: Global Config
+---
+
+Global configuration sets default behavior for all Cyberstrike sessions across all projects.
+
+{/* TODO: Screenshot - Global configuration file */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: global-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Global configuration file location</p>
+</div>
+
+## File Location
+
+Global configuration lives in the global config directory:
+
+```
+~/.config/cyberstrike/
+```
+
+This resolves to `$XDG_CONFIG_HOME/cyberstrike` when `XDG_CONFIG_HOME` is set.
+
+## Supported File Names
+
+The following files are read from the global config directory and merged in order:
+
+| File | Format | Priority |
+|------|--------|----------|
+| `config.json` | JSON | Low (base, auto-generated) |
+| `cyberstrike.json` | JSON | Medium |
+| `cyberstrike.jsonc` | JSON with Comments | High (preferred) |
+
+If multiple files exist, all are read and each subsequent file is merged on top of the previous one.
+
+### Directory Structure
+
+```
+~/.config/cyberstrike/
+├── config.json          ← auto-generated global config
+├── cyberstrike.json     ← global config
+├── cyberstrike.jsonc    ← global config (preferred)
+├── agents/              ← custom agents (*.md)   (also accepts agent/)
+├── commands/            ← custom commands (*.md) (also accepts command/)
+└── plugins/             ← plugins (*.ts / *.js)  (also accepts plugin/)
+```
+
+Cyberstrike additionally scans a `~/.cyberstrike/` directory in your home folder for `cyberstrike.json`/`cyberstrike.jsonc` and the same `agents/`, `commands/`, `plugins/` subfolders.
+
+## Creating Global Config
+
+There is no init command — create the file manually:
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  // Cyberstrike global config
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## Model Configuration
+
+### Default Model
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+Format: `provider/model`.
+
+### Small Model
+
+Used for lightweight tasks such as session title generation:
+
+```json
+{
+  "small_model": "anthropic/claude-haiku-4-5-20251001"
+}
+```
+
+## Provider Configuration
+
+Configure providers individually under `provider`. The `options` object is passed through to the provider SDK:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### Enabling / Disabling Providers
+
+```json
+{
+  "disabled_providers": ["ollama"],
+  "enabled_providers": ["anthropic", "openai"]
+}
+```
+
+When `enabled_providers` is set, **only** those providers are loaded; all others are ignored. See [AI Providers](/docs/providers) for per-provider details.
+
+## Theme
+
+`theme` is the name of an installed theme (a string). The default is `cyberstrike`:
+
+```json
+{
+  "theme": "cyberstrike"
+}
+```
+
+Browse and switch themes in the TUI with the `/themes` command (or `<leader>t`). Built-in themes include `cyberstrike`, `tokyonight`, `catppuccin`, `dracula`, `gruvbox`, `nord`, `github`, `monokai`, `matrix`, `rosepine`, `solarized`, and more.
+
+## Keybindings
+
+### Leader Key
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+x"
+  }
+}
+```
+
+### Custom Bindings
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "theme_list": "<leader>t",
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+See [Keybindings](/docs/configuration/keybindings) for the full list of actions and defaults.
+
+## Permission Defaults
+
+Permissions map a tool name to an action (`ask`, `allow`, or `deny`), or to a glob → action map. There is no separate allow/deny list — the tool key **is** the grouping:
+
+```json
+{
+  "permission": {
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "bash": {
+      "*": "ask",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "*": "ask",
+      "~/.ssh/**": "deny"
+    }
+  }
+}
+```
+
+Only `*` and `?` are supported as wildcards. See [Permissions](/docs/permissions) for the full model and the list of permission keys.
+
+## MCP Servers
+
+MCP servers are declared as a flat map under `mcp`, keyed by server name. Local servers use `type: "local"` with a single `command` array (command + args together); remote servers use `type: "remote"` with a `url`:
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "~"],
+      "environment": { "DEBUG": "true" },
+      "enabled": true
+    },
+    "remote-api": {
+      "type": "remote",
+      "url": "https://api.example.com/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+Bolt servers are configured separately under the top-level `bolt` key, not under `mcp`. See [Bolt / MCP](/docs/mcp).
+
+## Default Agent
+
+Set the default agent (must be a primary agent; falls back to `cyberstrike` if unset or invalid):
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+Custom agents are loaded from the `agents/` (or `agent/`) directory in the config dir — see [Custom Agents](/docs/agents/custom-agents).
+
+## Compaction
+
+Control automatic context compaction:
+
+```json
+{
+  "compaction": {
+    "auto": true,
+    "prune": true
+  }
+}
+```
+
+| Option | Description |
+|--------|-------------|
+| `auto` | Auto-compact when the context is full (default: true) |
+| `prune` | Prune old tool outputs (default: true) |
+
+## Logging & Updates
+
+```json
+{
+  "logLevel": "INFO",
+  "autoupdate": "notify"
+}
+```
+
+`logLevel` is one of `DEBUG`, `INFO`, `WARN`, `ERROR` (default `INFO`). `autoupdate` accepts `true`, `false`, or `"notify"`.
+
+## Full Example
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "small_model": "anthropic/claude-haiku-4-5-20251001",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike",
+  "share": "manual",
+  "autoupdate": "notify",
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+
+  "permission": {
+    "read": "allow",
+    "edit": { "*": "ask" },
+    "bash": { "*": "ask", "rm -rf *": "deny" }
+  },
+
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "."],
+      "enabled": true
+    }
+  },
+
+  "keybinds": { "leader": "ctrl+x" },
+  "compaction": { "auto": true, "prune": true }
+}
+```
+
+## Backup
+
+```bash
+cp ~/.config/cyberstrike/cyberstrike.jsonc ~/.config/cyberstrike/cyberstrike.jsonc.backup
+```
+
+## Security Considerations
+
+### File Permissions
+
+```bash
+chmod 600 ~/.config/cyberstrike/cyberstrike.jsonc
+chmod 700 ~/.config/cyberstrike/
+```
+
+### Sensitive Data
+
+Never store API keys directly — reference environment variables instead:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Always use environment variable references (`{env:VAR}`) for sensitive data like API keys.
+</Aside>
+
+## Related Documentation
+
+- [Configuration Reference](/docs/configuration) - All configuration options
+- [Project Config](/docs/configuration/project-config) - Project settings
+- [Environment Variables](/docs/configuration/environment-variables) - Env vars
+- [Keybindings](/docs/configuration/keybindings) - Keyboard shortcuts

@@ -1,0 +1,386 @@
+---
+title: Cloud Security Agent
+description: CIS Benchmarks and cloud security best practices powered assessment for AWS, GCP, and Azure
+sidebar:
+  order: 4
+  label: Cloud Security
+---
+
+The Cloud Security agent is a specialized security testing agent equipped with comprehensive knowledge of CIS Benchmarks, cloud security best practices, and multi-cloud infrastructure assessment methodologies.
+
+## Overview
+
+The Cloud Security agent combines deep cloud security knowledge with automated tooling to perform thorough infrastructure security assessments. It's pre-loaded with specialized skills for AWS, GCP, and Azure security testing.
+
+### Agent Configuration
+
+| Property | Value |
+|----------|-------|
+| **Agent ID** | `cloud-security` |
+| **Color** | Cyan |
+| **Pre-loaded Skills** | `cis-aws-foundations-2.1.1`, `-2.2`, `-3.1.1`, `-4.1`, `-5.1`, `-6.2`, `aws-postexploit`, `azure-postexploit`, `k8s-postexploit` |
+| **Allowed Tools** | Bash, Read, Glob, Grep, WebFetch, WebSearch, Memory |
+
+### Engaging the Agent
+
+The `cloud-security` subagent is delegated to automatically by the `cyberstrike` agent — you don't launch it directly. Start Cyberstrike and describe a cloud-audit task:
+
+```bash
+cyberstrike run "audit this AWS account against CIS benchmarks"
+```
+
+## Knowledge Base
+
+The Cloud Security agent has access to extensive security knowledge through the skills system.
+
+### CIS Benchmarks Skill
+
+The agent is pre-loaded with CIS (Center for Internet Security) Benchmarks providing systematic auditing methodology for cloud platforms:
+
+- CIS AWS Foundations Benchmark v3.0 (58 controls)
+- CIS Azure Foundations Benchmark v2.1 (124 controls)
+- CIS Google Cloud Platform Benchmark v2.0 (98 controls)
+- CIS Kubernetes Benchmark v1.8 (133 controls)
+
+### Pre-loaded Skills
+
+| Skill | Coverage |
+|-------|----------|
+| `cis-aws-foundations-*` | CIS AWS Foundations controls (`2.1.1`, `2.2`, `3.1.1`, `4.1`, `5.1`, `6.2`) |
+| `aws-postexploit` | AWS post-exploitation |
+| `azure-postexploit` | Azure post-exploitation |
+| `k8s-postexploit` | Kubernetes post-exploitation |
+
+GCP is handled inline via `gcloud` commands in the agent prompt rather than a dedicated skill.
+
+## CIS AWS Foundations Benchmark v3.0 Coverage
+
+The agent systematically tests all CIS AWS controls:
+
+### Section 1: Identity and Access Management (22 controls)
+
+| Control ID | Control Title |
+|------------|---------------|
+| 1.1 | Maintain current contact details |
+| 1.2 | Ensure security contact information is registered |
+| 1.3 | Ensure security questions are registered in the AWS account |
+| 1.4 | Ensure no 'root' user account access key exists |
+| 1.5 | Ensure MFA is enabled for the 'root' user account |
+| 1.6 | Ensure hardware MFA is enabled for the 'root' user account |
+| 1.7 | Eliminate use of the 'root' user for administrative tasks |
+| 1.8 | Ensure IAM password policy requires minimum length of 14 |
+| 1.9 | Ensure IAM password policy prevents password reuse |
+| 1.10 | Ensure MFA is enabled for all IAM users with console password |
+| 1.11 | Do not setup access keys during initial user setup |
+| 1.12 | Ensure credentials unused for 45 days or greater are disabled |
+| 1.13 | Ensure there is only one active access key for any single user |
+| 1.14 | Ensure access keys are rotated every 90 days or less |
+| 1.15 | Ensure IAM users receive permissions only through groups |
+| 1.16 | Ensure IAM policies with full administrative privileges are not attached |
+| 1.17 | Ensure a support role has been created for incident management |
+| 1.18 | Ensure IAM instance roles are used for resource access from instances |
+| 1.19 | Ensure expired SSL/TLS certificates are removed from AWS IAM |
+| 1.20 | Ensure IAM Access Analyzer is enabled for all regions |
+| 1.21 | Ensure IAM users are managed centrally via identity federation |
+| 1.22 | Ensure access to AWSCloudShellFullAccess is restricted |
+
+### Section 2: Storage (9 controls)
+
+| Control ID | Control Title |
+|------------|---------------|
+| 2.1.1 | Ensure S3 Bucket Policy is set to deny HTTP requests |
+| 2.1.2 | Ensure MFA Delete is enabled on S3 buckets |
+| 2.1.3 | Ensure all data in S3 has been discovered and classified |
+| 2.1.4 | Ensure S3 buckets are configured with Block public access |
+| 2.2.1 | Ensure EBS Volume Encryption is Enabled in all Regions |
+| 2.3.1 | Ensure RDS Instances are encrypted |
+| 2.3.2 | Ensure Auto Minor Version Upgrade is Enabled for RDS Instances |
+| 2.3.3 | Ensure RDS instance is not publicly accessible |
+| 2.4.1 | Ensure EFS file systems are encrypted |
+
+### Section 3: Logging (11 controls)
+
+| Control ID | Control Title |
+|------------|---------------|
+| 3.1 | Ensure CloudTrail is enabled in all regions |
+| 3.2 | Ensure CloudTrail log file validation is enabled |
+| 3.3 | Ensure the S3 bucket for CloudTrail logs is not publicly accessible |
+| 3.4 | Ensure CloudTrail trails are integrated with CloudWatch Logs |
+| 3.5 | Ensure AWS Config is enabled in all regions |
+| 3.6 | Ensure S3 bucket access logging is enabled on CloudTrail S3 bucket |
+| 3.7 | Ensure CloudTrail logs are encrypted at rest using KMS CMKs |
+| 3.8 | Ensure rotation for customer-created symmetric CMKs is enabled |
+| 3.9 | Ensure VPC flow logging is enabled in all VPCs |
+| 3.10 | Ensure Object-level logging for write events is enabled for S3 |
+| 3.11 | Ensure Object-level logging for read events is enabled for S3 |
+
+### Section 4: Monitoring (16 controls)
+
+| Control ID | Control Title |
+|------------|---------------|
+| 4.1 | Ensure unauthorized API calls are monitored |
+| 4.2 | Ensure console sign-in without MFA is monitored |
+| 4.3 | Ensure usage of 'root' account is monitored |
+| 4.4 | Ensure IAM policy changes are monitored |
+| 4.5 | Ensure CloudTrail configuration changes are monitored |
+| 4.6 | Ensure AWS Console authentication failures are monitored |
+| 4.7 | Ensure disabling or scheduled deletion of customer CMKs is monitored |
+| 4.8 | Ensure S3 bucket policy changes are monitored |
+| 4.9 | Ensure AWS Config configuration changes are monitored |
+| 4.10 | Ensure security group changes are monitored |
+| 4.11 | Ensure Network Access Control Lists changes are monitored |
+| 4.12 | Ensure changes to network gateways are monitored |
+| 4.13 | Ensure route table changes are monitored |
+| 4.14 | Ensure VPC changes are monitored |
+| 4.15 | Ensure AWS Organizations changes are monitored |
+| 4.16 | Ensure AWS Security Hub is enabled |
+
+<Aside variant="tip">
+  The agent automatically enables AWS Config and CloudWatch metric filters when running compliance assessments.
+</Aside>
+
+### Section 5: Networking (6 controls)
+
+| Control ID | Control Title |
+|------------|---------------|
+| 5.1 | Ensure no Network ACLs allow ingress from 0.0.0.0/0 to remote admin ports |
+| 5.2 | Ensure no security groups allow ingress from 0.0.0.0/0 to remote admin ports |
+| 5.3 | Ensure no security groups allow ingress from ::/0 to remote admin ports |
+| 5.4 | Ensure the default security group of every VPC restricts all traffic |
+| 5.5 | Ensure routing tables for VPC peering are least access |
+| 5.6 | Ensure EC2 instance metadata service version 2 (IMDSv2) is enabled |
+
+## CIS Azure Foundations Benchmark v2.1 Coverage
+
+### Section 1: Identity and Access Management (23 controls)
+
+| Control ID | Control Title |
+|------------|---------------|
+| 1.1 | Ensure Security Defaults is enabled on Azure AD |
+| 1.2 | Ensure MFA is enabled for all users in administrative roles |
+| 1.3 | Ensure MFA is enabled for all users |
+| 1.4 | Ensure guest users are reviewed monthly |
+| 1.5 | Ensure Azure AD Conditional Access is configured |
+| 1.6 | Ensure 'Number of days before users are asked to re-confirm auth info' is not 0 |
+| 1.7 | Ensure 'Notify users on password resets?' is set to 'Yes' |
+| 1.8 | Ensure password protection is enabled for on-prem AD |
+| 1.9 | Ensure 'Restrict access to Azure AD admin portal' is 'Yes' |
+| 1.10 | Ensure user consent to apps is not allowed |
+| 1.11 | Ensure Azure AD PIM is used to manage roles |
+| 1.12 | Ensure 'Restrict access to Azure AD admin center' is enabled |
+
+<Aside variant="danger">
+  Azure AD conditional access policies require Premium P1 or P2 licensing for full enforcement.
+</Aside>
+
+### Section 2: Microsoft Defender for Cloud (15 controls)
+
+| Control ID | Control Title |
+|------------|---------------|
+| 2.1.1 | Ensure Microsoft Defender for Servers is set to 'On' |
+| 2.1.2 | Ensure Microsoft Defender for App Services is set to 'On' |
+| 2.1.3 | Ensure Microsoft Defender for Azure SQL Databases is set to 'On' |
+| 2.1.4 | Ensure Microsoft Defender for SQL servers on machines is set to 'On' |
+| 2.1.5 | Ensure Microsoft Defender for Storage is set to 'On' |
+| 2.1.6 | Ensure Microsoft Defender for Kubernetes is set to 'On' |
+| 2.1.7 | Ensure Microsoft Defender for Container Registries is set to 'On' |
+| 2.1.8 | Ensure Microsoft Defender for Key Vault is set to 'On' |
+| 2.1.9 | Ensure Microsoft Defender for DNS is set to 'On' |
+| 2.1.10 | Ensure Microsoft Defender for Resource Manager is set to 'On' |
+
+### Section 3: Storage Accounts (15 controls)
+
+| Control ID | Control Title |
+|------------|---------------|
+| 3.1 | Ensure 'Secure transfer required' is set to 'Enabled' |
+| 3.2 | Ensure Storage Account infrastructure encryption is enabled |
+| 3.3 | Ensure Storage logging is enabled for Queue service |
+| 3.4 | Ensure Storage logging is enabled for Blob service |
+| 3.5 | Ensure Storage logging is enabled for Table service |
+| 3.6 | Ensure default network access rule is set to deny |
+| 3.7 | Ensure 'Trusted Microsoft Services' is enabled |
+| 3.8 | Ensure soft delete is enabled for Azure Containers and Blob Storage |
+| 3.9 | Ensure storage for critical data are encrypted with Customer Managed Key |
+| 3.10 | Ensure private endpoints are used to access Storage Accounts |
+
+## CIS GCP Benchmark v2.0 Coverage
+
+### Section 1: IAM (18 controls)
+
+| Control ID | Control Title |
+|------------|---------------|
+| 1.1 | Ensure corporate login credentials are used |
+| 1.2 | Ensure MFA is enabled for all non-service accounts |
+| 1.3 | Ensure Security Key is enforced for all admin accounts |
+| 1.4 | Ensure service account has no admin privileges |
+| 1.5 | Ensure service accounts do not have IAM Admin roles |
+| 1.6 | Ensure users are not granted Service Account User role at project level |
+| 1.7 | Ensure user-managed/external keys for service accounts are rotated |
+| 1.8 | Ensure API keys are restricted to only APIs that need access |
+| 1.9 | Ensure API keys are rotated within 90 days |
+| 1.10 | Ensure API keys are restricted to specific hosts/apps |
+| 1.11 | Ensure Essential Contacts is configured for Organization |
+| 1.12 | Ensure Separation of duties is enforced |
+| 1.13 | Ensure service account keys are managed using Cloud KMS |
+
+### Section 2: Logging and Monitoring (13 controls)
+
+| Control ID | Control Title |
+|------------|---------------|
+| 2.1 | Ensure Cloud Audit Logging is configured |
+| 2.2 | Ensure log metric filter and alerts exist for project ownership |
+| 2.3 | Ensure log metric filter and alerts exist for audit configuration |
+| 2.4 | Ensure log metric filter and alerts exist for custom role changes |
+| 2.5 | Ensure log metric filter exists for VPC Network Firewall rule changes |
+| 2.6 | Ensure log metric filter and alerts exist for VPC network route changes |
+| 2.7 | Ensure log metric filter and alerts exist for VPC network changes |
+| 2.8 | Ensure log metric filter and alerts exist for Cloud Storage IAM changes |
+| 2.9 | Ensure log metric filter and alerts exist for SQL instance changes |
+| 2.10 | Ensure Cloud DNS logging is enabled for all VPC networks |
+| 2.11 | Ensure retention policies on Cloud Storage buckets are configured |
+| 2.12 | Ensure log sinks are configured for all log entries |
+
+## Testing Methodology
+
+The agent follows a structured approach:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    TESTING METHODOLOGY                       │
+├─────────────────────────────────────────────────────────────┤
+│  1. DISCOVERY                                                │
+│     └── Cloud account enumeration, resource inventory       │
+│                                                              │
+│  2. CONFIGURATION AUDIT                                      │
+│     └── CIS Benchmark compliance assessment                 │
+│                                                              │
+│  3. VULNERABILITY SCAN                                       │
+│     └── Known CVEs, exposed services, misconfigurations     │
+│                                                              │
+│  4. PRIVILEGE ANALYSIS                                       │
+│     └── IAM policy review, role assessment                  │
+│                                                              │
+│  5. REPORTING                                                │
+│     └── Findings with compliance mapping, remediation       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Integrated Security Tools
+
+The agent leverages industry-standard cloud security tools:
+
+| Tool | Purpose |
+|------|---------|
+| **Prowler** | AWS/Azure/GCP CIS benchmark scanning |
+| **ScoutSuite** | Multi-cloud security auditing |
+| **PACU** | AWS exploitation framework |
+| **CloudSploit** | Cloud security configuration scanning |
+| **Trivy** | Container and IaC vulnerability scanning |
+
+### Tool Integration Example
+
+```
+> Run Prowler CIS checks against AWS account
+
+[Executing Prowler...]
+prowler aws --compliance cis_3.0_aws
+
+[Prowler Output]
+ PASS   1.4  Ensure no 'root' user account access key exists
+ FAIL   1.5  Ensure MFA is enabled for the 'root' user account
+ PASS   1.8  Ensure IAM password policy requires minimum length of 14
+ FAIL   2.1.4 Ensure S3 buckets are configured with Block public access
+
+Compliance Score: 85% (49/58 controls passed)
+```
+
+## CVSS Severity Rating
+
+The agent rates findings using CVSS 3.1:
+
+| Severity | CVSS Score | Example Findings |
+|----------|------------|------------------|
+| **Critical** | 9.0 - 10.0 | Public S3 with sensitive data, IAM * privileges |
+| **High** | 7.0 - 8.9 | Missing MFA on root, unencrypted RDS |
+| **Medium** | 4.0 - 6.9 | Missing CloudTrail, open security groups |
+| **Low** | 0.1 - 3.9 | Missing tags, non-optimal configurations |
+
+## Session Example
+
+```
+You: Audit my AWS account for CIS compliance issues
+
+Agent: I'll perform a comprehensive CIS AWS Foundations Benchmark v3.0 assessment.
+
+## Phase 1: Discovery
+
+[Enumerating AWS resources...]
+Account ID: 123456789012
+Regions: us-east-1, us-west-2, eu-west-1
+Resources: 47 EC2, 23 S3, 15 RDS, 8 Lambda
+
+## Phase 2: IAM Assessment (Section 1)
+
+[Testing CIS 1.4: Root access keys...]
+✓ PASS - No root access keys found
+
+[Testing CIS 1.5: Root MFA...]
+⚠ FAIL - Root user MFA not enabled
+
+FINDING: Root User MFA Not Enabled
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CIS Control: 1.5
+Resource: arn:aws:iam::123456789012:root
+Issue: MFA not enabled for root user
+Severity: Critical (CVSS 9.1)
+Compliance: CIS AWS v3.0, PCI DSS 8.3
+CWE: CWE-308
+
+Remediation:
+- Enable virtual or hardware MFA for root account
+- aws iam create-virtual-mfa-device --virtual-mfa-device-name root-mfa
+
+## Phase 3: Storage Assessment (Section 2)
+
+[Testing CIS 2.1.4: S3 Block Public Access...]
+⚠ FAIL - 3 buckets without Block Public Access
+
+FINDING: S3 Bucket Missing Block Public Access
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CIS Control: 2.1.4
+Resource: arn:aws:s3:::company-logs
+Issue: Block Public Access not enabled
+Severity: High (CVSS 7.5)
+Evidence: GetPublicAccessBlock returned empty
+
+[Continuing with remaining CIS sections...]
+```
+
+## Compliance Framework Mapping
+
+The agent maps findings to multiple compliance frameworks:
+
+| Finding | CIS | SOC 2 | PCI DSS | HIPAA |
+|---------|-----|-------|---------|-------|
+| No root MFA | 1.5 | CC6.1 | 8.3 | 164.312(d) |
+| Public S3 | 2.1.4 | CC6.6 | 7.1 | 164.312(e) |
+| No encryption | 2.2.1 | CC6.7 | 3.4 | 164.312(a) |
+| No CloudTrail | 3.1 | CC7.2 | 10.1 | 164.312(b) |
+
+## Best Practices
+
+1. **Least Privilege** - Use read-only credentials for scanning
+2. **Multi-Region** - Scan all regions, not just primary
+3. **Scheduled Scans** - Run assessments regularly
+4. **Evidence Collection** - Export findings for audit trail
+5. **Remediation Tracking** - Use Memory to track fixes
+
+<Aside variant="caution">
+  Always obtain proper authorization before scanning cloud infrastructure. Ensure credentials have appropriate permissions for read-only assessment.
+</Aside>
+
+## Related Documentation
+
+- [Bash Tool](/docs/tools/bash) - Running cloud CLI commands
+- [Memory Tool](/docs/tools/memory) - Storing cloud inventory
+- [MCP Integration](/docs/mcp) - Extending cloud capabilities

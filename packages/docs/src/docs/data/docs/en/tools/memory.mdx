@@ -1,0 +1,49 @@
+---
+title: Memory Tools
+description: Persistent notes that survive across sessions
+sidebar:
+  order: 5
+  label: Memory
+---
+
+The memory tools let the agent keep notes — findings, target details, context — that persist across sessions as Markdown files in your project.
+
+{/* TODO: Screenshot - Memory storage interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: memory-storage.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Memory storage layout</p>
+</div>
+
+## The Memory Tools
+
+There are four memory tools — there is no delete, clear, export, or import operation:
+
+| Tool | Purpose |
+|------|---------|
+| `memory_write` | Append a note to memory |
+| `memory_read` | Read stored memory |
+| `memory_search` | Search across stored notes |
+| `memory_context` | Pull relevant memory into the current context |
+
+## Storage Layout
+
+Memory is plain Markdown under `.cyberstrike/`:
+
+```
+.cyberstrike/
+├── MEMORY.md              ← long-term memory
+└── memory/
+    └── 2026-07-03.md      ← dated daily notes
+```
+
+- **`MEMORY.md`** holds durable, long-term facts.
+- **`memory/<YYYY-MM-DD>.md`** files are per-day notes; each starts with a `# Daily Notes - <date>` heading and is appended to as the session runs.
+
+Global memory (shared across projects) lives under `~/.config/cyberstrike/memory/`.
+
+Because everything is Markdown on disk, you can read, edit, or version-control it like any other project file.
+
+## Related Documentation
+
+- [Tools Overview](/docs/tools) - All built-in tools
+- [Configuration](/docs/configuration) - Project and global paths

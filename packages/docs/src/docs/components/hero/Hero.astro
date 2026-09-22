@@ -1,0 +1,221 @@
+---
+import Button from "@/docs/components/button/Button.astro";
+import { docsRoute } from "@/docs/js/docsUtils";
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+import { getLocalizedRoute } from "@/docs/js/translationUtils";
+import { useTranslations } from "@/docs/js/translationUtils";
+
+const currLocale = getLocaleFromUrl(Astro.url);
+const t = useTranslations(currLocale);
+---
+
+<div class="pointer-events-none absolute inset-0 z-50 overflow-hidden md:hidden">
+  <div class="docs-site-container relative flex">
+    <div
+      class="from-foreground/50 dark:from-foreground/20 pointer-events-none absolute -top-[500px] -left-[100px] h-[1000px] w-[200px] -rotate-45 bg-gradient-to-b to-transparent blur-2xl"
+    >
+    </div>
+  </div>
+</div>
+
+<!-- Hero Section -->
+<div id="main-content" class="docs-site-container relative border-x py-20 md:py-32">
+  <!-- Beam effects -->
+  <div class="pointer-events-none absolute inset-0 overflow-hidden">
+    <!-- Top-left beam -->
+    <div class="absolute inset-0 z-10 hidden md:block">
+      <div class="docs-site-container relative flex h-14">
+        <div
+          class="from-foreground/50 dark:from-foreground/20 pointer-events-none absolute -top-[500px] -left-[100px] h-[1000px] w-[200px] -rotate-45 bg-gradient-to-b to-transparent blur-2xl"
+        >
+        </div>
+      </div>
+    </div>
+    <!-- Top-right beam -->
+    <div class="absolute inset-0 z-10 hidden md:block">
+      <div class="docs-site-container relative flex h-14">
+        <div
+          class="from-foreground/50 dark:from-foreground/20 pointer-events-none absolute -top-[500px] -right-[100px] h-[1000px] w-[200px] rotate-45 bg-gradient-to-b to-transparent blur-2xl"
+        >
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mx-auto max-w-[800px] text-center">
+    <div class="flex justify-center">
+      <h1 class="mb-6 text-4xl leading-12 font-semibold md:text-5xl md:leading-15">
+        <span id="animated-word" class="gradient-blue">Automated</span>
+        AI-powered security testing with
+        <span class="docs-text-gradient">Cyberstrike</span>
+      </h1>
+    </div>
+    <p class="text-muted-foreground mb-6 text-lg text-pretty md:text-xl">
+      {t("hero_description")}
+    </p>
+    <div class="mx-auto mb-6 w-full max-w-[720px] overflow-hidden rounded-lg border bg-muted">
+      <div style="aspect-ratio: 16 / 9;">
+        <iframe
+          class="h-full w-full"
+          src="https://www.youtube-nocookie.com/embed/NK4045GasqI?rel=0&modestbranding=1"
+          title="YouTube video"
+          loading="lazy"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+        />
+      </div>
+    </div>
+    <div class="flex flex-wrap items-center justify-center gap-4">
+      <Button
+        href={getLocalizedRoute(currLocale, `/${docsRoute}/getting-started`)}
+        variant="secondary"
+      >
+        Get Started
+      </Button>
+      <Button href="https://github.com/CyberStrikeus/CyberStrike" variant="ghost" target="_blank">
+        View on GitHub
+      </Button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { animate, stagger } from "motion";
+
+  const words = ["Automated", "Powerful", "Offensive"];
+  const gradients = [
+    "gradient-blue",    // automated - blue/cyan
+    "gradient-green",   // powerful - green/emerald
+    "gradient-red",     // offensive - red/orange
+  ];
+  const wordElement = document.getElementById("animated-word");
+  let currentIndex = 0;
+
+  function updateGradient(index: number) {
+    if (!wordElement) return;
+    // Remove all gradient classes
+    gradients.forEach(g => wordElement.classList.remove(g));
+    // Add the current gradient class
+    wordElement.classList.add(gradients[index]);
+  }
+
+  // Calculate exact width needed for the longest word
+  function updateContainerWidth() {
+    if (!wordElement) return;
+
+    // Create temporary span to measure actual text width
+    const temp = document.createElement("span");
+    temp.style.visibility = "hidden";
+    temp.style.position = "absolute";
+    temp.style.fontSize = window.getComputedStyle(wordElement).fontSize;
+    temp.style.fontFamily = window.getComputedStyle(wordElement).fontFamily;
+
+    // Find the widest word
+    let maxWidth = 0;
+    words.forEach((word) => {
+      temp.textContent = word;
+      document.body.appendChild(temp);
+      const width = temp.getBoundingClientRect().width + 8;
+      maxWidth = Math.max(maxWidth, width);
+      document.body.removeChild(temp);
+    });
+
+    // Set container width to match longest word
+    wordElement.style.minWidth = `${maxWidth}px`;
+  }
+
+  function createLetterSpans(word) {
+    return word
+      .split("")
+      .map((letter) => `<span class="letter">${letter}</span>`)
+      .join("");
+  }
+
+  function animateText() {
+    if (!wordElement) return;
+
+    // Get current index and prepare for next word
+    const nextIndex = (currentIndex + 1) % words.length;
+    const nextWord = words[nextIndex];
+
+    // First fade out all letters of current word
+    animate(
+      "#animated-word .letter",
+      { opacity: 0 },
+      {
+        duration: 0.3,
+        ease: "easeInOut",
+      },
+    ).finished.then(() => {
+      // Change text after fade out completes
+      currentIndex = nextIndex;
+      wordElement.innerHTML = createLetterSpans(nextWord);
+      updateGradient(nextIndex);
+
+      // Animate new letters in with a staggered fade
+      animate(
+        "#animated-word .letter",
+        { opacity: [0, 1] },
+        {
+          duration: 0.2,
+          delay: stagger(0.05),
+          ease: "easeInOut",
+        },
+      );
+    });
+  }
+
+  // Initialize
+  if (wordElement) {
+    wordElement.innerHTML = createLetterSpans(words[0]);
+    updateContainerWidth();
+    updateGradient(0);
+
+    // Initial animation with Motion
+    animate(
+      "#animated-word .letter",
+      { opacity: [0, 1] },
+      {
+        duration: 0.2,
+        delay: stagger(0.05),
+        ease: "easeInOut",
+      },
+    );
+  }
+
+  // Update width on window resize
+  window.addEventListener("resize", updateContainerWidth);
+
+  // Start animation loop
+  setInterval(animateText, 3000);
+</script>
+
+<style>
+  #animated-word {
+    opacity: 1;
+    display: inline-block;
+    min-width: 0;
+    text-align: center;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
+  .gradient-blue {
+    background-image: linear-gradient(to right, #3b82f6, #06b6d4, #22d3ee);
+  }
+
+  .gradient-green {
+    background-image: linear-gradient(to right, #10b981, #34d399, #a3e635);
+  }
+
+  .gradient-red {
+    background-image: linear-gradient(to right, #ef4444, #f97316, #eab308);
+  }
+
+  .letter {
+    opacity: 0;
+    display: inline-block;
+  }
+</style>

@@ -1,0 +1,57 @@
+---
+title: TUI
+description: Interactive terminal user interface for CyberStrike security assessments
+sidebar:
+  order: 1
+  label: TUI
+---
+
+CyberStrike provides an interactive terminal user interface (TUI) for running security assessments with AI agents. Launch it by running `cyberstrike` in your project directory or specify a target path:
+
+```bash
+cyberstrike
+cyberstrike /path/to/target
+```
+
+<img src="/docs/images/screenshots/tui-commands.png" alt="Command palette (Ctrl+P) grouped into Suggested, Session and Prompt actions" className="rounded-lg shadow-lg my-6 w-full" />
+
+## Configure
+
+Customize TUI behavior via `tui.json` (or `tui.jsonc`), separate from `cyberstrike.json`:
+
+```json
+{
+  "$schema": "https://cyberstrike.io/tui.json",
+  "theme": "cyberstrike",
+  "keybinds": {
+    "leader": "ctrl+x"
+  },
+  "scroll_speed": 3,
+  "scroll_acceleration": {
+    "enabled": true
+  },
+  "diff_style": "auto"
+}
+```
+
+### Configuration Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `theme` | UI theme selection | `cyberstrike` |
+| `keybinds.leader` | Leader key for shortcuts | `ctrl+x` |
+| `scroll_speed` | Scroll velocity (min: `0.001`) | `3` |
+| `scroll_acceleration.enabled` | macOS-style scroll acceleration | `false` |
+| `diff_style` | `"auto"` adapts to width, `"stacked"` single-column | `auto` |
+
+Use the `CYBERSTRIKE_TUI_CONFIG` environment variable to specify a custom config path.
+
+<img src="/docs/images/screenshots/tui-theme-selector.png" alt="Theme picker with the built-in themes" className="rounded-lg shadow-lg my-6 w-full" />
+
+## Customization
+
+Customize the TUI through the command palette (`ctrl+x h` or `/help`). Settings persist across restarts.
+
+### Username Display
+
+Toggle username visibility in chat messages via the command palette. Search for "username" or "hide username". Settings persist automatically.

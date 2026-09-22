@@ -1,0 +1,180 @@
+---
+import MoonStarsIcon from "@tabler/icons/outline/moon-stars.svg";
+import SunIcon from "@tabler/icons/outline/sun.svg";
+type IconSize = "sm" | "md" | "lg";
+
+interface Props {
+  class?: string; // any additional classes
+  rest?: any; // catch-all for any additional parameters, such as "aria-label"
+  animationDuration?: number; // defaults to 200ms
+  size?: IconSize;
+}
+
+const sizeClasses: Record<IconSize, string> = {
+  sm: "h-4 w-4",
+  md: "h-5 w-5",
+  lg: "h-6 w-6",
+};
+
+const { class: className, animationDuration = 200, size = "md", ...rest } = Astro.props as Props;
+---
+
+<button
+  class:list={[
+    className,
+    "theme-toggle docs-primary-focus docs-nav__link--base flex h-8 w-8 items-center justify-center rounded-full",
+  ]}
+  aria-label="color theme toggle"
+  {...rest}
+>
+  <!-- placeholder -->
+  <div class:list={["relative", sizeClasses[size]]}>
+    <MoonStarsIcon
+      class:list={["theme-toggle__dark-icon absolute inset-0", sizeClasses[size]]}
+      data-current-theme="false"
+      style={{
+        "--animation-duration": `${animationDuration}ms`,
+      }}
+    />
+    <SunIcon
+      class:list={["theme-toggle__light-icon absolute inset-0", sizeClasses[size]]}
+      data-current-theme="false"
+      style={{
+        "--animation-duration": `${animationDuration}ms`,
+      }}
+    />
+  </div>
+</button>
+
+<style>
+  @keyframes icon-enter {
+    0% {
+      opacity: 0;
+      transform: rotate(180deg);
+    }
+    100% {
+      opacity: 1;
+      transform: rotate(0);
+    }
+  }
+
+  @keyframes icon-exit {
+    0% {
+      opacity: 1;
+      transform: rotate(0);
+    }
+    100% {
+      opacity: 0;
+      transform: rotate(-180deg);
+    }
+  }
+
+  .theme-toggle__dark-icon {
+    opacity: 0;
+    transform: rotate(180deg);
+  }
+
+  .theme-toggle__dark-icon[data-current-theme="true"] {
+    opacity: 1;
+    transform: rotate(0);
+  }
+
+  /* Only apply animations when the can-animate class is present */
+  .can-animate .theme-toggle__dark-icon[data-current-theme="true"] {
+    animation: icon-enter var(--animation-duration) forwards;
+  }
+
+  .can-animate .theme-toggle__dark-icon[data-current-theme="false"] {
+    animation: icon-exit var(--animation-duration) forwards;
+  }
+
+  .theme-toggle__light-icon {
+    opacity: 0;
+    transform: rotate(180deg);
+  }
+
+  .theme-toggle__light-icon[data-current-theme="true"] {
+    opacity: 1;
+    transform: rotate(0);
+  }
+
+  /* Only apply animations when the can-animate class is present */
+  .can-animate .theme-toggle__light-icon[data-current-theme="true"] {
+    animation: icon-enter var(--animation-duration) forwards;
+  }
+
+  .can-animate .theme-toggle__light-icon[data-current-theme="false"] {
+    animation: icon-exit var(--animation-duration) forwards;
+  }
+</style>
+
+<script>
+  function changeTheme(theme: "dark" | "light") {
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("colorTheme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("colorTheme", "light");
+    }
+  }
+
+  function initThemeToggle() {
+    const themeToggleDarkIcons = document.querySelectorAll(
+      ".theme-toggle__dark-icon",
+    ) as NodeListOf<HTMLElement>;
+    const themeToggleLightIcons = document.querySelectorAll(
+      ".theme-toggle__light-icon",
+    ) as NodeListOf<HTMLElement>;
+    const themeToggleBtns = document.querySelectorAll(".theme-toggle");
+
+    const colorTheme = localStorage.getItem("colorTheme");
+    // Set initial state without animations
+    if (colorTheme === "dark") {
+      themeToggleDarkIcons.forEach((themeToggleDarkIcon) => {
+        themeToggleDarkIcon.setAttribute("data-current-theme", "true");
+      });
+      themeToggleLightIcons.forEach((themeToggleLightIcon) => {
+        themeToggleLightIcon.setAttribute("data-current-theme", "false");
+      });
+    } else {
+      themeToggleDarkIcons.forEach((themeToggleDarkIcon) => {
+        themeToggleDarkIcon.setAttribute("data-current-theme", "false");
+      });
+      themeToggleLightIcons.forEach((themeToggleLightIcon) => {
+        themeToggleLightIcon.setAttribute("data-current-theme", "true");
+      });
+    }
+
+    // add event listeners to all toggle buttons
+    themeToggleBtns.forEach((themeToggleBtn) => {
+      themeToggleBtn.addEventListener("click", function () {
+        // Enable animations before toggling
+        themeToggleBtn.classList.add("can-animate");
+
+        // toggle icons inside button and update data attributes
+        themeToggleDarkIcons.forEach((themeToggleDarkIcon) => {
+          const isCurrentTheme = themeToggleDarkIcon.getAttribute("data-current-theme") === "true";
+          themeToggleDarkIcon.setAttribute("data-current-theme", (!isCurrentTheme).toString());
+        });
+        themeToggleLightIcons.forEach((themeToggleLightIcon) => {
+          const isCurrentTheme = themeToggleLightIcon.getAttribute("data-current-theme") === "true";
+          themeToggleLightIcon.setAttribute("data-current-theme", (!isCurrentTheme).toString());
+        });
+
+        // update local storage
+        if (localStorage.getItem("colorTheme") === "light") {
+          changeTheme("dark");
+        } else {
+          changeTheme("light");
+        }
+      });
+    });
+  }
+
+  // runs on initial page load
+  initThemeToggle();
+
+  // runs on view transitions navigation
+  document.addEventListener("astro:after-swap", initThemeToggle);
+</script>

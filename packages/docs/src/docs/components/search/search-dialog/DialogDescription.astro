@@ -1,0 +1,11 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+type Props = HTMLAttributes<"p">;
+
+const { class: className, ...rest } = Astro.props;
+---
+
+<p class:list={["text-muted-foreground", className]} {...rest}>
+  <slot />
+</p>

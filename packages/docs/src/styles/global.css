@@ -1,0 +1,27 @@
+@import url("./fonts.css");
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* tailwind plugins */
+@plugin "@tailwindcss/forms";
+
+/* dark mode */
+@variant dark (&:where(.dark, .dark *));
+
+/* theme definition import */
+@import "./tailwind-theme.css";
+
+/* docs styles */
+@import "@/docs/styles/docs-global.css";
+
+/**
+ * * Here is where your normal site global styles would go, if adding this to an existing template
+ */
+
+@layer utilities {
+  /* used with select field */
+  .sr-only {
+    @apply sr-only;
+  }
+}

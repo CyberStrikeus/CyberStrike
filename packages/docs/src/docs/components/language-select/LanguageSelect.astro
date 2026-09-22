@@ -1,0 +1,158 @@
+---
+/**
+ * * Language select dropdown component
+ * Uses info and utilities from src/js/i18nUtils.ts. Make sure this is updated with the languages you are using (to match the Astro config file)
+ * Multiple dropdowns can be used on the same page
+ */
+import ChevronDown from "@tabler/icons/outline/chevron-down.svg";
+import Language from "@tabler/icons/outline/language.svg";
+
+import { languageSwitcherMap, locales } from "@/docs/config/siteSettings.json";
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+import { getLocalizedPathname } from "@/docs/js/translationUtils";
+
+interface Props {
+  class?: string; // any additional classes
+  rest?: any; // catch-all for any additional parameters, such as "aria-label"
+}
+
+const { class: className, ...rest } = Astro.props as Props;
+
+const currLocale = getLocaleFromUrl(Astro.url);
+
+// Precompute the localized paths for each locale (since getLocalizedPathname is async)
+const localizedPaths = Object.fromEntries(
+  await Promise.all(
+    locales.map(async (lang) => [lang, await getLocalizedPathname(lang, Astro.url)]),
+  ),
+);
+---
+
+<div
+  class:list={[
+    "lang-select__dropdown description group relative my-auto flex items-center text-xs",
+    className,
+  ]}
+  {...rest}
+>
+  <button
+    class="docs-nav__link--base docs-primary-focus lang-select__dropdown-button flex h-8 items-center gap-0.5 py-1.5 whitespace-nowrap md:flex"
+    type="button"
+    aria-expanded="false"
+    aria-haspopup="true"
+    aria-controls="lang-select__dropdown-content"
+  >
+    <span class="sr-only">Change language</span>
+    <Language aria-hidden="true" class="size-3 shrink-0 transition-transform" />
+    {languageSwitcherMap[currLocale]}
+    <ChevronDown
+      aria-hidden="true"
+      class="lang-select__dropdown-chevron ml-auto size-4 shrink-0 transition-transform"
+    />
+  </button>
+  <div
+    id="lang-select__dropdown-content"
+    aria-labelledby="lang-select"
+    data-state="closed"
+    class:list={[
+      "lang-select__dropdown-content absolute top-full z-10 w-full transition-all duration-150",
+      "slide-in-from-top-2 fade-in-0 animate-in hidden will-change-transform",
+      "data-[state=closed]:fade-out-0 data-[state=closed]:animate-out",
+    ]}
+  >
+    <ul
+      class="border-border bg-muted mx-auto mt-2 w-fit max-w-xs rounded-md border border-solid px-3 py-1.5 whitespace-nowrap drop-shadow-md"
+    >
+      {
+        locales.map((lang) => (
+          <li class="flex w-full justify-center">
+            <a
+              data-astro-reload
+              class="docs-primary-focus docs-nav__link--base relative block w-full py-1 whitespace-nowrap"
+              href={localizedPaths[lang]}
+              aria-label={`Change language to ${lang.toUpperCase()}`}
+            >
+              {languageSwitcherMap[lang]}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</div>
+
+<script>
+  class LangSelectController {
+    private langSelect: HTMLDivElement;
+    private dropdownButton: HTMLButtonElement | null;
+    private dropdownChevron: HTMLElement | null;
+    private dropdownContent: HTMLDivElement | null;
+    private animationDuration: number = 150;
+
+    constructor(langSelect: HTMLDivElement) {
+      this.langSelect = langSelect;
+      this.dropdownButton = langSelect.querySelector(".lang-select__dropdown-button");
+      this.dropdownChevron = langSelect.querySelector(".lang-select__dropdown-chevron");
+      this.dropdownContent = langSelect.querySelector(".lang-select__dropdown-content");
+
+      if (!this.dropdownButton || !this.dropdownContent || !this.dropdownChevron) {
+        return;
+      }
+
+      this.init();
+    }
+
+    private init() {
+      this.dropdownButton?.addEventListener("click", this.handleDropdownClick.bind(this));
+      document.addEventListener("click", this.handleOutsideClick.bind(this));
+    }
+
+    private handleDropdownClick(event: MouseEvent) {
+      if (!this.langSelect.classList.contains("active")) {
+        this.openDropdown();
+      } else {
+        this.closeDropdown();
+      }
+      event.preventDefault();
+      return false;
+    }
+
+    private handleOutsideClick(event: MouseEvent) {
+      if (
+        !this.langSelect?.contains(event.target as Node) &&
+        this.langSelect?.classList.contains("active")
+      ) {
+        this.closeDropdown();
+      }
+    }
+
+    private openDropdown() {
+      this.langSelect.classList.add("active");
+      this.dropdownButton?.setAttribute("aria-expanded", "true");
+      this.dropdownContent?.setAttribute("data-state", "open");
+      this.dropdownContent?.classList.remove("hidden");
+      this.dropdownChevron?.classList.add("rotate-180");
+    }
+
+    private closeDropdown() {
+      this.langSelect.classList.remove("active");
+      this.dropdownButton?.setAttribute("aria-expanded", "false");
+      this.dropdownContent?.setAttribute("data-state", "closed");
+      this.dropdownChevron?.classList.remove("rotate-180");
+      setTimeout(() => {
+        this.dropdownContent?.classList.add("hidden");
+      }, this.animationDuration - 10);
+    }
+  }
+
+  function dropdownToggleSetup() {
+    const langSelects = document.querySelectorAll<HTMLDivElement>(".lang-select__dropdown");
+    langSelects.forEach((langSelect) => new LangSelectController(langSelect));
+  }
+
+  // runs on page load
+  dropdownToggleSetup();
+
+  // runs on view transitions navigation
+  document.addEventListener("astro:after-swap", dropdownToggleSetup);
+</script>

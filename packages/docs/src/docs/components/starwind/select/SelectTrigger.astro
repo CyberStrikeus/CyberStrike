@@ -1,0 +1,45 @@
+---
+import ChevronDown from "@tabler/icons/outline/chevron-down.svg";
+import type { HTMLAttributes } from "astro/types";
+import { tv } from "tailwind-variants";
+
+type Props = Omit<HTMLAttributes<"button">, "role" | "type"> & {
+  /**
+   * The content to be rendered inside the select trigger
+   */
+
+  children: any;
+  /**
+   * Whether the select field is required in a form context
+   */
+  required?: boolean;
+};
+
+const selectTrigger = tv({
+  base: [
+    "starwind-select-trigger",
+    "border-input bg-background text-foreground ring-offset-background flex h-11 items-center justify-between rounded-md border px-3 py-2",
+    "focus:outline-outline focus:outline-2 focus:outline-offset-2",
+    "disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+  ],
+});
+
+const { class: className, required = false, ...rest } = Astro.props;
+---
+
+<button
+  class={selectTrigger({ class: className })}
+  type="button"
+  role="combobox"
+  aria-label="Select field"
+  aria-controls=""
+  aria-expanded="false"
+  aria-haspopup="listbox"
+  aria-autocomplete="none"
+  aria-required={required ? "true" : "false"}
+  data-state="closed"
+  {...rest}
+>
+  <slot />
+  <ChevronDown class="size-4 opacity-50" />
+</button>

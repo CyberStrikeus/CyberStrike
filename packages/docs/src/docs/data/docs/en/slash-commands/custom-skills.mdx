@@ -1,0 +1,65 @@
+---
+title: Custom Skills
+description: Package reusable methodology as SKILL.md files
+sidebar:
+  order: 4
+  label: Custom Skills
+---
+
+A skill is a Markdown file of reusable methodology the agent can pull in on demand. Skills are discovered by filename — every skill lives in a file named **`SKILL.md`**.
+
+{/* TODO: Screenshot - Custom skill configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: custom-skills.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Custom skill layout</p>
+</div>
+
+## File & Location
+
+The file must be named `SKILL.md`. Cyberstrike scans for `**/SKILL.md` under a `skill/` or `skills/` directory inside `.cyberstrike/`, and under `skills/` (Claude Code layout):
+
+```
+.cyberstrike/
+└── skills/
+    └── sql-injection/
+        └── SKILL.md
+```
+
+## Frontmatter
+
+Only `name` and `description` are required. The rest are optional metadata used for categorization and kill-chain linking:
+
+```markdown title="SKILL.md"
+---
+name: sql-injection
+description: Methodology for testing SQL injection
+version: "1.0.0"
+author: you
+tags: [injection, database]
+category: injection
+owasp_id: WSTG-INPV-05
+tech_stack: [postgres, mysql]
+cwe_ids: [CWE-89]
+chains_with: [auth-bypass]
+prerequisites: [request-capture]
+---
+
+Walk the tester through boolean-, error-, time-, and union-based SQLi:
+1. Identify injectable parameters …
+2. …
+```
+
+<Aside variant="caution">
+  The body is plain Markdown — there is **no** templating (no `{{target}}`, `{% if %}`, `{% for %}`, or `$ARGUMENTS`). Frontmatter does **not** support `args`, `model`, `agent`, or `permission` fields, and the file must be literally named `SKILL.md` (arbitrary names like `my-skill.md` are not loaded).
+</Aside>
+
+The `name` in frontmatter must match the skill's identity — a mismatch is reported as an error.
+
+## Using Skills
+
+Loaded skills are available to the agent and can be browsed with the `/skills` command. The agent pulls a skill's methodology into context when it's relevant to the task.
+
+## Related Documentation
+
+- [Slash Commands](/docs/slash-commands) - Built-in commands
+- [Agents](/docs/agents) - Agents that use skills

@@ -1,0 +1,190 @@
+---
+title: CLI
+description: Command line interface for non-interactive security assessments
+sidebar:
+  order: 2
+  label: CLI
+---
+
+CyberStrike CLI defaults to launching the [TUI](/docs/usage/tui) when run without arguments. It also accepts commands for non-interactive and programmatic use.
+
+```bash
+# Launch interactive TUI
+cyberstrike
+
+# Run a single prompt
+cyberstrike run "scan example.com for open ports"
+```
+
+{/* TODO: Video — CLI run command executing a security prompt and streaming output */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-run-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Non-interactive run command with streaming agent output (~12s)</p>
+</div>
+
+## Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `run` | Non-interactive mode with a direct prompt |
+| `serve` | Headless HTTP server for API access |
+| `web` | Headless server with [web interface](/docs/usage/web) |
+| `attach` | Connect TUI to a running server |
+| `auth` | Manage credentials and provider login |
+| `agent` | Manage security agents |
+| `mcp` | Manage MCP servers |
+| `models` | List available models from providers |
+| `session` | Manage sessions |
+| `stats` | Display token usage and cost statistics |
+| `export` | Export session data as JSON |
+| `import` | Import from JSON file or share URL |
+| `upgrade` | Update to latest or specific version |
+| `uninstall` | Remove CyberStrike and related files |
+
+## Global Flags
+
+| Flag | Alias | Description |
+|------|-------|-------------|
+| `--help` | `-h` | Display help information |
+| `--version` | `-v` | Print version |
+| `--print-logs` | | Output logs to stderr |
+| `--log-level` | | Set level: `DEBUG`, `INFO`, `WARN`, `ERROR` |
+
+## run
+
+Execute a single prompt without entering interactive mode.
+
+```bash
+cyberstrike run [message..] [options]
+```
+
+### Options
+
+| Option | Alias | Description |
+|--------|-------|-------------|
+| `--model <model>` | `-m` | Model in format `provider/model` |
+| `--agent <name>` | | Security agent to use |
+| `--continue` | `-c` | Continue last session |
+| `--session <id>` | `-s` | Resume specific session |
+| `--file <path>` | `-f` | Attach file(s) to message |
+| `--format <type>` | | Output format: `default` or `json` |
+| `--share` | | Share the session |
+| `--title <text>` | | Set session title |
+| `--variant <type>` | | Model variant (`high`, `max`, `minimal`) |
+
+### Examples
+
+```bash
+# Run a security scan
+cyberstrike run "scan example.com for XSS vulnerabilities"
+
+# Attach a config file for review
+cyberstrike run "analyze this config for misconfigurations" -f nginx.conf
+
+# Output as JSON for pipeline integration
+cyberstrike run "list all open ports" --format json
+
+# Continue a previous session
+cyberstrike run "now check for SQLi" --continue
+```
+
+{/* TODO: Screenshot — CLI JSON output format example */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: cli-json-output.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Structured JSON output from --format json flag</p>
+</div>
+
+### Piping Input
+
+Accept input from stdin for integration with other tools:
+
+```bash
+echo "analyze this code for vulnerabilities" | cyberstrike run
+nmap -sV target.local | cyberstrike run "analyze these scan results"
+cat report.json | cyberstrike run "summarize findings"
+```
+
+## serve
+
+Start a headless HTTP API server without a UI. Useful for integrations, CI/CD pipelines, and remote access.
+
+```bash
+cyberstrike serve [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--port <number>` | Server port (default: random available) |
+| `--hostname <address>` | Bind address (default: `127.0.0.1`) |
+
+<Aside variant="caution">
+  **Authentication:** Set `CYBERSTRIKE_SERVER_PASSWORD` when exposing the server on a network. Without it, the server is unsecured.
+</Aside>
+
+```bash
+# Start API server on port 4096
+CYBERSTRIKE_SERVER_PASSWORD=secret cyberstrike serve --port 4096
+```
+
+{/* TODO: Video — Starting serve and piping nmap output into cyberstrike run */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-pipe-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Piping nmap output into cyberstrike run for analysis (~10s)</p>
+</div>
+
+## attach
+
+Connect a TUI to an already-running CyberStrike server. This allows multiple terminals to share the same sessions.
+
+```bash
+cyberstrike attach <url>
+```
+
+```bash
+# Start server in one terminal
+cyberstrike web --port 4096
+
+# Attach from another terminal
+cyberstrike attach http://localhost:4096
+```
+
+## upgrade
+
+Update CyberStrike to the latest version or a specific target.
+
+```bash
+# Upgrade to latest stable
+cyberstrike upgrade
+
+# Upgrade to specific version
+cyberstrike upgrade 1.1.6
+
+# Upgrade to latest beta
+cyberstrike upgrade --method npm
+```
+
+Supported methods: `curl`, `npm`, `pnpm`, `bun`, `brew`, `choco`, `scoop`.
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `CYBERSTRIKE_PROVIDER` | Default AI provider |
+| `CYBERSTRIKE_MODEL` | Default model |
+| `CYBERSTRIKE_AGENT` | Default security agent |
+| `CYBERSTRIKE_SERVER_PASSWORD` | Server authentication password |
+| `CYBERSTRIKE_SERVER_USERNAME` | Server username (default: `cyberstrike`) |
+| `CYBERSTRIKE_DISABLE_AUTOUPDATE` | Disable automatic update checks |
+| `CYBERSTRIKE_TUI_CONFIG` | Custom TUI config path |
+| `ANTHROPIC_API_KEY` | Anthropic API key |
+| `OPENAI_API_KEY` | OpenAI API key |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI (Gemini) API key |
+| `OPENROUTER_API_KEY` | OpenRouter API key |
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | Error — invalid/unknown arguments, or a fatal error |
+| `130` | Interrupted (Ctrl+C) |

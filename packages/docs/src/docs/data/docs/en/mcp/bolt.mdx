@@ -1,0 +1,171 @@
+---
+title: Bolt
+description: Plugin-based security tool server via MCP with Docker
+sidebar:
+  order: 2
+  label: Bolt
+---
+
+Bolt is a containerized MCP server that provides security tools. It runs in a Docker container (Ubuntu 24.04) and exposes each tool directly — no meta-tools, no dynamic loading, just call the tool you need.
+
+{/* Hero Screenshot - Bolt in action */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: bolt-hero.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Bolt running nmap scan through Cyberstrike</p>
+</div>
+
+## Why Bolt?
+
+Bolt solves the problem of running security tools that need a Linux environment. Instead of installing tools locally, Bolt runs them in an isolated container.
+
+| Feature | Without Bolt | With Bolt |
+|---------|--------------|-----------|
+| Tool installation | Manual for each tool | Pre-installed |
+| Platform support | Linux-only for most tools | Any platform with Docker |
+| Isolation | Tools run on your system | Sandboxed in the container |
+| Updates | Manual | `docker pull` |
+
+## What's Inside
+
+Bolt (`bolt.config.json`, port `3001`) exposes tools two ways:
+
+- **7 native plugins** — `subfinder`, `nmap`, `nuclei`, `httpx`, `ffuf`, `run-command`, `wordlist`
+- **~26 aggregated stdio MCP servers** — e.g. `dnsx`, `amass`, `katana`, `sqlmap`, `wpscan`, `gobuster`, `masscan`, `hydra`, `hashcat`, `john`, `impacket`, and more
+
+Each is a directly callable tool — the agent calls it in a single turn, no search/load step.
+
+## Quick Start
+
+### 1. Start the Bolt container
+
+```bash
+docker run -d \
+  --name bolt \
+  --restart unless-stopped \
+  -p 3001:3001 \
+  -v bolt-data:/data \
+  -e MCP_ADMIN_TOKEN=$(openssl rand -hex 32) \
+  --cap-add NET_RAW \
+  --cap-add NET_ADMIN \
+  ghcr.io/cyberstrikeus/bolt:latest
+
+# View the admin token (used once, to pair)
+docker logs bolt | grep -i token
+```
+
+### 2. Pair it with Cyberstrike
+
+Open the `/bolt` dialog in the TUI, press **a** to add, enter the URL `http://localhost:3001`, and provide the admin token. Cyberstrike pairs with the server (see [Authentication](#authentication)) and stores the credentials — the token itself is **not** written to your config.
+
+### 3. Use the tools
+
+```
+> Run nmap against 192.168.1.1 with service detection
+> Use subfinder to enumerate subdomains of example.com
+```
+
+## Configuration
+
+Bolt servers are configured under their **own top-level `bolt` key** — not under `mcp`. Each entry only needs a `url` (Cyberstrike appends the `/mcp` path itself):
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "bolt": {
+    "local": {
+      "url": "http://localhost:3001",
+      "enabled": true,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | string | Required. Base URL of the Bolt server (e.g. `http://localhost:3001`). |
+| `enabled` | boolean | Optional. Connect on launch (default: true). |
+| `timeout` | number | Optional. Request timeout in ms (default: 30000). |
+
+<Aside variant="caution">
+  Bolt is **not** an `mcp` entry. There is no `type: "remote"`, no `bolt: true` flag, and no `Authorization` header in the config — authentication is handled by Ed25519 pairing, and the admin token lives only in the pairing step.
+</Aside>
+
+## Authentication
+
+Bolt uses **Ed25519 request signing**, bootstrapped by a one-time pairing with the admin token:
+
+1. `POST /pair` with the admin token → a pairing code
+2. Cyberstrike generates an Ed25519 keypair
+3. `POST /pair/exchange` with the code + client public key → server public key + client ID
+4. From then on, every request is **signed** with the client's private key
+
+The admin token is used only during step 1 — it is not a persistent bearer credential and is never stored in `cyberstrike.json`.
+
+## TUI Management
+
+Two separate dialogs:
+
+- **`/bolt`** — manages Bolt servers (add/pair, toggle, remove).
+- **`/mcps`** — manages regular local/remote MCP servers.
+
+In the `/bolt` dialog: **a** to add, **space** to toggle a server, **esc** to close.
+
+## Usage Examples
+
+```
+> Use bolt to scan 192.168.1.0/24 for open ports and services   # nmap
+> Find all subdomains of example.com                            # subfinder
+> Scan https://target.com with nuclei                           # nuclei
+> Fuzz directories on https://target.com                        # ffuf
+> Run "dig +short example.com"                                  # run-command escape hatch
+```
+
+Each maps to a direct tool call — no loading step.
+
+## Container Configuration
+
+### Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | 3001 | HTTP server port |
+| `HOST` | 0.0.0.0 | Bind address |
+| `MCP_ADMIN_TOKEN` | — | Admin token used for pairing |
+| `DATA_DIR` | /data | Persistent data directory |
+
+### Docker capabilities
+
+| Capability | Purpose |
+|------------|---------|
+| `NET_RAW` | Raw sockets for nmap SYN scans |
+| `NET_ADMIN` | Network configuration for tools needing elevated access |
+
+## API Reference
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /health` | Health check — returns `{ "status": "ok" }` (authenticated admin requests get detailed info, including tool counts) |
+| `POST /mcp` | MCP JSON-RPC endpoint (signed requests) |
+| `POST /pair` | Begin Ed25519 pairing with the admin token |
+| `POST /pair/exchange` | Exchange the pairing code + public keys |
+
+```bash
+curl http://localhost:3001/health
+```
+
+## Troubleshooting
+
+- **Connection refused** — check the container is up (`docker ps`), the port is mapped (`docker port bolt`), and `curl http://localhost:3001/health` responds.
+- **Re-pairing required** — if the Bolt URL changes, Cyberstrike drops the stored credentials and you must pair again via `/bolt`.
+- **Tools not available** — confirm the server is connected in `/bolt`, and use a direct-API model (e.g. `anthropic/claude-sonnet-4-20250514`, `openai/gpt-4o`).
+
+## Related Documentation
+
+- [Bolt / MCP Overview](/docs/mcp) - Architecture and concepts
+- [Remote Servers](/docs/mcp/remote-servers) - Remote MCP configuration
+- [Local Servers](/docs/mcp/local-servers) - Local stdio MCP setup
+- [Permissions](/docs/permissions) - Tool permissions
+
+<Aside variant="danger">
+  Only use Bolt tools against authorized targets. Unauthorized penetration testing is illegal.
+</Aside>

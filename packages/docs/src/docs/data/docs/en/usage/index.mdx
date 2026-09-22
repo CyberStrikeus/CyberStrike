@@ -1,0 +1,38 @@
+---
+title: Usage
+description: How to use CyberStrike across terminal, CLI, and web interfaces
+sidebar:
+  order: 1
+  label: Overview
+---
+
+CyberStrike offers three ways to interact with its AI-powered security assessment engine:
+
+- **[TUI](/docs/usage/tui)** -- Interactive terminal interface with real-time agent output, file references, and slash commands
+- **[CLI](/docs/usage/cli)** -- Non-interactive mode for scripting, pipelines, and automation
+- **[Web](/docs/usage/web)** -- Browser-based interface with session management, side panels, and integrated terminal
+
+Each interface connects to the same underlying engine and shares sessions, so you can switch between them freely.
+
+## Quick Start
+
+```bash
+# Interactive TUI (default)
+cyberstrike
+
+# Non-interactive CLI
+cyberstrike run "scan example.com for open ports"
+
+# Web interface
+cyberstrike web
+```
+
+## Choosing an Interface
+
+| Interface | Best For |
+|-----------|----------|
+| TUI | Daily interactive assessments, file exploration, undo/redo |
+| CLI | CI/CD pipelines, scripting, piping tool output |
+| Web | Team collaboration, visual side panels, browser-based workflows |
+
+All three interfaces support the full range of security agents, MCP tools, and AI providers.

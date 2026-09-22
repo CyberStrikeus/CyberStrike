@@ -1,0 +1,52 @@
+---
+import BrandGithub from "@tabler/icons/outline/brand-github.svg";
+
+import Button from "@/docs/components/button/Button.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  primaryLink: string;
+  githubLink: string;
+}
+
+const { title, description, primaryLink, githubLink } = Astro.props;
+---
+
+<div class="docs-site-container relative border-x">
+  <!-- Glow effects -->
+  <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+    <div
+      class:list={[
+        "h-[300px] w-[800px] -translate-x-20 rotate-[-12deg] blur-3xl",
+        "from-primary/30 to-primary/0 bg-gradient-to-t",
+        "dark:from-primary/30",
+      ]}
+    >
+    </div>
+    <div
+      class:list={[
+        "absolute h-[250px] w-[600px] translate-x-20 rotate-12 blur-3xl",
+        "from-primary/20 to-primary/0 bg-gradient-to-b",
+        "dark:from-primary/30",
+      ]}
+    >
+    </div>
+  </div>
+
+  <div class="relative mx-auto max-w-4xl px-4 py-32 text-center">
+    <h2 class="docs-text-gradient docs-h2 mb-4 text-pretty">
+      {title}
+    </h2>
+    <p class="text-muted-foreground mx-auto mb-8 max-w-[600px] text-pretty md:text-lg">
+      {description}
+    </p>
+    <div class="flex flex-wrap items-center justify-center gap-4">
+      <Button href={primaryLink} variant="secondary"> Get Started </Button>
+      <Button href={githubLink} variant="ghost" target="_blank" rel="noopener noreferrer">
+        <BrandGithub class="mr-2 size-4" />
+        View on GitHub
+      </Button>
+    </div>
+  </div>
+</div>

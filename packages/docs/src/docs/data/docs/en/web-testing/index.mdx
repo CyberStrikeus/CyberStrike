@@ -1,0 +1,169 @@
+---
+title: Web Proxy Testing
+description: Browser-integrated automated security testing — manual browsing with the Firefox Extension or autonomous AI crawling with HackBrowser, both feeding the same proxy-agent pipeline
+sidebar:
+  order: 1
+  label: Overview
+---
+
+Web proxy testing is Cyberstrike's automated security testing workflow for web applications. HTTP requests captured from a target application are forwarded to the `proxy-agent`, which analyzes each request and dispatches specialized vulnerability testing subagents in parallel.
+
+There are two ways to capture traffic. They feed the same pipeline and can be mixed within a single session.
+
+## Two Capture Paths
+
+| | [Firefox Extension](/docs/tools/firefox-extension) | [HackBrowser](/docs/tools/hacker-browser) |
+|---|---|---|
+| **Driver** | You browse manually | LLM navigates autonomously |
+| **Browser** | Firefox | Chromium (Playwright) |
+| **Multi-user** | Firefox Containers (one tab per role) | One credential per crawl, sequential |
+| **UI context** | — | Form fields, `readonly`/`hidden`/`disabled` flags, hidden params |
+| **Best for** | Exploratory testing, complex flows, SPA edge cases | Unattended scans, broad surface coverage, role-based access diffs |
+
+## How It Works
+
+```
+   Manual browsing                          Autonomous crawl
+┌──────────────────────┐               ┌──────────────────────┐
+│  Firefox + Extension │               │  HackBrowser         │
+│  (you click)         │               │  (LLM clicks)        │
+└──────────┬───────────┘               └──────────┬───────────┘
+           │ raw HTTP + credential headers        │ + ui_context + access_context
+           │                                      │
+           └──────────────────┬───────────────────┘
+                              ▼
+              ┌───────────────────────────────────┐
+              │  POST /session/ingest             │
+              │  ├── Normalize + deduplicate      │
+              │  ├── Link credential context      │
+              │  └── Enqueue for async processing │
+              └───────────────┬───────────────────┘
+                              ▼
+              ┌───────────────────────────────────┐
+              │  proxy-agent (pure orchestrator)  │
+              │                                   │
+              │  1. proxy-analyzer                │
+              │     └── Extract objects, roles,   │
+              │         functions, ID values      │
+              │                                   │
+              │  2. web_get_session_context       │
+              │     └── Review accumulated state  │
+              │                                   │
+              │  3. Parallel testing              │
+              │     ├── proxy-tester-idor         │
+              │     ├── proxy-tester-authz        │
+              │     ├── proxy-tester-injection    │
+              │     ├── proxy-tester-authn        │
+              │     ├── proxy-tester-mass-        │
+              │     │   assignment                │
+              │     ├── proxy-tester-business-    │
+              │     │   logic                     │
+              │     ├── proxy-tester-ssrf         │
+              │     └── proxy-tester-file-attacks │
+              └───────────────┬───────────────────┘
+                              ▼
+              ┌───────────────────────────────────┐
+              │  Session Storage                  │
+              │  ├── Credentials                  │
+              │  ├── Roles                        │
+              │  ├── Objects                      │
+              │  ├── Functions                    │
+              │  └── Vulnerabilities              │
+              └───────────────────────────────────┘
+                              │
+                              ▼
+                    /web   and   /vulnerabilities
+                    (TUI inspectors — see Context Management)
+```
+
+## The Proxy-Agent
+
+The `proxy-agent` is the orchestration engine for this workflow. It is a **pure orchestrator** — it does not test for vulnerabilities directly. For every incoming HTTP request, it:
+
+1. **Calls `proxy-analyzer` first** — always. The analyzer extracts the application architecture (objects, roles, functions, object IDs) and writes the findings to session storage.
+
+2. **Reads session context** — calls `web_get_session_context` to understand what has been learned so far: how many credentials are available, what objects have been discovered, which endpoints are known.
+
+3. **Selects testing agents intelligently** — rather than using rigid routing rules, it analyzes the request characteristics (inputs, identifiers, HTTP method, response content) together with the accumulated session context to decide which vulnerability testers are relevant.
+
+4. **Launches agents in parallel** — independent tests run simultaneously for efficiency. A typical request triggers 3–6 testing agents.
+
+### What the Proxy-Agent Does NOT Do
+
+- Does not send HTTP requests to test for vulnerabilities directly
+- Does not run security tools (SQLMap, Nuclei, etc.) itself
+- Does not create credentials itself — these are registered by the capture sources (the Firefox extension and the Hacker Browser)
+- Does not call `report_vulnerability` — individual testing agents handle reporting
+
+For the full technical reference, see [Proxy Agent](/docs/agents/proxy-agent).
+
+## Quick Start
+
+### Option A: Manual browsing (Firefox Extension)
+
+1. **Start Cyberstrike** — the API must be running before the extension can send requests
+2. **Install the Firefox extension** — see [Firefox Extension](/docs/tools/firefox-extension)
+3. **Create a session** — click **New Session** or select an existing one in the popup
+4. **Set a scope** — enter the target domain (e.g. `shop.example.com`)
+5. **Add credentials** — create a credential entry for each user account you want to test with, linked to a Firefox container
+6. **Start capture** — click **Start** and browse the application normally
+7. **Review findings** — use [`/vulnerabilities`](/docs/web-testing/context-management#vulnerabilities) in the TUI to see discovered issues, or [`/web`](/docs/web-testing/context-management#web) to inspect accumulated context
+
+### Option B: Autonomous crawl (HackBrowser)
+
+1. **Run the crawl** — opens a TUI session bound to the new crawl:
+   ```bash
+   cyberstrike hackbrowser https://shop.example.com
+   ```
+2. **Wait for the sidebar** — the `Hackbrowser` section shows live progress (`starting` → `crawling` → `completed`). Captures stream into the session as the crawl progresses.
+3. **Review findings** — same TUI commands as above: [`/vulnerabilities`](/docs/web-testing/context-management#vulnerabilities) and [`/web`](/docs/web-testing/context-management#web).
+
+To launch a crawl inside an already-open session, use the [`/hackbrowser`](/docs/tools/hacker-browser#slash-command) slash command instead. The agent can also launch crawls itself via the `hackbrowser` tool when the conversation calls for it.
+
+## Multi-User Testing
+
+The most effective use of this workflow involves testing with multiple user accounts. The proxy-agent automatically tests cross-user scenarios — IDOR, authorization bypass, privilege escalation — by comparing what each credential can access.
+
+### With the Firefox Extension
+
+The extension uses **Firefox Containers** to isolate sessions, so you can browse as several users simultaneously:
+
+- Open the target in different containers (Admin in Container 1, Regular User in Container 2)
+- Register each container as a separate credential in the popup
+- Browse the application as each user
+
+### With HackBrowser
+
+Pass multiple `--credential` flags to run sequential per-role crawls:
+
+```bash
+cyberstrike hackbrowser https://shop.example.com \
+  --credential admin \
+  --credential customer
+```
+
+For each credential, HackBrowser opens a visible Chromium window, waits for you to log in manually, then crawls the app tagged with that credential ID. Captures from each crawl are tagged distinctly. After all credentials run, HackBrowser also emits per-page diffs — which credentials reached each page, which buttons each role could see — to enrich the proxy-agent's authorization analysis.
+
+Fully unattended multi-role crawls (auto-login from CLI flags) are on the roadmap for HackBrowser; until then, the Firefox Extension is the better choice for unattended testing. See [Planned: Unattended Login](/docs/tools/hacker-browser#planned-unattended-login).
+
+## What Gets Tested
+
+The proxy-agent selects tests based on each request's characteristics:
+
+| Request Type | Tests Launched |
+|-------------|---------------|
+| Any endpoint with user input | Injection (SQLi, XSS, SSTI, XXE) |
+| Numeric/UUID identifiers in path or body | IDOR |
+| POST/PUT/PATCH with JSON body | Mass assignment |
+| Login, SSO, session endpoints | Authentication flaws |
+| Financial or transactional endpoints | Business logic |
+| URL/URI parameters | SSRF |
+| File upload or path parameters | File attacks |
+| Protected resources with multiple credentials | Authorization bypass |
+
+## Related Documentation
+
+- [Firefox Extension](/docs/tools/firefox-extension) - Manual browsing capture path with Firefox Containers
+- [HackBrowser](/docs/tools/hacker-browser) - Autonomous AI crawler capture path
+- [Context Management](/docs/web-testing/context-management) - Viewing session context and vulnerabilities in the TUI
+- [Proxy Agent](/docs/agents/proxy-agent) - Full technical reference for the proxy-agent

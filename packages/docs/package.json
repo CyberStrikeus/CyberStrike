@@ -1,0 +1,63 @@
+{
+	"name": "@cyberstrike-io/docs",
+	"type": "module",
+	"version": "1.5.0",
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"dev": "astro dev",
+		"start": "astro preview --host 0.0.0.0 --port 4321",
+		"build": "astro build && pagefind --site dist",
+		"preview": "astro preview --host",
+		"astro": "astro",
+		"winsearch": "robocopy dist/pagefind public/pagefind /E",
+		"osxsearch": "cp -r dist/pagefind public/",
+		"docs:config-i18n": "node ./src/docs/scripts/docs-config-i18n.js",
+		"config-i18n": "node ./scripts/config-i18n.js",
+		"format": "eslint . --fix && prettier -w \"**/*\" --ignore-unknown --cache",
+		"lint": "eslint .",
+		"assets": "bash ./scripts/gen-assets.sh",
+		"assets:diagrams": "bash ./scripts/gen-assets.sh diagrams",
+		"assets:gifs": "bash ./scripts/gen-assets.sh gifs"
+	},
+	"dependencies": {
+		"@astrojs/mdx": "4.3.12",
+		"@astrojs/rss": "4.0.14",
+		"@astrojs/sitemap": "3.6.0",
+		"@fontsource-variable/inter": "5.2.8",
+		"@fontsource-variable/space-grotesk": "^5.2.10",
+		"@pagefind/default-ui": "1.4.0",
+		"@tabler/icons": "3.35.0",
+		"@tailwindcss/forms": "0.5.10",
+		"@tailwindcss/vite": "4.1.17",
+		"astro": "5.16.2",
+		"astro-auto-import": "0.4.5",
+		"astro-expressive-code": "0.41.3",
+		"astro-icon": "1.1.5",
+		"astro-seo": "0.8.4",
+		"motion": "12.23.24",
+		"sharp": "0.35.4",
+		"tailwind-merge": "^3.4.0",
+		"tailwind-variants": "3.2.2",
+		"tailwindcss": "4.1.17",
+		"tw-animate-css": "1.4.0"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.39.2",
+		"@playform/compress": "^0.2.1",
+		"eslint": "^9.39.2",
+		"eslint-plugin-astro": "^1.5.0",
+		"eslint-plugin-jsx-a11y": "^6.10.2",
+		"eslint-plugin-prettier": "^5.5.5",
+		"eslint-plugin-simple-import-sort": "^12.1.1",
+		"globals": "^16.5.0",
+		"pagefind": "1.4.0",
+		"prettier-plugin-astro": "^0.14.1",
+		"prettier-plugin-tailwindcss": "^0.7.2",
+		"typescript-eslint": "^8.54.0"
+	},
+	"overrides": {
+		"sharp": "^0.33.0"
+	}
+}

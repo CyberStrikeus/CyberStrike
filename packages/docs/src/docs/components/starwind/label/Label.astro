@@ -1,0 +1,22 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { tv, type VariantProps } from "tailwind-variants";
+
+type Props = HTMLAttributes<"label"> & VariantProps<typeof label>;
+
+const label = tv({
+  base: [
+    "text-foreground leading-none font-medium",
+    "peer-disabled:cursor-not-allowed peer-disabled:opacity-70 has-[+:disabled]:cursor-not-allowed has-[+:disabled]:opacity-70",
+  ],
+  variants: { size: { sm: "text-sm", md: "text-base", lg: "text-lg" } },
+  defaultVariants: { size: "md" },
+});
+
+const { size, class: className, ...rest } = Astro.props;
+---
+
+{/* eslint-disable-next-line astro/jsx-a11y/label-has-associated-control */}
+<label class={label({ size, class: className })} {...rest}>
+  <slot />
+</label>

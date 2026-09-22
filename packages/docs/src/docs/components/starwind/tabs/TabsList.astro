@@ -1,0 +1,16 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { tv } from "tailwind-variants";
+
+type Props = Omit<HTMLAttributes<"div">, "role">;
+
+const tabsList = tv({
+  base: "bg-muted text-muted-foreground inline-flex w-full items-center justify-center rounded-md p-1",
+});
+
+const { class: className, ...rest } = Astro.props;
+---
+
+<div class={tabsList({ class: className })} data-tabs-list role="tablist" {...rest}>
+  <slot />
+</div>

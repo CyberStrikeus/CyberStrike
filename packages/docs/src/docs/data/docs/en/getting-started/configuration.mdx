@@ -1,0 +1,70 @@
+---
+title: Configuration
+description: Configure Cyberstrike for your penetration testing workflow
+sidebar:
+  order: 2
+  label: Configuration
+---
+
+Cyberstrike is configured with a JSON file. This page is a quick introduction; for the full hierarchy, every option, and related guides, see the [Configuration reference](/docs/configuration).
+
+## Configuration File
+
+Create a `cyberstrike.json` in your project directory:
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike"
+}
+```
+
+The model is written as `provider/model` — there is no separate string `provider` field. `default_agent` must be a primary agent (`cyberstrike` is the built-in one; it delegates to specialized subagents automatically).
+
+## Common Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `model` | string | Default model, as `provider/model` |
+| `small_model` | string | Model for lightweight tasks (title generation) |
+| `default_agent` | string | Default primary agent (falls back to `cyberstrike`) |
+| `theme` | string | Interface theme (default `cyberstrike`) |
+| `permission` | object | Per-tool permissions — see [Permissions](/docs/permissions) |
+| `provider` | object | Per-provider settings, keyed by provider id |
+| `instructions` | string[] | Files/globs appended to the system prompt |
+
+## Environment Variables
+
+Set your API keys as environment variables:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+## Permissions & Providers
+
+Grant or restrict tools with `permission`, and tune a provider under `provider`:
+
+```json title="cyberstrike.json"
+{
+  "permission": {
+    "read": "allow",
+    "bash": { "*": "ask", "rm -rf *": "deny" }
+  },
+  "provider": {
+    "anthropic": {
+      "options": { "apiKey": "{env:ANTHROPIC_API_KEY}" }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Never commit API keys to version control. Use environment variables or a `.env` file (added to `.gitignore`).
+</Aside>
+
+See the [Configuration reference](/docs/configuration) for the complete schema, precedence order, MCP, keybindings, and more.

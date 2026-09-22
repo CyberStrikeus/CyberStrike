@@ -1,0 +1,32 @@
+---
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+import { getTranslatedData } from "@/docs/js/translationUtils";
+
+import TestimonialCard from "./TestimonialCard.astro";
+
+const currLocale = getLocaleFromUrl(Astro.url);
+const testimonialData = getTranslatedData("testimonialData", currLocale);
+---
+
+<div class="docs-site-container border-x py-24">
+  <div class="mx-auto max-w-6xl px-4">
+    <!-- Section Header -->
+    <div class="mb-12 text-center">
+      <h2 class="docs-h2 docs-text-gradient">What People Are Saying</h2>
+    </div>
+
+    <!-- Testimonial Grid -->
+    <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+      {
+        testimonialData.map((item) => (
+          <TestimonialCard
+            testimonial={item.testimonial}
+            name={item.name}
+            title={item.title}
+            avatar={item.avatar}
+          />
+        ))
+      }
+    </div>
+  </div>
+</div>
