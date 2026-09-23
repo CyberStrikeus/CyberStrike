@@ -442,7 +442,7 @@ export function Session() {
         name: "qpause",
       },
       onSelect: async (dialog) => {
-        const result = await sdk.client.session.queuePause({ sessionID: route.sessionID }).catch(() => {
+        const result = await (sdk.client.session as any).queuePause?.({ sessionID: route.sessionID })?.catch?.(() => {
           toast.show({ message: "Failed to pause ingest queue", variant: "error" })
           return null
         })
@@ -459,7 +459,7 @@ export function Session() {
         name: "qresume",
       },
       onSelect: async (dialog) => {
-        const result = await sdk.client.session.queueResume({ sessionID: route.sessionID }).catch(() => {
+        const result = await (sdk.client.session as any).queueResume?.({ sessionID: route.sessionID })?.catch?.(() => {
           toast.show({ message: "Failed to resume ingest queue", variant: "error" })
           return null
         })
@@ -479,7 +479,7 @@ export function Session() {
         dialog.clear()
         if (!input) return
         try {
-          const result = await sdk.client.session.hackbrowserLaunch({
+          const result = await (sdk.client.session as any).hackbrowserLaunch({
             sessionID: route.sessionID,
             target: input.target,
             credentials: input.credentials,
@@ -514,7 +514,7 @@ export function Session() {
       },
       onSelect: async (dialog) => {
         try {
-          const stopped = await sdk.client.session.hackbrowserStop({
+          const stopped = await (sdk.client.session as any).hackbrowserStop?.({
             sessionID: route.sessionID,
           })
           toast.show({

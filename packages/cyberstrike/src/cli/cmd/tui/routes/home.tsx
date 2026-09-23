@@ -82,7 +82,7 @@ export function Home() {
             toast.show({ message: "Failed to create session for hackbrowser crawl", variant: "error" })
             return
           }
-          const result = await sdk.client.session.hackbrowserLaunch({
+          const result = await (sdk.client.session as any).hackbrowserLaunch({
             sessionID: created.id,
             target: input.target,
             credentials: input.credentials,
