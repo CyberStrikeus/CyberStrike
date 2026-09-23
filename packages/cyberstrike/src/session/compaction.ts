@@ -219,7 +219,7 @@ Rules:
       tools: {},
       system: [],
       messages: [
-        ...MessageV2.toModelMessages(limitedMessages, model),
+        ...(await MessageV2.toModelMessages(limitedMessages, model)),
         {
           role: "user",
           content: [

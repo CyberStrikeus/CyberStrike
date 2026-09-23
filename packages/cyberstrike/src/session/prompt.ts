@@ -861,7 +861,7 @@ export namespace SessionPrompt {
       }
 
       // Pre-flight token check — trigger compaction before wasting an API call
-      const modelMessages = MessageV2.toModelMessages(
+      const modelMessages = await MessageV2.toModelMessages(
         lastUser.excludeHistory
           ? MessageV2.filterToOnly(sessionMessages, lastUser.id)
           : MessageV2.filterExcluded(sessionMessages, lastUser.id),
@@ -2288,7 +2288,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
         },
         ...(hasOnlySubtaskParts
           ? [{ role: "user" as const, content: subtaskParts.map((p) => p.prompt).join("\n") }]
-          : MessageV2.toModelMessages(contextMessages, model)),
+          : await MessageV2.toModelMessages(contextMessages, model)),
       ],
     })
     const text = await result.text.catch((err) => log.error("failed to generate title", { error: err }))
