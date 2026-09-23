@@ -14,7 +14,6 @@ import type {
   McpResource,
   FormatterStatus,
   SessionStatus,
-  SessionQueueStatus,
   ProviderListResponse,
   ProviderAuthMethod,
   VcsInfo,
@@ -53,7 +52,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         [sessionID: string]: SessionStatus
       }
       session_queue_status: {
-        [sessionID: string]: SessionQueueStatus
+        [sessionID: string]: { paused: boolean; pending: number }
       }
       // Hackbrowser tool status — populated by SSE event "session.hackbrowser.status".
       // Inline type until SDK regenerator picks up the new BusEvent — keeping it
@@ -734,9 +733,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             sdk.client.session.status().then((x) => {
               setStore("session_status", reconcile(x.data!))
             }),
-            sdk.client.session.queueStatus().then((x) => {
+            (sdk.client.session as any).queueStatus?.()?.then?.((x: any) => {
               setStore("session_queue_status", reconcile(x.data ?? {}))
-            }),
+            }) ?? Promise.resolve(),
             sdk.client.provider.auth().then((x) => setStore("provider_auth", reconcile(x.data ?? {}))),
             sdk.client.vcs.get().then((x) => setStore("vcs", reconcile(x.data))),
             sdk.client.path.get().then((x) => setStore("path", reconcile(x.data!))),
