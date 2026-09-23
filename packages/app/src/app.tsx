@@ -110,16 +110,21 @@ const SessionRoute = () => {
 function TargetServerRoute(props: ParentProps) {
   const params = useParams<{ serverKey: string; id: string }>()
   const global = useGlobal()
+  const serverKey = createMemo(() => {
+    try {
+      return requireServerKey(params.serverKey)
+    } catch {
+      return undefined
+    }
+  })
   const conn = createMemo(() => {
-    const key = requireServerKey(params.serverKey)
+    const key = serverKey()
+    if (!key) return undefined
     return global.servers.list().find((item) => ServerConnection.key(item) === key)
   })
 
   return (
-    // Owns the server-identity remount. Session changes must NOT remount this
-    // subtree (SessionRouteErrorBoundary resets and createSessionLineage
-    // re-resolves reactively instead); both rely on this key for server changes.
-    <Show when={requireServerKey(params.serverKey)} keyed>
+    <Show when={serverKey()} keyed>
       <ServerSDKProvider server={conn}>
         <ServerSyncProvider server={conn}>{props.children}</ServerSyncProvider>
       </ServerSDKProvider>
@@ -135,9 +140,16 @@ const TargetSessionRoute = () => (
 
 function LegacyTargetSessionRoute() {
   const params = useParams<{ serverKey: string; id: string }>()
+  const serverKey = createMemo(() => {
+    try {
+      return requireServerKey(params.serverKey)
+    } catch {
+      return undefined
+    }
+  })
   return (
     <TargetServerRoute>
-      <SessionRouteErrorBoundary sessionID={params.id} serverKey={requireServerKey(params.serverKey)}>
+      <SessionRouteErrorBoundary sessionID={params.id} serverKey={serverKey()}>
         <LegacyTargetSessionRedirect />
       </SessionRouteErrorBoundary>
     </TargetServerRoute>

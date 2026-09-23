@@ -160,12 +160,17 @@ export function TargetSessionRouteContent() {
   const params = useParams<{ serverKey: string; id: string }>()
   const serverSync = useServerSync()
   const directory = createMemo(() => serverSync().session.lineage.peek(params.id)?.session.directory)
+  const serverKey = createMemo(() => {
+    try {
+      return requireServerKey(params.serverKey)
+    } catch {
+      return undefined
+    }
+  })
   return (
-    // Settings must keep the target-server SDK, sync, and models context and remain registered
-    // when session content falls back to the route error boundary.
     <TargetServerScopedProviders directory={directory} sessionID={() => params.id}>
       <TargetSessionSettingsCommand />
-      <SessionRouteErrorBoundary sessionID={params.id} serverKey={requireServerKey(params.serverKey)} padded>
+      <SessionRouteErrorBoundary sessionID={params.id} serverKey={serverKey()} padded>
         <ResolvedTargetSessionRoute />
       </SessionRouteErrorBoundary>
     </TargetServerScopedProviders>
@@ -247,7 +252,13 @@ function ResolvedTargetSessionRoute() {
   const params = useParams<{ serverKey: string; id: string }>()
   const tabs = useTabs()
   const sync = useServerSync()
-  const serverKey = createMemo(() => requireServerKey(params.serverKey))
+  const serverKey = createMemo(() => {
+    try {
+      return requireServerKey(params.serverKey)
+    } catch {
+      return undefined
+    }
+  })
   const current = createSessionLineage(
     () => params.id,
     () => sync().session.lineage,
@@ -256,10 +267,11 @@ function ResolvedTargetSessionRoute() {
   const targetDirectory = () => directory()!
 
   createEffect(() => {
+    const key = serverKey()
     const session = current()
-    if (!session) return
+    if (!key || !session) return
     tabs.addSessionTab({
-      server: serverKey(),
+      server: key,
       sessionId: session.root.id,
     })
   })

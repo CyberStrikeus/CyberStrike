@@ -12,7 +12,10 @@ export function legacySessionHref(directory: string, sessionID: string) {
 
 export function requireServerKey(segment: string | undefined) {
   const key = decode64(segment)
-  if (!key || base64Encode(key) !== segment) throw new Error("Invalid server route")
+  if (!key || base64Encode(key) !== segment) {
+    console.error("[requireServerKey] FAILED — segment:", JSON.stringify(segment), "decoded:", JSON.stringify(key), "re-encoded:", key ? JSON.stringify(base64Encode(key)) : "N/A", "stack:", new Error().stack)
+    throw new Error("Invalid server route")
+  }
   return ServerConnection.Key.make(key)
 }
 
