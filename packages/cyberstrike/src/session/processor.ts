@@ -307,7 +307,7 @@ export namespace SessionProcessor {
                   }
                   await Session.updatePart({
                     id: Identifier.ascending("part"),
-                    reason: value.finishReason,
+                    reason: value.finishReason ?? "unknown",
                     snapshot: await Snapshot.track(),
                     messageID: input.assistantMessage.id,
                     sessionID: input.assistantMessage.sessionID,
