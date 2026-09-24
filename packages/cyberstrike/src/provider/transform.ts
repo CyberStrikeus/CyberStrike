@@ -133,7 +133,11 @@ export namespace ProviderTransform {
       return result
     }
 
-    if (typeof model.capabilities.interleaved === "object" && model.capabilities.interleaved.field) {
+    if (
+      typeof model.capabilities.interleaved === "object" &&
+      model.capabilities.interleaved.field &&
+      model.api.npm !== "@ai-sdk/deepseek"
+    ) {
       const field = model.capabilities.interleaved.field
       return msgs.map((msg) => {
         if (msg.role === "assistant" && Array.isArray(msg.content)) {
