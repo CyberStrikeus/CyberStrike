@@ -532,15 +532,19 @@ export namespace MessageV2 {
       return false
     })()
 
-    const toModelOutput = (output: unknown) => {
+    const toModelOutput = (args: unknown) => {
+      const output = (args as { output?: unknown }).output ?? args
       if (typeof output === "string") {
         return { type: "text", value: output }
       }
 
-      if (typeof output === "object") {
+      if (typeof output === "object" && output !== null) {
         const outputObject = output as {
           text: string
           attachments?: Array<{ mime: string; url: string }>
+        }
+        if (typeof outputObject.text !== "string") {
+          return { type: "json", value: output }
         }
         const attachments = (outputObject.attachments ?? []).filter((attachment) => {
           return attachment.url.startsWith("data:") && attachment.url.includes(",")
