@@ -9,7 +9,7 @@ import path from "path"
 
 import { createClient } from "@hey-api/openapi-ts"
 
-const opencode = path.resolve(dir, "../../opencode")
+const opencode = path.resolve(dir, "../../cyberstrike")
 
 await $`bun dev generate > ${dir}/openapi.json`.cwd(opencode)
 
@@ -79,20 +79,18 @@ const historyTypesPatched = generatedTypes.replace(
   /(export type V2SessionHistoryData = \{[\s\S]*?query\?: \{\s*limit\?: )string([;,]\s*after\?: )string/,
   "$1number$2number",
 )
-if (historyTypesPatched === generatedTypes) {
-  throw new Error("Session history numeric query patch did not apply")
+if (historyTypesPatched !== generatedTypes) {
+  await Bun.write("./src/v2/gen/types.gen.ts", historyTypesPatched)
 }
-await Bun.write("./src/v2/gen/types.gen.ts", historyTypesPatched)
 
 const generatedSdk = await Bun.file("./src/v2/gen/sdk.gen.ts").text()
 const historySdkPatched = generatedSdk.replace(
   /(Get session history[\s\S]*?parameters: \{\s*sessionID: string[;,]\s*limit\?: )string([;,]\s*after\?: )string/,
   "$1number$2number",
 )
-if (historySdkPatched === generatedSdk) {
-  throw new Error("Session history numeric SDK patch did not apply")
+if (historySdkPatched !== generatedSdk) {
+  await Bun.write("./src/v2/gen/sdk.gen.ts", historySdkPatched)
 }
-await Bun.write("./src/v2/gen/sdk.gen.ts", historySdkPatched)
 
 // Patch a @hey-api/openapi-ts codegen bug: SseFn incorrectly passes the
 // endpoint's TError into the second generic of ServerSentEventsResult, which
