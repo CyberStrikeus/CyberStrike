@@ -733,9 +733,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             sdk.client.session.status().then((x) => {
               setStore("session_status", reconcile(x.data!))
             }),
-            (sdk.client.session as any).queueStatus?.()?.then?.((x: any) => {
+            sdk.client.session.queueStatus().then((x) => {
               setStore("session_queue_status", reconcile(x.data ?? {}))
-            }) ?? Promise.resolve(),
+            }),
             sdk.client.provider.auth().then((x) => setStore("provider_auth", reconcile(x.data ?? {}))),
             sdk.client.vcs.get().then((x) => setStore("vcs", reconcile(x.data))),
             sdk.client.path.get().then((x) => setStore("path", reconcile(x.data!))),
@@ -803,8 +803,8 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             sdk.client.session.messages({ sessionID, limit: 100 }),
             sdk.client.session.todo({ sessionID }),
             sdk.client.session.diff({ sessionID }),
-            (sdk.client.session as any).vulnerability?.({ sessionID })?.catch?.(() => ({ data: [] })) ?? Promise.resolve({ data: [] }),
-            (sdk.client.session as any).request?.({ sessionID })?.catch?.(() => ({ data: [] })) ?? Promise.resolve({ data: [] }),
+            sdk.client.session.vulnerability({ sessionID }).catch(() => ({ data: [] })),
+            sdk.client.session.request({ sessionID }).catch(() => ({ data: [] })),
             http.get({ url: `/session/${sessionID}/web/credentials` }).catch(() => ({ data: [] })),
             http.get({ url: `/session/${sessionID}/web/roles` }).catch(() => ({ data: [] })),
             http.get({ url: `/session/${sessionID}/web/objects` }).catch(() => ({ data: [] })),
