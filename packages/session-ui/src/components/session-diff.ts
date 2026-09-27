@@ -37,12 +37,13 @@ export function resolveFileDiff(diff: DiffSource) {
 }
 
 export function normalize(diff: ReviewDiff): ViewDiff {
+  const file: string = diff.file ?? ("path" in diff ? (diff as FileDiff).path : "") ?? ""
   return {
-    file: diff.file,
+    file,
     additions: diff.additions,
     deletions: diff.deletions,
     status: diff.status,
-    fileDiff: resolveFileDiff(diff),
+    fileDiff: resolveFileDiff({ ...diff, file } as DiffSource),
   }
 }
 
