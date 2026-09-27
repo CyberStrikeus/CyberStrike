@@ -67,7 +67,7 @@ export function createHomeSessionsController(home: HomeController) {
       const cache = homeSessions()
       const eventSequence = cache.eventSequence()
       const index = await loadHomeSessionIndex(
-        (input, options) => ctx.sdk.client.v2.session.list(input, options),
+        (input, options) => (ctx.sdk.client as any).v2.session.list(input, options),
         eventSequence,
         signal,
       )

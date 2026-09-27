@@ -26,6 +26,22 @@ export async function loadRootSessionsV1(input: { client: OpencodeClient; direct
   }
 }
 
+export async function loadRootSessionsWithFallback(input: {
+  directory: string
+  limit: number
+  list: (query: { directory: string; roots?: boolean; limit?: number }) => Promise<{ data: unknown[] }>
+  onFallback?: () => void
+}) {
+  try {
+    const result = await input.list({ directory: input.directory, roots: true, limit: input.limit })
+    return { data: result.data, limit: input.limit, limited: true } as const
+  } catch {
+    input.onFallback?.()
+    const result = await input.list({ directory: input.directory, roots: true })
+    return { data: result.data, limit: input.limit, limited: false } as const
+  }
+}
+
 export function estimateRootSessionTotal(input: { count: number; limit: number; limited: boolean }) {
   if (!input.limited) return input.count
   if (input.count < input.limit) return input.count

@@ -1,4 +1,5 @@
 import type { FilePart, Project, UserMessage, VcsFileDiff } from "@cyberstrike-io/sdk/v2"
+import type { FileDiffInfo } from "@cyberstrike-io/client/promise"
 import { getFilename } from "@cyberstrike-io/core/util/path"
 import { useDialog } from "@cyberstrike-io/ui/context/dialog"
 import { createQuery, skipToken, useMutation, useQueryClient } from "@tanstack/solid-query"
@@ -736,11 +737,11 @@ export default function Page() {
     const root = reviewRootDirectory(sync().project?.worktree ?? sdk().directory)
     const directory = reviewDiffDirectory(root, file)
     const source = reviewDiffs().find((diff) => diff.file === file)
-    const valid = (diff: VcsFileDiff | undefined) => {
+    const valid = (diff: VcsFileDiff | FileDiffInfo | undefined): VcsFileDiff | undefined => {
       if (!diff || !source) return
       if (diff.additions !== source.additions || diff.deletions !== source.deletions) return
-      if (reviewDiffNeedsLoad(diff)) return
-      return diff
+      if (reviewDiffNeedsLoad(diff as any)) return
+      return diff as VcsFileDiff
     }
     const request = (scope: string, context?: number) =>
       queryClient
@@ -859,12 +860,12 @@ export default function Page() {
   }
 
   const gitMutation = useMutation(() => ({
-    mutationFn: () => sdk().client.project.initGit(),
-    onSuccess: (x) => {
+    mutationFn: () => (sdk().client.project as any).initGit(),
+    onSuccess: (x: { data?: Project }) => {
       if (!x.data) return
       upsert(x.data)
     },
-    onError: (err) => {
+    onError: (err: unknown) => {
       showToast({
         variant: "error",
         title: language.t("common.requestFailed"),

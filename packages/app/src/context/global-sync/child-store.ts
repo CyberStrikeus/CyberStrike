@@ -258,6 +258,8 @@ export function createChildStoreManager(input: {
             session_message: {},
             part: {},
             part_text_accum_delta: {},
+            vulnerability: {},
+            bolt: {},
           })
           children[key] = child
           disposers.set(key, dispose)

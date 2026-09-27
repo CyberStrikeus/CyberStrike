@@ -147,7 +147,7 @@ export function ReviewPanelV2(props: ReviewPanelV2Props) {
               {(diff) => (
                 <SessionReviewFilePreviewV2
                   file={file}
-                  diff={diff()}
+                  diff={diff() as any}
                   diffStyle={props.diffStyle}
                   expandMode={props.state.expandMode()}
                   readFile={readFile}

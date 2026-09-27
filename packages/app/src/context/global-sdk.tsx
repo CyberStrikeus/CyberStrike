@@ -272,7 +272,7 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
             for await (const event of events.stream) {
               const directory = event.directory ?? "global"
               const payload = event.payload
-              enqueue(directory, payload)
+              enqueue(directory, payload as Event)
 
               if (Date.now() - yielded < STREAM_YIELD_MS) continue
               yielded = Date.now()

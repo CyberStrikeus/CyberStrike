@@ -40,7 +40,7 @@ export const DialogSelectBolt: Component = () => {
   const [doneInfo, setDoneInfo] = createSignal({ name: "", status: "" })
 
   const items = createMemo(() =>
-    Object.entries(sync.data.bolt ?? {})
+    Object.entries(sync().data.bolt ?? {})
       .map(([name, status]) => ({ name, status: status.status }))
       .sort((a, b) => a.name.localeCompare(b.name)),
   )
@@ -52,14 +52,14 @@ export const DialogSelectBolt: Component = () => {
     if (loading()) return
     setLoading(name)
     try {
-      const status = sync.data.bolt[name]
+      const status = sync().data.bolt[name]
       if (status?.status === "connected") {
-        await sdk.client.bolt.disconnect({ name })
+        await (sdk().client as any).bolt.disconnect({ name })
       } else {
-        await sdk.client.bolt.connect({ name })
+        await (sdk().client as any).bolt.connect({ name })
       }
-      const result = await sdk.client.bolt.status()
-      if (result.data) sync.set("bolt", result.data)
+      const result = await (sdk().client as any).bolt.status()
+      if (result.data) sync().set("bolt", result.data)
     } finally {
       setLoading(null)
     }
@@ -69,9 +69,9 @@ export const DialogSelectBolt: Component = () => {
     if (loading()) return
     setLoading(name)
     try {
-      await sdk.client.bolt.remove({ name })
-      const result = await sdk.client.bolt.status()
-      if (result.data) sync.set("bolt", result.data)
+      await (sdk().client as any).bolt.remove({ name })
+      const result = await (sdk().client as any).bolt.status()
+      if (result.data) sync().set("bolt", result.data)
     } catch {
     } finally {
       setLoading(null)
@@ -136,14 +136,14 @@ export const DialogSelectBolt: Component = () => {
     const name = sanitizeName(serverName() || defaultName())
     if (!name) return
 
-    if (sync.data.bolt?.[name]) {
+    if (sync().data.bolt?.[name]) {
       setError(`"${name}" already exists`)
       return
     }
 
     // Check duplicate URL
     try {
-      const cfgRes = await sdk.client.config.get()
+      const cfgRes = await sdk().client.config.get()
       const cfg = cfgRes.data as Record<string, Record<string, { url?: string }>> | undefined
       if (cfg) {
         const inputOrigin = new URL(boltUrl()).origin
@@ -160,14 +160,14 @@ export const DialogSelectBolt: Component = () => {
 
     try {
       // 1. Pair with Bolt server (Ed25519 key exchange)
-      await sdk.client.bolt.pair({ name, url: boltUrl(), adminToken: adminToken() })
+      await (sdk().client as any).bolt.pair({ name, url: boltUrl(), adminToken: adminToken() })
 
       // 2. Connect via bolt route (also persists to global config)
-      await sdk.client.bolt.add({ name, config: { url: boltUrl() } })
+      await (sdk().client as any).bolt.add({ name, config: { url: boltUrl() } })
 
       // 4. Refresh status
-      const result = await sdk.client.bolt.status()
-      if (result.data) sync.set("bolt", result.data)
+      const result = await (sdk().client as any).bolt.status()
+      if (result.data) sync().set("bolt", result.data)
 
       const serverStatus = (result.data as Record<string, { status: string }>)?.[name]?.status ?? "unknown"
       setDoneInfo({ name, status: serverStatus })
@@ -216,7 +216,7 @@ export const DialogSelectBolt: Component = () => {
             }}
           >
             {(i) => {
-              const boltStatus = () => sync.data.bolt[i.name]
+              const boltStatus = () => sync().data.bolt[i.name]
               const status = () => boltStatus()?.status
               const statusLabel = () => {
                 const key = status() ? statusLabels[status() as keyof typeof statusLabels] : undefined

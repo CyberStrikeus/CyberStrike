@@ -38,14 +38,14 @@ describe("coalesceServerEvents", () => {
     payload: {
       type: "message.part.delta",
       properties: { messageID: "msg", partID, field, delta: value },
-    } as Event,
+    } as Event & { id?: string },
   })
 
   test("merges adjacent deltas for the same field", () => {
     const first = delta("hello ")
     const second = delta("world")
-    first.payload.id = "first"
-    second.payload.id = "second"
+    ;(first.payload as any).id = "first"
+    ;(second.payload as any).id = "second"
     const result = coalesceServerEvents([first, second])
 
     expect(result).toHaveLength(1)
@@ -89,13 +89,13 @@ describe("coalesceServerEvents", () => {
     const first = delta("a")
     const other = delta("b", "text", "other")
     const last = delta("c")
-    first.payload.id = "1"
-    other.payload.id = "2"
-    last.payload.id = "3"
+    ;(first.payload as any).id = "1"
+    ;(other.payload as any).id = "2"
+    ;(last.payload as any).id = "3"
 
     const result = coalesceServerEvents([first, other, last])
 
-    expect(result.map((event) => event.payload.id)).toEqual(["1", "2", "3"])
+    expect(result.map((event) => (event.payload as any).id)).toEqual(["1", "2", "3"])
   })
 })
 
@@ -164,7 +164,7 @@ describe("enqueueServerEvent", () => {
     enqueue({
       type: "session.deleted",
       properties: { sessionID: "session", info: { id: "session" } },
-    } as Event)
+    } as unknown as Event)
     enqueue(partUpdated("new"))
 
     expect(events.map((event) => event.payload.type)).toEqual([

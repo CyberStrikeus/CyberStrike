@@ -25,11 +25,11 @@ describe("syncSessionModel", () => {
           reset() {},
         },
       },
-      message({ model: { providerID: "anthropic", modelID: "claude-sonnet-4", variant: "high" } }),
+      message({ model: { providerID: "anthropic", modelID: "claude-sonnet-4" } }),
     )
 
     expect(calls).toEqual([
-      message({ model: { providerID: "anthropic", modelID: "claude-sonnet-4", variant: "high" } }),
+      message({ model: { providerID: "anthropic", modelID: "claude-sonnet-4" } }),
     ])
   })
 })

@@ -107,7 +107,7 @@ export const createDirSyncContext = (
             role: "user",
             time: { created: Date.now() },
             agent: input.agent,
-            model: { ...input.model, variant: input.variant },
+            model: { ...input.model },
           },
           parts: input.parts,
         })

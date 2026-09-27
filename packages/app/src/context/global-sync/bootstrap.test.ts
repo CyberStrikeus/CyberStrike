@@ -72,6 +72,8 @@ function directoryState() {
     session_message: {},
     part: {},
     part_text_accum_delta: {},
+    vulnerability: {},
+    bolt: {},
   })
 }
 
@@ -217,7 +219,7 @@ describe("config queries", () => {
     } as unknown as OpencodeClient
 
     const result = await new QueryClient().fetchQuery(
-      loadGlobalConfigQuery(ServerScope.local, sdk, Promise.resolve("v1")),
+      loadGlobalConfigQuery(ServerScope.local, sdk, Promise.resolve("v1")) as any,
     )
 
     expect(result).toEqual(config)

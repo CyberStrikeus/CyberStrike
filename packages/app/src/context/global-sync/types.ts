@@ -12,6 +12,7 @@ import type {
   SessionStatus,
   Todo,
   VcsInfo,
+  Vulnerability,
 } from "@cyberstrike-io/sdk/v2/client"
 import type { FileDiffInfo } from "@cyberstrike-io/client/promise"
 import { NormalizedProviderListResponse } from "@cyberstrike-io/session-ui/context"
@@ -82,6 +83,12 @@ export type State = {
   }
   part_text_accum_delta: {
     [partID: string]: string
+  }
+  vulnerability: {
+    [sessionID: string]: Vulnerability[]
+  }
+  bolt: {
+    [name: string]: { status: string; error?: string }
   }
 }
 

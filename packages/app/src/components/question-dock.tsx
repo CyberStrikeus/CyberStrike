@@ -43,7 +43,7 @@ export const QuestionDock: Component<{ request: QuestionRequest }> = (props) => 
 
     setStore("sending", true)
     try {
-      await sdk.client.question.reply({ requestID: props.request.id, answers })
+      await sdk().client.question.reply({ requestID: props.request.id, answers })
     } catch (err) {
       fail(err)
     } finally {
@@ -56,7 +56,7 @@ export const QuestionDock: Component<{ request: QuestionRequest }> = (props) => 
 
     setStore("sending", true)
     try {
-      await sdk.client.question.reject({ requestID: props.request.id })
+      await sdk().client.question.reject({ requestID: props.request.id })
     } catch (err) {
       fail(err)
     } finally {

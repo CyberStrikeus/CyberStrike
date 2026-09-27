@@ -1,6 +1,6 @@
 import { createEffect, onCleanup, type JSX } from "solid-js"
 import { makeEventListener } from "@solid-primitives/event-listener"
-import type { FileDiff } from "@cyberstrike-io/sdk/v2"
+import type { FileDiff, SnapshotFileDiff, VcsFileDiff } from "@cyberstrike-io/sdk/v2"
 import type { FileDiffInfo } from "@cyberstrike-io/client/promise"
 import { SessionReview } from "@cyberstrike-io/session-ui/session-review"
 import type {
@@ -153,7 +153,7 @@ export function SessionReviewTab(props: SessionReviewTabProps) {
         header: props.classes?.header ?? "px-3",
         container: props.classes?.container ?? "pl-3",
       }}
-      diffs={props.diffs()}
+      diffs={props.diffs() as any}
       diffStyle={props.diffStyle}
       onDiffStyleChange={props.onDiffStyleChange}
       onViewFile={props.onViewFile}

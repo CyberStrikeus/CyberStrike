@@ -565,7 +565,7 @@ export function createServerSession(
     }
     const response = await (options?.retry ?? retry)(() => {
       onAttempt?.()
-      return client.session.messages({ sessionID, limit, before })
+      return client.session.messages({ sessionID, limit, before } as any)
     })
     const items = (response.data ?? []).filter((item) => !!item?.info?.id)
     return {

@@ -75,7 +75,8 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
 
   const context = createMemo(() => getSessionContext(messages(), [...providers.all().values()]))
   const cost = createMemo(() => {
-    return usd().format(info()?.cost ?? 0)
+    const c = info()?.cost
+    return usd().format(typeof c === "number" ? c : 0)
   })
   const contextVisible = createMemo(() => view().reviewPanel.opened() && tabState.activeTab() === "context")
   const hasOtherTabs = createMemo(() =>

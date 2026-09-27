@@ -130,7 +130,7 @@ export const SettingsGeneral: Component = () => {
     async () => {
       const sdk = serverSdk()
       if ((await sdk.protocol) === "v1") {
-        return (await sdk.client.pty.shells()).data ?? []
+        return (await (sdk.client.pty as any).shells()).data ?? []
       }
       // return (await sdk.api.pty.shells()).data
       return [] as ShellOption[]
@@ -168,7 +168,7 @@ export const SettingsGeneral: Component = () => {
 
     const options = [
       autoOption,
-      ...list.map((s) => {
+      ...list.map((s: ShellOption) => {
         const ambiguousName = (nameCounts.get(s.name) || 0) > 1
         const text = ambiguousName ? s.path : s.name
         const label = s.acceptable ? text : `${text} (${language.t("settings.general.row.shell.terminalOnly")})`

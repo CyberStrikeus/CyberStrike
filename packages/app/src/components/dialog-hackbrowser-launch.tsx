@@ -76,7 +76,7 @@ export const DialogHackbrowserLaunch: Component<{ sessionID: string; onLaunched?
     const runHeadless = creds && creds.length > 0 ? false : headless()
 
     try {
-      const result = await sdk.client.session.hackbrowserLaunch({
+      const result = await (sdk().client.session as any).hackbrowserLaunch({
         sessionID: props.sessionID,
         target: url,
         credentials: creds,

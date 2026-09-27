@@ -12,7 +12,7 @@ const item = {
   additions: 1,
   deletions: 1,
   status: "modified",
-} satisfies FileDiffInfo & FileDiff
+} as unknown as FileDiffInfo & FileDiff
 
 describe("diffs", () => {
   test("keeps valid arrays", () => {

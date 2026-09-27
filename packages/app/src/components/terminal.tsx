@@ -558,8 +558,8 @@ export const Terminal = (props: TerminalProps) => {
 
       const connectToken = async () => {
         if ((await sdk().protocol) === "v1") {
-          const result = await sdk()
-            .client.pty.connectToken(
+          const result = await (sdk()
+            .client.pty as any).connectToken(
               { ptyID: id, directory },
               {
                 throwOnError: false,

@@ -7,6 +7,10 @@ export function authTokenFromCredentials(input: { username?: string; password: s
   return btoa(`${input.username ?? "cyberstrike"}:${input.password}`)
 }
 
+export function basicAuth(username: string, password: string) {
+  return `Basic ${authTokenFromCredentials({ username, password })}`
+}
+
 export function authFromToken(token: string | null) {
   const decoded = decode64(token ?? undefined)
   if (!decoded) return

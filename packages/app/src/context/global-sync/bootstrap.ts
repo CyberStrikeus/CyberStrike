@@ -321,7 +321,7 @@ export const loadReferencesQuery = (
     queryKey: [scope, directory, "references"] as const,
     queryFn: () =>
       retry(async () => {
-        if ((await protocol) === "v1" && legacy) return (await legacy.v2.reference.list()).data?.data ?? []
+        if ((await protocol) === "v1" && legacy) return (await (legacy as any).v2.reference.list()).data?.data ?? []
         return api.list({ location: { directory } }).then((result) => result.data)
       }).catch(() => []),
     placeholderData: [],

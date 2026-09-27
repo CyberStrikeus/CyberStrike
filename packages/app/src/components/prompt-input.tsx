@@ -562,8 +562,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     })
   }
 
-  const referenceDescription = (reference: ReferenceInfo) =>
-    reference.source.type === "git" ? reference.source.repository : reference.source.path
+  const referenceDescription = (reference: ReferenceInfo): string =>
+    (reference.source.type === "git" ? reference.source.repository : reference.source.path) ?? ""
 
   const referenceList = createMemo(() =>
     sync()
@@ -574,7 +574,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           name: reference.name,
           path: reference.path,
           display: reference.name,
-          description: reference.description ?? referenceDescription(reference),
+          description: reference.description ?? referenceDescription(reference) ?? "",
         }),
       ),
   )

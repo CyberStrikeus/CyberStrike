@@ -112,22 +112,25 @@ function createGlobalSync() {
 
   const children = createChildStoreManager({
     owner,
-    markStats: updateStats,
-    incrementEvictions: () => {
-      stats.evictions += 1
-      updateStats(Object.keys(children.children).length)
-    },
-    isBooting: (directory) => booting.has(directory),
-    isLoadingSessions: (directory) => sessionLoads.has(directory),
-    onBootstrap: (directory) => {
+    scope: "local" as any,
+    persist: persisted,
+    isBooting: (directory: string) => booting.has(directory),
+    isLoadingSessions: (directory: string) => sessionLoads.has(directory),
+    onBootstrap: (directory: string) => {
       void bootstrapInstance(directory)
     },
-    onDispose: (directory) => {
+    onMcp: () => {},
+    onDispose: (directory: string) => {
       queue.clear(directory)
       sessionMeta.delete(directory)
       sdkCache.delete(directory)
     },
-  })
+    translate: (key: string) => key,
+    queryOptions: {} as any,
+    global: {
+      provider: { all: new Map(), connected: [], default: {} },
+    },
+  } as any)
 
   const sdkFor = (directory: string) => {
     const cached = sdkCache.get(directory)
@@ -184,19 +187,22 @@ function createGlobalSync() {
     const promise = loadRootSessionsWithFallback({
       directory,
       limit,
-      list: (query) => globalSDK.client.session.list(query),
+      list: async (query: Record<string, unknown>) => {
+        const result = await globalSDK.client.session.list(query as any)
+        return { data: (result.data ?? []) as unknown[] }
+      },
       onFallback: () => {
         stats.loadSessionsFallback += 1
         updateStats(Object.keys(children.children).length)
       },
     })
-      .then((x) => {
+      .then((x: { data: any[]; limit: number; limited: boolean }) => {
         const nonArchived = (x.data ?? [])
-          .filter((s) => !!s?.id)
-          .filter((s) => !s.time?.archived)
-          .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+          .filter((s: any) => !!s?.id)
+          .filter((s: any) => !s.time?.archived)
+          .sort((a: any, b: any) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
         const limit = store.limit
-        const childSessions = store.session.filter((s) => !!s.parentID)
+        const childSessions = store.session.filter((s: any) => !!s.parentID)
         const sessions = trimSessions([...nonArchived, ...childSessions], { limit, permission: store.permission })
         setStore(
           "sessionTotal",
@@ -205,7 +211,7 @@ function createGlobalSync() {
         setStore("session", reconcile(sessions, { key: "id" }))
         sessionMeta.set(directory, { limit })
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         console.error("Failed to load sessions", err)
         const project = getFilename(directory)
         showToast({
@@ -240,7 +246,7 @@ function createGlobalSync() {
         setStore: child[1],
         vcsCache: cache,
         loadSessions,
-      })
+      } as any)
     })()
 
     booting.set(directory, promise)
@@ -296,7 +302,7 @@ function createGlobalSync() {
   })
   onCleanup(() => {
     for (const directory of Object.keys(children.children)) {
-      children.disposeDirectory(directory)
+      children.disposeDirectory(directory as any)
     }
   })
 
@@ -307,7 +313,7 @@ function createGlobalSync() {
       connectErrorDescription: language.t("error.globalSync.connectFailed", { url: globalSDK.url }),
       requestFailedTitle: language.t("common.requestFailed"),
       setGlobalStore,
-    })
+    } as any)
   }
 
   onMount(() => {

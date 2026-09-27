@@ -262,14 +262,14 @@ export function DialogSelectDirectoryV2(props: DialogSelectDirectoryV2Props) {
           scrollbar-width: thin;
         }
       `,
-      onExpansionChange(change) {
+      onExpansionChange(change: { path: string; expanded: boolean }) {
         if (change.expanded) void load(change.path, navigation)
       },
-      onSelectionChange(paths) {
+      onSelectionChange(paths: string[]) {
         const path = paths.at(-1)
         setSelected(path ? (policy.selection(root(), path) ?? "") : "")
       },
-    })
+    } as any as ConstructorParameters<typeof FileTree>[0])
     if (!container) return
     tree.render({ containerWrapper: container })
     tree.getFileTreeContainer()?.classList.add("directory-picker-v2-tree")

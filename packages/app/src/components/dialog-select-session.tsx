@@ -22,20 +22,20 @@ export const DialogSelectSession: Component = () => {
   const navigate = useNavigate()
 
   const [sessions] = createResource(async () => {
-    const result = await sdk.client.session.list()
+    const result = await sdk().client.session.list()
     return result.data ?? []
   })
 
   const items = createMemo<SessionEntry[]>(() => {
     const list = sessions() ?? []
     return list
-      .map((s) => ({
+      .map((s: { id: string; title: string; time: { updated: number } }) => ({
         id: s.id,
         title: s.title || s.id.slice(0, 8),
         updated: s.time.updated,
         current: s.id === params.id,
       }))
-      .sort((a, b) => b.updated - a.updated)
+      .sort((a: SessionEntry, b: SessionEntry) => b.updated - a.updated)
   })
 
   const total = createMemo(() => items().length)
@@ -67,7 +67,7 @@ export const DialogSelectSession: Component = () => {
               )}
             </div>
             <span class="text-11-regular text-text-weaker shrink-0">
-              {getRelativeTime(new Date(s.updated).toISOString())}
+              {getRelativeTime(new Date(s.updated).toISOString(), language.t)}
             </span>
           </div>
         )}

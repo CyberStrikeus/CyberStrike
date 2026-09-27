@@ -3,10 +3,11 @@ import { FileTree, type FileTreeDirectoryHandle } from "@pierre/trees"
 
 test("reports directory expansion changes", () => {
   const changes: Array<{ path: string; expanded: boolean }> = []
-  const tree = new FileTree({
+  const opts: any = {
     paths: ["src/"],
-    onExpansionChange: (change) => changes.push(change),
-  })
+    onExpansionChange: (change: { path: string; expanded: boolean }) => changes.push(change),
+  }
+  const tree = new FileTree(opts)
 
   const src = tree.getItem("src/")
   if (!src || !src.isDirectory()) throw new Error("Expected src to be a directory")

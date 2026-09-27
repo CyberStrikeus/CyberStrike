@@ -68,7 +68,7 @@ export function normalizeProviderList(
             ),
           },
         ]),
-      ),
+      ) as unknown as Map<string, Provider>,
     }
   }
   const all = new Map<string, Provider>()

@@ -60,6 +60,7 @@
     "@cyberstrike-io/sdk": "workspace:*",
     "@cyberstrike-io/session-ui": "workspace:*",
     "@cyberstrike-io/ui": "workspace:*",
+    "@cyberstrike-io/util": "workspace:*",
     "@pierre/trees": "1.0.0-beta.4",
     "@sentry/solid": "catalog:",
     "@shikijs/transformers": "3.9.2",
