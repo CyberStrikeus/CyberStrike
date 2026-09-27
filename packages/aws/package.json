@@ -18,6 +18,9 @@
     "@cyberstrike-io/plugin": "workspace:*",
     "cyberstrike": "workspace:*"
   },
+  "dependencies": {
+    "zod": "catalog:"
+  },
   "devDependencies": {
     "@cyberstrike-io/plugin": "workspace:*",
     "cyberstrike": "workspace:*",

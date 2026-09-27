@@ -1,4 +1,4 @@
-import z from "zod"
+import { z } from "zod"
 import { tool } from "@cyberstrike-io/plugin"
 import { core } from "./core"
 import { getAssessResult } from "./azurehook/assess-cache"

@@ -1,4 +1,4 @@
-import z from "zod"
+import { z } from "zod"
 import { tool } from "@cyberstrike-io/plugin"
 import { Session } from "cyberstrike/public"
 import { run } from "./shared"

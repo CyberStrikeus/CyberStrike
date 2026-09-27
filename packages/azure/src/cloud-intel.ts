@@ -1,4 +1,4 @@
-import z from "zod"
+import { z } from "zod"
 import { tool } from "@cyberstrike-io/plugin"
 import { core } from "./core"
 import { CLOUD_GROUPS, groupByKey } from "./groups"

@@ -1,4 +1,4 @@
-import z from "zod"
+import { z } from "zod"
 import { tool } from "@cyberstrike-io/plugin"
 import type { Finding, HookResult } from "./shared"
 import type { Vulnerability as VulnerabilityNS } from "cyberstrike/public"
