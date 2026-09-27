@@ -1,8 +1,8 @@
-import type { SnapshotFileDiff, VcsFileDiff } from "@cyberstrike-io/sdk/v2"
+import type { FileDiff } from "@cyberstrike-io/sdk/v2"
 import type { FileDiffInfo } from "@cyberstrike-io/client/promise"
 import type { Message } from "@cyberstrike-io/sdk/v2/client"
 
-type Diff = FileDiffInfo | SnapshotFileDiff | VcsFileDiff
+type Diff = FileDiffInfo | FileDiff
 
 function diff(value: unknown): value is Diff {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false
@@ -44,7 +44,7 @@ export function message(value: Message): Message {
     summary: {
       ...(title === undefined ? {} : { title }),
       ...(body === undefined ? {} : { body }),
-      diffs: next,
+      diffs: next as FileDiff[],
     },
   }
 }

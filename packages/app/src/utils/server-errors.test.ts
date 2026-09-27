@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
-import type { SessionNotFoundError } from "@cyberstrike-io/sdk/v2/client"
 import type { ConfigInvalidError, ProviderModelNotFoundError } from "./server-errors"
+
+type SessionNotFoundError = { _tag: "SessionNotFoundError"; sessionID: string; message: string }
 import { formatServerError, isSessionNotFoundError, parseReadableConfigInvalidError } from "./server-errors"
 
 function fill(text: string, vars?: Record<string, string | number>) {

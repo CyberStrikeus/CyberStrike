@@ -1,6 +1,6 @@
 import { createEffect, onCleanup, type JSX } from "solid-js"
 import { makeEventListener } from "@solid-primitives/event-listener"
-import type { SnapshotFileDiff, VcsFileDiff } from "@cyberstrike-io/sdk/v2"
+import type { FileDiff } from "@cyberstrike-io/sdk/v2"
 import type { FileDiffInfo } from "@cyberstrike-io/client/promise"
 import { SessionReview } from "@cyberstrike-io/session-ui/session-review"
 import type {

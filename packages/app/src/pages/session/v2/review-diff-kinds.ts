@@ -1,4 +1,4 @@
-import type { SnapshotFileDiff, VcsFileDiff } from "@cyberstrike-io/sdk/v2"
+import type { FileDiff, SnapshotFileDiff, VcsFileDiff } from "@cyberstrike-io/sdk/v2"
 import type { FileDiffInfo } from "@cyberstrike-io/client/promise"
 import type { Kind } from "@/components/file-tree-v2"
 import { normalizeFileTreeV2Path } from "@/components/file-tree-v2-model"

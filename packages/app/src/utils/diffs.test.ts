@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import type { SnapshotFileDiff } from "@cyberstrike-io/sdk/v2"
+import type { FileDiff } from "@cyberstrike-io/sdk/v2"
 import type { FileDiffInfo } from "@cyberstrike-io/client/promise"
 import type { Message } from "@cyberstrike-io/sdk/v2/client"
 import { diffs, message } from "./diffs"
@@ -7,10 +7,12 @@ import { diffs, message } from "./diffs"
 const item = {
   file: "src/app.ts",
   patch: "@@ -1 +1 @@\n-old\n+new\n",
+  before: "old",
+  after: "new",
   additions: 1,
   deletions: 1,
   status: "modified",
-} satisfies FileDiffInfo & SnapshotFileDiff
+} satisfies FileDiffInfo & FileDiff
 
 describe("diffs", () => {
   test("keeps valid arrays", () => {

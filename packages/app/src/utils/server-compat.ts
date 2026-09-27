@@ -35,9 +35,13 @@ type CompatiblePermissionApi = Omit<ServerApi["permission"], "reply"> & {
     input: Parameters<ServerApi["permission"]["reply"]>[0] & { location?: { directory?: string } },
   ) => ReturnType<ServerApi["permission"]["reply"]>
 }
-export type CompatibleApi = Omit<ServerApi, "session" | "permission"> & {
+export type CompatibleApi = Omit<ServerApi, "session" | "permission" | "vcs"> & {
   readonly session: CompatibleSessionApi
   readonly permission: CompatiblePermissionApi
+  readonly vcs: ServerApi["vcs"] & {
+    status: (...args: any[]) => Promise<any>
+    diff: (...args: any[]) => Promise<any>
+  }
 }
 type LegacyPrompt = {
   agent?: string
@@ -59,26 +63,27 @@ function mime(uri: string) {
 }
 
 function sessionInfo(session: Session): SessionInfo {
+  const s = session as any
   return {
-    id: session.id,
-    parentID: session.parentID,
-    projectID: session.projectID,
-    agent: session.agent,
-    model: session.model && {
-      id: session.model.id,
-      providerID: session.model.providerID,
-      variant: session.model.variant,
+    id: s.id,
+    parentID: s.parentID,
+    projectID: s.projectID,
+    agent: s.agent,
+    model: s.model && {
+      id: s.model.id,
+      providerID: s.model.providerID,
+      variant: s.model.variant,
     },
-    cost: session.cost ?? 0,
-    tokens: session.tokens ?? { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
-    time: session.time,
-    title: session.title,
-    location: { directory: session.directory, workspaceID: session.workspaceID },
-    subpath: session.path,
-    revert: session.revert && {
-      messageID: session.revert.messageID,
-      partID: session.revert.partID,
-      snapshot: session.revert.snapshot,
+    cost: s.cost ?? 0,
+    tokens: s.tokens ?? { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+    time: s.time,
+    title: s.title,
+    location: { directory: s.directory, workspaceID: s.workspaceID },
+    subpath: s.path,
+    revert: s.revert && {
+      messageID: s.revert.messageID,
+      partID: s.revert.partID,
+      snapshot: s.revert.snapshot,
     },
   }
 }
@@ -142,7 +147,7 @@ function createV1Api(input: CompatibleInput): CompatibleApi {
         options?: Parameters<ServerApi["session"]["list"]>[1],
       ) {
         if (!value?.directory && value?.search !== undefined) {
-          const result = await legacy().experimental.session.list(
+          const result = await (legacy().experimental as any).session.list(
             {
               roots: value.parentID === null ? true : undefined,
               search: value.search,
@@ -336,17 +341,17 @@ function createV1Api(input: CompatibleInput): CompatibleApi {
       //   const result = await legacy(value?.location).vcs.get()
       //   return located({ branch: result.data?.branch, defaultBranch: result.data?.default_branch }, value?.location)
       // },
-      async status(value?: Parameters<ServerApi["vcs"]["status"]>[0]) {
-        const result = await legacy(value?.location).vcs.status()
+      async status(value?: any) {
+        const result = await (legacy(value?.location).vcs as any).status()
         return located(result.data ?? [], value?.location)
       },
-      async diff(value: Parameters<ServerApi["vcs"]["diff"]>[0]) {
-        const result = await legacy(value.location).vcs.diff({
+      async diff(value: any) {
+        const result = await (legacy(value.location).vcs as any).diff({
           mode: value.mode === "working" ? "git" : value.mode,
           context: value.context,
         })
         return located(
-          (result.data ?? []).map((file) => ({
+          (result.data ?? []).map((file: any) => ({
             file: file.file,
             patch: file.patch ?? "",
             additions: file.additions,
@@ -382,7 +387,7 @@ function createV1Api(input: CompatibleInput): CompatibleApi {
           (method, index) =>
             method.type === "api"
               ? { type: "key" as const, label: method.label }
-              : { type: "oauth" as const, id: String(index), label: method.label, prompts: method.prompts },
+              : { type: "oauth" as const, id: String(index), label: method.label, prompts: (method as any).prompts },
         )
         return located(
           {
@@ -410,7 +415,7 @@ function createV1Api(input: CompatibleInput): CompatibleApi {
         connect: async (value: Parameters<ServerApi["integration"]["oauth"]["connect"]>[0]) => {
           const method = Number(value.methodID)
           const result = await legacy(value.location).provider.oauth.authorize(
-            { providerID: value.integrationID, method, inputs: value.inputs },
+            { providerID: value.integrationID, method, inputs: (value as any).inputs } as any,
             { throwOnError: true },
           )
           if (!result.data) throw new Error("Failed to start OAuth authorization")

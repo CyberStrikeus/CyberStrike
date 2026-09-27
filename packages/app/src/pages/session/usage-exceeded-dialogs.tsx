@@ -16,8 +16,8 @@ const GO_UPSELL_WINDOW = 86_400_000 // 24 hrs
 const GO_UPSELL_PROVIDERS = new Set(["cyberstrike", "cyberstrike-go"])
 
 function goUpsellKeys(status: SessionStatus) {
-  if (status.type !== "retry" || !status.action) return
-  const { action } = status
+  if (status.type !== "retry" || !(status as any).action) return
+  const { action } = status as any
   if (!GO_UPSELL_PROVIDERS.has(action.provider)) return
   if (action.reason === "free_tier_limit") {
     return {
@@ -54,7 +54,7 @@ export function useUsageExceededDialogs() {
     sdk().event.on("session.status", (evt) => {
       if (evt.properties.sessionID !== params.id) return
       if (evt.properties.status.type !== "retry") return
-      const { action } = evt.properties.status
+      const { action } = evt.properties.status as any
       if (!action) return
       if (dialog.active) return
 

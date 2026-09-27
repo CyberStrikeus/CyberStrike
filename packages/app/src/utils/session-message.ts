@@ -75,7 +75,7 @@ export function normalizeSessionMessages(sessionID: string, source: readonly Ses
         role: "user",
         time: message.time,
         agent,
-        model: { providerID: model.providerID, modelID: model.id, variant: model.variant },
+        model: { providerID: model.providerID, modelID: model.id },
       })
       parts.set(message.id, [textPart(sessionID, message.id, 0, message.description, true)])
       return
@@ -97,7 +97,6 @@ export function normalizeSessionMessages(sessionID: string, source: readonly Ses
         parent.model = {
           providerID: message.model.providerID,
           modelID: message.model.id,
-          variant: message.model.variant,
         }
       }
       messages.push(assistantMessage(sessionID, parentID, message))
@@ -133,7 +132,7 @@ function shellMessages(
       role: "user",
       time: { created: message.time.created },
       agent,
-      model: { providerID: model.providerID, modelID: model.id, variant: model.variant },
+      model: { providerID: model.providerID, modelID: model.id },
     },
     {
       id: `${message.id}:assistant`,
@@ -198,7 +197,7 @@ function userMessage(
     role: "user",
     time: message.time,
     agent,
-    model: { providerID: model.providerID, modelID: model.id, variant: model.variant },
+    model: { providerID: model.providerID, modelID: model.id },
   }
 }
 
