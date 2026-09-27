@@ -274,6 +274,7 @@ export namespace LLM {
       pid.startsWith("openai") ||
       pid.startsWith("google") ||
       pid.startsWith("amazon") ||
+      pid.startsWith("deepseek") ||
       input.small
     ) {
       return []
