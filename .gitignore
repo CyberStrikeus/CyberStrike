@@ -39,3 +39,4 @@ packages/cyberstrike/test/proxy-eval/
 
 # Exported session transcripts and reports
 session-*.md
+*.tsbuildinfo

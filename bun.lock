@@ -39,6 +39,7 @@
         "@cyberstrike-io/sdk": "workspace:*",
         "@cyberstrike-io/session-ui": "workspace:*",
         "@cyberstrike-io/ui": "workspace:*",
+        "@cyberstrike-io/util": "workspace:*",
         "@dnd-kit/abstract": "0.5.0",
         "@dnd-kit/dom": "0.5.0",
         "@dnd-kit/helpers": "0.5.0",
@@ -98,6 +99,9 @@
     "packages/aws": {
       "name": "@cyberstrike-io/aws",
       "version": "0.1.0",
+      "dependencies": {
+        "zod": "catalog:",
+      },
       "devDependencies": {
         "@cyberstrike-io/plugin": "workspace:*",
         "@tsconfig/node22": "catalog:",
@@ -626,6 +630,9 @@
     "packages/gcp": {
       "name": "@cyberstrike-io/gcp",
       "version": "0.1.0",
+      "dependencies": {
+        "zod": "catalog:",
+      },
       "devDependencies": {
         "@cyberstrike-io/plugin": "workspace:*",
         "@tsconfig/node22": "catalog:",
@@ -699,7 +706,9 @@
       "name": "@cyberstrike-io/plugin",
       "version": "1.1.16",
       "dependencies": {
+        "@ai-sdk/provider": "3.0.16",
         "@cyberstrike-io/sdk": "workspace:*",
+        "effect": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {
