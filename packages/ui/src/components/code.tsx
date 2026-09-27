@@ -19,7 +19,6 @@ const VIRTUALIZE_BYTES = 500_000
 const codeMetrics = {
   ...DEFAULT_VIRTUAL_FILE_METRICS,
   lineHeight: 24,
-  fileGap: 0,
 } satisfies Partial<VirtualFileMetrics>
 
 type SelectionSide = "additions" | "deletions"

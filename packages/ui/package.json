@@ -104,7 +104,8 @@
     "shiki": "catalog:",
     "solid-list": "catalog:",
     "solid-sonner": "catalog:",
-    "strip-ansi": "7.1.2"
+    "strip-ansi": "7.1.2",
+    "@cyberstrike-io/util": "workspace:*"
   },
   "peerDependencies": {
     "@solidjs/meta": "^0.29.0",

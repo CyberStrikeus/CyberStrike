@@ -825,6 +825,7 @@
       "name": "@cyberstrike-io/ui",
       "version": "1.18.32",
       "dependencies": {
+        "@cyberstrike-io/util": "workspace:*",
         "@kobalte/core": "catalog:",
         "@pierre/diffs": "catalog:",
         "@shikijs/stream": "catalog:",
