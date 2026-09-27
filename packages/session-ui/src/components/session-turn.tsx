@@ -1,6 +1,6 @@
 import {
   AssistantMessage,
-  type SnapshotFileDiff,
+  type FileDiff,
   Message as MessageType,
   Part as PartType,
 } from "@cyberstrike-io/sdk/v2/client"
@@ -91,10 +91,10 @@ function list<T>(value: T[] | undefined | null, fallback: T[]) {
   return fallback
 }
 
-type SummaryDiff = (SnapshotFileDiff & { file: string }) | FileDiffInfo
+type SummaryDiff = FileDiff | FileDiffInfo
 
-function summaryDiff(value: SnapshotFileDiff): value is SummaryDiff {
-  return typeof value.file === "string"
+function summaryDiff(value: FileDiff | Record<string, unknown>): value is SummaryDiff {
+  return typeof (value as FileDiff).file === "string"
 }
 
 const hidden = new Set(["todowrite"])

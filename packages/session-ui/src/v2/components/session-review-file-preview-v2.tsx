@@ -6,7 +6,7 @@ import { useFileComponent } from "@cyberstrike-io/ui/context/file"
 import { useI18n } from "@cyberstrike-io/ui/context/i18n"
 import { mediaKindFromPath } from "../../pierre/media"
 import { cloneSelectedLineRange, previewSelectedLines } from "../../pierre/selection-bridge"
-import type { FileContent, SnapshotFileDiff, VcsFileDiff } from "@cyberstrike-io/sdk/v2"
+import type { FileContent, FileDiff } from "@cyberstrike-io/sdk/v2"
 import type { FileDiffInfo } from "@cyberstrike-io/client/promise"
 import { createEffect, createMemo, onCleanup, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
@@ -28,7 +28,7 @@ import { LineCommentV2OverflowIcon } from "@cyberstrike-io/ui/v2/line-comment-v2
 import { MenuV2 } from "@cyberstrike-io/ui/v2/menu-v2"
 import "./session-review-v2.css"
 
-type ReviewDiff = (SnapshotFileDiff & { file: string }) | FileDiffInfo | VcsFileDiff
+type ReviewDiff = FileDiff | FileDiffInfo
 
 export type SessionReviewFilePreviewV2Props = {
   file: string

@@ -1,4 +1,4 @@
-import type { Message, Session, Part, SnapshotFileDiff, SessionStatus, Provider } from "@cyberstrike-io/sdk/v2"
+import type { Message, Session, Part, FileDiff, SessionStatus, Provider } from "@cyberstrike-io/sdk/v2"
 import type { FileDiffInfo } from "@cyberstrike-io/client/promise"
 import { createSimpleContext } from "@cyberstrike-io/ui/context"
 import { PreloadMultiFileDiffResult } from "@pierre/diffs/ssr"
@@ -26,7 +26,7 @@ type Data = {
     [sessionID: string]: SessionStatus
   }
   session_diff: {
-    [sessionID: string]: (SnapshotFileDiff | FileDiffInfo)[]
+    [sessionID: string]: (FileDiff | FileDiffInfo)[]
   }
   session_diff_preload?: {
     [sessionID: string]: PreloadMultiFileDiffResult<any>[]
