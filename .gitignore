@@ -37,6 +37,9 @@ logs/
 # Local throwaway test/eval harness (not committed)
 packages/cyberstrike/test/proxy-eval/
 
+# Desktop bundled binaries (downloaded at build time, not stored in repo)
+packages/desktop/resources/cyberstrike/bin/
+
 # Exported session transcripts and reports
 session-*.md
 *.tsbuildinfo
