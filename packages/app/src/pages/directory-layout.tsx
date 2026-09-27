@@ -36,7 +36,7 @@ export function DirectoryDataProvider(
   createEffect(() => {
     // A draft lives at /new-session?draftId=… and has no directory segment to normalize.
     if (props.draftID || props.server?.()) return
-    const next = sync().data.path.directory
+    const next = sync()?.data.path.directory
     if (!next || next === directory()) return
     const path = location.pathname.slice(slug().length + 1)
     navigate(`/${base64Encode(next)}${path}${location.search}${location.hash}`, { replace: true })
@@ -61,7 +61,7 @@ export function DirectoryDataProvider(
     <Show when={directory()} keyed>
       {(directory) => (
         <DataProvider
-          data={sync().data}
+          data={sync()?.data}
           directory={directory}
           sessionID={params.id}
           onNavigateToSession={(sessionID: string) => navigate(href(sessionID))}

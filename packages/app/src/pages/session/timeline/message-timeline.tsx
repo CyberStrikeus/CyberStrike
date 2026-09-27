@@ -278,15 +278,15 @@ export function MessageTimeline(props: {
   const sessionStatus = createMemo(() => {
     const id = sessionID()
     if (!id) return idle
-    return sync().data.session_status[id] ?? idle
+    return sync()?.data.session_status[id] ?? idle
   })
-  const sessionMessages = createMemo(() => (sessionID() ? (sync().data.message[sessionID()!] ?? []) : []))
+  const sessionMessages = createMemo(() => (sessionID() ? (sync()?.data.message[sessionID()!] ?? []) : []))
   const projectedMessages = createMemo(() => {
     const id = sessionID()
     if (!id) return []
     const visible = new Set(props.userMessages.map((message) => message.id))
     const boundary = sessionMessages().find((message) => message.role === "user" && !visible.has(message.id))?.id
-    const messages = sync().data.session_message[id] ?? []
+    const messages = sync()?.data.session_message[id] ?? []
     if (!boundary) return messages
     const index = messages.findIndex((message) => message.id === boundary)
     return index < 0 ? messages : messages.slice(0, index)
@@ -294,25 +294,25 @@ export function MessageTimeline(props: {
   const info = createMemo(() => {
     const id = sessionID()
     if (!id) return
-    return sync().session.get(id)
+    return sync()?.session.get(id)
   })
   const titleValue = createMemo(() => info()?.title)
   const titleLabel = createMemo(() => sessionTitle(titleValue()))
   const shareUrl = createMemo(() => info()?.share?.url)
-  const shareEnabled = createMemo(() => sync().data.config.share !== "disabled")
+  const shareEnabled = createMemo(() => sync()?.data.config.share !== "disabled")
   const parentID = createMemo(() => info()?.parentID)
   const parent = createMemo(() => {
     const id = parentID()
     if (!id) return
-    return sync().session.get(id)
+    return sync()?.session.get(id)
   })
   const parentMessages = createMemo(() => {
     const id = parentID()
     if (!id) return emptyMessages
-    return sync().data.message[id] ?? emptyMessages
+    return sync()?.data.message[id] ?? emptyMessages
   })
   const parentTitle = createMemo(() => sessionTitle(parent()?.title) ?? language.t("command.session.new"))
-  const getMsgParts = (msgId: string) => sync().data.part[msgId] ?? emptyParts
+  const getMsgParts = (msgId: string) => sync()?.data.part[msgId] ?? emptyParts
   const getMsgPart = (messageID: string, partID: string) => getMsgParts(messageID).find((part) => part.id === partID)
   const childTaskDescription = createMemo(() => {
     const id = sessionID()
@@ -754,8 +754,8 @@ export function MessageTimeline(props: {
       () => [parentID(), childTaskDescription()] as const,
       ([id, description]) => {
         if (!id || description) return
-        if (sync().data.message[id] !== undefined) return
-        void sync().session.sync(id)
+        if (sync()?.data.message[id] !== undefined) return
+        void sync()?.session.sync(id)
       },
       { defer: true },
     ),
@@ -815,10 +815,10 @@ export function MessageTimeline(props: {
   }
 
   const deleteSession = async (sessionID: string) => {
-    const session = sync().session.get(sessionID)
+    const session = sync()?.session.get(sessionID)
     if (!session) return false
 
-    const sessions = (sync().data.session ?? []).filter((s) => !s.parentID && !s.time?.archived)
+    const sessions = (sync()?.data.session ?? []).filter((s) => !s.parentID && !s.time?.archived)
     const index = sessions.findIndex((s) => s.id === sessionID)
     const nextSession = index === -1 ? undefined : (sessions[index + 1] ?? sessions[index - 1])
 
@@ -837,7 +837,7 @@ export function MessageTimeline(props: {
 
     const removed = new Set<string>([sessionID])
     const byParent = new Map<string, string[]>()
-    for (const item of sync().data.session) {
+    for (const item of sync()?.data.session) {
       const parentID = item.parentID
       if (!parentID) continue
       const existing = byParent.get(parentID)
@@ -872,7 +872,7 @@ export function MessageTimeline(props: {
     )
 
     for (const id of removed) {
-      sync().session.evict(id)
+      sync()?.session.evict(id)
     }
     notifySessionTabsRemoved({ directory: sdk().directory, sessionIDs: [...removed] })
     return true
@@ -888,7 +888,7 @@ export function MessageTimeline(props: {
 
   function DialogDeleteSession(props: { sessionID: string }) {
     const name = createMemo(
-      () => sessionTitle(sync().session.get(props.sessionID)?.title) ?? language.t("command.session.new"),
+      () => sessionTitle(sync()?.session.get(props.sessionID)?.title) ?? language.t("command.session.new"),
     )
     const handleDelete = async () => {
       await deleteSession(props.sessionID)

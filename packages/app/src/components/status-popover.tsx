@@ -25,16 +25,16 @@ export function StatusPopover() {
   const sync = useSync()
   const [shown, setShown] = createSignal(false)
   const serverHealth = () => global.servers.health[server.key]?.healthy
-  const ready = createMemo(() => serverHealth() === false || (sync().data.mcp_ready && sync().data.lsp_ready))
+  const ready = createMemo(() => serverHealth() === false || (sync()?.data.mcp_ready && sync()?.data.lsp_ready))
   const attention = createMemo(() =>
     hasServiceNeedingAttention({
-      mcp: Object.values(sync().data.mcp ?? {}).map((item) => item.status),
+      mcp: Object.values(sync()?.data.mcp ?? {}).map((item) => item.status),
     }),
   )
   const issue = createMemo(() =>
     hasNonBlockingServiceIssue({
-      mcp: Object.values(sync().data.mcp ?? {}).map((item) => item.status),
-      lsp: (sync().data.lsp ?? []).map((item) => item.status),
+      mcp: Object.values(sync()?.data.mcp ?? {}).map((item) => item.status),
+      lsp: (sync()?.data.lsp ?? []).map((item) => item.status),
     }),
   )
 
@@ -94,16 +94,16 @@ function DirectoryStatusPopover() {
   const sync = useSync()
   const [shown, setShown] = createSignal(false)
   const serverHealth = () => global.servers.health[ServerConnection.key(server().server)]?.healthy
-  const ready = createMemo(() => serverHealth() === false || (sync().data.mcp_ready && sync().data.lsp_ready))
+  const ready = createMemo(() => serverHealth() === false || (sync()?.data.mcp_ready && sync()?.data.lsp_ready))
   const attention = createMemo(() =>
     hasServiceNeedingAttention({
-      mcp: Object.values(sync().data.mcp ?? {}).map((item) => item.status),
+      mcp: Object.values(sync()?.data.mcp ?? {}).map((item) => item.status),
     }),
   )
   const issue = createMemo(() =>
     hasNonBlockingServiceIssue({
-      mcp: Object.values(sync().data.mcp ?? {}).map((item) => item.status),
-      lsp: (sync().data.lsp ?? []).map((item) => item.status),
+      mcp: Object.values(sync()?.data.mcp ?? {}).map((item) => item.status),
+      lsp: (sync()?.data.lsp ?? []).map((item) => item.status),
     }),
   )
   const state = createMemo<StatusPopoverState>(() => ({

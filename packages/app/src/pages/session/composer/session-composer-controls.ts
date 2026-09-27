@@ -36,7 +36,7 @@ export function createPromptInputController(input: {
   return createMemo<PromptInputControls>(() => {
     return {
       agents: {
-        available: sync().data.agent,
+        available: sync()?.data.agent,
         options: local.agent.list().map((agent) => agent.name),
         current: local.agent.current()?.name ?? "",
         loading: agentsQuery.isLoading,

@@ -189,7 +189,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     const sessionID = props.controls.session.id
     if (!sessionID) return false
 
-    const diffs = sync().data.session_diff[sessionID]
+    const diffs = sync()?.data.session_diff[sessionID]
     if (!diffs) return false
     return diffs.some((diff) => diff.file === path)
   }
@@ -251,8 +251,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
     return paths
   })
-  const info = createMemo(() => (props.controls.session.id ? sync().session.get(props.controls.session.id) : undefined))
-  const working = createMemo(() => sync().data.session_working(props.controls.session.id ?? ""))
+  const info = createMemo(() => (props.controls.session.id ? sync()?.session.get(props.controls.session.id) : undefined))
+  const working = createMemo(() => sync()?.data.session_working(props.controls.session.id ?? ""))
   const imageAttachments = createMemo(() =>
     prompt.current().filter((part): part is ImageAttachmentPart => part.type === "image"),
   )
@@ -311,7 +311,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const hasUserPrompt = createMemo(() => {
     const sessionID = props.controls.session.id
     if (!sessionID) return false
-    const messages = sync().data.message[sessionID]
+    const messages = sync()?.data.message[sessionID]
     if (!messages) return false
     return messages.some((m) => m.role === "user")
   })
@@ -586,7 +586,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   )
 
   const mcpResourceList = createMemo(() =>
-    Object.values(sync().data.mcp_resource).map(
+    Object.values(sync()?.data.mcp_resource).map(
       (resource): AtOption => ({
         type: "resource",
         name: resource.name,
@@ -703,7 +703,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         type: "builtin" as const,
       }))
 
-    const custom = sync().data.command.map((cmd) => ({
+    const custom = sync()?.data.command.map((cmd) => ({
       id: `custom.${cmd.name}`,
       trigger: cmd.name,
       title: cmd.name,

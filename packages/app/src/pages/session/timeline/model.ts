@@ -22,7 +22,7 @@ export function createTimelineModel(input: {
       clearRefresh()
       if (!id) return
 
-      const cached = untrack(() => sync().data.message[id] !== undefined)
+      const cached = untrack(() => sync()?.data.message[id] !== undefined)
       const stale = cached && !serverSync().session.fresh(id, sessionFreshness)
 
       refreshFrame = requestAnimationFrame(() => {
@@ -31,21 +31,21 @@ export function createTimelineModel(input: {
           refreshTimer = undefined
           if (input.sessionID() !== id) return
           untrack(() => {
-            if (stale) void sync().session.sync(id, { force: true })
+            if (stale) void sync()?.session.sync(id, { force: true })
           })
         }, 0)
       })
 
-      return sync().session.sync(id)
+      return sync()?.session.sync(id)
     },
   )
   const messages = createMemo(() => {
     const id = input.sessionID()
-    return id ? (sync().data.message[id] ?? []) : []
+    return id ? (sync()?.data.message[id] ?? []) : []
   })
   const ready = createMemo(() => {
     const id = input.sessionID()
-    return !id || isTimelineReady(sync().data.message[id], serverSync().session.history.loading(id))
+    return !id || isTimelineReady(sync()?.data.message[id], serverSync().session.history.loading(id))
   })
   const userMessages = createMemo(() => selectUserMessages(messages()), emptyUserMessages, { equals: same })
   const visibleUserMessages = createMemo(
@@ -57,18 +57,18 @@ export function createTimelineModel(input: {
   )
   const more = createMemo(() => {
     const id = input.sessionID()
-    return id ? sync().session.history.more(id) : false
+    return id ? sync()?.session.history.more(id) : false
   })
   const loading = createMemo(() => {
     const id = input.sessionID()
-    return id ? sync().session.history.loading(id) : false
+    return id ? sync()?.session.history.loading(id) : false
   })
   const loadOlder = async (options?: { before?: () => void; after?: (done: boolean) => void }) => {
     return loadOlderTimeline({
       sessionID: input.sessionID,
       more,
       loading,
-      loadMore: (sessionID) => sync().session.history.loadMore(sessionID),
+      loadMore: (sessionID) => sync()?.session.history.loadMore(sessionID),
       before: options?.before,
       after: options?.after,
     })

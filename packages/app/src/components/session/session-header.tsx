@@ -231,9 +231,11 @@ export function SessionHeader() {
       ({ id: "finder", label: fileManager().label, icon: fileManager().icon } as const),
   )
   const opening = createMemo(() => openRequest.app !== undefined)
-  const tint = createMemo(() =>
-    messageAgentColor(params.id ? sync().data.message[params.id] : undefined, sync().data.agent),
-  )
+  const tint = createMemo(() => {
+    const s = sync()
+    if (!s) return undefined
+    return messageAgentColor(params.id ? s.data.message[params.id] : undefined, s.data.agent)
+  })
   const v2ActionsState = createMemo<SessionHeaderV2ActionsState>(() => ({
     statusVisible: status(),
     statusLabel: language.t("status.popover.trigger"),

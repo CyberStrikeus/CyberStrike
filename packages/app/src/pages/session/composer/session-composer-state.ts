@@ -34,11 +34,11 @@ export function createSessionComposerController(options?: { closeMs?: number | (
   const permission = usePermission()
 
   const questionRequest = createMemo((): QuestionRequest | undefined => {
-    return sessionQuestionRequest(sync().data.session, sync().data.question, params.id)
+    return sessionQuestionRequest(sync()?.data.session, sync()?.data.question, params.id)
   })
 
   const permissionRequest = createMemo((): PermissionRequest | undefined => {
-    return sessionPermissionRequest(sync().data.session, sync().data.permission, params.id, (item) => {
+    return sessionPermissionRequest(sync()?.data.session, sync()?.data.permission, params.id, (item) => {
       return !permission.autoResponds(item, sdk().directory)
     })
   })
@@ -59,7 +59,7 @@ export function createSessionComposerController(options?: { closeMs?: number | (
     () => todos().length > 0 && todos().every((todo) => todo.status === "completed" || todo.status === "cancelled"),
   )
 
-  const live = createMemo(() => sync().data.session_working(params.id ?? "") || blocked())
+  const live = createMemo(() => sync()?.data.session_working(params.id ?? "") || blocked())
 
   const [store, setStore] = createStore({
     sessionID: params.id,

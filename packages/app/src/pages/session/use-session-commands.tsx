@@ -74,7 +74,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const info = () => {
     const id = params.id
     if (!id) return
-    return sync().session.get(id)
+    return sync()?.session.get(id)
   }
   const hasReview = () => !!params.id
   const normalizeTab = (tab: string) => {
@@ -96,7 +96,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const messages = () => {
     const id = params.id
     if (!id) return []
-    return sync().data.message[id] ?? []
+    return sync()?.data.message[id] ?? []
   }
   const userMessages = () => messages().filter((m) => m.role === "user") as UserMessage[]
   const visibleUserMessages = () => {
@@ -344,9 +344,9 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     if (boundary < 0) return
     const message = messages[boundary - 1]
     if (!message) return
-    const parts = sync().data.part[message.id]
+    const parts = sync()?.data.part[message.id]
 
-    if (sync().data.session_working(sessionID)) {
+    if (sync()?.data.session_working(sessionID)) {
       await session.interrupt({ sessionID }).catch(() => {})
     }
 
@@ -422,7 +422,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   }
 
   const shareCmds = () => {
-    if (sync().data.config.share === "disabled") return []
+    if (sync()?.data.config.share === "disabled") return []
     return [
       sessionCommand({
         id: "session.share",

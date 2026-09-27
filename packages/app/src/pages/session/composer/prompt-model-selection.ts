@@ -22,7 +22,7 @@ export function createPromptModelSelection(input: { agent: () => { model?: Model
   }
 
   const configured = () => {
-    const model = resolveDefaultModel(providers.defaultModel(), sync().data.config.model)
+    const model = resolveDefaultModel(providers.defaultModel(), sync()?.data.config.model)
     if (!model) return
     if (valid(model)) return model
   }

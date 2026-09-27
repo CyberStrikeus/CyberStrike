@@ -162,7 +162,7 @@ function LegacyTargetSessionRedirect() {
   const sync = useServerSync()
   const current = createSessionLineage(
     () => params.id,
-    () => sync().session.lineage,
+    () => sync()?.session.lineage,
   )
 
   createEffect(() => {

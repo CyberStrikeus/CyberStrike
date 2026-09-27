@@ -756,5 +756,5 @@ export const { use: useServerSync, provider: ServerSyncProvider } = createSimple
 
 export function useQueryOptions() {
   const sync = useServerSync()
-  return createMemo(() => sync().queryOptions)
+  return createMemo(() => sync()?.queryOptions)
 }

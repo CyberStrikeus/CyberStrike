@@ -40,11 +40,11 @@ export function useSessionArchive() {
   }
 
   const archive = async (sessionID: string) => {
-    const session = sync().session.get(sessionID)
+    const session = sync()?.session.get(sessionID)
     if (!session) return
     if ((await sdk().protocol) !== "v1") return
 
-    const sessions = sync().data.session ?? []
+    const sessions = sync()?.data.session ?? []
     const index = sessions.findIndex((s) => s.id === sessionID)
     const nextSession = index === -1 ? undefined : (sessions[index + 1] ?? sessions[index - 1])
 
@@ -57,7 +57,7 @@ export function useSessionArchive() {
             if (index !== -1) draft.session.splice(index, 1)
           }),
         )
-        sync().session.evict(sessionID)
+        sync()?.session.evict(sessionID)
         serverSync().homeSessions.remove(sessionID)
         navigateAfterRemoval(sessionID, session.parentID, nextSession?.id)
         notifySessionTabsRemoved({ directory: sdk().directory, sessionIDs: [sessionID] })

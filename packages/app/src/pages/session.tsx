@@ -261,7 +261,7 @@ function ResolvedTargetSessionRoute() {
   })
   const current = createSessionLineage(
     () => params.id,
-    () => sync().session.lineage,
+    () => sync()?.session.lineage,
   )
   const directory = createMemo(() => current()?.session.directory)
   const targetDirectory = () => directory()!
@@ -543,7 +543,7 @@ export default function Page() {
     if (!view().reviewPanel.opened()) view().reviewPanel.open()
   }
 
-  const info = createMemo(() => (params.id ? sync().session.get(params.id) : undefined))
+  const info = createMemo(() => (params.id ? sync()?.session.get(params.id) : undefined))
   const isChildSession = createMemo(() => !!info()?.parentID)
   const canReview = createMemo(() => !!sync().project)
   const reviewTab = createMemo(() => isDesktop())
@@ -669,7 +669,7 @@ export default function Page() {
   const changesOptions = createMemo<ChangeMode[]>(() => {
     const list: ChangeMode[] = []
     const project = sync().project
-    const vcs = sync().data.vcs
+    const vcs = sync()?.data.vcs
     if (project?.vcs === "git") list.push("git")
     if (project?.vcs === "git" && vcs?.branch && vcs?.default_branch && vcs.branch !== vcs.default_branch) {
       list.push("branch")
@@ -690,7 +690,7 @@ export default function Page() {
   })
   const vcsKey = createMemo(
     () =>
-      ["session-vcs", sdk().directory, sync().data.vcs?.branch ?? "", sync().data.vcs?.default_branch ?? ""] as const,
+      ["session-vcs", sdk().directory, sync()?.data.vcs?.branch ?? "", sync()?.data.vcs?.default_branch ?? ""] as const,
   )
   const vcsQuery = createQuery(() => {
     const mode = vcsMode()
@@ -910,7 +910,7 @@ export default function Page() {
         return [
           sdk().directory,
           id,
-          id ? (sync().data.session_status[id]?.type ?? "idle") : "idle",
+          id ? (sync()?.data.session_status[id]?.type ?? "idle") : "idle",
           id ? composer.blocked() : false,
         ] as const
       },
@@ -921,7 +921,7 @@ export default function Page() {
         todoTimer = undefined
         if (!id) return
         if (status === "idle" && !blocked) return
-        const cached = untrack(() => sync().data.todo[id] !== undefined)
+        const cached = untrack(() => sync()?.data.todo[id] !== undefined)
 
         todoFrame = requestAnimationFrame(() => {
           todoFrame = undefined
@@ -929,7 +929,7 @@ export default function Page() {
             todoTimer = undefined
             if (sdk().directory !== dir || params.id !== id) return
             untrack(() => {
-              void sync().session.todo(id, cached ? { force: true } : undefined)
+              void sync()?.session.todo(id, cached ? { force: true } : undefined)
             })
           }, 0)
         })
@@ -1108,7 +1108,7 @@ export default function Page() {
 
   createEffect(
     on(
-      () => sync().data.session_status[params.id ?? ""]?.type,
+      () => sync()?.data.session_status[params.id ?? ""]?.type,
       (next, prev) => {
         if (next !== "idle" || prev === undefined || prev === "idle") return
         refreshVcs()
@@ -1681,7 +1681,7 @@ export default function Page() {
   )
 
   const draft = (id: string) =>
-    extractPromptFromParts(sync().data.part[id] ?? [], {
+    extractPromptFromParts(sync()?.data.part[id] ?? [], {
       directory: sdk().directory,
       attachmentName: language.t("common.attachment"),
     })
@@ -1712,7 +1712,7 @@ export default function Page() {
     target.session.remember({ ...session, revert: next })
   }
 
-  const busy = (sessionID: string) => sync().data.session_working(sessionID)
+  const busy = (sessionID: string) => sync()?.data.session_working(sessionID)
 
   const queuedFollowups = createMemo(() => {
     const id = params.id
@@ -1798,7 +1798,7 @@ export default function Page() {
   const followupDock = createMemo(() => queuedFollowups().map((item) => ({ id: item.id, text: followupText(item) })))
 
   const sendFollowup = (sessionID: string, id: string, opts?: { manual?: boolean }) => {
-    if (sync().session.get(sessionID)?.parentID) return Promise.resolve()
+    if (sync()?.session.get(sessionID)?.parentID) return Promise.resolve()
     const item = (followup.items[sessionID] ?? []).find((entry) => entry.id === id)
     if (!item) return Promise.resolve()
     if (followupBusy(sessionID)) return Promise.resolve()
@@ -1982,7 +1982,7 @@ export default function Page() {
     visibleUserMessages,
     historyMore,
     historyLoading,
-    loadMore: (sessionID) => sync().session.history.loadMore(sessionID),
+    loadMore: (sessionID) => sync()?.session.history.loadMore(sessionID),
     currentMessageId: () => store.messageId,
     pendingMessage: () => ui.pendingMessage,
     setPendingMessage: (value) => setUi("pendingMessage", value),
