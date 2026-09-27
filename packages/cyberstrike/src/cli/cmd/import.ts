@@ -114,7 +114,7 @@ export const ImportCommand = cmd({
           return
         }
 
-        exportData = transformed
+        exportData = transformed as any
       } else {
         const file = Bun.file(args.file)
         exportData = await file.json().catch(() => {})
@@ -135,8 +135,8 @@ export const ImportCommand = cmd({
 
       for (const msg of exportData.messages) {
         Database.use((db) =>
-          db
-            .insert(MessageTable)
+          (db
+            .insert(MessageTable) as any)
             .values({
               id: msg.info.id,
               session_id: exportData.info.id,

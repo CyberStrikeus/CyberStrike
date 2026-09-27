@@ -284,12 +284,12 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     const [store, setStore] = createStore({
       themes: DEFAULT_THEMES,
       mode: kv.get("theme_mode", props.mode),
-      active: (sync.data.config.theme ?? kv.get("theme", "cyberstrike")) as string,
+      active: ((sync.data.config as any).theme ?? kv.get("theme", "cyberstrike")) as string,
       ready: false,
     })
 
     createEffect(() => {
-      const theme = sync.data.config.theme
+      const theme = (sync.data.config as any).theme
       if (theme) setStore("active", theme)
     })
 

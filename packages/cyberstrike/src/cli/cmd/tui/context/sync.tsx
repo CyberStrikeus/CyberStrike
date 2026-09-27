@@ -442,7 +442,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           break
 
         case "session.diff":
-          setStore("session_diff", event.properties.sessionID, event.properties.diff)
+          setStore("session_diff", event.properties.sessionID, event.properties.diff as any)
           break
 
         case "session.deleted": {
@@ -477,20 +477,6 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           break
         }
 
-        case "session.queue.status": {
-          setStore("session_queue_status", event.properties.sessionID, event.properties.status)
-          break
-        }
-
-        case "session.hackbrowser.status": {
-          setStore("session_hackbrowser_status", event.properties.sessionID, event.properties.status as never)
-          break
-        }
-
-        case "intel.updated": {
-          void refreshMethodology(event.properties.sessionID)
-          break
-        }
 
         case "message.updated": {
           const messages = store.message[event.properties.info.sessionID]
@@ -607,18 +593,25 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           setStore("vcs", { branch: event.properties.branch })
           break
         }
-        case "vulnerability.updated": {
-          setStore("vulnerability", event.properties.sessionID, event.properties.vulnerabilities)
-          break
-        }
-        case "request.updated": {
-          setStore("request", event.properties.sessionID, event.properties.requests)
-          break
-        }
       }
 
       const raw = event as { type: string; properties: Record<string, any> }
       switch (raw.type) {
+        case "session.queue.status":
+          setStore("session_queue_status", raw.properties.sessionID, raw.properties.status)
+          break
+        case "session.hackbrowser.status":
+          setStore("session_hackbrowser_status", raw.properties.sessionID, raw.properties.status as never)
+          break
+        case "intel.updated":
+          void refreshMethodology(raw.properties.sessionID)
+          break
+        case "vulnerability.updated":
+          setStore("vulnerability", raw.properties.sessionID, raw.properties.vulnerabilities)
+          break
+        case "request.updated":
+          setStore("request", raw.properties.sessionID, raw.properties.requests)
+          break
         case "web_credential.updated":
           setStore("web_credential", raw.properties.sessionID, raw.properties.credentials)
           break
@@ -819,8 +812,8 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
               if (match.found) draft.session[match.index] = session.data!
               if (!match.found) draft.session.splice(match.index, 0, session.data!)
               draft.todo[sessionID] = todo.data ?? []
-              draft.vulnerability[sessionID] = vuln?.data ?? []
-              draft.request[sessionID] = req?.data ?? []
+              draft.vulnerability[sessionID] = (vuln?.data ?? []) as any
+              draft.request[sessionID] = (req?.data ?? []) as any
               draft.web_credential[sessionID] = wCred?.data ?? []
               draft.web_role[sessionID] = wRole?.data ?? []
               draft.web_object[sessionID] = wObj?.data ?? []
@@ -832,7 +825,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
               for (const message of messages.data!) {
                 draft.part[message.info.id] = message.parts
               }
-              draft.session_diff[sessionID] = diff.data ?? []
+              draft.session_diff[sessionID] = (diff.data ?? []) as any
             }),
           )
           fullSyncedSessions.add(sessionID)

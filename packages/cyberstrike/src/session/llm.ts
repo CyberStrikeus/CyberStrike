@@ -41,7 +41,7 @@ export namespace LLM {
     toolChoice?: "auto" | "required" | "none"
   }
 
-  export type StreamOutput = StreamTextResult<ToolSet, unknown>
+  export type StreamOutput = StreamTextResult<ToolSet, any>
 
   export async function stream(input: StreamInput) {
     const l = log
@@ -237,9 +237,10 @@ export namespace LLM {
         ...input.messages,
       ],
       model: wrapLanguageModel({
-        model: language,
+        model: language as any,
         middleware: [
           {
+            specificationVersion: "v3" as const,
             async transformParams(args) {
               if (args.type === "stream") {
                 // @ts-expect-error

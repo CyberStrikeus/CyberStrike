@@ -1524,7 +1524,7 @@ export namespace ACP {
       if (cyberstrikeProvider.models["big-pickle"]) {
         return { providerID: "cyberstrike", modelID: "big-pickle" }
       }
-      const [best] = Provider.sort(Object.values(cyberstrikeProvider.models))
+      const [best] = Provider.sort(Object.values(cyberstrikeProvider.models) as any)
       if (best) {
         return {
           providerID: best.providerID,
@@ -1534,7 +1534,7 @@ export namespace ACP {
     }
 
     const models = providers.flatMap((p) => Object.values(p.models))
-    const [best] = Provider.sort(models)
+    const [best] = Provider.sort(models as any)
     if (best) {
       return {
         providerID: best.providerID,

@@ -13,14 +13,14 @@ export function DialogSkill(props: DialogSkillProps) {
   dialog.setSize("large")
 
   const [skills] = createResource(async () => {
-    const result = await sdk.client.skill.list()
+    const result = await sdk.client.cyberstrikeSkill.list()
     return result.data ?? []
   })
 
   const options = createMemo<DialogSelectOption<string>[]>(() => {
     const list = skills() ?? []
-    const maxWidth = Math.max(0, ...list.map((s) => s.name.length))
-    return list.map((skill) => ({
+    const maxWidth = Math.max(0, ...list.map((s: any) => s.name.length))
+    return list.map((skill: any) => ({
       title: skill.name.padEnd(maxWidth),
       description: skill.description?.replace(/\s+/g, " ").trim(),
       value: skill.name,
