@@ -10,7 +10,7 @@
     "email": "contact@cyberstrike.io"
   },
   "scripts": {
-    "typecheck": "tsgo -b",
+    "typecheck": "tsgo --noEmit",
     "predev": "bun ./scripts/predev.ts",
     "dev": "electron-vite dev",
     "prebuild": "bun ./scripts/prebuild.ts",
