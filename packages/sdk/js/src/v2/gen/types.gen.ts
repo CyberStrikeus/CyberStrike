@@ -110,10 +110,14 @@ export type FileDiff = {
   file: string
   before: string
   after: string
+  patch?: string
   additions: number
   deletions: number
   status?: "added" | "deleted" | "modified"
 }
+
+export type SnapshotFileDiff = Partial<FileDiff> & { additions: number; deletions: number }
+export type VcsFileDiff = FileDiff
 
 export type UserMessage = {
   id: string

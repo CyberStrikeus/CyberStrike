@@ -5,6 +5,8 @@ import { createOpencodeClient } from "./client.js"
 import { createOpencodeServer } from "./server.js"
 import type { ServerOptions } from "./server.js"
 
+export const createCyberstrike = createOpencode
+
 export async function createOpencode(options?: ServerOptions) {
   const server = await createOpencodeServer({
     ...options,
