@@ -208,8 +208,10 @@ export function SessionHeader() {
   })
 
   const toggleTerminal = () => {
-    const next = !view().terminal.opened()
-    view().terminal.toggle()
+    const v = view()
+    if (!v) return
+    const next = !v.terminal.opened()
+    v.terminal.toggle()
     if (!next) return
 
     const id = terminal.active()
@@ -242,8 +244,8 @@ export function SessionHeader() {
     reviewLabel: language.t("command.review.toggle"),
     reviewKeybind: reviewTooltipKeybind(command),
     reviewVisible: isDesktop(),
-    reviewOpened: view().reviewPanel.opened(),
-    onReviewToggle: () => view().reviewPanel.toggle(),
+    reviewOpened: view()?.reviewPanel?.opened() ?? false,
+    onReviewToggle: () => view()?.reviewPanel?.toggle(),
   }))
 
   const selectApp = (app: OpenApp) => {
@@ -456,10 +458,10 @@ export function SessionHeader() {
                         class="group/terminal-toggle titlebar-icon w-8 h-6 p-0 box-border shrink-0"
                         onClick={toggleTerminal}
                         aria-label={language.t("command.terminal.toggle")}
-                        aria-expanded={view().terminal.opened()}
+                        aria-expanded={view()?.terminal?.opened() ?? false}
                         aria-controls="terminal-panel"
                       >
-                        <Icon size="small" name={view().terminal.opened() ? "terminal-active" : "terminal"} />
+                        <Icon size="small" name={view()?.terminal?.opened() ? "terminal-active" : "terminal"} />
                       </Button>
                     </TooltipKeybind>
 
@@ -471,12 +473,12 @@ export function SessionHeader() {
                         <Button
                           variant="ghost"
                           class="group/review-toggle titlebar-icon w-8 h-6 p-0 box-border"
-                          onClick={() => view().reviewPanel.toggle()}
+                          onClick={() => view()?.reviewPanel?.toggle()}
                           aria-label={language.t("command.review.toggle")}
-                          aria-expanded={view().reviewPanel.opened()}
+                          aria-expanded={view()?.reviewPanel?.opened() ?? false}
                           aria-controls="review-panel"
                         >
-                          <Icon size="small" name={view().reviewPanel.opened() ? "review-active" : "review"} />
+                          <Icon size="small" name={view()?.reviewPanel?.opened() ? "review-active" : "review"} />
                         </Button>
                       </TooltipKeybind>
 
