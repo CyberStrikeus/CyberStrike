@@ -272,9 +272,9 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       pending.delete(key)
       return Promise.resolve()
     }
-    return sdk()
-      .api.session.interrupt({ sessionID })
-      .catch(() => {})
+    const ref = sdk()
+    if (!ref) return
+    return ref.api.session.interrupt({ sessionID }).catch(() => {})
   }
 
   const restoreCommentItems = (
@@ -350,14 +350,16 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     input.addToHistory(currentPrompt, mode)
     input.resetHistoryNavigation()
 
-    const projectDirectory = sdk().directory
+    const s = sdk()
+    if (!s) return
+    const projectDirectory = s.directory
     const permissionState = permission.currentServerState()
     const isNewSession = !params.id
     const shouldAutoAccept = isNewSession && input.autoAccept()
     const worktreeSelection = input.newSessionWorktree?.() || "main"
 
     let sessionDirectory = projectDirectory
-    let client = sdk().client
+    let client = s.client
 
     if (isNewSession) {
       if (worktreeSelection === "create") {
@@ -379,7 +381,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
           })
           return
         }
-        WorktreeState.pending(sdk().scope, createdWorktree.directory)
+        WorktreeState.pending(s.scope, createdWorktree.directory)
         sessionDirectory = createdWorktree.directory
       }
 
@@ -388,7 +390,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       }
 
       if (sessionDirectory !== projectDirectory) {
-        client = sdk().createClient({
+        client = s.createClient({
           directory: sessionDirectory,
           throwOnError: true,
         })
@@ -559,7 +561,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     clearInput()
 
     const waitForWorktree = async () => {
-      const worktree = WorktreeState.get(sdk().scope, sessionDirectory)
+      const worktree = WorktreeState.get(s.scope, sessionDirectory)
       if (!worktree || worktree.status !== "pending") return true
 
       if (sessionDirectory === projectDirectory) {
@@ -575,7 +577,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
         if (restoreInput()) restoreCommentItems(submission.target(), commentItems)
       }
 
-      pending.set(pendingKey(session.id), { abort: controller, cleanup })
+      pending.set(ScopedKey.from(s.scope, session.id), { abort: controller, cleanup })
 
       const abortWait = new Promise<Awaited<ReturnType<typeof WorktreeState.wait>>>((resolve) => {
         if (controller.signal.aborted) {
@@ -603,21 +605,21 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       })
 
       const result = await Promise.race([
-        WorktreeState.wait(sdk().scope, sessionDirectory),
+        WorktreeState.wait(s.scope, sessionDirectory),
         abortWait,
         timeout,
       ]).finally(() => {
         if (timer.id === undefined) return
         clearTimeout(timer.id)
       })
-      pending.delete(pendingKey(session.id))
+      pending.delete(ScopedKey.from(s.scope, session.id))
       if (controller.signal.aborted) return false
       if (result.status === "failed") throw new Error(result.message)
       return true
     }
 
     void sendFollowupDraft({
-      api: sdk().api.session,
+      api: s.api.session,
       sync: sync(),
       serverSync: serverSync(),
       draft,
@@ -625,7 +627,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       optimisticBusy: sessionDirectory === projectDirectory,
       before: waitForWorktree,
     }).catch((err) => {
-      pending.delete(pendingKey(session.id))
+      pending.delete(ScopedKey.from(s.scope, session.id))
       if (sessionDirectory === projectDirectory) {
         sync().set("session_status", session.id, { type: "idle" })
       }

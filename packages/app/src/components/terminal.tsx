@@ -177,8 +177,9 @@ export const Terminal = (props: TerminalProps) => {
   const language = useLanguage()
   // Terminal captures its connection for the PTY lifetime, so callers must key it per server/session.
   const connection = useServerSDK()().server
-  const directory = sdk().directory
-  const url = sdk().url
+  const sdkRef = sdk()
+  const directory = sdkRef.directory
+  const url = sdkRef.url
   const auth = connection.http
   const username = auth?.username ?? "cyberstrike"
   const password = auth?.password ?? ""
@@ -241,9 +242,9 @@ export const Terminal = (props: TerminalProps) => {
   }
 
   const pushSize = async (cols: number, rows: number) => {
-    if ((await sdk().protocol) === "v1") {
-      return sdk()
-        .client.pty.update({
+    if ((await sdkRef.protocol) === "v1") {
+      return sdkRef.client.pty
+        .update({
           ptyID: id,
           size: { cols, rows },
         })
@@ -251,8 +252,8 @@ export const Terminal = (props: TerminalProps) => {
           debugTerminal("failed to sync terminal size", err)
         })
     }
-    return sdk()
-      .api.pty.update({
+    return sdkRef.api.pty
+      .update({
         ptyID: id,
         location: { directory },
         size: { cols, rows },
@@ -537,17 +538,17 @@ export const Terminal = (props: TerminalProps) => {
       }
 
       const gone = async () => {
-        if ((await sdk().protocol) === "v1") {
-          return sdk()
-            .client.pty.get({ ptyID: id }, { throwOnError: false })
+        if ((await sdkRef.protocol) === "v1") {
+          return sdkRef.client.pty
+            .get({ ptyID: id }, { throwOnError: false })
             .then((result) => result.response.status === 404)
             .catch((err) => {
               debugTerminal("failed to inspect terminal session", err)
               return false
             })
         }
-        return sdk()
-          .api.pty.get({ ptyID: id, location: { directory } })
+        return sdkRef.api.pty
+          .get({ ptyID: id, location: { directory } })
           .then((result) => result.data.status === "exited")
           .catch((err) => {
             if (err && typeof err === "object" && "_tag" in err && err._tag === "PtyNotFoundError") return true
@@ -557,9 +558,8 @@ export const Terminal = (props: TerminalProps) => {
       }
 
       const connectToken = async () => {
-        if ((await sdk().protocol) === "v1") {
-          const result = await (sdk()
-            .client.pty as any).connectToken(
+        if ((await sdkRef.protocol) === "v1") {
+          const result = await (sdkRef.client.pty as any).connectToken(
               { ptyID: id, directory },
               {
                 throwOnError: false,
@@ -612,7 +612,7 @@ export const Terminal = (props: TerminalProps) => {
           fail(err)
           return undefined
         })
-        const protocol = await sdk().protocol
+        const protocol = await sdkRef.protocol
         // if (protocol === "v2" && !ticket) return
         if (once.value) return
         if (disposed) return

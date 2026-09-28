@@ -20,10 +20,10 @@ export function useSessionArchive() {
   const tabs = useTabs()
   const { params } = useSessionKey()
 
-  const navigateAfterRemoval = (sessionID: string, parentID?: string, nextSessionID?: string) => {
+  const navigateAfterRemoval = (sessionID: string, dir: string, parentID?: string, nextSessionID?: string) => {
     if (params.id !== sessionID) return
     const href = (id: string) =>
-      params.serverKey ? sessionHref(requireServerKey(params.serverKey), id) : legacySessionHref(sdk().directory, id)
+      params.serverKey ? sessionHref(requireServerKey(params.serverKey), id) : legacySessionHref(dir, id)
     if (parentID) {
       navigate(href(parentID))
       return
@@ -33,7 +33,7 @@ export function useSessionArchive() {
       return
     }
     if (params.serverKey) {
-      tabs.newDraft({ server: requireServerKey(params.serverKey), directory: sdk().directory })
+      tabs.newDraft({ server: requireServerKey(params.serverKey), directory: dir })
       return
     }
     navigate(`/${params.dir}/session`)
@@ -42,25 +42,27 @@ export function useSessionArchive() {
   const archive = async (sessionID: string) => {
     const session = sync()?.session.get(sessionID)
     if (!session) return
-    if ((await sdk().protocol) !== "v1") return
+    const s = sdk()
+    if (!s) return
+    if ((await s.protocol) !== "v1") return
 
     const sessions = sync()?.data.session ?? []
-    const index = sessions.findIndex((s) => s.id === sessionID)
+    const index = sessions.findIndex((x) => x.id === sessionID)
     const nextSession = index === -1 ? undefined : (sessions[index + 1] ?? sessions[index - 1])
 
-    await sdk()
-      .client.session.update({ sessionID, directory: sdk().directory, time: { archived: Date.now() } })
+    await s.client.session
+      .update({ sessionID, directory: s.directory, time: { archived: Date.now() } })
       .then(() => {
         sync().set(
           produce((draft) => {
-            const index = draft.session.findIndex((s) => s.id === sessionID)
-            if (index !== -1) draft.session.splice(index, 1)
+            const idx = draft.session.findIndex((x) => x.id === sessionID)
+            if (idx !== -1) draft.session.splice(idx, 1)
           }),
         )
         sync()?.session.evict(sessionID)
         serverSync().homeSessions.remove(sessionID)
-        navigateAfterRemoval(sessionID, session.parentID, nextSession?.id)
-        notifySessionTabsRemoved({ directory: sdk().directory, sessionIDs: [sessionID] })
+        navigateAfterRemoval(sessionID, s.directory, session.parentID, nextSession?.id)
+        notifySessionTabsRemoved({ directory: s.directory, sessionIDs: [sessionID] })
       })
       .catch((err) => {
         showToast({
