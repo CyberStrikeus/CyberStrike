@@ -22,7 +22,9 @@ export const DialogSelectSession: Component = () => {
   const navigate = useNavigate()
 
   const [sessions] = createResource(async () => {
-    const result = await sdk().client.session.list()
+    const s = sdk()
+    if (!s) return []
+    const result = await s.client.session.list()
     return result.data ?? []
   })
 
