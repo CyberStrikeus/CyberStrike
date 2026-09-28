@@ -922,6 +922,21 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     }),
   ]
 
+  const skillCmds = () => [
+    sessionCommand({
+      id: "session.skills",
+      title: "Skills",
+      description: "Browse and use available skills",
+      slash: "skills",
+      onSelect: () => {
+        void openDialog(
+          () => import("@/components/dialog-skill-browser"),
+          (x) => dialog.show(() => <x.DialogSkillBrowser />),
+        )
+      },
+    }),
+  ]
+
   command.register("session", () => [
     ...sessionCmds(),
     ...extraSessionCmds(),
@@ -935,5 +950,6 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     ...mcpCmds(),
     ...permissionsCmds(),
     ...hackbrowserCmds(),
+    ...skillCmds(),
   ])
 }
