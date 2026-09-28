@@ -787,6 +787,25 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       },
     }),
     securityCommand({
+      id: "session.hackbrowser.stop",
+      title: "Stop HackBrowser",
+      description: "Stop the active HackBrowser crawl",
+      slash: "hackbrowser-stop",
+      disabled: !params.id,
+      onSelect: async () => {
+        const sessionID = params.id
+        if (!sessionID) return
+        const s = sdk()
+        if (!s) return
+        try {
+          await (s.client.session as any).hackbrowserStop({ sessionID })
+          showToast({ title: "HackBrowser stopped", variant: "success" })
+        } catch {
+          showToast({ title: "No active HackBrowser crawl", variant: "error" })
+        }
+      },
+    }),
+    securityCommand({
       id: "session.bolt.select",
       title: "Bolt Templates",
       description: "Browse and select Bolt security templates",
@@ -797,6 +816,108 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
           () => import("@/components/dialog-select-bolt"),
           (x) => dialog.show(() => <x.DialogSelectBolt />),
         )
+      },
+    }),
+    securityCommand({
+      id: "session.vulnerabilities",
+      title: "Vulnerabilities",
+      description: "Browse discovered vulnerabilities",
+      slash: "vulnerabilities",
+      disabled: !params.id,
+      onSelect: () => {
+        void openDialog(
+          () => import("@/components/dialog-select-vulnerability"),
+          (x) => dialog.show(() => <x.DialogSelectVulnerability />),
+        )
+      },
+    }),
+    securityCommand({
+      id: "session.queue.pause",
+      title: "Pause Queue",
+      description: "Pause the ingest queue for this session",
+      slash: "qpause",
+      disabled: !params.id,
+      onSelect: async () => {
+        const sessionID = params.id
+        if (!sessionID) return
+        const s = sdk()
+        if (!s) return
+        try {
+          await (s.client.session as any).queuePause({ sessionID })
+          showToast({ title: "Queue paused", variant: "success" })
+        } catch {
+          showToast({ title: "Failed to pause queue", variant: "error" })
+        }
+      },
+    }),
+    securityCommand({
+      id: "session.queue.resume",
+      title: "Resume Queue",
+      description: "Resume the ingest queue for this session",
+      slash: "qresume",
+      disabled: !params.id,
+      onSelect: async () => {
+        const sessionID = params.id
+        if (!sessionID) return
+        const s = sdk()
+        if (!s) return
+        try {
+          await (s.client.session as any).queueResume({ sessionID })
+          showToast({ title: "Queue resumed", variant: "success" })
+        } catch {
+          showToast({ title: "Failed to resume queue", variant: "error" })
+        }
+      },
+    }),
+    securityCommand({
+      id: "session.methodology",
+      title: "Methodology",
+      description: "View methodology coverage and state",
+      slash: "methodology",
+      disabled: !params.id,
+      onSelect: async () => {
+        const sessionID = params.id
+        if (!sessionID) return
+        const s = sdk()
+        if (!s) return
+        try {
+          const res = await (s.client as any).methodology.state({ sessionID })
+          const state = res?.data
+          if (!state) {
+            showToast({ title: "No methodology data", variant: "error" })
+            return
+          }
+          const covered = state.covered ?? 0
+          const total = state.total ?? 0
+          showToast({
+            title: `Methodology: ${covered}/${total} covered`,
+            description: state.phase ?? "Unknown phase",
+          })
+        } catch {
+          showToast({ title: "Failed to load methodology", variant: "error" })
+        }
+      },
+    }),
+    securityCommand({
+      id: "session.report",
+      title: "Generate Report",
+      description: "Compile and download the assessment report",
+      slash: "report",
+      disabled: !params.id,
+      onSelect: async () => {
+        const sessionID = params.id
+        if (!sessionID) return
+        const s = sdk()
+        if (!s) return
+        try {
+          showToast({ title: "Compiling report..." })
+          const res = await (s.client as any).methodology.reportCompile({ sessionID })
+          if (res?.data) {
+            showToast({ title: "Report compiled", variant: "success" })
+          }
+        } catch {
+          showToast({ title: "Failed to compile report", variant: "error" })
+        }
       },
     }),
   ]
