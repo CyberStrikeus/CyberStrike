@@ -50,15 +50,17 @@ export const DialogSelectBolt: Component = () => {
 
   const toggle = async (name: string) => {
     if (loading()) return
+    const s = sdk()
+    if (!s) return
     setLoading(name)
     try {
       const status = sync().data.bolt[name]
       if (status?.status === "connected") {
-        await (sdk().client as any).bolt.disconnect({ name })
+        await (s.client as any).bolt.disconnect({ name })
       } else {
-        await (sdk().client as any).bolt.connect({ name })
+        await (s.client as any).bolt.connect({ name })
       }
-      const result = await (sdk().client as any).bolt.status()
+      const result = await (s.client as any).bolt.status()
       if (result.data) sync().set("bolt", result.data)
     } finally {
       setLoading(null)
@@ -67,10 +69,12 @@ export const DialogSelectBolt: Component = () => {
 
   const remove = async (name: string) => {
     if (loading()) return
+    const s = sdk()
+    if (!s) return
     setLoading(name)
     try {
-      await (sdk().client as any).bolt.remove({ name })
-      const result = await (sdk().client as any).bolt.status()
+      await (s.client as any).bolt.remove({ name })
+      const result = await (s.client as any).bolt.status()
       if (result.data) sync().set("bolt", result.data)
     } catch {
     } finally {
@@ -135,6 +139,8 @@ export const DialogSelectBolt: Component = () => {
   const handleName = async () => {
     const name = sanitizeName(serverName() || defaultName())
     if (!name) return
+    const s = sdk()
+    if (!s) return
 
     if (sync().data.bolt?.[name]) {
       setError(`"${name}" already exists`)
@@ -143,7 +149,7 @@ export const DialogSelectBolt: Component = () => {
 
     // Check duplicate URL
     try {
-      const cfgRes = await sdk().client.config.get()
+      const cfgRes = await s.client.config.get()
       const cfg = cfgRes.data as Record<string, Record<string, { url?: string }>> | undefined
       if (cfg) {
         const inputOrigin = new URL(boltUrl()).origin
@@ -160,13 +166,13 @@ export const DialogSelectBolt: Component = () => {
 
     try {
       // 1. Pair with Bolt server (Ed25519 key exchange)
-      await (sdk().client as any).bolt.pair({ name, url: boltUrl(), adminToken: adminToken() })
+      await (s.client as any).bolt.pair({ name, url: boltUrl(), adminToken: adminToken() })
 
       // 2. Connect via bolt route (also persists to global config)
-      await (sdk().client as any).bolt.add({ name, config: { url: boltUrl() } })
+      await (s.client as any).bolt.add({ name, config: { url: boltUrl() } })
 
       // 4. Refresh status
-      const result = await (sdk().client as any).bolt.status()
+      const result = await (s.client as any).bolt.status()
       if (result.data) sync().set("bolt", result.data)
 
       const serverStatus = (result.data as Record<string, { status: string }>)?.[name]?.status ?? "unknown"

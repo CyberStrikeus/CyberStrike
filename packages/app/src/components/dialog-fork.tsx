@@ -60,16 +60,18 @@ export const DialogFork: Component = () => {
 
     const sessionID = params.id
     if (!sessionID) return
+    const s = sdk()
+    if (!s) return
 
     const parts = sync()?.data.part[item.id] ?? []
     const restored = extractPromptFromParts(parts, {
-      directory: sdk().directory,
+      directory: s.directory,
       attachmentName: language.t("common.attachment"),
     })
-    const dir = base64Encode(sdk().directory)
+    const dir = base64Encode(s.directory)
 
-    sdk()
-      .api.session.fork({ sessionID, messageID: item.id })
+    s.api.session
+      .fork({ sessionID, messageID: item.id })
       .then((forked) => {
         dialog.close()
         prompt.set(restored, undefined, { dir, id: forked.id })

@@ -40,10 +40,12 @@ export const QuestionDock: Component<{ request: QuestionRequest }> = (props) => 
 
   const reply = async (answers: QuestionAnswer[]) => {
     if (store.sending) return
+    const s = sdk()
+    if (!s) return
 
     setStore("sending", true)
     try {
-      await sdk().client.question.reply({ requestID: props.request.id, answers })
+      await s.client.question.reply({ requestID: props.request.id, answers })
     } catch (err) {
       fail(err)
     } finally {
@@ -53,10 +55,12 @@ export const QuestionDock: Component<{ request: QuestionRequest }> = (props) => 
 
   const reject = async () => {
     if (store.sending) return
+    const s = sdk()
+    if (!s) return
 
     setStore("sending", true)
     try {
-      await sdk().client.question.reject({ requestID: props.request.id })
+      await s.client.question.reject({ requestID: props.request.id })
     } catch (err) {
       fail(err)
     } finally {
