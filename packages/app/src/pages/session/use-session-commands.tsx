@@ -200,8 +200,10 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       return
     }
 
-    const url = await sdk()
-      .client.session.share({ sessionID })
+    const s = sdk()
+    if (!s) return
+    const url = await s.client.session
+      .share({ sessionID })
       .then((res) => res.data?.share?.url)
       .catch(() => undefined)
     if (!url) {
@@ -219,9 +221,11 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const unshare = async () => {
     const sessionID = params.id
     if (!sessionID) return
+    const s = sdk()
+    if (!s) return
 
-    await sdk()
-      .client.session.unshare({ sessionID })
+    await s.client.session
+      .unshare({ sessionID })
       .then(() =>
         showToast({
           title: language.t("toast.session.unshare.success.title"),
@@ -241,10 +245,12 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const exportSession = async () => {
     const sessionID = params.id
     if (!sessionID) return
+    const s = sdk()
+    if (!s) return
     try {
       const data = await fetchSessionExport({
         sessionID,
-        client: sdk().client,
+        client: s.client,
       })
       const filename = sessionExportFilename(data.info)
       downloadSessionExport(filename, data)
@@ -397,9 +403,11 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const undo = async () => {
     const sessionID = params.id
     if (!sessionID) return
+    const s = sdk()
+    if (!s) return
     const owner = sessionOwnership.capture()
-    const session = sdk().api.session
-    const directory = sdk().directory
+    const session = s.api.session
+    const directory = s.directory
     const promptSession = prompt.capture()
     const revert = info()?.revert?.messageID
     const messages = userMessages()
@@ -427,8 +435,10 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const redo = async () => {
     const sessionID = params.id
     if (!sessionID) return
+    const s = sdk()
+    if (!s) return
     const owner = sessionOwnership.capture()
-    const session = sdk().api.session
+    const session = s.api.session
     const messages = userMessages()
     const promptSession = prompt.capture()
 
@@ -471,7 +481,9 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       return
     }
 
-    await sdk().api.session.compact({
+    const s = sdk()
+    if (!s) return
+    await s.api.session.compact({
       sessionID,
       model: { providerID: model.provider.id, modelID: model.id },
     })
