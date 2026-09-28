@@ -586,7 +586,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   )
 
   const mcpResourceList = createMemo(() =>
-    Object.values(sync()?.data.mcp_resource).map(
+    Object.values(sync()?.data.mcp_resource ?? {}).map(
       (resource): AtOption => ({
         type: "resource",
         name: resource.name,
@@ -703,7 +703,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         type: "builtin" as const,
       }))
 
-    const custom = sync()?.data.command.map((cmd) => ({
+    const custom = (sync()?.data.command ?? []).map((cmd) => ({
       id: `custom.${cmd.name}`,
       trigger: cmd.name,
       title: cmd.name,

@@ -246,7 +246,7 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
       })),
   )
   const resources = createMemo(() =>
-    Object.values(sync()?.data.mcp_resource).map((resource) => ({
+    Object.values(sync()?.data.mcp_resource ?? {}).map((resource) => ({
       id: `resource:${resource.server}:${resource.uri}`,
       kind: "resource" as const,
       label: `@${resource.name}`,
@@ -292,7 +292,7 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
     })),
   ])
   const slashCommands = createMemo(() => [
-    ...sync()?.data.command.map((item) => ({
+    ...(sync()?.data.command ?? []).map((item) => ({
       id: `custom.${item.name}`,
       trigger: item.name,
       title: item.name,
