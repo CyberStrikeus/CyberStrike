@@ -38,6 +38,7 @@ export namespace Skill {
     chains_with: z.array(z.string()).optional(),
     prerequisites: z.array(z.string()).optional(),
     severity_boost: z.record(z.string(), z.string()).optional(),
+    slash: z.boolean().optional(),
   })
   export type Info = z.infer<typeof Info>
 
@@ -162,6 +163,7 @@ export namespace Skill {
           typeof raw.severity_boost === "object" && raw.severity_boost !== null && !Array.isArray(raw.severity_boost)
             ? (raw.severity_boost as Record<string, string>)
             : undefined,
+        slash: raw.slash === true ? true : undefined,
       }
     }
 
