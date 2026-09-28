@@ -228,10 +228,12 @@ export function SessionContextTab() {
   const exportSession = async () => {
     const sessionID = params.id
     if (!sessionID) return
+    const s = sdk()
+    if (!s) return
     try {
       const data = await fetchSessionExport({
         sessionID,
-        client: sdk().client,
+        client: s.client,
       })
       const filename = sessionExportFilename(data.info)
       downloadSessionExport(filename, data)
