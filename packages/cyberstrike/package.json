@@ -87,7 +87,7 @@
     "@ai-sdk/openai-compatible": "1.0.32",
     "@ai-sdk/perplexity": "2.0.23",
     "@ai-sdk/provider": "2.0.1",
-    "@ai-sdk/provider-utils": "3.0.20",
+    "@ai-sdk/provider-utils": "3.0.28",
     "@ai-sdk/togetherai": "1.0.34",
     "@ai-sdk/vercel": "1.0.33",
     "@ai-sdk/xai": "2.0.51",
