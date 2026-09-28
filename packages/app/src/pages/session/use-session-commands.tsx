@@ -316,6 +316,64 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     )
   }
 
+  const renameSession = async () => {
+    const sessionID = params.id
+    if (!sessionID) return
+    const current = info()?.title ?? ""
+    const title = window.prompt("Rename session", current)
+    if (!title || title === current) return
+    const s = sdk()
+    if (!s) return
+    try {
+      await s.api.session.rename({ sessionID, title })
+      showToast({ title: "Session renamed", variant: "success" })
+    } catch (err) {
+      showToast({
+        title: language.t("common.requestFailed"),
+        description: err instanceof Error ? err.message : undefined,
+        variant: "error",
+      })
+    }
+  }
+
+  const copyTranscript = async () => {
+    const sessionID = params.id
+    if (!sessionID) return
+    const s = sdk()
+    if (!s) return
+    try {
+      const data = await fetchSessionExport({ sessionID, client: s.client })
+      const text = data.messages
+        .map((m) => {
+          const role = m.info.role === "user" ? "User" : "Assistant"
+          const parts = m.parts
+            .filter((p) => p.type === "text")
+            .map((p) => "text" in p ? (p as { text: string }).text : "")
+            .join("\n")
+          return `${role}:\n${parts}`
+        })
+        .join("\n\n")
+      const copied = await write(text)
+      showToast({
+        title: copied ? "Copied to clipboard" : "Failed to copy",
+        variant: copied ? "success" : "error",
+      })
+    } catch (err) {
+      showToast({
+        title: "Failed to copy transcript",
+        description: err instanceof Error ? err.message : undefined,
+        variant: "error",
+      })
+    }
+  }
+
+  const openSettingsAt = (tab: string) => {
+    void import("@/components/settings-v2").then((module) => {
+      const sessionID = params.id
+      dialog.show(() => <module.DialogSettings sessionID={sessionID} defaultValue={tab} />)
+    })
+  }
+
   const toggleAutoAccept = () => {
     const s = sdk()
     if (!s) return
@@ -648,6 +706,70 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     }),
   ]
 
+  const extraSessionCmds = () => [
+    sessionCommand({
+      id: "session.rename",
+      title: language.t("common.rename"),
+      description: "Rename current session",
+      slash: "rename",
+      disabled: !params.id,
+      onSelect: renameSession,
+    }),
+    sessionCommand({
+      id: "session.copy",
+      title: "Copy Transcript",
+      description: "Copy session transcript to clipboard",
+      slash: "copy",
+      disabled: !params.id,
+      onSelect: copyTranscript,
+    }),
+    sessionCommand({
+      id: "session.timeline",
+      title: "Jump to Message",
+      description: "Navigate to a specific message in the session",
+      slash: "timeline",
+      disabled: !params.id || visibleUserMessages().length === 0,
+      onSelect: () => {
+        const msgs = visibleUserMessages()
+        if (msgs.length === 0) return
+        setActiveMessage(msgs[msgs.length - 1])
+      },
+    }),
+  ]
+
+  const extraViewCmds = () => [
+    viewCommand({
+      id: "view.thinking",
+      title: settings.general.showReasoningSummaries()
+        ? "Hide Thinking"
+        : "Show Thinking",
+      description: "Toggle AI reasoning/thinking display",
+      slash: "thinking",
+      onSelect: () => {
+        const current = settings.general.showReasoningSummaries()
+        settings.general.setShowReasoningSummaries(!current)
+        showToast({
+          title: current ? "Thinking hidden" : "Thinking shown",
+          variant: "success",
+        })
+      },
+    }),
+    viewCommand({
+      id: "view.status",
+      title: "View Status",
+      description: "Show server and MCP connection status",
+      slash: "status",
+      onSelect: () => openSettingsAt("servers"),
+    }),
+    viewCommand({
+      id: "view.help",
+      title: "Help",
+      description: "Show keyboard shortcuts and help",
+      slash: "help",
+      onSelect: () => openSettingsAt("shortcuts"),
+    }),
+  ]
+
   const hackbrowserCmds = () => [
     securityCommand({
       id: "session.hackbrowser.launch",
@@ -681,10 +803,12 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
 
   command.register("session", () => [
     ...sessionCmds(),
+    ...extraSessionCmds(),
     ...shareCmds(),
     ...fileCmds(),
     ...contextCmds(),
     ...viewCmds(),
+    ...extraViewCmds(),
     ...terminalCmds(),
     ...messageCmds(),
     ...mcpCmds(),
