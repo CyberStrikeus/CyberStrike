@@ -68,7 +68,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
     const settings = useSettings()
 
     const id = createMemo(() => params.id || undefined)
-    const list = createMemo(() => sync()?.data.agent.filter((item) => item.mode !== "subagent" && !item.hidden))
+    const list = createMemo(() => (sync()?.data.agent ?? []).filter((item) => item.mode !== "subagent" && !item.hidden))
     const agentsVisible = createMemo(() => settings.visibility.customAgents() || hasCustomAgent(list()))
     const connected = createMemo(() => new Set(providers.connected().map((item) => item.id)))
 
@@ -275,7 +275,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       setStore("draft", state)
     }
 
-    const recent = createMemo(() => models.recent.list().map(models.find).filter(Boolean))
+    const recent = createMemo(() => (models.recent.list() ?? []).map(models.find).filter(Boolean))
 
     const model = {
       ready: models.ready,
@@ -334,7 +334,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           const model = current()
           if (!model) return
           const saved = models.variant.get({ providerID: model.provider.id, modelID: model.id })
-          if (saved && this.list().includes(saved)) return saved
+          if (saved && (this.list() ?? []).includes(saved)) return saved
         },
         list() {
           const item = current()

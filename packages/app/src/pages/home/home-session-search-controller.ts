@@ -34,7 +34,7 @@ export function createHomeSessionSearchController(home: HomeController, sessions
   const placeholder = createMemo(() => {
     const project = home.project.selected()
     if (project) return language.t("home.sessions.search.placeholder.scoped", { scope: displayName(project) })
-    if (home.server.list().length > 1) {
+    if ((home.server.list() ?? []).length > 1) {
       const conn = home.server.focused()
       if (conn) return language.t("home.sessions.search.placeholder.scoped", { scope: serverName(conn) })
     }

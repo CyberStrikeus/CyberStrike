@@ -514,7 +514,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     if (text.startsWith("/")) {
       const [cmdName, ...args] = text.split(" ")
       const commandName = cmdName.slice(1)
-      const customCommand = sync()?.data.command.find((c) => c.name === commandName)
+      const customCommand = (sync()?.data.command ?? []).find((c) => c.name === commandName)
       if (customCommand) {
         clearInput()
         const messageID = Identifier.ascending("message")

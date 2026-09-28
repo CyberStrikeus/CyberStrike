@@ -15,7 +15,7 @@ export function DialogSelectAgent() {
   const [hoveredName, setHoveredName] = createSignal("")
 
   const items = createMemo(() => {
-    const visible = sync().data.agent.filter((a) => !a.hidden)
+    const visible = (sync()?.data?.agent ?? []).filter((a) => !a.hidden)
     const primary = visible.filter((a) => a.mode !== "subagent")
     return visible.map((a) => ({
       name: a.name,

@@ -27,7 +27,7 @@ export function createPromptModelSelection(input: { agent: () => { model?: Model
     if (valid(model)) return model
   }
 
-  const recent = () => models.recent.list().find(valid)
+  const recent = () => (models.recent.list() ?? []).find(valid)
   const fallback = () => {
     const defaults = providers.default()
     return providers.connected().flatMap((provider) => {
@@ -99,7 +99,7 @@ export function createPromptModelSelection(input: { agent: () => { model?: Model
         const model = current()
         if (!model) return
         const saved = models.variant.get({ providerID: model.provider.id, modelID: model.id })
-        if (saved && this.list().includes(saved)) return saved
+        if (saved && (this.list() ?? []).includes(saved)) return saved
       },
       list() {
         return Object.keys(current()?.variants ?? {})

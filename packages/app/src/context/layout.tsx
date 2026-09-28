@@ -513,7 +513,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
       })
     })
 
-    const enriched = createMemo(() => server.projects.list().map(enrich))
+    const enriched = createMemo(() => (server.projects.list() ?? []).map(enrich))
     const list = createMemo(() => {
       const projects = enriched()
       return projects.map((project) => {
@@ -598,7 +598,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         sessionTimer = window.setTimeout(() => {
           sessionTimer = undefined
           void Promise.all(
-            server.projects.list().map((project) => {
+            (server.projects.list() ?? []).map((project) => {
               return serverSync().project.loadSessions(project.worktree)
             }),
           )
@@ -642,7 +642,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         }),
         open(directory: string) {
           const root = rootFor(directory)
-          if (server.projects.list().find((x) => x.worktree === root)) return
+          if ((server.projects.list() ?? []).find((x) => x.worktree === root)) return
           void serverSync().project.loadSessions(root)
           server.projects.open(root)
         },

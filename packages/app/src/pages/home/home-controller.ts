@@ -91,7 +91,7 @@ export function createHomeController() {
         if (!directory) return
         const ctx = global.ensureServerCtx(conn)
         directories.forEach((item) => {
-          if (ctx.projects.list().some((project) => project.worktree === item)) return
+          if ((ctx.projects.list() ?? []).some((project) => project.worktree === item)) return
           const location = { directory: item }
           void ctx.sdk.api.file
             .list({ path: ".", location })

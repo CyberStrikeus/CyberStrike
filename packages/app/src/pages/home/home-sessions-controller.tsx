@@ -45,11 +45,11 @@ export function createHomeSessionsController(home: HomeController) {
   const language = useLanguage()
   const projectDirectories = createMemo(() => {
     const project = home.project.selected()
-    if (!project) return home.project.list().flatMap(directories)
+    if (!project) return (home.project.list() ?? []).flatMap(directories)
     return directories(project)
   })
   const projectByID = createMemo(
-    () => new Map(home.project.list().flatMap((project) => (project.id ? [[project.id, project] as const] : []))),
+    () => new Map((home.project.list() ?? []).flatMap((project) => (project.id ? [[project.id, project] as const] : []))),
   )
   const homeSessions = () => home.server.focusedSync().homeSessions
   const sessionEventLoad = useQuery(() => ({
