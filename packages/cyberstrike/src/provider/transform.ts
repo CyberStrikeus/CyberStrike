@@ -243,10 +243,8 @@ export namespace ProviderTransform {
     })
   }
 
-  export function message(msgs: ModelMessage[], model: Provider.Model, options: Record<string, unknown>) {
-    msgs = unsupportedParts(msgs, model)
-    msgs = normalizeMessages(msgs, model, options)
-    if (
+  function supportsAssistantPrefill(model: Provider.Model): boolean {
+    return (
       (model.providerID === "anthropic" ||
         model.api.id.includes("anthropic") ||
         model.api.id.includes("claude") ||
@@ -254,8 +252,22 @@ export namespace ProviderTransform {
         model.id.includes("claude") ||
         model.api.npm === "@ai-sdk/anthropic") &&
       model.api.npm !== "@ai-sdk/gateway"
-    ) {
+    )
+  }
+
+  export function message(msgs: ModelMessage[], model: Provider.Model, options: Record<string, unknown>) {
+    msgs = unsupportedParts(msgs, model)
+    msgs = normalizeMessages(msgs, model, options)
+    const isAnthropic = supportsAssistantPrefill(model)
+    if (isAnthropic) {
       msgs = applyCaching(msgs, model)
+    }
+
+    // Non-Anthropic providers reject trailing assistant messages (prefill).
+    // Convert to user message so wrapUp instructions still reach the model.
+    const last = msgs[msgs.length - 1]
+    if (last && last.role === "assistant" && !isAnthropic) {
+      msgs = [...msgs.slice(0, -1), { role: "user", content: typeof last.content === "string" ? last.content : "" } as ModelMessage]
     }
 
     // Remap providerOptions keys from stored providerID to expected SDK key
