@@ -1193,9 +1193,11 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   // Check provider variants directly: `variants` also includes the UI-only default option.
   const showVariantControl = createMemo(() => props.controls.model.selection.variant.list().length > 0)
   const accepting = createMemo(() => {
+    const s = sdk()
+    if (!s) return false
     const id = props.controls.session.id
-    if (!id) return permission.isAutoAcceptingDirectory(sdk().directory)
-    return permission.isAutoAccepting(id, sdk().directory)
+    if (!id) return permission.isAutoAcceptingDirectory(s.directory)
+    return permission.isAutoAccepting(id, s.directory)
   })
 
   const { abort, handleSubmit } =

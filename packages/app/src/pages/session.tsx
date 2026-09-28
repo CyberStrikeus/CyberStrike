@@ -299,7 +299,7 @@ function TargetSessionPage() {
   const sdk = useSDK()
   const serverSDK = useServerSDK()
   return (
-    <Show when={`${serverSDK().scope}\0${sdk().directory}`} keyed>
+    <Show when={sdk() && `${serverSDK().scope}\0${sdk()!.directory}`} keyed>
       <SessionPage />
     </Show>
   )

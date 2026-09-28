@@ -96,8 +96,9 @@ const SessionRoute = () => {
   createEffect(() => {
     if (!settings.general.newLayoutDesigns()) return
     if (params.id || search.draftId) return
-    if (!tabs.ready() || !sdk().directory) return
-    tabs.newDraft({ server: server.key, directory: sdk().directory }, search.prompt)
+    const s = sdk()
+    if (!tabs.ready() || !s?.directory) return
+    tabs.newDraft({ server: server.key, directory: s.directory }, search.prompt)
   })
 
   return (

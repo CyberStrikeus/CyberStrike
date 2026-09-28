@@ -191,9 +191,11 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
   }
 
   const accepting = createMemo(() => {
+    const s = sdk()
+    if (!s) return false
     const id = props.controls.session.id
-    if (!id) return permission.isAutoAcceptingDirectory(sdk().directory)
-    return permission.isAutoAccepting(id, sdk().directory)
+    if (!id) return permission.isAutoAcceptingDirectory(s.directory)
+    return permission.isAutoAccepting(id, s.directory)
   })
   const submission = createPromptSubmit({
     prompt,
