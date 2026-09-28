@@ -143,9 +143,11 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const permissionsCommand = withCategory(language.t("command.category.permissions"))
 
   const isAutoAcceptActive = () => {
+    const s = sdk()
+    if (!s) return false
     const sessionID = params.id
-    if (sessionID) return permission.isAutoAccepting(sessionID, sdk().directory)
-    return permission.isAutoAcceptingDirectory(sdk().directory)
+    if (sessionID) return permission.isAutoAccepting(sessionID, s.directory)
+    return permission.isAutoAcceptingDirectory(s.directory)
   }
   const write = async (value: string) => {
     const body = typeof document === "undefined" ? undefined : document.body
@@ -314,13 +316,15 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   }
 
   const toggleAutoAccept = () => {
+    const s = sdk()
+    if (!s) return
     const sessionID = params.id
-    if (sessionID) permission.toggleAutoAccept(sessionID, sdk().directory)
-    else permission.toggleAutoAcceptDirectory(sdk().directory)
+    if (sessionID) permission.toggleAutoAccept(sessionID, s.directory)
+    else permission.toggleAutoAcceptDirectory(s.directory)
 
     const active = sessionID
-      ? permission.isAutoAccepting(sessionID, sdk().directory)
-      : permission.isAutoAcceptingDirectory(sdk().directory)
+      ? permission.isAutoAccepting(sessionID, s.directory)
+      : permission.isAutoAcceptingDirectory(s.directory)
     showToast({
       title: active
         ? language.t("toast.permissions.autoaccept.on.title")
