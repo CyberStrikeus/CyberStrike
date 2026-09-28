@@ -929,6 +929,7 @@ export default function LegacyLayout(props: ParentProps) {
         id: "provider.connect",
         title: language.t("command.provider.connect"),
         category: language.t("command.category.provider"),
+        slash: "connect",
         onSelect: () => connectProvider(),
       },
       {
@@ -1012,6 +1013,7 @@ export default function LegacyLayout(props: ParentProps) {
         title: language.t("command.theme.cycle"),
         category: language.t("command.category.theme"),
         keybind: "mod+shift+t",
+        slash: "themes",
         onSelect: () => cycleTheme(1),
       },
     ]
