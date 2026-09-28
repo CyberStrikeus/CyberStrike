@@ -34,7 +34,7 @@ export const DialogManageModels: Component = () => {
     void dialog.show(() => <DialogConnectProvider directory={directory} />)
   }
   const providerRank = (id: string) => popularProviders.indexOf(id)
-  const providerList = (providerID: string) => local.model.list().filter((x) => x.provider.id === providerID)
+  const providerList = (providerID: string) => (local.model.list() ?? []).filter((x) => x.provider.id === providerID)
   const providerVisible = (providerID: string) =>
     providerList(providerID).every((x) => local.model.visible({ modelID: x.id, providerID: x.provider.id }))
   const setProviderVisibility = (providerID: string, checked: boolean) => {
@@ -125,7 +125,7 @@ export const DialogManageModelsV2: Component = () => {
   const handleConnectProvider = () => {
     void dialog.show(() => <DialogConnectProvider directory={directory} />)
   }
-  const providerList = (providerID: string) => local.model.list().filter((x) => x.provider.id === providerID)
+  const providerList = (providerID: string) => (local.model.list() ?? []).filter((x) => x.provider.id === providerID)
   const providerVisible = (providerID: string) =>
     providerList(providerID).every((x) => local.model.visible({ modelID: x.id, providerID: x.provider.id }))
   const setProviderVisibility = (providerID: string, checked: boolean) => {

@@ -1189,9 +1189,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     />
   )
 
-  const variants = createMemo(() => ["default", ...props.controls.model.selection.variant.list()])
-  // Check provider variants directly: `variants` also includes the UI-only default option.
-  const showVariantControl = createMemo(() => props.controls.model.selection.variant.list().length > 0)
+  const variants = createMemo(() => ["default", ...(props.controls.model.selection.variant.list() ?? [])])
+  const showVariantControl = createMemo(() => (props.controls.model.selection.variant.list() ?? []).length > 0)
   const accepting = createMemo(() => {
     const s = sdk()
     if (!s) return false

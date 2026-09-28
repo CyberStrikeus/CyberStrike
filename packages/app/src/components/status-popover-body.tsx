@@ -281,7 +281,7 @@ export function StatusPopoverBody(props: { shown: Accessor<boolean> }) {
   const sortedServers = createMemo(() => {
     const list = settings.general.newLayoutDesigns()
       ? global.servers.list()
-      : global.servers.list().filter((x) => global.ensureServerCtx(x).sdk.protocolKind() !== "v2")
+      : (global.servers.list() ?? []).filter((x) => global.ensureServerCtx(x).sdk.protocolKind() !== "v2")
     return listServersByHealth(list, server.key, global.servers.health)
   })
   const toggleMcp = useMcpToggle()
