@@ -141,6 +141,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const terminalCommand = withCategory(language.t("command.category.terminal"))
   const mcpCommand = withCategory(language.t("command.category.mcp"))
   const permissionsCommand = withCategory(language.t("command.category.permissions"))
+  const securityCommand = withCategory("Security")
 
   const isAutoAcceptActive = () => {
     const s = sdk()
@@ -647,6 +648,37 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     }),
   ]
 
+  const hackbrowserCmds = () => [
+    securityCommand({
+      id: "session.hackbrowser.launch",
+      title: "Launch HackBrowser",
+      description: "Start a HackBrowser crawl against a target",
+      slash: "hackbrowser",
+      disabled: !params.id,
+      onSelect: () => {
+        const sessionID = params.id
+        if (!sessionID) return
+        void openDialog(
+          () => import("@/components/dialog-hackbrowser-launch"),
+          (x) => dialog.show(() => <x.DialogHackbrowserLaunch sessionID={sessionID} />),
+        )
+      },
+    }),
+    securityCommand({
+      id: "session.bolt.select",
+      title: "Bolt Templates",
+      description: "Browse and select Bolt security templates",
+      slash: "bolt",
+      disabled: !params.id,
+      onSelect: () => {
+        void openDialog(
+          () => import("@/components/dialog-select-bolt"),
+          (x) => dialog.show(() => <x.DialogSelectBolt />),
+        )
+      },
+    }),
+  ]
+
   command.register("session", () => [
     ...sessionCmds(),
     ...shareCmds(),
@@ -657,5 +689,6 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     ...messageCmds(),
     ...mcpCmds(),
     ...permissionsCmds(),
+    ...hackbrowserCmds(),
   ])
 }
