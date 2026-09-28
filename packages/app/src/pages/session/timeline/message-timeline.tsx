@@ -673,8 +673,11 @@ export function MessageTimeline(props: {
   }))
 
   const titleMutation = useMutation(() => ({
-    mutationFn: (input: { id: string; title: string }) =>
-      sdk().api.session.rename({ sessionID: input.id, title: input.title }),
+    mutationFn: (input: { id: string; title: string }) => {
+      const s = sdk()
+      if (!s) return Promise.reject(new Error("SDK unavailable"))
+      return s.api.session.rename({ sessionID: input.id, title: input.title })
+    },
     onSuccess: (_, input) => {
       sync().set(
         produce((draft) => {
@@ -792,10 +795,12 @@ export function MessageTimeline(props: {
   }
 
   const exportSession = async (sessionID: string) => {
+    const s = sdk()
+    if (!s) return
     try {
       const data = await fetchSessionExport({
         sessionID,
-        client: sdk().client,
+        client: s.client,
       })
       const filename = sessionExportFilename(data.info)
       downloadSessionExport(filename, data)
@@ -817,13 +822,14 @@ export function MessageTimeline(props: {
   const deleteSession = async (sessionID: string) => {
     const session = sync()?.session.get(sessionID)
     if (!session) return false
+    const s = sdk()
+    if (!s) return false
 
-    const sessions = (sync()?.data.session ?? []).filter((s) => !s.parentID && !s.time?.archived)
-    const index = sessions.findIndex((s) => s.id === sessionID)
+    const sessions = (sync()?.data.session ?? []).filter((x) => !x.parentID && !x.time?.archived)
+    const index = sessions.findIndex((x) => x.id === sessionID)
     const nextSession = index === -1 ? undefined : (sessions[index + 1] ?? sessions[index - 1])
 
-    const result = await sdk()
-      .api.session.remove({ sessionID })
+    const result = await s.api.session.remove({ sessionID })
       .then(() => true)
       .catch((err) => {
         showToast({
@@ -863,27 +869,27 @@ export function MessageTimeline(props: {
       }
     }
 
-    sessionArchive.navigateAfterRemoval(sessionID, session.parentID, nextSession?.id)
+    sessionArchive.navigateAfterRemoval(sessionID, s.directory, session.parentID, nextSession?.id)
 
     sync().set(
       produce((draft) => {
-        draft.session = draft.session.filter((s) => !removed.has(s.id))
+        draft.session = draft.session.filter((x) => !removed.has(x.id))
       }),
     )
 
     for (const id of removed) {
       sync()?.session.evict(id)
     }
-    notifySessionTabsRemoved({ directory: sdk().directory, sessionIDs: [...removed] })
+    notifySessionTabsRemoved({ directory: s.directory, sessionIDs: [...removed] })
     return true
   }
 
   const navigateParent = () => {
     const id = parentID()
     if (!id) return
-    navigate(
-      params.serverKey ? sessionHref(requireServerKey(params.serverKey), id) : legacySessionHref(sdk().directory, id),
-    )
+    const s = sdk()
+    if (!s) return
+    navigate(params.serverKey ? sessionHref(requireServerKey(params.serverKey), id) : legacySessionHref(s.directory, id))
   }
 
   function DialogDeleteSession(props: { sessionID: string }) {

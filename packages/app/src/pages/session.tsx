@@ -860,7 +860,11 @@ export default function Page() {
   }
 
   const gitMutation = useMutation(() => ({
-    mutationFn: () => (sdk().client.project as any).initGit(),
+    mutationFn: () => {
+      const s = sdk()
+      if (!s) return Promise.reject(new Error("SDK unavailable"))
+      return (s.client.project as any).initGit()
+    },
     onSuccess: (x: { data?: Project }) => {
       if (!x.data) return
       upsert(x.data)
@@ -1736,12 +1740,14 @@ export default function Page() {
       if (input.manual) setFollowup("paused", input.sessionID, undefined)
       setFollowup("failed", input.sessionID, undefined)
 
+      const s = sdk()
+      if (!s) return
       const ok = await sendFollowupDraft({
-        api: sdk().api.session,
+        api: s.api.session,
         sync: sync(),
         serverSync: serverSync(),
         draft: item,
-        optimisticBusy: item.sessionDirectory === sdk().directory,
+        optimisticBusy: item.sessionDirectory === s.directory,
       }).catch((err) => {
         setFollowup("failed", input.sessionID, input.id)
         fail(err)
@@ -1830,16 +1836,18 @@ export default function Page() {
     setFollowup("edit", id, undefined)
   }
 
-  const halt = (sessionID: string) =>
-    busy(sessionID)
-      ? sdk()
-          .api.session.interrupt({ sessionID })
-          .catch(() => {})
+  const halt = (sessionID: string) => {
+    const s = sdk()
+    return busy(sessionID) && s
+      ? s.api.session.interrupt({ sessionID }).catch(() => {})
       : Promise.resolve()
+  }
 
   const revertMutation = useMutation(() => ({
     mutationFn: async (input: { sessionID: string; messageID: string }) => {
-      const session = sdk().api.session
+      const s = sdk()
+      if (!s) return
+      const session = s.api.session
       const target = sync()
       const last = target.session.get(input.sessionID)?.revert
       const value = draft(input.messageID)
@@ -1861,8 +1869,10 @@ export default function Page() {
     mutationFn: async (id: string) => {
       const sessionID = params.id
       if (!sessionID) return
+      const s = sdk()
+      if (!s) return
 
-      const session = sdk().api.session
+      const session = s.api.session
       const target = sync()
       const index = userMessages().findIndex((item) => item.id === id)
       if (index < 0) return
