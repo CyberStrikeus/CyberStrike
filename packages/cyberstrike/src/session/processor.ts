@@ -27,6 +27,17 @@ export namespace SessionProcessor {
   // generously above the slowest single tool round-trip. 0 disables. Env: CYBERSTRIKE_STREAM_IDLE_TIMEOUT_MS.
   const STREAM_IDLE_TIMEOUT_MS = Math.max(0, Number(process.env.CYBERSTRIKE_STREAM_IDLE_TIMEOUT_MS) || 600_000)
 
+  const PROVIDER_WARNING_PATTERNS = [
+    "does not support assistant message prefill",
+    "must end with a user message",
+  ]
+
+  function isProviderWarning(error: ReturnType<typeof MessageV2.fromError>): boolean {
+    const msg = error.data?.message
+    if (typeof msg !== "string") return false
+    return PROVIDER_WARNING_PATTERNS.some((p) => msg.includes(p))
+  }
+
   // Await the iterator's next value, but reject with a retryable APIError if it doesn't settle within idleMs.
   // The pending next() is left with a no-op catch so its later settlement (e.g. when the caller closes
   // the stream via iterator.return()) never surfaces as an unhandled rejection.
@@ -455,12 +466,20 @@ export namespace SessionProcessor {
               await SessionRetry.sleep(delay, input.abort).catch(() => {})
               continue
             }
-            input.assistantMessage.error = error
-            Bus.publish(Session.Event.Error, {
-              sessionID: input.assistantMessage.sessionID,
-              error: input.assistantMessage.error,
-            })
-            SessionStatus.set(input.sessionID, { type: "idle" })
+            if (isProviderWarning(error)) {
+              log.warn("provider warning suppressed from session", {
+                sessionID: input.sessionID,
+                message: error.data?.message,
+              })
+              SessionStatus.set(input.sessionID, { type: "idle" })
+            } else {
+              input.assistantMessage.error = error
+              Bus.publish(Session.Event.Error, {
+                sessionID: input.assistantMessage.sessionID,
+                error: input.assistantMessage.error,
+              })
+              SessionStatus.set(input.sessionID, { type: "idle" })
+            }
           }
           if (snapshot) {
             const patch = await Snapshot.patch(snapshot)
