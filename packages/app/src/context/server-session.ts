@@ -314,7 +314,9 @@ export function createServerSession(
           return result.data
         })
     const resolved = request.then((result) => {
-      if (generations.get(sessionID) !== active) return result
+      // Always cache: a generation mismatch means a concurrent resolve
+      // started, but this result is still valid and must land in cache so
+      // session-lineage's settled-but-missing check doesn't false-fire.
       return remember(result)
     })
     requests.set(sessionID, resolved)
