@@ -9,6 +9,8 @@ export namespace IngestQueue {
     chain: Promise<void>
     paused: boolean
     pending: number
+    draining: boolean
+    onDrain?: () => void
     resumeSignal: Promise<void> | null
     resumeResolve: (() => void) | null
   }
@@ -25,6 +27,7 @@ export namespace IngestQueue {
         chain: Promise.resolve(),
         paused: false,
         pending: 0,
+        draining: false,
         resumeSignal: null,
         resumeResolve: null,
       }
@@ -46,6 +49,21 @@ export namespace IngestQueue {
     if (!s) return
     if (s.pending === 0 && !s.paused) {
       delete state()[sessionID]
+    }
+  }
+
+  function drain(sessionID: string) {
+    const s = state()[sessionID]
+    if (!s || s.paused || s.pending !== 0 || s.draining || !s.onDrain) return
+
+    s.draining = true
+    try {
+      s.onDrain()
+    } catch (error) {
+      log.error("ingest drain handler failed", { sessionID, error })
+    } finally {
+      const current = state()[sessionID]
+      if (current) current.draining = false
     }
   }
 
@@ -74,7 +92,10 @@ export namespace IngestQueue {
       )
       .then(() => {
         const cur = state()[sessionID]
-        if (cur) cur.pending = Math.max(0, cur.pending - 1)
+        if (cur) {
+          cur.pending = Math.max(0, cur.pending - 1)
+        }
+        drain(sessionID)
         publish(sessionID)
         maybeCleanup(sessionID)
       })
@@ -97,8 +118,15 @@ export namespace IngestQueue {
     s.resumeResolve = null
     s.resumeSignal = null
     if (resolve) resolve()
+    drain(sessionID)
     publish(sessionID)
     maybeCleanup(sessionID)
+  }
+
+  export function setDrainHandler(sessionID: string, handler: () => void) {
+    const s = getOrInit(sessionID)
+    s.onDrain = handler
+    drain(sessionID)
   }
 
   export function pendingCount(sessionID: string): number {
