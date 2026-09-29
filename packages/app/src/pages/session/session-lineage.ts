@@ -43,7 +43,22 @@ export function createSessionLineage<T>(sessionID: () => string, lineage: () => 
       store
         .resolve(id)
         .then(() => {
-          if (!stale) setStatus({ id, store, state: "settled" })
+          if (stale) return
+          // After resolve, verify the session actually landed in cache.
+          // A generation race in the sync store can cause resolve() to
+          // succeed without caching; re-resolve once before giving up.
+          if (!store.peek(id)) {
+            store
+              .resolve(id)
+              .then(() => {
+                if (!stale) setStatus({ id, store, state: "settled" })
+              })
+              .catch((failure) => {
+                if (!stale) setStatus({ id, store, state: "failed", failure })
+              })
+            return
+          }
+          setStatus({ id, store, state: "settled" })
         })
         .catch((failure) => {
           if (!stale) setStatus({ id, store, state: "failed", failure })
