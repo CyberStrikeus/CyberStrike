@@ -54,8 +54,12 @@ export function createShellSettingsController() {
   const serverSync = useServerSync()
   const [shells] = createResource(
     async () => {
-      const sdk = serverSdk()
-      if ((await sdk.protocol) === "v1") return (await (sdk.client.pty as any).shells()).data ?? []
+      try {
+        const sdk = serverSdk()
+        if ((await sdk.protocol) === "v1") return (await (sdk.client.pty as any).shells()).data ?? []
+      } catch {
+        // v1 shells endpoint may not exist on all backends
+      }
       return [] as ShellOption[]
     },
     { initialValue: [] as ShellOption[] },
