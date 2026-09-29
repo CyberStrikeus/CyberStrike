@@ -84,6 +84,37 @@ describe("ProviderTransform.options - setCacheKey", () => {
     expect(result.promptCacheKey).toBe(sessionID)
   })
 
+  test("should set snake_case prompt cache key for abliteration.ai", () => {
+    const model = {
+      ...mockModel,
+      id: "abliteration-ai/abliterated-model",
+      providerID: "abliteration-ai",
+      api: {
+        id: "abliterated-model",
+        url: "https://api.abliteration.ai/v1",
+        npm: "@ai-sdk/openai-compatible",
+      },
+    }
+    const result = ProviderTransform.options({ model, sessionID, providerOptions: {} })
+    expect(result.prompt_cache_key).toBe(sessionID)
+    expect(result.promptCacheKey).toBeUndefined()
+  })
+
+  test("should allow abliteration.ai prompt caching to be disabled", () => {
+    const model = {
+      ...mockModel,
+      id: "abliteration-ai/abliterated-model",
+      providerID: "abliteration-ai",
+      api: {
+        id: "abliterated-model",
+        url: "https://api.abliteration.ai/v1",
+        npm: "@ai-sdk/openai-compatible",
+      },
+    }
+    const result = ProviderTransform.options({ model, sessionID, providerOptions: { setCacheKey: false } })
+    expect(result.prompt_cache_key).toBeUndefined()
+  })
+
   test("should set store=false for openai provider", () => {
     const openaiModel = {
       ...mockModel,
