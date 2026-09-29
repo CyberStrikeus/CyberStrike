@@ -267,7 +267,8 @@ export namespace ProviderTransform {
     // Convert to user message so wrapUp instructions still reach the model.
     const last = msgs[msgs.length - 1]
     if (last && last.role === "assistant" && !isAnthropic) {
-      msgs = [...msgs.slice(0, -1), { role: "user", content: typeof last.content === "string" ? last.content : "" } as ModelMessage]
+      const text = typeof last.content === "string" ? last.content : ""
+      msgs = [...msgs.slice(0, -1), { role: "user", content: [{ type: "text", text }] } as ModelMessage]
     }
 
     // Remap providerOptions keys from stored providerID to expected SDK key
