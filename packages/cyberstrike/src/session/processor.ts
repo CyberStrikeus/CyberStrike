@@ -472,6 +472,7 @@ export namespace SessionProcessor {
                 message: error.data?.message,
               })
               SessionStatus.set(input.sessionID, { type: "idle" })
+              return "stop"
             } else {
               input.assistantMessage.error = error
               Bus.publish(Session.Event.Error, {
