@@ -112,7 +112,7 @@ export const DialogHackbrowserLaunch: Component<{ sessionID: string; onLaunched?
   }
 
   return (
-    <Dialog title={language.t("hackbrowser.launch.title")} description={language.t("hackbrowser.launch.description")}>
+    <Dialog title={language.t("hackbrowser.launch.title")} description={language.t("hackbrowser.launch.description")} fit>
       <Show
         when={!launching()}
         fallback={
