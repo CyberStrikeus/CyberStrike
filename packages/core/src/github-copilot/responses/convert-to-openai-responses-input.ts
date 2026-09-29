@@ -66,6 +66,14 @@ export async function convertToOpenAIResponsesInput({
       }
 
       case "user": {
+        if (typeof content === "string") {
+          input.push({ role: "user", content: [{ type: "input_text", text: content }] })
+          break
+        }
+        if (!Array.isArray(content)) {
+          input.push({ role: "user", content: [{ type: "input_text", text: String(content) }] })
+          break
+        }
         input.push({
           role: "user",
           content: content.map((part, index) => {
