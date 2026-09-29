@@ -53,6 +53,7 @@ export function parseRawRequest({ raw, scheme }: ParseInput): ParsedRequest {
     body,
     query: targetUrl.search.replace(/^\?/, ""),
     path: canonicalPath,
+    nextAction: findHeaderValue(lines, "next-action"),
   })
 
   return {
