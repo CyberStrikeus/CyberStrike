@@ -239,6 +239,38 @@ export const GlobalRoutes = lazy(() =>
         return c.json(next)
       },
     )
+    .get(
+      "/log",
+      describeRoute({
+        summary: "Get log file contents",
+        description: "Returns the current server log file contents. Supports tail mode with the lines query parameter.",
+        operationId: "global.log",
+        responses: {
+          200: {
+            description: "Log file contents",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.object({
+                    path: z.string(),
+                    lines: z.array(z.string()),
+                  }),
+                ),
+              },
+            },
+          },
+        },
+      }),
+      async (c) => {
+        const logFile = Log.file()
+        if (!logFile) return c.json({ path: "", lines: [] })
+        const maxLines = Math.min(Number(c.req.query("lines")) || 500, 5000)
+        const text = await Bun.file(logFile).text().catch(() => "")
+        const all = text.split("\n")
+        const lines = all.slice(-maxLines)
+        return c.json({ path: logFile, lines })
+      },
+    )
     .post(
       "/dispose",
       describeRoute({
