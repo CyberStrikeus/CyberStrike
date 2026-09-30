@@ -263,22 +263,6 @@ export namespace ProviderTransform {
       msgs = applyCaching(msgs, model)
     }
 
-    // Non-Anthropic providers reject trailing assistant messages (prefill).
-    // Extract any text wrapUp instructions and re-send as a user message;
-    // drop the message entirely when the prefill is empty.
-    const last = msgs[msgs.length - 1]
-    if (last && last.role === "assistant" && !isAnthropic) {
-      const parts = Array.isArray(last.content) ? last.content : []
-      const text = typeof last.content === "string"
-        ? last.content
-        : parts.filter((p: any) => p.type === "text").map((p: any) => p.text).join("").trim()
-      if (text) {
-        msgs = [...msgs.slice(0, -1), { role: "user", content: [{ type: "text", text }] } as ModelMessage]
-      } else {
-        msgs = msgs.slice(0, -1)
-      }
-    }
-
     // Remap providerOptions keys from stored providerID to expected SDK key
     const key = sdkKey(model.api.npm)
     if (key && key !== model.providerID && model.api.npm !== "@ai-sdk/azure") {
