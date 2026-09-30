@@ -927,8 +927,14 @@ export namespace SessionPrompt {
 
       // Some providers (e.g. DeepSeek via @ai-sdk/openai-compatible) omit finishReason
       // in the finish-step event. Without a finish reason the early-exit check at the
-      // top of the loop never fires and the model re-enters indefinitely.
-      processor.message.finish = processor.message.finish ?? "stop"
+      // top of the loop never fires and the model re-enters indefinitely. But if the
+      // model emitted tool calls, the loop MUST continue so results are fed back — a
+      // blind "stop" default kills inspection sub-sessions after one turn (#51).
+      if (!processor.message.finish) {
+        const stepParts = await MessageV2.parts(processor.message.id)
+        const hasToolCalls = stepParts.some((p) => p.type === "tool")
+        processor.message.finish = hasToolCalls ? "tool-calls" : "stop"
+      }
 
       // If structured output was captured, save it and exit immediately
       // This takes priority because the StructuredOutput tool was called successfully

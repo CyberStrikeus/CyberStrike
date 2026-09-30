@@ -403,6 +403,12 @@ export namespace SessionProcessor {
                   break
 
                 case "finish":
+                  // AI SDK v6 moved finishReason from finish-step to finish.
+                  // The finish-step handler (above) reads value.finishReason but
+                  // it's always undefined in v6; the correct value lives here.
+                  if (value.finishReason) {
+                    input.assistantMessage.finish = value.finishReason
+                  }
                   break
 
                 default:
