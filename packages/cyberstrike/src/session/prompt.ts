@@ -925,11 +925,15 @@ export namespace SessionPrompt {
         utilization: contextLimit > 0 ? Math.round((totalTokens / contextLimit) * 100) : 0,
       })
 
+      // Some providers (e.g. DeepSeek via @ai-sdk/openai-compatible) omit finishReason
+      // in the finish-step event. Without a finish reason the early-exit check at the
+      // top of the loop never fires and the model re-enters indefinitely.
+      processor.message.finish = processor.message.finish ?? "stop"
+
       // If structured output was captured, save it and exit immediately
       // This takes priority because the StructuredOutput tool was called successfully
       if (structuredOutput !== undefined) {
         processor.message.structured = structuredOutput
-        processor.message.finish = processor.message.finish ?? "stop"
         await Session.updateMessage(processor.message)
         break
       }
@@ -956,6 +960,8 @@ export namespace SessionPrompt {
           await Session.updateMessage(processor.message)
           break
         }
+        await Session.updateMessage(processor.message)
+        break
       }
 
       // Loop-termination Layer 2: feed the stuck-detector this step's tool calls, but
