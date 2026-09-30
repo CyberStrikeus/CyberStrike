@@ -27,11 +27,11 @@ export function createPromptInputController(input: {
   const local = useLocal()
   const sdk = useSDK()
   const sync = useSync()
-  const providers = useProviders(() => sdk().directory)
+  const providers = useProviders(() => sdk()?.directory)
   const view = layout.view(input.sessionKey)
-  const agentsQuery = createQuery(() => input.queryOptions.agents(pathKey(sdk().directory)))
+  const agentsQuery = createQuery(() => input.queryOptions.agents(pathKey(sdk()?.directory)))
   const globalProvidersQuery = createQuery(() => input.queryOptions.providers(null))
-  const providersQuery = createQuery(() => input.queryOptions.providers(pathKey(sdk().directory)))
+  const providersQuery = createQuery(() => input.queryOptions.providers(pathKey(sdk()?.directory)))
 
   return createMemo<PromptInputControls>(() => {
     return {
@@ -125,7 +125,7 @@ export function createPromptProjectControls() {
 
   return createMemo<PromptProjectControls>(() => ({
     available: projects(),
-    directory: sdk().directory,
+    directory: sdk()?.directory,
     server: server.list.length > 1 ? ServerConnection.key(projectServer()) : undefined,
     select: selectProject,
     add: addProject,

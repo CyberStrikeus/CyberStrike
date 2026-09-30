@@ -13,7 +13,7 @@ export function createPromptModelSelection(input: { agent: () => { model?: Model
   const sync = useSync()
   const models = useModels()
   const prompt = usePrompt()
-  const providers = useProviders(() => sdk().directory)
+  const providers = useProviders(() => sdk()?.directory)
   const connected = createMemo(() => new Set(providers.connected().map((item) => item.id)))
 
   const valid = (model: ModelKey) => {

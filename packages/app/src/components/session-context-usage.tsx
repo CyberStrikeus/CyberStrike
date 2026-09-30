@@ -50,7 +50,7 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
   const language = useLanguage()
   const sdk = useSDK()
   const settings = useSettings()
-  const providers = useProviders(() => sdk().directory)
+  const providers = useProviders(() => sdk()?.directory)
   const { params, tabs, view } = useSessionLayout()
   const isDesktop = createMediaQuery("(min-width: 768px)")
 

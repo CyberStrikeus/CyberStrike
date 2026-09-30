@@ -97,14 +97,14 @@ function ProviderTip() {
   const dialog = useDialog()
   const sdk = useSDK()
   const serverSync = useServerSync()
-  const providers = useProviders(() => sdk().directory)
+  const providers = useProviders(() => sdk()?.directory)
   const [persistedState, setPersistedState, , persistedReady] = persisted(
     Persist.global("new-session.provider-tip"),
     createStore({ dismissedAt: 0 }),
   )
   const visible = createMemo(
     () =>
-      serverSync().child(sdk().directory)[0].provider_ready &&
+      serverSync().child(sdk()?.directory)[0].provider_ready &&
       persistedReady() &&
       providers.paid().length === 0 &&
       Date.now() - persistedState.dismissedAt >= providerTipDismissalDuration,
@@ -116,7 +116,7 @@ function ProviderTip() {
   })
   const openProviders = () => {
     void import("@/components/dialog-connect-provider").then(({ DialogConnectProvider }) => {
-      void dialog.show(() => <DialogConnectProvider directory={() => sdk().directory} />)
+      void dialog.show(() => <DialogConnectProvider directory={() => sdk()?.directory} />)
     })
   }
 

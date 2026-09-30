@@ -98,7 +98,7 @@ export function SessionContextTab() {
   const sync = useSync()
   const language = useLanguage()
   const sdk = useSDK()
-  const providers = useProviders(() => sdk().directory)
+  const providers = useProviders(() => sdk()?.directory)
   const { params, view } = useSessionLayout()
 
   const info = createMemo(() => (params.id ? sync()?.session.get(params.id) : undefined))
