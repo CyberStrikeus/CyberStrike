@@ -3,7 +3,7 @@ import { decode64 } from "@/utils/base64"
 import { useParams } from "@solidjs/router"
 import { Iterable, pipe } from "effect"
 import { createEffect, createMemo, type Accessor } from "solid-js"
-import { selectProviderCatalog } from "./provider-catalog"
+import { selectProviderCatalog, emptyProviderCatalog } from "./provider-catalog"
 
 export const popularProviders = [
   "cyberstrike",
@@ -23,18 +23,20 @@ export function useProviders(directory: Accessor<string | undefined>) {
   const dir = () => (directory ? directory() : decode64(params.dir))
   const providers = () => {
     const value = dir()
-    const projectStore = value ? serverSync().child(value)[0] : undefined
+    const sync = serverSync()
+    const projectStore = value && sync ? sync.child(value)[0] : undefined
     if (value)
       return selectProviderCatalog({
         explicit: true,
         directory: value,
         catalog: projectStore && { ready: projectStore.provider_ready, providers: projectStore.provider },
       })
+    if (!sync?.data?.provider) return emptyProviderCatalog
     return selectProviderCatalog({
       explicit: false,
       directory: value,
       catalog: projectStore && { ready: projectStore.provider_ready, providers: projectStore.provider },
-      global: serverSync().data.provider,
+      global: sync.data.provider,
     })
   }
 
