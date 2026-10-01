@@ -689,7 +689,7 @@ export function PromptInputV2SubmitButton(props: {
         type="button"
         disabled={!props.stopping && props.disabled}
         tabIndex={props.mode === "normal" ? undefined : -1}
-        icon={props.stopping ? "stop" : props.mode === "shell" ? "arrow-undo-down" : "arrow-up"}
+        icon={props.stopping ? "stop" : props.mode === "shell" ? "arrow-undo-down" : "crosshair"}
         variant="primary"
         class="size-7 rounded-md p-[6px] text-v2-icon-icon-muted shadow-[var(--v2-elevation-button-contrast)] disabled:opacity-50"
         style={{
