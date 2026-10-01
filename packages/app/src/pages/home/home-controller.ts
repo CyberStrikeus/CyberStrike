@@ -22,17 +22,17 @@ export function createHomeController() {
     return global.ensureServerCtx(conn)
   })
   const focusedSync = () => focusedServerCtx()?.sync ?? sync()
-  const projects = createMemo(() => focusedServerCtx()?.projects.list() ?? layout.projects.list())
+  const projects = createMemo(() => focusedServerCtx()?.projects.list() ?? layout.projects.list() ?? [])
   const recentlyClosed = createMemo(
-    () => focusedServerCtx()?.projects.recentlyClosed() ?? layout.projects.recentlyClosed(),
+    () => focusedServerCtx()?.projects.recentlyClosed() ?? layout.projects.recentlyClosed() ?? [],
   )
   const homedir = createMemo(() => focusedSync().data.path.home ?? "")
-  const selectedProject = createMemo(() => projects().find((project) => project.worktree === selection().directory))
+  const selectedProject = createMemo(() => (projects() ?? []).find((project) => project.worktree === selection().directory))
   const newSessionProject = createMemo(
     () =>
       selectedProject() ??
-      projects().find((project) => project.worktree === focusedServerCtx()?.projects.last()) ??
-      projects()[0],
+      (projects() ?? []).find((project) => project.worktree === focusedServerCtx()?.projects.last()) ??
+      (projects() ?? [])[0],
   )
 
   createEffect(() => {

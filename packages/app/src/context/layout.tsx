@@ -631,7 +631,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         },
       },
       projects: {
-        list,
+        list: () => list() ?? [],
         recentlyClosed: createMemo(() => {
           const known = new Set(serverSync().data.project.map((project) => pathKey(project.worktree)))
           return server.projects

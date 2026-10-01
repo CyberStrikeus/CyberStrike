@@ -81,7 +81,7 @@ export function createHomeSessionsController(home: HomeController) {
   }))
   const indexedSessions = createMemo(() =>
     retainHomeSessions(
-      homeSessions().sessions(sessionLoad.data, sessionEventLoad.data),
+      homeSessions()?.sessions(sessionLoad.data, sessionEventLoad.data) ?? [],
       HOME_SESSION_LIMIT,
       Date.now(),
     ),
@@ -94,8 +94,8 @@ export function createHomeSessionsController(home: HomeController) {
       projectByID,
     }),
   )
-  const records = createMemo(() => allRecords().slice(0, HOME_SESSION_LIMIT))
-  const groups = createMemo(() => groupSessions(records(), language))
+  const records = createMemo(() => (allRecords() ?? []).slice(0, HOME_SESSION_LIMIT))
+  const groups = createMemo(() => groupSessions(records() ?? [], language))
   const prefetched = new Set<string>()
 
   createEffect(() => {
@@ -253,19 +253,17 @@ function buildHomeSessionRecords(input: {
   projects: () => LocalProject[]
   projectByID: () => Map<string, LocalProject>
 }) {
-  const directories = new Set(input.projectDirectories().map(pathKey))
-  const sessions = input.sessions().filter((session) => directories.has(pathKey(session.directory)))
+  const directories = new Set((input.projectDirectories() ?? []).map(pathKey))
+  const sessions = (input.sessions() ?? []).filter((session) => directories.has(pathKey(session.directory)))
   return [...new Map(sessions.map((session) => [session.id, session] as const)).values()]
     .sort(compareSessionTime)
     .flatMap((session) => {
       const directory = pathKey(session.directory)
       const project =
-        input
-          .projects()
-          .find(
-            (item) =>
-              pathKey(item.worktree) === directory || item.sandboxes?.some((sandbox) => pathKey(sandbox) === directory),
-          ) ?? projectForSession(session, input.projects(), input.projectByID())
+        (input.projects() ?? []).find(
+          (item) =>
+            pathKey(item.worktree) === directory || item.sandboxes?.some((sandbox) => pathKey(sandbox) === directory),
+        ) ?? projectForSession(session, input.projects() ?? [], input.projectByID() ?? new Map())
       if (!project) return []
       return { session, project, projectName: displayName(project) }
     })
