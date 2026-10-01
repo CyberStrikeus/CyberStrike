@@ -117,6 +117,7 @@ jobs:
         run: bun run --cwd packages/desktop build
         env:
           CYBERSTRIKE_CHANNEL: ${{ inputs.channel }}
+          NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Package with electron-builder
         run: bunx electron-builder ${{ matrix.electron-args }} --config electron-builder.config.ts
