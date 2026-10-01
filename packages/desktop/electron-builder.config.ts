@@ -84,12 +84,12 @@ const getBase = (appId: string): Configuration => ({
     gatekeeperAssess: false,
     entitlements: "resources/entitlements.plist",
     entitlementsInherit: "resources/entitlements.plist",
-    notarize: process.env.GITHUB_ACTIONS === "true",
-    identity: process.env.GITHUB_ACTIONS === "true" ? undefined : null,
+    notarize: !!process.env.CSC_LINK,
+    identity: process.env.CSC_LINK ? undefined : null,
     target: ["dmg", "zip"],
   },
   dmg: {
-    sign: process.env.GITHUB_ACTIONS === "true",
+    sign: !!process.env.CSC_LINK,
   },
   protocols: {
     name: "CyberStrike",
