@@ -29,6 +29,7 @@ import { ConstrainDragYAxis, getDraggableId } from "@/utils/solid-dnd"
 import { useDialog } from "@cyberstrike-io/ui/context/dialog"
 
 import FileTree from "@/components/file-tree"
+import { CyberStrikeSidebar } from "@/pages/session/cyberstrike-sidebar"
 import { normalizeFileTreeV2Path } from "@/components/file-tree-v2-model"
 import { SessionContextUsage } from "@/components/session-context-usage"
 
@@ -238,7 +239,7 @@ export function SessionSidePanel(props: {
   })
   const fileBrowserVisible = createMemo(() => {
     const active = activeTab()
-    return active !== "review" && active !== "context" && active !== "empty"
+    return active !== "review" && active !== "context" && active !== "empty" && active !== "security"
   })
   const openFileKeybind = createMemo(() => command.keybindParts("file.open"))
   const closeTabKeybind = createMemo(() => command.keybindParts("tab.close"))
@@ -391,6 +392,9 @@ export function SessionSidePanel(props: {
                                   </div>
                                 </Tabs.Trigger>
                               </Show>
+                              <Tabs.Trigger value="security">
+                                <div class="flex items-center gap-1.5">Security</div>
+                              </Tabs.Trigger>
                               <SortableProvider ids={openedTabs()}>
                                 <For each={panelTabs()}>
                                   {(tab) => (
@@ -495,6 +499,12 @@ export function SessionSidePanel(props: {
                               <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
                                 <SessionContextTab />
                               </div>
+                            </Tabs.Content>
+                          </Show>
+
+                          <Show when={activeTab() === "security"}>
+                            <Tabs.Content value="security" class="flex flex-col h-full overflow-hidden contain-strict">
+                              <CyberStrikeSidebar />
                             </Tabs.Content>
                           </Show>
 
@@ -605,6 +615,9 @@ export function SessionSidePanel(props: {
                                 </div>
                               </Tabs.Trigger>
                             </Show>
+                            <Tabs.Trigger value="security">
+                              <div class="flex items-center gap-1.5">Security</div>
+                            </Tabs.Trigger>
                             <For each={panelTabs()}>
                               {(tab) => (
                                 <Show
@@ -723,6 +736,12 @@ export function SessionSidePanel(props: {
                             <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
                               <SessionContextTab />
                             </div>
+                          </Tabs.Content>
+                        </Show>
+
+                        <Show when={activeTab() === "security"}>
+                          <Tabs.Content value="security" class="flex flex-col h-full overflow-hidden contain-strict">
+                            <CyberStrikeSidebar />
                           </Tabs.Content>
                         </Show>
 
