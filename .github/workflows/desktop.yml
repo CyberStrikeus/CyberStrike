@@ -1,0 +1,219 @@
+name: desktop
+run-name: "desktop ${{ inputs.channel }} ${{ inputs.platform }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "Release channel"
+        required: true
+        type: choice
+        default: dev
+        options:
+          - dev
+          - beta
+          - prod
+      platform:
+        description: "Build only this platform (all = every platform)"
+        required: false
+        type: choice
+        default: all
+        options:
+          - all
+          - mac-arm64
+          - mac-x64
+          - windows-x64
+          - linux-x64
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  # Build the web app (shared by all platforms)
+  build-web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+      - run: bun turbo build --filter=@cyberstrike-io/app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: packages/app/dist
+          retention-days: 1
+
+  # Build CLI sidecar binaries for each desktop target
+  build-sidecar:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            build-os: darwin
+            arch: arm64
+            key: mac-arm64
+          - os: macos-13
+            build-os: darwin
+            arch: x64
+            key: mac-x64
+          - os: windows-latest
+            build-os: windows
+            arch: x64
+            key: windows-x64
+          - os: ubuntu-24.04
+            build-os: linux
+            arch: x64
+            key: linux-x64
+    runs-on: ${{ matrix.os }}
+    if: inputs.platform == 'all' || inputs.platform == matrix.key
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Build CLI binary
+        run: ./packages/cyberstrike/script/build.ts --single
+        env:
+          CYBERSTRIKE_BUILD_OS: ${{ matrix.build-os }}
+        shell: bash
+
+      - name: Find binary
+        id: binary
+        run: |
+          if [ "${{ matrix.build-os }}" = "windows" ]; then
+            BIN=$(find packages/cyberstrike/dist -name "cyberstrike.exe" | head -1)
+          else
+            BIN=$(find packages/cyberstrike/dist -name "cyberstrike" -not -name "*.exe" | head -1)
+          fi
+          echo "path=$BIN" >> "$GITHUB_OUTPUT"
+          echo "Found: $BIN"
+        shell: bash
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sidecar-${{ matrix.key }}
+          path: ${{ steps.binary.outputs.path }}
+          retention-days: 1
+
+  # Package desktop app per platform
+  build-desktop:
+    needs: [build-web, build-sidecar]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            electron-args: --mac --arm64
+            key: mac-arm64
+          - os: macos-13
+            electron-args: --mac --x64
+            key: mac-x64
+          - os: windows-latest
+            electron-args: --win --x64
+            key: windows-x64
+          - os: ubuntu-24.04
+            electron-args: --linux --x64
+            key: linux-x64
+    runs-on: ${{ matrix.os }}
+    if: inputs.platform == 'all' || inputs.platform == matrix.key
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Download web dist
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: packages/app/dist
+
+      - name: Download sidecar binary
+        uses: actions/download-artifact@v4
+        with:
+          name: sidecar-${{ matrix.key }}
+          path: packages/desktop/resources/cyberstrike/bin
+
+      - name: Make sidecar executable
+        if: runner.os != 'Windows'
+        run: chmod +x packages/desktop/resources/cyberstrike/bin/cyberstrike
+
+      - name: Build electron-vite
+        run: bun run --cwd packages/desktop build
+
+      - name: Package with electron-builder
+        run: |
+          cd packages/desktop
+          npx electron-builder ${{ matrix.electron-args }} --config electron-builder.config.ts
+        env:
+          CYBERSTRIKE_CHANNEL: ${{ inputs.channel }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS signing (CI only)
+          CSC_LINK: ${{ secrets.MAC_CERT_P12 }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: List outputs
+        run: ls -lh packages/desktop/dist/cyberstrike-desktop-*
+        shell: bash
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.key }}
+          path: |
+            packages/desktop/dist/cyberstrike-desktop-*.dmg
+            packages/desktop/dist/cyberstrike-desktop-*.zip
+            packages/desktop/dist/cyberstrike-desktop-*.exe
+            packages/desktop/dist/cyberstrike-desktop-*.AppImage
+            packages/desktop/dist/cyberstrike-desktop-*.deb
+            packages/desktop/dist/cyberstrike-desktop-*.rpm
+          retention-days: 7
+
+  # Create GitHub release with all platform artifacts
+  release:
+    needs: build-desktop
+    if: inputs.channel == 'beta' || inputs.channel == 'prod'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all desktop artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: List release assets
+        run: find release-assets -type f | sort
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' packages/desktop/package.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Desktop version: $VERSION"
+
+      - name: Create GitHub Release
+        run: |
+          TAG="desktop-v${{ steps.version.outputs.version }}"
+          TITLE="CyberStrike Desktop ${{ steps.version.outputs.version }}"
+          if [ "${{ inputs.channel }}" = "beta" ]; then
+            TAG="${TAG}-beta"
+            TITLE="${TITLE} (Beta)"
+            PRERELEASE="--prerelease"
+          else
+            PRERELEASE=""
+          fi
+          gh release create "$TAG" \
+            --title "$TITLE" \
+            --generate-notes \
+            $PRERELEASE \
+            release-assets/*
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
