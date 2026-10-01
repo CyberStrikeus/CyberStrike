@@ -279,20 +279,23 @@ export const loadCommands = (
 ): Promise<CommandInfo[]> =>
   retry(async () => {
     if ((await protocol) === "v1" && legacy) {
-      return ((await legacy.command.list()).data ?? []).map((command) => {
-        const [providerID, id] = command.model?.split("/") ?? []
-        return {
-          name: command.name,
-          template: command.template,
-          description: command.description,
-          agent: command.agent,
-          model: providerID && id ? { providerID, id } : undefined,
-          subtask: command.subtask,
-          // source: command.source === "skill" ? undefined : command.source,
-        }
-      })
+      return ((await legacy.command.list()).data ?? [])
+        .filter((command) => (command as any).source !== "skill")
+        .map((command) => {
+          const [providerID, id] = command.model?.split("/") ?? []
+          return {
+            name: command.name,
+            template: command.template,
+            description: command.description,
+            agent: command.agent,
+            model: providerID && id ? { providerID, id } : undefined,
+            subtask: command.subtask,
+          }
+        })
     }
-    return api.list({ location: { directory } }).then((result) => result.data)
+    return api
+      .list({ location: { directory } })
+      .then((result) => result.data.filter((cmd) => (cmd as any).source !== "skill"))
   })
 
 export const loadPathQuery = (
