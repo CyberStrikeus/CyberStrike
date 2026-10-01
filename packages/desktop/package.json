@@ -5,6 +5,11 @@
   "type": "module",
   "license": "AGPL-3.0-only",
   "homepage": "https://cyberstrike.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CyberStrikeus/CyberStrike-Enterprise.git",
+    "directory": "packages/desktop"
+  },
   "author": {
     "name": "CyberStrike",
     "email": "contact@cyberstrike.io"
