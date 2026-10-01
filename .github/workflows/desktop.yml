@@ -56,19 +56,15 @@ jobs:
         include:
           - runner: macos-14
             electron-args: --mac --arm64
-            build-os: darwin
             key: mac-arm64
           - runner: macos-13
             electron-args: --mac --x64
-            build-os: darwin
             key: mac-x64
           - runner: windows-latest
             electron-args: --win --x64
-            build-os: windows
             key: windows-x64
           - runner: ubuntu-24.04
             electron-args: --linux --x64
-            build-os: linux
             key: linux-x64
     runs-on: ${{ matrix.runner }}
     if: inputs.platform == 'all' || inputs.platform == matrix.key
@@ -149,10 +145,7 @@ jobs:
 
   release:
     needs: build-desktop
-    if: |
-      !cancelled() &&
-      !contains(needs.build-desktop.result, 'failure') &&
-      (inputs.channel == 'beta' || inputs.channel == 'prod')
+    if: inputs.channel == 'beta' || inputs.channel == 'prod'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
