@@ -91,6 +91,20 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
       })
     }
 
+    // Desktop: start with a clean tab bar on every app launch.
+    // sessionStorage survives reloads within the same window lifetime
+    // but resets when the app restarts, so we clear persisted tabs once.
+    if (platform.platform === "desktop") {
+      const cleared = (() => { try { return sessionStorage.getItem("tabs.cleared") } catch { return null } })()
+      if (!cleared) {
+        void ready.promise?.then(() => {
+          if (store.length > 0) setStore(() => [])
+          setRecentKey(undefined)
+        })
+        try { sessionStorage.setItem("tabs.cleared", "1") } catch {}
+      }
+    }
+
     const updateClosed = (update: (stack: ClosedTab[]) => ClosedTab[]) => {
       const apply = () => setClosed((stack) => update(stack))
       if (closedReady()) {
