@@ -217,16 +217,19 @@ function HttpReplayRenderer(props: {
           <div data-slot="basic-tool-tool-info-main">
             <span data-slot="basic-tool-tool-title">
               <TextShimmer
-                text={`${info().method} ${info().subtitle || "request"}`}
+                text={props.tool === "http_replay_raw" ? "Http Replay Raw" : "Http Replay"}
                 active={pending()}
               />
             </span>
             <Show when={!open()}>
+              <span data-slot="basic-tool-tool-subtitle">
+                {info().method} {info().subtitle || "request"}
+              </span>
               <Show when={statusCode()}>
                 {(code) => <span class={`text-12-medium ${statusColor(code())}`}>{code()}</span>}
               </Show>
               <Show when={info().tags.length > 0}>
-                <span class="text-11-regular text-text-weaker">{info().tags.join(" · ")}</span>
+                <span data-slot="basic-tool-tool-arg">{info().tags.join(" · ")}</span>
               </Show>
             </Show>
           </div>
