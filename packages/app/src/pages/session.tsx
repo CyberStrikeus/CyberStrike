@@ -475,8 +475,11 @@ export default function Page() {
         opened: layout.fileTree.opened(),
       }),
   )
+  const [securityPanelOpen, setSecurityPanelOpen] = createSignal(true)
   const desktopSessionResizeOpen = createMemo(() =>
-    newSessionDesign() ? desktopV2ReviewOpen() || desktopTerminalOpen() : desktopReviewOpen(),
+    newSessionDesign()
+      ? desktopV2ReviewOpen() || desktopTerminalOpen() || securityPanelOpen()
+      : desktopReviewOpen() || securityPanelOpen(),
   )
   const desktopSidePanelOpen = createMemo(() => desktopSessionResizeOpen() || desktopFileTreeOpen())
   let panelRow: HTMLDivElement | undefined
@@ -517,7 +520,7 @@ export default function Page() {
   const centered = createMemo(() => isDesktop() && (newSessionDesign() || !desktopReviewOpen()))
   const desktopV2PanelLayout = createMemo(() =>
     sessionPanelLayout({
-      review: desktopV2ReviewOpen(),
+      review: desktopV2ReviewOpen() || securityPanelOpen(),
       terminal: desktopTerminalOpen(),
       files: desktopFileTreeOpen(),
     }),
@@ -557,6 +560,13 @@ export default function Page() {
   })
   const activeTab = tabState.activeTab
   const activeFileTab = tabState.activeFileTab
+
+  createEffect(() => {
+    const isSecurity = activeTab() === "security"
+    setSecurityPanelOpen(isSecurity)
+    if (isSecurity) openReviewPanel()
+  })
+
   const revertMessageID = createMemo(() => info()?.revert?.messageID)
   const timeline = createTimelineModel({ sessionID: () => params.id, revertMessageID })
   const historyLoading = timeline.history.loading
@@ -2345,7 +2355,7 @@ export default function Page() {
         <Show when={newSessionDesign()}>
           <Show when={isDesktop() ? desktopV2PanelLayout().visible : terminalOpen()}>
             <div class="min-w-0 h-full flex flex-1 flex-col">
-              <Show when={isDesktop() && (desktopV2ReviewOpen() || desktopFileTreeOpen())}>
+              <Show when={isDesktop() && (desktopV2ReviewOpen() || desktopFileTreeOpen() || securityPanelOpen())}>
                 <div class="min-h-0 flex-1">
                   <Suspense>
                     <SessionSidePanel

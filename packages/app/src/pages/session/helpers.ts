@@ -8,6 +8,8 @@ export { SESSION_OPEN_FILE_TAB } from "@/context/layout-tabs"
 
 const emptyTabs: string[] = []
 
+const cyberStrikePanels = new Set(["security"])
+
 type Tabs = {
   active: Accessor<string | undefined>
   all: Accessor<string[]>
@@ -64,13 +66,14 @@ export const createSessionTabs = (input: TabsInput) => {
     if (active === "context") return active
     if (active === SESSION_OPEN_FILE_TAB && openFileOpen()) return active
     if (active === "review" && review()) return active
+    if (active && cyberStrikePanels.has(active)) return active
     if (active && input.pathFromTab(active)) return input.normalizeTab(active)
 
     const first = openedTabs()[0]
     if (first) return first
     if (contextOpen()) return "context"
     if (review() && hasReview()) return "review"
-    return "empty"
+    return "security"
   })
   const activeFileTab = createMemo(() => {
     const active = activeTab()
