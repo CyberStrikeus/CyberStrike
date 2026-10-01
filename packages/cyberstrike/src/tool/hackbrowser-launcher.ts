@@ -64,10 +64,10 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
   }
 
   // v2: NO crawl worker. Enqueue the roles for sequential setup, then open the
-  // orchestrator browser — Chrome for Testing with our extension, at the target, with no
-  // role hash so it defaults to Anonymous and shows the queue status. The user drives
-  // capture; each Start capture spawns the next role's browser one at a time.
-  RoleQueue.enqueue(opts.sessionID, opts.credentials ?? [])
+  // orchestrator browser with the first credential so the extension panel reflects
+  // what the user typed. Remaining credentials spawn one at a time via Start capture.
+  const creds = opts.credentials ?? []
+  RoleQueue.enqueue(opts.sessionID, creds)
   // Bound the AI crawl to the target domain (+ any explicit scope) so it can't wander off-site.
   WebScope.ensure(opts.sessionID, opts.target, opts.scope)
   HBLog.record(opts.sessionID, "server", "launch", { target: opts.target, csUrl: Server.url().toString(), scope: WebScope.label(opts.sessionID) })
@@ -84,6 +84,7 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
       session: opts.sessionID,
       csUrl: Server.url().toString(),
       headless: opts.headless,
+      cred: creds[0],
     })
     SpawnedProfiles.track(opts.sessionID, result.proc)
     HBLog.record(opts.sessionID, "server", "spawn", { pid: result.proc?.pid })
