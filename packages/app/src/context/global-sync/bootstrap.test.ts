@@ -74,6 +74,19 @@ function directoryState() {
     part_text_accum_delta: {},
     vulnerability: {},
     bolt: {},
+    session_queue_status: {},
+    session_hackbrowser_status: {},
+    methodology: {},
+    session_usage: {},
+    request_observation: {},
+    vortex_captures: {},
+    vortex_signals: {},
+    web_credential: {},
+    web_role: {},
+    web_object: {},
+    web_function: {},
+    web_retest: {},
+    inspection_lifecycle: {},
   })
 }
 

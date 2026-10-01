@@ -114,6 +114,7 @@ export function applyDirectoryEvent(input: {
   directory: string
   loadLsp: () => void
   loadReferences?: () => void
+  refreshMethodology?: (sessionID: string) => void
   vcsCache?: VcsCache
   setSessionTodo?: (sessionID: string, todos: Todo[] | undefined) => void
   retainedLimit?: number
@@ -475,5 +476,57 @@ export function applyDirectoryEvent(input: {
       input.loadReferences?.()
       break
     }
+  }
+
+  const raw = event as { type: string; properties?: Record<string, unknown> }
+  const rawProps = raw.properties
+  if (!rawProps) return
+  switch (raw.type) {
+    case "session.queue.status":
+      input.setStore("session_queue_status", rawProps.sessionID as string, rawProps.status as never)
+      break
+    case "session.hackbrowser.status":
+      input.setStore("session_hackbrowser_status", rawProps.sessionID as string, rawProps.status as never)
+      break
+    case "intel.updated":
+      input.refreshMethodology?.(rawProps.sessionID as string)
+      break
+    case "vulnerability.updated":
+      input.setStore("vulnerability", rawProps.sessionID as string, rawProps.vulnerabilities as never)
+      break
+    case "web_credential.updated":
+      input.setStore("web_credential", rawProps.sessionID as string, rawProps.credentials as never)
+      break
+    case "web_role.updated":
+      input.setStore("web_role", rawProps.sessionID as string, rawProps.roles as never)
+      break
+    case "web_object.updated":
+      input.setStore("web_object", rawProps.sessionID as string, rawProps.objects as never)
+      break
+    case "web_function.updated":
+      input.setStore("web_function", rawProps.sessionID as string, rawProps.functions as never)
+      break
+    case "inspection.updated":
+      input.setStore(
+        "web_retest",
+        rawProps.sessionID as string,
+        (rawProps.queue as Array<Record<string, unknown>>).map((it) => ({
+          id: it.id as string,
+          status: it.status as string,
+          priority: it.priority as string,
+          key_hash: it.target_key as string,
+          method: (it.target_meta as Record<string, unknown> | undefined)?.method as string | undefined,
+          endpoint: it.target_label as string | undefined,
+          flags: it.evidence as Record<string, string[]> | undefined,
+        })) as never,
+      )
+      break
+    case "session.phase":
+      input.setStore("inspection_lifecycle", rawProps.sessionID as string, {
+        phase: rawProps.phase,
+        sources: [],
+        counts: { pending: 0, examined: 0, total: 0 },
+      } as never)
+      break
   }
 }

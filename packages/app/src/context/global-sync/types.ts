@@ -90,6 +90,93 @@ export type State = {
   bolt: {
     [name: string]: { status: string; error?: string }
   }
+  session_queue_status: {
+    [sessionID: string]: { paused: boolean; pending: number }
+  }
+  session_hackbrowser_status: {
+    [sessionID: string]: {
+      sessionID: string
+      phase: "starting" | "crawling" | "completed" | "failed"
+      targetUrl: string
+      pagesExplored: number
+      capturedEndpoints: number
+      currentPage?: string
+      errors: string[]
+      startedAt: number
+      finishedAt?: number
+      cost?: number
+    }
+  }
+  methodology: {
+    [sessionID: string]: {
+      currentPhase: string | null
+      completedCount: number
+      totalCount: number
+      totalEntries: number
+      coveragePercent: number
+      completedChecks: number
+      totalChecks: number
+      chains: number
+      violations: number
+    }
+  }
+  session_usage: {
+    [sessionID: string]: {
+      totalCost: number
+      totalTokens: number
+    }
+  }
+  request_observation: {
+    [keyHash: string]: {
+      credentials: (string | null)[]
+      params: {
+        name: string
+        loc: string
+        byCredential: { credentialID: string | null; values: string[]; redacted: boolean }[]
+      }[]
+    }
+  }
+  vortex_captures: {
+    [sessionID: string]: {
+      requests: Array<{ id: string; method: string; host: string; port?: number; normalized_path: string; page_url?: string; key_hash?: string; status?: number; identity?: string; operation?: string }>
+      jsFiles: Array<{ url: string; hit: boolean }>
+    }
+  }
+  vortex_signals: {
+    [sessionID: string]: {
+      signals: Array<{ ruleId: string; category: string; severity: string; title: string; method?: string; endpoint?: string; keyHash?: string; owner?: string; routed: boolean; status?: "pending" | "examined" }>
+    }
+  }
+  web_credential: {
+    [sessionID: string]: Array<{ id: string; label: string; type: string }>
+  }
+  web_role: {
+    [sessionID: string]: Array<{ id: string; name: string; level?: number }>
+  }
+  web_object: {
+    [sessionID: string]: Array<{ id: string; name: string }>
+  }
+  web_function: {
+    [sessionID: string]: Array<{ id: string; name: string; action_type: string }>
+  }
+  web_retest: {
+    [sessionID: string]: Array<{
+      id: string
+      status: string
+      priority: string
+      key_hash: string
+      method?: string
+      endpoint?: string
+      flags?: { object_value?: string[]; role?: string[]; signal?: string[]; credential?: string[] }
+    }>
+  }
+  inspection_lifecycle: {
+    [sessionID: string]: {
+      phase: "idle" | "discovering" | "inspecting" | "draining" | "complete"
+      sources: Array<{ name: string; active: boolean }>
+      counts: { pending: number; examined: number; total: number }
+    }
+  }
 }
 
 export type VcsCache = {

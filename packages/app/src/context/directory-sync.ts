@@ -152,5 +152,58 @@ export const createDirSyncContext = (
     get directory() {
       return current()[0].path.directory
     },
+    cyberstrike: {
+      async refreshMethodology(sessionID: string) {
+        const [state, coverage, chains] = await Promise.all([
+          client.methodology.state({ sessionID }).then((r) => r.data).catch(() => undefined),
+          client.methodology.coverage({ sessionID }).then((r) => r.data).catch(() => undefined),
+          client.methodology.chains({ sessionID }).then((r) => r.data).catch(() => undefined),
+        ])
+        if (!state && !coverage) return
+        current()[1]("methodology", sessionID, {
+          currentPhase: (state as Record<string, unknown>)?.currentPhase as string | null ?? null,
+          completedCount: (state as Record<string, unknown>)?.completedCount as number ?? 0,
+          totalCount: (state as Record<string, unknown>)?.totalCount as number ?? 0,
+          violations: Array.isArray((state as Record<string, unknown>)?.violations) ? ((state as Record<string, unknown>).violations as unknown[]).length : 0,
+          totalEntries: (coverage as Record<string, unknown>)?.totalEntries as number ?? 0,
+          coveragePercent: (coverage as Record<string, unknown>)?.coveragePercent as number ?? 0,
+          completedChecks: (coverage as Record<string, unknown>)?.completedChecks as number ?? 0,
+          totalChecks: (coverage as Record<string, unknown>)?.totalChecks as number ?? 0,
+          chains: Array.isArray(chains) ? chains.length : 0,
+        })
+      },
+      async refreshUsage(sessionID: string) {
+        try {
+          const r = await client.session.usage({ sessionID })
+          const u = r.data as { totalCost?: number; totalTokens?: number } | undefined
+          if (u && typeof u.totalCost === "number" && typeof u.totalTokens === "number")
+            current()[1]("session_usage", sessionID, { totalCost: u.totalCost, totalTokens: u.totalTokens })
+        } catch { /* sidebar falls back to per-session figures */ }
+      },
+      async refreshCaptures(sessionID: string) {
+        try {
+          const r = await client.session.vortexCaptures({ sessionID })
+          const c = r.data as State["vortex_captures"][string] | undefined
+          if (c && Array.isArray(c.requests) && Array.isArray(c.jsFiles))
+            current()[1]("vortex_captures", sessionID, c)
+        } catch { /* keep last snapshot */ }
+      },
+      async refreshSignals(sessionID: string) {
+        try {
+          const r = await client.session.vortexSignals({ sessionID })
+          const s = r.data as State["vortex_signals"][string] | undefined
+          if (s && Array.isArray(s.signals))
+            current()[1]("vortex_signals", sessionID, s)
+        } catch { /* keep last snapshot */ }
+      },
+      async fetchObservations(sessionID: string, keyHash: string) {
+        try {
+          const r = await client.session.observations({ sessionID, keyHash })
+          const tree = r.data as State["request_observation"][string] | undefined
+          if (tree && Array.isArray(tree.params))
+            current()[1]("request_observation", keyHash, tree)
+        } catch { /* expanded row shows nothing */ }
+      },
+    },
   }
 }

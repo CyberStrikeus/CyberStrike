@@ -617,6 +617,27 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
         if (!children.active(key)) return
         void queryClient.fetchQuery(queryOptionsApi.references(key))
       },
+      refreshMethodology: (sessionID) => {
+        const sdk = sdkFor(key)
+        void Promise.all([
+          sdk.methodology.state({ sessionID }).then((r) => r.data).catch(() => undefined),
+          sdk.methodology.coverage({ sessionID }).then((r) => r.data).catch(() => undefined),
+          sdk.methodology.chains({ sessionID }).then((r) => r.data).catch(() => undefined),
+        ]).then(([state, coverage, chains]) => {
+          if (!state && !coverage) return
+          setStore("methodology", sessionID, {
+            currentPhase: (state as Record<string, unknown>)?.currentPhase as string | null ?? null,
+            completedCount: (state as Record<string, unknown>)?.completedCount as number ?? 0,
+            totalCount: (state as Record<string, unknown>)?.totalCount as number ?? 0,
+            violations: Array.isArray((state as Record<string, unknown>)?.violations) ? ((state as Record<string, unknown>).violations as unknown[]).length : 0,
+            totalEntries: (coverage as Record<string, unknown>)?.totalEntries as number ?? 0,
+            coveragePercent: (coverage as Record<string, unknown>)?.coveragePercent as number ?? 0,
+            completedChecks: (coverage as Record<string, unknown>)?.completedChecks as number ?? 0,
+            totalChecks: (coverage as Record<string, unknown>)?.totalChecks as number ?? 0,
+            chains: Array.isArray(chains) ? chains.length : 0,
+          })
+        })
+      },
     })
   })
 
