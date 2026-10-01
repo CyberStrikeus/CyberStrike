@@ -5,6 +5,10 @@ import { Dialog } from "@cyberstrike-io/ui/dialog"
 import { List } from "@cyberstrike-io/ui/list"
 import { useLanguage } from "@/context/language"
 import { useSDK } from "@/context/sdk"
+import { useServer } from "@/context/server"
+import { useTabs } from "@/context/tabs"
+import { useSettings } from "@/context/settings"
+import { sessionHref } from "@/utils/session-route"
 import { getRelativeTime } from "@/utils/time"
 
 type SessionEntry = {
@@ -20,6 +24,9 @@ export const DialogSelectSession: Component = () => {
   const dialog = useDialog()
   const params = useParams()
   const navigate = useNavigate()
+  const server = useServer()
+  const tabs = useTabs()
+  const settings = useSettings()
 
   const [sessions] = createResource(async () => {
     const s = sdk()
@@ -57,6 +64,11 @@ export const DialogSelectSession: Component = () => {
         onSelect={(x) => {
           if (!x) return
           dialog.close()
+          if (settings.general.newLayoutDesigns()) {
+            tabs.addSessionTab({ server: server.key, sessionId: x.id })
+            navigate(sessionHref(server.key, x.id))
+            return
+          }
           navigate(`/${params.dir}/session/${x.id}`)
         }}
       >

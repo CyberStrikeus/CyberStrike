@@ -522,6 +522,18 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
 
   const sessionCmds = () => [
     sessionCommand({
+      id: "session.list",
+      title: "Sessions",
+      description: "Browse and switch between sessions",
+      slash: "sessions",
+      onSelect: () => {
+        void openDialog(
+          () => import("@/components/dialog-select-session"),
+          (x) => dialog.show(() => <x.DialogSelectSession />),
+        )
+      },
+    }),
+    sessionCommand({
       id: "session.new",
       title: language.t("command.session.new"),
       keybind: "mod+shift+s",
