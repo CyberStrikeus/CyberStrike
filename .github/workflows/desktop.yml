@@ -120,7 +120,7 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Package with electron-builder
-        run: bunx electron-builder ${{ matrix.electron-args }} --config electron-builder.config.ts
+        run: bunx electron-builder ${{ matrix.electron-args }} --config electron-builder.config.ts --publish never
         working-directory: packages/desktop
         env:
           CYBERSTRIKE_CHANNEL: ${{ inputs.channel }}
