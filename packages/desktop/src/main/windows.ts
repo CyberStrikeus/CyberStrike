@@ -1,7 +1,7 @@
 import windowState from "electron-window-state"
 import { resolveThemeVariant } from "@cyberstrike-io/ui/theme/resolve"
 import type { DesktopTheme } from "@cyberstrike-io/ui/theme/types"
-import oc2ThemeJson from "../../../ui/src/theme/themes/cs-1.json"
+import oc2ThemeJson from "../../../ui/src/theme/themes/amoled.json"
 import { randomUUID } from "node:crypto"
 import { rmSync } from "node:fs"
 import { app, BrowserWindow, dialog, net, nativeImage, nativeTheme, protocol, shell } from "electron"
