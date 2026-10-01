@@ -33,96 +33,47 @@ permissions:
   contents: write
 
 jobs:
-  # Build the web app (shared by all platforms)
   build-web:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-bun
-      - run: bun turbo build --filter=@cyberstrike-io/app
+
+      - name: Build web UI
+        run: bun turbo build --filter=@cyberstrike-io/app
+
       - uses: actions/upload-artifact@v4
         with:
           name: web-dist
           path: packages/app/dist
           retention-days: 1
 
-  # Build CLI sidecar binaries for each desktop target
-  build-sidecar:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-14
-            build-os: darwin
-            arch: arm64
-            key: mac-arm64
-          - os: macos-13
-            build-os: darwin
-            arch: x64
-            key: mac-x64
-          - os: windows-latest
-            build-os: windows
-            arch: x64
-            key: windows-x64
-          - os: ubuntu-24.04
-            build-os: linux
-            arch: x64
-            key: linux-x64
-    runs-on: ${{ matrix.os }}
-    if: inputs.platform == 'all' || inputs.platform == matrix.key
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: ./.github/actions/setup-bun
-
-      - name: Build CLI binary
-        run: ./packages/cyberstrike/script/build.ts --single
-        env:
-          CYBERSTRIKE_BUILD_OS: ${{ matrix.build-os }}
-        shell: bash
-
-      - name: Find binary
-        id: binary
-        run: |
-          if [ "${{ matrix.build-os }}" = "windows" ]; then
-            BIN=$(find packages/cyberstrike/dist -name "cyberstrike.exe" | head -1)
-          else
-            BIN=$(find packages/cyberstrike/dist -name "cyberstrike" -not -name "*.exe" | head -1)
-          fi
-          echo "path=$BIN" >> "$GITHUB_OUTPUT"
-          echo "Found: $BIN"
-        shell: bash
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: sidecar-${{ matrix.key }}
-          path: ${{ steps.binary.outputs.path }}
-          retention-days: 1
-
-  # Package desktop app per platform
   build-desktop:
-    needs: [build-web, build-sidecar]
+    needs: build-web
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14
+          - runner: macos-14
             electron-args: --mac --arm64
+            build-os: darwin
             key: mac-arm64
-          - os: macos-13
+          - runner: macos-13
             electron-args: --mac --x64
+            build-os: darwin
             key: mac-x64
-          - os: windows-latest
+          - runner: windows-latest
             electron-args: --win --x64
+            build-os: windows
             key: windows-x64
-          - os: ubuntu-24.04
+          - runner: ubuntu-24.04
             electron-args: --linux --x64
+            build-os: linux
             key: linux-x64
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     if: inputs.platform == 'all' || inputs.platform == matrix.key
     steps:
       - uses: actions/checkout@v4
-
       - uses: ./.github/actions/setup-bun
 
       - name: Download web dist
@@ -131,36 +82,56 @@ jobs:
           name: web-dist
           path: packages/app/dist
 
-      - name: Download sidecar binary
-        uses: actions/download-artifact@v4
-        with:
-          name: sidecar-${{ matrix.key }}
-          path: packages/desktop/resources/cyberstrike/bin
+      # Linux: electron-builder needs rpm for .rpm output
+      - name: Install Linux build deps
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm
 
-      - name: Make sidecar executable
+      # Build CLI sidecar binary for THIS platform (--single = current OS/arch)
+      # --skip-install: setup-bun already installed platform-native deps; the script's
+      # default cross-platform install (--os="*" --cpu="*") is unnecessary for single-target.
+      - name: Build sidecar binary
+        run: bun run packages/cyberstrike/script/build.ts --single --skip-install
+
+      # Copy sidecar binary into desktop resources so electron-builder bundles it
+      - name: Stage sidecar binary (Unix)
         if: runner.os != 'Windows'
-        run: chmod +x packages/desktop/resources/cyberstrike/bin/cyberstrike
+        run: |
+          BIN=$(find packages/cyberstrike/dist -name "cyberstrike" -not -name "*.exe" -type f | head -1)
+          mkdir -p packages/desktop/resources/cyberstrike/bin
+          cp "$BIN" packages/desktop/resources/cyberstrike/bin/cyberstrike
+          chmod +x packages/desktop/resources/cyberstrike/bin/cyberstrike
+          echo "Staged: $BIN"
+
+      - name: Stage sidecar binary (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          BIN=$(find packages/cyberstrike/dist -name "cyberstrike.exe" -type f | head -1)
+          mkdir -p packages/desktop/resources/cyberstrike/bin
+          cp "$BIN" packages/desktop/resources/cyberstrike/bin/cyberstrike.exe
+          echo "Staged: $BIN"
 
       - name: Build electron-vite
         run: bun run --cwd packages/desktop build
 
       - name: Package with electron-builder
-        run: |
-          cd packages/desktop
-          npx electron-builder ${{ matrix.electron-args }} --config electron-builder.config.ts
+        run: bunx electron-builder ${{ matrix.electron-args }} --config electron-builder.config.ts
+        working-directory: packages/desktop
         env:
           CYBERSTRIKE_CHANNEL: ${{ inputs.channel }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS signing (CI only)
+          # macOS code signing + notarization (graceful skip when certs not configured)
           CSC_LINK: ${{ secrets.MAC_CERT_P12 }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.MAC_CERT_P12 != '' }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: List outputs
-        run: ls -lh packages/desktop/dist/cyberstrike-desktop-*
         shell: bash
+        run: ls -lh packages/desktop/dist/cyberstrike-desktop-* || true
 
       - uses: actions/upload-artifact@v4
         with:
@@ -174,10 +145,12 @@ jobs:
             packages/desktop/dist/cyberstrike-desktop-*.rpm
           retention-days: 7
 
-  # Create GitHub release with all platform artifacts
   release:
     needs: build-desktop
-    if: inputs.channel == 'beta' || inputs.channel == 'prod'
+    if: |
+      !cancelled() &&
+      !contains(needs.build-desktop.result, 'failure') &&
+      (inputs.channel == 'beta' || inputs.channel == 'prod')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -197,7 +170,6 @@ jobs:
         run: |
           VERSION=$(jq -r '.version' packages/desktop/package.json)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Desktop version: $VERSION"
 
       - name: Create GitHub Release
         run: |
