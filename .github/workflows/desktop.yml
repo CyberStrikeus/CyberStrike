@@ -33,6 +33,26 @@ permissions:
   contents: write
 
 jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - id: set
+        run: |
+          ALL='[
+            {"runner":"macos-14","electron-args":"--mac --arm64","key":"mac-arm64"},
+            {"runner":"macos-13","electron-args":"--mac --x64","key":"mac-x64"},
+            {"runner":"windows-latest","electron-args":"--win --x64","key":"windows-x64"},
+            {"runner":"ubuntu-24.04","electron-args":"--linux --x64","key":"linux-x64"}
+          ]'
+          if [ "${{ inputs.platform }}" = "all" ]; then
+            MATRIX="$ALL"
+          else
+            MATRIX=$(echo "$ALL" | jq -c --arg key "${{ inputs.platform }}" '[.[] | select(.key == $key)]')
+          fi
+          echo "matrix={\"include\":$(echo "$MATRIX" | jq -c .)}" >> "$GITHUB_OUTPUT"
+
   build-web:
     runs-on: ubuntu-24.04
     steps:
@@ -49,25 +69,11 @@ jobs:
           retention-days: 1
 
   build-desktop:
-    needs: build-web
+    needs: [setup, build-web]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - runner: macos-14
-            electron-args: --mac --arm64
-            key: mac-arm64
-          - runner: macos-13
-            electron-args: --mac --x64
-            key: mac-x64
-          - runner: windows-latest
-            electron-args: --win --x64
-            key: windows-x64
-          - runner: ubuntu-24.04
-            electron-args: --linux --x64
-            key: linux-x64
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
     runs-on: ${{ matrix.runner }}
-    if: inputs.platform == 'all' || inputs.platform == matrix.key
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-bun
@@ -78,7 +84,6 @@ jobs:
           name: web-dist
           path: packages/app/dist
 
-      # Linux: electron-builder needs rpm for .rpm output
       - name: Install Linux build deps
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y rpm
