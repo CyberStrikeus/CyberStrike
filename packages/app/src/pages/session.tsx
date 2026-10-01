@@ -1,3 +1,4 @@
+import "./session/cyberstrike-tools"
 import type { FilePart, Project, UserMessage, VcsFileDiff } from "@cyberstrike-io/sdk/v2"
 import type { FileDiffInfo } from "@cyberstrike-io/client/promise"
 import { getFilename } from "@cyberstrike-io/core/util/path"
