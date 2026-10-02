@@ -7,7 +7,7 @@
 // §3.1). Session + credential ride in as a URL hash the content script reads/strips.
 
 import { existsSync, readdirSync, statSync, cpSync, readFileSync, writeFileSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { tmpdir, homedir } from "node:os"
 
 // Branded Google Chrome 137+ REMOVED the --load-extension switch (Chrome 142 removed the
@@ -58,11 +58,13 @@ export function findBrowser(): string | null {
   return cached.length ? cached[0] : null
 }
 
-// The static extension directory. Resolves relative to THIS file, so it is correct
-// whether called from the CLI launcher or imported by CyberStrike (dev/monorepo).
-// NOTE: a packaged CLI must ship the extension dir alongside — a build-time concern.
+// The static extension directory. In dev/source mode resolves relative to THIS file.
+// In a compiled binary ($bunfs / ~BUN), the extension is NOT embedded — Chrome needs
+// it on the real filesystem for --load-extension — so resolve from the binary's location.
 export function defaultExtensionPath(): string {
-  return join(import.meta.dir, "..", "..", "extension")
+  const fromSource = join(import.meta.dir, "..", "..", "extension")
+  if (!fromSource.includes("$bunfs") && !fromSource.includes("~BUN")) return fromSource
+  return join(dirname(process.execPath), "..", "extension")
 }
 
 export interface ProfileSpec {
