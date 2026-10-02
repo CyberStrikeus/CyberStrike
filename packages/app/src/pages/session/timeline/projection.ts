@@ -35,7 +35,7 @@ export function createTimelineProjection(input: {
       (messageID) => messageByID().get(messageID) as UserMessage | AssistantMessage | undefined,
       input.parts,
       input.showReasoningSummaries(),
-      input.status().type,
+      input.status()?.type ?? "idle",
       input.inlineComments(),
       input.userMessages(),
     ),
