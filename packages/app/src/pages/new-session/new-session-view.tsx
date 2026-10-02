@@ -102,13 +102,17 @@ function ProviderTip() {
     Persist.global("new-session.provider-tip"),
     createStore({ dismissedAt: 0 }),
   )
-  const visible = createMemo(
-    () =>
-      serverSync().child(sdk()?.directory)[0].provider_ready &&
+  const visible = createMemo(() => {
+    const ss = serverSync()
+    const dir = sdk()?.directory
+    if (!ss || !dir) return false
+    return (
+      ss.child(dir)[0].provider_ready &&
       persistedReady() &&
       providers.paid().length === 0 &&
-      Date.now() - persistedState.dismissedAt >= providerTipDismissalDuration,
-  )
+      Date.now() - persistedState.dismissedAt >= providerTipDismissalDuration
+    )
+  })
   const [ref, setRef] = createSignal<HTMLDivElement>()
   const presence = createPresence({
     show: visible,
