@@ -70,6 +70,12 @@ export interface Transaction {
   // resolve identically off Vortex rows, with no re-normalization drift. Optional; other adapters omit.
   normalizedPath?: string
   keyHash?: string
+  // DOM-level access signals from multi-credential crawling (hackbrowser page-diff). When present
+  // these are MORE PRECISE than tx.source for provenance: pageVisitedBy tells us which roles could
+  // visit the page this request came from, elementRoles tells us which roles could SEE the trigger
+  // element. A role absent from pageVisitedBy reached this endpoint without organic navigation.
+  pageVisitedBy?: string[]
+  elementRoles?: string[]
 }
 
 // Case-insensitive header lookup returning the FIRST match's value, or undefined. Header names are

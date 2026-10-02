@@ -253,6 +253,8 @@ export interface BrowserIngest {
   keyHash?: string // the platform's per-endpoint key (so observations resolve off Vortex rows, no drift)
   rawRequest?: string
   response?: { status?: number; headers?: Record<string, string>; body?: string }
+  pageVisitedBy?: string[]
+  elementRoles?: string[]
 }
 
 // Feed one captured request+response into the session's Vortex store and run the per-transaction
@@ -273,6 +275,8 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
       keyHash: i.keyHash,
       request: { method: i.method, url: i.url, headers: parsed.headers, body: parsed.body },
       response: i.response ? { status: i.response.status ?? 0, headers: recordToHeaders(i.response.headers), body: i.response.body } : undefined,
+      pageVisitedBy: i.pageVisitedBy,
+      elementRoles: i.elementRoles,
     }
     store.add(tx)
     accessMatcherFor(i.sessionID).observe(tx) // incremental access-control corpus matching (#40 P1c)

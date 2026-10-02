@@ -28,14 +28,23 @@ Each cross-role candidate from `vortex_cross_role` carries TWO provenance fields
   was there), "forced" (only via replay/direct URL), or "both".
 - `shared`: true when ALL roles reached the endpoint during organic crawl.
 
+Provenance is determined by three signals (most precise wins):
+1. **elementRoles** — which roles could SEE the trigger element (button/link) that initiated the request.
+   If only admin's DOM has the "Manage Users" button, a member hitting that endpoint is forced, even if
+   both roles visited the same page.
+2. **pageVisitedBy** — which roles could visit the page where the request was captured. If a page is only
+   reachable via admin's navigation, a member hitting its endpoints is forced.
+3. **tx.source** — browser/proxy = crawl, replay/import = forced. The coarsest fallback when DOM signals
+   are unavailable.
+
 `shared: true` means the application's own UI shows this endpoint to EVERY role — it is a SHARED
 FEATURE by design (e.g. cover letters, dashboards, profiles that both admin and member access). A 2xx
 under both roles on a shared endpoint is EXPECTED, not a vulnerability. DO NOT report a shared endpoint
 as Broken Access Control just because both roles can access it and see data.
 
 `shared: false` is the real authorization lead — one role discovered the endpoint via the UI, the other
-did NOT (the link wasn't in their crawl). If the second role can still reach it via direct URL, that is
-a genuine authorization bypass.
+did NOT (the link/button wasn't in their DOM or their crawl). If the second role can still reach it via
+direct URL, that is a genuine authorization bypass.
 
 RULE: SKIP shared=true candidates by default. Only probe a shared=true candidate if you have specific
 evidence that the response contains data the lower-privileged role should NOT see (e.g. a member seeing

@@ -98,6 +98,16 @@ function mergeProvenance(record: Record<string, RoleProvenance>, role: string | 
   if (prev === "forced" && isCrawl) { record[role] = "both"; return }
 }
 
+// Determine whether a role's access to a transaction was organic (crawl) or forced. Uses
+// DOM-level signals when available (most precise), falling back to tx.source (coarsest).
+// Hierarchy: elementRoles > pageVisitedBy > tx.source.
+function isCrawlForRole(tx: { source: Source; pageVisitedBy?: string[]; elementRoles?: string[] }, role: string | undefined): boolean {
+  if (!role) return CRAWL_SOURCES.has(tx.source)
+  if (tx.elementRoles && tx.elementRoles.length > 0) return tx.elementRoles.includes(role)
+  if (tx.pageVisitedBy && tx.pageVisitedBy.length > 0) return tx.pageVisitedBy.includes(role)
+  return CRAWL_SOURCES.has(tx.source)
+}
+
 // Build the object + function inventory over the whole store (on demand — session scale is small).
 export function inventory(store: TrafficStore): Inventory {
   const objs = new Map<string, ObjectRecord>()
@@ -109,12 +119,12 @@ export function inventory(store: TrafficStore): Inventory {
     const allReqFields = Object.keys({ ...p.query, ...p.body })
     const allRespFields = Object.keys(respFields)
     const hiddens = allRespFields.filter((k) => k.startsWith(HIDDEN_PREFIX)).map((k) => k.slice(HIDDEN_PREFIX.length))
-    const isCrawl = CRAWL_SOURCES.has(tx.source)
+    const crawl = isCrawlForRole(tx, s.role)
 
     const fr = fns.get(s.function.endpoint) ?? { endpoint: s.function.endpoint, crud: s.function.crud, roles: [], roleProvenance: {}, objects: [], transactions: [], requestFields: [], responseFields: [], hiddenInputs: [] }
     addUniq(fr.transactions, tx.id)
     addUniq(fr.roles, s.role)
-    mergeProvenance(fr.roleProvenance, s.role, isCrawl)
+    mergeProvenance(fr.roleProvenance, s.role, crawl)
     for (const o of s.objects) addUniq(fr.objects, o.ref)
     for (const f of allReqFields) addUniq(fr.requestFields, f)
     for (const f of allRespFields) addUniq(fr.responseFields, f)
@@ -126,7 +136,7 @@ export function inventory(store: TrafficStore): Inventory {
       const or = objs.get(o.ref) ?? { ref: o.ref, resource: o.resource ?? "", value: o.value, shapes: [], roles: [], roleProvenance: {}, endpoints: [], sites: [], transactions: [], fields: [], sensitiveFields: [], idFields: [] }
       addUniq(or.shapes, o.shape)
       addUniq(or.roles, s.role)
-      mergeProvenance(or.roleProvenance, s.role, isCrawl)
+      mergeProvenance(or.roleProvenance, s.role, crawl)
       addUniq(or.endpoints, s.function.endpoint)
       addUniq(or.sites, o.in)
       addUniq(or.transactions, tx.id)

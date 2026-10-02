@@ -110,3 +110,69 @@ describe("inventory — navigation provenance (shared vs forced endpoints)", () 
     expect(allRolesCrawled(obj.roleProvenance)).toBe(false)
   })
 })
+
+describe("inventory — DOM-level provenance (pageVisitedBy / elementRoles)", () => {
+  function txDom(id: string, url: string, identity: string, opts: { pageVisitedBy?: string[]; elementRoles?: string[]; source?: Source }): Transaction {
+    return { id, source: opts.source ?? "browser", host: "app.test", identity, request: { method: "GET", url: `https://app.test${url}`, headers: [] }, pageVisitedBy: opts.pageVisitedBy, elementRoles: opts.elementRoles }
+  }
+
+  test("pageVisitedBy overrides tx.source: browser source but role not in pageVisitedBy → forced", () => {
+    const store = new MemoryStore()
+    store.add(txDom("a", "/api/admin/users", "admin", { pageVisitedBy: ["admin", "member"] }))
+    store.add(txDom("b", "/api/admin/users", "member", { pageVisitedBy: ["admin"] }))
+    const inv = inventory(store)
+    const fn = inv.functions.find((f) => f.endpoint.includes("admin"))!
+    expect(fn.roleProvenance).toEqual({ admin: "crawl", member: "forced" })
+    expect(allRolesCrawled(fn.roleProvenance)).toBe(false)
+  })
+
+  test("pageVisitedBy includes both roles → shared=true even without elementRoles", () => {
+    const store = new MemoryStore()
+    store.add(txDom("a", "/api/dashboard", "admin", { pageVisitedBy: ["admin", "member"] }))
+    store.add(txDom("b", "/api/dashboard", "member", { pageVisitedBy: ["admin", "member"] }))
+    const inv = inventory(store)
+    const fn = inv.functions.find((f) => f.endpoint.includes("dashboard"))!
+    expect(fn.roleProvenance).toEqual({ admin: "crawl", member: "crawl" })
+    expect(allRolesCrawled(fn.roleProvenance)).toBe(true)
+  })
+
+  test("elementRoles takes precedence over pageVisitedBy: page shared but button admin-only", () => {
+    const store = new MemoryStore()
+    store.add(txDom("a", "/api/users/42", "admin", { pageVisitedBy: ["admin", "member"], elementRoles: ["admin"] }))
+    store.add(txDom("b", "/api/users/42", "member", { pageVisitedBy: ["admin", "member"], elementRoles: ["admin"] }))
+    const inv = inventory(store)
+    const fn = inv.functions.find((f) => f.endpoint.includes("users"))!
+    expect(fn.roleProvenance).toEqual({ admin: "crawl", member: "forced" })
+    expect(allRolesCrawled(fn.roleProvenance)).toBe(false)
+  })
+
+  test("elementRoles includes both roles → shared=true", () => {
+    const store = new MemoryStore()
+    store.add(txDom("a", "/api/profile", "admin", { elementRoles: ["admin", "member"] }))
+    store.add(txDom("b", "/api/profile", "member", { elementRoles: ["admin", "member"] }))
+    const inv = inventory(store)
+    const fn = inv.functions.find((f) => f.endpoint.includes("profile"))!
+    expect(fn.roleProvenance).toEqual({ admin: "crawl", member: "crawl" })
+    expect(allRolesCrawled(fn.roleProvenance)).toBe(true)
+  })
+
+  test("no DOM signals → falls back to tx.source as before", () => {
+    const store = new MemoryStore()
+    store.add(txDom("a", "/api/settings", "admin", {}))
+    store.add(txDom("b", "/api/settings", "member", { source: "replay" }))
+    const inv = inventory(store)
+    const fn = inv.functions.find((f) => f.endpoint.includes("settings"))!
+    expect(fn.roleProvenance).toEqual({ admin: "crawl", member: "forced" })
+    expect(allRolesCrawled(fn.roleProvenance)).toBe(false)
+  })
+
+  test("object-level DOM provenance: admin-only button triggers request on shared page", () => {
+    const store = new MemoryStore()
+    store.add(txDom("a", "/api/orders/42", "admin", { pageVisitedBy: ["admin", "member"], elementRoles: ["admin"] }))
+    store.add(txDom("b", "/api/orders/42", "member", { pageVisitedBy: ["admin", "member"], elementRoles: ["admin"] }))
+    const inv = inventory(store)
+    const obj = inv.objects.find((o) => o.ref === "orders:42")!
+    expect(obj.roleProvenance).toEqual({ admin: "crawl", member: "forced" })
+    expect(allRolesCrawled(obj.roleProvenance)).toBe(false)
+  })
+})

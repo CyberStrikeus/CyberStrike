@@ -2145,6 +2145,8 @@ export const SessionRoutes = lazy(() =>
               keyHash: normalized.keyHash,
               rawRequest: truncateRawRequest(body.text),
               response: body.response,
+              pageVisitedBy: body.page_visited_by,
+              elementRoles: body.element_roles,
             })
 
           if (isDuplicate) {
