@@ -113,6 +113,10 @@ jobs:
           cp "$BIN" packages/desktop/resources/cyberstrike/bin/cyberstrike.exe
           echo "Staged: $BIN"
 
+      - name: Stage hackbrowser extension
+        shell: bash
+        run: cp -r packages/hackbrowser/extension packages/desktop/resources/cyberstrike/extension
+
       - name: Build electron-vite
         run: bun run --cwd packages/desktop build
         env:

@@ -26,4 +26,5 @@ out/
 
 resources/opencode-cli*
 resources/icons
+resources/cyberstrike
 resources/*.metainfo.xml
