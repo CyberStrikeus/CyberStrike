@@ -206,6 +206,13 @@ for (const item of targets) {
   })
 
   await $`rm -rf ./dist/${name}/bin/tui`
+  // Ship the hackbrowser extension alongside the binary — Chrome needs it on the real
+  // filesystem for --load-extension, and $bunfs doesn't embed non-JS assets.
+  const hackbrowserExt = path.resolve(dir, "../hackbrowser/extension")
+  if (fs.existsSync(hackbrowserExt)) {
+    await $`cp -r ${hackbrowserExt} ./dist/${name}/extension`
+    console.log(`  copied hackbrowser extension to dist/${name}/extension`)
+  }
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {
