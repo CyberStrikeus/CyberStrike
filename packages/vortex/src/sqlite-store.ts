@@ -10,7 +10,7 @@ import { Database } from "bun:sqlite"
 import type { Transaction } from "./transaction"
 import { signalKey, type TrafficStore } from "./store"
 import type { Discovered } from "./discovery"
-import type { Signal } from "./rule"
+import type { Signal, SignalTriage } from "./rule"
 import type { Canary } from "./canary"
 import type { InjectPoint, Coverage } from "./injectpoint"
 import { injectPointKey, coverageKey } from "./injectpoint"
@@ -60,6 +60,8 @@ export class SqliteStore implements TrafficStore {
          PRIMARY KEY (session, key)
        )`,
     )
+    // Additive migration: triage column for signal lifecycle tracking (issue #67).
+    try { this.db.run(`ALTER TABLE vortex_signal ADD COLUMN triage TEXT DEFAULT 'new'`) } catch { /* column already exists */ }
     this.db.run(`CREATE TABLE IF NOT EXISTS vortex_canary (session TEXT NOT NULL, token TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY (session, token))`)
     this.db.run(
       `CREATE TABLE IF NOT EXISTS vortex_param (
@@ -145,33 +147,58 @@ export class SqliteStore implements TrafficStore {
 
   addSignals(signals: Signal[]): number {
     let added = 0
-    const exists = this.db.query<{ n: number }, [string, string]>(`SELECT COUNT(*) AS n FROM vortex_signal WHERE session = ? AND key = ?`)
+    const exists = this.db.query<{ triage: string | null } | null, [string, string]>(`SELECT triage FROM vortex_signal WHERE session = ? AND key = ?`)
     for (const s of signals) {
       const key = signalKey(s)
-      const had = (exists.get(this.session, key)?.n ?? 0) > 0
-      this.db.run(`INSERT OR REPLACE INTO vortex_signal (session, key, rule_id, severity, category, transaction_id, data) VALUES (?, ?, ?, ?, ?, ?, ?)`, [
+      const prior = exists.get(this.session, key)
+      const triage = s.triage ?? prior?.triage ?? "new"
+      const stored = { ...s, triage }
+      this.db.run(`INSERT OR REPLACE INTO vortex_signal (session, key, rule_id, severity, category, transaction_id, triage, data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
         this.session,
         key,
         s.ruleId,
         s.severity,
         s.category,
         s.transactionId,
-        JSON.stringify(s),
+        triage,
+        JSON.stringify(stored),
       ])
-      if (!had) added++
+      if (!prior) added++
     }
     return added
   }
 
-  signals(filter?: { ruleId?: string; severity?: Signal["severity"]; transactionId?: string; category?: string }): Signal[] {
+  signals(filter?: { ruleId?: string; severity?: Signal["severity"]; transactionId?: string; category?: string; triage?: SignalTriage }): Signal[] {
     const clauses = ["session = ?"]
     const args: string[] = [this.session]
     if (filter?.ruleId) (clauses.push("rule_id = ?"), args.push(filter.ruleId))
     if (filter?.severity) (clauses.push("severity = ?"), args.push(filter.severity))
     if (filter?.transactionId) (clauses.push("transaction_id = ?"), args.push(filter.transactionId))
     if (filter?.category) (clauses.push("category = ?"), args.push(filter.category))
+    if (filter?.triage) (clauses.push("triage = ?"), args.push(filter.triage))
     const rows = this.db.query<Row, string[]>(`SELECT data FROM vortex_signal WHERE ${clauses.join(" AND ")}`).all(...args)
     return rows.map((r) => JSON.parse(r.data) as Signal)
+  }
+
+  updateSignalTriage(keys: string[], triage: SignalTriage): number {
+    let updated = 0
+    for (const key of keys) {
+      const row = this.db.query<Row | null, [string, string]>(`SELECT data FROM vortex_signal WHERE session = ? AND key = ?`).get(this.session, key)
+      if (!row) continue
+      const s = { ...JSON.parse(row.data) as Signal, triage }
+      this.db.run(`UPDATE vortex_signal SET triage = ?, data = ? WHERE session = ? AND key = ?`, [triage, JSON.stringify(s), this.session, key])
+      updated++
+    }
+    return updated
+  }
+
+  signalSummary(): Record<SignalTriage, number> {
+    const counts: Record<SignalTriage, number> = { new: 0, reviewed: 0, confirmed: 0, dismissed: 0, escalated: 0 }
+    const rows = this.db.query<{ triage: string | null; n: number }, [string]>(
+      `SELECT COALESCE(triage, 'new') AS triage, COUNT(*) AS n FROM vortex_signal WHERE session = ? GROUP BY triage`
+    ).all(this.session)
+    for (const r of rows) counts[r.triage as SignalTriage ?? "new"] = r.n
+    return counts
   }
 
   addCanaries(canaries: Canary[]): number {

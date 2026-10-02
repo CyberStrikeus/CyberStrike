@@ -4,7 +4,7 @@
 // so nothing above the store cares where the bytes live.
 import type { Transaction } from "./transaction"
 import type { Discovered } from "./discovery"
-import type { Signal } from "./rule"
+import type { Signal, SignalTriage } from "./rule"
 import type { Canary } from "./canary"
 import type { InjectPoint, Coverage } from "./injectpoint"
 import { injectPointKey, coverageKey } from "./injectpoint"
@@ -25,7 +25,9 @@ export interface TrafficStore {
   // Signal store — what the rules caught, persisted (a first-class model entity, "flags" on the
   // traffic). Deduped by signal identity; returns how many were NEW. `signals(filter?)` reads them.
   addSignals(signals: Signal[]): number
-  signals(filter?: { ruleId?: string; severity?: Signal["severity"]; transactionId?: string; category?: string }): Signal[]
+  signals(filter?: { ruleId?: string; severity?: Signal["severity"]; transactionId?: string; category?: string; triage?: SignalTriage }): Signal[]
+  updateSignalTriage(keys: string[], triage: SignalTriage): number
+  signalSummary(): Record<SignalTriage, number>
   // Canary registry — injected markers, so a later OBSERVED response can be scanned for cross-request
   // (stored) reflection. Deduped by token; returns how many were NEW.
   addCanaries(canaries: Canary[]): number
@@ -113,13 +115,29 @@ export class MemoryStore implements TrafficStore {
     }
     return added
   }
-  signals(filter?: { ruleId?: string; severity?: Signal["severity"]; transactionId?: string; category?: string }): Signal[] {
+  signals(filter?: { ruleId?: string; severity?: Signal["severity"]; transactionId?: string; category?: string; triage?: SignalTriage }): Signal[] {
     let out = [...this.signalByKey.values()]
     if (filter?.ruleId) out = out.filter((s) => s.ruleId === filter.ruleId)
     if (filter?.severity) out = out.filter((s) => s.severity === filter.severity)
     if (filter?.transactionId) out = out.filter((s) => s.transactionId === filter.transactionId)
     if (filter?.category) out = out.filter((s) => s.category === filter.category)
+    if (filter?.triage) out = out.filter((s) => (s.triage ?? "new") === filter.triage)
     return out
+  }
+  updateSignalTriage(keys: string[], triage: SignalTriage): number {
+    let updated = 0
+    for (const key of keys) {
+      const s = this.signalByKey.get(key)
+      if (!s) continue
+      this.signalByKey.set(key, { ...s, triage })
+      updated++
+    }
+    return updated
+  }
+  signalSummary(): Record<SignalTriage, number> {
+    const counts: Record<SignalTriage, number> = { new: 0, reviewed: 0, confirmed: 0, dismissed: 0, escalated: 0 }
+    for (const s of this.signalByKey.values()) counts[s.triage ?? "new"]++
+    return counts
   }
 
   add(tx: Transaction): Transaction {

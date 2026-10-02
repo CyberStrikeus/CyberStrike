@@ -53,7 +53,7 @@ export type { Har } from "./har"
 export { fromHar, parseHar, toHar } from "./har"
 export { groupByEndpoint, groupByShape, identities } from "./corpus"
 export { requestShape } from "./shape"
-export type { Rule, CorpusRule, Signal, SignalParam, TransactionHook } from "./rule"
+export type { Rule, CorpusRule, Signal, SignalParam, SignalTriage, TransactionHook } from "./rule"
 export { RuleRegistry, dedupe } from "./rule"
 // The DSL engine (expr) — OUR rule/matcher language (functions, active/passive/chain → signals).
 export type { Compiled, CompileOptions, Value } from "./expr"

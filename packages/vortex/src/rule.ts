@@ -25,6 +25,8 @@ export interface SignalParam {
   name?: string
 }
 
+export type SignalTriage = "new" | "reviewed" | "confirmed" | "dismissed" | "escalated"
+
 export interface Signal {
   ruleId: string
   transactionId: string
@@ -39,6 +41,7 @@ export interface Signal {
   // registry keeps the first. A rule that wants endpoint-level (not instance-level) dedup sets it
   // to something like `${ruleId}:${endpointKey}`. Left unset ⇒ deduped per (ruleId, tx, title).
   dedupKey?: string
+  triage?: SignalTriage
 }
 
 export interface Rule {
