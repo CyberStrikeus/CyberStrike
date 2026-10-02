@@ -92,7 +92,15 @@ function tokenize(input: string): Token[] {
       i++
     } else {
       const vs = i
-      while (i < len && !/\s/.test(input[i]!) && input[i] !== "(" && input[i] !== ")") i++
+      let depth = 0
+      while (i < len && (!/\s/.test(input[i]!) || depth > 0)) {
+        if (input[i] === "(") depth++
+        else if (input[i] === ")") {
+          if (depth === 0) break
+          depth--
+        }
+        i++
+      }
       value = input.slice(vs, i)
     }
     if (value === "") throw new QueryError(`Missing value for "${word}"`)
@@ -146,8 +154,10 @@ function parse(input: string): Node {
       // Compile the regex ONCE here (parse time), not per-transaction in applyOp.
       let re: RegExp | undefined
       if (tok.op === "~" || tok.op === ":~") {
+        // Strip PCRE inline flags (e.g. (?i)) — JS doesn't support them and :~ already applies "i".
+        const pattern = tok.value.replace(/^\(\?[imsx]+\)/, "")
         try {
-          re = new RegExp(tok.value, "i")
+          re = new RegExp(pattern, "i")
         } catch {
           throw new QueryError(`Invalid regex: ${tok.value}`)
         }
