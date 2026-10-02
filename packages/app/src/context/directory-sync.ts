@@ -115,6 +115,12 @@ export const createDirSyncContext = (
       async sync(sessionID: string, options?: { force?: boolean }) {
         await serverSync.session.sync(sessionID, options)
         index(sessionID)
+        client.session.children({ sessionID }).then((result) => {
+          for (const child of result.data ?? []) {
+            serverSync.session.remember(child)
+            index(child.id)
+          }
+        }).catch(() => {})
       },
       todo: serverSync.session.todo,
       history: serverSync.session.history,
