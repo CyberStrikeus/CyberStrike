@@ -32,10 +32,16 @@ import {
 import { SessionMetrics } from "@/utils/session-metrics"
 
 type Vulnerability = BaseVulnerability & {
+  endpoint?: string
+  attack_vector?: string
+  cvss?: string
   steps_to_reproduce?: string
   poc?: string
   business_impact?: string
   recommendation?: string
+  affected_endpoints?: string[]
+  references?: string[]
+  source_agent?: string
 }
 
 const fmtTokens = (n: number) =>

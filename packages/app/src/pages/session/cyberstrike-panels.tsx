@@ -33,10 +33,16 @@ import {
 import type { Vulnerability as BaseVulnerability } from "@cyberstrike-io/sdk/v2/client"
 
 type Vulnerability = BaseVulnerability & {
+  endpoint?: string
+  attack_vector?: string
+  cvss?: string
   steps_to_reproduce?: string
   poc?: string
   business_impact?: string
   recommendation?: string
+  affected_endpoints?: string[]
+  references?: string[]
+  source_agent?: string
 }
 
 const statusDot = (status: string) => {
@@ -421,11 +427,11 @@ export function VulnsPanelList() {
                               </span>
                             </div>
                           </Show>
-                          <VulnDetailSection label="Description" content={v.description} />
-                          <VulnDetailSection label="Steps to Reproduce" content={v.steps_to_reproduce} />
-                          <VulnDetailSection label="Proof of Concept" content={v.poc} />
-                          <VulnDetailSection label="Business Impact" content={v.business_impact} />
-                          <VulnDetailSection label="Recommendation" content={v.recommendation} />
+                          <VulnDetailSection label="Finding Details" content={v.description} />
+                          <VulnDetailSection label="Steps To Reproduce" content={v.steps_to_reproduce} />
+                          <VulnDetailSection label="PoC" content={v.poc} />
+                          <VulnDetailSection label="Impacts" content={v.business_impact} />
+                          <VulnDetailSection label="Recommendations" content={v.recommendation} />
                         </div>
                       </Show>
                     </div>
