@@ -337,7 +337,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
 
     const modelSelection = input.model ?? local.model
     const currentModel = modelSelection.current()
-    const currentAgent = local.agent.current()
+    const currentAgent = local.agent.current() ?? (local.agent.list().length === 0 ? { name: "build" } : undefined)
     const variant = modelSelection.variant.current()
     if (!currentModel || !currentAgent) {
       showToast({
