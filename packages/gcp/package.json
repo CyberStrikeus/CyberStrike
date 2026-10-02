@@ -1,28 +1,41 @@
 {
   "name": "@cyberstrike-io/gcp",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
-  "license": "AGPL-3.0-only",
-  "description": "CyberStrike GCP cloud assessment domain. Installs as a plugin: npm install @cyberstrike-io/gcp.",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "CyberStrike GCP cloud assessment domain. Commercial/Enterprise feature — NOT part of the AGPL open core; ships only in the Enterprise repo. Installs as a plugin and reaches core runtime via the host-injected input.core.",
   "exports": {
     ".": "./src/index.ts"
   },
+  "cyberstrike": {
+    "coreApi": "1.2.0",
+    "domains": ["gcp"],
+    "tools": ["gcphook"],
+    "tier": "pro"
+  },
+  "files": [
+    "src"
+  ],
   "publishConfig": {
-    "access": "public"
+    "access": "restricted"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "peerDependencies": {
-    "@cyberstrike-io/plugin": "workspace:*",
-    "cyberstrike": "workspace:*"
-  },
   "dependencies": {
+    "@cyberstrike-io/plugin": "workspace:*",
     "zod": "catalog:"
   },
+  "peerDependencies": {
+    "cyberstrike": "*"
+  },
+  "peerDependenciesMeta": {
+    "cyberstrike": {
+      "optional": true
+    }
+  },
   "devDependencies": {
-    "@cyberstrike-io/plugin": "workspace:*",
     "cyberstrike": "workspace:*",
     "@tsconfig/node22": "catalog:",
     "typescript": "catalog:"
