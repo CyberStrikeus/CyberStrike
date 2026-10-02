@@ -37,14 +37,15 @@ export namespace Plugin {
   // plugin config instead. Each is a normal domain plugin: it registers via the
   // `provider`/`tool` hooks and reaches core through the injected input.core.
   //
-  // Loaded by dynamic import of a VARIABLE name so tsc doesn't pull each domain's
-  // source into core's typecheck (a domain ships raw TS; it typechecks in its own
-  // package). Same reason user plugins load by dynamic import.
-  // Web is the only DEFAULT (free-tier, AGPL open core) domain hardcoded here. Paid domains — the cloud
-  // providers (azure/aws/gcp/oracle) and any other commercial package — are NOT named by the open core;
-  // they load via auto-discovery when their package is present (Enterprise repo/build) and are simply
-  // absent from the public mirror where those dirs are excluded. Same split as the jsmine Vortex plugin.
+  // IMPORTANT: default domains use a STATIC import map (not `import(variable)`) so
+  // Bun's compiled-binary bundler includes their code. A dynamic `import(name)` with
+  // a variable string is invisible to the bundler → the package is silently missing
+  // at runtime inside $bunfs → web specialists never load → inspection dispatches 0
+  // child sessions. The static map fixes this while keeping the try/catch safety.
   const DEFAULT_DOMAINS: string[] = ["@cyberstrike-io/web"]
+  const DEFAULT_DOMAIN_MODULES: Record<string, () => Promise<any>> = {
+    "@cyberstrike-io/web": () => import("@cyberstrike-io/web"),
+  }
 
   // Package name of a config.plugin spec (strip a trailing @version, keep the
   // scope's leading @, leave file:// specs untouched) — used to dedupe against
@@ -87,7 +88,9 @@ export namespace Plugin {
     // take down the host, so its failure is logged and skipped.
     for (const name of DEFAULT_DOMAINS) {
       try {
-        const mod: any = await import(name)
+        const loader = DEFAULT_DOMAIN_MODULES[name]
+        if (!loader) { log.warn("no static loader for default domain", { name }); continue }
+        const mod: any = await loader()
         const init = typeof mod?.default === "function" ? mod.default : mod
         hooks.push(await init(input))
       } catch (err) {
