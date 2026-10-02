@@ -24,8 +24,8 @@ export type { Lead } from "./lead"
 export { lead, leads } from "./lead"
 // The corpus-wide object & function graph the agent queries — same object under >1 role = an IDOR
 // lead, same function under >1 role = a BFLA surface, all deterministic.
-export type { Inventory, ObjectRecord, FunctionRecord } from "./inventory"
-export { inventory, crossRoleObjects, crossRoleFunctions, objectsByResource, objectsForRole, transactionsForObject, humanName } from "./inventory"
+export type { Inventory, ObjectRecord, FunctionRecord, RoleProvenance } from "./inventory"
+export { inventory, crossRoleObjects, crossRoleFunctions, allRolesCrawled, objectsByResource, objectsForRole, transactionsForObject, humanName } from "./inventory"
 // Pivot getters — "confirmed one, hunt the rest": where a value flows, and untested attack surface.
 export type { Occurrence } from "./pivot"
 export { valueOccurrences, untestedEndpoints } from "./pivot"

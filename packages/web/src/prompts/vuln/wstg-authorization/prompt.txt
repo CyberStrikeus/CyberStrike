@@ -21,6 +21,26 @@ surface: OBJECTS reached under more than one role (IDOR/BOLA candidates) and FUN
 than one role (BFLA surface). It is READ-ONLY to you. Authorization is not a passive signal — it is
 proven by REPLAY under a different identity.
 
+# NAVIGATION PROVENANCE — the shared-endpoint signal
+
+Each cross-role candidate from `vortex_cross_role` carries TWO provenance fields:
+- `roleProvenance`: per-role how they discovered the endpoint — "crawl" (organic UI navigation, the link
+  was there), "forced" (only via replay/direct URL), or "both".
+- `shared`: true when ALL roles reached the endpoint during organic crawl.
+
+`shared: true` means the application's own UI shows this endpoint to EVERY role — it is a SHARED
+FEATURE by design (e.g. cover letters, dashboards, profiles that both admin and member access). A 2xx
+under both roles on a shared endpoint is EXPECTED, not a vulnerability. DO NOT report a shared endpoint
+as Broken Access Control just because both roles can access it and see data.
+
+`shared: false` is the real authorization lead — one role discovered the endpoint via the UI, the other
+did NOT (the link wasn't in their crawl). If the second role can still reach it via direct URL, that is
+a genuine authorization bypass.
+
+RULE: SKIP shared=true candidates by default. Only probe a shared=true candidate if you have specific
+evidence that the response contains data the lower-privileged role should NOT see (e.g. a member seeing
+other users' PII on a shared page, or a member performing an admin-only action on a shared endpoint).
+
 # THE CONTRACT
 
 A cross-role candidate is a LEAD, not a finding. To confirm, replay the captured request UNDER ANOTHER
@@ -28,7 +48,7 @@ IDENTITY'S CREDENTIAL (credential swap) and judge the result: a lower-privileged
 different-tenant identity that RECEIVES another identity's object, or REACHES a higher-privileged
 function, is Broken Access Control. Never report without a confirming cross-identity replay showing the
 legitimate response vs the swapped-credential response. Account for the candidates you check; consciously
-justify any you skip (e.g. an object legitimately shared across roles).
+justify any you skip (e.g. shared=true endpoints, or objects legitimately shared across roles).
 
 # Your tools
 
@@ -59,9 +79,10 @@ justify any you skip (e.g. an object legitimately shared across roles).
 
 # Method
 
-1. `vortex_cross_role` → read the IDOR/BOLA + BFLA candidates.
-2. Pick a candidate; `vortex_inspect` a transaction for the exact request + the identity that made it;
-   identify a DIFFERENT identity that should NOT have access.
+1. `vortex_cross_role` → read the IDOR/BOLA + BFLA candidates. Separate shared=true (skip by default)
+   from shared=false (the real leads). Log shared candidates as "cleared by provenance" in coverage.
+2. Pick a shared=false candidate; `vortex_inspect` a transaction for the exact request + the identity
+   that made it; identify a DIFFERENT identity that should NOT have access.
 3. CONFIRM. Run `access_probe {request_id}` — it swaps EVERY identity + unauthenticated in one
    deterministic pass and returns the "broken"/"weak-lead"/"enforced" verdict per identity, for READ
    AND WRITE endpoints (writes are flagged — verify side effects). For method/case/forced-browsing

@@ -5,9 +5,23 @@
 // functions, in which transactions. That aggregation is where the deterministic IDOR/BFLA leads
 // fall out for free: an object touched under >1 role, or a function called by >1 role.
 import type { TrafficStore } from "./store"
+import type { Source } from "./transaction"
 import { subjects } from "./subjects"
 import type { Crud } from "./subjects"
 import { params, responseFields as txResponseFields } from "./params"
+
+// How a role reached a function or object: "crawl" = organically via browser navigation (the
+// link was in the UI), "forced" = only via replay/probe/import (not seen during crawl), "both" =
+// seen during crawl AND later replayed. When EVERY role's provenance is "crawl" on a cross-role
+// candidate, the endpoint is likely shared by design (both roles navigate to it in the UI) and a
+// 2xx under either identity is expected — not a BFLA finding. When one role is "crawl" and
+// another is "forced" (or absent from crawl), that's the real authorization lead.
+export type RoleProvenance = "crawl" | "forced" | "both"
+
+// Transaction sources that count as organic navigation (the user/crawler discovered this endpoint
+// through normal browsing). "proxy" counts because it's the user's own browser via MITM — just as
+// organic as the extension.
+const CRAWL_SOURCES: ReadonlySet<Source> = new Set(["browser", "proxy"])
 
 export interface ObjectRecord {
   ref: string // "order:42"
@@ -15,6 +29,7 @@ export interface ObjectRecord {
   value: string
   shapes: string[] // id shapes seen (uuid/int/…)
   roles: string[] // identities/JWT-subjects that accessed it — >1 ⇒ IDOR/BOLA candidate
+  roleProvenance: Record<string, RoleProvenance>
   endpoints: string[] // functions it appeared in
   sites: string[] // where it lived (path/query/body/header)
   transactions: string[] // every tx touching it (→ send() to replay under another role)
@@ -27,6 +42,7 @@ export interface FunctionRecord {
   endpoint: string // "GET app.test/api/orders/{id}" (or "…/graphql#updateOrder")
   crud: Crud
   roles: string[] // identities that called it — >1 ⇒ BFLA surface to check
+  roleProvenance: Record<string, RoleProvenance>
   objects: string[] // object refs it touched
   transactions: string[]
   requestFields: string[] // all request body/query param names
@@ -73,6 +89,15 @@ function addUniq(arr: string[], v: string | undefined) {
   if (v && !arr.includes(v)) arr.push(v)
 }
 
+function mergeProvenance(record: Record<string, RoleProvenance>, role: string | undefined, isCrawl: boolean) {
+  if (!role) return
+  const prev = record[role]
+  if (!prev) { record[role] = isCrawl ? "crawl" : "forced"; return }
+  if (prev === "both") return
+  if (prev === "crawl" && !isCrawl) { record[role] = "both"; return }
+  if (prev === "forced" && isCrawl) { record[role] = "both"; return }
+}
+
 // Build the object + function inventory over the whole store (on demand — session scale is small).
 export function inventory(store: TrafficStore): Inventory {
   const objs = new Map<string, ObjectRecord>()
@@ -84,10 +109,12 @@ export function inventory(store: TrafficStore): Inventory {
     const allReqFields = Object.keys({ ...p.query, ...p.body })
     const allRespFields = Object.keys(respFields)
     const hiddens = allRespFields.filter((k) => k.startsWith(HIDDEN_PREFIX)).map((k) => k.slice(HIDDEN_PREFIX.length))
+    const isCrawl = CRAWL_SOURCES.has(tx.source)
 
-    const fr = fns.get(s.function.endpoint) ?? { endpoint: s.function.endpoint, crud: s.function.crud, roles: [], objects: [], transactions: [], requestFields: [], responseFields: [], hiddenInputs: [] }
+    const fr = fns.get(s.function.endpoint) ?? { endpoint: s.function.endpoint, crud: s.function.crud, roles: [], roleProvenance: {}, objects: [], transactions: [], requestFields: [], responseFields: [], hiddenInputs: [] }
     addUniq(fr.transactions, tx.id)
     addUniq(fr.roles, s.role)
+    mergeProvenance(fr.roleProvenance, s.role, isCrawl)
     for (const o of s.objects) addUniq(fr.objects, o.ref)
     for (const f of allReqFields) addUniq(fr.requestFields, f)
     for (const f of allRespFields) addUniq(fr.responseFields, f)
@@ -96,9 +123,10 @@ export function inventory(store: TrafficStore): Inventory {
 
     const txFields = [...allReqFields, ...allRespFields]
     for (const o of s.objects) {
-      const or = objs.get(o.ref) ?? { ref: o.ref, resource: o.resource ?? "", value: o.value, shapes: [], roles: [], endpoints: [], sites: [], transactions: [], fields: [], sensitiveFields: [], idFields: [] }
+      const or = objs.get(o.ref) ?? { ref: o.ref, resource: o.resource ?? "", value: o.value, shapes: [], roles: [], roleProvenance: {}, endpoints: [], sites: [], transactions: [], fields: [], sensitiveFields: [], idFields: [] }
       addUniq(or.shapes, o.shape)
       addUniq(or.roles, s.role)
+      mergeProvenance(or.roleProvenance, s.role, isCrawl)
       addUniq(or.endpoints, s.function.endpoint)
       addUniq(or.sites, o.in)
       addUniq(or.transactions, tx.id)
@@ -111,6 +139,13 @@ export function inventory(store: TrafficStore): Inventory {
     }
   }
   return { objects: [...objs.values()], functions: [...fns.values()] }
+}
+
+// True when EVERY role that touched this record discovered it via organic crawl (browser/proxy),
+// meaning the endpoint is reachable from the UI for all of them — likely shared by design.
+export function allRolesCrawled(rp: Record<string, RoleProvenance>): boolean {
+  const vals = Object.values(rp)
+  return vals.length > 0 && vals.every((v) => v === "crawl" || v === "both")
 }
 
 // The deterministic access-control leads that the graph surfaces directly:

@@ -27,7 +27,7 @@ import type { InjectPoint, InjectLocation, Coverage } from "./injectpoint"
 import { leads } from "./lead"
 import { rawView } from "./fields"
 import { query as httpqlQuery } from "./httpql"
-import { inventory, crossRoleObjects, crossRoleFunctions } from "./inventory"
+import { inventory, crossRoleObjects, crossRoleFunctions, allRolesCrawled } from "./inventory"
 import { valueOccurrences, untestedEndpoints } from "./pivot"
 import { send as coreSend } from "./replay"
 import { probeInjectPoints } from "./injectprobe"
@@ -108,7 +108,9 @@ export function forAgent(store: TrafficStore, sender?: Sender): Vortex {
     functions: () => inventory(store).functions,
     crossRole: () => {
       const inv = inventory(store)
-      return { objects: crossRoleObjects(inv), functions: crossRoleFunctions(inv) }
+      const objects = crossRoleObjects(inv).map((o) => ({ ...o, shared: allRolesCrawled(o.roleProvenance) }))
+      const functions = crossRoleFunctions(inv).map((f) => ({ ...f, shared: allRolesCrawled(f.roleProvenance) }))
+      return { objects, functions }
     },
     whereValue: (v) => valueOccurrences(store, v),
     untested: () => untestedEndpoints(store),
@@ -192,7 +194,7 @@ export const agentCapabilities: Capability[] = [
   },
   {
     name: "vortex_cross_role",
-    description: "Deterministic access-control leads: objects reached under more than one role (IDOR/BOLA candidates) and functions called under more than one role (BFLA surface).",
+    description: "Deterministic access-control leads: objects reached under more than one role (IDOR/BOLA candidates) and functions called under more than one role (BFLA surface). Each candidate carries `shared` (true when ALL roles discovered the endpoint via organic crawl — likely shared by design, NOT a finding) and `roleProvenance` (per-role: 'crawl'=UI navigation, 'forced'=replay only, 'both'). Focus on candidates where shared=false — those are the real authorization leads.",
     input: z.object({}).strict(),
     run: (api) => api.crossRole(),
   },

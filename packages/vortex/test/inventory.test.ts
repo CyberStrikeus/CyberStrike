@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test"
-import type { Transaction } from "../src/index"
-import { MemoryStore, inventory, crossRoleObjects, crossRoleFunctions, objectsByResource, objectsForRole, transactionsForObject } from "../src/index"
+import type { Transaction, Source } from "../src/index"
+import { MemoryStore, inventory, crossRoleObjects, crossRoleFunctions, allRolesCrawled, objectsByResource, objectsForRole, transactionsForObject } from "../src/index"
 
-function tx(id: string, url: string, identity?: string, method = "GET"): Transaction {
-  return { id, source: "browser", host: "app.test", identity, request: { method, url: `https://app.test${url}`, headers: [] } }
+function tx(id: string, url: string, identity?: string, method = "GET", source: Source = "browser"): Transaction {
+  return { id, source, host: "app.test", identity, request: { method, url: `https://app.test${url}`, headers: [] } }
 }
 
 describe("inventory — corpus object & function graph the agent queries", () => {
@@ -36,5 +36,77 @@ describe("inventory — corpus object & function graph the agent queries", () =>
     expect(objectsByResource(inv, "orders").map((o) => o.ref).sort()).toEqual(["orders:42", "orders:99"])
     expect(objectsForRole(inv, "org2").map((o) => o.ref).sort()).toEqual(["orders:42", "orders:99"])
     expect(transactionsForObject(inv, "orders:42").sort()).toEqual(["a", "b"]) // agent replays these under another role to confirm
+  })
+
+  test("roleProvenance tracks crawl source for objects and functions", () => {
+    const order42 = inv.objects.find((o) => o.ref === "orders:42")!
+    expect(order42.roleProvenance).toEqual({ org1: "crawl", org2: "crawl" })
+    const fn = inv.functions.find((f) => f.endpoint === "GET app.test/api/orders/{id}")!
+    expect(fn.roleProvenance).toEqual({ org1: "crawl", org2: "crawl" })
+  })
+})
+
+describe("inventory — navigation provenance (shared vs forced endpoints)", () => {
+  test("shared=true when BOTH roles discovered the endpoint via crawl (browser)", () => {
+    const store = new MemoryStore()
+    store.add(tx("a", "/api/cover-letters", "admin", "GET", "browser"))
+    store.add(tx("b", "/api/cover-letters", "member", "GET", "browser"))
+    const inv = inventory(store)
+    const cf = crossRoleFunctions(inv)
+    const fn = cf.find((f) => f.endpoint.includes("cover-letters"))!
+    expect(fn.roleProvenance).toEqual({ admin: "crawl", member: "crawl" })
+    expect(allRolesCrawled(fn.roleProvenance)).toBe(true)
+  })
+
+  test("shared=false when one role only reached the endpoint via replay", () => {
+    const store = new MemoryStore()
+    store.add(tx("a", "/api/admin/users", "admin", "GET", "browser"))
+    store.add(tx("b", "/api/admin/users", "member", "GET", "replay"))
+    const inv = inventory(store)
+    const cf = crossRoleFunctions(inv)
+    const fn = cf.find((f) => f.endpoint.includes("admin"))!
+    expect(fn.roleProvenance).toEqual({ admin: "crawl", member: "forced" })
+    expect(allRolesCrawled(fn.roleProvenance)).toBe(false)
+  })
+
+  test("proxy source counts as crawl (organic MITM capture)", () => {
+    const store = new MemoryStore()
+    store.add(tx("a", "/api/data", "admin", "GET", "proxy"))
+    store.add(tx("b", "/api/data", "member", "GET", "browser"))
+    const inv = inventory(store)
+    const fn = inv.functions.find((f) => f.endpoint.includes("data"))!
+    expect(fn.roleProvenance).toEqual({ admin: "crawl", member: "crawl" })
+    expect(allRolesCrawled(fn.roleProvenance)).toBe(true)
+  })
+
+  test("import/cloud sources count as forced", () => {
+    const store = new MemoryStore()
+    store.add(tx("a", "/api/resource", "admin", "GET", "browser"))
+    store.add(tx("b", "/api/resource", "member", "GET", "import"))
+    const inv = inventory(store)
+    const fn = inv.functions.find((f) => f.endpoint.includes("resource"))!
+    expect(fn.roleProvenance).toEqual({ admin: "crawl", member: "forced" })
+    expect(allRolesCrawled(fn.roleProvenance)).toBe(false)
+  })
+
+  test("role with both crawl AND replay → provenance 'both', still treated as crawled", () => {
+    const store = new MemoryStore()
+    store.add(tx("a", "/api/items", "admin", "GET", "browser"))
+    store.add(tx("b", "/api/items", "member", "GET", "browser"))
+    store.add(tx("c", "/api/items", "member", "GET", "replay"))
+    const inv = inventory(store)
+    const fn = inv.functions.find((f) => f.endpoint.includes("items"))!
+    expect(fn.roleProvenance).toEqual({ admin: "crawl", member: "both" })
+    expect(allRolesCrawled(fn.roleProvenance)).toBe(true)
+  })
+
+  test("object-level provenance tracks per-role source", () => {
+    const store = new MemoryStore()
+    store.add(tx("a", "/api/orders/42", "admin", "GET", "browser"))
+    store.add(tx("b", "/api/orders/42", "member", "GET", "replay"))
+    const inv = inventory(store)
+    const obj = inv.objects.find((o) => o.ref === "orders:42")!
+    expect(obj.roleProvenance).toEqual({ admin: "crawl", member: "forced" })
+    expect(allRolesCrawled(obj.roleProvenance)).toBe(false)
   })
 })
