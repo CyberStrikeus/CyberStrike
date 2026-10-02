@@ -390,14 +390,14 @@ export namespace Request {
     lines.push("")
     if (req.raw_request) {
       lines.push("Request:")
-      lines.push(req.raw_request.slice(0, 16_000))
+      lines.push(req.raw_request)
       lines.push("")
     }
     if (req.response_status) {
       lines.push(`Response: ${req.response_status}`)
       if (req.response_content_type) lines.push(`Content-Type: ${req.response_content_type}`)
       if (req.processed_response) {
-        lines.push(req.processed_response.slice(0, 16_000))
+        lines.push(req.processed_response)
       }
       lines.push("")
     }
