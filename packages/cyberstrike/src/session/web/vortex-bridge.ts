@@ -3,7 +3,7 @@
 // Vortex engine (rules → signals → subjects → inventory → leads) runs over the live web corpus in
 // parallel with the existing CS signal fabric (verify-first; the fabric retires once Vortex proves
 // out). Never throws — must not break the ingest path.
-import { SqliteStore, defaultRegistry, registerPlugin, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, subjects, humanName, params, responseFields as txResponseFields, header, AccessMatcher, ChainValueIndex, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type CanaryKind, type VortexPlugin, type Discovered } from "@cyberstrike-io/vortex"
+import { SqliteStore, defaultRegistry, registerPlugin, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, subjects, humanName, params, responseFields as txResponseFields, header, AccessMatcher, ChainValueIndex, signalKey, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type SignalTriage, type CanaryKind, type VortexPlugin, type Discovered } from "@cyberstrike-io/vortex"
 import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
@@ -849,6 +849,7 @@ export interface VortexSignalView {
   owner?: string
   routed: boolean
   status?: "pending" | "dispatched" | "examined"
+  triage: SignalTriage
   // For a JS-origin finding: whether the app actually loaded/executed the asset it fired on (#22).
   // "referenced" = shipped but the page was never observed loading it → the finding is down-ranked
   // (the classic "we don't load that" false positive). Absent for non-JS findings and unknown loads.
@@ -895,6 +896,7 @@ export function vortexSignals(sessionID: string): { signals: VortexSignalView[] 
         owner: ownerForSignal(s.ruleId, s.category),
         routed: shouldRoute(s.category, s.severity as VortexSeverity),
         status: keyHash ? statusMap[keyHash] : undefined,
+        triage: s.triage ?? "new",
         loadState: loadStateFor(s, tx),
       })
     }
@@ -910,5 +912,44 @@ export function vortexSignals(sessionID: string): { signals: VortexSignalView[] 
   } catch (e) {
     log.warn("vortexSignals read failed — returning empty", { sessionID, err: String(e) })
     return { signals: [] }
+  }
+}
+
+export function vortexUpdateTriage(sessionID: string, input: { keys: string[]; triage: SignalTriage }): { updated: number } {
+  try {
+    const store = storeFor(sessionID)
+    const updated = store.updateSignalTriage(input.keys, input.triage)
+    signalsCache.delete(sessionID)
+    return { updated }
+  } catch (e) {
+    log.warn("vortexUpdateTriage failed", { sessionID, err: String(e) })
+    return { updated: 0 }
+  }
+}
+
+export function vortexTriageBySignalView(sessionID: string, input: { ruleIds: string[]; triage: SignalTriage }): { updated: number } {
+  try {
+    const store = storeFor(sessionID)
+    const all = store.signals()
+    const keys = all.filter((s) => input.ruleIds.includes(s.ruleId)).map(signalKey)
+    if (keys.length === 0) return { updated: 0 }
+    const updated = store.updateSignalTriage(keys, input.triage)
+    signalsCache.delete(sessionID)
+    return { updated }
+  } catch (e) {
+    log.warn("vortexTriageBySignalView failed", { sessionID, err: String(e) })
+    return { updated: 0 }
+  }
+}
+
+export function vortexSignalSummary(sessionID: string): { total: number; triage: Record<SignalTriage, number> } {
+  try {
+    const store = storeFor(sessionID)
+    const triage = store.signalSummary()
+    const total = Object.values(triage).reduce((a, b) => a + b, 0)
+    return { total, triage }
+  } catch (e) {
+    log.warn("vortexSignalSummary failed", { sessionID, err: String(e) })
+    return { total: 0, triage: { new: 0, reviewed: 0, confirmed: 0, dismissed: 0, escalated: 0 } }
   }
 }
