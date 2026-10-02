@@ -144,7 +144,7 @@ export type State = {
   }
   vortex_signals: {
     [sessionID: string]: {
-      signals: Array<{ ruleId: string; category: string; severity: string; title: string; method?: string; endpoint?: string; keyHash?: string; owner?: string; routed: boolean; status?: "pending" | "examined" }>
+      signals: Array<{ ruleId: string; category: string; severity: string; title: string; method?: string; endpoint?: string; keyHash?: string; owner?: string; routed: boolean; status?: "pending" | "examined"; triage?: "new" | "reviewed" | "confirmed" | "dismissed" | "escalated" }>
     }
   }
   web_credential: {
