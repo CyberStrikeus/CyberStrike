@@ -1,4 +1,5 @@
 import z from "zod"
+import { createHash } from "node:crypto"
 import { Filesystem } from "../util/filesystem"
 import path from "path"
 import { Database, eq } from "../storage/db"
@@ -16,6 +17,7 @@ import { git } from "../util/git"
 
 export namespace Project {
   const log = Log.create({ service: "project" })
+  let reconciled = false
   export const Info = z
     .object({
       id: z.string(),
@@ -184,11 +186,18 @@ export namespace Project {
         }
       }
 
+      if (directory === "/" || directory === "") {
+        return {
+          id: "global",
+          worktree: "/",
+          sandbox: "/",
+          vcs: Info.shape.vcs.parse(Flag.CYBERSTRIKE_FAKE_VCS),
+        }
+      }
       return {
-        id: "global",
-        worktree: "/",
-        sandbox: "/",
-        vcs: Info.shape.vcs.parse(Flag.CYBERSTRIKE_FAKE_VCS),
+        id: createHash("sha256").update(directory).digest("hex").slice(0, 40),
+        worktree: directory,
+        sandbox: directory,
       }
     })
 
@@ -224,6 +233,8 @@ export namespace Project {
     }
     if (data.sandbox !== result.worktree && !result.sandboxes.includes(data.sandbox))
       result.sandboxes.push(data.sandbox)
+    if (directory !== result.worktree && directory !== data.sandbox && !result.sandboxes.includes(directory))
+      result.sandboxes.push(directory)
     result.sandboxes = result.sandboxes.filter((x) => existsSync(x))
     const insert = {
       id: result.id,
@@ -333,6 +344,24 @@ export namespace Project {
         .all()
         .map((row) => fromRow(row)),
     )
+  }
+
+  export async function reconcileSessionDirectories() {
+    if (reconciled) return
+    reconciled = true
+    const rows = Database.use((db) =>
+      db
+        .select({ directory: SessionTable.directory })
+        .from(SessionTable)
+        .all(),
+    )
+    const dirs = new Set(rows.map((r) => r.directory).filter((d): d is string => !!d && d !== "/"))
+    if (dirs.size === 0) return
+    log.info("reconciling session directories", { count: dirs.size })
+    for (const dir of dirs) {
+      if (!existsSync(dir)) continue
+      await fromDirectory(dir).catch((error) => log.warn("reconcile failed", { dir, error }))
+    }
   }
 
   export function get(id: string): Info | undefined {
