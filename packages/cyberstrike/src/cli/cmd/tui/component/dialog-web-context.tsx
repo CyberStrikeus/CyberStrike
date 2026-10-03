@@ -6,7 +6,22 @@ import { useDialog } from "@tui/ui/dialog"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
 import { formatEndpointHost } from "@tui/util/format"
 
-type SectionID = "endpoints" | "roles" | "credentials" | "objects" | "functions"
+type SectionID = "endpoints" | "roles" | "credentials" | "objects" | "functions" | "signals"
+
+const SIGNAL_SEV_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
+const SIGNAL_TRIAGE_RANK: Record<string, number> = { new: 0, reviewed: 1, confirmed: 2, dismissed: 3, escalated: 4 }
+type WebSignal = {
+  ruleId: string
+  category: string
+  severity: string
+  title: string
+  method?: string
+  endpoint?: string
+  owner?: string
+  routed?: boolean
+  status?: string
+  triage?: string
+}
 
 export function DialogWebContext(props: { sessionID: string }) {
   const sync = useSync()
@@ -22,9 +37,14 @@ export function DialogWebContext(props: { sessionID: string }) {
     { id: "credentials", label: "Credentials" },
     { id: "objects", label: "Objects" },
     { id: "functions", label: "Functions" },
+    { id: "signals", label: "Signals" },
   ]
 
   const [section, setSection] = createSignal<SectionID>("endpoints")
+  // Signals view: hide "dismissed" by default (checked and ruled out); 'f' toggles. Signals are
+  // sorted by (category, severity) so same-category findings sit together — the terminal equivalent
+  // of the app's category grouping.
+  const [showDismissed, setShowDismissed] = createSignal(false)
   const [index, setIndex] = createSignal(0)
   const [mode, setMode] = createSignal<"list" | "detail">("list")
 
@@ -35,6 +55,17 @@ export function DialogWebContext(props: { sessionID: string }) {
     if (current === "credentials") return sync.data.web_credential[props.sessionID] ?? []
     if (current === "objects") return sync.data.web_object[props.sessionID] ?? []
     if (current === "functions") return sync.data.web_function[props.sessionID] ?? []
+    if (current === "signals") {
+      const all = (sync.data.vortex_signals[props.sessionID]?.signals ?? []) as WebSignal[]
+      return all
+        .filter((s) => showDismissed() || (s.triage ?? "new") !== "dismissed")
+        .slice()
+        .sort(
+          (a, b) =>
+            a.category.localeCompare(b.category) ||
+            (SIGNAL_SEV_RANK[a.severity] ?? 4) - (SIGNAL_SEV_RANK[b.severity] ?? 4),
+        )
+    }
     return []
   })
 
@@ -67,6 +98,7 @@ export function DialogWebContext(props: { sessionID: string }) {
     if (current === "credentials") return "Credentials"
     if (current === "objects") return "Objects"
     if (current === "functions") return "Functions"
+    if (current === "signals") return showDismissed() ? "Signals (all)" : "Signals"
     return ""
   })
 
@@ -119,6 +151,12 @@ export function DialogWebContext(props: { sessionID: string }) {
       if (list.length === 0) return
       evt.preventDefault()
       setMode((prev) => (prev === "list" ? "detail" : "list"))
+    }
+
+    if (evt.name === "f" && section() === "signals") {
+      evt.preventDefault()
+      setShowDismissed((v) => !v)
+      setIndex(0)
     }
 
     if (evt.name === "escape") {
@@ -209,6 +247,9 @@ export function DialogWebContext(props: { sessionID: string }) {
                         <Show when={section() === "functions"}>
                           <FunctionRow item={value()} />
                         </Show>
+                        <Show when={section() === "signals"}>
+                          <SignalRow item={value()} />
+                        </Show>
                       </box>
                     )
                   }}
@@ -236,6 +277,9 @@ export function DialogWebContext(props: { sessionID: string }) {
               <Show when={section() === "functions"}>
                 <FunctionDetail item={item() as any} />
               </Show>
+              <Show when={section() === "signals"}>
+                <SignalDetail item={item() as WebSignal} />
+              </Show>
             </scrollbox>
           </box>
         )}
@@ -243,7 +287,14 @@ export function DialogWebContext(props: { sessionID: string }) {
 
       <box paddingTop={1}>
         <text fg={theme.textMuted}>
-          <Show when={mode() === "detail"} fallback="←→ Section  ↑↓ Navigate  Enter Details  Esc Close">
+          <Show
+            when={mode() === "detail"}
+            fallback={
+              section() === "signals"
+                ? "←→ Section  ↑↓ Navigate  Enter Details  f Filter  Esc Close"
+                : "←→ Section  ↑↓ Navigate  Enter Details  Esc Close"
+            }
+          >
             Enter Back Esc Close
           </Show>
         </text>
@@ -299,6 +350,70 @@ function RoleRow(props: { item: { name: string; level?: number } }) {
           <span style={{ fg: theme.textMuted }}> L{props.item.level}</span>
         </Show>
       </text>
+    </box>
+  )
+}
+
+function SignalRow(props: { item: WebSignal }) {
+  const { theme } = useTheme()
+  const sevColor = () => {
+    const s = props.item.severity
+    if (s === "critical" || s === "high") return theme.warning
+    if (s === "medium") return theme.accent
+    return theme.textMuted
+  }
+  const triageColor = () => {
+    const t = props.item.triage ?? "new"
+    if (t === "confirmed" || t === "escalated") return theme.warning
+    if (t === "reviewed") return theme.accent
+    return theme.textMuted
+  }
+  return (
+    <box flexDirection="row" gap={1}>
+      <text flexShrink={0} style={{ fg: sevColor() }}>
+        •
+      </text>
+      <text flexShrink={0} style={{ fg: triageColor() }}>
+        [{props.item.triage ?? "new"}]
+      </text>
+      <text fg={theme.textMuted} flexShrink={0}>
+        {props.item.category}
+      </text>
+      <text fg={theme.text} wrapMode="none">
+        {props.item.title}
+      </text>
+    </box>
+  )
+}
+
+function SignalDetail(props: { item: WebSignal }) {
+  const { theme } = useTheme()
+  return (
+    <box flexDirection="column" gap={1}>
+      <text fg={theme.text} wrapMode="word">
+        {props.item.title}
+      </text>
+      <box flexDirection="row" gap={1}>
+        <text fg={theme.textMuted}>severity:</text>
+        <text fg={theme.text}>{props.item.severity}</text>
+        <text fg={theme.textMuted}>triage:</text>
+        <text fg={theme.text}>{props.item.triage ?? "new"}</text>
+        <text fg={theme.textMuted}>category:</text>
+        <text fg={theme.text}>{props.item.category}</text>
+      </box>
+      <Show when={props.item.endpoint}>
+        <text fg={theme.textMuted} wrapMode="none">
+          {props.item.method ? `${props.item.method} ` : ""}
+          {props.item.endpoint}
+        </text>
+      </Show>
+      <text fg={theme.textMuted}>rule: {props.item.ruleId}</text>
+      <Show when={props.item.routed}>
+        <text fg={theme.textMuted}>
+          → {props.item.owner ?? props.item.category}
+          {props.item.status ? ` · ${props.item.status}` : ""}
+        </text>
+      </Show>
     </box>
   )
 }
