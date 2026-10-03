@@ -21,7 +21,7 @@ export const DialogSkillBrowser: Component = () => {
     const s = sdk()
     if (!s) return []
     try {
-      const res = await (s.client as any).cyberstrikeSkill.list()
+      const res = await (s.client as any).skill.list()
       const data = res?.data as SkillItem[] | undefined
       return data ?? []
     } catch {
