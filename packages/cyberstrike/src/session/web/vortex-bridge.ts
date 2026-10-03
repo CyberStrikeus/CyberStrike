@@ -931,20 +931,26 @@ export function vortexUpdateTriage(sessionID: string, input: { keys: string[]; t
   }
 }
 
-// Code-enforced signal-triage feedback. The inspection dispatcher marks an endpoint (keyHash)
-// examined once its specialists finish — whether or not a vulnerability was reported. This advances
-// every Vortex signal on that endpoint that is still untriaged from "new" → the given triage (the
-// inspection path passes "reviewed"), so "has this signal been checked?" is answerable from the
-// signal itself instead of every signal staying "new" forever. Never downgrades a signal already
-// confirmed/dismissed/escalated — only "new" moves. Not agent-driven: wired into markExamined.
+// Monotonic triage rank — advancement only, a signal is never walked backwards. "new" < "reviewed"
+// (examined, nothing found) < "confirmed"/"dismissed" (an outcome was decided) < "escalated".
+const TRIAGE_RANK: Record<SignalTriage, number> = { new: 0, reviewed: 1, confirmed: 2, dismissed: 2, escalated: 3 }
+
+// Code-enforced signal-triage feedback, driven by the examination outcome — never the agent's choice:
+//   - the inspection dispatcher marks an endpoint examined once its specialists finish (vuln or not)
+//     → "reviewed";
+//   - report_vulnerability records a finding on an endpoint → "confirmed";
+//   - triage_vulnerability rejects a finding → "dismissed".
+// Advances every Vortex signal on `keyHash` whose current triage ranks BELOW the target, so a later
+// lower-rank update (e.g. the dispatcher's "reviewed" firing after a "confirmed") can't walk it back.
 export function vortexTriageByKeyHash(sessionID: string, keyHash: string, triage: SignalTriage): { updated: number } {
   try {
     const store = storeFor(sessionID)
     const txIds = new Set(store.all().filter((t) => t.keyHash === keyHash).map((t) => t.id))
     if (txIds.size === 0) return { updated: 0 }
+    const target = TRIAGE_RANK[triage]
     const keys = store
       .signals()
-      .filter((s) => txIds.has(s.transactionId) && (s.triage ?? "new") === "new")
+      .filter((s) => txIds.has(s.transactionId) && TRIAGE_RANK[s.triage ?? "new"] < target)
       .map(signalKey)
     if (keys.length === 0) return { updated: 0 }
     const updated = store.updateSignalTriage(keys, triage)
