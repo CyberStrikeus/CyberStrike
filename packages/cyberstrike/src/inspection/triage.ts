@@ -1,16 +1,21 @@
-// Auto-triage (issue #41). When the inspection queue drains, findings recorded by the specialists sit
-// in `draft` — specialists cannot triage. This runner dispatches a dedicated `triage` sub-agent to move
-// each draft to its final status (triaged / rejected / duplicate). It is registered as a lifecycle
-// activity source, so an assessment does not reach `complete` until triage has run — `complete` then
-// means "scanned AND triaged", not just "scanned".
+// Auto-triage (issue #41, #72). When the inspection queue drains, findings recorded by the specialists
+// sit in `draft` — specialists cannot triage. This runner dispatches a dedicated `triage` sub-agent to
+// VERIFY each draft by replaying its HTTP evidence, then set it to its final status
+// (triaged / rejected / duplicate).
 //
-// Fail-safe by design: the triage agent leaves anything it cannot confidently rule out as draft, and a
+// Evidence-based verification (#72): the triage agent receives the full HTTP request/response evidence
+// attached to each finding and MUST replay requests via http_replay to independently verify whether the
+// response actually demonstrates the claimed vulnerability. Text-only review is not enough — agents
+// misinterpret responses (e.g. `deleted:0` read as "bypass worked" when it means "nothing to delete").
+//
+// Fail-safe by design: the triage agent leaves anything it cannot confidently verify as draft, and a
 // draft it has already reviewed is never re-triaged (so a deliberately-left draft can't loop). Only a
 // NEW draft from later traffic gets a fresh pass.
 import { Log } from "@/util/log"
 import { Session } from "@/session"
 import { SessionPrompt } from "@/session/prompt"
 import { Vulnerability } from "@/session/vulnerability"
+import { Request } from "@/session/request"
 import { normalizeStatus, VulnStatus } from "@/session/vulnerability-status"
 import { withTimeout } from "@/util/timeout"
 
@@ -70,18 +75,21 @@ export class TriageRunner {
     }
   }
 
-  // CODE-ENFORCED, not left to the LLM: any finding from this pass still in `draft` is promoted to
-  // `triaged` via the Vulnerability store. Promotion (never rejection) so a real finding is never lost —
-  // it surfaces as an active finding for human review instead of sitting in draft. (#41)
+  // (#72) Unverified drafts stay as draft for human review — auto-promote is gone. The triage agent
+  // must explicitly triage or reject each finding based on evidence replay. Findings the agent could
+  // not verify remain visible as drafts, which is safer than rubber-stamping them as triaged.
   private finalize(drafts: Vulnerability.Info[]): void {
     const byId = new Map(Vulnerability.get(this.sessionID).map((v) => [v.id, v]))
+    let remaining = 0
     for (const d of drafts) {
       if (!d.id) continue
       const cur = byId.get(d.id)
       if (cur && normalizeStatus(cur.status ?? VulnStatus.DRAFT) === VulnStatus.DRAFT) {
-        Vulnerability.update({ sessionID: this.sessionID, id: d.id, status: VulnStatus.TRIAGED })
-        log.info("auto-promoted un-triaged draft → triaged (no finding left in draft)", { sessionID: this.sessionID, id: d.id })
+        remaining++
       }
+    }
+    if (remaining > 0) {
+      log.info("triage pass finished with drafts remaining for human review", { sessionID: this.sessionID, count: remaining })
     }
   }
 
@@ -92,7 +100,7 @@ export class TriageRunner {
       parentID: this.sessionID,
       title: `Triage ${drafts.length} finding${drafts.length === 1 ? "" : "s"}`,
     })
-    const parts = await SessionPrompt.resolvePromptParts(buildPrompt(drafts))
+    const parts = await SessionPrompt.resolvePromptParts(buildPrompt(this.sessionID, drafts))
     const run = SessionPrompt.prompt({ sessionID: child.id, agent: "triage", model, parts })
     if (TRIAGE_TIMEOUT_MS <= 0) {
       await run
@@ -106,15 +114,50 @@ export class TriageRunner {
   }
 }
 
-function buildPrompt(drafts: Vulnerability.Info[]): string {
+function buildPrompt(sessionID: string, drafts: Vulnerability.Info[]): string {
   const lines = [
-    `The scan is complete. Triage these ${drafts.length} DRAFT finding(s) — set each to its final status with triage_vulnerability. When unsure, leave it as draft (never reject what you cannot confidently rule out).`,
+    `The scan is complete. Verify and triage these ${drafts.length} DRAFT finding(s).`,
+    "",
+    "VERIFICATION PROTOCOL — you MUST follow this for EVERY finding that has evidence_request_ids:",
+    "1. Read the attached HTTP evidence (request + response) below.",
+    "2. Use http_replay to REPLAY the request yourself. For authz/IDOR findings, use compare mode (baseline vs exploit).",
+    "3. Examine the ACTUAL response — does it PROVE the claimed vulnerability?",
+    "   - A 200 status alone is NOT proof. Check if the response body contains the TARGET data.",
+    "   - `deleted:0`, empty arrays, generic success messages are NOT evidence of access.",
+    "   - Compare against a legitimate request: does the attack response actually differ?",
+    "4. Based on YOUR replay results (not the reporting agent's narrative):",
+    '   - Verified: triage_vulnerability(id, status: "triaged")',
+    '   - False positive: triage_vulnerability(id, status: "rejected", reason: "replay shows [specific observation]")',
+    '   - Duplicate: triage_vulnerability(id, status: "duplicate", duplicate_of: "<id>")',
+    "",
+    "Findings WITHOUT evidence_request_ids: leave as draft — they lack verifiable evidence.",
+    "When UNSURE after replay: leave as draft (never reject what you cannot confidently rule out).",
     "",
   ]
   for (const d of drafts) {
     lines.push(`## ${d.id} — [${d.severity}] ${d.title}`)
     if (d.endpoint) lines.push(`Endpoint: ${d.endpoint}`)
-    if (d.description) lines.push(d.description.length > 600 ? d.description.slice(0, 600) + "…" : d.description)
+    if (d.cwe_id) lines.push(`CWE: ${d.cwe_id}`)
+    if (d.description) lines.push(d.description.length > 800 ? d.description.slice(0, 800) + "…" : d.description)
+    if (d.poc) {
+      const pocPreview = d.poc.length > 1000 ? d.poc.slice(0, 1000) + "…" : d.poc
+      lines.push("", "PoC (from reporting agent):", pocPreview)
+    }
+    const ids = d.evidence_request_ids
+    if (ids && ids.length > 0) {
+      const reqs = Request.getByIds(sessionID, ids)
+      if (reqs.length > 0) {
+        lines.push("", "Captured HTTP Evidence:")
+        for (const r of reqs) {
+          lines.push(Request.formatEvidence(r))
+        }
+        lines.push(`evidence_request_ids: ${ids.join(", ")}`)
+      } else {
+        lines.push("", `evidence_request_ids: ${ids.join(", ")} (requests not found in session)`)
+      }
+    } else {
+      lines.push("", "NO evidence_request_ids — cannot replay, leave as draft.")
+    }
     lines.push("")
   }
   return lines.join("\n")
