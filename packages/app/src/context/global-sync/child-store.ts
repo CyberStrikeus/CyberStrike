@@ -1,7 +1,6 @@
 import { createRoot, createSignal, getOwner, onCleanup, runWithOwner, type Owner } from "solid-js"
 import { createStore, type SetStoreFunction, type Store } from "solid-js/store"
 import { Persist, persisted } from "@/utils/persist"
-import type { VcsInfo } from "@cyberstrike-io/sdk/v2/client"
 import {
   DIR_IDLE_TTL_MS,
   MAX_DIR_STORES,
@@ -12,6 +11,7 @@ import {
   type ProjectMeta,
   type State,
   type VcsCache,
+  type VcsState,
 } from "./types"
 import { canDisposeDirectory, pickDirectoriesToEvict } from "./eviction"
 import { useQuery } from "@tanstack/solid-query"
@@ -156,7 +156,7 @@ export function createChildStoreManager(input: {
       const vcs = runWithOwner(input.owner, () =>
         input.persist(
           Persist.serverWorkspace(input.scope, directory, "vcs", ["vcs.v1"]),
-          createStore({ value: undefined as VcsInfo | undefined }),
+          createStore({ value: undefined as VcsState | undefined }),
         ),
       )
       if (!vcs) throw new Error(input.translate("error.childStore.persistedCacheCreateFailed"))

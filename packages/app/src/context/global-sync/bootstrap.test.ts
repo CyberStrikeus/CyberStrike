@@ -219,7 +219,8 @@ describe("config queries", () => {
 
   test("loads legacy global config for v1 servers", async () => {
     const calls: string[] = []
-    const config = { shell: "zsh" } satisfies Config
+    // `shell` is an app-level Config extension (dropped from the regenerated wire type).
+    const config = { shell: "zsh" } satisfies Config & { shell?: string }
     const sdk = {
       global: {
         config: {

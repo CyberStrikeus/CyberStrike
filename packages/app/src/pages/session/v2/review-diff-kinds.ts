@@ -15,7 +15,10 @@ export function filterRenderableDiff(value: FileDiffInfo | SnapshotFileDiff | Vc
 
 export function reviewDiffNeedsLoad(diff: RenderDiff) {
   if (diff.additions === 0 && diff.deletions === 0) return false
-  return !diff.patch || !/^@@ /m.test(diff.patch)
+  // The regenerated FileDiff carries before/after instead of a unified `patch`; only the
+  // client's FileDiffInfo still exposes one, so read it defensively.
+  const patch = "patch" in diff ? diff.patch : undefined
+  return !patch || !/^@@ /m.test(patch)
 }
 
 export function reviewRootDirectory(root: string) {

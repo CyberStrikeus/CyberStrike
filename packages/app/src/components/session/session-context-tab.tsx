@@ -141,9 +141,10 @@ export function SessionContextTab() {
   const ctx = createMemo(() => getSessionContext(messages(), [...providers.all().values()]))
   const formatter = createMemo(() => createSessionContextFormatter(language.intl()))
 
+  // Session-level cost is no longer a Session field; sum the per-message assistant costs.
   const cost = createMemo(() => {
-    const c = info()?.cost
-    return usd().format(typeof c === "number" ? c : 0)
+    const total = messages().reduce((sum, message) => sum + (message.role === "assistant" ? message.cost : 0), 0)
+    return usd().format(total)
   })
 
   const counts = createMemo(() => {

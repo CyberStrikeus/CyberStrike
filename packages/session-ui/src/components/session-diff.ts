@@ -37,7 +37,7 @@ export function resolveFileDiff(diff: DiffSource) {
 }
 
 export function normalize(diff: ReviewDiff): ViewDiff {
-  const file: string = diff.file ?? ("path" in diff ? (diff as FileDiff).path : "") ?? ""
+  const file: string = diff.file ?? ("path" in diff ? (diff as { path?: string }).path : "") ?? ""
   return {
     file,
     additions: diff.additions,

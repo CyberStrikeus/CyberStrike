@@ -592,6 +592,15 @@ export function CyberStrikeSidebar() {
                           const t = child.title
                           return t.replace(/^Inspect\s+/, "").replace(/\s+\(@\w[\w-]*\)$/, "") || t
                         })
+                        // Agent is no longer a Session field; read it from the latest assistant message.
+                        const agent = createMemo(() => {
+                          const messages = sync()?.data.message[child.id] ?? []
+                          for (let index = messages.length - 1; index >= 0; index--) {
+                            const message = messages[index]
+                            if (message.role === "assistant") return message.agent
+                          }
+                          return undefined
+                        })
                         return (
                           <button
                             type="button"
@@ -604,8 +613,8 @@ export function CyberStrikeSidebar() {
                               "bg-icon-accent-base animate-pulse": busy(),
                             }} />
                             <span class="text-12-regular text-text-base truncate flex-1">{label()}</span>
-                            <Show when={child.agent}>
-                              <span class="text-11-regular text-text-weaker shrink-0">{child.agent}</span>
+                            <Show when={agent()}>
+                              <span class="text-11-regular text-text-weaker shrink-0">{agent()}</span>
                             </Show>
                           </button>
                         )

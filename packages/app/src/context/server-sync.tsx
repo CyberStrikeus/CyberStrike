@@ -60,6 +60,10 @@ import type {
 import { toggleMcp } from "./global-sync/mcp"
 import { createServerSession, type ServerSession } from "./server-session"
 
+// `shell` was dropped from the regenerated Config wire type but the shell-selection setting is
+// still wired through the UI; keep it as an optional local extension.
+type AppConfig = Config & { shell?: string }
+
 type GlobalStore = {
   ready: boolean
   error?: InitError
@@ -67,7 +71,7 @@ type GlobalStore = {
   project: Project[]
   provider: NormalizedProviderListResponse
   provider_auth: ProviderAuthResponse
-  config: Config
+  config: AppConfig
   reload: undefined | "pending" | "complete"
 }
 
@@ -679,7 +683,7 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
   }
 
   const updateConfigMutation = useMutation(() => ({
-    mutationFn: (config: Config) => serverSDK.client.global.config.update({ config }),
+    mutationFn: (config: AppConfig) => serverSDK.client.global.config.update({ config }),
     onSuccess: () => {
       bootstrap.refetch()
       // Invalidate all provider queries so newly configured custom providers

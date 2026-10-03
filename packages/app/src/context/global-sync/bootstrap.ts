@@ -430,7 +430,12 @@ export async function bootstrapDirectory(input: {
         retry(async () => {
           if ((await input.protocol) !== "v1") return
           return input.sdk.vcs.get().then((result) => {
-            const next = { branch: result.data?.branch, default_branch: result.data?.default_branch }
+            // `default_branch` was removed from the VcsInfo wire type; keep reading it (v1
+            // backends may still report it) so the "branch" diff mode stays available.
+            const next = {
+              branch: result.data?.branch,
+              default_branch: (result.data as { default_branch?: string } | undefined)?.default_branch,
+            }
             input.setStore("vcs", next)
             if (next) input.vcsCache.setStore("value", next)
           })

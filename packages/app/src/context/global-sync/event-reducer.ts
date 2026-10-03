@@ -203,14 +203,8 @@ export function applyDirectoryEvent(input: {
       break
     }
     case "session.usage.updated": {
-      const properties = event.properties as Pick<Session, "cost" | "tokens"> & { sessionID: string }
-      const result = Binary.search(input.store.session, properties.sessionID, (session) => session.id)
-      if (!result.found) break
-      input.setStore("session", result.index, (session) => ({
-        ...session,
-        cost: properties.cost,
-        tokens: properties.tokens,
-      }))
+      // Usage totals are no longer stored on the Session (displays derive cost/tokens from the
+      // per-message assistant values via the usage source), so there is nothing to reduce here.
       break
     }
     // case "session.archived": {

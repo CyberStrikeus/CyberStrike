@@ -7,13 +7,17 @@ const diff = (file: string, additions: number) =>
     file,
     additions,
     deletions: 0,
+    before: "",
+    after: "",
   }) satisfies SnapshotFileDiff
 
 describe("uniqueSummaryDiffs", () => {
   test("drops entries without files and preserves unique input", () => {
     const alpha = diff("alpha.ts", 1)
     const beta = diff("beta.ts", 1)
-    const invalid = { additions: 1, deletions: 0 } satisfies SnapshotFileDiff
+    // Intentionally malformed (no `file`) to exercise the runtime guard; the regenerated
+    // FileDiff type requires `file`, so cast to represent legacy/partial server data.
+    const invalid = { additions: 1, deletions: 0 } as unknown as SnapshotFileDiff
 
     expect(uniqueSummaryDiffs(undefined)).toEqual([])
     expect(uniqueSummaryDiffs([])).toEqual([])

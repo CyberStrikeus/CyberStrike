@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { QueryClient } from "@tanstack/solid-query"
-import type { Session, SessionV2Info } from "@cyberstrike-io/sdk/v2/client"
+import type { Session } from "@cyberstrike-io/sdk/v2/client"
 import {
   applyHomeSessionEvent,
   appendHomeSessionEvent,
@@ -19,66 +19,41 @@ const session = (input: {
   parentID?: string
   archived?: number
   updated?: number
-}) => ({
+}): Session => ({
   id: input.id,
+  slug: input.id,
   parentID: input.parentID,
   projectID: "project",
-  cost: 0,
-  tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+  directory: input.directory ?? "/project",
+  version: "",
   time: { created: 1, updated: input.updated ?? 1, archived: input.archived },
   title: input.id,
-  location: { directory: input.directory ?? "/project" },
 })
 
 describe("Home V2 session index", () => {
-  test("loads the Home index with one global V2 request", async () => {
-    const calls: unknown[] = []
-    const result = await loadHomeSessionIndex(async (input) => {
-      calls.push(input)
-      return { data: { data: [session({ id: "root" })], cursor: {} } }
-    })
-
-    expect(result.sessions).toHaveLength(1)
-    expect(calls).toEqual([{ limit: HOME_V2_SESSION_PAGE_LIMIT, order: "desc" }])
-  })
-
-  test("loads subsequent pages until the session index is complete", async () => {
+  test("loads the Home index with one global request", async () => {
     const calls: unknown[] = []
     const controller = new AbortController()
     const result = await loadHomeSessionIndex(
       async (input, options) => {
         calls.push({ input, signal: options.signal })
-        if (!("cursor" in input)) {
-          return {
-            data: {
-              data: Array.from({ length: HOME_V2_SESSION_PAGE_LIMIT }, (_, index) =>
-                session({ id: `page-1-${index}` }),
-              ),
-              cursor: { next: "next-page" },
-            },
-          }
-        }
-        return { data: { data: [session({ id: "page-2" })], cursor: {} } }
+        return { data: [session({ id: "root" })] }
       },
       0,
       controller.signal,
     )
 
-    expect(result.sessions).toHaveLength(HOME_V2_SESSION_PAGE_LIMIT + 1)
+    expect(result.sessions).toHaveLength(1)
     expect(calls).toEqual([
       { input: { limit: HOME_V2_SESSION_PAGE_LIMIT, order: "desc" }, signal: controller.signal },
-      {
-        input: { limit: HOME_V2_SESSION_PAGE_LIMIT, order: "desc", cursor: "next-page" },
-        signal: controller.signal,
-      },
     ])
   })
 
-  test("maps visible roots to Home session summaries", () => {
+  test("filters children and archived sessions from visible roots", () => {
     const activeNull = {
       ...session({ id: "active-null", updated: 20 }),
       time: { created: 1, updated: 20, archived: null },
-    } as unknown as SessionV2Info
+    } as unknown as Session
     const result = parseHomeSessionIndex([
       session({ id: "root", updated: 30 }),
       activeNull,

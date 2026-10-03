@@ -951,13 +951,11 @@ export function createServerSession(
       remember({
         ...info,
         projectID: event.data.projectID ?? info.projectID,
-        workspaceID: event.data.location.workspaceID,
         directory: event.data.location.directory,
-        path: event.data.subpath,
         time: { ...info.time, updated: event.created },
       })
-    if (event.type === "session.usage.updated" && info)
-      remember({ ...info, cost: event.data.cost, tokens: event.data.tokens })
+    // session.usage.updated no longer mutates the Session (cost/tokens were removed from it;
+    // displays derive those from the per-message assistant values).
     // if (event.type === "session.archived") {
     //   if (info) remember({ ...info, time: { ...info.time, archived: event.created, updated: event.created } })
     //   evict([sessionID])

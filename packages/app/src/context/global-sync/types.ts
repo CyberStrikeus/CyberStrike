@@ -20,6 +20,11 @@ import type { CommandInfo, McpResource, McpServer, SessionMessageInfo } from "@c
 import type { Accessor } from "solid-js"
 import type { SetStoreFunction, Store } from "solid-js/store"
 
+// The regenerated SDK slimmed VcsInfo to `{ branch }`, but the app still tracks the default
+// branch (to offer "branch" diff mode) and backends may still report it. Keep it optional
+// locally so the feature survives without re-adding the field to the generated wire type.
+export type VcsState = VcsInfo & { default_branch?: string }
+
 export type ProjectMeta = {
   name?: string
   icon?: {
@@ -70,7 +75,7 @@ export type State = {
   }
   lsp_ready: boolean
   lsp: LspStatus[]
-  vcs: VcsInfo | undefined
+  vcs: VcsState | undefined
   limit: number
   message: {
     [sessionID: string]: Message[]
@@ -180,8 +185,8 @@ export type State = {
 }
 
 export type VcsCache = {
-  store: Store<{ value: VcsInfo | undefined }>
-  setStore: SetStoreFunction<{ value: VcsInfo | undefined }>
+  store: Store<{ value: VcsState | undefined }>
+  setStore: SetStoreFunction<{ value: VcsState | undefined }>
   ready: Accessor<boolean>
 }
 

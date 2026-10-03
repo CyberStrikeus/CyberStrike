@@ -36,6 +36,11 @@ import { sanitizeProject } from "./global-sync/utils"
 import type { ProjectMeta } from "./global-sync/types"
 import { SESSION_RECENT_LIMIT } from "./global-sync/types"
 
+// The regenerated SDK dropped `shell` from Config (the backend no longer serves it in its
+// config schema), but the shell-selection setting is still wired through the UI. Track it as an
+// optional local extension so the setting keeps working without re-adding it to the wire type.
+export type AppConfig = Config & { shell?: string }
+
 type GlobalStore = {
   ready: boolean
   error?: InitError
@@ -43,7 +48,7 @@ type GlobalStore = {
   project: Project[]
   provider: ProviderListResponse
   provider_auth: ProviderAuthResponse
-  config: Config
+  config: AppConfig
   reload: undefined | "pending" | "complete"
 }
 
@@ -330,7 +335,7 @@ function createGlobalSync() {
     },
   }
 
-  const updateConfig = async (config: Config) => {
+  const updateConfig = async (config: AppConfig) => {
     setGlobalStore("reload", "pending")
     return globalSDK.client.global.config
       .update({ config })
