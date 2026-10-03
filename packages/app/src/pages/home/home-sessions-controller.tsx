@@ -280,14 +280,15 @@ export function homeSessionSearchKey(record: HomeSessionRecord) {
 function groupSessions(records: HomeSessionRecord[], language: ReturnType<typeof useLanguage>): HomeSessionGroup[] {
   const now = DateTime.local()
   const yesterday = now.minus({ days: 1 })
+  // Group by creation time so the day bucket matches the creation timestamp shown on each row.
   const todaySessions = records.filter((record) =>
-    DateTime.fromMillis(record.session.time.updated ?? record.session.time.created).hasSame(now, "day"),
+    DateTime.fromMillis(record.session.time.created).hasSame(now, "day"),
   )
   const yesterdaySessions = records.filter((record) =>
-    DateTime.fromMillis(record.session.time.updated ?? record.session.time.created).hasSame(yesterday, "day"),
+    DateTime.fromMillis(record.session.time.created).hasSame(yesterday, "day"),
   )
   const olderSessions = records.filter((record) => {
-    const time = DateTime.fromMillis(record.session.time.updated ?? record.session.time.created)
+    const time = DateTime.fromMillis(record.session.time.created)
     return !time.hasSame(now, "day") && !time.hasSame(yesterday, "day")
   })
   const olderTitle =

@@ -1,4 +1,5 @@
 import type { Session } from "@cyberstrike-io/sdk/v2/client"
+import { DateTime } from "luxon"
 import { type Accessor, createMemo, For, Show, Suspense } from "solid-js"
 import { Spinner } from "@cyberstrike-io/ui/spinner"
 import { ScrollView } from "@cyberstrike-io/ui/scroll-view"
@@ -452,6 +453,7 @@ function HomeSessionRow(props: HomeSessionsViewProps & { record: HomeSessionReco
         <Show when={showProjectName()}>
           <HomeSessionProjectName name={props.record.projectName} />
         </Show>
+        <HomeSessionTime created={props.record.session.time.created} />
       </button>
       <Show when={SHOW_HOME_SESSION_ARCHIVE}>
         <div
@@ -477,6 +479,29 @@ function HomeSessionRow(props: HomeSessionsViewProps & { record: HomeSessionReco
         </div>
       </Show>
     </div>
+  )
+}
+
+function formatSessionTime(created: number) {
+  const dt = DateTime.fromMillis(created)
+  const now = DateTime.local()
+  if (dt.hasSame(now, "day")) return dt.toFormat("HH:mm")
+  if (dt.hasSame(now, "year")) return dt.toFormat("MMM d, HH:mm")
+  return dt.toFormat("MMM d, yyyy")
+}
+
+function HomeSessionTime(props: { created: number }) {
+  const label = createMemo(() => formatSessionTime(props.created))
+  return (
+    <span
+      class={`
+        ml-auto shrink-0 pl-2 text-[12px] leading-4 tracking-[-0.04px] tabular-nums
+        text-v2-text-text-muted [font-weight:440]
+      `}
+      title={DateTime.fromMillis(props.created).toLocaleString(DateTime.DATETIME_MED)}
+    >
+      {label()}
+    </span>
   )
 }
 
