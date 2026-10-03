@@ -21,7 +21,15 @@ const instances = new Map<string, Inst>()
 export function getWebInspection(sessionID: string): Inst {
   const existing = instances.get(sessionID)
   if (existing) return existing
-  const queue = new InspectionQueue(sessionID, "web")
+  // When an endpoint is examined (dispatcher finished its specialists — vuln or not), advance that
+  // endpoint's still-"new" Vortex signals to "reviewed" so examination is recorded on the signal.
+  // Dynamic import keeps the dependency one-way (vortex-bridge → web-inspect → here would otherwise
+  // cycle); the hook runs at examination time, not module load.
+  const queue = new InspectionQueue(sessionID, "web", (keyHash) => {
+    void import("../session/web/vortex-bridge")
+      .then((m) => m.vortexTriageByKeyHash(sessionID, keyHash, "reviewed"))
+      .catch(() => {})
+  })
   const router = new WebInspectionRouter()
   const dispatcher = new InspectionDispatcher(queue, router)
   const lifecycle = new SessionLifecycle(sessionID, "web", queue)

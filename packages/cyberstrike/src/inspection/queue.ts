@@ -46,13 +46,18 @@ const UpdatedEvent = BusEvent.define(
 export class InspectionQueue {
   readonly sessionID: string
   readonly domain: string
+  // Optional domain hook fired once a target genuinely transitions to "examined" (not on a re-examine
+  // no-op). The web domain uses it to advance that endpoint's Vortex signals new → reviewed, so the
+  // examination outcome is recorded on the signal. Kept generic (the queue knows nothing about Vortex).
+  private readonly onExamined?: (targetKey: string) => void
 
   static readonly Info = InfoSchema
   static readonly Event = { Updated: UpdatedEvent }
 
-  constructor(sessionID: string, domain: string) {
+  constructor(sessionID: string, domain: string, onExamined?: (targetKey: string) => void) {
     this.sessionID = sessionID
     this.domain = domain
+    this.onExamined = onExamined
   }
 
   // ── Flag (add evidence) ─────────────────────────────────────────
@@ -288,7 +293,14 @@ export class InspectionQueue {
         .run()
       return true
     })
-    if (changed) this.publish()
+    if (changed) {
+      this.publish()
+      try {
+        this.onExamined?.(targetKey)
+      } catch {
+        // domain hook must never break the queue's examined transition
+      }
+    }
   }
 
   // ── Lease (in-flight recovery, issue #38) ───────────────────────
