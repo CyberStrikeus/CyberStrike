@@ -1,4 +1,5 @@
 export * from "./gen/types.gen.js"
+export * from "./compat.js"
 
 import { createClient } from "./gen/client/client.gen.js"
 import { type Config } from "./gen/client/types.gen.js"
