@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test"
 import path from "path"
-import type { ModelMessage } from "ai"
+import { jsonSchema, type ModelMessage } from "ai"
 import { LLM } from "../../src/session/llm"
 import { Global } from "../../src/global"
 import { Instance } from "../../src/project/instance"
@@ -319,6 +319,106 @@ describe("session.llm.stream", () => {
 
         const reasoning = (body.reasoningEffort as string | undefined) ?? (body.reasoning_effort as string | undefined)
         expect(reasoning).toBe("high")
+      },
+    })
+  })
+
+  test("uses Abliteration prompt caching hints and keeps the first-turn prefix stable", async () => {
+    const server = state.server
+    if (!server) {
+      throw new Error("Server not initialized")
+    }
+
+    const providerID = "abliteration-ai"
+    const modelID = "abliterated-model"
+    const request = waitRequest(
+      "/chat/completions",
+      new Response(createChatStream("Hello"), {
+        status: 200,
+        headers: { "Content-Type": "text/event-stream" },
+      }),
+    )
+
+    await using tmp = await tmpdir({
+      init: async (dir) => {
+        await Bun.write(
+          path.join(dir, "cyberstrike.json"),
+          JSON.stringify({
+            $schema: "https://cyberstrike.io/config.json",
+            enabled_providers: [providerID],
+            provider: {
+              [providerID]: {
+                name: "abliteration.ai",
+                npm: "@ai-sdk/openai-compatible",
+                env: [],
+                models: {
+                  [modelID]: {
+                    name: "Abliterated Model",
+                    tool_call: true,
+                    temperature: true,
+                    limit: { context: 100000, output: 4096 },
+                  },
+                },
+                options: {
+                  apiKey: "test-key",
+                  baseURL: `${server.url.origin}/v1`,
+                },
+              },
+            },
+          }),
+        )
+      },
+    })
+
+    await Instance.provide({
+      directory: tmp.path,
+      fn: async () => {
+        const resolved = await Provider.getModel(providerID, modelID)
+        const sessionID = "session-abliteration-1"
+        const agent = {
+          name: "test",
+          mode: "primary",
+          options: {},
+          permission: [{ permission: "*", pattern: "*", action: "allow" }],
+          temperature: 0.4,
+        } satisfies Agent.Info
+
+        const user = {
+          id: "user-abliteration-1",
+          sessionID,
+          role: "user",
+          time: { created: Date.now() },
+          agent: agent.name,
+          model: { providerID, modelID: resolved.id },
+        } satisfies MessageV2.User
+
+        const stream = await LLM.stream({
+          user,
+          sessionID,
+          model: resolved,
+          agent,
+          system: ["You are a helpful assistant."],
+          abort: new AbortController().signal,
+          messages: [{ role: "user", content: "Hello" }],
+          tools: {
+            bash: {
+              description: "Run a command",
+              inputSchema: jsonSchema({ type: "object", properties: {} }),
+            },
+          },
+        })
+
+        for await (const _ of stream.fullStream) {
+        }
+
+        const capture = await request
+        expect(capture.headers.get("x-abliteration-session-id")).toBe(sessionID)
+        expect(capture.body.prompt_cache_key).toBe(sessionID)
+
+        const messages = capture.body.messages as Array<{ role: string; content: unknown }>
+        expect(messages).toHaveLength(2)
+        expect(messages[0]?.role).toBe("system")
+        expect(messages[1]).toEqual({ role: "user", content: "Hello" })
       },
     })
   })
