@@ -593,11 +593,11 @@ export namespace Server {
           // Resolve web UI dist directory (cached after first lookup)
           if (_webDistDir === undefined) {
             const candidates = [
-              // 1. ~/.cyberstrike/web/ (installed/production)
-              path.join(Global.Path.data, "web"),
-              // 2. Workspace-relative (dev: running from repo root)
+              // 1. Workspace-relative (dev: running from repo root) — a freshly built dist must win
+              //    over the data-dir copy, or dev serves a stale ~/.local/share/cyberstrike/web and
+              //    no frontend change is ever visible in the web UI (#33).
               path.join(process.cwd(), "packages", "app", "dist"),
-              // 3. Relative to source (dev: import.meta.url)
+              // 2. Relative to source (dev: import.meta.url) — covers a non-repo-root cwd.
               (() => {
                 try {
                   return new URL("../../../app/dist", import.meta.url).pathname
@@ -605,6 +605,9 @@ export namespace Server {
                   return ""
                 }
               })(),
+              // 3. ~/.cyberstrike/web/ (installed/production) — the only candidate that exists once
+              //    packaged; the dev workspace paths above resolve to nothing there.
+              path.join(Global.Path.data, "web"),
             ]
             for (const dir of candidates) {
               if (!dir) continue
