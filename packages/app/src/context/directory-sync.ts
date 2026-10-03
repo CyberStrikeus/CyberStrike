@@ -27,7 +27,17 @@ export const createDirSyncContext = (
   serverSDK: ReturnType<typeof createServerSdkContext>,
 ) => {
   const client = serverSDK.createClient({ directory, throwOnError: true })
-  const current = createMemo(() => serverSync.child(directory, { mcp: true }))
+  // Reactive accessor for this directory's child store. When this dir-sync context is read from
+  // an async continuation (e.g. sync() running index() after an await) or during a cross-directory
+  // bootstrap cascade, the memo can momentarily yield a non-tuple value; every consumer here
+  // destructures or indexes it ([0]/[1]), so a bad value crashed the whole session view
+  // (TypeError: not iterable / reading 'project' of undefined). peek() re-reads the live,
+  // refcount-pinned store tuple without side effects, guaranteeing a valid [store, setStore].
+  const childStore = createMemo(() => serverSync.child(directory, { mcp: true }))
+  const current = () => {
+    const value = childStore()
+    return Array.isArray(value) ? value : serverSync.peek(directory, { bootstrap: false })
+  }
   const absolute = (path: string) => (current()[0].path.directory + "/" + path).replace("//", "/")
   const data = new Proxy({} as State, {
     get(_, property: keyof State) {
@@ -121,6 +131,12 @@ export const createDirSyncContext = (
             index(child.id)
           }
         }).catch(() => {})
+        // Vulnerabilities only arrive live via the `vulnerability.updated` event; an already-recorded
+        // session (opened later) would show an empty Vulns tab without this initial fetch.
+        client.session
+          .vulnerability({ sessionID })
+          .then((result) => set("vulnerability", sessionID, (result.data ?? []) as never))
+          .catch(() => {})
       },
       todo: serverSync.session.todo,
       history: serverSync.session.history,
