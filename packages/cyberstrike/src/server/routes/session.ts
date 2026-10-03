@@ -2210,7 +2210,9 @@ export const SessionRoutes = lazy(() =>
 
           // Vortex feed for a new endpoint shape (uses the real CS request id). Duplicate branches
           // feed too (slice 0) via feedVortex, so Vortex holds the full traffic. Never throws.
-          feedVortex(req.id)
+          // `ingest.actionable` gates the LLM loop below (#77): only a transaction that produced a
+          // spawning Vortex signal enters the orchestrator; everything else stays Vortex-only.
+          const ingest = feedVortex(req.id)
 
           // Build the prompt as a thunk so the `## Observed Values` block reflects the
           // observation state at SEND time, not at enqueue time. Prompts queue (LLM calls
@@ -2251,6 +2253,18 @@ export const SessionRoutes = lazy(() =>
             })
             log.info("prompt preview:\n" + buildPrompt())
             Request.updateStatus({ id: req.id, status: "processed" })
+          } else if (!ingest.actionable) {
+            // No spawning Vortex signal for this transaction → it stays in the deterministic pipeline
+            // only (Vortex store + any technology/retest tagging); it must NOT burn an orchestrator LLM
+            // turn (#77). The request is fully ingested, so mark it processed so the queue-status UI and
+            // lifecycle don't treat it as outstanding.
+            Request.updateStatus({ id: req.id, status: "processed" })
+            log.info("ingest: no actionable signal — Vortex-only, skipped LLM loop", {
+              sessionID,
+              method: normalized.method,
+              path: normalized.normalizedPath,
+              requestId: req.id,
+            })
           } else {
             const agentName = body.agent ?? "wstg-agent"
             const source = `${normalized.method} ${normalized.normalizedPath}`

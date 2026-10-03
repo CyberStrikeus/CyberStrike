@@ -259,7 +259,7 @@ export interface BrowserIngest {
 
 // Feed one captured request+response into the session's Vortex store and run the per-transaction
 // rules over it (cheap; corpus/chain rules run in vortexReport). Returns running counts.
-export function ingestBrowserTransaction(i: BrowserIngest): { transactions: number; signals: number } {
+export function ingestBrowserTransaction(i: BrowserIngest): { transactions: number; signals: number; actionable: boolean } {
   try {
     bumpActivity(i.sessionID)
     const store = storeFor(i.sessionID)
@@ -296,9 +296,11 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
     // bridge what they produce: discovered endpoints/JS land in the inventory, secret signals route
     // to their WSTG owner (information-gathering). Re-bridging this tx's already-routed signals is
     // idempotent (WebInspect dedups). No-op on the free/default build — no extractor plugin registered.
+    let txSignals: Signal[] | undefined
     if (registry.listHooks().length > 0) {
       registry.runHooks(store, tx)
-      bridgeSignals(i.sessionID, store, store.signals({ transactionId: tx.id }))
+      txSignals = store.signals({ transactionId: tx.id })
+      bridgeSignals(i.sessionID, store, txSignals)
     }
     // Cross-request canary correlation (#15 step 2): scan the observed corpus for any registered
     // canary that renders in a DIFFERENT transaction than it was injected at — a STORED reflection.
@@ -312,18 +314,27 @@ export function ingestBrowserTransaction(i: BrowserIngest): { transactions: numb
       stored = storedSignals.length
       if (stored > 0) bridgeSignals(i.sessionID, store, storedSignals)
     }
-    log.info("vortex ingest", { sessionID: i.sessionID, endpoint: endpointKey(tx), transactions: store.size(), newSignals: added, newParams: points, routed, stored, ruleIds: sigs.map((s) => s.ruleId) })
+    // Did this transaction surface a signal that will actually SPAWN a specialist — routable, owned, AND
+    // non-observational? This is the gate for entering the LLM loop (#77): only signal-producing traffic
+    // drives a specialist (which then deepens via HTTPQL); technology-only / no-signal traffic stays in
+    // Vortex deterministically and never burns an orchestrator turn. A stored reflection discovered here
+    // is an injection finding — always actionable. Uses the hook-inclusive set when an extractor ran,
+    // else this tx's passive sigs, so the default hot path pays no extra query.
+    const isSpawning = (s: Signal) =>
+      shouldRoute(s.category, s.severity as VortexSeverity) && !!ownerForSignal(s.ruleId, s.category) && !isObservational(s.category)
+    const actionable = stored > 0 || (txSignals ?? sigs).some(isSpawning)
+    log.info("vortex ingest", { sessionID: i.sessionID, endpoint: endpointKey(tx), transactions: store.size(), newSignals: added, newParams: points, routed, stored, actionable, ruleIds: sigs.map((s) => s.ruleId) })
     // Auto-probe the new points in the background when active probing is enabled (no-op otherwise).
     // Fire-and-forget: must not block or break the ingest path.
     kickProbe(i.sessionID)
-    return { transactions: store.size(), signals: store.signals().length }
+    return { transactions: store.size(), signals: store.signals().length, actionable }
   } catch (e) {
     // A capture that fails to ingest is absent from the Vortex store — and therefore from the
     // Vortex-sourced Captures view and from everything agents see. WARN (not debug) so this drift
     // from what was actually captured is diagnosable; still swallowed so one bad request never
     // aborts the capture stream.
     log.warn("vortex ingest failed — request absent from Vortex source", { sessionID: i.sessionID, requestID: i.requestID, err: String(e) })
-    return { transactions: 0, signals: 0 }
+    return { transactions: 0, signals: 0, actionable: false }
   }
 }
 
