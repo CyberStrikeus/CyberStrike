@@ -270,6 +270,87 @@ export function dispatchScopeViolation(
   return null
 }
 
+// ── Severity caps (#72) ─────────────────────────────────────────────────────
+// Code-enforced maximum severity per vulnerability class/pattern. The agent
+// claims a severity; this function caps it to the realistic maximum for that
+// class based on industry standards (OWASP, CVSS base metrics, real pentest
+// practice). Returns the capped severity + reason if the cap was applied.
+//
+// The cap is a CEILING, not a floor — a finding can be lower than the cap
+// but never higher. "config-deploy" includes CORS, missing headers, info
+// disclosure — these are never critical and rarely high without chaining.
+
+type SeverityRank = "critical" | "high" | "medium" | "low" | "info"
+const SEV_ORDER: SeverityRank[] = ["info", "low", "medium", "high", "critical"]
+
+// Pattern-based caps: regex on title → max severity. Most specific first.
+// These override the class-based caps below when they match.
+const PATTERN_CAPS: [RegExp, SeverityRank, string][] = [
+  // CORS — almost never high unless credential-reflection to attacker-controlled origin
+  [/\bcors\b|cross-origin|access-control-allow/i, "medium", "CORS misconfiguration is medium at most without demonstrated credential theft"],
+  // Missing security headers (CSP, HSTS, X-Frame-Options, etc.)
+  [/missing.*(csp|content-security-policy|hsts|strict-transport|x-frame|security header)|clickjack/i, "low", "missing security headers are low — defense-in-depth, not directly exploitable"],
+  // Cookie flags (HttpOnly, Secure, SameSite)
+  [/cookie.*(httponly|samesite|secure)|(httponly|samesite|secure).*cookie|cookie flag/i, "low", "cookie flag issues are low — hardening, not direct exploitation"],
+  // Info disclosure, stack traces, version banners
+  [/stack trace|full[- ]?path|internal exception|verbose error|server (banner|version)|version disclos|technology detect/i, "info", "information disclosure is informational unless it directly enables another attack"],
+  // Default credentials (genuinely high — direct access)
+  [/default.*cred|default.*password/i, "high", "default credentials allow direct access"],
+  // Rate limiting (useful but not high)
+  [/rate limit|brute[- ]?force.*protect/i, "low", "missing rate limiting is low — it enables attacks but is not one"],
+  // Password policy
+  [/password policy|weak password.*policy/i, "info", "password policy findings are informational"],
+  // TLS/SSL issues
+  [/ssl|tls.*(weak|deprecated|outdated)|certificate/i, "medium", "TLS/SSL configuration issues are medium"],
+]
+
+// Class-based caps: fallback when no pattern matches. Based on classifyFindingTitle output.
+const CLASS_CAPS: Record<string, SeverityRank> = {
+  "config-deploy": "medium",
+  "session-mgmt": "medium",
+  "authentication": "high",
+  "business-logic": "high",
+  "authorization": "critical",
+  "input-validation": "critical",
+  "llm": "high",
+}
+
+export interface SeverityCap {
+  capped: boolean
+  severity: SeverityRank
+  original?: SeverityRank
+  reason?: string
+}
+
+export function capSeverity(title: string, claimedSeverity: string): SeverityCap {
+  const claimed = claimedSeverity as SeverityRank
+  const claimedIdx = SEV_ORDER.indexOf(claimed)
+  if (claimedIdx === -1) return { capped: false, severity: claimed }
+
+  // Pattern-based caps (most specific, checked first)
+  for (const [re, maxSev, reason] of PATTERN_CAPS) {
+    if (re.test(title)) {
+      const maxIdx = SEV_ORDER.indexOf(maxSev)
+      if (claimedIdx > maxIdx) {
+        return { capped: true, severity: maxSev, original: claimed, reason }
+      }
+      return { capped: false, severity: claimed }
+    }
+  }
+
+  // Class-based caps (fallback)
+  const cls = classifyFindingTitle(title)
+  if (cls && CLASS_CAPS[cls]) {
+    const maxSev = CLASS_CAPS[cls]
+    const maxIdx = SEV_ORDER.indexOf(maxSev)
+    if (claimedIdx > maxIdx) {
+      return { capped: true, severity: maxSev, original: claimed, reason: `${cls} class findings are capped at ${maxSev}` }
+    }
+  }
+
+  return { capped: false, severity: claimed }
+}
+
 /** Hand-off message shown when a tester is dispatched outside its lane. */
 export function dispatchOffLaneMessage(cls: string, inferred: string): string {
   return (
