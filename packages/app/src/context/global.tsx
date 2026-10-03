@@ -127,7 +127,14 @@ function createServerCtx(
     return base
   }
 
-  const projectsList = createMemo(() => (projects.list() ?? []).map(enrich))
+  const projectsList = createMemo(() => {
+    const local = (projects.list() ?? []).map(enrich)
+    const localKeys = new Set(local.map((p) => pathKey(p.worktree)))
+    const backendOnly = sync.data.project
+      .filter((p) => isValidWorktree(p.worktree) && !p.worktree.includes("cyberstrike-test-") && !localKeys.has(pathKey(p.worktree)))
+      .map((p) => enrich({ worktree: p.worktree, expanded: false }))
+    return [...local, ...backendOnly]
+  })
   const recentlyClosedList = createMemo(() => {
     const known = new Set(sync.data.project.map((project) => pathKey(project.worktree)))
     return projects
@@ -154,6 +161,12 @@ function createServerCtx(
 }
 
 export type ServerCtx = ReturnType<typeof createServerCtx>
+
+// Guards against corrupt project rows (e.g. a worktree with mojibake/replacement chars from a
+// bad directory value) cluttering the sidebar. A real worktree is an absolute path, not "/".
+function isValidWorktree(worktree: string | undefined): worktree is string {
+  return !!worktree && worktree !== "/" && worktree.startsWith("/") && !worktree.includes("�")
+}
 
 function isLocalHost(url: string) {
   const host = url.replace(/^https?:\/\//, "").split(":")[0]

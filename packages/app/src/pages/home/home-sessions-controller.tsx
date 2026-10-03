@@ -7,7 +7,7 @@ import { type Accessor, createEffect, createMemo, createRoot, type JSX, startTra
 import { produce } from "solid-js/store"
 import { useCommand } from "@/context/command"
 import {
-  loadHomeSessionIndex,
+  HOME_V2_SESSION_PAGE_LIMIT,
   retainHomeSessions,
   type HomeSessionEvents,
 } from "@/context/global-sync/home-session-index"
@@ -66,13 +66,17 @@ export function createHomeSessionsController(home: HomeController) {
       if (!ctx) return { sessions: [], eventSequence: 0 }
       const cache = homeSessions()
       const eventSequence = cache.eventSequence()
-      const index = await loadHomeSessionIndex(
-        (input, options) => (ctx.sdk.client as any).v2.session.list(input, options),
-        eventSequence,
-        signal,
+      // CyberStrike's SDK has no `.v2` namespace (upstream's planned paginated API). Call the
+      // real `session.list` route, which returns a plain array and filters roots server-side.
+      const response = await ctx.sdk.client.session.list(
+        { roots: true, limit: HOME_V2_SESSION_PAGE_LIMIT },
+        { signal },
+      )
+      const sessions = (response.data ?? []).filter(
+        (session) => !session.parentID && typeof session.time?.archived !== "number",
       )
       cache.complete(eventSequence)
-      return index
+      return { sessions, eventSequence }
     },
     retry: false,
     staleTime: 30_000,
