@@ -948,9 +948,17 @@ export function vortexTriageByKeyHash(sessionID: string, keyHash: string, triage
     const txIds = new Set(store.all().filter((t) => t.keyHash === keyHash).map((t) => t.id))
     if (txIds.size === 0) return { updated: 0 }
     const target = TRIAGE_RANK[triage]
+    // A vulnerability verdict is endpoint-scoped — it fires on every signal sharing the finding's
+    // transaction. Observational `technology` signals (bare fingerprint, no version/no vuln) are not
+    // findings and must not inherit a verdict from an unrelated finding on the same endpoint, which
+    // would inflate the confirmed bucket with noise (#75). An exploitable versioned stack is produced
+    // as a separate `vulnerable-component` signal, so it stays eligible. Examination ("reviewed") still
+    // applies to every signal — the endpoint was genuinely examined.
+    const verdict = triage === "confirmed" || triage === "dismissed"
     const keys = store
       .signals()
       .filter((s) => txIds.has(s.transactionId) && TRIAGE_RANK[s.triage ?? "new"] < target)
+      .filter((s) => !(verdict && s.category === "technology"))
       .map(signalKey)
     if (keys.length === 0) return { updated: 0 }
     const updated = store.updateSignalTriage(keys, triage)
