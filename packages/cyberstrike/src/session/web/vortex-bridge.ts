@@ -3,7 +3,7 @@
 // Vortex engine (rules → signals → subjects → inventory → leads) runs over the live web corpus in
 // parallel with the existing CS signal fabric (verify-first; the fabric retires once Vortex proves
 // out). Never throws — must not break the ingest path.
-import { SqliteStore, defaultRegistry, registerPlugin, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, subjects, humanName, params, responseFields as txResponseFields, header, AccessMatcher, ChainValueIndex, signalKey, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type SignalTriage, type CanaryKind, type VortexPlugin, type Discovered } from "@cyberstrike-io/vortex"
+import { SqliteStore, defaultRegistry, registerPlugin, leads, endpointKey, forAgent, injectPoints, probeSession, send, discoveredId, scanStored, canaryFor, subjects, humanName, params, responseFields as txResponseFields, header, AccessMatcher, ChainValueIndex, signalKey, isObservational, type Vortex, type TrafficStore, type Transaction, type Header, type Lead, type Sender, type Signal, type SignalTriage, type CanaryKind, type VortexPlugin, type Discovered } from "@cyberstrike-io/vortex"
 import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
@@ -949,16 +949,17 @@ export function vortexTriageByKeyHash(sessionID: string, keyHash: string, triage
     if (txIds.size === 0) return { updated: 0 }
     const target = TRIAGE_RANK[triage]
     // A vulnerability verdict is endpoint-scoped — it fires on every signal sharing the finding's
-    // transaction. Observational `technology` signals (bare fingerprint, no version/no vuln) are not
-    // findings and must not inherit a verdict from an unrelated finding on the same endpoint, which
-    // would inflate the confirmed bucket with noise (#75). An exploitable versioned stack is produced
-    // as a separate `vulnerable-component` signal, so it stays eligible. Examination ("reviewed") still
-    // applies to every signal — the endpoint was genuinely examined.
+    // transaction. Observational signals (fingerprints / recon context — see isObservational, the
+    // single source of truth in Vortex) are not findings and must not inherit a verdict from an
+    // unrelated finding on the same endpoint, which would inflate the confirmed bucket with noise
+    // (#75). An exploitable versioned stack is produced as a separate `vulnerable-component` signal,
+    // so it stays eligible. Examination ("reviewed") still applies to every signal — the endpoint was
+    // genuinely examined.
     const verdict = triage === "confirmed" || triage === "dismissed"
     const keys = store
       .signals()
       .filter((s) => txIds.has(s.transactionId) && TRIAGE_RANK[s.triage ?? "new"] < target)
-      .filter((s) => !(verdict && s.category === "technology"))
+      .filter((s) => !(verdict && isObservational(s.category)))
       .map(signalKey)
     if (keys.length === 0) return { updated: 0 }
     const updated = store.updateSignalTriage(keys, triage)

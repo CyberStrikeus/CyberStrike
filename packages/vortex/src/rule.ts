@@ -27,6 +27,16 @@ export interface SignalParam {
 
 export type SignalTriage = "new" | "reviewed" | "confirmed" | "dismissed" | "escalated"
 
+// Observational categories describe WHAT the target is (fingerprints / recon context), not a
+// vulnerability. They still route — the stack slug travels on `ruleId` into retest flags — but they
+// must never receive a vulnerability VERDICT (`confirmed`/`dismissed`): a finding on an endpoint does
+// not turn a co-located fingerprint into a finding. An exploitable versioned stack is produced as its
+// own actionable `vulnerable-component` signal, so nothing exploitable is suppressed by this set.
+export const OBSERVATIONAL_CATEGORIES: ReadonlySet<string> = new Set(["technology"])
+export function isObservational(category: string): boolean {
+  return OBSERVATIONAL_CATEGORIES.has(category)
+}
+
 export interface Signal {
   ruleId: string
   transactionId: string
