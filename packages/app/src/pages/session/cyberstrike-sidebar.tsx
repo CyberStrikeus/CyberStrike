@@ -59,6 +59,23 @@ const severityDot = (s: string) => {
   return "bg-border-weak-base"
 }
 
+const SIGNAL_SEV_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
+const SIGNAL_TRIAGE_ORDER = ["new", "reviewed", "confirmed", "dismissed", "escalated"] as const
+const triageBadge = (t?: string): { label: string; variant: "muted" | "accent" | "warning" | "danger" } => {
+  switch (t ?? "new") {
+    case "confirmed":
+      return { label: "confirmed", variant: "danger" }
+    case "reviewed":
+      return { label: "reviewed", variant: "accent" }
+    case "escalated":
+      return { label: "escalated", variant: "warning" }
+    case "dismissed":
+      return { label: "dismissed", variant: "muted" }
+    default:
+      return { label: "new", variant: "muted" }
+  }
+}
+
 const statusDot = (status: string) => {
   if (status === "connected") return "bg-icon-success-base"
   if (status === "failed") return "bg-icon-danger-base"
@@ -211,6 +228,40 @@ export function CyberStrikeSidebar() {
   const treeUsage = createMemo(() => sync()?.data.session_usage?.[sessionID()])
   const vulnerability = createMemo(() => (sync()?.data.vulnerability?.[sessionID()] ?? []) as Vulnerability[])
   const vortexSignalList = createMemo(() => sync()?.data.vortex_signals?.[sessionID()]?.signals ?? [])
+  // Slice #3 — navigable signal UX: a triage-state filter over signals grouped by category, so a
+  // 1k-signal session is "N unchecked HIGH misconfig" instead of a flat wall. Dismissed is hidden by
+  // default (checked and ruled out); any state with a count can be toggled on/off.
+  const [hiddenTriage, setHiddenTriage] = createSignal<Set<string>>(new Set(["dismissed"]))
+  const signalTriageCounts = createMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const s of vortexSignalList()) {
+      const t = s.triage ?? "new"
+      counts[t] = (counts[t] ?? 0) + 1
+    }
+    return counts
+  })
+  const signalGroups = createMemo(() => {
+    const hidden = hiddenTriage()
+    const byCategory = new Map<string, (typeof vortexSignalList extends () => infer T ? T : never)[number][]>()
+    for (const s of vortexSignalList()) {
+      if (hidden.has(s.triage ?? "new")) continue
+      const arr = byCategory.get(s.category)
+      if (arr) arr.push(s)
+      else byCategory.set(s.category, [s])
+    }
+    return [...byCategory.entries()]
+      .map(([category, items]) => ({
+        category,
+        items: items.slice().sort((a, b) => (SIGNAL_SEV_RANK[a.severity] ?? 4) - (SIGNAL_SEV_RANK[b.severity] ?? 4)),
+      }))
+      .sort((a, b) => b.items.length - a.items.length)
+  })
+  const toggleTriage = (t: string) => {
+    const next = new Set(hiddenTriage())
+    if (next.has(t)) next.delete(t)
+    else next.add(t)
+    setHiddenTriage(next)
+  }
   const requests = createMemo(() => sync()?.data.vortex_captures?.[sessionID()]?.requests ?? [])
   const jsFiles = createMemo(() => sync()?.data.vortex_captures?.[sessionID()]?.jsFiles ?? [])
   const pages = createMemo(() => {
@@ -1070,27 +1121,58 @@ export function CyberStrikeSidebar() {
             <Show when={vortexSignalList().length > 0}>
               <div class="flex flex-col gap-1.5 bg-surface-raised-base rounded-lg p-2.5">
                 <SectionHeader count={vortexSignalList().length}>Signals</SectionHeader>
-                <div class="flex flex-col gap-1">
-                  <For each={vortexSignalList()}>
-                    {(s) => (
-                      <div class="flex items-start gap-2 px-1 py-1 rounded hover:bg-surface-raised-base-hover">
-                        <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDot(s.severity)}`} />
-                        <div class="flex flex-col min-w-0 flex-1">
-                          <div class="flex items-center gap-1.5">
-                            <Badge variant="muted">{s.category}</Badge>
-                            <span class="text-12-regular text-text-base truncate">{s.title}</span>
-                          </div>
-                          <span class="text-10-regular text-text-weaker mt-0.5">
-                            {s.routed
-                              ? `→ ${s.owner ?? s.category}${s.status === "examined" ? " · examined" : s.status === "pending" ? " · queued" : ""}`
-                              : "surfaced (not routed)"}
-                            {s.endpoint ? ` · ${s.method ? `${s.method} ` : ""}${s.endpoint}` : ""}
-                          </span>
-                        </div>
-                      </div>
+                {/* triage filter: tap a state to hide/show it; dismissed starts hidden */}
+                <div class="flex flex-wrap gap-1">
+                  <For each={SIGNAL_TRIAGE_ORDER}>
+                    {(t) => (
+                      <Show when={(signalTriageCounts()[t] ?? 0) > 0}>
+                        <button
+                          type="button"
+                          class="text-10-regular px-1.5 py-0.5 rounded border border-border-weak-base text-text-weaker"
+                          classList={{ "opacity-40": hiddenTriage().has(t) }}
+                          onClick={() => toggleTriage(t)}
+                        >
+                          {t} {signalTriageCounts()[t]}
+                        </button>
+                      </Show>
                     )}
                   </For>
                 </div>
+                {/* grouped by category, severity-sorted within each group */}
+                <For each={signalGroups()}>
+                  {(g) => (
+                    <div class="flex flex-col gap-1">
+                      <div class="text-10-regular text-text-weaker uppercase tracking-wide mt-1">
+                        {g.category} ({g.items.length})
+                      </div>
+                      <For each={g.items}>
+                        {(s) => (
+                          <div class="flex items-start gap-2 px-1 py-1 rounded hover:bg-surface-raised-base-hover">
+                            <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDot(s.severity)}`} />
+                            <div class="flex flex-col min-w-0 flex-1">
+                              <div class="flex items-center gap-1.5">
+                                <Badge variant={triageBadge(s.triage).variant}>{triageBadge(s.triage).label}</Badge>
+                                <span class="text-12-regular text-text-base truncate">{s.title}</span>
+                              </div>
+                              <span class="text-10-regular text-text-weaker mt-0.5">
+                                {s.endpoint
+                                  ? `${s.method ? `${s.method} ` : ""}${s.endpoint}`
+                                  : s.routed
+                                    ? `→ ${s.owner ?? s.category}`
+                                    : "surfaced (not routed)"}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </For>
+                    </div>
+                  )}
+                </For>
+                <Show when={signalGroups().length === 0}>
+                  <span class="text-10-regular text-text-weaker py-2 text-center">
+                    All signals hidden by the triage filter.
+                  </span>
+                </Show>
               </div>
             </Show>
             <Show when={vortexSignalList().length === 0}>
