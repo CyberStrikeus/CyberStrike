@@ -23,6 +23,7 @@ import { Mutate } from "../replay/mutate"
 import { Batch } from "../replay/batch"
 import { scanElicitedResponse, type MarkerCanary } from "../session/web/signal/ingest"
 import { governedSend } from "../replay/govern"
+import { Verification } from "../inspection/verification"
 
 // Encode codecs mirrored as a zod enum for the tool schema (kept in sync with
 // Encode.Codec in ../replay/encode.ts).
@@ -463,10 +464,19 @@ export const HttpReplayTool = Tool.define("http_replay", {
       writeBack(baselineMsg, baselineResult, false)
       writeBack(exploitMsg, exploitResult, true)
 
-      const output = {
+      const output: Record<string, unknown> = {
         baseline: { ...summarize(baselineResult, params.marker), curl: Apply.toCurl(baselineMsg, origin) },
         exploit: { ...summarize(exploitResult, params.marker), curl: Apply.toCurl(exploitMsg, origin) },
         diff: buildDiff(baselineResult, exploitResult),
+      }
+      if (params.request_id && exploitResult.response) {
+        const bodyText = new TextDecoder("latin1").decode(exploitResult.response.body)
+        output.verification_token = Verification.record({
+          sessionID: ctx.sessionID,
+          requestId: params.request_id,
+          responseStatus: exploitResult.response.status,
+          bodyPrefix: bodyText.slice(0, 256),
+        })
       }
 
       return {
@@ -529,10 +539,19 @@ export const HttpReplayTool = Tool.define("http_replay", {
     const result = await sendGoverned(msg, origin, sendOpts)
     writeBack(msg, result, true)
 
-    const output = {
+    const output: Record<string, unknown> = {
       target: { method: msg.method, origin, request_target: msg.target },
       ...summarize(result, params.marker),
       curl: Apply.toCurl(msg, origin),
+    }
+    if (params.request_id && result.response) {
+      const bodyText = new TextDecoder("latin1").decode(result.response.body)
+      output.verification_token = Verification.record({
+        sessionID: ctx.sessionID,
+        requestId: params.request_id,
+        responseStatus: result.response.status,
+        bodyPrefix: bodyText.slice(0, 256),
+      })
     }
     return { title: `http_replay ${msg.method} ${originHost}`, output: JSON.stringify(output, null, 2), metadata: {} }
   },
