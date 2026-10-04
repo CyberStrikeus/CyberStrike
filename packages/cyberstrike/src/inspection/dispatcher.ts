@@ -21,9 +21,10 @@ const DISPATCH_LEASE_MS = Math.max(0, Number(process.env.CYBERSTRIKE_INSPECTION_
 // After this many all-specialists-failed attempts, give up on a target (mark examined) so a
 // permanently failing endpoint can't retry-loop forever.
 const MAX_DISPATCH_ATTEMPTS = Math.max(1, Number(process.env.CYBERSTRIKE_INSPECTION_MAX_ATTEMPTS) || 2)
-// How often the drain loop re-reads the queue while specialists are running, so endpoints flagged
-// mid-run are claimed promptly (keeps all CONCURRENCY slots busy instead of waiting for a batch).
-const DRAIN_POLL_MS = Math.max(50, Number(process.env.CYBERSTRIKE_INSPECTION_DRAIN_POLL_MS) || 500)
+// Backstop poll for the drain loop. New work is normally picked up by push (wake → notify) the instant
+// it is flagged, and a freed slot by the in-flight task resolving; this interval is only a safety net
+// so the loop can never wedge on a missed signal. Kept long because it is not the primary trigger.
+const DRAIN_POLL_MS = Math.max(50, Number(process.env.CYBERSTRIKE_INSPECTION_DRAIN_POLL_MS) || 2000)
 
 export class InspectionDispatcher {
   private readonly queue: InspectionQueue
@@ -35,16 +36,21 @@ export class InspectionDispatcher {
   // Per-target failed-attempt counter (in-memory; a restart resets it, which is fine — worst case a
   // target gets a couple extra retries after a restart). Bounds the retry loop (issue #38).
   private readonly attempts = new Map<string, number>()
+  // Event-driven wake plumbing (#80): `notify` resolves the drain loop's wait the instant a new item is
+  // flagged while it is already running (push, not a 500ms poll); `dirty` captures a flag that lands
+  // between the loop's top-up and the point it starts waiting, so no wakeup is ever lost.
+  private notify: (() => void) | null = null
+  private dirty = false
 
   constructor(queue: InspectionQueue, router: InspectionRouter) {
     this.queue = queue
     this.router = router
   }
 
-  // True while a drain loop is in flight — which, because loop() awaits Promise.allSettled(tasks) each
-  // pass, stays true for the WHOLE duration that dispatched specialist child-sessions are running. Fed
-  // to the SessionLifecycle as an activity source so "complete" waits for the specialists to finish,
-  // not merely for the queue to be dispatched (#19).
+  // True while a drain loop is in flight — it stays true for the WHOLE duration that dispatched
+  // specialist child-sessions are running (the loop only returns once nothing is in flight and nothing
+  // is pending). Fed to the SessionLifecycle as an activity source so "complete" waits for the
+  // specialists to finish, not merely for the queue to be dispatched (#19).
   get active(): boolean {
     return this.running
   }
@@ -53,7 +59,14 @@ export class InspectionDispatcher {
     // Dry-run (the ingest test flag) means "don't actually run agents" — leave the queue pending so
     // coverage/assertions see it, and never spawn a child session (no live LLM calls in tests).
     if (process.env.CYBERSTRIKE_INGEST_DRY_RUN === "true") return
-    if (this.running) return
+    if (this.running) {
+      // The loop is already draining — a new item was just flagged. Push it through immediately:
+      // mark dirty (so a flag that lands mid-top-up isn't lost) and resolve the loop's wait so it
+      // re-reads and claims the new item into any free slot NOW, without waiting on the backstop poll.
+      this.dirty = true
+      this.notify?.()
+      return
+    }
     this.running = true
     void this.loop()
       .catch((e) => log.error("inspection loop crashed", { sessionID: this.queue.sessionID, domain: this.queue.domain, err: String(e) }))
@@ -71,15 +84,17 @@ export class InspectionDispatcher {
 
   private async loop(): Promise<void> {
     const model = await SessionPrompt.lastModel(this.queue.sessionID)
-    // Continuous worker pool (#80): keep up to CONCURRENCY specialists IN FLIGHT and claim the next
-    // pending item the moment a slot frees — NOT a per-pass batch barrier. A slow specialist (e.g. an
-    // injection run doing active probing) must never park newly-flagged endpoints or leave slots idle,
-    // which matters now that this dispatcher is the SOLE trigger for specialists (#78). `inflight.size`
-    // is the concurrency gate (no separate Semaphore).
+    // Continuous, EVENT-DRIVEN worker pool (#80): keep up to CONCURRENCY specialists IN FLIGHT and claim
+    // the next pending item the instant a slot frees OR a new item is flagged (wake → notify) — not a
+    // per-pass batch barrier, and not a bare poll. A slow specialist (e.g. an injection run doing active
+    // probing) must never park newly-flagged endpoints or leave slots idle, which matters now that this
+    // dispatcher is the SOLE trigger for specialists (#78). `inflight.size` is the concurrency gate.
     const inflight = new Set<Promise<void>>()
     while (true) {
-      // Re-open any lease left dangling by a crashed/restarted drain before reading pending, so a
-      // stalled item from a previous run is re-inspected rather than skipped (issue #38).
+      // Clear the dirty flag BEFORE reading the queue: any wake() from here until we start waiting sets
+      // it again, so a flag that lands during the (async) top-up is never lost.
+      this.dirty = false
+      // Re-open any lease left dangling by a crashed/restarted drain before reading pending (issue #38).
       this.queue.reclaimStale(DISPATCH_LEASE_MS)
       // Top up to CONCURRENCY in flight. markDispatched removes a claimed item from pending(), so this
       // never re-claims one already running; no-agent items are drained immediately so they don't park
@@ -105,14 +120,23 @@ export class InspectionDispatcher {
         void task.finally(() => inflight.delete(task))
       }
       if (inflight.size === 0) {
-        // Nothing running; re-check once (a flag may have landed between the read and here, or every
-        // pending item was no-agent) before exiting so onDrain/auto-triage can fire on a clean drain.
-        if (this.queue.pending().length === 0) return
-        continue
+        // Nothing running; a flag may have landed during top-up (dirty) or between the read and here.
+        if (this.dirty || this.queue.pending().length > 0) continue
+        return // clean drain → onDrain/auto-triage fires
       }
-      // Wake as soon as any specialist finishes (a slot frees) OR after a short poll, so endpoints
-      // flagged while specialists run are claimed within DRAIN_POLL_MS — keeping every slot busy.
-      await Promise.race([...inflight, new Promise<void>((resolve) => setTimeout(resolve, DRAIN_POLL_MS))])
+      // A flag arrived during top-up and there is still a free slot → re-read NOW, don't wait.
+      if (this.dirty && inflight.size < CONCURRENCY) continue
+      // Otherwise wait until a specialist finishes (a slot frees) OR a new item is flagged (wake resolves
+      // `notify`, so a free slot picks it up immediately — no poll latency). DRAIN_POLL_MS is only a
+      // backstop safety net against a missed signal, not the primary trigger.
+      await Promise.race([
+        ...inflight,
+        new Promise<void>((resolve) => {
+          this.notify = resolve
+        }),
+        new Promise<void>((resolve) => setTimeout(resolve, DRAIN_POLL_MS)),
+      ])
+      this.notify = null
     }
   }
 
