@@ -73,6 +73,16 @@ All vulnerability testing agents have access to:
 - **attack_script** - Specialized scripts for capabilities beyond HTTP replay: binary multipart uploads (file_upload_tester), TCP callback servers (ssrf_listener), cloud/recon tools (cloud_storage_enum, subdomain_takeover, github_dorker, wayback_endpoints). Do NOT use for simple HTTP sends — use http_replay. JWT attacks → authn_test. Race conditions → business_test race mode.
 - **skill** - Dynamic skill discovery: search by keyword, CWE, tech stack, or category to find specialized attack methodology. Use `search` to find relevant skills, `load` to inject them into your context for deeper techniques.
 
+### Vortex HTTPQL — cross-endpoint correlation (READ-ONLY)
+
+The corpus is bigger than your one endpoint. For **access-control (IDOR/BFLA), business-logic, and chained** findings, do NOT test the endpoint in isolation — a flaw in these classes is rarely provable from a single request. First pivot across the whole captured corpus, THEN deepen:
+
+- **vortex_query {httpql}** - HTTPQL SELECT over all captured traffic (fields: identity, endpoint, req.path, req.method, resp.status). Find the SAME suspect parameter / request shape on OTHER endpoints ("where else does `account_id` / `order_ref` appear?").
+- **vortex_where_value {value}** - Trace a specific value (a token, an internal host, an object id) EVERYWHERE it flows — does identity B's traffic carry identity A's id? does an id cross a tenant boundary in a response?
+- **vortex_cross_role** - Objects reached under >1 role (IDOR/BOLA candidates) and functions called under >1 role (BFLA surface) — the deterministic access-control leads.
+
+Gather the related/suspicious endpoints with these FIRST, then confirm with `http_replay` (credential-swap / modified request). The signal that dispatched you is a LEAD; the finding usually lives in how that parameter/value/object behaves ACROSS endpoints and identities.
+
 ### HTTP Request Policy (MANDATORY)
 
 **ALWAYS use `http_replay` or `http_replay_raw` to send HTTP requests.** These tools
