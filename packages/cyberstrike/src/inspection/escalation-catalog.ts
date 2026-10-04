@@ -1,4 +1,10 @@
+import { readdirSync, readFileSync } from "node:fs"
+import path from "node:path"
+import z from "zod"
+import { Log } from "@/util/log"
 import type { Vulnerability } from "@/session/vulnerability"
+
+const log = Log.create({ service: "escalation-catalog" })
 
 // Escalation pattern catalog (P2 seed, docs/correlation-hunter-agent.md). Code matches the session's
 // findings against these patterns and SEEDS the frontier with the obvious chains — so even a lazy model
@@ -29,16 +35,20 @@ export namespace EscalationCatalog {
     return [...out]
   }
 
-  interface Pattern {
-    id: string
-    requires: string[] // ALL must be present somewhere in the finding set
-    impact: string
-    say: string // the hypothesis text (the required classes are substituted by the matched finding ids)
-  }
+  // A pattern is pure data: "these primitive classes present → this escalated attack to attempt". Zod
+  // validates it so an external pack (below) cannot inject a malformed entry that breaks a hunt.
+  const Pattern = z.object({
+    id: z.string().min(1),
+    requires: z.array(z.string().min(1)).min(1), // ALL must be present somewhere in the finding set
+    impact: z.string().min(1),
+    say: z.string().min(1), // the hypothesis text (the required classes map to the matched finding ids)
+  })
+  type Pattern = z.infer<typeof Pattern>
 
-  // Seed set — "primitive(s) present → escalated attack to attempt". Chains need ≥2 primitives; a few
-  // single-primitive entries lift severity in place.
-  const CATALOG: Pattern[] = [
+  // Built-in seed set — "primitive(s) present → escalated attack to attempt". Chains need ≥2 primitives;
+  // a few single-primitive entries lift severity in place. Shipped with the binary; an external pack
+  // (CYBERSTRIKE_ESCALATION_CATALOG_DIR) extends it without a rebuild.
+  const BUILTIN: Pattern[] = [
     { id: "ssrf-internal", requires: ["info-disclosure", "ssrf"], impact: "internal RCE / cloud-metadata", say: "pivot the internal host leaked by the info-disclosure into the SSRF to reach an internal service / cloud metadata" },
     { id: "idor-mass", requires: ["idor", "predictable-id"], impact: "mass data exfiltration", say: "enumerate the predictable ids against the IDOR object to bulk-exfiltrate other tenants' data" },
     { id: "idor-alone", requires: ["idor"], impact: "cross-tenant / admin object access", say: "escalate the IDOR from a peer object to an ADMIN/cross-tenant object" },
@@ -50,13 +60,70 @@ export namespace EscalationCatalog {
     { id: "jwt-authz", requires: ["jwt", "authz"], impact: "authz-wide bypass", say: "forge identity via the JWT weakness to bypass the authorization checks app-wide" },
   ]
 
+  // The effective catalog: BUILTIN + any external JSON packs, loaded once and cached. A pack is a JSON
+  // file (array of patterns, or { patterns: [...] }) in CYBERSTRIKE_ESCALATION_CATALOG_DIR — enterprise
+  // teams drop in domain-specific chains without a rebuild. A pack id overrides a BUILTIN of the same id
+  // (so a team can tune a default); an invalid pattern or unreadable file is skipped with a warning, so a
+  // bad pack never takes the hunt down. DATA ONLY — a pack cannot run code, only propose a hypothesis the
+  // hunter still has to PROVE by replay.
+  let cache: Pattern[] | undefined
+  export function loadPatterns(): Pattern[] {
+    if (cache) return cache
+    const byId = new Map(BUILTIN.map((p) => [p.id, p]))
+    const dir = process.env.CYBERSTRIKE_ESCALATION_CATALOG_DIR
+    if (dir)
+      for (const file of readPackFiles(dir)) {
+        const parsed = readPack(file)
+        for (const p of parsed) byId.set(p.id, p)
+      }
+    cache = [...byId.values()]
+    return cache
+  }
+
+  // Test/reload hook — drop the cache so a newly-written pack (or a changed env) is picked up next call.
+  export function reload(): void {
+    cache = undefined
+  }
+
+  function readPackFiles(dir: string): string[] {
+    try {
+      return readdirSync(dir)
+        .filter((f) => f.endsWith(".json"))
+        .sort()
+        .map((f) => path.join(dir, f))
+    } catch (e) {
+      log.warn("escalation catalog dir unreadable (using built-in only)", { dir, err: String(e) })
+      return []
+    }
+  }
+
+  function readPack(file: string): Pattern[] {
+    try {
+      const raw = JSON.parse(readFileSync(file, "utf8"))
+      const arr = Array.isArray(raw) ? raw : Array.isArray(raw?.patterns) ? raw.patterns : undefined
+      if (!arr) {
+        log.warn("escalation pack is not an array / {patterns:[]} (skipped)", { file })
+        return []
+      }
+      return arr.flatMap((entry: unknown) => {
+        const r = Pattern.safeParse(entry)
+        if (r.success) return [r.data]
+        log.warn("escalation pattern invalid (skipped)", { file, err: r.error.issues[0]?.message })
+        return []
+      })
+    } catch (e) {
+      log.warn("escalation pack unreadable (skipped)", { file, err: String(e) })
+      return []
+    }
+  }
+
   // Generate seed hypotheses for a finding set: for each pattern whose required classes are ALL present,
   // one hypothesis referencing a representative finding per required class. Bounded (one per pattern).
   export function seeds(findings: Vulnerability.Info[]): { from: string[]; hypothesis: string; targetImpact: string }[] {
     const byClass = new Map<string, Vulnerability.Info[]>()
     for (const v of findings) for (const c of classify(v)) (byClass.get(c) ?? byClass.set(c, []).get(c)!).push(v)
     const out: { from: string[]; hypothesis: string; targetImpact: string }[] = []
-    for (const p of CATALOG) {
+    for (const p of loadPatterns()) {
       if (!p.requires.every((c) => byClass.has(c))) continue
       const reps = p.requires.map((c) => byClass.get(c)![0]!)
       const from = [...new Set(reps.map((r) => r.id).filter((id): id is string => !!id))]

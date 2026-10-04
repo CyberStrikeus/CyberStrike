@@ -1,4 +1,7 @@
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect, afterEach } from "bun:test"
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs"
+import { tmpdir as ostmp } from "node:os"
+import path from "node:path"
 import { EscalationCatalog } from "../../src/inspection/escalation-catalog"
 import { EscalationFrontier } from "../../src/inspection/escalation-frontier"
 
@@ -32,5 +35,72 @@ describe("EscalationCatalog — code-seeded chains (#P2)", () => {
     expect(EscalationFrontier.seed(s, items)).toBe(1)
     expect(EscalationFrontier.seed(s, items)).toBe(0) // same fingerprint → not re-seeded
     expect(EscalationFrontier.snapshot(s).pending).toBe(1)
+  })
+})
+
+describe("EscalationCatalog — loadable packs (#P2)", () => {
+  const prev = process.env.CYBERSTRIKE_ESCALATION_CATALOG_DIR
+  afterEach(() => {
+    if (prev === undefined) delete process.env.CYBERSTRIKE_ESCALATION_CATALOG_DIR
+    else process.env.CYBERSTRIKE_ESCALATION_CATALOG_DIR = prev
+    EscalationCatalog.reload()
+  })
+
+  test("built-in patterns load with no pack dir", () => {
+    delete process.env.CYBERSTRIKE_ESCALATION_CATALOG_DIR
+    EscalationCatalog.reload()
+    const builtin = EscalationCatalog.loadPatterns()
+    expect(builtin.length).toBeGreaterThan(0)
+    expect(builtin.find((p) => p.id === "ssrf-internal")).toBeDefined()
+  })
+
+  test("a custom pack is merged with the built-ins and fires a seed", () => {
+    const dir = mkdtempSync(path.join(ostmp(), "esc-pack-"))
+    try {
+      writeFileSync(
+        path.join(dir, "team.json"),
+        JSON.stringify([{ id: "xss-cors-custom", requires: ["xss"], impact: "custom-takeover", say: "team-specific xss chain" }]),
+      )
+      process.env.CYBERSTRIKE_ESCALATION_CATALOG_DIR = dir
+      EscalationCatalog.reload()
+      const ids = EscalationCatalog.loadPatterns().map((p) => p.id)
+      expect(ids).toContain("xss-cors-custom") // merged
+      expect(ids).toContain("ssrf-internal") // built-ins kept
+      const seeds = EscalationCatalog.seeds([F("X", "Reflected XSS on /search")] as any)
+      expect(seeds.find((s) => s.targetImpact === "custom-takeover")).toBeDefined()
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test("a malformed pack is skipped, built-ins still load", () => {
+    const dir = mkdtempSync(path.join(ostmp(), "esc-bad-"))
+    try {
+      writeFileSync(path.join(dir, "broken.json"), "{ not json")
+      writeFileSync(path.join(dir, "invalid.json"), JSON.stringify([{ id: "x" }])) // missing requires/impact/say
+      process.env.CYBERSTRIKE_ESCALATION_CATALOG_DIR = dir
+      EscalationCatalog.reload()
+      const ids = EscalationCatalog.loadPatterns().map((p) => p.id)
+      expect(ids).not.toContain("x") // invalid pattern dropped
+      expect(ids).toContain("ssrf-internal") // bad packs don't take the catalog down
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test("a pack entry overrides a built-in of the same id", () => {
+    const dir = mkdtempSync(path.join(ostmp(), "esc-ovr-"))
+    try {
+      writeFileSync(
+        path.join(dir, "override.json"),
+        JSON.stringify({ patterns: [{ id: "idor-alone", requires: ["idor"], impact: "TUNED-IMPACT", say: "tuned" }] }),
+      )
+      process.env.CYBERSTRIKE_ESCALATION_CATALOG_DIR = dir
+      EscalationCatalog.reload()
+      const p = EscalationCatalog.loadPatterns().find((x) => x.id === "idor-alone")
+      expect(p!.impact).toBe("TUNED-IMPACT") // team tune wins over the default
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })

@@ -99,7 +99,13 @@ rules — hypotheses to test):
 | JWT weakness (alg/kid) + any authz check | identity forgery → authz-wide bypass |
 
 The catalog is **data** (a pack), not code — it grows without a release, and enterprise can add
-customer-specific chains.
+customer-specific chains. It ships as a built-in set (`EscalationCatalog`, `escalation-catalog.ts`) that
+code matches against the session's findings to **seed the frontier** before the model starts, and extends
+from external JSON packs dropped in `CYBERSTRIKE_ESCALATION_CATALOG_DIR` (`*.json`, each an array of
+patterns or `{ "patterns": [...] }`). A pattern is `{ id, requires: string[], impact, say }`, zod-validated
+on load; a pack `id` overrides a built-in of the same id (team tuning), and a malformed pattern/file is
+skipped with a warning so a bad pack never takes the hunt down. Packs are **data only** — a pattern can
+propose a hypothesis, never run code, and every seed is still a hypothesis the hunter must PROVE by replay.
 
 ## The relentless loop (hypothesis → test → learn) — the heart
 
@@ -224,8 +230,10 @@ is where the model reasons.
   escalation questions + catalog; tools = the existing PULL surface + `http_replay`. Triggered manually
   or on drain. Proves the loop + verification on real findings. Small, shippable.
 - **P1 — the code-enforced relentless engine.** See the dedicated section above: a tool-shaped frontier (`propose_escalation` / `verify_escalation`) with code-held tried-set, budget, ordering + verification gate. The secret sauce — "doesn't give up" becomes structural.
-- **P2 — escalation catalog as a data pack.** Move the pattern catalog out of the prompt into a loadable
-  pack (`selectRules`-style), enterprise-extensible.
+- **P2 — escalation catalog as a data pack.** ✅ DONE. The pattern catalog lives in code as the built-in
+  seed set and loads additional, enterprise-tunable packs from `CYBERSTRIKE_ESCALATION_CATALOG_DIR`
+  (zod-validated, id-override, bad-pack-tolerant). Code matches patterns × findings to pre-seed the
+  frontier so the obvious chains cannot be missed.
 - **P3 — cross-assessment (enterprise).** Correlate across assessments via the platform (ASM inventory,
   vuln history) — the same chain found once becomes a template hunted everywhere.
 
