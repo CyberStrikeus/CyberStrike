@@ -1,6 +1,5 @@
 import { Bus } from "@/bus"
 import { Log } from "@/util/log"
-import { Semaphore } from "@/util/semaphore"
 import { withTimeout } from "@/util/timeout"
 import { Session } from "@/session"
 import { SessionPrompt } from "@/session/prompt"
@@ -22,6 +21,9 @@ const DISPATCH_LEASE_MS = Math.max(0, Number(process.env.CYBERSTRIKE_INSPECTION_
 // After this many all-specialists-failed attempts, give up on a target (mark examined) so a
 // permanently failing endpoint can't retry-loop forever.
 const MAX_DISPATCH_ATTEMPTS = Math.max(1, Number(process.env.CYBERSTRIKE_INSPECTION_MAX_ATTEMPTS) || 2)
+// How often the drain loop re-reads the queue while specialists are running, so endpoints flagged
+// mid-run are claimed promptly (keeps all CONCURRENCY slots busy instead of waiting for a batch).
+const DRAIN_POLL_MS = Math.max(50, Number(process.env.CYBERSTRIKE_INSPECTION_DRAIN_POLL_MS) || 500)
 
 export class InspectionDispatcher {
   private readonly queue: InspectionQueue
@@ -68,34 +70,49 @@ export class InspectionDispatcher {
   }
 
   private async loop(): Promise<void> {
-    const sem = new Semaphore(CONCURRENCY)
     const model = await SessionPrompt.lastModel(this.queue.sessionID)
+    // Continuous worker pool (#80): keep up to CONCURRENCY specialists IN FLIGHT and claim the next
+    // pending item the moment a slot frees — NOT a per-pass batch barrier. A slow specialist (e.g. an
+    // injection run doing active probing) must never park newly-flagged endpoints or leave slots idle,
+    // which matters now that this dispatcher is the SOLE trigger for specialists (#78). `inflight.size`
+    // is the concurrency gate (no separate Semaphore).
+    const inflight = new Set<Promise<void>>()
     while (true) {
       // Re-open any lease left dangling by a crashed/restarted drain before reading pending, so a
       // stalled item from a previous run is re-inspected rather than skipped (issue #38).
       this.queue.reclaimStale(DISPATCH_LEASE_MS)
-      const pending = this.queue.pending()
-      if (pending.length === 0) return
-      const tasks: Promise<void>[] = []
-      for (const item of pending) {
+      // Top up to CONCURRENCY in flight. markDispatched removes a claimed item from pending(), so this
+      // never re-claims one already running; no-agent items are drained immediately so they don't park
+      // the queue. Claims are bounded to CONCURRENCY, so a huge backlog never balloons the lease set.
+      while (inflight.size < CONCURRENCY) {
+        const item = this.queue.pending()[0]
+        if (!item) break
         const target = { key: item.target_key, label: item.target_label ?? item.target_key, meta: item.target_meta ?? {} }
-        const evidence = this.queue.evidenceFor(item.target_key)
-        const agents = await this.router.resolve(target, evidence)
+        const agents = await this.router.resolve(target, this.queue.evidenceFor(item.target_key))
         // No applicable specialist → nothing to inspect; drain it so it doesn't park the queue in
         // "draining" forever (which would mean "complete" — and its webhook — never fires). #19.
         if (agents.length === 0) {
           this.queue.markExamined(item.target_key)
           continue
         }
-        // Claim as in-flight (pending → dispatched) BEFORE running: it leaves pending() so a
-        // concurrent pass / re-wake can't dispatch it twice, but stays outstanding in count() so the
-        // lifecycle won't report "complete" mid-flight. Marked examined only once its specialists
-        // actually finish (runItem) — never at triage — so a stall/failure is recoverable (#38).
+        // Claim as in-flight (pending → dispatched) BEFORE running: it leaves pending() so a concurrent
+        // re-read can't dispatch it twice, but stays outstanding in count() so the lifecycle won't
+        // report "complete" mid-flight. Marked examined only once its specialists actually finish
+        // (runItem) — never at triage — so a stall/failure is recoverable (#38).
         this.queue.markDispatched(item.target_key)
-        tasks.push(this.runItem(item, agents, model, sem))
+        const task = this.runItem(item, agents, model)
+        inflight.add(task)
+        void task.finally(() => inflight.delete(task))
       }
-      if (tasks.length === 0) return
-      await Promise.allSettled(tasks)
+      if (inflight.size === 0) {
+        // Nothing running; re-check once (a flag may have landed between the read and here, or every
+        // pending item was no-agent) before exiting so onDrain/auto-triage can fire on a clean drain.
+        if (this.queue.pending().length === 0) return
+        continue
+      }
+      // Wake as soon as any specialist finishes (a slot frees) OR after a short poll, so endpoints
+      // flagged while specialists run are claimed within DRAIN_POLL_MS — keeping every slot busy.
+      await Promise.race([...inflight, new Promise<void>((resolve) => setTimeout(resolve, DRAIN_POLL_MS))])
     }
   }
 
@@ -106,9 +123,8 @@ export class InspectionDispatcher {
     item: InspectionQueue.Info,
     agents: string[],
     model: { providerID: string; modelID: string },
-    sem: Semaphore,
   ): Promise<void> {
-    const results = await Promise.allSettled(agents.map((agent) => this.runOne(item, agent, model, sem)))
+    const results = await Promise.allSettled(agents.map((agent) => this.runOne(item, agent, model)))
     const anyOk = results.some((r) => r.status === "fulfilled")
     if (anyOk) {
       this.attempts.delete(item.target_key)
@@ -133,14 +149,8 @@ export class InspectionDispatcher {
     item: InspectionQueue.Info,
     agent: string,
     model: { providerID: string; modelID: string },
-    sem: Semaphore,
   ): Promise<void> {
-    await sem.acquire()
-    try {
-      await this.dispatch(item, agent, model)
-    } finally {
-      sem.release()
-    }
+    await this.dispatch(item, agent, model)
   }
 
   private async dispatch(
