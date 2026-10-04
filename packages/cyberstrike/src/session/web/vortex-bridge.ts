@@ -642,11 +642,14 @@ export function vortexCaptures(sessionID: string): { requests: VortexCaptureRequ
 }
 
 // ACTIVE injection probing on the live corpus — the path in Vortex that SENDS payloads to the
-// target (that IS how a probe produces a signal). Gated by CYBERSTRIKE_VORTEX_ACTIVE_PROBE: setting
-// it is the deliberate opt-in, and when set, probing runs automatically in the BACKGROUND after
-// ingest (no manual trigger needed). Off by default. Every send is rate-limited + replay-safe
-// (Vortex's send() refuses session-minting requests). Never throws.
-const ACTIVE_PROBE = process.env.CYBERSTRIKE_VORTEX_ACTIVE_PROBE === "1" || process.env.CYBERSTRIKE_VORTEX_ACTIVE_PROBE === "true"
+// target (that IS how a probe produces a signal). Runs automatically in the BACKGROUND after ingest
+// (no manual trigger needed), draining unprobed inject points so an injection point with no passive
+// signal is still exercised deterministically — not left to agent initiative. ON by default for
+// deterministic injection coverage (#79); opt OUT with CYBERSTRIKE_VORTEX_ACTIVE_PROBE=0 (or false).
+// Every send is rate-limited (PROBE_MIN_INTERVAL_MS) + replay-safe (Vortex's send() refuses
+// session-minting requests), and only probes inject points from observed in-scope traffic. Authorization
+// for the target is the operator's responsibility. Never throws.
+const ACTIVE_PROBE = process.env.CYBERSTRIKE_VORTEX_ACTIVE_PROBE !== "0" && process.env.CYBERSTRIKE_VORTEX_ACTIVE_PROBE !== "false"
 const PROBE_MIN_INTERVAL_MS = Math.max(0, Number(process.env.CYBERSTRIKE_VORTEX_PROBE_INTERVAL_MS) || 200) // ~5 rps default
 
 // A rate-limited, governed sender: a small pre-send delay caps throughput (probeSession sends
