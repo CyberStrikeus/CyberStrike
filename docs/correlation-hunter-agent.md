@@ -181,13 +181,49 @@ impact escalation is the product's core value, not the free land-grab surface.
   destructive replays); genuinely destructive proofs are described, not executed, unless explicitly
   authorized.
 
+## P1 — the code-enforced relentless engine (the secret sauce)
+
+In P0/P0.5 the hunter's relentlessness is **prompt-trust**: the prompt asks for a frontier + tried-set +
+budget, but the model decides whether to actually run it — a weak or easily-satisfied model gives up.
+P1 moves the loop into CODE, turning the hunter from "an LLM that might chain findings" into **a
+deterministic search engine with the LLM as its creative hypothesis oracle + verifier.** The model can
+want to stop early; the code keeps handing it the next frontier item until the frontier is empty or the
+budget is spent.
+
+**The split (over-constraining makes the model dumber — so draw the line deliberately):**
+
+- **Code enforces:** persistence (the loop doesn't end until frontier-empty / budget), coverage (every
+  hypothesis flows through the frontier), no-repeat (a closed path cannot be re-attempted), budget
+  (hard step/verification/token ceiling), no-hallucination (nothing is reported unverified).
+- **The model owns:** the CONTENT of a hypothesis (the creative "chain X with Y to reach Z"), how to
+  construct the attack, which angle to try next.
+
+**Approach A — a tool-shaped frontier inside the existing agentic session** (preferred: reuses the
+agentic loop, doesn't smother the model's creativity, but the engine lives in code):
+
+- `propose_escalation {from_finding_ids, hypothesis, target_impact}` — the model EMITS a hypothesis;
+  code fingerprints it, rejects a duplicate/closed one (the tried-set, code-enforced), and enqueues it
+  on the frontier ordered by expected impact. Returns the next item the model must work, not a free
+  choice — so the model cannot skip the backlog or quit while it is non-empty.
+- `verify_escalation {request_sequence, identities}` — the ONLY path to confirm a chain; code runs the
+  replay sequence (replay-safe) and returns the proof or the failure reason. A `report_vulnerability`
+  for an escalation REQUIRES a verify token from this (same gate as triage) — no hallucinated impact.
+- On a CONFIRMED escalation, code auto-derives follow-up hypotheses from the artifact it produced (the
+  leaked host/token/id → new sinks via `vortex_where_value`) and enqueues them — success breeds angles
+  without the model having to remember.
+- The budget (steps / verifications / wall-clock) is metered in code; when it is spent the engine stops
+  and emits what it has, highest-impact first.
+
+Approach B (the EscalationRunner drives multiple model turns, holding the frontier between them) is the
+purer code-driven form but heavier; A is the elegant He-Man — the engine is code, the agentic session
+is where the model reasons.
+
 ## Phased plan
 
 - **P0 — escalation-only MVP (no new infra).** A pro `escalation-hunter` agent whose prompt encodes the
   escalation questions + catalog; tools = the existing PULL surface + `http_replay`. Triggered manually
   or on drain. Proves the loop + verification on real findings. Small, shippable.
-- **P1 — the relentless loop as structure.** Formalize the hypothesis frontier + `tried` set + budget +
-  expected-impact ordering (code-enforced, not just prompt-asked), so "doesn't give up" is reliable.
+- **P1 — the code-enforced relentless engine.** See the dedicated section above: a tool-shaped frontier (`propose_escalation` / `verify_escalation`) with code-held tried-set, budget, ordering + verification gate. The secret sauce — "doesn't give up" becomes structural.
 - **P2 — escalation catalog as a data pack.** Move the pattern catalog out of the prompt into a loadable
   pack (`selectRules`-style), enterprise-extensible.
 - **P3 — cross-assessment (enterprise).** Correlate across assessments via the platform (ASM inventory,
