@@ -117,6 +117,30 @@ export namespace EscalationFrontier {
     return { hypothesis: top.hypothesis, targetImpact: top.targetImpact, from: top.from }
   }
 
+  // Code-seed the frontier (P2): the catalog matched the session's findings into obvious chains; pre-load
+  // them so even a lazy model works them. Respects the tried-set + budget; returns how many were added.
+  export function seed(sessionID: string, items: { from: string[]; hypothesis: string; targetImpact: string }[]): number {
+    const f = get(sessionID)
+    let added = 0
+    for (const it of items) {
+      if (f.used >= f.budget) break
+      const fp = fingerprint(it.from, it.hypothesis)
+      if (f.tried.has(fp)) continue
+      f.tried.add(fp)
+      f.used++
+      f.items.push({
+        fingerprint: fp,
+        from: it.from,
+        hypothesis: it.hypothesis,
+        targetImpact: it.targetImpact,
+        priority: priorityOf(it.targetImpact),
+        status: "pending",
+      })
+      added++
+    }
+    return added
+  }
+
   // Release a hunt's frontier (the child session ended). Keeps the map from growing unbounded.
   export function clear(sessionID: string): void {
     frontiers.delete(sessionID)

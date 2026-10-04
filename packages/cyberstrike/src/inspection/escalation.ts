@@ -7,6 +7,7 @@ import { Vulnerability } from "@/session/vulnerability"
 import { Instance } from "@/project/instance"
 import { InspectionTranscript } from "./transcript"
 import { EscalationFrontier } from "./escalation-frontier"
+import { EscalationCatalog } from "./escalation-catalog"
 
 const log = Log.create({ service: "escalation-runner" })
 
@@ -103,7 +104,11 @@ export class EscalationRunner {
       label: `Escalation hunt · ${seedIDs.length} finding${seedIDs.length === 1 ? "" : "s"}`,
       model,
     })
-    const run = SessionPrompt.prompt({ sessionID: child.id, agent: HUNTER_AGENT, model, parts: [{ type: "text", text: this.brief(seedIDs) }] })
+    // Code-seed the hunt's frontier from the escalation catalog × the session's findings (P2): the
+    // obvious chains are enqueued (deduped, budget-bounded) BEFORE the model starts, so none is missed;
+    // the model then works them via propose_escalation and extends with its own.
+    const seeded = EscalationFrontier.seed(child.id, EscalationCatalog.seeds(Vulnerability.get(this.sessionID)))
+    const run = SessionPrompt.prompt({ sessionID: child.id, agent: HUNTER_AGENT, model, parts: [{ type: "text", text: this.brief(seedIDs, seeded) }] })
     run.catch(() => {})
     try {
       if (HUNT_TIMEOUT_MS <= 0) await run
@@ -124,7 +129,7 @@ export class EscalationRunner {
 
   // The seed brief: the findings this pass MUST consider, with the context the hunter needs to chain +
   // escalate. The prompt holds the methodology; this gives it the concrete substrate.
-  private brief(seedIDs: string[]): string {
+  private brief(seedIDs: string[], seeded: number): string {
     const seeds = new Set(seedIDs)
     const all = Vulnerability.get(this.sessionID)
     const target = all.filter((v) => !!v.id && seeds.has(v.id))
@@ -142,6 +147,14 @@ export class EscalationRunner {
           (v.endpoint ? ` — ${v.endpoint}` : "") +
           (v.evidence_request_ids?.length ? ` (evidence: ${v.evidence_request_ids.join(", ")})` : "") +
           `  {id: ${v.id}}`,
+      )
+    }
+    if (seeded > 0) {
+      lines.push(
+        "",
+        `The frontier is PRE-SEEDED with ${seeded} candidate chain(s) the catalog matched from these findings.`,
+        "Start by calling propose_escalation (with your own best idea) — it will hand you the highest-impact",
+        "item to work (a pre-seed or yours). Work each, confirm by replay, and propose follow-ups.",
       )
     }
     lines.push("", `Total findings in session: ${all.length}. Report each CONFIRMED escalation with its full chain + impact delta.`)
