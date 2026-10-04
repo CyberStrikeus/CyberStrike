@@ -8,7 +8,6 @@ import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
 import { WebInspect } from "./web-inspect"
-import { InspectionActivity } from "../../inspection/activity"
 import { WebObject } from "./web-object"
 import { WebFunction } from "./web-function"
 import { WebRole } from "./web-role"
@@ -816,21 +815,6 @@ function bridgeSignals(sessionID: string, store: TrafficStore, signals: Signal[]
           : `${s.category}:${owner}`
       WebInspect.flag({ sessionID, keyHash, type: "signal", value, priority: signalPriority(severity) })
       routed++
-      // Activity feed (#81): surface an ACTIONABLE route in the root session so the user sees the
-      // pipeline working. Observational (technology) routes only tag the endpoint and spawn no
-      // specialist, so they stay out of the feed to keep it to real leads.
-      if (!isObservational(s.category)) {
-        InspectionActivity.emit({
-          sessionID,
-          domain: "web",
-          kind: "routed",
-          target: keyHash,
-          label: `${tx?.request.method ?? ""} ${tx?.normalizedPath ?? tx?.request.url ?? keyHash}`.trim(),
-          agent: owner,
-          category: s.category,
-          ruleId: s.ruleId,
-        })
-      }
     } catch (e) {
       log.debug("vortex signal bridge failed (ignored)", { ruleId: s.ruleId, err: String(e) })
     }

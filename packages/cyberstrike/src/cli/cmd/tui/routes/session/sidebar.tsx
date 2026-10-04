@@ -80,8 +80,6 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const functions = createMemo(() => sync.data.web_function[props.sessionID] ?? [])
   const retests = createMemo(() => sync.data.web_retest[props.sessionID] ?? [])
   const lifecycle = createMemo(() => sync.data.inspection_lifecycle[props.sessionID])
-  // Live inspection activity feed (#81): signal→route→dispatch→examined, newest first.
-  const inspectionActivity = createMemo(() => sync.data.inspection_activity[props.sessionID] ?? [])
   const messages = createMemo(() => sync.data.message[props.sessionID] ?? [])
   const queueStatus = createMemo(() => sync.data.session_queue_status?.[props.sessionID])
   const hackbrowserStatus = createMemo(() => sync.data.session_hackbrowser_status?.[props.sessionID])
@@ -132,7 +130,6 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
     vulnerability: true,
     lsp: true,
     signals: true,
-    activity: true,
     captures: true,
     requests: true,
     pages: true,
@@ -553,44 +550,6 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                             )}
                           </For>
                         </Show>
-                      </box>
-                    )}
-                  </For>
-                </Show>
-              </box>
-            </Show>
-            <Show when={inspectionActivity().length > 0}>
-              <box>
-                {/* Live inspection activity (#81): the deterministic pipeline surfaced in the root
-                    session — signal routed → specialist dispatched → endpoint examined. Display-only. */}
-                <box flexDirection="row" gap={1} onMouseDown={() => setExpanded("activity", !expanded.activity)}>
-                  <text fg={theme.text}>{expanded.activity ? "▼" : "▶"}</text>
-                  <text fg={theme.text}>
-                    <b>Inspection Activity</b> ({inspectionActivity().length})
-                  </text>
-                </box>
-                <Show when={expanded.activity}>
-                  <For each={[...inspectionActivity()].reverse()}>
-                    {(a) => (
-                      <box flexDirection="row" gap={1} paddingLeft={1}>
-                        <text
-                          flexShrink={0}
-                          style={{ fg: a.kind === "dispatched" ? theme.info : a.kind === "routed" ? theme.warning : theme.success }}
-                        >
-                          {a.kind === "dispatched" ? "»" : a.kind === "routed" ? "›" : "✓"}
-                        </text>
-                        <box flexDirection="column">
-                          <text fg={theme.text} wrapMode="word">
-                            {a.kind === "routed"
-                              ? `${a.category ?? "signal"} → ${a.agent ?? ""}`
-                              : a.kind === "dispatched"
-                                ? `dispatch → @${a.agent ?? ""}`
-                                : `examined${a.outcome ? ` · ${a.outcome}` : ""}`}
-                          </text>
-                          <text fg={theme.textMuted} wrapMode="word">
-                            {a.label}
-                          </text>
-                        </box>
                       </box>
                     )}
                   </For>

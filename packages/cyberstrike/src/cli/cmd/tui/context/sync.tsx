@@ -207,21 +207,6 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           counts: { pending: number; examined: number; total: number }
         }
       }
-      // Live inspection activity feed (#81) — populated by the SSE event "inspection.activity", bounded
-      // to the last 50. Display-only; never written to the message transcript.
-      inspection_activity: {
-        [sessionID: string]: Array<{
-          kind: "routed" | "dispatched" | "examined"
-          target: string
-          label: string
-          agent?: string
-          childSessionID?: string
-          category?: string
-          ruleId?: string
-          outcome?: string
-          at: number
-        }>
-      }
       message: {
         [sessionID: string]: Message[]
       }
@@ -276,7 +261,6 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       web_function: {},
       web_retest: {},
       inspection_lifecycle: {},
-      inspection_activity: {},
       message: {},
       part: {},
       lsp: [],
@@ -622,13 +606,6 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         case "intel.updated":
           void refreshMethodology(raw.properties.sessionID)
           break
-        case "inspection.activity": {
-          // Append to the bounded (last 50) live feed for this session (#81).
-          const a = raw.properties
-          const cur = store.inspection_activity[a.sessionID] ?? []
-          setStore("inspection_activity", a.sessionID, [...cur, a].slice(-50) as never)
-          break
-        }
         case "vulnerability.updated":
           setStore("vulnerability", raw.properties.sessionID, raw.properties.vulnerabilities)
           break
