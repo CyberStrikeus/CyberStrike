@@ -104,6 +104,8 @@ const VULN_BASE_PERMISSIONS: Record<string, PermissionRule> = {
   web_get_request_detail: "allow",
   web_get_vulnerabilities: "allow",
   report_vulnerability: "allow",
+  oob_generate: "allow",
+  oob_check: "allow",
   triage_vulnerability: "allow",
   add_intel: "allow",
   update_vrt_check: "allow",

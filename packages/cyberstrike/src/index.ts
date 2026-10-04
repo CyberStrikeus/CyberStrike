@@ -13,6 +13,7 @@ import { Installation } from "./installation"
 import { NamedError } from "@cyberstrike-io/util/error"
 import { FormatError } from "./cli/error"
 import { ServeCommand } from "./cli/cmd/serve"
+import { OobCommand } from "./cli/cmd/oob"
 import { DebugCommand } from "./cli/cmd/debug"
 import { StatsCommand } from "./cli/cmd/stats"
 import { McpCommand } from "./cli/cmd/mcp"
@@ -125,6 +126,7 @@ const cli = yargs(hideBin(process.argv))
   .completion("completion", "generate shell completion script")
   .command(AcpCommand)
   .command(McpCommand)
+  .command(OobCommand)
   .command(TuiThreadCommand)
   .command(AttachCommand)
   .command(HackbrowserCommand)
