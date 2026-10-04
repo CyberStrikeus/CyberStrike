@@ -9,6 +9,7 @@ import { TaskTool } from "./task"
 import { TodoWriteTool, TodoReadTool } from "./todo"
 import { ReportVulnerabilityTool } from "./vulnerability"
 import { TriageVulnerabilityTool } from "./triage-vulnerability"
+import { ProposeEscalationTool } from "./propose-escalation"
 import { WebFetchTool } from "./webfetch"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
@@ -172,6 +173,7 @@ export namespace ToolRegistry {
       TodoWriteTool,
       ReportVulnerabilityTool,
       TriageVulnerabilityTool,
+      ProposeEscalationTool,
       // TodoReadTool,
       WebSearchTool,
       CodeSearchTool,

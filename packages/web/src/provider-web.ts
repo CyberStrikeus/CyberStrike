@@ -437,7 +437,7 @@ function buildSpecDefs(): SpecDef[] {
       role: "analyst",
       prompt: PROMPT_ESCALATION_HUNTER,
       description: DESC_ESCALATION_HUNTER,
-      permissions: mergePermissions(VULN_BASE_PERMISSIONS, { ...VORTEX_READ_PERMISSIONS }),
+      permissions: mergePermissions(VULN_BASE_PERMISSIONS, { propose_escalation: "allow", ...VORTEX_READ_PERMISSIONS }),
     },
   ]
 }

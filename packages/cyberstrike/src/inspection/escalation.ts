@@ -6,6 +6,7 @@ import { SessionPrompt } from "@/session/prompt"
 import { Vulnerability } from "@/session/vulnerability"
 import { Instance } from "@/project/instance"
 import { InspectionTranscript } from "./transcript"
+import { EscalationFrontier } from "./escalation-frontier"
 
 const log = Log.create({ service: "escalation-runner" })
 
@@ -117,6 +118,7 @@ export class EscalationRunner {
       log.warn("escalation hunt errored — seeds still counted (the pass ran)", { sessionID: this.sessionID, err: String(e) })
     } finally {
       Vulnerability.markEscalationExamined(this.sessionID, seedIDs)
+      EscalationFrontier.clear(child.id)
     }
   }
 
