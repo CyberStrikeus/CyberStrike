@@ -59,6 +59,8 @@ import DESC_WSTG_CLIENT_SIDE from "./prompts/vuln/wstg-client-side/description.t
 // ── Custom: LLM Security ──
 import PROMPT_WSTG_LLM from "./prompts/vuln/wstg-llm/prompt.txt"
 import DESC_WSTG_LLM from "./prompts/vuln/wstg-llm/description.txt"
+import PROMPT_ESCALATION_HUNTER from "./prompts/hunter/escalation-hunter/prompt.txt"
+import DESC_ESCALATION_HUNTER from "./prompts/hunter/escalation-hunter/description.txt"
 
 const VULN_BASE_PERMISSIONS: Record<string, PermissionRule> = {
   "*": "deny",
@@ -423,6 +425,19 @@ function buildSpecDefs(): SpecDef[] {
       skills: ["llm-security"],
       prependRequestContext: true,
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, { llmhook: "allow", ...VORTEX_READ_PERMISSIONS }),
+    },
+
+    // ── Escalation & Correlation Hunter — cross-cutting BRAIN (docs/correlation-hunter-agent.md) ──
+    // NOT a WSTG specialist: it crosses all lanes, so it uses a STANDALONE prompt (no vulnPrompt lane
+    // discipline) and has no specialistClass (not signal-routed). Runs over the whole session AFTER the
+    // specialists — chains their findings, escalates impact, constructs+verifies new attacks. Tier
+    // gating (pro/enterprise per the design) is a follow-up; the host currently exposes no tier field.
+    {
+      name: "escalation-hunter",
+      role: "analyst",
+      prompt: PROMPT_ESCALATION_HUNTER,
+      description: DESC_ESCALATION_HUNTER,
+      permissions: mergePermissions(VULN_BASE_PERMISSIONS, { ...VORTEX_READ_PERMISSIONS }),
     },
   ]
 }

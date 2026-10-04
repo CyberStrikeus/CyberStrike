@@ -13,13 +13,14 @@ describe("WebProvider", () => {
     expect(new WebProvider().key).toBe("web")
   })
 
-  test("agentSpecs returns 13 agents", () => {
-    expect(new WebProvider().agentSpecs().length).toBe(13)
+  test("agentSpecs returns 14 agents", () => {
+    expect(new WebProvider().agentSpecs().length).toBe(14)
   })
 
   test("agent names match expected set", () => {
     const names = new WebProvider().agentSpecs().map((s) => s.name).sort()
     expect(names).toEqual([
+      "escalation-hunter",
       "wstg-agent",
       "wstg-authentication",
       "wstg-authorization",
@@ -252,8 +253,8 @@ describe("WebProvider — CYBERSTRIKE_WEB_FOCUS (debug focus mode)", () => {
     expect(names).not.toContain("wstg-config-deploy")
   })
 
-  test("unset restores the full 13-agent roster (no focus)", () => {
+  test("unset restores the full 14-agent roster (no focus)", () => {
     delete process.env[KEY]
-    expect(new WebProvider().agentSpecs().length).toBe(13)
+    expect(new WebProvider().agentSpecs().length).toBe(14)
   })
 })
