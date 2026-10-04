@@ -15,7 +15,6 @@ import { Todo } from "../../session/todo"
 import { Vulnerability } from "../../session/vulnerability"
 import { Request } from "../../session/request"
 import { Observation } from "../../session/observation"
-import { CoverageNote } from "../../session/coverage-note"
 import { Normalize } from "../../session/normalize"
 import { IngestSummary } from "../../session/ingest-summary"
 import { IngestQueue } from "../../session/ingest-queue"
@@ -2208,95 +2207,19 @@ export const SessionRoutes = lazy(() =>
           // New endpoint shape: record the first observation, linked to the row.
           recordObservation(req.id)
 
-          // Vortex feed for a new endpoint shape (uses the real CS request id). Duplicate branches
-          // feed too (slice 0) via feedVortex, so Vortex holds the full traffic. Never throws.
-          // `ingest.actionable` gates the LLM loop below (#77): only a transaction that produced a
-          // spawning Vortex signal enters the orchestrator; everything else stays Vortex-only.
-          const ingest = feedVortex(req.id)
-
-          // Build the prompt as a thunk so the `## Observed Values` block reflects the
-          // observation state at SEND time, not at enqueue time. Prompts queue (LLM calls
-          // are slow) and other per-credential requests to the SAME endpoint accrue
-          // observations while a prompt waits — rendering at dequeue captures them (e.g. a
-          // second credential's values land in the prompt instead of being missed).
-          const buildPrompt = () => {
-            // Prepend app-wide coverage already recorded for this origin so the
-            // orchestrator skips re-dispatching deployment-wide testers (JWT/TLS/headers).
-            // Rendered at dequeue, so it reflects coverage that accrued while queued.
-            const coverage = CoverageNote.wideBlock(sessionID, normalized.origin)
-            const base = buildPromptWithCredentialContext(
-              truncatedRawRequest,
-              credentialID,
-              req.processed_response,
-              {
-                triggerElement: body.trigger_element,
-                elementRoles: body.element_roles,
-                pageUrl: body.page_url,
-                pageVisitedBy: body.page_visited_by,
-                uiContext: body.ui_context as Record<string, unknown> | undefined,
-              },
-              normalized.protocol && normalized.operation
-                ? { protocol: normalized.protocol, operation: normalized.operation }
-                : undefined,
-              Observation.endpointTree(sessionID, normalized.keyHash),
-            )
-            return coverage ? `${coverage}\n\n${base}` : base
-          }
-
-          if (ingestDryRun) {
-            // Log the prompt that would be sent to LLM — skip actual LLM call
-            log.info("ingest dry-run", {
-              sessionID,
-              method: normalized.method,
-              path: normalized.normalizedPath,
-              requestId: req.id,
-            })
-            log.info("prompt preview:\n" + buildPrompt())
-            Request.updateStatus({ id: req.id, status: "processed" })
-          } else if (!ingest.actionable) {
-            // No spawning Vortex signal for this transaction → it stays in the deterministic pipeline
-            // only (Vortex store + any technology/retest tagging); it must NOT burn an orchestrator LLM
-            // turn (#77). The request is fully ingested, so mark it processed so the queue-status UI and
-            // lifecycle don't treat it as outstanding.
-            Request.updateStatus({ id: req.id, status: "processed" })
-            log.info("ingest: no actionable signal — Vortex-only, skipped LLM loop", {
-              sessionID,
-              method: normalized.method,
-              path: normalized.normalizedPath,
-              requestId: req.id,
-            })
-          } else {
-            const agentName = body.agent ?? "wstg-agent"
-            const source = `${normalized.method} ${normalized.normalizedPath}`
-            IngestQueue.enqueue(sessionID, async () => {
-              Request.updateStatus({ id: req.id, status: "processing" })
-              const before = IngestSummary.snapshot(sessionID)
-              // Render at dequeue (send time) so `## Observed Values` includes observations
-              // that accrued while this prompt waited in the queue — other credentials and
-              // other values seen on the same endpoint shape in the meantime.
-              const promptText = buildPrompt()
-              try {
-                await SessionPrompt.prompt({
-                  sessionID,
-                  agent: agentName,
-                  model: body.model,
-                  excludeHistory: true,
-                  parts: [{ type: "text", text: promptText }],
-                })
-                const model = body.model ?? (await SessionPrompt.lastModel(sessionID))
-                await IngestSummary.write({
-                  sessionID,
-                  agent: agentName,
-                  model,
-                  source,
-                  before,
-                  after: IngestSummary.snapshot(sessionID),
-                })
-              } finally {
-                Request.updateStatus({ id: req.id, status: "processed" })
-              }
-            })
-          }
+          // Feed Vortex for this new endpoint shape (real CS request id). Duplicate branches feed too
+          // (slice 0), so Vortex holds the full traffic. Never throws. This is the ONLY automatic action
+          // on the ingest path now (#78): Vortex runs the deterministic rules and routes any spawning
+          // signal to its owning specialist through the inspection dispatcher (bridgeSignals →
+          // WebInspect.flag → queue → dispatcher → specialist child-session) — NO LLM in the routing
+          // decision. The root orchestrator is NOT invoked per transaction; it is a holistic/user-driven
+          // layer, reached via the session message routes, never the ingest path. (`ingest.actionable`
+          // is still computed + logged inside ingestBrowserTransaction for observability.)
+          feedVortex(req.id)
+          // Fully ingested; there is no per-transaction LLM brief, so mark the request processed — the
+          // queue-status UI and lifecycle must not treat it as outstanding. The dry-run flag no longer
+          // differs for HTTP ingest (it makes no LLM call either way); it still gates the text path below.
+          Request.updateStatus({ id: req.id, status: "processed" })
         } else {
           // Non-HTTP request (plain text message)
           const promptText = buildPromptWithCredentialContext(body.text, credentialID)
