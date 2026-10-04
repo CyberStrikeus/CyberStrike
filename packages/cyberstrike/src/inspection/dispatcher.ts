@@ -7,6 +7,7 @@ import { Instance } from "@/project/instance"
 import type { InspectionRouter } from "@cyberstrike-io/plugin"
 import { InspectionQueue } from "./queue"
 import { InspectionActivity } from "./activity"
+import { InspectionTranscript } from "./transcript"
 
 const log = Log.create({ service: "inspection-dispatcher" })
 
@@ -204,21 +205,28 @@ export class InspectionDispatcher {
       parentID: this.queue.sessionID,
       title: `Inspect ${item.target_label ?? item.target_key} (@${agentName})`.trim(),
     })
-    // Activity feed (#81): a specialist is now spawning — surface it in the root session so the user
-    // sees which agent is dispatched against which endpoint, with a link to the child session.
-    InspectionActivity.emit({
+    // Inline navigable dispatch entry in the ROOT transcript (#78 follow-up): the specialist now shows
+    // up in the root session as a `task` entry the user can ENTER, and the root agent sees what was
+    // dispatched. Awaited (a quick DB write) so the entry exists before `complete` below; graceful — it
+    // never throws, and the dispatch execution path is untouched (#80).
+    await InspectionTranscript.recordDispatch({
       sessionID: this.queue.sessionID,
-      domain: this.queue.domain,
-      kind: "dispatched",
-      target: item.target_key,
-      label: item.target_label ?? item.target_key,
-      agent: agentName,
       childSessionID: child.id,
+      agent: agentName,
+      label: item.target_label ?? item.target_key,
+      model,
     })
+    const finish = (outcome: string) => void InspectionTranscript.completeDispatch(child.id, outcome)
     const parts = await SessionPrompt.resolvePromptParts(promptText)
     const run = SessionPrompt.prompt({ sessionID: child.id, agent: agentName, model, parts })
     if (DISPATCH_TIMEOUT_MS <= 0) {
-      await run
+      try {
+        await run
+        finish("examined")
+      } catch (e) {
+        finish("failed")
+        throw e
+      }
       return
     }
     // On timeout, cancel the hung child (withTimeout only rejects the wrapper — it does NOT abort the
@@ -227,15 +235,21 @@ export class InspectionDispatcher {
     // orphaned `run` can still settle on its own — a post-cancel rejection would then be unhandled.
     // Attach a no-op catch to swallow that late settlement.
     run.catch(() => {})
-    await withTimeout(run, DISPATCH_TIMEOUT_MS, () => {
-      log.warn("inspection dispatch timed out — cancelling child", {
-        child: child.id,
-        target: item.target_key,
-        agent: agentName,
-        ms: DISPATCH_TIMEOUT_MS,
+    try {
+      await withTimeout(run, DISPATCH_TIMEOUT_MS, () => {
+        log.warn("inspection dispatch timed out — cancelling child", {
+          child: child.id,
+          target: item.target_key,
+          agent: agentName,
+          ms: DISPATCH_TIMEOUT_MS,
+        })
+        SessionPrompt.cancel(child.id)
       })
-      SessionPrompt.cancel(child.id)
-    })
+      finish("examined")
+    } catch (e) {
+      finish("timed out / failed")
+      throw e
+    }
   }
 
   // ── Static: auto-wake subscription ────────────────────────────────
