@@ -8,6 +8,7 @@ import { Database } from "bun:sqlite"
 import { Global } from "@/global"
 import { Log } from "@/util/log"
 import { WebInspect } from "./web-inspect"
+import { InspectionActivity } from "../../inspection/activity"
 import { WebObject } from "./web-object"
 import { WebFunction } from "./web-function"
 import { WebRole } from "./web-role"
@@ -804,7 +805,8 @@ function bridgeSignals(sessionID: string, store: TrafficStore, signals: Signal[]
       if (!shouldRoute(s.category, severity)) continue
       const owner = ownerForSignal(s.ruleId, s.category)
       if (!owner) continue
-      const keyHash = store.get(s.transactionId)?.keyHash
+      const tx = store.get(s.transactionId)
+      const keyHash = tx?.keyHash
       if (!keyHash) continue // no platform key_hash on this tx ⇒ can't anchor a retest (still recorded in Vortex)
       // A technology signal carries its stack slug as a 3rd ":"-segment (ruleId `tech-<slug>`), so the
       // retest dispatch injects that stack's TechPlaybook — parity with the CS technology path.
@@ -814,6 +816,21 @@ function bridgeSignals(sessionID: string, store: TrafficStore, signals: Signal[]
           : `${s.category}:${owner}`
       WebInspect.flag({ sessionID, keyHash, type: "signal", value, priority: signalPriority(severity) })
       routed++
+      // Activity feed (#81): surface an ACTIONABLE route in the root session so the user sees the
+      // pipeline working. Observational (technology) routes only tag the endpoint and spawn no
+      // specialist, so they stay out of the feed to keep it to real leads.
+      if (!isObservational(s.category)) {
+        InspectionActivity.emit({
+          sessionID,
+          domain: "web",
+          kind: "routed",
+          target: keyHash,
+          label: `${tx?.request.method ?? ""} ${tx?.normalizedPath ?? tx?.request.url ?? keyHash}`.trim(),
+          agent: owner,
+          category: s.category,
+          ruleId: s.ruleId,
+        })
+      }
     } catch (e) {
       log.debug("vortex signal bridge failed (ignored)", { ruleId: s.ruleId, err: String(e) })
     }

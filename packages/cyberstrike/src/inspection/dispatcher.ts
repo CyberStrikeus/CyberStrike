@@ -6,6 +6,7 @@ import { SessionPrompt } from "@/session/prompt"
 import { Instance } from "@/project/instance"
 import type { InspectionRouter } from "@cyberstrike-io/plugin"
 import { InspectionQueue } from "./queue"
+import { InspectionActivity } from "./activity"
 
 const log = Log.create({ service: "inspection-dispatcher" })
 
@@ -153,6 +154,7 @@ export class InspectionDispatcher {
     if (anyOk) {
       this.attempts.delete(item.target_key)
       this.queue.markExamined(item.target_key)
+      this.emitExamined(item, "done")
       return
     }
     const n = (this.attempts.get(item.target_key) ?? 0) + 1
@@ -161,10 +163,23 @@ export class InspectionDispatcher {
       this.attempts.delete(item.target_key)
       log.warn("inspection dispatch giving up after retries — marking examined", { target: item.target_key, attempts: n })
       this.queue.markExamined(item.target_key)
+      this.emitExamined(item, "gave-up")
       return
     }
     log.warn("inspection dispatch failed — re-queueing for retry", { target: item.target_key, attempt: n })
     this.queue.resetToPending(item.target_key)
+  }
+
+  // Activity feed (#81): an endpoint finished being inspected — surface the outcome in the root session.
+  private emitExamined(item: InspectionQueue.Info, outcome: "done" | "gave-up"): void {
+    InspectionActivity.emit({
+      sessionID: this.queue.sessionID,
+      domain: this.queue.domain,
+      kind: "examined",
+      target: item.target_key,
+      label: item.target_label ?? item.target_key,
+      outcome,
+    })
   }
 
   // One specialist dispatch under the concurrency semaphore. Throws on failure/timeout so runItem's
@@ -188,6 +203,17 @@ export class InspectionDispatcher {
     const child = await Session.create({
       parentID: this.queue.sessionID,
       title: `Inspect ${item.target_label ?? item.target_key} (@${agentName})`.trim(),
+    })
+    // Activity feed (#81): a specialist is now spawning — surface it in the root session so the user
+    // sees which agent is dispatched against which endpoint, with a link to the child session.
+    InspectionActivity.emit({
+      sessionID: this.queue.sessionID,
+      domain: this.queue.domain,
+      kind: "dispatched",
+      target: item.target_key,
+      label: item.target_label ?? item.target_key,
+      agent: agentName,
+      childSessionID: child.id,
     })
     const parts = await SessionPrompt.resolvePromptParts(promptText)
     const run = SessionPrompt.prompt({ sessionID: child.id, agent: agentName, model, parts })

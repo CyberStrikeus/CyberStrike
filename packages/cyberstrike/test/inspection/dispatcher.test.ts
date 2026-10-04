@@ -4,6 +4,8 @@ import { Instance } from "../../src/project/instance"
 import { Session } from "../../src/session"
 import { InspectionQueue } from "../../src/inspection/queue"
 import { InspectionDispatcher } from "../../src/inspection/dispatcher"
+import { InspectionActivity } from "../../src/inspection/activity"
+import { Bus } from "../../src/bus"
 import { Log } from "../../src/util/log"
 
 const projectRoot = path.join(__dirname, "../..")
@@ -150,5 +152,27 @@ describe("InspectionDispatcher", () => {
       expect(max).toBeGreaterThan(1) // old batch loop would be 1 here (serialized)
       expect(q.count().examined).toBe(total)
       expect(q.count().pending).toBe(0)
+    }))
+
+  // #81 — the dispatcher publishes an `inspection.activity` event as endpoints are examined, so the TUI
+  // can render a live feed in the root session. (dispatch() stubbed, so the "dispatched" emit inside it
+  // is bypassed here; this covers the examined emit + the event plumbing/shape.)
+  test("emits an 'examined' activity event when an endpoint finishes (#81)", () =>
+    run(async (sid) => {
+      const q = new InspectionQueue(sid, "web")
+      q.flag({ key: "ep", label: "GET /x", meta: {} }, { type: "s", value: "v", priority: "medium" })
+      const router = { resolve: async () => ["spec"], prompt: () => "" } as any
+      const d = new InspectionDispatcher(q, router)
+      ;(d as any).dispatch = async () => {}
+      const seen: any[] = []
+      const unsub = Bus.subscribe(InspectionActivity.Event, (e) => seen.push(e.properties))
+      await (d as any).loop()
+      unsub()
+      const examined = seen.filter((e) => e.kind === "examined")
+      expect(examined.length).toBe(1)
+      expect(examined[0].target).toBe("ep")
+      expect(examined[0].outcome).toBe("done")
+      expect(examined[0].sessionID).toBe(sid)
+      expect(examined[0].domain).toBe("web")
     }))
 })
