@@ -3,6 +3,7 @@ import { InspectionDispatcher } from "./dispatcher"
 import { SessionLifecycle } from "./lifecycle"
 import { WebInspectionRouter } from "./web-router"
 import { TriageRunner } from "./triage"
+import { EscalationRunner } from "./escalation"
 import type { ActivitySource } from "@cyberstrike-io/plugin"
 
 interface Inst {
@@ -10,6 +11,7 @@ interface Inst {
   dispatcher: InspectionDispatcher
   lifecycle: SessionLifecycle
   triage: TriageRunner
+  escalation: EscalationRunner
   started: boolean
 }
 const instances = new Map<string, Inst>()
@@ -34,7 +36,8 @@ export function getWebInspection(sessionID: string): Inst {
   const dispatcher = new InspectionDispatcher(queue, router)
   const lifecycle = new SessionLifecycle(sessionID, "web", queue)
   const triage = new TriageRunner(sessionID)
-  const inst: Inst = { queue, dispatcher, lifecycle, triage, started: false }
+  const escalation = new EscalationRunner(sessionID)
+  const inst: Inst = { queue, dispatcher, lifecycle, triage, escalation, started: false }
   instances.set(sessionID, inst)
   return inst
 }
@@ -52,8 +55,17 @@ export function ensureWebInspection(sessionID: string): Inst {
     inst.lifecycle.addSource({ name: "specialist", isActive: () => inst.dispatcher.active })
     // Auto-triage (#41): when the queue drains, finalize draft findings; keep the lifecycle out of
     // "complete" while a triage pass is in flight, so "complete" means scanned AND triaged.
-    inst.dispatcher.onDrain = () => inst.triage.wake()
+    // Escalation (#84): a drain is also the moment to run a hunt pass over the complete finding set —
+    // findings also auto-trigger the hunter as they arrive (Vulnerability.Event.Updated), this is the
+    // final sweep. The lifecycle waits for an in-flight hunt before "complete".
+    inst.dispatcher.onDrain = () => {
+      inst.triage.wake()
+      inst.escalation.wake()
+    }
     inst.lifecycle.addSource({ name: "triage", isActive: () => inst.triage.active })
+    EscalationRunner.register(inst.escalation)
+    EscalationRunner.start()
+    inst.lifecycle.addSource({ name: "escalation", isActive: () => inst.escalation.active })
     inst.lifecycle.start()
     inst.started = true
   }
@@ -75,5 +87,6 @@ export function destroyWebInspection(sessionID: string): void {
   if (!inst) return
   inst.lifecycle.stop()
   InspectionDispatcher.unregister(sessionID, "web")
+  EscalationRunner.unregister(sessionID)
   instances.delete(sessionID)
 }

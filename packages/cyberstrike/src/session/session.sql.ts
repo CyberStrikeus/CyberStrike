@@ -117,6 +117,11 @@ export const VulnerabilityTable = sqliteTable(
     // NULL on ordinary per-endpoint findings. Both auto-added to existing DBs by the ADD COLUMN pass.
     aggregate_key: text(),
     affected_endpoints: text(),
+    // Code-enforced escalation coverage (#84): set to 1 once a hunt pass that had this finding in its
+    // seed set has COMPLETED. NULL/0 = not yet escalation-examined. The EscalationRunner guarantees
+    // every finding enters a pass by draining the NULL/0 rows — never by trusting the hunter's prompt.
+    // Auto-added to existing DBs by the ADD COLUMN pass (NULL on old rows ⇒ correctly treated as pending).
+    escalation_examined: integer(),
     position: integer().notNull(),
     ...Timestamps,
   },
