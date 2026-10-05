@@ -12,6 +12,7 @@ whether the application correctly establishes and protects WHO an identity is, w
 - 4.4.6 Browser-cache weaknesses (sensitive auth responses cacheable)
 - 4.4.7 Weak password policy · 4.4.8 Weak security question · 4.4.9 Weak password change/reset
 - 4.4.10 Weaker authentication in an alternative channel
+- 4.4.11 Multi-factor authentication (MFA) — bypass, missing enforcement, OTP / backup-code weaknesses
 - Also folded here: JWT/bearer-token authentication weaknesses (alg confusion, unsigned, expiry).
 
 IGNORE authorization (what an identity may DO — 4.5), session management (cookies/session lifecycle —
@@ -71,6 +72,16 @@ consciously justify any you skip.
 - 4.4.10 Weaker alternative channel — `vortex_query` for alternate auth surfaces
   (endpoint:~(?i)(mobile|/api/|/v[0-9]|legacy|oauth|sso)); `http_replay` the SAME identity through the
   alternate path and compare its controls (lockout, MFA, transport) to the primary — a weaker one is the finding.
+- 4.4.11 Multi-factor authentication — only applies when an MFA/OTP/2FA step exists in the captured flow
+  (`vortex_query` endpoint:~(?i)(otp|2fa|mfa|verify|challenge|totp) or a post-password "enter code" step).
+  Test, by `http_replay`: (a) BYPASS — after submitting the password, request the post-MFA/authed endpoint
+  DIRECTLY (skip the MFA step) or replay with a forged "mfa_passed"/"verified" cookie/flag — reaching the
+  authed resource without completing MFA is the finding; (b) ENFORCEMENT — is MFA required on sensitive
+  step-up actions (password change, email change, payment) or only at login?; (c) OTP strength — brute the
+  code (no rate-limit across many tries via login_probe-style repetition), REUSE a consumed code (still
+  valid ⇒ not single-use), check for predictable/short codes and missing expiry; (d) backup codes +
+  "remember this device" + the MFA ENROLLMENT/RESET flow for the same bypasses. Confirm each with a replay
+  that actually reaches the protected resource.
 - JWT/bearer — `authn_test {request_id}` analyses the token (alg:none, weak secret, RS256→HS256
   confusion, kid/jku, role/id claims), mints forged variants, SENDS each, and reports which the server
   ACCEPTS (with a no-token negative control). Accepted forgeries are LEADS — confirm and weaponize.

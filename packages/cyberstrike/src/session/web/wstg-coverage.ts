@@ -52,16 +52,17 @@ export const WSTG_COVERAGE: WstgCoverage[] = [
   { id: "WSTG-IDNT-05", title: "Testing for Weak or Unenforced Username Policy", agent: "wstg-identity-mgmt", status: "covered", mechanism: "identity_probe boundary testing (length/format validation, special-char / unicode bypass)" },
 
   // ── ATHN — Authentication (10) ────────────────────────────────────────
-  { id: "WSTG-ATHN-01", title: "Testing for Credentials Transported over an Encrypted Channel", agent: "wstg-authentication", status: "passive", mechanism: "MissingSecurityHeadersDetector (HSTS)" },
+  { id: "WSTG-ATHN-01", title: "Testing for Credentials Transported over an Encrypted Channel", agent: "wstg-authentication", status: "passive", mechanism: "missing-security-headers rule (HSTS) + http_replay forcing the login over http:// (accepted = cleartext transport)" },
   { id: "WSTG-ATHN-02", title: "Testing for Default Credentials", agent: "wstg-authentication", status: "covered", mechanism: "http_replay known-default probing" },
   { id: "WSTG-ATHN-03", title: "Testing for Weak Lock Out Mechanism", agent: "wstg-authentication", status: "covered", mechanism: "http_replay repeated-login analysis" },
   { id: "WSTG-ATHN-04", title: "Testing for Bypassing Authentication Schema", agent: "wstg-authentication", status: "covered", mechanism: "authn_test + http_replay unauthenticated access" },
   { id: "WSTG-ATHN-05", title: "Testing for Vulnerable Remember Password", agent: "wstg-authentication", status: "covered", mechanism: "http_replay cookie/token analysis" },
-  { id: "WSTG-ATHN-06", title: "Testing for Browser Cache Weaknesses", agent: "wstg-authentication", status: "passive", mechanism: "MissingSecurityHeadersDetector (Cache-Control)" },
+  { id: "WSTG-ATHN-06", title: "Testing for Browser Cache Weakness", agent: "wstg-authentication", status: "passive", mechanism: "vortex_query of authed responses whose Cache-Control lacks no-store/private (the headers are the evidence)" },
   { id: "WSTG-ATHN-07", title: "Testing for Weak Password Policy", agent: "wstg-authentication", status: "covered", mechanism: "http_replay boundary testing" },
   { id: "WSTG-ATHN-08", title: "Testing for Weak Security Question Answer", agent: "wstg-authentication", status: "covered", mechanism: "http_replay workflow analysis" },
   { id: "WSTG-ATHN-09", title: "Testing for Weak Password Change or Reset Functionalities", agent: "wstg-authentication", status: "covered", mechanism: "authn_test + http_replay flow analysis" },
   { id: "WSTG-ATHN-10", title: "Testing for Weaker Authentication in Alternative Channel", agent: "wstg-authentication", status: "covered", mechanism: "http_replay cross-endpoint comparison" },
+  { id: "WSTG-ATHN-11", title: "Testing Multi-Factor Authentication (MFA)", agent: "wstg-authentication", status: "covered", mechanism: "http_replay MFA-step skip / forged mfa_passed flag, step-up enforcement check, OTP brute/reuse/expiry, backup-code + enrollment/reset bypass" },
 
   // ── ATHZ — Authorization (4) ──────────────────────────────────────────
   { id: "WSTG-ATHZ-01", title: "Testing Directory Traversal File Include", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe LFI mode" },
@@ -145,7 +146,7 @@ export const WSTG_CATEGORIES = [
   { prefix: "WSTG-INFO", name: "Information Gathering", count: 10 },
   { prefix: "WSTG-CONF", name: "Configuration and Deployment", count: 14 },
   { prefix: "WSTG-IDNT", name: "Identity Management", count: 5 },
-  { prefix: "WSTG-ATHN", name: "Authentication", count: 10 },
+  { prefix: "WSTG-ATHN", name: "Authentication", count: 11 },
   { prefix: "WSTG-ATHZ", name: "Authorization", count: 4 },
   { prefix: "WSTG-SESS", name: "Session Management", count: 9 },
   { prefix: "WSTG-INPV", name: "Input Validation", count: 19 },
@@ -156,4 +157,4 @@ export const WSTG_CATEGORIES = [
   { prefix: "WSTG-APIT", name: "API Testing", count: 1 },
 ] as const
 
-export const TOTAL_WSTG_TESTS = 100
+export const TOTAL_WSTG_TESTS = 101
