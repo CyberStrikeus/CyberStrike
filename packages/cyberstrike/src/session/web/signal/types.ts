@@ -22,6 +22,7 @@ export type SpecialistClass =
   | "weak-cryptography" //     WSTG 4.9
   | "business-logic" //        WSTG 4.10
   | "client-side" //           WSTG 4.11 (DOM-XSS, CORS, open redirect, postMessage, clickjacking)
+  | "api" //                   WSTG 4.12 + OWASP API Top 10 (inventory, excessive data, resource consumption, GraphQL)
   | "llm" //                   LLM / AI surfaces (not a WSTG category)
 
 // Every cross-cutting signal the passive detectors can emit (plan §06).

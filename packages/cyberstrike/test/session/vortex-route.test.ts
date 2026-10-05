@@ -27,7 +27,7 @@ describe("ownerForSignal — per-rule owner overrides finer than the category", 
     expect(ownerForSignal("stack-trace-signature", "misconfiguration")).toBe("error-handling")
     expect(ownerForSignal("full-path-disclosure", "misconfiguration")).toBe("error-handling")
     expect(ownerForSignal("cors-origin-reflection-with-credentials", "misconfiguration")).toBe("client-side")
-    expect(ownerForSignal("graphql-introspection-enabled", "misconfiguration")).toBe("information-gathering")
+    expect(ownerForSignal("graphql-introspection-enabled", "misconfiguration")).toBe("api")
   })
   test("a rule with no override falls back to its category owner", () => {
     expect(ownerForSignal("server-banner", "misconfiguration")).toBe("config-deployment")

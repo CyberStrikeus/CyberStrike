@@ -147,9 +147,9 @@ export const WSTG_COVERAGE: WstgCoverage[] = [
   // ── APIT — API Testing (1) ────────────────────────────────────────────
   // WSTG 4.12 API Testing. (WSTG labels GraphQL as APIT-99; kept as -03 here so category IDs stay
   // sequential for the coverage gate — the title carries the official number.)
-  { id: "WSTG-APIT-01", title: "API Reconnaissance", agent: "wstg-info-gathering", status: "covered", mechanism: "recon_test metafiles (openapi/swagger.json schema extraction) + WellKnown probe + Vortex endpoint/function enumeration" },
-  { id: "WSTG-APIT-02", title: "API Broken Object Level Authorization", agent: "wstg-authorization", status: "covered", mechanism: "vortex_cross_role candidates + access_probe cross-credential matrix (object returned to the wrong identity = BOLA)" },
-  { id: "WSTG-APIT-03", title: "Testing GraphQL (WSTG-APIT-99)", agent: "wstg-input-validation", status: "covered", mechanism: "graphql-introspection-enabled rule + inject_probe (deep nesting / batching / field injection) + wstg-authorization for BOLA on resolvers" },
+  { id: "WSTG-APIT-01", title: "API Reconnaissance", agent: "wstg-api", status: "covered", mechanism: "recon_test metafiles (OpenAPI/Swagger schema) + GraphQL introspection + spec-vs-reality enumeration of every declared operation (incl. un-crawled); routes generic classes to owners" },
+  { id: "WSTG-APIT-02", title: "API Broken Object Level Authorization", agent: "wstg-authorization", status: "covered", mechanism: "vortex_cross_role candidates + access_probe cross-credential matrix (object returned to the wrong identity = BOLA); wstg-api routes the API operations here" },
+  { id: "WSTG-APIT-03", title: "Testing GraphQL (WSTG-APIT-99)", agent: "wstg-api", status: "covered", mechanism: "graphql-introspection-enabled rule (routes to api) + depth/batching/aliasing probes; resolver BOLA → authorization, field injection → input-validation" },
 ]
 
 export const WSTG_CATEGORIES = [

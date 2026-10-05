@@ -13,8 +13,8 @@ describe("WebProvider", () => {
     expect(new WebProvider().key).toBe("web")
   })
 
-  test("agentSpecs returns 14 agents", () => {
-    expect(new WebProvider().agentSpecs().length).toBe(14)
+  test("agentSpecs returns 15 agents", () => {
+    expect(new WebProvider().agentSpecs().length).toBe(15)
   })
 
   test("agent names match expected set", () => {
@@ -22,6 +22,7 @@ describe("WebProvider", () => {
     expect(names).toEqual([
       "escalation-hunter",
       "wstg-agent",
+      "wstg-api",
       "wstg-authentication",
       "wstg-authorization",
       "wstg-business-logic",
@@ -46,7 +47,7 @@ describe("WebProvider", () => {
 
   test("all specialists have prependRequestContext", () => {
     const specialists = new WebProvider().agentSpecs().filter((s) => s.role === "specialist")
-    expect(specialists.length).toBe(12)
+    expect(specialists.length).toBe(13)
     for (const s of specialists) expect(s.prependRequestContext).toBe(true)
   })
 
@@ -141,6 +142,7 @@ describe("SpecialistClass → agent mapping", () => {
       cryptography: "wstg-cryptography",
       "business-logic": "wstg-business-logic",
       "client-side": "wstg-client-side",
+      api: "wstg-api",
       llm: "wstg-llm",
     }
     for (const [cls, agent] of Object.entries(expected)) expect(map[cls]).toBe(agent)
@@ -164,9 +166,9 @@ describe("SpecialistClass → agent mapping", () => {
     expect(map.get("input-validation")).toBe("wstg-input-validation")
   })
 
-  test("specialistClasses exposes exactly 12 owning specialists", () => {
+  test("specialistClasses exposes exactly 13 owning specialists", () => {
     const map = new WebProvider().specialistClasses()
-    expect(Object.keys(map).length).toBe(12)
+    expect(Object.keys(map).length).toBe(13)
     expect(map["input-validation"]).toBe("wstg-input-validation")
     expect(map["llm"]).toBe("wstg-llm")
     expect(map["authorization"]).toBe("wstg-authorization")
@@ -253,8 +255,8 @@ describe("WebProvider — CYBERSTRIKE_WEB_FOCUS (debug focus mode)", () => {
     expect(names).not.toContain("wstg-config-deploy")
   })
 
-  test("unset restores the full 14-agent roster (no focus)", () => {
+  test("unset restores the full 15-agent roster (no focus)", () => {
     delete process.env[KEY]
-    expect(new WebProvider().agentSpecs().length).toBe(14)
+    expect(new WebProvider().agentSpecs().length).toBe(15)
   })
 })

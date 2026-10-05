@@ -56,6 +56,8 @@ import DESC_WSTG_BUSINESS_LOGIC from "./prompts/vuln/wstg-business-logic/descrip
 // ── WSTG 4.11 Client-side ──
 import PROMPT_WSTG_CLIENT_SIDE from "./prompts/vuln/wstg-client-side/prompt.txt"
 import DESC_WSTG_CLIENT_SIDE from "./prompts/vuln/wstg-client-side/description.txt"
+import PROMPT_WSTG_API from "./prompts/vuln/wstg-api/prompt.txt"
+import DESC_WSTG_API from "./prompts/vuln/wstg-api/description.txt"
 // ── Custom: LLM Security ──
 import PROMPT_WSTG_LLM from "./prompts/vuln/wstg-llm/prompt.txt"
 import DESC_WSTG_LLM from "./prompts/vuln/wstg-llm/description.txt"
@@ -415,6 +417,18 @@ function buildSpecDefs(): SpecDef[] {
       skills: ["wstg-clnt-01", "wstg-clnt-04", "wstg-clnt-07", "wstg-clnt-09", "wstg-clnt-10"],
       prependRequestContext: true,
       permissions: mergePermissions(VULN_BASE_PERMISSIONS, VORTEX_READ_PERMISSIONS),
+    },
+
+    // ── WSTG 4.12 API Testing + OWASP API Top 10 ──
+    {
+      name: "wstg-api",
+      role: "specialist",
+      specialistClass: "api",
+      prompt: vulnPrompt(PROMPT_WSTG_API),
+      description: DESC_WSTG_API,
+      skills: ["wstg-apit-01", "wstg-apit-02"],
+      prependRequestContext: true,
+      permissions: mergePermissions(VULN_BASE_PERMISSIONS, { recon_test: "allow", inject_probe: "allow", ...VORTEX_READ_PERMISSIONS }),
     },
 
     // ── Custom: LLM Security ──

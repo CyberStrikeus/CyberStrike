@@ -36,7 +36,7 @@ const RULE_OWNER: Record<string, SpecialistClass> = {
   "full-path-disclosure": "error-handling",
   "cors-origin-reflection-with-credentials": "client-side", // CORS is client-side-exploitable (WSTG 4.11)
   "cors-wildcard-origin": "client-side",
-  "graphql-introspection-enabled": "information-gathering", // schema disclosure (WSTG 4.1)
+  "graphql-introspection-enabled": "api", // GraphQL schema disclosure → the API specialist (WSTG-APIT-99)
 }
 
 // The owning specialist for a signal: a per-rule override when the rule's WSTG owner is finer than
