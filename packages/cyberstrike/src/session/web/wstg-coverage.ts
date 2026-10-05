@@ -10,16 +10,19 @@ export interface WstgCoverage {
 
 export const WSTG_COVERAGE: WstgCoverage[] = [
   // ── INFO — Information Gathering (10) ─────────────────────────────────
-  { id: "WSTG-INFO-01", title: "Conduct Search Engine Discovery Reconnaissance", agent: "wstg-info-gathering", status: "covered", mechanism: "Vortex inventory + recon_test" },
-  { id: "WSTG-INFO-02", title: "Fingerprint Web Server", agent: "wstg-config-deploy", status: "passive", mechanism: "ServerBannerDetector + misconfig_test" },
-  { id: "WSTG-INFO-03", title: "Review Webserver Metafiles for Information Leakage", agent: "wstg-config-deploy", status: "covered", mechanism: "recon_test metafiles mode (parse robots.txt, sitemap.xml, openapi.json — URL extraction, not just existence)" },
-  { id: "WSTG-INFO-04", title: "Enumerate Applications on Webserver", agent: "wstg-info-gathering", status: "covered", mechanism: "Vortex inventory enumeration" },
-  { id: "WSTG-INFO-05", title: "Review Webpage Content for Information Leakage", agent: "wstg-config-deploy", status: "covered", mechanism: "recon_test leakage mode (HTML comments, internal IPs, version strings, debug flags) + passive SensitiveDataExposureDetector" },
-  { id: "WSTG-INFO-06", title: "Identify Application Entry Points", agent: "wstg-info-gathering", status: "covered", mechanism: "Vortex inject-point inventory" },
-  { id: "WSTG-INFO-07", title: "Map Execution Paths Through Application", agent: "wstg-info-gathering", status: "covered", mechanism: "Vortex function/workflow mapping" },
-  { id: "WSTG-INFO-08", title: "Fingerprint Web Application Framework", agent: "wstg-config-deploy", status: "covered", mechanism: "recon_test fingerprint mode (active tech detection: WordPress, Joomla, Drupal, Rails, Spring, Django, ASP.NET) + passive ServerBannerDetector" },
-  { id: "WSTG-INFO-09", title: "Map Application Architecture", agent: "wstg-info-gathering", status: "covered", mechanism: "Vortex object/function/role extraction" },
-  { id: "WSTG-INFO-10", title: "Map Application Admin Interfaces", agent: "wstg-config-deploy", status: "covered", mechanism: "misconfig_test paths mode (admin wordlist)" },
+  // WSTG 4.1 Information Gathering — ALL ten owned by wstg-info-gathering (one WSTG category = one
+  // specialist). config-deploy (4.2) CONSUMES the fingerprint/tech output via coverage notes + intel to
+  // pick tech playbooks; it does not own any 4.1 item.
+  { id: "WSTG-INFO-01", title: "Conduct Search Engine Discovery and Reconnaissance for Information Leakage", agent: "wstg-info-gathering", status: "covered", mechanism: "vortex_query over captured traffic for indexed admin/debug/status pages + recon_test" },
+  { id: "WSTG-INFO-02", title: "Fingerprint Web Server", agent: "wstg-info-gathering", status: "passive", mechanism: "Vortex server-banner rule (Server/X-Powered-By/version) + recon_test{fingerprint}" },
+  { id: "WSTG-INFO-03", title: "Review Webserver Metafiles for Information Leakage", agent: "wstg-info-gathering", status: "covered", mechanism: "recon_test{metafiles} + WellKnown probe (robots.txt, sitemap.xml, security.txt, openapi.json — URL + schema extraction, not just existence)" },
+  { id: "WSTG-INFO-04", title: "Enumerate Applications on Webserver", agent: "wstg-info-gathering", status: "covered", mechanism: "Vortex host/origin enumeration over captured traffic (passive — distinct hosts/ports seen)" },
+  { id: "WSTG-INFO-05", title: "Review Webpage Content for Information Leakage", agent: "wstg-info-gathering", status: "covered", mechanism: "recon_test{leakage} (HTML comments, internal IPs, version strings, debug flags) + Vortex signature rules (secret-in-response, internal-hostname-leak, full-path-disclosure)" },
+  { id: "WSTG-INFO-06", title: "Identify Application Entry Points", agent: "wstg-info-gathering", status: "covered", mechanism: "Vortex inject-point inventory (every query/body/path/header parameter)" },
+  { id: "WSTG-INFO-07", title: "Map Execution Paths Through Application", agent: "wstg-info-gathering", status: "covered", mechanism: "Vortex function/workflow mapping (CRUD action types, critical flows)" },
+  { id: "WSTG-INFO-08", title: "Fingerprint Web Application Framework", agent: "wstg-info-gathering", status: "covered", mechanism: "Vortex technology rules (js/web/ui framework fingerprints) + recon_test{fingerprint} + cookie/header signatures" },
+  { id: "WSTG-INFO-09", title: "Fingerprint Web Application", agent: "wstg-info-gathering", status: "covered", mechanism: "version-specific resources (CHANGELOG/VERSION, build hash in HTML, /version.json) via http_replay + recon_test" },
+  { id: "WSTG-INFO-10", title: "Map Application Architecture", agent: "wstg-info-gathering", status: "covered", mechanism: "Vortex technology rules (CDN/reverse-proxy/load-balancer) + header inference (Via/X-Cache/CF-RAY, frontend-vs-backend error pages)" },
 
   // ── CONF — Configuration and Deployment Management (11) ───────────────
   { id: "WSTG-CONF-01", title: "Test Network Infrastructure Configuration", agent: "wstg-config-deploy", status: "covered", mechanism: "misconfig_test methods mode" },
