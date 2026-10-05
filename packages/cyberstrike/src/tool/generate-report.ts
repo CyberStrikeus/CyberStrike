@@ -202,7 +202,10 @@ function formatVulnTable(vulns: Vulnerability.Info[], sessionID: string): string
   for (const v of sorted) {
     const sev = v.severity.toUpperCase()
     counters[sev] = (counters[sev] ?? 0) + 1
-    const ref = `${sev}-${String(counters[sev]).padStart(3, "0")}`
+    // The stable, DB-backed finding id (VULN-001) is the report id too, so the same id a reader sees in
+    // the report matches the UI, the tool output and the hunter. Fall back to a severity-local id only if
+    // a finding somehow lacks one.
+    const ref = v.ref ?? `${sev}-${String(counters[sev]).padStart(3, "0")}`
 
     lines.push(`| ${ref} | ${sev} | ${v.title} | ${v.endpoint ?? "—"} | ${v.cwe_id ?? "—"} | ${v.status} |`)
 

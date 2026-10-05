@@ -143,7 +143,7 @@ export class EscalationRunner {
     ]
     for (const v of target) {
       lines.push(
-        `- [${v.severity}] ${v.title}` +
+        `- ${v.ref ?? ""} [${v.severity}] ${v.title}` +
           (v.endpoint ? ` — ${v.endpoint}` : "") +
           (v.evidence_request_ids?.length ? ` (evidence: ${v.evidence_request_ids.join(", ")})` : "") +
           `  {id: ${v.id}}`,
