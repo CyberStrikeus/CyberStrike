@@ -111,10 +111,10 @@ export const WSTG_COVERAGE: WstgCoverage[] = [
   { id: "WSTG-ERRH-02", title: "Testing for Stack Traces", agent: "wstg-error-handling", status: "covered", mechanism: "stack-trace-signature rule + error_probe / http_replay exception triggering (type confusion, div-by-zero, null refs) — a trace in the body (incl. JSON wrappers) is the finding" },
 
   // ── CRYP — Weak Cryptography (4) ──────────────────────────────────────
-  { id: "WSTG-CRYP-01", title: "Testing for Weak Transport Layer Security", agent: "wstg-cryptography", status: "covered", mechanism: "MissingSecurityHeadersDetector (HSTS) + manual header check" },
-  { id: "WSTG-CRYP-02", title: "Testing for Padding Oracle", agent: "wstg-cryptography", status: "covered", mechanism: "http_replay CBC padding analysis" },
-  { id: "WSTG-CRYP-03", title: "Testing for Sensitive Information Sent via Unencrypted Channels", agent: "wstg-cryptography", status: "passive", mechanism: "MissingSecurityHeadersDetector (HSTS)" },
-  { id: "WSTG-CRYP-04", title: "Testing for Weak Encryption", agent: "wstg-cryptography", status: "covered", mechanism: "authn_test JWT weak-key detection" },
+  { id: "WSTG-CRYP-01", title: "Testing for Weak Transport Layer Security", agent: "wstg-cryptography", status: "covered", mechanism: "bash openssl s_client (TLS version / weak ciphers / cert validity) + missing-security-headers rule (HSTS) + mixed-content scan" },
+  { id: "WSTG-CRYP-02", title: "Testing for Padding Oracle", agent: "wstg-cryptography", status: "covered", mechanism: "http_replay — mutate last byte of a base64/hex block-cipher blob, differential error oracle (valid vs invalid padding)" },
+  { id: "WSTG-CRYP-03", title: "Testing for Sensitive Information Sent via Unencrypted Channels", agent: "wstg-cryptography", status: "passive", mechanism: "missing-security-headers rule (HSTS) + http_replay reachability over http:// + form-action/mixed-content scan for creds/PII" },
+  { id: "WSTG-CRYP-04", title: "Testing for Weak Cryptographic Primitives", agent: "wstg-cryptography", status: "covered", mechanism: "crypto_probe / analysis for DES/RC4/MD5/ECB, short keys, hardcoded keys-IVs, weak RNG in tokens; JWT weak-key via session_probe/authn_test" },
 
   // ── BUSL — Business Logic (9) ─────────────────────────────────────────
   { id: "WSTG-BUSL-01", title: "Test Business Logic Data Validation", agent: "wstg-business-logic", status: "covered", mechanism: "business_test boundary mode" },
