@@ -9,6 +9,7 @@
 // surfaced → SSTI), "error" (a DBMS/interpreter error signature appears in the probe response that
 // was NOT in the baseline → SQLi / path-traversal). Time-based blind is a later refinement.
 import type { Transaction, Severity } from "./transaction"
+import { header } from "./transaction"
 import type { Signal } from "./rule"
 import { dedupe } from "./rule"
 import type { Sender } from "./active"
@@ -17,13 +18,28 @@ import type { InjectPoint, Coverage, ValueType } from "./injectpoint"
 import { injectPoints } from "./injectpoint"
 import type { TrafficStore } from "./store"
 import { replaySafety } from "./replay-safety"
-import { reflects, brokeOut, mintTemplateCanary, TEMPLATE_PLACEHOLDER } from "./canary"
+import { reflects, brokeOut, mintTemplateCanary, TEMPLATE_PLACEHOLDER, CANARY_PLACEHOLDER } from "./canary"
 import { endpointKey } from "./endpoint"
 import { runActiveRules } from "./active"
 import { idorActiveRules } from "./rules/idor-active"
 import { observed } from "./scope"
 
-export type DetectMode = "reflected" | "evaluated" | "error"
+// How a payload class decides a hit:
+//  - reflected : a tracked canary bounced back into the response body (XSS lead).
+//  - evaluated : a template canary's PRODUCT surfaced (SSTI — the engine evaluated our expression).
+//  - error     : a DBMS/interpreter error signature appears in the probe body but NOT the baseline.
+//  - redirect   : the probe response Location points at our injected canary host (open redirect).
+//  - header-inject : an injected header (carrying our canary) surfaced in the probe RESPONSE headers (CRLF).
+//  - time       : the probe response is slower than the baseline by a threshold (blind command injection).
+export type DetectMode = "reflected" | "evaluated" | "error" | "redirect" | "header-inject" | "time"
+
+// Blind command-injection threshold: payloads sleep ~5s, so a probe that runs ≥ this much slower than
+// the baseline (and ≥ this in absolute terms) is a strong time-based lead. A real deployment can diff
+// multiple samples; one differential sample is enough to QUEUE a specialist (it still confirms).
+const SLEEP_THRESHOLD_MS = Math.max(1000, Number(process.env.CYBERSTRIKE_PROBE_SLEEP_MS) || 4000)
+// The header name a CRLF payload injects; its presence in the response headers (carrying the canary
+// token) proves the raw CR/LF split the header block. Kept distinctive so a hit is unambiguous.
+const CRLF_HEADER = "x-vxcrlf"
 
 // Which inject points a payload class applies to (#88 Phase B). Absent ⇒ the class probes EVERY point
 // (backward-compatible). Present ⇒ the class is restricted to points whose name/type matches — so a
@@ -111,6 +127,43 @@ export const injectionPayloads: PayloadClass[] = [
     // string/empty only (a uuid/objectid/bool/number param is not a file handle).
     select: { name: "file|path|page|template|include|doc|download|dir|folder|name|url|src|load|read|view|cat|action", type: ["string", "empty"] },
   },
+  {
+    // #88 Phase A — open redirect. Inject an absolute / protocol-relative URL whose host carries the
+    // canary token (the engine mints it and substitutes {canary}); a hit is the probe's Location header
+    // pointing back at that unique host. The governed sender sends with followRedirects:false, so the
+    // 3xx Location is visible rather than chased.
+    id: "open-redirect",
+    category: "redirect",
+    severity: "medium",
+    detect: "redirect",
+    payloads: ["https://{canary}.vxredir.test/x", "//{canary}.vxredir.test/x", "/\\{canary}.vxredir.test"],
+    // Boundaries on the short tokens (\bto\b/\bu\b/\br\b) so "user"/"order"/"number" do NOT match — only
+    // a param actually named to/u/r. Longer names match as substrings (returnUrl, redirect_uri, …).
+    select: { name: "url|uri|redirect|redir|next|return|dest|destination|continue|target|goto|callback|forward|\\bto\\b|\\bu\\b|\\br\\b", type: ["string", "empty"] },
+  },
+  {
+    // #88 Phase A — CRLF / HTTP response-header injection. Inject raw/encoded CR-LF followed by a
+    // distinctive header carrying the canary token; a hit is that header surfacing in the probe RESPONSE
+    // (the server echoed our CR/LF into its header block). High severity: response splitting / cache
+    // poisoning / header-based auth bypass.
+    id: "crlf-header",
+    category: "injection",
+    severity: "high",
+    detect: "header-inject",
+    payloads: [`%0d%0a${CRLF_HEADER}:{canary}`, `\r\n${CRLF_HEADER}:{canary}`, `%0d%0a${CRLF_HEADER}:{canary}%0d%0a`],
+    select: { name: "url|uri|redirect|redir|next|return|returnurl|dest|continue|target|goto|callback|forward|location|path", type: ["string", "empty"] },
+  },
+  {
+    // #88 Phase A — blind (time-based) command injection. Shell-metachar payloads that sleep ~5s; a hit
+    // is the probe response arriving SLEEP_THRESHOLD_MS slower than the baseline. No canary (timing is
+    // the oracle). Critical: typically full RCE.
+    id: "command-injection",
+    category: "injection",
+    severity: "critical",
+    detect: "time",
+    payloads: ["; sleep 5", "| sleep 5", "$(sleep 5)", "`sleep 5`", "& ping -n 6 127.0.0.1 &", "%0a sleep 5"],
+    select: { name: "host|hostname|ip|domain|cmd|command|exec|run|ping|ping_host|target|addr|address|url|dns|lookup|nslookup", type: ["string", "empty"] },
+  },
 ]
 
 // Build the send-mutation that targets a specific inject point. Path uses set-path-param whose name
@@ -162,7 +215,9 @@ export async function probeInjectPoints(
   // that DO match it, and the budget is not spent injecting an inapplicable payload family.
   const matchers = new Map(classes.map((c) => [c.id, selectMatcher(c.select)]))
   const out: Signal[] = []
-  const baselineByTx = new Map<string, string | undefined>()
+  // Baseline per tx: the body (differential reference for error detection) + the response time (the
+  // reference for time-based command injection).
+  const baselineByTx = new Map<string, { body?: string; ms?: number }>()
 
   // A single failed send (timeout / connection reset / TLS / the target momentarily down) must NOT
   // abort the whole probing pass and lose the signals + coverage gathered so far. Swallow the throw
@@ -181,12 +236,13 @@ export async function probeInjectPoints(
     if (!tx) continue
     if (!replaySafety(tx).safe) continue // never burn a session-minting / one-time-token request
 
-    // Baseline body for the tx (one send, cached) — the differential reference for error detection.
+    // Baseline for the tx (one send, cached) — body for error diffing, timing for the sleep oracle.
     if (!baselineByTx.has(tx.id)) {
       const base = await trySend(tx)
-      baselineByTx.set(tx.id, base?.transaction.response?.body)
+      baselineByTx.set(tx.id, { body: base?.transaction.response?.body, ms: base?.transaction.timing?.ms })
     }
-    const baseline = baselineByTx.get(tx.id)
+    const baseline = baselineByTx.get(tx.id)!.body
+    const baselineMs = baselineByTx.get(tx.id)!.ms
     const endpoint = endpointKey(tx)
 
     // Isolation mutations: blank every OTHER value param (query/body) of this request, keeping path
@@ -225,12 +281,17 @@ export async function probeInjectPoints(
           const tc = cls.detect === "evaluated" ? mintTemplateCanary() : undefined
           const value = tc ? payload.split(TEMPLATE_PLACEHOLDER).join(tc.expr) : payload
           const mutations = strategy === "isolated" ? [...isolationBlanks, mutationForPoint(pt, value)] : [mutationForPoint(pt, value)]
+          // A class whose payload carries {canary} (reflected XSS, open-redirect, CRLF) needs the send
+          // engine to mint a unique token, substitute it for {canary}, and return it — so detection can
+          // scan for that exact token (body / Location / response headers). No hardcoded sentinels.
+          const needsCanary = payload.includes(CANARY_PLACEHOLDER)
           const res = await trySend(tx, {
             mutations,
-            canary: cls.detect === "reflected" ? { field: pt.dotpath, vulnClass: cls.category } : undefined,
+            canary: needsCanary ? { field: pt.dotpath, vulnClass: cls.category } : undefined,
           })
           if (!res) continue // send failed (timeout/reset/TLS) — skip this payload, don't abort the pass
           const body = res.transaction.response?.body
+          const token = res.canary?.token
 
           let hit = false
           let evidence = ""
@@ -245,6 +306,28 @@ export async function probeInjectPoints(
           } else if (cls.detect === "evaluated") {
             hit = !!tc && reflects(body, tc.marker)
             if (hit) evidence = "template expression evaluated (SSTI)"
+          } else if (cls.detect === "redirect") {
+            // Open redirect: the probe's Location points at our injected canary host (sender does not
+            // follow redirects, so the 3xx Location is captured). Unique token ⇒ no false positive.
+            const loc = header(res.transaction.response?.headers ?? [], "location")
+            hit = !!token && !!loc && loc.includes(token)
+            if (hit) evidence = `open redirect — Location points at the injected canary host: ${loc}`
+          } else if (cls.detect === "header-inject") {
+            // CRLF: our injected header (carrying the canary) surfaced in the RESPONSE headers — the raw
+            // CR/LF split the server's header block. Match by the distinctive name AND the token value.
+            const injected = header(res.transaction.response?.headers ?? [], CRLF_HEADER)
+            hit = !!token && !!injected && injected.includes(token)
+            if (hit) evidence = `CRLF / header injection — injected ${CRLF_HEADER} surfaced in the response (response splitting)`
+          } else if (cls.detect === "time") {
+            // Blind command injection: the sleep payload made THIS response arrive materially slower than
+            // the baseline (and slow in absolute terms). Needs a baseline time to diff against.
+            const probeMs = res.transaction.timing?.ms
+            hit =
+              probeMs !== undefined &&
+              baselineMs !== undefined &&
+              probeMs - baselineMs >= SLEEP_THRESHOLD_MS &&
+              probeMs >= SLEEP_THRESHOLD_MS
+            if (hit) evidence = `blind command injection — response delayed ${probeMs}ms vs ${baselineMs}ms baseline (payload induced sleep)`
           } else {
             const sig = errorSignature(cls.signatures, body, baseForErr)
             hit = !!sig
