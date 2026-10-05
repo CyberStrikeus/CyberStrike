@@ -12,6 +12,7 @@ import { WebObject } from "./web-object"
 import { WebFunction } from "./web-function"
 import { WebRole } from "./web-role"
 import { ownerForSignal, signalPriority, shouldRoute, type VortexSeverity } from "./signal/vortex-route"
+import { Ssrf } from "./ssrf-probe"
 import { DataCollector } from "./data-collector"
 import path from "path"
 
@@ -54,6 +55,10 @@ export function dropSession(sessionID: string): void {
   signalsCache.delete(sessionID)
   accessMatchers.delete(sessionID)
   chainIndexes.delete(sessionID)
+  const st = ssrfTimers.get(sessionID)
+  if (st) clearTimeout(st)
+  ssrfTimers.delete(sessionID)
+  Ssrf.clear(sessionID)
 }
 
 // Ingest-activity grace window — an ActivitySource for the SessionLifecycle (#19). Bumped on every hit
@@ -673,12 +678,42 @@ export async function vortexProbe(sessionID: string): Promise<{ enabled: boolean
     // Route the actively-probed signals into the retest pipeline (issue #14) — an active-probe
     // hit is exactly the high-value lead a specialist should confirm without waiting on initiative.
     const routed = bridgeSignals(sessionID, store, res.signals)
-    log.info("vortex active-probe", { sessionID, probed: res.probed, signals: res.signals.length, routed })
+    // SSRF out-of-band (#89): reconcile callbacks that landed since the last pass (route confirmations),
+    // then send new OOB probes into url-ish params. Async by nature, so a reconcile timer keeps polling
+    // between passes (see armSsrfReconcile) — this pass just kicks it off.
+    const confirmed = await Ssrf.reconcile(sessionID, store)
+    if (confirmed.length > 0) bridgeSignals(sessionID, store, confirmed)
+    await Ssrf.probe(sessionID, store, probeSender())
+    if (Ssrf.pendingCount(sessionID) > 0) armSsrfReconcile(sessionID)
+    log.info("vortex active-probe", { sessionID, probed: res.probed, signals: res.signals.length, routed, ssrfConfirmed: confirmed.length, ssrfPending: Ssrf.pendingCount(sessionID) })
     return { enabled: true, probed: res.probed, signals: res.signals.length }
   } catch (e) {
     log.debug("vortex active-probe failed (ignored)", { err: String(e) })
     return { enabled: true, probed: 0, signals: 0 }
   }
+}
+
+// SSRF reconcile timer (#89). OOB callbacks arrive seconds-to-a-minute AFTER the probe send, often once
+// ingest (and thus kickProbe) has stopped — so a blind SSRF would never be confirmed on the probe pass
+// alone. This self-rescheduling loop polls the session's pending OOB tokens every RECONCILE_MS, routes
+// any confirmation, and stops when the pending set drains (TTL-expired by Ssrf.reconcile itself). One
+// timer per session; re-arming while a timer is live is a no-op.
+const SSRF_RECONCILE_MS = Math.max(2000, Number(process.env.CYBERSTRIKE_SSRF_RECONCILE_MS) || 10_000)
+const ssrfTimers = new Map<string, ReturnType<typeof setTimeout>>()
+function armSsrfReconcile(sessionID: string): void {
+  if (!ACTIVE_PROBE || ssrfTimers.has(sessionID)) return
+  const tick = async () => {
+    ssrfTimers.delete(sessionID)
+    try {
+      const store = storeFor(sessionID)
+      const confirmed = await Ssrf.reconcile(sessionID, store)
+      if (confirmed.length > 0) bridgeSignals(sessionID, store, confirmed)
+    } catch (e) {
+      log.debug("ssrf reconcile tick failed (ignored)", { sessionID, err: String(e) })
+    }
+    if (Ssrf.pendingCount(sessionID) > 0) ssrfTimers.set(sessionID, setTimeout(tick, SSRF_RECONCILE_MS))
+  }
+  ssrfTimers.set(sessionID, setTimeout(tick, SSRF_RECONCILE_MS))
 }
 
 // Background auto-probe: when enabled, drain a session's unprobed points off the ingest path (fire-

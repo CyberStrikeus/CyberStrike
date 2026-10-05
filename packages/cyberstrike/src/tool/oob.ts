@@ -1,33 +1,16 @@
 import z from "zod"
 import { Tool } from "./tool"
 import { OobStore } from "../oob/store"
-import { OobServer } from "../oob/server"
+import { Oob } from "../oob/client"
 
 // Out-of-band interaction tools (#85) — confirm BLIND vulnerabilities. A subagent mints a unique OOB
 // host with oob_generate, injects it into the target (SSRF URL, command `nslookup`/`curl`, XXE SYSTEM,
 // OOB-SQLi/SSTI payload, exfil channel), then polls oob_check: a captured DNS/HTTP callback = proof.
 
-// Where to read interactions from: the in-process store (OOB server runs in this process) OR a remote
-// OOB server's API (CYBERSTRIKE_OOB_API, e.g. http://oob-host:8053 — its GET /i/:token).
-async function readInteractions(token: string): Promise<OobStore.Interaction[]> {
-  const api = process.env.CYBERSTRIKE_OOB_API
-  if (api) {
-    try {
-      const r = await fetch(`${api.replace(/\/$/, "")}/i/${encodeURIComponent(token)}`)
-      if (r.ok) {
-        const j = (await r.json()) as { interactions?: OobStore.Interaction[] }
-        if (Array.isArray(j.interactions)) return j.interactions
-      }
-    } catch {
-      /* fall through to the in-process store */
-    }
-  }
-  return OobStore.poll(token)
-}
-
-function domain(): string | undefined {
-  return OobServer.domain() || process.env.CYBERSTRIKE_OOB_DOMAIN?.toLowerCase().replace(/^\.+|\.+$/g, "") || undefined
-}
+// Read interactions + resolve the base domain through the shared OOB client (#89) — in-process store or
+// a remote OOB server's API (CYBERSTRIKE_OOB_API), one source of truth shared with the SSRF probe.
+const readInteractions = (token: string): Promise<OobStore.Interaction[]> => Oob.readInteractions(token)
+const domain = (): string | undefined => Oob.domain()
 
 export const OobGenerateTool = Tool.define("oob_generate", {
   description: [
