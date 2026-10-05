@@ -114,6 +114,43 @@ describe("probeInjectPoints — inventory-driven injection probing", () => {
   })
 })
 
+describe("name/type targeting (#88 Phase B) — the select narrows a class to applicable points", () => {
+  test("path-traversal fires on a file-ish STRING param but is SKIPPED on a numeric id", async () => {
+    // `file` is a string → traversal applies; `id` is numeric → traversal skipped (no send for it).
+    const t = tx("t1", "https://app.test/download?file=a.txt&id=5")
+    const cov: { paramId: string; payloadClass: string; result: string }[] = []
+    const s = makeSender((_i, opts) => {
+      const m = opts?.mutations?.find((x) => x.op === "set-query" && x.name === "file")
+      return m && m.value !== "a.txt" && m.value !== "" ? { body: "root:x:0:0:root:/root:/bin/bash" } : { body: "ok" }
+    })
+    const sigs = await probeInjectPoints(injectPoints(t), resolver(t), s.send, { onResult: (c) => cov.push(c) })
+    // the traversal hit is on `file`, never attempted on `id`
+    expect(sigs.some((x) => x.ruleId === "path-traversal" && x.param?.dotpath === "file")).toBe(true)
+    expect(cov.some((c) => c.paramId === "t1:query:file" && c.payloadClass === "path-traversal")).toBe(true)
+    expect(cov.some((c) => c.paramId === "t1:query:id" && c.payloadClass === "path-traversal")).toBe(false)
+  })
+
+  test("the numeric id is STILL anchored by the universal classes (no coverage lost)", async () => {
+    const t = tx("t2", "https://app.test/items?id=5")
+    const cov: { paramId: string; payloadClass: string }[] = []
+    const s = makeSender(() => ({ body: "ok" }))
+    await probeInjectPoints(injectPoints(t), resolver(t), s.send, { onResult: (c) => cov.push(c) })
+    const forId = cov.filter((c) => c.paramId === "t2:query:id").map((c) => c.payloadClass).sort()
+    expect(forId).toEqual(["sqli-error", "ssti", "xss-reflected"]) // universal classes still probe it
+  })
+
+  test("targeting REDUCES the attempted (point × class) matrix — the budget win", async () => {
+    // One numeric + one id-shaped param: path-traversal matches neither → fewer sends than the
+    // untargeted 2×4 matrix would make.
+    const t = tx("t3", "https://app.test/items?id=5&page=2")
+    const cov: { paramId: string; payloadClass: string }[] = []
+    const s = makeSender(() => ({ body: "ok" }))
+    await probeInjectPoints(injectPoints(t), resolver(t), s.send, { onResult: (c) => cov.push(c) })
+    expect(cov.some((c) => c.payloadClass === "path-traversal")).toBe(false) // neither param is file-ish+string
+    expect(cov.length).toBe(6) // 2 params × 3 universal classes, not 2×4
+  })
+})
+
 describe("probe strategies — full vs isolated", () => {
   test("a sibling param masks the sink in full context; the isolated pass reaches it", async () => {
     const t = tx("iso1", "https://app.test/items?id=5&gate=block")
@@ -193,9 +230,12 @@ describe("probeSession — store-driven probing + coverage (phase 4)", () => {
     // a signal was produced + persisted
     expect(res.signals.some((x) => x.ruleId === "sqli-error")).toBe(true)
     expect(store.signals({ category: "injection" }).length).toBeGreaterThan(0)
-    // coverage: one row per class attempted on the point; the sqli one is a hit, the rest clean
+    // coverage: one row per class ATTEMPTED on the point. The point is a numeric `id`, so the
+    // targeted path-traversal class (file/path-ish names, string/empty types — #88) is SKIPPED: no
+    // send, no coverage row. The universal classes still anchor the point.
     const cov = store.coverage({ transactionId: "S1" })
-    expect(cov.length).toBe(4) // sqli-error, xss-reflected, ssti, path-traversal
+    expect(cov.length).toBe(3) // sqli-error, xss-reflected, ssti — NOT path-traversal (skipped by select)
+    expect(cov.find((c) => c.payloadClass === "path-traversal")).toBeUndefined()
     expect(cov.find((c) => c.payloadClass === "sqli-error")?.result).toBe("hit")
     expect(cov.find((c) => c.payloadClass === "xss-reflected")?.result).toBe("clean")
     // the point is now marked probed

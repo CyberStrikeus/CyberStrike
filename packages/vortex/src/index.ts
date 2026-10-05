@@ -41,7 +41,7 @@ export { params, responseFields, requestBodyKind, responseBodyKind } from "./par
 export { injectPoints, injectPointKey, coverageKey, valueType } from "./injectpoint"
 export type { InjectPoint, InjectLocation, ValueType, Coverage } from "./injectpoint"
 export { probeInjectPoints, probeSession, mutationForPoint, injectionPayloads } from "./injectprobe"
-export type { PayloadClass, DetectMode, ProbeOptions } from "./injectprobe"
+export type { PayloadClass, PayloadSelect, DetectMode, ProbeOptions } from "./injectprobe"
 export type { BodyKind, BodyView } from "./body"
 export { bodyKind, analyzeBody, messageBody } from "./body"
 export type { Cookie } from "./cookies"

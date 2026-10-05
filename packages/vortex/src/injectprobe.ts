@@ -13,7 +13,7 @@ import type { Signal } from "./rule"
 import { dedupe } from "./rule"
 import type { Sender } from "./active"
 import type { Apply } from "./send"
-import type { InjectPoint, Coverage } from "./injectpoint"
+import type { InjectPoint, Coverage, ValueType } from "./injectpoint"
 import { injectPoints } from "./injectpoint"
 import type { TrafficStore } from "./store"
 import { replaySafety } from "./replay-safety"
@@ -25,6 +25,16 @@ import { observed } from "./scope"
 
 export type DetectMode = "reflected" | "evaluated" | "error"
 
+// Which inject points a payload class applies to (#88 Phase B). Absent ⇒ the class probes EVERY point
+// (backward-compatible). Present ⇒ the class is restricted to points whose name/type matches — so a
+// narrow class (path-traversal, and later open-redirect / cmd-injection) stops spraying its payloads at
+// every param (budget + noise), while the universal classes (SQLi/XSS) keep no `select` and still anchor
+// every point so nothing is left unprobed.
+export interface PayloadSelect {
+  name?: string // JS regex source, matched case-insensitively against the param name AND its dotpath
+  type?: ValueType[] // only probe points of these value types
+}
+
 export interface PayloadClass {
   id: string
   category: string
@@ -32,6 +42,21 @@ export interface PayloadClass {
   detect: DetectMode
   payloads: string[] // "{canary}" for reflected, "{template}" for evaluated
   signatures?: RegExp[] // detect "error": a hit is a signature present in the probe body but NOT the baseline
+  select?: PayloadSelect // #88: restrict this class to matching inject points (absent = all points)
+}
+
+// Does this inject point match a class's `select`? A class with no `select` matches everything. Name is
+// tested against the human leaf AND the dotpath (so a body field `filters.0.redirect` still matches a
+// url-ish family). Compiled once per pass by `selectMatcher`.
+function selectMatcher(sel: PayloadSelect | undefined): (pt: InjectPoint) => boolean {
+  if (!sel) return () => true
+  const re = sel.name ? new RegExp(sel.name, "i") : undefined
+  const types = sel.type
+  return (pt) => {
+    if (types && !types.includes(pt.valueType)) return false
+    if (re && !re.test(`${pt.name ?? ""} ${pt.dotpath}`)) return false
+    return true
+  }
 }
 
 // Multi-DBMS SQL error signatures — kept specific enough that a differential match (present in the
@@ -81,6 +106,10 @@ export const injectionPayloads: PayloadClass[] = [
     detect: "error",
     payloads: ["../../../../../../etc/passwd", "..%2f..%2f..%2f..%2f..%2f..%2fetc%2fpasswd", "....//....//....//etc/passwd"],
     signatures: FILE_ERRORS,
+    // #88 Phase B: a traversal payload only makes sense on a file/path-ish param. Narrowing here is the
+    // concrete budget win — stop firing `../etc/passwd` at every numeric id, token or unrelated field.
+    // string/empty only (a uuid/objectid/bool/number param is not a file handle).
+    select: { name: "file|path|page|template|include|doc|download|dir|folder|name|url|src|load|read|view|cat|action", type: ["string", "empty"] },
   },
 ]
 
@@ -128,6 +157,10 @@ export async function probeInjectPoints(
   opts: ProbeOptions = {},
 ): Promise<Signal[]> {
   const classes = opts.classes ? injectionPayloads.filter((c) => opts.classes!.includes(c.id)) : injectionPayloads
+  // #88 Phase B: compile each class's `select` once. A non-matching (point, class) pair is skipped
+  // entirely — no send, no coverage row — so the point is still marked probed by the universal classes
+  // that DO match it, and the budget is not spent injecting an inapplicable payload family.
+  const matchers = new Map(classes.map((c) => [c.id, selectMatcher(c.select)]))
   const out: Signal[] = []
   const baselineByTx = new Map<string, string | undefined>()
 
@@ -173,6 +206,9 @@ export async function probeInjectPoints(
     }
 
     for (const cls of classes) {
+      // #88 Phase B: skip a class that does not apply to this point (no send, no coverage). The point is
+      // still anchored by the universal classes, so it is not left unprobed.
+      if (!matchers.get(cls.id)!(pt)) continue
       let confirmed = false
       let hitStrategy: "full" | "isolated" | undefined
       // full first (realistic, all siblings present); isolated only if full found nothing — bounds
