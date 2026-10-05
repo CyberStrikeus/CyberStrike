@@ -43,3 +43,6 @@ packages/desktop/resources/cyberstrike/bin/
 # Exported session transcripts and reports
 session-*.md
 *.tsbuildinfo
+
+# Stray electron-vite build output dropped at repo root (desktop main-process bundle)
+/index.js
