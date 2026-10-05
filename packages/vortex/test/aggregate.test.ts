@@ -47,8 +47,8 @@ describe("compileAggregate — one finding, many URLs", () => {
     expect(sig.evidence).toContain("/api/b")
     expect(sig.evidence).toContain("/api/c")
     expect(sig.evidence).not.toContain("/home")
-    // one finding ⇒ a single, group-stable dedupKey
-    expect(sig.dedupKey).toBe("cors-origin-reflection-with-credentials:")
+    // one finding per host (#87: config-class rules group by host) — these endpoints share app.test
+    expect(sig.dedupKey).toBe("cors-origin-reflection-with-credentials:app.test")
   })
 
   test("no matching transactions ⇒ no signal", () => {

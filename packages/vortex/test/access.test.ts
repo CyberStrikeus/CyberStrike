@@ -63,9 +63,9 @@ describe("scope — header rule skips redirects and static assets", () => {
     ...over,
   })
   test("no fire on a 301 redirect", () => {
-    expect(missingSecurityHeaders.evaluate(bare({ response: { status: 301, headers: [] } }))).toHaveLength(0)
+    expect(missingSecurityHeaders.evaluate([bare({ response: { status: 301, headers: [] } })])).toHaveLength(0)
   })
   test("no fire on a .js asset", () => {
-    expect(missingSecurityHeaders.evaluate(bare({ request: { method: "GET", url: "https://app.test/app.js", headers: [] } }))).toHaveLength(0)
+    expect(missingSecurityHeaders.evaluate([bare({ request: { method: "GET", url: "https://app.test/app.js", headers: [] } })])).toHaveLength(0)
   })
 })

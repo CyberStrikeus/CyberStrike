@@ -83,7 +83,7 @@ export type { Pack } from "./pack"
 export { PackSchema, parsePack, mergePacks, loadPackDir, contextFromCorpus } from "./pack"
 
 import { RuleRegistry } from "./rule"
-import { headerRules } from "./rules/headers"
+import { headerRules, headerCorpusRules } from "./rules/headers"
 import { accessRules } from "./rules/access"
 import { idorRules } from "./rules/idor"
 import { signatureRules } from "./rules/signatures"
@@ -176,7 +176,7 @@ export { reverseProxyRules } from "./rules/reverse-proxies"
 export { osRules } from "./rules/os"
 export { cmsRules } from "./rules/cms"
 export { cveRules } from "./rules/cve"
-export const baselineCorpusRules = [...accessRules, ...chainRules.map(compileChain), ...compileAggregates(aggregateRules)]
+export const baselineCorpusRules = [...accessRules, ...headerCorpusRules, ...chainRules.map(compileChain), ...compileAggregates(aggregateRules)]
 export { chainRules } from "./rules/chains"
 export { aggregateRules } from "./rules/aggregates"
 

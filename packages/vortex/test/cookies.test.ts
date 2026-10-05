@@ -51,13 +51,13 @@ describe("responseCookies", () => {
 
 describe("weak-cookie-flags uses the parsed model", () => {
   test("clean cookie yields no signal, hardened value with 'secure' in it is not a false match", () => {
-    expect(weakCookieFlags.evaluate(tx(undefined, ["sid=abc; HttpOnly; Secure; SameSite=Lax"]))).toHaveLength(0)
-    expect(weakCookieFlags.evaluate(tx(undefined, ["t=secure_value; HttpOnly; Secure; SameSite=Strict"]))).toHaveLength(0)
+    expect(weakCookieFlags.evaluate([tx(undefined, ["sid=abc; HttpOnly; Secure; SameSite=Lax"])])).toHaveLength(0)
+    expect(weakCookieFlags.evaluate([tx(undefined, ["t=secure_value; HttpOnly; Secure; SameSite=Strict"])])).toHaveLength(0)
   })
   test("bare cookie flags all three", () => {
-    const s = weakCookieFlags.evaluate(tx(undefined, ["sid=abc"]))
+    const s = weakCookieFlags.evaluate([tx(undefined, ["sid=abc"])])
     expect(s).toHaveLength(1)
-    expect(s[0].title).toContain("HttpOnly")
+    expect(s[0].evidence).toContain("HttpOnly")
   })
 })
 
