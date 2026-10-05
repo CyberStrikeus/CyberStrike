@@ -32,10 +32,13 @@ export const WSTG_COVERAGE: WstgCoverage[] = [
   { id: "WSTG-CONF-05", title: "Enumerate Infrastructure and Application Admin Interfaces", agent: "wstg-config-deploy", status: "covered", mechanism: "misconfig_test paths mode (admin wordlist)" },
   { id: "WSTG-CONF-06", title: "Test HTTP Methods", agent: "wstg-config-deploy", status: "covered", mechanism: "misconfig_test methods mode (TRACE, PUT, DELETE)" },
   { id: "WSTG-CONF-07", title: "Test HTTP Strict Transport Security", agent: "wstg-config-deploy", status: "passive", mechanism: "MissingSecurityHeadersDetector + manual header check" },
-  { id: "WSTG-CONF-08", title: "Test RIA Cross Domain Policy", agent: "wstg-config-deploy", status: "covered", mechanism: "misconfig_test cors mode" },
+  { id: "WSTG-CONF-08", title: "Test RIA Cross Domain Policy", agent: "wstg-config-deploy", status: "covered", mechanism: "fetch + parse crossdomain.xml / clientaccesspolicy.xml (wildcard allow-access-from); distinct from CORS (4.11)" },
   { id: "WSTG-CONF-09", title: "Test File Permission", agent: "wstg-config-deploy", status: "covered", mechanism: "misconfig_test paths mode (sensitive file disclosure)" },
-  { id: "WSTG-CONF-10", title: "Test for Subdomain Takeover", agent: "wstg-config-deploy", status: "covered", mechanism: "misconfig_test paths mode + DNS check" },
-  { id: "WSTG-CONF-11", title: "Test Cloud Storage", agent: "wstg-config-deploy", status: "covered", mechanism: "misconfig_test paths mode (S3, Azure Blob, GCS)" },
+  { id: "WSTG-CONF-10", title: "Test for Subdomain Takeover", agent: "wstg-config-deploy", status: "partial", mechanism: "http_replay fingerprint of unclaimed third-party CNAME targets (NoSuchBucket / GitHub Pages / Heroku / Azure banners); true DNS/CNAME resolution not yet in-tool" },
+  { id: "WSTG-CONF-11", title: "Test Cloud Storage", agent: "wstg-config-deploy", status: "partial", mechanism: "http_replay bucket list/read/write on S3/Azure Blob/GCS URLs referenced by the app; no dedicated cloud-enum tool yet (cloud-audit-mcp unwired)" },
+  { id: "WSTG-CONF-12", title: "Testing for Content Security Policy", agent: "wstg-config-deploy", status: "partial", mechanism: "missing-security-headers rule (presence) + prompt-driven CSP WEAKNESS analysis via http_replay (unsafe-inline/eval, wildcard, missing object-src/base-uri/frame-ancestors, report-only, bypassable allowlist)" },
+  { id: "WSTG-CONF-13", title: "Test for Path Confusion", agent: "wstg-config-deploy", status: "partial", mechanism: "http_replay compare of normalized-path variants (encoded/double/dot-segment slash, matrix params, cache deception, proxy-vs-origin ACL bypass); no deterministic rule yet (infra-security MCP nginx/apache path checks unwired)" },
+  { id: "WSTG-CONF-14", title: "Test Other HTTP Security Header Misconfigurations", agent: "wstg-config-deploy", status: "covered", mechanism: "misconfig_test headers mode + missing-security-headers rule (nosniff / X-Frame-Options / Referrer-Policy / Permissions-Policy / COOP-COEP-CORP / Cache-Control)" },
 
   // ── IDNT — Identity Management (5) ───────────────────────────────────
   { id: "WSTG-IDNT-01", title: "Test Role Definitions", agent: "wstg-authorization", status: "covered", mechanism: "http_replay cross-credential comparison" },
@@ -136,7 +139,7 @@ export const WSTG_COVERAGE: WstgCoverage[] = [
 
 export const WSTG_CATEGORIES = [
   { prefix: "WSTG-INFO", name: "Information Gathering", count: 10 },
-  { prefix: "WSTG-CONF", name: "Configuration and Deployment", count: 11 },
+  { prefix: "WSTG-CONF", name: "Configuration and Deployment", count: 14 },
   { prefix: "WSTG-IDNT", name: "Identity Management", count: 5 },
   { prefix: "WSTG-ATHN", name: "Authentication", count: 10 },
   { prefix: "WSTG-ATHZ", name: "Authorization", count: 4 },
@@ -149,4 +152,4 @@ export const WSTG_CATEGORIES = [
   { prefix: "WSTG-APIT", name: "API Testing", count: 1 },
 ] as const
 
-export const TOTAL_WSTG_TESTS = 97
+export const TOTAL_WSTG_TESTS = 100
