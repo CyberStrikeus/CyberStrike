@@ -107,8 +107,8 @@ export const WSTG_COVERAGE: WstgCoverage[] = [
   { id: "WSTG-INPV-20", title: "Testing for Mass Assignment", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe mass_assign mode (bind privileged fields — role/isAdmin/id/owner — on WRITE endpoints; confirm the field took effect)" },
 
   // ── ERRH — Error Handling (2) ─────────────────────────────────────────
-  { id: "WSTG-ERRH-01", title: "Testing for Improper Error Handling", agent: "wstg-error-handling", status: "passive", mechanism: "StackTraceDetector + FullPathDisclosureDetector + SqlErrorDetector" },
-  { id: "WSTG-ERRH-02", title: "Testing for Stack Traces", agent: "wstg-error-handling", status: "passive", mechanism: "StackTraceDetector + FullPathDisclosureDetector" },
+  { id: "WSTG-ERRH-01", title: "Testing for Improper Error Handling", agent: "wstg-error-handling", status: "covered", mechanism: "Vortex rules (stack-trace-signature, full-path-disclosure, sql-error-signature, secret-in-response) + error_probe active malformations (invalid JSON, wrong content-type, empty/oversized body, non-existent id) vs baseline" },
+  { id: "WSTG-ERRH-02", title: "Testing for Stack Traces", agent: "wstg-error-handling", status: "covered", mechanism: "stack-trace-signature rule + error_probe / http_replay exception triggering (type confusion, div-by-zero, null refs) — a trace in the body (incl. JSON wrappers) is the finding" },
 
   // ── CRYP — Weak Cryptography (4) ──────────────────────────────────────
   { id: "WSTG-CRYP-01", title: "Testing for Weak Transport Layer Security", agent: "wstg-cryptography", status: "covered", mechanism: "MissingSecurityHeadersDetector (HSTS) + manual header check" },

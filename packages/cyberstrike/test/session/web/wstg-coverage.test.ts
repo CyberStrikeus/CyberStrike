@@ -117,11 +117,11 @@ describe("WSTG Coverage Map — coverage statistics", () => {
   }
 
   test("covered count", () => {
-    expect(countByStatus("covered")).toBe(77)
+    expect(countByStatus("covered")).toBe(79)
   })
 
   test("passive count", () => {
-    expect(countByStatus("passive")).toBe(13)
+    expect(countByStatus("passive")).toBe(11)
   })
 
   test("deferred count", () => {
