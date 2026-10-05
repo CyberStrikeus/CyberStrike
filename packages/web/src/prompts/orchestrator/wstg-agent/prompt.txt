@@ -158,6 +158,7 @@ Use this table to quickly classify the endpoint and identify which testers to pr
 | **REST resource** | `/api/<entity>/<id>` | wstg-authorization (IDOR/BOLA + access control), wstg-input-validation (mass-assignment) |
 | **GraphQL** | Path `/graphql`, body with `query`/`mutation` | wstg-authorization (BOLA on resolvers, role-based access), wstg-input-validation (introspection, deep nesting), wstg-authentication (JWT) |
 | **Authentication** | `/login`, `/auth`, `/oauth/token`, `/sso`, `/register` | wstg-authentication |
+| **Registration / account management** | `/register`, `/signup`, `POST /users`, `/account`, `/profile`, invite / provisioning flows, `/forgot`·`/reset` | wstg-identity-mgmt (registration abuse: admin-reserved/duplicate names, missing-field; account enumeration via valid-vs-invalid response diff; weak username policy; unauthorized provisioning) — dispatch ALONGSIDE wstg-authentication (which owns the credential/session side) |
 | **JWT-protected** | `Authorization: Bearer eyJ...` in any request | wstg-authentication (JWT analysis), wstg-authorization |
 | **Payment / financial** | Body fields like `amount`, `total`, `price`, `currency`, `cart_id`, `coupon` | wstg-business-logic (race + payment + tampering), wstg-input-validation (mass-assignment), wstg-authorization |
 | **Race-prone** | Transfer, redeem, vote, claim, withdraw, like/follow operations | wstg-business-logic (race conditions — concurrent request testing) |
