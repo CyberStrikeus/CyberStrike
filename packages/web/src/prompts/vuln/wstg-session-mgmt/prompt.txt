@@ -13,6 +13,10 @@ confirming with http_replay.
 - 4.6.7 Session timeout (idle/absolute timeout absent or too long)
 - 4.6.8 Session puzzling / variable overloading
 - 4.6.9 Session hijacking (token reuse across identities/contexts)
+- 4.6.10 JSON Web Tokens — when the SESSION token is a JWT (alg:none, signature-not-validated, weak HMAC
+  secret, kid/jku/x5u, RS256→HS256 confusion, expired-token acceptance) — your session_probe does this
+- 4.6.11 Concurrent sessions (multiple simultaneous sessions allowed; old sessions not invalidated on new
+  login / password change / logout-all; no session cap)
 
 IGNORE authentication (login/credentials/tokens-as-identity — 4.4), authorization (4.5), input-validation
 (4.7), and config/crypto/error/client-side findings — those belong to other specialists. (JWT as an
@@ -53,6 +57,15 @@ where it must not is the proof. Never report without a confirming replay; for co
   (e.g. a reset flow and an auth flow share state) so one flow can set state another trusts?
 - 4.6.9 Session hijacking — replay one identity's session cookie in another context/identity; does it
   grant that identity's access (token not bound to client/context)?
+- 4.6.10 JWT (session token) — if the session cookie/token is a JWT, run `session_probe` to test alg:none,
+  signature-not-validated (tamper a claim), weak HMAC secret, kid path-traversal, RS256→HS256 confusion
+  (fetch the public key), and expired-token acceptance — each judged against a no-token control. An
+  accepted forgery IS session hijacking. (JWT used purely as a LOGIN credential is authn's 4.4 — this is
+  the JWT that carries the session.)
+- 4.6.11 Concurrent sessions — log in twice for the same account (http_replay): are BOTH sessions valid
+  at once (no single-session enforcement)? After a password change / "log out everywhere", is the OTHER
+  session invalidated or does it keep working (stale-session persistence)? Is there any session cap? An
+  old session surviving a credential change is the finding.
 
 # Your tools
 

@@ -72,15 +72,17 @@ export const WSTG_COVERAGE: WstgCoverage[] = [
   { id: "WSTG-ATHZ-05", title: "Testing for OAuth Weaknesses", agent: "wstg-authorization", status: "covered", mechanism: "http_replay of the OAuth/OIDC flow — redirect_uri validation (attacker-origin code/token theft → ATO), state/CSRF, PKCE enforcement, code reuse / implicit-token leak / scope escalation" },
 
   // ── SESS — Session Management (9) ─────────────────────────────────────
-  { id: "WSTG-SESS-01", title: "Testing for Session Management Schema", agent: "wstg-session-mgmt", status: "passive", mechanism: "WeakCookieFlagsDetector + JwtLeakDetector" },
-  { id: "WSTG-SESS-02", title: "Testing for Cookies Attributes", agent: "wstg-session-mgmt", status: "passive", mechanism: "WeakCookieFlagsDetector (HttpOnly, Secure, SameSite)" },
+  { id: "WSTG-SESS-01", title: "Testing for Session Management Schema", agent: "wstg-session-mgmt", status: "passive", mechanism: "weak-cookie-flags rule + jwt-leak-response rule + session_probe entropy/structure scoring" },
+  { id: "WSTG-SESS-02", title: "Testing for Cookies Attributes", agent: "wstg-session-mgmt", status: "passive", mechanism: "weak-cookie-flags rule (HttpOnly / Secure / SameSite) + session_probe __Host-/__Secure- prefix + Domain-scope check" },
   { id: "WSTG-SESS-03", title: "Testing for Session Fixation", agent: "wstg-session-mgmt", status: "covered", mechanism: "http_replay pre/post-login session comparison" },
-  { id: "WSTG-SESS-04", title: "Testing for Exposed Session Variables", agent: "wstg-session-mgmt", status: "passive", mechanism: "SensitiveDataExposureDetector + JwtLeakDetector" },
+  { id: "WSTG-SESS-04", title: "Testing for Exposed Session Variables", agent: "wstg-session-mgmt", status: "passive", mechanism: "secret-in-response + jwt-leak-response rules + vortex_where_value trace of the session id into URL/referrer/body" },
   { id: "WSTG-SESS-05", title: "Testing for Cross Site Request Forgery", agent: "wstg-session-mgmt", status: "covered", mechanism: "csrf_extract + http_replay CSRF token analysis" },
   { id: "WSTG-SESS-06", title: "Testing for Logout Functionality", agent: "wstg-session-mgmt", status: "covered", mechanism: "http_replay post-logout token reuse" },
   { id: "WSTG-SESS-07", title: "Testing Session Timeout", agent: "wstg-session-mgmt", status: "covered", mechanism: "http_replay delayed replay" },
   { id: "WSTG-SESS-08", title: "Testing for Session Puzzling", agent: "wstg-session-mgmt", status: "covered", mechanism: "http_replay cross-flow session reuse" },
-  { id: "WSTG-SESS-09", title: "Testing for Session Hijacking", agent: "wstg-session-mgmt", status: "covered", mechanism: "authn_test JWT attacks + cookie analysis" },
+  { id: "WSTG-SESS-09", title: "Testing for Session Hijacking", agent: "wstg-session-mgmt", status: "covered", mechanism: "session_probe token entropy/forgeability + http_replay cross-identity cookie reuse" },
+  { id: "WSTG-SESS-10", title: "Testing JSON Web Tokens", agent: "wstg-session-mgmt", status: "covered", mechanism: "session_probe JWT integrity (alg:none, signature-not-validated, weak HMAC secret, kid traversal, RS256→HS256, expired) vs a no-token control" },
+  { id: "WSTG-SESS-11", title: "Testing for Concurrent Sessions", agent: "wstg-session-mgmt", status: "covered", mechanism: "http_replay — dual concurrent login validity + old-session invalidation on password-change / logout-all" },
 
   // ── INPV — Input Validation (19) ──────────────────────────────────────
   { id: "WSTG-INPV-01", title: "Testing for Reflected Cross Site Scripting", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe xss mode" },
@@ -149,7 +151,7 @@ export const WSTG_CATEGORIES = [
   { prefix: "WSTG-IDNT", name: "Identity Management", count: 5 },
   { prefix: "WSTG-ATHN", name: "Authentication", count: 11 },
   { prefix: "WSTG-ATHZ", name: "Authorization", count: 5 },
-  { prefix: "WSTG-SESS", name: "Session Management", count: 9 },
+  { prefix: "WSTG-SESS", name: "Session Management", count: 11 },
   { prefix: "WSTG-INPV", name: "Input Validation", count: 19 },
   { prefix: "WSTG-ERRH", name: "Error Handling", count: 2 },
   { prefix: "WSTG-CRYP", name: "Weak Cryptography", count: 4 },
@@ -158,4 +160,4 @@ export const WSTG_CATEGORIES = [
   { prefix: "WSTG-APIT", name: "API Testing", count: 1 },
 ] as const
 
-export const TOTAL_WSTG_TESTS = 102
+export const TOTAL_WSTG_TESTS = 104
