@@ -146,7 +146,7 @@ describe("WSTG Coverage Map — coverage statistics", () => {
 describe("WSTG Coverage Map — agent load distribution", () => {
   test("every specialist agent owns at least one test (extension-only agents excluded)", async () => {
     const provider = new WebProvider()
-    const excluded = new Set(["wstg-llm", "wstg-identity-mgmt"])
+    const excluded = new Set(["wstg-llm"])
     const specialists = provider.agentSpecs().filter((s) => s.role === "specialist" && !excluded.has(s.name))
     const coverageAgents = new Set(WSTG_COVERAGE.map((c) => c.agent))
     for (const s of specialists) {

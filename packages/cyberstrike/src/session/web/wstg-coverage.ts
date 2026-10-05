@@ -41,11 +41,15 @@ export const WSTG_COVERAGE: WstgCoverage[] = [
   { id: "WSTG-CONF-14", title: "Test Other HTTP Security Header Misconfigurations", agent: "wstg-config-deploy", status: "covered", mechanism: "misconfig_test headers mode + missing-security-headers rule (nosniff / X-Frame-Options / Referrer-Policy / Permissions-Policy / COOP-COEP-CORP / Cache-Control)" },
 
   // ── IDNT — Identity Management (5) ───────────────────────────────────
-  { id: "WSTG-IDNT-01", title: "Test Role Definitions", agent: "wstg-authorization", status: "covered", mechanism: "http_replay cross-credential comparison" },
-  { id: "WSTG-IDNT-02", title: "Test User Registration Process", agent: "wstg-authentication", status: "covered", mechanism: "authn_test + http_replay" },
-  { id: "WSTG-IDNT-03", title: "Test Account Provisioning Process", agent: "wstg-authentication", status: "covered", mechanism: "http_replay workflow analysis" },
-  { id: "WSTG-IDNT-04", title: "Testing for Account Enumeration and Guessable User Account", agent: "wstg-authentication", status: "covered", mechanism: "http_replay response diff analysis" },
-  { id: "WSTG-IDNT-05", title: "Testing for Weak or Unenforced Username Policy", agent: "wstg-authentication", status: "covered", mechanism: "http_replay boundary testing" },
+  // WSTG 4.3 Identity Management — ALL five owned by wstg-identity-mgmt (its prompt claims all of 4.3 and
+  // it carries the identity_probe tool). Previously orphaned to authn/authz. Behavioral tests, driven by
+  // identity_probe + http_replay over the registration/account flows; the orchestrator dispatches it when
+  // such surface exists (no deterministic "identity" signal — appropriate for this class).
+  { id: "WSTG-IDNT-01", title: "Test Role Definitions", agent: "wstg-identity-mgmt", status: "covered", mechanism: "http_replay cross-credential comparison of role boundaries (ambiguous/overlapping roles)" },
+  { id: "WSTG-IDNT-02", title: "Test User Registration Process", agent: "wstg-identity-mgmt", status: "covered", mechanism: "identity_probe + http_replay (admin/system-reserved names, duplicate accounts, missing-field / injection in registration)" },
+  { id: "WSTG-IDNT-03", title: "Test Account Provisioning Process", agent: "wstg-identity-mgmt", status: "covered", mechanism: "http_replay workflow analysis (unauthorized provision/deprovision, default/temporary accounts, bypassable flow)" },
+  { id: "WSTG-IDNT-04", title: "Testing for Account Enumeration and Guessable User Account", agent: "wstg-identity-mgmt", status: "covered", mechanism: "http_replay response-diff on login/register/reset (valid vs invalid username) + sequential/predictable id check" },
+  { id: "WSTG-IDNT-05", title: "Testing for Weak or Unenforced Username Policy", agent: "wstg-identity-mgmt", status: "covered", mechanism: "identity_probe boundary testing (length/format validation, special-char / unicode bypass)" },
 
   // ── ATHN — Authentication (10) ────────────────────────────────────────
   { id: "WSTG-ATHN-01", title: "Testing for Credentials Transported over an Encrypted Channel", agent: "wstg-authentication", status: "passive", mechanism: "MissingSecurityHeadersDetector (HSTS)" },
