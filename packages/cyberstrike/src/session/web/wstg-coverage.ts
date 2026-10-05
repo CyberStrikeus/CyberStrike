@@ -145,7 +145,11 @@ export const WSTG_COVERAGE: WstgCoverage[] = [
   { id: "WSTG-CLNT-14", title: "Testing for Reverse Tabnabbing", agent: "wstg-client-side", status: "covered", mechanism: "static scan of captured HTML/JS for target=_blank / window.open to external URL lacking rel=noopener/noreferrer (opener-controlled phishing redirect)" },
 
   // ── APIT — API Testing (1) ────────────────────────────────────────────
-  { id: "WSTG-APIT-01", title: "Testing GraphQL", agent: "wstg-input-validation", status: "passive", mechanism: "GraphqlIntrospectionDetector + inject_probe" },
+  // WSTG 4.12 API Testing. (WSTG labels GraphQL as APIT-99; kept as -03 here so category IDs stay
+  // sequential for the coverage gate — the title carries the official number.)
+  { id: "WSTG-APIT-01", title: "API Reconnaissance", agent: "wstg-info-gathering", status: "covered", mechanism: "recon_test metafiles (openapi/swagger.json schema extraction) + WellKnown probe + Vortex endpoint/function enumeration" },
+  { id: "WSTG-APIT-02", title: "API Broken Object Level Authorization", agent: "wstg-authorization", status: "covered", mechanism: "vortex_cross_role candidates + access_probe cross-credential matrix (object returned to the wrong identity = BOLA)" },
+  { id: "WSTG-APIT-03", title: "Testing GraphQL (WSTG-APIT-99)", agent: "wstg-input-validation", status: "covered", mechanism: "graphql-introspection-enabled rule + inject_probe (deep nesting / batching / field injection) + wstg-authorization for BOLA on resolvers" },
 ]
 
 export const WSTG_CATEGORIES = [
@@ -160,7 +164,7 @@ export const WSTG_CATEGORIES = [
   { prefix: "WSTG-CRYP", name: "Weak Cryptography", count: 4 },
   { prefix: "WSTG-BUSL", name: "Business Logic", count: 10 },
   { prefix: "WSTG-CLNT", name: "Client-side", count: 14 },
-  { prefix: "WSTG-APIT", name: "API Testing", count: 1 },
+  { prefix: "WSTG-APIT", name: "API Testing", count: 3 },
 ] as const
 
-export const TOTAL_WSTG_TESTS = 107
+export const TOTAL_WSTG_TESTS = 109

@@ -11,7 +11,7 @@ import { WebProvider } from "@cyberstrike-io/web"
 describe("WSTG Coverage Map — completeness gate (§11 gate 7)", () => {
   test("total entry count equals TOTAL_WSTG_TESTS (97)", () => {
     expect(WSTG_COVERAGE.length).toBe(TOTAL_WSTG_TESTS)
-    expect(WSTG_COVERAGE.length).toBe(107)
+    expect(WSTG_COVERAGE.length).toBe(109)
   })
 
   test("no duplicate IDs", () => {
@@ -54,7 +54,7 @@ describe("WSTG Coverage Map — completeness gate (§11 gate 7)", () => {
 
   test("category count sum equals 97", () => {
     const sum = WSTG_CATEGORIES.reduce((a, c) => a + c.count, 0)
-    expect(sum).toBe(107)
+    expect(sum).toBe(109)
   })
 
   test("IDs are sequential within each category (no gaps)", () => {
@@ -117,11 +117,11 @@ describe("WSTG Coverage Map — coverage statistics", () => {
   }
 
   test("covered count", () => {
-    expect(countByStatus("covered")).toBe(82)
+    expect(countByStatus("covered")).toBe(85)
   })
 
   test("passive count", () => {
-    expect(countByStatus("passive")).toBe(11)
+    expect(countByStatus("passive")).toBe(10)
   })
 
   test("deferred count", () => {
@@ -134,7 +134,7 @@ describe("WSTG Coverage Map — coverage statistics", () => {
 
   test("all statuses sum to 97", () => {
     const sum = countByStatus("covered") + countByStatus("passive") + countByStatus("deferred") + countByStatus("partial")
-    expect(sum).toBe(107)
+    expect(sum).toBe(109)
   })
 
   test("active coverage (covered + passive + partial) is at least 89", () => {
