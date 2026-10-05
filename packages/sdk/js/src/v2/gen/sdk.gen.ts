@@ -222,6 +222,8 @@ import type {
   SessionVortexProbeResponses,
   SessionVortexReportResponses,
   SessionVortexSignalsResponses,
+  SessionVortexSignalSummaryResponses,
+  SessionVortexUpdateTriageResponses,
   SessionVulnerabilityErrors,
   SessionVulnerabilityResponses,
   SessionWebActionErrors,
@@ -2725,6 +2727,75 @@ export class Session extends HeyApiClient {
       url: "/session/{sessionID}/vortex/signals",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Vortex signal triage summary
+   *
+   * Counts of signals grouped by triage status (new/reviewed/confirmed/dismissed/escalated).
+   */
+  public vortexSignalSummary<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionVortexSignalSummaryResponses, unknown, ThrowOnError>({
+      url: "/session/{sessionID}/vortex/signals/summary",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Update signal triage status
+   *
+   * Set the triage status of one or more signals by their dedup key. Invalidates the signals cache.
+   */
+  public vortexUpdateTriage<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      keys?: Array<string>
+      triage?: "new" | "reviewed" | "confirmed" | "dismissed" | "escalated"
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "keys" },
+            { in: "body", key: "triage" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).patch<SessionVortexUpdateTriageResponses, unknown, ThrowOnError>({
+      url: "/session/{sessionID}/vortex/signals/triage",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 

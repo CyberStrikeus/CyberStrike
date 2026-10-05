@@ -815,6 +815,7 @@ export type EventSessionPhase = {
 
 export type Vulnerability = {
   id?: string
+  ref?: string
   severity: "critical" | "high" | "medium" | "low" | "info"
   title: string
   description: string
@@ -847,6 +848,7 @@ export type Vulnerability = {
   duplicate_of?: string
   aggregate_key?: string
   affected_endpoints?: Array<string>
+  escalation_examined?: boolean
   message_id?: string
   time?: {
     created: number
@@ -5174,6 +5176,45 @@ export type SessionVortexSignalsData = {
 export type SessionVortexSignalsResponses = {
   /**
    * Vortex-sourced signals + routing status
+   */
+  200: unknown
+}
+
+export type SessionVortexSignalSummaryData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/vortex/signals/summary"
+}
+
+export type SessionVortexSignalSummaryResponses = {
+  /**
+   * Signal triage summary counts
+   */
+  200: unknown
+}
+
+export type SessionVortexUpdateTriageData = {
+  body?: {
+    keys: Array<string>
+    triage: "new" | "reviewed" | "confirmed" | "dismissed" | "escalated"
+  }
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/vortex/signals/triage"
+}
+
+export type SessionVortexUpdateTriageResponses = {
+  /**
+   * Number of signals updated
    */
   200: unknown
 }
