@@ -68,7 +68,8 @@ export const WSTG_COVERAGE: WstgCoverage[] = [
   { id: "WSTG-ATHZ-01", title: "Testing Directory Traversal File Include", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe LFI mode" },
   { id: "WSTG-ATHZ-02", title: "Testing for Bypassing Authorization Schema", agent: "wstg-authorization", status: "covered", mechanism: "http_replay cross-credential + unauthenticated access" },
   { id: "WSTG-ATHZ-03", title: "Testing for Privilege Escalation", agent: "wstg-authorization", status: "covered", mechanism: "http_replay vertical/horizontal priv-esc probing" },
-  { id: "WSTG-ATHZ-04", title: "Testing for Insecure Direct Object References", agent: "wstg-authorization", status: "covered", mechanism: "http_replay ID sweep + cross-credential comparison" },
+  { id: "WSTG-ATHZ-04", title: "Testing for Insecure Direct Object References", agent: "wstg-authorization", status: "covered", mechanism: "access_probe cross-credential matrix + http_replay ID sweep (vortex_cross_role candidates)" },
+  { id: "WSTG-ATHZ-05", title: "Testing for OAuth Weaknesses", agent: "wstg-authorization", status: "covered", mechanism: "http_replay of the OAuth/OIDC flow — redirect_uri validation (attacker-origin code/token theft → ATO), state/CSRF, PKCE enforcement, code reuse / implicit-token leak / scope escalation" },
 
   // ── SESS — Session Management (9) ─────────────────────────────────────
   { id: "WSTG-SESS-01", title: "Testing for Session Management Schema", agent: "wstg-session-mgmt", status: "passive", mechanism: "WeakCookieFlagsDetector + JwtLeakDetector" },
@@ -147,7 +148,7 @@ export const WSTG_CATEGORIES = [
   { prefix: "WSTG-CONF", name: "Configuration and Deployment", count: 14 },
   { prefix: "WSTG-IDNT", name: "Identity Management", count: 5 },
   { prefix: "WSTG-ATHN", name: "Authentication", count: 11 },
-  { prefix: "WSTG-ATHZ", name: "Authorization", count: 4 },
+  { prefix: "WSTG-ATHZ", name: "Authorization", count: 5 },
   { prefix: "WSTG-SESS", name: "Session Management", count: 9 },
   { prefix: "WSTG-INPV", name: "Input Validation", count: 19 },
   { prefix: "WSTG-ERRH", name: "Error Handling", count: 2 },
@@ -157,4 +158,4 @@ export const WSTG_CATEGORIES = [
   { prefix: "WSTG-APIT", name: "API Testing", count: 1 },
 ] as const
 
-export const TOTAL_WSTG_TESTS = 101
+export const TOTAL_WSTG_TESTS = 102
