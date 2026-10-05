@@ -91,19 +91,20 @@ export const WSTG_COVERAGE: WstgCoverage[] = [
   { id: "WSTG-INPV-04", title: "Testing for HTTP Parameter Pollution", agent: "wstg-input-validation", status: "partial", mechanism: "http_replay manual duplicate-param testing (inject_probe HPP mode not yet built)" },
   { id: "WSTG-INPV-05", title: "Testing for SQL Injection", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe sqli mode (per-DBMS batteries)" },
   { id: "WSTG-INPV-06", title: "Testing for LDAP Injection", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe ldap mode" },
-  { id: "WSTG-INPV-07", title: "Testing for XML Injection", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe xml mode" },
-  { id: "WSTG-INPV-08", title: "Testing for SSI Injection", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe ssi mode" },
+  { id: "WSTG-INPV-07", title: "Testing for XML Injection", agent: "wstg-input-validation", status: "covered", mechanism: "http_replay XML/XXE entity injection into XML bodies (external entity → file read / SSRF)" },
+  { id: "WSTG-INPV-08", title: "Testing for SSI Injection", agent: "wstg-input-validation", status: "covered", mechanism: "http_replay SSI directive injection + reflected-output check" },
   { id: "WSTG-INPV-09", title: "Testing for XPath Injection", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe xpath mode" },
   { id: "WSTG-INPV-10", title: "Testing for IMAP SMTP Injection", agent: "wstg-input-validation", status: "covered", mechanism: "http_replay payload analysis" },
-  { id: "WSTG-INPV-11", title: "Testing for Code Injection", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe code-injection mode" },
+  { id: "WSTG-INPV-11", title: "Testing for Code Injection", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe (ssti / cmd) + http_replay code-eval probes" },
   { id: "WSTG-INPV-12", title: "Testing for Command Injection", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe cmd mode" },
-  { id: "WSTG-INPV-13", title: "Testing for Format String Injection", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe format-string mode" },
-  { id: "WSTG-INPV-14", title: "Testing for Incubated Vulnerability", agent: "wstg-input-validation", status: "partial", mechanism: "canary registry + cross-response scan (inject_probe canary deferred)" },
-  { id: "WSTG-INPV-15", title: "Testing for HTTP Incoming Requests", agent: "wstg-input-validation", status: "covered", mechanism: "ssrf_test + http_replay" },
-  { id: "WSTG-INPV-16", title: "Testing for HTTP Request Smuggling", agent: "wstg-input-validation", status: "covered", mechanism: "http_replay_raw CL/TE manipulation" },
+  { id: "WSTG-INPV-13", title: "Testing for Format String Injection", agent: "wstg-input-validation", status: "covered", mechanism: "http_replay format-specifier (%s/%x/%n) probes + error/crash diff" },
+  { id: "WSTG-INPV-14", title: "Testing for Incubated Vulnerability", agent: "wstg-input-validation", status: "partial", mechanism: "canary registry + cross-response stored-reflection scan (inject_probe canary deferred)" },
+  { id: "WSTG-INPV-15", title: "Testing for HTTP Splitting Smuggling", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe crlf mode (response splitting / header injection) + http_replay_raw CL/TE request-smuggling (manual)" },
+  { id: "WSTG-INPV-16", title: "Testing for HTTP Incoming Requests", agent: "wstg-input-validation", status: "covered", mechanism: "http_replay_raw inspection of raw / oversized / malformed requests" },
   { id: "WSTG-INPV-17", title: "Testing for Host Header Injection", agent: "wstg-input-validation", status: "covered", mechanism: "http_replay Host header manipulation" },
   { id: "WSTG-INPV-18", title: "Testing for Server-Side Template Injection", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe ssti mode" },
-  { id: "WSTG-INPV-19", title: "Testing for Server-Side Request Forgery", agent: "wstg-input-validation", status: "covered", mechanism: "ssrf_test (internal target payloads, oracle, probe)" },
+  { id: "WSTG-INPV-19", title: "Testing for Server-Side Request Forgery", agent: "wstg-input-validation", status: "covered", mechanism: "ssrf_test (internal/metadata target payloads + oracle) + Vortex deterministic SSRF OOB probe (#89)" },
+  { id: "WSTG-INPV-20", title: "Testing for Mass Assignment", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe mass_assign mode (bind privileged fields — role/isAdmin/id/owner — on WRITE endpoints; confirm the field took effect)" },
 
   // ── ERRH — Error Handling (2) ─────────────────────────────────────────
   { id: "WSTG-ERRH-01", title: "Testing for Improper Error Handling", agent: "wstg-error-handling", status: "passive", mechanism: "StackTraceDetector + FullPathDisclosureDetector + SqlErrorDetector" },
@@ -152,7 +153,7 @@ export const WSTG_CATEGORIES = [
   { prefix: "WSTG-ATHN", name: "Authentication", count: 11 },
   { prefix: "WSTG-ATHZ", name: "Authorization", count: 5 },
   { prefix: "WSTG-SESS", name: "Session Management", count: 11 },
-  { prefix: "WSTG-INPV", name: "Input Validation", count: 19 },
+  { prefix: "WSTG-INPV", name: "Input Validation", count: 20 },
   { prefix: "WSTG-ERRH", name: "Error Handling", count: 2 },
   { prefix: "WSTG-CRYP", name: "Weak Cryptography", count: 4 },
   { prefix: "WSTG-BUSL", name: "Business Logic", count: 9 },
@@ -160,4 +161,4 @@ export const WSTG_CATEGORIES = [
   { prefix: "WSTG-APIT", name: "API Testing", count: 1 },
 ] as const
 
-export const TOTAL_WSTG_TESTS = 104
+export const TOTAL_WSTG_TESTS = 105
