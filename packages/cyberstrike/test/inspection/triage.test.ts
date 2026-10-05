@@ -7,6 +7,7 @@ import path from "path"
 import { Instance } from "../../src/project/instance"
 import { Session } from "../../src/session"
 import { Vulnerability } from "../../src/session/vulnerability"
+import { Request } from "../../src/session/request"
 import { normalizeStatus, VulnStatus } from "../../src/session/vulnerability-status"
 import { TriageRunner } from "../../src/inspection/triage"
 import { InspectionQueue } from "../../src/inspection/queue"
@@ -96,6 +97,43 @@ describe("TriageRunner (#41)", () => {
       const c = addDraft(sid, "C") // arrives after the first pass
       t.wake()
       expect(t.passes).toEqual([[a.id], [c.id]])
+    }))
+
+  // #90 IMPACT GATE: the deterministic finalize lowers a high finding whose captured evidence does not
+  // actually prove the claimed impact — even when the (stubbed) agent did nothing.
+  const evid = (sid: string, status: number, location: string, origin: string, path: string) =>
+    Request.add({ sessionID: sid, method: "GET", normalizedPath: path, origin, response: { status, headers: location ? { location } : {}, body: "" } })!.id
+
+  test("impact gate LOWERS a high open-redirect whose realized 302 goes to the intended IdP (the #21 shape)", () =>
+    run(async (sid) => {
+      const rid = evid(sid, 302, "https://accounts.google.com/o/oauth2/v2/auth?x=1", "https://login.example.test", "/api/auth/signin/google")
+      const f = Vulnerability.add({
+        sessionID: sid,
+        data: { severity: "high", title: "OAuth redirect to /support/impersonate activates support mode", description: "d", evidence_request_ids: [rid] },
+      })
+      const t = new TestTriage(sid)
+      t.wake()
+      t.release()
+      await Bun.sleep(5)
+      const cur = Vulnerability.get(sid).find((v) => v.id === f.id)!
+      expect(cur.severity).toBe("low") // realized redirect stays on the IdP → not an open redirect
+      expect(cur.description).toContain("[IMPACT GATE")
+    }))
+
+  test("impact gate LEAVES a proven off-site open redirect at high", () =>
+    run(async (sid) => {
+      const rid = evid(sid, 302, "https://evil.com/x", "https://app.test", "/go")
+      const f = Vulnerability.add({
+        sessionID: sid,
+        data: { severity: "high", title: "Open redirect on /go", description: "d", evidence_request_ids: [rid] },
+      })
+      const t = new TestTriage(sid)
+      t.wake()
+      t.release()
+      await Bun.sleep(5)
+      const cur = Vulnerability.get(sid).find((v) => v.id === f.id)!
+      expect(cur.severity).toBe("high") // proven → untouched
+      expect(cur.description ?? "").not.toContain("[IMPACT GATE")
     }))
 
   // INTEGRATION: the triage source actually holds the lifecycle out of "complete" until triage finishes.

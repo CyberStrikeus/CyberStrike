@@ -16,8 +16,12 @@ import { Session } from "@/session"
 import { SessionPrompt } from "@/session/prompt"
 import { Vulnerability } from "@/session/vulnerability"
 import { Request } from "@/session/request"
-import { normalizeStatus, VulnStatus } from "@/session/vulnerability-status"
+import { normalizeStatus, VulnStatus, isExcluded } from "@/session/vulnerability-status"
 import { withTimeout } from "@/util/timeout"
+import { ImpactOracle } from "./impact-oracle"
+
+// For the impact gate: only ever LOWER severity, never raise.
+const SEV_RANK: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1, info: 0 }
 
 const log = Log.create({ service: "triage-runner" })
 // A single triage dispatch that hasn't finished in this long is treated as hung and cancelled, so it
@@ -79,6 +83,7 @@ export class TriageRunner {
   // must explicitly triage or reject each finding based on evidence replay. Findings the agent could
   // not verify remain visible as drafts, which is safer than rubber-stamping them as triaged.
   private finalize(drafts: Vulnerability.Info[]): void {
+    this.gateImpact(drafts)
     const byId = new Map(Vulnerability.get(this.sessionID).map((v) => [v.id, v]))
     let remaining = 0
     for (const d of drafts) {
@@ -90,6 +95,35 @@ export class TriageRunner {
     }
     if (remaining > 0) {
       log.info("triage pass finished with drafts remaining for human review", { sessionID: this.sessionID, count: remaining })
+    }
+  }
+
+  // Code-enforced impact gate (#90). The DETERMINISTIC half of triage: regardless of what the triage
+  // AGENT did (it rubber-stamps under load), re-check every handed finding that currently claims
+  // HIGH/CRITICAL against its impact oracle. A finding whose captured evidence does not actually prove
+  // the claimed impact (open redirect that stays on-site/IdP, XSS that only reflects, auth with no
+  // access differential) is LOWERED to what the evidence supports, with the reason recorded. Only ever
+  // lowers severity; proven/unmodeled findings are untouched.
+  private gateImpact(drafts: Vulnerability.Info[]): void {
+    const byId = new Map(Vulnerability.get(this.sessionID).map((v) => [v.id, v]))
+    for (const d of drafts) {
+      if (!d.id) continue
+      const cur = byId.get(d.id)
+      if (!cur || !cur.id) continue
+      if (isExcluded(normalizeStatus(cur.status ?? VulnStatus.DRAFT))) continue // rejected/duplicate — leave
+      if ((SEV_RANK[cur.severity] ?? 0) < SEV_RANK.medium) continue // gate guards medium+ claims; low/info untouched
+      if ((cur.description ?? "").includes("[IMPACT GATE")) continue // already gated this pass
+      const v = ImpactOracle.proveImpact(this.sessionID, cur)
+      if (v.verdict === "proven" || v.verdict === "unmodeled") continue
+      const target = v.severity ?? "low"
+      if ((SEV_RANK[target] ?? 0) >= (SEV_RANK[cur.severity] ?? 0)) continue // never raise
+      Vulnerability.update({
+        sessionID: this.sessionID,
+        id: cur.id,
+        severity: target,
+        description: `${cur.description}\n\n[IMPACT GATE — ${v.verdict}] ${v.reason}`,
+      })
+      log.info("impact gate lowered finding", { sessionID: this.sessionID, id: cur.id, from: cur.severity, to: target, verdict: v.verdict })
     }
   }
 
