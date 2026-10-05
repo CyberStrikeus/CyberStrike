@@ -126,6 +126,7 @@ export const WSTG_COVERAGE: WstgCoverage[] = [
   { id: "WSTG-BUSL-07", title: "Test Defenses Against Application Misuse", agent: "wstg-business-logic", status: "covered", mechanism: "business_test boundary mode (abuse patterns)" },
   { id: "WSTG-BUSL-08", title: "Test Upload of Unexpected File Types", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe file-upload + http_replay" },
   { id: "WSTG-BUSL-09", title: "Test Upload of Malicious Files", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe file-upload + http_replay" },
+  { id: "WSTG-BUSL-10", title: "Test Payment Functionality", agent: "wstg-business-logic", status: "covered", mechanism: "business_test boundary (price/amount/quantity tampering, zero/negative, currency confusion, coupon stacking) + race (double-spend / double-refund) — confirm the charged/credited amount actually changed" },
 
   // ── CLNT — Client-side (13) ───────────────────────────────────────────
   { id: "WSTG-CLNT-01", title: "Testing for DOM-Based Cross Site Scripting", agent: "wstg-client-side", status: "deferred", mechanism: "P2: needs browser co-drive for DOM sink instrumentation" },
@@ -156,9 +157,9 @@ export const WSTG_CATEGORIES = [
   { prefix: "WSTG-INPV", name: "Input Validation", count: 20 },
   { prefix: "WSTG-ERRH", name: "Error Handling", count: 2 },
   { prefix: "WSTG-CRYP", name: "Weak Cryptography", count: 4 },
-  { prefix: "WSTG-BUSL", name: "Business Logic", count: 9 },
+  { prefix: "WSTG-BUSL", name: "Business Logic", count: 10 },
   { prefix: "WSTG-CLNT", name: "Client-side", count: 13 },
   { prefix: "WSTG-APIT", name: "API Testing", count: 1 },
 ] as const
 
-export const TOTAL_WSTG_TESTS = 105
+export const TOTAL_WSTG_TESTS = 106
