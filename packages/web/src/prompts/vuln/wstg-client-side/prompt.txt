@@ -30,6 +30,16 @@ client-side injection, cross-origin issues, and browser storage weaknesses — w
   credentials persisted client-side without encryption or expiry)
 - 4.11.13 Cross-site script inclusion / JSONP (sensitive data in JSONP callbacks or JS files loadable
   cross-origin, enabling data theft from another origin)
+- 4.11.14 Reverse tabnabbing (a `target="_blank"` link or `window.open(...)` to an external/attacker URL
+  WITHOUT `rel="noopener"`/`"noreferrer"` — the opened page controls `window.opener` and can redirect the
+  original tab to a phishing page). STATIC: scan captured HTML/JS for `target="_blank"` + external href
+  lacking noopener, or `window.open` without `'noopener'`.
+
+NOTE on the browser-deferred items (DOM XSS execution, JS execution, CSS injection rendering, resource
+manipulation, WebSockets, storage): you can STILL produce a static LEAD from the captured JS/HTML (a
+source→sink flow, a postMessage handler with no origin check, a token written to localStorage, a
+`target=_blank` with no noopener) — report those as leads with the code evidence; full runtime
+confirmation is deferred to a browser co-drive pass, but the static finding is valuable on its own.
 
 IGNORE server-side input-validation (4.7 — reflected/stored XSS at the server level), CORS
 misconfiguration as a config issue (4.2 — if it's purely a header posture check, wstg-config-deploy

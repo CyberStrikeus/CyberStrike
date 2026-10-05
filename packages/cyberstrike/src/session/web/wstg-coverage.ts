@@ -132,16 +132,17 @@ export const WSTG_COVERAGE: WstgCoverage[] = [
   { id: "WSTG-CLNT-01", title: "Testing for DOM-Based Cross Site Scripting", agent: "wstg-client-side", status: "deferred", mechanism: "P2: needs browser co-drive for DOM sink instrumentation" },
   { id: "WSTG-CLNT-02", title: "Testing for JavaScript Execution", agent: "wstg-client-side", status: "deferred", mechanism: "P2: needs browser co-drive" },
   { id: "WSTG-CLNT-03", title: "Testing for HTML Injection", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe xss mode (HTML context)" },
-  { id: "WSTG-CLNT-04", title: "Testing for Client-side URL Redirect", agent: "wstg-input-validation", status: "passive", mechanism: "OpenRedirectDetector" },
+  { id: "WSTG-CLNT-04", title: "Testing for Client-side URL Redirect", agent: "wstg-input-validation", status: "passive", mechanism: "open-redirect-reflected rule + inject_probe/http_replay (client-side window.location / meta-refresh from user input)" },
   { id: "WSTG-CLNT-05", title: "Testing for CSS Injection", agent: "wstg-client-side", status: "deferred", mechanism: "P2: needs browser rendering" },
   { id: "WSTG-CLNT-06", title: "Testing for Client-side Resource Manipulation", agent: "wstg-client-side", status: "deferred", mechanism: "P2: needs browser co-drive" },
-  { id: "WSTG-CLNT-07", title: "Testing Cross Origin Resource Sharing", agent: "wstg-config-deploy", status: "covered", mechanism: "misconfig_test cors mode + CorsMisconfigDetector" },
+  { id: "WSTG-CLNT-07", title: "Test Cross Origin Resource Sharing", agent: "wstg-config-deploy", status: "covered", mechanism: "misconfig_test cors mode + Vortex CORS aggregate rules (origin-reflection+credentials, wildcard)" },
   { id: "WSTG-CLNT-08", title: "Testing for Cross Site Flashing", agent: "wstg-client-side", status: "deferred", mechanism: "P2: Flash/SWF largely deprecated; low priority" },
-  { id: "WSTG-CLNT-09", title: "Testing for Clickjacking", agent: "wstg-config-deploy", status: "passive", mechanism: "MissingSecurityHeadersDetector (X-Frame-Options, CSP frame-ancestors)" },
+  { id: "WSTG-CLNT-09", title: "Testing for Clickjacking", agent: "wstg-config-deploy", status: "passive", mechanism: "missing-security-headers rule (X-Frame-Options / CSP frame-ancestors absent = frameable)" },
   { id: "WSTG-CLNT-10", title: "Testing WebSockets", agent: "wstg-client-side", status: "deferred", mechanism: "P2: needs browser WebSocket instrumentation" },
-  { id: "WSTG-CLNT-11", title: "Testing Web Messaging", agent: "wstg-client-side", status: "deferred", mechanism: "P2: needs browser postMessage interception" },
+  { id: "WSTG-CLNT-11", title: "Test Web Messaging", agent: "wstg-client-side", status: "covered", mechanism: "static analysis of captured JS: postMessage handlers with no/weak origin check + sensitive data in messages + event.data→innerHTML (live-proven)" },
   { id: "WSTG-CLNT-12", title: "Testing Browser Storage", agent: "wstg-client-side", status: "deferred", mechanism: "P2: needs browser localStorage/sessionStorage access" },
   { id: "WSTG-CLNT-13", title: "Testing for Cross Site Script Inclusion", agent: "wstg-input-validation", status: "covered", mechanism: "inject_probe + http_replay JSONP/callback analysis" },
+  { id: "WSTG-CLNT-14", title: "Testing for Reverse Tabnabbing", agent: "wstg-client-side", status: "covered", mechanism: "static scan of captured HTML/JS for target=_blank / window.open to external URL lacking rel=noopener/noreferrer (opener-controlled phishing redirect)" },
 
   // ── APIT — API Testing (1) ────────────────────────────────────────────
   { id: "WSTG-APIT-01", title: "Testing GraphQL", agent: "wstg-input-validation", status: "passive", mechanism: "GraphqlIntrospectionDetector + inject_probe" },
@@ -158,8 +159,8 @@ export const WSTG_CATEGORIES = [
   { prefix: "WSTG-ERRH", name: "Error Handling", count: 2 },
   { prefix: "WSTG-CRYP", name: "Weak Cryptography", count: 4 },
   { prefix: "WSTG-BUSL", name: "Business Logic", count: 10 },
-  { prefix: "WSTG-CLNT", name: "Client-side", count: 13 },
+  { prefix: "WSTG-CLNT", name: "Client-side", count: 14 },
   { prefix: "WSTG-APIT", name: "API Testing", count: 1 },
 ] as const
 
-export const TOTAL_WSTG_TESTS = 106
+export const TOTAL_WSTG_TESTS = 107
