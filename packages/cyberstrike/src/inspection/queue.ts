@@ -4,7 +4,10 @@ import z from "zod"
 import { Database, eq, and, lt, inArray } from "@/storage/db"
 import { InspectionQueueTable } from "./schema"
 import { Identifier } from "@/id/id"
+import { Log } from "@/util/log"
 import type { InspectionTarget, Evidence, EvidencePriority } from "@cyberstrike-io/plugin"
+
+const log = Log.create({ service: "inspection-queue" })
 
 const Priority = z.enum(["high", "medium", "low"])
 // "dispatched" is the in-flight lease state: an item handed to a specialist child-session but not yet
@@ -16,6 +19,17 @@ const Status = z.enum(["pending", "dispatched", "examined"])
 type EvidenceMap = Record<string, string[]>
 
 const priorityOrder = { high: 0, medium: 1, low: 2 } as const
+
+// #94: cap distinct inspection TARGETS per endpoint-operation (method:path:opKeyHash) so a batch / RPC /
+// telemetry endpoint — one path, many value-varying bodies → many key_hashes — cannot fan out into a
+// dispatch storm (e.g. 243 wstg-input-validation dispatches on one /api/v1/batch telemetry endpoint).
+// The cap bounds the FAN-OUT only; nothing is excluded from scope and the representatives still cover the
+// endpoint. opKeyHash keeps genuinely-different operations (GraphQL/JSON-RPC) in separate groups.
+const ENDPOINT_GROUP_CAP = Math.max(1, Number(process.env.CYBERSTRIKE_INSPECT_ENDPOINT_CAP) || 8)
+function groupKeyOf(meta: Record<string, unknown> | null | undefined): string | undefined {
+  if (!meta || typeof meta.method !== "string" || typeof meta.path !== "string") return undefined
+  return `${meta.method}:${meta.path}:${typeof meta.opKeyHash === "string" ? meta.opKeyHash : ""}`
+}
 
 const InfoSchema = z
   .object({
@@ -79,6 +93,23 @@ export class InspectionQueue {
         .get()
 
       if (!row) {
+        // #94 group cap: if this endpoint-operation already has ENDPOINT_GROUP_CAP distinct targets
+        // queued, do not enqueue another value-variant — the fan-out is already covered. Skip only when
+        // the target carries a usable group key (method+path); otherwise fall through (never under-cap).
+        const gk = groupKeyOf(target.meta as Record<string, unknown> | undefined)
+        if (gk) {
+          const peers = db
+            .select({ meta: InspectionQueueTable.target_meta })
+            .from(InspectionQueueTable)
+            .where(and(eq(InspectionQueueTable.session_id, this.sessionID), eq(InspectionQueueTable.domain, this.domain)))
+            .all()
+          let count = 0
+          for (const p of peers) if (groupKeyOf(p.meta as Record<string, unknown> | null | undefined) === gk) count++
+          if (count >= ENDPOINT_GROUP_CAP) {
+            log.debug("inspection endpoint-group cap reached — skipping value-variant", { sessionID: this.sessionID, group: gk, cap: ENDPOINT_GROUP_CAP })
+            return false
+          }
+        }
         db.insert(InspectionQueueTable)
           .values({
             id: Identifier.ascending("inspection"),

@@ -52,6 +52,10 @@ export namespace WebInspect {
     hasQuery: boolean
     hasBody: boolean
     authenticated: boolean
+    // Value-stripped operation-shape discriminator (GraphQL/JSON-RPC op; null for plain REST). Used by
+    // the inspection queue to group same-endpoint-operation targets so a batch/RPC/telemetry endpoint
+    // (one path, many value-varying bodies) can't fan out into a dispatch storm (#94).
+    opKeyHash?: string
   }
 
   // ── relevance predicates (ported verbatim from WebRetest) ─────────
@@ -82,6 +86,7 @@ export namespace WebInspect {
           query_hash: RequestTable.query_hash,
           body_hash: RequestTable.body_hash,
           credential_id: RequestTable.credential_id,
+          op_key_hash: RequestTable.op_key_hash,
         })
         .from(RequestTable)
         .where(and(eq(RequestTable.session_id, sessionID), eq(RequestTable.key_hash, keyHash)))
@@ -95,6 +100,7 @@ export namespace WebInspect {
       hasQuery: !!r?.query_hash,
       hasBody: !!r?.body_hash,
       authenticated: !!r?.credential_id,
+      opKeyHash: r?.op_key_hash ?? undefined,
     }
   }
   function allEndpoints(sessionID: string): EndpointMeta[] {
@@ -110,6 +116,7 @@ export namespace WebInspect {
           query_hash: RequestTable.query_hash,
           body_hash: RequestTable.body_hash,
           credential_id: RequestTable.credential_id,
+          op_key_hash: RequestTable.op_key_hash,
         })
         .from(RequestTable)
         .where(eq(RequestTable.session_id, sessionID))
@@ -123,13 +130,14 @@ export namespace WebInspect {
           hasQuery: !!r.query_hash,
           hasBody: !!r.body_hash,
           authenticated: !!r.credential_id,
+          opKeyHash: r.op_key_hash ?? undefined,
         })
       }
     })
     return [...byKey.values()]
   }
   function targetOf(m: EndpointMeta): InspectionTarget {
-    return { key: m.keyHash, label: m.path, meta: { method: m.method, path: m.path, contentType: m.contentType, hasQuery: m.hasQuery, hasBody: m.hasBody, authenticated: m.authenticated, keyHash: m.keyHash } }
+    return { key: m.keyHash, label: m.path, meta: { method: m.method, path: m.path, contentType: m.contentType, hasQuery: m.hasQuery, hasBody: m.hasBody, authenticated: m.authenticated, keyHash: m.keyHash, opKeyHash: m.opKeyHash } }
   }
   function keyHashForRequest(sessionID: string, requestID: string): string | undefined {
     return Database.use((db) =>

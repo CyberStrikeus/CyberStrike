@@ -39,6 +39,36 @@ describe("InspectionQueue", () => {
       expect(counts.total).toBe(1)
     }))
 
+  test("#94 endpoint-group cap: value-variants of one endpoint-op don't fan out past the cap", () =>
+    run((sid) => {
+      const q = new InspectionQueue(sid, DOMAIN)
+      // 30 DISTINCT targets (distinct key_hash, as a telemetry/batch endpoint produces) but the SAME
+      // endpoint-operation group (method:path:opKeyHash) — e.g. /api/v1/batch beacons.
+      for (let i = 0; i < 30; i++) {
+        q.flag(
+          { key: `kh_batch_${i}`, label: "POST /api/v1/batch", meta: { method: "POST", path: "/api/v1/batch" } },
+          { type: "signal", value: "injection:input-validation", priority: "medium" },
+        )
+      }
+      expect(q.count().pending).toBe(8) // capped at ENDPOINT_GROUP_CAP (default 8), not 30
+
+      // A DIFFERENT endpoint is unaffected (separate group).
+      q.flag(
+        { key: "kh_other", label: "POST /api/v1/orders", meta: { method: "POST", path: "/api/v1/orders" } },
+        { type: "signal", value: "injection:input-validation", priority: "medium" },
+      )
+      expect(q.count().pending).toBe(9)
+
+      // A different operation on the SAME path (distinct opKeyHash) is its own group — not capped with the above.
+      for (let i = 0; i < 12; i++) {
+        q.flag(
+          { key: `kh_gql_${i}`, label: "POST /graphql", meta: { method: "POST", path: "/graphql", opKeyHash: "opABC" } },
+          { type: "signal", value: "injection:input-validation", priority: "medium" },
+        )
+      }
+      expect(q.count().pending).toBe(9 + 8) // the GraphQL op is a distinct group, also capped at 8
+    }))
+
   test("flag() same value on pending target does not change queue", () =>
     run((sid) => {
       const q = new InspectionQueue(sid, DOMAIN)
