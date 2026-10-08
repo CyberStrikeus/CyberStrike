@@ -862,8 +862,8 @@ function bridgeSignals(sessionID: string, store: TrafficStore, signals: Signal[]
 // `cross-identity-access` = IDOR/BFLA candidate) gets a specialist on demand. Reads the persisted
 // signals (each carries its keyHash + resolved owner), so no re-ingest is needed. WebInspect.flag
 // dedups, so re-running is a no-op; the queue Updated event wakes the dispatcher. Returns counts.
-export function routeAllSignals(sessionID: string): { flagged: number; total: number; skipped: number } {
-  const view = vortexSignals(sessionID).signals
+export function routeAllSignals(sessionID: string): { flagged: number; total: number; skipped: number; acknowledged: number } {
+  const view = vortexSignals(sessionID).signals // also materializes corpus/CORS signals before we triage
   let flagged = 0
   let skipped = 0
   for (const s of view) {
@@ -881,7 +881,36 @@ export function routeAllSignals(sessionID: string): { flagged: number; total: nu
       log.debug("manual signal route failed (ignored)", { ruleId: s.ruleId, err: String(e) })
     }
   }
-  return { flagged, total: view.length, skipped }
+  // This force-route pass is the last resort. The signals it just skipped are STRUCTURALLY un-routable
+  // (no owning specialist, or no keyHash anchor to examine — synthetic jsbody/runtime/corpus txs): they
+  // can never be flagged, so the `new → reviewed` examination hook can never fire for them, and they
+  // would pin the completion gate (sig.new > 0, supervisor) open forever. Acknowledge them as "reviewed"
+  // — the system considered them and there is nothing to dispatch — so the scan can complete. Monotonic
+  // (only advances from "new") and they stay visible in the UI/report. (#102)
+  const acknowledged = acknowledgeUnroutable(sessionID)
+  return { flagged, total: view.length, skipped, acknowledged }
+}
+
+// Advance every still-"new" signal that routeAllSignals cannot route — no owning specialist, or a tx
+// with no keyHash anchor — to "reviewed". Done at the store level so each signal is targeted by its
+// exact key (the view carries no key). Both predicates mirror routeAllSignals' skip condition. (#102)
+function acknowledgeUnroutable(sessionID: string): number {
+  try {
+    const store = storeFor(sessionID)
+    const keyHashOf = new Map(store.all().map((t) => [t.id, t.keyHash]))
+    const keys = store
+      .signals()
+      .filter((s) => (s.triage ?? "new") === "new")
+      .filter((s) => !ownerForSignal(s.ruleId, s.category) || !keyHashOf.get(s.transactionId))
+      .map(signalKey)
+    if (keys.length === 0) return 0
+    const updated = store.updateSignalTriage(keys, "reviewed")
+    signalsCache.delete(sessionID)
+    return updated
+  } catch (e) {
+    log.debug("acknowledge un-routable signals failed (ignored)", { sessionID, err: String(e) })
+    return 0
+  }
 }
 
 // The TUI "Vortex Signals" sidebar view (issue #14): every persisted Vortex signal with its owning
