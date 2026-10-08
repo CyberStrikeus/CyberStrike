@@ -18,7 +18,7 @@
     "dist"
   ],
   "dependencies": {
-    "@ai-sdk/anthropic": "2.0.62",
+    "@ai-sdk/anthropic": "3.0.111",
     "ai": "catalog:",
     "hono": "catalog:",
     "ulid": "catalog:",

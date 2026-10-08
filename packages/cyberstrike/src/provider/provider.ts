@@ -26,7 +26,7 @@ import { createAnthropicSubscriptionModel, SUBSCRIPTION_BETAS, AGENT_SDK_PREFIX 
 // Only the type-only imports and createGitLab (referenced via `typeof` below)
 // are still needed directly here.
 import type { AmazonBedrockProviderSettings } from "@ai-sdk/amazon-bedrock"
-import type { LanguageModelV2 } from "@openrouter/ai-sdk-provider"
+import type { LanguageModelV3 } from "@openrouter/ai-sdk-provider"
 import { createGitLab, VERSION as GITLAB_PROVIDER_VERSION } from "@gitlab/gitlab-ai-provider"
 import { BUNDLED_PROVIDERS } from "./bundled-providers"
 import { ProviderTransform } from "./transform"
@@ -98,7 +98,7 @@ export namespace Provider {
 
       if (explicitOAT || oauthSubscription) {
         // Subscription path: use the OFFICIAL @anthropic-ai/sdk (via a custom
-        // LanguageModelV2) instead of @ai-sdk/anthropic — byte-identical to the
+        // LanguageModelV3) instead of @ai-sdk/anthropic — byte-identical to the
         // genuine client (real x-stainless signature, ?beta=true, AGENT_SDK_PREFIX
         // system[0], Bearer OAuth). Resolve the account UUID once (from the OAuth
         // profile) for metadata.user_id parity; non-fatal if it fails.
@@ -796,7 +796,7 @@ export namespace Provider {
     }
 
     const providers: { [providerID: string]: Info } = {}
-    const languages = new Map<string, LanguageModelV2>()
+    const languages = new Map<string, LanguageModelV3>()
     const modelLoaders: {
       [providerID: string]: CustomModelLoader
     } = {}
@@ -1203,7 +1203,7 @@ export namespace Provider {
     return info
   }
 
-  export async function getLanguage(model: Model): Promise<LanguageModelV2> {
+  export async function getLanguage(model: Model): Promise<LanguageModelV3> {
     const s = await state()
     const key = `${model.providerID}/${model.id}`
     if (s.models.has(key)) return s.models.get(key)!
