@@ -123,7 +123,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   onCleanup(() => clearInterval(capturesTimer))
 
   const [expanded, setExpanded] = createStore({
-    mcp: true,
+    mcp: false,
     bolt: true,
     diff: true,
     todo: true,
@@ -589,7 +589,22 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                           <text fg={theme.text} wrapMode="word">
                             [{s.category}] {s.title}
                           </text>
-                          <text fg={theme.textMuted} wrapMode="word">
+                          <text
+                            wrapMode="word"
+                            style={{
+                              // Color the status line by REVIEW state (triage), not severity — so a reviewed
+                              // signal is visually distinct from an unreviewed one (#98). The leading • dot
+                              // still carries severity. Data is code-advanced on examination (vortexTriageByKeyHash).
+                              fg:
+                                {
+                                  new: theme.textMuted,
+                                  reviewed: theme.info,
+                                  confirmed: theme.success,
+                                  escalated: theme.warning,
+                                  dismissed: theme.textMuted,
+                                }[s.triage ?? "new"] ?? theme.textMuted,
+                            }}
+                          >
                             {s.routed
                               ? `→ ${s.owner ?? s.category}${s.status === "examined" ? " · examined" : s.status === "pending" ? " · queued" : " · routing…"}`
                               : "· surfaced (not auto-routed)"}
