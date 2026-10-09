@@ -32,10 +32,10 @@
   </picture>
 </p>
 
-<h3 align="center">The first open-source AI agent built for offensive security.</h3>
+<h3 align="center">The provider-agnostic AI agent for offensive security.</h3>
 
 <p align="center">
-  Automated penetration testing from your terminal — plug in your Claude, GPT, or any LLM subscription<br>
+  Autonomous penetration testing and AI red teaming from your terminal — plug in your Claude, GPT, or any LLM subscription<br>
   and turn it into an autonomous red team agent with 13+ specialized agents, 7,600+ security skills, and 120+ OWASP test cases.<br>
   <b>150+ AI providers</b> &bull; <b>5,300+ models</b> &bull; <b>56+ built-in tools</b> &bull; <b>176+ MCP tools</b>
 </p>
