@@ -86,10 +86,19 @@ const getBase = (appId: string): Configuration => ({
     entitlementsInherit: "resources/entitlements.plist",
     notarize: !!process.env.CSC_LINK,
     identity: process.env.CSC_LINK ? undefined : null,
-    target: ["dmg", "zip"],
+    // dmg/zip for direct download; pkg for managed MDM/Jamf push (#103). The pkg is signed
+    // with the Developer ID *Installer* cert (CSC_INSTALLER_LINK) when present, else unsigned.
+    target: ["dmg", "zip", "pkg"],
   },
   dmg: {
     sign: !!process.env.CSC_LINK,
+  },
+  pkg: {
+    // installs into /Applications, not relocatable — what MDM/Jamf expect for a pushed app.
+    isRelocatable: false,
+    isVersionChecked: false,
+    allowAnywhere: false,
+    allowCurrentUserHome: false,
   },
   protocols: {
     name: "CyberStrike",
@@ -100,7 +109,9 @@ const getBase = (appId: string): Configuration => ({
     signtoolOptions: {
       sign: signWindows,
     },
-    target: ["nsis"],
+    // nsis = consumer one-click download; msi = managed silent deployment via
+    // Intune/SCCM/GPO (`msiexec /i cyberstrike-desktop-win-x64.msi /qn`) (#103).
+    target: ["nsis", "msi"],
     verifyUpdateCodeSignature: false,
   },
   nsis: {
@@ -108,6 +119,14 @@ const getBase = (appId: string): Configuration => ({
     perMachine: false,
     installerIcon: `resources/icons/icon.ico`,
     installerHeaderIcon: `resources/icons/icon.ico`,
+  },
+  msi: {
+    // machine-wide install so a fleet admin pushes it once for all users; the MSI
+    // still honors `msiexec /qn` for unattended enterprise rollout.
+    oneClick: false,
+    perMachine: true,
+    createDesktopShortcut: true,
+    createStartMenuShortcut: true,
   },
   linux: {
     icon: `resources/icons`,
