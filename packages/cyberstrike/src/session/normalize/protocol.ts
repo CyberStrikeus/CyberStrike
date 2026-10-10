@@ -17,7 +17,7 @@ import { parseXmlToObject } from "./xml"
 import { extractInlineArgPaths } from "./graphql-inline"
 
 export interface OperationInfo {
-  protocol: "graphql" | "jsonrpc" | "trpc" | "grpc-web"
+  protocol: "graphql" | "jsonrpc" | "trpc" | "grpc-web" | "nextjs-action"
   operation: string // human label, e.g. "mutation:deleteUser", "user.delete"
   opKeyHash: string // 16-char dedup discriminator (values stripped)
 }
@@ -540,9 +540,22 @@ export function extractOperation(input: {
   body?: string
   query?: string // raw URL query string (without leading '?')
   path?: string // canonical path for tRPC detection
+  nextAction?: string
 }): OperationInfo | undefined {
   const ct = input.bodyContentType ?? ""
   const lowerCt = ct.toLowerCase()
+
+  // Next.js Server Actions dispatch by the action ID in a header. The page path
+  // and action ID define the operation; the RSC body and router state are transport data.
+  const action = input.nextAction?.trim()
+  if (input.method.toUpperCase() === "POST" && action) {
+    const path = input.path ?? ""
+    return {
+      protocol: "nextjs-action",
+      operation: action,
+      opKeyHash: sha16(`${path}:${action}`),
+    }
+  }
 
   // tRPC — path-based procedures, query-carried inputs. Check before GraphQL
   // because tRPC may also have ?input JSON.
