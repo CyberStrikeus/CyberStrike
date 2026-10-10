@@ -117,6 +117,15 @@ jobs:
         shell: bash
         run: cp -r packages/hackbrowser/extension packages/desktop/resources/cyberstrike/extension
 
+      # Restore the Azure Trusted Signing dlib so signtool can sign the win artifacts (#103).
+      # Only when configured; script/sign-windows.ps1 skips gracefully otherwise.
+      - name: Restore Trusted Signing dlib (Windows)
+        if: runner.os == 'Windows' && vars.TRUSTED_SIGNING_ACCOUNT != ''
+        shell: pwsh
+        run: |
+          nuget install Microsoft.Trusted.Signing.Client -Version 1.0.86 `
+            -OutputDirectory "$env:RUNNER_TEMP\trusted-signing" -ExcludeVersion -NonInteractive
+
       - name: Build electron-vite
         run: bun run --cwd packages/desktop build
         env:
@@ -139,10 +148,15 @@ jobs:
           # macOS .pkg installer signing (Developer ID Installer cert) for MDM/Jamf (#103)
           CSC_INSTALLER_LINK: ${{ secrets.MAC_INSTALLER_CERT_P12 }}
           CSC_INSTALLER_KEY_PASSWORD: ${{ secrets.MAC_INSTALLER_CERT_PASSWORD }}
-          # Windows Authenticode signing — consumed by script/sign-windows.ps1 (#103).
-          # Graceful skip when the secret is unset (same as the macOS certs above).
-          WINDOWS_SIGN_CERT: ${{ secrets.WINDOWS_SIGN_CERT }}
-          WINDOWS_SIGN_PASSWORD: ${{ secrets.WINDOWS_SIGN_PASSWORD }}
+          # Windows signing via Azure Trusted Signing — consumed by script/sign-windows.ps1 (#103).
+          # Graceful skip when unset (same as the macOS certs above).
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          TRUSTED_SIGNING_ENDPOINT: ${{ vars.TRUSTED_SIGNING_ENDPOINT }}
+          TRUSTED_SIGNING_ACCOUNT: ${{ vars.TRUSTED_SIGNING_ACCOUNT }}
+          TRUSTED_SIGNING_PROFILE: ${{ vars.TRUSTED_SIGNING_PROFILE }}
+          TRUSTED_SIGNING_DLIB_DIR: ${{ runner.temp }}\trusted-signing
 
       - name: List outputs
         shell: bash
