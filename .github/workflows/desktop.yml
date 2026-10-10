@@ -136,6 +136,13 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # macOS .pkg installer signing (Developer ID Installer cert) for MDM/Jamf (#103)
+          CSC_INSTALLER_LINK: ${{ secrets.MAC_INSTALLER_CERT_P12 }}
+          CSC_INSTALLER_KEY_PASSWORD: ${{ secrets.MAC_INSTALLER_CERT_PASSWORD }}
+          # Windows Authenticode signing — consumed by script/sign-windows.ps1 (#103).
+          # Graceful skip when the secret is unset (same as the macOS certs above).
+          WINDOWS_SIGN_CERT: ${{ secrets.WINDOWS_SIGN_CERT }}
+          WINDOWS_SIGN_PASSWORD: ${{ secrets.WINDOWS_SIGN_PASSWORD }}
 
       - name: List outputs
         shell: bash
@@ -146,8 +153,10 @@ jobs:
           name: desktop-${{ matrix.key }}
           path: |
             packages/desktop/dist/cyberstrike-desktop-*.dmg
+            packages/desktop/dist/cyberstrike-desktop-*.pkg
             packages/desktop/dist/cyberstrike-desktop-*.zip
             packages/desktop/dist/cyberstrike-desktop-*.exe
+            packages/desktop/dist/cyberstrike-desktop-*.msi
             packages/desktop/dist/cyberstrike-desktop-*.AppImage
             packages/desktop/dist/cyberstrike-desktop-*.deb
             packages/desktop/dist/cyberstrike-desktop-*.rpm
