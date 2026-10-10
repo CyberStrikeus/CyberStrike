@@ -40,6 +40,19 @@ export namespace WebRetest {
   // Priority order for sorting
   const priorityOrder = { high: 0, medium: 1, low: 2 }
 
+  function info(row: typeof WebRetestQueueTable.$inferSelect): Info {
+    return {
+      id: row.id,
+      session_id: row.session_id,
+      request_id: row.request_id,
+      trigger_type: row.trigger_type as Info["trigger_type"],
+      trigger_source: row.trigger_source,
+      status: row.status as Info["status"],
+      priority: row.priority as Info["priority"],
+      time: { created: row.time_created, updated: row.time_updated },
+    }
+  }
+
   export function enqueue(input: {
     sessionID: string
     requestID: string
@@ -69,16 +82,7 @@ export namespace WebRetest {
       if (newPriority < existingPriority) {
         return updatePriority(existing.id, input.priority)
       }
-      return {
-        id: existing.id,
-        session_id: existing.session_id,
-        request_id: existing.request_id,
-        trigger_type: existing.trigger_type as Info["trigger_type"],
-        trigger_source: existing.trigger_source,
-        status: existing.status as Info["status"],
-        priority: existing.priority as Info["priority"],
-        time: { created: existing.time_created, updated: existing.time_updated },
-      }
+      return info(existing)
     }
 
     const id = Identifier.ascending("web_retest")
@@ -103,7 +107,7 @@ export namespace WebRetest {
     const queue = getPending(input.sessionID)
     Bus.publish(Event.Updated, { sessionID: input.sessionID, queue })
 
-    return {
+    return info({
       id,
       session_id: input.sessionID,
       request_id: input.requestID,
@@ -111,8 +115,9 @@ export namespace WebRetest {
       trigger_source: input.triggerSource,
       status: "pending",
       priority: input.priority,
-      time: { created: now, updated: now },
-    }
+      time_created: now,
+      time_updated: now,
+    })
   }
 
   export function updatePriority(id: string, priority: z.infer<typeof Priority>): Info {
@@ -131,16 +136,7 @@ export namespace WebRetest {
     const queue = getPending(row.session_id)
     Bus.publish(Event.Updated, { sessionID: row.session_id, queue })
 
-    return {
-      id: row.id,
-      session_id: row.session_id,
-      request_id: row.request_id,
-      trigger_type: row.trigger_type as Info["trigger_type"],
-      trigger_source: row.trigger_source,
-      status: row.status as Info["status"],
-      priority: row.priority as Info["priority"],
-      time: { created: row.time_created, updated: row.time_updated },
-    }
+    return info(row)
   }
 
   export function updateStatus(id: string, status: z.infer<typeof Status>): void {
@@ -180,16 +176,42 @@ export namespace WebRetest {
     })
 
     const row = rows[0]
-    return {
-      id: row.id,
-      session_id: row.session_id,
-      request_id: row.request_id,
-      trigger_type: row.trigger_type as Info["trigger_type"],
-      trigger_source: row.trigger_source,
-      status: row.status as Info["status"],
-      priority: row.priority as Info["priority"],
-      time: { created: row.time_created, updated: row.time_updated },
-    }
+    return info(row)
+  }
+
+  /**
+   * Atomically claim the highest-priority pending retest for processing.
+   * This prevents two queue drain callbacks from running the same request.
+   */
+  export function claimNext(sessionID: string): Info | undefined {
+    return Database.transaction((db) => {
+      const rows = db
+        .select()
+        .from(WebRetestQueueTable)
+        .where(and(eq(WebRetestQueueTable.session_id, sessionID), eq(WebRetestQueueTable.status, "pending")))
+        .orderBy(asc(WebRetestQueueTable.time_created))
+        .all()
+
+      rows.sort((a, b) => {
+        const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder]
+        const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder]
+        return aPriority - bPriority
+      })
+
+      const row = rows[0]
+      if (!row) return undefined
+
+      const claimed = db
+        .update(WebRetestQueueTable)
+        .set({ status: "processing", time_updated: Date.now() })
+        .where(and(eq(WebRetestQueueTable.id, row.id), eq(WebRetestQueueTable.status, "pending")))
+        .returning()
+        .get()
+      if (!claimed) return undefined
+
+      Database.effect(() => Bus.publish(Event.Updated, { sessionID, queue: getPending(sessionID) }))
+      return info(claimed)
+    })
   }
 
   export function getPending(sessionID: string): Info[] {
@@ -209,16 +231,7 @@ export namespace WebRetest {
       return a.time_created - b.time_created
     })
 
-    return rows.map((row) => ({
-      id: row.id,
-      session_id: row.session_id,
-      request_id: row.request_id,
-      trigger_type: row.trigger_type as Info["trigger_type"],
-      trigger_source: row.trigger_source,
-      status: row.status as Info["status"],
-      priority: row.priority as Info["priority"],
-      time: { created: row.time_created, updated: row.time_updated },
-    }))
+    return rows.map(info)
   }
 
   export function count(sessionID: string): { pending: number; processing: number; completed: number } {
