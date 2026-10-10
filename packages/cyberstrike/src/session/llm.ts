@@ -217,11 +217,16 @@ export namespace LLM {
               "x-cyberstrike-request": input.user.id,
               "x-cyberstrike-client": Flag.CYBERSTRIKE_CLIENT,
             }
-          : input.model.providerID !== "anthropic"
+          : ProviderTransform.isAbliterationProvider(input.model.providerID)
             ? {
+                "x-abliteration-session-id": input.sessionID,
                 "User-Agent": `cyberstrike/${Installation.VERSION}`,
               }
-            : undefined),
+            : input.model.providerID !== "anthropic"
+              ? {
+                  "User-Agent": `cyberstrike/${Installation.VERSION}`,
+                }
+              : undefined),
         ...input.model.headers,
         ...headers,
       },
@@ -274,6 +279,7 @@ export namespace LLM {
       pid.startsWith("openai") ||
       pid.startsWith("google") ||
       pid.startsWith("amazon") ||
+      ProviderTransform.isAbliterationProvider(input.model.providerID) ||
       input.small
     ) {
       return []
