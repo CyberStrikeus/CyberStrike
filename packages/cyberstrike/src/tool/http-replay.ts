@@ -142,6 +142,40 @@ function buildFromTarget(t: {
   return { baseMsg, origin: `${url.protocol}//${url.host}` }
 }
 
+const REPLAY_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] as const
+
+// A constructed-target exploit that actually elicited a response is real traffic we sent to an in-scope
+// host — persist it as a captured request so it becomes first-class: a stable request_id, retestable, and
+// able to mint a verification_token for the triage gate. Without this a constructed-target confirmation
+// had only a synthetic `replay:` id and no token, so the finding it proved stayed stuck in draft (#105).
+// Returns the new request_id (undefined if there was no response, or the method isn't one we store).
+function persistConstructed(
+  sessionID: string,
+  msg: HttpMessage.Request,
+  origin: string,
+  result: ReplayResponse.Result,
+): string | undefined {
+  const res = result.response
+  if (!res) return undefined
+  const method = msg.method.toUpperCase()
+  if (!(REPLAY_METHODS as readonly string[]).includes(method)) return undefined
+  const ou = safeURL(origin)
+  const headers: Record<string, string> = {}
+  for (const h of res.headers) headers[h.name] = h.value
+  const row = Request.add({
+    sessionID,
+    method: method as (typeof REPLAY_METHODS)[number],
+    normalizedPath: msg.target,
+    rawRequest: HttpMessage.toString(msg),
+    scheme: ou?.protocol === "https:" ? "https" : "http",
+    host: ou?.hostname,
+    port: ou?.port ? Number(ou.port) : undefined,
+    origin,
+    response: { status: res.status, headers, body: new TextDecoder("latin1").decode(res.body) },
+  })
+  return row?.id
+}
+
 const BODY_PREVIEW = 4096
 
 function summarize(result: ReplayResponse.Result, marker?: string): Record<string, unknown> {
@@ -410,7 +444,7 @@ export const HttpReplayTool = Tool.define("http_replay", {
     // Best-effort and never throws. Wired for single + compare (the confirm paths);
     // sweep is intentionally not scanned per-value (up to 50 sends on the hot path, and
     // the agent already sees each value's error signature in the sweep result).
-    const writeBack = (m: HttpMessage.Request, result: ReplayResponse.Result, withMarker: boolean) => {
+    const writeBack = (m: HttpMessage.Request, result: ReplayResponse.Result, withMarker: boolean, rid?: string) => {
       const marker: MarkerCanary | undefined =
         withMarker && params.marker
           ? {
@@ -423,14 +457,14 @@ export const HttpReplayTool = Tool.define("http_replay", {
           : undefined
       scanElicitedResponse({
         sessionID,
-        requestId: params.request_id ?? `replay:${originHost}${m.target}`,
+        requestId: rid ?? `replay:${originHost}${m.target}`,
         method: m.method,
         url: origin + m.target,
         result,
         marker,
-        // Only a captured request_id maps to a real row that can be retested; a
-        // constructed target's synthetic id must not enqueue (would violate the FK).
-        sourceIsCaptured: !!params.request_id,
+        // A real row id — captured, or a now-persisted constructed target (#105) — can be retested; a
+        // send with no persisted row keeps its synthetic id and must not enqueue (would violate the FK).
+        sourceIsCaptured: !!rid,
       })
     }
 
@@ -460,20 +494,24 @@ export const HttpReplayTool = Tool.define("http_replay", {
         sendGoverned(baselineMsg, origin, sendOpts),
         sendGoverned(exploitMsg, origin, sendOpts),
       ])
+      // A constructed target confirmed via compare is persisted on the EXPLOIT side so it yields a
+      // stored, verifiable id just like a captured request (#105). Baseline is the control — not stored.
+      const exploitRid = params.request_id ?? persistConstructed(sessionID, exploitMsg, origin, exploitResult)
       // Marker (the payload) lives on the exploit side; scan both, register once.
-      writeBack(baselineMsg, baselineResult, false)
-      writeBack(exploitMsg, exploitResult, true)
+      writeBack(baselineMsg, baselineResult, false, params.request_id)
+      writeBack(exploitMsg, exploitResult, true, exploitRid)
 
       const output: Record<string, unknown> = {
         baseline: { ...summarize(baselineResult, params.marker), curl: Apply.toCurl(baselineMsg, origin) },
         exploit: { ...summarize(exploitResult, params.marker), curl: Apply.toCurl(exploitMsg, origin) },
         diff: buildDiff(baselineResult, exploitResult),
       }
-      if (params.request_id && exploitResult.response) {
+      if (exploitRid) output.request_id = exploitRid
+      if (exploitRid && exploitResult.response) {
         const bodyText = new TextDecoder("latin1").decode(exploitResult.response.body)
         output.verification_token = Verification.record({
           sessionID: ctx.sessionID,
-          requestId: params.request_id,
+          requestId: exploitRid,
           responseStatus: exploitResult.response.status,
           bodyPrefix: bodyText.slice(0, 256),
         })
@@ -537,18 +575,21 @@ export const HttpReplayTool = Tool.define("http_replay", {
     }
 
     const result = await sendGoverned(msg, origin, sendOpts)
-    writeBack(msg, result, true)
+    // A constructed target that got a response is persisted so it too yields a stored, verifiable id (#105).
+    const rid = params.request_id ?? persistConstructed(sessionID, msg, origin, result)
+    writeBack(msg, result, true, rid)
 
     const output: Record<string, unknown> = {
       target: { method: msg.method, origin, request_target: msg.target },
       ...summarize(result, params.marker),
       curl: Apply.toCurl(msg, origin),
     }
-    if (params.request_id && result.response) {
+    if (rid) output.request_id = rid
+    if (rid && result.response) {
       const bodyText = new TextDecoder("latin1").decode(result.response.body)
       output.verification_token = Verification.record({
         sessionID: ctx.sessionID,
-        requestId: params.request_id,
+        requestId: rid,
         responseStatus: result.response.status,
         bodyPrefix: bodyText.slice(0, 256),
       })
