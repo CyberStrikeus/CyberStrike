@@ -59,6 +59,9 @@ import { lazy } from "../../util/lazy"
 
 const log = Log.create({ service: "server" })
 
+// Sessions whose pre-existing duplicate clusters have already been reconciled once this process (#108).
+const reconciledDuplicates = new Set<string>()
+
 const MAX_REQUEST_SIZE = 16 * 1024 // 16 KB
 const MAX_REQUEST_HEADERS = 20 // First N headers
 const MAX_REQUEST_BODY = 8 * 1024 // 8 KB
@@ -743,6 +746,12 @@ export const SessionRoutes = lazy(() =>
       ),
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
+        // One-time retroactive dedup correction for pre-existing sessions (#108): on first read, make the
+        // strongest member of each duplicate cluster the active primary so a mis-marked critical surfaces.
+        if (!reconciledDuplicates.has(sessionID)) {
+          reconciledDuplicates.add(sessionID)
+          Vulnerability.reconcileDuplicates(sessionID)
+        }
         const list = Vulnerability.get(sessionID)
         return c.json(list)
       },
