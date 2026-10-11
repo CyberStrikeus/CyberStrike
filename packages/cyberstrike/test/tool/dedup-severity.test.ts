@@ -66,6 +66,35 @@ describe("severity-first dedup (#108)", () => {
     })
   })
 
+  test("reconcileDuplicates retroactively fixes a critical already mis-marked as duplicate of a low", async () => {
+    await Instance.provide({
+      directory: projectRoot,
+      fn: async () => {
+        const session = await Session.create({})
+        // Simulate the pre-existing bad state: a low is active in pending_fix, the critical was wrongly
+        // marked as its duplicate (buried) — exactly what the old first-seen/arbitrary dedup produced.
+        const low = Vulnerability.add({ sessionID: session.id, data: { severity: "low", title: "SQLi (glanced)", description: "d" } })
+        const crit = Vulnerability.add({ sessionID: session.id, data: { severity: "critical", title: "SQLi (exploited)", description: "d" } })
+        Vulnerability.update({ sessionID: session.id, id: low.id!, status: VulnStatus.PENDING_FIX })
+        Vulnerability.update({ sessionID: session.id, id: crit.id!, status: VulnStatus.DUPLICATE, duplicate_of: low.id! })
+
+        const swapped = Vulnerability.reconcileDuplicates(session.id)
+        expect(swapped).toBe(1)
+
+        // The critical is promoted into the low's active slot (pending_fix); the low becomes the duplicate.
+        expect(statusOf(session.id, crit.id!)).toBe(VulnStatus.PENDING_FIX)
+        expect(dupOf(session.id, crit.id!)).toBeFalsy()
+        expect(statusOf(session.id, low.id!)).toBe(VulnStatus.DUPLICATE)
+        expect(dupOf(session.id, low.id!)).toBe(crit.id)
+
+        // Idempotent: a second pass changes nothing.
+        expect(Vulnerability.reconcileDuplicates(session.id)).toBe(0)
+
+        await Session.remove(session.id)
+      },
+    })
+  })
+
   test("same severity → the finding WITH evidence survives", async () => {
     await Instance.provide({
       directory: projectRoot,
