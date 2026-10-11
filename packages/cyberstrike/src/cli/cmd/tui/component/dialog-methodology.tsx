@@ -1,6 +1,6 @@
 import { For, Show, createMemo, createSignal, onMount } from "solid-js"
 import { ScrollBoxRenderable, TextAttributes } from "@opentui/core"
-import { useTheme } from "../context/theme"
+import { useTheme, severityColor } from "../context/theme"
 import { useDialog } from "@tui/ui/dialog"
 import { useSDK } from "@tui/context/sdk"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
@@ -156,12 +156,7 @@ export function DialogMethodology(props: { sessionID: string }) {
     }
   })
 
-  const sev = (s?: string) =>
-    s === "critical" || s === "high" || s === "blocking"
-      ? theme.error
-      : s === "medium" || s === "warning"
-        ? theme.warning
-        : theme.textMuted
+  const sev = (s?: string) => severityColor(theme, s)
 
   return (
     <box paddingLeft={2} paddingRight={2} paddingBottom={1} gap={1}>

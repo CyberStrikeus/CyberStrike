@@ -276,6 +276,27 @@ function ansiToRgba(code: number): RGBA {
   return RGBA.fromInts(0, 0, 0)
 }
 
+// Single source of truth for severity → color across EVERY TUI surface (sidebar, /vulnerability,
+// methodology, web-context, signal dots). A given severity must look the same everywhere, so no surface
+// defines its own map (#107). critical=error, high=warning, medium=accent, low/info/unknown=muted;
+// critical/high are rendered bold by callers via severityBold.
+export function severityColor(theme: ThemeColors, severity?: string): RGBA {
+  switch (severity) {
+    case "critical":
+      return theme.error
+    case "high":
+      return theme.warning
+    case "medium":
+      return theme.accent
+    default:
+      return theme.textMuted
+  }
+}
+
+export function severityBold(severity?: string): boolean {
+  return severity === "critical" || severity === "high"
+}
+
 export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
   name: "Theme",
   init: (props: { mode: "dark" | "light" }) => {

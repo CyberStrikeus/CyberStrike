@@ -29,6 +29,10 @@ import {
   isActive,
   defaultCollapsed,
   statusLabel,
+  compareBySeverity,
+  severityDotClass,
+  severitySoftBadgeClass,
+  severityLabel,
 } from "@/utils/vulnerability-status"
 import type { Vulnerability as BaseVulnerability } from "@cyberstrike-io/sdk/v2/client"
 
@@ -224,30 +228,6 @@ export function BoltPanelList() {
 // Vulnerabilities Panel
 // ---------------------------------------------------------------------------
 
-const severityDot = (severity: Vulnerability["severity"]) => {
-  if (severity === "critical") return "bg-icon-critical-base"
-  if (severity === "high") return "bg-icon-warning-base"
-  if (severity === "medium") return "bg-icon-accent-base"
-  return "bg-border-weak-base"
-}
-
-const severityOrder = { critical: 0, high: 1, medium: 2, low: 3, info: 4 } as const
-
-const severityLabel = (severity: Vulnerability["severity"]) => {
-  if (severity === "critical") return "CRITICAL"
-  if (severity === "high") return "HIGH"
-  if (severity === "medium") return "MEDIUM"
-  if (severity === "low") return "LOW"
-  return "INFO"
-}
-
-const severityBadge = (severity: Vulnerability["severity"]) => {
-  if (severity === "critical") return "bg-surface-critical-base text-text-critical-base"
-  if (severity === "high") return "bg-surface-warning-base text-text-warning-base"
-  if (severity === "medium") return "bg-surface-accent-base text-text-accent-base"
-  return "bg-surface-base text-text-weaker"
-}
-
 function CopyVulnButton(props: { vuln: Parameters<typeof copyVulnToClipboard>[0]; iconOnly?: boolean }): JSX.Element {
   const [copied, setCopied] = createSignal(false)
 
@@ -301,9 +281,8 @@ export function VulnsPanelList() {
     if (!id) return []
     const list = sync()?.data.vulnerability?.[id] ?? []
     return (list as Vulnerability[]).slice().sort((a, b) => {
-      const sa = severityOrder[a.severity] ?? 4
-      const sb = severityOrder[b.severity] ?? 4
-      if (sa !== sb) return sa - sb
+      const bySev = compareBySeverity(a.severity, b.severity)
+      if (bySev !== 0) return bySev
       return (a.title ?? "").localeCompare(b.title ?? "")
     })
   })
@@ -374,7 +353,7 @@ export function VulnsPanelList() {
                       classList={{ "opacity-50": isDimmed(v.status ?? "draft") }}
                     >
                       <div class="flex items-start gap-2 px-2 py-1.5 cursor-pointer" on:click={() => toggle(id())}>
-                        <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDot(v.severity)}`} />
+                        <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDotClass(v.severity)}`} />
                         <div class="flex flex-col min-w-0 flex-1">
                           <span class="text-12-regular text-text-strong" classList={{ truncate: !isExpanded() }}>
                             {v.title}
@@ -405,7 +384,7 @@ export function VulnsPanelList() {
                       <Show when={isExpanded()}>
                         <div class="flex flex-col gap-2.5 px-2 pb-2.5 pt-0.5 ml-3.5 border-l border-border-weak-base select-text">
                           <div class="flex items-center gap-1.5 flex-wrap">
-                            <span class={`text-10-medium px-1.5 py-0.5 rounded ${severityBadge(v.severity)}`}>
+                            <span class={`text-10-medium px-1.5 py-0.5 rounded ${severitySoftBadgeClass(v.severity)}`}>
                               {severityLabel(v.severity)}
                             </span>
                             <span class="text-10-medium px-1.5 py-0.5 rounded bg-surface-base text-text-weaker">

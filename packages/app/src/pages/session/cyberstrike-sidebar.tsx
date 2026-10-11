@@ -27,6 +27,10 @@ import {
   groupOrder,
   STATUS_DISPLAY,
   isDimmed,
+  severityDotClass,
+  severityTextClass,
+  severityBold,
+  SEV_RANK,
   type VulnStatusValue,
 } from "@/utils/vulnerability-status"
 import { SessionMetrics } from "@/utils/session-metrics"
@@ -52,23 +56,6 @@ const fmtHost = (host: string, port?: number) => {
   return `${host}:${port}`
 }
 
-const severityDot = (s: string) => {
-  if (s === "critical") return "bg-icon-critical-base"
-  if (s === "high") return "bg-icon-warning-base"
-  if (s === "medium") return "bg-icon-accent-base"
-  return "bg-border-weak-base"
-}
-
-// The vulnerability TITLE carries the severity color (not just the dot) and critical/high are bold, so
-// dangerous findings pop out of the list at a glance (#106).
-const severityText = (s: string) => {
-  if (s === "critical") return "text-text-critical-base font-semibold"
-  if (s === "high") return "text-text-warning-base font-semibold"
-  if (s === "medium") return "text-text-base"
-  return "text-text-weaker"
-}
-
-const SIGNAL_SEV_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
 const SIGNAL_TRIAGE_ORDER = ["new", "reviewed", "confirmed", "dismissed", "escalated"] as const
 const triageBadge = (t?: string): { label: string; variant: "muted" | "accent" | "warning" | "danger" } => {
   switch (t ?? "new") {
@@ -261,7 +248,7 @@ export function CyberStrikeSidebar() {
     return [...byCategory.entries()]
       .map(([category, items]) => ({
         category,
-        items: items.slice().sort((a, b) => (SIGNAL_SEV_RANK[a.severity] ?? 4) - (SIGNAL_SEV_RANK[b.severity] ?? 4)),
+        items: items.slice().sort((a, b) => (SEV_RANK[a.severity] ?? 4) - (SEV_RANK[b.severity] ?? 4)),
       }))
       .sort((a, b) => b.items.length - a.items.length)
   })
@@ -1157,7 +1144,7 @@ export function CyberStrikeSidebar() {
                       <For each={g.items}>
                         {(s) => (
                           <div class="flex items-start gap-2 px-1 py-1 rounded hover:bg-surface-raised-base-hover">
-                            <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDot(s.severity)}`} />
+                            <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDotClass(s.severity)}`} />
                             <div class="flex flex-col min-w-0 flex-1">
                               <div class="flex items-center gap-1.5">
                                 <Badge variant={triageBadge(s.triage).variant}>{triageBadge(s.triage).label}</Badge>
@@ -1217,9 +1204,9 @@ export function CyberStrikeSidebar() {
                               class="flex items-start gap-1.5 py-0.5 pl-5 pr-1"
                               classList={{ "opacity-40": isDimmed(v.status ?? "draft") }}
                             >
-                              <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDot(v.severity)}`} />
+                              <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDotClass(v.severity)}`} />
                               <div class="flex flex-col min-w-0">
-                                <span class={`text-12-regular ${severityText(v.severity)}`}>{v.title}</span>
+                                <span class={`text-12-regular ${severityTextClass(v.severity)} ${severityBold(v.severity) ? "font-semibold" : ""}`}>{v.title}</span>
                                 <Show when={v.file}>
                                   <span class="text-10-regular text-text-weaker font-mono">
                                     {v.file}{v.line_start != null ? `:${v.line_start}` : ""}

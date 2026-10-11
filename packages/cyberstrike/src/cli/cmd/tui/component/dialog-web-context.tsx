@@ -1,7 +1,7 @@
 import { For, Show, createMemo, createSignal, onMount } from "solid-js"
 import { ScrollBoxRenderable, TextAttributes } from "@opentui/core"
 import { useSync } from "@tui/context/sync"
-import { useTheme } from "../context/theme"
+import { useTheme, severityColor } from "../context/theme"
 import { useDialog } from "@tui/ui/dialog"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
 import { formatEndpointHost } from "@tui/util/format"
@@ -356,12 +356,7 @@ function RoleRow(props: { item: { name: string; level?: number } }) {
 
 function SignalRow(props: { item: WebSignal }) {
   const { theme } = useTheme()
-  const sevColor = () => {
-    const s = props.item.severity
-    if (s === "critical" || s === "high") return theme.warning
-    if (s === "medium") return theme.accent
-    return theme.textMuted
-  }
+  const sevColor = () => severityColor(theme, props.item.severity)
   const triageColor = () => {
     const t = props.item.triage ?? "new"
     if (t === "confirmed" || t === "escalated") return theme.warning
