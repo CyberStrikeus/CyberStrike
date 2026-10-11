@@ -328,3 +328,30 @@
     }
   }
 }
+
+/* ── Canonical severity palette (#107) ──────────────────────────────────────────
+   The ONE place web/desktop maps a severity role to an actual color. The role itself
+   (critical+high=red, medium=orange, low=yellow, info=gray) is defined once in
+   src/utils/vulnerability-status.ts and mirrors the TUI, so no surface invents colors. */
+:root {
+  --severity-red: light-dark(var(--v2-red-800), var(--v2-red-500));
+  --severity-orange: light-dark(var(--v2-orange-800), var(--v2-orange-500));
+  --severity-yellow: light-dark(var(--v2-yellow-800), var(--v2-yellow-500));
+  --severity-gray: light-dark(var(--v2-grey-700), var(--v2-grey-500));
+}
+.sev-text-red { color: var(--severity-red); }
+.sev-text-orange { color: var(--severity-orange); }
+.sev-text-yellow { color: var(--severity-yellow); }
+.sev-text-gray { color: var(--severity-gray); }
+.sev-bg-red { background-color: var(--severity-red); }
+.sev-bg-orange { background-color: var(--severity-orange); }
+.sev-bg-yellow { background-color: var(--severity-yellow); }
+.sev-bg-gray { background-color: var(--severity-gray); }
+.sev-badge-red { background-color: color-mix(in srgb, var(--severity-red) 20%, transparent); color: var(--severity-red); font-weight: 600; }
+.sev-badge-orange { background-color: color-mix(in srgb, var(--severity-orange) 20%, transparent); color: var(--severity-orange); font-weight: 600; }
+.sev-badge-yellow { background-color: color-mix(in srgb, var(--severity-yellow) 20%, transparent); color: var(--severity-yellow); font-weight: 600; }
+.sev-badge-gray { background-color: color-mix(in srgb, var(--severity-gray) 20%, transparent); color: var(--severity-gray); font-weight: 600; }
+.sev-soft-red { background-color: color-mix(in srgb, var(--severity-red) 12%, transparent); color: var(--severity-red); }
+.sev-soft-orange { background-color: color-mix(in srgb, var(--severity-orange) 12%, transparent); color: var(--severity-orange); }
+.sev-soft-yellow { background-color: color-mix(in srgb, var(--severity-yellow) 12%, transparent); color: var(--severity-yellow); }
+.sev-soft-gray { background-color: color-mix(in srgb, var(--severity-gray) 12%, transparent); color: var(--severity-gray); }

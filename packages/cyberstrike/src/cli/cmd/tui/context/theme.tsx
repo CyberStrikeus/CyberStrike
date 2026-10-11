@@ -3,6 +3,7 @@ import path from "path"
 import { createEffect, createMemo, onMount } from "solid-js"
 import { useSync } from "@tui/context/sync"
 import { createSimpleContext } from "./helper"
+import { severityRole } from "@/session/vulnerability-status"
 import aura from "./theme/aura.json" with { type: "json" }
 import ayu from "./theme/ayu.json" with { type: "json" }
 import catppuccin from "./theme/catppuccin.json" with { type: "json" }
@@ -276,25 +277,22 @@ function ansiToRgba(code: number): RGBA {
   return RGBA.fromInts(0, 0, 0)
 }
 
-// Single source of truth for severity → color across EVERY TUI surface (sidebar, /vulnerability,
-// methodology, web-context, signal dots). A given severity must look the same everywhere, so no surface
-// defines its own map (#107). critical=error, high=warning, medium=accent, low/info/unknown=muted;
-// critical/high are rendered bold by callers via severityBold.
+// TUI adapter for the canonical severity color scheme (#107). The SCHEME (which severity → which role)
+// lives once in session/vulnerability-status (shared by TUI, web and desktop); here we only map a role to
+// the terminal palette. Terminal ANSI has no true orange, so orange falls back to the nearest warm
+// (warning/yellow) — the one unavoidable platform difference; red/gray match everywhere.
+export { severityBold } from "@/session/vulnerability-status"
+
 export function severityColor(theme: ThemeColors, severity?: string): RGBA {
-  switch (severity) {
-    case "critical":
+  switch (severityRole(severity)) {
+    case "red":
       return theme.error
-    case "high":
+    case "orange":
+    case "yellow":
       return theme.warning
-    case "medium":
-      return theme.accent
     default:
       return theme.textMuted
   }
-}
-
-export function severityBold(severity?: string): boolean {
-  return severity === "critical" || severity === "high"
 }
 
 export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
