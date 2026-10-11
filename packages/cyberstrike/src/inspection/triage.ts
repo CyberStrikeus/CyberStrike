@@ -85,6 +85,21 @@ export class TriageRunner {
   private finalize(drafts: Vulnerability.Info[]): void {
     this.gateImpact(drafts)
     const byId = new Map(Vulnerability.get(this.sessionID).map((v) => [v.id, v]))
+    // A draft the triage agent advanced to "triaged" passed the code-enforced draft→triaged gate (a real
+    // http_replay verification token on its evidence) — which IS the "pending_fix" bar: verified as real
+    // and reproducible. Nothing else drives triaged→pending_fix, so a verified finding would otherwise
+    // sit stuck at "triaged" forever. Auto-promote them here (deterministic; rejected/duplicate/draft
+    // are left as the agent set them).
+    let promoted = 0
+    for (const d of drafts) {
+      if (!d.id) continue
+      const cur = byId.get(d.id)
+      if (cur?.id && normalizeStatus(cur.status ?? VulnStatus.DRAFT) === VulnStatus.TRIAGED) {
+        Vulnerability.update({ sessionID: this.sessionID, id: cur.id, status: VulnStatus.PENDING_FIX })
+        promoted++
+      }
+    }
+    if (promoted > 0) log.info("promoted replay-verified findings to pending_fix", { sessionID: this.sessionID, count: promoted })
     let remaining = 0
     for (const d of drafts) {
       if (!d.id) continue

@@ -4,6 +4,7 @@ import { withTimeout } from "@/util/timeout"
 import { Session } from "@/session"
 import { SessionPrompt } from "@/session/prompt"
 import { Vulnerability } from "@/session/vulnerability"
+import { normalizeStatus, VulnStatus } from "@/session/vulnerability-status"
 import { Instance } from "@/project/instance"
 import { InspectionTranscript } from "./transcript"
 import { EscalationFrontier } from "./escalation-frontier"
@@ -63,6 +64,11 @@ export class EscalationRunner {
     try {
       while (true) {
         this.dirty = false
+        // Start-gate (#96) — code-enforced stage ordering: escalation is the LAST stage and must not
+        // begin while the primary inspection is still in flight. Defer (return; an external wake retries)
+        // unless ALL hold: no DRAFT findings remain (everything triage can confirm is confirmed), the
+        // inspection queue is drained, and no other engine source is active. Never prompt-driven.
+        if (!(await this.canStart())) return
         const pending = Vulnerability.pendingEscalation(this.sessionID)
         const seedIDs = pending.map((v) => v.id).filter((id): id is string => !!id)
         if (seedIDs.length === 0) return
@@ -84,6 +90,22 @@ export class EscalationRunner {
       // (Stuck seeds are NOT re-armed here — they wait for an external wake — so there is no tight loop.)
       if (this.dirty) this.wake()
     }
+  }
+
+  // Code-enforced start-gate (#96). Returns true only when the primary inspection is GENUINELY finished,
+  // so escalation runs strictly last — never concurrently with triage and never on un-triaged drafts:
+  //   1. no DRAFT findings remain (all triaged / rejected / duplicate),
+  //   2. the inspection queue is drained (pending == 0) — the queue is fed by Vortex signals + probes +
+  //      signal-retests, so it also covers endpoints the agents themselves discovered mid-test,
+  //   3. no other engine source is active (dispatcher / triage / ingest / js-miner / api-probe).
+  // web-bridge is imported lazily to avoid the web-bridge↔escalation module cycle.
+  private async canStart(): Promise<boolean> {
+    if (Vulnerability.get(this.sessionID).some((v) => normalizeStatus(v.status ?? VulnStatus.DRAFT) === VulnStatus.DRAFT)) return false
+    const inst = (await import("./web-bridge")).peekWebInspection(this.sessionID)
+    if (!inst) return true // non-web assessment: no queue/lifecycle to gate on
+    const snap = inst.lifecycle.snapshot()
+    if (snap.counts.pending > 0) return false
+    return !snap.sources.some((s) => s.active && s.name !== "escalation" && !s.name.startsWith("gate:"))
   }
 
   // One hunt pass over a fixed seed set. Runs the escalation-hunter as a child session so it is

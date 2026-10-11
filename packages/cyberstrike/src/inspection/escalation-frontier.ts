@@ -21,15 +21,26 @@ export namespace EscalationFrontier {
     tried: Set<string>
     budget: number
     used: number
+    calls: number // EVERY propose() call, incl. duplicates/post-spent — the hard-cap counter (#96)
+    spentReplies: number // how many times we've already told the model to stop
   }
 
   const DEFAULT_BUDGET = Math.max(1, Number(process.env.CYBERSTRIKE_ESCALATION_HYPOTHESIS_BUDGET) || 25)
+  // Hard ceiling on TOTAL propose() calls (accepted + duplicate + post-spent). The budget only bounds
+  // ACCEPTED hypotheses; a weak model that spams duplicates never spends it (a duplicate doesn't
+  // increment `used`), so without this a hunt loops until the wall-clock timeout, pinning the escalation
+  // source active forever (#96). Generous — real hunts use far fewer — but finite.
+  const CALL_CAP = Math.max(DEFAULT_BUDGET * 3, Number(process.env.CYBERSTRIKE_ESCALATION_CALL_CAP) || 80)
+  // Once the frontier is spent/capped, the model is TOLD to stop. A model that ignores that (keeps
+  // proposing) is cut off in code: after this many post-spent replies, propose() returns terminate=true
+  // and the tool cancels the hunt's own child session.
+  const SPENT_GRACE = 2
   const frontiers = new Map<string, Frontier>()
 
   function get(sessionID: string): Frontier {
     let f = frontiers.get(sessionID)
     if (!f) {
-      f = { items: [], tried: new Set(), budget: DEFAULT_BUDGET, used: 0 }
+      f = { items: [], tried: new Set(), budget: DEFAULT_BUDGET, used: 0, calls: 0, spentReplies: 0 }
       frontiers.set(sessionID, f)
     }
     return f
@@ -60,6 +71,9 @@ export namespace EscalationFrontier {
     pending: number
     used: number
     budget: number
+    // Code-level kill switch (#96): the model has been told to stop and kept proposing past the grace —
+    // the tool must cancel the hunt's own child session so the escalation source can go inactive.
+    terminate?: boolean
   }
 
   export function propose(
@@ -67,12 +81,17 @@ export namespace EscalationFrontier {
     input: { from: string[]; hypothesis: string; targetImpact: string },
   ): ProposeResult {
     const f = get(sessionID)
+    f.calls++
     const base = () => ({ pending: f.items.filter((i) => i.status === "pending").length, used: f.used, budget: f.budget })
 
-    if (f.used >= f.budget) {
+    // Spent EITHER by budget (enough accepted hypotheses) OR by the hard call cap (a duplicate/post-spent
+    // spam loop). Both end the hunt; the cap is what makes a repeating model terminable in code (#96).
+    if (f.used >= f.budget || f.calls > CALL_CAP) {
+      f.spentReplies++
       return {
         status: "budget-spent",
         message: "Budget spent — STOP proposing. Finalize report_vulnerability for every chain you confirmed, then end.",
+        terminate: f.spentReplies > SPENT_GRACE,
         ...base(),
       }
     }

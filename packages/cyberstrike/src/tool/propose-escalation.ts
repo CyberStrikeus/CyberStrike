@@ -1,6 +1,7 @@
 import z from "zod"
 import { Tool } from "./tool"
 import { EscalationFrontier } from "../inspection/escalation-frontier"
+import { SessionPrompt } from "../session/prompt"
 
 const DESCRIPTION = [
   "Propose an escalation/chaining HYPOTHESIS (escalation-hunter only). This is the relentless engine:",
@@ -46,6 +47,13 @@ export const ProposeEscalationTool = Tool.define("propose_escalation", {
       )
     } else if (r.status !== "budget-spent") {
       lines.push("", "No next item — the frontier is drained. Finalize any remaining confirmed chains and end.")
+    }
+    // Code-level kill switch (#96): the frontier is spent and the model has ignored the stop message past
+    // the grace. Cancel this hunt's own child session so it cannot keep looping (a weak model will spam
+    // propose forever otherwise, pinning the escalation activity source and blocking lifecycle completion).
+    if (r.terminate) {
+      lines.push("", "Hunt ended by the engine (repeated proposals after budget was spent).")
+      SessionPrompt.cancel(ctx.sessionID)
     }
     return { title: `propose_escalation → ${r.status}`, output: lines.join("\n"), metadata: {} }
   },
