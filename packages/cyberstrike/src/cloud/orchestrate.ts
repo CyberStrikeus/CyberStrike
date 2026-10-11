@@ -5,7 +5,7 @@ import { Agent } from "../agent/agent"
 import { Identifier } from "../id/id"
 import { Intel } from "../methodology/intel"
 import { Vulnerability } from "../session/vulnerability"
-import { VulnStatus, isExcluded, isActionable, normalizeStatus } from "../session/vulnerability-status"
+import { VulnStatus, isExcluded, isActionable, normalizeStatus, SEV_RANK } from "../session/vulnerability-status"
 import { extractTrajectory, aggregateTrajectories, formatTrajectoryLog } from "./trajectory"
 import type { CloudAnalysis } from "./types"
 import type { AgentTrajectory } from "./trajectory"
@@ -28,8 +28,11 @@ const WATCHDOG_SPAWN_AFTER_MS = 4 * 60_000
 
 function deduplicateFindings(rootSession: string): void {
   const vulns = Vulnerability.get(rootSession)
-  const seen = new Map<string, string>()
-  let deduped = 0
+  // Group by issue identity, then keep the STRONGEST member of each group as the survivor —
+  // highest severity, then most evidence — not whichever was ingested first (#108). Otherwise a
+  // low-severity report of an endpoint could survive while the critical report of the same endpoint
+  // gets buried as a duplicate.
+  const groups = new Map<string, typeof vulns>()
   for (const v of vulns) {
     if (!v.id || v.status === VulnStatus.DUPLICATE) continue
     const key = [
@@ -37,12 +40,20 @@ function deduplicateFindings(rootSession: string): void {
       v.endpoint?.toLowerCase().replace(/\s+/g, " ").trim() ?? "",
       v.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 80),
     ].join("|")
-    const existing = seen.get(key)
-    if (existing) {
-      Vulnerability.update({ sessionID: rootSession, id: v.id, status: VulnStatus.DUPLICATE, duplicate_of: existing })
+    const arr = groups.get(key)
+    if (arr) arr.push(v)
+    else groups.set(key, [v])
+  }
+  const rank = (v: (typeof vulns)[number]) => SEV_RANK[v.severity ?? ""] ?? 9
+  const ev = (v: (typeof vulns)[number]) => v.evidence_request_ids?.length ?? 0
+  let deduped = 0
+  for (const arr of groups.values()) {
+    if (arr.length < 2) continue
+    const best = arr.reduce((a, b) => (rank(a) !== rank(b) ? (rank(a) < rank(b) ? a : b) : ev(a) >= ev(b) ? a : b))
+    for (const v of arr) {
+      if (v.id === best.id) continue
+      Vulnerability.update({ sessionID: rootSession, id: v.id!, status: VulnStatus.DUPLICATE, duplicate_of: best.id })
       deduped++
-    } else {
-      seen.set(key, v.id)
     }
   }
   if (deduped > 0) console.log(`[orchestrate] dedup fence: marked ${deduped} duplicate finding(s)`)
