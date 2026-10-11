@@ -39,6 +39,15 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
       })
       .filter((g) => g.items.length > 0)
   })
+  // Severity → color + weight for the findings list. The TITLE carries the severity color (not just the
+  // marker) and critical/high are bold, so dangerous findings pop out of the list at a glance (#106).
+  const sevColor = (s: string) => {
+    if (s === "critical") return theme.error
+    if (s === "high") return theme.warning
+    if (s === "medium") return theme.text
+    return theme.textMuted
+  }
+  const sevBold = (s: string) => s === "critical" || s === "high"
   // Captures endpoints — sourced from Vortex (the single source agents work on), not the session-web
   // request copy. Repointed via sync.data.vortex_captures (GET /vortex/captures, polled below).
   const requests = createMemo(() => sync.data.vortex_captures[props.sessionID]?.requests ?? [])
@@ -525,29 +534,19 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                         </box>
                         <Show when={expandedVulnGroup[g.key]}>
                           <For each={g.items}>
-                            {(v) => (
-                              <box flexDirection="row" gap={1} paddingLeft={1}>
-                                <text
-                                  flexShrink={0}
-                                  style={{
-                                    fg:
-                                      {
-                                        critical: theme.error,
-                                        high: theme.warning,
-                                        medium: theme.text,
-                                        low: theme.textMuted,
-                                        info: theme.textMuted,
-                                      }[v.severity] ?? theme.text,
-                                  }}
-                                >
-                                  •
-                                </text>
-                                <text fg={theme.text} wrapMode="word">
-                                  {v.title}
-                                  {v.file ? ` (${v.line_start != null ? `${v.file}:${v.line_start}` : v.file})` : ""}
-                                </text>
-                              </box>
-                            )}
+                            {(v) => {
+                              const label = `${v.title}${v.file ? ` (${v.line_start != null ? `${v.file}:${v.line_start}` : v.file})` : ""}`
+                              return (
+                                <box flexDirection="row" gap={1} paddingLeft={1}>
+                                  <text flexShrink={0} style={{ fg: sevColor(v.severity) }}>
+                                    •
+                                  </text>
+                                  <text fg={sevColor(v.severity)} wrapMode="word">
+                                    {sevBold(v.severity) ? <b>{label}</b> : label}
+                                  </text>
+                                </box>
+                              )
+                            }}
                           </For>
                         </Show>
                       </box>

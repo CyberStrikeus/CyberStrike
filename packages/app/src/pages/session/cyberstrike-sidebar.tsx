@@ -59,6 +59,15 @@ const severityDot = (s: string) => {
   return "bg-border-weak-base"
 }
 
+// The vulnerability TITLE carries the severity color (not just the dot) and critical/high are bold, so
+// dangerous findings pop out of the list at a glance (#106).
+const severityText = (s: string) => {
+  if (s === "critical") return "text-text-critical-base font-semibold"
+  if (s === "high") return "text-text-warning-base font-semibold"
+  if (s === "medium") return "text-text-base"
+  return "text-text-weaker"
+}
+
 const SIGNAL_SEV_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
 const SIGNAL_TRIAGE_ORDER = ["new", "reviewed", "confirmed", "dismissed", "escalated"] as const
 const triageBadge = (t?: string): { label: string; variant: "muted" | "accent" | "warning" | "danger" } => {
@@ -1210,7 +1219,7 @@ export function CyberStrikeSidebar() {
                             >
                               <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDot(v.severity)}`} />
                               <div class="flex flex-col min-w-0">
-                                <span class="text-12-regular text-text-base">{v.title}</span>
+                                <span class={`text-12-regular ${severityText(v.severity)}`}>{v.title}</span>
                                 <Show when={v.file}>
                                   <span class="text-10-regular text-text-weaker font-mono">
                                     {v.file}{v.line_start != null ? `:${v.line_start}` : ""}
