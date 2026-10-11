@@ -1053,6 +1053,15 @@ export namespace SessionPrompt {
     return Provider.defaultModel()
   }
 
+  // The agent of the most recent user turn — so a programmatic re-prompt (idle watchdog) continues under
+  // the SAME agent the session was driven with, not a default. Undefined when the session has no agent.
+  export async function lastAgent(sessionID: string): Promise<string | undefined> {
+    for await (const item of MessageV2.stream(sessionID)) {
+      if (item.info.role === "user" && item.info.agent) return item.info.agent
+    }
+    return undefined
+  }
+
   /** @internal Exported for testing */
   export async function resolveTools(input: {
     agent: Agent.Info

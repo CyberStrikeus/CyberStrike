@@ -13,6 +13,7 @@ import { HackbrowserStatus } from "@/session/hackbrowser-status"
 import { SessionSummary } from "@/session/summary"
 import { Todo } from "../../session/todo"
 import { Vulnerability } from "../../session/vulnerability"
+import { normalizeStatus, VulnStatus } from "../../session/vulnerability-status"
 import { Request } from "../../session/request"
 import { Observation } from "../../session/observation"
 import { Normalize } from "../../session/normalize"
@@ -26,7 +27,7 @@ import { WebObject } from "../../session/web/web-object"
 import { WebFunction } from "../../session/web/web-function"
 import { WebInspect } from "../../session/web/web-inspect"
 import { WellKnown } from "../../session/web/well-known"
-import { ensureWebInspection, getWebInspection, addWebActivitySource, ensureAssessmentNotifier } from "../../inspection"
+import { ensureWebInspection, getWebInspection, addWebActivitySource, ensureAssessmentNotifier, ensureWatchdog, armWatchdog } from "../../inspection"
 import { ApiProbe } from "../../session/web/api-probe"
 import { WebScope } from "../../session/web/scope"
 import { UiObservation } from "../../session/web/ui-observation"
@@ -1960,6 +1961,9 @@ export const SessionRoutes = lazy(() =>
         // Idempotent; safe on every ingest. (Replaced the old WebRetest/RetestWorker path — #19.)
         ensureWebInspection(sessionID)
         ensureAssessmentNotifier() // POST a webhook when a session reaches phase "complete" (#19)
+        ensureWatchdog() // subscribe the idle / phase-complete triggers (idempotent)
+        armWatchdog(sessionID) // GUARANTEE: arm the watch on every ingest so completion is driven even
+        // if no idle / phase event ever fires (engine-driven assessment with no root turn)
         // Register activity sources so the lifecycle knows the session is still producing work — this
         // keeps the phase at inspecting/discovering (never a premature "complete", which stops the
         // lifecycle for good) while traffic is still flowing or the miner/prober is running (#19).
@@ -1967,6 +1971,28 @@ export const SessionRoutes = lazy(() =>
         addWebActivitySource(sessionID, { name: "ingest", isActive: () => ingestActive(sessionID) })
         addWebActivitySource(sessionID, { name: "js-miner", isActive: () => JsMiner.isActive(sessionID) })
         addWebActivitySource(sessionID, { name: "api-probe", isActive: () => ApiProbe.isActive(sessionID) })
+        // COMPLETION GATES (hard rule): the phase must NOT reach "complete" while ANY of these hold. They
+        // are ActivitySources prefixed "gate:" so the lifecycle's derive() already keeps the phase out of
+        // "complete" (it settles only when NO source is active); the watchdog treats gate:* separately
+        // from engine activity. #1 "an agent is running" is already covered by the specialist/triage/
+        // escalation sources above.
+        const gateRoot = Session.root(sessionID)
+        // #2 — a finding still in draft (un-triaged / not human-reviewed).
+        addWebActivitySource(sessionID, {
+          name: "gate:drafts",
+          isActive: () => Vulnerability.get(gateRoot).some((v) => normalizeStatus(v.status ?? VulnStatus.DRAFT) === VulnStatus.DRAFT),
+        })
+        // #3 — a Vortex signal not yet reviewed.
+        addWebActivitySource(sessionID, { name: "gate:signals", isActive: () => vortexSignalSummary(gateRoot).triage.new > 0 })
+        // #4 — the model is unreachable: any session under this assessment actively retrying a provider error.
+        addWebActivitySource(sessionID, {
+          name: "gate:llm",
+          isActive: () => Object.entries(SessionStatus.list()).some(([sid, st]) => st.type === "retry" && Session.root(sid) === gateRoot),
+        })
+        // Re-arm the lifecycle: these sources can flip active AFTER an earlier "complete" stopped the poll
+        // (silent sources emit no queue event), which would freeze the phase at a stale "complete" while
+        // the browser keeps crawling/probing. poke() re-derives now so the phase reflects live activity.
+        getWebInspection(sessionID).lifecycle.poke()
         // Wake the API-direct fast lane: it debounces a burst of ingests into one sweep that
         // deterministically probes newly-captured endpoints (safe methods only), so a signal
         // queues a specialist retest without an LLM sub-agent per endpoint. Idempotent.

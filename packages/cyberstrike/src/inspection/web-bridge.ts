@@ -72,6 +72,14 @@ export function ensureWebInspection(sessionID: string): Inst {
   return inst
 }
 
+// Non-creating accessor: returns the instance ONLY if inspection was actually bootstrapped for this
+// session (an active assessment). Used by the idle watchdog so a plain chat session's idle never spins
+// up — or gets mistaken for — an assessment. `export type` so callers can hold the shape.
+export type WebInspection = Inst
+export function peekWebInspection(sessionID: string): Inst | undefined {
+  return instances.get(sessionID)
+}
+
 export function addWebActivitySource(sessionID: string, source: ActivitySource): void {
   const inst = instances.get(sessionID)
   if (inst) inst.lifecycle.addSource(source)

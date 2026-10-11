@@ -70,6 +70,17 @@ export class SessionLifecycle {
     }
   }
 
+  // Re-arm the heartbeat and re-derive the phase NOW. Called on fresh ingest/traffic. A source
+  // (ingest/api-probe/js-miner) can flip BACK to active after the phase already settled to "complete" —
+  // which stops the poll (line below) — and those silent sources emit NO queue event, so nothing would
+  // ever re-derive. Without this the phase stays a stale "complete" while the browser is in fact still
+  // crawling/probing a new target (the "phase lies" bug). poke() restarts the heartbeat so the eventual
+  // settle is caught again; no-op cost when nothing changed (tick early-returns on an unchanged phase).
+  poke(): void {
+    this.ensurePoll()
+    this.tick()
+  }
+
   // Re-arm the heartbeat if it isn't running. The poll is what turns silent state changes — a source
   // (dispatcher/triage/miner/probe) flipping back to inactive with NO queue event — into a phase
   // transition. It is stopped on "complete" (idle sessions must not poll forever; destroy is not

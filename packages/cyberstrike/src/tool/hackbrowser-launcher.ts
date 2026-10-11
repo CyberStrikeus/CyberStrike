@@ -60,7 +60,11 @@ export interface KickOffResult {
 
 export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffResult> {
   if (v2Runs.has(opts.sessionID)) {
-    throw new Error(`hackbrowser already running for session ${opts.sessionID}`)
+    // Supersede a prior run instead of throwing: relaunching to continue/extend after a completed
+    // scan must be allowed to open a fresh browser. Close the old spawn first, then re-launch (#104).
+    log.info("superseding existing hackbrowser run for relaunch", { sessionID: opts.sessionID })
+    SpawnedProfiles.closeAll(opts.sessionID)
+    v2Runs.delete(opts.sessionID)
   }
 
   // v2: NO crawl worker. Enqueue the roles for sequential setup, then open the
