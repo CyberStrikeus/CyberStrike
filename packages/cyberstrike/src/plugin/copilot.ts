@@ -42,20 +42,15 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
               },
             }
 
-            // TODO: re-enable once messages api has higher rate limits
-            // TODO: move some of this hacky-ness to models.dev presets once we have better grasp of things here...
-            // const base = baseURL ?? model.api.url
-            // const claude = model.id.includes("claude")
-            // const url = iife(() => {
-            //   if (!claude) return base
-            //   if (base.endsWith("/v1")) return base
-            //   if (base.endsWith("/")) return `${base}v1`
-            //   return `${base}/v1`
-            // })
-
-            // model.api.url = url
-            // model.api.npm = claude ? "@ai-sdk/anthropic" : "@ai-sdk/github-copilot"
-            model.api.npm = "@ai-sdk/github-copilot"
+            const base = baseURL ?? model.api.url
+            const claude = model.id.includes("claude")
+            model.api.url = iife(() => {
+              if (!claude) return base
+              if (base.endsWith("/v1")) return base
+              if (base.endsWith("/")) return `${base}v1`
+              return `${base}/v1`
+            })
+            model.api.npm = claude ? "@ai-sdk/anthropic" : "@ai-sdk/github-copilot"
           }
         }
 
