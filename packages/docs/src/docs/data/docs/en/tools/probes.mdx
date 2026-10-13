@@ -1,0 +1,221 @@
+---
+title: Probes
+description: Deterministic single-purpose security testing tools that analyze captured HTTP traffic
+sidebar:
+  order: 9
+  label: Probes
+---
+
+Probes are deterministic, single-purpose security testing tools. Unlike [security hooks](/docs/tools/security-hooks) (which bundle many programs into one domain tool), each probe is its own tool focused on one testing dimension.
+
+Probes operate on **captured HTTP traffic** — they take a `request_id` from [HackBrowser](/docs/tools/hacker-browser) or [Chrome Extension](/docs/tools/chrome-extension) captures and run targeted tests against it.
+
+```
+HackBrowser / Chrome Extension
+        ↓
+  Captures HTTP Traffic
+        ↓
+  Probes analyze captured requests
+        ↓
+  Agent verifies leads
+```
+
+<Aside variant="caution">
+  Probes return **raw observations**, not verdicts. Every finding is a lead the agent must verify with a follow-up exploit or manual confirmation.
+</Aside>
+
+## Probe Tools
+
+There are six probe tools, each covering a distinct testing dimension:
+
+| Probe | WSTG | What It Tests |
+|-------|------|---------------|
+| `inject_probe` | INPV | XSS, SSTI, command injection, CRLF, LFI, HPP, mass assignment, file upload |
+| `session_probe` | SESS | JWT tampering, cookie entropy, session identifier strength |
+| `access_probe` | ATHZ | IDOR, BOLA, BFLA — cross-identity access control |
+| `crypto_probe` | CRYP | Sensitive data on cleartext, HSTS, credentials in URLs, mixed content, TLS |
+| `error_probe` | ERRH | Error-based technology fingerprinting |
+| `identity_probe` | ATHN | Authentication mechanism signatures |
+
+---
+
+## inject_probe
+
+Fires a battery of injection probes at **one parameter-bearing request** and returns raw observations.
+
+### Vulnerability Types
+
+| Type | Detection Method |
+|------|-----------------|
+| **XSS** | Reflected tag-survival — which HTML tags reflect un-encoded past a filter |
+| **SSTI** | Server-side template evaluation — fires arithmetic expressions in multiple engine syntaxes, reports which the server evaluated |
+| **Command Injection** | Read-only OS command detection — fires benign probes (`id`/`ver`) behind shell separators, reports which produced output |
+
+### Additional Tests
+
+CRLF injection, HTTP parameter pollution (HPP), local file inclusion (LFI), mass assignment, file upload, host header injection, verb tampering, and time-blind injection.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `request_id` | string | Preferred | ID of a captured request (resolves URL, headers, body, credential) |
+| `target` | object | Alternative | Manual target: `method`, `url`, `headers`, `body`, `content_type` |
+
+### Example
+
+```json
+{
+  "tool": "inject_probe",
+  "input": {
+    "request_id": "req_abc123"
+  }
+}
+```
+
+Operates on query-string and form-urlencoded parameters. Uses canary-based detection — each payload embeds a unique marker to correlate reflections.
+
+### Coverage Output
+
+The result includes a `coverage.not_tested` section listing injection classes the probe did not cover. The agent is expected to test those separately.
+
+---
+
+## session_probe
+
+Deterministic session-management probe covering JWT and cookie security.
+
+### JWT Tampering
+
+| Technique | What It Tests |
+|-----------|---------------|
+| `alg:none` | Server accepts unsigned tokens |
+| Signature bypass | Tampered claim with original signature — server doesn't validate |
+| Weak HMAC secret | Dictionary attack against HMAC key — a hit means arbitrary token forging |
+| Algorithm confusion | RSA → HMAC key confusion attack |
+| `kid` empty key | Key ID header manipulation |
+
+### Cookie Analysis
+
+- **Shannon entropy** of session identifiers — low entropy means predictable sessions
+- **Cookie attributes** — HttpOnly, Secure, SameSite flags
+- **Session identifier structure** — pattern analysis
+
+### Confirmation Method
+
+Replays forged tokens with a **no-token control request**. A session is only marked "accepted" when the same request without any token is denied — eliminating false positives from endpoints that don't require authentication.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `request_id` | string | Yes | A captured request containing session material |
+
+---
+
+## access_probe
+
+Cross-identity access-control probe for IDOR, BOLA, and BFLA detection.
+
+Takes a captured request and replays it under **every other session credential** (and unauthenticated), then compares each response against the owner's using a decision-differential.
+
+### How It Works
+
+1. Sends the original request as the owning credential — baseline response
+2. Replays the same request with each other registered credential
+3. Replays with no credential (unauthenticated)
+4. Compares response bodies using token-set Jaccard similarity
+5. A swapped identity that gets a 2xx with high similarity (>0.9) to the owner's response = **Broken Access Control**
+
+### Verdicts
+
+| Verdict | Meaning |
+|---------|---------|
+| `broken` | Another identity got the owner's data — confirmed access control failure |
+| `weak-lead` | Partial similarity — worth investigating |
+| `enforced` | Access properly denied for other identities |
+| `error` | Request failed |
+
+### Safety
+
+Only **GET/HEAD** methods are auto-replayed. State-changing requests (POST, PUT, PATCH, DELETE) under another identity could mutate or destroy their data — these are refused with guidance to confirm manually via `http_replay`.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `request_id` | string | Yes | A captured request to test across identities |
+
+---
+
+## crypto_probe
+
+Cryptography analysis probe — **fully read-only** over captured traffic by default.
+
+### Detections
+
+| Check | WSTG | What It Finds |
+|-------|------|---------------|
+| Cleartext sensitive data | CRYP-03 | Credentials, tokens, PII, Luhn-valid cards sent over HTTP |
+| HSTS | CRYP-01 | Missing or weak Strict-Transport-Security header |
+| URL credentials | — | Credentials or PII in query strings (logged, cached, leaked via Referer) |
+| Mixed content | — | HTTPS page loading HTTP subresources |
+
+### Optional: Live TLS Handshake
+
+With `tls_handshake: true`, the probe opens a **read-only TLS handshake** (no HTTP request) to check:
+
+- Negotiated protocol and cipher suite
+- Accepted legacy protocols (TLSv1.0, TLSv1.1)
+- Certificate issues (expiry, self-signed, hostname mismatch)
+
+This is the only part of `crypto_probe` that opens a connection. Scope-gated.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `request_id` | string | Yes | A captured request to analyze |
+| `tls_handshake` | boolean | No | Also perform a live TLS handshake (default: `false`) |
+
+---
+
+## error_probe
+
+Mutates requests to trigger error responses and analyzes error signatures to fingerprint server-side technology.
+
+Useful for identifying the application framework, web server, and middleware stack from error page patterns — information that guides which injection techniques and hook programs to run.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `request_id` | string | Yes | A captured request to mutate |
+
+---
+
+## identity_probe
+
+Tests authentication mechanism signatures to understand how the target handles identity.
+
+Analyzes authentication headers, token formats, and login flows to classify the authentication scheme in use — information that feeds into `session_probe` and `access_probe` for deeper testing.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `request_id` | string | Yes | A captured request with authentication material |
+
+---
+
+## Safety by Design
+
+<Aside variant="tip">
+  Probes are designed to minimize risk. `inject_probe` uses **read-only detection** (no destructive payloads). `access_probe` only replays **safe HTTP methods**. `crypto_probe` sends **nothing** unless `tls_handshake` is enabled — and even then, only a TLS handshake with no HTTP request.
+</Aside>
+
+## Related Documentation
+
+- [Security Hooks](/docs/tools/security-hooks) — Domain-specific testing suites with 400+ programs
+- [Hacker Browser](/docs/tools/hacker-browser) — Autonomous crawler that captures the traffic probes analyze
+- [Chrome Extension](/docs/tools/chrome-extension) — Manual browser-driven traffic capture
