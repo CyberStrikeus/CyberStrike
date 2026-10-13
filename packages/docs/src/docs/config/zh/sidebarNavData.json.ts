@@ -45,10 +45,6 @@ const sidebarNavData: DocsSidebarNavData = {
           title: "CLI 参考",
         },
         {
-          id: "slash-commands",
-          title: "斜杠命令",
-        },
-        {
           id: "resources",
           title: "资源",
         },

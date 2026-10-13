@@ -45,10 +45,6 @@ const sidebarNavData: DocsSidebarNavData = {
           title: "CLI 참조",
         },
         {
-          id: "slash-commands",
-          title: "슬래시 명령어",
-        },
-        {
           id: "resources",
           title: "리소스",
         },

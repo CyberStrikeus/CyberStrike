@@ -45,10 +45,6 @@ const sidebarNavData: DocsSidebarNavData = {
           title: "CLI संदर्भ",
         },
         {
-          id: "slash-commands",
-          title: "स्लैश कमांड",
-        },
-        {
           id: "resources",
           title: "संसाधन",
         },
