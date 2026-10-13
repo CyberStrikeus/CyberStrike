@@ -1,0 +1,231 @@
+---
+title: OpenAI (GPT)
+description: OpenAI-Modelle fuer Cyberstrike konfigurieren
+sidebar:
+  order: 3
+  label: OpenAI
+---
+
+OpenAI bietet die GPT-5-Familie, GPT-4.1 und die o-Series-Reasoning-Modelle fuer Sicherheitsanalysen. Diese Anleitung behandelt Einrichtung und Konfiguration.
+
+<img src="/docs/images/screenshots/openai-model-select.png" alt="Modellauswahl gefiltert auf OpenAI-Modelle" className="rounded-lg shadow-lg my-6 w-full" />
+
+## Verfuegbare Modelle
+
+Cyberstrike bezieht seinen Modellkatalog live von [models.dev](https://models.dev), sodass die genaue Liste dem aktuellen Angebot von OpenAI entspricht. Gaengige Auswahl:
+
+| Modell | Kontext | Am besten fuer |
+|--------|---------|----------------|
+| `openai/gpt-5` | 400K | Allgemeine Sicherheitstests (Flaggschiff) |
+| `openai/gpt-5-mini` | 400K | Schnelle Aufgaben, hohes Volumen |
+| `openai/gpt-5-nano` | 400K | Guenstigstes, einfache Aufgaben |
+| `openai/gpt-4.1` | 1M | Sehr grosser Kontext |
+| `openai/o3` | 200K | Tiefes schrittweises Reasoning |
+
+<Aside variant="tip">
+  Die neueren GPT-5.x-Versionen (5.1–5.5, plus Codex- und Pro-Varianten) erscheinen automatisch, sobald models.dev aktualisiert wird. Fuehren Sie `/models` aus fuer die vollstaendige aktuelle Liste.
+</Aside>
+
+## Authentifizierung
+
+### API-Schluessel einrichten
+
+1. Holen Sie Ihren API-Schluessel von [platform.openai.com](https://platform.openai.com)
+2. Fuehren Sie in der TUI `/connect` aus, waehlen Sie **OpenAI** und geben Sie Ihren API-Schluessel ein
+
+### Umgebungsvariable
+
+```bash
+export OPENAI_API_KEY="sk-proj-..."
+```
+
+### Konfigurationsdatei
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+## Modellkonfiguration
+
+### Standardmodell festlegen
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "openai/gpt-5"
+}
+```
+
+### Modelle wechseln
+
+Verwenden Sie `/models` in der TUI, um ein anderes OpenAI-Modell auszuwaehlen.
+
+### Reasoning-Modelle verwenden
+
+Die o-Series (`o3`, `o4-mini`) und die GPT-5 Pro-Varianten eignen sich hervorragend fuer komplexe Sicherheitsanalysen. Waehlen Sie sie ueber `/models`.
+
+Am besten fuer:
+- Komplexe Schwachstellenketten
+- Angriffspfad-Analyse
+- Kryptographische Analyse
+- Reverse Engineering
+
+## ChatGPT Plus/Pro
+
+Verwenden Sie Ihr ChatGPT-Abonnement, indem Sie `/connect` in der TUI ausfuehren, **OpenAI** waehlen und **ChatGPT Plus/Pro** auswaehlen. Dies loest einen browserbasierten OAuth-Vorgang aus.
+
+<Aside variant="info">
+  Die ChatGPT-Authentifizierung erfordert einen browserbasierten OAuth-Vorgang.
+</Aside>
+
+## Organisations-ID
+
+Fuer Organisationskonten:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}",
+        "organization": "org-..."
+      }
+    }
+  }
+}
+```
+
+## Benutzerdefinierte Basis-URL
+
+Fuer OpenAI-kompatible Endpunkte:
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "baseURL": "https://your-endpoint.com/v1"
+      }
+    }
+  }
+}
+```
+
+## Funktionsaufrufe
+
+GPT-Modelle unterstuetzen Funktionsaufrufe fuer die Werkzeugverwendung:
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "parallelToolCalls": true
+      }
+    }
+  }
+}
+```
+
+## Rate-Limits
+
+OpenAI Rate-Limits nach Stufe:
+
+| Stufe | RPM | TPM |
+|-------|-----|-----|
+| Kostenlos | 3 | 40.000 |
+| Stufe 1 | 500 | 200.000 |
+| Stufe 2 | 5.000 | 2.000.000 |
+| Stufe 3+ | Hoehere Limits |
+
+### Limits handhaben
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "maxRetries": 3,
+        "timeout": 60000
+      }
+    }
+  }
+}
+```
+
+## Best Practices
+
+### Modellauswahl
+
+| Aufgabe | Empfohlenes Modell |
+|---------|-------------------|
+| Schnelle Scans | `gpt-5-nano` |
+| Allgemeine Tests | `gpt-5` |
+| Komplexe Analyse | `o3` |
+| Kostensensitiv | `gpt-5-mini` |
+
+### Kostenoptimierung
+
+1. Mini-Modelle fuer einfache Aufgaben verwenden
+2. Vernuenftige maximale Token setzen
+3. `/compact` fuer lange Sitzungen verwenden
+4. Nutzung im OpenAI-Dashboard ueberwachen
+
+### Sicherheit
+
+1. Schluessel in Umgebungsvariablen speichern
+2. Projektspezifische API-Schluessel verwenden
+3. Nutzungslimits im OpenAI-Dashboard aktivieren
+4. Schluessel regelmaessig rotieren
+
+## Fehlerbehebung
+
+### Ungueltiger API-Schluessel
+
+```
+Error: Incorrect API key provided
+```
+
+Ueberpruefen Sie:
+- Schluessel beginnt mit `sk-proj-` oder `sk-`
+- Kein zusaetzliches Leerzeichen
+- Schluessel ist aktiv
+
+### Unzureichendes Kontingent
+
+```
+Error: You exceeded your current quota
+```
+
+Loesungen:
+- Zahlungsinformationen hinzufuegen
+- Nutzungslimits pruefen
+- Plan upgraden
+
+### Modellzugriff
+
+```
+Error: The model does not exist or you do not have access
+```
+
+Einige Modelle erfordern:
+- Eine hoehere Nutzungsstufe fuer die neuesten Flaggschiffe
+- Wartelisten-Genehmigung
+- Enterprise-Vereinbarung
+
+<Aside variant="caution">
+  Reasoning-Modelle (die o-Series und GPT-5 Pro-Varianten) haben hoehere Latenz aufgrund der Reasoning-Schritte. Planen Sie laengere Antwortzeiten ein.
+</Aside>
+
+## Verwandte Dokumentation
+
+- [Anbieter-Uebersicht](/docs/providers) - Alle Anbieter
+- [Benutzerdefinierte Anbieter](/docs/providers/custom-providers) - OpenAI-kompatible Einrichtung
+- [Konfiguration](/docs/configuration) - Vollstaendige Optionen

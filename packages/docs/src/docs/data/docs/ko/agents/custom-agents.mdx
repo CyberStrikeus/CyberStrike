@@ -1,0 +1,109 @@
+---
+title: 커스텀 에이전트
+description: Cyberstrike를 위한 전문 보안 에이전트 만들기
+sidebar:
+  order: 9
+  label: 커스텀 에이전트
+---
+
+자체 시스템 프롬프트, 모델, 권한을 가진 커스텀 에이전트를 만드세요. 에이전트는 YAML 프론트매터가 포함된 Markdown 파일입니다.
+
+{/* TODO: Screenshot - Custom agent configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: custom-agent-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">커스텀 에이전트 구성 파일</p>
+</div>
+
+## 파일 및 위치
+
+커스텀 에이전트는 `.cyberstrike/` 폴더(프로젝트 또는 `~/.cyberstrike/`) 내 `agent/` 또는 `agents/` 디렉토리의 `*.md` 파일입니다. 에이전트의 ID는 파일명입니다.
+
+```
+.cyberstrike/
+└── agents/
+    ├── api-security.md
+    └── compliance-audit.md
+```
+
+## 프론트매터
+
+```markdown title=".cyberstrike/agents/api-security.md"
+---
+description: Specialized agent for REST and GraphQL API testing
+mode: primary
+model: anthropic/claude-sonnet-4-20250514
+permission:
+  bash: { "*": "ask", "rm -rf *": "deny" }
+  edit: allow
+---
+
+You are an expert API security tester specializing in REST and GraphQL APIs.
+Follow the OWASP API Security Top 10 …
+```
+
+프론트매터 이후의 본문이 시스템 프롬프트입니다.
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `description` | string | 에이전트의 용도 |
+| `mode` | `primary` \| `subagent` \| `all` | `primary` 에이전트는 직접 실행 가능; `subagent` 에이전트는 task 도구를 통해 위임됨 |
+| `model` | string | `provider/model` 재정의 |
+| `temperature`, `top_p` | number | 샘플링 제어 |
+| `steps` | number | 최대 에이전트 반복 횟수 |
+| `color` | string | Hex 또는 테마 색상 |
+| `permission` | object | 도구별 권한 ([권한](/docs/permissions) 참조) |
+| `hidden`, `disable` | boolean | 피커에서 숨기기 / 비활성화 |
+
+<Aside variant="caution">
+  `permission` 필드로 도구를 제한하세요. 이전의 `tools:` 맵은 **지원 중단**되었으며, `allowedCommands` 필드는 없습니다 — 명령 제한은 `permission.bash` 글로브 규칙(예: `bash: { "nmap *": "allow" }`)입니다.
+</Aside>
+
+## Primary vs Subagent
+
+**primary** 에이전트만 `--agent` 또는 `default_agent`로 선택할 수 있습니다. 에이전트를 직접 실행하려면 `mode: primary`로 설정하세요. 그렇지 않으면 `cyberstrike` 에이전트가 위임할 수 있는 서브에이전트로 동작합니다.
+
+```markdown
+---
+description: Read-only auditor
+mode: primary
+permission:
+  edit: deny
+  bash: deny
+  read: allow
+  glob: allow
+  grep: allow
+---
+
+You are a read-only security auditor …
+```
+
+## 커스텀 에이전트 사용
+
+primary 에이전트가 되면 선택할 수 있습니다:
+
+```bash
+cyberstrike --agent api-security
+```
+
+또는 `cyberstrike.json`에서 기본값으로 설정합니다:
+
+```json
+{
+  "default_agent": "api-security"
+}
+```
+
+TUI에서 `/agents`로 에이전트를 탐색합니다.
+
+## 모범 사례
+
+1. **집중된 범위** — 에이전트당 하나의 명확한 목적.
+2. **최소 권한** — `permission`을 통해 에이전트에 필요한 도구만 허용.
+3. **명확한 프롬프트** — 방법론과 출력 형식을 구체적으로 지정.
+4. **버전 관리** — `.cyberstrike/agents/`를 프로젝트와 함께 커밋.
+
+## 관련 문서
+
+- [보안 에이전트](/docs/agents) - 내장 에이전트 및 위임
+- [권한](/docs/permissions) - `permission` 필드
+- [구성](/docs/configuration) - 프로젝트 및 글로벌 구성

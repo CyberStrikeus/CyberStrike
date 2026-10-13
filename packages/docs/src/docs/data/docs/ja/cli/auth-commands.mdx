@@ -1,0 +1,72 @@
+---
+title: 認証コマンド
+description: AIプロバイダーの認証情報を管理する
+sidebar:
+  order: 3
+  label: 認証コマンド
+---
+
+`cyberstrike auth` コマンドはAIプロバイダーの認証情報を管理します。サブコマンドは `login`、`logout`、`list` の3つのみで、いずれもフラグは取りません。各コマンドはインタラクティブです。
+
+{/* TODO: Screenshot - Auth command interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: auth-commands.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">認証コマンドインターフェース</p>
+</div>
+
+## `auth login`
+
+```bash
+cyberstrike auth login [url]
+```
+
+インタラクティブなログインを開始します。Cyberstrikeはプロバイダーリスト（モデルカタログから構築）を表示し、APIキーまたはOAuthフローの入力を求めます。オプションの `url` 位置引数はwell-knownプロバイダーURLを事前選択します。プロバイダーはメニューから選択します — フラグで指定することは**できません**。
+
+```
+? Select provider
+❯ cyberstrike (recommended)
+  anthropic (Claude Max or API key)
+  github-copilot
+  openai (ChatGPT Plus/Pro or API key)
+  google
+  openrouter
+  …
+```
+
+認証情報はデータディレクトリ（`~/.local/share/cyberstrike/auth.json`）に保存されます。
+
+## `auth list`
+
+```bash
+cyberstrike auth list   # エイリアス: ls
+```
+
+認証情報を保存しているプロバイダーを一覧表示します。
+
+## `auth logout`
+
+```bash
+cyberstrike auth logout
+```
+
+削除する保存済み認証情報をインタラクティブに選択します。
+
+<Aside variant="caution">
+  `auth status`、`auth verify`、`auth refresh`、`auth switch` コマンド、および `--key`/`--oauth`/`--json`/`--all` フラグは存在しません。ログインは常にインタラクティブな `auth login` フローです。
+</Aside>
+
+## 環境変数
+
+認証情報を保存する代わりに、環境変数でプロバイダーキーを設定できます — [AIプロバイダー](/docs/providers)と[環境変数](/docs/configuration/environment-variables)を参照してください。例：
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+## 関連ドキュメント
+
+- [AIプロバイダー](/docs/providers) - プロバイダー別セットアップ
+- [認証](/docs/getting-started/authentication) - 初回認証
+- [CLIリファレンス](/docs/cli) - 全コマンド

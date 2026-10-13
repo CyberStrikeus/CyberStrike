@@ -1,0 +1,198 @@
+---
+title: Chrome-Erweiterung
+description: Installieren Sie die CyberStrike Chrome-Erweiterung, um Traffic aus Ihrem eigenen Browser fuer automatisierte Sicherheitstests zu erfassen
+sidebar:
+  order: 8
+  label: Chrome Extension
+---
+
+Die CyberStrike Chrome-Erweiterung erfasst HTTP-Traffic aus Ihrem Browser und leitet ihn an die CyberStrike-API fuer automatisierte Sicherheitstests weiter.
+
+## Wann die Erweiterung verwenden
+
+Wenn Sie `/hackbrowser` ausfuehren, startet CyberStrike einen dedizierten Chromium-Browser mit der **bereits integrierten** Erweiterung. Dieser automatisierte Browser uebernimmt Crawling, Traffic-Erfassung und KI-gesteuerte Navigation von Haus aus. Fuer diesen Workflow muessen Sie nichts separat installieren.
+
+Die eigenstaendige Chrome-Erweiterung ist fuer einen anderen Anwendungsfall gedacht: **Ihren eigenen Browser verwenden**. Installieren Sie sie, wenn Sie Traffic aus Ihrem taeglichen Chrome erfassen moechten — dem mit Ihren Lesezeichen, gespeicherten Passwoertern, vorhandenen Erweiterungen und angemeldeten Sitzungen. Dies ist nuetzlich, wenn:
+
+- Die Zielanwendung eine bestimmte Browser-Konfiguration erfordert, die Sie bereits haben
+- Sie mit Ihren echten authentifizierten Sitzungen und Cookies testen muessen
+- Sie manuell browsen moechten, waehrend CyberStrike jede Anfrage im Hintergrund analysiert
+- Die Anwendung SSO, MFA oder andere Authentifizierungsablaeufe verwendet, die in Ihrem eigenen Browser einfacher sind
+
+Beide Pfade speisen die gleiche Test-Pipeline und koennen innerhalb einer einzelnen Sitzung gemischt werden.
+
+## Installation
+
+Der Quellcode der Erweiterung ist im CyberStrike-Repository unter `packages/hackbrowser/extension/` enthalten.
+
+1. Repository klonen:
+
+```bash
+git clone https://github.com/CyberStrikeus/CyberStrike.git
+```
+
+2. Chrome oeffnen und zu `chrome://extensions` navigieren
+3. **Entwicklermodus** in der oberen rechten Ecke aktivieren
+4. **Entpackte Erweiterung laden** anklicken
+5. Das Verzeichnis `packages/hackbrowser/extension/` innerhalb des geklonten Repositorys auswaehlen
+
+Das Erweiterungssymbol erscheint nach dem Laden in der Chrome-Werkzeugleiste.
+
+<Aside variant="caution">
+  Starten Sie CyberStrike, bevor Sie das Erweiterungs-Popup oeffnen. Die Erweiterung verbindet sich beim Start mit der CyberStrike-API.
+</Aside>
+
+## Konfiguration
+
+Oeffnen Sie das Erweiterungs-Popup, indem Sie auf das Werkzeugleistensymbol klicken.
+
+### Server-URL
+
+Die Erweiterung verbindet sich mit CyberStrike unter:
+
+```
+http://127.0.0.1:4096
+```
+
+Aendern Sie dies im Feld **Server URL**, wenn Sie CyberStrike auf einer anderen Adresse oder einem anderen Port ausfuehren. Wenn Sie einen Cloudflare-Tunnel fuer den Fernzugriff verwenden, geben Sie hier die Tunnel-URL ein.
+
+### Geltungsbereich
+
+Geben Sie die Ziel-Domain im Feld **Scope** ein:
+
+```
+shop.example.com
+```
+
+Nur Anfragen, deren Hostname diesem Geltungsbereich entspricht, werden erfasst. Anfragen an andere Domains werden ignoriert.
+
+Subdomain-Platzhalter werden unterstuetzt:
+
+```
+*.example.com
+```
+
+### Sitzung
+
+Waehlen Sie eine bestehende Sitzung aus dem Dropdown oder erstellen Sie eine neue. Alle erfassten Anfragen und entdeckten Kontexte werden in der aktiven Sitzung gespeichert.
+
+## Erfassung starten und stoppen
+
+Klicken Sie auf **Start**, um mit dem Abfangen von Traffic zu beginnen. Der Anfragenzaehler erhoeht sich, waehrend die Erweiterung passende Anfragen erfasst.
+
+Klicken Sie auf **Stop**, um die Erfassung zu pausieren. Die Sitzung bleibt aktiv und CyberStrike verarbeitet weiterhin eingereihte Anfragen.
+
+## Credential-Verwaltung
+
+Credentials repraesentieren authentifizierte Benutzeridentitaeten. Die Erweiterung verfolgt Authentifizierungs-Header pro Chrome-Profil und verknuepft jede erfasste Anfrage mit dem entsprechenden Credential.
+
+### Warum Credentials wichtig sind
+
+CyberStrike verwendet Credentials, um benutzeruebergreifende Schwachstellen zu testen:
+
+- **IDOR** — kann Credential A auf Ressourcen von Credential B zugreifen?
+- **Autorisierungsumgehung** — kann ein weniger privilegiertes Credential auf Endpunkte zugreifen, die hoehere Privilegien erfordern?
+- **Mass Assignment** — kann ein normaler Benutzer Admin-only-Felder injizieren?
+
+Je mehr Credentials Sie registrieren (Admin, normaler Benutzer, Gast usw.), desto breiter ist die benutzeruebergreifende Testabdeckung.
+
+### Chrome-Profile
+
+Chrome-Profile isolieren Browser-Sitzungen, damit Sie gleichzeitig als mehrere Benutzer angemeldet sein koennen. Jedes Profil verwaltet eigene Cookies und lokalen Speicher.
+
+**Einrichtung:**
+
+1. Auf das Profilsymbol in der oberen rechten Ecke von Chrome klicken
+2. Auf **Hinzufuegen** klicken, um ein neues Profil pro Benutzerrolle zu erstellen:
+   - `Admin`
+   - `Regular User`
+   - `Guest`
+3. Die Zielanwendung in jedem Profil oeffnen und sich mit dem entsprechenden Konto anmelden
+4. Im CyberStrike-Popup ein Credential fuer jedes Profil hinzufuegen (siehe unten)
+
+### Credential hinzufuegen
+
+Im Popup:
+
+1. **Add Credential** anklicken
+2. Eine beschreibende Bezeichnung eingeben — zum Beispiel `admin-user` oder `regular-user`
+3. Das Chrome-Profil auswaehlen, das mit diesem Konto verknuepft ist
+4. **Save** anklicken
+
+Das Credential wird bei der CyberStrike-API registriert. Ab diesem Punkt werden Anfragen, die von diesem Profil erfasst werden, automatisch mit der Credential-ID versehen.
+
+### Automatische Header-Synchronisierung
+
+Wenn die Erweiterung erkennt, dass sich ein Auth-Header in einem Profil geaendert hat — zum Beispiel nach einer Token-Erneuerung — synchronisiert sie automatisch die aktualisierten Header zum Credential. Sie muessen Credentials nach Token-Rotationen nicht manuell aktualisieren.
+
+### Verfolgte Authentifizierungs-Header
+
+Die Erweiterung ueberwacht diese Header fuer die Credential-Verfolgung:
+
+| Header | Beschreibung |
+|--------|-------------|
+| `Authorization` | Bearer-Token, Basic-Auth |
+| `Cookie` | Sitzungs-Cookies |
+| `X-Auth-Token` | Benutzerdefinierte Auth-Token |
+| `X-API-Key` | API-Schluessel |
+| `X-Access-Token` | OAuth-Zugriffstoken |
+| `X-Session-Token` | Sitzungstoken |
+| `X-CSRF-Token` | CSRF-Token |
+
+## Anfragefilterung
+
+Die Erweiterung ueberspringt statische Assets automatisch, um Rauschen zu reduzieren:
+
+| Kategorie | Erweiterungen |
+|-----------|--------------|
+| Bilder | `.png` `.jpg` `.jpeg` `.gif` `.svg` `.ico` `.webp` |
+| Stylesheets & Skripte | `.css` `.js` `.mjs` |
+| Schriftarten | `.woff` `.woff2` `.ttf` `.eot` `.otf` |
+| Medien | `.mp4` `.mp3` `.avi` `.mov` `.webm` |
+| Archive & Dokumente | `.pdf` `.zip` `.gz` `.br` |
+| Source Maps | `.map` |
+
+Nur Anfragen auf Anwendungsebene (API-Aufrufe, Formularuebermittlungen, Seitennavigationen) werden weitergeleitet.
+
+## Was an die API gesendet wird
+
+Fuer jede erfasste Anfrage sendet die Erweiterung einen Payload an `POST /session/ingest`:
+
+```json
+{
+  "text": "POST /api/orders HTTP/1.1\r\nHost: shop.example.com\r\nAuthorization: Bearer eyJ...\r\nContent-Type: application/json\r\n\r\n{\"item_id\": 42, \"qty\": 1}",
+  "sessionID": "session-abc123",
+  "credential_id": "web_credential-xyz789",
+  "response": {
+    "status": 201,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": "{\"order_id\": 573, \"total\": 29.99, \"status\": \"pending\"}"
+  }
+}
+```
+
+Das `text`-Feld enthaelt die vollstaendige rohe HTTP-Anfrage. Der Response-Body wird von der Erweiterung auf 500 KB begrenzt; die API reduziert ihn vor der Analyse weiter auf 100 KB.
+
+## Duplikaterkennung
+
+CyberStrike dedupliziert Anfragen serverseitig. Eine Anfrage wird uebersprungen, wenn sie die gleiche HTTP-Methode, den gleichen normalisierten Pfad, die gleiche Body-Struktur und die gleichen Query-Parameter-Schluessel wie eine zuvor verarbeitete Anfrage hat. Dies verhindert redundantes Testen identischer Endpunkte.
+
+## Kontext-Panel
+
+Das Popup zeigt Kontext an, den CyberStrike ueber alle verarbeiteten Anfragen hinweg angesammelt hat:
+
+| Panel | Inhalt |
+|-------|--------|
+| **Credentials** | Alle registrierten Credentials und ihre verknuepften Rollen |
+| **Roles** | Waehrend der Analyse entdeckte Benutzerrollen |
+| **Objects** | Datenentitaeten (User, Order, Product) und ihre Felder |
+| **Functions** | Endpunkt-Funktions-Zuordnungen mit CRUD-Aktionstypen |
+
+Dieses Panel ist schreibgeschuetzt. CyberStrike befuellt es schrittweise, waehrend es weitere Anfragen verarbeitet.
+
+
+## Verwandte Dokumentation
+
+- [HackBrowser](/docs/tools/hacker-browser) - Autonomer KI-Crawler — die automatisierte Alternative

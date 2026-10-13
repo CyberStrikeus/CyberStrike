@@ -1,0 +1,713 @@
+---
+title: Referencia de Configuracao
+description: Referencia completa de configuracao para o CLI do Cyberstrike
+sidebar:
+  order: 1
+  label: Visao Geral
+---
+
+O Cyberstrike pode ser configurado por multiplos metodos: arquivos de configuracao, variaveis de ambiente e argumentos de linha de comando. Esta referencia cobre todas as opcoes de configuracao.
+
+{/* TODO: Screenshot - Config file structure */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: s13-config-structure.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Estrutura do arquivo de configuracao</p>
+</div>
+
+<img src="/docs/images/diagrams/config-priority.svg" alt="Prioridade de configuracao — o mais alto vence, desde argumentos CLI ate valores padrao" className="my-6 mx-auto max-w-md" />
+
+## Hierarquia de Configuracao
+
+As fontes de configuracao sao mescladas em ordem de prioridade (a maior prioridade vence):
+
+1. Argumentos de linha de comando
+2. Configuracao gerenciada (empresarial) — `cyberstrike.json`/`cyberstrike.jsonc` controlado pelo administrador no diretorio gerenciado
+3. Variavel de ambiente `CYBERSTRIKE_CONFIG_CONTENT` (JSON inline)
+4. Configuracao do diretorio `.cyberstrike/` — o `.cyberstrike/` do projeto, depois `~/.cyberstrike/` no diretorio home
+5. Configuracao do projeto (`./cyberstrike.json` ou `./cyberstrike.jsonc`, descoberto subindo a partir do diretorio de trabalho)
+6. Caminho de configuracao personalizado (`CYBERSTRIKE_CONFIG`)
+7. Configuracao global (`~/.config/cyberstrike/config.json`, `cyberstrike.json` ou `cyberstrike.jsonc`)
+8. Configuracao remota / well-known
+9. Valores padrao
+
+## Inspecionando a Configuracao
+
+Para ver a configuracao efetiva apos todas as fontes serem mescladas, execute:
+
+```bash
+cyberstrike debug config
+```
+
+Isso imprime a configuracao resolvida como JSON. Nao existem comandos `config get`/`set` — altere as configuracoes editando o arquivo de configuracao diretamente (veja abaixo).
+
+## Arquivos de Configuracao
+
+### Configuracao do Projeto
+
+Crie `cyberstrike.json` ou `cyberstrike.jsonc` na raiz do seu projeto:
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "agent": {
+    "web-application": {
+      "model": "anthropic/claude-sonnet-4-20250514"
+    }
+  }
+}
+```
+
+### Configuracao Global
+
+Armazene configuracoes de usuario em `~/.config/cyberstrike/`. Qualquer um entre `config.json`, `cyberstrike.json` ou `cyberstrike.jsonc` e carregado (o Cyberstrike gera automaticamente o `config.json`):
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "theme": "cyberstrike",
+  "autoupdate": true,
+  "share": "manual"
+}
+```
+
+### Estrutura do Diretorio do Projeto
+
+Crie um diretorio `.cyberstrike/` para configuracao organizada:
+
+```
+.cyberstrike/
+├── cyberstrike.json    # Configuracao do projeto
+├── agents/             # Agentes personalizados
+│   └── security.md
+├── commands/           # Comandos personalizados
+│   └── scan.md
+├── plugins/            # Plugins personalizados
+│   └── my-plugin.ts
+└── modes/              # Modos personalizados (obsoleto)
+```
+
+---
+
+## Configuracoes Principais
+
+### Selecao de Modelo
+
+Defina o modelo de IA padrao:
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+Formato: `provider/model-name`
+
+### Modelo Leve
+
+Defina um modelo para tarefas leves (geracao de titulo):
+
+```json
+{
+  "small_model": "anthropic/claude-haiku-4-5-20251001"
+}
+```
+
+### Agente Padrao
+
+Defina o agente de seguranca padrao:
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+### Nome de Usuario
+
+Sobrescreva o nome de usuario do sistema:
+
+```json
+{
+  "username": "pentester"
+}
+```
+
+### Tema
+
+Defina o tema da interface:
+
+```json
+{
+  "theme": "cyberstrike"
+}
+```
+
+---
+
+## Configuracao de Provedores
+
+Configure provedores de IA individualmente:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}",
+        "timeout": 300000
+      }
+    },
+    "openai": {
+      "options": {
+        "baseURL": "https://api.openai.com/v1"
+      },
+      "whitelist": ["gpt-4o", "gpt-4-turbo"],
+      "blacklist": ["gpt-3.5-turbo"]
+    },
+    "custom-provider": {
+      "id": "custom-provider",
+      "name": "Custom Provider",
+      "options": {
+        "baseURL": "https://api.custom.example.com/v1",
+        "apiKey": "{env:CUSTOM_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### Opcoes do Provedor
+
+| Opcao | Tipo | Descricao |
+|-------|------|-----------|
+| `apiKey` | string | Chave de API para autenticacao |
+| `baseURL` | string | Endpoint de API personalizado |
+| `timeout` | number/false | Timeout da requisicao em ms (padrao: 300000) |
+| `setCacheKey` | boolean | Habilitar chave de cache de prompt |
+| `enterpriseUrl` | string | URL do GitHub Enterprise para copilot |
+
+### Filtragem de Modelos
+
+Controle quais modelos aparecem:
+
+```json
+{
+  "provider": {
+    "openai": {
+      "whitelist": ["gpt-4o", "o1-preview"],
+      "blacklist": ["gpt-3.5-turbo"]
+    }
+  }
+}
+```
+
+### Desabilitando Provedores
+
+Desabilite provedores especificos:
+
+```json
+{
+  "disabled_providers": ["ollama", "groq"]
+}
+```
+
+Habilite apenas provedores especificos:
+
+```json
+{
+  "enabled_providers": ["anthropic", "openai"]
+}
+```
+
+---
+
+## Configuracao de Agentes
+
+Configure o comportamento dos agentes:
+
+```json
+{
+  "agent": {
+    "cyberstrike": {
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.7,
+      "steps": 50,
+      "color": "#FF5733"
+    },
+    "web-application": {
+      "model": "anthropic/claude-opus-4-20250514",
+      "prompt": "Focus on OWASP Top 10 vulnerabilities"
+    }
+  }
+}
+```
+
+### Opcoes do Agente
+
+| Opcao | Tipo | Descricao |
+|-------|------|-----------|
+| `model` | string | Modelo sobrescrito para este agente |
+| `temperature` | number | Temperatura do modelo (0-1) |
+| `top_p` | number | Valor de amostragem top-p |
+| `steps` | number | Maximo de iteracoes agentivas |
+| `prompt` | string | Prompt de sistema personalizado |
+| `color` | string | Codigo de cor hex (#RRGGBB) |
+| `description` | string | Descricao do agente |
+| `mode` | string | Modo do agente: "primary", "subagent", "all" |
+| `hidden` | boolean | Ocultar do autocompletar |
+| `disable` | boolean | Desabilitar este agente |
+
+### Criando Agentes Personalizados
+
+Crie `.cyberstrike/agents/custom.md`:
+
+```markdown
+---
+description: Custom security agent for API testing
+model: anthropic/claude-opus-4-20250514
+mode: primary
+---
+
+You are an API security specialist. Focus on:
+- Authentication vulnerabilities
+- Authorization bypass
+- Input validation
+- Rate limiting issues
+```
+
+---
+
+## Configuracao MCP
+
+Configure servidores Model Context Protocol:
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "@modelcontextprotocol/server-filesystem", "/path/to/dir"],
+      "enabled": true,
+      "timeout": 5000
+    },
+    "remote-api": {
+      "type": "remote",
+      "url": "https://api.example.com/mcp",
+      "oauth": {
+        "clientId": "your-client-id",
+        "scope": "read write"
+      }
+    }
+  }
+}
+```
+
+### Servidor MCP Local
+
+| Opcao | Tipo | Descricao |
+|-------|------|-----------|
+| `type` | "local" | Tipo do servidor |
+| `command` | string[] | Comando e argumentos |
+| `environment` | object | Variaveis de ambiente |
+| `enabled` | boolean | Habilitar/desabilitar servidor |
+| `timeout` | number | Timeout da requisicao em ms |
+
+### Servidor MCP Remoto
+
+| Opcao | Tipo | Descricao |
+|-------|------|-----------|
+| `type` | "remote" | Tipo do servidor |
+| `url` | string | URL do servidor |
+| `headers` | object | Headers da requisicao |
+| `oauth` | object/false | Configuracao OAuth |
+| `enabled` | boolean | Habilitar/desabilitar servidor |
+| `timeout` | number | Timeout da requisicao em ms |
+
+### Configuracao OAuth
+
+```json
+{
+  "oauth": {
+    "clientId": "your-client-id",
+    "clientSecret": "your-client-secret",
+    "scope": "read write"
+  }
+}
+```
+
+---
+
+## Configuracao de Permissoes
+
+Controle permissoes de ferramentas:
+
+```json
+{
+  "permission": {
+    "bash": "ask",
+    "edit": "allow",
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "websearch": "deny"
+  }
+}
+```
+
+### Acoes de Permissao
+
+| Acao | Descricao |
+|------|-----------|
+| `ask` | Solicitar aprovacao do usuario (padrao) |
+| `allow` | Aprovar automaticamente sem perguntar |
+| `deny` | Bloquear uso da ferramenta |
+
+### Permissoes Baseadas em Padrao
+
+Especifique permissoes por padrao:
+
+```json
+{
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "ls *": "allow",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "*": "ask",
+      "*.md": "allow"
+    }
+  }
+}
+```
+
+### Chaves de Permissao Disponiveis
+
+| Chave | Descricao |
+|-------|-----------|
+| `read` | Leitura de arquivos |
+| `edit` | Edicao/escrita de arquivos |
+| `glob` | Correspondencia de padroes de arquivo |
+| `grep` | Busca de conteudo |
+| `list` | Listagem de diretorios |
+| `bash` | Execucao de comandos |
+| `task` | Execucao de tarefas |
+| `websearch` | Buscas na web |
+| `webfetch` | Busca de URLs |
+| `lsp` | Operacoes LSP |
+| `external_directory` | Acesso fora do projeto |
+
+---
+
+## Keybindings
+
+Personalize atalhos de teclado:
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "app_exit": "ctrl+c,ctrl+d",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "input_submit": "return",
+    "input_newline": "shift+return,ctrl+return"
+  }
+}
+```
+
+### Formato de Tecla
+
+- Tecla unica: `ctrl+c`, `escape`, `return`
+- Multiplos bindings: `ctrl+c,ctrl+d` (separados por virgula)
+- Sequencias de lider: `<leader>n` (usa a tecla lider)
+- Desabilitar: `none`
+
+---
+
+## Configuracoes da TUI
+
+Configure a interface de terminal:
+
+```json
+{
+  "tui": {
+    "scroll_speed": 1.0,
+    "scroll_acceleration": {
+      "enabled": true
+    },
+    "diff_style": "auto"
+  }
+}
+```
+
+| Opcao | Tipo | Descricao |
+|-------|------|-----------|
+| `scroll_speed` | number | Multiplicador de velocidade de rolagem |
+| `scroll_acceleration` | object | Configuracoes de aceleracao |
+| `diff_style` | "auto"/"stacked" | Estilo de renderizacao de diff |
+
+---
+
+## Configuracao do Servidor
+
+Configure o servidor de API:
+
+```json
+{
+  "server": {
+    "port": 4096,
+    "hostname": "localhost",
+    "mdns": true,
+    "cors": ["https://example.com"]
+  }
+}
+```
+
+---
+
+## Plugins e Hooks
+
+O Cyberstrike nao usa um sistema de hooks baseado em configuracao. Hooks de automacao e ciclo de vida sao implementados como **plugins** — modulos JavaScript/TypeScript que se inscrevem em eventos como `tool.execute.before`, `tool.execute.after` ou `permission.ask`.
+
+Registre plugins por nome. Eles sao resolvidos do npm ou de um diretorio local `{plugin,plugins}/` dentro de `.cyberstrike/`:
+
+```json
+{
+  "plugin": ["my-plugin", "@scope/another-plugin"]
+}
+```
+
+Consulte [Hooks e Plugins](/docs/hooks) para a lista completa de eventos e o guia de autoria.
+
+### Opcoes Experimentais
+
+O bloco `experimental` expoe funcionalidades opt-in:
+
+```json
+{
+  "experimental": {
+    "batch_tool": true,
+    "openTelemetry": false,
+    "continue_loop_on_deny": false,
+    "mcp_timeout": 5000
+  }
+}
+```
+
+| Opcao | Tipo | Descricao |
+|-------|------|-----------|
+| `disable_paste_summary` | boolean | Desabilitar o resumo de colagem |
+| `batch_tool` | boolean | Habilitar a ferramenta de lote |
+| `openTelemetry` | boolean | Habilitar spans OpenTelemetry para chamadas AI SDK |
+| `primary_tools` | string[] | Ferramentas disponiveis apenas para agentes primarios |
+| `continue_loop_on_deny` | boolean | Continuar o loop do agente quando uma chamada de ferramenta e negada |
+| `mcp_timeout` | number | Timeout (ms) para requisicoes MCP |
+
+---
+
+## Configuracao de Compartilhamento
+
+Controle o compartilhamento de sessoes:
+
+```json
+{
+  "share": "manual"
+}
+```
+
+| Valor | Descricao |
+|-------|-----------|
+| `manual` | Compartilhar apenas via comandos |
+| `auto` | Auto-compartilhar novas sessoes |
+| `disabled` | Desabilitar todo compartilhamento |
+
+---
+
+## Configuracoes de Compactacao
+
+Configure a compactacao de contexto:
+
+```json
+{
+  "compaction": {
+    "auto": true,
+    "prune": true
+  }
+}
+```
+
+| Opcao | Descricao |
+|-------|-----------|
+| `auto` | Auto-compactar quando o contexto esta cheio |
+| `prune` | Podar saidas antigas de ferramentas |
+
+---
+
+## Variaveis de Ambiente
+
+### Variaveis de Configuracao
+
+| Variavel | Descricao |
+|----------|-----------|
+| `CYBERSTRIKE_CONFIG` | Caminho personalizado do arquivo de configuracao |
+| `CYBERSTRIKE_CONFIG_CONTENT` | Configuracao JSON inline |
+| `CYBERSTRIKE_CONFIG_DIR` | Diretorio de configuracao adicional |
+| `CYBERSTRIKE_DISABLE_PROJECT_CONFIG` | Ignorar configuracao do projeto |
+| `CYBERSTRIKE_PERMISSION` | Sobrescrita de permissoes em JSON |
+
+### Chaves de API de Provedores
+
+| Variavel | Provedor |
+|----------|----------|
+| `ANTHROPIC_API_KEY` | Anthropic |
+| `OPENAI_API_KEY` | OpenAI |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google (Gemini) |
+| `OPENROUTER_API_KEY` | OpenRouter |
+| `AWS_ACCESS_KEY_ID` | AWS Bedrock |
+| `AZURE_API_KEY` | Azure OpenAI |
+
+### Flags de Comportamento
+
+| Variavel | Descricao |
+|----------|-----------|
+| `CYBERSTRIKE_AUTO_SHARE` | Auto-compartilhar sessoes |
+| `CYBERSTRIKE_DISABLE_AUTOCOMPACT` | Desabilitar auto-compactacao |
+| `CYBERSTRIKE_DISABLE_PRUNE` | Desabilitar poda de saidas |
+
+---
+
+## Substituicao de Variaveis
+
+### Variaveis de Ambiente
+
+Referencie variaveis de ambiente na configuracao:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### Referencias de Arquivo
+
+Inclua conteudo de arquivos:
+
+```json
+{
+  "instructions": ["{file:./SECURITY.md}"]
+}
+```
+
+Suporta:
+- Caminhos relativos: `{file:./path/to/file}`
+- Caminhos absolutos: `{file:/absolute/path}`
+- Diretorio home: `{file:~/path/from/home}`
+
+---
+
+## Configuracao LSP
+
+Configure o Language Server Protocol:
+
+```json
+{
+  "lsp": {
+    "typescript": {
+      "command": ["typescript-language-server", "--stdio"],
+      "extensions": [".ts", ".tsx"]
+    },
+    "rust": {
+      "disabled": true
+    }
+  }
+}
+```
+
+Defina `lsp: false` para desabilitar todas as funcionalidades LSP.
+
+---
+
+## Configuracao de Formatador
+
+Configure formatadores de codigo:
+
+```json
+{
+  "formatter": {
+    "prettier": {
+      "command": ["prettier", "--write"],
+      "extensions": [".ts", ".tsx", ".js", ".jsx"]
+    },
+    "rustfmt": {
+      "disabled": true
+    }
+  }
+}
+```
+
+Defina `formatter: false` para desabilitar todos os formatadores.
+
+---
+
+## Exemplo Completo
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "small_model": "anthropic/claude-haiku-4-5-20251001",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike",
+  "share": "manual",
+  "autoupdate": "notify",
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "timeout": 300000
+      }
+    }
+  },
+
+  "agent": {
+    "web-application": {
+      "model": "anthropic/claude-opus-4-20250514",
+      "steps": 100
+    }
+  },
+
+  "permission": {
+    "bash": "ask",
+    "edit": "allow",
+    "read": "allow"
+  },
+
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "@modelcontextprotocol/server-filesystem", "."],
+      "enabled": true
+    }
+  },
+
+  "keybinds": {
+    "leader": "ctrl+x"
+  },
+
+  "compaction": {
+    "auto": true,
+    "prune": true
+  }
+}
+```

@@ -1,0 +1,175 @@
+---
+title: 로컬 MCP 서버
+description: Cyberstrike를 위한 로컬 MCP 서버 구성
+sidebar:
+  order: 3
+  label: 로컬 서버
+---
+
+로컬 MCP 서버는 stdio를 통해 통신하는 자식 프로세스로 머신에서 실행됩니다. 시스템에서 직접 도구를 실행하려는 사용자를 위한 [Bolt](/docs/mcp/bolt)의 대안입니다.
+
+<Aside variant="tip">
+  **보안 도구에는 Bolt를 권장합니다.** 로컬 MCP는 각 도구를 직접 설치해야 합니다. 사전 설치된 보안 도구 플러그인이 포함된 권장 접근 방식은 [Bolt](/docs/mcp/bolt)를 참조하세요.
+</Aside>
+
+{/* Screenshot - Local MCP server configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: local-mcp-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">cyberstrike.json의 로컬 MCP 서버 구성</p>
+</div>
+
+## 로컬 MCP를 사용할 때
+
+- **오프라인 환경** — 네트워크 접근 불필요
+- **낮은 지연** — stdio를 통한 직접 프로세스 통신
+- **커스텀 도구** — 자체 MCP 서버
+- **프라이버시** — 데이터가 머신을 떠나지 않음
+
+Cyberstrike는 기본적으로 몇 개의 로컬 MCP 서버를 활성화하여 제공합니다: `github-security`, `cve`, `osint`. 사용자의 구성이 이 위에 병합됩니다.
+
+## 구성 스키마
+
+로컬 서버는 서버 이름으로 키가 지정된 평면 `mcp` 맵의 하나의 항목입니다:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "mcp": {
+    "my-tools": {
+      "type": "local",
+      "command": ["npx", "-y", "my-mcp-server"],
+      "environment": { "API_KEY": "{env:MY_API_KEY}" },
+      "enabled": true,
+      "timeout": 5000
+    }
+  }
+}
+```
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `type` | `"local"` | 필수. stdio 자식 프로세스 서버를 선택합니다. |
+| `command` | `string[]` | 필수. 명령과 **인수를** 하나의 배열로. |
+| `environment` | object | 선택. 프로세스의 추가 환경 변수. |
+| `enabled` | boolean | 선택. 실행 시 서버 시작 (기본값: true). |
+| `timeout` | number | 선택. 요청 타임아웃 ms (기본값: 5000). |
+
+<Aside variant="caution">
+  `mcp` 객체는 서버 이름으로 키가 지정된 **평면 맵**입니다 — `servers` 래퍼가 없습니다. `command`는 단일 배열(명령 + 인수)이며; 별도의 `args`, `cwd`, `autoStart`, `restart` 필드는 없습니다. 알 수 없는 키는 거부됩니다.
+</Aside>
+
+## TUI를 통해 추가
+
+로컬 서버를 추가하는 가장 쉬운 방법은 TUI에서 `/mcps` 명령을 사용하는 것입니다.
+
+`/mcps`를 입력하여 MCP 관리자를 엽니다. 상태(`✓` 활성 / `○` 비활성)와 함께 구성된 서버를 나열합니다. **space**로 서버를 토글하고, **a**로 추가하고, **Enter**로 선택한 항목에 대해 동작합니다.
+
+로컬 서버를 추가하려면: **a** 누르기 → **Local** 선택 → **명령** 입력(예: `npx my-mcp-server`) → 선택적으로 **환경 변수** 추가(`KEY=VALUE, KEY2=VALUE2`) → 자동 생성된 **이름** 확인. Cyberstrike가 저장 전에 연결을 테스트하며; 실패하면 서버가 추가되지 않습니다.
+
+TUI는 위에 표시된 스키마와 정확히 동일하게 기록합니다.
+
+## 예시
+
+### Node.js 서버
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/path/to/allow"]
+    }
+  }
+}
+```
+
+### Python 서버
+
+```json
+{
+  "mcp": {
+    "python-tools": {
+      "type": "local",
+      "command": ["python", "-m", "mcp_server"]
+    }
+  }
+}
+```
+
+### 바이너리 또는 Docker
+
+`command`가 전체 argv이므로, 바이너리를 직접 실행하거나 Docker로 래핑할 수 있습니다 — 특별한 필드가 필요하지 않습니다:
+
+```json
+{
+  "mcp": {
+    "docker-tools": {
+      "type": "local",
+      "command": ["docker", "run", "-i", "--rm", "--network=none", "mcp-tools:latest"]
+    }
+  }
+}
+```
+
+## 환경 변수
+
+`environment`로 서버 프로세스에 변수를 전달합니다. 비밀을 하드코딩하는 대신 `{env:VAR}`를 사용하여 쉘의 변수를 참조합니다:
+
+```json
+{
+  "mcp": {
+    "api-tools": {
+      "type": "local",
+      "command": ["node", "server.js"],
+      "environment": {
+        "API_KEY": "{env:MY_API_KEY}",
+        "DEBUG": "mcp:*"
+      }
+    }
+  }
+}
+```
+
+## 활성화 및 비활성화
+
+`enabled: false`로 서버를 구성된 상태로 유지하되 비활성화합니다 (또는 `/mcps` 대화상자에서 토글):
+
+```json
+{
+  "mcp": {
+    "heavy-tools": {
+      "type": "local",
+      "command": ["node", "server.js"],
+      "enabled": false
+    }
+  }
+}
+```
+
+## 느린 시작 서버
+
+5초 기본값보다 응답이 느린 서버의 경우 `timeout`(밀리초)을 올립니다:
+
+```json
+{
+  "mcp": {
+    "slow-tools": {
+      "type": "local",
+      "command": ["node", "server.js"],
+      "timeout": 30000
+    }
+  }
+}
+```
+
+## 문제 해결
+
+- **서버가 시작되지 않음** — `command`의 첫 번째 요소가 존재하고 실행 가능한지, 의존성이 설치되어 있는지 확인합니다. `cyberstrike mcp debug <name>`으로 연결을 검사합니다.
+- **연결 타임아웃** — `timeout`을 올리거나, 서버가 `tools/list`에 빠르게 응답하는지 확인합니다.
+- **구성 거부** — `mcp` 스키마는 엄격합니다; `type` + `command`(배열)로 평면 맵을 사용하고 알 수 없는 키가 없는지 확인합니다.
+
+## 관련 문서
+
+- [Bolt / MCP 개요](/docs/mcp) - 아키텍처 및 개념
+- [Bolt](/docs/mcp/bolt) - 컨테이너 기반 보안 도구 (권장)
+- [원격 서버](/docs/mcp/remote-servers) - 원격 MCP 구성
+- [서버 만들기](/docs/mcp/creating-servers) - 커스텀 서버 빌드

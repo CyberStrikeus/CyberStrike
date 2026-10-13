@@ -1,215 +1,133 @@
 ---
-title: First Security Scan
-description: Run your first security assessment with Cyberstrike
+title: First Web Application Assessment
+description: Walk through a full web application security assessment with Cyberstrike
 sidebar:
   order: 4
-  label: First Scan
+  label: First Assessment
 ---
 
-This guide walks you through running your first security scan with Cyberstrike, from launching the TUI to interpreting results.
+This guide walks you through a real web application assessment — from launching Cyberstrike to triaged vulnerability findings. We'll test a web app with two user roles (admin and regular user) to find authorization, injection, and logic flaws.
 
-## Launching Cyberstrike
-
-Start Cyberstrike in your target directory:
+## 1. Launch Cyberstrike
 
 ```bash
-cd /path/to/target
 cyberstrike
 ```
 
-The terminal user interface (TUI) displays:
+The TUI opens with the `cyberstrike` primary agent loaded, ready for input.
 
-- **Input prompt** at the bottom for commands
-- **Response area** in the center for AI output
-- **Status bar** showing model and token usage
+## 2. Start a Session
 
-## Agents
-
-You run the `cyberstrike` primary agent (the default). It automatically delegates to specialized subagents — `web-application`, `cloud-security`, `internal-network`, `mobile-application`, `proxy-agent` — based on what the assessment needs. Just describe the target and goal:
-
-```bash
-cyberstrike run "test example.com for OWASP Top 10 issues"
-```
-
-The `--agent` flag selects the *primary* agent only (`cyberstrike` built-in, or a custom one you define). See [Security Agents](/docs/agents) for what each subagent does.
-
-## Basic Reconnaissance
-
-Start with information gathering:
+Type anything to start a session. Describe what you're testing:
 
 ```
-> Perform reconnaissance on example.com
+> I'm testing https://app.example.com — it's a SaaS platform with admin and regular user roles.
+  I have credentials for both. Let's find auth bypass, IDOR, injection, and business logic issues.
 ```
 
-The agent will:
+The agent acknowledges and may ask clarifying questions about scope, excluded areas, or additional context.
 
-1. Enumerate subdomains
-2. Identify technologies
-3. Discover endpoints
-4. Map the attack surface
+## 3. Rename the Session
 
-## Web Application Scan
-
-For web application testing:
+Press `Ctrl+R` to rename the session to something meaningful:
 
 ```
-> Launch the browser and scan https://target.com for vulnerabilities
+example-com-web-assessment
 ```
 
-The agent will:
+This helps you find it later in `/sessions`.
 
-1. Launch browser with traffic capture
-2. Spider the application
-3. Test for common vulnerabilities
-4. Report findings with evidence
+## 4. Launch HackBrowser
 
-### Example Session
+Run the `/hackbrowser` slash command. A launch dialog opens with fields for:
 
-```
-> Navigate to https://target.com/login and test for SQL injection
+- **Target URL** — enter `https://app.example.com`
+- **Credentials** — add two: `userA` (admin) and `userB` (regular user)
+- **Scope** — defaults to `*.example.com`, adjust if the API lives on a different domain
+- **Steps** — how many pages to crawl (default 50)
 
-[Launching browser...]
-[Navigating to login page...]
-[Testing username field...]
-[Testing password field...]
+Confirm the dialog. Since you defined credentials, HackBrowser opens in visible mode.
 
-FINDING: SQL Injection
-━━━━━━━━━━━━━━━━━━━━━━━━
-WSTG-ID: WSTG-INPV-05
-Location: POST /api/login
-Parameter: username
-Payload: admin' OR '1'='1 --
-Severity: High (CVSS 8.6)
-Evidence: Response contains SQL error message
-```
+## 5. Login as userA
 
-## Quick Scan Mode
+A Chromium browser window opens — this is HackBrowser, with a built-in telemetry extension that provides a UI panel overlay on every page. Log in manually as **userA** (the admin account).
 
-Run a single command without entering interactive mode:
+Once logged in, press the **Record** button in the HackBrowser panel. This starts the **AINavigator** — the LLM-driven crawl session. The AI reads the page's accessibility tree, decides which links to follow, which forms to fill, and which buttons to click, navigating the app autonomously as userA.
 
-```bash
-cyberstrike run "scan example.com for open ports and services"
-```
+## 6. Login as userB
 
-With file attachment:
+A second browser window opens automatically for **userB** (the regular user). Log in manually with userB's credentials, then press **Record** in its panel.
 
-```bash
-cyberstrike run "analyze this code for vulnerabilities" -f src/auth.ts
-```
+Now HackBrowser is crawling the application with both roles. Every HTTP request is tagged with the credential that made it, so the pipeline knows which role accessed which endpoint.
 
-## Understanding Output
+## 7. What Happens Next
+
+While HackBrowser crawls, the rest of the harness is already working:
+
+**Traffic capture** — Every request/response pair flows into [Vortex](/docs/features/vortex) with full headers, body, and UI context (which form fields were readonly, hidden, or disabled at the moment the request fired).
+
+**Signal generation** — Vortex applies rules against the captured traffic and generates signals: authentication patterns, hidden parameters, suspicious response shapes, role-specific endpoint access.
+
+**WSTG dispatch** — The `wstg-agent` reads the signals and dispatches specialist agents. A request with a user ID in the path triggers `wstg-authorization` for IDOR testing. A POST with form inputs triggers `wstg-input-validation` for injection. A login endpoint triggers `wstg-authentication`.
+
+**Cross-role comparison** — Because both userA and userB crawled the same app, the pipeline compares which endpoints each role reached, which UI elements were visible to each, and whether role boundaries hold when requests are replayed with the other credential.
+
+**Escalation** — After specialists finish, the `escalation-hunter` runs across all findings to chain them — a medium IDOR combined with a low rate-limit bypass might escalate to a critical account takeover.
+
+**Triage** — The `triage` agent independently replays HTTP evidence for each draft finding. Only findings confirmed by replay are promoted to "triaged" status. False positives are rejected. Ambiguous findings stay as drafts for your review.
+
+## 8. Review Findings
+
+Once the crawl completes and testing finishes, review the results:
+
+| Command | What it shows |
+|---------|---------------|
+| `/vulnerabilities` | All findings with severity, status, and evidence |
+| `/web` | Captured endpoints, roles, credentials, and objects |
+| `/methodology` | WSTG coverage — which categories were tested, which are pending |
+| `/report` | Generate a structured report |
 
 ### Finding Format
 
-When a vulnerability is recorded for a session, it uses the following fields (matching the agent’s `report_vulnerability` input and the stored session record):
-
-**Required**
-
-- `title` — Short name of the finding
-- `severity` — One of: `critical`, `high`, `medium`, `low`, `info`
-- `description` — Detailed explanation of the finding
-
-**Optional**
-
-- `id` — Assigned when the finding is persisted in a session
-- `cwe_id` — CWE identifier when applicable (e.g. `CWE-79`)
-- `file` — Path to the affected file
-- `line_start` / `line_end` — Line range in that file
-- `steps_to_reproduce` — Numbered steps to reproduce
-- `poc` — Proof of concept (steps, request, or description)
-- `business_impact` — Impact on the business
-- `recommendation` — Fix or mitigation guidance
-- `status` — `open`, `fixed`, or `ignored` (default `open`)
-- `message_id` — Link to the chat message that reported the finding, when set
-- `time` — `created` and `updated` timestamps (milliseconds), when persisted
-
-Example layout (illustrative):
+Each finding includes:
 
 ```
-FINDING: [title]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Severity: [critical | high | medium | low | info]
-Description: [description]
-CWE ID: [cwe_id, optional]
-File: [file, optional]
-Lines: [line_start–line_end, optional]
-Steps to reproduce: [steps_to_reproduce, optional]
-Proof of concept: [poc, optional]
-Business impact: [business_impact, optional]
-Recommendation: [recommendation, optional]
-Status: [open | fixed | ignored]
+FINDING: IDOR in User Profile API
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Severity: High
+CWE: CWE-639
+Description: GET /api/users/{id} returns full profile data for any user ID
+             when accessed with userB credentials (regular user).
+Evidence: Replayed GET /api/users/1 with userB token → 200, body contains
+          admin user's email and phone number.
+Status: triaged (verified by replay)
+Recommendation: Enforce ownership check — users should only access their own profile.
 ```
 
 ### Severity Levels
 
-| Level | CVSS | Description |
-|-------|------|-------------|
-| Critical | 9.0-10.0 | Immediate exploitation risk |
-| High | 7.0-8.9 | Significant security impact |
-| Medium | 4.0-6.9 | Moderate risk |
-| Low | 0.1-3.9 | Minor security concern |
-| Info | 0.0 | Informational finding |
+| Level | CVSS | Meaning |
+|-------|------|---------|
+| Critical | 9.0–10.0 | Immediate exploitation risk |
+| High | 7.0–8.9 | Significant security impact |
+| Medium | 4.0–6.9 | Moderate risk |
+| Low | 0.1–3.9 | Minor concern |
+| Info | 0.0 | Informational |
 
-## Saving Results
+## 9. Export and Share
 
-### Export Session
-
-```
-/share
-```
-
-Creates a shareable link to the session.
-
-### Export HAR File
-
-For browser-based testing:
-
-```
-> Export the captured traffic to HAR file
-```
-
-### Memory Storage
-
-Save important findings to memory:
-
-```
-> Remember that the target uses PostgreSQL 14.2 on port 5432
-```
-
-## Common Scan Types
-
-### Subdomain Enumeration
-
-```
-> Enumerate all subdomains for target.com
-```
-
-### Port Scanning
-
-```
-> Scan 10.0.0.0/24 for open ports
-```
-
-### Vulnerability Scanning
-
-```
-> Run nuclei templates against https://target.com
-```
-
-### API Testing
-
-```
-> Test the REST API at https://api.target.com for OWASP Top 10
-```
+| Command | Action |
+|---------|--------|
+| `/report` | Generate a pentest report with all findings |
+| `/share` | Create a shareable session link |
+| `/export` | Export the session transcript |
 
 ## Next Steps
 
-After your first scan:
-
-1. Review [Security Agents](/docs/agents) for specialized testing
-2. Learn about [Tools](/docs/tools) for manual testing
-3. Configure [Permissions](/docs/permissions) for automation
-4. Set up [MCP servers](/docs/mcp) for extended capabilities
+- [Security Agents](/docs/agents) — Understand the WSTG pipeline and specialist agents
+- [Features](/docs/features) — Deep-dive into HackBrowser, Vortex, Bolt, MCP
+- [Configuration](/docs/configuration) — Customize scopes, permissions, and defaults
+- [Slash Commands](/docs/slash-commands) — Full command reference
 
 <Aside variant="tip">
   Use `/compact` to summarize long sessions and continue testing without losing context.

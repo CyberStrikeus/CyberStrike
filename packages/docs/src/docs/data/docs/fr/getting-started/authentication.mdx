@@ -1,0 +1,211 @@
+---
+title: Authentification
+description: "Configurer les identifiants du fournisseur IA pour Cyberstrike"
+sidebar:
+  order: 3
+  label: Authentification
+---
+
+Cyberstrike necessite une authentification aupres d'au moins un fournisseur IA pour fonctionner. Ce guide couvre la configuration des identifiants pour les fournisseurs pris en charge.
+
+## Connecter un fournisseur
+
+La methode la plus simple pour s'authentifier -- executez dans le TUI :
+
+```
+/connect
+```
+
+Selectionnez votre fournisseur dans le menu interactif :
+
+```
+? Select provider
+❯ cyberstrike (recommended)
+  anthropic (Claude Max or API key)
+  github-copilot
+  openai (ChatGPT Plus/Pro or API key)
+  google
+  openrouter
+  …
+```
+
+La liste est construite dynamiquement a partir du catalogue de modeles et ordonnee par priorite, les entrees exactes peuvent donc varier. C'est un prompt avec auto-completion, pas un menu fixe.
+
+## Configuration par fournisseur
+
+### Anthropic
+
+1. Obtenez votre cle API depuis [console.anthropic.com](https://console.anthropic.com)
+2. Executez `/connect`, selectionnez **Anthropic**, entrez votre cle API
+
+### OpenAI
+
+1. Obtenez votre cle API depuis [platform.openai.com](https://platform.openai.com)
+2. Executez `/connect`, selectionnez **OpenAI**, entrez votre cle API
+
+### GitHub Copilot
+
+1. Ayez un abonnement GitHub Copilot actif
+2. Executez `/connect`, selectionnez **Login with GitHub Copilot**
+3. Autorisez via le flux OAuth dans le navigateur -- aucune cle API necessaire
+
+Voir [GitHub Copilot](/docs/providers/github-copilot) pour les details.
+
+### OpenRouter
+
+OpenRouter donne acces a plusieurs modeles avec un niveau gratuit :
+
+1. Obtenez votre cle API depuis [openrouter.ai/keys](https://openrouter.ai/keys)
+2. Executez `/connect`, selectionnez **OpenRouter**, entrez votre cle API
+
+### Google Gemini
+
+1. Obtenez votre cle API depuis [ai.google.dev](https://ai.google.dev)
+2. Executez `/connect`, selectionnez **Google**, entrez votre cle API
+
+### Ollama (local)
+
+Ollama ne necessite pas de cle API mais doit etre en cours d'execution localement :
+
+```bash
+# Demarrer Ollama
+ollama serve
+
+# Telecharger un modele
+ollama pull llama3.3
+```
+
+Utilisez ensuite `/models` pour selectionner un modele Ollama.
+
+## Variables d'environnement
+
+Definissez les identifiants via des variables d'environnement pour le CI/CD ou l'automatisation :
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+
+# Groq
+export GROQ_API_KEY="gsk_..."
+```
+
+Ajoutez-les a votre profil shell pour les conserver :
+
+```bash
+# ~/.bashrc ou ~/.zshrc
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+## Fichier de configuration
+
+Stockez les identifiants dans le fichier de configuration :
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="tip">
+  Utilisez la syntaxe `{env:NOM_VARIABLE}` pour referencer des variables d'environnement dans les fichiers de configuration.
+</Aside>
+
+## Gestion des identifiants
+
+### Voir le statut
+
+Utilisez `/status` dans le TUI pour voir les fournisseurs connectes et les identifiants actifs.
+
+### Changer de modele
+
+Utilisez `/models` pour passer d'un modele a l'autre parmi vos fournisseurs connectes. Ou definissez un modele par defaut dans la configuration :
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## Authentification entreprise
+
+### AWS Bedrock
+
+```bash
+# Configurer les identifiants AWS
+aws configure
+
+# Ou via l'environnement
+export AWS_ACCESS_KEY_ID="..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+```
+
+Puis executez `/connect` et selectionnez **Amazon Bedrock**.
+
+### Azure OpenAI
+
+```bash
+export AZURE_API_KEY="..."
+export AZURE_RESOURCE_NAME="your-resource"
+```
+
+### Google Vertex AI
+
+```bash
+gcloud auth application-default login
+```
+
+## Bonnes pratiques de securite
+
+1. **Ne commitez jamais les cles API** dans le controle de version
+2. **Utilisez des variables d'environnement** pour les valeurs sensibles
+3. **Effectuez une rotation reguliere des cles** pour la securite
+4. **Utilisez des cles a portee limitee** lorsque disponible
+5. **Surveillez l'utilisation** sur les tableaux de bord des fournisseurs
+
+## Depannage
+
+### Cle API invalide
+
+```
+Error: Invalid API key
+```
+
+1. Verifiez que la cle est correcte (pas d'espaces supplementaires)
+2. Verifiez que la cle n'a pas expire
+3. Assurez-vous que la facturation est active chez le fournisseur
+
+### Limites de debit
+
+```
+Error: Rate limit exceeded
+```
+
+1. Attendez et reessayez
+2. Verifiez les limites sur le tableau de bord du fournisseur
+3. Envisagez de mettre a niveau votre plan
+
+### Problemes reseau
+
+```
+Error: Connection refused
+```
+
+1. Verifiez la connexion internet
+2. Verifiez qu'aucun proxy/pare-feu ne bloque
+3. Essayez un reseau different

@@ -1,0 +1,115 @@
+---
+title: Bolt
+description: 容器化安全工具服务器，预装 30 多种工具
+sidebar:
+  order: 4
+  label: Bolt
+---
+
+Bolt 是一个容器化的 MCP 服务器，提供安全工具。它运行在 Docker 容器（Ubuntu 24.04）中，直接暴露每个工具——没有元工具，没有动态加载，直接调用您需要的工具即可。
+
+## 为什么选择 Bolt？
+
+| 特性 | 没有 Bolt | 有 Bolt |
+|------|-----------|---------|
+| 工具安装 | 每个工具手动安装 | 预装完毕 |
+| 平台支持 | 大多数工具仅限 Linux | 任何有 Docker 的平台 |
+| 隔离性 | 工具在您的系统上运行 | 在容器中沙盒化运行 |
+| 更新 | 手动 | `docker pull` |
+
+## 包含的内容
+
+Bolt 以两种方式暴露工具：
+
+- **7 个原生插件**——`subfinder`、`nmap`、`nuclei`、`httpx`、`ffuf`、`run-command`、`wordlist`
+- **约 26 个聚合的 stdio MCP 服务器**——`dnsx`、`amass`、`katana`、`sqlmap`、`wpscan`、`gobuster`、`masscan`、`hydra`、`hashcat`、`john`、`impacket` 等
+
+每个都是可直接调用的工具——代理在单个回合中调用它。
+
+## 快速开始
+
+### 1. 启动 Bolt 容器
+
+```bash
+docker run -d \
+  --name bolt \
+  --restart unless-stopped \
+  -p 3001:3001 \
+  -v bolt-data:/data \
+  -e MCP_ADMIN_TOKEN=$(openssl rand -hex 32) \
+  --cap-add NET_RAW \
+  --cap-add NET_ADMIN \
+  ghcr.io/cyberstrikeus/bolt:latest
+
+docker logs bolt | grep -i token
+```
+
+### 2. 与 Cyberstrike 配对
+
+在 TUI 中运行 `/bolt`，按 **a** 添加，输入 URL `http://localhost:3001`，并提供管理令牌。
+
+### 3. 使用工具
+
+直接输入您的任务——代理会自动调用 Bolt 工具：
+
+```
+> Run nmap against 192.168.1.1 with service detection
+> Use subfinder to enumerate subdomains of example.com
+> Scan https://target.com with nuclei
+```
+
+## 配置
+
+Bolt 服务器配置在 **`bolt` 键**下——不在 `mcp` 下：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "bolt": {
+    "local": {
+      "url": "http://localhost:3001",
+      "enabled": true,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Bolt **不是** `mcp` 条目。认证通过 Ed25519 配对处理，管理令牌仅在配对步骤中使用。
+</Aside>
+
+## 认证
+
+Bolt 使用 **Ed25519 请求签名**，通过一次性配对引导：
+
+1. 使用管理令牌 `POST /pair` → 获得配对码
+2. Cyberstrike 生成 Ed25519 密钥对
+3. `POST /pair/exchange` 携带配对码 + 客户端公钥 → 服务器公钥 + 客户端 ID
+4. 后续每个请求都使用客户端私钥**签名**
+
+管理令牌仅在步骤 1 中使用——它不会存储在配置中。
+
+## TUI 管理
+
+- **`/bolt`**——管理 Bolt 服务器（添加/配对、切换、移除）
+- **`/mcps`**——管理常规 MCP 服务器
+
+## 使用示例
+
+```
+> Use bolt to scan 192.168.1.0/24 for open ports and services   # nmap
+> Find all subdomains of example.com                            # subfinder
+> Scan https://target.com with nuclei                           # nuclei
+> Fuzz directories on https://target.com                        # ffuf
+> Run "dig +short example.com"                                  # run-command
+```
+
+## 故障排除
+
+- **连接被拒绝**——检查容器是否运行（`docker ps`）以及 `curl http://localhost:3001/health` 是否有响应。
+- **需要重新配对**——如果 Bolt URL 变更，通过 `/bolt` 重新配对。
+- **工具不可用**——确认服务器已在 `/bolt` 中连接，使用直连 API 模型。
+
+<Aside variant="danger">
+  仅对授权目标使用 Bolt 工具。未经授权的渗透测试是违法的。
+</Aside>

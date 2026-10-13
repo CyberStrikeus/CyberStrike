@@ -6,7 +6,11 @@ sidebar:
   label: Introduction
 ---
 
-Cyberstrike is an AI-powered penetration testing agent that automates security assessments. This guide covers installation, authentication, and running your first scan.
+Cyberstrike is an AI-augmented offensive security harness. You describe a target — a web app, an API, a network — and Cyberstrike runs the assessment. It picks the tools, dispatches the right agents, tests for vulnerabilities, and reports what it finds.
+
+Think of it as an AI pentester that works alongside you. You stay in control through a single conversational interface while the harness handles the heavy lifting: crawling, traffic analysis, injection testing, authorization checks, and finding chains across individual results.
+
+Under the hood, it brings together 100+ security tools, 15+ specialized agents, 65+ deterministic test scripts based on the OWASP WSTG, plus dedicated engines for [web crawling](/docs/features/hackbrowser), [traffic analysis](/docs/features/vortex), [containerized tools](/docs/features/bolt), and [external integrations](/docs/features/mcp).
 
 <div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
   <img src="/docs/images/gifs/g01-first-run.gif" alt="Cyberstrike installation and first run" className="w-full" />
@@ -80,7 +84,7 @@ iwr -useb https://cyberstrike.io/install.ps1 | iex
   Docker image is coming soon. For now, use npm or curl.
 </Aside>
 
-## Authenticating with an AI Provider
+## Connecting an AI Provider
 
 <div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
   <img src="/docs/images/gifs/g02-auth-login.gif" alt="Cyberstrike auth login flow" className="w-full" />
@@ -88,13 +92,14 @@ iwr -useb https://cyberstrike.io/install.ps1 | iex
 
 Cyberstrike requires an AI provider to function. The following providers are supported:
 
-| Provider | Free Tier | API Key Required |
-|----------|-----------|------------------|
-| OpenRouter | Yes | Yes |
-| Anthropic | No | Yes |
-| OpenAI | No | Yes |
-| Google Gemini | Yes | Yes |
-| Ollama | Yes (Local) | No |
+| Provider | Free Tier | Auth Method |
+|----------|-----------|-------------|
+| GitHub Copilot | With subscription | OAuth (no API key) |
+| OpenRouter | Yes | API Key |
+| Anthropic | No | API Key |
+| OpenAI | No | API Key |
+| Google Gemini | Yes | API Key |
+| Ollama | Yes (Local) | None |
 
 ### Setting Up Authentication
 
@@ -102,35 +107,23 @@ Cyberstrike requires an AI provider to function. The following providers are sup
   <img src="/docs/images/screenshots/s02-auth.jpg" alt="Cyberstrike model selection dialog" className="w-full" />
 </div>
 
-1. Run the authentication command:
-
-```bash
-cyberstrike auth login
-```
-
-2. Select your provider from the list:
+1. Launch Cyberstrike and run the connect command:
 
 ```
-? Select provider
-❯ OpenRouter (free tier available)
-  Anthropic (API key from console.anthropic.com)
-  OpenAI (ChatGPT Plus/Pro or API key)
-  Google (API key from ai.google.dev)
-  Ollama (local models)
-  Other
+/connect
 ```
 
-3. Enter your API key when prompted
+2. Select your provider from the list and enter your API key (or authorize via OAuth for GitHub Copilot)
 
-4. Verify your credentials:
+3. Switch models anytime with:
 
-```bash
-cyberstrike auth list
+```
+/models
 ```
 
 ### Using Environment Variables
 
-Set API keys as environment variables instead of storing them:
+Alternatively, set API keys as environment variables:
 
 ```bash
 # Anthropic
@@ -148,51 +141,56 @@ export OPENROUTER_API_KEY="sk-or-..."
 
 Add these to your shell profile (`~/.bashrc`, `~/.zshrc`) for persistence.
 
-## Running Your First Scan
+## Running Your First Assessment
 
-### Starting Interactive Mode
-
-Launch Cyberstrike in your target directory:
+### Launch
 
 ```bash
-cd /path/to/target
 cyberstrike
 ```
 
-The terminal user interface (TUI) appears with:
-- Input prompt at the bottom
-- Response area in the center
-- Status bar showing model and token usage
+The TUI appears with an input prompt, response area, and status bar.
 
 <div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
   <img src="/docs/images/screenshots/s03-tui-main.png" alt="Cyberstrike TUI main interface" className="w-full" />
 </div>
 
-### Executing a Quick Scan
+### Describe the Target
 
-Run a single command without entering interactive mode:
+Type your task directly. The harness decides what to run:
 
-```bash
-cyberstrike run "perform reconnaissance on example.com"
+```
+> Test https://app.example.com for OWASP Top 10 vulnerabilities
 ```
 
-### Specialized Agents
+What happens under the hood:
 
-Cyberstrike runs one primary agent — `cyberstrike` — which automatically delegates to specialized subagents based on the task. You don't select these by hand; the primary agent dispatches them through its task tool:
+1. The `cyberstrike` primary agent reads your goal
+2. `/hackbrowser` launches to crawl the target and capture HTTP traffic
+3. [Vortex](/docs/features/vortex) processes each request — applies rules, flags anomalies
+4. The `wstg-agent` dispatches specialist agents based on request signals
+5. 13 WSTG specialists test for injection, auth bypass, IDOR, session flaws, crypto issues, and more
+6. The `escalation-hunter` chains findings to detect compound vulnerabilities
+7. The `triage` agent independently verifies each finding by replaying HTTP evidence
+8. You get triaged findings with evidence, severity, and remediation
 
-| Subagent | Focus |
-|----------|-------|
-| `web-application` | Web-app security (OWASP WSTG) |
-| `cloud-security` | AWS / Azure / GCP / Kubernetes (CIS) |
-| `internal-network` | Network & Active Directory |
-| `mobile-application` | Mobile apps (MASTG / MASVS) |
-| `proxy-agent` | Testing proxy-captured web traffic |
+### What's in the Harness
 
-The `--agent` flag (and the `default_agent` config) selects the **primary** agent. Only `cyberstrike` ships built-in — you can define your own, see [Custom Agents](/docs/agents/custom-agents). Passing a subagent name falls back to the default with a warning.
+| Layer | What |
+|-------|------|
+| **Agents** | 15+ specialized agents — WSTG pipeline, triage, escalation, general, explore |
+| **Tools** | 100+ built-in tools — HTTP replay, injection probes, access probes, recon, code search |
+| **Skills** | 65+ deterministic WSTG test scripts loaded by specialists at runtime |
+| **Vortex** | HTTP traffic engine with DSL queries, rule matching, and signal correlation |
+| **HackBrowser** | AI-driven Chromium crawler with UI context capture |
+| **Bolt** | 30+ containerized security tools (nmap, nuclei, sqlmap, hydra, and more) |
+| **MCP** | 3 built-in servers (github-security, cve, osint) + any custom MCP server |
 
-## Basic Configuration
+You interact with one prompt. The harness orchestrates the rest.
 
-Create a `cyberstrike.json` file in your project directory to set default options:
+## Configuration
+
+Create a `cyberstrike.json` file in your project directory to set defaults:
 
 ```json title="cyberstrike.json"
 {
@@ -201,23 +199,34 @@ Create a `cyberstrike.json` file in your project directory to set default option
 }
 ```
 
-When you run `cyberstrike` in this directory, it automatically loads these settings. The example above uses Claude Sonnet as the default AI model, so you don't need to pass `--model` every time. The `cyberstrike` agent runs by default and delegates to specialized subagents as needed.
+When you run `cyberstrike` in this directory, it automatically loads these settings. You can also switch models anytime with `/models` in the TUI.
 
 ### Configuration Hierarchy
 
 Cyberstrike loads configuration from multiple sources in this order:
 
-1. Command line arguments (highest priority)
-2. Environment variables
-3. Project config (`cyberstrike.json`)
-4. User config (`~/.config/cyberstrike/cyberstrike.json`)
-5. Default values (lowest priority)
+1. Environment variables (highest priority)
+2. Project config (`cyberstrike.json`)
+3. User config (`~/.config/cyberstrike/cyberstrike.json`)
+4. Default values (lowest priority)
 
 For detailed configuration options, see the [Configuration Reference](/docs/configuration).
 
-## Keyboard Shortcuts
+## Key Slash Commands
 
-Learn these shortcuts for efficient navigation:
+| Command | Action |
+|---------|--------|
+| `/connect` | Connect an AI provider |
+| `/models` | Switch models |
+| `/hackbrowser` | Launch the autonomous web crawler |
+| `/bolt` | Manage Bolt security tool servers |
+| `/mcps` | Manage MCP servers |
+| `/vulnerabilities` | Review findings |
+| `/web` | Inspect captured web traffic |
+| `/report` | Generate a report |
+| `/help` | Show all commands |
+
+## Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
@@ -235,11 +244,11 @@ See [Keyboard Shortcuts](/docs/getting-started/keyboard-shortcuts) for the full 
 
 Continue learning with these guides:
 
-1. [Configuration Reference](/docs/configuration) - Customize Cyberstrike settings
-2. [AI Providers](/docs/providers) - Configure your preferred AI provider
-3. [Security Agents](/docs/agents) - Learn about specialized agents
-4. [CLI Commands](/docs/cli) - Complete command reference
+1. [Configuration Reference](/docs/configuration) — Customize Cyberstrike settings
+2. [AI Providers](/docs/providers) — Configure your preferred AI provider
+3. [Security Agents](/docs/agents) — Learn about specialized agents
+4. [Features](/docs/features) — HackBrowser, Vortex, Bolt, MCP
 
 <Aside variant="tip">
-  Join the community at [Discord](https://discord.gg/AbESxpk6) for support and updates.
+  Join the community at [Discord](https://discord.gg/dr97wVJVbn) for support and updates.
 </Aside>

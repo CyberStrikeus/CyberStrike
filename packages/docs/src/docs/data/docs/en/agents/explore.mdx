@@ -1,0 +1,45 @@
+---
+title: Explore Agent
+description: Fast read-only agent for codebase search, file lookup, and pattern matching
+sidebar:
+  order: 4
+  label: Explore
+---
+
+The `explore` agent is a fast, read-only agent specialized for searching codebases and file systems. It can find files by patterns, search code for keywords, and answer structural questions about the codebase.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Agent ID** | `explore` |
+| **Mode** | `subagent` |
+| **Tool Access** | Read-only (grep, glob, list, bash, read, web search) |
+
+## When It's Used
+
+The `cyberstrike` agent delegates to `explore` when it needs to:
+
+- Find files matching a pattern (e.g. `src/components/**/*.tsx`)
+- Search code for keywords or symbols (e.g. "API endpoints")
+- Answer questions about codebase structure
+- Quick lookups that don't require modification
+
+## Thoroughness Levels
+
+When delegating to `explore`, the calling agent specifies a thoroughness level:
+
+| Level | Behavior |
+|-------|----------|
+| **quick** | Basic targeted search — single location, first match |
+| **medium** | Moderate exploration — multiple locations |
+| **very thorough** | Comprehensive analysis across naming conventions and locations |
+
+## Restrictions
+
+The `explore` agent is strictly read-only. It cannot:
+
+- Write, edit, or create files
+- Execute destructive commands
+- Report vulnerabilities
+- Modify any state

@@ -1,0 +1,323 @@
+---
+title: グローバル設定
+description: すべてのプロジェクトに適用されるCyberstrikeの設定
+sidebar:
+  order: 3
+  label: グローバル設定
+---
+
+グローバル設定はすべてのプロジェクトにわたるすべてのCyberstrikeセッションのデフォルト動作を設定します。
+
+{/* TODO: Screenshot - Global configuration file */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: global-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">グローバル設定ファイルの場所</p>
+</div>
+
+## ファイルの場所
+
+グローバル設定はグローバル設定ディレクトリに配置します：
+
+```
+~/.config/cyberstrike/
+```
+
+`XDG_CONFIG_HOME` が設定されている場合、`$XDG_CONFIG_HOME/cyberstrike` に解決されます。
+
+## サポートされるファイル名
+
+以下のファイルがグローバル設定ディレクトリから読み込まれ、順番にマージされます：
+
+| ファイル | 形式 | 優先度 |
+|------|--------|----------|
+| `config.json` | JSON | 低（ベース、自動生成） |
+| `cyberstrike.json` | JSON | 中 |
+| `cyberstrike.jsonc` | コメント付きJSON | 高（推奨） |
+
+複数のファイルが存在する場合、すべて読み込まれ、後続のファイルが前のファイルの上にマージされます。
+
+### ディレクトリ構造
+
+```
+~/.config/cyberstrike/
+├── config.json          ← 自動生成されたグローバル設定
+├── cyberstrike.json     ← グローバル設定
+├── cyberstrike.jsonc    ← グローバル設定（推奨）
+├── agents/              ← カスタムエージェント（*.md）   （agent/ も可）
+├── commands/            ← カスタムコマンド（*.md） （command/ も可）
+└── plugins/             ← プラグイン（*.ts / *.js）  （plugin/ も可）
+```
+
+Cyberstrikeはホームフォルダ内の `~/.cyberstrike/` ディレクトリも `cyberstrike.json`/`cyberstrike.jsonc` および同じ `agents/`、`commands/`、`plugins/` サブフォルダをスキャンします。
+
+## グローバル設定の作成
+
+initコマンドはありません — ファイルを手動で作成してください：
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  // Cyberstrike グローバル設定
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## モデル設定
+
+### デフォルトモデル
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+形式：`provider/model`
+
+### スモールモデル
+
+セッションタイトル生成などの軽量タスクに使用します：
+
+```json
+{
+  "small_model": "anthropic/claude-haiku-4-5-20251001"
+}
+```
+
+## プロバイダー設定
+
+`provider` の下でプロバイダーを個別に設定します。`options` オブジェクトはプロバイダーSDKにそのまま渡されます：
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### プロバイダーの有効化 / 無効化
+
+```json
+{
+  "disabled_providers": ["ollama"],
+  "enabled_providers": ["anthropic", "openai"]
+}
+```
+
+`enabled_providers` が設定されている場合、そのプロバイダー**のみ**が読み込まれ、他はすべて無視されます。プロバイダー別の詳細は[AIプロバイダー](/docs/providers)を参照してください。
+
+## テーマ
+
+`theme` はインストール済みテーマの名前（文字列）です。デフォルトは `cyberstrike` です：
+
+```json
+{
+  "theme": "cyberstrike"
+}
+```
+
+TUIで `/themes` コマンド（または `<leader>t`）を使用してテーマを閲覧・切り替えできます。組み込みテーマには `cyberstrike`、`tokyonight`、`catppuccin`、`dracula`、`gruvbox`、`nord`、`github`、`monokai`、`matrix`、`rosepine`、`solarized` などがあります。
+
+## キーバインド
+
+### Leaderキー
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+x"
+  }
+}
+```
+
+### カスタムバインド
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "theme_list": "<leader>t",
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+アクションとデフォルトの完全なリストは[キーバインド](/docs/configuration/keybindings)を参照してください。
+
+## パーミッションのデフォルト
+
+パーミッションはツール名をアクション（`ask`、`allow`、`deny`）にマッピングするか、glob -> アクションのマップにマッピングします。allowリストとdenyリストの分離はありません — ツールキー**そのもの**がグルーピングです：
+
+```json
+{
+  "permission": {
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "bash": {
+      "*": "ask",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "*": "ask",
+      "~/.ssh/**": "deny"
+    }
+  }
+}
+```
+
+ワイルドカードは `*` と `?` のみサポートされます。完全なモデルとパーミッションキーのリストは[パーミッション](/docs/permissions)を参照してください。
+
+## MCPサーバー
+
+MCPサーバーは `mcp` の下にフラットマップとして宣言し、サーバー名をキーとします。ローカルサーバーは `type: "local"` と単一の `command` 配列（コマンド+引数）を使用します。リモートサーバーは `type: "remote"` と `url` を使用します：
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "~"],
+      "environment": { "DEBUG": "true" },
+      "enabled": true
+    },
+    "remote-api": {
+      "type": "remote",
+      "url": "https://api.example.com/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+Boltサーバーは `mcp` ではなくトップレベルの `bolt` キーの下に設定します。[Bolt / MCP](/docs/mcp)を参照してください。
+
+## デフォルトエージェント
+
+デフォルトエージェントを設定します（プライマリエージェントである必要があります。未設定または無効な場合は `cyberstrike` にフォールバックします）：
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+カスタムエージェントは設定ディレクトリ内の `agents/`（または `agent/`）ディレクトリから読み込まれます — [カスタムエージェント](/docs/agents/custom-agents)を参照してください。
+
+## コンパクション
+
+自動コンテキストコンパクションを制御します：
+
+```json
+{
+  "compaction": {
+    "auto": true,
+    "prune": true
+  }
+}
+```
+
+| オプション | 説明 |
+|--------|-------------|
+| `auto` | コンテキストがいっぱいのとき自動コンパクト（デフォルト：true） |
+| `prune` | 古いツール出力をプルーン（デフォルト：true） |
+
+## ログと更新
+
+```json
+{
+  "logLevel": "INFO",
+  "autoupdate": "notify"
+}
+```
+
+`logLevel` は `DEBUG`、`INFO`、`WARN`、`ERROR` のいずれか（デフォルト `INFO`）。`autoupdate` は `true`、`false`、`"notify"` を受け付けます。
+
+## 完全な例
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "small_model": "anthropic/claude-haiku-4-5-20251001",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike",
+  "share": "manual",
+  "autoupdate": "notify",
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+
+  "permission": {
+    "read": "allow",
+    "edit": { "*": "ask" },
+    "bash": { "*": "ask", "rm -rf *": "deny" }
+  },
+
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "."],
+      "enabled": true
+    }
+  },
+
+  "keybinds": { "leader": "ctrl+x" },
+  "compaction": { "auto": true, "prune": true }
+}
+```
+
+## バックアップ
+
+```bash
+cp ~/.config/cyberstrike/cyberstrike.jsonc ~/.config/cyberstrike/cyberstrike.jsonc.backup
+```
+
+## セキュリティに関する考慮事項
+
+### ファイルパーミッション
+
+```bash
+chmod 600 ~/.config/cyberstrike/cyberstrike.jsonc
+chmod 700 ~/.config/cyberstrike/
+```
+
+### 機密データ
+
+APIキーを直接保存しないでください — 代わりに環境変数を参照してください：
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  APIキーなどの機密データには常に環境変数参照（`{env:VAR}`）を使用してください。
+</Aside>
+
+## 関連ドキュメント
+
+- [設定リファレンス](/docs/configuration) - すべての設定オプション
+- [プロジェクト設定](/docs/configuration/project-config) - プロジェクトの設定
+- [環境変数](/docs/configuration/environment-variables) - 環境変数
+- [キーバインド](/docs/configuration/keybindings) - キーボードショートカット

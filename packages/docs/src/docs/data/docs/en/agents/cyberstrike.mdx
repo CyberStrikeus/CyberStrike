@@ -23,18 +23,13 @@ When you run `cyberstrike` without specifying an agent, the `cyberstrike` agent 
 
 ## Launch the Agent
 
-Since `cyberstrike` is the default agent, no flag is required:
+The `cyberstrike` agent is the default — it starts automatically when you launch:
 
 ```bash
-# Start with the default cyberstrike agent
 cyberstrike
-
-# Explicitly specify the agent
-cyberstrike --agent cyberstrike
-
-# One-time run
-cyberstrike run "scan target.example.com for web vulnerabilities"
 ```
+
+Switch agents anytime in the TUI with `/agents` or `<leader>a`.
 
 ## Capabilities
 
@@ -50,23 +45,17 @@ The `cyberstrike` agent has access to all available tools and is not restricted 
 
 ## Delegating to Specialized Agents
 
-When a task requires deep domain expertise, the `cyberstrike` agent can invoke specialized subagents:
+When a task requires deep domain expertise, the `cyberstrike` agent delegates to specialized subagents:
 
 | Subagent | When Used |
 |----------|-----------|
-| `web-application` | OWASP WSTG methodology, browser-based testing |
-| `cloud-security` | AWS, Azure, GCP infrastructure audits |
-| `internal-network` | Active Directory attacks, network pivoting |
-| `proxy-agent` | HTTP proxy-based vulnerability testing |
-| `general` | Research, multi-step parallel tasks |
-| `explore` | Codebase and file system exploration |
+| [`wstg-agent`](/docs/agents/wstg-agent) | OWASP WSTG web security pipeline — dispatches 13 specialist agents |
+| [`escalation-hunter`](/docs/agents/escalation-hunter) | Cross-cutting correlation — chains findings, escalates impact |
+| [`triage`](/docs/agents/triage) | Independent verification of draft vulnerability findings |
+| [`general`](/docs/agents/general) | Research, multi-step parallel tasks |
+| [`explore`](/docs/agents/explore) | Read-only codebase and file system search |
 
-Delegation happens automatically based on the task. You can also invoke agents directly with `@agent-name`:
-
-```
-@web-application test the login form for injection vulnerabilities
-@cloud-security audit the AWS S3 buckets for public access
-```
+Delegation happens automatically based on the task. The web security pipeline (WSTG agents) is triggered when HTTP traffic is captured via [HackBrowser](/docs/features/hackbrowser) or the [Chrome Extension](/docs/tools/chrome-extension).
 
 ## Permission Model
 
@@ -83,22 +72,19 @@ The `cyberstrike` agent uses the broadest permission set:
 ```
 You: Test the web application at https://app.example.com for common vulnerabilities
 
-Agent: I'll start with reconnaissance and then test for OWASP Top 10 vulnerabilities.
+Agent: I'll start with reconnaissance and then launch HackBrowser to crawl the app.
 
-[Fingerprinting web server...]
-Server: Apache/2.4.51
-Framework: PHP/Laravel
-Authentication: JWT-based
+[Launching /hackbrowser against https://app.example.com...]
+[Crawling 23 pages, capturing HTTP traffic...]
+[Dispatching wstg-config-deploy for server misconfiguration checks...]
+[Dispatching wstg-input-validation for injection testing...]
 
-[Launching web-application subagent for WSTG testing...]
-
-[Scanning with Nuclei...]
 Found 3 medium-severity findings:
 - Missing Content-Security-Policy header
 - Server version disclosure in headers
 - X-Frame-Options not set
 
-[Testing authentication...]
+[wstg-authentication testing login endpoint...]
 ⚠ FINDING: JWT Algorithm Confusion
 Location: Authorization header
 Severity: Critical (CVSS 9.8)
@@ -128,8 +114,7 @@ The `cyberstrike` agent is the default and requires no configuration. To explici
 
 ## Related Documentation
 
-- [Web Application Agent](/docs/agents/web-application) - Specialized OWASP WSTG testing
-- [Cloud Security Agent](/docs/agents/cloud-security) - Cloud infrastructure auditing
-- [Internal Network Agent](/docs/agents/internal-network) - Network and AD attacks
-- [Proxy Agent](/docs/agents/proxy-agent) - HTTP proxy-based testing
-- [Custom Agents](/docs/agents/custom-agents) - Create your own agents
+- [WSTG Agent](/docs/agents/wstg-agent) — Web security testing pipeline orchestrator
+- [Escalation Hunter](/docs/agents/escalation-hunter) — Cross-cutting correlation agent
+- [Triage Agent](/docs/agents/triage) — Finding verification
+- [Custom Agents](/docs/agents/custom-agents) — Create your own agents

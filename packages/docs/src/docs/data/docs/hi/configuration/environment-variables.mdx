@@ -1,0 +1,276 @@
+---
+title: पर्यावरण चर
+description: पर्यावरण चर का उपयोग करके Cyberstrike कॉन्फ़िगर करें
+sidebar:
+  order: 4
+  label: पर्यावरण चर
+---
+
+पर्यावरण चर प्रदाता क्रेडेंशियल और रनटाइम व्यवहार टॉगल कॉन्फ़िगर करते हैं — CI/CD और कंटेनरीकृत वातावरण के लिए उपयोगी।
+
+<Aside variant="info">
+  Cyberstrike मॉडल, एजेंट, या थीम जैसी सेटिंग पर्यावरण चर से **नहीं** पढ़ता। वे कॉन्फ़िग फ़ाइल में रहती हैं ([कॉन्फ़िगरेशन संदर्भ](/docs/configuration) देखें)। नीचे दिए गए `CYBERSTRIKE_*` चर क्रेडेंशियल, कॉन्फ़िग पथ, और व्यवहार टॉगल तक सीमित हैं।
+</Aside>
+
+{/* TODO: Screenshot - Environment variables in terminal */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: env-vars-terminal.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">टर्मिनल में पर्यावरण चर सेट करना</p>
+</div>
+
+## प्रदाता API कुंजियां
+
+प्रदाता कुंजियां SDK के मानक चर नामों का उपयोग करती हैं। पूरी सूची के लिए [AI प्रदाता](/docs/providers) देखें।
+
+### Anthropic
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-api03-..."
+```
+
+### OpenAI
+
+```bash
+export OPENAI_API_KEY="sk-proj-..."
+```
+
+### Google (Gemini)
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+# GEMINI_API_KEY भी स्वीकार किया जाता है
+```
+
+### OpenRouter
+
+```bash
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+### Groq
+
+```bash
+export GROQ_API_KEY="gsk_..."
+```
+
+### Azure OpenAI
+
+```bash
+export AZURE_RESOURCE_NAME="your-resource"
+export AZURE_API_KEY="..."
+```
+
+### AWS Bedrock
+
+```bash
+export AWS_ACCESS_KEY_ID="AKIA..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+# या बेयरर टोकन:
+export AWS_BEARER_TOKEN_BEDROCK="..."
+```
+
+## कॉन्फ़िग पथ चर
+
+| चर | विवरण |
+|----------|-------------|
+| `CYBERSTRIKE_CONFIG` | कस्टम कॉन्फ़िग फ़ाइल का पूरा पथ |
+| `CYBERSTRIKE_CONFIG_DIR` | स्कैन करने के लिए अतिरिक्त `.cyberstrike` डायरेक्टरी |
+| `CYBERSTRIKE_CONFIG_CONTENT` | इनलाइन JSON कॉन्फ़िग (फ़ाइल स्रोतों को ओवरराइड करता है) |
+| `CYBERSTRIKE_DISABLE_PROJECT_CONFIG` | प्रोजेक्ट कॉन्फ़िग लोड करना छोड़ने के लिए truthy सेट करें |
+| `CYBERSTRIKE_PERMISSION` | JSON स्ट्रिंग के रूप में अनुमति ओवरराइड |
+
+## व्यवहार फ़्लैग
+
+ये चर रनटाइम व्यवहार टॉगल करते हैं। बूलियन फ़्लैग truthy मान (`1`, `true`) पर सेट होने पर सक्षम होते हैं।
+
+| चर | विवरण |
+|----------|-------------|
+| `CYBERSTRIKE_AUTO_SHARE` | नए बनाए गए सत्र स्वचालित रूप से साझा करें |
+| `CYBERSTRIKE_DISABLE_AUTOUPDATE` | स्वचालित अपडेट अक्षम करें |
+| `CYBERSTRIKE_DISABLE_AUTOCOMPACT` | स्वचालित संदर्भ कॉम्पैक्शन अक्षम करें |
+| `CYBERSTRIKE_DISABLE_PRUNE` | पुराने टूल आउटपुट की प्रूनिंग अक्षम करें |
+| `CYBERSTRIKE_DISABLE_TERMINAL_TITLE` | टर्मिनल शीर्षक अपडेट न करें |
+| `CYBERSTRIKE_DISABLE_DEFAULT_PLUGINS` | बिल्ट-इन प्लगइन लोड करना छोड़ें |
+| `CYBERSTRIKE_DISABLE_LSP_DOWNLOAD` | LSP सर्वर डाउनलोड न करें |
+| `CYBERSTRIKE_DISABLE_MODELS_FETCH` | रिमोट मॉडल कैटलॉग फ़ेच न करें |
+| `CYBERSTRIKE_DISABLE_EXTERNAL_SKILLS` | बाहरी स्किल लोड करना छोड़ें |
+| `CYBERSTRIKE_ENABLE_EXA` | Exa-समर्थित वेब खोज सक्षम करें |
+| `CYBERSTRIKE_MODELS_URL` | मॉडल कैटलॉग URL ओवरराइड करें |
+| `CYBERSTRIKE_MODELS_PATH` | स्थानीय पथ से मॉडल कैटलॉग लोड करें |
+
+### सर्वर क्रेडेंशियल
+
+`cyberstrike serve` और `cyberstrike web` द्वारा उपयोग किया जाता है:
+
+```bash
+export CYBERSTRIKE_SERVER_PASSWORD="..."   # सर्वर शुरू करने के लिए आवश्यक
+export CYBERSTRIKE_SERVER_USERNAME="admin" # वैकल्पिक, डिफ़ॉल्ट मौजूद हैं
+```
+
+## कॉन्फ़िग में चर संदर्भित करना
+
+कॉन्फ़िग फ़ाइलें दो प्रतिस्थापन समर्थित करती हैं — और केवल ये दो:
+
+### पर्यावरण चर — `{env:VAR}`
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+`{env:VAR}` को `VAR` के मान से बदला जाता है, या सेट न होने पर खाली स्ट्रिंग से। शेल-शैली `${VAR}`, `$VAR`, और डिफ़ॉल्ट-मान सिंटैक्स (`{env:VAR:-default}`) **समर्थित नहीं** हैं।
+
+### फ़ाइल सामग्री — `{file:path}`
+
+```json
+{
+  "instructions": ["{file:./SECURITY.md}"]
+}
+```
+
+पथ कॉन्फ़िग फ़ाइल के सापेक्ष, निरपेक्ष, या होम डायरेक्टरी के लिए `~/` से शुरू हो सकते हैं।
+
+## ऑटोमेशन के लिए अनुमति ओवरराइड
+
+`cyberstrike run` (गैर-इंटरैक्टिव) किसी भी टूल कॉल को स्वचालित रूप से अस्वीकार करता है जो अन्यथा प्रॉम्प्ट करेगा। CI में टूल पूर्व-अनुमोदित करने के लिए, `CYBERSTRIKE_PERMISSION` के माध्यम से JSON अनुमति मैप पास करें:
+
+```bash
+export CYBERSTRIKE_PERMISSION='{"bash":"allow","edit":"allow","read":"allow"}'
+```
+
+मान कॉन्फ़िग `permission` फ़ील्ड के समान आकार का अनुसरण करता है। [अनुमतियां](/docs/permissions) देखें।
+
+## शेल कॉन्फ़िगरेशन
+
+### Bash / Zsh
+
+```bash title="~/.bashrc / ~/.zshrc"
+export ANTHROPIC_API_KEY="sk-ant-..."
+export CYBERSTRIKE_AUTO_SHARE=1
+```
+
+### Fish
+
+```fish title="~/.config/fish/config.fish"
+set -gx ANTHROPIC_API_KEY "sk-ant-..."
+set -gx CYBERSTRIKE_AUTO_SHARE 1
+```
+
+## .env फ़ाइलें
+
+```bash title=".env"
+ANTHROPIC_API_KEY=sk-ant-...
+CYBERSTRIKE_PERMISSION={"bash":"allow"}
+```
+
+```bash
+# लॉन्च करने से पहले लोड करें
+source .env && cyberstrike
+```
+
+<Aside variant="caution">
+  कभी भी `.env` फ़ाइलों को संस्करण नियंत्रण में कमिट न करें। `.env` को `.gitignore` में जोड़ें।
+</Aside>
+
+## CI/CD इंटीग्रेशन
+
+### GitHub Actions
+
+```yaml
+env:
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow","edit":"allow"}'
+
+steps:
+  - name: Security Scan
+    run: cyberstrike run "scan for vulnerabilities"
+```
+
+### GitLab CI
+
+```yaml
+variables:
+  CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow"}'
+
+security_scan:
+  script:
+    - cyberstrike run "analyze code for security issues"
+```
+
+## Docker
+
+### Docker Run
+
+```bash
+docker run -it \
+  -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+  -e CYBERSTRIKE_PERMISSION='{"bash":"allow"}' \
+  cyberstrike/cyberstrike
+```
+
+### Docker Compose
+
+```yaml title="docker-compose.yml"
+services:
+  cyberstrike:
+    image: cyberstrike/cyberstrike
+    environment:
+      - ANTHROPIC_API_KEY
+      - CYBERSTRIKE_AUTO_SHARE=1
+    env_file:
+      - .env
+```
+
+## प्राथमिकता क्रम
+
+कॉन्फ़िग स्रोत इस क्रम में मर्ज होते हैं (सबसे ऊंची जीतती है):
+
+```
+1. कमांड लाइन आर्गुमेंट
+2. एंटरप्राइज़ प्रबंधित कॉन्फ़िग
+3. CYBERSTRIKE_CONFIG_CONTENT (इनलाइन JSON)
+4. .cyberstrike/ डायरेक्टरी कॉन्फ़िग
+5. प्रोजेक्ट कॉन्फ़िग (cyberstrike.json / .jsonc)
+6. CYBERSTRIKE_CONFIG (कस्टम फ़ाइल)
+7. वैश्विक कॉन्फ़िग (~/.config/cyberstrike/)
+8. रिमोट .well-known/cyberstrike
+9. डिफ़ॉल्ट मान
+```
+
+विवरण के लिए [कॉन्फ़िगरेशन संदर्भ](/docs/configuration#configuration-hierarchy) देखें।
+
+## चर जांच
+
+```bash
+# सक्रिय Cyberstrike चर सूचीबद्ध करें
+env | grep CYBERSTRIKE
+
+# प्रदाता कुंजी सेट है यह जांचें (पूरी तरह प्रिंट किए बिना)
+echo "${ANTHROPIC_API_KEY:0:12}..."
+```
+
+## सुरक्षा
+
+1. कभी भी पूरी API कुंजियां इको न करें
+2. CI/CD में सीक्रेट्स प्रबंधन का उपयोग करें
+3. कुंजियां समय-समय पर बदलें
+4. `.env` अनुमतियां प्रतिबंधित करें: `chmod 600 .env`
+
+<Aside variant="tip">
+  प्रोडक्शन वातावरण के लिए HashiCorp Vault, AWS Secrets Manager, या 1Password CLI जैसे सीक्रेट्स मैनेजर का उपयोग करें।
+</Aside>
+
+## संबंधित दस्तावेज़
+
+- [कॉन्फ़िगरेशन संदर्भ](/docs/configuration) - सभी कॉन्फ़िगरेशन विकल्प
+- [प्रोजेक्ट कॉन्फ़िग](/docs/configuration/project-config) - प्रोजेक्ट सेटिंग
+- [वैश्विक कॉन्फ़िग](/docs/configuration/global-config) - वैश्विक सेटिंग
+- [प्रमाणीकरण](/docs/getting-started/authentication) - प्रमाणीकरण सेटअप

@@ -1,0 +1,211 @@
+---
+title: 认证
+description: 为 Cyberstrike 配置 AI 提供商凭据
+sidebar:
+  order: 3
+  label: 认证
+---
+
+Cyberstrike 需要至少一个 AI 提供商的认证才能运行。本指南介绍如何为支持的提供商设置凭据。
+
+## 连接提供商
+
+最简单的认证方式——在 TUI 中运行：
+
+```
+/connect
+```
+
+从交互式菜单中选择您的提供商：
+
+```
+? Select provider
+❯ cyberstrike (recommended)
+  anthropic (Claude Max or API key)
+  github-copilot
+  openai (ChatGPT Plus/Pro or API key)
+  google
+  openrouter
+  …
+```
+
+列表根据模型目录动态生成并按优先级排序，因此实际条目可能有所不同。这是一个自动补全提示，而非固定菜单。
+
+## 提供商设置
+
+### Anthropic
+
+1. 从 [console.anthropic.com](https://console.anthropic.com) 获取您的 API 密钥
+2. 运行 `/connect`，选择 **Anthropic**，输入您的 API 密钥
+
+### OpenAI
+
+1. 从 [platform.openai.com](https://platform.openai.com) 获取您的 API 密钥
+2. 运行 `/connect`，选择 **OpenAI**，输入您的 API 密钥
+
+### GitHub Copilot
+
+1. 需要有效的 GitHub Copilot 订阅
+2. 运行 `/connect`，选择 **Login with GitHub Copilot**
+3. 通过浏览器 OAuth 流程授权——无需 API 密钥
+
+详情请参阅 [GitHub Copilot](/docs/providers/github-copilot)。
+
+### OpenRouter
+
+OpenRouter 提供对多个模型的访问，并有免费层级：
+
+1. 从 [openrouter.ai/keys](https://openrouter.ai/keys) 获取您的 API 密钥
+2. 运行 `/connect`，选择 **OpenRouter**，输入您的 API 密钥
+
+### Google Gemini
+
+1. 从 [ai.google.dev](https://ai.google.dev) 获取您的 API 密钥
+2. 运行 `/connect`，选择 **Google**，输入您的 API 密钥
+
+### Ollama（本地）
+
+Ollama 不需要 API 密钥，但需要在本地运行：
+
+```bash
+# 启动 Ollama
+ollama serve
+
+# 拉取模型
+ollama pull llama3.3
+```
+
+然后使用 `/models` 选择 Ollama 模型。
+
+## 环境变量
+
+通过环境变量设置凭据，适用于 CI/CD 或自动化场景：
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+
+# Groq
+export GROQ_API_KEY="gsk_..."
+```
+
+添加到 shell 配置文件以持久保存：
+
+```bash
+# ~/.bashrc 或 ~/.zshrc
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+## 配置文件
+
+在配置文件中存储凭据：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="tip">
+  使用 `{env:VAR_NAME}` 语法在配置文件中引用环境变量。
+</Aside>
+
+## 管理凭据
+
+### 查看状态
+
+在 TUI 中使用 `/status` 查看已连接的提供商和活跃凭据。
+
+### 切换模型
+
+使用 `/models` 在任何已连接提供商的模型之间切换。或在配置中设置默认值：
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## 企业认证
+
+### AWS Bedrock
+
+```bash
+# 配置 AWS 凭据
+aws configure
+
+# 或通过环境变量
+export AWS_ACCESS_KEY_ID="..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+```
+
+然后运行 `/connect` 并选择 **Amazon Bedrock**。
+
+### Azure OpenAI
+
+```bash
+export AZURE_API_KEY="..."
+export AZURE_RESOURCE_NAME="your-resource"
+```
+
+### Google Vertex AI
+
+```bash
+gcloud auth application-default login
+```
+
+## 安全最佳实践
+
+1. **切勿将 API 密钥提交**到版本控制
+2. **使用环境变量**存储敏感值
+3. **定期轮换密钥**以确保安全
+4. **使用限定范围的密钥**（如果可用）
+5. **监控使用情况**在提供商控制面板上
+
+## 故障排除
+
+### API 密钥无效
+
+```
+Error: Invalid API key
+```
+
+1. 确认密钥正确（无多余空格）
+2. 检查密钥是否已过期
+3. 确保提供商的计费已激活
+
+### 速率限制
+
+```
+Error: Rate limit exceeded
+```
+
+1. 等待后重试
+2. 在提供商控制面板查看限制
+3. 考虑升级您的计划
+
+### 网络问题
+
+```
+Error: Connection refused
+```
+
+1. 检查网络连接
+2. 确认没有代理/防火墙阻止
+3. 尝试不同的网络

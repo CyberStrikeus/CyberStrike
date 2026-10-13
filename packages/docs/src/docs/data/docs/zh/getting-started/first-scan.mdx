@@ -1,0 +1,134 @@
+---
+title: 首次 Web 应用评估
+description: 使用 Cyberstrike 完成一次完整的 Web 应用安全评估
+sidebar:
+  order: 4
+  label: 首次评估
+---
+
+本指南将带您完成一次真实的 Web 应用评估——从启动 Cyberstrike 到获得分级的漏洞发现。我们将使用两个用户角色（管理员和普通用户）测试一个 Web 应用，以发现授权、注入和逻辑缺陷。
+
+## 1. 启动 Cyberstrike
+
+```bash
+cyberstrike
+```
+
+TUI 打开后会加载 `cyberstrike` 主代理，等待输入。
+
+## 2. 开始会话
+
+输入任何内容即可开始会话。描述您要测试的内容：
+
+```
+> I'm testing https://app.example.com — it's a SaaS platform with admin and regular user roles.
+  I have credentials for both. Let's find auth bypass, IDOR, injection, and business logic issues.
+```
+
+代理会确认并可能询问关于范围、排除区域或其他上下文的澄清问题。
+
+## 3. 重命名会话
+
+按 `Ctrl+R` 将会话重命名为有意义的名称：
+
+```
+example-com-web-assessment
+```
+
+这有助于您稍后在 `/sessions` 中找到它。
+
+## 4. 启动 HackBrowser
+
+运行 `/hackbrowser` 斜杠命令。启动对话框会显示以下字段：
+
+- **目标 URL**——输入 `https://app.example.com`
+- **凭据**——添加两个：`userA`（管理员）和 `userB`（普通用户）
+- **范围**——默认为 `*.example.com`，如果 API 在不同域名上则需调整
+- **步数**——要爬取的页面数量（默认 50）
+
+确认对话框。由于您定义了凭据，HackBrowser 会以可视模式打开。
+
+## 5. 以 userA 身份登录
+
+一个 Chromium 浏览器窗口会打开——这就是 HackBrowser，内置了遥测扩展，在每个页面上提供 UI 面板覆盖层。手动以 **userA**（管理员账户）身份登录。
+
+登录后，按 HackBrowser 面板中的 **Record** 按钮。这将启动 **AINavigator**——LLM 驱动的爬取会话。AI 读取页面的可访问性树，决定跟踪哪些链接、填写哪些表单、点击哪些按钮，以 userA 身份自主浏览应用。
+
+## 6. 以 userB 身份登录
+
+第二个浏览器窗口会自动为 **userB**（普通用户）打开。使用 userB 的凭据手动登录，然后按其面板中的 **Record**。
+
+现在 HackBrowser 正在以两个角色爬取应用。每个 HTTP 请求都会标记发起它的凭据，以便流水线知道哪个角色访问了哪个端点。
+
+## 7. 接下来会发生什么
+
+在 HackBrowser 爬取的同时，工具的其余部分已经在工作：
+
+**流量捕获**——每个请求/响应对都会流入 [Vortex](/docs/features/vortex)，包含完整的头部、正文和 UI 上下文（请求触发时哪些表单字段是只读、隐藏或禁用的）。
+
+**信号生成**——Vortex 对捕获的流量应用规则并生成信号：认证模式、隐藏参数、可疑的响应结构、特定角色的端点访问。
+
+**WSTG 调度**——`wstg-agent` 读取信号并调度专业代理。路径中包含用户 ID 的请求触发 `wstg-authorization` 进行 IDOR 测试。包含表单输入的 POST 请求触发 `wstg-input-validation` 进行注入测试。登录端点触发 `wstg-authentication`。
+
+**跨角色比较**——由于 userA 和 userB 都爬取了同一个应用，流水线会比较每个角色到达了哪些端点、每个角色可见哪些 UI 元素，以及使用另一个凭据重放请求时角色边界是否成立。
+
+**升级**——专家完成后，`escalation-hunter` 会遍历所有发现以链接它们——一个中等的 IDOR 加上一个低级的速率限制绕过可能升级为关键的账户接管。
+
+**分级**——`triage` 代理独立重放每个草稿发现的 HTTP 证据。只有经重放确认的发现才会被提升为"已分级"状态。误报会被拒绝。模糊的发现保持为草稿供您审查。
+
+## 8. 查看发现
+
+爬取完成和测试结束后，查看结果：
+
+| 命令 | 显示内容 |
+|------|----------|
+| `/vulnerabilities` | 所有发现，包含严重性、状态和证据 |
+| `/web` | 捕获的端点、角色、凭据和对象 |
+| `/methodology` | WSTG 覆盖率——哪些类别已测试、哪些待处理 |
+| `/report` | 生成结构化报告 |
+
+### 发现格式
+
+每个发现包含：
+
+```
+FINDING: IDOR in User Profile API
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Severity: High
+CWE: CWE-639
+Description: GET /api/users/{id} returns full profile data for any user ID
+             when accessed with userB credentials (regular user).
+Evidence: Replayed GET /api/users/1 with userB token → 200, body contains
+          admin user's email and phone number.
+Status: triaged (verified by replay)
+Recommendation: Enforce ownership check — users should only access their own profile.
+```
+
+### 严重性级别
+
+| 级别 | CVSS | 含义 |
+|------|------|------|
+| 严重 | 9.0-10.0 | 存在即时利用风险 |
+| 高 | 7.0-8.9 | 重大安全影响 |
+| 中 | 4.0-6.9 | 中等风险 |
+| 低 | 0.1-3.9 | 轻微问题 |
+| 信息 | 0.0 | 仅供参考 |
+
+## 9. 导出和分享
+
+| 命令 | 操作 |
+|------|------|
+| `/report` | 生成包含所有发现的渗透测试报告 |
+| `/share` | 创建可分享的会话链接 |
+| `/export` | 导出会话记录 |
+
+## 后续步骤
+
+- [安全代理](/docs/agents)——了解 WSTG 流水线和专业代理
+- [功能特性](/docs/features)——深入了解 HackBrowser、Vortex、Bolt、MCP
+- [配置](/docs/configuration)——自定义范围、权限和默认值
+- [斜杠命令](/docs/slash-commands)——完整的命令参考
+
+<Aside variant="tip">
+  使用 `/compact` 总结长会话，在不丢失上下文的情况下继续测试。
+</Aside>

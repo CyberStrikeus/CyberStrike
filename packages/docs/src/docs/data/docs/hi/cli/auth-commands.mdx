@@ -1,0 +1,72 @@
+---
+title: Auth कमांड
+description: AI प्रदाताओं के लिए प्रमाणीकरण क्रेडेंशियल प्रबंधित करें
+sidebar:
+  order: 3
+  label: Auth कमांड
+---
+
+`cyberstrike auth` कमांड AI-प्रदाता क्रेडेंशियल प्रबंधित करते हैं। ठीक तीन उप-कमांड हैं — `login`, `logout`, और `list` — और इनमें से कोई भी फ़्लैग नहीं लेता; प्रत्येक इंटरैक्टिव है।
+
+{/* TODO: Screenshot - Auth command interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: auth-commands.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">प्रमाणीकरण कमांड इंटरफ़ेस</p>
+</div>
+
+## `auth login`
+
+```bash
+cyberstrike auth login [url]
+```
+
+एक इंटरैक्टिव लॉगिन शुरू करता है। Cyberstrike एक प्रदाता सूची दिखाता है (मॉडल कैटलॉग से बनी) और API कुंजी या OAuth फ़्लो के लिए पूछता है। वैकल्पिक `url` पोज़िशनल एक well-known प्रदाता URL पूर्व-चयनित करता है; अन्यथा प्रदाता मेनू से चुना जाता है — आप प्रदाता को फ़्लैग के रूप में **नहीं** पास करते।
+
+```
+? Select provider
+❯ cyberstrike (recommended)
+  anthropic (Claude Max or API key)
+  github-copilot
+  openai (ChatGPT Plus/Pro or API key)
+  google
+  openrouter
+  …
+```
+
+क्रेडेंशियल डेटा डायरेक्टरी (`~/.local/share/cyberstrike/auth.json`) में संग्रहीत होते हैं।
+
+## `auth list`
+
+```bash
+cyberstrike auth list   # alias: ls
+```
+
+उन प्रदाताओं को सूचीबद्ध करता है जिनके लिए आपके पास क्रेडेंशियल हैं।
+
+## `auth logout`
+
+```bash
+cyberstrike auth logout
+```
+
+हटाने के लिए इंटरैक्टिव रूप से एक संग्रहीत क्रेडेंशियल चुनें।
+
+<Aside variant="caution">
+  कोई `auth status`, `auth verify`, `auth refresh`, या `auth switch` कमांड नहीं है, और कोई `--key`/`--oauth`/`--json`/`--all` फ़्लैग नहीं हैं। लॉगिन हमेशा इंटरैक्टिव `auth login` फ़्लो है।
+</Aside>
+
+## पर्यावरण चर
+
+क्रेडेंशियल संग्रहीत करने के बजाय, आप पर्यावरण चर के माध्यम से प्रदाता कुंजियां प्रदान कर सकते हैं — [AI प्रदाता](/docs/providers) और [पर्यावरण चर](/docs/configuration/environment-variables) देखें। उदाहरण के लिए:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+## संबंधित दस्तावेज़
+
+- [AI प्रदाता](/docs/providers) - प्रति-प्रदाता सेटअप
+- [प्रमाणीकरण](/docs/getting-started/authentication) - पहली बार का प्रमाणीकरण
+- [CLI संदर्भ](/docs/cli) - सभी कमांड

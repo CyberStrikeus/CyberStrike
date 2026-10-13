@@ -8,12 +8,12 @@ sidebar:
 
 Cyberstrike requires authentication with at least one AI provider to function. This guide covers setting up credentials for supported providers.
 
-## Interactive Login
+## Connect a Provider
 
-The simplest way to authenticate:
+The simplest way to authenticate — run in the TUI:
 
-```bash
-cyberstrike auth login
+```
+/connect
 ```
 
 Select your provider from the interactive menu:
@@ -29,59 +29,43 @@ Select your provider from the interactive menu:
   …
 ```
 
-The list is built dynamically from the models catalog and ordered by priority (`cyberstrike`, `anthropic`, `github-copilot`, `openai`, `google`, `openrouter`, …), so the exact entries may vary. It's an autocomplete prompt, not a fixed menu.
+The list is built dynamically from the models catalog and ordered by priority, so the exact entries may vary. It's an autocomplete prompt, not a fixed menu.
 
 ## Provider-Specific Setup
 
 ### Anthropic
 
 1. Get your API key from [console.anthropic.com](https://console.anthropic.com)
-2. Run authentication:
-
-```bash
-cyberstrike auth login
-# Select: Anthropic
-# Enter your API key
-```
+2. Run `/connect`, select **Anthropic**, enter your API key
 
 ### OpenAI
 
 1. Get your API key from [platform.openai.com](https://platform.openai.com)
-2. Run authentication:
+2. Run `/connect`, select **OpenAI**, enter your API key
 
-```bash
-cyberstrike auth login
-# Select: OpenAI
-# Enter your API key
-```
+### GitHub Copilot
+
+1. Have an active GitHub Copilot subscription
+2. Run `/connect`, select **Login with GitHub Copilot**
+3. Authorize via the browser OAuth flow — no API key needed
+
+See [GitHub Copilot](/docs/providers/github-copilot) for details.
 
 ### OpenRouter
 
 OpenRouter provides access to multiple models with a free tier:
 
 1. Get your API key from [openrouter.ai/keys](https://openrouter.ai/keys)
-2. Run authentication:
-
-```bash
-cyberstrike auth login
-# Select: OpenRouter
-# Enter your API key
-```
+2. Run `/connect`, select **OpenRouter**, enter your API key
 
 ### Google Gemini
 
 1. Get your API key from [ai.google.dev](https://ai.google.dev)
-2. Run authentication:
-
-```bash
-cyberstrike auth login
-# Select: Google
-# Enter your API key
-```
+2. Run `/connect`, select **Google**, enter your API key
 
 ### Ollama (Local)
 
-Ollama requires no API key but needs to be running:
+Ollama requires no API key but needs to be running locally:
 
 ```bash
 # Start Ollama
@@ -89,10 +73,9 @@ ollama serve
 
 # Pull a model
 ollama pull llama3.3
-
-# Use with Cyberstrike
-cyberstrike --model ollama/llama3.3
 ```
+
+Then use `/models` to select an Ollama model.
 
 ## Environment Variables
 
@@ -144,37 +127,15 @@ Store credentials in the config file:
 
 ## Managing Credentials
 
-### List Stored Credentials
+### View Status
 
-```bash
-cyberstrike auth list
-```
+Use `/status` in the TUI to see connected providers and active credentials.
 
-Output:
+### Switch Model
 
-```
-Credentials ~/.local/share/cyberstrike/auth.json
-  Anthropic api
-  OpenRouter api
+Use `/models` to switch between models from any connected provider. Or set a default in config:
 
-Environment
-  ANTHROPIC_API_KEY
-```
-
-### Remove Credentials
-
-```bash
-cyberstrike auth logout
-# Select provider to remove
-```
-
-### Switch Provider
-
-```bash
-# Use different provider for session
-cyberstrike --model openai/gpt-4o
-
-# Set default in config
+```json
 {
   "model": "anthropic/claude-sonnet-4-20250514"
 }
@@ -193,6 +154,8 @@ export AWS_ACCESS_KEY_ID="..."
 export AWS_SECRET_ACCESS_KEY="..."
 export AWS_REGION="us-east-1"
 ```
+
+Then run `/connect` and select **Amazon Bedrock**.
 
 ### Azure OpenAI
 

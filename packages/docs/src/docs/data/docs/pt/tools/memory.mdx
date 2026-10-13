@@ -1,0 +1,49 @@
+---
+title: Ferramentas de Memoria
+description: Notas persistentes que sobrevivem entre sessoes
+sidebar:
+  order: 5
+  label: Memoria
+---
+
+As ferramentas de memoria permitem que o agente mantenha notas — descobertas, detalhes de alvos, contexto — que persistem entre sessoes como arquivos Markdown no seu projeto.
+
+{/* TODO: Screenshot - Memory storage interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: memory-storage.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Layout do armazenamento de memoria</p>
+</div>
+
+## As Ferramentas de Memoria
+
+Existem quatro ferramentas de memoria — nao ha operacao de excluir, limpar, exportar ou importar:
+
+| Ferramenta | Finalidade |
+|------------|------------|
+| `memory_write` | Adicionar uma nota a memoria |
+| `memory_read` | Ler memoria armazenada |
+| `memory_search` | Pesquisar nas notas armazenadas |
+| `memory_context` | Trazer memoria relevante para o contexto atual |
+
+## Layout de Armazenamento
+
+Memoria e Markdown simples sob `.cyberstrike/`:
+
+```
+.cyberstrike/
+├── MEMORY.md              ← memoria de longo prazo
+└── memory/
+    └── 2026-07-03.md      ← notas diarias datadas
+```
+
+- **`MEMORY.md`** armazena fatos duraveis de longo prazo.
+- Arquivos **`memory/<YYYY-MM-DD>.md`** sao notas por dia; cada um comeca com um cabecalho `# Daily Notes - <data>` e recebe novas entradas conforme a sessao progride.
+
+Memoria global (compartilhada entre projetos) fica em `~/.config/cyberstrike/memory/`.
+
+Como tudo e Markdown em disco, voce pode ler, editar ou versionar como qualquer outro arquivo do projeto.
+
+## Documentacao Relacionada
+
+- [Visao Geral de Ferramentas](/docs/tools) - Todas as ferramentas integradas
+- [Configuracao](/docs/configuration) - Caminhos de projeto e globais

@@ -1,0 +1,67 @@
+---
+title: Команды MCP
+description: Управление MCP-серверами из командной строки
+sidebar:
+  order: 4
+  label: Команды MCP
+---
+
+Команды `cyberstrike mcp` управляют серверами Model Context Protocol. Есть пять подкоманд: `list`, `add`, `auth`, `logout` и `debug`.
+
+{/* TODO: Screenshot - MCP command interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: mcp-commands.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Интерфейс команд MCP</p>
+</div>
+
+<Aside variant="caution">
+  Конфигурация серверов хранится в `cyberstrike.json` (см. [Локальные](/docs/mcp/local-servers) / [Удалённые](/docs/mcp/remote-servers) серверы), и серверами управляют интерактивно в диалоге TUI `/mcps`. Не существует команд `mcp status`, `health`, `start`/`stop`/`restart`, `remove`, `config`, `tools`, `logs`, `export`/`import`, `install` или `update`.
+</Aside>
+
+## `mcp list`
+
+```bash
+cyberstrike mcp list   # псевдоним: ls
+```
+
+Показывает настроенные MCP-серверы.
+
+## `mcp add`
+
+```bash
+cyberstrike mcp add
+```
+
+Полностью интерактивная — запрашивает локальный или удалённый тип, команду или URL, и имя, затем тестирует подключение перед сохранением. Не принимает **никаких** позиционных имён или флагов; для автоматизации настройки сервера запишите запись напрямую в `cyberstrike.json`.
+
+## `mcp auth`
+
+```bash
+cyberstrike mcp auth [name]        # авторизация OAuth-сервера
+cyberstrike mcp auth list          # список авторизованных OAuth-серверов
+```
+
+Авторизует удалённый сервер с OAuth (при необходимости открывает браузер). См. [OAuth](/docs/mcp/oauth).
+
+## `mcp logout`
+
+```bash
+cyberstrike mcp logout [name]
+```
+
+Удаляет сохранённые OAuth-учётные данные сервера.
+
+## `mcp debug`
+
+```bash
+cyberstrike mcp debug <name>
+```
+
+Проверяет подключение к серверу — полезно, когда сервер не загружается или его инструменты не отображаются.
+
+## Связанная документация
+
+- [Обзор Bolt / MCP](/docs/mcp) — Основы MCP
+- [Локальные серверы](/docs/mcp/local-servers) — Конфигурация локальных серверов
+- [Удалённые серверы](/docs/mcp/remote-servers) — Конфигурация удалённых серверов
+- [OAuth](/docs/mcp/oauth) — OAuth-аутентификация

@@ -1,0 +1,49 @@
+---
+title: メモリツール
+description: セッション間で永続化するノート
+sidebar:
+  order: 5
+  label: メモリ
+---
+
+メモリツールにより、エージェントはノート（発見事項、ターゲットの詳細、コンテキスト）を保持でき、プロジェクト内のMarkdownファイルとしてセッション間で永続化されます。
+
+{/* TODO: Screenshot - Memory storage interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: memory-storage.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">メモリストレージのレイアウト</p>
+</div>
+
+## メモリツール
+
+4つのメモリツールがあります — 削除、クリア、エクスポート、インポート操作はありません：
+
+| ツール | 目的 |
+|------|---------|
+| `memory_write` | メモリにノートを追加 |
+| `memory_read` | 保存されたメモリを読み取り |
+| `memory_search` | 保存されたノートを横断検索 |
+| `memory_context` | 関連するメモリを現在のコンテキストに取り込み |
+
+## ストレージレイアウト
+
+メモリは `.cyberstrike/` 配下のプレーンなMarkdownです：
+
+```
+.cyberstrike/
+├── MEMORY.md              ← 長期メモリ
+└── memory/
+    └── 2026-07-03.md      ← 日付付きデイリーノート
+```
+
+- **`MEMORY.md`** は永続的な長期的事実を保持します。
+- **`memory/<YYYY-MM-DD>.md`** ファイルは日ごとのノートです。各ファイルは `# Daily Notes - <date>` の見出しで始まり、セッション中に追記されます。
+
+グローバルメモリ（プロジェクト間で共有）は `~/.config/cyberstrike/memory/` に格納されます。
+
+すべてがディスク上のMarkdownなので、他のプロジェクトファイルと同様に読み取り、編集、バージョン管理できます。
+
+## 関連ドキュメント
+
+- [ツール概要](/docs/tools) - すべての組み込みツール
+- [設定](/docs/configuration) - プロジェクトとグローバルのパス

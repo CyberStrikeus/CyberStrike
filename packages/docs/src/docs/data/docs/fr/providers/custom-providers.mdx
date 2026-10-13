@@ -1,0 +1,118 @@
+---
+title: Fournisseurs personnalisés
+description: Utiliser les fournisseurs supplémentaires inclus ou connecter n'importe quel point de terminaison compatible OpenAI
+sidebar:
+  order: 7
+  label: Fournisseurs personnalisés
+---
+
+Cyberstrike inclut de nombreux fournisseurs au-delà des quatre principaux — et vous pouvez connecter vous-même n'importe quel point de terminaison compatible OpenAI.
+
+{/* TODO: Screenshot - Custom provider configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: custom-provider-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Configuration de fournisseur personnalisé</p>
+</div>
+
+## Fournisseurs supplémentaires intégrés
+
+Ceux-ci sont **déjà inclus** — vous n'avez besoin d'aucune configuration de fournisseur. Définissez simplement la variable d'environnement de la clé API et sélectionnez un modèle en tant que `provider-id/model` :
+
+| ID du fournisseur | Variable d'env | Exemple de modèle |
+|-------------|---------|---------------|
+| `groq` | `GROQ_API_KEY` | `groq/llama-3.3-70b-versatile` |
+| `togetherai` | `TOGETHER_API_KEY` | `togetherai/meta-llama/Llama-3.3-70B-Instruct-Turbo` |
+| `deepinfra` | `DEEPINFRA_API_KEY` | `deepinfra/meta-llama/Llama-3.3-70B-Instruct` |
+| `perplexity` | `PERPLEXITY_API_KEY` | `perplexity/sonar` |
+| `openrouter` | `OPENROUTER_API_KEY` | `openrouter/anthropic/claude-sonnet-4` |
+
+```bash
+export GROQ_API_KEY="gsk_..."
+cyberstrike --model groq/llama-3.3-70b-versatile
+```
+
+Les autres (`mistral`, `xai`, `deepseek`, `cohere`, `cerebras`, et plus) fonctionnent de la même manière — définissez leur clé et utilisez `provider-id/model`. Voir [Fournisseurs IA](/docs/providers).
+
+## Fournisseur personnalisé compatible OpenAI
+
+Pour un point de terminaison qui n'est pas inclus (Fireworks, vLLM, LM Studio, une passerelle privée), définissez-le sous `provider`. Le chargement est déclenché par le champ de premier niveau **`api`** (l'URL de base) ; `npm` utilise par défaut `@ai-sdk/openai-compatible`, et vous listez les modèles souhaités :
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "my-endpoint": {
+      "name": "My Endpoint",
+      "api": "https://api.example.com/v1",
+      "options": { "apiKey": "{env:MY_API_KEY}" },
+      "models": {
+        "my-model": { "name": "My Model" }
+      }
+    }
+  },
+  "model": "my-endpoint/my-model"
+}
+```
+
+### vLLM
+
+```json
+{
+  "provider": {
+    "vllm": {
+      "name": "vLLM",
+      "api": "http://localhost:8000/v1",
+      "models": { "llama-3.3-70b": { "name": "Llama 3.3 70B" } }
+    }
+  }
+}
+```
+
+### LM Studio
+
+```json
+{
+  "provider": {
+    "lmstudio": {
+      "name": "LM Studio",
+      "api": "http://localhost:1234/v1",
+      "models": { "local-model": { "name": "Local Model" } }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Un fournisseur défini uniquement par la configuration est chargé parce qu'il a une URL `api` — `options.baseURL` seul ne l'enregistrera pas. Utilisez le champ `api` de premier niveau.
+</Aside>
+
+## Azure OpenAI
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "azure": {
+      "name": "Azure OpenAI",
+      "options": {
+        "apiKey": "{env:AZURE_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+```bash
+export AZURE_RESOURCE_NAME="your-resource"
+export AZURE_API_KEY="..."
+```
+
+## Dépannage
+
+- **401 Unauthorized** — vérifiez la variable d'env de la clé API et qu'elle est référencée avec `{env:VAR}`.
+- **Modèle introuvable** — l'ID du modèle doit correspondre au format du fournisseur et être listé sous `models` pour un fournisseur personnalisé.
+- **Réponse inattendue** — le point de terminaison n'est peut-être pas entièrement compatible OpenAI ; l'appel d'outils et le streaming varient selon le fournisseur.
+
+## Documentation associée
+
+- [Fournisseurs IA](/docs/providers) - Tous les fournisseurs et clés
+- [Ollama](/docs/providers/ollama) - Modèles locaux (un fournisseur personnalisé)
+- [Configuration](/docs/configuration) - Options de configuration du fournisseur

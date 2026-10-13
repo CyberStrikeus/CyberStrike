@@ -1,0 +1,497 @@
+---
+title: AIプロバイダー
+description: CyberstrikeでさまざまなAIプロバイダーを設定・使用する
+sidebar:
+  order: 1
+  label: 概要
+---
+
+Cyberstrikeは複数のAIプロバイダーをサポートしており、セキュリティ評価に最適なモデルを柔軟に選択できます。
+
+<img src="/docs/images/screenshots/s05-provider-dialog.png" alt="人気のプロバイダーとその他のプロバイダーを一覧表示するプロバイダー接続ダイアログ" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/diagrams/provider-selection-flow.svg" alt="Cyberstrikeがモデルとプロバイダーを選択する方法 -- 設定のモデル、次に最後に使用したもの、次に優先順位による最初の利用可能なプロバイダー" className="my-6 mx-auto max-w-lg" />
+
+## サポートされているプロバイダー
+
+| プロバイダー | モデル | 最適な用途 |
+|----------|--------|----------|
+| **Anthropic** | Claude Opus 4.5, Sonnet 4, Haiku | 複雑な推論、長いコンテキスト |
+| **OpenAI** | GPT-4o, o1, o1-preview | 汎用、高速な応答 |
+| **Google** | Gemini 2.0 Flash, Pro | マルチモーダル、大規模コンテキスト |
+| **AWS Bedrock** | Claude, Llama, Titan | エンタープライズ、オンプレミス |
+| **Azure OpenAI** | GPT-4, GPT-4o | エンタープライズコンプライアンス |
+| **Google Vertex AI** | Gemini, Claude | エンタープライズGCP |
+| **OpenRouter** | 多数のモデル | 無料枠、モデルの多様性 |
+| **Groq** | Llama 3.3, Mixtral | 速度、コスト効率 |
+| **Ollama** | ローカルモデル | プライバシー、オフライン使用 |
+
+## 資格情報の追加
+
+### プロバイダーの接続
+
+TUIで`/connect`を実行してプロバイダーダイアログを開きます。プロバイダーを選択してAPIキーを入力します(GitHub CopilotはOAuth経由で認可)。
+
+### 環境変数
+
+環境でAPIキーを設定:
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+
+# Groq
+export GROQ_API_KEY="gsk_..."
+```
+
+永続化するにはシェルプロファイル(`~/.bashrc`または`~/.zshrc`)に追加してください。
+
+### 設定ファイル
+
+`~/.config/cyberstrike/cyberstrike.json`に資格情報を保存:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Anthropic
+
+Claudeモデルは複雑なセキュリティ分析に推奨されます。
+
+### 認証
+
+TUIで`/connect`を実行し、**Anthropic**を選択して[console.anthropic.com](https://console.anthropic.com)からAPIキーを入力します。
+
+または環境変数で:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+### 利用可能なモデル
+
+| モデル | ID | コンテキスト | 最適な用途 |
+|-------|-----|---------|----------|
+| Claude Opus 4.5 | `claude-opus-4-5-20251101` | 200K | 複雑な分析 |
+| Claude Sonnet 4 | `claude-sonnet-4-20250514` | 200K | バランスの取れたパフォーマンス |
+| Claude Haiku 4.5 | `claude-haiku-4-5-20251001` | 200K | 簡単なタスク |
+
+### 使い方
+
+`/models`を使用してClaudeモデルを選択するか、設定でデフォルトを指定:
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+### 設定オプション
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}",
+        "timeout": 300000
+      }
+    }
+  }
+}
+```
+
+---
+
+## OpenAI
+
+GPT-4モデルは高速で信頼性のある応答を提供します。
+
+### 認証
+
+TUIで`/connect`を実行し、**OpenAI**を選択して[platform.openai.com](https://platform.openai.com)からAPIキーを入力します。
+
+または環境変数で:
+
+```bash
+export OPENAI_API_KEY="sk-..."
+```
+
+### 利用可能なモデル
+
+| モデル | ID | コンテキスト | 最適な用途 |
+|-------|-----|---------|----------|
+| GPT-4o | `gpt-4o` | 128K | 汎用 |
+| GPT-4o Mini | `gpt-4o-mini` | 128K | コスト効率 |
+| o1 | `o1` | 200K | 複雑な推論 |
+| o1 Preview | `o1-preview` | 128K | 高度なタスク |
+
+### 使い方
+
+`/models`を使用してOpenAIモデルを選択するか、設定で指定します。
+
+### 設定オプション
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}",
+        "baseURL": "https://api.openai.com/v1"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Google
+
+Geminiモデルはマルチモーダルタスクに優れています。
+
+### 認証
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+またはGoogle Cloud経由:
+
+```bash
+gcloud auth application-default login
+```
+
+### 利用可能なモデル
+
+| モデル | ID | コンテキスト | 最適な用途 |
+|-------|-----|---------|----------|
+| Gemini 2.0 Flash | `gemini-2.0-flash` | 1M | 高速、実験的 |
+| Gemini 1.5 Pro | `gemini-1.5-pro` | 2M | 大規模コンテキスト |
+| Gemini 1.5 Flash | `gemini-1.5-flash` | 1M | スピード |
+
+### 使い方
+
+`/models`を使用してGeminiモデルを選択するか、設定で指定します。
+
+---
+
+## OpenRouter
+
+単一のAPIと無料枠で多数のモデルにアクセス。
+
+### 認証
+
+TUIで`/connect`を実行し、**OpenRouter**を選択して[openrouter.ai/keys](https://openrouter.ai/keys)からAPIキーを入力します。
+
+または環境変数で:
+
+```bash
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+### 無料枠モデル
+
+| モデル | ID |
+|-------|-----|
+| Llama 4 Scout | `meta-llama/llama-4-scout:free` |
+| Gemini 2.0 Flash | `google/gemini-2.0-flash:free` |
+| Mistral Small | `mistralai/mistral-small-3.2-24b-instruct:free` |
+
+### 使い方
+
+`/models`を使用してOpenRouterモデルを選択するか、設定で指定:
+
+### 設定
+
+```json
+{
+  "model": "openrouter/meta-llama/llama-4-scout:free",
+  "provider": {
+    "openrouter": {
+      "options": {
+        "apiKey": "{env:OPENROUTER_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+---
+
+## AWS Bedrock
+
+AWSを通じてClaudeやその他のモデルを使用。
+
+### 認証
+
+AWS資格情報を設定:
+
+```bash
+# Via AWS CLI
+aws configure
+
+# Or via environment
+export AWS_ACCESS_KEY_ID="..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+```
+
+### 利用可能なモデル
+
+| モデル | ID |
+|-------|-----|
+| Claude Sonnet | `anthropic.claude-sonnet-4-20250514-v1:0` |
+| Claude Haiku | `anthropic.claude-haiku-4-5-20251001-v1:0` |
+| Llama 3.3 | `meta.llama3-3-70b-instruct-v1:0` |
+
+### 設定
+
+```json
+{
+  "model": "amazon-bedrock/anthropic.claude-sonnet-4-20250514-v1:0",
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "us-east-1"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Azure OpenAI
+
+OpenAIモデルのエンタープライズAzureデプロイメント。
+
+### 認証
+
+```bash
+export AZURE_API_KEY="..."
+export AZURE_RESOURCE_NAME="your-resource"
+```
+
+### 設定
+
+```json
+{
+  "provider": {
+    "azure": {
+      "options": {
+        "apiKey": "{env:AZURE_API_KEY}",
+        "resourceName": "your-resource",
+        "deploymentId": "gpt-4o"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Google Vertex AI
+
+エンタープライズ向けGoogle Cloud AI。
+
+### 認証
+
+```bash
+gcloud auth application-default login
+```
+
+### 設定
+
+```json
+{
+  "provider": {
+    "google-vertex": {
+      "options": {
+        "project": "your-project-id",
+        "location": "us-central1"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Ollama (ローカル)
+
+プライバシーとオフライン使用のためにモデルをローカルで実行。
+
+### セットアップ
+
+1. Ollamaをインストール:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+2. モデルをプル:
+
+```bash
+ollama pull llama3.3
+```
+
+3. Ollamaを起動:
+
+```bash
+ollama serve
+```
+
+### 使い方
+
+APIキーは不要です。`/models`を使用してOllamaモデルを選択してください。
+
+### 利用可能なモデル
+
+| モデル | プルコマンド |
+|-------|-------------|
+| Llama 3.3 | `ollama pull llama3.3` |
+| CodeLlama | `ollama pull codellama` |
+| Mistral | `ollama pull mistral` |
+| Qwen | `ollama pull qwen2.5` |
+
+### 設定
+
+```json
+{
+  "model": "ollama/llama3.3",
+  "provider": {
+    "ollama": {
+      "options": {
+        "baseURL": "http://localhost:11434"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Groq
+
+サポートされているモデルの最速推論。
+
+### 認証
+
+```bash
+export GROQ_API_KEY="gsk_..."
+```
+
+### 利用可能なモデル
+
+| モデル | ID |
+|-------|-----|
+| Llama 3.3 70B | `llama-3.3-70b-versatile` |
+| Mixtral 8x7B | `llama-3.3-70b-versatile` |
+
+### 使い方
+
+`/models`を使用してGroqモデルを選択するか、設定で指定します。
+
+---
+
+## カスタムOpenAI互換
+
+任意のOpenAI互換APIに接続。
+
+### 設定
+
+```json
+{
+  "provider": {
+    "custom-api": {
+      "id": "custom-api",
+      "name": "Custom API",
+      "options": {
+        "baseURL": "https://api.custom.example.com/v1",
+        "apiKey": "{env:CUSTOM_API_KEY}"
+      },
+      "models": {
+        "custom-model": {
+          "name": "Custom Model",
+          "contextLength": 32000
+        }
+      }
+    }
+  }
+}
+```
+
+### 使い方
+
+`/models`を使用してカスタムモデルを選択するか、設定で指定します。
+
+---
+
+## プロバイダー選択のヒント
+
+### 複雑なセキュリティ分析
+
+Claude Opus 4.5またはSonnet 4を使用:
+
+```json
+{
+  "model": "anthropic/claude-opus-4-5-20251101"
+}
+```
+
+### コスト効率
+
+OpenRouterの無料枠またはGroqを使用:
+
+```json
+{
+  "model": "openrouter/meta-llama/llama-4-scout:free"
+}
+```
+
+### プライバシー
+
+Ollamaでローカルモデルを使用:
+
+```json
+{
+  "model": "ollama/llama3.3"
+}
+```
+
+### エンタープライズ
+
+組織の資格情報でAWS BedrockまたはAzure OpenAIを使用。
+
+---
+
+## 資格情報の管理
+
+TUIで`/status`を使用して接続済みプロバイダーとアクティブな資格情報を確認します。
+
+資格情報を削除するには、CLIコマンド`cyberstrike auth logout`を使用して削除するプロバイダーを選択します。
+
+<Aside variant="tip">
+  複雑な推論を必要とするペネトレーションテストタスクには、**Claude Opus 4.5**または**Claude Sonnet 4**を推奨します。
+</Aside>

@@ -1,0 +1,323 @@
+---
+title: Configuracao Global
+description: Configure as opcoes do Cyberstrike que se aplicam a todos os projetos
+sidebar:
+  order: 3
+  label: Configuracao Global
+---
+
+A configuracao global define o comportamento padrao para todas as sessoes do Cyberstrike em todos os projetos.
+
+{/* TODO: Screenshot - Global configuration file */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: global-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Localizacao do arquivo de configuracao global</p>
+</div>
+
+## Localizacao do Arquivo
+
+A configuracao global reside no diretorio global de configuracao:
+
+```
+~/.config/cyberstrike/
+```
+
+Isso resolve para `$XDG_CONFIG_HOME/cyberstrike` quando `XDG_CONFIG_HOME` esta definido.
+
+## Nomes de Arquivo Suportados
+
+Os seguintes arquivos sao lidos do diretorio global de configuracao e mesclados em ordem:
+
+| Arquivo | Formato | Prioridade |
+|---------|---------|------------|
+| `config.json` | JSON | Baixa (base, gerado automaticamente) |
+| `cyberstrike.json` | JSON | Media |
+| `cyberstrike.jsonc` | JSON com Comentarios | Alta (preferido) |
+
+Se multiplos arquivos existirem, todos sao lidos e cada arquivo subsequente e mesclado sobre o anterior.
+
+### Estrutura do Diretorio
+
+```
+~/.config/cyberstrike/
+├── config.json          ← configuracao global gerada automaticamente
+├── cyberstrike.json     ← configuracao global
+├── cyberstrike.jsonc    ← configuracao global (preferido)
+├── agents/              ← agentes personalizados (*.md)   (tambem aceita agent/)
+├── commands/            ← comandos personalizados (*.md) (tambem aceita command/)
+└── plugins/             ← plugins (*.ts / *.js)  (tambem aceita plugin/)
+```
+
+O Cyberstrike adicionalmente escaneia um diretorio `~/.cyberstrike/` na sua pasta home para `cyberstrike.json`/`cyberstrike.jsonc` e as mesmas subpastas `agents/`, `commands/`, `plugins/`.
+
+## Criando a Configuracao Global
+
+Nao existe comando de inicializacao — crie o arquivo manualmente:
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  // Configuracao global do Cyberstrike
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## Configuracao de Modelo
+
+### Modelo Padrao
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+Formato: `provider/model`.
+
+### Modelo Leve
+
+Usado para tarefas leves como geracao de titulo de sessao:
+
+```json
+{
+  "small_model": "anthropic/claude-haiku-4-5-20251001"
+}
+```
+
+## Configuracao de Provedores
+
+Configure provedores individualmente sob `provider`. O objeto `options` e passado diretamente para o SDK do provedor:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### Habilitando / Desabilitando Provedores
+
+```json
+{
+  "disabled_providers": ["ollama"],
+  "enabled_providers": ["anthropic", "openai"]
+}
+```
+
+Quando `enabled_providers` esta definido, **apenas** esses provedores sao carregados; todos os outros sao ignorados. Consulte [Provedores de IA](/docs/providers) para detalhes por provedor.
+
+## Tema
+
+`theme` e o nome de um tema instalado (uma string). O padrao e `cyberstrike`:
+
+```json
+{
+  "theme": "cyberstrike"
+}
+```
+
+Navegue e troque temas na TUI com o comando `/themes` (ou `<leader>t`). Temas integrados incluem `cyberstrike`, `tokyonight`, `catppuccin`, `dracula`, `gruvbox`, `nord`, `github`, `monokai`, `matrix`, `rosepine`, `solarized` e mais.
+
+## Keybindings
+
+### Tecla Lider
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+x"
+  }
+}
+```
+
+### Bindings Personalizados
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "theme_list": "<leader>t",
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+Consulte [Keybindings](/docs/configuration/keybindings) para a lista completa de acoes e padroes.
+
+## Padroes de Permissao
+
+Permissoes mapeiam um nome de ferramenta para uma acao (`ask`, `allow` ou `deny`), ou para um mapa glob → acao. Nao existe lista separada de allow/deny — a chave da ferramenta **e** o agrupamento:
+
+```json
+{
+  "permission": {
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "bash": {
+      "*": "ask",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "*": "ask",
+      "~/.ssh/**": "deny"
+    }
+  }
+}
+```
+
+Apenas `*` e `?` sao suportados como wildcards. Consulte [Permissoes](/docs/permissions) para o modelo completo e a lista de chaves de permissao.
+
+## Servidores MCP
+
+Servidores MCP sao declarados como um mapa plano sob `mcp`, indexados pelo nome do servidor. Servidores locais usam `type: "local"` com um unico array `command` (comando + argumentos juntos); servidores remotos usam `type: "remote"` com uma `url`:
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "~"],
+      "environment": { "DEBUG": "true" },
+      "enabled": true
+    },
+    "remote-api": {
+      "type": "remote",
+      "url": "https://api.example.com/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+Servidores Bolt sao configurados separadamente sob a chave de nivel superior `bolt`, nao sob `mcp`. Consulte [Bolt / MCP](/docs/mcp).
+
+## Agente Padrao
+
+Defina o agente padrao (deve ser um agente primario; volta para `cyberstrike` se nao definido ou invalido):
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+Agentes personalizados sao carregados do diretorio `agents/` (ou `agent/`) no diretorio de configuracao — consulte [Agentes Personalizados](/docs/agents/custom-agents).
+
+## Compactacao
+
+Controle a compactacao automatica de contexto:
+
+```json
+{
+  "compaction": {
+    "auto": true,
+    "prune": true
+  }
+}
+```
+
+| Opcao | Descricao |
+|-------|-----------|
+| `auto` | Auto-compactar quando o contexto esta cheio (padrao: true) |
+| `prune` | Podar saidas antigas de ferramentas (padrao: true) |
+
+## Logs e Atualizacoes
+
+```json
+{
+  "logLevel": "INFO",
+  "autoupdate": "notify"
+}
+```
+
+`logLevel` e um entre `DEBUG`, `INFO`, `WARN`, `ERROR` (padrao `INFO`). `autoupdate` aceita `true`, `false` ou `"notify"`.
+
+## Exemplo Completo
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "small_model": "anthropic/claude-haiku-4-5-20251001",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike",
+  "share": "manual",
+  "autoupdate": "notify",
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+
+  "permission": {
+    "read": "allow",
+    "edit": { "*": "ask" },
+    "bash": { "*": "ask", "rm -rf *": "deny" }
+  },
+
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "."],
+      "enabled": true
+    }
+  },
+
+  "keybinds": { "leader": "ctrl+x" },
+  "compaction": { "auto": true, "prune": true }
+}
+```
+
+## Backup
+
+```bash
+cp ~/.config/cyberstrike/cyberstrike.jsonc ~/.config/cyberstrike/cyberstrike.jsonc.backup
+```
+
+## Consideracoes de Seguranca
+
+### Permissoes de Arquivo
+
+```bash
+chmod 600 ~/.config/cyberstrike/cyberstrike.jsonc
+chmod 700 ~/.config/cyberstrike/
+```
+
+### Dados Sensiveis
+
+Nunca armazene chaves de API diretamente — referencie variaveis de ambiente em vez disso:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Sempre use referencias de variaveis de ambiente (`{env:VAR}`) para dados sensiveis como chaves de API.
+</Aside>
+
+## Documentacao Relacionada
+
+- [Referencia de Configuracao](/docs/configuration) - Todas as opcoes de configuracao
+- [Configuracao do Projeto](/docs/configuration/project-config) - Configuracoes do projeto
+- [Variaveis de Ambiente](/docs/configuration/environment-variables) - Variaveis de ambiente
+- [Keybindings](/docs/configuration/keybindings) - Atalhos de teclado

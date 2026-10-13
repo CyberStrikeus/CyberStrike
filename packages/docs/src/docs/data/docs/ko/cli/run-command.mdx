@@ -1,0 +1,95 @@
+---
+title: Run 명령어
+description: 대화형 모드 없이 단일 프롬프트 실행
+sidebar:
+  order: 2
+  label: Run 명령어
+---
+
+`cyberstrike run`은 비대화형으로 단일 프롬프트를 실행합니다 — 자동화 및 스크립팅에 이상적입니다. 이 모드에서는 권한 프롬프트에 응답할 사람이 없으므로, 프롬프트가 필요한 도구는 자동으로 거부됩니다 ([자동화](/docs/permissions/automation) 참조).
+
+{/* TODO: Screenshot - Run command output */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: run-command-output.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Run 명령어 실행 출력</p>
+</div>
+
+## 기본 사용법
+
+```bash
+cyberstrike run "your prompt here"
+```
+
+입력이 파이프되면 stdin에서도 프롬프트를 읽습니다:
+
+```bash
+echo "summarize the findings in report.json" | cyberstrike run
+```
+
+## 옵션
+
+| 플래그 | 별칭 | 설명 |
+|--------|------|------|
+| `--model` | `-m` | 사용할 모델, `provider/model` 형식 |
+| `--agent` | | 사용할 기본 에이전트 (내장된 것은 `cyberstrike`만 제공) |
+| `--format` | | 출력 형식: `default` 또는 `json` (기본값: `default`) |
+| `--file` | `-f` | 메시지에 첨부할 파일 (반복 가능) |
+| `--continue` | `-c` | 마지막 세션 이어하기 |
+| `--session` | `-s` | 이어할 세션 ID |
+| `--fork` | | 이어하기 전 세션 포크 (`--continue`/`--session` 필요) |
+| `--share` | | 세션 공유 |
+| `--title` | | 세션 제목 |
+| `--variant` | | 모델 변형 / 추론 노력 (예: `high`, `max`, `minimal`) |
+| `--thinking` | | 사고 블록 표시 |
+| `--attach` | | 실행 중인 서버에 연결 (예: `http://localhost:4096`) |
+| `--dir` | | 실행할 디렉토리 (연결 시 원격 경로) |
+| `--port` | | 로컬 서버용 포트 |
+| `--command` | | 명명된 명령 실행; 메시지를 인수로 사용 |
+
+<Aside variant="caution">
+  `--output`, `--permission`, `--timeout`, `--verbose`, `--quiet` 플래그는 없습니다. 출력 제어는 `--format` (`default` | `json`); 추론 표시는 `--thinking`입니다.
+</Aside>
+
+## 예시
+
+### 스크립팅을 위한 JSON 출력
+
+```bash
+cyberstrike run "scan example.com for OWASP Top 10 issues" --format json > report.json
+```
+
+### 모델 선택 및 파일 첨부
+
+```bash
+cyberstrike run "review this code for auth bugs" \
+  -m anthropic/claude-sonnet-4-20250514 \
+  -f src/auth.ts -f src/session.ts
+```
+
+### 세션 이어하기 또는 포크
+
+```bash
+cyberstrike run "now test the admin endpoints" --continue
+cyberstrike run "try a different payload" --session <id> --fork
+```
+
+## `run`에서의 권한
+
+비대화형으로 프롬프트에 응답할 수 없으므로, 스크립트에 필요한 도구를 `CYBERSTRIKE_PERMISSION` 환경 변수 또는 설정의 `permission` 필드로 사전 승인하세요:
+
+```bash
+CYBERSTRIKE_PERMISSION='{"bash":"allow","read":"allow"}' \
+  cyberstrike run "enumerate services on the host" --format json
+```
+
+CI 패턴은 [자동화](/docs/permissions/automation)를 참조하세요.
+
+## 종료 코드
+
+`cyberstrike run`은 성공 시 `0`을, 오류(예: 잘못된 인수) 또는 중단 시 0이 아닌 코드를 반환합니다.
+
+## 관련 문서
+
+- [CLI 레퍼런스](/docs/cli) - 모든 명령어
+- [자동화](/docs/permissions/automation) - CI/CD 및 사전 승인된 권한
+- [사용법: CLI](/docs/usage/cli) - 비대화형 사용

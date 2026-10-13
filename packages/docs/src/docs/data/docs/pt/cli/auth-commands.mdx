@@ -1,0 +1,72 @@
+---
+title: Comandos de Autenticacao
+description: Gerenciar credenciais de autenticacao para provedores de IA
+sidebar:
+  order: 3
+  label: Comandos Auth
+---
+
+Os comandos `cyberstrike auth` gerenciam credenciais de provedores de IA. Existem exatamente tres subcomandos — `login`, `logout` e `list` — e nenhum deles aceita flags; cada um e interativo.
+
+{/* TODO: Screenshot - Auth command interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: auth-commands.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Interface de comandos de autenticacao</p>
+</div>
+
+## `auth login`
+
+```bash
+cyberstrike auth login [url]
+```
+
+Inicia um login interativo. O Cyberstrike mostra uma lista de provedores (construida a partir do catalogo de modelos) e solicita a chave de API ou fluxo OAuth. O `url` posicional opcional pre-seleciona uma URL de provedor well-known; o provedor e de outra forma escolhido no menu — voce **nao** passa o provedor como flag.
+
+```
+? Select provider
+❯ cyberstrike (recommended)
+  anthropic (Claude Max or API key)
+  github-copilot
+  openai (ChatGPT Plus/Pro or API key)
+  google
+  openrouter
+  …
+```
+
+As credenciais sao armazenadas no diretorio de dados (`~/.local/share/cyberstrike/auth.json`).
+
+## `auth list`
+
+```bash
+cyberstrike auth list   # alias: ls
+```
+
+Lista os provedores para os quais voce tem credenciais.
+
+## `auth logout`
+
+```bash
+cyberstrike auth logout
+```
+
+Selecione interativamente uma credencial armazenada para remover.
+
+<Aside variant="caution">
+  Nao existe comando `auth status`, `auth verify`, `auth refresh` ou `auth switch`, nem flags `--key`/`--oauth`/`--json`/`--all`. O login e sempre o fluxo interativo `auth login`.
+</Aside>
+
+## Variaveis de Ambiente
+
+Em vez de armazenar credenciais, voce pode fornecer chaves de provedor via variaveis de ambiente — veja [Provedores de IA](/docs/providers) e [Variaveis de Ambiente](/docs/configuration/environment-variables). Por exemplo:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+## Documentacao Relacionada
+
+- [Provedores de IA](/docs/providers) - Configuracao por provedor
+- [Autenticacao](/docs/getting-started/authentication) - Primeira autenticacao
+- [Referencia CLI](/docs/cli) - Todos os comandos

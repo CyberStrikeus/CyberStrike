@@ -1,0 +1,82 @@
+---
+title: WSTG 에이전트
+description: OWASP WSTG 웹 보안 테스트 파이프라인 오케스트레이터
+sidebar:
+  order: 5
+  label: WSTG 에이전트
+---
+
+`wstg-agent`는 Cyberstrike의 웹 보안 테스트 파이프라인 오케스트레이터입니다. 캡처된 HTTP 트래픽을 수신하고 요청 특성 및 축적된 세션 컨텍스트에 따라 적절한 WSTG 전문 에이전트를 배치합니다.
+
+## 개요
+
+| 속성 | 값 |
+|------|-----|
+| **에이전트 ID** | `wstg-agent` |
+| **역할** | `orchestrator` |
+| **도메인** | `@cyberstrike-io/web` |
+| **색상** | 파란색 |
+
+## 작동 방식
+
+`wstg-agent`는 **순수 오케스트레이터**입니다 — 직접 취약점 테스트를 수행하지 않습니다. 워크플로:
+
+1. 캡처된 HTTP 요청을 수신합니다 ([HackBrowser](/docs/features/hackbrowser) 또는 [Chrome 확장 기능](/docs/tools/chrome-extension)에서)
+2. 요청 특성과 축적된 세션 컨텍스트를 분석합니다
+3. 신호 기반 배치를 통해 적절한 WSTG 전문가에게 요청을 라우팅합니다
+4. 테스트 큐와 재테스트 트리거를 관리합니다
+
+## 신호 기반 라우팅
+
+각 캡처된 요청은 엔드포인트 경로, 매개변수, 헤더, 응답 패턴, [Vortex](/docs/features/vortex) 규칙 매칭을 기반으로 신호를 생성합니다. `wstg-agent`가 이 신호를 전문가 클래스에 매핑합니다:
+
+| 신호 카테고리 | 전문가 |
+|---------------|--------|
+| 인증 패턴 | `wstg-authentication` |
+| 권한 지표 | `wstg-authorization` |
+| 입력 매개변수 | `wstg-input-validation` |
+| 세션 토큰 | `wstg-session-mgmt` |
+| 구성 엔드포인트 | `wstg-config-deploy` |
+| API 패턴 | `wstg-api` |
+| 암호화 지표 | `wstg-cryptography` |
+| 오류 응답 | `wstg-error-handling` |
+| 비즈니스 로직 | `wstg-business-logic` |
+| 클라이언트 측 리소스 | `wstg-client-side` |
+| LLM 엔드포인트 | `wstg-llm` |
+
+단일 요청이 여러 카테고리의 신호를 나타낼 때 여러 전문가를 트리거할 수 있습니다.
+
+## WSTG 전문가
+
+각 전문가는 하나의 WSTG 카테고리를 위한 집중 테스트 에이전트입니다:
+
+| 전문가 | WSTG 섹션 | 초점 |
+|--------|-----------|------|
+| `wstg-info-gathering` | 4.1 | 핑거프린팅, 열거, 누출 탐지 |
+| `wstg-config-deploy` | 4.2 | 서버 구성, 기본 자격 증명, 파일 확장자 |
+| `wstg-identity-mgmt` | 4.3 | 사용자 열거, 계정 프로비저닝 |
+| `wstg-authentication` | 4.4 | 로그인 우회, 자격 증명 테스트, MFA |
+| `wstg-authorization` | 4.5 | IDOR, 권한 에스컬레이션, 경로 탐색 |
+| `wstg-session-mgmt` | 4.6 | 세션 고정, 쿠키 속성, 타임아웃 |
+| `wstg-input-validation` | 4.7 | SQLi, XSS, SSTI, 명령 인젝션 |
+| `wstg-error-handling` | 4.8 | 오류 공개, 스택 트레이스 |
+| `wstg-cryptography` | 4.9 | 약한 암호, 패딩 오라클, 키 노출 |
+| `wstg-business-logic` | 4.10 | 워크플로 우회, 레이스 컨디션 |
+| `wstg-client-side` | 4.11 | DOM XSS, 클릭재킹, postMessage |
+| `wstg-api` | 4.12 | BOLA, 대량 할당, 속도 제한 |
+| `wstg-llm` | 커스텀 | 프롬프트 인젝션, LLM 특화 공격 |
+
+각 전문가는 캡처된 요청에 대해 실행하는 WSTG 스킬(결정론적 테스트 스크립트)을 보유합니다.
+
+## Escalation Hunter
+
+전문가들이 테스트를 완료한 후, [`escalation-hunter`](/docs/agents/escalation-hunter)가 모든 발견 사항에 걸쳐 실행되어 체인된 취약점을 식별하고 영향을 에스컬레이션합니다.
+
+## 권한
+
+`wstg-agent` 오케스트레이터는 제한된 권한 세트를 가집니다:
+
+- 작업 생성 가능 (전문가 배치)
+- 세션 컨텍스트 및 커버리지 노트 읽기 가능
+- 방법론 상태 및 범위 확인 가능
+- 직접 테스트 수행 또는 취약점 보고 불가

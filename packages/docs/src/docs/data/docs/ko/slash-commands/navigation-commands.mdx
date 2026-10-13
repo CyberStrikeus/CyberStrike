@@ -1,0 +1,38 @@
+---
+title: 내비게이션 명령
+description: 선택기, 대화상자 및 인터페이스 탐색을 위한 슬래시 명령
+sidebar:
+  order: 3
+  label: 내비게이션 명령
+---
+
+이 슬래시 명령들은 선택기와 대화상자를 엽니다. TUI에서 `/`를 입력하여 명령 목록을 보세요 (`Ctrl+P`를 눌러도 됩니다).
+
+<img src="/docs/images/gifs/navigation-commands.gif" alt="명령 목록을 열고 선택기를 탐색하는 모습" className="rounded-lg shadow-lg my-6 w-full" />
+
+## 선택기 및 대화상자
+
+| 명령 | 열리는 것 |
+|------|----------|
+| `/models` | 모델 선택기 |
+| `/agents` | 에이전트 선택기 |
+| `/themes` | 테마 선택기 |
+| `/mcps` | MCP 서버 관리자 |
+| `/bolt` | Bolt 서버 관리자 |
+| `/connect` | 제공자 연결 / 인증 |
+| `/sessions` (`/resume`, `/continue`) | 세션 선택기 |
+| `/editor` | 외부 에디터에서 메시지 열기 |
+| `/skills` | 로드된 스킬 찾아보기 |
+| `/help` | 도움말 표시 |
+| `/status` | 상태 표시 |
+| `/exit` | Cyberstrike 종료 |
+
+<Aside variant="caution">
+  명령 이름은 복수형입니다: `/models`, `/themes`, `/mcps` (`/model`, `/theme`, `/mcp` 아님). `/provider`, `/vim`, `/config`, `/permission`, `/files`, `/cd`, `/tools`, `/version`, `/doctor`, `/docs`, `/changelog`, `/cost`, `/context` 명령은 존재하지 않습니다.
+</Aside>
+
+## 관련 문서
+
+- [슬래시 명령](/docs/slash-commands) - 전체 명령 목록
+- [세션 명령](/docs/slash-commands/session-commands) - 세션 라이프사이클
+- [키보드 단축키](/docs/getting-started/keyboard-shortcuts) - 키 바인딩

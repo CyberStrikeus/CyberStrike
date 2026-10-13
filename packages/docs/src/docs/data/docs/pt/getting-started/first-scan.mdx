@@ -1,0 +1,134 @@
+---
+title: Primeira Avaliacao de Aplicacao Web
+description: Acompanhe uma avaliacao completa de seguranca de aplicacao web com o Cyberstrike
+sidebar:
+  order: 4
+  label: Primeira Avaliacao
+---
+
+Este guia acompanha voce em uma avaliacao real de aplicacao web — desde o lancamento do Cyberstrike ate as descobertas de vulnerabilidades triadas. Vamos testar uma aplicacao web com dois perfis de usuario (admin e usuario regular) para encontrar falhas de autorizacao, injecao e logica de negocio.
+
+## 1. Inicie o Cyberstrike
+
+```bash
+cyberstrike
+```
+
+A TUI abre com o agente primario `cyberstrike` carregado, pronto para entrada.
+
+## 2. Inicie uma Sessao
+
+Digite qualquer coisa para iniciar uma sessao. Descreva o que voce esta testando:
+
+```
+> I'm testing https://app.example.com — it's a SaaS platform with admin and regular user roles.
+  I have credentials for both. Let's find auth bypass, IDOR, injection, and business logic issues.
+```
+
+O agente confirma e pode fazer perguntas de esclarecimento sobre escopo, areas excluidas ou contexto adicional.
+
+## 3. Renomeie a Sessao
+
+Pressione `Ctrl+R` para renomear a sessao para algo significativo:
+
+```
+example-com-web-assessment
+```
+
+Isso ajuda voce a encontra-la depois em `/sessions`.
+
+## 4. Inicie o HackBrowser
+
+Execute o comando slash `/hackbrowser`. Um dialogo de lancamento abre com campos para:
+
+- **URL do Alvo** — insira `https://app.example.com`
+- **Credenciais** — adicione duas: `userA` (admin) e `userB` (usuario regular)
+- **Escopo** — padrao `*.example.com`, ajuste se a API esta em um dominio diferente
+- **Passos** — quantas paginas rastrear (padrao 50)
+
+Confirme o dialogo. Como voce definiu credenciais, o HackBrowser abre em modo visivel.
+
+## 5. Login como userA
+
+Uma janela do navegador Chromium abre — este e o HackBrowser, com uma extensao de telemetria integrada que fornece um painel de sobreposicao de UI em cada pagina. Faca login manualmente como **userA** (a conta de administrador).
+
+Uma vez logado, pressione o botao **Record** no painel do HackBrowser. Isso inicia o **AINavigator** — a sessao de crawl orientada por LLM. A IA le a arvore de acessibilidade da pagina, decide quais links seguir, quais formularios preencher e quais botoes clicar, navegando a aplicacao de forma autonoma como userA.
+
+## 6. Login como userB
+
+Uma segunda janela do navegador abre automaticamente para **userB** (o usuario regular). Faca login manualmente com as credenciais do userB e pressione **Record** no painel.
+
+Agora o HackBrowser esta rastreando a aplicacao com ambos os perfis. Cada requisicao HTTP e marcada com a credencial que a fez, para que o pipeline saiba qual perfil acessou qual endpoint.
+
+## 7. O Que Acontece em Seguida
+
+Enquanto o HackBrowser rastreia, o resto do harness ja esta trabalhando:
+
+**Captura de trafego** — Cada par requisicao/resposta flui para o [Vortex](/docs/features/vortex) com headers completos, corpo e contexto de UI (quais campos de formulario estavam readonly, hidden ou disabled no momento em que a requisicao foi disparada).
+
+**Geracao de sinais** — O Vortex aplica regras contra o trafego capturado e gera sinais: padroes de autenticacao, parametros ocultos, formatos de resposta suspeitos, acesso a endpoints especificos por perfil.
+
+**Despacho WSTG** — O `wstg-agent` le os sinais e despacha agentes especialistas. Uma requisicao com um ID de usuario no caminho aciona `wstg-authorization` para testes de IDOR. Um POST com entradas de formulario aciona `wstg-input-validation` para injecao. Um endpoint de login aciona `wstg-authentication`.
+
+**Comparacao entre perfis** — Como tanto userA quanto userB rastrearam a mesma aplicacao, o pipeline compara quais endpoints cada perfil alcancou, quais elementos de UI estavam visiveis para cada um e se os limites de perfil se mantem quando requisicoes sao reproduzidas com a outra credencial.
+
+**Escalacao** — Apos os especialistas terminarem, o `escalation-hunter` executa entre todas as descobertas para encadea-las — um IDOR medio combinado com um bypass de limite de taxa baixo pode escalar para uma tomada de conta critica.
+
+**Triagem** — O agente `triage` reproduz independentemente as evidencias HTTP de cada rascunho de descoberta. Apenas descobertas confirmadas pela reproducao sao promovidas ao status "triado". Falsos positivos sao rejeitados. Descobertas ambiguas permanecem como rascunhos para sua revisao.
+
+## 8. Revise as Descobertas
+
+Uma vez que o crawl conclua e os testes terminem, revise os resultados:
+
+| Comando | O que mostra |
+|---------|--------------|
+| `/vulnerabilities` | Todas as descobertas com severidade, status e evidencia |
+| `/web` | Endpoints capturados, perfis, credenciais e objetos |
+| `/methodology` | Cobertura WSTG — quais categorias foram testadas, quais estao pendentes |
+| `/report` | Gerar um relatorio estruturado |
+
+### Formato da Descoberta
+
+Cada descoberta inclui:
+
+```
+FINDING: IDOR in User Profile API
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Severity: High
+CWE: CWE-639
+Description: GET /api/users/{id} returns full profile data for any user ID
+             when accessed with userB credentials (regular user).
+Evidence: Replayed GET /api/users/1 with userB token → 200, body contains
+          admin user's email and phone number.
+Status: triaged (verified by replay)
+Recommendation: Enforce ownership check — users should only access their own profile.
+```
+
+### Niveis de Severidade
+
+| Nivel | CVSS | Significado |
+|-------|------|-------------|
+| Critico | 9.0-10.0 | Risco de exploracao imediata |
+| Alto | 7.0-8.9 | Impacto significativo na seguranca |
+| Medio | 4.0-6.9 | Risco moderado |
+| Baixo | 0.1-3.9 | Preocupacao menor |
+| Info | 0.0 | Informativo |
+
+## 9. Exportar e Compartilhar
+
+| Comando | Acao |
+|---------|------|
+| `/report` | Gerar um relatorio de pentest com todas as descobertas |
+| `/share` | Criar um link de sessao compartilhavel |
+| `/export` | Exportar a transcricao da sessao |
+
+## Proximos Passos
+
+- [Agentes de Seguranca](/docs/agents) — Entenda o pipeline WSTG e agentes especialistas
+- [Funcionalidades](/docs/features) — Mergulho profundo no HackBrowser, Vortex, Bolt, MCP
+- [Configuracao](/docs/configuration) — Personalize escopos, permissoes e padroes
+- [Comandos Slash](/docs/slash-commands) — Referencia completa de comandos
+
+<Aside variant="tip">
+  Use `/compact` para resumir sessoes longas e continuar testando sem perder contexto.
+</Aside>

@@ -1,0 +1,95 @@
+---
+title: Runコマンド
+description: インタラクティブモードなしで単一のプロンプトを実行する
+sidebar:
+  order: 2
+  label: Runコマンド
+---
+
+`cyberstrike run` は単一のプロンプトを非インタラクティブに実行します — 自動化やスクリプティングに最適です。このモードでは許可プロンプトに応答する人がいないため、プロンプトが必要なツールは自動的に拒否されます（[自動化](/docs/permissions/automation)を参照）。
+
+{/* TODO: Screenshot - Run command output */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: run-command-output.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Runコマンドの実行出力</p>
+</div>
+
+## 基本的な使い方
+
+```bash
+cyberstrike run "your prompt here"
+```
+
+入力がパイプされている場合、stdinからもプロンプトを読み取ります：
+
+```bash
+echo "summarize the findings in report.json" | cyberstrike run
+```
+
+## オプション
+
+| フラグ | エイリアス | 説明 |
+|------|-------|-------------|
+| `--model` | `-m` | 使用するモデル（`provider/model` 形式） |
+| `--agent` | | 使用するプライマリエージェント（組み込みは `cyberstrike` のみ） |
+| `--format` | | 出力形式：`default` または `json`（デフォルト：`default`） |
+| `--file` | `-f` | メッセージに添付するファイル（繰り返し指定可能） |
+| `--continue` | `-c` | 前回のセッションを続行 |
+| `--session` | `-s` | 続行するセッションID |
+| `--fork` | | 続行前にセッションをフォーク（`--continue`/`--session` が必要） |
+| `--share` | | セッションを共有 |
+| `--title` | | セッションのタイトル |
+| `--variant` | | モデルバリアント / 推論の強度（例：`high`、`max`、`minimal`） |
+| `--thinking` | | 思考ブロックを表示 |
+| `--attach` | | 実行中のサーバーに接続（例：`http://localhost:4096`） |
+| `--dir` | | 実行するディレクトリ（接続時はリモートパス） |
+| `--port` | | ローカルサーバーのポート |
+| `--command` | | 名前付きコマンドを実行。引数にはメッセージを使用 |
+
+<Aside variant="caution">
+  `--output`、`--permission`、`--timeout`、`--verbose`、`--quiet` フラグはありません。出力制御は `--format`（`default` | `json`）、推論の表示は `--thinking` です。
+</Aside>
+
+## 例
+
+### スクリプティング向けJSON出力
+
+```bash
+cyberstrike run "scan example.com for OWASP Top 10 issues" --format json > report.json
+```
+
+### モデルを指定してファイルを添付
+
+```bash
+cyberstrike run "review this code for auth bugs" \
+  -m anthropic/claude-sonnet-4-20250514 \
+  -f src/auth.ts -f src/session.ts
+```
+
+### セッションの続行またはフォーク
+
+```bash
+cyberstrike run "now test the admin endpoints" --continue
+cyberstrike run "try a different payload" --session <id> --fork
+```
+
+## `run` でのパーミッション
+
+非インタラクティブではプロンプトに応答できないため、スクリプトに必要なツールを `CYBERSTRIKE_PERMISSION` 環境変数または設定の `permission` フィールドで事前承認してください：
+
+```bash
+CYBERSTRIKE_PERMISSION='{"bash":"allow","read":"allow"}' \
+  cyberstrike run "enumerate services on the host" --format json
+```
+
+CIパターンについては[自動化](/docs/permissions/automation)を参照してください。
+
+## 終了コード
+
+`cyberstrike run` は成功時に `0` を返し、エラー（例：無効な引数）または中断時にゼロ以外のコードを返します。
+
+## 関連ドキュメント
+
+- [CLIリファレンス](/docs/cli) - 全コマンド
+- [自動化](/docs/permissions/automation) - CI/CDと事前承認パーミッション
+- [使い方：CLI](/docs/usage/cli) - 非インタラクティブな使用方法

@@ -1,0 +1,215 @@
+---
+title: Configuracao de Keybindings
+description: Personalize atalhos de teclado para o Cyberstrike
+sidebar:
+  order: 5
+  label: Keybindings
+---
+
+Personalize atalhos de teclado para combinar com seu fluxo de trabalho. Keybinds sao definidos sob o objeto `keybinds` no seu arquivo de configuracao.
+
+{/* TODO: Screenshot - Keybindings configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: keybindings-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Opcoes de configuracao de keybindings</p>
+</div>
+
+## Localizacao da Configuracao
+
+Keybindings sao configurados no seu arquivo de configuracao global ou de projeto:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "session_new": "<leader>n"
+  }
+}
+```
+
+Apenas as chaves listadas nesta pagina sao validas — o objeto `keybinds` e validado estritamente, entao chaves desconhecidas sao rejeitadas.
+
+## Tecla Lider
+
+A tecla lider e um prefixo para muitos atalhos (padrao `ctrl+x`):
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a"
+  }
+}
+```
+
+## Sintaxe de Teclas
+
+### Modificadores
+
+| Modificador | Sintaxe |
+|-------------|---------|
+| Control | `ctrl` |
+| Alt/Option | `alt` |
+| Shift | `shift` |
+| Super/Command | `super` |
+
+### Teclas Especiais
+
+| Tecla | Sintaxe |
+|-------|---------|
+| Enter | `return` |
+| Escape | `escape` |
+| Tab | `tab` |
+| Backspace | `backspace` |
+| Delete | `delete` |
+| Setas | `up` `down` `left` `right` |
+| Page Up / Down | `pageup` `pagedown` |
+| Home / End | `home` `end` |
+| Teclas de funcao | `f2`, `shift+f2` |
+
+### Combinacoes, Alternativas e Lider
+
+```
+ctrl+alt+d          # Ctrl + Alt + D
+<leader>n           # Lider e depois N
+pageup,ctrl+alt+b   # dois bindings alternativos para uma acao (separados por virgula)
+```
+
+Uma virgula separa bindings **alternativos** para a mesma acao. Defina um valor como `none` para desabilitar uma acao.
+
+## Acoes Disponiveis
+
+Cada acao abaixo mostra seu binding padrao. Sobrescreva qualquer subconjunto no seu objeto `keybinds`.
+
+### Sessoes
+
+| Acao | Padrao | Descricao |
+|------|--------|-----------|
+| `session_new` | `<leader>n` | Criar uma nova sessao |
+| `session_list` | `<leader>l` | Listar todas as sessoes |
+| `session_compact` | `<leader>c` | Compactar a sessao |
+| `session_timeline` | `<leader>g` | Mostrar linha do tempo da sessao |
+| `session_rename` | `ctrl+r` | Renomear sessao |
+| `session_delete` | `ctrl+d` | Excluir sessao |
+| `session_export` | `<leader>x` | Exportar sessao para editor |
+| `session_interrupt` | `escape` | Interromper sessao atual |
+| `session_fork` | `none` | Bifurcar sessao a partir de mensagem |
+| `session_share` | `none` | Compartilhar sessao atual |
+| `session_child_cycle` | `<leader>right` | Proxima sessao filha |
+| `session_parent` | `<leader>up` | Ir para sessao pai |
+
+### Mensagens e Navegacao
+
+| Acao | Padrao | Descricao |
+|------|--------|-----------|
+| `messages_page_up` | `pageup,ctrl+alt+b` | Rolar uma pagina para cima |
+| `messages_page_down` | `pagedown,ctrl+alt+f` | Rolar uma pagina para baixo |
+| `messages_half_page_up` | `ctrl+alt+u` | Rolar meia pagina para cima |
+| `messages_half_page_down` | `ctrl+alt+d` | Rolar meia pagina para baixo |
+| `messages_first` | `ctrl+g,home` | Ir para a primeira mensagem |
+| `messages_last` | `ctrl+alt+g,end` | Ir para a ultima mensagem |
+| `messages_copy` | `<leader>y` | Copiar mensagem |
+| `messages_undo` | `<leader>u` | Desfazer mensagem |
+| `messages_redo` | `<leader>r` | Refazer mensagem |
+| `messages_toggle_conceal` | `<leader>h` | Alternar ocultacao de blocos de codigo |
+
+### Listas e Dialogos
+
+| Acao | Padrao | Descricao |
+|------|--------|-----------|
+| `model_list` | `<leader>m` | Listar modelos disponiveis |
+| `agent_list` | `<leader>a` | Listar agentes |
+| `agent_cycle` | `tab` | Proximo agente |
+| `agent_cycle_reverse` | `shift+tab` | Agente anterior |
+| `theme_list` | `<leader>t` | Listar temas disponiveis |
+| `command_list` | `ctrl+p` | Listar comandos disponiveis |
+
+### Interface
+
+| Acao | Padrao | Descricao |
+|------|--------|-----------|
+| `sidebar_toggle` | `<leader>b` | Alternar barra lateral |
+| `status_view` | `<leader>s` | Visualizar status |
+| `editor_open` | `<leader>e` | Abrir editor externo |
+| `tips_toggle` | `<leader>h` | Alternar dicas da tela inicial |
+
+### Aplicacao e Entrada
+
+| Acao | Padrao | Descricao |
+|------|--------|-----------|
+| `app_exit` | `ctrl+c,ctrl+d,<leader>q` | Sair da aplicacao |
+| `terminal_suspend` | `ctrl+z` | Suspender o terminal |
+| `input_submit` | `return` | Enviar entrada |
+| `input_newline` | `shift+return,ctrl+return,alt+return,ctrl+j` | Inserir uma nova linha |
+| `input_clear` | `ctrl+c` | Limpar o campo de entrada |
+| `input_paste` | `ctrl+v` | Colar da area de transferencia |
+
+<Aside variant="info">
+  O campo de entrada tambem possui um grande conjunto de bindings de movimentacao de cursor e edicao (`input_move_*`, `input_word_*`, `input_delete_*`, etc.). Eles seguem a mesma nomenclatura `keybinds` e podem ser sobrescritos da mesma forma.
+</Aside>
+
+## Exemplo de Configuracao Completa
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "session_compact": "<leader>c",
+    "session_timeline": "<leader>g",
+    "session_rename": "ctrl+r",
+    "session_export": "<leader>x",
+
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "theme_list": "<leader>t",
+    "command_list": "ctrl+p",
+
+    "sidebar_toggle": "<leader>b",
+    "status_view": "<leader>s",
+    "editor_open": "<leader>e",
+
+    "messages_half_page_up": "ctrl+alt+u",
+    "messages_half_page_down": "ctrl+alt+d",
+    "messages_undo": "<leader>u",
+
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+## Multiplos Bindings
+
+Atribua multiplos atalhos a uma acao com virgula:
+
+```json
+{
+  "keybinds": {
+    "app_exit": "ctrl+c,ctrl+d,<leader>q",
+    "model_list": "<leader>m,ctrl+shift+m"
+  }
+}
+```
+
+A virgula separa bindings alternativos — nao e uma sequencia de acordes.
+
+## Redefinindo Keybindings
+
+Nao existe comando de redefinicao. Para restaurar um padrao, remova a chave do seu objeto `keybinds` (ou delete o objeto inteiro para restaurar todos os padroes).
+
+## Solucao de Problemas
+
+1. Verifique conflitos com seu emulador de terminal
+2. Verifique se a configuracao e JSON valido e o nome da chave corresponde exatamente a esta pagina (chaves desconhecidas falham na validacao)
+3. Navegue pelos comandos registrados na TUI com `command_list` (`ctrl+p`)
+
+<Aside variant="tip">
+  Use `/help` no Cyberstrike para ver uma referencia rapida dos keybindings ativos.
+</Aside>
+
+## Documentacao Relacionada
+
+- [Referencia de Configuracao](/docs/configuration) - Todas as opcoes de configuracao
+- [Atalhos de Teclado](/docs/getting-started/keyboard-shortcuts) - Referencia de atalhos
+- [Configuracao Global](/docs/configuration/global-config) - Guia de configuracao

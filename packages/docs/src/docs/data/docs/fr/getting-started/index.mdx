@@ -1,0 +1,254 @@
+---
+title: Premiers pas
+description: "Installer Cyberstrike et lancer votre premiere evaluation de securite"
+sidebar:
+  order: 1
+  label: Introduction
+---
+
+Cyberstrike est un harnais de securite offensive augmente par l'IA. Vous decrivez une cible -- une application web, une API, un reseau -- et Cyberstrike effectue l'evaluation. Il choisit les outils, envoie les bons agents, teste les vulnerabilites et rapporte ce qu'il trouve.
+
+Considerez-le comme un pentester IA qui travaille a vos cotes. Vous gardez le controle via une interface conversationnelle unique tandis que le harnais gere le gros du travail : exploration, analyse de trafic, tests d'injection, verifications d'autorisations et detection de chaines entre les resultats individuels.
+
+Sous le capot, il reunit plus de 100 outils de securite, plus de 15 agents specialises, plus de 65 scripts de tests deterministes bases sur l'OWASP WSTG, ainsi que des moteurs dedies pour l'[exploration web](/docs/features/hackbrowser), l'[analyse de trafic](/docs/features/vortex), les [outils containerises](/docs/features/bolt) et les [integrations externes](/docs/features/mcp).
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/gifs/g01-first-run.gif" alt="Installation et premier lancement de Cyberstrike" className="w-full" />
+</div>
+
+## Configuration requise
+
+Avant d'installer Cyberstrike, verifiez que votre systeme repond a ces exigences :
+
+| Exigence | Minimum | Recommande |
+|----------|---------|------------|
+| Systeme d'exploitation | macOS 12+, Ubuntu 20.04+, Windows 10+ | macOS 14+, Ubuntu 22.04+ |
+| RAM | 4 Go | 8 Go |
+| Espace disque | 500 Mo | 2 Go |
+| Node.js | 18.0+ | 20.0+ |
+
+## Installer Cyberstrike
+
+Choisissez votre methode d'installation preferee selon votre systeme d'exploitation et votre gestionnaire de paquets.
+
+### npm (Recommande)
+
+1. Ouvrez votre terminal
+2. Executez la commande d'installation :
+
+```bash
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+3. Verifiez l'installation :
+
+```bash
+cyberstrike --version
+```
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s01-installation.png" alt="TUI de Cyberstrike apres l'installation" className="w-full" />
+</div>
+
+### Bun <Badge text="Bientot disponible" variant="caution" size="md" />
+
+Le support de Bun n'est pas encore disponible.
+
+### Homebrew (macOS) <Badge text="Bientot disponible" variant="caution" size="md" />
+
+Le support de Homebrew n'est pas encore disponible.
+
+### curl (Linux/macOS)
+
+Executez le script d'installation :
+
+```bash
+curl -fsSL https://cyberstrike.io/install | bash
+```
+
+### iwr (Windows/Powershell)
+
+Executez le script d'installation :
+
+```bash
+iwr -useb https://cyberstrike.io/install.ps1 | iex
+```
+
+<Aside variant="caution">
+  Examinez les scripts avant de les executer. Le script d'installation est disponible sur [github.com/CyberStrikeus/CyberStrike](https://github.com/CyberStrikeus/CyberStrike).
+</Aside>
+
+### Docker
+
+<Aside variant="caution">
+  L'image Docker arrive bientot. Pour l'instant, utilisez npm ou curl.
+</Aside>
+
+## Connecter un fournisseur IA
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/gifs/g02-auth-login.gif" alt="Flux de connexion d'authentification Cyberstrike" className="w-full" />
+</div>
+
+Cyberstrike necessite un fournisseur IA pour fonctionner. Les fournisseurs suivants sont pris en charge :
+
+| Fournisseur | Niveau gratuit | Methode d'authentification |
+|-------------|----------------|---------------------------|
+| GitHub Copilot | Avec abonnement | OAuth (pas de cle API) |
+| OpenRouter | Oui | Cle API |
+| Anthropic | Non | Cle API |
+| OpenAI | Non | Cle API |
+| Google Gemini | Oui | Cle API |
+| Ollama | Oui (local) | Aucune |
+
+### Configurer l'authentification
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s02-auth.jpg" alt="Dialogue de selection de modele Cyberstrike" className="w-full" />
+</div>
+
+1. Lancez Cyberstrike et executez la commande de connexion :
+
+```
+/connect
+```
+
+2. Selectionnez votre fournisseur dans la liste et entrez votre cle API (ou autorisez via OAuth pour GitHub Copilot)
+
+3. Changez de modele a tout moment avec :
+
+```
+/models
+```
+
+### Utiliser les variables d'environnement
+
+Alternativement, definissez les cles API comme variables d'environnement :
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+Ajoutez-les a votre profil shell (`~/.bashrc`, `~/.zshrc`) pour les conserver.
+
+## Lancer votre premiere evaluation
+
+### Demarrage
+
+```bash
+cyberstrike
+```
+
+Le TUI apparait avec un champ de saisie, une zone de reponse et une barre d'etat.
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s03-tui-main.png" alt="Interface principale du TUI Cyberstrike" className="w-full" />
+</div>
+
+### Decrire la cible
+
+Tapez votre tache directement. Le harnais decide quoi executer :
+
+```
+> Tester https://app.example.com pour les vulnerabilites du Top 10 OWASP
+```
+
+Ce qui se passe en coulisses :
+
+1. L'agent primaire `cyberstrike` lit votre objectif
+2. `/hackbrowser` se lance pour explorer la cible et capturer le trafic HTTP
+3. [Vortex](/docs/features/vortex) traite chaque requete -- applique les regles, signale les anomalies
+4. Le `wstg-agent` envoie les agents specialistes en fonction des signaux des requetes
+5. 13 specialistes WSTG testent l'injection, le contournement d'authentification, les IDOR, les failles de session, les problemes cryptographiques et plus encore
+6. L'`escalation-hunter` chaine les resultats pour detecter les vulnerabilites composees
+7. L'agent `triage` verifie independamment chaque resultat en rejouant les preuves HTTP
+8. Vous obtenez des resultats tries avec preuves, severite et remediation
+
+### Contenu du harnais
+
+| Couche | Description |
+|--------|-------------|
+| **Agents** | Plus de 15 agents specialises -- pipeline WSTG, triage, escalade, general, exploration |
+| **Outils** | Plus de 100 outils integres -- rejeu HTTP, sondes d'injection, sondes d'acces, reconnaissance, recherche de code |
+| **Skills** | Plus de 65 scripts de tests WSTG deterministes charges par les specialistes a l'execution |
+| **Vortex** | Moteur de trafic HTTP avec requetes DSL, correspondance de regles et correlation de signaux |
+| **HackBrowser** | Explorateur Chromium pilote par l'IA avec capture du contexte d'interface |
+| **Bolt** | Plus de 30 outils de securite containerises (nmap, nuclei, sqlmap, hydra et plus) |
+| **MCP** | 3 serveurs integres (github-security, cve, osint) + tout serveur MCP personnalise |
+
+Vous interagissez avec un seul prompt. Le harnais orchestre le reste.
+
+## Configuration
+
+Creez un fichier `cyberstrike.json` dans le repertoire de votre projet pour definir les parametres par defaut :
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+Lorsque vous executez `cyberstrike` dans ce repertoire, ces parametres sont automatiquement charges. Vous pouvez aussi changer de modele a tout moment avec `/models` dans le TUI.
+
+### Hierarchie de configuration
+
+Cyberstrike charge la configuration depuis plusieurs sources dans cet ordre :
+
+1. Variables d'environnement (priorite la plus elevee)
+2. Configuration du projet (`cyberstrike.json`)
+3. Configuration utilisateur (`~/.config/cyberstrike/cyberstrike.json`)
+4. Valeurs par defaut (priorite la plus basse)
+
+Pour les options de configuration detaillees, consultez la [Reference de configuration](/docs/configuration).
+
+## Commandes slash principales
+
+| Commande | Action |
+|----------|--------|
+| `/connect` | Connecter un fournisseur IA |
+| `/models` | Changer de modele |
+| `/hackbrowser` | Lancer l'explorateur web autonome |
+| `/bolt` | Gerer les serveurs d'outils Bolt |
+| `/mcps` | Gerer les serveurs MCP |
+| `/vulnerabilities` | Consulter les resultats |
+| `/web` | Inspecter le trafic web capture |
+| `/report` | Generer un rapport |
+| `/help` | Afficher toutes les commandes |
+
+## Raccourcis clavier
+
+| Raccourci | Action |
+|-----------|--------|
+| `Enter` | Envoyer le message |
+| `Shift+Enter` | Nouvelle ligne |
+| `Escape` | Interrompre la session en cours |
+| `Ctrl+P` | Liste des commandes |
+| `Tab` | Agent suivant |
+| `Ctrl+D` | Quitter Cyberstrike |
+| `↑` / `↓` | Naviguer dans l'historique de saisie |
+
+Voir [Raccourcis clavier](/docs/getting-started/keyboard-shortcuts) pour la reference complete.
+
+## Etapes suivantes
+
+Continuez votre apprentissage avec ces guides :
+
+1. [Reference de configuration](/docs/configuration) -- Personnaliser les parametres de Cyberstrike
+2. [Fournisseurs IA](/docs/providers) -- Configurer votre fournisseur IA prefere
+3. [Agents de securite](/docs/agents) -- Decouvrir les agents specialises
+4. [Fonctionnalites](/docs/features) -- HackBrowser, Vortex, Bolt, MCP
+
+<Aside variant="tip">
+  Rejoignez la communaute sur [Discord](https://discord.gg/dr97wVJVbn) pour du support et des mises a jour.
+</Aside>

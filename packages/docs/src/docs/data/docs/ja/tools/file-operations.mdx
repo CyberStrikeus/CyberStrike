@@ -1,0 +1,318 @@
+---
+title: ファイル操作
+description: ファイル操作のためのRead、Write、Edit、Glob、Grepツール
+sidebar:
+  order: 2
+  label: ファイル操作
+---
+
+CyberStrikeは、セキュリティテストワークフローに最適化されたファイル操作用の専用ツールを提供します。
+
+{/* TODO: Screenshot - File operations in action */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: file-operations.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">ファイル操作ツールの出力</p>
+</div>
+
+## Readツール
+
+行番号付きでファイル内容を読み取ります。
+
+### 基本的な使い方
+
+```
+> Read the contents of src/auth/login.ts
+```
+
+### 部分読み取り
+
+```
+> Read lines 50-100 of src/auth/login.ts
+```
+
+### 複数ファイル
+
+```
+> Read both config.json and package.json
+```
+
+### 画像分析
+
+Readツールは画像を分析できます：
+
+```
+> Read the screenshot at ./evidence/vuln-poc.png
+```
+
+### PDF分析
+
+```
+> Read the security report at ./reports/pentest.pdf
+```
+
+## Writeツール
+
+ファイルを作成または上書きします。
+
+### 新規ファイル作成
+
+```
+> Write a Python script to exploit the SQL injection to exploit.py
+```
+
+### ファイル上書き
+
+```
+> Replace the contents of config.json with the secure configuration
+```
+
+<Aside variant="caution">
+  Writeツールは警告なしに既存のファイルを上書きします。部分的な変更にはEditを使用してください。
+</Aside>
+
+## Editツール
+
+既存のファイルに正確な編集を行います。
+
+### 文字列置換
+
+```
+> Edit src/auth/login.ts to replace "SELECT * FROM users WHERE id = " + userId with parameterized query
+```
+
+### 複数行の編集
+
+```
+> Edit the vulnerable function in auth.ts to add input validation
+```
+
+### すべて置換
+
+```
+> Replace all instances of "http://" with "https://" in config files
+```
+
+### ベストプラクティス
+
+1. まずファイルを読んでコンテキストを理解する
+2. 変更内容を具体的に指定する
+3. 一意のマッチのために十分な周辺コンテキストを含める
+4. 編集後に変更を確認する
+
+## Globツール
+
+パターンマッチングでファイルを検索します。
+
+### 基本パターン
+
+```
+> Find all TypeScript files in the project
+```
+
+パターン：`**/*.ts`
+
+### 複数の拡張子
+
+```
+> Find all JavaScript and TypeScript files
+```
+
+パターン：`**/*.{js,ts}`
+
+### 特定のディレクトリ
+
+```
+> Find all config files in the src directory
+```
+
+パターン：`src/**/config.*`
+
+### よく使うパターン
+
+| パターン | マッチ対象 |
+|---------|---------|
+| `**/*.ts` | すべてのTypeScriptファイル |
+| `src/**/*.test.ts` | src内のテストファイル |
+| `**/package.json` | すべてのpackage.jsonファイル |
+| `**/.env*` | 環境ファイル |
+| `**/secret*` | 名前に「secret」を含むファイル |
+
+### セキュリティスキャンパターン
+
+```
+> Find files that might contain credentials
+
+Patterns:
+- **/*.env*
+- **/secrets.*
+- **/*credentials*
+- **/*password*
+- **/config.json
+```
+
+## Grepツール
+
+正規表現でファイル内容を検索します。
+
+### 基本検索
+
+```
+> Search for "password" in all files
+```
+
+### 正規表現検索
+
+```
+> Search for API key patterns in the codebase
+```
+
+パターン：`(api[_-]?key|apikey)\s*[:=]\s*['"][^'"]+['"]`
+
+### 大文字小文字を区別しない
+
+```
+> Search for "SELECT" case insensitively
+```
+
+### ファイルタイプフィルタ
+
+```
+> Search for "eval(" only in JavaScript files
+```
+
+### コンテキスト行
+
+```
+> Search for "TODO" with 2 lines of context before and after
+```
+
+### セキュリティ重視の検索
+
+| 目的 | パターン |
+|---------|---------|
+| SQLインジェクション | `(SELECT|INSERT|UPDATE|DELETE).*\+.*\$` |
+| コマンドインジェクション | `(exec|spawn|system)\s*\(` |
+| ハードコードされたシークレット | `(password\|secret\|key)\s*=\s*['"][^'"]&#123;8,&#125;` |
+| 安全でないデシリアライゼーション | `(pickle|marshal|yaml\.load)` |
+| XSSシンク | `(innerHTML|outerHTML|document\.write)` |
+
+## ファイル分析ワークフロー
+
+### 1. ファイルの検出
+
+```
+> Find all files that might handle user input
+```
+
+### 2. パターンの検索
+
+```
+> Search these files for SQL query construction
+```
+
+### 3. 疑わしいファイルの読み取り
+
+```
+> Read the files that matched the SQL pattern
+```
+
+### 4. 発見事項の文書化
+
+```
+> Write a summary of the SQL injection findings to findings.md
+```
+
+## パーミッションに関する考慮事項
+
+ファイル操作にはパーミッションが必要な場合があります：
+
+| 操作 | パーミッションキー | デフォルト動作 |
+|-----------|----------------|------------------|
+| Read | `read` | 許可（読み取り専用） |
+| Glob | `glob` | 許可（読み取り専用） |
+| Grep | `grep` | 許可（読み取り専用） |
+| Write | `edit` | パーミッション必要 |
+| Edit | `edit` | パーミッション必要 |
+
+WriteとEditの両ツールは単一の `edit` パーミッションキーで制御されます。
+
+### 書き込みの自動承認
+
+自動化のために、`edit` 配下でファイルパスグロブをアクションにマッピングします：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "permission": {
+    "edit": {
+      "reports/**": "allow",
+      "findings/**": "allow"
+    }
+  }
+}
+```
+
+ワイルドカードとして `*` と `?` のみサポートされています。完全なモデルについては[パーミッション](/docs/permissions)を参照してください。
+
+## 大きなファイルの処理
+
+### ページネーション
+
+大きなファイルの場合：
+
+```
+> Read the first 100 lines of large-log.txt
+> Read lines 100-200 of large-log.txt
+```
+
+### バイナリファイル
+
+Readツールはバイナリファイルに対応しています：
+
+```
+> Read the binary at ./malware.exe and analyze its strings
+```
+
+## セキュリティテストとの統合
+
+### コードレビュー
+
+```
+> Analyze all authentication-related files for security issues
+
+1. Find auth files: Glob **/*auth*.{ts,js}
+2. Search for vulnerabilities: Grep patterns
+3. Read and analyze matches
+4. Document findings
+```
+
+### 設定の監査
+
+```
+> Review all configuration files for security misconfigurations
+
+1. Find configs: Glob **/{config,settings}*.{json,yaml,yml}
+2. Read each file
+3. Check for sensitive data exposure
+4. Verify secure defaults
+```
+
+### シークレット検出
+
+```
+> Scan the codebase for hardcoded secrets
+
+1. Glob all source files
+2. Grep for secret patterns
+3. Read matches for verification
+4. Report findings
+```
+
+<Aside variant="tip">
+  効率的なコードベーススキャンのために、GlobとGrepを組み合わせてください。まず広く検索し、その後絞り込みます。
+</Aside>
+
+## 関連ドキュメント
+
+- [Bashツール](/docs/tools/bash) - コマンド実行
+- [メモリツール](/docs/tools/memory) - 発見事項の保存
+- [パーミッション](/docs/permissions) - ファイル操作のパーミッション

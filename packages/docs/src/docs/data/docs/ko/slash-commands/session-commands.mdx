@@ -1,0 +1,49 @@
+---
+title: 세션 명령
+description: Cyberstrike 세션 관리를 위한 슬래시 명령
+sidebar:
+  order: 2
+  label: 세션 명령
+---
+
+세션 명령은 현재 대화를 관리합니다 — 생성, 재개, 공유 및 메시지 기록 편집.
+
+<img src="/docs/images/gifs/session-commands.gif" alt="leader+l로 세션 선택기 열기" className="rounded-lg shadow-lg my-6 w-full" />
+
+## 라이프사이클
+
+| 명령 | 별칭 | 동작 |
+|------|------|------|
+| `/new` | `/clear` | **새** 세션 시작 (`/clear`는 별칭입니다 — 단순히 메시지만 지우는 것이 아닙니다) |
+| `/sessions` | `/resume`, `/continue` | 과거 세션을 재개하기 위한 세션 선택기 열기 |
+| `/rename` | | 현재 세션 이름 변경 |
+| `/fork` | | 현재 시점에서 세션 포크 |
+| `/timeline` | | 세션 타임라인 표시 |
+| `/export` | | 세션 내보내기 |
+| `/copy` | | 마지막 메시지 복사 |
+
+## 메시지
+
+| 명령 | 별칭 | 동작 |
+|------|------|------|
+| `/undo` | | 마지막 메시지 실행 취소 |
+| `/redo` | | 다시 실행 |
+| `/compact` | `/summarize` | 세션을 압축 (요약)하여 컨텍스트 확보 |
+| `/timestamps` | `/toggle-timestamps` | 메시지 타임스탬프 토글 |
+| `/thinking` | `/toggle-thinking` | 사고 블록 토글 |
+
+## 공유
+
+| 명령 | 동작 |
+|------|------|
+| `/share` | 현재 세션 공유 |
+| `/unshare` | 공유 중지 |
+
+<Aside variant="caution">
+  `/clear`는 `/new`의 별칭이며 (새 세션을 시작합니다), `/continue`는 `/sessions`의 별칭입니다 (세션 선택기를 엽니다). `/history`, `/memory`, `/cost`, `/save`, `/tag`, `/note`, `/retry`, `/template` 명령은 없습니다.
+</Aside>
+
+## 관련 문서
+
+- [슬래시 명령](/docs/slash-commands) - 전체 명령 목록
+- [내비게이션 명령](/docs/slash-commands/navigation-commands) - 선택기 및 대화상자

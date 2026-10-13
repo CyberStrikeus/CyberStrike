@@ -1,0 +1,56 @@
+---
+title: Dynamisches Laden von Werkzeugen
+description: MCP-Werkzeuge bedarfsgesteuert entdecken und laden
+sidebar:
+  order: 6
+  label: Dynamisches Laden
+---
+
+Eingebaute Werkzeuge (bash, read, edit, ...) sind immer verfuegbar. **MCP-Werkzeuge werden bedarfsgesteuert geladen**, damit die Verbindung zu einem Server mit Hunderten von Werkzeugen nicht den Kontext des Modells ueberflutet. Vier Werkzeuge steuern dies.
+
+<img src="/docs/images/diagrams/tool-loading.svg" alt="MCP-Werkzeug-Ladezyklus: ein Server stellt Hunderte von Werkzeugen bereit; tool_search findet eines nach Faehigkeit, load_tools bringt es in den Kontext, der Agent ruft es auf, und unload_tools gibt den Kontext frei" className="my-6" />
+
+## Die Ladewerkzeuge
+
+| Werkzeug | Zweck |
+|----------|-------|
+| `tool_search` | MCP-Werkzeuge nach Faehigkeit finden (`query`, optionales `limit`) |
+| `load_tools` | Bestimmte Werkzeuge in den aktiven Kontext laden |
+| `unload_tools` | Geladene Werkzeuge entfernen, um Kontext freizugeben |
+| `list_loaded_tools` | Anzeigen, welche Werkzeuge aktuell geladen sind |
+
+Der Agent verwendet diese automatisch: er sucht nach einer Faehigkeit, laedt das passende MCP-Werkzeug, ruft es auf und kann es danach wieder entladen.
+
+### tool_search
+
+```json
+{
+  "query": "sql injection testing",
+  "limit": 10
+}
+```
+
+Gibt passende MCP-Werkzeuge mit ihren Beschreibungen zurueck. Eingebaute Werkzeuge muessen nicht gesucht werden — sie sind immer aufrufbar.
+
+## Was wird verzögert vs. immer verfuegbar geladen
+
+- **Immer verfuegbar** — jedes eingebaute Werkzeug (`bash`, `read`, `edit`, `glob`, `grep`, `write`, `task`, `webfetch`, `websearch`, Speicherwerkzeuge, ...).
+- **Bedarfsgesteuert geladen** — Werkzeuge, die von verbundenen MCP-Servern bereitgestellt werden (einschliesslich [Bolt](/docs/mcp/bolt)). Sie werden mit `tool_search` entdeckt und mit `load_tools` geladen.
+
+## Ein Werkzeug deaktivieren
+
+Die `tools`-Konfiguration ist eine Zuordnung von Werkzeugname → Boolean. Setzen Sie ein Werkzeug auf `false`, um es zu deaktivieren:
+
+```json title="cyberstrike.json"
+{
+  "tools": {
+    "websearch": false
+  }
+}
+```
+
+## Verwandte Dokumentation
+
+- [Werkzeug-Uebersicht](/docs/tools) - Alle eingebauten Werkzeuge
+- [Bolt / MCP](/docs/mcp) - MCP-Server verbinden
+- [Konfiguration](/docs/configuration) - Werkzeugeinstellungen

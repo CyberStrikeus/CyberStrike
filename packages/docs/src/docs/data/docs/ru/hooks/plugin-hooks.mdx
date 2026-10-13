@@ -1,0 +1,154 @@
+---
+title: Хуки плагинов
+description: Хуки, которые может реализовать плагин Cyberstrike
+sidebar:
+  order: 2
+  label: Хуки плагинов
+---
+
+Плагин — это функция `(input) => Promise<Hooks>`, которая возвращает объект функций-хуков. Каждый хук получает `input` (контекст только для чтения) и, для большинства хуков, объект `output`, который вы **мутируете** для изменения поведения. Выброс исключения из хука прерывает операцию.
+
+<img src="/docs/images/diagrams/plugin-hook-architecture.svg" alt="Поток выполнения хуков плагина: chat.params/chat.headers перед вызовом LLM, permission.ask перед инструментом, tool.execute.before для изменения аргументов или блокировки, затем tool.execute.after для преобразования вывода" className="my-6 mx-auto max-w-xs" />
+
+Как создать и зарегистрировать плагин, см. в [Создание плагинов](/docs/hooks/creating-plugins). Эта страница — справочник по всем хукам.
+
+## Справочник хуков
+
+| Хук | Когда запускается | Вы можете... |
+|-----|-------------------|-------------|
+| `event` | При любом событии шины | Наблюдать за событиями (логирование, аналитика) |
+| `config` | После загрузки конфигурации | Просматривать/корректировать загруженную конфигурацию |
+| `tool` | При регистрации | Добавлять пользовательские инструменты (карта имя -> определение) |
+| `auth` | При регистрации | Добавить пользовательский провайдер аутентификации |
+| `chat.message` | Получено сообщение пользователя | Читать/добавлять части сообщения |
+| `chat.params` | Перед вызовом LLM | Изменять `temperature`, `topP`, `topK`, `options` |
+| `chat.headers` | Перед запросом к LLM | Добавлять/изменять заголовки `headers` запроса |
+| `permission.ask` | Запрошено разрешение | Установить `status` в `allow`/`deny`/`ask` |
+| `command.execute.before` | Запущена slash-команда | Внедрить `parts` |
+| `tool.execute.before` | Перед выполнением инструмента | Изменить `args` или выбросить исключение для блокировки |
+| `tool.execute.after` | После выполнения инструмента | Преобразовать `title`/`output`/`metadata` |
+| `tool.definition` | Инструмент отправлен в LLM | Переписать `description`/`parameters` инструмента |
+| `shell.env` | Выполняется команда оболочки | Добавить переменные окружения |
+| `experimental.chat.messages.transform` | Перед вызовом LLM | Переписать полный список сообщений |
+| `experimental.chat.system.transform` | Перед вызовом LLM | Переписать массив системного промпта |
+| `experimental.session.compacting` | Перед компактификацией | Добавить контекст или заменить промпт компактификации |
+| `experimental.text.complete` | Завершена текстовая часть | Переписать завершённый текст |
+
+## Сигнатуры
+
+Все хуки `async` и возвращают `Promise<void>`.
+
+### Инструменты
+
+```typescript
+"tool.execute.before"?: (
+  input: { tool: string; sessionID: string; callID: string },
+  output: { args: any },
+) => Promise<void>
+
+"tool.execute.after"?: (
+  input: { tool: string; sessionID: string; callID: string; args: any },
+  output: { title: string; output: string; metadata: any },
+) => Promise<void>
+
+"tool.definition"?: (
+  input: { toolID: string },
+  output: { description: string; parameters: any },
+) => Promise<void>
+```
+
+Для **блокировки** инструмента выбросите исключение из `tool.execute.before`:
+
+```typescript
+"tool.execute.before": async (input, output) => {
+  if (input.tool === "bash" && /rm\s+-rf/.test(output.args.command)) {
+    throw new Error("blocked: rm -rf")
+  }
+}
+```
+
+### Разрешения
+
+```typescript
+"permission.ask"?: (
+  input: Permission,
+  output: { status: "ask" | "deny" | "allow" },
+) => Promise<void>
+```
+
+```typescript
+"permission.ask": async (input, output) => {
+  if (input.type === "read") output.status = "allow"
+}
+```
+
+### Чат
+
+```typescript
+"chat.message"?: (
+  input: { sessionID: string; agent?: string; model?: { providerID: string; modelID: string }; messageID?: string; variant?: string },
+  output: { message: UserMessage; parts: Part[] },
+) => Promise<void>
+
+"chat.params"?: (
+  input: { sessionID: string; agent: string; model: Model; provider: ProviderContext; message: UserMessage },
+  output: { temperature: number; topP: number; topK: number; options: Record<string, any> },
+) => Promise<void>
+
+"chat.headers"?: (
+  input: { sessionID: string; agent: string; model: Model; provider: ProviderContext; message: UserMessage },
+  output: { headers: Record<string, string> },
+) => Promise<void>
+```
+
+### Команды и оболочка
+
+```typescript
+"command.execute.before"?: (
+  input: { command: string; sessionID: string; arguments: string },
+  output: { parts: Part[] },
+) => Promise<void>
+
+"shell.env"?: (
+  input: { cwd: string },
+  output: { env: Record<string, string> },
+) => Promise<void>
+```
+
+### Жизненный цикл
+
+```typescript
+event?:  (input: { event: Event }) => Promise<void>
+config?: (input: Config) => Promise<void>
+```
+
+### Экспериментальные
+
+```typescript
+"experimental.chat.messages.transform"?: (input: {}, output: { messages: { info: Message; parts: Part[] }[] }) => Promise<void>
+"experimental.chat.system.transform"?:   (input: { sessionID?: string; model: Model }, output: { system: string[] }) => Promise<void>
+"experimental.session.compacting"?:      (input: { sessionID: string }, output: { context: string[]; prompt?: string }) => Promise<void>
+"experimental.text.complete"?:           (input: { sessionID: string; messageID: string; partID: string }, output: { text: string }) => Promise<void>
+```
+
+## Пользовательские инструменты и аутентификация
+
+Хуки `tool` и `auth` регистрируют возможности, а не реагируют на события:
+
+```typescript
+return {
+  tool: {
+    my_scanner: {
+      description: "Custom vulnerability scanner",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] },
+      execute: async (args) => ({ title: `Scanned ${args.target}`, output: await scan(args.target) }),
+    },
+  },
+}
+```
+
+## Связанная документация
+
+- [Обзор хуков](/docs/hooks) — Концепции и примеры
+- [Создание плагинов](/docs/hooks/creating-plugins) — Создание, регистрация и тестирование плагина
+- [Конфигурация](/docs/configuration) — Ключ конфигурации `plugin`

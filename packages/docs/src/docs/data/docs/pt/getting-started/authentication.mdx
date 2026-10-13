@@ -1,0 +1,211 @@
+---
+title: Autenticacao
+description: Configure credenciais de provedores de IA para o Cyberstrike
+sidebar:
+  order: 3
+  label: Autenticacao
+---
+
+O Cyberstrike requer autenticacao com pelo menos um provedor de IA para funcionar. Este guia cobre a configuracao de credenciais para provedores suportados.
+
+## Conectar um Provedor
+
+A maneira mais simples de autenticar — execute na TUI:
+
+```
+/connect
+```
+
+Selecione seu provedor no menu interativo:
+
+```
+? Select provider
+❯ cyberstrike (recommended)
+  anthropic (Claude Max or API key)
+  github-copilot
+  openai (ChatGPT Plus/Pro or API key)
+  google
+  openrouter
+  …
+```
+
+A lista e construida dinamicamente a partir do catalogo de modelos e ordenada por prioridade, entao as entradas exatas podem variar. E um prompt de autocompletar, nao um menu fixo.
+
+## Configuracao por Provedor
+
+### Anthropic
+
+1. Obtenha sua chave de API em [console.anthropic.com](https://console.anthropic.com)
+2. Execute `/connect`, selecione **Anthropic**, insira sua chave de API
+
+### OpenAI
+
+1. Obtenha sua chave de API em [platform.openai.com](https://platform.openai.com)
+2. Execute `/connect`, selecione **OpenAI**, insira sua chave de API
+
+### GitHub Copilot
+
+1. Tenha uma assinatura ativa do GitHub Copilot
+2. Execute `/connect`, selecione **Login with GitHub Copilot**
+3. Autorize pelo fluxo OAuth no navegador — nenhuma chave de API necessaria
+
+Consulte [GitHub Copilot](/docs/providers/github-copilot) para detalhes.
+
+### OpenRouter
+
+O OpenRouter fornece acesso a multiplos modelos com um nivel gratuito:
+
+1. Obtenha sua chave de API em [openrouter.ai/keys](https://openrouter.ai/keys)
+2. Execute `/connect`, selecione **OpenRouter**, insira sua chave de API
+
+### Google Gemini
+
+1. Obtenha sua chave de API em [ai.google.dev](https://ai.google.dev)
+2. Execute `/connect`, selecione **Google**, insira sua chave de API
+
+### Ollama (Local)
+
+O Ollama nao requer chave de API, mas precisa estar rodando localmente:
+
+```bash
+# Iniciar o Ollama
+ollama serve
+
+# Baixar um modelo
+ollama pull llama3.3
+```
+
+Em seguida, use `/models` para selecionar um modelo Ollama.
+
+## Variaveis de Ambiente
+
+Defina credenciais via variaveis de ambiente para CI/CD ou automacao:
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+
+# Groq
+export GROQ_API_KEY="gsk_..."
+```
+
+Adicione ao seu perfil do shell para persistencia:
+
+```bash
+# ~/.bashrc ou ~/.zshrc
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+## Arquivo de Configuracao
+
+Armazene credenciais no arquivo de configuracao:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="tip">
+  Use a sintaxe `{env:VAR_NAME}` para referenciar variaveis de ambiente nos arquivos de configuracao.
+</Aside>
+
+## Gerenciando Credenciais
+
+### Ver Status
+
+Use `/status` na TUI para ver provedores conectados e credenciais ativas.
+
+### Trocar Modelo
+
+Use `/models` para alternar entre modelos de qualquer provedor conectado. Ou defina um padrao na configuracao:
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## Autenticacao Empresarial
+
+### AWS Bedrock
+
+```bash
+# Configurar credenciais AWS
+aws configure
+
+# Ou via ambiente
+export AWS_ACCESS_KEY_ID="..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+```
+
+Em seguida, execute `/connect` e selecione **Amazon Bedrock**.
+
+### Azure OpenAI
+
+```bash
+export AZURE_API_KEY="..."
+export AZURE_RESOURCE_NAME="your-resource"
+```
+
+### Google Vertex AI
+
+```bash
+gcloud auth application-default login
+```
+
+## Boas Praticas de Seguranca
+
+1. **Nunca faca commit de chaves de API** no controle de versao
+2. **Use variaveis de ambiente** para valores sensiveis
+3. **Rotacione chaves regularmente** por seguranca
+4. **Use chaves com escopo** quando disponivel
+5. **Monitore o uso** nos paineis dos provedores
+
+## Solucao de Problemas
+
+### Chave de API Invalida
+
+```
+Error: Invalid API key
+```
+
+1. Verifique se a chave esta correta (sem espacos extras)
+2. Verifique se a chave nao expirou
+3. Certifique-se de que a cobranca esta ativa no provedor
+
+### Limites de Taxa
+
+```
+Error: Rate limit exceeded
+```
+
+1. Aguarde e tente novamente
+2. Verifique o painel do provedor para limites
+3. Considere fazer upgrade do seu plano
+
+### Problemas de Rede
+
+```
+Error: Connection refused
+```
+
+1. Verifique a conexao com a internet
+2. Verifique se nao ha proxy/firewall bloqueando
+3. Tente uma rede diferente

@@ -1,0 +1,65 @@
+---
+title: Skills Personalizadas
+description: Empacote metodologia reutilizavel como arquivos SKILL.md
+sidebar:
+  order: 4
+  label: Skills Personalizadas
+---
+
+Uma skill e um arquivo Markdown de metodologia reutilizavel que o agente pode acessar sob demanda. Skills sao descobertas pelo nome do arquivo — cada skill reside em um arquivo chamado **`SKILL.md`**.
+
+{/* TODO: Screenshot - Custom skill configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: custom-skills.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Layout de skill personalizada</p>
+</div>
+
+## Arquivo e Localizacao
+
+O arquivo deve ser nomeado `SKILL.md`. O Cyberstrike busca por `**/SKILL.md` dentro de um diretorio `skill/` ou `skills/` dentro de `.cyberstrike/`, e sob `skills/` (layout Claude Code):
+
+```
+.cyberstrike/
+└── skills/
+    └── sql-injection/
+        └── SKILL.md
+```
+
+## Frontmatter
+
+Apenas `name` e `description` sao obrigatorios. O restante sao metadados opcionais usados para categorizacao e vinculacao com a kill-chain:
+
+```markdown title="SKILL.md"
+---
+name: sql-injection
+description: Methodology for testing SQL injection
+version: "1.0.0"
+author: you
+tags: [injection, database]
+category: injection
+owasp_id: WSTG-INPV-05
+tech_stack: [postgres, mysql]
+cwe_ids: [CWE-89]
+chains_with: [auth-bypass]
+prerequisites: [request-capture]
+---
+
+Guie o testador por SQLi baseado em boolean, erro, tempo e union:
+1. Identificar parametros injetaveis ...
+2. ...
+```
+
+<Aside variant="caution">
+  O corpo e Markdown simples — **nao** ha templating (sem `{{target}}`, `{% if %}`, `{% for %}`, ou `$ARGUMENTS`). O frontmatter **nao** suporta campos `args`, `model`, `agent` ou `permission`, e o arquivo deve ser literalmente nomeado `SKILL.md` (nomes arbitrarios como `my-skill.md` nao sao carregados).
+</Aside>
+
+O `name` no frontmatter deve corresponder a identidade da skill — uma incompatibilidade e reportada como erro.
+
+## Usando Skills
+
+Skills carregadas estao disponiveis para o agente e podem ser navegadas com o comando `/skills`. O agente traz a metodologia de uma skill para o contexto quando e relevante para a tarefa.
+
+## Documentacao Relacionada
+
+- [Comandos Slash](/docs/slash-commands) - Comandos integrados
+- [Agentes](/docs/agents) - Agentes que usam skills

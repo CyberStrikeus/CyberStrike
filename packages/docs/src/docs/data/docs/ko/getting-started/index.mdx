@@ -1,0 +1,254 @@
+---
+title: 시작하기
+description: Cyberstrike를 설치하고 첫 번째 보안 평가를 실행하기
+sidebar:
+  order: 1
+  label: 소개
+---
+
+Cyberstrike는 AI 기반 공격적 보안 하네스입니다. 대상(웹 앱, API, 네트워크)을 설명하면 Cyberstrike가 평가를 수행합니다. 도구를 선택하고, 적합한 에이전트를 배치하고, 취약점을 테스트하고, 발견 사항을 보고합니다.
+
+AI 펜테스터가 함께 일한다고 생각하면 됩니다. 하나의 대화형 인터페이스를 통해 제어를 유지하면서, 하네스가 크롤링, 트래픽 분석, 인젝션 테스트, 권한 검사, 개별 결과 간 체인 발견 등 무거운 작업을 처리합니다.
+
+내부적으로 100개 이상의 보안 도구, 15개 이상의 전문 에이전트, OWASP WSTG 기반 65개 이상의 결정론적 테스트 스크립트, 그리고 [웹 크롤링](/docs/features/hackbrowser), [트래픽 분석](/docs/features/vortex), [컨테이너화된 도구](/docs/features/bolt), [외부 통합](/docs/features/mcp)을 위한 전용 엔진을 결합합니다.
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/gifs/g01-first-run.gif" alt="Cyberstrike 설치 및 첫 실행" className="w-full" />
+</div>
+
+## 시스템 요구 사항
+
+Cyberstrike를 설치하기 전에 시스템이 다음 요구 사항을 충족하는지 확인하세요:
+
+| 요구 사항 | 최소 | 권장 |
+|-----------|------|------|
+| 운영 체제 | macOS 12+, Ubuntu 20.04+, Windows 10+ | macOS 14+, Ubuntu 22.04+ |
+| RAM | 4 GB | 8 GB |
+| 디스크 공간 | 500 MB | 2 GB |
+| Node.js | 18.0+ | 20.0+ |
+
+## Cyberstrike 설치
+
+운영 체제와 패키지 관리자에 맞는 설치 방법을 선택하세요.
+
+### npm (권장)
+
+1. 터미널을 엽니다
+2. 설치 명령을 실행합니다:
+
+```bash
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+3. 설치를 확인합니다:
+
+```bash
+cyberstrike --version
+```
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s01-installation.png" alt="설치 후 Cyberstrike TUI" className="w-full" />
+</div>
+
+### Bun <Badge text="출시 예정" variant="caution" size="md" />
+
+Bun 지원은 아직 제공되지 않습니다.
+
+### Homebrew (macOS) <Badge text="출시 예정" variant="caution" size="md" />
+
+Homebrew 지원은 아직 제공되지 않습니다.
+
+### curl (Linux/macOS)
+
+설치 스크립트를 실행합니다:
+
+```bash
+curl -fsSL https://cyberstrike.io/install | bash
+```
+
+### iwr (Windows/Powershell)
+
+설치 스크립트를 실행합니다:
+
+```bash
+iwr -useb https://cyberstrike.io/install.ps1 | iex
+```
+
+<Aside variant="caution">
+  스크립트를 실행하기 전에 반드시 검토하세요. 설치 스크립트는 [github.com/CyberStrikeus/CyberStrike](https://github.com/CyberStrikeus/CyberStrike)에서 확인할 수 있습니다.
+</Aside>
+
+### Docker
+
+<Aside variant="caution">
+  Docker 이미지는 곧 제공될 예정입니다. 현재는 npm 또는 curl을 사용하세요.
+</Aside>
+
+## AI 제공자 연결
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/gifs/g02-auth-login.gif" alt="Cyberstrike 인증 로그인 흐름" className="w-full" />
+</div>
+
+Cyberstrike는 작동하기 위해 AI 제공자가 필요합니다. 다음 제공자가 지원됩니다:
+
+| 제공자 | 무료 티어 | 인증 방법 |
+|--------|-----------|-----------|
+| GitHub Copilot | 구독 포함 | OAuth (API 키 불필요) |
+| OpenRouter | 예 | API 키 |
+| Anthropic | 아니요 | API 키 |
+| OpenAI | 아니요 | API 키 |
+| Google Gemini | 예 | API 키 |
+| Ollama | 예 (로컬) | 없음 |
+
+### 인증 설정
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s02-auth.jpg" alt="Cyberstrike 모델 선택 대화상자" className="w-full" />
+</div>
+
+1. Cyberstrike를 시작하고 연결 명령을 실행합니다:
+
+```
+/connect
+```
+
+2. 목록에서 제공자를 선택하고 API 키를 입력합니다 (GitHub Copilot의 경우 OAuth로 인증)
+
+3. 언제든지 모델을 변경할 수 있습니다:
+
+```
+/models
+```
+
+### 환경 변수 사용
+
+또는 API 키를 환경 변수로 설정합니다:
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+영구 적용을 위해 쉘 프로필(`~/.bashrc`, `~/.zshrc`)에 추가하세요.
+
+## 첫 번째 평가 실행
+
+### 실행
+
+```bash
+cyberstrike
+```
+
+입력 프롬프트, 응답 영역, 상태 표시줄이 있는 TUI가 나타납니다.
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s03-tui-main.png" alt="Cyberstrike TUI 메인 인터페이스" className="w-full" />
+</div>
+
+### 대상 설명
+
+작업을 직접 입력하세요. 하네스가 무엇을 실행할지 결정합니다:
+
+```
+> Test https://app.example.com for OWASP Top 10 vulnerabilities
+```
+
+내부적으로 일어나는 일:
+
+1. `cyberstrike` 기본 에이전트가 목표를 읽습니다
+2. `/hackbrowser`가 실행되어 대상을 크롤링하고 HTTP 트래픽을 캡처합니다
+3. [Vortex](/docs/features/vortex)가 각 요청을 처리합니다 — 규칙을 적용하고 이상을 표시합니다
+4. `wstg-agent`가 요청 신호에 따라 전문 에이전트를 배치합니다
+5. 13개의 WSTG 전문가가 인젝션, 인증 우회, IDOR, 세션 결함, 암호화 문제 등을 테스트합니다
+6. `escalation-hunter`가 발견 사항을 연결하여 복합 취약점을 탐지합니다
+7. `triage` 에이전트가 HTTP 증거를 재생하여 각 발견 사항을 독립적으로 검증합니다
+8. 증거, 심각도, 해결 방안이 포함된 분류된 발견 사항을 받습니다
+
+### 하네스 구성 요소
+
+| 레이어 | 내용 |
+|--------|------|
+| **에이전트** | 15개 이상의 전문 에이전트 — WSTG 파이프라인, 분류, 에스컬레이션, 일반, 탐색 |
+| **도구** | 100개 이상의 내장 도구 — HTTP 재생, 인젝션 프로브, 접근 프로브, 정찰, 코드 검색 |
+| **스킬** | 65개 이상의 결정론적 WSTG 테스트 스크립트가 런타임에 전문가에 의해 로드됨 |
+| **Vortex** | DSL 쿼리, 규칙 매칭, 신호 상관관계를 갖춘 HTTP 트래픽 엔진 |
+| **HackBrowser** | UI 컨텍스트 캡처가 가능한 AI 기반 Chromium 크롤러 |
+| **Bolt** | 30개 이상의 컨테이너화된 보안 도구 (nmap, nuclei, sqlmap, hydra 등) |
+| **MCP** | 3개의 내장 서버 (github-security, cve, osint) + 커스텀 MCP 서버 |
+
+하나의 프롬프트로 상호작용합니다. 하네스가 나머지를 조율합니다.
+
+## 구성
+
+프로젝트 디렉토리에 `cyberstrike.json` 파일을 생성하여 기본값을 설정합니다:
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+이 디렉토리에서 `cyberstrike`를 실행하면 자동으로 이 설정을 로드합니다. TUI에서 `/models`로 언제든지 모델을 변경할 수도 있습니다.
+
+### 구성 계층
+
+Cyberstrike는 다음 순서로 여러 소스에서 구성을 로드합니다:
+
+1. 환경 변수 (최우선순위)
+2. 프로젝트 구성 (`cyberstrike.json`)
+3. 사용자 구성 (`~/.config/cyberstrike/cyberstrike.json`)
+4. 기본값 (최하위 우선순위)
+
+자세한 구성 옵션은 [구성 레퍼런스](/docs/configuration)를 참조하세요.
+
+## 주요 슬래시 명령
+
+| 명령 | 동작 |
+|------|------|
+| `/connect` | AI 제공자 연결 |
+| `/models` | 모델 변경 |
+| `/hackbrowser` | 자율 웹 크롤러 시작 |
+| `/bolt` | Bolt 보안 도구 서버 관리 |
+| `/mcps` | MCP 서버 관리 |
+| `/vulnerabilities` | 발견 사항 검토 |
+| `/web` | 캡처된 웹 트래픽 검사 |
+| `/report` | 보고서 생성 |
+| `/help` | 모든 명령 표시 |
+
+## 키보드 단축키
+
+| 단축키 | 동작 |
+|--------|------|
+| `Enter` | 메시지 전송 |
+| `Shift+Enter` | 줄 바꿈 |
+| `Escape` | 실행 중인 세션 중단 |
+| `Ctrl+P` | 명령 목록 |
+| `Tab` | 다음 에이전트 |
+| `Ctrl+D` | Cyberstrike 종료 |
+| `↑` / `↓` | 입력 기록 탐색 |
+
+전체 레퍼런스는 [키보드 단축키](/docs/getting-started/keyboard-shortcuts)를 참조하세요.
+
+## 다음 단계
+
+다음 가이드로 계속 학습하세요:
+
+1. [구성 레퍼런스](/docs/configuration) — Cyberstrike 설정 커스터마이즈
+2. [AI 제공자](/docs/providers) — 선호하는 AI 제공자 구성
+3. [보안 에이전트](/docs/agents) — 전문 에이전트에 대해 알아보기
+4. [기능](/docs/features) — HackBrowser, Vortex, Bolt, MCP
+
+<Aside variant="tip">
+  지원과 업데이트를 위해 [Discord](https://discord.gg/dr97wVJVbn) 커뮤니티에 참여하세요.
+</Aside>

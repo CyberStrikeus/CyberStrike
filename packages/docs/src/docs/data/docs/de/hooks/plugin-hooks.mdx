@@ -1,0 +1,154 @@
+---
+title: Plugin-Hooks
+description: Die Hooks, die ein Cyberstrike-Plugin implementieren kann
+sidebar:
+  order: 2
+  label: Plugin-Hooks
+---
+
+Ein Plugin ist eine Funktion `(input) => Promise<Hooks>`, die ein Objekt aus Hook-Funktionen zurueckgibt. Jeder Hook erhaelt einen `input` (schreibgeschuetzter Kontext) und, bei den meisten Hooks, ein `output`-Objekt, das Sie **mutieren**, um das Verhalten zu aendern. Das Werfen einer Ausnahme aus einem Hook bricht die Operation ab.
+
+<img src="/docs/images/diagrams/plugin-hook-architecture.svg" alt="Plugin-Hook-Ausfuehrungsablauf: chat.params/chat.headers vor dem LLM-Aufruf, permission.ask vor einem Tool, tool.execute.before zum Aendern von Argumenten oder Blockieren, dann tool.execute.after zum Transformieren der Ausgabe" className="my-6 mx-auto max-w-xs" />
+
+Siehe [Plugins erstellen](/docs/hooks/creating-plugins) fuer die Einrichtung und Registrierung eines Plugins. Diese Seite ist die Referenz fuer jeden Hook.
+
+## Hook-Referenz
+
+| Hook | Wann er ausgefuehrt wird | Sie koennen... |
+|------|--------------------------|----------------|
+| `event` | Bei jedem Bus-Ereignis | Ereignisse beobachten (Protokollierung, Analyse) |
+| `config` | Nach dem Laden der Konfiguration | Geladene Konfiguration pruefen/anpassen |
+| `tool` | Registrierung | Benutzerdefinierte Tools hinzufuegen (Map von Name zu Definition) |
+| `auth` | Registrierung | Benutzerdefinierten Auth-Anbieter hinzufuegen |
+| `chat.message` | Eine Benutzernachricht wird empfangen | Nachrichtenteile lesen/anhaengen |
+| `chat.params` | Vor einem LLM-Aufruf | `temperature`, `topP`, `topK`, `options` aendern |
+| `chat.headers` | Vor einer LLM-Anfrage | Anfrage-`headers` hinzufuegen/aendern |
+| `permission.ask` | Eine Berechtigung wird angefragt | `status` auf `allow`/`deny`/`ask` setzen |
+| `command.execute.before` | Ein Slash-Befehl wird ausgefuehrt | `parts` einschleusen |
+| `tool.execute.before` | Vor der Ausfuehrung eines Tools | `args` aendern oder durch Werfen blockieren |
+| `tool.execute.after` | Nach der Ausfuehrung eines Tools | `title`/`output`/`metadata` transformieren |
+| `tool.definition` | Tool wird an das LLM gesendet | `description`/`parameters` eines Tools umschreiben |
+| `shell.env` | Ein Shell-Befehl wird ausgefuehrt | Umgebungsvariablen hinzufuegen |
+| `experimental.chat.messages.transform` | Vor einem LLM-Aufruf | Die vollstaendige Nachrichtenliste umschreiben |
+| `experimental.chat.system.transform` | Vor einem LLM-Aufruf | Das System-Prompt-Array umschreiben |
+| `experimental.session.compacting` | Vor der Komprimierung | Kontext hinzufuegen oder den Komprimierungs-Prompt ersetzen |
+| `experimental.text.complete` | Ein Textteil wird abgeschlossen | Den abgeschlossenen Text umschreiben |
+
+## Signaturen
+
+Jeder Hook ist `async` und gibt `Promise<void>` zurueck.
+
+### Tools
+
+```typescript
+"tool.execute.before"?: (
+  input: { tool: string; sessionID: string; callID: string },
+  output: { args: any },
+) => Promise<void>
+
+"tool.execute.after"?: (
+  input: { tool: string; sessionID: string; callID: string; args: any },
+  output: { title: string; output: string; metadata: any },
+) => Promise<void>
+
+"tool.definition"?: (
+  input: { toolID: string },
+  output: { description: string; parameters: any },
+) => Promise<void>
+```
+
+Um ein Tool zu **blockieren**, werfen Sie aus `tool.execute.before`:
+
+```typescript
+"tool.execute.before": async (input, output) => {
+  if (input.tool === "bash" && /rm\s+-rf/.test(output.args.command)) {
+    throw new Error("blocked: rm -rf")
+  }
+}
+```
+
+### Berechtigungen
+
+```typescript
+"permission.ask"?: (
+  input: Permission,
+  output: { status: "ask" | "deny" | "allow" },
+) => Promise<void>
+```
+
+```typescript
+"permission.ask": async (input, output) => {
+  if (input.type === "read") output.status = "allow"
+}
+```
+
+### Chat
+
+```typescript
+"chat.message"?: (
+  input: { sessionID: string; agent?: string; model?: { providerID: string; modelID: string }; messageID?: string; variant?: string },
+  output: { message: UserMessage; parts: Part[] },
+) => Promise<void>
+
+"chat.params"?: (
+  input: { sessionID: string; agent: string; model: Model; provider: ProviderContext; message: UserMessage },
+  output: { temperature: number; topP: number; topK: number; options: Record<string, any> },
+) => Promise<void>
+
+"chat.headers"?: (
+  input: { sessionID: string; agent: string; model: Model; provider: ProviderContext; message: UserMessage },
+  output: { headers: Record<string, string> },
+) => Promise<void>
+```
+
+### Befehle & Shell
+
+```typescript
+"command.execute.before"?: (
+  input: { command: string; sessionID: string; arguments: string },
+  output: { parts: Part[] },
+) => Promise<void>
+
+"shell.env"?: (
+  input: { cwd: string },
+  output: { env: Record<string, string> },
+) => Promise<void>
+```
+
+### Lebenszyklus
+
+```typescript
+event?:  (input: { event: Event }) => Promise<void>
+config?: (input: Config) => Promise<void>
+```
+
+### Experimentell
+
+```typescript
+"experimental.chat.messages.transform"?: (input: {}, output: { messages: { info: Message; parts: Part[] }[] }) => Promise<void>
+"experimental.chat.system.transform"?:   (input: { sessionID?: string; model: Model }, output: { system: string[] }) => Promise<void>
+"experimental.session.compacting"?:      (input: { sessionID: string }, output: { context: string[]; prompt?: string }) => Promise<void>
+"experimental.text.complete"?:           (input: { sessionID: string; messageID: string; partID: string }, output: { text: string }) => Promise<void>
+```
+
+## Benutzerdefinierte Tools & Authentifizierung
+
+Die `tool`- und `auth`-Hooks registrieren Faehigkeiten, anstatt auf Ereignisse zu reagieren:
+
+```typescript
+return {
+  tool: {
+    my_scanner: {
+      description: "Custom vulnerability scanner",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] },
+      execute: async (args) => ({ title: `Scanned ${args.target}`, output: await scan(args.target) }),
+    },
+  },
+}
+```
+
+## Verwandte Dokumentation
+
+- [Hook-Uebersicht](/docs/hooks) - Konzepte und Beispiele
+- [Plugins erstellen](/docs/hooks/creating-plugins) - Plugin einrichten, registrieren und testen
+- [Konfiguration](/docs/configuration) - Der `plugin`-Konfigurationsschluessel

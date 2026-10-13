@@ -1,0 +1,120 @@
+---
+title: Agente Cyberstrike
+description: O agente primario padrao para testes de seguranca ofensiva com IA e acesso total a ferramentas
+sidebar:
+  order: 2
+  label: Cyberstrike
+---
+
+O agente `cyberstrike` e o agente primario padrao. Ele fornece testes de seguranca ofensiva com IA, com acesso total a ferramentas e pode delegar para subagentes especializados para tarefas especificas de dominio.
+
+## Visao Geral
+
+Quando voce executa `cyberstrike` sem especificar um agente, o agente `cyberstrike` inicia automaticamente. E um agente de seguranca ofensiva de proposito geral projetado para lidar com uma ampla gama de tarefas — desde reconhecimento e avaliacao de vulnerabilidades ate exploracao e geracao de relatorios.
+
+### Configuracao do Agente
+
+| Propriedade | Valor |
+|-------------|-------|
+| **ID do Agente** | `cyberstrike` |
+| **Modo** | `primary` |
+| **Acesso a Ferramentas** | Total (todas as ferramentas permitidas) |
+| **Pode Fazer Perguntas** | Sim |
+
+## Iniciar o Agente
+
+O agente `cyberstrike` e o padrao — ele inicia automaticamente quando voce lanca:
+
+```bash
+cyberstrike
+```
+
+Troque de agente a qualquer momento na TUI com `/agents` ou `<leader>a`.
+
+## Capacidades
+
+O agente `cyberstrike` tem acesso a todas as ferramentas disponiveis e nao e restrito a um dominio de seguranca especifico. Ele pode:
+
+- Realizar testes de seguranca de aplicacoes web
+- Conduzir auditorias de infraestrutura em nuvem
+- Executar testes de penetracao de rede
+- Executar varreduras automatizadas com ferramentas como Nuclei, Nmap e SQLMap
+- Navegar e interagir com aplicacoes web
+- Ler, escrever e analisar arquivos
+- Fazer perguntas de esclarecimento quando a tarefa e ambigua
+
+## Delegando para Agentes Especializados
+
+Quando uma tarefa requer expertise profunda de dominio, o agente `cyberstrike` delega para subagentes especializados:
+
+| Subagente | Quando Usado |
+|-----------|--------------|
+| [`wstg-agent`](/docs/agents/wstg-agent) | Pipeline de seguranca web OWASP WSTG — despacha 13 agentes especialistas |
+| [`escalation-hunter`](/docs/agents/escalation-hunter) | Correlacao transversal — encadeia descobertas, escala impacto |
+| [`triage`](/docs/agents/triage) | Verificacao independente de rascunhos de descobertas de vulnerabilidades |
+| [`general`](/docs/agents/general) | Pesquisa, tarefas paralelas com multiplos passos |
+| [`explore`](/docs/agents/explore) | Busca somente leitura em codigo e sistema de arquivos |
+
+A delegacao acontece automaticamente com base na tarefa. O pipeline de seguranca web (agentes WSTG) e acionado quando trafego HTTP e capturado via [HackBrowser](/docs/features/hackbrowser) ou a [Extensao Chrome](/docs/tools/chrome-extension).
+
+## Modelo de Permissao
+
+O agente `cyberstrike` usa o conjunto mais amplo de permissoes:
+
+- Todas as ferramentas sao permitidas por padrao
+- Pode fazer perguntas de esclarecimento (`question: allow`)
+- Arquivos `.env` requerem confirmacao antes da leitura
+- Acesso a diretorios externos fora do projeto requer confirmacao
+- Regras `deny` configuradas pelo usuario em `cyberstrike.json` sao sempre respeitadas
+
+## Exemplo de Sessao
+
+```
+You: Test the web application at https://app.example.com for common vulnerabilities
+
+Agent: I'll start with reconnaissance and then launch HackBrowser to crawl the app.
+
+[Launching /hackbrowser against https://app.example.com...]
+[Crawling 23 pages, capturing HTTP traffic...]
+[Dispatching wstg-config-deploy for server misconfiguration checks...]
+[Dispatching wstg-input-validation for injection testing...]
+
+Found 3 medium-severity findings:
+- Missing Content-Security-Policy header
+- Server version disclosure in headers
+- X-Frame-Options not set
+
+[wstg-authentication testing login endpoint...]
+⚠ FINDING: JWT Algorithm Confusion
+Location: Authorization header
+Severity: Critical (CVSS 9.8)
+```
+
+## Configuracao
+
+### Definir como Agente Padrao
+
+O agente `cyberstrike` e o padrao e nao requer configuracao. Para defini-lo explicitamente:
+
+```json title="cyberstrike.json"
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+### Instrucoes Personalizadas
+
+`instructions` e uma lista de arquivos (ou globs) cujos conteudos sao adicionados ao prompt do sistema — coloque o contexto do seu projeto em um arquivo e referencie-o:
+
+```json title="cyberstrike.json"
+{
+  "instructions": ["AGENTS.md", "docs/security-context.md"]
+}
+```
+
+## Documentacao Relacionada
+
+- [Agente WSTG](/docs/agents/wstg-agent) — Orquestrador do pipeline de testes de seguranca web
+- [Escalation Hunter](/docs/agents/escalation-hunter) — Agente de correlacao transversal
+- [Agente Triage](/docs/agents/triage) — Verificacao de descobertas
+- [Agentes Personalizados](/docs/agents/custom-agents) — Crie seus proprios agentes

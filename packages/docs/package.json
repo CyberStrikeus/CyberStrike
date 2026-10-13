@@ -8,7 +8,7 @@
 	"scripts": {
 		"dev": "astro dev",
 		"start": "astro preview --host 0.0.0.0 --port 4321",
-		"build": "astro build && pagefind --site dist",
+		"build": "node scripts/fetch-changelog.js && astro build && pagefind --site dist",
 		"preview": "astro preview --host",
 		"astro": "astro",
 		"winsearch": "robocopy dist/pagefind public/pagefind /E",

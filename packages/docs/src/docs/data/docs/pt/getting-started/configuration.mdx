@@ -1,0 +1,70 @@
+---
+title: Configuracao
+description: Configure o Cyberstrike para seu fluxo de trabalho de teste de penetracao
+sidebar:
+  order: 2
+  label: Configuracao
+---
+
+O Cyberstrike e configurado com um arquivo JSON. Esta pagina e uma introducao rapida; para a hierarquia completa, todas as opcoes e guias relacionados, consulte a [Referencia de Configuracao](/docs/configuration).
+
+## Arquivo de Configuracao
+
+Crie um `cyberstrike.json` no diretorio do seu projeto:
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike"
+}
+```
+
+O modelo e escrito como `provider/model` — nao ha um campo `provider` separado como string. `default_agent` deve ser um agente primario (`cyberstrike` e o integrado; ele delega automaticamente para subagentes especializados).
+
+## Opcoes Comuns
+
+| Opcao | Tipo | Descricao |
+|-------|------|-----------|
+| `model` | string | Modelo padrao, como `provider/model` |
+| `small_model` | string | Modelo para tarefas leves (geracao de titulo) |
+| `default_agent` | string | Agente primario padrao (volta para `cyberstrike`) |
+| `theme` | string | Tema da interface (padrao `cyberstrike`) |
+| `permission` | object | Permissoes por ferramenta — veja [Permissoes](/docs/permissions) |
+| `provider` | object | Configuracoes por provedor, indexadas pelo id do provedor |
+| `instructions` | string[] | Arquivos/globs adicionados ao prompt do sistema |
+
+## Variaveis de Ambiente
+
+Defina suas chaves de API como variaveis de ambiente:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+## Permissoes e Provedores
+
+Conceda ou restrinja ferramentas com `permission`, e ajuste um provedor em `provider`:
+
+```json title="cyberstrike.json"
+{
+  "permission": {
+    "read": "allow",
+    "bash": { "*": "ask", "rm -rf *": "deny" }
+  },
+  "provider": {
+    "anthropic": {
+      "options": { "apiKey": "{env:ANTHROPIC_API_KEY}" }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Nunca faca commit de chaves de API no controle de versao. Use variaveis de ambiente ou um arquivo `.env` (adicionado ao `.gitignore`).
+</Aside>
+
+Consulte a [Referencia de Configuracao](/docs/configuration) para o schema completo, ordem de precedencia, MCP, keybindings e mais.

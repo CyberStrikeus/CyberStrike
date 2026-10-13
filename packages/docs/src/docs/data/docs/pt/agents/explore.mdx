@@ -1,0 +1,45 @@
+---
+title: Agente Explore
+description: Agente rapido somente leitura para busca em codigo, localizacao de arquivos e correspondencia de padroes
+sidebar:
+  order: 4
+  label: Explore
+---
+
+O agente `explore` e um agente rapido, somente leitura, especializado em buscar em bases de codigo e sistemas de arquivos. Ele pode encontrar arquivos por padroes, buscar codigo por palavras-chave e responder perguntas estruturais sobre a base de codigo.
+
+## Visao Geral
+
+| Propriedade | Valor |
+|-------------|-------|
+| **ID do Agente** | `explore` |
+| **Modo** | `subagent` |
+| **Acesso a Ferramentas** | Somente leitura (grep, glob, list, bash, read, web search) |
+
+## Quando E Usado
+
+O agente `cyberstrike` delega para o `explore` quando precisa:
+
+- Encontrar arquivos correspondendo a um padrao (ex: `src/components/**/*.tsx`)
+- Buscar codigo por palavras-chave ou simbolos (ex: "API endpoints")
+- Responder perguntas sobre a estrutura da base de codigo
+- Consultas rapidas que nao requerem modificacao
+
+## Niveis de Profundidade
+
+Ao delegar para o `explore`, o agente chamador especifica um nivel de profundidade:
+
+| Nivel | Comportamento |
+|-------|---------------|
+| **quick** | Busca basica direcionada — unica localizacao, primeiro resultado |
+| **medium** | Exploracao moderada — multiplas localizacoes |
+| **very thorough** | Analise abrangente entre convencoes de nomenclatura e localizacoes |
+
+## Restricoes
+
+O agente `explore` e estritamente somente leitura. Ele nao pode:
+
+- Escrever, editar ou criar arquivos
+- Executar comandos destrutivos
+- Reportar vulnerabilidades
+- Modificar qualquer estado

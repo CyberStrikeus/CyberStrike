@@ -1,0 +1,70 @@
+---
+title: Конфигурация
+description: Настройка Cyberstrike для вашего рабочего процесса тестирования на проникновение
+sidebar:
+  order: 2
+  label: Конфигурация
+---
+
+Cyberstrike настраивается с помощью JSON-файла. Эта страница — краткое введение; полную иерархию, все параметры и связанные руководства см. в [Справочнике по конфигурации](/docs/configuration).
+
+## Файл конфигурации
+
+Создайте `cyberstrike.json` в каталоге вашего проекта:
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike"
+}
+```
+
+Модель записывается как `provider/model` — отдельного строкового поля `provider` нет. `default_agent` должен быть первичным агентом (`cyberstrike` — встроенный; он автоматически делегирует задачи специализированным подагентам).
+
+## Основные параметры
+
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `model` | string | Модель по умолчанию, в формате `provider/model` |
+| `small_model` | string | Модель для лёгких задач (генерация заголовков) |
+| `default_agent` | string | Первичный агент по умолчанию (откат к `cyberstrike`) |
+| `theme` | string | Тема интерфейса (по умолчанию `cyberstrike`) |
+| `permission` | object | Разрешения для каждого инструмента — см. [Разрешения](/docs/permissions) |
+| `provider` | object | Настройки провайдеров, по идентификатору провайдера |
+| `instructions` | string[] | Файлы/шаблоны, добавляемые к системному промпту |
+
+## Переменные окружения
+
+Установите API-ключи как переменные окружения:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+## Разрешения и провайдеры
+
+Предоставляйте или ограничивайте инструменты с помощью `permission` и настраивайте провайдера в `provider`:
+
+```json title="cyberstrike.json"
+{
+  "permission": {
+    "read": "allow",
+    "bash": { "*": "ask", "rm -rf *": "deny" }
+  },
+  "provider": {
+    "anthropic": {
+      "options": { "apiKey": "{env:ANTHROPIC_API_KEY}" }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Никогда не коммитьте API-ключи в систему контроля версий. Используйте переменные окружения или файл `.env` (добавленный в `.gitignore`).
+</Aside>
+
+Полную схему, порядок приоритетов, MCP, привязки клавиш и другое см. в [Справочнике по конфигурации](/docs/configuration).

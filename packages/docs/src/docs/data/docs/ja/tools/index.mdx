@@ -1,0 +1,652 @@
+---
+title: ツールリファレンス
+description: CyberStrikeの組み込みツールとMCP統合の完全リファレンス
+sidebar:
+  order: 1
+  label: 概要
+---
+
+CyberStrikeは、セキュリティ評価のための包括的な組み込みツールセットを提供します。これらのツールにより、ファイル操作、コマンド実行、Web自動化、セッション間での永続メモリが実現できます。
+
+{/* TODO: Screenshot - Tool list in TUI */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: s11-tool-list.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">ツールリスト - TUIで利用可能なツールの表示</p>
+</div>
+
+## ツールカテゴリ
+
+| カテゴリ | ツール | 目的 |
+|----------|-------|---------|
+| **ファイル操作** | Read, Write, Edit, Glob, Grep | ファイルの読み取り、書き込み、編集、検索 |
+| **コマンド実行** | Bash | シェルコマンドの実行 |
+| **Webテスト** | [Hacker Browser](/docs/tools/hacker-browser).
+| **メモリ** | Memory Search, Memory Write, Memory Read, Memory Context | セッション間の永続ストレージ |
+| **ツール検出** | ToolSearch, LoadTools, UnloadTools | 動的MCPツール読み込み |
+| **タスク** | Task, TodoWrite | 委任とタスク追跡 |
+| **Web** | WebFetch, WebSearch, CodeSearch | Webコンテンツの取得と検索 |
+
+---
+
+## ファイル操作
+
+### Read
+
+行番号付きでファイル内容を読み取ります。テキストファイル、画像、PDFに対応しています。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `filePath` | string | はい | ファイルへのパス（絶対パスまたは相対パス） |
+| `offset` | number | いいえ | 読み取り開始行番号（1始まり） |
+| `limit` | number | いいえ | 読み取る行数（デフォルト：2000） |
+
+#### 例
+
+```json
+{
+  "filePath": "/path/to/file.txt",
+  "offset": 100,
+  "limit": 500
+}
+```
+
+#### 出力形式
+
+```
+00001| First line of content
+00002| Second line of content
+00003| Third line of content
+
+(End of file - total 3 lines)
+```
+
+#### 機能
+
+- バイナリファイルの自動検出
+- 画像とPDFのサポート（base64エンコードされたコンテンツを返す）
+- 2000文字での行切り詰め
+- 1回の読み取り操作あたり最大50KB
+- ファイルが見つからない場合のスマートファイル提案
+
+---
+
+### Write
+
+新しいコンテンツでファイルを作成または上書きします。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `filePath` | string | はい | ファイルへの絶対パス |
+| `content` | string | はい | 書き込むコンテンツ |
+
+#### 例
+
+```json
+{
+  "filePath": "/path/to/new-file.txt",
+  "content": "File contents here"
+}
+```
+
+#### 機能
+
+- 必要に応じて親ディレクトリを作成
+- レビュー用のユニファイドdiffを生成
+- 書き込み後のLSP診断
+- 競合検出のためのファイル時間追跡
+
+---
+
+### Edit
+
+スマートマッチングによるファイルの検索置換操作を実行します。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `filePath` | string | はい | ファイルへの絶対パス |
+| `oldString` | string | はい | 検索して置換するテキスト |
+| `newString` | string | はい | 置換テキスト |
+| `replaceAll` | boolean | いいえ | すべての出現箇所を置換（デフォルト：false） |
+
+#### 例
+
+```json
+{
+  "filePath": "/path/to/file.ts",
+  "oldString": "function oldName(",
+  "newString": "function newName(",
+  "replaceAll": false
+}
+```
+
+#### スマートマッチング
+
+Editツールは複数のマッチング戦略を使用します：
+
+1. **単純置換**：完全一致
+2. **行トリミング**：行ごとの先頭/末尾の空白を無視
+3. **ブロックアンカー**：最初と最後の行を一致させ、中間はファジー
+4. **空白正規化**：連続する空白を集約
+5. **インデント柔軟**：インデントの違いを無視
+6. **エスケープ正規化**：エスケープシーケンスを処理
+7. **コンテキスト認識**：周囲のコンテキストを使用してマッチング
+
+#### 機能
+
+- ユニファイドdiff生成
+- 編集後のLSP診断
+- 複数出現箇所の検出
+- ファイル時間追跡による競合防止
+
+---
+
+### Glob
+
+グロブパターンに一致するファイルを検索します。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `pattern` | string | はい | グロブパターン（例：`**/*.ts`） |
+| `path` | string | いいえ | 検索ディレクトリ（デフォルト：カレントディレクトリ） |
+
+#### 例
+
+```json
+{
+  "pattern": "**/*.{ts,tsx}",
+  "path": "/path/to/project"
+}
+```
+
+#### 出力
+
+変更時刻順（新しいものが先）でソートされたファイルパスを返します。最大100件の結果に制限されます。
+
+#### パターン例
+
+| パターン | マッチ対象 |
+|---------|---------|
+| `*.ts` | カレントディレクトリのTypeScriptファイル |
+| `**/*.ts` | 再帰的なTypeScriptファイル |
+| `src/**/*.{ts,tsx}` | srcディレクトリ内のTS/TSXファイル |
+| `!**/node_modules/**` | node_modulesを除外 |
+
+---
+
+### Grep
+
+正規表現パターンを使用してファイル内容を検索します。ripgrepをベースにしています。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `pattern` | string | はい | 検索する正規表現パターン |
+| `path` | string | いいえ | 検索ディレクトリ（デフォルト：カレントディレクトリ） |
+| `include` | string | いいえ | ファイルパターンフィルタ（例：`*.js`） |
+
+#### 例
+
+```json
+{
+  "pattern": "password|secret|api_key",
+  "path": "/path/to/project",
+  "include": "*.{js,ts,py}"
+}
+```
+
+#### 出力形式
+
+```
+Found 5 matches
+
+/path/to/file.ts:
+  Line 42: const apiKey = process.env.API_KEY
+  Line 85: // TODO: remove hardcoded secret
+
+/path/to/config.js:
+  Line 12: password: "changeme"
+```
+
+#### 機能
+
+- 正規表現サポート（ripgrep構文）
+- 隠しファイルの検索
+- シンボリックリンクの追跡
+- 変更時刻順でソートされた結果
+- 最大100件の結果
+
+---
+
+## コマンド実行
+
+### Bash
+
+タイムアウトと出力キャプチャ付きでシェルコマンドを実行します。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `command` | string | はい | 実行するコマンド |
+| `timeout` | number | いいえ | タイムアウト（ミリ秒、デフォルト：120000） |
+| `workdir` | string | いいえ | 作業ディレクトリ |
+| `description` | string | はい | コマンドの目的の簡単な説明 |
+
+#### 例
+
+```json
+{
+  "command": "nmap -sV -sC target.com",
+  "timeout": 300000,
+  "workdir": "/path/to/project",
+  "description": "Scan target for open ports and services"
+}
+```
+
+#### 機能
+
+- シェル検出（bash/zsh/sh）
+- タイムアウト時のプロセスツリー終了
+- パーミッションシステムとの統合
+- リアルタイム出力ストリーミング
+- 外部ディレクトリアクセス制御
+
+#### セキュリティに関する考慮事項
+
+コマンドはtree-sitterで解析され、以下を検出します：
+- プロジェクト外のディレクトリアクセス
+- 危険なコマンドパターン
+- ファイルシステムの変更
+
+---
+
+## Webテスト
+
+低レベルの `Browser` ツールは存在しません。ブラウザベースのWebテストは **[Hacker Browser](/docs/tools/hacker-browser).
+
+{/* TODO: GIF - Hacker Browser crawl */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">🎬 GIF: g06-browser-scanning.gif</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">ターゲットをクロールするHacker Browser（25秒）</p>
+</div>
+
+`cyberstrike hackbrowser <target>` または `hackbrowser` ツールで起動します。完全なワークフローについては[Hacker Browser](/docs/tools/hacker-browser).
+
+---
+
+## メモリシステム
+
+CyberStrikeには、セッション間でコンテキストを保存するための永続メモリシステムが含まれています。
+
+### Memory Write
+
+永続メモリに情報を保存します。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `content` | string | はい | 保存するコンテンツ |
+| `type` | string | いいえ | MEMORY.mdには `long_term`、日付付きノートには `daily` |
+| `title` | string | いいえ | エントリの見出し（オプション） |
+
+#### 例
+
+```json
+{
+  "content": "Target uses PostgreSQL 14.2 on port 5432",
+  "type": "long_term",
+  "title": "Database Configuration"
+}
+```
+
+#### メモリタイプ
+
+| タイプ | ストレージ | 目的 |
+|------|---------|---------|
+| `long_term` | `.cyberstrike/MEMORY.md` | 決定事項、設定、重要な事実 |
+| `daily` | `.cyberstrike/memory/YYYY-MM-DD.md` | セッションノート、一時的なコンテキスト |
+
+---
+
+### Memory Search
+
+保存されたメモリを検索します。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `query` | string | はい | 検索キーワードまたはフレーズ |
+
+#### 例
+
+```json
+{
+  "query": "database credentials"
+}
+```
+
+---
+
+### Memory Read
+
+特定のメモリファイルを読み取ります。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `file` | string | はい | ファイル識別子 |
+
+#### ファイル識別子
+
+| 識別子 | 説明 |
+|------------|-------------|
+| `long_term` | 長期メモリ（MEMORY.md） |
+| `today` | 本日のデイリーノート |
+| `yesterday` | 昨日のノート |
+| `YYYY-MM-DD` | 特定の日付のノート |
+| `list` | すべてのメモリファイルを一覧 |
+
+---
+
+### Memory Context
+
+セッション用の完全なメモリコンテキストを取得します。
+
+#### パラメータ
+
+必須パラメータなし。
+
+#### 例
+
+```json
+{}
+```
+
+長期メモリと最近のデイリーノートを結合して返します。
+
+---
+
+## 動的ツール読み込み
+
+<img src="/docs/images/diagrams/tool-interaction-flow.svg" alt="ツールが利用可能になるまでの流れ：組み込みツールは直接呼び出し可能、MCPツールはtool_searchで検索、load_toolsで読み込み、呼び出し可能になり、unload_toolsで解放" className="my-6 mx-auto max-w-sm" />
+
+CyberStrikeは、MCP（Model Context Protocol）サーバーの動的ツール読み込みをサポートしています。これにより、コンテキストウィンドウを圧迫することなく数百のツールにアクセスできます。
+
+### Tool Search
+
+MCPツールを機能で検索します。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `query` | string | はい | 機能の説明 |
+| `limit` | number | いいえ | 最大結果数（デフォルト：5） |
+
+#### 例
+
+```json
+{
+  "query": "sql injection testing",
+  "limit": 10
+}
+```
+
+#### 出力
+
+```
+Found 3 tools:
+
+1. sqlmap_scan
+   SQL injection scanner using sqlmap
+   Estimated tokens: ~500
+
+2. nuclei_sqli
+   Nuclei templates for SQL injection
+   Estimated tokens: ~300
+
+3. manual_sqli
+   Manual SQL injection payloads
+   Estimated tokens: ~200
+```
+
+---
+
+### Load Tools
+
+使用するツールをコンテキストに読み込みます。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `tool_ids` | string[] | はい | 検索結果からのツールID |
+
+#### 例
+
+```json
+{
+  "tool_ids": ["sqlmap_scan", "nuclei_sqli"]
+}
+```
+
+---
+
+### Unload Tools
+
+コンテキストからツールを削除してバジェットを解放します。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `tool_ids` | string[] | はい | アンロードするツールID |
+
+---
+
+### List Loaded Tools
+
+現在読み込まれているツールとトークン使用量を表示します。
+
+#### パラメータ
+
+必須パラメータなし。
+
+---
+
+## タスク管理
+
+### Task
+
+サブエージェントに作業を委任します。これはプライマリエージェントが特殊なサブエージェントをディスパッチする方法です（[エージェント](/docs/agents)を参照）。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `description` | string | はい | 短い（3〜5語）タスクの説明 |
+| `prompt` | string | はい | サブエージェントが実行するタスク |
+| `subagent_type` | string | はい | ディスパッチするサブエージェント（例：`web-application`, `general`） |
+
+---
+
+### TodoWrite
+
+タスクアイテムをTodoリストに書き込みます。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `tasks` | array | はい | タスクオブジェクトの配列 |
+
+#### タスクオブジェクト
+
+```json
+{
+  "id": "1",
+  "content": "Scan for open ports",
+  "status": "pending",
+  "priority": "high"
+}
+```
+
+---
+
+## Webツール
+
+### WebFetch
+
+Webコンテンツを取得して処理します。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `url` | string | はい | 取得するURL |
+| `format` | string | いいえ | `text`、`markdown`、または `html` |
+| `timeout` | number | いいえ | タイムアウト（秒、最大120） |
+
+#### 例
+
+```json
+{
+  "url": "https://target.com/robots.txt",
+  "format": "text"
+}
+```
+
+---
+
+### WebSearch
+
+情報収集のためにWeb検索を実行します。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `query` | string | はい | 検索クエリ |
+
+---
+
+### CodeSearch
+
+コードリポジトリとドキュメントを検索します。
+
+#### パラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|------|----------|-------------|
+| `query` | string | はい | コード検索クエリ |
+
+---
+
+## ツールパーミッション
+
+各ツールには設定可能な特定のパーミッションが必要です：
+
+| パーミッション | ツール | デフォルト |
+|------------|-------|---------|
+| `read` | Read | ask |
+| `edit` | Write, Edit | ask |
+| `glob` | Glob | allow |
+| `grep` | Grep | allow |
+| `bash` | Bash | ask |
+| `websearch` | WebSearch | ask |
+| `webfetch` | WebFetch | ask |
+| `codesearch` | CodeSearch | ask |
+| `task` | Task | ask |
+| `external_directory` | プロジェクト外へのアクセス | ask |
+
+### 設定
+
+```json
+{
+  "permission": {
+    "bash": "ask",
+    "edit": "allow",
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow"
+  }
+}
+```
+
+### パーミッションアクション
+
+| アクション | 説明 |
+|--------|-------------|
+| `ask` | ユーザーに承認を求める |
+| `allow` | 確認なしで自動承認 |
+| `deny` | ツールの使用をブロック |
+
+完全なモデルとグロブパターンについては[パーミッション](/docs/permissions)を参照してください。
+
+---
+
+## カスタムツールの作成
+
+`.cyberstrike/tools/` にファイルを作成してカスタムツールを追加できます：
+
+```typescript title=".cyberstrike/tools/custom-scanner.ts"
+import { z } from "zod"
+
+export default {
+  description: "Custom vulnerability scanner",
+  args: {
+    target: z.string().describe("Target URL to scan"),
+    depth: z.number().default(3).describe("Scan depth"),
+  },
+  async execute(args, ctx): Promise<string> {
+    const { target, depth } = args
+    // Custom scanning logic
+    return `Scanned ${target} to depth ${depth}`
+  },
+}
+```
+
+`.cyberstrike/` フォルダ内の `tool/` または `tools/` ディレクトリにあるファイルは自動的に読み込まれます。
+
+### ツール定義スキーマ
+
+| フィールド | 型 | 説明 |
+|-------|------|-------------|
+| `description` | string | モデルに表示されるツールの説明 |
+| `args` | object | パラメータ名 → Zodスキーマのマップ |
+| `execute` | function | `async (args, ctx) => string` |
+
+---
+
+## MCPサーバーツール
+
+CyberStrikeはMCPサーバーからツールを読み込むことができます。推奨されるアプローチは[Bolt](/docs/mcp/bolt)で、プラグインシステムを備えたDockerコンテナを通じてセキュリティツールを提供します：
+
+```json title="cyberstrike.json"
+{
+  "bolt": {
+    "local": {
+      "url": "http://localhost:3001",
+      "enabled": true
+    }
+  }
+}
+```
+
+MCPツールは直接のツール呼び出しとして利用可能になります — 各プラグインは名前で直接呼び出せます（例：`nmap`、`nuclei`、`ffuf`）。
+
+<Aside variant="tip">
+  推奨されるセキュリティツールのセットアップについては[Bolt](/docs/mcp/bolt)を参照してください — 7つのプラグインと約26の集約MCPサーバーが、すべて直接ツール呼び出しとして利用可能です。
+</Aside>

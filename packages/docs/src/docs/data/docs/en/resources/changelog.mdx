@@ -10,6 +10,43 @@ All notable changes to Cyberstrike CLI are documented here. For the full release
 
 ---
 
+## v1.1.16
+
+- <Badge text="Added" variant="tip" size="md" /> **Native execution** — runs actual system commands on the target, not API calls
+- <Badge text="Added" variant="tip" size="md" /> **Fallback chains** — if PowerShell is blocked, falls back to cmd.exe/reg.exe/wmic; if bash is unavailable, tries sh/python3/perl
+- <Badge text="Added" variant="tip" size="md" /> **Structured output** — every finding includes CWE mappings, severity, and evidence for automated reporting
+- <Badge text="Added" variant="tip" size="md" /> **OPSEC built-in** — temp files use TMPDIR with try/finally cleanup, forensic secrets are masked in output, credential values are never exposed in findings
+- <Badge text="Added" variant="tip" size="md" /> **linuxhook** — 120 native TypeScript post-exploitation programs across 9 categories: recon, credentials, privesc, persistence, lateral movement, evasion, exfiltration, network attacks, IPv6. Uses bash/sh/python3/perl fallback chain for maximum target compatibility
+- <Badge text="Added" variant="tip" size="md" /> **llmhook** — 23 LLM security testing programs covering OWASP LLM Top 10: prompt injection, jailbreak (15 techniques), training data extraction, hallucination testing, PII/RBAC bypass, multi-turn attacks, indirect injection, evasion (encoding bypass, guardrail detection, token exhaustion), toxicity/bias testing. 130+ probes/payloads with `--format openai|anthropic|generic` support
+- <Badge text="Added" variant="tip" size="md" /> **ci-audit** — 8 read-only CI/CD pipeline security programs for GitHub Actions, GitLab CI, Jenkins, CircleCI
+- <Badge text="Added" variant="tip" size="md" /> **cloud_audit** — native cloud security audit tool for `internal-network` and `cloud-security` agents
+- <Badge text="Added" variant="tip" size="md" /> **gcphook** — modularized and expanded to 33 GCP post-exploitation programs (from 13)
+- <Badge text="Added" variant="tip" size="md" /> **LLM security agent (SENTINEL)** — proxy-tester-llm tier with methodology engine integration, hackbrowser + generate_report permissions, and llmhook tool registration
+- <Badge text="Added" variant="tip" size="md" /> **Uninstall wizard** — interactive cleanup with running-instance detection and preuninstall hook for package managers
+- <Badge text="Added" variant="tip" size="md" /> Skills: `linux-postexploit` (kill chain + MITRE ATT&CK), `ci-assessment`
+- <Badge text="Added" variant="tip" size="md" /> **cve-mcp dynamic CTA** — all OS hooks now guide agents to query `cve-mcp` for discovered services, enabling automatic CVE lookup during post-exploitation
+- <Badge text="Added" variant="tip" size="md" /> **winhook** — modular refactor: monolithic file → 16 modules, 12 → 154 programs. Added cmd.exe/reg.exe/wmic fallback for restricted environments where PowerShell is blocked
+- <Badge text="Added" variant="tip" size="md" /> **machook** — modular refactor: monolithic file → 10 modules, 12 → 46 programs. New credential, lateral movement, and evasion handlers
+- <Badge text="Added" variant="tip" size="md" /> **awshook** — expanded from 10 to 92 programs across 7 categories (recon, credentials, privesc, persistence, lateral movement, evasion, exfiltration)
+- <Badge text="Added" variant="tip" size="md" /> **azurehook** — expanded from 8 to 154 programs across 13 categories including CIS Azure Benchmark compliance (18 handlers), M365, Entra ID identity attacks, and impact/disruption handlers
+- <Badge text="Added" variant="tip" size="md" /> **containerhook** — expanded from 7 to 20 Docker container security programs
+- <Badge text="Added" variant="tip" size="md" /> **kubehook** — expanded from 7 to 20 Kubernetes security programs
+- <Badge text="Added" variant="tip" size="md" /> **iachook** — expanded from 8 to 15 Terraform/IaC audit programs
+- <Badge text="Added" variant="tip" size="md" /> **cipipe (azurehook, kubehook)** — converted from Python to native TypeScript
+- <Badge text="Added" variant="tip" size="md" /> **`macos-postexploit` skill** — updated from 12 to 46 programs
+- <Badge text="Fixed" variant="note" size="md" /> **Hackbrowser:** shell quoting error in Chromium path detection (nested double-quote collision)
+- <Badge text="Fixed" variant="note" size="md" /> **Hackbrowser:** Esc now stops the crawl subprocess — previously continued running in background after session cancel
+- <Badge text="Fixed" variant="note" size="md" /> **Build:** bundled migration crash on first-time setup (Drizzle ORM 1.0 missing `name` field)
+- <Badge text="Fixed" variant="note" size="md" /> **Provider:** Vertex AI autoload with `GOOGLE_APPLICATION_CREDENTIALS` for both Gemini and Claude, EC2 Instance Role auth for Bedrock (#58), full AWS credential chain with IMDS fallback
+- <Badge text="Fixed" variant="note" size="md" /> **Hooks (all platforms):** duplicate checkId resolution across all modules, TMPDIR usage for temp files with try/finally cleanup, forensic secret masking in output, user-supplied regex validation, JSON.parse guards on external input, handler dispatch error handling
+- <Badge text="Fixed" variant="note" size="md" /> **Session:** content-filter finish reason surfaced as visible error instead of silent exit
+- <Badge text="Fixed" variant="note" size="md" /> **Bash tool:** binary output detection and stripping to prevent terminal corruption
+- <Badge text="Fixed" variant="note" size="md" /> **DB:** idempotent migration CREATE statements
+- <Badge text="Security" variant="danger" size="md" /> **fast-xml-parser** 5.9.3 → 5.10.1 (DoS via XML parsing)
+- <Badge text="Security" variant="danger" size="md" /> **dompurify** 3.4.11 → 3.4.13 (XSS via hook removal)
+
+---
+
 ## v1.1.15
 
 - <Badge text="Added" variant="tip" size="md" /> **eBPF post-exploitation tool** — 10 kernel-level programs for the `internal-network` agent, executed via `ebpf &lt;program>` after gaining root on Linux targets

@@ -1,0 +1,154 @@
+---
+title: 플러그인 훅
+description: Cyberstrike 플러그인이 구현할 수 있는 훅
+sidebar:
+  order: 2
+  label: 플러그인 훅
+---
+
+플러그인은 훅 함수의 객체를 반환하는 `(input) => Promise<Hooks>` 함수입니다. 각 훅은 `input`(읽기 전용 컨텍스트)과 대부분의 훅에서 동작을 변경하기 위해 **변경하는** `output` 객체를 받습니다. 훅에서 throw하면 작업이 중단됩니다.
+
+<img src="/docs/images/diagrams/plugin-hook-architecture.svg" alt="플러그인 훅 실행 흐름: LLM 호출 전 chat.params/chat.headers, 도구 전 permission.ask, 인수 수정 또는 차단을 위한 tool.execute.before, 출력 변환을 위한 tool.execute.after" className="my-6 mx-auto max-w-xs" />
+
+플러그인 스캐폴드 및 등록 방법은 [플러그인 만들기](/docs/hooks/creating-plugins)를 참조하세요. 이 페이지는 모든 훅의 레퍼런스입니다.
+
+## 훅 레퍼런스
+
+| 훅 | 실행 시점 | 할 수 있는 것 |
+|----|----------|---------------|
+| `event` | 모든 버스 이벤트 발생 시 | 이벤트 관찰 (로깅, 분석) |
+| `config` | 구성 로드 후 | 로드된 구성 검사/조정 |
+| `tool` | 등록 시 | 커스텀 도구 추가 (이름 → 정의 맵) |
+| `auth` | 등록 시 | 커스텀 인증 제공자 추가 |
+| `chat.message` | 사용자 메시지 수신 시 | 메시지 부분 읽기/추가 |
+| `chat.params` | LLM 호출 전 | `temperature`, `topP`, `topK`, `options` 변경 |
+| `chat.headers` | LLM 요청 전 | 요청 `headers` 추가/수정 |
+| `permission.ask` | 권한 요청 시 | `status`를 `allow`/`deny`/`ask`로 설정 |
+| `command.execute.before` | 슬래시 명령 실행 시 | `parts` 주입 |
+| `tool.execute.before` | 도구 실행 전 | `args` 수정 또는 throw로 차단 |
+| `tool.execute.after` | 도구 실행 후 | `title`/`output`/`metadata` 변환 |
+| `tool.definition` | 도구가 LLM에 전송될 때 | 도구의 `description`/`parameters` 재작성 |
+| `shell.env` | 쉘 명령 실행 시 | 환경 변수 추가 |
+| `experimental.chat.messages.transform` | LLM 호출 전 | 전체 메시지 목록 재작성 |
+| `experimental.chat.system.transform` | LLM 호출 전 | 시스템 프롬프트 배열 재작성 |
+| `experimental.session.compacting` | 압축 전 | 컨텍스트 추가 또는 압축 프롬프트 교체 |
+| `experimental.text.complete` | 텍스트 부분 완료 시 | 완료된 텍스트 재작성 |
+
+## 시그니처
+
+모든 훅은 `async`이며 `Promise<void>`를 반환합니다.
+
+### 도구
+
+```typescript
+"tool.execute.before"?: (
+  input: { tool: string; sessionID: string; callID: string },
+  output: { args: any },
+) => Promise<void>
+
+"tool.execute.after"?: (
+  input: { tool: string; sessionID: string; callID: string; args: any },
+  output: { title: string; output: string; metadata: any },
+) => Promise<void>
+
+"tool.definition"?: (
+  input: { toolID: string },
+  output: { description: string; parameters: any },
+) => Promise<void>
+```
+
+도구를 **차단**하려면 `tool.execute.before`에서 throw합니다:
+
+```typescript
+"tool.execute.before": async (input, output) => {
+  if (input.tool === "bash" && /rm\s+-rf/.test(output.args.command)) {
+    throw new Error("blocked: rm -rf")
+  }
+}
+```
+
+### 권한
+
+```typescript
+"permission.ask"?: (
+  input: Permission,
+  output: { status: "ask" | "deny" | "allow" },
+) => Promise<void>
+```
+
+```typescript
+"permission.ask": async (input, output) => {
+  if (input.type === "read") output.status = "allow"
+}
+```
+
+### 채팅
+
+```typescript
+"chat.message"?: (
+  input: { sessionID: string; agent?: string; model?: { providerID: string; modelID: string }; messageID?: string; variant?: string },
+  output: { message: UserMessage; parts: Part[] },
+) => Promise<void>
+
+"chat.params"?: (
+  input: { sessionID: string; agent: string; model: Model; provider: ProviderContext; message: UserMessage },
+  output: { temperature: number; topP: number; topK: number; options: Record<string, any> },
+) => Promise<void>
+
+"chat.headers"?: (
+  input: { sessionID: string; agent: string; model: Model; provider: ProviderContext; message: UserMessage },
+  output: { headers: Record<string, string> },
+) => Promise<void>
+```
+
+### 명령 및 쉘
+
+```typescript
+"command.execute.before"?: (
+  input: { command: string; sessionID: string; arguments: string },
+  output: { parts: Part[] },
+) => Promise<void>
+
+"shell.env"?: (
+  input: { cwd: string },
+  output: { env: Record<string, string> },
+) => Promise<void>
+```
+
+### 라이프사이클
+
+```typescript
+event?:  (input: { event: Event }) => Promise<void>
+config?: (input: Config) => Promise<void>
+```
+
+### 실험적
+
+```typescript
+"experimental.chat.messages.transform"?: (input: {}, output: { messages: { info: Message; parts: Part[] }[] }) => Promise<void>
+"experimental.chat.system.transform"?:   (input: { sessionID?: string; model: Model }, output: { system: string[] }) => Promise<void>
+"experimental.session.compacting"?:      (input: { sessionID: string }, output: { context: string[]; prompt?: string }) => Promise<void>
+"experimental.text.complete"?:           (input: { sessionID: string; messageID: string; partID: string }, output: { text: string }) => Promise<void>
+```
+
+## 커스텀 도구 및 인증
+
+`tool`과 `auth` 훅은 이벤트에 반응하지 않고 기능을 등록합니다:
+
+```typescript
+return {
+  tool: {
+    my_scanner: {
+      description: "Custom vulnerability scanner",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] },
+      execute: async (args) => ({ title: `Scanned ${args.target}`, output: await scan(args.target) }),
+    },
+  },
+}
+```
+
+## 관련 문서
+
+- [훅 개요](/docs/hooks) - 개념 및 예시
+- [플러그인 만들기](/docs/hooks/creating-plugins) - 플러그인 스캐폴드, 등록, 테스트
+- [구성](/docs/configuration) - `plugin` 구성 키

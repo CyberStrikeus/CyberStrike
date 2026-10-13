@@ -1,0 +1,100 @@
+---
+title: MCP
+description: 通过 Model Context Protocol 使用外部工具扩展 Cyberstrike
+sidebar:
+  order: 5
+  label: MCP
+---
+
+Cyberstrike 使用 Model Context Protocol (MCP) 集成外部工具。任何兼容 MCP 的服务器——本地或远程——都可以连接，使 AI 代理在评估期间可以访问其工具。
+
+## 内置服务器
+
+Cyberstrike 默认启用三个 MCP 服务器：
+
+| 服务器 | 用途 |
+|--------|------|
+| `github-security` | GitHub 仓库安全分析 |
+| `cve` | CVE/NVD/EPSS/KEV 漏洞查询 |
+| `osint` | 开源情报收集 |
+
+您的自定义配置会合并到这些之上。
+
+## 添加服务器
+
+MCP 服务器放在配置中的扁平 `mcp` 映射下，按名称键控：
+
+```json title="cyberstrike.json"
+{
+  "mcp": {
+    "my-tools": {
+      "type": "local",
+      "command": ["your-mcp-server"]
+    }
+  }
+}
+```
+
+### 本地服务器 (stdio)
+
+本地服务器作为子进程运行：
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/path/to/dir"]
+    }
+  }
+}
+```
+
+### 远程服务器 (HTTP)
+
+远程服务器通过 StreamableHTTP 或 SSE 连接：
+
+```json
+{
+  "mcp": {
+    "remote-tools": {
+      "type": "remote",
+      "url": "https://mcp.example.com/sse"
+    }
+  }
+}
+```
+
+远程服务器支持 [OAuth 认证](/docs/mcp/oauth) 用于受保护的端点。
+
+## 管理
+
+| 命令 | 管理内容 |
+|------|----------|
+| `/mcps` | 本地和远程 MCP 服务器（添加、切换、移除） |
+| `/bolt` | 专门管理 Bolt 服务器（添加、配对、切换、移除） |
+
+在两个对话框中：**a** 添加，**space** 切换，**esc** 关闭。
+
+## 模型兼容性
+
+<Aside variant="caution">
+  基于子进程的模型无法访问 MCP 工具。请使用直连 API 模型（例如 `anthropic/claude-sonnet-4-20250514`、`openai/gpt-4o`）以获得完整的 MCP 集成。
+</Aside>
+
+## 配置优先级
+
+MCP 条目遵循标准的[配置层级](/docs/configuration#configuration-hierarchy)：项目 `.cyberstrike/` 覆盖项目 `cyberstrike.json`，覆盖全局 `~/.config/cyberstrike/`，覆盖内置服务器。
+
+## 详细指南
+
+| 指南 | 描述 |
+|------|------|
+| [本地服务器](/docs/mcp/local-servers) | 本地 stdio MCP 服务器设置 |
+| [远程服务器](/docs/mcp/remote-servers) | HTTP/SSE 远程连接 |
+| [OAuth](/docs/mcp/oauth) | 远程服务器的 OAuth 认证 |
+| [创建服务器](/docs/mcp/creating-servers) | 构建自定义 MCP 服务器 |
+
+<Aside variant="danger">
+  仅对授权目标使用安全工具。未经授权的渗透测试是违法的。
+</Aside>

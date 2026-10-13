@@ -1,0 +1,116 @@
+---
+title: リモートMCPサーバー
+description: HTTP/SSEでリモートMCPサーバーに接続する
+sidebar:
+  order: 4
+  label: リモートサーバー
+---
+
+リモートMCPサーバーはHTTP/HTTPSで接続し、ホストされたサービスや共有インフラストラクチャへのアクセスを可能にします。トランスポートはStreamableHTTP(SSEフォールバック付き)です。
+
+<Aside variant="tip">
+  **セキュリティツールをお探しですか？** プリインストール済みセキュリティツールについては[Bolt](/docs/mcp/bolt)を参照してください。Boltは`mcp`の下ではなく、独自のトップレベル`bolt`キーで設定されることに注意してください。
+</Aside>
+
+<img src="/docs/images/diagrams/remote-mcp-architecture.svg" alt="CyberstrikeのMCPクライアントがヘッダーまたはOAuthトークンを使用してStreamableHTTP/SSEでリモートMCPサーバーに接続" className="my-6" />
+
+## 設定スキーマ
+
+リモートサーバーは、サーバー名をキーとするフラットな`mcp`マップの1エントリです:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "mcp": {
+    "my-remote": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "headers": { "Authorization": "Bearer {env:MY_TOKEN}" },
+      "enabled": true,
+      "timeout": 5000
+    }
+  }
+}
+```
+
+| フィールド | 型 | 説明 |
+|-------|------|-------------|
+| `type` | `"remote"` | 必須。HTTPベースのサーバーを選択します。 |
+| `url` | string | 必須。サーバーのエンドポイント。 |
+| `headers` | object | 任意。各リクエストで送信されるヘッダー(例: APIキー)。 |
+| `oauth` | object \| `false` | 任意。OAuth設定。`false`を設定するとOAuth自動検出を無効にします。[OAuth](/docs/mcp/oauth)を参照。 |
+| `enabled` | boolean | 任意。起動時に接続する(デフォルト: true)。 |
+| `timeout` | number | 任意。リクエストタイムアウト(ミリ秒)(デフォルト: 5000)。 |
+
+<Aside variant="caution">
+  `mcp`オブジェクトはサーバー名をキーとする**フラットマップ**です -- `servers`ラッパーはありません。トランスポートはStreamableHTTP/SSEのみ(WebSocketトランスポートはなし)で、スキーマは厳格です: `retry`、`keepalive`、`proxy`、TLS/`ca`/`cert`、ロードバランシングフィールドは**存在しません**。
+</Aside>
+
+## TUIでの追加
+
+`/mcps`と入力してMCPマネージャーを開き、**a**を押して追加し、**Remote**を選択します。サーバーの**URL**を入力すると、サーバー**名**がホスト名から自動生成されます(ドットがハイフンに変換)。Cyberstrikeは保存前に接続をテストします。上記のスキーマと完全に同じ形式で書き込みます。
+
+## 認証
+
+### ヘッダー経由のAPIキー
+
+リクエストヘッダーとして静的トークンまたはAPIキーを送信します。シークレットが設定ファイルに保存されないよう`{env:VAR}`を使用してください:
+
+```json
+{
+  "mcp": {
+    "github-remote": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": { "Authorization": "Bearer {env:GITHUB_TOKEN}" }
+    }
+  }
+}
+```
+
+### OAuth
+
+OAuthを使用するサーバーには、`oauth`ブロックを追加します(またはCyberstrikeの自動検出に任せます)。`clientId`が省略された場合、動的クライアント登録(RFC 7591)が試行されます:
+
+```json
+{
+  "mcp": {
+    "oauth-server": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "oauth": { "scope": "read write" }
+    }
+  }
+}
+```
+
+`cyberstrike mcp auth <name>`で認可します。完全なフローについては[OAuth](/docs/mcp/oauth)を参照してください。`"oauth": false`を設定するとOAuth自動検出をオプトアウトします。
+
+## 有効化、無効化、タイムアウト
+
+`enabled: false`を設定してサーバーを設定済みだが切断状態に保つことができます(`/mcps`で切り替えも可能)。遅いエンドポイントには`timeout`(ミリ秒)を増やしてください:
+
+```json
+{
+  "mcp": {
+    "slow-remote": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "enabled": false,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+## トラブルシューティング
+
+- **認証エラー** -- ヘッダーを確認するか、OAuthサーバーの場合は`cyberstrike mcp auth <name>`を実行してください。`cyberstrike mcp debug <name>`で検査できます。
+- **タイムアウト** -- `timeout`を増やすか、エンドポイントが到達可能であることを確認してください。
+- **設定が拒否される** -- スキーマは厳格です。`type: "remote"` + `url`のフラットマップを使用し、上記のフィールドのみを指定してください。
+
+## 関連ドキュメント
+
+- [Bolt / MCP 概要](/docs/mcp) - アーキテクチャとコンセプト
+- [OAuth](/docs/mcp/oauth) - OAuth認証フロー
+- [ローカルサーバー](/docs/mcp/local-servers) - ローカルstdio MCP設定
+- [サーバーの作成](/docs/mcp/creating-servers) - カスタムサーバーの構築

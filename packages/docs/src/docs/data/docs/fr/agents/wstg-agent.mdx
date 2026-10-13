@@ -1,0 +1,82 @@
+---
+title: Agent WSTG
+description: "Orchestrateur du pipeline de tests de securite web OWASP WSTG"
+sidebar:
+  order: 5
+  label: Agent WSTG
+---
+
+Le `wstg-agent` est l'orchestrateur du pipeline de tests de securite web de Cyberstrike. Il recoit le trafic HTTP capture et dispatche les agents specialistes WSTG appropries en fonction des caracteristiques des requetes et du contexte accumule de la session.
+
+## Vue d'ensemble
+
+| Propriete | Valeur |
+|-----------|--------|
+| **Identifiant de l'agent** | `wstg-agent` |
+| **Role** | `orchestrator` |
+| **Domaine** | `@cyberstrike-io/web` |
+| **Couleur** | Bleu |
+
+## Comment ca fonctionne
+
+Le `wstg-agent` est un **pur orchestrateur** -- il n'effectue pas de tests de vulnerabilites lui-meme. Son flux de travail :
+
+1. Recoit une requete HTTP capturee (depuis [HackBrowser](/docs/features/hackbrowser) ou le [Chrome Extension](/docs/tools/chrome-extension))
+2. Analyse les caracteristiques de la requete et le contexte accumule de la session
+3. Route la requete vers le(s) specialiste(s) WSTG approprie(s) via un dispatch base sur les signaux
+4. Gere la file d'attente de tests et les declencheurs de re-test
+
+## Routage par signaux
+
+Chaque requete capturee genere des signaux en fonction de ses proprietes -- chemin d'endpoint, parametres, en-tetes, schemas de reponse et correspondances de regles [Vortex](/docs/features/vortex). Le `wstg-agent` associe ces signaux aux classes de specialistes :
+
+| Categorie de signal | Specialiste |
+|---------------------|-------------|
+| Schemas d'authentification | `wstg-authentication` |
+| Indicateurs d'autorisation | `wstg-authorization` |
+| Parametres d'entree | `wstg-input-validation` |
+| Jetons de session | `wstg-session-mgmt` |
+| Endpoints de configuration | `wstg-config-deploy` |
+| Schemas API | `wstg-api` |
+| Indicateurs cryptographiques | `wstg-cryptography` |
+| Reponses d'erreur | `wstg-error-handling` |
+| Logique metier | `wstg-business-logic` |
+| Ressources cote client | `wstg-client-side` |
+| Endpoints LLM | `wstg-llm` |
+
+Une seule requete peut declencher plusieurs specialistes lorsqu'elle presente des signaux de plusieurs categories.
+
+## Specialistes WSTG
+
+Chaque specialiste est un agent de test cible pour une categorie WSTG :
+
+| Specialiste | Section WSTG | Focus |
+|-------------|--------------|-------|
+| `wstg-info-gathering` | 4.1 | Fingerprinting, enumeration, detection de fuites |
+| `wstg-config-deploy` | 4.2 | Configuration serveur, identifiants par defaut, extensions de fichiers |
+| `wstg-identity-mgmt` | 4.3 | Enumeration d'utilisateurs, provisionnement de comptes |
+| `wstg-authentication` | 4.4 | Contournement de connexion, test d'identifiants, MFA |
+| `wstg-authorization` | 4.5 | IDOR, escalade de privileges, traversee de chemin |
+| `wstg-session-mgmt` | 4.6 | Fixation de session, attributs de cookies, expiration |
+| `wstg-input-validation` | 4.7 | SQLi, XSS, SSTI, injection de commandes |
+| `wstg-error-handling` | 4.8 | Divulgation d'erreurs, traces de pile |
+| `wstg-cryptography` | 4.9 | Chiffrements faibles, oracle de remplissage, exposition de cles |
+| `wstg-business-logic` | 4.10 | Contournement de flux, conditions de concurrence |
+| `wstg-client-side` | 4.11 | DOM XSS, clickjacking, postMessage |
+| `wstg-api` | 4.12 | BOLA, assignation massive, limitation de debit |
+| `wstg-llm` | Personnalise | Injection de prompt, attaques specifiques aux LLM |
+
+Chaque specialiste possede des skills WSTG (scripts de test deterministes) qu'il execute sur les requetes capturees.
+
+## Escalation Hunter
+
+Apres que les specialistes ont termine leurs tests, l'[`escalation-hunter`](/docs/agents/escalation-hunter) analyse tous les resultats pour identifier les vulnerabilites chainees et escalader l'impact.
+
+## Permissions
+
+L'orchestrateur `wstg-agent` dispose d'un jeu de permissions restreint :
+
+- Peut creer des taches (dispatcher des specialistes)
+- Peut lire le contexte de session et les notes de couverture
+- Peut verifier le statut de la methodologie et le perimetre
+- Ne peut pas effectuer de tests directs ni rapporter de vulnerabilites

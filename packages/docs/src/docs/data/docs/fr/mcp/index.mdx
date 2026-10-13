@@ -1,0 +1,93 @@
+---
+title: Vue d'ensemble Bolt / MCP
+description: Etendre Cyberstrike avec des outils de securite via Bolt et MCP
+sidebar:
+  order: 1
+  label: Vue d'ensemble
+---
+
+Cyberstrike utilise le Model Context Protocol (MCP) pour integrer des outils externes. **Bolt** est notre serveur d'outils conteneurise qui fournit un large ensemble d'outils de securite ; vous pouvez egalement connecter tout serveur MCP local ou distant.
+
+{/* Hero GIF - Tool execution demo */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">🎬 GIF: bolt-tool-execution.gif</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Demo d'execution d'outil Bolt - scan nmap (20s)</p>
+</div>
+
+## Deux facons d'ajouter des outils
+
+| Approche | Transport | Avantages | Inconvenients |
+|----------|-----------|-----------|---------------|
+| **Bolt** (recommande) | StreamableHTTP | Outils pre-installes, isolation par conteneur, configuration facile | Docker requis, latence reseau |
+| **MCP local / distant** | stdio / StreamableHTTP | N'importe quel serveur MCP ; latence nulle en local | Vous installez et executez le serveur |
+
+Cyberstrike est egalement livre avec trois serveurs MCP actives par defaut : `github-security`, `cve` et `osint`. Votre propre configuration est fusionnee par-dessus.
+
+## Bolt
+
+Bolt execute des outils de securite dans un conteneur Docker (Ubuntu 24.04, port 3001). Il expose **7 plugins natifs** (`subfinder`, `nmap`, `nuclei`, `httpx`, `ffuf`, `run-command`, `wordlist`) plus **~26 serveurs MCP stdio agreges** (`dnsx`, `amass`, `katana`, `sqlmap`, `wpscan`, `hydra`, `hashcat`, et plus). Chaque outil est directement appelable — l'agent l'invoque en un seul tour.
+
+Bolt est configure sous sa **propre cle de premier niveau `bolt`** (pas `mcp`) et authentifie par appairage Ed25519 :
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "bolt": {
+    "local": { "url": "http://localhost:3001" }
+  }
+}
+```
+
+Voir la page [Bolt](/fr/docs/mcp/bolt) pour la configuration et l'appairage.
+
+## MCP local / distant
+
+Tout autre serveur MCP va sous la map plate `mcp`, identifie par nom :
+
+```json title="cyberstrike.json"
+{
+  "mcp": {
+    "my-tools": {
+      "type": "local",
+      "command": ["your-mcp-server"]
+    }
+  }
+}
+```
+
+- [Serveurs locaux](/fr/docs/mcp/local-servers) — processus enfants stdio
+- [Serveurs distants](/fr/docs/mcp/remote-servers) — StreamableHTTP/SSE, avec [OAuth](/fr/docs/mcp/oauth) optionnel
+
+## Gestion TUI
+
+Deux boites de dialogue separees :
+
+- **`/bolt`** — gerer les serveurs Bolt (ajouter et appairer, basculer, supprimer).
+- **`/mcps`** — gerer les serveurs MCP locaux/distants.
+
+Dans les deux : **a** pour ajouter, **espace** pour basculer un serveur, **esc** pour fermer.
+
+## Compatibilite des modeles
+
+<Aside variant="caution">
+  Les modeles bases sur des sous-processus ne peuvent pas acceder aux outils MCP. Utilisez un modele a API directe pour une integration complete Bolt/MCP.
+</Aside>
+
+Les modeles a API directe (par ex. `anthropic/claude-sonnet-4-20250514`, `openai/gpt-4o`) s'executent au sein de Cyberstrike et ont un acces complet au MCP. Les modeles qui delegent a un processus CLI separe ne l'ont pas.
+
+## Priorite de configuration
+
+Les entrees MCP et Bolt suivent la [hierarchie de configuration](/fr/docs/configuration#configuration-hierarchy) standard : le repertoire `.cyberstrike/` du projet prime sur le `cyberstrike.json` du projet, qui prime sur la configuration globale `~/.config/cyberstrike/`, qui prime sur les serveurs integres.
+
+## Documentation
+
+| Page | Description |
+|------|-------------|
+| [Bolt](/fr/docs/mcp/bolt) | Serveur d'outils de securite conteneurise (recommande) |
+| [Serveurs locaux](/fr/docs/mcp/local-servers) | Serveurs MCP stdio locaux |
+| [Serveurs distants](/fr/docs/mcp/remote-servers) | Connexions distantes HTTP/SSE |
+| [OAuth](/fr/docs/mcp/oauth) | Authentification OAuth pour les serveurs distants |
+| [Creation de serveurs](/fr/docs/mcp/creating-servers) | Creer des serveurs MCP personnalises |
+
+<Aside variant="danger">
+  N'utilisez les outils de securite que contre des cibles autorisees. Les tests de penetration non autorises sont illegaux.
+</Aside>

@@ -1,0 +1,89 @@
+---
+title: Sicherheitsagenten
+description: Spezialisierte KI-Agenten fuer verschiedene Sicherheitsbewertungsszenarien
+sidebar:
+  order: 1
+  label: Uebersicht
+---
+
+Cyberstrike enthaelt spezialisierte Agenten, die fuer verschiedene Sicherheitsbewertungsszenarien optimiert sind. Jeder Agent verfuegt ueber domaenenspezifisches Wissen, Methodiken und Werkzeugkonfigurationen.
+
+<img src="/docs/images/gifs/g05-agent-switch.gif" alt="Wechsel des aktiven Agenten ueber die Auswahl mit Leader+a" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/screenshots/s09-agent-select.png" alt="Agenten-Auswahl mit dem primaeren cyberstrike-Agenten und spezialisierten Subagenten" className="rounded-lg shadow-lg my-6 w-full" />
+
+## Architektur
+
+Cyberstrike fuehrt **einen primaeren Agenten** aus — `cyberstrike` — der die Sitzung verwaltet und automatisch an spezialisierte Subagenten **delegiert**. Subagenten werden basierend auf der Aufgabe eingesetzt; sie werden nicht direkt ausgefuehrt.
+
+### Kernagenten
+
+| Agent | Zweck | Modus |
+|-------|-------|-------|
+| [`cyberstrike`](/docs/agents/cyberstrike) | Standard-Agent fuer offensive Sicherheit mit vollem Werkzeugzugriff; orchestriert alles | Primaer |
+| [`general`](/docs/agents/general) | Allgemeiner Recherche- und paralleler Aufgabenausfuehrungsagent | Subagent |
+| [`triage`](/docs/agents/triage) | Unabhaengige Verifizierung von Entwurfs-Schwachstellenergebnissen | Subagent |
+| [`explore`](/docs/agents/explore) | Schnelle schreibgeschuetzte Codebasis- und Dateisystemsuche | Subagent |
+
+### Web-Sicherheitsagenten (WSTG-Pipeline)
+
+Die Web-Domaene (`@cyberstrike-io/web`) bietet eine vollstaendige OWASP-WSTG-Pipeline. Der `wstg-agent`-Orchestrator setzt Spezialisten basierend auf erfassten HTTP-Verkehrssignalen ein:
+
+| Agent | WSTG-Kategorie |
+|-------|----------------|
+| [`wstg-agent`](/docs/agents/wstg-agent) | Orchestrator — setzt Spezialisten basierend auf Anforderungssignalen ein |
+| `wstg-info-gathering` | 4.1 Informationssammlung |
+| `wstg-config-deploy` | 4.2 Konfigurations- & Deployment-Management |
+| `wstg-identity-mgmt` | 4.3 Identitaetsverwaltung |
+| `wstg-authentication` | 4.4 Authentifizierung |
+| `wstg-authorization` | 4.5 Autorisierung |
+| `wstg-session-mgmt` | 4.6 Sitzungsverwaltung |
+| `wstg-input-validation` | 4.7 Eingabevalidierung |
+| `wstg-error-handling` | 4.8 Fehlerbehandlung |
+| `wstg-cryptography` | 4.9 Kryptographie |
+| `wstg-business-logic` | 4.10 Geschaeftslogik |
+| `wstg-client-side` | 4.11 Client-seitig |
+| `wstg-api` | 4.12 API-Tests + OWASP API Top 10 |
+| `wstg-llm` | LLM-Sicherheit |
+| [`escalation-hunter`](/docs/agents/escalation-hunter) | Querschnittskorrelation — verkettet Ergebnisse, eskaliert Auswirkungen |
+
+WSTG-Spezialisten sind **signalgeroutet** — Sie rufen sie nicht direkt auf. Wenn HackBrowser oder die Chrome Extension HTTP-Verkehr erfasst, wird jede Anfrage analysiert und basierend auf ihren Eigenschaften an den/die relevanten Spezialisten weitergeleitet.
+
+### Geplante Domaenen
+
+| Domaene | Status |
+|---------|--------|
+| Cloud-Sicherheit (AWS/Azure/GCP) | Geplant |
+| Internes Netzwerk (AD/Kerberos) | Geplant |
+| Mobile Anwendung (MASTG/MASVS) | Geplant |
+
+Diese werden als separate Domaenenpakete (`@cyberstrike-io/cloud`, `@cyberstrike-io/internal-network`, `@cyberstrike-io/mobile`) ausgeliefert und registrieren sich automatisch ueber das Plugin-System.
+
+## Einen Agenten auswaehlen
+
+Agenten in der TUI wechseln:
+
+| Befehl | Aktion |
+|--------|--------|
+| `/agents` oder `<leader>a` | Agenten-Auswahl oeffnen |
+| `Tab` | Zum naechsten Agenten wechseln |
+
+Nur `cyberstrike` wird als eingebauter primaerer Agent ausgeliefert. Sie koennen benutzerdefinierte primaere Agenten erstellen — siehe [Benutzerdefinierte Agenten](/docs/agents/custom-agents).
+
+### Konfiguration
+
+Setzen Sie den Standardagenten in `cyberstrike.json`:
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+## Benutzerdefinierte Agenten erstellen
+
+Benutzerdefinierte Agenten sind Markdown-Dateien in `.cyberstrike/agents/`. Siehe [Benutzerdefinierte Agenten](/docs/agents/custom-agents) fuer Details.
+
+<Aside variant="info">
+  Agenten koennen pro Projekt angepasst werden, indem Konfigurationsdateien im Verzeichnis `.cyberstrike/agents/` abgelegt werden.
+</Aside>

@@ -1,0 +1,106 @@
+---
+title: Создание плагинов
+description: Сборка, регистрация и публикация плагинов Cyberstrike
+sidebar:
+  order: 4
+  label: Создание плагинов
+---
+
+Плагин Cyberstrike — это модуль, экспортирующий функцию, которая возвращает набор [хуков](/docs/hooks/plugin-hooks). Это руководство описывает написание, регистрацию и публикацию плагина.
+
+{/* TODO: Screenshot - Plugin development workflow */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: plugin-development.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Рабочий процесс разработки плагина</p>
+</div>
+
+## Написание плагина
+
+Плагин — это `(input: PluginInput) => Promise<Hooks>`. Импортируйте типы из `@cyberstrike-io/plugin`:
+
+```typescript title=".cyberstrike/plugin/guard.ts"
+import type { Plugin } from "@cyberstrike-io/plugin"
+
+export const GuardPlugin: Plugin = async ({ project, directory, $ }) => {
+  return {
+    "tool.execute.before": async (input, output) => {
+      if (input.tool === "bash" && /rm\s+-rf/.test(output.args.command)) {
+        throw new Error("blocked: rm -rf")
+      }
+    },
+    "permission.ask": async (input, output) => {
+      if (input.type === "read") output.status = "allow"
+    },
+  }
+}
+```
+
+`input` функции предоставляет контекст — `client`, `project`, `directory`, `worktree`, `serverUrl` и `$` (оболочка Bun). Возвращайте объект, ключи которого — имена хуков; полный список хуков и их сигнатуры см. в [справочнике хуков](/docs/hooks/plugin-hooks).
+
+## Регистрация плагина
+
+Есть два способа загрузить плагин.
+
+### 1. Локальный файл (без публикации)
+
+Поместите файл `.ts`/`.js` в каталог `plugin/` (или `plugins/`) внутри любой папки `.cyberstrike/` — проектной или `~/.cyberstrike/`:
+
+```
+.cyberstrike/
+└── plugin/
+    └── guard.ts
+```
+
+Cyberstrike обнаружит его автоматически и установит `@cyberstrike-io/plugin`, чтобы локальные плагины могли импортировать типы.
+
+### 2. Массив `plugin` в конфигурации
+
+Укажите npm-пакет или путь в массиве `plugin` (значения объединяются из всех источников конфигурации через union-merge):
+
+```json title="cyberstrike.json"
+{
+  "plugin": [
+    "@myorg/cyberstrike-guard",
+    "./local/guard.ts"
+  ]
+}
+```
+
+## Тестирование и отладка
+
+Запустите Cyberstrike с отладочным логированием, чтобы видеть загрузку плагинов и срабатывание хуков:
+
+```bash
+cyberstrike --log-level DEBUG --print-logs
+```
+
+(Или установите `"logLevel": "DEBUG"` в конфигурации.)
+
+Поскольку хуки мутируют `output` (или выбрасывают исключение), вы можете тестировать их модульно, вызывая хук с фиктивными `input`/`output` и проверяя мутированный `output`.
+
+## Публикация
+
+Упакуйте плагин как обычный npm-модуль и опубликуйте его, затем пользователи добавят его в массив `plugin`:
+
+```json title="package.json"
+{
+  "name": "@myorg/cyberstrike-guard",
+  "type": "module",
+  "main": "./index.ts",
+  "peerDependencies": { "@cyberstrike-io/plugin": "*" }
+}
+```
+
+```bash
+npm publish --access public
+```
+
+<Aside variant="caution">
+  Плагины запускаются с полным доступом к вашей машине и внутренним компонентам Cyberstrike. Устанавливайте только проверенные плагины и сохраняйте хуки быстрыми — они выполняются в одном потоке с вызовами инструментов и запросами к LLM.
+</Aside>
+
+## Связанная документация
+
+- [Обзор хуков](/docs/hooks) — Концепции и примеры
+- [Хуки плагинов](/docs/hooks/plugin-hooks) — Полный справочник хуков
+- [Конфигурация](/docs/configuration) — Ключ конфигурации `plugin`

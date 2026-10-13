@@ -1,0 +1,100 @@
+---
+title: MCP
+description: Estenda o Cyberstrike com ferramentas externas via Model Context Protocol
+sidebar:
+  order: 5
+  label: MCP
+---
+
+O Cyberstrike usa o Model Context Protocol (MCP) para integrar ferramentas externas. Qualquer servidor compativel com MCP — local ou remoto — pode ser conectado, dando ao agente de IA acesso as suas ferramentas durante avaliacoes.
+
+## Servidores Integrados
+
+O Cyberstrike vem com tres servidores MCP habilitados por padrao:
+
+| Servidor | Proposito |
+|----------|-----------|
+| `github-security` | Analise de seguranca de repositorios GitHub |
+| `cve` | Consultas de vulnerabilidades CVE/NVD/EPSS/KEV |
+| `osint` | Coleta de inteligencia de fontes abertas |
+
+Sua propria configuracao e mesclada sobre estes.
+
+## Adicionando Servidores
+
+Servidores MCP ficam sob o mapa plano `mcp` na sua configuracao, indexados por nome:
+
+```json title="cyberstrike.json"
+{
+  "mcp": {
+    "my-tools": {
+      "type": "local",
+      "command": ["your-mcp-server"]
+    }
+  }
+}
+```
+
+### Servidores Locais (stdio)
+
+Servidores locais executam como processos filhos:
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/path/to/dir"]
+    }
+  }
+}
+```
+
+### Servidores Remotos (HTTP)
+
+Servidores remotos conectam via StreamableHTTP ou SSE:
+
+```json
+{
+  "mcp": {
+    "remote-tools": {
+      "type": "remote",
+      "url": "https://mcp.example.com/sse"
+    }
+  }
+}
+```
+
+Servidores remotos suportam [autenticacao OAuth](/docs/mcp/oauth) para endpoints protegidos.
+
+## Gerenciamento
+
+| Comando | O que gerencia |
+|---------|----------------|
+| `/mcps` | Servidores MCP locais e remotos (adicionar, alternar, remover) |
+| `/bolt` | Servidores Bolt especificamente (adicionar, parear, alternar, remover) |
+
+Em ambos os dialogos: **a** para adicionar, **espaco** para alternar, **esc** para fechar.
+
+## Compatibilidade de Modelo
+
+<Aside variant="caution">
+  Modelos baseados em subprocesso nao podem acessar ferramentas MCP. Use um modelo de API direta (ex: `anthropic/claude-sonnet-4-20250514`, `openai/gpt-4o`) para integracao completa com MCP.
+</Aside>
+
+## Precedencia de Configuracao
+
+Entradas MCP seguem a [hierarquia de configuracao](/docs/configuration#configuration-hierarchy) padrao: `.cyberstrike/` do projeto sobrescreve `cyberstrike.json` do projeto, que sobrescreve `~/.config/cyberstrike/` global, que sobrescreve servidores integrados.
+
+## Guias Detalhados
+
+| Guia | Descricao |
+|------|-----------|
+| [Servidores Locais](/docs/mcp/local-servers) | Configuracao de servidor MCP local stdio |
+| [Servidores Remotos](/docs/mcp/remote-servers) | Conexoes remotas HTTP/SSE |
+| [OAuth](/docs/mcp/oauth) | Autenticacao OAuth para servidores remotos |
+| [Criando Servidores](/docs/mcp/creating-servers) | Construa servidores MCP personalizados |
+
+<Aside variant="danger">
+  Use ferramentas de seguranca apenas contra alvos autorizados. Testes de penetracao nao autorizados sao ilegais.
+</Aside>

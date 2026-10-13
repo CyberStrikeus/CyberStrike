@@ -1,0 +1,155 @@
+---
+title: TUI
+description: CyberStrike의 대화형 터미널 사용자 인터페이스 — 슬래시 명령, 키보드 단축키, 구성
+sidebar:
+  order: 1
+  label: TUI
+---
+
+TUI (Terminal User Interface)는 CyberStrike의 기본 인터페이스입니다. 명령을 입력하고 텍스트 출력을 받는 전통적인 CLI와 달리, TUI는 터미널 내에서 실행되는 지속적이고 대화형인 애플리케이션입니다 — 프롬프트 영역, 스크롤 가능한 응답 패널, 상태 표시줄, AI 에이전트의 실시간 스트리밍이 있습니다.
+
+```bash
+cyberstrike
+```
+
+이 단일 명령으로 TUI가 열립니다. 전체 세션 동안 TUI 안에 머물러 있습니다.
+
+## TUI vs CLI
+
+| | TUI | CLI |
+|---|---|---|
+| **시작** | `cyberstrike` | `cyberstrike run "prompt"` |
+| **상호작용** | 연속적 — 입력, 읽기, 다시 입력 | 일회성 — 실행, 출력 확인, 종료 |
+| **세션** | 지속적, 재개 가능, 이름 변경 가능 | 임시적 (`--continue`로 재개 가능) |
+| **에이전트 출력** | 포맷팅과 함께 실시간 스트리밍 | stdout으로 일반 텍스트 스트리밍 |
+| **명령** | 슬래시 명령 (`/hackbrowser`, `/bolt`) | CLI 플래그 (`--model`, `--agent`) |
+| **적합한 용도** | 대화형 평가, 탐색 | 스크립팅, CI/CD, 자동화 |
+
+TUI는 직접 작업하는 곳입니다. CLI는 출력을 다른 도구로 파이핑하거나 스크립트에서 실행하기 위한 것입니다.
+
+## 프롬프트
+
+TUI 하단에 입력 프롬프트가 있습니다. 여기에 다음을 입력합니다:
+
+- **자연어** — 테스트하고 싶은 것을 설명하면 하네스가 에이전트를 디스패치합니다
+- **슬래시 명령** — `/`를 입력하여 명령 팔레트를 열거나 전체 명령을 입력합니다
+- **후속 질문** — 채팅처럼 대화를 이어갑니다
+
+`Enter`를 눌러 제출합니다. `Shift+Enter`로 새 줄을 만듭니다.
+
+### 슬래시 명령
+
+슬래시 명령은 `/`에 이어 명령 이름을 입력하여 트리거되는 TUI 동작입니다. 프롬프트를 떠나지 않고 하네스를 제어합니다 — 도구 시작, 모델 전환, 세션 관리.
+
+`/`를 입력하여 자동완성이 있는 명령 팔레트를 열거나 전체 명령을 직접 입력합니다.
+
+#### 세션
+
+| 명령 | 하는 일 |
+|------|---------|
+| `/new` | 새 탭에서 새 세션 시작 |
+| `/sessions` | 세션 간 탐색 및 전환 |
+| `/rename` | 현재 세션 이름 변경 |
+| `/fork` | 현재 세션을 새 탭으로 포크 |
+| `/compact` | 대화를 요약하여 컨텍스트 확보 |
+| `/share` | 공유 가능한 세션 링크 생성 |
+| `/export` | 세션 트랜스크립트 내보내기 |
+| `/copy` | 대화를 클립보드에 복사 |
+| `/undo` | 마지막 동작 실행 취소 |
+| `/redo` | 마지막 취소된 동작 다시 실행 |
+
+#### 보안 도구
+
+| 명령 | 하는 일 |
+|------|---------|
+| `/hackbrowser` | HackBrowser 시작 — 대상, 자격 증명, 범위가 있는 크롤 대화상자 열기 |
+| `/hackbrowser-stop` | 실행 중인 HackBrowser 크롤 중지 |
+| `/bolt` | Bolt 보안 도구 서버 페어링 또는 관리 |
+| `/mcp` | MCP 서버 연결 관리 |
+| `/skills` | 사용 가능한 WSTG 스킬 스크립트 찾아보기 |
+
+#### 평가
+
+| 명령 | 하는 일 |
+|------|---------|
+| `/vulnerabilities` | 심각도 및 상태와 함께 모든 발견 사항 보기 |
+| `/web` | 캡처된 엔드포인트, 역할, 자격 증명, 객체 검사 |
+| `/methodology` | WSTG 커버리지 보기 — 테스트된 카테고리, 대기 중인 카테고리 |
+| `/report` | 구조화된 침투 테스트 보고서 생성 |
+| `/qpause` | 에이전트 큐 일시 중지 |
+| `/qresume` | 에이전트 큐 재개 |
+
+#### 구성
+
+| 명령 | 하는 일 |
+|------|---------|
+| `/connect` | AI 제공자 연결 (API 키 또는 OAuth) |
+| `/models` | 활성 모델 전환 |
+| `/status` | 연결된 제공자, MCP, 시스템 정보 표시 |
+| `/thinking` | 모델 추론의 가시성 토글 |
+| `/timeline` | 대화의 특정 메시지로 이동 |
+| `/help` | 사용 가능한 모든 명령 및 키보드 단축키 표시 |
+
+### 슬래시 명령 입력
+
+`/`를 입력하면 필터링된 제안이 있는 명령 팔레트가 열립니다:
+
+```
+> /hack
+  ┌──────────────────────────────────┐
+  │ /hackbrowser     Launch crawler  │
+  │ /hackbrowser-stop  Stop crawl    │
+  └──────────────────────────────────┘
+```
+
+화살표 키와 `Enter`로 선택하거나 계속 입력하여 추가 필터링합니다.
+
+일부 명령은 대화상자를 엽니다 (`/hackbrowser`는 대상 URL, 자격 증명, 범위를 위한 양식을 표시). 다른 명령은 즉시 실행됩니다 (`/compact` 같은).
+
+## 키보드 단축키
+
+| 단축키 | 동작 |
+|--------|------|
+| `Enter` | 메시지 제출 |
+| `Shift+Enter` | 프롬프트에서 새 줄 |
+| `Escape` | 실행 중인 에이전트 중단 |
+| `Ctrl+P` | 명령 팔레트 열기 |
+| `Tab` | 다음 에이전트로 전환 |
+| `Ctrl+R` | 세션 이름 변경 |
+| `Ctrl+D` | CyberStrike 종료 |
+| `↑` / `↓` | 입력 기록 탐색 |
+
+## 구성
+
+프로젝트 또는 설정 디렉토리에 `tui.json` (또는 `tui.jsonc`)으로 TUI를 커스터마이즈합니다:
+
+```json
+{
+  "$schema": "https://cyberstrike.io/tui.json",
+  "theme": "cyberstrike",
+  "keybinds": {
+    "leader": "ctrl+x"
+  },
+  "scroll_speed": 3,
+  "scroll_acceleration": {
+    "enabled": true
+  },
+  "diff_style": "auto"
+}
+```
+
+| 옵션 | 설명 | 기본값 |
+|------|------|--------|
+| `theme` | UI 색상 테마 | `cyberstrike` |
+| `keybinds.leader` | 단축키용 리더 키 | `ctrl+x` |
+| `scroll_speed` | 스크롤 속도 (최소: `0.001`) | `3` |
+| `scroll_acceleration.enabled` | macOS 스타일 스크롤 가속 | `false` |
+| `diff_style` | `auto`는 너비에 맞춤, `stacked`는 단일 열 | `auto` |
+
+`CYBERSTRIKE_TUI_CONFIG`로 커스텀 설정 경로를 지정할 수 있습니다.
+
+## 테마
+
+CyberStrike에는 내장 테마가 포함되어 있습니다. 명령 팔레트에서 전환하세요 — `Ctrl+P`를 누르고 "theme"을 검색합니다.
+
+<img src="/docs/images/screenshots/tui-theme-selector.png" alt="내장 테마가 있는 테마 선택기" className="rounded-lg shadow-lg my-6 w-full" />

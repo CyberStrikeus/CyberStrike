@@ -1,0 +1,64 @@
+---
+title: デスクトップアプリ
+description: macOS、Windows、Linux向けのCyberStrikeネイティブデスクトップアプリケーション
+sidebar:
+  order: 4
+  label: デスクトップアプリ
+  badge:
+    text: 近日公開
+    variant: caution
+---
+
+CyberStrikeデスクトップは、完全なハーネス（エージェント、ツール、Vortex、HackBrowser、Bolt）をスタンドアロンアプリにバンドルしたネイティブアプリケーションです。ターミナルは不要です。
+
+<Aside variant="caution">
+  デスクトップアプリは現在開発中です。初期リリースでは3つのプラットフォームすべてが計画されています。
+</Aside>
+
+## macOS <Badge text="近日公開" variant="caution" size="md" />
+
+Apple SiliconとIntelサポート付きのネイティブmacOSアプリ。`.dmg` インストーラーとして配布されます。
+
+- macOS 12 Monterey以降
+- Apple Silicon (M1+) またはIntel
+- 500MBのディスク容量
+
+## Windows <Badge text="近日公開" variant="caution" size="md" />
+
+NSISによる `.exe` インストーラーとして配布されるネイティブWindowsアプリ。
+
+- Windows 10 (1809) 以降
+- x64アーキテクチャ
+- 500MBのディスク容量
+
+<Aside variant="info">
+  WSLは**不要**です。デスクトップアプリはWindows上でネイティブに動作します。
+</Aside>
+
+## Linux <Badge text="近日公開" variant="caution" size="md" />
+
+`.AppImage` と `.deb` パッケージとして配布されるLinuxビルド。
+
+- Ubuntu 20.04+、Fedora 38+、または同等のもの
+- x64アーキテクチャ
+- 500MBのディスク容量
+
+## 期待される機能
+
+デスクトップアプリは `cyberstrike web` と同じ機能をネイティブウィンドウとして提供します：
+
+- 完全なTUI機能パリティ — すべてのスラッシュコマンド、エージェント、ツール
+- 統合HackBrowser — アプリ内からChromiumを起動
+- Boltサーバー管理 — コンテナ化されたツールのペアリングと管理
+- MCPサーバーパネル — MCP接続の設定と監視
+- セッションタブ — 複数の評価を同時に開く
+- オフライン対応 — Ollamaなどのローカルプロバイダーで動作
+
+## 最新情報
+
+開発の進捗をフォロー：
+
+- [GitHubリリース](https://github.com/CyberStrikeus/CyberStrike/releases) — デスクトップビルドはここに表示されます
+- [Discord](https://discord.gg/dr97wVJVbn) — お知らせと早期アクセス
+
+それまでは、[TUI](/docs/usage/tui)、[CLI](/docs/usage/cli)、[Web](/docs/usage/web)インターフェースをご利用ください。

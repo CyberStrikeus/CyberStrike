@@ -1,0 +1,198 @@
+---
+title: Chrome 扩展
+description: 安装 CyberStrike Chrome 扩展，从您自己的浏览器中捕获流量
+sidebar:
+  order: 8
+  label: Chrome Extension
+---
+
+CyberStrike Chrome 扩展从您的浏览器中捕获 HTTP 流量，并将其转发到 CyberStrike API 进行自动化安全测试。
+
+## 何时使用扩展
+
+当您运行 `/hackbrowser` 时，CyberStrike 会启动一个专用的 Chromium 浏览器，扩展**已内置其中**。该自动化浏览器开箱即用地处理爬取、流量捕获和 AI 驱动的导航。您无需为该工作流单独安装任何东西。
+
+独立的 Chrome 扩展适用于另一种场景：**使用您自己的浏览器**。当您想从日常使用的 Chrome 浏览器（包含您的书签、已保存的密码、现有扩展和已登录的会话）中捕获流量时，请安装它。以下情况特别有用：
+
+- 目标应用需要您已有的特定浏览器配置
+- 您需要使用真实的已认证会话和 Cookie 进行测试
+- 您想手动浏览，同时让 CyberStrike 在后台分析每个请求
+- 应用使用 SSO、MFA 或其他在您自己浏览器中更容易完成的认证流程
+
+两种路径都接入同一个测试流水线，可以在单个会话中混合使用。
+
+## 安装
+
+扩展源代码包含在 CyberStrike 仓库的 `packages/hackbrowser/extension/` 目录中。
+
+1. 克隆仓库：
+
+```bash
+git clone https://github.com/CyberStrikeus/CyberStrike.git
+```
+
+2. 打开 Chrome 并导航到 `chrome://extensions`
+3. 启用右上角的**开发者模式**
+4. 点击**加载已解压的扩展程序**
+5. 选择克隆仓库中的 `packages/hackbrowser/extension/` 目录
+
+加载后扩展图标会出现在 Chrome 工具栏中。
+
+<Aside variant="caution">
+  在打开扩展弹窗之前启动 CyberStrike。扩展在启动时会连接到 CyberStrike API。
+</Aside>
+
+## 配置
+
+点击工具栏图标打开扩展弹窗。
+
+### 服务器 URL
+
+扩展连接到 CyberStrike：
+
+```
+http://127.0.0.1:4096
+```
+
+如果您在不同地址或端口运行 CyberStrike，请在 **Server URL** 字段中更改。如果您使用 Cloudflare 隧道进行远程访问，请在此处输入隧道 URL。
+
+### 范围
+
+在 **Scope** 字段中输入目标域名：
+
+```
+shop.example.com
+```
+
+仅捕获主机名匹配此范围的请求。其他域名的请求会被忽略。
+
+支持子域名通配符：
+
+```
+*.example.com
+```
+
+### 会话
+
+从下拉菜单中选择现有会话或创建新会话。所有捕获的请求和发现的上下文都存储在活跃会话中。
+
+## 开始和停止捕获
+
+点击 **Start** 开始拦截流量。请求计数器会随着扩展捕获匹配请求而递增。
+
+点击 **Stop** 暂停捕获。会话保持活跃，CyberStrike 继续处理队列中的请求。
+
+## 凭据管理
+
+凭据代表已认证的用户身份。扩展按 Chrome 配置文件跟踪认证头部，并将每个捕获的请求链接到相应的凭据。
+
+### 凭据的重要性
+
+CyberStrike 使用凭据测试跨用户漏洞：
+
+- **IDOR** — 凭据 A 能否访问凭据 B 拥有的资源？
+- **授权绕过** — 低权限凭据能否访问需要更高权限的端点？
+- **批量赋值** — 普通用户能否注入仅限管理员的字段？
+
+您注册的凭据越多（管理员、普通用户、访客等），跨用户测试覆盖面越广。
+
+### Chrome 配置文件
+
+Chrome 配置文件隔离浏览器会话，让您可以同时以多个用户身份登录。每个配置文件维护自己的 Cookie 和本地存储。
+
+**设置：**
+
+1. 点击 Chrome 右上角的个人资料图标
+2. 点击**添加**，为每个用户角色创建新的配置文件：
+   - `Admin`
+   - `Regular User`
+   - `Guest`
+3. 在每个配置文件中打开目标应用并使用相应账户登录
+4. 在 CyberStrike 弹窗中，为每个配置文件添加凭据（见下文）
+
+### 添加凭据
+
+在弹窗中：
+
+1. 点击 **Add Credential**
+2. 输入描述性标签 — 例如 `admin-user` 或 `regular-user`
+3. 选择链接到该账户的 Chrome 配置文件
+4. 点击 **Save**
+
+凭据已注册到 CyberStrike API。从此以后，从该配置文件捕获的请求会自动标记凭据 ID。
+
+### 自动头部同步
+
+当扩展检测到配置文件中的认证头部已更改（例如令牌刷新后），它会自动将更新的头部同步到凭据。令牌轮换后无需手动更新凭据。
+
+### 跟踪的认证头部
+
+扩展监控以下头部用于凭据跟踪：
+
+| 头部 | 描述 |
+|------|------|
+| `Authorization` | Bearer 令牌、Basic 认证 |
+| `Cookie` | 会话 Cookie |
+| `X-Auth-Token` | 自定义认证令牌 |
+| `X-API-Key` | API 密钥 |
+| `X-Access-Token` | OAuth 访问令牌 |
+| `X-Session-Token` | 会话令牌 |
+| `X-CSRF-Token` | CSRF 令牌 |
+
+## 请求过滤
+
+扩展自动跳过静态资源以减少噪音：
+
+| 类别 | 扩展名 |
+|------|--------|
+| 图片 | `.png` `.jpg` `.jpeg` `.gif` `.svg` `.ico` `.webp` |
+| 样式表和脚本 | `.css` `.js` `.mjs` |
+| 字体 | `.woff` `.woff2` `.ttf` `.eot` `.otf` |
+| 媒体 | `.mp4` `.mp3` `.avi` `.mov` `.webm` |
+| 压缩包和文档 | `.pdf` `.zip` `.gz` `.br` |
+| Source Map | `.map` |
+
+仅转发应用层请求（API 调用、表单提交、页面导航）。
+
+## 发送到 API 的内容
+
+对于每个捕获的请求，扩展向 `POST /session/ingest` 发送载荷：
+
+```json
+{
+  "text": "POST /api/orders HTTP/1.1\r\nHost: shop.example.com\r\nAuthorization: Bearer eyJ...\r\nContent-Type: application/json\r\n\r\n{\"item_id\": 42, \"qty\": 1}",
+  "sessionID": "session-abc123",
+  "credential_id": "web_credential-xyz789",
+  "response": {
+    "status": 201,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": "{\"order_id\": 573, \"total\": 29.99, \"status\": \"pending\"}"
+  }
+}
+```
+
+`text` 字段包含完整的原始 HTTP 请求。响应正文被扩展限制为 500 KB；API 在分析之前会进一步缩减到 100 KB。
+
+## 重复检测
+
+CyberStrike 在服务器端去重请求。如果请求的 HTTP 方法、标准化路径、正文结构和查询参数键与之前处理的请求相同，则会被跳过。这防止对相同端点进行冗余的重复测试。
+
+## 上下文面板
+
+弹窗显示 CyberStrike 在所有已处理请求中积累的上下文：
+
+| 面板 | 内容 |
+|------|------|
+| **凭据** | 所有已注册的凭据及其链接的角色 |
+| **角色** | 分析过程中发现的用户角色 |
+| **对象** | 数据实体（User、Order、Product）及其字段 |
+| **函数** | 端点-函数映射，包含 CRUD 操作类型 |
+
+此面板为只读。CyberStrike 在处理更多请求时逐步填充它。
+
+
+## 相关文档
+
+- [HackBrowser](/docs/tools/hacker-browser) - 自主 AI 爬虫——自动化替代方案

@@ -1,0 +1,120 @@
+---
+title: CyberStrikeエージェント
+description: フルツールアクセスを備えたAI駆動の攻撃的セキュリティテスト用デフォルトプライマリエージェント
+sidebar:
+  order: 2
+  label: CyberStrike
+---
+
+`cyberstrike` エージェントはデフォルトのプライマリエージェントです。フルツールアクセスを備えたAI駆動の攻撃的セキュリティテストを提供し、ドメイン固有のタスクには専門サブエージェントに委任できます。
+
+## 概要
+
+エージェントを指定せずに `cyberstrike` を実行すると、`cyberstrike` エージェントが自動的に起動します。偵察や脆弱性評価から攻撃やレポート作成まで、幅広いタスクを処理するように設計された汎用攻撃的セキュリティエージェントです。
+
+### エージェント設定
+
+| プロパティ | 値 |
+|----------|-------|
+| **エージェントID** | `cyberstrike` |
+| **モード** | `primary` |
+| **ツールアクセス** | フル（全ツール許可） |
+| **質問可能** | はい |
+
+## エージェントの起動
+
+`cyberstrike` エージェントはデフォルトです — 起動時に自動的に開始されます：
+
+```bash
+cyberstrike
+```
+
+TUIでいつでも `/agents` または `<leader>a` でエージェントを切り替えられます。
+
+## 機能
+
+`cyberstrike` エージェントは利用可能なすべてのツールにアクセスでき、特定のセキュリティドメインに制限されません。以下のことが可能です：
+
+- Webアプリケーションセキュリティテストの実行
+- クラウドインフラストラクチャ監査の実施
+- ネットワーク侵入テストの実行
+- Nuclei、Nmap、SQLMapなどのツールによる自動スキャンの実行
+- Webアプリケーションのブラウジングと操作
+- ファイルの読み取り、書き込み、分析
+- タスクが曖昧な場合の確認質問
+
+## 専門エージェントへの委任
+
+タスクが深いドメイン専門知識を必要とする場合、`cyberstrike` エージェントは専門サブエージェントに委任します：
+
+| サブエージェント | 使用タイミング |
+|----------|-----------|
+| [`wstg-agent`](/docs/agents/wstg-agent) | OWASP WSTG Webセキュリティパイプライン — 13のスペシャリストエージェントをディスパッチ |
+| [`escalation-hunter`](/docs/agents/escalation-hunter) | 横断的な相関分析 — 発見を連鎖させ、影響を拡大 |
+| [`triage`](/docs/agents/triage) | ドラフト脆弱性発見の独立検証 |
+| [`general`](/docs/agents/general) | リサーチ、マルチステップ並列タスク |
+| [`explore`](/docs/agents/explore) | 読み取り専用コードベースおよびファイルシステム検索 |
+
+委任はタスクに基づいて自動的に行われます。Webセキュリティパイプライン（WSTGエージェント）は、[HackBrowser](/docs/features/hackbrowser)または[Chrome拡張機能](/docs/tools/chrome-extension)経由でHTTPトラフィックがキャプチャされた際にトリガーされます。
+
+## 権限モデル
+
+`cyberstrike` エージェントは最も広い権限セットを使用します：
+
+- すべてのツールがデフォルトで許可されています
+- 確認質問が可能（`question: allow`）
+- `.env` ファイルの読み取りには確認が必要
+- プロジェクト外の外部ディレクトリへのアクセスには確認が必要
+- `cyberstrike.json` でユーザーが設定した `deny` ルールは常に尊重されます
+
+## セッション例
+
+```
+You: Test the web application at https://app.example.com for common vulnerabilities
+
+Agent: I'll start with reconnaissance and then launch HackBrowser to crawl the app.
+
+[Launching /hackbrowser against https://app.example.com...]
+[Crawling 23 pages, capturing HTTP traffic...]
+[Dispatching wstg-config-deploy for server misconfiguration checks...]
+[Dispatching wstg-input-validation for injection testing...]
+
+Found 3 medium-severity findings:
+- Missing Content-Security-Policy header
+- Server version disclosure in headers
+- X-Frame-Options not set
+
+[wstg-authentication testing login endpoint...]
+⚠ FINDING: JWT Algorithm Confusion
+Location: Authorization header
+Severity: Critical (CVSS 9.8)
+```
+
+## 設定
+
+### デフォルトエージェントとして設定
+
+`cyberstrike` エージェントはデフォルトであり、設定は不要です。明示的に設定するには：
+
+```json title="cyberstrike.json"
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+### カスタムインストラクション
+
+`instructions` はファイル（またはglob）のリストで、その内容がシステムプロンプトに追加されます — プロジェクトのコンテキストをファイルに記述して参照します：
+
+```json title="cyberstrike.json"
+{
+  "instructions": ["AGENTS.md", "docs/security-context.md"]
+}
+```
+
+## 関連ドキュメント
+
+- [WSTGエージェント](/docs/agents/wstg-agent) — Webセキュリティテストパイプラインオーケストレーター
+- [Escalation Hunter](/docs/agents/escalation-hunter) — 横断的相関分析エージェント
+- [Triageエージェント](/docs/agents/triage) — 発見の検証
+- [カスタムエージェント](/docs/agents/custom-agents) — 独自エージェントの作成

@@ -1,0 +1,30 @@
+---
+title: Features
+description: Core capabilities that power Cyberstrike security assessments
+sidebar:
+  order: 1
+  label: Overview
+---
+
+Cyberstrike ships with purpose-built features for automated penetration testing. Each feature is deeply integrated with the AI agent — the agent decides when and how to use them based on the target and conversation context.
+
+## Core Features
+
+| Feature | What It Does |
+|---------|--------------|
+| [Vortex](/docs/features/vortex) | HTTP traffic engine — intercept, replay, and rule-match requests with a DSL |
+| [HackBrowser](/docs/features/hackbrowser) | AI-driven autonomous web crawler with UI context capture |
+| [Bolt](/docs/features/bolt) | Containerized security tool server (nmap, nuclei, sqlmap, and 30+ more) |
+| [MCP](/docs/features/mcp) | Model Context Protocol — connect any external tool server |
+
+## How They Work Together
+
+A typical web application assessment uses multiple features in concert:
+
+1. **HackBrowser** crawls the target, capturing HTTP traffic with UI context
+2. **Vortex** processes the captured traffic — applies rules, flags anomalies, correlates signals
+3. The **proxy-agent** analyzes flagged requests and dispatches vulnerability testers
+4. **Bolt** provides the heavy tools (nuclei templates, fuzzing, subdomain enumeration) when the agent needs them
+5. **MCP** servers extend the toolset with custom or third-party integrations
+
+Each feature can also be used independently. HackBrowser works without Vortex, Bolt works without HackBrowser, and MCP servers work regardless of what else is configured.

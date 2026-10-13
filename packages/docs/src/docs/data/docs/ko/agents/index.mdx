@@ -1,0 +1,89 @@
+---
+title: 보안 에이전트
+description: 다양한 보안 평가 시나리오를 위한 전문 AI 에이전트
+sidebar:
+  order: 1
+  label: 개요
+---
+
+Cyberstrike에는 다양한 보안 평가 시나리오에 최적화된 전문 에이전트가 포함되어 있습니다. 각 에이전트는 도메인별 지식, 방법론, 도구 구성을 갖추고 있습니다.
+
+<img src="/docs/images/gifs/g05-agent-switch.gif" alt="leader+a로 에이전트 피커에서 활성 에이전트 전환" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/screenshots/s09-agent-select.png" alt="cyberstrike 기본 에이전트와 전문 서브에이전트를 표시하는 에이전트 피커" className="rounded-lg shadow-lg my-6 w-full" />
+
+## 아키텍처
+
+Cyberstrike는 **하나의 기본 에이전트** — `cyberstrike` — 를 실행하며, 이것이 세션을 관리하고 자동으로 전문 서브에이전트에 **위임**합니다. 서브에이전트는 작업에 따라 배치되며 직접 실행되지 않습니다.
+
+### 핵심 에이전트
+
+| 에이전트 | 목적 | 모드 |
+|----------|------|------|
+| [`cyberstrike`](/docs/agents/cyberstrike) | 전체 도구 접근 권한을 가진 기본 공격적 보안 에이전트; 모든 것을 조율 | 기본 |
+| [`general`](/docs/agents/general) | 범용 조사 및 병렬 작업 실행 | 서브에이전트 |
+| [`triage`](/docs/agents/triage) | 초안 취약점 발견 사항의 독립적 검증 | 서브에이전트 |
+| [`explore`](/docs/agents/explore) | 빠른 읽기 전용 코드베이스 및 파일 시스템 검색 | 서브에이전트 |
+
+### 웹 보안 에이전트 (WSTG 파이프라인)
+
+웹 도메인(`@cyberstrike-io/web`)은 완전한 OWASP WSTG 파이프라인을 제공합니다. `wstg-agent` 오케스트레이터가 캡처된 HTTP 트래픽 신호에 따라 전문가를 배치합니다:
+
+| 에이전트 | WSTG 카테고리 |
+|----------|---------------|
+| [`wstg-agent`](/docs/agents/wstg-agent) | 오케스트레이터 — 요청 신호에 따라 전문가 배치 |
+| `wstg-info-gathering` | 4.1 정보 수집 |
+| `wstg-config-deploy` | 4.2 구성 및 배포 관리 |
+| `wstg-identity-mgmt` | 4.3 ID 관리 |
+| `wstg-authentication` | 4.4 인증 |
+| `wstg-authorization` | 4.5 권한 부여 |
+| `wstg-session-mgmt` | 4.6 세션 관리 |
+| `wstg-input-validation` | 4.7 입력 검증 |
+| `wstg-error-handling` | 4.8 오류 처리 |
+| `wstg-cryptography` | 4.9 암호화 |
+| `wstg-business-logic` | 4.10 비즈니스 로직 |
+| `wstg-client-side` | 4.11 클라이언트 측 |
+| `wstg-api` | 4.12 API 테스트 + OWASP API Top 10 |
+| `wstg-llm` | LLM 보안 |
+| [`escalation-hunter`](/docs/agents/escalation-hunter) | 교차 분석 상관관계 — 발견 사항 연결, 영향도 에스컬레이션 |
+
+WSTG 전문가는 **신호 기반 라우팅**됩니다 — 직접 호출하지 않습니다. HackBrowser 또는 Chrome 확장 기능이 HTTP 트래픽을 캡처하면, 각 요청이 분석되어 특성에 따라 관련 전문가에게 배치됩니다.
+
+### 계획된 도메인
+
+| 도메인 | 상태 |
+|--------|------|
+| 클라우드 보안 (AWS/Azure/GCP) | 계획됨 |
+| 내부 네트워크 (AD/Kerberos) | 계획됨 |
+| 모바일 애플리케이션 (MASTG/MASVS) | 계획됨 |
+
+이들은 별도의 도메인 패키지(`@cyberstrike-io/cloud`, `@cyberstrike-io/internal-network`, `@cyberstrike-io/mobile`)로 출시되며 플러그인 시스템을 통해 자동으로 등록됩니다.
+
+## 에이전트 선택
+
+TUI에서 에이전트를 전환합니다:
+
+| 명령 | 동작 |
+|------|------|
+| `/agents` 또는 `<leader>a` | 에이전트 피커 열기 |
+| `Tab` | 다음 에이전트로 전환 |
+
+`cyberstrike`만 내장 기본 에이전트로 제공됩니다. 커스텀 기본 에이전트를 만들 수 있습니다 — [커스텀 에이전트](/docs/agents/custom-agents)를 참조하세요.
+
+### 구성
+
+`cyberstrike.json`에서 기본 에이전트를 설정합니다:
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+## 커스텀 에이전트 만들기
+
+커스텀 에이전트는 `.cyberstrike/agents/`의 Markdown 파일입니다. 자세한 내용은 [커스텀 에이전트](/docs/agents/custom-agents)를 참조하세요.
+
+<Aside variant="info">
+  에이전트는 `.cyberstrike/agents/` 디렉토리에 구성 파일을 배치하여 프로젝트별로 커스터마이즈할 수 있습니다.
+</Aside>

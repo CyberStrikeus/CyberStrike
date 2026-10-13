@@ -10,10 +10,21 @@ import icon from "astro-icon";
 // https://astro.build/config
 export default defineConfig({
   site: "https://docs.cyberstrike.io",
+  redirects: {
+    "/": "/docs/getting-started/",
+    "/fr": "/fr/docs/getting-started/",
+    "/zh": "/zh/docs/getting-started/",
+    "/ja": "/ja/docs/getting-started/",
+    "/ru": "/ru/docs/getting-started/",
+    "/hi": "/hi/docs/getting-started/",
+    "/ko": "/ko/docs/getting-started/",
+    "/de": "/de/docs/getting-started/",
+    "/pt": "/pt/docs/getting-started/",
+  },
   // i18n configuration must match src/docs/config/translationData.json.ts
   i18n: {
     defaultLocale: "en",
-    locales: ["en", "fr"],
+    locales: ["en", "fr", "zh", "ja", "ru", "hi", "ko", "de", "pt"],
     routing: {
       prefixDefaultLocale: false,
     },

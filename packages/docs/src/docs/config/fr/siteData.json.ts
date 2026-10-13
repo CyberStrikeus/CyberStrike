@@ -12,7 +12,7 @@ const docsSiteData: DocsSiteData = {
     },
     {
       social: "Discord",
-      link: "https://discord.gg/AbESxpk6",
+      link: "https://discord.gg/dr97wVJVbn",
       icon: "tabler/brand-discord",
     },
   ],
@@ -29,7 +29,7 @@ const docsSiteData: DocsSiteData = {
     },
     {
       social: "Discord",
-      link: "https://discord.gg/AbESxpk6",
+      link: "https://discord.gg/dr97wVJVbn",
       icon: "tabler/brand-discord",
     },
   ],

@@ -1,0 +1,59 @@
+---
+title: Triage Agent
+description: Independent verification and deduplication of draft vulnerability findings
+sidebar:
+  order: 6
+  label: Triage
+---
+
+The `triage` agent independently verifies draft vulnerability findings by replaying their HTTP evidence. It never trusts the reporting agent's narrative — it replays every request and checks the response body itself.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Agent ID** | `triage` |
+| **Mode** | `subagent` |
+| **Tool Access** | Restricted (read, grep, http_replay, triage_vulnerability, web_get_session_context) |
+| **Design** | Conservative — leaves unverifiable findings as draft |
+
+## Verification Protocol
+
+For each draft finding the triage agent:
+
+1. Reads the attached HTTP evidence (captured request/response)
+2. Uses `http_replay` to replay the request independently
+3. Examines the replay response for actual proof
+4. Decides the finding's fate:
+
+| Verdict | When |
+|---------|------|
+| **Triaged** | Replay confirms the vulnerability |
+| **Rejected** | Replay shows false positive |
+| **Duplicate** | Finding duplicates another verified finding |
+| **Draft** (unchanged) | Cannot verify — left for human review |
+
+## What Counts as Proof
+
+The triage agent applies strict evidence standards:
+
+- A `200` status alone is **not** proof — the response body must contain target data
+- `deleted:0`, empty arrays, generic success messages are **not** evidence
+- For cross-tenant/IDOR findings, the response must contain the **other** tenant's data
+- For authz findings, `compare` mode replay must show the privilege boundary is crossed
+
+## Example
+
+```
+Draft: IDOR in GET /api/users/42 — claimed to return user data for another tenant
+
+Triage:
+1. Replay GET /api/users/42 with original auth → 200, body: {"id": 42, "name": "Other User"}
+2. Replay GET /api/users/42 with attacker auth → 200, body: {"id": 42, "name": "Other User"}
+3. Both return the same user data → CONFIRMED cross-tenant access
+4. → triage_vulnerability(id, status: "triaged")
+```
+
+<Aside variant="info">
+  The triage agent is dispatched automatically after vulnerability testing subagents report findings. It runs as a final quality gate before findings are presented.
+</Aside>

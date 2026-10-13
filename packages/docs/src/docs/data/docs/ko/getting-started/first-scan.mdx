@@ -1,0 +1,134 @@
+---
+title: 첫 웹 애플리케이션 평가
+description: Cyberstrike로 전체 웹 애플리케이션 보안 평가를 진행하는 방법
+sidebar:
+  order: 4
+  label: 첫 평가
+---
+
+이 가이드에서는 Cyberstrike 실행부터 분류된 취약점 발견까지 실제 웹 애플리케이션 평가를 안내합니다. 두 가지 사용자 역할(관리자 및 일반 사용자)이 있는 웹 앱을 테스트하여 권한, 인젝션, 로직 결함을 찾습니다.
+
+## 1. Cyberstrike 실행
+
+```bash
+cyberstrike
+```
+
+TUI가 열리고 `cyberstrike` 기본 에이전트가 로드되어 입력을 대기합니다.
+
+## 2. 세션 시작
+
+아무 내용이나 입력하여 세션을 시작합니다. 테스트 대상을 설명하세요:
+
+```
+> I'm testing https://app.example.com — it's a SaaS platform with admin and regular user roles.
+  I have credentials for both. Let's find auth bypass, IDOR, injection, and business logic issues.
+```
+
+에이전트가 확인하고 범위, 제외 영역, 추가 컨텍스트에 대한 명확한 질문을 할 수 있습니다.
+
+## 3. 세션 이름 변경
+
+`Ctrl+R`을 눌러 의미 있는 이름으로 세션 이름을 변경합니다:
+
+```
+example-com-web-assessment
+```
+
+나중에 `/sessions`에서 찾을 때 도움이 됩니다.
+
+## 4. HackBrowser 실행
+
+`/hackbrowser` 슬래시 명령을 실행합니다. 다음 필드가 포함된 실행 대화상자가 열립니다:
+
+- **대상 URL** — `https://app.example.com`을 입력합니다
+- **자격 증명** — 두 개를 추가합니다: `userA` (관리자)와 `userB` (일반 사용자)
+- **범위** — 기본값은 `*.example.com`이며, API가 다른 도메인에 있으면 조정합니다
+- **단계** — 크롤링할 페이지 수 (기본값 50)
+
+대화상자를 확인합니다. 자격 증명을 정의했으므로 HackBrowser가 표시 모드로 열립니다.
+
+## 5. userA로 로그인
+
+Chromium 브라우저 창이 열립니다 — 이것이 HackBrowser이며, 모든 페이지에 UI 패널 오버레이를 제공하는 내장 텔레메트리 확장 기능이 있습니다. **userA** (관리자 계정)로 수동 로그인합니다.
+
+로그인 후 HackBrowser 패널에서 **Record** 버튼을 누릅니다. 이렇게 하면 **AINavigator**(LLM 기반 크롤 세션)가 시작됩니다. AI가 페이지의 접근성 트리를 읽고, 따라갈 링크, 채울 폼, 클릭할 버튼을 결정하여 userA로서 앱을 자율적으로 탐색합니다.
+
+## 6. userB로 로그인
+
+**userB** (일반 사용자)를 위한 두 번째 브라우저 창이 자동으로 열립니다. userB의 자격 증명으로 수동 로그인한 후 해당 패널에서 **Record**를 누릅니다.
+
+이제 HackBrowser가 두 역할로 애플리케이션을 크롤링하고 있습니다. 모든 HTTP 요청에 해당 요청을 보낸 자격 증명이 태그되므로, 파이프라인은 어떤 역할이 어떤 엔드포인트에 접근했는지 알 수 있습니다.
+
+## 7. 이후 과정
+
+HackBrowser가 크롤링하는 동안 나머지 하네스는 이미 작동하고 있습니다:
+
+**트래픽 캡처** — 모든 요청/응답 쌍이 전체 헤더, 본문, UI 컨텍스트(요청이 발생한 시점에 어떤 폼 필드가 readonly, hidden, disabled였는지)와 함께 [Vortex](/docs/features/vortex)로 전달됩니다.
+
+**신호 생성** — Vortex가 캡처된 트래픽에 규칙을 적용하고 신호를 생성합니다: 인증 패턴, 숨겨진 매개변수, 의심스러운 응답 형태, 역할별 엔드포인트 접근.
+
+**WSTG 배치** — `wstg-agent`가 신호를 읽고 전문 에이전트를 배치합니다. 경로에 사용자 ID가 있는 요청은 IDOR 테스트를 위해 `wstg-authorization`을 트리거합니다. 폼 입력이 있는 POST는 인젝션을 위해 `wstg-input-validation`을 트리거합니다. 로그인 엔드포인트는 `wstg-authentication`을 트리거합니다.
+
+**교차 역할 비교** — userA와 userB 모두 같은 앱을 크롤링했으므로, 파이프라인은 각 역할이 도달한 엔드포인트, 각각에게 표시된 UI 요소, 다른 자격 증명으로 요청을 재생했을 때 역할 경계가 유지되는지를 비교합니다.
+
+**에스컬레이션** — 전문가들이 완료된 후, `escalation-hunter`가 모든 발견 사항을 교차 분석하여 연결합니다 — 중간 수준의 IDOR과 낮은 수준의 속도 제한 우회가 결합되면 치명적인 계정 탈취로 에스컬레이션될 수 있습니다.
+
+**분류** — `triage` 에이전트가 각 초안 발견 사항에 대해 독립적으로 HTTP 증거를 재생합니다. 재생으로 확인된 발견 사항만 "분류됨" 상태로 승격됩니다. 오탐은 거부됩니다. 모호한 발견 사항은 검토를 위해 초안으로 유지됩니다.
+
+## 8. 발견 사항 검토
+
+크롤링이 완료되고 테스트가 끝나면 결과를 검토합니다:
+
+| 명령 | 표시 내용 |
+|------|-----------|
+| `/vulnerabilities` | 심각도, 상태, 증거가 포함된 모든 발견 사항 |
+| `/web` | 캡처된 엔드포인트, 역할, 자격 증명, 객체 |
+| `/methodology` | WSTG 커버리지 — 테스트된 카테고리, 보류 중인 카테고리 |
+| `/report` | 구조화된 보고서 생성 |
+
+### 발견 사항 형식
+
+각 발견 사항은 다음을 포함합니다:
+
+```
+FINDING: IDOR in User Profile API
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Severity: High
+CWE: CWE-639
+Description: GET /api/users/{id} returns full profile data for any user ID
+             when accessed with userB credentials (regular user).
+Evidence: Replayed GET /api/users/1 with userB token → 200, body contains
+          admin user's email and phone number.
+Status: triaged (verified by replay)
+Recommendation: Enforce ownership check — users should only access their own profile.
+```
+
+### 심각도 수준
+
+| 수준 | CVSS | 의미 |
+|------|------|------|
+| Critical | 9.0-10.0 | 즉각적인 악용 위험 |
+| High | 7.0-8.9 | 심각한 보안 영향 |
+| Medium | 4.0-6.9 | 중간 위험 |
+| Low | 0.1-3.9 | 경미한 우려 |
+| Info | 0.0 | 정보성 |
+
+## 9. 내보내기 및 공유
+
+| 명령 | 동작 |
+|------|------|
+| `/report` | 모든 발견 사항이 포함된 펜테스트 보고서 생성 |
+| `/share` | 공유 가능한 세션 링크 생성 |
+| `/export` | 세션 기록 내보내기 |
+
+## 다음 단계
+
+- [보안 에이전트](/docs/agents) — WSTG 파이프라인 및 전문 에이전트 이해
+- [기능](/docs/features) — HackBrowser, Vortex, Bolt, MCP 심층 분석
+- [구성](/docs/configuration) — 범위, 권한, 기본값 커스터마이즈
+- [슬래시 명령](/docs/slash-commands) — 전체 명령 레퍼런스
+
+<Aside variant="tip">
+  긴 세션을 요약하고 컨텍스트를 잃지 않고 테스트를 계속하려면 `/compact`를 사용하세요.
+</Aside>

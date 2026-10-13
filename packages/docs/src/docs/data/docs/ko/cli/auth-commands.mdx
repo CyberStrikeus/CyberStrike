@@ -1,0 +1,72 @@
+---
+title: Auth 명령어
+description: AI 제공자의 인증 자격 증명 관리
+sidebar:
+  order: 3
+  label: Auth 명령어
+---
+
+`cyberstrike auth` 명령어는 AI 제공자 자격 증명을 관리합니다. 정확히 세 개의 하위 명령어 — `login`, `logout`, `list` — 가 있으며, 모두 플래그를 받지 않고 대화형입니다.
+
+{/* TODO: Screenshot - Auth command interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: auth-commands.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">인증 명령어 인터페이스</p>
+</div>
+
+## `auth login`
+
+```bash
+cyberstrike auth login [url]
+```
+
+대화형 로그인을 시작합니다. Cyberstrike는 모델 카탈로그에서 구축된 제공자 목록을 표시하고 API 키 또는 OAuth 흐름을 요청합니다. 선택적 `url` 위치 인수는 well-known 제공자 URL을 미리 선택합니다; 그렇지 않으면 메뉴에서 제공자를 선택합니다 — 제공자를 플래그로 전달하지 **않습니다**.
+
+```
+? Select provider
+❯ cyberstrike (recommended)
+  anthropic (Claude Max or API key)
+  github-copilot
+  openai (ChatGPT Plus/Pro or API key)
+  google
+  openrouter
+  …
+```
+
+자격 증명은 데이터 디렉토리(`~/.local/share/cyberstrike/auth.json`)에 저장됩니다.
+
+## `auth list`
+
+```bash
+cyberstrike auth list   # alias: ls
+```
+
+자격 증명이 있는 제공자를 나열합니다.
+
+## `auth logout`
+
+```bash
+cyberstrike auth logout
+```
+
+저장된 자격 증명을 대화형으로 선택하여 제거합니다.
+
+<Aside variant="caution">
+  `auth status`, `auth verify`, `auth refresh`, `auth switch` 명령어는 없으며, `--key`/`--oauth`/`--json`/`--all` 플래그도 없습니다. 로그인은 항상 대화형 `auth login` 흐름입니다.
+</Aside>
+
+## 환경 변수
+
+자격 증명을 저장하는 대신, 환경 변수를 통해 제공자 키를 제공할 수 있습니다 — [AI 제공자](/docs/providers) 및 [환경 변수](/docs/configuration/environment-variables)를 참조하세요. 예시:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+## 관련 문서
+
+- [AI 제공자](/docs/providers) - 제공자별 설정
+- [인증](/docs/getting-started/authentication) - 최초 인증
+- [CLI 레퍼런스](/docs/cli) - 모든 명령어

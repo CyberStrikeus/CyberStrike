@@ -1,0 +1,80 @@
+---
+title: 슬래시 명령
+description: 프롬프트에서 Cyberstrike를 제어하는 빠른 명령
+sidebar:
+  order: 1
+  label: 개요
+---
+
+입력 시작 부분에 `/`를 입력하여 명령 목록을 열 수 있습니다 (`Ctrl+P`를 눌러도 됩니다). 입력하면서 퍼지 매칭으로 필터링됩니다.
+
+<img src="/docs/images/gifs/g03-slash-autocomplete.gif" alt="슬래시를 입력하면 퍼지 필터링이 되는 명령 메뉴가 열림" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/screenshots/s08-slash-menu.png" alt="/를 입력하여 열린 슬래시 명령 메뉴 — 카테고리별로 그룹화된 명령" className="rounded-lg shadow-lg my-6 w-full" />
+
+## 세션
+
+| 명령 | 별칭 | 단축키 | 동작 |
+|------|------|--------|------|
+| `/new` | `/clear` | `<leader>n` | 새 세션 시작 |
+| `/sessions` | `/resume`, `/continue` | `<leader>l` | 세션 선택기 열기 |
+| `/rename` | | `ctrl+r` | 세션 이름 변경 |
+| `/compact` | `/summarize` | `<leader>c` | 세션 압축 (요약) |
+| `/fork` | | | 세션 포크 |
+| `/timeline` | | `<leader>g` | 세션 타임라인 표시 |
+| `/export` | | `<leader>x` | 세션 내보내기 |
+| `/copy` | | | 마지막 메시지 복사 |
+| `/share`, `/unshare` | | | 공유 / 공유 중지 |
+| `/undo`, `/redo` | | `<leader>u` / `<leader>r` | 마지막 메시지 실행 취소 / 다시 실행 |
+| `/timestamps`, `/thinking` | | | 타임스탬프 / 사고 블록 토글 |
+
+## 선택기 및 시스템
+
+| 명령 | 단축키 | 동작 |
+|------|--------|------|
+| `/models` | `<leader>m` | 모델 선택기 |
+| `/agents` | `<leader>a` | 에이전트 선택기 |
+| `/themes` | `<leader>t` | 테마 선택기 |
+| `/mcps` | | MCP 서버 관리자 |
+| `/bolt` | | Bolt 서버 관리자 |
+| `/connect` | | 제공자 연결 |
+| `/editor` | `<leader>e` | 에디터에서 메시지 열기 |
+| `/skills` | | 로드된 스킬 찾아보기 |
+| `/status` | `<leader>s` | 상태 |
+| `/help` | | 도움말 |
+| `/exit` | | 종료 |
+
+## 웹 테스팅 및 방법론
+
+| 명령 | 별칭 | 동작 |
+|------|------|------|
+| `/hackbrowser` | | Hacker Browser 크롤 시작 |
+| `/hackbrowser-stop` | | 실행 중인 크롤 중지 |
+| `/vulnerabilities` | `/vuln`, `/vulns` | 캡처된 취약점 검토 |
+| `/web` | `/endpoints`, `/roles`, `/credentials` | 웹 테스팅 컨텍스트 검사 |
+| `/methodology` | `/intel`, `/vrt`, `/chains` | 방법론 엔진 뷰 |
+| `/report` | | 보고서 생성 |
+| `/qpause`, `/qresume` | | 수집 큐 일시 중지 / 재개 |
+
+<Aside variant="caution">
+  명령 이름은 복수형입니다 (`/models`, `/themes`, `/mcps`). `/agent-settings`, `/settings`, `/config`, `/vim`, `/provider`, `/model`, 또는 `<leader><leader>`/`Ctrl+Shift+P` 명령 팔레트는 없습니다 — 명령 목록은 `Ctrl+P`로 열립니다.
+</Aside>
+
+## @ 멘션
+
+프롬프트에서 `@`로 파일(선택적으로 줄 범위)을 참조합니다:
+
+```
+@src/auth.ts#45-60 check these lines for vulnerabilities
+```
+
+## 커스텀 스킬
+
+재사용 가능한 방법론을 `SKILL.md` 파일로 패키징합니다 — [커스텀 스킬](/docs/slash-commands/custom-skills)을 참조하세요.
+
+## 관련 문서
+
+- [세션 명령](/docs/slash-commands/session-commands) - 세션 라이프사이클
+- [내비게이션 명령](/docs/slash-commands/navigation-commands) - 선택기 및 대화상자
+- [커스텀 스킬](/docs/slash-commands/custom-skills) - 나만의 스킬 작성
+- [키보드 단축키](/docs/getting-started/keyboard-shortcuts) - 키 바인딩

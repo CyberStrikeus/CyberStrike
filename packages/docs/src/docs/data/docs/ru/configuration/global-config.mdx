@@ -1,0 +1,323 @@
+---
+title: Глобальная конфигурация
+description: Настройка параметров Cyberstrike, применяемых ко всем проектам
+sidebar:
+  order: 3
+  label: Глобальная конфигурация
+---
+
+Глобальная конфигурация устанавливает поведение по умолчанию для всех сессий Cyberstrike во всех проектах.
+
+{/* TODO: Screenshot - Global configuration file */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: global-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Расположение файла глобальной конфигурации</p>
+</div>
+
+## Расположение файла
+
+Глобальная конфигурация находится в глобальном каталоге конфигурации:
+
+```
+~/.config/cyberstrike/
+```
+
+Это разрешается в `$XDG_CONFIG_HOME/cyberstrike`, когда установлена `XDG_CONFIG_HOME`.
+
+## Поддерживаемые имена файлов
+
+Следующие файлы читаются из глобального каталога конфигурации и объединяются в порядке:
+
+| Файл | Формат | Приоритет |
+|------|--------|-----------|
+| `config.json` | JSON | Низкий (базовый, автоматически сгенерированный) |
+| `cyberstrike.json` | JSON | Средний |
+| `cyberstrike.jsonc` | JSON с комментариями | Высокий (предпочтительный) |
+
+Если существует несколько файлов, все читаются, и каждый последующий объединяется поверх предыдущего.
+
+### Структура каталога
+
+```
+~/.config/cyberstrike/
+├── config.json          ← автоматически сгенерированная глобальная конфигурация
+├── cyberstrike.json     ← глобальная конфигурация
+├── cyberstrike.jsonc    ← глобальная конфигурация (предпочтительная)
+├── agents/              ← пользовательские агенты (*.md)   (также принимает agent/)
+├── commands/            ← пользовательские команды (*.md) (также принимает command/)
+└── plugins/             ← плагины (*.ts / *.js)  (также принимает plugin/)
+```
+
+Cyberstrike также сканирует каталог `~/.cyberstrike/` в домашней папке для `cyberstrike.json`/`cyberstrike.jsonc` и тех же подпапок `agents/`, `commands/`, `plugins/`.
+
+## Создание глобальной конфигурации
+
+Команды инициализации нет — создайте файл вручную:
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  // Глобальная конфигурация Cyberstrike
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## Конфигурация модели
+
+### Модель по умолчанию
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+Формат: `provider/model`.
+
+### Лёгкая модель
+
+Используется для лёгких задач, таких как генерация заголовков сессий:
+
+```json
+{
+  "small_model": "anthropic/claude-haiku-4-5-20251001"
+}
+```
+
+## Конфигурация провайдеров
+
+Настраивайте провайдеров отдельно в `provider`. Объект `options` передаётся SDK провайдера:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### Включение / отключение провайдеров
+
+```json
+{
+  "disabled_providers": ["ollama"],
+  "enabled_providers": ["anthropic", "openai"]
+}
+```
+
+Когда установлен `enabled_providers`, загружаются **только** эти провайдеры; все остальные игнорируются. Подробности по провайдерам см. в [ИИ-провайдеры](/docs/providers).
+
+## Тема
+
+`theme` — имя установленной темы (строка). По умолчанию `cyberstrike`:
+
+```json
+{
+  "theme": "cyberstrike"
+}
+```
+
+Просмотр и переключение тем в TUI с помощью команды `/themes` (или `<leader>t`). Встроенные темы включают `cyberstrike`, `tokyonight`, `catppuccin`, `dracula`, `gruvbox`, `nord`, `github`, `monokai`, `matrix`, `rosepine`, `solarized` и другие.
+
+## Привязки клавиш
+
+### Лидер-клавиша
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+x"
+  }
+}
+```
+
+### Пользовательские привязки
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "theme_list": "<leader>t",
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+Полный список действий и значений по умолчанию см. в [Привязки клавиш](/docs/configuration/keybindings).
+
+## Разрешения по умолчанию
+
+Разрешения сопоставляют имя инструмента с действием (`ask`, `allow` или `deny`) или с картой glob -> действие. Отдельного списка allow/deny нет — ключ инструмента **является** группировкой:
+
+```json
+{
+  "permission": {
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "bash": {
+      "*": "ask",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "*": "ask",
+      "~/.ssh/**": "deny"
+    }
+  }
+}
+```
+
+Поддерживаются только подстановочные знаки `*` и `?`. Полную модель и список ключей разрешений см. в [Разрешения](/docs/permissions).
+
+## MCP-серверы
+
+MCP-серверы объявляются как плоская карта в `mcp`, с ключами по имени сервера. Локальные серверы используют `type: "local"` с одним массивом `command` (команда + аргументы вместе); удалённые серверы используют `type: "remote"` с `url`:
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "~"],
+      "environment": { "DEBUG": "true" },
+      "enabled": true
+    },
+    "remote-api": {
+      "type": "remote",
+      "url": "https://api.example.com/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+Серверы Bolt настраиваются отдельно в ключе верхнего уровня `bolt`, не в `mcp`. См. [Bolt / MCP](/docs/mcp).
+
+## Агент по умолчанию
+
+Установка агента по умолчанию (должен быть primary агентом; откат к `cyberstrike`, если не установлен или недопустим):
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+Пользовательские агенты загружаются из каталога `agents/` (или `agent/`) в каталоге конфигурации — см. [Пользовательские агенты](/docs/agents/custom-agents).
+
+## Компактификация
+
+Управление автоматической компактификацией контекста:
+
+```json
+{
+  "compaction": {
+    "auto": true,
+    "prune": true
+  }
+}
+```
+
+| Параметр | Описание |
+|----------|----------|
+| `auto` | Автоматическая компактификация при заполнении контекста (по умолчанию: true) |
+| `prune` | Очистка старых выводов инструментов (по умолчанию: true) |
+
+## Логирование и обновления
+
+```json
+{
+  "logLevel": "INFO",
+  "autoupdate": "notify"
+}
+```
+
+`logLevel` — один из `DEBUG`, `INFO`, `WARN`, `ERROR` (по умолчанию `INFO`). `autoupdate` принимает `true`, `false` или `"notify"`.
+
+## Полный пример
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "small_model": "anthropic/claude-haiku-4-5-20251001",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike",
+  "share": "manual",
+  "autoupdate": "notify",
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+
+  "permission": {
+    "read": "allow",
+    "edit": { "*": "ask" },
+    "bash": { "*": "ask", "rm -rf *": "deny" }
+  },
+
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "."],
+      "enabled": true
+    }
+  },
+
+  "keybinds": { "leader": "ctrl+x" },
+  "compaction": { "auto": true, "prune": true }
+}
+```
+
+## Резервное копирование
+
+```bash
+cp ~/.config/cyberstrike/cyberstrike.jsonc ~/.config/cyberstrike/cyberstrike.jsonc.backup
+```
+
+## Рекомендации по безопасности
+
+### Права доступа к файлам
+
+```bash
+chmod 600 ~/.config/cyberstrike/cyberstrike.jsonc
+chmod 700 ~/.config/cyberstrike/
+```
+
+### Конфиденциальные данные
+
+Никогда не храните API-ключи напрямую — вместо этого ссылайтесь на переменные окружения:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Всегда используйте ссылки на переменные окружения (`{env:VAR}`) для конфиденциальных данных, таких как API-ключи.
+</Aside>
+
+## Связанная документация
+
+- [Справочник по конфигурации](/docs/configuration) — Все параметры конфигурации
+- [Конфигурация проекта](/docs/configuration/project-config) — Настройки проекта
+- [Переменные окружения](/docs/configuration/environment-variables) — Переменные окружения
+- [Привязки клавиш](/docs/configuration/keybindings) — Сочетания клавиш

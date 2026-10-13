@@ -1,0 +1,67 @@
+---
+title: Commandes MCP
+description: "Gérer les serveurs MCP depuis la ligne de commande"
+sidebar:
+  order: 4
+  label: Commandes MCP
+---
+
+Les commandes `cyberstrike mcp` gèrent les serveurs Model Context Protocol. Il existe cinq sous-commandes : `list`, `add`, `auth`, `logout` et `debug`.
+
+{/* TODO: Screenshot - MCP command interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: mcp-commands.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Interface des commandes MCP</p>
+</div>
+
+<Aside variant="caution">
+  La configuration des serveurs se trouve dans `cyberstrike.json` (voir les serveurs [Locaux](/docs/mcp/local-servers) / [Distants](/docs/mcp/remote-servers)), et les serveurs sont gérés de manière interactive dans la boîte de dialogue TUI `/mcps`. Il n'existe pas de commandes `mcp status`, `health`, `start`/`stop`/`restart`, `remove`, `config`, `tools`, `logs`, `export`/`import`, `install` ou `update`.
+</Aside>
+
+## `mcp list`
+
+```bash
+cyberstrike mcp list   # alias: ls
+```
+
+Liste les serveurs MCP configurés.
+
+## `mcp add`
+
+```bash
+cyberstrike mcp add
+```
+
+Entièrement interactif — il demande local ou distant, la commande ou l'URL, et un nom, puis teste la connexion avant de sauvegarder. Il ne prend **aucun** nom positionnel ni drapeau ; pour automatiser la configuration d'un serveur, écrivez l'entrée directement dans `cyberstrike.json`.
+
+## `mcp auth`
+
+```bash
+cyberstrike mcp auth [name]        # autoriser un serveur OAuth
+cyberstrike mcp auth list          # lister les serveurs autorisés OAuth
+```
+
+Autorise un serveur distant utilisant OAuth (ouvre le navigateur si nécessaire). Voir [OAuth](/docs/mcp/oauth).
+
+## `mcp logout`
+
+```bash
+cyberstrike mcp logout [name]
+```
+
+Supprime les identifiants OAuth stockés pour un serveur.
+
+## `mcp debug`
+
+```bash
+cyberstrike mcp debug <name>
+```
+
+Inspecte la connexion d'un serveur — utile lorsqu'un serveur ne se charge pas ou que ses outils n'apparaissent pas.
+
+## Documentation associée
+
+- [Bolt / Aperçu MCP](/docs/mcp) - Les bases de MCP
+- [Serveurs locaux](/docs/mcp/local-servers) - Configuration des serveurs locaux
+- [Serveurs distants](/docs/mcp/remote-servers) - Configuration des serveurs distants
+- [OAuth](/docs/mcp/oauth) - Authentification OAuth

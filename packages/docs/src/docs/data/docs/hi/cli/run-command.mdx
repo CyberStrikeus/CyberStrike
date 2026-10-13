@@ -1,0 +1,95 @@
+---
+title: Run कमांड
+description: इंटरैक्टिव मोड के बिना एकल प्रॉम्प्ट निष्पादित करें
+sidebar:
+  order: 2
+  label: Run कमांड
+---
+
+`cyberstrike run` एकल प्रॉम्प्ट को गैर-इंटरैक्टिव रूप से निष्पादित करता है — ऑटोमेशन और स्क्रिप्टिंग के लिए आदर्श। इस मोड में अनुमति प्रॉम्प्ट का जवाब देने वाला कोई नहीं होता, इसलिए कोई भी टूल जो प्रॉम्प्ट करेगा वह स्वचालित रूप से अस्वीकार कर दिया जाता है ([ऑटोमेशन](/docs/permissions/automation) देखें)।
+
+{/* TODO: Screenshot - Run command output */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: run-command-output.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Run कमांड निष्पादन आउटपुट</p>
+</div>
+
+## मूल उपयोग
+
+```bash
+cyberstrike run "your prompt here"
+```
+
+जब इनपुट पाइप किया जाता है तो प्रॉम्प्ट stdin से भी पढ़ा जाता है:
+
+```bash
+echo "summarize the findings in report.json" | cyberstrike run
+```
+
+## विकल्प
+
+| फ़्लैग | संक्षिप्त | विवरण |
+|------|-------|-------------|
+| `--model` | `-m` | उपयोग करने के लिए मॉडल, `provider/model` के रूप में |
+| `--agent` | | उपयोग करने के लिए प्राथमिक एजेंट (केवल `cyberstrike` बिल्ट-इन आता है) |
+| `--format` | | आउटपुट प्रारूप: `default` या `json` (डिफ़ॉल्ट: `default`) |
+| `--file` | `-f` | संदेश में संलग्न करने के लिए फ़ाइल(ें) (दोहराया जा सकता है) |
+| `--continue` | `-c` | अंतिम सत्र जारी रखें |
+| `--session` | `-s` | जारी रखने के लिए सत्र id |
+| `--fork` | | जारी रखने से पहले सत्र फ़ोर्क करें (`--continue`/`--session` आवश्यक) |
+| `--share` | | सत्र साझा करें |
+| `--title` | | सत्र के लिए शीर्षक |
+| `--variant` | | मॉडल वेरिएंट / रीज़निंग प्रयास (जैसे `high`, `max`, `minimal`) |
+| `--thinking` | | थिंकिंग ब्लॉक दिखाएं |
+| `--attach` | | चल रहे सर्वर से जुड़ें (जैसे `http://localhost:4096`) |
+| `--dir` | | चलाने के लिए डायरेक्टरी (जुड़ने पर रिमोट पथ) |
+| `--port` | | स्थानीय सर्वर के लिए पोर्ट |
+| `--command` | | नामित कमांड चलाएं; इसके आर्गुमेंट के लिए संदेश का उपयोग करें |
+
+<Aside variant="caution">
+  कोई `--output`, `--permission`, `--timeout`, `--verbose`, या `--quiet` फ़्लैग नहीं है। आउटपुट नियंत्रण `--format` (`default` | `json`) है; रीज़निंग प्रदर्शन `--thinking` है।
+</Aside>
+
+## उदाहरण
+
+### स्क्रिप्टिंग के लिए JSON आउटपुट
+
+```bash
+cyberstrike run "scan example.com for OWASP Top 10 issues" --format json > report.json
+```
+
+### मॉडल चुनें और फ़ाइलें संलग्न करें
+
+```bash
+cyberstrike run "review this code for auth bugs" \
+  -m anthropic/claude-sonnet-4-20250514 \
+  -f src/auth.ts -f src/session.ts
+```
+
+### सत्र जारी रखें या फ़ोर्क करें
+
+```bash
+cyberstrike run "now test the admin endpoints" --continue
+cyberstrike run "try a different payload" --session <id> --fork
+```
+
+## `run` में अनुमतियां
+
+चूंकि गैर-इंटरैक्टिव रूप से प्रॉम्प्ट का जवाब नहीं दिया जा सकता, `CYBERSTRIKE_PERMISSION` env var या कॉन्फ़िग `permission` फ़ील्ड के साथ स्क्रिप्ट को आवश्यक टूल पूर्व-अनुमोदित करें:
+
+```bash
+CYBERSTRIKE_PERMISSION='{"bash":"allow","read":"allow"}' \
+  cyberstrike run "enumerate services on the host" --format json
+```
+
+CI पैटर्न के लिए [ऑटोमेशन](/docs/permissions/automation) देखें।
+
+## एक्ज़िट कोड
+
+`cyberstrike run` सफलता पर `0` और त्रुटि (जैसे अमान्य आर्गुमेंट) या बाधा पर एक गैर-शून्य कोड लौटाता है।
+
+## संबंधित दस्तावेज़
+
+- [CLI संदर्भ](/docs/cli) - सभी कमांड
+- [ऑटोमेशन](/docs/permissions/automation) - CI/CD और पूर्व-अनुमोदित अनुमतियां
+- [उपयोग: CLI](/docs/usage/cli) - गैर-इंटरैक्टिव उपयोग

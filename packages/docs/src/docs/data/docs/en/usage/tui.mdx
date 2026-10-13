@@ -1,23 +1,127 @@
 ---
 title: TUI
-description: Interactive terminal user interface for CyberStrike security assessments
+description: Interactive terminal user interface for CyberStrike — slash commands, keyboard shortcuts, and configuration
 sidebar:
   order: 1
   label: TUI
 ---
 
-CyberStrike provides an interactive terminal user interface (TUI) for running security assessments with AI agents. Launch it by running `cyberstrike` in your project directory or specify a target path:
+The TUI (Terminal User Interface) is CyberStrike's primary interface. Unlike a traditional CLI where you type commands and get text output, the TUI is a persistent, interactive application that runs inside your terminal — with a prompt area, a scrollable response panel, a status bar, and real-time streaming from AI agents.
 
 ```bash
 cyberstrike
-cyberstrike /path/to/target
 ```
 
-<img src="/docs/images/screenshots/tui-commands.png" alt="Command palette (Ctrl+P) grouped into Suggested, Session and Prompt actions" className="rounded-lg shadow-lg my-6 w-full" />
+That single command opens the TUI. You stay inside it for the entire session.
 
-## Configure
+## TUI vs CLI
 
-Customize TUI behavior via `tui.json` (or `tui.jsonc`), separate from `cyberstrike.json`:
+| | TUI | CLI |
+|---|---|---|
+| **Launch** | `cyberstrike` | `cyberstrike run "prompt"` |
+| **Interaction** | Continuous — type, read, type again | One-shot — run, get output, exit |
+| **Sessions** | Persistent, resumable, renameable | Ephemeral (or `--continue` to resume) |
+| **Agent output** | Streams in real-time with formatting | Streams to stdout as plain text |
+| **Commands** | Slash commands (`/hackbrowser`, `/bolt`) | CLI flags (`--model`, `--agent`) |
+| **Best for** | Interactive assessments, exploration | Scripting, CI/CD, automation |
+
+The TUI is where you do hands-on work. The CLI is for piping output into other tools or running from scripts.
+
+## The Prompt
+
+At the bottom of the TUI is the input prompt. This is where you type:
+
+- **Natural language** — describe what you want to test, and the harness dispatches agents
+- **Slash commands** — type `/` to open the command palette, or type the full command
+- **Follow-ups** — continue the conversation like a chat
+
+Press `Enter` to submit. Press `Shift+Enter` for a new line.
+
+### Slash Commands
+
+Slash commands are TUI actions triggered by typing `/` followed by the command name. They control the harness — launching tools, switching models, managing sessions — without leaving the prompt.
+
+Type `/` to open the command palette with autocomplete, or type the full command directly.
+
+#### Session
+
+| Command | What it does |
+|---------|--------------|
+| `/new` | Start a new session in a new tab |
+| `/sessions` | Browse and switch between sessions |
+| `/rename` | Rename the current session |
+| `/fork` | Fork the current session into a new tab |
+| `/compact` | Summarize the conversation to free context |
+| `/share` | Create a shareable session link |
+| `/export` | Export the session transcript |
+| `/copy` | Copy the conversation to clipboard |
+| `/undo` | Undo the last action |
+| `/redo` | Redo the last undone action |
+
+#### Security Tools
+
+| Command | What it does |
+|---------|--------------|
+| `/hackbrowser` | Launch HackBrowser — opens the crawl dialog with target, credentials, and scope |
+| `/hackbrowser-stop` | Stop the running HackBrowser crawl |
+| `/bolt` | Pair or manage a Bolt security tool server |
+| `/mcp` | Manage MCP server connections |
+| `/skills` | Browse available WSTG skill scripts |
+
+#### Assessment
+
+| Command | What it does |
+|---------|--------------|
+| `/vulnerabilities` | View all findings with severity and status |
+| `/web` | Inspect captured endpoints, roles, credentials, objects |
+| `/methodology` | See WSTG coverage — which categories tested, which pending |
+| `/report` | Generate a structured pentest report |
+| `/qpause` | Pause the agent queue |
+| `/qresume` | Resume the agent queue |
+
+#### Configuration
+
+| Command | What it does |
+|---------|--------------|
+| `/connect` | Connect an AI provider (API key or OAuth) |
+| `/models` | Switch the active model |
+| `/status` | Show connected providers, MCPs, and system info |
+| `/thinking` | Toggle visibility of model reasoning |
+| `/timeline` | Jump to a specific message in the conversation |
+| `/help` | Show all available commands and keyboard shortcuts |
+
+### Typing a Slash Command
+
+When you type `/` the command palette opens with filtered suggestions:
+
+```
+> /hack
+  ┌──────────────────────────────────┐
+  │ /hackbrowser     Launch crawler  │
+  │ /hackbrowser-stop  Stop crawl    │
+  └──────────────────────────────────┘
+```
+
+Select with arrow keys and `Enter`, or keep typing to filter further.
+
+Some commands open dialogs (like `/hackbrowser` which shows a form for target URL, credentials, and scope). Others execute immediately (like `/compact`).
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Enter` | Submit message |
+| `Shift+Enter` | New line in prompt |
+| `Escape` | Interrupt the running agent |
+| `Ctrl+P` | Open command palette |
+| `Tab` | Switch to next agent |
+| `Ctrl+R` | Rename session |
+| `Ctrl+D` | Exit CyberStrike |
+| `↑` / `↓` | Navigate input history |
+
+## Configuration
+
+Customize the TUI with `tui.json` (or `tui.jsonc`) in your project or config directory:
 
 ```json
 {
@@ -34,24 +138,18 @@ Customize TUI behavior via `tui.json` (or `tui.jsonc`), separate from `cyberstri
 }
 ```
 
-### Configuration Options
-
 | Option | Description | Default |
 |--------|-------------|---------|
-| `theme` | UI theme selection | `cyberstrike` |
+| `theme` | UI color theme | `cyberstrike` |
 | `keybinds.leader` | Leader key for shortcuts | `ctrl+x` |
 | `scroll_speed` | Scroll velocity (min: `0.001`) | `3` |
 | `scroll_acceleration.enabled` | macOS-style scroll acceleration | `false` |
-| `diff_style` | `"auto"` adapts to width, `"stacked"` single-column | `auto` |
+| `diff_style` | `auto` adapts to width, `stacked` single-column | `auto` |
 
-Use the `CYBERSTRIKE_TUI_CONFIG` environment variable to specify a custom config path.
+Use `CYBERSTRIKE_TUI_CONFIG` to specify a custom config path.
 
-<img src="/docs/images/screenshots/tui-theme-selector.png" alt="Theme picker with the built-in themes" className="rounded-lg shadow-lg my-6 w-full" />
+## Themes
 
-## Customization
+CyberStrike ships with built-in themes. Switch via the command palette — press `Ctrl+P` and search for "theme".
 
-Customize the TUI through the command palette (`ctrl+x h` or `/help`). Settings persist across restarts.
-
-### Username Display
-
-Toggle username visibility in chat messages via the command palette. Search for "username" or "hide username". Settings persist automatically.
+<img src="/docs/images/screenshots/tui-theme-selector.png" alt="Theme picker with built-in themes" className="rounded-lg shadow-lg my-6 w-full" />

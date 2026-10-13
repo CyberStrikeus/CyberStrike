@@ -1,0 +1,155 @@
+---
+title: TUI
+description: "Interface utilisateur terminal interactive pour CyberStrike : commandes slash, raccourcis clavier et configuration"
+sidebar:
+  order: 1
+  label: TUI
+---
+
+Le TUI (Terminal User Interface) est l'interface principale de CyberStrike. Contrairement a une CLI traditionnelle ou vous tapez des commandes et obtenez du texte en sortie, le TUI est une application interactive persistante qui tourne dans votre terminal — avec une zone de saisie, un panneau de reponse defilable, une barre d'etat et du streaming en temps reel depuis les agents IA.
+
+```bash
+cyberstrike
+```
+
+Cette seule commande ouvre le TUI. Vous restez a l'interieur pendant toute la session.
+
+## TUI vs CLI
+
+| | TUI | CLI |
+|---|---|---|
+| **Lancement** | `cyberstrike` | `cyberstrike run "prompt"` |
+| **Interaction** | Continue — tapez, lisez, tapez a nouveau | Unique — executez, obtenez la sortie, quittez |
+| **Sessions** | Persistantes, reprenables, renommables | Ephemeres (ou `--continue` pour reprendre) |
+| **Sortie agent** | Streaming en temps reel avec formatage | Streaming vers stdout en texte brut |
+| **Commandes** | Commandes slash (`/hackbrowser`, `/bolt`) | Drapeaux CLI (`--model`, `--agent`) |
+| **Ideal pour** | Evaluations interactives, exploration | Scripting, CI/CD, automatisation |
+
+Le TUI est l'endroit ou vous travaillez de maniere pratique. La CLI sert a rediriger la sortie vers d'autres outils ou a executer depuis des scripts.
+
+## L'invite de commande
+
+En bas du TUI se trouve l'invite de saisie. C'est la que vous tapez :
+
+- **Langage naturel** — decrivez ce que vous voulez tester, et le harness envoie les agents
+- **Commandes slash** — tapez `/` pour ouvrir la palette de commandes, ou tapez la commande complete
+- **Suivi** — continuez la conversation comme un chat
+
+Appuyez sur `Enter` pour envoyer. Appuyez sur `Shift+Enter` pour une nouvelle ligne.
+
+### Commandes slash
+
+Les commandes slash sont des actions TUI declenchees en tapant `/` suivi du nom de la commande. Elles controlent le harness — lancement d'outils, changement de modeles, gestion des sessions — sans quitter l'invite.
+
+Tapez `/` pour ouvrir la palette de commandes avec auto-completion, ou tapez la commande complete directement.
+
+#### Session
+
+| Commande | Ce qu'elle fait |
+|----------|-----------------|
+| `/new` | Demarrer une nouvelle session dans un nouvel onglet |
+| `/sessions` | Parcourir et basculer entre les sessions |
+| `/rename` | Renommer la session en cours |
+| `/fork` | Dupliquer la session en cours dans un nouvel onglet |
+| `/compact` | Resumer la conversation pour liberer du contexte |
+| `/share` | Creer un lien de session partageable |
+| `/export` | Exporter la transcription de la session |
+| `/copy` | Copier la conversation dans le presse-papiers |
+| `/undo` | Annuler la derniere action |
+| `/redo` | Refaire la derniere action annulee |
+
+#### Outils de securite
+
+| Commande | Ce qu'elle fait |
+|----------|-----------------|
+| `/hackbrowser` | Lancer HackBrowser — ouvre la boite de dialogue de crawl avec cible, identifiants et perimetre |
+| `/hackbrowser-stop` | Arreter le crawl HackBrowser en cours |
+| `/bolt` | Associer ou gerer un serveur d'outils Bolt |
+| `/mcp` | Gerer les connexions de serveurs MCP |
+| `/skills` | Parcourir les scripts de competences WSTG disponibles |
+
+#### Evaluation
+
+| Commande | Ce qu'elle fait |
+|----------|-----------------|
+| `/vulnerabilities` | Voir toutes les decouvertes avec severite et statut |
+| `/web` | Inspecter les endpoints captures, roles, identifiants, objets |
+| `/methodology` | Voir la couverture WSTG — quelles categories testees, lesquelles en attente |
+| `/report` | Generer un rapport de pentest structure |
+| `/qpause` | Mettre en pause la file d'attente des agents |
+| `/qresume` | Reprendre la file d'attente des agents |
+
+#### Configuration
+
+| Commande | Ce qu'elle fait |
+|----------|-----------------|
+| `/connect` | Connecter un fournisseur d'IA (cle API ou OAuth) |
+| `/models` | Changer le modele actif |
+| `/status` | Afficher les fournisseurs connectes, MCP et informations systeme |
+| `/thinking` | Basculer la visibilite du raisonnement du modele |
+| `/timeline` | Aller a un message specifique dans la conversation |
+| `/help` | Afficher toutes les commandes et raccourcis clavier disponibles |
+
+### Taper une commande slash
+
+Quand vous tapez `/`, la palette de commandes s'ouvre avec des suggestions filtrees :
+
+```
+> /hack
+  ┌──────────────────────────────────┐
+  │ /hackbrowser     Launch crawler  │
+  │ /hackbrowser-stop  Stop crawl    │
+  └──────────────────────────────────┘
+```
+
+Selectionnez avec les touches flechees et `Enter`, ou continuez a taper pour affiner le filtre.
+
+Certaines commandes ouvrent des boites de dialogue (comme `/hackbrowser` qui affiche un formulaire pour l'URL cible, les identifiants et le perimetre). D'autres s'executent immediatement (comme `/compact`).
+
+## Raccourcis clavier
+
+| Raccourci | Action |
+|-----------|--------|
+| `Enter` | Envoyer le message |
+| `Shift+Enter` | Nouvelle ligne dans l'invite |
+| `Escape` | Interrompre l'agent en cours |
+| `Ctrl+P` | Ouvrir la palette de commandes |
+| `Tab` | Passer a l'agent suivant |
+| `Ctrl+R` | Renommer la session |
+| `Ctrl+D` | Quitter CyberStrike |
+| `↑` / `↓` | Naviguer dans l'historique de saisie |
+
+## Configuration
+
+Personnalisez le TUI avec `tui.json` (ou `tui.jsonc`) dans votre repertoire de projet ou de configuration :
+
+```json
+{
+  "$schema": "https://cyberstrike.io/tui.json",
+  "theme": "cyberstrike",
+  "keybinds": {
+    "leader": "ctrl+x"
+  },
+  "scroll_speed": 3,
+  "scroll_acceleration": {
+    "enabled": true
+  },
+  "diff_style": "auto"
+}
+```
+
+| Option | Description | Defaut |
+|--------|-------------|--------|
+| `theme` | Theme de couleurs de l'interface | `cyberstrike` |
+| `keybinds.leader` | Touche leader pour les raccourcis | `ctrl+x` |
+| `scroll_speed` | Vitesse de defilement (min : `0.001`) | `3` |
+| `scroll_acceleration.enabled` | Acceleration de defilement style macOS | `false` |
+| `diff_style` | `auto` s'adapte a la largeur, `stacked` colonne unique | `auto` |
+
+Utilisez `CYBERSTRIKE_TUI_CONFIG` pour specifier un chemin de configuration personnalise.
+
+## Themes
+
+CyberStrike est livre avec des themes integres. Changez via la palette de commandes — appuyez sur `Ctrl+P` et recherchez "theme".
+
+<img src="/docs/images/screenshots/tui-theme-selector.png" alt="Selecteur de theme avec les themes integres" className="rounded-lg shadow-lg my-6 w-full" />

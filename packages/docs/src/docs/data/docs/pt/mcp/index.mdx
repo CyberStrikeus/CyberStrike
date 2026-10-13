@@ -1,0 +1,93 @@
+---
+title: Visao Geral do Bolt / MCP
+description: Estenda o Cyberstrike com ferramentas de seguranca via Bolt e MCP
+sidebar:
+  order: 1
+  label: Visao Geral
+---
+
+O Cyberstrike usa o Model Context Protocol (MCP) para integrar ferramentas externas. O **Bolt** e nosso servidor de ferramentas containerizado que vem com um grande conjunto de ferramentas de seguranca; voce tambem pode conectar qualquer servidor MCP local ou remoto.
+
+{/* Hero GIF - Tool execution demo */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">🎬 GIF: bolt-tool-execution.gif</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Demo de execucao de ferramenta Bolt - scan nmap (20s)</p>
+</div>
+
+## Duas Formas de Adicionar Ferramentas
+
+| Abordagem | Transporte | Vantagens | Desvantagens |
+|-----------|------------|-----------|--------------|
+| **Bolt** (recomendado) | StreamableHTTP | Ferramentas pre-instaladas, isolamento em container, configuracao facil | Docker necessario, latencia de rede |
+| **MCP Local / Remoto** | stdio / StreamableHTTP | Qualquer servidor MCP; zero latencia para local | Voce instala e executa o servidor |
+
+O Cyberstrike tambem vem com tres servidores MCP habilitados por padrao: `github-security`, `cve` e `osint`. Sua propria configuracao e mesclada sobre estes.
+
+## Bolt
+
+O Bolt executa ferramentas de seguranca dentro de um container Docker (Ubuntu 24.04, porta 3001). Ele expoe **7 plugins nativos** (`subfinder`, `nmap`, `nuclei`, `httpx`, `ffuf`, `run-command`, `wordlist`) mais **~26 servidores MCP stdio agregados** (`dnsx`, `amass`, `katana`, `sqlmap`, `wpscan`, `hydra`, `hashcat` e mais). Cada ferramenta e diretamente invocavel — o agente a chama em um unico turno.
+
+O Bolt e configurado sob sua **propria chave de nivel superior `bolt`** (nao `mcp`) e autenticado por pareamento Ed25519:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "bolt": {
+    "local": { "url": "http://localhost:3001" }
+  }
+}
+```
+
+Consulte a pagina [Bolt](/docs/mcp/bolt) para configuracao e pareamento.
+
+## MCP Local / Remoto
+
+Qualquer outro servidor MCP fica sob o mapa plano `mcp`, indexado por nome:
+
+```json title="cyberstrike.json"
+{
+  "mcp": {
+    "my-tools": {
+      "type": "local",
+      "command": ["your-mcp-server"]
+    }
+  }
+}
+```
+
+- [Servidores Locais](/docs/mcp/local-servers) — processos filhos stdio
+- [Servidores Remotos](/docs/mcp/remote-servers) — StreamableHTTP/SSE, com [OAuth](/docs/mcp/oauth) opcional
+
+## Gerenciamento na TUI
+
+Dois dialogos separados:
+
+- **`/bolt`** — gerencia servidores Bolt (adicionar e parear, alternar, remover).
+- **`/mcps`** — gerencia servidores MCP locais/remotos.
+
+Em ambos: **a** para adicionar, **espaco** para alternar um servidor, **esc** para fechar.
+
+## Compatibilidade de Modelo
+
+<Aside variant="caution">
+  Modelos baseados em subprocesso nao podem acessar ferramentas MCP. Use um modelo de API direta para integracao completa com Bolt/MCP.
+</Aside>
+
+Modelos de API direta (ex: `anthropic/claude-sonnet-4-20250514`, `openai/gpt-4o`) executam dentro do Cyberstrike e tem acesso completo ao MCP. Modelos que usam um processo CLI separado nao tem.
+
+## Precedencia de Configuracao
+
+Entradas MCP e Bolt seguem a [hierarquia de configuracao](/docs/configuration#configuration-hierarchy) padrao: o diretorio `.cyberstrike/` do projeto sobrescreve o `cyberstrike.json` do projeto, que sobrescreve a configuracao global `~/.config/cyberstrike/`, que sobrescreve os servidores integrados.
+
+## Documentacao
+
+| Pagina | Descricao |
+|--------|-----------|
+| [Bolt](/docs/mcp/bolt) | Servidor de ferramentas de seguranca containerizado (recomendado) |
+| [Servidores Locais](/docs/mcp/local-servers) | Servidores MCP locais stdio |
+| [Servidores Remotos](/docs/mcp/remote-servers) | Conexoes remotas HTTP/SSE |
+| [OAuth](/docs/mcp/oauth) | Autenticacao OAuth para servidores remotos |
+| [Criando Servidores](/docs/mcp/creating-servers) | Construa servidores MCP personalizados |
+
+<Aside variant="danger">
+  Use ferramentas de seguranca apenas contra alvos autorizados. Testes de penetracao nao autorizados sao ilegais.
+</Aside>

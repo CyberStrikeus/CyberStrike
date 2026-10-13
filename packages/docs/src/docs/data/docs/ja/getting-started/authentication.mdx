@@ -1,0 +1,211 @@
+---
+title: 認証
+description: CyberstrikeのAIプロバイダー認証情報の設定
+sidebar:
+  order: 3
+  label: 認証
+---
+
+Cyberstrikeが動作するには、少なくとも1つのAIプロバイダーとの認証が必要です。このガイドでは、サポートされているプロバイダーの認証情報の設定方法を説明します。
+
+## プロバイダーの接続
+
+最も簡単な認証方法 — TUIで以下を実行します：
+
+```
+/connect
+```
+
+インタラクティブメニューからプロバイダーを選択します：
+
+```
+? Select provider
+❯ cyberstrike (recommended)
+  anthropic (Claude Max or API key)
+  github-copilot
+  openai (ChatGPT Plus/Pro or API key)
+  google
+  openrouter
+  …
+```
+
+リストはモデルカタログから動的に構築され、優先度順に並べられるため、表示される項目は変動する場合があります。固定メニューではなくオートコンプリートプロンプトです。
+
+## プロバイダー別の設定
+
+### Anthropic
+
+1. [console.anthropic.com](https://console.anthropic.com)からAPIキーを取得
+2. `/connect`を実行し、**Anthropic**を選択してAPIキーを入力
+
+### OpenAI
+
+1. [platform.openai.com](https://platform.openai.com)からAPIキーを取得
+2. `/connect`を実行し、**OpenAI**を選択してAPIキーを入力
+
+### GitHub Copilot
+
+1. 有効なGitHub Copilotサブスクリプションが必要
+2. `/connect`を実行し、**Login with GitHub Copilot**を選択
+3. ブラウザのOAuthフローで認証 — APIキーは不要
+
+詳細は[GitHub Copilot](/docs/providers/github-copilot)を参照してください。
+
+### OpenRouter
+
+OpenRouterは無料枠付きで複数のモデルにアクセスできます：
+
+1. [openrouter.ai/keys](https://openrouter.ai/keys)からAPIキーを取得
+2. `/connect`を実行し、**OpenRouter**を選択してAPIキーを入力
+
+### Google Gemini
+
+1. [ai.google.dev](https://ai.google.dev)からAPIキーを取得
+2. `/connect`を実行し、**Google**を選択してAPIキーを入力
+
+### Ollama（ローカル）
+
+OllamaはAPIキー不要ですが、ローカルで実行されている必要があります：
+
+```bash
+# Ollamaの起動
+ollama serve
+
+# モデルの取得
+ollama pull llama3.3
+```
+
+その後、`/models`でOllamaモデルを選択します。
+
+## 環境変数
+
+CI/CDや自動化のために環境変数で認証情報を設定します：
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+
+# Groq
+export GROQ_API_KEY="gsk_..."
+```
+
+永続化するにはシェルプロファイルに追加します：
+
+```bash
+# ~/.bashrc or ~/.zshrc
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+## 設定ファイル
+
+設定ファイルに認証情報を保存します：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="tip">
+  設定ファイルで環境変数を参照するには`{env:VAR_NAME}`構文を使用します。
+</Aside>
+
+## 認証情報の管理
+
+### ステータスの確認
+
+TUIで`/status`を使用して、接続されたプロバイダーとアクティブな認証情報を確認します。
+
+### モデルの切り替え
+
+`/models`で接続済みのプロバイダーのモデル間を切り替えます。または設定でデフォルトを指定します：
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## エンタープライズ認証
+
+### AWS Bedrock
+
+```bash
+# AWS認証情報の設定
+aws configure
+
+# または環境変数で
+export AWS_ACCESS_KEY_ID="..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+```
+
+その後、`/connect`を実行し、**Amazon Bedrock**を選択します。
+
+### Azure OpenAI
+
+```bash
+export AZURE_API_KEY="..."
+export AZURE_RESOURCE_NAME="your-resource"
+```
+
+### Google Vertex AI
+
+```bash
+gcloud auth application-default login
+```
+
+## セキュリティのベストプラクティス
+
+1. **APIキーをバージョン管理にコミットしない**
+2. 機密値には**環境変数を使用する**
+3. セキュリティのために**キーを定期的にローテーションする**
+4. 利用可能な場合は**スコープ付きキーを使用する**
+5. プロバイダーのダッシュボードで**使用量を監視する**
+
+## トラブルシューティング
+
+### 無効なAPIキー
+
+```
+Error: Invalid API key
+```
+
+1. キーが正しいか確認します（余分なスペースがないか）
+2. キーが有効期限切れでないか確認します
+3. プロバイダーの課金がアクティブか確認します
+
+### レート制限
+
+```
+Error: Rate limit exceeded
+```
+
+1. しばらく待ってからリトライします
+2. プロバイダーのダッシュボードで制限を確認します
+3. プランのアップグレードを検討します
+
+### ネットワークの問題
+
+```
+Error: Connection refused
+```
+
+1. インターネット接続を確認します
+2. プロキシ/ファイアウォールがブロックしていないか確認します
+3. 別のネットワークを試します

@@ -1,0 +1,134 @@
+---
+title: Erste Webanwendungsbewertung
+description: Durchlaufen Sie eine vollstaendige Webanwendungs-Sicherheitsbewertung mit Cyberstrike
+sidebar:
+  order: 4
+  label: Erste Bewertung
+---
+
+Diese Anleitung fuehrt Sie durch eine echte Webanwendungsbewertung — vom Start von Cyberstrike bis zu triagierten Schwachstellenergebnissen. Wir testen eine Web-App mit zwei Benutzerrollen (Admin und regulaerer Benutzer), um Autorisierungs-, Injection- und Logik-Schwaechen zu finden.
+
+## 1. Cyberstrike starten
+
+```bash
+cyberstrike
+```
+
+Die TUI oeffnet sich mit dem geladenen primaeren Agenten `cyberstrike`, bereit fuer Eingaben.
+
+## 2. Eine Sitzung starten
+
+Geben Sie etwas ein, um eine Sitzung zu starten. Beschreiben Sie, was Sie testen:
+
+```
+> I'm testing https://app.example.com — it's a SaaS platform with admin and regular user roles.
+  I have credentials for both. Let's find auth bypass, IDOR, injection, and business logic issues.
+```
+
+Der Agent bestaetigt und stellt moeglicherweise klaerende Fragen zu Umfang, ausgeschlossenen Bereichen oder zusaetzlichem Kontext.
+
+## 3. Sitzung umbenennen
+
+Druecken Sie `Ctrl+R`, um die Sitzung aussagekraeftig umzubenennen:
+
+```
+example-com-web-assessment
+```
+
+Dies hilft Ihnen, sie spaeter in `/sessions` zu finden.
+
+## 4. HackBrowser starten
+
+Fuehren Sie den Slash-Befehl `/hackbrowser` aus. Ein Startdialog oeffnet sich mit Feldern fuer:
+
+- **Ziel-URL** — geben Sie `https://app.example.com` ein
+- **Anmeldedaten** — fuegen Sie zwei hinzu: `userA` (Admin) und `userB` (regulaerer Benutzer)
+- **Umfang** — Standard ist `*.example.com`, passen Sie an, wenn die API auf einer anderen Domain liegt
+- **Schritte** — wie viele Seiten gecrawlt werden sollen (Standard 50)
+
+Bestaetigen Sie den Dialog. Da Sie Anmeldedaten definiert haben, oeffnet sich HackBrowser im sichtbaren Modus.
+
+## 5. Als userA anmelden
+
+Ein Chromium-Browserfenster oeffnet sich — das ist HackBrowser, mit einer eingebauten Telemetrie-Erweiterung, die ein UI-Panel-Overlay auf jeder Seite bereitstellt. Melden Sie sich manuell als **userA** (das Admin-Konto) an.
+
+Sobald Sie angemeldet sind, druecken Sie den **Record**-Button im HackBrowser-Panel. Dies startet den **AINavigator** — die LLM-gesteuerte Crawl-Sitzung. Die KI liest den Accessibility-Tree der Seite, entscheidet, welchen Links gefolgt, welche Formulare ausgefuellt und welche Buttons geklickt werden sollen, und navigiert die App autonom als userA.
+
+## 6. Als userB anmelden
+
+Ein zweites Browserfenster oeffnet sich automatisch fuer **userB** (den regulaeren Benutzer). Melden Sie sich manuell mit den Anmeldedaten von userB an und druecken Sie dann **Record** in dessen Panel.
+
+Jetzt crawlt HackBrowser die Anwendung mit beiden Rollen. Jede HTTP-Anfrage wird mit dem Anmeldedaten-Eintrag markiert, der sie ausgeloest hat, sodass die Pipeline weiss, welche Rolle auf welchen Endpunkt zugegriffen hat.
+
+## 7. Was als Naechstes passiert
+
+Waehrend HackBrowser crawlt, arbeitet der Rest des Frameworks bereits:
+
+**Verkehrserfassung** — Jedes Anfrage/Antwort-Paar fliesst mit vollstaendigen Headers, Body und UI-Kontext in [Vortex](/docs/features/vortex) (welche Formularfelder zum Zeitpunkt der Anfrage schreibgeschuetzt, versteckt oder deaktiviert waren).
+
+**Signalgenerierung** — Vortex wendet Regeln auf den erfassten Verkehr an und generiert Signale: Authentifizierungsmuster, versteckte Parameter, verdaechtige Antwortstrukturen, rollenspezifischer Endpunktzugriff.
+
+**WSTG-Dispatch** — Der `wstg-agent` liest die Signale und setzt Spezialistenagenten ein. Eine Anfrage mit einer Benutzer-ID im Pfad loest `wstg-authorization` fuer IDOR-Tests aus. Ein POST mit Formulareingaben loest `wstg-input-validation` fuer Injection aus. Ein Login-Endpunkt loest `wstg-authentication` aus.
+
+**Rollenuebergreifender Vergleich** — Da sowohl userA als auch userB dieselbe App gecrawlt haben, vergleicht die Pipeline, welche Endpunkte jede Rolle erreicht hat, welche UI-Elemente fuer jede sichtbar waren und ob die Rollengrenzen halten, wenn Anfragen mit den jeweils anderen Anmeldedaten wiedergegeben werden.
+
+**Eskalation** — Nachdem die Spezialisten fertig sind, laeuft der `escalation-hunter` ueber alle Ergebnisse, um sie zu verketten — ein mittleres IDOR kombiniert mit einer niedrigen Rate-Limit-Umgehung koennte zu einer kritischen Kontoubernahme eskalieren.
+
+**Triage** — Der `triage`-Agent gibt HTTP-Beweise fuer jedes Entwurfsergebnis unabhaengig wieder. Nur durch Wiedergabe bestaetigte Ergebnisse werden auf den Status "triagiert" hochgestuft. Falsch-Positive werden abgelehnt. Mehrdeutige Ergebnisse bleiben als Entwuerfe fuer Ihre Ueberpruefung.
+
+## 8. Ergebnisse ueberpruefen
+
+Sobald der Crawl abgeschlossen ist und die Tests beendet sind, ueberpruefen Sie die Ergebnisse:
+
+| Befehl | Was angezeigt wird |
+|--------|---------------------|
+| `/vulnerabilities` | Alle Ergebnisse mit Schweregrad, Status und Beweisen |
+| `/web` | Erfasste Endpunkte, Rollen, Anmeldedaten und Objekte |
+| `/methodology` | WSTG-Abdeckung — welche Kategorien getestet wurden, welche ausstehen |
+| `/report` | Strukturierten Bericht erstellen |
+
+### Ergebnisformat
+
+Jedes Ergebnis enthaelt:
+
+```
+FINDING: IDOR in User Profile API
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Severity: High
+CWE: CWE-639
+Description: GET /api/users/{id} returns full profile data for any user ID
+             when accessed with userB credentials (regular user).
+Evidence: Replayed GET /api/users/1 with userB token → 200, body contains
+          admin user's email and phone number.
+Status: triaged (verified by replay)
+Recommendation: Enforce ownership check — users should only access their own profile.
+```
+
+### Schweregrade
+
+| Stufe | CVSS | Bedeutung |
+|-------|------|-----------|
+| Critical | 9.0–10.0 | Unmittelbares Ausnutzungsrisiko |
+| High | 7.0–8.9 | Erhebliche Sicherheitsauswirkung |
+| Medium | 4.0–6.9 | Moderates Risiko |
+| Low | 0.1–3.9 | Geringfuegiges Problem |
+| Info | 0.0 | Informativ |
+
+## 9. Exportieren und Teilen
+
+| Befehl | Aktion |
+|--------|--------|
+| `/report` | Pentest-Bericht mit allen Ergebnissen erstellen |
+| `/share` | Teilbaren Sitzungslink erstellen |
+| `/export` | Sitzungstranskript exportieren |
+
+## Naechste Schritte
+
+- [Sicherheitsagenten](/docs/agents) — Die WSTG-Pipeline und Spezialistenagenten verstehen
+- [Features](/docs/features) — Tiefer eintauchen in HackBrowser, Vortex, Bolt, MCP
+- [Konfiguration](/docs/configuration) — Umfang, Berechtigungen und Standards anpassen
+- [Slash-Befehle](/docs/slash-commands) — Vollstaendige Befehlsreferenz
+
+<Aside variant="tip">
+  Verwenden Sie `/compact`, um lange Sitzungen zusammenzufassen und ohne Kontextverlust weiter zu testen.
+</Aside>

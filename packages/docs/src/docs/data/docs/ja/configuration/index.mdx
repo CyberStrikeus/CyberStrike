@@ -1,0 +1,713 @@
+---
+title: 設定リファレンス
+description: Cyberstrike CLIの完全な設定リファレンス
+sidebar:
+  order: 1
+  label: 概要
+---
+
+Cyberstrikeは複数の方法で設定できます：設定ファイル、環境変数、コマンドライン引数。このリファレンスではすべての設定オプションを説明します。
+
+{/* TODO: Screenshot - Config file structure */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: s13-config-structure.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">設定ファイルの構造</p>
+</div>
+
+<img src="/docs/images/diagrams/config-priority.svg" alt="設定の優先順位 — 最も高い優先度が適用、CLI引数からデフォルト値まで" className="my-6 mx-auto max-w-md" />
+
+## 設定の階層
+
+設定ソースは優先順位の順にマージされます（優先度が高いものが勝ちます）：
+
+1. コマンドライン引数
+2. マネージド（エンタープライズ）設定 — 管理者が制御する `cyberstrike.json`/`cyberstrike.jsonc`（マネージドディレクトリ内）
+3. `CYBERSTRIKE_CONFIG_CONTENT` 環境変数（インラインJSON）
+4. `.cyberstrike/` ディレクトリ設定 — プロジェクトの `.cyberstrike/`、次にホームディレクトリの `~/.cyberstrike/`
+5. プロジェクト設定（`./cyberstrike.json` または `./cyberstrike.jsonc`、作業ディレクトリから上方向に探索）
+6. カスタム設定パス（`CYBERSTRIKE_CONFIG`）
+7. グローバル設定（`~/.config/cyberstrike/config.json`、`cyberstrike.json`、または `cyberstrike.jsonc`）
+8. リモート / well-known設定
+9. デフォルト値
+
+## 設定の確認
+
+すべてのソースがマージされた後の有効な設定を確認するには、以下を実行します：
+
+```bash
+cyberstrike debug config
+```
+
+これは解決済みの設定をJSONとして出力します。`config get`/`set` コマンドはありません — 設定ファイルを直接編集して設定を変更してください（以下を参照）。
+
+## 設定ファイル
+
+### プロジェクト設定
+
+プロジェクトルートに `cyberstrike.json` または `cyberstrike.jsonc` を作成します：
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "agent": {
+    "web-application": {
+      "model": "anthropic/claude-sonnet-4-20250514"
+    }
+  }
+}
+```
+
+### グローバル設定
+
+ユーザー全体の設定を `~/.config/cyberstrike/` に保存します。`config.json`、`cyberstrike.json`、`cyberstrike.jsonc` のいずれかが読み込まれます（Cyberstrikeが `config.json` を自動生成します）：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "theme": "cyberstrike",
+  "autoupdate": true,
+  "share": "manual"
+}
+```
+
+### プロジェクトディレクトリ構造
+
+設定を整理するために `.cyberstrike/` ディレクトリを作成します：
+
+```
+.cyberstrike/
+├── cyberstrike.json    # プロジェクト設定
+├── agents/             # カスタムエージェント
+│   └── security.md
+├── commands/           # カスタムコマンド
+│   └── scan.md
+├── plugins/            # カスタムプラグイン
+│   └── my-plugin.ts
+└── modes/              # カスタムモード（非推奨）
+```
+
+---
+
+## コア設定
+
+### モデル選択
+
+デフォルトのAIモデルを設定します：
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+形式：`provider/model-name`
+
+### スモールモデル
+
+軽量タスク（タイトル生成）用のモデルを設定します：
+
+```json
+{
+  "small_model": "anthropic/claude-haiku-4-5-20251001"
+}
+```
+
+### デフォルトエージェント
+
+デフォルトのセキュリティエージェントを設定します：
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+### ユーザー名
+
+システムのユーザー名を上書きします：
+
+```json
+{
+  "username": "pentester"
+}
+```
+
+### テーマ
+
+インターフェーステーマを設定します：
+
+```json
+{
+  "theme": "cyberstrike"
+}
+```
+
+---
+
+## プロバイダー設定
+
+AIプロバイダーを個別に設定します：
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}",
+        "timeout": 300000
+      }
+    },
+    "openai": {
+      "options": {
+        "baseURL": "https://api.openai.com/v1"
+      },
+      "whitelist": ["gpt-4o", "gpt-4-turbo"],
+      "blacklist": ["gpt-3.5-turbo"]
+    },
+    "custom-provider": {
+      "id": "custom-provider",
+      "name": "Custom Provider",
+      "options": {
+        "baseURL": "https://api.custom.example.com/v1",
+        "apiKey": "{env:CUSTOM_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### プロバイダーオプション
+
+| オプション | 型 | 説明 |
+|--------|------|-------------|
+| `apiKey` | string | 認証用APIキー |
+| `baseURL` | string | カスタムAPIエンドポイント |
+| `timeout` | number/false | リクエストタイムアウト（ms単位、デフォルト：300000） |
+| `setCacheKey` | boolean | プロンプトキャッシュキーを有効化 |
+| `enterpriseUrl` | string | Copilot用GitHub Enterprise URL |
+
+### モデルフィルタリング
+
+表示するモデルを制御します：
+
+```json
+{
+  "provider": {
+    "openai": {
+      "whitelist": ["gpt-4o", "o1-preview"],
+      "blacklist": ["gpt-3.5-turbo"]
+    }
+  }
+}
+```
+
+### プロバイダーの無効化
+
+特定のプロバイダーを無効にします：
+
+```json
+{
+  "disabled_providers": ["ollama", "groq"]
+}
+```
+
+特定のプロバイダーのみ有効にします：
+
+```json
+{
+  "enabled_providers": ["anthropic", "openai"]
+}
+```
+
+---
+
+## エージェント設定
+
+エージェントの動作を設定します：
+
+```json
+{
+  "agent": {
+    "cyberstrike": {
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.7,
+      "steps": 50,
+      "color": "#FF5733"
+    },
+    "web-application": {
+      "model": "anthropic/claude-opus-4-20250514",
+      "prompt": "Focus on OWASP Top 10 vulnerabilities"
+    }
+  }
+}
+```
+
+### エージェントオプション
+
+| オプション | 型 | 説明 |
+|--------|------|-------------|
+| `model` | string | このエージェント用のモデルを上書き |
+| `temperature` | number | モデルの温度（0-1） |
+| `top_p` | number | Top-pサンプリング値 |
+| `steps` | number | エージェントの最大イテレーション数 |
+| `prompt` | string | カスタムシステムプロンプト |
+| `color` | string | 16進カラーコード（#RRGGBB） |
+| `description` | string | エージェントの説明 |
+| `mode` | string | エージェントモード："primary"、"subagent"、"all" |
+| `hidden` | boolean | オートコンプリートから非表示 |
+| `disable` | boolean | このエージェントを無効化 |
+
+### カスタムエージェントの作成
+
+`.cyberstrike/agents/custom.md` を作成します：
+
+```markdown
+---
+description: APIテスト用のカスタムセキュリティエージェント
+model: anthropic/claude-opus-4-20250514
+mode: primary
+---
+
+あなたはAPIセキュリティの専門家です。以下に焦点を当ててください：
+- 認証の脆弱性
+- 認可バイパス
+- 入力バリデーション
+- レート制限の問題
+```
+
+---
+
+## MCP設定
+
+Model Context Protocolサーバーを設定します：
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "@modelcontextprotocol/server-filesystem", "/path/to/dir"],
+      "enabled": true,
+      "timeout": 5000
+    },
+    "remote-api": {
+      "type": "remote",
+      "url": "https://api.example.com/mcp",
+      "oauth": {
+        "clientId": "your-client-id",
+        "scope": "read write"
+      }
+    }
+  }
+}
+```
+
+### ローカルMCPサーバー
+
+| オプション | 型 | 説明 |
+|--------|------|-------------|
+| `type` | "local" | サーバータイプ |
+| `command` | string[] | コマンドと引数 |
+| `environment` | object | 環境変数 |
+| `enabled` | boolean | サーバーの有効/無効 |
+| `timeout` | number | リクエストタイムアウト（ms） |
+
+### リモートMCPサーバー
+
+| オプション | 型 | 説明 |
+|--------|------|-------------|
+| `type` | "remote" | サーバータイプ |
+| `url` | string | サーバーURL |
+| `headers` | object | リクエストヘッダー |
+| `oauth` | object/false | OAuth設定 |
+| `enabled` | boolean | サーバーの有効/無効 |
+| `timeout` | number | リクエストタイムアウト（ms） |
+
+### OAuth設定
+
+```json
+{
+  "oauth": {
+    "clientId": "your-client-id",
+    "clientSecret": "your-client-secret",
+    "scope": "read write"
+  }
+}
+```
+
+---
+
+## パーミッション設定
+
+ツールのパーミッションを制御します：
+
+```json
+{
+  "permission": {
+    "bash": "ask",
+    "edit": "allow",
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "websearch": "deny"
+  }
+}
+```
+
+### パーミッションアクション
+
+| アクション | 説明 |
+|--------|-------------|
+| `ask` | ユーザーに承認を求める（デフォルト） |
+| `allow` | 確認なしで自動承認 |
+| `deny` | ツールの使用をブロック |
+
+### パターンベースのパーミッション
+
+パターンごとにパーミッションを指定します：
+
+```json
+{
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "ls *": "allow",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "*": "ask",
+      "*.md": "allow"
+    }
+  }
+}
+```
+
+### 利用可能なパーミッションキー
+
+| キー | 説明 |
+|-----|-------------|
+| `read` | ファイル読み取り |
+| `edit` | ファイル編集/書き込み |
+| `glob` | ファイルパターンマッチング |
+| `grep` | コンテンツ検索 |
+| `list` | ディレクトリ一覧 |
+| `bash` | コマンド実行 |
+| `task` | タスク実行 |
+| `websearch` | Web検索 |
+| `webfetch` | URLフェッチ |
+| `lsp` | LSP操作 |
+| `external_directory` | プロジェクト外のアクセス |
+
+---
+
+## キーバインド
+
+キーボードショートカットをカスタマイズします：
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "app_exit": "ctrl+c,ctrl+d",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "input_submit": "return",
+    "input_newline": "shift+return,ctrl+return"
+  }
+}
+```
+
+### キーの形式
+
+- 単一キー：`ctrl+c`、`escape`、`return`
+- 複数バインド：`ctrl+c,ctrl+d`（カンマ区切り）
+- Leaderシーケンス：`<leader>n`（Leaderキーを使用）
+- 無効化：`none`
+
+---
+
+## TUI設定
+
+ターミナルインターフェースを設定します：
+
+```json
+{
+  "tui": {
+    "scroll_speed": 1.0,
+    "scroll_acceleration": {
+      "enabled": true
+    },
+    "diff_style": "auto"
+  }
+}
+```
+
+| オプション | 型 | 説明 |
+|--------|------|-------------|
+| `scroll_speed` | number | スクロール速度の倍率 |
+| `scroll_acceleration` | object | アクセラレーション設定 |
+| `diff_style` | "auto"/"stacked" | Diffのレンダリングスタイル |
+
+---
+
+## サーバー設定
+
+APIサーバーを設定します：
+
+```json
+{
+  "server": {
+    "port": 4096,
+    "hostname": "localhost",
+    "mdns": true,
+    "cors": ["https://example.com"]
+  }
+}
+```
+
+---
+
+## プラグインとフック
+
+Cyberstrikeは設定ベースのフックシステムを使用しません。自動化とライフサイクルフックは**プラグイン**として実装されます — `tool.execute.before`、`tool.execute.after`、`permission.ask` などのイベントを購読するJavaScript/TypeScriptモジュールです。
+
+プラグインを名前で登録します。npmまたは `.cyberstrike/` 内のローカル `{plugin,plugins}/` ディレクトリから解決されます：
+
+```json
+{
+  "plugin": ["my-plugin", "@scope/another-plugin"]
+}
+```
+
+完全なイベントリストとオーサリングガイドは[フックとプラグイン](/docs/hooks)を参照してください。
+
+### 実験的オプション
+
+`experimental` ブロックはオプトイン機能を公開します：
+
+```json
+{
+  "experimental": {
+    "batch_tool": true,
+    "openTelemetry": false,
+    "continue_loop_on_deny": false,
+    "mcp_timeout": 5000
+  }
+}
+```
+
+| オプション | 型 | 説明 |
+|--------|------|-------------|
+| `disable_paste_summary` | boolean | ペーストサマリーを無効化 |
+| `batch_tool` | boolean | バッチツールを有効化 |
+| `openTelemetry` | boolean | AI SDKコール用のOpenTelemetryスパンを有効化 |
+| `primary_tools` | string[] | プライマリエージェントのみ利用可能なツール |
+| `continue_loop_on_deny` | boolean | ツールコールが拒否されてもエージェントループを継続 |
+| `mcp_timeout` | number | MCPリクエストのタイムアウト（ms） |
+
+---
+
+## 共有設定
+
+セッション共有を制御します：
+
+```json
+{
+  "share": "manual"
+}
+```
+
+| 値 | 説明 |
+|-------|-------------|
+| `manual` | コマンドのみで共有 |
+| `auto` | 新しいセッションを自動共有 |
+| `disabled` | すべての共有を無効化 |
+
+---
+
+## コンパクション設定
+
+コンテキストコンパクションを設定します：
+
+```json
+{
+  "compaction": {
+    "auto": true,
+    "prune": true
+  }
+}
+```
+
+| オプション | 説明 |
+|--------|-------------|
+| `auto` | コンテキストがいっぱいのとき自動コンパクト |
+| `prune` | 古いツール出力をプルーン |
+
+---
+
+## 環境変数
+
+### 設定変数
+
+| 変数 | 説明 |
+|----------|-------------|
+| `CYBERSTRIKE_CONFIG` | カスタム設定ファイルパス |
+| `CYBERSTRIKE_CONFIG_CONTENT` | インラインJSON設定 |
+| `CYBERSTRIKE_CONFIG_DIR` | 追加の設定ディレクトリ |
+| `CYBERSTRIKE_DISABLE_PROJECT_CONFIG` | プロジェクト設定を無視 |
+| `CYBERSTRIKE_PERMISSION` | JSONパーミッションオーバーライド |
+
+### プロバイダーAPIキー
+
+| 変数 | プロバイダー |
+|----------|----------|
+| `ANTHROPIC_API_KEY` | Anthropic |
+| `OPENAI_API_KEY` | OpenAI |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google（Gemini） |
+| `OPENROUTER_API_KEY` | OpenRouter |
+| `AWS_ACCESS_KEY_ID` | AWS Bedrock |
+| `AZURE_API_KEY` | Azure OpenAI |
+
+### 動作フラグ
+
+| 変数 | 説明 |
+|----------|-------------|
+| `CYBERSTRIKE_AUTO_SHARE` | セッションを自動共有 |
+| `CYBERSTRIKE_DISABLE_AUTOCOMPACT` | 自動コンパクションを無効化 |
+| `CYBERSTRIKE_DISABLE_PRUNE` | 出力プルーニングを無効化 |
+
+---
+
+## 変数置換
+
+### 環境変数
+
+設定内で環境変数を参照します：
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### ファイル参照
+
+ファイルからコンテンツを含めます：
+
+```json
+{
+  "instructions": ["{file:./SECURITY.md}"]
+}
+```
+
+サポート：
+- 相対パス：`{file:./path/to/file}`
+- 絶対パス：`{file:/absolute/path}`
+- ホームディレクトリ：`{file:~/path/from/home}`
+
+---
+
+## LSP設定
+
+Language Server Protocolを設定します：
+
+```json
+{
+  "lsp": {
+    "typescript": {
+      "command": ["typescript-language-server", "--stdio"],
+      "extensions": [".ts", ".tsx"]
+    },
+    "rust": {
+      "disabled": true
+    }
+  }
+}
+```
+
+すべてのLSP機能を無効にするには `lsp: false` を設定します。
+
+---
+
+## フォーマッター設定
+
+コードフォーマッターを設定します：
+
+```json
+{
+  "formatter": {
+    "prettier": {
+      "command": ["prettier", "--write"],
+      "extensions": [".ts", ".tsx", ".js", ".jsx"]
+    },
+    "rustfmt": {
+      "disabled": true
+    }
+  }
+}
+```
+
+すべてのフォーマッターを無効にするには `formatter: false` を設定します。
+
+---
+
+## 完全な例
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "small_model": "anthropic/claude-haiku-4-5-20251001",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike",
+  "share": "manual",
+  "autoupdate": "notify",
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "timeout": 300000
+      }
+    }
+  },
+
+  "agent": {
+    "web-application": {
+      "model": "anthropic/claude-opus-4-20250514",
+      "steps": 100
+    }
+  },
+
+  "permission": {
+    "bash": "ask",
+    "edit": "allow",
+    "read": "allow"
+  },
+
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "@modelcontextprotocol/server-filesystem", "."],
+      "enabled": true
+    }
+  },
+
+  "keybinds": {
+    "leader": "ctrl+x"
+  },
+
+  "compaction": {
+    "auto": true,
+    "prune": true
+  }
+}
+```

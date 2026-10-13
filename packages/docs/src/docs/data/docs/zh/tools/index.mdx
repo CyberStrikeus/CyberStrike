@@ -1,0 +1,652 @@
+---
+title: 工具参考
+description: Cyberstrike 内置工具和 MCP 集成的完整参考
+sidebar:
+  order: 1
+  label: 概述
+---
+
+Cyberstrike 提供了一套全面的内置工具用于安全评估。这些工具支持文件操作、命令执行、Web 自动化以及跨会话的持久记忆。
+
+{/* TODO: Screenshot - Tool list in TUI */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: s11-tool-list.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">工具列表 - TUI 中可用工具的视图</p>
+</div>
+
+## 工具类别
+
+| 类别 | 工具 | 用途 |
+|------|------|------|
+| **文件操作** | Read、Write、Edit、Glob、Grep | 文件读取、写入、编辑和搜索 |
+| **命令执行** | Bash | Shell 命令执行 |
+| **Web 测试** | [Hacker Browser](/docs/tools/hacker-browser).
+| **记忆** | Memory Search、Memory Write、Memory Read、Memory Context | 跨会话持久存储 |
+| **工具发现** | ToolSearch、LoadTools、UnloadTools | 动态 MCP 工具加载 |
+| **任务** | Task、TodoWrite | 委派和任务跟踪 |
+| **Web** | WebFetch、WebSearch、CodeSearch | Web 内容获取和搜索 |
+
+---
+
+## 文件操作
+
+### Read
+
+读取带行号的文件内容。支持文本文件、图片和 PDF。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `filePath` | string | 是 | 文件路径（绝对或相对） |
+| `offset` | number | 否 | 起始行号（从 1 开始） |
+| `limit` | number | 否 | 读取行数（默认：2000） |
+
+#### 示例
+
+```json
+{
+  "filePath": "/path/to/file.txt",
+  "offset": 100,
+  "limit": 500
+}
+```
+
+#### 输出格式
+
+```
+00001| First line of content
+00002| Second line of content
+00003| Third line of content
+
+(End of file - total 3 lines)
+```
+
+#### 特性
+
+- 自动检测二进制文件
+- 支持图片和 PDF（返回 base64 编码内容）
+- 行截断限制为 2000 字符
+- 每次读取操作最大 50KB
+- 文件未找到时提供智能建议
+
+---
+
+### Write
+
+创建或覆盖文件。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `filePath` | string | 是 | 文件的绝对路径 |
+| `content` | string | 是 | 要写入的内容 |
+
+#### 示例
+
+```json
+{
+  "filePath": "/path/to/new-file.txt",
+  "content": "File contents here"
+}
+```
+
+#### 特性
+
+- 如需要会创建父目录
+- 生成统一差异以供审查
+- 写入后运行 LSP 诊断
+- 通过文件时间跟踪进行冲突检测
+
+---
+
+### Edit
+
+对文件执行查找和替换操作，支持智能匹配。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `filePath` | string | 是 | 文件的绝对路径 |
+| `oldString` | string | 是 | 要查找和替换的文本 |
+| `newString` | string | 是 | 替换文本 |
+| `replaceAll` | boolean | 否 | 替换所有匹配项（默认：false） |
+
+#### 示例
+
+```json
+{
+  "filePath": "/path/to/file.ts",
+  "oldString": "function oldName(",
+  "newString": "function newName(",
+  "replaceAll": false
+}
+```
+
+#### 智能匹配
+
+Edit 工具使用多种匹配策略：
+
+1. **简单替换**：精确字符串匹配
+2. **行修剪**：忽略每行的前后空白
+3. **块锚定**：匹配首尾行，中间模糊匹配
+4. **空白标准化**：折叠多个空格
+5. **缩进灵活**：忽略缩进差异
+6. **转义标准化**：处理转义序列
+7. **上下文感知**：使用周围上下文进行匹配
+
+#### 特性
+
+- 统一差异生成
+- 编辑后 LSP 诊断
+- 多次出现检测
+- 通过文件时间跟踪防止冲突
+
+---
+
+### Glob
+
+按 glob 模式查找文件。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `pattern` | string | 是 | Glob 模式（例如 `**/*.ts`） |
+| `path` | string | 否 | 搜索目录（默认：当前目录） |
+
+#### 示例
+
+```json
+{
+  "pattern": "**/*.{ts,tsx}",
+  "path": "/path/to/project"
+}
+```
+
+#### 输出
+
+返回按修改时间排序的文件路径（最新优先），限制为 100 个结果。
+
+#### 模式示例
+
+| 模式 | 匹配 |
+|------|------|
+| `*.ts` | 当前目录中的 TypeScript 文件 |
+| `**/*.ts` | 递归搜索 TypeScript 文件 |
+| `src/**/*.{ts,tsx}` | src 目录中的 TS/TSX 文件 |
+| `!**/node_modules/**` | 排除 node_modules |
+
+---
+
+### Grep
+
+使用正则表达式搜索文件内容。基于 ripgrep 构建。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `pattern` | string | 是 | 要搜索的正则表达式模式 |
+| `path` | string | 否 | 搜索目录（默认：当前目录） |
+| `include` | string | 否 | 文件模式过滤器（例如 `*.js`） |
+
+#### 示例
+
+```json
+{
+  "pattern": "password|secret|api_key",
+  "path": "/path/to/project",
+  "include": "*.{js,ts,py}"
+}
+```
+
+#### 输出格式
+
+```
+Found 5 matches
+
+/path/to/file.ts:
+  Line 42: const apiKey = process.env.API_KEY
+  Line 85: // TODO: remove hardcoded secret
+
+/path/to/config.js:
+  Line 12: password: "changeme"
+```
+
+#### 特性
+
+- 支持正则表达式（ripgrep 语法）
+- 搜索隐藏文件
+- 跟随符号链接
+- 结果按修改时间排序
+- 最多 100 个结果
+
+---
+
+## 命令执行
+
+### Bash
+
+执行带超时和输出捕获的 shell 命令。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `command` | string | 是 | 要执行的命令 |
+| `timeout` | number | 否 | 超时时间（毫秒，默认：120000） |
+| `workdir` | string | 否 | 工作目录 |
+| `description` | string | 是 | 命令目的的简要描述 |
+
+#### 示例
+
+```json
+{
+  "command": "nmap -sV -sC target.com",
+  "timeout": 300000,
+  "workdir": "/path/to/project",
+  "description": "Scan target for open ports and services"
+}
+```
+
+#### 特性
+
+- Shell 检测（bash/zsh/sh）
+- 超时后终止进程树
+- 权限系统集成
+- 实时输出流
+- 外部目录访问控制
+
+#### 安全考虑
+
+命令通过 tree-sitter 解析以检测：
+- 项目外的目录访问
+- 危险的命令模式
+- 文件系统修改
+
+---
+
+## Web 测试
+
+没有底层的 `Browser` 工具。基于浏览器的 Web 测试由 **[Hacker Browser](/docs/tools/hacker-browser).
+
+{/* TODO: GIF - Hacker Browser crawl */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">🎬 GIF: g06-browser-scanning.gif</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Hacker Browser 爬取目标（25秒）</p>
+</div>
+
+使用 `cyberstrike hackbrowser <target>` 或 `hackbrowser` 工具启动。完整工作流请参阅 [Hacker Browser](/docs/tools/hacker-browser).
+
+---
+
+## 记忆系统
+
+Cyberstrike 包含持久记忆系统，用于跨会话存储上下文。
+
+### Memory Write
+
+将信息存储到持久记忆中。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `content` | string | 是 | 要存储的内容 |
+| `type` | string | 否 | `long_term` 存入 MEMORY.md，`daily` 存入带日期的笔记 |
+| `title` | string | 否 | 条目的可选标题 |
+
+#### 示例
+
+```json
+{
+  "content": "Target uses PostgreSQL 14.2 on port 5432",
+  "type": "long_term",
+  "title": "Database Configuration"
+}
+```
+
+#### 记忆类型
+
+| 类型 | 存储位置 | 用途 |
+|------|----------|------|
+| `long_term` | `.cyberstrike/MEMORY.md` | 决策、偏好、重要事实 |
+| `daily` | `.cyberstrike/memory/YYYY-MM-DD.md` | 会话笔记、临时上下文 |
+
+---
+
+### Memory Search
+
+搜索已存储的记忆。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `query` | string | 是 | 搜索关键词或短语 |
+
+#### 示例
+
+```json
+{
+  "query": "database credentials"
+}
+```
+
+---
+
+### Memory Read
+
+读取特定记忆文件。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `file` | string | 是 | 文件标识符 |
+
+#### 文件标识符
+
+| 标识符 | 描述 |
+|--------|------|
+| `long_term` | 长期记忆（MEMORY.md） |
+| `today` | 今天的每日笔记 |
+| `yesterday` | 昨天的笔记 |
+| `YYYY-MM-DD` | 特定日期的笔记 |
+| `list` | 列出所有记忆文件 |
+
+---
+
+### Memory Context
+
+检索会话的完整记忆上下文。
+
+#### 参数
+
+无需参数。
+
+#### 示例
+
+```json
+{}
+```
+
+返回合并的长期记忆和最近的每日笔记。
+
+---
+
+## 动态工具加载
+
+<img src="/docs/images/diagrams/tool-interaction-flow.svg" alt="工具如何变为可用：内置工具直接调用；MCP 工具通过 tool_search 发现、load_tools 加载后可调用，unload_tools 释放" className="my-6 mx-auto max-w-sm" />
+
+Cyberstrike 支持 MCP（Model Context Protocol）服务器的动态工具加载。这允许访问数百个工具而不会占满上下文窗口。
+
+### Tool Search
+
+按能力搜索可用的 MCP 工具。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `query` | string | 是 | 能力描述 |
+| `limit` | number | 否 | 最大结果数（默认：5） |
+
+#### 示例
+
+```json
+{
+  "query": "sql injection testing",
+  "limit": 10
+}
+```
+
+#### 输出
+
+```
+Found 3 tools:
+
+1. sqlmap_scan
+   SQL injection scanner using sqlmap
+   Estimated tokens: ~500
+
+2. nuclei_sqli
+   Nuclei templates for SQL injection
+   Estimated tokens: ~300
+
+3. manual_sqli
+   Manual SQL injection payloads
+   Estimated tokens: ~200
+```
+
+---
+
+### Load Tools
+
+将工具加载到上下文中以供使用。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `tool_ids` | string[] | 是 | 搜索结果中的工具 ID |
+
+#### 示例
+
+```json
+{
+  "tool_ids": ["sqlmap_scan", "nuclei_sqli"]
+}
+```
+
+---
+
+### Unload Tools
+
+从上下文中移除工具以释放空间。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `tool_ids` | string[] | 是 | 要卸载的工具 ID |
+
+---
+
+### List Loaded Tools
+
+显示当前已加载的工具和 token 使用情况。
+
+#### 参数
+
+无需参数。
+
+---
+
+## 任务管理
+
+### Task
+
+将工作委派给子代理。这就是主代理调度专业子代理的方式（参见[代理](/docs/agents)）。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `description` | string | 是 | 简短（3-5 词）的任务描述 |
+| `prompt` | string | 是 | 子代理要执行的任务 |
+| `subagent_type` | string | 是 | 要调度的子代理（例如 `web-application`、`general`） |
+
+---
+
+### TodoWrite
+
+将任务项写入待办列表。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `tasks` | array | 是 | 任务对象数组 |
+
+#### 任务对象
+
+```json
+{
+  "id": "1",
+  "content": "Scan for open ports",
+  "status": "pending",
+  "priority": "high"
+}
+```
+
+---
+
+## Web 工具
+
+### WebFetch
+
+获取和处理 Web 内容。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `url` | string | 是 | 要获取的 URL |
+| `format` | string | 否 | `text`、`markdown` 或 `html` |
+| `timeout` | number | 否 | 超时时间（秒，最大 120） |
+
+#### 示例
+
+```json
+{
+  "url": "https://target.com/robots.txt",
+  "format": "text"
+}
+```
+
+---
+
+### WebSearch
+
+执行 Web 搜索以收集信息。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `query` | string | 是 | 搜索查询 |
+
+---
+
+### CodeSearch
+
+搜索代码仓库和文档。
+
+#### 参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `query` | string | 是 | 代码搜索查询 |
+
+---
+
+## 工具权限
+
+每个工具需要特定的权限配置：
+
+| 权限 | 工具 | 默认 |
+|------|------|------|
+| `read` | Read | ask |
+| `edit` | Write、Edit | ask |
+| `glob` | Glob | allow |
+| `grep` | Grep | allow |
+| `bash` | Bash | ask |
+| `websearch` | WebSearch | ask |
+| `webfetch` | WebFetch | ask |
+| `codesearch` | CodeSearch | ask |
+| `task` | Task | ask |
+| `external_directory` | 项目外访问 | ask |
+
+### 配置
+
+```json
+{
+  "permission": {
+    "bash": "ask",
+    "edit": "allow",
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow"
+  }
+}
+```
+
+### 权限操作
+
+| 操作 | 描述 |
+|------|------|
+| `ask` | 提示用户批准 |
+| `allow` | 自动批准无需询问 |
+| `deny` | 阻止工具使用 |
+
+完整的权限模型和 glob 模式请参阅[权限](/docs/permissions)。
+
+---
+
+## 创建自定义工具
+
+通过在 `.cyberstrike/tools/` 中创建文件来添加自定义工具：
+
+```typescript title=".cyberstrike/tools/custom-scanner.ts"
+import { z } from "zod"
+
+export default {
+  description: "Custom vulnerability scanner",
+  args: {
+    target: z.string().describe("Target URL to scan"),
+    depth: z.number().default(3).describe("Scan depth"),
+  },
+  async execute(args, ctx): Promise<string> {
+    const { target, depth } = args
+    // Custom scanning logic
+    return `Scanned ${target} to depth ${depth}`
+  },
+}
+```
+
+任何 `.cyberstrike/` 文件夹中 `tool/` 或 `tools/` 目录下的文件会自动加载。
+
+### 工具定义模式
+
+| 字段 | 类型 | 描述 |
+|------|------|------|
+| `description` | string | 向模型显示的工具描述 |
+| `args` | object | 参数名 → Zod 模式的映射 |
+| `execute` | function | `async (args, ctx) => string` |
+
+---
+
+## MCP 服务器工具
+
+Cyberstrike 可以从 MCP 服务器加载工具。推荐的方式是 [Bolt](/docs/mcp/bolt)，它通过 Docker 容器和插件系统提供安全工具：
+
+```json title="cyberstrike.json"
+{
+  "bolt": {
+    "local": {
+      "url": "http://localhost:3001",
+      "enabled": true
+    }
+  }
+}
+```
+
+MCP 工具作为直接工具调用变为可用——每个插件直接按名称调用（例如 `nmap`、`nuclei`、`ffuf`）。
+
+<Aside variant="tip">
+  参阅 [Bolt](/docs/mcp/bolt) 了解推荐的安全工具设置——7 个插件加约 26 个聚合的 MCP 服务器，全部可作为直接工具调用。
+</Aside>

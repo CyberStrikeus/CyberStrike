@@ -1,0 +1,276 @@
+---
+title: Variaveis de Ambiente
+description: Configure o Cyberstrike usando variaveis de ambiente
+sidebar:
+  order: 4
+  label: Variaveis de Ambiente
+---
+
+Variaveis de ambiente configuram credenciais de provedores e alternam comportamentos em tempo de execucao — util para ambientes de CI/CD e containerizados.
+
+<Aside variant="info">
+  O Cyberstrike **nao** le configuracoes como modelo, agente ou tema a partir de variaveis de ambiente. Essas ficam no arquivo de configuracao (veja [Referencia de Configuracao](/docs/configuration)). As variaveis `CYBERSTRIKE_*` abaixo sao limitadas a credenciais, caminhos de configuracao e flags de comportamento.
+</Aside>
+
+{/* TODO: Screenshot - Environment variables in terminal */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: env-vars-terminal.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Definindo variaveis de ambiente no terminal</p>
+</div>
+
+## Chaves de API de Provedores
+
+As chaves de provedores usam os nomes de variaveis padrao do SDK. Consulte [Provedores de IA](/docs/providers) para a lista completa.
+
+### Anthropic
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-api03-..."
+```
+
+### OpenAI
+
+```bash
+export OPENAI_API_KEY="sk-proj-..."
+```
+
+### Google (Gemini)
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+# GEMINI_API_KEY tambem e aceito
+```
+
+### OpenRouter
+
+```bash
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+### Groq
+
+```bash
+export GROQ_API_KEY="gsk_..."
+```
+
+### Azure OpenAI
+
+```bash
+export AZURE_RESOURCE_NAME="your-resource"
+export AZURE_API_KEY="..."
+```
+
+### AWS Bedrock
+
+```bash
+export AWS_ACCESS_KEY_ID="AKIA..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+# ou um bearer token:
+export AWS_BEARER_TOKEN_BEDROCK="..."
+```
+
+## Variaveis de Caminho de Configuracao
+
+| Variavel | Descricao |
+|----------|-----------|
+| `CYBERSTRIKE_CONFIG` | Caminho completo para um arquivo de configuracao personalizado |
+| `CYBERSTRIKE_CONFIG_DIR` | Diretorio `.cyberstrike` adicional para escanear |
+| `CYBERSTRIKE_CONFIG_CONTENT` | Configuracao JSON inline (sobrescreve fontes de arquivo) |
+| `CYBERSTRIKE_DISABLE_PROJECT_CONFIG` | Defina como verdadeiro para pular o carregamento da configuracao do projeto |
+| `CYBERSTRIKE_PERMISSION` | Sobrescrita de permissao como string JSON |
+
+## Flags de Comportamento
+
+Estas variaveis alternam comportamentos em tempo de execucao. Flags booleanas sao habilitadas quando definidas com um valor verdadeiro (`1`, `true`).
+
+| Variavel | Descricao |
+|----------|-----------|
+| `CYBERSTRIKE_AUTO_SHARE` | Auto-compartilhar sessoes recem-criadas |
+| `CYBERSTRIKE_DISABLE_AUTOUPDATE` | Desabilitar atualizacoes automaticas |
+| `CYBERSTRIKE_DISABLE_AUTOCOMPACT` | Desabilitar compactacao automatica de contexto |
+| `CYBERSTRIKE_DISABLE_PRUNE` | Desabilitar poda de saidas antigas de ferramentas |
+| `CYBERSTRIKE_DISABLE_TERMINAL_TITLE` | Nao atualizar o titulo do terminal |
+| `CYBERSTRIKE_DISABLE_DEFAULT_PLUGINS` | Pular carregamento dos plugins integrados |
+| `CYBERSTRIKE_DISABLE_LSP_DOWNLOAD` | Nao baixar servidores LSP |
+| `CYBERSTRIKE_DISABLE_MODELS_FETCH` | Nao buscar o catalogo remoto de modelos |
+| `CYBERSTRIKE_DISABLE_EXTERNAL_SKILLS` | Pular carregamento de skills externas |
+| `CYBERSTRIKE_ENABLE_EXA` | Habilitar busca web via Exa |
+| `CYBERSTRIKE_MODELS_URL` | Sobrescrever a URL do catalogo de modelos |
+| `CYBERSTRIKE_MODELS_PATH` | Carregar o catalogo de modelos de um caminho local |
+
+### Credenciais do Servidor
+
+Usadas por `cyberstrike serve` e `cyberstrike web`:
+
+```bash
+export CYBERSTRIKE_SERVER_PASSWORD="..."   # obrigatorio para iniciar o servidor
+export CYBERSTRIKE_SERVER_USERNAME="admin" # opcional, existem valores padrao
+```
+
+## Referenciando Variaveis na Configuracao
+
+Arquivos de configuracao suportam duas substituicoes — e apenas estas duas:
+
+### Variaveis de Ambiente — `{env:VAR}`
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+`{env:VAR}` e substituido pelo valor de `VAR`, ou uma string vazia se nao definido. Sintaxe estilo shell `${VAR}`, `$VAR` e sintaxe de valor padrao (`{env:VAR:-default}`) **nao** sao suportadas.
+
+### Conteudo de Arquivos — `{file:path}`
+
+```json
+{
+  "instructions": ["{file:./SECURITY.md}"]
+}
+```
+
+Caminhos podem ser relativos ao arquivo de configuracao, absolutos ou comecar com `~/` para o diretorio home.
+
+## Sobrescrita de Permissoes para Automacao
+
+`cyberstrike run` (nao interativo) rejeita automaticamente qualquer chamada de ferramenta que normalmente solicitaria aprovacao. Para pre-aprovar ferramentas em CI, passe um mapa de permissoes JSON via `CYBERSTRIKE_PERMISSION`:
+
+```bash
+export CYBERSTRIKE_PERMISSION='{"bash":"allow","edit":"allow","read":"allow"}'
+```
+
+O valor segue o mesmo formato do campo `permission` da configuracao. Consulte [Permissoes](/docs/permissions).
+
+## Configuracao do Shell
+
+### Bash / Zsh
+
+```bash title="~/.bashrc / ~/.zshrc"
+export ANTHROPIC_API_KEY="sk-ant-..."
+export CYBERSTRIKE_AUTO_SHARE=1
+```
+
+### Fish
+
+```fish title="~/.config/fish/config.fish"
+set -gx ANTHROPIC_API_KEY "sk-ant-..."
+set -gx CYBERSTRIKE_AUTO_SHARE 1
+```
+
+## Arquivos .env
+
+```bash title=".env"
+ANTHROPIC_API_KEY=sk-ant-...
+CYBERSTRIKE_PERMISSION={"bash":"allow"}
+```
+
+```bash
+# Carregue antes de iniciar
+source .env && cyberstrike
+```
+
+<Aside variant="caution">
+  Nunca faca commit de arquivos `.env` no controle de versao. Adicione `.env` ao `.gitignore`.
+</Aside>
+
+## Integracao CI/CD
+
+### GitHub Actions
+
+```yaml
+env:
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow","edit":"allow"}'
+
+steps:
+  - name: Security Scan
+    run: cyberstrike run "scan for vulnerabilities"
+```
+
+### GitLab CI
+
+```yaml
+variables:
+  CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow"}'
+
+security_scan:
+  script:
+    - cyberstrike run "analyze code for security issues"
+```
+
+## Docker
+
+### Docker Run
+
+```bash
+docker run -it \
+  -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+  -e CYBERSTRIKE_PERMISSION='{"bash":"allow"}' \
+  cyberstrike/cyberstrike
+```
+
+### Docker Compose
+
+```yaml title="docker-compose.yml"
+services:
+  cyberstrike:
+    image: cyberstrike/cyberstrike
+    environment:
+      - ANTHROPIC_API_KEY
+      - CYBERSTRIKE_AUTO_SHARE=1
+    env_file:
+      - .env
+```
+
+## Ordem de Prioridade
+
+As fontes de configuracao sao mescladas nesta ordem (a mais alta vence):
+
+```
+1. Argumentos de linha de comando
+2. Configuracao gerenciada empresarial
+3. CYBERSTRIKE_CONFIG_CONTENT (JSON inline)
+4. Configuracao do diretorio .cyberstrike/
+5. Configuracao do projeto (cyberstrike.json / .jsonc)
+6. CYBERSTRIKE_CONFIG (arquivo personalizado)
+7. Configuracao global (~/.config/cyberstrike/)
+8. Remoto .well-known/cyberstrike
+9. Valores padrao
+```
+
+Consulte a [Referencia de Configuracao](/docs/configuration#configuration-hierarchy) para detalhes.
+
+## Verificando Variaveis
+
+```bash
+# Listar variaveis ativas do Cyberstrike
+env | grep CYBERSTRIKE
+
+# Verificar se uma chave de provedor esta definida (sem imprimi-la completamente)
+echo "${ANTHROPIC_API_KEY:0:12}..."
+```
+
+## Seguranca
+
+1. Nunca exiba chaves de API completas
+2. Use gerenciamento de secrets em CI/CD
+3. Rotacione chaves periodicamente
+4. Restrinja permissoes de `.env`: `chmod 600 .env`
+
+<Aside variant="tip">
+  Use um gerenciador de secrets como HashiCorp Vault, AWS Secrets Manager ou 1Password CLI para ambientes de producao.
+</Aside>
+
+## Documentacao Relacionada
+
+- [Referencia de Configuracao](/docs/configuration) - Todas as opcoes de configuracao
+- [Configuracao do Projeto](/docs/configuration/project-config) - Configuracoes do projeto
+- [Configuracao Global](/docs/configuration/global-config) - Configuracoes globais
+- [Autenticacao](/docs/getting-started/authentication) - Configuracao de autenticacao

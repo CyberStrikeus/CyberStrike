@@ -1,0 +1,155 @@
+---
+title: TUI
+description: Interface interativa de terminal para CyberStrike — comandos slash, atalhos de teclado e configuracao
+sidebar:
+  order: 1
+  label: TUI
+---
+
+A TUI (Interface de Usuario de Terminal) e a interface principal do CyberStrike. Diferente de um CLI tradicional onde voce digita comandos e recebe saida em texto, a TUI e uma aplicacao persistente e interativa que roda dentro do seu terminal — com area de prompt, painel de resposta rolavel, barra de status e streaming em tempo real dos agentes de IA.
+
+```bash
+cyberstrike
+```
+
+Esse unico comando abre a TUI. Voce permanece dentro dela durante toda a sessao.
+
+## TUI vs CLI
+
+| | TUI | CLI |
+|---|---|---|
+| **Lancamento** | `cyberstrike` | `cyberstrike run "prompt"` |
+| **Interacao** | Continua — digite, leia, digite novamente | Unica — execute, obtenha saida, saia |
+| **Sessoes** | Persistentes, retomáveis, renomeaveis | Efemeras (ou `--continue` para retomar) |
+| **Saida do agente** | Streaming em tempo real com formatacao | Streaming para stdout como texto simples |
+| **Comandos** | Comandos slash (`/hackbrowser`, `/bolt`) | Flags CLI (`--model`, `--agent`) |
+| **Melhor para** | Avaliacoes interativas, exploracao | Scripting, CI/CD, automacao |
+
+A TUI e onde voce faz trabalho pratico. O CLI e para encaminhar saida para outras ferramentas ou executar a partir de scripts.
+
+## O Prompt
+
+Na parte inferior da TUI esta o prompt de entrada. E onde voce digita:
+
+- **Linguagem natural** — descreva o que voce quer testar, e o harness despacha agentes
+- **Comandos slash** — digite `/` para abrir a paleta de comandos, ou digite o comando completo
+- **Acompanhamentos** — continue a conversa como um chat
+
+Pressione `Enter` para enviar. Pressione `Shift+Enter` para nova linha.
+
+### Comandos Slash
+
+Comandos slash sao acoes da TUI acionadas ao digitar `/` seguido do nome do comando. Eles controlam o harness — lancando ferramentas, trocando modelos, gerenciando sessoes — sem sair do prompt.
+
+Digite `/` para abrir a paleta de comandos com autocomplete, ou digite o comando completo diretamente.
+
+#### Sessao
+
+| Comando | O que faz |
+|---------|-----------|
+| `/new` | Iniciar nova sessao em uma nova aba |
+| `/sessions` | Navegar e alternar entre sessoes |
+| `/rename` | Renomear a sessao atual |
+| `/fork` | Bifurcar a sessao atual em uma nova aba |
+| `/compact` | Resumir a conversa para liberar contexto |
+| `/share` | Criar um link de sessao compartilhavel |
+| `/export` | Exportar a transcricao da sessao |
+| `/copy` | Copiar a conversa para area de transferencia |
+| `/undo` | Desfazer a ultima acao |
+| `/redo` | Refazer a ultima acao desfeita |
+
+#### Ferramentas de Seguranca
+
+| Comando | O que faz |
+|---------|-----------|
+| `/hackbrowser` | Lancar HackBrowser — abre o dialogo de crawl com alvo, credenciais e escopo |
+| `/hackbrowser-stop` | Parar o crawl do HackBrowser em execucao |
+| `/bolt` | Parear ou gerenciar um servidor de ferramentas de seguranca Bolt |
+| `/mcp` | Gerenciar conexoes de servidores MCP |
+| `/skills` | Navegar scripts de skills WSTG disponiveis |
+
+#### Avaliacao
+
+| Comando | O que faz |
+|---------|-----------|
+| `/vulnerabilities` | Ver todas as descobertas com severidade e status |
+| `/web` | Inspecionar endpoints capturados, perfis, credenciais, objetos |
+| `/methodology` | Ver cobertura WSTG — quais categorias testadas, quais pendentes |
+| `/report` | Gerar um relatorio de pentest estruturado |
+| `/qpause` | Pausar a fila de agentes |
+| `/qresume` | Retomar a fila de agentes |
+
+#### Configuracao
+
+| Comando | O que faz |
+|---------|-----------|
+| `/connect` | Conectar um provedor de IA (chave de API ou OAuth) |
+| `/models` | Trocar o modelo ativo |
+| `/status` | Mostrar provedores conectados, MCPs e informacoes do sistema |
+| `/thinking` | Alternar visibilidade do raciocinio do modelo |
+| `/timeline` | Pular para uma mensagem especifica na conversa |
+| `/help` | Mostrar todos os comandos disponiveis e atalhos de teclado |
+
+### Digitando um Comando Slash
+
+Quando voce digita `/` a paleta de comandos abre com sugestoes filtradas:
+
+```
+> /hack
+  ┌──────────────────────────────────┐
+  │ /hackbrowser     Lancar crawler  │
+  │ /hackbrowser-stop  Parar crawl   │
+  └──────────────────────────────────┘
+```
+
+Selecione com teclas de seta e `Enter`, ou continue digitando para filtrar mais.
+
+Alguns comandos abrem dialogos (como `/hackbrowser` que mostra um formulario para URL alvo, credenciais e escopo). Outros executam imediatamente (como `/compact`).
+
+## Atalhos de Teclado
+
+| Atalho | Acao |
+|--------|------|
+| `Enter` | Enviar mensagem |
+| `Shift+Enter` | Nova linha no prompt |
+| `Escape` | Interromper o agente em execucao |
+| `Ctrl+P` | Abrir paleta de comandos |
+| `Tab` | Alternar para proximo agente |
+| `Ctrl+R` | Renomear sessao |
+| `Ctrl+D` | Sair do CyberStrike |
+| `↑` / `↓` | Navegar historico de entrada |
+
+## Configuracao
+
+Personalize a TUI com `tui.json` (ou `tui.jsonc`) no seu diretorio de projeto ou config:
+
+```json
+{
+  "$schema": "https://cyberstrike.io/tui.json",
+  "theme": "cyberstrike",
+  "keybinds": {
+    "leader": "ctrl+x"
+  },
+  "scroll_speed": 3,
+  "scroll_acceleration": {
+    "enabled": true
+  },
+  "diff_style": "auto"
+}
+```
+
+| Opcao | Descricao | Padrao |
+|-------|-----------|--------|
+| `theme` | Tema de cores da UI | `cyberstrike` |
+| `keybinds.leader` | Tecla leader para atalhos | `ctrl+x` |
+| `scroll_speed` | Velocidade de rolagem (min: `0.001`) | `3` |
+| `scroll_acceleration.enabled` | Aceleracao de rolagem estilo macOS | `false` |
+| `diff_style` | `auto` adapta a largura, `stacked` coluna unica | `auto` |
+
+Use `CYBERSTRIKE_TUI_CONFIG` para especificar um caminho de config personalizado.
+
+## Temas
+
+O CyberStrike vem com temas integrados. Troque pela paleta de comandos — pressione `Ctrl+P` e procure "theme".
+
+<img src="/docs/images/screenshots/tui-theme-selector.png" alt="Seletor de temas com temas integrados" className="rounded-lg shadow-lg my-6 w-full" />

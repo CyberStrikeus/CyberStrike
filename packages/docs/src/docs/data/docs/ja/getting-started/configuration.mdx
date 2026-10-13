@@ -1,0 +1,70 @@
+---
+title: 設定
+description: ペネトレーションテストワークフローに合わせたCyberstrikeの設定
+sidebar:
+  order: 2
+  label: 設定
+---
+
+CyberstrikeはJSONファイルで設定します。このページは簡単な紹介です。完全な階層、すべてのオプション、関連ガイドについては[設定リファレンス](/docs/configuration)を参照してください。
+
+## 設定ファイル
+
+プロジェクトディレクトリに`cyberstrike.json`を作成します：
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike"
+}
+```
+
+モデルは`provider/model`の形式で記述します。別途`provider`フィールドはありません。`default_agent`はプライマリエージェントである必要があります（`cyberstrike`が組み込みのもので、自動的に専門のサブエージェントに委任します）。
+
+## 一般的なオプション
+
+| オプション | 型 | 説明 |
+|-----------|-----|------|
+| `model` | string | デフォルトモデル（`provider/model`形式） |
+| `small_model` | string | 軽量タスク用モデル（タイトル生成） |
+| `default_agent` | string | デフォルトのプライマリエージェント（フォールバックは`cyberstrike`） |
+| `theme` | string | インターフェーステーマ（デフォルトは`cyberstrike`） |
+| `permission` | object | ツールごとの権限 — [権限](/docs/permissions)を参照 |
+| `provider` | object | プロバイダーIDをキーとするプロバイダー別設定 |
+| `instructions` | string[] | システムプロンプトに追加されるファイル/グロブ |
+
+## 環境変数
+
+APIキーを環境変数として設定します：
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+## 権限とプロバイダー
+
+`permission`でツールの許可・制限を、`provider`でプロバイダーの詳細設定を行います：
+
+```json title="cyberstrike.json"
+{
+  "permission": {
+    "read": "allow",
+    "bash": { "*": "ask", "rm -rf *": "deny" }
+  },
+  "provider": {
+    "anthropic": {
+      "options": { "apiKey": "{env:ANTHROPIC_API_KEY}" }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  APIキーをバージョン管理にコミットしないでください。環境変数または`.env`ファイル（`.gitignore`に追加）を使用してください。
+</Aside>
+
+完全なスキーマ、優先順位、MCP、キーバインドなどについては[設定リファレンス](/docs/configuration)を参照してください。

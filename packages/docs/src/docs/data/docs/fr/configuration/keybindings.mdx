@@ -1,0 +1,215 @@
+---
+title: Configuration des raccourcis clavier
+description: Personnaliser les raccourcis clavier pour Cyberstrike
+sidebar:
+  order: 5
+  label: Raccourcis clavier
+---
+
+Personnalisez les raccourcis clavier pour correspondre à votre flux de travail. Les raccourcis sont définis dans l'objet `keybinds` de votre fichier de configuration.
+
+{/* TODO: Screenshot - Keybindings configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: keybindings-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Options de configuration des raccourcis clavier</p>
+</div>
+
+## Emplacement de la configuration
+
+Les raccourcis clavier sont configurés dans votre fichier de configuration globale ou de projet :
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "session_new": "<leader>n"
+  }
+}
+```
+
+Seules les clés listées sur cette page sont valides — l'objet `keybinds` est validé strictement, les clés inconnues sont rejetées.
+
+## Touche leader
+
+La touche leader est un préfixe pour de nombreux raccourcis (par défaut `ctrl+x`) :
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a"
+  }
+}
+```
+
+## Syntaxe des touches
+
+### Modificateurs
+
+| Modificateur | Syntaxe |
+|----------|--------|
+| Control | `ctrl` |
+| Alt/Option | `alt` |
+| Shift | `shift` |
+| Super/Command | `super` |
+
+### Touches spéciales
+
+| Touche | Syntaxe |
+|-----|--------|
+| Entrée | `return` |
+| Échap | `escape` |
+| Tab | `tab` |
+| Retour arrière | `backspace` |
+| Supprimer | `delete` |
+| Flèches | `up` `down` `left` `right` |
+| Page Haut / Bas | `pageup` `pagedown` |
+| Début / Fin | `home` `end` |
+| Touches de fonction | `f2`, `shift+f2` |
+
+### Combinaisons, alternatives et leader
+
+```
+ctrl+alt+d          # Ctrl + Alt + D
+<leader>n           # Leader puis N
+pageup,ctrl+alt+b   # deux raccourcis alternatifs pour une même action (séparés par des virgules)
+```
+
+Une virgule sépare les raccourcis **alternatifs** pour la même action. Définissez une valeur à `none` pour désactiver une action.
+
+## Actions disponibles
+
+Chaque action ci-dessous montre son raccourci par défaut. Surchargez n'importe quel sous-ensemble dans votre objet `keybinds`.
+
+### Sessions
+
+| Action | Par défaut | Description |
+|--------|---------|-------------|
+| `session_new` | `<leader>n` | Créer une nouvelle session |
+| `session_list` | `<leader>l` | Lister toutes les sessions |
+| `session_compact` | `<leader>c` | Compacter la session |
+| `session_timeline` | `<leader>g` | Afficher la chronologie de la session |
+| `session_rename` | `ctrl+r` | Renommer la session |
+| `session_delete` | `ctrl+d` | Supprimer la session |
+| `session_export` | `<leader>x` | Exporter la session vers l'éditeur |
+| `session_interrupt` | `escape` | Interrompre la session en cours |
+| `session_fork` | `none` | Dupliquer la session depuis un message |
+| `session_share` | `none` | Partager la session en cours |
+| `session_child_cycle` | `<leader>right` | Session enfant suivante |
+| `session_parent` | `<leader>up` | Aller à la session parente |
+
+### Messages et navigation
+
+| Action | Par défaut | Description |
+|--------|---------|-------------|
+| `messages_page_up` | `pageup,ctrl+alt+b` | Défiler d'une page vers le haut |
+| `messages_page_down` | `pagedown,ctrl+alt+f` | Défiler d'une page vers le bas |
+| `messages_half_page_up` | `ctrl+alt+u` | Défiler d'une demi-page vers le haut |
+| `messages_half_page_down` | `ctrl+alt+d` | Défiler d'une demi-page vers le bas |
+| `messages_first` | `ctrl+g,home` | Aller au premier message |
+| `messages_last` | `ctrl+alt+g,end` | Aller au dernier message |
+| `messages_copy` | `<leader>y` | Copier le message |
+| `messages_undo` | `<leader>u` | Annuler le message |
+| `messages_redo` | `<leader>r` | Rétablir le message |
+| `messages_toggle_conceal` | `<leader>h` | Basculer le masquage des blocs de code |
+
+### Listes et boîtes de dialogue
+
+| Action | Par défaut | Description |
+|--------|---------|-------------|
+| `model_list` | `<leader>m` | Lister les modèles disponibles |
+| `agent_list` | `<leader>a` | Lister les agents |
+| `agent_cycle` | `tab` | Agent suivant |
+| `agent_cycle_reverse` | `shift+tab` | Agent précédent |
+| `theme_list` | `<leader>t` | Lister les thèmes disponibles |
+| `command_list` | `ctrl+p` | Lister les commandes disponibles |
+
+### Interface
+
+| Action | Par défaut | Description |
+|--------|---------|-------------|
+| `sidebar_toggle` | `<leader>b` | Basculer la barre latérale |
+| `status_view` | `<leader>s` | Afficher le statut |
+| `editor_open` | `<leader>e` | Ouvrir l'éditeur externe |
+| `tips_toggle` | `<leader>h` | Basculer les astuces de l'écran d'accueil |
+
+### Application et saisie
+
+| Action | Par défaut | Description |
+|--------|---------|-------------|
+| `app_exit` | `ctrl+c,ctrl+d,<leader>q` | Quitter l'application |
+| `terminal_suspend` | `ctrl+z` | Suspendre le terminal |
+| `input_submit` | `return` | Soumettre la saisie |
+| `input_newline` | `shift+return,ctrl+return,alt+return,ctrl+j` | Insérer un retour à la ligne |
+| `input_clear` | `ctrl+c` | Effacer le champ de saisie |
+| `input_paste` | `ctrl+v` | Coller depuis le presse-papiers |
+
+<Aside variant="info">
+  Le champ de saisie dispose également d'un large ensemble de raccourcis de déplacement du curseur et d'édition (`input_move_*`, `input_word_*`, `input_delete_*`, etc.). Ils suivent la même convention de nommage `keybinds` et peuvent être surchargés de la même manière.
+</Aside>
+
+## Exemple de configuration complète
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "session_compact": "<leader>c",
+    "session_timeline": "<leader>g",
+    "session_rename": "ctrl+r",
+    "session_export": "<leader>x",
+
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "theme_list": "<leader>t",
+    "command_list": "ctrl+p",
+
+    "sidebar_toggle": "<leader>b",
+    "status_view": "<leader>s",
+    "editor_open": "<leader>e",
+
+    "messages_half_page_up": "ctrl+alt+u",
+    "messages_half_page_down": "ctrl+alt+d",
+    "messages_undo": "<leader>u",
+
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+## Raccourcis multiples
+
+Attribuez plusieurs raccourcis à une action avec une virgule :
+
+```json
+{
+  "keybinds": {
+    "app_exit": "ctrl+c,ctrl+d,<leader>q",
+    "model_list": "<leader>m,ctrl+shift+m"
+  }
+}
+```
+
+La virgule sépare les raccourcis alternatifs — ce n'est pas une séquence d'accords.
+
+## Réinitialiser les raccourcis
+
+Il n'y a pas de commande de réinitialisation. Pour restaurer un raccourci par défaut, supprimez la clé de votre objet `keybinds` (ou supprimez l'objet entier pour restaurer toutes les valeurs par défaut).
+
+## Dépannage
+
+1. Vérifiez les conflits avec votre émulateur de terminal
+2. Vérifiez que la configuration est du JSON valide et que le nom de la clé correspond exactement à cette page (les clés inconnues échouent à la validation)
+3. Parcourez les commandes enregistrées dans le TUI avec `command_list` (`ctrl+p`)
+
+<Aside variant="tip">
+  Utilisez `/help` dans Cyberstrike pour voir une référence rapide des raccourcis clavier actifs.
+</Aside>
+
+## Documentation associée
+
+- [Référence de configuration](/docs/configuration) - Toutes les options de configuration
+- [Raccourcis clavier](/docs/getting-started/keyboard-shortcuts) - Référence des raccourcis
+- [Configuration globale](/docs/configuration/global-config) - Guide de configuration

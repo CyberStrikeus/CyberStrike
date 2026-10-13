@@ -1,0 +1,403 @@
+---
+title: Bash 工具
+description: 使用 Cyberstrike 执行 shell 命令进行安全测试
+sidebar:
+  order: 3
+  label: Bash
+---
+
+Bash 工具执行 shell 命令，用于系统交互、工具调用和安全测试。
+
+{/* TODO: Screenshot - Bash command execution */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: bash-execution.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Bash 工具命令执行</p>
+</div>
+
+## 概述
+
+Bash 工具支持：
+
+- 运行安全工具（nmap、nuclei、sqlmap）
+- 系统管理命令
+- Git 操作
+- 包管理
+- 自定义脚本
+
+## 基本用法
+
+### 简单命令
+
+```
+> Run nmap scan on 192.168.1.1
+```
+
+执行：
+```bash
+nmap -sV 192.168.1.1
+```
+
+### 带参数
+
+```
+> Check open ports on target with service detection
+```
+
+执行：
+```bash
+nmap -sV -sC -p- 192.168.1.1
+```
+
+### 管道命令
+
+```
+> Find all .env files and search for API keys
+```
+
+执行：
+```bash
+find . -name "*.env*" -exec grep -l "API" {} \;
+```
+
+## 安全工具
+
+### 网络扫描
+
+```
+> Scan the network 10.0.0.0/24 for live hosts
+```
+
+```bash
+nmap -sn 10.0.0.0/24
+```
+
+### 漏洞扫描
+
+```
+> Run nuclei templates against https://target.com
+```
+
+```bash
+nuclei -u https://target.com -t cves/
+```
+
+### Web 测试
+
+```
+> Fuzz directories on target website
+```
+
+```bash
+ffuf -u https://target.com/FUZZ -w /usr/share/wordlists/dirb/common.txt
+```
+
+### 密码攻击
+
+```
+> Test for default credentials on SSH
+```
+
+```bash
+hydra -L users.txt -P passwords.txt ssh://192.168.1.1
+```
+
+## 命令超时
+
+### 默认超时
+
+命令默认在 120 秒后超时。
+
+### 长时间运行的命令
+
+对于耗时操作：
+
+```
+> Run comprehensive port scan (may take a while)
+```
+
+代理会使用适当的超时：
+```bash
+timeout 600 nmap -p- -sV 192.168.1.1
+```
+
+### 后台执行
+
+```
+> Start the scan in background
+```
+
+```bash
+nmap -p- 192.168.1.1 > scan_results.txt &
+```
+
+## 工作目录
+
+### 当前目录
+
+命令在当前工作目录中运行：
+
+```
+> List files in current directory
+```
+
+```bash
+ls -la
+```
+
+### 切换目录
+
+```
+> Navigate to the web directory and list contents
+```
+
+```bash
+cd /var/www/html && ls -la
+```
+
+## 环境变量
+
+### 使用变量
+
+```
+> Use the target IP from environment
+```
+
+```bash
+nmap -sV $TARGET_IP
+```
+
+### 设置变量
+
+```
+> Set target and scan
+```
+
+```bash
+export TARGET="192.168.1.1" && nmap $TARGET
+```
+
+## 输出处理
+
+### 捕获输出
+
+```
+> Save scan results to file
+```
+
+```bash
+nmap -sV 192.168.1.1 -oN scan_results.txt
+```
+
+### JSON 输出
+
+```
+> Get scan results in JSON format
+```
+
+```bash
+nmap -sV 192.168.1.1 -oX - | xq .
+```
+
+### 解析结果
+
+```
+> Extract open ports from nmap output
+```
+
+```bash
+grep "^[0-9]" scan_results.txt | cut -d'/' -f1
+```
+
+## 权限控制
+
+### 危险命令
+
+破坏性命令需要显式权限：
+
+| 命令类型 | 示例 | 需要权限 |
+|----------|------|----------|
+| 只读 | `ls`、`cat`、`nmap` | 否 |
+| 文件修改 | `rm`、`mv` | 是 |
+| 系统变更 | `apt install` | 是 |
+| 网络攻击 | `msfconsole` | 是 |
+
+### 自动批准命令
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "permission": {
+    "bash": {
+      "nmap *": "allow",
+      "nuclei *": "allow",
+      "ffuf *": "allow"
+    }
+  }
+}
+```
+
+### 阻止危险命令
+
+```json
+{
+  "permission": {
+    "bash": {
+      "rm -rf *": "deny",
+      "dd *": "deny",
+      ":(){ :|:& };:": "deny"
+    }
+  }
+}
+```
+
+`bash` 权限将 glob（与命令字符串匹配）映射到操作（`ask`、`allow` 或 `deny`）。仅支持 `*` 和 `?` 作为通配符。完整模型请参阅[权限](/docs/permissions)。
+
+## 安全测试工作流
+
+### 侦察
+
+```
+> Perform initial reconnaissance on target.com
+
+1. DNS enumeration
+2. Subdomain discovery
+3. Port scanning
+4. Service identification
+```
+
+执行多个命令：
+
+```bash
+dig target.com ANY
+subfinder -d target.com
+nmap -sV -sC target.com
+```
+
+### 利用
+
+```
+> Attempt SQL injection with sqlmap
+```
+
+```bash
+sqlmap -u "https://target.com/page?id=1" --batch --dbs
+```
+
+### 后利用
+
+```
+> Enumerate the compromised system
+```
+
+```bash
+uname -a
+id
+cat /etc/passwd
+ls -la /home/
+```
+
+## 工具集成
+
+### Metasploit
+
+```
+> Search for exploits for Apache 2.4.49
+```
+
+```bash
+msfconsole -q -x "search apache 2.4.49; exit"
+```
+
+### Burp Suite
+
+```
+> Start Burp Suite in headless mode
+```
+
+```bash
+java -jar burpsuite.jar --headless
+```
+
+### 自定义脚本
+
+```
+> Run the custom enumeration script
+```
+
+```bash
+./scripts/enum.sh $TARGET
+```
+
+## 错误处理
+
+### 命令错误
+
+失败的命令会显示错误输出：
+
+```
+Command failed:
+$ nmap -sV nonexistent.host
+Host seems down. If it is really up, but blocking our ping probes, try -Pn
+```
+
+### 重试逻辑
+
+```
+> Retry the scan with -Pn flag
+```
+
+```bash
+nmap -sV -Pn 192.168.1.1
+```
+
+## 最佳实践
+
+1. **验证目标**——仔细检查 IP 和域名
+2. **使用超时**——为长时间扫描设置适当的超时
+3. **保存输出**——始终保存重要结果
+4. **检查权限**——确保已授权访问
+5. **清理**——测试后删除临时文件
+
+<Aside variant="danger">
+  切勿在未获授权的情况下对目标运行命令。未经授权的访问是违法的。
+</Aside>
+
+## 故障排除
+
+### 命令未找到
+
+```
+Error: command not found: nuclei
+```
+
+安装工具或检查 PATH：
+
+```bash
+which nuclei
+export PATH=$PATH:/opt/tools
+```
+
+### 权限被拒绝
+
+```
+Error: permission denied
+```
+
+可能需要 sudo：
+
+```bash
+sudo nmap -sS 192.168.1.1
+```
+
+### 超时
+
+```
+Error: command timed out
+```
+
+使用显式超时或后台执行。
+
+## 相关文档
+
+- [文件操作](/docs/tools/file-operations) - 文件处理
+- [权限](/docs/permissions) - 命令权限
+- [Bolt](/docs/mcp/bolt) - 通过 MCP 提供的额外安全工具

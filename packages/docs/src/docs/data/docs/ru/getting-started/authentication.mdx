@@ -1,0 +1,211 @@
+---
+title: Аутентификация
+description: Настройка учётных данных ИИ-провайдеров для Cyberstrike
+sidebar:
+  order: 3
+  label: Аутентификация
+---
+
+Для работы Cyberstrike требуется аутентификация хотя бы с одним ИИ-провайдером. В этом руководстве описана настройка учётных данных для поддерживаемых провайдеров.
+
+## Подключение провайдера
+
+Самый простой способ аутентификации — выполните в TUI:
+
+```
+/connect
+```
+
+Выберите провайдера из интерактивного меню:
+
+```
+? Select provider
+❯ cyberstrike (recommended)
+  anthropic (Claude Max or API key)
+  github-copilot
+  openai (ChatGPT Plus/Pro or API key)
+  google
+  openrouter
+  …
+```
+
+Список формируется динамически из каталога моделей и упорядочен по приоритету, поэтому конкретные пункты могут отличаться. Это поле с автодополнением, а не фиксированное меню.
+
+## Настройка по провайдерам
+
+### Anthropic
+
+1. Получите API-ключ на [console.anthropic.com](https://console.anthropic.com)
+2. Выполните `/connect`, выберите **Anthropic**, введите API-ключ
+
+### OpenAI
+
+1. Получите API-ключ на [platform.openai.com](https://platform.openai.com)
+2. Выполните `/connect`, выберите **OpenAI**, введите API-ключ
+
+### GitHub Copilot
+
+1. Имейте активную подписку GitHub Copilot
+2. Выполните `/connect`, выберите **Login with GitHub Copilot**
+3. Авторизуйтесь через OAuth-процесс в браузере — API-ключ не нужен
+
+Подробнее см. [GitHub Copilot](/docs/providers/github-copilot).
+
+### OpenRouter
+
+OpenRouter предоставляет доступ к множеству моделей с бесплатным планом:
+
+1. Получите API-ключ на [openrouter.ai/keys](https://openrouter.ai/keys)
+2. Выполните `/connect`, выберите **OpenRouter**, введите API-ключ
+
+### Google Gemini
+
+1. Получите API-ключ на [ai.google.dev](https://ai.google.dev)
+2. Выполните `/connect`, выберите **Google**, введите API-ключ
+
+### Ollama (Локально)
+
+Ollama не требует API-ключа, но должен быть запущен локально:
+
+```bash
+# Запустить Ollama
+ollama serve
+
+# Скачать модель
+ollama pull llama3.3
+```
+
+Затем используйте `/models` для выбора модели Ollama.
+
+## Переменные окружения
+
+Установите учётные данные через переменные окружения для CI/CD или автоматизации:
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+
+# Groq
+export GROQ_API_KEY="gsk_..."
+```
+
+Добавьте в профиль оболочки для сохранения:
+
+```bash
+# ~/.bashrc или ~/.zshrc
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+## Файл конфигурации
+
+Храните учётные данные в файле конфигурации:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="tip">
+  Используйте синтаксис `{env:VAR_NAME}` для ссылки на переменные окружения в файлах конфигурации.
+</Aside>
+
+## Управление учётными данными
+
+### Просмотр статуса
+
+Используйте `/status` в TUI для просмотра подключённых провайдеров и активных учётных данных.
+
+### Смена модели
+
+Используйте `/models` для переключения между моделями любого подключённого провайдера. Или установите значение по умолчанию в конфигурации:
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## Корпоративная аутентификация
+
+### AWS Bedrock
+
+```bash
+# Настройка учётных данных AWS
+aws configure
+
+# Или через переменные окружения
+export AWS_ACCESS_KEY_ID="..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+```
+
+Затем выполните `/connect` и выберите **Amazon Bedrock**.
+
+### Azure OpenAI
+
+```bash
+export AZURE_API_KEY="..."
+export AZURE_RESOURCE_NAME="your-resource"
+```
+
+### Google Vertex AI
+
+```bash
+gcloud auth application-default login
+```
+
+## Лучшие практики безопасности
+
+1. **Никогда не коммитьте API-ключи** в систему контроля версий
+2. **Используйте переменные окружения** для конфиденциальных значений
+3. **Регулярно ротируйте ключи** для безопасности
+4. **Используйте ключи с ограниченными правами** когда это возможно
+5. **Отслеживайте использование** в панели управления провайдера
+
+## Устранение неполадок
+
+### Недействительный API-ключ
+
+```
+Error: Invalid API key
+```
+
+1. Убедитесь, что ключ правильный (без лишних пробелов)
+2. Проверьте, не истёк ли срок действия ключа
+3. Убедитесь, что биллинг активен у провайдера
+
+### Превышение лимитов
+
+```
+Error: Rate limit exceeded
+```
+
+1. Подождите и повторите попытку
+2. Проверьте лимиты в панели управления провайдера
+3. Рассмотрите обновление плана
+
+### Проблемы с сетью
+
+```
+Error: Connection refused
+```
+
+1. Проверьте интернет-соединение
+2. Убедитесь, что прокси/файрвол не блокирует подключение
+3. Попробуйте другую сеть

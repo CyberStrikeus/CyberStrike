@@ -1,0 +1,64 @@
+---
+title: Application de bureau
+description: Application de bureau native CyberStrike pour macOS, Windows et Linux
+sidebar:
+  order: 4
+  label: Application de bureau
+  badge:
+    text: Bientot
+    variant: caution
+---
+
+CyberStrike Desktop est une application native qui regroupe l'ensemble du harness — agents, outils, Vortex, HackBrowser, Bolt — dans une application autonome. Aucun terminal requis.
+
+<Aside variant="caution">
+  L'application de bureau est en cours de developpement actif. Les trois plateformes sont prevues pour la version initiale.
+</Aside>
+
+## macOS <Badge text="Bientot" variant="caution" size="md" />
+
+Application macOS native avec support Apple Silicon et Intel. Distribuee sous forme d'installateur `.dmg`.
+
+- macOS 12 Monterey ou ulterieur
+- Apple Silicon (M1+) ou Intel
+- 500 Mo d'espace disque
+
+## Windows <Badge text="Bientot" variant="caution" size="md" />
+
+Application Windows native distribuee sous forme d'installateur `.exe` via NSIS.
+
+- Windows 10 (1809) ou ulterieur
+- Architecture x64
+- 500 Mo d'espace disque
+
+<Aside variant="info">
+  WSL n'est **pas** requis. L'application de bureau fonctionne nativement sous Windows.
+</Aside>
+
+## Linux <Badge text="Bientot" variant="caution" size="md" />
+
+Builds Linux distribues sous forme de paquets `.AppImage` et `.deb`.
+
+- Ubuntu 20.04+, Fedora 38+ ou equivalent
+- Architecture x64
+- 500 Mo d'espace disque
+
+## A quoi s'attendre
+
+L'application de bureau offre les memes capacites que `cyberstrike web` mais dans une fenetre native :
+
+- Parite complete avec le TUI — toutes les commandes slash, agents et outils
+- HackBrowser integre — lance Chromium depuis l'application
+- Gestion du serveur Bolt — associer et gerer les outils conteneurises
+- Panneau serveur MCP — configurer et surveiller les connexions MCP
+- Onglets de session — plusieurs evaluations ouvertes simultanement
+- Capable hors ligne — fonctionne avec les fournisseurs locaux comme Ollama
+
+## Restez informe
+
+Suivez la progression du developpement :
+
+- [Releases GitHub](https://github.com/CyberStrikeus/CyberStrike/releases) — Les builds desktop apparaitront ici
+- [Discord](https://discord.gg/dr97wVJVbn) — Annonces et acces anticipe
+
+En attendant, utilisez les interfaces [TUI](/fr/docs/usage/tui), [CLI](/fr/docs/usage/cli) ou [Web](/fr/docs/usage/web).

@@ -1,0 +1,323 @@
+---
+title: 全局配置
+description: 配置适用于所有项目的 Cyberstrike 设置
+sidebar:
+  order: 3
+  label: 全局配置
+---
+
+全局配置为所有项目的所有 Cyberstrike 会话设置默认行为。
+
+{/* TODO: Screenshot - Global configuration file */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: global-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">全局配置文件位置</p>
+</div>
+
+## 文件位置
+
+全局配置位于全局配置目录中：
+
+```
+~/.config/cyberstrike/
+```
+
+当设置了 `XDG_CONFIG_HOME` 时，解析为 `$XDG_CONFIG_HOME/cyberstrike`。
+
+## 支持的文件名
+
+以下文件从全局配置目录读取并按顺序合并：
+
+| 文件 | 格式 | 优先级 |
+|------|------|--------|
+| `config.json` | JSON | 低（基础，自动生成） |
+| `cyberstrike.json` | JSON | 中 |
+| `cyberstrike.jsonc` | 带注释的 JSON | 高（推荐） |
+
+如果存在多个文件，所有文件都会被读取，每个后续文件合并到前一个之上。
+
+### 目录结构
+
+```
+~/.config/cyberstrike/
+├── config.json          ← 自动生成的全局配置
+├── cyberstrike.json     ← 全局配置
+├── cyberstrike.jsonc    ← 全局配置（推荐）
+├── agents/              ← 自定义代理（*.md）   （也接受 agent/）
+├── commands/            ← 自定义命令（*.md） （也接受 command/）
+└── plugins/             ← 插件（*.ts / *.js）  （也接受 plugin/）
+```
+
+Cyberstrike 还会扫描主目录中的 `~/.cyberstrike/` 目录，查找 `cyberstrike.json`/`cyberstrike.jsonc` 和相同的 `agents/`、`commands/`、`plugins/` 子文件夹。
+
+## 创建全局配置
+
+没有 init 命令——手动创建文件：
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  // Cyberstrike 全局配置
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## 模型配置
+
+### 默认模型
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+格式：`provider/model`。
+
+### 轻量模型
+
+用于轻量任务如会话标题生成：
+
+```json
+{
+  "small_model": "anthropic/claude-haiku-4-5-20251001"
+}
+```
+
+## 提供商配置
+
+在 `provider` 下单独配置提供商。`options` 对象直接传递给提供商 SDK：
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### 启用/禁用提供商
+
+```json
+{
+  "disabled_providers": ["ollama"],
+  "enabled_providers": ["anthropic", "openai"]
+}
+```
+
+设置 `enabled_providers` 时，**仅**加载这些提供商；其他所有提供商被忽略。各提供商详情请参阅 [AI 提供商](/docs/providers)。
+
+## 主题
+
+`theme` 是已安装主题的名称（字符串）。默认为 `cyberstrike`：
+
+```json
+{
+  "theme": "cyberstrike"
+}
+```
+
+在 TUI 中使用 `/themes` 命令（或 `<leader>t`）浏览和切换主题。内置主题包括 `cyberstrike`、`tokyonight`、`catppuccin`、`dracula`、`gruvbox`、`nord`、`github`、`monokai`、`matrix`、`rosepine`、`solarized` 等。
+
+## 按键绑定
+
+### Leader 键
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+x"
+  }
+}
+```
+
+### 自定义绑定
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "theme_list": "<leader>t",
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+完整的操作列表和默认值请参阅[按键绑定](/docs/configuration/keybindings)。
+
+## 权限默认值
+
+权限将工具名称映射到操作（`ask`、`allow` 或 `deny`），或映射到通配符 → 操作映射。没有单独的允许/拒绝列表——工具键**就是**分组：
+
+```json
+{
+  "permission": {
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "bash": {
+      "*": "ask",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "*": "ask",
+      "~/.ssh/**": "deny"
+    }
+  }
+}
+```
+
+仅支持 `*` 和 `?` 作为通配符。完整模型和权限键列表请参阅[权限](/docs/permissions)。
+
+## MCP 服务器
+
+MCP 服务器声明为 `mcp` 下的扁平映射，按服务器名称键控。本地服务器使用 `type: "local"` 和单个 `command` 数组（命令 + 参数合在一起）；远程服务器使用 `type: "remote"` 和 `url`：
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "~"],
+      "environment": { "DEBUG": "true" },
+      "enabled": true
+    },
+    "remote-api": {
+      "type": "remote",
+      "url": "https://api.example.com/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+Bolt 服务器在顶层 `bolt` 键下单独配置，不在 `mcp` 下。参见 [Bolt / MCP](/docs/mcp)。
+
+## 默认代理
+
+设置默认代理（必须是主代理；未设置或无效时回退到 `cyberstrike`）：
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+自定义代理从配置目录中的 `agents/`（或 `agent/`）目录加载——参见[自定义代理](/docs/agents/custom-agents)。
+
+## 压缩
+
+控制自动上下文压缩：
+
+```json
+{
+  "compaction": {
+    "auto": true,
+    "prune": true
+  }
+}
+```
+
+| 选项 | 描述 |
+|------|------|
+| `auto` | 上下文满时自动压缩（默认：true） |
+| `prune` | 修剪旧工具输出（默认：true） |
+
+## 日志与更新
+
+```json
+{
+  "logLevel": "INFO",
+  "autoupdate": "notify"
+}
+```
+
+`logLevel` 为 `DEBUG`、`INFO`、`WARN`、`ERROR` 之一（默认 `INFO`）。`autoupdate` 接受 `true`、`false` 或 `"notify"`。
+
+## 完整示例
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "small_model": "anthropic/claude-haiku-4-5-20251001",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike",
+  "share": "manual",
+  "autoupdate": "notify",
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+
+  "permission": {
+    "read": "allow",
+    "edit": { "*": "ask" },
+    "bash": { "*": "ask", "rm -rf *": "deny" }
+  },
+
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "."],
+      "enabled": true
+    }
+  },
+
+  "keybinds": { "leader": "ctrl+x" },
+  "compaction": { "auto": true, "prune": true }
+}
+```
+
+## 备份
+
+```bash
+cp ~/.config/cyberstrike/cyberstrike.jsonc ~/.config/cyberstrike/cyberstrike.jsonc.backup
+```
+
+## 安全注意事项
+
+### 文件权限
+
+```bash
+chmod 600 ~/.config/cyberstrike/cyberstrike.jsonc
+chmod 700 ~/.config/cyberstrike/
+```
+
+### 敏感数据
+
+永远不要直接存储 API 密钥——使用环境变量引用：
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  始终使用环境变量引用（`{env:VAR}`）存储 API 密钥等敏感数据。
+</Aside>
+
+## 相关文档
+
+- [配置参考](/docs/configuration) - 所有配置选项
+- [项目配置](/docs/configuration/project-config) - 项目设置
+- [环境变量](/docs/configuration/environment-variables) - 环境变量
+- [按键绑定](/docs/configuration/keybindings) - 键盘快捷键

@@ -1,0 +1,109 @@
+---
+title: Пользовательские агенты
+description: Создание специализированных агентов безопасности для Cyberstrike
+sidebar:
+  order: 9
+  label: Пользовательские агенты
+---
+
+Создавайте пользовательских агентов с собственным системным промптом, моделью и разрешениями. Агенты — это Markdown-файлы с YAML-метаданными.
+
+{/* TODO: Screenshot - Custom agent configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: custom-agent-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Файл конфигурации пользовательского агента</p>
+</div>
+
+## Файл и расположение
+
+Пользовательские агенты — это файлы `*.md` в каталоге `agent/` или `agents/` внутри любой папки `.cyberstrike/` (проекта или `~/.cyberstrike/`). ID агента — это имя файла.
+
+```
+.cyberstrike/
+└── agents/
+    ├── api-security.md
+    └── compliance-audit.md
+```
+
+## Метаданные
+
+```markdown title=".cyberstrike/agents/api-security.md"
+---
+description: Specialized agent for REST and GraphQL API testing
+mode: primary
+model: anthropic/claude-sonnet-4-20250514
+permission:
+  bash: { "*": "ask", "rm -rf *": "deny" }
+  edit: allow
+---
+
+You are an expert API security tester specializing in REST and GraphQL APIs.
+Follow the OWASP API Security Top 10 …
+```
+
+Тело (после метаданных) является системным промптом.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `description` | string | Для чего предназначен агент |
+| `mode` | `primary` \| `subagent` \| `all` | `primary` агенты запускаются напрямую; `subagent` агенты делегируются через инструмент задач |
+| `model` | string | Переопределение `provider/model` |
+| `temperature`, `top_p` | number | Настройки семплирования |
+| `steps` | number | Максимум агентных итераций |
+| `color` | string | Hex или цвет темы |
+| `permission` | object | Разрешения для инструментов (см. [Разрешения](/docs/permissions)) |
+| `hidden`, `disable` | boolean | Скрыть из picker / отключить |
+
+<Aside variant="caution">
+  Ограничивайте инструменты с помощью поля `permission`. Старая карта `tools:` **устарела**, и поля `allowedCommands` нет — ограничения команд задаются glob-правилами `permission.bash` (например, `bash: { "nmap *": "allow" }`).
+</Aside>
+
+## Primary vs Subagent
+
+Только **primary** агенты могут быть выбраны через `--agent` или `default_agent`. Если вы хотите, чтобы ваш агент запускался напрямую, установите `mode: primary`. В противном случае он ведёт себя как подагент, которому агент `cyberstrike` может делегировать задачи.
+
+```markdown
+---
+description: Read-only auditor
+mode: primary
+permission:
+  edit: deny
+  bash: deny
+  read: allow
+  glob: allow
+  grep: allow
+---
+
+You are a read-only security auditor …
+```
+
+## Использование пользовательского агента
+
+После создания primary агента выберите его:
+
+```bash
+cyberstrike --agent api-security
+```
+
+Или установите как агента по умолчанию в `cyberstrike.json`:
+
+```json
+{
+  "default_agent": "api-security"
+}
+```
+
+Просматривайте агентов в TUI с помощью `/agents`.
+
+## Лучшие практики
+
+1. **Узкий scope** — одна чёткая цель на агента.
+2. **Минимальные привилегии** — разрешайте только необходимые инструменты через `permission`.
+3. **Чёткий промпт** — будьте конкретны в отношении методологии и формата вывода.
+4. **Контроль версий** — коммитьте `.cyberstrike/agents/` вместе с проектом.
+
+## Связанная документация
+
+- [Агенты безопасности](/docs/agents) — Встроенные агенты и делегирование
+- [Разрешения](/docs/permissions) — Поле `permission`
+- [Конфигурация](/docs/configuration) — Проектная и глобальная конфигурация

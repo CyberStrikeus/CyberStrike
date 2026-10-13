@@ -1,0 +1,93 @@
+---
+title: Bolt / MCP 개요
+description: Bolt와 MCP를 통해 Cyberstrike를 보안 도구로 확장
+sidebar:
+  order: 1
+  label: 개요
+---
+
+Cyberstrike는 Model Context Protocol(MCP)을 사용하여 외부 도구를 통합합니다. **Bolt**는 대규모 보안 도구 세트를 제공하는 컨테이너화된 도구 서버이며, 로컬 또는 원격 MCP 서버도 연결할 수 있습니다.
+
+{/* Hero GIF - Tool execution demo */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">🎬 GIF: bolt-tool-execution.gif</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Bolt 도구 실행 데모 - nmap 스캔 (20초)</p>
+</div>
+
+## 도구 추가의 두 가지 방법
+
+| 접근 방식 | 전송 | 장점 | 단점 |
+|-----------|------|------|------|
+| **Bolt** (권장) | StreamableHTTP | 사전 설치된 도구, 컨테이너 격리, 쉬운 설정 | Docker 필요, 네트워크 지연 |
+| **로컬 / 원격 MCP** | stdio / StreamableHTTP | 모든 MCP 서버; 로컬은 지연 없음 | 서버를 직접 설치 및 실행 |
+
+Cyberstrike는 기본적으로 세 개의 MCP 서버를 활성화하여 제공합니다: `github-security`, `cve`, `osint`. 사용자의 구성이 이 위에 병합됩니다.
+
+## Bolt
+
+Bolt는 Docker 컨테이너(Ubuntu 24.04, 포트 3001)에서 보안 도구를 실행합니다. **7개의 네이티브 플러그인**(`subfinder`, `nmap`, `nuclei`, `httpx`, `ffuf`, `run-command`, `wordlist`)과 **~26개의 집계된 MCP 서버**(`dnsx`, `amass`, `katana`, `sqlmap`, `wpscan`, `hydra`, `hashcat` 등)를 노출합니다. 모든 도구는 직접 호출 가능합니다 — 에이전트가 한 턴으로 호출합니다.
+
+Bolt는 자체 **최상위 `bolt` 키**((`mcp` 아님)로 구성되며 Ed25519 페어링으로 인증됩니다:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "bolt": {
+    "local": { "url": "http://localhost:3001" }
+  }
+}
+```
+
+설정 및 페어링은 [Bolt](/docs/mcp/bolt) 페이지를 참조하세요.
+
+## 로컬 / 원격 MCP
+
+다른 MCP 서버는 이름으로 키가 지정된 평면 `mcp` 맵에 추가합니다:
+
+```json title="cyberstrike.json"
+{
+  "mcp": {
+    "my-tools": {
+      "type": "local",
+      "command": ["your-mcp-server"]
+    }
+  }
+}
+```
+
+- [로컬 서버](/docs/mcp/local-servers) — stdio 자식 프로세스
+- [원격 서버](/docs/mcp/remote-servers) — StreamableHTTP/SSE, 선택적 [OAuth](/docs/mcp/oauth)
+
+## TUI 관리
+
+두 개의 별도 대화상자:
+
+- **`/bolt`** — Bolt 서버 관리 (추가 및 페어링, 토글, 제거).
+- **`/mcps`** — 로컬/원격 MCP 서버 관리.
+
+두 대화상자 모두: **a**로 추가, **space**로 서버 토글, **esc**로 닫기.
+
+## 모델 호환성
+
+<Aside variant="caution">
+  서브프로세스 기반 모델은 MCP 도구에 접근할 수 없습니다. 완전한 Bolt/MCP 통합을 위해 직접 API 모델을 사용하세요.
+</Aside>
+
+직접 API 모델(예: `anthropic/claude-sonnet-4-20250514`, `openai/gpt-4o`)은 Cyberstrike 내부에서 실행되며 전체 MCP 접근 권한을 가집니다. 별도의 CLI 프로세스로 쉘 아웃하는 모델은 그렇지 않습니다.
+
+## 구성 우선순위
+
+MCP와 Bolt 항목은 표준 [구성 계층](/docs/configuration#configuration-hierarchy)을 따릅니다: 프로젝트의 `.cyberstrike/` 디렉토리가 프로젝트 `cyberstrike.json`을 재정의하고, 이것이 글로벌 `~/.config/cyberstrike/` 구성을 재정의하며, 이것이 내장 서버를 재정의합니다.
+
+## 문서
+
+| 페이지 | 설명 |
+|--------|------|
+| [Bolt](/docs/mcp/bolt) | 컨테이너화된 보안 도구 서버 (권장) |
+| [로컬 서버](/docs/mcp/local-servers) | 로컬 stdio MCP 서버 |
+| [원격 서버](/docs/mcp/remote-servers) | HTTP/SSE 원격 연결 |
+| [OAuth](/docs/mcp/oauth) | 원격 서버의 OAuth 인증 |
+| [서버 만들기](/docs/mcp/creating-servers) | 커스텀 MCP 서버 빌드 |
+
+<Aside variant="danger">
+  보안 도구는 승인된 대상에만 사용하세요. 무단 침투 테스트는 불법입니다.
+</Aside>

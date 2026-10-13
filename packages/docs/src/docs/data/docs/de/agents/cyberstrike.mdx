@@ -1,0 +1,120 @@
+---
+title: Cyberstrike-Agent
+description: Der primaere Standardagent fuer KI-gestuetzte offensive Sicherheitstests mit vollem Werkzeugzugriff
+sidebar:
+  order: 2
+  label: Cyberstrike
+---
+
+Der `cyberstrike`-Agent ist der primaere Standardagent. Er bietet KI-gestuetzte offensive Sicherheitstests mit vollem Werkzeugzugriff und kann an spezialisierte Subagenten fuer domaenenspezifische Aufgaben delegieren.
+
+## Uebersicht
+
+Wenn Sie `cyberstrike` ohne Angabe eines Agenten starten, startet der `cyberstrike`-Agent automatisch. Er ist ein universeller Agent fuer offensive Sicherheit, der fuer eine breite Palette von Aufgaben konzipiert ist — von Aufklaerung und Schwachstellenbewertung bis hin zu Exploitation und Berichterstellung.
+
+### Agenten-Konfiguration
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **Agenten-ID** | `cyberstrike` |
+| **Modus** | `primary` |
+| **Werkzeugzugriff** | Vollstaendig (alle Werkzeuge erlaubt) |
+| **Kann Fragen stellen** | Ja |
+
+## Den Agenten starten
+
+Der `cyberstrike`-Agent ist der Standard — er startet automatisch beim Start:
+
+```bash
+cyberstrike
+```
+
+Wechseln Sie Agenten jederzeit in der TUI mit `/agents` oder `<leader>a`.
+
+## Faehigkeiten
+
+Der `cyberstrike`-Agent hat Zugriff auf alle verfuegbaren Werkzeuge und ist nicht auf eine bestimmte Sicherheitsdomaene beschraenkt. Er kann:
+
+- Webanwendungs-Sicherheitstests durchfuehren
+- Cloud-Infrastruktur-Audits durchfuehren
+- Netzwerk-Penetrationstests ausfuehren
+- Automatisierte Scans mit Werkzeugen wie Nuclei, Nmap und SQLMap durchfuehren
+- Webanwendungen durchsuchen und mit ihnen interagieren
+- Dateien lesen, schreiben und analysieren
+- Klaerende Fragen stellen, wenn die Aufgabe mehrdeutig ist
+
+## An spezialisierte Agenten delegieren
+
+Wenn eine Aufgabe tiefes Domaenenwissen erfordert, delegiert der `cyberstrike`-Agent an spezialisierte Subagenten:
+
+| Subagent | Wann verwendet |
+|----------|----------------|
+| [`wstg-agent`](/docs/agents/wstg-agent) | OWASP-WSTG-Web-Sicherheitspipeline — setzt 13 Spezialistenagenten ein |
+| [`escalation-hunter`](/docs/agents/escalation-hunter) | Querschnittskorrelation — verkettet Ergebnisse, eskaliert Auswirkungen |
+| [`triage`](/docs/agents/triage) | Unabhaengige Verifizierung von Entwurfs-Schwachstellenergebnissen |
+| [`general`](/docs/agents/general) | Recherche, parallele Mehrstufen-Aufgaben |
+| [`explore`](/docs/agents/explore) | Schreibgeschuetzte Codebasis- und Dateisystemsuche |
+
+Die Delegation erfolgt automatisch basierend auf der Aufgabe. Die Web-Sicherheitspipeline (WSTG-Agenten) wird ausgeloest, wenn HTTP-Verkehr ueber [HackBrowser](/docs/features/hackbrowser) oder die [Chrome Extension](/docs/tools/chrome-extension) erfasst wird.
+
+## Berechtigungsmodell
+
+Der `cyberstrike`-Agent verwendet den breitesten Berechtigungssatz:
+
+- Alle Werkzeuge sind standardmaessig erlaubt
+- Kann klaerende Fragen stellen (`question: allow`)
+- `.env`-Dateien erfordern eine Bestaetigung vor dem Lesen
+- Zugriff auf externe Verzeichnisse ausserhalb des Projekts erfordert Bestaetigung
+- Vom Benutzer konfigurierte `deny`-Regeln in `cyberstrike.json` werden immer beachtet
+
+## Beispiel-Sitzung
+
+```
+You: Test the web application at https://app.example.com for common vulnerabilities
+
+Agent: I'll start with reconnaissance and then launch HackBrowser to crawl the app.
+
+[Launching /hackbrowser against https://app.example.com...]
+[Crawling 23 pages, capturing HTTP traffic...]
+[Dispatching wstg-config-deploy for server misconfiguration checks...]
+[Dispatching wstg-input-validation for injection testing...]
+
+Found 3 medium-severity findings:
+- Missing Content-Security-Policy header
+- Server version disclosure in headers
+- X-Frame-Options not set
+
+[wstg-authentication testing login endpoint...]
+⚠ FINDING: JWT Algorithm Confusion
+Location: Authorization header
+Severity: Critical (CVSS 9.8)
+```
+
+## Konfiguration
+
+### Als Standardagent festlegen
+
+Der `cyberstrike`-Agent ist der Standard und erfordert keine Konfiguration. Um ihn explizit festzulegen:
+
+```json title="cyberstrike.json"
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+### Benutzerdefinierte Anweisungen
+
+`instructions` ist eine Liste von Dateien (oder Globs), deren Inhalt dem System-Prompt angehaengt wird — legen Sie Ihren Projektkontext in eine Datei und referenzieren Sie sie:
+
+```json title="cyberstrike.json"
+{
+  "instructions": ["AGENTS.md", "docs/security-context.md"]
+}
+```
+
+## Verwandte Dokumentation
+
+- [WSTG-Agent](/docs/agents/wstg-agent) — Orchestrator der Web-Sicherheitstest-Pipeline
+- [Escalation Hunter](/docs/agents/escalation-hunter) — Querschnittskorrelations-Agent
+- [Triage-Agent](/docs/agents/triage) — Ergebnis-Verifizierung
+- [Benutzerdefinierte Agenten](/docs/agents/custom-agents) — Eigene Agenten erstellen

@@ -1,0 +1,93 @@
+---
+title: Bolt / MCP-Uebersicht
+description: Cyberstrike mit Sicherheitswerkzeugen ueber Bolt und MCP erweitern
+sidebar:
+  order: 1
+  label: Uebersicht
+---
+
+Cyberstrike verwendet das Model Context Protocol (MCP), um externe Werkzeuge zu integrieren. **Bolt** ist unser containerisierter Tool-Server, der eine grosse Auswahl an Sicherheitswerkzeugen bereitstellt; Sie koennen auch jeden lokalen oder entfernten MCP-Server verbinden.
+
+{/* Hero GIF - Tool execution demo */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">🎬 GIF: bolt-tool-execution.gif</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Bolt Tool-Ausfuehrungs-Demo - nmap-Scan (20s)</p>
+</div>
+
+## Zwei Moeglichkeiten, Werkzeuge hinzuzufuegen
+
+| Ansatz | Transport | Vorteile | Nachteile |
+|--------|-----------|----------|-----------|
+| **Bolt** (empfohlen) | StreamableHTTP | Vorinstallierte Werkzeuge, Container-Isolation, einfache Einrichtung | Docker erforderlich, Netzwerklatenz |
+| **Lokal / Remote MCP** | stdio / StreamableHTTP | Jeder MCP-Server; keine Latenz bei lokal | Sie installieren und starten den Server |
+
+Cyberstrike liefert ausserdem drei standardmaessig aktivierte MCP-Server mit: `github-security`, `cve` und `osint`. Ihre eigene Konfiguration wird darueber zusammengefuehrt.
+
+## Bolt
+
+Bolt fuehrt Sicherheitswerkzeuge innerhalb eines Docker-Containers aus (Ubuntu 24.04, Port 3001). Es stellt **7 native Plugins** (`subfinder`, `nmap`, `nuclei`, `httpx`, `ffuf`, `run-command`, `wordlist`) sowie **ca. 26 aggregierte MCP-Server** (`dnsx`, `amass`, `katana`, `sqlmap`, `wpscan`, `hydra`, `hashcat` und mehr) bereit. Jedes Werkzeug ist direkt aufrufbar — der Agent ruft es in einem Schritt auf.
+
+Bolt wird unter seinem **eigenen Top-Level-Schluessel `bolt`** konfiguriert (nicht `mcp`) und per Ed25519-Pairing authentifiziert:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "bolt": {
+    "local": { "url": "http://localhost:3001" }
+  }
+}
+```
+
+Siehe die [Bolt](/docs/mcp/bolt)-Seite fuer Einrichtung und Pairing.
+
+## Lokal / Remote MCP
+
+Jeder andere MCP-Server wird unter der flachen `mcp`-Map eingetragen, nach Name geschluesselt:
+
+```json title="cyberstrike.json"
+{
+  "mcp": {
+    "my-tools": {
+      "type": "local",
+      "command": ["your-mcp-server"]
+    }
+  }
+}
+```
+
+- [Lokale Server](/docs/mcp/local-servers) — stdio-Kindprozesse
+- [Remote-Server](/docs/mcp/remote-servers) — StreamableHTTP/SSE, mit optionalem [OAuth](/docs/mcp/oauth)
+
+## TUI-Verwaltung
+
+Zwei separate Dialoge:
+
+- **`/bolt`** — Bolt-Server verwalten (hinzufuegen & pairen, umschalten, entfernen).
+- **`/mcps`** — Lokale/Remote-MCP-Server verwalten.
+
+In beiden: **a** zum Hinzufuegen, **Leertaste** zum Umschalten eines Servers, **esc** zum Schliessen.
+
+## Modellkompatibilitaet
+
+<Aside variant="caution">
+  Subprocess-basierte Modelle koennen nicht auf MCP-Werkzeuge zugreifen. Verwenden Sie ein Direct-API-Modell fuer die vollstaendige Bolt/MCP-Integration.
+</Aside>
+
+Direct-API-Modelle (z.B. `anthropic/claude-sonnet-4-20250514`, `openai/gpt-4o`) laufen innerhalb von Cyberstrike und haben vollen MCP-Zugriff. Modelle, die an einen separaten CLI-Prozess delegieren, haben dies nicht.
+
+## Konfigurationsvorrang
+
+MCP- und Bolt-Eintraege folgen der Standard-[Konfigurationshierarchie](/docs/configuration#configuration-hierarchy): Das `.cyberstrike/`-Verzeichnis eines Projekts ueberschreibt die Projekt-`cyberstrike.json`, die die globale `~/.config/cyberstrike/`-Konfiguration ueberschreibt, die die eingebauten Server ueberschreibt.
+
+## Dokumentation
+
+| Seite | Beschreibung |
+|-------|--------------|
+| [Bolt](/docs/mcp/bolt) | Containerisierter Sicherheitswerkzeug-Server (empfohlen) |
+| [Lokale Server](/docs/mcp/local-servers) | Lokale stdio-MCP-Server |
+| [Remote-Server](/docs/mcp/remote-servers) | HTTP/SSE-Remote-Verbindungen |
+| [OAuth](/docs/mcp/oauth) | OAuth-Authentifizierung fuer Remote-Server |
+| [Server erstellen](/docs/mcp/creating-servers) | Benutzerdefinierte MCP-Server erstellen |
+
+<Aside variant="danger">
+  Verwenden Sie Sicherheitswerkzeuge nur gegen autorisierte Ziele. Nicht autorisierte Penetrationstests sind illegal.
+</Aside>

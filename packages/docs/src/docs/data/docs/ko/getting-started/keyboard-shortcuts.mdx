@@ -1,0 +1,169 @@
+---
+title: 키보드 단축키
+description: 리더 기반 키보드 단축키로 Cyberstrike 마스터하기
+sidebar:
+  order: 5
+  label: 키보드 단축키
+---
+
+Cyberstrike의 TUI는 효율적인 탐색을 위해 리더 기반 키보드 단축키로 구동됩니다. 이 페이지에서는 일반적인 기본값을 나열합니다. 전체 동작 목록과 커스터마이즈 방법은 [키바인딩](/docs/configuration/keybindings)을 참조하세요.
+
+## 리더 키
+
+리더 키는 기본적으로 `Ctrl+X`입니다. 많은 단축키는 `<leader>` 다음에 다른 키를 누르는 형태입니다.
+
+리더 키를 변경하려면:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+a"
+  }
+}
+```
+
+## 세션 단축키
+
+| 단축키 | 동작 |
+|--------|------|
+| `<leader>n` | 새 세션 |
+| `<leader>l` | 세션 목록 |
+| `<leader>c` | 세션 요약/압축 |
+| `<leader>g` | 세션 타임라인 |
+| `<leader>x` | 세션 내보내기 |
+| `Ctrl+R` | 세션 이름 변경 |
+| `Ctrl+D` | 세션 삭제 |
+| `Escape` | 실행 중인 세션 중단 |
+
+## 탐색
+
+| 단축키 | 동작 |
+|--------|------|
+| `PageUp` / `PageDown` | 한 페이지 스크롤 |
+| `Ctrl+Alt+U` | 반 페이지 위로 스크롤 |
+| `Ctrl+Alt+D` | 반 페이지 아래로 스크롤 |
+| `Ctrl+G` / `Home` | 첫 번째 메시지로 이동 |
+| `Ctrl+Alt+G` / `End` | 마지막 메시지로 이동 |
+| `<leader>y` | 메시지 복사 |
+| `<leader>u` | 메시지 실행 취소 (되돌리기) |
+| `<leader>r` | 메시지 다시 실행 |
+
+## 입력
+
+| 단축키 | 동작 |
+|--------|------|
+| `Enter` | 메시지 전송 |
+| `Shift+Enter` | 줄 바꿈 |
+| `Ctrl+V` | 붙여넣기 |
+| `Ctrl+C` | 입력 지우기 |
+| `Escape` | 실행 중인 세션 중단 |
+
+## 모델 및 에이전트
+
+| 단축키 | 동작 |
+|--------|------|
+| `<leader>m` | 모델 선택 |
+| `<leader>a` | 에이전트 선택 |
+| `Tab` | 다음 에이전트 |
+| `Shift+Tab` | 이전 에이전트 |
+
+## 인터페이스
+
+| 단축키 | 동작 |
+|--------|------|
+| `<leader>t` | 테마 선택 |
+| `<leader>s` | 상태 보기 |
+| `<leader>b` | 사이드바 토글 |
+| `<leader>e` | 외부 편집기에서 열기 |
+| `Ctrl+P` | 명령 목록 |
+
+## 대화상자
+
+대화상자가 열려 있을 때(모델 선택, 세션 목록 등), 방향키로 탐색하고, `Enter`로 선택하고, `Escape`로 닫습니다. 대화상자별 바인드:
+
+| 단축키 | 동작 |
+|--------|------|
+| `Ctrl+F` | 모델 즐겨찾기 토글 (모델 대화상자에서) |
+| `F2` / `Shift+F2` | 다음 / 이전 최근 모델로 전환 |
+
+## 권한 프롬프트
+
+도구에 승인이 필요한 경우, 세 가지 옵션이 포함된 인라인 프롬프트가 나타납니다 — **한 번 허용**, **항상 허용**, **거부**. 방향키와 `Enter`로 선택하고, `Escape`로 거부합니다.
+
+## 키바인딩 커스터마이즈
+
+구성의 `keybinds` 아래에서 기본값을 재정의합니다. 유효한 동작 이름만 허용됩니다 (객체는 엄격하게 검증됩니다):
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "app_exit": "ctrl+c,ctrl+d,<leader>q",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "theme_list": "<leader>t",
+    "status_view": "<leader>s",
+    "sidebar_toggle": "<leader>b",
+    "editor_open": "<leader>e",
+    "session_export": "<leader>x",
+    "session_timeline": "<leader>g",
+    "session_rename": "ctrl+r"
+  }
+}
+```
+
+모든 구성 가능한 동작과 기본값은 [키바인딩](/docs/configuration/keybindings)을 참조하세요.
+
+## 키바인딩 형식
+
+- **수정자**: `ctrl`, `alt`, `shift`, `super`
+- **특수 키**: `return`, `escape`, `tab`, `space`, `backspace`, `pageup`, `pagedown`, `home`, `end`
+- **리더**: `<leader>` (구성된 리더 키로 대체됨)
+- **대안**: `ctrl+c,ctrl+d` (쉼표로 하나의 동작에 대한 대안 바인딩 구분)
+- **비활성화**: `none`
+
+### 예시
+
+```
+ctrl+alt+u          # Ctrl + Alt + U
+alt+shift+f         # Alt + Shift + F
+<leader>n           # 리더 키 다음 N
+ctrl+c,ctrl+d       # 어느 바인딩이든 동작을 트리거
+```
+
+## 빠른 참조 카드
+
+```
+┌─────────────────────────────────────────┐
+│  Cyberstrike 키보드 단축키              │
+├─────────────────────────────────────────┤
+│  세션                                   │
+│    <leader>n   새 세션                  │
+│    <leader>l   세션 목록                │
+│    <leader>c   세션 압축                │
+│    Ctrl+R      세션 이름 변경           │
+├─────────────────────────────────────────┤
+│  탐색                                   │
+│    Ctrl+Alt+U/D  반 페이지 스크롤       │
+│    <leader>u     메시지 실행 취소       │
+│    <leader>r     메시지 다시 실행       │
+├─────────────────────────────────────────┤
+│  모델/에이전트                          │
+│    <leader>m   모델                     │
+│    <leader>a   에이전트                 │
+│    Tab         다음 에이전트            │
+├─────────────────────────────────────────┤
+│  인터페이스                             │
+│    <leader>s   상태                     │
+│    <leader>t   테마                     │
+│    <leader>b   사이드바                 │
+│    Ctrl+P      명령 목록                │
+└─────────────────────────────────────────┘
+```
+
+## 관련 문서
+
+- [키바인딩](/docs/configuration/keybindings) - 전체 동작 목록 및 커스터마이즈
+- [시작하기](/docs/getting-started) - 설치 및 첫 단계

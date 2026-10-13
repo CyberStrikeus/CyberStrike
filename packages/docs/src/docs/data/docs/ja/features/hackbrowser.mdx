@@ -1,0 +1,117 @@
+---
+title: HackBrowser
+description: UIコンテキスト付きHTTPリクエストをキャプチャするAI駆動自律型Webクローラー
+sidebar:
+  order: 3
+  label: HackBrowser
+---
+
+HackBrowserはCyberstrikeの自律型Webクローラーです。Chromiumブラウザを開き、LLMがアクセシビリティツリーを読み取ってターゲットアプリケーションをナビゲートし、キャプチャされたすべてのHTTPリクエスト（UIコンテキストで強化）を分析パイプラインに転送します。その後、[proxy-agent](/docs/agents/proxy-agent)が各リクエストを分析・テストします。
+
+## HackBrowserを使うべき場面
+
+| ユースケース | 選択 |
+|-------------|------|
+| 複数ロールでの手動探索 | [Chrome拡張機能](/docs/tools/chrome-extension) |
+| 無人自動クロール | **HackBrowser** |
+| キャプチャにUIフォームコンテキスト（`readonly`、`hidden`、`disabled`フラグ）が必要 | **HackBrowser** |
+| 既存の事前認証済みブラウザセッション | どちらでも — Chrome拡張機能の方がシンプル |
+
+両方のパスは同じ`/session/ingest`エンドポイントと同じproxy-agentパイプラインにフィードされます。単一セッション内で併用できます。
+
+## 仕組み
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  Chromium (Playwright)                                             │
+│  ├── Scanner    — DOM → アクセシビリティツリー (RawElement[])          │
+│  ├── Navigator  — LLM呼び出し → ページプラン (フォーム/クリックタスク)    │
+│  ├── Executor   — プラン → Playwrightアクション                      │
+│  ├── Capture    — HTTPリクエスト + ui_contextスナップショット           │
+│  └── Live panel — Shadow-DOMテレメトリオーバーレイ（Visibleモード）      │
+└────────────────────────┬───────────────────────────────────────────┘
+                         │ POST /session/ingest
+                         ▼
+┌────────────────────────────────────────────────────────────────────┐
+│  Cyberstrike API                                                   │
+│  ├── 正規化 → 重複排除 → Request.add                                │
+│  └── IngestQueue → SessionPrompt(agent="proxy-agent")              │
+└────────────────────────┬───────────────────────────────────────────┘
+                         ▼
+                proxy-agent → proxy-analyzer + 脆弱性テスター
+```
+
+LLMはページをアクセシビリティツリーとして見て、どのフォームに入力し、どのボタンをクリックするかを決定します。キャプチャされたすべてのリクエストには`ui_context`スナップショット — フォームフィールド、そのフラグ、隠しパラメータ — が含まれ、proxy-analyzerが不審なリクエスト形状を識別するために使用します。
+
+## クロールの起動
+
+### `/hackbrowser`
+
+TUIで`/hackbrowser`を実行すると、ターゲットURL、認証情報、スコープ、除外ラベル、ステップ、ヘッドレスモードのフィールドを持つ起動ダイアログが開きます。
+
+| オプション | 説明 |
+|-----------|------|
+| **ターゲットURL** | クロール開始URL |
+| **スコープ** | キャプチャを制限するホスト名パターン（例：`*.example.com`） |
+| **除外** | プランナーがスキップするUIラベル（セマンティックマッチ） |
+| **ステップ** | クロールする最大ページ数（デフォルト：50） |
+| **認証情報** | クロールに使用する認証情報。Visibleブラウザが強制されます。 |
+| **ヘッドレス** | ブラウザウィンドウを表示せずに実行 |
+
+### クロールのキャンセル
+
+```
+/hackbrowser-stop
+```
+
+### エージェント起動
+
+会話でそれを必要とする場合（例：「このアプリをテストして」）、エージェントがHackBrowserを自律的に起動することもできます。ツールは即座に戻り、キャプチャはクロールの進行に伴ってセッションにストリーミングされます。
+
+## マルチ認証情報クロール
+
+`/hackbrowser`起動ダイアログで2つ以上の認証情報を選択すると、ロールごとの順次クロールが実行されます。
+
+各認証情報に対して、HackBrowserはVisibleモードでChromiumウィンドウを開き、ログインを待ってから、その認証情報IDでタグ付けされた完全なクロールを実行します。WSTGパイプラインは各ロールがアクセスできるものを比較できます。
+
+## UIコンテキストペイロード
+
+Chrome拡張機能との差別化要因は、すべてのキャプチャに添付される`ui_context`ブロックです：
+
+```json
+{
+  "ui_context": {
+    "pageUrl": "https://shop.example.com/settings/profile",
+    "formName": "Update Profile",
+    "fields": [
+      { "name": "email", "type": "text", "isReadOnly": true },
+      { "name": "role", "type": "hidden", "isHidden": true, "value": "user" }
+    ],
+    "hiddenParams": ["account_id", "_csrf"]
+  }
+}
+```
+
+proxy-analyzerはこれらのシグナルを使って以下をフラグします：
+
+- リクエストに送信された`readonly`フィールド → サーバーが強制しているかテスト
+- `hidden`フィールド → マスアサインメント候補
+- `hiddenParams`のパラメータ（UI要素なし） → 最高リスクの隠しパラメータ
+- 1つのロールにのみ表示される要素 → 他の認証情報でテスト
+
+## ネットワークスコープ
+
+デフォルトでは、HackBrowserはターゲットURLの`*.{eTLD+1}`にマッチするリクエストをキャプチャします。`/hackbrowser`起動ダイアログでカスタムホスト名パターン（例：`app.example.com`、`api.example.com`）を追加してスコープを上書きできます。
+
+## トラブルシューティング
+
+| エラー | 修正方法 |
+|-------|---------|
+| Chromiumがインストールされていない | `bunx playwright install chromium` |
+| Playwrightがインストールされていない | `npm install --prefix ~/.local/share/cyberstrike playwright` |
+| ワーカーが見つからない | 再インストール：`npm install -g @cyberstrike-io/cyberstrike` |
+| 既に実行中 | 完了を待つか`/hackbrowser-stop`を実行 |
+
+<Aside variant="danger">
+  HackBrowserは許可されたターゲットに対してのみ使用してください。無許可のペネトレーションテストは違法です。
+</Aside>

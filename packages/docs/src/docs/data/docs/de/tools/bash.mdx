@@ -1,0 +1,403 @@
+---
+title: Bash-Werkzeug
+description: Shell-Befehle fuer Sicherheitstests mit Cyberstrike ausfuehren
+sidebar:
+  order: 3
+  label: Bash
+---
+
+Das Bash-Werkzeug fuehrt Shell-Befehle fuer Systeminteraktion, Werkzeugaufrufe und Sicherheitstests aus.
+
+{/* TODO: Screenshot - Bash command execution */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: bash-execution.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Bash-Werkzeug-Befehlsausfuehrung</p>
+</div>
+
+## Ueberblick
+
+Das Bash-Werkzeug ermoeglicht:
+
+- Ausfuehrung von Sicherheitswerkzeugen (nmap, nuclei, sqlmap)
+- Systemadministrationsbefehle
+- Git-Operationen
+- Paketverwaltung
+- Benutzerdefinierte Skripte
+
+## Grundlegende Verwendung
+
+### Einfache Befehle
+
+```
+> Run nmap scan on 192.168.1.1
+```
+
+Fuehrt aus:
+```bash
+nmap -sV 192.168.1.1
+```
+
+### Mit Argumenten
+
+```
+> Check open ports on target with service detection
+```
+
+Fuehrt aus:
+```bash
+nmap -sV -sC -p- 192.168.1.1
+```
+
+### Verkettete Befehle
+
+```
+> Find all .env files and search for API keys
+```
+
+Fuehrt aus:
+```bash
+find . -name "*.env*" -exec grep -l "API" {} \;
+```
+
+## Sicherheitswerkzeuge
+
+### Netzwerk-Scanning
+
+```
+> Scan the network 10.0.0.0/24 for live hosts
+```
+
+```bash
+nmap -sn 10.0.0.0/24
+```
+
+### Schwachstellen-Scanning
+
+```
+> Run nuclei templates against https://target.com
+```
+
+```bash
+nuclei -u https://target.com -t cves/
+```
+
+### Web-Tests
+
+```
+> Fuzz directories on target website
+```
+
+```bash
+ffuf -u https://target.com/FUZZ -w /usr/share/wordlists/dirb/common.txt
+```
+
+### Passwort-Angriffe
+
+```
+> Test for default credentials on SSH
+```
+
+```bash
+hydra -L users.txt -P passwords.txt ssh://192.168.1.1
+```
+
+## Befehls-Timeout
+
+### Standard-Timeout
+
+Befehle haben standardmaessig ein Timeout von 120 Sekunden.
+
+### Lang laufende Befehle
+
+Fuer erweiterte Operationen:
+
+```
+> Run comprehensive port scan (may take a while)
+```
+
+Der Agent verwendet ein angemessenes Timeout:
+```bash
+timeout 600 nmap -p- -sV 192.168.1.1
+```
+
+### Hintergrundausfuehrung
+
+```
+> Start the scan in background
+```
+
+```bash
+nmap -p- 192.168.1.1 > scan_results.txt &
+```
+
+## Arbeitsverzeichnis
+
+### Aktuelles Verzeichnis
+
+Befehle werden im aktuellen Arbeitsverzeichnis ausgefuehrt:
+
+```
+> List files in current directory
+```
+
+```bash
+ls -la
+```
+
+### Verzeichnis wechseln
+
+```
+> Navigate to the web directory and list contents
+```
+
+```bash
+cd /var/www/html && ls -la
+```
+
+## Umgebungsvariablen
+
+### Variablen verwenden
+
+```
+> Use the target IP from environment
+```
+
+```bash
+nmap -sV $TARGET_IP
+```
+
+### Variablen setzen
+
+```
+> Set target and scan
+```
+
+```bash
+export TARGET="192.168.1.1" && nmap $TARGET
+```
+
+## Ausgabebehandlung
+
+### Ausgabe erfassen
+
+```
+> Save scan results to file
+```
+
+```bash
+nmap -sV 192.168.1.1 -oN scan_results.txt
+```
+
+### JSON-Ausgabe
+
+```
+> Get scan results in JSON format
+```
+
+```bash
+nmap -sV 192.168.1.1 -oX - | xq .
+```
+
+### Ergebnisse analysieren
+
+```
+> Extract open ports from nmap output
+```
+
+```bash
+grep "^[0-9]" scan_results.txt | cut -d'/' -f1
+```
+
+## Berechtigungskontrolle
+
+### Gefaehrliche Befehle
+
+Destruktive Befehle erfordern explizite Berechtigung:
+
+| Befehlstyp | Beispiel | Erfordert Berechtigung |
+|------------|----------|----------------------|
+| Nur-Lesen | `ls`, `cat`, `nmap` | Nein |
+| Dateimodifikation | `rm`, `mv` | Ja |
+| Systemanederungen | `apt install` | Ja |
+| Netzwerkangriffe | `msfconsole` | Ja |
+
+### Befehle automatisch genehmigen
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "permission": {
+    "bash": {
+      "nmap *": "allow",
+      "nuclei *": "allow",
+      "ffuf *": "allow"
+    }
+  }
+}
+```
+
+### Gefaehrliche Befehle blockieren
+
+```json
+{
+  "permission": {
+    "bash": {
+      "rm -rf *": "deny",
+      "dd *": "deny",
+      ":(){ :|:& };:": "deny"
+    }
+  }
+}
+```
+
+Die `bash`-Berechtigung ordnet ein Glob-Muster (abgeglichen gegen den Befehlsstring) einer Aktion (`ask`, `allow` oder `deny`) zu. Nur `*` und `?` werden als Platzhalter unterstuetzt. Siehe [Berechtigungen](/docs/permissions) fuer das vollstaendige Modell.
+
+## Sicherheitstest-Workflows
+
+### Aufklaerung
+
+```
+> Perform initial reconnaissance on target.com
+
+1. DNS enumeration
+2. Subdomain discovery
+3. Port scanning
+4. Service identification
+```
+
+Fuehrt mehrere Befehle aus:
+
+```bash
+dig target.com ANY
+subfinder -d target.com
+nmap -sV -sC target.com
+```
+
+### Exploitation
+
+```
+> Attempt SQL injection with sqlmap
+```
+
+```bash
+sqlmap -u "https://target.com/page?id=1" --batch --dbs
+```
+
+### Post-Exploitation
+
+```
+> Enumerate the compromised system
+```
+
+```bash
+uname -a
+id
+cat /etc/passwd
+ls -la /home/
+```
+
+## Werkzeugintegration
+
+### Metasploit
+
+```
+> Search for exploits for Apache 2.4.49
+```
+
+```bash
+msfconsole -q -x "search apache 2.4.49; exit"
+```
+
+### Burp Suite
+
+```
+> Start Burp Suite in headless mode
+```
+
+```bash
+java -jar burpsuite.jar --headless
+```
+
+### Benutzerdefinierte Skripte
+
+```
+> Run the custom enumeration script
+```
+
+```bash
+./scripts/enum.sh $TARGET
+```
+
+## Fehlerbehandlung
+
+### Befehlsfehler
+
+Fehlgeschlagene Befehle zeigen die Fehlerausgabe:
+
+```
+Command failed:
+$ nmap -sV nonexistent.host
+Host seems down. If it is really up, but blocking our ping probes, try -Pn
+```
+
+### Wiederholungslogik
+
+```
+> Retry the scan with -Pn flag
+```
+
+```bash
+nmap -sV -Pn 192.168.1.1
+```
+
+## Best Practices
+
+1. **Ziele ueberpruefen** — IPs und Domains doppelt pruefen
+2. **Timeouts verwenden** — Angemessene Timeouts fuer lange Scans setzen
+3. **Ausgabe speichern** — Wichtige Ergebnisse immer sichern
+4. **Berechtigungen pruefen** — Autorisierten Zugang sicherstellen
+5. **Aufraeumen** — Temporaere Dateien nach dem Testen entfernen
+
+<Aside variant="danger">
+  Fuehren Sie niemals Befehle gegen Ziele ohne Autorisierung aus. Unbefugter Zugriff ist illegal.
+</Aside>
+
+## Fehlerbehebung
+
+### Befehl nicht gefunden
+
+```
+Error: command not found: nuclei
+```
+
+Installieren Sie das Werkzeug oder pruefen Sie den PATH:
+
+```bash
+which nuclei
+export PATH=$PATH:/opt/tools
+```
+
+### Zugriff verweigert
+
+```
+Error: permission denied
+```
+
+Moeglicherweise wird sudo benoetigt:
+
+```bash
+sudo nmap -sS 192.168.1.1
+```
+
+### Timeout
+
+```
+Error: command timed out
+```
+
+Verwenden Sie explizites Timeout oder Hintergrundausfuehrung.
+
+## Verwandte Dokumentation
+
+- [Dateioperationen](/docs/tools/file-operations) - Dateihandhabung
+- [Berechtigungen](/docs/permissions) - Befehlsberechtigungen
+- [Bolt](/docs/mcp/bolt) - Zusaetzliche Sicherheitswerkzeuge via MCP

@@ -1,0 +1,259 @@
+---
+title: 프로젝트 구성
+description: 개별 프로젝트에 대한 Cyberstrike 설정 구성
+sidebar:
+  order: 2
+  label: 프로젝트 구성
+---
+
+프로젝트 구성은 특정 프로젝트에 대한 Cyberstrike 동작을 커스터마이즈하며, 존재할 경우 전역 설정을 재정의합니다.
+
+{/* TODO: Screenshot - Project configuration file */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: project-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">프로젝트 설정 파일 구조</p>
+</div>
+
+## 파일 위치
+
+프로젝트 구성은 프로젝트 루트의 `cyberstrike.json` (또는 `cyberstrike.jsonc`)에 저장됩니다. Cyberstrike는 작업 디렉토리에서 상위로 탐색하므로, 상위 폴더의 설정도 인식됩니다:
+
+```
+my-project/
+├── cyberstrike.json     ← 프로젝트 설정
+├── src/
+├── package.json
+└── ...
+```
+
+## 프로젝트 설정 만들기
+
+init 명령어는 없습니다 — 파일을 수동으로 생성하세요:
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## 기본 설정
+
+### 모델 선택
+
+```json
+{
+  "model": "anthropic/claude-opus-4-5-20251101"
+}
+```
+
+### 기본 에이전트
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+`default_agent`는 기본 에이전트여야 하며, 설정되지 않거나 유효하지 않으면 `cyberstrike`로 폴백됩니다.
+
+### 커스텀 지침
+
+`instructions`는 시스템 프롬프트에 내용이 추가되는 **파일 또는 글로브 패턴** 목록입니다 (인라인 산문이 아닙니다). 목록은 전역 설정과 유니온 병합됩니다:
+
+```json
+{
+  "instructions": [
+    "SECURITY.md",
+    "docs/security-guidelines.md",
+    ".cursor/rules/*.md"
+  ]
+}
+```
+
+## 제공자 구성
+
+`provider` 아래에 제공자를 구성합니다. `provider.default` 키는 없습니다 — 활성 제공자는 `model` (`provider/model`)에서 따릅니다:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    },
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+제공자별 세부 정보는 [AI 제공자](/docs/providers)를 참조하세요.
+
+## 권한
+
+권한은 도구 이름을 동작(`ask`, `allow`, `deny`)에 매핑하거나, 글로브 → 동작 맵에 매핑합니다. 허용/거부 배열이나 권한 "모드"는 없습니다:
+
+```json
+{
+  "permission": {
+    "read": "allow",
+    "bash": {
+      "npm test": "allow",
+      "npm run lint": "allow",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "reports/**": "allow",
+      ".env*": "deny"
+    }
+  }
+}
+```
+
+와일드카드는 `*`와 `?`만 지원됩니다. 전체 모델과 권한 키 목록은 [권한](/docs/permissions)을 참조하세요.
+
+## MCP 서버
+
+MCP 서버는 `mcp` 아래에 서버 이름으로 키를 지정한 평면 맵으로 선언합니다. 로컬 서버는 단일 `command` 배열과 함께 `type: "local"`을 사용합니다:
+
+```json
+{
+  "mcp": {
+    "project-tools": {
+      "type": "local",
+      "command": ["node", "./tools/mcp-server.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+프로젝트 `mcp` 항목은 전역 항목 위에 병합됩니다. 상속된 서버를 끄려면 `enabled`를 `false`로 설정합니다:
+
+```json
+{
+  "mcp": {
+    "some-global-server": { "enabled": false }
+  }
+}
+```
+
+## 커스텀 에이전트
+
+`.cyberstrike/agents/` 아래에 프로젝트 에이전트를 Markdown 파일로 정의한 후 ([커스텀 에이전트](/docs/agents/custom-agents) 참조), 하나를 기본값으로 선택합니다:
+
+```json
+{
+  "default_agent": "project-scanner"
+}
+```
+
+## 전체 예시
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "cyberstrike",
+  "instructions": ["docs/SECURITY.md"],
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+
+  "permission": {
+    "read": "allow",
+    "bash": { "npm *": "allow", "git status": "allow", "rm *": "deny" },
+    "edit": { "reports/**": "allow", ".env*": "deny" }
+  },
+
+  "mcp": {
+    "db-tools": {
+      "type": "local",
+      "command": ["node", "./tools/db-mcp.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+## 구성 상속
+
+프로젝트 설정은 전역 및 원격 설정 위에 병합됩니다:
+
+```
+원격 / well-known 설정 (기본)
+      ↓
+전역 설정 (~/.config/cyberstrike/)
+      ↓
+커스텀 설정 (CYBERSTRIKE_CONFIG)
+      ↓
+프로젝트 설정 (cyberstrike.json)
+      ↓
+.cyberstrike/ 디렉토리 설정
+      ↓
+CYBERSTRIKE_CONFIG_CONTENT / 관리 설정 / CLI 인수 (재정의)
+```
+
+전체 우선순위 순서는 [구성 레퍼런스](/docs/configuration#configuration-hierarchy)를 참조하세요.
+
+### 병합 동작
+
+| 설정 | 동작 |
+|------|------|
+| 스칼라 | 대체됨 |
+| 객체 | 딥 병합 |
+| 배열 | 대체됨 — **단**, `plugin`과 `instructions`는 유니온 병합 |
+
+## 스키마 검증
+
+IDE 자동완성 및 검증을 위해 스키마 참조를 추가합니다:
+
+```json
+{
+  "$schema": "https://cyberstrike.io/config.json"
+}
+```
+
+## Git 통합
+
+### 프로젝트 설정 커밋
+
+```bash
+git add cyberstrike.json
+git commit -m "Add Cyberstrike project configuration"
+```
+
+### 민감한 데이터 무시
+
+```text title=".gitignore"
+# 로컬 세션 데이터 무시
+.cyberstrike/sessions/
+```
+
+## 모범 사례
+
+1. **버전 관리** - 팀 공유를 위해 프로젝트 설정 커밋
+2. **환경 변수 참조 사용** - API 키를 절대 하드코딩하지 마세요 (`{env:VAR}`)
+3. **지침 문서화** - `instructions`를 보안 문서를 가리키게 설정
+4. **최소 권한** - 필요한 것만 허용
+5. **개인 재정의** - 커밋하지 말아야 할 설정에 `CYBERSTRIKE_CONFIG` 사용
+
+<Aside variant="tip">
+  팀 공유를 위해 `cyberstrike.json`을 커밋하세요. 개인 재정의에는 환경 변수 또는 `CYBERSTRIKE_CONFIG`를 사용하세요.
+</Aside>
+
+## 관련 문서
+
+- [구성 레퍼런스](/docs/configuration) - 전체 가이드
+- [전역 구성](/docs/configuration/global-config) - 전역 설정
+- [환경 변수](/docs/configuration/environment-variables) - 환경 변수 레퍼런스

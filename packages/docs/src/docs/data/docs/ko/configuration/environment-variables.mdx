@@ -1,0 +1,276 @@
+---
+title: 환경 변수
+description: 환경 변수를 사용하여 Cyberstrike 구성
+sidebar:
+  order: 4
+  label: 환경 변수
+---
+
+환경 변수는 제공자 자격 증명을 구성하고 런타임 동작을 토글합니다 — CI/CD 및 컨테이너 환경에 유용합니다.
+
+<Aside variant="info">
+  Cyberstrike는 모델, 에이전트, 테마 같은 설정을 환경 변수에서 읽지 **않습니다**. 그것들은 설정 파일에 있습니다 ([구성 레퍼런스](/docs/configuration) 참조). 아래의 `CYBERSTRIKE_*` 변수는 자격 증명, 설정 경로, 동작 토글로 제한됩니다.
+</Aside>
+
+{/* TODO: Screenshot - Environment variables in terminal */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: env-vars-terminal.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">터미널에서 환경 변수 설정</p>
+</div>
+
+## 제공자 API 키
+
+제공자 키는 SDK의 표준 변수 이름을 사용합니다. 전체 목록은 [AI 제공자](/docs/providers)를 참조하세요.
+
+### Anthropic
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-api03-..."
+```
+
+### OpenAI
+
+```bash
+export OPENAI_API_KEY="sk-proj-..."
+```
+
+### Google (Gemini)
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+# GEMINI_API_KEY도 허용됩니다
+```
+
+### OpenRouter
+
+```bash
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+### Groq
+
+```bash
+export GROQ_API_KEY="gsk_..."
+```
+
+### Azure OpenAI
+
+```bash
+export AZURE_RESOURCE_NAME="your-resource"
+export AZURE_API_KEY="..."
+```
+
+### AWS Bedrock
+
+```bash
+export AWS_ACCESS_KEY_ID="AKIA..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+# 또는 bearer 토큰:
+export AWS_BEARER_TOKEN_BEDROCK="..."
+```
+
+## 설정 경로 변수
+
+| 변수 | 설명 |
+|------|------|
+| `CYBERSTRIKE_CONFIG` | 커스텀 설정 파일의 전체 경로 |
+| `CYBERSTRIKE_CONFIG_DIR` | 스캔할 추가 `.cyberstrike` 디렉토리 |
+| `CYBERSTRIKE_CONFIG_CONTENT` | 인라인 JSON 설정 (파일 소스를 재정의) |
+| `CYBERSTRIKE_DISABLE_PROJECT_CONFIG` | 참값으로 설정하면 프로젝트 설정 로딩 건너뜀 |
+| `CYBERSTRIKE_PERMISSION` | JSON 문자열로 된 권한 재정의 |
+
+## 동작 플래그
+
+이 변수들은 런타임 동작을 토글합니다. 불리언 플래그는 참값(`1`, `true`)으로 설정하면 활성화됩니다.
+
+| 변수 | 설명 |
+|------|------|
+| `CYBERSTRIKE_AUTO_SHARE` | 새로 생성된 세션 자동 공유 |
+| `CYBERSTRIKE_DISABLE_AUTOUPDATE` | 자동 업데이트 비활성화 |
+| `CYBERSTRIKE_DISABLE_AUTOCOMPACT` | 자동 컨텍스트 압축 비활성화 |
+| `CYBERSTRIKE_DISABLE_PRUNE` | 오래된 도구 출력 정리 비활성화 |
+| `CYBERSTRIKE_DISABLE_TERMINAL_TITLE` | 터미널 제목 업데이트 안 함 |
+| `CYBERSTRIKE_DISABLE_DEFAULT_PLUGINS` | 내장 플러그인 로딩 건너뜀 |
+| `CYBERSTRIKE_DISABLE_LSP_DOWNLOAD` | LSP 서버 다운로드 안 함 |
+| `CYBERSTRIKE_DISABLE_MODELS_FETCH` | 원격 모델 카탈로그 가져오기 안 함 |
+| `CYBERSTRIKE_DISABLE_EXTERNAL_SKILLS` | 외부 스킬 로딩 건너뜀 |
+| `CYBERSTRIKE_ENABLE_EXA` | Exa 기반 웹 검색 활성화 |
+| `CYBERSTRIKE_MODELS_URL` | 모델 카탈로그 URL 재정의 |
+| `CYBERSTRIKE_MODELS_PATH` | 로컬 경로에서 모델 카탈로그 로드 |
+
+### 서버 자격 증명
+
+`cyberstrike serve` 및 `cyberstrike web`에서 사용:
+
+```bash
+export CYBERSTRIKE_SERVER_PASSWORD="..."   # 서버 시작에 필요
+export CYBERSTRIKE_SERVER_USERNAME="admin" # 선택 사항, 기본값 존재
+```
+
+## 설정에서 변수 참조
+
+설정 파일은 두 가지 치환만 지원합니다:
+
+### 환경 변수 — `{env:VAR}`
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+`{env:VAR}`는 `VAR`의 값으로 대체되거나, 설정되지 않은 경우 빈 문자열로 대체됩니다. 쉘 스타일의 `${VAR}`, `$VAR`, 기본값 구문(`{env:VAR:-default}`)은 지원되지 **않습니다**.
+
+### 파일 내용 — `{file:path}`
+
+```json
+{
+  "instructions": ["{file:./SECURITY.md}"]
+}
+```
+
+경로는 설정 파일 기준 상대 경로, 절대 경로, 또는 홈 디렉토리용 `~/`로 시작할 수 있습니다.
+
+## 자동화를 위한 권한 재정의
+
+`cyberstrike run` (비대화형)은 프롬프트가 필요한 도구 호출을 자동으로 거부합니다. CI에서 도구를 사전 승인하려면 `CYBERSTRIKE_PERMISSION`으로 JSON 권한 맵을 전달합니다:
+
+```bash
+export CYBERSTRIKE_PERMISSION='{"bash":"allow","edit":"allow","read":"allow"}'
+```
+
+값은 설정의 `permission` 필드와 동일한 형태를 따릅니다. [권한](/docs/permissions)을 참조하세요.
+
+## 쉘 구성
+
+### Bash / Zsh
+
+```bash title="~/.bashrc / ~/.zshrc"
+export ANTHROPIC_API_KEY="sk-ant-..."
+export CYBERSTRIKE_AUTO_SHARE=1
+```
+
+### Fish
+
+```fish title="~/.config/fish/config.fish"
+set -gx ANTHROPIC_API_KEY "sk-ant-..."
+set -gx CYBERSTRIKE_AUTO_SHARE 1
+```
+
+## .env 파일
+
+```bash title=".env"
+ANTHROPIC_API_KEY=sk-ant-...
+CYBERSTRIKE_PERMISSION={"bash":"allow"}
+```
+
+```bash
+# 실행 전 로드
+source .env && cyberstrike
+```
+
+<Aside variant="caution">
+  `.env` 파일을 절대 버전 관리에 커밋하지 마세요. `.gitignore`에 `.env`를 추가하세요.
+</Aside>
+
+## CI/CD 통합
+
+### GitHub Actions
+
+```yaml
+env:
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow","edit":"allow"}'
+
+steps:
+  - name: Security Scan
+    run: cyberstrike run "scan for vulnerabilities"
+```
+
+### GitLab CI
+
+```yaml
+variables:
+  CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow"}'
+
+security_scan:
+  script:
+    - cyberstrike run "analyze code for security issues"
+```
+
+## Docker
+
+### Docker Run
+
+```bash
+docker run -it \
+  -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+  -e CYBERSTRIKE_PERMISSION='{"bash":"allow"}' \
+  cyberstrike/cyberstrike
+```
+
+### Docker Compose
+
+```yaml title="docker-compose.yml"
+services:
+  cyberstrike:
+    image: cyberstrike/cyberstrike
+    environment:
+      - ANTHROPIC_API_KEY
+      - CYBERSTRIKE_AUTO_SHARE=1
+    env_file:
+      - .env
+```
+
+## 우선순위 순서
+
+설정 소스는 이 순서로 병합됩니다 (가장 높은 것이 적용):
+
+```
+1. 명령줄 인수
+2. 엔터프라이즈 관리 설정
+3. CYBERSTRIKE_CONFIG_CONTENT (인라인 JSON)
+4. .cyberstrike/ 디렉토리 설정
+5. 프로젝트 설정 (cyberstrike.json / .jsonc)
+6. CYBERSTRIKE_CONFIG (커스텀 파일)
+7. 전역 설정 (~/.config/cyberstrike/)
+8. 원격 .well-known/cyberstrike
+9. 기본값
+```
+
+자세한 내용은 [구성 레퍼런스](/docs/configuration#configuration-hierarchy)를 참조하세요.
+
+## 변수 확인
+
+```bash
+# 활성 Cyberstrike 변수 나열
+env | grep CYBERSTRIKE
+
+# 제공자 키가 설정되어 있는지 확인 (전체를 출력하지 않고)
+echo "${ANTHROPIC_API_KEY:0:12}..."
+```
+
+## 보안
+
+1. 전체 API 키를 절대 에코하지 마세요
+2. CI/CD에서 시크릿 관리를 사용하세요
+3. 정기적으로 키를 교체하세요
+4. `.env` 권한을 제한하세요: `chmod 600 .env`
+
+<Aside variant="tip">
+  프로덕션 환경에서는 HashiCorp Vault, AWS Secrets Manager, 1Password CLI 같은 시크릿 관리자를 사용하세요.
+</Aside>
+
+## 관련 문서
+
+- [구성 레퍼런스](/docs/configuration) - 모든 구성 옵션
+- [프로젝트 구성](/docs/configuration/project-config) - 프로젝트 설정
+- [전역 구성](/docs/configuration/global-config) - 전역 설정
+- [인증](/docs/getting-started/authentication) - 인증 설정

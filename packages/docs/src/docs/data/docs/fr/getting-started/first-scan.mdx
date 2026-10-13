@@ -1,0 +1,134 @@
+---
+title: Premiere evaluation d'application web
+description: "Suivez pas a pas une evaluation complete de securite d'application web avec Cyberstrike"
+sidebar:
+  order: 4
+  label: Premiere evaluation
+---
+
+Ce guide vous accompagne a travers une veritable evaluation de securite d'application web -- du lancement de Cyberstrike aux resultats de vulnerabilites tries. Nous testerons une application web avec deux roles utilisateur (administrateur et utilisateur standard) pour trouver des failles d'autorisation, d'injection et de logique metier.
+
+## 1. Lancer Cyberstrike
+
+```bash
+cyberstrike
+```
+
+Le TUI s'ouvre avec l'agent primaire `cyberstrike` charge, pret pour la saisie.
+
+## 2. Demarrer une session
+
+Tapez n'importe quoi pour demarrer une session. Decrivez ce que vous testez :
+
+```
+> Je teste https://app.example.com -- c'est une plateforme SaaS avec des roles administrateur et utilisateur standard.
+  J'ai des identifiants pour les deux. Cherchons des contournements d'authentification, IDOR, injections et problemes de logique metier.
+```
+
+L'agent accuse reception et peut poser des questions de clarification sur le perimetre, les zones exclues ou le contexte supplementaire.
+
+## 3. Renommer la session
+
+Appuyez sur `Ctrl+R` pour renommer la session avec un nom significatif :
+
+```
+example-com-web-assessment
+```
+
+Cela vous aide a la retrouver plus tard dans `/sessions`.
+
+## 4. Lancer HackBrowser
+
+Executez la commande slash `/hackbrowser`. Un dialogue de lancement s'ouvre avec les champs suivants :
+
+- **URL cible** -- entrez `https://app.example.com`
+- **Identifiants** -- ajoutez-en deux : `userA` (administrateur) et `userB` (utilisateur standard)
+- **Perimetre** -- par defaut `*.example.com`, ajustez si l'API se trouve sur un domaine different
+- **Etapes** -- nombre de pages a explorer (par defaut 50)
+
+Confirmez le dialogue. Comme vous avez defini des identifiants, HackBrowser s'ouvre en mode visible.
+
+## 5. Connexion en tant que userA
+
+Une fenetre de navigateur Chromium s'ouvre -- c'est HackBrowser, avec une extension de telemetrie integree qui fournit un panneau d'interface superpose sur chaque page. Connectez-vous manuellement en tant que **userA** (le compte administrateur).
+
+Une fois connecte, appuyez sur le bouton **Record** dans le panneau HackBrowser. Cela demarre l'**AINavigator** -- la session d'exploration pilotee par le LLM. L'IA lit l'arbre d'accessibilite de la page, decide quels liens suivre, quels formulaires remplir et quels boutons cliquer, naviguant dans l'application de maniere autonome en tant que userA.
+
+## 6. Connexion en tant que userB
+
+Une seconde fenetre de navigateur s'ouvre automatiquement pour **userB** (l'utilisateur standard). Connectez-vous manuellement avec les identifiants de userB, puis appuyez sur **Record** dans son panneau.
+
+HackBrowser explore maintenant l'application avec les deux roles. Chaque requete HTTP est etiquetee avec l'identifiant qui l'a emise, afin que le pipeline sache quel role a accede a quel endpoint.
+
+## 7. Ce qui se passe ensuite
+
+Pendant que HackBrowser explore, le reste du harnais travaille deja :
+
+**Capture du trafic** -- Chaque paire requete/reponse est envoyee dans [Vortex](/docs/features/vortex) avec les en-tetes complets, le corps et le contexte d'interface (quels champs de formulaire etaient en lecture seule, masques ou desactives au moment ou la requete a ete envoyee).
+
+**Generation de signaux** -- Vortex applique des regles sur le trafic capture et genere des signaux : schemas d'authentification, parametres caches, formes de reponses suspectes, acces aux endpoints specifiques aux roles.
+
+**Dispatch WSTG** -- Le `wstg-agent` lit les signaux et envoie les agents specialistes. Une requete avec un identifiant utilisateur dans le chemin declenche `wstg-authorization` pour les tests IDOR. Un POST avec des champs de formulaire declenche `wstg-input-validation` pour l'injection. Un endpoint de connexion declenche `wstg-authentication`.
+
+**Comparaison inter-roles** -- Puisque userA et userB ont explore la meme application, le pipeline compare quels endpoints chaque role a atteints, quels elements d'interface etaient visibles pour chacun, et si les frontieres de roles tiennent lorsque les requetes sont rejouees avec l'autre identifiant.
+
+**Escalade** -- Apres que les specialistes ont termine, l'`escalation-hunter` analyse tous les resultats pour les chainer -- un IDOR de severite moyenne combine avec un contournement de limite de debit de faible severite pourrait s'escalader en prise de controle de compte critique.
+
+**Triage** -- L'agent `triage` rejoue independamment les preuves HTTP pour chaque resultat brouillon. Seuls les resultats confirmes par le rejeu sont promus au statut "trie". Les faux positifs sont rejetes. Les resultats ambigus restent en brouillon pour votre examen.
+
+## 8. Examiner les resultats
+
+Une fois l'exploration terminee et les tests acheves, examinez les resultats :
+
+| Commande | Ce qu'elle affiche |
+|----------|--------------------|
+| `/vulnerabilities` | Tous les resultats avec severite, statut et preuves |
+| `/web` | Endpoints captures, roles, identifiants et objets |
+| `/methodology` | Couverture WSTG -- quelles categories ont ete testees, lesquelles sont en attente |
+| `/report` | Generer un rapport structure |
+
+### Format des resultats
+
+Chaque resultat comprend :
+
+```
+FINDING: IDOR in User Profile API
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Severity: High
+CWE: CWE-639
+Description: GET /api/users/{id} returns full profile data for any user ID
+             when accessed with userB credentials (regular user).
+Evidence: Replayed GET /api/users/1 with userB token → 200, body contains
+          admin user's email and phone number.
+Status: triaged (verified by replay)
+Recommendation: Enforce ownership check — users should only access their own profile.
+```
+
+### Niveaux de severite
+
+| Niveau | CVSS | Signification |
+|--------|------|---------------|
+| Critique | 9.0-10.0 | Risque d'exploitation immediate |
+| Eleve | 7.0-8.9 | Impact significatif sur la securite |
+| Moyen | 4.0-6.9 | Risque modere |
+| Faible | 0.1-3.9 | Preoccupation mineure |
+| Info | 0.0 | Informatif |
+
+## 9. Exporter et partager
+
+| Commande | Action |
+|----------|--------|
+| `/report` | Generer un rapport de pentest avec tous les resultats |
+| `/share` | Creer un lien de session partageable |
+| `/export` | Exporter la transcription de la session |
+
+## Etapes suivantes
+
+- [Agents de securite](/docs/agents) -- Comprendre le pipeline WSTG et les agents specialistes
+- [Fonctionnalites](/docs/features) -- Approfondir HackBrowser, Vortex, Bolt, MCP
+- [Configuration](/docs/configuration) -- Personnaliser les perimetres, permissions et parametres par defaut
+- [Commandes slash](/docs/slash-commands) -- Reference complete des commandes
+
+<Aside variant="tip">
+  Utilisez `/compact` pour resumer les sessions longues et continuer les tests sans perdre le contexte.
+</Aside>

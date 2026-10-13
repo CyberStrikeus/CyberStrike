@@ -1,0 +1,476 @@
+---
+title: Commandes CLI
+description: "Référence complète de l'interface en ligne de commande de Cyberstrike"
+sidebar:
+  order: 1
+  label: Vue d'ensemble
+---
+
+Cyberstrike fournit une interface en ligne de commande puissante pour les évaluations de sécurité. Cette référence couvre toutes les commandes disponibles, les options et les schémas d'utilisation.
+
+<img src="/docs/images/gifs/g02-model-switch.gif" alt="Changement du modèle actif depuis le sélecteur avec leader+m" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/screenshots/s04-model-dialog.png" alt="Boîte de dialogue de sélection du modèle ouverte avec leader+m, affichant les modèles récents" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/diagrams/command-hierarchy.svg" alt="Hiérarchie des commandes cyberstrike — commandes de premier niveau et leurs sous-commandes" className="my-6" />
+
+## Structure des commandes
+
+```
+cyberstrike [options-globales] <commande> [options-commande] [arguments]
+```
+
+## Options globales
+
+| Option | Alias | Description |
+|--------|-------|-------------|
+| `--help` | `-h` | Afficher l'aide |
+| `--version` | `-v` | Afficher le numéro de version |
+| `--print-logs` | | Afficher les journaux sur stderr |
+| `--log-level` | | Définir le niveau de journalisation (DEBUG, INFO, WARN, ERROR) |
+
+## Mode interactif
+
+Lancez l'interface utilisateur du terminal sans arguments :
+
+```bash
+cyberstrike
+```
+
+### Options du mode interactif
+
+| Option | Alias | Description |
+|--------|-------|-------------|
+| `--model <model>` | `-m` | Modèle au format `fournisseur/modèle` |
+| `--agent <name>` | | Agent de sécurité à utiliser |
+| `--continue` | `-c` | Continuer la dernière session |
+| `--session <id>` | `-s` | Reprendre une session spécifique |
+
+### Exemples
+
+```bash
+# Démarrer avec un modèle spécifique
+cyberstrike --model anthropic/claude-sonnet-4-20250514
+
+# Sélectionner un agent principal (seul 'cyberstrike' est intégré)
+cyberstrike --agent cyberstrike
+
+# Continuer la session précédente
+cyberstrike --continue
+```
+
+---
+
+## run
+
+Exécuter une seule invite sans entrer en mode interactif.
+
+```bash
+cyberstrike run [message..] [options]
+```
+
+### Options
+
+| Option | Alias | Description |
+|--------|-------|-------------|
+| `--model <model>` | `-m` | Modèle au format `fournisseur/modèle` |
+| `--agent <name>` | | Agent à utiliser |
+| `--continue` | `-c` | Continuer la dernière session |
+| `--session <id>` | `-s` | Reprendre une session spécifique |
+| `--file <path>` | `-f` | Joindre un ou plusieurs fichiers au message |
+| `--format <type>` | | Format de sortie : `default` ou `json` |
+| `--share` | | Partager la session |
+| `--title <text>` | | Définir le titre de la session |
+| `--attach <url>` | | Se connecter à un serveur en cours d'exécution |
+| `--variant <type>` | | Variante du modèle (high, max, minimal) |
+
+### Exemples
+
+```bash
+# Exécuter une seule commande
+cyberstrike run "scan example.com for open ports"
+
+# Joindre un fichier à la requête
+cyberstrike run "analyze this config" -f nginx.conf
+
+# Sortie en JSON
+cyberstrike run "list vulnerabilities" --format json
+
+# Continuer la session précédente
+cyberstrike run "now check for XSS" --continue
+```
+
+### Redirection de l'entrée
+
+Accepter l'entrée depuis stdin :
+
+```bash
+echo "analyze this code" | cyberstrike run
+cat report.txt | cyberstrike run "summarize this"
+```
+
+---
+
+## auth
+
+Gérer les identifiants d'authentification des fournisseurs d'IA.
+
+### auth login
+
+Ajouter des identifiants pour un fournisseur d'IA :
+
+```bash
+cyberstrike auth login [url]
+```
+
+#### Connexion interactive
+
+```bash
+cyberstrike auth login
+# Sélectionner le fournisseur dans la liste
+# Entrer la clé API lorsque demandé
+```
+
+#### Connexion via URL bien connue
+
+```bash
+cyberstrike auth login https://custom-provider.example.com
+```
+
+### auth logout
+
+Supprimer les identifiants stockés :
+
+```bash
+cyberstrike auth logout
+# Sélectionner le fournisseur dans la liste
+```
+
+### auth list
+
+Afficher tous les identifiants configurés :
+
+```bash
+cyberstrike auth list
+```
+
+La sortie affiche :
+- Les identifiants stockés par fournisseur
+- Le type d'authentification (api, oauth)
+- Les variables d'environnement actives
+
+---
+
+## mcp
+
+Gérer les serveurs Model Context Protocol (MCP).
+
+### mcp list
+
+Lister les serveurs MCP configurés et leur état :
+
+```bash
+cyberstrike mcp list
+```
+
+Indicateurs d'état :
+- `✓` Connecté
+- `○` Non initialisé / Désactivé
+- `⚠` Authentification requise
+- `✗` Échoué
+
+### mcp add
+
+Ajouter un nouveau serveur MCP de manière interactive :
+
+```bash
+cyberstrike mcp add
+```
+
+L'assistant demande :
+1. L'emplacement (projet ou global)
+2. Le nom du serveur
+3. Le type de serveur (local ou distant)
+4. Les détails de connexion
+
+#### Exemple de serveur local
+
+```bash
+# Après avoir exécuté `cyberstrike mcp add` :
+# Emplacement : Projet actuel
+# Nom : filesystem
+# Type : Local
+# Commande : npx @modelcontextprotocol/server-filesystem /path/to/dir
+```
+
+#### Exemple de serveur distant
+
+```bash
+# Après avoir exécuté `cyberstrike mcp add` :
+# Emplacement : Global
+# Nom : custom-api
+# Type : Distant
+# URL : https://api.example.com/mcp
+# OAuth : Oui/Non
+```
+
+### mcp auth
+
+S'authentifier auprès d'un serveur MCP compatible OAuth :
+
+```bash
+cyberstrike mcp auth [name]
+```
+
+### mcp auth list
+
+Lister l'état OAuth de tous les serveurs MCP :
+
+```bash
+cyberstrike mcp auth list
+```
+
+### mcp logout
+
+Supprimer les identifiants OAuth :
+
+```bash
+cyberstrike mcp logout [name]
+```
+
+### mcp debug
+
+Déboguer les problèmes de connexion OAuth :
+
+```bash
+cyberstrike mcp debug <name>
+```
+
+---
+
+## session
+
+Gérer les sessions de conversation.
+
+### session list
+
+Lister toutes les sessions :
+
+```bash
+cyberstrike session list [options]
+```
+
+| Option | Alias | Description |
+|--------|-------|-------------|
+| `--max-count <n>` | `-n` | Limiter aux N sessions les plus récentes |
+| `--format <type>` | | Sortie : `table` ou `json` |
+
+### Exemples
+
+```bash
+# Lister les 10 sessions les plus récentes
+cyberstrike session list -n 10
+
+# Exporter en JSON
+cyberstrike session list --format json
+```
+
+---
+
+## models
+
+Lister les modèles d'IA disponibles.
+
+```bash
+cyberstrike models
+```
+
+Affiche tous les modèles organisés par fournisseur avec :
+- L'identifiant du modèle
+- Le nom du modèle
+- Les capacités
+
+---
+
+## agent
+
+Gérer les agents de sécurité.
+
+```bash
+cyberstrike agent [name]
+```
+
+### Lister les agents
+
+```bash
+cyberstrike agent
+# Affiche les agents disponibles
+```
+
+### Informations sur un agent
+
+```bash
+cyberstrike agent web-application
+# Affiche les détails de l'agent et son prompt
+```
+
+---
+
+## github
+
+Intégration de l'application GitHub.
+
+### github install
+
+Installer l'application GitHub Cyberstrike dans un dépôt :
+
+```bash
+cyberstrike github install
+```
+
+### github run
+
+Exécuter Cyberstrike sur un événement GitHub (utilisé par le workflow CI) :
+
+```bash
+cyberstrike github run
+```
+
+---
+
+## pr
+
+Examiner une pull request par numéro.
+
+```bash
+cyberstrike pr <number>
+```
+
+---
+
+## export
+
+Exporter une session en JSON vers stdout (sans options) :
+
+```bash
+cyberstrike export [sessionID]
+```
+
+---
+
+## import
+
+Importer des données de session.
+
+```bash
+cyberstrike import <file> [options]
+```
+
+---
+
+## upgrade
+
+Mettre à jour Cyberstrike vers la dernière version.
+
+```bash
+cyberstrike upgrade
+```
+
+---
+
+## uninstall
+
+Supprimer Cyberstrike de votre système.
+
+```bash
+cyberstrike uninstall
+```
+
+---
+
+## serve
+
+Démarrer le serveur API Cyberstrike. Nécessite que `CYBERSTRIKE_SERVER_PASSWORD` soit défini.
+
+```bash
+CYBERSTRIKE_SERVER_PASSWORD=secret cyberstrike serve [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--port <number>` | Port du serveur (par défaut : 4096) |
+| `--hostname <address>` | Adresse de liaison |
+| `--cors <origin>` | Origine CORS autorisée |
+| `--mdns` | Annoncer le serveur via mDNS |
+
+---
+
+## stats
+
+Afficher les statistiques d'utilisation.
+
+```bash
+cyberstrike stats
+```
+
+Affiche :
+- L'utilisation des tokens
+- Le nombre de sessions
+- Les estimations de coûts
+
+---
+
+## completion
+
+Générer les scripts d'autocomplétion shell.
+
+```bash
+# Bash
+cyberstrike completion >> ~/.bashrc
+
+# Zsh
+cyberstrike completion >> ~/.zshrc
+
+# Fish
+cyberstrike completion | source
+```
+
+---
+
+## Variables d'environnement
+
+Configurer le comportement de Cyberstrike via des variables d'environnement :
+
+| Variable | Description |
+|----------|-------------|
+| `CYBERSTRIKE_AUTO_SHARE` | Partager automatiquement les sessions |
+| `CYBERSTRIKE_PERMISSION` | Remplacement des permissions en JSON |
+| `CYBERSTRIKE_CONFIG` | Chemin vers un fichier de configuration personnalisé |
+| `ANTHROPIC_API_KEY` | Clé API Anthropic |
+| `OPENAI_API_KEY` | Clé API OpenAI |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Clé API Google AI (Gemini) |
+| `OPENROUTER_API_KEY` | Clé API OpenRouter |
+
+---
+
+## Codes de sortie
+
+| Code | Signification |
+|------|---------------|
+| `0` | Succès |
+| `1` | Erreur — arguments invalides/inconnus, ou erreur fatale |
+| `130` | Interrompu (Ctrl+C) |
+
+---
+
+## Fichiers de configuration
+
+Cyberstrike lit la configuration depuis ces emplacements :
+
+| Chemin | Portée |
+|--------|--------|
+| `./cyberstrike.json` | Projet |
+| `./.cyberstrike/cyberstrike.json` | Projet |
+| `~/.config/cyberstrike/cyberstrike.json` | Globale |
+
+Voir la [Référence de configuration](/docs/configuration) pour les détails du schéma.

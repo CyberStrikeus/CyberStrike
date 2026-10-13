@@ -132,18 +132,7 @@ For a remote Ollama server, change the `api` URL:
 
 ## Usage
 
-### Command Line
-
-```bash
-cyberstrike --model ollama/llama3.3
-```
-
-### In-Session
-
-```
-/models
-# Select an Ollama model
-```
+Use `/models` in the TUI to select an Ollama model, or set it as default in your config.
 
 ## Model Configuration
 
@@ -210,8 +199,18 @@ ollama create security-assistant -f Modelfile
 
 ### Use Custom Model
 
-```bash
-cyberstrike --model ollama/security-assistant
+Add the custom model to your config and select it via `/models`:
+
+```json
+{
+  "provider": {
+    "ollama": {
+      "models": {
+        "security-assistant": { "name": "Security Assistant" }
+      }
+    }
+  }
+}
 ```
 
 ## Performance Optimization

@@ -1,0 +1,254 @@
+---
+title: शुरुआत करें
+description: Cyberstrike इंस्टॉल करें और अपना पहला सुरक्षा मूल्यांकन चलाएं
+sidebar:
+  order: 1
+  label: परिचय
+---
+
+Cyberstrike एक AI-संवर्धित आक्रामक सुरक्षा हार्नेस है। आप एक लक्ष्य का वर्णन करते हैं — एक वेब ऐप, एक API, एक नेटवर्क — और Cyberstrike मूल्यांकन चलाता है। यह टूल्स चुनता है, सही एजेंट भेजता है, कमजोरियों की जांच करता है, और जो पाता है उसकी रिपोर्ट करता है।
+
+इसे एक AI पेनटेस्टर समझें जो आपके साथ काम करता है। आप एक संवादात्मक इंटरफ़ेस के माध्यम से नियंत्रण में रहते हैं जबकि हार्नेस भारी काम संभालता है: क्रॉलिंग, ट्रैफ़िक विश्लेषण, इंजेक्शन परीक्षण, प्राधिकरण जांच, और व्यक्तिगत परिणामों में श्रृंखलाएं खोजना।
+
+अंदरूनी तौर पर, यह 100+ सुरक्षा टूल्स, 15+ विशेषज्ञ एजेंट, OWASP WSTG पर आधारित 65+ निर्धारणात्मक परीक्षण स्क्रिप्ट, साथ ही [वेब क्रॉलिंग](/docs/features/hackbrowser), [ट्रैफ़िक विश्लेषण](/docs/features/vortex), [कंटेनराइज़्ड टूल्स](/docs/features/bolt), और [बाहरी एकीकरण](/docs/features/mcp) के लिए समर्पित इंजन एक साथ लाता है।
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/gifs/g01-first-run.gif" alt="Cyberstrike इंस्टॉलेशन और पहला रन" className="w-full" />
+</div>
+
+## सिस्टम आवश्यकताएं
+
+Cyberstrike इंस्टॉल करने से पहले, सत्यापित करें कि आपका सिस्टम इन आवश्यकताओं को पूरा करता है:
+
+| आवश्यकता | न्यूनतम | अनुशंसित |
+|-----------|---------|----------|
+| ऑपरेटिंग सिस्टम | macOS 12+, Ubuntu 20.04+, Windows 10+ | macOS 14+, Ubuntu 22.04+ |
+| RAM | 4 GB | 8 GB |
+| डिस्क स्पेस | 500 MB | 2 GB |
+| Node.js | 18.0+ | 20.0+ |
+
+## Cyberstrike इंस्टॉल करना
+
+अपने ऑपरेटिंग सिस्टम और पैकेज मैनेजर के आधार पर अपनी पसंदीदा इंस्टॉलेशन विधि चुनें।
+
+### npm (अनुशंसित)
+
+1. अपना टर्मिनल खोलें
+2. इंस्टॉलेशन कमांड चलाएं:
+
+```bash
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+3. इंस्टॉलेशन सत्यापित करें:
+
+```bash
+cyberstrike --version
+```
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s01-installation.png" alt="इंस्टॉलेशन के बाद Cyberstrike TUI" className="w-full" />
+</div>
+
+### Bun <Badge text="जल्द आ रहा है" variant="caution" size="md" />
+
+Bun सपोर्ट अभी उपलब्ध नहीं है।
+
+### Homebrew (macOS) <Badge text="जल्द आ रहा है" variant="caution" size="md" />
+
+Homebrew सपोर्ट अभी उपलब्ध नहीं है।
+
+### curl (Linux/macOS)
+
+इंस्टॉलेशन स्क्रिप्ट चलाएं:
+
+```bash
+curl -fsSL https://cyberstrike.io/install | bash
+```
+
+### iwr (Windows/Powershell)
+
+इंस्टॉलेशन स्क्रिप्ट चलाएं:
+
+```bash
+iwr -useb https://cyberstrike.io/install.ps1 | iex
+```
+
+<Aside variant="caution">
+  स्क्रिप्ट चलाने से पहले उनकी समीक्षा करें। इंस्टॉलेशन स्क्रिप्ट [github.com/CyberStrikeus/CyberStrike](https://github.com/CyberStrikeus/CyberStrike) पर उपलब्ध है।
+</Aside>
+
+### Docker
+
+<Aside variant="caution">
+  Docker इमेज जल्द आ रही है। अभी के लिए, npm या curl का उपयोग करें।
+</Aside>
+
+## AI प्रदाता कनेक्ट करना
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/gifs/g02-auth-login.gif" alt="Cyberstrike auth लॉगिन फ़्लो" className="w-full" />
+</div>
+
+Cyberstrike को काम करने के लिए एक AI प्रदाता की आवश्यकता है। निम्नलिखित प्रदाता समर्थित हैं:
+
+| प्रदाता | मुफ्त टियर | प्रमाणीकरण विधि |
+|---------|-----------|-----------------|
+| GitHub Copilot | सब्सक्रिप्शन के साथ | OAuth (कोई API key नहीं) |
+| OpenRouter | हां | API Key |
+| Anthropic | नहीं | API Key |
+| OpenAI | नहीं | API Key |
+| Google Gemini | हां | API Key |
+| Ollama | हां (स्थानीय) | कोई नहीं |
+
+### प्रमाणीकरण सेट करना
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s02-auth.jpg" alt="Cyberstrike मॉडल चयन डायलॉग" className="w-full" />
+</div>
+
+1. Cyberstrike लॉन्च करें और कनेक्ट कमांड चलाएं:
+
+```
+/connect
+```
+
+2. सूची से अपना प्रदाता चुनें और अपनी API key दर्ज करें (या GitHub Copilot के लिए OAuth के माध्यम से अधिकृत करें)
+
+3. कभी भी मॉडल बदलें:
+
+```
+/models
+```
+
+### एनवायरनमेंट वेरिएबल का उपयोग
+
+वैकल्पिक रूप से, API keys को एनवायरनमेंट वेरिएबल के रूप में सेट करें:
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+इन्हें स्थायी बनाने के लिए अपनी शेल प्रोफ़ाइल (`~/.bashrc`, `~/.zshrc`) में जोड़ें।
+
+## अपना पहला मूल्यांकन चलाना
+
+### लॉन्च
+
+```bash
+cyberstrike
+```
+
+TUI एक इनपुट प्रॉम्प्ट, रिस्पॉन्स एरिया, और स्टेटस बार के साथ दिखाई देता है।
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s03-tui-main.png" alt="Cyberstrike TUI मुख्य इंटरफ़ेस" className="w-full" />
+</div>
+
+### लक्ष्य का वर्णन करें
+
+अपना कार्य सीधे टाइप करें। हार्नेस तय करता है कि क्या चलाना है:
+
+```
+> Test https://app.example.com for OWASP Top 10 vulnerabilities
+```
+
+अंदरूनी तौर पर क्या होता है:
+
+1. `cyberstrike` प्राथमिक एजेंट आपका लक्ष्य पढ़ता है
+2. `/hackbrowser` लक्ष्य को क्रॉल करने और HTTP ट्रैफ़िक कैप्चर करने के लिए लॉन्च होता है
+3. [Vortex](/docs/features/vortex) प्रत्येक अनुरोध को प्रोसेस करता है — नियम लागू करता है, विसंगतियां चिह्नित करता है
+4. `wstg-agent` अनुरोध सिग्नल के आधार पर विशेषज्ञ एजेंट भेजता है
+5. 13 WSTG विशेषज्ञ इंजेक्शन, auth बाइपास, IDOR, सेशन खामियां, क्रिप्टो समस्याएं, और अधिक के लिए परीक्षण करते हैं
+6. `escalation-hunter` यौगिक कमजोरियों का पता लगाने के लिए निष्कर्षों को श्रृंखलाबद्ध करता है
+7. `triage` एजेंट HTTP साक्ष्य को रीप्ले करके प्रत्येक निष्कर्ष को स्वतंत्र रूप से सत्यापित करता है
+8. आपको साक्ष्य, गंभीरता, और उपचार सहित ट्राइएज्ड निष्कर्ष मिलते हैं
+
+### हार्नेस में क्या है
+
+| परत | क्या |
+|-----|------|
+| **Agents** | 15+ विशेषज्ञ एजेंट — WSTG पाइपलाइन, triage, escalation, general, explore |
+| **Tools** | 100+ बिल्ट-इन टूल्स — HTTP रीप्ले, इंजेक्शन प्रोब, एक्सेस प्रोब, रीकॉन, कोड सर्च |
+| **Skills** | 65+ निर्धारणात्मक WSTG टेस्ट स्क्रिप्ट जो विशेषज्ञों द्वारा रनटाइम पर लोड होती हैं |
+| **Vortex** | DSL क्वेरी, नियम मिलान, और सिग्नल सहसंबंध के साथ HTTP ट्रैफ़िक इंजन |
+| **HackBrowser** | UI संदर्भ कैप्चर के साथ AI-संचालित Chromium क्रॉलर |
+| **Bolt** | 30+ कंटेनराइज़्ड सुरक्षा टूल्स (nmap, nuclei, sqlmap, hydra, और अधिक) |
+| **MCP** | 3 बिल्ट-इन सर्वर (github-security, cve, osint) + कोई भी कस्टम MCP सर्वर |
+
+आप एक प्रॉम्प्ट के साथ बातचीत करते हैं। हार्नेस बाकी सब ऑर्केस्ट्रेट करता है।
+
+## कॉन्फ़िगरेशन
+
+डिफ़ॉल्ट सेट करने के लिए अपनी प्रोजेक्ट डायरेक्टरी में एक `cyberstrike.json` फ़ाइल बनाएं:
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+जब आप इस डायरेक्टरी में `cyberstrike` चलाते हैं, तो यह स्वचालित रूप से ये सेटिंग्स लोड करता है। आप TUI में `/models` के साथ कभी भी मॉडल बदल सकते हैं।
+
+### कॉन्फ़िगरेशन पदानुक्रम
+
+Cyberstrike इस क्रम में कई स्रोतों से कॉन्फ़िगरेशन लोड करता है:
+
+1. एनवायरनमेंट वेरिएबल (सर्वोच्च प्राथमिकता)
+2. प्रोजेक्ट कॉन्फ़िग (`cyberstrike.json`)
+3. उपयोगकर्ता कॉन्फ़िग (`~/.config/cyberstrike/cyberstrike.json`)
+4. डिफ़ॉल्ट मान (सबसे कम प्राथमिकता)
+
+विस्तृत कॉन्फ़िगरेशन विकल्पों के लिए, [कॉन्फ़िगरेशन संदर्भ](/docs/configuration) देखें।
+
+## प्रमुख स्लैश कमांड
+
+| कमांड | क्रिया |
+|-------|--------|
+| `/connect` | AI प्रदाता कनेक्ट करें |
+| `/models` | मॉडल बदलें |
+| `/hackbrowser` | स्वायत्त वेब क्रॉलर लॉन्च करें |
+| `/bolt` | Bolt सुरक्षा टूल सर्वर प्रबंधित करें |
+| `/mcps` | MCP सर्वर प्रबंधित करें |
+| `/vulnerabilities` | निष्कर्षों की समीक्षा करें |
+| `/web` | कैप्चर किए गए वेब ट्रैफ़िक का निरीक्षण करें |
+| `/report` | रिपोर्ट जनरेट करें |
+| `/help` | सभी कमांड दिखाएं |
+
+## कीबोर्ड शॉर्टकट
+
+| शॉर्टकट | क्रिया |
+|----------|--------|
+| `Enter` | संदेश सबमिट करें |
+| `Shift+Enter` | नई पंक्ति |
+| `Escape` | चल रहे सत्र को बाधित करें |
+| `Ctrl+P` | कमांड सूची |
+| `Tab` | अगला एजेंट |
+| `Ctrl+D` | Cyberstrike से बाहर निकलें |
+| `↑` / `↓` | इनपुट इतिहास नेविगेट करें |
+
+पूर्ण संदर्भ के लिए [कीबोर्ड शॉर्टकट](/docs/getting-started/keyboard-shortcuts) देखें।
+
+## अगले कदम
+
+इन गाइड के साथ सीखना जारी रखें:
+
+1. [कॉन्फ़िगरेशन संदर्भ](/docs/configuration) — Cyberstrike सेटिंग्स कस्टमाइज़ करें
+2. [AI प्रदाता](/docs/providers) — अपना पसंदीदा AI प्रदाता कॉन्फ़िगर करें
+3. [सुरक्षा एजेंट](/docs/agents) — विशेषज्ञ एजेंटों के बारे में जानें
+4. [सुविधाएं](/docs/features) — HackBrowser, Vortex, Bolt, MCP
+
+<Aside variant="tip">
+  सहायता और अपडेट के लिए [Discord](https://discord.gg/dr97wVJVbn) पर समुदाय से जुड़ें।
+</Aside>

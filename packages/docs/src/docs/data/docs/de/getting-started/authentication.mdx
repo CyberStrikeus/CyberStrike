@@ -1,0 +1,211 @@
+---
+title: Authentifizierung
+description: KI-Anbieter-Anmeldedaten fuer Cyberstrike konfigurieren
+sidebar:
+  order: 3
+  label: Authentifizierung
+---
+
+Cyberstrike erfordert die Authentifizierung bei mindestens einem KI-Anbieter, um zu funktionieren. Diese Anleitung behandelt die Einrichtung von Anmeldedaten fuer unterstuetzte Anbieter.
+
+## Anbieter verbinden
+
+Der einfachste Weg zur Authentifizierung — fuehren Sie in der TUI aus:
+
+```
+/connect
+```
+
+Waehlen Sie Ihren Anbieter aus dem interaktiven Menue:
+
+```
+? Select provider
+❯ cyberstrike (recommended)
+  anthropic (Claude Max or API key)
+  github-copilot
+  openai (ChatGPT Plus/Pro or API key)
+  google
+  openrouter
+  …
+```
+
+Die Liste wird dynamisch aus dem Modellkatalog erstellt und nach Prioritaet sortiert, daher koennen die genauen Eintraege variieren. Es handelt sich um eine Autovervollstaendigungs-Eingabe, kein festes Menue.
+
+## Anbieterspezifische Einrichtung
+
+### Anthropic
+
+1. Holen Sie Ihren API-Schluessel von [console.anthropic.com](https://console.anthropic.com)
+2. Fuehren Sie `/connect` aus, waehlen Sie **Anthropic**, geben Sie Ihren API-Schluessel ein
+
+### OpenAI
+
+1. Holen Sie Ihren API-Schluessel von [platform.openai.com](https://platform.openai.com)
+2. Fuehren Sie `/connect` aus, waehlen Sie **OpenAI**, geben Sie Ihren API-Schluessel ein
+
+### GitHub Copilot
+
+1. Sie benoetigen ein aktives GitHub Copilot-Abonnement
+2. Fuehren Sie `/connect` aus, waehlen Sie **Login with GitHub Copilot**
+3. Autorisieren Sie ueber den Browser-OAuth-Vorgang — kein API-Schluessel erforderlich
+
+Siehe [GitHub Copilot](/docs/providers/github-copilot) fuer Details.
+
+### OpenRouter
+
+OpenRouter bietet Zugang zu mehreren Modellen mit einer kostenlosen Stufe:
+
+1. Holen Sie Ihren API-Schluessel von [openrouter.ai/keys](https://openrouter.ai/keys)
+2. Fuehren Sie `/connect` aus, waehlen Sie **OpenRouter**, geben Sie Ihren API-Schluessel ein
+
+### Google Gemini
+
+1. Holen Sie Ihren API-Schluessel von [ai.google.dev](https://ai.google.dev)
+2. Fuehren Sie `/connect` aus, waehlen Sie **Google**, geben Sie Ihren API-Schluessel ein
+
+### Ollama (Lokal)
+
+Ollama benoetigt keinen API-Schluessel, muss aber lokal laufen:
+
+```bash
+# Ollama starten
+ollama serve
+
+# Ein Modell herunterladen
+ollama pull llama3.3
+```
+
+Verwenden Sie dann `/models`, um ein Ollama-Modell auszuwaehlen.
+
+## Umgebungsvariablen
+
+Setzen Sie Anmeldedaten ueber Umgebungsvariablen fuer CI/CD oder Automatisierung:
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+
+# Groq
+export GROQ_API_KEY="gsk_..."
+```
+
+Fuegen Sie es Ihrem Shell-Profil hinzu fuer dauerhafte Speicherung:
+
+```bash
+# ~/.bashrc oder ~/.zshrc
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+## Konfigurationsdatei
+
+Speichern Sie Anmeldedaten in der Konfigurationsdatei:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="tip">
+  Verwenden Sie die `{env:VAR_NAME}`-Syntax, um Umgebungsvariablen in Konfigurationsdateien zu referenzieren.
+</Aside>
+
+## Anmeldedaten verwalten
+
+### Status anzeigen
+
+Verwenden Sie `/status` in der TUI, um verbundene Anbieter und aktive Anmeldedaten anzuzeigen.
+
+### Modell wechseln
+
+Verwenden Sie `/models`, um zwischen Modellen beliebiger verbundener Anbieter zu wechseln. Oder setzen Sie einen Standard in der Konfiguration:
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## Enterprise-Authentifizierung
+
+### AWS Bedrock
+
+```bash
+# AWS-Anmeldedaten konfigurieren
+aws configure
+
+# Oder ueber Umgebungsvariablen
+export AWS_ACCESS_KEY_ID="..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+```
+
+Fuehren Sie dann `/connect` aus und waehlen Sie **Amazon Bedrock**.
+
+### Azure OpenAI
+
+```bash
+export AZURE_API_KEY="..."
+export AZURE_RESOURCE_NAME="your-resource"
+```
+
+### Google Vertex AI
+
+```bash
+gcloud auth application-default login
+```
+
+## Best Practices fuer die Sicherheit
+
+1. **Committen Sie niemals API-Schluessel** in die Versionskontrolle
+2. **Verwenden Sie Umgebungsvariablen** fuer sensible Werte
+3. **Rotieren Sie Schluessel regelmaessig** zur Sicherheit
+4. **Verwenden Sie eingeschraenkte Schluessel**, wenn verfuegbar
+5. **Ueberwachen Sie die Nutzung** auf Anbieter-Dashboards
+
+## Fehlerbehebung
+
+### Ungueltiger API-Schluessel
+
+```
+Error: Invalid API key
+```
+
+1. Ueberpruefen Sie, ob der Schluessel korrekt ist (keine zusaetzlichen Leerzeichen)
+2. Pruefen Sie, ob der Schluessel nicht abgelaufen ist
+3. Stellen Sie sicher, dass die Abrechnung beim Anbieter aktiv ist
+
+### Rate-Limits
+
+```
+Error: Rate limit exceeded
+```
+
+1. Warten Sie und versuchen Sie es erneut
+2. Pruefen Sie das Anbieter-Dashboard auf Limits
+3. Erwaegen Sie ein Upgrade Ihres Plans
+
+### Netzwerkprobleme
+
+```
+Error: Connection refused
+```
+
+1. Pruefen Sie die Internetverbindung
+2. Stellen Sie sicher, dass kein Proxy/Firewall blockiert
+3. Versuchen Sie ein anderes Netzwerk

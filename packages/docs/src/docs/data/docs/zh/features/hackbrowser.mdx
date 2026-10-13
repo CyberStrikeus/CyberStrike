@@ -1,0 +1,117 @@
+---
+title: HackBrowser
+description: AI 驱动的自主 Web 爬虫，捕获带有 UI 上下文的 HTTP 请求
+sidebar:
+  order: 3
+  label: HackBrowser
+---
+
+HackBrowser 是 Cyberstrike 的自主 Web 爬虫。它打开 Chromium 浏览器，让 LLM 通过读取可访问性树来浏览目标应用，并将每个捕获的 HTTP 请求——附带 UI 上下文信息——转发到分析流水线。[proxy-agent](/docs/agents/proxy-agent) 随后分析和测试每个请求。
+
+## 使用场景
+
+| 使用场景 | 选择 |
+|----------|------|
+| 多角色手动探索 | [Chrome Extension](/docs/tools/chrome-extension) |
+| 无人值守自动爬取 | **HackBrowser** |
+| 需要捕获中的 UI 表单上下文（`readonly`、`hidden`、`disabled` 标志） | **HackBrowser** |
+| 已有预认证的浏览器会话 | 均可——Chrome Extension 更简单 |
+
+两种路径都通过相同的 `/session/ingest` 端点和相同的 proxy-agent 流水线。您可以在单个会话中混合使用它们。
+
+## 工作原理
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  Chromium (Playwright)                                             │
+│  ├── Scanner    — DOM → accessibility tree (RawElement[])          │
+│  ├── Navigator  — LLM call → page plan (form/click tasks)          │
+│  ├── Executor   — Plan → Playwright actions                        │
+│  ├── Capture    — HTTP requests + ui_context snapshot              │
+│  └── Live panel — Shadow-DOM telemetry overlay (visible mode)      │
+└────────────────────────┬───────────────────────────────────────────┘
+                         │ POST /session/ingest
+                         ▼
+┌────────────────────────────────────────────────────────────────────┐
+│  Cyberstrike API                                                   │
+│  ├── Normalize → deduplicate → Request.add                         │
+│  └── IngestQueue → SessionPrompt(agent="proxy-agent")              │
+└────────────────────────┬───────────────────────────────────────────┘
+                         ▼
+                proxy-agent → proxy-analyzer + vulnerability testers
+```
+
+LLM 将页面视为可访问性树，决定填写哪些表单和点击哪些按钮。每个捕获的请求都包含一个 `ui_context` 快照——表单字段、其标志以及任何隐藏参数——proxy-analyzer 使用这些来识别可疑的请求结构。
+
+## 启动爬取
+
+### `/hackbrowser`
+
+在 TUI 中运行 `/hackbrowser` 打开启动对话框，包含目标 URL、凭据、范围、排除标签、步数和无头模式等字段。
+
+| 选项 | 描述 |
+|------|------|
+| **目标 URL** | 开始爬取的 URL |
+| **范围** | 限制捕获的主机名模式（例如 `*.example.com`） |
+| **排除** | 规划器必须跳过的 UI 标签（语义匹配） |
+| **步数** | 最大爬取页面数（默认：50） |
+| **凭据** | 要以其身份爬取的凭据。强制使用可见浏览器。 |
+| **无头模式** | 在没有可见浏览器窗口的情况下运行 |
+
+### 取消爬取
+
+```
+/hackbrowser-stop
+```
+
+### 代理发起
+
+当对话需要时（例如"测试这个应用"），代理也可以自主启动 HackBrowser。工具会立即返回——随着爬取的进行，捕获的内容会流入会话。
+
+## 多凭据爬取
+
+在 `/hackbrowser` 启动对话框中选择两个或更多凭据，以运行按角色的顺序爬取。
+
+对于每个凭据，HackBrowser 打开一个可见的 Chromium 窗口，等待您登录，然后运行标记该凭据 ID 的完整爬取。WSTG 流水线随后可以比较每个角色能访问什么。
+
+## UI 上下文载荷
+
+与 Chrome Extension 的区别在于每次捕获都附带 `ui_context` 块：
+
+```json
+{
+  "ui_context": {
+    "pageUrl": "https://shop.example.com/settings/profile",
+    "formName": "Update Profile",
+    "fields": [
+      { "name": "email", "type": "text", "isReadOnly": true },
+      { "name": "role", "type": "hidden", "isHidden": true, "value": "user" }
+    ],
+    "hiddenParams": ["account_id", "_csrf"]
+  }
+}
+```
+
+proxy-analyzer 使用这些信号来标记：
+
+- `readonly` 字段出现在请求中 → 测试服务器是否强制执行
+- `hidden` 字段 → 批量赋值候选
+- `hiddenParams` 中的参数（无 UI 元素）→ 最高风险的隐藏参数
+- 仅对一个角色可见的元素 → 使用其他凭据测试
+
+## 网络范围
+
+默认情况下，HackBrowser 捕获与目标 URL 的 `*.{eTLD+1}` 匹配的请求。在 `/hackbrowser` 启动对话框中添加自定义主机名模式（例如 `app.example.com`、`api.example.com`）来覆盖范围。
+
+## 故障排除
+
+| 错误 | 修复 |
+|------|------|
+| Chromium 未安装 | `bunx playwright install chromium` |
+| Playwright 未安装 | `npm install --prefix ~/.local/share/cyberstrike playwright` |
+| Worker 未找到 | 重新安装：`npm install -g @cyberstrike-io/cyberstrike` |
+| 已在运行中 | 等待完成或运行 `/hackbrowser-stop` |
+
+<Aside variant="danger">
+  仅对授权目标使用 HackBrowser。未经授权的渗透测试是违法的。
+</Aside>

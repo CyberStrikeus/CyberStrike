@@ -1,0 +1,177 @@
+---
+title: इंस्टॉलेशन
+description: npm या curl का उपयोग करके Cyberstrike इंस्टॉल करें
+sidebar:
+  order: 2
+  label: इंस्टॉलेशन
+---
+
+Cyberstrike को कई पैकेज मैनेजर के माध्यम से इंस्टॉल किया जा सकता है। अपने विकास वातावरण के लिए सबसे उपयुक्त विधि चुनें।
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s01-installation.png" alt="इंस्टॉलेशन के बाद Cyberstrike TUI" className="w-full" />
+</div>
+
+## npm (अनुशंसित)
+
+अधिकांश उपयोगकर्ताओं के लिए अनुशंसित इंस्टॉलेशन विधि।
+
+```bash
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+इंस्टॉलेशन सत्यापित करें:
+
+```bash
+cyberstrike --version
+```
+
+## Bun <Badge text="जल्द आ रहा है" variant="caution" size="md" />
+
+Bun सपोर्ट अभी उपलब्ध नहीं है।
+
+## Homebrew (macOS) <Badge text="जल्द आ रहा है" variant="caution" size="md" />
+
+Homebrew सपोर्ट अभी उपलब्ध नहीं है।
+
+## curl (Linux/macOS)
+
+शेल स्क्रिप्ट के माध्यम से सीधा इंस्टॉलेशन:
+
+```bash
+curl -fsSL https://cyberstrike.io/install | bash
+```
+
+## iwr (Windows/Powershell)
+
+इंस्टॉलेशन स्क्रिप्ट चलाएं:
+
+```bash
+iwr -useb https://cyberstrike.io/install.ps1 | iex
+```
+
+
+<Aside variant="caution">
+  इंस्टॉलेशन स्क्रिप्ट चलाने से पहले हमेशा उनकी समीक्षा करें। स्क्रिप्ट स्रोत [github.com/CyberStrikeus/CyberStrike](https://github.com/CyberStrikeus/CyberStrike) पर उपलब्ध है।
+</Aside>
+
+## Docker
+
+<Aside variant="caution">
+  Docker इमेज जल्द आ रही है। अभी के लिए, npm या curl का उपयोग करें।
+</Aside>
+
+
+## इंस्टॉलेशन सत्यापित करना
+
+इंस्टॉलेशन के बाद, सत्यापित करें कि Cyberstrike काम कर रहा है:
+
+```bash
+# Check version
+cyberstrike --version
+
+# List available commands
+cyberstrike --help
+```
+
+आपको Cyberstrike बैनर और वर्शन नंबर दिखना चाहिए, उसके बाद उपलब्ध कमांड की सूची।
+
+## Cyberstrike अपडेट करना
+
+नवीनतम वर्शन में अपडेट करें:
+
+```bash
+# npm
+npm update -g @cyberstrike-io/cyberstrike@latest
+
+# Self-update (recommended)
+cyberstrike upgrade
+```
+
+## अनइंस्टॉल करना
+
+अपने सिस्टम से Cyberstrike हटाएं:
+
+```bash
+# npm
+npm uninstall -g @cyberstrike-io/cyberstrike@latest
+```
+
+कॉन्फ़िगरेशन `~/.config/cyberstrike/` में संग्रहीत है (क्रेडेंशियल `~/.local/share/cyberstrike/` में रहते हैं) और आवश्यकता होने पर मैन्युअल रूप से हटाए जा सकते हैं।
+
+## समस्या निवारण
+
+### कमांड नहीं मिला
+
+यदि इंस्टॉलेशन के बाद `cyberstrike` नहीं मिलता:
+
+1. जांचें कि आपके PATH में npm ग्लोबल bin डायरेक्टरी शामिल है
+2. अपना टर्मिनल पुनः आरंभ करें
+3. ग्लोबल bin पथ खोजने के लिए `npm bin -g` चलाएं
+
+### अनुमति त्रुटियां
+
+Linux/macOS पर, यदि आपको अनुमति त्रुटियां मिलती हैं:
+
+```bash
+# Fix npm permissions
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### वर्शन संघर्ष
+
+यदि आपके पास कई Node वर्शन हैं:
+
+```bash
+# Use nvm to manage versions
+nvm use 20
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+### कॉर्पोरेट नेटवर्क (SSL इंस्पेक्शन / Zscaler)
+
+SSL-इंस्पेक्शन प्रॉक्सी (Zscaler, Netskope, और समान) वाले कॉर्पोरेट नेटवर्क पर, आउटबाउंड HTTPS को इंटरसेप्ट किया जाता है और कंपनी के अपने रूट सर्टिफ़िकेट से पुनः हस्ताक्षरित किया जाता है। यदि Cyberstrike उस सर्टिफ़िकेट पर भरोसा नहीं करता, तो TLS सत्यापन विफल हो जाता है और आपको इस तरह की त्रुटियां दिखेंगी:
+
+```
+error: unable_to_get_issuer_cert_locally  downloading package manifest @cyberstrike-io/plugin
+hackbrowser:navigator  TypeError: unable to get local issuer certificate — planPage failed, retrying once
+```
+
+HackBrowser क्रॉलर विशेष रूप से प्रभावित होता है: इसके प्लानर कॉल विफल हो जाते हैं, इसलिए क्रॉल केवल कुछ पेज एक्सप्लोर करता है और जल्दी रुक जाता है।
+
+**समाधान — `NODE_EXTRA_CA_CERTS` के माध्यम से अपने कॉर्पोरेट रूट CA पर भरोसा करें।** कॉर्पोरेट रूट पहले से ही आपके OS ट्रस्ट स्टोर में है (इसलिए आपका ब्राउज़र काम करता है), तो स्टोर को PEM बंडल में एक्सपोर्ट करें और Cyberstrike को इसकी ओर पॉइंट करें। यह HackBrowser वर्कर में स्वचालित रूप से प्रसारित होता है।
+
+**Windows (PowerShell)** — प्रत्येक मशीन रूट CA एक्सपोर्ट करें (कॉर्पोरेट वाला शामिल है, इसे पहचानने की आवश्यकता नहीं):
+
+```powershell
+$out = "$env:USERPROFILE\corp-ca.pem"
+Get-ChildItem Cert:\LocalMachine\Root | ForEach-Object {
+  "-----BEGIN CERTIFICATE-----"
+  [Convert]::ToBase64String($_.RawData, 'InsertLineBreaks')
+  "-----END CERTIFICATE-----"
+} | Set-Content -Encoding ascii $out
+
+$env:NODE_EXTRA_CA_CERTS = $out       # current session
+setx NODE_EXTRA_CA_CERTS "$out"       # persist for new sessions
+```
+
+**macOS**:
+
+```bash
+security find-certificate -a -p /Library/Keychains/System.keychain > ~/corp-ca.pem
+security find-certificate -a -p /System/Library/Keychains/SystemRootCertificates.keychain >> ~/corp-ca.pem
+export NODE_EXTRA_CA_CERTS=~/corp-ca.pem
+```
+
+फिर उसी शेल में Cyberstrike चलाएं। `unable to get local issuer certificate` त्रुटियां गायब हो जानी चाहिए और क्रॉल पूरा चलना चाहिए।
+
+<Aside variant="tip">
+  त्वरित जांच: `Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -like "*Zscaler*" }` (Windows) एक्सपोर्ट करने से पहले पुष्टि करता है कि कॉर्पोरेट रूट स्टोर में मौजूद है।
+</Aside>
+
+<Aside variant="caution">
+  केवल अंतिम उपाय परीक्षण के रूप में, `NODE_TLS_REJECT_UNAUTHORIZED=0` सर्टिफ़िकेट सत्यापन को पूरी तरह से अक्षम करता है और आपको त्रुटि से भी आगे ले जाएगा — लेकिन यह सभी कनेक्शन के लिए TLS सत्यापन बंद कर देता है, इसलिए नियमित उपयोग के लिए यह **अनुशंसित नहीं** है। `NODE_EXTRA_CA_CERTS` को प्राथमिकता दें।
+</Aside>

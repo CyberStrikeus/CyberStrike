@@ -1,0 +1,403 @@
+---
+title: Outil Bash
+description: "Executer des commandes shell pour les tests de securite avec Cyberstrike"
+sidebar:
+  order: 3
+  label: Bash
+---
+
+L'outil Bash execute des commandes shell pour l'interaction systeme, l'invocation d'outils et les tests de securite.
+
+{/* TODO: Screenshot - Bash command execution */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: bash-execution.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Execution de commandes avec l'outil Bash</p>
+</div>
+
+## Vue d'ensemble
+
+L'outil Bash permet :
+
+- D'executer des outils de securite (nmap, nuclei, sqlmap)
+- Des commandes d'administration systeme
+- Des operations Git
+- La gestion de paquets
+- Des scripts personnalises
+
+## Utilisation de base
+
+### Commandes simples
+
+```
+> Lancer un scan nmap sur 192.168.1.1
+```
+
+Execute :
+```bash
+nmap -sV 192.168.1.1
+```
+
+### Avec des arguments
+
+```
+> Verifier les ports ouverts sur la cible avec detection de services
+```
+
+Execute :
+```bash
+nmap -sV -sC -p- 192.168.1.1
+```
+
+### Commandes en pipeline
+
+```
+> Trouver tous les fichiers .env et chercher des cles API
+```
+
+Execute :
+```bash
+find . -name "*.env*" -exec grep -l "API" {} \;
+```
+
+## Outils de securite
+
+### Scan reseau
+
+```
+> Scanner le reseau 10.0.0.0/24 pour les hotes actifs
+```
+
+```bash
+nmap -sn 10.0.0.0/24
+```
+
+### Scan de vulnerabilites
+
+```
+> Lancer les templates nuclei contre https://target.com
+```
+
+```bash
+nuclei -u https://target.com -t cves/
+```
+
+### Tests web
+
+```
+> Fuzzer les repertoires du site web cible
+```
+
+```bash
+ffuf -u https://target.com/FUZZ -w /usr/share/wordlists/dirb/common.txt
+```
+
+### Attaques par mot de passe
+
+```
+> Tester les identifiants par defaut sur SSH
+```
+
+```bash
+hydra -L users.txt -P passwords.txt ssh://192.168.1.1
+```
+
+## Timeout des commandes
+
+### Timeout par defaut
+
+Les commandes expirent apres 120 secondes par defaut.
+
+### Commandes longues
+
+Pour les operations prolongees :
+
+```
+> Lancer un scan de ports complet (peut prendre du temps)
+```
+
+L'agent utilisera un timeout adapte :
+```bash
+timeout 600 nmap -p- -sV 192.168.1.1
+```
+
+### Execution en arriere-plan
+
+```
+> Demarrer le scan en arriere-plan
+```
+
+```bash
+nmap -p- 192.168.1.1 > scan_results.txt &
+```
+
+## Repertoire de travail
+
+### Repertoire courant
+
+Les commandes s'executent dans le repertoire de travail courant :
+
+```
+> Lister les fichiers du repertoire courant
+```
+
+```bash
+ls -la
+```
+
+### Changer de repertoire
+
+```
+> Naviguer vers le repertoire web et lister le contenu
+```
+
+```bash
+cd /var/www/html && ls -la
+```
+
+## Variables d'environnement
+
+### Utiliser des variables
+
+```
+> Utiliser l'IP cible de l'environnement
+```
+
+```bash
+nmap -sV $TARGET_IP
+```
+
+### Definir des variables
+
+```
+> Definir la cible et scanner
+```
+
+```bash
+export TARGET="192.168.1.1" && nmap $TARGET
+```
+
+## Gestion de la sortie
+
+### Capturer la sortie
+
+```
+> Sauvegarder les resultats du scan dans un fichier
+```
+
+```bash
+nmap -sV 192.168.1.1 -oN scan_results.txt
+```
+
+### Sortie JSON
+
+```
+> Obtenir les resultats du scan au format JSON
+```
+
+```bash
+nmap -sV 192.168.1.1 -oX - | xq .
+```
+
+### Analyser les resultats
+
+```
+> Extraire les ports ouverts de la sortie nmap
+```
+
+```bash
+grep "^[0-9]" scan_results.txt | cut -d'/' -f1
+```
+
+## Controle des permissions
+
+### Commandes dangereuses
+
+Les commandes destructives necessitent une permission explicite :
+
+| Type de commande | Exemple | Necessite une permission |
+|------------------|---------|--------------------------|
+| Lecture seule | `ls`, `cat`, `nmap` | Non |
+| Modification de fichiers | `rm`, `mv` | Oui |
+| Changements systeme | `apt install` | Oui |
+| Attaques reseau | `msfconsole` | Oui |
+
+### Approuver automatiquement des commandes
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "permission": {
+    "bash": {
+      "nmap *": "allow",
+      "nuclei *": "allow",
+      "ffuf *": "allow"
+    }
+  }
+}
+```
+
+### Bloquer les commandes dangereuses
+
+```json
+{
+  "permission": {
+    "bash": {
+      "rm -rf *": "deny",
+      "dd *": "deny",
+      ":(){ :|:& };:": "deny"
+    }
+  }
+}
+```
+
+La permission `bash` associe un glob (compare a la chaine de commande) a une action (`ask`, `allow` ou `deny`). Seuls `*` et `?` sont pris en charge comme caracteres generiques. Voir [Permissions](/docs/permissions) pour le modele complet.
+
+## Workflows de tests de securite
+
+### Reconnaissance
+
+```
+> Effectuer une reconnaissance initiale sur target.com
+
+1. Enumeration DNS
+2. Decouverte de sous-domaines
+3. Scan de ports
+4. Identification des services
+```
+
+Execute plusieurs commandes :
+
+```bash
+dig target.com ANY
+subfinder -d target.com
+nmap -sV -sC target.com
+```
+
+### Exploitation
+
+```
+> Tenter une injection SQL avec sqlmap
+```
+
+```bash
+sqlmap -u "https://target.com/page?id=1" --batch --dbs
+```
+
+### Post-exploitation
+
+```
+> Enumerer le systeme compromis
+```
+
+```bash
+uname -a
+id
+cat /etc/passwd
+ls -la /home/
+```
+
+## Integration d'outils
+
+### Metasploit
+
+```
+> Chercher des exploits pour Apache 2.4.49
+```
+
+```bash
+msfconsole -q -x "search apache 2.4.49; exit"
+```
+
+### Burp Suite
+
+```
+> Demarrer Burp Suite en mode headless
+```
+
+```bash
+java -jar burpsuite.jar --headless
+```
+
+### Scripts personnalises
+
+```
+> Lancer le script d'enumeration personnalise
+```
+
+```bash
+./scripts/enum.sh $TARGET
+```
+
+## Gestion des erreurs
+
+### Erreurs de commande
+
+Les commandes echouees affichent la sortie d'erreur :
+
+```
+Commande echouee :
+$ nmap -sV nonexistent.host
+Host seems down. If it is really up, but blocking our ping probes, try -Pn
+```
+
+### Logique de nouvelle tentative
+
+```
+> Relancer le scan avec le flag -Pn
+```
+
+```bash
+nmap -sV -Pn 192.168.1.1
+```
+
+## Bonnes pratiques
+
+1. **Verifier les cibles** - Verifier deux fois les IP et les domaines
+2. **Utiliser des timeouts** - Definir des timeouts adaptes pour les scans longs
+3. **Sauvegarder la sortie** - Toujours sauvegarder les resultats importants
+4. **Verifier les permissions** - S'assurer d'un acces autorise
+5. **Nettoyer** - Supprimer les fichiers temporaires apres les tests
+
+<Aside variant="danger">
+  N'executez jamais de commandes contre des cibles sans autorisation. L'acces non autorise est illegal.
+</Aside>
+
+## Depannage
+
+### Commande introuvable
+
+```
+Error: command not found: nuclei
+```
+
+Installez l'outil ou verifiez le PATH :
+
+```bash
+which nuclei
+export PATH=$PATH:/opt/tools
+```
+
+### Permission refusee
+
+```
+Error: permission denied
+```
+
+Peut necessiter sudo :
+
+```bash
+sudo nmap -sS 192.168.1.1
+```
+
+### Timeout
+
+```
+Error: command timed out
+```
+
+Utilisez un timeout explicite ou l'execution en arriere-plan.
+
+## Documentation connexe
+
+- [Operations sur les fichiers](/docs/tools/file-operations) - Gestion des fichiers
+- [Permissions](/docs/permissions) - Permissions des commandes
+- [Bolt](/docs/mcp/bolt) - Outils de securite supplementaires via MCP

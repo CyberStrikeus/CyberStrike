@@ -1,0 +1,120 @@
+---
+title: Agent Cyberstrike
+description: "L'agent primaire par defaut pour les tests de securite offensive pilotes par l'IA avec acces complet aux outils"
+sidebar:
+  order: 2
+  label: Cyberstrike
+---
+
+L'agent `cyberstrike` est l'agent primaire par defaut. Il fournit des tests de securite offensive pilotes par l'IA avec un acces complet aux outils et peut deleguer a des sous-agents specialises pour les taches specifiques a un domaine.
+
+## Vue d'ensemble
+
+Lorsque vous executez `cyberstrike` sans specifier d'agent, l'agent `cyberstrike` demarre automatiquement. C'est un agent de securite offensive polyvalent concu pour gerer un large eventail de taches -- de la reconnaissance et l'evaluation des vulnerabilites a l'exploitation et la generation de rapports.
+
+### Configuration de l'agent
+
+| Propriete | Valeur |
+|-----------|--------|
+| **Identifiant de l'agent** | `cyberstrike` |
+| **Mode** | `primary` |
+| **Acces aux outils** | Complet (tous les outils autorises) |
+| **Peut poser des questions** | Oui |
+
+## Lancer l'agent
+
+L'agent `cyberstrike` est celui par defaut -- il demarre automatiquement au lancement :
+
+```bash
+cyberstrike
+```
+
+Changez d'agent a tout moment dans le TUI avec `/agents` ou `<leader>a`.
+
+## Capacites
+
+L'agent `cyberstrike` a acces a tous les outils disponibles et n'est pas restreint a un domaine de securite specifique. Il peut :
+
+- Effectuer des tests de securite d'applications web
+- Mener des audits d'infrastructure cloud
+- Executer des tests d'intrusion reseau
+- Lancer des scans automatises avec des outils comme Nuclei, Nmap et SQLMap
+- Naviguer et interagir avec les applications web
+- Lire, ecrire et analyser des fichiers
+- Poser des questions de clarification lorsque la tache est ambigue
+
+## Delegation aux agents specialises
+
+Lorsqu'une tache necessite une expertise approfondie dans un domaine, l'agent `cyberstrike` delegue aux sous-agents specialises :
+
+| Sous-agent | Quand il est utilise |
+|------------|---------------------|
+| [`wstg-agent`](/docs/agents/wstg-agent) | Pipeline de securite web OWASP WSTG -- dispatche 13 agents specialistes |
+| [`escalation-hunter`](/docs/agents/escalation-hunter) | Correlation transversale -- chaine les resultats, escalade l'impact |
+| [`triage`](/docs/agents/triage) | Verification independante des resultats de vulnerabilites brouillons |
+| [`general`](/docs/agents/general) | Recherche, taches paralleles multi-etapes |
+| [`explore`](/docs/agents/explore) | Recherche en lecture seule dans le code et le systeme de fichiers |
+
+La delegation se fait automatiquement en fonction de la tache. Le pipeline de securite web (agents WSTG) est declenche lorsque du trafic HTTP est capture via [HackBrowser](/docs/features/hackbrowser) ou le [Chrome Extension](/docs/tools/chrome-extension).
+
+## Modele de permissions
+
+L'agent `cyberstrike` utilise le jeu de permissions le plus large :
+
+- Tous les outils sont autorises par defaut
+- Peut poser des questions de clarification (`question: allow`)
+- Les fichiers `.env` necessitent une confirmation avant lecture
+- L'acces aux repertoires externes hors du projet necessite une confirmation
+- Les regles `deny` configurees par l'utilisateur dans `cyberstrike.json` sont toujours respectees
+
+## Exemple de session
+
+```
+You: Test the web application at https://app.example.com for common vulnerabilities
+
+Agent: I'll start with reconnaissance and then launch HackBrowser to crawl the app.
+
+[Launching /hackbrowser against https://app.example.com...]
+[Crawling 23 pages, capturing HTTP traffic...]
+[Dispatching wstg-config-deploy for server misconfiguration checks...]
+[Dispatching wstg-input-validation for injection testing...]
+
+Found 3 medium-severity findings:
+- Missing Content-Security-Policy header
+- Server version disclosure in headers
+- X-Frame-Options not set
+
+[wstg-authentication testing login endpoint...]
+⚠ FINDING: JWT Algorithm Confusion
+Location: Authorization header
+Severity: Critical (CVSS 9.8)
+```
+
+## Configuration
+
+### Definir comme agent par defaut
+
+L'agent `cyberstrike` est celui par defaut et ne necessite aucune configuration. Pour le definir explicitement :
+
+```json title="cyberstrike.json"
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+### Instructions personnalisees
+
+`instructions` est une liste de fichiers (ou globs) dont le contenu est ajoute au prompt systeme -- mettez le contexte de votre projet dans un fichier et referencez-le :
+
+```json title="cyberstrike.json"
+{
+  "instructions": ["AGENTS.md", "docs/security-context.md"]
+}
+```
+
+## Documentation associee
+
+- [Agent WSTG](/docs/agents/wstg-agent) -- Orchestrateur du pipeline de tests de securite web
+- [Escalation Hunter](/docs/agents/escalation-hunter) -- Agent de correlation transversale
+- [Agent Triage](/docs/agents/triage) -- Verification des resultats
+- [Agents personnalises](/docs/agents/custom-agents) -- Creez vos propres agents

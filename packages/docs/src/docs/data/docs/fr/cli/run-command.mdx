@@ -1,0 +1,95 @@
+---
+title: Commande Run
+description: "Exécuter une seule invite sans mode interactif"
+sidebar:
+  order: 2
+  label: Commande Run
+---
+
+`cyberstrike run` exécute une seule invite de manière non interactive — idéal pour l'automatisation et les scripts. Dans ce mode, personne ne peut répondre aux invites de permission, donc tout outil qui demanderait une approbation est automatiquement rejeté (voir [Automatisation](/docs/permissions/automation)).
+
+{/* TODO: Screenshot - Run command output */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: run-command-output.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Sortie d'exécution de la commande run</p>
+</div>
+
+## Utilisation de base
+
+```bash
+cyberstrike run "your prompt here"
+```
+
+L'invite est également lue depuis stdin lorsque l'entrée est redirigée :
+
+```bash
+echo "summarize the findings in report.json" | cyberstrike run
+```
+
+## Options
+
+| Drapeau | Alias | Description |
+|---------|-------|-------------|
+| `--model` | `-m` | Modèle à utiliser, au format `fournisseur/modèle` |
+| `--agent` | | Agent principal à utiliser (seul `cyberstrike` est intégré) |
+| `--format` | | Format de sortie : `default` ou `json` (par défaut : `default`) |
+| `--file` | `-f` | Fichier(s) à joindre au message (répétable) |
+| `--continue` | `-c` | Continuer la dernière session |
+| `--session` | `-s` | Identifiant de session à continuer |
+| `--fork` | | Dupliquer la session avant de continuer (nécessite `--continue`/`--session`) |
+| `--share` | | Partager la session |
+| `--title` | | Titre de la session |
+| `--variant` | | Variante du modèle / effort de raisonnement (ex. `high`, `max`, `minimal`) |
+| `--thinking` | | Afficher les blocs de réflexion |
+| `--attach` | | Se connecter à un serveur en cours d'exécution (ex. `http://localhost:4096`) |
+| `--dir` | | Répertoire d'exécution (chemin distant lors d'une connexion) |
+| `--port` | | Port pour le serveur local |
+| `--command` | | Exécuter une commande nommée ; utiliser le message pour ses arguments |
+
+<Aside variant="caution">
+  Il n'existe pas de drapeau `--output`, `--permission`, `--timeout`, `--verbose` ou `--quiet`. Le contrôle de la sortie se fait via `--format` (`default` | `json`) ; l'affichage du raisonnement via `--thinking`.
+</Aside>
+
+## Exemples
+
+### Sortie JSON pour les scripts
+
+```bash
+cyberstrike run "scan example.com for OWASP Top 10 issues" --format json > report.json
+```
+
+### Choisir un modèle et joindre des fichiers
+
+```bash
+cyberstrike run "review this code for auth bugs" \
+  -m anthropic/claude-sonnet-4-20250514 \
+  -f src/auth.ts -f src/session.ts
+```
+
+### Continuer ou dupliquer une session
+
+```bash
+cyberstrike run "now test the admin endpoints" --continue
+cyberstrike run "try a different payload" --session <id> --fork
+```
+
+## Permissions dans `run`
+
+Comme les invites ne peuvent pas être répondues de manière non interactive, pré-approuvez les outils nécessaires à un script avec la variable d'environnement `CYBERSTRIKE_PERMISSION` ou le champ de configuration `permission` :
+
+```bash
+CYBERSTRIKE_PERMISSION='{"bash":"allow","read":"allow"}' \
+  cyberstrike run "enumerate services on the host" --format json
+```
+
+Voir [Automatisation](/docs/permissions/automation) pour les schémas CI.
+
+## Codes de sortie
+
+`cyberstrike run` retourne `0` en cas de succès et un code non nul en cas d'erreur (ex. arguments invalides) ou d'interruption.
+
+## Documentation associée
+
+- [Référence CLI](/docs/cli) - Toutes les commandes
+- [Automatisation](/docs/permissions/automation) - CI/CD et permissions pré-approuvées
+- [Utilisation : CLI](/docs/usage/cli) - Utilisation non interactive

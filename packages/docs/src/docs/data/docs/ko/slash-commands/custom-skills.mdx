@@ -1,0 +1,65 @@
+---
+title: 커스텀 스킬
+description: 재사용 가능한 방법론을 SKILL.md 파일로 패키징
+sidebar:
+  order: 4
+  label: 커스텀 스킬
+---
+
+스킬은 에이전트가 필요에 따라 불러올 수 있는 재사용 가능한 방법론의 Markdown 파일입니다. 스킬은 파일명으로 발견됩니다 — 모든 스킬은 **`SKILL.md`**라는 이름의 파일에 있습니다.
+
+{/* TODO: Screenshot - Custom skill configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: custom-skills.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">커스텀 스킬 레이아웃</p>
+</div>
+
+## 파일 및 위치
+
+파일 이름은 반드시 `SKILL.md`여야 합니다. Cyberstrike는 `.cyberstrike/` 내의 `skill/` 또는 `skills/` 디렉토리와 `skills/` (Claude Code 레이아웃) 아래에서 `**/SKILL.md`를 스캔합니다:
+
+```
+.cyberstrike/
+└── skills/
+    └── sql-injection/
+        └── SKILL.md
+```
+
+## 프론트매터
+
+`name`과 `description`만 필수입니다. 나머지는 분류 및 킬 체인 연결에 사용되는 선택적 메타데이터입니다:
+
+```markdown title="SKILL.md"
+---
+name: sql-injection
+description: Methodology for testing SQL injection
+version: "1.0.0"
+author: you
+tags: [injection, database]
+category: injection
+owasp_id: WSTG-INPV-05
+tech_stack: [postgres, mysql]
+cwe_ids: [CWE-89]
+chains_with: [auth-bypass]
+prerequisites: [request-capture]
+---
+
+Walk the tester through boolean-, error-, time-, and union-based SQLi:
+1. Identify injectable parameters …
+2. …
+```
+
+<Aside variant="caution">
+  본문은 일반 Markdown입니다 — 템플릿 기능은 **없습니다** (`{{target}}`, `{% if %}`, `{% for %}`, `$ARGUMENTS` 없음). 프론트매터는 `args`, `model`, `agent`, `permission` 필드를 지원하지 **않으며**, 파일 이름은 반드시 `SKILL.md`여야 합니다 (`my-skill.md` 같은 임의의 이름은 로드되지 않습니다).
+</Aside>
+
+프론트매터의 `name`은 스킬의 ID와 일치해야 합니다 — 불일치하면 오류로 보고됩니다.
+
+## 스킬 사용
+
+로드된 스킬은 에이전트에서 사용할 수 있으며 `/skills` 명령으로 찾아볼 수 있습니다. 에이전트는 작업과 관련될 때 스킬의 방법론을 컨텍스트로 가져옵니다.
+
+## 관련 문서
+
+- [슬래시 명령](/docs/slash-commands) - 내장 명령
+- [에이전트](/docs/agents) - 스킬을 사용하는 에이전트

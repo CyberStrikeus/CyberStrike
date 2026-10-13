@@ -1,0 +1,106 @@
+---
+title: 플러그인 만들기
+description: Cyberstrike 플러그인 빌드, 등록, 배포
+sidebar:
+  order: 4
+  label: 플러그인 만들기
+---
+
+Cyberstrike 플러그인은 [훅](/docs/hooks/plugin-hooks) 세트를 반환하는 함수를 내보내는 모듈입니다. 이 가이드에서는 플러그인 작성, 등록, 배포를 다룹니다.
+
+{/* TODO: Screenshot - Plugin development workflow */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: plugin-development.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">플러그인 개발 워크플로</p>
+</div>
+
+## 플러그인 작성
+
+플러그인은 `(input: PluginInput) => Promise<Hooks>`입니다. `@cyberstrike-io/plugin`에서 타입을 가져옵니다:
+
+```typescript title=".cyberstrike/plugin/guard.ts"
+import type { Plugin } from "@cyberstrike-io/plugin"
+
+export const GuardPlugin: Plugin = async ({ project, directory, $ }) => {
+  return {
+    "tool.execute.before": async (input, output) => {
+      if (input.tool === "bash" && /rm\s+-rf/.test(output.args.command)) {
+        throw new Error("blocked: rm -rf")
+      }
+    },
+    "permission.ask": async (input, output) => {
+      if (input.type === "read") output.status = "allow"
+    },
+  }
+}
+```
+
+함수의 `input`은 컨텍스트를 제공합니다 — `client`, `project`, `directory`, `worktree`, `serverUrl`, `$`(Bun 쉘). 키가 훅 이름인 객체를 반환합니다; 모든 훅과 시그니처는 [훅 레퍼런스](/docs/hooks/plugin-hooks)를 참조하세요.
+
+## 플러그인 등록
+
+플러그인을 로드하는 두 가지 방법이 있습니다.
+
+### 1. 로컬 파일 (배포 불필요)
+
+`.cyberstrike/` 폴더(프로젝트 또는 `~/.cyberstrike/`) 내 `plugin/`(또는 `plugins/`) 디렉토리에 `.ts`/`.js` 파일을 넣습니다:
+
+```
+.cyberstrike/
+└── plugin/
+    └── guard.ts
+```
+
+Cyberstrike가 자동으로 발견하고 로컬 플러그인이 타입을 가져올 수 있도록 `@cyberstrike-io/plugin`을 설치합니다.
+
+### 2. `plugin` 구성 배열
+
+`plugin` 배열에 npm 패키지 또는 경로를 참조합니다 (값은 구성 소스 간에 유니온 병합됩니다):
+
+```json title="cyberstrike.json"
+{
+  "plugin": [
+    "@myorg/cyberstrike-guard",
+    "./local/guard.ts"
+  ]
+}
+```
+
+## 테스트 및 디버그
+
+디버그 로깅으로 Cyberstrike를 실행하여 플러그인 로드 및 훅 발동을 확인합니다:
+
+```bash
+cyberstrike --log-level DEBUG --print-logs
+```
+
+(또는 구성에서 `"logLevel": "DEBUG"`를 설정합니다.)
+
+훅이 `output`을 변경(또는 throw)하므로, 가짜 `input`/`output`으로 훅을 호출하고 변경된 `output`을 검증하여 단위 테스트할 수 있습니다.
+
+## 배포
+
+다른 npm 모듈처럼 플러그인을 패키징하여 배포한 후, 사용자가 `plugin` 배열에 추가하도록 합니다:
+
+```json title="package.json"
+{
+  "name": "@myorg/cyberstrike-guard",
+  "type": "module",
+  "main": "./index.ts",
+  "peerDependencies": { "@cyberstrike-io/plugin": "*" }
+}
+```
+
+```bash
+npm publish --access public
+```
+
+<Aside variant="caution">
+  플러그인은 머신과 Cyberstrike 내부에 대한 전체 접근 권한으로 실행됩니다. 신뢰할 수 있는 플러그인만 설치하고, 훅을 빠르게 유지하세요 — 도구 호출 및 LLM 요청과 인라인으로 실행됩니다.
+</Aside>
+
+## 관련 문서
+
+- [훅 개요](/docs/hooks) - 개념 및 예시
+- [플러그인 훅](/docs/hooks/plugin-hooks) - 전체 훅 레퍼런스
+- [구성](/docs/configuration) - `plugin` 구성 키

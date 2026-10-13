@@ -1,0 +1,259 @@
+---
+title: Configuracao do Projeto
+description: Configure as opcoes do Cyberstrike para projetos individuais
+sidebar:
+  order: 2
+  label: Configuracao do Projeto
+---
+
+A configuracao do projeto personaliza o comportamento do Cyberstrike para projetos especificos, sobrescrevendo configuracoes globais quando presente.
+
+{/* TODO: Screenshot - Project configuration file */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: project-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Estrutura do arquivo de configuracao do projeto</p>
+</div>
+
+## Localizacao do Arquivo
+
+A configuracao do projeto e armazenada em `cyberstrike.json` (ou `cyberstrike.jsonc`) na raiz do projeto. O Cyberstrike sobe a partir do diretorio de trabalho, entao uma configuracao em qualquer pasta pai e detectada:
+
+```
+my-project/
+├── cyberstrike.json     ← Configuracao do projeto
+├── src/
+├── package.json
+└── ...
+```
+
+## Criando a Configuracao do Projeto
+
+Nao existe comando de inicializacao — crie o arquivo manualmente:
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## Configuracoes Basicas
+
+### Selecao de Modelo
+
+```json
+{
+  "model": "anthropic/claude-opus-4-5-20251101"
+}
+```
+
+### Agente Padrao
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+`default_agent` deve ser um agente primario; volta para `cyberstrike` se nao definido ou invalido.
+
+### Instrucoes Personalizadas
+
+`instructions` e uma lista de **arquivos ou padroes glob** cujos conteudos sao adicionados ao prompt do sistema (nao e prosa inline). Listas sao mescladas por uniao com a configuracao global:
+
+```json
+{
+  "instructions": [
+    "SECURITY.md",
+    "docs/security-guidelines.md",
+    ".cursor/rules/*.md"
+  ]
+}
+```
+
+## Configuracao de Provedores
+
+Configure provedores sob `provider`. Nao existe chave `provider.default` — o provedor ativo segue do `model` (`provider/model`):
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    },
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+Consulte [Provedores de IA](/docs/providers) para detalhes por provedor.
+
+## Permissoes
+
+Permissoes mapeiam um nome de ferramenta para uma acao (`ask`, `allow`, `deny`) ou para um mapa glob → acao. Nao existem arrays allow/deny e nenhum "modo" de permissao:
+
+```json
+{
+  "permission": {
+    "read": "allow",
+    "bash": {
+      "npm test": "allow",
+      "npm run lint": "allow",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "reports/**": "allow",
+      ".env*": "deny"
+    }
+  }
+}
+```
+
+Apenas `*` e `?` sao suportados como wildcards. Consulte [Permissoes](/docs/permissions) para o modelo completo e a lista de chaves de permissao.
+
+## Servidores MCP
+
+Servidores MCP sao declarados como um mapa plano sob `mcp`, indexados pelo nome do servidor. Servidores locais usam `type: "local"` com um unico array `command`:
+
+```json
+{
+  "mcp": {
+    "project-tools": {
+      "type": "local",
+      "command": ["node", "./tools/mcp-server.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+Entradas `mcp` do projeto sao mescladas sobre as globais. Para desligar um servidor herdado, defina seu `enabled` como `false`:
+
+```json
+{
+  "mcp": {
+    "some-global-server": { "enabled": false }
+  }
+}
+```
+
+## Agentes Personalizados
+
+Defina agentes de projeto como arquivos Markdown sob `.cyberstrike/agents/` (consulte [Agentes Personalizados](/docs/agents/custom-agents)), depois selecione um como padrao:
+
+```json
+{
+  "default_agent": "project-scanner"
+}
+```
+
+## Exemplo Completo
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "cyberstrike",
+  "instructions": ["docs/SECURITY.md"],
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+
+  "permission": {
+    "read": "allow",
+    "bash": { "npm *": "allow", "git status": "allow", "rm *": "deny" },
+    "edit": { "reports/**": "allow", ".env*": "deny" }
+  },
+
+  "mcp": {
+    "db-tools": {
+      "type": "local",
+      "command": ["node", "./tools/db-mcp.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+## Heranca de Configuracao
+
+A configuracao do projeto e mesclada sobre a configuracao global e remota:
+
+```
+Configuracao remota / well-known (base)
+      ↓
+Configuracao global (~/.config/cyberstrike/)
+      ↓
+Configuracao personalizada (CYBERSTRIKE_CONFIG)
+      ↓
+Configuracao do projeto (cyberstrike.json)
+      ↓
+Configuracao do diretorio .cyberstrike/
+      ↓
+CYBERSTRIKE_CONFIG_CONTENT / configuracao gerenciada / argumentos CLI (sobrescrita)
+```
+
+Consulte a [Referencia de Configuracao](/docs/configuration#configuration-hierarchy) para a ordem completa de prioridade.
+
+### Comportamento de Mesclagem
+
+| Configuracao | Comportamento |
+|--------------|---------------|
+| Escalares | Substituidos |
+| Objetos | Mesclagem profunda |
+| Arrays | Substituidos — **exceto** `plugin` e `instructions`, que sao mesclados por uniao |
+
+## Validacao de Schema
+
+Adicione a referencia de schema para autocompletar e validacao no IDE:
+
+```json
+{
+  "$schema": "https://cyberstrike.io/config.json"
+}
+```
+
+## Integracao com Git
+
+### Fazer Commit da Configuracao do Projeto
+
+```bash
+git add cyberstrike.json
+git commit -m "Add Cyberstrike project configuration"
+```
+
+### Ignorar Dados Sensiveis
+
+```text title=".gitignore"
+# Ignorar dados de sessao locais
+.cyberstrike/sessions/
+```
+
+## Boas Praticas
+
+1. **Controle de versao** - Faca commit da configuracao do projeto para compartilhamento com a equipe
+2. **Use referencias de ambiente** - Nunca codifique chaves de API diretamente (`{env:VAR}`)
+3. **Documente instrucoes** - Aponte `instructions` para seus documentos de seguranca
+4. **Permissoes minimas** - Permita apenas o necessario
+5. **Sobrescritas pessoais** - Use `CYBERSTRIKE_CONFIG` para configuracoes que nao devem ser commitadas
+
+<Aside variant="tip">
+  Faca commit de `cyberstrike.json` para compartilhamento com a equipe. Use variaveis de ambiente ou `CYBERSTRIKE_CONFIG` para sobrescritas pessoais que nao devem ser commitadas.
+</Aside>
+
+## Documentacao Relacionada
+
+- [Referencia de Configuracao](/docs/configuration) - Guia completo
+- [Configuracao Global](/docs/configuration/global-config) - Configuracoes globais
+- [Variaveis de Ambiente](/docs/configuration/environment-variables) - Referencia de variaveis de ambiente

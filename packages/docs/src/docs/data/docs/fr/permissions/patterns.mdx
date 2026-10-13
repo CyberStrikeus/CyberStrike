@@ -1,0 +1,108 @@
+---
+title: Motifs de permissions
+description: "Faire correspondre les arguments d'outils avec des motifs glob pour un contrôle de permissions granulaire"
+sidebar:
+  order: 3
+  label: Motifs
+---
+
+Les motifs de permissions offrent un contrôle granulaire en faisant correspondre l'argument d'un outil (une chaîne de commande, un chemin de fichier) à un glob et en l'associant à une action.
+
+{/* TODO: Screenshot - Permission pattern matching */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: permission-patterns.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Configuration des motifs de permissions</p>
+</div>
+
+## Format
+
+Une entrée de permission est soit une action unique, soit une map de **glob vers action**. Il n'existe pas de syntaxe `Tool(pattern)` ni de tableaux allow/deny — la clé de l'outil regroupe ses motifs :
+
+```json
+{
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "ls *": "allow",
+      "git status": "allow",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "reports/**": "allow",
+      ".env*": "deny"
+    }
+  }
+}
+```
+
+Le glob correspond à l'argument de l'outil : pour `bash` c'est la chaîne de commande, pour `edit`/`read` c'est le chemin du fichier.
+
+## Jokers
+
+Seuls deux jokers sont pris en charge :
+
+| Symbole | Correspond à |
+|---------|-------------|
+| `*` | n'importe quelle séquence de caractères (y compris `/`) |
+| `?` | n'importe quel caractère unique |
+
+<Aside variant="caution">
+  `*` et `?` sont les **seuls** jokers. Les caractères comme `[`, `]`, `{`, `}`, `(`, `)` et `|` sont interprétés **littéralement**. Il n'y a pas de `**` (il se comporte comme `*`), et la négation (`!pattern`) n'est pas prise en charge.
+</Aside>
+
+Un motif qui se termine par un espace + `*` correspond également à la commande nue sans arguments — donc `"ls *"` correspond à la fois à `ls` et à `ls -la`.
+
+## Priorité
+
+Lorsque plusieurs motifs correspondent, le **motif le plus spécifique (le plus long) l'emporte**. Les motifs sont évalués du plus court au plus long, et la dernière correspondance s'applique — donc un `"*": "ask"` large peut être remplacé par un `"git status": "allow"` plus long :
+
+```json
+{
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "npm *": "allow",
+      "npm publish*": "deny"
+    }
+  }
+}
+```
+
+Ici `npm test` est autorisé, mais `npm publish` est refusé.
+
+## Exemples
+
+### Autoriser une chaîne d'outils, bloquer les parties dangereuses
+
+```json
+{
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "git *": "allow",
+      "git push*": "ask",
+      "rm -rf *": "deny"
+    }
+  }
+}
+```
+
+### Restreindre les modifications à un répertoire
+
+```json
+{
+  "permission": {
+    "edit": {
+      "*": "deny",
+      "src/**": "allow",
+      "src/secrets/**": "deny"
+    }
+  }
+}
+```
+
+## Documentation associée
+
+- [Vue d'ensemble des permissions](/docs/permissions) - Le modèle de permissions et les clés
+- [Automatisation](/docs/permissions/automation) - Permissions non interactives / CI
+- [Configuration](/docs/configuration) - Emplacement des permissions dans la configuration

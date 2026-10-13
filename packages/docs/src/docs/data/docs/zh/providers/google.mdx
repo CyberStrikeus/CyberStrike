@@ -1,0 +1,255 @@
+---
+title: Google (Gemini)
+description: 为 Cyberstrike 配置 Google Gemini 模型
+sidebar:
+  order: 4
+  label: Google
+---
+
+Google 的 Gemini 模型提供大上下文窗口和多模态能力，适用于安全分析。
+
+<img src="/docs/images/screenshots/gemini-model-select.png" alt="模型选择器筛选 Google Gemini 模型" className="rounded-lg shadow-lg my-6 w-full" />
+
+## 可用模型
+
+Cyberstrike 从 [models.dev](https://models.dev) 实时拉取模型目录，因此列表会跟踪 Google 当前提供的模型。常用选择：
+
+| 模型 | 上下文 | 最适合 |
+|------|--------|--------|
+| `google/gemini-2.5-pro` | 1M | 复杂推理、大型代码库 |
+| `google/gemini-2.5-flash` | 1M | 快速分析（均衡默认） |
+| `google/gemini-2.5-flash-lite` | 1M | 快速任务、大批量 |
+
+<Aside variant="tip">
+  更新的 Gemini 3.x 版本（`gemini-3-pro-preview`、`gemini-3.5-flash`、`gemini-3.1-pro-preview`）会随着 models.dev 更新自动出现。运行 `/models` 查看完整的当前列表。
+</Aside>
+
+## 认证
+
+### API 密钥设置
+
+1. 从 [ai.google.dev](https://ai.google.dev) 获取 API 密钥
+2. 在 TUI 中运行 `/connect`，选择 **Google**，输入 API 密钥
+
+### 环境变量
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+### 配置文件
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "google": {
+      "options": {
+        "apiKey": "{env:GOOGLE_GENERATIVE_AI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+## 模型配置
+
+### 设置默认模型
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "google/gemini-2.5-flash"
+}
+```
+
+### 切换模型
+
+在 TUI 中使用 `/models` 选择不同的 Gemini 模型。
+
+## 大上下文优势
+
+Gemini 的 1M-2M 上下文窗口支持：
+
+- 一次分析整个代码库
+- 同时处理多个文件
+- 长时间安全评估会话
+- 全面的日志分析
+
+### 示例：完整代码库审查
+
+```
+> Analyze the entire src/ directory for security vulnerabilities
+```
+
+该模型可以在单个请求中处理数百个文件。
+
+## 多模态能力
+
+Gemini 支持图像分析：
+
+```
+> Analyze this screenshot for security issues
+```
+
+适用于：
+- 分析安全工具输出图像
+- 处理网络图
+- 审查 UI 的安全缺陷
+
+## 思考模式
+
+Gemini 2.5 模型支持推理（"思考"）用于复杂分析。通过 `/models` 选择。
+
+最适合：
+- 复杂的漏洞链
+- 多步骤攻击规划
+- 深度代码分析
+
+## Google Vertex AI
+
+用于企业部署：
+
+### 设置
+
+```bash
+# 使用 Google Cloud 进行认证
+gcloud auth application-default login
+
+# 设置项目
+gcloud config set project your-project-id
+```
+
+### 配置
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "google-vertex": {
+      "options": {
+        "project": "your-project-id",
+        "location": "us-central1"
+      }
+    }
+  }
+}
+```
+
+### 可用区域
+
+| 区域 | 位置 |
+|------|------|
+| us-central1 | 爱荷华 |
+| us-east4 | 弗吉尼亚 |
+| europe-west4 | 荷兰 |
+| asia-northeast1 | 东京 |
+
+## 速率限制
+
+Google AI Studio 限制：
+
+| 层级 | RPM | TPM |
+|------|-----|-----|
+| 免费 | 15 | 1,000,000 |
+| 按量付费 | 360 | 4,000,000 |
+
+### 处理限制
+
+```json
+{
+  "provider": {
+    "google": {
+      "options": {
+        "maxRetries": 3,
+        "retryDelay": 1000
+      }
+    }
+  }
+}
+```
+
+## 安全设置
+
+配置内容过滤：
+
+```json
+{
+  "provider": {
+    "google": {
+      "options": {
+        "safetySettings": [
+          {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "threshold": "BLOCK_NONE"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  谨慎调整安全设置。某些安全测试内容可能会触发过滤器。
+</Aside>
+
+## 最佳实践
+
+### 模型选择
+
+| 任务 | 推荐模型 |
+|------|----------|
+| 快速扫描 | `gemini-2.5-flash` |
+| 大型代码库 | `gemini-2.5-pro` |
+| 复杂分析 | `gemini-2.5-pro` |
+| 大批量 | `gemini-2.5-flash-lite` |
+
+### 利用大上下文
+
+1. 包含完整文件而非片段
+2. 提供完整的配置文件
+3. 包含相关测试文件
+4. 添加文档作为上下文
+
+### 成本优化
+
+1. 大多数任务使用 Flash 模型
+2. 利用免费层级
+3. 高效使用上下文
+4. 在 Google Cloud Console 中监控使用量
+
+## 故障排除
+
+### 无效的 API 密钥
+
+```
+Error: API key not valid
+```
+
+验证：
+- 密钥来自 ai.google.dev
+- API 已启用
+- 没有多余空格
+
+### 配额超出
+
+```
+Error: Quota exceeded
+```
+
+解决方案：
+- 等待配额重置
+- 启用计费
+- 请求增加配额
+
+### 区域不可用
+
+```
+Error: Model not available in region
+```
+
+尝试不同的区域或使用 Google AI Studio 替代 Vertex。
+
+## 相关文档
+
+- [提供商概述](/docs/providers) - 所有提供商
+- [AWS Bedrock](/docs/providers/aws-bedrock) - 替代企业选项
+- [配置](/docs/configuration) - 完整选项

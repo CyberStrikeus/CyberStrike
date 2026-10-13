@@ -1,0 +1,231 @@
+---
+title: OpenAI (GPT)
+description: Cyberstrike를 위한 OpenAI 모델 구성
+sidebar:
+  order: 3
+  label: OpenAI
+---
+
+OpenAI는 보안 분석을 위해 GPT-5 패밀리, GPT-4.1, o-시리즈 추론 모델을 제공합니다. 이 가이드에서는 설정과 구성을 다룹니다.
+
+<img src="/docs/images/screenshots/openai-model-select.png" alt="OpenAI 모델로 필터링된 모델 피커" className="rounded-lg shadow-lg my-6 w-full" />
+
+## 사용 가능한 모델
+
+Cyberstrike는 [models.dev](https://models.dev)에서 실시간으로 모델 카탈로그를 가져오므로, 정확한 목록은 OpenAI가 현재 제공하는 것을 추적합니다. 일반적인 선택:
+
+| 모델 | 컨텍스트 | 최적 용도 |
+|------|----------|-----------|
+| `openai/gpt-5` | 400K | 일반 보안 테스트 (플래그십) |
+| `openai/gpt-5-mini` | 400K | 빠른 작업, 대량 |
+| `openai/gpt-5-nano` | 400K | 최저 비용, 간단한 작업 |
+| `openai/gpt-4.1` | 1M | 매우 큰 컨텍스트 |
+| `openai/o3` | 200K | 깊은 단계별 추론 |
+
+<Aside variant="tip">
+  최신 GPT-5.x 릴리스(5.1-5.5, Codex 및 Pro 변형 포함)는 models.dev가 업데이트되면 자동으로 나타납니다. 전체 현재 목록은 `/models`를 실행하세요.
+</Aside>
+
+## 인증
+
+### API 키 설정
+
+1. [platform.openai.com](https://platform.openai.com)에서 API 키를 발급받습니다
+2. TUI에서 `/connect`를 실행하고, **OpenAI**를 선택하고, API 키를 입력합니다
+
+### 환경 변수
+
+```bash
+export OPENAI_API_KEY="sk-proj-..."
+```
+
+### 구성 파일
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+## 모델 구성
+
+### 기본 모델 설정
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "openai/gpt-5"
+}
+```
+
+### 모델 변경
+
+TUI에서 `/models`를 사용하여 다른 OpenAI 모델을 선택합니다.
+
+### 추론 모델 사용
+
+o-시리즈(`o3`, `o4-mini`)와 GPT-5 Pro 변형은 복잡한 보안 분석에 뛰어납니다. `/models`를 통해 선택합니다.
+
+최적 용도:
+- 복잡한 취약점 체인
+- 공격 경로 분석
+- 암호학 분석
+- 리버스 엔지니어링
+
+## ChatGPT Plus/Pro
+
+TUI에서 `/connect`를 실행하고, **OpenAI**를 선택하고, **ChatGPT Plus/Pro**를 선택하여 ChatGPT 구독을 사용합니다. 브라우저 기반 OAuth 플로가 트리거됩니다.
+
+<Aside variant="info">
+  ChatGPT 인증은 브라우저 기반 OAuth 플로가 필요합니다.
+</Aside>
+
+## 조직 ID
+
+조직 계정의 경우:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}",
+        "organization": "org-..."
+      }
+    }
+  }
+}
+```
+
+## 커스텀 Base URL
+
+OpenAI 호환 엔드포인트의 경우:
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "baseURL": "https://your-endpoint.com/v1"
+      }
+    }
+  }
+}
+```
+
+## 함수 호출
+
+GPT 모델은 도구 사용을 위한 함수 호출을 지원합니다:
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "parallelToolCalls": true
+      }
+    }
+  }
+}
+```
+
+## 속도 제한
+
+OpenAI 티어별 속도 제한:
+
+| 티어 | RPM | TPM |
+|------|-----|-----|
+| 무료 | 3 | 40,000 |
+| 티어 1 | 500 | 200,000 |
+| 티어 2 | 5,000 | 2,000,000 |
+| 티어 3+ | 더 높은 제한 |
+
+### 제한 처리
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "maxRetries": 3,
+        "timeout": 60000
+      }
+    }
+  }
+}
+```
+
+## 모범 사례
+
+### 모델 선택
+
+| 작업 | 권장 모델 |
+|------|-----------|
+| 빠른 스캔 | `gpt-5-nano` |
+| 일반 테스트 | `gpt-5` |
+| 복잡한 분석 | `o3` |
+| 비용 민감 | `gpt-5-mini` |
+
+### 비용 최적화
+
+1. 간단한 작업에 mini 모델 사용
+2. 합리적인 최대 토큰 설정
+3. 긴 세션에 `/compact` 사용
+4. OpenAI 대시보드에서 사용량 모니터링
+
+### 보안
+
+1. 환경 변수에 키 저장
+2. 프로젝트별 API 키 사용
+3. OpenAI 대시보드에서 사용 제한 활성화
+4. 정기적으로 키 교체
+
+## 문제 해결
+
+### 잘못된 API 키
+
+```
+Error: Incorrect API key provided
+```
+
+확인:
+- 키가 `sk-proj-` 또는 `sk-`로 시작하는지
+- 여분의 공백이 없는지
+- 키가 활성 상태인지
+
+### 할당량 부족
+
+```
+Error: You exceeded your current quota
+```
+
+해결 방법:
+- 결제 정보 추가
+- 사용 제한 확인
+- 플랜 업그레이드
+
+### 모델 접근
+
+```
+Error: The model does not exist or you do not have access
+```
+
+일부 모델에는 다음이 필요합니다:
+- 최신 플래그십을 위한 더 높은 사용 티어
+- 대기 목록 승인
+- 엔터프라이즈 계약
+
+<Aside variant="caution">
+  추론 모델(o-시리즈 및 GPT-5 Pro 변형)은 추론 단계로 인해 더 높은 지연 시간을 가집니다. 더 긴 응답 시간을 계획하세요.
+</Aside>
+
+## 관련 문서
+
+- [제공자 개요](/docs/providers) - 모든 제공자
+- [커스텀 제공자](/docs/providers/custom-providers) - OpenAI 호환 설정
+- [구성](/docs/configuration) - 전체 옵션

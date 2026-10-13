@@ -1,0 +1,178 @@
+---
+title: Anthropic (Claude)
+description: Anthropic Claude-Modelle fuer Cyberstrike konfigurieren
+sidebar:
+  order: 2
+  label: Anthropic
+---
+
+Die Claude-Modelle von Anthropic bieten fortgeschrittene Reasoning-Faehigkeiten fuer Sicherheitsanalysen. Diese Anleitung behandelt Konfiguration und Best Practices.
+
+<img src="/docs/images/screenshots/anthropic-model-select.png" alt="Modellauswahl gefiltert auf Anthropic Claude-Modelle" className="rounded-lg shadow-lg my-6 w-full" />
+
+## Verfuegbare Modelle
+
+Cyberstrike bezieht seinen Modellkatalog live von [models.dev](https://models.dev), sodass die genaue Liste dem aktuellen Angebot von Anthropic entspricht. Gaengige Auswahl:
+
+| Modell | Kontext | Am besten fuer |
+|--------|---------|----------------|
+| `anthropic/claude-opus-4-5` | 200K | Tiefstes Reasoning — komplexe Analyse, Exploit-Recherche |
+| `anthropic/claude-sonnet-4-5` | 200K | Ausgewogener Standard — allgemeine Sicherheitstests |
+| `anthropic/claude-haiku-4-5` | 200K | Schnell, kostenguenstig — schnelle Scans, hohes Volumen |
+
+<Aside variant="tip">
+  Neuere Flaggschiffe (Opus 4.6/4.7/4.8, Sonnet 4.6/5, Fable 5) und jedes andere Claude-Modell erscheinen automatisch, sobald models.dev aktualisiert wird. Fuehren Sie `/models` aus fuer die vollstaendige aktuelle Liste. `-latest`-Aliase (z.B. `claude-opus-4-5`) verweisen auf die neueste Version einer Familie; datierte IDs (z.B. `claude-opus-4-5-20251101`) fixieren eine bestimmte Version.
+</Aside>
+
+## Authentifizierung
+
+### API-Schluessel einrichten
+
+1. Holen Sie Ihren API-Schluessel von [console.anthropic.com](https://console.anthropic.com)
+2. Fuehren Sie in der TUI `/connect` aus, waehlen Sie **Anthropic** und geben Sie Ihren API-Schluessel ein
+
+### Umgebungsvariable
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+Fuegen Sie es Ihrem Shell-Profil hinzu fuer dauerhafte Speicherung:
+
+```bash
+echo 'export ANTHROPIC_API_KEY="sk-ant-..."' >> ~/.zshrc
+```
+
+### Konfigurationsdatei
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+## Modellkonfiguration
+
+### Standardmodell festlegen
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "anthropic/claude-sonnet-4-5"
+}
+```
+
+### Modelle wechseln
+
+Verwenden Sie `/models` in der TUI, um die Modellauswahl zu oeffnen und ein anderes Claude-Modell auszuwaehlen.
+
+## Erweitertes Denken
+
+Aktivieren Sie erweitertes Denken fuer komplexe Sicherheitsanalysen:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "thinking": {
+          "type": "enabled",
+          "budgetTokens": 10000
+        }
+      }
+    }
+  }
+}
+```
+
+### Wann erweitertes Denken verwenden
+
+- Komplexe Schwachstellenketten
+- Mehrstufige Angriffsplanung
+- Code-Review mit tiefgehender Analyse
+- Architektur-Sicherheitsueberpruefung
+
+## Token-Verbrauch
+
+Im TUI-Sitzungsheader zeigt CyberStrike die **Kontextnutzung** fuer die juengste Assistentennachricht mit Nicht-Null-Ausgabe-Tokens: eine Token-Gesamtzahl (Eingabe, Ausgabe, Reasoning und Cache-Lese-/Schreibvorgaenge) und, wenn das Modell ein Kontextlimit definiert, einen **Prozentsatz dieses Limits**. Es zeigt auch die **geschaetzten Sitzungskosten** in USD als Summe der `cost` auf Assistentennachrichten.
+
+### Prompt-Caching
+
+Fuer direkte Anthropic-Modelle (`providerID` / SDK `npm` `@ai-sdk/anthropic`) fuegt CyberStrike beim Erstellen der Anfrage Anthropic **ephemere** Cache-Steuerung zu ausgewaehlten System- und aktuellen Nachrichten hinzu. Es gibt kein separates `cacheControl`-Flag in `provider.anthropic.options` fuer dieses Verhalten.
+
+## Rate-Limits
+
+Rate-Limits haengen von Ihrem Anthropic-Konto und -Produkt ab; aktuelle Kontingente finden Sie in der [Anthropic-Dokumentation](https://docs.anthropic.com).
+
+Fuer **wiederholbare** API-Fehler verwendet CyberStrike **exponentielles Backoff** (ab 2s, Verdopplung pro Versuch, begrenzt auf 30s, wenn keine `Retry-After`-Header vorhanden sind) und beachtet `Retry-After` / `Retry-After-Ms`, wenn der Anbieter diese zurueckgibt.
+
+## Best Practices
+
+### Modellauswahl
+
+| Aufgabe | Empfohlenes Modell |
+|---------|-------------------|
+| Schnelle Aufklaerung | `claude-haiku-4-5` |
+| Web-App-Tests | `claude-sonnet-4-5` |
+| Komplexe Exploits | `claude-opus-4-5` |
+| Code-Review | `claude-sonnet-4-5` |
+
+### Kostenoptimierung
+
+1. Verwenden Sie Haiku fuer repetitive Aufgaben
+2. Verwenden Sie `/compact` (oder `/summarize`) fuer lange Sitzungen
+3. Begrenzen Sie den Kontext mit fokussierten Prompts
+
+### Sicherheit
+
+1. Committen Sie niemals API-Schluessel in Repositories
+2. Verwenden Sie Umgebungsvariablen
+3. Rotieren Sie Schluessel regelmaessig
+4. Ueberwachen Sie die Nutzung im Anthropic-Dashboard
+
+## Fehlerbehebung
+
+### Ungueltiger API-Schluessel
+
+```
+Error: Invalid API key
+```
+
+Ueberpruefen Sie Ihren Schluessel:
+- Entspricht dem Format, das beim Verbinden von Anthropic in der App beschrieben wird (API-Schluessel beginnen typischerweise mit `sk-ant-api...`)
+- Kein nachgestelltes Leerzeichen
+- Schluessel ist aktiv unter [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
+
+### Rate-Limit ueberschritten
+
+```
+Error: Rate limit exceeded
+```
+
+Loesungen:
+- Warten und erneut versuchen
+- Stufe upgraden
+- Kleineren Kontext verwenden
+
+### Modell nicht verfuegbar
+
+```
+Error: Model not found
+```
+
+Pruefen Sie, ob die Modell-ID korrekt ist und in Ihrer Region verfuegbar.
+
+<Aside variant="tip">
+  Verwenden Sie Claude Sonnet fuer die meisten Sicherheitstest-Aufgaben. Reservieren Sie Opus fuer komplexe Analysen, die tieferes Reasoning erfordern.
+</Aside>
+
+## Verwandte Dokumentation
+
+- [Anbieter-Uebersicht](/docs/providers) - Alle unterstuetzten Anbieter
+- [Konfiguration](/docs/configuration) - Vollstaendige Konfigurationsoptionen
+- [Authentifizierung](/docs/getting-started/authentication) - Einrichtungsanleitung

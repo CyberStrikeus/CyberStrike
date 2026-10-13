@@ -1,0 +1,70 @@
+---
+title: कॉन्फ़िगरेशन
+description: अपने पेनेट्रेशन टेस्टिंग वर्कफ़्लो के लिए Cyberstrike कॉन्फ़िगर करें
+sidebar:
+  order: 2
+  label: कॉन्फ़िगरेशन
+---
+
+Cyberstrike एक JSON फ़ाइल के साथ कॉन्फ़िगर किया जाता है। यह पेज एक त्वरित परिचय है; पूर्ण पदानुक्रम, प्रत्येक विकल्प, और संबंधित गाइड के लिए, [कॉन्फ़िगरेशन संदर्भ](/docs/configuration) देखें।
+
+## कॉन्फ़िगरेशन फ़ाइल
+
+अपनी प्रोजेक्ट डायरेक्टरी में एक `cyberstrike.json` बनाएं:
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike"
+}
+```
+
+मॉडल `provider/model` के रूप में लिखा जाता है — कोई अलग string `provider` फ़ील्ड नहीं है। `default_agent` एक प्राथमिक एजेंट होना चाहिए (`cyberstrike` बिल्ट-इन है; यह विशेषज्ञ सबएजेंटों को स्वचालित रूप से प्रतिनिधित्व करता है)।
+
+## सामान्य विकल्प
+
+| विकल्प | प्रकार | विवरण |
+|--------|--------|-------|
+| `model` | string | डिफ़ॉल्ट मॉडल, `provider/model` के रूप में |
+| `small_model` | string | हल्के कार्यों के लिए मॉडल (शीर्षक जनरेशन) |
+| `default_agent` | string | डिफ़ॉल्ट प्राथमिक एजेंट (`cyberstrike` पर फ़ॉलबैक) |
+| `theme` | string | इंटरफ़ेस थीम (डिफ़ॉल्ट `cyberstrike`) |
+| `permission` | object | प्रति-टूल अनुमतियां — [अनुमतियां](/docs/permissions) देखें |
+| `provider` | object | प्रदाता id द्वारा कुंजीबद्ध, प्रति-प्रदाता सेटिंग्स |
+| `instructions` | string[] | सिस्टम प्रॉम्प्ट में जोड़ी गई फ़ाइलें/ग्लॉब |
+
+## एनवायरनमेंट वेरिएबल
+
+अपनी API keys को एनवायरनमेंट वेरिएबल के रूप में सेट करें:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+## अनुमतियां और प्रदाता
+
+`permission` के साथ टूल्स को अनुमति दें या प्रतिबंधित करें, और `provider` के तहत प्रदाता को ट्यून करें:
+
+```json title="cyberstrike.json"
+{
+  "permission": {
+    "read": "allow",
+    "bash": { "*": "ask", "rm -rf *": "deny" }
+  },
+  "provider": {
+    "anthropic": {
+      "options": { "apiKey": "{env:ANTHROPIC_API_KEY}" }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  API keys को कभी वर्शन कंट्रोल में कमिट न करें। एनवायरनमेंट वेरिएबल या `.env` फ़ाइल (`.gitignore` में जोड़ी गई) का उपयोग करें।
+</Aside>
+
+पूर्ण स्कीमा, प्राथमिकता क्रम, MCP, कीबाइंडिंग, और अधिक के लिए [कॉन्फ़िगरेशन संदर्भ](/docs/configuration) देखें।

@@ -6,16 +6,16 @@ sidebar:
   label: HackBrowser
 ---
 
-HackBrowser is Cyberstrike's autonomous web crawler. It opens a Chromium browser, lets an LLM navigate the target application by reading the accessibility tree, and forwards every captured HTTP request — enriched with UI context — to `POST /session/ingest`. From there, the [proxy-agent](/docs/agents/proxy-agent) pipeline analyzes and tests each request the same way it processes traffic from the [Firefox Extension](/docs/tools/firefox-extension).
+HackBrowser is Cyberstrike's autonomous web crawler. It opens a Chromium browser, lets an LLM navigate the target application by reading the accessibility tree, and forwards every captured HTTP request — enriched with UI context — to `POST /session/ingest`. From there, the [proxy-agent](/docs/agents/proxy-agent) pipeline analyzes and tests each request the same way it processes traffic from the [Chrome Extension](/docs/tools/chrome-extension).
 
 ## When to Use HackBrowser
 
 | Use case | Pick |
 |----------|------|
-| Manual exploration with multiple roles | [Firefox Extension](/docs/tools/firefox-extension) |
+| Manual exploration with multiple roles | [Chrome Extension](/docs/tools/chrome-extension) |
 | Unattended automated crawl | **HackBrowser** |
 | Need UI form context (`readonly`, `hidden`, `disabled` flags) on captures | **HackBrowser** |
-| Existing pre-authenticated browser session | Either — Firefox Extension is simpler |
+| Existing pre-authenticated browser session | Either — Chrome Extension is simpler |
 
 The two paths are not mutually exclusive. Both feed the same `/session/ingest` endpoint and the same proxy-agent pipeline. You can mix them within a single session.
 
@@ -42,7 +42,7 @@ The two paths are not mutually exclusive. Both feed the same `/session/ingest` e
                 proxy-agent → proxy-analyzer + 8 vulnerability testers
 ```
 
-Unlike the Firefox Extension, HackBrowser drives the browser itself. The LLM sees the page as an accessibility tree (button labels, input roles, ARIA attributes) and decides which forms to fill and which buttons to click. Every captured request includes a `ui_context` snapshot — the form fields, their flags (`readonly`, `disabled`, `hidden`), and any request parameters not present in the UI — which the proxy-analyzer and `proxy-tester-mass-assignment` use to identify suspicious request shapes.
+Unlike the Chrome Extension, HackBrowser drives the browser itself. The LLM sees the page as an accessibility tree (button labels, input roles, ARIA attributes) and decides which forms to fill and which buttons to click. Every captured request includes a `ui_context` snapshot — the form fields, their flags (`readonly`, `disabled`, `hidden`), and any request parameters not present in the UI — which the proxy-analyzer and `proxy-tester-mass-assignment` use to identify suspicious request shapes.
 
 ## Three Entry Points
 
@@ -109,7 +109,7 @@ Parameters:
 | `steps` | Max pages (default 50) |
 | `headless` | Visible browser when `false`. Forced to `false` when credentials provided. |
 
-The tool does not block on completion. The agent inspects results via [`web_get_session_context`](/docs/web-testing/context-management) when needed, not by re-calling the tool.
+The tool does not block on completion. The agent inspects results via `web_get_session_context` when needed, not by re-calling the tool.
 
 ## Crawl Phases
 
@@ -157,7 +157,7 @@ The crawl engine already implements three unattended login paths internally; the
 | `--save-session <path>` | Save cookies after a successful login for reuse | One-time interactive login, then unattended re-runs |
 | `--user <name>` / `--pass <secret>` | Fill the discovered login form automatically | Fully unattended crawls against simple form-based auth |
 
-Until these are exposed, fully unattended multi-role testing is best done through the [Firefox Extension](/docs/tools/firefox-extension) with Firefox Containers, where you log in once per container and capture happens transparently.
+Until these are exposed, fully unattended multi-role testing is best done through the [Chrome Extension](/docs/tools/chrome-extension) with Chrome Profiles, where you log in once per container and capture happens transparently.
 
 ### Page Diff and Element Availability
 
@@ -171,7 +171,7 @@ The proxy-agent uses this signal to detect role-based access differences without
 
 ## UI Context Payload
 
-The differentiator over the Firefox Extension is the `ui_context` block attached to every capture. It contains the form structure at the moment the request fired:
+The differentiator over the Chrome Extension is the `ui_context` block attached to every capture. It contains the form structure at the moment the request fired:
 
 ```json
 {
@@ -323,7 +323,4 @@ The current session has an active crawl. Wait for it to finish or run `/hackbrow
 
 ## Related Documentation
 
-- [Web Proxy Testing](/docs/web-testing) — Full workflow including HackBrowser and the Firefox Extension
-- [Firefox Extension](/docs/tools/firefox-extension) — Manual-browsing alternative with Firefox Containers
-- [Proxy Agent](/docs/agents/proxy-agent) — How captured requests are analyzed and tested
-- [Context Management](/docs/web-testing/context-management) — Inspecting accumulated session context in the TUI
+- [Chrome Extension](/docs/tools/chrome-extension) — Manual-browsing alternative with Chrome Profiles

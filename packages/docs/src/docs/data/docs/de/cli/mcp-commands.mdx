@@ -1,0 +1,67 @@
+---
+title: MCP-Befehle
+description: MCP-Server ueber die Kommandozeile verwalten
+sidebar:
+  order: 4
+  label: MCP-Befehle
+---
+
+Die `cyberstrike mcp`-Befehle verwalten Model Context Protocol Server. Es gibt fuenf Unterbefehle: `list`, `add`, `auth`, `logout` und `debug`.
+
+{/* TODO: Screenshot - MCP command interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: mcp-commands.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">MCP-Befehle-Oberflaeche</p>
+</div>
+
+<Aside variant="caution">
+  Die Serverkonfiguration befindet sich in `cyberstrike.json` (siehe [Lokale](/docs/mcp/local-servers) / [Remote](/docs/mcp/remote-servers) Server), und Server werden interaktiv im `/mcps` TUI-Dialog verwaltet. Es gibt keine `mcp status`-, `health`-, `start`/`stop`/`restart`-, `remove`-, `config`-, `tools`-, `logs`-, `export`/`import`-, `install`- oder `update`-Befehle.
+</Aside>
+
+## `mcp list`
+
+```bash
+cyberstrike mcp list   # Alias: ls
+```
+
+Listet die konfigurierten MCP-Server auf.
+
+## `mcp add`
+
+```bash
+cyberstrike mcp add
+```
+
+Vollstaendig interaktiv — es fragt nach lokal vs. remote, dem Befehl oder der URL und einem Namen, testet dann die Verbindung vor dem Speichern. Es akzeptiert **keine** positionellen Namen oder Flags; um die Server-Einrichtung zu skripten, schreiben Sie den Eintrag direkt in `cyberstrike.json`.
+
+## `mcp auth`
+
+```bash
+cyberstrike mcp auth [name]        # einen OAuth-Server autorisieren
+cyberstrike mcp auth list          # OAuth-autorisierte Server auflisten
+```
+
+Autorisiert einen Remote-Server, der OAuth verwendet (oeffnet bei Bedarf den Browser). Siehe [OAuth](/docs/mcp/oauth).
+
+## `mcp logout`
+
+```bash
+cyberstrike mcp logout [name]
+```
+
+Entfernt gespeicherte OAuth-Anmeldedaten fuer einen Server.
+
+## `mcp debug`
+
+```bash
+cyberstrike mcp debug <name>
+```
+
+Untersucht die Verbindung eines Servers — nuetzlich, wenn ein Server nicht geladen werden kann oder seine Werkzeuge nicht angezeigt werden.
+
+## Verwandte Dokumentation
+
+- [Bolt / MCP Uebersicht](/docs/mcp) - MCP-Grundlagen
+- [Lokale Server](/docs/mcp/local-servers) - Lokale Serverkonfiguration
+- [Remote Server](/docs/mcp/remote-servers) - Remote-Serverkonfiguration
+- [OAuth](/docs/mcp/oauth) - OAuth-Authentifizierung

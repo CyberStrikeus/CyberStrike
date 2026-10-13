@@ -1,0 +1,82 @@
+---
+title: WSTG 代理
+description: OWASP WSTG Web 安全测试流水线的编排器
+sidebar:
+  order: 5
+  label: WSTG 代理
+---
+
+`wstg-agent` 是 Cyberstrike Web 安全测试流水线的编排器。它接收捕获的 HTTP 流量，并根据请求特征和积累的会话上下文调度相应的 WSTG 专家代理。
+
+## 概述
+
+| 属性 | 值 |
+|------|-----|
+| **代理 ID** | `wstg-agent` |
+| **角色** | `orchestrator` |
+| **领域** | `@cyberstrike-io/web` |
+| **颜色** | 蓝色 |
+
+## 工作原理
+
+`wstg-agent` 是一个**纯编排器**——它本身不执行漏洞测试。其工作流程：
+
+1. 接收捕获的 HTTP 请求（来自 [HackBrowser](/docs/features/hackbrowser) 或 [Chrome Extension](/docs/tools/chrome-extension)）
+2. 分析请求特征和积累的会话上下文
+3. 通过基于信号的调度将请求路由到相应的 WSTG 专家
+4. 管理测试队列和重测触发器
+
+## 基于信号的路由
+
+每个捕获的请求根据其属性生成信号——端点路径、参数、头部、响应模式和 [Vortex](/docs/features/vortex) 规则匹配。`wstg-agent` 将这些信号映射到专家类别：
+
+| 信号类别 | 专家 |
+|----------|------|
+| 认证模式 | `wstg-authentication` |
+| 授权指标 | `wstg-authorization` |
+| 输入参数 | `wstg-input-validation` |
+| 会话令牌 | `wstg-session-mgmt` |
+| 配置端点 | `wstg-config-deploy` |
+| API 模式 | `wstg-api` |
+| 加密指标 | `wstg-cryptography` |
+| 错误响应 | `wstg-error-handling` |
+| 业务逻辑 | `wstg-business-logic` |
+| 客户端资源 | `wstg-client-side` |
+| LLM 端点 | `wstg-llm` |
+
+单个请求在展示多个类别的信号时可以触发多个专家。
+
+## WSTG 专家
+
+每个专家是针对一个 WSTG 类别的专注测试代理：
+
+| 专家 | WSTG 章节 | 重点 |
+|------|-----------|------|
+| `wstg-info-gathering` | 4.1 | 指纹识别、枚举、泄露检测 |
+| `wstg-config-deploy` | 4.2 | 服务器配置、默认凭据、文件扩展名 |
+| `wstg-identity-mgmt` | 4.3 | 用户枚举、账户配置 |
+| `wstg-authentication` | 4.4 | 登录绕过、凭据测试、MFA |
+| `wstg-authorization` | 4.5 | IDOR、权限升级、路径遍历 |
+| `wstg-session-mgmt` | 4.6 | 会话固定、Cookie 属性、超时 |
+| `wstg-input-validation` | 4.7 | SQLi、XSS、SSTI、命令注入 |
+| `wstg-error-handling` | 4.8 | 错误泄露、堆栈跟踪 |
+| `wstg-cryptography` | 4.9 | 弱密码、填充预言、密钥暴露 |
+| `wstg-business-logic` | 4.10 | 工作流绕过、竞态条件 |
+| `wstg-client-side` | 4.11 | DOM XSS、点击劫持、postMessage |
+| `wstg-api` | 4.12 | BOLA、批量赋值、速率限制 |
+| `wstg-llm` | 自定义 | 提示注入、LLM 特定攻击 |
+
+每个专家携带 WSTG 技能（确定性测试脚本），对捕获的请求执行。
+
+## 升级猎手
+
+专家完成测试后，[`escalation-hunter`](/docs/agents/escalation-hunter) 会遍历所有发现以识别链式漏洞并升级影响。
+
+## 权限
+
+`wstg-agent` 编排器拥有受限的权限集：
+
+- 可以创建任务（调度专家）
+- 可以读取会话上下文和覆盖率笔记
+- 可以检查方法论状态和范围
+- 不能执行直接测试或报告漏洞

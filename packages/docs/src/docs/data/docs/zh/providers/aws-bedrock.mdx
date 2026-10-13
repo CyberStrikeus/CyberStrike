@@ -1,0 +1,394 @@
+---
+title: AWS Bedrock
+description: 通过 AWS Bedrock 设置 CyberStrike——认证方式、区域配置和跨区域推理
+sidebar:
+  order: 5
+  label: AWS Bedrock
+---
+
+AWS Bedrock 让您可以通过自己的 AWS 账户运行 CyberStrike。数据留在您的基础设施中，您可以使用基于 IAM 的访问控制，还可以使用 VPC 端点进行私有网络访问。
+
+CyberStrike 使用标准的 AWS 凭据提供链（`@aws-sdk/credential-providers`），因此如果您已经在使用 AWS CLI 或 SDK，现有凭据可以直接使用。
+
+## 前提条件
+
+开始之前，确保您在 AWS 账户中有权访问 Bedrock 模型：
+
+<Steps>
+1. 打开 **AWS 控制台**并转到 **Amazon Bedrock**
+2. 点击左侧边栏的**模型访问权限**
+3. 请求访问您想使用的 Claude 模型
+4. 等待批准（大多数模型通常即时批准）
+</Steps>
+
+## 快速开始
+
+最快的入门方式取决于您的设置：
+
+```bash
+# 如果您已经配置了 AWS CLI
+cyberstrike
+
+# 如果您有命名的配置文件
+AWS_PROFILE=my-profile cyberstrike
+
+# 如果您有访问密钥
+AWS_ACCESS_KEY_ID=AKIA... AWS_SECRET_ACCESS_KEY=... cyberstrike
+
+# 在附加了 IAM 角色的 EC2 上——直接运行即可
+cyberstrike
+```
+
+CyberStrike 会自动检测您的 AWS 凭据。如果找到 Bedrock 凭据，提供商会自动出现在模型选择器中。
+
+## 认证方式
+
+CyberStrike 支持 9 种不同的 AWS Bedrock 认证方式。按从简单到高级的顺序列出。
+
+---
+
+### 1. AWS 访问密钥
+
+最直接的方式。将访问密钥和密钥设置为环境变量：
+
+```bash
+export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
+export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+export AWS_REGION="us-east-1"
+
+cyberstrike
+```
+
+也可以为单次会话内联传递：
+
+```bash
+AWS_ACCESS_KEY_ID=AKIA... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1 cyberstrike
+```
+
+<Aside variant="caution">
+  访问密钥是长期凭据。在生产环境中，建议使用 IAM 角色、SSO 或临时凭据。
+</Aside>
+
+---
+
+### 2. AWS 配置文件
+
+如果您在 `~/.aws/credentials` 和 `~/.aws/config` 中配置了配置文件，可以选择一个：
+
+```bash
+# 使用命名的配置文件
+AWS_PROFILE=my-profile cyberstrike
+```
+
+或在项目的 `cyberstrike.json` 中设置配置文件：
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "profile": "my-profile",
+        "region": "us-east-1"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="tip">
+  当 `cyberstrike.json` 和 `AWS_PROFILE` 环境变量同时设置时，配置文件优先。
+</Aside>
+
+---
+
+### 3. SSO / IAM Identity Center
+
+如果您的组织使用 AWS IAM Identity Center（原 AWS SSO），在 `~/.aws/config` 中配置 SSO 配置文件：
+
+```ini title="~/.aws/config"
+[profile my-sso]
+sso_session = my-org
+sso_account_id = 123456789012
+sso_role_name = BedrockAccess
+region = us-east-1
+
+[sso-session my-org]
+sso_start_url = https://my-org.awsapps.com/start
+sso_region = us-east-1
+```
+
+然后登录并运行 CyberStrike：
+
+```bash
+aws sso login --profile my-sso
+AWS_PROFILE=my-sso cyberstrike
+```
+
+---
+
+### 4. STS AssumeRole（角色链）
+
+如果需要在另一个 AWS 账户中承担角色（或在同一账户中承担更高权限的角色），在 `~/.aws/config` 中配置角色链：
+
+```ini title="~/.aws/config"
+[profile base-account]
+aws_access_key_id = AKIA...
+aws_secret_access_key = ...
+
+[profile bedrock-role]
+role_arn = arn:aws:iam::987654321098:role/BedrockAccessRole
+source_profile = base-account
+region = us-east-1
+```
+
+然后使用角色配置文件：
+
+```bash
+AWS_PROFILE=bedrock-role cyberstrike
+```
+
+这由 AWS 凭据提供链自动处理——CyberStrike 不需要任何特殊配置。
+
+---
+
+### 5. Web Identity Token (OIDC)
+
+对于运行在 **EKS（Kubernetes）**、**GitHub Actions** 或其他 OIDC 联合环境中的工作负载，设置令牌文件路径：
+
+```bash
+export AWS_WEB_IDENTITY_TOKEN_FILE="/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
+export AWS_ROLE_ARN="arn:aws:iam::123456789012:role/my-eks-role"
+
+cyberstrike
+```
+
+在使用 IRSA（IAM Roles for Service Accounts）的 EKS 上，Kubernetes 会自动设置这些环境变量。
+
+---
+
+### 6. 容器凭据（ECS / Fargate）
+
+在 **ECS** 或 **Fargate** 任务中运行时，AWS 通过元数据端点自动注入凭据。CyberStrike 检测以下环境变量：
+
+- `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`
+- `AWS_CONTAINER_CREDENTIALS_FULL_URI`
+
+无需配置——只需确保任务的 IAM 角色具有 Bedrock 权限并运行：
+
+```bash
+cyberstrike
+```
+
+---
+
+### 7. EC2 实例元数据 (IMDS)
+
+在附加了 IAM 角色的 **EC2 实例**上，凭据会自动从实例元数据服务获取。不需要环境变量或配置文件：
+
+```bash
+# 在附加了 IAM 角色的 EC2 实例上——直接运行即可
+cyberstrike
+```
+
+确保实例的 IAM 角色包含下面 [IAM 权限](#iam-权限)部分描述的 Bedrock 权限。
+
+<Aside variant="info">
+  如果标准凭据链失败，CyberStrike 会自动回退到 IMDS 作为最后手段。
+</Aside>
+
+---
+
+### 8. Bearer Token
+
+您可以使用 Bearer Token 进行认证。通过环境变量设置：
+
+```bash
+export AWS_BEARER_TOKEN_BEDROCK="your-bearer-token"
+cyberstrike
+```
+
+或通过 TUI 存储——运行 `/connect`，选择 **Amazon Bedrock**，在提示时粘贴 Bearer Token。这会保存令牌，无需每次设置。
+
+<Aside variant="tip">
+  Bearer Token 具有**最高优先级**——设置后，它会绕过整个 AWS 凭据链（配置文件、访问密钥、IAM 角色等）。
+</Aside>
+
+---
+
+### 9. 自定义凭据进程
+
+如果您有自定义工具来生成临时 AWS 凭据（如企业凭据分发机），在 `~/.aws/config` 中配置：
+
+```ini title="~/.aws/config"
+[profile custom-creds]
+credential_process = /usr/local/bin/my-credential-tool --format json
+region = us-east-1
+```
+
+程序必须返回以下格式的 JSON：
+
+```json
+{
+  "Version": 1,
+  "AccessKeyId": "AKIA...",
+  "SecretAccessKey": "...",
+  "SessionToken": "...",
+  "Expiration": "2025-12-31T23:59:59Z"
+}
+```
+
+然后使用配置文件：
+
+```bash
+AWS_PROFILE=custom-creds cyberstrike
+```
+
+---
+
+## 认证优先级
+
+当多个凭据可用时，CyberStrike 使用以下优先级顺序：
+
+| 优先级 | 方式 | 来源 |
+|--------|------|------|
+| 1（最高） | Bearer Token | `AWS_BEARER_TOKEN_BEDROCK` 环境变量或 TUI 中的 `/connect` |
+| 2 | AWS 凭据链 | `fromNodeProviderChain` 按标准 AWS SDK 顺序解析：环境变量 → 配置文件 → SSO → Web Identity → ECS 容器 → EC2 IMDS |
+
+## IAM 权限
+
+无论使用哪种认证方式，IAM 身份都需要以下权限：
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": "arn:aws:bedrock:*::foundation-model/anthropic.*"
+    }
+  ]
+}
+```
+
+<Aside variant="tip">
+  如果要限制只能访问特定模型，请将 `anthropic.*` 替换为具体的模型 ARN。
+</Aside>
+
+## 区域配置
+
+CyberStrike 按以下顺序解析 AWS 区域：
+
+| 优先级 | 来源 | 示例 |
+|--------|------|------|
+| 1（最高） | `cyberstrike.json` 配置 | `provider.amazon-bedrock.options.region` |
+| 2 | 环境变量 | `AWS_REGION=eu-west-1` |
+| 3（默认） | 硬编码回退 | `us-east-1` |
+
+在配置文件中设置区域：
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "eu-west-1"
+      }
+    }
+  }
+}
+```
+
+或通过环境变量：
+
+```bash
+export AWS_REGION="eu-west-1"
+```
+
+## 跨区域推理
+
+CyberStrike 自动处理跨区域推理配置文件前缀。根据您配置的区域，正确的前缀会添加到模型 ID：
+
+| 区域 | 前缀 | 示例 |
+|------|------|------|
+| US 区域 (us-east-1, us-west-2, ...) | `us.` | `us.anthropic.claude-sonnet-4-20250514-v1:0` |
+| EU 区域 (eu-west-1, eu-central-1, ...) | `eu.` | `eu.anthropic.claude-sonnet-4-20250514-v1:0` |
+| 东京 (ap-northeast-1) | `jp.` | `jp.anthropic.claude-sonnet-4-20250514-v1:0` |
+| 澳大利亚 (ap-southeast-2, ap-southeast-4) | `au.` | `au.anthropic.claude-sonnet-4-20250514-v1:0` |
+| 其他 APAC 区域 | `apac.` | `apac.anthropic.claude-sonnet-4-20250514-v1:0` |
+| 全球 | `global.` | `global.anthropic.claude-sonnet-4-20250514-v1:0` |
+
+这是自动的——您不需要自己添加这些前缀。如果模型 ID 已经有前缀（例如来自模型选择器），不会重复添加。
+
+## VPC 端点
+
+对于私有网络访问（无互联网流量），配置 VPC 端点：
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "us-east-1",
+        "endpoint": "https://bedrock-runtime.us-east-1.vpce-xxxxx.amazonaws.com"
+      }
+    }
+  }
+}
+```
+
+## 使用
+
+认证配置完成后，通过 TUI 中的 `/models` 选择 Bedrock 模型，或在配置中设置默认值：
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "us-east-1"
+      }
+    }
+  },
+  "model": "amazon-bedrock/anthropic.claude-sonnet-4-20250514-v1:0"
+}
+```
+
+要在会话期间切换模型，使用 `/model` 斜杠命令。
+
+## 故障排除
+
+### "Access Denied" 错误
+
+- 检查是否在 AWS Bedrock 控制台中启用了模型访问权限
+- 验证 IAM 策略是否包含 `bedrock:InvokeModel` 和 `bedrock:InvokeModelWithResponseStream`
+- 确认使用了正确的区域
+
+### "Model not found" 错误
+
+- 验证模型 ID 是否正确
+- 检查模型在您的区域是否可用
+- 尝试不同的区域或启用跨区域推理
+
+### "ThrottlingException" 错误
+
+- 通过 AWS 控制台请求提高服务限制
+- 跨区域推理可以帮助跨区域分配负载
+- 对于稳定的吞吐量，考虑 AWS Bedrock 预置容量
+
+### Bedrock 提供商未显示
+
+CyberStrike 仅在检测到有效凭据时才显示 Bedrock 提供商。如果未显示：
+
+1. 验证凭据是否与 AWS CLI 配合使用：`aws bedrock list-foundation-models --region us-east-1`
+2. 检查是否至少配置了一种认证方式（环境变量、配置文件等）
+3. 确保提供商未被列在 `cyberstrike.json` 的 `disabled_providers` 中
+
+## 相关文档
+
+- [提供商概述](/docs/providers) — 所有支持的提供商
+- [Anthropic](/docs/providers/anthropic) — 直连 API 对比
+- [配置](/docs/configuration) — 完整配置参考

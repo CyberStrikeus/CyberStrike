@@ -1,0 +1,403 @@
+---
+title: Bash 도구
+description: Cyberstrike로 보안 테스트를 위한 쉘 명령 실행
+sidebar:
+  order: 3
+  label: Bash
+---
+
+Bash 도구는 시스템 상호작용, 도구 호출, 보안 테스트를 위한 쉘 명령을 실행합니다.
+
+{/* TODO: Screenshot - Bash command execution */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: bash-execution.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Bash 도구 명령 실행</p>
+</div>
+
+## 개요
+
+Bash 도구는 다음을 가능하게 합니다:
+
+- 보안 도구 실행 (nmap, nuclei, sqlmap)
+- 시스템 관리 명령
+- Git 작업
+- 패키지 관리
+- 커스텀 스크립트
+
+## 기본 사용법
+
+### 간단한 명령
+
+```
+> Run nmap scan on 192.168.1.1
+```
+
+실행:
+```bash
+nmap -sV 192.168.1.1
+```
+
+### 인수 포함
+
+```
+> Check open ports on target with service detection
+```
+
+실행:
+```bash
+nmap -sV -sC -p- 192.168.1.1
+```
+
+### 파이프 명령
+
+```
+> Find all .env files and search for API keys
+```
+
+실행:
+```bash
+find . -name "*.env*" -exec grep -l "API" {} \;
+```
+
+## 보안 도구
+
+### 네트워크 스캔
+
+```
+> Scan the network 10.0.0.0/24 for live hosts
+```
+
+```bash
+nmap -sn 10.0.0.0/24
+```
+
+### 취약점 스캔
+
+```
+> Run nuclei templates against https://target.com
+```
+
+```bash
+nuclei -u https://target.com -t cves/
+```
+
+### 웹 테스트
+
+```
+> Fuzz directories on target website
+```
+
+```bash
+ffuf -u https://target.com/FUZZ -w /usr/share/wordlists/dirb/common.txt
+```
+
+### 비밀번호 공격
+
+```
+> Test for default credentials on SSH
+```
+
+```bash
+hydra -L users.txt -P passwords.txt ssh://192.168.1.1
+```
+
+## 명령 타임아웃
+
+### 기본 타임아웃
+
+명령은 기본적으로 120초 후 타임아웃됩니다.
+
+### 장시간 실행 명령
+
+확장된 작업의 경우:
+
+```
+> Run comprehensive port scan (may take a while)
+```
+
+에이전트가 적절한 타임아웃을 사용합니다:
+```bash
+timeout 600 nmap -p- -sV 192.168.1.1
+```
+
+### 백그라운드 실행
+
+```
+> Start the scan in background
+```
+
+```bash
+nmap -p- 192.168.1.1 > scan_results.txt &
+```
+
+## 작업 디렉토리
+
+### 현재 디렉토리
+
+명령은 현재 작업 디렉토리에서 실행됩니다:
+
+```
+> List files in current directory
+```
+
+```bash
+ls -la
+```
+
+### 디렉토리 변경
+
+```
+> Navigate to the web directory and list contents
+```
+
+```bash
+cd /var/www/html && ls -la
+```
+
+## 환경 변수
+
+### 변수 사용
+
+```
+> Use the target IP from environment
+```
+
+```bash
+nmap -sV $TARGET_IP
+```
+
+### 변수 설정
+
+```
+> Set target and scan
+```
+
+```bash
+export TARGET="192.168.1.1" && nmap $TARGET
+```
+
+## 출력 처리
+
+### 출력 캡처
+
+```
+> Save scan results to file
+```
+
+```bash
+nmap -sV 192.168.1.1 -oN scan_results.txt
+```
+
+### JSON 출력
+
+```
+> Get scan results in JSON format
+```
+
+```bash
+nmap -sV 192.168.1.1 -oX - | xq .
+```
+
+### 결과 파싱
+
+```
+> Extract open ports from nmap output
+```
+
+```bash
+grep "^[0-9]" scan_results.txt | cut -d'/' -f1
+```
+
+## 권한 제어
+
+### 위험한 명령
+
+파괴적인 명령은 명시적 권한이 필요합니다:
+
+| 명령 타입 | 예시 | 권한 필요 |
+|-----------|------|-----------|
+| 읽기 전용 | `ls`, `cat`, `nmap` | 아니오 |
+| 파일 수정 | `rm`, `mv` | 예 |
+| 시스템 변경 | `apt install` | 예 |
+| 네트워크 공격 | `msfconsole` | 예 |
+
+### 명령 자동 승인
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "permission": {
+    "bash": {
+      "nmap *": "allow",
+      "nuclei *": "allow",
+      "ffuf *": "allow"
+    }
+  }
+}
+```
+
+### 위험한 명령 차단
+
+```json
+{
+  "permission": {
+    "bash": {
+      "rm -rf *": "deny",
+      "dd *": "deny",
+      ":(){ :|:& };:": "deny"
+    }
+  }
+}
+```
+
+`bash` 권한은 glob (명령 문자열에 대해 매칭)을 동작 (`ask`, `allow`, 또는 `deny`)에 매핑합니다. 와일드카드로 `*`와 `?`만 지원됩니다. 전체 모델은 [권한](/docs/permissions)을 참조하세요.
+
+## 보안 테스트 워크플로
+
+### 정찰
+
+```
+> Perform initial reconnaissance on target.com
+
+1. DNS enumeration
+2. Subdomain discovery
+3. Port scanning
+4. Service identification
+```
+
+여러 명령을 실행합니다:
+
+```bash
+dig target.com ANY
+subfinder -d target.com
+nmap -sV -sC target.com
+```
+
+### 익스플로잇
+
+```
+> Attempt SQL injection with sqlmap
+```
+
+```bash
+sqlmap -u "https://target.com/page?id=1" --batch --dbs
+```
+
+### 포스트 익스플로잇
+
+```
+> Enumerate the compromised system
+```
+
+```bash
+uname -a
+id
+cat /etc/passwd
+ls -la /home/
+```
+
+## 도구 통합
+
+### Metasploit
+
+```
+> Search for exploits for Apache 2.4.49
+```
+
+```bash
+msfconsole -q -x "search apache 2.4.49; exit"
+```
+
+### Burp Suite
+
+```
+> Start Burp Suite in headless mode
+```
+
+```bash
+java -jar burpsuite.jar --headless
+```
+
+### 커스텀 스크립트
+
+```
+> Run the custom enumeration script
+```
+
+```bash
+./scripts/enum.sh $TARGET
+```
+
+## 오류 처리
+
+### 명령 오류
+
+실패한 명령은 오류 출력을 표시합니다:
+
+```
+Command failed:
+$ nmap -sV nonexistent.host
+Host seems down. If it is really up, but blocking our ping probes, try -Pn
+```
+
+### 재시도 로직
+
+```
+> Retry the scan with -Pn flag
+```
+
+```bash
+nmap -sV -Pn 192.168.1.1
+```
+
+## 모범 사례
+
+1. **대상 확인** - IP와 도메인을 재확인
+2. **타임아웃 사용** - 장시간 스캔에 적절한 타임아웃 설정
+3. **출력 저장** - 중요한 결과는 항상 저장
+4. **권한 확인** - 승인된 접근 확인
+5. **정리** - 테스트 후 임시 파일 제거
+
+<Aside variant="danger">
+  승인 없이 대상에 대해 명령을 절대 실행하지 마세요. 무단 접근은 불법입니다.
+</Aside>
+
+## 문제 해결
+
+### 명령을 찾을 수 없음
+
+```
+Error: command not found: nuclei
+```
+
+도구를 설치하거나 PATH를 확인하세요:
+
+```bash
+which nuclei
+export PATH=$PATH:/opt/tools
+```
+
+### 권한 거부
+
+```
+Error: permission denied
+```
+
+sudo가 필요할 수 있습니다:
+
+```bash
+sudo nmap -sS 192.168.1.1
+```
+
+### 타임아웃
+
+```
+Error: command timed out
+```
+
+명시적 타임아웃 또는 백그라운드 실행을 사용하세요.
+
+## 관련 문서
+
+- [파일 작업](/docs/tools/file-operations) - 파일 처리
+- [권한](/docs/permissions) - 명령 권한
+- [Bolt](/docs/mcp/bolt) - MCP를 통한 추가 보안 도구

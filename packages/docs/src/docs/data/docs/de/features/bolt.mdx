@@ -1,0 +1,115 @@
+---
+title: Bolt
+description: Containerisierter Sicherheitswerkzeug-Server mit 30+ vorinstallierten Werkzeugen
+sidebar:
+  order: 4
+  label: Bolt
+---
+
+Bolt ist ein containerisierter MCP-Server, der Sicherheitswerkzeuge bereitstellt. Er laeuft in einem Docker-Container (Ubuntu 24.04) und stellt jedes Werkzeug direkt zur Verfuegung — keine Meta-Werkzeuge, kein dynamisches Laden, rufen Sie einfach das benoetigte Werkzeug auf.
+
+## Warum Bolt?
+
+| Feature | Ohne Bolt | Mit Bolt |
+|---------|-----------|----------|
+| Werkzeug-Installation | Manuell fuer jedes Werkzeug | Vorinstalliert |
+| Plattform-Unterstuetzung | Nur Linux fuer die meisten Werkzeuge | Jede Plattform mit Docker |
+| Isolation | Werkzeuge laufen auf Ihrem System | In der Sandbox des Containers |
+| Updates | Manuell | `docker pull` |
+
+## Was enthalten ist
+
+Bolt stellt Werkzeuge auf zwei Wegen bereit:
+
+- **7 native Plugins** — `subfinder`, `nmap`, `nuclei`, `httpx`, `ffuf`, `run-command`, `wordlist`
+- **~26 aggregierte stdio-MCP-Server** — `dnsx`, `amass`, `katana`, `sqlmap`, `wpscan`, `gobuster`, `masscan`, `hydra`, `hashcat`, `john`, `impacket` und mehr
+
+Jedes ist ein direkt aufrufbares Werkzeug — der Agent ruft es in einem einzigen Schritt auf.
+
+## Schnellstart
+
+### 1. Den Bolt-Container starten
+
+```bash
+docker run -d \
+  --name bolt \
+  --restart unless-stopped \
+  -p 3001:3001 \
+  -v bolt-data:/data \
+  -e MCP_ADMIN_TOKEN=$(openssl rand -hex 32) \
+  --cap-add NET_RAW \
+  --cap-add NET_ADMIN \
+  ghcr.io/cyberstrikeus/bolt:latest
+
+docker logs bolt | grep -i token
+```
+
+### 2. Mit Cyberstrike koppeln
+
+Fuehren Sie `/bolt` in der TUI aus, druecken Sie **a** zum Hinzufuegen, geben Sie die URL `http://localhost:3001` ein und stellen Sie den Admin-Token bereit.
+
+### 3. Die Werkzeuge verwenden
+
+Geben Sie Ihre Aufgabe direkt ein — der Agent ruft Bolt-Werkzeuge automatisch auf:
+
+```
+> Run nmap against 192.168.1.1 with service detection
+> Use subfinder to enumerate subdomains of example.com
+> Scan https://target.com with nuclei
+```
+
+## Konfiguration
+
+Bolt-Server werden unter dem **`bolt`-Schluessel** konfiguriert — nicht unter `mcp`:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "bolt": {
+    "local": {
+      "url": "http://localhost:3001",
+      "enabled": true,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Bolt ist **kein** `mcp`-Eintrag. Die Authentifizierung erfolgt ueber Ed25519-Pairing, und der Admin-Token wird nur im Pairing-Schritt verwendet.
+</Aside>
+
+## Authentifizierung
+
+Bolt verwendet **Ed25519-Anfragensignierung**, die durch ein einmaliges Pairing initialisiert wird:
+
+1. `POST /pair` mit dem Admin-Token → ein Pairing-Code
+2. Cyberstrike generiert ein Ed25519-Schluesselpaar
+3. `POST /pair/exchange` mit dem Code + oeffentlichem Client-Schluessel → oeffentlicher Server-Schluessel + Client-ID
+4. Jede nachfolgende Anfrage wird mit dem privaten Schluessel des Clients **signiert**
+
+Der Admin-Token wird nur in Schritt 1 verwendet — er wird niemals in der Konfiguration gespeichert.
+
+## TUI-Verwaltung
+
+- **`/bolt`** — verwaltet Bolt-Server (hinzufuegen/koppeln, umschalten, entfernen)
+- **`/mcps`** — verwaltet regulaere MCP-Server
+
+## Verwendungsbeispiele
+
+```
+> Use bolt to scan 192.168.1.0/24 for open ports and services   # nmap
+> Find all subdomains of example.com                            # subfinder
+> Scan https://target.com with nuclei                           # nuclei
+> Fuzz directories on https://target.com                        # ffuf
+> Run "dig +short example.com"                                  # run-command
+```
+
+## Fehlerbehebung
+
+- **Verbindung abgelehnt** — pruefen Sie, ob der Container laeuft (`docker ps`) und `curl http://localhost:3001/health` antwortet.
+- **Erneutes Pairing erforderlich** — wenn sich die Bolt-URL aendert, koppeln Sie erneut ueber `/bolt`.
+- **Werkzeuge nicht verfuegbar** — bestaetigen Sie, dass der Server in `/bolt` verbunden ist, verwenden Sie ein Direct-API-Modell.
+
+<Aside variant="danger">
+  Verwenden Sie Bolt-Werkzeuge nur gegen autorisierte Ziele. Unautorisierte Penetrationstests sind illegal.
+</Aside>

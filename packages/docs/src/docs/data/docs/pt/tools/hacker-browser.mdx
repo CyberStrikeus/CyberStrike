@@ -1,0 +1,324 @@
+---
+title: HackBrowser
+description: Crawler web autonomo dirigido por IA que captura requisicoes HTTP com contexto de UI para analise do proxy-agent
+sidebar:
+  order: 7
+  label: HackBrowser
+---
+
+
+## Quando Usar o HackBrowser
+
+| Caso de uso | Escolha |
+|-------------|---------|
+| Exploracao manual com multiplos perfis | [Extensao Chrome](/docs/tools/chrome-extension) |
+| Crawl automatizado nao assistido | **HackBrowser** |
+| Precisa de contexto de formulario de UI (flags `readonly`, `hidden`, `disabled`) nas capturas | **HackBrowser** |
+| Sessao pre-autenticada existente no navegador | Ambos — Extensao Chrome e mais simples |
+
+Os dois caminhos nao sao mutuamente exclusivos. Ambos alimentam o mesmo endpoint `/session/ingest` e o mesmo pipeline do proxy-agent. Voce pode combina-los em uma unica sessao.
+
+## Como Funciona
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  Chromium (Playwright)                                             │
+│  ├── Scanner    — DOM → arvore de acessibilidade (RawElement[])    │
+│  ├── Navigator  — chamada LLM → plano de pagina (tarefas form/click)│
+│  ├── Executor   — Plano → acoes Playwright                         │
+│  ├── Capture    — requisicoes HTTP + snapshot ui_context            │
+│  └── Live panel — overlay de telemetria Shadow-DOM (modo visivel)   │
+└────────────────────────┬───────────────────────────────────────────┘
+                         │ POST /session/ingest (HTTP loopback)
+                         │   text + response + ui_context + access_context
+                         ▼
+┌────────────────────────────────────────────────────────────────────┐
+│  API Cyberstrike                                                   │
+│  ├── Normalizar → deduplicar → Request.add                        │
+│  └── IngestQueue → SessionPrompt(agent="proxy-agent")              │
+└────────────────────────┬───────────────────────────────────────────┘
+                         ▼
+                proxy-agent → proxy-analyzer + 8 testadores de vulnerabilidade
+```
+
+Diferente da Extensao Chrome, o HackBrowser dirige o navegador por conta propria. O LLM ve a pagina como uma arvore de acessibilidade (rotulos de botoes, roles de input, atributos ARIA) e decide quais formularios preencher e quais botoes clicar. Cada requisicao capturada inclui um snapshot `ui_context` — os campos do formulario, suas flags (`readonly`, `disabled`, `hidden`), e quaisquer parametros da requisicao nao presentes na UI — que o proxy-analyzer e o `proxy-tester-mass-assignment` usam para identificar formas de requisicao suspeitas.
+
+## Tres Pontos de Entrada
+
+O mesmo motor de crawl alimenta tres pontos de entrada. Escolha o que se encaixa no seu contexto.
+
+| Ponto de entrada | Forma | Quando usar |
+|------------------|-------|-------------|
+| `cyberstrike hackbrowser <alvo>` | Subcomando CLI | Iniciar nova sessao TUI vinculada a um crawl fresco |
+| `/hackbrowser` | Comando slash da TUI | Lancar crawl dentro de uma sessao ja aberta |
+| ferramenta `hackbrowser` | Ferramenta chamavel pelo LLM | Agente decide rastrear baseado na conversa |
+
+Todos tres chamam o mesmo launcher (`launchHackbrowser`), usam o mesmo schema `WorkerOptions`, e escrevem progresso na mesma entrada de barra lateral `HackbrowserStatus`.
+
+### Subcomando CLI
+
+Inicie o Cyberstrike, crie uma sessao e lance um crawl em um unico comando:
+
+```bash
+cyberstrike hackbrowser https://shop.example.com
+```
+
+Opcoes:
+
+| Flag | Descricao |
+|------|-----------|
+| `--scope <padrao>` | Padrao de escopo de hostname (ex: `*.example.com`). Repetivel. Padrao: `*.{eTLD+1}` derivado da URL alvo. |
+| `--exclude <rotulo>` | Rotulo de UI que o planejador deve ignorar (ex: `"Delete Account"`). Repetivel. Correspondencia semantica. |
+| `--steps <n>` | Maximo de paginas para rastrear. Padrao: 50. |
+| `--credential <rotulo>` | Credencial para rastrear como. Repetivel. Forca navegador visivel para login manual. |
+| `--headfull` | Executar o navegador em modo visivel. Forcado quando `--credential` e definido. |
+
+A TUI abre imediatamente e o crawl executa em segundo plano. Capturas fluem para a sessao conforme o crawl progride.
+
+### Comando Slash
+
+Dentro de uma sessao existente:
+
+```
+/hackbrowser
+```
+
+Abre um dialogo de lancamento com campos para URL alvo, credenciais, escopo, rotulos de exclusao, passos e modo headless. O ID da sessao e implicito — capturas vao para a sessao atual.
+
+Para cancelar um crawl em andamento:
+
+```
+/hackbrowser-stop
+```
+
+Este comando so e visivel enquanto um crawl esta na fase `starting` ou `crawling`. O navegador finaliza as tarefas pendentes da pagina atual, fecha de forma limpa e escreve um status final. Cancelamento e tratado como saida normal do ciclo de vida, nao como falha.
+
+### Ferramenta
+
+O agente pode lancar o HackBrowser autonomamente quando a conversa exige (ex: "teste este app", "temos uma URL alvo mas nenhuma requisicao capturada"). A ferramenta retorna imediatamente apos iniciar o crawl em segundo plano — capturas fluem para a sessao nos proximos 30 segundos a 2 minutos.
+
+Parametros:
+
+| Parametro | Descricao |
+|-----------|-----------|
+| `target` | URL alvo (obrigatorio) |
+| `credentials` | Array de IDs de credenciais para rastrear como. Forca `headless: false`. |
+| `scope` | Padroes de hostname para limitar captura |
+| `exclude` | Rotulos de UI para ignorar |
+| `steps` | Max paginas (padrao 50) |
+| `headless` | Navegador visivel quando `false`. Forcado para `false` quando credenciais fornecidas. |
+
+
+## Fases do Crawl
+
+Um crawl tipico progride por tres fases:
+
+```
+1. Anonimo
+   └── BFS-explorar a superficie publica, adiar paginas de auth (login/register/logout)
+
+2. Transicao autenticada (uma destas)
+   ├── --credential admin       — login manual, navegador abre visivelmente
+   ├── (arquivo de sessao salvo) — carregar cookies, pular login [apenas CLI standalone]
+   └── ordenacao de deferred-auth — register → login → logout
+
+3. Re-descoberta pos-login
+   └── Re-enfileirar todas as paginas visitadas para re-exploracao baseada em fingerprint.
+       Paginas com fingerprint inalterado sao ignoradas (sem chamada LLM).
+```
+
+O crawler respeita um limite de revisitas por URL (2 visitas por credencial) e um limite de enfileiramento por padrao de caminho para que uma aplicacao com bugs ou uma UI de paginacao infinita nao possa travar o crawl.
+
+## Crawls Multi-Credencial
+
+Passe duas ou mais flags `--credential` (ou `credentials: [...]` para a ferramenta) para executar um crawl sequencial por perfil:
+
+```bash
+cyberstrike hackbrowser https://shop.example.com \
+  --credential admin \
+  --credential customer
+```
+
+Para cada credencial, o HackBrowser abre uma janela Chromium visivel, espera voce fazer login manualmente, entao executa o crawl completo marcado com aquele ID de credencial. Capturas de cada crawl sao marcadas de forma distinta, para que o proxy-agent possa comparar o que cada perfil pode acessar.
+
+<Aside variant="caution">
+  **Apenas login manual.** Na versao atual, cada credencial requer uma pessoa presente para a etapa de login. Sem um usuario, o crawl ficara travado na espera de login. Veja [Planejado: Login Nao Assistido](#planejado-login-nao-assistido) abaixo.
+</Aside>
+
+### Planejado: Login Nao Assistido
+
+O motor de crawl ja implementa tres caminhos de login nao assistido internamente; eles sao expostos no CLI standalone mas ainda nao estao conectados no subcomando `cyberstrike hackbrowser`, no comando slash `/hackbrowser` ou na ferramenta `hackbrowser`. Conecta-los esta no roadmap.
+
+| Flag planejada | Comportamento | Caso de uso |
+|----------------|---------------|-------------|
+| `--session <caminho>` | Carregar cookies de arquivo de sessao salvo anteriormente | Execucoes CI com sessoes pre-autenticadas |
+| `--save-session <caminho>` | Salvar cookies apos login bem-sucedido para reutilizacao | Login interativo unico, depois re-execucoes nao assistidas |
+| `--user <nome>` / `--pass <segredo>` | Preencher formulario de login descoberto automaticamente | Crawls totalmente nao assistidos contra auth baseada em formulario simples |
+
+Ate que estes sejam expostos, testes multi-perfil totalmente nao assistidos sao melhor realizados pela [Extensao Chrome](/docs/tools/chrome-extension) com Chrome Profiles, onde voce faz login uma vez por container e a captura acontece transparentemente.
+
+### Diff de Pagina e Disponibilidade de Elementos
+
+No modo multi-credencial, apos cada credencial visitar a mesma pagina, o HackBrowser envia um registro de **page-diff** para `/session/ingest`:
+
+- Quais credenciais alcancaram a pagina (`visited_by`)
+- Quais elementos interativos cada credencial podia ver (ex: `button:Delete User → ["admin"]`)
+- Se o fingerprint do DOM da pagina correspondeu entre credenciais
+
+O proxy-agent usa esse sinal para detectar diferencas de acesso baseadas em perfil sem precisar retestar cada endpoint por credencial.
+
+## Payload de Contexto de UI
+
+O diferencial em relacao a Extensao Chrome e o bloco `ui_context` anexado a cada captura. Ele contem a estrutura do formulario no momento em que a requisicao foi disparada:
+
+```json
+{
+  "text": "PUT /api/users/42 HTTP/1.1\r\n...",
+  "sessionID": "session-abc123",
+  "credential_id": "web_credential-admin",
+  "scheme": "https",
+  "response": { "status": 200, "headers": {...}, "body": "..." },
+  "ui_context": {
+    "pageUrl": "https://shop.example.com/settings/profile",
+    "pageTitle": "Edit Profile",
+    "componentPath": "Settings > Profile",
+    "formName": "Update Profile",
+    "fields": [
+      { "name": "email",    "type": "text",   "isReadOnly": true,  "isHidden": false, "value": "..." },
+      { "name": "username", "type": "text",   "isReadOnly": false, "isHidden": false, "value": "..." },
+      { "name": "role",     "type": "hidden", "isReadOnly": false, "isHidden": true,  "value": "user" }
+    ],
+    "hiddenParams": ["account_id", "_csrf"]
+  },
+  "trigger_element": "button:Save",
+  "element_roles": ["admin"],
+  "page_url": "/settings/profile",
+  "page_visited_by": ["admin", "customer"]
+}
+```
+
+O proxy-analyzer e o `proxy-tester-mass-assignment` usam esses sinais para sinalizar formas suspeitas:
+
+- Campo e `readonly` na UI mas enviado na requisicao — testar se o servidor aplica
+- Campo tem `type=hidden` — candidato a mass-assignment
+- Parametro da requisicao esta em `hiddenParams` (nenhum elemento de UI existe) — parametro oculto de maior risco
+- Elemento e `visible_to: ["admin"]` apenas — testar o mesmo endpoint com credencial nao-admin
+
+## Escopo de Rede
+
+Por padrao, o HackBrowser captura requisicoes cujo hostname corresponde a `*.{eTLD+1}` da URL alvo — derivado usando a [Public Suffix List](https://publicsuffix.org/). Para `https://shop.example.com`, isso significa que qualquer coisa sob `*.example.com` e capturada.
+
+Sobrescreva o padrao passando `--scope` (CLI) ou `scope: [...]` (ferramenta/slash). Multiplos escopos sao unidos:
+
+```bash
+cyberstrike hackbrowser https://app.example.com \
+  --scope app.example.com \
+  --scope api.example.com
+```
+
+Escopo e um filtro de rede. Ele nao impede o navegador de navegar para hosts fora do escopo (ex: provedores SSO de terceiros durante login) — essas navegacoes funcionam, mas seu trafego nao e encaminhado para a API.
+
+## Excluindo Acoes Sensiveis
+
+Use `--exclude` para manter o planejador longe de rotulos que voce nao quer acionados durante um crawl:
+
+```bash
+cyberstrike hackbrowser https://app.example.com \
+  --exclude "Delete Account" \
+  --exclude "Cancel Subscription" \
+  --exclude "Wipe Data"
+```
+
+Exclude e uma correspondencia **semantica** contra o plano de tarefas do LLM, nao um regex. Passe rotulos como eles aparecem na UI — o planejador e instruido a nunca planejar tarefas correspondentes a esses rotulos.
+
+Isso e independente das acoes desabilitadas do WSTG dentro do dispatcher do proxy-agent (que ja pode filtrar payloads destrutivos na camada de testes). Use `--exclude` para impedir o crawler de clicar no botao em primeiro lugar.
+
+## Painel de Telemetria ao Vivo
+
+Quando o navegador executa em modo visivel, o HackBrowser injeta um painel Shadow-DOM em cada pagina. O painel mostra eventos do crawl em tempo real — transicoes de pagina, decisoes de plano, requisicoes capturadas, sinais de inteligencia (deteccao de estado vazio, gatilhos de revisita), trocas de credencial.
+
+Desabilite o painel com `--no-panel` (CLI standalone). Quando invocado pela ferramenta ou comando slash, o painel esta ativo sempre que `headless: false`.
+
+O painel nao afeta nenhum teste executado contra a pagina. Ele usa Shadow DOM para isolar completamente estilos da aplicacao alvo.
+
+## Barra Lateral de Status
+
+Enquanto um crawl esta em execucao, a barra lateral da TUI mostra uma secao `Hackbrowser` com:
+
+- Fase: `starting` → `crawling` → `completed` / `failed`
+- URL alvo
+- Paginas exploradas
+- Endpoints capturados
+- Pagina atual (durante `crawling`)
+- Custo (apos `completed`)
+
+A barra lateral atualiza ao vivo via SSE conforme registros `CSEvent` fluem do subprocesso worker para o pai.
+
+Crawls bem-sucedidos apenas atualizam a barra lateral — nao escrevem uma mensagem sintetica no chat. Isso e intencional: exibir sucesso no chat tentaria o agente a fazer polling da ferramenta repetidamente. Falhas, por outro lado, escrevem uma mensagem sintetica de usuario para que o agente possa ver o erro no proximo turno.
+
+## Cancelamento
+
+Tres formas de cancelar um crawl em andamento:
+
+| Gatilho | Comportamento |
+|---------|---------------|
+| Comando slash `/hackbrowser-stop` | Confiavel. Envia abort ao worker via IPC. |
+| `Esc` no turno ativo do chat (apenas lancamento por ferramenta) | Encaminha `ctx.abort` ao worker. |
+| Fechar a TUI (subcomando CLI) | `onExit` chama `stopHackbrowser` para liberar Playwright. |
+
+Em todos os casos, o agente finaliza as tarefas pendentes da pagina atual antes de sair. O navegador fecha de forma limpa. Status transiciona para `completed`, nao `failed` — cancelamento e normal.
+
+<Aside variant="info">
+  **Latencia de cancelamento.** O agente verifica o sinal de abort nos limites de iteracao (entre paginas BFS). Chamadas LLM em progresso nao sao canceladas na camada do SDK. Pior caso e o trabalho de uma pagina completa apos `/hackbrowser-stop` ser emitido.
+</Aside>
+
+## Re-Entrada
+
+Apenas uma execucao do HackBrowser e permitida por sessao. Tentar lancar um segundo crawl na mesma sessao enquanto o primeiro esta ativo gera um erro — execucoes nao sao enfileiradas. Para iniciar um novo crawl:
+
+1. Aguarde a execucao atual completar ou cancele-a, **ou**
+2. Crie uma sessao nova
+
+Isso e aplicado no nivel do launcher para ferramenta, slash e subcomando CLI igualmente.
+
+## Solucao de Problemas
+
+### Navegador Chromium nao esta instalado
+
+```
+Chromium browser is not installed at /Users/.../chrome.app/...
+Run: bunx playwright install chromium
+```
+
+O worker do HackBrowser usa o Chromium empacotado do Playwright. Instale-o uma vez com o comando mostrado no erro. O mesmo cache e compartilhado entre `bunx playwright install` e `npx playwright install`.
+
+### playwright nao esta instalado
+
+```
+playwright is not installed. Run:
+  npm install --prefix ~/.local/share/cyberstrike playwright
+  npx playwright install chromium
+```
+
+O pacote JavaScript do Playwright nao foi encontrado. Isso pode acontecer em instalacoes minimas. Execute os dois comandos mostrados para instalar o pacote npm e o binario do navegador Chromium.
+
+### hackbrowser worker nao encontrado
+
+```
+hackbrowser worker not found at ~/.local/share/cyberstrike/bin/hackbrowser-worker.js.
+Re-install cyberstrike (npm install -g @cyberstrike-io/cyberstrike) to set it up.
+```
+
+O bundle JavaScript do worker e colocado pelo script postinstall. Reinstale o Cyberstrike para recria-lo.
+
+### modo multi-credencial requer headless: false
+
+Crawls multi-credencial sempre usam login manual. Re-execute com o navegador visivel, ou volte ao modo de credencial unica.
+
+### hackbrowser ja em execucao para a sessao
+
+A sessao atual tem um crawl ativo. Aguarde finalizar ou execute `/hackbrowser-stop` primeiro.
+
+## Documentacao Relacionada
+
+- [Extensao Chrome](/docs/tools/chrome-extension) — Alternativa de navegacao manual com Chrome Profiles

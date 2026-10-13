@@ -1,0 +1,323 @@
+---
+title: वैश्विक कॉन्फ़िगरेशन
+description: सभी प्रोजेक्ट पर लागू होने वाली Cyberstrike सेटिंग कॉन्फ़िगर करें
+sidebar:
+  order: 3
+  label: वैश्विक कॉन्फ़िग
+---
+
+वैश्विक कॉन्फ़िगरेशन सभी प्रोजेक्ट में सभी Cyberstrike सत्रों के लिए डिफ़ॉल्ट व्यवहार सेट करता है।
+
+{/* TODO: Screenshot - Global configuration file */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: global-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">वैश्विक कॉन्फ़िगरेशन फ़ाइल स्थान</p>
+</div>
+
+## फ़ाइल स्थान
+
+वैश्विक कॉन्फ़िगरेशन वैश्विक कॉन्फ़िग डायरेक्टरी में रहता है:
+
+```
+~/.config/cyberstrike/
+```
+
+जब `XDG_CONFIG_HOME` सेट होता है तो यह `$XDG_CONFIG_HOME/cyberstrike` में हल होता है।
+
+## समर्थित फ़ाइल नाम
+
+निम्नलिखित फ़ाइलें वैश्विक कॉन्फ़िग डायरेक्टरी से पढ़ी जाती हैं और क्रम में मर्ज की जाती हैं:
+
+| फ़ाइल | प्रारूप | प्राथमिकता |
+|------|--------|----------|
+| `config.json` | JSON | निम्न (आधार, स्वचालित रूप से जनरेटेड) |
+| `cyberstrike.json` | JSON | मध्यम |
+| `cyberstrike.jsonc` | टिप्पणियों के साथ JSON | उच्च (पसंदीदा) |
+
+यदि एकाधिक फ़ाइलें मौजूद हैं, तो सभी पढ़ी जाती हैं और प्रत्येक बाद की फ़ाइल पिछली पर मर्ज होती है।
+
+### डायरेक्टरी संरचना
+
+```
+~/.config/cyberstrike/
+├── config.json          ← स्वचालित रूप से जनरेटेड वैश्विक कॉन्फ़िग
+├── cyberstrike.json     ← वैश्विक कॉन्फ़िग
+├── cyberstrike.jsonc    ← वैश्विक कॉन्फ़िग (पसंदीदा)
+├── agents/              ← कस्टम एजेंट (*.md)   (agent/ भी स्वीकार करता है)
+├── commands/            ← कस्टम कमांड (*.md) (command/ भी स्वीकार करता है)
+└── plugins/             ← प्लगइन (*.ts / *.js)  (plugin/ भी स्वीकार करता है)
+```
+
+Cyberstrike अतिरिक्त रूप से आपके होम फ़ोल्डर में `~/.cyberstrike/` डायरेक्टरी को `cyberstrike.json`/`cyberstrike.jsonc` और समान `agents/`, `commands/`, `plugins/` सबफ़ोल्डर के लिए स्कैन करता है।
+
+## वैश्विक कॉन्फ़िग बनाना
+
+कोई init कमांड नहीं है — फ़ाइल मैन्युअल रूप से बनाएं:
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  // Cyberstrike वैश्विक कॉन्फ़िग
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## मॉडल कॉन्फ़िगरेशन
+
+### डिफ़ॉल्ट मॉडल
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+प्रारूप: `provider/model`।
+
+### छोटा मॉडल
+
+सत्र शीर्षक जनरेशन जैसे हल्के कार्यों के लिए उपयोग किया जाता है:
+
+```json
+{
+  "small_model": "anthropic/claude-haiku-4-5-20251001"
+}
+```
+
+## प्रदाता कॉन्फ़िगरेशन
+
+प्रदाताओं को `provider` के अंतर्गत अलग-अलग कॉन्फ़िगर करें। `options` ऑब्जेक्ट प्रदाता SDK को पास-थ्रू किया जाता है:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### प्रदाता सक्षम / अक्षम करना
+
+```json
+{
+  "disabled_providers": ["ollama"],
+  "enabled_providers": ["anthropic", "openai"]
+}
+```
+
+जब `enabled_providers` सेट होता है, **केवल** वे प्रदाता लोड होते हैं; बाकी सभी अनदेखे होते हैं। प्रति-प्रदाता विवरण के लिए [AI प्रदाता](/docs/providers) देखें।
+
+## थीम
+
+`theme` एक इंस्टॉल की गई थीम का नाम है (एक स्ट्रिंग)। डिफ़ॉल्ट `cyberstrike` है:
+
+```json
+{
+  "theme": "cyberstrike"
+}
+```
+
+TUI में `/themes` कमांड (या `<leader>t`) से थीम ब्राउज़ करें और बदलें। बिल्ट-इन थीम में `cyberstrike`, `tokyonight`, `catppuccin`, `dracula`, `gruvbox`, `nord`, `github`, `monokai`, `matrix`, `rosepine`, `solarized`, और अधिक शामिल हैं।
+
+## कीबाइंडिंग
+
+### लीडर कुंजी
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+x"
+  }
+}
+```
+
+### कस्टम बाइंडिंग
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "theme_list": "<leader>t",
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+सभी क्रियाओं और डिफ़ॉल्ट की पूरी सूची के लिए [कीबाइंडिंग](/docs/configuration/keybindings) देखें।
+
+## अनुमति डिफ़ॉल्ट
+
+अनुमतियां एक टूल नाम को क्रिया (`ask`, `allow`, या `deny`) या glob → क्रिया मैप से मैप करती हैं। कोई अलग allow/deny सूची नहीं है — टूल कुंजी **ही** ग्रुपिंग है:
+
+```json
+{
+  "permission": {
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "bash": {
+      "*": "ask",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "*": "ask",
+      "~/.ssh/**": "deny"
+    }
+  }
+}
+```
+
+वाइल्डकार्ड के रूप में केवल `*` और `?` समर्थित हैं। पूर्ण मॉडल और अनुमति कुंजियों की सूची के लिए [अनुमतियां](/docs/permissions) देखें।
+
+## MCP सर्वर
+
+MCP सर्वर `mcp` के अंतर्गत फ़्लैट मैप के रूप में घोषित होते हैं, सर्वर नाम से कीड। स्थानीय सर्वर एकल `command` ऐरे (कमांड + आर्ग्स एक साथ) के साथ `type: "local"` उपयोग करते हैं; रिमोट सर्वर `url` के साथ `type: "remote"` उपयोग करते हैं:
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "~"],
+      "environment": { "DEBUG": "true" },
+      "enabled": true
+    },
+    "remote-api": {
+      "type": "remote",
+      "url": "https://api.example.com/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+Bolt सर्वर `mcp` के बजाय शीर्ष-स्तरीय `bolt` कुंजी के अंतर्गत अलग से कॉन्फ़िगर होते हैं। [Bolt / MCP](/docs/mcp) देखें।
+
+## डिफ़ॉल्ट एजेंट
+
+डिफ़ॉल्ट एजेंट सेट करें (प्राथमिक एजेंट होना चाहिए; सेट न होने या अमान्य होने पर `cyberstrike` पर वापस आता है):
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+कस्टम एजेंट कॉन्फ़िग डायरेक्टरी में `agents/` (या `agent/`) डायरेक्टरी से लोड होते हैं — [कस्टम एजेंट](/docs/agents/custom-agents) देखें।
+
+## कॉम्पैक्शन
+
+स्वचालित संदर्भ कॉम्पैक्शन नियंत्रित करें:
+
+```json
+{
+  "compaction": {
+    "auto": true,
+    "prune": true
+  }
+}
+```
+
+| विकल्प | विवरण |
+|--------|-------------|
+| `auto` | संदर्भ भरने पर स्वचालित रूप से कॉम्पैक्ट करें (डिफ़ॉल्ट: true) |
+| `prune` | पुराने टूल आउटपुट प्रून करें (डिफ़ॉल्ट: true) |
+
+## लॉगिंग और अपडेट
+
+```json
+{
+  "logLevel": "INFO",
+  "autoupdate": "notify"
+}
+```
+
+`logLevel` `DEBUG`, `INFO`, `WARN`, `ERROR` में से एक है (डिफ़ॉल्ट `INFO`)। `autoupdate` `true`, `false`, या `"notify"` स्वीकार करता है।
+
+## पूर्ण उदाहरण
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "small_model": "anthropic/claude-haiku-4-5-20251001",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike",
+  "share": "manual",
+  "autoupdate": "notify",
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+
+  "permission": {
+    "read": "allow",
+    "edit": { "*": "ask" },
+    "bash": { "*": "ask", "rm -rf *": "deny" }
+  },
+
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "."],
+      "enabled": true
+    }
+  },
+
+  "keybinds": { "leader": "ctrl+x" },
+  "compaction": { "auto": true, "prune": true }
+}
+```
+
+## बैकअप
+
+```bash
+cp ~/.config/cyberstrike/cyberstrike.jsonc ~/.config/cyberstrike/cyberstrike.jsonc.backup
+```
+
+## सुरक्षा विचार
+
+### फ़ाइल अनुमतियां
+
+```bash
+chmod 600 ~/.config/cyberstrike/cyberstrike.jsonc
+chmod 700 ~/.config/cyberstrike/
+```
+
+### संवेदनशील डेटा
+
+API कुंजियां सीधे कभी संग्रहीत न करें — इसके बजाय पर्यावरण चर संदर्भित करें:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  API कुंजियों जैसे संवेदनशील डेटा के लिए हमेशा पर्यावरण चर संदर्भ (`{env:VAR}`) का उपयोग करें।
+</Aside>
+
+## संबंधित दस्तावेज़
+
+- [कॉन्फ़िगरेशन संदर्भ](/docs/configuration) - सभी कॉन्फ़िगरेशन विकल्प
+- [प्रोजेक्ट कॉन्फ़िग](/docs/configuration/project-config) - प्रोजेक्ट सेटिंग
+- [पर्यावरण चर](/docs/configuration/environment-variables) - पर्यावरण चर
+- [कीबाइंडिंग](/docs/configuration/keybindings) - कीबोर्ड शॉर्टकट

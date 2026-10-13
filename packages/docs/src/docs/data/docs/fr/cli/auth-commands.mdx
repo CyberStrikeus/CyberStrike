@@ -1,0 +1,72 @@
+---
+title: Commandes Auth
+description: "Gérer les identifiants d'authentification des fournisseurs d'IA"
+sidebar:
+  order: 3
+  label: Commandes Auth
+---
+
+Les commandes `cyberstrike auth` gèrent les identifiants des fournisseurs d'IA. Il existe exactement trois sous-commandes — `login`, `logout` et `list` — et aucune ne prend de drapeaux ; chacune est interactive.
+
+{/* TODO: Screenshot - Auth command interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: auth-commands.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Interface des commandes d'authentification</p>
+</div>
+
+## `auth login`
+
+```bash
+cyberstrike auth login [url]
+```
+
+Lance une connexion interactive. Cyberstrike affiche une liste de fournisseurs (construite à partir du catalogue de modèles) et demande la clé API ou le flux OAuth. L'`url` positionnelle optionnelle pré-sélectionne une URL de fournisseur bien connue ; sinon, le fournisseur est choisi depuis le menu — vous ne passez **pas** le fournisseur comme drapeau.
+
+```
+? Select provider
+❯ cyberstrike (recommended)
+  anthropic (Claude Max or API key)
+  github-copilot
+  openai (ChatGPT Plus/Pro or API key)
+  google
+  openrouter
+  …
+```
+
+Les identifiants sont stockés dans le répertoire de données (`~/.local/share/cyberstrike/auth.json`).
+
+## `auth list`
+
+```bash
+cyberstrike auth list   # alias: ls
+```
+
+Liste les fournisseurs pour lesquels vous avez des identifiants.
+
+## `auth logout`
+
+```bash
+cyberstrike auth logout
+```
+
+Sélectionner de manière interactive un identifiant stocké à supprimer.
+
+<Aside variant="caution">
+  Il n'existe pas de commande `auth status`, `auth verify`, `auth refresh` ou `auth switch`, ni de drapeaux `--key`/`--oauth`/`--json`/`--all`. La connexion passe toujours par le flux interactif `auth login`.
+</Aside>
+
+## Variables d'environnement
+
+Au lieu de stocker des identifiants, vous pouvez fournir les clés des fournisseurs via des variables d'environnement — voir [Fournisseurs d'IA](/docs/providers) et [Variables d'environnement](/docs/configuration/environment-variables). Par exemple :
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+## Documentation associée
+
+- [Fournisseurs d'IA](/docs/providers) - Configuration par fournisseur
+- [Authentification](/docs/getting-started/authentication) - Première authentification
+- [Référence CLI](/docs/cli) - Toutes les commandes

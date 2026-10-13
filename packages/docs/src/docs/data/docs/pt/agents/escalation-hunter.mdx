@@ -1,0 +1,55 @@
+---
+title: Escalation Hunter
+description: Agente de correlacao transversal que encadeia descobertas e escala o impacto de vulnerabilidades
+sidebar:
+  order: 7
+  label: Escalation Hunter
+---
+
+O `escalation-hunter` e um agente analista transversal que executa apos os especialistas WSTG concluirem seus testes. Ele examina todas as descobertas da sessao para identificar vulnerabilidades encadeadas, escalar impacto e construir novos caminhos de ataque que especialistas individuais perderiam.
+
+## Visao Geral
+
+| Propriedade | Valor |
+|-------------|-------|
+| **ID do Agente** | `escalation-hunter` |
+| **Funcao** | `analyst` |
+| **Dominio** | `@cyberstrike-io/web` |
+| **Executa Apos** | Testes dos especialistas WSTG serem concluidos |
+
+## O Que Faz
+
+Especialistas WSTG individuais testam endpoints isoladamente — cada um foca em sua propria categoria. O `escalation-hunter` cruza todas as faixas para encontrar:
+
+- **Vulnerabilidades encadeadas** — combinando um IDOR de baixa severidade com uma fixacao de sessao para obter tomada de conta
+- **Escalacao de impacto** — uma descoberta de severidade media que se torna critica quando combinada com outra
+- **Novos caminhos de ataque** — sequencias de requisicoes que, quando reproduzidas em ordem, produzem um resultado de maior impacto
+- **Escalacao entre perfis** — limites de privilegio que quebram quando descobertas de diferentes especialistas sao combinadas
+
+## Como Funciona
+
+1. Le todas as descobertas da sessao (de todos os especialistas WSTG)
+2. Le dados acumulados do Vortex (padroes de trafego, correspondencias de regras, objetos, funcoes)
+3. Identifica oportunidades de correlacao entre descobertas
+4. Constroi e **reproduz** cadeias de ataque propostas para verifica-las
+5. Reporta escalacoes verificadas como novas descobertas com evidencias compostas
+
+O `escalation-hunter` nunca confia na palavra de um especialista — ele verifica cadeias propostas reproduzindo a sequencia HTTP real.
+
+## Exemplo
+
+```
+Specialist A: IDOR in GET /api/users/{id} (medium)
+Specialist B: Missing rate limit on /api/auth/reset (low)
+Specialist C: Email parameter in reset response body (info)
+
+Escalation Hunter:
+  Chain: enumerate user IDs via IDOR → trigger password reset for each →
+         extract reset tokens from response → account takeover
+  Verified: replayed 3-step chain → confirmed ATO
+  Escalated: Critical (was medium + low + info individually)
+```
+
+<Aside variant="info">
+  O escalation-hunter e despachado automaticamente — voce nao o invoca diretamente. Ele executa como um passo final de analise apos o pipeline WSTG ser concluido.
+</Aside>

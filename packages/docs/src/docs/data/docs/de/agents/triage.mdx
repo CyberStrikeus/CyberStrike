@@ -1,0 +1,59 @@
+---
+title: Triage-Agent
+description: Unabhaengige Verifizierung und Deduplizierung von Entwurfs-Schwachstellenergebnissen
+sidebar:
+  order: 6
+  label: Triage
+---
+
+Der `triage`-Agent verifiziert unabhaengig Entwurfs-Schwachstellenergebnisse, indem er deren HTTP-Beweise wiedergibt. Er vertraut niemals der Darstellung des meldenden Agenten — er gibt jede Anfrage wieder und prueft den Antwort-Body selbst.
+
+## Uebersicht
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **Agenten-ID** | `triage` |
+| **Modus** | `subagent` |
+| **Werkzeugzugriff** | Eingeschraenkt (read, grep, http_replay, triage_vulnerability, web_get_session_context) |
+| **Design** | Konservativ — laesst nicht verifizierbare Ergebnisse als Entwurf |
+
+## Verifizierungsprotokoll
+
+Fuer jedes Entwurfsergebnis fuehrt der Triage-Agent Folgendes durch:
+
+1. Liest die angehaengten HTTP-Beweise (erfasste Anfrage/Antwort)
+2. Verwendet `http_replay`, um die Anfrage unabhaengig wiederzugeben
+3. Untersucht die Wiedergabe-Antwort auf tatsaechliche Beweise
+4. Entscheidet ueber das Schicksal des Ergebnisses:
+
+| Urteil | Wann |
+|--------|------|
+| **Triagiert** | Wiedergabe bestaetigt die Schwachstelle |
+| **Abgelehnt** | Wiedergabe zeigt Falsch-Positiv |
+| **Duplikat** | Ergebnis dupliziert ein anderes verifiziertes Ergebnis |
+| **Entwurf** (unveraendert) | Kann nicht verifiziert werden — zur menschlichen Ueberpruefung belassen |
+
+## Was als Beweis zaehlt
+
+Der Triage-Agent wendet strenge Beweisstandards an:
+
+- Ein `200`-Status allein ist **kein** Beweis — der Antwort-Body muss Zieldaten enthalten
+- `deleted:0`, leere Arrays, generische Erfolgsmeldungen sind **keine** Beweise
+- Bei mandantenuebergreifenden/IDOR-Ergebnissen muss die Antwort Daten des **anderen** Mandanten enthalten
+- Bei Autorisierungsergebnissen muss die Wiedergabe im `compare`-Modus zeigen, dass die Privileggrenze ueberschritten wurde
+
+## Beispiel
+
+```
+Draft: IDOR in GET /api/users/42 — claimed to return user data for another tenant
+
+Triage:
+1. Replay GET /api/users/42 with original auth → 200, body: {"id": 42, "name": "Other User"}
+2. Replay GET /api/users/42 with attacker auth → 200, body: {"id": 42, "name": "Other User"}
+3. Both return the same user data → CONFIRMED cross-tenant access
+4. → triage_vulnerability(id, status: "triaged")
+```
+
+<Aside variant="info">
+  Der Triage-Agent wird automatisch eingesetzt, nachdem Schwachstellen-Testsubagenten Ergebnisse melden. Er laeuft als abschliessendes Qualitaetstor, bevor Ergebnisse praesentiert werden.
+</Aside>

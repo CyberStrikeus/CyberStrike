@@ -1,0 +1,178 @@
+---
+title: Anthropic (Claude)
+description: CyberstrikeでAnthropic Claudeモデルを設定する
+sidebar:
+  order: 2
+  label: Anthropic
+---
+
+AnthropicのClaudeモデルは、セキュリティ分析のための高度な推論機能を提供します。このガイドでは設定とベストプラクティスを説明します。
+
+<img src="/docs/images/screenshots/anthropic-model-select.png" alt="Anthropic Claudeモデルでフィルタされたモデルピッカー" className="rounded-lg shadow-lg my-6 w-full" />
+
+## 利用可能なモデル
+
+Cyberstrikeは[models.dev](https://models.dev)からモデルカタログをライブで取得するため、正確なリストはAnthropicが現在提供しているものを追跡します。一般的な選択肢:
+
+| モデル | コンテキスト | 最適な用途 |
+|-------|---------|----------|
+| `anthropic/claude-opus-4-5` | 200K | 最も深い推論 -- 複雑な分析、エクスプロイトリサーチ |
+| `anthropic/claude-sonnet-4-5` | 200K | バランスの取れたデフォルト -- 一般的なセキュリティテスト |
+| `anthropic/claude-haiku-4-5` | 200K | 高速、低コスト -- クイックスキャン、大量処理 |
+
+<Aside variant="tip">
+  新しいフラッグシップ(Opus 4.6/4.7/4.8、Sonnet 4.6/5、Fable 5)やその他のClaudeモデルは、models.devの更新に伴い自動的に表示されます。`/models`で現在の完全なリストを確認してください。`-latest`エイリアス(例: `claude-opus-4-5`)はファミリー内の最新リリースを追跡し、日付付きID(例: `claude-opus-4-5-20251101`)は特定のバージョンを固定します。
+</Aside>
+
+## 認証
+
+### APIキーの設定
+
+1. [console.anthropic.com](https://console.anthropic.com)からAPIキーを取得
+2. TUIで`/connect`を実行し、**Anthropic**を選択してAPIキーを入力
+
+### 環境変数
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+永続化するにはシェルプロファイルに追加:
+
+```bash
+echo 'export ANTHROPIC_API_KEY="sk-ant-..."' >> ~/.zshrc
+```
+
+### 設定ファイル
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+## モデル設定
+
+### デフォルトモデルの設定
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "anthropic/claude-sonnet-4-5"
+}
+```
+
+### モデルの切り替え
+
+TUIで`/models`を使用してモデルピッカーを開き、別のClaudeモデルを選択してください。
+
+## 拡張思考
+
+複雑なセキュリティ分析のために拡張思考を有効化:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "thinking": {
+          "type": "enabled",
+          "budgetTokens": 10000
+        }
+      }
+    }
+  }
+}
+```
+
+### 拡張思考の使用タイミング
+
+- 複雑な脆弱性チェーン
+- 多段階の攻撃計画
+- 深い分析を伴うコードレビュー
+- アーキテクチャセキュリティレビュー
+
+## トークン使用量
+
+セッションTUIヘッダーで、CyberStrikeは出力トークンがゼロでない最新のアシスタントメッセージの**コンテキスト使用量**を表示します: トークン合計(入力、出力、推論、キャッシュの読み取り/書き込み)、およびモデルがコンテキスト制限を定義している場合はその**制限に対するパーセンテージ**。また、アシスタントメッセージの`cost`の合計としてUSDでの**推定セッションコスト**も表示します。
+
+### プロンプトキャッシング
+
+ダイレクトAnthropicモデル(`providerID` / SDK `npm` `@ai-sdk/anthropic`)の場合、CyberStrikeはリクエスト構築時に選択されたシステムメッセージと最近のメッセージにAnthropic **ephemeral**キャッシュコントロールを追加します。この動作に対する別個の`cacheControl`フラグは`provider.anthropic.options`にはありません。
+
+## レート制限
+
+レート制限はAnthropicアカウントとプロダクトに依存します。現在のクォータについては[Anthropicのドキュメント](https://docs.anthropic.com)を参照してください。
+
+**リトライ可能な**APIエラーの場合、CyberStrikeは**指数バックオフ**(2秒から開始、試行ごとに倍増、`Retry-After`ヘッダーがない場合は30秒で上限)を使用し、プロバイダーが返す`Retry-After` / `Retry-After-Ms`を尊重します。
+
+## ベストプラクティス
+
+### モデル選択
+
+| タスク | 推奨モデル |
+|------|-------------------|
+| クイック偵察 | `claude-haiku-4-5` |
+| Webアプリテスト | `claude-sonnet-4-5` |
+| 複雑なエクスプロイト | `claude-opus-4-5` |
+| コードレビュー | `claude-sonnet-4-5` |
+
+### コスト最適化
+
+1. 繰り返しタスクにはHaikuを使用
+2. 長いセッションには`/compact`(または`/summarize`)を使用
+3. 焦点を絞ったプロンプトでコンテキストを制限
+
+### セキュリティ
+
+1. APIキーをリポジトリにコミットしない
+2. 環境変数を使用
+3. 定期的にキーをローテーション
+4. Anthropicダッシュボードで使用量を監視
+
+## トラブルシューティング
+
+### 無効なAPIキー
+
+```
+Error: Invalid API key
+```
+
+キーを確認:
+- アプリでAnthropicを接続する際に説明される形式と一致すること(APIキーは通常`sk-ant-api...`で始まります)
+- 末尾の空白がないこと
+- [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)でキーがアクティブであること
+
+### レート制限超過
+
+```
+Error: Rate limit exceeded
+```
+
+解決策:
+- 待ってからリトライ
+- ティアをアップグレード
+- より小さいコンテキストを使用
+
+### モデルが利用できない
+
+```
+Error: Model not found
+```
+
+モデルIDが正しく、リージョンで利用可能であることを確認してください。
+
+<Aside variant="tip">
+  ほとんどのセキュリティテストタスクにはClaude Sonnetを使用してください。より深い推論を必要とする複雑な分析にはOpusを使用してください。
+</Aside>
+
+## 関連ドキュメント
+
+- [プロバイダーの概要](/docs/providers) - サポートされているすべてのプロバイダー
+- [設定](/docs/configuration) - 完全な設定オプション
+- [認証](/docs/getting-started/authentication) - セットアップガイド

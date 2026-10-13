@@ -1,0 +1,100 @@
+---
+title: MCP
+description: Extend Cyberstrike with external tools via the Model Context Protocol
+sidebar:
+  order: 5
+  label: MCP
+---
+
+Cyberstrike uses the Model Context Protocol (MCP) to integrate external tools. Any MCP-compatible server — local or remote — can be connected, giving the AI agent access to its tools during assessments.
+
+## Built-in Servers
+
+Cyberstrike ships three MCP servers enabled by default:
+
+| Server | Purpose |
+|--------|---------|
+| `github-security` | GitHub repository security analysis |
+| `cve` | CVE/NVD/EPSS/KEV vulnerability lookups |
+| `osint` | Open source intelligence gathering |
+
+Your own config is merged on top of these.
+
+## Adding Servers
+
+MCP servers go under the flat `mcp` map in your config, keyed by name:
+
+```json title="cyberstrike.json"
+{
+  "mcp": {
+    "my-tools": {
+      "type": "local",
+      "command": ["your-mcp-server"]
+    }
+  }
+}
+```
+
+### Local Servers (stdio)
+
+Local servers run as child processes:
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/path/to/dir"]
+    }
+  }
+}
+```
+
+### Remote Servers (HTTP)
+
+Remote servers connect over StreamableHTTP or SSE:
+
+```json
+{
+  "mcp": {
+    "remote-tools": {
+      "type": "remote",
+      "url": "https://mcp.example.com/sse"
+    }
+  }
+}
+```
+
+Remote servers support [OAuth authentication](/docs/mcp/oauth) for protected endpoints.
+
+## Management
+
+| Command | What it manages |
+|---------|-----------------|
+| `/mcps` | Local and remote MCP servers (add, toggle, remove) |
+| `/bolt` | Bolt servers specifically (add, pair, toggle, remove) |
+
+In both dialogs: **a** to add, **space** to toggle, **esc** to close.
+
+## Model Compatibility
+
+<Aside variant="caution">
+  Subprocess-based models cannot access MCP tools. Use a direct-API model (e.g. `anthropic/claude-sonnet-4-20250514`, `openai/gpt-4o`) for full MCP integration.
+</Aside>
+
+## Configuration Precedence
+
+MCP entries follow the standard [configuration hierarchy](/docs/configuration#configuration-hierarchy): project `.cyberstrike/` overrides project `cyberstrike.json`, which overrides global `~/.config/cyberstrike/`, which overrides built-in servers.
+
+## Detailed Guides
+
+| Guide | Description |
+|-------|-------------|
+| [Local Servers](/docs/mcp/local-servers) | Local stdio MCP server setup |
+| [Remote Servers](/docs/mcp/remote-servers) | HTTP/SSE remote connections |
+| [OAuth](/docs/mcp/oauth) | OAuth authentication for remote servers |
+| [Creating Servers](/docs/mcp/creating-servers) | Build custom MCP servers |
+
+<Aside variant="danger">
+  Only use security tools against authorized targets. Unauthorized penetration testing is illegal.
+</Aside>

@@ -1,0 +1,36 @@
+---
+title: Agent General
+description: "Agent de recherche polyvalent pour les questions complexes et les taches multi-etapes en parallele"
+sidebar:
+  order: 3
+  label: General
+---
+
+L'agent `general` gere la recherche, les questions complexes et les taches multi-etapes. L'agent primaire `cyberstrike` lui delegue le travail qui beneficie d'une execution parallele ou qui ne necessite pas de specialiste specifique a la securite.
+
+## Vue d'ensemble
+
+| Propriete | Valeur |
+|-----------|--------|
+| **Identifiant de l'agent** | `general` |
+| **Mode** | `subagent` |
+| **Acces aux outils** | Large (pas de rapport de vulnerabilite ni de triage) |
+
+## Quand il est utilise
+
+L'agent `cyberstrike` delegue a `general` pour :
+
+- Rechercher des questions complexes a travers de multiples sources
+- Executer plusieurs unites de travail independantes en parallele
+- Les taches qui ne necessitent pas de connaissances specifiques en securite
+- L'analyse de fichiers, la revue de code et le raisonnement general
+
+## Restrictions
+
+L'agent `general` ne peut pas :
+
+- Rapporter des vulnerabilites (`report_vulnerability` : refuse)
+- Trier des resultats (`triage_vulnerability` : refuse)
+- Acceder aux operations de lecture/ecriture TODO
+
+Ces restrictions garantissent que les operations sensibles en matiere de securite restent aupres des agents specialistes appropries.

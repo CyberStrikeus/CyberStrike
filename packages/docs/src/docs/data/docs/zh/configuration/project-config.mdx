@@ -1,0 +1,259 @@
+---
+title: 项目配置
+description: 为单个项目配置 Cyberstrike 设置
+sidebar:
+  order: 2
+  label: 项目配置
+---
+
+项目配置为特定项目自定义 Cyberstrike 行为，存在时会覆盖全局设置。
+
+{/* TODO: Screenshot - Project configuration file */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: project-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">项目配置文件结构</p>
+</div>
+
+## 文件位置
+
+项目配置存储在项目根目录的 `cyberstrike.json`（或 `cyberstrike.jsonc`）中。Cyberstrike 从工作目录向上查找，因此任何父文件夹中的配置都会被发现：
+
+```
+my-project/
+├── cyberstrike.json     ← 项目配置
+├── src/
+├── package.json
+└── ...
+```
+
+## 创建项目配置
+
+没有 init 命令——手动创建文件：
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## 基本设置
+
+### 模型选择
+
+```json
+{
+  "model": "anthropic/claude-opus-4-5-20251101"
+}
+```
+
+### 默认代理
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+`default_agent` 必须是主代理；未设置或无效时回退到 `cyberstrike`。
+
+### 自定义指令
+
+`instructions` 是**文件或通配符模式**列表，其内容会附加到系统提示词（不是内联文本）。列表与全局配置进行并集合并：
+
+```json
+{
+  "instructions": [
+    "SECURITY.md",
+    "docs/security-guidelines.md",
+    ".cursor/rules/*.md"
+  ]
+}
+```
+
+## 提供商配置
+
+在 `provider` 下配置提供商。没有 `provider.default` 键——活跃的提供商由 `model`（`provider/model`）决定：
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    },
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+各提供商详情请参阅 [AI 提供商](/docs/providers)。
+
+## 权限
+
+权限将工具名称映射到操作（`ask`、`allow`、`deny`）或通配符 → 操作映射。没有允许/拒绝数组，也没有权限"模式"：
+
+```json
+{
+  "permission": {
+    "read": "allow",
+    "bash": {
+      "npm test": "allow",
+      "npm run lint": "allow",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "reports/**": "allow",
+      ".env*": "deny"
+    }
+  }
+}
+```
+
+仅支持 `*` 和 `?` 作为通配符。完整模型和权限键列表请参阅[权限](/docs/permissions)。
+
+## MCP 服务器
+
+MCP 服务器声明为 `mcp` 下的扁平映射，按服务器名称键控。本地服务器使用 `type: "local"` 和单个 `command` 数组：
+
+```json
+{
+  "mcp": {
+    "project-tools": {
+      "type": "local",
+      "command": ["node", "./tools/mcp-server.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+项目 `mcp` 条目合并到全局条目之上。要关闭继承的服务器，将其 `enabled` 设为 `false`：
+
+```json
+{
+  "mcp": {
+    "some-global-server": { "enabled": false }
+  }
+}
+```
+
+## 自定义代理
+
+将项目代理定义为 `.cyberstrike/agents/` 下的 Markdown 文件（参见[自定义代理](/docs/agents/custom-agents)），然后选择一个作为默认：
+
+```json
+{
+  "default_agent": "project-scanner"
+}
+```
+
+## 完整示例
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "cyberstrike",
+  "instructions": ["docs/SECURITY.md"],
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+
+  "permission": {
+    "read": "allow",
+    "bash": { "npm *": "allow", "git status": "allow", "rm *": "deny" },
+    "edit": { "reports/**": "allow", ".env*": "deny" }
+  },
+
+  "mcp": {
+    "db-tools": {
+      "type": "local",
+      "command": ["node", "./tools/db-mcp.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+## 配置继承
+
+项目配置合并到全局和远程配置之上：
+
+```
+远程 / well-known 配置（基础）
+      ↓
+全局配置（~/.config/cyberstrike/）
+      ↓
+自定义配置（CYBERSTRIKE_CONFIG）
+      ↓
+项目配置（cyberstrike.json）
+      ↓
+.cyberstrike/ 目录配置
+      ↓
+CYBERSTRIKE_CONFIG_CONTENT / 托管配置 / CLI 参数（覆盖）
+```
+
+完整优先级顺序请参阅[配置参考](/docs/configuration#configuration-hierarchy)。
+
+### 合并行为
+
+| 设置 | 行为 |
+|------|------|
+| 标量 | 替换 |
+| 对象 | 深度合并 |
+| 数组 | 替换——**除了** `plugin` 和 `instructions`，它们进行并集合并 |
+
+## Schema 验证
+
+添加 schema 引用以获得 IDE 自动补全和验证：
+
+```json
+{
+  "$schema": "https://cyberstrike.io/config.json"
+}
+```
+
+## Git 集成
+
+### 提交项目配置
+
+```bash
+git add cyberstrike.json
+git commit -m "Add Cyberstrike project configuration"
+```
+
+### 忽略敏感数据
+
+```text title=".gitignore"
+# 忽略本地会话数据
+.cyberstrike/sessions/
+```
+
+## 最佳实践
+
+1. **版本控制**——提交项目配置以便团队共享
+2. **使用环境变量引用**——永远不要硬编码 API 密钥（`{env:VAR}`）
+3. **文档指令**——将 `instructions` 指向您的安全文档
+4. **最小权限**——只允许需要的操作
+5. **个人覆盖**——使用 `CYBERSTRIKE_CONFIG` 存储不应提交的设置
+
+<Aside variant="tip">
+  提交 `cyberstrike.json` 以便团队共享。使用环境变量或 `CYBERSTRIKE_CONFIG` 存储不应提交的个人覆盖设置。
+</Aside>
+
+## 相关文档
+
+- [配置参考](/docs/configuration) - 完整指南
+- [全局配置](/docs/configuration/global-config) - 全局设置
+- [环境变量](/docs/configuration/environment-variables) - 环境变量参考

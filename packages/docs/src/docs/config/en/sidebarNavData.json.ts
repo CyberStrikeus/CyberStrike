@@ -16,6 +16,10 @@ const sidebarNavData: DocsSidebarNavData = {
           title: "Getting Started",
         },
         {
+          id: "usage",
+          title: "Usage",
+        },
+        {
           id: "providers",
           title: "AI Providers",
         },
@@ -24,20 +28,12 @@ const sidebarNavData: DocsSidebarNavData = {
           title: "Agents",
         },
         {
-          id: "usage",
-          title: "Usage",
-        },
-        {
           id: "tools",
           title: "Tools",
         },
         {
-          id: "mcp",
-          title: "Bolt / MCP",
-        },
-        {
-          id: "web-testing",
-          title: "Web Testing",
+          id: "features",
+          title: "Features",
         },
         {
           id: "configuration",

@@ -1,0 +1,67 @@
+---
+title: Comandos MCP
+description: Gerenciar servidores MCP pela linha de comando
+sidebar:
+  order: 4
+  label: Comandos MCP
+---
+
+Os comandos `cyberstrike mcp` gerenciam servidores Model Context Protocol. Existem cinco subcomandos: `list`, `add`, `auth`, `logout` e `debug`.
+
+{/* TODO: Screenshot - MCP command interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: mcp-commands.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Interface de comandos MCP</p>
+</div>
+
+<Aside variant="caution">
+  A configuracao do servidor fica em `cyberstrike.json` (veja servidores [Locais](/docs/mcp/local-servers) / [Remotos](/docs/mcp/remote-servers)), e servidores sao gerenciados interativamente no dialogo `/mcps` da TUI. Nao existem comandos `mcp status`, `health`, `start`/`stop`/`restart`, `remove`, `config`, `tools`, `logs`, `export`/`import`, `install` ou `update`.
+</Aside>
+
+## `mcp list`
+
+```bash
+cyberstrike mcp list   # alias: ls
+```
+
+Lista os servidores MCP configurados.
+
+## `mcp add`
+
+```bash
+cyberstrike mcp add
+```
+
+Totalmente interativo — solicita local vs remoto, o comando ou URL e um nome, depois testa a conexao antes de salvar. Nao aceita **nenhum** nome posicional ou flags; para automatizar a configuracao de servidores, escreva a entrada em `cyberstrike.json` diretamente.
+
+## `mcp auth`
+
+```bash
+cyberstrike mcp auth [name]        # autorizar um servidor OAuth
+cyberstrike mcp auth list          # listar servidores OAuth autorizados
+```
+
+Autoriza um servidor remoto que usa OAuth (abre o navegador se necessario). Veja [OAuth](/docs/mcp/oauth).
+
+## `mcp logout`
+
+```bash
+cyberstrike mcp logout [name]
+```
+
+Remove credenciais OAuth armazenadas de um servidor.
+
+## `mcp debug`
+
+```bash
+cyberstrike mcp debug <name>
+```
+
+Inspeciona a conexao de um servidor — util quando um servidor nao carrega ou suas ferramentas nao aparecem.
+
+## Documentacao Relacionada
+
+- [Visao Geral Bolt / MCP](/docs/mcp) - Basicos do MCP
+- [Servidores Locais](/docs/mcp/local-servers) - Configuracao de servidor local
+- [Servidores Remotos](/docs/mcp/remote-servers) - Configuracao de servidor remoto
+- [OAuth](/docs/mcp/oauth) - Autenticacao OAuth

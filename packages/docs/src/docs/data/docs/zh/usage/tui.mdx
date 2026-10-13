@@ -1,0 +1,159 @@
+---
+title: TUI 界面
+description: Cyberstrike 终端用户界面——斜杠命令、键盘快捷键和配置
+sidebar:
+  order: 1
+  label: TUI
+---
+
+TUI（终端用户界面）是 Cyberstrike 的主要交互式界面。它在终端中运行，提供对话式交互、斜杠命令和实时安全工具输出。
+
+{/* TODO: Screenshot - TUI interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: tui-interface.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Cyberstrike TUI 界面</p>
+</div>
+
+## 启动
+
+```bash
+cyberstrike
+```
+
+这将启动交互式 TUI 会话。
+
+## 斜杠命令
+
+在输入框中键入 `/` 查看所有可用命令。
+
+### 会话命令
+
+| 命令 | 描述 |
+|------|------|
+| `/session` | 显示当前会话信息 |
+| `/session list` | 列出所有会话 |
+| `/session new` | 创建新会话 |
+| `/session switch <id>` | 切换到指定会话 |
+| `/session delete <id>` | 删除会话 |
+
+### 安全工具命令
+
+| 命令 | 描述 |
+|------|------|
+| `/hackbrowser <target>` | 启动自主浏览器爬取 |
+| `/web` | 查看 Web 测试上下文（端点、凭据、漏洞） |
+| `/vulnerabilities` | 查看发现的漏洞 |
+
+### 评估命令
+
+| 命令 | 描述 |
+|------|------|
+| `/assess <target>` | 开始完整安全评估 |
+| `/scan <target>` | 运行快速扫描 |
+
+### 配置命令
+
+| 命令 | 描述 |
+|------|------|
+| `/model` | 查看/切换 AI 模型 |
+| `/provider` | 查看/切换 AI 提供商 |
+| `/config` | 查看当前配置 |
+| `/help` | 显示帮助信息 |
+| `/clear` | 清除屏幕 |
+| `/quit` | 退出 Cyberstrike |
+
+## 键盘快捷键
+
+| 快捷键 | 操作 |
+|--------|------|
+| `Enter` | 发送消息 |
+| `Shift+Enter` | 输入换行 |
+| `Ctrl+C` | 取消当前操作 |
+| `Ctrl+D` | 退出 |
+| `↑` / `↓` | 浏览历史消息 |
+| `Tab` | 自动补全斜杠命令 |
+| `Escape` | 取消当前输入 |
+
+## 配置
+
+### 模型选择
+
+```
+/model claude-sonnet-4-20250514
+```
+
+或通过配置文件：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "claude-sonnet-4-20250514"
+}
+```
+
+### 提供商选择
+
+```
+/provider anthropic
+```
+
+### 主题
+
+Cyberstrike TUI 支持自定义主题配色。主题在配置中设置：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "theme": "dark"
+}
+```
+
+#### 可用主题
+
+| 主题 | 描述 |
+|------|------|
+| `dark` | 深色主题（默认） |
+| `light` | 浅色主题 |
+| `cyberstrike` | Cyberstrike 品牌配色 |
+
+## 会话管理
+
+### 创建会话
+
+```
+/session new
+```
+
+每个会话维护独立的对话历史、工具状态和记忆。
+
+### 切换会话
+
+```
+/session switch session-abc123
+```
+
+### 持久化
+
+会话自动持久化。关闭 TUI 后重新打开会恢复最近的会话。
+
+## 权限提示
+
+当工具需要权限时，TUI 会显示交互式提示：
+
+```
+┌─────────────────────────────────────┐
+│ Bash: nmap -sV 192.168.1.1         │
+│                                     │
+│ Allow this command?                 │
+│ [y]es  [n]o  [a]lways              │
+└─────────────────────────────────────┘
+```
+
+- **y** - 允许一次
+- **n** - 拒绝
+- **a** - 始终允许此模式
+
+## 相关文档
+
+- [CLI](/docs/usage/cli) - 非交互式命令行使用
+- [Web 界面](/docs/usage/web) - 浏览器界面
+- [斜杠命令](/docs/slash-commands) - 完整命令参考
+- [配置](/docs/configuration) - 所有配置选项

@@ -1,0 +1,713 @@
+---
+title: कॉन्फ़िगरेशन संदर्भ
+description: Cyberstrike CLI के लिए संपूर्ण कॉन्फ़िगरेशन संदर्भ
+sidebar:
+  order: 1
+  label: अवलोकन
+---
+
+Cyberstrike को कई तरीकों से कॉन्फ़िगर किया जा सकता है: कॉन्फ़िग फ़ाइलें, पर्यावरण चर, और कमांड लाइन आर्गुमेंट। यह संदर्भ सभी कॉन्फ़िगरेशन विकल्पों को कवर करता है।
+
+{/* TODO: Screenshot - Config file structure */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: s13-config-structure.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">कॉन्फ़िग फ़ाइल संरचना</p>
+</div>
+
+<img src="/docs/images/diagrams/config-priority.svg" alt="कॉन्फ़िगरेशन प्राथमिकता — सबसे ऊंची जीतती है, CLI आर्गुमेंट से डिफ़ॉल्ट मानों तक" className="my-6 mx-auto max-w-md" />
+
+## कॉन्फ़िगरेशन पदानुक्रम
+
+कॉन्फ़िगरेशन स्रोत प्राथमिकता क्रम में मर्ज किए जाते हैं (सबसे ऊंची प्राथमिकता जीतती है):
+
+1. कमांड लाइन आर्गुमेंट
+2. प्रबंधित (एंटरप्राइज़) कॉन्फ़िग — व्यवस्थापक-नियंत्रित प्रबंधित डायरेक्टरी में `cyberstrike.json`/`cyberstrike.jsonc`
+3. `CYBERSTRIKE_CONFIG_CONTENT` पर्यावरण चर (इनलाइन JSON)
+4. `.cyberstrike/` डायरेक्टरी कॉन्फ़िग — प्रोजेक्ट की `.cyberstrike/`, फिर आपकी होम डायरेक्टरी में `~/.cyberstrike/`
+5. प्रोजेक्ट कॉन्फ़िग (`./cyberstrike.json` या `./cyberstrike.jsonc`, कार्य डायरेक्टरी से ऊपर चलकर खोजा जाता है)
+6. कस्टम कॉन्फ़िग पथ (`CYBERSTRIKE_CONFIG`)
+7. वैश्विक कॉन्फ़िग (`~/.config/cyberstrike/config.json`, `cyberstrike.json`, या `cyberstrike.jsonc`)
+8. रिमोट / well-known कॉन्फ़िग
+9. डिफ़ॉल्ट मान
+
+## कॉन्फ़िगरेशन का निरीक्षण
+
+सभी स्रोतों के मर्ज होने के बाद प्रभावी कॉन्फ़िगरेशन देखने के लिए, चलाएं:
+
+```bash
+cyberstrike debug config
+```
+
+यह हल किए गए कॉन्फ़िगरेशन को JSON के रूप में प्रिंट करता है। कोई `config get`/`set` कमांड नहीं हैं — सीधे कॉन्फ़िग फ़ाइल संपादित करके सेटिंग बदलें (नीचे देखें)।
+
+## कॉन्फ़िगरेशन फ़ाइलें
+
+### प्रोजेक्ट कॉन्फ़िगरेशन
+
+अपने प्रोजेक्ट रूट में `cyberstrike.json` या `cyberstrike.jsonc` बनाएं:
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "agent": {
+    "web-application": {
+      "model": "anthropic/claude-sonnet-4-20250514"
+    }
+  }
+}
+```
+
+### वैश्विक कॉन्फ़िगरेशन
+
+`~/.config/cyberstrike/` में उपयोगकर्ता-व्यापी सेटिंग संग्रहीत करें। `config.json`, `cyberstrike.json`, या `cyberstrike.jsonc` में से कोई भी लोड किया जाता है (Cyberstrike `config.json` स्वचालित रूप से बनाता है):
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "theme": "cyberstrike",
+  "autoupdate": true,
+  "share": "manual"
+}
+```
+
+### प्रोजेक्ट डायरेक्टरी संरचना
+
+व्यवस्थित कॉन्फ़िगरेशन के लिए `.cyberstrike/` डायरेक्टरी बनाएं:
+
+```
+.cyberstrike/
+├── cyberstrike.json    # प्रोजेक्ट कॉन्फ़िग
+├── agents/             # कस्टम एजेंट
+│   └── security.md
+├── commands/           # कस्टम कमांड
+│   └── scan.md
+├── plugins/            # कस्टम प्लगइन
+│   └── my-plugin.ts
+└── modes/              # कस्टम मोड (बहिष्कृत)
+```
+
+---
+
+## मूल सेटिंग
+
+### मॉडल चयन
+
+डिफ़ॉल्ट AI मॉडल सेट करें:
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+प्रारूप: `provider/model-name`
+
+### छोटा मॉडल
+
+हल्के कार्यों (शीर्षक जनरेशन) के लिए मॉडल सेट करें:
+
+```json
+{
+  "small_model": "anthropic/claude-haiku-4-5-20251001"
+}
+```
+
+### डिफ़ॉल्ट एजेंट
+
+डिफ़ॉल्ट सुरक्षा एजेंट सेट करें:
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+### उपयोगकर्ता नाम
+
+सिस्टम उपयोगकर्ता नाम ओवरराइड करें:
+
+```json
+{
+  "username": "pentester"
+}
+```
+
+### थीम
+
+इंटरफ़ेस थीम सेट करें:
+
+```json
+{
+  "theme": "cyberstrike"
+}
+```
+
+---
+
+## प्रदाता कॉन्फ़िगरेशन
+
+AI प्रदाताओं को अलग-अलग कॉन्फ़िगर करें:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}",
+        "timeout": 300000
+      }
+    },
+    "openai": {
+      "options": {
+        "baseURL": "https://api.openai.com/v1"
+      },
+      "whitelist": ["gpt-4o", "gpt-4-turbo"],
+      "blacklist": ["gpt-3.5-turbo"]
+    },
+    "custom-provider": {
+      "id": "custom-provider",
+      "name": "Custom Provider",
+      "options": {
+        "baseURL": "https://api.custom.example.com/v1",
+        "apiKey": "{env:CUSTOM_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### प्रदाता विकल्प
+
+| विकल्प | प्रकार | विवरण |
+|--------|------|-------------|
+| `apiKey` | string | प्रमाणीकरण के लिए API कुंजी |
+| `baseURL` | string | कस्टम API एंडपॉइंट |
+| `timeout` | number/false | ms में अनुरोध टाइमआउट (डिफ़ॉल्ट: 300000) |
+| `setCacheKey` | boolean | प्रॉम्प्ट कैश कुंजी सक्षम करें |
+| `enterpriseUrl` | string | Copilot के लिए GitHub Enterprise URL |
+
+### मॉडल फ़िल्टरिंग
+
+कौन से मॉडल दिखें यह नियंत्रित करें:
+
+```json
+{
+  "provider": {
+    "openai": {
+      "whitelist": ["gpt-4o", "o1-preview"],
+      "blacklist": ["gpt-3.5-turbo"]
+    }
+  }
+}
+```
+
+### प्रदाता अक्षम करना
+
+विशिष्ट प्रदाताओं को अक्षम करें:
+
+```json
+{
+  "disabled_providers": ["ollama", "groq"]
+}
+```
+
+केवल विशिष्ट प्रदाताओं को सक्षम करें:
+
+```json
+{
+  "enabled_providers": ["anthropic", "openai"]
+}
+```
+
+---
+
+## एजेंट कॉन्फ़िगरेशन
+
+एजेंट व्यवहार कॉन्फ़िगर करें:
+
+```json
+{
+  "agent": {
+    "cyberstrike": {
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.7,
+      "steps": 50,
+      "color": "#FF5733"
+    },
+    "web-application": {
+      "model": "anthropic/claude-opus-4-20250514",
+      "prompt": "Focus on OWASP Top 10 vulnerabilities"
+    }
+  }
+}
+```
+
+### एजेंट विकल्प
+
+| विकल्प | प्रकार | विवरण |
+|--------|------|-------------|
+| `model` | string | इस एजेंट के लिए मॉडल ओवरराइड करें |
+| `temperature` | number | मॉडल तापमान (0-1) |
+| `top_p` | number | Top-p सैंपलिंग मान |
+| `steps` | number | अधिकतम एजेंटिक इटरेशन |
+| `prompt` | string | कस्टम सिस्टम प्रॉम्प्ट |
+| `color` | string | हेक्स रंग कोड (#RRGGBB) |
+| `description` | string | एजेंट विवरण |
+| `mode` | string | एजेंट मोड: "primary", "subagent", "all" |
+| `hidden` | boolean | ऑटोकंप्लीट से छिपाएं |
+| `disable` | boolean | इस एजेंट को अक्षम करें |
+
+### कस्टम एजेंट बनाना
+
+`.cyberstrike/agents/custom.md` बनाएं:
+
+```markdown
+---
+description: API परीक्षण के लिए कस्टम सुरक्षा एजेंट
+model: anthropic/claude-opus-4-20250514
+mode: primary
+---
+
+You are an API security specialist. Focus on:
+- Authentication vulnerabilities
+- Authorization bypass
+- Input validation
+- Rate limiting issues
+```
+
+---
+
+## MCP कॉन्फ़िगरेशन
+
+Model Context Protocol सर्वर कॉन्फ़िगर करें:
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "@modelcontextprotocol/server-filesystem", "/path/to/dir"],
+      "enabled": true,
+      "timeout": 5000
+    },
+    "remote-api": {
+      "type": "remote",
+      "url": "https://api.example.com/mcp",
+      "oauth": {
+        "clientId": "your-client-id",
+        "scope": "read write"
+      }
+    }
+  }
+}
+```
+
+### स्थानीय MCP सर्वर
+
+| विकल्प | प्रकार | विवरण |
+|--------|------|-------------|
+| `type` | "local" | सर्वर प्रकार |
+| `command` | string[] | कमांड और आर्गुमेंट |
+| `environment` | object | पर्यावरण चर |
+| `enabled` | boolean | सर्वर सक्षम/अक्षम करें |
+| `timeout` | number | ms में अनुरोध टाइमआउट |
+
+### रिमोट MCP सर्वर
+
+| विकल्प | प्रकार | विवरण |
+|--------|------|-------------|
+| `type` | "remote" | सर्वर प्रकार |
+| `url` | string | सर्वर URL |
+| `headers` | object | अनुरोध हेडर |
+| `oauth` | object/false | OAuth कॉन्फ़िगरेशन |
+| `enabled` | boolean | सर्वर सक्षम/अक्षम करें |
+| `timeout` | number | ms में अनुरोध टाइमआउट |
+
+### OAuth कॉन्फ़िगरेशन
+
+```json
+{
+  "oauth": {
+    "clientId": "your-client-id",
+    "clientSecret": "your-client-secret",
+    "scope": "read write"
+  }
+}
+```
+
+---
+
+## अनुमति कॉन्फ़िगरेशन
+
+टूल अनुमतियां नियंत्रित करें:
+
+```json
+{
+  "permission": {
+    "bash": "ask",
+    "edit": "allow",
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "websearch": "deny"
+  }
+}
+```
+
+### अनुमति क्रियाएं
+
+| क्रिया | विवरण |
+|--------|-------------|
+| `ask` | उपयोगकर्ता से अनुमोदन के लिए पूछें (डिफ़ॉल्ट) |
+| `allow` | बिना पूछे स्वचालित रूप से अनुमोदित करें |
+| `deny` | टूल उपयोग अवरुद्ध करें |
+
+### पैटर्न-आधारित अनुमतियां
+
+प्रति पैटर्न अनुमतियां निर्दिष्ट करें:
+
+```json
+{
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "ls *": "allow",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "*": "ask",
+      "*.md": "allow"
+    }
+  }
+}
+```
+
+### उपलब्ध अनुमति कुंजियां
+
+| कुंजी | विवरण |
+|-----|-------------|
+| `read` | फ़ाइल पढ़ना |
+| `edit` | फ़ाइल संपादन/लेखन |
+| `glob` | फ़ाइल पैटर्न मिलान |
+| `grep` | सामग्री खोज |
+| `list` | डायरेक्टरी सूचीकरण |
+| `bash` | कमांड निष्पादन |
+| `task` | कार्य निष्पादन |
+| `websearch` | वेब खोज |
+| `webfetch` | URL फ़ेचिंग |
+| `lsp` | LSP संचालन |
+| `external_directory` | प्रोजेक्ट के बाहर पहुंच |
+
+---
+
+## कीबाइंडिंग
+
+कीबोर्ड शॉर्टकट कस्टमाइज़ करें:
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "app_exit": "ctrl+c,ctrl+d",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "input_submit": "return",
+    "input_newline": "shift+return,ctrl+return,alt+return,ctrl+j"
+  }
+}
+```
+
+### कुंजी प्रारूप
+
+- एकल कुंजी: `ctrl+c`, `escape`, `return`
+- एकाधिक बाइंडिंग: `ctrl+c,ctrl+d` (अल्पविराम-पृथक)
+- लीडर अनुक्रम: `<leader>n` (लीडर कुंजी का उपयोग करता है)
+- अक्षम करें: `none`
+
+---
+
+## TUI सेटिंग
+
+टर्मिनल इंटरफ़ेस कॉन्फ़िगर करें:
+
+```json
+{
+  "tui": {
+    "scroll_speed": 1.0,
+    "scroll_acceleration": {
+      "enabled": true
+    },
+    "diff_style": "auto"
+  }
+}
+```
+
+| विकल्प | प्रकार | विवरण |
+|--------|------|-------------|
+| `scroll_speed` | number | स्क्रॉल गति गुणक |
+| `scroll_acceleration` | object | त्वरण सेटिंग |
+| `diff_style` | "auto"/"stacked" | Diff रेंडरिंग शैली |
+
+---
+
+## सर्वर कॉन्फ़िगरेशन
+
+API सर्वर कॉन्फ़िगर करें:
+
+```json
+{
+  "server": {
+    "port": 4096,
+    "hostname": "localhost",
+    "mdns": true,
+    "cors": ["https://example.com"]
+  }
+}
+```
+
+---
+
+## प्लगइन और हुक
+
+Cyberstrike कॉन्फ़िग-आधारित हुक सिस्टम का उपयोग नहीं करता। ऑटोमेशन और लाइफ़साइकिल हुक **प्लगइन** के रूप में कार्यान्वित होते हैं — JavaScript/TypeScript मॉड्यूल जो `tool.execute.before`, `tool.execute.after`, या `permission.ask` जैसी इवेंट की सदस्यता लेते हैं।
+
+प्लगइन को नाम से रजिस्टर करें। वे npm से या `.cyberstrike/` के अंदर स्थानीय `{plugin,plugins}/` डायरेक्टरी से रिज़ॉल्व होते हैं:
+
+```json
+{
+  "plugin": ["my-plugin", "@scope/another-plugin"]
+}
+```
+
+पूरी इवेंट सूची और लेखन गाइड के लिए [हुक और प्लगइन](/docs/hooks) देखें।
+
+### प्रयोगात्मक विकल्प
+
+`experimental` ब्लॉक ऑप्ट-इन सुविधाएं उजागर करता है:
+
+```json
+{
+  "experimental": {
+    "batch_tool": true,
+    "openTelemetry": false,
+    "continue_loop_on_deny": false,
+    "mcp_timeout": 5000
+  }
+}
+```
+
+| विकल्प | प्रकार | विवरण |
+|--------|------|-------------|
+| `disable_paste_summary` | boolean | पेस्ट सारांश अक्षम करें |
+| `batch_tool` | boolean | बैच टूल सक्षम करें |
+| `openTelemetry` | boolean | AI SDK कॉल के लिए OpenTelemetry स्पैन सक्षम करें |
+| `primary_tools` | string[] | केवल प्राथमिक एजेंट के लिए उपलब्ध टूल |
+| `continue_loop_on_deny` | boolean | टूल कॉल अस्वीकृत होने पर एजेंट लूप जारी रखें |
+| `mcp_timeout` | number | MCP अनुरोधों के लिए टाइमआउट (ms) |
+
+---
+
+## शेयरिंग कॉन्फ़िगरेशन
+
+सत्र साझाकरण नियंत्रित करें:
+
+```json
+{
+  "share": "manual"
+}
+```
+
+| मान | विवरण |
+|-------|-------------|
+| `manual` | केवल कमांड से साझा करें |
+| `auto` | नए सत्र स्वचालित रूप से साझा करें |
+| `disabled` | सभी साझाकरण अक्षम करें |
+
+---
+
+## कॉम्पैक्शन सेटिंग
+
+संदर्भ कॉम्पैक्शन कॉन्फ़िगर करें:
+
+```json
+{
+  "compaction": {
+    "auto": true,
+    "prune": true
+  }
+}
+```
+
+| विकल्प | विवरण |
+|--------|-------------|
+| `auto` | संदर्भ भरने पर स्वचालित रूप से कॉम्पैक्ट करें |
+| `prune` | पुराने टूल आउटपुट प्रून करें |
+
+---
+
+## पर्यावरण चर
+
+### कॉन्फ़िगरेशन चर
+
+| चर | विवरण |
+|----------|-------------|
+| `CYBERSTRIKE_CONFIG` | कस्टम कॉन्फ़िग फ़ाइल पथ |
+| `CYBERSTRIKE_CONFIG_CONTENT` | इनलाइन JSON कॉन्फ़िग |
+| `CYBERSTRIKE_CONFIG_DIR` | अतिरिक्त कॉन्फ़िग डायरेक्टरी |
+| `CYBERSTRIKE_DISABLE_PROJECT_CONFIG` | प्रोजेक्ट कॉन्फ़िग को अनदेखा करें |
+| `CYBERSTRIKE_PERMISSION` | JSON अनुमति ओवरराइड |
+
+### प्रदाता API कुंजियां
+
+| चर | प्रदाता |
+|----------|----------|
+| `ANTHROPIC_API_KEY` | Anthropic |
+| `OPENAI_API_KEY` | OpenAI |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google (Gemini) |
+| `OPENROUTER_API_KEY` | OpenRouter |
+| `AWS_ACCESS_KEY_ID` | AWS Bedrock |
+| `AZURE_API_KEY` | Azure OpenAI |
+
+### व्यवहार फ़्लैग
+
+| चर | विवरण |
+|----------|-------------|
+| `CYBERSTRIKE_AUTO_SHARE` | सत्र स्वचालित रूप से साझा करें |
+| `CYBERSTRIKE_DISABLE_AUTOCOMPACT` | स्वचालित कॉम्पैक्शन अक्षम करें |
+| `CYBERSTRIKE_DISABLE_PRUNE` | आउटपुट प्रूनिंग अक्षम करें |
+
+---
+
+## चर प्रतिस्थापन
+
+### पर्यावरण चर
+
+कॉन्फ़िग में पर्यावरण चर संदर्भित करें:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### फ़ाइल संदर्भ
+
+फ़ाइलों से सामग्री शामिल करें:
+
+```json
+{
+  "instructions": ["{file:./SECURITY.md}"]
+}
+```
+
+समर्थित:
+- सापेक्ष पथ: `{file:./path/to/file}`
+- निरपेक्ष पथ: `{file:/absolute/path}`
+- होम डायरेक्टरी: `{file:~/path/from/home}`
+
+---
+
+## LSP कॉन्फ़िगरेशन
+
+Language Server Protocol कॉन्फ़िगर करें:
+
+```json
+{
+  "lsp": {
+    "typescript": {
+      "command": ["typescript-language-server", "--stdio"],
+      "extensions": [".ts", ".tsx"]
+    },
+    "rust": {
+      "disabled": true
+    }
+  }
+}
+```
+
+सभी LSP सुविधाएं अक्षम करने के लिए `lsp: false` सेट करें।
+
+---
+
+## फ़ॉर्मेटर कॉन्फ़िगरेशन
+
+कोड फ़ॉर्मेटर कॉन्फ़िगर करें:
+
+```json
+{
+  "formatter": {
+    "prettier": {
+      "command": ["prettier", "--write"],
+      "extensions": [".ts", ".tsx", ".js", ".jsx"]
+    },
+    "rustfmt": {
+      "disabled": true
+    }
+  }
+}
+```
+
+सभी फ़ॉर्मेटर अक्षम करने के लिए `formatter: false` सेट करें।
+
+---
+
+## पूर्ण उदाहरण
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "small_model": "anthropic/claude-haiku-4-5-20251001",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike",
+  "share": "manual",
+  "autoupdate": "notify",
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "timeout": 300000
+      }
+    }
+  },
+
+  "agent": {
+    "web-application": {
+      "model": "anthropic/claude-opus-4-20250514",
+      "steps": 100
+    }
+  },
+
+  "permission": {
+    "bash": "ask",
+    "edit": "allow",
+    "read": "allow"
+  },
+
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "@modelcontextprotocol/server-filesystem", "."],
+      "enabled": true
+    }
+  },
+
+  "keybinds": {
+    "leader": "ctrl+x"
+  },
+
+  "compaction": {
+    "auto": true,
+    "prune": true
+  }
+}
+```

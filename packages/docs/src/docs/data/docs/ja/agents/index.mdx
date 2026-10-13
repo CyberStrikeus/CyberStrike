@@ -1,0 +1,89 @@
+---
+title: セキュリティエージェント
+description: さまざまなセキュリティ評価シナリオに特化したAIエージェント
+sidebar:
+  order: 1
+  label: 概要
+---
+
+CyberStrikeには、さまざまなセキュリティ評価シナリオに最適化された専門エージェントが含まれています。各エージェントは、ドメイン固有の知識、方法論、およびツール構成を備えています。
+
+<img src="/docs/images/gifs/g05-agent-switch.gif" alt="leader+aでピッカーからアクティブエージェントを切り替え" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/screenshots/s09-agent-select.png" alt="cyberstrike プライマリエージェントと専門サブエージェントを一覧表示するエージェントピッカー" className="rounded-lg shadow-lg my-6 w-full" />
+
+## アーキテクチャ
+
+CyberStrikeは**1つのプライマリエージェント** — `cyberstrike` — を実行し、セッションを管理してタスクに基づいて専門サブエージェントに自動的に**委任**します。サブエージェントはタスクに応じてディスパッチされ、直接実行されることはありません。
+
+### コアエージェント
+
+| エージェント | 目的 | モード |
+|-------|---------|------|
+| [`cyberstrike`](/docs/agents/cyberstrike) | フルツールアクセスを持つデフォルトの攻撃的セキュリティエージェント。すべてを統括 | プライマリ |
+| [`general`](/docs/agents/general) | 汎用的なリサーチと並列タスク実行 | サブエージェント |
+| [`triage`](/docs/agents/triage) | ドラフト脆弱性発見の独立検証 | サブエージェント |
+| [`explore`](/docs/agents/explore) | 高速な読み取り専用コードベースおよびファイルシステム検索 | サブエージェント |
+
+### Webセキュリティエージェント（WSTGパイプライン）
+
+Webドメイン（`@cyberstrike-io/web`）は、完全なOWASP WSTGパイプラインを提供します。`wstg-agent` オーケストレーターは、キャプチャされたHTTPトラフィックのシグナルに基づいてスペシャリストをディスパッチします：
+
+| エージェント | WSTGカテゴリ |
+|-------|---------------|
+| [`wstg-agent`](/docs/agents/wstg-agent) | オーケストレーター — リクエストシグナルに基づいてスペシャリストをディスパッチ |
+| `wstg-info-gathering` | 4.1 情報収集 |
+| `wstg-config-deploy` | 4.2 構成とデプロイメント管理 |
+| `wstg-identity-mgmt` | 4.3 ID管理 |
+| `wstg-authentication` | 4.4 認証 |
+| `wstg-authorization` | 4.5 認可 |
+| `wstg-session-mgmt` | 4.6 セッション管理 |
+| `wstg-input-validation` | 4.7 入力検証 |
+| `wstg-error-handling` | 4.8 エラー処理 |
+| `wstg-cryptography` | 4.9 暗号化 |
+| `wstg-business-logic` | 4.10 ビジネスロジック |
+| `wstg-client-side` | 4.11 クライアントサイド |
+| `wstg-api` | 4.12 APIテスト + OWASP API Top 10 |
+| `wstg-llm` | LLMセキュリティ |
+| [`escalation-hunter`](/docs/agents/escalation-hunter) | 横断的な相関分析 — 発見を連鎖させ、影響を拡大 |
+
+WSTGスペシャリストは**シグナルルーティング**されます — 直接呼び出すことはありません。HackBrowserまたはChrome拡張機能がHTTPトラフィックをキャプチャすると、各リクエストが分析され、その特性に基づいて関連するスペシャリストにディスパッチされます。
+
+### 計画中のドメイン
+
+| ドメイン | ステータス |
+|--------|--------|
+| クラウドセキュリティ（AWS/Azure/GCP） | 計画中 |
+| 内部ネットワーク（AD/Kerberos） | 計画中 |
+| モバイルアプリケーション（MASTG/MASVS） | 計画中 |
+
+これらは個別のドメインパッケージ（`@cyberstrike-io/cloud`、`@cyberstrike-io/internal-network`、`@cyberstrike-io/mobile`）として提供され、プラグインシステムを通じて自動的に登録されます。
+
+## エージェントの選択
+
+TUIでエージェントを切り替えます：
+
+| コマンド | アクション |
+|---------|--------|
+| `/agents` または `<leader>a` | エージェントピッカーを開く |
+| `Tab` | 次のエージェントに切り替え |
+
+組み込みのプライマリエージェントとして提供されるのは `cyberstrike` のみです。カスタムプライマリエージェントを作成できます — [カスタムエージェント](/docs/agents/custom-agents)を参照してください。
+
+### 設定
+
+`cyberstrike.json` でデフォルトエージェントを設定します：
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+## カスタムエージェントの作成
+
+カスタムエージェントは `.cyberstrike/agents/` 内のMarkdownファイルです。詳細は[カスタムエージェント](/docs/agents/custom-agents)を参照してください。
+
+<Aside variant="info">
+  エージェントは `.cyberstrike/agents/` ディレクトリに設定ファイルを配置することで、プロジェクトごとにカスタマイズできます。
+</Aside>

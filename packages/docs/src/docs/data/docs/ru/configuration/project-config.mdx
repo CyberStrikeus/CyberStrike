@@ -1,0 +1,259 @@
+---
+title: Конфигурация проекта
+description: Настройка параметров Cyberstrike для отдельных проектов
+sidebar:
+  order: 2
+  label: Конфигурация проекта
+---
+
+Конфигурация проекта настраивает поведение Cyberstrike для конкретных проектов, переопределяя глобальные настройки при наличии.
+
+{/* TODO: Screenshot - Project configuration file */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: project-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Структура файла конфигурации проекта</p>
+</div>
+
+## Расположение файла
+
+Конфигурация проекта хранится в `cyberstrike.json` (или `cyberstrike.jsonc`) в корне проекта. Cyberstrike выполняет обход вверх от рабочего каталога, поэтому конфигурация в любой родительской папке будет обнаружена:
+
+```
+my-project/
+├── cyberstrike.json     ← Конфигурация проекта
+├── src/
+├── package.json
+└── ...
+```
+
+## Создание конфигурации проекта
+
+Команды инициализации нет — создайте файл вручную:
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## Базовые настройки
+
+### Выбор модели
+
+```json
+{
+  "model": "anthropic/claude-opus-4-5-20251101"
+}
+```
+
+### Агент по умолчанию
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+`default_agent` должен быть primary агентом; откат к `cyberstrike`, если не установлен или недопустим.
+
+### Пользовательские инструкции
+
+`instructions` — это список **файлов или glob-шаблонов**, содержимое которых добавляется к системному промпту (это не встроенный текст). Списки объединяются (union-merge) с глобальной конфигурацией:
+
+```json
+{
+  "instructions": [
+    "SECURITY.md",
+    "docs/security-guidelines.md",
+    ".cursor/rules/*.md"
+  ]
+}
+```
+
+## Конфигурация провайдеров
+
+Настраивайте провайдеров в `provider`. Ключа `provider.default` нет — активный провайдер определяется из `model` (`provider/model`):
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    },
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+Подробности по провайдерам см. в [ИИ-провайдеры](/docs/providers).
+
+## Разрешения
+
+Разрешения сопоставляют имя инструмента с действием (`ask`, `allow`, `deny`) или с картой glob -> действие. Массивов allow/deny и «режимов» разрешений нет:
+
+```json
+{
+  "permission": {
+    "read": "allow",
+    "bash": {
+      "npm test": "allow",
+      "npm run lint": "allow",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "reports/**": "allow",
+      ".env*": "deny"
+    }
+  }
+}
+```
+
+Поддерживаются только подстановочные знаки `*` и `?`. Полную модель и список ключей разрешений см. в [Разрешения](/docs/permissions).
+
+## MCP-серверы
+
+MCP-серверы объявляются как плоская карта в `mcp`, с ключами по имени сервера. Локальные серверы используют `type: "local"` с одним массивом `command`:
+
+```json
+{
+  "mcp": {
+    "project-tools": {
+      "type": "local",
+      "command": ["node", "./tools/mcp-server.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+Записи `mcp` проекта объединяются поверх глобальных. Чтобы отключить унаследованный сервер, установите его `enabled` в `false`:
+
+```json
+{
+  "mcp": {
+    "some-global-server": { "enabled": false }
+  }
+}
+```
+
+## Пользовательские агенты
+
+Определяйте агентов проекта как Markdown-файлы в `.cyberstrike/agents/` (см. [Пользовательские агенты](/docs/agents/custom-agents)), затем выберите одного как агента по умолчанию:
+
+```json
+{
+  "default_agent": "project-scanner"
+}
+```
+
+## Полный пример
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "cyberstrike",
+  "instructions": ["docs/SECURITY.md"],
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+
+  "permission": {
+    "read": "allow",
+    "bash": { "npm *": "allow", "git status": "allow", "rm *": "deny" },
+    "edit": { "reports/**": "allow", ".env*": "deny" }
+  },
+
+  "mcp": {
+    "db-tools": {
+      "type": "local",
+      "command": ["node", "./tools/db-mcp.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+## Наследование конфигурации
+
+Конфигурация проекта объединяется поверх глобальной и удалённой конфигурации:
+
+```
+Удалённая / well-known конфигурация (базовая)
+      ↓
+Глобальная конфигурация (~/.config/cyberstrike/)
+      ↓
+Пользовательская конфигурация (CYBERSTRIKE_CONFIG)
+      ↓
+Конфигурация проекта (cyberstrike.json)
+      ↓
+Конфигурация каталога .cyberstrike/
+      ↓
+CYBERSTRIKE_CONFIG_CONTENT / управляемая конфигурация / аргументы CLI (переопределение)
+```
+
+Полный порядок приоритетов см. в [Справочнике по конфигурации](/docs/configuration#configuration-hierarchy).
+
+### Поведение объединения
+
+| Настройка | Поведение |
+|-----------|-----------|
+| Скаляры | Заменяются |
+| Объекты | Глубокое объединение |
+| Массивы | Заменяются — **кроме** `plugin` и `instructions`, которые объединяются (union-merge) |
+
+## Валидация схемы
+
+Добавьте ссылку на схему для автодополнения и валидации в IDE:
+
+```json
+{
+  "$schema": "https://cyberstrike.io/config.json"
+}
+```
+
+## Интеграция с Git
+
+### Коммит конфигурации проекта
+
+```bash
+git add cyberstrike.json
+git commit -m "Add Cyberstrike project configuration"
+```
+
+### Игнорирование конфиденциальных данных
+
+```text title=".gitignore"
+# Игнорировать локальные данные сессий
+.cyberstrike/sessions/
+```
+
+## Лучшие практики
+
+1. **Контроль версий** — коммитьте конфигурацию проекта для совместной работы команды
+2. **Используйте ссылки на переменные** — никогда не хардкодьте API-ключи (`{env:VAR}`)
+3. **Документируйте инструкции** — направляйте `instructions` на документацию по безопасности
+4. **Минимальные разрешения** — разрешайте только необходимое
+5. **Личные переопределения** — используйте `CYBERSTRIKE_CONFIG` для настроек, которые не должны коммитить
+
+<Aside variant="tip">
+  Коммитьте `cyberstrike.json` для совместной работы команды. Используйте переменные окружения или `CYBERSTRIKE_CONFIG` для личных переопределений, которые не должны коммитить.
+</Aside>
+
+## Связанная документация
+
+- [Справочник по конфигурации](/docs/configuration) — Полное руководство
+- [Глобальная конфигурация](/docs/configuration/global-config) — Глобальные настройки
+- [Переменные окружения](/docs/configuration/environment-variables) — Справочник переменных окружения

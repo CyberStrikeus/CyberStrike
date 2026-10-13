@@ -1,0 +1,89 @@
+---
+title: सुरक्षा एजेंट
+description: विभिन्न सुरक्षा मूल्यांकन परिदृश्यों के लिए विशेषीकृत AI एजेंट
+sidebar:
+  order: 1
+  label: अवलोकन
+---
+
+Cyberstrike में विभिन्न सुरक्षा मूल्यांकन परिदृश्यों के लिए अनुकूलित विशेषीकृत एजेंट शामिल हैं। प्रत्येक एजेंट के पास डोमेन-विशिष्ट ज्ञान, कार्यप्रणालियां और उपकरण कॉन्फ़िगरेशन हैं।
+
+<img src="/docs/images/gifs/g05-agent-switch.gif" alt="leader+a के साथ पिकर से सक्रिय एजेंट बदलना" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/screenshots/s09-agent-select.png" alt="cyberstrike प्राथमिक एजेंट और विशेषीकृत सबएजेंट दिखाने वाला एजेंट पिकर" className="rounded-lg shadow-lg my-6 w-full" />
+
+## आर्किटेक्चर
+
+Cyberstrike **एक प्राथमिक एजेंट** चलाता है — `cyberstrike` — जो सत्र का प्रबंधन करता है और स्वचालित रूप से विशेषीकृत सबएजेंट्स को **प्रतिनिधित्व** करता है। सबएजेंट्स कार्य के आधार पर भेजे जाते हैं; वे सीधे नहीं चलाए जाते।
+
+### मुख्य एजेंट
+
+| एजेंट | उद्देश्य | मोड |
+|-------|---------|------|
+| [`cyberstrike`](/docs/agents/cyberstrike) | पूर्ण उपकरण पहुंच के साथ डिफ़ॉल्ट आक्रामक-सुरक्षा एजेंट; सब कुछ समन्वयित करता है | प्राथमिक |
+| [`general`](/docs/agents/general) | सामान्य-उद्देश्य अनुसंधान और समानांतर कार्य निष्पादन | सबएजेंट |
+| [`triage`](/docs/agents/triage) | ड्राफ्ट कमजोरी निष्कर्षों का स्वतंत्र सत्यापन | सबएजेंट |
+| [`explore`](/docs/agents/explore) | तेज़ रीड-ओनली कोडबेस और फ़ाइल सिस्टम खोज | सबएजेंट |
+
+### वेब सुरक्षा एजेंट (WSTG पाइपलाइन)
+
+वेब डोमेन (`@cyberstrike-io/web`) एक पूर्ण OWASP WSTG पाइपलाइन प्रदान करता है। `wstg-agent` ऑर्केस्ट्रेटर कैप्चर किए गए HTTP ट्रैफिक सिग्नलों के आधार पर विशेषज्ञों को भेजता है:
+
+| एजेंट | WSTG श्रेणी |
+|-------|---------------|
+| [`wstg-agent`](/docs/agents/wstg-agent) | ऑर्केस्ट्रेटर — अनुरोध सिग्नलों के आधार पर विशेषज्ञों को भेजता है |
+| `wstg-info-gathering` | 4.1 सूचना संग्रह |
+| `wstg-config-deploy` | 4.2 कॉन्फ़िगरेशन और डिप्लॉयमेंट प्रबंधन |
+| `wstg-identity-mgmt` | 4.3 पहचान प्रबंधन |
+| `wstg-authentication` | 4.4 प्रमाणीकरण |
+| `wstg-authorization` | 4.5 प्राधिकरण |
+| `wstg-session-mgmt` | 4.6 सत्र प्रबंधन |
+| `wstg-input-validation` | 4.7 इनपुट सत्यापन |
+| `wstg-error-handling` | 4.8 त्रुटि प्रबंधन |
+| `wstg-cryptography` | 4.9 क्रिप्टोग्राफी |
+| `wstg-business-logic` | 4.10 व्यापार तर्क |
+| `wstg-client-side` | 4.11 क्लाइंट-साइड |
+| `wstg-api` | 4.12 API परीक्षण + OWASP API Top 10 |
+| `wstg-llm` | LLM सुरक्षा |
+| [`escalation-hunter`](/docs/agents/escalation-hunter) | क्रॉस-कटिंग सहसंबंध — निष्कर्षों की श्रृंखला, प्रभाव बढ़ाता है |
+
+WSTG विशेषज्ञ **सिग्नल-रूटेड** हैं — आप उन्हें सीधे नहीं बुलाते। जब HackBrowser या Chrome Extension HTTP ट्रैफिक कैप्चर करता है, प्रत्येक अनुरोध का विश्लेषण किया जाता है और इसकी विशेषताओं के आधार पर संबंधित विशेषज्ञ(ओं) को भेजा जाता है।
+
+### नियोजित डोमेन
+
+| डोमेन | स्थिति |
+|--------|--------|
+| Cloud Security (AWS/Azure/GCP) | नियोजित |
+| Internal Network (AD/Kerberos) | नियोजित |
+| Mobile Application (MASTG/MASVS) | नियोजित |
+
+ये अलग डोमेन पैकेज (`@cyberstrike-io/cloud`, `@cyberstrike-io/internal-network`, `@cyberstrike-io/mobile`) के रूप में आएंगे और प्लगइन सिस्टम के माध्यम से स्वचालित रूप से पंजीकृत होंगे।
+
+## एजेंट चुनना
+
+TUI में एजेंट बदलें:
+
+| कमांड | क्रिया |
+|---------|--------|
+| `/agents` या `<leader>a` | एजेंट पिकर खोलें |
+| `Tab` | अगले एजेंट पर जाएं |
+
+केवल `cyberstrike` अंतर्निर्मित प्राथमिक एजेंट के रूप में आता है। आप कस्टम प्राथमिक एजेंट बना सकते हैं — [कस्टम एजेंट](/docs/agents/custom-agents) देखें।
+
+### कॉन्फ़िगरेशन
+
+`cyberstrike.json` में डिफ़ॉल्ट एजेंट सेट करें:
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+## कस्टम एजेंट बनाना
+
+कस्टम एजेंट `.cyberstrike/agents/` में Markdown फ़ाइलें हैं। विवरण के लिए [कस्टम एजेंट](/docs/agents/custom-agents) देखें।
+
+<Aside variant="info">
+  एजेंट को `.cyberstrike/agents/` निर्देशिका में कॉन्फ़िगरेशन फ़ाइलें रखकर प्रति-प्रोजेक्ट अनुकूलित किया जा सकता है।
+</Aside>

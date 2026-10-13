@@ -1,0 +1,231 @@
+---
+title: OpenAI (GPT)
+description: 为 Cyberstrike 配置 OpenAI 模型
+sidebar:
+  order: 3
+  label: OpenAI
+---
+
+OpenAI 提供 GPT-5 系列、GPT-4.1 和 o 系列推理模型用于安全分析。本指南涵盖设置和配置。
+
+<img src="/docs/images/screenshots/openai-model-select.png" alt="模型选择器筛选 OpenAI 模型" className="rounded-lg shadow-lg my-6 w-full" />
+
+## 可用模型
+
+Cyberstrike 从 [models.dev](https://models.dev) 实时拉取模型目录，因此列表会跟踪 OpenAI 当前提供的模型。常用选择：
+
+| 模型 | 上下文 | 最适合 |
+|------|--------|--------|
+| `openai/gpt-5` | 400K | 通用安全测试（旗舰） |
+| `openai/gpt-5-mini` | 400K | 快速任务、大批量 |
+| `openai/gpt-5-nano` | 400K | 最低成本、简单任务 |
+| `openai/gpt-4.1` | 1M | 超大上下文 |
+| `openai/o3` | 200K | 深度逐步推理 |
+
+<Aside variant="tip">
+  更新的 GPT-5.x 版本（5.1-5.5，以及 Codex 和 Pro 变体）会随着 models.dev 更新自动出现。运行 `/models` 查看完整的当前列表。
+</Aside>
+
+## 认证
+
+### API 密钥设置
+
+1. 从 [platform.openai.com](https://platform.openai.com) 获取 API 密钥
+2. 在 TUI 中运行 `/connect`，选择 **OpenAI**，输入 API 密钥
+
+### 环境变量
+
+```bash
+export OPENAI_API_KEY="sk-proj-..."
+```
+
+### 配置文件
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+## 模型配置
+
+### 设置默认模型
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "openai/gpt-5"
+}
+```
+
+### 切换模型
+
+在 TUI 中使用 `/models` 选择不同的 OpenAI 模型。
+
+### 使用推理模型
+
+o 系列（`o3`、`o4-mini`）和 GPT-5 Pro 变体擅长复杂的安全分析。通过 `/models` 选择。
+
+最适合：
+- 复杂的漏洞链
+- 攻击路径分析
+- 密码学分析
+- 逆向工程
+
+## ChatGPT Plus/Pro
+
+通过在 TUI 中运行 `/connect`，选择 **OpenAI**，然后选择 **ChatGPT Plus/Pro** 来使用您的 ChatGPT 订阅。这会触发基于浏览器的 OAuth 流程。
+
+<Aside variant="info">
+  ChatGPT 认证需要基于浏览器的 OAuth 流程。
+</Aside>
+
+## 组织 ID
+
+对于组织账户：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}",
+        "organization": "org-..."
+      }
+    }
+  }
+}
+```
+
+## 自定义基础 URL
+
+对于 OpenAI 兼容端点：
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "baseURL": "https://your-endpoint.com/v1"
+      }
+    }
+  }
+}
+```
+
+## 函数调用
+
+GPT 模型支持函数调用以使用工具：
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "parallelToolCalls": true
+      }
+    }
+  }
+}
+```
+
+## 速率限制
+
+OpenAI 按层级的速率限制：
+
+| 层级 | RPM | TPM |
+|------|-----|-----|
+| 免费 | 3 | 40,000 |
+| Tier 1 | 500 | 200,000 |
+| Tier 2 | 5,000 | 2,000,000 |
+| Tier 3+ | 更高限制 |
+
+### 处理限制
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "maxRetries": 3,
+        "timeout": 60000
+      }
+    }
+  }
+}
+```
+
+## 最佳实践
+
+### 模型选择
+
+| 任务 | 推荐模型 |
+|------|----------|
+| 快速扫描 | `gpt-5-nano` |
+| 通用测试 | `gpt-5` |
+| 复杂分析 | `o3` |
+| 成本敏感 | `gpt-5-mini` |
+
+### 成本优化
+
+1. 对简单任务使用 mini 模型
+2. 设置合理的最大 token 数
+3. 对长会话使用 `/compact`
+4. 在 OpenAI 仪表板上监控使用量
+
+### 安全
+
+1. 将密钥存储在环境变量中
+2. 使用项目专用的 API 密钥
+3. 在 OpenAI 仪表板中启用使用限制
+4. 定期轮换密钥
+
+## 故障排除
+
+### 无效的 API 密钥
+
+```
+Error: Incorrect API key provided
+```
+
+验证：
+- 密钥以 `sk-proj-` 或 `sk-` 开头
+- 没有多余空格
+- 密钥处于活跃状态
+
+### 配额不足
+
+```
+Error: You exceeded your current quota
+```
+
+解决方案：
+- 添加账单信息
+- 检查使用限制
+- 升级计划
+
+### 模型访问
+
+```
+Error: The model does not exist or you do not have access
+```
+
+某些模型需要：
+- 更高的使用层级才能使用最新旗舰
+- 等待名单批准
+- 企业协议
+
+<Aside variant="caution">
+  推理模型（o 系列和 GPT-5 Pro 变体）由于推理步骤延迟较高。请预留更长的响应时间。
+</Aside>
+
+## 相关文档
+
+- [提供商概述](/docs/providers) - 所有提供商
+- [自定义提供商](/docs/providers/custom-providers) - OpenAI 兼容设置
+- [配置](/docs/configuration) - 完整选项

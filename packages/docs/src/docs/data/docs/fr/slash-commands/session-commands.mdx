@@ -1,0 +1,49 @@
+---
+title: Commandes de session
+description: "Commandes slash pour gérer les sessions Cyberstrike"
+sidebar:
+  order: 2
+  label: Commandes de session
+---
+
+Les commandes de session gèrent la conversation en cours — création, reprise, partage et modification de l'historique des messages.
+
+<img src="/docs/images/gifs/session-commands.gif" alt="Ouverture du sélecteur de sessions avec leader+l" className="rounded-lg shadow-lg my-6 w-full" />
+
+## Cycle de vie
+
+| Commande | Alias | Action |
+|----------|-------|--------|
+| `/new` | `/clear` | Démarrer une **nouvelle** session (`/clear` est un alias — il ne fait pas que vider les messages) |
+| `/sessions` | `/resume`, `/continue` | Ouvrir le sélecteur de sessions pour reprendre une session passée |
+| `/rename` | | Renommer la session actuelle |
+| `/fork` | | Dupliquer la session depuis le point actuel |
+| `/timeline` | | Afficher la chronologie de la session |
+| `/export` | | Exporter la session |
+| `/copy` | | Copier le dernier message |
+
+## Messages
+
+| Commande | Alias | Action |
+|----------|-------|--------|
+| `/undo` | | Annuler le dernier message |
+| `/redo` | | Rétablir |
+| `/compact` | `/summarize` | Compacter (résumer) la session pour récupérer du contexte |
+| `/timestamps` | `/toggle-timestamps` | Basculer les horodatages des messages |
+| `/thinking` | `/toggle-thinking` | Basculer les blocs de réflexion |
+
+## Partage
+
+| Commande | Action |
+|----------|--------|
+| `/share` | Partager la session actuelle |
+| `/unshare` | Arrêter le partage |
+
+<Aside variant="caution">
+  `/clear` est un alias de `/new` (il démarre une nouvelle session), et `/continue` est un alias de `/sessions` (il ouvre le sélecteur de sessions). Il n'existe pas de commande `/history`, `/memory`, `/cost`, `/save`, `/tag`, `/note`, `/retry` ou `/template`.
+</Aside>
+
+## Documentation associée
+
+- [Commandes slash](/docs/slash-commands) - Liste complète des commandes
+- [Commandes de navigation](/docs/slash-commands/navigation-commands) - Sélecteurs et boîtes de dialogue

@@ -11,12 +11,16 @@ const navConfig: navItem[] = [
     link: "/docs/getting-started/",
   },
   {
-    text: "Agents",
-    link: "/docs/agents/",
+    text: "HackBrowser",
+    link: "/docs/features/hackbrowser/",
   },
   {
-    text: "Tools",
-    link: "/docs/tools/",
+    text: "Vortex",
+    link: "/docs/features/vortex/",
+  },
+  {
+    text: "Bolt",
+    link: "/docs/features/bolt/",
   },
   {
     text: "GitHub",

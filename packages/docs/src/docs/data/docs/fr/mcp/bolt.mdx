@@ -1,0 +1,171 @@
+---
+title: Bolt
+description: Serveur d'outils de securite base sur des plugins via MCP avec Docker
+sidebar:
+  order: 2
+  label: Bolt
+---
+
+Bolt est un serveur MCP conteneurise qui fournit des outils de securite. Il fonctionne dans un conteneur Docker (Ubuntu 24.04) et expose chaque outil directement — pas de meta-outils, pas de chargement dynamique, appelez simplement l'outil dont vous avez besoin.
+
+{/* Hero Screenshot - Bolt in action */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: bolt-hero.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Bolt executant un scan nmap via Cyberstrike</p>
+</div>
+
+## Pourquoi Bolt ?
+
+Bolt resout le probleme de l'execution d'outils de securite necessitant un environnement Linux. Au lieu d'installer les outils localement, Bolt les execute dans un conteneur isole.
+
+| Fonctionnalite | Sans Bolt | Avec Bolt |
+|----------------|-----------|-----------|
+| Installation des outils | Manuelle pour chaque outil | Pre-installes |
+| Support de plateforme | Linux uniquement pour la plupart | Toute plateforme avec Docker |
+| Isolation | Les outils tournent sur votre systeme | Sandboxes dans le conteneur |
+| Mises a jour | Manuelles | `docker pull` |
+
+## Contenu
+
+Bolt (`bolt.config.json`, port `3001`) expose les outils de deux facons :
+
+- **7 plugins natifs** — `subfinder`, `nmap`, `nuclei`, `httpx`, `ffuf`, `run-command`, `wordlist`
+- **~26 serveurs MCP stdio agreges** — par ex. `dnsx`, `amass`, `katana`, `sqlmap`, `wpscan`, `gobuster`, `masscan`, `hydra`, `hashcat`, `john`, `impacket`, et plus
+
+Chacun est un outil directement appelable — l'agent l'appelle en un seul tour, sans etape de recherche/chargement.
+
+## Demarrage rapide
+
+### 1. Demarrer le conteneur Bolt
+
+```bash
+docker run -d \
+  --name bolt \
+  --restart unless-stopped \
+  -p 3001:3001 \
+  -v bolt-data:/data \
+  -e MCP_ADMIN_TOKEN=$(openssl rand -hex 32) \
+  --cap-add NET_RAW \
+  --cap-add NET_ADMIN \
+  ghcr.io/cyberstrikeus/bolt:latest
+
+# Voir le token admin (utilise une seule fois, pour l'appairage)
+docker logs bolt | grep -i token
+```
+
+### 2. L'appairer avec Cyberstrike
+
+Ouvrez la boite de dialogue `/bolt` dans le TUI, appuyez sur **a** pour ajouter, entrez l'URL `http://localhost:3001`, et fournissez le token admin. Cyberstrike s'appaire avec le serveur (voir [Authentification](#authentication)) et stocke les identifiants — le token lui-meme n'est **pas** ecrit dans votre configuration.
+
+### 3. Utiliser les outils
+
+```
+> Run nmap against 192.168.1.1 with service detection
+> Use subfinder to enumerate subdomains of example.com
+```
+
+## Configuration
+
+Les serveurs Bolt sont configures sous leur **propre cle de premier niveau `bolt`** — pas sous `mcp`. Chaque entree n'a besoin que d'une `url` (Cyberstrike ajoute le chemin `/mcp` automatiquement) :
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "bolt": {
+    "local": {
+      "url": "http://localhost:3001",
+      "enabled": true,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `url` | string | Requis. URL de base du serveur Bolt (par ex. `http://localhost:3001`). |
+| `enabled` | boolean | Optionnel. Se connecter au lancement (par defaut : true). |
+| `timeout` | number | Optionnel. Timeout de requete en ms (par defaut : 30000). |
+
+<Aside variant="caution">
+  Bolt n'est **pas** une entree `mcp`. Il n'y a pas de `type: "remote"`, pas de drapeau `bolt: true`, et pas d'en-tete `Authorization` dans la configuration — l'authentification est geree par l'appairage Ed25519, et le token admin ne vit que dans l'etape d'appairage.
+</Aside>
+
+## Authentification
+
+Bolt utilise la **signature de requetes Ed25519**, initialisee par un appairage unique avec le token admin :
+
+1. `POST /pair` avec le token admin → un code d'appairage
+2. Cyberstrike genere une paire de cles Ed25519
+3. `POST /pair/exchange` avec le code + cle publique du client → cle publique du serveur + identifiant client
+4. A partir de ce moment, chaque requete est **signee** avec la cle privee du client
+
+Le token admin n'est utilise qu'a l'etape 1 — ce n'est pas un identifiant bearer persistant et il n'est jamais stocke dans `cyberstrike.json`.
+
+## Gestion TUI
+
+Deux boites de dialogue separees :
+
+- **`/bolt`** — gere les serveurs Bolt (ajouter/appairer, basculer, supprimer).
+- **`/mcps`** — gere les serveurs MCP locaux/distants classiques.
+
+Dans la boite de dialogue `/bolt` : **a** pour ajouter, **espace** pour basculer un serveur, **esc** pour fermer.
+
+## Exemples d'utilisation
+
+```
+> Use bolt to scan 192.168.1.0/24 for open ports and services   # nmap
+> Find all subdomains of example.com                            # subfinder
+> Scan https://target.com with nuclei                           # nuclei
+> Fuzz directories on https://target.com                        # ffuf
+> Run "dig +short example.com"                                  # run-command escape hatch
+```
+
+Chaque commande correspond a un appel d'outil direct — pas d'etape de chargement.
+
+## Configuration du conteneur
+
+### Variables d'environnement
+
+| Variable | Par defaut | Description |
+|----------|------------|-------------|
+| `PORT` | 3001 | Port du serveur HTTP |
+| `HOST` | 0.0.0.0 | Adresse de liaison |
+| `MCP_ADMIN_TOKEN` | — | Token admin utilise pour l'appairage |
+| `DATA_DIR` | /data | Repertoire de donnees persistantes |
+
+### Capacites Docker
+
+| Capacite | Objectif |
+|----------|----------|
+| `NET_RAW` | Sockets bruts pour les scans SYN de nmap |
+| `NET_ADMIN` | Configuration reseau pour les outils necessitant un acces eleve |
+
+## Reference API
+
+| Endpoint | Objectif |
+|----------|----------|
+| `GET /health` | Verification de sante — retourne `{ "status": "ok" }` (les requetes admin authentifiees obtiennent des informations detaillees, y compris le nombre d'outils) |
+| `POST /mcp` | Endpoint MCP JSON-RPC (requetes signees) |
+| `POST /pair` | Demarrer l'appairage Ed25519 avec le token admin |
+| `POST /pair/exchange` | Echanger le code d'appairage + cles publiques |
+
+```bash
+curl http://localhost:3001/health
+```
+
+## Depannage
+
+- **Connexion refusee** — verifiez que le conteneur tourne (`docker ps`), que le port est mappe (`docker port bolt`), et que `curl http://localhost:3001/health` repond.
+- **Re-appairage requis** — si l'URL de Bolt change, Cyberstrike supprime les identifiants stockes et vous devez vous reappairer via `/bolt`.
+- **Outils non disponibles** — confirmez que le serveur est connecte dans `/bolt`, et utilisez un modele a API directe (par ex. `anthropic/claude-sonnet-4-20250514`, `openai/gpt-4o`).
+
+## Documentation connexe
+
+- [Vue d'ensemble Bolt / MCP](/fr/docs/mcp) - Architecture et concepts
+- [Serveurs distants](/fr/docs/mcp/remote-servers) - Configuration MCP distante
+- [Serveurs locaux](/fr/docs/mcp/local-servers) - Configuration MCP stdio locale
+- [Permissions](/fr/docs/permissions) - Permissions des outils
+
+<Aside variant="danger">
+  N'utilisez les outils Bolt que contre des cibles autorisees. Les tests de penetration non autorises sont illegaux.
+</Aside>

@@ -1,0 +1,199 @@
+---
+title: Web 界面
+description: 通过浏览器访问 Cyberstrike——本地和远程配置
+sidebar:
+  order: 3
+  label: Web 界面
+---
+
+import { Badge } from "@astrojs/starlight/components"
+
+Cyberstrike 的 Web 界面在浏览器中提供完整的交互式体验——与 TUI 相同的对话和工具，以图形界面呈现。
+
+{/* TODO: Screenshot - Web UI */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: web-ui.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Cyberstrike Web 界面</p>
+</div>
+
+## 入门
+
+### 本地访问
+
+启动带有 Web UI 的 Cyberstrike：
+
+```bash
+cyberstrike web
+```
+
+在浏览器中打开 [http://localhost:4096](http://localhost:4096)。
+
+### 远程访问
+
+启动带有 Cloudflare Tunnel 的 Cyberstrike：
+
+```bash
+cyberstrike serve
+```
+
+这将创建一个安全的公共 URL，可以从任何地方访问。
+
+## 配置
+
+### 端口
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "server": {
+    "port": 4096
+  }
+}
+```
+
+或通过环境变量：
+
+```bash
+PORT=8080 cyberstrike web
+```
+
+### 主机名
+
+```json
+{
+  "server": {
+    "hostname": "0.0.0.0"
+  }
+}
+```
+
+默认绑定到 `127.0.0.1`（仅本地）。设置为 `0.0.0.0` 可从网络中的其他设备访问。
+
+### mDNS
+
+<Badge text="实验性" variant="caution" />
+
+启用 mDNS 以在本地网络上通过 `cyberstrike.local` 发现：
+
+```json
+{
+  "server": {
+    "mdns": true
+  }
+}
+```
+
+### CORS
+
+Web 界面的 CORS 设置允许以下来源：
+
+- `*.cyberstrike.io`（HTTPS）
+- `localhost:*`
+- `127.0.0.1:*`
+- Tauri 应用来源
+
+自定义来源可在配置中添加：
+
+```json
+{
+  "server": {
+    "cors": {
+      "origins": ["https://my-dashboard.example.com"]
+    }
+  }
+}
+```
+
+### 认证
+
+通过环境变量设置服务器密码：
+
+```bash
+CYBERSTRIKE_SERVER_PASSWORD=my-secret-password cyberstrike serve
+```
+
+设置后：
+
+- 所有非本地请求需要 Basic auth
+- 本地回环请求（127.0.0.1）跳过认证
+- Web UI 在连接时显示密码对话框
+
+## 远程访问
+
+### Cloudflare Tunnel
+
+`cyberstrike serve` 自动创建 Cloudflare Quick Tunnel：
+
+```bash
+cyberstrike serve
+```
+
+输出：
+
+```
+Server running at http://localhost:4096
+Tunnel URL: https://random-name.trycloudflare.com
+```
+
+隧道 URL 是随机的，每次重启 `cloudflared` 时都会改变。
+
+<Aside variant="tip">
+  不需要 Cloudflare 账户。Quick Tunnel 免费且无需配置。
+</Aside>
+
+### app.cyberstrike.io
+
+[app.cyberstrike.io](https://app.cyberstrike.io) 是一个托管的 Web 前端，可以连接到您的本地或远程 Cyberstrike 实例。
+
+使用流程：
+
+1. 启动 `cyberstrike serve`（获取隧道 URL）
+2. 打开 [app.cyberstrike.io](https://app.cyberstrike.io)
+3. 输入隧道 URL 和密码
+4. 连接
+
+这在安装不便的设备（如平板电脑或他人的电脑）上使用 Cyberstrike 时特别有用。
+
+### 自托管 Web UI
+
+Web UI 是一个静态 SPA，也可以自行部署。构建后的文件位于 `packages/app/dist/`。
+
+部署到 Cloudflare Pages：
+
+```bash
+npx wrangler pages deploy packages/app/dist --project-name cyberstrike-app
+```
+
+## 安全架构
+
+### 访问路径
+
+有三条到达 Cyberstrike 的访问路径：
+
+| 路径 | 描述 |
+|------|------|
+| **localhost 直连** | `http://localhost:4096` - 不需要认证 |
+| **CF Tunnel URL 直连** | `https://random-name.trycloudflare.com` - 需要认证 |
+| **app.cyberstrike.io → CF Tunnel** | 托管前端连接到您的隧道 - 需要认证 |
+
+### 认证流程
+
+1. Web UI 向后端发送健康检查请求
+2. 如果返回 `401`，显示密码对话框
+3. 密码通过 Basic auth 发送
+4. 后端验证并建立会话
+
+### 回环跳过
+
+来自 `127.0.0.1` 和 `::1` 的请求自动跳过认证。这使本地使用无需密码即可开箱即用。
+
+### Private Network Access (PNA)
+
+<Aside variant="caution">
+  Chrome 和基于 Chromium 的浏览器阻止 HTTPS 页面向 HTTP localhost 发起请求（Private Network Access）。这意味着 `app.cyberstrike.io`（HTTPS）无法直接连接到 `http://localhost:4096`。使用 Cloudflare Tunnel 可以绕过此限制。
+</Aside>
+
+## 相关文档
+
+- [TUI](/docs/usage/tui) - 终端界面
+- [CLI](/docs/usage/cli) - 命令行使用
+- [配置](/docs/configuration) - 所有配置选项

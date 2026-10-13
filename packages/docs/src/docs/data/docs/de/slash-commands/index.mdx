@@ -1,0 +1,80 @@
+---
+title: Slash-Befehle
+description: Schnellbefehle zur Steuerung von Cyberstrike ueber den Prompt
+sidebar:
+  order: 1
+  label: Uebersicht
+---
+
+Geben Sie `/` am Anfang der Eingabe ein, um die Befehlsliste zu oeffnen (oder druecken Sie `Ctrl+P`). Fuzzy-Matching filtert waehrend der Eingabe.
+
+<img src="/docs/images/gifs/g03-slash-autocomplete.gif" alt="Eingabe eines Schrägstrichs oeffnet das Befehlsmenue mit Fuzzy-Filterung" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/screenshots/s08-slash-menu.png" alt="Slash-Befehlsmenue geoeffnet durch Eingabe von / — Befehle nach Kategorie gruppiert" className="rounded-lg shadow-lg my-6 w-full" />
+
+## Sitzung
+
+| Befehl | Aliase | Kuerzel | Aktion |
+|--------|--------|---------|--------|
+| `/new` | `/clear` | `<leader>n` | Neue Sitzung starten |
+| `/sessions` | `/resume`, `/continue` | `<leader>l` | Sitzungsauswahl oeffnen |
+| `/rename` | | `ctrl+r` | Sitzung umbenennen |
+| `/compact` | `/summarize` | `<leader>c` | Sitzung komprimieren (zusammenfassen) |
+| `/fork` | | | Sitzung forken |
+| `/timeline` | | `<leader>g` | Sitzungszeitachse anzeigen |
+| `/export` | | `<leader>x` | Sitzung exportieren |
+| `/copy` | | | Letzte Nachricht kopieren |
+| `/share`, `/unshare` | | | Teilen / Teilen beenden |
+| `/undo`, `/redo` | | `<leader>u` / `<leader>r` | Letzte Nachricht rueckgaengig machen / wiederherstellen |
+| `/timestamps`, `/thinking` | | | Zeitstempel / Denkbloecke umschalten |
+
+## Auswahldialoge & System
+
+| Befehl | Kuerzel | Aktion |
+|--------|---------|--------|
+| `/models` | `<leader>m` | Modellauswahl |
+| `/agents` | `<leader>a` | Agentenauswahl |
+| `/themes` | `<leader>t` | Theme-Auswahl |
+| `/mcps` | | MCP-Server-Verwaltung |
+| `/bolt` | | Bolt-Server-Verwaltung |
+| `/connect` | | Anbieter verbinden |
+| `/editor` | `<leader>e` | Nachricht im Editor oeffnen |
+| `/skills` | | Geladene Skills durchsuchen |
+| `/status` | `<leader>s` | Status |
+| `/help` | | Hilfe |
+| `/exit` | | Beenden |
+
+## Web-Tests & Methodik
+
+| Befehl | Aliase | Aktion |
+|--------|--------|--------|
+| `/hackbrowser` | | Hacker Browser-Crawl starten |
+| `/hackbrowser-stop` | | Laufenden Crawl stoppen |
+| `/vulnerabilities` | `/vuln`, `/vulns` | Erfasste Schwachstellen ueberpruefen |
+| `/web` | `/endpoints`, `/roles`, `/credentials` | Web-Test-Kontext inspizieren |
+| `/methodology` | `/intel`, `/vrt`, `/chains` | Methodik-Engine-Ansichten |
+| `/report` | | Bericht erstellen |
+| `/qpause`, `/qresume` | | Ingest-Warteschlange pausieren / fortsetzen |
+
+<Aside variant="caution">
+  Befehlsnamen sind im Plural (`/models`, `/themes`, `/mcps`). Es gibt kein `/agent-settings`, `/settings`, `/config`, `/vim`, `/provider`, `/model` oder eine `<leader><leader>`/`Ctrl+Shift+P`-Befehlspalette — die Befehlsliste oeffnet sich mit `Ctrl+P`.
+</Aside>
+
+## @-Erwaehnungen
+
+Referenzieren Sie eine Datei (optional mit Zeilenbereich) in Ihrem Prompt mit `@`:
+
+```
+@src/auth.ts#45-60 check these lines for vulnerabilities
+```
+
+## Benutzerdefinierte Skills
+
+Verpacken Sie wiederverwendbare Methodik als `SKILL.md`-Dateien — siehe [Benutzerdefinierte Skills](/docs/slash-commands/custom-skills).
+
+## Verwandte Dokumentation
+
+- [Sitzungsbefehle](/docs/slash-commands/session-commands) - Sitzungslebenszyklus
+- [Navigationsbefehle](/docs/slash-commands/navigation-commands) - Auswahldialoge und Dialoge
+- [Benutzerdefinierte Skills](/docs/slash-commands/custom-skills) - Eigene Skills erstellen
+- [Tastaturkuerzel](/docs/getting-started/keyboard-shortcuts) - Tastenbelegungen

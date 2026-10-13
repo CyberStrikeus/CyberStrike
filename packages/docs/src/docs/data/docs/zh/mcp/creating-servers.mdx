@@ -1,0 +1,454 @@
+---
+title: 创建 MCP 服务器
+description: 为 Cyberstrike 构建自定义 MCP 服务器
+sidebar:
+  order: 6
+  label: 创建服务器
+---
+
+创建自定义 MCP 服务器以使用专业工具和集成扩展 Cyberstrike。当您需要 [Bolt](/docs/mcp/bolt) 未提供的能力时，这非常有用。
+
+<img src="/docs/images/diagrams/mcp-server-architecture.svg" alt="MCP 服务器架构：Cyberstrike 的 MCP 客户端通过 stdio 或 StreamableHTTP/SSE 连接到传输层，路由到请求处理器（tools/list、tools/call、resources）和您的工具函数" className="my-6" />
+
+## 概述
+
+MCP 服务器可以：
+
+- 向 Cyberstrike 暴露工具
+- 处理工具执行
+- 管理资源
+- 支持多种传输协议
+- 实现自定义集成
+
+## 快速开始
+
+### TypeScript 服务器
+
+```typescript title="src/index.ts"
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+
+const server = new Server({
+  name: "my-security-tools",
+  version: "1.0.0"
+}, {
+  capabilities: {
+    tools: {}
+  }
+});
+
+// Define tools
+server.setRequestHandler("tools/list", async () => ({
+  tools: [{
+    name: "port-scan",
+    description: "Scan ports on a target host",
+    inputSchema: {
+      type: "object",
+      properties: {
+        host: { type: "string", description: "Target hostname or IP" },
+        ports: { type: "string", description: "Port range (e.g., 1-1000)" }
+      },
+      required: ["host"]
+    }
+  }]
+}));
+
+// Handle tool calls
+server.setRequestHandler("tools/call", async (request) => {
+  const { name, arguments: args } = request.params;
+
+  if (name === "port-scan") {
+    const result = await scanPorts(args.host, args.ports);
+    return { content: [{ type: "text", text: result }] };
+  }
+
+  throw new Error(`Unknown tool: ${name}`);
+});
+
+// Start server
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+### Python 服务器
+
+```python title="server.py"
+import asyncio
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+
+server = Server("my-security-tools")
+
+@server.list_tools()
+async def list_tools():
+    return [{
+        "name": "port-scan",
+        "description": "Scan ports on a target host",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "host": {"type": "string", "description": "Target hostname"},
+                "ports": {"type": "string", "description": "Port range"}
+            },
+            "required": ["host"]
+        }
+    }]
+
+@server.call_tool()
+async def call_tool(name: str, arguments: dict):
+    if name == "port-scan":
+        result = await scan_ports(arguments["host"], arguments.get("ports"))
+        return [{"type": "text", "text": result}]
+    raise ValueError(f"Unknown tool: {name}")
+
+async def main():
+    async with stdio_server() as streams:
+        await server.run(streams[0], streams[1])
+
+asyncio.run(main())
+```
+
+## 项目结构
+
+### TypeScript 项目
+
+```
+my-mcp-server/
+├── src/
+│   ├── index.ts
+│   ├── tools/
+│   │   ├── port-scan.ts
+│   │   ├── vuln-scan.ts
+│   │   └── index.ts
+│   └── utils/
+│       └── helpers.ts
+├── package.json
+└── tsconfig.json
+```
+
+### package.json
+
+```json
+{
+  "name": "@myorg/mcp-security",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": {
+    "mcp-security": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}
+```
+
+## 工具定义
+
+### 输入模式
+
+```typescript
+const tool = {
+  name: "sql-injection-test",
+  description: "Test URL parameter for SQL injection",
+  inputSchema: {
+    type: "object",
+    properties: {
+      url: {
+        type: "string",
+        description: "Target URL with parameter"
+      },
+      parameter: {
+        type: "string",
+        description: "Parameter name to test"
+      },
+      technique: {
+        type: "string",
+        enum: ["boolean", "time", "error", "union"],
+        description: "Injection technique"
+      }
+    },
+    required: ["url", "parameter"]
+  }
+};
+```
+
+### 工具处理器
+
+```typescript
+async function handleSqlInjectionTest(args: {
+  url: string;
+  parameter: string;
+  technique?: string;
+}): Promise<string> {
+  const { url, parameter, technique = "boolean" } = args;
+
+  // Implement SQL injection testing
+  const result = await testSqlInjection(url, parameter, technique);
+
+  return JSON.stringify({
+    vulnerable: result.vulnerable,
+    technique: technique,
+    evidence: result.evidence,
+    payloads: result.successfulPayloads
+  }, null, 2);
+}
+```
+
+## 资源
+
+### 暴露资源
+
+```typescript
+server.setRequestHandler("resources/list", async () => ({
+  resources: [{
+    uri: "scan://results/latest",
+    name: "Latest Scan Results",
+    mimeType: "application/json"
+  }]
+}));
+
+server.setRequestHandler("resources/read", async (request) => {
+  const { uri } = request.params;
+
+  if (uri === "scan://results/latest") {
+    const results = await getLatestScanResults();
+    return {
+      contents: [{
+        uri,
+        mimeType: "application/json",
+        text: JSON.stringify(results)
+      }]
+    };
+  }
+});
+```
+
+## 传输选项
+
+### Stdio（默认）
+
+```typescript
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+### HTTP/SSE
+
+```typescript
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import express from "express";
+
+const app = express();
+const transport = new SSEServerTransport("/sse", app);
+
+app.listen(3000);
+await server.connect(transport);
+```
+
+<Aside variant="info">
+  Cyberstrike 连接到 **stdio** 服务器（本地）和 **StreamableHTTP/SSE** 服务器（远程）。没有 WebSocket 客户端传输——不要构建仅 WebSocket 的服务器。
+</Aside>
+
+## 注册到 Cyberstrike
+
+服务器运行后，将其添加到 `cyberstrike.json`。stdio 服务器是 `local` 条目，其中 `command` 是完整的 argv：
+
+```json title="cyberstrike.json"
+{
+  "mcp": {
+    "my-security-tools": {
+      "type": "local",
+      "command": ["node", "dist/index.js"]
+    }
+  }
+}
+```
+
+HTTP/SSE 服务器是 `remote` 条目：
+
+```json
+{
+  "mcp": {
+    "my-security-tools": {
+      "type": "remote",
+      "url": "https://localhost:3000/sse"
+    }
+  }
+}
+```
+
+或在 TUI 中使用 `/mcps` 交互式添加。本地和远程服务器的完整模式请参阅[本地服务器](/docs/mcp/local-servers)和[远程服务器](/docs/mcp/remote-servers)。
+
+## 错误处理
+
+### 工具错误
+
+```typescript
+server.setRequestHandler("tools/call", async (request) => {
+  try {
+    const result = await executeTool(request.params);
+    return { content: [{ type: "text", text: result }] };
+  } catch (error) {
+    return {
+      content: [{
+        type: "text",
+        text: `Error: ${error.message}`
+      }],
+      isError: true
+    };
+  }
+});
+```
+
+### 验证错误
+
+```typescript
+function validateInput(args: unknown, schema: object): void {
+  // Validate against JSON schema
+  const errors = validate(args, schema);
+  if (errors.length > 0) {
+    throw new Error(`Invalid input: ${errors.join(", ")}`);
+  }
+}
+```
+
+## 安全注意事项
+
+### 输入验证
+
+```typescript
+function sanitizeHost(host: string): string {
+  // Validate host format
+  if (!/^[\w.-]+$/.test(host)) {
+    throw new Error("Invalid host format");
+  }
+  return host;
+}
+```
+
+### 防止命令注入
+
+```typescript
+import { execFile } from "child_process";
+
+// Safe: Uses execFile with array arguments
+async function safeScan(host: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile("nmap", ["-sV", host], (error, stdout) => {
+      if (error) reject(error);
+      else resolve(stdout);
+    });
+  });
+}
+
+// Unsafe: Don't do this
+// exec(`nmap -sV ${host}`) // Command injection vulnerability!
+```
+
+### 速率限制
+
+```typescript
+import { RateLimiter } from "limiter";
+
+const limiter = new RateLimiter({
+  tokensPerInterval: 10,
+  interval: "minute"
+});
+
+async function handleToolCall(request) {
+  await limiter.removeTokens(1);
+  // Process request
+}
+```
+
+## 测试
+
+### 单元测试
+
+```typescript
+import { describe, it, expect } from "vitest";
+
+describe("port-scan tool", () => {
+  it("should scan specified ports", async () => {
+    const result = await handlePortScan({
+      host: "localhost",
+      ports: "80,443"
+    });
+
+    expect(result).toContain("80");
+    expect(result).toContain("443");
+  });
+});
+```
+
+### 集成测试
+
+```typescript
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+
+describe("MCP Server", () => {
+  it("should list tools", async () => {
+    const client = await createTestClient();
+    const tools = await client.request("tools/list", {});
+
+    expect(tools.tools).toContainEqual(
+      expect.objectContaining({ name: "port-scan" })
+    );
+  });
+});
+```
+
+## 分发
+
+### npm 包
+
+```bash
+npm publish --access public
+```
+
+### Docker 镜像
+
+```dockerfile
+FROM node:20-slim
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --production
+COPY dist ./dist
+
+ENTRYPOINT ["node", "dist/index.js"]
+```
+
+### 二进制分发
+
+```bash
+# Using pkg
+npx pkg . --targets node20-linux-x64,node20-macos-x64,node20-win-x64
+```
+
+## 最佳实践
+
+1. **清晰的描述** - 详细记录工具
+2. **输入验证** - 验证所有输入
+3. **错误处理** - 返回有意义的错误
+4. **日志记录** - 记录操作以便调试
+5. **测试** - 彻底测试所有工具
+6. **安全** - 防止注入攻击
+
+<Aside variant="tip">
+  先使用 stdio 传输以保持简单，然后添加 HTTP/SSE 以支持远程访问。
+</Aside>
+
+## 相关文档
+
+- [Bolt / MCP 概述](/docs/mcp) - 架构和概念
+- [Bolt](/docs/mcp/bolt) - 参考 Bolt 的实现
+- [本地服务器](/docs/mcp/local-servers) - 本地服务器配置
+- [远程服务器](/docs/mcp/remote-servers) - HTTP 传输配置
+- [工具概述](/docs/tools) - 内置工具

@@ -1,0 +1,67 @@
+---
+title: 桌面应用
+description: Cyberstrike 桌面应用程序——macOS、Windows 和 Linux
+sidebar:
+  order: 4
+  label: 桌面应用
+---
+
+import { Badge } from "@astrojs/starlight/components"
+
+<Badge text="即将推出" variant="caution" size="large" />
+
+Cyberstrike 桌面应用为 macOS、Windows 和 Linux 提供原生桌面体验。
+
+{/* TODO: Screenshot - Desktop app */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: desktop-app.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Cyberstrike 桌面应用</p>
+</div>
+
+## 概述
+
+桌面应用将 Cyberstrike 的 Web 界面包装在原生窗口中，自动管理后端服务器作为子进程。无需手动启动服务器或打开浏览器。
+
+## 功能
+
+- **原生窗口** - 拖放、系统菜单、键盘快捷键
+- **自动服务器管理** - 后端在应用启动时自动运行
+- **系统托盘** - 最小化到托盘以便后台运行
+- **多平台** - macOS、Windows、Linux
+- **自动更新** - 通过应用内更新保持最新
+
+## 平台支持
+
+| 平台 | 架构 | 状态 |
+|------|------|------|
+| macOS | Apple Silicon (arm64) | 🚧 开发中 |
+| macOS | Intel (x64) | 🚧 开发中 |
+| Windows | x64 | 🚧 开发中 |
+| Linux | x64 | 🚧 开发中 |
+| Linux | arm64 | 🚧 开发中 |
+
+## 开发
+
+要运行桌面应用的开发版本：
+
+```bash
+bun run --cwd packages/desktop dev
+```
+
+这将启动带有热重载的 Electron 开发服务器。
+
+## 架构
+
+桌面应用使用 Electron + electron-vite 构建：
+
+- **主进程** - 管理窗口和后端服务器子进程
+- **渲染进程** - 运行 Cyberstrike Web 应用
+- **预加载** - 在渲染进程和 Node.js 之间桥接
+
+后端作为子 Bun 进程在 `:4096` 上运行，Web 应用连接到 `localhost:4096`。
+
+## 相关文档
+
+- [Web 界面](/docs/usage/web) - 基于浏览器的替代方案
+- [TUI](/docs/usage/tui) - 终端界面
+- [CLI](/docs/usage/cli) - 命令行使用

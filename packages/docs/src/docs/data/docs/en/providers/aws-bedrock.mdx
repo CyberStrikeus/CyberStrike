@@ -207,14 +207,7 @@ export AWS_BEARER_TOKEN_BEDROCK="your-bearer-token"
 cyberstrike
 ```
 
-Or store it through the CyberStrike CLI:
-
-```bash
-cyberstrike auth amazon-bedrock
-# Paste your bearer token when prompted
-```
-
-This saves the token in CyberStrike's internal `auth.json` so you don't need to set it every time.
+Or store it through the TUI — run `/connect`, select **Amazon Bedrock**, and paste your bearer token when prompted. This saves the token so you don't need to set it every time.
 
 <Aside variant="tip">
   Bearer token has the **highest priority** — when set, it bypasses the entire AWS credential chain (profiles, access keys, IAM roles, etc.).
@@ -258,7 +251,7 @@ When multiple credentials are available, CyberStrike uses this priority order:
 
 | Priority | Method | Source |
 |----------|--------|--------|
-| 1 (highest) | Bearer Token | `AWS_BEARER_TOKEN_BEDROCK` env var or `cyberstrike auth` |
+| 1 (highest) | Bearer Token | `AWS_BEARER_TOKEN_BEDROCK` env var or `/connect` in TUI |
 | 2 | AWS Credential Chain | `fromNodeProviderChain` resolves in standard AWS SDK order: env vars → profile → SSO → web identity → ECS container → EC2 IMDS |
 
 ## IAM Permissions
@@ -349,14 +342,7 @@ For private network access (no internet traffic), configure a VPC endpoint:
 
 ## Usage
 
-Once authentication is configured, select a Bedrock model:
-
-```bash
-# Specify a model directly
-cyberstrike --model amazon-bedrock/anthropic.claude-sonnet-4-20250514-v1:0
-
-# Or set a default model in cyberstrike.json
-```
+Once authentication is configured, select a Bedrock model via `/models` in the TUI, or set a default in config:
 
 ```json title="cyberstrike.json"
 {

@@ -1,0 +1,134 @@
+---
+title: 初めてのWebアプリケーション評価
+description: CyberstrikeによるWebアプリケーションセキュリティ評価の完全なウォークスルー
+sidebar:
+  order: 4
+  label: 初めての評価
+---
+
+このガイドでは、Cyberstrikeの起動からトリアージ済みの脆弱性発見事項まで、実際のWebアプリケーション評価を順を追って説明します。管理者と一般ユーザーの2つのロールを持つWebアプリをテストし、認可、インジェクション、ロジックの欠陥を見つけます。
+
+## 1. Cyberstrikeの起動
+
+```bash
+cyberstrike
+```
+
+TUIが開き、`cyberstrike`プライマリエージェントがロードされ、入力可能な状態になります。
+
+## 2. セッションの開始
+
+何かを入力してセッションを開始します。テスト対象を説明してください：
+
+```
+> I'm testing https://app.example.com — it's a SaaS platform with admin and regular user roles.
+  I have credentials for both. Let's find auth bypass, IDOR, injection, and business logic issues.
+```
+
+エージェントが確認し、スコープ、除外エリア、追加コンテキストについて質問する場合があります。
+
+## 3. セッション名の変更
+
+`Ctrl+R`を押して、意味のある名前にセッション名を変更します：
+
+```
+example-com-web-assessment
+```
+
+後で`/sessions`で見つけやすくなります。
+
+## 4. HackBrowserの起動
+
+`/hackbrowser`スラッシュコマンドを実行します。以下のフィールドを持つ起動ダイアログが開きます：
+
+- **ターゲットURL** — `https://app.example.com`を入力
+- **認証情報** — 2つ追加：`userA`（管理者）と`userB`（一般ユーザー）
+- **スコープ** — デフォルトは`*.example.com`、APIが別ドメインの場合は調整
+- **ステップ** — クロールするページ数（デフォルト50）
+
+ダイアログを確認します。認証情報を定義したため、HackBrowserはVisibleモードで開きます。
+
+## 5. userAとしてログイン
+
+Chromiumブラウザウィンドウが開きます。これがHackBrowserで、すべてのページにUIパネルオーバーレイを提供する組み込みのテレメトリ拡張機能があります。**userA**（管理者アカウント）として手動でログインします。
+
+ログインしたら、HackBrowserパネルの**Record**ボタンを押します。これにより**AINavigator** — LLM駆動のクロールセッションが開始されます。AIがページのアクセシビリティツリーを読み取り、どのリンクをたどるか、どのフォームに入力するか、どのボタンをクリックするかを決定し、userAとしてアプリを自律的にナビゲートします。
+
+## 6. userBとしてログイン
+
+**userB**（一般ユーザー）用に2番目のブラウザウィンドウが自動的に開きます。userBの認証情報で手動ログインし、そのパネルの**Record**を押します。
+
+これでHackBrowserが両方のロールでアプリケーションをクロールしています。すべてのHTTPリクエストにはそれを行った認証情報がタグ付けされるため、パイプラインはどのロールがどのエンドポイントにアクセスしたかを把握します。
+
+## 7. 次に起こること
+
+HackBrowserがクロールしている間、ハーネスの残りはすでに動作しています：
+
+**トラフィックキャプチャ** — すべてのリクエスト/レスポンスペアが、完全なヘッダー、ボディ、UIコンテキスト（リクエスト発火時にどのフォームフィールドがreadonly、hidden、disabledだったか）と共に[Vortex](/docs/features/vortex)に流れます。
+
+**シグナル生成** — Vortexがキャプチャされたトラフィックに対してルールを適用し、シグナルを生成します：認証パターン、隠しパラメータ、不審なレスポンス形状、ロール固有のエンドポイントアクセス。
+
+**WSTGディスパッチ** — `wstg-agent`がシグナルを読み取り、専門エージェントを配置します。パスにユーザーIDを含むリクエストは`wstg-authorization`をトリガーしてIDORテストを行います。フォーム入力付きのPOSTは`wstg-input-validation`をトリガーしてインジェクションテストを行います。ログインエンドポイントは`wstg-authentication`をトリガーします。
+
+**クロスロール比較** — userAとuserBの両方が同じアプリをクロールしたため、パイプラインは各ロールがどのエンドポイントに到達したか、どのUI要素が各ロールに表示されたか、他の認証情報でリクエストをリプレイした時にロール境界が維持されるかを比較します。
+
+**エスカレーション** — 専門エージェントの完了後、`escalation-hunter`がすべての発見事項を横断して連鎖を検出します。中程度のIDORと低レベルのレート制限バイパスの組み合わせが、重大なアカウント乗っ取りにエスカレートする可能性があります。
+
+**トリアージ** — `triage`エージェントが各ドラフト発見事項のHTTPエビデンスを独立してリプレイします。リプレイで確認された発見事項のみが「トリアージ済み」ステータスに昇格されます。誤検知は拒否されます。曖昧な発見事項はレビュー用のドラフトとして残ります。
+
+## 8. 発見事項の確認
+
+クロールが完了しテストが終了したら、結果を確認します：
+
+| コマンド | 表示内容 |
+|---------|---------|
+| `/vulnerabilities` | 重大度、ステータス、エビデンス付きのすべての発見事項 |
+| `/web` | キャプチャされたエンドポイント、ロール、認証情報、オブジェクト |
+| `/methodology` | WSTGカバレッジ — テスト済みカテゴリと保留中カテゴリ |
+| `/report` | 構造化レポートの生成 |
+
+### 発見事項のフォーマット
+
+各発見事項には以下が含まれます：
+
+```
+FINDING: IDOR in User Profile API
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Severity: High
+CWE: CWE-639
+Description: GET /api/users/{id} returns full profile data for any user ID
+             when accessed with userB credentials (regular user).
+Evidence: Replayed GET /api/users/1 with userB token → 200, body contains
+          admin user's email and phone number.
+Status: triaged (verified by replay)
+Recommendation: Enforce ownership check — users should only access their own profile.
+```
+
+### 重大度レベル
+
+| レベル | CVSS | 意味 |
+|-------|------|------|
+| Critical | 9.0-10.0 | 即座の悪用リスク |
+| High | 7.0-8.9 | 重大なセキュリティへの影響 |
+| Medium | 4.0-6.9 | 中程度のリスク |
+| Low | 0.1-3.9 | 軽微な懸念 |
+| Info | 0.0 | 情報提供 |
+
+## 9. エクスポートと共有
+
+| コマンド | アクション |
+|---------|----------|
+| `/report` | すべての発見事項を含むペンテストレポートの生成 |
+| `/share` | 共有可能なセッションリンクの作成 |
+| `/export` | セッショントランスクリプトのエクスポート |
+
+## 次のステップ
+
+- [セキュリティエージェント](/docs/agents) — WSTGパイプラインと専門エージェントの理解
+- [機能](/docs/features) — HackBrowser、Vortex、Bolt、MCPの詳細
+- [設定](/docs/configuration) — スコープ、権限、デフォルトのカスタマイズ
+- [スラッシュコマンド](/docs/slash-commands) — 完全なコマンドリファレンス
+
+<Aside variant="tip">
+  長いセッションを要約してコンテキストを失わずにテストを続けるには`/compact`を使用します。
+</Aside>

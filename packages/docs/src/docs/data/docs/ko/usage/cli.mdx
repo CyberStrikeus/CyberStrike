@@ -1,0 +1,190 @@
+---
+title: CLI
+description: 비대화형 보안 평가를 위한 명령줄 인터페이스
+sidebar:
+  order: 2
+  label: CLI
+---
+
+CyberStrike CLI는 인수 없이 실행하면 기본적으로 [TUI](/docs/usage/tui)를 시작합니다. 비대화형 및 프로그래밍적 사용을 위한 명령도 지원합니다.
+
+```bash
+# 대화형 TUI 시작
+cyberstrike
+
+# 단일 프롬프트 실행
+cyberstrike run "scan example.com for open ports"
+```
+
+{/* TODO: Video — CLI run command executing a security prompt and streaming output */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-run-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">스트리밍 에이전트 출력이 있는 비대화형 run 명령 (~12초)</p>
+</div>
+
+## 사용 가능한 명령
+
+| 명령 | 설명 |
+|------|------|
+| `run` | 직접 프롬프트로 비대화형 모드 |
+| `serve` | API 접근을 위한 헤드리스 HTTP 서버 |
+| `web` | [웹 인터페이스](/docs/usage/web)가 있는 헤드리스 서버 |
+| `attach` | 실행 중인 서버에 TUI 연결 |
+| `auth` | 자격 증명 및 제공자 로그인 관리 |
+| `agent` | 보안 에이전트 관리 |
+| `mcp` | MCP 서버 관리 |
+| `models` | 제공자에서 사용 가능한 모델 목록 |
+| `session` | 세션 관리 |
+| `stats` | 토큰 사용량 및 비용 통계 표시 |
+| `export` | 세션 데이터를 JSON으로 내보내기 |
+| `import` | JSON 파일 또는 공유 URL에서 가져오기 |
+| `upgrade` | 최신 또는 특정 버전으로 업데이트 |
+| `uninstall` | CyberStrike 및 관련 파일 제거 |
+
+## 전역 플래그
+
+| 플래그 | 별칭 | 설명 |
+|--------|------|------|
+| `--help` | `-h` | 도움말 정보 표시 |
+| `--version` | `-v` | 버전 출력 |
+| `--print-logs` | | stderr로 로그 출력 |
+| `--log-level` | | 레벨 설정: `DEBUG`, `INFO`, `WARN`, `ERROR` |
+
+## run
+
+대화형 모드에 들어가지 않고 단일 프롬프트를 실행합니다.
+
+```bash
+cyberstrike run [message..] [options]
+```
+
+### 옵션
+
+| 옵션 | 별칭 | 설명 |
+|------|------|------|
+| `--model <model>` | `-m` | `provider/model` 형식의 모델 |
+| `--agent <name>` | | 사용할 보안 에이전트 |
+| `--continue` | `-c` | 마지막 세션 계속 |
+| `--session <id>` | `-s` | 특정 세션 재개 |
+| `--file <path>` | `-f` | 메시지에 파일 첨부 |
+| `--format <type>` | | 출력 형식: `default` 또는 `json` |
+| `--share` | | 세션 공유 |
+| `--title <text>` | | 세션 제목 설정 |
+| `--variant <type>` | | 모델 변형 (`high`, `max`, `minimal`) |
+
+### 예시
+
+```bash
+# 보안 스캔 실행
+cyberstrike run "scan example.com for XSS vulnerabilities"
+
+# 검토를 위해 설정 파일 첨부
+cyberstrike run "analyze this config for misconfigurations" -f nginx.conf
+
+# 파이프라인 통합을 위해 JSON으로 출력
+cyberstrike run "list all open ports" --format json
+
+# 이전 세션 계속
+cyberstrike run "now check for SQLi" --continue
+```
+
+{/* TODO: Screenshot — CLI JSON output format example */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: cli-json-output.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">--format json 플래그의 구조화된 JSON 출력</p>
+</div>
+
+### 파이프 입력
+
+다른 도구와의 통합을 위해 stdin에서 입력을 받습니다:
+
+```bash
+echo "analyze this code for vulnerabilities" | cyberstrike run
+nmap -sV target.local | cyberstrike run "analyze these scan results"
+cat report.json | cyberstrike run "summarize findings"
+```
+
+## serve
+
+UI 없이 헤드리스 HTTP API 서버를 시작합니다. 통합, CI/CD 파이프라인, 원격 접근에 유용합니다.
+
+```bash
+cyberstrike serve [options]
+```
+
+| 옵션 | 설명 |
+|------|------|
+| `--port <number>` | 서버 포트 (기본값: 무작위 사용 가능 포트) |
+| `--hostname <address>` | 바인드 주소 (기본값: `127.0.0.1`) |
+
+<Aside variant="caution">
+  **인증:** 네트워크에 서버를 노출할 때 `CYBERSTRIKE_SERVER_PASSWORD`를 설정하세요. 설정하지 않으면 서버가 보안되지 않습니다.
+</Aside>
+
+```bash
+# 포트 4096에서 API 서버 시작
+CYBERSTRIKE_SERVER_PASSWORD=secret cyberstrike serve --port 4096
+```
+
+{/* TODO: Video — Starting serve and piping nmap output into cyberstrike run */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-pipe-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">nmap 출력을 cyberstrike run으로 파이핑하여 분석 (~10초)</p>
+</div>
+
+## attach
+
+이미 실행 중인 CyberStrike 서버에 TUI를 연결합니다. 여러 터미널이 동일한 세션을 공유할 수 있습니다.
+
+```bash
+cyberstrike attach <url>
+```
+
+```bash
+# 한 터미널에서 서버 시작
+cyberstrike web --port 4096
+
+# 다른 터미널에서 연결
+cyberstrike attach http://localhost:4096
+```
+
+## upgrade
+
+CyberStrike를 최신 버전 또는 특정 대상으로 업데이트합니다.
+
+```bash
+# 최신 안정 버전으로 업그레이드
+cyberstrike upgrade
+
+# 특정 버전으로 업그레이드
+cyberstrike upgrade 1.1.6
+
+# 최신 베타로 업그레이드
+cyberstrike upgrade --method npm
+```
+
+지원 방법: `curl`, `npm`, `pnpm`, `bun`, `brew`, `choco`, `scoop`.
+
+## 환경 변수
+
+| 변수 | 설명 |
+|------|------|
+| `CYBERSTRIKE_PROVIDER` | 기본 AI 제공자 |
+| `CYBERSTRIKE_MODEL` | 기본 모델 |
+| `CYBERSTRIKE_AGENT` | 기본 보안 에이전트 |
+| `CYBERSTRIKE_SERVER_PASSWORD` | 서버 인증 비밀번호 |
+| `CYBERSTRIKE_SERVER_USERNAME` | 서버 사용자 이름 (기본값: `cyberstrike`) |
+| `CYBERSTRIKE_DISABLE_AUTOUPDATE` | 자동 업데이트 확인 비활성화 |
+| `CYBERSTRIKE_TUI_CONFIG` | 커스텀 TUI 설정 경로 |
+| `ANTHROPIC_API_KEY` | Anthropic API 키 |
+| `OPENAI_API_KEY` | OpenAI API 키 |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI (Gemini) API 키 |
+| `OPENROUTER_API_KEY` | OpenRouter API 키 |
+
+## 종료 코드
+
+| 코드 | 의미 |
+|------|------|
+| `0` | 성공 |
+| `1` | 오류 — 유효하지 않거나 알 수 없는 인수, 또는 치명적 오류 |
+| `130` | 중단됨 (Ctrl+C) |

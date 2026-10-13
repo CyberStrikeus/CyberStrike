@@ -1,0 +1,190 @@
+---
+title: CLI
+description: Kommandozeilen-Schnittstelle fuer nicht-interaktive Sicherheitsbewertungen
+sidebar:
+  order: 2
+  label: CLI
+---
+
+CyberStrike CLI startet standardmaessig die [TUI](/docs/usage/tui), wenn es ohne Argumente ausgefuehrt wird. Es akzeptiert auch Befehle fuer nicht-interaktive und programmatische Nutzung.
+
+```bash
+# Interaktive TUI starten
+cyberstrike
+
+# Einzelnen Prompt ausfuehren
+cyberstrike run "scan example.com for open ports"
+```
+
+{/* TODO: Video — CLI run command executing a security prompt and streaming output */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-run-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Nicht-interaktiver Run-Befehl mit gestreamter Agentenausgabe (~12s)</p>
+</div>
+
+## Verfuegbare Befehle
+
+| Befehl | Beschreibung |
+|--------|--------------|
+| `run` | Nicht-interaktiver Modus mit direktem Prompt |
+| `serve` | Headless-HTTP-Server fuer API-Zugriff |
+| `web` | Headless-Server mit [Web-Oberflaeche](/docs/usage/web) |
+| `attach` | TUI mit einem laufenden Server verbinden |
+| `auth` | Anmeldedaten und Anbieter-Login verwalten |
+| `agent` | Sicherheitsagenten verwalten |
+| `mcp` | MCP-Server verwalten |
+| `models` | Verfuegbare Modelle von Anbietern auflisten |
+| `session` | Sitzungen verwalten |
+| `stats` | Token-Verbrauch und Kostenstatistiken anzeigen |
+| `export` | Sitzungsdaten als JSON exportieren |
+| `import` | Aus JSON-Datei oder Share-URL importieren |
+| `upgrade` | Auf neueste oder bestimmte Version aktualisieren |
+| `uninstall` | CyberStrike und zugehoerige Dateien entfernen |
+
+## Globale Flags
+
+| Flag | Alias | Beschreibung |
+|------|-------|--------------|
+| `--help` | `-h` | Hilfe anzeigen |
+| `--version` | `-v` | Version ausgeben |
+| `--print-logs` | | Logs nach stderr ausgeben |
+| `--log-level` | | Level setzen: `DEBUG`, `INFO`, `WARN`, `ERROR` |
+
+## run
+
+Einen einzelnen Prompt ausfuehren, ohne den interaktiven Modus zu betreten.
+
+```bash
+cyberstrike run [message..] [options]
+```
+
+### Optionen
+
+| Option | Alias | Beschreibung |
+|--------|-------|--------------|
+| `--model <model>` | `-m` | Modell im Format `provider/model` |
+| `--agent <name>` | | Zu verwendender Sicherheitsagent |
+| `--continue` | `-c` | Letzte Sitzung fortsetzen |
+| `--session <id>` | `-s` | Bestimmte Sitzung wiederaufnehmen |
+| `--file <path>` | `-f` | Datei(en) an Nachricht anhaengen |
+| `--format <type>` | | Ausgabeformat: `default` oder `json` |
+| `--share` | | Sitzung teilen |
+| `--title <text>` | | Sitzungstitel setzen |
+| `--variant <type>` | | Modellvariante (`high`, `max`, `minimal`) |
+
+### Beispiele
+
+```bash
+# Sicherheitsscan ausfuehren
+cyberstrike run "scan example.com for XSS vulnerabilities"
+
+# Konfigurationsdatei zur Ueberpruefung anhaengen
+cyberstrike run "analyze this config for misconfigurations" -f nginx.conf
+
+# Ausgabe als JSON fuer Pipeline-Integration
+cyberstrike run "list all open ports" --format json
+
+# Vorherige Sitzung fortsetzen
+cyberstrike run "now check for SQLi" --continue
+```
+
+{/* TODO: Screenshot — CLI JSON output format example */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: cli-json-output.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Strukturierte JSON-Ausgabe mit dem --format json Flag</p>
+</div>
+
+### Eingabe weiterleiten
+
+Eingaben von stdin fuer die Integration mit anderen Tools akzeptieren:
+
+```bash
+echo "analyze this code for vulnerabilities" | cyberstrike run
+nmap -sV target.local | cyberstrike run "analyze these scan results"
+cat report.json | cyberstrike run "summarize findings"
+```
+
+## serve
+
+Einen Headless-HTTP-API-Server ohne UI starten. Nuetzlich fuer Integrationen, CI/CD-Pipelines und Fernzugriff.
+
+```bash
+cyberstrike serve [options]
+```
+
+| Option | Beschreibung |
+|--------|--------------|
+| `--port <number>` | Server-Port (Standard: zufaellig verfuegbar) |
+| `--hostname <address>` | Bind-Adresse (Standard: `127.0.0.1`) |
+
+<Aside variant="caution">
+  **Authentifizierung:** Setzen Sie `CYBERSTRIKE_SERVER_PASSWORD`, wenn Sie den Server im Netzwerk freigeben. Ohne dieses Passwort ist der Server ungesichert.
+</Aside>
+
+```bash
+# API-Server auf Port 4096 starten
+CYBERSTRIKE_SERVER_PASSWORD=secret cyberstrike serve --port 4096
+```
+
+{/* TODO: Video — Starting serve and piping nmap output into cyberstrike run */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-pipe-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">nmap-Ausgabe in cyberstrike run zur Analyse weiterleiten (~10s)</p>
+</div>
+
+## attach
+
+Eine TUI mit einem bereits laufenden CyberStrike-Server verbinden. Dies ermoeglicht mehreren Terminals, dieselben Sitzungen zu teilen.
+
+```bash
+cyberstrike attach <url>
+```
+
+```bash
+# Server in einem Terminal starten
+cyberstrike web --port 4096
+
+# Von einem anderen Terminal verbinden
+cyberstrike attach http://localhost:4096
+```
+
+## upgrade
+
+CyberStrike auf die neueste Version oder ein bestimmtes Ziel aktualisieren.
+
+```bash
+# Auf neueste stabile Version aktualisieren
+cyberstrike upgrade
+
+# Auf bestimmte Version aktualisieren
+cyberstrike upgrade 1.1.6
+
+# Auf neueste Beta aktualisieren
+cyberstrike upgrade --method npm
+```
+
+Unterstuetzte Methoden: `curl`, `npm`, `pnpm`, `bun`, `brew`, `choco`, `scoop`.
+
+## Umgebungsvariablen
+
+| Variable | Beschreibung |
+|----------|--------------|
+| `CYBERSTRIKE_PROVIDER` | Standard-KI-Anbieter |
+| `CYBERSTRIKE_MODEL` | Standardmodell |
+| `CYBERSTRIKE_AGENT` | Standard-Sicherheitsagent |
+| `CYBERSTRIKE_SERVER_PASSWORD` | Server-Authentifizierungspasswort |
+| `CYBERSTRIKE_SERVER_USERNAME` | Server-Benutzername (Standard: `cyberstrike`) |
+| `CYBERSTRIKE_DISABLE_AUTOUPDATE` | Automatische Update-Pruefungen deaktivieren |
+| `CYBERSTRIKE_TUI_CONFIG` | Benutzerdefinierter TUI-Konfigurationspfad |
+| `ANTHROPIC_API_KEY` | Anthropic API-Schluessel |
+| `OPENAI_API_KEY` | OpenAI API-Schluessel |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI (Gemini) API-Schluessel |
+| `OPENROUTER_API_KEY` | OpenRouter API-Schluessel |
+
+## Exit-Codes
+
+| Code | Bedeutung |
+|------|-----------|
+| `0` | Erfolg |
+| `1` | Fehler — ungueltige/unbekannte Argumente oder ein fataler Fehler |
+| `130` | Unterbrochen (Ctrl+C) |

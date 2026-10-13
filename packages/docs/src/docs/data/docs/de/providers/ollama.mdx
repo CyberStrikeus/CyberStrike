@@ -1,0 +1,323 @@
+---
+title: Ollama (Lokal)
+description: Lokale KI-Modelle mit Ollama fuer Cyberstrike ausfuehren
+sidebar:
+  order: 6
+  label: Ollama
+---
+
+Ollama ermoeglicht das lokale Ausfuehren von KI-Modellen auf Ihrem Rechner fuer private, Offline-Sicherheitstests.
+
+{/* TODO: Screenshot - Ollama model selection */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: ollama-model-select.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Ollama lokale Modellauswahl</p>
+</div>
+
+## Ueberblick
+
+Vorteile von Ollama:
+
+- Vollstaendiger Datenschutz
+- Keine API-Kosten
+- Offline-Betrieb
+- Keine Rate-Limits
+- Volle Kontrolle ueber Modelle
+
+## Installation
+
+### macOS
+
+```bash
+brew install ollama
+```
+
+### Linux
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+### Windows
+
+Download von [ollama.com/download](https://ollama.com/download)
+
+## Ollama starten
+
+### Server starten
+
+```bash
+ollama serve
+```
+
+Der Server laeuft standardmaessig auf `http://localhost:11434`.
+
+### Installation ueberpruefen
+
+```bash
+ollama --version
+```
+
+## Verfuegbare Modelle
+
+### Empfohlene Modelle
+
+| Modell | Groesse | Am besten fuer |
+|--------|---------|----------------|
+| llama3.3:70b | 40GB | Beste Qualitaet, erfordert High-End-GPU |
+| llama3.3 | 4,7GB | Gutes Gleichgewicht zwischen Qualitaet und Geschwindigkeit |
+| codellama:34b | 19GB | Code-Analyse |
+| mistral | 4,1GB | Schneller Allzweck |
+| mixtral:8x7b | 26GB | Hohe Qualitaet, effizient |
+| deepseek-coder:33b | 19GB | Code-Sicherheits-Review |
+| qwen2.5:72b | 41GB | Hervorragendes Reasoning |
+
+### Modelle herunterladen
+
+```bash
+# Empfohlen fuer Sicherheitstests
+ollama pull llama3.3
+
+# Fuer Code-Review
+ollama pull codellama:34b
+
+# Leichtgewichtige Option
+ollama pull mistral
+```
+
+### Installierte Modelle auflisten
+
+```bash
+ollama list
+```
+
+## Konfiguration
+
+Ollama ist **kein** eingebauter Anbieter — Sie definieren ihn als benutzerdefinierten OpenAI-kompatiblen Anbieter. Der Schluessel ist das Top-Level-Feld `api` (die Basis-URL, mit dem `/v1`-Suffix); die Auflistung unter `provider` mit einer `api`-URL bewirkt, dass Cyberstrike ihn laedt (keine Authentifizierung erforderlich). Definieren Sie die heruntergeladenen Modelle unter `models`:
+
+### Grundeinrichtung
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "ollama": {
+      "name": "Ollama",
+      "api": "http://localhost:11434/v1",
+      "models": {
+        "llama3.3": { "name": "Llama 3.3" }
+      }
+    }
+  },
+  "model": "ollama/llama3.3"
+}
+```
+
+`npm` verwendet standardmaessig `@ai-sdk/openai-compatible`, daher muessen Sie es nicht setzen.
+
+### Benutzerdefinierter Host
+
+Fuer einen Remote-Ollama-Server aendern Sie die `api`-URL:
+
+```json
+{
+  "provider": {
+    "ollama": {
+      "name": "Ollama",
+      "api": "http://192.168.1.100:11434/v1",
+      "models": { "llama3.3": { "name": "Llama 3.3" } }
+    }
+  }
+}
+```
+
+## Verwendung
+
+Verwenden Sie `/models` in der TUI, um ein Ollama-Modell auszuwaehlen, oder setzen Sie es als Standard in Ihrer Konfiguration.
+
+## Modellkonfiguration
+
+### Kontextlaenge
+
+Kontextfenster erhoehen:
+
+```bash
+ollama run llama3.3 --num-ctx 8192
+```
+
+Oder im Modelfile:
+
+```
+FROM llama3.3
+PARAMETER num_ctx 8192
+```
+
+### GPU-Schichten
+
+GPU-Nutzung steuern:
+
+```bash
+OLLAMA_NUM_GPU=999 ollama serve  # Alle GPU-Schichten verwenden
+OLLAMA_NUM_GPU=0 ollama serve    # Nur CPU
+```
+
+### Speicherverwaltung
+
+```bash
+# VRAM-Nutzung begrenzen
+OLLAMA_MAX_VRAM=8G ollama serve
+```
+
+## Benutzerdefinierte Modelle
+
+### Modelfile erstellen
+
+```dockerfile title="Modelfile"
+FROM llama3.3
+
+SYSTEM """
+You are a security testing assistant specialized in:
+- Web application vulnerabilities
+- Code security review
+- Network penetration testing
+
+Always follow OWASP guidelines and report findings with:
+- Vulnerability name
+- Severity (Critical/High/Medium/Low)
+- Evidence
+- Remediation steps
+"""
+
+PARAMETER temperature 0.7
+PARAMETER num_ctx 8192
+```
+
+### Benutzerdefiniertes Modell erstellen
+
+```bash
+ollama create security-assistant -f Modelfile
+```
+
+### Benutzerdefiniertes Modell verwenden
+
+Fuegen Sie das benutzerdefinierte Modell zu Ihrer Konfiguration hinzu und waehlen Sie es ueber `/models`:
+
+```json
+{
+  "provider": {
+    "ollama": {
+      "models": {
+        "security-assistant": { "name": "Security Assistant" }
+      }
+    }
+  }
+}
+```
+
+## Leistungsoptimierung
+
+### Hardwareanforderungen
+
+| Modellgroesse | Min. RAM | Empfohlene GPU |
+|---------------|----------|----------------|
+| 7B | 8GB | 8GB VRAM |
+| 13B | 16GB | 12GB VRAM |
+| 34B | 32GB | 24GB VRAM |
+| 70B | 64GB | 48GB VRAM |
+
+### Quantisierung
+
+Verwenden Sie quantisierte Modelle fuer weniger Speicherverbrauch:
+
+```bash
+ollama pull llama3.3:q4_0  # 4-Bit-Quantisierung
+ollama pull llama3.3:q8_0  # 8-Bit-Quantisierung
+```
+
+### Parallele Anfragen
+
+Gleichzeitige Anfragen aktivieren:
+
+```bash
+OLLAMA_NUM_PARALLEL=4 ollama serve
+```
+
+## Offline-Nutzung
+
+### Modelle vorab herunterladen
+
+```bash
+ollama pull llama3.3
+ollama pull codellama
+```
+
+### Air-Gapped-Systeme
+
+1. Modelle auf verbundenem System herunterladen
+2. `~/.ollama/models/` auf das isolierte System kopieren
+3. Ollama ohne Internet ausfuehren
+
+## Docker-Bereitstellung
+
+### Im Container ausfuehren
+
+```bash
+docker run -d \
+  --gpus all \
+  -v ollama:/root/.ollama \
+  -p 11434:11434 \
+  --name ollama \
+  ollama/ollama
+```
+
+### Modelle im Container herunterladen
+
+```bash
+docker exec -it ollama ollama pull llama3.3
+```
+
+## API-Kompatibilitaet
+
+Ollama bietet eine OpenAI-kompatible API unter `http://localhost:11434/v1` — genau deshalb funktioniert die obige benutzerdefinierte Anbieterkonfiguration (`npm` verwendet standardmaessig `@ai-sdk/openai-compatible`). Verweisen Sie das `api`-Feld auf diese URL und Cyberstrike kommuniziert mit Ollama ueber das OpenAI-Protokoll.
+
+## Fehlerbehebung
+
+### Verbindung abgelehnt
+
+```
+Error: Connection refused
+```
+
+Stellen Sie sicher, dass Ollama laeuft:
+
+```bash
+ollama serve
+```
+
+### Speicher erschoepft
+
+```
+Error: CUDA out of memory
+```
+
+Loesungen:
+- Kleineres Modell verwenden
+- Quantisierte Version verwenden
+- Kontextlaenge reduzieren
+- `OLLAMA_NUM_GPU=0` fuer CPU setzen
+
+### Langsame Leistung
+
+- GPU-Beschleunigung aktivieren
+- Quantisierte Modelle verwenden
+- `num_parallel` erhoehen
+- Thermische Drosselung pruefen
+
+<Aside variant="tip">
+  Fuer beste Ergebnisse verwenden Sie llama3.3:70b mit einer High-End-GPU. Fuer ressourcenbeschraenkte Systeme bietet mistral gute Qualitaet mit geringeren Anforderungen.
+</Aside>
+
+## Verwandte Dokumentation
+
+- [Anbieter-Uebersicht](/docs/providers) - Alle Anbieter
+- [Benutzerdefinierte Anbieter](/docs/providers/custom-providers) - OpenAI-kompatible Einrichtung
+- [Konfiguration](/docs/configuration) - Vollstaendige Optionen

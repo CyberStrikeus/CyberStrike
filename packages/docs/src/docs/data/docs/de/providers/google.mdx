@@ -1,0 +1,255 @@
+---
+title: Google (Gemini)
+description: Google Gemini-Modelle fuer Cyberstrike konfigurieren
+sidebar:
+  order: 4
+  label: Google
+---
+
+Die Gemini-Modelle von Google bieten grosse Kontextfenster und multimodale Faehigkeiten fuer Sicherheitsanalysen.
+
+<img src="/docs/images/screenshots/gemini-model-select.png" alt="Modellauswahl gefiltert auf Google Gemini-Modelle" className="rounded-lg shadow-lg my-6 w-full" />
+
+## Verfuegbare Modelle
+
+Cyberstrike bezieht seinen Modellkatalog live von [models.dev](https://models.dev), sodass die genaue Liste dem aktuellen Angebot von Google entspricht. Gaengige Auswahl:
+
+| Modell | Kontext | Am besten fuer |
+|--------|---------|----------------|
+| `google/gemini-2.5-pro` | 1M | Komplexes Reasoning, grosse Codebasen |
+| `google/gemini-2.5-flash` | 1M | Schnelle Analyse (ausgewogener Standard) |
+| `google/gemini-2.5-flash-lite` | 1M | Schnelle Aufgaben, hohes Volumen |
+
+<Aside variant="tip">
+  Neuere Gemini 3.x-Versionen (`gemini-3-pro-preview`, `gemini-3.5-flash`, `gemini-3.1-pro-preview`) erscheinen automatisch, sobald models.dev aktualisiert wird. Fuehren Sie `/models` aus fuer die vollstaendige aktuelle Liste.
+</Aside>
+
+## Authentifizierung
+
+### API-Schluessel einrichten
+
+1. Holen Sie Ihren API-Schluessel von [ai.google.dev](https://ai.google.dev)
+2. Fuehren Sie in der TUI `/connect` aus, waehlen Sie **Google** und geben Sie Ihren API-Schluessel ein
+
+### Umgebungsvariable
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+### Konfigurationsdatei
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "google": {
+      "options": {
+        "apiKey": "{env:GOOGLE_GENERATIVE_AI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+## Modellkonfiguration
+
+### Standardmodell festlegen
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "google/gemini-2.5-flash"
+}
+```
+
+### Modelle wechseln
+
+Verwenden Sie `/models` in der TUI, um ein anderes Gemini-Modell auszuwaehlen.
+
+## Vorteil des grossen Kontexts
+
+Das 1M-2M-Kontextfenster von Gemini ermoeglicht:
+
+- Analyse ganzer Codebasen auf einmal
+- Verarbeitung mehrerer Dateien gleichzeitig
+- Lange Sicherheitsbewertungssitzungen
+- Umfassende Log-Analyse
+
+### Beispiel: Vollstaendiges Codebasis-Review
+
+```
+> Analyze the entire src/ directory for security vulnerabilities
+```
+
+Das Modell kann Hunderte von Dateien in einer einzigen Anfrage verarbeiten.
+
+## Multimodale Faehigkeiten
+
+Gemini unterstuetzt Bildanalyse:
+
+```
+> Analyze this screenshot for security issues
+```
+
+Nuetzlich fuer:
+- Analyse von Sicherheitstool-Ausgabebildern
+- Verarbeitung von Netzwerkdiagrammen
+- Ueberpruefung der UI auf Sicherheitsmaengel
+
+## Denkmodus
+
+Die Gemini 2.5-Modelle unterstuetzen Reasoning ("Denken") fuer komplexe Analysen. Waehlen Sie eines ueber `/models`.
+
+Am besten fuer:
+- Komplexe Schwachstellenketten
+- Mehrstufige Angriffsplanung
+- Tiefgehende Code-Analyse
+
+## Google Vertex AI
+
+Fuer Enterprise-Bereitstellungen:
+
+### Einrichtung
+
+```bash
+# Mit Google Cloud authentifizieren
+gcloud auth application-default login
+
+# Projekt festlegen
+gcloud config set project your-project-id
+```
+
+### Konfiguration
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "google-vertex": {
+      "options": {
+        "project": "your-project-id",
+        "location": "us-central1"
+      }
+    }
+  }
+}
+```
+
+### Verfuegbare Regionen
+
+| Region | Standort |
+|--------|----------|
+| us-central1 | Iowa |
+| us-east4 | Virginia |
+| europe-west4 | Niederlande |
+| asia-northeast1 | Tokio |
+
+## Rate-Limits
+
+Google AI Studio-Limits:
+
+| Stufe | RPM | TPM |
+|-------|-----|-----|
+| Kostenlos | 15 | 1.000.000 |
+| Nutzungsbasiert | 360 | 4.000.000 |
+
+### Limits handhaben
+
+```json
+{
+  "provider": {
+    "google": {
+      "options": {
+        "maxRetries": 3,
+        "retryDelay": 1000
+      }
+    }
+  }
+}
+```
+
+## Sicherheitseinstellungen
+
+Inhaltsfilterung konfigurieren:
+
+```json
+{
+  "provider": {
+    "google": {
+      "options": {
+        "safetySettings": [
+          {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "threshold": "BLOCK_NONE"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Passen Sie die Sicherheitseinstellungen sorgfaeltig an. Einige Sicherheitstest-Inhalte koennen Filter ausloesen.
+</Aside>
+
+## Best Practices
+
+### Modellauswahl
+
+| Aufgabe | Empfohlenes Modell |
+|---------|-------------------|
+| Schnelle Scans | `gemini-2.5-flash` |
+| Grosse Codebasis | `gemini-2.5-pro` |
+| Komplexe Analyse | `gemini-2.5-pro` |
+| Hohes Volumen | `gemini-2.5-flash-lite` |
+
+### Grossen Kontext nutzen
+
+1. Vollstaendige Dateien statt Ausschnitte einbeziehen
+2. Vollstaendige Konfigurationsdateien bereitstellen
+3. Zugehoerige Testdateien einbeziehen
+4. Dokumentation fuer Kontext hinzufuegen
+
+### Kostenoptimierung
+
+1. Flash-Modelle fuer die meisten Aufgaben verwenden
+2. Die kostenlose Stufe nutzen
+3. Kontext effizient verwenden
+4. Nutzung in der Google Cloud Console ueberwachen
+
+## Fehlerbehebung
+
+### Ungueltiger API-Schluessel
+
+```
+Error: API key not valid
+```
+
+Ueberpruefen Sie:
+- Schluessel ist von ai.google.dev
+- API ist aktiviert
+- Kein zusaetzliches Leerzeichen
+
+### Kontingent ueberschritten
+
+```
+Error: Quota exceeded
+```
+
+Loesungen:
+- Auf Kontingent-Reset warten
+- Abrechnung aktivieren
+- Kontingenterhoehung beantragen
+
+### Region nicht verfuegbar
+
+```
+Error: Model not available in region
+```
+
+Versuchen Sie andere Regionen oder verwenden Sie Google AI Studio statt Vertex.
+
+## Verwandte Dokumentation
+
+- [Anbieter-Uebersicht](/docs/providers) - Alle Anbieter
+- [AWS Bedrock](/docs/providers/aws-bedrock) - Alternative Enterprise-Option
+- [Konfiguration](/docs/configuration) - Vollstaendige Optionen

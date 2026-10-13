@@ -1,0 +1,65 @@
+---
+title: カスタムスキル
+description: 再利用可能なメソドロジーをSKILL.mdファイルとしてパッケージ化
+sidebar:
+  order: 4
+  label: カスタムスキル
+---
+
+スキルは、エージェントがオンデマンドで読み込める再利用可能なメソドロジーのMarkdownファイルです。スキルはファイル名で検出されます — すべてのスキルは **`SKILL.md`** という名前のファイルに格納されます。
+
+{/* TODO: Screenshot - Custom skill configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: custom-skills.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">カスタムスキルのレイアウト</p>
+</div>
+
+## ファイルと配置場所
+
+ファイルは `SKILL.md` という名前でなければなりません。Cyberstrikeは `.cyberstrike/` 内の `skill/` または `skills/` ディレクトリ配下、および `skills/`（Claude Code レイアウト）配下で `**/SKILL.md` を検索します：
+
+```
+.cyberstrike/
+└── skills/
+    └── sql-injection/
+        └── SKILL.md
+```
+
+## フロントマター
+
+`name` と `description` のみ必須です。残りはカテゴリ分けやキルチェーンリンクに使用されるオプションのメタデータです：
+
+```markdown title="SKILL.md"
+---
+name: sql-injection
+description: Methodology for testing SQL injection
+version: "1.0.0"
+author: you
+tags: [injection, database]
+category: injection
+owasp_id: WSTG-INPV-05
+tech_stack: [postgres, mysql]
+cwe_ids: [CWE-89]
+chains_with: [auth-bypass]
+prerequisites: [request-capture]
+---
+
+Walk the tester through boolean-, error-, time-, and union-based SQLi:
+1. Identify injectable parameters …
+2. …
+```
+
+<Aside variant="caution">
+  本文はプレーンMarkdownです — テンプレート機能は**ありません**（`{{target}}`、`{% if %}`、`{% for %}`、`$ARGUMENTS` などは使用不可）。フロントマターは `args`、`model`、`agent`、`permission` フィールドを**サポートしていません**。また、ファイルは文字通り `SKILL.md` という名前でなければなりません（`my-skill.md` のような任意の名前は読み込まれません）。
+</Aside>
+
+フロントマターの `name` はスキルのIDと一致する必要があります — 不一致はエラーとして報告されます。
+
+## スキルの使用
+
+読み込まれたスキルはエージェントから利用可能で、`/skills` コマンドで閲覧できます。エージェントはタスクに関連するスキルのメソドロジーをコンテキストに取り込みます。
+
+## 関連ドキュメント
+
+- [スラッシュコマンド](/docs/slash-commands) - 組み込みコマンド
+- [エージェント](/docs/agents) - スキルを使用するエージェント

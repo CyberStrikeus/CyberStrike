@@ -1,0 +1,476 @@
+---
+title: CLI 命令
+description: Cyberstrike 完整的命令行界面参考
+sidebar:
+  order: 1
+  label: 概述
+---
+
+Cyberstrike 提供强大的命令行界面用于安全评估。本参考涵盖所有可用的命令、选项和使用模式。
+
+<img src="/docs/images/gifs/g02-model-switch.gif" alt="使用 leader+m 从选择器切换活跃模型" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/screenshots/s04-model-dialog.png" alt="使用 leader+m 打开的模型选择对话框，显示最近使用的模型" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/diagrams/command-hierarchy.svg" alt="cyberstrike 命令层级——顶层命令及其子命令" className="my-6" />
+
+## 命令结构
+
+```
+cyberstrike [global-options] <command> [command-options] [arguments]
+```
+
+## 全局选项
+
+| 选项 | 别名 | 描述 |
+|------|------|------|
+| `--help` | `-h` | 显示帮助信息 |
+| `--version` | `-v` | 显示版本号 |
+| `--print-logs` | | 将日志输出到 stderr |
+| `--log-level` | | 设置日志级别（DEBUG、INFO、WARN、ERROR） |
+
+## 交互模式
+
+不带参数启动终端用户界面：
+
+```bash
+cyberstrike
+```
+
+### 交互模式选项
+
+| 选项 | 别名 | 描述 |
+|------|------|------|
+| `--model <model>` | `-m` | 格式为 `provider/model` 的模型 |
+| `--agent <name>` | | 使用的安全代理 |
+| `--continue` | `-c` | 继续上次会话 |
+| `--session <id>` | `-s` | 恢复特定会话 |
+
+### 示例
+
+```bash
+# 使用特定模型启动
+cyberstrike --model anthropic/claude-sonnet-4-20250514
+
+# 选择主代理（仅内置 'cyberstrike'）
+cyberstrike --agent cyberstrike
+
+# 继续上次会话
+cyberstrike --continue
+```
+
+---
+
+## run
+
+执行单个提示，不进入交互模式。
+
+```bash
+cyberstrike run [message..] [options]
+```
+
+### 选项
+
+| 选项 | 别名 | 描述 |
+|------|------|------|
+| `--model <model>` | `-m` | 格式为 `provider/model` 的模型 |
+| `--agent <name>` | | 使用的代理 |
+| `--continue` | `-c` | 继续上次会话 |
+| `--session <id>` | `-s` | 恢复特定会话 |
+| `--file <path>` | `-f` | 附加文件到消息 |
+| `--format <type>` | | 输出格式：`default` 或 `json` |
+| `--share` | | 分享会话 |
+| `--title <text>` | | 设置会话标题 |
+| `--attach <url>` | | 附加到运行中的服务器 |
+| `--variant <type>` | | 模型变体（high、max、minimal） |
+
+### 示例
+
+```bash
+# 运行单个命令
+cyberstrike run "scan example.com for open ports"
+
+# 附加文件到请求
+cyberstrike run "analyze this config" -f nginx.conf
+
+# 以 JSON 格式输出
+cyberstrike run "list vulnerabilities" --format json
+
+# 继续上次会话
+cyberstrike run "now check for XSS" --continue
+```
+
+### 管道输入
+
+从 stdin 接受输入：
+
+```bash
+echo "analyze this code" | cyberstrike run
+cat report.txt | cyberstrike run "summarize this"
+```
+
+---
+
+## auth
+
+管理 AI 提供商的认证凭据。
+
+### auth login
+
+添加 AI 提供商凭据：
+
+```bash
+cyberstrike auth login [url]
+```
+
+#### 交互式登录
+
+```bash
+cyberstrike auth login
+# 从列表中选择提供商
+# 按提示输入 API 密钥
+```
+
+#### Well-Known URL 登录
+
+```bash
+cyberstrike auth login https://custom-provider.example.com
+```
+
+### auth logout
+
+移除存储的凭据：
+
+```bash
+cyberstrike auth logout
+# 从列表中选择提供商
+```
+
+### auth list
+
+显示所有已配置的凭据：
+
+```bash
+cyberstrike auth list
+```
+
+输出显示：
+- 按提供商分组的存储凭据
+- 认证类型（api、oauth）
+- 活跃的环境变量
+
+---
+
+## mcp
+
+管理 Model Context Protocol (MCP) 服务器。
+
+### mcp list
+
+列出已配置的 MCP 服务器及其状态：
+
+```bash
+cyberstrike mcp list
+```
+
+状态指示器：
+- `✓` 已连接
+- `○` 未初始化 / 已禁用
+- `⚠` 需要认证
+- `✗` 失败
+
+### mcp add
+
+交互式添加新的 MCP 服务器：
+
+```bash
+cyberstrike mcp add
+```
+
+向导会提示：
+1. 位置（项目或全局）
+2. 服务器名称
+3. 服务器类型（本地或远程）
+4. 连接详情
+
+#### 本地服务器示例
+
+```bash
+# 运行 `cyberstrike mcp add` 后：
+# Location: Current project
+# Name: filesystem
+# Type: Local
+# Command: npx @modelcontextprotocol/server-filesystem /path/to/dir
+```
+
+#### 远程服务器示例
+
+```bash
+# 运行 `cyberstrike mcp add` 后：
+# Location: Global
+# Name: custom-api
+# Type: Remote
+# URL: https://api.example.com/mcp
+# OAuth: Yes/No
+```
+
+### mcp auth
+
+对使用 OAuth 的 MCP 服务器进行认证：
+
+```bash
+cyberstrike mcp auth [name]
+```
+
+### mcp auth list
+
+列出所有 MCP 服务器的 OAuth 状态：
+
+```bash
+cyberstrike mcp auth list
+```
+
+### mcp logout
+
+移除 OAuth 凭据：
+
+```bash
+cyberstrike mcp logout [name]
+```
+
+### mcp debug
+
+调试 OAuth 连接问题：
+
+```bash
+cyberstrike mcp debug <name>
+```
+
+---
+
+## session
+
+管理对话会话。
+
+### session list
+
+列出所有会话：
+
+```bash
+cyberstrike session list [options]
+```
+
+| 选项 | 别名 | 描述 |
+|------|------|------|
+| `--max-count <n>` | `-n` | 限制为 N 个最近的会话 |
+| `--format <type>` | | 输出：`table` 或 `json` |
+
+### 示例
+
+```bash
+# 列出最近 10 个会话
+cyberstrike session list -n 10
+
+# 导出为 JSON
+cyberstrike session list --format json
+```
+
+---
+
+## models
+
+列出可用的 AI 模型。
+
+```bash
+cyberstrike models
+```
+
+显示按提供商分组的所有模型，包含：
+- 模型标识符
+- 模型名称
+- 能力
+
+---
+
+## agent
+
+管理安全代理。
+
+```bash
+cyberstrike agent [name]
+```
+
+### 列出代理
+
+```bash
+cyberstrike agent
+# 显示可用代理
+```
+
+### 代理信息
+
+```bash
+cyberstrike agent web-application
+# 显示代理详情和提示词
+```
+
+---
+
+## github
+
+GitHub App 集成。
+
+### github install
+
+将 Cyberstrike GitHub App 安装到仓库：
+
+```bash
+cyberstrike github install
+```
+
+### github run
+
+针对 GitHub 事件运行 Cyberstrike（由 CI 工作流使用）：
+
+```bash
+cyberstrike github run
+```
+
+---
+
+## pr
+
+按编号审查拉取请求。
+
+```bash
+cyberstrike pr <number>
+```
+
+---
+
+## export
+
+将会话导出为 JSON 到 stdout（无选项）：
+
+```bash
+cyberstrike export [sessionID]
+```
+
+---
+
+## import
+
+导入会话数据。
+
+```bash
+cyberstrike import <file> [options]
+```
+
+---
+
+## upgrade
+
+更新 Cyberstrike 到最新版本。
+
+```bash
+cyberstrike upgrade
+```
+
+---
+
+## uninstall
+
+从系统中移除 Cyberstrike。
+
+```bash
+cyberstrike uninstall
+```
+
+---
+
+## serve
+
+启动 Cyberstrike API 服务器。需要设置 `CYBERSTRIKE_SERVER_PASSWORD`。
+
+```bash
+CYBERSTRIKE_SERVER_PASSWORD=secret cyberstrike serve [options]
+```
+
+| 选项 | 描述 |
+|------|------|
+| `--port <number>` | 服务器端口（默认：4096） |
+| `--hostname <address>` | 绑定地址 |
+| `--cors <origin>` | 允许的 CORS 来源 |
+| `--mdns` | 通过 mDNS 广播服务器 |
+
+---
+
+## stats
+
+显示使用统计。
+
+```bash
+cyberstrike stats
+```
+
+显示：
+- Token 使用量
+- 会话计数
+- 费用估算
+
+---
+
+## completion
+
+生成 shell 补全脚本。
+
+```bash
+# Bash
+cyberstrike completion >> ~/.bashrc
+
+# Zsh
+cyberstrike completion >> ~/.zshrc
+
+# Fish
+cyberstrike completion | source
+```
+
+---
+
+## 环境变量
+
+通过环境变量配置 Cyberstrike 行为：
+
+| 变量 | 描述 |
+|------|------|
+| `CYBERSTRIKE_AUTO_SHARE` | 自动分享会话 |
+| `CYBERSTRIKE_PERMISSION` | JSON 权限覆盖 |
+| `CYBERSTRIKE_CONFIG` | 自定义配置文件路径 |
+| `ANTHROPIC_API_KEY` | Anthropic API 密钥 |
+| `OPENAI_API_KEY` | OpenAI API 密钥 |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI (Gemini) API 密钥 |
+| `OPENROUTER_API_KEY` | OpenRouter API 密钥 |
+
+---
+
+## 退出码
+
+| 码 | 含义 |
+|----|------|
+| `0` | 成功 |
+| `1` | 错误——无效/未知参数，或致命错误 |
+| `130` | 被中断（Ctrl+C） |
+
+---
+
+## 配置文件
+
+Cyberstrike 从以下位置读取配置：
+
+| 路径 | 范围 |
+|------|------|
+| `./cyberstrike.json` | 项目 |
+| `./.cyberstrike/cyberstrike.json` | 项目 |
+| `~/.config/cyberstrike/cyberstrike.json` | 全局 |
+
+配置模式详情请参阅[配置参考](/docs/configuration)。

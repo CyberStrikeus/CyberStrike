@@ -1,0 +1,70 @@
+---
+title: Vortex
+description: HTTP traffic engine with DSL-powered rules, replay, and signal correlation
+sidebar:
+  order: 2
+  label: Vortex
+---
+
+Vortex is Cyberstrike's HTTP traffic engine. It intercepts, stores, and analyzes HTTP requests flowing through the system — whether captured by [HackBrowser](/docs/features/hackbrowser), the [Chrome Extension](/docs/tools/chrome-extension), or injected via the API.
+
+## What Vortex Does
+
+| Capability | Description |
+|------------|-------------|
+| **Traffic capture** | Stores every HTTP request/response pair with full headers and body |
+| **DSL engine** | Filter and query traffic with a purpose-built expression language |
+| **Rule matching** | Apply rules-as-data (detect, canary, transform) against captured traffic |
+| **Replay** | Re-send captured requests with modifications for testing |
+| **Signal correlation** | Cross-reference findings across requests to detect chained vulnerabilities |
+
+## DSL Queries
+
+Vortex includes an expression engine for filtering HTTP traffic. Query by method, path, status, headers, body content, and more:
+
+```
+method == "POST" && path contains "/api/" && status >= 400
+```
+
+```
+header["content-type"] contains "json" && body contains "token"
+```
+
+The DSL supports boolean logic, string matching, numeric comparison, and nested field access.
+
+## Rules
+
+Vortex rules are declarative data — not code. Three rule shapes cover the common patterns:
+
+| Shape | Purpose | Example |
+|-------|---------|---------|
+| **Detect** | Flag traffic matching a pattern | Sensitive data in response bodies |
+| **Canary** | Inject markers and watch for their reflection | SSRF, open redirect, header injection |
+| **Transform** | Modify requests before replay | Strip auth headers, swap parameter values |
+
+Rules can be loaded from built-in packs or defined per-project.
+
+## Integration with HackBrowser
+
+When HackBrowser captures traffic, Vortex processes it automatically:
+
+1. Request arrives via `POST /session/ingest`
+2. Vortex stores the request and applies active rules
+3. Matched rules generate signals
+4. Signals feed into the proxy-agent's analysis pipeline
+
+## Usage
+
+Vortex runs as part of the Cyberstrike backend — no separate setup required. Traffic flows through it whenever you use HackBrowser, the Chrome Extension, or the WSTG pipeline.
+
+Use `/web` in the TUI to inspect accumulated Vortex data: captured requests, matched rules, and generated signals. Related commands:
+
+| Command | What it shows |
+|---------|---------------|
+| `/web` | Captured endpoints, roles, credentials |
+| `/vulnerabilities` | Findings from Vortex signals + WSTG testing |
+| `/methodology` | Coverage and methodology status |
+
+<Aside variant="tip">
+  Vortex is included in the free tier. The AI analysis layer (proxy-agent reasoning, signal correlation) is what makes it powerful — and that runs on your configured AI provider.
+</Aside>

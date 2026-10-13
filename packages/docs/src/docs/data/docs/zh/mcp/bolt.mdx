@@ -1,0 +1,171 @@
+---
+title: Bolt
+description: 基于 Docker 的插件化安全工具 MCP 服务器
+sidebar:
+  order: 2
+  label: Bolt
+---
+
+Bolt 是一个容器化的 MCP 服务器，提供安全工具。它运行在 Docker 容器（Ubuntu 24.04）中，直接暴露每个工具——没有元工具，没有动态加载，直接调用您需要的工具即可。
+
+{/* Hero Screenshot - Bolt in action */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: bolt-hero.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Bolt 通过 Cyberstrike 运行 nmap 扫描</p>
+</div>
+
+## 为什么选择 Bolt？
+
+Bolt 解决了需要 Linux 环境来运行安全工具的问题。无需在本地安装工具，Bolt 在隔离的容器中运行它们。
+
+| 特性 | 没有 Bolt | 有 Bolt |
+|------|-----------|---------|
+| 工具安装 | 每个工具手动安装 | 预装完毕 |
+| 平台支持 | 大多数工具仅限 Linux | 任何有 Docker 的平台 |
+| 隔离性 | 工具在您的系统上运行 | 在容器中沙盒化运行 |
+| 更新 | 手动 | `docker pull` |
+
+## 包含的内容
+
+Bolt（`bolt.config.json`，端口 `3001`）以两种方式暴露工具：
+
+- **7 个原生插件** — `subfinder`、`nmap`、`nuclei`、`httpx`、`ffuf`、`run-command`、`wordlist`
+- **约 26 个聚合的 stdio MCP 服务器** — 例如 `dnsx`、`amass`、`katana`、`sqlmap`、`wpscan`、`gobuster`、`masscan`、`hydra`、`hashcat`、`john`、`impacket` 等
+
+每个都是可直接调用的工具——代理在单个回合中调用，无需搜索/加载步骤。
+
+## 快速开始
+
+### 1. 启动 Bolt 容器
+
+```bash
+docker run -d \
+  --name bolt \
+  --restart unless-stopped \
+  -p 3001:3001 \
+  -v bolt-data:/data \
+  -e MCP_ADMIN_TOKEN=$(openssl rand -hex 32) \
+  --cap-add NET_RAW \
+  --cap-add NET_ADMIN \
+  ghcr.io/cyberstrikeus/bolt:latest
+
+# 查看管理令牌（仅用于配对一次）
+docker logs bolt | grep -i token
+```
+
+### 2. 与 Cyberstrike 配对
+
+在 TUI 中打开 `/bolt` 对话框，按 **a** 添加，输入 URL `http://localhost:3001`，并提供管理令牌。Cyberstrike 与服务器配对（参见[认证](#认证)）并存储凭据——令牌本身**不会**写入您的配置。
+
+### 3. 使用工具
+
+```
+> Run nmap against 192.168.1.1 with service detection
+> Use subfinder to enumerate subdomains of example.com
+```
+
+## 配置
+
+Bolt 服务器配置在其**独立的顶级 `bolt` 键**下——不在 `mcp` 下。每个条目只需要一个 `url`（Cyberstrike 会自动追加 `/mcp` 路径）：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "bolt": {
+    "local": {
+      "url": "http://localhost:3001",
+      "enabled": true,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+| 字段 | 类型 | 描述 |
+|------|------|------|
+| `url` | string | 必填。Bolt 服务器的基础 URL（例如 `http://localhost:3001`）。 |
+| `enabled` | boolean | 可选。启动时连接（默认：true）。 |
+| `timeout` | number | 可选。请求超时时间（毫秒）（默认：30000）。 |
+
+<Aside variant="caution">
+  Bolt **不是** `mcp` 条目。没有 `type: "remote"`，没有 `bolt: true` 标志，配置中也没有 `Authorization` 头——认证通过 Ed25519 配对处理，管理令牌仅在配对步骤中使用。
+</Aside>
+
+## 认证
+
+Bolt 使用 **Ed25519 请求签名**，通过一次性管理令牌配对引导：
+
+1. 使用管理令牌 `POST /pair` → 获得配对码
+2. Cyberstrike 生成 Ed25519 密钥对
+3. `POST /pair/exchange` 携带配对码 + 客户端公钥 → 服务器公钥 + 客户端 ID
+4. 此后每个请求都使用客户端私钥**签名**
+
+管理令牌仅在步骤 1 中使用——它不是持久性的 bearer 凭据，不会存储在 `cyberstrike.json` 中。
+
+## TUI 管理
+
+两个独立的对话框：
+
+- **`/bolt`** — 管理 Bolt 服务器（添加/配对、切换、移除）。
+- **`/mcps`** — 管理常规本地/远程 MCP 服务器。
+
+在 `/bolt` 对话框中：**a** 添加，**space** 切换服务器，**esc** 关闭。
+
+## 使用示例
+
+```
+> Use bolt to scan 192.168.1.0/24 for open ports and services   # nmap
+> Find all subdomains of example.com                            # subfinder
+> Scan https://target.com with nuclei                           # nuclei
+> Fuzz directories on https://target.com                        # ffuf
+> Run "dig +short example.com"                                  # run-command 逃生舱
+```
+
+每个都映射到直接的工具调用——无需加载步骤。
+
+## 容器配置
+
+### 环境变量
+
+| 变量 | 默认值 | 描述 |
+|------|--------|------|
+| `PORT` | 3001 | HTTP 服务器端口 |
+| `HOST` | 0.0.0.0 | 绑定地址 |
+| `MCP_ADMIN_TOKEN` | — | 用于配对的管理令牌 |
+| `DATA_DIR` | /data | 持久数据目录 |
+
+### Docker 权限
+
+| 权限 | 用途 |
+|------|------|
+| `NET_RAW` | nmap SYN 扫描的原始套接字 |
+| `NET_ADMIN` | 需要提升访问权限的工具的网络配置 |
+
+## API 参考
+
+| 端点 | 用途 |
+|------|------|
+| `GET /health` | 健康检查——返回 `{ "status": "ok" }`（经认证的管理请求获取详细信息，包括工具数量） |
+| `POST /mcp` | MCP JSON-RPC 端点（签名请求） |
+| `POST /pair` | 使用管理令牌开始 Ed25519 配对 |
+| `POST /pair/exchange` | 交换配对码 + 公钥 |
+
+```bash
+curl http://localhost:3001/health
+```
+
+## 故障排除
+
+- **连接被拒绝** — 检查容器是否运行（`docker ps`）、端口是否映射（`docker port bolt`）以及 `curl http://localhost:3001/health` 是否有响应。
+- **需要重新配对** — 如果 Bolt URL 变更，Cyberstrike 会丢弃存储的凭据，您必须通过 `/bolt` 重新配对。
+- **工具不可用** — 确认服务器已在 `/bolt` 中连接，并使用直连 API 模型（例如 `anthropic/claude-sonnet-4-20250514`、`openai/gpt-4o`）。
+
+## 相关文档
+
+- [Bolt / MCP 概述](/docs/mcp) - 架构和概念
+- [远程服务器](/docs/mcp/remote-servers) - 远程 MCP 配置
+- [本地服务器](/docs/mcp/local-servers) - 本地 stdio MCP 设置
+- [权限](/docs/permissions) - 工具权限
+
+<Aside variant="danger">
+  仅对授权目标使用 Bolt 工具。未经授权的渗透测试是违法的。
+</Aside>

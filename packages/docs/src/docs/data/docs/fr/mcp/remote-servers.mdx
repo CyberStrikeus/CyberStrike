@@ -1,0 +1,116 @@
+---
+title: Serveurs MCP distants
+description: Se connecter a des serveurs MCP distants via HTTP/SSE
+sidebar:
+  order: 4
+  label: Serveurs distants
+---
+
+Les serveurs MCP distants se connectent via HTTP/HTTPS, permettant l'acces a des services heberges et une infrastructure partagee. Le transport est StreamableHTTP (avec repli SSE).
+
+<Aside variant="tip">
+  **Vous cherchez des outils de securite ?** Voir [Bolt](/fr/docs/mcp/bolt) pour les outils de securite pre-installes. Notez que Bolt est configure sous sa propre cle de premier niveau `bolt`, pas sous `mcp`.
+</Aside>
+
+<img src="/docs/images/diagrams/remote-mcp-architecture.svg" alt="Le client MCP de Cyberstrike se connecte a un serveur MCP distant via StreamableHTTP/SSE en utilisant un en-tete ou un token OAuth" className="my-6" />
+
+## Schema de configuration
+
+Un serveur distant est une entree dans la map plate `mcp`, identifiee par le nom du serveur :
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "mcp": {
+    "my-remote": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "headers": { "Authorization": "Bearer {env:MY_TOKEN}" },
+      "enabled": true,
+      "timeout": 5000
+    }
+  }
+}
+```
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `type` | `"remote"` | Requis. Selectionne un serveur HTTP. |
+| `url` | string | Requis. L'endpoint du serveur. |
+| `headers` | object | Optionnel. En-tetes envoyes avec chaque requete (par ex. une cle API). |
+| `oauth` | object \| `false` | Optionnel. Configuration OAuth ; definissez `false` pour desactiver la detection automatique OAuth. Voir [OAuth](/fr/docs/mcp/oauth). |
+| `enabled` | boolean | Optionnel. Se connecter au lancement (par defaut : true). |
+| `timeout` | number | Optionnel. Timeout de requete en ms (par defaut : 5000). |
+
+<Aside variant="caution">
+  L'objet `mcp` est une **map plate** identifiee par le nom du serveur — il n'y a pas d'enveloppe `servers`. Le transport est StreamableHTTP/SSE uniquement (il n'y a pas de transport WebSocket), et le schema est strict : les champs `retry`, `keepalive`, `proxy`, TLS/`ca`/`cert` et de repartition de charge n'existent **pas**.
+</Aside>
+
+## Ajout via le TUI
+
+Tapez `/mcps` pour ouvrir le gestionnaire MCP, appuyez sur `a` pour ajouter, et choisissez **Distant**. Entrez l'**URL** du serveur ; le **nom** du serveur est derive automatiquement du nom d'hote (les points deviennent des tirets). Cyberstrike teste la connexion avant de sauvegarder. Cela ecrit exactement le schema montre ci-dessus.
+
+## Authentification
+
+### Cle API via en-tete
+
+Envoyez un token statique ou une cle API comme en-tete de requete. Utilisez `{env:VAR}` pour que le secret ne soit pas stocke dans le fichier de configuration :
+
+```json
+{
+  "mcp": {
+    "github-remote": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": { "Authorization": "Bearer {env:GITHUB_TOKEN}" }
+    }
+  }
+}
+```
+
+### OAuth
+
+Pour les serveurs utilisant OAuth, ajoutez un bloc `oauth` (ou laissez Cyberstrike le detecter automatiquement). Lorsque `clientId` est omis, l'enregistrement dynamique de client (RFC 7591) est tente :
+
+```json
+{
+  "mcp": {
+    "oauth-server": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "oauth": { "scope": "read write" }
+    }
+  }
+}
+```
+
+Autorisez avec `cyberstrike mcp auth <name>`. Voir [OAuth](/fr/docs/mcp/oauth) pour le flux complet. Definissez `"oauth": false` pour desactiver la detection automatique OAuth.
+
+## Activation, desactivation et timeouts
+
+Definissez `enabled: false` pour garder un serveur configure mais deconnecte (ou basculez-le dans `/mcps`). Augmentez `timeout` (ms) pour les endpoints lents :
+
+```json
+{
+  "mcp": {
+    "slow-remote": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "enabled": false,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+## Depannage
+
+- **Echecs d'authentification** — verifiez l'en-tete ou executez `cyberstrike mcp auth <name>` pour les serveurs OAuth ; inspectez avec `cyberstrike mcp debug <name>`.
+- **Timeouts** — augmentez `timeout`, ou confirmez que l'endpoint est joignable.
+- **Configuration rejetee** — le schema est strict ; utilisez la map plate avec `type: "remote"` + `url`, et uniquement les champs listes ci-dessus.
+
+## Documentation connexe
+
+- [Vue d'ensemble Bolt / MCP](/fr/docs/mcp) - Architecture et concepts
+- [OAuth](/fr/docs/mcp/oauth) - Flux d'authentification OAuth
+- [Serveurs locaux](/fr/docs/mcp/local-servers) - Configuration MCP stdio locale
+- [Creation de serveurs](/fr/docs/mcp/creating-servers) - Creer des serveurs personnalises

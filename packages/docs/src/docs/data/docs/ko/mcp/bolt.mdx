@@ -1,0 +1,171 @@
+---
+title: Bolt
+description: Docker를 통한 플러그인 기반 보안 도구 서버 (MCP)
+sidebar:
+  order: 2
+  label: Bolt
+---
+
+Bolt는 보안 도구를 제공하는 컨테이너화된 MCP 서버입니다. Docker 컨테이너(Ubuntu 24.04)에서 실행되며 각 도구를 직접 노출합니다 — 메타 도구도, 동적 로딩도 없이, 필요한 도구를 바로 호출하면 됩니다.
+
+{/* Hero Screenshot - Bolt in action */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: bolt-hero.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Cyberstrike를 통해 Bolt가 nmap 스캔을 실행하는 모습</p>
+</div>
+
+## Bolt를 사용하는 이유
+
+Bolt는 Linux 환경이 필요한 보안 도구 실행 문제를 해결합니다. 로컬에 도구를 설치하는 대신 격리된 컨테이너에서 실행합니다.
+
+| 기능 | Bolt 없이 | Bolt 사용 시 |
+|------|-----------|-------------|
+| 도구 설치 | 각 도구 수동 설치 | 사전 설치됨 |
+| 플랫폼 지원 | 대부분의 도구가 Linux 전용 | Docker가 있는 모든 플랫폼 |
+| 격리 | 도구가 시스템에서 실행 | 컨테이너에서 샌드박스 |
+| 업데이트 | 수동 | `docker pull` |
+
+## 포함된 내용
+
+Bolt(`bolt.config.json`, 포트 `3001`)는 두 가지 방식으로 도구를 노출합니다:
+
+- **7개의 네이티브 플러그인** — `subfinder`, `nmap`, `nuclei`, `httpx`, `ffuf`, `run-command`, `wordlist`
+- **~26개의 집계된 stdio MCP 서버** — 예: `dnsx`, `amass`, `katana`, `sqlmap`, `wpscan`, `gobuster`, `masscan`, `hydra`, `hashcat`, `john`, `impacket` 등
+
+각각 직접 호출 가능한 도구이며, 에이전트가 한 턴으로 호출합니다. 검색/로드 단계가 없습니다.
+
+## 빠른 시작
+
+### 1. Bolt 컨테이너 시작
+
+```bash
+docker run -d \
+  --name bolt \
+  --restart unless-stopped \
+  -p 3001:3001 \
+  -v bolt-data:/data \
+  -e MCP_ADMIN_TOKEN=$(openssl rand -hex 32) \
+  --cap-add NET_RAW \
+  --cap-add NET_ADMIN \
+  ghcr.io/cyberstrikeus/bolt:latest
+
+# 관리자 토큰 확인 (페어링에 한 번 사용)
+docker logs bolt | grep -i token
+```
+
+### 2. Cyberstrike와 페어링
+
+TUI에서 `/bolt` 대화상자를 열고, **a**를 눌러 추가하고, URL `http://localhost:3001`을 입력하고, 관리자 토큰을 제공합니다. Cyberstrike가 서버와 페어링하고([인증](#인증) 참조) 자격 증명을 저장합니다 — 토큰 자체는 구성에 **기록되지 않습니다**.
+
+### 3. 도구 사용
+
+```
+> Run nmap against 192.168.1.1 with service detection
+> Use subfinder to enumerate subdomains of example.com
+```
+
+## 구성
+
+Bolt 서버는 자체 **최상위 `bolt` 키**로 구성됩니다 — `mcp` 아래가 아닙니다. 각 항목은 `url`만 필요합니다 (Cyberstrike가 `/mcp` 경로를 자동으로 추가합니다):
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "bolt": {
+    "local": {
+      "url": "http://localhost:3001",
+      "enabled": true,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `url` | string | 필수. Bolt 서버의 기본 URL (예: `http://localhost:3001`). |
+| `enabled` | boolean | 선택. 실행 시 연결 (기본값: true). |
+| `timeout` | number | 선택. 요청 타임아웃 ms (기본값: 30000). |
+
+<Aside variant="caution">
+  Bolt는 `mcp` 항목이 **아닙니다**. `type: "remote"`도, `bolt: true` 플래그도, 구성에 `Authorization` 헤더도 없습니다 — 인증은 Ed25519 페어링으로 처리되며, 관리자 토큰은 페어링 단계에서만 사용됩니다.
+</Aside>
+
+## 인증
+
+Bolt는 관리자 토큰으로 일회성 페어링에 의해 부트스트랩되는 **Ed25519 요청 서명**을 사용합니다:
+
+1. 관리자 토큰으로 `POST /pair` → 페어링 코드
+2. Cyberstrike가 Ed25519 키 쌍 생성
+3. 코드 + 클라이언트 공개 키로 `POST /pair/exchange` → 서버 공개 키 + 클라이언트 ID
+4. 이후 모든 요청은 클라이언트의 개인 키로 **서명**됨
+
+관리자 토큰은 1단계에서만 사용되며 — 영구적인 bearer 자격 증명이 아니며 `cyberstrike.json`에 저장되지 않습니다.
+
+## TUI 관리
+
+두 개의 별도 대화상자:
+
+- **`/bolt`** — Bolt 서버 관리 (추가/페어링, 토글, 제거).
+- **`/mcps`** — 일반 로컬/원격 MCP 서버 관리.
+
+`/bolt` 대화상자에서: **a**로 추가, **space**로 서버 토글, **esc**로 닫기.
+
+## 사용 예시
+
+```
+> Use bolt to scan 192.168.1.0/24 for open ports and services   # nmap
+> Find all subdomains of example.com                            # subfinder
+> Scan https://target.com with nuclei                           # nuclei
+> Fuzz directories on https://target.com                        # ffuf
+> Run "dig +short example.com"                                  # run-command 이스케이프 해치
+```
+
+각각 직접 도구 호출에 매핑됩니다 — 로딩 단계가 없습니다.
+
+## 컨테이너 구성
+
+### 환경 변수
+
+| 변수 | 기본값 | 설명 |
+|------|--------|------|
+| `PORT` | 3001 | HTTP 서버 포트 |
+| `HOST` | 0.0.0.0 | 바인드 주소 |
+| `MCP_ADMIN_TOKEN` | — | 페어링에 사용되는 관리자 토큰 |
+| `DATA_DIR` | /data | 영구 데이터 디렉토리 |
+
+### Docker 기능
+
+| 기능 | 목적 |
+|------|------|
+| `NET_RAW` | nmap SYN 스캔을 위한 raw 소켓 |
+| `NET_ADMIN` | 상승된 접근이 필요한 도구를 위한 네트워크 구성 |
+
+## API 레퍼런스
+
+| 엔드포인트 | 목적 |
+|-----------|------|
+| `GET /health` | 상태 확인 — `{ "status": "ok" }` 반환 (인증된 관리자 요청은 도구 수를 포함한 상세 정보 제공) |
+| `POST /mcp` | MCP JSON-RPC 엔드포인트 (서명된 요청) |
+| `POST /pair` | 관리자 토큰으로 Ed25519 페어링 시작 |
+| `POST /pair/exchange` | 페어링 코드 + 공개 키 교환 |
+
+```bash
+curl http://localhost:3001/health
+```
+
+## 문제 해결
+
+- **연결 거부** — 컨테이너가 실행 중인지(`docker ps`), 포트가 매핑되어 있는지(`docker port bolt`), `curl http://localhost:3001/health`이 응답하는지 확인합니다.
+- **재페어링 필요** — Bolt URL이 변경되면 Cyberstrike가 저장된 자격 증명을 삭제하며 `/bolt`를 통해 다시 페어링해야 합니다.
+- **도구 사용 불가** — `/bolt`에서 서버가 연결되어 있는지 확인하고 직접 API 모델(예: `anthropic/claude-sonnet-4-20250514`, `openai/gpt-4o`)을 사용합니다.
+
+## 관련 문서
+
+- [Bolt / MCP 개요](/docs/mcp) - 아키텍처 및 개념
+- [원격 서버](/docs/mcp/remote-servers) - 원격 MCP 구성
+- [로컬 서버](/docs/mcp/local-servers) - 로컬 stdio MCP 설정
+- [권한](/docs/permissions) - 도구 권한
+
+<Aside variant="danger">
+  Bolt 도구는 승인된 대상에만 사용하세요. 무단 침투 테스트는 불법입니다.
+</Aside>

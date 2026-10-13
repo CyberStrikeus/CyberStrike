@@ -1,0 +1,323 @@
+---
+title: Ollama (로컬)
+description: Cyberstrike를 위해 Ollama로 로컬 AI 모델 실행
+sidebar:
+  order: 6
+  label: Ollama
+---
+
+Ollama를 사용하면 프라이빗하고 오프라인인 보안 테스트를 위해 AI 모델을 로컬에서 실행할 수 있습니다.
+
+{/* TODO: Screenshot - Ollama model selection */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: ollama-model-select.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Ollama 로컬 모델 선택</p>
+</div>
+
+## 개요
+
+Ollama의 장점:
+
+- 완전한 데이터 프라이버시
+- API 비용 없음
+- 오프라인 작동
+- 속도 제한 없음
+- 모델에 대한 완전한 제어
+
+## 설치
+
+### macOS
+
+```bash
+brew install ollama
+```
+
+### Linux
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+### Windows
+
+[ollama.com/download](https://ollama.com/download)에서 다운로드
+
+## Ollama 시작
+
+### 서버 시작
+
+```bash
+ollama serve
+```
+
+서버는 기본적으로 `http://localhost:11434`에서 실행됩니다.
+
+### 설치 확인
+
+```bash
+ollama --version
+```
+
+## 사용 가능한 모델
+
+### 권장 모델
+
+| 모델 | 크기 | 최적 용도 |
+|------|------|-----------|
+| llama3.3:70b | 40GB | 최고 품질, 고급 GPU 필요 |
+| llama3.3 | 4.7GB | 품질과 속도의 균형 |
+| codellama:34b | 19GB | 코드 분석 |
+| mistral | 4.1GB | 빠른 범용 |
+| mixtral:8x7b | 26GB | 고품질, 효율적 |
+| deepseek-coder:33b | 19GB | 코드 보안 리뷰 |
+| qwen2.5:72b | 41GB | 뛰어난 추론 |
+
+### 모델 다운로드
+
+```bash
+# 보안 테스트에 권장
+ollama pull llama3.3
+
+# 코드 리뷰용
+ollama pull codellama:34b
+
+# 경량 옵션
+ollama pull mistral
+```
+
+### 설치된 모델 목록
+
+```bash
+ollama list
+```
+
+## 구성
+
+Ollama는 내장 제공자가 **아닙니다** — 커스텀 OpenAI 호환 제공자로 정의합니다. 핵심은 최상위 `api` 필드(기본 URL, `/v1` 접미사 포함)입니다; `api` URL과 함께 `provider` 아래에 나열하면 Cyberstrike가 로드합니다(인증 불필요). 다운로드한 모델을 `models` 아래에 정의합니다:
+
+### 기본 설정
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "ollama": {
+      "name": "Ollama",
+      "api": "http://localhost:11434/v1",
+      "models": {
+        "llama3.3": { "name": "Llama 3.3" }
+      }
+    }
+  },
+  "model": "ollama/llama3.3"
+}
+```
+
+`npm`은 `@ai-sdk/openai-compatible`로 기본 설정되므로 별도로 설정할 필요가 없습니다.
+
+### 커스텀 호스트
+
+원격 Ollama 서버의 경우 `api` URL을 변경합니다:
+
+```json
+{
+  "provider": {
+    "ollama": {
+      "name": "Ollama",
+      "api": "http://192.168.1.100:11434/v1",
+      "models": { "llama3.3": { "name": "Llama 3.3" } }
+    }
+  }
+}
+```
+
+## 사용법
+
+TUI에서 `/models`를 사용하여 Ollama 모델을 선택하거나 구성에서 기본값으로 설정합니다.
+
+## 모델 구성
+
+### 컨텍스트 길이
+
+컨텍스트 윈도우를 늘립니다:
+
+```bash
+ollama run llama3.3 --num-ctx 8192
+```
+
+또는 Modelfile에서:
+
+```
+FROM llama3.3
+PARAMETER num_ctx 8192
+```
+
+### GPU 레이어
+
+GPU 사용을 제어합니다:
+
+```bash
+OLLAMA_NUM_GPU=999 ollama serve  # 모든 GPU 레이어 사용
+OLLAMA_NUM_GPU=0 ollama serve    # CPU 전용
+```
+
+### 메모리 관리
+
+```bash
+# VRAM 사용 제한
+OLLAMA_MAX_VRAM=8G ollama serve
+```
+
+## 커스텀 모델
+
+### Modelfile 생성
+
+```dockerfile title="Modelfile"
+FROM llama3.3
+
+SYSTEM """
+You are a security testing assistant specialized in:
+- Web application vulnerabilities
+- Code security review
+- Network penetration testing
+
+Always follow OWASP guidelines and report findings with:
+- Vulnerability name
+- Severity (Critical/High/Medium/Low)
+- Evidence
+- Remediation steps
+"""
+
+PARAMETER temperature 0.7
+PARAMETER num_ctx 8192
+```
+
+### 커스텀 모델 빌드
+
+```bash
+ollama create security-assistant -f Modelfile
+```
+
+### 커스텀 모델 사용
+
+구성에 커스텀 모델을 추가하고 `/models`를 통해 선택합니다:
+
+```json
+{
+  "provider": {
+    "ollama": {
+      "models": {
+        "security-assistant": { "name": "Security Assistant" }
+      }
+    }
+  }
+}
+```
+
+## 성능 최적화
+
+### 하드웨어 요구 사항
+
+| 모델 크기 | 최소 RAM | 권장 GPU |
+|-----------|---------|----------|
+| 7B | 8GB | 8GB VRAM |
+| 13B | 16GB | 12GB VRAM |
+| 34B | 32GB | 24GB VRAM |
+| 70B | 64GB | 48GB VRAM |
+
+### 양자화
+
+메모리를 절약하기 위해 양자화된 모델을 사용합니다:
+
+```bash
+ollama pull llama3.3:q4_0  # 4비트 양자화
+ollama pull llama3.3:q8_0  # 8비트 양자화
+```
+
+### 병렬 요청
+
+동시 요청을 활성화합니다:
+
+```bash
+OLLAMA_NUM_PARALLEL=4 ollama serve
+```
+
+## 오프라인 사용
+
+### 모델 사전 다운로드
+
+```bash
+ollama pull llama3.3
+ollama pull codellama
+```
+
+### 에어갭 시스템
+
+1. 연결된 시스템에서 모델을 다운로드
+2. `~/.ollama/models/`를 에어갭 시스템에 복사
+3. 인터넷 없이 Ollama 실행
+
+## Docker 배포
+
+### 컨테이너에서 실행
+
+```bash
+docker run -d \
+  --gpus all \
+  -v ollama:/root/.ollama \
+  -p 11434:11434 \
+  --name ollama \
+  ollama/ollama
+```
+
+### 컨테이너에서 모델 다운로드
+
+```bash
+docker exec -it ollama ollama pull llama3.3
+```
+
+## API 호환성
+
+Ollama는 `http://localhost:11434/v1`에서 OpenAI 호환 API를 노출합니다 — 위의 커스텀 제공자 구성이 작동하는 이유입니다(`npm`은 `@ai-sdk/openai-compatible`로 기본 설정). `api` 필드를 해당 URL로 지정하면 Cyberstrike가 OpenAI 프로토콜을 통해 Ollama와 통신합니다.
+
+## 문제 해결
+
+### 연결 거부
+
+```
+Error: Connection refused
+```
+
+Ollama가 실행 중인지 확인합니다:
+
+```bash
+ollama serve
+```
+
+### 메모리 부족
+
+```
+Error: CUDA out of memory
+```
+
+해결 방법:
+- 더 작은 모델 사용
+- 양자화된 버전 사용
+- 컨텍스트 길이 줄이기
+- CPU를 위해 `OLLAMA_NUM_GPU=0` 설정
+
+### 느린 성능
+
+- GPU 가속 활성화
+- 양자화된 모델 사용
+- `num_parallel` 증가
+- 서멀 스로틀링 확인
+
+<Aside variant="tip">
+  최상의 결과를 위해 고급 GPU와 함께 llama3.3:70b를 사용하세요. 리소스가 제한된 시스템에서는 mistral이 낮은 요구 사항으로 좋은 품질을 제공합니다.
+</Aside>
+
+## 관련 문서
+
+- [제공자 개요](/docs/providers) - 모든 제공자
+- [커스텀 제공자](/docs/providers/custom-providers) - OpenAI 호환 설정
+- [구성](/docs/configuration) - 전체 옵션

@@ -1,0 +1,36 @@
+---
+title: General Agent
+description: General-purpose research agent for complex questions and parallel multi-step tasks
+sidebar:
+  order: 3
+  label: General
+---
+
+The `general` agent handles research, complex questions, and multi-step tasks. The `cyberstrike` primary agent delegates to it for work that benefits from parallel execution or doesn't require a security-specific specialist.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Agent ID** | `general` |
+| **Mode** | `subagent` |
+| **Tool Access** | Broad (no vulnerability reporting or triage) |
+
+## When It's Used
+
+The `cyberstrike` agent delegates to `general` for:
+
+- Researching complex questions across multiple sources
+- Executing multiple independent units of work in parallel
+- Tasks that don't require domain-specific security knowledge
+- File analysis, code review, and general reasoning
+
+## Restrictions
+
+The `general` agent cannot:
+
+- Report vulnerabilities (`report_vulnerability`: denied)
+- Triage findings (`triage_vulnerability`: denied)
+- Access TODO read/write operations
+
+These restrictions ensure security-sensitive operations stay with the appropriate specialist agents.

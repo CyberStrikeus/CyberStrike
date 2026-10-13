@@ -1,0 +1,100 @@
+---
+title: MCP
+description: Model Context Protocolを通じて外部ツールでCyberstrikeを拡張
+sidebar:
+  order: 5
+  label: MCP
+---
+
+CyberstrikeはModel Context Protocol（MCP）を使用して外部ツールを統合します。ローカルまたはリモートのMCP互換サーバーを接続でき、評価中にAIエージェントがそのツールにアクセスできるようになります。
+
+## 組み込みサーバー
+
+Cyberstrikeにはデフォルトで有効な3つのMCPサーバーが同梱されています：
+
+| サーバー | 目的 |
+|---------|------|
+| `github-security` | GitHubリポジトリのセキュリティ分析 |
+| `cve` | CVE/NVD/EPSS/KEV脆弱性情報の検索 |
+| `osint` | オープンソースインテリジェンスの収集 |
+
+独自の設定はこれらの上にマージされます。
+
+## サーバーの追加
+
+MCPサーバーは設定のフラットな`mcp`マップに名前をキーとして配置します：
+
+```json title="cyberstrike.json"
+{
+  "mcp": {
+    "my-tools": {
+      "type": "local",
+      "command": ["your-mcp-server"]
+    }
+  }
+}
+```
+
+### ローカルサーバー（stdio）
+
+ローカルサーバーは子プロセスとして実行されます：
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/path/to/dir"]
+    }
+  }
+}
+```
+
+### リモートサーバー（HTTP）
+
+リモートサーバーはStreamableHTTPまたはSSEで接続します：
+
+```json
+{
+  "mcp": {
+    "remote-tools": {
+      "type": "remote",
+      "url": "https://mcp.example.com/sse"
+    }
+  }
+}
+```
+
+リモートサーバーは保護されたエンドポイントに対して[OAuth認証](/docs/mcp/oauth)をサポートします。
+
+## 管理
+
+| コマンド | 管理対象 |
+|---------|---------|
+| `/mcps` | ローカルおよびリモートMCPサーバー（追加、切り替え、削除） |
+| `/bolt` | Boltサーバー専用（追加、ペアリング、切り替え、削除） |
+
+両方のダイアログで：**a**で追加、**space**で切り替え、**esc**で閉じます。
+
+## モデルの互換性
+
+<Aside variant="caution">
+  サブプロセスベースのモデルはMCPツールにアクセスできません。完全なMCP統合には直接APIモデル（例：`anthropic/claude-sonnet-4-20250514`、`openai/gpt-4o`）を使用してください。
+</Aside>
+
+## 設定の優先順位
+
+MCPエントリは標準的な[設定階層](/docs/configuration#configuration-hierarchy)に従います：プロジェクトの`.cyberstrike/`がプロジェクトの`cyberstrike.json`を上書き、それがグローバルの`~/.config/cyberstrike/`を上書き、それが組み込みサーバーを上書きします。
+
+## 詳細ガイド
+
+| ガイド | 説明 |
+|-------|------|
+| [ローカルサーバー](/docs/mcp/local-servers) | ローカルstdioMCPサーバーの設定 |
+| [リモートサーバー](/docs/mcp/remote-servers) | HTTP/SSEリモート接続 |
+| [OAuth](/docs/mcp/oauth) | リモートサーバーのOAuth認証 |
+| [サーバーの作成](/docs/mcp/creating-servers) | カスタムMCPサーバーの構築 |
+
+<Aside variant="danger">
+  セキュリティツールは許可されたターゲットに対してのみ使用してください。無許可のペネトレーションテストは違法です。
+</Aside>

@@ -1,0 +1,70 @@
+---
+title: Konfiguration
+description: Cyberstrike fuer Ihren Penetrationstest-Workflow konfigurieren
+sidebar:
+  order: 2
+  label: Konfiguration
+---
+
+Cyberstrike wird mit einer JSON-Datei konfiguriert. Diese Seite ist eine kurze Einfuehrung; fuer die vollstaendige Hierarchie, alle Optionen und zugehoerige Anleitungen siehe die [Konfigurationsreferenz](/docs/configuration).
+
+## Konfigurationsdatei
+
+Erstellen Sie eine `cyberstrike.json` in Ihrem Projektverzeichnis:
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike"
+}
+```
+
+Das Modell wird als `provider/model` geschrieben — es gibt kein separates String-Feld `provider`. `default_agent` muss ein primaerer Agent sein (`cyberstrike` ist der eingebaute; er delegiert automatisch an spezialisierte Subagenten).
+
+## Gaengige Optionen
+
+| Option | Typ | Beschreibung |
+|--------|-----|--------------|
+| `model` | string | Standardmodell, als `provider/model` |
+| `small_model` | string | Modell fuer leichtgewichtige Aufgaben (Titelgenerierung) |
+| `default_agent` | string | Standard-Primaer-Agent (faellt zurueck auf `cyberstrike`) |
+| `theme` | string | Oberflaechen-Theme (Standard `cyberstrike`) |
+| `permission` | object | Pro-Tool-Berechtigungen — siehe [Berechtigungen](/docs/permissions) |
+| `provider` | object | Pro-Anbieter-Einstellungen, nach Anbieter-ID geschluesselt |
+| `instructions` | string[] | Dateien/Globs, die dem System-Prompt angehaengt werden |
+
+## Umgebungsvariablen
+
+Setzen Sie Ihre API-Schluessel als Umgebungsvariablen:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+## Berechtigungen & Anbieter
+
+Gewaehren oder beschraenken Sie Werkzeuge mit `permission` und stimmen Sie einen Anbieter unter `provider` ab:
+
+```json title="cyberstrike.json"
+{
+  "permission": {
+    "read": "allow",
+    "bash": { "*": "ask", "rm -rf *": "deny" }
+  },
+  "provider": {
+    "anthropic": {
+      "options": { "apiKey": "{env:ANTHROPIC_API_KEY}" }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Committen Sie niemals API-Schluessel in die Versionskontrolle. Verwenden Sie Umgebungsvariablen oder eine `.env`-Datei (in `.gitignore` aufgenommen).
+</Aside>
+
+Siehe die [Konfigurationsreferenz](/docs/configuration) fuer das vollstaendige Schema, die Vorrangreihenfolge, MCP, Tastenkombinationen und mehr.

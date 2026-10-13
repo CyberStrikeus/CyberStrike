@@ -1,0 +1,95 @@
+---
+title: Run-Befehl
+description: Einen einzelnen Prompt ohne interaktiven Modus ausfuehren
+sidebar:
+  order: 2
+  label: Run-Befehl
+---
+
+`cyberstrike run` fuehrt einen einzelnen Prompt nicht-interaktiv aus — ideal fuer Automatisierung und Skripting. In diesem Modus kann niemand Berechtigungsabfragen beantworten, daher wird jedes Werkzeug, das eine Abfrage ausloesen wuerde, automatisch abgelehnt (siehe [Automatisierung](/docs/permissions/automation)).
+
+{/* TODO: Screenshot - Run command output */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: run-command-output.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Ausgabe des Run-Befehls</p>
+</div>
+
+## Grundlegende Verwendung
+
+```bash
+cyberstrike run "your prompt here"
+```
+
+Der Prompt wird auch von stdin gelesen, wenn die Eingabe per Pipe erfolgt:
+
+```bash
+echo "summarize the findings in report.json" | cyberstrike run
+```
+
+## Optionen
+
+| Flag | Alias | Beschreibung |
+|------|-------|--------------|
+| `--model` | `-m` | Zu verwendendes Modell, als `provider/model` |
+| `--agent` | | Zu verwendender primaerer Agent (nur `cyberstrike` ist eingebaut) |
+| `--format` | | Ausgabeformat: `default` oder `json` (Standard: `default`) |
+| `--file` | `-f` | An die Nachricht anzuhaengende Datei(en) (wiederholbar) |
+| `--continue` | `-c` | Letzte Sitzung fortsetzen |
+| `--session` | `-s` | Sitzungs-ID zum Fortsetzen |
+| `--fork` | | Sitzung vor dem Fortsetzen forken (benoetigt `--continue`/`--session`) |
+| `--share` | | Sitzung teilen |
+| `--title` | | Titel fuer die Sitzung |
+| `--variant` | | Modellvariante / Reasoning-Aufwand (z.B. `high`, `max`, `minimal`) |
+| `--thinking` | | Denkbloecke anzeigen |
+| `--attach` | | An einen laufenden Server anhaengen (z.B. `http://localhost:4096`) |
+| `--dir` | | Verzeichnis, in dem ausgefuehrt wird (Remote-Pfad beim Anhaengen) |
+| `--port` | | Port fuer den lokalen Server |
+| `--command` | | Einen benannten Befehl ausfuehren; die Nachricht fuer seine Argumente verwenden |
+
+<Aside variant="caution">
+  Es gibt kein `--output`-, `--permission`-, `--timeout`-, `--verbose`- oder `--quiet`-Flag. Ausgabesteuerung ist `--format` (`default` | `json`); Reasoning-Anzeige ist `--thinking`.
+</Aside>
+
+## Beispiele
+
+### JSON-Ausgabe fuer Skripting
+
+```bash
+cyberstrike run "scan example.com for OWASP Top 10 issues" --format json > report.json
+```
+
+### Modell waehlen und Dateien anhaengen
+
+```bash
+cyberstrike run "review this code for auth bugs" \
+  -m anthropic/claude-sonnet-4-20250514 \
+  -f src/auth.ts -f src/session.ts
+```
+
+### Sitzung fortsetzen oder forken
+
+```bash
+cyberstrike run "now test the admin endpoints" --continue
+cyberstrike run "try a different payload" --session <id> --fork
+```
+
+## Berechtigungen in `run`
+
+Da Prompts nicht-interaktiv nicht beantwortet werden koennen, genehmigen Sie die Werkzeuge, die ein Skript benoetigt, vorab mit der Umgebungsvariable `CYBERSTRIKE_PERMISSION` oder dem Konfigurationsfeld `permission`:
+
+```bash
+CYBERSTRIKE_PERMISSION='{"bash":"allow","read":"allow"}' \
+  cyberstrike run "enumerate services on the host" --format json
+```
+
+Siehe [Automatisierung](/docs/permissions/automation) fuer CI-Muster.
+
+## Exit-Codes
+
+`cyberstrike run` gibt `0` bei Erfolg und einen Nicht-Null-Code bei Fehler (z.B. ungueltige Argumente) oder Unterbrechung zurueck.
+
+## Verwandte Dokumentation
+
+- [CLI-Referenz](/docs/cli) - Alle Befehle
+- [Automatisierung](/docs/permissions/automation) - CI/CD und vorab genehmigte Berechtigungen
+- [Verwendung: CLI](/docs/usage/cli) - Nicht-interaktive Nutzung

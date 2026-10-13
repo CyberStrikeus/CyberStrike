@@ -1,0 +1,178 @@
+---
+title: Anthropic (Claude)
+description: 为 Cyberstrike 配置 Anthropic Claude 模型
+sidebar:
+  order: 2
+  label: Anthropic
+---
+
+Anthropic 的 Claude 模型为安全分析提供先进的推理能力。本指南涵盖配置和最佳实践。
+
+<img src="/docs/images/screenshots/anthropic-model-select.png" alt="模型选择器筛选 Anthropic Claude 模型" className="rounded-lg shadow-lg my-6 w-full" />
+
+## 可用模型
+
+Cyberstrike 从 [models.dev](https://models.dev) 实时拉取模型目录，因此列表会跟踪 Anthropic 当前提供的模型。常用选择：
+
+| 模型 | 上下文 | 最适合 |
+|------|--------|--------|
+| `anthropic/claude-opus-4-5` | 200K | 最深度推理——复杂分析、漏洞研究 |
+| `anthropic/claude-sonnet-4-5` | 200K | 均衡默认——通用安全测试 |
+| `anthropic/claude-haiku-4-5` | 200K | 快速、低成本——快速扫描、大批量 |
+
+<Aside variant="tip">
+  更新的旗舰模型（Opus 4.6/4.7/4.8、Sonnet 4.6/5、Fable 5）以及所有其他 Claude 模型会随着 models.dev 更新自动出现。运行 `/models` 查看完整的当前列表。`-latest` 后缀别名（如 `claude-opus-4-5`）跟踪系列中的最新版本；带日期的 ID（如 `claude-opus-4-5-20251101`）固定特定版本。
+</Aside>
+
+## 认证
+
+### API 密钥设置
+
+1. 从 [console.anthropic.com](https://console.anthropic.com) 获取 API 密钥
+2. 在 TUI 中运行 `/connect`，选择 **Anthropic**，输入 API 密钥
+
+### 环境变量
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+添加到 shell 配置文件以持久保存：
+
+```bash
+echo 'export ANTHROPIC_API_KEY="sk-ant-..."' >> ~/.zshrc
+```
+
+### 配置文件
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+## 模型配置
+
+### 设置默认模型
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "anthropic/claude-sonnet-4-5"
+}
+```
+
+### 切换模型
+
+在 TUI 中使用 `/models` 打开模型选择器，选择不同的 Claude 模型。
+
+## 扩展思考
+
+为复杂的安全分析启用扩展思考：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "thinking": {
+          "type": "enabled",
+          "budgetTokens": 10000
+        }
+      }
+    }
+  }
+}
+```
+
+### 何时使用扩展思考
+
+- 复杂的漏洞链
+- 多步骤攻击规划
+- 深度代码审查分析
+- 架构安全评审
+
+## Token 使用量
+
+在会话 TUI 标题中，CyberStrike 会显示最近一条有非零输出 token 的助手消息的**上下文使用量**：token 总数（输入、输出、推理和缓存读/写），当模型定义了上下文限制时还会显示**占该限制的百分比**。它还会以 USD 形式显示**估算的会话费用**，即助手消息中 `cost` 的总和。
+
+### 提示缓存
+
+对于直连 Anthropic 模型（`providerID` / SDK `npm` `@ai-sdk/anthropic`），CyberStrike 在构建请求时会向选定的系统消息和最近的消息添加 Anthropic **ephemeral** 缓存控制。`provider.anthropic.options` 中没有单独的 `cacheControl` 标志来控制此行为。
+
+## 速率限制
+
+速率限制取决于您的 Anthropic 账户和产品；请参阅 [Anthropic 的文档](https://docs.anthropic.com)了解当前配额。
+
+对于**可重试的** API 错误，CyberStrike 使用**指数退避**（从 2 秒开始，每次尝试翻倍，在没有 `Retry-After` 头时上限为 30 秒），并在提供商返回 `Retry-After` / `Retry-After-Ms` 时遵守这些头。
+
+## 最佳实践
+
+### 模型选择
+
+| 任务 | 推荐模型 |
+|------|----------|
+| 快速侦察 | `claude-haiku-4-5` |
+| Web 应用测试 | `claude-sonnet-4-5` |
+| 复杂漏洞利用 | `claude-opus-4-5` |
+| 代码审查 | `claude-sonnet-4-5` |
+
+### 成本优化
+
+1. 对重复性任务使用 Haiku
+2. 对长会话使用 `/compact`（或 `/summarize`）
+3. 通过聚焦提示限制上下文
+
+### 安全
+
+1. 切勿将 API 密钥提交到代码仓库
+2. 使用环境变量
+3. 定期轮换密钥
+4. 在 Anthropic 仪表板上监控使用量
+
+## 故障排除
+
+### 无效的 API 密钥
+
+```
+Error: Invalid API key
+```
+
+验证您的密钥：
+- 符合在应用中连接 Anthropic 时描述的格式（API 密钥通常以 `sk-ant-api…` 开头）
+- 没有尾随空格
+- 密钥在 [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) 中是活跃的
+
+### 超出速率限制
+
+```
+Error: Rate limit exceeded
+```
+
+解决方案：
+- 等待并重试
+- 升级您的层级
+- 使用更小的上下文
+
+### 模型不可用
+
+```
+Error: Model not found
+```
+
+检查模型 ID 是否正确，以及在您的区域是否可用。
+
+<Aside variant="tip">
+  大多数安全测试任务使用 Claude Sonnet。将 Opus 保留用于需要更深度推理的复杂分析。
+</Aside>
+
+## 相关文档
+
+- [提供商概述](/docs/providers) - 所有支持的提供商
+- [配置](/docs/configuration) - 完整配置选项
+- [认证](/docs/getting-started/authentication) - 设置指南

@@ -1,0 +1,115 @@
+---
+title: Bolt
+description: 30+ पूर्व-स्थापित उपकरणों के साथ कंटेनराइज़्ड सुरक्षा उपकरण सर्वर
+sidebar:
+  order: 4
+  label: Bolt
+---
+
+Bolt एक कंटेनराइज़्ड MCP सर्वर है जो सुरक्षा उपकरण प्रदान करता है। यह एक Docker कंटेनर (Ubuntu 24.04) में चलता है और प्रत्येक उपकरण को सीधे एक्सपोज़ करता है — कोई मेटा-टूल नहीं, कोई डायनामिक लोडिंग नहीं, बस जिस उपकरण की आवश्यकता है उसे कॉल करें।
+
+## Bolt क्यों?
+
+| विशेषता | Bolt के बिना | Bolt के साथ |
+|---------|--------------|-----------|
+| उपकरण स्थापना | प्रत्येक उपकरण के लिए मैन्युअल | पूर्व-स्थापित |
+| प्लेटफ़ॉर्म समर्थन | अधिकांश उपकरणों के लिए केवल Linux | Docker वाला कोई भी प्लेटफ़ॉर्म |
+| आइसोलेशन | उपकरण आपके सिस्टम पर चलते हैं | कंटेनर में सैंडबॉक्स्ड |
+| अपडेट | मैन्युअल | `docker pull` |
+
+## अंदर क्या है
+
+Bolt उपकरणों को दो तरीकों से एक्सपोज़ करता है:
+
+- **7 नेटिव प्लगइन** — `subfinder`, `nmap`, `nuclei`, `httpx`, `ffuf`, `run-command`, `wordlist`
+- **~26 एग्रीगेटेड stdio MCP सर्वर** — `dnsx`, `amass`, `katana`, `sqlmap`, `wpscan`, `gobuster`, `masscan`, `hydra`, `hashcat`, `john`, `impacket`, और अधिक
+
+प्रत्येक सीधे कॉल करने योग्य उपकरण है — एजेंट इसे एक ही बारी में कॉल करता है।
+
+## त्वरित शुरुआत
+
+### 1. Bolt कंटेनर शुरू करें
+
+```bash
+docker run -d \
+  --name bolt \
+  --restart unless-stopped \
+  -p 3001:3001 \
+  -v bolt-data:/data \
+  -e MCP_ADMIN_TOKEN=$(openssl rand -hex 32) \
+  --cap-add NET_RAW \
+  --cap-add NET_ADMIN \
+  ghcr.io/cyberstrikeus/bolt:latest
+
+docker logs bolt | grep -i token
+```
+
+### 2. इसे Cyberstrike से जोड़ें
+
+TUI में `/bolt` चलाएं, जोड़ने के लिए **a** दबाएं, URL `http://localhost:3001` दर्ज करें, और admin token प्रदान करें।
+
+### 3. उपकरणों का उपयोग करें
+
+सीधे अपना कार्य टाइप करें — एजेंट स्वचालित रूप से Bolt उपकरणों को कॉल करता है:
+
+```
+> Run nmap against 192.168.1.1 with service detection
+> Use subfinder to enumerate subdomains of example.com
+> Scan https://target.com with nuclei
+```
+
+## कॉन्फ़िगरेशन
+
+Bolt सर्वर **`bolt` कुंजी** के तहत कॉन्फ़िगर किए जाते हैं — `mcp` के तहत नहीं:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "bolt": {
+    "local": {
+      "url": "http://localhost:3001",
+      "enabled": true,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Bolt एक `mcp` एंट्री **नहीं** है। प्रमाणीकरण Ed25519 पेयरिंग द्वारा संभाला जाता है, और admin token केवल पेयरिंग चरण में रहता है।
+</Aside>
+
+## प्रमाणीकरण
+
+Bolt **Ed25519 अनुरोध हस्ताक्षर** का उपयोग करता है, जो एक बार की पेयरिंग द्वारा बूटस्ट्रैप किया जाता है:
+
+1. admin token के साथ `POST /pair` → एक पेयरिंग कोड
+2. Cyberstrike एक Ed25519 कीपेयर जनरेट करता है
+3. कोड + क्लाइंट पब्लिक की के साथ `POST /pair/exchange` → सर्वर पब्लिक की + क्लाइंट ID
+4. प्रत्येक बाद का अनुरोध क्लाइंट की प्राइवेट की से **हस्ताक्षरित** होता है
+
+admin token केवल चरण 1 में उपयोग किया जाता है — इसे कभी कॉन्फ़िग में संग्रहीत नहीं किया जाता।
+
+## TUI प्रबंधन
+
+- **`/bolt`** — Bolt सर्वर प्रबंधित करें (जोड़ें/पेयर करें, टॉगल करें, हटाएं)
+- **`/mcps`** — नियमित MCP सर्वर प्रबंधित करें
+
+## उपयोग उदाहरण
+
+```
+> Use bolt to scan 192.168.1.0/24 for open ports and services   # nmap
+> Find all subdomains of example.com                            # subfinder
+> Scan https://target.com with nuclei                           # nuclei
+> Fuzz directories on https://target.com                        # ffuf
+> Run "dig +short example.com"                                  # run-command
+```
+
+## समस्या निवारण
+
+- **Connection refused** — जांचें कि कंटेनर चल रहा है (`docker ps`) और `curl http://localhost:3001/health` प्रतिक्रिया देता है।
+- **पुनः पेयरिंग आवश्यक** — यदि Bolt URL बदलता है, तो `/bolt` के माध्यम से फिर से पेयर करें।
+- **उपकरण उपलब्ध नहीं** — पुष्टि करें कि सर्वर `/bolt` में कनेक्ट है, direct-API मॉडल का उपयोग करें।
+
+<Aside variant="danger">
+  Bolt उपकरणों का उपयोग केवल अधिकृत लक्ष्यों के विरुद्ध करें। अनधिकृत पेनेट्रेशन टेस्टिंग अवैध है।
+</Aside>

@@ -1,0 +1,70 @@
+---
+title: 配置
+description: 为渗透测试工作流配置 Cyberstrike
+sidebar:
+  order: 2
+  label: 配置
+---
+
+Cyberstrike 使用 JSON 文件进行配置。本页面是快速介绍；完整的配置层级、所有选项和相关指南请参阅[配置参考](/docs/configuration)。
+
+## 配置文件
+
+在项目目录中创建 `cyberstrike.json`：
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike"
+}
+```
+
+模型以 `provider/model` 格式编写——没有单独的 `provider` 字符串字段。`default_agent` 必须是主代理（`cyberstrike` 是内置的；它会自动委派给专业子代理）。
+
+## 常用选项
+
+| 选项 | 类型 | 描述 |
+|------|------|------|
+| `model` | string | 默认模型，格式为 `provider/model` |
+| `small_model` | string | 用于轻量级任务（标题生成）的模型 |
+| `default_agent` | string | 默认主代理（回退到 `cyberstrike`） |
+| `theme` | string | 界面主题（默认 `cyberstrike`） |
+| `permission` | object | 每个工具的权限——参见[权限](/docs/permissions) |
+| `provider` | object | 按提供商 ID 键控的提供商设置 |
+| `instructions` | string[] | 追加到系统提示词的文件/通配符 |
+
+## 环境变量
+
+将 API 密钥设置为环境变量：
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+## 权限与提供商
+
+使用 `permission` 授予或限制工具，使用 `provider` 调整提供商设置：
+
+```json title="cyberstrike.json"
+{
+  "permission": {
+    "read": "allow",
+    "bash": { "*": "ask", "rm -rf *": "deny" }
+  },
+  "provider": {
+    "anthropic": {
+      "options": { "apiKey": "{env:ANTHROPIC_API_KEY}" }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  切勿将 API 密钥提交到版本控制。请使用环境变量或 `.env` 文件（添加到 `.gitignore`）。
+</Aside>
+
+完整的配置模式、优先级顺序、MCP、快捷键等信息请参阅[配置参考](/docs/configuration)。

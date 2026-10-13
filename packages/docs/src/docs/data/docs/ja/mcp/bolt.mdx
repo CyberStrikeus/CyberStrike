@@ -1,0 +1,171 @@
+---
+title: Bolt
+description: DockerによるMCPベースのプラグインセキュリティツールサーバー
+sidebar:
+  order: 2
+  label: Bolt
+---
+
+Boltはセキュリティツールを提供するコンテナ化されたMCPサーバーです。Dockerコンテナ(Ubuntu 24.04)内で動作し、各ツールを直接公開します -- メタツールなし、動的ロードなし、必要なツールをそのまま呼び出すだけです。
+
+{/* Hero Screenshot - Bolt in action */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: bolt-hero.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">CyberstrikeでBoltによるnmapスキャンを実行</p>
+</div>
+
+## なぜBoltなのか?
+
+BoltはLinux環境が必要なセキュリティツールの実行問題を解決します。ローカルにツールをインストールする代わりに、Boltはそれらを隔離されたコンテナ内で実行します。
+
+| 機能 | Boltなし | Boltあり |
+|---------|--------------|-----------|
+| ツールのインストール | 各ツールを手動で | プリインストール済み |
+| プラットフォームサポート | ほとんどのツールはLinuxのみ | Dockerのある任意のプラットフォーム |
+| 分離 | ツールはシステム上で実行 | コンテナ内でサンドボックス化 |
+| 更新 | 手動 | `docker pull` |
+
+## 内容
+
+Bolt (`bolt.config.json`、ポート`3001`)は2つの方法でツールを公開します:
+
+- **7つのネイティブプラグイン** -- `subfinder`、`nmap`、`nuclei`、`httpx`、`ffuf`、`run-command`、`wordlist`
+- **約26の集約stdio MCPサーバー** -- 例: `dnsx`、`amass`、`katana`、`sqlmap`、`wpscan`、`gobuster`、`masscan`、`hydra`、`hashcat`、`john`、`impacket`など
+
+それぞれが直接呼び出し可能なツールです -- エージェントが1ターンで呼び出し、検索/ロードのステップは不要です。
+
+## クイックスタート
+
+### 1. Boltコンテナを起動する
+
+```bash
+docker run -d \
+  --name bolt \
+  --restart unless-stopped \
+  -p 3001:3001 \
+  -v bolt-data:/data \
+  -e MCP_ADMIN_TOKEN=$(openssl rand -hex 32) \
+  --cap-add NET_RAW \
+  --cap-add NET_ADMIN \
+  ghcr.io/cyberstrikeus/bolt:latest
+
+# 管理トークンを確認(ペアリング時に1回使用)
+docker logs bolt | grep -i token
+```
+
+### 2. Cyberstrikeとペアリングする
+
+TUIで`/bolt`ダイアログを開き、**a**を押して追加し、URL `http://localhost:3001`を入力して管理トークンを提供します。Cyberstrikeはサーバーとペアリングし([認証](#authentication)を参照)、資格情報を保存します -- トークン自体は設定に**書き込まれません**。
+
+### 3. ツールを使用する
+
+```
+> Run nmap against 192.168.1.1 with service detection
+> Use subfinder to enumerate subdomains of example.com
+```
+
+## 設定
+
+Boltサーバーは**独自のトップレベル`bolt`キー**の下に設定されます -- `mcp`の下ではありません。各エントリには`url`のみが必要です(Cyberstrikeが自動的に`/mcp`パスを追加します):
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "bolt": {
+    "local": {
+      "url": "http://localhost:3001",
+      "enabled": true,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+| フィールド | 型 | 説明 |
+|-------|------|-------------|
+| `url` | string | 必須。Boltサーバーのベース URL(例: `http://localhost:3001`)。 |
+| `enabled` | boolean | 任意。起動時に接続する(デフォルト: true)。 |
+| `timeout` | number | 任意。リクエストタイムアウト(ミリ秒)(デフォルト: 30000)。 |
+
+<Aside variant="caution">
+  Boltは`mcp`エントリ**ではありません**。`type: "remote"`も`bolt: true`フラグも設定内の`Authorization`ヘッダーもありません -- 認証はEd25519ペアリングで処理され、管理トークンはペアリングステップでのみ使用されます。
+</Aside>
+
+## 認証
+
+Boltは**Ed25519リクエスト署名**を使用し、管理トークンによる1回限りのペアリングでブートストラップされます:
+
+1. 管理トークンで`POST /pair` --> ペアリングコード
+2. CyberstrikeがEd25519キーペアを生成
+3. コード + クライアント公開鍵で`POST /pair/exchange` --> サーバー公開鍵 + クライアントID
+4. 以降、すべてのリクエストはクライアントの秘密鍵で**署名**されます
+
+管理トークンはステップ1でのみ使用されます -- 永続的なベアラー資格情報ではなく、`cyberstrike.json`に保存されることはありません。
+
+## TUI管理
+
+2つの別々のダイアログがあります:
+
+- **`/bolt`** -- Boltサーバーの管理(追加/ペアリング、切り替え、削除)。
+- **`/mcps`** -- 通常のローカル/リモートMCPサーバーの管理。
+
+`/bolt`ダイアログ内: **a** で追加、**space** でサーバーを切り替え、**esc** で閉じます。
+
+## 使用例
+
+```
+> Use bolt to scan 192.168.1.0/24 for open ports and services   # nmap
+> Find all subdomains of example.com                            # subfinder
+> Scan https://target.com with nuclei                           # nuclei
+> Fuzz directories on https://target.com                        # ffuf
+> Run "dig +short example.com"                                  # run-command escape hatch
+```
+
+それぞれが直接ツール呼び出しにマッピングされます -- ロードステップは不要です。
+
+## コンテナ設定
+
+### 環境変数
+
+| 変数 | デフォルト | 説明 |
+|----------|---------|-------------|
+| `PORT` | 3001 | HTTPサーバーポート |
+| `HOST` | 0.0.0.0 | バインドアドレス |
+| `MCP_ADMIN_TOKEN` | -- | ペアリング用管理トークン |
+| `DATA_DIR` | /data | 永続データディレクトリ |
+
+### Dockerケーパビリティ
+
+| ケーパビリティ | 目的 |
+|------------|---------|
+| `NET_RAW` | nmap SYNスキャン用の生ソケット |
+| `NET_ADMIN` | 特権アクセスが必要なツール用のネットワーク設定 |
+
+## APIリファレンス
+
+| エンドポイント | 目的 |
+|----------|---------|
+| `GET /health` | ヘルスチェック -- `{ "status": "ok" }` を返します(認証済み管理者リクエストではツール数を含む詳細情報を返します) |
+| `POST /mcp` | MCP JSON-RPCエンドポイント(署名済みリクエスト) |
+| `POST /pair` | 管理トークンでEd25519ペアリングを開始 |
+| `POST /pair/exchange` | ペアリングコード + 公開鍵を交換 |
+
+```bash
+curl http://localhost:3001/health
+```
+
+## トラブルシューティング
+
+- **接続拒否** -- コンテナが起動しているか確認(`docker ps`)、ポートがマッピングされているか確認(`docker port bolt`)、`curl http://localhost:3001/health`が応答するか確認してください。
+- **再ペアリングが必要** -- Bolt URLが変更された場合、Cyberstrikeは保存された資格情報を破棄するため、`/bolt`から再度ペアリングする必要があります。
+- **ツールが利用できない** -- `/bolt`でサーバーが接続されていることを確認し、ダイレクトAPIモデル(例: `anthropic/claude-sonnet-4-20250514`、`openai/gpt-4o`)を使用してください。
+
+## 関連ドキュメント
+
+- [Bolt / MCP 概要](/docs/mcp) - アーキテクチャとコンセプト
+- [リモートサーバー](/docs/mcp/remote-servers) - リモートMCP設定
+- [ローカルサーバー](/docs/mcp/local-servers) - ローカルstdio MCPセットアップ
+- [権限](/docs/permissions) - ツールの権限
+
+<Aside variant="danger">
+  Boltツールは許可されたターゲットに対してのみ使用してください。無許可のペネトレーションテストは違法です。
+</Aside>

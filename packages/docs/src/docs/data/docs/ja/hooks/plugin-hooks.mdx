@@ -1,0 +1,154 @@
+---
+title: プラグインフック
+description: Cyberstrikeプラグインが実装できるフック
+sidebar:
+  order: 2
+  label: プラグインフック
+---
+
+プラグインは `(input) => Promise<Hooks>` 関数で、フック関数のオブジェクトを返します。各フックは `input`（読み取り専用のコンテキスト）と、ほとんどのフックでは動作を変更するために**ミューテート**する `output` オブジェクトを受け取ります。フックからスローすると操作が中止されます。
+
+<img src="/docs/images/diagrams/plugin-hook-architecture.svg" alt="プラグインフック実行フロー：LLMコール前のchat.params/chat.headers、ツール前のpermission.ask、引数の変更やブロック用のtool.execute.before、出力変換用のtool.execute.after" className="my-6 mx-auto max-w-xs" />
+
+プラグインのスキャフォールドと登録方法は[プラグインの作成](/docs/hooks/creating-plugins)を参照してください。このページはすべてのフックのリファレンスです。
+
+## フックリファレンス
+
+| フック | 実行タイミング | できること |
+|------|--------------|----------|
+| `event` | 任意のバスイベント時 | イベントの観察（ログ、分析） |
+| `config` | 設定読み込み後 | 読み込まれた設定の検査/調整 |
+| `tool` | 登録時 | カスタムツールの追加（名前 -> 定義のマップ） |
+| `auth` | 登録時 | カスタム認証プロバイダーの追加 |
+| `chat.message` | ユーザーメッセージ受信時 | メッセージパーツの読み取り/追加 |
+| `chat.params` | LLMコール前 | `temperature`、`topP`、`topK`、`options` の変更 |
+| `chat.headers` | LLMリクエスト前 | リクエスト `headers` の追加/変更 |
+| `permission.ask` | パーミッション要求時 | `status` を `allow`/`deny`/`ask` に設定 |
+| `command.execute.before` | スラッシュコマンド実行時 | `parts` の注入 |
+| `tool.execute.before` | ツール実行前 | `args` の変更、またはスローしてブロック |
+| `tool.execute.after` | ツール実行後 | `title`/`output`/`metadata` の変換 |
+| `tool.definition` | ツールをLLMに送信時 | ツールの `description`/`parameters` の書き換え |
+| `shell.env` | シェルコマンド実行時 | 環境変数の追加 |
+| `experimental.chat.messages.transform` | LLMコール前 | メッセージリスト全体の書き換え |
+| `experimental.chat.system.transform` | LLMコール前 | システムプロンプト配列の書き換え |
+| `experimental.session.compacting` | コンパクション前 | コンテキストの追加またはコンパクションプロンプトの置換 |
+| `experimental.text.complete` | テキストパート完了時 | 完了テキストの書き換え |
+
+## シグネチャ
+
+すべてのフックは `async` で `Promise<void>` を返します。
+
+### ツール
+
+```typescript
+"tool.execute.before"?: (
+  input: { tool: string; sessionID: string; callID: string },
+  output: { args: any },
+) => Promise<void>
+
+"tool.execute.after"?: (
+  input: { tool: string; sessionID: string; callID: string; args: any },
+  output: { title: string; output: string; metadata: any },
+) => Promise<void>
+
+"tool.definition"?: (
+  input: { toolID: string },
+  output: { description: string; parameters: any },
+) => Promise<void>
+```
+
+ツールを**ブロック**するには、`tool.execute.before` からスローします：
+
+```typescript
+"tool.execute.before": async (input, output) => {
+  if (input.tool === "bash" && /rm\s+-rf/.test(output.args.command)) {
+    throw new Error("blocked: rm -rf")
+  }
+}
+```
+
+### パーミッション
+
+```typescript
+"permission.ask"?: (
+  input: Permission,
+  output: { status: "ask" | "deny" | "allow" },
+) => Promise<void>
+```
+
+```typescript
+"permission.ask": async (input, output) => {
+  if (input.type === "read") output.status = "allow"
+}
+```
+
+### チャット
+
+```typescript
+"chat.message"?: (
+  input: { sessionID: string; agent?: string; model?: { providerID: string; modelID: string }; messageID?: string; variant?: string },
+  output: { message: UserMessage; parts: Part[] },
+) => Promise<void>
+
+"chat.params"?: (
+  input: { sessionID: string; agent: string; model: Model; provider: ProviderContext; message: UserMessage },
+  output: { temperature: number; topP: number; topK: number; options: Record<string, any> },
+) => Promise<void>
+
+"chat.headers"?: (
+  input: { sessionID: string; agent: string; model: Model; provider: ProviderContext; message: UserMessage },
+  output: { headers: Record<string, string> },
+) => Promise<void>
+```
+
+### コマンドとシェル
+
+```typescript
+"command.execute.before"?: (
+  input: { command: string; sessionID: string; arguments: string },
+  output: { parts: Part[] },
+) => Promise<void>
+
+"shell.env"?: (
+  input: { cwd: string },
+  output: { env: Record<string, string> },
+) => Promise<void>
+```
+
+### ライフサイクル
+
+```typescript
+event?:  (input: { event: Event }) => Promise<void>
+config?: (input: Config) => Promise<void>
+```
+
+### 実験的
+
+```typescript
+"experimental.chat.messages.transform"?: (input: {}, output: { messages: { info: Message; parts: Part[] }[] }) => Promise<void>
+"experimental.chat.system.transform"?:   (input: { sessionID?: string; model: Model }, output: { system: string[] }) => Promise<void>
+"experimental.session.compacting"?:      (input: { sessionID: string }, output: { context: string[]; prompt?: string }) => Promise<void>
+"experimental.text.complete"?:           (input: { sessionID: string; messageID: string; partID: string }, output: { text: string }) => Promise<void>
+```
+
+## カスタムツールと認証
+
+`tool` と `auth` フックはイベントに反応するのではなく、機能を登録します：
+
+```typescript
+return {
+  tool: {
+    my_scanner: {
+      description: "Custom vulnerability scanner",
+      parameters: { type: "object", properties: { target: { type: "string" } }, required: ["target"] },
+      execute: async (args) => ({ title: `Scanned ${args.target}`, output: await scan(args.target) }),
+    },
+  },
+}
+```
+
+## 関連ドキュメント
+
+- [フック概要](/docs/hooks) - コンセプトと例
+- [プラグインの作成](/docs/hooks/creating-plugins) - プラグインのスキャフォールド、登録、テスト
+- [設定](/docs/configuration) - `plugin` 設定キー

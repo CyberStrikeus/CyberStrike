@@ -1,0 +1,175 @@
+---
+title: 本地 MCP 服务器
+description: 为 Cyberstrike 配置本地运行的 MCP 服务器
+sidebar:
+  order: 3
+  label: 本地服务器
+---
+
+本地 MCP 服务器作为子进程在您的机器上运行，通过 stdio 通信。这是 [Bolt](/docs/mcp/bolt) 的替代方案，适合更喜欢直接在系统上运行工具的用户。
+
+<Aside variant="tip">
+  **安全工具推荐使用 Bolt。** 本地 MCP 需要您自行安装每个工具。推荐使用预装安全工具插件的 [Bolt](/docs/mcp/bolt)。
+</Aside>
+
+{/* Screenshot - Local MCP server configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: local-mcp-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">cyberstrike.json 中的本地 MCP 服务器配置</p>
+</div>
+
+## 何时使用本地 MCP
+
+- **离线环境** — 不需要网络访问
+- **低延迟** — 通过 stdio 直接进程通信
+- **自定义工具** — 您自己的 MCP 服务器
+- **隐私** — 数据不会离开您的机器
+
+Cyberstrike 还默认启用了几个本地 MCP 服务器：`github-security`、`cve` 和 `osint`。您的配置会合并到这些之上。
+
+## 配置模式
+
+本地服务器是扁平 `mcp` 映射中的一个条目，按服务器名称键控：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "mcp": {
+    "my-tools": {
+      "type": "local",
+      "command": ["npx", "-y", "my-mcp-server"],
+      "environment": { "API_KEY": "{env:MY_API_KEY}" },
+      "enabled": true,
+      "timeout": 5000
+    }
+  }
+}
+```
+
+| 字段 | 类型 | 描述 |
+|------|------|------|
+| `type` | `"local"` | 必填。选择 stdio 子进程服务器。 |
+| `command` | `string[]` | 必填。命令**及其参数**作为一个数组。 |
+| `environment` | object | 可选。进程的额外环境变量。 |
+| `enabled` | boolean | 可选。启动时启动服务器（默认：true）。 |
+| `timeout` | number | 可选。请求超时时间（毫秒）（默认：5000）。 |
+
+<Aside variant="caution">
+  `mcp` 对象是按服务器名称键控的**扁平映射**——没有 `servers` 包装器。`command` 是单个数组（命令 + 参数一起）；没有单独的 `args`、`cwd`、`autoStart` 或 `restart` 字段。未知键会被拒绝。
+</Aside>
+
+## 通过 TUI 添加
+
+添加本地服务器最简单的方式是在 TUI 中使用 `/mcps` 命令。
+
+输入 `/mcps` 打开 MCP 管理器。它列出已配置的服务器及其状态（`✓` 已启用 / `○` 已禁用）。按 `space` 切换服务器，`a` 添加，`Enter` 操作选中项。
+
+添加本地服务器：按 `a` → 选择 **Local** → 输入**命令**（例如 `npx my-mcp-server`）→ 可选添加**环境变量**（`KEY=VALUE, KEY2=VALUE2`）→ 确认自动派生的**名称**。Cyberstrike 在保存前测试连接；如果失败，不会添加服务器。
+
+TUI 写入的正是上面所示的模式。
+
+## 示例
+
+### Node.js 服务器
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/path/to/allow"]
+    }
+  }
+}
+```
+
+### Python 服务器
+
+```json
+{
+  "mcp": {
+    "python-tools": {
+      "type": "local",
+      "command": ["python", "-m", "mcp_server"]
+    }
+  }
+}
+```
+
+### 二进制文件或 Docker
+
+因为 `command` 是完整的 argv，您可以直接运行二进制文件或用 Docker 包装——不需要特殊字段：
+
+```json
+{
+  "mcp": {
+    "docker-tools": {
+      "type": "local",
+      "command": ["docker", "run", "-i", "--rm", "--network=none", "mcp-tools:latest"]
+    }
+  }
+}
+```
+
+## 环境变量
+
+使用 `environment` 将变量传递给服务器进程。使用 `{env:VAR}` 引用 shell 中的变量，而不是硬编码密钥：
+
+```json
+{
+  "mcp": {
+    "api-tools": {
+      "type": "local",
+      "command": ["node", "server.js"],
+      "environment": {
+        "API_KEY": "{env:MY_API_KEY}",
+        "DEBUG": "mcp:*"
+      }
+    }
+  }
+}
+```
+
+## 启用和禁用
+
+设置 `enabled: false` 保持服务器已配置但不活跃（或在 `/mcps` 对话框中切换）：
+
+```json
+{
+  "mcp": {
+    "heavy-tools": {
+      "type": "local",
+      "command": ["node", "server.js"],
+      "enabled": false
+    }
+  }
+}
+```
+
+## 启动慢的服务器
+
+对于响应时间超过默认 5 秒的服务器，增加 `timeout`（毫秒）：
+
+```json
+{
+  "mcp": {
+    "slow-tools": {
+      "type": "local",
+      "command": ["node", "server.js"],
+      "timeout": 30000
+    }
+  }
+}
+```
+
+## 故障排除
+
+- **服务器无法启动** — 验证 `command` 的第一个元素存在且可执行，其依赖项已安装。使用 `cyberstrike mcp debug <name>` 检查连接。
+- **连接超时** — 增加 `timeout`，或检查服务器是否能快速响应 `tools/list`。
+- **配置被拒绝** — `mcp` 模式是严格的；确保使用了带有 `type` + `command`（数组）的扁平映射，没有未知键。
+
+## 相关文档
+
+- [Bolt / MCP 概述](/docs/mcp) - 架构和概念
+- [Bolt](/docs/mcp/bolt) - 基于容器的安全工具（推荐）
+- [远程服务器](/docs/mcp/remote-servers) - 远程 MCP 配置
+- [创建服务器](/docs/mcp/creating-servers) - 构建自定义服务器

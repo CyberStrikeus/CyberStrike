@@ -1,0 +1,318 @@
+---
+title: "Operations sur les fichiers"
+description: "Outils Read, Write, Edit, Glob et Grep pour la manipulation de fichiers"
+sidebar:
+  order: 2
+  label: "Operations sur les fichiers"
+---
+
+Cyberstrike fournit des outils specialises pour les operations sur les fichiers, optimises pour les workflows de tests de securite.
+
+{/* TODO: Screenshot - File operations in action */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: file-operations.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Sortie des outils d'operations sur les fichiers</p>
+</div>
+
+## Outil Read
+
+Lit le contenu des fichiers avec les numeros de ligne.
+
+### Utilisation de base
+
+```
+> Lire le contenu de src/auth/login.ts
+```
+
+### Lecture partielle de fichier
+
+```
+> Lire les lignes 50-100 de src/auth/login.ts
+```
+
+### Fichiers multiples
+
+```
+> Lire config.json et package.json
+```
+
+### Analyse d'images
+
+L'outil Read peut analyser des images :
+
+```
+> Lire la capture d'ecran a ./evidence/vuln-poc.png
+```
+
+### Analyse de PDF
+
+```
+> Lire le rapport de securite a ./reports/pentest.pdf
+```
+
+## Outil Write
+
+Cree ou ecrase des fichiers.
+
+### Creer un nouveau fichier
+
+```
+> Ecrire un script Python pour exploiter l'injection SQL dans exploit.py
+```
+
+### Ecraser un fichier
+
+```
+> Remplacer le contenu de config.json par la configuration securisee
+```
+
+<Aside variant="caution">
+  L'outil Write ecrase les fichiers existants sans avertissement. Utilisez Edit pour les modifications partielles.
+</Aside>
+
+## Outil Edit
+
+Effectue des modifications precises sur les fichiers existants.
+
+### Remplacement de chaine
+
+```
+> Editer src/auth/login.ts pour remplacer "SELECT * FROM users WHERE id = " + userId par une requete parametree
+```
+
+### Edition multi-lignes
+
+```
+> Editer la fonction vulnerable dans auth.ts pour ajouter la validation des entrees
+```
+
+### Remplacer tout
+
+```
+> Remplacer toutes les instances de "http://" par "https://" dans les fichiers de configuration
+```
+
+### Bonnes pratiques
+
+1. Lire le fichier d'abord pour comprendre le contexte
+2. Etre precis sur ce qu'il faut changer
+3. Inclure suffisamment de contexte environnant pour des correspondances uniques
+4. Verifier les changements apres l'edition
+
+## Outil Glob
+
+Trouve des fichiers par correspondance de motifs.
+
+### Motifs de base
+
+```
+> Trouver tous les fichiers TypeScript dans le projet
+```
+
+Motif : `**/*.ts`
+
+### Extensions multiples
+
+```
+> Trouver tous les fichiers JavaScript et TypeScript
+```
+
+Motif : `**/*.{js,ts}`
+
+### Repertoires specifiques
+
+```
+> Trouver tous les fichiers de configuration dans le repertoire src
+```
+
+Motif : `src/**/config.*`
+
+### Motifs courants
+
+| Motif | Correspondances |
+|-------|-----------------|
+| `**/*.ts` | Tous les fichiers TypeScript |
+| `src/**/*.test.ts` | Fichiers de test dans src |
+| `**/package.json` | Tous les fichiers package.json |
+| `**/.env*` | Fichiers d'environnement |
+| `**/secret*` | Fichiers avec "secret" dans le nom |
+
+### Motifs de scan de securite
+
+```
+> Trouver les fichiers pouvant contenir des identifiants
+
+Motifs :
+- **/*.env*
+- **/secrets.*
+- **/*credentials*
+- **/*password*
+- **/config.json
+```
+
+## Outil Grep
+
+Recherche dans le contenu des fichiers avec des regex.
+
+### Recherche de base
+
+```
+> Chercher "password" dans tous les fichiers
+```
+
+### Recherche regex
+
+```
+> Chercher des motifs de cles API dans le code source
+```
+
+Motif : `(api[_-]?key|apikey)\s*[:=]\s*['"][^'"]+['"]`
+
+### Insensible a la casse
+
+```
+> Chercher "SELECT" sans tenir compte de la casse
+```
+
+### Filtre par type de fichier
+
+```
+> Chercher "eval(" uniquement dans les fichiers JavaScript
+```
+
+### Lignes de contexte
+
+```
+> Chercher "TODO" avec 2 lignes de contexte avant et apres
+```
+
+### Recherches orientees securite
+
+| Objectif | Motif |
+|----------|-------|
+| Injection SQL | `(SELECT|INSERT|UPDATE|DELETE).*\+.*\$` |
+| Injection de commande | `(exec|spawn|system)\s*\(` |
+| Secrets codes en dur | `(password\|secret\|key)\s*=\s*['"][^'"]&#123;8,&#125;` |
+| Deserialisation non securisee | `(pickle|marshal|yaml\.load)` |
+| Points d'injection XSS | `(innerHTML|outerHTML|document\.write)` |
+
+## Workflow d'analyse de fichiers
+
+### 1. Decouvrir les fichiers
+
+```
+> Trouver tous les fichiers qui pourraient gerer les entrees utilisateur
+```
+
+### 2. Chercher des motifs
+
+```
+> Chercher dans ces fichiers la construction de requetes SQL
+```
+
+### 3. Lire les fichiers suspects
+
+```
+> Lire les fichiers qui correspondent au motif SQL
+```
+
+### 4. Documenter les decouvertes
+
+```
+> Ecrire un resume des decouvertes d'injection SQL dans findings.md
+```
+
+## Considerations de permissions
+
+Les operations sur les fichiers peuvent necessiter une permission :
+
+| Operation | Cle de permission | Comportement par defaut |
+|-----------|-------------------|-------------------------|
+| Read | `read` | Autorise (lecture seule) |
+| Glob | `glob` | Autorise (lecture seule) |
+| Grep | `grep` | Autorise (lecture seule) |
+| Write | `edit` | Necessite une permission |
+| Edit | `edit` | Necessite une permission |
+
+Les outils Write et Edit sont tous deux controles par la meme cle de permission `edit`.
+
+### Approuver automatiquement les ecritures
+
+Pour l'automatisation, associez des motifs glob de chemins de fichiers a des actions sous `edit` :
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "permission": {
+    "edit": {
+      "reports/**": "allow",
+      "findings/**": "allow"
+    }
+  }
+}
+```
+
+Seuls `*` et `?` sont pris en charge comme caracteres generiques. Voir [Permissions](/docs/permissions) pour le modele complet.
+
+## Gestion des fichiers volumineux
+
+### Pagination
+
+Pour les fichiers volumineux :
+
+```
+> Lire les 100 premieres lignes de large-log.txt
+> Lire les lignes 100-200 de large-log.txt
+```
+
+### Fichiers binaires
+
+L'outil Read gere les fichiers binaires :
+
+```
+> Lire le binaire a ./malware.exe et analyser ses chaines
+```
+
+## Integration avec les tests de securite
+
+### Revue de code
+
+```
+> Analyser tous les fichiers lies a l'authentification pour les problemes de securite
+
+1. Trouver les fichiers auth : Glob **/*auth*.{ts,js}
+2. Chercher des vulnerabilites : motifs Grep
+3. Lire et analyser les correspondances
+4. Documenter les decouvertes
+```
+
+### Audit de configuration
+
+```
+> Examiner tous les fichiers de configuration pour les mauvaises configurations de securite
+
+1. Trouver les configs : Glob **/{config,settings}*.{json,yaml,yml}
+2. Lire chaque fichier
+3. Verifier l'exposition de donnees sensibles
+4. Verifier les parametres securises par defaut
+```
+
+### Detection de secrets
+
+```
+> Scanner le code source pour les secrets codes en dur
+
+1. Glob tous les fichiers source
+2. Grep pour les motifs de secrets
+3. Lire les correspondances pour verification
+4. Signaler les decouvertes
+```
+
+<Aside variant="tip">
+  Combinez Glob et Grep pour un scan efficace du code source. Commencez large, puis affinez.
+</Aside>
+
+## Documentation connexe
+
+- [Outil Bash](/docs/tools/bash) - Execution de commandes
+- [Outil Memoire](/docs/tools/memory) - Stockage des decouvertes
+- [Permissions](/docs/permissions) - Permissions des operations sur les fichiers

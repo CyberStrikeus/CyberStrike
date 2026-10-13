@@ -1,0 +1,175 @@
+---
+title: Serveurs MCP locaux
+description: Configurer des serveurs MCP locaux pour Cyberstrike
+sidebar:
+  order: 3
+  label: Serveurs locaux
+---
+
+Les serveurs MCP locaux s'executent sur votre machine en tant que processus enfants, communiquant via stdio. C'est une alternative a [Bolt](/fr/docs/mcp/bolt) pour les utilisateurs qui preferent executer les outils directement sur leur systeme.
+
+<Aside variant="tip">
+  **Preferez Bolt pour les outils de securite.** Le MCP local necessite d'installer chaque outil vous-meme. Voir [Bolt](/fr/docs/mcp/bolt) pour l'approche recommandee avec des plugins d'outils de securite pre-installes.
+</Aside>
+
+{/* Screenshot - Local MCP server configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: local-mcp-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Configuration de serveur MCP local dans cyberstrike.json</p>
+</div>
+
+## Quand utiliser le MCP local
+
+- **Environnements hors ligne** — aucun acces reseau requis
+- **Faible latence** — communication directe par processus via stdio
+- **Outils personnalises** — vos propres serveurs MCP
+- **Confidentialite** — les donnees ne quittent jamais votre machine
+
+Cyberstrike est egalement livre avec quelques serveurs MCP locaux actives par defaut : `github-security`, `cve` et `osint`. Votre configuration est fusionnee par-dessus.
+
+## Schema de configuration
+
+Un serveur local est une entree dans la map plate `mcp`, identifiee par le nom du serveur :
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "mcp": {
+    "my-tools": {
+      "type": "local",
+      "command": ["npx", "-y", "my-mcp-server"],
+      "environment": { "API_KEY": "{env:MY_API_KEY}" },
+      "enabled": true,
+      "timeout": 5000
+    }
+  }
+}
+```
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `type` | `"local"` | Requis. Selectionne un serveur de processus enfant stdio. |
+| `command` | `string[]` | Requis. La commande **et ses arguments** en un seul tableau. |
+| `environment` | object | Optionnel. Variables d'environnement supplementaires pour le processus. |
+| `enabled` | boolean | Optionnel. Demarrer le serveur au lancement (par defaut : true). |
+| `timeout` | number | Optionnel. Timeout de requete en ms (par defaut : 5000). |
+
+<Aside variant="caution">
+  L'objet `mcp` est une **map plate** identifiee par le nom du serveur — il n'y a pas d'enveloppe `servers`. `command` est un tableau unique (commande + arguments ensemble) ; il n'y a pas de champ `args`, `cwd`, `autoStart` ou `restart` separe. Les cles inconnues sont rejetees.
+</Aside>
+
+## Ajout via le TUI
+
+Le moyen le plus simple d'ajouter un serveur local est depuis le TUI avec la commande `/mcps`.
+
+Tapez `/mcps` pour ouvrir le gestionnaire MCP. Il liste les serveurs configures avec leur statut (`✓` active / `○` desactive). Appuyez sur `espace` pour basculer un serveur, `a` pour en ajouter un, `Enter` pour agir sur la selection.
+
+Pour ajouter un serveur local : appuyez sur `a` → choisissez **Local** → entrez la **commande** (par ex. `npx my-mcp-server`) → ajoutez optionnellement des **variables d'environnement** (`CLE=VALEUR, CLE2=VALEUR2`) → confirmez le **nom** derive automatiquement. Cyberstrike teste la connexion avant de sauvegarder ; si ca echoue, le serveur n'est pas ajoute.
+
+Le TUI ecrit exactement le schema montre ci-dessus.
+
+## Exemples
+
+### Serveur Node.js
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/path/to/allow"]
+    }
+  }
+}
+```
+
+### Serveur Python
+
+```json
+{
+  "mcp": {
+    "python-tools": {
+      "type": "local",
+      "command": ["python", "-m", "mcp_server"]
+    }
+  }
+}
+```
+
+### Binaire ou Docker
+
+Comme `command` est le argv complet, vous pouvez executer un binaire directement ou l'encapsuler dans Docker — aucun champ special n'est necessaire :
+
+```json
+{
+  "mcp": {
+    "docker-tools": {
+      "type": "local",
+      "command": ["docker", "run", "-i", "--rm", "--network=none", "mcp-tools:latest"]
+    }
+  }
+}
+```
+
+## Variables d'environnement
+
+Passez des variables au processus serveur avec `environment`. Utilisez `{env:VAR}` pour referencer une variable de votre shell au lieu de coder les secrets en dur :
+
+```json
+{
+  "mcp": {
+    "api-tools": {
+      "type": "local",
+      "command": ["node", "server.js"],
+      "environment": {
+        "API_KEY": "{env:MY_API_KEY}",
+        "DEBUG": "mcp:*"
+      }
+    }
+  }
+}
+```
+
+## Activation et desactivation
+
+Definissez `enabled: false` pour garder un serveur configure mais inactif (ou basculez-le dans la boite de dialogue `/mcps`) :
+
+```json
+{
+  "mcp": {
+    "heavy-tools": {
+      "type": "local",
+      "command": ["node", "server.js"],
+      "enabled": false
+    }
+  }
+}
+```
+
+## Serveurs a demarrage lent
+
+Augmentez `timeout` (millisecondes) pour les serveurs qui prennent plus de 5 secondes par defaut pour repondre :
+
+```json
+{
+  "mcp": {
+    "slow-tools": {
+      "type": "local",
+      "command": ["node", "server.js"],
+      "timeout": 30000
+    }
+  }
+}
+```
+
+## Depannage
+
+- **Le serveur ne demarre pas** — verifiez que le premier element de `command` existe et est executable, et que ses dependances sont installees. Inspectez la connexion avec `cyberstrike mcp debug <name>`.
+- **Timeout de connexion** — augmentez `timeout`, ou verifiez que le serveur repond rapidement a `tools/list`.
+- **Configuration rejetee** — le schema `mcp` est strict ; assurez-vous d'avoir utilise la map plate avec `type` + `command` (tableau) et aucune cle inconnue.
+
+## Documentation connexe
+
+- [Vue d'ensemble Bolt / MCP](/fr/docs/mcp) - Architecture et concepts
+- [Bolt](/fr/docs/mcp/bolt) - Outils de securite conteneurises (recommande)
+- [Serveurs distants](/fr/docs/mcp/remote-servers) - Configuration MCP distante
+- [Creation de serveurs](/fr/docs/mcp/creating-servers) - Creer des serveurs personnalises

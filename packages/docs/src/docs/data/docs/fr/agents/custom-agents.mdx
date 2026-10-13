@@ -1,0 +1,109 @@
+---
+title: Agents personnalises
+description: "Creer des agents de securite specialises pour Cyberstrike"
+sidebar:
+  order: 9
+  label: Agents personnalises
+---
+
+Creez des agents personnalises avec leur propre prompt systeme, modele et permissions. Les agents sont des fichiers Markdown avec un en-tete YAML.
+
+{/* TODO: Screenshot - Custom agent configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: custom-agent-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Fichier de configuration d'agent personnalise</p>
+</div>
+
+## Fichier et emplacement
+
+Les agents personnalises sont des fichiers `*.md` dans un repertoire `agent/` ou `agents/` a l'interieur de n'importe quel dossier `.cyberstrike/` (projet ou `~/.cyberstrike/`). L'identifiant de l'agent est son nom de fichier.
+
+```
+.cyberstrike/
+└── agents/
+    ├── api-security.md
+    └── compliance-audit.md
+```
+
+## En-tete (frontmatter)
+
+```markdown title=".cyberstrike/agents/api-security.md"
+---
+description: Specialized agent for REST and GraphQL API testing
+mode: primary
+model: anthropic/claude-sonnet-4-20250514
+permission:
+  bash: { "*": "ask", "rm -rf *": "deny" }
+  edit: allow
+---
+
+You are an expert API security tester specializing in REST and GraphQL APIs.
+Follow the OWASP API Security Top 10 …
+```
+
+Le corps (apres l'en-tete) est le prompt systeme.
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `description` | string | A quoi sert l'agent |
+| `mode` | `primary` \| `subagent` \| `all` | Les agents `primary` peuvent etre executes directement ; les agents `subagent` sont delegues via l'outil de taches |
+| `model` | string | Remplacement `fournisseur/modele` |
+| `temperature`, `top_p` | number | Controles d'echantillonnage |
+| `steps` | number | Nombre maximal d'iterations agentiques |
+| `color` | string | Couleur hexadecimale ou couleur du theme |
+| `permission` | object | Permissions par outil (voir [Permissions](/docs/permissions)) |
+| `hidden`, `disable` | boolean | Masquer du selecteur / desactiver |
+
+<Aside variant="caution">
+  Restreignez les outils avec le champ `permission`. L'ancienne map `tools:` est **obsolete**, et il n'existe pas de champ `allowedCommands` -- les restrictions de commandes sont des regles glob `permission.bash` (ex. `bash: { "nmap *": "allow" }`).
+</Aside>
+
+## Primaire vs sous-agent
+
+Seuls les agents **primaires** peuvent etre selectionnes avec `--agent` ou `default_agent`. Si vous voulez que votre agent soit executable directement, definissez `mode: primary`. Sinon, il se comporte comme un sous-agent auquel l'agent `cyberstrike` peut deleguer.
+
+```markdown
+---
+description: Read-only auditor
+mode: primary
+permission:
+  edit: deny
+  bash: deny
+  read: allow
+  glob: allow
+  grep: allow
+---
+
+You are a read-only security auditor …
+```
+
+## Utiliser un agent personnalise
+
+Une fois que c'est un agent primaire, selectionnez-le :
+
+```bash
+cyberstrike --agent api-security
+```
+
+Ou definissez-le comme agent par defaut dans `cyberstrike.json` :
+
+```json
+{
+  "default_agent": "api-security"
+}
+```
+
+Parcourez les agents dans le TUI avec `/agents`.
+
+## Bonnes pratiques
+
+1. **Perimetre cible** -- un seul objectif clair par agent.
+2. **Moindre privilege** -- n'autorisez que les outils dont l'agent a besoin via `permission`.
+3. **Prompt clair** -- soyez precis sur la methodologie et le format de sortie.
+4. **Controle de version** -- commitez `.cyberstrike/agents/` avec le projet.
+
+## Documentation associee
+
+- [Agents de securite](/docs/agents) - Agents integres et delegation
+- [Permissions](/docs/permissions) - Le champ `permission`
+- [Configuration](/docs/configuration) - Configuration projet et globale

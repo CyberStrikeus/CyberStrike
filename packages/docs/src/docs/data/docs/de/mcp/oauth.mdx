@@ -1,0 +1,100 @@
+---
+title: OAuth-Konfiguration
+description: OAuth-Authentifizierung fuer entfernte MCP-Server konfigurieren
+sidebar:
+  order: 5
+  label: OAuth
+---
+
+OAuth ermoeglicht Cyberstrike die Authentifizierung bei einem entfernten MCP-Server, ohne langlebige Anmeldedaten zu speichern. Cyberstrike erkennt die OAuth-Endpunkte des Servers automatisch — Sie muessen nur Client-Details angeben, wenn der Server sie erfordert.
+
+<img src="/docs/images/diagrams/oauth-flow.svg" alt="MCP-OAuth-Ablauf: OAuth erkennen, dynamische Client-Registrierung falls keine clientId, Browser-Autorisierung, Code gegen Tokens tauschen, Tokens speichern und automatisch aktualisieren" className="my-6 mx-auto max-w-xs" />
+
+## Konfigurationsschema
+
+OAuth ist ein optionaler Block auf einem **remote** MCP-Server. Das vollstaendige Schema umfasst nur drei optionale Felder:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "mcp": {
+    "my-server": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "oauth": {
+        "clientId": "{env:OAUTH_CLIENT_ID}",
+        "clientSecret": "{env:OAUTH_CLIENT_SECRET}",
+        "scope": "read write"
+      }
+    }
+  }
+}
+```
+
+| Feld | Typ | Beschreibung |
+|------|-----|--------------|
+| `clientId` | string | Optional. Wenn weggelassen, wird die **dynamische Client-Registrierung (RFC 7591)** versucht. |
+| `clientSecret` | string | Optional. Nur wenn der Autorisierungsserver einen vertraulichen Client erfordert. |
+| `scope` | string | Optional. Scopes, die waehrend der Autorisierung angefragt werden. |
+
+<Aside variant="caution">
+  Die Autorisierungs- und Token-URLs werden hier **nicht** konfiguriert — Cyberstrike erkennt sie aus den OAuth-Metadaten des Servers. Felder wie `authorizationUrl`, `tokenUrl`, `pkce`, `deviceAuthorizationUrl`, `grantType` und `callbackPort`/`callbackPath` existieren **nicht** im Schema (nur `clientId`, `clientSecret`, `scope`).
+</Aside>
+
+## Funktionsweise
+
+1. Cyberstrike erkennt, dass der Remote-Server OAuth erfordert (aus seinen Metadaten).
+2. Wenn keine `clientId` gesetzt ist, registriert es einen Client dynamisch (RFC 7591).
+3. Es oeffnet Ihren Browser zur Autorisierungs-URL; Sie melden sich an und gewaehren Zugriff.
+4. Der Autorisierungscode wird gegen Tokens auf einem internen lokalen Callback eingetauscht.
+5. Tokens werden von Cyberstrike gespeichert und automatisch aktualisiert, wenn sie ablaufen.
+
+Setzen Sie `"oauth": false` auf dem Server, um die OAuth-Autoerkennung vollstaendig zu deaktivieren.
+
+## Einen Server autorisieren
+
+Autorisierung ueber die CLI ausloesen:
+
+```bash
+cyberstrike mcp auth <name>       # einen Server autorisieren
+cyberstrike mcp auth list         # OAuth-autorisierte Server auflisten
+cyberstrike mcp logout <name>     # gespeicherte OAuth-Anmeldedaten entfernen
+```
+
+Cyberstrike fordert die Autorisierung auch automatisch beim ersten Mal an, wenn ein OAuth-geschuetzter Server in einer Sitzung verwendet wird. Die Token-Aktualisierung erfolgt automatisch — es gibt keinen manuellen Aktualisierungsbefehl.
+
+## Beispiel: ein Server mit Scopes
+
+```json
+{
+  "mcp": {
+    "example-mcp": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "oauth": {
+        "scope": "openid profile email"
+      }
+    }
+  }
+}
+```
+
+Ohne `clientId` registriert Cyberstrike einen Client dynamisch und autorisiert dann mit den angeforderten Scopes.
+
+## Sicherheitshinweise
+
+- Referenzieren Sie Geheimnisse mit `{env:VAR}` — committen Sie niemals ein `clientSecret` in die Versionskontrolle.
+- Fordern Sie die minimalen Scopes an, die der Server benoetigt.
+- Entfernen Sie Anmeldedaten mit `cyberstrike mcp logout <name>`, wenn sie nicht mehr benoetigt werden.
+
+## Fehlerbehebung
+
+- **Autorisierung fehlgeschlagen** — bestaetigen Sie, dass die Server-URL erreichbar ist und (wenn der Server einen vertraulichen Client benoetigt) dass `clientId`/`clientSecret` korrekt sind.
+- **Wiederholte Autorisierungsaufforderungen** — das gespeicherte Token wurde moeglicherweise serverseitig widerrufen; fuehren Sie `cyberstrike mcp auth <name>` erneut aus.
+- **Callback-Timeout** — stellen Sie sicher, dass Ihr Browser die Anmeldung abgeschlossen hat und dass keine lokale Firewall den Loopback-Callback blockiert.
+- Pruefen Sie die Verbindung eines Servers mit `cyberstrike mcp debug <name>`.
+
+## Verwandte Dokumentation
+
+- [Remote-Server](/docs/mcp/remote-servers) - Remote-MCP-Konfiguration
+- [Bolt / MCP-Uebersicht](/docs/mcp) - Architektur und Konzepte
+- [Konfiguration](/docs/configuration) - Vollstaendige Konfigurationsoptionen

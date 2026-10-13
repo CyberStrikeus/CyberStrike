@@ -1,0 +1,199 @@
+---
+title: Hacker Browser
+description: 带 AI 驱动导航和流量捕获的自主 Web 爬虫
+sidebar:
+  order: 7
+  label: Hacker Browser
+---
+
+import { Badge } from "@astrojs/starlight/components"
+
+HackBrowser 是一个自主的 AI 驱动 Web 爬虫。它启动 Chromium 浏览器，使用您的凭据登录，遍历应用程序，并将捕获的 HTTP 流量传入 proxy-agent 测试流水线——不需要人工驾驶。
+
+{/* TODO: GIF - HackBrowser autonomous crawl */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">🎬 GIF: g06-browser-scanning.gif</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">HackBrowser 自主爬取目标应用（25秒）</p>
+</div>
+
+这是**自主**捕获路径——AI 驱动浏览器。如需手动浏览器驱动的方式，请参阅 [Chrome 扩展](/docs/tools/chrome-extension)。两种路径都通过相同的 proxy-agent 流水线。
+
+## 入口点
+
+有三种方式启动 HackBrowser：
+
+| 入口点 | 用法 |
+|--------|------|
+| **CLI** | `cyberstrike hackbrowser <target>` |
+| **斜杠命令** | 在 TUI 中输入 `/hackbrowser <target>` |
+| **工具调用** | 代理在评估过程中自动调用 `hackbrowser` 工具 |
+
+所有三种方式最终到达相同的运行器。CLI 和斜杠命令适合手动启动；工具调用发生在代理决定需要爬取应用时。
+
+## 基本用法
+
+### CLI
+
+```bash
+cyberstrike hackbrowser https://shop.example.com
+```
+
+### 斜杠命令
+
+```
+/hackbrowser https://shop.example.com
+```
+
+### 工具调用（代理自动）
+
+```json
+{
+  "tool": "hackbrowser",
+  "input": {
+    "target": "https://shop.example.com",
+    "session_id": "session-abc123"
+  }
+}
+```
+
+## 爬取阶段
+
+HackBrowser 分两个阶段运行：
+
+### 阶段 1：确定性发现
+
+在 AI 参与之前，HackBrowser 运行快速确定性检测器来构建初始站点地图：
+
+- `/robots.txt`、`/sitemap.xml`、`/openapi.json`
+- 常见框架路由（Next.js manifest、Nuxt payload、SPA 路由等）
+- `<a>`、`<form>` 和 JS 包中提取的链接
+
+这会创建一个路由的基线列表，而无需花费 AI token。
+
+### 阶段 2：AI 导航
+
+导航器模型接管并自主驱动浏览器：
+
+1. 读取当前 DOM + 阶段 1 的站点地图
+2. 决定点击哪里、提交什么表单
+3. 执行操作并捕获流量
+4. 重复直到覆盖范围达到饱和
+
+导航器使用与您配置的相同 AI 提供商运行。
+
+## 凭据和多凭据爬取
+
+
+### 注册凭据
+
+在启动之前，通过 TUI 注册凭据：
+
+```
+/web credentials add --label admin --username admin@example.com --password s3cret
+/web credentials add --label user --username user@example.com --password pass123
+```
+
+### 多凭据流程
+
+```
+凭据 1 (admin) → 登录 → 爬取 → 捕获流量
+凭据 2 (user)  → 登录 → 爬取 → 捕获流量
+```
+
+每个凭据的流量在 proxy-agent 上下文中标记所属凭据，从而实现跨角色测试（IDOR、权限提升）。
+
+## UI 上下文载荷
+
+<Badge text="v1.1.12+" variant="note" />
+
+HackBrowser 的登录流程可以接收来自 Web UI 的 **上下文载荷**——一份在爬取启动前由用户在 Web UI 中填写的数据包（凭据、范围等）。
+
+当从 Web UI 启动爬取时，UI 将此载荷连同启动请求一起发送。CLI 和斜杠命令入口点不使用此路径——它们从注册的会话凭据中读取。
+
+## 网络范围
+
+HackBrowser 仅捕获匹配目标范围的请求——与 [Chrome 扩展](/docs/tools/chrome-extension)中配置的范围工作方式相同。
+
+默认范围是启动 URL 的域名：
+
+```
+目标: https://shop.example.com
+范围: shop.example.com
+```
+
+对第三方域名（CDN、分析、身份提供商）的请求会被自动过滤。
+
+## 实时遥测面板
+
+{/* TODO: Screenshot - Telemetry panel */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: hackbrowser-telemetry.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">HackBrowser 实时遥测面板</p>
+</div>
+
+在 TUI 中运行时，HackBrowser 显示实时遥测：
+
+| 指标 | 描述 |
+|------|------|
+| **已访问页面** | 已爬取的唯一 URL 数 |
+| **捕获的请求** | 已转发到 proxy-agent 的 HTTP 请求数 |
+| **当前 URL** | 浏览器当前所在页面 |
+| **凭据** | 活跃的凭据标签 |
+| **阶段** | 当前爬取阶段（发现/导航） |
+
+## 取消
+
+在 TUI 中按 `Ctrl+C` 或通过 API 发送停止信号取消正在运行的爬取。
+
+取消是优雅的：已捕获的流量保持可用于 proxy-agent，浏览器干净地关闭。
+
+## 重入规则
+
+HackBrowser 每个会话一次只运行一个爬取实例。如果在爬取已经运行时请求新的爬取：
+
+- **相同目标**：请求被忽略（重复启动）
+- **不同目标**：当前爬取被停止，新爬取接管
+
+这防止了针对同一目标的意外并行爬取。
+
+## 去重
+
+HackBrowser 与 Chrome 扩展使用相同的服务器端去重。如果一个请求的方法、标准化路径和参数结构已经被处理过，它会被跳过。这意味着您可以在同一会话中混合使用 HackBrowser 爬取和手动 Chrome 浏览——proxy-agent 不会重复测试重叠的流量。
+
+## 故障排除
+
+### 浏览器不启动
+
+确保已安装 Chromium/Chrome。HackBrowser 使用 Playwright，它会在首次运行时下载自己的 Chromium：
+
+```bash
+bunx playwright install chromium
+```
+
+### 登录失败
+
+- 验证凭据已正确注册
+- 检查目标是否有 CAPTCHA 或多因素认证（目前不支持）
+- 查看诊断日志：`~/.local/share/cyberstrike/log/hackbrowser/<session>.jsonl`
+
+### 爬取覆盖率低
+
+- 确保范围足够宽以涵盖所有应用子域名
+- 检查应用是否需要特定的请求头或 Cookie
+- 考虑为发现的但爬虫未到达的路由提供额外的种子 URL
+
+## 诊断日志
+
+<Badge text="v1.1.14+" variant="note" />
+
+HackBrowser 将跨层 JSONL 诊断日志写入：
+
+```
+~/.local/share/cyberstrike/log/hackbrowser/<session>.jsonl
+```
+
+当 AI 协同驾驶静默或爬取看起来卡住时，读取此日志进行问题定位。
+
+## 相关文档
+
+- [Chrome 扩展](/docs/tools/chrome-extension) - 手动浏览器驱动的替代方案

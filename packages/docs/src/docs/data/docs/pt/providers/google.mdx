@@ -1,0 +1,174 @@
+---
+title: Google (Gemini)
+description: Configure modelos Google Gemini para o Cyberstrike
+sidebar:
+  order: 4
+  label: Google
+---
+
+Os modelos Gemini do Google oferecem janelas de contexto grandes e capacidades multimodais para analise de seguranca.
+
+<img src="/docs/images/screenshots/gemini-model-select.png" alt="Seletor de modelos filtrado para modelos Google Gemini" className="rounded-lg shadow-lg my-6 w-full" />
+
+## Modelos Disponiveis
+
+O Cyberstrike busca seu catalogo de modelos ao vivo em [models.dev](https://models.dev), entao a lista exata acompanha o que o Google oferece atualmente. Escolhas comuns:
+
+| Modelo | Contexto | Melhor para |
+|--------|----------|-------------|
+| `google/gemini-2.5-pro` | 1M | Raciocinio complexo, codebases grandes |
+| `google/gemini-2.5-flash` | 1M | Analise rapida (padrao equilibrado) |
+| `google/gemini-2.5-flash-lite` | 1M | Tarefas rapidas, alto volume |
+
+<Aside variant="tip">
+  Releases mais recentes do Gemini 3.x (`gemini-3-pro-preview`, `gemini-3.5-flash`, `gemini-3.1-pro-preview`) aparecem automaticamente conforme models.dev atualiza. Execute `/models` para a lista completa atual.
+</Aside>
+
+## Autenticacao
+
+### Configuracao de Chave de API
+
+1. Obtenha sua chave de API em [ai.google.dev](https://ai.google.dev)
+2. Na TUI, execute `/connect`, selecione **Google** e insira sua chave de API
+
+### Variavel de Ambiente
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+### Arquivo de Configuracao
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "google": {
+      "options": {
+        "apiKey": "{env:GOOGLE_GENERATIVE_AI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+## Configuracao de Modelo
+
+### Definir Modelo Padrao
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "google/gemini-2.5-flash"
+}
+```
+
+### Trocando Modelos
+
+Use `/models` na TUI para selecionar um modelo Gemini diferente.
+
+## Vantagem de Contexto Grande
+
+A janela de contexto de 1M-2M do Gemini permite:
+
+- Analisar codebases inteiros de uma vez
+- Processar multiplos arquivos simultaneamente
+- Sessoes longas de avaliacao de seguranca
+- Analise abrangente de logs
+
+## Capacidades Multimodais
+
+O Gemini suporta analise de imagens:
+
+```
+> Analyze this screenshot for security issues
+```
+
+Util para:
+- Analisar imagens de saida de ferramentas de seguranca
+- Processar diagramas de rede
+- Revisar UI para falhas de seguranca
+
+## Modo de Raciocinio
+
+Os modelos Gemini 2.5 suportam raciocinio ("thinking") para analise complexa. Selecione um via `/models`.
+
+## Google Vertex AI
+
+Para implantacoes empresariais:
+
+### Configuracao
+
+```bash
+gcloud auth application-default login
+gcloud config set project your-project-id
+```
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "google-vertex": {
+      "options": {
+        "project": "your-project-id",
+        "location": "us-central1"
+      }
+    }
+  }
+}
+```
+
+## Configuracoes de Seguranca
+
+Configure filtragem de conteudo:
+
+```json
+{
+  "provider": {
+    "google": {
+      "options": {
+        "safetySettings": [
+          {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "threshold": "BLOCK_NONE"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Ajuste as configuracoes de seguranca com cuidado. Alguns conteudos de testes de seguranca podem acionar filtros.
+</Aside>
+
+## Boas Praticas
+
+### Selecao de Modelo
+
+| Tarefa | Modelo Recomendado |
+|--------|-------------------|
+| Varreduras rapidas | `gemini-2.5-flash` |
+| Codebase grande | `gemini-2.5-pro` |
+| Analise complexa | `gemini-2.5-pro` |
+| Alto volume | `gemini-2.5-flash-lite` |
+
+## Solucao de Problemas
+
+### Chave de API Invalida
+
+Verifique:
+- Chave e de ai.google.dev
+- API esta habilitada
+- Sem espacos em branco extras
+
+### Cota Excedida
+
+Solucoes:
+- Aguarde reset da cota
+- Habilite cobranca
+- Solicite aumento de cota
+
+## Documentacao Relacionada
+
+- [Visao Geral de Provedores](/docs/providers) - Todos os provedores
+- [AWS Bedrock](/docs/providers/aws-bedrock) - Opcao empresarial alternativa
+- [Configuracao](/docs/configuration) - Opcoes completas

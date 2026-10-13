@@ -1,0 +1,155 @@
+---
+title: TUI
+description: Interaktive Terminal-Benutzeroberflaeche fuer CyberStrike — Slash-Befehle, Tastaturkuerzel und Konfiguration
+sidebar:
+  order: 1
+  label: TUI
+---
+
+Die TUI (Terminal User Interface) ist die primaere Oberflaeche von CyberStrike. Anders als eine herkoemmliche CLI, bei der Sie Befehle eingeben und Textausgaben erhalten, ist die TUI eine persistente, interaktive Anwendung, die in Ihrem Terminal laeuft — mit einem Eingabebereich, einem scrollbaren Antwortpanel, einer Statusleiste und Echtzeit-Streaming von KI-Agenten.
+
+```bash
+cyberstrike
+```
+
+Dieser einzelne Befehl oeffnet die TUI. Sie bleiben waehrend der gesamten Sitzung darin.
+
+## TUI vs CLI
+
+| | TUI | CLI |
+|---|---|---|
+| **Start** | `cyberstrike` | `cyberstrike run "prompt"` |
+| **Interaktion** | Kontinuierlich — tippen, lesen, erneut tippen | Einmalig — ausfuehren, Ausgabe erhalten, beenden |
+| **Sitzungen** | Persistent, wiederaufnehmbar, umbenennbar | Kurzlebig (oder `--continue` zum Fortsetzen) |
+| **Agentenausgabe** | Streamt in Echtzeit mit Formatierung | Streamt nach stdout als Klartext |
+| **Befehle** | Slash-Befehle (`/hackbrowser`, `/bolt`) | CLI-Flags (`--model`, `--agent`) |
+| **Am besten fuer** | Interaktive Bewertungen, Erkundung | Scripting, CI/CD, Automatisierung |
+
+Die TUI ist der Ort fuer praktische Arbeit. Die CLI dient zum Weiterleiten von Ausgaben an andere Tools oder zum Ausfuehren aus Skripten.
+
+## Der Prompt
+
+Am unteren Rand der TUI befindet sich der Eingabe-Prompt. Hier geben Sie ein:
+
+- **Natuerliche Sprache** — beschreiben Sie, was Sie testen moechten, und das Framework setzt Agenten ein
+- **Slash-Befehle** — geben Sie `/` ein, um die Befehlspalette zu oeffnen, oder geben Sie den vollstaendigen Befehl ein
+- **Folgefragen** — setzen Sie die Konversation wie einen Chat fort
+
+Druecken Sie `Enter` zum Absenden. Druecken Sie `Shift+Enter` fuer eine neue Zeile.
+
+### Slash-Befehle
+
+Slash-Befehle sind TUI-Aktionen, die durch Eingabe von `/` gefolgt vom Befehlsnamen ausgeloest werden. Sie steuern das Framework — starten Tools, wechseln Modelle, verwalten Sitzungen — ohne den Prompt zu verlassen.
+
+Geben Sie `/` ein, um die Befehlspalette mit Autovervollstaendigung zu oeffnen, oder geben Sie den vollstaendigen Befehl direkt ein.
+
+#### Sitzung
+
+| Befehl | Funktion |
+|--------|----------|
+| `/new` | Neue Sitzung in einem neuen Tab starten |
+| `/sessions` | Sitzungen durchsuchen und wechseln |
+| `/rename` | Aktuelle Sitzung umbenennen |
+| `/fork` | Aktuelle Sitzung in einen neuen Tab verzweigen |
+| `/compact` | Konversation zusammenfassen, um Kontext freizugeben |
+| `/share` | Teilbaren Sitzungslink erstellen |
+| `/export` | Sitzungstranskript exportieren |
+| `/copy` | Konversation in die Zwischenablage kopieren |
+| `/undo` | Letzte Aktion rueckgaengig machen |
+| `/redo` | Letzte rueckgaengig gemachte Aktion wiederholen |
+
+#### Sicherheitswerkzeuge
+
+| Befehl | Funktion |
+|--------|----------|
+| `/hackbrowser` | HackBrowser starten — oeffnet den Crawl-Dialog mit Ziel, Anmeldedaten und Umfang |
+| `/hackbrowser-stop` | Laufenden HackBrowser-Crawl stoppen |
+| `/bolt` | Bolt-Sicherheitstool-Server koppeln oder verwalten |
+| `/mcp` | MCP-Server-Verbindungen verwalten |
+| `/skills` | Verfuegbare WSTG-Skill-Skripte durchsuchen |
+
+#### Bewertung
+
+| Befehl | Funktion |
+|--------|----------|
+| `/vulnerabilities` | Alle Ergebnisse mit Schweregrad und Status anzeigen |
+| `/web` | Erfasste Endpunkte, Rollen, Anmeldedaten, Objekte untersuchen |
+| `/methodology` | WSTG-Abdeckung ansehen — welche Kategorien getestet, welche ausstehen |
+| `/report` | Strukturierten Pentest-Bericht erstellen |
+| `/qpause` | Agenten-Warteschlange pausieren |
+| `/qresume` | Agenten-Warteschlange fortsetzen |
+
+#### Konfiguration
+
+| Befehl | Funktion |
+|--------|----------|
+| `/connect` | KI-Anbieter verbinden (API-Schluessel oder OAuth) |
+| `/models` | Aktives Modell wechseln |
+| `/status` | Verbundene Anbieter, MCPs und Systeminfo anzeigen |
+| `/thinking` | Sichtbarkeit der Modell-Denkprozesse umschalten |
+| `/timeline` | Zu einer bestimmten Nachricht in der Konversation springen |
+| `/help` | Alle verfuegbaren Befehle und Tastaturkuerzel anzeigen |
+
+### Einen Slash-Befehl eingeben
+
+Wenn Sie `/` eingeben, oeffnet sich die Befehlspalette mit gefilterten Vorschlaegen:
+
+```
+> /hack
+  ┌──────────────────────────────────┐
+  │ /hackbrowser     Launch crawler  │
+  │ /hackbrowser-stop  Stop crawl    │
+  └──────────────────────────────────┘
+```
+
+Waehlen Sie mit den Pfeiltasten und `Enter`, oder tippen Sie weiter, um die Auswahl einzugrenzen.
+
+Einige Befehle oeffnen Dialoge (wie `/hackbrowser`, das ein Formular fuer Ziel-URL, Anmeldedaten und Umfang zeigt). Andere werden sofort ausgefuehrt (wie `/compact`).
+
+## Tastaturkuerzel
+
+| Kuerzel | Aktion |
+|---------|--------|
+| `Enter` | Nachricht senden |
+| `Shift+Enter` | Neue Zeile im Prompt |
+| `Escape` | Laufenden Agenten unterbrechen |
+| `Ctrl+P` | Befehlspalette oeffnen |
+| `Tab` | Zum naechsten Agenten wechseln |
+| `Ctrl+R` | Sitzung umbenennen |
+| `Ctrl+D` | CyberStrike beenden |
+| `↑` / `↓` | Eingabeverlauf navigieren |
+
+## Konfiguration
+
+Passen Sie die TUI mit `tui.json` (oder `tui.jsonc`) in Ihrem Projekt- oder Konfigurationsverzeichnis an:
+
+```json
+{
+  "$schema": "https://cyberstrike.io/tui.json",
+  "theme": "cyberstrike",
+  "keybinds": {
+    "leader": "ctrl+x"
+  },
+  "scroll_speed": 3,
+  "scroll_acceleration": {
+    "enabled": true
+  },
+  "diff_style": "auto"
+}
+```
+
+| Option | Beschreibung | Standard |
+|--------|--------------|---------|
+| `theme` | UI-Farbthema | `cyberstrike` |
+| `keybinds.leader` | Leader-Taste fuer Kuerzel | `ctrl+x` |
+| `scroll_speed` | Scrollgeschwindigkeit (min: `0.001`) | `3` |
+| `scroll_acceleration.enabled` | macOS-artige Scrollbeschleunigung | `false` |
+| `diff_style` | `auto` passt sich der Breite an, `stacked` einspaltig | `auto` |
+
+Verwenden Sie `CYBERSTRIKE_TUI_CONFIG`, um einen benutzerdefinierten Konfigurationspfad anzugeben.
+
+## Themes
+
+CyberStrike wird mit eingebauten Themes ausgeliefert. Wechseln Sie ueber die Befehlspalette — druecken Sie `Ctrl+P` und suchen Sie nach "theme".
+
+<img src="/docs/images/screenshots/tui-theme-selector.png" alt="Theme-Auswahl mit eingebauten Themes" className="rounded-lg shadow-lg my-6 w-full" />

@@ -1,0 +1,59 @@
+---
+title: 分级代理
+description: 独立验证和去重草稿漏洞发现
+sidebar:
+  order: 6
+  label: 分级
+---
+
+`triage` 代理通过重放 HTTP 证据独立验证草稿漏洞发现。它从不信任报告代理的叙述——它重放每个请求并亲自检查响应正文。
+
+## 概述
+
+| 属性 | 值 |
+|------|-----|
+| **代理 ID** | `triage` |
+| **模式** | `subagent` |
+| **工具访问** | 受限（read、grep、http_replay、triage_vulnerability、web_get_session_context） |
+| **设计** | 保守——将无法验证的发现保留为草稿 |
+
+## 验证协议
+
+对于每个草稿发现，分级代理：
+
+1. 读取附带的 HTTP 证据（捕获的请求/响应）
+2. 使用 `http_replay` 独立重放请求
+3. 检查重放响应中的实际证据
+4. 决定发现的处理方式：
+
+| 判定 | 条件 |
+|------|------|
+| **已分级** | 重放确认了漏洞 |
+| **已拒绝** | 重放显示为误报 |
+| **重复** | 发现与另一个已验证的发现重复 |
+| **草稿**（不变） | 无法验证——留给人工审查 |
+
+## 什么算作证据
+
+分级代理应用严格的证据标准：
+
+- 仅有 `200` 状态码**不是**证据——响应正文必须包含目标数据
+- `deleted:0`、空数组、通用成功消息**不是**证据
+- 对于跨租户/IDOR 发现，响应必须包含**其他**租户的数据
+- 对于授权发现，`compare` 模式重放必须显示权限边界被突破
+
+## 示例
+
+```
+Draft: IDOR in GET /api/users/42 — claimed to return user data for another tenant
+
+Triage:
+1. Replay GET /api/users/42 with original auth → 200, body: {"id": 42, "name": "Other User"}
+2. Replay GET /api/users/42 with attacker auth → 200, body: {"id": 42, "name": "Other User"}
+3. Both return the same user data → CONFIRMED cross-tenant access
+4. → triage_vulnerability(id, status: "triaged")
+```
+
+<Aside variant="info">
+  分级代理在漏洞测试子代理报告发现后自动调度。它作为发现呈现之前的最终质量关卡运行。
+</Aside>

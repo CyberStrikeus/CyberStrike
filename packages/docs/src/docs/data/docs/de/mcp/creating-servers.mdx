@@ -1,0 +1,454 @@
+---
+title: MCP-Server erstellen
+description: Benutzerdefinierte MCP-Server fuer Cyberstrike erstellen
+sidebar:
+  order: 6
+  label: Server erstellen
+---
+
+Erstellen Sie benutzerdefinierte MCP-Server, um Cyberstrike mit spezialisierten Werkzeugen und Integrationen zu erweitern. Dies ist nuetzlich, wenn Sie Faehigkeiten benoetigen, die ueber das hinausgehen, was [Bolt](/docs/mcp/bolt) bietet.
+
+<img src="/docs/images/diagrams/mcp-server-architecture.svg" alt="MCP-Server-Architektur: Cyberstrikes MCP-Client verbindet sich ueber stdio oder StreamableHTTP/SSE mit dem Transport, der an Anfrage-Handler (tools/list, tools/call, resources) und Ihre Tool-Funktionen weiterleitet" className="my-6" />
+
+## Ueberblick
+
+MCP-Server:
+
+- Stellen Werkzeuge fuer Cyberstrike bereit
+- Verarbeiten die Werkzeugausfuehrung
+- Verwalten Ressourcen
+- Unterstuetzen mehrere Transporte
+- Ermoeglichen benutzerdefinierte Integrationen
+
+## Schnellstart
+
+### TypeScript-Server
+
+```typescript title="src/index.ts"
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+
+const server = new Server({
+  name: "my-security-tools",
+  version: "1.0.0"
+}, {
+  capabilities: {
+    tools: {}
+  }
+});
+
+// Werkzeuge definieren
+server.setRequestHandler("tools/list", async () => ({
+  tools: [{
+    name: "port-scan",
+    description: "Scan ports on a target host",
+    inputSchema: {
+      type: "object",
+      properties: {
+        host: { type: "string", description: "Target hostname or IP" },
+        ports: { type: "string", description: "Port range (e.g., 1-1000)" }
+      },
+      required: ["host"]
+    }
+  }]
+}));
+
+// Tool-Aufrufe verarbeiten
+server.setRequestHandler("tools/call", async (request) => {
+  const { name, arguments: args } = request.params;
+
+  if (name === "port-scan") {
+    const result = await scanPorts(args.host, args.ports);
+    return { content: [{ type: "text", text: result }] };
+  }
+
+  throw new Error(`Unknown tool: ${name}`);
+});
+
+// Server starten
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+### Python-Server
+
+```python title="server.py"
+import asyncio
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+
+server = Server("my-security-tools")
+
+@server.list_tools()
+async def list_tools():
+    return [{
+        "name": "port-scan",
+        "description": "Scan ports on a target host",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "host": {"type": "string", "description": "Target hostname"},
+                "ports": {"type": "string", "description": "Port range"}
+            },
+            "required": ["host"]
+        }
+    }]
+
+@server.call_tool()
+async def call_tool(name: str, arguments: dict):
+    if name == "port-scan":
+        result = await scan_ports(arguments["host"], arguments.get("ports"))
+        return [{"type": "text", "text": result}]
+    raise ValueError(f"Unknown tool: {name}")
+
+async def main():
+    async with stdio_server() as streams:
+        await server.run(streams[0], streams[1])
+
+asyncio.run(main())
+```
+
+## Projektstruktur
+
+### TypeScript-Projekt
+
+```
+my-mcp-server/
+├── src/
+│   ├── index.ts
+│   ├── tools/
+│   │   ├── port-scan.ts
+│   │   ├── vuln-scan.ts
+│   │   └── index.ts
+│   └── utils/
+│       └── helpers.ts
+├── package.json
+└── tsconfig.json
+```
+
+### package.json
+
+```json
+{
+  "name": "@myorg/mcp-security",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": {
+    "mcp-security": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}
+```
+
+## Werkzeugdefinition
+
+### Eingabeschema
+
+```typescript
+const tool = {
+  name: "sql-injection-test",
+  description: "Test URL parameter for SQL injection",
+  inputSchema: {
+    type: "object",
+    properties: {
+      url: {
+        type: "string",
+        description: "Target URL with parameter"
+      },
+      parameter: {
+        type: "string",
+        description: "Parameter name to test"
+      },
+      technique: {
+        type: "string",
+        enum: ["boolean", "time", "error", "union"],
+        description: "Injection technique"
+      }
+    },
+    required: ["url", "parameter"]
+  }
+};
+```
+
+### Tool-Handler
+
+```typescript
+async function handleSqlInjectionTest(args: {
+  url: string;
+  parameter: string;
+  technique?: string;
+}): Promise<string> {
+  const { url, parameter, technique = "boolean" } = args;
+
+  // SQL-Injection-Tests implementieren
+  const result = await testSqlInjection(url, parameter, technique);
+
+  return JSON.stringify({
+    vulnerable: result.vulnerable,
+    technique: technique,
+    evidence: result.evidence,
+    payloads: result.successfulPayloads
+  }, null, 2);
+}
+```
+
+## Ressourcen
+
+### Ressourcen bereitstellen
+
+```typescript
+server.setRequestHandler("resources/list", async () => ({
+  resources: [{
+    uri: "scan://results/latest",
+    name: "Latest Scan Results",
+    mimeType: "application/json"
+  }]
+}));
+
+server.setRequestHandler("resources/read", async (request) => {
+  const { uri } = request.params;
+
+  if (uri === "scan://results/latest") {
+    const results = await getLatestScanResults();
+    return {
+      contents: [{
+        uri,
+        mimeType: "application/json",
+        text: JSON.stringify(results)
+      }]
+    };
+  }
+});
+```
+
+## Transportoptionen
+
+### Stdio (Standard)
+
+```typescript
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+### HTTP/SSE
+
+```typescript
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import express from "express";
+
+const app = express();
+const transport = new SSEServerTransport("/sse", app);
+
+app.listen(3000);
+await server.connect(transport);
+```
+
+<Aside variant="info">
+  Cyberstrike verbindet sich mit **stdio**-Servern (lokal) und **StreamableHTTP/SSE**-Servern (remote). Es gibt keinen WebSocket-Client-Transport — bauen Sie keinen reinen WebSocket-Server.
+</Aside>
+
+## Bei Cyberstrike registrieren
+
+Sobald Ihr Server laeuft, fuegen Sie ihn zu `cyberstrike.json` hinzu. Ein stdio-Server ist ein `local`-Eintrag, wobei `command` das vollstaendige argv ist:
+
+```json title="cyberstrike.json"
+{
+  "mcp": {
+    "my-security-tools": {
+      "type": "local",
+      "command": ["node", "dist/index.js"]
+    }
+  }
+}
+```
+
+Ein HTTP/SSE-Server ist ein `remote`-Eintrag:
+
+```json
+{
+  "mcp": {
+    "my-security-tools": {
+      "type": "remote",
+      "url": "https://localhost:3000/sse"
+    }
+  }
+}
+```
+
+Oder fuegen Sie ihn interaktiv mit `/mcps` in der TUI hinzu. Siehe [Lokale Server](/docs/mcp/local-servers) und [Remote-Server](/docs/mcp/remote-servers) fuer das vollstaendige Schema.
+
+## Fehlerbehandlung
+
+### Tool-Fehler
+
+```typescript
+server.setRequestHandler("tools/call", async (request) => {
+  try {
+    const result = await executeTool(request.params);
+    return { content: [{ type: "text", text: result }] };
+  } catch (error) {
+    return {
+      content: [{
+        type: "text",
+        text: `Error: ${error.message}`
+      }],
+      isError: true
+    };
+  }
+});
+```
+
+### Validierungsfehler
+
+```typescript
+function validateInput(args: unknown, schema: object): void {
+  // Gegen JSON-Schema validieren
+  const errors = validate(args, schema);
+  if (errors.length > 0) {
+    throw new Error(`Invalid input: ${errors.join(", ")}`);
+  }
+}
+```
+
+## Sicherheitsueberlegungen
+
+### Eingabevalidierung
+
+```typescript
+function sanitizeHost(host: string): string {
+  // Host-Format validieren
+  if (!/^[\w.-]+$/.test(host)) {
+    throw new Error("Invalid host format");
+  }
+  return host;
+}
+```
+
+### Command-Injection-Praevention
+
+```typescript
+import { execFile } from "child_process";
+
+// Sicher: Verwendet execFile mit Array-Argumenten
+async function safeScan(host: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile("nmap", ["-sV", host], (error, stdout) => {
+      if (error) reject(error);
+      else resolve(stdout);
+    });
+  });
+}
+
+// Unsicher: Nicht so machen
+// exec(`nmap -sV ${host}`) // Command-Injection-Schwachstelle!
+```
+
+### Rate-Limiting
+
+```typescript
+import { RateLimiter } from "limiter";
+
+const limiter = new RateLimiter({
+  tokensPerInterval: 10,
+  interval: "minute"
+});
+
+async function handleToolCall(request) {
+  await limiter.removeTokens(1);
+  // Anfrage verarbeiten
+}
+```
+
+## Testen
+
+### Unit-Tests
+
+```typescript
+import { describe, it, expect } from "vitest";
+
+describe("port-scan tool", () => {
+  it("should scan specified ports", async () => {
+    const result = await handlePortScan({
+      host: "localhost",
+      ports: "80,443"
+    });
+
+    expect(result).toContain("80");
+    expect(result).toContain("443");
+  });
+});
+```
+
+### Integrationstests
+
+```typescript
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+
+describe("MCP Server", () => {
+  it("should list tools", async () => {
+    const client = await createTestClient();
+    const tools = await client.request("tools/list", {});
+
+    expect(tools.tools).toContainEqual(
+      expect.objectContaining({ name: "port-scan" })
+    );
+  });
+});
+```
+
+## Distribution
+
+### npm-Paket
+
+```bash
+npm publish --access public
+```
+
+### Docker-Image
+
+```dockerfile
+FROM node:20-slim
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --production
+COPY dist ./dist
+
+ENTRYPOINT ["node", "dist/index.js"]
+```
+
+### Binaer-Distribution
+
+```bash
+# Mit pkg
+npx pkg . --targets node20-linux-x64,node20-macos-x64,node20-win-x64
+```
+
+## Best Practices
+
+1. **Klare Beschreibungen** - Werkzeuge gruendlich dokumentieren
+2. **Eingabevalidierung** - Alle Eingaben validieren
+3. **Fehlerbehandlung** - Aussagekraeftige Fehler zurueckgeben
+4. **Protokollierung** - Operationen fuer Debugging protokollieren
+5. **Testen** - Alle Werkzeuge gruendlich testen
+6. **Sicherheit** - Injection-Angriffe verhindern
+
+<Aside variant="tip">
+  Beginnen Sie mit dem stdio-Transport fuer Einfachheit, fuegen Sie dann HTTP/SSE fuer Fernzugriff hinzu.
+</Aside>
+
+## Verwandte Dokumentation
+
+- [Bolt / MCP-Uebersicht](/docs/mcp) - Architektur und Konzepte
+- [Bolt](/docs/mcp/bolt) - Siehe Bolts Implementierung als Referenz
+- [Lokale Server](/docs/mcp/local-servers) - Lokale Server-Konfiguration
+- [Remote-Server](/docs/mcp/remote-servers) - HTTP-Transport-Konfiguration
+- [Werkzeuge-Uebersicht](/docs/tools) - Eingebaute Werkzeuge

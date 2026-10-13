@@ -1,0 +1,55 @@
+---
+title: 升级猎手
+description: 跨领域关联代理，链接发现并升级漏洞影响
+sidebar:
+  order: 7
+  label: 升级猎手
+---
+
+`escalation-hunter` 是一个跨领域分析代理，在 WSTG 专家完成测试后运行。它检查会话中的所有发现，以识别链式漏洞、升级影响并构建单个专家可能遗漏的新攻击路径。
+
+## 概述
+
+| 属性 | 值 |
+|------|-----|
+| **代理 ID** | `escalation-hunter` |
+| **角色** | `analyst` |
+| **领域** | `@cyberstrike-io/web` |
+| **运行时机** | WSTG 专家测试完成后 |
+
+## 功能
+
+单个 WSTG 专家在隔离中测试端点——每个专注于自己的类别。`escalation-hunter` 跨越所有通道寻找：
+
+- **链式漏洞**——将低严重性的 IDOR 与会话固定结合实现账户接管
+- **影响升级**——当与另一个发现结合时，中等严重性的发现变为关键
+- **新攻击路径**——按顺序重放的请求序列产生更高影响的结果
+- **跨角色升级**——当不同专家的发现结合时，权限边界被突破
+
+## 工作原理
+
+1. 读取会话中的所有发现（跨所有 WSTG 专家）
+2. 读取积累的 Vortex 数据（流量模式、规则匹配、对象、函数）
+3. 识别发现之间的关联机会
+4. 构建并**重放**提议的攻击链以验证它们
+5. 将验证的升级作为新发现报告，附带复合证据
+
+`escalation-hunter` 从不轻信专家的说法——它通过重放实际 HTTP 序列来验证提议的链。
+
+## 示例
+
+```
+Specialist A: IDOR in GET /api/users/{id} (medium)
+Specialist B: Missing rate limit on /api/auth/reset (low)
+Specialist C: Email parameter in reset response body (info)
+
+Escalation Hunter:
+  Chain: enumerate user IDs via IDOR → trigger password reset for each →
+         extract reset tokens from response → account takeover
+  Verified: replayed 3-step chain → confirmed ATO
+  Escalated: Critical (was medium + low + info individually)
+```
+
+<Aside variant="info">
+  escalation-hunter 会自动调度——您不直接调用它。它在 WSTG 流水线完成后作为最终分析阶段运行。
+</Aside>

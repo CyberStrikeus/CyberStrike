@@ -1,0 +1,259 @@
+---
+title: プロジェクト設定
+description: 個別プロジェクト向けのCyberstrike設定
+sidebar:
+  order: 2
+  label: プロジェクト設定
+---
+
+プロジェクト設定は特定のプロジェクトに対するCyberstrikeの動作をカスタマイズし、グローバル設定を上書きします。
+
+{/* TODO: Screenshot - Project configuration file */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: project-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">プロジェクト設定ファイルの構造</p>
+</div>
+
+## ファイルの場所
+
+プロジェクト設定はプロジェクトルートの `cyberstrike.json`（または `cyberstrike.jsonc`）に保存します。Cyberstrikeは作業ディレクトリから上方向に探索するため、親フォルダにある設定も検出されます：
+
+```
+my-project/
+├── cyberstrike.json     ← プロジェクト設定
+├── src/
+├── package.json
+└── ...
+```
+
+## プロジェクト設定の作成
+
+initコマンドはありません — ファイルを手動で作成してください：
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## 基本設定
+
+### モデル選択
+
+```json
+{
+  "model": "anthropic/claude-opus-4-5-20251101"
+}
+```
+
+### デフォルトエージェント
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+`default_agent` はプライマリエージェントである必要があります。未設定または無効な場合は `cyberstrike` にフォールバックします。
+
+### カスタムインストラクション
+
+`instructions` はシステムプロンプトに追加される**ファイルまたはglobパターン**のリストです（インラインのテキストではありません）。リストはグローバル設定とユニオンマージされます：
+
+```json
+{
+  "instructions": [
+    "SECURITY.md",
+    "docs/security-guidelines.md",
+    ".cursor/rules/*.md"
+  ]
+}
+```
+
+## プロバイダー設定
+
+`provider` の下でプロバイダーを設定します。`provider.default` キーはありません — アクティブなプロバイダーは `model`（`provider/model`）から決まります：
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    },
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+プロバイダー別の詳細は[AIプロバイダー](/docs/providers)を参照してください。
+
+## パーミッション
+
+パーミッションはツール名をアクション（`ask`、`allow`、`deny`）にマッピングするか、glob -> アクションのマップにマッピングします。allowリスト・denyリストの配列やパーミッション「モード」はありません：
+
+```json
+{
+  "permission": {
+    "read": "allow",
+    "bash": {
+      "npm test": "allow",
+      "npm run lint": "allow",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "reports/**": "allow",
+      ".env*": "deny"
+    }
+  }
+}
+```
+
+ワイルドカードは `*` と `?` のみサポートされます。完全なモデルとパーミッションキーのリストは[パーミッション](/docs/permissions)を参照してください。
+
+## MCPサーバー
+
+MCPサーバーは `mcp` の下にフラットマップとして宣言し、サーバー名をキーとします。ローカルサーバーは `type: "local"` と単一の `command` 配列を使用します：
+
+```json
+{
+  "mcp": {
+    "project-tools": {
+      "type": "local",
+      "command": ["node", "./tools/mcp-server.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+プロジェクトの `mcp` エントリはグローバルの上にマージされます。継承したサーバーをオフにするには、`enabled` を `false` に設定します：
+
+```json
+{
+  "mcp": {
+    "some-global-server": { "enabled": false }
+  }
+}
+```
+
+## カスタムエージェント
+
+`.cyberstrike/agents/` の下にMarkdownファイルとしてプロジェクトエージェントを定義し（[カスタムエージェント](/docs/agents/custom-agents)を参照）、デフォルトとして選択します：
+
+```json
+{
+  "default_agent": "project-scanner"
+}
+```
+
+## 完全な例
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "cyberstrike",
+  "instructions": ["docs/SECURITY.md"],
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+
+  "permission": {
+    "read": "allow",
+    "bash": { "npm *": "allow", "git status": "allow", "rm *": "deny" },
+    "edit": { "reports/**": "allow", ".env*": "deny" }
+  },
+
+  "mcp": {
+    "db-tools": {
+      "type": "local",
+      "command": ["node", "./tools/db-mcp.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+## 設定の継承
+
+プロジェクト設定はグローバルおよびリモート設定の上にマージされます：
+
+```
+リモート / well-known設定（ベース）
+      ↓
+グローバル設定（~/.config/cyberstrike/）
+      ↓
+カスタム設定（CYBERSTRIKE_CONFIG）
+      ↓
+プロジェクト設定（cyberstrike.json）
+      ↓
+.cyberstrike/ ディレクトリ設定
+      ↓
+CYBERSTRIKE_CONFIG_CONTENT / マネージド設定 / CLI引数（オーバーライド）
+```
+
+完全な優先順位は[設定リファレンス](/docs/configuration#configuration-hierarchy)を参照してください。
+
+### マージ動作
+
+| 設定 | 動作 |
+|---------|----------|
+| スカラー値 | 置換 |
+| オブジェクト | ディープマージ |
+| 配列 | 置換 — `plugin` と `instructions` **のみ**ユニオンマージ |
+
+## スキーマバリデーション
+
+IDEの自動補完とバリデーション用にスキーマ参照を追加します：
+
+```json
+{
+  "$schema": "https://cyberstrike.io/config.json"
+}
+```
+
+## Git連携
+
+### プロジェクト設定のコミット
+
+```bash
+git add cyberstrike.json
+git commit -m "Add Cyberstrike project configuration"
+```
+
+### 機密データの除外
+
+```text title=".gitignore"
+# ローカルセッションデータを除外
+.cyberstrike/sessions/
+```
+
+## ベストプラクティス
+
+1. **バージョン管理** - チーム共有のためにプロジェクト設定をコミット
+2. **環境変数参照を使用** - APIキーをハードコードしない（`{env:VAR}`）
+3. **インストラクションを文書化** - `instructions` でセキュリティドキュメントを参照
+4. **最小限のパーミッション** - 必要なものだけ許可
+5. **個人的な上書き** - コミットすべきでない設定には `CYBERSTRIKE_CONFIG` を使用
+
+<Aside variant="tip">
+  チーム共有のために `cyberstrike.json` をコミットしてください。コミットすべきでない個人的な上書きには環境変数または `CYBERSTRIKE_CONFIG` を使用してください。
+</Aside>
+
+## 関連ドキュメント
+
+- [設定リファレンス](/docs/configuration) - 完全ガイド
+- [グローバル設定](/docs/configuration/global-config) - グローバルの設定
+- [環境変数](/docs/configuration/environment-variables) - 環境変数リファレンス

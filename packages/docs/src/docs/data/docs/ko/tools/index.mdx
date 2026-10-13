@@ -1,0 +1,652 @@
+---
+title: 도구 레퍼런스
+description: Cyberstrike 내장 도구 및 MCP 통합에 대한 전체 레퍼런스
+sidebar:
+  order: 1
+  label: 개요
+---
+
+Cyberstrike는 보안 평가를 위한 포괄적인 내장 도구 세트를 제공합니다. 이 도구들은 파일 작업, 명령 실행, 웹 자동화, 세션 간 영구 메모리를 가능하게 합니다.
+
+{/* TODO: Screenshot - Tool list in TUI */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: s11-tool-list.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">도구 목록 - TUI에서 사용 가능한 도구 뷰</p>
+</div>
+
+## 도구 카테고리
+
+| 카테고리 | 도구 | 용도 |
+|----------|------|------|
+| **파일 작업** | Read, Write, Edit, Glob, Grep | 파일 읽기, 쓰기, 편집, 검색 |
+| **명령 실행** | Bash | 쉘 명령 실행 |
+| **웹 테스트** | [Hacker Browser](/docs/tools/hacker-browser).
+| **메모리** | Memory Search, Memory Write, Memory Read, Memory Context | 세션 간 영구 저장소 |
+| **도구 검색** | ToolSearch, LoadTools, UnloadTools | 동적 MCP 도구 로딩 |
+| **작업** | Task, TodoWrite | 위임 및 작업 추적 |
+| **웹** | WebFetch, WebSearch, CodeSearch | 웹 콘텐츠 가져오기 및 검색 |
+
+---
+
+## 파일 작업
+
+### Read
+
+줄 번호와 함께 파일 내용을 읽습니다. 텍스트 파일, 이미지, PDF를 지원합니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `filePath` | string | 예 | 파일 경로 (절대 또는 상대) |
+| `offset` | number | 아니오 | 시작 줄 번호 (1부터 시작) |
+| `limit` | number | 아니오 | 읽을 줄 수 (기본값: 2000) |
+
+#### 예시
+
+```json
+{
+  "filePath": "/path/to/file.txt",
+  "offset": 100,
+  "limit": 500
+}
+```
+
+#### 출력 형식
+
+```
+00001| First line of content
+00002| Second line of content
+00003| Third line of content
+
+(End of file - total 3 lines)
+```
+
+#### 기능
+
+- 자동 바이너리 파일 감지
+- 이미지 및 PDF 지원 (base64 인코딩 콘텐츠 반환)
+- 2000자에서 줄 잘림
+- 읽기 작업당 최대 50KB
+- 파일을 찾을 수 없을 때 스마트 파일 제안
+
+---
+
+### Write
+
+새 내용으로 파일을 생성하거나 덮어씁니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `filePath` | string | 예 | 파일의 절대 경로 |
+| `content` | string | 예 | 쓸 내용 |
+
+#### 예시
+
+```json
+{
+  "filePath": "/path/to/new-file.txt",
+  "content": "File contents here"
+}
+```
+
+#### 기능
+
+- 필요 시 상위 디렉토리 생성
+- 검토를 위한 통합 diff 생성
+- 쓰기 후 LSP 진단
+- 충돌 감지를 위한 파일 시간 추적
+
+---
+
+### Edit
+
+스마트 매칭을 사용한 파일의 찾기-바꾸기 작업을 수행합니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `filePath` | string | 예 | 파일의 절대 경로 |
+| `oldString` | string | 예 | 찾아서 바꿀 텍스트 |
+| `newString` | string | 예 | 대체 텍스트 |
+| `replaceAll` | boolean | 아니오 | 모든 항목 바꾸기 (기본값: false) |
+
+#### 예시
+
+```json
+{
+  "filePath": "/path/to/file.ts",
+  "oldString": "function oldName(",
+  "newString": "function newName(",
+  "replaceAll": false
+}
+```
+
+#### 스마트 매칭
+
+Edit 도구는 여러 매칭 전략을 사용합니다:
+
+1. **단순 교체**: 정확한 문자열 일치
+2. **줄 트리밍**: 줄별 선행/후행 공백 무시
+3. **블록 앵커**: 첫 줄과 마지막 줄 일치, 중간은 퍼지
+4. **공백 정규화**: 여러 공백 축소
+5. **들여쓰기 유연**: 들여쓰기 차이 무시
+6. **이스케이프 정규화**: 이스케이프 시퀀스 처리
+7. **컨텍스트 인식**: 주변 컨텍스트를 사용한 매칭
+
+#### 기능
+
+- 통합 diff 생성
+- 편집 후 LSP 진단
+- 다중 항목 감지
+- 파일 시간 추적을 통한 충돌 방지
+
+---
+
+### Glob
+
+glob 패턴과 일치하는 파일을 찾습니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `pattern` | string | 예 | Glob 패턴 (예: `**/*.ts`) |
+| `path` | string | 아니오 | 검색 디렉토리 (기본값: 현재 디렉토리) |
+
+#### 예시
+
+```json
+{
+  "pattern": "**/*.{ts,tsx}",
+  "path": "/path/to/project"
+}
+```
+
+#### 출력
+
+수정 시간순으로 정렬된 파일 경로를 반환하며 (최신 순), 100개 결과로 제한됩니다.
+
+#### 패턴 예시
+
+| 패턴 | 일치 대상 |
+|------|-----------|
+| `*.ts` | 현재 디렉토리의 TypeScript 파일 |
+| `**/*.ts` | 재귀적으로 TypeScript 파일 |
+| `src/**/*.{ts,tsx}` | src 디렉토리의 TS/TSX 파일 |
+| `!**/node_modules/**` | node_modules 제외 |
+
+---
+
+### Grep
+
+정규식 패턴을 사용하여 파일 내용을 검색합니다. ripgrep 기반입니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `pattern` | string | 예 | 검색할 정규식 패턴 |
+| `path` | string | 아니오 | 검색 디렉토리 (기본값: 현재 디렉토리) |
+| `include` | string | 아니오 | 파일 패턴 필터 (예: `*.js`) |
+
+#### 예시
+
+```json
+{
+  "pattern": "password|secret|api_key",
+  "path": "/path/to/project",
+  "include": "*.{js,ts,py}"
+}
+```
+
+#### 출력 형식
+
+```
+Found 5 matches
+
+/path/to/file.ts:
+  Line 42: const apiKey = process.env.API_KEY
+  Line 85: // TODO: remove hardcoded secret
+
+/path/to/config.js:
+  Line 12: password: "changeme"
+```
+
+#### 기능
+
+- 정규식 지원 (ripgrep 구문)
+- 숨김 파일 검색
+- 심볼릭 링크 추적
+- 수정 시간순 결과 정렬
+- 최대 100개 결과
+
+---
+
+## 명령 실행
+
+### Bash
+
+타임아웃 및 출력 캡처를 포함한 쉘 명령을 실행합니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `command` | string | 예 | 실행할 명령 |
+| `timeout` | number | 아니오 | 밀리초 단위 타임아웃 (기본값: 120000) |
+| `workdir` | string | 아니오 | 작업 디렉토리 |
+| `description` | string | 예 | 명령 목적에 대한 간략한 설명 |
+
+#### 예시
+
+```json
+{
+  "command": "nmap -sV -sC target.com",
+  "timeout": 300000,
+  "workdir": "/path/to/project",
+  "description": "Scan target for open ports and services"
+}
+```
+
+#### 기능
+
+- 쉘 감지 (bash/zsh/sh)
+- 타임아웃 시 프로세스 트리 종료
+- 권한 시스템 통합
+- 실시간 출력 스트리밍
+- 외부 디렉토리 접근 제어
+
+#### 보안 고려사항
+
+명령은 tree-sitter로 파싱되어 다음을 감지합니다:
+- 프로젝트 외부 디렉토리 접근
+- 위험한 명령 패턴
+- 파일 시스템 수정
+
+---
+
+## 웹 테스트
+
+저수준 `Browser` 도구는 없습니다. 브라우저 기반 웹 테스트는 **[Hacker Browser](/docs/tools/hacker-browser).
+
+{/* TODO: GIF - Hacker Browser crawl */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">🎬 GIF: g06-browser-scanning.gif</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Hacker Browser가 대상을 크롤링하는 모습 (25초)</p>
+</div>
+
+`cyberstrike hackbrowser <target>` 또는 `hackbrowser` 도구로 실행합니다. 전체 워크플로는 [Hacker Browser](/docs/tools/hacker-browser).
+
+---
+
+## 메모리 시스템
+
+Cyberstrike는 세션 간 컨텍스트 저장을 위한 영구 메모리 시스템을 포함합니다.
+
+### Memory Write
+
+정보를 영구 메모리에 저장합니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `content` | string | 예 | 저장할 내용 |
+| `type` | string | 아니오 | MEMORY.md의 경우 `long_term`, 날짜별 노트의 경우 `daily` |
+| `title` | string | 아니오 | 항목의 선택적 제목 |
+
+#### 예시
+
+```json
+{
+  "content": "Target uses PostgreSQL 14.2 on port 5432",
+  "type": "long_term",
+  "title": "Database Configuration"
+}
+```
+
+#### 메모리 타입
+
+| 타입 | 저장 위치 | 용도 |
+|------|-----------|------|
+| `long_term` | `.cyberstrike/MEMORY.md` | 결정, 선호도, 중요한 사실 |
+| `daily` | `.cyberstrike/memory/YYYY-MM-DD.md` | 세션 노트, 임시 컨텍스트 |
+
+---
+
+### Memory Search
+
+저장된 메모리를 검색합니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `query` | string | 예 | 검색 키워드 또는 구문 |
+
+#### 예시
+
+```json
+{
+  "query": "database credentials"
+}
+```
+
+---
+
+### Memory Read
+
+특정 메모리 파일을 읽습니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `file` | string | 예 | 파일 식별자 |
+
+#### 파일 식별자
+
+| 식별자 | 설명 |
+|--------|------|
+| `long_term` | 장기 메모리 (MEMORY.md) |
+| `today` | 오늘의 일일 노트 |
+| `yesterday` | 어제의 노트 |
+| `YYYY-MM-DD` | 특정 날짜의 노트 |
+| `list` | 모든 메모리 파일 나열 |
+
+---
+
+### Memory Context
+
+세션을 위한 전체 메모리 컨텍스트를 가져옵니다.
+
+#### 매개변수
+
+필수 매개변수 없음.
+
+#### 예시
+
+```json
+{}
+```
+
+장기 메모리와 최근 일일 노트를 결합하여 반환합니다.
+
+---
+
+## 동적 도구 로딩
+
+<img src="/docs/images/diagrams/tool-interaction-flow.svg" alt="도구가 사용 가능해지는 과정: 내장 도구는 직접 호출; MCP 도구는 tool_search로 찾고, load_tools로 로드한 후 호출 가능, unload_tools로 해제" className="my-6 mx-auto max-w-sm" />
+
+Cyberstrike는 MCP (Model Context Protocol) 서버를 위한 동적 도구 로딩을 지원합니다. 이를 통해 컨텍스트 창을 압도하지 않고 수백 개의 도구에 접근할 수 있습니다.
+
+### Tool Search
+
+기능별로 사용 가능한 MCP 도구를 검색합니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `query` | string | 예 | 기능 설명 |
+| `limit` | number | 아니오 | 최대 결과 수 (기본값: 5) |
+
+#### 예시
+
+```json
+{
+  "query": "sql injection testing",
+  "limit": 10
+}
+```
+
+#### 출력
+
+```
+Found 3 tools:
+
+1. sqlmap_scan
+   SQL injection scanner using sqlmap
+   Estimated tokens: ~500
+
+2. nuclei_sqli
+   Nuclei templates for SQL injection
+   Estimated tokens: ~300
+
+3. manual_sqli
+   Manual SQL injection payloads
+   Estimated tokens: ~200
+```
+
+---
+
+### Load Tools
+
+사용할 도구를 컨텍스트에 로드합니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `tool_ids` | string[] | 예 | 검색 결과의 도구 ID |
+
+#### 예시
+
+```json
+{
+  "tool_ids": ["sqlmap_scan", "nuclei_sqli"]
+}
+```
+
+---
+
+### Unload Tools
+
+컨텍스트에서 도구를 제거하여 예산을 확보합니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `tool_ids` | string[] | 예 | 언로드할 도구 ID |
+
+---
+
+### 로드된 도구 목록
+
+현재 로드된 도구와 토큰 사용량을 표시합니다.
+
+#### 매개변수
+
+필수 매개변수 없음.
+
+---
+
+## 작업 관리
+
+### Task
+
+서브에이전트에 작업을 위임합니다. 이것이 기본 에이전트가 전문 서브에이전트를 디스패치하는 방법입니다 ([에이전트](/docs/agents) 참조).
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `description` | string | 예 | 짧은 (3-5 단어) 작업 설명 |
+| `prompt` | string | 예 | 서브에이전트가 수행할 작업 |
+| `subagent_type` | string | 예 | 디스패치할 서브에이전트 (예: `web-application`, `general`) |
+
+---
+
+### TodoWrite
+
+할 일 목록에 작업 항목을 작성합니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `tasks` | array | 예 | 작업 객체 배열 |
+
+#### 작업 객체
+
+```json
+{
+  "id": "1",
+  "content": "Scan for open ports",
+  "status": "pending",
+  "priority": "high"
+}
+```
+
+---
+
+## 웹 도구
+
+### WebFetch
+
+웹 콘텐츠를 가져오고 처리합니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `url` | string | 예 | 가져올 URL |
+| `format` | string | 아니오 | `text`, `markdown`, 또는 `html` |
+| `timeout` | number | 아니오 | 초 단위 타임아웃 (최대 120) |
+
+#### 예시
+
+```json
+{
+  "url": "https://target.com/robots.txt",
+  "format": "text"
+}
+```
+
+---
+
+### WebSearch
+
+정보 수집을 위한 웹 검색을 수행합니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `query` | string | 예 | 검색 쿼리 |
+
+---
+
+### CodeSearch
+
+코드 저장소 및 문서를 검색합니다.
+
+#### 매개변수
+
+| 매개변수 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `query` | string | 예 | 코드 검색 쿼리 |
+
+---
+
+## 도구 권한
+
+각 도구는 구성 가능한 특정 권한을 필요로 합니다:
+
+| 권한 | 도구 | 기본값 |
+|------|------|--------|
+| `read` | Read | ask |
+| `edit` | Write, Edit | ask |
+| `glob` | Glob | allow |
+| `grep` | Grep | allow |
+| `bash` | Bash | ask |
+| `websearch` | WebSearch | ask |
+| `webfetch` | WebFetch | ask |
+| `codesearch` | CodeSearch | ask |
+| `task` | Task | ask |
+| `external_directory` | 프로젝트 외부 접근 | ask |
+
+### 구성
+
+```json
+{
+  "permission": {
+    "bash": "ask",
+    "edit": "allow",
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow"
+  }
+}
+```
+
+### 권한 동작
+
+| 동작 | 설명 |
+|------|------|
+| `ask` | 사용자에게 승인 요청 |
+| `allow` | 묻지 않고 자동 승인 |
+| `deny` | 도구 사용 차단 |
+
+전체 모델 및 glob 패턴은 [권한](/docs/permissions)을 참조하세요.
+
+---
+
+## 커스텀 도구 만들기
+
+`.cyberstrike/tools/`에 파일을 만들어 커스텀 도구를 추가합니다:
+
+```typescript title=".cyberstrike/tools/custom-scanner.ts"
+import { z } from "zod"
+
+export default {
+  description: "Custom vulnerability scanner",
+  args: {
+    target: z.string().describe("Target URL to scan"),
+    depth: z.number().default(3).describe("Scan depth"),
+  },
+  async execute(args, ctx): Promise<string> {
+    const { target, depth } = args
+    // Custom scanning logic
+    return `Scanned ${target} to depth ${depth}`
+  },
+}
+```
+
+`.cyberstrike/` 폴더 내의 `tool/` 또는 `tools/` 디렉토리에 있는 파일은 자동으로 로드됩니다.
+
+### 도구 정의 스키마
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `description` | string | 모델에 표시되는 도구 설명 |
+| `args` | object | 매개변수 이름 → Zod 스키마 맵 |
+| `execute` | function | `async (args, ctx) => string` |
+
+---
+
+## MCP 서버 도구
+
+Cyberstrike는 MCP 서버에서 도구를 로드할 수 있습니다. 권장 접근 방식은 [Bolt](/docs/mcp/bolt)이며, 플러그인 시스템을 갖춘 Docker 컨테이너를 통해 보안 도구를 제공합니다:
+
+```json title="cyberstrike.json"
+{
+  "bolt": {
+    "local": {
+      "url": "http://localhost:3001",
+      "enabled": true
+    }
+  }
+}
+```
+
+MCP 도구는 직접 도구 호출로 사용 가능합니다 -- 각 플러그인은 이름으로 직접 호출됩니다 (예: `nmap`, `nuclei`, `ffuf`).
+
+<Aside variant="tip">
+  권장 보안 도구 설정은 [Bolt](/docs/mcp/bolt)를 참조하세요 — 7개의 플러그인과 ~26개의 집계된 MCP 서버, 모두 직접 도구 호출로 사용 가능합니다.
+</Aside>

@@ -1,0 +1,109 @@
+---
+title: カスタムエージェント
+description: CyberStrike用の専門セキュリティエージェントを作成する
+sidebar:
+  order: 9
+  label: カスタムエージェント
+---
+
+独自のシステムプロンプト、モデル、権限を持つカスタムエージェントを作成します。エージェントはYAMLフロントマターを含むMarkdownファイルです。
+
+{/* TODO: Screenshot - Custom agent configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: custom-agent-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">カスタムエージェント設定ファイル</p>
+</div>
+
+## ファイルと配置場所
+
+カスタムエージェントは、任意の `.cyberstrike/` フォルダー（プロジェクトまたは `~/.cyberstrike/`）内の `agent/` または `agents/` ディレクトリに置かれた `*.md` ファイルです。エージェントのIDはファイル名です。
+
+```
+.cyberstrike/
+└── agents/
+    ├── api-security.md
+    └── compliance-audit.md
+```
+
+## フロントマター
+
+```markdown title=".cyberstrike/agents/api-security.md"
+---
+description: Specialized agent for REST and GraphQL API testing
+mode: primary
+model: anthropic/claude-sonnet-4-20250514
+permission:
+  bash: { "*": "ask", "rm -rf *": "deny" }
+  edit: allow
+---
+
+You are an expert API security tester specializing in REST and GraphQL APIs.
+Follow the OWASP API Security Top 10 …
+```
+
+本文（フロントマターの後）がシステムプロンプトになります。
+
+| フィールド | 型 | 説明 |
+|-------|------|-------------|
+| `description` | string | エージェントの用途 |
+| `mode` | `primary` \| `subagent` \| `all` | `primary` エージェントは直接実行可能。`subagent` エージェントはタスクツール経由で委任される |
+| `model` | string | `provider/model` のオーバーライド |
+| `temperature`, `top_p` | number | サンプリング制御 |
+| `steps` | number | エージェントの最大反復回数 |
+| `color` | string | 16進数またはテーマカラー |
+| `permission` | object | ツールごとの権限（[権限](/docs/permissions)を参照） |
+| `hidden`, `disable` | boolean | ピッカーから非表示 / 無効化 |
+
+<Aside variant="caution">
+  `permission` フィールドでツールを制限してください。旧 `tools:` マップは**非推奨**であり、`allowedCommands` フィールドはありません — コマンド制限は `permission.bash` のglobルール（例：`bash: { "nmap *": "allow" }`）です。
+</Aside>
+
+## プライマリ vs サブエージェント
+
+**プライマリ**エージェントのみが `--agent` や `default_agent` で選択できます。エージェントを直接実行可能にしたい場合は `mode: primary` を設定してください。それ以外の場合は、`cyberstrike` エージェントが委任できるサブエージェントとして動作します。
+
+```markdown
+---
+description: Read-only auditor
+mode: primary
+permission:
+  edit: deny
+  bash: deny
+  read: allow
+  glob: allow
+  grep: allow
+---
+
+You are a read-only security auditor …
+```
+
+## カスタムエージェントの使用
+
+プライマリエージェントになったら、選択します：
+
+```bash
+cyberstrike --agent api-security
+```
+
+または `cyberstrike.json` でデフォルトとして設定します：
+
+```json
+{
+  "default_agent": "api-security"
+}
+```
+
+TUIで `/agents` を使ってエージェントを閲覧できます。
+
+## ベストプラクティス
+
+1. **焦点を絞ったスコープ** — エージェントごとに1つの明確な目的。
+2. **最小権限** — `permission` でエージェントに必要なツールのみを許可。
+3. **明確なプロンプト** — 方法論と出力形式を具体的に記述。
+4. **バージョン管理** — `.cyberstrike/agents/` をプロジェクトとともにコミット。
+
+## 関連ドキュメント
+
+- [セキュリティエージェント](/docs/agents) - 組み込みエージェントと委任
+- [権限](/docs/permissions) - `permission` フィールド
+- [設定](/docs/configuration) - プロジェクトおよびグローバル設定

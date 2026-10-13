@@ -1,0 +1,38 @@
+---
+title: Commandes de navigation
+description: "Commandes slash pour les sélecteurs, boîtes de dialogue et la navigation dans l'interface"
+sidebar:
+  order: 3
+  label: Commandes de navigation
+---
+
+Ces commandes slash ouvrent des sélecteurs et des boîtes de dialogue. Tapez `/` dans le TUI pour voir la liste des commandes (ou appuyez sur `Ctrl+P`).
+
+<img src="/docs/images/gifs/navigation-commands.gif" alt="Ouverture de la liste des commandes et navigation dans les sélecteurs" className="rounded-lg shadow-lg my-6 w-full" />
+
+## Sélecteurs et boîtes de dialogue
+
+| Commande | Ouvre |
+|----------|-------|
+| `/models` | Sélecteur de modèle |
+| `/agents` | Sélecteur d'agent |
+| `/themes` | Sélecteur de thème |
+| `/mcps` | Gestionnaire de serveurs MCP |
+| `/bolt` | Gestionnaire de serveurs Bolt |
+| `/connect` | Connecter / authentifier un fournisseur |
+| `/sessions` (`/resume`, `/continue`) | Sélecteur de session |
+| `/editor` | Ouvrir le message dans votre éditeur externe |
+| `/skills` | Parcourir les skills chargées |
+| `/help` | Afficher l'aide |
+| `/status` | Afficher le statut |
+| `/exit` | Quitter Cyberstrike |
+
+<Aside variant="caution">
+  Les noms de commandes sont au pluriel : `/models`, `/themes`, `/mcps` (pas `/model`, `/theme`, `/mcp`). Il n'existe pas de commande `/provider`, `/vim`, `/config`, `/permission`, `/files`, `/cd`, `/tools`, `/version`, `/doctor`, `/docs`, `/changelog`, `/cost` ou `/context` — elles n'existent pas.
+</Aside>
+
+## Documentation associée
+
+- [Commandes slash](/docs/slash-commands) - Liste complète des commandes
+- [Commandes de session](/docs/slash-commands/session-commands) - Cycle de vie des sessions
+- [Raccourcis clavier](/docs/getting-started/keyboard-shortcuts) - Raccourcis

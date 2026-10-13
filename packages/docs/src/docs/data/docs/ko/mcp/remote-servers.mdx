@@ -1,0 +1,116 @@
+---
+title: 원격 MCP 서버
+description: HTTP/SSE를 통한 원격 MCP 서버 연결
+sidebar:
+  order: 4
+  label: 원격 서버
+---
+
+원격 MCP 서버는 HTTP/HTTPS를 통해 연결되어 호스팅된 서비스와 공유 인프라에 접근할 수 있습니다. 전송은 StreamableHTTP(SSE 폴백 포함)입니다.
+
+<Aside variant="tip">
+  **보안 도구를 찾고 계신가요?** 사전 설치된 보안 도구는 [Bolt](/docs/mcp/bolt)를 참조하세요. Bolt는 `mcp` 아래가 아닌 자체 최상위 `bolt` 키로 구성됩니다.
+</Aside>
+
+<img src="/docs/images/diagrams/remote-mcp-architecture.svg" alt="Cyberstrike의 MCP 클라이언트가 헤더 또는 OAuth 토큰을 사용하여 StreamableHTTP/SSE를 통해 원격 MCP 서버에 연결" className="my-6" />
+
+## 구성 스키마
+
+원격 서버는 서버 이름으로 키가 지정된 평면 `mcp` 맵의 하나의 항목입니다:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "mcp": {
+    "my-remote": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "headers": { "Authorization": "Bearer {env:MY_TOKEN}" },
+      "enabled": true,
+      "timeout": 5000
+    }
+  }
+}
+```
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `type` | `"remote"` | 필수. HTTP 기반 서버를 선택합니다. |
+| `url` | string | 필수. 서버 엔드포인트. |
+| `headers` | object | 선택. 각 요청과 함께 전송되는 헤더 (예: API 키). |
+| `oauth` | object \| `false` | 선택. OAuth 구성; OAuth 자동 감지를 비활성화하려면 `false`로 설정. [OAuth](/docs/mcp/oauth) 참조. |
+| `enabled` | boolean | 선택. 실행 시 연결 (기본값: true). |
+| `timeout` | number | 선택. 요청 타임아웃 ms (기본값: 5000). |
+
+<Aside variant="caution">
+  `mcp` 객체는 서버 이름으로 키가 지정된 **평면 맵**입니다 — `servers` 래퍼가 없습니다. 전송은 StreamableHTTP/SSE만 지원(WebSocket 전송 없음)하며, 스키마는 엄격합니다: `retry`, `keepalive`, `proxy`, TLS/`ca`/`cert`, 로드 밸런싱 필드는 **존재하지 않습니다**.
+</Aside>
+
+## TUI를 통해 추가
+
+`/mcps`를 입력하여 MCP 관리자를 열고, **a**를 눌러 추가하고, **Remote**를 선택합니다. 서버 **URL**을 입력하면; 서버 **이름**은 호스트네임에서 자동 생성됩니다(점이 하이픈으로 변환). Cyberstrike가 저장 전에 연결을 테스트합니다. 위에 표시된 스키마와 정확히 동일하게 기록합니다.
+
+## 인증
+
+### 헤더를 통한 API 키
+
+정적 토큰 또는 API 키를 요청 헤더로 전송합니다. 비밀이 구성 파일에 저장되지 않도록 `{env:VAR}`를 사용하세요:
+
+```json
+{
+  "mcp": {
+    "github-remote": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": { "Authorization": "Bearer {env:GITHUB_TOKEN}" }
+    }
+  }
+}
+```
+
+### OAuth
+
+OAuth를 사용하는 서버의 경우, `oauth` 블록을 추가합니다 (또는 Cyberstrike가 자동 감지하도록 합니다). `clientId`가 생략되면 동적 클라이언트 등록(RFC 7591)이 시도됩니다:
+
+```json
+{
+  "mcp": {
+    "oauth-server": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "oauth": { "scope": "read write" }
+    }
+  }
+}
+```
+
+`cyberstrike mcp auth <name>`으로 인증합니다. 전체 흐름은 [OAuth](/docs/mcp/oauth)를 참조하세요. OAuth 자동 감지를 비활성화하려면 `"oauth": false`를 설정합니다.
+
+## 활성화, 비활성화 및 타임아웃
+
+`enabled: false`로 서버를 구성된 상태로 유지하되 연결을 끊습니다 (또는 `/mcps`에서 토글). 느린 엔드포인트의 경우 `timeout`(ms)을 올립니다:
+
+```json
+{
+  "mcp": {
+    "slow-remote": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "enabled": false,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+## 문제 해결
+
+- **인증 실패** — 헤더를 확인하거나 OAuth 서버의 경우 `cyberstrike mcp auth <name>`을 실행합니다; `cyberstrike mcp debug <name>`으로 검사합니다.
+- **타임아웃** — `timeout`을 올리거나 엔드포인트에 접근 가능한지 확인합니다.
+- **구성 거부** — 스키마는 엄격합니다; `type: "remote"` + `url`로 평면 맵을 사용하고 위에 나열된 필드만 사용합니다.
+
+## 관련 문서
+
+- [Bolt / MCP 개요](/docs/mcp) - 아키텍처 및 개념
+- [OAuth](/docs/mcp/oauth) - OAuth 인증 흐름
+- [로컬 서버](/docs/mcp/local-servers) - 로컬 stdio MCP 구성
+- [서버 만들기](/docs/mcp/creating-servers) - 커스텀 서버 빌드

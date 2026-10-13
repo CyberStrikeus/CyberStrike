@@ -1,0 +1,180 @@
+---
+title: OpenAI (GPT)
+description: Configure modelos OpenAI para o Cyberstrike
+sidebar:
+  order: 3
+  label: OpenAI
+---
+
+A OpenAI oferece a familia GPT-5, GPT-4.1 e os modelos de raciocinio da serie o para analise de seguranca. Este guia cobre configuracao e setup.
+
+<img src="/docs/images/screenshots/openai-model-select.png" alt="Seletor de modelos filtrado para modelos OpenAI" className="rounded-lg shadow-lg my-6 w-full" />
+
+## Modelos Disponiveis
+
+O Cyberstrike busca seu catalogo de modelos ao vivo em [models.dev](https://models.dev), entao a lista exata acompanha o que a OpenAI oferece atualmente. Escolhas comuns:
+
+| Modelo | Contexto | Melhor para |
+|--------|----------|-------------|
+| `openai/gpt-5` | 400K | Testes de seguranca gerais (flagship) |
+| `openai/gpt-5-mini` | 400K | Tarefas rapidas, alto volume |
+| `openai/gpt-5-nano` | 400K | Mais barato, tarefas simples |
+| `openai/gpt-4.1` | 1M | Contexto muito grande |
+| `openai/o3` | 200K | Raciocinio profundo passo a passo |
+
+<Aside variant="tip">
+  Os releases mais recentes do GPT-5.x (5.1-5.5, alem das variantes Codex e Pro) aparecem automaticamente conforme models.dev atualiza. Execute `/models` para a lista completa atual.
+</Aside>
+
+## Autenticacao
+
+### Configuracao de Chave de API
+
+1. Obtenha sua chave de API em [platform.openai.com](https://platform.openai.com)
+2. Na TUI, execute `/connect`, selecione **OpenAI** e insira sua chave de API
+
+### Variavel de Ambiente
+
+```bash
+export OPENAI_API_KEY="sk-proj-..."
+```
+
+### Arquivo de Configuracao
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+## Configuracao de Modelo
+
+### Definir Modelo Padrao
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "openai/gpt-5"
+}
+```
+
+### Usando Modelos de Raciocinio
+
+A serie o (`o3`, `o4-mini`) e as variantes GPT-5 Pro se destacam em analise de seguranca complexa. Selecione-os via `/models`.
+
+Melhor para:
+- Cadeias de vulnerabilidades complexas
+- Analise de caminhos de ataque
+- Analise criptografica
+- Engenharia reversa
+
+## ChatGPT Plus/Pro
+
+Use sua assinatura ChatGPT executando `/connect` na TUI, selecionando **OpenAI** e escolhendo **ChatGPT Plus/Pro**. Isso aciona um fluxo OAuth baseado em navegador.
+
+## ID de Organizacao
+
+Para contas de organizacao:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}",
+        "organization": "org-..."
+      }
+    }
+  }
+}
+```
+
+## Chamada de Funcoes
+
+Modelos GPT suportam chamada de funcoes para uso de ferramentas:
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "parallelToolCalls": true
+      }
+    }
+  }
+}
+```
+
+## Limites de Taxa
+
+Limites de taxa da OpenAI por tier:
+
+| Tier | RPM | TPM |
+|------|-----|-----|
+| Gratuito | 3 | 40.000 |
+| Tier 1 | 500 | 200.000 |
+| Tier 2 | 5.000 | 2.000.000 |
+| Tier 3+ | Limites maiores |
+
+## Boas Praticas
+
+### Selecao de Modelo
+
+| Tarefa | Modelo Recomendado |
+|--------|-------------------|
+| Varreduras rapidas | `gpt-5-nano` |
+| Testes gerais | `gpt-5` |
+| Analise complexa | `o3` |
+| Sensivel a custo | `gpt-5-mini` |
+
+### Otimizacao de Custos
+
+1. Use modelos mini para tarefas simples
+2. Defina max tokens razoavel
+3. Use `/compact` para sessoes longas
+4. Monitore uso no dashboard da OpenAI
+
+### Seguranca
+
+1. Armazene chaves em variaveis de ambiente
+2. Use chaves de API especificas por projeto
+3. Habilite limites de uso no dashboard da OpenAI
+4. Rotacione chaves periodicamente
+
+## Solucao de Problemas
+
+### Chave de API Invalida
+
+Verifique:
+- Chave comeca com `sk-proj-` ou `sk-`
+- Sem espacos em branco extras
+- Chave esta ativa
+
+### Cota Insuficiente
+
+Solucoes:
+- Adicione informacoes de cobranca
+- Verifique limites de uso
+- Atualize seu plano
+
+### Acesso ao Modelo
+
+Alguns modelos requerem:
+- Um tier de uso mais alto para os flagships mais recentes
+- Aprovacao em lista de espera
+- Contrato empresarial
+
+<Aside variant="caution">
+  Modelos de raciocinio (serie o e variantes GPT-5 Pro) tem maior latencia devido a etapas de raciocinio. Planeje para tempos de resposta mais longos.
+</Aside>
+
+## Documentacao Relacionada
+
+- [Visao Geral de Provedores](/docs/providers) - Todos os provedores
+- [Provedores Personalizados](/docs/providers/custom-providers) - Configuracao compativel com OpenAI
+- [Configuracao](/docs/configuration) - Opcoes completas

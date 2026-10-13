@@ -1,0 +1,254 @@
+---
+title: 快速入门
+description: 安装 Cyberstrike 并运行您的第一次安全评估
+sidebar:
+  order: 1
+  label: 简介
+---
+
+Cyberstrike 是一个 AI 增强的攻击性安全工具。您描述一个目标——一个 Web 应用、一个 API、一个网络——Cyberstrike 就会运行评估。它会选择工具、调度合适的代理、测试漏洞并报告发现的结果。
+
+可以把它想象成一个与您并肩工作的 AI 渗透测试员。您通过单一的对话界面保持控制，而工具负责处理繁重的工作：爬虫、流量分析、注入测试、授权检查以及在各个结果之间寻找链式漏洞。
+
+底层集成了 100 多个安全工具、15 个以上的专业代理、65 个以上基于 OWASP WSTG 的确定性测试脚本，以及专用的 [Web 爬虫](/docs/features/hackbrowser)、[流量分析](/docs/features/vortex)、[容器化工具](/docs/features/bolt) 和 [外部集成](/docs/features/mcp) 引擎。
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/gifs/g01-first-run.gif" alt="Cyberstrike 安装与首次运行" className="w-full" />
+</div>
+
+## 系统要求
+
+安装 Cyberstrike 之前，请确认您的系统满足以下要求：
+
+| 要求 | 最低配置 | 推荐配置 |
+|------|----------|----------|
+| 操作系统 | macOS 12+、Ubuntu 20.04+、Windows 10+ | macOS 14+、Ubuntu 22.04+ |
+| 内存 | 4 GB | 8 GB |
+| 磁盘空间 | 500 MB | 2 GB |
+| Node.js | 18.0+ | 20.0+ |
+
+## 安装 Cyberstrike
+
+根据您的操作系统和包管理器选择首选的安装方式。
+
+### npm（推荐）
+
+1. 打开终端
+2. 运行安装命令：
+
+```bash
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+3. 验证安装：
+
+```bash
+cyberstrike --version
+```
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s01-installation.png" alt="安装后的 Cyberstrike TUI" className="w-full" />
+</div>
+
+### Bun <Badge text="即将推出" variant="caution" size="md" />
+
+Bun 支持尚未提供。
+
+### Homebrew (macOS) <Badge text="即将推出" variant="caution" size="md" />
+
+Homebrew 支持尚未提供。
+
+### curl (Linux/macOS)
+
+运行安装脚本：
+
+```bash
+curl -fsSL https://cyberstrike.io/install | bash
+```
+
+### iwr (Windows/Powershell)
+
+运行安装脚本：
+
+```bash
+iwr -useb https://cyberstrike.io/install.ps1 | iex
+```
+
+<Aside variant="caution">
+  执行脚本前请先审查其内容。安装脚本可在 [github.com/CyberStrikeus/CyberStrike](https://github.com/CyberStrikeus/CyberStrike) 查看。
+</Aside>
+
+### Docker
+
+<Aside variant="caution">
+  Docker 镜像即将推出。目前请使用 npm 或 curl。
+</Aside>
+
+## 连接 AI 提供商
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/gifs/g02-auth-login.gif" alt="Cyberstrike 认证登录流程" className="w-full" />
+</div>
+
+Cyberstrike 需要一个 AI 提供商才能运行。支持以下提供商：
+
+| 提供商 | 免费层级 | 认证方式 |
+|--------|----------|----------|
+| GitHub Copilot | 需要订阅 | OAuth（无需 API 密钥） |
+| OpenRouter | 是 | API 密钥 |
+| Anthropic | 否 | API 密钥 |
+| OpenAI | 否 | API 密钥 |
+| Google Gemini | 是 | API 密钥 |
+| Ollama | 是（本地） | 无需认证 |
+
+### 设置认证
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s02-auth.jpg" alt="Cyberstrike 模型选择对话框" className="w-full" />
+</div>
+
+1. 启动 Cyberstrike 并运行连接命令：
+
+```
+/connect
+```
+
+2. 从列表中选择您的提供商并输入 API 密钥（或对 GitHub Copilot 通过 OAuth 授权）
+
+3. 随时使用以下命令切换模型：
+
+```
+/models
+```
+
+### 使用环境变量
+
+也可以通过环境变量设置 API 密钥：
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+将这些添加到您的 shell 配置文件（`~/.bashrc`、`~/.zshrc`）以持久保存。
+
+## 运行您的第一次评估
+
+### 启动
+
+```bash
+cyberstrike
+```
+
+TUI 界面会显示输入提示符、响应区域和状态栏。
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s03-tui-main.png" alt="Cyberstrike TUI 主界面" className="w-full" />
+</div>
+
+### 描述目标
+
+直接输入您的任务。工具会决定运行什么：
+
+```
+> Test https://app.example.com for OWASP Top 10 vulnerabilities
+```
+
+底层发生了什么：
+
+1. `cyberstrike` 主代理读取您的目标
+2. `/hackbrowser` 启动爬虫并捕获 HTTP 流量
+3. [Vortex](/docs/features/vortex) 处理每个请求——应用规则、标记异常
+4. `wstg-agent` 根据请求信号调度专业代理
+5. 13 个 WSTG 专家测试注入、认证绕过、IDOR、会话缺陷、加密问题等
+6. `escalation-hunter` 链接发现以检测复合漏洞
+7. `triage` 代理通过重放 HTTP 证据独立验证每个发现
+8. 您获得经过分级的发现，包含证据、严重性和修复建议
+
+### 工具全览
+
+| 层级 | 内容 |
+|------|------|
+| **代理** | 15 个以上专业代理——WSTG 流水线、分级、升级、通用、探索 |
+| **工具** | 100 个以上内置工具——HTTP 重放、注入探测、访问探测、侦察、代码搜索 |
+| **技能** | 65 个以上确定性 WSTG 测试脚本，由专家在运行时加载 |
+| **Vortex** | HTTP 流量引擎，支持 DSL 查询、规则匹配和信号关联 |
+| **HackBrowser** | AI 驱动的 Chromium 爬虫，支持 UI 上下文捕获 |
+| **Bolt** | 30 多个容器化安全工具（nmap、nuclei、sqlmap、hydra 等） |
+| **MCP** | 3 个内置服务器（github-security、cve、osint）+ 任何自定义 MCP 服务器 |
+
+您只需与一个提示符交互。工具会编排其余一切。
+
+## 配置
+
+在项目目录中创建 `cyberstrike.json` 文件以设置默认值：
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+当您在此目录运行 `cyberstrike` 时，它会自动加载这些设置。您也可以随时在 TUI 中使用 `/models` 切换模型。
+
+### 配置层级
+
+Cyberstrike 按以下顺序从多个来源加载配置：
+
+1. 环境变量（最高优先级）
+2. 项目配置（`cyberstrike.json`）
+3. 用户配置（`~/.config/cyberstrike/cyberstrike.json`）
+4. 默认值（最低优先级）
+
+有关详细的配置选项，请参阅[配置参考](/docs/configuration)。
+
+## 常用斜杠命令
+
+| 命令 | 操作 |
+|------|------|
+| `/connect` | 连接 AI 提供商 |
+| `/models` | 切换模型 |
+| `/hackbrowser` | 启动自主 Web 爬虫 |
+| `/bolt` | 管理 Bolt 安全工具服务器 |
+| `/mcps` | 管理 MCP 服务器 |
+| `/vulnerabilities` | 查看发现 |
+| `/web` | 检查捕获的 Web 流量 |
+| `/report` | 生成报告 |
+| `/help` | 显示所有命令 |
+
+## 快捷键
+
+| 快捷键 | 操作 |
+|--------|------|
+| `Enter` | 提交消息 |
+| `Shift+Enter` | 换行 |
+| `Escape` | 中断当前运行的会话 |
+| `Ctrl+P` | 命令列表 |
+| `Tab` | 下一个代理 |
+| `Ctrl+D` | 退出 Cyberstrike |
+| `↑` / `↓` | 浏览输入历史 |
+
+完整参考请查看[快捷键](/docs/getting-started/keyboard-shortcuts)。
+
+## 后续步骤
+
+继续学习以下指南：
+
+1. [配置参考](/docs/configuration)——自定义 Cyberstrike 设置
+2. [AI 提供商](/docs/providers)——配置您偏好的 AI 提供商
+3. [安全代理](/docs/agents)——了解专业代理
+4. [功能特性](/docs/features)——HackBrowser、Vortex、Bolt、MCP
+
+<Aside variant="tip">
+  加入 [Discord](https://discord.gg/dr97wVJVbn) 社区获取支持和更新。
+</Aside>

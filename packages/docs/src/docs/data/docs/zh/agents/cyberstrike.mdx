@@ -1,0 +1,120 @@
+---
+title: Cyberstrike 代理
+description: 具有完整工具访问权限的默认主代理，用于 AI 驱动的攻击性安全测试
+sidebar:
+  order: 2
+  label: Cyberstrike
+---
+
+`cyberstrike` 代理是默认的主代理。它提供具有完整工具访问权限的 AI 驱动攻击性安全测试，并可委派给专业子代理处理特定领域的任务。
+
+## 概述
+
+当您运行 `cyberstrike` 而不指定代理时，`cyberstrike` 代理会自动启动。它是一个通用的攻击性安全代理，旨在处理广泛的任务——从侦察和漏洞评估到利用和报告。
+
+### 代理配置
+
+| 属性 | 值 |
+|------|-----|
+| **代理 ID** | `cyberstrike` |
+| **模式** | `primary` |
+| **工具访问** | 完整（所有工具允许） |
+| **可提问** | 是 |
+
+## 启动代理
+
+`cyberstrike` 代理是默认代理——启动时自动开始：
+
+```bash
+cyberstrike
+```
+
+随时在 TUI 中使用 `/agents` 或 `<leader>a` 切换代理。
+
+## 能力
+
+`cyberstrike` 代理可以访问所有可用工具，不限于特定安全领域。它可以：
+
+- 执行 Web 应用安全测试
+- 进行云基础设施审计
+- 执行网络渗透测试
+- 使用 Nuclei、Nmap 和 SQLMap 等工具运行自动化扫描
+- 浏览和交互 Web 应用
+- 读取、写入和分析文件
+- 在任务模糊时提出澄清性问题
+
+## 委派给专业代理
+
+当任务需要深度领域专业知识时，`cyberstrike` 代理会委派给专业子代理：
+
+| 子代理 | 使用场景 |
+|--------|----------|
+| [`wstg-agent`](/docs/agents/wstg-agent) | OWASP WSTG Web 安全流水线——调度 13 个专家代理 |
+| [`escalation-hunter`](/docs/agents/escalation-hunter) | 跨领域关联——链接发现、升级影响 |
+| [`triage`](/docs/agents/triage) | 独立验证草稿漏洞发现 |
+| [`general`](/docs/agents/general) | 研究、多步骤并行任务 |
+| [`explore`](/docs/agents/explore) | 只读代码库和文件系统搜索 |
+
+委派基于任务自动进行。当通过 [HackBrowser](/docs/features/hackbrowser) 或 [Chrome Extension](/docs/tools/chrome-extension) 捕获 HTTP 流量时，会触发 Web 安全流水线（WSTG 代理）。
+
+## 权限模型
+
+`cyberstrike` 代理使用最广泛的权限集：
+
+- 默认允许所有工具
+- 可以提出澄清性问题（`question: allow`）
+- 读取 `.env` 文件需要确认
+- 访问项目外的外部目录需要确认
+- `cyberstrike.json` 中用户配置的 `deny` 规则始终被遵守
+
+## 会话示例
+
+```
+You: Test the web application at https://app.example.com for common vulnerabilities
+
+Agent: I'll start with reconnaissance and then launch HackBrowser to crawl the app.
+
+[Launching /hackbrowser against https://app.example.com...]
+[Crawling 23 pages, capturing HTTP traffic...]
+[Dispatching wstg-config-deploy for server misconfiguration checks...]
+[Dispatching wstg-input-validation for injection testing...]
+
+Found 3 medium-severity findings:
+- Missing Content-Security-Policy header
+- Server version disclosure in headers
+- X-Frame-Options not set
+
+[wstg-authentication testing login endpoint...]
+⚠ FINDING: JWT Algorithm Confusion
+Location: Authorization header
+Severity: Critical (CVSS 9.8)
+```
+
+## 配置
+
+### 设为默认代理
+
+`cyberstrike` 代理是默认的，无需配置。要显式设置：
+
+```json title="cyberstrike.json"
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+### 自定义指令
+
+`instructions` 是一个文件（或通配符）列表，其内容会附加到系统提示词——将您的项目上下文放在文件中并引用它：
+
+```json title="cyberstrike.json"
+{
+  "instructions": ["AGENTS.md", "docs/security-context.md"]
+}
+```
+
+## 相关文档
+
+- [WSTG 代理](/docs/agents/wstg-agent)——Web 安全测试流水线编排器
+- [升级猎手](/docs/agents/escalation-hunter)——跨领域关联代理
+- [分级代理](/docs/agents/triage)——发现验证
+- [自定义代理](/docs/agents/custom-agents)——创建您自己的代理

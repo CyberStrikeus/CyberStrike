@@ -1,0 +1,56 @@
+---
+title: Chargement dynamique d'outils
+description: "Decouvrir et charger les outils MCP a la demande"
+sidebar:
+  order: 6
+  label: Chargement dynamique
+---
+
+Les outils integres (bash, read, edit, ...) sont toujours disponibles. **Les outils MCP sont charges a la demande** afin que la connexion d'un serveur avec des centaines d'outils ne surcharge pas le contexte du modele. Quatre outils pilotent ce mecanisme.
+
+<img src="/docs/images/diagrams/tool-loading.svg" alt="Cycle de chargement des outils MCP : un serveur expose des centaines d'outils ; tool_search en trouve un par capacite, load_tools l'amene dans le contexte, l'agent l'appelle, et unload_tools libere le contexte" className="my-6" />
+
+## Les outils de chargement
+
+| Outil | Objectif |
+|-------|----------|
+| `tool_search` | Trouver des outils MCP par capacite (`query`, `limit` optionnel) |
+| `load_tools` | Charger des outils specifiques dans le contexte actif |
+| `unload_tools` | Retirer les outils charges pour liberer le contexte |
+| `list_loaded_tools` | Afficher les outils actuellement charges |
+
+L'agent utilise ces outils automatiquement : il recherche une capacite, charge l'outil MCP correspondant, l'appelle, et peut le decharger ensuite.
+
+### tool_search
+
+```json
+{
+  "query": "test d'injection SQL",
+  "limit": 10
+}
+```
+
+Renvoie les outils MCP correspondants avec leurs descriptions. Les outils integres n'ont pas besoin d'etre recherches — ils sont toujours appelables.
+
+## Ce qui est paresseux vs toujours actif
+
+- **Toujours disponible** — chaque outil integre (`bash`, `read`, `edit`, `glob`, `grep`, `write`, `task`, `webfetch`, `websearch`, outils de memoire, ...).
+- **Charge a la demande** — les outils exposes par les serveurs MCP connectes (y compris [Bolt](/docs/mcp/bolt)). Ils sont decouverts avec `tool_search` et charges avec `load_tools`.
+
+## Desactiver un outil
+
+La configuration `tools` est une correspondance nom d'outil vers booleen. Mettez un outil a `false` pour le desactiver :
+
+```json title="cyberstrike.json"
+{
+  "tools": {
+    "websearch": false
+  }
+}
+```
+
+## Documentation connexe
+
+- [Vue d'ensemble des outils](/docs/tools) - Tous les outils integres
+- [Bolt / MCP](/docs/mcp) - Connexion de serveurs MCP
+- [Configuration](/docs/configuration) - Parametres des outils

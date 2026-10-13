@@ -23,7 +23,7 @@ Cyberstrike pulls its model catalog live from [models.dev](https://models.dev), 
 | `openai/o3` | 200K | Deep step-by-step reasoning |
 
 <Aside variant="tip">
-  The newer GPT-5.x releases (5.1–5.5, plus the Codex and Pro variants) appear automatically as models.dev updates. Run `/models` in the TUI — or `cyberstrike models` — for the full current list.
+  The newer GPT-5.x releases (5.1–5.5, plus the Codex and Pro variants) appear automatically as models.dev updates. Run `/models` for the full current list.
 </Aside>
 
 ## Authentication
@@ -31,13 +31,7 @@ Cyberstrike pulls its model catalog live from [models.dev](https://models.dev), 
 ### API Key Setup
 
 1. Get your API key from [platform.openai.com](https://platform.openai.com)
-2. Run authentication:
-
-```bash
-cyberstrike auth login
-# Select: OpenAI
-# Enter your API key
-```
+2. In the TUI, run `/connect`, select **OpenAI**, and enter your API key
 
 ### Environment Variable
 
@@ -69,19 +63,13 @@ export OPENAI_API_KEY="sk-proj-..."
 }
 ```
 
-### Command Line Override
+### Switching Models
 
-```bash
-cyberstrike --model openai/gpt-5-pro
-```
+Use `/models` in the TUI to pick a different OpenAI model.
 
 ### Using Reasoning Models
 
-The o-series (`o3`, `o4-mini`) and the GPT-5 Pro variants excel at complex security analysis:
-
-```bash
-cyberstrike --model openai/o3
-```
+The o-series (`o3`, `o4-mini`) and the GPT-5 Pro variants excel at complex security analysis. Select them via `/models`.
 
 Best for:
 - Complex vulnerability chains
@@ -91,14 +79,7 @@ Best for:
 
 ## ChatGPT Plus/Pro
 
-Use your ChatGPT subscription:
-
-```bash
-cyberstrike auth login
-# Select: OpenAI
-# Choose: ChatGPT Plus/Pro
-# Complete browser authentication
-```
+Use your ChatGPT subscription by running `/connect` in the TUI, selecting **OpenAI**, and choosing **ChatGPT Plus/Pro**. This triggers a browser-based OAuth flow.
 
 <Aside variant="info">
   ChatGPT authentication requires browser-based OAuth flow.

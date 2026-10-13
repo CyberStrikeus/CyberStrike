@@ -21,7 +21,7 @@ Cyberstrike pulls its model catalog live from [models.dev](https://models.dev), 
 | `anthropic/claude-haiku-4-5` | 200K | Fast, low-cost — quick scans, high volume |
 
 <Aside variant="tip">
-  Newer flagships (Opus 4.6/4.7/4.8, Sonnet 4.6/5, Fable 5) and every other Claude model appear automatically as models.dev updates. Run `/models` in the TUI — or `cyberstrike models` — for the full current list. Append `-latest` aliases (e.g. `claude-opus-4-5`) track the newest release in a family; dated IDs (e.g. `claude-opus-4-5-20251101`) pin a specific version.
+  Newer flagships (Opus 4.6/4.7/4.8, Sonnet 4.6/5, Fable 5) and every other Claude model appear automatically as models.dev updates. Run `/models` for the full current list. Append `-latest` aliases (e.g. `claude-opus-4-5`) track the newest release in a family; dated IDs (e.g. `claude-opus-4-5-20251101`) pin a specific version.
 </Aside>
 
 ## Authentication
@@ -29,13 +29,7 @@ Cyberstrike pulls its model catalog live from [models.dev](https://models.dev), 
 ### API Key Setup
 
 1. Get your API key from [console.anthropic.com](https://console.anthropic.com)
-2. Run the authentication command:
-
-```bash
-cyberstrike auth login
-# Select: Anthropic
-# Enter your API key
-```
+2. In the TUI, run `/connect`, select **Anthropic**, and enter your API key
 
 ### Environment Variable
 
@@ -73,15 +67,9 @@ echo 'export ANTHROPIC_API_KEY="sk-ant-..."' >> ~/.zshrc
 }
 ```
 
-### Command Line Override
+### Switching Models
 
-```bash
-cyberstrike --model anthropic/claude-opus-4-5
-```
-
-### In-Session Switching
-
-In the TUI, run `/models` to open the model picker (bound to the “Switch model” command).
+Use `/models` in the TUI to open the model picker and select a different Claude model.
 
 ## Extended Thinking
 

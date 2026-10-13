@@ -1,0 +1,70 @@
+---
+title: 구성
+description: 침투 테스트 워크플로에 맞게 Cyberstrike 구성하기
+sidebar:
+  order: 2
+  label: 구성
+---
+
+Cyberstrike는 JSON 파일로 구성됩니다. 이 페이지는 간략한 소개이며, 전체 계층 구조, 모든 옵션, 관련 가이드는 [구성 레퍼런스](/docs/configuration)를 참조하세요.
+
+## 구성 파일
+
+프로젝트 디렉토리에 `cyberstrike.json`을 생성합니다:
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike"
+}
+```
+
+모델은 `provider/model` 형식으로 작성합니다 — 별도의 `provider` 문자열 필드는 없습니다. `default_agent`는 기본 에이전트여야 합니다 (`cyberstrike`가 내장 에이전트이며, 자동으로 전문 서브 에이전트에 위임합니다).
+
+## 일반 옵션
+
+| 옵션 | 타입 | 설명 |
+|------|------|------|
+| `model` | string | 기본 모델, `provider/model` 형식 |
+| `small_model` | string | 경량 작업용 모델 (제목 생성) |
+| `default_agent` | string | 기본 기본 에이전트 (`cyberstrike`로 폴백) |
+| `theme` | string | 인터페이스 테마 (기본값 `cyberstrike`) |
+| `permission` | object | 도구별 권한 — [권한](/docs/permissions) 참조 |
+| `provider` | object | 제공자별 설정, 제공자 ID로 키 지정 |
+| `instructions` | string[] | 시스템 프롬프트에 추가되는 파일/글로브 |
+
+## 환경 변수
+
+API 키를 환경 변수로 설정합니다:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+## 권한 및 제공자
+
+`permission`으로 도구를 허용 또는 제한하고, `provider`로 제공자를 조정합니다:
+
+```json title="cyberstrike.json"
+{
+  "permission": {
+    "read": "allow",
+    "bash": { "*": "ask", "rm -rf *": "deny" }
+  },
+  "provider": {
+    "anthropic": {
+      "options": { "apiKey": "{env:ANTHROPIC_API_KEY}" }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  API 키를 절대 버전 관리에 커밋하지 마세요. 환경 변수 또는 `.env` 파일(`.gitignore`에 추가)을 사용하세요.
+</Aside>
+
+전체 스키마, 우선순위 순서, MCP, 키바인딩 등은 [구성 레퍼런스](/docs/configuration)를 참조하세요.

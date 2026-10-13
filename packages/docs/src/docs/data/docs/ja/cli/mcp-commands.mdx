@@ -1,0 +1,67 @@
+---
+title: MCPコマンド
+description: コマンドラインからMCPサーバーを管理する
+sidebar:
+  order: 4
+  label: MCPコマンド
+---
+
+`cyberstrike mcp` コマンドはModel Context Protocolサーバーを管理します。サブコマンドは `list`、`add`、`auth`、`logout`、`debug` の5つです。
+
+{/* TODO: Screenshot - MCP command interface */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: mcp-commands.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">MCPコマンドインターフェース</p>
+</div>
+
+<Aside variant="caution">
+  サーバー設定は `cyberstrike.json` に保存されます（[ローカル](/docs/mcp/local-servers) / [リモート](/docs/mcp/remote-servers)サーバーを参照）。サーバーはTUIの `/mcps` ダイアログでインタラクティブに管理されます。`mcp status`、`health`、`start`/`stop`/`restart`、`remove`、`config`、`tools`、`logs`、`export`/`import`、`install`、`update` コマンドはありません。
+</Aside>
+
+## `mcp list`
+
+```bash
+cyberstrike mcp list   # エイリアス: ls
+```
+
+設定済みのMCPサーバーを一覧表示します。
+
+## `mcp add`
+
+```bash
+cyberstrike mcp add
+```
+
+完全にインタラクティブ — ローカル vs リモート、コマンドまたはURL、名前の入力を求め、保存前に接続をテストします。位置引数やフラグは**受け付けません**。サーバー設定をスクリプトで行う場合は、`cyberstrike.json` に直接エントリを書き込んでください。
+
+## `mcp auth`
+
+```bash
+cyberstrike mcp auth [name]        # OAuthサーバーを認証
+cyberstrike mcp auth list          # OAuth認証済みサーバーを一覧表示
+```
+
+OAuthを使用するリモートサーバーを認証します（必要に応じてブラウザが開きます）。[OAuth](/docs/mcp/oauth)を参照してください。
+
+## `mcp logout`
+
+```bash
+cyberstrike mcp logout [name]
+```
+
+サーバーの保存済みOAuth認証情報を削除します。
+
+## `mcp debug`
+
+```bash
+cyberstrike mcp debug <name>
+```
+
+サーバーの接続を検査します — サーバーの読み込みに失敗したり、ツールが表示されない場合に便利です。
+
+## 関連ドキュメント
+
+- [Bolt / MCP概要](/docs/mcp) - MCPの基本
+- [ローカルサーバー](/docs/mcp/local-servers) - ローカルサーバー設定
+- [リモートサーバー](/docs/mcp/remote-servers) - リモートサーバー設定
+- [OAuth](/docs/mcp/oauth) - OAuth認証

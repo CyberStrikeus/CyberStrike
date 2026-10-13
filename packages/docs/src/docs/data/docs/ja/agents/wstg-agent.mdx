@@ -1,0 +1,82 @@
+---
+title: WSTGエージェント
+description: OWASP WSTG Webセキュリティテストパイプラインのオーケストレーター
+sidebar:
+  order: 5
+  label: WSTGエージェント
+---
+
+`wstg-agent` は、CyberStrikeのWebセキュリティテストパイプラインのオーケストレーターです。キャプチャされたHTTPトラフィックを受信し、リクエストの特性と蓄積されたセッションコンテキストに基づいて適切なWSTGスペシャリストエージェントをディスパッチします。
+
+## 概要
+
+| プロパティ | 値 |
+|----------|-------|
+| **エージェントID** | `wstg-agent` |
+| **ロール** | `orchestrator` |
+| **ドメイン** | `@cyberstrike-io/web` |
+| **カラー** | 青 |
+
+## 動作の仕組み
+
+`wstg-agent` は**純粋なオーケストレーター**です — 脆弱性テスト自体は行いません。ワークフロー：
+
+1. キャプチャされたHTTPリクエストを受信（[HackBrowser](/docs/features/hackbrowser)または[Chrome拡張機能](/docs/tools/chrome-extension)から）
+2. リクエストの特性と蓄積されたセッションコンテキストを分析
+3. シグナルベースのディスパッチで適切なWSTGスペシャリストにリクエストをルーティング
+4. テストキューと再テストトリガーを管理
+
+## シグナルベースルーティング
+
+各キャプチャされたリクエストは、そのプロパティ — エンドポイントパス、パラメータ、ヘッダー、レスポンスパターン、[Vortex](/docs/features/vortex) ルールマッチ — に基づいてシグナルを生成します。`wstg-agent` はこれらのシグナルをスペシャリストクラスにマッピングします：
+
+| シグナルカテゴリ | スペシャリスト |
+|----------------|------------|
+| 認証パターン | `wstg-authentication` |
+| 認可インジケーター | `wstg-authorization` |
+| 入力パラメータ | `wstg-input-validation` |
+| セッショントークン | `wstg-session-mgmt` |
+| 設定エンドポイント | `wstg-config-deploy` |
+| APIパターン | `wstg-api` |
+| 暗号インジケーター | `wstg-cryptography` |
+| エラーレスポンス | `wstg-error-handling` |
+| ビジネスロジック | `wstg-business-logic` |
+| クライアントサイドリソース | `wstg-client-side` |
+| LLMエンドポイント | `wstg-llm` |
+
+1つのリクエストが複数のカテゴリのシグナルを持つ場合、複数のスペシャリストをトリガーできます。
+
+## WSTGスペシャリスト
+
+各スペシャリストは、1つのWSTGカテゴリに特化したテストエージェントです：
+
+| スペシャリスト | WSTGセクション | 焦点 |
+|-----------|--------------|-------|
+| `wstg-info-gathering` | 4.1 | フィンガープリンティング、列挙、漏洩検出 |
+| `wstg-config-deploy` | 4.2 | サーバー設定、デフォルト認証情報、ファイル拡張子 |
+| `wstg-identity-mgmt` | 4.3 | ユーザー列挙、アカウントプロビジョニング |
+| `wstg-authentication` | 4.4 | ログインバイパス、認証情報テスト、MFA |
+| `wstg-authorization` | 4.5 | IDOR、権限昇格、パストラバーサル |
+| `wstg-session-mgmt` | 4.6 | セッション固定、Cookie属性、タイムアウト |
+| `wstg-input-validation` | 4.7 | SQLi、XSS、SSTI、コマンドインジェクション |
+| `wstg-error-handling` | 4.8 | エラー情報漏洩、スタックトレース |
+| `wstg-cryptography` | 4.9 | 弱い暗号、パディングオラクル、鍵の露出 |
+| `wstg-business-logic` | 4.10 | ワークフローバイパス、レースコンディション |
+| `wstg-client-side` | 4.11 | DOM XSS、クリックジャッキング、postMessage |
+| `wstg-api` | 4.12 | BOLA、マスアサインメント、レートリミッティング |
+| `wstg-llm` | カスタム | プロンプトインジェクション、LLM固有の攻撃 |
+
+各スペシャリストは、キャプチャされたリクエストに対して実行するWSTGスキル（決定論的テストスクリプト）を持っています。
+
+## Escalation Hunter
+
+スペシャリストがテストを完了した後、[`escalation-hunter`](/docs/agents/escalation-hunter) がすべての発見を横断して連鎖する脆弱性を特定し、影響を拡大します。
+
+## 権限
+
+`wstg-agent` オーケストレーターは制限された権限セットを持ちます：
+
+- タスクの作成が可能（スペシャリストのディスパッチ）
+- セッションコンテキストとカバレッジノートの読み取りが可能
+- 方法論のステータスとスコープの確認が可能
+- 直接テストや脆弱性報告はできません

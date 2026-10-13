@@ -1,0 +1,56 @@
+---
+title: 동적 도구 로딩
+description: MCP 도구를 필요에 따라 검색하고 로드
+sidebar:
+  order: 6
+  label: 동적 로딩
+---
+
+내장 도구 (bash, read, edit, ...)는 항상 사용 가능합니다. **MCP 도구는 필요에 따라 로드**되므로 수백 개의 도구를 가진 서버에 연결해도 모델의 컨텍스트가 넘치지 않습니다. 네 가지 도구가 이를 구동합니다.
+
+<img src="/docs/images/diagrams/tool-loading.svg" alt="MCP 도구 로딩 사이클: 서버가 수백 개의 도구를 노출; tool_search가 기능별로 찾고, load_tools가 컨텍스트에 가져오며, 에이전트가 호출하고, unload_tools가 컨텍스트를 해제" className="my-6" />
+
+## 로딩 도구
+
+| 도구 | 용도 |
+|------|------|
+| `tool_search` | 기능별로 MCP 도구 찾기 (`query`, 선택적 `limit`) |
+| `load_tools` | 특정 도구를 활성 컨텍스트에 로드 |
+| `unload_tools` | 로드된 도구를 제거하여 컨텍스트 확보 |
+| `list_loaded_tools` | 현재 로드된 도구 표시 |
+
+에이전트는 이를 자동으로 사용합니다: 기능을 검색하고, 일치하는 MCP 도구를 로드하고, 호출한 후, 이후에 언로드할 수 있습니다.
+
+### tool_search
+
+```json
+{
+  "query": "sql injection testing",
+  "limit": 10
+}
+```
+
+설명과 함께 일치하는 MCP 도구를 반환합니다. 내장 도구는 검색이 필요 없습니다 — 항상 호출 가능합니다.
+
+## 지연 로딩 vs 항상 사용 가능
+
+- **항상 사용 가능** — 모든 내장 도구 (`bash`, `read`, `edit`, `glob`, `grep`, `write`, `task`, `webfetch`, `websearch`, 메모리 도구, ...).
+- **필요 시 로드** — 연결된 MCP 서버 ([Bolt](/docs/mcp/bolt) 포함)가 노출하는 도구. `tool_search`로 검색하고 `load_tools`로 가져옵니다.
+
+## 도구 비활성화
+
+`tools` 구성은 도구 이름 → boolean 맵입니다. 도구를 `false`로 설정하면 비활성화됩니다:
+
+```json title="cyberstrike.json"
+{
+  "tools": {
+    "websearch": false
+  }
+}
+```
+
+## 관련 문서
+
+- [도구 개요](/docs/tools) - 모든 내장 도구
+- [Bolt / MCP](/docs/mcp) - MCP 서버 연결
+- [구성](/docs/configuration) - 도구 설정

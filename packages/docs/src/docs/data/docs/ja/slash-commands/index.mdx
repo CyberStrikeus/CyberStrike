@@ -1,0 +1,80 @@
+---
+title: スラッシュコマンド
+description: プロンプトからCyberstrikeを操作するクイックコマンド
+sidebar:
+  order: 1
+  label: 概要
+---
+
+入力の先頭に `/` を入力するとコマンドリストが開きます（または `Ctrl+P` を押します）。入力するとファジーマッチングでフィルタリングされます。
+
+<img src="/docs/images/gifs/g03-slash-autocomplete.gif" alt="スラッシュを入力するとファジーフィルタリング付きのコマンドメニューが開く" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/screenshots/s08-slash-menu.png" alt="/を入力して開かれたスラッシュコマンドメニュー — カテゴリ別にグループ化" className="rounded-lg shadow-lg my-6 w-full" />
+
+## セッション
+
+| コマンド | エイリアス | ショートカット | アクション |
+|---------|---------|----------|--------|
+| `/new` | `/clear` | `<leader>n` | 新しいセッションを開始 |
+| `/sessions` | `/resume`, `/continue` | `<leader>l` | セッションピッカーを開く |
+| `/rename` | | `ctrl+r` | セッション名を変更 |
+| `/compact` | `/summarize` | `<leader>c` | セッションをコンパクト化（要約） |
+| `/fork` | | | セッションをフォーク |
+| `/timeline` | | `<leader>g` | セッションタイムラインを表示 |
+| `/export` | | `<leader>x` | セッションをエクスポート |
+| `/copy` | | | 最後のメッセージをコピー |
+| `/share`, `/unshare` | | | 共有 / 共有停止 |
+| `/undo`, `/redo` | | `<leader>u` / `<leader>r` | 最後のメッセージを元に戻す / やり直す |
+| `/timestamps`, `/thinking` | | | タイムスタンプ / 思考ブロックの表示切替 |
+
+## ピッカーとシステム
+
+| コマンド | ショートカット | アクション |
+|---------|----------|--------|
+| `/models` | `<leader>m` | モデルピッカー |
+| `/agents` | `<leader>a` | エージェントピッカー |
+| `/themes` | `<leader>t` | テーマピッカー |
+| `/mcps` | | MCPサーバーマネージャー |
+| `/bolt` | | Boltサーバーマネージャー |
+| `/connect` | | プロバイダーに接続 |
+| `/editor` | `<leader>e` | エディタでメッセージを開く |
+| `/skills` | | 読み込み済みスキルを閲覧 |
+| `/status` | `<leader>s` | ステータス |
+| `/help` | | ヘルプ |
+| `/exit` | | 終了 |
+
+## Webテストとメソドロジー
+
+| コマンド | エイリアス | アクション |
+|---------|---------|--------|
+| `/hackbrowser` | | Hacker Browserクロールを起動 |
+| `/hackbrowser-stop` | | 実行中のクロールを停止 |
+| `/vulnerabilities` | `/vuln`, `/vulns` | 検出された脆弱性を確認 |
+| `/web` | `/endpoints`, `/roles`, `/credentials` | Webテストコンテキストを検査 |
+| `/methodology` | `/intel`, `/vrt`, `/chains` | メソドロジーエンジンビュー |
+| `/report` | | レポートを生成 |
+| `/qpause`, `/qresume` | | インジェストキューを一時停止 / 再開 |
+
+<Aside variant="caution">
+  コマンド名は複数形です（`/models`, `/themes`, `/mcps`）。`/agent-settings`、`/settings`、`/config`、`/vim`、`/provider`、`/model`、`<leader><leader>`/`Ctrl+Shift+P` コマンドパレットは存在しません — コマンドリストは `Ctrl+P` で開きます。
+</Aside>
+
+## @ メンション
+
+プロンプト内で `@` を使ってファイル（オプションで行範囲も指定可能）を参照できます：
+
+```
+@src/auth.ts#45-60 check these lines for vulnerabilities
+```
+
+## カスタムスキル
+
+再利用可能なメソドロジーを `SKILL.md` ファイルとしてパッケージ化できます — [カスタムスキル](/docs/slash-commands/custom-skills)を参照してください。
+
+## 関連ドキュメント
+
+- [セッションコマンド](/docs/slash-commands/session-commands) - セッションライフサイクル
+- [ナビゲーションコマンド](/docs/slash-commands/navigation-commands) - ピッカーとダイアログ
+- [カスタムスキル](/docs/slash-commands/custom-skills) - 独自のスキルを作成
+- [キーボードショートカット](/docs/getting-started/keyboard-shortcuts) - キーバインド

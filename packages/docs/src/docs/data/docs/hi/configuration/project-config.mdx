@@ -1,0 +1,259 @@
+---
+title: प्रोजेक्ट कॉन्फ़िगरेशन
+description: व्यक्तिगत प्रोजेक्ट के लिए Cyberstrike सेटिंग कॉन्फ़िगर करें
+sidebar:
+  order: 2
+  label: प्रोजेक्ट कॉन्फ़िग
+---
+
+प्रोजेक्ट कॉन्फ़िगरेशन विशिष्ट प्रोजेक्ट के लिए Cyberstrike व्यवहार कस्टमाइज़ करता है, मौजूद होने पर वैश्विक सेटिंग को ओवरराइड करता है।
+
+{/* TODO: Screenshot - Project configuration file */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: project-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">प्रोजेक्ट कॉन्फ़िगरेशन फ़ाइल संरचना</p>
+</div>
+
+## फ़ाइल स्थान
+
+प्रोजेक्ट कॉन्फ़िगरेशन प्रोजेक्ट रूट में `cyberstrike.json` (या `cyberstrike.jsonc`) में संग्रहीत होता है। Cyberstrike कार्य डायरेक्टरी से ऊपर चलता है, इसलिए किसी भी पैरेंट फ़ोल्डर में कॉन्फ़िग पकड़ा जाता है:
+
+```
+my-project/
+├── cyberstrike.json     ← प्रोजेक्ट कॉन्फ़िग
+├── src/
+├── package.json
+└── ...
+```
+
+## प्रोजेक्ट कॉन्फ़िग बनाना
+
+कोई init कमांड नहीं है — फ़ाइल मैन्युअल रूप से बनाएं:
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## मूल सेटिंग
+
+### मॉडल चयन
+
+```json
+{
+  "model": "anthropic/claude-opus-4-5-20251101"
+}
+```
+
+### डिफ़ॉल्ट एजेंट
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+`default_agent` प्राथमिक एजेंट होना चाहिए; सेट न होने या अमान्य होने पर `cyberstrike` पर वापस आता है।
+
+### कस्टम निर्देश
+
+`instructions` **फ़ाइलों या glob पैटर्न** की सूची है जिनकी सामग्री सिस्टम प्रॉम्प्ट में जोड़ी जाती है (यह इनलाइन गद्य नहीं है)। सूचियां वैश्विक कॉन्फ़िग के साथ यूनियन-मर्ज होती हैं:
+
+```json
+{
+  "instructions": [
+    "SECURITY.md",
+    "docs/security-guidelines.md",
+    ".cursor/rules/*.md"
+  ]
+}
+```
+
+## प्रदाता कॉन्फ़िगरेशन
+
+प्रदाताओं को `provider` के अंतर्गत कॉन्फ़िगर करें। कोई `provider.default` कुंजी नहीं है — सक्रिय प्रदाता `model` (`provider/model`) से अनुसरण करता है:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    },
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+प्रति-प्रदाता विवरण के लिए [AI प्रदाता](/docs/providers) देखें।
+
+## अनुमतियां
+
+अनुमतियां एक टूल नाम को क्रिया (`ask`, `allow`, `deny`) या glob → क्रिया मैप से मैप करती हैं। कोई allow/deny ऐरे और कोई अनुमति "मोड" नहीं हैं:
+
+```json
+{
+  "permission": {
+    "read": "allow",
+    "bash": {
+      "npm test": "allow",
+      "npm run lint": "allow",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "reports/**": "allow",
+      ".env*": "deny"
+    }
+  }
+}
+```
+
+वाइल्डकार्ड के रूप में केवल `*` और `?` समर्थित हैं। पूर्ण मॉडल और अनुमति कुंजियों की पूरी सूची के लिए [अनुमतियां](/docs/permissions) देखें।
+
+## MCP सर्वर
+
+MCP सर्वर `mcp` के अंतर्गत फ़्लैट मैप के रूप में घोषित होते हैं, सर्वर नाम से कीड। स्थानीय सर्वर एकल `command` ऐरे के साथ `type: "local"` उपयोग करते हैं:
+
+```json
+{
+  "mcp": {
+    "project-tools": {
+      "type": "local",
+      "command": ["node", "./tools/mcp-server.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+प्रोजेक्ट `mcp` एंट्रियां वैश्विक पर मर्ज होती हैं। इनहेरिटेड सर्वर को बंद करने के लिए, उसका `enabled` `false` पर सेट करें:
+
+```json
+{
+  "mcp": {
+    "some-global-server": { "enabled": false }
+  }
+}
+```
+
+## कस्टम एजेंट
+
+`.cyberstrike/agents/` के अंतर्गत Markdown फ़ाइलों के रूप में प्रोजेक्ट एजेंट परिभाषित करें ([कस्टम एजेंट](/docs/agents/custom-agents) देखें), फिर एक को डिफ़ॉल्ट के रूप में चुनें:
+
+```json
+{
+  "default_agent": "project-scanner"
+}
+```
+
+## पूर्ण उदाहरण
+
+```json title="cyberstrike.json"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "cyberstrike",
+  "instructions": ["docs/SECURITY.md"],
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+
+  "permission": {
+    "read": "allow",
+    "bash": { "npm *": "allow", "git status": "allow", "rm *": "deny" },
+    "edit": { "reports/**": "allow", ".env*": "deny" }
+  },
+
+  "mcp": {
+    "db-tools": {
+      "type": "local",
+      "command": ["node", "./tools/db-mcp.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+## कॉन्फ़िगरेशन इनहेरिटेंस
+
+प्रोजेक्ट कॉन्फ़िग वैश्विक और रिमोट कॉन्फ़िग के ऊपर मर्ज होता है:
+
+```
+रिमोट / well-known कॉन्फ़िग (आधार)
+      ↓
+वैश्विक कॉन्फ़िग (~/.config/cyberstrike/)
+      ↓
+कस्टम कॉन्फ़िग (CYBERSTRIKE_CONFIG)
+      ↓
+प्रोजेक्ट कॉन्फ़िग (cyberstrike.json)
+      ↓
+.cyberstrike/ डायरेक्टरी कॉन्फ़िग
+      ↓
+CYBERSTRIKE_CONFIG_CONTENT / प्रबंधित कॉन्फ़िग / CLI आर्ग्स (ओवरराइड)
+```
+
+पूर्ण प्राथमिकता क्रम के लिए [कॉन्फ़िगरेशन संदर्भ](/docs/configuration#configuration-hierarchy) देखें।
+
+### मर्ज व्यवहार
+
+| सेटिंग | व्यवहार |
+|---------|----------|
+| स्केलर | बदला गया |
+| ऑब्जेक्ट | डीप-मर्ज |
+| ऐरे | बदला गया — **सिवाय** `plugin` और `instructions` के, जो यूनियन-मर्ज होते हैं |
+
+## स्कीमा मान्यता
+
+IDE ऑटोकंप्लीट और मान्यता के लिए स्कीमा संदर्भ जोड़ें:
+
+```json
+{
+  "$schema": "https://cyberstrike.io/config.json"
+}
+```
+
+## Git इंटीग्रेशन
+
+### प्रोजेक्ट कॉन्फ़िग कमिट करें
+
+```bash
+git add cyberstrike.json
+git commit -m "Add Cyberstrike project configuration"
+```
+
+### संवेदनशील डेटा अनदेखा करें
+
+```text title=".gitignore"
+# स्थानीय सत्र डेटा अनदेखा करें
+.cyberstrike/sessions/
+```
+
+## सर्वोत्तम प्रथाएं
+
+1. **संस्करण नियंत्रण** - टीम साझाकरण के लिए प्रोजेक्ट कॉन्फ़िग कमिट करें
+2. **env संदर्भ उपयोग करें** - API कुंजियां कभी हार्डकोड न करें (`{env:VAR}`)
+3. **निर्देश दस्तावेज़ित करें** - `instructions` को अपने सुरक्षा दस्तावेज़ों की ओर इंगित करें
+4. **न्यूनतम अनुमतियां** - केवल जो आवश्यक है उसे अनुमति दें
+5. **व्यक्तिगत ओवरराइड** - उन सेटिंग के लिए `CYBERSTRIKE_CONFIG` उपयोग करें जो कमिट नहीं होनी चाहिए
+
+<Aside variant="tip">
+  टीम साझाकरण के लिए `cyberstrike.json` कमिट करें। व्यक्तिगत ओवरराइड के लिए जो कमिट नहीं होने चाहिए, पर्यावरण चर या `CYBERSTRIKE_CONFIG` उपयोग करें।
+</Aside>
+
+## संबंधित दस्तावेज़
+
+- [कॉन्फ़िगरेशन संदर्भ](/docs/configuration) - पूर्ण गाइड
+- [वैश्विक कॉन्फ़िग](/docs/configuration/global-config) - वैश्विक सेटिंग
+- [पर्यावरण चर](/docs/configuration/environment-variables) - पर्यावरण चर संदर्भ

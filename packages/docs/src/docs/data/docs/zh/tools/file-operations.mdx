@@ -1,0 +1,318 @@
+---
+title: 文件操作
+description: Read、Write、Edit、Glob 和 Grep 文件操作工具
+sidebar:
+  order: 2
+  label: 文件操作
+---
+
+Cyberstrike 提供专门的文件操作工具，针对安全测试工作流进行了优化。
+
+{/* TODO: Screenshot - File operations in action */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: file-operations.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">文件操作工具输出</p>
+</div>
+
+## Read 工具
+
+读取带行号的文件内容。
+
+### 基本用法
+
+```
+> Read the contents of src/auth/login.ts
+```
+
+### 部分文件读取
+
+```
+> Read lines 50-100 of src/auth/login.ts
+```
+
+### 多个文件
+
+```
+> Read both config.json and package.json
+```
+
+### 图片分析
+
+Read 工具可以分析图片：
+
+```
+> Read the screenshot at ./evidence/vuln-poc.png
+```
+
+### PDF 分析
+
+```
+> Read the security report at ./reports/pentest.pdf
+```
+
+## Write 工具
+
+创建或覆盖文件。
+
+### 创建新文件
+
+```
+> Write a Python script to exploit the SQL injection to exploit.py
+```
+
+### 覆盖文件
+
+```
+> Replace the contents of config.json with the secure configuration
+```
+
+<Aside variant="caution">
+  Write 工具会直接覆盖现有文件。部分修改请使用 Edit。
+</Aside>
+
+## Edit 工具
+
+对现有文件进行精确编辑。
+
+### 字符串替换
+
+```
+> Edit src/auth/login.ts to replace "SELECT * FROM users WHERE id = " + userId with parameterized query
+```
+
+### 多行编辑
+
+```
+> Edit the vulnerable function in auth.ts to add input validation
+```
+
+### 全部替换
+
+```
+> Replace all instances of "http://" with "https://" in config files
+```
+
+### 最佳实践
+
+1. 先读取文件以了解上下文
+2. 具体说明要更改的内容
+3. 包含足够的周围上下文以确保唯一匹配
+4. 编辑后验证更改
+
+## Glob 工具
+
+按模式匹配查找文件。
+
+### 基本模式
+
+```
+> Find all TypeScript files in the project
+```
+
+模式：`**/*.ts`
+
+### 多扩展名
+
+```
+> Find all JavaScript and TypeScript files
+```
+
+模式：`**/*.{js,ts}`
+
+### 特定目录
+
+```
+> Find all config files in the src directory
+```
+
+模式：`src/**/config.*`
+
+### 常见模式
+
+| 模式 | 匹配 |
+|------|------|
+| `**/*.ts` | 所有 TypeScript 文件 |
+| `src/**/*.test.ts` | src 中的测试文件 |
+| `**/package.json` | 所有 package.json 文件 |
+| `**/.env*` | 环境文件 |
+| `**/secret*` | 名称中包含 "secret" 的文件 |
+
+### 安全扫描模式
+
+```
+> Find files that might contain credentials
+
+Patterns:
+- **/*.env*
+- **/secrets.*
+- **/*credentials*
+- **/*password*
+- **/config.json
+```
+
+## Grep 工具
+
+使用正则表达式搜索文件内容。
+
+### 基本搜索
+
+```
+> Search for "password" in all files
+```
+
+### 正则搜索
+
+```
+> Search for API key patterns in the codebase
+```
+
+模式：`(api[_-]?key|apikey)\s*[:=]\s*['"][^'"]+['"]`
+
+### 不区分大小写
+
+```
+> Search for "SELECT" case insensitively
+```
+
+### 文件类型过滤
+
+```
+> Search for "eval(" only in JavaScript files
+```
+
+### 上下文行
+
+```
+> Search for "TODO" with 2 lines of context before and after
+```
+
+### 安全相关搜索
+
+| 用途 | 模式 |
+|------|------|
+| SQL 注入 | `(SELECT|INSERT|UPDATE|DELETE).*\+.*\$` |
+| 命令注入 | `(exec|spawn|system)\s*\(` |
+| 硬编码密钥 | `(password\|secret\|key)\s*=\s*['"][^'"]&#123;8,&#125;` |
+| 不安全反序列化 | `(pickle|marshal|yaml\.load)` |
+| XSS 接收器 | `(innerHTML|outerHTML|document\.write)` |
+
+## 文件分析工作流
+
+### 1. 发现文件
+
+```
+> Find all files that might handle user input
+```
+
+### 2. 搜索模式
+
+```
+> Search these files for SQL query construction
+```
+
+### 3. 读取可疑文件
+
+```
+> Read the files that matched the SQL pattern
+```
+
+### 4. 记录发现
+
+```
+> Write a summary of the SQL injection findings to findings.md
+```
+
+## 权限考虑
+
+文件操作可能需要权限：
+
+| 操作 | 权限键 | 默认行为 |
+|------|--------|----------|
+| Read | `read` | 允许（只读） |
+| Glob | `glob` | 允许（只读） |
+| Grep | `grep` | 允许（只读） |
+| Write | `edit` | 需要权限 |
+| Edit | `edit` | 需要权限 |
+
+Write 和 Edit 工具都受单一 `edit` 权限键控制。
+
+### 自动批准写入
+
+对于自动化场景，将文件路径 glob 映射到 `edit` 下的操作：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "permission": {
+    "edit": {
+      "reports/**": "allow",
+      "findings/**": "allow"
+    }
+  }
+}
+```
+
+仅支持 `*` 和 `?` 作为通配符。完整模型请参阅[权限](/docs/permissions)。
+
+## 大文件处理
+
+### 分页
+
+对于大文件：
+
+```
+> Read the first 100 lines of large-log.txt
+> Read lines 100-200 of large-log.txt
+```
+
+### 二进制文件
+
+Read 工具可处理二进制文件：
+
+```
+> Read the binary at ./malware.exe and analyze its strings
+```
+
+## 与安全测试的集成
+
+### 代码审查
+
+```
+> Analyze all authentication-related files for security issues
+
+1. Find auth files: Glob **/*auth*.{ts,js}
+2. Search for vulnerabilities: Grep patterns
+3. Read and analyze matches
+4. Document findings
+```
+
+### 配置审计
+
+```
+> Review all configuration files for security misconfigurations
+
+1. Find configs: Glob **/{config,settings}*.{json,yaml,yml}
+2. Read each file
+3. Check for sensitive data exposure
+4. Verify secure defaults
+```
+
+### 密钥检测
+
+```
+> Scan the codebase for hardcoded secrets
+
+1. Glob all source files
+2. Grep for secret patterns
+3. Read matches for verification
+4. Report findings
+```
+
+<Aside variant="tip">
+  结合 Glob 和 Grep 进行高效的代码库扫描。先广后窄。
+</Aside>
+
+## 相关文档
+
+- [Bash 工具](/docs/tools/bash) - 命令执行
+- [记忆工具](/docs/tools/memory) - 存储发现
+- [权限](/docs/permissions) - 文件操作权限

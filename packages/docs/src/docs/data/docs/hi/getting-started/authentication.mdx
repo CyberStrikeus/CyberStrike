@@ -1,0 +1,211 @@
+---
+title: प्रमाणीकरण
+description: Cyberstrike के लिए AI प्रदाता क्रेडेंशियल कॉन्फ़िगर करें
+sidebar:
+  order: 3
+  label: प्रमाणीकरण
+---
+
+Cyberstrike को काम करने के लिए कम से कम एक AI प्रदाता के साथ प्रमाणीकरण आवश्यक है। यह गाइड समर्थित प्रदाताओं के लिए क्रेडेंशियल सेट करने को कवर करती है।
+
+## प्रदाता कनेक्ट करें
+
+प्रमाणीकरण का सबसे सरल तरीका — TUI में चलाएं:
+
+```
+/connect
+```
+
+इंटरैक्टिव मेनू से अपना प्रदाता चुनें:
+
+```
+? Select provider
+❯ cyberstrike (recommended)
+  anthropic (Claude Max or API key)
+  github-copilot
+  openai (ChatGPT Plus/Pro or API key)
+  google
+  openrouter
+  …
+```
+
+सूची मॉडल कैटलॉग से गतिशील रूप से बनाई जाती है और प्राथमिकता के अनुसार क्रमबद्ध होती है, इसलिए सटीक प्रविष्टियां भिन्न हो सकती हैं। यह एक ऑटोकम्प्लीट प्रॉम्प्ट है, फिक्स्ड मेनू नहीं।
+
+## प्रदाता-विशिष्ट सेटअप
+
+### Anthropic
+
+1. [console.anthropic.com](https://console.anthropic.com) से अपनी API key प्राप्त करें
+2. `/connect` चलाएं, **Anthropic** चुनें, अपनी API key दर्ज करें
+
+### OpenAI
+
+1. [platform.openai.com](https://platform.openai.com) से अपनी API key प्राप्त करें
+2. `/connect` चलाएं, **OpenAI** चुनें, अपनी API key दर्ज करें
+
+### GitHub Copilot
+
+1. एक सक्रिय GitHub Copilot सब्सक्रिप्शन हो
+2. `/connect` चलाएं, **Login with GitHub Copilot** चुनें
+3. ब्राउज़र OAuth फ़्लो के माध्यम से अधिकृत करें — कोई API key आवश्यक नहीं
+
+विवरण के लिए [GitHub Copilot](/docs/providers/github-copilot) देखें।
+
+### OpenRouter
+
+OpenRouter मुफ्त टियर के साथ कई मॉडल तक पहुंच प्रदान करता है:
+
+1. [openrouter.ai/keys](https://openrouter.ai/keys) से अपनी API key प्राप्त करें
+2. `/connect` चलाएं, **OpenRouter** चुनें, अपनी API key दर्ज करें
+
+### Google Gemini
+
+1. [ai.google.dev](https://ai.google.dev) से अपनी API key प्राप्त करें
+2. `/connect` चलाएं, **Google** चुनें, अपनी API key दर्ज करें
+
+### Ollama (स्थानीय)
+
+Ollama को कोई API key आवश्यक नहीं है लेकिन इसे स्थानीय रूप से चलना चाहिए:
+
+```bash
+# Start Ollama
+ollama serve
+
+# Pull a model
+ollama pull llama3.3
+```
+
+फिर Ollama मॉडल चुनने के लिए `/models` का उपयोग करें।
+
+## एनवायरनमेंट वेरिएबल
+
+CI/CD या ऑटोमेशन के लिए एनवायरनमेंट वेरिएबल के माध्यम से क्रेडेंशियल सेट करें:
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+
+# Groq
+export GROQ_API_KEY="gsk_..."
+```
+
+स्थायी बनाने के लिए अपनी शेल प्रोफ़ाइल में जोड़ें:
+
+```bash
+# ~/.bashrc or ~/.zshrc
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+## कॉन्फ़िगरेशन फ़ाइल
+
+कॉन्फ़िग फ़ाइल में क्रेडेंशियल संग्रहीत करें:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="tip">
+  कॉन्फ़िग फ़ाइलों में एनवायरनमेंट वेरिएबल को संदर्भित करने के लिए `{env:VAR_NAME}` सिंटैक्स का उपयोग करें।
+</Aside>
+
+## क्रेडेंशियल प्रबंधन
+
+### स्थिति देखें
+
+कनेक्ट किए गए प्रदाताओं और सक्रिय क्रेडेंशियल देखने के लिए TUI में `/status` का उपयोग करें।
+
+### मॉडल बदलें
+
+किसी भी कनेक्ट किए गए प्रदाता के मॉडल के बीच स्विच करने के लिए `/models` का उपयोग करें। या कॉन्फ़िग में डिफ़ॉल्ट सेट करें:
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## एंटरप्राइज़ प्रमाणीकरण
+
+### AWS Bedrock
+
+```bash
+# Configure AWS credentials
+aws configure
+
+# Or via environment
+export AWS_ACCESS_KEY_ID="..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+```
+
+फिर `/connect` चलाएं और **Amazon Bedrock** चुनें।
+
+### Azure OpenAI
+
+```bash
+export AZURE_API_KEY="..."
+export AZURE_RESOURCE_NAME="your-resource"
+```
+
+### Google Vertex AI
+
+```bash
+gcloud auth application-default login
+```
+
+## सुरक्षा सर्वोत्तम प्रथाएं
+
+1. **API keys को कभी कमिट न करें** वर्शन कंट्रोल में
+2. **संवेदनशील मानों के लिए एनवायरनमेंट वेरिएबल का उपयोग करें**
+3. **सुरक्षा के लिए नियमित रूप से keys रोटेट करें**
+4. **उपलब्ध होने पर स्कोप्ड keys का उपयोग करें**
+5. **प्रदाता डैशबोर्ड पर उपयोग की निगरानी करें**
+
+## समस्या निवारण
+
+### अमान्य API Key
+
+```
+Error: Invalid API key
+```
+
+1. सत्यापित करें कि key सही है (कोई अतिरिक्त स्पेस नहीं)
+2. जांचें कि key समाप्त नहीं हुई है
+3. सुनिश्चित करें कि प्रदाता पर बिलिंग सक्रिय है
+
+### दर सीमाएं
+
+```
+Error: Rate limit exceeded
+```
+
+1. प्रतीक्षा करें और पुनः प्रयास करें
+2. सीमाओं के लिए प्रदाता डैशबोर्ड जांचें
+3. अपनी योजना को अपग्रेड करने पर विचार करें
+
+### नेटवर्क समस्याएं
+
+```
+Error: Connection refused
+```
+
+1. इंटरनेट कनेक्शन जांचें
+2. सत्यापित करें कि कोई प्रॉक्सी/फ़ायरवॉल ब्लॉक नहीं कर रहा
+3. भिन्न नेटवर्क आज़माएं

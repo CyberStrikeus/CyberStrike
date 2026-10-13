@@ -1,0 +1,118 @@
+---
+title: 自定义提供商
+description: 使用内置额外提供商，或连接任何 OpenAI 兼容端点
+sidebar:
+  order: 7
+  label: 自定义提供商
+---
+
+Cyberstrike 内置了许多超出四大提供商的供应商——您也可以自行连接任何 OpenAI 兼容端点。
+
+{/* TODO: Screenshot - Custom provider configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: custom-provider-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">自定义提供商配置</p>
+</div>
+
+## 内置额外提供商
+
+这些是**已内置**的——您不需要任何提供商配置。只需设置 API 密钥环境变量，并以 `provider-id/model` 格式选择模型：
+
+| 提供商 ID | 环境变量 | 示例模型 |
+|-----------|----------|----------|
+| `groq` | `GROQ_API_KEY` | `groq/llama-3.3-70b-versatile` |
+| `togetherai` | `TOGETHER_API_KEY` | `togetherai/meta-llama/Llama-3.3-70B-Instruct-Turbo` |
+| `deepinfra` | `DEEPINFRA_API_KEY` | `deepinfra/meta-llama/Llama-3.3-70B-Instruct` |
+| `perplexity` | `PERPLEXITY_API_KEY` | `perplexity/sonar` |
+| `openrouter` | `OPENROUTER_API_KEY` | `openrouter/anthropic/claude-sonnet-4` |
+
+```bash
+export GROQ_API_KEY="gsk_..."
+cyberstrike --model groq/llama-3.3-70b-versatile
+```
+
+其他提供商（`mistral`、`xai`、`deepseek`、`cohere`、`cerebras` 等）以相同方式工作——设置密钥并使用 `provider-id/model`。参见 [AI 提供商](/docs/providers)。
+
+## 自定义 OpenAI 兼容提供商
+
+对于未内置的端点（Fireworks、vLLM、LM Studio、私有网关），在 `provider` 下定义。加载由顶级 **`api`** 字段（基础 URL）触发；`npm` 默认为 `@ai-sdk/openai-compatible`，您需要列出想使用的模型：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "my-endpoint": {
+      "name": "My Endpoint",
+      "api": "https://api.example.com/v1",
+      "options": { "apiKey": "{env:MY_API_KEY}" },
+      "models": {
+        "my-model": { "name": "My Model" }
+      }
+    }
+  },
+  "model": "my-endpoint/my-model"
+}
+```
+
+### vLLM
+
+```json
+{
+  "provider": {
+    "vllm": {
+      "name": "vLLM",
+      "api": "http://localhost:8000/v1",
+      "models": { "llama-3.3-70b": { "name": "Llama 3.3 70B" } }
+    }
+  }
+}
+```
+
+### LM Studio
+
+```json
+{
+  "provider": {
+    "lmstudio": {
+      "name": "LM Studio",
+      "api": "http://localhost:1234/v1",
+      "models": { "local-model": { "name": "Local Model" } }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  仅配置的提供商因为有 `api` URL 才会被加载——仅有 `options.baseURL` 不会注册它。请使用顶级 `api` 字段。
+</Aside>
+
+## Azure OpenAI
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "azure": {
+      "name": "Azure OpenAI",
+      "options": {
+        "apiKey": "{env:AZURE_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+```bash
+export AZURE_RESOURCE_NAME="your-resource"
+export AZURE_API_KEY="..."
+```
+
+## 故障排除
+
+- **401 Unauthorized** — 检查 API 密钥环境变量，确认使用 `{env:VAR}` 引用。
+- **模型未找到** — 模型 ID 必须匹配提供商的格式，并且对于自定义提供商必须列在 `models` 下。
+- **意外响应** — 端点可能不完全兼容 OpenAI；工具调用和流式传输因提供商而异。
+
+## 相关文档
+
+- [AI 提供商](/docs/providers) - 所有提供商和密钥
+- [Ollama](/docs/providers/ollama) - 本地模型（自定义提供商）
+- [配置](/docs/configuration) - 提供商配置选项

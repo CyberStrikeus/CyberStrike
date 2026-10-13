@@ -1,0 +1,64 @@
+---
+title: App Desktop
+description: Aplicacao desktop nativa para CyberStrike no macOS, Windows e Linux
+sidebar:
+  order: 4
+  label: App Desktop
+  badge:
+    text: Em Breve
+    variant: caution
+---
+
+O CyberStrike Desktop e uma aplicacao nativa que empacota o harness completo — agentes, ferramentas, Vortex, HackBrowser, Bolt — em um app standalone. Nenhum terminal necessario.
+
+<Aside variant="caution">
+  O app desktop esta em desenvolvimento ativo. Todas as tres plataformas estao planejadas para o lancamento inicial.
+</Aside>
+
+## macOS <Badge text="Em Breve" variant="caution" size="md" />
+
+App macOS nativo com suporte a Apple Silicon e Intel. Distribuido como instalador `.dmg`.
+
+- macOS 12 Monterey ou posterior
+- Apple Silicon (M1+) ou Intel
+- 500 MB de espaco em disco
+
+## Windows <Badge text="Em Breve" variant="caution" size="md" />
+
+App Windows nativo distribuido como instalador `.exe` via NSIS.
+
+- Windows 10 (1809) ou posterior
+- Arquitetura x64
+- 500 MB de espaco em disco
+
+<Aside variant="info">
+  WSL **nao** e necessario. O app desktop executa nativamente no Windows.
+</Aside>
+
+## Linux <Badge text="Em Breve" variant="caution" size="md" />
+
+Builds Linux distribuidos como pacotes `.AppImage` e `.deb`.
+
+- Ubuntu 20.04+, Fedora 38+, ou equivalente
+- Arquitetura x64
+- 500 MB de espaco em disco
+
+## O Que Esperar
+
+O app desktop oferece as mesmas capacidades de `cyberstrike web` mas como uma janela nativa:
+
+- Paridade completa de recursos da TUI — todos os comandos slash, agentes e ferramentas
+- HackBrowser integrado — lanca Chromium dentro do app
+- Gerenciamento de servidor Bolt — parear e gerenciar ferramentas em container
+- Painel de servidor MCP — configurar e monitorar conexoes MCP
+- Abas de sessao — multiplas avaliacoes abertas simultaneamente
+- Capacidade offline — funciona com provedores locais como Ollama
+
+## Fique Atualizado
+
+Acompanhe o progresso do desenvolvimento:
+
+- [GitHub Releases](https://github.com/CyberStrikeus/CyberStrike/releases) — Builds desktop aparecerão aqui
+- [Discord](https://discord.gg/dr97wVJVbn) — Anuncios e acesso antecipado
+
+Enquanto isso, use as interfaces [TUI](/docs/usage/tui), [CLI](/docs/usage/cli) ou [Web](/docs/usage/web).

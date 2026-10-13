@@ -1,0 +1,109 @@
+---
+title: 自定义代理
+description: 为 Cyberstrike 创建专业安全代理
+sidebar:
+  order: 9
+  label: 自定义代理
+---
+
+创建具有自己的系统提示词、模型和权限的自定义代理。代理是带有 YAML 前置元数据的 Markdown 文件。
+
+{/* TODO: Screenshot - Custom agent configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: custom-agent-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">自定义代理配置文件</p>
+</div>
+
+## 文件与位置
+
+自定义代理是任何 `.cyberstrike/` 文件夹（项目或 `~/.cyberstrike/`）中 `agent/` 或 `agents/` 目录下的 `*.md` 文件。代理的 ID 就是其文件名。
+
+```
+.cyberstrike/
+└── agents/
+    ├── api-security.md
+    └── compliance-audit.md
+```
+
+## 前置元数据
+
+```markdown title=".cyberstrike/agents/api-security.md"
+---
+description: Specialized agent for REST and GraphQL API testing
+mode: primary
+model: anthropic/claude-sonnet-4-20250514
+permission:
+  bash: { "*": "ask", "rm -rf *": "deny" }
+  edit: allow
+---
+
+You are an expert API security tester specializing in REST and GraphQL APIs.
+Follow the OWASP API Security Top 10 …
+```
+
+正文（前置元数据之后）就是系统提示词。
+
+| 字段 | 类型 | 描述 |
+|------|------|------|
+| `description` | string | 代理的用途 |
+| `mode` | `primary` \| `subagent` \| `all` | `primary` 代理可直接运行；`subagent` 代理通过 task 工具委派 |
+| `model` | string | `provider/model` 覆盖 |
+| `temperature`、`top_p` | number | 采样控制 |
+| `steps` | number | 最大代理迭代次数 |
+| `color` | string | 十六进制或主题颜色 |
+| `permission` | object | 每个工具的权限（参见[权限](/docs/permissions)） |
+| `hidden`、`disable` | boolean | 从选择器中隐藏 / 禁用 |
+
+<Aside variant="caution">
+  使用 `permission` 字段限制工具。旧的 `tools:` 映射已**弃用**，且没有 `allowedCommands` 字段——命令限制是 `permission.bash` 通配符规则（例如 `bash: { "nmap *": "allow" }`）。
+</Aside>
+
+## 主代理 vs 子代理
+
+只有**主**代理可以通过 `--agent` 或 `default_agent` 选择。如果您想让代理可以直接运行，请设置 `mode: primary`。否则它将作为子代理，`cyberstrike` 代理可以委派给它。
+
+```markdown
+---
+description: Read-only auditor
+mode: primary
+permission:
+  edit: deny
+  bash: deny
+  read: allow
+  glob: allow
+  grep: allow
+---
+
+You are a read-only security auditor …
+```
+
+## 使用自定义代理
+
+一旦设为主代理，即可选择它：
+
+```bash
+cyberstrike --agent api-security
+```
+
+或在 `cyberstrike.json` 中设为默认：
+
+```json
+{
+  "default_agent": "api-security"
+}
+```
+
+在 TUI 中使用 `/agents` 浏览代理。
+
+## 最佳实践
+
+1. **聚焦范围**——每个代理一个明确的目的。
+2. **最小权限**——通过 `permission` 只允许代理需要的工具。
+3. **清晰提示词**——具体说明方法论和输出格式。
+4. **版本控制**——将 `.cyberstrike/agents/` 与项目一起提交。
+
+## 相关文档
+
+- [安全代理](/docs/agents) - 内置代理和委派
+- [权限](/docs/permissions) - `permission` 字段
+- [配置](/docs/configuration) - 项目和全局配置

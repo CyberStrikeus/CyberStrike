@@ -1,0 +1,100 @@
+---
+title: Configuracao OAuth
+description: Configure autenticacao OAuth para servidores MCP remotos
+sidebar:
+  order: 5
+  label: OAuth
+---
+
+OAuth permite que o Cyberstrike autentique com um servidor MCP remoto sem armazenar credenciais de longa duracao. O Cyberstrike descobre os endpoints OAuth do servidor automaticamente — voce so fornece detalhes do cliente quando o servidor os exige.
+
+<img src="/docs/images/diagrams/oauth-flow.svg" alt="Fluxo OAuth do MCP: detectar OAuth, registro dinamico de cliente se nao houver clientId, autorizacao no navegador, codigo trocado por tokens, tokens armazenados e atualizados automaticamente" className="my-6 mx-auto max-w-xs" />
+
+## Schema de Configuracao
+
+OAuth e um bloco opcional em um servidor MCP **remoto**. O schema completo tem apenas tres campos opcionais:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "mcp": {
+    "my-server": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "oauth": {
+        "clientId": "{env:OAUTH_CLIENT_ID}",
+        "clientSecret": "{env:OAUTH_CLIENT_SECRET}",
+        "scope": "read write"
+      }
+    }
+  }
+}
+```
+
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| `clientId` | string | Opcional. Se omitido, **registro dinamico de cliente (RFC 7591)** e tentado. |
+| `clientSecret` | string | Opcional. Apenas se o servidor de autorizacao requer um cliente confidencial. |
+| `scope` | string | Opcional. Escopos a solicitar durante a autorizacao. |
+
+<Aside variant="caution">
+  As URLs de autorizacao e token **nao** sao configuradas aqui — o Cyberstrike as descobre a partir dos metadados OAuth do servidor. Campos como `authorizationUrl`, `tokenUrl`, `pkce`, `deviceAuthorizationUrl`, `grantType` e `callbackPort`/`callbackPath` **nao** existem no schema (apenas `clientId`, `clientSecret`, `scope`).
+</Aside>
+
+## Como Funciona
+
+1. O Cyberstrike detecta que o servidor remoto requer OAuth (a partir dos metadados).
+2. Se nenhum `clientId` estiver definido, ele registra um cliente dinamicamente (RFC 7591).
+3. Ele abre seu navegador na URL de autorizacao; voce faz login e concede acesso.
+4. O codigo de autorizacao e trocado por tokens em um callback local tratado internamente.
+5. Tokens sao armazenados pelo Cyberstrike e atualizados automaticamente quando expiram.
+
+Defina `"oauth": false` no servidor para desabilitar completamente a deteccao automatica de OAuth.
+
+## Autorizando um Servidor
+
+Acione a autorizacao pela CLI:
+
+```bash
+cyberstrike mcp auth <name>       # autorizar um servidor
+cyberstrike mcp auth list         # listar servidores autorizados por OAuth
+cyberstrike mcp logout <name>     # remover credenciais OAuth armazenadas
+```
+
+O Cyberstrike tambem solicita autorizacao automaticamente na primeira vez que um servidor protegido por OAuth e usado em uma sessao. A atualizacao de token e automatica — nao ha comando manual de atualizacao.
+
+## Exemplo: um servidor com escopo
+
+```json
+{
+  "mcp": {
+    "example-mcp": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "oauth": {
+        "scope": "openid profile email"
+      }
+    }
+  }
+}
+```
+
+Sem `clientId`, o Cyberstrike registra um cliente dinamicamente e autoriza com os escopos solicitados.
+
+## Notas de Seguranca
+
+- Referencie segredos com `{env:VAR}` — nunca faca commit de um `clientSecret` no controle de versao.
+- Solicite os escopos minimos que o servidor precisa.
+- Remova credenciais com `cyberstrike mcp logout <name>` quando nao forem mais necessarias.
+
+## Solucao de Problemas
+
+- **Autorizacao falhou** — confirme que a URL do servidor e alcancavel e (se o servidor precisa de um cliente confidencial) que `clientId`/`clientSecret` estao corretos.
+- **Prompts de autenticacao repetidos** — o token armazenado pode ter sido revogado no lado do servidor; execute `cyberstrike mcp auth <name>` novamente.
+- **Timeout de callback** — certifique-se de que seu navegador completou o login e que um firewall local nao esta bloqueando o callback de loopback.
+- Inspecione a conexao de um servidor com `cyberstrike mcp debug <name>`.
+
+## Documentacao Relacionada
+
+- [Servidores Remotos](/docs/mcp/remote-servers) - Configuracao de MCP remoto
+- [Visao Geral do Bolt / MCP](/docs/mcp) - Arquitetura e conceitos
+- [Configuracao](/docs/configuration) - Opcoes completas de configuracao

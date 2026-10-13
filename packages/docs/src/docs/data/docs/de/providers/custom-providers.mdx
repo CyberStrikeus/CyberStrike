@@ -1,0 +1,118 @@
+---
+title: Benutzerdefinierte Anbieter
+description: Gebundelte Extra-Anbieter verwenden oder einen beliebigen OpenAI-kompatiblen Endpunkt verbinden
+sidebar:
+  order: 7
+  label: Benutzerdefinierte Anbieter
+---
+
+Cyberstrike buendelt viele Anbieter ueber die grossen vier hinaus — und Sie koennen jeden OpenAI-kompatiblen Endpunkt selbst verbinden.
+
+{/* TODO: Screenshot - Custom provider configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: custom-provider-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Benutzerdefinierte Anbieterkonfiguration</p>
+</div>
+
+## Eingebaute Extra-Anbieter
+
+Diese sind **bereits gebuendelt** — Sie benoetigen keine Anbieterkonfiguration. Setzen Sie einfach die API-Schluessel-Umgebungsvariable und waehlen Sie ein Modell als `provider-id/model`:
+
+| Anbieter-ID | Umgebungsvariable | Beispielmodell |
+|--------------|-------------------|----------------|
+| `groq` | `GROQ_API_KEY` | `groq/llama-3.3-70b-versatile` |
+| `togetherai` | `TOGETHER_API_KEY` | `togetherai/meta-llama/Llama-3.3-70B-Instruct-Turbo` |
+| `deepinfra` | `DEEPINFRA_API_KEY` | `deepinfra/meta-llama/Llama-3.3-70B-Instruct` |
+| `perplexity` | `PERPLEXITY_API_KEY` | `perplexity/sonar` |
+| `openrouter` | `OPENROUTER_API_KEY` | `openrouter/anthropic/claude-sonnet-4` |
+
+```bash
+export GROQ_API_KEY="gsk_..."
+cyberstrike --model groq/llama-3.3-70b-versatile
+```
+
+Andere (`mistral`, `xai`, `deepseek`, `cohere`, `cerebras` und mehr) funktionieren auf die gleiche Weise — setzen Sie ihren Schluessel und verwenden Sie `provider-id/model`. Siehe [KI-Anbieter](/docs/providers).
+
+## Benutzerdefinierter OpenAI-kompatibler Anbieter
+
+Fuer einen Endpunkt, der nicht gebuendelt ist (Fireworks, vLLM, LM Studio, ein privates Gateway), definieren Sie ihn unter `provider`. Das Laden wird durch das Top-Level-Feld **`api`** (die Basis-URL) ausgeloest; `npm` verwendet standardmaessig `@ai-sdk/openai-compatible`, und Sie listen die gewuenschten Modelle auf:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "my-endpoint": {
+      "name": "My Endpoint",
+      "api": "https://api.example.com/v1",
+      "options": { "apiKey": "{env:MY_API_KEY}" },
+      "models": {
+        "my-model": { "name": "My Model" }
+      }
+    }
+  },
+  "model": "my-endpoint/my-model"
+}
+```
+
+### vLLM
+
+```json
+{
+  "provider": {
+    "vllm": {
+      "name": "vLLM",
+      "api": "http://localhost:8000/v1",
+      "models": { "llama-3.3-70b": { "name": "Llama 3.3 70B" } }
+    }
+  }
+}
+```
+
+### LM Studio
+
+```json
+{
+  "provider": {
+    "lmstudio": {
+      "name": "LM Studio",
+      "api": "http://localhost:1234/v1",
+      "models": { "local-model": { "name": "Local Model" } }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Ein rein konfigurierter Anbieter wird geladen, weil er eine `api`-URL hat — `options.baseURL` allein registriert ihn nicht. Verwenden Sie das Top-Level-Feld `api`.
+</Aside>
+
+## Azure OpenAI
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "azure": {
+      "name": "Azure OpenAI",
+      "options": {
+        "apiKey": "{env:AZURE_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+```bash
+export AZURE_RESOURCE_NAME="your-resource"
+export AZURE_API_KEY="..."
+```
+
+## Fehlerbehebung
+
+- **401 Unauthorized** — pruefen Sie die API-Schluessel-Umgebungsvariable und ob sie mit `{env:VAR}` referenziert wird.
+- **Modell nicht gefunden** — die Modell-ID muss dem Format des Anbieters entsprechen und unter `models` fuer einen benutzerdefinierten Anbieter aufgefuehrt sein.
+- **Unerwartete Antwort** — der Endpunkt ist moeglicherweise nicht vollstaendig OpenAI-kompatibel; Tool-Aufrufe und Streaming variieren je nach Anbieter.
+
+## Verwandte Dokumentation
+
+- [KI-Anbieter](/docs/providers) - Alle Anbieter und Schluessel
+- [Ollama](/docs/providers/ollama) - Lokale Modelle (ein benutzerdefinierter Anbieter)
+- [Konfiguration](/docs/configuration) - Anbieterkonfigurationsoptionen

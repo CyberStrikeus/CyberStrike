@@ -1,0 +1,215 @@
+---
+title: Конфигурация привязок клавиш
+description: Настройка сочетаний клавиш для Cyberstrike
+sidebar:
+  order: 5
+  label: Привязки клавиш
+---
+
+Настраивайте сочетания клавиш под свой рабочий процесс. Привязки определяются в объекте `keybinds` файла конфигурации.
+
+{/* TODO: Screenshot - Keybindings configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: keybindings-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Параметры конфигурации привязок клавиш</p>
+</div>
+
+## Расположение конфигурации
+
+Привязки настраиваются в глобальном или проектном файле конфигурации:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "session_new": "<leader>n"
+  }
+}
+```
+
+Допустимы только ключи, перечисленные на этой странице — объект `keybinds` проверяется строго, неизвестные ключи отклоняются.
+
+## Лидер-клавиша
+
+Лидер-клавиша — это префикс для многих сочетаний (по умолчанию `ctrl+x`):
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a"
+  }
+}
+```
+
+## Синтаксис клавиш
+
+### Модификаторы
+
+| Модификатор | Синтаксис |
+|-------------|-----------|
+| Control | `ctrl` |
+| Alt/Option | `alt` |
+| Shift | `shift` |
+| Super/Command | `super` |
+
+### Специальные клавиши
+
+| Клавиша | Синтаксис |
+|---------|-----------|
+| Enter | `return` |
+| Escape | `escape` |
+| Tab | `tab` |
+| Backspace | `backspace` |
+| Delete | `delete` |
+| Стрелки | `up` `down` `left` `right` |
+| Page Up / Down | `pageup` `pagedown` |
+| Home / End | `home` `end` |
+| Функциональные клавиши | `f2`, `shift+f2` |
+
+### Комбинации, альтернативы и лидер
+
+```
+ctrl+alt+d          # Ctrl + Alt + D
+<leader>n           # Лидер, затем N
+pageup,ctrl+alt+b   # две альтернативные привязки для одного действия (через запятую)
+```
+
+Запятая разделяет **альтернативные** привязки для одного действия. Установите значение `none` для отключения действия.
+
+## Доступные действия
+
+Каждое действие ниже показывает привязку по умолчанию. Переопределите любое подмножество в объекте `keybinds`.
+
+### Сессии
+
+| Действие | По умолчанию | Описание |
+|----------|-------------|----------|
+| `session_new` | `<leader>n` | Создать новую сессию |
+| `session_list` | `<leader>l` | Список всех сессий |
+| `session_compact` | `<leader>c` | Компактифицировать сессию |
+| `session_timeline` | `<leader>g` | Показать временную шкалу сессии |
+| `session_rename` | `ctrl+r` | Переименовать сессию |
+| `session_delete` | `ctrl+d` | Удалить сессию |
+| `session_export` | `<leader>x` | Экспортировать сессию в редактор |
+| `session_interrupt` | `escape` | Прервать текущую сессию |
+| `session_fork` | `none` | Ответвить сессию от сообщения |
+| `session_share` | `none` | Поделиться текущей сессией |
+| `session_child_cycle` | `<leader>right` | Следующая дочерняя сессия |
+| `session_parent` | `<leader>up` | Перейти к родительской сессии |
+
+### Сообщения и навигация
+
+| Действие | По умолчанию | Описание |
+|----------|-------------|----------|
+| `messages_page_up` | `pageup,ctrl+alt+b` | Прокрутка вверх на страницу |
+| `messages_page_down` | `pagedown,ctrl+alt+f` | Прокрутка вниз на страницу |
+| `messages_half_page_up` | `ctrl+alt+u` | Прокрутка вверх на полстраницы |
+| `messages_half_page_down` | `ctrl+alt+d` | Прокрутка вниз на полстраницы |
+| `messages_first` | `ctrl+g,home` | Перейти к первому сообщению |
+| `messages_last` | `ctrl+alt+g,end` | Перейти к последнему сообщению |
+| `messages_copy` | `<leader>y` | Копировать сообщение |
+| `messages_undo` | `<leader>u` | Отменить сообщение |
+| `messages_redo` | `<leader>r` | Повторить сообщение |
+| `messages_toggle_conceal` | `<leader>h` | Переключить скрытие блоков кода |
+
+### Списки и диалоги
+
+| Действие | По умолчанию | Описание |
+|----------|-------------|----------|
+| `model_list` | `<leader>m` | Список доступных моделей |
+| `agent_list` | `<leader>a` | Список агентов |
+| `agent_cycle` | `tab` | Следующий агент |
+| `agent_cycle_reverse` | `shift+tab` | Предыдущий агент |
+| `theme_list` | `<leader>t` | Список доступных тем |
+| `command_list` | `ctrl+p` | Список доступных команд |
+
+### Интерфейс
+
+| Действие | По умолчанию | Описание |
+|----------|-------------|----------|
+| `sidebar_toggle` | `<leader>b` | Переключить боковую панель |
+| `status_view` | `<leader>s` | Просмотр статуса |
+| `editor_open` | `<leader>e` | Открыть внешний редактор |
+| `tips_toggle` | `<leader>h` | Переключить подсказки на главном экране |
+
+### Приложение и ввод
+
+| Действие | По умолчанию | Описание |
+|----------|-------------|----------|
+| `app_exit` | `ctrl+c,ctrl+d,<leader>q` | Выход из приложения |
+| `terminal_suspend` | `ctrl+z` | Приостановить терминал |
+| `input_submit` | `return` | Отправить ввод |
+| `input_newline` | `shift+return,ctrl+return,alt+return,ctrl+j` | Вставить новую строку |
+| `input_clear` | `ctrl+c` | Очистить поле ввода |
+| `input_paste` | `ctrl+v` | Вставить из буфера обмена |
+
+<Aside variant="info">
+  Поле ввода также имеет большой набор привязок для перемещения курсора и редактирования (`input_move_*`, `input_word_*`, `input_delete_*` и т.д.). Они следуют тому же именованию `keybinds` и могут быть переопределены аналогично.
+</Aside>
+
+## Полный пример конфигурации
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "session_compact": "<leader>c",
+    "session_timeline": "<leader>g",
+    "session_rename": "ctrl+r",
+    "session_export": "<leader>x",
+
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "theme_list": "<leader>t",
+    "command_list": "ctrl+p",
+
+    "sidebar_toggle": "<leader>b",
+    "status_view": "<leader>s",
+    "editor_open": "<leader>e",
+
+    "messages_half_page_up": "ctrl+alt+u",
+    "messages_half_page_down": "ctrl+alt+d",
+    "messages_undo": "<leader>u",
+
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+## Множественные привязки
+
+Назначение нескольких сочетаний одному действию через запятую:
+
+```json
+{
+  "keybinds": {
+    "app_exit": "ctrl+c,ctrl+d,<leader>q",
+    "model_list": "<leader>m,ctrl+shift+m"
+  }
+}
+```
+
+Запятая разделяет альтернативные привязки — это не последовательность аккордов.
+
+## Сброс привязок
+
+Команды сброса нет. Для восстановления значения по умолчанию удалите ключ из объекта `keybinds` (или удалите весь объект для восстановления всех значений по умолчанию).
+
+## Устранение неполадок
+
+1. Проверьте конфликты с вашим эмулятором терминала
+2. Убедитесь, что конфигурация — валидный JSON и имя ключа точно соответствует этой странице (неизвестные ключи не проходят валидацию)
+3. Просматривайте зарегистрированные команды в TUI с помощью `command_list` (`ctrl+p`)
+
+<Aside variant="tip">
+  Используйте `/help` в Cyberstrike для быстрого просмотра активных привязок клавиш.
+</Aside>
+
+## Связанная документация
+
+- [Справочник по конфигурации](/docs/configuration) — Все параметры конфигурации
+- [Сочетания клавиш](/docs/getting-started/keyboard-shortcuts) — Справочник сочетаний
+- [Глобальная конфигурация](/docs/configuration/global-config) — Руководство по конфигурации

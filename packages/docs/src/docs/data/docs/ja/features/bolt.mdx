@@ -1,0 +1,115 @@
+---
+title: Bolt
+description: 30以上のプリインストールツールを備えたコンテナ化セキュリティツールサーバー
+sidebar:
+  order: 4
+  label: Bolt
+---
+
+Boltは、セキュリティツールを提供するコンテナ化MCPサーバーです。Dockerコンテナ（Ubuntu 24.04）で動作し、各ツールを直接公開します。メタツールも動的ロードもなく、必要なツールをそのまま呼び出すだけです。
+
+## なぜBoltなのか？
+
+| 機能 | Boltなし | Boltあり |
+|------|---------|---------|
+| ツールのインストール | 各ツールを手動で | プリインストール済み |
+| プラットフォーム対応 | ほとんどのツールがLinuxのみ | Dockerがあればどのプラットフォームでも |
+| 分離 | ツールがシステム上で実行 | コンテナ内でサンドボックス化 |
+| アップデート | 手動 | `docker pull` |
+
+## 内容
+
+Boltは2つの方法でツールを公開します：
+
+- **7つのネイティブプラグイン** — `subfinder`、`nmap`、`nuclei`、`httpx`、`ffuf`、`run-command`、`wordlist`
+- **約26の集約stdioMCPサーバー** — `dnsx`、`amass`、`katana`、`sqlmap`、`wpscan`、`gobuster`、`masscan`、`hydra`、`hashcat`、`john`、`impacket`など
+
+それぞれが直接呼び出し可能なツールです。エージェントが1ターンで呼び出します。
+
+## クイックスタート
+
+### 1. Boltコンテナの起動
+
+```bash
+docker run -d \
+  --name bolt \
+  --restart unless-stopped \
+  -p 3001:3001 \
+  -v bolt-data:/data \
+  -e MCP_ADMIN_TOKEN=$(openssl rand -hex 32) \
+  --cap-add NET_RAW \
+  --cap-add NET_ADMIN \
+  ghcr.io/cyberstrikeus/bolt:latest
+
+docker logs bolt | grep -i token
+```
+
+### 2. Cyberstrikeとのペアリング
+
+TUIで`/bolt`を実行し、**a**を押して追加、URL `http://localhost:3001`を入力し、管理トークンを提供します。
+
+### 3. ツールの使用
+
+タスクを直接入力します。エージェントがBoltツールを自動的に呼び出します：
+
+```
+> Run nmap against 192.168.1.1 with service detection
+> Use subfinder to enumerate subdomains of example.com
+> Scan https://target.com with nuclei
+```
+
+## 設定
+
+Boltサーバーは**`bolt`キー**で設定します — `mcp`ではありません：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "bolt": {
+    "local": {
+      "url": "http://localhost:3001",
+      "enabled": true,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Boltは`mcp`エントリでは**ありません**。認証はEd25519ペアリングで処理され、管理トークンはペアリングステップでのみ使用されます。
+</Aside>
+
+## 認証
+
+BoltはワンタイムペアリングでブートストラップされるEd25519リクエスト署名を使用します：
+
+1. 管理トークンで`POST /pair` → ペアリングコード
+2. CyberstrikeがEd25519キーペアを生成
+3. コード+クライアント公開鍵で`POST /pair/exchange` → サーバー公開鍵+クライアントID
+4. 以降のすべてのリクエストはクライアントの秘密鍵で**署名**されます
+
+管理トークンはステップ1でのみ使用されます。設定に保存されることはありません。
+
+## TUI管理
+
+- **`/bolt`** — Boltサーバーの管理（追加/ペアリング、切り替え、削除）
+- **`/mcps`** — 通常のMCPサーバーの管理
+
+## 使用例
+
+```
+> Use bolt to scan 192.168.1.0/24 for open ports and services   # nmap
+> Find all subdomains of example.com                            # subfinder
+> Scan https://target.com with nuclei                           # nuclei
+> Fuzz directories on https://target.com                        # ffuf
+> Run "dig +short example.com"                                  # run-command
+```
+
+## トラブルシューティング
+
+- **接続拒否** — コンテナが起動しているか確認（`docker ps`）し、`curl http://localhost:3001/health`が応答するか確認します。
+- **再ペアリングが必要** — BoltのURLが変わった場合、`/bolt`で再ペアリングしてください。
+- **ツールが利用できない** — `/bolt`でサーバーが接続されていることを確認し、直接APIモデルを使用してください。
+
+<Aside variant="danger">
+  Boltツールは許可されたターゲットに対してのみ使用してください。無許可のペネトレーションテストは違法です。
+</Aside>

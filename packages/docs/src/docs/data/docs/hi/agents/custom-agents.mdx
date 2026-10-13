@@ -1,0 +1,109 @@
+---
+title: कस्टम एजेंट
+description: Cyberstrike के लिए विशेषीकृत सुरक्षा एजेंट बनाएं
+sidebar:
+  order: 9
+  label: कस्टम एजेंट
+---
+
+अपने स्वयं के सिस्टम प्रॉम्प्ट, मॉडल और अनुमतियों के साथ कस्टम एजेंट बनाएं। एजेंट YAML फ्रंटमैटर वाली Markdown फ़ाइलें हैं।
+
+{/* TODO: Screenshot - Custom agent configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: custom-agent-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">कस्टम एजेंट कॉन्फ़िगरेशन फ़ाइल</p>
+</div>
+
+## फ़ाइल और स्थान
+
+कस्टम एजेंट किसी भी `.cyberstrike/` फ़ोल्डर (प्रोजेक्ट या `~/.cyberstrike/`) के अंदर `agent/` या `agents/` निर्देशिका में `*.md` फ़ाइलें हैं। एजेंट की id उसका फ़ाइलनाम है।
+
+```
+.cyberstrike/
+└── agents/
+    ├── api-security.md
+    └── compliance-audit.md
+```
+
+## फ्रंटमैटर
+
+```markdown title=".cyberstrike/agents/api-security.md"
+---
+description: Specialized agent for REST and GraphQL API testing
+mode: primary
+model: anthropic/claude-sonnet-4-20250514
+permission:
+  bash: { "*": "ask", "rm -rf *": "deny" }
+  edit: allow
+---
+
+You are an expert API security tester specializing in REST and GraphQL APIs.
+Follow the OWASP API Security Top 10 …
+```
+
+बॉडी (फ्रंटमैटर के बाद) सिस्टम प्रॉम्प्ट है।
+
+| फ़ील्ड | प्रकार | विवरण |
+|-------|------|-------------|
+| `description` | string | एजेंट किस लिए है |
+| `mode` | `primary` \| `subagent` \| `all` | `primary` एजेंट सीधे चलाए जा सकते हैं; `subagent` एजेंट task टूल के माध्यम से प्रतिनिधित्व किए जाते हैं |
+| `model` | string | `provider/model` ओवरराइड |
+| `temperature`, `top_p` | number | सैंपलिंग नियंत्रण |
+| `steps` | number | अधिकतम एजेंटिक इटरेशन |
+| `color` | string | Hex या थीम रंग |
+| `permission` | object | प्रति-उपकरण अनुमतियां ([अनुमतियां](/docs/permissions) देखें) |
+| `hidden`, `disable` | boolean | पिकर से छिपाएं / अक्षम करें |
+
+<Aside variant="caution">
+  `permission` फ़ील्ड से उपकरणों को प्रतिबंधित करें। पुराना `tools:` मैप **अप्रचलित** है, और कोई `allowedCommands` फ़ील्ड नहीं है — कमांड प्रतिबंध `permission.bash` ग्लॉब नियम हैं (जैसे `bash: { "nmap *": "allow" }`)।
+</Aside>
+
+## Primary बनाम Subagent
+
+केवल **primary** एजेंट `--agent` या `default_agent` से चुने जा सकते हैं। यदि आप चाहते हैं कि आपका एजेंट सीधे चलाने योग्य हो, तो `mode: primary` सेट करें। अन्यथा यह एक सबएजेंट के रूप में व्यवहार करता है जिसे `cyberstrike` एजेंट प्रतिनिधित्व कर सकता है।
+
+```markdown
+---
+description: Read-only auditor
+mode: primary
+permission:
+  edit: deny
+  bash: deny
+  read: allow
+  glob: allow
+  grep: allow
+---
+
+You are a read-only security auditor …
+```
+
+## कस्टम एजेंट का उपयोग
+
+एक बार यह primary एजेंट बन जाए, इसे चुनें:
+
+```bash
+cyberstrike --agent api-security
+```
+
+या इसे `cyberstrike.json` में डिफ़ॉल्ट के रूप में सेट करें:
+
+```json
+{
+  "default_agent": "api-security"
+}
+```
+
+TUI में `/agents` से एजेंट ब्राउज़ करें।
+
+## सर्वोत्तम अभ्यास
+
+1. **केंद्रित दायरा** — प्रति एजेंट एक स्पष्ट उद्देश्य।
+2. **न्यूनतम विशेषाधिकार** — `permission` के माध्यम से केवल वही उपकरण अनुमत करें जिनकी एजेंट को आवश्यकता है।
+3. **स्पष्ट प्रॉम्प्ट** — कार्यप्रणाली और आउटपुट प्रारूप के बारे में विशिष्ट रहें।
+4. **संस्करण नियंत्रण** — प्रोजेक्ट के साथ `.cyberstrike/agents/` को कमिट करें।
+
+## संबंधित दस्तावेज़
+
+- [सुरक्षा एजेंट](/docs/agents) - अंतर्निर्मित एजेंट और प्रतिनिधित्व
+- [अनुमतियां](/docs/permissions) - `permission` फ़ील्ड
+- [कॉन्फ़िगरेशन](/docs/configuration) - प्रोजेक्ट और ग्लोबल कॉन्फ़िग

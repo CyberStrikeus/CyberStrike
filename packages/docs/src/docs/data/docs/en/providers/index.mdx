@@ -28,13 +28,9 @@ Cyberstrike supports multiple AI providers, giving you flexibility in choosing t
 
 ## Adding Credentials
 
-### Interactive Login
+### Connect a Provider
 
-```bash
-cyberstrike auth login
-```
-
-Select your provider and enter your API key.
+In the TUI, run `/connect` to open the provider dialog. Select your provider and enter your API key (or authorize via OAuth for GitHub Copilot).
 
 ### Environment Variables
 
@@ -83,11 +79,7 @@ Claude models are recommended for complex security analysis.
 
 ### Authentication
 
-```bash
-cyberstrike auth login
-# Select: Anthropic
-# Enter API key from console.anthropic.com
-```
+Run `/connect` in the TUI, select **Anthropic**, and enter your API key from [console.anthropic.com](https://console.anthropic.com).
 
 Or via environment:
 
@@ -105,11 +97,9 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 
 ### Usage
 
-```bash
-# Via command line
-cyberstrike --model anthropic/claude-sonnet-4-20250514
+Use `/models` to select a Claude model, or set a default in config:
 
-# Via config
+```json
 {
   "model": "anthropic/claude-sonnet-4-20250514"
 }
@@ -138,11 +128,7 @@ GPT-4 models provide fast, reliable responses.
 
 ### Authentication
 
-```bash
-cyberstrike auth login
-# Select: OpenAI
-# Enter API key from platform.openai.com
-```
+Run `/connect` in the TUI, select **OpenAI**, and enter your API key from [platform.openai.com](https://platform.openai.com).
 
 Or via environment:
 
@@ -161,9 +147,7 @@ export OPENAI_API_KEY="sk-..."
 
 ### Usage
 
-```bash
-cyberstrike --model openai/gpt-4o
-```
+Use `/models` to select an OpenAI model, or set one in config.
 
 ### Configuration Options
 
@@ -208,9 +192,7 @@ gcloud auth application-default login
 
 ### Usage
 
-```bash
-cyberstrike --model google/gemini-2.0-flash
-```
+Use `/models` to select a Gemini model, or set one in config.
 
 ---
 
@@ -220,11 +202,7 @@ Access many models through a single API with a free tier.
 
 ### Authentication
 
-```bash
-cyberstrike auth login
-# Select: OpenRouter
-# Get API key from openrouter.ai/keys
-```
+Run `/connect` in the TUI, select **OpenRouter**, and enter your API key from [openrouter.ai/keys](https://openrouter.ai/keys).
 
 Or via environment:
 
@@ -242,9 +220,7 @@ export OPENROUTER_API_KEY="sk-or-..."
 
 ### Usage
 
-```bash
-cyberstrike --model openrouter/meta-llama/llama-4-scout:free
-```
+Use `/models` to select an OpenRouter model, or set one in config:
 
 ### Configuration
 
@@ -388,10 +364,7 @@ ollama serve
 
 ### Usage
 
-```bash
-# No API key needed
-cyberstrike --model ollama/llama3.3
-```
+No API key needed. Use `/models` to select an Ollama model.
 
 ### Available Models
 
@@ -438,9 +411,7 @@ export GROQ_API_KEY="gsk_..."
 
 ### Usage
 
-```bash
-cyberstrike --model groq/llama-3.3-70b-versatile
-```
+Use `/models` to select a Groq model, or set one in config.
 
 ---
 
@@ -473,9 +444,7 @@ Connect to any OpenAI-compatible API.
 
 ### Usage
 
-```bash
-cyberstrike --model custom-api/custom-model
-```
+Use `/models` to select the custom model, or set it in config.
 
 ---
 
@@ -517,31 +486,11 @@ Use AWS Bedrock or Azure OpenAI with your organization's credentials.
 
 ---
 
-## Listing Credentials
+## Managing Credentials
 
-View stored credentials:
+Use `/status` in the TUI to see connected providers and active credentials.
 
-```bash
-cyberstrike auth list
-```
-
-Output:
-
-```
-Credentials ~/.local/share/cyberstrike/auth.json
-  Anthropic api
-  OpenRouter api
-
-Environment
-  ANTHROPIC_API_KEY
-```
-
-## Removing Credentials
-
-```bash
-cyberstrike auth logout
-# Select provider to remove
-```
+To remove credentials, use the CLI command `cyberstrike auth logout` and select the provider to remove.
 
 <Aside variant="tip">
   For penetration testing tasks requiring complex reasoning, we recommend **Claude Opus 4.5** or **Claude Sonnet 4**.

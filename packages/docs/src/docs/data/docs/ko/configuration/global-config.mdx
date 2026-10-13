@@ -1,0 +1,323 @@
+---
+title: 전역 구성
+description: 모든 프로젝트에 적용되는 Cyberstrike 설정 구성
+sidebar:
+  order: 3
+  label: 전역 구성
+---
+
+전역 구성은 모든 프로젝트에 걸쳐 모든 Cyberstrike 세션의 기본 동작을 설정합니다.
+
+{/* TODO: Screenshot - Global configuration file */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: global-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">전역 설정 파일 위치</p>
+</div>
+
+## 파일 위치
+
+전역 구성은 전역 설정 디렉토리에 있습니다:
+
+```
+~/.config/cyberstrike/
+```
+
+`XDG_CONFIG_HOME`이 설정되면 `$XDG_CONFIG_HOME/cyberstrike`로 해석됩니다.
+
+## 지원되는 파일 이름
+
+전역 설정 디렉토리에서 다음 파일들이 순서대로 읽혀지고 병합됩니다:
+
+| 파일 | 형식 | 우선순위 |
+|------|------|----------|
+| `config.json` | JSON | 낮음 (기본, 자동 생성) |
+| `cyberstrike.json` | JSON | 중간 |
+| `cyberstrike.jsonc` | 주석이 있는 JSON | 높음 (권장) |
+
+여러 파일이 존재하면 모두 읽혀지고 각 후속 파일이 이전 위에 병합됩니다.
+
+### 디렉토리 구조
+
+```
+~/.config/cyberstrike/
+├── config.json          ← 자동 생성된 전역 설정
+├── cyberstrike.json     ← 전역 설정
+├── cyberstrike.jsonc    ← 전역 설정 (권장)
+├── agents/              ← 커스텀 에이전트 (*.md)   (agent/도 허용)
+├── commands/            ← 커스텀 명령 (*.md) (command/도 허용)
+└── plugins/             ← 플러그인 (*.ts / *.js)  (plugin/도 허용)
+```
+
+Cyberstrike는 홈 폴더의 `~/.cyberstrike/` 디렉토리에서도 `cyberstrike.json`/`cyberstrike.jsonc`와 동일한 `agents/`, `commands/`, `plugins/` 하위 폴더를 추가로 스캔합니다.
+
+## 전역 설정 만들기
+
+init 명령어는 없습니다 — 파일을 수동으로 생성하세요:
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  // Cyberstrike 전역 설정
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+## 모델 구성
+
+### 기본 모델
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+형식: `provider/model`.
+
+### 경량 모델
+
+세션 제목 생성 같은 경량 작업에 사용됩니다:
+
+```json
+{
+  "small_model": "anthropic/claude-haiku-4-5-20251001"
+}
+```
+
+## 제공자 구성
+
+`provider` 아래에서 제공자를 개별적으로 구성합니다. `options` 객체는 제공자 SDK로 전달됩니다:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### 제공자 활성화 / 비활성화
+
+```json
+{
+  "disabled_providers": ["ollama"],
+  "enabled_providers": ["anthropic", "openai"]
+}
+```
+
+`enabled_providers`가 설정되면, **해당** 제공자만 로드되고 나머지는 모두 무시됩니다. 제공자별 세부 정보는 [AI 제공자](/docs/providers)를 참조하세요.
+
+## 테마
+
+`theme`는 설치된 테마의 이름(문자열)입니다. 기본값은 `cyberstrike`입니다:
+
+```json
+{
+  "theme": "cyberstrike"
+}
+```
+
+TUI에서 `/themes` 명령 (또는 `<leader>t`)으로 테마를 탐색하고 전환합니다. 내장 테마에는 `cyberstrike`, `tokyonight`, `catppuccin`, `dracula`, `gruvbox`, `nord`, `github`, `monokai`, `matrix`, `rosepine`, `solarized` 등이 있습니다.
+
+## 키바인딩
+
+### 리더 키
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+x"
+  }
+}
+```
+
+### 커스텀 바인딩
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "theme_list": "<leader>t",
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+전체 동작 목록과 기본값은 [키바인딩](/docs/configuration/keybindings)을 참조하세요.
+
+## 권한 기본값
+
+권한은 도구 이름을 동작(`ask`, `allow`, `deny`)에 매핑하거나, 글로브 → 동작 맵에 매핑합니다. 별도의 허용/거부 목록은 없습니다 — 도구 키 **자체**가 그룹입니다:
+
+```json
+{
+  "permission": {
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "bash": {
+      "*": "ask",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "*": "ask",
+      "~/.ssh/**": "deny"
+    }
+  }
+}
+```
+
+와일드카드는 `*`와 `?`만 지원됩니다. 전체 모델과 권한 키 목록은 [권한](/docs/permissions)을 참조하세요.
+
+## MCP 서버
+
+MCP 서버는 `mcp` 아래에 서버 이름으로 키를 지정한 평면 맵으로 선언합니다. 로컬 서버는 단일 `command` 배열(명령어 + 인수)과 함께 `type: "local"`을 사용하고, 원격 서버는 `url`과 함께 `type: "remote"`를 사용합니다:
+
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "~"],
+      "environment": { "DEBUG": "true" },
+      "enabled": true
+    },
+    "remote-api": {
+      "type": "remote",
+      "url": "https://api.example.com/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+Bolt 서버는 `mcp`가 아닌 최상위 `bolt` 키 아래에 별도로 구성됩니다. [Bolt / MCP](/docs/mcp)를 참조하세요.
+
+## 기본 에이전트
+
+기본 에이전트를 설정합니다 (기본 에이전트여야 하며, 설정되지 않거나 유효하지 않으면 `cyberstrike`로 폴백):
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+커스텀 에이전트는 설정 디렉토리의 `agents/` (또는 `agent/`) 디렉토리에서 로드됩니다 — [커스텀 에이전트](/docs/agents/custom-agents)를 참조하세요.
+
+## 압축
+
+자동 컨텍스트 압축을 제어합니다:
+
+```json
+{
+  "compaction": {
+    "auto": true,
+    "prune": true
+  }
+}
+```
+
+| 옵션 | 설명 |
+|------|------|
+| `auto` | 컨텍스트가 가득 찼을 때 자동 압축 (기본값: true) |
+| `prune` | 오래된 도구 출력 정리 (기본값: true) |
+
+## 로깅 및 업데이트
+
+```json
+{
+  "logLevel": "INFO",
+  "autoupdate": "notify"
+}
+```
+
+`logLevel`은 `DEBUG`, `INFO`, `WARN`, `ERROR` 중 하나입니다 (기본값 `INFO`). `autoupdate`는 `true`, `false`, `"notify"`를 허용합니다.
+
+## 전체 예시
+
+```jsonc title="~/.config/cyberstrike/cyberstrike.jsonc"
+{
+  "$schema": "https://cyberstrike.io/config.json",
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "small_model": "anthropic/claude-haiku-4-5-20251001",
+  "default_agent": "cyberstrike",
+  "theme": "cyberstrike",
+  "share": "manual",
+  "autoupdate": "notify",
+
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+
+  "permission": {
+    "read": "allow",
+    "edit": { "*": "ask" },
+    "bash": { "*": "ask", "rm -rf *": "deny" }
+  },
+
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "."],
+      "enabled": true
+    }
+  },
+
+  "keybinds": { "leader": "ctrl+x" },
+  "compaction": { "auto": true, "prune": true }
+}
+```
+
+## 백업
+
+```bash
+cp ~/.config/cyberstrike/cyberstrike.jsonc ~/.config/cyberstrike/cyberstrike.jsonc.backup
+```
+
+## 보안 고려 사항
+
+### 파일 권한
+
+```bash
+chmod 600 ~/.config/cyberstrike/cyberstrike.jsonc
+chmod 700 ~/.config/cyberstrike/
+```
+
+### 민감한 데이터
+
+API 키를 직접 저장하지 마세요 — 대신 환경 변수를 참조합니다:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  API 키와 같은 민감한 데이터에는 항상 환경 변수 참조(`{env:VAR}`)를 사용하세요.
+</Aside>
+
+## 관련 문서
+
+- [구성 레퍼런스](/docs/configuration) - 모든 구성 옵션
+- [프로젝트 구성](/docs/configuration/project-config) - 프로젝트 설정
+- [환경 변수](/docs/configuration/environment-variables) - 환경 변수
+- [키바인딩](/docs/configuration/keybindings) - 키보드 단축키
