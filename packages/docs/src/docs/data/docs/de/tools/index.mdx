@@ -632,7 +632,7 @@ Dateien in einem `tool/`- oder `tools/`-Verzeichnis innerhalb eines `.cyberstrik
 
 ## MCP-Server-Werkzeuge
 
-Cyberstrike kann Werkzeuge von MCP-Servern laden. Der empfohlene Ansatz ist [Bolt](/docs/mcp/bolt), der Sicherheitswerkzeuge ueber einen Docker-Container mit Plugin-System bereitstellt:
+Cyberstrike kann Werkzeuge von MCP-Servern laden. Der empfohlene Ansatz ist [Bolt](/docs/features/bolt), der Sicherheitswerkzeuge ueber einen Docker-Container mit Plugin-System bereitstellt:
 
 ```json title="cyberstrike.json"
 {
@@ -648,5 +648,5 @@ Cyberstrike kann Werkzeuge von MCP-Servern laden. Der empfohlene Ansatz ist [Bol
 MCP-Werkzeuge werden als direkte Werkzeugaufrufe verfuegbar — jedes Plugin wird direkt ueber seinen Namen aufgerufen (z.B. `nmap`, `nuclei`, `ffuf`).
 
 <Aside variant="tip">
-  Siehe [Bolt](/docs/mcp/bolt) fuer die empfohlene Einrichtung der Sicherheitswerkzeuge — 7 Plugins plus ~26 aggregierte MCP-Server, alle als direkte Werkzeugaufrufe verfuegbar.
+  Siehe [Bolt](/docs/features/bolt) fuer die empfohlene Einrichtung der Sicherheitswerkzeuge — 7 Plugins plus ~26 aggregierte MCP-Server, alle als direkte Werkzeugaufrufe verfuegbar.
 </Aside>

@@ -35,37 +35,280 @@ MCP servers go under the flat `mcp` map in your config, keyed by name:
 }
 ```
 
-### Local Servers (stdio)
+## Local Servers
 
-Local servers run as child processes:
+Local servers run as child processes communicating over stdio.
 
-```json
+<Aside variant="tip">
+  **Prefer [Bolt](/docs/features/bolt) for security tools.** Local MCP requires installing each tool yourself. Bolt ships everything pre-installed in a Docker container.
+</Aside>
+
+### Configuration
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
 {
   "mcp": {
-    "filesystem": {
+    "my-tools": {
       "type": "local",
-      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/path/to/dir"]
+      "command": ["npx", "-y", "my-mcp-server"],
+      "environment": { "API_KEY": "{env:MY_API_KEY}" },
+      "enabled": true,
+      "timeout": 5000
     }
   }
 }
 ```
 
-### Remote Servers (HTTP)
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `"local"` | Required. Selects a stdio child-process server. |
+| `command` | `string[]` | Required. The command **and its arguments** as one array. |
+| `environment` | object | Optional. Extra environment variables for the process. |
+| `enabled` | boolean | Optional. Start the server on launch (default: true). |
+| `timeout` | number | Optional. Request timeout in ms (default: 5000). |
 
-Remote servers connect over StreamableHTTP or SSE:
+<Aside variant="caution">
+  The `mcp` object is a **flat map** keyed by server name — there is no `servers` wrapper. `command` is a single array (command + args together); there is no separate `args`, `cwd`, `autoStart`, or `restart` field.
+</Aside>
+
+### Examples
+
+```json
+// Node.js server
+{ "mcp": { "filesystem": { "type": "local", "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/path"] } } }
+
+// Python server
+{ "mcp": { "python-tools": { "type": "local", "command": ["python", "-m", "mcp_server"] } } }
+
+// Docker-wrapped
+{ "mcp": { "docker-tools": { "type": "local", "command": ["docker", "run", "-i", "--rm", "mcp-tools:latest"] } } }
+```
+
+### Environment Variables
+
+Use `{env:VAR}` to reference shell variables instead of hard-coding secrets:
 
 ```json
 {
   "mcp": {
-    "remote-tools": {
-      "type": "remote",
-      "url": "https://mcp.example.com/sse"
+    "api-tools": {
+      "type": "local",
+      "command": ["node", "server.js"],
+      "environment": { "API_KEY": "{env:MY_API_KEY}" }
     }
   }
 }
 ```
 
-Remote servers support [OAuth authentication](/docs/mcp/oauth) for protected endpoints.
+---
+
+## Remote Servers
+
+Remote servers connect over HTTP/HTTPS using StreamableHTTP (with SSE fallback).
+
+### Configuration
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "mcp": {
+    "my-remote": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "headers": { "Authorization": "Bearer {env:MY_TOKEN}" },
+      "enabled": true,
+      "timeout": 5000
+    }
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `"remote"` | Required. Selects an HTTP-based server. |
+| `url` | string | Required. The server endpoint. |
+| `headers` | object | Optional. Headers sent with each request (e.g. an API key). |
+| `oauth` | object \| `false` | Optional. OAuth config; set `false` to disable OAuth auto-detection. See [OAuth](#oauth). |
+| `enabled` | boolean | Optional. Connect on launch (default: true). |
+| `timeout` | number | Optional. Request timeout in ms (default: 5000). |
+
+### API Key Authentication
+
+```json
+{
+  "mcp": {
+    "github-remote": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": { "Authorization": "Bearer {env:GITHUB_TOKEN}" }
+    }
+  }
+}
+```
+
+---
+
+## OAuth
+
+OAuth lets Cyberstrike authenticate with a remote MCP server without storing long-lived credentials. Cyberstrike discovers the server's OAuth endpoints automatically.
+
+### Configuration
+
+```json
+{
+  "mcp": {
+    "oauth-server": {
+      "type": "remote",
+      "url": "https://mcp.example.com/mcp",
+      "oauth": {
+        "clientId": "{env:OAUTH_CLIENT_ID}",
+        "clientSecret": "{env:OAUTH_CLIENT_SECRET}",
+        "scope": "read write"
+      }
+    }
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `clientId` | string | Optional. If omitted, **dynamic client registration (RFC 7591)** is attempted. |
+| `clientSecret` | string | Optional. Only if the authorization server requires a confidential client. |
+| `scope` | string | Optional. Scopes to request during authorization. |
+
+<Aside variant="caution">
+  The authorization and token URLs are **not** configured here — Cyberstrike discovers them from the server's OAuth metadata. Only `clientId`, `clientSecret`, and `scope` are valid fields.
+</Aside>
+
+### How It Works
+
+1. Cyberstrike detects that the remote server requires OAuth (from its metadata).
+2. If no `clientId` is set, it registers a client dynamically (RFC 7591).
+3. It opens your browser to the authorization URL; you log in and grant access.
+4. The authorization code is exchanged for tokens on a local callback.
+5. Tokens are stored and refreshed automatically when they expire.
+
+Set `"oauth": false` on the server to opt out of OAuth auto-detection.
+
+### CLI Commands
+
+```bash
+cyberstrike mcp auth <name>       # authorize a server
+cyberstrike mcp auth list         # list OAuth-authorized servers
+cyberstrike mcp logout <name>     # remove stored OAuth credentials
+```
+
+---
+
+## Creating Servers
+
+Build custom MCP servers to extend Cyberstrike with specialized tools.
+
+### TypeScript
+
+```typescript title="src/index.ts"
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+
+const server = new Server({
+  name: "my-security-tools",
+  version: "1.0.0"
+}, {
+  capabilities: { tools: {} }
+});
+
+server.setRequestHandler("tools/list", async () => ({
+  tools: [{
+    name: "port-scan",
+    description: "Scan ports on a target host",
+    inputSchema: {
+      type: "object",
+      properties: {
+        host: { type: "string", description: "Target hostname or IP" },
+        ports: { type: "string", description: "Port range (e.g., 1-1000)" }
+      },
+      required: ["host"]
+    }
+  }]
+}));
+
+server.setRequestHandler("tools/call", async (request) => {
+  const { name, arguments: args } = request.params;
+  if (name === "port-scan") {
+    const result = await scanPorts(args.host, args.ports);
+    return { content: [{ type: "text", text: result }] };
+  }
+  throw new Error(`Unknown tool: ${name}`);
+});
+
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+### Python
+
+```python title="server.py"
+import asyncio
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+
+server = Server("my-security-tools")
+
+@server.list_tools()
+async def list_tools():
+    return [{
+        "name": "port-scan",
+        "description": "Scan ports on a target host",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "host": {"type": "string"},
+                "ports": {"type": "string"}
+            },
+            "required": ["host"]
+        }
+    }]
+
+@server.call_tool()
+async def call_tool(name: str, arguments: dict):
+    if name == "port-scan":
+        result = await scan_ports(arguments["host"], arguments.get("ports"))
+        return [{"type": "text", "text": result}]
+    raise ValueError(f"Unknown tool: {name}")
+
+async def main():
+    async with stdio_server() as streams:
+        await server.run(streams[0], streams[1])
+
+asyncio.run(main())
+```
+
+### Transport Options
+
+| Transport | Use Case | Registration |
+|-----------|----------|--------------|
+| **stdio** | Local servers | `"type": "local"` with `command` array |
+| **StreamableHTTP/SSE** | Remote servers | `"type": "remote"` with `url` |
+
+<Aside variant="info">
+  Cyberstrike connects to **stdio** servers (local) and **StreamableHTTP/SSE** servers (remote). There is no WebSocket client transport.
+</Aside>
+
+### Registering with Cyberstrike
+
+```json title="cyberstrike.json"
+{
+  "mcp": {
+    "my-security-tools": {
+      "type": "local",
+      "command": ["node", "dist/index.js"]
+    }
+  }
+}
+```
+
+Or add it interactively with `/mcps` in the TUI.
+
+---
 
 ## Management
 
@@ -86,14 +329,12 @@ In both dialogs: **a** to add, **space** to toggle, **esc** to close.
 
 MCP entries follow the standard [configuration hierarchy](/docs/configuration#configuration-hierarchy): project `.cyberstrike/` overrides project `cyberstrike.json`, which overrides global `~/.config/cyberstrike/`, which overrides built-in servers.
 
-## Detailed Guides
+## Troubleshooting
 
-| Guide | Description |
-|-------|-------------|
-| [Local Servers](/docs/mcp/local-servers) | Local stdio MCP server setup |
-| [Remote Servers](/docs/mcp/remote-servers) | HTTP/SSE remote connections |
-| [OAuth](/docs/mcp/oauth) | OAuth authentication for remote servers |
-| [Creating Servers](/docs/mcp/creating-servers) | Build custom MCP servers |
+- **Server won't start** — verify `command` exists and is executable; inspect with `cyberstrike mcp debug <name>`.
+- **Connection timeout** — increase `timeout`, or confirm the endpoint is reachable.
+- **Auth failures** — verify the header or run `cyberstrike mcp auth <name>` for OAuth servers.
+- **Config rejected** — the `mcp` schema is strict; use the flat map with `type` + `command`/`url` and only the listed fields.
 
 <Aside variant="danger">
   Only use security tools against authorized targets. Unauthorized penetration testing is illegal.

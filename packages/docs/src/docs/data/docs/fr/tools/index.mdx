@@ -632,7 +632,7 @@ Les fichiers dans un repertoire `tool/` ou `tools/` a l'interieur de tout dossie
 
 ## Outils de serveurs MCP
 
-Cyberstrike peut charger des outils depuis des serveurs MCP. L'approche recommandee est [Bolt](/docs/mcp/bolt), qui fournit des outils de securite via un conteneur Docker avec un systeme de plugins :
+Cyberstrike peut charger des outils depuis des serveurs MCP. L'approche recommandee est [Bolt](/docs/features/bolt), qui fournit des outils de securite via un conteneur Docker avec un systeme de plugins :
 
 ```json title="cyberstrike.json"
 {
@@ -648,5 +648,5 @@ Cyberstrike peut charger des outils depuis des serveurs MCP. L'approche recomman
 Les outils MCP deviennent disponibles comme appels d'outils directs -- chaque plugin est appele directement par son nom (ex. `nmap`, `nuclei`, `ffuf`).
 
 <Aside variant="tip">
-  Voir [Bolt](/docs/mcp/bolt) pour la configuration recommandee des outils de securite — 7 plugins plus environ 26 serveurs MCP agreges, tous disponibles comme appels d'outils directs.
+  Voir [Bolt](/docs/features/bolt) pour la configuration recommandee des outils de securite — 7 plugins plus environ 26 serveurs MCP agreges, tous disponibles comme appels d'outils directs.
 </Aside>

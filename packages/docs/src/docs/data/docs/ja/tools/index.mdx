@@ -632,7 +632,7 @@ export default {
 
 ## MCPサーバーツール
 
-CyberStrikeはMCPサーバーからツールを読み込むことができます。推奨されるアプローチは[Bolt](/docs/mcp/bolt)で、プラグインシステムを備えたDockerコンテナを通じてセキュリティツールを提供します：
+CyberStrikeはMCPサーバーからツールを読み込むことができます。推奨されるアプローチは[Bolt](/docs/features/bolt)で、プラグインシステムを備えたDockerコンテナを通じてセキュリティツールを提供します：
 
 ```json title="cyberstrike.json"
 {
@@ -648,5 +648,5 @@ CyberStrikeはMCPサーバーからツールを読み込むことができます
 MCPツールは直接のツール呼び出しとして利用可能になります — 各プラグインは名前で直接呼び出せます（例：`nmap`、`nuclei`、`ffuf`）。
 
 <Aside variant="tip">
-  推奨されるセキュリティツールのセットアップについては[Bolt](/docs/mcp/bolt)を参照してください — 7つのプラグインと約26の集約MCPサーバーが、すべて直接ツール呼び出しとして利用可能です。
+  推奨されるセキュリティツールのセットアップについては[Bolt](/docs/features/bolt)を参照してください — 7つのプラグインと約26の集約MCPサーバーが、すべて直接ツール呼び出しとして利用可能です。
 </Aside>

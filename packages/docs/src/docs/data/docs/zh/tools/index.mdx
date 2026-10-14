@@ -632,7 +632,7 @@ export default {
 
 ## MCP 服务器工具
 
-Cyberstrike 可以从 MCP 服务器加载工具。推荐的方式是 [Bolt](/docs/mcp/bolt)，它通过 Docker 容器和插件系统提供安全工具：
+Cyberstrike 可以从 MCP 服务器加载工具。推荐的方式是 [Bolt](/docs/features/bolt)，它通过 Docker 容器和插件系统提供安全工具：
 
 ```json title="cyberstrike.json"
 {
@@ -648,5 +648,5 @@ Cyberstrike 可以从 MCP 服务器加载工具。推荐的方式是 [Bolt](/doc
 MCP 工具作为直接工具调用变为可用——每个插件直接按名称调用（例如 `nmap`、`nuclei`、`ffuf`）。
 
 <Aside variant="tip">
-  参阅 [Bolt](/docs/mcp/bolt) 了解推荐的安全工具设置——7 个插件加约 26 个聚合的 MCP 服务器，全部可作为直接工具调用。
+  参阅 [Bolt](/docs/features/bolt) 了解推荐的安全工具设置——7 个插件加约 26 个聚合的 MCP 服务器，全部可作为直接工具调用。
 </Aside>

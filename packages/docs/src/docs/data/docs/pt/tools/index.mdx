@@ -632,7 +632,7 @@ Arquivos em um diretorio `tool/` ou `tools/` dentro de qualquer pasta `.cyberstr
 
 ## Ferramentas de Servidor MCP
 
-O Cyberstrike pode carregar ferramentas de servidores MCP. A abordagem recomendada e o [Bolt](/docs/mcp/bolt), que fornece ferramentas de seguranca por meio de um container Docker com sistema de plugins:
+O Cyberstrike pode carregar ferramentas de servidores MCP. A abordagem recomendada e o [Bolt](/docs/features/bolt), que fornece ferramentas de seguranca por meio de um container Docker com sistema de plugins:
 
 ```json title="cyberstrike.json"
 {
@@ -648,5 +648,5 @@ O Cyberstrike pode carregar ferramentas de servidores MCP. A abordagem recomenda
 Ferramentas MCP ficam disponiveis como chamadas de ferramenta diretas -- cada plugin e chamado diretamente pelo nome (ex: `nmap`, `nuclei`, `ffuf`).
 
 <Aside variant="tip">
-  Veja [Bolt](/docs/mcp/bolt) para a configuracao recomendada de ferramentas de seguranca -- 7 plugins mais ~26 servidores MCP agregados, todos disponiveis como chamadas de ferramenta diretas.
+  Veja [Bolt](/docs/features/bolt) para a configuracao recomendada de ferramentas de seguranca -- 7 plugins mais ~26 servidores MCP agregados, todos disponiveis como chamadas de ferramenta diretas.
 </Aside>

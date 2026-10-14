@@ -15,7 +15,7 @@ The `cyberstrike mcp` commands manage Model Context Protocol servers. There are 
 </div>
 
 <Aside variant="caution">
-  Server config lives in `cyberstrike.json` (see [Local](/docs/mcp/local-servers) / [Remote](/docs/mcp/remote-servers) servers), and servers are managed interactively in the `/mcps` TUI dialog. There are no `mcp status`, `health`, `start`/`stop`/`restart`, `remove`, `config`, `tools`, `logs`, `export`/`import`, `install`, or `update` commands.
+  Server config lives in `cyberstrike.json` (see [Local](/docs/features/mcp#local-servers) / [Remote](/docs/features/mcp#remote-servers) servers), and servers are managed interactively in the `/mcps` TUI dialog. There are no `mcp status`, `health`, `start`/`stop`/`restart`, `remove`, `config`, `tools`, `logs`, `export`/`import`, `install`, or `update` commands.
 </Aside>
 
 ## `mcp list`
@@ -41,7 +41,7 @@ cyberstrike mcp auth [name]        # authorize an OAuth server
 cyberstrike mcp auth list          # list OAuth-authorized servers
 ```
 
-Authorizes a remote server that uses OAuth (opens the browser if needed). See [OAuth](/docs/mcp/oauth).
+Authorizes a remote server that uses OAuth (opens the browser if needed). See [OAuth](/docs/features/mcp#oauth).
 
 ## `mcp logout`
 
@@ -61,7 +61,7 @@ Inspects a server's connection — useful when a server fails to load or its too
 
 ## Related Documentation
 
-- [Bolt / MCP Overview](/docs/mcp) - MCP basics
-- [Local Servers](/docs/mcp/local-servers) - Local server config
-- [Remote Servers](/docs/mcp/remote-servers) - Remote server config
-- [OAuth](/docs/mcp/oauth) - OAuth authentication
+- [Bolt / MCP Overview](/docs/features/mcp) - MCP basics
+- [Local Servers](/docs/features/mcp#local-servers) - Local server config
+- [Remote Servers](/docs/features/mcp#remote-servers) - Remote server config
+- [OAuth](/docs/features/mcp#oauth) - OAuth authentication

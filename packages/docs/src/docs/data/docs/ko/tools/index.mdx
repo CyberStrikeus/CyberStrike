@@ -632,7 +632,7 @@ export default {
 
 ## MCP 서버 도구
 
-Cyberstrike는 MCP 서버에서 도구를 로드할 수 있습니다. 권장 접근 방식은 [Bolt](/docs/mcp/bolt)이며, 플러그인 시스템을 갖춘 Docker 컨테이너를 통해 보안 도구를 제공합니다:
+Cyberstrike는 MCP 서버에서 도구를 로드할 수 있습니다. 권장 접근 방식은 [Bolt](/docs/features/bolt)이며, 플러그인 시스템을 갖춘 Docker 컨테이너를 통해 보안 도구를 제공합니다:
 
 ```json title="cyberstrike.json"
 {
@@ -648,5 +648,5 @@ Cyberstrike는 MCP 서버에서 도구를 로드할 수 있습니다. 권장 접
 MCP 도구는 직접 도구 호출로 사용 가능합니다 -- 각 플러그인은 이름으로 직접 호출됩니다 (예: `nmap`, `nuclei`, `ffuf`).
 
 <Aside variant="tip">
-  권장 보안 도구 설정은 [Bolt](/docs/mcp/bolt)를 참조하세요 — 7개의 플러그인과 ~26개의 집계된 MCP 서버, 모두 직접 도구 호출로 사용 가능합니다.
+  권장 보안 도구 설정은 [Bolt](/docs/features/bolt)를 참조하세요 — 7개의 플러그인과 ~26개의 집계된 MCP 서버, 모두 직접 도구 호출로 사용 가능합니다.
 </Aside>
