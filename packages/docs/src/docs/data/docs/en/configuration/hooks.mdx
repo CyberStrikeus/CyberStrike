@@ -1,42 +1,34 @@
 ---
-title: Hooks System
-description: Extend Cyberstrike behavior with plugin hooks and shell commands
+title: Hooks & Plugins
+description: Extend Cyberstrike behavior with plugin hooks, custom tools, and shell commands
 sidebar:
-  order: 9
-  label: Overview
+  order: 7
+  label: Hooks & Plugins
 ---
 
 Hooks let you extend and customize Cyberstrike behavior at key points during execution. They are implemented as **plugins** — TypeScript/JavaScript modules that return a set of hook functions.
 
-{/* TODO: GIF - Hook blocking dangerous command */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">🎬 GIF: g10-hook-blocking.gif</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Hook tehlikeli komutu engellerken (12s)</p>
-</div>
+## Available Hooks
 
-{/* TODO: Screenshot - Hook blocking message */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: s14-hook-block.png</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Hook engelleme mesajı</p>
-</div>
-
-## Plugin Hooks
-
-Plugin hooks provide programmatic access to Cyberstrike internals. Create plugins using the `@cyberstrike-io/plugin` package. There is **no** config-based (JSON) hook system — all hooks are plugin functions.
-
-### Available Plugin Hooks
-
-| Hook | Trigger | Use Case |
-|------|---------|----------|
-| `tool.execute.before` | Before tool execution | Modify arguments, add logging |
-| `tool.execute.after` | After tool execution | Transform output, send notifications |
-| `permission.ask` | Permission requested | Custom approval logic |
-| `chat.message` | New message received | Message preprocessing |
-| `chat.params` | LLM call prepared | Modify temperature, add options |
-| `chat.headers` | HTTP request prepared | Add custom headers |
-| `command.execute.before` | Slash command invoked | Inject context |
-| `event` | Any bus event | Analytics, logging |
-| `config` | Configuration loaded | Dynamic config modification |
+| Hook | When it runs | You can… |
+|------|--------------|----------|
+| `event` | On any bus event | Observe events (logging, analytics) |
+| `config` | After config loads | Inspect/adjust the loaded config |
+| `tool` | Registration | Add custom tools (map of name → definition) |
+| `auth` | Registration | Add a custom auth provider |
+| `chat.message` | A user message is received | Read/append message parts |
+| `chat.params` | Before an LLM call | Change `temperature`, `topP`, `topK`, `options` |
+| `chat.headers` | Before an LLM request | Add/modify request `headers` |
+| `permission.ask` | A permission is requested | Set `status` to `allow`/`deny`/`ask` |
+| `command.execute.before` | A slash command runs | Inject `parts` |
+| `tool.execute.before` | Before a tool runs | Modify `args`, or throw to block |
+| `tool.execute.after` | After a tool runs | Transform `title`/`output`/`metadata` |
+| `tool.definition` | Tool sent to the LLM | Rewrite a tool's `description`/`parameters` |
+| `shell.env` | A shell command runs | Add environment variables |
+| `experimental.chat.messages.transform` | Before an LLM call | Rewrite the full message list |
+| `experimental.chat.system.transform` | Before an LLM call | Rewrite the system prompt array |
+| `experimental.session.compacting` | Before compaction | Add context or replace the compaction prompt |
+| `experimental.text.complete` | A text part completes | Rewrite the completed text |
 
 ### Hook Execution Flow
 
@@ -61,56 +53,23 @@ sequenceDiagram
 
 ## Creating a Plugin
 
-### Plugin Structure
+A plugin is `(input: PluginInput) => Promise<Hooks>`. Import the types from `@cyberstrike-io/plugin`:
 
-```typescript title="my-plugin/index.ts"
-import type { Plugin, Hooks } from "@cyberstrike-io/plugin"
+```typescript title=".cyberstrike/plugin/guard.ts"
+import type { Plugin } from "@cyberstrike-io/plugin"
 
-export const myPlugin: Plugin = async (input) => {
-  const { client, project, directory } = input
-
-  const hooks: Hooks = {
-    // Pre-tool execution hook
+export const GuardPlugin: Plugin = async ({ project, directory, $ }) => {
+  return {
     "tool.execute.before": async (input, output) => {
-      console.log(`Tool ${input.tool} called with:`, output.args)
-      // Modify args if needed
-      if (input.tool === "Bash" && output.args.command.includes("rm")) {
-        output.args.command = `echo "Blocked: ${output.args.command}"`
+      if (input.tool === "bash" && /rm\s+-rf/.test(output.args.command)) {
+        throw new Error("blocked: rm -rf")
       }
     },
-
-    // Post-tool execution hook
-    "tool.execute.after": async (input, output) => {
-      console.log(`Tool ${input.tool} completed:`, output.title)
-      // Transform output if needed
-    },
-
-    // Permission hook
     "permission.ask": async (input, output) => {
-      // Auto-approve read operations
-      if (input.tool === "Read") {
-        output.status = "allow"
-      }
-      // Block dangerous patterns
-      if (input.command?.includes("--force")) {
-        output.status = "deny"
-      }
-    },
-
-    // Event listener
-    event: async ({ event }) => {
-      // Log all events to external service
-      await fetch("https://analytics.example.com/event", {
-        method: "POST",
-        body: JSON.stringify(event),
-      })
+      if (input.type === "read") output.status = "allow"
     },
   }
-
-  return hooks
 }
-
-export default myPlugin
 ```
 
 ### Plugin Input
@@ -128,47 +87,64 @@ The plugin receives context about the current environment:
 
 ---
 
+## Registering Plugins
+
+### Local File (no publishing)
+
+Drop a `.ts`/`.js` file into a `plugin/` (or `plugins/`) directory inside any `.cyberstrike/` folder — project or `~/.cyberstrike/`:
+
+```
+.cyberstrike/
+└── plugin/
+    └── guard.ts
+```
+
+Cyberstrike discovers it automatically and installs `@cyberstrike-io/plugin` for you so local plugins can import the types.
+
+### Config Array
+
+Reference an npm package or a path in the `plugin` array (values are union-merged across config sources):
+
+```json title="cyberstrike.json"
+{
+  "plugin": [
+    "@myorg/cyberstrike-guard",
+    "./local/guard.ts"
+  ]
+}
+```
+
+### Built-in Plugins
+
+| Plugin | Purpose |
+|--------|---------|
+| `AnthropicAuthPlugin` | Anthropic OAuth |
+| `CodexAuthPlugin` | OpenAI/Codex OAuth |
+| `CopilotAuthPlugin` | GitHub Copilot auth |
+| `@gitlab/opencode-gitlab-auth` | GitLab integration |
+
+---
+
 ## Pre-Tool Hook (tool.execute.before)
 
 Intercept tool calls before execution to modify arguments or block execution.
 
-### Hook Signature
-
 ```typescript
 "tool.execute.before": async (
-  input: {
-    tool: string       // Tool name (Bash, Read, Write, etc.)
-    sessionID: string  // Current session ID
-    callID: string     // Unique call identifier
-  },
-  output: {
-    args: any          // Tool arguments (mutable)
-  }
+  input: { tool: string; sessionID: string; callID: string },
+  output: { args: any },
 ) => Promise<void>
 ```
 
-### Examples
-
-#### Logging All Tool Calls
-
-```typescript
-"tool.execute.before": async (input, output) => {
-  const timestamp = new Date().toISOString()
-  console.log(`[${timestamp}] ${input.tool}:`, JSON.stringify(output.args))
-}
-```
-
-#### Blocking Dangerous Commands
+To **block** a tool, throw from the hook:
 
 ```typescript
 "tool.execute.before": async (input, output) => {
   if (input.tool !== "Bash") return
 
   const dangerous = ["rm -rf", "mkfs", "dd if=", "> /dev/"]
-  const command = output.args.command
-
   for (const pattern of dangerous) {
-    if (command.includes(pattern)) {
+    if (output.args.command.includes(pattern)) {
       throw new Error(`Blocked dangerous command: ${pattern}`)
     }
   }
@@ -179,14 +155,8 @@ Intercept tool calls before execution to modify arguments or block execution.
 
 ```typescript
 "tool.execute.before": async (input, output) => {
-  if (input.tool === "Bash") {
-    // Add safety flags to git commands
-    if (output.args.command.startsWith("git push")) {
-      output.args.command = output.args.command.replace(
-        "git push",
-        "git push --dry-run"
-      )
-    }
+  if (input.tool === "Bash" && output.args.command.startsWith("git push")) {
+    output.args.command = output.args.command.replace("git push", "git push --dry-run")
   }
 }
 ```
@@ -197,40 +167,19 @@ Intercept tool calls before execution to modify arguments or block execution.
 
 Process tool output after execution for transformation or notification.
 
-### Hook Signature
-
 ```typescript
 "tool.execute.after": async (
-  input: {
-    tool: string       // Tool name
-    sessionID: string  // Current session ID
-    callID: string     // Unique call identifier
-  },
-  output: {
-    title: string      // Output title
-    output: string     // Tool output (mutable)
-    metadata: any      // Additional metadata
-  }
+  input: { tool: string; sessionID: string; callID: string; args: any },
+  output: { title: string; output: string; metadata: any },
 ) => Promise<void>
 ```
-
-### Examples
 
 #### Redacting Sensitive Data
 
 ```typescript
 "tool.execute.after": async (input, output) => {
-  // Redact API keys from output
-  output.output = output.output.replace(
-    /sk-[a-zA-Z0-9]{32,}/g,
-    "[REDACTED]"
-  )
-
-  // Redact passwords
-  output.output = output.output.replace(
-    /password[=:]\s*\S+/gi,
-    "password=[REDACTED]"
-  )
+  output.output = output.output.replace(/sk-[a-zA-Z0-9]{32,}/g, "[REDACTED]")
+  output.output = output.output.replace(/password[=:]\s*\S+/gi, "password=[REDACTED]")
 }
 ```
 
@@ -238,7 +187,6 @@ Process tool output after execution for transformation or notification.
 
 ```typescript
 "tool.execute.after": async (input, output) => {
-  // Notify on file writes
   if (input.tool === "Write") {
     await sendSlackNotification({
       channel: "#code-changes",
@@ -254,51 +202,22 @@ Process tool output after execution for transformation or notification.
 
 Customize permission decisions programmatically.
 
-### Hook Signature
-
 ```typescript
 "permission.ask": async (
-  input: Permission,  // Permission request details
-  output: {
-    status: "ask" | "deny" | "allow"  // Decision (mutable)
-  }
+  input: Permission,
+  output: { status: "ask" | "deny" | "allow" },
 ) => Promise<void>
 ```
 
-### Examples
-
-#### Auto-Approve Safe Operations
-
 ```typescript
 "permission.ask": async (input, output) => {
-  const safeTools = ["Read", "Glob", "Grep", "LSP"]
-
-  if (safeTools.includes(input.tool)) {
+  const safe = ["Read", "Glob", "Grep", "LSP"]
+  if (safe.includes(input.tool)) {
     output.status = "allow"
     return
   }
-
-  // Allow writes to test directories
   if (input.tool === "Write" && input.path?.includes("/test/")) {
     output.status = "allow"
-  }
-}
-```
-
-#### Deny Specific Patterns
-
-```typescript
-"permission.ask": async (input, output) => {
-  // Block access to sensitive directories
-  const sensitive = [".env", "credentials", "secrets", ".ssh"]
-
-  if (input.path) {
-    for (const dir of sensitive) {
-      if (input.path.includes(dir)) {
-        output.status = "deny"
-        return
-      }
-    }
   }
 }
 ```
@@ -307,22 +226,15 @@ Customize permission decisions programmatically.
 
 ## Chat Hooks
 
-Modify LLM interactions before requests are sent.
-
 ### chat.message
 
 Preprocess incoming messages:
 
 ```typescript
-"chat.message": async (input, output) => {
-  const { sessionID, agent, model } = input
-
-  // Add context to message parts
-  output.parts.push({
-    type: "text",
-    text: `[Session: ${sessionID}, Agent: ${agent}]`,
-  })
-}
+"chat.message": async (
+  input: { sessionID: string; agent?: string; model?: { providerID: string; modelID: string } },
+  output: { message: UserMessage; parts: Part[] },
+) => Promise<void>
 ```
 
 ### chat.params
@@ -331,14 +243,8 @@ Modify LLM parameters:
 
 ```typescript
 "chat.params": async (input, output) => {
-  // Lower temperature for the web-application subagent
   if (input.agent === "web-application") {
     output.temperature = 0.3
-  }
-
-  // Higher temperature for the default cyberstrike agent
-  if (input.agent === "cyberstrike") {
-    output.temperature = 0.8
   }
 }
 ```
@@ -356,43 +262,80 @@ Add custom HTTP headers:
 
 ---
 
-## Installing Plugins
+## Tool Definition Hook
 
-### From npm
+Rewrite a tool's description or parameters before sending to the LLM:
 
-Add plugins to your configuration:
-
-```json title="cyberstrike.json"
-{
-  "plugin": [
-    "my-security-plugin@1.0.0",
-    "@myorg/custom-hooks@2.1.0"
-  ]
-}
+```typescript
+"tool.definition": async (
+  input: { toolID: string },
+  output: { description: string; parameters: any },
+) => Promise<void>
 ```
 
-### From Local File
+---
 
-Reference local plugin files:
+## Command & Shell Hooks
 
-```json title="cyberstrike.json"
-{
-  "plugin": [
-    "file:///path/to/my-plugin"
-  ]
-}
+```typescript
+"command.execute.before": async (
+  input: { command: string; sessionID: string; arguments: string },
+  output: { parts: Part[] },
+) => Promise<void>
+
+"shell.env": async (
+  input: { cwd: string },
+  output: { env: Record<string, string> },
+) => Promise<void>
 ```
 
-### Built-in Plugins
+---
 
-Cyberstrike includes built-in plugins for authentication:
+## Lifecycle Hooks
 
-| Plugin | Purpose |
-|--------|---------|
-| `AnthropicAuthPlugin` | Anthropic OAuth |
-| `CodexAuthPlugin` | OpenAI/Codex OAuth |
-| `CopilotAuthPlugin` | GitHub Copilot auth |
-| `@gitlab/opencode-gitlab-auth` | GitLab integration |
+```typescript
+event:  (input: { event: Event }) => Promise<void>
+config: (input: Config) => Promise<void>
+```
+
+---
+
+## Experimental Hooks
+
+```typescript
+"experimental.chat.messages.transform": async (input: {}, output: { messages: { info: Message; parts: Part[] }[] }) => Promise<void>
+"experimental.chat.system.transform":   async (input: { sessionID?: string; model: Model }, output: { system: string[] }) => Promise<void>
+"experimental.session.compacting":      async (input: { sessionID: string }, output: { context: string[]; prompt?: string }) => Promise<void>
+"experimental.text.complete":           async (input: { sessionID: string; messageID: string; partID: string }, output: { text: string }) => Promise<void>
+```
+
+---
+
+## Custom Tools
+
+Add custom tools through plugins:
+
+```typescript
+return {
+  tool: {
+    my_scanner: {
+      description: "Custom vulnerability scanner",
+      parameters: {
+        type: "object",
+        properties: {
+          target: { type: "string", description: "Target URL to scan" },
+          depth: { type: "number", description: "Scan depth", default: 3 },
+        },
+        required: ["target"],
+      },
+      execute: async (args) => ({
+        title: `Scanned ${args.target}`,
+        output: await scan(args.target),
+      }),
+    },
+  },
+}
+```
 
 ---
 
@@ -414,17 +357,13 @@ const authHook: AuthHook = {
           message: "Enter your API key",
           placeholder: "sk-...",
           validate: (value) => {
-            if (!value.startsWith("sk-")) {
-              return "API key must start with sk-"
-            }
+            if (!value.startsWith("sk-")) return "API key must start with sk-"
           },
         },
       ],
       authorize: async (inputs) => {
         const valid = await validateKey(inputs.apiKey)
-        if (valid) {
-          return { type: "success", key: inputs.apiKey }
-        }
+        if (valid) return { type: "success", key: inputs.apiKey }
         return { type: "failed" }
       },
     },
@@ -435,10 +374,7 @@ const authHook: AuthHook = {
         url: "https://auth.example.com/oauth",
         instructions: "Complete login in browser",
         method: "auto",
-        callback: async () => {
-          // Handle OAuth callback
-          return { type: "success", key: "obtained-key" }
-        },
+        callback: async () => ({ type: "success", key: "obtained-key" }),
       }),
     },
   ],
@@ -447,41 +383,34 @@ const authHook: AuthHook = {
 
 ---
 
-## Custom Tool Hooks
+## Publishing Plugins
 
-Add custom tools through plugins:
+Package your plugin like any npm module:
 
-```typescript
-const hooks: Hooks = {
-  tool: {
-    my_scanner: {
-      description: "Custom vulnerability scanner",
-      parameters: {
-        type: "object",
-        properties: {
-          target: {
-            type: "string",
-            description: "Target URL to scan",
-          },
-          depth: {
-            type: "number",
-            description: "Scan depth",
-            default: 3,
-          },
-        },
-        required: ["target"],
-      },
-      execute: async (args, context) => {
-        const result = await runScanner(args.target, args.depth)
-        return {
-          output: result,
-          title: `Scanned ${args.target}`,
-        }
-      },
-    },
-  },
+```json title="package.json"
+{
+  "name": "@myorg/cyberstrike-guard",
+  "type": "module",
+  "main": "./index.ts",
+  "peerDependencies": { "@cyberstrike-io/plugin": "*" }
 }
 ```
+
+```bash
+npm publish --access public
+```
+
+---
+
+## Testing & Debugging
+
+Run Cyberstrike with debug logging to see plugins load and hooks fire:
+
+```bash
+cyberstrike --log-level DEBUG --print-logs
+```
+
+Since hooks mutate `output` (or throw), you can unit-test them by calling the hook with a fake `input`/`output` and asserting on the mutated `output`.
 
 ---
 
@@ -492,7 +421,6 @@ const hooks: Hooks = {
 1. Keep hooks lightweight to avoid latency
 2. Use async operations for external calls
 3. Cache expensive computations
-4. Avoid blocking the main thread
 
 ### Security
 
@@ -501,43 +429,6 @@ const hooks: Hooks = {
 3. Use environment variables for secrets
 4. Log security-relevant events
 
-### Debugging
-
-Enable plugin logging:
-
-```bash
-cyberstrike --log-level DEBUG --print-logs
-```
-
-View plugin loading:
-
-```
-[plugin] loading plugin my-security-plugin@1.0.0
-[plugin] loading internal plugin CodexAuthPlugin
-```
-
----
-
-## Troubleshooting
-
-### Plugin Not Loading
-
-1. Check plugin path or npm package name
-2. Verify plugin exports a valid `Plugin` function
-3. Check for TypeScript compilation errors
-
-### Hook Not Triggering
-
-1. Verify hook name matches exactly
-2. Check that plugin is listed in configuration
-3. Enable debug logging to trace execution
-
-### Performance Issues
-
-1. Profile hook execution time
-2. Move heavy operations to background
-3. Consider caching frequent operations
-
 <Aside variant="caution">
-  Plugins run with full access to your machine and Cyberstrike internals. Only install plugins you trust.
+  Plugins run with full access to your machine and Cyberstrike internals. Only install plugins you trust, and keep hooks fast — they run inline with tool calls and LLM requests.
 </Aside>

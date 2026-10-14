@@ -1,44 +1,36 @@
 ---
-title: 훅 시스템
-description: 플러그인 훅과 쉘 명령으로 Cyberstrike 동작 확장
+title: Hooks & Plugins
+description: Extend Cyberstrike behavior with plugin hooks, custom tools, and shell commands
 sidebar:
-  order: 9
-  label: 개요
+  order: 7
+  label: Hooks & Plugins
 ---
 
-훅을 사용하면 실행 중 핵심 시점에서 Cyberstrike 동작을 확장하고 커스터마이즈할 수 있습니다. 훅은 **플러그인**으로 구현됩니다 — 훅 함수 세트를 반환하는 TypeScript/JavaScript 모듈입니다.
+Hooks let you extend and customize Cyberstrike behavior at key points during execution. They are implemented as **plugins** — TypeScript/JavaScript modules that return a set of hook functions.
 
-{/* TODO: GIF - Hook blocking dangerous command */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">🎬 GIF: g10-hook-blocking.gif</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">훅이 위험한 명령을 차단하는 모습 (12초)</p>
-</div>
+## Available Hooks
 
-{/* TODO: Screenshot - Hook blocking message */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: s14-hook-block.png</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">훅 차단 메시지</p>
-</div>
+| Hook | When it runs | You can… |
+|------|--------------|----------|
+| `event` | On any bus event | Observe events (logging, analytics) |
+| `config` | After config loads | Inspect/adjust the loaded config |
+| `tool` | Registration | Add custom tools (map of name → definition) |
+| `auth` | Registration | Add a custom auth provider |
+| `chat.message` | A user message is received | Read/append message parts |
+| `chat.params` | Before an LLM call | Change `temperature`, `topP`, `topK`, `options` |
+| `chat.headers` | Before an LLM request | Add/modify request `headers` |
+| `permission.ask` | A permission is requested | Set `status` to `allow`/`deny`/`ask` |
+| `command.execute.before` | A slash command runs | Inject `parts` |
+| `tool.execute.before` | Before a tool runs | Modify `args`, or throw to block |
+| `tool.execute.after` | After a tool runs | Transform `title`/`output`/`metadata` |
+| `tool.definition` | Tool sent to the LLM | Rewrite a tool's `description`/`parameters` |
+| `shell.env` | A shell command runs | Add environment variables |
+| `experimental.chat.messages.transform` | Before an LLM call | Rewrite the full message list |
+| `experimental.chat.system.transform` | Before an LLM call | Rewrite the system prompt array |
+| `experimental.session.compacting` | Before compaction | Add context or replace the compaction prompt |
+| `experimental.text.complete` | A text part completes | Rewrite the completed text |
 
-## 플러그인 훅
-
-플러그인 훅은 Cyberstrike 내부에 대한 프로그래밍적 접근을 제공합니다. `@cyberstrike-io/plugin` 패키지를 사용하여 플러그인을 만듭니다. 구성 기반(JSON) 훅 시스템은 **없습니다** — 모든 훅은 플러그인 함수입니다.
-
-### 사용 가능한 플러그인 훅
-
-| 훅 | 트리거 | 사용 사례 |
-|----|--------|-----------|
-| `tool.execute.before` | 도구 실행 전 | 인수 수정, 로깅 추가 |
-| `tool.execute.after` | 도구 실행 후 | 출력 변환, 알림 전송 |
-| `permission.ask` | 권한 요청됨 | 커스텀 승인 로직 |
-| `chat.message` | 새 메시지 수신됨 | 메시지 전처리 |
-| `chat.params` | LLM 호출 준비됨 | 온도 수정, 옵션 추가 |
-| `chat.headers` | HTTP 요청 준비됨 | 커스텀 헤더 추가 |
-| `command.execute.before` | 슬래시 명령 호출됨 | 컨텍스트 주입 |
-| `event` | 모든 버스 이벤트 | 분석, 로깅 |
-| `config` | 구성 로드됨 | 동적 구성 수정 |
-
-### 훅 실행 흐름
+### Hook Execution Flow
 
 ```mermaid
 sequenceDiagram
@@ -47,198 +39,154 @@ sequenceDiagram
     participant Hook System
     participant Tool
 
-    User->>Agent: 동작 요청
+    User->>Agent: Request action
     Agent->>Hook System: tool.execute.before
-    Hook System-->>Agent: 수정된 인수
-    Agent->>Tool: 인수로 실행
-    Tool-->>Agent: 원시 출력
+    Hook System-->>Agent: Modified args
+    Agent->>Tool: Execute with args
+    Tool-->>Agent: Raw output
     Agent->>Hook System: tool.execute.after
-    Hook System-->>Agent: 변환된 출력
-    Agent-->>User: 최종 응답
+    Hook System-->>Agent: Transformed output
+    Agent-->>User: Final response
 ```
 
 ---
 
-## 플러그인 만들기
+## Creating a Plugin
 
-### 플러그인 구조
+A plugin is `(input: PluginInput) => Promise<Hooks>`. Import the types from `@cyberstrike-io/plugin`:
 
-```typescript title="my-plugin/index.ts"
-import type { Plugin, Hooks } from "@cyberstrike-io/plugin"
+```typescript title=".cyberstrike/plugin/guard.ts"
+import type { Plugin } from "@cyberstrike-io/plugin"
 
-export const myPlugin: Plugin = async (input) => {
-  const { client, project, directory } = input
-
-  const hooks: Hooks = {
-    // 도구 실행 전 훅
+export const GuardPlugin: Plugin = async ({ project, directory, $ }) => {
+  return {
     "tool.execute.before": async (input, output) => {
-      console.log(`Tool ${input.tool} called with:`, output.args)
-      // 필요시 인수 수정
-      if (input.tool === "Bash" && output.args.command.includes("rm")) {
-        output.args.command = `echo "Blocked: ${output.args.command}"`
+      if (input.tool === "bash" && /rm\s+-rf/.test(output.args.command)) {
+        throw new Error("blocked: rm -rf")
       }
     },
-
-    // 도구 실행 후 훅
-    "tool.execute.after": async (input, output) => {
-      console.log(`Tool ${input.tool} completed:`, output.title)
-      // 필요시 출력 변환
-    },
-
-    // 권한 훅
     "permission.ask": async (input, output) => {
-      // 읽기 작업 자동 승인
-      if (input.tool === "Read") {
-        output.status = "allow"
-      }
-      // 위험한 패턴 차단
-      if (input.command?.includes("--force")) {
-        output.status = "deny"
-      }
-    },
-
-    // 이벤트 리스너
-    event: async ({ event }) => {
-      // 모든 이벤트를 외부 서비스에 로깅
-      await fetch("https://analytics.example.com/event", {
-        method: "POST",
-        body: JSON.stringify(event),
-      })
+      if (input.type === "read") output.status = "allow"
     },
   }
-
-  return hooks
 }
-
-export default myPlugin
 ```
 
-### 플러그인 입력
+### Plugin Input
 
-플러그인은 현재 환경에 대한 컨텍스트를 받습니다:
+The plugin receives context about the current environment:
 
-| 속성 | 타입 | 설명 |
-|------|------|------|
-| `client` | `CyberstrikeClient` | SDK 클라이언트 인스턴스 |
-| `project` | `Project` | 현재 프로젝트 정보 |
-| `directory` | `string` | 작업 디렉토리 |
-| `worktree` | `string` | Git 워크트리 경로 |
-| `serverUrl` | `URL` | 로컬 서버 URL |
-| `$` | `BunShell` | 명령을 위한 Bun 쉘 |
+| Property | Type | Description |
+|----------|------|-------------|
+| `client` | `CyberstrikeClient` | SDK client instance |
+| `project` | `Project` | Current project info |
+| `directory` | `string` | Working directory |
+| `worktree` | `string` | Git worktree path |
+| `serverUrl` | `URL` | Local server URL |
+| `$` | `BunShell` | Bun shell for commands |
 
 ---
 
-## 도구 실행 전 훅 (tool.execute.before)
+## Registering Plugins
 
-실행 전에 도구 호출을 가로채 인수를 수정하거나 실행을 차단합니다.
+### Local File (no publishing)
 
-### 훅 시그니처
+Drop a `.ts`/`.js` file into a `plugin/` (or `plugins/`) directory inside any `.cyberstrike/` folder — project or `~/.cyberstrike/`:
+
+```
+.cyberstrike/
+└── plugin/
+    └── guard.ts
+```
+
+Cyberstrike discovers it automatically and installs `@cyberstrike-io/plugin` for you so local plugins can import the types.
+
+### Config Array
+
+Reference an npm package or a path in the `plugin` array (values are union-merged across config sources):
+
+```json title="cyberstrike.json"
+{
+  "plugin": [
+    "@myorg/cyberstrike-guard",
+    "./local/guard.ts"
+  ]
+}
+```
+
+### Built-in Plugins
+
+| Plugin | Purpose |
+|--------|---------|
+| `AnthropicAuthPlugin` | Anthropic OAuth |
+| `CodexAuthPlugin` | OpenAI/Codex OAuth |
+| `CopilotAuthPlugin` | GitHub Copilot auth |
+| `@gitlab/opencode-gitlab-auth` | GitLab integration |
+
+---
+
+## Pre-Tool Hook (tool.execute.before)
+
+Intercept tool calls before execution to modify arguments or block execution.
 
 ```typescript
 "tool.execute.before": async (
-  input: {
-    tool: string       // 도구 이름 (Bash, Read, Write 등)
-    sessionID: string  // 현재 세션 ID
-    callID: string     // 고유 호출 식별자
-  },
-  output: {
-    args: any          // 도구 인수 (변경 가능)
-  }
+  input: { tool: string; sessionID: string; callID: string },
+  output: { args: any },
 ) => Promise<void>
 ```
 
-### 예시
-
-#### 모든 도구 호출 로깅
-
-```typescript
-"tool.execute.before": async (input, output) => {
-  const timestamp = new Date().toISOString()
-  console.log(`[${timestamp}] ${input.tool}:`, JSON.stringify(output.args))
-}
-```
-
-#### 위험한 명령 차단
+To **block** a tool, throw from the hook:
 
 ```typescript
 "tool.execute.before": async (input, output) => {
   if (input.tool !== "Bash") return
 
   const dangerous = ["rm -rf", "mkfs", "dd if=", "> /dev/"]
-  const command = output.args.command
-
   for (const pattern of dangerous) {
-    if (command.includes(pattern)) {
+    if (output.args.command.includes(pattern)) {
       throw new Error(`Blocked dangerous command: ${pattern}`)
     }
   }
 }
 ```
 
-#### 인수 수정
+#### Modifying Arguments
 
 ```typescript
 "tool.execute.before": async (input, output) => {
-  if (input.tool === "Bash") {
-    // git 명령에 안전 플래그 추가
-    if (output.args.command.startsWith("git push")) {
-      output.args.command = output.args.command.replace(
-        "git push",
-        "git push --dry-run"
-      )
-    }
+  if (input.tool === "Bash" && output.args.command.startsWith("git push")) {
+    output.args.command = output.args.command.replace("git push", "git push --dry-run")
   }
 }
 ```
 
 ---
 
-## 도구 실행 후 훅 (tool.execute.after)
+## Post-Tool Hook (tool.execute.after)
 
-변환 또는 알림을 위해 실행 후 도구 출력을 처리합니다.
-
-### 훅 시그니처
+Process tool output after execution for transformation or notification.
 
 ```typescript
 "tool.execute.after": async (
-  input: {
-    tool: string       // 도구 이름
-    sessionID: string  // 현재 세션 ID
-    callID: string     // 고유 호출 식별자
-  },
-  output: {
-    title: string      // 출력 제목
-    output: string     // 도구 출력 (변경 가능)
-    metadata: any      // 추가 메타데이터
-  }
+  input: { tool: string; sessionID: string; callID: string; args: any },
+  output: { title: string; output: string; metadata: any },
 ) => Promise<void>
 ```
 
-### 예시
-
-#### 민감한 데이터 마스킹
+#### Redacting Sensitive Data
 
 ```typescript
 "tool.execute.after": async (input, output) => {
-  // 출력에서 API 키 마스킹
-  output.output = output.output.replace(
-    /sk-[a-zA-Z0-9]{32,}/g,
-    "[REDACTED]"
-  )
-
-  // 비밀번호 마스킹
-  output.output = output.output.replace(
-    /password[=:]\s*\S+/gi,
-    "password=[REDACTED]"
-  )
+  output.output = output.output.replace(/sk-[a-zA-Z0-9]{32,}/g, "[REDACTED]")
+  output.output = output.output.replace(/password[=:]\s*\S+/gi, "password=[REDACTED]")
 }
 ```
 
-#### 알림 전송
+#### Sending Notifications
 
 ```typescript
 "tool.execute.after": async (input, output) => {
-  // 파일 쓰기 시 알림
   if (input.tool === "Write") {
     await sendSlackNotification({
       channel: "#code-changes",
@@ -250,102 +198,60 @@ export default myPlugin
 
 ---
 
-## 권한 훅 (permission.ask)
+## Permission Hook (permission.ask)
 
-프로그래밍적으로 권한 결정을 커스터마이즈합니다.
-
-### 훅 시그니처
+Customize permission decisions programmatically.
 
 ```typescript
 "permission.ask": async (
-  input: Permission,  // 권한 요청 세부 정보
-  output: {
-    status: "ask" | "deny" | "allow"  // 결정 (변경 가능)
-  }
+  input: Permission,
+  output: { status: "ask" | "deny" | "allow" },
 ) => Promise<void>
 ```
 
-### 예시
-
-#### 안전한 작업 자동 승인
-
 ```typescript
 "permission.ask": async (input, output) => {
-  const safeTools = ["Read", "Glob", "Grep", "LSP"]
-
-  if (safeTools.includes(input.tool)) {
+  const safe = ["Read", "Glob", "Grep", "LSP"]
+  if (safe.includes(input.tool)) {
     output.status = "allow"
     return
   }
-
-  // 테스트 디렉토리 쓰기 허용
   if (input.tool === "Write" && input.path?.includes("/test/")) {
     output.status = "allow"
   }
 }
 ```
 
-#### 특정 패턴 거부
-
-```typescript
-"permission.ask": async (input, output) => {
-  // 민감한 디렉토리 접근 차단
-  const sensitive = [".env", "credentials", "secrets", ".ssh"]
-
-  if (input.path) {
-    for (const dir of sensitive) {
-      if (input.path.includes(dir)) {
-        output.status = "deny"
-        return
-      }
-    }
-  }
-}
-```
-
 ---
 
-## 채팅 훅
-
-요청이 전송되기 전에 LLM 상호작용을 수정합니다.
+## Chat Hooks
 
 ### chat.message
 
-수신 메시지 전처리:
+Preprocess incoming messages:
 
 ```typescript
-"chat.message": async (input, output) => {
-  const { sessionID, agent, model } = input
-
-  // 메시지 부분에 컨텍스트 추가
-  output.parts.push({
-    type: "text",
-    text: `[Session: ${sessionID}, Agent: ${agent}]`,
-  })
-}
+"chat.message": async (
+  input: { sessionID: string; agent?: string; model?: { providerID: string; modelID: string } },
+  output: { message: UserMessage; parts: Part[] },
+) => Promise<void>
 ```
 
 ### chat.params
 
-LLM 매개변수 수정:
+Modify LLM parameters:
 
 ```typescript
 "chat.params": async (input, output) => {
-  // web-application 서브에이전트의 온도 낮추기
   if (input.agent === "web-application") {
     output.temperature = 0.3
-  }
-
-  // 기본 cyberstrike 에이전트의 온도 높이기
-  if (input.agent === "cyberstrike") {
-    output.temperature = 0.8
   }
 }
 ```
 
 ### chat.headers
 
-커스텀 HTTP 헤더 추가:
+Add custom HTTP headers:
 
 ```typescript
 "chat.headers": async (input, output) => {
@@ -356,49 +262,86 @@ LLM 매개변수 수정:
 
 ---
 
-## 플러그인 설치
+## Tool Definition Hook
 
-### npm에서
+Rewrite a tool's description or parameters before sending to the LLM:
 
-구성에 플러그인을 추가합니다:
-
-```json title="cyberstrike.json"
-{
-  "plugin": [
-    "my-security-plugin@1.0.0",
-    "@myorg/custom-hooks@2.1.0"
-  ]
-}
+```typescript
+"tool.definition": async (
+  input: { toolID: string },
+  output: { description: string; parameters: any },
+) => Promise<void>
 ```
-
-### 로컬 파일에서
-
-로컬 플러그인 파일을 참조합니다:
-
-```json title="cyberstrike.json"
-{
-  "plugin": [
-    "file:///path/to/my-plugin"
-  ]
-}
-```
-
-### 내장 플러그인
-
-Cyberstrike에는 인증을 위한 내장 플러그인이 포함되어 있습니다:
-
-| 플러그인 | 목적 |
-|----------|------|
-| `AnthropicAuthPlugin` | Anthropic OAuth |
-| `CodexAuthPlugin` | OpenAI/Codex OAuth |
-| `CopilotAuthPlugin` | GitHub Copilot 인증 |
-| `@gitlab/opencode-gitlab-auth` | GitLab 통합 |
 
 ---
 
-## 인증 훅
+## Command & Shell Hooks
 
-커스텀 인증 제공자를 만듭니다:
+```typescript
+"command.execute.before": async (
+  input: { command: string; sessionID: string; arguments: string },
+  output: { parts: Part[] },
+) => Promise<void>
+
+"shell.env": async (
+  input: { cwd: string },
+  output: { env: Record<string, string> },
+) => Promise<void>
+```
+
+---
+
+## Lifecycle Hooks
+
+```typescript
+event:  (input: { event: Event }) => Promise<void>
+config: (input: Config) => Promise<void>
+```
+
+---
+
+## Experimental Hooks
+
+```typescript
+"experimental.chat.messages.transform": async (input: {}, output: { messages: { info: Message; parts: Part[] }[] }) => Promise<void>
+"experimental.chat.system.transform":   async (input: { sessionID?: string; model: Model }, output: { system: string[] }) => Promise<void>
+"experimental.session.compacting":      async (input: { sessionID: string }, output: { context: string[]; prompt?: string }) => Promise<void>
+"experimental.text.complete":           async (input: { sessionID: string; messageID: string; partID: string }, output: { text: string }) => Promise<void>
+```
+
+---
+
+## Custom Tools
+
+Add custom tools through plugins:
+
+```typescript
+return {
+  tool: {
+    my_scanner: {
+      description: "Custom vulnerability scanner",
+      parameters: {
+        type: "object",
+        properties: {
+          target: { type: "string", description: "Target URL to scan" },
+          depth: { type: "number", description: "Scan depth", default: 3 },
+        },
+        required: ["target"],
+      },
+      execute: async (args) => ({
+        title: `Scanned ${args.target}`,
+        output: await scan(args.target),
+      }),
+    },
+  },
+}
+```
+
+---
+
+## Authentication Hooks
+
+Create custom authentication providers:
 
 ```typescript
 const authHook: AuthHook = {
@@ -414,17 +357,13 @@ const authHook: AuthHook = {
           message: "Enter your API key",
           placeholder: "sk-...",
           validate: (value) => {
-            if (!value.startsWith("sk-")) {
-              return "API key must start with sk-"
-            }
+            if (!value.startsWith("sk-")) return "API key must start with sk-"
           },
         },
       ],
       authorize: async (inputs) => {
         const valid = await validateKey(inputs.apiKey)
-        if (valid) {
-          return { type: "success", key: inputs.apiKey }
-        }
+        if (valid) return { type: "success", key: inputs.apiKey }
         return { type: "failed" }
       },
     },
@@ -435,10 +374,7 @@ const authHook: AuthHook = {
         url: "https://auth.example.com/oauth",
         instructions: "Complete login in browser",
         method: "auto",
-        callback: async () => {
-          // OAuth 콜백 처리
-          return { type: "success", key: "obtained-key" }
-        },
+        callback: async () => ({ type: "success", key: "obtained-key" }),
       }),
     },
   ],
@@ -447,97 +383,52 @@ const authHook: AuthHook = {
 
 ---
 
-## 커스텀 도구 훅
+## Publishing Plugins
 
-플러그인을 통해 커스텀 도구를 추가합니다:
+Package your plugin like any npm module:
 
-```typescript
-const hooks: Hooks = {
-  tool: {
-    my_scanner: {
-      description: "Custom vulnerability scanner",
-      parameters: {
-        type: "object",
-        properties: {
-          target: {
-            type: "string",
-            description: "Target URL to scan",
-          },
-          depth: {
-            type: "number",
-            description: "Scan depth",
-            default: 3,
-          },
-        },
-        required: ["target"],
-      },
-      execute: async (args, context) => {
-        const result = await runScanner(args.target, args.depth)
-        return {
-          output: result,
-          title: `Scanned ${args.target}`,
-        }
-      },
-    },
-  },
+```json title="package.json"
+{
+  "name": "@myorg/cyberstrike-guard",
+  "type": "module",
+  "main": "./index.ts",
+  "peerDependencies": { "@cyberstrike-io/plugin": "*" }
 }
+```
+
+```bash
+npm publish --access public
 ```
 
 ---
 
-## 모범 사례
+## Testing & Debugging
 
-### 성능
-
-1. 지연을 피하기 위해 훅을 가볍게 유지
-2. 외부 호출에 비동기 작업 사용
-3. 비싼 계산 캐시
-4. 메인 스레드 차단 방지
-
-### 보안
-
-1. 훅에서 모든 입력 검증
-2. 반환 전 출력 정제
-3. 비밀에 환경 변수 사용
-4. 보안 관련 이벤트 로깅
-
-### 디버깅
-
-플러그인 로깅 활성화:
+Run Cyberstrike with debug logging to see plugins load and hooks fire:
 
 ```bash
 cyberstrike --log-level DEBUG --print-logs
 ```
 
-플러그인 로딩 확인:
-
-```
-[plugin] loading plugin my-security-plugin@1.0.0
-[plugin] loading internal plugin CodexAuthPlugin
-```
+Since hooks mutate `output` (or throw), you can unit-test them by calling the hook with a fake `input`/`output` and asserting on the mutated `output`.
 
 ---
 
-## 문제 해결
+## Best Practices
 
-### 플러그인이 로드되지 않음
+### Performance
 
-1. 플러그인 경로 또는 npm 패키지 이름 확인
-2. 플러그인이 유효한 `Plugin` 함수를 내보내는지 확인
-3. TypeScript 컴파일 오류 확인
+1. Keep hooks lightweight to avoid latency
+2. Use async operations for external calls
+3. Cache expensive computations
 
-### 훅이 트리거되지 않음
+### Security
 
-1. 훅 이름이 정확히 일치하는지 확인
-2. 플러그인이 구성에 나열되어 있는지 확인
-3. 실행을 추적하기 위해 디버그 로깅 활성화
-
-### 성능 문제
-
-1. 훅 실행 시간 프로파일링
-2. 무거운 작업을 백그라운드로 이동
-3. 자주 사용되는 작업 캐싱 고려
+1. Validate all inputs in hooks
+2. Sanitize outputs before returning
+3. Use environment variables for secrets
+4. Log security-relevant events
 
 <Aside variant="caution">
-  플러그인은 머신과 Cyberstrike 내부에 대한 전체 접근 권한으로 실행됩니다. 신뢰할 수 있는 플러그인만 설치하세요.
+  Plugins run with full access to your machine and Cyberstrike internals. Only install plugins you trust, and keep hooks fast — they run inline with tool calls and LLM requests.
 </Aside>

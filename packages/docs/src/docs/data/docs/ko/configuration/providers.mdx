@@ -1,8 +1,8 @@
 ---
 title: AI Providers
-description: Configure and use different AI providers with Cyberstrike
+description: Configure and use 25+ AI providers with Cyberstrike
 sidebar:
-  order: 12
+  order: 8
   label: AI Providers
 ---
 
@@ -51,9 +51,7 @@ These have dedicated integration code for authentication and routing:
 | Cloudflare AI Gateway | `cloudflare-ai-gateway` | `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_GATEWAY_ID` + `CLOUDFLARE_API_TOKEN` |
 | Azure Cognitive Services | `azure-cognitive-services` | `AZURE_API_KEY` + `AZURE_COGNITIVE_SERVICES_RESOURCE_NAME` |
 
-### Any OpenAI-Compatible Endpoint
-
-Connect vLLM, LM Studio, Ollama, or any endpoint that speaks the OpenAI API. See [Custom Providers](/docs/configuration/provider-custom-providers).
+---
 
 ## Adding Credentials
 
@@ -85,6 +83,8 @@ Credentials are stored in `~/.local/share/cyberstrike/auth.json`.
   }
 }
 ```
+
+---
 
 ## Provider Configuration
 
@@ -154,14 +154,393 @@ Or switch mid-session with `/models` in the TUI.
 
 CyberStrike pulls model metadata (pricing, context limits, capabilities) from [models.dev](https://models.dev) and caches it locally. The catalog auto-updates, so new models appear without upgrading CyberStrike.
 
-## Detailed Provider Guides
+---
 
-- [Anthropic (Claude)](/docs/configuration/provider-anthropic) — OAuth subscription, extended thinking, caching
-- [AWS Bedrock](/docs/configuration/provider-aws-bedrock) — 9 auth methods, cross-region inference, VPC endpoints
-- [GitHub Copilot](/docs/configuration/provider-github-copilot) — OAuth device flow, Enterprise, model routing
-- [Custom Providers](/docs/configuration/provider-custom-providers) — OpenAI-compatible endpoints, vLLM, LM Studio, Azure, bundled extras
+## Anthropic (Claude)
 
-## Related Documentation
+Anthropic's Claude models provide advanced reasoning capabilities for security analysis.
 
-- [Configuration](/docs/configuration) — Full configuration reference
-- [Authentication](/docs/getting-started/authentication) — Initial setup
+### Available Models
+
+Cyberstrike pulls its model catalog live from [models.dev](https://models.dev), so the exact list tracks what Anthropic currently offers. Common picks:
+
+| Model | Context | Best for |
+|-------|---------|----------|
+| `anthropic/claude-opus-4-5` | 200K | Deepest reasoning — complex analysis, exploit research |
+| `anthropic/claude-sonnet-4-5` | 200K | Balanced default — general security testing |
+| `anthropic/claude-haiku-4-5` | 200K | Fast, low-cost — quick scans, high volume |
+
+<Aside variant="tip">
+  Newer flagships and every other Claude model appear automatically as models.dev updates. Run `/models` for the full current list.
+</Aside>
+
+### Anthropic Authentication
+
+1. Get your API key from [console.anthropic.com](https://console.anthropic.com)
+2. In the TUI, run `/connect`, select **Anthropic**, and enter your API key
+
+Or set the environment variable:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+### Extended Thinking
+
+Enable extended thinking for complex security analysis:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "thinking": {
+          "type": "enabled",
+          "budgetTokens": 10000
+        }
+      }
+    }
+  }
+}
+```
+
+### Token Usage & Caching
+
+In the session TUI header, CyberStrike shows **context usage** for the most recent assistant message and **estimated session cost** in USD. For direct Anthropic models, CyberStrike adds ephemeral cache control to selected system and recent messages automatically.
+
+### Anthropic Rate Limits
+
+Rate limits depend on your Anthropic account; refer to [Anthropic's documentation](https://docs.anthropic.com) for current quotas. CyberStrike uses **exponential backoff** for retryable errors and honors `Retry-After` headers.
+
+---
+
+## AWS Bedrock
+
+AWS Bedrock lets you run CyberStrike through your own AWS account. Your data stays in your infrastructure, you get IAM-based access control, and you can use VPC endpoints for private network access.
+
+CyberStrike uses the standard AWS credential provider chain (`@aws-sdk/credential-providers`), so if you already use the AWS CLI or SDKs, your existing credentials will work.
+
+### Prerequisites
+
+<Steps>
+1. Open the **AWS Console** and go to **Amazon Bedrock**
+2. Click **Model access** in the left sidebar
+3. Request access to the Claude models you want to use
+4. Wait for approval (usually instant for most models)
+</Steps>
+
+### Quick Start
+
+```bash
+# If you already have AWS CLI configured
+cyberstrike
+
+# If you have a named profile
+AWS_PROFILE=my-profile cyberstrike
+
+# If you have access keys
+AWS_ACCESS_KEY_ID=AKIA... AWS_SECRET_ACCESS_KEY=... cyberstrike
+
+# On EC2 with an IAM Role attached — just run it
+cyberstrike
+```
+
+### Authentication Methods
+
+CyberStrike supports 9 different ways to authenticate with AWS Bedrock:
+
+#### 1. AWS Access Keys
+
+```bash
+export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
+export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+export AWS_REGION="us-east-1"
+```
+
+<Aside variant="caution">
+  Access keys are long-lived credentials. For production use, prefer IAM roles, SSO, or temporary credentials instead.
+</Aside>
+
+#### 2. AWS Profiles
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "profile": "my-profile",
+        "region": "us-east-1"
+      }
+    }
+  }
+}
+```
+
+Or use `AWS_PROFILE=my-profile cyberstrike`.
+
+#### 3. SSO / IAM Identity Center
+
+Configure an SSO profile in `~/.aws/config`, then:
+
+```bash
+aws sso login --profile my-sso
+AWS_PROFILE=my-sso cyberstrike
+```
+
+#### 4. STS AssumeRole (Role Chaining)
+
+Configure role chaining in `~/.aws/config` with `role_arn` and `source_profile`, then use `AWS_PROFILE=bedrock-role cyberstrike`.
+
+#### 5. Web Identity Token (OIDC)
+
+For EKS, GitHub Actions, or OIDC-federated environments:
+
+```bash
+export AWS_WEB_IDENTITY_TOKEN_FILE="/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
+export AWS_ROLE_ARN="arn:aws:iam::123456789012:role/my-eks-role"
+```
+
+#### 6. Container Credentials (ECS / Fargate)
+
+AWS injects credentials automatically. No configuration needed.
+
+#### 7. EC2 Instance Metadata (IMDS)
+
+On EC2 with an IAM role attached, credentials are fetched automatically.
+
+#### 8. Bearer Token
+
+```bash
+export AWS_BEARER_TOKEN_BEDROCK="your-bearer-token"
+```
+
+<Aside variant="tip">
+  Bearer token has the **highest priority** — when set, it bypasses the entire AWS credential chain.
+</Aside>
+
+#### 9. Custom Credential Process
+
+Configure a custom tool in `~/.aws/config` with `credential_process`.
+
+### Authentication Priority
+
+| Priority | Method | Source |
+|----------|--------|--------|
+| 1 (highest) | Bearer Token | `AWS_BEARER_TOKEN_BEDROCK` env var or `/connect` in TUI |
+| 2 | AWS Credential Chain | env vars → profile → SSO → web identity → ECS container → EC2 IMDS |
+
+### IAM Permissions
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": "arn:aws:bedrock:*::foundation-model/anthropic.*"
+    }
+  ]
+}
+```
+
+### Region Configuration
+
+| Priority | Source |
+|----------|--------|
+| 1 (highest) | `cyberstrike.json` → `provider.amazon-bedrock.options.region` |
+| 2 | `AWS_REGION` environment variable |
+| 3 (default) | `us-east-1` |
+
+### Cross-Region Inference
+
+CyberStrike automatically handles cross-region inference profile prefixes:
+
+| Region | Prefix |
+|--------|--------|
+| US regions | `us.` |
+| EU regions | `eu.` |
+| Tokyo | `jp.` |
+| Australia | `au.` |
+| Other APAC | `apac.` |
+| Global | `global.` |
+
+### VPC Endpoint
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "us-east-1",
+        "endpoint": "https://bedrock-runtime.us-east-1.vpce-xxxxx.amazonaws.com"
+      }
+    }
+  }
+}
+```
+
+### Bedrock Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| **Access Denied** | Check model access in Bedrock console + IAM policy |
+| **Model not found** | Verify model ID and region availability |
+| **ThrottlingException** | Request service limit increase or use cross-region inference |
+| **Provider not appearing** | Test with `aws bedrock list-foundation-models`; check `disabled_providers` |
+
+---
+
+## GitHub Copilot
+
+Authenticate with your GitHub account via OAuth and access all models available through your Copilot subscription — including Claude, GPT-4o, and o-series models.
+
+### Requirements
+
+- A GitHub account with an active **GitHub Copilot** subscription (Individual, Business, or Enterprise)
+- For GitHub Enterprise: your GHE server URL
+
+### Copilot Authentication
+
+In the TUI, run `/connect` and select **Login with GitHub Copilot**:
+
+| Deployment | When to use |
+|------------|-------------|
+| **GitHub.com** | Personal or org accounts on github.com |
+| **GitHub Enterprise** | Self-hosted GHE or data residency instances |
+
+Cyberstrike opens a browser window for GitHub authorization. Enter the device code shown in the terminal, authorize the app, and the OAuth token is saved automatically.
+
+### Available Copilot Models
+
+| Model | Provider |
+|-------|----------|
+| `claude-sonnet-4-20250514` | Anthropic (via Copilot) |
+| `claude-sonnet-5-5` | Anthropic (via Copilot) |
+| `gpt-4o` | OpenAI (via Copilot) |
+| `o3-mini` | OpenAI (via Copilot) |
+
+<Aside variant="info">
+  Claude models are automatically routed through the Anthropic Messages API instead of the OpenAI-compatible endpoint. This happens transparently.
+</Aside>
+
+### Copilot Configuration
+
+GitHub Copilot requires no manual configuration beyond the OAuth login. To use a Copilot model as default:
+
+```json title="cyberstrike.json"
+{
+  "model": "github-copilot/claude-sonnet-4-20250514"
+}
+```
+
+### How Copilot Works
+
+1. **OAuth device flow** — Cyberstrike requests a device code from GitHub, you authorize in the browser
+2. **Token exchange** — The OAuth token is exchanged for a short-lived Copilot session token (~30 min TTL)
+3. **Auto-refresh** — Session tokens are refreshed automatically before expiry
+4. **Model routing** — Claude models use the Anthropic Messages API; all others use the OpenAI-compatible endpoint
+
+### Copilot Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| **401 Unauthorized** | Run `/connect` again — your session token may have expired |
+| **No models available** | Check your Copilot subscription at github.com/settings/copilot |
+| **GHE connection refused** | Verify the enterprise URL and that Copilot is enabled |
+| **Claude model 404** | Update Cyberstrike — Claude routing fix shipped in v1.1.16+ |
+
+---
+
+## Custom & OpenAI-Compatible Providers
+
+For endpoints that aren't bundled (Fireworks, vLLM, LM Studio, a private gateway), define them under `provider`. Loading is triggered by the top-level **`api`** field (the base URL):
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "my-endpoint": {
+      "name": "My Endpoint",
+      "api": "https://api.example.com/v1",
+      "options": { "apiKey": "{env:MY_API_KEY}" },
+      "models": {
+        "my-model": { "name": "My Model" }
+      }
+    }
+  },
+  "model": "my-endpoint/my-model"
+}
+```
+
+### Built-in Extra Providers
+
+These are **already bundled** — just set the API-key environment variable and select a model as `provider-id/model`:
+
+| Provider id | Env var | Example model |
+|-------------|---------|---------------|
+| `groq` | `GROQ_API_KEY` | `groq/llama-3.3-70b-versatile` |
+| `togetherai` | `TOGETHER_API_KEY` | `togetherai/meta-llama/Llama-3.3-70B-Instruct-Turbo` |
+| `deepinfra` | `DEEPINFRA_API_KEY` | `deepinfra/meta-llama/Llama-3.3-70B-Instruct` |
+| `perplexity` | `PERPLEXITY_API_KEY` | `perplexity/sonar` |
+| `openrouter` | `OPENROUTER_API_KEY` | `openrouter/anthropic/claude-sonnet-4` |
+
+### vLLM
+
+```json
+{
+  "provider": {
+    "vllm": {
+      "name": "vLLM",
+      "api": "http://localhost:8000/v1",
+      "models": { "llama-3.3-70b": { "name": "Llama 3.3 70B" } }
+    }
+  }
+}
+```
+
+### LM Studio
+
+```json
+{
+  "provider": {
+    "lmstudio": {
+      "name": "LM Studio",
+      "api": "http://localhost:1234/v1",
+      "models": { "local-model": { "name": "Local Model" } }
+    }
+  }
+}
+```
+
+### Azure OpenAI
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "azure": {
+      "name": "Azure OpenAI",
+      "options": {
+        "apiKey": "{env:AZURE_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+```bash
+export AZURE_RESOURCE_NAME="your-resource"
+export AZURE_API_KEY="..."
+```
+
+<Aside variant="caution">
+  A config-only provider is loaded because it has an `api` URL — `options.baseURL` alone won't register it. Use the top-level `api` field.
+</Aside>
+
+### Custom Provider Troubleshooting
+
+- **401 Unauthorized** — check the API key env var and that it's referenced with `{env:VAR}`.
+- **Model not found** — the model id must match the provider's format and be listed under `models`.
+- **Unexpected response** — the endpoint may not be fully OpenAI-compatible; tool calling and streaming vary by provider.

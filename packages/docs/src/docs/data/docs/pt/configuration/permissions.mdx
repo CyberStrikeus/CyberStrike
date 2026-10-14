@@ -1,32 +1,14 @@
 ---
-title: Sistema de Permissoes
-description: Controle o acesso a ferramentas e aprove acoes do agente no Cyberstrike
+title: Permissions
+description: Control tool access, approve agent actions, and configure automation in Cyberstrike
 sidebar:
   order: 6
-  label: Visao Geral
+  label: Permissions
 ---
 
-O Cyberstrike usa um sistema de permissoes para controlar quais ferramentas o agente de IA pode executar. Isso fornece limites de seguranca mantendo a produtividade.
+Cyberstrike uses a permission system to control which tools the AI agent can execute. This provides security boundaries while maintaining productivity.
 
-{/* TODO: GIF - Plan mode workflow */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">🎬 GIF: g04-plan-mode.gif</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Demo do fluxo de trabalho do modo plan (20s)</p>
-</div>
-
-{/* TODO: Screenshot - Permission prompt */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: s06-permission-prompt.png</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Visualizacao do prompt de permissao</p>
-</div>
-
-{/* TODO: Screenshot - Plan mode UI */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: s07-plan-mode.png</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Interface do modo plan</p>
-</div>
-
-## Modelo de Permissao
+## Permission Model
 
 ```mermaid
 flowchart TD
@@ -44,21 +26,21 @@ flowchart TD
 
 ---
 
-## Modos de Permissao
+## Permission Modes
 
-| Modo | Comportamento | Caso de Uso |
-|------|---------------|-------------|
-| `ask` | Solicitar aprovacao | Padrao para ferramentas sensiveis |
-| `allow` | Auto-aprovar | Ferramentas confiaveis, automacao |
-| `deny` | Bloquear execucao | Operacoes restritas |
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| `ask` | Prompt for approval | Default for sensitive tools |
+| `allow` | Auto-approve | Trusted tools, automation |
+| `deny` | Block execution | Restricted operations |
 
 ---
 
-## Configurando Permissoes
+## Configuring Permissions
 
-### Configuracao Global
+### Global Configuration
 
-Defina permissoes em `~/.config/cyberstrike/cyberstrike.json`:
+Set permissions in `~/.config/cyberstrike/cyberstrike.json`:
 
 ```json title="~/.config/cyberstrike/cyberstrike.json"
 {
@@ -73,9 +55,9 @@ Defina permissoes em `~/.config/cyberstrike/cyberstrike.json`:
 }
 ```
 
-### Configuracao de Projeto
+### Project Configuration
 
-Sobrescreva permissoes por projeto em `cyberstrike.json`:
+Override permissions per-project in `cyberstrike.json`:
 
 ```json title="cyberstrike.json"
 {
@@ -87,101 +69,142 @@ Sobrescreva permissoes por projeto em `cyberstrike.json`:
 }
 ```
 
-Configuracoes de projeto sobrescrevem configuracoes globais.
+Project settings override global settings.
 
 ---
 
-## Tipos de Permissao
+## Permission Types
 
-### Operacoes de Arquivo
+### File Operations
 
-| Permissao | Ferramentas | Padrao | Descricao |
-|-----------|-------------|--------|-----------|
-| `read` | Read | `ask` | Ler conteudo de arquivos |
-| `edit` | Write, Edit | `ask` | Modificar arquivos |
-| `glob` | Glob | `allow` | Encontrar arquivos por padrao |
-| `grep` | Grep | `allow` | Buscar conteudo de arquivos |
+| Permission | Tools | Default | Description |
+|------------|-------|---------|-------------|
+| `read` | Read | `ask` | Read file contents |
+| `edit` | Write, Edit | `ask` | Modify files |
+| `glob` | Glob | `allow` | Find files by pattern |
+| `grep` | Grep | `allow` | Search file contents |
 
-### Execucao de Comandos
+### Command Execution
 
-| Permissao | Ferramentas | Padrao | Descricao |
-|-----------|-------------|--------|-----------|
-| `bash` | Bash | `ask` | Executar comandos shell |
-| `task` | Task | `ask` | Criar sub-agentes |
+| Permission | Tools | Default | Description |
+|------------|-------|---------|-------------|
+| `bash` | Bash | `ask` | Execute shell commands |
+| `task` | Task | `ask` | Create sub-agents |
 
-### Operacoes Web
+### Web Operations
 
-| Permissao | Ferramentas | Padrao | Descricao |
-|-----------|-------------|--------|-----------|
-| `websearch` | WebSearch | `ask` | Buscar na web |
-| `webfetch` | WebFetch | `ask` | Buscar conteudo web |
-| `codesearch` | CodeSearch | `ask` | Buscar repositorios de codigo |
+| Permission | Tools | Default | Description |
+|------------|-------|---------|-------------|
+| `websearch` | WebSearch | `ask` | Search the web |
+| `webfetch` | WebFetch | `ask` | Fetch web content |
+| `codesearch` | CodeSearch | `ask` | Search code repositories |
 
-### Permissoes Especiais
+### Special Permissions
 
-| Permissao | Descricao |
-|-----------|-----------|
-| `external_directory` | Acessar arquivos fora do projeto |
-| `lsp` | Operacoes do language server |
-| `doom_loop` | Detectar e quebrar loops infinitos |
+| Permission | Description |
+|------------|-------------|
+| `external_directory` | Access files outside project |
+| `lsp` | Language server operations |
+| `doom_loop` | Detect and break infinite loops |
 
 ---
 
-## Permissoes Baseadas em Padroes
+## Permission Patterns
 
-Use padroes para conceder permissoes granulares.
+Permission patterns give fine-grained control by matching a tool's argument (a command string, a file path) against a glob and mapping it to an action.
 
-### Padroes de Diretorio
+### Pattern Format
 
-Permitir diretorios especificos:
-
-```json
-{
-  "permission": {
-    "read": {
-      "src/**": "allow",
-      "test/**": "allow",
-      "node_modules/**": "deny"
-    },
-    "edit": {
-      "src/**": "allow",
-      "*.config.js": "deny"
-    }
-  }
-}
-```
-
-### Padroes de Comando
-
-Permitir comandos especificos:
+A permission entry is either a single action, or a map of **glob → action**. The tool key groups its patterns:
 
 ```json
 {
   "permission": {
     "bash": {
-      "git *": "allow",
-      "npm test": "allow",
-      "npm run *": "allow",
-      "rm *": "deny"
+      "*": "ask",
+      "ls *": "allow",
+      "git status": "allow",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "reports/**": "allow",
+      ".env*": "deny"
     }
   }
 }
 ```
 
-### Correspondencia de Curingas
+The glob matches the tool's argument: for `bash` it's the command string, for `edit`/`read` it's the file path.
 
-| Padrao | Corresponde |
-|--------|-------------|
-| `*` | Qualquer segmento unico de caminho |
-| `**` | Qualquer profundidade de caminho |
-| `*.ts` | Arquivos terminando em .ts |
-| `src/**/*.ts` | Arquivos TypeScript em src |
+### Wildcards
+
+Only two wildcards are supported:
+
+| Token | Matches |
+|-------|---------|
+| `*` | any sequence of characters (including `/`) |
+| `?` | any single character |
+
+<Aside variant="caution">
+  `*` and `?` are the **only** wildcards. Characters like `[`, `]`, `{`, `}`, `(`, `)`, and `|` are matched **literally**. There is no `**` (it behaves the same as `*`), and negation (`!pattern`) is not supported.
+</Aside>
+
+A pattern that ends in a space + `*` also matches the bare command with no arguments — so `"ls *"` matches both `ls` and `ls -la`.
+
+### Pattern Precedence
+
+When several patterns match, the **more specific (longer) pattern wins**. Patterns are evaluated shortest-first, and the last match applies — so a broad `"*": "ask"` can be overridden by a longer `"git status": "allow"`:
+
+```json
+{
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "npm *": "allow",
+      "npm publish*": "deny"
+    }
+  }
+}
+```
+
+Here `npm test` is allowed, but `npm publish` is denied.
+
+### Pattern Examples
+
+#### Allow a toolchain, block the dangerous parts
+
+```json
+{
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "git *": "allow",
+      "git push*": "ask",
+      "rm -rf *": "deny"
+    }
+  }
+}
+```
+
+#### Restrict edits to a directory
+
+```json
+{
+  "permission": {
+    "edit": {
+      "*": "deny",
+      "src/**": "allow",
+      "src/secrets/**": "deny"
+    }
+  }
+}
+```
 
 ---
 
-## Permissoes por Agente
+## Agent Permissions
 
-Configure permissoes por agente:
+Configure permissions per-agent:
 
 ```json title="cyberstrike.json"
 {
@@ -208,104 +231,43 @@ Configure permissoes por agente:
 
 ---
 
-## Aprovacao Interativa
+## Interactive Approval
 
-Quando uma ferramenta requer permissao, o Cyberstrike solicita aprovacao.
+When a tool requires permission, Cyberstrike prompts for approval.
 
-### Opcoes de Resposta
+### Response Options
 
-| Opcao | Comportamento |
-|-------|---------------|
-| **Uma vez** | Aprovar esta chamada especifica |
-| **Sempre** | Aprovar todas as chamadas similares na sessao |
-| **Rejeitar** | Bloquear esta chamada |
+| Option | Behavior |
+|--------|----------|
+| **Once** | Approve this specific call |
+| **Always** | Approve all similar calls in session |
+| **Reject** | Block this call |
 
-### Dialogo de Aprovacao
+### Keyboard Shortcuts
 
-```
-┌─────────────────────────────────────────┐
-│  Permissao Necessaria                    │
-├─────────────────────────────────────────┤
-│  Ferramenta: Bash                        │
-│  Comando: git push origin main           │
-│                                          │
-│  [Uma vez]  [Sempre]  [Rejeitar]         │
-└─────────────────────────────────────────┘
-```
+| Key | Action |
+|-----|--------|
+| `y` | Approve once |
+| `a` | Approve always |
+| `n` | Reject |
+| `Esc` | Reject |
 
-### Atalhos de Teclado
+### Session Approval Memory
 
-| Tecla | Acao |
-|-------|------|
-| `y` | Aprovar uma vez |
-| `a` | Aprovar sempre |
-| `n` | Rejeitar |
-| `Esc` | Rejeitar |
+When you select "Always", Cyberstrike remembers the approval pattern for the session:
+
+1. User approves `git push` with "Always"
+2. Pattern `git *` is stored for session
+3. Future `git pull`, `git commit`, etc. auto-approve
+4. Memory resets when session ends
 
 ---
 
-## Memoria de Aprovacao da Sessao
+## External Directory Access
 
-Quando voce seleciona "Sempre", o Cyberstrike lembra o padrao de aprovacao para a sessao.
+By default, Cyberstrike restricts access to the project directory.
 
-### Como a Memoria Funciona
-
-1. Usuario aprova `git push` com "Sempre"
-2. Padrao `git *` e armazenado para a sessao
-3. Futuros `git pull`, `git commit`, etc. sao auto-aprovados
-4. Memoria e resetada quando a sessao termina
-
-### Visualizando Padroes Aprovados
-
-Padroes aprovados persistem ate a reinicializacao da sessao.
-
----
-
-## Modo de Automacao
-
-Para CI/CD e automacao, configure confianca total:
-
-```json title="cyberstrike.json"
-{
-  "permission": "allow"
-}
-```
-
-Isso define todas as permissoes como permitidas sem solicitar.
-
-<Aside variant="caution">
-  Usar `"permission": "allow"` ignora todas as verificacoes de seguranca. Use apenas em ambientes controlados.
-</Aside>
-
----
-
-## Modo Somente Leitura
-
-Restrinja o agente a operacoes somente leitura:
-
-```json title="cyberstrike.json"
-{
-  "permission": {
-    "read": "allow",
-    "glob": "allow",
-    "grep": "allow",
-    "lsp": "allow",
-    "edit": "deny",
-    "bash": "deny",
-    "websearch": "deny"
-  }
-}
-```
-
-Use isso para tarefas de revisao de codigo ou exploracao.
-
----
-
-## Acesso a Diretorio Externo
-
-Por padrao, o Cyberstrike restringe o acesso ao diretorio do projeto.
-
-### Permitindo Acesso Externo
+### Allowing External Access
 
 ```json
 {
@@ -315,7 +277,7 @@ Por padrao, o Cyberstrike restringe o acesso ao diretorio do projeto.
 }
 ```
 
-### Caminhos Externos Especificos
+### Specific External Paths
 
 ```json
 {
@@ -331,59 +293,146 @@ Por padrao, o Cyberstrike restringe o acesso ao diretorio do projeto.
 
 ---
 
-## Hooks de Permissao
+## Permission Hooks
 
-Use hooks de plugin para controle programatico de permissoes.
-
-### Hook permission.ask
+Use plugin hooks for programmatic permission control:
 
 ```typescript
 const hooks: Hooks = {
   "permission.ask": async (input, output) => {
-    // Auto-aprovar operacoes de leitura em src
     if (input.type === "read" && input.path?.startsWith("src/")) {
       output.status = "allow"
       return
     }
 
-    // Bloquear acesso a segredos
     if (input.path?.includes("secret") || input.path?.includes(".env")) {
       output.status = "deny"
       return
     }
 
-    // Padrao: solicitar ao usuario
     output.status = "ask"
   },
 }
 ```
 
-### Entrada do Hook
-
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| `id` | string | ID da solicitacao de permissao |
-| `type` | string | Tipo de permissao |
-| `pattern` | string | Padrao correspondente |
-| `sessionID` | string | Identificador da sessao |
-| `messageID` | string | Identificador da mensagem |
-| `callID` | string | ID da chamada de ferramenta |
-| `message` | string | Descricao |
-| `metadata` | object | Contexto adicional |
-
-### Saida do Hook
-
-| Campo | Valor | Descricao |
-|-------|-------|-----------|
-| `status` | `"ask"` | Solicitar ao usuario |
-| `status` | `"allow"` | Auto-aprovar |
-| `status` | `"deny"` | Bloquear |
+See [Hooks & Plugins](/docs/configuration/hooks) for the full hook system.
 
 ---
 
-## Boas Praticas de Seguranca
+## Permission Priority
 
-### Ambiente de Desenvolvimento
+Permissions are evaluated in order:
+
+1. **Agent-specific** permissions (highest priority)
+2. **Project** `cyberstrike.json`
+3. **Global** `~/.config/cyberstrike/cyberstrike.json`
+4. **Default** built-in values (lowest priority)
+
+More specific patterns take precedence over broader ones.
+
+---
+
+## Automation
+
+In non-interactive runs (`cyberstrike run`), there is nobody to answer permission prompts — so any tool that *would* prompt is **auto-rejected**. To let a pipeline do real work, pre-approve the tools it needs.
+
+### Pre-Approving Tools
+
+Grant permissions two ways:
+
+**1. `CYBERSTRIKE_PERMISSION` env var** — a JSON permission map (same shape as the config `permission` field):
+
+```bash
+export CYBERSTRIKE_PERMISSION='{"bash":"allow","read":"allow","edit":{"reports/**":"allow"}}'
+cyberstrike run "scan this codebase for security issues" --format json > report.json
+```
+
+**2. Config `permission`** — commit safe defaults, deny the dangerous bits:
+
+```json title="cyberstrike.json"
+{
+  "permission": {
+    "read": "allow",
+    "bash": { "*": "allow", "rm -rf *": "deny", "sudo *": "deny" },
+    "edit": { "reports/**": "allow", ".env*": "deny" }
+  }
+}
+```
+
+Output goes to stdout; use `--format json` for machine-readable results.
+
+### GitHub Actions
+
+```yaml title=".github/workflows/security-scan.yml"
+name: Security Scan
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install -g @cyberstrike-io/cyberstrike@latest
+      - name: Run Security Scan
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow","edit":{"reports/**":"allow"}}'
+        run: cyberstrike run "scan this codebase for security vulnerabilities" --format json > security-report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: security-report.json
+```
+
+### GitLab CI
+
+```yaml title=".gitlab-ci.yml"
+security-scan:
+  image: node:20
+  variables:
+    CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow"}'
+  script:
+    - npm install -g @cyberstrike-io/cyberstrike@latest
+    - cyberstrike run "analyze code for vulnerabilities" --format json > report.json
+  artifacts:
+    paths:
+      - report.json
+```
+
+### Batch & Scheduled Runs
+
+```bash title="scan-targets.sh"
+#!/bin/bash
+export CYBERSTRIKE_PERMISSION='{"bash":"allow"}'
+while read -r target; do
+  cyberstrike run "scan $target for open ports and services" --format json > "reports/${target}.json"
+done < targets.txt
+```
+
+### Exit Codes & Output
+
+`cyberstrike run` writes results to stdout (`--format json` for JSON) and returns `0` on success, a non-zero code on error or interruption.
+
+### Automation Security
+
+- **Least privilege** — only `allow` the tools the job needs; keep an explicit `deny` for `rm -rf *`, `sudo *`, and secret paths.
+- **Secrets** — inject API keys from your CI secret store, never commit them.
+- **Isolation** — run in a container with a constrained network where possible.
+
+<Aside variant="caution">
+  Always keep deny rules for destructive commands when pre-approving `bash` in automation.
+</Aside>
+
+---
+
+## Security Best Practices
+
+### Development Environment
 
 ```json
 {
@@ -397,7 +446,7 @@ const hooks: Hooks = {
 }
 ```
 
-### Ambiente de Producao/CI
+### Production/CI Environment
 
 ```json
 {
@@ -415,7 +464,7 @@ const hooks: Hooks = {
 }
 ```
 
-### Modo de Auditoria de Seguranca
+### Security Audit Mode
 
 ```json
 {
@@ -431,69 +480,7 @@ const hooks: Hooks = {
 }
 ```
 
----
-
-## Prioridade de Permissao
-
-Permissoes sao avaliadas em ordem:
-
-1. Permissoes **especificas do agente** (maior prioridade)
-2. **Projeto** `cyberstrike.json`
-3. **Global** `~/.config/cyberstrike/cyberstrike.json`
-4. Valores **padrao** integrados (menor prioridade)
-
-Padroes mais especificos tem precedencia:
-
-```json
-{
-  "permission": {
-    "bash": "deny",
-    "bash": {
-      "git *": "allow"
-    }
-  }
-}
-```
-
-Neste caso, `git push` e permitido mas `rm -rf` e negado.
-
----
-
-## Solucao de Problemas
-
-### Permissao Sempre Solicitando
-
-Verifique se sua configuracao e valida:
-
-```bash
-cyberstrike config validate
-```
-
-Verifique se a permissao esta definida corretamente:
-
-```bash
-cat ~/.config/cyberstrike/cyberstrike.json | jq .permission
-```
-
-### Permissao Nao Aplicada
-
-1. Verifique a prioridade da configuracao de projeto vs global
-2. Verifique se a sintaxe do padrao corresponde ao caminho
-3. Reinicie o Cyberstrike para recarregar a configuracao
-
-### Operacao Bloqueada
-
-Se uma ferramenta for bloqueada inesperadamente:
-
-1. Verifique regras `deny` na configuracao
-2. Verifique divergencias de padroes
-3. Verifique hooks de plugin que possam bloquear
-
----
-
-## Exemplos
-
-### Testes de Seguranca Web
+### Web Security Testing
 
 ```json title="cyberstrike.json"
 {
@@ -511,30 +498,6 @@ Se uma ferramenta for bloqueada inesperadamente:
 }
 ```
 
-### Apenas Revisao de Codigo
-
-```json title="cyberstrike.json"
-{
-  "permission": {
-    "read": "allow",
-    "glob": "allow",
-    "grep": "allow",
-    "lsp": "allow",
-    "edit": "deny",
-    "bash": "deny",
-    "browser": "deny"
-  }
-}
-```
-
-### Automacao Completa
-
-```json title="cyberstrike.json"
-{
-  "permission": "allow"
-}
-```
-
 <Aside variant="tip">
-  Comece com permissoes restritivas e relaxe conforme necessario. E mais seguro aprovar acoes individuais do que conceder acesso irrestrito.
+  Start with restrictive permissions and relax them as needed. It's safer to approve individual actions than to grant blanket access.
 </Aside>

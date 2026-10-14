@@ -1,64 +1,46 @@
 ---
-title: Система разрешений
-description: Управление доступом к инструментам и одобрение действий агента в Cyberstrike
+title: Permissions
+description: Control tool access, approve agent actions, and configure automation in Cyberstrike
 sidebar:
   order: 6
-  label: Обзор
+  label: Permissions
 ---
 
-Cyberstrike использует систему разрешений для управления инструментами, которые ИИ-агент может выполнять. Это обеспечивает границы безопасности при сохранении продуктивности.
+Cyberstrike uses a permission system to control which tools the AI agent can execute. This provides security boundaries while maintaining productivity.
 
-{/* TODO: GIF - Plan mode workflow */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">🎬 GIF: g04-plan-mode.gif</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Демо рабочего процесса режима планирования (20s)</p>
-</div>
-
-{/* TODO: Screenshot - Permission prompt */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: s06-permission-prompt.png</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Диалог запроса разрешения</p>
-</div>
-
-{/* TODO: Screenshot - Plan mode UI */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: s07-plan-mode.png</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Интерфейс режима планирования</p>
-</div>
-
-## Модель разрешений
+## Permission Model
 
 ```mermaid
 flowchart TD
-    ToolCall([Вызов инструмента]) --> CheckConfig{Проверка\nконфигурации}
-    CheckConfig -->|allow| Execute[Выполнить инструмент]
-    CheckConfig -->|deny| Block[Заблокировать инструмент]
-    CheckConfig -->|ask| CheckApproved{Ранее\nодобрено?}
-    CheckApproved -->|Да| Execute
-    CheckApproved -->|Нет| AskUser[Запросить пользователя]
-    AskUser -->|Однократно| Execute
-    AskUser -->|Всегда| Remember[Запомнить + Выполнить]
-    AskUser -->|Отклонить| Block
+    ToolCall([Tool Called]) --> CheckConfig{Check\nConfig}
+    CheckConfig -->|allow| Execute[Execute Tool]
+    CheckConfig -->|deny| Block[Block Tool]
+    CheckConfig -->|ask| CheckApproved{Previously\nApproved?}
+    CheckApproved -->|Yes| Execute
+    CheckApproved -->|No| AskUser[Prompt User]
+    AskUser -->|Once| Execute
+    AskUser -->|Always| Remember[Remember + Execute]
+    AskUser -->|Reject| Block
     Remember --> Execute
 ```
 
 ---
 
-## Режимы разрешений
+## Permission Modes
 
-| Режим | Поведение | Применение |
-|-------|-----------|------------|
-| `ask` | Запросить одобрение | По умолчанию для чувствительных инструментов |
-| `allow` | Автоматическое одобрение | Доверенные инструменты, автоматизация |
-| `deny` | Заблокировать выполнение | Ограниченные операции |
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| `ask` | Prompt for approval | Default for sensitive tools |
+| `allow` | Auto-approve | Trusted tools, automation |
+| `deny` | Block execution | Restricted operations |
 
 ---
 
-## Настройка разрешений
+## Configuring Permissions
 
-### Глобальная конфигурация
+### Global Configuration
 
-Установите разрешения в `~/.config/cyberstrike/cyberstrike.json`:
+Set permissions in `~/.config/cyberstrike/cyberstrike.json`:
 
 ```json title="~/.config/cyberstrike/cyberstrike.json"
 {
@@ -73,9 +55,9 @@ flowchart TD
 }
 ```
 
-### Конфигурация проекта
+### Project Configuration
 
-Переопределите разрешения для проекта в `cyberstrike.json`:
+Override permissions per-project in `cyberstrike.json`:
 
 ```json title="cyberstrike.json"
 {
@@ -87,101 +69,142 @@ flowchart TD
 }
 ```
 
-Настройки проекта переопределяют глобальные настройки.
+Project settings override global settings.
 
 ---
 
-## Типы разрешений
+## Permission Types
 
-### Файловые операции
+### File Operations
 
-| Разрешение | Инструменты | По умолчанию | Описание |
-|------------|-------------|-------------|----------|
-| `read` | Read | `ask` | Чтение содержимого файлов |
-| `edit` | Write, Edit | `ask` | Изменение файлов |
-| `glob` | Glob | `allow` | Поиск файлов по шаблону |
-| `grep` | Grep | `allow` | Поиск по содержимому файлов |
+| Permission | Tools | Default | Description |
+|------------|-------|---------|-------------|
+| `read` | Read | `ask` | Read file contents |
+| `edit` | Write, Edit | `ask` | Modify files |
+| `glob` | Glob | `allow` | Find files by pattern |
+| `grep` | Grep | `allow` | Search file contents |
 
-### Выполнение команд
+### Command Execution
 
-| Разрешение | Инструменты | По умолчанию | Описание |
-|------------|-------------|-------------|----------|
-| `bash` | Bash | `ask` | Выполнение команд оболочки |
-| `task` | Task | `ask` | Создание субагентов |
+| Permission | Tools | Default | Description |
+|------------|-------|---------|-------------|
+| `bash` | Bash | `ask` | Execute shell commands |
+| `task` | Task | `ask` | Create sub-agents |
 
-### Веб-операции
+### Web Operations
 
-| Разрешение | Инструменты | По умолчанию | Описание |
-|------------|-------------|-------------|----------|
-| `websearch` | WebSearch | `ask` | Поиск в интернете |
-| `webfetch` | WebFetch | `ask` | Получение веб-контента |
-| `codesearch` | CodeSearch | `ask` | Поиск по репозиториям кода |
+| Permission | Tools | Default | Description |
+|------------|-------|---------|-------------|
+| `websearch` | WebSearch | `ask` | Search the web |
+| `webfetch` | WebFetch | `ask` | Fetch web content |
+| `codesearch` | CodeSearch | `ask` | Search code repositories |
 
-### Специальные разрешения
+### Special Permissions
 
-| Разрешение | Описание |
-|------------|----------|
-| `external_directory` | Доступ к файлам за пределами проекта |
-| `lsp` | Операции языкового сервера |
-| `doom_loop` | Обнаружение и прерывание бесконечных циклов |
+| Permission | Description |
+|------------|-------------|
+| `external_directory` | Access files outside project |
+| `lsp` | Language server operations |
+| `doom_loop` | Detect and break infinite loops |
 
 ---
 
-## Разрешения на основе шаблонов
+## Permission Patterns
 
-Используйте шаблоны для предоставления гранулярных разрешений.
+Permission patterns give fine-grained control by matching a tool's argument (a command string, a file path) against a glob and mapping it to an action.
 
-### Шаблоны каталогов
+### Pattern Format
 
-Разрешение конкретных каталогов:
-
-```json
-{
-  "permission": {
-    "read": {
-      "src/**": "allow",
-      "test/**": "allow",
-      "node_modules/**": "deny"
-    },
-    "edit": {
-      "src/**": "allow",
-      "*.config.js": "deny"
-    }
-  }
-}
-```
-
-### Шаблоны команд
-
-Разрешение конкретных команд:
+A permission entry is either a single action, or a map of **glob → action**. The tool key groups its patterns:
 
 ```json
 {
   "permission": {
     "bash": {
-      "git *": "allow",
-      "npm test": "allow",
-      "npm run *": "allow",
-      "rm *": "deny"
+      "*": "ask",
+      "ls *": "allow",
+      "git status": "allow",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "reports/**": "allow",
+      ".env*": "deny"
     }
   }
 }
 ```
 
-### Подстановочные знаки
+The glob matches the tool's argument: for `bash` it's the command string, for `edit`/`read` it's the file path.
 
-| Шаблон | Совпадения |
-|--------|-----------|
-| `*` | Любой одиночный сегмент пути |
-| `**` | Любая глубина пути |
-| `*.ts` | Файлы с расширением .ts |
-| `src/**/*.ts` | TypeScript-файлы в src |
+### Wildcards
+
+Only two wildcards are supported:
+
+| Token | Matches |
+|-------|---------|
+| `*` | any sequence of characters (including `/`) |
+| `?` | any single character |
+
+<Aside variant="caution">
+  `*` and `?` are the **only** wildcards. Characters like `[`, `]`, `{`, `}`, `(`, `)`, and `|` are matched **literally**. There is no `**` (it behaves the same as `*`), and negation (`!pattern`) is not supported.
+</Aside>
+
+A pattern that ends in a space + `*` also matches the bare command with no arguments — so `"ls *"` matches both `ls` and `ls -la`.
+
+### Pattern Precedence
+
+When several patterns match, the **more specific (longer) pattern wins**. Patterns are evaluated shortest-first, and the last match applies — so a broad `"*": "ask"` can be overridden by a longer `"git status": "allow"`:
+
+```json
+{
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "npm *": "allow",
+      "npm publish*": "deny"
+    }
+  }
+}
+```
+
+Here `npm test` is allowed, but `npm publish` is denied.
+
+### Pattern Examples
+
+#### Allow a toolchain, block the dangerous parts
+
+```json
+{
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "git *": "allow",
+      "git push*": "ask",
+      "rm -rf *": "deny"
+    }
+  }
+}
+```
+
+#### Restrict edits to a directory
+
+```json
+{
+  "permission": {
+    "edit": {
+      "*": "deny",
+      "src/**": "allow",
+      "src/secrets/**": "deny"
+    }
+  }
+}
+```
 
 ---
 
-## Разрешения агентов
+## Agent Permissions
 
-Настройка разрешений для каждого агента:
+Configure permissions per-agent:
 
 ```json title="cyberstrike.json"
 {
@@ -208,104 +231,43 @@ flowchart TD
 
 ---
 
-## Интерактивное одобрение
+## Interactive Approval
 
-Когда инструмент требует разрешения, Cyberstrike запрашивает одобрение.
+When a tool requires permission, Cyberstrike prompts for approval.
 
-### Варианты ответа
+### Response Options
 
-| Вариант | Поведение |
-|---------|-----------|
-| **Once** | Одобрить этот конкретный вызов |
-| **Always** | Одобрить все аналогичные вызовы в сессии |
-| **Reject** | Заблокировать этот вызов |
+| Option | Behavior |
+|--------|----------|
+| **Once** | Approve this specific call |
+| **Always** | Approve all similar calls in session |
+| **Reject** | Block this call |
 
-### Диалог одобрения
+### Keyboard Shortcuts
 
-```
-┌─────────────────────────────────────────┐
-│  Permission Required                     │
-├─────────────────────────────────────────┤
-│  Tool: Bash                              │
-│  Command: git push origin main           │
-│                                          │
-│  [Once]  [Always]  [Reject]              │
-└─────────────────────────────────────────┘
-```
+| Key | Action |
+|-----|--------|
+| `y` | Approve once |
+| `a` | Approve always |
+| `n` | Reject |
+| `Esc` | Reject |
 
-### Горячие клавиши
+### Session Approval Memory
 
-| Клавиша | Действие |
-|---------|----------|
-| `y` | Одобрить однократно |
-| `a` | Одобрить всегда |
-| `n` | Отклонить |
-| `Esc` | Отклонить |
+When you select "Always", Cyberstrike remembers the approval pattern for the session:
+
+1. User approves `git push` with "Always"
+2. Pattern `git *` is stored for session
+3. Future `git pull`, `git commit`, etc. auto-approve
+4. Memory resets when session ends
 
 ---
 
-## Память одобрений сессии
+## External Directory Access
 
-При выборе "Always" Cyberstrike запоминает шаблон одобрения на время сессии.
+By default, Cyberstrike restricts access to the project directory.
 
-### Как работает память
-
-1. Пользователь одобряет `git push` с "Always"
-2. Шаблон `git *` сохраняется для сессии
-3. Будущие `git pull`, `git commit` и т.д. одобряются автоматически
-4. Память сбрасывается при завершении сессии
-
-### Просмотр одобренных шаблонов
-
-Одобренные шаблоны сохраняются до перезапуска сессии.
-
----
-
-## Режим автоматизации
-
-Для CI/CD и автоматизации настройте полное доверие:
-
-```json title="cyberstrike.json"
-{
-  "permission": "allow"
-}
-```
-
-Это устанавливает все разрешения в allow без запросов.
-
-<Aside variant="caution">
-  Использование `"permission": "allow"` обходит все проверки безопасности. Используйте только в контролируемых средах.
-</Aside>
-
----
-
-## Режим только для чтения
-
-Ограничьте агента операциями только для чтения:
-
-```json title="cyberstrike.json"
-{
-  "permission": {
-    "read": "allow",
-    "glob": "allow",
-    "grep": "allow",
-    "lsp": "allow",
-    "edit": "deny",
-    "bash": "deny",
-    "websearch": "deny"
-  }
-}
-```
-
-Используйте для обзора кода или задач исследования.
-
----
-
-## Доступ к внешним каталогам
-
-По умолчанию Cyberstrike ограничивает доступ каталогом проекта.
-
-### Разрешение внешнего доступа
+### Allowing External Access
 
 ```json
 {
@@ -315,7 +277,7 @@ flowchart TD
 }
 ```
 
-### Конкретные внешние пути
+### Specific External Paths
 
 ```json
 {
@@ -331,59 +293,146 @@ flowchart TD
 
 ---
 
-## Хуки разрешений
+## Permission Hooks
 
-Используйте хуки плагинов для программного управления разрешениями.
-
-### Хук permission.ask
+Use plugin hooks for programmatic permission control:
 
 ```typescript
 const hooks: Hooks = {
   "permission.ask": async (input, output) => {
-    // Автоматическое одобрение операций чтения в src
     if (input.type === "read" && input.path?.startsWith("src/")) {
       output.status = "allow"
       return
     }
 
-    // Блокировка доступа к секретам
     if (input.path?.includes("secret") || input.path?.includes(".env")) {
       output.status = "deny"
       return
     }
 
-    // По умолчанию: запросить пользователя
     output.status = "ask"
   },
 }
 ```
 
-### Входные данные хука
-
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `id` | string | ID запроса разрешения |
-| `type` | string | Тип разрешения |
-| `pattern` | string | Совпадающий шаблон |
-| `sessionID` | string | Идентификатор сессии |
-| `messageID` | string | Идентификатор сообщения |
-| `callID` | string | ID вызова инструмента |
-| `message` | string | Описание |
-| `metadata` | object | Дополнительный контекст |
-
-### Выходные данные хука
-
-| Поле | Значение | Описание |
-|------|----------|----------|
-| `status` | `"ask"` | Запросить пользователя |
-| `status` | `"allow"` | Автоматически одобрить |
-| `status` | `"deny"` | Заблокировать |
+See [Hooks & Plugins](/docs/configuration/hooks) for the full hook system.
 
 ---
 
-## Лучшие практики безопасности
+## Permission Priority
 
-### Среда разработки
+Permissions are evaluated in order:
+
+1. **Agent-specific** permissions (highest priority)
+2. **Project** `cyberstrike.json`
+3. **Global** `~/.config/cyberstrike/cyberstrike.json`
+4. **Default** built-in values (lowest priority)
+
+More specific patterns take precedence over broader ones.
+
+---
+
+## Automation
+
+In non-interactive runs (`cyberstrike run`), there is nobody to answer permission prompts — so any tool that *would* prompt is **auto-rejected**. To let a pipeline do real work, pre-approve the tools it needs.
+
+### Pre-Approving Tools
+
+Grant permissions two ways:
+
+**1. `CYBERSTRIKE_PERMISSION` env var** — a JSON permission map (same shape as the config `permission` field):
+
+```bash
+export CYBERSTRIKE_PERMISSION='{"bash":"allow","read":"allow","edit":{"reports/**":"allow"}}'
+cyberstrike run "scan this codebase for security issues" --format json > report.json
+```
+
+**2. Config `permission`** — commit safe defaults, deny the dangerous bits:
+
+```json title="cyberstrike.json"
+{
+  "permission": {
+    "read": "allow",
+    "bash": { "*": "allow", "rm -rf *": "deny", "sudo *": "deny" },
+    "edit": { "reports/**": "allow", ".env*": "deny" }
+  }
+}
+```
+
+Output goes to stdout; use `--format json` for machine-readable results.
+
+### GitHub Actions
+
+```yaml title=".github/workflows/security-scan.yml"
+name: Security Scan
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install -g @cyberstrike-io/cyberstrike@latest
+      - name: Run Security Scan
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow","edit":{"reports/**":"allow"}}'
+        run: cyberstrike run "scan this codebase for security vulnerabilities" --format json > security-report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: security-report.json
+```
+
+### GitLab CI
+
+```yaml title=".gitlab-ci.yml"
+security-scan:
+  image: node:20
+  variables:
+    CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow"}'
+  script:
+    - npm install -g @cyberstrike-io/cyberstrike@latest
+    - cyberstrike run "analyze code for vulnerabilities" --format json > report.json
+  artifacts:
+    paths:
+      - report.json
+```
+
+### Batch & Scheduled Runs
+
+```bash title="scan-targets.sh"
+#!/bin/bash
+export CYBERSTRIKE_PERMISSION='{"bash":"allow"}'
+while read -r target; do
+  cyberstrike run "scan $target for open ports and services" --format json > "reports/${target}.json"
+done < targets.txt
+```
+
+### Exit Codes & Output
+
+`cyberstrike run` writes results to stdout (`--format json` for JSON) and returns `0` on success, a non-zero code on error or interruption.
+
+### Automation Security
+
+- **Least privilege** — only `allow` the tools the job needs; keep an explicit `deny` for `rm -rf *`, `sudo *`, and secret paths.
+- **Secrets** — inject API keys from your CI secret store, never commit them.
+- **Isolation** — run in a container with a constrained network where possible.
+
+<Aside variant="caution">
+  Always keep deny rules for destructive commands when pre-approving `bash` in automation.
+</Aside>
+
+---
+
+## Security Best Practices
+
+### Development Environment
 
 ```json
 {
@@ -397,7 +446,7 @@ const hooks: Hooks = {
 }
 ```
 
-### Продакшен/CI-среда
+### Production/CI Environment
 
 ```json
 {
@@ -415,7 +464,7 @@ const hooks: Hooks = {
 }
 ```
 
-### Режим аудита безопасности
+### Security Audit Mode
 
 ```json
 {
@@ -431,69 +480,7 @@ const hooks: Hooks = {
 }
 ```
 
----
-
-## Приоритет разрешений
-
-Разрешения оцениваются в следующем порядке:
-
-1. **Специфичные для агента** разрешения (наивысший приоритет)
-2. **Проектный** `cyberstrike.json`
-3. **Глобальный** `~/.config/cyberstrike/cyberstrike.json`
-4. **Встроенные** значения по умолчанию (наименьший приоритет)
-
-Более специфичные шаблоны имеют приоритет:
-
-```json
-{
-  "permission": {
-    "bash": "deny",
-    "bash": {
-      "git *": "allow"
-    }
-  }
-}
-```
-
-В этом случае `git push` разрешён, а `rm -rf` заблокирован.
-
----
-
-## Устранение неполадок
-
-### Разрешение постоянно запрашивается
-
-Проверьте, что конфигурация корректна:
-
-```bash
-cyberstrike config validate
-```
-
-Убедитесь, что разрешение установлено правильно:
-
-```bash
-cat ~/.config/cyberstrike/cyberstrike.json | jq .permission
-```
-
-### Разрешение не применяется
-
-1. Проверьте приоритет проектной и глобальной конфигурации
-2. Проверьте, что синтаксис шаблона соответствует пути
-3. Перезапустите Cyberstrike для перезагрузки конфигурации
-
-### Заблокированная операция
-
-Если инструмент неожиданно заблокирован:
-
-1. Проверьте правила `deny` в конфигурации
-2. Проверьте несоответствия шаблонов
-3. Проверьте хуки плагинов, которые могут блокировать
-
----
-
-## Примеры
-
-### Тестирование веб-безопасности
+### Web Security Testing
 
 ```json title="cyberstrike.json"
 {
@@ -511,30 +498,6 @@ cat ~/.config/cyberstrike/cyberstrike.json | jq .permission
 }
 ```
 
-### Только обзор кода
-
-```json title="cyberstrike.json"
-{
-  "permission": {
-    "read": "allow",
-    "glob": "allow",
-    "grep": "allow",
-    "lsp": "allow",
-    "edit": "deny",
-    "bash": "deny",
-    "browser": "deny"
-  }
-}
-```
-
-### Полная автоматизация
-
-```json title="cyberstrike.json"
-{
-  "permission": "allow"
-}
-```
-
 <Aside variant="tip">
-  Начните с ограничительных разрешений и ослабляйте их по мере необходимости. Безопаснее одобрять отдельные действия, чем предоставлять общий доступ.
+  Start with restrictive permissions and relax them as needed. It's safer to approve individual actions than to grant blanket access.
 </Aside>

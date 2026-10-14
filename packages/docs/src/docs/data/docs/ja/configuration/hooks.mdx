@@ -1,44 +1,36 @@
 ---
-title: フックシステム
-description: プラグインフックとシェルコマンドでCyberstrikeの動作を拡張する
+title: Hooks & Plugins
+description: Extend Cyberstrike behavior with plugin hooks, custom tools, and shell commands
 sidebar:
-  order: 9
-  label: 概要
+  order: 7
+  label: Hooks & Plugins
 ---
 
-フックを使うと、実行中の重要なポイントでCyberstrikeの動作を拡張・カスタマイズできます。フックは**プラグイン**として実装されます — フック関数のセットを返すTypeScript/JavaScriptモジュールです。
+Hooks let you extend and customize Cyberstrike behavior at key points during execution. They are implemented as **plugins** — TypeScript/JavaScript modules that return a set of hook functions.
 
-{/* TODO: GIF - Hook blocking dangerous command */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">🎬 GIF: g10-hook-blocking.gif</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">フックが危険なコマンドをブロックしている様子（12秒）</p>
-</div>
+## Available Hooks
 
-{/* TODO: Screenshot - Hook blocking message */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: s14-hook-block.png</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">フックのブロックメッセージ</p>
-</div>
+| Hook | When it runs | You can… |
+|------|--------------|----------|
+| `event` | On any bus event | Observe events (logging, analytics) |
+| `config` | After config loads | Inspect/adjust the loaded config |
+| `tool` | Registration | Add custom tools (map of name → definition) |
+| `auth` | Registration | Add a custom auth provider |
+| `chat.message` | A user message is received | Read/append message parts |
+| `chat.params` | Before an LLM call | Change `temperature`, `topP`, `topK`, `options` |
+| `chat.headers` | Before an LLM request | Add/modify request `headers` |
+| `permission.ask` | A permission is requested | Set `status` to `allow`/`deny`/`ask` |
+| `command.execute.before` | A slash command runs | Inject `parts` |
+| `tool.execute.before` | Before a tool runs | Modify `args`, or throw to block |
+| `tool.execute.after` | After a tool runs | Transform `title`/`output`/`metadata` |
+| `tool.definition` | Tool sent to the LLM | Rewrite a tool's `description`/`parameters` |
+| `shell.env` | A shell command runs | Add environment variables |
+| `experimental.chat.messages.transform` | Before an LLM call | Rewrite the full message list |
+| `experimental.chat.system.transform` | Before an LLM call | Rewrite the system prompt array |
+| `experimental.session.compacting` | Before compaction | Add context or replace the compaction prompt |
+| `experimental.text.complete` | A text part completes | Rewrite the completed text |
 
-## プラグインフック
-
-プラグインフックはCyberstrikeの内部へのプログラマティックなアクセスを提供します。`@cyberstrike-io/plugin` パッケージを使用してプラグインを作成します。設定ベース（JSON）のフックシステムは**ありません** — すべてのフックはプラグイン関数です。
-
-### 利用可能なプラグインフック
-
-| フック | トリガー | ユースケース |
-|------|---------|----------|
-| `tool.execute.before` | ツール実行前 | 引数の変更、ログの追加 |
-| `tool.execute.after` | ツール実行後 | 出力の変換、通知の送信 |
-| `permission.ask` | パーミッションの要求時 | カスタム承認ロジック |
-| `chat.message` | 新しいメッセージ受信時 | メッセージの前処理 |
-| `chat.params` | LLMコールの準備時 | 温度の変更、オプションの追加 |
-| `chat.headers` | HTTPリクエストの準備時 | カスタムヘッダーの追加 |
-| `command.execute.before` | スラッシュコマンド実行時 | コンテキストの注入 |
-| `event` | 任意のバスイベント | 分析、ログ |
-| `config` | 設定の読み込み時 | 動的な設定変更 |
-
-### フック実行フロー
+### Hook Execution Flow
 
 ```mermaid
 sequenceDiagram
@@ -47,198 +39,154 @@ sequenceDiagram
     participant Hook System
     participant Tool
 
-    User->>Agent: アクションを要求
+    User->>Agent: Request action
     Agent->>Hook System: tool.execute.before
-    Hook System-->>Agent: 変更された引数
-    Agent->>Tool: 引数を使って実行
-    Tool-->>Agent: 生の出力
+    Hook System-->>Agent: Modified args
+    Agent->>Tool: Execute with args
+    Tool-->>Agent: Raw output
     Agent->>Hook System: tool.execute.after
-    Hook System-->>Agent: 変換された出力
-    Agent-->>User: 最終レスポンス
+    Hook System-->>Agent: Transformed output
+    Agent-->>User: Final response
 ```
 
 ---
 
-## プラグインの作成
+## Creating a Plugin
 
-### プラグイン構造
+A plugin is `(input: PluginInput) => Promise<Hooks>`. Import the types from `@cyberstrike-io/plugin`:
 
-```typescript title="my-plugin/index.ts"
-import type { Plugin, Hooks } from "@cyberstrike-io/plugin"
+```typescript title=".cyberstrike/plugin/guard.ts"
+import type { Plugin } from "@cyberstrike-io/plugin"
 
-export const myPlugin: Plugin = async (input) => {
-  const { client, project, directory } = input
-
-  const hooks: Hooks = {
-    // ツール実行前フック
+export const GuardPlugin: Plugin = async ({ project, directory, $ }) => {
+  return {
     "tool.execute.before": async (input, output) => {
-      console.log(`Tool ${input.tool} called with:`, output.args)
-      // 必要に応じて引数を変更
-      if (input.tool === "Bash" && output.args.command.includes("rm")) {
-        output.args.command = `echo "Blocked: ${output.args.command}"`
+      if (input.tool === "bash" && /rm\s+-rf/.test(output.args.command)) {
+        throw new Error("blocked: rm -rf")
       }
     },
-
-    // ツール実行後フック
-    "tool.execute.after": async (input, output) => {
-      console.log(`Tool ${input.tool} completed:`, output.title)
-      // 必要に応じて出力を変換
-    },
-
-    // パーミッションフック
     "permission.ask": async (input, output) => {
-      // 読み取り操作を自動承認
-      if (input.tool === "Read") {
-        output.status = "allow"
-      }
-      // 危険なパターンをブロック
-      if (input.command?.includes("--force")) {
-        output.status = "deny"
-      }
-    },
-
-    // イベントリスナー
-    event: async ({ event }) => {
-      // すべてのイベントを外部サービスに記録
-      await fetch("https://analytics.example.com/event", {
-        method: "POST",
-        body: JSON.stringify(event),
-      })
+      if (input.type === "read") output.status = "allow"
     },
   }
-
-  return hooks
 }
-
-export default myPlugin
 ```
 
-### プラグイン入力
+### Plugin Input
 
-プラグインは現在の環境に関するコンテキストを受け取ります：
+The plugin receives context about the current environment:
 
-| プロパティ | 型 | 説明 |
+| Property | Type | Description |
 |----------|------|-------------|
-| `client` | `CyberstrikeClient` | SDKクライアントインスタンス |
-| `project` | `Project` | 現在のプロジェクト情報 |
-| `directory` | `string` | 作業ディレクトリ |
-| `worktree` | `string` | Gitワークツリーパス |
-| `serverUrl` | `URL` | ローカルサーバーURL |
-| `$` | `BunShell` | コマンド用のBunシェル |
+| `client` | `CyberstrikeClient` | SDK client instance |
+| `project` | `Project` | Current project info |
+| `directory` | `string` | Working directory |
+| `worktree` | `string` | Git worktree path |
+| `serverUrl` | `URL` | Local server URL |
+| `$` | `BunShell` | Bun shell for commands |
 
 ---
 
-## ツール実行前フック（tool.execute.before）
+## Registering Plugins
 
-ツールコールを実行前にインターセプトし、引数の変更や実行のブロックを行います。
+### Local File (no publishing)
 
-### フックシグネチャ
+Drop a `.ts`/`.js` file into a `plugin/` (or `plugins/`) directory inside any `.cyberstrike/` folder — project or `~/.cyberstrike/`:
+
+```
+.cyberstrike/
+└── plugin/
+    └── guard.ts
+```
+
+Cyberstrike discovers it automatically and installs `@cyberstrike-io/plugin` for you so local plugins can import the types.
+
+### Config Array
+
+Reference an npm package or a path in the `plugin` array (values are union-merged across config sources):
+
+```json title="cyberstrike.json"
+{
+  "plugin": [
+    "@myorg/cyberstrike-guard",
+    "./local/guard.ts"
+  ]
+}
+```
+
+### Built-in Plugins
+
+| Plugin | Purpose |
+|--------|---------|
+| `AnthropicAuthPlugin` | Anthropic OAuth |
+| `CodexAuthPlugin` | OpenAI/Codex OAuth |
+| `CopilotAuthPlugin` | GitHub Copilot auth |
+| `@gitlab/opencode-gitlab-auth` | GitLab integration |
+
+---
+
+## Pre-Tool Hook (tool.execute.before)
+
+Intercept tool calls before execution to modify arguments or block execution.
 
 ```typescript
 "tool.execute.before": async (
-  input: {
-    tool: string       // ツール名（Bash、Read、Writeなど）
-    sessionID: string  // 現在のセッションID
-    callID: string     // 一意のコール識別子
-  },
-  output: {
-    args: any          // ツール引数（変更可能）
-  }
+  input: { tool: string; sessionID: string; callID: string },
+  output: { args: any },
 ) => Promise<void>
 ```
 
-### 例
-
-#### すべてのツールコールのログ
-
-```typescript
-"tool.execute.before": async (input, output) => {
-  const timestamp = new Date().toISOString()
-  console.log(`[${timestamp}] ${input.tool}:`, JSON.stringify(output.args))
-}
-```
-
-#### 危険なコマンドのブロック
+To **block** a tool, throw from the hook:
 
 ```typescript
 "tool.execute.before": async (input, output) => {
   if (input.tool !== "Bash") return
 
   const dangerous = ["rm -rf", "mkfs", "dd if=", "> /dev/"]
-  const command = output.args.command
-
   for (const pattern of dangerous) {
-    if (command.includes(pattern)) {
+    if (output.args.command.includes(pattern)) {
       throw new Error(`Blocked dangerous command: ${pattern}`)
     }
   }
 }
 ```
 
-#### 引数の変更
+#### Modifying Arguments
 
 ```typescript
 "tool.execute.before": async (input, output) => {
-  if (input.tool === "Bash") {
-    // gitコマンドに安全フラグを追加
-    if (output.args.command.startsWith("git push")) {
-      output.args.command = output.args.command.replace(
-        "git push",
-        "git push --dry-run"
-      )
-    }
+  if (input.tool === "Bash" && output.args.command.startsWith("git push")) {
+    output.args.command = output.args.command.replace("git push", "git push --dry-run")
   }
 }
 ```
 
 ---
 
-## ツール実行後フック（tool.execute.after）
+## Post-Tool Hook (tool.execute.after)
 
-実行後のツール出力を処理し、変換や通知を行います。
-
-### フックシグネチャ
+Process tool output after execution for transformation or notification.
 
 ```typescript
 "tool.execute.after": async (
-  input: {
-    tool: string       // ツール名
-    sessionID: string  // 現在のセッションID
-    callID: string     // 一意のコール識別子
-  },
-  output: {
-    title: string      // 出力タイトル
-    output: string     // ツール出力（変更可能）
-    metadata: any      // 追加メタデータ
-  }
+  input: { tool: string; sessionID: string; callID: string; args: any },
+  output: { title: string; output: string; metadata: any },
 ) => Promise<void>
 ```
 
-### 例
-
-#### 機密データのリダクション
+#### Redacting Sensitive Data
 
 ```typescript
 "tool.execute.after": async (input, output) => {
-  // 出力からAPIキーをリダクト
-  output.output = output.output.replace(
-    /sk-[a-zA-Z0-9]{32,}/g,
-    "[REDACTED]"
-  )
-
-  // パスワードをリダクト
-  output.output = output.output.replace(
-    /password[=:]\s*\S+/gi,
-    "password=[REDACTED]"
-  )
+  output.output = output.output.replace(/sk-[a-zA-Z0-9]{32,}/g, "[REDACTED]")
+  output.output = output.output.replace(/password[=:]\s*\S+/gi, "password=[REDACTED]")
 }
 ```
 
-#### 通知の送信
+#### Sending Notifications
 
 ```typescript
 "tool.execute.after": async (input, output) => {
-  // ファイル書き込み時に通知
   if (input.tool === "Write") {
     await sendSlackNotification({
       channel: "#code-changes",
@@ -250,102 +198,60 @@ export default myPlugin
 
 ---
 
-## パーミッションフック（permission.ask）
+## Permission Hook (permission.ask)
 
-パーミッションの判断をプログラマティックにカスタマイズします。
-
-### フックシグネチャ
+Customize permission decisions programmatically.
 
 ```typescript
 "permission.ask": async (
-  input: Permission,  // パーミッションリクエストの詳細
-  output: {
-    status: "ask" | "deny" | "allow"  // 判断（変更可能）
-  }
+  input: Permission,
+  output: { status: "ask" | "deny" | "allow" },
 ) => Promise<void>
 ```
 
-### 例
-
-#### 安全な操作の自動承認
-
 ```typescript
 "permission.ask": async (input, output) => {
-  const safeTools = ["Read", "Glob", "Grep", "LSP"]
-
-  if (safeTools.includes(input.tool)) {
+  const safe = ["Read", "Glob", "Grep", "LSP"]
+  if (safe.includes(input.tool)) {
     output.status = "allow"
     return
   }
-
-  // テストディレクトリへの書き込みを許可
   if (input.tool === "Write" && input.path?.includes("/test/")) {
     output.status = "allow"
   }
 }
 ```
 
-#### 特定パターンの拒否
-
-```typescript
-"permission.ask": async (input, output) => {
-  // 機密ディレクトリへのアクセスをブロック
-  const sensitive = [".env", "credentials", "secrets", ".ssh"]
-
-  if (input.path) {
-    for (const dir of sensitive) {
-      if (input.path.includes(dir)) {
-        output.status = "deny"
-        return
-      }
-    }
-  }
-}
-```
-
 ---
 
-## チャットフック
-
-LLMリクエスト送信前にLLMインタラクションを変更します。
+## Chat Hooks
 
 ### chat.message
 
-受信メッセージの前処理：
+Preprocess incoming messages:
 
 ```typescript
-"chat.message": async (input, output) => {
-  const { sessionID, agent, model } = input
-
-  // メッセージパーツにコンテキストを追加
-  output.parts.push({
-    type: "text",
-    text: `[Session: ${sessionID}, Agent: ${agent}]`,
-  })
-}
+"chat.message": async (
+  input: { sessionID: string; agent?: string; model?: { providerID: string; modelID: string } },
+  output: { message: UserMessage; parts: Part[] },
+) => Promise<void>
 ```
 
 ### chat.params
 
-LLMパラメータの変更：
+Modify LLM parameters:
 
 ```typescript
 "chat.params": async (input, output) => {
-  // web-applicationサブエージェントの温度を下げる
   if (input.agent === "web-application") {
     output.temperature = 0.3
-  }
-
-  // デフォルトのcyberstrikeエージェントの温度を上げる
-  if (input.agent === "cyberstrike") {
-    output.temperature = 0.8
   }
 }
 ```
 
 ### chat.headers
 
-カスタムHTTPヘッダーの追加：
+Add custom HTTP headers:
 
 ```typescript
 "chat.headers": async (input, output) => {
@@ -356,49 +262,86 @@ LLMパラメータの変更：
 
 ---
 
-## プラグインのインストール
+## Tool Definition Hook
 
-### npmから
+Rewrite a tool's description or parameters before sending to the LLM:
 
-設定にプラグインを追加します：
-
-```json title="cyberstrike.json"
-{
-  "plugin": [
-    "my-security-plugin@1.0.0",
-    "@myorg/custom-hooks@2.1.0"
-  ]
-}
+```typescript
+"tool.definition": async (
+  input: { toolID: string },
+  output: { description: string; parameters: any },
+) => Promise<void>
 ```
-
-### ローカルファイルから
-
-ローカルプラグインファイルを参照します：
-
-```json title="cyberstrike.json"
-{
-  "plugin": [
-    "file:///path/to/my-plugin"
-  ]
-}
-```
-
-### 組み込みプラグイン
-
-Cyberstrikeには認証用の組み込みプラグインが含まれています：
-
-| プラグイン | 用途 |
-|--------|---------|
-| `AnthropicAuthPlugin` | Anthropic OAuth |
-| `CodexAuthPlugin` | OpenAI/Codex OAuth |
-| `CopilotAuthPlugin` | GitHub Copilot認証 |
-| `@gitlab/opencode-gitlab-auth` | GitLab連携 |
 
 ---
 
-## 認証フック
+## Command & Shell Hooks
 
-カスタム認証プロバイダーを作成します：
+```typescript
+"command.execute.before": async (
+  input: { command: string; sessionID: string; arguments: string },
+  output: { parts: Part[] },
+) => Promise<void>
+
+"shell.env": async (
+  input: { cwd: string },
+  output: { env: Record<string, string> },
+) => Promise<void>
+```
+
+---
+
+## Lifecycle Hooks
+
+```typescript
+event:  (input: { event: Event }) => Promise<void>
+config: (input: Config) => Promise<void>
+```
+
+---
+
+## Experimental Hooks
+
+```typescript
+"experimental.chat.messages.transform": async (input: {}, output: { messages: { info: Message; parts: Part[] }[] }) => Promise<void>
+"experimental.chat.system.transform":   async (input: { sessionID?: string; model: Model }, output: { system: string[] }) => Promise<void>
+"experimental.session.compacting":      async (input: { sessionID: string }, output: { context: string[]; prompt?: string }) => Promise<void>
+"experimental.text.complete":           async (input: { sessionID: string; messageID: string; partID: string }, output: { text: string }) => Promise<void>
+```
+
+---
+
+## Custom Tools
+
+Add custom tools through plugins:
+
+```typescript
+return {
+  tool: {
+    my_scanner: {
+      description: "Custom vulnerability scanner",
+      parameters: {
+        type: "object",
+        properties: {
+          target: { type: "string", description: "Target URL to scan" },
+          depth: { type: "number", description: "Scan depth", default: 3 },
+        },
+        required: ["target"],
+      },
+      execute: async (args) => ({
+        title: `Scanned ${args.target}`,
+        output: await scan(args.target),
+      }),
+    },
+  },
+}
+```
+
+---
+
+## Authentication Hooks
+
+Create custom authentication providers:
 
 ```typescript
 const authHook: AuthHook = {
@@ -414,17 +357,13 @@ const authHook: AuthHook = {
           message: "Enter your API key",
           placeholder: "sk-...",
           validate: (value) => {
-            if (!value.startsWith("sk-")) {
-              return "API key must start with sk-"
-            }
+            if (!value.startsWith("sk-")) return "API key must start with sk-"
           },
         },
       ],
       authorize: async (inputs) => {
         const valid = await validateKey(inputs.apiKey)
-        if (valid) {
-          return { type: "success", key: inputs.apiKey }
-        }
+        if (valid) return { type: "success", key: inputs.apiKey }
         return { type: "failed" }
       },
     },
@@ -435,10 +374,7 @@ const authHook: AuthHook = {
         url: "https://auth.example.com/oauth",
         instructions: "Complete login in browser",
         method: "auto",
-        callback: async () => {
-          // OAuthコールバックを処理
-          return { type: "success", key: "obtained-key" }
-        },
+        callback: async () => ({ type: "success", key: "obtained-key" }),
       }),
     },
   ],
@@ -447,97 +383,52 @@ const authHook: AuthHook = {
 
 ---
 
-## カスタムツールフック
+## Publishing Plugins
 
-プラグインでカスタムツールを追加します：
+Package your plugin like any npm module:
 
-```typescript
-const hooks: Hooks = {
-  tool: {
-    my_scanner: {
-      description: "Custom vulnerability scanner",
-      parameters: {
-        type: "object",
-        properties: {
-          target: {
-            type: "string",
-            description: "Target URL to scan",
-          },
-          depth: {
-            type: "number",
-            description: "Scan depth",
-            default: 3,
-          },
-        },
-        required: ["target"],
-      },
-      execute: async (args, context) => {
-        const result = await runScanner(args.target, args.depth)
-        return {
-          output: result,
-          title: `Scanned ${args.target}`,
-        }
-      },
-    },
-  },
+```json title="package.json"
+{
+  "name": "@myorg/cyberstrike-guard",
+  "type": "module",
+  "main": "./index.ts",
+  "peerDependencies": { "@cyberstrike-io/plugin": "*" }
 }
+```
+
+```bash
+npm publish --access public
 ```
 
 ---
 
-## ベストプラクティス
+## Testing & Debugging
 
-### パフォーマンス
-
-1. レイテンシを避けるためフックを軽量に保つ
-2. 外部コールには非同期操作を使用
-3. コストの高い計算をキャッシュ
-4. メインスレッドをブロックしない
-
-### セキュリティ
-
-1. フック内ですべての入力をバリデーション
-2. 返す前に出力をサニタイズ
-3. シークレットには環境変数を使用
-4. セキュリティ関連のイベントをログ
-
-### デバッグ
-
-プラグインログを有効にします：
+Run Cyberstrike with debug logging to see plugins load and hooks fire:
 
 ```bash
 cyberstrike --log-level DEBUG --print-logs
 ```
 
-プラグインの読み込みを確認：
-
-```
-[plugin] loading plugin my-security-plugin@1.0.0
-[plugin] loading internal plugin CodexAuthPlugin
-```
+Since hooks mutate `output` (or throw), you can unit-test them by calling the hook with a fake `input`/`output` and asserting on the mutated `output`.
 
 ---
 
-## トラブルシューティング
+## Best Practices
 
-### プラグインが読み込まれない
+### Performance
 
-1. プラグインパスまたはnpmパッケージ名を確認
-2. プラグインが有効な `Plugin` 関数をエクスポートしているか確認
-3. TypeScriptコンパイルエラーを確認
+1. Keep hooks lightweight to avoid latency
+2. Use async operations for external calls
+3. Cache expensive computations
 
-### フックがトリガーされない
+### Security
 
-1. フック名が正確に一致しているか確認
-2. プラグインが設定に含まれているか確認
-3. デバッグログを有効にして実行を追跡
-
-### パフォーマンスの問題
-
-1. フックの実行時間をプロファイル
-2. 重い操作をバックグラウンドに移動
-3. 頻繁な操作のキャッシュを検討
+1. Validate all inputs in hooks
+2. Sanitize outputs before returning
+3. Use environment variables for secrets
+4. Log security-relevant events
 
 <Aside variant="caution">
-  プラグインはあなたのマシンとCyberstrike内部への完全なアクセス権限を持って実行されます。信頼できるプラグインのみをインストールしてください。
+  Plugins run with full access to your machine and Cyberstrike internals. Only install plugins you trust, and keep hooks fast — they run inline with tool calls and LLM requests.
 </Aside>

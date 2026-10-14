@@ -1,44 +1,36 @@
 ---
-title: Система хуков
-description: Расширение поведения Cyberstrike с помощью хуков плагинов и команд оболочки
+title: Hooks & Plugins
+description: Extend Cyberstrike behavior with plugin hooks, custom tools, and shell commands
 sidebar:
-  order: 9
-  label: Обзор
+  order: 7
+  label: Hooks & Plugins
 ---
 
-Хуки позволяют расширять и настраивать поведение Cyberstrike в ключевых точках выполнения. Они реализованы как **плагины** — модули TypeScript/JavaScript, которые возвращают набор функций-хуков.
+Hooks let you extend and customize Cyberstrike behavior at key points during execution. They are implemented as **plugins** — TypeScript/JavaScript modules that return a set of hook functions.
 
-{/* TODO: GIF - Hook blocking dangerous command */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">🎬 GIF: g10-hook-blocking.gif</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Хук блокирует опасную команду (12s)</p>
-</div>
+## Available Hooks
 
-{/* TODO: Screenshot - Hook blocking message */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: s14-hook-block.png</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Сообщение блокировки хуком</p>
-</div>
+| Hook | When it runs | You can… |
+|------|--------------|----------|
+| `event` | On any bus event | Observe events (logging, analytics) |
+| `config` | After config loads | Inspect/adjust the loaded config |
+| `tool` | Registration | Add custom tools (map of name → definition) |
+| `auth` | Registration | Add a custom auth provider |
+| `chat.message` | A user message is received | Read/append message parts |
+| `chat.params` | Before an LLM call | Change `temperature`, `topP`, `topK`, `options` |
+| `chat.headers` | Before an LLM request | Add/modify request `headers` |
+| `permission.ask` | A permission is requested | Set `status` to `allow`/`deny`/`ask` |
+| `command.execute.before` | A slash command runs | Inject `parts` |
+| `tool.execute.before` | Before a tool runs | Modify `args`, or throw to block |
+| `tool.execute.after` | After a tool runs | Transform `title`/`output`/`metadata` |
+| `tool.definition` | Tool sent to the LLM | Rewrite a tool's `description`/`parameters` |
+| `shell.env` | A shell command runs | Add environment variables |
+| `experimental.chat.messages.transform` | Before an LLM call | Rewrite the full message list |
+| `experimental.chat.system.transform` | Before an LLM call | Rewrite the system prompt array |
+| `experimental.session.compacting` | Before compaction | Add context or replace the compaction prompt |
+| `experimental.text.complete` | A text part completes | Rewrite the completed text |
 
-## Хуки плагинов
-
-Хуки плагинов предоставляют программный доступ к внутренним компонентам Cyberstrike. Создавайте плагины с использованием пакета `@cyberstrike-io/plugin`. Системы хуков на основе конфигурации (JSON) **не** существует — все хуки являются функциями плагинов.
-
-### Доступные хуки плагинов
-
-| Хук | Триггер | Применение |
-|-----|---------|-----------|
-| `tool.execute.before` | Перед выполнением инструмента | Изменение аргументов, добавление логирования |
-| `tool.execute.after` | После выполнения инструмента | Преобразование вывода, отправка уведомлений |
-| `permission.ask` | Запрос разрешения | Пользовательская логика одобрения |
-| `chat.message` | Получено новое сообщение | Предобработка сообщений |
-| `chat.params` | Подготовлен вызов LLM | Изменение temperature, добавление параметров |
-| `chat.headers` | Подготовлен HTTP-запрос | Добавление пользовательских заголовков |
-| `command.execute.before` | Вызвана slash-команда | Внедрение контекста |
-| `event` | Любое событие шины | Аналитика, логирование |
-| `config` | Загружена конфигурация | Динамическое изменение конфигурации |
-
-### Поток выполнения хуков
+### Hook Execution Flow
 
 ```mermaid
 sequenceDiagram
@@ -47,198 +39,154 @@ sequenceDiagram
     participant Hook System
     participant Tool
 
-    User->>Agent: Запрос действия
+    User->>Agent: Request action
     Agent->>Hook System: tool.execute.before
-    Hook System-->>Agent: Изменённые аргументы
-    Agent->>Tool: Выполнение с аргументами
-    Tool-->>Agent: Необработанный вывод
+    Hook System-->>Agent: Modified args
+    Agent->>Tool: Execute with args
+    Tool-->>Agent: Raw output
     Agent->>Hook System: tool.execute.after
-    Hook System-->>Agent: Преобразованный вывод
-    Agent-->>User: Финальный ответ
+    Hook System-->>Agent: Transformed output
+    Agent-->>User: Final response
 ```
 
 ---
 
-## Создание плагина
+## Creating a Plugin
 
-### Структура плагина
+A plugin is `(input: PluginInput) => Promise<Hooks>`. Import the types from `@cyberstrike-io/plugin`:
 
-```typescript title="my-plugin/index.ts"
-import type { Plugin, Hooks } from "@cyberstrike-io/plugin"
+```typescript title=".cyberstrike/plugin/guard.ts"
+import type { Plugin } from "@cyberstrike-io/plugin"
 
-export const myPlugin: Plugin = async (input) => {
-  const { client, project, directory } = input
-
-  const hooks: Hooks = {
-    // Хук перед выполнением инструмента
+export const GuardPlugin: Plugin = async ({ project, directory, $ }) => {
+  return {
     "tool.execute.before": async (input, output) => {
-      console.log(`Tool ${input.tool} called with:`, output.args)
-      // Изменение аргументов при необходимости
-      if (input.tool === "Bash" && output.args.command.includes("rm")) {
-        output.args.command = `echo "Blocked: ${output.args.command}"`
+      if (input.tool === "bash" && /rm\s+-rf/.test(output.args.command)) {
+        throw new Error("blocked: rm -rf")
       }
     },
-
-    // Хук после выполнения инструмента
-    "tool.execute.after": async (input, output) => {
-      console.log(`Tool ${input.tool} completed:`, output.title)
-      // Преобразование вывода при необходимости
-    },
-
-    // Хук разрешений
     "permission.ask": async (input, output) => {
-      // Автоматическое одобрение операций чтения
-      if (input.tool === "Read") {
-        output.status = "allow"
-      }
-      // Блокировка опасных шаблонов
-      if (input.command?.includes("--force")) {
-        output.status = "deny"
-      }
-    },
-
-    // Прослушиватель событий
-    event: async ({ event }) => {
-      // Логирование всех событий во внешний сервис
-      await fetch("https://analytics.example.com/event", {
-        method: "POST",
-        body: JSON.stringify(event),
-      })
+      if (input.type === "read") output.status = "allow"
     },
   }
-
-  return hooks
 }
-
-export default myPlugin
 ```
 
-### Входные данные плагина
+### Plugin Input
 
-Плагин получает контекст о текущем окружении:
+The plugin receives context about the current environment:
 
-| Свойство | Тип | Описание |
-|----------|-----|----------|
-| `client` | `CyberstrikeClient` | Экземпляр SDK-клиента |
-| `project` | `Project` | Информация о текущем проекте |
-| `directory` | `string` | Рабочий каталог |
-| `worktree` | `string` | Путь к git worktree |
-| `serverUrl` | `URL` | URL локального сервера |
-| `$` | `BunShell` | Оболочка Bun для команд |
+| Property | Type | Description |
+|----------|------|-------------|
+| `client` | `CyberstrikeClient` | SDK client instance |
+| `project` | `Project` | Current project info |
+| `directory` | `string` | Working directory |
+| `worktree` | `string` | Git worktree path |
+| `serverUrl` | `URL` | Local server URL |
+| `$` | `BunShell` | Bun shell for commands |
 
 ---
 
-## Хук перед инструментом (tool.execute.before)
+## Registering Plugins
 
-Перехват вызовов инструментов перед выполнением для изменения аргументов или блокировки выполнения.
+### Local File (no publishing)
 
-### Сигнатура хука
+Drop a `.ts`/`.js` file into a `plugin/` (or `plugins/`) directory inside any `.cyberstrike/` folder — project or `~/.cyberstrike/`:
+
+```
+.cyberstrike/
+└── plugin/
+    └── guard.ts
+```
+
+Cyberstrike discovers it automatically and installs `@cyberstrike-io/plugin` for you so local plugins can import the types.
+
+### Config Array
+
+Reference an npm package or a path in the `plugin` array (values are union-merged across config sources):
+
+```json title="cyberstrike.json"
+{
+  "plugin": [
+    "@myorg/cyberstrike-guard",
+    "./local/guard.ts"
+  ]
+}
+```
+
+### Built-in Plugins
+
+| Plugin | Purpose |
+|--------|---------|
+| `AnthropicAuthPlugin` | Anthropic OAuth |
+| `CodexAuthPlugin` | OpenAI/Codex OAuth |
+| `CopilotAuthPlugin` | GitHub Copilot auth |
+| `@gitlab/opencode-gitlab-auth` | GitLab integration |
+
+---
+
+## Pre-Tool Hook (tool.execute.before)
+
+Intercept tool calls before execution to modify arguments or block execution.
 
 ```typescript
 "tool.execute.before": async (
-  input: {
-    tool: string       // Имя инструмента (Bash, Read, Write и т.д.)
-    sessionID: string  // ID текущей сессии
-    callID: string     // Уникальный идентификатор вызова
-  },
-  output: {
-    args: any          // Аргументы инструмента (изменяемые)
-  }
+  input: { tool: string; sessionID: string; callID: string },
+  output: { args: any },
 ) => Promise<void>
 ```
 
-### Примеры
-
-#### Логирование всех вызовов инструментов
-
-```typescript
-"tool.execute.before": async (input, output) => {
-  const timestamp = new Date().toISOString()
-  console.log(`[${timestamp}] ${input.tool}:`, JSON.stringify(output.args))
-}
-```
-
-#### Блокировка опасных команд
+To **block** a tool, throw from the hook:
 
 ```typescript
 "tool.execute.before": async (input, output) => {
   if (input.tool !== "Bash") return
 
   const dangerous = ["rm -rf", "mkfs", "dd if=", "> /dev/"]
-  const command = output.args.command
-
   for (const pattern of dangerous) {
-    if (command.includes(pattern)) {
+    if (output.args.command.includes(pattern)) {
       throw new Error(`Blocked dangerous command: ${pattern}`)
     }
   }
 }
 ```
 
-#### Изменение аргументов
+#### Modifying Arguments
 
 ```typescript
 "tool.execute.before": async (input, output) => {
-  if (input.tool === "Bash") {
-    // Добавление флагов безопасности к командам git
-    if (output.args.command.startsWith("git push")) {
-      output.args.command = output.args.command.replace(
-        "git push",
-        "git push --dry-run"
-      )
-    }
+  if (input.tool === "Bash" && output.args.command.startsWith("git push")) {
+    output.args.command = output.args.command.replace("git push", "git push --dry-run")
   }
 }
 ```
 
 ---
 
-## Хук после инструмента (tool.execute.after)
+## Post-Tool Hook (tool.execute.after)
 
-Обработка вывода инструмента после выполнения для преобразования или уведомления.
-
-### Сигнатура хука
+Process tool output after execution for transformation or notification.
 
 ```typescript
 "tool.execute.after": async (
-  input: {
-    tool: string       // Имя инструмента
-    sessionID: string  // ID текущей сессии
-    callID: string     // Уникальный идентификатор вызова
-  },
-  output: {
-    title: string      // Заголовок вывода
-    output: string     // Вывод инструмента (изменяемый)
-    metadata: any      // Дополнительные метаданные
-  }
+  input: { tool: string; sessionID: string; callID: string; args: any },
+  output: { title: string; output: string; metadata: any },
 ) => Promise<void>
 ```
 
-### Примеры
-
-#### Маскирование конфиденциальных данных
+#### Redacting Sensitive Data
 
 ```typescript
 "tool.execute.after": async (input, output) => {
-  // Маскирование API-ключей из вывода
-  output.output = output.output.replace(
-    /sk-[a-zA-Z0-9]{32,}/g,
-    "[REDACTED]"
-  )
-
-  // Маскирование паролей
-  output.output = output.output.replace(
-    /password[=:]\s*\S+/gi,
-    "password=[REDACTED]"
-  )
+  output.output = output.output.replace(/sk-[a-zA-Z0-9]{32,}/g, "[REDACTED]")
+  output.output = output.output.replace(/password[=:]\s*\S+/gi, "password=[REDACTED]")
 }
 ```
 
-#### Отправка уведомлений
+#### Sending Notifications
 
 ```typescript
 "tool.execute.after": async (input, output) => {
-  // Уведомление при записи файлов
   if (input.tool === "Write") {
     await sendSlackNotification({
       channel: "#code-changes",
@@ -250,102 +198,60 @@ export default myPlugin
 
 ---
 
-## Хук разрешений (permission.ask)
+## Permission Hook (permission.ask)
 
-Программная настройка решений по разрешениям.
-
-### Сигнатура хука
+Customize permission decisions programmatically.
 
 ```typescript
 "permission.ask": async (
-  input: Permission,  // Детали запроса разрешения
-  output: {
-    status: "ask" | "deny" | "allow"  // Решение (изменяемое)
-  }
+  input: Permission,
+  output: { status: "ask" | "deny" | "allow" },
 ) => Promise<void>
 ```
 
-### Примеры
-
-#### Автоматическое одобрение безопасных операций
-
 ```typescript
 "permission.ask": async (input, output) => {
-  const safeTools = ["Read", "Glob", "Grep", "LSP"]
-
-  if (safeTools.includes(input.tool)) {
+  const safe = ["Read", "Glob", "Grep", "LSP"]
+  if (safe.includes(input.tool)) {
     output.status = "allow"
     return
   }
-
-  // Разрешение записи в тестовые каталоги
   if (input.tool === "Write" && input.path?.includes("/test/")) {
     output.status = "allow"
   }
 }
 ```
 
-#### Запрет определённых шаблонов
-
-```typescript
-"permission.ask": async (input, output) => {
-  // Блокировка доступа к конфиденциальным каталогам
-  const sensitive = [".env", "credentials", "secrets", ".ssh"]
-
-  if (input.path) {
-    for (const dir of sensitive) {
-      if (input.path.includes(dir)) {
-        output.status = "deny"
-        return
-      }
-    }
-  }
-}
-```
-
 ---
 
-## Хуки чата
-
-Изменение взаимодействий с LLM перед отправкой запросов.
+## Chat Hooks
 
 ### chat.message
 
-Предобработка входящих сообщений:
+Preprocess incoming messages:
 
 ```typescript
-"chat.message": async (input, output) => {
-  const { sessionID, agent, model } = input
-
-  // Добавление контекста к частям сообщения
-  output.parts.push({
-    type: "text",
-    text: `[Session: ${sessionID}, Agent: ${agent}]`,
-  })
-}
+"chat.message": async (
+  input: { sessionID: string; agent?: string; model?: { providerID: string; modelID: string } },
+  output: { message: UserMessage; parts: Part[] },
+) => Promise<void>
 ```
 
 ### chat.params
 
-Изменение параметров LLM:
+Modify LLM parameters:
 
 ```typescript
 "chat.params": async (input, output) => {
-  // Снижение temperature для субагента web-application
   if (input.agent === "web-application") {
     output.temperature = 0.3
-  }
-
-  // Повышение temperature для агента cyberstrike по умолчанию
-  if (input.agent === "cyberstrike") {
-    output.temperature = 0.8
   }
 }
 ```
 
 ### chat.headers
 
-Добавление пользовательских HTTP-заголовков:
+Add custom HTTP headers:
 
 ```typescript
 "chat.headers": async (input, output) => {
@@ -356,49 +262,86 @@ export default myPlugin
 
 ---
 
-## Установка плагинов
+## Tool Definition Hook
 
-### Из npm
+Rewrite a tool's description or parameters before sending to the LLM:
 
-Добавьте плагины в вашу конфигурацию:
-
-```json title="cyberstrike.json"
-{
-  "plugin": [
-    "my-security-plugin@1.0.0",
-    "@myorg/custom-hooks@2.1.0"
-  ]
-}
+```typescript
+"tool.definition": async (
+  input: { toolID: string },
+  output: { description: string; parameters: any },
+) => Promise<void>
 ```
-
-### Из локального файла
-
-Ссылка на локальные файлы плагинов:
-
-```json title="cyberstrike.json"
-{
-  "plugin": [
-    "file:///path/to/my-plugin"
-  ]
-}
-```
-
-### Встроенные плагины
-
-Cyberstrike включает встроенные плагины для аутентификации:
-
-| Плагин | Назначение |
-|--------|-----------|
-| `AnthropicAuthPlugin` | OAuth для Anthropic |
-| `CodexAuthPlugin` | OAuth для OpenAI/Codex |
-| `CopilotAuthPlugin` | Аутентификация GitHub Copilot |
-| `@gitlab/opencode-gitlab-auth` | Интеграция GitLab |
 
 ---
 
-## Хуки аутентификации
+## Command & Shell Hooks
 
-Создание пользовательских провайдеров аутентификации:
+```typescript
+"command.execute.before": async (
+  input: { command: string; sessionID: string; arguments: string },
+  output: { parts: Part[] },
+) => Promise<void>
+
+"shell.env": async (
+  input: { cwd: string },
+  output: { env: Record<string, string> },
+) => Promise<void>
+```
+
+---
+
+## Lifecycle Hooks
+
+```typescript
+event:  (input: { event: Event }) => Promise<void>
+config: (input: Config) => Promise<void>
+```
+
+---
+
+## Experimental Hooks
+
+```typescript
+"experimental.chat.messages.transform": async (input: {}, output: { messages: { info: Message; parts: Part[] }[] }) => Promise<void>
+"experimental.chat.system.transform":   async (input: { sessionID?: string; model: Model }, output: { system: string[] }) => Promise<void>
+"experimental.session.compacting":      async (input: { sessionID: string }, output: { context: string[]; prompt?: string }) => Promise<void>
+"experimental.text.complete":           async (input: { sessionID: string; messageID: string; partID: string }, output: { text: string }) => Promise<void>
+```
+
+---
+
+## Custom Tools
+
+Add custom tools through plugins:
+
+```typescript
+return {
+  tool: {
+    my_scanner: {
+      description: "Custom vulnerability scanner",
+      parameters: {
+        type: "object",
+        properties: {
+          target: { type: "string", description: "Target URL to scan" },
+          depth: { type: "number", description: "Scan depth", default: 3 },
+        },
+        required: ["target"],
+      },
+      execute: async (args) => ({
+        title: `Scanned ${args.target}`,
+        output: await scan(args.target),
+      }),
+    },
+  },
+}
+```
+
+---
+
+## Authentication Hooks
+
+Create custom authentication providers:
 
 ```typescript
 const authHook: AuthHook = {
@@ -414,17 +357,13 @@ const authHook: AuthHook = {
           message: "Enter your API key",
           placeholder: "sk-...",
           validate: (value) => {
-            if (!value.startsWith("sk-")) {
-              return "API key must start with sk-"
-            }
+            if (!value.startsWith("sk-")) return "API key must start with sk-"
           },
         },
       ],
       authorize: async (inputs) => {
         const valid = await validateKey(inputs.apiKey)
-        if (valid) {
-          return { type: "success", key: inputs.apiKey }
-        }
+        if (valid) return { type: "success", key: inputs.apiKey }
         return { type: "failed" }
       },
     },
@@ -435,10 +374,7 @@ const authHook: AuthHook = {
         url: "https://auth.example.com/oauth",
         instructions: "Complete login in browser",
         method: "auto",
-        callback: async () => {
-          // Обработка OAuth callback
-          return { type: "success", key: "obtained-key" }
-        },
+        callback: async () => ({ type: "success", key: "obtained-key" }),
       }),
     },
   ],
@@ -447,97 +383,52 @@ const authHook: AuthHook = {
 
 ---
 
-## Хуки пользовательских инструментов
+## Publishing Plugins
 
-Добавление пользовательских инструментов через плагины:
+Package your plugin like any npm module:
 
-```typescript
-const hooks: Hooks = {
-  tool: {
-    my_scanner: {
-      description: "Custom vulnerability scanner",
-      parameters: {
-        type: "object",
-        properties: {
-          target: {
-            type: "string",
-            description: "Target URL to scan",
-          },
-          depth: {
-            type: "number",
-            description: "Scan depth",
-            default: 3,
-          },
-        },
-        required: ["target"],
-      },
-      execute: async (args, context) => {
-        const result = await runScanner(args.target, args.depth)
-        return {
-          output: result,
-          title: `Scanned ${args.target}`,
-        }
-      },
-    },
-  },
+```json title="package.json"
+{
+  "name": "@myorg/cyberstrike-guard",
+  "type": "module",
+  "main": "./index.ts",
+  "peerDependencies": { "@cyberstrike-io/plugin": "*" }
 }
+```
+
+```bash
+npm publish --access public
 ```
 
 ---
 
-## Лучшие практики
+## Testing & Debugging
 
-### Производительность
-
-1. Сохраняйте хуки легковесными для избежания задержек
-2. Используйте асинхронные операции для внешних вызовов
-3. Кешируйте дорогостоящие вычисления
-4. Избегайте блокировки основного потока
-
-### Безопасность
-
-1. Валидируйте все входные данные в хуках
-2. Санитизируйте вывод перед возвратом
-3. Используйте переменные окружения для секретов
-4. Логируйте события, связанные с безопасностью
-
-### Отладка
-
-Включите логирование плагинов:
+Run Cyberstrike with debug logging to see plugins load and hooks fire:
 
 ```bash
 cyberstrike --log-level DEBUG --print-logs
 ```
 
-Просмотр загрузки плагинов:
-
-```
-[plugin] loading plugin my-security-plugin@1.0.0
-[plugin] loading internal plugin CodexAuthPlugin
-```
+Since hooks mutate `output` (or throw), you can unit-test them by calling the hook with a fake `input`/`output` and asserting on the mutated `output`.
 
 ---
 
-## Устранение неполадок
+## Best Practices
 
-### Плагин не загружается
+### Performance
 
-1. Проверьте путь к плагину или имя npm-пакета
-2. Убедитесь, что плагин экспортирует валидную функцию `Plugin`
-3. Проверьте ошибки компиляции TypeScript
+1. Keep hooks lightweight to avoid latency
+2. Use async operations for external calls
+3. Cache expensive computations
 
-### Хук не срабатывает
+### Security
 
-1. Убедитесь, что имя хука совпадает точно
-2. Проверьте, что плагин указан в конфигурации
-3. Включите отладочное логирование для трассировки выполнения
-
-### Проблемы производительности
-
-1. Профилируйте время выполнения хуков
-2. Переместите тяжёлые операции в фон
-3. Рассмотрите кеширование частых операций
+1. Validate all inputs in hooks
+2. Sanitize outputs before returning
+3. Use environment variables for secrets
+4. Log security-relevant events
 
 <Aside variant="caution">
-  Плагины запускаются с полным доступом к вашей машине и внутренним компонентам Cyberstrike. Устанавливайте только проверенные плагины.
+  Plugins run with full access to your machine and Cyberstrike internals. Only install plugins you trust, and keep hooks fast — they run inline with tool calls and LLM requests.
 </Aside>
