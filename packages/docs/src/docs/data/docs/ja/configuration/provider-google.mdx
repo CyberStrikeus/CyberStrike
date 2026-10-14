@@ -1,0 +1,255 @@
+---
+title: Google (Gemini)
+description: CyberstrikeでGoogle Geminiモデルを設定する
+sidebar:
+  order: 15
+  label: Google
+---
+
+GoogleのGeminiモデルは、セキュリティ分析のための大規模コンテキストウィンドウとマルチモーダル機能を提供します。
+
+<img src="/docs/images/screenshots/gemini-model-select.png" alt="Google Geminiモデルでフィルタされたモデルピッカー" className="rounded-lg shadow-lg my-6 w-full" />
+
+## 利用可能なモデル
+
+Cyberstrikeは[models.dev](https://models.dev)からモデルカタログをライブで取得するため、正確なリストはGoogleが現在提供しているものを追跡します。一般的な選択肢:
+
+| モデル | コンテキスト | 最適な用途 |
+|-------|---------|----------|
+| `google/gemini-2.5-pro` | 1M | 複雑な推論、大規模コードベース |
+| `google/gemini-2.5-flash` | 1M | 高速分析(バランスの取れたデフォルト) |
+| `google/gemini-2.5-flash-lite` | 1M | 簡単なタスク、大量処理 |
+
+<Aside variant="tip">
+  新しいGemini 3.xリリース(`gemini-3-pro-preview`、`gemini-3.5-flash`、`gemini-3.1-pro-preview`)はmodels.devの更新に伴い自動的に表示されます。`/models`で現在の完全なリストを確認してください。
+</Aside>
+
+## 認証
+
+### APIキーの設定
+
+1. [ai.google.dev](https://ai.google.dev)からAPIキーを取得
+2. TUIで`/connect`を実行し、**Google**を選択してAPIキーを入力
+
+### 環境変数
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+### 設定ファイル
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "google": {
+      "options": {
+        "apiKey": "{env:GOOGLE_GENERATIVE_AI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+## モデル設定
+
+### デフォルトモデルの設定
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "google/gemini-2.5-flash"
+}
+```
+
+### モデルの切り替え
+
+TUIで`/models`を使用して別のGeminiモデルを選択してください。
+
+## 大規模コンテキストの利点
+
+Geminiの1M-2Mコンテキストウィンドウにより以下が可能:
+
+- コードベース全体を一度に分析
+- 複数のファイルを同時に処理
+- 長時間のセキュリティ評価セッション
+- 包括的なログ分析
+
+### 例: コードベース全体のレビュー
+
+```
+> Analyze the entire src/ directory for security vulnerabilities
+```
+
+モデルは1回のリクエストで数百のファイルを処理できます。
+
+## マルチモーダル機能
+
+Geminiは画像分析をサポート:
+
+```
+> Analyze this screenshot for security issues
+```
+
+以下に便利:
+- セキュリティツール出力画像の分析
+- ネットワーク図の処理
+- UIのセキュリティ欠陥のレビュー
+
+## 思考モード
+
+Gemini 2.5モデルは複雑な分析のための推論(「思考」)をサポートしています。`/models`で選択してください。
+
+以下に最適:
+- 複雑な脆弱性チェーン
+- 多段階の攻撃計画
+- 深いコード分析
+
+## Google Vertex AI
+
+エンタープライズデプロイメントの場合:
+
+### セットアップ
+
+```bash
+# Google Cloudで認証
+gcloud auth application-default login
+
+# プロジェクトを設定
+gcloud config set project your-project-id
+```
+
+### 設定
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "google-vertex": {
+      "options": {
+        "project": "your-project-id",
+        "location": "us-central1"
+      }
+    }
+  }
+}
+```
+
+### 利用可能なリージョン
+
+| リージョン | ロケーション |
+|--------|----------|
+| us-central1 | アイオワ |
+| us-east4 | バージニア |
+| europe-west4 | オランダ |
+| asia-northeast1 | 東京 |
+
+## レート制限
+
+Google AI Studioの制限:
+
+| ティア | RPM | TPM |
+|------|-----|-----|
+| 無料 | 15 | 1,000,000 |
+| 従量課金 | 360 | 4,000,000 |
+
+### 制限の処理
+
+```json
+{
+  "provider": {
+    "google": {
+      "options": {
+        "maxRetries": 3,
+        "retryDelay": 1000
+      }
+    }
+  }
+}
+```
+
+## セーフティ設定
+
+コンテンツフィルタリングの設定:
+
+```json
+{
+  "provider": {
+    "google": {
+      "options": {
+        "safetySettings": [
+          {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "threshold": "BLOCK_NONE"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  セーフティ設定は慎重に調整してください。一部のセキュリティテストコンテンツがフィルターをトリガーする場合があります。
+</Aside>
+
+## ベストプラクティス
+
+### モデル選択
+
+| タスク | 推奨モデル |
+|------|-------------------|
+| クイックスキャン | `gemini-2.5-flash` |
+| 大規模コードベース | `gemini-2.5-pro` |
+| 複雑な分析 | `gemini-2.5-pro` |
+| 大量処理 | `gemini-2.5-flash-lite` |
+
+### 大規模コンテキストの活用
+
+1. スニペットの代わりにファイル全体を含める
+2. 完全な設定ファイルを提供
+3. 関連テストファイルを含める
+4. コンテキストとしてドキュメントを追加
+
+### コスト最適化
+
+1. ほとんどのタスクにFlashモデルを使用
+2. 無料枠を活用
+3. コンテキストを効率的に使用
+4. Google Cloud Consoleで使用量を監視
+
+## トラブルシューティング
+
+### 無効なAPIキー
+
+```
+Error: API key not valid
+```
+
+確認:
+- キーがai.google.devからのものであること
+- APIが有効であること
+- 余分な空白がないこと
+
+### クォータ超過
+
+```
+Error: Quota exceeded
+```
+
+解決策:
+- クォータのリセットを待つ
+- 課金を有効にする
+- クォータ増加をリクエスト
+
+### リージョンが利用不可
+
+```
+Error: Model not available in region
+```
+
+別のリージョンを試すか、Vertexの代わりにGoogle AI Studioを使用してください。
+
+## 関連ドキュメント
+
+- [プロバイダーの概要](/docs/configuration/providers) - すべてのプロバイダー
+- [AWS Bedrock](/docs/configuration/provider-aws-bedrock) - 代替エンタープライズオプション
+- [設定](/docs/configuration) - 完全なオプション

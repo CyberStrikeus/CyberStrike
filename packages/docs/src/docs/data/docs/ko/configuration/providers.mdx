@@ -1,0 +1,497 @@
+---
+title: AI 제공자
+description: Cyberstrike에서 다양한 AI 제공자 구성 및 사용
+sidebar:
+  order: 12
+  label: 개요
+---
+
+Cyberstrike는 여러 AI 제공자를 지원하여 보안 평가에 가장 적합한 모델을 유연하게 선택할 수 있습니다.
+
+<img src="/docs/images/screenshots/s05-provider-dialog.png" alt="인기 및 기타 제공자를 표시하는 제공자 연결 대화상자" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/diagrams/provider-selection-flow.svg" alt="Cyberstrike가 모델과 제공자를 선택하는 방법 — 구성 모델, 가장 최근, 우선순위별 첫 번째 사용 가능한 제공자" className="my-6 mx-auto max-w-lg" />
+
+## 지원 제공자
+
+| 제공자 | 모델 | 최적 용도 |
+|--------|------|-----------|
+| **Anthropic** | Claude Opus 4.5, Sonnet 4, Haiku | 복잡한 추론, 긴 컨텍스트 |
+| **OpenAI** | GPT-4o, o1, o1-preview | 범용, 빠른 응답 |
+| **Google** | Gemini 2.0 Flash, Pro | 멀티모달, 대규모 컨텍스트 |
+| **AWS Bedrock** | Claude, Llama, Titan | 엔터프라이즈, 온프레미스 |
+| **Azure OpenAI** | GPT-4, GPT-4o | 엔터프라이즈 규정 준수 |
+| **Google Vertex AI** | Gemini, Claude | 엔터프라이즈 GCP |
+| **OpenRouter** | 다양한 모델 | 무료 티어, 모델 다양성 |
+| **Groq** | Llama 3.3, Mixtral | 속도, 비용 효율성 |
+| **Ollama** | 로컬 모델 | 프라이버시, 오프라인 사용 |
+
+## 자격 증명 추가
+
+### 제공자 연결
+
+TUI에서 `/connect`를 실행하여 제공자 대화상자를 엽니다. 제공자를 선택하고 API 키를 입력합니다 (GitHub Copilot의 경우 OAuth로 인증).
+
+### 환경 변수
+
+환경에 API 키를 설정합니다:
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+
+# Groq
+export GROQ_API_KEY="gsk_..."
+```
+
+영구 적용을 위해 쉘 프로필(`~/.bashrc` 또는 `~/.zshrc`)에 추가합니다.
+
+### 구성 파일
+
+`~/.config/cyberstrike/cyberstrike.json`에 자격 증명을 저장합니다:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Anthropic
+
+Claude 모델은 복잡한 보안 분석에 권장됩니다.
+
+### 인증
+
+TUI에서 `/connect`를 실행하고, **Anthropic**을 선택하고, [console.anthropic.com](https://console.anthropic.com)에서 발급받은 API 키를 입력합니다.
+
+또는 환경 변수를 통해:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+### 사용 가능한 모델
+
+| 모델 | ID | 컨텍스트 | 최적 용도 |
+|------|-----|----------|-----------|
+| Claude Opus 4.5 | `claude-opus-4-5-20251101` | 200K | 복잡한 분석 |
+| Claude Sonnet 4 | `claude-sonnet-4-20250514` | 200K | 균형 잡힌 성능 |
+| Claude Haiku 4.5 | `claude-haiku-4-5-20251001` | 200K | 빠른 작업 |
+
+### 사용법
+
+`/models`를 사용하여 Claude 모델을 선택하거나 구성에서 기본값을 설정합니다:
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+### 구성 옵션
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}",
+        "timeout": 300000
+      }
+    }
+  }
+}
+```
+
+---
+
+## OpenAI
+
+GPT-4 모델은 빠르고 안정적인 응답을 제공합니다.
+
+### 인증
+
+TUI에서 `/connect`를 실행하고, **OpenAI**를 선택하고, [platform.openai.com](https://platform.openai.com)에서 발급받은 API 키를 입력합니다.
+
+또는 환경 변수를 통해:
+
+```bash
+export OPENAI_API_KEY="sk-..."
+```
+
+### 사용 가능한 모델
+
+| 모델 | ID | 컨텍스트 | 최적 용도 |
+|------|-----|----------|-----------|
+| GPT-4o | `gpt-4o` | 128K | 범용 |
+| GPT-4o Mini | `gpt-4o-mini` | 128K | 비용 효율성 |
+| o1 | `o1` | 200K | 복잡한 추론 |
+| o1 Preview | `o1-preview` | 128K | 고급 작업 |
+
+### 사용법
+
+`/models`를 사용하여 OpenAI 모델을 선택하거나 구성에서 설정합니다.
+
+### 구성 옵션
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}",
+        "baseURL": "https://api.openai.com/v1"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Google
+
+Gemini 모델은 멀티모달 작업에서 뛰어납니다.
+
+### 인증
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+또는 Google Cloud를 통해:
+
+```bash
+gcloud auth application-default login
+```
+
+### 사용 가능한 모델
+
+| 모델 | ID | 컨텍스트 | 최적 용도 |
+|------|-----|----------|-----------|
+| Gemini 2.0 Flash | `gemini-2.0-flash` | 1M | 빠른, 실험적 |
+| Gemini 1.5 Pro | `gemini-1.5-pro` | 2M | 대규모 컨텍스트 |
+| Gemini 1.5 Flash | `gemini-1.5-flash` | 1M | 속도 |
+
+### 사용법
+
+`/models`를 사용하여 Gemini 모델을 선택하거나 구성에서 설정합니다.
+
+---
+
+## OpenRouter
+
+무료 티어로 단일 API를 통해 다양한 모델에 접근합니다.
+
+### 인증
+
+TUI에서 `/connect`를 실행하고, **OpenRouter**를 선택하고, [openrouter.ai/keys](https://openrouter.ai/keys)에서 발급받은 API 키를 입력합니다.
+
+또는 환경 변수를 통해:
+
+```bash
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+### 무료 티어 모델
+
+| 모델 | ID |
+|------|-----|
+| Llama 4 Scout | `meta-llama/llama-4-scout:free` |
+| Gemini 2.0 Flash | `google/gemini-2.0-flash:free` |
+| Mistral Small | `mistralai/mistral-small-3.2-24b-instruct:free` |
+
+### 사용법
+
+`/models`를 사용하여 OpenRouter 모델을 선택하거나 구성에서 설정합니다:
+
+### 구성
+
+```json
+{
+  "model": "openrouter/meta-llama/llama-4-scout:free",
+  "provider": {
+    "openrouter": {
+      "options": {
+        "apiKey": "{env:OPENROUTER_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+---
+
+## AWS Bedrock
+
+AWS를 통해 Claude 및 기타 모델을 사용합니다.
+
+### 인증
+
+AWS 자격 증명을 구성합니다:
+
+```bash
+# AWS CLI를 통해
+aws configure
+
+# 또는 환경 변수를 통해
+export AWS_ACCESS_KEY_ID="..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+```
+
+### 사용 가능한 모델
+
+| 모델 | ID |
+|------|-----|
+| Claude Sonnet | `anthropic.claude-sonnet-4-20250514-v1:0` |
+| Claude Haiku | `anthropic.claude-haiku-4-5-20251001-v1:0` |
+| Llama 3.3 | `meta.llama3-3-70b-instruct-v1:0` |
+
+### 구성
+
+```json
+{
+  "model": "amazon-bedrock/anthropic.claude-sonnet-4-20250514-v1:0",
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "us-east-1"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Azure OpenAI
+
+OpenAI 모델의 엔터프라이즈 Azure 배포입니다.
+
+### 인증
+
+```bash
+export AZURE_API_KEY="..."
+export AZURE_RESOURCE_NAME="your-resource"
+```
+
+### 구성
+
+```json
+{
+  "provider": {
+    "azure": {
+      "options": {
+        "apiKey": "{env:AZURE_API_KEY}",
+        "resourceName": "your-resource",
+        "deploymentId": "gpt-4o"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Google Vertex AI
+
+엔터프라이즈 Google Cloud AI입니다.
+
+### 인증
+
+```bash
+gcloud auth application-default login
+```
+
+### 구성
+
+```json
+{
+  "provider": {
+    "google-vertex": {
+      "options": {
+        "project": "your-project-id",
+        "location": "us-central1"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Ollama (로컬)
+
+프라이버시와 오프라인 사용을 위해 모델을 로컬에서 실행합니다.
+
+### 설정
+
+1. Ollama를 설치합니다:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+2. 모델을 다운로드합니다:
+
+```bash
+ollama pull llama3.3
+```
+
+3. Ollama를 시작합니다:
+
+```bash
+ollama serve
+```
+
+### 사용법
+
+API 키가 필요하지 않습니다. `/models`를 사용하여 Ollama 모델을 선택합니다.
+
+### 사용 가능한 모델
+
+| 모델 | 다운로드 명령 |
+|------|-------------|
+| Llama 3.3 | `ollama pull llama3.3` |
+| CodeLlama | `ollama pull codellama` |
+| Mistral | `ollama pull mistral` |
+| Qwen | `ollama pull qwen2.5` |
+
+### 구성
+
+```json
+{
+  "model": "ollama/llama3.3",
+  "provider": {
+    "ollama": {
+      "options": {
+        "baseURL": "http://localhost:11434"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Groq
+
+지원 모델을 위한 가장 빠른 추론입니다.
+
+### 인증
+
+```bash
+export GROQ_API_KEY="gsk_..."
+```
+
+### 사용 가능한 모델
+
+| 모델 | ID |
+|------|-----|
+| Llama 3.3 70B | `llama-3.3-70b-versatile` |
+| Mixtral 8x7B | `llama-3.3-70b-versatile` |
+
+### 사용법
+
+`/models`를 사용하여 Groq 모델을 선택하거나 구성에서 설정합니다.
+
+---
+
+## 커스텀 OpenAI 호환
+
+모든 OpenAI 호환 API에 연결합니다.
+
+### 구성
+
+```json
+{
+  "provider": {
+    "custom-api": {
+      "id": "custom-api",
+      "name": "Custom API",
+      "options": {
+        "baseURL": "https://api.custom.example.com/v1",
+        "apiKey": "{env:CUSTOM_API_KEY}"
+      },
+      "models": {
+        "custom-model": {
+          "name": "Custom Model",
+          "contextLength": 32000
+        }
+      }
+    }
+  }
+}
+```
+
+### 사용법
+
+`/models`를 사용하여 커스텀 모델을 선택하거나 구성에서 설정합니다.
+
+---
+
+## 제공자 선택 팁
+
+### 복잡한 보안 분석
+
+Claude Opus 4.5 또는 Sonnet 4를 사용합니다:
+
+```json
+{
+  "model": "anthropic/claude-opus-4-5-20251101"
+}
+```
+
+### 비용 효율성
+
+OpenRouter 무료 티어 또는 Groq를 사용합니다:
+
+```json
+{
+  "model": "openrouter/meta-llama/llama-4-scout:free"
+}
+```
+
+### 프라이버시
+
+로컬 모델과 함께 Ollama를 사용합니다:
+
+```json
+{
+  "model": "ollama/llama3.3"
+}
+```
+
+### 엔터프라이즈
+
+조직의 자격 증명과 함께 AWS Bedrock 또는 Azure OpenAI를 사용합니다.
+
+---
+
+## 자격 증명 관리
+
+TUI에서 `/status`를 사용하여 연결된 제공자와 활성 자격 증명을 확인합니다.
+
+자격 증명을 제거하려면 CLI 명령 `cyberstrike auth logout`을 사용하고 제거할 제공자를 선택합니다.
+
+<Aside variant="tip">
+  복잡한 추론이 필요한 침투 테스트 작업에는 **Claude Opus 4.5** 또는 **Claude Sonnet 4**를 권장합니다.
+</Aside>

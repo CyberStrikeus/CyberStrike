@@ -1,0 +1,255 @@
+---
+title: Google (Gemini)
+description: Configurer les modèles Google Gemini pour Cyberstrike
+sidebar:
+  order: 15
+  label: Google
+---
+
+Les modèles Gemini de Google offrent de grandes fenêtres de contexte et des capacités multimodales pour l'analyse de sécurité.
+
+<img src="/docs/images/screenshots/gemini-model-select.png" alt="Sélecteur de modèle filtré sur les modèles Google Gemini" className="rounded-lg shadow-lg my-6 w-full" />
+
+## Modèles disponibles
+
+Cyberstrike récupère son catalogue de modèles en direct depuis [models.dev](https://models.dev), la liste exacte suit donc ce que Google propose actuellement. Choix courants :
+
+| Modèle | Contexte | Idéal pour |
+|-------|---------|----------|
+| `google/gemini-2.5-pro` | 1M | Raisonnement complexe, grandes bases de code |
+| `google/gemini-2.5-flash` | 1M | Analyse rapide (par défaut équilibré) |
+| `google/gemini-2.5-flash-lite` | 1M | Tâches rapides, volume élevé |
+
+<Aside variant="tip">
+  Les nouvelles versions Gemini 3.x (`gemini-3-pro-preview`, `gemini-3.5-flash`, `gemini-3.1-pro-preview`) apparaissent automatiquement lors des mises à jour de models.dev. Exécutez `/models` pour la liste complète actuelle.
+</Aside>
+
+## Authentification
+
+### Configuration de la clé API
+
+1. Obtenez votre clé API depuis [ai.google.dev](https://ai.google.dev)
+2. Dans le TUI, exécutez `/connect`, sélectionnez **Google**, et entrez votre clé API
+
+### Variable d'environnement
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+### Fichier de configuration
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "google": {
+      "options": {
+        "apiKey": "{env:GOOGLE_GENERATIVE_AI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+## Configuration du modèle
+
+### Définir le modèle par défaut
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "google/gemini-2.5-flash"
+}
+```
+
+### Changer de modèle
+
+Utilisez `/models` dans le TUI pour choisir un autre modèle Gemini.
+
+## Avantage du contexte large
+
+La fenêtre de contexte de 1M-2M de Gemini permet de :
+
+- Analyser des bases de code entières en une fois
+- Traiter plusieurs fichiers simultanément
+- Mener de longues sessions d'évaluation de sécurité
+- Analyser des journaux de manière exhaustive
+
+### Exemple : Revue complète de la base de code
+
+```
+> Analyze the entire src/ directory for security vulnerabilities
+```
+
+Le modèle peut traiter des centaines de fichiers en une seule requête.
+
+## Capacités multimodales
+
+Gemini prend en charge l'analyse d'images :
+
+```
+> Analyze this screenshot for security issues
+```
+
+Utile pour :
+- Analyser les images de sortie d'outils de sécurité
+- Traiter les diagrammes réseau
+- Examiner l'interface utilisateur pour des failles de sécurité
+
+## Mode de réflexion
+
+Les modèles Gemini 2.5 prennent en charge le raisonnement (« thinking ») pour les analyses complexes. Sélectionnez-en un via `/models`.
+
+Idéal pour :
+- Chaînes de vulnérabilités complexes
+- Planification d'attaques multi-étapes
+- Analyse approfondie du code
+
+## Google Vertex AI
+
+Pour les déploiements entreprise :
+
+### Installation
+
+```bash
+# Authentifiez-vous avec Google Cloud
+gcloud auth application-default login
+
+# Définissez le projet
+gcloud config set project your-project-id
+```
+
+### Configuration
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "google-vertex": {
+      "options": {
+        "project": "your-project-id",
+        "location": "us-central1"
+      }
+    }
+  }
+}
+```
+
+### Régions disponibles
+
+| Région | Emplacement |
+|--------|----------|
+| us-central1 | Iowa |
+| us-east4 | Virginie |
+| europe-west4 | Pays-Bas |
+| asia-northeast1 | Tokyo |
+
+## Limites de débit
+
+Limites de Google AI Studio :
+
+| Niveau | RPM | TPM |
+|------|-----|-----|
+| Gratuit | 15 | 1 000 000 |
+| Paiement à l'usage | 360 | 4 000 000 |
+
+### Gestion des limites
+
+```json
+{
+  "provider": {
+    "google": {
+      "options": {
+        "maxRetries": 3,
+        "retryDelay": 1000
+      }
+    }
+  }
+}
+```
+
+## Paramètres de sécurité
+
+Configurez le filtrage de contenu :
+
+```json
+{
+  "provider": {
+    "google": {
+      "options": {
+        "safetySettings": [
+          {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "threshold": "BLOCK_NONE"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  Ajustez les paramètres de sécurité avec précaution. Certains contenus de tests de sécurité peuvent déclencher les filtres.
+</Aside>
+
+## Bonnes pratiques
+
+### Sélection du modèle
+
+| Tâche | Modèle recommandé |
+|------|-------------------|
+| Scans rapides | `gemini-2.5-flash` |
+| Grande base de code | `gemini-2.5-pro` |
+| Analyse complexe | `gemini-2.5-pro` |
+| Volume élevé | `gemini-2.5-flash-lite` |
+
+### Tirer parti du contexte large
+
+1. Incluez des fichiers complets au lieu d'extraits
+2. Fournissez les fichiers de configuration complets
+3. Incluez les fichiers de test associés
+4. Ajoutez la documentation pour le contexte
+
+### Optimisation des coûts
+
+1. Utilisez les modèles Flash pour la plupart des tâches
+2. Tirez parti de l'offre gratuite
+3. Utilisez le contexte efficacement
+4. Surveillez l'utilisation dans Google Cloud Console
+
+## Dépannage
+
+### Clé API invalide
+
+```
+Error: API key not valid
+```
+
+Vérifiez :
+- La clé provient de ai.google.dev
+- L'API est activée
+- Pas d'espace superflu
+
+### Quota dépassé
+
+```
+Error: Quota exceeded
+```
+
+Solutions :
+- Attendez la réinitialisation du quota
+- Activez la facturation
+- Demandez une augmentation de quota
+
+### Région non disponible
+
+```
+Error: Model not available in region
+```
+
+Essayez d'autres régions ou utilisez Google AI Studio au lieu de Vertex.
+
+## Documentation associée
+
+- [Vue d'ensemble des fournisseurs](/docs/configuration/providers) - Tous les fournisseurs
+- [AWS Bedrock](/docs/configuration/provider-aws-bedrock) - Option entreprise alternative
+- [Configuration](/docs/configuration) - Options complètes

@@ -1,0 +1,231 @@
+---
+title: OpenAI (GPT)
+description: Configure OpenAI models for Cyberstrike
+sidebar:
+  order: 14
+  label: OpenAI
+---
+
+OpenAI provides the GPT-5 family, GPT-4.1, and the o-series reasoning models for security analysis. This guide covers setup and configuration.
+
+<img src="/docs/images/screenshots/openai-model-select.png" alt="Model picker filtered to OpenAI models" className="rounded-lg shadow-lg my-6 w-full" />
+
+## Available Models
+
+Cyberstrike pulls its model catalog live from [models.dev](https://models.dev), so the exact list tracks what OpenAI currently offers. Common picks:
+
+| Model | Context | Best for |
+|-------|---------|----------|
+| `openai/gpt-5` | 400K | General security testing (flagship) |
+| `openai/gpt-5-mini` | 400K | Quick tasks, high volume |
+| `openai/gpt-5-nano` | 400K | Cheapest, simple tasks |
+| `openai/gpt-4.1` | 1M | Very large context |
+| `openai/o3` | 200K | Deep step-by-step reasoning |
+
+<Aside variant="tip">
+  The newer GPT-5.x releases (5.1–5.5, plus the Codex and Pro variants) appear automatically as models.dev updates. Run `/models` for the full current list.
+</Aside>
+
+## Authentication
+
+### API Key Setup
+
+1. Get your API key from [platform.openai.com](https://platform.openai.com)
+2. In the TUI, run `/connect`, select **OpenAI**, and enter your API key
+
+### Environment Variable
+
+```bash
+export OPENAI_API_KEY="sk-proj-..."
+```
+
+### Configuration File
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+## Model Configuration
+
+### Set Default Model
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "openai/gpt-5"
+}
+```
+
+### Switching Models
+
+Use `/models` in the TUI to pick a different OpenAI model.
+
+### Using Reasoning Models
+
+The o-series (`o3`, `o4-mini`) and the GPT-5 Pro variants excel at complex security analysis. Select them via `/models`.
+
+Best for:
+- Complex vulnerability chains
+- Attack path analysis
+- Cryptographic analysis
+- Reverse engineering
+
+## ChatGPT Plus/Pro
+
+Use your ChatGPT subscription by running `/connect` in the TUI, selecting **OpenAI**, and choosing **ChatGPT Plus/Pro**. This triggers a browser-based OAuth flow.
+
+<Aside variant="info">
+  ChatGPT authentication requires browser-based OAuth flow.
+</Aside>
+
+## Organization ID
+
+For organization accounts:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}",
+        "organization": "org-..."
+      }
+    }
+  }
+}
+```
+
+## Custom Base URL
+
+For OpenAI-compatible endpoints:
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "baseURL": "https://your-endpoint.com/v1"
+      }
+    }
+  }
+}
+```
+
+## Function Calling
+
+GPT models support function calling for tool use:
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "parallelToolCalls": true
+      }
+    }
+  }
+}
+```
+
+## Rate Limits
+
+OpenAI rate limits by tier:
+
+| Tier | RPM | TPM |
+|------|-----|-----|
+| Free | 3 | 40,000 |
+| Tier 1 | 500 | 200,000 |
+| Tier 2 | 5,000 | 2,000,000 |
+| Tier 3+ | Higher limits |
+
+### Handling Limits
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "maxRetries": 3,
+        "timeout": 60000
+      }
+    }
+  }
+}
+```
+
+## Best Practices
+
+### Model Selection
+
+| Task | Recommended Model |
+|------|-------------------|
+| Quick scans | `gpt-5-nano` |
+| General testing | `gpt-5` |
+| Complex analysis | `o3` |
+| Cost-sensitive | `gpt-5-mini` |
+
+### Cost Optimization
+
+1. Use mini models for simple tasks
+2. Set reasonable max tokens
+3. Use `/compact` for long sessions
+4. Monitor usage on OpenAI dashboard
+
+### Security
+
+1. Store keys in environment variables
+2. Use project-specific API keys
+3. Enable usage limits in OpenAI dashboard
+4. Rotate keys periodically
+
+## Troubleshooting
+
+### Invalid API Key
+
+```
+Error: Incorrect API key provided
+```
+
+Verify:
+- Key starts with `sk-proj-` or `sk-`
+- No extra whitespace
+- Key is active
+
+### Insufficient Quota
+
+```
+Error: You exceeded your current quota
+```
+
+Solutions:
+- Add billing information
+- Check usage limits
+- Upgrade your plan
+
+### Model Access
+
+```
+Error: The model does not exist or you do not have access
+```
+
+Some models require:
+- A higher usage tier for the newest flagships
+- Waitlist approval
+- Enterprise agreement
+
+<Aside variant="caution">
+  Reasoning models (the o-series and GPT-5 Pro variants) have higher latency due to reasoning steps. Plan for longer response times.
+</Aside>
+
+## Related Documentation
+
+- [Providers Overview](/docs/configuration/providers) - All providers
+- [Custom Providers](/docs/configuration/provider-custom-providers) - OpenAI-compatible setup
+- [Configuration](/docs/configuration) - Full options

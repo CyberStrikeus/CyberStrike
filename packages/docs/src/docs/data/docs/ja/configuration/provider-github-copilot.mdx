@@ -1,0 +1,95 @@
+---
+title: GitHub Copilot
+description: OAuthデバイスフローを使用してCyberstrikeでGitHub Copilotモデルを利用する
+sidebar:
+  order: 17
+  label: GitHub Copilot
+---
+
+CyberstrikeはAIプロバイダーとしてGitHub Copilotをサポートしています。GitHubアカウントでOAuth認証を行い、Copilotサブスクリプションで利用可能なすべてのモデル(Claude、GPT-4o、oシリーズモデルを含む)にアクセスできます。
+
+## 要件
+
+- アクティブな**GitHub Copilot**サブスクリプション(Individual、Business、またはEnterprise)を持つGitHubアカウント
+- GitHub Enterpriseの場合: GHEサーバーURL
+
+## 認証
+
+GitHub Copilotは**OAuthデバイスフロー**を使用します -- APIキーは不要です。
+
+### ログイン
+
+TUIで以下を実行:
+
+```
+/connect
+```
+
+プロバイダーリストから**Login with GitHub Copilot**を選択し、デプロイメントを選択:
+
+| デプロイメント | 使用する場合 |
+|------------|-------------|
+| **GitHub.com** | github.comの個人またはorgアカウント |
+| **GitHub Enterprise** | セルフホストGHEまたはデータレジデンシインスタンス |
+
+CyberstrikeがGitHub認可用のブラウザウィンドウを開きます。ターミナルに表示されたデバイスコードを入力し、アプリを認可すると、OAuthトークンが自動的に保存されます。
+
+## 利用可能なモデル
+
+利用可能なモデルはCopilotサブスクリプションのティアに依存します。一般的なモデル:
+
+| モデル | プロバイダー |
+|-------|----------|
+| `claude-sonnet-4-20250514` | Anthropic (Copilot経由) |
+| `claude-sonnet-5-5` | Anthropic (Copilot経由) |
+| `gpt-4o` | OpenAI (Copilot経由) |
+| `o3-mini` | OpenAI (Copilot経由) |
+
+`/models`を実行して、サブスクリプションで利用可能なすべてのモデルを確認し、モデル間を切り替えられます。
+
+<Aside variant="info">
+  ClaudeモデルはOpenAI互換エンドポイント(`/chat/completions`)の代わりに、Anthropic Messages API(`/v1/messages`)を通じて自動的にルーティングされます。これは透過的に行われます -- 設定は不要です。
+</Aside>
+
+## 設定
+
+GitHub CopilotはOAuthログイン以外の手動設定は不要です。認証後にプロバイダーが自動的に登録されます。
+
+Copilotモデルをデフォルトとして使用するには:
+
+```json title="cyberstrike.json"
+{
+  "model": "github-copilot/claude-sonnet-4-20250514"
+}
+```
+
+### GitHub Enterprise
+
+GHEインスタンスの場合、ログイン時にサーバーURLの入力を求められます:
+
+```
+? Enter your GitHub Enterprise URL or domain
+> company.ghe.com
+```
+
+Copilot APIエンドポイントはGHEドメインから自動的に導出されます。
+
+## 仕組み
+
+1. **OAuthデバイスフロー** -- CyberstrikeがGitHubからデバイスコードをリクエストし、ブラウザで認可
+2. **トークン交換** -- OAuthトークン(`ghu_...`)が短期間のCopilotセッショントークン(約30分TTL)に交換
+3. **自動リフレッシュ** -- セッショントークンは有効期限前に自動的にリフレッシュ
+4. **モデルルーティング** -- ClaudeモデルはAnthropic Messages APIを使用、その他はOpenAI互換エンドポイントを使用
+
+## トラブルシューティング
+
+| 問題 | 修正方法 |
+|-------|-----|
+| **401 Unauthorized** | `/connect`を再度実行 -- セッショントークンが期限切れの可能性 |
+| **モデルが利用不可** | github.com/settings/copilotでCopilotサブスクリプションがアクティブか確認 |
+| **GHE接続拒否** | エンタープライズURLとGHEインスタンスでCopilotが有効になっていることを確認 |
+| **Claudeモデル404** | CyberStrikeを更新 -- Claudeルーティング修正はv1.1.16以降に含まれています |
+
+<Aside variant="tip">
+  GitHub Copilotは既にサブスクリプションをお持ちの場合に最適な選択肢です -- 別途APIキーは不要で、単一のログインで複数プロバイダーのモデルにアクセスできます。
+</Aside>

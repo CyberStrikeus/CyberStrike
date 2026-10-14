@@ -1,0 +1,394 @@
+---
+title: AWS Bedrock
+description: CyberStrike को AWS Bedrock के साथ सेटअप करें — प्रमाणीकरण विधियाँ, क्षेत्र कॉन्फ़िगरेशन, और क्रॉस-रीजन इन्फरेंस
+sidebar:
+  order: 16
+  label: AWS Bedrock
+---
+
+AWS Bedrock आपको अपने AWS खाते के माध्यम से CyberStrike चलाने देता है। आपका डेटा आपके इन्फ्रास्ट्रक्चर में रहता है, आपको IAM-आधारित एक्सेस कंट्रोल मिलता है, और आप प्राइवेट नेटवर्क एक्सेस के लिए VPC एंडपॉइंट का उपयोग कर सकते हैं।
+
+CyberStrike मानक AWS क्रेडेंशियल प्रदाता श्रृंखला (`@aws-sdk/credential-providers`) का उपयोग करता है, इसलिए यदि आप पहले से AWS CLI या SDK का उपयोग करते हैं, तो आपके मौजूदा क्रेडेंशियल काम करेंगे।
+
+## पूर्वापेक्षाएँ
+
+शुरू करने से पहले, सुनिश्चित करें कि आपके AWS खाते में Bedrock मॉडल तक पहुँच है:
+
+<Steps>
+1. **AWS Console** खोलें और **Amazon Bedrock** पर जाएँ
+2. बाईं साइडबार में **Model access** पर क्लिक करें
+3. जिन Claude मॉडल का आप उपयोग करना चाहते हैं उनके लिए एक्सेस का अनुरोध करें
+4. अनुमोदन की प्रतीक्षा करें (अधिकांश मॉडल के लिए आमतौर पर तुरंत)
+</Steps>
+
+## त्वरित शुरुआत
+
+आरंभ करने का सबसे तेज़ तरीका आपके सेटअप पर निर्भर करता है:
+
+```bash
+# If you already have AWS CLI configured
+cyberstrike
+
+# If you have a named profile
+AWS_PROFILE=my-profile cyberstrike
+
+# If you have access keys
+AWS_ACCESS_KEY_ID=AKIA... AWS_SECRET_ACCESS_KEY=... cyberstrike
+
+# On EC2 with an IAM Role attached — just run it
+cyberstrike
+```
+
+CyberStrike आपके AWS क्रेडेंशियल को स्वचालित रूप से पहचानता है। यदि Bedrock क्रेडेंशियल मिलते हैं, तो प्रदाता मॉडल सिलेक्टर में स्वचालित रूप से दिखाई देता है।
+
+## प्रमाणीकरण विधियाँ
+
+CyberStrike AWS Bedrock के साथ प्रमाणित करने के 9 अलग-अलग तरीकों का समर्थन करता है। ये सबसे सरल से सबसे उन्नत तक सूचीबद्ध हैं।
+
+---
+
+### 1. AWS एक्सेस कुंजियाँ
+
+सबसे सीधी विधि। अपनी एक्सेस कुंजी और सीक्रेट को पर्यावरण चर के रूप में सेट करें:
+
+```bash
+export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
+export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+export AWS_REGION="us-east-1"
+
+cyberstrike
+```
+
+आप एकल सत्र के लिए उन्हें इनलाइन भी पास कर सकते हैं:
+
+```bash
+AWS_ACCESS_KEY_ID=AKIA... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1 cyberstrike
+```
+
+<Aside variant="caution">
+  एक्सेस कुंजियाँ लंबी अवधि के क्रेडेंशियल हैं। प्रोडक्शन उपयोग के लिए, IAM रोल, SSO, या अस्थायी क्रेडेंशियल को प्राथमिकता दें।
+</Aside>
+
+---
+
+### 2. AWS प्रोफ़ाइल
+
+यदि आपके पास `~/.aws/credentials` और `~/.aws/config` में प्रोफ़ाइल कॉन्फ़िगर हैं, तो आप एक चुन सकते हैं:
+
+```bash
+# Use a named profile
+AWS_PROFILE=my-profile cyberstrike
+```
+
+या अपने प्रोजेक्ट के `cyberstrike.json` में प्रोफ़ाइल सेट करें:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "profile": "my-profile",
+        "region": "us-east-1"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="tip">
+  जब `cyberstrike.json` और `AWS_PROFILE` पर्यावरण चर दोनों सेट हों, तो कॉन्फ़िग फ़ाइल को प्राथमिकता मिलती है।
+</Aside>
+
+---
+
+### 3. SSO / IAM Identity Center
+
+यदि आपका संगठन AWS IAM Identity Center (पूर्व में AWS SSO) का उपयोग करता है, तो `~/.aws/config` में SSO प्रोफ़ाइल कॉन्फ़िगर करें:
+
+```ini title="~/.aws/config"
+[profile my-sso]
+sso_session = my-org
+sso_account_id = 123456789012
+sso_role_name = BedrockAccess
+region = us-east-1
+
+[sso-session my-org]
+sso_start_url = https://my-org.awsapps.com/start
+sso_region = us-east-1
+```
+
+फिर लॉगिन करें और CyberStrike चलाएँ:
+
+```bash
+aws sso login --profile my-sso
+AWS_PROFILE=my-sso cyberstrike
+```
+
+---
+
+### 4. STS AssumeRole (रोल चेनिंग)
+
+यदि आपको किसी अन्य AWS खाते में (या उसी खाते में अधिक विशेषाधिकार प्राप्त) रोल ग्रहण करने की आवश्यकता है, तो `~/.aws/config` में रोल चेनिंग कॉन्फ़िगर करें:
+
+```ini title="~/.aws/config"
+[profile base-account]
+aws_access_key_id = AKIA...
+aws_secret_access_key = ...
+
+[profile bedrock-role]
+role_arn = arn:aws:iam::987654321098:role/BedrockAccessRole
+source_profile = base-account
+region = us-east-1
+```
+
+फिर रोल प्रोफ़ाइल का उपयोग करें:
+
+```bash
+AWS_PROFILE=bedrock-role cyberstrike
+```
+
+यह AWS क्रेडेंशियल प्रदाता श्रृंखला द्वारा स्वचालित रूप से संभाला जाता है — CyberStrike को किसी विशेष कॉन्फ़िगरेशन की आवश्यकता नहीं है।
+
+---
+
+### 5. Web Identity Token (OIDC)
+
+**EKS (Kubernetes)**, **GitHub Actions**, या अन्य OIDC-फ़ेडरेटेड वातावरण पर चल रहे वर्कलोड के लिए, टोकन फ़ाइल पथ सेट करें:
+
+```bash
+export AWS_WEB_IDENTITY_TOKEN_FILE="/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
+export AWS_ROLE_ARN="arn:aws:iam::123456789012:role/my-eks-role"
+
+cyberstrike
+```
+
+IRSA (IAM Roles for Service Accounts) वाले EKS पर, ये पर्यावरण चर Kubernetes द्वारा स्वचालित रूप से सेट किए जाते हैं।
+
+---
+
+### 6. कंटेनर क्रेडेंशियल (ECS / Fargate)
+
+**ECS** या **Fargate** टास्क के अंदर चलने पर, AWS मेटाडेटा एंडपॉइंट के माध्यम से स्वचालित रूप से क्रेडेंशियल इंजेक्ट करता है। CyberStrike इन पर्यावरण चरों को पहचानता है:
+
+- `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`
+- `AWS_CONTAINER_CREDENTIALS_FULL_URI`
+
+कोई कॉन्फ़िगरेशन की आवश्यकता नहीं — बस सुनिश्चित करें कि टास्क के IAM रोल में Bedrock अनुमतियाँ हैं और चलाएँ:
+
+```bash
+cyberstrike
+```
+
+---
+
+### 7. EC2 Instance Metadata (IMDS)
+
+IAM रोल जुड़े **EC2 इंस्टेंस** पर, Instance Metadata Service से क्रेडेंशियल स्वचालित रूप से प्राप्त किए जाते हैं। कोई पर्यावरण चर या कॉन्फ़िग फ़ाइल की आवश्यकता नहीं:
+
+```bash
+# On an EC2 instance with an IAM role — just run it
+cyberstrike
+```
+
+सुनिश्चित करें कि इंस्टेंस के IAM रोल में नीचे [IAM अनुमतियाँ](#iam-अनुमतियाँ) अनुभाग में वर्णित Bedrock अनुमतियाँ शामिल हैं।
+
+<Aside variant="info">
+  यदि मानक क्रेडेंशियल श्रृंखला विफल हो जाती है, तो CyberStrike अंतिम उपाय के रूप में IMDS पर स्वचालित रूप से फ़ॉलबैक करता है।
+</Aside>
+
+---
+
+### 8. बेयरर टोकन
+
+आप बेयरर टोकन से प्रमाणित कर सकते हैं। इसे पर्यावरण चर के माध्यम से सेट करें:
+
+```bash
+export AWS_BEARER_TOKEN_BEDROCK="your-bearer-token"
+cyberstrike
+```
+
+या TUI के माध्यम से स्टोर करें — `/connect` चलाएँ, **Amazon Bedrock** चुनें, और प्रॉम्प्ट होने पर अपना बेयरर टोकन पेस्ट करें। यह टोकन सेव करता है ताकि आपको हर बार इसे सेट करने की आवश्यकता न हो।
+
+<Aside variant="tip">
+  बेयरर टोकन को **सर्वोच्च प्राथमिकता** है — सेट होने पर, यह पूरी AWS क्रेडेंशियल श्रृंखला (प्रोफ़ाइल, एक्सेस कुंजियाँ, IAM रोल, आदि) को बायपास करता है।
+</Aside>
+
+---
+
+### 9. कस्टम क्रेडेंशियल प्रक्रिया
+
+यदि आपके पास एक कस्टम टूल है जो अस्थायी AWS क्रेडेंशियल जनरेट करता है (जैसे कॉर्पोरेट क्रेडेंशियल वेंडिंग मशीन), तो इसे `~/.aws/config` में कॉन्फ़िगर करें:
+
+```ini title="~/.aws/config"
+[profile custom-creds]
+credential_process = /usr/local/bin/my-credential-tool --format json
+region = us-east-1
+```
+
+प्रोग्राम को इस प्रारूप में JSON वापस करना होगा:
+
+```json
+{
+  "Version": 1,
+  "AccessKeyId": "AKIA...",
+  "SecretAccessKey": "...",
+  "SessionToken": "...",
+  "Expiration": "2025-12-31T23:59:59Z"
+}
+```
+
+फिर प्रोफ़ाइल का उपयोग करें:
+
+```bash
+AWS_PROFILE=custom-creds cyberstrike
+```
+
+---
+
+## प्रमाणीकरण प्राथमिकता
+
+जब कई क्रेडेंशियल उपलब्ध हों, CyberStrike इस प्राथमिकता क्रम का उपयोग करता है:
+
+| प्राथमिकता | विधि | स्रोत |
+|----------|--------|--------|
+| 1 (सर्वोच्च) | बेयरर टोकन | `AWS_BEARER_TOKEN_BEDROCK` env var या TUI में `/connect` |
+| 2 | AWS क्रेडेंशियल श्रृंखला | `fromNodeProviderChain` मानक AWS SDK क्रम में हल करता है: env vars → profile → SSO → web identity → ECS container → EC2 IMDS |
+
+## IAM अनुमतियाँ
+
+आप जो भी प्रमाणीकरण विधि उपयोग करें, IAM पहचान को इन अनुमतियों की आवश्यकता है:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": "arn:aws:bedrock:*::foundation-model/anthropic.*"
+    }
+  ]
+}
+```
+
+<Aside variant="tip">
+  यदि आप केवल कुछ मॉडल तक एक्सेस प्रतिबंधित करना चाहते हैं तो `anthropic.*` को एक विशिष्ट मॉडल ARN से बदलें।
+</Aside>
+
+## क्षेत्र कॉन्फ़िगरेशन
+
+CyberStrike इस क्रम में AWS क्षेत्र हल करता है:
+
+| प्राथमिकता | स्रोत | उदाहरण |
+|----------|--------|---------|
+| 1 (सर्वोच्च) | `cyberstrike.json` कॉन्फ़िग | `provider.amazon-bedrock.options.region` |
+| 2 | पर्यावरण चर | `AWS_REGION=eu-west-1` |
+| 3 (डिफ़ॉल्ट) | हार्डकोडेड फ़ॉलबैक | `us-east-1` |
+
+अपनी कॉन्फ़िग फ़ाइल में क्षेत्र सेट करें:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "eu-west-1"
+      }
+    }
+  }
+}
+```
+
+या पर्यावरण चर के माध्यम से:
+
+```bash
+export AWS_REGION="eu-west-1"
+```
+
+## क्रॉस-रीजन इन्फरेंस
+
+CyberStrike स्वचालित रूप से क्रॉस-रीजन इन्फरेंस प्रोफ़ाइल प्रीफ़िक्स को संभालता है। आपके कॉन्फ़िगर किए गए क्षेत्र के आधार पर, मॉडल ID में सही प्रीफ़िक्स जोड़ा जाता है:
+
+| क्षेत्र | प्रीफ़िक्स | उदाहरण |
+|--------|--------|---------|
+| US क्षेत्र (us-east-1, us-west-2, ...) | `us.` | `us.anthropic.claude-sonnet-4-20250514-v1:0` |
+| EU क्षेत्र (eu-west-1, eu-central-1, ...) | `eu.` | `eu.anthropic.claude-sonnet-4-20250514-v1:0` |
+| टोक्यो (ap-northeast-1) | `jp.` | `jp.anthropic.claude-sonnet-4-20250514-v1:0` |
+| ऑस्ट्रेलिया (ap-southeast-2, ap-southeast-4) | `au.` | `au.anthropic.claude-sonnet-4-20250514-v1:0` |
+| अन्य APAC क्षेत्र | `apac.` | `apac.anthropic.claude-sonnet-4-20250514-v1:0` |
+| वैश्विक | `global.` | `global.anthropic.claude-sonnet-4-20250514-v1:0` |
+
+यह स्वचालित है — आपको ये प्रीफ़िक्स स्वयं जोड़ने की आवश्यकता नहीं है। यदि मॉडल ID में पहले से प्रीफ़िक्स है (जैसे मॉडल सिलेक्टर से), तो इसे दोहरा प्रीफ़िक्स नहीं किया जाएगा।
+
+## VPC एंडपॉइंट
+
+प्राइवेट नेटवर्क एक्सेस (कोई इंटरनेट ट्रैफ़िक नहीं) के लिए, VPC एंडपॉइंट कॉन्फ़िगर करें:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "us-east-1",
+        "endpoint": "https://bedrock-runtime.us-east-1.vpce-xxxxx.amazonaws.com"
+      }
+    }
+  }
+}
+```
+
+## उपयोग
+
+प्रमाणीकरण कॉन्फ़िगर होने के बाद, TUI में `/models` के माध्यम से Bedrock मॉडल चुनें, या कॉन्फ़िग में डिफ़ॉल्ट सेट करें:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "us-east-1"
+      }
+    }
+  },
+  "model": "amazon-bedrock/anthropic.claude-sonnet-4-20250514-v1:0"
+}
+```
+
+सत्र के दौरान मॉडल बदलने के लिए, `/model` स्लैश कमांड का उपयोग करें।
+
+## समस्या निवारण
+
+### "Access Denied" त्रुटि
+
+- जाँचें कि AWS Bedrock कंसोल में मॉडल एक्सेस सक्षम है
+- सत्यापित करें कि आपकी IAM पॉलिसी में `bedrock:InvokeModel` और `bedrock:InvokeModelWithResponseStream` शामिल हैं
+- पुष्टि करें कि आप सही क्षेत्र का उपयोग कर रहे हैं
+
+### "Model not found" त्रुटि
+
+- सत्यापित करें कि मॉडल ID सही है
+- जाँचें कि मॉडल आपके क्षेत्र में उपलब्ध है या नहीं
+- कोई अन्य क्षेत्र आज़माएँ या क्रॉस-रीजन इन्फरेंस सक्षम करें
+
+### "ThrottlingException" त्रुटि
+
+- AWS कंसोल के माध्यम से सर्विस लिमिट बढ़ाने का अनुरोध करें
+- क्रॉस-रीजन इन्फरेंस क्षेत्रों में लोड वितरित करने में मदद कर सकता है
+- निरंतर थ्रूपुट के लिए, AWS Bedrock प्रोविज़न्ड कैपेसिटी पर विचार करें
+
+### Bedrock प्रदाता दिखाई नहीं दे रहा
+
+CyberStrike Bedrock प्रदाता केवल तभी दिखाता है जब वह वैध क्रेडेंशियल पहचानता है। यदि यह दिखाई नहीं दे रहा:
+
+1. सत्यापित करें कि आपके क्रेडेंशियल AWS CLI के साथ काम करते हैं: `aws bedrock list-foundation-models --region us-east-1`
+2. जाँचें कि कम से कम एक प्रमाणीकरण विधि कॉन्फ़िगर है (env vars, profile, config, आदि)
+3. सुनिश्चित करें कि प्रदाता आपके `cyberstrike.json` में `disabled_providers` में सूचीबद्ध नहीं है
+
+## संबंधित दस्तावेज़
+
+- [प्रदाता अवलोकन](/docs/configuration/providers) — सभी समर्थित प्रदाता
+- [Anthropic](/docs/configuration/provider-anthropic) — प्रत्यक्ष API तुलना
+- [कॉन्फ़िगरेशन](/docs/configuration) — पूर्ण कॉन्फ़िगरेशन संदर्भ

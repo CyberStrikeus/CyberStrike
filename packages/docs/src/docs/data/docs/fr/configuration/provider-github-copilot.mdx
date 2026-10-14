@@ -1,0 +1,95 @@
+---
+title: GitHub Copilot
+description: Utiliser les modèles GitHub Copilot avec Cyberstrike via le flux OAuth device
+sidebar:
+  order: 17
+  label: GitHub Copilot
+---
+
+Cyberstrike prend en charge GitHub Copilot comme fournisseur IA. Authentifiez-vous avec votre compte GitHub via OAuth et accédez à tous les modèles disponibles via votre abonnement Copilot — y compris Claude, GPT-4o et les modèles de la série o.
+
+## Prérequis
+
+- Un compte GitHub avec un abonnement **GitHub Copilot** actif (Individual, Business ou Enterprise)
+- Pour GitHub Enterprise : l'URL de votre serveur GHE
+
+## Authentification
+
+GitHub Copilot utilise le **flux OAuth device** — aucune clé API requise.
+
+### Connexion
+
+Dans le TUI, exécutez :
+
+```
+/connect
+```
+
+Sélectionnez **Login with GitHub Copilot** dans la liste des fournisseurs, puis choisissez votre déploiement :
+
+| Déploiement | Quand l'utiliser |
+|------------|-------------|
+| **GitHub.com** | Comptes personnels ou d'organisation sur github.com |
+| **GitHub Enterprise** | Instances GHE auto-hébergées ou de résidence des données |
+
+Cyberstrike ouvre une fenêtre de navigateur pour l'autorisation GitHub. Entrez le code d'appareil affiché dans le terminal, autorisez l'application, et le jeton OAuth est sauvegardé automatiquement.
+
+## Modèles disponibles
+
+Les modèles disponibles dépendent du niveau de votre abonnement Copilot. Les modèles courants incluent :
+
+| Modèle | Fournisseur |
+|-------|----------|
+| `claude-sonnet-4-20250514` | Anthropic (via Copilot) |
+| `claude-sonnet-5-5` | Anthropic (via Copilot) |
+| `gpt-4o` | OpenAI (via Copilot) |
+| `o3-mini` | OpenAI (via Copilot) |
+
+Exécutez `/models` pour voir tous les modèles disponibles sur votre abonnement et basculer entre eux.
+
+<Aside variant="info">
+  Les modèles Claude sont automatiquement routés via l'API Messages d'Anthropic (`/v1/messages`) au lieu du point de terminaison compatible OpenAI (`/chat/completions`). Cela se fait de manière transparente — aucune configuration nécessaire.
+</Aside>
+
+## Configuration
+
+GitHub Copilot ne nécessite aucune configuration manuelle au-delà de la connexion OAuth. Le fournisseur est enregistré automatiquement après l'authentification.
+
+Pour utiliser un modèle Copilot par défaut :
+
+```json title="cyberstrike.json"
+{
+  "model": "github-copilot/claude-sonnet-4-20250514"
+}
+```
+
+### GitHub Enterprise
+
+Pour les instances GHE, vous serez invité à entrer l'URL de votre serveur lors de la connexion :
+
+```
+? Enter your GitHub Enterprise URL or domain
+> company.ghe.com
+```
+
+Le point de terminaison de l'API Copilot est dérivé automatiquement de votre domaine GHE.
+
+## Fonctionnement
+
+1. **Flux OAuth device** — Cyberstrike demande un code d'appareil à GitHub, vous autorisez dans le navigateur
+2. **Échange de jetons** — Le jeton OAuth (`ghu_...`) est échangé contre un jeton de session Copilot à courte durée de vie (~30 min TTL)
+3. **Actualisation automatique** — Les jetons de session sont actualisés automatiquement avant expiration
+4. **Routage des modèles** — Les modèles Claude utilisent l'API Messages d'Anthropic ; tous les autres utilisent le point de terminaison compatible OpenAI
+
+## Dépannage
+
+| Problème | Solution |
+|-------|-----|
+| **401 Unauthorized** | Exécutez `/connect` à nouveau — votre jeton de session a peut-être expiré |
+| **Aucun modèle disponible** | Vérifiez que votre abonnement Copilot est actif sur github.com/settings/copilot |
+| **Connexion GHE refusée** | Vérifiez l'URL entreprise et que Copilot est activé sur votre instance GHE |
+| **Erreur 404 modèle Claude** | Mettez à jour Cyberstrike — le correctif de routage Claude est inclus dans v1.1.16+ |
+
+<Aside variant="tip">
+  GitHub Copilot est une excellente option si vous avez déjà un abonnement — aucune clé API séparée nécessaire, et vous accédez à des modèles de plusieurs fournisseurs via une seule connexion.
+</Aside>

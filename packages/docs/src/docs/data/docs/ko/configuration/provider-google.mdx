@@ -1,0 +1,255 @@
+---
+title: Google (Gemini)
+description: Cyberstrike를 위한 Google Gemini 모델 구성
+sidebar:
+  order: 15
+  label: Google
+---
+
+Google의 Gemini 모델은 보안 분석을 위한 대규모 컨텍스트 윈도우와 멀티모달 기능을 제공합니다.
+
+<img src="/docs/images/screenshots/gemini-model-select.png" alt="Google Gemini 모델로 필터링된 모델 피커" className="rounded-lg shadow-lg my-6 w-full" />
+
+## 사용 가능한 모델
+
+Cyberstrike는 [models.dev](https://models.dev)에서 실시간으로 모델 카탈로그를 가져오므로, 정확한 목록은 Google이 현재 제공하는 것을 추적합니다. 일반적인 선택:
+
+| 모델 | 컨텍스트 | 최적 용도 |
+|------|----------|-----------|
+| `google/gemini-2.5-pro` | 1M | 복잡한 추론, 대규모 코드베이스 |
+| `google/gemini-2.5-flash` | 1M | 빠른 분석 (균형 잡힌 기본값) |
+| `google/gemini-2.5-flash-lite` | 1M | 빠른 작업, 대량 |
+
+<Aside variant="tip">
+  최신 Gemini 3.x 릴리스(`gemini-3-pro-preview`, `gemini-3.5-flash`, `gemini-3.1-pro-preview`)는 models.dev가 업데이트되면 자동으로 나타납니다. 전체 현재 목록은 `/models`를 실행하세요.
+</Aside>
+
+## 인증
+
+### API 키 설정
+
+1. [ai.google.dev](https://ai.google.dev)에서 API 키를 발급받습니다
+2. TUI에서 `/connect`를 실행하고, **Google**을 선택하고, API 키를 입력합니다
+
+### 환경 변수
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+### 구성 파일
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "google": {
+      "options": {
+        "apiKey": "{env:GOOGLE_GENERATIVE_AI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+## 모델 구성
+
+### 기본 모델 설정
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "google/gemini-2.5-flash"
+}
+```
+
+### 모델 변경
+
+TUI에서 `/models`를 사용하여 다른 Gemini 모델을 선택합니다.
+
+## 대규모 컨텍스트의 장점
+
+Gemini의 1M-2M 컨텍스트 윈도우로 가능한 작업:
+
+- 전체 코드베이스를 한 번에 분석
+- 여러 파일을 동시에 처리
+- 긴 보안 평가 세션
+- 포괄적인 로그 분석
+
+### 예시: 전체 코드베이스 리뷰
+
+```
+> Analyze the entire src/ directory for security vulnerabilities
+```
+
+모델이 단일 요청으로 수백 개의 파일을 처리할 수 있습니다.
+
+## 멀티모달 기능
+
+Gemini는 이미지 분석을 지원합니다:
+
+```
+> Analyze this screenshot for security issues
+```
+
+유용한 용도:
+- 보안 도구 출력 이미지 분석
+- 네트워크 다이어그램 처리
+- 보안 결함에 대한 UI 리뷰
+
+## 사고 모드
+
+Gemini 2.5 모델은 복잡한 분석을 위한 추론("사고")을 지원합니다. `/models`를 통해 선택합니다.
+
+최적 용도:
+- 복잡한 취약점 체인
+- 다단계 공격 계획
+- 심층 코드 분석
+
+## Google Vertex AI
+
+엔터프라이즈 배포:
+
+### 설정
+
+```bash
+# Google Cloud로 인증
+gcloud auth application-default login
+
+# 프로젝트 설정
+gcloud config set project your-project-id
+```
+
+### 구성
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "google-vertex": {
+      "options": {
+        "project": "your-project-id",
+        "location": "us-central1"
+      }
+    }
+  }
+}
+```
+
+### 사용 가능한 리전
+
+| 리전 | 위치 |
+|------|------|
+| us-central1 | 아이오와 |
+| us-east4 | 버지니아 |
+| europe-west4 | 네덜란드 |
+| asia-northeast1 | 도쿄 |
+
+## 속도 제한
+
+Google AI Studio 제한:
+
+| 티어 | RPM | TPM |
+|------|-----|-----|
+| 무료 | 15 | 1,000,000 |
+| 종량제 | 360 | 4,000,000 |
+
+### 제한 처리
+
+```json
+{
+  "provider": {
+    "google": {
+      "options": {
+        "maxRetries": 3,
+        "retryDelay": 1000
+      }
+    }
+  }
+}
+```
+
+## 안전 설정
+
+콘텐츠 필터링 구성:
+
+```json
+{
+  "provider": {
+    "google": {
+      "options": {
+        "safetySettings": [
+          {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "threshold": "BLOCK_NONE"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  안전 설정을 신중하게 조정하세요. 일부 보안 테스트 콘텐츠가 필터를 트리거할 수 있습니다.
+</Aside>
+
+## 모범 사례
+
+### 모델 선택
+
+| 작업 | 권장 모델 |
+|------|-----------|
+| 빠른 스캔 | `gemini-2.5-flash` |
+| 대규모 코드베이스 | `gemini-2.5-pro` |
+| 복잡한 분석 | `gemini-2.5-pro` |
+| 대량 | `gemini-2.5-flash-lite` |
+
+### 대규모 컨텍스트 활용
+
+1. 코드 조각 대신 전체 파일 포함
+2. 완전한 구성 파일 제공
+3. 관련 테스트 파일 포함
+4. 컨텍스트를 위한 문서 추가
+
+### 비용 최적화
+
+1. 대부분의 작업에 Flash 모델 사용
+2. 무료 티어 활용
+3. 컨텍스트를 효율적으로 사용
+4. Google Cloud Console에서 사용량 모니터링
+
+## 문제 해결
+
+### 잘못된 API 키
+
+```
+Error: API key not valid
+```
+
+확인:
+- 키가 ai.google.dev에서 발급된 것인지
+- API가 활성화되어 있는지
+- 여분의 공백이 없는지
+
+### 할당량 초과
+
+```
+Error: Quota exceeded
+```
+
+해결 방법:
+- 할당량 초기화를 기다림
+- 결제 활성화
+- 할당량 증가 요청
+
+### 리전 사용 불가
+
+```
+Error: Model not available in region
+```
+
+다른 리전을 시도하거나 Vertex 대신 Google AI Studio를 사용합니다.
+
+## 관련 문서
+
+- [제공자 개요](/docs/configuration/providers) - 모든 제공자
+- [AWS Bedrock](/docs/configuration/provider-aws-bedrock) - 대안 엔터프라이즈 옵션
+- [구성](/docs/configuration) - 전체 옵션

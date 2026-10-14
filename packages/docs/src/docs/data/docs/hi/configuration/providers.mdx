@@ -1,0 +1,497 @@
+---
+title: AI प्रदाता
+description: Cyberstrike के साथ विभिन्न AI प्रदाताओं को कॉन्फ़िगर और उपयोग करें
+sidebar:
+  order: 12
+  label: अवलोकन
+---
+
+Cyberstrike कई AI प्रदाताओं का समर्थन करता है, जो आपको अपने सुरक्षा मूल्यांकन के लिए सर्वश्रेष्ठ मॉडल चुनने में लचीलापन देता है।
+
+<img src="/docs/images/screenshots/s05-provider-dialog.png" alt="Connect a provider dialog listing popular and other providers" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/diagrams/provider-selection-flow.svg" alt="How Cyberstrike selects the model and provider — config model, then most recent, then first available provider by priority" className="my-6 mx-auto max-w-lg" />
+
+## समर्थित प्रदाता
+
+| प्रदाता | मॉडल | सर्वोत्तम उपयोग |
+|----------|--------|----------|
+| **Anthropic** | Claude Opus 4.5, Sonnet 4, Haiku | जटिल तर्क, लंबा संदर्भ |
+| **OpenAI** | GPT-4o, o1, o1-preview | सामान्य उपयोग, तेज़ प्रतिक्रियाएँ |
+| **Google** | Gemini 2.0 Flash, Pro | मल्टीमोडल, बड़ा संदर्भ |
+| **AWS Bedrock** | Claude, Llama, Titan | एंटरप्राइज़, ऑन-प्रेम |
+| **Azure OpenAI** | GPT-4, GPT-4o | एंटरप्राइज़ अनुपालन |
+| **Google Vertex AI** | Gemini, Claude | एंटरप्राइज़ GCP |
+| **OpenRouter** | कई मॉडल | मुफ्त टियर, मॉडल विविधता |
+| **Groq** | Llama 3.3, Mixtral | गति, लागत दक्षता |
+| **Ollama** | स्थानीय मॉडल | गोपनीयता, ऑफ़लाइन उपयोग |
+
+## क्रेडेंशियल जोड़ना
+
+### प्रदाता कनेक्ट करें
+
+TUI में, प्रदाता डायलॉग खोलने के लिए `/connect` चलाएँ। अपना प्रदाता चुनें और अपनी API कुंजी दर्ज करें (या GitHub Copilot के लिए OAuth से अधिकृत करें)।
+
+### पर्यावरण चर
+
+अपने वातावरण में API कुंजियाँ सेट करें:
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+
+# Groq
+export GROQ_API_KEY="gsk_..."
+```
+
+स्थायी उपयोग के लिए अपनी शेल प्रोफ़ाइल (`~/.bashrc` या `~/.zshrc`) में जोड़ें।
+
+### कॉन्फ़िगरेशन फ़ाइल
+
+क्रेडेंशियल `~/.config/cyberstrike/cyberstrike.json` में स्टोर करें:
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Anthropic
+
+Claude मॉडल जटिल सुरक्षा विश्लेषण के लिए अनुशंसित हैं।
+
+### प्रमाणीकरण
+
+TUI में `/connect` चलाएँ, **Anthropic** चुनें, और [console.anthropic.com](https://console.anthropic.com) से अपनी API कुंजी दर्ज करें।
+
+या पर्यावरण चर के माध्यम से:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+### उपलब्ध मॉडल
+
+| मॉडल | ID | संदर्भ | सर्वोत्तम उपयोग |
+|-------|-----|---------|----------|
+| Claude Opus 4.5 | `claude-opus-4-5-20251101` | 200K | जटिल विश्लेषण |
+| Claude Sonnet 4 | `claude-sonnet-4-20250514` | 200K | संतुलित प्रदर्शन |
+| Claude Haiku 4.5 | `claude-haiku-4-5-20251001` | 200K | त्वरित कार्य |
+
+### उपयोग
+
+Claude मॉडल चुनने के लिए `/models` का उपयोग करें, या कॉन्फ़िग में डिफ़ॉल्ट सेट करें:
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+### कॉन्फ़िगरेशन विकल्प
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}",
+        "timeout": 300000
+      }
+    }
+  }
+}
+```
+
+---
+
+## OpenAI
+
+GPT-4 मॉडल तेज़, विश्वसनीय प्रतिक्रियाएँ प्रदान करते हैं।
+
+### प्रमाणीकरण
+
+TUI में `/connect` चलाएँ, **OpenAI** चुनें, और [platform.openai.com](https://platform.openai.com) से अपनी API कुंजी दर्ज करें।
+
+या पर्यावरण चर के माध्यम से:
+
+```bash
+export OPENAI_API_KEY="sk-..."
+```
+
+### उपलब्ध मॉडल
+
+| मॉडल | ID | संदर्भ | सर्वोत्तम उपयोग |
+|-------|-----|---------|----------|
+| GPT-4o | `gpt-4o` | 128K | सामान्य उपयोग |
+| GPT-4o Mini | `gpt-4o-mini` | 128K | लागत दक्षता |
+| o1 | `o1` | 200K | जटिल तर्क |
+| o1 Preview | `o1-preview` | 128K | उन्नत कार्य |
+
+### उपयोग
+
+OpenAI मॉडल चुनने के लिए `/models` का उपयोग करें, या कॉन्फ़िग में सेट करें।
+
+### कॉन्फ़िगरेशन विकल्प
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}",
+        "baseURL": "https://api.openai.com/v1"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Google
+
+Gemini मॉडल मल्टीमोडल कार्यों में उत्कृष्ट हैं।
+
+### प्रमाणीकरण
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+या Google Cloud के माध्यम से:
+
+```bash
+gcloud auth application-default login
+```
+
+### उपलब्ध मॉडल
+
+| मॉडल | ID | संदर्भ | सर्वोत्तम उपयोग |
+|-------|-----|---------|----------|
+| Gemini 2.0 Flash | `gemini-2.0-flash` | 1M | तेज़, प्रयोगात्मक |
+| Gemini 1.5 Pro | `gemini-1.5-pro` | 2M | बड़ा संदर्भ |
+| Gemini 1.5 Flash | `gemini-1.5-flash` | 1M | गति |
+
+### उपयोग
+
+Gemini मॉडल चुनने के लिए `/models` का उपयोग करें, या कॉन्फ़िग में सेट करें।
+
+---
+
+## OpenRouter
+
+एक ही API और मुफ्त टियर के साथ कई मॉडल एक्सेस करें।
+
+### प्रमाणीकरण
+
+TUI में `/connect` चलाएँ, **OpenRouter** चुनें, और [openrouter.ai/keys](https://openrouter.ai/keys) से अपनी API कुंजी दर्ज करें।
+
+या पर्यावरण चर के माध्यम से:
+
+```bash
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+### मुफ्त टियर मॉडल
+
+| मॉडल | ID |
+|-------|-----|
+| Llama 4 Scout | `meta-llama/llama-4-scout:free` |
+| Gemini 2.0 Flash | `google/gemini-2.0-flash:free` |
+| Mistral Small | `mistralai/mistral-small-3.2-24b-instruct:free` |
+
+### उपयोग
+
+OpenRouter मॉडल चुनने के लिए `/models` का उपयोग करें, या कॉन्फ़िग में सेट करें:
+
+### कॉन्फ़िगरेशन
+
+```json
+{
+  "model": "openrouter/meta-llama/llama-4-scout:free",
+  "provider": {
+    "openrouter": {
+      "options": {
+        "apiKey": "{env:OPENROUTER_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+---
+
+## AWS Bedrock
+
+AWS के माध्यम से Claude और अन्य मॉडल का उपयोग करें।
+
+### प्रमाणीकरण
+
+AWS क्रेडेंशियल कॉन्फ़िगर करें:
+
+```bash
+# Via AWS CLI
+aws configure
+
+# Or via environment
+export AWS_ACCESS_KEY_ID="..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+```
+
+### उपलब्ध मॉडल
+
+| मॉडल | ID |
+|-------|-----|
+| Claude Sonnet | `anthropic.claude-sonnet-4-20250514-v1:0` |
+| Claude Haiku | `anthropic.claude-haiku-4-5-20251001-v1:0` |
+| Llama 3.3 | `meta.llama3-3-70b-instruct-v1:0` |
+
+### कॉन्फ़िगरेशन
+
+```json
+{
+  "model": "amazon-bedrock/anthropic.claude-sonnet-4-20250514-v1:0",
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "us-east-1"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Azure OpenAI
+
+OpenAI मॉडल का एंटरप्राइज़ Azure डिप्लॉयमेंट।
+
+### प्रमाणीकरण
+
+```bash
+export AZURE_API_KEY="..."
+export AZURE_RESOURCE_NAME="your-resource"
+```
+
+### कॉन्फ़िगरेशन
+
+```json
+{
+  "provider": {
+    "azure": {
+      "options": {
+        "apiKey": "{env:AZURE_API_KEY}",
+        "resourceName": "your-resource",
+        "deploymentId": "gpt-4o"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Google Vertex AI
+
+एंटरप्राइज़ Google Cloud AI।
+
+### प्रमाणीकरण
+
+```bash
+gcloud auth application-default login
+```
+
+### कॉन्फ़िगरेशन
+
+```json
+{
+  "provider": {
+    "google-vertex": {
+      "options": {
+        "project": "your-project-id",
+        "location": "us-central1"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Ollama (स्थानीय)
+
+गोपनीयता और ऑफ़लाइन उपयोग के लिए स्थानीय रूप से मॉडल चलाएँ।
+
+### सेटअप
+
+1. Ollama इंस्टॉल करें:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+2. एक मॉडल पुल करें:
+
+```bash
+ollama pull llama3.3
+```
+
+3. Ollama शुरू करें:
+
+```bash
+ollama serve
+```
+
+### उपयोग
+
+कोई API कुंजी की आवश्यकता नहीं। Ollama मॉडल चुनने के लिए `/models` का उपयोग करें।
+
+### उपलब्ध मॉडल
+
+| मॉडल | पुल कमांड |
+|-------|-------------|
+| Llama 3.3 | `ollama pull llama3.3` |
+| CodeLlama | `ollama pull codellama` |
+| Mistral | `ollama pull mistral` |
+| Qwen | `ollama pull qwen2.5` |
+
+### कॉन्फ़िगरेशन
+
+```json
+{
+  "model": "ollama/llama3.3",
+  "provider": {
+    "ollama": {
+      "options": {
+        "baseURL": "http://localhost:11434"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Groq
+
+समर्थित मॉडल के लिए सबसे तेज़ इन्फरेंस।
+
+### प्रमाणीकरण
+
+```bash
+export GROQ_API_KEY="gsk_..."
+```
+
+### उपलब्ध मॉडल
+
+| मॉडल | ID |
+|-------|-----|
+| Llama 3.3 70B | `llama-3.3-70b-versatile` |
+| Mixtral 8x7B | `llama-3.3-70b-versatile` |
+
+### उपयोग
+
+Groq मॉडल चुनने के लिए `/models` का उपयोग करें, या कॉन्फ़िग में सेट करें।
+
+---
+
+## कस्टम OpenAI-संगत
+
+किसी भी OpenAI-संगत API से कनेक्ट करें।
+
+### कॉन्फ़िगरेशन
+
+```json
+{
+  "provider": {
+    "custom-api": {
+      "id": "custom-api",
+      "name": "Custom API",
+      "options": {
+        "baseURL": "https://api.custom.example.com/v1",
+        "apiKey": "{env:CUSTOM_API_KEY}"
+      },
+      "models": {
+        "custom-model": {
+          "name": "Custom Model",
+          "contextLength": 32000
+        }
+      }
+    }
+  }
+}
+```
+
+### उपयोग
+
+कस्टम मॉडल चुनने के लिए `/models` का उपयोग करें, या कॉन्फ़िग में सेट करें।
+
+---
+
+## प्रदाता चयन सुझाव
+
+### जटिल सुरक्षा विश्लेषण के लिए
+
+Claude Opus 4.5 या Sonnet 4 का उपयोग करें:
+
+```json
+{
+  "model": "anthropic/claude-opus-4-5-20251101"
+}
+```
+
+### लागत दक्षता के लिए
+
+OpenRouter मुफ्त टियर या Groq का उपयोग करें:
+
+```json
+{
+  "model": "openrouter/meta-llama/llama-4-scout:free"
+}
+```
+
+### गोपनीयता के लिए
+
+स्थानीय मॉडल के साथ Ollama का उपयोग करें:
+
+```json
+{
+  "model": "ollama/llama3.3"
+}
+```
+
+### एंटरप्राइज़ के लिए
+
+अपने संगठन के क्रेडेंशियल के साथ AWS Bedrock या Azure OpenAI का उपयोग करें।
+
+---
+
+## क्रेडेंशियल प्रबंधन
+
+कनेक्टेड प्रदाताओं और सक्रिय क्रेडेंशियल देखने के लिए TUI में `/status` का उपयोग करें।
+
+क्रेडेंशियल हटाने के लिए, CLI कमांड `cyberstrike auth logout` का उपयोग करें और हटाने के लिए प्रदाता चुनें।
+
+<Aside variant="tip">
+  जटिल तर्क की आवश्यकता वाले पेनेट्रेशन टेस्टिंग कार्यों के लिए, हम **Claude Opus 4.5** या **Claude Sonnet 4** की सिफारिश करते हैं।
+</Aside>

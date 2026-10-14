@@ -1,0 +1,262 @@
+---
+title: AWS Bedrock
+description: Configure o CyberStrike com AWS Bedrock — metodos de autenticacao, configuracao de regiao e inferencia cross-region
+sidebar:
+  order: 16
+  label: AWS Bedrock
+---
+
+O AWS Bedrock permite executar o CyberStrike pela sua propria conta AWS. Seus dados permanecem na sua infraestrutura, voce tem controle de acesso baseado em IAM e pode usar VPC endpoints para acesso por rede privada.
+
+O CyberStrike usa a cadeia padrao de provedores de credenciais AWS (`@aws-sdk/credential-providers`), entao se voce ja usa o AWS CLI ou SDKs, suas credenciais existentes funcionarao.
+
+## Pre-requisitos
+
+Antes de comecar, certifique-se de ter acesso aos modelos Bedrock na sua conta AWS:
+
+<Steps>
+1. Abra o **Console AWS** e va para **Amazon Bedrock**
+2. Clique em **Model access** na barra lateral esquerda
+3. Solicite acesso aos modelos Claude que deseja usar
+4. Aguarde aprovacao (geralmente instantanea para a maioria dos modelos)
+</Steps>
+
+## Inicio Rapido
+
+A forma mais rapida de comecar depende da sua configuracao:
+
+```bash
+# Se voce ja tem o AWS CLI configurado
+cyberstrike
+
+# Se voce tem um perfil nomeado
+AWS_PROFILE=my-profile cyberstrike
+
+# Se voce tem chaves de acesso
+AWS_ACCESS_KEY_ID=AKIA... AWS_SECRET_ACCESS_KEY=... cyberstrike
+
+# Em EC2 com uma IAM Role anexada — apenas execute
+cyberstrike
+```
+
+O CyberStrike auto-detecta suas credenciais AWS. Se credenciais Bedrock forem encontradas, o provedor aparece automaticamente no seletor de modelos.
+
+## Metodos de Autenticacao
+
+O CyberStrike suporta 9 formas diferentes de autenticar com AWS Bedrock. Sao listadas aqui do mais simples ao mais avancado.
+
+---
+
+### 1. Chaves de Acesso AWS
+
+O metodo mais direto. Defina sua chave de acesso e segredo como variaveis de ambiente:
+
+```bash
+export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
+export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+export AWS_REGION="us-east-1"
+
+cyberstrike
+```
+
+<Aside variant="caution">
+  Chaves de acesso sao credenciais de longa duracao. Para uso em producao, prefira IAM roles, SSO ou credenciais temporarias.
+</Aside>
+
+---
+
+### 2. Perfis AWS
+
+Se voce tem perfis configurados em `~/.aws/credentials` e `~/.aws/config`:
+
+```bash
+AWS_PROFILE=my-profile cyberstrike
+```
+
+Ou defina o perfil no `cyberstrike.json` do seu projeto:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "profile": "my-profile",
+        "region": "us-east-1"
+      }
+    }
+  }
+}
+```
+
+---
+
+### 3. SSO / IAM Identity Center
+
+Se sua organizacao usa AWS IAM Identity Center (antigo AWS SSO):
+
+```bash
+aws sso login --profile my-sso
+AWS_PROFILE=my-sso cyberstrike
+```
+
+---
+
+### 4. STS AssumeRole (Encadeamento de Roles)
+
+Para assumir um role em outra conta AWS:
+
+```ini title="~/.aws/config"
+[profile bedrock-role]
+role_arn = arn:aws:iam::987654321098:role/BedrockAccessRole
+source_profile = base-account
+region = us-east-1
+```
+
+```bash
+AWS_PROFILE=bedrock-role cyberstrike
+```
+
+---
+
+### 5. Token de Identidade Web (OIDC)
+
+Para cargas de trabalho em **EKS**, **GitHub Actions** ou outros ambientes federados OIDC:
+
+```bash
+export AWS_WEB_IDENTITY_TOKEN_FILE="/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
+export AWS_ROLE_ARN="arn:aws:iam::123456789012:role/my-eks-role"
+cyberstrike
+```
+
+---
+
+### 6. Credenciais de Container (ECS / Fargate)
+
+Em tarefas **ECS** ou **Fargate**, a AWS injeta credenciais automaticamente. Nenhuma configuracao necessaria.
+
+---
+
+### 7. Metadados de Instancia EC2 (IMDS)
+
+Em **instancias EC2** com IAM role anexado, credenciais sao buscadas automaticamente:
+
+```bash
+cyberstrike
+```
+
+---
+
+### 8. Bearer Token
+
+```bash
+export AWS_BEARER_TOKEN_BEDROCK="your-bearer-token"
+cyberstrike
+```
+
+<Aside variant="tip">
+  Bearer token tem a **maior prioridade** — quando definido, ignora toda a cadeia de credenciais AWS.
+</Aside>
+
+---
+
+### 9. Processo de Credenciais Personalizado
+
+Para ferramentas de credenciais corporativas:
+
+```ini title="~/.aws/config"
+[profile custom-creds]
+credential_process = /usr/local/bin/my-credential-tool --format json
+region = us-east-1
+```
+
+---
+
+## Permissoes IAM
+
+Qualquer que seja o metodo de autenticacao, a identidade IAM precisa destas permissoes:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": "arn:aws:bedrock:*::foundation-model/anthropic.*"
+    }
+  ]
+}
+```
+
+## Configuracao de Regiao
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "eu-west-1"
+      }
+    }
+  }
+}
+```
+
+## Inferencia Cross-Region
+
+O CyberStrike lida automaticamente com prefixos de perfil de inferencia cross-region com base na sua regiao configurada:
+
+| Regiao | Prefixo | Exemplo |
+|--------|---------|---------|
+| Regioes US | `us.` | `us.anthropic.claude-sonnet-4-20250514-v1:0` |
+| Regioes EU | `eu.` | `eu.anthropic.claude-sonnet-4-20250514-v1:0` |
+| Tokyo | `jp.` | `jp.anthropic.claude-sonnet-4-20250514-v1:0` |
+| Australia | `au.` | `au.anthropic.claude-sonnet-4-20250514-v1:0` |
+| Outras APAC | `apac.` | `apac.anthropic.claude-sonnet-4-20250514-v1:0` |
+
+Isso e automatico — voce nao precisa adicionar esses prefixos.
+
+## VPC Endpoint
+
+Para acesso por rede privada:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "us-east-1",
+        "endpoint": "https://bedrock-runtime.us-east-1.vpce-xxxxx.amazonaws.com"
+      }
+    }
+  }
+}
+```
+
+## Solucao de Problemas
+
+### Erro "Access Denied"
+
+- Verifique se o acesso ao modelo esta habilitado no console AWS Bedrock
+- Verifique se sua politica IAM inclui `bedrock:InvokeModel` e `bedrock:InvokeModelWithResponseStream`
+- Confirme que esta usando a regiao correta
+
+### Erro "Model not found"
+
+- Verifique se o ID do modelo esta correto
+- Verifique se o modelo esta disponivel na sua regiao
+- Tente uma regiao diferente ou habilite inferencia cross-region
+
+### Erro "ThrottlingException"
+
+- Solicite aumento de limite de servico pelo console AWS
+- Inferencia cross-region pode ajudar a distribuir carga entre regioes
+
+## Documentacao Relacionada
+
+- [Visao Geral de Provedores](/docs/configuration/providers) — Todos os provedores suportados
+- [Anthropic](/docs/configuration/provider-anthropic) — Comparacao com API direta
+- [Configuracao](/docs/configuration) — Referencia completa de configuracao

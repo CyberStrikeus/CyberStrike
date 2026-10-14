@@ -24,10 +24,6 @@ const sidebarNavData: DocsSidebarNavData = {
           title: "Features",
         },
         {
-          id: "providers",
-          title: "Fournisseurs IA",
-        },
-        {
           id: "agents",
           title: "Agents",
         },

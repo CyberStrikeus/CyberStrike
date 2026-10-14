@@ -1,0 +1,394 @@
+---
+title: AWS Bedrock
+description: Set up CyberStrike with AWS Bedrock — authentication methods, region configuration, and cross-region inference
+sidebar:
+  order: 16
+  label: AWS Bedrock
+---
+
+AWS Bedrock lets you run CyberStrike through your own AWS account. Your data stays in your infrastructure, you get IAM-based access control, and you can use VPC endpoints for private network access.
+
+CyberStrike uses the standard AWS credential provider chain (`@aws-sdk/credential-providers`), so if you already use the AWS CLI or SDKs, your existing credentials will work.
+
+## Prerequisites
+
+Before you start, make sure you have access to Bedrock models in your AWS account:
+
+<Steps>
+1. Open the **AWS Console** and go to **Amazon Bedrock**
+2. Click **Model access** in the left sidebar
+3. Request access to the Claude models you want to use
+4. Wait for approval (usually instant for most models)
+</Steps>
+
+## Quick Start
+
+The fastest way to get started depends on your setup:
+
+```bash
+# If you already have AWS CLI configured
+cyberstrike
+
+# If you have a named profile
+AWS_PROFILE=my-profile cyberstrike
+
+# If you have access keys
+AWS_ACCESS_KEY_ID=AKIA... AWS_SECRET_ACCESS_KEY=... cyberstrike
+
+# On EC2 with an IAM Role attached — just run it
+cyberstrike
+```
+
+CyberStrike auto-detects your AWS credentials. If Bedrock credentials are found, the provider appears automatically in the model selector.
+
+## Authentication Methods
+
+CyberStrike supports 9 different ways to authenticate with AWS Bedrock. They are listed here from simplest to most advanced.
+
+---
+
+### 1. AWS Access Keys
+
+The most straightforward method. Set your access key and secret as environment variables:
+
+```bash
+export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
+export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+export AWS_REGION="us-east-1"
+
+cyberstrike
+```
+
+You can also pass them inline for a single session:
+
+```bash
+AWS_ACCESS_KEY_ID=AKIA... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1 cyberstrike
+```
+
+<Aside variant="caution">
+  Access keys are long-lived credentials. For production use, prefer IAM roles, SSO, or temporary credentials instead.
+</Aside>
+
+---
+
+### 2. AWS Profiles
+
+If you have profiles configured in `~/.aws/credentials` and `~/.aws/config`, you can select one:
+
+```bash
+# Use a named profile
+AWS_PROFILE=my-profile cyberstrike
+```
+
+Or set the profile in your project's `cyberstrike.json`:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "profile": "my-profile",
+        "region": "us-east-1"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="tip">
+  When both `cyberstrike.json` and the `AWS_PROFILE` environment variable are set, the config file takes precedence.
+</Aside>
+
+---
+
+### 3. SSO / IAM Identity Center
+
+If your organization uses AWS IAM Identity Center (formerly AWS SSO), configure an SSO profile in `~/.aws/config`:
+
+```ini title="~/.aws/config"
+[profile my-sso]
+sso_session = my-org
+sso_account_id = 123456789012
+sso_role_name = BedrockAccess
+region = us-east-1
+
+[sso-session my-org]
+sso_start_url = https://my-org.awsapps.com/start
+sso_region = us-east-1
+```
+
+Then log in and run CyberStrike:
+
+```bash
+aws sso login --profile my-sso
+AWS_PROFILE=my-sso cyberstrike
+```
+
+---
+
+### 4. STS AssumeRole (Role Chaining)
+
+If you need to assume a role in another AWS account (or a more privileged role in the same account), configure role chaining in `~/.aws/config`:
+
+```ini title="~/.aws/config"
+[profile base-account]
+aws_access_key_id = AKIA...
+aws_secret_access_key = ...
+
+[profile bedrock-role]
+role_arn = arn:aws:iam::987654321098:role/BedrockAccessRole
+source_profile = base-account
+region = us-east-1
+```
+
+Then use the role profile:
+
+```bash
+AWS_PROFILE=bedrock-role cyberstrike
+```
+
+This is handled automatically by the AWS credential provider chain — CyberStrike does not need any special configuration.
+
+---
+
+### 5. Web Identity Token (OIDC)
+
+For workloads running on **EKS (Kubernetes)**, **GitHub Actions**, or other OIDC-federated environments, set the token file path:
+
+```bash
+export AWS_WEB_IDENTITY_TOKEN_FILE="/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
+export AWS_ROLE_ARN="arn:aws:iam::123456789012:role/my-eks-role"
+
+cyberstrike
+```
+
+On EKS with IRSA (IAM Roles for Service Accounts), these environment variables are set automatically by Kubernetes.
+
+---
+
+### 6. Container Credentials (ECS / Fargate)
+
+When running inside **ECS** or **Fargate** tasks, AWS injects credentials automatically via a metadata endpoint. CyberStrike detects these environment variables:
+
+- `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`
+- `AWS_CONTAINER_CREDENTIALS_FULL_URI`
+
+No configuration needed — just make sure the task's IAM role has Bedrock permissions and run:
+
+```bash
+cyberstrike
+```
+
+---
+
+### 7. EC2 Instance Metadata (IMDS)
+
+On **EC2 instances** with an IAM role attached, credentials are fetched automatically from the Instance Metadata Service. No environment variables or config files needed:
+
+```bash
+# On an EC2 instance with an IAM role — just run it
+cyberstrike
+```
+
+Make sure the instance's IAM role includes the Bedrock permissions described in the [IAM Permissions](#iam-permissions) section below.
+
+<Aside variant="info">
+  If the standard credential chain fails, CyberStrike falls back to IMDS automatically as a last resort.
+</Aside>
+
+---
+
+### 8. Bearer Token
+
+You can authenticate with a bearer token. Set it via an environment variable:
+
+```bash
+export AWS_BEARER_TOKEN_BEDROCK="your-bearer-token"
+cyberstrike
+```
+
+Or store it through the TUI — run `/connect`, select **Amazon Bedrock**, and paste your bearer token when prompted. This saves the token so you don't need to set it every time.
+
+<Aside variant="tip">
+  Bearer token has the **highest priority** — when set, it bypasses the entire AWS credential chain (profiles, access keys, IAM roles, etc.).
+</Aside>
+
+---
+
+### 9. Custom Credential Process
+
+If you have a custom tool that generates temporary AWS credentials (like a corporate credential vending machine), configure it in `~/.aws/config`:
+
+```ini title="~/.aws/config"
+[profile custom-creds]
+credential_process = /usr/local/bin/my-credential-tool --format json
+region = us-east-1
+```
+
+The program must return JSON in this format:
+
+```json
+{
+  "Version": 1,
+  "AccessKeyId": "AKIA...",
+  "SecretAccessKey": "...",
+  "SessionToken": "...",
+  "Expiration": "2025-12-31T23:59:59Z"
+}
+```
+
+Then use the profile:
+
+```bash
+AWS_PROFILE=custom-creds cyberstrike
+```
+
+---
+
+## Authentication Priority
+
+When multiple credentials are available, CyberStrike uses this priority order:
+
+| Priority | Method | Source |
+|----------|--------|--------|
+| 1 (highest) | Bearer Token | `AWS_BEARER_TOKEN_BEDROCK` env var or `/connect` in TUI |
+| 2 | AWS Credential Chain | `fromNodeProviderChain` resolves in standard AWS SDK order: env vars → profile → SSO → web identity → ECS container → EC2 IMDS |
+
+## IAM Permissions
+
+Whichever authentication method you use, the IAM identity needs these permissions:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": "arn:aws:bedrock:*::foundation-model/anthropic.*"
+    }
+  ]
+}
+```
+
+<Aside variant="tip">
+  Replace `anthropic.*` with a specific model ARN if you want to restrict access to certain models only.
+</Aside>
+
+## Region Configuration
+
+CyberStrike resolves the AWS region in this order:
+
+| Priority | Source | Example |
+|----------|--------|---------|
+| 1 (highest) | `cyberstrike.json` config | `provider.amazon-bedrock.options.region` |
+| 2 | Environment variable | `AWS_REGION=eu-west-1` |
+| 3 (default) | Hardcoded fallback | `us-east-1` |
+
+Set the region in your config file:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "eu-west-1"
+      }
+    }
+  }
+}
+```
+
+Or via environment variable:
+
+```bash
+export AWS_REGION="eu-west-1"
+```
+
+## Cross-Region Inference
+
+CyberStrike automatically handles cross-region inference profile prefixes. Based on your configured region, the correct prefix is added to model IDs:
+
+| Region | Prefix | Example |
+|--------|--------|---------|
+| US regions (us-east-1, us-west-2, ...) | `us.` | `us.anthropic.claude-sonnet-4-20250514-v1:0` |
+| EU regions (eu-west-1, eu-central-1, ...) | `eu.` | `eu.anthropic.claude-sonnet-4-20250514-v1:0` |
+| Tokyo (ap-northeast-1) | `jp.` | `jp.anthropic.claude-sonnet-4-20250514-v1:0` |
+| Australia (ap-southeast-2, ap-southeast-4) | `au.` | `au.anthropic.claude-sonnet-4-20250514-v1:0` |
+| Other APAC regions | `apac.` | `apac.anthropic.claude-sonnet-4-20250514-v1:0` |
+| Global | `global.` | `global.anthropic.claude-sonnet-4-20250514-v1:0` |
+
+This is automatic — you don't need to add these prefixes yourself. If a model ID already has a prefix (e.g. from the model selector), it won't be double-prefixed.
+
+## VPC Endpoint
+
+For private network access (no internet traffic), configure a VPC endpoint:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "us-east-1",
+        "endpoint": "https://bedrock-runtime.us-east-1.vpce-xxxxx.amazonaws.com"
+      }
+    }
+  }
+}
+```
+
+## Usage
+
+Once authentication is configured, select a Bedrock model via `/models` in the TUI, or set a default in config:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "us-east-1"
+      }
+    }
+  },
+  "model": "amazon-bedrock/anthropic.claude-sonnet-4-20250514-v1:0"
+}
+```
+
+To switch models during a session, use the `/model` slash command.
+
+## Troubleshooting
+
+### "Access Denied" Error
+
+- Check that model access is enabled in the AWS Bedrock console
+- Verify your IAM policy includes `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream`
+- Confirm you're using the correct region
+
+### "Model not found" Error
+
+- Verify the model ID is correct
+- Check if the model is available in your region
+- Try a different region or enable cross-region inference
+
+### "ThrottlingException" Error
+
+- Request a service limit increase through the AWS console
+- Cross-region inference can help distribute load across regions
+- For consistent throughput, consider AWS Bedrock provisioned capacity
+
+### Bedrock Provider Not Appearing
+
+CyberStrike only shows the Bedrock provider when it detects valid credentials. If it's not appearing:
+
+1. Verify your credentials work with the AWS CLI: `aws bedrock list-foundation-models --region us-east-1`
+2. Check that at least one authentication method is configured (env vars, profile, config, etc.)
+3. Make sure the provider is not listed in `disabled_providers` in your `cyberstrike.json`
+
+## Related Documentation
+
+- [Providers Overview](/docs/configuration/providers) — All supported providers
+- [Anthropic](/docs/configuration/provider-anthropic) — Direct API comparison
+- [Configuration](/docs/configuration) — Full configuration reference

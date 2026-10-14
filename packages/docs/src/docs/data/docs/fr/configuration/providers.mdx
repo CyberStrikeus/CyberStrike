@@ -1,0 +1,497 @@
+---
+title: Fournisseurs IA
+description: Configurer et utiliser différents fournisseurs IA avec Cyberstrike
+sidebar:
+  order: 12
+  label: Vue d'ensemble
+---
+
+Cyberstrike prend en charge plusieurs fournisseurs IA, vous offrant la flexibilité de choisir le meilleur modèle pour vos évaluations de sécurité.
+
+<img src="/docs/images/screenshots/s05-provider-dialog.png" alt="Boîte de dialogue de connexion à un fournisseur listant les fournisseurs populaires et autres" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/diagrams/provider-selection-flow.svg" alt="Comment Cyberstrike sélectionne le modèle et le fournisseur — modèle configuré, puis le plus récent, puis premier fournisseur disponible par priorité" className="my-6 mx-auto max-w-lg" />
+
+## Fournisseurs pris en charge
+
+| Fournisseur | Modèles | Idéal pour |
+|----------|--------|----------|
+| **Anthropic** | Claude Opus 4.5, Sonnet 4, Haiku | Raisonnement complexe, contexte long |
+| **OpenAI** | GPT-4o, o1, o1-preview | Usage général, réponses rapides |
+| **Google** | Gemini 2.0 Flash, Pro | Multimodal, contexte large |
+| **AWS Bedrock** | Claude, Llama, Titan | Entreprise, on-prem |
+| **Azure OpenAI** | GPT-4, GPT-4o | Conformité entreprise |
+| **Google Vertex AI** | Gemini, Claude | Entreprise GCP |
+| **OpenRouter** | Nombreux modèles | Offre gratuite, variété de modèles |
+| **Groq** | Llama 3.3, Mixtral | Vitesse, rapport coût-efficacité |
+| **Ollama** | Modèles locaux | Confidentialité, utilisation hors ligne |
+
+## Ajout d'identifiants
+
+### Connecter un fournisseur
+
+Dans le TUI, exécutez `/connect` pour ouvrir la boîte de dialogue du fournisseur. Sélectionnez votre fournisseur et entrez votre clé API (ou autorisez via OAuth pour GitHub Copilot).
+
+### Variables d'environnement
+
+Définissez les clés API dans votre environnement :
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Google
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+
+# OpenRouter
+export OPENROUTER_API_KEY="sk-or-..."
+
+# Groq
+export GROQ_API_KEY="gsk_..."
+```
+
+Ajoutez-les à votre profil shell (`~/.bashrc` ou `~/.zshrc`) pour la persistance.
+
+### Fichier de configuration
+
+Stockez les identifiants dans `~/.config/cyberstrike/cyberstrike.json` :
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Anthropic
+
+Les modèles Claude sont recommandés pour l'analyse de sécurité complexe.
+
+### Authentification
+
+Exécutez `/connect` dans le TUI, sélectionnez **Anthropic**, et entrez votre clé API depuis [console.anthropic.com](https://console.anthropic.com).
+
+Ou via l'environnement :
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+### Modèles disponibles
+
+| Modèle | ID | Contexte | Idéal pour |
+|-------|-----|---------|----------|
+| Claude Opus 4.5 | `claude-opus-4-5-20251101` | 200K | Analyse complexe |
+| Claude Sonnet 4 | `claude-sonnet-4-20250514` | 200K | Performance équilibrée |
+| Claude Haiku 4.5 | `claude-haiku-4-5-20251001` | 200K | Tâches rapides |
+
+### Utilisation
+
+Utilisez `/models` pour sélectionner un modèle Claude, ou définissez un modèle par défaut dans la configuration :
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4-20250514"
+}
+```
+
+### Options de configuration
+
+```json
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}",
+        "timeout": 300000
+      }
+    }
+  }
+}
+```
+
+---
+
+## OpenAI
+
+Les modèles GPT-4 fournissent des réponses rapides et fiables.
+
+### Authentification
+
+Exécutez `/connect` dans le TUI, sélectionnez **OpenAI**, et entrez votre clé API depuis [platform.openai.com](https://platform.openai.com).
+
+Ou via l'environnement :
+
+```bash
+export OPENAI_API_KEY="sk-..."
+```
+
+### Modèles disponibles
+
+| Modèle | ID | Contexte | Idéal pour |
+|-------|-----|---------|----------|
+| GPT-4o | `gpt-4o` | 128K | Usage général |
+| GPT-4o Mini | `gpt-4o-mini` | 128K | Rapport coût-efficacité |
+| o1 | `o1` | 200K | Raisonnement complexe |
+| o1 Preview | `o1-preview` | 128K | Tâches avancées |
+
+### Utilisation
+
+Utilisez `/models` pour sélectionner un modèle OpenAI, ou définissez-en un dans la configuration.
+
+### Options de configuration
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}",
+        "baseURL": "https://api.openai.com/v1"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Google
+
+Les modèles Gemini excellent dans les tâches multimodales.
+
+### Authentification
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
+```
+
+Ou via Google Cloud :
+
+```bash
+gcloud auth application-default login
+```
+
+### Modèles disponibles
+
+| Modèle | ID | Contexte | Idéal pour |
+|-------|-----|---------|----------|
+| Gemini 2.0 Flash | `gemini-2.0-flash` | 1M | Rapide, expérimental |
+| Gemini 1.5 Pro | `gemini-1.5-pro` | 2M | Contexte large |
+| Gemini 1.5 Flash | `gemini-1.5-flash` | 1M | Vitesse |
+
+### Utilisation
+
+Utilisez `/models` pour sélectionner un modèle Gemini, ou définissez-en un dans la configuration.
+
+---
+
+## OpenRouter
+
+Accédez à de nombreux modèles via une seule API avec une offre gratuite.
+
+### Authentification
+
+Exécutez `/connect` dans le TUI, sélectionnez **OpenRouter**, et entrez votre clé API depuis [openrouter.ai/keys](https://openrouter.ai/keys).
+
+Ou via l'environnement :
+
+```bash
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+### Modèles de l'offre gratuite
+
+| Modèle | ID |
+|-------|-----|
+| Llama 4 Scout | `meta-llama/llama-4-scout:free` |
+| Gemini 2.0 Flash | `google/gemini-2.0-flash:free` |
+| Mistral Small | `mistralai/mistral-small-3.2-24b-instruct:free` |
+
+### Utilisation
+
+Utilisez `/models` pour sélectionner un modèle OpenRouter, ou définissez-en un dans la configuration :
+
+### Configuration
+
+```json
+{
+  "model": "openrouter/meta-llama/llama-4-scout:free",
+  "provider": {
+    "openrouter": {
+      "options": {
+        "apiKey": "{env:OPENROUTER_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+---
+
+## AWS Bedrock
+
+Utilisez Claude et d'autres modèles via AWS.
+
+### Authentification
+
+Configurez les identifiants AWS :
+
+```bash
+# Via AWS CLI
+aws configure
+
+# Ou via l'environnement
+export AWS_ACCESS_KEY_ID="..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_REGION="us-east-1"
+```
+
+### Modèles disponibles
+
+| Modèle | ID |
+|-------|-----|
+| Claude Sonnet | `anthropic.claude-sonnet-4-20250514-v1:0` |
+| Claude Haiku | `anthropic.claude-haiku-4-5-20251001-v1:0` |
+| Llama 3.3 | `meta.llama3-3-70b-instruct-v1:0` |
+
+### Configuration
+
+```json
+{
+  "model": "amazon-bedrock/anthropic.claude-sonnet-4-20250514-v1:0",
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "us-east-1"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Azure OpenAI
+
+Déploiement entreprise Azure des modèles OpenAI.
+
+### Authentification
+
+```bash
+export AZURE_API_KEY="..."
+export AZURE_RESOURCE_NAME="your-resource"
+```
+
+### Configuration
+
+```json
+{
+  "provider": {
+    "azure": {
+      "options": {
+        "apiKey": "{env:AZURE_API_KEY}",
+        "resourceName": "your-resource",
+        "deploymentId": "gpt-4o"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Google Vertex AI
+
+IA Google Cloud pour l'entreprise.
+
+### Authentification
+
+```bash
+gcloud auth application-default login
+```
+
+### Configuration
+
+```json
+{
+  "provider": {
+    "google-vertex": {
+      "options": {
+        "project": "your-project-id",
+        "location": "us-central1"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Ollama (Local)
+
+Exécutez des modèles localement pour la confidentialité et l'utilisation hors ligne.
+
+### Installation
+
+1. Installez Ollama :
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+2. Téléchargez un modèle :
+
+```bash
+ollama pull llama3.3
+```
+
+3. Démarrez Ollama :
+
+```bash
+ollama serve
+```
+
+### Utilisation
+
+Aucune clé API nécessaire. Utilisez `/models` pour sélectionner un modèle Ollama.
+
+### Modèles disponibles
+
+| Modèle | Commande de téléchargement |
+|-------|-------------|
+| Llama 3.3 | `ollama pull llama3.3` |
+| CodeLlama | `ollama pull codellama` |
+| Mistral | `ollama pull mistral` |
+| Qwen | `ollama pull qwen2.5` |
+
+### Configuration
+
+```json
+{
+  "model": "ollama/llama3.3",
+  "provider": {
+    "ollama": {
+      "options": {
+        "baseURL": "http://localhost:11434"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Groq
+
+Inférence la plus rapide pour les modèles pris en charge.
+
+### Authentification
+
+```bash
+export GROQ_API_KEY="gsk_..."
+```
+
+### Modèles disponibles
+
+| Modèle | ID |
+|-------|-----|
+| Llama 3.3 70B | `llama-3.3-70b-versatile` |
+| Mixtral 8x7B | `llama-3.3-70b-versatile` |
+
+### Utilisation
+
+Utilisez `/models` pour sélectionner un modèle Groq, ou définissez-en un dans la configuration.
+
+---
+
+## OpenAI-Compatible personnalisé
+
+Connectez-vous à n'importe quelle API compatible OpenAI.
+
+### Configuration
+
+```json
+{
+  "provider": {
+    "custom-api": {
+      "id": "custom-api",
+      "name": "Custom API",
+      "options": {
+        "baseURL": "https://api.custom.example.com/v1",
+        "apiKey": "{env:CUSTOM_API_KEY}"
+      },
+      "models": {
+        "custom-model": {
+          "name": "Custom Model",
+          "contextLength": 32000
+        }
+      }
+    }
+  }
+}
+```
+
+### Utilisation
+
+Utilisez `/models` pour sélectionner le modèle personnalisé, ou définissez-le dans la configuration.
+
+---
+
+## Conseils de sélection de fournisseur
+
+### Pour l'analyse de sécurité complexe
+
+Utilisez Claude Opus 4.5 ou Sonnet 4 :
+
+```json
+{
+  "model": "anthropic/claude-opus-4-5-20251101"
+}
+```
+
+### Pour le rapport coût-efficacité
+
+Utilisez l'offre gratuite OpenRouter ou Groq :
+
+```json
+{
+  "model": "openrouter/meta-llama/llama-4-scout:free"
+}
+```
+
+### Pour la confidentialité
+
+Utilisez Ollama avec des modèles locaux :
+
+```json
+{
+  "model": "ollama/llama3.3"
+}
+```
+
+### Pour l'entreprise
+
+Utilisez AWS Bedrock ou Azure OpenAI avec les identifiants de votre organisation.
+
+---
+
+## Gestion des identifiants
+
+Utilisez `/status` dans le TUI pour voir les fournisseurs connectés et les identifiants actifs.
+
+Pour supprimer des identifiants, utilisez la commande CLI `cyberstrike auth logout` et sélectionnez le fournisseur à retirer.
+
+<Aside variant="tip">
+  Pour les tâches de test d'intrusion nécessitant un raisonnement complexe, nous recommandons **Claude Opus 4.5** ou **Claude Sonnet 4**.
+</Aside>

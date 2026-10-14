@@ -1,0 +1,231 @@
+---
+title: OpenAI (GPT)
+description: CyberstrikeでOpenAIモデルを設定する
+sidebar:
+  order: 14
+  label: OpenAI
+---
+
+OpenAIはセキュリティ分析のためにGPT-5ファミリー、GPT-4.1、oシリーズの推論モデルを提供しています。このガイドではセットアップと設定を説明します。
+
+<img src="/docs/images/screenshots/openai-model-select.png" alt="OpenAIモデルでフィルタされたモデルピッカー" className="rounded-lg shadow-lg my-6 w-full" />
+
+## 利用可能なモデル
+
+Cyberstrikeは[models.dev](https://models.dev)からモデルカタログをライブで取得するため、正確なリストはOpenAIが現在提供しているものを追跡します。一般的な選択肢:
+
+| モデル | コンテキスト | 最適な用途 |
+|-------|---------|----------|
+| `openai/gpt-5` | 400K | 一般的なセキュリティテスト(フラッグシップ) |
+| `openai/gpt-5-mini` | 400K | 簡単なタスク、大量処理 |
+| `openai/gpt-5-nano` | 400K | 最安、シンプルなタスク |
+| `openai/gpt-4.1` | 1M | 超大規模コンテキスト |
+| `openai/o3` | 200K | 深いステップバイステップ推論 |
+
+<Aside variant="tip">
+  新しいGPT-5.xリリース(5.1-5.5、CodexおよびProバリアントを含む)はmodels.devの更新に伴い自動的に表示されます。`/models`で現在の完全なリストを確認してください。
+</Aside>
+
+## 認証
+
+### APIキーの設定
+
+1. [platform.openai.com](https://platform.openai.com)からAPIキーを取得
+2. TUIで`/connect`を実行し、**OpenAI**を選択してAPIキーを入力
+
+### 環境変数
+
+```bash
+export OPENAI_API_KEY="sk-proj-..."
+```
+
+### 設定ファイル
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+## モデル設定
+
+### デフォルトモデルの設定
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "model": "openai/gpt-5"
+}
+```
+
+### モデルの切り替え
+
+TUIで`/models`を使用して別のOpenAIモデルを選択してください。
+
+### 推論モデルの使用
+
+oシリーズ(`o3`、`o4-mini`)とGPT-5 Proバリアントは、複雑なセキュリティ分析に優れています。`/models`で選択してください。
+
+以下に最適:
+- 複雑な脆弱性チェーン
+- 攻撃パス分析
+- 暗号分析
+- リバースエンジニアリング
+
+## ChatGPT Plus/Pro
+
+ChatGPTサブスクリプションを使用するには、TUIで`/connect`を実行し、**OpenAI**を選択して**ChatGPT Plus/Pro**を選択します。ブラウザベースのOAuthフローがトリガーされます。
+
+<Aside variant="info">
+  ChatGPT認証にはブラウザベースのOAuthフローが必要です。
+</Aside>
+
+## 組織ID
+
+組織アカウントの場合:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "apiKey": "{env:OPENAI_API_KEY}",
+        "organization": "org-..."
+      }
+    }
+  }
+}
+```
+
+## カスタムベースURL
+
+OpenAI互換エンドポイントの場合:
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "baseURL": "https://your-endpoint.com/v1"
+      }
+    }
+  }
+}
+```
+
+## ファンクションコーリング
+
+GPTモデルはツール使用のためのファンクションコーリングをサポート:
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "parallelToolCalls": true
+      }
+    }
+  }
+}
+```
+
+## レート制限
+
+OpenAIのティア別レート制限:
+
+| ティア | RPM | TPM |
+|------|-----|-----|
+| 無料 | 3 | 40,000 |
+| Tier 1 | 500 | 200,000 |
+| Tier 2 | 5,000 | 2,000,000 |
+| Tier 3+ | より高い制限 |
+
+### 制限の処理
+
+```json
+{
+  "provider": {
+    "openai": {
+      "options": {
+        "maxRetries": 3,
+        "timeout": 60000
+      }
+    }
+  }
+}
+```
+
+## ベストプラクティス
+
+### モデル選択
+
+| タスク | 推奨モデル |
+|------|-------------------|
+| クイックスキャン | `gpt-5-nano` |
+| 一般的なテスト | `gpt-5` |
+| 複雑な分析 | `o3` |
+| コスト重視 | `gpt-5-mini` |
+
+### コスト最適化
+
+1. シンプルなタスクにはminiモデルを使用
+2. 合理的な最大トークンを設定
+3. 長いセッションには`/compact`を使用
+4. OpenAIダッシュボードで使用量を監視
+
+### セキュリティ
+
+1. 環境変数にキーを保存
+2. プロジェクト固有のAPIキーを使用
+3. OpenAIダッシュボードで使用制限を有効化
+4. 定期的にキーをローテーション
+
+## トラブルシューティング
+
+### 無効なAPIキー
+
+```
+Error: Incorrect API key provided
+```
+
+確認:
+- キーが`sk-proj-`または`sk-`で始まること
+- 余分な空白がないこと
+- キーがアクティブであること
+
+### クォータ不足
+
+```
+Error: You exceeded your current quota
+```
+
+解決策:
+- 課金情報を追加
+- 使用制限を確認
+- プランをアップグレード
+
+### モデルアクセス
+
+```
+Error: The model does not exist or you do not have access
+```
+
+一部のモデルには以下が必要:
+- 最新フラッグシップには上位の使用ティア
+- ウェイトリストの承認
+- エンタープライズ契約
+
+<Aside variant="caution">
+  推論モデル(oシリーズおよびGPT-5 Proバリアント)は推論ステップのためレイテンシが高くなります。応答時間が長くなることを計画してください。
+</Aside>
+
+## 関連ドキュメント
+
+- [プロバイダーの概要](/docs/configuration/providers) - すべてのプロバイダー
+- [カスタムプロバイダー](/docs/configuration/provider-custom-providers) - OpenAI互換セットアップ
+- [設定](/docs/configuration) - 完全なオプション

@@ -1,0 +1,394 @@
+---
+title: AWS Bedrock
+description: Настройка CyberStrike с AWS Bedrock — методы аутентификации, конфигурация региона и кросс-региональный инференс
+sidebar:
+  order: 16
+  label: AWS Bedrock
+---
+
+AWS Bedrock позволяет запускать CyberStrike через ваш собственный аккаунт AWS. Данные остаются в вашей инфраструктуре, вы получаете управление доступом на основе IAM, а также можете использовать VPC-эндпоинты для доступа через частную сеть.
+
+CyberStrike использует стандартную цепочку поставщика учётных данных AWS (`@aws-sdk/credential-providers`), поэтому если вы уже используете AWS CLI или SDK, ваши существующие учётные данные будут работать.
+
+## Предварительные требования
+
+Перед началом убедитесь, что у вас есть доступ к моделям Bedrock в вашем аккаунте AWS:
+
+<Steps>
+1. Откройте **AWS Console** и перейдите в **Amazon Bedrock**
+2. Нажмите **Model access** в левой панели
+3. Запросите доступ к нужным моделям Claude
+4. Дождитесь одобрения (обычно мгновенно для большинства моделей)
+</Steps>
+
+## Быстрый старт
+
+Самый быстрый способ начать зависит от вашей настройки:
+
+```bash
+# Если у вас уже настроен AWS CLI
+cyberstrike
+
+# Если у вас есть именованный профиль
+AWS_PROFILE=my-profile cyberstrike
+
+# Если у вас есть ключи доступа
+AWS_ACCESS_KEY_ID=AKIA... AWS_SECRET_ACCESS_KEY=... cyberstrike
+
+# На EC2 с привязанной IAM-ролью — просто запустите
+cyberstrike
+```
+
+CyberStrike автоматически обнаруживает ваши учётные данные AWS. Если найдены учётные данные Bedrock, провайдер автоматически появляется в селекторе моделей.
+
+## Методы аутентификации
+
+CyberStrike поддерживает 9 различных способов аутентификации с AWS Bedrock. Они перечислены от простейшего к наиболее продвинутому.
+
+---
+
+### 1. Ключи доступа AWS
+
+Наиболее простой метод. Установите ключ доступа и секрет как переменные окружения:
+
+```bash
+export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
+export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+export AWS_REGION="us-east-1"
+
+cyberstrike
+```
+
+Также можно передать их инлайн для одной сессии:
+
+```bash
+AWS_ACCESS_KEY_ID=AKIA... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1 cyberstrike
+```
+
+<Aside variant="caution">
+  Ключи доступа — долгоживущие учётные данные. Для продакшена предпочтительнее IAM-роли, SSO или временные учётные данные.
+</Aside>
+
+---
+
+### 2. Профили AWS
+
+Если у вас настроены профили в `~/.aws/credentials` и `~/.aws/config`, вы можете выбрать один:
+
+```bash
+# Использование именованного профиля
+AWS_PROFILE=my-profile cyberstrike
+```
+
+Или укажите профиль в `cyberstrike.json` вашего проекта:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "profile": "my-profile",
+        "region": "us-east-1"
+      }
+    }
+  }
+}
+```
+
+<Aside variant="tip">
+  Когда установлены и `cyberstrike.json`, и переменная окружения `AWS_PROFILE`, файл конфигурации имеет приоритет.
+</Aside>
+
+---
+
+### 3. SSO / IAM Identity Center
+
+Если ваша организация использует AWS IAM Identity Center (ранее AWS SSO), настройте SSO-профиль в `~/.aws/config`:
+
+```ini title="~/.aws/config"
+[profile my-sso]
+sso_session = my-org
+sso_account_id = 123456789012
+sso_role_name = BedrockAccess
+region = us-east-1
+
+[sso-session my-org]
+sso_start_url = https://my-org.awsapps.com/start
+sso_region = us-east-1
+```
+
+Затем войдите и запустите CyberStrike:
+
+```bash
+aws sso login --profile my-sso
+AWS_PROFILE=my-sso cyberstrike
+```
+
+---
+
+### 4. STS AssumeRole (цепочка ролей)
+
+Если нужно принять роль в другом аккаунте AWS (или более привилегированную роль в том же аккаунте), настройте цепочку ролей в `~/.aws/config`:
+
+```ini title="~/.aws/config"
+[profile base-account]
+aws_access_key_id = AKIA...
+aws_secret_access_key = ...
+
+[profile bedrock-role]
+role_arn = arn:aws:iam::987654321098:role/BedrockAccessRole
+source_profile = base-account
+region = us-east-1
+```
+
+Затем используйте профиль роли:
+
+```bash
+AWS_PROFILE=bedrock-role cyberstrike
+```
+
+Это обрабатывается автоматически цепочкой поставщика учётных данных AWS — CyberStrike не требует специальной настройки.
+
+---
+
+### 5. Web Identity Token (OIDC)
+
+Для рабочих нагрузок на **EKS (Kubernetes)**, **GitHub Actions** или других сред с OIDC-федерацией укажите путь к файлу токена:
+
+```bash
+export AWS_WEB_IDENTITY_TOKEN_FILE="/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
+export AWS_ROLE_ARN="arn:aws:iam::123456789012:role/my-eks-role"
+
+cyberstrike
+```
+
+На EKS с IRSA (IAM Roles for Service Accounts) эти переменные окружения устанавливаются Kubernetes автоматически.
+
+---
+
+### 6. Учётные данные контейнера (ECS / Fargate)
+
+При запуске внутри задач **ECS** или **Fargate** AWS автоматически внедряет учётные данные через эндпоинт метаданных. CyberStrike обнаруживает эти переменные окружения:
+
+- `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`
+- `AWS_CONTAINER_CREDENTIALS_FULL_URI`
+
+Настройка не требуется — просто убедитесь, что IAM-роль задачи имеет разрешения Bedrock, и запустите:
+
+```bash
+cyberstrike
+```
+
+---
+
+### 7. Метаданные экземпляра EC2 (IMDS)
+
+На **экземплярах EC2** с привязанной IAM-ролью учётные данные загружаются автоматически из Instance Metadata Service. Переменные окружения или файлы конфигурации не нужны:
+
+```bash
+# На экземпляре EC2 с IAM-ролью — просто запустите
+cyberstrike
+```
+
+Убедитесь, что IAM-роль экземпляра включает разрешения Bedrock, описанные в разделе [Разрешения IAM](#разрешения-iam) ниже.
+
+<Aside variant="info">
+  Если стандартная цепочка учётных данных не срабатывает, CyberStrike автоматически откатывается к IMDS как последнее средство.
+</Aside>
+
+---
+
+### 8. Bearer-токен
+
+Вы можете аутентифицироваться с помощью bearer-токена. Установите через переменную окружения:
+
+```bash
+export AWS_BEARER_TOKEN_BEDROCK="your-bearer-token"
+cyberstrike
+```
+
+Или сохраните через TUI — выполните `/connect`, выберите **Amazon Bedrock** и вставьте bearer-токен по запросу. Токен сохраняется, чтобы не устанавливать его каждый раз.
+
+<Aside variant="tip">
+  Bearer-токен имеет **наивысший приоритет** — при установке он обходит всю цепочку учётных данных AWS (профили, ключи доступа, IAM-роли и т.д.).
+</Aside>
+
+---
+
+### 9. Пользовательский процесс учётных данных
+
+Если у вас есть инструмент, генерирующий временные учётные данные AWS (например, корпоративный автомат учётных данных), настройте его в `~/.aws/config`:
+
+```ini title="~/.aws/config"
+[profile custom-creds]
+credential_process = /usr/local/bin/my-credential-tool --format json
+region = us-east-1
+```
+
+Программа должна возвращать JSON в следующем формате:
+
+```json
+{
+  "Version": 1,
+  "AccessKeyId": "AKIA...",
+  "SecretAccessKey": "...",
+  "SessionToken": "...",
+  "Expiration": "2025-12-31T23:59:59Z"
+}
+```
+
+Затем используйте профиль:
+
+```bash
+AWS_PROFILE=custom-creds cyberstrike
+```
+
+---
+
+## Приоритет аутентификации
+
+При наличии нескольких учётных данных CyberStrike использует следующий порядок приоритетов:
+
+| Приоритет | Метод | Источник |
+|-----------|-------|---------|
+| 1 (наивысший) | Bearer-токен | Переменная `AWS_BEARER_TOKEN_BEDROCK` или `/connect` в TUI |
+| 2 | Цепочка учётных данных AWS | `fromNodeProviderChain` разрешает в стандартном порядке AWS SDK: переменные окружения -> профиль -> SSO -> web identity -> контейнер ECS -> EC2 IMDS |
+
+## Разрешения IAM
+
+Какой бы метод аутентификации вы ни использовали, IAM-идентификатору нужны следующие разрешения:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": "arn:aws:bedrock:*::foundation-model/anthropic.*"
+    }
+  ]
+}
+```
+
+<Aside variant="tip">
+  Замените `anthropic.*` на конкретный ARN модели, если хотите ограничить доступ к определённым моделям.
+</Aside>
+
+## Конфигурация региона
+
+CyberStrike определяет регион AWS в следующем порядке:
+
+| Приоритет | Источник | Пример |
+|-----------|---------|--------|
+| 1 (наивысший) | Конфигурация `cyberstrike.json` | `provider.amazon-bedrock.options.region` |
+| 2 | Переменная окружения | `AWS_REGION=eu-west-1` |
+| 3 (по умолчанию) | Захардкоженный fallback | `us-east-1` |
+
+Установите регион в файле конфигурации:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "eu-west-1"
+      }
+    }
+  }
+}
+```
+
+Или через переменную окружения:
+
+```bash
+export AWS_REGION="eu-west-1"
+```
+
+## Кросс-региональный инференс
+
+CyberStrike автоматически обрабатывает префиксы профилей кросс-регионального инференса. На основе вашего настроенного региона к ID моделей добавляется правильный префикс:
+
+| Регион | Префикс | Пример |
+|--------|---------|--------|
+| Регионы US (us-east-1, us-west-2, ...) | `us.` | `us.anthropic.claude-sonnet-4-20250514-v1:0` |
+| Регионы EU (eu-west-1, eu-central-1, ...) | `eu.` | `eu.anthropic.claude-sonnet-4-20250514-v1:0` |
+| Токио (ap-northeast-1) | `jp.` | `jp.anthropic.claude-sonnet-4-20250514-v1:0` |
+| Австралия (ap-southeast-2, ap-southeast-4) | `au.` | `au.anthropic.claude-sonnet-4-20250514-v1:0` |
+| Другие регионы APAC | `apac.` | `apac.anthropic.claude-sonnet-4-20250514-v1:0` |
+| Глобальный | `global.` | `global.anthropic.claude-sonnet-4-20250514-v1:0` |
+
+Это происходит автоматически — добавлять префиксы вручную не нужно. Если ID модели уже содержит префикс (например, из селектора моделей), дублирования не будет.
+
+## VPC-эндпоинт
+
+Для доступа через частную сеть (без интернет-трафика) настройте VPC-эндпоинт:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "us-east-1",
+        "endpoint": "https://bedrock-runtime.us-east-1.vpce-xxxxx.amazonaws.com"
+      }
+    }
+  }
+}
+```
+
+## Использование
+
+После настройки аутентификации выберите модель Bedrock через `/models` в TUI или установите по умолчанию в конфигурации:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "amazon-bedrock": {
+      "options": {
+        "region": "us-east-1"
+      }
+    }
+  },
+  "model": "amazon-bedrock/anthropic.claude-sonnet-4-20250514-v1:0"
+}
+```
+
+Для переключения моделей во время сессии используйте slash-команду `/model`.
+
+## Устранение неполадок
+
+### Ошибка "Access Denied"
+
+- Проверьте, что доступ к модели включён в консоли AWS Bedrock
+- Убедитесь, что IAM-политика включает `bedrock:InvokeModel` и `bedrock:InvokeModelWithResponseStream`
+- Подтвердите, что используется правильный регион
+
+### Ошибка "Model not found"
+
+- Проверьте правильность ID модели
+- Проверьте, доступна ли модель в вашем регионе
+- Попробуйте другой регион или включите кросс-региональный инференс
+
+### Ошибка "ThrottlingException"
+
+- Запросите увеличение лимита сервиса через консоль AWS
+- Кросс-региональный инференс помогает распределить нагрузку между регионами
+- Для стабильной пропускной способности рассмотрите provisioned capacity AWS Bedrock
+
+### Провайдер Bedrock не появляется
+
+CyberStrike показывает провайдер Bedrock только при обнаружении действительных учётных данных. Если он не появляется:
+
+1. Проверьте работу учётных данных с AWS CLI: `aws bedrock list-foundation-models --region us-east-1`
+2. Убедитесь, что настроен хотя бы один метод аутентификации (переменные окружения, профиль, конфигурация и т.д.)
+3. Убедитесь, что провайдер не указан в `disabled_providers` в вашем `cyberstrike.json`
+
+## Связанная документация
+
+- [Обзор провайдеров](/docs/configuration/providers) — Все поддерживаемые провайдеры
+- [Anthropic](/docs/configuration/provider-anthropic) — Сравнение с прямым API
+- [Конфигурация](/docs/configuration) — Полный справочник конфигурации

@@ -24,10 +24,6 @@ const sidebarNavData: DocsSidebarNavData = {
           title: "Features",
         },
         {
-          id: "providers",
-          title: "AI प्रदाता",
-        },
-        {
           id: "agents",
           title: "एजेंट",
         },
