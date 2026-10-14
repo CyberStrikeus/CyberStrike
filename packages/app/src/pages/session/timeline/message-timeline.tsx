@@ -1138,6 +1138,11 @@ export function MessageTimeline(props: {
             <Show when={message()}>
               {(message) => (
                 <div data-slot="session-turn-message-container" class="w-full px-4 md:px-5">
+                  <Show when={settings.general.showTimestamps()}>
+                    <div class="text-11-regular text-text-weaker mb-1">
+                      {new Date(message().time.created).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                  </Show>
                   <div data-slot="session-turn-message-content" aria-live="off">
                     <Message
                       message={message()}

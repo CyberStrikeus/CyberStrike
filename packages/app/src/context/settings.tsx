@@ -32,6 +32,7 @@ export interface Settings {
     showReasoningSummaries: boolean
     shellToolPartsExpanded: boolean
     editToolPartsExpanded: boolean
+    showTimestamps: boolean
     showCustomAgents: boolean
     mobileTitlebarPosition: "top" | "bottom"
     newLayoutDesigns?: boolean
@@ -193,6 +194,7 @@ const defaultSettings: Settings = {
     showReasoningSummaries: false,
     shellToolPartsExpanded: false,
     editToolPartsExpanded: false,
+    showTimestamps: false,
     showCustomAgents: false,
     mobileTitlebarPosition: "top",
   },
@@ -416,6 +418,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         ),
         setEditToolPartsExpanded(value: boolean) {
           setStore("general", "editToolPartsExpanded", value)
+        },
+        showTimestamps: withFallback(() => store.general?.showTimestamps, defaultSettings.general.showTimestamps),
+        setShowTimestamps(value: boolean) {
+          setStore("general", "showTimestamps", value)
         },
         showCustomAgents,
         setShowCustomAgents(value: boolean) {

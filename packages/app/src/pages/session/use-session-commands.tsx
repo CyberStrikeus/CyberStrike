@@ -759,6 +759,35 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
         setActiveMessage(msgs[msgs.length - 1])
       },
     }),
+    sessionCommand({
+      id: "session.pin",
+      title: "Pin/Unpin Session",
+      description: "Pin or unpin the current session for quick access",
+      slash: "pin",
+      disabled: !params.id,
+      onSelect: () => {
+        const id = params.id
+        if (!id) return
+        try {
+          const raw = localStorage.getItem("cyberstrike.pinned")
+          const pinned: string[] = raw ? JSON.parse(raw) : []
+          const exists = pinned.includes(id)
+          if (exists) {
+            localStorage.setItem("cyberstrike.pinned", JSON.stringify(pinned.filter((x) => x !== id)))
+            showToast({ title: "Session unpinned", variant: "success" })
+          } else {
+            if (pinned.length >= 9) {
+              showToast({ title: "Maximum 9 pinned sessions", variant: "error" })
+              return
+            }
+            localStorage.setItem("cyberstrike.pinned", JSON.stringify([...pinned, id]))
+            showToast({ title: `Session pinned (slot ${pinned.length + 1})`, variant: "success" })
+          }
+        } catch {
+          showToast({ title: "Failed to toggle pin", variant: "error" })
+        }
+      },
+    }),
   ]
 
   const extraViewCmds = () => [
@@ -774,6 +803,20 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
         settings.general.setShowReasoningSummaries(!current)
         showToast({
           title: current ? "Thinking hidden" : "Thinking shown",
+          variant: "success",
+        })
+      },
+    }),
+    viewCommand({
+      id: "view.timestamps",
+      title: settings.general.showTimestamps() ? "Hide Timestamps" : "Show Timestamps",
+      description: "Toggle message timestamps",
+      slash: { name: "timestamps", aliases: ["toggle-timestamps"] },
+      onSelect: () => {
+        const current = settings.general.showTimestamps()
+        settings.general.setShowTimestamps(!current)
+        showToast({
+          title: current ? "Timestamps hidden" : "Timestamps shown",
           variant: "success",
         })
       },
@@ -852,6 +895,21 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
         void openDialog(
           () => import("@/components/dialog-select-vulnerability"),
           (x) => dialog.show(() => <x.DialogSelectVulnerability />),
+        )
+      },
+    }),
+    securityCommand({
+      id: "session.web",
+      title: "Web Context",
+      description: "Browse endpoints, roles, credentials, and signals",
+      slash: { name: "web", aliases: ["endpoints", "roles", "credentials"] },
+      disabled: !params.id,
+      onSelect: () => {
+        const sessionID = params.id
+        if (!sessionID) return
+        void openDialog(
+          () => import("@/components/dialog-web-context"),
+          (x) => dialog.show(() => <x.DialogWebContext sessionID={sessionID} />),
         )
       },
     }),
