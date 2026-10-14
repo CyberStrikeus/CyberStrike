@@ -39,10 +39,6 @@ const sidebarNavData: DocsSidebarNavData = {
         {
           id: "permissions",
           title: "Разрешения",
-        },
-        {
-          id: "cli",
-          title: "Справка CLI",
         },      ],
     },
   ],

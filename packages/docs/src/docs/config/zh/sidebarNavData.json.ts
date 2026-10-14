@@ -39,10 +39,6 @@ const sidebarNavData: DocsSidebarNavData = {
         {
           id: "permissions",
           title: "权限",
-        },
-        {
-          id: "cli",
-          title: "CLI 参考",
         },      ],
     },
   ],

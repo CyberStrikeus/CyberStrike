@@ -39,10 +39,6 @@ const sidebarNavData: DocsSidebarNavData = {
         {
           id: "permissions",
           title: "अनुमतियाँ",
-        },
-        {
-          id: "cli",
-          title: "CLI संदर्भ",
         },      ],
     },
   ],

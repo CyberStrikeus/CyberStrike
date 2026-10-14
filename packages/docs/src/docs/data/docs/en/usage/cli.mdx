@@ -1,6 +1,6 @@
 ---
 title: CLI
-description: Command line interface for non-interactive security assessments
+description: Complete command line interface reference for Cyberstrike
 sidebar:
   order: 2
   label: CLI
@@ -9,20 +9,19 @@ sidebar:
 CyberStrike CLI defaults to launching the [TUI](/docs/usage/tui) when run without arguments. It also accepts commands for non-interactive and programmatic use.
 
 ```bash
-# Launch interactive TUI
-cyberstrike
-
-# Run a single prompt
-cyberstrike run "scan example.com for open ports"
+cyberstrike [global-options] <command> [command-options] [arguments]
 ```
 
-{/* TODO: Video — CLI run command executing a security prompt and streaming output */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-run-demo.mp4</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Non-interactive run command with streaming agent output (~12s)</p>
-</div>
+## Global Flags
 
-## Available Commands
+| Flag | Alias | Description |
+|------|-------|-------------|
+| `--help` | `-h` | Display help information |
+| `--version` | `-v` | Print version |
+| `--print-logs` | | Output logs to stderr |
+| `--log-level` | | Set level: `DEBUG`, `INFO`, `WARN`, `ERROR` |
+
+## Commands
 
 | Command | Description |
 |---------|-------------|
@@ -38,21 +37,39 @@ cyberstrike run "scan example.com for open ports"
 | `stats` | Display token usage and cost statistics |
 | `export` | Export session data as JSON |
 | `import` | Import from JSON file or share URL |
+| `github` | GitHub App integration |
+| `pr` | Review a pull request by number |
 | `upgrade` | Update to latest or specific version |
 | `uninstall` | Remove CyberStrike and related files |
+| `completion` | Generate shell completion scripts |
 
-## Global Flags
+---
 
-| Flag | Alias | Description |
-|------|-------|-------------|
-| `--help` | `-h` | Display help information |
-| `--version` | `-v` | Print version |
-| `--print-logs` | | Output logs to stderr |
-| `--log-level` | | Set level: `DEBUG`, `INFO`, `WARN`, `ERROR` |
+## Interactive Mode
+
+```bash
+# Launch TUI
+cyberstrike
+
+# Start with specific model
+cyberstrike --model anthropic/claude-sonnet-4-20250514
+
+# Continue previous session
+cyberstrike --continue
+```
+
+| Option | Alias | Description |
+|--------|-------|-------------|
+| `--model <model>` | `-m` | Model in format `provider/model` |
+| `--agent <name>` | | Security agent to use |
+| `--continue` | `-c` | Continue last session |
+| `--session <id>` | `-s` | Resume specific session |
+
+---
 
 ## run
 
-Execute a single prompt without entering interactive mode.
+Execute a single prompt without entering interactive mode. In this mode there is nobody to answer permission prompts, so any tool that would prompt is auto-rejected (see [Automation](/docs/permissions/automation)).
 
 ```bash
 cyberstrike run [message..] [options]
@@ -66,11 +83,21 @@ cyberstrike run [message..] [options]
 | `--agent <name>` | | Security agent to use |
 | `--continue` | `-c` | Continue last session |
 | `--session <id>` | `-s` | Resume specific session |
-| `--file <path>` | `-f` | Attach file(s) to message |
+| `--fork` | | Fork the session before continuing (needs `--continue`/`--session`) |
+| `--file <path>` | `-f` | Attach file(s) to message (repeatable) |
 | `--format <type>` | | Output format: `default` or `json` |
 | `--share` | | Share the session |
 | `--title <text>` | | Set session title |
 | `--variant <type>` | | Model variant (`high`, `max`, `minimal`) |
+| `--thinking` | | Show thinking blocks |
+| `--attach <url>` | | Attach to a running server |
+| `--dir <path>` | | Directory to run in (remote path when attaching) |
+| `--port <number>` | | Port for the local server |
+| `--command <name>` | | Run a named command; use the message for its arguments |
+
+<Aside variant="caution">
+  There is no `--output`, `--permission`, `--timeout`, `--verbose`, or `--quiet` flag. Output control is `--format` (`default` | `json`); reasoning display is `--thinking`.
+</Aside>
 
 ### Examples
 
@@ -78,35 +105,40 @@ cyberstrike run [message..] [options]
 # Run a security scan
 cyberstrike run "scan example.com for XSS vulnerabilities"
 
-# Attach a config file for review
+# Attach files for review
 cyberstrike run "analyze this config for misconfigurations" -f nginx.conf
 
-# Output as JSON for pipeline integration
-cyberstrike run "list all open ports" --format json
+# JSON output for scripting
+cyberstrike run "list all open ports" --format json > report.json
 
-# Continue a previous session
+# Continue or fork a session
 cyberstrike run "now check for SQLi" --continue
+cyberstrike run "try a different payload" --session <id> --fork
 ```
 
-{/* TODO: Screenshot — CLI JSON output format example */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: cli-json-output.png</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Structured JSON output from --format json flag</p>
-</div>
-
 ### Piping Input
-
-Accept input from stdin for integration with other tools:
 
 ```bash
 echo "analyze this code for vulnerabilities" | cyberstrike run
 nmap -sV target.local | cyberstrike run "analyze these scan results"
-cat report.json | cyberstrike run "summarize findings"
 ```
+
+### Permissions in `run`
+
+Pre-approve tools for non-interactive use with the `CYBERSTRIKE_PERMISSION` env var:
+
+```bash
+CYBERSTRIKE_PERMISSION='{"bash":"allow","read":"allow"}' \
+  cyberstrike run "enumerate services on the host" --format json
+```
+
+See [Automation](/docs/permissions/automation) for CI patterns.
+
+---
 
 ## serve
 
-Start a headless HTTP API server without a UI. Useful for integrations, CI/CD pipelines, and remote access.
+Start a headless HTTP API server without a UI.
 
 ```bash
 cyberstrike serve [options]
@@ -114,27 +146,24 @@ cyberstrike serve [options]
 
 | Option | Description |
 |--------|-------------|
-| `--port <number>` | Server port (default: random available) |
+| `--port <number>` | Server port (default: 4096) |
 | `--hostname <address>` | Bind address (default: `127.0.0.1`) |
+| `--cors <origin>` | Allowed CORS origin |
+| `--mdns` | Advertise the server over mDNS |
 
 <Aside variant="caution">
   **Authentication:** Set `CYBERSTRIKE_SERVER_PASSWORD` when exposing the server on a network. Without it, the server is unsecured.
 </Aside>
 
 ```bash
-# Start API server on port 4096
 CYBERSTRIKE_SERVER_PASSWORD=secret cyberstrike serve --port 4096
 ```
 
-{/* TODO: Video — Starting serve and piping nmap output into cyberstrike run */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-pipe-demo.mp4</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Piping nmap output into cyberstrike run for analysis (~10s)</p>
-</div>
+---
 
 ## attach
 
-Connect a TUI to an already-running CyberStrike server. This allows multiple terminals to share the same sessions.
+Connect a TUI to an already-running CyberStrike server.
 
 ```bash
 cyberstrike attach <url>
@@ -148,22 +177,190 @@ cyberstrike web --port 4096
 cyberstrike attach http://localhost:4096
 ```
 
-## upgrade
+---
 
-Update CyberStrike to the latest version or a specific target.
+## auth
+
+Manage authentication credentials for AI providers. Three subcommands — `login`, `logout`, `list` — all interactive (no flags).
+
+### auth login
 
 ```bash
-# Upgrade to latest stable
-cyberstrike upgrade
-
-# Upgrade to specific version
-cyberstrike upgrade 1.1.6
-
-# Upgrade to latest beta
-cyberstrike upgrade --method npm
+cyberstrike auth login [url]
 ```
 
-Supported methods: `curl`, `npm`, `pnpm`, `bun`, `brew`, `choco`, `scoop`.
+Shows a provider list and prompts for an API key or OAuth flow. The optional `url` pre-selects a well-known provider URL. Credentials are stored in `~/.local/share/cyberstrike/auth.json`.
+
+### auth list
+
+```bash
+cyberstrike auth list   # alias: ls
+```
+
+### auth logout
+
+```bash
+cyberstrike auth logout
+```
+
+Interactively select a stored credential to remove.
+
+<Aside variant="caution">
+  There is no `auth status`, `auth verify`, `auth refresh`, or `auth switch` command. Login is always the interactive `auth login` flow. You can also set provider keys via environment variables — see [AI Providers](/docs/providers).
+</Aside>
+
+---
+
+## mcp
+
+Manage Model Context Protocol servers. Five subcommands: `list`, `add`, `auth`, `logout`, `debug`.
+
+<Aside variant="caution">
+  Server config lives in `cyberstrike.json` (see [MCP](/docs/features/mcp)), and servers are managed interactively in the `/mcps` TUI dialog. There are no `mcp status`, `health`, `start`/`stop`/`restart`, `remove`, `config`, or `tools` commands.
+</Aside>
+
+### mcp list
+
+```bash
+cyberstrike mcp list   # alias: ls
+```
+
+### mcp add
+
+```bash
+cyberstrike mcp add
+```
+
+Fully interactive — prompts for local vs remote, command or URL, and name. Tests the connection before saving. No positional args or flags; to script server setup, write the entry into `cyberstrike.json` directly.
+
+### mcp auth
+
+```bash
+cyberstrike mcp auth [name]        # authorize an OAuth server
+cyberstrike mcp auth list          # list OAuth-authorized servers
+```
+
+Authorizes a remote server that uses OAuth. See [OAuth](/docs/features/mcp#oauth).
+
+### mcp logout
+
+```bash
+cyberstrike mcp logout [name]
+```
+
+### mcp debug
+
+```bash
+cyberstrike mcp debug <name>
+```
+
+Inspects a server's connection — useful when a server fails to load or tools don't appear.
+
+---
+
+## session
+
+Manage conversation sessions.
+
+```bash
+cyberstrike session list [options]
+```
+
+| Option | Alias | Description |
+|--------|-------|-------------|
+| `--max-count <n>` | `-n` | Limit to N recent sessions |
+| `--format <type>` | Output: `table` or `json` |
+
+---
+
+## agent
+
+```bash
+cyberstrike agent [name]
+```
+
+Without a name, lists available agents. With a name, shows agent details and prompt.
+
+---
+
+## models
+
+```bash
+cyberstrike models
+```
+
+Lists all available models organized by provider.
+
+---
+
+## github
+
+### github install
+
+```bash
+cyberstrike github install
+```
+
+Install the Cyberstrike GitHub App into a repository.
+
+### github run
+
+```bash
+cyberstrike github run
+```
+
+Run Cyberstrike against a GitHub event (used by the CI workflow).
+
+---
+
+## pr
+
+```bash
+cyberstrike pr <number>
+```
+
+Review a pull request by number.
+
+---
+
+## export / import
+
+```bash
+cyberstrike export [sessionID]     # export session as JSON to stdout
+cyberstrike import <file>          # import session data
+```
+
+---
+
+## stats
+
+```bash
+cyberstrike stats
+```
+
+Shows token usage, session counts, and cost estimates.
+
+---
+
+## upgrade
+
+```bash
+cyberstrike upgrade [version]
+```
+
+Update to the latest stable version or a specific target. Supported methods: `curl`, `npm`, `pnpm`, `bun`, `brew`, `choco`, `scoop`.
+
+---
+
+## completion
+
+```bash
+cyberstrike completion >> ~/.bashrc    # Bash
+cyberstrike completion >> ~/.zshrc     # Zsh
+cyberstrike completion | source        # Fish
+```
+
+---
 
 ## Environment Variables
 
@@ -174,8 +371,10 @@ Supported methods: `curl`, `npm`, `pnpm`, `bun`, `brew`, `choco`, `scoop`.
 | `CYBERSTRIKE_AGENT` | Default security agent |
 | `CYBERSTRIKE_SERVER_PASSWORD` | Server authentication password |
 | `CYBERSTRIKE_SERVER_USERNAME` | Server username (default: `cyberstrike`) |
+| `CYBERSTRIKE_PERMISSION` | JSON permission override for non-interactive use |
+| `CYBERSTRIKE_CONFIG` | Path to a custom config file |
+| `CYBERSTRIKE_AUTO_SHARE` | Auto-share sessions |
 | `CYBERSTRIKE_DISABLE_AUTOUPDATE` | Disable automatic update checks |
-| `CYBERSTRIKE_TUI_CONFIG` | Custom TUI config path |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI (Gemini) API key |

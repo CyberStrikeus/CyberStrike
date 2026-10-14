@@ -42,10 +42,6 @@ const sidebarNavData: DocsSidebarNavData = {
         {
           id: "permissions",
           title: "Permissions",
-        },
-        {
-          id: "cli",
-          title: "Référence CLI",
         },      ],
     },
   ],
