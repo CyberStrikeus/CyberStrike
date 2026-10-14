@@ -20,6 +20,10 @@ function mimeToModality(mime: string): Modality | undefined {
 export namespace ProviderTransform {
   export const OUTPUT_TOKEN_MAX = Flag.CYBERSTRIKE_EXPERIMENTAL_OUTPUT_TOKEN_MAX || 32_000
 
+  export function isAbliterationProvider(providerID: string) {
+    return providerID === "abliteration-ai"
+  }
+
   // Maps npm package to the key the AI SDK expects for providerOptions
   function sdkKey(npm: string): string | undefined {
     switch (npm) {
@@ -732,13 +736,15 @@ export namespace ProviderTransform {
       result["reasoning_effort"] = "high"
     }
 
+    const isAbliteration = isAbliterationProvider(input.model.providerID)
     if (
       input.providerOptions?.setCacheKey !== false &&
       (input.model.providerID === "openai" ||
         input.model.api.npm === "@ai-sdk/xai" ||
-        input.providerOptions?.setCacheKey)
+        input.providerOptions?.setCacheKey ||
+        isAbliteration)
     ) {
-      result["promptCacheKey"] = input.sessionID
+      result[isAbliteration ? "prompt_cache_key" : "promptCacheKey"] = input.sessionID
     }
 
     if (input.model.api.npm === "@ai-sdk/google" || input.model.api.npm === "@ai-sdk/google-vertex") {
