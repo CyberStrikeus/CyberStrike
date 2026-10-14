@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test"
+import { createHash } from "crypto"
 import { parseRawRequest, deriveSite } from "../../../src/session/normalize/parser"
 
 function rawHttp(
@@ -127,6 +128,78 @@ describe("parser.parseRawRequest — query and body", () => {
       scheme: "https",
     })
     expect(a.bodyHash).not.toBe(b.bodyHash)
+  })
+})
+
+describe("parser.parseRawRequest — Next.js Server Actions", () => {
+  function serverActionRequest({
+    path = "/dashboard",
+    action = "action-id-1",
+    body = "1:hello",
+    routerState = "state-a",
+    accept = "text/x-component",
+  }: {
+    path?: string
+    action?: string
+    body?: string
+    routerState?: string
+    accept?: string
+  } = {}): string {
+    const headers = [
+      "host: app.example.com",
+      "content-type: text/plain",
+      `Next-Action: ${action}`,
+      ...(accept ? [`accept: ${accept}`] : []),
+      `next-router-state-tree: ${routerState}`,
+    ]
+    return `POST ${path} HTTP/1.1\n${headers.join("\n")}\n\n${body}`
+  }
+
+  test("uses canonical path and action ID while ignoring RSC body and router state", () => {
+    const a = parseRawRequest({
+      raw: serverActionRequest({ path: "/Dashboard/", body: "1:hello", routerState: "state-a" }),
+      scheme: "https",
+    })
+    const b = parseRawRequest({
+      raw: serverActionRequest({ path: "/dashboard", body: "1:goodbye", routerState: "state-b" }),
+      scheme: "https",
+    })
+
+    expect(a.protocol).toBe("nextjs-action")
+    expect(a.operation).toBe("action-id-1")
+    expect(a.opKeyHash).toBe(createHash("sha256").update("/dashboard:action-id-1").digest("hex").slice(0, 16))
+    expect(a.opKeyHash).toBe(b.opKeyHash)
+    expect(a.bodyHash).not.toBe(b.bodyHash)
+  })
+
+  test("separates action IDs and canonical paths, and does not require the RSC Accept header", () => {
+    const first = parseRawRequest({
+      raw: serverActionRequest({ accept: "", path: "/dashboard", action: "action-id-1" }),
+      scheme: "https",
+    })
+    const otherAction = parseRawRequest({
+      raw: serverActionRequest({ path: "/dashboard", action: "action-id-2" }),
+      scheme: "https",
+    })
+    const otherPath = parseRawRequest({
+      raw: serverActionRequest({ path: "/settings", action: "action-id-1" }),
+      scheme: "https",
+    })
+
+    expect(first.protocol).toBe("nextjs-action")
+    expect(first.opKeyHash).not.toBe(otherAction.opKeyHash)
+    expect(first.opKeyHash).not.toBe(otherPath.opKeyHash)
+  })
+
+  test("leaves ordinary POST requests on the REST path", () => {
+    const parsed = parseRawRequest({
+      raw: rawHttp("POST", "/dashboard", "app.example.com", { "content-type": "text/plain" }, "1:hello"),
+      scheme: "https",
+    })
+
+    expect(parsed.protocol).toBeUndefined()
+    expect(parsed.operation).toBeUndefined()
+    expect(parsed.opKeyHash).toBeUndefined()
   })
 })
 
