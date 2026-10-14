@@ -174,11 +174,7 @@ export function renderAccessContextLines(accessContext: AccessContextInput): str
 // with any capture-time label. This is the Firefox fix: Firefox traffic has no
 // page_visited_by at capture time, but request_observation carries per-credential
 // reachability for both paths. Merged, distinct, label-resolved.
-export function getVisitedByForKeyHash(
-  sessionID: string,
-  keyHash: string,
-  captureVisitedBy?: string[],
-): string[] {
+export function getVisitedByForKeyHash(sessionID: string, keyHash: string, captureVisitedBy?: string[]): string[] {
   const obs = Observation.listByKeyHash(sessionID, keyHash)
   const ids = [...new Set(obs.map((o) => o.credential_id).filter((id): id is string => !!id))]
   const labels = ids.map((id) => WebCredential.getById(id)?.label ?? id)
@@ -294,6 +290,71 @@ function buildPromptWithCredentialContext(
   }
 
   return lines.join("\n")
+}
+
+function scheduleNextRetest(sessionID: string, agent: string, model?: { providerID: string; modelID: string }) {
+  while (true) {
+    const retest = WebRetest.claimNext(sessionID)
+    if (!retest) return
+
+    const request = Request.get(sessionID).find((item) => item.id === retest.request_id)
+    const rawRequest = request?.raw_request
+    if (!request || !rawRequest) {
+      WebRetest.updateStatus(retest.id, "completed")
+      continue
+    }
+
+    try {
+      IngestQueue.enqueue(sessionID, async () => {
+        try {
+          const before = IngestSummary.snapshot(sessionID)
+          const promptText = buildPromptWithCredentialContext(
+            rawRequest,
+            request.credential_id,
+            request.processed_response,
+            {
+              triggerElement: request.trigger_element,
+              elementRoles: request.element_roles,
+              pageUrl: request.page_url,
+              pageVisitedBy: resolveVisitedBy({
+                sessionID,
+                keyHash: request.key_hash,
+                captureVisitedBy: request.page_visited_by,
+              }),
+              uiContext: request.ui_context,
+            },
+            request.protocol && request.operation
+              ? { protocol: request.protocol, operation: request.operation }
+              : undefined,
+            request.key_hash ? Observation.endpointTree(sessionID, request.key_hash) : undefined,
+          )
+
+          await SessionPrompt.prompt({
+            sessionID,
+            agent,
+            model,
+            excludeHistory: true,
+            parts: [{ type: "text", text: promptText }],
+          })
+          await IngestSummary.write({
+            sessionID,
+            agent,
+            model: model ?? (await SessionPrompt.lastModel(sessionID)),
+            source: `retest ${request.method} ${request.normalized_path}`,
+            before,
+            after: IngestSummary.snapshot(sessionID),
+          })
+        } finally {
+          WebRetest.updateStatus(retest.id, "completed")
+        }
+      })
+    } catch (error) {
+      WebRetest.updateStatus(retest.id, "completed")
+      log.error("web retest enqueue failed", { sessionID, requestID: retest.request_id, error })
+      continue
+    }
+    return
+  }
 }
 
 // Heuristic for ingest payloads that don't carry an explicit scheme. Browser-
@@ -1312,6 +1373,7 @@ export const SessionRoutes = lazy(() =>
           } else {
             const agentName = body.agent ?? "proxy-agent"
             const source = `${normalized.method} ${normalized.normalizedPath}`
+            IngestQueue.setDrainHandler(sessionID, () => scheduleNextRetest(sessionID, agentName, body.model))
             IngestQueue.enqueue(sessionID, async () => {
               Request.updateStatus({ id: req.id, status: "processing" })
               const before = IngestSummary.snapshot(sessionID)
@@ -1349,6 +1411,7 @@ export const SessionRoutes = lazy(() =>
             log.info("prompt preview:\n" + promptText)
           } else {
             const agentName = body.agent ?? "proxy-agent"
+            IngestQueue.setDrainHandler(sessionID, () => scheduleNextRetest(sessionID, agentName, body.model))
             IngestQueue.enqueue(sessionID, async () => {
               const before = IngestSummary.snapshot(sessionID)
               await SessionPrompt.prompt({
