@@ -43,12 +43,7 @@ const sidebarNavData: DocsSidebarNavData = {
         {
           id: "cli",
           title: "CLI 参考",
-        },
-        {
-          id: "resources",
-          title: "资源",
-        },
-      ],
+        },      ],
     },
   ],
 };

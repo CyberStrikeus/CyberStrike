@@ -43,12 +43,7 @@ const sidebarNavData: DocsSidebarNavData = {
         {
           id: "cli",
           title: "Referência CLI",
-        },
-        {
-          id: "resources",
-          title: "Recursos",
-        },
-      ],
+        },      ],
     },
   ],
 };

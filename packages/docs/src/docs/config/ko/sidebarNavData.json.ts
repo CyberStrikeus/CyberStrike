@@ -43,12 +43,7 @@ const sidebarNavData: DocsSidebarNavData = {
         {
           id: "cli",
           title: "CLI 참조",
-        },
-        {
-          id: "resources",
-          title: "리소스",
-        },
-      ],
+        },      ],
     },
   ],
 };
