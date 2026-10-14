@@ -1,565 +1,110 @@
 ---
-title: Referencia de Ferramentas
-description: Referencia completa das ferramentas integradas do Cyberstrike e integracao MCP
+title: Tools Reference
+description: Complete reference for Cyberstrike built-in tools and MCP integration
 sidebar:
   order: 1
-  label: Visao Geral
+  label: Overview
 ---
 
-O Cyberstrike oferece um conjunto abrangente de ferramentas integradas para avaliacoes de seguranca. Essas ferramentas permitem operacoes de arquivo, execucao de comandos, automacao web e memoria persistente entre sessoes.
+Cyberstrike ships two classes of tools: **core tools** for file/shell/memory operations common to any AI agent, and **security tools** purpose-built for penetration testing.
 
-{/* TODO: Screenshot - Tool list in TUI */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: s11-tool-list.png</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Lista de ferramentas - visualizacao das ferramentas disponiveis na TUI</p>
-</div>
+## Core Tools
 
-## Categorias de Ferramentas
-
-| Categoria | Ferramentas | Finalidade |
-|-----------|-------------|------------|
-| **Operacoes de Arquivo** | Read, Write, Edit, Glob, Grep | Leitura, escrita, edicao e busca de arquivos |
-| **Execucao de Comandos** | Bash | Execucao de comandos shell |
-| **Testes Web** | [Hacker Browser](/docs/tools/hacker-browser).
-| **Memoria** | Memory Search, Memory Write, Memory Read, Memory Context | Armazenamento persistente entre sessoes |
-| **Descoberta de Ferramentas** | ToolSearch, LoadTools, UnloadTools | Carregamento dinamico de ferramentas MCP |
-| **Tarefas** | Task, TodoWrite | Delegacao e rastreamento de tarefas |
-| **Web** | WebFetch, WebSearch, CodeSearch | Busca e pesquisa de conteudo web |
+| Category | Tools | Description |
+|----------|-------|-------------|
+| [**Built-in Tools**](/docs/tools/built-in-tools) | Read, Write, Edit, Glob, Grep, Bash, Memory | File operations, shell execution, and persistent memory |
+| [**Dynamic Loading**](/docs/tools/dynamic-loading) | ToolSearch, LoadTools, UnloadTools | Discover and load MCP tools on demand without flooding context |
+| **Web** | WebFetch, WebSearch, CodeSearch | Fetch web content, search the web, and search code repositories |
+| **Tasks** | Task, TodoWrite | Delegate work to specialized subagents and track task progress |
 
 ---
 
-## Operacoes de Arquivo
+## Security Tools
 
-### Read
+### Traffic Capture
 
-Le o conteudo de arquivos com numeros de linha. Suporta arquivos de texto, imagens e PDFs.
+| Tool | Description |
+|------|-------------|
+| [**Hacker Browser**](/docs/tools/hacker-browser) | Autonomous AI-driven web crawler — logs in, walks the application, captures HTTP traffic |
+| [**Chrome Extension**](/docs/tools/chrome-extension) | Manual browser-driven traffic capture via a Chrome extension for your own browser |
 
-#### Parametros
+### Security Hooks
 
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `filePath` | string | Sim | Caminho do arquivo (absoluto ou relativo) |
-| `offset` | number | Nao | Numero da linha inicial (indice a partir de 1) |
-| `limit` | number | Nao | Numero de linhas para ler (padrao: 2000) |
+<Badge text="412+ programs" variant="note" />
 
-#### Exemplo
+Eight domain-specific hook suites, each exposing dozens of programs the agent can call by name. See [Security Hooks](/docs/tools/security-hooks) for the full catalog.
 
-```json
-{
-  "filePath": "/path/to/file.txt",
-  "offset": 100,
-  "limit": 500
+| Hook | Programs | Domain |
+|------|----------|--------|
+| `windows_hook` | 156 | Windows & Active Directory post-exploitation — credential theft, Kerberos, lateral movement, AD enumeration |
+| `linux_hook` | 122 | Linux post-exploitation — credential harvesting, privilege escalation, persistence, network pivoting |
+| `mac_hook` | 48 | macOS post-exploitation — Keychain, TCC bypass, dylib hijacking, AirDrop lateral movement |
+| `llm_hook` | 25 | LLM/AI security — prompt injection, jailbreak, OWASP LLM Top 10, multi-turn attacks |
+| `container_hook` | 22 | Docker — container escape, image scanning, registry enumeration, runtime audit |
+| `k8s_hook` | 22 | Kubernetes — RBAC escalation, secret extraction, etcd dump, pod escape |
+| `iac_hook` | 17 | Infrastructure as Code — Terraform state secrets, security group audit, IAM policy review |
+| **Web testing tools** | 6 | Authentication, business logic, misconfiguration, SSRF, recon, login probing |
+
+### Deterministic Probes
+
+Six tools that fire structured, repeatable test batteries against captured requests and return raw observations for the agent to verify. See [Probes](/docs/tools/probes) for details.
+
+| Tool | WSTG | What it does |
+|------|------|-------------|
+| `inject_probe` | INPV | XSS tag survival, SSTI evaluation, command injection, LFI, CRLF, HPP, mass assignment, file upload, host header, verb tampering |
+| `access_probe` | ATHZ | Cross-identity replay — swaps every credential and unauthenticated against a request, measures response similarity to detect IDOR/BOLA |
+| `session_probe` | SESS | JWT tampering (alg:none, weak HMAC, signature bypass), cookie entropy analysis |
+| `crypto_probe` | CRYP | Sensitive data on unencrypted channels, weak HSTS, credentials in URLs, optional live TLS handshake |
+| `error_probe` | ERRH | Error-based information disclosure via response mutation |
+| `identity_probe` | IDNT | Authentication and identity verification testing |
+
+### Other Security Tools
+
+| Tool | Description |
+|------|-------------|
+| `http_replay` | Replay and modify captured HTTP requests — the core testing primitive |
+| `vulnerability` | Record a confirmed vulnerability with severity, evidence, and affected endpoint |
+| `triage_vulnerability` | Triage and prioritize recorded vulnerabilities |
+| `enrich_vulnerability` | Enrich a vulnerability with additional context, references, and remediation |
+| `vrt_check` | Check findings against the Vulnerability Rating Taxonomy |
+| `generate_report` | Compile a penetration test report from session findings |
+| `oob` | Out-of-band testing — detect blind vulnerabilities via callback channels |
+| `csrf_extract` | Extract CSRF tokens from responses for replay in subsequent requests |
+| `scope_check` | Validate whether a target is within the authorized testing scope |
+| `attack_script` | Execute structured attack scripts against targets |
+| `coverage_note` | Track methodology coverage — what has and hasn't been tested |
+| `propose_escalation` | Propose privilege escalation paths based on current findings |
+| `methodology_status` | View current methodology progress and coverage gaps |
+
+---
+
+## Custom Tools
+
+Add project-specific tools by creating files in `.cyberstrike/tools/`:
+
+```typescript title=".cyberstrike/tools/custom-scanner.ts"
+import { z } from "zod"
+
+export default {
+  description: "Custom vulnerability scanner",
+  args: {
+    target: z.string().describe("Target URL to scan"),
+    depth: z.number().default(3).describe("Scan depth"),
+  },
+  async execute(args, ctx): Promise<string> {
+    return `Scanned ${args.target} to depth ${args.depth}`
+  },
 }
 ```
 
-#### Formato de Saida
-
-```
-00001| Primeira linha do conteudo
-00002| Segunda linha do conteudo
-00003| Terceira linha do conteudo
-
-(End of file - total 3 lines)
-```
-
-#### Recursos
-
-- Deteccao automatica de arquivo binario
-- Suporte a imagens e PDF (retorna conteudo codificado em base64)
-- Truncamento de linha em 2000 caracteres
-- Maximo de 50KB por operacao de leitura
-- Sugestoes inteligentes de arquivo em caso de erro de arquivo nao encontrado
+Files in a `tool/` or `tools/` directory inside any `.cyberstrike/` folder are loaded automatically.
 
 ---
 
-### Write
+## Tool Permissions
 
-Cria ou sobrescreve um arquivo com novo conteudo.
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `filePath` | string | Sim | Caminho absoluto do arquivo |
-| `content` | string | Sim | Conteudo a ser escrito |
-
-#### Exemplo
-
-```json
-{
-  "filePath": "/path/to/new-file.txt",
-  "content": "Conteudo do arquivo aqui"
-}
-```
-
-#### Recursos
-
-- Cria diretorios pais se necessario
-- Gera diff unificado para revisao
-- Diagnosticos LSP apos escrita
-- Rastreamento de tempo de arquivo para deteccao de conflitos
-
----
-
-### Edit
-
-Realiza operacoes de busca e substituicao em arquivos com correspondencia inteligente.
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `filePath` | string | Sim | Caminho absoluto do arquivo |
-| `oldString` | string | Sim | Texto a encontrar e substituir |
-| `newString` | string | Sim | Texto de substituicao |
-| `replaceAll` | boolean | Nao | Substituir todas as ocorrencias (padrao: false) |
-
-#### Exemplo
-
-```json
-{
-  "filePath": "/path/to/file.ts",
-  "oldString": "function oldName(",
-  "newString": "function newName(",
-  "replaceAll": false
-}
-```
-
-#### Correspondencia Inteligente
-
-A ferramenta Edit usa multiplas estrategias de correspondencia:
-
-1. **Substituicao Simples**: Correspondencia exata de string
-2. **Linha Aparada**: Ignora espacos no inicio/fim por linha
-3. **Ancoragem de Bloco**: Corresponde primeira e ultima linhas, meio flexivel
-4. **Espaco Normalizado**: Colapsa multiplos espacos
-5. **Indentacao Flexivel**: Ignora diferencas de indentacao
-6. **Escape Normalizado**: Lida com sequencias de escape
-7. **Sensivel ao Contexto**: Usa contexto ao redor para correspondencia
-
-#### Recursos
-
-- Geracao de diff unificado
-- Diagnosticos LSP apos edicao
-- Deteccao de multiplas ocorrencias
-- Prevencao de conflitos via rastreamento de tempo de arquivo
-
----
-
-### Glob
-
-Encontra arquivos correspondentes a um padrao glob.
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `pattern` | string | Sim | Padrao glob (ex: `**/*.ts`) |
-| `path` | string | Nao | Diretorio de busca (padrao: diretorio atual) |
-
-#### Exemplo
-
-```json
-{
-  "pattern": "**/*.{ts,tsx}",
-  "path": "/path/to/project"
-}
-```
-
-#### Saida
-
-Retorna caminhos de arquivo ordenados por data de modificacao (mais recentes primeiro), limitado a 100 resultados.
-
-#### Exemplos de Padroes
-
-| Padrao | Corresponde |
-|--------|-------------|
-| `*.ts` | Arquivos TypeScript no diretorio atual |
-| `**/*.ts` | Arquivos TypeScript recursivamente |
-| `src/**/*.{ts,tsx}` | Arquivos TS/TSX no diretorio src |
-| `!**/node_modules/**` | Excluir node_modules |
-
----
-
-### Grep
-
-Pesquisa conteudo de arquivos usando padroes regex. Construido sobre ripgrep.
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `pattern` | string | Sim | Padrao regex para pesquisa |
-| `path` | string | Nao | Diretorio de busca (padrao: diretorio atual) |
-| `include` | string | Nao | Filtro de padrao de arquivo (ex: `*.js`) |
-
-#### Exemplo
-
-```json
-{
-  "pattern": "password|secret|api_key",
-  "path": "/path/to/project",
-  "include": "*.{js,ts,py}"
-}
-```
-
-#### Formato de Saida
-
-```
-Found 5 matches
-
-/path/to/file.ts:
-  Line 42: const apiKey = process.env.API_KEY
-  Line 85: // TODO: remove hardcoded secret
-
-/path/to/config.js:
-  Line 12: password: "changeme"
-```
-
-#### Recursos
-
-- Suporte a regex (sintaxe ripgrep)
-- Busca em arquivos ocultos
-- Segue links simbolicos
-- Resultados ordenados por data de modificacao
-- Maximo de 100 resultados
-
----
-
-## Execucao de Comandos
-
-### Bash
-
-Executa comandos shell com timeout e captura de saida.
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `command` | string | Sim | Comando a executar |
-| `timeout` | number | Nao | Timeout em milissegundos (padrao: 120000) |
-| `workdir` | string | Nao | Diretorio de trabalho |
-| `description` | string | Sim | Descricao breve do proposito do comando |
-
-#### Exemplo
-
-```json
-{
-  "command": "nmap -sV -sC target.com",
-  "timeout": 300000,
-  "workdir": "/path/to/project",
-  "description": "Varrer alvo por portas abertas e servicos"
-}
-```
-
-#### Recursos
-
-- Deteccao de shell (bash/zsh/sh)
-- Encerramento de arvore de processos em timeout
-- Integracao com sistema de permissoes
-- Streaming de saida em tempo real
-- Controle de acesso a diretorios externos
-
-#### Consideracoes de Seguranca
-
-Comandos sao analisados com tree-sitter para detectar:
-- Acesso a diretorios fora do projeto
-- Padroes de comandos perigosos
-- Modificacoes no sistema de arquivos
-
----
-
-## Testes Web
-
-Nao existe uma ferramenta `Browser` de baixo nivel. Testes web baseados em navegador sao conduzidos pelo **[Hacker Browser](/docs/tools/hacker-browser).
-
-{/* TODO: GIF - Hacker Browser crawl */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">GIF: g06-browser-scanning.gif</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Hacker Browser rastreando um alvo (25s)</p>
-</div>
-
-Lance-o com `cyberstrike hackbrowser <alvo>` ou a ferramenta `hackbrowser`. Veja [Hacker Browser](/docs/tools/hacker-browser).
-
----
-
-## Sistema de Memoria
-
-O Cyberstrike inclui um sistema de memoria persistente para armazenar contexto entre sessoes.
-
-### Memory Write
-
-Armazena informacao na memoria persistente.
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `content` | string | Sim | Conteudo a armazenar |
-| `type` | string | Nao | `long_term` para MEMORY.md, `daily` para notas datadas |
-| `title` | string | Nao | Cabecalho opcional para a entrada |
-
-#### Exemplo
-
-```json
-{
-  "content": "Alvo usa PostgreSQL 14.2 na porta 5432",
-  "type": "long_term",
-  "title": "Configuracao do Banco de Dados"
-}
-```
-
-#### Tipos de Memoria
-
-| Tipo | Armazenamento | Finalidade |
-|------|---------------|------------|
-| `long_term` | `.cyberstrike/MEMORY.md` | Decisoes, preferencias, fatos importantes |
-| `daily` | `.cyberstrike/memory/YYYY-MM-DD.md` | Notas de sessao, contexto temporario |
-
----
-
-### Memory Search
-
-Pesquisa na memoria armazenada.
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `query` | string | Sim | Palavras-chave ou frases de pesquisa |
-
-#### Exemplo
-
-```json
-{
-  "query": "credenciais do banco de dados"
-}
-```
-
----
-
-### Memory Read
-
-Le arquivos de memoria especificos.
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `file` | string | Sim | Identificador do arquivo |
-
-#### Identificadores de Arquivo
-
-| Identificador | Descricao |
-|---------------|-----------|
-| `long_term` | Memoria de longo prazo (MEMORY.md) |
-| `today` | Notas diarias de hoje |
-| `yesterday` | Notas de ontem |
-| `YYYY-MM-DD` | Notas de uma data especifica |
-| `list` | Listar todos os arquivos de memoria |
-
----
-
-### Memory Context
-
-Recupera o contexto completo de memoria para a sessao.
-
-#### Parametros
-
-Nenhum obrigatorio.
-
-#### Exemplo
-
-```json
-{}
-```
-
-Retorna a memoria de longo prazo combinada com notas diarias recentes.
-
----
-
-## Carregamento Dinamico de Ferramentas
-
-<img src="/docs/images/diagrams/tool-interaction-flow.svg" alt="Como uma ferramenta se torna disponivel: ferramentas integradas sao chamadas diretamente; ferramentas MCP sao encontradas com tool_search, carregadas com load_tools, entao chamadas, e liberadas com unload_tools" className="my-6 mx-auto max-w-sm" />
-
-O Cyberstrike suporta carregamento dinamico de ferramentas para servidores MCP (Model Context Protocol). Isso permite acesso a centenas de ferramentas sem sobrecarregar a janela de contexto.
-
-### Tool Search
-
-Pesquisa ferramentas MCP disponiveis por capacidade.
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `query` | string | Sim | Descricao da capacidade |
-| `limit` | number | Nao | Maximo de resultados (padrao: 5) |
-
-#### Exemplo
-
-```json
-{
-  "query": "teste de injecao sql",
-  "limit": 10
-}
-```
-
-#### Saida
-
-```
-Found 3 tools:
-
-1. sqlmap_scan
-   Scanner de injecao SQL usando sqlmap
-   Estimated tokens: ~500
-
-2. nuclei_sqli
-   Templates Nuclei para injecao SQL
-   Estimated tokens: ~300
-
-3. manual_sqli
-   Payloads manuais de injecao SQL
-   Estimated tokens: ~200
-```
-
----
-
-### Load Tools
-
-Carrega ferramentas no contexto para uso.
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `tool_ids` | string[] | Sim | IDs de ferramentas dos resultados de busca |
-
-#### Exemplo
-
-```json
-{
-  "tool_ids": ["sqlmap_scan", "nuclei_sqli"]
-}
-```
-
----
-
-### Unload Tools
-
-Remove ferramentas do contexto para liberar orcamento.
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `tool_ids` | string[] | Sim | IDs de ferramentas para descarregar |
-
----
-
-### List Loaded Tools
-
-Mostra ferramentas carregadas atualmente e uso de tokens.
-
-#### Parametros
-
-Nenhum obrigatorio.
-
----
-
-## Gerenciamento de Tarefas
-
-### Task
-
-Delega trabalho a um subagente. E assim que o agente principal despacha subagentes especializados (veja [Agentes](/docs/agents)).
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `description` | string | Sim | Descricao curta (3-5 palavras) da tarefa |
-| `prompt` | string | Sim | A tarefa para o subagente realizar |
-| `subagent_type` | string | Sim | Qual subagente despachar (ex: `web-application`, `general`) |
-
----
-
-### TodoWrite
-
-Escreve itens de tarefa em uma lista de afazeres.
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `tasks` | array | Sim | Array de objetos de tarefa |
-
-#### Objeto de Tarefa
-
-```json
-{
-  "id": "1",
-  "content": "Varrer portas abertas",
-  "status": "pending",
-  "priority": "high"
-}
-```
-
----
-
-## Ferramentas Web
-
-### WebFetch
-
-Busca e processa conteudo web.
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `url` | string | Sim | URL para buscar |
-| `format` | string | Nao | `text`, `markdown` ou `html` |
-| `timeout` | number | Nao | Timeout em segundos (max 120) |
-
-#### Exemplo
-
-```json
-{
-  "url": "https://target.com/robots.txt",
-  "format": "text"
-}
-```
-
----
-
-### WebSearch
-
-Realiza pesquisas web para coleta de informacoes.
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `query` | string | Sim | Consulta de pesquisa |
-
----
-
-### CodeSearch
-
-Pesquisa repositorios de codigo e documentacao.
-
-#### Parametros
-
-| Parametro | Tipo | Obrigatorio | Descricao |
-|-----------|------|-------------|-----------|
-| `query` | string | Sim | Consulta de pesquisa de codigo |
-
----
-
-## Permissoes de Ferramentas
-
-Cada ferramenta requer permissoes especificas que podem ser configuradas:
-
-| Permissao | Ferramentas | Padrao |
-|-----------|-------------|--------|
+| Permission | Tools | Default |
+|------------|-------|---------|
 | `read` | Read | ask |
 | `edit` | Write, Edit | ask |
 | `glob` | Glob | allow |
@@ -569,84 +114,16 @@ Cada ferramenta requer permissoes especificas que podem ser configuradas:
 | `webfetch` | WebFetch | ask |
 | `codesearch` | CodeSearch | ask |
 | `task` | Task | ask |
-| `external_directory` | Acesso fora do projeto | ask |
+| `external_directory` | Access outside project | ask |
 
-### Configuracao
-
-```json
-{
-  "permission": {
-    "bash": "ask",
-    "edit": "allow",
-    "read": "allow",
-    "glob": "allow",
-    "grep": "allow"
-  }
-}
-```
-
-### Acoes de Permissao
-
-| Acao | Descricao |
-|------|-----------|
-| `ask` | Solicitar aprovacao do usuario |
-| `allow` | Aprovar automaticamente sem perguntar |
-| `deny` | Bloquear uso da ferramenta |
-
-Veja [Permissoes](/docs/configuration/permissions) para o modelo completo e padroes glob.
+Actions: `ask` (prompt for approval), `allow` (auto-approve), `deny` (block). See [Permissions](/docs/configuration/permissions) for glob patterns and the full model.
 
 ---
 
-## Criando Ferramentas Personalizadas
+## MCP Server Tools
 
-Adicione ferramentas personalizadas criando arquivos em `.cyberstrike/tools/`:
-
-```typescript title=".cyberstrike/tools/custom-scanner.ts"
-import { z } from "zod"
-
-export default {
-  description: "Scanner de vulnerabilidades personalizado",
-  args: {
-    target: z.string().describe("URL alvo para varrer"),
-    depth: z.number().default(3).describe("Profundidade da varredura"),
-  },
-  async execute(args, ctx): Promise<string> {
-    const { target, depth } = args
-    // Logica de varredura personalizada
-    return `Varreu ${target} ate profundidade ${depth}`
-  },
-}
-```
-
-Arquivos em um diretorio `tool/` ou `tools/` dentro de qualquer pasta `.cyberstrike/` sao carregados automaticamente.
-
-### Schema de Definicao de Ferramenta
-
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| `description` | string | Descricao da ferramenta mostrada ao modelo |
-| `args` | object | Mapa de nome do parametro para schema Zod |
-| `execute` | function | `async (args, ctx) => string` |
-
----
-
-## Ferramentas de Servidor MCP
-
-O Cyberstrike pode carregar ferramentas de servidores MCP. A abordagem recomendada e o [Bolt](/docs/features/bolt), que fornece ferramentas de seguranca por meio de um container Docker com sistema de plugins:
-
-```json title="cyberstrike.json"
-{
-  "bolt": {
-    "local": {
-      "url": "http://localhost:3001",
-      "enabled": true
-    }
-  }
-}
-```
-
-Ferramentas MCP ficam disponiveis como chamadas de ferramenta diretas -- cada plugin e chamado diretamente pelo nome (ex: `nmap`, `nuclei`, `ffuf`).
+Cyberstrike loads tools from MCP servers via the [Dynamic Loading](/docs/tools/dynamic-loading) system. The recommended setup is [Bolt](/docs/features/bolt) — a Docker-based plugin system with 7 plugins and ~26 aggregated MCP servers.
 
 <Aside variant="tip">
-  Veja [Bolt](/docs/features/bolt) para a configuracao recomendada de ferramentas de seguranca -- 7 plugins mais ~26 servidores MCP agregados, todos disponiveis como chamadas de ferramenta diretas.
+  See [Bolt](/docs/features/bolt) for the recommended security-tools setup — all plugins are available as direct tool calls (e.g., `nmap`, `nuclei`, `ffuf`).
 </Aside>

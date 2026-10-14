@@ -1,605 +1,86 @@
 ---
-title: Werkzeug-Referenz
-description: Vollstaendige Referenz fuer integrierte Cyberstrike-Werkzeuge und MCP-Integration
+title: Tools Reference
+description: Complete reference for Cyberstrike built-in tools and MCP integration
 sidebar:
   order: 1
-  label: Uebersicht
+  label: Overview
 ---
 
-Cyberstrike bietet einen umfassenden Satz integrierter Werkzeuge fuer Sicherheitsbewertungen. Diese Werkzeuge ermoeglichen Dateioperationen, Befehlsausfuehrung, Web-Automatisierung und persistenten Speicher ueber Sitzungen hinweg.
+Cyberstrike ships two classes of tools: **core tools** for file/shell/memory operations common to any AI agent, and **security tools** purpose-built for penetration testing.
 
-{/* TODO: Screenshot - Tool list in TUI */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: s11-tool-list.png</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Werkzeugliste — Ansicht der verfuegbaren Werkzeuge in der TUI</p>
-</div>
+## Core Tools
 
-## Werkzeugkategorien
-
-| Kategorie | Werkzeuge | Zweck |
-|-----------|-----------|-------|
-| **Dateioperationen** | Read, Write, Edit, Glob, Grep | Dateien lesen, schreiben, bearbeiten und durchsuchen |
-| **Befehlsausfuehrung** | Bash | Shell-Befehlsausfuehrung |
-| **Web-Tests** | [Hacker Browser](/docs/tools/hacker-browser).
-| **Speicher** | Memory Search, Memory Write, Memory Read, Memory Context | Persistenter Speicher ueber Sitzungen hinweg |
-| **Werkzeug-Erkennung** | ToolSearch, LoadTools, UnloadTools | Dynamisches Laden von MCP-Werkzeugen |
-| **Aufgaben** | Task, TodoWrite | Delegation und Aufgabenverfolgung |
-| **Web** | WebFetch, WebSearch, CodeSearch | Web-Inhalte abrufen und durchsuchen |
+| Category | Tools | Description |
+|----------|-------|-------------|
+| [**Built-in Tools**](/docs/tools/built-in-tools) | Read, Write, Edit, Glob, Grep, Bash, Memory | File operations, shell execution, and persistent memory |
+| [**Dynamic Loading**](/docs/tools/dynamic-loading) | ToolSearch, LoadTools, UnloadTools | Discover and load MCP tools on demand without flooding context |
+| **Web** | WebFetch, WebSearch, CodeSearch | Fetch web content, search the web, and search code repositories |
+| **Tasks** | Task, TodoWrite | Delegate work to specialized subagents and track task progress |
 
 ---
 
-## Dateioperationen
+## Security Tools
 
-### Read
+### Traffic Capture
 
-Liest Dateiinhalte mit Zeilennummern. Unterstuetzt Textdateien, Bilder und PDFs.
+| Tool | Description |
+|------|-------------|
+| [**Hacker Browser**](/docs/tools/hacker-browser) | Autonomous AI-driven web crawler — logs in, walks the application, captures HTTP traffic |
+| [**Chrome Extension**](/docs/tools/chrome-extension) | Manual browser-driven traffic capture via a Chrome extension for your own browser |
 
-#### Parameter
+### Security Hooks
 
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `filePath` | string | Ja | Pfad zur Datei (absolut oder relativ) |
-| `offset` | number | Nein | Startzeile (1-indiziert) |
-| `limit` | number | Nein | Anzahl zu lesender Zeilen (Standard: 2000) |
+<Badge text="412+ programs" variant="note" />
 
-#### Beispiel
+Eight domain-specific hook suites, each exposing dozens of programs the agent can call by name. See [Security Hooks](/docs/tools/security-hooks) for the full catalog.
 
-```json
-{
-  "filePath": "/path/to/file.txt",
-  "offset": 100,
-  "limit": 500
-}
-```
+| Hook | Programs | Domain |
+|------|----------|--------|
+| `windows_hook` | 156 | Windows & Active Directory post-exploitation — credential theft, Kerberos, lateral movement, AD enumeration |
+| `linux_hook` | 122 | Linux post-exploitation — credential harvesting, privilege escalation, persistence, network pivoting |
+| `mac_hook` | 48 | macOS post-exploitation — Keychain, TCC bypass, dylib hijacking, AirDrop lateral movement |
+| `llm_hook` | 25 | LLM/AI security — prompt injection, jailbreak, OWASP LLM Top 10, multi-turn attacks |
+| `container_hook` | 22 | Docker — container escape, image scanning, registry enumeration, runtime audit |
+| `k8s_hook` | 22 | Kubernetes — RBAC escalation, secret extraction, etcd dump, pod escape |
+| `iac_hook` | 17 | Infrastructure as Code — Terraform state secrets, security group audit, IAM policy review |
+| **Web testing tools** | 6 | Authentication, business logic, misconfiguration, SSRF, recon, login probing |
 
-#### Ausgabeformat
+### Deterministic Probes
 
-```
-00001| Erste Zeile des Inhalts
-00002| Zweite Zeile des Inhalts
-00003| Dritte Zeile des Inhalts
+Six tools that fire structured, repeatable test batteries against captured requests and return raw observations for the agent to verify. See [Probes](/docs/tools/probes) for details.
 
-(End of file - total 3 lines)
-```
+| Tool | WSTG | What it does |
+|------|------|-------------|
+| `inject_probe` | INPV | XSS tag survival, SSTI evaluation, command injection, LFI, CRLF, HPP, mass assignment, file upload, host header, verb tampering |
+| `access_probe` | ATHZ | Cross-identity replay — swaps every credential and unauthenticated against a request, measures response similarity to detect IDOR/BOLA |
+| `session_probe` | SESS | JWT tampering (alg:none, weak HMAC, signature bypass), cookie entropy analysis |
+| `crypto_probe` | CRYP | Sensitive data on unencrypted channels, weak HSTS, credentials in URLs, optional live TLS handshake |
+| `error_probe` | ERRH | Error-based information disclosure via response mutation |
+| `identity_probe` | IDNT | Authentication and identity verification testing |
 
-#### Funktionen
+### Other Security Tools
 
-- Automatische Erkennung von Binaerdateien
-- Bild- und PDF-Unterstuetzung (gibt base64-kodierten Inhalt zurueck)
-- Zeilenbegrenzung bei 2000 Zeichen
-- Maximal 50KB pro Leseoperation
-- Intelligente Dateivorschlaege bei Nicht-gefunden-Fehlern
-
----
-
-### Write
-
-Erstellt oder ueberschreibt eine Datei mit neuem Inhalt.
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `filePath` | string | Ja | Absoluter Pfad zur Datei |
-| `content` | string | Ja | Zu schreibender Inhalt |
-
-#### Beispiel
-
-```json
-{
-  "filePath": "/path/to/new-file.txt",
-  "content": "Dateiinhalt hier"
-}
-```
-
-#### Funktionen
-
-- Erstellt uebergeordnete Verzeichnisse bei Bedarf
-- Erzeugt Unified Diff zur Ueberpruefung
-- LSP-Diagnose nach dem Schreiben
-- Dateizeitverfolgung zur Konflikterkennung
+| Tool | Description |
+|------|-------------|
+| `http_replay` | Replay and modify captured HTTP requests — the core testing primitive |
+| `vulnerability` | Record a confirmed vulnerability with severity, evidence, and affected endpoint |
+| `triage_vulnerability` | Triage and prioritize recorded vulnerabilities |
+| `enrich_vulnerability` | Enrich a vulnerability with additional context, references, and remediation |
+| `vrt_check` | Check findings against the Vulnerability Rating Taxonomy |
+| `generate_report` | Compile a penetration test report from session findings |
+| `oob` | Out-of-band testing — detect blind vulnerabilities via callback channels |
+| `csrf_extract` | Extract CSRF tokens from responses for replay in subsequent requests |
+| `scope_check` | Validate whether a target is within the authorized testing scope |
+| `attack_script` | Execute structured attack scripts against targets |
+| `coverage_note` | Track methodology coverage — what has and hasn't been tested |
+| `propose_escalation` | Propose privilege escalation paths based on current findings |
+| `methodology_status` | View current methodology progress and coverage gaps |
 
 ---
 
-### Edit
+## Custom Tools
 
-Fuehrt Such-und-Ersetz-Operationen an Dateien mit intelligentem Matching durch.
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `filePath` | string | Ja | Absoluter Pfad zur Datei |
-| `oldString` | string | Ja | Zu findender und ersetzender Text |
-| `newString` | string | Ja | Ersetzungstext |
-| `replaceAll` | boolean | Nein | Alle Vorkommen ersetzen (Standard: false) |
-
-#### Beispiel
-
-```json
-{
-  "filePath": "/path/to/file.ts",
-  "oldString": "function oldName(",
-  "newString": "function newName(",
-  "replaceAll": false
-}
-```
-
-#### Intelligentes Matching
-
-Das Edit-Werkzeug verwendet mehrere Matching-Strategien:
-
-1. **Einfache Ersetzung**: Exakte Zeichenkettensuche
-2. **Zeilengetrimmt**: Ignoriert fuehrende/nachfolgende Leerzeichen pro Zeile
-3. **Block-Anker**: Stimmt erste und letzte Zeile ab, unscharfe Mitte
-4. **Leerzeichen-normalisiert**: Fasst mehrere Leerzeichen zusammen
-5. **Einrueckungsflexibel**: Ignoriert Einrueckungsunterschiede
-6. **Escape-normalisiert**: Behandelt Escape-Sequenzen
-7. **Kontextbewusst**: Verwendet umgebenden Kontext fuer das Matching
-
-#### Funktionen
-
-- Unified Diff-Generierung
-- LSP-Diagnose nach Bearbeitung
-- Erkennung mehrfacher Vorkommen
-- Konfliktvermeidung durch Dateizeitverfolgung
-
----
-
-### Glob
-
-Findet Dateien anhand eines Glob-Musters.
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `pattern` | string | Ja | Glob-Muster (z.B. `**/*.ts`) |
-| `path` | string | Nein | Zu durchsuchendes Verzeichnis (Standard: aktuelles Verzeichnis) |
-
-#### Beispiel
-
-```json
-{
-  "pattern": "**/*.{ts,tsx}",
-  "path": "/path/to/project"
-}
-```
-
-#### Ausgabe
-
-Gibt Dateipfade zurueck, sortiert nach Aenderungszeitpunkt (neueste zuerst), begrenzt auf 100 Ergebnisse.
-
-#### Musterbeispiele
-
-| Muster | Trifft zu |
-|--------|-----------|
-| `*.ts` | TypeScript-Dateien im aktuellen Verzeichnis |
-| `**/*.ts` | TypeScript-Dateien rekursiv |
-| `src/**/*.{ts,tsx}` | TS/TSX-Dateien im src-Verzeichnis |
-| `!**/node_modules/**` | node_modules ausschliessen |
-
----
-
-### Grep
-
-Durchsucht Dateiinhalte mit Regex-Mustern. Basiert auf ripgrep.
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `pattern` | string | Ja | Zu suchendes Regex-Muster |
-| `path` | string | Nein | Zu durchsuchendes Verzeichnis (Standard: aktuelles Verzeichnis) |
-| `include` | string | Nein | Dateifilter (z.B. `*.js`) |
-
-#### Beispiel
-
-```json
-{
-  "pattern": "password|secret|api_key",
-  "path": "/path/to/project",
-  "include": "*.{js,ts,py}"
-}
-```
-
-#### Ausgabeformat
-
-```
-Found 5 matches
-
-/path/to/file.ts:
-  Line 42: const apiKey = process.env.API_KEY
-  Line 85: // TODO: remove hardcoded secret
-
-/path/to/config.js:
-  Line 12: password: "changeme"
-```
-
-#### Funktionen
-
-- Regex-Unterstuetzung (ripgrep-Syntax)
-- Suche in versteckten Dateien
-- Symlink-Verfolgung
-- Ergebnisse nach Aenderungszeitpunkt sortiert
-- Maximal 100 Ergebnisse
-
----
-
-## Befehlsausfuehrung
-
-### Bash
-
-Fuehrt Shell-Befehle mit Timeout und Ausgabeerfassung aus.
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `command` | string | Ja | Auszufuehrender Befehl |
-| `timeout` | number | Nein | Timeout in Millisekunden (Standard: 120000) |
-| `workdir` | string | Nein | Arbeitsverzeichnis |
-| `description` | string | Ja | Kurze Beschreibung des Befehlszwecks |
-
-#### Beispiel
-
-```json
-{
-  "command": "nmap -sV -sC target.com",
-  "timeout": 300000,
-  "workdir": "/path/to/project",
-  "description": "Scan target for open ports and services"
-}
-```
-
-#### Funktionen
-
-- Shell-Erkennung (bash/zsh/sh)
-- Prozessbaum-Beendigung bei Timeout
-- Integration des Berechtigungssystems
-- Echtzeit-Ausgabestreaming
-- Zugangskontrolle fuer externe Verzeichnisse
-
-#### Sicherheitsaspekte
-
-Befehle werden mit tree-sitter analysiert, um Folgendes zu erkennen:
-- Verzeichniszugriff ausserhalb des Projekts
-- Gefaehrliche Befehlsmuster
-- Dateisystemmodifikationen
-
----
-
-## Web-Tests
-
-Es gibt kein Low-Level-`Browser`-Werkzeug. Browserbasierte Web-Tests werden vom **[Hacker Browser](/docs/tools/hacker-browser).
-
-{/* TODO: GIF - Hacker Browser crawl */}
-<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
-  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">🎬 GIF: g06-browser-scanning.gif</p>
-  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Hacker Browser beim Crawlen eines Ziels (25s)</p>
-</div>
-
-Starten Sie ihn mit `cyberstrike hackbrowser <ziel>` oder dem `hackbrowser`-Werkzeug. Siehe [Hacker Browser](/docs/tools/hacker-browser).
-
----
-
-## Speichersystem
-
-Cyberstrike umfasst ein persistentes Speichersystem zum Speichern von Kontext ueber Sitzungen hinweg.
-
-### Memory Write
-
-Speichert Informationen im persistenten Speicher.
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `content` | string | Ja | Zu speichernder Inhalt |
-| `type` | string | Nein | `long_term` fuer MEMORY.md, `daily` fuer datierte Notizen |
-| `title` | string | Nein | Optionale Ueberschrift fuer den Eintrag |
-
-#### Beispiel
-
-```json
-{
-  "content": "Target uses PostgreSQL 14.2 on port 5432",
-  "type": "long_term",
-  "title": "Database Configuration"
-}
-```
-
-#### Speichertypen
-
-| Typ | Speicherort | Zweck |
-|-----|-------------|-------|
-| `long_term` | `.cyberstrike/MEMORY.md` | Entscheidungen, Praeferenzen, wichtige Fakten |
-| `daily` | `.cyberstrike/memory/YYYY-MM-DD.md` | Sitzungsnotizen, temporaerer Kontext |
-
----
-
-### Memory Search
-
-Durchsucht den gespeicherten Speicher.
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `query` | string | Ja | Suchbegriffe oder Phrasen |
-
-#### Beispiel
-
-```json
-{
-  "query": "database credentials"
-}
-```
-
----
-
-### Memory Read
-
-Liest bestimmte Speicherdateien.
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `file` | string | Ja | Dateibezeichner |
-
-#### Dateibezeichner
-
-| Bezeichner | Beschreibung |
-|------------|-------------|
-| `long_term` | Langzeitspeicher (MEMORY.md) |
-| `today` | Heutige Tagesnotizen |
-| `yesterday` | Gestrige Notizen |
-| `YYYY-MM-DD` | Notizen eines bestimmten Datums |
-| `list` | Alle Speicherdateien auflisten |
-
----
-
-### Memory Context
-
-Ruft den vollstaendigen Speicherkontext fuer die Sitzung ab.
-
-#### Parameter
-
-Keine erforderlich.
-
-#### Beispiel
-
-```json
-{}
-```
-
-Gibt kombinierten Langzeitspeicher und aktuelle Tagesnotizen zurueck.
-
----
-
-## Dynamisches Laden von Werkzeugen
-
-<img src="/docs/images/diagrams/tool-interaction-flow.svg" alt="Wie ein Werkzeug verfuegbar wird: eingebaute Werkzeuge werden direkt aufgerufen; MCP-Werkzeuge werden mit tool_search gefunden, mit load_tools geladen, dann aufrufbar, und mit unload_tools freigegeben" className="my-6 mx-auto max-w-sm" />
-
-Cyberstrike unterstuetzt dynamisches Laden von Werkzeugen fuer MCP-Server (Model Context Protocol). Dies ermoeglicht den Zugriff auf Hunderte von Werkzeugen, ohne das Kontextfenster zu ueberlasten.
-
-### Tool Search
-
-Durchsucht verfuegbare MCP-Werkzeuge nach Faehigkeiten.
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `query` | string | Ja | Faehigkeitsbeschreibung |
-| `limit` | number | Nein | Maximale Ergebnisse (Standard: 5) |
-
-#### Beispiel
-
-```json
-{
-  "query": "sql injection testing",
-  "limit": 10
-}
-```
-
-#### Ausgabe
-
-```
-Found 3 tools:
-
-1. sqlmap_scan
-   SQL injection scanner using sqlmap
-   Estimated tokens: ~500
-
-2. nuclei_sqli
-   Nuclei templates for SQL injection
-   Estimated tokens: ~300
-
-3. manual_sqli
-   Manual SQL injection payloads
-   Estimated tokens: ~200
-```
-
----
-
-### Load Tools
-
-Laedt Werkzeuge in den Kontext zur Verwendung.
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `tool_ids` | string[] | Ja | Werkzeug-IDs aus den Suchergebnissen |
-
-#### Beispiel
-
-```json
-{
-  "tool_ids": ["sqlmap_scan", "nuclei_sqli"]
-}
-```
-
----
-
-### Unload Tools
-
-Entfernt Werkzeuge aus dem Kontext, um Budget freizugeben.
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `tool_ids` | string[] | Ja | Zu entladende Werkzeug-IDs |
-
----
-
-### Geladene Werkzeuge auflisten
-
-Zeigt aktuell geladene Werkzeuge und Token-Verbrauch an.
-
-#### Parameter
-
-Keine erforderlich.
-
----
-
-## Aufgabenverwaltung
-
-### Task
-
-Delegiert Arbeit an einen Subagenten. So versendet der primaere Agent spezialisierte Subagenten (siehe [Agenten](/docs/agents)).
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `description` | string | Ja | Eine kurze (3-5 Woerter) Aufgabenbeschreibung |
-| `prompt` | string | Ja | Die vom Subagenten auszufuehrende Aufgabe |
-| `subagent_type` | string | Ja | Welcher Subagent versendet wird (z.B. `web-application`, `general`) |
-
----
-
-### TodoWrite
-
-Schreibt Aufgabeneintraege in eine To-do-Liste.
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `tasks` | array | Ja | Array von Aufgabenobjekten |
-
-#### Aufgabenobjekt
-
-```json
-{
-  "id": "1",
-  "content": "Scan for open ports",
-  "status": "pending",
-  "priority": "high"
-}
-```
-
----
-
-## Web-Werkzeuge
-
-### WebFetch
-
-Ruft Web-Inhalte ab und verarbeitet sie.
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `url` | string | Ja | Abzurufende URL |
-| `format` | string | Nein | `text`, `markdown` oder `html` |
-| `timeout` | number | Nein | Timeout in Sekunden (max. 120) |
-
-#### Beispiel
-
-```json
-{
-  "url": "https://target.com/robots.txt",
-  "format": "text"
-}
-```
-
----
-
-### WebSearch
-
-Fuehrt Web-Suchen zur Informationsbeschaffung durch.
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `query` | string | Ja | Suchanfrage |
-
----
-
-### CodeSearch
-
-Durchsucht Code-Repositories und Dokumentation.
-
-#### Parameter
-
-| Parameter | Typ | Erforderlich | Beschreibung |
-|-----------|-----|--------------|-------------|
-| `query` | string | Ja | Code-Suchanfrage |
-
----
-
-## Werkzeugberechtigungen
-
-Jedes Werkzeug erfordert bestimmte Berechtigungen, die konfiguriert werden koennen:
-
-| Berechtigung | Werkzeuge | Standard |
-|-------------|-----------|---------|
-| `read` | Read | ask |
-| `edit` | Write, Edit | ask |
-| `glob` | Glob | allow |
-| `grep` | Grep | allow |
-| `bash` | Bash | ask |
-| `websearch` | WebSearch | ask |
-| `webfetch` | WebFetch | ask |
-| `codesearch` | CodeSearch | ask |
-| `task` | Task | ask |
-| `external_directory` | Zugriff ausserhalb des Projekts | ask |
-
-### Konfiguration
-
-```json
-{
-  "permission": {
-    "bash": "ask",
-    "edit": "allow",
-    "read": "allow",
-    "glob": "allow",
-    "grep": "allow"
-  }
-}
-```
-
-### Berechtigungsaktionen
-
-| Aktion | Beschreibung |
-|--------|-------------|
-| `ask` | Benutzer um Genehmigung bitten |
-| `allow` | Automatisch genehmigen |
-| `deny` | Werkzeugnutzung blockieren |
-
-Siehe [Berechtigungen](/docs/configuration/permissions) fuer das vollstaendige Modell und Glob-Muster.
-
----
-
-## Benutzerdefinierte Werkzeuge erstellen
-
-Fuegen Sie benutzerdefinierte Werkzeuge hinzu, indem Sie Dateien in `.cyberstrike/tools/` erstellen:
+Add project-specific tools by creating files in `.cyberstrike/tools/`:
 
 ```typescript title=".cyberstrike/tools/custom-scanner.ts"
 import { z } from "zod"
@@ -611,42 +92,38 @@ export default {
     depth: z.number().default(3).describe("Scan depth"),
   },
   async execute(args, ctx): Promise<string> {
-    const { target, depth } = args
-    // Custom scanning logic
-    return `Scanned ${target} to depth ${depth}`
+    return `Scanned ${args.target} to depth ${args.depth}`
   },
 }
 ```
 
-Dateien in einem `tool/`- oder `tools/`-Verzeichnis innerhalb eines `.cyberstrike/`-Ordners werden automatisch geladen.
-
-### Werkzeugdefinitions-Schema
-
-| Feld | Typ | Beschreibung |
-|------|-----|-------------|
-| `description` | string | Werkzeugbeschreibung, die dem Modell angezeigt wird |
-| `args` | object | Zuordnung von Parametername → Zod-Schema |
-| `execute` | function | `async (args, ctx) => string` |
+Files in a `tool/` or `tools/` directory inside any `.cyberstrike/` folder are loaded automatically.
 
 ---
 
-## MCP-Server-Werkzeuge
+## Tool Permissions
 
-Cyberstrike kann Werkzeuge von MCP-Servern laden. Der empfohlene Ansatz ist [Bolt](/docs/features/bolt), der Sicherheitswerkzeuge ueber einen Docker-Container mit Plugin-System bereitstellt:
+| Permission | Tools | Default |
+|------------|-------|---------|
+| `read` | Read | ask |
+| `edit` | Write, Edit | ask |
+| `glob` | Glob | allow |
+| `grep` | Grep | allow |
+| `bash` | Bash | ask |
+| `websearch` | WebSearch | ask |
+| `webfetch` | WebFetch | ask |
+| `codesearch` | CodeSearch | ask |
+| `task` | Task | ask |
+| `external_directory` | Access outside project | ask |
 
-```json title="cyberstrike.json"
-{
-  "bolt": {
-    "local": {
-      "url": "http://localhost:3001",
-      "enabled": true
-    }
-  }
-}
-```
+Actions: `ask` (prompt for approval), `allow` (auto-approve), `deny` (block). See [Permissions](/docs/configuration/permissions) for glob patterns and the full model.
 
-MCP-Werkzeuge werden als direkte Werkzeugaufrufe verfuegbar — jedes Plugin wird direkt ueber seinen Namen aufgerufen (z.B. `nmap`, `nuclei`, `ffuf`).
+---
+
+## MCP Server Tools
+
+Cyberstrike loads tools from MCP servers via the [Dynamic Loading](/docs/tools/dynamic-loading) system. The recommended setup is [Bolt](/docs/features/bolt) — a Docker-based plugin system with 7 plugins and ~26 aggregated MCP servers.
 
 <Aside variant="tip">
-  Siehe [Bolt](/docs/features/bolt) fuer die empfohlene Einrichtung der Sicherheitswerkzeuge — 7 Plugins plus ~26 aggregierte MCP-Server, alle als direkte Werkzeugaufrufe verfuegbar.
+  See [Bolt](/docs/features/bolt) for the recommended security-tools setup — all plugins are available as direct tool calls (e.g., `nmap`, `nuclei`, `ffuf`).
 </Aside>
