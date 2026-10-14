@@ -525,7 +525,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       id: "session.list",
       title: "Sessions",
       description: "Browse and switch between sessions",
-      slash: "sessions",
+      slash: { name: "sessions", aliases: ["resume", "continue"] },
       onSelect: () => {
         void openDialog(
           () => import("@/components/dialog-select-session"),
@@ -537,7 +537,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       id: "session.new",
       title: language.t("command.session.new"),
       keybind: "mod+shift+s",
-      slash: "new",
+      slash: { name: "new", aliases: ["clear"] },
       onSelect: (source) => {
         if (settings.general.newLayoutDesigns()) {
           command.trigger("tab.new", source)
@@ -566,7 +566,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       id: "session.compact",
       title: language.t("command.session.compact"),
       description: language.t("command.session.compact.description"),
-      slash: "compact",
+      slash: { name: "compact", aliases: ["summarize"] },
       disabled: !params.id || visibleUserMessages().length === 0,
       onSelect: compact,
     }),
@@ -768,7 +768,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
         ? "Hide Thinking"
         : "Show Thinking",
       description: "Toggle AI reasoning/thinking display",
-      slash: "thinking",
+      slash: { name: "thinking", aliases: ["toggle-thinking"] },
       onSelect: () => {
         const current = settings.general.showReasoningSummaries()
         settings.general.setShowReasoningSummaries(!current)
@@ -846,7 +846,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       id: "session.vulnerabilities",
       title: "Vulnerabilities",
       description: "Browse discovered vulnerabilities",
-      slash: "vulnerabilities",
+      slash: { name: "vulnerabilities", aliases: ["vuln", "vulns"] },
       disabled: !params.id,
       onSelect: () => {
         void openDialog(
@@ -897,7 +897,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       id: "session.methodology",
       title: "Methodology",
       description: "View methodology coverage and state",
-      slash: "methodology",
+      slash: { name: "methodology", aliases: ["intel", "vrt", "chains"] },
       disabled: !params.id,
       onSelect: async () => {
         const sessionID = params.id
