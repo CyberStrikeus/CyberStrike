@@ -20,6 +20,10 @@ const sidebarNavData: DocsSidebarNavData = {
           title: "Usage",
         },
         {
+          id: "features",
+          title: "Features",
+        },
+        {
           id: "providers",
           title: "AI Providers",
         },
@@ -30,10 +34,6 @@ const sidebarNavData: DocsSidebarNavData = {
         {
           id: "tools",
           title: "Tools",
-        },
-        {
-          id: "features",
-          title: "Features",
         },
         {
           id: "configuration",

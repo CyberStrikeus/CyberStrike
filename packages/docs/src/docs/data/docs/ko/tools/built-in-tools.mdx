@@ -200,7 +200,49 @@ Because everything is Markdown on disk, you can read, edit, or version-control m
 
 ---
 
+## Dynamic Tool Loading
+
+Built-in tools are always available. **MCP tools are loaded on demand** so that connecting a server with hundreds of tools doesn't flood the model's context.
+
+### Loading Tools
+
+| Tool | Purpose |
+|------|---------|
+| `tool_search` | Find MCP tools by capability (accepts `query` and optional `limit`) |
+| `load_tools` | Load specific tools into the active context |
+| `unload_tools` | Remove loaded tools to free context |
+| `list_loaded_tools` | Show which tools are currently loaded |
+
+The agent uses these automatically: it searches for a capability, loads the matching MCP tool, calls it, and can unload it afterward.
+
+```json
+{
+  "query": "sql injection testing",
+  "limit": 10
+}
+```
+
+### What's Lazy vs Always-On
+
+- **Always available** — every built-in tool (`bash`, `read`, `edit`, `glob`, `grep`, `write`, `task`, `webfetch`, `websearch`, memory tools, …).
+- **Loaded on demand** — tools exposed by connected MCP servers (including [Bolt](/docs/features/bolt)). Discovered with `tool_search` and pulled in with `load_tools`.
+
+### Disabling a Tool
+
+The `tools` config maps tool name → boolean. Set a tool to `false` to disable it:
+
+```json title="cyberstrike.json"
+{
+  "tools": {
+    "websearch": false
+  }
+}
+```
+
+---
+
 ## Related Documentation
 
 - [Tools Overview](/docs/tools) — All tools and permissions
 - [Permissions](/docs/configuration/permissions) — Permission model and glob patterns
+- [MCP](/docs/features/mcp) — Connecting MCP servers

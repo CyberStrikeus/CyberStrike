@@ -1,5 +1,8 @@
 import type { DocsSidebarNavData } from "../types/configDataTypes";
 
+/**
+ * Cyberstrike Documentation Sidebar Navigation
+ */
 const sidebarNavData: DocsSidebarNavData = {
   tabs: [
     {
@@ -17,6 +20,10 @@ const sidebarNavData: DocsSidebarNavData = {
           title: "Verwendung",
         },
         {
+          id: "features",
+          title: "Features",
+        },
+        {
           id: "providers",
           title: "KI-Anbieter",
         },
@@ -29,13 +36,10 @@ const sidebarNavData: DocsSidebarNavData = {
           title: "Werkzeuge",
         },
         {
-          id: "features",
-          title: "Funktionen",
-        },
-        {
           id: "configuration",
           title: "Konfiguration",
-        },      ],
+        },
+      ],
     },
   ],
 };

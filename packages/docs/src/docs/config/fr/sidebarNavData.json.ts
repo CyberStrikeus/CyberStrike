@@ -1,7 +1,7 @@
 import type { DocsSidebarNavData } from "../types/configDataTypes";
 
 /**
- * Combined sidebar navigation data for the French locale
+ * Cyberstrike Documentation Sidebar Navigation
  */
 const sidebarNavData: DocsSidebarNavData = {
   tabs: [
@@ -20,6 +20,10 @@ const sidebarNavData: DocsSidebarNavData = {
           title: "Utilisation",
         },
         {
+          id: "features",
+          title: "Features",
+        },
+        {
           id: "providers",
           title: "Fournisseurs IA",
         },
@@ -32,13 +36,10 @@ const sidebarNavData: DocsSidebarNavData = {
           title: "Outils",
         },
         {
-          id: "features",
-          title: "Fonctionnalités",
-        },
-        {
           id: "configuration",
           title: "Configuration",
-        },      ],
+        },
+      ],
     },
   ],
 };

@@ -1,11 +1,14 @@
 import type { DocsSidebarNavData } from "../types/configDataTypes";
 
+/**
+ * Cyberstrike Documentation Sidebar Navigation
+ */
 const sidebarNavData: DocsSidebarNavData = {
   tabs: [
     {
       id: "main",
       title: "문서",
-      description: "주요 문서",
+      description: "기본 문서",
       icon: "tabler/file-text",
       sections: [
         {
@@ -15,6 +18,10 @@ const sidebarNavData: DocsSidebarNavData = {
         {
           id: "usage",
           title: "사용법",
+        },
+        {
+          id: "features",
+          title: "Features",
         },
         {
           id: "providers",
@@ -29,13 +36,10 @@ const sidebarNavData: DocsSidebarNavData = {
           title: "도구",
         },
         {
-          id: "features",
-          title: "기능",
-        },
-        {
           id: "configuration",
           title: "설정",
-        },      ],
+        },
+      ],
     },
   ],
 };
