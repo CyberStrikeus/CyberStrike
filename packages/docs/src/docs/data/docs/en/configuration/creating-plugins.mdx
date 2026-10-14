@@ -1,0 +1,106 @@
+---
+title: Creating Plugins
+description: Build, register, and publish Cyberstrike plugins
+sidebar:
+  order: 11
+  label: Creating Plugins
+---
+
+A Cyberstrike plugin is a module that exports a function returning a set of [hooks](/docs/configuration/plugin-hooks). This guide covers writing, registering, and publishing one.
+
+{/* TODO: Screenshot - Plugin development workflow */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: plugin-development.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Plugin development workflow</p>
+</div>
+
+## Write a Plugin
+
+A plugin is `(input: PluginInput) => Promise<Hooks>`. Import the types from `@cyberstrike-io/plugin`:
+
+```typescript title=".cyberstrike/plugin/guard.ts"
+import type { Plugin } from "@cyberstrike-io/plugin"
+
+export const GuardPlugin: Plugin = async ({ project, directory, $ }) => {
+  return {
+    "tool.execute.before": async (input, output) => {
+      if (input.tool === "bash" && /rm\s+-rf/.test(output.args.command)) {
+        throw new Error("blocked: rm -rf")
+      }
+    },
+    "permission.ask": async (input, output) => {
+      if (input.type === "read") output.status = "allow"
+    },
+  }
+}
+```
+
+The function's `input` gives you context — `client`, `project`, `directory`, `worktree`, `serverUrl`, and `$` (a Bun shell). Return an object whose keys are hook names; see the [hook reference](/docs/configuration/plugin-hooks) for every hook and its signature.
+
+## Register a Plugin
+
+There are two ways to load a plugin.
+
+### 1. Local file (no publishing)
+
+Drop a `.ts`/`.js` file into a `plugin/` (or `plugins/`) directory inside any `.cyberstrike/` folder — project or `~/.cyberstrike/`:
+
+```
+.cyberstrike/
+└── plugin/
+    └── guard.ts
+```
+
+Cyberstrike discovers it automatically and installs `@cyberstrike-io/plugin` for you so local plugins can import the types.
+
+### 2. The `plugin` config array
+
+Reference an npm package or a path in the `plugin` array (values are union-merged across config sources):
+
+```json title="cyberstrike.json"
+{
+  "plugin": [
+    "@myorg/cyberstrike-guard",
+    "./local/guard.ts"
+  ]
+}
+```
+
+## Test & Debug
+
+Run Cyberstrike with debug logging to see plugins load and hooks fire:
+
+```bash
+cyberstrike --log-level DEBUG --print-logs
+```
+
+(Or set `"logLevel": "DEBUG"` in your config.)
+
+Since hooks mutate `output` (or throw), you can unit-test them by calling the hook with a fake `input`/`output` and asserting on the mutated `output`.
+
+## Publish
+
+Package your plugin like any npm module and publish it, then have users add it to their `plugin` array:
+
+```json title="package.json"
+{
+  "name": "@myorg/cyberstrike-guard",
+  "type": "module",
+  "main": "./index.ts",
+  "peerDependencies": { "@cyberstrike-io/plugin": "*" }
+}
+```
+
+```bash
+npm publish --access public
+```
+
+<Aside variant="caution">
+  Plugins run with full access to your machine and Cyberstrike internals. Only install plugins you trust, and keep hooks fast — they run inline with tool calls and LLM requests.
+</Aside>
+
+## Related Documentation
+
+- [Hooks Overview](/docs/configuration/hooks) - Concepts and examples
+- [Plugin Hooks](/docs/configuration/plugin-hooks) - Full hook reference
+- [Configuration](/docs/configuration) - The `plugin` config key

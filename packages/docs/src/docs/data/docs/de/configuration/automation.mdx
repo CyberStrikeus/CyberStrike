@@ -1,0 +1,123 @@
+---
+title: Automatisierung
+description: Berechtigungen fuer CI/CD und automatisierte Workflows konfigurieren
+sidebar:
+  order: 8
+  label: Automatisierung
+---
+
+Bei nicht-interaktiven Ausfuehrungen (`cyberstrike run`) gibt es niemanden, der Berechtigungsabfragen beantwortet — daher wird jedes Werkzeug, das *abfragen wuerde*, **automatisch abgelehnt**. Um einer Pipeline echte Arbeit zu ermoeglichen, genehmigen Sie die benoetigten Werkzeuge vorab.
+
+<img src="/docs/images/diagrams/cicd-workflow.svg" alt="Headless-Ausfuehrungs-Berechtigungsablauf: ein vorab genehmigtes Werkzeug per CYBERSTRIKE_PERMISSION oder Konfiguration wird ausgefuehrt; eines, das abfragen wuerde, wird automatisch abgelehnt; Ergebnisse gehen als JSON an stdout" className="my-6 mx-auto max-w-sm" />
+
+## Werkzeuge vorab genehmigen
+
+Es gibt keinen "Auto-Modus"-Schalter. Gewaehren Sie Berechtigungen auf zwei Wegen:
+
+**1. `CYBERSTRIKE_PERMISSION` Umgebungsvariable** — eine JSON-Berechtigungsmap (gleiche Form wie das Konfigurationsfeld `permission`):
+
+```bash
+export CYBERSTRIKE_PERMISSION='{"bash":"allow","read":"allow","edit":{"reports/**":"allow"}}'
+cyberstrike run "scan this codebase for security issues" --format json > report.json
+```
+
+**2. Konfigurations-`permission`** — sichere Standards committen, die gefaehrlichen Teile ablehnen (siehe [Muster](/docs/configuration/permission-patterns)):
+
+```json title="cyberstrike.json"
+{
+  "permission": {
+    "read": "allow",
+    "bash": { "*": "allow", "rm -rf *": "deny", "sudo *": "deny" },
+    "edit": { "reports/**": "allow", ".env*": "deny" }
+  }
+}
+```
+
+Die Ausgabe geht an stdout; verwenden Sie `--format json` fuer maschinenlesbare Ergebnisse.
+
+## CI/CD-Integration
+
+### GitHub Actions
+
+```yaml title=".github/workflows/security-scan.yml"
+name: Security Scan
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install -g @cyberstrike-io/cyberstrike@latest
+      - name: Run Security Scan
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow","edit":{"reports/**":"allow"}}'
+        run: cyberstrike run "scan this codebase for security vulnerabilities" --format json > security-report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: security-report.json
+```
+
+### GitLab CI
+
+```yaml title=".gitlab-ci.yml"
+security-scan:
+  image: node:20
+  variables:
+    CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow"}'
+  script:
+    - npm install -g @cyberstrike-io/cyberstrike@latest
+    - cyberstrike run "analyze code for vulnerabilities" --format json > report.json
+  artifacts:
+    paths:
+      - report.json
+```
+
+## Batch- & geplante Ausfuehrungen
+
+Schleifen ueber Ziele oder per Cron steuern — dieselben `CYBERSTRIKE_PERMISSION`- (oder Konfigurations-)Regeln gelten:
+
+```bash title="scan-targets.sh"
+#!/bin/bash
+export CYBERSTRIKE_PERMISSION='{"bash":"allow"}'
+while read -r target; do
+  cyberstrike run "scan $target for open ports and services" --format json > "reports/${target}.json"
+done < targets.txt
+```
+
+```bash
+# Taeglicher Scan um 02:00
+0 2 * * * CYBERSTRIKE_PERMISSION='{"bash":"allow"}' /usr/local/bin/cyberstrike run "daily security scan" >> /var/log/cyberstrike.log 2>&1
+```
+
+## Exit-Codes & Ausgabe
+
+`cyberstrike run` schreibt Ergebnisse an stdout (`--format json` fuer JSON) und gibt `0` bei Erfolg zurueck, einen Nicht-Null-Code bei Fehler oder Unterbrechung. Parsen Sie das JSON fuer Ergebnisse:
+
+```bash
+cyberstrike run "scan target" --format json | jq '.'
+```
+
+## Sicherheitsueberlegungen
+
+- **Minimale Berechtigungen** — nur die Werkzeuge mit `allow` gewaehren, die der Job benoetigt; ein explizites `deny` fuer `rm -rf *`, `sudo *` und geheime Pfade beibehalten.
+- **Geheimnisse** — API-Schluessel aus Ihrem CI-Geheimnisspeicher injizieren, niemals committen.
+- **Isolation** — wenn moeglich in einem Container mit eingeschraenktem Netzwerk ausfuehren.
+
+<Aside variant="caution">
+  Behalten Sie immer Deny-Regeln fuer destruktive Befehle bei, wenn Sie `bash` in der Automatisierung vorab genehmigen.
+</Aside>
+
+## Verwandte Dokumentation
+
+- [Berechtigungsuebersicht](/docs/configuration/permissions) - Das Berechtigungsmodell und die Schluessel
+- [Muster](/docs/configuration/permission-patterns) - Glob-Mustersyntax
+- [Umgebungsvariablen](/docs/configuration/environment-variables) - `CYBERSTRIKE_PERMISSION`
+- [CLI Run-Befehl](/docs/usage/cli#run) - Nicht-interaktive Ausfuehrung

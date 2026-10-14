@@ -35,10 +35,6 @@ const sidebarNavData: DocsSidebarNavData = {
         {
           id: "configuration",
           title: "설정",
-        },
-        {
-          id: "permissions",
-          title: "권한",
         },      ],
     },
   ],

@@ -1,0 +1,123 @@
+---
+title: 自动化
+description: 为 CI/CD 和自动化工作流配置权限
+sidebar:
+  order: 8
+  label: 自动化
+---
+
+在非交互式运行（`cyberstrike run`）中，没有人可以回答权限提示——因此任何*本应*提示的工具都会被**自动拒绝**。为了让流水线能做实际工作，需要预先批准它需要的工具。
+
+<img src="/docs/images/diagrams/cicd-workflow.svg" alt="无头运行权限流程：通过 CYBERSTRIKE_PERMISSION 或配置预批准的工具会运行；本应提示的工具会被自动拒绝；结果以 JSON 格式输出到 stdout" className="my-6 mx-auto max-w-sm" />
+
+## 预批准工具
+
+没有"自动模式"标志。通过两种方式授予权限：
+
+**1. `CYBERSTRIKE_PERMISSION` 环境变量**——一个 JSON 权限映射（与配置 `permission` 字段相同的格式）：
+
+```bash
+export CYBERSTRIKE_PERMISSION='{"bash":"allow","read":"allow","edit":{"reports/**":"allow"}}'
+cyberstrike run "scan this codebase for security issues" --format json > report.json
+```
+
+**2. 配置 `permission`**——提交安全的默认值，拒绝危险部分（参见[模式](/docs/configuration/permission-patterns)）：
+
+```json title="cyberstrike.json"
+{
+  "permission": {
+    "read": "allow",
+    "bash": { "*": "allow", "rm -rf *": "deny", "sudo *": "deny" },
+    "edit": { "reports/**": "allow", ".env*": "deny" }
+  }
+}
+```
+
+输出到 stdout；使用 `--format json` 获取机器可读的结果。
+
+## CI/CD 集成
+
+### GitHub Actions
+
+```yaml title=".github/workflows/security-scan.yml"
+name: Security Scan
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install -g @cyberstrike-io/cyberstrike@latest
+      - name: Run Security Scan
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow","edit":{"reports/**":"allow"}}'
+        run: cyberstrike run "scan this codebase for security vulnerabilities" --format json > security-report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: security-report.json
+```
+
+### GitLab CI
+
+```yaml title=".gitlab-ci.yml"
+security-scan:
+  image: node:20
+  variables:
+    CYBERSTRIKE_PERMISSION: '{"bash":"allow","read":"allow"}'
+  script:
+    - npm install -g @cyberstrike-io/cyberstrike@latest
+    - cyberstrike run "analyze code for vulnerabilities" --format json > report.json
+  artifacts:
+    paths:
+      - report.json
+```
+
+## 批量和定时运行
+
+循环遍历目标，或通过 cron 驱动——同样的 `CYBERSTRIKE_PERMISSION`（或配置）规则适用：
+
+```bash title="scan-targets.sh"
+#!/bin/bash
+export CYBERSTRIKE_PERMISSION='{"bash":"allow"}'
+while read -r target; do
+  cyberstrike run "scan $target for open ports and services" --format json > "reports/${target}.json"
+done < targets.txt
+```
+
+```bash
+# 每天凌晨 02:00 扫描
+0 2 * * * CYBERSTRIKE_PERMISSION='{"bash":"allow"}' /usr/local/bin/cyberstrike run "daily security scan" >> /var/log/cyberstrike.log 2>&1
+```
+
+## 退出码与输出
+
+`cyberstrike run` 将结果写入 stdout（`--format json` 输出 JSON），成功返回 `0`，错误或中断返回非零代码。解析 JSON 获取发现：
+
+```bash
+cyberstrike run "scan target" --format json | jq '.'
+```
+
+## 安全注意事项
+
+- **最小权限**——只 `allow` 任务需要的工具；对 `rm -rf *`、`sudo *` 和密钥路径保留显式 `deny`。
+- **密钥**——从 CI 密钥存储注入 API 密钥，切勿提交。
+- **隔离**——尽可能在网络受限的容器中运行。
+
+<Aside variant="caution">
+  在自动化中预批准 `bash` 时，始终保留对破坏性命令的 deny 规则。
+</Aside>
+
+## 相关文档
+
+- [权限概述](/docs/configuration/permissions) - 权限模型和键
+- [模式](/docs/configuration/permission-patterns) - 通配符模式语法
+- [环境变量](/docs/configuration/environment-variables) - `CYBERSTRIKE_PERMISSION`
+- [CLI Run 命令](/docs/usage/cli#run) - 非交互式执行

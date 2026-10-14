@@ -1,0 +1,106 @@
+---
+title: प्लगइन बनाना
+description: Cyberstrike प्लगइन बनाएं, पंजीकृत करें और प्रकाशित करें
+sidebar:
+  order: 11
+  label: प्लगइन बनाना
+---
+
+Cyberstrike प्लगइन एक मॉड्यूल है जो [हुक्स](/docs/configuration/plugin-hooks) का सेट लौटाने वाला एक फंक्शन निर्यात करता है। यह गाइड प्लगइन लिखने, पंजीकृत करने और प्रकाशित करने को कवर करती है।
+
+{/* TODO: Screenshot - Plugin development workflow */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: plugin-development.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">प्लगइन विकास कार्यप्रवाह</p>
+</div>
+
+## प्लगइन लिखें
+
+एक प्लगइन `(input: PluginInput) => Promise<Hooks>` है। `@cyberstrike-io/plugin` से टाइप्स इम्पोर्ट करें:
+
+```typescript title=".cyberstrike/plugin/guard.ts"
+import type { Plugin } from "@cyberstrike-io/plugin"
+
+export const GuardPlugin: Plugin = async ({ project, directory, $ }) => {
+  return {
+    "tool.execute.before": async (input, output) => {
+      if (input.tool === "bash" && /rm\s+-rf/.test(output.args.command)) {
+        throw new Error("blocked: rm -rf")
+      }
+    },
+    "permission.ask": async (input, output) => {
+      if (input.type === "read") output.status = "allow"
+    },
+  }
+}
+```
+
+फंक्शन का `input` आपको कॉन्टेक्स्ट देता है — `client`, `project`, `directory`, `worktree`, `serverUrl`, और `$` (एक Bun शेल)। एक ऐसा ऑब्जेक्ट लौटाएं जिसकी कुंजियाँ हुक नाम हों; प्रत्येक हुक और उसके सिग्नेचर के लिए [हुक संदर्भ](/docs/configuration/plugin-hooks) देखें।
+
+## प्लगइन पंजीकृत करें
+
+प्लगइन लोड करने के दो तरीके हैं।
+
+### 1. स्थानीय फ़ाइल (प्रकाशन की आवश्यकता नहीं)
+
+किसी भी `.cyberstrike/` फ़ोल्डर — प्रोजेक्ट या `~/.cyberstrike/` — के अंदर `plugin/` (या `plugins/`) डायरेक्टरी में एक `.ts`/`.js` फ़ाइल डालें:
+
+```
+.cyberstrike/
+└── plugin/
+    └── guard.ts
+```
+
+Cyberstrike इसे स्वचालित रूप से खोज लेता है और आपके लिए `@cyberstrike-io/plugin` इंस्टॉल करता है ताकि स्थानीय प्लगइन टाइप्स इम्पोर्ट कर सकें।
+
+### 2. `plugin` कॉन्फ़िग ऐरे
+
+`plugin` ऐरे में npm पैकेज या पथ का संदर्भ दें (मान कॉन्फ़िग स्रोतों में यूनियन-मर्ज किए जाते हैं):
+
+```json title="cyberstrike.json"
+{
+  "plugin": [
+    "@myorg/cyberstrike-guard",
+    "./local/guard.ts"
+  ]
+}
+```
+
+## टेस्ट और डीबग
+
+प्लगइन लोड और हुक्स फ़ायर होते देखने के लिए डीबग लॉगिंग के साथ Cyberstrike चलाएं:
+
+```bash
+cyberstrike --log-level DEBUG --print-logs
+```
+
+(या अपने कॉन्फ़िग में `"logLevel": "DEBUG"` सेट करें।)
+
+चूँकि हुक्स `output` को म्यूटेट करते हैं (या थ्रो करते हैं), आप नकली `input`/`output` के साथ हुक को कॉल करके और म्यूटेटेड `output` पर एसर्ट करके उन्हें यूनिट-टेस्ट कर सकते हैं।
+
+## प्रकाशित करें
+
+अपने प्लगइन को किसी भी npm मॉड्यूल की तरह पैकेज करें और प्रकाशित करें, फिर उपयोगकर्ताओं से इसे अपने `plugin` ऐरे में जोड़ने कहें:
+
+```json title="package.json"
+{
+  "name": "@myorg/cyberstrike-guard",
+  "type": "module",
+  "main": "./index.ts",
+  "peerDependencies": { "@cyberstrike-io/plugin": "*" }
+}
+```
+
+```bash
+npm publish --access public
+```
+
+<Aside variant="caution">
+  प्लगइन्स आपकी मशीन और Cyberstrike के आंतरिक भागों तक पूर्ण पहुँच के साथ चलते हैं। केवल विश्वसनीय प्लगइन ही इंस्टॉल करें, और हुक्स को तेज़ रखें — वे टूल कॉल्स और LLM अनुरोधों के साथ इनलाइन चलते हैं।
+</Aside>
+
+## संबंधित दस्तावेज़ीकरण
+
+- [हुक्स अवलोकन](/docs/configuration/hooks) - अवधारणाएं और उदाहरण
+- [प्लगइन हुक्स](/docs/configuration/plugin-hooks) - पूर्ण हुक संदर्भ
+- [कॉन्फ़िगरेशन](/docs/configuration) - `plugin` कॉन्फ़िग कुंजी

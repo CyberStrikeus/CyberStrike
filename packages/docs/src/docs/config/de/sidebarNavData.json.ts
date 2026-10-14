@@ -35,10 +35,6 @@ const sidebarNavData: DocsSidebarNavData = {
         {
           id: "configuration",
           title: "Konfiguration",
-        },
-        {
-          id: "permissions",
-          title: "Berechtigungen",
         },      ],
     },
   ],

@@ -69,7 +69,7 @@ cyberstrike --continue
 
 ## run
 
-Execute a single prompt without entering interactive mode. In this mode there is nobody to answer permission prompts, so any tool that would prompt is auto-rejected (see [Automation](/docs/permissions/automation)).
+Execute a single prompt without entering interactive mode. In this mode there is nobody to answer permission prompts, so any tool that would prompt is auto-rejected (see [Automation](/docs/configuration/automation)).
 
 ```bash
 cyberstrike run [message..] [options]
@@ -132,7 +132,7 @@ CYBERSTRIKE_PERMISSION='{"bash":"allow","read":"allow"}' \
   cyberstrike run "enumerate services on the host" --format json
 ```
 
-See [Automation](/docs/permissions/automation) for CI patterns.
+See [Automation](/docs/configuration/automation) for CI patterns.
 
 ---
 

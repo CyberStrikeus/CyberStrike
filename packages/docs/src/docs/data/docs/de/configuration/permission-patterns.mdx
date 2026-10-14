@@ -1,0 +1,108 @@
+---
+title: Berechtigungsmuster
+description: Werkzeugargumente mit Glob-Mustern fuer feingranulare Berechtigungskontrolle abgleichen
+sidebar:
+  order: 7
+  label: Muster
+---
+
+Berechtigungsmuster ermoeglichen feingranulare Kontrolle, indem sie das Argument eines Werkzeugs (einen Befehlsstring, einen Dateipfad) gegen ein Glob abgleichen und auf eine Aktion zuordnen.
+
+{/* TODO: Screenshot - Permission pattern matching */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: permission-patterns.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Berechtigungsmuster-Konfiguration</p>
+</div>
+
+## Format
+
+Ein Berechtigungseintrag ist entweder eine einzelne Aktion oder eine Map von **Glob zu Aktion**. Es gibt keine `Tool(pattern)`-Syntax und keine Allow/Deny-Arrays — der Tool-Schluessel gruppiert seine Muster:
+
+```json
+{
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "ls *": "allow",
+      "git status": "allow",
+      "rm -rf *": "deny"
+    },
+    "edit": {
+      "reports/**": "allow",
+      ".env*": "deny"
+    }
+  }
+}
+```
+
+Das Glob gleicht das Argument des Werkzeugs ab: fuer `bash` ist es der Befehlsstring, fuer `edit`/`read` ist es der Dateipfad.
+
+## Wildcards
+
+Nur zwei Wildcards werden unterstuetzt:
+
+| Token | Trifft zu auf |
+|-------|---------------|
+| `*` | Jede beliebige Zeichenfolge (einschliesslich `/`) |
+| `?` | Jedes einzelne Zeichen |
+
+<Aside variant="caution">
+  `*` und `?` sind die **einzigen** Wildcards. Zeichen wie `[`, `]`, `{`, `}`, `(`, `)` und `|` werden **woertlich** abgeglichen. Es gibt kein `**` (es verhaelt sich wie `*`), und Negation (`!pattern`) wird nicht unterstuetzt.
+</Aside>
+
+Ein Muster, das mit einem Leerzeichen + `*` endet, trifft auch auf den reinen Befehl ohne Argumente zu — somit trifft `"ls *"` sowohl auf `ls` als auch auf `ls -la` zu.
+
+## Vorrang
+
+Wenn mehrere Muster zutreffen, gewinnt das **spezifischere (laengere) Muster**. Muster werden vom kuerzesten zuerst ausgewertet, und der letzte Treffer gilt — ein breites `"*": "ask"` kann also durch ein laengeres `"git status": "allow"` ueberschrieben werden:
+
+```json
+{
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "npm *": "allow",
+      "npm publish*": "deny"
+    }
+  }
+}
+```
+
+Hier ist `npm test` erlaubt, aber `npm publish` wird abgelehnt.
+
+## Beispiele
+
+### Eine Toolchain erlauben, die gefaehrlichen Teile blockieren
+
+```json
+{
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "git *": "allow",
+      "git push*": "ask",
+      "rm -rf *": "deny"
+    }
+  }
+}
+```
+
+### Bearbeitungen auf ein Verzeichnis beschraenken
+
+```json
+{
+  "permission": {
+    "edit": {
+      "*": "deny",
+      "src/**": "allow",
+      "src/secrets/**": "deny"
+    }
+  }
+}
+```
+
+## Verwandte Dokumentation
+
+- [Berechtigungsuebersicht](/docs/configuration/permissions) - Das Berechtigungsmodell und die Schluessel
+- [Automatisierung](/docs/configuration/automation) - Nicht-interaktive / CI-Berechtigungen
+- [Konfiguration](/docs/configuration) - Wo Berechtigungen in der Konfiguration leben
