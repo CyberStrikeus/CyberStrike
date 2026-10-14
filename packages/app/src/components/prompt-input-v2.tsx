@@ -301,13 +301,14 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
     })),
     ...command.options
       .filter((item) => !item.disabled && !item.id.startsWith("suggested.") && item.slash)
-      .map((item) => ({
-        id: item.id,
-        trigger: item.slash!,
-        title: item.title,
-        description: item.description,
-        type: "builtin" as const,
-      })),
+      .flatMap((item) => {
+        const name = typeof item.slash === "string" ? item.slash : item.slash!.name
+        const aliases = typeof item.slash === "object" ? (item.slash!.aliases ?? []) : []
+        return [
+          { id: item.id, trigger: name, title: item.title, description: item.description, type: "builtin" as const },
+          ...aliases.map((a) => ({ id: item.id, trigger: a, title: item.title, description: item.description, type: "builtin" as const })),
+        ]
+      }),
   ])
   const commands = createMemo<PromptInputV2Suggestion[]>(() =>
     slashCommands().map((item) => ({

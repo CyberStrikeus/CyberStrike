@@ -397,6 +397,7 @@ function App() {
       category: "Agent",
       slash: {
         name: "models",
+        aliases: ["model"],
       },
       onSelect: () => {
         dialog.replace(() => <DialogModel />)
@@ -449,6 +450,7 @@ function App() {
       category: "Agent",
       slash: {
         name: "agents",
+        aliases: ["agent"],
       },
       onSelect: () => {
         dialog.replace(() => <DialogAgent />)
@@ -460,6 +462,7 @@ function App() {
       category: "Agent",
       slash: {
         name: "mcps",
+        aliases: ["mcp"],
       },
       onSelect: () => {
         dialog.replace(() => <DialogMcp />)
