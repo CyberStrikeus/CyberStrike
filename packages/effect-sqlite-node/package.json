@@ -3,7 +3,7 @@
   "version": "1.18.32",
   "name": "@cyberstrike-io/effect-sqlite-node",
   "type": "module",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "private": true,
   "scripts": {
     "typecheck": "tsgo --noEmit"

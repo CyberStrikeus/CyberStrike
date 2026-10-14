@@ -3,7 +3,7 @@
   "name": "@cyberstrike-io/protocol",
   "private": true,
   "type": "module",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "exports": {
     "./*": "./src/*.ts"
   },

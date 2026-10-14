@@ -3,7 +3,7 @@
   "version": "1.18.32",
   "name": "@cyberstrike-io/llm",
   "type": "module",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "private": true,
   "scripts": {
     "setup:recording-env": "bun run script/setup-recording-env.ts",
