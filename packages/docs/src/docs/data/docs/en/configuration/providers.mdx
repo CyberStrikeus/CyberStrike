@@ -6,60 +6,75 @@ sidebar:
   label: AI Providers
 ---
 
-Cyberstrike supports multiple AI providers, giving you flexibility in choosing the best model for your security assessments.
-
-<img src="/docs/images/screenshots/s05-provider-dialog.png" alt="Connect a provider dialog listing popular and other providers" className="rounded-lg shadow-lg my-6 w-full" />
-
-<img src="/docs/images/diagrams/provider-selection-flow.svg" alt="How Cyberstrike selects the model and provider — config model, then most recent, then first available provider by priority" className="my-6 mx-auto max-w-lg" />
+Cyberstrike supports 25+ AI providers. The model catalog is pulled live from [models.dev](https://models.dev) — new models appear automatically. Run `/models` in the TUI to see what's available.
 
 ## Supported Providers
 
-| Provider | Models | Best For |
-|----------|--------|----------|
-| **Anthropic** | Claude Opus 4.5, Sonnet 4, Haiku | Complex reasoning, long context |
-| **OpenAI** | GPT-4o, o1, o1-preview | General purpose, fast responses |
-| **Google** | Gemini 2.0 Flash, Pro | Multimodal, large context |
-| **AWS Bedrock** | Claude, Llama, Titan | Enterprise, on-prem |
-| **Azure OpenAI** | GPT-4, GPT-4o | Enterprise compliance |
-| **Google Vertex AI** | Gemini, Claude | Enterprise GCP |
-| **OpenRouter** | Many models | Free tier, model variety |
-| **Groq** | Llama 3.3, Mixtral | Speed, cost efficiency |
-| **Ollama** | Local models | Privacy, offline use |
+### First-Party SDKs (Bundled)
+
+These providers have dedicated AI SDK packages bundled into CyberStrike. Set the API key and go.
+
+| Provider | ID | Env Var | SDK |
+|----------|----|---------|-----|
+| Anthropic | `anthropic` | `ANTHROPIC_API_KEY` | `@ai-sdk/anthropic` |
+| OpenAI | `openai` | `OPENAI_API_KEY` | `@ai-sdk/openai` |
+| Google Gemini | `google` | `GOOGLE_GENERATIVE_AI_API_KEY` | `@ai-sdk/google` |
+| Google Vertex AI | `google-vertex` | `GOOGLE_CLOUD_PROJECT` + ADC | `@ai-sdk/google-vertex` |
+| Google Vertex (Anthropic) | `google-vertex-anthropic` | same as Vertex | `@ai-sdk/google-vertex/anthropic` |
+| Amazon Bedrock | `amazon-bedrock` | AWS credential chain | `@ai-sdk/amazon-bedrock` |
+| Azure OpenAI | `azure` | `AZURE_API_KEY` | `@ai-sdk/azure` |
+| GitHub Copilot | `github-copilot` | OAuth device flow | custom SDK |
+| GitHub Copilot Enterprise | `github-copilot-enterprise` | OAuth device flow | custom SDK |
+| OpenRouter | `openrouter` | `OPENROUTER_API_KEY` | `@openrouter/ai-sdk-provider` |
+| Groq | `groq` | `GROQ_API_KEY` | `@ai-sdk/groq` |
+| Mistral | `mistral` | `MISTRAL_API_KEY` | `@ai-sdk/mistral` |
+| xAI (Grok) | `xai` | `XAI_API_KEY` | `@ai-sdk/xai` |
+| DeepInfra | `deepinfra` | `DEEPINFRA_API_KEY` | `@ai-sdk/deepinfra` |
+| Together AI | `togetherai` | `TOGETHER_API_KEY` | `@ai-sdk/togetherai` |
+| Perplexity | `perplexity` | `PERPLEXITY_API_KEY` | `@ai-sdk/perplexity` |
+| Cohere | `cohere` | `COHERE_API_KEY` | `@ai-sdk/cohere` |
+| Cerebras | `cerebras` | `CEREBRAS_API_KEY` | `@ai-sdk/cerebras` |
+| Vercel AI Gateway | `vercel` | (Vercel auth) | `@ai-sdk/vercel` |
+| AI SDK Gateway | `gateway` | (varies) | `@ai-sdk/gateway` |
+| GitLab Duo | `gitlab` | `GITLAB_TOKEN` or OAuth | `@gitlab/gitlab-ai-provider` |
+| Alibaba (Qwen) | `alibaba` | `DASHSCOPE_API_KEY` | `@ai-sdk/alibaba` |
+| Venice AI | `venice` | `VENICE_API_KEY` | `venice-ai-sdk-provider` |
+
+### Additional Providers (Custom Loaders)
+
+These have dedicated integration code for authentication and routing:
+
+| Provider | ID | Auth |
+|----------|----|------|
+| SAP AI Core | `sap-ai-core` | `AICORE_SERVICE_KEY` |
+| Cloudflare Workers AI | `cloudflare-workers-ai` | `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_KEY` |
+| Cloudflare AI Gateway | `cloudflare-ai-gateway` | `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_GATEWAY_ID` + `CLOUDFLARE_API_TOKEN` |
+| Azure Cognitive Services | `azure-cognitive-services` | `AZURE_API_KEY` + `AZURE_COGNITIVE_SERVICES_RESOURCE_NAME` |
+
+### Any OpenAI-Compatible Endpoint
+
+Connect vLLM, LM Studio, Ollama, or any endpoint that speaks the OpenAI API. See [Custom Providers](/docs/configuration/provider-custom-providers).
 
 ## Adding Credentials
 
-### Connect a Provider
+Three ways, in priority order:
 
-In the TUI, run `/connect` to open the provider dialog. Select your provider and enter your API key (or authorize via OAuth for GitHub Copilot).
-
-### Environment Variables
-
-Set API keys in your environment:
+### 1. Environment Variables
 
 ```bash
-# Anthropic
 export ANTHROPIC_API_KEY="sk-ant-..."
-
-# OpenAI
 export OPENAI_API_KEY="sk-..."
-
-# Google
-export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
-
-# OpenRouter
-export OPENROUTER_API_KEY="sk-or-..."
-
-# Groq
-export GROQ_API_KEY="gsk_..."
 ```
 
-Add to your shell profile (`~/.bashrc` or `~/.zshrc`) for persistence.
+### 2. TUI Login
 
-### Configuration File
+Run `/connect` in the TUI to open the provider dialog. Select your provider and enter your API key or authorize via OAuth.
 
-Store credentials in `~/.config/cyberstrike/cyberstrike.json`:
+Credentials are stored in `~/.local/share/cyberstrike/auth.json`.
 
-```json
+### 3. Configuration File
+
+```json title="cyberstrike.json"
 {
   "provider": {
     "anthropic": {
@@ -71,427 +86,82 @@ Store credentials in `~/.config/cyberstrike/cyberstrike.json`:
 }
 ```
 
----
+## Provider Configuration
 
-## Anthropic
-
-Claude models are recommended for complex security analysis.
-
-### Authentication
-
-Run `/connect` in the TUI, select **Anthropic**, and enter your API key from [console.anthropic.com](https://console.anthropic.com).
-
-Or via environment:
-
-```bash
-export ANTHROPIC_API_KEY="sk-ant-..."
-```
-
-### Available Models
-
-| Model | ID | Context | Best For |
-|-------|-----|---------|----------|
-| Claude Opus 4.5 | `claude-opus-4-5-20251101` | 200K | Complex analysis |
-| Claude Sonnet 4 | `claude-sonnet-4-20250514` | 200K | Balanced performance |
-| Claude Haiku 4.5 | `claude-haiku-4-5-20251001` | 200K | Quick tasks |
-
-### Usage
-
-Use `/models` to select a Claude model, or set a default in config:
-
-```json
-{
-  "model": "anthropic/claude-sonnet-4-20250514"
-}
-```
-
-### Configuration Options
+Each provider entry in `cyberstrike.json` can set:
 
 ```json
 {
   "provider": {
-    "anthropic": {
-      "options": {
-        "apiKey": "{env:ANTHROPIC_API_KEY}",
-        "timeout": 300000
-      }
-    }
-  }
-}
-```
-
----
-
-## OpenAI
-
-GPT-4 models provide fast, reliable responses.
-
-### Authentication
-
-Run `/connect` in the TUI, select **OpenAI**, and enter your API key from [platform.openai.com](https://platform.openai.com).
-
-Or via environment:
-
-```bash
-export OPENAI_API_KEY="sk-..."
-```
-
-### Available Models
-
-| Model | ID | Context | Best For |
-|-------|-----|---------|----------|
-| GPT-4o | `gpt-4o` | 128K | General purpose |
-| GPT-4o Mini | `gpt-4o-mini` | 128K | Cost efficiency |
-| o1 | `o1` | 200K | Complex reasoning |
-| o1 Preview | `o1-preview` | 128K | Advanced tasks |
-
-### Usage
-
-Use `/models` to select an OpenAI model, or set one in config.
-
-### Configuration Options
-
-```json
-{
-  "provider": {
-    "openai": {
-      "options": {
-        "apiKey": "{env:OPENAI_API_KEY}",
-        "baseURL": "https://api.openai.com/v1"
-      }
-    }
-  }
-}
-```
-
----
-
-## Google
-
-Gemini models excel at multimodal tasks.
-
-### Authentication
-
-```bash
-export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
-```
-
-Or via Google Cloud:
-
-```bash
-gcloud auth application-default login
-```
-
-### Available Models
-
-| Model | ID | Context | Best For |
-|-------|-----|---------|----------|
-| Gemini 2.0 Flash | `gemini-2.0-flash` | 1M | Fast, experimental |
-| Gemini 1.5 Pro | `gemini-1.5-pro` | 2M | Large context |
-| Gemini 1.5 Flash | `gemini-1.5-flash` | 1M | Speed |
-
-### Usage
-
-Use `/models` to select a Gemini model, or set one in config.
-
----
-
-## OpenRouter
-
-Access many models through a single API with a free tier.
-
-### Authentication
-
-Run `/connect` in the TUI, select **OpenRouter**, and enter your API key from [openrouter.ai/keys](https://openrouter.ai/keys).
-
-Or via environment:
-
-```bash
-export OPENROUTER_API_KEY="sk-or-..."
-```
-
-### Free Tier Models
-
-| Model | ID |
-|-------|-----|
-| Llama 4 Scout | `meta-llama/llama-4-scout:free` |
-| Gemini 2.0 Flash | `google/gemini-2.0-flash:free` |
-| Mistral Small | `mistralai/mistral-small-3.2-24b-instruct:free` |
-
-### Usage
-
-Use `/models` to select an OpenRouter model, or set one in config:
-
-### Configuration
-
-```json
-{
-  "model": "openrouter/meta-llama/llama-4-scout:free",
-  "provider": {
-    "openrouter": {
-      "options": {
-        "apiKey": "{env:OPENROUTER_API_KEY}"
-      }
-    }
-  }
-}
-```
-
----
-
-## AWS Bedrock
-
-Use Claude and other models through AWS.
-
-### Authentication
-
-Configure AWS credentials:
-
-```bash
-# Via AWS CLI
-aws configure
-
-# Or via environment
-export AWS_ACCESS_KEY_ID="..."
-export AWS_SECRET_ACCESS_KEY="..."
-export AWS_REGION="us-east-1"
-```
-
-### Available Models
-
-| Model | ID |
-|-------|-----|
-| Claude Sonnet | `anthropic.claude-sonnet-4-20250514-v1:0` |
-| Claude Haiku | `anthropic.claude-haiku-4-5-20251001-v1:0` |
-| Llama 3.3 | `meta.llama3-3-70b-instruct-v1:0` |
-
-### Configuration
-
-```json
-{
-  "model": "amazon-bedrock/anthropic.claude-sonnet-4-20250514-v1:0",
-  "provider": {
-    "amazon-bedrock": {
-      "options": {
-        "region": "us-east-1"
-      }
-    }
-  }
-}
-```
-
----
-
-## Azure OpenAI
-
-Enterprise Azure deployment of OpenAI models.
-
-### Authentication
-
-```bash
-export AZURE_API_KEY="..."
-export AZURE_RESOURCE_NAME="your-resource"
-```
-
-### Configuration
-
-```json
-{
-  "provider": {
-    "azure": {
-      "options": {
-        "apiKey": "{env:AZURE_API_KEY}",
-        "resourceName": "your-resource",
-        "deploymentId": "gpt-4o"
-      }
-    }
-  }
-}
-```
-
----
-
-## Google Vertex AI
-
-Enterprise Google Cloud AI.
-
-### Authentication
-
-```bash
-gcloud auth application-default login
-```
-
-### Configuration
-
-```json
-{
-  "provider": {
-    "google-vertex": {
-      "options": {
-        "project": "your-project-id",
-        "location": "us-central1"
-      }
-    }
-  }
-}
-```
-
----
-
-## Ollama (Local)
-
-Run models locally for privacy and offline use.
-
-### Setup
-
-1. Install Ollama:
-
-```bash
-curl -fsSL https://ollama.com/install.sh | sh
-```
-
-2. Pull a model:
-
-```bash
-ollama pull llama3.3
-```
-
-3. Start Ollama:
-
-```bash
-ollama serve
-```
-
-### Usage
-
-No API key needed. Use `/models` to select an Ollama model.
-
-### Available Models
-
-| Model | Pull Command |
-|-------|-------------|
-| Llama 3.3 | `ollama pull llama3.3` |
-| CodeLlama | `ollama pull codellama` |
-| Mistral | `ollama pull mistral` |
-| Qwen | `ollama pull qwen2.5` |
-
-### Configuration
-
-```json
-{
-  "model": "ollama/llama3.3",
-  "provider": {
-    "ollama": {
-      "options": {
-        "baseURL": "http://localhost:11434"
-      }
-    }
-  }
-}
-```
-
----
-
-## Groq
-
-Fastest inference for supported models.
-
-### Authentication
-
-```bash
-export GROQ_API_KEY="gsk_..."
-```
-
-### Available Models
-
-| Model | ID |
-|-------|-----|
-| Llama 3.3 70B | `llama-3.3-70b-versatile` |
-| Mixtral 8x7B | `llama-3.3-70b-versatile` |
-
-### Usage
-
-Use `/models` to select a Groq model, or set one in config.
-
----
-
-## Custom OpenAI-Compatible
-
-Connect to any OpenAI-compatible API.
-
-### Configuration
-
-```json
-{
-  "provider": {
-    "custom-api": {
-      "id": "custom-api",
-      "name": "Custom API",
-      "options": {
-        "baseURL": "https://api.custom.example.com/v1",
-        "apiKey": "{env:CUSTOM_API_KEY}"
-      },
+    "<provider-id>": {
+      "name": "Display Name",
+      "api": "https://api.example.com/v1",
+      "npm": "@ai-sdk/openai-compatible",
+      "env": ["MY_API_KEY"],
+      "options": {},
       "models": {
-        "custom-model": {
-          "name": "Custom Model",
-          "contextLength": 32000
+        "model-id": {
+          "name": "Model Name",
+          "id": "api-model-id"
         }
-      }
+      },
+      "blacklist": ["model-to-hide"],
+      "whitelist": ["only-these-models"]
     }
   }
 }
 ```
 
-### Usage
+| Field | Purpose |
+|-------|---------|
+| `api` | Base URL — **triggers provider loading** for custom endpoints |
+| `npm` | AI SDK package (defaults to `@ai-sdk/openai-compatible`) |
+| `env` | Environment variable names for the API key |
+| `options` | Passed to the SDK factory (apiKey, baseURL, timeout, headers, etc.) |
+| `models` | Override or add models to the catalog |
+| `blacklist` / `whitelist` | Filter which models appear |
 
-Use `/models` to select the custom model, or set it in config.
+## Model Selection
 
----
+Use `provider-id/model-id` format everywhere:
 
-## Provider Selection Tips
-
-### For Complex Security Analysis
-
-Use Claude Opus 4.5 or Sonnet 4:
-
-```json
+```json title="cyberstrike.json"
 {
-  "model": "anthropic/claude-opus-4-5-20251101"
+  "model": "anthropic/claude-sonnet-4-5"
 }
 ```
 
-### For Cost Efficiency
+Or at launch:
 
-Use OpenRouter free tier or Groq:
+```bash
+cyberstrike --model anthropic/claude-sonnet-4-5
+```
 
-```json
+Or switch mid-session with `/models` in the TUI.
+
+## Disabling / Enabling Providers
+
+```json title="cyberstrike.json"
 {
-  "model": "openrouter/meta-llama/llama-4-scout:free"
+  "disabled_providers": ["openrouter", "groq"],
+  "enabled_providers": ["anthropic", "openai"]
 }
 ```
 
-### For Privacy
+`enabled_providers` is a whitelist — only listed providers appear. `disabled_providers` is a blacklist. They can be combined.
 
-Use Ollama with local models:
+## Model Catalog
 
-```json
-{
-  "model": "ollama/llama3.3"
-}
-```
+CyberStrike pulls model metadata (pricing, context limits, capabilities) from [models.dev](https://models.dev) and caches it locally. The catalog auto-updates, so new models appear without upgrading CyberStrike.
 
-### For Enterprise
+## Detailed Provider Guides
 
-Use AWS Bedrock or Azure OpenAI with your organization's credentials.
+- [Anthropic (Claude)](/docs/configuration/provider-anthropic) — OAuth subscription, extended thinking, caching
+- [AWS Bedrock](/docs/configuration/provider-aws-bedrock) — 9 auth methods, cross-region inference, VPC endpoints
+- [GitHub Copilot](/docs/configuration/provider-github-copilot) — OAuth device flow, Enterprise, model routing
+- [Custom Providers](/docs/configuration/provider-custom-providers) — OpenAI-compatible endpoints, vLLM, LM Studio, Azure, bundled extras
 
----
+## Related Documentation
 
-## Managing Credentials
-
-Use `/status` in the TUI to see connected providers and active credentials.
-
-To remove credentials, use the CLI command `cyberstrike auth logout` and select the provider to remove.
-
-<Aside variant="tip">
-  For penetration testing tasks requiring complex reasoning, we recommend **Claude Opus 4.5** or **Claude Sonnet 4**.
-</Aside>
+- [Configuration](/docs/configuration) — Full configuration reference
+- [Authentication](/docs/getting-started/authentication) — Initial setup

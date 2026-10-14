@@ -1,65 +1,80 @@
 ---
-title: AI 提供商
-description: 为 Cyberstrike 配置和使用不同的 AI 提供商
+title: AI Providers
+description: Configure and use different AI providers with Cyberstrike
 sidebar:
   order: 12
-  label: 概述
+  label: AI Providers
 ---
 
-Cyberstrike 支持多个 AI 提供商，让您可以灵活选择最适合安全评估的模型。
+Cyberstrike supports 25+ AI providers. The model catalog is pulled live from [models.dev](https://models.dev) — new models appear automatically. Run `/models` in the TUI to see what's available.
 
-<img src="/docs/images/screenshots/s05-provider-dialog.png" alt="连接提供商对话框，列出热门和其他提供商" className="rounded-lg shadow-lg my-6 w-full" />
+## Supported Providers
 
-<img src="/docs/images/diagrams/provider-selection-flow.svg" alt="Cyberstrike 如何选择模型和提供商——配置模型、最近使用的、然后按优先级选择第一个可用提供商" className="my-6 mx-auto max-w-lg" />
+### First-Party SDKs (Bundled)
 
-## 支持的提供商
+These providers have dedicated AI SDK packages bundled into CyberStrike. Set the API key and go.
 
-| 提供商 | 模型 | 最适合 |
-|--------|------|--------|
-| **Anthropic** | Claude Opus 4.5、Sonnet 4、Haiku | 复杂推理、长上下文 |
-| **OpenAI** | GPT-4o、o1、o1-preview | 通用、快速响应 |
-| **Google** | Gemini 2.0 Flash、Pro | 多模态、大上下文 |
-| **AWS Bedrock** | Claude、Llama、Titan | 企业、本地部署 |
-| **Azure OpenAI** | GPT-4、GPT-4o | 企业合规 |
-| **Google Vertex AI** | Gemini、Claude | 企业 GCP |
-| **OpenRouter** | 多种模型 | 免费层级、模型多样性 |
-| **Groq** | Llama 3.3、Mixtral | 速度、成本效率 |
-| **Ollama** | 本地模型 | 隐私、离线使用 |
+| Provider | ID | Env Var | SDK |
+|----------|----|---------|-----|
+| Anthropic | `anthropic` | `ANTHROPIC_API_KEY` | `@ai-sdk/anthropic` |
+| OpenAI | `openai` | `OPENAI_API_KEY` | `@ai-sdk/openai` |
+| Google Gemini | `google` | `GOOGLE_GENERATIVE_AI_API_KEY` | `@ai-sdk/google` |
+| Google Vertex AI | `google-vertex` | `GOOGLE_CLOUD_PROJECT` + ADC | `@ai-sdk/google-vertex` |
+| Google Vertex (Anthropic) | `google-vertex-anthropic` | same as Vertex | `@ai-sdk/google-vertex/anthropic` |
+| Amazon Bedrock | `amazon-bedrock` | AWS credential chain | `@ai-sdk/amazon-bedrock` |
+| Azure OpenAI | `azure` | `AZURE_API_KEY` | `@ai-sdk/azure` |
+| GitHub Copilot | `github-copilot` | OAuth device flow | custom SDK |
+| GitHub Copilot Enterprise | `github-copilot-enterprise` | OAuth device flow | custom SDK |
+| OpenRouter | `openrouter` | `OPENROUTER_API_KEY` | `@openrouter/ai-sdk-provider` |
+| Groq | `groq` | `GROQ_API_KEY` | `@ai-sdk/groq` |
+| Mistral | `mistral` | `MISTRAL_API_KEY` | `@ai-sdk/mistral` |
+| xAI (Grok) | `xai` | `XAI_API_KEY` | `@ai-sdk/xai` |
+| DeepInfra | `deepinfra` | `DEEPINFRA_API_KEY` | `@ai-sdk/deepinfra` |
+| Together AI | `togetherai` | `TOGETHER_API_KEY` | `@ai-sdk/togetherai` |
+| Perplexity | `perplexity` | `PERPLEXITY_API_KEY` | `@ai-sdk/perplexity` |
+| Cohere | `cohere` | `COHERE_API_KEY` | `@ai-sdk/cohere` |
+| Cerebras | `cerebras` | `CEREBRAS_API_KEY` | `@ai-sdk/cerebras` |
+| Vercel AI Gateway | `vercel` | (Vercel auth) | `@ai-sdk/vercel` |
+| AI SDK Gateway | `gateway` | (varies) | `@ai-sdk/gateway` |
+| GitLab Duo | `gitlab` | `GITLAB_TOKEN` or OAuth | `@gitlab/gitlab-ai-provider` |
+| Alibaba (Qwen) | `alibaba` | `DASHSCOPE_API_KEY` | `@ai-sdk/alibaba` |
+| Venice AI | `venice` | `VENICE_API_KEY` | `venice-ai-sdk-provider` |
 
-## 添加凭据
+### Additional Providers (Custom Loaders)
 
-### 连接提供商
+These have dedicated integration code for authentication and routing:
 
-在 TUI 中运行 `/connect` 打开提供商对话框。选择您的提供商并输入 API 密钥（或对 GitHub Copilot 通过 OAuth 授权）。
+| Provider | ID | Auth |
+|----------|----|------|
+| SAP AI Core | `sap-ai-core` | `AICORE_SERVICE_KEY` |
+| Cloudflare Workers AI | `cloudflare-workers-ai` | `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_KEY` |
+| Cloudflare AI Gateway | `cloudflare-ai-gateway` | `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_GATEWAY_ID` + `CLOUDFLARE_API_TOKEN` |
+| Azure Cognitive Services | `azure-cognitive-services` | `AZURE_API_KEY` + `AZURE_COGNITIVE_SERVICES_RESOURCE_NAME` |
 
-### 环境变量
+### Any OpenAI-Compatible Endpoint
 
-在您的环境中设置 API 密钥：
+Connect vLLM, LM Studio, Ollama, or any endpoint that speaks the OpenAI API. See [Custom Providers](/docs/configuration/provider-custom-providers).
+
+## Adding Credentials
+
+Three ways, in priority order:
+
+### 1. Environment Variables
 
 ```bash
-# Anthropic
 export ANTHROPIC_API_KEY="sk-ant-..."
-
-# OpenAI
 export OPENAI_API_KEY="sk-..."
-
-# Google
-export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
-
-# OpenRouter
-export OPENROUTER_API_KEY="sk-or-..."
-
-# Groq
-export GROQ_API_KEY="gsk_..."
 ```
 
-添加到 shell 配置文件（`~/.bashrc` 或 `~/.zshrc`）以持久保存。
+### 2. TUI Login
 
-### 配置文件
+Run `/connect` in the TUI to open the provider dialog. Select your provider and enter your API key or authorize via OAuth.
 
-在 `~/.config/cyberstrike/cyberstrike.json` 中存储凭据：
+Credentials are stored in `~/.local/share/cyberstrike/auth.json`.
 
-```json
+### 3. Configuration File
+
+```json title="cyberstrike.json"
 {
   "provider": {
     "anthropic": {
@@ -71,427 +86,82 @@ export GROQ_API_KEY="gsk_..."
 }
 ```
 
----
+## Provider Configuration
 
-## Anthropic
-
-Claude 模型推荐用于复杂的安全分析。
-
-### 认证
-
-在 TUI 中运行 `/connect`，选择 **Anthropic**，并输入来自 [console.anthropic.com](https://console.anthropic.com) 的 API 密钥。
-
-或通过环境变量：
-
-```bash
-export ANTHROPIC_API_KEY="sk-ant-..."
-```
-
-### 可用模型
-
-| 模型 | ID | 上下文 | 最适合 |
-|------|-----|--------|--------|
-| Claude Opus 4.5 | `claude-opus-4-5-20251101` | 200K | 复杂分析 |
-| Claude Sonnet 4 | `claude-sonnet-4-20250514` | 200K | 均衡性能 |
-| Claude Haiku 4.5 | `claude-haiku-4-5-20251001` | 200K | 快速任务 |
-
-### 使用
-
-使用 `/models` 选择 Claude 模型，或在配置中设置默认值：
-
-```json
-{
-  "model": "anthropic/claude-sonnet-4-20250514"
-}
-```
-
-### 配置选项
+Each provider entry in `cyberstrike.json` can set:
 
 ```json
 {
   "provider": {
-    "anthropic": {
-      "options": {
-        "apiKey": "{env:ANTHROPIC_API_KEY}",
-        "timeout": 300000
-      }
-    }
-  }
-}
-```
-
----
-
-## OpenAI
-
-GPT-4 模型提供快速、可靠的响应。
-
-### 认证
-
-在 TUI 中运行 `/connect`，选择 **OpenAI**，并输入来自 [platform.openai.com](https://platform.openai.com) 的 API 密钥。
-
-或通过环境变量：
-
-```bash
-export OPENAI_API_KEY="sk-..."
-```
-
-### 可用模型
-
-| 模型 | ID | 上下文 | 最适合 |
-|------|-----|--------|--------|
-| GPT-4o | `gpt-4o` | 128K | 通用 |
-| GPT-4o Mini | `gpt-4o-mini` | 128K | 成本效率 |
-| o1 | `o1` | 200K | 复杂推理 |
-| o1 Preview | `o1-preview` | 128K | 高级任务 |
-
-### 使用
-
-使用 `/models` 选择 OpenAI 模型，或在配置中设置。
-
-### 配置选项
-
-```json
-{
-  "provider": {
-    "openai": {
-      "options": {
-        "apiKey": "{env:OPENAI_API_KEY}",
-        "baseURL": "https://api.openai.com/v1"
-      }
-    }
-  }
-}
-```
-
----
-
-## Google
-
-Gemini 模型擅长多模态任务。
-
-### 认证
-
-```bash
-export GOOGLE_GENERATIVE_AI_API_KEY="AI..."
-```
-
-或通过 Google Cloud：
-
-```bash
-gcloud auth application-default login
-```
-
-### 可用模型
-
-| 模型 | ID | 上下文 | 最适合 |
-|------|-----|--------|--------|
-| Gemini 2.0 Flash | `gemini-2.0-flash` | 1M | 快速、实验性 |
-| Gemini 1.5 Pro | `gemini-1.5-pro` | 2M | 大上下文 |
-| Gemini 1.5 Flash | `gemini-1.5-flash` | 1M | 速度 |
-
-### 使用
-
-使用 `/models` 选择 Gemini 模型，或在配置中设置。
-
----
-
-## OpenRouter
-
-通过单个 API 访问多种模型，提供免费层级。
-
-### 认证
-
-在 TUI 中运行 `/connect`，选择 **OpenRouter**，并输入来自 [openrouter.ai/keys](https://openrouter.ai/keys) 的 API 密钥。
-
-或通过环境变量：
-
-```bash
-export OPENROUTER_API_KEY="sk-or-..."
-```
-
-### 免费层级模型
-
-| 模型 | ID |
-|------|-----|
-| Llama 4 Scout | `meta-llama/llama-4-scout:free` |
-| Gemini 2.0 Flash | `google/gemini-2.0-flash:free` |
-| Mistral Small | `mistralai/mistral-small-3.2-24b-instruct:free` |
-
-### 使用
-
-使用 `/models` 选择 OpenRouter 模型，或在配置中设置：
-
-### 配置
-
-```json
-{
-  "model": "openrouter/meta-llama/llama-4-scout:free",
-  "provider": {
-    "openrouter": {
-      "options": {
-        "apiKey": "{env:OPENROUTER_API_KEY}"
-      }
-    }
-  }
-}
-```
-
----
-
-## AWS Bedrock
-
-通过 AWS 使用 Claude 和其他模型。
-
-### 认证
-
-配置 AWS 凭据：
-
-```bash
-# 通过 AWS CLI
-aws configure
-
-# 或通过环境变量
-export AWS_ACCESS_KEY_ID="..."
-export AWS_SECRET_ACCESS_KEY="..."
-export AWS_REGION="us-east-1"
-```
-
-### 可用模型
-
-| 模型 | ID |
-|------|-----|
-| Claude Sonnet | `anthropic.claude-sonnet-4-20250514-v1:0` |
-| Claude Haiku | `anthropic.claude-haiku-4-5-20251001-v1:0` |
-| Llama 3.3 | `meta.llama3-3-70b-instruct-v1:0` |
-
-### 配置
-
-```json
-{
-  "model": "amazon-bedrock/anthropic.claude-sonnet-4-20250514-v1:0",
-  "provider": {
-    "amazon-bedrock": {
-      "options": {
-        "region": "us-east-1"
-      }
-    }
-  }
-}
-```
-
----
-
-## Azure OpenAI
-
-OpenAI 模型的企业 Azure 部署。
-
-### 认证
-
-```bash
-export AZURE_API_KEY="..."
-export AZURE_RESOURCE_NAME="your-resource"
-```
-
-### 配置
-
-```json
-{
-  "provider": {
-    "azure": {
-      "options": {
-        "apiKey": "{env:AZURE_API_KEY}",
-        "resourceName": "your-resource",
-        "deploymentId": "gpt-4o"
-      }
-    }
-  }
-}
-```
-
----
-
-## Google Vertex AI
-
-企业 Google Cloud AI。
-
-### 认证
-
-```bash
-gcloud auth application-default login
-```
-
-### 配置
-
-```json
-{
-  "provider": {
-    "google-vertex": {
-      "options": {
-        "project": "your-project-id",
-        "location": "us-central1"
-      }
-    }
-  }
-}
-```
-
----
-
-## Ollama（本地）
-
-在本地运行模型以保护隐私和离线使用。
-
-### 设置
-
-1. 安装 Ollama：
-
-```bash
-curl -fsSL https://ollama.com/install.sh | sh
-```
-
-2. 拉取模型：
-
-```bash
-ollama pull llama3.3
-```
-
-3. 启动 Ollama：
-
-```bash
-ollama serve
-```
-
-### 使用
-
-无需 API 密钥。使用 `/models` 选择 Ollama 模型。
-
-### 可用模型
-
-| 模型 | 拉取命令 |
-|------|----------|
-| Llama 3.3 | `ollama pull llama3.3` |
-| CodeLlama | `ollama pull codellama` |
-| Mistral | `ollama pull mistral` |
-| Qwen | `ollama pull qwen2.5` |
-
-### 配置
-
-```json
-{
-  "model": "ollama/llama3.3",
-  "provider": {
-    "ollama": {
-      "options": {
-        "baseURL": "http://localhost:11434"
-      }
-    }
-  }
-}
-```
-
----
-
-## Groq
-
-支持模型的最快推理。
-
-### 认证
-
-```bash
-export GROQ_API_KEY="gsk_..."
-```
-
-### 可用模型
-
-| 模型 | ID |
-|------|-----|
-| Llama 3.3 70B | `llama-3.3-70b-versatile` |
-| Mixtral 8x7B | `llama-3.3-70b-versatile` |
-
-### 使用
-
-使用 `/models` 选择 Groq 模型，或在配置中设置。
-
----
-
-## 自定义 OpenAI 兼容
-
-连接任何 OpenAI 兼容的 API。
-
-### 配置
-
-```json
-{
-  "provider": {
-    "custom-api": {
-      "id": "custom-api",
-      "name": "Custom API",
-      "options": {
-        "baseURL": "https://api.custom.example.com/v1",
-        "apiKey": "{env:CUSTOM_API_KEY}"
-      },
+    "<provider-id>": {
+      "name": "Display Name",
+      "api": "https://api.example.com/v1",
+      "npm": "@ai-sdk/openai-compatible",
+      "env": ["MY_API_KEY"],
+      "options": {},
       "models": {
-        "custom-model": {
-          "name": "Custom Model",
-          "contextLength": 32000
+        "model-id": {
+          "name": "Model Name",
+          "id": "api-model-id"
         }
-      }
+      },
+      "blacklist": ["model-to-hide"],
+      "whitelist": ["only-these-models"]
     }
   }
 }
 ```
 
-### 使用
+| Field | Purpose |
+|-------|---------|
+| `api` | Base URL — **triggers provider loading** for custom endpoints |
+| `npm` | AI SDK package (defaults to `@ai-sdk/openai-compatible`) |
+| `env` | Environment variable names for the API key |
+| `options` | Passed to the SDK factory (apiKey, baseURL, timeout, headers, etc.) |
+| `models` | Override or add models to the catalog |
+| `blacklist` / `whitelist` | Filter which models appear |
 
-使用 `/models` 选择自定义模型，或在配置中设置。
+## Model Selection
 
----
+Use `provider-id/model-id` format everywhere:
 
-## 提供商选择建议
-
-### 复杂安全分析
-
-使用 Claude Opus 4.5 或 Sonnet 4：
-
-```json
+```json title="cyberstrike.json"
 {
-  "model": "anthropic/claude-opus-4-5-20251101"
+  "model": "anthropic/claude-sonnet-4-5"
 }
 ```
 
-### 成本效率
+Or at launch:
 
-使用 OpenRouter 免费层级或 Groq：
+```bash
+cyberstrike --model anthropic/claude-sonnet-4-5
+```
 
-```json
+Or switch mid-session with `/models` in the TUI.
+
+## Disabling / Enabling Providers
+
+```json title="cyberstrike.json"
 {
-  "model": "openrouter/meta-llama/llama-4-scout:free"
+  "disabled_providers": ["openrouter", "groq"],
+  "enabled_providers": ["anthropic", "openai"]
 }
 ```
 
-### 隐私
+`enabled_providers` is a whitelist — only listed providers appear. `disabled_providers` is a blacklist. They can be combined.
 
-使用带本地模型的 Ollama：
+## Model Catalog
 
-```json
-{
-  "model": "ollama/llama3.3"
-}
-```
+CyberStrike pulls model metadata (pricing, context limits, capabilities) from [models.dev](https://models.dev) and caches it locally. The catalog auto-updates, so new models appear without upgrading CyberStrike.
 
-### 企业
+## Detailed Provider Guides
 
-使用 AWS Bedrock 或 Azure OpenAI 配合您组织的凭据。
+- [Anthropic (Claude)](/docs/configuration/provider-anthropic) — OAuth subscription, extended thinking, caching
+- [AWS Bedrock](/docs/configuration/provider-aws-bedrock) — 9 auth methods, cross-region inference, VPC endpoints
+- [GitHub Copilot](/docs/configuration/provider-github-copilot) — OAuth device flow, Enterprise, model routing
+- [Custom Providers](/docs/configuration/provider-custom-providers) — OpenAI-compatible endpoints, vLLM, LM Studio, Azure, bundled extras
 
----
+## Related Documentation
 
-## 管理凭据
-
-在 TUI 中使用 `/status` 查看已连接的提供商和活跃凭据。
-
-要移除凭据，使用 CLI 命令 `cyberstrike auth logout` 并选择要移除的提供商。
-
-<Aside variant="tip">
-  对于需要复杂推理的渗透测试任务，我们推荐 **Claude Opus 4.5** 或 **Claude Sonnet 4**。
-</Aside>
+- [Configuration](/docs/configuration) — Full configuration reference
+- [Authentication](/docs/getting-started/authentication) — Initial setup
