@@ -54,7 +54,19 @@ build-cli:
   needs: [version]
   script:
     - bun install
-    - bun install --os="*" --cpu="*" @opentui/core @opentui/core-darwin-x64 @opentui/core-darwin-arm64 @opentui/core-linux-x64 @opentui/core-linux-arm64 @opentui/core-win32-x64 @opentui/core-win32-arm64 @opentui/core-linux-x64-musl @opentui/core-linux-arm64-musl
+    - |
+      OTUI_VER=$(bun -e "console.log(require('./packages/cyberstrike/package.json').dependencies['@opentui/core'])")
+      PW_VER=$(bun -e "console.log(require('./packages/cyberstrike/package.json').dependencies['@parcel/watcher'])")
+      echo "opentui=$OTUI_VER parcel/watcher=$PW_VER"
+      bun install --os="*" --cpu="*" \
+        @opentui/core@$OTUI_VER \
+        @opentui/core-darwin-x64@$OTUI_VER \
+        @opentui/core-darwin-arm64@$OTUI_VER \
+        @opentui/core-linux-x64@$OTUI_VER \
+        @opentui/core-linux-arm64@$OTUI_VER \
+        @opentui/core-win32-x64@$OTUI_VER \
+        @opentui/core-win32-arm64@$OTUI_VER \
+        @parcel/watcher@$PW_VER
     - |
       export CYBERSTRIKE_VERSION
       export CYBERSTRIKE_RELEASE=""
