@@ -1,4 +1,15 @@
 ;(function () {
+  var RTL_LOCALES = ["fa"]
+
+  var language = localStorage.getItem("cyberstrike.global.dat:language")
+  if (language) {
+    var locale
+    try {
+      locale = JSON.parse(language).locale
+    } catch {}
+    if (RTL_LOCALES.indexOf(locale) !== -1) document.documentElement.dir = "rtl"
+  }
+
   var themeId = localStorage.getItem("cyberstrike-theme-id")
   if (!themeId) return
 

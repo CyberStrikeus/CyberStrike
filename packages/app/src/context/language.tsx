@@ -19,6 +19,7 @@ import { dict as no } from "@/i18n/no"
 import { dict as br } from "@/i18n/br"
 import { dict as th } from "@/i18n/th"
 import { dict as bs } from "@/i18n/bs"
+import { dict as fa } from "@/i18n/fa"
 import { dict as uiEn } from "@cyberstrike-io/ui/i18n/en"
 import { dict as uiZh } from "@cyberstrike-io/ui/i18n/zh"
 import { dict as uiZht } from "@cyberstrike-io/ui/i18n/zht"
@@ -35,6 +36,8 @@ import { dict as uiNo } from "@cyberstrike-io/ui/i18n/no"
 import { dict as uiBr } from "@cyberstrike-io/ui/i18n/br"
 import { dict as uiTh } from "@cyberstrike-io/ui/i18n/th"
 import { dict as uiBs } from "@cyberstrike-io/ui/i18n/bs"
+import { dict as uiFa } from "@cyberstrike-io/ui/i18n/fa"
+import { direction } from "@/i18n/direction"
 
 export type Locale =
   | "en"
@@ -53,6 +56,7 @@ export type Locale =
   | "br"
   | "th"
   | "bs"
+  | "fa"
 
 type RawDictionary = typeof en & typeof uiEn
 type Dictionary = i18n.Flatten<RawDictionary>
@@ -78,6 +82,7 @@ const LOCALES: readonly Locale[] = [
   "no",
   "br",
   "th",
+  "fa",
 ]
 
 const LABEL_KEY: Record<Locale, keyof Dictionary> = {
@@ -97,6 +102,7 @@ const LABEL_KEY: Record<Locale, keyof Dictionary> = {
   br: "language.br",
   th: "language.th",
   bs: "language.bs",
+  fa: "language.fa",
 }
 
 const base = i18n.flatten({ ...en, ...uiEn })
@@ -117,6 +123,7 @@ const DICT: Record<Locale, Dictionary> = {
   br: { ...base, ...i18n.flatten({ ...br, ...uiBr }) },
   th: { ...base, ...i18n.flatten({ ...th, ...uiTh }) },
   bs: { ...base, ...i18n.flatten({ ...bs, ...uiBs }) },
+  fa: { ...base, ...i18n.flatten({ ...fa, ...uiFa }) },
 }
 
 const localeMatchers: Array<{ locale: Locale; match: (language: string) => boolean }> = [
@@ -131,6 +138,11 @@ const localeMatchers: Array<{ locale: Locale; match: (language: string) => boole
   { locale: "pl", match: (language) => language.startsWith("pl") },
   { locale: "ru", match: (language) => language.startsWith("ru") },
   { locale: "ar", match: (language) => language.startsWith("ar") },
+  {
+    locale: "fa",
+    match: (language) =>
+      language.startsWith("fa") || language.startsWith("per") || language.startsWith("pes") || language === "farsi",
+  },
   {
     locale: "no",
     match: (language) => language.startsWith("no") || language.startsWith("nb") || language.startsWith("nn"),
@@ -157,6 +169,7 @@ const PARITY_CHECK: Record<Exclude<Locale, "en">, Record<ParityKey, string>> = {
   br,
   th,
   bs,
+  fa,
 }
 void PARITY_CHECK
 
@@ -203,6 +216,7 @@ export const { use: useLanguage, provider: LanguageProvider } = createSimpleCont
     createEffect(() => {
       if (typeof document !== "object") return
       document.documentElement.lang = locale()
+      document.documentElement.dir = direction(locale())
       document.cookie = cookie(locale())
     })
 
