@@ -7,11 +7,13 @@ variables:
   BUN_VERSION: "1.3.9"
   FF_USE_FASTZIP: "true"
 
-.setup-bun:
-  before_script:
-    - curl -fsSL https://bun.sh/install | bash -s "bun-v${BUN_VERSION}"
-    - export PATH="$HOME/.bun/bin:$PATH"
-    - bun install
+default:
+  cache:
+    key: bun-$CI_COMMIT_REF_SLUG
+    paths:
+      - node_modules/
+      - .turbo/
+    policy: pull-push
 
 workflow:
   rules:
@@ -25,7 +27,7 @@ version:
   stage: version
   image: oven/bun:1.3.9-debian
   script:
-    - bun install
+    - bun install --frozen-lockfile
     - |
       export CYBERSTRIKE_BUMP="${BUMP:-canary}"
       export CYBERSTRIKE_VERSION="${VERSION:-}"
@@ -41,7 +43,7 @@ build-app:
   image: oven/bun:1.3.9-debian
   needs: [version]
   script:
-    - bun install
+    - bun install --frozen-lockfile
     - CYBERSTRIKE_VERSION=$CYBERSTRIKE_VERSION bun turbo build --filter=@cyberstrike-io/app
   artifacts:
     paths:
@@ -53,7 +55,7 @@ build-cli:
   image: oven/bun:1.3.9-debian
   needs: [version]
   script:
-    - bun install
+    - bun install --frozen-lockfile
     - |
       OTUI_VER=$(bun -e "console.log(require('./packages/cyberstrike/package.json').dependencies['@opentui/core'])")
       PW_VER=$(bun -e "console.log(require('./packages/cyberstrike/package.json').dependencies['@parcel/watcher'])")
@@ -86,7 +88,7 @@ publish:
   script:
     - corepack enable
     - npm install -g bun@${BUN_VERSION}
-    - bun install
+    - bun install --frozen-lockfile
     - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
     - |
       export CYBERSTRIKE_VERSION
