@@ -53,6 +53,65 @@ test("changing language updates settings labels", async ({ page, gotoSession }) 
   await expect(heading).toHaveText("General")
 })
 
+test("selecting Persian switches the interface to RTL and back to LTR", async ({ page, gotoSession }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("cyberstrike.global.dat:language", JSON.stringify({ locale: "en" }))
+  })
+
+  await gotoSession()
+
+  await expect(page.locator("html")).toHaveAttribute("dir", "ltr")
+  await expect(page.locator("html")).toHaveAttribute("lang", "en")
+
+  const dialog = await openSettings(page)
+  const heading = dialog.getByRole("heading", { level: 2 })
+
+  const select = dialog.locator(settingsLanguageSelectSelector)
+  await expect(select).toBeVisible()
+  await select.locator('[data-slot="select-select-trigger"]').click()
+
+  await page.locator('[data-slot="select-select-item"]').filter({ hasText: "فارسی" }).click()
+
+  await expect(heading).toHaveText("عمومی")
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl")
+  await expect(page.locator("html")).toHaveAttribute("lang", "fa")
+
+  await select.locator('[data-slot="select-select-trigger"]').click()
+  await page.locator('[data-slot="select-select-item"]').filter({ hasText: "English" }).click()
+
+  await expect(heading).toHaveText("General")
+  await expect(page.locator("html")).toHaveAttribute("dir", "ltr")
+  await expect(page.locator("html")).toHaveAttribute("lang", "en")
+
+  await closeDialog(page, dialog)
+
+  const stored = await page.evaluate(() => {
+    const raw = localStorage.getItem("cyberstrike.global.dat:language")
+    return raw ? JSON.parse(raw) : null
+  })
+  expect(stored?.locale).toBe("en")
+})
+
+test("Persian selection persists across a reload", async ({ page, gotoSession }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("cyberstrike.global.dat:language", JSON.stringify({ locale: "fa" }))
+  })
+
+  await gotoSession()
+
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl")
+  await expect(page.locator("html")).toHaveAttribute("lang", "fa")
+
+  await page.reload()
+
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl")
+  await expect(page.locator("html")).toHaveAttribute("lang", "fa")
+
+  await page.addInitScript(() => {
+    localStorage.removeItem("cyberstrike.global.dat:language")
+  })
+})
+
 test("changing color scheme persists in localStorage", async ({ page, gotoSession }) => {
   await gotoSession()
 

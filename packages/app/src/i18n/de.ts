@@ -360,6 +360,7 @@ export const dict = {
   "language.br": "Português (Brasil)",
   "language.bs": "Bosanski",
   "language.th": "ไทย",
+  "language.fa": "فارسی",
   "toast.language.title": "Sprache",
   "toast.language.description": "Zu {{language}} gewechselt",
   "toast.theme.title": "Thema gewechselt",
