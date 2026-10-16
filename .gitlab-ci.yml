@@ -16,6 +16,8 @@ variables:
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "api"
+    - if: $CI_PIPELINE_SOURCE == "trigger"
 
 # ── Stage 1: calculate version ────────────────────────────────────────────────
 
@@ -80,6 +82,5 @@ publish:
       export CYBERSTRIKE_BUMP="${BUMP:-canary}"
       bun run ./script/publish-ci.ts
   rules:
-    - if: $CI_PIPELINE_SOURCE == "web"
-      when: manual
+    - when: manual
       allow_failure: false
