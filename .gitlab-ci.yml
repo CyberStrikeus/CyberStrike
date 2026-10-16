@@ -92,6 +92,7 @@ publish:
       export CYBERSTRIKE_VERSION
       export CYBERSTRIKE_RELEASE=""
       export CYBERSTRIKE_BUMP="${BUMP:-canary}"
+      export NPM_CONFIG_PROVENANCE=false
       bun run ./script/publish-ci.ts
   rules:
     - when: manual
