@@ -54,11 +54,12 @@ build-cli:
   needs: [version]
   script:
     - bun install
+    - bun install --os="*" --cpu="*" @opentui/core @opentui/core-darwin-x64 @opentui/core-darwin-arm64 @opentui/core-linux-x64 @opentui/core-linux-arm64 @opentui/core-win32-x64 @opentui/core-win32-arm64 @opentui/core-linux-x64-musl @opentui/core-linux-arm64-musl
     - |
       export CYBERSTRIKE_VERSION
       export CYBERSTRIKE_RELEASE=""
       export CYBERSTRIKE_BUMP="${BUMP:-canary}"
-      bun run ./packages/cyberstrike/script/build.ts --single
+      bun run ./packages/cyberstrike/script/build.ts --skip-install
   artifacts:
     paths:
       - packages/cyberstrike/dist/
