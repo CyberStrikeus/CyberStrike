@@ -12,6 +12,9 @@ export async function createCyberstrike(options?: ServerOptions) {
 
   const client = createCyberstrikeClient({
     baseUrl: server.url,
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${server.username}:${server.password}`).toString("base64")}`,
+    },
   })
 
   return {
