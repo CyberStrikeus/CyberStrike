@@ -58,8 +58,7 @@ build-cli:
       export CYBERSTRIKE_VERSION
       export CYBERSTRIKE_RELEASE=""
       export CYBERSTRIKE_BUMP="${BUMP:-canary}"
-      export CYBERSTRIKE_BUILD_OS="${PLATFORM:-all}"
-      bun run ./packages/cyberstrike/script/build.ts
+      bun run ./packages/cyberstrike/script/build.ts --single
   artifacts:
     paths:
       - packages/cyberstrike/dist/
