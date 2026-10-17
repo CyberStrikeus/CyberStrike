@@ -283,6 +283,10 @@ export namespace SessionProcessor {
                   break
                 }
                 case "error":
+                  if (typeof value.error === "string" && value.error.includes("not found")) {
+                    log.warn("stream soft error (skipped)", { error: value.error })
+                    break
+                  }
                   throw value.error
 
                 case "start-step":
