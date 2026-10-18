@@ -727,7 +727,7 @@ export namespace Provider {
         output: model.limit.output,
       },
       capabilities: {
-        temperature: model.temperature,
+        temperature: model.temperature ?? false,
         reasoning: model.reasoning,
         attachment: model.attachment,
         toolcall: model.tool_call,
