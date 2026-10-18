@@ -23,6 +23,7 @@ import { FrameworkFingerprinter } from "../tech"
 import { DataCollector } from "../data-collector"
 import { JsMiner } from "../js-miner"
 import { HBLog } from "../hblog"
+import { WebCredential } from "../web-credential"
 import { Provider } from "../../../provider/provider"
 import { ProviderTransform } from "../../../provider/transform"
 import { Log } from "../../../util/log"
@@ -118,9 +119,18 @@ const SYSTEM =
   "menu that only appears on mouseover), `scroll` (no element_id: page down to load lazy/infinite " +
   "content; or an element_id to bring it into view), `press` (a key such as Enter to submit a search " +
   "box that has no button — element_id optional). Operate every kind of widget the page has. " +
-  "Do NOT invent passwords for a login you have no credentials " +
-  "for — if a login blocks you and no credentials are in context, emit `done` with reason " +
-  "'login required — operator must authenticate' instead of clicking Sign-in on empty fields. " +
+  "LOGIN STRATEGY: If explicit credentials are listed in the Credential section below, use " +
+  "those. If no credentials are provided (anonymous crawl) and a login page blocks you: (1) look " +
+  "for credential hints ON the page itself (many test/demo apps display default usernames and " +
+  "passwords as placeholder text, help text, or visible notes); (2) if you RECOGNIZE the " +
+  "application (e.g. AltoroMutual/demo.testfire.net → jsmith/Demo1234, DVWA → admin/password, " +
+  "WebGoat → guest/guest, Juice Shop → admin@juice-sh.op/admin123, Tomcat Manager → " +
+  "tomcat/s3cret, Jenkins → admin/admin, Grafana → admin/admin, WordPress → admin/admin), try " +
+  "its well-known default credentials; (3) if the app is unrecognized, try common defaults " +
+  "(admin/admin, admin/password, test/test, guest/guest) — you are a security tester and " +
+  "attempting default credentials IS the test; (4) only emit `done` with reason 'login " +
+  "required — no credentials worked' AFTER at least one real login attempt has failed. " +
+  "NEVER submit an empty username+password — always type a value. " +
   "FORMS ARE COVERAGE: never leave a page (or emit `done`) with an un-submitted form or un-filled " +
   "typeable field still on it. Emit a single `done` only when the whole app appears fully explored " +
   "AND nothing typeable remains. Never choose logout/sign-out or delete/remove controls."
@@ -203,6 +213,20 @@ function serverTech(collected: DataCollector.CollectedData) {
   return FrameworkFingerprinter.detect({ headers, cookies })
 }
 
+// Build a concise credential section so the model knows what identities are available and whether
+// it should attempt login autonomously (anonymous crawl) or use provided credentials.
+function credentialContext(creds: WebCredential.Info[]): string {
+  if (creds.length === 0) return "Credential: anonymous (no credentials configured — try default/known credentials if a login page blocks you)"
+  const lines = creds.map((c) => {
+    const auth = WebCredential.anyAuth(c.authByHost)
+    if (c.label.toLowerCase() === "anonymous") return auth ? "anonymous (authenticated via captured traffic)" : "anonymous (no auth — try default/known credentials if a login blocks you)"
+    const keys = Object.keys(c.headers)
+    if (!auth) return `${c.label} (not yet authenticated)`
+    return `${c.label} (authenticated: ${keys.join(", ")})`
+  })
+  return `Credential: ${lines.join("; ")}`
+}
+
 // Rich per-page context so the MAIN model reasons about the app, not a flat list: what the page
 // is, where in the app, its structure, its framework (how navigation behaves), the focus areas,
 // coverage so far, routes already seen in traffic, the safe forms (by index) and every safe
@@ -215,6 +239,7 @@ export function buildContext(
   collected: DataCollector.CollectedData,
 ): string {
   const priorities = WebStrategy.get(sessionID)?.priorities ?? []
+  const creds = WebCredential.get(sessionID)
   const cov = Crawl.summary(sessionID)
   const tech = FrameworkFingerprinter.merge(snapshot.tech, serverTech(collected))
   // Routes the app served but the crawl has NOT loaded yet — strong "go here next" hints. API
@@ -261,6 +286,7 @@ export function buildContext(
       ? `Structure: ${snapshot.landmarks.map((l) => `${l.role}${l.label ? `(${l.label})` : ""}`).join(", ")}`
       : "",
     priorities.length ? `Focus areas (app priorities): ${priorities.join(", ")}` : "",
+    credentialContext(creds),
     `Coverage so far: ${cov.pages_visited} pages explored, ${cov.actions} actions used.`,
     // Already-captured context — NOT click targets. The collector + vuln pipeline already have
     // these; listing them helps the model understand the app, but it must NOT tunnel toward them.
