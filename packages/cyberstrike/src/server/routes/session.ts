@@ -13,6 +13,10 @@ import { HackbrowserStatus } from "@/session/hackbrowser-status"
 import { SessionSummary } from "@/session/summary"
 import { Todo } from "../../session/todo"
 import { Vulnerability } from "../../session/vulnerability"
+import { render as renderPoster, generate as generatePoster } from "../../poster/poster"
+import { Instance } from "../../project/instance"
+import path from "path"
+import { mkdirSync } from "fs"
 import { normalizeStatus, VulnStatus } from "../../session/vulnerability-status"
 import { Request } from "../../session/request"
 import { Observation } from "../../session/observation"
@@ -754,6 +758,107 @@ export const SessionRoutes = lazy(() =>
         }
         const list = Vulnerability.get(sessionID)
         return c.json(list)
+      },
+    )
+    .get(
+      "/:sessionID/vulnerability/:ref/poster",
+      describeRoute({
+        summary: "Generate vulnerability poster PNG",
+        description: "Render a shareable OG-style card image for a specific vulnerability finding.",
+        operationId: "session.vulnerability.poster",
+        responses: {
+          200: {
+            description: "PNG image",
+            content: { "image/png": { schema: { type: "string", format: "binary" } } },
+          },
+          ...errors(404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string(),
+          ref: z.string(),
+        }),
+      ),
+      async (c) => {
+        const p = c.req.valid("param")
+        const vulns = Vulnerability.get(p.sessionID)
+        const v = vulns.find((x) => x.ref === p.ref)
+        if (!v) return c.json({ error: "vulnerability not found" }, 404)
+        const png = await renderPoster({
+          title: v.title,
+          severity: v.severity,
+          description: v.description ?? "",
+          ref: v.ref,
+          cwe: v.cwe_id,
+          endpoint: v.endpoint,
+          cvss: v.cvss,
+          attack: v.attack_vector,
+          verified: v.status === "confirmed",
+          date: v.time?.created ? new Date(v.time.created).toISOString() : undefined,
+        })
+        return new Response(new Uint8Array(png), { headers: { "Content-Type": "image/png", "Cache-Control": "no-cache" } })
+      },
+    )
+    .get(
+      "/:sessionID/vulnerability/:ref/poster/bundle",
+      describeRoute({
+        summary: "Generate vulnerability poster bundle",
+        description: "Returns PNG (base64), tweet text, and markdown blog post for a vulnerability finding.",
+        operationId: "session.vulnerability.poster.bundle",
+        responses: {
+          200: {
+            description: "Poster bundle",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.object({ png: z.string(), tweet: z.string(), markdown: z.string(), slug: z.string() }),
+                ),
+              },
+            },
+          },
+          ...errors(404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string(),
+          ref: z.string(),
+        }),
+      ),
+      async (c) => {
+        const p = c.req.valid("param")
+        const vulns = Vulnerability.get(p.sessionID)
+        const v = vulns.find((x) => x.ref === p.ref)
+        if (!v) return c.json({ error: "vulnerability not found" }, 404)
+        const out = await generatePoster({
+          title: v.title,
+          severity: v.severity,
+          description: v.description ?? "",
+          ref: v.ref,
+          cwe: v.cwe_id,
+          endpoint: v.endpoint,
+          cvss: v.cvss,
+          attack: v.attack_vector,
+          verified: v.status === "confirmed",
+          date: v.time?.created ? new Date(v.time.created).toISOString() : undefined,
+        })
+        const dir = path.join(Instance.worktree, ".cyberstrike", "posters", out.slug)
+        mkdirSync(dir, { recursive: true })
+        await Promise.all([
+          Bun.write(path.join(dir, `${out.slug}.png`), out.png),
+          Bun.write(path.join(dir, `${out.slug}.md`), out.markdown),
+          Bun.write(path.join(dir, "tweet.txt"), out.tweet),
+        ])
+        return c.json({
+          png: out.png.toString("base64"),
+          tweet: out.tweet,
+          markdown: out.markdown,
+          slug: out.slug,
+          path: dir,
+        })
       },
     )
     .get(

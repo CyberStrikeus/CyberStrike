@@ -899,6 +899,19 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       },
     }),
     securityCommand({
+      id: "session.poster",
+      title: "Poster",
+      description: "Generate shareable vulnerability poster cards",
+      slash: { name: "poster" },
+      disabled: !params.id,
+      onSelect: () => {
+        void openDialog(
+          () => import("@/components/dialog-select-vulnerability"),
+          (x) => dialog.show(() => <x.DialogSelectVulnerability />),
+        )
+      },
+    }),
+    securityCommand({
       id: "session.web",
       title: "Web Context",
       description: "Browse endpoints, roles, credentials, and signals",

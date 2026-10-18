@@ -548,6 +548,23 @@ export function Session() {
       },
     },
     {
+      title: "Generate vulnerability poster",
+      value: "session.poster",
+      category: "Session",
+      slash: {
+        name: "poster",
+      },
+      onSelect: (dialog) => {
+        const list = sync.data.vulnerability[route.sessionID] ?? []
+        if (list.length === 0) {
+          toast.show({ message: "No vulnerabilities found", variant: "info" })
+          dialog.clear()
+          return
+        }
+        dialog.replace(() => <DialogVulnerability sessionID={route.sessionID} />)
+      },
+    },
+    {
       title: "View web context",
       value: "session.web.context",
       category: "Session",
