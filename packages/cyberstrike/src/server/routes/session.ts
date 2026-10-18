@@ -2827,7 +2827,7 @@ export const SessionRoutes = lazy(() =>
           auto: body.auto,
         })
         await SessionPrompt.loop({ sessionID }).catch((e) => {
-          if (e instanceof Error && e.message === "session prompt cancelled") return
+          if (SessionPrompt.cancelled(e)) return
           throw e
         })
         return c.json(true)
@@ -3021,7 +3021,7 @@ export const SessionRoutes = lazy(() =>
           const sessionID = c.req.valid("param").sessionID
           const body = c.req.valid("json")
           const msg = await SessionPrompt.prompt({ ...body, sessionID }).catch((e) => {
-            if (e instanceof Error && e.message === "session prompt cancelled") return
+            if (SessionPrompt.cancelled(e)) return
             throw e
           })
           if (msg) stream.write(JSON.stringify(msg))

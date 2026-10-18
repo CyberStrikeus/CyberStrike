@@ -266,6 +266,10 @@ export namespace SessionPrompt {
     return s[sessionID].abort.signal
   }
 
+  export function cancelled(error: unknown) {
+    return error instanceof DOMException && error.name === "AbortError"
+  }
+
   // stopCrawl defaults to FALSE: a bare cancel() is the loop/prompt turn-end
   // cleanup (fired by the two defer()s below and by child-session teardown),
   // and a background hackbrowser crawl must SURVIVE those turn boundaries so it
@@ -295,7 +299,7 @@ export namespace SessionPrompt {
     // The IngestQueue chain hits this whenever an ingest task is awaiting a
     // running parent loop and Esc fires; the orphaned callbacks froze the
     // chain (see hackbrowser INTEGRATION.md §13.7).
-    const error = new Error("session prompt cancelled")
+    const error = new DOMException("Session prompt cancelled", "AbortError")
     const callbacks = match.callbacks
     match.callbacks = []
     for (const cb of callbacks) cb.reject(error)

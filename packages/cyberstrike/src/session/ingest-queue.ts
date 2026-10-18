@@ -116,6 +116,7 @@ export namespace IngestQueue {
         try {
           await runWithTimeout(sessionID, task, ms)
         } catch (err) {
+          if (err instanceof DOMException && err.name === "AbortError") return
           log.error("ingest prompt failed", { sessionID, error: err })
         } finally {
           s.sem.release()
