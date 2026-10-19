@@ -59,6 +59,7 @@ const watches = new Map<string, Watch>()
 // continue a finished scan); the value dedups the "Scan complete" banner so it is not re-posted
 // unchanged on later idle turns or user-driven resume rounds (#104).
 const completed = new Map<string, string>()
+const paused = new Map<string, string>()
 
 function drafts(sessionID: string): number {
   return Vulnerability.get(sessionID).filter(
@@ -245,6 +246,7 @@ async function evaluate(root: string): Promise<void> {
     }
     log.info("assessment complete notice posted to root session", { sessionID: root, examined: snap.counts.examined, drafts: left })
     completed.set(root, doneFp)
+    paused.delete(root)
     watches.delete(root)
     return
   }
@@ -256,10 +258,15 @@ async function evaluate(root: string): Promise<void> {
   else {
     w.fingerprint = fp
     w.stall = 0
-    w.wakes = 0 // progress earns a fresh budget
+    w.wakes = 0
+    paused.delete(root)
   }
 
   if (w.stall >= MAX_STALL || w.wakes >= MAX_WAKES) {
+    if (paused.get(root) === fp) {
+      watches.delete(root)
+      return
+    }
     const left = drafts(root)
     const reasons: string[] = []
     if (llmTroubled) reasons.push(`the model is unreachable (provider/rate-limit)`)
@@ -275,6 +282,7 @@ async function evaluate(root: string): Promise<void> {
       schedule(root, RECHECK_MS) // post failed → retry, never leave it silently paused
       return
     }
+    paused.set(root, fp)
     watches.delete(root)
     return
   }

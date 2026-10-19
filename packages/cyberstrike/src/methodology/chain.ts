@@ -34,6 +34,7 @@ export namespace Chain {
     detectedAt: number
   }
 
+  const CREDENTIAL_CONTENT = /\b(token|password|api[_-]?key|secret|cookie|session[_-]?id|bearer|jwt|access[_-]?key|private[_-]?key|oauth[_-]?token|refresh[_-]?token|api[_-]?token|authorization|x-api-key|credentials?)\b/i
   const OAUTH_REGEX = /\b(oauth|authorize|callback|redirect_uri|token|sso|saml|openid)\b/i
   const STATE_CHANGE_REGEX = /\b(POST|PUT|DELETE|PATCH|create|update|delete|transfer|payment|invite|admin)\b/i
   const USER_DATA_REGEX = /\b(user|profile|account|email|phone|address|personal|private|settings)\b/i
@@ -96,7 +97,7 @@ export namespace Chain {
       })
     }
 
-    const credentials = entries.filter((e) => e.type === "credential")
+    const credentials = entries.filter((e) => e.type === "credential" && CREDENTIAL_CONTENT.test(`${e.title} ${e.detail ?? ""}`))
     const endpoints = entries.filter((e) => e.type === "endpoint")
     const services = entries.filter((e) => e.type === "configuration" || e.type === "infrastructure")
 
@@ -282,7 +283,7 @@ export namespace Chain {
             testing_plan: chain.testingPlan,
             status: prev?.status ?? chain.status,
             confidence: chain.confidence,
-            detected_at: chain.detectedAt,
+            detected_at: prev?.detectedAt ?? chain.detectedAt,
             time_created: now,
             time_updated: now,
           })
@@ -308,6 +309,17 @@ export namespace Chain {
       confidence: r.confidence,
       detectedAt: r.detected_at ?? r.time_created,
     }))
+  }
+
+  export function disprove(sessionID: string, ids: string[]): void {
+    Database.use((db) => {
+      for (const id of ids) {
+        db.update(ChainCandidateTable)
+          .set({ status: "disproven", time_updated: Date.now() })
+          .where(and(eq(ChainCandidateTable.id, id), eq(ChainCandidateTable.session_id, sessionID)))
+          .run()
+      }
+    })
   }
 
   export function detectAndPersist(sessionID: string): Candidate[] {

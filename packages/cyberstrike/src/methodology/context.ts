@@ -190,11 +190,22 @@ export namespace MethodologyContext {
       return { force: true, directive }
     }
 
-    // Force continue if HIGH-confidence chains are untested
+    // Force continue if HIGH-confidence chains are untested — but auto-disprove stale ones
     const chains = Chain.load(sessionID)
-    const untestedHighChains = chains.filter((c) => c.status === "detected" && c.confidence >= 80)
-    if (untestedHighChains.length > 0) {
-      const chain = untestedHighChains[0]
+    const CHAIN_STALE_MS = 10 * 60 * 1000
+    const now = Date.now()
+    const stale: Chain.Candidate[] = []
+    const fresh: Chain.Candidate[] = []
+    for (const c of chains) {
+      if (c.status !== "detected" || c.confidence < 80) continue
+      if (now - c.detectedAt > CHAIN_STALE_MS) stale.push(c)
+      else fresh.push(c)
+    }
+    if (stale.length > 0) {
+      Chain.disprove(sessionID, stale.map((c) => c.id))
+    }
+    if (fresh.length > 0) {
+      const chain = fresh[0]
       const best = AgentPerformance.selectAgentForMission(sessionID, chain.pattern.replace(/_/g, " "))
       return {
         force: true,
