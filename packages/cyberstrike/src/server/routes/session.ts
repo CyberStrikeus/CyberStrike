@@ -2139,8 +2139,21 @@ export const SessionRoutes = lazy(() =>
           // never drop when scope is unresolved.
           if (body.page_url) WebScope.ensure(sessionID, body.page_url)
           if (!WebScope.allowed(sessionID, normalized.origin)) {
-            log.debug("ingest: dropped out-of-scope request", { origin: normalized.origin, sessionID })
-            return c.json({ sessionID, skipped: true })
+            // Auto-expand: if the PAGE is in scope but the request target isn't,
+            // the target is likely the app's own API on a different domain.
+            // Expand scope unless it's a known third-party SaaS service.
+            if (body.page_url && WebScope.allowed(sessionID, body.page_url)) {
+              try {
+                const target = new URL(normalized.origin).hostname
+                if (WebScope.expand(sessionID, target)) {
+                  log.info("scope auto-expanded from in-scope page", { target, pageUrl: body.page_url, sessionID })
+                }
+              } catch {}
+            }
+            if (!WebScope.allowed(sessionID, normalized.origin)) {
+              log.debug("ingest: dropped out-of-scope request", { origin: normalized.origin, sessionID })
+              return c.json({ sessionID, skipped: true })
+            }
           }
 
           // Lift this request's own auth (Cookie/Authorization/…) onto the capturing

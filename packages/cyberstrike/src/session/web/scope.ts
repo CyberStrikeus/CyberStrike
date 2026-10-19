@@ -80,6 +80,39 @@ export namespace WebScope {
     return s.patterns.some((p) => matchPattern(h, p))
   }
 
+  // Known third-party SaaS domains — never auto-expand scope into these even when
+  // the in-scope page calls them (auth, analytics, CDN, error tracking, etc.)
+  const THIRD_PARTY: ReadonlySet<string> = new Set([
+    "clerk.dev", "clerk.com", "clerk.accounts.dev", "auth0.com", "okta.com",
+    "google-analytics.com", "googletagmanager.com", "segment.io", "segment.com",
+    "mixpanel.com", "amplitude.com", "hotjar.com", "fullstory.com", "sentry.io",
+    "bugsnag.com", "rollbar.com", "intercom.io", "crisp.chat", "zendesk.com",
+    "hubspot.com", "stripe.com", "cloudflare.com", "cloudfront.net",
+    "googleapis.com", "gstatic.com", "facebook.com", "twitter.com", "linkedin.com",
+    "doubleclick.net", "newrelic.com", "datadoghq.com", "launchdarkly.com",
+    "split.io", "optimizely.com", "unpkg.com", "jsdelivr.net", "mintlify.com",
+  ])
+
+  // Auto-expand scope when an in-scope page makes API calls to a different domain.
+  // Returns true if scope was expanded.
+  export function expand(sessionID: string, host: string): boolean {
+    const s = bySession.get(sessionID)
+    if (!s) return false
+    const domain = registrable(host)
+    if (!domain) return false
+    if (domain === s.domain) return false
+    if (s.patterns.some((p) => matchPattern(host, p))) return false
+    if (THIRD_PARTY.has(domain)) return false
+    // Also check if any suffix of the host matches the blocklist (clerk.accounts.dev → clerk.dev won't match,
+    // but accounts.dev might be a real target — check the full domain parts)
+    const parts = host.toLowerCase().split(".")
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (THIRD_PARTY.has(parts.slice(i).join("."))) return false
+    }
+    s.patterns.push(`*.${domain}`)
+    return true
+  }
+
   export function clearSession(sessionID: string): void {
     bySession.delete(sessionID)
   }
