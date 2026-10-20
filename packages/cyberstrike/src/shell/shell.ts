@@ -40,11 +40,11 @@ export namespace Shell {
       if (Flag.CYBERSTRIKE_GIT_BASH_PATH) return Flag.CYBERSTRIKE_GIT_BASH_PATH
       const git = Bun.which("git")
       if (git) {
-        // git.exe is typically at: C:\Program Files\Git\cmd\git.exe
-        // bash.exe is at: C:\Program Files\Git\bin\bash.exe
         const bash = path.join(git, "..", "..", "bin", "bash.exe")
         if (Bun.file(bash).size) return bash
       }
+      const pwsh = Bun.which("pwsh") || Bun.which("powershell")
+      if (pwsh) return pwsh
       return process.env.COMSPEC || "cmd.exe"
     }
     if (process.platform === "darwin") return "/bin/zsh"
