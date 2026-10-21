@@ -16,29 +16,29 @@ These providers have dedicated AI SDK packages bundled into CyberStrike. Set the
 
 | Provider | ID | Env Var | SDK |
 |----------|----|---------|-----|
-| Anthropic | `anthropic` | `ANTHROPIC_API_KEY` | `@ai-sdk/anthropic` |
-| OpenAI | `openai` | `OPENAI_API_KEY` | `@ai-sdk/openai` |
-| Google Gemini | `google` | `GOOGLE_GENERATIVE_AI_API_KEY` | `@ai-sdk/google` |
-| Google Vertex AI | `google-vertex` | `GOOGLE_CLOUD_PROJECT` + ADC | `@ai-sdk/google-vertex` |
-| Google Vertex (Anthropic) | `google-vertex-anthropic` | same as Vertex | `@ai-sdk/google-vertex/anthropic` |
-| Amazon Bedrock | `amazon-bedrock` | AWS credential chain | `@ai-sdk/amazon-bedrock` |
-| Azure OpenAI | `azure` | `AZURE_API_KEY` | `@ai-sdk/azure` |
-| GitHub Copilot | `github-copilot` | OAuth device flow | custom SDK |
-| GitHub Copilot Enterprise | `github-copilot-enterprise` | OAuth device flow | custom SDK |
-| OpenRouter | `openrouter` | `OPENROUTER_API_KEY` | `@openrouter/ai-sdk-provider` |
-| Groq | `groq` | `GROQ_API_KEY` | `@ai-sdk/groq` |
-| Mistral | `mistral` | `MISTRAL_API_KEY` | `@ai-sdk/mistral` |
-| xAI (Grok) | `xai` | `XAI_API_KEY` | `@ai-sdk/xai` |
-| DeepInfra | `deepinfra` | `DEEPINFRA_API_KEY` | `@ai-sdk/deepinfra` |
-| Together AI | `togetherai` | `TOGETHER_API_KEY` | `@ai-sdk/togetherai` |
-| Perplexity | `perplexity` | `PERPLEXITY_API_KEY` | `@ai-sdk/perplexity` |
-| Cohere | `cohere` | `COHERE_API_KEY` | `@ai-sdk/cohere` |
-| Cerebras | `cerebras` | `CEREBRAS_API_KEY` | `@ai-sdk/cerebras` |
-| Vercel AI Gateway | `vercel` | (Vercel auth) | `@ai-sdk/vercel` |
-| AI SDK Gateway | `gateway` | (varies) | `@ai-sdk/gateway` |
-| GitLab Duo | `gitlab` | `GITLAB_TOKEN` or OAuth | `@gitlab/gitlab-ai-provider` |
-| Alibaba (Qwen) | `alibaba` | `DASHSCOPE_API_KEY` | `@ai-sdk/alibaba` |
-| Venice AI | `venice` | `VENICE_API_KEY` | `venice-ai-sdk-provider` |
+| [Anthropic](https://www.anthropic.com) | `anthropic` | `ANTHROPIC_API_KEY` | `@ai-sdk/anthropic` |
+| [OpenAI](https://openai.com) | `openai` | `OPENAI_API_KEY` | `@ai-sdk/openai` |
+| [Google Gemini](https://ai.google.dev) | `google` | `GOOGLE_GENERATIVE_AI_API_KEY` | `@ai-sdk/google` |
+| [Google Vertex AI](https://cloud.google.com/vertex-ai) | `google-vertex` | `GOOGLE_CLOUD_PROJECT` + ADC | `@ai-sdk/google-vertex` |
+| [Google Vertex (Anthropic)](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude) | `google-vertex-anthropic` | same as Vertex | `@ai-sdk/google-vertex/anthropic` |
+| [Amazon Bedrock](https://aws.amazon.com/bedrock/) | `amazon-bedrock` | AWS credential chain | `@ai-sdk/amazon-bedrock` |
+| [Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service) | `azure` | `AZURE_API_KEY` | `@ai-sdk/azure` |
+| [GitHub Copilot](https://github.com/features/copilot) | `github-copilot` | OAuth device flow | custom SDK |
+| [GitHub Copilot Enterprise](https://docs.github.com/en/enterprise-cloud@latest/copilot) | `github-copilot-enterprise` | OAuth device flow | custom SDK |
+| [OpenRouter](https://openrouter.ai) | `openrouter` | `OPENROUTER_API_KEY` | `@openrouter/ai-sdk-provider` |
+| [Groq](https://groq.com) | `groq` | `GROQ_API_KEY` | `@ai-sdk/groq` |
+| [Mistral](https://mistral.ai) | `mistral` | `MISTRAL_API_KEY` | `@ai-sdk/mistral` |
+| [xAI (Grok)](https://x.ai) | `xai` | `XAI_API_KEY` | `@ai-sdk/xai` |
+| [DeepInfra](https://deepinfra.com) | `deepinfra` | `DEEPINFRA_API_KEY` | `@ai-sdk/deepinfra` |
+| [Together AI](https://www.together.ai) | `togetherai` | `TOGETHER_API_KEY` | `@ai-sdk/togetherai` |
+| [Perplexity](https://www.perplexity.ai) | `perplexity` | `PERPLEXITY_API_KEY` | `@ai-sdk/perplexity` |
+| [Cohere](https://cohere.com) | `cohere` | `COHERE_API_KEY` | `@ai-sdk/cohere` |
+| [Cerebras](https://cerebras.ai) | `cerebras` | `CEREBRAS_API_KEY` | `@ai-sdk/cerebras` |
+| [Vercel AI Gateway](https://vercel.com/docs/ai) | `vercel` | (Vercel auth) | `@ai-sdk/vercel` |
+| [AI SDK Gateway](https://sdk.vercel.ai/docs/ai-sdk-core/gateway) | `gateway` | (varies) | `@ai-sdk/gateway` |
+| [GitLab Duo](https://about.gitlab.com/gitlab-duo/) | `gitlab` | `GITLAB_TOKEN` or OAuth | `@gitlab/gitlab-ai-provider` |
+| [Alibaba (Qwen)](https://www.alibabacloud.com/en/product/model-studio) | `alibaba` | `DASHSCOPE_API_KEY` | `@ai-sdk/alibaba` |
+| [Venice AI](https://venice.ai) | `venice` | `VENICE_API_KEY` | `venice-ai-sdk-provider` |
 
 ### Additional Providers (Custom Loaders)
 
@@ -46,10 +46,10 @@ These have dedicated integration code for authentication and routing:
 
 | Provider | ID | Auth |
 |----------|----|------|
-| SAP AI Core | `sap-ai-core` | `AICORE_SERVICE_KEY` |
-| Cloudflare Workers AI | `cloudflare-workers-ai` | `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_KEY` |
-| Cloudflare AI Gateway | `cloudflare-ai-gateway` | `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_GATEWAY_ID` + `CLOUDFLARE_API_TOKEN` |
-| Azure Cognitive Services | `azure-cognitive-services` | `AZURE_API_KEY` + `AZURE_COGNITIVE_SERVICES_RESOURCE_NAME` |
+| [SAP AI Core](https://help.sap.com/docs/sap-ai-core) | `sap-ai-core` | `AICORE_SERVICE_KEY` |
+| [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/) | `cloudflare-workers-ai` | `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_KEY` |
+| [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/) | `cloudflare-ai-gateway` | `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_GATEWAY_ID` + `CLOUDFLARE_API_TOKEN` |
+| [Azure Cognitive Services](https://azure.microsoft.com/en-us/products/ai-services) | `azure-cognitive-services` | `AZURE_API_KEY` + `AZURE_COGNITIVE_SERVICES_RESOURCE_NAME` |
 
 ---
 
@@ -156,9 +156,9 @@ CyberStrike pulls model metadata (pricing, context limits, capabilities) from [m
 
 ---
 
-## Anthropic (Claude)
+## [Anthropic](https://www.anthropic.com) (Claude)
 
-Anthropic's Claude models provide advanced reasoning capabilities for security analysis.
+[Anthropic's Claude](https://www.anthropic.com/claude) models provide advanced reasoning capabilities for security analysis.
 
 ### Available Models
 
@@ -176,7 +176,7 @@ Cyberstrike pulls its model catalog live from [models.dev](https://models.dev), 
 
 ### Anthropic Authentication
 
-1. Get your API key from [console.anthropic.com](https://console.anthropic.com)
+1. Get your API key from the [Anthropic Console](https://console.anthropic.com)
 2. In the TUI, run `/connect`, select **Anthropic**, and enter your API key
 
 Or set the environment variable:
@@ -210,13 +210,13 @@ In the session TUI header, CyberStrike shows **context usage** for the most rece
 
 ### Anthropic Rate Limits
 
-Rate limits depend on your Anthropic account; refer to [Anthropic's documentation](https://docs.anthropic.com) for current quotas. CyberStrike uses **exponential backoff** for retryable errors and honors `Retry-After` headers.
+Rate limits depend on your Anthropic account; refer to the [Anthropic API documentation](https://docs.anthropic.com/en/docs/about-claude/models) for current quotas. CyberStrike uses **exponential backoff** for retryable errors and honors `Retry-After` headers.
 
 ---
 
-## AWS Bedrock
+## [AWS Bedrock](https://aws.amazon.com/bedrock/)
 
-AWS Bedrock lets you run CyberStrike through your own AWS account. Your data stays in your infrastructure, you get IAM-based access control, and you can use VPC endpoints for private network access.
+[AWS Bedrock](https://docs.aws.amazon.com/bedrock/) lets you run CyberStrike through your own AWS account. Your data stays in your infrastructure, you get IAM-based access control, and you can use VPC endpoints for private network access.
 
 CyberStrike uses the standard AWS credential provider chain (`@aws-sdk/credential-providers`), so if you already use the AWS CLI or SDKs, your existing credentials will work.
 
@@ -394,9 +394,9 @@ CyberStrike automatically handles cross-region inference profile prefixes:
 
 ---
 
-## GitHub Copilot
+## [GitHub Copilot](https://github.com/features/copilot)
 
-Authenticate with your GitHub account via OAuth and access all models available through your Copilot subscription — including Claude, GPT-4o, and o-series models.
+Authenticate with your GitHub account via OAuth and access all models available through your [Copilot](https://docs.github.com/en/copilot) subscription — including Claude, GPT-4o, and o-series models.
 
 ### Requirements
 
@@ -457,7 +457,7 @@ GitHub Copilot requires no manual configuration beyond the OAuth login. To use a
 
 ## Custom & OpenAI-Compatible Providers
 
-For endpoints that aren't bundled (Fireworks, vLLM, LM Studio, a private gateway), define them under `provider`. Loading is triggered by the top-level **`api`** field (the base URL):
+For endpoints that aren't bundled ([Fireworks](https://fireworks.ai), [vLLM](https://docs.vllm.ai), [LM Studio](https://lmstudio.ai), a private gateway), define them under `provider`. Loading is triggered by the top-level **`api`** field (the base URL):
 
 ```json title="~/.config/cyberstrike/cyberstrike.json"
 {

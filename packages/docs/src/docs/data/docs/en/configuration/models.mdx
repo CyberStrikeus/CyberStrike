@@ -85,9 +85,9 @@ Configure reasoning in `cyberstrike.json`:
 
 ---
 
-## Anthropic (Claude)
+## [Anthropic](https://www.anthropic.com) (Claude)
 
-All Claude models support tool calling, reasoning, and file attachments. Claude is recommended for CyberStrike's security analysis workflows due to its strong reasoning and instruction-following capabilities.
+All [Claude](https://www.anthropic.com/claude) models support tool calling, reasoning, and file attachments. Claude is recommended for CyberStrike's security analysis workflows due to its strong reasoning and instruction-following capabilities.
 
 | Model | Context | Output | Cost ($/M tokens) | Best For |
 |-------|---------|--------|-------------------|----------|
@@ -108,9 +108,9 @@ All Claude models support tool calling, reasoning, and file attachments. Claude 
 
 All Claude models accept text and image input. Reasoning options vary: Opus and Sonnet models support effort levels and budget tokens; Haiku supports toggle and budget tokens.
 
-### Anthropic Subscription (Claude Pro/Max)
+### Anthropic Subscription ([Claude Pro/Max](https://www.anthropic.com/pricing))
 
-If you have a Claude Pro or Max subscription, you can authenticate via OAuth instead of an API key:
+If you have a [Claude Pro or Max](https://www.anthropic.com/pricing) subscription, you can authenticate via OAuth instead of an API key:
 
 1. Run `/connect` in the TUI
 2. Select **Anthropic** and choose **Login with Anthropic account**
@@ -120,7 +120,7 @@ This uses your subscription quota — no separate API billing.
 
 ---
 
-## OpenAI (GPT)
+## [OpenAI](https://openai.com) (GPT)
 
 | Model | Context | Output | Tool Call | Reasoning | Cost ($/M tokens) |
 |-------|---------|--------|-----------|-----------|-------------------|
@@ -149,9 +149,9 @@ This uses your subscription quota — no separate API billing.
 
 ---
 
-## Google (Gemini)
+## [Google](https://ai.google.dev) (Gemini)
 
-Google's Gemini models offer the largest context windows in the industry — up to 1M tokens — with multimodal input support including text, images, audio, video, and PDF.
+[Google's Gemini](https://deepmind.google/technologies/gemini/) models offer the largest context windows in the industry — up to 1M tokens — with multimodal input support including text, images, audio, video, and PDF.
 
 | Model | Context | Output | Tool Call | Reasoning | Cost ($/M tokens) |
 |-------|---------|--------|-----------|-----------|-------------------|
@@ -168,11 +168,11 @@ Google's Gemini models offer the largest context windows in the industry — up 
 | `gemini-2.5-flash` | 1M | 64K | ✓ | ✓ | $0.30 / $2.50 |
 | `gemini-2.5-flash-lite` | 1M | 64K | ✓ | ✓ | $0.10 / $0.40 |
 
-Gemma open models (`gemma-4-31b-it`, `gemma-4-26b-a4b-it`) are also available via Google at zero cost.
+[Gemma](https://ai.google.dev/gemma) open models (`gemma-4-31b-it`, `gemma-4-26b-a4b-it`) are also available via Google at zero cost.
 
 ---
 
-## xAI (Grok)
+## [xAI](https://x.ai) (Grok)
 
 | Model | Context | Output | Tool Call | Reasoning | Cost ($/M tokens) |
 |-------|---------|--------|-----------|-----------|-------------------|
@@ -182,11 +182,11 @@ Gemma open models (`gemma-4-31b-it`, `gemma-4-26b-a4b-it`) are also available vi
 | `grok-4.3` | 1M | 30K | ✓ | ✓ | $1.25 / $2.50 |
 | `grok-build-0.1` | 256K | 256K | ✓ | ✓ | $1 / $2 |
 
-Grok models offer large output limits (up to 500K tokens) and competitive pricing.
+[Grok](https://docs.x.ai) models offer large output limits (up to 500K tokens) and competitive pricing.
 
 ---
 
-## Mistral
+## [Mistral](https://mistral.ai)
 
 | Model | Context | Output | Tool Call | Reasoning | Cost ($/M tokens) |
 |-------|---------|--------|-----------|-----------|-------------------|
@@ -200,9 +200,9 @@ Grok models offer large output limits (up to 500K tokens) and competitive pricin
 
 ---
 
-## Groq
+## [Groq](https://groq.com)
 
-Groq provides ultra-fast inference on specialized hardware. Most models are free or very low cost.
+[Groq](https://console.groq.com) provides ultra-fast inference on specialized hardware. Most models are free or very low cost.
 
 | Model | Context | Output | Tool Call | Reasoning | Cost ($/M tokens) |
 |-------|---------|--------|-----------|-----------|-------------------|
@@ -212,9 +212,9 @@ Groq provides ultra-fast inference on specialized hardware. Most models are free
 
 ---
 
-## DeepInfra
+## [DeepInfra](https://deepinfra.com)
 
-DeepInfra hosts a wide range of open-source and commercial models at competitive prices. 76+ models available.
+[DeepInfra](https://deepinfra.com/models) hosts a wide range of open-source and commercial models at competitive prices. 76+ models available.
 
 **Highlights:**
 
@@ -231,9 +231,9 @@ DeepInfra hosts a wide range of open-source and commercial models at competitive
 
 ---
 
-## Together AI
+## [Together AI](https://www.together.ai)
 
-Together AI runs 32+ models with competitive pricing and fast inference.
+[Together AI](https://api.together.ai/models) runs 32+ models with competitive pricing and fast inference.
 
 | Model | Context | Output | Tool Call | Reasoning | Cost ($/M tokens) |
 |-------|---------|--------|-----------|-----------|-------------------|
@@ -244,7 +244,7 @@ Together AI runs 32+ models with competitive pricing and fast inference.
 
 ---
 
-## Cohere
+## [Cohere](https://cohere.com)
 
 | Model | Context | Tool Call | Reasoning | Cost ($/M tokens) |
 |-------|---------|-----------|-----------|-------------------|
@@ -256,9 +256,9 @@ Together AI runs 32+ models with competitive pricing and fast inference.
 
 ---
 
-## Cerebras
+## [Cerebras](https://cerebras.ai)
 
-Ultra-fast inference. Currently hosts 2 models:
+[Cerebras](https://inference.cerebras.ai) provides ultra-fast inference. Currently hosts 2 models:
 
 | Model | Context | Output | Tool Call | Reasoning | Cost ($/M tokens) |
 |-------|---------|--------|-----------|-----------|-------------------|
@@ -267,9 +267,9 @@ Ultra-fast inference. Currently hosts 2 models:
 
 ---
 
-## Alibaba (Qwen)
+## [Alibaba](https://www.alibabacloud.com/en/product/model-studio) (Qwen)
 
-Alibaba's Qwen family includes 59+ models with strong multilingual support. Set `DASHSCOPE_API_KEY` to use.
+[Alibaba's Qwen](https://qwenlm.github.io) family includes 59+ models with strong multilingual support. Set `DASHSCOPE_API_KEY` to use.
 
 **Highlights:**
 
@@ -285,9 +285,9 @@ Alibaba's Qwen family includes 59+ models with strong multilingual support. Set 
 
 ---
 
-## Amazon Bedrock
+## [Amazon Bedrock](https://aws.amazon.com/bedrock/)
 
-Bedrock is a multi-model gateway — it gives you access to Claude, Nova, GPT, Grok, Mistral, DeepSeek, Qwen, and more through your AWS account. **199 models** available.
+[Bedrock](https://docs.aws.amazon.com/bedrock/) is a multi-model gateway — it gives you access to Claude, Nova, GPT, Grok, Mistral, DeepSeek, Qwen, and more through your AWS account. **199 models** available.
 
 CyberStrike handles cross-region inference prefixes automatically. See the [AI Providers](/docs/configuration/providers#aws-bedrock) page for authentication setup.
 
@@ -302,17 +302,17 @@ Key models available through Bedrock include:
 
 ---
 
-## OpenRouter
+## [OpenRouter](https://openrouter.ai)
 
-OpenRouter aggregates models from many providers under a single API key. Set `OPENROUTER_API_KEY` and access models from Anthropic, OpenAI, Google, Meta, and dozens more.
+[OpenRouter](https://openrouter.ai/models) aggregates models from many providers under a single API key. Set `OPENROUTER_API_KEY` and access models from Anthropic, OpenAI, Google, Meta, and dozens more.
 
 Model IDs use the OpenRouter format: `openrouter/provider/model-name`.
 
 ---
 
-## GitHub Copilot
+## [GitHub Copilot](https://github.com/features/copilot)
 
-Access models through your existing Copilot subscription — no separate API key needed.
+Access models through your existing [Copilot](https://docs.github.com/en/copilot) subscription — no separate API key needed.
 
 | Model | Provider |
 |-------|----------|
@@ -327,9 +327,9 @@ See the [AI Providers](/docs/configuration/providers#github-copilot) page for au
 
 ---
 
-## Google Vertex AI
+## [Google Vertex AI](https://cloud.google.com/vertex-ai)
 
-Access Google's models and Anthropic Claude through your GCP project. Requires `GOOGLE_CLOUD_PROJECT` and Application Default Credentials.
+Access Google's models and Anthropic Claude through your [GCP project](https://console.cloud.google.com/vertex-ai). Requires `GOOGLE_CLOUD_PROJECT` and Application Default Credentials.
 
 Two provider IDs:
 - `google-vertex` — Gemini and other Google models
@@ -339,9 +339,9 @@ Continental multi-regions (`eu`, `us`) use Regional Endpoint Platform domains au
 
 ---
 
-## GitLab Duo
+## [GitLab Duo](https://about.gitlab.com/gitlab-duo/)
 
-Access AI models through your GitLab instance. Set `GITLAB_TOKEN` or authenticate via OAuth.
+Access AI models through your [GitLab](https://docs.gitlab.com/ee/user/gitlab_duo/) instance. Set `GITLAB_TOKEN` or authenticate via OAuth.
 
 ---
 
@@ -349,10 +349,10 @@ Access AI models through your GitLab instance. Set `GITLAB_TOKEN` or authenticat
 
 | Provider | ID | Models | Env Var |
 |----------|----|--------|---------|
-| Venice AI | `venice` | Privacy-focused models | `VENICE_API_KEY` |
-| Perplexity | `perplexity` | Search-augmented models | `PERPLEXITY_API_KEY` |
-| Vercel AI Gateway | `vercel` | Gateway to multiple providers | Vercel auth |
-| AI SDK Gateway | `gateway` | Unified gateway | Varies |
+| [Venice AI](https://venice.ai) | `venice` | Privacy-focused models | `VENICE_API_KEY` |
+| [Perplexity](https://www.perplexity.ai) | `perplexity` | Search-augmented models | `PERPLEXITY_API_KEY` |
+| [Vercel AI Gateway](https://vercel.com/docs/ai) | `vercel` | Gateway to multiple providers | Vercel auth |
+| [AI SDK Gateway](https://sdk.vercel.ai/docs/ai-sdk-core/gateway) | `gateway` | Unified gateway | Varies |
 
 ---
 
@@ -383,10 +383,10 @@ Common self-hosted setups:
 
 | Software | Default URL |
 |----------|------------|
-| vLLM | `http://localhost:8000/v1` |
-| LM Studio | `http://localhost:1234/v1` |
-| Ollama | `http://localhost:11434/v1` |
-| text-generation-webui | `http://localhost:5000/v1` |
+| [vLLM](https://docs.vllm.ai) | `http://localhost:8000/v1` |
+| [LM Studio](https://lmstudio.ai) | `http://localhost:1234/v1` |
+| [Ollama](https://ollama.com) | `http://localhost:11434/v1` |
+| [text-generation-webui](https://github.com/oobabooga/text-generation-webui) | `http://localhost:5000/v1` |
 
 ---
 
