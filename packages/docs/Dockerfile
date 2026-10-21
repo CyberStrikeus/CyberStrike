@@ -1,19 +1,16 @@
-FROM node:20-alpine AS base
+FROM oven/bun:1.3.9-alpine AS base
 WORKDIR /app
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Install dependencies
 FROM base AS deps
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY package.json bun.lock* ./
+RUN bun install --frozen-lockfile 2>/dev/null || bun install
 
 # Build
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN pnpm build
+RUN bun run build
 
 # Production
 FROM nginx:alpine AS runner

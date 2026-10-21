@@ -28,6 +28,10 @@ const sidebarNavData: DocsSidebarNavData = {
           title: "Agents",
         },
         {
+          id: "pipelines",
+          title: "Agentic Pipelines",
+        },
+        {
           id: "tools",
           title: "Tools",
         },

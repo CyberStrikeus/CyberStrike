@@ -1,0 +1,433 @@
+---
+title: AI Models
+description: All supported AI models, capabilities, context lengths, and pricing across 230+ providers
+sidebar:
+  order: 9
+  label: AI Models
+---
+
+CyberStrike supports **9,000+ models** across **230+ providers** through a live catalog powered by [models.dev](https://models.dev). New models appear automatically — no upgrade needed.
+
+Run `/models` in the TUI to browse what's available with your configured providers, or use `--model provider/model-id` at launch.
+
+## How Model Selection Works
+
+CyberStrike uses two model slots:
+
+| Slot | Purpose | Default |
+|------|---------|---------|
+| **model** | Primary reasoning — orchestration, analysis, exploit research | Your configured default |
+| **small_model** | Fast tasks — tool selection, quick classification, summaries | Auto-selected or configured |
+
+Set them in `cyberstrike.json`:
+
+```json title="cyberstrike.json"
+{
+  "model": "anthropic/claude-sonnet-5-5",
+  "small_model": "anthropic/claude-haiku-5-5"
+}
+```
+
+Or at launch:
+
+```bash
+cyberstrike --model anthropic/claude-opus-5-5
+```
+
+Or switch mid-session with `/models` in the TUI — it shows all models from your configured providers, sorted by capability.
+
+---
+
+## Model Capabilities
+
+Every model in the catalog carries metadata that CyberStrike uses for routing and feature gating:
+
+| Capability | What It Means |
+|------------|--------------|
+| **Context** | Maximum tokens the model can process (input + output combined) |
+| **Output** | Maximum tokens the model can generate in a single response |
+| **Tool Call** | Whether the model can invoke tools — required for agent-driven testing |
+| **Reasoning** | Whether the model supports extended thinking / chain-of-thought |
+| **Attachment** | Whether the model accepts file attachments (images, PDFs) |
+| **Input Modalities** | What the model can read: text, image, audio, video, PDF |
+| **Output Modalities** | What the model can produce: text, image, audio |
+
+<Aside variant="caution">
+  Models without **tool call** support cannot drive CyberStrike's security testing tools. They can still be used for analysis and conversation, but agents won't be able to execute probes or queries.
+</Aside>
+
+### Reasoning Options
+
+Models with reasoning support may offer different ways to control it:
+
+| Option | How It Works |
+|--------|-------------|
+| **effort** | Set reasoning intensity: `low`, `medium`, `high` — the model adjusts how much it thinks |
+| **toggle** | Enable or disable reasoning entirely |
+| **budget_tokens** | Set a specific token budget for the thinking process |
+
+Configure reasoning in `cyberstrike.json`:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "options": {
+        "thinking": {
+          "type": "enabled",
+          "budgetTokens": 10000
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
+## Anthropic (Claude)
+
+All Claude models support tool calling, reasoning, and file attachments. Claude is recommended for CyberStrike's security analysis workflows due to its strong reasoning and instruction-following capabilities.
+
+| Model | Context | Output | Cost ($/M tokens) | Best For |
+|-------|---------|--------|-------------------|----------|
+| `claude-opus-5-5` | 1M | 128K | $4 / $20 | Latest flagship — deep reasoning, complex analysis |
+| `claude-opus-5` | 1M | 128K | $5 / $25 | Previous flagship |
+| `claude-opus-4-8` | 1M | 128K | $5 / $25 | Long-context reasoning |
+| `claude-opus-4-7` | 1M | 128K | $5 / $25 | Extended thinking |
+| `claude-opus-4-6` | 1M | 128K | $5 / $25 | Balanced capability |
+| `claude-opus-4-5` | 200K | 64K | $5 / $25 | Proven production model |
+| `claude-sonnet-5-5` | 1M | 128K | $2 / $10 | Best value for capable reasoning |
+| `claude-sonnet-5` | 1M | 128K | $2 / $10 | Fast, capable, cost-effective |
+| `claude-sonnet-4-6` | 1M | 128K | $3 / $15 | Strong reasoning |
+| `claude-sonnet-4-5` | 200K | 64K | $3 / $15 | Reliable workhorse |
+| `claude-haiku-5-5` | 1M | 128K | $0.10 / $0.50 | Ultra-fast, low cost — ideal for `small_model` |
+| `claude-haiku-4-5` | 200K | 64K | $1 / $5 | Fast and affordable |
+| `claude-fable-5-1` | 1M | 128K | $10 / $50 | Creative and exploratory reasoning |
+| `claude-fable-5` | 1M | 128K | $10 / $50 | Creative reasoning |
+
+All Claude models accept text and image input. Reasoning options vary: Opus and Sonnet models support effort levels and budget tokens; Haiku supports toggle and budget tokens.
+
+### Anthropic Subscription (Claude Pro/Max)
+
+If you have a Claude Pro or Max subscription, you can authenticate via OAuth instead of an API key:
+
+1. Run `/connect` in the TUI
+2. Select **Anthropic** and choose **Login with Anthropic account**
+3. Authorize in the browser
+
+This uses your subscription quota — no separate API billing.
+
+---
+
+## OpenAI (GPT)
+
+| Model | Context | Output | Tool Call | Reasoning | Cost ($/M tokens) |
+|-------|---------|--------|-----------|-----------|-------------------|
+| `gpt-6-astra` | 1M | 128K | ✓ | ✓ | $10 / $50 |
+| `gpt-6-sol` | 1M | 128K | ✓ | ✓ | $2 / $10 |
+| `gpt-6-luna` | 1M | 128K | ✓ | ✓ | $0.10 / $0.50 |
+| `gpt-5.6-sol` | 1M | 128K | ✓ | ✓ | $4 / $20 |
+| `gpt-5.6-terra` | 1M | 128K | ✓ | ✓ | $2 / $12 |
+| `gpt-5.6-luna` | 1M | 128K | ✓ | ✓ | $0.20 / $1.20 |
+| `gpt-5.5` | 1M | 128K | ✓ | ✓ | $5 / $30 |
+| `gpt-5.4` | 1M | 128K | ✓ | ✓ | $2.50 / $15 |
+| `gpt-5.4-mini` | 400K | 128K | ✓ | ✓ | $0.75 / $4.50 |
+| `gpt-5.4-nano` | 400K | 128K | ✓ | ✓ | $0.20 / $1.25 |
+| `gpt-5.2` | 400K | 128K | ✓ | ✓ | $1.75 / $14 |
+| `gpt-5.1` | 400K | 128K | ✓ | ✓ | $1.25 / $10 |
+| `gpt-5` | 400K | 128K | ✓ | ✓ | $1.25 / $10 |
+| `gpt-5-mini` | 400K | 128K | ✓ | ✓ | $0.25 / $2 |
+| `gpt-5-nano` | 400K | 128K | ✓ | ✓ | $0.05 / $0.40 |
+| `gpt-5-pro` | 400K | 272K | ✓ | ✓ | $15 / $120 |
+| `gpt-4.1` | 1M | 32K | ✓ | — | $2 / $8 |
+| `gpt-4.1-mini` | 1M | 32K | ✓ | — | $0.40 / $1.60 |
+| `gpt-4o` | 128K | 16K | ✓ | — | $2.50 / $10 |
+| `gpt-4o-mini` | 128K | 16K | ✓ | — | $0.15 / $0.60 |
+| `o3` | 200K | 100K | ✓ | ✓ | $2 / $8 |
+| `o3-pro` | 200K | 100K | ✓ | ✓ | $20 / $80 |
+
+---
+
+## Google (Gemini)
+
+Google's Gemini models offer the largest context windows in the industry — up to 1M tokens — with multimodal input support including text, images, audio, video, and PDF.
+
+| Model | Context | Output | Tool Call | Reasoning | Cost ($/M tokens) |
+|-------|---------|--------|-----------|-----------|-------------------|
+| `gemini-4-argon` | 1M | 32K | ✓ | ✓ | $2 / $10 |
+| `gemini-3.8-flash` | 1M | 64K | ✓ | ✓ | $0.75 / $3.75 |
+| `gemini-3.7-flash` | 1M | 64K | ✓ | ✓ | $0.75 / $3.75 |
+| `gemini-3.6-flash` | 1M | 64K | ✓ | ✓ | $0.75 / $3.75 |
+| `gemini-3.5-flash` | 1M | 64K | ✓ | ✓ | $1.50 / $9 |
+| `gemini-3.5-flash-lite` | 1M | 64K | ✓ | ✓ | $0.30 / $2.50 |
+| `gemini-3.1-pro-preview` | 1M | 64K | ✓ | ✓ | $2 / $12 |
+| `gemini-3.1-flash-lite` | 1M | 64K | ✓ | ✓ | $0.25 / $1.50 |
+| `gemini-3-flash-preview` | 1M | 64K | ✓ | ✓ | $0.50 / $3 |
+| `gemini-2.5-pro` | 1M | 64K | ✓ | ✓ | $1.25 / $10 |
+| `gemini-2.5-flash` | 1M | 64K | ✓ | ✓ | $0.30 / $2.50 |
+| `gemini-2.5-flash-lite` | 1M | 64K | ✓ | ✓ | $0.10 / $0.40 |
+
+Gemma open models (`gemma-4-31b-it`, `gemma-4-26b-a4b-it`) are also available via Google at zero cost.
+
+---
+
+## xAI (Grok)
+
+| Model | Context | Output | Tool Call | Reasoning | Cost ($/M tokens) |
+|-------|---------|--------|-----------|-----------|-------------------|
+| `grok-4.7` | 500K | 500K | ✓ | ✓ | $2 / $6 |
+| `grok-4.6` | 500K | 500K | ✓ | ✓ | $2 / $6 |
+| `grok-4.5` | 500K | 500K | ✓ | ✓ | $2 / $6 |
+| `grok-4.3` | 1M | 30K | ✓ | ✓ | $1.25 / $2.50 |
+| `grok-build-0.1` | 256K | 256K | ✓ | ✓ | $1 / $2 |
+
+Grok models offer large output limits (up to 500K tokens) and competitive pricing.
+
+---
+
+## Mistral
+
+| Model | Context | Output | Tool Call | Reasoning | Cost ($/M tokens) |
+|-------|---------|--------|-----------|-----------|-------------------|
+| `mistral-large-4` | 1M | 256K | ✓ | ✓ | $0.68 / $2.09 |
+| `mistral-medium-latest` | 256K | 256K | ✓ | ✓ | $1.50 / $7.50 |
+| `mistral-large-latest` | 256K | 256K | ✓ | — | $0.50 / $1.50 |
+| `mistral-small-latest` | 256K | 256K | ✓ | ✓ | $0.15 / $0.60 |
+| `codestral-latest` | 256K | 4K | ✓ | — | $0.30 / $0.90 |
+| `ministral-8b-latest` | 256K | 128K | ✓ | — | $0.15 / $0.15 |
+| `ministral-3b-latest` | 128K | 128K | ✓ | — | $0.10 / $0.10 |
+
+---
+
+## Groq
+
+Groq provides ultra-fast inference on specialized hardware. Most models are free or very low cost.
+
+| Model | Context | Output | Tool Call | Reasoning | Cost ($/M tokens) |
+|-------|---------|--------|-----------|-----------|-------------------|
+| `openai/gpt-oss-120b` | 128K | 64K | ✓ | ✓ | $0.15 / $0.60 |
+| `openai/gpt-oss-20b` | 128K | 64K | ✓ | ✓ | $0.075 / $0.30 |
+| `qwen/qwen3.8-27b` | 128K | 16K | ✓ | ✓ | $0.80 / $4 |
+
+---
+
+## DeepInfra
+
+DeepInfra hosts a wide range of open-source and commercial models at competitive prices. 76+ models available.
+
+**Highlights:**
+
+| Model | Context | Output | Tool Call | Reasoning | Cost ($/M tokens) |
+|-------|---------|--------|-----------|-----------|-------------------|
+| `deepseek-ai/DeepSeek-V4.1-Flash` | 1M | 384K | ✓ | ✓ | $0.20 / $0.60 |
+| `deepseek-ai/DeepSeek-V4-Pro-0813` | 1M | 384K | ✓ | ✓ | $1.30 / $2.60 |
+| `deepseek-ai/DeepSeek-V4-Flash-0731` | 1M | 384K | ✓ | ✓ | $0.06 / $0.18 |
+| `Qwen/Qwen3.8-Max` | 256K | 128K | ✓ | — | $1.65 / $4.95 |
+| `Qwen/Qwen3.8-Flash` | 1M | 128K | ✓ | — | $0.11 / $0.38 |
+| `MiniMaxAI/MiniMax-M3` | 512K | 512K | ✓ | ✓ | $0.28 / $1.10 |
+| `openai/gpt-oss-120b` | 128K | 16K | ✓ | ✓ | $0.037 / $0.17 |
+| `meta-llama/Llama-3.3-70B-Instruct-Turbo` | 128K | 16K | ✓ | — | $0.10 / $0.32 |
+
+---
+
+## Together AI
+
+Together AI runs 32+ models with competitive pricing and fast inference.
+
+| Model | Context | Output | Tool Call | Reasoning | Cost ($/M tokens) |
+|-------|---------|--------|-----------|-----------|-------------------|
+| `deepseek-ai/DeepSeek-V4.1-Flash` | 1M | 384K | ✓ | ✓ | $0.30 / $1.20 |
+| `deepseek-ai/DeepSeek-V4-Pro-0813` | 1M | 384K | ✓ | ✓ | $1.32 / $3.96 |
+| `MiniMaxAI/MiniMax-M3` | 512K | 512K | ✓ | ✓ | $0.30 / $1.20 |
+| `openai/gpt-oss-120b` | 128K | 128K | ✓ | ✓ | $0.15 / $0.60 |
+
+---
+
+## Cohere
+
+| Model | Context | Tool Call | Reasoning | Cost ($/M tokens) |
+|-------|---------|-----------|-----------|-------------------|
+| `command-a-plus-05-2026` | 128K | ✓ | ✓ | $2.50 / $10 |
+| `command-a-reasoning-08-2025` | 256K | ✓ | ✓ | $2.50 / $10 |
+| `command-a-03-2025` | 256K | ✓ | — | $2.50 / $10 |
+| `command-r-plus-08-2024` | 128K | ✓ | — | $2.50 / $10 |
+| `command-r-08-2024` | 128K | ✓ | — | $0.15 / $0.60 |
+
+---
+
+## Cerebras
+
+Ultra-fast inference. Currently hosts 2 models:
+
+| Model | Context | Output | Tool Call | Reasoning | Cost ($/M tokens) |
+|-------|---------|--------|-----------|-----------|-------------------|
+| `gpt-oss-120b` | 128K | 40K | ✓ | ✓ | $0.35 / $0.75 |
+| `qwen-3.8-27b` | 128K | 40K | ✓ | ✓ | $0.99 / $1.49 |
+
+---
+
+## Alibaba (Qwen)
+
+Alibaba's Qwen family includes 59+ models with strong multilingual support. Set `DASHSCOPE_API_KEY` to use.
+
+**Highlights:**
+
+| Model | Context | Tool Call | Reasoning | Cost ($/M tokens) |
+|-------|---------|-----------|-----------|-------------------|
+| `qwen3.8-max` | 1M | ✓ | ✓ | $2.16 / $6.36 |
+| `qwen3.8-flash` | 1M | ✓ | ✓ | $0.18 / $0.56 |
+| `qwen3.7-max` | 1M | ✓ | ✓ | $1.80 / $5.30 |
+| `qwen3.7-plus` | 1M | ✓ | ✓ | $0.29 / $1.15 |
+| `qwen3.6-plus` | 1M | ✓ | ✓ | $0.30 / $1.80 |
+| `qwen-plus` | 1M | ✓ | ✓ | $0.40 / $1.20 |
+| `qwen-flash` | 1M | ✓ | ✓ | $0.05 / $0.40 |
+
+---
+
+## Amazon Bedrock
+
+Bedrock is a multi-model gateway — it gives you access to Claude, Nova, GPT, Grok, Mistral, DeepSeek, Qwen, and more through your AWS account. **199 models** available.
+
+CyberStrike handles cross-region inference prefixes automatically. See the [AI Providers](/docs/configuration/providers#aws-bedrock) page for authentication setup.
+
+Key models available through Bedrock include:
+- All Anthropic Claude models (Opus, Sonnet, Haiku, Fable)
+- Amazon Nova family (Micro, Lite, Pro, Nova 2 Lite)
+- OpenAI GPT-5.x and GPT-6.x series
+- xAI Grok models
+- Mistral models
+- DeepSeek V3.2
+- Qwen models
+
+---
+
+## OpenRouter
+
+OpenRouter aggregates models from many providers under a single API key. Set `OPENROUTER_API_KEY` and access models from Anthropic, OpenAI, Google, Meta, and dozens more.
+
+Model IDs use the OpenRouter format: `openrouter/provider/model-name`.
+
+---
+
+## GitHub Copilot
+
+Access models through your existing Copilot subscription — no separate API key needed.
+
+| Model | Provider |
+|-------|----------|
+| `claude-sonnet-5-5` | Anthropic |
+| `claude-sonnet-4-6` | Anthropic |
+| `gpt-5.6-luna` | OpenAI |
+| `gpt-5.6-terra` | OpenAI |
+
+CyberStrike automatically routes Claude models through the Anthropic Messages API instead of the OpenAI-compatible endpoint — this happens transparently.
+
+See the [AI Providers](/docs/configuration/providers#github-copilot) page for authentication setup.
+
+---
+
+## Google Vertex AI
+
+Access Google's models and Anthropic Claude through your GCP project. Requires `GOOGLE_CLOUD_PROJECT` and Application Default Credentials.
+
+Two provider IDs:
+- `google-vertex` — Gemini and other Google models
+- `google-vertex-anthropic` — Claude models via Vertex
+
+Continental multi-regions (`eu`, `us`) use Regional Endpoint Platform domains automatically.
+
+---
+
+## GitLab Duo
+
+Access AI models through your GitLab instance. Set `GITLAB_TOKEN` or authenticate via OAuth.
+
+---
+
+## Additional Hosted Providers
+
+| Provider | ID | Models | Env Var |
+|----------|----|--------|---------|
+| Venice AI | `venice` | Privacy-focused models | `VENICE_API_KEY` |
+| Perplexity | `perplexity` | Search-augmented models | `PERPLEXITY_API_KEY` |
+| Vercel AI Gateway | `vercel` | Gateway to multiple providers | Vercel auth |
+| AI SDK Gateway | `gateway` | Unified gateway | Varies |
+
+---
+
+## Custom & Self-Hosted Models
+
+Any OpenAI-compatible endpoint works with CyberStrike. Define it in `cyberstrike.json`:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "my-llm": {
+      "name": "My Local LLM",
+      "api": "http://localhost:8000/v1",
+      "models": {
+        "my-model": {
+          "name": "My Model",
+          "limit": { "context": 128000, "output": 16384 },
+          "tool_call": true
+        }
+      }
+    }
+  },
+  "model": "my-llm/my-model"
+}
+```
+
+Common self-hosted setups:
+
+| Software | Default URL |
+|----------|------------|
+| vLLM | `http://localhost:8000/v1` |
+| LM Studio | `http://localhost:1234/v1` |
+| Ollama | `http://localhost:11434/v1` |
+| text-generation-webui | `http://localhost:5000/v1` |
+
+---
+
+## Filtering Models
+
+Control which models appear with whitelist and blacklist:
+
+```json title="cyberstrike.json"
+{
+  "provider": {
+    "anthropic": {
+      "whitelist": ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"],
+      "blacklist": ["claude-fable-5", "claude-fable-5-1"]
+    }
+  }
+}
+```
+
+Or disable entire providers:
+
+```json title="cyberstrike.json"
+{
+  "disabled_providers": ["openrouter", "groq"],
+  "enabled_providers": ["anthropic", "openai"]
+}
+```
+
+---
+
+## Live Catalog
+
+The model catalog refreshes automatically from [models.dev](https://models.dev) every hour. You can also force a refresh by restarting CyberStrike.
+
+To override the catalog source:
+
+```bash
+CYBERSTRIKE_MODELS_URL=https://my-mirror.example.com cyberstrike
+CYBERSTRIKE_MODELS_PATH=/path/to/local/models.json cyberstrike
+CYBERSTRIKE_DISABLE_MODELS_FETCH=true cyberstrike
+```
+
+<Aside variant="tip">
+  This page shows a snapshot of available models. The live catalog at [models.dev](https://models.dev) has the most current list. Run `/models` in CyberStrike for real-time availability based on your configured providers.
+</Aside>

@@ -8,6 +8,8 @@ sidebar:
 
 HackBrowser is Cyberstrike's autonomous web crawler. It opens a Chromium browser, lets an LLM navigate the target application by reading the accessibility tree, and forwards every captured HTTP request — enriched with UI context — to the analysis pipeline. The [proxy-agent](/docs/agents/proxy-agent) then analyzes and tests each request.
 
+HackBrowser is the entry point for the [Web Pipeline](/docs/pipelines/web) — a full OWASP WSTG assessment that runs 14 specialist agents, 109 checks, and chain detection from a single `/hackbrowser` command.
+
 ## When to Use HackBrowser
 
 | Use case | Pick |

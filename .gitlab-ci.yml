@@ -2,6 +2,7 @@ stages:
   - version
   - build
   - publish
+  - deploy
 
 variables:
   BUN_VERSION: "1.3.9"
@@ -17,15 +18,41 @@ default:
 
 workflow:
   rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - packages/docs/**/*
     - if: $CI_PIPELINE_SOURCE == "web"
     - if: $CI_PIPELINE_SOURCE == "api"
     - if: $CI_PIPELINE_SOURCE == "trigger"
+
+# ── Stage 0: deploy docs (on push, path-filtered) ───────────────────────────
+
+deploy-docs:
+  stage: deploy
+  image: alpine:3.21
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - packages/docs/**/*
+  script:
+    - apk add --no-cache curl
+    - |
+      if [ -z "$COOLIFY_WEBHOOK" ]; then
+        echo "COOLIFY_WEBHOOK not set, skipping"
+        exit 0
+      fi
+      curl -fsSL "$COOLIFY_WEBHOOK" || echo "Coolify webhook failed (non-fatal)"
+  needs: []
 
 # ── Stage 1: calculate version ────────────────────────────────────────────────
 
 version:
   stage: version
   image: oven/bun:1.3.9-debian
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "api"
+    - if: $CI_PIPELINE_SOURCE == "trigger"
   script:
     - bun install --frozen-lockfile
     - |
@@ -42,6 +69,10 @@ build-app:
   stage: build
   image: oven/bun:1.3.9-debian
   needs: [version]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "api"
+    - if: $CI_PIPELINE_SOURCE == "trigger"
   script:
     - bun install --frozen-lockfile
     - CYBERSTRIKE_VERSION=$CYBERSTRIKE_VERSION bun turbo build --filter=@cyberstrike-io/app
@@ -54,6 +85,10 @@ build-cli:
   stage: build
   image: oven/bun:1.3.9-debian
   needs: [version]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "api"
+    - if: $CI_PIPELINE_SOURCE == "trigger"
   script:
     - bun install --frozen-lockfile
     - |
