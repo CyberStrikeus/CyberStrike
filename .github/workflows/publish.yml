@@ -40,7 +40,6 @@ permissions:
 jobs:
   version:
     runs-on: ubuntu-24.04
-    if: github.repository == 'CyberStrikeus/CyberStrike'
     steps:
       - uses: actions/checkout@v3
         with:
@@ -69,7 +68,6 @@ jobs:
   build-app:
     needs: version
     runs-on: ubuntu-24.04
-    if: github.repository == 'CyberStrikeus/CyberStrike'
     steps:
       - uses: actions/checkout@v3
 
@@ -88,7 +86,6 @@ jobs:
   build-cli:
     needs: version
     runs-on: ubuntu-24.04
-    if: github.repository == 'CyberStrikeus/CyberStrike'
     steps:
       - uses: actions/checkout@v3
         with:
