@@ -1,13 +1,28 @@
 import satori from "satori"
 import { Resvg } from "@resvg/resvg-js"
-import { readFileSync } from "fs"
-import { join } from "path"
 
-const fontDir = join(import.meta.dirname, "fonts")
-const spaceRegular = readFileSync(join(fontDir, "SpaceGrotesk-Regular.ttf"))
-const spaceBold = readFileSync(join(fontDir, "SpaceGrotesk-Bold.ttf"))
-const interRegular = readFileSync(join(fontDir, "Inter-Regular.woff"))
-const logoUri = readFileSync(join(fontDir, "logo-white-uri.txt"), "utf8").trim()
+let cached: { spaceRegular: Buffer; spaceBold: Buffer; interRegular: Buffer; logoUri: string } | undefined
+
+function fonts() {
+  if (cached) return cached
+  // Build-time generated file with base64-embedded font data (avoids $bunfs ENOENT in compiled binary)
+  try {
+    const data = require("./fonts-embedded")
+    cached = data
+    return cached!
+  } catch {}
+  // Fallback: read from disk (dev mode)
+  const { readFileSync } = require("fs")
+  const { join } = require("path")
+  const dir = join(import.meta.dirname, "fonts")
+  cached = {
+    spaceRegular: readFileSync(join(dir, "SpaceGrotesk-Regular.ttf")),
+    spaceBold: readFileSync(join(dir, "SpaceGrotesk-Bold.ttf")),
+    interRegular: readFileSync(join(dir, "Inter-Regular.woff")),
+    logoUri: readFileSync(join(dir, "logo-white-uri.txt"), "utf8").trim(),
+  }
+  return cached!
+}
 
 const WIDTH = 1200
 const HEIGHT = 630
@@ -212,7 +227,7 @@ function buildCard(p: PosterParams) {
                           {
                             type: "img",
                             props: {
-                              src: logoUri,
+                              src: fonts().logoUri,
                               width: 40,
                               height: 40,
                               style: { width: "40px", height: "40px" },
@@ -466,9 +481,9 @@ export async function render(params: PosterParams): Promise<Buffer> {
     width: WIDTH,
     height: HEIGHT,
     fonts: [
-      { name: "Space Grotesk", data: spaceRegular, weight: 400, style: "normal" as const },
-      { name: "Space Grotesk", data: spaceBold, weight: 700, style: "normal" as const },
-      { name: "Inter", data: interRegular, weight: 400, style: "normal" as const },
+      { name: "Space Grotesk", data: fonts().spaceRegular, weight: 400, style: "normal" as const },
+      { name: "Space Grotesk", data: fonts().spaceBold, weight: 700, style: "normal" as const },
+      { name: "Inter", data: fonts().interRegular, weight: 400, style: "normal" as const },
     ],
   })
   const resvg = new Resvg(svg, { fitTo: { mode: "width" as const, value: WIDTH } })
