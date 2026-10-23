@@ -36,6 +36,7 @@ import { Command } from "../command"
 import { $, fileURLToPath, pathToFileURL } from "bun"
 import { ConfigMarkdown } from "../config/markdown"
 import { SessionSummary } from "./summary"
+import { Config } from "../config/config"
 import { NamedError } from "@cyberstrike-io/util/error"
 import { fn } from "@/util/fn"
 import { SessionProcessor } from "./processor"
@@ -56,6 +57,9 @@ import { toolSig, READ_ONLY_TOOLS } from "./stuck/signals"
 import { StuckDetector, DEFAULT_STUCK_CONFIG } from "./stuck/stuck-detector"
 import { RepeatDetector } from "./stuck/repeat-detector"
 import STUCK_WRAP_UP from "./prompt/stuck-wrap-up.txt"
+import { SessionGoal } from "./goal"
+import GOAL_ACTIVE from "./prompt/goal-mode-active.txt"
+import GOAL_CONTINUATION from "./prompt/goal-continuation.txt"
 
 // @ts-ignore
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -79,6 +83,7 @@ export namespace SessionPrompt {
         string,
         {
           abort: AbortController
+          settled: { promise: Promise<void>; resolve(): void }
           callbacks: {
             resolve(input: MessageV2.WithParts): void
             reject(reason?: any): void
@@ -88,15 +93,16 @@ export namespace SessionPrompt {
       return data
     },
     async (current) => {
-      for (const item of Object.values(current)) {
-        item.abort.abort()
-      }
+      const pending = Object.values(current)
+      pending.forEach((entry) => entry.abort.abort())
+      await Promise.all(pending.map((entry) => entry.settled.promise))
     },
   )
 
   export function assertNotBusy(sessionID: string) {
     const match = state()[sessionID]
     if (match) throw new Session.BusyError(sessionID)
+    SessionGoal.assertAvailable(sessionID)
   }
 
   export const PromptInput = z.object({
@@ -168,6 +174,14 @@ export namespace SessionPrompt {
   export type PromptInput = z.infer<typeof PromptInput>
 
   export const prompt = fn(PromptInput, async (input) => {
+    const objective = SessionGoal.assertAvailable(input.sessionID, true)
+    if (objective?.status === "active") SessionGoal.pause(input.sessionID)
+    if (objective?.runner === process.pid) {
+      while (state()[input.sessionID])
+        await loop({ sessionID: input.sessionID }).catch((error: unknown) => {
+          if (!(error instanceof Error) || error.message !== "session prompt cancelled") throw error
+        })
+    }
     const session = await Session.get(input.sessionID)
     await SessionRevert.cleanup(session)
 
@@ -247,13 +261,61 @@ export namespace SessionPrompt {
     return parts
   }
 
+  async function appendGoal(goal: SessionGoal.Info, shouldEncourage = false) {
+    const message = await Session.updateMessage({
+      id: Identifier.ascending("message"),
+      sessionID: goal.sessionID,
+      role: "user",
+      goalID: goal.id,
+      origin: "goal-continuation",
+      agent: goal.agent,
+      model: goal.model,
+      variant: goal.variant,
+      time: { created: Date.now() },
+    })
+    await Session.updatePart({
+      id: Identifier.ascending("part"),
+      messageID: message.id,
+      sessionID: goal.sessionID,
+      type: "text",
+      synthetic: true,
+      text: `${shouldEncourage ? SessionGoal.ENCOURAGEMENT + "\n" : ""}${GOAL_CONTINUATION}\n${JSON.stringify({ objective: goal.objective, tokensUsed: goal.tokensUsed, tokenBudget: goal.tokenBudget ?? null })}`,
+    })
+  }
+
+  export async function goal(sessionID: string) {
+    assertNotBusy(sessionID)
+    if (!SessionGoal.shouldContinue(sessionID)) return
+    const objective = SessionGoal.claim(sessionID)
+    const abort = start(sessionID)!
+    try {
+      await appendGoal(objective)
+      return await loop({ sessionID, resume_existing: true, goalID: objective.id })
+    } finally {
+      settle(sessionID, abort)
+    }
+  }
+
+  function settle(sessionID: string, abort: AbortSignal) {
+    const pending = state()[sessionID]
+    if (!pending || pending.abort.signal !== abort) return
+    using _ = defer(() => pending.settled.resolve())
+    SessionGoal.block(sessionID, "Execution stopped before verified completion. Review the goal and resume explicitly.")
+    SessionGoal.release(sessionID)
+    cancel(sessionID)
+    delete state()[sessionID]
+    SessionStatus.set(sessionID, { type: "idle" })
+  }
+
   function start(sessionID: string) {
     const s = state()
     if (s[sessionID]) return
+    SessionGoal.assertAvailable(sessionID, true)
     const controller = new AbortController()
     s[sessionID] = {
       abort: controller,
       callbacks: [],
+      settled: Promise.withResolvers<void>(),
     }
     return controller.signal
   }
@@ -274,6 +336,7 @@ export namespace SessionPrompt {
   // killed the crawl after ~3 pages (see hackbrowser crawl-lifetime fix).
   export function cancel(sessionID: string, opts?: { stopCrawl?: boolean }) {
     log.info("cancel", { sessionID, stopCrawl: opts?.stopCrawl ?? false })
+    if (SessionGoal.shouldContinue(sessionID)) SessionGoal.pause(sessionID)
     if (opts?.stopCrawl) {
       try {
         stopHackbrowser(sessionID)
@@ -298,14 +361,12 @@ export namespace SessionPrompt {
     const callbacks = match.callbacks
     match.callbacks = []
     for (const cb of callbacks) cb.reject(error)
-    delete s[sessionID]
-    SessionStatus.set(sessionID, { type: "idle" })
-    return
   }
 
   export const LoopInput = z.object({
     sessionID: Identifier.schema("session"),
     resume_existing: z.boolean().optional(),
+    goalID: z.string().optional(),
   })
   export const loop = fn(LoopInput, async (input) => {
     const { sessionID, resume_existing } = input
@@ -318,7 +379,9 @@ export namespace SessionPrompt {
       })
     }
 
-    using _ = defer(() => cancel(sessionID))
+    using _ = defer(() => settle(sessionID, abort))
+    const goalID = input.goalID ?? (SessionGoal.shouldContinue(sessionID) ? SessionGoal.get(sessionID)?.id : undefined)
+    if (goalID && SessionGoal.get(sessionID)?.runner !== process.pid) SessionGoal.claim(sessionID)
 
     // Structured output state
     // Note: On session resumption, state is reset but outputFormat is preserved
@@ -345,6 +408,7 @@ export namespace SessionPrompt {
       SessionStatus.set(sessionID, { type: "busy" })
       log.info("loop", { step, sessionID })
       if (abort.aborted) break
+      if (goalID && (SessionGoal.get(sessionID)?.id !== goalID || !SessionGoal.shouldContinue(sessionID))) break
       let msgs = await MessageV2.filterCompacted(MessageV2.stream(sessionID))
 
       let lastUser: MessageV2.User | undefined
@@ -370,6 +434,27 @@ export namespace SessionPrompt {
         !["tool-calls", "unknown"].includes(lastAssistant.finish) &&
         lastUser.id < lastAssistant.id
       ) {
+        if (goalID) {
+          if (
+            lastAssistant.error ||
+            lastAssistant.finish !== "stop" ||
+            lastAssistant.stepCapped ||
+            lastAssistant.stuckAborted
+          ) {
+            SessionGoal.block(sessionID, "The agent stopped with an error or execution limit")
+            break
+          }
+          const config = await Config.get()
+          if (config.goal?.enabled === false || config.goal?.autoContinue === false) {
+            SessionGoal.pause(sessionID)
+            break
+          }
+          if (abort.aborted || !SessionGoal.shouldContinue(sessionID)) break
+          const next = SessionGoal.continuation(sessionID)
+          if (!next) break
+          await appendGoal(next, true)
+          continue
+        }
         if (lastAssistant.finish === "content-filter") {
           log.warn("exiting loop — content-filter", { sessionID, finish: lastAssistant.finish })
         } else {
@@ -379,7 +464,14 @@ export namespace SessionPrompt {
       }
 
       step++
-      if (step === 1)
+      if (goalID && step > 100) {
+        SessionGoal.block(
+          sessionID,
+          "The goal reached the per-run safety limit of 100 steps. Review progress before resuming.",
+        )
+        break
+      }
+      if (step === 1 && lastUser.origin !== "goal-continuation")
         ensureTitle({
           session,
           modelID: lastUser.model.modelID,
@@ -668,6 +760,11 @@ export namespace SessionPrompt {
           id: Identifier.ascending("message"),
           parentID: lastUser.id,
           role: "assistant",
+          goalID:
+            goalID ??
+            (session.parentID && SessionGoal.shouldContinue(Session.root(sessionID))
+              ? SessionGoal.get(Session.root(sessionID))?.id
+              : undefined),
           mode: agent.name,
           agent: agent.name,
           variant: lastUser.variant,
@@ -736,7 +833,7 @@ export namespace SessionPrompt {
         if (structured) tools["StructuredOutput"] = structured
       }
 
-      if (step === 1) {
+      if (step === 1 && lastUser.origin !== "goal-continuation") {
         SessionSummary.summarize({
           sessionID: sessionID,
           messageID: lastUser.id,
@@ -768,6 +865,11 @@ export namespace SessionPrompt {
 
       // Build system prompt, adding structured output instruction if needed
       const system = [...(await SystemPrompt.environment(model)), ...(await InstructionPrompt.system())]
+      const objective = SessionGoal.get(sessionID)
+      if (goalID && objective?.status === "active")
+        system.push(
+          `${GOAL_ACTIVE}\n${JSON.stringify({ objective: objective.objective, tokensUsed: objective.tokensUsed, tokenBudget: objective.tokenBudget ?? null })}`,
+        )
       const format = lastUser.format ?? { type: "text" }
       if (format.type === "json_schema") {
         system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT)
@@ -881,6 +983,7 @@ export namespace SessionPrompt {
         continue
       }
 
+      if (abort.aborted || (goalID && !SessionGoal.shouldContinue(sessionID))) break
       const result = await processor.process({
         user: lastUser,
         agent,
@@ -902,6 +1005,12 @@ export namespace SessionPrompt {
         model,
         toolChoice: format.type === "json_schema" ? "required" : undefined,
       })
+      if (goalID) {
+        SessionGoal.observe(sessionID, await MessageV2.parts(processor.message.id))
+        if (processor.message.error || result === "stop" || processor.message.stepCapped)
+          SessionGoal.block(sessionID, "Execution failed, permission was denied, or the agent reached its step limit")
+        if (!SessionGoal.shouldContinue(sessionID)) break
+      }
 
       // Context usage logging
       const tokens = processor.message.tokens
@@ -1097,6 +1206,8 @@ export namespace SessionPrompt {
       { modelID: input.model.api.id, providerID: input.model.providerID },
       input.agent,
     )) {
+      if (item.id === "goal" && (input.agent.mode === "subagent" || !SessionGoal.shouldContinue(input.session.id)))
+        continue
       const schema = ProviderTransform.schema(input.model, z.toJSONSchema(item.parameters))
       tools[item.id] = tool({
         id: item.id as any,
@@ -1813,7 +1924,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       // If no queued callbacks, cancel (the default)
       const callbacks = state()[input.sessionID]?.callbacks ?? []
       if (callbacks.length === 0) {
-        cancel(input.sessionID)
+        settle(input.sessionID, abort)
       } else {
         // Otherwise, trigger the session loop to process queued items
         loop({ sessionID: input.sessionID, resume_existing: true }).catch((error) => {

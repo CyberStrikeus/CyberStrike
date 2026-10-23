@@ -2,7 +2,7 @@ import { Database as BunDatabase } from "bun:sqlite"
 import { drizzle, type SQLiteBunDatabase } from "drizzle-orm/bun-sqlite"
 import { migrate } from "drizzle-orm/bun-sqlite/migrator"
 import { type SQLiteTransaction, getTableConfig, SQLiteTable } from "drizzle-orm/sqlite-core"
-import { is } from "drizzle-orm"
+import { is, eq, and } from "drizzle-orm"
 export * from "drizzle-orm"
 import { Context } from "../util/context"
 import { lazy } from "../util/lazy"
@@ -183,6 +183,24 @@ export namespace Database {
     // Handles partially applied migrations (Drizzle's sqlite3_prepare_v2 only runs the first
     // statement when "--> statement-breakpoint" delimiters are missing) and any future drift.
     reconcile(sqlite)
+    for (const goal of db.select().from(schema.GoalTable).where(eq(schema.GoalTable.status, "active")).all()) {
+      if (goal.execution.runner) {
+        try {
+          process.kill(goal.execution.runner, 0)
+          continue
+        } catch (error) {
+          if (!(error instanceof Error) || !("code" in error) || error.code !== "ESRCH") continue
+        }
+      }
+      db.update(schema.GoalTable)
+        .set({
+          status: "paused",
+          execution: { ...goal.execution, runner: undefined, reason: "Restarted. Resume explicitly." },
+          time_updated: Math.max(Date.now(), goal.time_updated + 1),
+        })
+        .where(and(eq(schema.GoalTable.id, goal.id), eq(schema.GoalTable.execution, goal.execution)))
+        .run()
+    }
 
     return db
   })

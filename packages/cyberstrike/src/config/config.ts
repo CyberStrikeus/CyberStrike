@@ -1103,6 +1103,13 @@ export namespace Config {
       logLevel: Log.Level.optional().describe("Log level"),
       tui: TUI.optional().describe("TUI specific settings"),
       server: Server.optional().describe("Server configuration for cyberstrike serve and web commands"),
+      goal: z
+        .object({
+          enabled: z.boolean().optional().describe("Enable goal mode (default: true)"),
+          defaultTokenBudget: z.number().int().positive().optional().describe("Goal token limit (default: unlimited)"),
+          autoContinue: z.boolean().optional().describe("Continue unfinished goal turns (default: true)"),
+        })
+        .optional(),
       command: z
         .record(z.string(), Command)
         .optional()

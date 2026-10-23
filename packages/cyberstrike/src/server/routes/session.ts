@@ -5,6 +5,7 @@ import z from "zod"
 import { Session } from "../../session"
 import { MessageV2 } from "../../session/message-v2"
 import { SessionPrompt } from "../../session/prompt"
+import { SessionGoal } from "../../session/goal"
 import { SessionCompaction } from "../../session/compaction"
 import { SessionRevert } from "../../session/revert"
 import { SessionStatus } from "@/session/status"
@@ -174,11 +175,7 @@ export function renderAccessContextLines(accessContext: AccessContextInput): str
 // with any capture-time label. This is the Firefox fix: Firefox traffic has no
 // page_visited_by at capture time, but request_observation carries per-credential
 // reachability for both paths. Merged, distinct, label-resolved.
-export function getVisitedByForKeyHash(
-  sessionID: string,
-  keyHash: string,
-  captureVisitedBy?: string[],
-): string[] {
+export function getVisitedByForKeyHash(sessionID: string, keyHash: string, captureVisitedBy?: string[]): string[] {
   const obs = Observation.listByKeyHash(sessionID, keyHash)
   const ids = [...new Set(obs.map((o) => o.credential_id).filter((id): id is string => !!id))]
   const labels = ids.map((id) => WebCredential.getById(id)?.label ?? id)
@@ -659,6 +656,73 @@ export const SessionRoutes = lazy(() =>
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
         return c.json(await Session.usage(sessionID))
+      },
+    )
+    .get(
+      "/:sessionID/goal",
+      describeRoute({
+        summary: "Get the current goal",
+        operationId: "session.goalGet",
+        responses: {
+          200: {
+            description: "Current or latest goal",
+            content: { "application/json": { schema: resolver(SessionGoal.Info.nullable()) } },
+          },
+          ...errors(404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        await Session.get(sessionID)
+        return c.json(SessionGoal.get(sessionID) ?? null)
+      },
+    )
+    .post(
+      "/:sessionID/goal",
+      describeRoute({
+        summary: "Create and start a goal",
+        operationId: "session.goalCreate",
+        responses: {
+          200: { description: "Created goal", content: { "application/json": { schema: resolver(SessionGoal.Info) } } },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      validator("json", SessionGoal.Create),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const goal = await SessionGoal.create(sessionID, c.req.valid("json"))
+        void SessionGoal.run(sessionID)
+        return c.json(goal)
+      },
+    )
+    .patch(
+      "/:sessionID/goal",
+      describeRoute({
+        summary: "Pause, resume, drop or change the goal budget",
+        operationId: "session.goalUpdate",
+        responses: {
+          200: { description: "Updated goal", content: { "application/json": { schema: resolver(SessionGoal.Info) } } },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      validator("json", SessionGoal.Change),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        await Session.get(sessionID)
+        const change = c.req.valid("json")
+        const goal =
+          change.op === "pause"
+            ? SessionGoal.pause(sessionID)
+            : change.op === "drop"
+              ? SessionGoal.drop(sessionID)
+              : change.op === "budget"
+                ? SessionGoal.setBudget(sessionID, change.tokenBudget)
+                : await SessionGoal.resume(sessionID)
+        if (change.op === "resume") void SessionGoal.run(sessionID)
+        return c.json(goal)
       },
     )
     .get(

@@ -1,0 +1,4 @@
+The goal remains unfinished. Continue the original objective below with the next meaningful, verifiable action.
+Do not repeat progress narration or repeat identical tool calls without new evidence.
+Review the current budget. Preserve all original deliverables, permissions, and target scope checks.
+If evidence covers the entire objective, request the goal completion audit. Otherwise continue work or report a concrete blocker.

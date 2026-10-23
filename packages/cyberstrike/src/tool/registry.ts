@@ -1,4 +1,5 @@
 import { QuestionTool } from "./question"
+import { GoalTool } from "./goal"
 import { BashTool } from "./bash"
 import { EditTool } from "./edit"
 import { GlobTool } from "./glob"
@@ -144,6 +145,7 @@ export namespace ToolRegistry {
 
     return [
       InvalidTool,
+      GoalTool,
       ...(["app", "cli", "desktop"].includes(Flag.CYBERSTRIKE_CLIENT) ? [QuestionTool] : []),
       BashTool,
       ReadTool,

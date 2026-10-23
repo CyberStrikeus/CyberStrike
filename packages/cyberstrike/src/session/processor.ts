@@ -16,6 +16,7 @@ import { SessionCompaction } from "./compaction"
 import { PermissionNext } from "@/permission/next"
 import { Question } from "@/question"
 import { Truncate } from "@/tool/truncation"
+import { SessionGoal } from "./goal"
 
 export namespace SessionProcessor {
   const DOOM_LOOP_THRESHOLD = 3
@@ -394,7 +395,7 @@ export namespace SessionProcessor {
               needsCompaction = true
               break
             }
-            const retry = SessionRetry.retryable(error)
+            const retry = input.assistantMessage.goalID ? undefined : SessionRetry.retryable(error)
             if (retry !== undefined) {
               attempt++
               const delay = SessionRetry.delay(attempt, error.name === "APIError" ? error : undefined)
@@ -408,6 +409,7 @@ export namespace SessionProcessor {
               continue
             }
             input.assistantMessage.error = error
+            SessionGoal.block(input.sessionID, "The provider failed. Review the error before resuming.")
             Bus.publish(Session.Event.Error, {
               sessionID: input.assistantMessage.sessionID,
               error: input.assistantMessage.error,

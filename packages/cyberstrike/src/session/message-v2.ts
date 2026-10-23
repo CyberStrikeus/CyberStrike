@@ -344,6 +344,8 @@ export namespace MessageV2 {
 
   export const User = Base.extend({
     role: z.literal("user"),
+    origin: z.literal("goal-continuation").optional(),
+    goalID: z.string().optional(),
     time: z.object({
       created: z.number(),
     }),
@@ -391,6 +393,7 @@ export namespace MessageV2 {
 
   export const Assistant = Base.extend({
     role: z.literal("assistant"),
+    goalID: z.string().optional(),
     time: z.object({
       created: z.number(),
       completed: z.number().optional(),

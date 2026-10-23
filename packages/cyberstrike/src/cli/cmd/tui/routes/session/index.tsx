@@ -60,6 +60,7 @@ import { DialogTimeline } from "./dialog-timeline"
 import { DialogForkFromTimeline } from "./dialog-fork-from-timeline"
 import { DialogSessionRename } from "../../component/dialog-session-rename"
 import { DialogHackbrowserLaunch } from "../../component/dialog-hackbrowser-launch"
+import { DialogGoal } from "../../component/dialog-goal"
 import { DialogVulnerability } from "../../component/dialog-vulnerability"
 import { DialogWebContext } from "../../component/dialog-web-context"
 import { DialogMethodology } from "../../component/dialog-methodology"
@@ -319,6 +320,14 @@ export function Session() {
 
   const command = useCommandDialog()
   command.register(() => [
+    {
+      title: "Manage goal",
+      value: "session.goal",
+      category: "Session",
+      enabled: sync.data.config.goal?.enabled !== false,
+      slash: { name: "goal" },
+      onSelect: (dialog) => dialog.replace(() => <DialogGoal sessionID={route.sessionID} />),
+    },
     {
       title: session()?.share?.url ? "Copy share link" : "Share session",
       value: "session.share",
@@ -1199,7 +1208,7 @@ export function Session() {
       <box flexDirection="row">
         <box flexGrow={1} paddingBottom={1} paddingTop={1} paddingLeft={2} paddingRight={2} gap={1}>
           <Show when={session()}>
-            <Show when={showHeader() && (!sidebarVisible() || !wide())}>
+            <Show when={showHeader() && (!sidebarVisible() || !wide() || !!sync.data.goal[route.sessionID])}>
               <Header />
             </Show>
             <scrollbox
@@ -1340,6 +1349,9 @@ export function Session() {
                 sessionID={route.sessionID}
               />
             </box>
+            <Show when={sync.data.goal[route.sessionID]}>
+              <Footer />
+            </Show>
           </Show>
           <Toast />
         </box>

@@ -10,6 +10,7 @@ export function Footer() {
   const { theme } = useTheme()
   const sync = useSync()
   const route = useRoute()
+  const goal = createMemo(() => (route.data.type === "session" ? sync.data.goal[route.data.sessionID] : undefined))
   const mcp = createMemo(() => Object.values(sync.data.mcp).filter((x) => x.status === "connected").length)
   const mcpError = createMemo(() => Object.values(sync.data.mcp).some((x) => x.status === "failed"))
   const lsp = createMemo(() => Object.keys(sync.data.lsp))
@@ -51,7 +52,11 @@ export function Footer() {
 
   return (
     <box flexDirection="row" justifyContent="space-between" gap={1} flexShrink={0}>
-      <text fg={theme.textMuted}>{directory()}</text>
+      <text fg={theme.textMuted} wrapMode="none" flexShrink={1}>
+        {goal()
+          ? `Goal tokens: ${goal()!.tokensUsed.toLocaleString()} / ${goal()!.tokenBudget?.toLocaleString() ?? "unlimited"}`
+          : directory()}
+      </text>
       <box gap={2} flexDirection="row" flexShrink={0}>
         <Switch>
           <Match when={store.welcome}>

@@ -20,6 +20,7 @@ import { SessionPrompt } from "./prompt"
 import { fn } from "@/util/fn"
 import { Command } from "../command"
 import { Snapshot } from "@/snapshot"
+import { SessionGoal } from "./goal"
 
 import type { Provider } from "@/provider/provider"
 import { PermissionNext } from "@/permission/next"
@@ -645,7 +646,7 @@ export namespace Session {
   export const updateMessage = fn(MessageV2.Info, async (msg) => {
     const time_created = msg.role === "user" ? msg.time.created : msg.time.created
     const { id, sessionID, ...data } = msg
-    Database.use((db) => {
+    Database.transaction((db) => {
       db.insert(MessageTable)
         .values({
           id,
@@ -655,6 +656,15 @@ export namespace Session {
         })
         .onConflictDoUpdate({ target: MessageTable.id, set: { data } })
         .run()
+      if (msg.role === "assistant" && msg.goalID && msg.time.completed && msg.sessionID === Session.root(msg.sessionID))
+        SessionGoal.recordUsage(
+          msg.sessionID,
+          msg.id,
+          0,
+          Math.max(0, msg.time.completed - msg.time.created) / 1000,
+          msg.time.created,
+          msg.goalID,
+        )
       Database.effect(() =>
         Bus.publish(MessageV2.Event.Updated, {
           info: msg,
@@ -710,7 +720,7 @@ export namespace Session {
   export const updatePart = fn(UpdatePartInput, async (part) => {
     const { id, messageID, sessionID, ...data } = part
     const time = Date.now()
-    Database.use((db) => {
+    Database.transaction((db) => {
       db.insert(PartTable)
         .values({
           id,
@@ -721,6 +731,18 @@ export namespace Session {
         })
         .onConflictDoUpdate({ target: PartTable.id, set: { data } })
         .run()
+      if (part.type === "step-finish") {
+        const message = db.select().from(MessageTable).where(eq(MessageTable.id, part.messageID)).get()
+        if (message?.data.role === "assistant" && message.data.goalID)
+          SessionGoal.recordUsage(
+            part.sessionID,
+            part.id,
+            SessionGoal.count(part.tokens),
+            0,
+            message.time_created,
+            message.data.goalID,
+          )
+      }
       Database.effect(() =>
         Bus.publish(MessageV2.Event.PartUpdated, {
           part,

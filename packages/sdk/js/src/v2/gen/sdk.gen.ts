@@ -149,6 +149,12 @@ import type {
   SessionForkResponses,
   SessionGetErrors,
   SessionGetResponses,
+  SessionGoalCreateErrors,
+  SessionGoalCreateResponses,
+  SessionGoalGetErrors,
+  SessionGoalGetResponses,
+  SessionGoalUpdateErrors,
+  SessionGoalUpdateResponses,
   SessionHackbrowserLaunchErrors,
   SessionHackbrowserLaunchResponses,
   SessionHackbrowserStatusErrors,
@@ -1425,6 +1431,128 @@ export class Session extends HeyApiClient {
       url: "/session/{sessionID}/usage",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Get the current goal
+   */
+  public goalGet<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionGoalGetResponses, SessionGoalGetErrors, ThrowOnError>({
+      url: "/session/{sessionID}/goal",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Pause, resume, drop or change the goal budget
+   */
+  public goalUpdate<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      body?:
+        | {
+            op: "pause"
+          }
+        | {
+            op: "resume"
+          }
+        | {
+            op: "drop"
+          }
+        | {
+            op: "budget"
+            tokenBudget: number | null
+          }
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { key: "body", map: "body" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).patch<SessionGoalUpdateResponses, SessionGoalUpdateErrors, ThrowOnError>({
+      url: "/session/{sessionID}/goal",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Create and start a goal
+   */
+  public goalCreate<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      objective: string
+      agent?: string
+      model?: {
+        providerID: string
+        modelID: string
+      }
+      variant?: string
+      tokenBudget?: number | null
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "objective" },
+            { in: "body", key: "agent" },
+            { in: "body", key: "model" },
+            { in: "body", key: "variant" },
+            { in: "body", key: "tokenBudget" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SessionGoalCreateResponses, SessionGoalCreateErrors, ThrowOnError>({
+      url: "/session/{sessionID}/goal",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 
