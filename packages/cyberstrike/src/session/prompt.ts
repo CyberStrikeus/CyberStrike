@@ -1032,6 +1032,19 @@ export namespace SessionPrompt {
         SessionGoal.observe(sessionID, await MessageV2.parts(processor.message.id))
         if (processor.message.error || result === "stop" || processor.message.stepCapped)
           SessionGoal.block(sessionID, "Execution failed, permission was denied, or the agent reached its step limit")
+        const goal = SessionGoal.get(sessionID)
+        if (goal?.id === goalID && goal.status === "completed") {
+          await Session.updatePart({
+            id: Identifier.ascending("part"),
+            messageID: processor.message.id,
+            sessionID,
+            type: "text",
+            text: `${goal.reason}\n\nFinal report: [${goal.reportPath}](${goal.reportPath})`,
+          })
+          processor.message.finish = "stop"
+          await Session.updateMessage(processor.message)
+          break
+        }
         if (!SessionGoal.shouldContinue(sessionID)) break
       }
 

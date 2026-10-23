@@ -58,6 +58,12 @@ Turn timestamps and message boundaries support sequencing requirements. The audi
 
 The audit has no tools. CyberStrike validates its JSON verdict and evidence citations before any completion transition. Existing execution permissions remain unchanged.
 
+After a successful audit, CyberStrike saves a final Markdown report in `.cyberstrike/reports/report-<timestamp>-<goal-id>.md`. The report contains the original objective, verified result, evidence references and session identifier. This final write uses the normal write tool and requires file-edit permission.
+
+The goal becomes completed only after the file write succeeds and lifecycle checks pass. The final assistant response links to the saved report and ends the turn cleanly. The persisted `reportPath` identifies the file after a restart.
+
+A failed write, permission denial, cancellation or expired deadline prevents clean completion. The audit remains read-only. The final report does not replace any deliverables requested in the original objective.
+
 Verification uses model judgment. It is not a formal proof or an independent rerun of commands. Missing, compacted or oversized evidence can prevent completion. Review the evidence report for high-impact work.
 
 ## Usage and safety limits

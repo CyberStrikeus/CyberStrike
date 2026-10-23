@@ -6,6 +6,8 @@ import { GoalTool } from "../../src/tool/goal"
 import { withGoal } from "../fixture/goal"
 import type { Tool } from "../../src/tool/tool"
 import z from "zod"
+import path from "path"
+import { Instance } from "../../src/project/instance"
 
 const model = { providerID: "alibaba", modelID: "qwen-plus" }
 
@@ -33,6 +35,12 @@ test("verified completion audits the original objective and stops further execut
       expect(SessionGoal.get(sessionID)?.status).toBe("completed")
       expect(SessionGoal.get(sessionID)?.report).toContain("goal-proof")
       expect(SessionGoal.get(sessionID)?.tokensUsed).toBe(36)
+      const goal = SessionGoal.get(sessionID)!
+      const report = await Bun.file(path.join(Instance.directory, goal.reportPath!)).text()
+      expect(report).toContain(goal.objective)
+      const final = (await Session.messages({ sessionID })).at(-1)!
+      expect(final.info.role === "assistant" && final.info.finish).toBe("stop")
+      expect(final.parts.some((part) => part.type === "text" && part.text.includes(goal.reportPath!))).toBe(true)
       expect(requests).toHaveLength(3)
       expect(requests[0].tools?.some((tool) => tool.function.name === "goal")).toBe(true)
       const other = await Session.create({ title: "Independent chat" })
@@ -63,6 +71,37 @@ test("completion rejects unsupported evidence citations", async () => {
       await SessionPrompt.goal(sessionID)
       expect(SessionGoal.get(sessionID)?.status).toBe("blocked")
       expect(SessionGoal.get(sessionID)?.completedAt).toBeUndefined()
+    },
+  )
+})
+
+test("a denied final report write leaves the goal unfinished", async () => {
+  await withGoal(
+    (request, count) => {
+      if (count === 1) return { text: "goal-proof" }
+      if (count === 2) return { calls: [{ name: "goal", input: { op: "complete" } }] }
+      const audit = z
+        .object({ evidence: z.array(z.object({ id: z.string(), text: z.string() })) })
+        .parse(JSON.parse(String(request.messages.at(-1)?.content)))
+      return {
+        text: JSON.stringify({
+          complete: true,
+          reason: "The requested text is present",
+          checks: [{ requirement: "Reply with goal-proof", evidence: [audit.evidence[0].id] }],
+        }),
+      }
+    },
+    async (sessionID) => {
+      await Session.setPermission({ sessionID, permission: [{ permission: "edit", pattern: "*", action: "deny" }] })
+      await SessionGoal.create(sessionID, { objective: "Reply with goal-proof", model })
+      await SessionPrompt.goal(sessionID)
+      const goal = SessionGoal.get(sessionID)!
+      expect(goal.status).toBe("blocked")
+      expect(goal.completedAt).toBeUndefined()
+      expect(goal.reportPath).toBeUndefined()
+      expect(
+        await Array.fromAsync(new Bun.Glob(".cyberstrike/reports/*.md").scan({ cwd: Instance.directory })),
+      ).toEqual([])
     },
   )
 })

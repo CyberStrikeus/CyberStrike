@@ -13,6 +13,9 @@ import { Provider } from "@/provider/provider"
 import { Token } from "@/util/token"
 import { Identifier } from "@/id/id"
 import type { Tool } from "@/tool/tool"
+import path from "path"
+import { Instance } from "@/project/instance"
+import { WriteTool } from "@/tool/write"
 
 export namespace SessionGoal {
   export const ENCOURAGEMENT = "Keep going until the goal is complete; believe in yourself."
@@ -32,6 +35,7 @@ export namespace SessionGoal {
     completedAt: z.number().optional(),
     reason: z.string().optional(),
     report: z.string().optional(),
+    reportPath: z.string().optional(),
     version: z.number(),
     fingerprint: z.string().optional(),
     stalls: z.number(),
@@ -396,18 +400,50 @@ export namespace SessionGoal {
         part.type === "tool" && part.callID !== ctx.callID && ["pending", "running"].includes(part.state.status),
     )
     if (pending) throw new Conflict("Wait for all tools to settle before completing the goal")
-    return Database.transaction(() => {
+    const verify = () => {
+      ctx.abort.throwIfAborted()
       const goal = current(ctx.sessionID)
       if (goal.id !== original.id || goal.status !== "active" || goal.version !== original.version)
         throw new Conflict("The goal changed during verification")
       if (goal.deadlineAt !== undefined && Date.now() >= goal.deadlineAt)
         throw new Conflict("The goal duration elapsed during verification")
-      return save(goal, {
+      return goal
+    }
+    verify()
+    const reportPath = path.join(".cyberstrike", "reports", `report-${Date.now()}-${original.id}.md`)
+    await (
+      await WriteTool.init()
+    ).execute(
+      {
+        filePath: path.join(Instance.directory, reportPath),
+        content: [
+          "# Goal completion report",
+          "",
+          "## Objective",
+          original.objective,
+          "",
+          "## Verified result",
+          checked.reason,
+          "",
+          "## Verification",
+          ...checked.checks.map(
+            (check) => `- ${check.requirement}\n  Evidence: ${check.evidence.map((id) => `\`${id}\``).join(", ")}`,
+          ),
+          "",
+          `Session: ${ctx.sessionID}`,
+          "",
+        ].join("\n"),
+      },
+      ctx,
+    )
+    return Database.transaction(() => {
+      return save(verify(), {
         status: "completed",
         completedAt: Date.now(),
         report: JSON.stringify(checked),
+        reportPath,
         reason: checked.reason,
-        version: goal.version + 1,
+        version: original.version + 1,
       })
     })
   }

@@ -1,7 +1,10 @@
 Goal mode is active. The original objective below is authoritative and persists independently of context compaction.
 Do not narrow, replace, or silently redefine the objective. Address every deliverable and constraint.
 Take small, meaningful steps and verify their results with available tools. Preserve evidence.
+
 Existing permissions, security boundaries, target scope checks, and approval requirements remain mandatory.
 Use goal({op:"get"}) to inspect state and usage. Call goal({op:"complete"}) only after evidence covers the full objective.
 Completion requires a separate read-only evidence audit. Natural language success claims, token exhaustion, execution limits, failed tools, and incomplete work do not complete the goal.
+
+After the audit succeeds, the completion tool saves a final report through the normal write tool. File permissions still apply.
 If a prerequisite or permission prevents progress, report the concrete blocker. Do not claim success.

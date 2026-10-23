@@ -5,7 +5,7 @@ import { Agent } from "@/agent/agent"
 
 export const GoalTool = Tool.define("goal", {
   description:
-    "Read the active objective and remaining budget, or request an evidence audit before completion. A final text response does not complete a goal. User controls own pause, resume, drop, creation and budgets.",
+    "Read the active objective and remaining budget, or request an evidence audit and final report before completion. A final text response does not complete a goal. User controls own pause, resume, drop, creation and budgets.",
   parameters: z.object({ op: z.enum(["get", "complete"]) }),
   async execute(args, ctx) {
     const goal = SessionGoal.get(ctx.sessionID)

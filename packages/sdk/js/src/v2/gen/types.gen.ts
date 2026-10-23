@@ -684,6 +684,14 @@ export type EventQuestionRejected = {
   }
 }
 
+export type EventFileWatcherUpdated = {
+  type: "file.watcher.updated"
+  properties: {
+    file: string
+    event: "add" | "change" | "unlink"
+  }
+}
+
 export type SessionGoal = {
   agent: string
   model: {
@@ -700,6 +708,7 @@ export type SessionGoal = {
   completedAt?: number
   reason?: string
   report?: string
+  reportPath?: string
   version: number
   fingerprint?: string
   stalls: number
@@ -724,14 +733,6 @@ export type EventSessionCompacted = {
   type: "session.compacted"
   properties: {
     sessionID: string
-  }
-}
-
-export type EventFileWatcherUpdated = {
-  type: "file.watcher.updated"
-  properties: {
-    file: string
-    event: "add" | "change" | "unlink"
   }
 }
 
@@ -1289,9 +1290,9 @@ export type Event =
   | EventQuestionAsked
   | EventQuestionReplied
   | EventQuestionRejected
+  | EventFileWatcherUpdated
   | EventSessionGoalUpdated
   | EventSessionCompacted
-  | EventFileWatcherUpdated
   | EventRequestUpdated
   | EventWebCredentialUpdated
   | EventSessionQueueStatus
