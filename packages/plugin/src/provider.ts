@@ -23,6 +23,7 @@ export interface AgentSpec {
     | "specialist"
     | "analyzer"
     | "support"
+    | "escalation-hunter"
   group?: string
   description: string
   // Soft per-agent turn budget. Optional: an agent that ships WITHOUT a cap (e.g. a
