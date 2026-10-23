@@ -15,6 +15,8 @@ Goal mode retains an objective and continues the existing session execution loop
 | `/goal budget off` | Remove the token limit without resetting usage. |
 | `/goal drop` | Stop future goal steps without claiming completion. |
 
+Use `/goal` from the home screen or an open session.
+
 The words `status`, `pause`, `resume`, `budget` and `drop` are reserved at the start of command arguments. Invalid control arguments produce an error. Other arguments form the objective.
 
 Use the dialog to create an objective that starts with a reserved word. The session header shows the goal state and objective summary. The footer shows cumulative goal tokens separately from context usage.

@@ -171,6 +171,18 @@ export function Prompt(props: PromptProps) {
   command.register(() => {
     return [
       {
+        title: "Manage goal",
+        value: "session.goal",
+        category: "Session",
+        enabled: sync.data.config.goal?.enabled !== false,
+        slash: { name: "goal" },
+        onSelect: async () => {
+          const sessionID = props.sessionID ?? (await sdk.client.session.create({})).data!.id
+          if (!(await dispatchGoal("/goal", sessionID))) return
+          if (!props.sessionID) route.navigate({ type: "session", sessionID })
+        },
+      },
+      {
         title: "Clear prompt",
         value: "prompt.clear",
         category: "Prompt",
