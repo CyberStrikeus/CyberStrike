@@ -9,14 +9,15 @@ import PROMPT_CLOUD_ANALYST_COMMON from "./prompts/analyst-common.txt"
 import PROMPT_CLOUD_ORCHESTRATOR from "./prompts/orchestrator.txt"
 import PROMPT_CLOUD_VERIFY from "./prompts/verify.txt"
 import PROMPT_CLOUD_BATCH_VERIFIER from "./prompts/batch-verifier.txt"
+import PROMPT_ESCALATION_HUNTER from "./prompts/escalation-hunter.txt"
 
 const ANALYST_PERMISSIONS: Record<string, "ask" | "allow" | "deny"> = {
   bash: "allow", read: "allow", glob: "allow", grep: "allow",
   azurehook: "allow", awshook: "allow", kubehook: "allow", gcphook: "allow",
   add_intel: "allow", get_cloud_intel: "allow", get_cloud_groups: "allow",
   get_assess_findings: "allow", report_vulnerability: "allow",
-  triage_vulnerability: "allow", update_vrt_check: "allow",
-  methodology_status: "allow", skill: "allow",
+  enrich_vulnerability: "allow", triage_vulnerability: "allow",
+  update_vrt_check: "allow", methodology_status: "allow", skill: "allow",
 }
 
 const GROUP_SKILLS: Record<string, string[]> = {
@@ -192,8 +193,9 @@ export class AzureProvider implements AssessmentProvider {
         permissions: {
           bash: "allow", read: "allow",
           azurehook: "allow", awshook: "allow", kubehook: "allow", gcphook: "allow",
-          add_intel: "allow", get_cloud_intel: "allow",
-          report_vulnerability: "allow", triage_vulnerability: "allow",
+          add_intel: "allow", get_cloud_intel: "allow", get_cloud_groups: "allow",
+          get_assess_findings: "allow", report_vulnerability: "allow",
+          enrich_vulnerability: "allow", triage_vulnerability: "allow",
           skill: "allow",
         },
       },
@@ -208,9 +210,11 @@ export class AzureProvider implements AssessmentProvider {
         permissions: {
           bash: "allow", read: "allow",
           azurehook: "allow",
-          get_cloud_intel: "allow", get_assess_findings: "allow",
-          web_get_vuln_detail: "allow", triage_vulnerability: "allow",
-          methodology_status: "allow", skill: "allow",
+          get_cloud_intel: "allow", get_cloud_groups: "allow",
+          get_assess_findings: "allow", web_get_vuln_detail: "allow",
+          enrich_vulnerability: "allow", add_intel: "allow",
+          triage_vulnerability: "allow", methodology_status: "allow",
+          skill: "allow",
         },
       },
       {
@@ -225,7 +229,24 @@ export class AzureProvider implements AssessmentProvider {
           bash: "allow", read: "allow",
           azurehook: "allow",
           get_assess_findings: "allow", get_cloud_intel: "allow",
-          add_intel: "allow", triage_vulnerability: "allow",
+          add_intel: "allow", enrich_vulnerability: "allow",
+          triage_vulnerability: "allow", skill: "allow",
+        },
+      },
+      {
+        name: "escalation-hunter",
+        role: "escalation-hunter",
+        description: "Post-assessment escalation agent. Chains confirmed findings into multi-step attack paths toward crown-jewel outcomes (tenant compromise, cross-subscription pivot, mass exfiltration).",
+        steps: 30,
+        color: "red",
+        prompt: PROMPT_ESCALATION_HUNTER,
+        skills: ["azure-postexploit", "cloud-assessment", "ad-security"],
+        permissions: {
+          bash: "allow", read: "allow",
+          azurehook: "allow", awshook: "allow", kubehook: "allow", gcphook: "allow",
+          add_intel: "allow", get_cloud_intel: "allow", get_cloud_groups: "allow",
+          get_assess_findings: "allow", report_vulnerability: "allow",
+          triage_vulnerability: "allow", propose_escalation: "allow",
           skill: "allow",
         },
       },
