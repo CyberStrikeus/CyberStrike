@@ -374,6 +374,14 @@ install_from_binary() {
     print_message info "\n${MUTED}Installing ${NC}cyberstrike ${MUTED}from: ${NC}$binary_path"
     cp "$binary_path" "${INSTALL_DIR}/cyberstrike"
     chmod 755 "${INSTALL_DIR}/cyberstrike"
+
+    # Point the command resolved on PATH at this install, so an older copy cannot shadow it
+    local resolved
+    resolved="$(type -P cyberstrike || true)"
+    if [ -n "$resolved" ] && [ "$resolved" != "${INSTALL_DIR}/cyberstrike" ] && [ -w "$(dirname "$resolved")" ]; then
+        print_message info "${MUTED}Replacing the earlier command at ${NC}$resolved"
+        ln -sfn "${INSTALL_DIR}/cyberstrike" "$resolved"
+    fi
 }
 
 if [ -n "$binary_path" ]; then
