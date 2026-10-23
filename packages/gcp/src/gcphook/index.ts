@@ -27,8 +27,17 @@ import {
 import { gcsDump, bigqueryDump, computeSnapshot, pubsubSniff, sourceRepoDump, dlpScan } from "./exfil"
 import { auditLogTamper, vpcFlowTamper, vpcFirewallModify } from "./evasion"
 import { cleanupGcp } from "./cleanup"
+import { gcpAssess } from "./assess"
+import { core } from "../core"
 
 const PROGRAMS = {
+  // ── Assess (1) ──
+  gcp_assess: {
+    description:
+      "Run full GCP security assessment pipeline: 14 programs across 4 phases (identity, infrastructure, privesc, compliance). Produces structured findings cached for analyst agents. ALWAYS run this first.",
+    args: "[--project PROJECT] [--timeout-per-program SECS] [--max-concurrency N] [--skip-compliance] [--output text|json]",
+  },
+
   // ── Recon (11) ──
   gcp_enum: {
     description:
@@ -198,6 +207,8 @@ const PROGRAMS = {
 type Program = keyof typeof PROGRAMS
 
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
+  // Assess — sessionID injected at call site
+  gcp_assess: (args, timeout) => gcpAssess(args, timeout),
   // Recon
   gcp_enum: gcpEnum,
   vpc_enum: vpcEnum,
@@ -295,7 +306,7 @@ const CWE_MAP: Record<string, string> = {
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
 
 export const GcphookTool = tool({
-  description: `Execute a GCP post-exploitation program. 33 programs across 7 categories: recon (11), credential (4), privesc (3), persistence (5), exfil (6), evasion (3), cleanup (1). Uses gcloud CLI. Available: ${programKeys.join(", ")}. ALWAYS run cleanup_gcp before leaving.`,
+  description: `Execute a GCP assessment/post-exploitation program. 34 programs across 8 categories: assess (1), recon (11), credential (4), privesc (3), persistence (5), exfil (6), evasion (3), cleanup (1). Uses gcloud CLI. Available: ${programKeys.join(", ")}. Run gcp_assess first for full pipeline. ALWAYS run cleanup_gcp before leaving.`,
   args: {
     program: z.enum(programKeys).describe(
       "GCP program to execute. Options: " +
@@ -313,10 +324,14 @@ export const GcphookTool = tool({
     }
 
     const program = params.program as Program
-    const handler = dispatch[program]
     let result: HookResult
     try {
-      result = await handler(params.args, params.timeout_seconds)
+      if (program === "gcp_assess") {
+        const rootSession = core().Session.root(ctx.sessionID)
+        result = await gcpAssess(params.args, params.timeout_seconds, rootSession)
+      } else {
+        result = await dispatch[program](params.args, params.timeout_seconds)
+      }
     } catch (e) {
       ctx.metadata({ title: `gcphook: ${program}`, metadata: { program, findings: [] as Finding[] } })
       return `[-] ${program} failed: ${e instanceof Error ? e.message : String(e)}`
