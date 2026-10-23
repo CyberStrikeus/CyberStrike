@@ -83,14 +83,39 @@ export namespace WebScope {
   // Known third-party SaaS domains — never auto-expand scope into these even when
   // the in-scope page calls them (auth, analytics, CDN, error tracking, etc.)
   const THIRD_PARTY: ReadonlySet<string> = new Set([
+    // auth / identity
     "clerk.dev", "clerk.com", "clerk.accounts.dev", "auth0.com", "okta.com",
+    // analytics
     "google-analytics.com", "googletagmanager.com", "segment.io", "segment.com",
-    "mixpanel.com", "amplitude.com", "hotjar.com", "fullstory.com", "sentry.io",
-    "bugsnag.com", "rollbar.com", "intercom.io", "crisp.chat", "zendesk.com",
-    "hubspot.com", "stripe.com", "cloudflare.com", "cloudfront.net",
-    "googleapis.com", "gstatic.com", "facebook.com", "twitter.com", "linkedin.com",
-    "doubleclick.net", "newrelic.com", "datadoghq.com", "launchdarkly.com",
-    "split.io", "optimizely.com", "unpkg.com", "jsdelivr.net", "mintlify.com",
+    "mixpanel.com", "mxpnl.com", "amplitude.com", "hotjar.com", "fullstory.com",
+    "heapanalytics.com", "heap.io", "pendo.io", "posthog.com", "plausible.io",
+    "quantserve.com", "contentsquare.com", "crazyegg.com",
+    // APM / RUM / error tracking
+    "sentry.io", "bugsnag.com", "rollbar.com", "newrelic.com", "nr-data.net",
+    "datadoghq.com", "dynatrace.com", "ruxit.com", "appdynamics.com",
+    "elastic-cloud.com",
+    // session replay
+    "logrocket.com", "clarity.ms", "mouseflow.com", "smartlook.com",
+    // chat / support widgets
+    "intercom.io", "crisp.chat", "zendesk.com", "drift.com", "livechat.com",
+    "tawk.to", "olark.com", "tidio.com", "freshworks.com",
+    // marketing / CRM
+    "hubspot.com", "braze.com",
+    // payment
+    "stripe.com",
+    // CDN / infra
+    "cloudflare.com", "cloudfront.net", "googleapis.com", "gstatic.com",
+    "unpkg.com", "jsdelivr.net",
+    // social
+    "facebook.com", "twitter.com", "linkedin.com", "doubleclick.net",
+    // feature flags / experimentation
+    "launchdarkly.com", "split.io", "optimizely.com",
+    // consent / captcha
+    "onetrust.com", "cookiebot.com", "recaptcha.net", "hcaptcha.com",
+    // tag management
+    "tealium.com",
+    // misc SaaS
+    "mintlify.com",
   ])
 
   // Auto-expand scope when an in-scope page makes API calls to a different domain.
