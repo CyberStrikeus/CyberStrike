@@ -692,6 +692,7 @@ export type SessionGoal = {
   }
   variant?: string
   tokenBudget?: number
+  deadlineAt?: number
   tokensUsed: number
   timeUsedSeconds: number
   continuationCount: number
@@ -3838,6 +3839,10 @@ export type SessionGoalUpdateData = {
         op: "budget"
         tokenBudget: number | null
       }
+    | {
+        op: "duration"
+        durationSeconds: number | null
+      }
   path: {
     sessionID: string
   }
@@ -3879,6 +3884,7 @@ export type SessionGoalCreateData = {
     }
     variant?: string
     tokenBudget?: number | null
+    durationSeconds?: number
   }
   path: {
     sessionID: string

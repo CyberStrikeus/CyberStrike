@@ -84,6 +84,49 @@ test("budget exhaustion stops with the unfinished goal retained", async () => {
   )
 })
 
+test("the deadline cancels a paused in-flight command without completing the goal", async () => {
+  await withGoal(
+    () => ({
+      calls: [
+        {
+          name: "bash",
+          input: {
+            command: "printf started; sleep 10; printf late > deadline-late.txt",
+            description: "Wait past the deadline",
+          },
+        },
+      ],
+    }),
+    async (sessionID, requests) => {
+      let isPaused = false
+      const unsubscribe = Bus.subscribe(MessageV2.Event.PartUpdated, (event) => {
+        const part = event.properties.part
+        if (part.type === "tool" && part.state.status === "running" && part.state.metadata?.output === "started") {
+          SessionGoal.pause(sessionID)
+          isPaused = true
+        }
+      })
+      try {
+        await SessionGoal.create(sessionID, { objective: "Wait and write a local file", model, durationSeconds: 1 })
+        await SessionPrompt.goal(sessionID)
+        const goal = SessionGoal.get(sessionID)!
+        expect(isPaused).toBe(true)
+        expect(goal.status).toBe("budget-limited")
+        expect(goal.reason).toBe("Duration limit reached")
+        expect(goal.updatedAt - goal.deadlineAt!).toBeLessThan(1000)
+        expect(goal.completedAt).toBeUndefined()
+        expect(requests).toHaveLength(1)
+        expect(await Bun.file(`${Instance.directory}/deadline-late.txt`).exists()).toBe(false)
+        await expect(SessionGoal.resume(sessionID)).rejects.toThrow("duration")
+        SessionGoal.setDuration(sessionID, null)
+        expect((await SessionGoal.resume(sessionID)).objective).toBe(goal.objective)
+      } finally {
+        unsubscribe()
+      }
+    },
+  )
+})
+
 test("abort keeps the execution slot until the turn settles", async () => {
   const requested = Promise.withResolvers<void>()
   const release = Promise.withResolvers<void>()
@@ -147,6 +190,15 @@ test("typed goal parsing preserves multiline objectives and rejects invalid cont
   })
   expect(parseGoal("/goal\n")).toEqual({ op: "dialog" })
   expect(parseGoal("/goal budget off")).toEqual({ op: "budget", tokenBudget: null })
+  expect(parseGoal("/goal --duration 1m First\nSecond")).toEqual({
+    op: "create",
+    objective: "First\nSecond",
+    durationSeconds: 60,
+  })
+  expect(parseGoal("/goal duration 8h")).toEqual({ op: "duration", durationSeconds: 28800 })
+  expect(parseGoal("/goal duration 2d")).toEqual({ op: "duration", durationSeconds: 172800 })
+  expect(() => parseGoal("/goal --duration 0m objective")).toThrow("duration")
+  expect(() => parseGoal("/goal --duration 1m")).toThrow("objective")
   expect(() => parseGoal("/goal budget -1")).toThrow("positive")
   expect(() => parseGoal("/goal pause extra")).toThrow("no arguments")
 })

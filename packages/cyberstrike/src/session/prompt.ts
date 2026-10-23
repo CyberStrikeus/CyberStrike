@@ -83,6 +83,7 @@ export namespace SessionPrompt {
         string,
         {
           abort: AbortController
+          deadline?: NodeJS.Timeout
           settled: { promise: Promise<void>; resolve(): void }
           callbacks: {
             resolve(input: MessageV2.WithParts): void
@@ -279,7 +280,7 @@ export namespace SessionPrompt {
       sessionID: goal.sessionID,
       type: "text",
       synthetic: true,
-      text: `${shouldEncourage ? SessionGoal.ENCOURAGEMENT + "\n" : ""}${GOAL_CONTINUATION}\n${JSON.stringify({ objective: goal.objective, tokensUsed: goal.tokensUsed, tokenBudget: goal.tokenBudget ?? null })}`,
+      text: `${shouldEncourage ? SessionGoal.ENCOURAGEMENT + "\n" : ""}${GOAL_CONTINUATION}\n${JSON.stringify({ objective: goal.objective, tokensUsed: goal.tokensUsed, tokenBudget: goal.tokenBudget ?? null, deadlineAt: goal.deadlineAt ?? null })}`,
     })
   }
 
@@ -299,6 +300,7 @@ export namespace SessionPrompt {
   function settle(sessionID: string, abort: AbortSignal) {
     const pending = state()[sessionID]
     if (!pending || pending.abort.signal !== abort) return
+    clearTimeout(pending.deadline)
     using _ = defer(() => pending.settled.resolve())
     SessionGoal.block(sessionID, "Execution stopped before verified completion. Review the goal and resume explicitly.")
     SessionGoal.release(sessionID)
@@ -325,6 +327,26 @@ export namespace SessionPrompt {
     if (!s[sessionID]) return
 
     return s[sessionID].abort.signal
+  }
+
+  export function deadline(sessionID: string) {
+    const pending = state()[sessionID]
+    if (!pending) return
+    clearTimeout(pending.deadline)
+    const goal = SessionGoal.expire(sessionID)
+    if (goal?.status === "budget-limited" && goal.deadlineAt !== undefined && Date.now() >= goal.deadlineAt) {
+      cancel(sessionID, { stopCrawl: true })
+      return
+    }
+    if (
+      pending.abort.signal.aborted ||
+      !goal ||
+      ["completed", "dropped"].includes(goal.status) ||
+      goal.deadlineAt === undefined
+    )
+      return
+    pending.deadline = setTimeout(() => deadline(sessionID), Math.min(goal.deadlineAt - Date.now(), 2_147_483_647))
+    pending.deadline.unref()
   }
 
   // stopCrawl defaults to FALSE: a bare cancel() is the loop/prompt turn-end
@@ -382,6 +404,7 @@ export namespace SessionPrompt {
     using _ = defer(() => settle(sessionID, abort))
     const goalID = input.goalID ?? (SessionGoal.shouldContinue(sessionID) ? SessionGoal.get(sessionID)?.id : undefined)
     if (goalID && SessionGoal.get(sessionID)?.runner !== process.pid) SessionGoal.claim(sessionID)
+    if (goalID) deadline(sessionID)
 
     // Structured output state
     // Note: On session resumption, state is reset but outputFormat is preserved
@@ -868,7 +891,7 @@ export namespace SessionPrompt {
       const objective = SessionGoal.get(sessionID)
       if (goalID && objective?.status === "active")
         system.push(
-          `${GOAL_ACTIVE}\n${JSON.stringify({ objective: objective.objective, tokensUsed: objective.tokensUsed, tokenBudget: objective.tokenBudget ?? null })}`,
+          `${GOAL_ACTIVE}\n${JSON.stringify({ objective: objective.objective, tokensUsed: objective.tokensUsed, tokenBudget: objective.tokenBudget ?? null, deadlineAt: objective.deadlineAt ?? null })}`,
         )
       const format = lastUser.format ?? { type: "text" }
       if (format.type === "json_schema") {
@@ -1167,6 +1190,15 @@ export namespace SessionPrompt {
     const DUP_SUPPRESS_THRESHOLD = 3
     const sigCounts = new Map<string, number>()
 
+    const check = (signal?: AbortSignal) => {
+      signal?.throwIfAborted()
+      const goal = input.processor.message.goalID ? SessionGoal.expire(Session.root(input.session.id)) : undefined
+      if (goal?.deadlineAt !== undefined && Date.now() >= goal.deadlineAt) {
+        deadline(goal.sessionID)
+        throw new SessionGoal.Conflict("Duration limit reached")
+      }
+    }
+
     const context = (args: any, options: ToolCallOptions): Tool.Context => ({
       sessionID: input.session.id,
       abort: options.abortSignal!,
@@ -1193,12 +1225,14 @@ export namespace SessionPrompt {
         }
       },
       async ask(req) {
+        check(options.abortSignal)
         await PermissionNext.ask({
           ...req,
           sessionID: input.session.id,
           tool: { messageID: input.processor.message.id, callID: options.toolCallId },
           ruleset: PermissionNext.merge(input.agent.permission, input.session.permission ?? []),
         })
+        check(options.abortSignal)
       },
     })
 
@@ -1242,6 +1276,7 @@ export namespace SessionPrompt {
               args,
             },
           )
+          check(ctx.abort)
           const result = await item.execute(args, ctx)
           await Plugin.trigger(
             "tool.execute.after",
@@ -1294,6 +1329,7 @@ export namespace SessionPrompt {
           patterns: ["*"],
           always: ["*"],
         })
+        check(ctx.abort)
 
         const result = await execute(args, opts)
 

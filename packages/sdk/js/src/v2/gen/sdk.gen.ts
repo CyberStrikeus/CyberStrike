@@ -1483,6 +1483,10 @@ export class Session extends HeyApiClient {
             op: "budget"
             tokenBudget: number | null
           }
+        | {
+            op: "duration"
+            durationSeconds: number | null
+          }
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -1525,6 +1529,7 @@ export class Session extends HeyApiClient {
       }
       variant?: string
       tokenBudget?: number | null
+      durationSeconds?: number
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -1540,6 +1545,7 @@ export class Session extends HeyApiClient {
             { in: "body", key: "model" },
             { in: "body", key: "variant" },
             { in: "body", key: "tokenBudget" },
+            { in: "body", key: "durationSeconds" },
           ],
         },
       ],

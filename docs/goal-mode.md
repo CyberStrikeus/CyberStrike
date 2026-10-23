@@ -8,16 +8,19 @@ Goal mode retains an objective and continues the existing session execution loop
 |:---|:---|
 | `/goal` | Open the goal dialog or enter an objective. |
 | `/goal <objective>` | Create and start a goal. Multiline objectives are supported. |
+| `/goal --duration 8h <objective>` | Start a goal with an eight-hour cutoff. |
 | `/goal status` | Show the full objective, state, token usage, budget, elapsed execution time and audit report. |
 | `/goal pause` | Pause after the current execution step settles. |
 | `/goal resume` | Explicitly resume the same objective and retained usage. |
 | `/goal budget 50000` | Set the total token limit without resetting usage. |
 | `/goal budget off` | Remove the token limit without resetting usage. |
+| `/goal duration 8h` | Set a new deadline eight hours from now. |
+| `/goal duration off` | Remove the deadline. |
 | `/goal drop` | Stop future goal steps without claiming completion. |
 
 Use `/goal` from the home screen or an open session.
 
-The words `status`, `pause`, `resume`, `budget` and `drop` are reserved at the start of command arguments. Invalid control arguments produce an error. Other arguments form the objective.
+The control words `status`, `pause`, `resume`, `budget`, `duration` and `drop` are reserved at the start of command arguments. Invalid control arguments produce an error. Other arguments form the objective. The `--duration` option must precede the objective.
 
 Use the dialog to create an objective that starts with a reserved word. The session header shows the goal state and objective summary. The footer shows cumulative goal tokens separately from context usage.
 
@@ -63,11 +66,23 @@ The usage ledger accounts each provider step once, in the same transaction as it
 
 Goal-tagged delegated steps and compaction calls contribute to the owning goal. Audit calls also contribute. Ordinary chat while a goal is paused does not consume its budget. Time measures settled primary execution steps, including their tools and audit calls. Delegated time is not added again.
 
-Budget checks occur between calls. A call already in progress can exceed the remaining limit. Providers can omit usage for failed or aborted requests. Such unreported usage cannot be measured reliably.
+Token budget checks occur between calls. A call already in progress can exceed the remaining token limit. Providers can omit usage for failed or aborted requests. Such unreported usage cannot be measured reliably.
 
 Three consecutive steps without new execution evidence block continuation. Repeated identical tool results also count as no progress. A run stops after 100 processing steps or at an earlier configured agent limit. Failed tools, nonzero command exits, permission denials, provider errors and unsupported completion audits suspend continuation. These stops do not count as success.
 
 Goal mode uses the existing per-session execution slot and a persistent process-ownership guard. Cancellation retains ownership until the loop settles. Another process cannot claim that goal while its owner remains alive.
+
+## Duration cutoff
+
+Use `/goal --duration 1m <objective>` to apply the limit before execution starts. Durations accept positive whole numbers with `s`, `m`, `h` or `d`: seconds, minutes, hours or days. Goals have no duration limit by default.
+
+The controller persists an absolute deadline. Pauses and restarts do not extend it. `/goal duration 8h` starts a new countdown from that command. `/goal duration off` removes the deadline without resetting token usage.
+
+At expiry, the controller marks the unfinished goal budget limited and cancels the active session through the existing abort mechanism. Deadline checks also prevent further model calls, tool execution and successful completion after expiry. The expiry path sends no encouragement.
+
+The timer interrupts model streams, completion audits and abort-aware tools. Local bash commands receive process-tree cancellation. Operating-system scheduling can delay timer delivery and cleanup. Already completed effects and remote operations outside the abort mechanism cannot be undone.
+
+Verified completion, explicit stops and errors can stop execution before the deadline. An expired goal requires a new duration or removal of the deadline before explicit resume. Token limits remain independent.
 
 ## Configuration
 
@@ -100,15 +115,16 @@ All controls use the same `SessionGoal` controller:
 | Method | Path | Body or result |
 |:---|:---|:---|
 | `GET` | `/session/:sessionID/goal` | Current or latest goal, or `null`. |
-| `POST` | `/session/:sessionID/goal` | `objective`, optional `agent`, `model`, `variant` and `tokenBudget`. Creates and starts a goal. |
-| `PATCH` | `/session/:sessionID/goal` | `{"op":"pause"}`, `{"op":"resume"}`, `{"op":"drop"}` or `{"op":"budget","tokenBudget":50000}`. |
+| `POST` | `/session/:sessionID/goal` | `objective`, optional `agent`, `model`, `variant`, `tokenBudget` and `durationSeconds`. Creates and starts a goal. |
+| `PATCH` | `/session/:sessionID/goal` | `{"op":"pause"}`, `{"op":"resume"}`, `{"op":"drop"}`, `{"op":"budget","tokenBudget":50000}` or `{"op":"duration","durationSeconds":28800}`. |
 
 Use `null` for `tokenBudget` to remove the limit or bypass the configured default when creating a goal. The typed `session.goal.updated` event publishes lifecycle and usage changes. The TUI retrieves persisted state at bootstrap and when opening a session.
+Use `null` for `durationSeconds` in a duration update to remove the deadline. Goal responses and events include the persisted `deadlineAt` timestamp in milliseconds.
 
 ## Example
 
 ```text
-/goal Inspect the local parser, fix invalid escape handling, and verify the affected cases.
+/goal --duration 8h Inspect the local parser, fix invalid escape handling, and verify the affected cases.
 /goal status
 /goal pause
 /goal budget 75000

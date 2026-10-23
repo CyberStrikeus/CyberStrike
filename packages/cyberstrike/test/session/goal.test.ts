@@ -57,7 +57,11 @@ test("a new process pauses restored active goals without executing them", async 
     directory: dir.path,
     fn: async () => {
       const session = await Session.create({ title: "Restart goal" })
-      await SessionGoal.create(session.id, { objective: "Retain this objective after restart", model })
+      const original = await SessionGoal.create(session.id, {
+        objective: "Retain this objective after restart",
+        model,
+        durationSeconds: 3600,
+      })
       const child = Bun.spawn(
         [
           process.execPath,
@@ -76,6 +80,7 @@ test("a new process pauses restored active goals without executing them", async 
       expect(output.trim()).toBe(Global.Path.data)
       expect(SessionGoal.get(session.id)?.status).toBe("paused")
       expect(SessionGoal.get(session.id)?.objective).toBe("Retain this objective after restart")
+      expect(SessionGoal.get(session.id)?.deadlineAt).toBe(original.deadlineAt)
       expect(await Session.messages({ sessionID: session.id })).toEqual([])
       await Session.remove(session.id)
     },

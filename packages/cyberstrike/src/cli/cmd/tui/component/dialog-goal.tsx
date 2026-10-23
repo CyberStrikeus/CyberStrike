@@ -30,6 +30,7 @@ export function useGoal() {
           {
             sessionID,
             objective: command.objective,
+            durationSeconds: "durationSeconds" in command ? command.durationSeconds : undefined,
             model: local.model.current(),
             agent: local.agent.current().name,
             variant: local.model.variant.current(),
@@ -79,6 +80,9 @@ export function DialogGoal(props: { sessionID: string }) {
                 Tokens: {goal().tokensUsed.toLocaleString()} / {goal().tokenBudget?.toLocaleString() ?? "unlimited"}.
                 Time: {Math.round(goal().timeUsedSeconds)}s
               </text>
+              <Show when={goal().deadlineAt}>
+                <text fg={theme.textMuted}>Deadline: {new Date(goal().deadlineAt!).toLocaleString()}</text>
+              </Show>
               <Show when={goal().reason}>
                 <text fg={theme.textMuted}>{goal().reason}</text>
               </Show>
@@ -120,6 +124,20 @@ export function DialogGoal(props: { sessionID: string }) {
                   value={String(goal()?.tokenBudget ?? "off")}
                   onConfirm={async (budget) => {
                     if (await dispatch(`/goal budget ${budget}`, props.sessionID)) dialog.clear()
+                  }}
+                />
+              )),
+          },
+          {
+            title: "Change duration",
+            value: "duration",
+            disabled: !unfinished(),
+            onSelect: () =>
+              dialog.replace(() => (
+                <DialogPrompt
+                  title="Duration (1m, 8h, 2d or off)"
+                  onConfirm={async (duration) => {
+                    if (await dispatch(`/goal duration ${duration}`, props.sessionID)) dialog.clear()
                   }}
                 />
               )),

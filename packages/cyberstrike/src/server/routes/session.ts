@@ -720,7 +720,9 @@ export const SessionRoutes = lazy(() =>
               ? SessionGoal.drop(sessionID)
               : change.op === "budget"
                 ? SessionGoal.setBudget(sessionID, change.tokenBudget)
-                : await SessionGoal.resume(sessionID)
+                : change.op === "duration"
+                  ? SessionGoal.setDuration(sessionID, change.durationSeconds)
+                  : await SessionGoal.resume(sessionID)
         if (change.op === "resume") void SessionGoal.run(sessionID)
         return c.json(goal)
       },

@@ -18,11 +18,13 @@ export namespace SessionGoal {
   export const ENCOURAGEMENT = "Keep going until the goal is complete; believe in yourself."
   export const Status = z.enum(["active", "paused", "budget-limited", "blocked", "completed", "dropped"])
   const Model = z.object({ providerID: z.string(), modelID: z.string() })
+  const Duration = z.number().int().positive().max(2_147_483_647)
   export const Execution = z.object({
     agent: z.string(),
     model: Model,
     variant: z.string().optional(),
     tokenBudget: z.number().int().positive().optional(),
+    deadlineAt: z.number().optional(),
     tokensUsed: z.number(),
     timeUsedSeconds: z.number(),
     continuationCount: z.number(),
@@ -51,12 +53,14 @@ export namespace SessionGoal {
     model: Model.optional(),
     variant: z.string().optional(),
     tokenBudget: z.number().int().positive().nullable().optional(),
+    durationSeconds: Duration.optional(),
   })
   export const Change = z.discriminatedUnion("op", [
     z.object({ op: z.literal("pause") }),
     z.object({ op: z.literal("resume") }),
     z.object({ op: z.literal("drop") }),
     z.object({ op: z.literal("budget"), tokenBudget: z.number().int().positive().nullable() }),
+    z.object({ op: z.literal("duration"), durationSeconds: Duration.nullable() }),
   ])
   export const Event = BusEvent.define("session.goal.updated", z.object({ sessionID: z.string(), goal: Info }))
 
@@ -162,6 +166,7 @@ export namespace SessionGoal {
             agent: agent.name,
             model,
             variant: request.variant,
+            deadlineAt: request.durationSeconds === undefined ? undefined : Date.now() + request.durationSeconds * 1000,
             tokensUsed: 0,
             timeUsedSeconds: 0,
             continuationCount: 0,
@@ -196,6 +201,8 @@ export namespace SessionGoal {
       if (goal.status === "active") throw new Conflict("The goal is already active")
       if (goal.tokenBudget !== undefined && goal.tokensUsed >= goal.tokenBudget)
         throw new Conflict("Increase or remove the goal budget before resuming")
+      if (goal.deadlineAt !== undefined && Date.now() >= goal.deadlineAt)
+        throw new Conflict("Extend or remove the goal duration before resuming")
       return save(goal, {
         status: "active",
         reason: undefined,
@@ -217,13 +224,45 @@ export namespace SessionGoal {
     z.number().int().positive().nullable().parse(tokenBudget)
     return Database.transaction(() => {
       const goal = current(sessionID)
-      const exhausted = tokenBudget !== null && goal.tokensUsed >= tokenBudget
+      const timedOut = goal.deadlineAt !== undefined && Date.now() >= goal.deadlineAt
+      const exhausted = timedOut || (tokenBudget !== null && goal.tokensUsed >= tokenBudget)
       return save(goal, {
         tokenBudget: tokenBudget ?? undefined,
         status: exhausted ? "budget-limited" : goal.status === "budget-limited" ? "paused" : goal.status,
-        reason: exhausted ? "Token budget exhausted" : "Budget changed",
+        reason: timedOut ? "Duration limit reached" : exhausted ? "Token budget exhausted" : "Budget changed",
         version: goal.version + 1,
       })
+    })
+  }
+
+  export function setDuration(sessionID: string, durationSeconds: number | null) {
+    Duration.nullable().parse(durationSeconds)
+    const goal = Database.transaction(() => {
+      assertAvailable(sessionID, true)
+      const goal = current(sessionID)
+      return save(goal, {
+        deadlineAt: durationSeconds === null ? undefined : Date.now() + durationSeconds * 1000,
+        status: goal.status === "budget-limited" ? "paused" : goal.status,
+        reason: "Duration changed",
+        version: goal.version + 1,
+      })
+    })
+    SessionPrompt.deadline(sessionID)
+    return goal
+  }
+
+  export function expire(sessionID: string) {
+    return Database.transaction(() => {
+      const goal = get(sessionID)
+      if (
+        !goal ||
+        ["completed", "dropped"].includes(goal.status) ||
+        goal.deadlineAt === undefined ||
+        Date.now() < goal.deadlineAt
+      )
+        return goal
+      if (goal.status === "budget-limited" && goal.reason === "Duration limit reached") return goal
+      return save(goal, { status: "budget-limited", reason: "Duration limit reached", version: goal.version + 1 })
     })
   }
 
@@ -237,7 +276,7 @@ export namespace SessionGoal {
 
   export async function complete(ctx: Tool.Context) {
     const original = current(ctx.sessionID)
-    if (original.status !== "active" || ctx.abort.aborted) throw new Conflict("The goal is not active")
+    if (!shouldContinue(ctx.sessionID) || ctx.abort.aborted) throw new Conflict("The goal is not active")
     const messages = await Session.messages({ sessionID: ctx.sessionID })
     const proof = messages
       .filter(
@@ -361,6 +400,8 @@ export namespace SessionGoal {
       const goal = current(ctx.sessionID)
       if (goal.id !== original.id || goal.status !== "active" || goal.version !== original.version)
         throw new Conflict("The goal changed during verification")
+      if (goal.deadlineAt !== undefined && Date.now() >= goal.deadlineAt)
+        throw new Conflict("The goal duration elapsed during verification")
       return save(goal, {
         status: "completed",
         completedAt: Date.now(),
@@ -407,7 +448,7 @@ export namespace SessionGoal {
   }
 
   export function shouldContinue(sessionID: string) {
-    const goal = get(sessionID)
+    const goal = expire(sessionID)
     return goal?.status === "active" && (goal.tokenBudget === undefined || goal.tokensUsed < goal.tokenBudget)
   }
 
