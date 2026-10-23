@@ -20,6 +20,8 @@ Options:
     -b, --binary <path>     Install from a local binary instead of downloading
         --no-modify-path    Don't modify shell config files (.zshrc, .bashrc, etc.)
 
+The binary built in packages/cyberstrike/dist of this checkout takes priority.
+
 Examples:
     curl -fsSL https://cyberstrike.io/install.sh | bash
     curl -fsSL https://cyberstrike.io/install.sh | bash -s -- --beta
@@ -75,47 +77,58 @@ done
 INSTALL_DIR=$HOME/.cyberstrike/bin
 mkdir -p "$INSTALL_DIR"
 
+raw_os=$(uname -s)
+os=$(echo "$raw_os" | tr '[:upper:]' '[:lower:]')
+case "$raw_os" in
+  Darwin*) os="darwin" ;;
+  Linux*) os="linux" ;;
+  MINGW*|MSYS*|CYGWIN*) os="windows" ;;
+esac
+
+arch=$(uname -m)
+if [[ "$arch" == "aarch64" ]]; then
+  arch="arm64"
+fi
+if [[ "$arch" == "x86_64" ]]; then
+  arch="x64"
+fi
+
+if [ "$os" = "darwin" ] && [ "$arch" = "x64" ]; then
+  rosetta_flag=$(sysctl -n sysctl.proc_translated 2>/dev/null || echo 0)
+  if [ "$rosetta_flag" = "1" ]; then
+    arch="arm64"
+  fi
+fi
+
+combo="$os-$arch"
+case "$combo" in
+  linux-x64|linux-arm64|darwin-x64|darwin-arm64|windows-x64)
+    ;;
+  *)
+    echo -e "${RED}Unsupported OS/Arch: $os/$arch${NC}"
+    exit 1
+    ;;
+esac
+
+# Prefer the binary built from this checkout instead of downloading a release
+if [ -z "$binary_path" ]; then
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+    built="$script_dir/packages/cyberstrike/dist/cyberstrike-$combo/bin/cyberstrike"
+    if [ -f "$built" ]; then
+        binary_path="$built"
+    fi
+fi
+
 # If --binary is provided, skip all download/detection logic
 if [ -n "$binary_path" ]; then
     if [ ! -f "$binary_path" ]; then
         echo -e "${RED}Error: Binary not found at ${binary_path}${NC}"
         exit 1
     fi
-    specific_version="local"
+    manifest="$(dirname "$(dirname "$binary_path")")/package.json"
+    specific_version="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$manifest" 2>/dev/null | head -1 || true)"
+    specific_version="${specific_version:-local}"
 else
-    raw_os=$(uname -s)
-    os=$(echo "$raw_os" | tr '[:upper:]' '[:lower:]')
-    case "$raw_os" in
-      Darwin*) os="darwin" ;;
-      Linux*) os="linux" ;;
-      MINGW*|MSYS*|CYGWIN*) os="windows" ;;
-    esac
-
-    arch=$(uname -m)
-    if [[ "$arch" == "aarch64" ]]; then
-      arch="arm64"
-    fi
-    if [[ "$arch" == "x86_64" ]]; then
-      arch="x64"
-    fi
-
-    if [ "$os" = "darwin" ] && [ "$arch" = "x64" ]; then
-      rosetta_flag=$(sysctl -n sysctl.proc_translated 2>/dev/null || echo 0)
-      if [ "$rosetta_flag" = "1" ]; then
-        arch="arm64"
-      fi
-    fi
-
-    combo="$os-$arch"
-    case "$combo" in
-      linux-x64|linux-arm64|darwin-x64|darwin-arm64|windows-x64)
-        ;;
-      *)
-        echo -e "${RED}Unsupported OS/Arch: $os/$arch${NC}"
-        exit 1
-        ;;
-    esac
-
     archive_ext=".zip"
     if [ "$os" = "linux" ]; then
       archive_ext=".tar.gz"
