@@ -32,6 +32,18 @@ export namespace EscalationCatalog {
     if (has("outdated", "vulnerable component", "known cve", "cve-", "end-of-life", "eol")) out.add("vulnerable-component")
     if (has("oauth", "oidc", "openid", "auth-code", "authorization code")) out.add("oauth")
     if (has("predictable", "sequential id", "enumerab")) out.add("predictable-id")
+    // Cloud primitives — IAM, storage, compute, network, serverless misconfigurations found by cloud assessments.
+    if (has("iam", "rbac", "role assignment", "policy", "permission", "principal", "managed identity", "service account")) out.add("iam-misconfig")
+    if (has("public bucket", "public endpoint", "public ip", "public access", "anonymous access", "public blob", "public storage", "open to internet", "publicly accessible")) out.add("public-exposure")
+    if (has("privilege escalation", "privesc", "passrole", "assume role", "impersonat", "elevat")) out.add("cloud-privesc")
+    if (has("credential", "secret", "key vault", "kms", "imds", "metadata", "access key", "api key", "token", "password in")) out.add("credential-exposure")
+    if (has("cross-account", "cross account", "cross-subscription", "peering", "vpn", "lateral", "trust", "federation")) out.add("lateral-movement")
+    if (has("persistence", "backdoor", "automation", "runbook", "lambda", "function", "cron", "scheduled")) out.add("persistence-mechanism")
+    if (has("storage", "bucket", "blob", "s3", "database", "rds", "dynamodb", "cosmos", "bigquery", "sql server", "data lake")) out.add("data-access")
+    if (has("security group", "nsg", "firewall", "network acl", "inbound rule", "egress", "ingress", "open port")) out.add("network-misconfig")
+    if (has("logging disabled", "cloudtrail", "monitor", "audit", "diagnostic", "flow log", "guard duty", "security center")) out.add("compliance-gap")
+    if (has("ec2", "vm ", "virtual machine", "compute instance", "instance profile", "instance metadata")) out.add("compute-misconfig")
+    if (has("serverless", "lambda", "azure function", "cloud function", "cloud run", "app engine")) out.add("serverless-misconfig")
     return [...out]
   }
 
@@ -58,6 +70,18 @@ export namespace EscalationCatalog {
     { id: "vulncomp-cve", requires: ["vulnerable-component"], impact: "known-CVE exploitation", say: "exploit the known CVE of the detected vulnerable component against a reachable sink" },
     { id: "error-injection", requires: ["info-disclosure", "injection"], impact: "DB / command access", say: "use the verbose error/stack trace to guide the injection toward DB/command access" },
     { id: "jwt-authz", requires: ["jwt", "authz"], impact: "authz-wide bypass", say: "forge identity via the JWT weakness to bypass the authorization checks app-wide" },
+    // Cloud escalation patterns — chains across cloud assessment findings.
+    { id: "cloud-iam-public", requires: ["iam-misconfig", "public-exposure"], impact: "unauthorized data access from public", say: "combine the overly permissive IAM policy with the publicly exposed resource to access data without authentication" },
+    { id: "cloud-privesc-cred", requires: ["cloud-privesc", "credential-exposure"], impact: "full account compromise", say: "use the exposed credentials to perform the privilege escalation path → full account/subscription admin" },
+    { id: "cloud-lateral-iam", requires: ["iam-misconfig", "lateral-movement"], impact: "cross-account/cross-subscription compromise", say: "chain the IAM misconfiguration with cross-account trust or peering to pivot into adjacent accounts/subscriptions" },
+    { id: "cloud-public-data", requires: ["public-exposure", "data-access"], impact: "mass data exfiltration", say: "the publicly exposed endpoint leads directly to the data store — enumerate and bulk-exfiltrate all accessible data" },
+    { id: "cloud-cred-admin", requires: ["credential-exposure", "iam-misconfig"], impact: "admin takeover via stolen credentials", say: "the exposed credential belongs to an overly privileged principal — use it to take over the admin role" },
+    { id: "cloud-persist-iam", requires: ["persistence-mechanism", "iam-misconfig"], impact: "stealth persistent access", say: "plant persistence (backdoor user/role/function) using the IAM misconfiguration — the weak audit trail hides it" },
+    { id: "cloud-net-cred", requires: ["network-misconfig", "credential-exposure"], impact: "network pivot + credential theft", say: "the open network path exposes the credential/metadata endpoint — pivot through the network to steal credentials" },
+    { id: "cloud-compute-privesc", requires: ["compute-misconfig", "cloud-privesc"], impact: "compute-to-control-plane escalation", say: "abuse the misconfigured compute instance (instance profile / metadata / user-data) to escalate to control-plane admin" },
+    { id: "cloud-serverless-privesc", requires: ["serverless-misconfig", "cloud-privesc"], impact: "serverless-to-account escalation", say: "modify or invoke the misconfigured serverless function to trigger the privilege escalation path" },
+    { id: "cloud-compliance-exposure", requires: ["compliance-gap", "public-exposure"], impact: "unmonitored public access", say: "the disabled logging/monitoring means the public exposure is invisible to defenders — exfiltrate under the radar" },
+    { id: "cloud-data-privesc", requires: ["data-access", "cloud-privesc"], impact: "data-plane to control-plane", say: "leverage data-plane access (e.g. KMS decrypt, Secrets Manager read) to obtain credentials that escalate to control-plane" },
   ]
 
   // The effective catalog: BUILTIN + any external JSON packs, loaded once and cached. A pack is a JSON
