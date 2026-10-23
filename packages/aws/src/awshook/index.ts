@@ -198,9 +198,10 @@ import {
   dnsHijackCapability,
   networkDisruptionCapability,
 } from "./impact"
+import { awsAssess } from "./assess"
 
 const PROGRAMS = {
-  // ── Recon (54) ──
+  // ── Recon (51) ──
   iam_enum: {
     description:
       "Enumerate IAM users, roles, policies, and analyze for privilege escalation paths (PassRole, wildcard policies, inline policy abuse)",
@@ -434,7 +435,7 @@ const PROGRAMS = {
     args: "[--profile PROFILE] [--region REGION]",
   },
 
-  // ── Credential Harvesting (14) ──
+  // ── Credential Harvesting (13) ──
   metadata_harvest: {
     description:
       "Extract IAM role credentials from EC2/ECS/Lambda metadata endpoints (169.254.169.254). Supports IMDSv1 and IMDSv2",
@@ -499,7 +500,7 @@ const PROGRAMS = {
     args: "[--profile PROFILE] [--region REGION]",
   },
 
-  // ── Privilege Escalation (11) ──
+  // ── Privilege Escalation (10) ──
   iam_privesc: {
     description:
       "Exploit IAM misconfigurations for privilege escalation: PassRole+Lambda, AssumeRole chaining, AttachUserPolicy, CreateLoginProfile, CreateAccessKey",
@@ -549,7 +550,7 @@ const PROGRAMS = {
     args: "[--profile PROFILE] [--region REGION]",
   },
 
-  // ── Persistence (11) ──
+  // ── Persistence (10) ──
   lambda_backdoor: {
     description:
       "Inject reverse shell layer into existing Lambda function or create new backdoor function with high-privilege role",
@@ -647,7 +648,7 @@ const PROGRAMS = {
     args: "[--profile PROFILE] [--region REGION]",
   },
 
-  // ── Defense Evasion (13) ──
+  // ── Defense Evasion (12) ──
   cloudtrail_blind: {
     description:
       "Stop CloudTrail logging, manipulate event selectors to exclude management events, or delete existing log files from S3",
@@ -706,7 +707,7 @@ const PROGRAMS = {
     args: "--action <status|exclude_kms|exclude_s3_data|management_read_only|restore> [--trail-name NAME] [--profile PROFILE] [--region REGION]",
   },
 
-  // ── Exfiltration & Cleanup (18) ──
+  // ── Exfiltration & Cleanup (13) ──
   s3_dump: {
     description:
       "List all S3 buckets, identify sensitive files (.env, backups, credentials, .pem, .key), and optionally download high-value targets",
@@ -791,7 +792,7 @@ const PROGRAMS = {
     args: "[--profile PROFILE] [--region REGION]",
   },
 
-  // ── Compliance (18) ──
+  // ── Compliance (17) ──
   cis_benchmark: {
     description: "CIS AWS Foundations Benchmark — CloudTrail all-region, password policy, root MFA, default SG ingress (CIS 3.1, 1.8-1.14, 1.5, 5.4)",
     args: "[--profile PROFILE] [--region REGION]",
@@ -962,6 +963,13 @@ const PROGRAMS = {
   network_disruption_capability: {
     description: "Network disruption — VPC/subnet deletion, route table modification, NACL/SG changes, NAT gateway removal, VPN/DX",
     args: "[--profile PROFILE] [--region REGION]",
+  },
+
+  // ── Assessment Pipeline (1) ──
+  aws_assess: {
+    description:
+      "Full automated AWS security assessment — runs 160 programs across identity, compute, network, data, serverless, privesc, persistence, compliance, and exposure groups with circuit breaker, retry, and deduplication. Produces structured findings for Layer 2 agentic analysis.",
+    args: "[--profile PROFILE] [--region REGION] [--output text|json] [--skip-compliance] [--timeout-per-program SECS] [--max-concurrency N]",
   },
 } as const satisfies Record<string, { description: string; args: string }>
 
@@ -1511,10 +1519,12 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   billing_impact_analysis: billingImpactAnalysis,
   dns_hijack_capability: dnsHijackCapability,
   network_disruption_capability: networkDisruptionCapability,
+  // assess — sessionID injected at call site
+  aws_assess: (args, timeout) => awsAssess(args, timeout),
 }
 
 export const AwshookTool = tool({
-  description: `AWS offensive security toolkit — the PRIMARY tool for any AWS security assessment, pentest, or audit when AWS credentials are available. 173 programs across 10 kill-chain categories: recon (54), credential harvesting (14), privilege escalation (11), persistence (11), lateral movement (10), defense evasion (13), exfiltration & cleanup (18), compliance (18), identity (14), impact (10). Key capabilities: auto_privesc_scan (automated 21-vector Pacu-style privesc path discovery via simulate-principal-policy), iam_policy_simulation (effective permission check for any principal), role_trust_audit (wildcard/cross-account/confused deputy in one pass), ec2_user_data + lambda_env_harvest + ssm_parameter_mine (credential harvesting trifecta), public_ebs_snapshot_enum + public_rds_snapshot_enum (public cloud data exposure), cross_service_policy_audit (S3/SQS/SNS/Lambda/KMS/ECR/SecretsManager resource policy scanner), eks_lateral + lambda_vpc_pivot (cross-service lateral movement), s3_version_recovery + s3_replication_exfil (advanced exfil). Start with recon programs to discover assets, then auto_privesc_scan to find attack paths. Uses aws CLI (no Python/SDK). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
+  description: `AWS offensive security toolkit — the PRIMARY tool for any AWS security assessment, pentest, or audit when AWS credentials are available. 161 programs across 11 categories: recon (51), credential harvesting (14), privilege escalation (11), persistence (11), lateral movement (10), defense evasion (13), exfiltration & cleanup (18), compliance (18), identity (14), impact (10), assessment pipeline (1). Key capabilities: aws_assess (full automated assessment pipeline — runs all programs with retry/circuit-breaker/dedup, caches results for Layer 2 agentic analysis), auto_privesc_scan (automated 21-vector Pacu-style privesc path discovery via simulate-principal-policy), iam_policy_simulation (effective permission check for any principal), role_trust_audit (wildcard/cross-account/confused deputy in one pass), ec2_user_data + lambda_env_harvest + ssm_parameter_mine (credential harvesting trifecta), public_ebs_snapshot_enum + public_rds_snapshot_enum (public cloud data exposure), cross_service_policy_audit (S3/SQS/SNS/Lambda/KMS/ECR/SecretsManager resource policy scanner), eks_lateral + lambda_vpc_pivot (cross-service lateral movement), s3_version_recovery + s3_replication_exfil (advanced exfil). For full assessments, start with aws_assess. For targeted work, start with recon programs to discover assets, then auto_privesc_scan to find attack paths. Uses aws CLI (no Python/SDK). Available programs: ${programKeys.join(", ")}. ALWAYS run cleanup_aws before leaving a target.`,
   args: {
     program: z.enum(programKeys).describe(
       "AWS program to execute. Options: " +
@@ -1532,16 +1542,17 @@ export const AwshookTool = tool({
     }
 
     try {
-      const handler = dispatch[params.program]
-      const result = await handler(params.args, params.timeout_seconds)
+      const rootSession = Session.root(ctx.sessionID)
+      const result = params.program === "aws_assess"
+        ? await awsAssess(params.args, params.timeout_seconds, rootSession)
+        : await dispatch[params.program](params.args, params.timeout_seconds)
       const enriched = result.findings.map((f) => ({
         ...f,
         cwe: CWE_MAP[f.checkId] || undefined,
       }))
 
       if (enriched.length > 0) {
-        const sessionID = Session.root(ctx.sessionID)
-        const ingested = ingestFindings(sessionID, enriched, ctx.agent ?? "awshook")
+        const ingested = ingestFindings(rootSession, enriched, ctx.agent ?? "awshook")
         if (ingested.assets > 0 || ingested.exposures > 0) {
           result.output += `\n\n[inventory] ${ingested.assets} assets, ${ingested.exposures} exposures recorded`
         }
