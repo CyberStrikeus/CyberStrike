@@ -1055,6 +1055,14 @@ export type EventWebJsUpdated = {
   }
 }
 
+export type EventIntelUpdated = {
+  type: "intel.updated"
+  properties: {
+    sessionID: string
+    entryCount: number
+  }
+}
+
 export type EventTuiPromptAppend = {
   type: "tui.prompt.append"
   properties: {
@@ -1121,14 +1129,6 @@ export type EventMcpBrowserOpenFailed = {
   properties: {
     mcpName: string
     url: string
-  }
-}
-
-export type EventIntelUpdated = {
-  type: "intel.updated"
-  properties: {
-    sessionID: string
-    entryCount: number
   }
 }
 
@@ -1351,13 +1351,13 @@ export type Event =
   | EventWebObjectValueUpdated
   | EventWebRoleUpdated
   | EventWebJsUpdated
+  | EventIntelUpdated
   | EventTuiPromptAppend
   | EventTuiCommandExecute
   | EventTuiToastShow
   | EventTuiSessionSelect
   | EventMcpToolsChanged
   | EventMcpBrowserOpenFailed
-  | EventIntelUpdated
   | EventCloudAssetUpdated
   | EventCloudEdgeUpdated
   | EventCloudExposureUpdated
@@ -3966,6 +3966,74 @@ export type SessionVulnerabilityResponses = {
 }
 
 export type SessionVulnerabilityResponse = SessionVulnerabilityResponses[keyof SessionVulnerabilityResponses]
+
+export type SessionVulnerabilityPosterData = {
+  body?: never
+  path: {
+    sessionID: string
+    ref: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/vulnerability/{ref}/poster"
+}
+
+export type SessionVulnerabilityPosterErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionVulnerabilityPosterError = SessionVulnerabilityPosterErrors[keyof SessionVulnerabilityPosterErrors]
+
+export type SessionVulnerabilityPosterResponses = {
+  /**
+   * PNG image
+   */
+  200: Blob | File
+}
+
+export type SessionVulnerabilityPosterResponse =
+  SessionVulnerabilityPosterResponses[keyof SessionVulnerabilityPosterResponses]
+
+export type SessionVulnerabilityPosterBundleData = {
+  body?: never
+  path: {
+    sessionID: string
+    ref: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/vulnerability/{ref}/poster/bundle"
+}
+
+export type SessionVulnerabilityPosterBundleErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionVulnerabilityPosterBundleError =
+  SessionVulnerabilityPosterBundleErrors[keyof SessionVulnerabilityPosterBundleErrors]
+
+export type SessionVulnerabilityPosterBundleResponses = {
+  /**
+   * Poster bundle
+   */
+  200: {
+    png: string
+    tweet: string
+    markdown: string
+    slug: string
+  }
+}
+
+export type SessionVulnerabilityPosterBundleResponse =
+  SessionVulnerabilityPosterBundleResponses[keyof SessionVulnerabilityPosterBundleResponses]
 
 export type SessionRequestData = {
   body?: never

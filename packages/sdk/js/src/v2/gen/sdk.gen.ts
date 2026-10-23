@@ -225,6 +225,10 @@ import type {
   SessionVortexSignalSummaryResponses,
   SessionVortexUpdateTriageResponses,
   SessionVulnerabilityErrors,
+  SessionVulnerabilityPosterBundleErrors,
+  SessionVulnerabilityPosterBundleResponses,
+  SessionVulnerabilityPosterErrors,
+  SessionVulnerabilityPosterResponses,
   SessionVulnerabilityResponses,
   SessionWebActionErrors,
   SessionWebActionResponses,
@@ -1096,6 +1100,87 @@ export class Experimental extends HeyApiClient {
   private _resource?: Resource
   get resource(): Resource {
     return (this._resource ??= new Resource({ client: this.client }))
+  }
+}
+
+export class Poster extends HeyApiClient {
+  /**
+   * Generate vulnerability poster bundle
+   *
+   * Returns PNG (base64), tweet text, and markdown blog post for a vulnerability finding.
+   */
+  public bundle<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      ref: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "path", key: "ref" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      SessionVulnerabilityPosterBundleResponses,
+      SessionVulnerabilityPosterBundleErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/vulnerability/{ref}/poster/bundle",
+      ...options,
+      ...params,
+    })
+  }
+}
+
+export class Vulnerability extends HeyApiClient {
+  /**
+   * Generate vulnerability poster PNG
+   *
+   * Render a shareable OG-style card image for a specific vulnerability finding.
+   */
+  public poster<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      ref: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "path", key: "ref" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      SessionVulnerabilityPosterResponses,
+      SessionVulnerabilityPosterErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/vulnerability/{ref}/poster",
+      ...options,
+      ...params,
+    })
+  }
+
+  private _poster?: Poster
+  get poster2(): Poster {
+    return (this._poster ??= new Poster({ client: this.client }))
   }
 }
 
@@ -3634,6 +3719,11 @@ export class Session extends HeyApiClient {
       ...options,
       ...params,
     })
+  }
+
+  private _vulnerability?: Vulnerability
+  get vulnerability2(): Vulnerability {
+    return (this._vulnerability ??= new Vulnerability({ client: this.client }))
   }
 }
 
