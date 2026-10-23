@@ -8,6 +8,17 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 
 ## [Unreleased]
 
+## [1.1.17] (2026-10-23)
+
+### Added
+
+- **Goal mode**: add persistent objectives that continue across restarts, with evidence-audited completion, token and duration budgets, and `/goal` controls in the TUI and API
+- **Goal reports**: write a Markdown report to `.cyberstrike/reports/` after verified completion, then end with a final response that links it
+
+### Fixed
+
+- **`/goal` recognition**: register the command on the home screen and in open sessions
+
 ## [1.1.16] — 2026-08-08
 
 ### Added
@@ -164,6 +175,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 
 ---
 
+[1.1.17]: https://github.com/CyberStrikeus/CyberStrike/releases/tag/v1.1.17
 [1.1.16]: https://github.com/CyberStrikeus/CyberStrike/releases/tag/v1.1.16
 [1.1.15]: https://github.com/CyberStrikeus/CyberStrike/releases/tag/v1.1.15
 [1.1.6]: https://github.com/CyberStrikeus/CyberStrike/releases/tag/v1.1.6
