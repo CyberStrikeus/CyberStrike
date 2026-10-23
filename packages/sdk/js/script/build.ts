@@ -105,6 +105,18 @@ if (!process.env.CI) {
   }
   await Bun.write(sseTypesPath, sseTypesPatched)
 
+  // Wrap JSON.parse in client.gen.ts so truncated/corrupt responses produce a
+  // useful error message instead of a raw "Unterminated string" crash.
+  const clientPath = "./src/v2/gen/client/client.gen.ts"
+  const clientSource = await Bun.file(clientPath).text()
+  const jsonParseFix =
+    "try { data = text ? JSON.parse(text) : {} }" +
+    " catch { throw new Error(" +
+    "`Invalid JSON response from ${response.url}: ${text.slice(0, 200)}`" +
+    ") }"
+  const clientPatched = clientSource.replace("data = text ? JSON.parse(text) : {}", jsonParseFix)
+  if (clientPatched !== clientSource) await Bun.write(clientPath, clientPatched)
+
   await $`bun prettier --write src/gen`
   await $`bun prettier --write src/v2`
   await $`rm openapi.json`

@@ -169,7 +169,11 @@ export const createClient = (config: Config = {}): Client => {
           // Some servers return 200 with no Content-Length and empty body.
           // response.json() would throw; read as text and parse if non-empty.
           const text = await response.text()
-          data = text ? JSON.parse(text) : {}
+          try {
+            data = text ? JSON.parse(text) : {}
+          } catch {
+            throw new Error(`Invalid JSON response from ${response.url}: ${text.slice(0, 200)}`)
+          }
           break
         }
         case "stream":

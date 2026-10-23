@@ -86,6 +86,11 @@ const cli = yargs(hideBin(process.argv))
     })
 
     const marker = path.join(Global.Path.data, "cyberstrike.db")
+    const dbStat = Bun.file(marker)
+    if (await dbStat.exists() && dbStat.size === 0) {
+      const { unlinkSync } = await import("fs")
+      unlinkSync(marker)
+    }
     if (!(await Bun.file(marker).exists())) {
       console.log("Performing one time database migration, may take a few minutes...")
       const tty = process.stdout.isTTY
