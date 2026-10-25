@@ -19,7 +19,7 @@ import { Log } from "../../util/log"
 const log = Log.create({ service: "web-data-collector" })
 
 export namespace DataCollector {
-  export type Kind = "api" | "html" | "js" | "static" | "realtime"
+  export type Kind = "api" | "html" | "js" | "static" | "realtime" | "noise"
 
   // What the ingest handler hands us per captured request (derived from the normalized request +
   // its optional response). `path` is the concrete path (for a JS url), not the endpoint template.
@@ -77,7 +77,7 @@ export namespace DataCollector {
   function store(sessionID: string): Store {
     let s = bySession.get(sessionID)
     if (!s) {
-      s = { endpoints: new Map(), jsUrls: new Set(), mined: new Map(), secrets: new Map(), counts: { api: 0, html: 0, js: 0, static: 0, realtime: 0 }, headers: new Map(), cookies: new Set() }
+      s = { endpoints: new Map(), jsUrls: new Set(), mined: new Map(), secrets: new Map(), counts: { api: 0, html: 0, js: 0, static: 0, realtime: 0, noise: 0 }, headers: new Map(), cookies: new Set() }
       bySession.set(sessionID, s)
     }
     return s
@@ -90,12 +90,14 @@ export namespace DataCollector {
   const JS_RE = /\.m?js(\?|#|$)/i
   const STATIC_RE = /\.(css|png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf|eot|otf|mp4|webm|mp3|wav|pdf|map)(\?|#|$)/i
   const HTML_RE = /\.(html?|xhtml|jsp|asp|aspx|php)(\?|#|$)/i
+  const NOISE_RE = /\/(dt-rum|rum|beacon|collect|pixel|analytics|tracking|telemetry|log-event|_event|_track|__debug|_hpvn|webvitals|perf|reporting|csp-report|browser-intake|ingest)\b/i
 
   // Classify by content-type first (authoritative), then URL suffix (for captures with no
   // response). Pure + exported for tests. A path with no extension + no content-type ⇒ "html"
   // (a route, e.g. /account) so it surfaces as a navigable route rather than being dropped.
   export function classify(path: string, contentType?: string): Kind {
     const ct = (contentType ?? "").toLowerCase()
+    if (NOISE_RE.test(path)) return "noise"
     if (ct) {
       if (ct.includes("javascript") || ct.includes("ecmascript")) return "js"
       if (ct.includes("text/html") || ct.includes("application/xhtml")) return "html"
@@ -106,7 +108,6 @@ export namespace DataCollector {
     if (JS_RE.test(path)) return "js"
     if (STATIC_RE.test(path)) return "static"
     if (HTML_RE.test(path)) return "html"
-    // No signal either way: a bare route path (/account, /api/users) — treat as a navigable route.
     return "html"
   }
 
@@ -197,7 +198,7 @@ export namespace DataCollector {
   export function latest(sessionID: string): CollectedData {
     const s = bySession.get(sessionID)
     if (!s)
-      return { endpoints: [], jsUrls: [], minedRoutes: [], secrets: [], counts: { api: 0, html: 0, js: 0, static: 0, realtime: 0 }, server: { headers: {}, cookies: [] } }
+      return { endpoints: [], jsUrls: [], minedRoutes: [], secrets: [], counts: { api: 0, html: 0, js: 0, static: 0, realtime: 0, noise: 0 }, server: { headers: {}, cookies: [] } }
     return {
       // html routes first (navigable), then api; each by descending hits — most-used surface first.
       endpoints: [...s.endpoints.values()]
