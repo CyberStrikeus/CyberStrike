@@ -348,25 +348,22 @@
     <div class="bar" id="rbar"></div>
     <div class="banner" id="rbanner">
       <span class="dot"></span>
-      <span class="txt"><span class="rn" id="rname"></span> <span class="hint">— log in as this identity, then browse</span></span>
+      <span class="txt"><span class="rn" id="rname"></span> <span class="hint" id="rhint">— log in as this identity, then browse</span></span>
       <span class="x" id="rx" title="dismiss">✕</span>
     </div>
   `
   const rbar = roleRoot.getElementById("rbar")
   const rbanner = roleRoot.getElementById("rbanner")
   const rname = roleRoot.getElementById("rname")
+  const rhint = roleRoot.getElementById("rhint")
   let roleDismissed = false
   let lastRole = null
   roleRoot.getElementById("rx").addEventListener("click", () => {
     roleDismissed = true
     rbanner.classList.remove("on")
   })
-  // label falsy/blank → anonymous → hide everything. A changed role resets the dismiss.
   function renderRole(label) {
     let l = label && String(label).trim() ? String(label).trim() : null
-    // "anonymous" is the default identity — tagged in captures, but no role banner/hue
-    // (a "log in as this identity" prompt makes no sense for it).
-    if (l && l.toLowerCase() === "anonymous") l = null
     if (l !== lastRole) {
       roleDismissed = false
       lastRole = l
@@ -376,10 +373,12 @@
       rbanner.classList.remove("on")
       return
     }
+    const anon = l.toLowerCase() === "anonymous"
+    rhint.textContent = anon ? "— unauthenticated session" : "— log in as this identity, then browse"
     const c = roleColor(l)
     rbar.style.setProperty("--rc", c)
     rbanner.style.setProperty("--rc", c)
-    rname.textContent = l // textContent — never innerHTML (role is user-supplied)
+    rname.textContent = l
     rbar.classList.add("on")
     if (!roleDismissed) rbanner.classList.add("on")
   }
@@ -531,7 +530,7 @@
     const role = chosenRole()
     closeCredBox()
     flashTransition("Opening browser for " + label + "…", "ai", "", 1400)
-    const res = await send({ type: "spawn-credential", role: label, roleName: role.name, roleLevel: role.level, url: location.href })
+    const res = await send({ type: "spawn-credential", role: label, roleName: role.name, roleLevel: role.level, url: location.href.split("#")[0] })
     if (res && res.ok) {
       roleHint.textContent = `Opened a browser for "${label}"${role.name ? " (" + role.name + ")" : ""} — log in there, then hit Record.`
     } else {
@@ -936,7 +935,7 @@
       // Prefer the field, then the immutable spawned identity, then Anonymous. A spawned
       // role browser must never fall through to Anonymous just because the field is empty.
       const role = cred.value.trim() || assignedCred || "Anonymous"
-      const res = await send({ type: "start-capture", role, url: location.href })
+      const res = await send({ type: "start-capture", role, url: location.href.split("#")[0] })
       attachBtn.disabled = false
       if (res && res.ok) {
         const shown = res.role || role // server's canonical casing (one role, not a case-dup)
@@ -1007,7 +1006,7 @@
     // capture" button, so both entry points tag traffic with the same identity.
     const role = cred.value.trim() || assignedCred || "Anonymous"
     flashTransition("Connecting to CyberStrike…", "ai", "", 1400)
-    const res = await send({ type: "start-capture", role, url: location.href })
+    const res = await send({ type: "start-capture", role, url: location.href.split("#")[0] })
     wRight.disabled = false
     if (res && res.ok) {
       const canon = (res.role || role).trim()

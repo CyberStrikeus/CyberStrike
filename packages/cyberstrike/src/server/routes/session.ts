@@ -60,6 +60,7 @@ import { Log } from "../../util/log"
 import { PermissionNext } from "@/permission/next"
 import { errors } from "../error"
 import { lazy } from "../../util/lazy"
+import { Server } from "../server"
 
 const log = Log.create({ service: "server" })
 
@@ -1104,6 +1105,7 @@ export const SessionRoutes = lazy(() =>
             cred: body.role,
             session: sessionID,
             headless: body.headless,
+            csUrl: Server.url().toString(),
           })
           // Track the child so it can be closed with the assessment (the proc handle is
           // not serializable — return only the plain fields).
@@ -1217,7 +1219,7 @@ export const SessionRoutes = lazy(() =>
         // Spawn the next role's browser on the shared session at the same URL.
         try {
           const spawn = await import("@cyberstrike-io/hackbrowser/v2-spawn")
-          const result = spawn.spawnProfile({ url: body.url, cred: next.label, session: sessionID })
+          const result = spawn.spawnProfile({ url: body.url, cred: next.label, session: sessionID, csUrl: Server.url().toString() })
           SpawnedProfiles.track(sessionID, result.proc)
           RoleQueue.spawned(sessionID, next.label)
           return c.json({ next: next.label, spawned: true })

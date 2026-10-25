@@ -24,10 +24,12 @@
         return match[1]
       }
     }
+    const cred = decode(hash.match(/__cs_cred=([^&]+)/))
     const session = decode(hash.match(/__cs_sess=([^&]+)/))
     const csUrl = decode(hash.match(/__cs_url=([^&]+)/))
-    if (!session && !csUrl) return
+    if (!cred && !session && !csUrl) return
     const next = { spawned: true }
+    if (cred) next.spawnedCred = cred
     if (session) next.session = session
     if (csUrl) next.cyberstrike = csUrl.replace(/\/+$/, "")
     chrome.storage.local.set(next)

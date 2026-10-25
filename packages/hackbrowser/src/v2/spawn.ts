@@ -112,11 +112,12 @@ export function buildProfileArgs(spec: ProfileSpec): BuiltProfile {
   const scope = spec.session ? `${sane(spec.session)}-` : ""
   const profileDir = spec.profileDir ?? join(tmpdir(), `hb2-profile-${scope}${profileId}`)
 
+  const base = spec.url.split("#")[0]
   const hashParts: string[] = []
   if (spec.cred) hashParts.push(`__cs_cred=${encodeURIComponent(spec.cred)}`)
   if (spec.session) hashParts.push(`__cs_sess=${encodeURIComponent(spec.session)}`)
   if (spec.csUrl) hashParts.push(`__cs_url=${encodeURIComponent(spec.csUrl)}`)
-  const target = hashParts.length ? `${spec.url}#${hashParts.join("&")}` : spec.url
+  const target = hashParts.length ? `${base}#${hashParts.join("&")}` : spec.url
 
   const args = [
     `--user-data-dir=${profileDir}`,

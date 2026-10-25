@@ -14,7 +14,8 @@ const DEFAULT_CS = "http://127.0.0.1:4096"
 function csUrl() {
   return new Promise((resolve) => {
     chrome.storage.local.get("cyberstrike", (out) => {
-      resolve(out && out.cyberstrike ? out.cyberstrike : DEFAULT_CS)
+      const raw = out && out.cyberstrike ? out.cyberstrike : DEFAULT_CS
+      resolve(raw.split("#")[0].replace(/\/+$/, ""))
     })
   })
 }
@@ -731,6 +732,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           : []
         sendResponse({ ok: true, sessions })
       } catch (e) {
+        console.warn("[hackbrowser] list-sessions FAILED:", e && e.message ? e.message : String(e))
         sendResponse({ ok: false, sessions: [] })
       }
       return
@@ -768,7 +770,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // tunnel). Lets the one extension work self-installed in any browser, not only spawned CfT.
     if (msg.type === "set-server") {
       const patch = {}
-      if (typeof msg.url === "string" && msg.url.trim()) patch.cyberstrike = msg.url.trim().replace(/\/+$/, "")
+      if (typeof msg.url === "string" && msg.url.trim()) patch.cyberstrike = msg.url.trim().split("#")[0].replace(/\/+$/, "")
       patch.cs_pw = typeof msg.password === "string" ? msg.password : ""
       chrome.storage.local.set(patch, () => {
         setWatchdog(false, 0) // give the control channel a fresh start against the new server
@@ -858,13 +860,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const base = await csUrl()
         const ping = await csFetch(`${base}/session?limit=1&roots=true`, { signal: AbortSignal.timeout(CS_PING_MS) })
         if (!ping || !ping.ok) {
-          // 401 = reached the server but auth failed (wrong remote password) — a distinct, fixable
-          // problem from "unreachable", so the panel can say "check the password".
           const err = ping && ping.status === 401 ? "authentication failed — check the password" : "CyberStrike unreachable"
           sendResponse({ ok: false, error: err })
           return
         }
-      } catch {
+      } catch (pingErr) {
+        console.warn("[hackbrowser] start-capture ping FAILED:", pingErr && pingErr.message ? pingErr.message : String(pingErr))
         sendResponse({ ok: false, error: "CyberStrike unreachable" })
         return
       }
