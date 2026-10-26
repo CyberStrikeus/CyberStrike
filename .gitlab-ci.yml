@@ -19,6 +19,7 @@ default:
 
 workflow:
   rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
     - if: $CI_PIPELINE_SOURCE == "push"
       changes:
         - packages/docs/**/*
@@ -46,20 +47,36 @@ deploy-docs:
   needs: []
 
 # ── Stage 1: calculate version ────────────────────────────────────────────────
+# On tag push: extract version from the tag name (v2.0.0-canary.2 → 2.0.0-canary.2)
+# On manual/api: use VERSION/BUMP variables
 
 version:
   stage: version
   image: oven/bun:1.3.9-debian
   rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
     - if: $CI_PIPELINE_SOURCE == "web"
     - if: $CI_PIPELINE_SOURCE == "api"
     - if: $CI_PIPELINE_SOURCE == "trigger"
   script:
     - bun install --frozen-lockfile
     - |
-      export CYBERSTRIKE_BUMP="${BUMP:-canary}"
-      export CYBERSTRIKE_VERSION="${VERSION:-}"
-      bun run ./script/version-ci.ts
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        # Tag push — extract version directly from tag
+        TAG_VERSION="${CI_COMMIT_TAG#v}"
+        echo "CYBERSTRIKE_VERSION=${TAG_VERSION}" > version.env
+        # Derive channel from tag (v1.2.3-canary.1 → canary, v1.2.3-beta.1 → beta, v1.2.3 → latest)
+        case "$TAG_VERSION" in
+          *-canary.*) echo "CYBERSTRIKE_CHANNEL=canary" >> version.env ;;
+          *-beta.*)   echo "CYBERSTRIKE_CHANNEL=beta" >> version.env ;;
+          *)          echo "CYBERSTRIKE_CHANNEL=latest" >> version.env ;;
+        esac
+        cat version.env
+      else
+        export CYBERSTRIKE_BUMP="${BUMP:-canary}"
+        export CYBERSTRIKE_VERSION="${VERSION:-}"
+        bun run ./script/version-ci.ts
+      fi
   artifacts:
     reports:
       dotenv: version.env
@@ -71,6 +88,7 @@ build-app:
   image: oven/bun:1.3.9-debian
   needs: [version]
   rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
     - if: $CI_PIPELINE_SOURCE == "web"
     - if: $CI_PIPELINE_SOURCE == "api"
     - if: $CI_PIPELINE_SOURCE == "trigger"
@@ -87,6 +105,7 @@ build-cli:
   image: oven/bun:1.3.9-debian
   needs: [version]
   rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
     - if: $CI_PIPELINE_SOURCE == "web"
     - if: $CI_PIPELINE_SOURCE == "api"
     - if: $CI_PIPELINE_SOURCE == "trigger"
@@ -122,13 +141,13 @@ release:
   image: alpine:3.21
   needs: [version, build-cli, build-app]
   rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
     - if: $CI_PIPELINE_SOURCE == "web"
     - if: $CI_PIPELINE_SOURCE == "api"
     - if: $CI_PIPELINE_SOURCE == "trigger"
   script:
     - apk add --no-cache zip tar curl jq
     - mkdir -p archives
-    # Package each binary target into an archive
     - |
       for dir in packages/cyberstrike/dist/cyberstrike-*/; do
         name=$(basename "$dir")
@@ -147,7 +166,6 @@ release:
         cd -
       done
     - ls -lh archives/
-    # Upload each archive to GitLab Generic Package Registry (permanent URLs)
     - |
       REGISTRY="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/cyberstrike/${CYBERSTRIKE_VERSION}"
       LINKS=""
@@ -162,7 +180,6 @@ release:
       done
       LINKS="[${LINKS%,}]"
       echo "$LINKS" > links.json
-    # Create the release via API
     - |
       TAG="v${CYBERSTRIKE_VERSION}"
       LINKS=$(cat links.json)
@@ -212,6 +229,9 @@ publish:
   stage: publish
   image: node:24-bookworm
   needs: [version, build-cli, build-app]
+  rules:
+    - when: manual
+      allow_failure: true
   script:
     - corepack enable
     - npm install -g bun@${BUN_VERSION}
@@ -223,6 +243,3 @@ publish:
       export CYBERSTRIKE_BUMP="${BUMP:-canary}"
       export NPM_CONFIG_PROVENANCE=false
       bun run ./script/publish-ci.ts
-  rules:
-    - when: manual
-      allow_failure: true
