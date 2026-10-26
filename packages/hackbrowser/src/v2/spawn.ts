@@ -14,36 +14,74 @@ import { tmpdir, homedir } from "node:os"
 // --disable-features workaround too), so it can no longer load our unpacked extension
 // from the command line. We therefore spawn an EXTENSION-CAPABLE build instead — the
 // removal doesn't affect Chrome for Testing, unbranded Chromium, or Brave.
-const APP_BROWSERS = [
-  "/Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
-  "/Applications/Chromium.app/Contents/MacOS/Chromium",
-  "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
-]
+const APP_BROWSERS: Record<string, string[]> = {
+  darwin: [
+    "/Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+  ],
+  win32: [
+    join(homedir(), "AppData", "Local", "Google", "Chrome for Testing", "Application", "chrome.exe"),
+    "C:\\Program Files\\Google\\Chrome for Testing\\Application\\chrome.exe",
+    "C:\\Program Files\\Chromium\\Application\\chrome.exe",
+    join(homedir(), "AppData", "Local", "Chromium", "Application", "chrome.exe"),
+    "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+    join(homedir(), "AppData", "Local", "BraveSoftware", "Brave-Browser", "Application", "brave.exe"),
+  ],
+  linux: [
+    "/usr/bin/chromium-browser",
+    "/usr/bin/chromium",
+    "/snap/bin/chromium",
+    "/usr/bin/brave-browser",
+  ],
+}
 
-// Chrome-for-Testing / Chromium builds that puppeteer or playwright already downloaded —
-// a very common case on dev machines. Newest name wins (version/build is in the dir).
 function cachedBrowsers(): string[] {
   const out: string[] = []
-  const roots = [join(homedir(), ".cache", "puppeteer", "chrome"), join(homedir(), "Library", "Caches", "ms-playwright")]
-  const leaves = ["chrome-mac-arm64", "chrome-mac"]
-  const apps = [
-    "Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
-    "Chromium.app/Contents/MacOS/Chromium",
-  ]
-  for (const root of roots) {
-    let entries: string[]
-    try {
-      entries = readdirSync(root).sort().reverse()
-    } catch {
-      continue
+  if (process.platform === "darwin") {
+    const roots = [join(homedir(), ".cache", "puppeteer", "chrome"), join(homedir(), "Library", "Caches", "ms-playwright")]
+    const leaves = ["chrome-mac-arm64", "chrome-mac"]
+    const apps = [
+      "Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+      "Chromium.app/Contents/MacOS/Chromium",
+    ]
+    for (const root of roots) {
+      let entries: string[]
+      try { entries = readdirSync(root).sort().reverse() } catch { continue }
+      for (const e of entries)
+        for (const leaf of leaves)
+          for (const app of apps) {
+            const p = join(root, e, leaf, app)
+            if (existsSync(p)) out.push(p)
+          }
     }
-    for (const e of entries) {
-      for (const leaf of leaves) {
-        for (const app of apps) {
-          const p = join(root, e, leaf, app)
-          if (existsSync(p)) out.push(p)
-        }
-      }
+  } else if (process.platform === "win32") {
+    const roots = [join(homedir(), ".cache", "puppeteer", "chrome"), join(homedir(), "AppData", "Local", "ms-playwright")]
+    const leaves = ["chrome-win64", "chrome-win32"]
+    const exes = ["chrome.exe"]
+    for (const root of roots) {
+      let entries: string[]
+      try { entries = readdirSync(root).sort().reverse() } catch { continue }
+      for (const e of entries)
+        for (const leaf of leaves)
+          for (const exe of exes) {
+            const p = join(root, e, leaf, exe)
+            if (existsSync(p)) out.push(p)
+          }
+    }
+  } else {
+    const roots = [join(homedir(), ".cache", "puppeteer", "chrome"), join(homedir(), ".cache", "ms-playwright")]
+    const leaves = ["chrome-linux64"]
+    const exes = ["chrome"]
+    for (const root of roots) {
+      let entries: string[]
+      try { entries = readdirSync(root).sort().reverse() } catch { continue }
+      for (const e of entries)
+        for (const leaf of leaves)
+          for (const exe of exes) {
+            const p = join(root, e, leaf, exe)
+            if (existsSync(p)) out.push(p)
+          }
     }
   }
   return out
@@ -53,7 +91,7 @@ function cachedBrowsers(): string[] {
 // returned — it opens but silently ignores --load-extension on 137+, which is exactly
 // the "browser spawns but no panel" failure.
 export function findBrowser(): string | null {
-  for (const p of APP_BROWSERS) if (existsSync(p)) return p
+  for (const p of APP_BROWSERS[process.platform] ?? []) if (existsSync(p)) return p
   const cached = cachedBrowsers()
   return cached.length ? cached[0] : null
 }
