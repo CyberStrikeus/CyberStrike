@@ -1,6 +1,7 @@
 stages:
   - version
   - build
+  - release
   - publish
   - deploy
 
@@ -114,7 +115,98 @@ build-cli:
       - packages/cyberstrike/dist/
     expire_in: 1 hour
 
-# ── Stage 3: publish to npm ───────────────────────────────────────────────────
+# ── Stage 3: package archives, upload to registry, create GitLab Release ─────
+
+release:
+  stage: release
+  image: alpine:3.21
+  needs: [version, build-cli, build-app]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "api"
+    - if: $CI_PIPELINE_SOURCE == "trigger"
+  script:
+    - apk add --no-cache zip tar curl jq
+    - mkdir -p archives
+    # Package each binary target into an archive
+    - |
+      for dir in packages/cyberstrike/dist/cyberstrike-*/; do
+        name=$(basename "$dir")
+        if [ -d packages/app/dist ]; then
+          cp -r packages/app/dist "$dir/web"
+        fi
+        if [ -d .cyberstrike/skill ]; then
+          cp -r .cyberstrike/skill "$dir/skill"
+        fi
+        cd "$dir/bin"
+        if echo "$name" | grep -q "linux"; then
+          tar -czf "../../../archives/${name}.tar.gz" *
+        else
+          zip -r "../../../archives/${name}.zip" *
+        fi
+        cd -
+      done
+    - ls -lh archives/
+    # Upload each archive to GitLab Generic Package Registry (permanent URLs)
+    - |
+      REGISTRY="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/cyberstrike/${CYBERSTRIKE_VERSION}"
+      LINKS=""
+      for file in archives/*; do
+        fname=$(basename "$file")
+        echo "Uploading $fname..."
+        curl --fail --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+          --upload-file "$file" \
+          "${REGISTRY}/${fname}"
+        url="${REGISTRY}/${fname}"
+        LINKS="${LINKS}{\"name\":\"${fname}\",\"url\":\"${url}\",\"link_type\":\"package\"},"
+      done
+      LINKS="[${LINKS%,}]"
+      echo "$LINKS" > links.json
+    # Create the release via API
+    - |
+      TAG="v${CYBERSTRIKE_VERSION}"
+      LINKS=$(cat links.json)
+      BODY=$(cat <<EOFBODY
+      ## CyberStrike v${CYBERSTRIKE_VERSION}
+
+      ### Platforms
+
+      - **macOS**: darwin-arm64, darwin-x64, darwin-x64-baseline
+      - **Linux**: linux-arm64, linux-arm64-musl, linux-x64, linux-x64-baseline, linux-x64-musl, linux-x64-baseline-musl
+      - **Windows**: windows-x64, windows-x64-baseline
+
+      ### Install
+
+      Download the archive for your platform and extract:
+
+      macOS/Linux:
+      \`\`\`
+      tar xzf cyberstrike-linux-x64.tar.gz  # or unzip for .zip
+      chmod +x cyberstrike
+      ./cyberstrike
+      \`\`\`
+
+      Windows (PowerShell):
+      \`\`\`
+      Expand-Archive cyberstrike-windows-x64.zip
+      .\cyberstrike.exe
+      \`\`\`
+      EOFBODY
+      )
+      PAYLOAD=$(jq -n \
+        --arg tag "$TAG" \
+        --arg name "CyberStrike $TAG" \
+        --arg desc "$BODY" \
+        --arg ref "$CI_COMMIT_SHA" \
+        --argjson links "$LINKS" \
+        '{tag_name: $tag, name: $name, description: $desc, ref: $ref, assets: {links: $links}}')
+      curl --fail --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+        --header "Content-Type: application/json" \
+        --data "$PAYLOAD" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases"
+    - echo "Release v${CYBERSTRIKE_VERSION} created"
+
+# ── Stage 4: publish to npm (manual, blocked until npm appeal resolved) ──────
 
 publish:
   stage: publish
@@ -133,4 +225,4 @@ publish:
       bun run ./script/publish-ci.ts
   rules:
     - when: manual
-      allow_failure: false
+      allow_failure: true
