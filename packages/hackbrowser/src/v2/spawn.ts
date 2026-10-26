@@ -102,6 +102,10 @@ export function findBrowser(): string | null {
 export function defaultExtensionPath(): string {
   const fromSource = join(import.meta.dir, "..", "..", "extension")
   if (!fromSource.includes("$bunfs") && !fromSource.includes("~BUN")) return fromSource
+  // Compiled binary: check beside the exe first (flat archive layout),
+  // then one level up (npm package layout with bin/ subdirectory).
+  const beside = join(dirname(process.execPath), "extension")
+  if (existsSync(join(beside, "manifest.json"))) return beside
   return join(dirname(process.execPath), "..", "extension")
 }
 

@@ -152,11 +152,16 @@ release:
       ROOT=$(pwd)
       for dir in packages/cyberstrike/dist/cyberstrike-*/; do
         name=$(basename "$dir")
+        # Pack extension, web UI and skills INTO bin/ so the flat archive has
+        # everything beside the binary — defaultExtensionPath() checks there first.
+        if [ -d "$dir/extension" ]; then
+          cp -r "$dir/extension" "$dir/bin/extension"
+        fi
         if [ -d packages/app/dist ]; then
-          cp -r packages/app/dist "$dir/web"
+          cp -r packages/app/dist "$dir/bin/web"
         fi
         if [ -d .cyberstrike/skill ]; then
-          cp -r .cyberstrike/skill "$dir/skill"
+          cp -r .cyberstrike/skill "$dir/bin/skill"
         fi
         if echo "$name" | grep -q "linux"; then
           tar -czf "$ROOT/archives/${name}.tar.gz" -C "$dir/bin" .

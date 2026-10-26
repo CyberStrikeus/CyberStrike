@@ -609,7 +609,9 @@ export namespace Server {
                   return ""
                 }
               })(),
-              // 3. ~/.cyberstrike/web/ (installed/production) — the only candidate that exists once
+              // 3. Beside the binary (compiled: flat archive ships web/ next to the exe).
+              path.join(path.dirname(process.execPath), "web"),
+              // 4. ~/.cyberstrike/web/ (installed/production) — the only candidate that exists once
               //    packaged; the dev workspace paths above resolve to nothing there.
               path.join(Global.Path.data, "web"),
             ]
