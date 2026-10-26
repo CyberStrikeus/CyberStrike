@@ -951,7 +951,8 @@ export namespace MessageV2 {
             ).toObject()
           }
         } catch {}
-        return new NamedError.Unknown({ message: JSON.stringify(e) }, { cause: e }).toObject()
+        const msg = (() => { try { return JSON.stringify(e) } catch { return String(e) } })()
+        return new NamedError.Unknown({ message: msg }, { cause: e }).toObject()
     }
   }
 }

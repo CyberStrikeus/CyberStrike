@@ -21,7 +21,7 @@ import { Plugin } from "../plugin"
 import BUILD_SWITCH from "../session/prompt/build-switch.txt"
 import MAX_STEPS from "../session/prompt/max-steps.txt"
 import { defer } from "../util/defer"
-import { clone } from "remeda"
+import { safeStringify } from "../util/safe-stringify"
 import { ToolRegistry } from "../tool/registry"
 import { LazyToolRegistry } from "../tool/lazy-registry"
 import { MCP } from "../mcp"
@@ -747,7 +747,7 @@ export namespace SessionPrompt {
         })
       }
 
-      const sessionMessages = clone(msgs)
+      const sessionMessages = structuredClone(msgs)
 
       // Ephemerally wrap queued user messages with a reminder to stay on track
       if (step > 1 && lastFinished) {
@@ -868,7 +868,7 @@ export namespace SessionPrompt {
           : MessageV2.filterExcluded(sessionMessages, lastUser.id),
         model,
       )
-      const preflightEstimate = Token.estimate(JSON.stringify(modelMessages) + system.join(""))
+      const preflightEstimate = Token.estimate(safeStringify(modelMessages) + system.join(""))
       const preflightLimit = model.limit.input
         ? model.limit.input
         : model.limit.context - ProviderTransform.maxOutputTokens(model)

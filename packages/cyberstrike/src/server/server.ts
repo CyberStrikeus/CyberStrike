@@ -549,9 +549,13 @@ export namespace Server {
                 }),
               })
               const unsub = Bus.subscribeAll(async (event) => {
-                await stream.writeSSE({
-                  data: JSON.stringify(event),
-                })
+                try {
+                  await stream.writeSSE({
+                    data: JSON.stringify(event),
+                  })
+                } catch {
+                  return
+                }
                 if (event.type === Bus.InstanceDisposed.type) {
                   stream.close()
                 }

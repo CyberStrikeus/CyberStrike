@@ -13,6 +13,7 @@ import type { Provider } from "@/provider/provider"
 import { LLM } from "./llm"
 import { Config } from "@/config/config"
 import { SessionCompaction } from "./compaction"
+import { safeStringify } from "@/util/safe-stringify"
 import { PermissionNext } from "@/permission/next"
 import { Question } from "@/question"
 import { Truncate } from "@/tool/truncation"
@@ -210,7 +211,7 @@ export namespace SessionProcessor {
                           p.type === "tool" &&
                           p.tool === value.toolName &&
                           p.state.status !== "pending" &&
-                          JSON.stringify(p.state.input) === JSON.stringify(value.input),
+                          safeStringify(p.state.input) === safeStringify(value.input),
                       )
                     ) {
                       const agent = await Agent.get(input.assistantMessage.agent)

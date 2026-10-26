@@ -11,7 +11,7 @@ import {
   tool,
   jsonSchema,
 } from "ai"
-import { clone, mergeDeep, pipe } from "remeda"
+import { mergeDeep, pipe } from "remeda"
 import { ProviderTransform } from "@/provider/transform"
 import { Config } from "@/config/config"
 import { Instance } from "@/project/instance"
@@ -80,7 +80,7 @@ export namespace LLM {
     )
 
     const header = system[0]
-    const original = clone(system)
+    const original = structuredClone(system)
     await Plugin.trigger(
       "experimental.chat.system.transform",
       { sessionID: input.sessionID, model: input.model },
