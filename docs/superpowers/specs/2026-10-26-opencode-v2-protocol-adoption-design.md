@@ -35,9 +35,10 @@ exactly**, implemented over CyberStrike's existing domain, so that:
 3. **No phone-side changes in this project.** opencodex's v2 path already exists and is
    sufficient; CyberStrike-specific *views* on the phone are a separate project.
 4. **Package structure: inverted.** `packages/api-v2` owns only the contract (endpoint
-   definitions, projections, ports). The glue that calls CyberStrike's internals — handlers,
-   adapters, the listener — lives in `packages/cyberstrike`, which already depends on `api-v2`.
-   No circular workspace imports; `api-v2` stays domain-agnostic and independently testable.
+   definitions, projections, event mapping). The glue that calls CyberStrike's internals —
+   handlers, middleware, the listener — lives in `packages/cyberstrike`, which already depends
+   on `api-v2`. No circular workspace imports; `api-v2` stays domain-agnostic and independently
+   testable.
 5. **The terminal must work in phase 1.** The v2 surface must support a live PTY WebSocket, so
    the phone's terminal works against CyberStrike. See *Terminal / WebSocket*.
 
@@ -108,24 +109,25 @@ Verified against the **published npm tarballs**, not the local upstream checkout
 ```
 packages/api-v2/                       @cyberstrike-io/api-v2   (contract only)
   src/
-    api.ts                             HttpApi assembly: upstream's 31 groups + fork groups
-    groups/                            CyberStrike-only HttpApiGroups (phase 2)
+    api.ts                             HttpApi assembly: upstream's 31 groups
     projection/                        v1 domain shapes -> v2 wire shapes (pure functions)
-      session.ts  message.ts  permission.ts  form.ts  event.ts
-    ports.ts                           interfaces the adapters implement
+      session.ts  message.ts  permission.ts  form.ts
     events.ts                          v1 bus event -> v2 frame mapping (pure)
   script/generate-openapi.ts           writes openapi.json (mirrors upstream's script)
 
 packages/cyberstrike/src/api-v2/       (glue — the only place that knows the domain)
-  adapters/                            port implementations over CyberStrike's domain
-  handlers/                            HttpApiBuilder handlers, one file per group
+  handlers/<group>.ts                  HttpApiBuilder handlers, one file per group
+  handlers.ts                          merges every group handler
+  middleware.ts                        authorization + schema-error + location layers
   server.ts                            Bun.serve: PTY upgrade + Effect web handler
 ```
 
 `packages/api-v2` never imports `packages/cyberstrike`. `packages/cyberstrike` imports
-`api-v2` for the `Api`, the projections, and the ports. Handlers call ports; adapters implement
-ports over the domain. The projections and the event mapping are pure and unit-testable without
-the domain.
+`api-v2` for the `Api` and the projections. Handlers live beside the domain they call, so
+they import `../../session` directly — **no port interfaces and no adapter layer**: a port
+layer would be ceremony when both sides are in the same package. The projections are the only
+cross-boundary code, and they are pure functions over plain data, so a drift between their
+input types and CyberStrike's domain types is a compile error at the call site.
 
 ### Two listeners, one process, one database
 
@@ -311,8 +313,9 @@ so honestly.
 appended to the `HttpApi` assembly, over tables that already exist in CyberStrike's schema (no
 DB migration — only the HTTP surface is new).
 
-**Phase 1 ships no fork groups.** Phase 2 adds them and regenerates `openapi.json` + the
-generated client. The OpenAPI drift check enforces consistency, not immutability.
+**Phase 1 ships no fork groups** — `packages/api-v2/src/groups/` does not exist yet. Phase 2 adds
+the groups and regenerates `openapi.json` + the generated client. The OpenAPI drift check
+enforces consistency, not immutability.
 
 ## Acceptance
 
