@@ -31,6 +31,9 @@ function transformExports(exports: Record<string, unknown>) {
     }),
   )
 }
+const access = process.env.CI_SERVER_HOST ? [] : ["--access", "public"]
+const tag = process.env.CYBERSTRIKE_NPM_TAG || Script.channel
+
 if (await published(pkg.name, pkg.version)) {
   console.log(`already published ${pkg.name}@${pkg.version}`)
 } else {
@@ -38,7 +41,7 @@ if (await published(pkg.name, pkg.version)) {
   await Bun.write("package.json", JSON.stringify(pkg, null, 2))
   try {
     await $`bun pm pack`
-    await $`npm publish *.tgz --tag ${Script.channel} --access public`
+    await $`npm publish *.tgz --tag ${tag} ${access}`
   } finally {
     await Bun.write("package.json", originalText)
   }

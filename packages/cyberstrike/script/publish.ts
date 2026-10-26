@@ -81,15 +81,16 @@ await Bun.file(`./${distDir}/package.json`).write(
   ),
 )
 
+const access = process.env.CI_SERVER_HOST ? [] : ["--access", "public"]
+const tag = process.env.CYBERSTRIKE_NPM_TAG || Script.channel
+
 const tasks = Object.entries(binaries).map(async ([name]) => {
-  // name is scoped like "@cyberstrike-io/cyberstrike-darwin-arm64"
-  // directory on disk is just "cyberstrike-darwin-arm64"
   const dirName = name.replace(`${SCOPE}/`, "")
   if (process.platform !== "win32") {
     await $`chmod -R 755 .`.cwd(`./dist/${dirName}`)
   }
   await $`bun pm pack`.cwd(`./dist/${dirName}`)
-  await $`npm publish *.tgz --access public --tag ${Script.channel}`.cwd(`./dist/${dirName}`)
+  await $`npm publish *.tgz ${access} --tag ${tag}`.cwd(`./dist/${dirName}`)
 })
 await Promise.all(tasks)
-await $`cd ./${distDir} && bun pm pack && npm publish *.tgz --access public --tag ${Script.channel}`
+await $`cd ./${distDir} && bun pm pack && npm publish *.tgz ${access} --tag ${tag}`

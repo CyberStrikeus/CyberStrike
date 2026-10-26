@@ -194,6 +194,7 @@ for (const item of targets) {
     tsconfig: "./tsconfig.json",
     plugins: [solidPlugin],
     sourcemap: "external",
+    minify: true,
     // The binary has ZERO playwright references — hackbrowser 2.0 drives a real
     // Chrome-for-Testing via the browser extension, no in-process crawler. If
     // playwright somehow slips in, the build fails loudly here.
@@ -206,7 +207,7 @@ for (const item of targets) {
       autoloadPackageJson: true,
       target: name.replace(pkg.name, "bun") as any,
       outfile: `dist/${name}/bin/cyberstrike`,
-      execArgv: [`--user-agent=cyberstrike/${Script.version}`, "--use-system-ca", "--"],
+      execArgv: [`--user-agent=cyberstrike/${Script.version}`, "--use-system-ca", "--smol", "--"],
       windows: {},
     },
     entrypoints: ["./src/index.ts", parserWorker, workerPath],

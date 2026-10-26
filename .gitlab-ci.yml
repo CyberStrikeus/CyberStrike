@@ -124,8 +124,8 @@ build-cli:
         @opentui/core-win32-x64@$OTUI_VER \
         @opentui/core-win32-arm64@$OTUI_VER \
         @parcel/watcher@$PW_VER
+    - echo "version=${CYBERSTRIKE_VERSION:-<unset>} channel=${CYBERSTRIKE_CHANNEL:-<unset>}"
     - |
-      export CYBERSTRIKE_VERSION
       export CYBERSTRIKE_RELEASE=""
       export CYBERSTRIKE_BUMP="${BUMP:-canary}"
       bun run ./packages/cyberstrike/script/build.ts --skip-install
@@ -222,9 +222,35 @@ release:
         "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases"
     - echo "Release v${CYBERSTRIKE_VERSION} created"
 
-# ── Stage 4: publish to npm (manual, blocked until npm appeal resolved) ──────
+# ── Stage 4: publish to GitLab npm registry ──────────────────────────────────
 
-publish:
+publish-gitlab:
+  stage: publish
+  image: oven/bun:1.3.9-debian
+  needs: [version, build-cli, build-app]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "api"
+    - if: $CI_PIPELINE_SOURCE == "trigger"
+  script:
+    - apt-get update -qq && apt-get install -y -qq jq > /dev/null
+    - bun install --frozen-lockfile
+    - |
+      NPM_REGISTRY="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/"
+      echo "@cyberstrike-io:registry=${NPM_REGISTRY}" > ~/.npmrc
+      echo "//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> ~/.npmrc
+    - |
+      export CYBERSTRIKE_VERSION
+      export CYBERSTRIKE_RELEASE=""
+      export CYBERSTRIKE_BUMP="${BUMP:-canary}"
+      export NPM_CONFIG_PROVENANCE=false
+      export CYBERSTRIKE_NPM_TAG="${CYBERSTRIKE_CHANNEL:-canary}"
+      bun run ./script/publish-ci.ts
+
+# ── Stage 5: publish to npmjs.org (manual, blocked until appeal resolved) ────
+
+publish-npmjs:
   stage: publish
   image: node:24-bookworm
   needs: [version, build-cli, build-app]
