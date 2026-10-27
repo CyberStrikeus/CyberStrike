@@ -323,7 +323,11 @@ async function restoreCapState() {
     connectControl() // resume the control channel (also re-arms the SW keepalive while co-driving)
   }
 }
-void restoreCapState()
+// Await-able promise so webRequest handlers can wait for cap-state restoration
+// before checking `attached`. Without this, a main_frame event that wakes the SW
+// races restoreCapState (async storage read) and silently drops the navigation
+// because `attached` is still empty — the classic MV3 SW eviction race.
+const capReady = restoreCapState()
 function closeControl() {
   if (controlReconnectTimer) {
     clearTimeout(controlReconnectTimer)
@@ -596,10 +600,11 @@ function headerArrayToObj(arr) {
 }
 chrome.webRequest.onBeforeSendHeaders.addListener(
   (d) => {
-    if (!attached.has(d.tabId)) return
     // xmlhttprequest: headers merge with the fetch/XHR patch body. main_frame/sub_frame:
     // full-page navigations the patch NEVER sees — capture their headers so we can ingest them.
     if (d.type !== "xmlhttprequest" && d.type !== "main_frame" && d.type !== "sub_frame") return
+    // Speculatively store headers even before capReady resolves — the data is cheap and
+    // onHeadersReceived (which awaits capReady) will discard if the tab isn't attached.
     rememberReqHeaders(hkey(d.tabId, d.method, d.url), { req: headerArrayToObj(d.requestHeaders) })
   },
   { urls: ["<all_urls>"] },
@@ -607,6 +612,9 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 )
 chrome.webRequest.onHeadersReceived.addListener(
   (d) => {
+    // Await capReady so a main_frame event that wakes the SW doesn't race
+    // the async restoreCapState and silently drop the navigation.
+    capReady.then(() => {
     if (!attached.has(d.tabId)) return
     if (d.type === "xmlhttprequest") {
       const rec = reqHeadersByKey.get(hkey(d.tabId, d.method, d.url))
@@ -632,6 +640,7 @@ chrome.webRequest.onHeadersReceived.addListener(
         page_url: d.url,
       })
     }
+    }) // capReady.then
   },
   { urls: ["<all_urls>"] },
   ["responseHeaders", "extraHeaders"],
@@ -650,6 +659,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Dynamic request body from the MAIN-world fetch/XHR patch → merge with the
     // webRequest headers (Cookie + full request/response headers) → ingest.
     if (msg.type === "captured") {
+      await capReady
       const tabId = sender.tab && sender.tab.id
       if (tabId !== undefined && attached.has(tabId) && msg.rec) {
         const rec = msg.rec
