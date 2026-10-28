@@ -376,7 +376,7 @@
     },
     "packages/cyberstrike": {
       "name": "cyberstrike",
-      "version": "1.1.16",
+      "version": "2.0.0-canary.6",
       "bin": {
         "cyberstrike": "./bin/cyberstrike",
       },
