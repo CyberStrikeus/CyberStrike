@@ -39,6 +39,7 @@ export namespace Credentials {
         ...pick(value.metadata, "accountId"),
         ...pick(value.metadata, "enterpriseUrl"),
       }
+    if (value.type === "external" && typeof value.metadata?.env === "string") return { type: "external", env: value.metadata.env }
     return undefined
   }
 
@@ -57,6 +58,8 @@ export namespace Credentials {
           ...(info.enterpriseUrl === undefined ? {} : { enterpriseUrl: info.enterpriseUrl }),
         },
       }
+    if (info.type === "external")
+      return { type: "external", methodID: "external", metadata: { env: info.env } }
     return undefined
   }
 

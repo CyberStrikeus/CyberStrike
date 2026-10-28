@@ -58,7 +58,8 @@ import { SkillContext } from "../../skill/context"
 import { Log } from "../../util/log"
 import { inInstance } from "../instance"
 import { getSession, notFound, publicSession, sessionDirectory } from "../lookup"
-import { unavailable } from "./stub"
+import { Registry } from "../../shell/registry"
+import { Foreground } from "../../tool/bash"
 
 const log = Log.create({ service: "api-v2.session" })
 
@@ -933,7 +934,25 @@ export const SessionHandler = HttpApiBuilder.group(Api, "server.session", (handl
         return { interrupted: true }
       }),
     )
-    .handle("session.background", () => unavailable)
+    .handle(
+      "session.background",
+      Effect.fn(function* (ctx) {
+        const session = yield* getSession(ctx.params.sessionID)
+        const run = Foreground.get(session.id)
+        // Idle sessions have no foreground command to move, so the request is a no-op.
+        if (!run) return HttpServerResponse.empty({ status: 204 })
+        const entry = yield* inInstance(session.directory, () =>
+          Registry.adopt({ child: run.proc, command: run.command, cwd: run.cwd, shell: run.shell }),
+        )
+        // The command may have exited while the registry took it over. Its exit was missed, so drop the entry.
+        if (run.proc.exitCode !== null || run.proc.signalCode !== null) {
+          yield* inInstance(session.directory, () => Registry.remove(entry.id))
+          return HttpServerResponse.empty({ status: 204 })
+        }
+        run.detach(entry)
+        return HttpServerResponse.empty({ status: 204 })
+      }),
+    )
     .handle(
       "session.message",
       Effect.fn(function* (ctx) {

@@ -50,10 +50,25 @@ Implemented (answers real data from CyberStrike's domain):
 - `event`: the SSE feed (`server.connected` first, then mapped v1 events)
 - `pty`: list, create, get, update, remove, connect-token, and the terminal WebSocket at `/api/pty/:id/connect`
 
-Stubbed: every other endpoint answers `503 not implemented`. This includes `worktree`, `shell`, `debug`,
-`mcp`, `integration`, `credential`, `plugin`, `websearch`, `reference`, `skill`, `command`, `rpc`, `voice`,
-`generate`, `migration`, `persistent-pty`, and in the session group `compact`, `command`, `shell`, `revert.stage`,
-`revert.commit`, `inbox`, `instructions`, `background`, `environment`, `view`.
+Every other group now answers real data from CyberStrike's domain, including `worktree`, `shell`, `debug`, `mcp`,
+`credential`, `plugin`, `websearch`, `reference`, `skill`, `command`, `rpc`, `generate`, `migration`, `persistent-pty`,
+and the session endpoints. Some are partial: `session.import` refuses transcripts that contain messages, and
+`session.log` records lifecycle events but not transcript events.
+
+Ten endpoints deliberately answer `503 not implemented`. Each needs a decision or a subsystem CyberStrike does not
+have, so they stay stubbed rather than returning fake data:
+
+- `integration.wellknown.add`: would run a command named by a remote discovery document, over HTTP. Left out until
+  there is a threat model; an allowlist of locally configured commands is the only variant worth revisiting.
+- `integration.connect.external`: CyberStrike has no external credential-source type to store.
+- `server.pair`, `server.connect`: need a pairing-code store with expiry, rate limiting, and revocation. v1 uses only
+  the Basic-auth password.
+- `mcp.client`, `mcp.clientToken`: a client-hosted MCP server needs a WebSocket upgrade and a bridge into the v1 MCP
+  client. That is a remote route into local tools with no review.
+- `session.background`: v1 bash runs inline and has no detach path.
+- `voice.models`, `voice.session`, `voice.instructions`: CyberStrike has no realtime or audio subsystem.
+
+Clients can detect a deliberate stub from the `503 not implemented` body. Revisit each item when a named client needs it.
 
 ## Terminal tickets
 
@@ -85,7 +100,7 @@ corrupt messages and parts do not break the rest of the message page.
 - **Contract gate.** The vendored `einyx/opencodex` gate is in `script/v2-contract-check.py` and runs with
   `bun run v2:contract` (also in `.github/workflows/v2-contract.yml`). Its default run reports 45 of 45, with prompt
   cases marked skipped. Prompt cases are separately asserted against the local model fixture. The full prompt-enabled
-  gate is not green: `revert-stage` remains stubbed, and an unscoped session list only includes the current project
+  gate is not green: `revert.stage` answers `files: false` with 400 because v1 always restores files, and an unscoped session list only includes the current project
   (so the gate's cross-project temporary session is not listed).
 - **Real-provider and phone smoke tests are not automated here.** Prompt regressions use a local model fixture.
 - **File input is limited to base64 data URIs.** Other attachment URIs return typed 400s rather than fetching arbitrary

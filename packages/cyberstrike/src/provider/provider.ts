@@ -88,7 +88,7 @@ export namespace Provider {
       // @ai-sdk/anthropic doesn't support authToken, so we use custom fetch
       const auth = await Auth.get(input.id)
       const key = (
-        input.env.map((item) => Env.all()[item]).find(Boolean) ?? (auth?.type === "api" ? auth.key : undefined)
+        input.env.map((item) => Env.all()[item]).find(Boolean) ?? Auth.resolve(auth)
       )?.trim()
       const explicitOAT = key?.startsWith("sk-ant-oat") ? key : undefined
       // Subscription (Claude Pro/Max): cyberstrike's own OAuth credential,
@@ -485,7 +485,7 @@ export namespace Provider {
       const auth = await Auth.get(input.id)
       const apiKey = await (async () => {
         if (auth?.type === "oauth") return auth.access
-        if (auth?.type === "api") return auth.key
+        if (auth?.type === "api" || auth?.type === "external") return Auth.resolve(auth)
         return Env.get("GITLAB_TOKEN")
       })()
 
@@ -529,7 +529,7 @@ export namespace Provider {
         const envToken = Env.get("CLOUDFLARE_API_KEY")
         if (envToken) return envToken
         const auth = await Auth.get(input.id)
-        if (auth?.type === "api") return auth.key
+        if (auth?.type === "api" || auth?.type === "external") return Auth.resolve(auth)
         return undefined
       })
 
@@ -555,7 +555,7 @@ export namespace Provider {
         const envToken = Env.get("CLOUDFLARE_API_TOKEN") || Env.get("CF_AIG_TOKEN")
         if (envToken) return envToken
         const auth = await Auth.get(input.id)
-        if (auth?.type === "api") return auth.key
+        if (auth?.type === "api" || auth?.type === "external") return Auth.resolve(auth)
         return undefined
       })()
 
@@ -931,10 +931,11 @@ export namespace Provider {
     // load apikeys
     for (const [providerID, provider] of Object.entries(await Auth.all())) {
       if (disabled.has(providerID)) continue
-      if (provider.type === "api") {
+      if (!Auth.available(provider)) continue
+      if (provider.type === "api" || provider.type === "external") {
         mergeProvider(providerID, {
           source: "api",
-          key: provider.key,
+          key: Auth.resolve(provider),
         })
       }
     }

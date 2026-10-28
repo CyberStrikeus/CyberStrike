@@ -90,13 +90,7 @@ export namespace Registry {
       child,
     }
     entries.set(id, entry)
-
-    child.once("exit", (code, signal) => {
-      entry.completed = Date.now()
-      entry.exit = code ?? undefined
-      entry.signal = signal ?? undefined
-      entry.status = entry.stop ?? (signal ? "killed" : "exited")
-    })
+    watch(entry)
 
     if (input.timeout !== undefined) {
       const timer = setTimeout(() => {
@@ -116,6 +110,39 @@ export namespace Registry {
       throw error
     })
 
+    return entry
+  }
+
+  const watch = (entry: Entry) =>
+    entry.child.once("exit", (code, signal) => {
+      entry.completed = Date.now()
+      entry.exit = code ?? undefined
+      entry.signal = signal ?? undefined
+      entry.status = entry.stop ?? (signal ? "killed" : "exited")
+    })
+
+  // Registers a child that another caller already spawned, so it is listed and killed like any other entry.
+  // The caller owns the child's output: it must point the child's pipes at the returned file.
+  export async function adopt(input: { child: ChildProcess; command: string; cwd: string; shell: string }) {
+    const id = Wire.ID.create()
+    const dir = path.join(Global.Path.state, "shell")
+    await mkdir(dir, { recursive: true })
+    const file = path.join(dir, `${id}.log`)
+    await Bun.write(file, "")
+    const entry: Entry = {
+      id,
+      status: "running",
+      command: input.command,
+      cwd: input.cwd,
+      shell: input.shell,
+      file,
+      pid: input.child.pid,
+      metadata: {},
+      started: Date.now(),
+      child: input.child,
+    }
+    ;(await state()).set(id, entry)
+    watch(entry)
     return entry
   }
 

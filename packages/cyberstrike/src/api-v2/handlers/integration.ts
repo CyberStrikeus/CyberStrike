@@ -19,7 +19,6 @@ import { Provider } from "../../provider/provider"
 import { ProviderAuth } from "../../provider/auth"
 import { Registry } from "../../shell/registry"
 import { inInstance } from "../instance"
-import { unavailable } from "./stub"
 
 type Attempt = {
   integrationID: string
@@ -78,7 +77,7 @@ const integration = (
             type: "credential",
             id: `cred_${provider.id}`,
             label: provider.name,
-            method: stored.type === "oauth" ? "oauth" : "key",
+            method: stored.type === "oauth" ? "oauth" : stored.type === "external" ? "external" : "key",
           },
         ]
       : []),
@@ -179,6 +178,80 @@ const commandView = (attempt: CommandAttempt) => ({
   ...(attempt.message === undefined ? {} : { message: attempt.message }),
 })
 
+const wellknownTimeout = 10 * 1000
+const wellknownLimit = 256 * 1024
+const commandTimeout = 60 * 1000
+
+// Discovery documents are only trusted from https. Plain http is allowed for loopback hosts so local servers and tests work.
+const secureBase = (raw: string) => {
+  if (!URL.canParse(raw)) return undefined
+  const url = new URL(raw)
+  if (url.username || url.password) return undefined
+  const loopback = url.hostname === "127.0.0.1" || url.hostname === "localhost"
+  if (url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) return undefined
+  return url.href.replace(/\/+$/, "")
+}
+
+// Reads at most wellknownLimit bytes. A body over the cap is rejected, never truncated into a document.
+const bounded = async (stream: ReadableStream<Uint8Array> | null | undefined) => {
+  if (!stream) return undefined
+  const reader = stream.getReader()
+  const chunks: Uint8Array[] = []
+  let size = 0
+  for (;;) {
+    const next = await reader.read()
+    if (next.done) break
+    size += next.value.byteLength
+    if (size > wellknownLimit) {
+      await reader.cancel()
+      return undefined
+    }
+    chunks.push(next.value)
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks))
+}
+
+const invalid = (message: string, field?: string) => new InvalidRequestError({ message, field })
+
+// The discovery document may name an auth command. The schema only shapes it; whether it may run is decided by the allowlist.
+const Discovery = Schema.Struct({
+  auth: Schema.Struct({
+    command: Schema.NonEmptyArray(Schema.String),
+    env: Schema.String,
+  }),
+})
+
+const discover = Effect.fn(function* (base: string) {
+  const text = yield* Effect.promise(() =>
+    fetch(`${base}/.well-known/cyberstrike`, { redirect: "error", signal: AbortSignal.timeout(wellknownTimeout) }).then(
+      (response) => (response.ok ? bounded(response.body) : undefined),
+      () => undefined,
+    ),
+  )
+  if (text === undefined) return yield* invalid("Wellknown document could not be fetched or is too large", "url")
+  const found = Schema.decodeUnknownOption(Schema.fromJsonString(Discovery))(text)
+  if (Option.isNone(found)) return yield* invalid("Wellknown document does not name a valid auth command", "url")
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(found.value.auth.env))
+    return yield* invalid("Wellknown auth env is not a valid variable name", "url")
+  return found.value
+})
+
+// Runs the allowlisted command and returns its trimmed stdout. Output is read while the process runs so a large output cannot stall it.
+const runCommand = Effect.fn(function* (argv: readonly string[]) {
+  const output = yield* Effect.tryPromise({
+    try: async () => {
+      const proc = Bun.spawn({ cmd: [...argv], stdin: "ignore", stdout: "pipe", stderr: "ignore", timeout: commandTimeout })
+      const [out, code] = await Promise.all([bounded(proc.stdout), proc.exited])
+      return code === 0 ? out : undefined
+    },
+    catch: () => undefined,
+  }).pipe(Effect.orElseSucceed(() => undefined))
+  if (output === undefined) return yield* invalid("Auth command failed, could not start, or produced too much output", "url")
+  const token = output.trim()
+  if (!token) return yield* invalid("Auth command produced no credential", "url")
+  return token
+})
+
 export const IntegrationHandler = HttpApiBuilder.group(Api, "server.integration", (handlers) =>
   handlers
     .handle(
@@ -205,7 +278,25 @@ export const IntegrationHandler = HttpApiBuilder.group(Api, "server.integration"
         }).pipe(Effect.orDie)
       }),
     )
-    .handle("integration.wellknown.add", () => unavailable)
+    .handle(
+      "integration.wellknown.add",
+      Effect.fn(function* (ctx) {
+        const directory = yield* Directory
+        const base = secureBase(ctx.payload.url)
+        if (!base) return yield* invalid("Wellknown URL must be https, or http on 127.0.0.1 or localhost, without credentials", "url")
+        const allowed = yield* inInstance(directory, async () => (await Config.get()).integration?.wellknown_commands ?? [])
+        const discovered = yield* discover(base)
+        // The discovered command runs only when its argv is allowlisted in the local config. Otherwise it is never executed.
+        if (!allowed.some((argv) => Bun.deepEquals(argv, discovered.auth.command)))
+          return yield* invalid("Auth command is not allowlisted in integration.wellknown_commands", "url")
+        const token = yield* runCommand(discovered.auth.command)
+        // Same record the v1 wellknown login writes: keyed by the URL, with the env name and the command's output.
+        yield* Effect.promise(() =>
+          Auth.set(base, { type: "wellknown", key: discovered.auth.env, token }),
+        )
+        return HttpServerResponse.empty({ status: 204 })
+      }),
+    )
     .handle(
       "integration.connect.key",
       Effect.fn(function* (ctx) {
@@ -218,9 +309,34 @@ export const IntegrationHandler = HttpApiBuilder.group(Api, "server.integration"
         return HttpServerResponse.empty({ status: 204 })
       }),
     )
-    // Left unimplemented: v1 has no external credential-source concept. Auth stores api, oauth and wellknown entries only,
-    // so there is no reference type a connect.external call could store. See the report on this change.
-    .handle("integration.connect.external", () => unavailable)
+    // Stores a reference to an environment variable, not the secret. The method is the provider's declared env names,
+    // so the variable must be one of them; the answer's `env` picks one and defaults to the first.
+    .handle(
+      "integration.connect.external",
+      Effect.fn(function* (ctx) {
+        const directory = yield* Directory
+        const integrationID = ctx.params.integrationID
+        const methodID = ctx.payload.methodID
+        const found = yield* inInstance(directory, async () => {
+          const item = await find(integrationID)
+          if (!item) return { kind: "integration" as const }
+          const names = item.methods.flatMap((method) => ("names" in method && method.names ? method.names : []))
+          if (methodID !== "external" || names.length === 0) return { kind: "method" as const }
+          return { kind: "names" as const, names }
+        })
+        if (found.kind === "integration")
+          return yield* new IntegrationNotFoundError({ integrationID, message: `Integration not found: ${integrationID}` })
+        if (found.kind === "method")
+          return yield* invalid(`External method not found for integration ${integrationID}: ${methodID}`, "methodID")
+        const requested = ctx.payload.answer?.env
+        const env = typeof requested === "string" ? requested : found.names[0]
+        if (!found.names.includes(env)) return yield* invalid(`Environment variable is not declared by ${integrationID}: ${env}`, "answer")
+        // A reference to an unset variable would never resolve, so it is refused now rather than stored.
+        if (!Auth.available({ type: "external", env })) return yield* invalid(`Environment variable is not set: ${env}`, "answer")
+        yield* inInstance(directory, () => Auth.set(integrationID, { type: "external", env }))
+        return HttpServerResponse.empty({ status: 204 })
+      }),
+    )
     .handle(
       "integration.oauth.connect",
       Effect.fn(function* (ctx) {

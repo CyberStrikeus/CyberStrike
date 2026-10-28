@@ -1132,6 +1132,17 @@ export namespace Config {
           "Automatically update to the latest version. Set to true to auto-update, false to disable, or 'notify' to show update notifications",
         ),
       disabled_providers: z.array(z.string()).optional().describe("Disable providers that are loaded automatically"),
+      integration: z
+        .object({
+          wellknown_commands: z
+            .array(z.array(z.string()).min(1))
+            .optional()
+            .describe(
+              "Auth command argv arrays that a wellknown integration may run. A discovered command runs only when its argv matches one of these exactly",
+            ),
+        })
+        .optional()
+        .describe("Integration settings"),
       enabled_providers: z
         .array(z.string())
         .optional()

@@ -15,10 +15,21 @@ import { inInstance } from "./instance"
 import { PeerAddress, authorizationLayer, schemaErrorLayer, webAuthorized } from "./middleware"
 import { directoryOf, locationLayers } from "./directory"
 import { Tickets, tickets } from "./tickets"
+import { Pairing, pairing } from "./pairing"
+import { MCP_CLIENT_PATH, busy as clientBusy, serve, tokens as clientTokens } from "./client-mcp"
 
 // The terminal socket: the Bun side keeps the v1 Pty handler and the scope it was opened in.
 type Terminal = { onMessage(data: string): void; onClose(): void }
-type Socket = { id: string; directory: string; cursor?: number; persistent: boolean; terminal?: Terminal }
+// The client MCP socket: `client` is the server name its token was issued for, and `mcp` is the attached server.
+type Socket = {
+  id: string
+  directory: string
+  cursor?: number
+  persistent: boolean
+  terminal?: Terminal
+  client?: string
+  mcp?: { onMessage(data: string): void; onClose(): void }
+}
 
 const PTY_CONNECT = /^\/api\/pty\/([^/]+)\/connect$/
 const PERSISTENT_CONNECT = /^\/api\/experimental\/persistent-pty\/([^/]+)\/connect$/
@@ -39,10 +50,12 @@ export async function listen(opts: { hostname: string; port: number; password?: 
   const password = opts.password ?? Flag.CYBERSTRIKE_SERVER_PASSWORD
   const username = Flag.CYBERSTRIKE_SERVER_USERNAME ?? "cyberstrike"
   const tokens = tickets()
+  const pairs = pairing()
   const routes = HttpApiBuilder.layer(Api, { openapiPath: "/openapi.json" }).pipe(
     Layer.provide(handlers),
     Layer.provide(Layer.succeed(Tickets, tokens)),
-    Layer.provide(authorizationLayer(username, password)),
+    Layer.provide(Layer.succeed(Pairing, pairs)),
+    Layer.provide(authorizationLayer(username, password, pairs)),
     Layer.provide(schemaErrorLayer),
     Layer.provide(locationLayers),
     Layer.provide(Layer.mergeAll(NodeServices.layer, NodeHttpPlatform.layer, Etag.layer)),
@@ -87,12 +100,30 @@ export async function listen(opts: { hostname: string; port: number; password?: 
     return json(400, { _tag: "InvalidRequestError", message: "websocket upgrade failed" })
   }
 
+  // The client MCP socket is authorized by its single-use token alone, checked before the upgrade. The busy check also
+  // runs first: a server-side close of a socket makes Bun's server.stop hang, so a refusal is never sent as a close.
+  const upgradeClient = (request: Request, bun: Bun.Server<Socket>) => {
+    const url = new URL(request.url)
+    const directory = directoryOf(HttpServerRequest.fromWeb(request))
+    const name = url.searchParams.get("name") ?? ""
+    const ticket = url.searchParams.get("ticket") ?? ""
+    if (clientBusy(directory))
+      return json(403, { _tag: "ForbiddenError", message: "A client MCP server is already attached to this directory" })
+    if (!clientTokens.consume(ticket, directory, name))
+      return json(403, { _tag: "ForbiddenError", message: "Invalid or expired ticket" })
+    // A client socket has no PTY id; the empty id is never read, since the open handler returns before the terminal path.
+    if (bun.upgrade(request, { data: { id: "", directory, persistent: false, client: name } })) return undefined
+    return json(400, { _tag: "InvalidRequestError", message: "websocket upgrade failed" })
+  }
+
   const server = Bun.serve<Socket>({
     hostname: opts.hostname,
     port: opts.port,
     idleTimeout: 0,
     fetch: (request, bun) => {
       const pathname = new URL(request.url).pathname
+      if (pathname === MCP_CLIENT_PATH && request.headers.get("upgrade")?.toLowerCase() === "websocket")
+        return upgradeClient(request, bun)
       const match = PTY_CONNECT.exec(pathname) ?? PERSISTENT_CONNECT.exec(pathname)
       if (match && request.headers.get("upgrade")?.toLowerCase() === "websocket")
         return upgradeTerminal(request, bun, match[1], PERSISTENT_CONNECT.test(pathname))
@@ -104,6 +135,11 @@ export async function listen(opts: { hostname: string; port: number; password?: 
     },
     websocket: {
       open: async (ws) => {
+        if (ws.data.client !== undefined) {
+          ws.data.mcp = serve(ws.data.directory, ws.data.client, ws)
+          if (!ws.data.mcp) ws.close(1013, "A client MCP server is already attached to this directory")
+          return
+        }
         const { id, directory, cursor, persistent } = ws.data
         ws.data.terminal = persistent
           ? await Persistent.connect(id, ws, cursor)
@@ -111,9 +147,11 @@ export async function listen(opts: { hostname: string; port: number; password?: 
       },
       message: (ws, message) => {
         ws.data.terminal?.onMessage(String(message))
+        ws.data.mcp?.onMessage(String(message))
       },
       close: (ws) => {
         ws.data.terminal?.onClose()
+        ws.data.mcp?.onClose()
       },
     },
   })

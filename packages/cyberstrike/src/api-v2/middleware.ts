@@ -5,6 +5,8 @@ import { Base64 } from "effect/encoding"
 import { InvalidRequestError, UnauthorizedError } from "@opencode/protocol/errors"
 import { Authorization } from "@opencode/protocol/middleware/authorization"
 import { SchemaErrorMiddleware } from "@opencode/protocol/middleware/schema-error"
+import { isPairingConnectURL } from "@opencode/protocol/groups/server"
+import { pairing } from "./pairing"
 
 // The Bun listener provides the TCP peer per request, so loopback can be told apart from tunnelled traffic.
 export class PeerAddress extends Context.Service<PeerAddress, string | undefined>()("@cyberstrike/api-v2/PeerAddress") {}
@@ -26,7 +28,13 @@ export const webAuthorized = (request: Request, address: string | undefined, use
   return basicMatches(request.headers.get("authorization") ?? undefined, username, password)
 }
 
-export const authorizationLayer = (username: string, password: string | undefined) =>
+const bearerMatches = (header: string | undefined, pairs: ReturnType<typeof pairing>) => {
+  const match = /^Bearer\s+(.+)$/i.exec(header ?? "")
+  return !!match && pairs.valid(match[1])
+}
+
+// The pairing redeem route is how a client without credentials gets one, so its code is the only check it needs.
+export const authorizationLayer = (username: string, password: string | undefined, pairs: ReturnType<typeof pairing>) =>
   Layer.succeed(
     Authorization,
     Authorization.of((effect) =>
@@ -34,9 +42,11 @@ export const authorizationLayer = (username: string, password: string | undefine
         if (!password) return yield* effect
         const address = Option.getOrUndefined(yield* Effect.serviceOption(PeerAddress))
         const request = yield* HttpServerRequest.HttpServerRequest
+        if (isPairingConnectURL(new URL(request.url, "http://localhost"))) return yield* effect
         const proxied = !!request.headers["x-forwarded-for"] || !!request.headers["cf-connecting-ip"]
         if (address && LOOPBACK.has(address) && !proxied) return yield* effect
         if (basicMatches(request.headers.authorization, username, password)) return yield* effect
+        if (bearerMatches(request.headers.authorization, pairs)) return yield* effect
         return yield* new UnauthorizedError({ message: "Authentication required" })
       }),
     ),
