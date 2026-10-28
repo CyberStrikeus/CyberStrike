@@ -1,0 +1,1 @@
+Managed code analyst — .NET assemblies, JVM bytecode, IL2CPP/Unity binary recovery
