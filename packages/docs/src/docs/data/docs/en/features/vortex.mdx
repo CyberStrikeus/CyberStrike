@@ -6,65 +6,554 @@ sidebar:
   label: Vortex
 ---
 
-Vortex is Cyberstrike's HTTP traffic engine. It intercepts, stores, and analyzes HTTP requests flowing through the system — whether captured by [HackBrowser](/docs/features/hackbrowser), the [Chrome Extension](/docs/tools/chrome-extension), or injected via the API.
+Vortex is Cyberstrike's HTTP traffic engine. It intercepts, stores, and analyzes HTTP requests flowing through the system — whether captured by [HackBrowser](/docs/features/hackbrowser), the [Chrome Extension](/docs/tools/chrome-extension), or injected via the API. It is the ownable, embeddable equivalent of the Caido/Burp "repeater + intruder + sitemap + query" core — headless and library-shaped.
+
+## Platform at a Glance
+
+Vortex is one layer of a deep, integrated offensive security stack. Every component feeds the same pipeline:
+
+| Layer | What ships | Count |
+|---|---|---|
+| **Security detection rules** | Passive signature matching + endpoint-semantic hypothesis routing | 65 |
+| **Corpus rules** | Cross-transaction analysis (BFLA/IDOR, auth-strip, value-chain, aggregates) | 15 |
+| **Probe rules** | Active injection + canary detection (XSS, SQLi, SSTI, traversal, CRLF, redirect, CMDi, SSRF, host-header, log4shell, cache-poison) | 12 |
+| **Active rules** | Auth-strip, error forcing, method override, cache deception, CSRF surface | 8 |
+| **Tech fingerprint rules** | Framework, server, CDN, language, database, WAF, PaaS detection | 1,478 |
+| **Tech playbooks** | Deterministic test procedures per detected stack (IIS, Nginx, Spring, etc.) | 15 techs / 65 techniques |
+| **Total rules** | All rule types combined (security + tech) | **1,578** |
+| **WSTG specialists** | Dedicated sub-agents per OWASP area | 15 classes |
+| **Built-in tools** | Agent-callable tools (replay, inject, probe, web context, report) | 72 |
+| **Skills** | Executable playbooks covering attacks, compliance, and frameworks | 7,600+ |
+| **MCP: infra-security** | Deterministic infra checks (IIS, Nginx, Apache, Spring, Node, CDN, VPN…) | ~110 tools |
+| **MCP: hackbrowser** | Browser automation + security testing | 39 tools |
+
+### Skill Library Breakdown
+
+| Pack | Skills | Coverage |
+|---|---|---|
+| **CIS Benchmarks** | 5,000 | Hardening baselines for OS, cloud, network, database, middleware |
+| **NIST** | 1,606 | SP 800-53 / 800-171 security controls |
+| **MITRE ATT&CK Enterprise** | 691 | Technique-mapped offensive procedures (T-codes) |
+| **Web Attacks** | 125 | CORS, JWT, SSRF, SSTI, race condition, cache poison, request smuggling, GraphQL, XXE, prototype pollution, open redirect, subdomain takeover |
+| **MITRE ATT&CK Mobile** | 124 | Mobile-specific technique procedures |
+| **MITRE ATT&CK ICS** | 83 | Industrial control system techniques |
+| **Post-exploitation** | 33 | Windows/Linux/macOS/cloud (AWS/Azure/GCP) post-exploit, Kerberos, k8s, eBPF, CI/CD |
+
+### Five Rule Types
+
+| Type | Evaluates | Shape | Example |
+|---|---|---|---|
+| **Declarative** | One transaction (passive) | `{ when, message, dedupBy }` | SQL error in response body |
+| **Chain** | Cross-transaction (value join) | `{ steps[].when, link: "reuses" }` | Reset token leaked then reused |
+| **Aggregate** | All matches → one finding | `{ when, aggregate: { groupBy, minCount } }` | HSTS missing across 10 endpoints |
+| **Probe** | Active: select → inject → detect | `{ select, inject, detect }` | Reflected XSS canary |
+| **Corpus (TS)** | Entire traffic corpus | TypeScript `analyze(txs)` | Cross-identity access, auth-strip diff |
+
+### Specialist Agents (WSTG-Aligned)
+
+Each specialist owns a WSTG testing area and receives signals from Vortex rules mapped through `CATEGORY_OWNER`:
+
+| Specialist | WSTG | Signals it receives |
+|---|---|---|
+| `information-gathering` | 4.1 | Tech fingerprints, server banners, API schema exposure |
+| `authentication` | 4.4 | Password reset, registration, MFA, JWT issues |
+| `authorization` | 4.5 | Admin surface, role/permission management, BFLA |
+| `session-management` | 4.6 | Weak cookies, logout/signout, token refresh |
+| `input-validation` | 4.7 | SQL error, XSS, SSTI, file upload, search injection |
+| `error-handling` | 4.8 | Stack traces, debug surfaces, verbose errors |
+| `weak-cryptography` | 4.9 | Weak TLS, insecure algorithms |
+| `business-logic` | 4.10 | Payment flow, approval bypass, state machine abuse |
+| `client-side` | 4.11 | CORS reflection, open redirect |
+| `api` | 4.12 | GraphQL introspection, webhook injection, bulk operations |
+| `identity-management` | 4.3 | Account enumeration, user lifecycle |
+| `config-deployment` | 4.2 | Misconfigurations, vulnerable components |
+| `llm` | — | LLM-specific endpoints, prompt injection surfaces |
+| `technology` | — | Tags endpoints with stack slug for tech-specific playbooks |
+| `vulnerable` | — | Known vulnerable components (CVE-matched) |
+
+### How It All Fits Together
+
+These layers look complex on paper, but the flow is simple. Every HTTP request follows the same path — each layer fires only when relevant, automatically:
+
+```
+  HTTP Request arrives (browser / proxy / cloud / replay)
+       │
+       ▼
+  ┌─────────────────────────────────────────────────────┐
+  │  1. VORTEX STORE                                    │
+  │     Normalize endpoint, deduplicate, store           │
+  └──────────────────────┬──────────────────────────────┘
+                         │
+       ┌─────────────────┼─────────────────┐
+       ▼                 ▼                 ▼
+  ┌──────────┐   ┌──────────────┐   ┌──────────────┐
+  │ 1,478    │   │  44 passive  │   │  19          │
+  │ tech     │   │  detection   │   │  hypothesis  │
+  │ finger-  │   │  (headers,   │   │  rules       │
+  │ print    │   │  injection,  │   │  (endpoint   │
+  │ rules    │   │  JWT, CORS,  │   │  semantics:  │
+  │          │   │  CVE, info   │   │  /admin,     │
+  │ "what    │   │  disclosure, │   │  /logout,    │
+  │  stack?" │   │  auth, API,  │   │  /mfa...)    │
+  │          │   │  PII)        │   │              │
+  │          │   │ "what's      │   │ "what could  │
+  │          │   │  broken?"    │   │  be broken?" │
+  └────┬─────┘   └──────┬───────┘   └──────┬───────┘
+       │                │                   │
+       ▼                ▼                   ▼
+  ┌─────────────────────────────────────────────────────┐
+  │  2. SIGNALS  (deduplicated, categorized, severity)  │
+  └──────────────────────┬──────────────────────────────┘
+                         │
+                         ▼  CATEGORY_OWNER mapping
+  ┌─────────────────────────────────────────────────────┐
+  │  3. SPECIALIST ROUTING                              │
+  │     medium+ severity → correct WSTG specialist      │
+  │     "injection" → input-validation agent             │
+  │     "auth-session" → session-management agent        │
+  │     "access-control" → authorization agent           │
+  └──────────────────────┬──────────────────────────────┘
+                         │
+                         ▼
+  ┌─────────────────────────────────────────────────────┐
+  │  4. SPECIALIST AGENT                                │
+  │     Receives: signal + lead (subjects, replay info) │
+  │     Uses:     built-in tools (72) to test           │
+  │     Calls:    vortex_tech_playbook for stack-       │
+  │               specific tests (65 techniques)        │
+  │     Calls:    vortex_errors for error intelligence  │
+  │     Loads:    skill if domain-specific playbook     │
+  │               needed (e.g. attack-jwt, attack-ssti) │
+  │     Calls:    MCP tools if infra check needed       │
+  │               (e.g. iis_tilde_enum, spring_actuator)│
+  │     Reports:  vulnerability if confirmed            │
+  └──────────────────────┬──────────────────────────────┘
+                         │
+                         ▼
+  ┌─────────────────────────────────────────────────────┐
+  │  5. CORPUS RULES (run incrementally at ingest)      │
+  │     Cross-identity access (IDOR/BFLA surface)       │
+  │     Chain correlation (leaked token → reused)        │
+  │     Aggregate findings (HSTS missing on N endpoints) │
+  └─────────────────────────────────────────────────────┘
+```
+
+**The key insight:** no single layer does everything. Vortex's 100 security rules + 1,478 tech fingerprinting rules + 15 tech playbooks (65 techniques) are cheap and complete (every request, no LLM). Specialists are expensive and deep (LLM-driven, one endpoint at a time). Skills are domain expertise (7,600+ attack playbooks loaded on demand). MCP tools are deterministic infra checks (~150 tools). Each layer does what it's best at — the routing is automatic.
+
+## Why Vortex Exists
+
+The agent-driven pipeline left the basics to agent initiative: whole assessments ran without catching header/cookie misconfigurations because the passive layer couldn't see full headers and the specialist agent only inspected the one endpoint it happened to replay.
+
+Vortex inverts that model:
+
+- **Broad, cheap, complete** coverage is done by deterministic rules over the *entire* corpus of traffic — missing headers, weak cookies, banners, error signatures, cross-identity access surface, injection candidates.
+- **Agents** are demoted to *verifiers and exploiters* of pre-surfaced candidates, not discoverers.
 
 ## What Vortex Does
 
 | Capability | Description |
-|------------|-------------|
+|---|---|
 | **Traffic capture** | Stores every HTTP request/response pair with full headers and body |
 | **DSL engine** | Filter and query traffic with a purpose-built expression language |
-| **Rule matching** | Apply rules-as-data (detect, canary, transform) against captured traffic |
+| **Rule matching** | Apply 1,578 rules-as-data against captured traffic — no LLM cost |
+| **Active probing** | Inject payloads, send mutated requests, detect reflection |
 | **Replay** | Re-send captured requests with modifications for testing |
 | **Signal correlation** | Cross-reference findings across requests to detect chained vulnerabilities |
+| **Hypothesis generation** | Route endpoints to specialists based on what they *do*, not just what their response contains |
 
-## DSL Queries
+## The Hub Model
 
-Vortex includes an expression engine for filtering HTTP traffic. Query by method, path, status, headers, body content, and more:
-
-```
-method == "POST" && path contains "/api/" && status >= 400
-```
+Vortex is a **hub**. Sources never talk to rules or the store directly; they go through an ingestion adapter that produces one uniform unit — a `Transaction` — which lands in the store.
 
 ```
-header["content-type"] contains "json" && body contains "token"
+        SOURCES                     INGESTION ADAPTERS                 VORTEX CORE
+  ────────────────────       ───────────────────────────      ──────────────────────────
+  browser              ──▶  browser  (hackbrowser ext)  ─┐
+  mobile app / any     ──▶  proxy    (MITM / forward)    ─┤
+    non-browser client                                    │
+  our own code (cloud) ──▶  sdk-ingest (report a fetch)  ─┼──▶  store + rules/DSL ──▶ signals
+  a request we make    ──▶  send-through (Vortex sends)  ─┤       + send + proxy
+  offline capture      ──▶  har-import (HAR file)        ─┘
 ```
 
-The DSL supports boolean logic, string matching, numeric comparison, and nested field access.
+**One Transaction shape, one store, one rule layer.** The only thing that differs between web, cloud, and mobile is *which adapter* fed the traffic in.
 
-## Rules
+| Adapter | What it does | Feeds |
+|---|---|---|
+| **browser** | HackBrowser extension captures fetch/XHR/webRequest with DOM context | Web apps |
+| **proxy** | HTTP(S) forward/MITM proxy captures all client traffic | Mobile, thick clients, non-browser |
+| **sdk-ingest** | Code reports request+response after making a call | Cloud SDK modules (AWS/Azure/GCP) |
+| **send-through** | Vortex makes the call, captures, stores, runs rules in one step | Replay, cloud modules |
+| **har-import** | Load an offline HAR (browser export, Burp/Caido) into the store | External/recorded traffic |
 
-Vortex rules are declarative data — not code. Three rule shapes cover the common patterns:
+## The Transaction
 
-| Shape | Purpose | Example |
-|-------|---------|---------|
-| **Detect** | Flag traffic matching a pattern | Sensitive data in response bodies |
-| **Canary** | Inject markers and watch for their reflection | SSRF, open redirect, header injection |
-| **Transform** | Modify requests before replay | Strip auth headers, swap parameter values |
+The single uniform unit every component works on:
 
-Rules can be loaded from built-in packs or defined per-project.
+```ts
+interface Transaction {
+  id: string
+  session?: string        // the assessment this belongs to
+  source: Source          // "browser" | "proxy" | "cloud" | "replay" | "import"
+  host: string
+  identity?: string       // credential/role label
+  derivedFrom?: string    // replay lineage
+  request: Request        // { method, url, headers, body? }
+  response?: Response     // { status, headers, body?, bodyLength? }
+  timing?: { startedAt: number; ms?: number }
+}
+```
+
+Derived (computed, not stored):
+- **`endpointKey(tx)`** — `METHOD host/normalized/path` — folds instances onto logical endpoints (id segments become `{uuid}` / `{id}`)
+- **`params(tx)`** — flat name→value maps from query and body (JSON flattened to dot-paths)
+- **`subjects(tx)`** — who/what/which extractor: function, objects, role from URI + headers + nested body + GraphQL + JWT
+
+## DSL Engine
+
+Vortex includes two query surfaces sharing one field model:
+
+| | DSL Engine | HTTPQL |
+|---|---|---|
+| **Actor** | Rules (platform-authored) | Agent (queries traffic) |
+| **Power** | Full function library: `regex`, `decode`, `hash`, `jwt`, `compare_versions` | Pure `field op value` SELECT + bounded `:~` regex |
+| **Why separate** | `regex()` is a ReDoS surface for untrusted input | `:~` gives bounded grep the agent needs safely |
+
+### Field Vocabulary
+
+**Request fields:** `req.method` · `req.url` · `req.path` · `req.body` · `req.header.<name>` · `req.query.<name>` · `req.body.<dotpath>` · `req.cookie.<name>` · `req.graphql.op` · `req.graphql.query` · `req.bodyKind`
+
+**Response fields:** `resp.status` · `resp.body` · `resp.header.<name>` · `resp.body.<dotpath>` · `resp.cookie.<name>` · `resp.contentType` · `resp.bodyKind`
+
+**Transaction fields:** `host` · `identity` · `source` · `endpoint` · `id` · `session` · `derivedFrom` · `httpVersion` · `timeMs` · `tls.version` · `tls.cipher`
+
+**Grep fields (rules only, blocked in agent scope):** `raw` · `req.raw` · `resp.raw`
+
+### Function Library
+
+| Category | Functions |
+|---|---|
+| **String** | `contains` · `icontains` · `starts_with` · `ends_with` · `regex(pattern, subject)` · `len` · `lower` · `upper` · `trim` · `split` · `replace` |
+| **Encoding** | `base64_decode` · `url_decode` · `hex_decode` |
+| **Hashing** | `md5` · `sha256` |
+| **Version** | `compare_versions(version, constraint)` — e.g. `compare_versions(resp.header.server, "< 2.4.50")` |
+| **Structural** | `is_json` · `count_header(side, name)` |
+| **JWT** | `jwt_header` · `jwt_payload` · `jwt_alg` — e.g. `jwt_alg(req.header.authorization) == "none"` |
+
+### Expression Examples
+
+```
+# Server errors on POST
+resp.status >= 500 && req.method == "POST"
+
+# Open redirect: location starts with user input
+starts_with(resp.header.location, req.query.next)
+
+# Apache below 2.4.50 (CVE-2021-41773)
+compare_versions(resp.header.server, "< 2.4.50") && contains(resp.header.server, "Apache")
+
+# JWT with alg:none
+jwt_alg(req.header.authorization) == "none"
+
+# Content-Type says JSON but body isn't valid
+contains(resp.header.content-type, "json") && !is_json(resp.body)
+
+# GraphQL introspection enabled
+req.graphql.query && contains(req.graphql.query, "__schema") && resp.status == 200
+
+# CORS with credentials reflection
+resp.header.access-control-allow-credentials == "true" &&
+  resp.header.access-control-allow-origin == req.header.origin
+```
+
+## Rule Authoring
+
+Vortex rules are **data, not code**. Three authoring shapes plus TypeScript corpus rules:
+
+### Declarative Rules
+
+Match **one transaction** — the most common shape:
+
+```json
+{
+  "id": "sql-error-signature",
+  "category": "injection",
+  "severity": "high",
+  "when": "regex(\"(SQL syntax|SQLSTATE|ORA-[0-9])\", resp.body)",
+  "message": "SQL error signature in {endpoint}",
+  "dedupBy": "endpoint",
+  "tags": ["signature", "injection"]
+}
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `id` | yes | Unique rule identifier |
+| `category` | yes | Signal category: `injection`, `auth`, `auth-session`, `access-control`, `misconfiguration`, `info-disclosure`, `technology` |
+| `severity` | yes | `info` · `low` · `medium` · `high` · `critical` |
+| `when` | yes | DSL expression — must evaluate truthy to fire |
+| `message` | yes | Signal title — supports `{field}` interpolation (`{endpoint}`, `{host}`, `{resp.status}`) |
+| `evidence` | no | Evidence text — same interpolation |
+| `dedupBy` | no | `"endpoint"` (recommended), `"host"`, or omit for per-transaction |
+| `tags` | no | Free-form labels for selection: `["hypothesis", "auth", "cve"]` |
+| `requires` | no | `{ tech: ["spring"] }` — only run when target fingerprint matches |
+
+### Chain Rules
+
+Correlate **across transactions** — value-based joins:
+
+```json
+{
+  "id": "reset-token-leak",
+  "category": "auth",
+  "severity": "high",
+  "steps": [
+    {
+      "label": "leak",
+      "when": "regex(\"(token|code|reset)=[A-Za-z0-9_-]{16,}\", resp.body)"
+    },
+    {
+      "label": "reuse",
+      "when": "req.method == \"POST\"",
+      "link": "reuses"
+    }
+  ],
+  "message": "Token from {steps.leak.endpoint} reused at {steps.reuse.endpoint}"
+}
+```
+
+The `link: "reuses"` join finds transactions whose request carries a correlatable value from the previous step's response. Vortex builds an inverted index in one pass — the join is O(matched), not O(corpus).
+
+### Aggregate Rules
+
+Collapse **all matches** into a single finding listing every affected endpoint:
+
+```json
+{
+  "id": "missing-hsts-aggregate",
+  "category": "misconfiguration",
+  "severity": "medium",
+  "when": "!resp.header.strict-transport-security && resp.status >= 200 && resp.status < 400",
+  "aggregate": { "groupBy": "host", "minCount": 3 },
+  "message": "HSTS missing on {count} endpoints across {host}"
+}
+```
+
+### Probe Rules
+
+**Active** rules — select candidates, inject a payload, send, detect:
+
+```json
+{
+  "id": "reflected-xss-probe",
+  "category": "injection",
+  "severity": "high",
+  "select": "req.method == \"GET\" && resp.status == 200",
+  "inject": {
+    "location": "query",
+    "payload": "<script>{canary}</script>"
+  },
+  "detect": "reflected",
+  "message": "Reflected XSS in {param} at {endpoint}"
+}
+```
+
+| Field | Description |
+|---|---|
+| `select` | DSL expression picking candidate transactions |
+| `inject.location` | Where to inject: `query` · `body` · `path` · `header` |
+| `inject.payload` | Payload template — `{canary}` is replaced with a unique marker |
+| `detect` | DSL expression over probe response, or `"reflected"` = canary bounced back |
+
+**Canary system:** `mintCanary()` produces unique markers; `reflects()` checks if they bounced back; `brokeOut()` detects when injected markup survived unescaped — strong indicator of exploitability.
+
+**Replay safety:** Probe rules automatically skip auth-exchange endpoints (`/login`, `/oauth/token`) and single-use-token requests to avoid burning the live session.
+
+### Corpus Rules (TypeScript)
+
+For complex cross-transaction analysis beyond the declarative DSL:
+
+| Built-in Rule | Detection |
+|---|---|
+| `crossIdentityAccess` | Endpoint reached 2xx under 2+ identities — BFLA/IDOR surface |
+| `unauthenticatedReach` | Authenticated endpoint also served anonymously |
+| `numericIdEnumerable` | Sequential numeric IDs in path — enumeration candidate |
+| Auth-strip rules | Response differences when auth headers are removed |
+
+## Hypothesis Rules
+
+19 endpoint-semantic rules that route endpoints to the right specialist based on what the endpoint **does**, not what its response contains. Cheap (regex on `req.path`), deterministic, and deduped per endpoint — so a `/logout` or `/admin` surface is always inspected even when no response-based signal fires.
+
+| WSTG Area | Rules | Endpoint Patterns |
+|---|---|---|
+| **Session Management (4.6)** | 2 | `/logout`, `/signout`, `/session/destroy`, `/token/refresh`, `/heartbeat` |
+| **Authentication (4.4)** | 4 | `/forgot-password`, `/register`, `/signup`, `/verify`, `/mfa`, `/2fa`, `/otp` |
+| **Authorization (4.5)** | 3 | `/admin`, `/backoffice`, `/role`, `/permission`, `/users/{id}/delete` |
+| **Input Validation (4.7)** | 4 | `/upload`, `/search`, `/template`, `/render`, `/export`, `/webhook` |
+| **Business Logic (4.10)** | 2 | `/payment`, `/checkout`, `/order`, `/approve`, `/transfer` |
+| **Error Handling (4.8)** | 1 | `/debug`, `/actuator`, `/health`, `/metrics`, `/phpinfo` |
+| **API (4.12)** | 3 | `/swagger`, `/openapi`, `/graphql/playground`, `/bulk`, `/batch` |
+
+Example — the MFA hypothesis rule:
+
+```json
+{
+  "id": "hypothesis-mfa",
+  "category": "auth",
+  "severity": "high",
+  "when": "regex(\"/(mfa|2fa|two.?factor|otp|totp|verify.?code|sms.?code|auth.?code)\", req.path)",
+  "message": "MFA/2FA endpoint {endpoint} — test code brute-force, rate limiting, MFA bypass via direct API access, code reuse",
+  "dedupBy": "endpoint",
+  "tags": ["hypothesis", "auth"]
+}
+```
+
+This fires whenever any request hits an MFA-related path. The signal routes to the `authentication` specialist, which then actively tests for MFA bypass, rate limiting gaps, and code reuse — without the agent needing to "notice" the endpoint on its own.
+
+### Security Detection Total
+
+Combining all non-fingerprinting rule types, Vortex ships **100 security detection rules** out of the box:
+
+| Type | Count | What it covers |
+|---|---|---|
+| Passive detection | 44 | Info disclosure (private IP, email, source map, phpinfo, cloud metadata, WSDL, DB strings, framework version), injection signatures (NoSQL, XML/XXE, LDAP, SSTI, deserialization, XPath, command injection), auth/session (JWT no-expiry, basic-auth cleartext, credentials in response, session token in URL, credit card/SSN in response), API (GraphQL batch, deprecated surface), header hygiene, CORS, CVE signatures |
+| Hypothesis (endpoint-semantic) | 19 | Auth, session, admin, upload, payment, debug, API surfaces |
+| Corpus (cross-transaction) | 15 | BFLA/IDOR, unauthenticated reach, ID enumeration, auth-strip, value-chain, aggregates (CORS null-origin, unsafe Referrer-Policy, X-Powered-By, insecure redirect), advanced corpus (privilege escalation surface, method confusion, inconsistent auth, cacheable auth, response header differential) |
+| Probe (active injection) | 12 | Reflected XSS, SQLi, SSTI, path traversal, open redirect, CRLF, command injection, SSRF, host-header injection, method override, log4shell, cache poisoning |
+| Active (differential) | 8 | Auth-strip, method-override bypass, content-type CSRF surface, web cache deception, error forcing (malformed content-type, malformed JSON, method enumeration, oversized input) |
+
+These are the **always-on baseline** — they run without configuration, file loading, or LLM calls. Runtime rule packs extend this to thousands of additional rules loaded per-session based on the target's technology fingerprint.
+
+### Tech Playbooks (Agent-Callable)
+
+15 technology-specific test playbooks with 65 deterministic techniques. When Vortex fingerprints a stack, the agent calls `vortex_tech_playbook` to get the exact HTTP requests to send and what to look for — no MCP dependency, no internet lookup, all built-in:
+
+| Technology | Techniques | Key tests |
+|---|---|---|
+| **IIS** | 5 | Tilde short-name enum, web.config disclosure, path normalization bypass, NTFS ADS source leak, Trace.axd |
+| **Nginx** | 5 | Alias traversal (off-by-slash), stub_status, merge_slashes bypass, config leak |
+| **Apache** | 5 | server-status/info, .htaccess, mod_proxy SSRF, CGI printenv |
+| **Tomcat** | 5 | Manager/Host Manager, examples app, default credentials, version via error page |
+| **Spring Boot** | 5 | Actuator /env, /heapdump, /mappings, /configprops, H2 Console |
+| **Django** | 3 | DEBUG=True detection, admin panel, Debug Toolbar |
+| **Rails** | 4 | info/properties, routing table, Active Storage, master.key disclosure |
+| **Express/Node** | 5 | Stack trace on malformed JSON, .env disclosure, source map, node_modules, debug inspector |
+| **Laravel** | 4 | Ignition health check (RCE), .env disclosure, Debugbar, Telescope |
+| **WordPress** | 5 | User enum (author ID + REST API), XMLRPC, REST API index, debug.log |
+| **PHP** | 4 | phpinfo(), error display, Xdebug remote debugging |
+| **ASP.NET** | 4 | ELMAH, Trace.axd, Blazor boot manifest, ViewState MAC check |
+| **GraphQL** | 5 | Introspection, Playground/GraphiQL IDE, batch queries, field suggestion leak |
+| **Kubernetes** | 3 | Unauthenticated API, /metrics, /healthz |
+| **Docker** | 3 | Docker API, Registry catalog, Registry v2 |
+
+## Rule Packs
+
+Two tiers for different scales:
+
+| Tier | Source | Updated | Loaded |
+|---|---|---|---|
+| **Baseline** | TypeScript in `rules/*.ts` | With engine releases | Always via `defaultRegistry()` |
+| **Rule packs** | JSON files, versioned separately | At runtime | Selected per-session based on target |
+
+### Pack Format
+
+A JSON file grouping any combination of rule shapes:
+
+```json
+{
+  "name": "my-custom-pack",
+  "declarative": [ ... ],
+  "chains": [ ... ],
+  "probes": [ ... ]
+}
+```
+
+Load packs at runtime — no build step:
+
+```ts
+import { loadPackDir, selectRules, contextFromCorpus } from "@cyberstrike-io/vortex"
+
+// Load every *.json in a directory
+const pack = await loadPackDir("./rules/")
+
+// Build context from observed traffic (tech fingerprints)
+const ctx = contextFromCorpus(transactions)
+
+// Select rules matching criteria + target context
+const selected = selectRules(pack.declarative, {
+  tags: ["auth", "injection"],
+  minSeverity: "medium",
+}, ctx)
+```
+
+### Selection Metadata
+
+Every rule carries optional metadata for efficient filtering:
+
+| Field | Purpose |
+|---|---|
+| `tags` | Free-form labels — selection by category/concern |
+| `requires.tech` | Only run when target fingerprint includes this tech |
+
+A rule with `requires: { tech: ["spring"] }` is pruned when no transaction in the corpus has a Spring tech marker — avoids running framework-specific rules against unrelated targets.
+
+## Signal Routing
+
+Vortex signals map to WSTG specialist agents:
+
+| Vortex Category | WSTG Specialist | Examples |
+|---|---|---|
+| `injection` | Input Validation | SQL error, XSS, SSTI |
+| `auth` | Authentication | Password reset, MFA, registration |
+| `auth-session` | Session Management | Weak cookies, session destroy |
+| `access-control` | Authorization | Admin surface, IDOR, privilege escalation |
+| `misconfiguration` | Config & Deployment | Debug surface, actuator exposure |
+| `info-disclosure` | Information Gathering | API docs, server banner |
+| `technology` | Information Gathering | Tech fingerprint (tags for playbooks) |
+
+Only **medium+ severity** signals auto-spawn a specialist. Low/info signals stay visible in the sidebar but don't burn an LLM call.
+
+## Scale
+
+At ~20k rules, Vortex uses:
+
+- **Aho-Corasick prefilter** — one automaton over all rule literals; single linear pass, cost independent of rule count
+- **Sound preconditions** — from each rule's `when`, derive required literals; prune only when unsatisfiable (never lose a detection)
+- **Incremental corpus** — access/chain rules maintained at ingest, never re-scanned
+- **`selectRules()`** — filter by tags/severity/category/tech before compiling
+
+## Active Engine
+
+Vortex owns its own send path:
+
+- **mutate** — set/replace header, query param, body, JSON field, path param, strip auth, inject payload
+- **send** — raw HTTP(S) with redirects, timing, retries; server-side (sees the true wire response including Set-Cookie)
+- **observe** — status, full headers, body, reflection, error signatures
+- **governance** — never send out of scope, respect rate limits, guard destructive methods
+
+Every engine-sent transaction is `source: "replay"` — appended, never overwriting observed traffic. Passive rules run over `observed()` only, so injected payloads are never re-ingested or mis-flagged.
 
 ## Integration with HackBrowser
 
 When HackBrowser captures traffic, Vortex processes it automatically:
 
 1. Request arrives via `POST /session/ingest`
-2. Vortex stores the request and applies active rules
-3. Matched rules generate signals
-4. Signals feed into the proxy-agent's analysis pipeline
+2. Vortex stores the request, normalizes the endpoint, deduplicates
+3. Per-transaction rules run — 1,578 baseline rules fire in microseconds
+4. Matched rules generate signals with dedup
+5. Signals route through `CATEGORY_OWNER` to the correct WSTG specialist
+6. Corpus rules (access-control, chains) update incrementally
 
 ## Usage
 
 Vortex runs as part of the Cyberstrike backend — no separate setup required. Traffic flows through it whenever you use HackBrowser, the Chrome Extension, or the WSTG pipeline.
 
-Use `/web` in the TUI to inspect accumulated Vortex data: captured requests, matched rules, and generated signals. Related commands:
-
 | Command | What it shows |
-|---------|---------------|
-| `/web` | Captured endpoints, roles, credentials |
+|---|---|
+| `/web` | Captured endpoints, roles, credentials, Vortex signals |
 | `/vulnerabilities` | Findings from Vortex signals + WSTG testing |
 | `/methodology` | Coverage and methodology status |
 
 <Aside variant="tip">
-  Vortex is included in the free tier. The AI analysis layer (proxy-agent reasoning, signal correlation) is what makes it powerful — and that runs on your configured AI provider. See [Web Pipeline](/docs/pipelines/web) for the full end-to-end assessment flow that Vortex powers.
+  Vortex is included in the free tier. The AI analysis layer (proxy-agent reasoning, signal correlation) runs on your configured AI provider. See [Web Pipeline](/docs/pipelines/web) for the full end-to-end assessment flow that Vortex powers.
 </Aside>
