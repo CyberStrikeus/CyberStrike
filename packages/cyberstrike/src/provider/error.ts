@@ -157,6 +157,18 @@ export namespace ProviderError {
     const responseBody = JSON.stringify(body)
     if (body.type !== "error") return
 
+    if (
+      (typeof body?.error?.code === "string" && body.error.code.toLowerCase().startsWith("cyber")) ||
+      (typeof body?.error?.message === "string" && isContentFilter(body.error.message))
+    ) {
+      return {
+        type: "api_error",
+        message: body.error.message || "Blocked by the AI provider's cybersecurity content filter.",
+        isRetryable: false,
+        responseBody,
+      }
+    }
+
     switch (body?.error?.code) {
       case "context_length_exceeded":
         return {

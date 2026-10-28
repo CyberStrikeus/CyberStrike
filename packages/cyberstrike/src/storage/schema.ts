@@ -14,6 +14,8 @@ export {
   WebObjectValueTable,
   WebFunctionTable,
   EndpointTemplateTable,
+  RequestObservationTable,
+  CoverageNoteTable,
 } from "../session/session.sql"
 export { SessionShareTable } from "../share/share.sql"
 export { ProjectTable } from "../project/project.sql"
