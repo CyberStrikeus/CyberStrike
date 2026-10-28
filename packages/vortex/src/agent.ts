@@ -32,6 +32,7 @@ import { valueOccurrences, untestedEndpoints } from "./pivot"
 import { send as coreSend } from "./replay"
 import { probeInjectPoints } from "./injectprobe"
 import type { Sender } from "./active"
+import { playbookFor, allPlaybooks, type TechPlaybook } from "./playbook"
 
 export interface LeadFilter {
   category?: string
@@ -83,6 +84,11 @@ export interface Vortex {
   probe(opts?: ProbeArgs): Promise<{ attempted: number; signals: Signal[] }>
   // OPEN-ENDED act: replay a captured request OR craft a fresh one; replay-safety guard stays on
   send(input: string | RequestSpec, opts?: SendOptions): Promise<SendResult>
+  // Tech playbook — test procedures for a detected technology
+  playbook(tech: string): TechPlaybook | undefined
+  playbooks(): TechPlaybook[]
+  // Error intelligence — error responses with extracted framework/path/version indicators
+  errors(): { id: string; method: string; url: string; status: number; intel: string[] }[]
 }
 
 // Build the agent facade over a store. Read-only over the store's current signals/traffic; the
@@ -134,6 +140,29 @@ export function forAgent(store: TrafficStore, sender?: Sender): Vortex {
       const resolved = typeof input === "string" ? store.get(input) : input
       if (!resolved) throw new Error(`unknown request_id: ${input}`)
       return coreSend(resolved, opts) // replay-safety guard on by default; caller opts-in to unsafe
+    },
+    playbook: (tech) => playbookFor(tech),
+    playbooks: () => allPlaybooks(),
+    errors: () => {
+      const INTEL_PATTERNS = [
+        /Django|Rails|Spring|Express|Laravel|Flask|ASP\.NET|Symfony|Werkzeug|Sinatra|FastAPI|Koa|Hapi/i,
+        /Python\/[\d.]+|PHP\/[\d.]+|Ruby\/[\d.]+|Node\/v[\d.]+|Java\/[\d.]+/i,
+        /Jackson|Gson|System\.Text\.Json|json\.decoder|JSONDecodeError|SyntaxError.*JSON/i,
+        /\/var\/www\/|\/home\/\w|\/opt\/|\/usr\/|C:\\inetpub|C:\\Users/,
+        /mysql|postgres|mongodb|redis|sqlite|oracle|mssql/i,
+        /stack\s*trace|traceback|at\s+\w+\.\w+\(|File\s+"[^"]+",\s+line\s+\d+/i,
+      ]
+      return store.all()
+        .filter((tx) => tx.response && tx.response.status >= 400)
+        .map((tx) => {
+          const body = tx.response?.body ?? ""
+          const intel = INTEL_PATTERNS.flatMap((p) => {
+            const m = body.match(p)
+            return m ? [m[0]] : []
+          })
+          return { id: tx.id, method: tx.request.method, url: tx.request.url, status: tx.response!.status, intel }
+        })
+        .filter((e) => e.intel.length > 0)
     },
   }
 }
@@ -223,6 +252,30 @@ export const agentCapabilities: Capability[] = [
       "ACTIVELY probe inject points with Vortex's own prober: for each point it sends the payload battery + canary per class and RETURNS the signals it produced (reflection / evaluated-template / error-signature). It does NOT write to Vortex — your probe attempts never mark Vortex's coverage or add to its signals; only Vortex's own auto-probe does. So treat the returned signals as YOUR leads: confirm each with http_replay, and track your own coverage against vortex_inject_points (which stays read-only). Default probes the points Vortex hasn't auto-probed; {onlyUnprobed:false} probes every point; {classes:[...]} restricts. Classes: sqli-error, xss-reflected, ssti, path-traversal. Replay-unsafe requests are skipped automatically.",
     input: z.object({ classes: z.array(z.enum(["sqli-error", "xss-reflected", "ssti", "path-traversal"])).optional(), onlyUnprobed: z.boolean().optional() }).strict(),
     run: (api, a) => api.probe(a as ProbeArgs),
+  },
+  {
+    name: "vortex_tech_playbook",
+    description:
+      "Get technology-specific test procedures for a detected stack. When Vortex fingerprints a technology (IIS, Nginx, Spring, WordPress, etc.), this returns the exact HTTP requests to try and what to look for — the testing playbook an experienced pentester would follow. Each technique includes the request method/path/headers and the detection criteria. Use this BEFORE testing: call with the tech slug from a fingerprint signal, then execute each technique with http_replay. No MCP dependency — all built-in.",
+    input: z.object({ tech: z.string().optional().describe("Tech slug from Vortex fingerprint (e.g. 'iis', 'nginx', 'spring'). Omit to list all available playbooks.") }).strict(),
+    run: (api, a) => {
+      const args = a as { tech?: string }
+      if (!args.tech) return api.playbooks().map((p) => ({ tech: p.tech, name: p.name, techniques: p.techniques.length }))
+      const pb = api.playbook(args.tech)
+      if (!pb) return { error: `No playbook for '${args.tech}'. Available: ${api.playbooks().map((p) => p.tech).join(", ")}` }
+      return pb
+    },
+  },
+  {
+    name: "vortex_errors",
+    description:
+      "Find error responses (4xx/5xx) in the traffic corpus that leak intelligence — framework names, language versions, file paths, database types, stack traces. Returns only errors with extractable intel, not all errors. Use this to discover what the application reveals when it fails, then use error_probe to force MORE errors from specific endpoints.",
+    input: z.object({}).strict(),
+    run: (api) => {
+      const errs = api.errors()
+      if (!errs.length) return { result: "No error responses with extractable intelligence found in the corpus." }
+      return { total: errs.length, errors: errs.slice(0, 50) }
+    },
   },
   {
     name: "http_replay",

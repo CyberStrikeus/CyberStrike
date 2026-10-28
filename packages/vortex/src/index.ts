@@ -117,8 +117,12 @@ import { reverseProxyRules } from "./rules/reverse-proxies"
 import { osRules } from "./rules/os"
 import { cmsRules } from "./rules/cms"
 import { cveRules } from "./rules/cve"
+import { hypothesisRules } from "./rules/hypothesis"
+import { detectionRules } from "./rules/detection"
 import { chainRules } from "./rules/chains"
 import { aggregateRules } from "./rules/aggregates"
+import { advancedCorpusRules } from "./rules/corpus-advanced"
+import { errorForcingRules } from "./rules/error-forcing"
 import { compileRules } from "./declarative"
 import { compileChain } from "./chain"
 import { compileAggregates } from "./aggregate"
@@ -145,7 +149,7 @@ export { signatureRules } from "./rules/signatures"
 
 // The baseline rule set — everything OSS. Per-transaction hygiene + response-signature (declarative)
 // rules + cross-transaction access-control rules. `defaultRegistry()` preloads them all.
-export const baselineRules = [...headerRules, ...idorRules, ...compileRules(signatureRules), ...compileRules(misconfigRules), ...compileRules(techRules), ...compileRules(authProviderRules), ...compileRules(tlsCaRules), ...compileRules(securityRules), ...compileRules(cdnRules), ...compileRules(containerRules), ...compileRules(databaseRules), ...compileRules(loadBalancerRules), ...compileRules(paasRules), ...compileRules(dbManagerRules), ...compileRules(accessibilityRules), ...compileRules(developmentRules), ...compileRules(editorRules), ...compileRules(jsFrameworkRules), ...compileRules(jsGraphicsRules), ...compileRules(jsLibraryRules), ...compileRules(pageBuilderRules), ...compileRules(languageRules), ...compileRules(uiFrameworkRules), ...compileRules(webFrameworkRules), ...compileRules(hostingPanelRules), ...compileRules(contentCurationRules), ...compileRules(issueTrackerRules), ...compileRules(webServerRules), ...compileRules(reverseProxyRules), ...compileRules(osRules), ...compileRules(cmsRules), ...compileRules(authRules), ...compileRules(cveRules)]
+export const baselineRules = [...headerRules, ...idorRules, ...compileRules(signatureRules), ...compileRules(misconfigRules), ...compileRules(techRules), ...compileRules(authProviderRules), ...compileRules(tlsCaRules), ...compileRules(securityRules), ...compileRules(cdnRules), ...compileRules(containerRules), ...compileRules(databaseRules), ...compileRules(loadBalancerRules), ...compileRules(paasRules), ...compileRules(dbManagerRules), ...compileRules(accessibilityRules), ...compileRules(developmentRules), ...compileRules(editorRules), ...compileRules(jsFrameworkRules), ...compileRules(jsGraphicsRules), ...compileRules(jsLibraryRules), ...compileRules(pageBuilderRules), ...compileRules(languageRules), ...compileRules(uiFrameworkRules), ...compileRules(webFrameworkRules), ...compileRules(hostingPanelRules), ...compileRules(contentCurationRules), ...compileRules(issueTrackerRules), ...compileRules(webServerRules), ...compileRules(reverseProxyRules), ...compileRules(osRules), ...compileRules(cmsRules), ...compileRules(authRules), ...compileRules(cveRules), ...compileRules(hypothesisRules), ...compileRules(detectionRules)]
 export { misconfigRules } from "./rules/misconfig"
 export { techRules } from "./rules/tech"
 export { authRules } from "./rules/auth"
@@ -176,9 +180,16 @@ export { reverseProxyRules } from "./rules/reverse-proxies"
 export { osRules } from "./rules/os"
 export { cmsRules } from "./rules/cms"
 export { cveRules } from "./rules/cve"
-export const baselineCorpusRules = [...accessRules, ...headerCorpusRules, ...chainRules.map(compileChain), ...compileAggregates(aggregateRules)]
+export { hypothesisRules } from "./rules/hypothesis"
+export { detectionRules } from "./rules/detection"
+export const baselineCorpusRules = [...accessRules, ...headerCorpusRules, ...chainRules.map(compileChain), ...compileAggregates(aggregateRules), ...advancedCorpusRules]
 export { chainRules } from "./rules/chains"
 export { aggregateRules } from "./rules/aggregates"
+export { advancedCorpusRules } from "./rules/corpus-advanced"
+export { advancedActiveRules } from "./rules/active-advanced"
+export { errorForcingRules } from "./rules/error-forcing"
+export type { Technique, TechPlaybook } from "./playbook"
+export { playbookFor, allPlaybooks } from "./playbook"
 
 export function defaultRegistry(): RuleRegistry {
   return new RuleRegistry().registerAll(baselineRules).registerCorpusAll(baselineCorpusRules)
