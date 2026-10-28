@@ -28,6 +28,8 @@ const REQUIRED: { name: string; label: string; alt?: (csp: string | undefined) =
     label: "X-Frame-Options",
     alt: (csp) => !!csp && /frame-ancestors/i.test(csp),
   },
+  { name: "referrer-policy", label: "Referrer-Policy" },
+  { name: "permissions-policy", label: "Permissions-Policy" },
 ]
 
 // Which required security headers a content response is missing (applying the alt rule), or [] if none.

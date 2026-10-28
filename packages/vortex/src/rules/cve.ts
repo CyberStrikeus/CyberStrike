@@ -95,7 +95,6 @@ export const cveRules: DeclarativeRule[] = [
     id: "angularjs-eol-vulns",
     category: "vulnerable-component",
     severity: "low",
-    // AngularJS 1.x < 1.8.3 — prototype pollution / XSS (CVE-2019-10768, CVE-2020-7676); 1.x is EOL.
     when: 'regex("angular[-.@/]", req.url) && compare_versions(req.url, ">= 1.0.0") && compare_versions(req.url, "< 1.8.3")',
     message: "Outdated/EOL AngularJS {req.url} (1.x < 1.8.3, prototype-pollution/XSS)",
     dedupBy: "host",

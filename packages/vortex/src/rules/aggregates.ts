@@ -11,8 +11,6 @@ import type { AggregateRule } from "../aggregate"
 
 export const aggregateRules: AggregateRule[] = [
   {
-    // The dangerous CORS combo: server REFLECTS the request Origin AND allows credentials — any site
-    // can read authenticated responses. One finding per host across every endpoint that does it.
     id: "cors-origin-reflection-with-credentials",
     category: "misconfiguration",
     severity: "high",
@@ -31,5 +29,45 @@ export const aggregateRules: AggregateRule[] = [
     message: "Wildcard CORS (Access-Control-Allow-Origin: *) on {host} ({count} endpoint(s))",
     evidence: "Affected endpoints: {endpoints}",
     tags: ["cors", "misconfig"],
+  },
+  {
+    id: "cors-null-origin-with-credentials",
+    category: "misconfiguration",
+    severity: "high",
+    when: 'resp.header.access-control-allow-origin == "null" && icontains(resp.header.access-control-allow-credentials, "true")',
+    aggregate: { groupBy: "host", list: "endpoint" },
+    message: "CORS allows null origin with credentials on {host} ({count} endpoint(s)) — sandboxed iframe can read authenticated responses",
+    evidence: "Affected endpoints: {endpoints}",
+    tags: ["cors", "misconfig"],
+  },
+  {
+    id: "unsafe-referrer-policy",
+    category: "misconfiguration",
+    severity: "medium",
+    when: 'resp.header.referrer-policy && (resp.header.referrer-policy == "unsafe-url" || resp.header.referrer-policy == "no-referrer-when-downgrade")',
+    aggregate: { groupBy: "host", list: "endpoint" },
+    message: "Unsafe Referrer-Policy ({resp.header.referrer-policy}) on {host} ({count} endpoint(s)) — full URL leaked to third parties",
+    evidence: "Affected endpoints: {endpoints}",
+    tags: ["misconfig", "privacy"],
+  },
+  {
+    id: "x-powered-by-disclosed",
+    category: "misconfiguration",
+    severity: "info",
+    when: "resp.header.x-powered-by",
+    aggregate: { groupBy: "host", list: "endpoint" },
+    message: "X-Powered-By header disclosed on {host} ({count} endpoint(s))",
+    evidence: "Affected endpoints: {endpoints}",
+    tags: ["misconfig", "info-disclosure"],
+  },
+  {
+    id: "insecure-redirect-downgrade",
+    category: "misconfiguration",
+    severity: "medium",
+    when: 'resp.status >= 300 && resp.status < 400 && starts_with(resp.header.location, "http://")',
+    aggregate: { groupBy: "host", list: "endpoint" },
+    message: "HTTPS→HTTP redirect downgrade on {host} ({count} endpoint(s)) — credentials may transit cleartext",
+    evidence: "Affected endpoints: {endpoints}",
+    tags: ["misconfig", "tls"],
   },
 ]
