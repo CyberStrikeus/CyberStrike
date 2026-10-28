@@ -88,6 +88,10 @@ import { CloudAuditTool } from "./cloud-audit"
 import { K8sAuditTool } from "./k8s-audit"
 import { CiAuditTool } from "./ci-audit"
 import { CipipeTool } from "./cipipe"
+import { CveLookupTool } from "./cve-lookup"
+import { IisTildeTool } from "./webhook/technique/iis-tilde"
+import { GraphqlIntrospectTool } from "./webhook/technique/graphql-introspect"
+import { HttpSmugglingTool } from "./webhook/technique/http-smuggling"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -254,6 +258,11 @@ export namespace ToolRegistry {
       K8sAuditTool,
       CiAuditTool,
       CipipeTool,
+      CveLookupTool,
+      // Technique Tools — algorithmic pentesting tools for specific widely-used techniques
+      IisTildeTool,
+      GraphqlIntrospectTool,
+      HttpSmugglingTool,
       ...custom,
     ]
   }
