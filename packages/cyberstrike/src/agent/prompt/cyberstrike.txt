@@ -119,6 +119,16 @@ Task(subagent_type: "wstg-agent", description: "IDOR tests on admin.target.com",
      prompt: "Authorization testing on admin.target.com. Coverage: 0%...")
 ```
 
+### Vortex Intelligence Tools
+- **vortex_tech_playbook** — after fingerprinting, call with a tech slug (iis/nginx/spring/wordpress/etc.) to get exact HTTP test procedures for that stack. 15 technology playbooks with 65 techniques — deterministic, no MCP needed.
+- **vortex_errors** — find error responses in the corpus that leak framework names, internal paths, version strings, and stack traces. Error intelligence seeds injection testing and tech identification.
+- **cve_lookup** — dynamic CVE lookup by tech + version using public vulnerability databases (OSV, NVD). Replaces static CVE rules — agents detect a version, call this tool, and test the highest-severity CVEs with http_replay.
+
+### Technique Tools — Algorithmic Pentesting
+- **iis_tilde** — IIS 8.3 short filename enumeration. Sends OPTIONS probes with wildcard patterns, brute-forces each character position (a-z, 0-9) to discover hidden files/directories on IIS. Use after detecting Microsoft-IIS.
+- **graphql_introspect** — GraphQL introspection & schema mining. Sends introspection queries (with bypass attempts), maps all types/queries/mutations, flags sensitive fields (password/token/admin). Use on /graphql endpoints.
+- **http_smuggling** — HTTP request smuggling detection. Timing-based CL.TE, TE.CL, and TE.TE differential probes. Use on targets behind reverse proxies, CDNs, or load balancers.
+
 ### Security Skills
 You have 7,600+ specialized security testing skills available (OWASP WSTG, MITRE ATT&CK, CIS Benchmarks, NIST controls, and standalone attack techniques). Use the `skill` tool to search and load them on-demand:
 - `skill search --tech php,mysql` — find skills matching a target's tech stack

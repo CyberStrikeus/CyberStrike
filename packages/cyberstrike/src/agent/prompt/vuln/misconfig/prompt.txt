@@ -59,6 +59,18 @@ Reconnaissance / information gathering:
   - **leakage** — scan a response body for HTML comments (TODO/FIXME, internal paths), RFC1918
     internal IPs, version strings, emails, debug flags.
 
+### Tech-aware tools
+- **vortex_tech_playbook** — CRITICAL after fingerprinting. When you detect a technology (IIS, Spring,
+  WordPress, etc.), call `vortex_tech_playbook {tech: "iis"}` to get exact HTTP requests and detection
+  criteria for that stack. Each technique includes the method/path/headers to send and what to look for
+  in the response. Execute each with http_replay. This is how you find IIS tilde enumeration, Spring
+  actuator heapdumps, Laravel .env files, etc. — deterministic, no MCP dependency.
+- **vortex_errors** — find error responses in the corpus that leak intelligence (framework names,
+  internal paths, version strings). Use alongside `error_probe` for deeper error-forcing analysis.
+- **cve_lookup** — after detecting a tech version (e.g. Apache 2.4.49, jQuery 3.4.1), call
+  `cve_lookup {tech: "apache", version: "2.4.49"}` to check for known CVEs. Queries OSV + NVD. Report
+  confirmed vulnerable versions and test the most critical CVEs with http_replay.
+
 ### Manual / follow-up
 - **web_get_session_context** — pending signals (ServerBanner, SensitiveDataExposure, ExposedArtifact,
   MissingSecurityHeaders, CorsMisconfig, DirectoryListing…) already detected passively, plus a
@@ -72,7 +84,13 @@ Reconnaissance / information gathering:
    missing-headers / exposed-artifact. Confirm those rather than re-discovering.
 2. **Recon FIRST** — `recon_test metafiles` then `fingerprint`. The extracted URLs and detected
    stack shape everything after (e.g. Spring → check /actuator; WordPress → wp-admin/xmlrpc).
-3. **Config probes** — `misconfig_test` `paths`, `methods` (on a representative endpoint), `cors`
+3. **Tech playbook + technique tools** — for EACH detected technology, call `vortex_tech_playbook {tech: "<slug>"}` and
+   execute its techniques with `http_replay`. For IIS targets, also run `iis_tilde {origin}` — it
+   algorithmically enumerates 8.3 short filenames. For GraphQL endpoints, run `graphql_introspect {url}`
+   to map the full schema. For targets behind proxies/CDNs, run `http_smuggling {url}` to detect desync.
+4. **CVE check** — for versioned components (e.g. Server: Apache/2.4.49), call `cve_lookup` to check
+   for known CVEs. Report confirmed vulnerable versions and attempt to reproduce critical ones.
+5. **Config probes** — `misconfig_test` `paths`, `methods` (on a representative endpoint), `cors`
    (on an endpoint returning sensitive data), and `headers` (on a main response).
 4. **Leakage** — `recon_test leakage` on the homepage, error pages, and interesting URLs from
    metafiles.

@@ -106,14 +106,25 @@ After discovery, follow this decision-based approach — test what the attack su
 → `skill search --tech recon,configuration`
 - Security headers: CSP, HSTS, X-Frame-Options
 - Backup files: `.bak`, `.git/`, `.env`, `~` suffix
-- Error messages: stack traces, DB info, internal paths
+- Error messages: stack traces, DB info, internal paths — use `vortex_errors` to find existing error intelligence, `error_probe` to force new ones
 - Subdomain takeover, CORS misconfiguration
 
+**Technology-Specific Testing**
+→ `vortex_tech_playbook` + `cve_lookup`
+- After discovery, call `vortex_tech_playbook` for each detected tech (IIS → tilde, Spring → actuator, WordPress → user enum, etc.)
+- For versioned components, call `cve_lookup {tech, version}` to check for known CVEs — no need for static CVE rules
+- Execute each playbook technique with `http_replay`, checking the response against the detect criteria
+
 **API-Specific**
-→ `skill search --tech api,graphql,rest`
+→ `skill search --tech api,graphql,rest` + `graphql_introspect`
 - BOLA/IDOR on resource IDs
-- GraphQL: introspection, batch queries, deep nesting
+- GraphQL: run `graphql_introspect {url}` to map full schema (types/queries/mutations/sensitive fields), then test mutations for privilege escalation, batch queries for DoS, deep nesting
 - Mass assignment: extra params (`role=admin`, `isAdmin=true`)
+
+**HTTP Smuggling**
+→ `http_smuggling`
+- On any target behind a reverse proxy, CDN, or load balancer, run `http_smuggling {url}` to detect CL.TE/TE.CL/TE.TE desync
+- Confirm with `http_replay_raw` for byte-exact smuggling payloads
 
 ## Decision Loop
 
@@ -138,6 +149,13 @@ skill unload <skill-name>   # unload when moving to a different test area
 | hackbrowser | AI-driven crawler — endpoint and form discovery |
 | web_get_page_state | Read the attached browser's current page as a structured map (co-driving eyes) |
 | web_action | Drive the attached browser: click / type / navigate, guard-enforced (co-driving hands) |
+| vortex_tech_playbook | Tech-specific test procedures — call after fingerprinting (IIS→tilde, Spring→actuator, etc.) |
+| vortex_errors | Find error responses with leaked intelligence (frameworks, paths, versions) |
+| cve_lookup | Dynamic CVE lookup by tech+version (OSV + NVD) — no static rules needed |
+| error_probe | Force errors via malformed requests, extract intelligence from responses |
+| iis_tilde | IIS 8.3 short filename enumeration — algorithmic brute-force via OPTIONS probes |
+| graphql_introspect | GraphQL introspection + schema mining with bypass attempts |
+| http_smuggling | CL.TE / TE.CL / TE.TE desync detection via timing probes |
 | sqlmap | SQL injection exploitation |
 | ffuf | Directory/parameter fuzzing |
 | nuclei | Template-based vulnerability scanning |

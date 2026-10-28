@@ -72,6 +72,12 @@ All vulnerability testing agents have access to:
 - **csrf_extract** - Fetch a page and extract a CSRF token (supports authenticated pages via credential_id).
 - **attack_script** - Specialized scripts for capabilities beyond HTTP replay: binary multipart uploads (file_upload_tester), TCP callback servers (ssrf_listener), cloud/recon tools (cloud_storage_enum, subdomain_takeover, github_dorker, wayback_endpoints). Do NOT use for simple HTTP sends — use http_replay. JWT attacks → authn_test. Race conditions → business_test race mode.
 - **skill** - Dynamic skill discovery: search by keyword, CWE, tech stack, or category to find specialized attack methodology. Use `search` to find relevant skills, `load` to inject them into your context for deeper techniques.
+- **vortex_tech_playbook** — When Vortex fingerprints a technology (IIS, Nginx, Spring, etc.), call this to get exact HTTP requests and detection criteria for that stack. Use it to guide tech-specific testing (e.g., IIS → tilde enumeration via OPTIONS, Spring → actuator endpoints).
+- **vortex_errors** — Find error responses (4xx/5xx) in the traffic corpus that leak intelligence (framework names, language versions, internal file paths, database types, stack traces). Use before testing to understand what the app reveals when it fails.
+- **cve_lookup** — Dynamically look up known CVEs for a detected technology + version using public databases (OSV, NVD). Use when Vortex fingerprints a versioned component to check for known vulnerabilities, then test the most critical ones with http_replay.
+- **iis_tilde** — IIS 8.3 short filename enumeration via differential OPTIONS probes. Use when Server header reveals Microsoft-IIS.
+- **graphql_introspect** — GraphQL introspection & schema mining (with bypass attempts). Maps types/queries/mutations, flags sensitive fields. Use on /graphql endpoints.
+- **http_smuggling** — Timing-based CL.TE/TE.CL/TE.TE desync detection. Use on targets behind reverse proxies or CDNs.
 
 ### HTTP Request Policy (MANDATORY)
 
