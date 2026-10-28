@@ -42,9 +42,10 @@ export namespace Plugin {
   // a variable string is invisible to the bundler → the package is silently missing
   // at runtime inside $bunfs → web specialists never load → inspection dispatches 0
   // child sessions. The static map fixes this while keeping the try/catch safety.
-  const DEFAULT_DOMAINS: string[] = ["@cyberstrike-io/web"]
+  const DEFAULT_DOMAINS: string[] = ["@cyberstrike-io/web", "@cyberstrike-io/re"]
   const DEFAULT_DOMAIN_MODULES: Record<string, () => Promise<any>> = {
     "@cyberstrike-io/web": () => import("@cyberstrike-io/web"),
+    "@cyberstrike-io/re": () => import("@cyberstrike-io/re"),
   }
 
   // Package name of a config.plugin spec (strip a trailing @version, keep the
