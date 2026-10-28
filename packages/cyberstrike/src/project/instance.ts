@@ -51,6 +51,10 @@ export const Instance = {
   get project() {
     return context.use().project
   },
+  /** Directories with a cached instance, including one still booting. Read-only. */
+  directories() {
+    return [...cache.keys()]
+  },
   /**
    * Check if a path is within the project boundary.
    * Returns true if path is inside Instance.directory OR Instance.worktree.

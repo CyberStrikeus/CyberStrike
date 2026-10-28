@@ -17,6 +17,8 @@ import { Bus } from "../bus"
 import { ProviderTransform } from "../provider/transform"
 import { SystemPrompt } from "./system"
 import { InstructionPrompt } from "./instruction"
+import { SessionInstructions } from "./instructions"
+import { SessionEnvironment } from "./environment"
 import { Plugin } from "../plugin"
 import BUILD_SWITCH from "../session/prompt/build-switch.txt"
 import MAX_STEPS from "../session/prompt/max-steps.txt"
@@ -775,7 +777,11 @@ export namespace SessionPrompt {
       await Plugin.trigger("experimental.chat.messages.transform", {}, { messages: sessionMessages })
 
       // Build system prompt, adding structured output instruction if needed
-      const system = [...(await SystemPrompt.environment(model)), ...(await InstructionPrompt.system())]
+      const system = [
+        ...(await SystemPrompt.environment(model)),
+        ...(await InstructionPrompt.system()),
+        ...SessionInstructions.render(sessionID),
+      ]
       const format = lastUser.format ?? { type: "text" }
       if (format.type === "json_schema") {
         system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT)
@@ -2020,6 +2026,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       env: {
         ...process.env,
         ...shellEnv.env,
+        ...SessionEnvironment.get(input.sessionID),
         TERM: "dumb",
       },
     })

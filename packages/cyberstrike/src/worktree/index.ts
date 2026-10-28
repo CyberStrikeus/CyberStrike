@@ -505,6 +505,41 @@ export namespace Worktree {
     return true
   })
 
+  // Reconciles the project's saved sandboxes with `git worktree list`: checkouts git knows about are saved, and saved
+  // entries git no longer lists (or whose directory is gone) are dropped. The primary workspace is never saved.
+  export async function refresh() {
+    if (Instance.project.vcs !== "git") {
+      throw new NotGitError({ message: "Worktrees are only supported for git projects" })
+    }
+
+    const list = await $`git worktree list --porcelain`.quiet().nothrow().cwd(Instance.worktree)
+    if (list.exitCode !== 0) {
+      throw new Error(errorText(list) || "Failed to read git worktrees")
+    }
+
+    const primary = await canonical(Instance.worktree)
+    const paths = outputText(list.stdout)
+      .split("\n")
+      .filter((line) => line.startsWith("worktree "))
+      .map((line) => line.slice("worktree ".length).trim())
+    const checkouts = (
+      await Promise.all(
+        paths.map(async (item) => ({ item, key: await canonical(item), live: await exists(item) })),
+      )
+    )
+      .filter((entry) => entry.live && entry.key !== primary)
+      .map((entry) => entry.key)
+
+    const project = Project.get(Instance.project.id)
+    if (!project) throw new Error(`Project not found: ${Instance.project.id}`)
+    const saved = await Promise.all(project.sandboxes.map(async (item) => ({ item, key: await canonical(item) })))
+
+    const added = checkouts.filter((key) => !saved.some((entry) => entry.key === key))
+    const stale = saved.filter((entry) => !checkouts.includes(entry.key))
+    for (const key of added) await Project.addSandbox(project.id, key)
+    for (const entry of stale) await Project.removeSandbox(project.id, entry.item)
+  }
+
   export const reset = fn(ResetInput, async (input) => {
     if (Instance.project.vcs !== "git") {
       throw new NotGitError({ message: "Worktrees are only supported for git projects" })

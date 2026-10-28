@@ -6,6 +6,7 @@ import { NodeHttpPlatform, NodeServices } from "@effect/platform-node"
 import { Api } from "@cyberstrike-io/api-v2"
 import { Flag } from "../flag/flag"
 import { Pty } from "../pty"
+import { Persistent } from "../pty/persistent"
 import { handlers } from "./handlers"
 import { Agent } from "../agent/agent"
 import { Config } from "../config/config"
@@ -17,9 +18,10 @@ import { Tickets, tickets } from "./tickets"
 
 // The terminal socket: the Bun side keeps the v1 Pty handler and the scope it was opened in.
 type Terminal = { onMessage(data: string): void; onClose(): void }
-type Socket = { id: string; directory: string; cursor?: number; terminal?: Terminal }
+type Socket = { id: string; directory: string; cursor?: number; persistent: boolean; terminal?: Terminal }
 
 const PTY_CONNECT = /^\/api\/pty\/([^/]+)\/connect$/
+const PERSISTENT_CONNECT = /^\/api\/experimental\/persistent-pty\/([^/]+)\/connect$/
 
 const json = (status: number, body: Record<string, unknown>) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
@@ -56,9 +58,11 @@ export async function listen(opts: { hostname: string; port: number; password?: 
     }),
   )
 
-  const upgradeTerminal = async (request: Request, bun: Bun.Server<Socket>, id: string) => {
+  // A persistent terminal is scoped by the directory it was created in, not by the request.
+  const upgradeTerminal = async (request: Request, bun: Bun.Server<Socket>, id: string, persistent: boolean) => {
     const url = new URL(request.url)
-    const directory = directoryOf(HttpServerRequest.fromWeb(request))
+    const directory =
+      (persistent && Persistent.record(id)?.directory) || directoryOf(HttpServerRequest.fromWeb(request))
     const ticket = url.searchParams.get("ticket")
     if (ticket !== null && !tokens.consume(ticket, id, directory))
       return json(403, { _tag: "ForbiddenError", message: "Invalid or expired ticket" })
@@ -74,10 +78,12 @@ export async function listen(opts: { hostname: string; port: number; password?: 
         location: { directory },
         message: `Directory not found: ${directory}`,
       })
-    const info = await Effect.runPromise(inInstance(directory, () => Pty.get(id)))
-    if (!info) return json(404, { _tag: "PtyNotFoundError", message: `PTY not found: ${id}` })
+    const found = persistent
+      ? await Persistent.exists(id)
+      : await Effect.runPromise(inInstance(directory, () => Pty.get(id)))
+    if (!found) return json(404, { _tag: "PtyNotFoundError", message: `PTY not found: ${id}` })
     const cursor = cursorOf(new URL(request.url).searchParams.get("cursor"))
-    if (bun.upgrade(request, { data: { id, directory, cursor } })) return undefined
+    if (bun.upgrade(request, { data: { id, directory, cursor, persistent } })) return undefined
     return json(400, { _tag: "InvalidRequestError", message: "websocket upgrade failed" })
   }
 
@@ -86,9 +92,10 @@ export async function listen(opts: { hostname: string; port: number; password?: 
     port: opts.port,
     idleTimeout: 0,
     fetch: (request, bun) => {
-      const match = PTY_CONNECT.exec(new URL(request.url).pathname)
+      const pathname = new URL(request.url).pathname
+      const match = PTY_CONNECT.exec(pathname) ?? PERSISTENT_CONNECT.exec(pathname)
       if (match && request.headers.get("upgrade")?.toLowerCase() === "websocket")
-        return upgradeTerminal(request, bun, match[1])
+        return upgradeTerminal(request, bun, match[1], PERSISTENT_CONNECT.test(pathname))
       // The peer is optional per request; the auth middleware reads it with serviceOption, so the type stays open.
       return app.handler(
         request,
@@ -97,8 +104,10 @@ export async function listen(opts: { hostname: string; port: number; password?: 
     },
     websocket: {
       open: async (ws) => {
-        const { id, directory, cursor } = ws.data
-        ws.data.terminal = await Effect.runPromise(inInstance(directory, () => Pty.connect(id, ws, cursor)))
+        const { id, directory, cursor, persistent } = ws.data
+        ws.data.terminal = persistent
+          ? await Persistent.connect(id, ws, cursor)
+          : await Effect.runPromise(inInstance(directory, () => Pty.connect(id, ws, cursor)))
       },
       message: (ws, message) => {
         ws.data.terminal?.onMessage(String(message))

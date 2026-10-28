@@ -186,7 +186,7 @@ test("the event feed opens with server.connected", async () => {
   controller.abort()
 })
 
-test("stubbed groups still answer 503 until they are implemented", async () => {
-  expect((await call("GET", "/api/websearch/provider")).status).toBe(503)
-  expect((await call("GET", "/api/credential")).status).toBe(503)
+test("groups with no backing still answer 503", async () => {
+  expect((await call("GET", "/api/experimental/voice/models")).status).toBe(503)
+  expect((await call("GET", "/api/credential")).status).toBe(200)
 })

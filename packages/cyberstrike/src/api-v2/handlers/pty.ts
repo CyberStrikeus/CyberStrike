@@ -1,16 +1,19 @@
 import { Effect, Schema } from "effect"
 import { Location } from "@opencode/schema/location"
+import { stat } from "node:fs/promises"
 import { PtyTicket } from "@opencode/schema/pty-ticket"
 import { HttpApiBuilder } from "effect/http-api"
-import { HttpServerResponse } from "effect/http"
+import { HttpServerRequest, HttpServerResponse } from "effect/http"
 import { Api } from "@cyberstrike-io/api-v2"
 import { Directory } from "@cyberstrike-io/api-v2/middleware/location"
 import { Pty } from "../../pty"
+import { directoryOf } from "../directory"
 import { inInstance } from "../instance"
 import { notFound } from "../lookup"
-import { ForbiddenError } from "@opencode/protocol/errors"
+import { ForbiddenError, LocationNotFoundError, PtyNotFoundError } from "@opencode/protocol/errors"
 import { Tickets } from "../tickets"
-import { unavailable } from "./stub"
+
+type PublicRef = typeof Location.PublicRef.Type
 
 // The terminal itself is served by the native WebSocket upgrade in server.ts, ahead of Effect routing.
 export const PtyHandler = HttpApiBuilder.group(Api, "server.pty", (handlers) =>
@@ -71,5 +74,23 @@ export const PtyHandler = HttpApiBuilder.group(Api, "server.pty", (handlers) =>
         }).pipe(Effect.orDie)
       }),
     )
-    .handle("pty.connect", () => unavailable),
+    .handle(
+      "pty.connect",
+      Effect.fn(function* (ctx) {
+        // The location middleware is not attached to this endpoint, so the directory is resolved from the request here.
+        const request = yield* HttpServerRequest.HttpServerRequest
+        const directory = directoryOf(request)
+        const isDirectory = yield* Effect.promise(() => stat(directory).then((s) => s.isDirectory(), () => false))
+        if (!isDirectory)
+          return yield* new LocationNotFoundError({
+            location: { directory: directory as PublicRef["directory"] },
+            message: `Directory not found: ${directory}`,
+          })
+        const info = yield* inInstance(directory, () => Pty.get(ctx.params.ptyID))
+        if (!info)
+          return yield* new PtyNotFoundError({ ptyID: ctx.params.ptyID, message: `PTY not found: ${ctx.params.ptyID}` })
+        // Upgrades to a socket are answered by server.ts before routing, so only a plain request reaches this handler.
+        return HttpServerResponse.text("WebSocket upgrade required", { status: 426 })
+      }),
+    ),
 )

@@ -35,6 +35,7 @@ export namespace Identifier {
     cloud_asset: "cas",
     cloud_edge: "ced",
     cloud_exposure: "cex",
+    session_event: "evt",
   } as const
 
   export function schema(prefix: keyof typeof prefixes) {

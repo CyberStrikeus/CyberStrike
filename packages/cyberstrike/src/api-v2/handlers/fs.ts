@@ -9,7 +9,6 @@ import { File } from "../../file"
 import { Filesystem } from "../../util/filesystem"
 import { inInstance } from "../instance"
 import { notFound } from "../lookup"
-import { unavailable } from "./stub"
 
 // A request path may not leave the scoped directory. Anything outside is reported as not found, like a missing file.
 const inside = (directory: string, path: string) => {
@@ -52,7 +51,12 @@ export const FsHandler = HttpApiBuilder.group(Api, "server.fs", (handlers) =>
         const absolute = inside(directory, path)
         if (!absolute) return notFound("FileNotFoundError", `Directory not found: ${path}`)
         // A file, or a path that is gone, is a typed not-found; listing it would otherwise fail as a server error.
-        const isDirectory = yield* Effect.promise(() => stat(absolute).then((s) => s.isDirectory(), () => false))
+        const isDirectory = yield* Effect.promise(() =>
+          stat(absolute).then(
+            (s) => s.isDirectory(),
+            () => false,
+          ),
+        )
         if (!isDirectory) return notFound("FileNotFoundError", `Directory not found: ${path}`)
         // File.list resolves its argument against the instance directory, so it takes the request path, not the absolute one.
         const entries = yield* inInstance(directory, () => File.list(path))
@@ -74,5 +78,15 @@ export const FsHandler = HttpApiBuilder.group(Api, "server.fs", (handlers) =>
         return HttpServerResponse.jsonUnsafe({ location: { directory }, data })
       }),
     )
-    .handle("fs.write", () => unavailable),
+    .handle(
+      "fs.write",
+      Effect.fn(function* (ctx) {
+        const directory = yield* Directory
+        // Unlike fs.read, the target is not confined to the location; relative paths resolve against it.
+        const absolute = resolve(directory, ctx.query.path)
+        // Bun.write creates missing parent directories.
+        yield* Effect.promise(() => Bun.write(absolute, ctx.payload))
+        return HttpServerResponse.jsonUnsafe({ location: { directory }, data: { path: absolute } })
+      }),
+    ),
 )

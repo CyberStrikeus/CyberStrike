@@ -33,3 +33,5 @@ export {
   CloudExposureTable,
 } from "../cloud/inventory.sql"
 export { InspectionQueueTable } from "../inspection/schema"
+export { PermissionSavedTable } from "../permission/saved.sql"
+export { SessionLogTable, SessionInstructionTable } from "../session/session-log.sql"

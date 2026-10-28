@@ -17,6 +17,7 @@ import { Shell } from "@/shell/shell"
 import { BashArity } from "@/permission/arity"
 import { Truncate } from "./truncation"
 import { Plugin } from "@/plugin"
+import { SessionEnvironment } from "@/session/environment"
 
 const MAX_METADATA_LENGTH = 30_000
 
@@ -198,6 +199,7 @@ export const BashTool = Tool.define("bash", async () => {
         env: {
           ...process.env,
           ...shellEnv.env,
+          ...SessionEnvironment.get(ctx.sessionID),
         },
         stdio: ["ignore", "pipe", "pipe"],
         detached: process.platform !== "win32",

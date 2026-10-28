@@ -265,6 +265,20 @@ export namespace Pty {
     }
   }
 
+  // Retained output and live geometry for the persistent layer. Undefined once the PTY has exited or been removed.
+  export function output(id: string) {
+    const session = state().get(id)
+    if (!session) return
+    return {
+      raw: session.buffer,
+      head: session.bufferCursor,
+      tail: session.cursor,
+      cols: session.process.cols,
+      rows: session.process.rows,
+      process: session.process.process,
+    }
+  }
+
   export function connect(id: string, ws: Socket, cursor?: number) {
     const session = state().get(id)
     if (!session) {

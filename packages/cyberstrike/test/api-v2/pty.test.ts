@@ -126,3 +126,27 @@ test("connect tokens require opt-in and authorize only one upgrade for their PTY
     await fetch(`${base}/api/pty/${id}${query}`, { method: "DELETE", headers: { authorization: AUTH } })
   }
 })
+
+test("a plain request to the terminal socket route is not an upgrade: unknown PTYs are 404, live ones are 426", async () => {
+  const missing = await fetch(
+    `${base}/api/pty/pty_missing/connect?location%5Bdirectory%5D=${encodeURIComponent(DIRECTORY)}`,
+    { headers: { authorization: AUTH } },
+  )
+  expect(missing.status).toBe(404)
+  expect((await missing.json())._tag).toBe("PtyNotFoundError")
+
+  const created = await fetch(`${base}/api/pty?location%5Bdirectory%5D=${encodeURIComponent(DIRECTORY)}`, {
+    method: "POST",
+    headers: { authorization: AUTH, "content-type": "application/json" },
+    body: JSON.stringify({ command: "sh", args: ["-c", "sleep 5"] }),
+  })
+  const id = (await created.json()).data.id as string
+  const plain = await fetch(`${base}/api/pty/${id}/connect?location%5Bdirectory%5D=${encodeURIComponent(DIRECTORY)}`, {
+    headers: { authorization: AUTH },
+  })
+  expect(plain.status).toBe(426)
+  await fetch(`${base}/api/pty/${id}?location%5Bdirectory%5D=${encodeURIComponent(DIRECTORY)}`, {
+    method: "DELETE",
+    headers: { authorization: AUTH },
+  })
+})
