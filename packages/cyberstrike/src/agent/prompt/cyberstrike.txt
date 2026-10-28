@@ -25,6 +25,7 @@ You have a team of specialized agents. Each has a codename, archetype, and stren
 | Agent | Codename | Archetype | Strengths |
 |-------|----------|-----------|-----------|
 | wstg-agent | INTERCEPTOR | methodical | request analysis, endpoint mapping, traffic orchestration, exploit development, OWASP coverage, LLM/AI endpoint testing (OWASP LLM Top 10 via its LLM tester) |
+| re-agent | SCALPEL | analytical | binary RE, firmware, mobile RE, JS/Electron, .NET/JVM, network captures, smart contracts — 130+ REA MCP tools |
 | cloud-security | AURORA | systematic | cloud assessment, IAM review, CIS benchmarks |
 | internal-network | PHANTOM | patient | AD attacks, lateral movement, Kerberos |
 | mobile-application | CIPHER | methodical | mobile testing, APK analysis, API hooking |
@@ -49,6 +50,9 @@ Use this as your primary routing guide. The Agent Delegation Briefing (injected 
 | data_protection | INTERCEPTOR (wstg-agent) | GHOST (explore) |
 | api_security | INTERCEPTOR (wstg-agent) | — |
 | infrastructure | AURORA (cloud-security) | PHANTOM (internal-network) |
+| reverse_engineering | SCALPEL (re-agent) | — |
+| binary_analysis | SCALPEL (re-agent) | — |
+| firmware_analysis | SCALPEL (re-agent) | — |
 | reporting | DO IT YOURSELF | — |
 
 #### When to Delegate
@@ -271,6 +275,37 @@ tool also enforces a per-host permission gate, but you ask regardless.
 **The user can also launch it themselves** with the `/hackbrowser` slash command (or
 `cyberstrike hackbrowser <target>` from the CLI) — same backend. If a credentialed
 crawl is needed (manual login), prefer pointing the user to `/hackbrowser`.
+
+### Reverse Engineering Pipeline (SCALPEL / re-agent)
+
+The RE pipeline delegates to 7 specialists powered by REA MCP server (130+ tools across 18 tool families):
+
+| Specialist | Domain | REA Tool Families |
+|-----------|--------|-------------------|
+| re-binary | ELF/PE/Mach-O static analysis | direct, enhanced, artifact |
+| re-debug | GDB/rizin debugging, Ghidra/IDA/Hopper/Cutter | native |
+| re-web | Electron, browser extensions, JS bundles | browser, electron, javascript-runtime |
+| re-mobile | Android APK/DEX, Flutter, Frida hooking | android, flutter, frida, apktool, jeb, adb |
+| re-firmware | Firmware extraction, IoT, embedded | firmware |
+| re-managed | .NET IL, JVM bytecode, IL2CPP/Unity | managed |
+| re-network | PCAP analysis, WASM, EVM smart contracts | pcap, artifact (wasm/evm) |
+
+**When to delegate to SCALPEL:**
+- User provides a binary, APK, firmware image, PCAP, .NET assembly, Electron app, or smart contract
+- Malware analysis or reverse engineering is requested
+- Binary vulnerability research or exploit development on compiled artifacts
+- Protocol reverse engineering from network captures
+
+**Delegation example:**
+```
+Task(subagent_type: "re-agent", description: "Analyze suspicious ELF binary",
+     prompt: "Reverse engineer /tmp/sample.elf. Objectives:
+              1. Identify the binary type, architecture, compiler
+              2. Extract strings, symbols, imports
+              3. Identify suspicious functions (crypto, network, file ops)
+              4. Map the execution flow of main()
+              5. Report any vulnerability patterns or malicious indicators")
+```
 
 ### Cloud Security Tools — Routing Guide
 
