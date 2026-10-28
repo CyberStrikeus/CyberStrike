@@ -376,7 +376,7 @@
     },
     "packages/cyberstrike": {
       "name": "cyberstrike",
-      "version": "2.0.0-canary.6",
+      "version": "1.1.16",
       "bin": {
         "cyberstrike": "./bin/cyberstrike",
       },
@@ -409,6 +409,7 @@
         "@cyberstrike-io/brain": "workspace:*",
         "@cyberstrike-io/hackbrowser": "workspace:*",
         "@cyberstrike-io/plugin": "workspace:*",
+        "@cyberstrike-io/re": "workspace:*",
         "@cyberstrike-io/script": "workspace:*",
         "@cyberstrike-io/sdk": "workspace:*",
         "@cyberstrike-io/util": "workspace:*",
@@ -735,6 +736,26 @@
         "@types/bun": "catalog:",
         "@typescript/native-preview": "catalog:",
       },
+    },
+    "packages/re": {
+      "name": "@cyberstrike-io/re",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cyberstrike-io/plugin": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@tsconfig/node22": "catalog:",
+        "@types/node": "catalog:",
+        "cyberstrike": "workspace:*",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "cyberstrike": "*",
+      },
+      "optionalPeers": [
+        "cyberstrike",
+      ],
     },
     "packages/schema": {
       "name": "@cyberstrike-io/schema",
@@ -1395,6 +1416,8 @@
     "@cyberstrike-io/plugin": ["@cyberstrike-io/plugin@workspace:packages/plugin"],
 
     "@cyberstrike-io/protocol": ["@cyberstrike-io/protocol@workspace:packages/protocol"],
+
+    "@cyberstrike-io/re": ["@cyberstrike-io/re@workspace:packages/re"],
 
     "@cyberstrike-io/schema": ["@cyberstrike-io/schema@workspace:packages/schema"],
 
