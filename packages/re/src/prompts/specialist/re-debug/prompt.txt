@@ -42,9 +42,6 @@ targets for dynamic verification.
 - `mcp__rea__open_native` — Open a binary in the native analysis provider
 - `mcp__rea__inspect_with_objdump` — objdump-style disassembly
 - `mcp__rea__execute_rizin_command` — Run rizin commands for static analysis
-- `mcp__rea__open_binary_snapshot` — Take a snapshot of binary state
-- `mcp__rea__close_binary_snapshot` — Close a snapshot
-
 ## Diagnostic tools
 - `mcp__rea__trace_crash` — Analyze crash dumps and determine root cause
 - `mcp__rea__inspect_recorded_crash` — Inspect a recorded crash report
