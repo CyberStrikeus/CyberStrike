@@ -67,6 +67,24 @@ const log = Log.create({ service: "server" })
 // Sessions whose pre-existing duplicate clusters have already been reconciled once this process (#108).
 const reconciledDuplicates = new Set<string>()
 
+// Server-side observe dedup (#18, defense-in-depth): a live SPA mutates continuously, so a stale
+// extension (one without the content-signature skip in content.js) re-POSTs the identical observation
+// hundreds of times, each triggering PageState.set + UiObservation + JS-miner wake + diag. Skip that
+// work when the incoming signature matches the one already stored FOR THAT URL in PageState —
+// independent of extension version, no reload needed. Tying it to PageState (not a side map) keeps it
+// correct: if the page-state was never stored or was cleared, there is no signature to match and the
+// observation is processed. The signature mirrors content.js's observationSignature.
+function observeSignature(b: {
+  url: string
+  modal_open?: boolean
+  clickables: { role: string; label: string; href: string; disabled?: boolean; in_modal?: boolean }[]
+  forms?: { submit_id?: string; fields: { name: string; type: string }[] }[]
+}): string {
+  const clicks = b.clickables.map((c) => `${c.role}|${c.label}|${c.href}|${c.disabled ? 1 : 0}|${c.in_modal ? 1 : 0}`).join("~")
+  const forms = (b.forms ?? []).map((f) => `${f.submit_id ?? ""}:${f.fields.map((x) => `${x.name}/${x.type}`).join(",")}`).join("~")
+  return `${b.url}#${b.modal_open ? 1 : 0}#${clicks}#${forms}`
+}
+
 const MAX_REQUEST_SIZE = 16 * 1024 // 16 KB
 const MAX_REQUEST_HEADERS = 20 // First N headers
 const MAX_REQUEST_BODY = 8 * 1024 // 8 KB
@@ -1318,6 +1336,11 @@ export const SessionRoutes = lazy(() =>
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
         const b = c.req.valid("json")
+        // Skip the expensive per-observe work when this observation is identical to the one already
+        // stored for this url (#18) — the actionable surface (url + clickables + forms + modal) is
+        // unchanged, so PageState already holds it and there is nothing new to process.
+        const sig = observeSignature(b)
+        if (PageState.sigFor(sessionID, b.url) === sig) return c.json({ ok: true, kinds: {} })
         const kinds = PageState.set(sessionID, {
           url: b.url,
           title: b.title ?? "",
@@ -1335,6 +1358,7 @@ export const SessionRoutes = lazy(() =>
           tech: b.tech ? FrameworkFingerprinter.detect(b.tech) : undefined,
           modal_open: b.modal_open,
           observed_at: Date.now(),
+          sig,
         })
         if (b.credential_id) {
           for (const el of b.clickables) {

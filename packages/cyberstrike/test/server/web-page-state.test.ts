@@ -51,6 +51,23 @@ describe("POST /web/observe → GET /web/page-state", () => {
       expect(st.clickables.map((c: { id: string }) => c.id)).toEqual(["e2"])
     })
   })
+  test("re-observing the identical page is idempotent; a changed observation still updates (#18 dedup)", async () => {
+    await withApp(async (app) => {
+      const first = await (await post(app, "observe", { url: "https://h/u", clickables })).json()
+      expect(first.kinds.destructive).toBe(1)
+      // Same signature → server skips the work and answers 200 with empty kinds (a no-op re-observe).
+      const again = await post(app, "observe", { url: "https://h/u", clickables })
+      expect(again.status).toBe(200)
+      expect(await again.json()).toEqual({ ok: true, kinds: {} })
+      // The page-state still holds the first (identical) observation — the skip didn't drop it.
+      const stAgain = await (await app.request(`/session/s1/web/page-state?url=${encodeURIComponent("https://h/u")}`)).json()
+      expect(stAgain.clickables.map((c: { id: string }) => c.id)).toEqual(["e1", "e2", "e3"])
+      // A changed clickable set is a new signature → processed, page-state reflects it.
+      await post(app, "observe", { url: "https://h/u", clickables: [{ id: "e9", tag: "a", role: "", label: "Settings", href: "/settings" }] })
+      const st = await (await app.request(`/session/s1/web/page-state?url=${encodeURIComponent("https://h/u")}`)).json()
+      expect(st.clickables.map((c: { id: string }) => c.id)).toEqual(["e9"])
+    })
+  })
   test("page-state for an unknown url → 404", async () => {
     await withApp(async (app) => {
       const res = await app.request("/session/s1/web/page-state?url=https://h/nope")

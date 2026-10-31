@@ -46,6 +46,7 @@ export namespace PageState {
     tech?: TechStack // framework fingerprint (P2) — how navigation works on this app
     modal_open?: boolean // a modal dialog is trapping interaction (see Clickable.in_modal)
     observed_at?: number // epoch ms of this observation
+    sig?: string // content signature of this observation — the server skips re-processing an identical re-observe (#18)
   }
 
   // session → (url → latest observation)
@@ -65,6 +66,13 @@ export namespace PageState {
     const counts = annotateClickables(obs.clickables)
     pages(sessionID).set(obs.url, obs)
     return counts
+  }
+
+  // Content signature of the stored observation for a url, or undefined if none is stored (#18). The
+  // server compares the incoming observation's signature against this to skip a redundant re-observe;
+  // returning undefined when nothing is stored means a cleared/never-seen page is always processed.
+  export function sigFor(sessionID: string, url: string): string | undefined {
+    return pages(sessionID).get(url)?.sig
   }
 
   export interface ClickableWithPolicy extends Clickable {
