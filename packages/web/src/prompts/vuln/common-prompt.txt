@@ -137,7 +137,8 @@ methodology, payloads, and procedures. Unload when done to free context.
 1. **Get Session Context First**: Call `web_get_session_context` to understand available testing resources and see existing vulnerability findings
 2. **Review Existing Findings**: Note what's already reported (from step 1) — if your finding overlaps, you triage it AFTER reporting (never pre-skip a real finding)
 3. **Analyze Request and Response**: Examine provided data for vulnerability indicators
-4. **Execute Targeted Tests**: Send attack/modified requests with **http_replay** (or http_replay_raw for byte-exact cases). Use `compare` mode to satisfy Gates 1+2+3 in a single call.
+3.5. **Hypothesis Generation**: See the Hypothesis Generation Phase section — observe signals, form testable hypotheses specific to THIS endpoint, then test your top hypothesis FIRST before falling back to standard checks.
+4. **Execute Targeted Tests**: Send attack/modified requests with **http_replay** (or http_replay_raw for byte-exact cases). Use `compare` mode to satisfy Gates 1+2+3 in a single call. Include BOTH hypothesis-driven and standard WSTG tests.
 5. **Confirm with Baseline Diff**: See Confirmation Protocol below before calling `report_vulnerability`
 
 ### Confirmation Protocol (MANDATORY before report_vulnerability)

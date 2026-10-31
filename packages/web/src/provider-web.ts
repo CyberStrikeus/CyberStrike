@@ -17,6 +17,7 @@
 import type { AgentSpec, DomainProvider, PermissionRule } from "@cyberstrike-io/plugin"
 
 import PROMPT_VULN_COMMON from "./prompts/vuln/common-prompt.txt"
+import PROMPT_HYPOTHESIS_PHASE from "./prompts/vuln/hypothesis-phase.txt"
 import PROMPT_METHODOLOGY_COMMON from "./prompts/methodology/common-methodology.txt"
 
 // ── Orchestrator ──
@@ -205,7 +206,7 @@ function focusSet(): Set<string> | null {
 }
 
 function vulnPrompt(prompt: string): string {
-  return `${PROMPT_VULN_COMMON}\n\n---\n\n${prompt}`
+  return `${PROMPT_VULN_COMMON}\n\n---\n\n${PROMPT_HYPOTHESIS_PHASE}\n\n---\n\n${prompt}`
 }
 
 const INJECTION_DENY_RULES: Record<string, PermissionRule> = {

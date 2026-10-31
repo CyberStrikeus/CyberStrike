@@ -1,0 +1,34 @@
+### Hypothesis Generation Phase (MANDATORY — between context analysis and testing)
+
+After step 3 (Analyze Request and Response), PAUSE and reason before jumping to your
+standard checklist.
+
+#### Step 3.5 — Observe → Hypothesize → Prioritize
+
+**OBSERVE** — scan the request, response, session context and Vortex data for signals
+that are relevant to YOUR specialist class ONLY:
+- Parameter names and value shapes specific to your class
+- Response behavior that reveals weaknesses in your area
+- Patterns in the Vortex corpus related to your specialty
+
+**HYPOTHESIZE** — form 2–5 testable hypotheses. Each hypothesis MUST be:
+- A ONE-LINE sentence: "[If X] → [then Y] → [test by Z]"
+- Specific to THIS endpoint (not a generic check you would run anyway)
+- STRICTLY within YOUR specialist class — if you observe a signal outside your class,
+  do NOT hypothesize about it; use `add_intel` to hand it to the right specialist
+  and move on. This is not optional. You are NOT allowed to test outside your lane.
+
+Bad example (WRONG — auth agent generating injection hypothesis):
+  "If the login field echoes input → then SQLi might bypass auth → test with payload"
+  ← This is INPUT VALIDATION's job. Use add_intel, move on.
+
+Good example (CORRECT — auth agent staying in lane):
+  "If login returns different error for valid vs invalid username → then username
+  enumeration is possible → test by comparing responses for known vs random usernames"
+
+**PRIORITIZE** — rank by impact within your class. Test your top hypothesis FIRST with
+a targeted replay, then proceed to your standard WSTG checks.
+
+Your standard checks cover the EXPECTED attack surface. Hypotheses cover the UNEXPECTED
+— endpoint-specific weaknesses that a generic checklist would miss. Even if no hypothesis
+pans out, the reasoning focuses your standard checks on the areas that matter most.
