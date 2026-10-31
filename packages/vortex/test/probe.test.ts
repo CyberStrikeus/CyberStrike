@@ -99,7 +99,8 @@ describe("ProbeRule → ActiveRule (the active DSL shape)", () => {
     expect(await cmdi!.probe([tx("a", "/ping?host=127.0.0.1")], clean)).toHaveLength(0) // fast → no fire
   })
   test("parseProbes validates an agent's JSON probe rule", () => {
-    expect(parseProbes(probeRules)).toHaveLength(7)
+    // Assert against the catalog's own length so adding a probe doesn't need a magic-number bump.
+    expect(parseProbes(probeRules)).toHaveLength(probeRules.length)
     expect(() => parseProbes([{ id: "x", category: "c", severity: "high", select: "resp.status == 200", inject: { into: "query", payloads: [] }, detect: "reflected" }])).toThrow() // empty payloads + missing name
   })
 })
