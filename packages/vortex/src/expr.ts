@@ -188,6 +188,13 @@ const FUNCTIONS: Record<string, Fn> = {
   },
 }
 
+// Group-scope QUANTIFIERS — valid only in a corpus rule's `having` expression (compileGroup), never in
+// a per-transaction `when`. Each takes ONE sub-expression that is evaluated against every transaction
+// in the group: any/all/count test a predicate per tx; countDistinct collects the distinct string
+// values of an expression across the group. They let "cross-transaction" rules (access-control,
+// unauthenticated reach) be DATA instead of code — see corpus-rule.ts.
+const QUANTIFIERS = new Set(["any", "all", "count", "countDistinct"])
+
 // --- AST --------------------------------------------------------------------
 type Node =
   | { k: "lit"; v: Value }
@@ -388,7 +395,7 @@ function parse(src: string): Node {
       const name = tk.v
       // function call — single-segment ident immediately followed by "("
       if (peek()?.t === "(" && !name.includes(".")) {
-        if (!FUNCTIONS[name]) throw new ExprError(`Unknown function "${name}"`)
+        if (!FUNCTIONS[name] && !QUANTIFIERS.has(name)) throw new ExprError(`Unknown function "${name}"`)
         next() // (
         const args: Node[] = []
         if (peek()?.t !== ")") {
@@ -419,7 +426,11 @@ function parse(src: string): Node {
 function evalNode(node: Node, tx: Transaction): Value {
   if (node.k === "lit") return node.v
   if (node.k === "field") return fieldValue(tx, node.path)
-  if (node.k === "call") return FUNCTIONS[node.name]!(node.args.map((a) => evalNode(a, tx)), tx)
+  if (node.k === "call") {
+    if (QUANTIFIERS.has(node.name))
+      throw new ExprError(`"${node.name}()" is a group quantifier — valid only in a corpus rule's "having", not a per-transaction expression`)
+    return FUNCTIONS[node.name]!(node.args.map((a) => evalNode(a, tx)), tx)
+  }
   if (node.k === "index") {
     const target = evalNode(node.target, tx)
     const i = num(evalNode(node.index, tx))
@@ -467,6 +478,16 @@ function firstRestricted(node: Node): string | undefined {
   return firstRestricted(node.l) ?? firstRestricted(node.r)
 }
 
+// A group quantifier anywhere in the AST — only valid in a corpus `having` (compileGroup), never in a
+// per-transaction expression, so compile() rejects it at load time.
+function firstQuantifier(node: Node): string | undefined {
+  if (node.k === "call") return QUANTIFIERS.has(node.name) ? `${node.name}()` : node.args.map(firstQuantifier).find(Boolean)
+  if (node.k === "lit" || node.k === "field") return undefined
+  if (node.k === "index") return firstQuantifier(node.target) ?? firstQuantifier(node.index)
+  if (node.k === "unary") return firstQuantifier(node.e)
+  return firstQuantifier(node.l) ?? firstQuantifier(node.r)
+}
+
 // --- public API -------------------------------------------------------------
 export interface CompileOptions {
   // `grep: false` = AGENT scope: reject the grep-everywhere fields (raw / req.raw / resp.raw / bare
@@ -482,6 +503,9 @@ export interface Compiled {
 
 export function compile(src: string, opts: CompileOptions = {}): Compiled {
   const ast = parse(src)
+  const quant = firstQuantifier(ast)
+  if (quant)
+    throw new ExprError(`"${quant}" is a group quantifier — valid only in a corpus rule's "having" (compileGroup), not a per-transaction expression`)
   if (opts.grep === false) {
     const g = firstRestricted(ast)
     if (g)
@@ -500,6 +524,61 @@ export function compile(src: string, opts: CompileOptions = {}): Compiled {
 // agent scope.
 export function query(txs: Transaction[], src: string, opts?: CompileOptions): Transaction[] {
   return compile(src, opts).filter(txs)
+}
+
+// --- group evaluation (corpus `having`) -------------------------------------
+// Evaluate a `having` AST over a GROUP of transactions. Quantifier calls iterate the group, evaluating
+// their sub-expression per transaction; everything else is the usual boolean/arithmetic/comparison
+// combinators over those quantifier results. A bare field or a non-quantifier function at group scope
+// is an authoring error — a group has no single transaction to resolve them against.
+function evalGroup(node: Node, group: Transaction[]): Value {
+  if (node.k === "lit") return node.v
+  if (node.k === "call") {
+    if (!QUANTIFIERS.has(node.name))
+      throw new ExprError(`"${node.name}()" needs a transaction — call it inside any()/all()/count()/countDistinct(), not at group scope`)
+    if (node.args.length !== 1) throw new ExprError(`"${node.name}()" takes exactly one argument`)
+    const arg = node.args[0]!
+    if (node.name === "any") return group.some((tx) => truthy(evalNode(arg, tx)))
+    if (node.name === "all") return group.every((tx) => truthy(evalNode(arg, tx)))
+    if (node.name === "count") return group.filter((tx) => truthy(evalNode(arg, tx))).length
+    // countDistinct: distinct string values of the sub-expression across the group.
+    return new Set(group.map((tx) => str(evalNode(arg, tx)))).size
+  }
+  if (node.k === "field") throw new ExprError(`bare field "${node.path}" at group scope — wrap it in a quantifier (any/all/count/countDistinct)`)
+  if (node.k === "index") throw new ExprError("indexing is not valid at group scope")
+  if (node.k === "unary") {
+    if (node.op === "!") return !truthy(evalGroup(node.e, group))
+    return -num(evalGroup(node.e, group))
+  }
+  // binary — same semantics as evalNode, over group-evaluated operands
+  if (node.op === "&&") return truthy(evalGroup(node.l, group)) && truthy(evalGroup(node.r, group))
+  if (node.op === "||") return truthy(evalGroup(node.l, group)) || truthy(evalGroup(node.r, group))
+  const l = evalGroup(node.l, group)
+  const r = evalGroup(node.r, group)
+  if (node.op === "==") return eq(l, r)
+  if (node.op === "!=") return !eq(l, r)
+  if (node.op === "+") return typeof l === "number" && typeof r === "number" ? l + r : str(l) + str(r)
+  if (node.op === "-") return num(l) - num(r)
+  if (node.op === "*") return num(l) * num(r)
+  if (node.op === "/") return num(l) / num(r)
+  const a = num(l)
+  const b = num(r)
+  if (Number.isNaN(a) || Number.isNaN(b)) return false
+  if (node.op === ">") return a > b
+  if (node.op === "<") return a < b
+  if (node.op === ">=") return a >= b
+  return a <= b // "<="
+}
+
+export interface CompiledGroup {
+  test(group: Transaction[]): boolean // the `having` predicate over a group of transactions
+}
+
+// Compile a corpus `having` expression (WE-authored, full scope). Validates at load time, exactly like
+// compile(). The quantifiers (any/all/count/countDistinct) are the only group-scope additions.
+export function compileGroup(src: string): CompiledGroup {
+  const ast = parse(src)
+  return { test: (group) => truthy(evalGroup(ast, group)) }
 }
 
 // The registered function names — for docs / an agent-facing capability listing.

@@ -14,8 +14,7 @@ const ANON = "(anonymous)"
 
 interface EndpointState {
   identities: Set<string> // distinct identities that reached this endpoint (insertion order = first-seen)
-  anchor: string // first successful tx on this endpoint (matches batch `reached[0]`)
-  anonAnchor?: string // first anonymous successful tx (matches batch `reached.find(!identity)`)
+  anchor: string // first successful tx on this endpoint (both rules anchor here, matching compileCorpusRule's filtered[0])
   authed: boolean // any credentialed identity reached it
   anon: boolean // any anonymous access reached it
 }
@@ -39,13 +38,9 @@ export class AccessMatcher {
       e = { identities: new Set(), anchor: tx.id, authed: false, anon: false }
       this.endpoints.set(key, e)
     }
-    const id = tx.identity ?? ANON
-    e.identities.add(id)
+    e.identities.add(tx.identity ?? ANON)
     if (tx.identity && tx.identity !== ANON) e.authed = true
-    if (!tx.identity) {
-      e.anon = true
-      if (e.anonAnchor === undefined) e.anonAnchor = tx.id
-    }
+    if (!tx.identity) e.anon = true
   }
 
   signals(): Signal[] {
@@ -58,14 +53,16 @@ export class AccessMatcher {
           severity: "low",
           category: "access-control",
           title: "Endpoint reachable under multiple identities — access-control review",
-          evidence: `${key} reached by: ${[...e.identities].join(", ")}`,
+          // {list} in compileCorpusRule enumerates distinct NON-empty identity values; anonymous
+          // (empty identity) counts toward the ≥2 firing but is not listed, so filter ANON here too.
+          evidence: `${key} reached by: ${[...e.identities].filter((x) => x !== ANON).join(", ")}`,
           dedupKey: `cross-identity-access:${key}`,
         })
       }
       if (e.authed && e.anon) {
         out.push({
           ruleId: "unauthenticated-reach",
-          transactionId: e.anonAnchor ?? e.anchor,
+          transactionId: e.anchor,
           severity: "medium",
           category: "access-control",
           title: "Authenticated endpoint also reachable anonymously",

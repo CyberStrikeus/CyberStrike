@@ -56,8 +56,8 @@ export { requestShape } from "./shape"
 export type { Rule, CorpusRule, Signal, SignalParam, SignalTriage, TransactionHook } from "./rule"
 export { RuleRegistry, dedupe, OBSERVATIONAL_CATEGORIES, isObservational } from "./rule"
 // The DSL engine (expr) — OUR rule/matcher language (functions, active/passive/chain → signals).
-export type { Compiled, CompileOptions, Value } from "./expr"
-export { compile, query, ExprError, functionNames } from "./expr"
+export type { Compiled, CompileOptions, CompiledGroup, Value } from "./expr"
+export { compile, compileGroup, query, ExprError, functionNames } from "./expr"
 // HTTPQL — the AGENT's query interface (pure SELECT over the traffic DB, no function library). A
 // separate surface for a separate actor: `Httpql.query(txs, "resp.status:500 AND resp.body:~SQL")`.
 export * as Httpql from "./httpql"
@@ -136,6 +136,10 @@ export { ChainRuleSchema, compileChain, parseChains } from "./chain"
 // into ONE finding listing every affected endpoint — one finding, many URLs).
 export type { AggregateRule } from "./aggregate"
 export { AggregateRuleSchema, compileAggregate, compileAggregates, parseAggregates } from "./aggregate"
+// Corpus rules (LLM-friendly: group the corpus by a field, prefilter with a per-tx `where`, then a
+// `having` predicate using the group quantifiers any/all/count/countDistinct — cross-transaction as data).
+export type { CorpusRuleDef } from "./corpus-rule"
+export { CorpusRuleSchema, compileCorpusRule, compileCorpusRules, parseCorpusRules } from "./corpus-rule"
 export { correlatable, responseValues, requestValues, sharedValues } from "./taint"
 export type { Extract, Discovered } from "./discovery"
 export { ingestExtract, discoveredId } from "./discovery"
