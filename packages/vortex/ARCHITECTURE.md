@@ -502,7 +502,7 @@ The API has **two audiences**, and they get different surfaces:
 
 The agent gets **SDK-produced fixed tools, not the SDK to code against.** `agentCapabilities` are
 framework-neutral descriptors (`{ name, description, input: zodSchema, run(api, args) }`); a consumer
-writes a ~10-line adapter mapping them to its tool framework (opencode `Tool.define` / MCP / Anthropic
+writes a ~10-line adapter mapping them to its tool framework (cyberstrike `Tool.define` / MCP / Anthropic
 tools) — Vortex owns the capability set + schemas (the contract), the host owns the tool-format
 adapter, so the same engine embeds anywhere. Exposing the tools over **MCP** additionally turns the
 in-process over-privilege boundary (an agent could otherwise import internals) into a process-enforced

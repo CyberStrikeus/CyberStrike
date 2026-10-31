@@ -68,7 +68,7 @@ not the agent's surface).
 ## Wiring the tools (consumer side, ~10 lines)
 
 Vortex is framework-agnostic: it ships the facade + descriptors; you adapt them to your tool
-framework. Example (opencode-style):
+framework. Example (cyberstrike-style):
 
 ```ts
 import { forAgent, agentCapabilities } from "@cyberstrike-io/vortex"
