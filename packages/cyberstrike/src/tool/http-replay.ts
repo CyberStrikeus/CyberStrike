@@ -21,7 +21,7 @@ import { ReplayResponse } from "../replay/response"
 import { Observe } from "../replay/observe"
 import { Mutate } from "../replay/mutate"
 import { Batch } from "../replay/batch"
-import { scanElicitedResponse, type MarkerCanary } from "../session/web/signal/ingest"
+import { vortexRegisterCanary, vortexScanProbeResponse } from "../session/web/vortex-bridge"
 import { governedSend } from "../replay/govern"
 import { Verification } from "../inspection/verification"
 
@@ -436,36 +436,42 @@ export const HttpReplayTool = Tool.define("http_replay", {
       signal: ctx.abort,
     }
 
-    // Signal-fabric write-back (plan §07, closes B2/B3). Feed each elicited response
-    // through the same deterministic detectors + canary scan the ingest path uses, so
-    // evidence an agent surfaces here (an error page, a path disclosure) is persisted
-    // and routable instead of dying in this agent's context; and register `marker` as
-    // a canary so a later captured page that renders it is caught as stored reflection.
-    // Best-effort and never throws. Wired for single + compare (the confirm paths);
-    // sweep is intentionally not scanned per-value (up to 50 sends on the hot path, and
-    // the agent already sees each value's error signature in the sweep result).
+    // Elicited-response write-back to Vortex (the single signal producer, #15). Feed each elicited
+    // response through Vortex's rules + canary so evidence an agent surfaces here (an error page, a
+    // path disclosure) is persisted and routed to retest instead of dying in this agent's context; and
+    // register `marker` as a Vortex canary so a later captured page that renders it is caught as stored
+    // reflection. vortexScanProbeResponse no-ops for a synthetic id (no Vortex tx → no retest FK), so a
+    // real row id (captured, or a persisted constructed target #105) is what routes. Best-effort, never
+    // throws. Wired for single + compare (the confirm paths); sweep is intentionally not scanned
+    // per-value (up to 50 sends on the hot path, and the agent already sees each value's signature).
     const writeBack = (m: HttpMessage.Request, result: ReplayResponse.Result, withMarker: boolean, rid?: string) => {
-      const marker: MarkerCanary | undefined =
-        withMarker && params.marker
-          ? {
-              value: params.marker,
-              endpoint: `${m.method} ${m.target}`,
-              field: "(replay-marker)",
-              agent: ctx.agent,
-              vulnClass: "reflection",
-            }
-          : undefined
-      scanElicitedResponse({
-        sessionID,
-        requestId: rid ?? `replay:${originHost}${m.target}`,
-        method: m.method,
-        url: origin + m.target,
-        result,
-        marker,
-        // A real row id — captured, or a now-persisted constructed target (#105) — can be retested; a
-        // send with no persisted row keeps its synthetic id and must not enqueue (would violate the FK).
-        sourceIsCaptured: !!rid,
-      })
+      const requestId = rid ?? `replay:${originHost}${m.target}`
+      try {
+        if (withMarker && params.marker) {
+          vortexRegisterCanary(sessionID, {
+            token: params.marker,
+            kind: "reflect",
+            requestId,
+            field: "(replay-marker)",
+            vulnClass: "reflection",
+            agent: ctx.agent,
+          })
+        }
+        const parsed = result.response
+        if (!parsed) return
+        const headers: Record<string, string> = {}
+        for (const h of parsed.headers) headers[h.name] = h.value
+        vortexScanProbeResponse(sessionID, {
+          requestId,
+          method: m.method,
+          url: origin + m.target,
+          status: parsed.status,
+          headers,
+          body: new TextDecoder("latin1").decode(parsed.body),
+        })
+      } catch {
+        // best-effort — detection must never break the replay path
+      }
     }
 
     // ── Compare mode ──────────────────────────────────────────────────────

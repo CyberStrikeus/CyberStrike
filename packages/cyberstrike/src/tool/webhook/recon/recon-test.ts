@@ -4,7 +4,7 @@ import { webhookContext, toolResult, toolError } from "../define"
 import { Request } from "../../../session/request"
 import { ReconProbe, type MetafileReport, type FingerprintReport, type LeakageReport } from "./probe"
 import type { HttpSender } from "../transport"
-import { recordTechnology } from "../../../session/web/signal/ingest"
+import { vortexRecordSignal } from "../../../session/web/vortex-bridge"
 import { TechPlaybook } from "../../../session/web/signal/tech-playbook"
 
 export namespace ReconTest {
@@ -104,7 +104,17 @@ export const ReconTestTool = Tool.define("recon_test", {
       // tool output. Needs a real captured request row to anchor the retest — hence request_id.
       if (params.request_id && tech.length > 0) {
         const slugs = tech.map((t) => TechPlaybook.slugForLabel(t)).filter((s): s is string => !!s)
-        recordTechnology(wctx.sessionID, params.request_id, slugs)
+        // Record each stack as a Vortex `technology` signal (ruleId `tech-<slug>`); bridgeSignals
+        // routes it with the stack's TechPlaybook — same retest path as the passive detector (#15).
+        for (const slug of new Set(slugs))
+          vortexRecordSignal(wctx.sessionID, {
+            ruleId: `tech-${slug}`,
+            transactionId: params.request_id,
+            category: "technology",
+            severity: "info",
+            title: `Detected ${slug}`,
+            evidence: `detected ${slug}`,
+          })
       }
       const queued = params.request_id ? " (queued stack-specific test cases)" : " (pass request_id to queue test cases)"
       const label = tech.length > 0 ? `${tech.join(", ")} detected${queued}` : "no technologies detected"

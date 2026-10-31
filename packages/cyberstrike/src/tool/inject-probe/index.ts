@@ -22,9 +22,6 @@ import { MASS_ASSIGN_NOT_TESTED } from "./payloads/mass-assign"
 import { probeHostHeader, HOST_HEADER_NOT_TESTED } from "./probe/host-header"
 import { probeVerbTampering, VERB_NOT_TESTED } from "./probe/verb"
 import { createBackoff } from "./probe/base"
-import { CanaryRegistry } from "../../session/web/signal/canary"
-import { DbCanaryStore, SignalStore } from "../../session/web/signal/store"
-import { scanProbeResponse } from "../../session/web/signal/ingest"
 import { vortexRegisterCanary, vortexRecordSignal, vortexScanProbeResponse } from "../../session/web/vortex-bridge"
 
 const description = `Fire a battery of probes at ONE parameter-bearing request and return RAW OBSERVATIONS.
@@ -128,8 +125,6 @@ export const InjectProbeTool = Tool.define("inject_probe", {
     const budget: SendBudget = { sent: 0, max: 120 }
     const originRequestId = params.request_id ?? `target:${resolved.url.toString()}`
     const sourceIsCaptured = !!params.request_id
-    const canaries = new CanaryRegistry(new DbCanaryStore(sessionID))
-    const signalStore = new SignalStore(sessionID)
 
     const rawSender = new ReplaySender({
       totalTimeoutMs: SEND_TIMEOUT_MS,
@@ -141,16 +136,6 @@ export const InjectProbeTool = Tool.define("inject_probe", {
       send: async (req) => {
         const result = await rawSender.send(req)
         if (!("error" in result)) {
-          scanProbeResponse({
-            sessionID,
-            requestId: originRequestId,
-            method: req.method,
-            url: req.url,
-            status: result.status,
-            headers: result.headers,
-            body: result.body,
-            sourceIsCaptured,
-          })
           vortexScanProbeResponse(sessionID, {
             requestId: originRequestId,
             method: req.method,
@@ -294,17 +279,8 @@ export const InjectProbeTool = Tool.define("inject_probe", {
         if (ctx.abort.aborted || budget.sent >= budget.max) break
         const field = `${point.location}:${point.name}`
         const reg: RegisterCanary = (token, kind) => {
-          canaries.register({
-            token,
-            kind,
-            originRequestId,
-            endpoint: resolved.url.toString(),
-            field,
-            agent: ctx.agent,
-            vulnClass: cls,
-          })
-          // Also register into Vortex (#15 step 2), so its scanStored catches a cross-page stored
-          // reflection and routes it via the signal bridge. No-op for a synthetic target id.
+          // Register into Vortex so its scanStored catches a cross-page stored reflection and routes
+          // it via the signal bridge. No-op for a synthetic target id.
           vortexRegisterCanary(sessionID, { token, kind, requestId: originRequestId, field, vulnClass: cls, agent: ctx.agent })
         }
         if (cls === "xss") {
@@ -313,13 +289,6 @@ export const InjectProbeTool = Tool.define("inject_probe", {
           markBlocked(o, cls)
           if (o.marker_reflected) {
             const reflectEvidence = `marker reflected raw at ${field}${o.context ? ` (${o.context} context)` : ""}${o.marker_html_encoded ? " [HTML-encoded]" : ""}`
-            signalStore.record({
-              type: "reflected_input",
-              owner: "input-validation",
-              requestId: originRequestId,
-              evidence: reflectEvidence,
-              meta: { field, context: o.context, html_encoded: o.marker_html_encoded, tags: o.surviving_tags.length },
-            })
             vortexRecordSignal(sessionID, {
               ruleId: "reflected-input-xss",
               transactionId: originRequestId,
@@ -376,13 +345,6 @@ export const InjectProbeTool = Tool.define("inject_probe", {
           markBlocked(o, cls)
           if (o.append_reflected || o.prepend_reflected) {
             const hppEvidence = `HPP duplicate-param reflected at ${field} (parser: ${o.parser_behavior})`
-            signalStore.record({
-              type: "reflected_input",
-              owner: "input-validation",
-              requestId: originRequestId,
-              evidence: hppEvidence,
-              meta: { field, parser_behavior: o.parser_behavior, append: o.append_reflected, prepend: o.prepend_reflected },
-            })
             vortexRecordSignal(sessionID, {
               ruleId: "reflected-input-hpp",
               transactionId: originRequestId,
