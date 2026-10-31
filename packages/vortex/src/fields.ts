@@ -10,6 +10,7 @@ import { endpointKey, normalizePath } from "./endpoint"
 import { contentType } from "./scope"
 import { requestCookies, responseCookies } from "./cookies"
 import { graphql } from "./graphql"
+import { missingHeaders, weakCookies } from "./security-headers"
 
 // Resolve a dotted field path against a transaction to a scalar (or undefined when absent).
 export function fieldValue(tx: Transaction, field: string): string | number | undefined {
@@ -23,6 +24,10 @@ export function fieldValue(tx: Transaction, field: string): string | number | un
   if (head === "identity") return tx.identity
   if (head === "source") return tx.source
   if (head === "endpoint") return endpointKey(tx)
+  // Computed config-class details (#16): the missing required security headers / weak Set-Cookies for
+  // this response, comma-joined ("" when none). A `when` fires on != "" and {…} interpolates the list.
+  if (head === "missing_security_headers") return missingHeaders(tx).join(", ")
+  if (head === "weak_cookies") return weakCookies(tx).join(", ")
   if (head === "tech") return (tx.tech ?? []).join(",") // extractor-attached markers; regex(\"spring\", tech)
   if (head === "httpVersion") return tx.httpVersion
   if (head === "timeMs") return tx.timing?.ms

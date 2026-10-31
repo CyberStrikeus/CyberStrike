@@ -25,7 +25,7 @@ export const DeclarativeRuleSchema = z
     when: z.string(), // DSL expression — the rule fires on a transaction whose evaluation is truthy
     message: z.string().optional(), // signal title; supports {field} interpolation
     evidence: z.string().optional(), // supports {field} interpolation
-    dedupBy: z.string().optional(), // a field path to collapse on (e.g. "endpoint"); default per (rule, tx)
+    dedupBy: z.string().optional(), // a field path to collapse on ("endpoint"), OR a {field} template for a composite key ("{host}:{resp.header.server}"); default per (rule, tx)
     ...RuleMetaShape, // tags / requires — for selection at scale
   })
   .strict()
@@ -51,7 +51,10 @@ export function compileRule(dr: DeclarativeRule): Rule {
     precondition: preconditionOf(dr.when),
     evaluate(tx) {
       if (!q.test(tx)) return []
-      const dedupKey = dr.dedupBy ? `${dr.id}:${fieldValue(tx, dr.dedupBy) ?? ""}` : undefined
+      // dedupBy is a single field path, or a {field} template (braces) for a composite key.
+      const dedupKey = dr.dedupBy
+        ? `${dr.id}:${dr.dedupBy.includes("{") ? interpolate(dr.dedupBy, tx) : (fieldValue(tx, dr.dedupBy) ?? "")}`
+        : undefined
       const sig: Signal = {
         ruleId: dr.id,
         transactionId: tx.id,

@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test"
 import type { Transaction, Header } from "../src/index"
-import { missingSecurityHeaders, weakCookieFlags, serverBanner, defaultRegistry } from "../src/index"
+import { missingSecurityHeaders, weakCookieFlags, bannerRules, defaultRegistry } from "../src/index"
+
+// server-banner is now a set of per-header declarative rules (all sharing id "server-banner"); run the
+// whole set over a transaction the way the registry does.
+const runBanner = (t: Transaction) => bannerRules.flatMap((r) => r.evaluate(t))
 
 function tx(responseHeaders: Header[] | null, over: Partial<Transaction> = {}): Transaction {
   return {
@@ -85,16 +89,16 @@ describe("weak-cookie-flags (detect-once, per-host — #87)", () => {
 
 describe("server-banner", () => {
   test("fires for Server and X-Powered-By separately", () => {
-    const s = serverBanner.evaluate(tx([h("server", "uvicorn"), h("x-powered-by", "Express")]))
+    const s = runBanner(tx([h("server", "uvicorn"), h("x-powered-by", "Express")]))
     expect(s).toHaveLength(2)
     expect(s.map((x) => x.evidence)).toEqual(["Server: uvicorn", "X-Powered-By: Express"])
   })
   test("also fires for framework/version banners (x-aspnet-version, x-generator) — CS parity", () => {
-    const s = serverBanner.evaluate(tx([h("x-aspnet-version", "4.0.30319"), h("x-generator", "Drupal 9")]))
+    const s = runBanner(tx([h("x-aspnet-version", "4.0.30319"), h("x-generator", "Drupal 9")]))
     expect(s.map((x) => x.evidence)).toEqual(["x-aspnet-version: 4.0.30319", "x-generator: Drupal 9"])
   })
   test("covers the wider disclosure-header set (#5)", () => {
-    const s = serverBanner.evaluate(
+    const s = runBanner(
       tx([h("x-runtime", "12ms"), h("via", "1.1 varnish"), h("x-served-by", "cache-fra-1"), h("x-drupal-dynamic-cache", "MISS")]),
     )
     expect(s.map((x) => x.evidence)).toEqual([
@@ -105,7 +109,7 @@ describe("server-banner", () => {
     ])
   })
   test("bumps a versioned banner from info to low (#5)", () => {
-    const s = serverBanner.evaluate(tx([h("server", "Apache/2.4.49"), h("x-powered-by", "PHP")]))
+    const s = runBanner(tx([h("server", "Apache/2.4.49"), h("x-powered-by", "PHP")]))
     const apache = s.find((x) => x.evidence === "Server: Apache/2.4.49")!
     const php = s.find((x) => x.evidence === "X-Powered-By: PHP")!
     expect(apache.severity).toBe("low")

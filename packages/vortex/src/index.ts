@@ -199,7 +199,7 @@ export function defaultRegistry(): RuleRegistry {
   return new RuleRegistry().registerAll(baselineRules).registerCorpusAll(baselineCorpusRules)
 }
 
-export { headerRules, missingSecurityHeaders, weakCookieFlags, serverBanner } from "./rules/headers"
+export { headerRules, bannerRules, bannerRuleDefs, missingSecurityHeaders, weakCookieFlags, headerCorpusRuleDefs } from "./rules/headers"
 export { accessRules, crossIdentityAccess, unauthenticatedReach } from "./rules/access"
 export { idorRules, numericIdEnumerable } from "./rules/idor"
 export { idorActiveRules, numericIdNeighbor } from "./rules/idor-active"

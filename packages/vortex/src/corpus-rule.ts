@@ -37,6 +37,7 @@ export const CorpusRuleSchema = z
         where: z.string().optional(), // per-transaction prefilter applied within each group
         having: z.string(), // group predicate (quantifiers: any/all/count/countDistinct)
         list: z.string().optional(), // field whose distinct values fill {list} (default: groupBy)
+        detail: z.string().optional(), // field whose distinct comma-split tokens, unioned over the group, fill {detail}
         max: z.number().int().positive().optional(),
       })
       .strict(),
@@ -48,12 +49,13 @@ export const CorpusRuleSchema = z
 
 export type CorpusRuleDef = z.infer<typeof CorpusRuleSchema>
 
-function interpolate(template: string, anchor: Transaction, extra: { group: string; count: number; list: string }): string {
+function interpolate(template: string, anchor: Transaction, extra: { group: string; count: number; list: string; detail: string }): string {
   return template.replace(/\{([^}]+)\}/g, (_, raw) => {
     const path = String(raw).trim()
     if (path === "group") return extra.group
     if (path === "count") return String(extra.count)
     if (path === "list") return extra.list
+    if (path === "detail") return extra.detail
     return String(fieldValue(anchor, path) ?? "")
   })
 }
@@ -64,6 +66,7 @@ export function compileCorpusRule(def: CorpusRuleDef): CorpusRule {
   const where = def.corpus.where ? compile(def.corpus.where) : undefined
   const having = compileGroup(def.corpus.having)
   const listField = def.corpus.list ?? groupBy
+  const detailField = def.corpus.detail
   const cap = def.corpus.max ?? DEFAULT_LIST_CAP
   return {
     id: def.id,
@@ -86,15 +89,20 @@ export function compileCorpusRule(def: CorpusRuleDef): CorpusRule {
         const anchor = filtered[0]!
         const seen: string[] = []
         const all = new Set<string>()
+        const details = new Set<string>()
         for (const tx of filtered) {
           const v = String(fieldValue(tx, listField) ?? "")
-          if (!v || all.has(v)) continue
-          all.add(v)
-          if (seen.length < cap) seen.push(v)
+          if (v && !all.has(v)) {
+            all.add(v)
+            if (seen.length < cap) seen.push(v)
+          }
+          if (detailField)
+            for (const token of String(fieldValue(tx, detailField) ?? "").split(",").map((s) => s.trim()).filter(Boolean)) details.add(token)
         }
         const overflow = all.size - seen.length
         const list = seen.join(", ") + (overflow > 0 ? `, …(+${overflow} more)` : "")
-        const extra = { group: gkey, count: filtered.length, list }
+        // {count} = distinct values of the list field (e.g. affected endpoints), matching rollupByHost's seen.size.
+        const extra = { group: gkey, count: all.size, list, detail: [...details].join(", ") }
         out.push({
           ruleId: def.id,
           transactionId: anchor.id,
