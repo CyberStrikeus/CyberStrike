@@ -91,6 +91,26 @@ describe("server-banner", () => {
     const s = serverBanner.evaluate(tx([h("x-aspnet-version", "4.0.30319"), h("x-generator", "Drupal 9")]))
     expect(s.map((x) => x.evidence)).toEqual(["x-aspnet-version: 4.0.30319", "x-generator: Drupal 9"])
   })
+  test("covers the wider disclosure-header set (#5)", () => {
+    const s = serverBanner.evaluate(
+      tx([h("x-runtime", "12ms"), h("via", "1.1 varnish"), h("x-served-by", "cache-fra-1"), h("x-drupal-dynamic-cache", "MISS")]),
+    )
+    expect(s.map((x) => x.evidence)).toEqual([
+      "x-runtime: 12ms",
+      "via: 1.1 varnish",
+      "x-served-by: cache-fra-1",
+      "x-drupal-dynamic-cache: MISS",
+    ])
+  })
+  test("bumps a versioned banner from info to low (#5)", () => {
+    const s = serverBanner.evaluate(tx([h("server", "Apache/2.4.49"), h("x-powered-by", "PHP")]))
+    const apache = s.find((x) => x.evidence === "Server: Apache/2.4.49")!
+    const php = s.find((x) => x.evidence === "X-Powered-By: PHP")!
+    expect(apache.severity).toBe("low")
+    expect(apache.title).toBe("Server version disclosed")
+    expect(php.severity).toBe("info")
+    expect(php.title).toBe("X-Powered-By disclosed")
+  })
 })
 
 describe("defaultRegistry", () => {

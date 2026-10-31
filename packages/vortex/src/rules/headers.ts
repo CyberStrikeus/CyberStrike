@@ -106,8 +106,29 @@ export const weakCookieFlags: CorpusRule = {
   },
 }
 
-// Server / X-Powered-By disclose the stack (and often a version) — an info-level recon leak that
-// narrows an attacker's search. Low value alone, but deterministic and free to surface.
+// Response headers that disclose the stack/tech (and often a version) — a recon leak that narrows an
+// attacker's search. Low value alone, but deterministic and free to surface. A banner carrying a
+// version (e.g. Apache/2.4.49) is worth more than a bare one (Apache) — it maps to CVEs and feeds the
+// version-CVE probe — so a versioned banner is bumped from `info` to `low` (#5).
+// name = the lowercase header to look up; label = how it reads in the evidence/title. Server and
+// X-Powered-By keep their canonical casing; the framework/version headers keep the lowercase form the
+// CS detector emitted (#15 parity).
+const DISCLOSURE_HEADERS: { name: string; label: string }[] = [
+  { name: "server", label: "Server" },
+  { name: "x-powered-by", label: "X-Powered-By" },
+  { name: "x-aspnet-version", label: "x-aspnet-version" },
+  { name: "x-aspnetmvc-version", label: "x-aspnetmvc-version" },
+  { name: "x-generator", label: "x-generator" },
+  { name: "x-runtime", label: "x-runtime" },
+  { name: "via", label: "via" },
+  { name: "x-backend-server", label: "x-backend-server" },
+  { name: "x-served-by", label: "x-served-by" },
+  { name: "x-drupal-dynamic-cache", label: "x-drupal-dynamic-cache" },
+]
+
+// A dotted number (2.4.49, 7.4) marks a versioned banner — higher value than a bare product name.
+const hasVersion = (v: string) => /\d+\.\d+/.test(v)
+
 export const serverBanner: Rule = {
   id: "server-banner",
   title: "Server / technology banner disclosed",
@@ -115,19 +136,22 @@ export const serverBanner: Rule = {
   severity: "info",
   evaluate(tx) {
     if (!tx.response) return []
-    const out: Signal[] = []
-    const server = header(tx.response.headers, "server")
-    const powered = header(tx.response.headers, "x-powered-by")
-    // A banner is per-SERVER, not per-endpoint — dedup by host+value so one host yields one signal,
-    // not one per request.
-    if (server) out.push(sig(this.id, tx, { severity: "info", category: "misconfiguration", title: "Server banner disclosed", evidence: `Server: ${server}`, dedupKey: `${this.id}:${tx.host}:server:${server}` }))
-    if (powered) out.push(sig(this.id, tx, { severity: "info", category: "misconfiguration", title: "X-Powered-By disclosed", evidence: `X-Powered-By: ${powered}`, dedupKey: `${this.id}:${tx.host}:powered:${powered}` }))
-    // Framework/version banners the CS detector also surfaced (parity, #15).
-    for (const name of ["x-aspnet-version", "x-aspnetmvc-version", "x-generator"]) {
-      const v = header(tx.response.headers, name)
-      if (v) out.push(sig(this.id, tx, { severity: "info", category: "misconfiguration", title: `${name} disclosed`, evidence: `${name}: ${v}`, dedupKey: `${this.id}:${tx.host}:${name}:${v}` }))
-    }
-    return out
+    // A banner is per-SERVER, not per-endpoint — dedup by host+header+value so one host yields one
+    // signal per distinct banner, not one per request.
+    return DISCLOSURE_HEADERS.flatMap(({ name, label }) => {
+      const v = header(tx.response!.headers, name)
+      if (!v) return []
+      const versioned = hasVersion(v)
+      return [
+        sig(this.id, tx, {
+          severity: versioned ? "low" : "info",
+          category: "misconfiguration",
+          title: versioned ? `${label} version disclosed` : `${label} disclosed`,
+          evidence: `${label}: ${v}`,
+          dedupKey: `${this.id}:${tx.host}:${name}:${v}`,
+        }),
+      ]
+    })
   },
 }
 

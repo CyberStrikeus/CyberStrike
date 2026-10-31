@@ -372,7 +372,9 @@ header rule skips a `.js` bundle or a 301 instead of flagging every one.
 - `missing-security-headers` — HSTS / CSP / X-Content-Type-Options / X-Frame-Options (or CSP
   frame-ancestors), scoped to content responses, deduped per endpoint+missing-set.
 - `weak-cookie-flags` — Set-Cookie lacking HttpOnly / Secure / SameSite, per cookie.
-- `server-banner` — Server / X-Powered-By disclosure, deduped per host.
+- `server-banner` — tech/version disclosure across Server, X-Powered-By, X-AspNet(-Mvc)-Version,
+  X-Generator, X-Runtime, Via, X-Backend-Server, X-Served-By, X-Drupal-Dynamic-Cache; deduped per
+  host+header+value, bumped info→low when the banner carries a version.
 - `cross-identity-access` (corpus) — an endpoint reached 2xx under 2+ identities = BFLA/IDOR review
   surface.
 - `unauthenticated-reach` (corpus) — an authenticated endpoint also served anonymously.
