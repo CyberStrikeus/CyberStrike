@@ -1,1 +1,1 @@
-Web & JS reverse engineer — Electron apps, browser extensions, JS bundles, runtime observation
+Web & JS reverse engineer — asar extract, js-beautify, source-map-explorer for Electron, extensions, bundles

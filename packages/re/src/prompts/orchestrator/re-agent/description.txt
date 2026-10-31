@@ -1,1 +1,1 @@
-Reverse engineering orchestrator — triages artifacts and coordinates RE specialists
+Reverse engineering orchestrator — triages artifacts and coordinates RE specialists via bash tooling

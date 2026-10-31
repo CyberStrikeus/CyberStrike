@@ -1,1 +1,1 @@
-Managed code analyst — .NET assemblies, JVM bytecode, IL2CPP/Unity binary recovery
+Managed code analyst — .NET decompilation via ilspycmd/monodis, JVM via javap/cfr, IL2CPP recovery
