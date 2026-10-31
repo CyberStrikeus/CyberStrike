@@ -104,7 +104,7 @@ export namespace ApiProbe {
 
   // Feed one probe response to Vortex (the single producer); returns how many signals it raised,
   // which bridgeSignals queues as specialist retests. No-ops for a synthetic id (no Vortex tx).
-  function feed(input: { sessionID: string; requestId: string; realRequest: boolean; method: string; url: string; parsed: Send.Result["response"] }): number {
+  function feed(input: { sessionID: string; requestId: string; method: string; url: string; parsed: Send.Result["response"] }): number {
     if (!input.parsed) return 0
     return vortexScanProbeResponse(input.sessionID, {
       requestId: input.requestId,
@@ -266,7 +266,6 @@ export namespace ApiProbe {
         const signals = feed({
           sessionID: input.sessionID,
           requestId: input.requestId,
-          realRequest: !!input.keyHash,
           method: msg.method,
           url: input.origin + msg.target,
           parsed: res.response,

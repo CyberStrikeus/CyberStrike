@@ -124,7 +124,6 @@ export const InjectProbeTool = Tool.define("inject_probe", {
     const DELAY = 120
     const budget: SendBudget = { sent: 0, max: 120 }
     const originRequestId = params.request_id ?? `target:${resolved.url.toString()}`
-    const sourceIsCaptured = !!params.request_id
 
     const rawSender = new ReplaySender({
       totalTimeoutMs: SEND_TIMEOUT_MS,
