@@ -1973,6 +1973,111 @@
       if (host.isConnected) sendObservation()
     }, 800)
   }
+
+  // Proactive surface-reveal sweep (#11). The passive observer only sees a disclosure or a lazy row
+  // ONCE it is already open/loaded, so actions behind a closed accordion/<details> and content below
+  // the fold are silently dropped from the crawl surface — the co-drive agent never learns the
+  // endpoints behind them exist. Before observing, open the SAFE ARIA disclosure subset and scroll the
+  // page so lazy content settles, then reobserve the fuller surface. Deterministic, budgeted, once per
+  // URL; state-mutating triggers are deliberately left to the agent.
+  const REVEAL_MAX_STEPS = 8
+  const REVEAL_STEP_WAIT = 250
+  const EXPAND_MAX = 40
+  function expandDisclosures() {
+    let budget = EXPAND_MAX
+    try {
+      for (const d of document.querySelectorAll("details:not([open])")) {
+        if (budget <= 0) break
+        d.open = true // attribute only — no event, zero side effect
+        budget--
+      }
+      for (const c of document.querySelectorAll('[aria-expanded="false"]')) {
+        if (budget <= 0) break
+        if (c.getAttribute("role") === "tab") continue // tab select mutates active-panel state → agent's call
+        const hp = c.getAttribute("aria-haspopup")
+        if (hp && hp !== "false") continue // popup/overlay trigger (backdrop can trap clicks / freeze) → agent's call
+        try {
+          c.click()
+        } catch {}
+        budget--
+      }
+    } catch {}
+  }
+  async function revealLazyContent() {
+    try {
+      for (let i = 0; i < REVEAL_MAX_STEPS; i++) {
+        const before = window.scrollY
+        window.scrollBy(0, Math.round((window.innerHeight || 0) * 0.9))
+        await csleep(REVEAL_STEP_WAIT)
+        if (window.scrollY <= before) break // reached the bottom
+      }
+      window.scrollTo(0, 0)
+      await csleep(REVEAL_STEP_WAIT)
+    } catch {}
+  }
+  // Safe modal-trigger exploration (#11 A). expandDisclosures() deliberately skips aria-haspopup
+  // triggers, so a "Save"/"Invite"/"New" dialog whose form POSTs to an endpoint reachable ONLY once the
+  // dialog is open is never seen. Open each dialog trigger, observe the modal-gated surface while it is
+  // up (observePage flags it in_modal), then close it with Escape. Bounded and sequential; if a modal
+  // won't close we STOP before opening more — a stuck backdrop that traps clicks is the freeze the
+  // passive design feared, so we hand it to the agent rather than stacking modals.
+  const MODAL_MAX = 6
+  const MODAL_OPEN_WAIT = 350
+  const MODAL_CLOSE_WAIT = 250
+  function modalOpen() {
+    try {
+      return !!document.querySelector('[role="dialog"],[aria-modal="true"],dialog[open]')
+    } catch {
+      return false
+    }
+  }
+  function pressEscape() {
+    try {
+      const t = document.activeElement || document.body
+      for (const type of ["keydown", "keyup"])
+        t.dispatchEvent(new KeyboardEvent(type, { key: "Escape", code: "Escape", keyCode: 27, which: 27, bubbles: true, cancelable: true }))
+    } catch {}
+  }
+  async function exploreModals() {
+    if (modalOpen()) return // a modal is already up — leave it for the agent, don't stack
+    let triggers
+    try {
+      triggers = document.querySelectorAll('[aria-haspopup="dialog"]')
+    } catch {
+      return
+    }
+    let budget = MODAL_MAX
+    for (const t of triggers) {
+      if (budget <= 0) break
+      if (t.getAttribute("aria-expanded") === "true") continue // already open/handled
+      budget--
+      try {
+        t.click()
+      } catch {
+        continue
+      }
+      await csleep(MODAL_OPEN_WAIT)
+      if (!modalOpen()) continue // nothing opened — harmless, move on
+      sendObservation(true) // capture the modal-gated surface (in_modal) before we close it
+      pressEscape()
+      await csleep(MODAL_CLOSE_WAIT)
+      if (modalOpen()) {
+        pressEscape() // one retry
+        await csleep(MODAL_CLOSE_WAIT)
+      }
+      if (modalOpen()) break // couldn't close → stop before stacking/freezing; agent takes over
+    }
+  }
+  let revealedUrl = ""
+  async function maybeReveal() {
+    if (disabled) return
+    if (location.href === revealedUrl) return // at most once per URL — no observe-loop recursion
+    revealedUrl = location.href
+    expandDisclosures()
+    await revealLazyContent()
+    await exploreModals() // #11 A: open modal-gated surface, observe it, close it
+    scheduleReobserve() // reobserve the fuller surface (debounced, not a direct observePage call)
+  }
   function reregisterIO(els) {
     if (!io) return
     try {
@@ -2071,6 +2176,7 @@
     if (location.href !== lastUrl) {
       lastUrl = location.href
       scheduleReobserve()
+      void maybeReveal() // #11: SPA route change exposes a new surface — reveal its hidden/lazy content
     }
   }
   window.addEventListener("popstate", onNav)
@@ -2434,6 +2540,7 @@
     if (location.href !== lastUrl) {
       lastUrl = location.href
       sendObservation(true) // navigation is an intentional observe — always send
+      void maybeReveal() // #11: reveal the new page's hidden/lazy surface before the agent acts
     }
     // Session keep-alive (spawned role browser with a real identity, while capturing). Skips
     // anonymous (no session to keep) and detached (assessment not active for this tab). The
@@ -2473,6 +2580,7 @@
     send({ type: "hblog", event: "content-mounted", data: { url: location.href } })
     startObservers()
     sendObservation(true) // initial observation on mount — always send
+    void maybeReveal() // #11: sweep hidden disclosures + lazy content, then reobserve the fuller surface
     loadSessions()
     chrome.storage.local.get(["credential", "spawnedCred"], (o) => {
       const active = o && o.credential ? o.credential.label || "" : ""
