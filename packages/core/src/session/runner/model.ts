@@ -75,7 +75,7 @@ export interface Interface {
   readonly resolve: (session: SessionSchema.Info) => Effect.Effect<Model, Error>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/v2/SessionRunnerModel") {}
+export class Service extends Context.Service<Service, Interface>()("@cyberstrike/v2/SessionRunnerModel") {}
 
 /** Test or embedding seam for supplying a model resolver directly. */
 export const layerWith = (resolve: Interface["resolve"]) => Layer.succeed(Service, Service.of({ resolve }))

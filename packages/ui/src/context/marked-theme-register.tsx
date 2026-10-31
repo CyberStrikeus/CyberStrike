@@ -1,10 +1,10 @@
 import { registerCustomTheme } from "@pierre/diffs"
-import { OpenCodeTheme } from "./marked-theme"
+import { CyberStrikeTheme } from "./marked-theme"
 
 let registered = false
 
-export function registerOpenCodeTheme() {
+export function registerCyberStrikeTheme() {
   if (registered) return
   registered = true
-  registerCustomTheme("CyberStrike", () => Promise.resolve(OpenCodeTheme))
+  registerCustomTheme("CyberStrike", () => Promise.resolve(CyberStrikeTheme))
 }

@@ -24,7 +24,7 @@ export interface Interface extends State.Transformable<Draft> {
   readonly list: () => Effect.Effect<Info[]>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/v2/Command") {}
+export class Service extends Context.Service<Service, Interface>()("@cyberstrike/v2/Command") {}
 
 const layer = Layer.effect(
   Service,

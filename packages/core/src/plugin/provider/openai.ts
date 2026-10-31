@@ -189,7 +189,7 @@ export const OpenAIPlugin = define({
 } satisfies PluginInternal.Plugin<PluginInternal.Requirements | Scope.Scope>)
 
 function headers(contentType: string) {
-  return { "Content-Type": contentType, "User-Agent": `opencode/${InstallationVersion}` }
+  return { "Content-Type": contentType, "User-Agent": `cyberstrike/${InstallationVersion}` }
 }
 
 function exchange(code: string, redirect: string, pkce: Pkce) {

@@ -179,7 +179,7 @@ export interface Interface {
   }
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/v2/Session") {}
+export class Service extends Context.Service<Service, Interface>()("@cyberstrike/v2/Session") {}
 
 const layer = Layer.effect(
   Service,

@@ -1,6 +1,6 @@
 import type { ThemeRegistrationResolved } from "@pierre/diffs"
 
-export const OpenCodeTheme = {
+export const CyberStrikeTheme = {
   name: "CyberStrike",
   bg: "var(--color-background-stronger)",
   fg: "var(--text-base)",

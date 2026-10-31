@@ -260,7 +260,7 @@ export function emitPromise(
       {
         path: "index.ts",
         content:
-          'export { ClientError, type ClientErrorReason } from "./client-error"\nexport * as OpenCode from "./client"\nexport * from "./types"\n',
+          'export { ClientError, type ClientErrorReason } from "./client-error"\nexport * as CyberStrike from "./client"\nexport * from "./types"\n',
       },
     ],
   }
@@ -316,7 +316,7 @@ function renderEffectFiles(groups: ReadonlyArray<Group>): Output["files"] {
     { path: "client.ts", content: renderClient(groups) },
     {
       path: "index.ts",
-      content: 'export { ClientError } from "./client-error"\nexport * as OpenCode from "./client"\n',
+      content: 'export { ClientError } from "./client-error"\nexport * as CyberStrike from "./client"\n',
     },
   ]
 }
@@ -385,7 +385,7 @@ function renderImportedEffectFiles(
     { path: "client.ts", content: client },
     {
       path: "index.ts",
-      content: 'export { ClientError } from "./client-error"\nexport * as OpenCode from "./client"\n',
+      content: 'export { ClientError } from "./client-error"\nexport * as CyberStrike from "./client"\n',
     },
   ]
 }

@@ -47,7 +47,7 @@ export namespace FSUtil {
     readonly globMatch: (pattern: string, filepath: string) => boolean
   }
 
-  export class Service extends Context.Service<Service, Interface>()("@opencode/FileSystem") {}
+  export class Service extends Context.Service<Service, Interface>()("@cyberstrike/FileSystem") {}
 
   export const use = serviceUse(Service)
 

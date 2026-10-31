@@ -17,7 +17,7 @@ export interface Interface {
   db: DatabaseShape
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/v2/storage/Database") {}
+export class Service extends Context.Service<Service, Interface>()("@cyberstrike/v2/storage/Database") {}
 
 const layer = Layer.effect(
   Service,
@@ -41,17 +41,17 @@ export function layerFromPath(filename: string) {
 }
 
 export function path() {
-  if (Flag.OPENCODE_DB) {
-    if (Flag.OPENCODE_DB === ":memory:" || isAbsolute(Flag.OPENCODE_DB)) return Flag.OPENCODE_DB
-    return join(Global.Path.data, Flag.OPENCODE_DB)
+  if (Flag.CYBERSTRIKE_DB) {
+    if (Flag.CYBERSTRIKE_DB === ":memory:" || isAbsolute(Flag.CYBERSTRIKE_DB)) return Flag.CYBERSTRIKE_DB
+    return join(Global.Path.data, Flag.CYBERSTRIKE_DB)
   }
   if (
     ["latest", "beta", "prod"].includes(InstallationChannel) ||
-    process.env.OPENCODE_DISABLE_CHANNEL_DB === "1" ||
-    process.env.OPENCODE_DISABLE_CHANNEL_DB === "true"
+    process.env.CYBERSTRIKE_DISABLE_CHANNEL_DB === "1" ||
+    process.env.CYBERSTRIKE_DISABLE_CHANNEL_DB === "true"
   )
-    return join(Global.Path.data, "opencode.db")
-  return join(Global.Path.data, `opencode-${InstallationChannel.replace(/[^a-zA-Z0-9._-]/g, "-")}.db`)
+    return join(Global.Path.data, "cyberstrike.db")
+  return join(Global.Path.data, `cyberstrike-${InstallationChannel.replace(/[^a-zA-Z0-9._-]/g, "-")}.db`)
 }
 
 export const node = makeGlobalNode({ service: Service, layer: layerFromPath(path()), deps: [] })

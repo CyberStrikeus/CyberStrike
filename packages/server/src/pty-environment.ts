@@ -7,7 +7,7 @@ export interface Interface {
   readonly get: (input: { directory: string; cwd: string }) => Effect.Effect<Record<string, string>>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/ServerPtyEnvironment") {}
+export class Service extends Context.Service<Service, Interface>()("@cyberstrike/ServerPtyEnvironment") {}
 
 export const layer = Layer.succeed(
   Service,

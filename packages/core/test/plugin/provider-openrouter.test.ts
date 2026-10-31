@@ -39,7 +39,7 @@ describe("OpenRouterPlugin", () => {
 
       expect((yield* catalog.provider.get(ProviderV2.ID.openrouter))?.request.headers).toEqual({
         Existing: "value",
-        "HTTP-Referer": "https://opencode.ai/",
+        "HTTP-Referer": "https://cyberstrike.io/",
         "X-Title": "cyberstrike",
       })
       expect((yield* catalog.provider.get(ProviderV2.ID.make("nvidia")))?.request.headers).toEqual({})

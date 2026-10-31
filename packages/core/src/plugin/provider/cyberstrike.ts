@@ -13,8 +13,8 @@ import { ConfigProviderV1 } from "../../v1/config/provider"
 import { ConfigProviderOptionsV1 } from "../../v1/config/provider-options"
 import { ConfigV1 } from "../../v1/config/config"
 
-const defaultServer = "https://opencode.ai/console"
-const clientID = "opencode-cli"
+const defaultServer = "https://cyberstrike.io/console"
+const clientID = "cyberstrike-cli"
 const methodID = Integration.MethodID.make("device")
 const RemoteResponse = Schema.Struct({ config: ConfigV1.Info })
 const Device = Schema.Struct({
@@ -40,7 +40,7 @@ function oauth(http: HttpClient.HttpClient) {
     method: {
       id: methodID,
       type: "oauth",
-      label: "OpenCode Console account",
+      label: "CyberStrike Console account",
     },
     authorize: () =>
       Effect.gen(function* () {
@@ -83,7 +83,7 @@ function oauth(http: HttpClient.HttpClient) {
   } satisfies IntegrationOAuthMethodRegistration
 }
 
-export const OpencodePlugin = define<HttpClient.HttpClient | EventV2.Service | Scope.Scope>({
+export const CyberStrikePlugin = define<HttpClient.HttpClient | EventV2.Service | Scope.Scope>({
   id: "cyberstrike",
   effect: Effect.fn(function* (ctx) {
     const events = yield* EventV2.Service
@@ -92,7 +92,7 @@ export const OpencodePlugin = define<HttpClient.HttpClient | EventV2.Service | S
     let connected = false
     let providers: typeof ConfigV1.Info.Type.provider | undefined
 
-    const load = Effect.fn("OpencodePlugin.load")(function* () {
+    const load = Effect.fn("CyberStrikePlugin.load")(function* () {
       const connection = yield* ctx.integration.connection.active("cyberstrike")
       const credential = connection
         ? yield* ctx.integration.connection.resolve(connection).pipe(Effect.catch(() => Effect.succeed(undefined)))
@@ -101,7 +101,7 @@ export const OpencodePlugin = define<HttpClient.HttpClient | EventV2.Service | S
       providers = credential
         ? yield* fetchProviders(http, credential).pipe(
             Effect.catch((cause) =>
-              Effect.logWarning("failed to load OpenCode provider config", { cause }).pipe(Effect.as(undefined)),
+              Effect.logWarning("failed to load CyberStrike provider config", { cause }).pipe(Effect.as(undefined)),
             ),
           )
         : undefined
@@ -109,7 +109,7 @@ export const OpencodePlugin = define<HttpClient.HttpClient | EventV2.Service | S
 
     yield* ctx.integration.transform((draft) => {
       draft.update("cyberstrike", (integration) => {
-        integration.name = "OpenCode"
+        integration.name = "CyberStrike"
       })
       draft.method.update(oauth(http))
       draft.method.update({ integrationID: "cyberstrike", method: { type: "key", label: "API key (service account)" } })
@@ -171,9 +171,9 @@ export const OpencodePlugin = define<HttpClient.HttpClient | EventV2.Service | S
         }
       }
 
-      const item = catalog.provider.get(ProviderV2.ID.opencode)
+      const item = catalog.provider.get(ProviderV2.ID.cyberstrike)
       if (!item) return
-      const hasKey = Boolean(process.env.OPENCODE_API_KEY || connected || item.provider.request.body.apiKey)
+      const hasKey = Boolean(process.env.CYBERSTRIKE_API_KEY || connected || item.provider.request.body.apiKey)
       catalog.provider.update(item.provider.id, (provider) => {
         if (!hasKey) provider.request.body.apiKey = "public"
       })

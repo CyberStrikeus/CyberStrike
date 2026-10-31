@@ -25,4 +25,4 @@ export interface Interface {
   }) => Effect.Effect<void, RunError>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/v2/SessionRunner") {}
+export class Service extends Context.Service<Service, Interface>()("@cyberstrike/v2/SessionRunner") {}

@@ -10,7 +10,7 @@
 // (search is grep-gated; send keeps the replay-safety guard).
 //
 // Vortex stays framework-agnostic: it ships the facade + `agentCapabilities` (name + description +
-// zod input + handler); a consumer writes a ~10-line adapter to its tool framework (opencode
+// zod input + handler); a consumer writes a ~10-line adapter to its tool framework (cyberstrike
 // Tool.define / MCP / Anthropic tools). SDK-produced FIXED tools — the agent calls them, it does not
 // write code against the SDK.
 import z from "zod"

@@ -35,7 +35,7 @@ export async function createServer(options?: ServerOptions) {
   const proc = launch(`cyberstrike`, args, {
     env: {
       ...process.env,
-      OPENCODE_CONFIG_CONTENT: JSON.stringify(options.config ?? {}),
+      CYBERSTRIKE_CONFIG_CONTENT: JSON.stringify(options.config ?? {}),
     },
   })
   let clear = () => {}
@@ -119,7 +119,7 @@ export function createTui(options?: TuiOptions) {
     stdio: "inherit",
     env: {
       ...process.env,
-      OPENCODE_CONFIG_CONTENT: JSON.stringify(options?.config ?? {}),
+      CYBERSTRIKE_CONFIG_CONTENT: JSON.stringify(options?.config ?? {}),
     },
   })
 

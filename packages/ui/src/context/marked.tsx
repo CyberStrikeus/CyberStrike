@@ -2,11 +2,11 @@ import { getSharedHighlighter } from "@pierre/diffs"
 import { bundledLanguages, type BundledLanguage } from "shiki"
 import { createSimpleContext } from "./helper"
 import { createMarkdownParser } from "./marked-parser"
-import { registerOpenCodeTheme } from "./marked-theme-register"
+import { registerCyberStrikeTheme } from "./marked-theme-register"
 
-export { OpenCodeTheme } from "./marked-theme"
+export { CyberStrikeTheme } from "./marked-theme"
 
-registerOpenCodeTheme()
+registerCyberStrikeTheme()
 
 export const { use: useMarked, provider: MarkedProvider } = createSimpleContext({
   name: "Marked",

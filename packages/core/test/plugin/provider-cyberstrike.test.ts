@@ -8,7 +8,7 @@ import { Integration } from "@cyberstrike-io/core/integration"
 import { ModelV2 } from "@cyberstrike-io/core/model"
 import { PluginV2 } from "@cyberstrike-io/core/plugin"
 import { PluginHost } from "@cyberstrike-io/core/plugin/host"
-import { OpencodePlugin } from "@cyberstrike-io/core/plugin/provider/opencode"
+import { CyberStrikePlugin } from "@cyberstrike-io/core/plugin/provider/cyberstrike"
 import { ProviderV2 } from "@cyberstrike-io/core/provider"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"
@@ -21,7 +21,7 @@ const addPlugin = Effect.fn(function* (http?: HttpClient.HttpClient) {
   const events = yield* EventV2.Service
   const integration = yield* Integration.Service
   const client = yield* HttpClient.HttpClient
-  yield* OpencodePlugin.effect(host).pipe(
+  yield* CyberStrikePlugin.effect(host).pipe(
     Effect.provideService(EventV2.Service, events),
     Effect.provideService(Integration.Service, integration),
     Effect.provideService(HttpClient.HttpClient, http ?? client),
@@ -70,7 +70,7 @@ function withEnv<A, E, R>(vars: Record<string, string | undefined>, effect: () =
 
 const cost = (input: number, output = 0) => [{ input, output, cache: { read: 0, write: 0 } }]
 
-describe("OpencodePlugin", () => {
+describe("CyberStrikePlugin", () => {
   it.effect("registers account and service account methods", () =>
     Effect.gen(function* () {
       yield* addPlugin()
@@ -78,7 +78,7 @@ describe("OpencodePlugin", () => {
         {
           id: Integration.MethodID.make("device"),
           type: "oauth",
-          label: "OpenCode Console account",
+          label: "CyberStrike Console account",
         },
         { type: "key", label: "API key (service account)" },
       ])
@@ -94,7 +94,7 @@ describe("OpencodePlugin", () => {
             Response.json({
               device_code: "device",
               user_code: "user",
-              verification_uri_complete: "/console/device?user_code=user&client_id=opencode-cli",
+              verification_uri_complete: "/console/device?user_code=user&client_id=cyberstrike-cli",
               expires_in: 60,
               interval: 60,
             }),
@@ -108,7 +108,7 @@ describe("OpencodePlugin", () => {
         methodID: Integration.MethodID.make("device"),
         inputs: {},
       })
-      expect(attempt.url).toBe("https://opencode.ai/console/device?user_code=user&client_id=opencode-cli")
+      expect(attempt.url).toBe("https://cyberstrike.io/console/device?user_code=user&client_id=cyberstrike-cli")
     }),
   )
 
@@ -142,7 +142,7 @@ describe("OpencodePlugin", () => {
     }),
   )
 
-  it.live("loads providers and models from the connected OpenCode server", () =>
+  it.live("loads providers and models from the connected CyberStrike server", () =>
     Effect.acquireUseRelease(
       Effect.sync(() => {
         const authorization: Array<string | null> = []
@@ -258,12 +258,12 @@ describe("OpencodePlugin", () => {
   )
 
   it.effect("uses a public key and disables paid models without credentials", () =>
-    withEnv({ OPENCODE_API_KEY: undefined }, () =>
+    withEnv({ CYBERSTRIKE_API_KEY: undefined }, () =>
       Effect.gen(function* () {
         const catalog = yield* Catalog.Service
         yield* catalog.transform((catalog) => {
           const provider = ProviderV2.Info.make({
-            ...ProviderV2.Info.empty(ProviderV2.ID.opencode),
+            ...ProviderV2.Info.empty(ProviderV2.ID.cyberstrike),
             api: { type: "aisdk", package: "test-provider" },
           })
           const model = ModelV2.Info.make({
@@ -277,19 +277,19 @@ describe("OpencodePlugin", () => {
           })
         })
         yield* addPlugin()
-        expect(required(yield* catalog.provider.get(ProviderV2.ID.opencode)).request.body.apiKey).toBe("public")
-        expect(required(yield* catalog.model.get(ProviderV2.ID.opencode, ModelV2.ID.make("paid"))).enabled).toBe(false)
+        expect(required(yield* catalog.provider.get(ProviderV2.ID.cyberstrike)).request.body.apiKey).toBe("public")
+        expect(required(yield* catalog.model.get(ProviderV2.ID.cyberstrike, ModelV2.ID.make("paid"))).enabled).toBe(false)
       }),
     ),
   )
 
   it.effect("keeps free models without credentials", () =>
-    withEnv({ OPENCODE_API_KEY: undefined }, () =>
+    withEnv({ CYBERSTRIKE_API_KEY: undefined }, () =>
       Effect.gen(function* () {
         const catalog = yield* Catalog.Service
         yield* catalog.transform((catalog) => {
           const provider = ProviderV2.Info.make({
-            ...ProviderV2.Info.empty(ProviderV2.ID.opencode),
+            ...ProviderV2.Info.empty(ProviderV2.ID.cyberstrike),
             api: { type: "aisdk", package: "test-provider" },
           })
           const model = ModelV2.Info.make({
@@ -303,19 +303,19 @@ describe("OpencodePlugin", () => {
           })
         })
         yield* addPlugin()
-        expect(required(yield* catalog.provider.get(ProviderV2.ID.opencode)).request.body.apiKey).toBe("public")
-        expect(required(yield* catalog.model.get(ProviderV2.ID.opencode, ModelV2.ID.make("free"))).enabled).toBe(true)
+        expect(required(yield* catalog.provider.get(ProviderV2.ID.cyberstrike)).request.body.apiKey).toBe("public")
+        expect(required(yield* catalog.model.get(ProviderV2.ID.cyberstrike, ModelV2.ID.make("free"))).enabled).toBe(true)
       }),
     ),
   )
 
   it.effect("treats output-only cost as free without credentials", () =>
-    withEnv({ OPENCODE_API_KEY: undefined }, () =>
+    withEnv({ CYBERSTRIKE_API_KEY: undefined }, () =>
       Effect.gen(function* () {
         const catalog = yield* Catalog.Service
         yield* catalog.transform((catalog) => {
           const provider = ProviderV2.Info.make({
-            ...ProviderV2.Info.empty(ProviderV2.ID.opencode),
+            ...ProviderV2.Info.empty(ProviderV2.ID.cyberstrike),
             api: { type: "aisdk", package: "test-provider" },
           })
           const model = ModelV2.Info.make({
@@ -329,21 +329,21 @@ describe("OpencodePlugin", () => {
           })
         })
         yield* addPlugin()
-        expect(required(yield* catalog.provider.get(ProviderV2.ID.opencode)).request.body.apiKey).toBe("public")
-        expect(required(yield* catalog.model.get(ProviderV2.ID.opencode, ModelV2.ID.make("output-only"))).enabled).toBe(
+        expect(required(yield* catalog.provider.get(ProviderV2.ID.cyberstrike)).request.body.apiKey).toBe("public")
+        expect(required(yield* catalog.model.get(ProviderV2.ID.cyberstrike, ModelV2.ID.make("output-only"))).enabled).toBe(
           true,
         )
       }),
     ),
   )
 
-  it.effect("uses OPENCODE_API_KEY as credentials", () =>
-    withEnv({ OPENCODE_API_KEY: "secret" }, () =>
+  it.effect("uses CYBERSTRIKE_API_KEY as credentials", () =>
+    withEnv({ CYBERSTRIKE_API_KEY: "secret" }, () =>
       Effect.gen(function* () {
         const catalog = yield* Catalog.Service
         yield* catalog.transform((catalog) => {
           const provider = ProviderV2.Info.make({
-            ...ProviderV2.Info.empty(ProviderV2.ID.opencode),
+            ...ProviderV2.Info.empty(ProviderV2.ID.cyberstrike),
             api: { type: "aisdk", package: "test-provider" },
           })
           const model = ModelV2.Info.make({
@@ -357,26 +357,26 @@ describe("OpencodePlugin", () => {
           })
         })
         yield* addPlugin()
-        expect(required(yield* catalog.provider.get(ProviderV2.ID.opencode)).request.body.apiKey).toBeUndefined()
-        expect(required(yield* catalog.model.get(ProviderV2.ID.opencode, ModelV2.ID.make("paid"))).enabled).toBe(true)
+        expect(required(yield* catalog.provider.get(ProviderV2.ID.cyberstrike)).request.body.apiKey).toBeUndefined()
+        expect(required(yield* catalog.model.get(ProviderV2.ID.cyberstrike, ModelV2.ID.make("paid"))).enabled).toBe(true)
       }),
     ),
   )
 
   it.effect("uses configured provider env vars as credentials", () =>
-    withEnv({ OPENCODE_API_KEY: undefined, CUSTOM_OPENCODE_API_KEY: "secret" }, () =>
+    withEnv({ CYBERSTRIKE_API_KEY: undefined, CUSTOM_CYBERSTRIKE_API_KEY: "secret" }, () =>
       Effect.gen(function* () {
         const catalog = yield* Catalog.Service
         const integrations = yield* Integration.Service
         yield* integrations.transform((editor) => {
           editor.method.update({
             integrationID: Integration.ID.make("cyberstrike"),
-            method: { type: "env", names: ["CUSTOM_OPENCODE_API_KEY"] },
+            method: { type: "env", names: ["CUSTOM_CYBERSTRIKE_API_KEY"] },
           })
         })
         yield* catalog.transform((catalog) => {
           const provider = ProviderV2.Info.make({
-            ...ProviderV2.Info.empty(ProviderV2.ID.opencode),
+            ...ProviderV2.Info.empty(ProviderV2.ID.cyberstrike),
             api: { type: "aisdk", package: "test-provider" },
           })
           const model = ModelV2.Info.make({
@@ -390,19 +390,19 @@ describe("OpencodePlugin", () => {
           })
         })
         yield* addPlugin()
-        expect(required(yield* catalog.provider.get(ProviderV2.ID.opencode)).request.body.apiKey).toBeUndefined()
-        expect(required(yield* catalog.model.get(ProviderV2.ID.opencode, ModelV2.ID.make("paid"))).enabled).toBe(true)
+        expect(required(yield* catalog.provider.get(ProviderV2.ID.cyberstrike)).request.body.apiKey).toBeUndefined()
+        expect(required(yield* catalog.model.get(ProviderV2.ID.cyberstrike, ModelV2.ID.make("paid"))).enabled).toBe(true)
       }),
     ),
   )
 
   it.effect("uses configured apiKey as credentials", () =>
-    withEnv({ OPENCODE_API_KEY: undefined }, () =>
+    withEnv({ CYBERSTRIKE_API_KEY: undefined }, () =>
       Effect.gen(function* () {
         const catalog = yield* Catalog.Service
         yield* catalog.transform((catalog) => {
           const provider = ProviderV2.Info.make({
-            ...ProviderV2.Info.empty(ProviderV2.ID.opencode),
+            ...ProviderV2.Info.empty(ProviderV2.ID.cyberstrike),
             api: { type: "aisdk", package: "test-provider" },
             request: {
               headers: {},
@@ -422,14 +422,14 @@ describe("OpencodePlugin", () => {
           })
         })
         yield* addPlugin()
-        expect(required(yield* catalog.provider.get(ProviderV2.ID.opencode)).request.body.apiKey).toBe("configured")
-        expect(required(yield* catalog.model.get(ProviderV2.ID.opencode, ModelV2.ID.make("paid"))).enabled).toBe(true)
+        expect(required(yield* catalog.provider.get(ProviderV2.ID.cyberstrike)).request.body.apiKey).toBe("configured")
+        expect(required(yield* catalog.model.get(ProviderV2.ID.cyberstrike, ModelV2.ID.make("paid"))).enabled).toBe(true)
       }),
     ),
   )
 
-  it.effect("ignores non-opencode providers and models", () =>
-    withEnv({ OPENCODE_API_KEY: undefined }, () =>
+  it.effect("ignores non-cyberstrike providers and models", () =>
+    withEnv({ CYBERSTRIKE_API_KEY: undefined }, () =>
       Effect.gen(function* () {
         const catalog = yield* Catalog.Service
         yield* catalog.transform((catalog) => {
@@ -454,10 +454,10 @@ describe("OpencodePlugin", () => {
     ),
   )
 
-  it.effect("prefers gpt-5-nano as the opencode small model", () =>
+  it.effect("prefers gpt-5-nano as the cyberstrike small model", () =>
     Effect.gen(function* () {
       const catalog = yield* Catalog.Service
-      const providerID = ProviderV2.ID.opencode
+      const providerID = ProviderV2.ID.cyberstrike
 
       yield* catalog.transform((catalog) => {
         catalog.provider.update(providerID, () => {})

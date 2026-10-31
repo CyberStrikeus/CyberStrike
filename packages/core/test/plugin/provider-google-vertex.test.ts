@@ -91,17 +91,17 @@ describe("GoogleVertexPlugin", () => {
     Effect.gen(function* () {
       const catalog = yield* Catalog.Service
       yield* catalog.transform((catalog) =>
-        catalog.provider.update(ProviderV2.ID.opencode, (provider) => {
+        catalog.provider.update(ProviderV2.ID.cyberstrike, (provider) => {
           provider.api = {
             type: "aisdk",
             package: "@ai-sdk/openai-compatible",
-            url: "https://opencode.ai/zen/v1",
+            url: "https://cyberstrike.io/zen/v1",
           }
         }),
       )
       yield* addPlugin()
 
-      const provider = required(yield* catalog.provider.get(ProviderV2.ID.opencode))
+      const provider = required(yield* catalog.provider.get(ProviderV2.ID.cyberstrike))
       expect(provider.request.body).toEqual({})
     }),
   )

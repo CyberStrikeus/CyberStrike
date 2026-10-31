@@ -147,7 +147,7 @@ export interface Interface {
   readonly claim: (aggregateID: string, ownerID: string) => Effect.Effect<void>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/Event") {}
+export class Service extends Context.Service<Service, Interface>()("@cyberstrike/Event") {}
 
 export const allBounded = (events: Interface, capacity: number) =>
   Effect.gen(function* () {

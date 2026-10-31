@@ -1,9 +1,9 @@
 import { Effect, Stream } from "effect"
 import { HttpClient } from "effect/unstable/http"
-import { ClientError, OpenCode } from "./generated"
+import { ClientError, CyberStrike } from "./generated"
 import { Missing } from "./fixture"
 
-export const program = OpenCode.make().pipe(
+export const program = CyberStrike.make().pipe(
   Effect.map((client) => {
     const health = client.session.health()
     const list = client.session.list()

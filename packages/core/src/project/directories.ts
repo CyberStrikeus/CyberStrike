@@ -55,7 +55,7 @@ export interface Interface {
   readonly remove: (input: RemoveInput, tx?: Transaction) => Effect.Effect<boolean>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/ProjectDirectories") {}
+export class Service extends Context.Service<Service, Interface>()("@cyberstrike/ProjectDirectories") {}
 
 const layer = Layer.effect(
   Service,

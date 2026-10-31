@@ -488,7 +488,7 @@ function normalize(raw: unknown) {
   }
 
   if (!record(raw) || !record(raw.info) || typeof raw.info.id !== "string" || !Array.isArray(raw.messages)) {
-    throw new Error("Expected an `opencode export` JSON file")
+    throw new Error("Expected an `cyberstrike export` JSON file")
   }
 
   return {
@@ -1670,7 +1670,7 @@ function Playground() {
               {/* ---- Session import ---- */}
               <div style={sectionLabel}>Import session</div>
               <div style={{ "font-size": "10px", color: "var(--text-weaker)", "margin-bottom": "2px" }}>
-                Replaces the current timeline with an `opencode export` JSON file
+                Replaces the current timeline with an `cyberstrike export` JSON file
               </div>
               <div style={{ display: "flex", "flex-wrap": "wrap", gap: "4px" }}>
                 <button style={btnAccent} onClick={() => pick?.click()}>

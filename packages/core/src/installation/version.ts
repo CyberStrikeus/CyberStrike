@@ -1,8 +1,8 @@
 declare global {
-  const OPENCODE_VERSION: string
-  const OPENCODE_CHANNEL: string
+  const CYBERSTRIKE_VERSION: string
+  const CYBERSTRIKE_CHANNEL: string
 }
 
-export const InstallationVersion = typeof OPENCODE_VERSION === "string" ? OPENCODE_VERSION : "local"
-export const InstallationChannel = typeof OPENCODE_CHANNEL === "string" ? OPENCODE_CHANNEL : "local"
+export const InstallationVersion = typeof CYBERSTRIKE_VERSION === "string" ? CYBERSTRIKE_VERSION : "local"
+export const InstallationChannel = typeof CYBERSTRIKE_CHANNEL === "string" ? CYBERSTRIKE_CHANNEL : "local"
 export const InstallationLocal = InstallationChannel === "local"

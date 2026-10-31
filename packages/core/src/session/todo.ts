@@ -21,7 +21,7 @@ export interface Interface {
   readonly get: (sessionID: SessionSchema.ID) => Effect.Effect<ReadonlyArray<Info>>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/v2/SessionTodo") {}
+export class Service extends Context.Service<Service, Interface>()("@cyberstrike/v2/SessionTodo") {}
 
 const layer = Layer.effect(
   Service,

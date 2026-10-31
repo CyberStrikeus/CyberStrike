@@ -12,7 +12,7 @@ export interface Interface extends Info {
   readonly vcs?: Project.Vcs
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/Location") {}
+export class Service extends Context.Service<Service, Interface>()("@cyberstrike/Location") {}
 
 export const node = LayerNode.unbound(Service, tags.values.location)
 

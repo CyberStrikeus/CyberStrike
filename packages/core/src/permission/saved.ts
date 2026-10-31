@@ -32,7 +32,7 @@ export interface Interface {
   readonly remove: (id: ID) => Effect.Effect<void>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/v2/PermissionSaved") {}
+export class Service extends Context.Service<Service, Interface>()("@cyberstrike/v2/PermissionSaved") {}
 
 const layer = Layer.effect(
   Service,

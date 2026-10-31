@@ -44,8 +44,8 @@ describe("shell", () => {
     await withShell(undefined, async () => {
       const preferred = Shell.preferred()
       const acceptable = Shell.acceptable()
-      expect(Shell.preferred("opencode-missing-shell")).toBe(preferred)
-      expect(Shell.acceptable("opencode-missing-shell")).toBe(acceptable)
+      expect(Shell.preferred("cyberstrike-missing-shell")).toBe(preferred)
+      expect(Shell.acceptable("cyberstrike-missing-shell")).toBe(acceptable)
     })
   })
 

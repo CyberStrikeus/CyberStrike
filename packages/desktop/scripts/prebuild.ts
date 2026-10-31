@@ -22,7 +22,7 @@ if (existsSync(extensionSrc)) {
 }
 
 // CyberStrike TODO: the background-CLI sidecar binary download is disabled.
-// Upstream pulls a prebuilt rust CLI from @opencode-ai/cli-* (see utils.ts),
+// Upstream pulls a prebuilt rust CLI from @cyberstrike-io/cli-* (see utils.ts),
 // which has no @cyberstrike-io/cli-* equivalent published yet. Re-enable once we
 // ship our own CLI binaries.
 // if (channel === "dev") await downloadCliToResources()

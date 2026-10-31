@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 import type { Configuration } from "electron-builder"
 
-const legacyDesktopEntry = "resources/linux/opencode-desktop.desktop"
+const legacyDesktopEntry = "resources/linux/cyberstrike-desktop.desktop"
 
 const channels = [
   { channel: "dev", appId: "io.cyberstrike.desktop.dev" },
@@ -41,12 +41,12 @@ test("keeps a hidden prod launcher for old Linux pins", async () => {
 
   expect(
     config.deb?.fpm?.some((entry) =>
-      entry.endsWith("opencode-desktop.desktop=/usr/share/applications/opencode-desktop.desktop"),
+      entry.endsWith("cyberstrike-desktop.desktop=/usr/share/applications/cyberstrike-desktop.desktop"),
     ),
   ).toBe(true)
   expect(
     config.rpm?.fpm?.some((entry) =>
-      entry.endsWith("opencode-desktop.desktop=/usr/share/applications/opencode-desktop.desktop"),
+      entry.endsWith("cyberstrike-desktop.desktop=/usr/share/applications/cyberstrike-desktop.desktop"),
     ),
   ).toBe(true)
 

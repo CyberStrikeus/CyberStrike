@@ -37,7 +37,7 @@ export interface Settlement {
   readonly outputPaths?: ReadonlyArray<string>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/v2/ToolRegistry") {}
+export class Service extends Context.Service<Service, Interface>()("@cyberstrike/v2/ToolRegistry") {}
 
 const registryLayer = Layer.effect(
   Service,

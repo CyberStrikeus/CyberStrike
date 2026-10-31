@@ -105,7 +105,7 @@ export interface Interface {
   readonly refresh: (input: RefreshInput) => Effect.Effect<RefreshResult, Error>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/ProjectCopy") {}
+export class Service extends Context.Service<Service, Interface>()("@cyberstrike/ProjectCopy") {}
 
 export const refreshAfterBoot = Effect.gen(function* () {
   const location = yield* Location.Service

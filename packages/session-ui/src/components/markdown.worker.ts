@@ -2,7 +2,7 @@
 
 import { ShikiStreamTokenizer } from "@shikijs/stream"
 import { createMarkdownParser } from "@cyberstrike-io/ui/context/marked-parser"
-import { OpenCodeTheme } from "@cyberstrike-io/ui/context/marked-theme"
+import { CyberStrikeTheme } from "@cyberstrike-io/ui/context/marked-theme"
 import {
   bundledLanguages,
   createHighlighter,
@@ -141,7 +141,7 @@ async function highlight(request: Extract<MarkdownWorkerRequest, { type: "highli
 }
 
 function getHighlighter() {
-  return (highlighter ??= createHighlighter({ themes: [OpenCodeTheme], langs: [] }))
+  return (highlighter ??= createHighlighter({ themes: [CyberStrikeTheme], langs: [] }))
 }
 
 function post(response: MarkdownWorkerResponse) {

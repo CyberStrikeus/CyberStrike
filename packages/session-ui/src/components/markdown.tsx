@@ -682,7 +682,7 @@ function updateCodeBlock(
   wrapper.setAttribute("data-component", "markdown-code")
   applyCodeMetadata(wrapper, block.language)
   const pre = document.createElement("pre")
-  pre.className = "shiki OpenCode"
+  pre.className = "shiki CyberStrike"
   const codeElement = document.createElement("code")
   codeElement.className = `language-${block.language}`
   ;[...block.stable, ...block.unstable].map(createTokenSpan).forEach((span) => codeElement.appendChild(span))
