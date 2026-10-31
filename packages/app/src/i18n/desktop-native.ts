@@ -304,8 +304,8 @@ export const DESKTOP_NATIVE_ENGLISH = {
   "desktop.wsl.error.installDistro": "Failed to install distro: {{distro}}",
   "desktop.wsl.error.installOpencode": "CyberStrike installation failed",
   "desktop.wsl.error.alreadyAdded": "{{distro}} is already added",
-  "desktop.wsl.error.opencodeMissing": "opencode is not installed in this distro",
-  "desktop.wsl.error.opencodeCannotRun": "opencode is installed but could not run",
+  "desktop.wsl.error.opencodeMissing": "CyberStrike is not installed in this distro",
+  "desktop.wsl.error.opencodeCannotRun": "CyberStrike is installed but could not run",
   "desktop.wsl.error.opencodeNotInstalled": "CyberStrike is not installed in {{distro}}",
   "desktop.wsl.error.updateVersion":
     "CyberStrike update finished but {{distro}} still reports {{installed}}; expected {{expected}}",

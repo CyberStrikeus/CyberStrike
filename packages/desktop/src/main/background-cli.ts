@@ -121,5 +121,5 @@ function endpoint(url: string | undefined) {
 }
 
 function executableName() {
-  return process.platform === "win32" ? "cyberstrike.exe" : "cyberstrike"
+  return process.platform === "win32" ? "cyberstrike-cli.exe" : "cyberstrike-cli"
 }

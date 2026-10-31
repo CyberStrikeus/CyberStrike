@@ -55,7 +55,7 @@ const getBase = (appId: string): Configuration => ({
   extraMetadata: {
     desktopName: `${appId}.desktop`,
   },
-  files: ["out/**/*", "resources/**/*", "!resources/opencode-cli*"],
+  files: ["out/**/*", "resources/**/*", "!resources/cyberstrike-cli*"],
   extraResources: [
     {
       from: "resources/cyberstrike/",

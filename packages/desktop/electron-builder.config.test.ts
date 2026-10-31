@@ -65,11 +65,11 @@ test("bundles the CLI outside the dev app archive", async () => {
   if (previous === undefined) delete process.env.CYBERSTRIKE_CHANNEL
   else process.env.CYBERSTRIKE_CHANNEL = previous
 
-  expect(config.files).toContain("!resources/opencode-cli*")
+  expect(config.files).toContain("!resources/cyberstrike-cli*")
   expect(config.extraResources).toContainEqual({
     from: "resources/",
     to: "",
-    filter: ["opencode-cli*"],
+    filter: ["cyberstrike-cli*"],
   })
 })
 
@@ -85,7 +85,7 @@ for (const channel of ["beta", "prod"] as const) {
     expect(config.extraResources).not.toContainEqual({
       from: "resources/",
       to: "",
-      filter: ["opencode-cli*"],
+      filter: ["cyberstrike-cli*"],
     })
   })
 }
