@@ -1,10 +1,8 @@
-// Signal fabric — public surface (plan §03B/§06/§07). The DB-backed stores and
-// the ingest/replay wiring (next P0 slices) compose these; the app registers them
-// through the web provider.
+// Signal module — shared scaffolding kept after the CS signal fabric was retired (#15).
+// Detection (detectors/store/canary/ingest/router + the WebSignal/WebCanary tables) is gone;
+// Vortex is the single producer. What remains is the vocabulary the Vortex retest path still
+// speaks: the SpecialistClass/Signal types, the TechPlaybook data, and the Vortex signal→route
+// helpers (ownerForSignal/signalPriority/shouldRoute, consumed by vortex-bridge).
 export * from "./types"
-export * from "./detectors"
-export * from "./canary"
-export * from "./router"
-export * from "./store"
-export * from "./ingest"
 export * from "./tech-playbook"
+export * from "./vortex-route"

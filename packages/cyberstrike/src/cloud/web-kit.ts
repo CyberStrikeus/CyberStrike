@@ -25,33 +25,15 @@ import { ReplaySender } from "../tool/webhook/transport"
 import { defineWebhookTool, webhookContext, toolResult, toolError } from "../tool/webhook/define"
 import { Request } from "../session/request"
 import {
-  SignalStore,
-  SignalRouter,
-  CanaryRegistry,
-  runDetectors,
-  DETECTORS,
-  scanCapturedResponse,
-  scanProbeResponse,
-  scanElicitedResponse,
-} from "../session/web/signal"
-import {
   vortexRegisterCanary,
   vortexRecordSignal,
   vortexScanProbeResponse,
   vortexSignals,
 } from "../session/web/vortex-bridge"
 
-/** Signal-fabric subsystem: detect → route → persist → verify web findings. */
+/** Signal subsystem — Vortex is the single producer (the CS signal fabric was retired, #15):
+ *  register a canary, record a signal, scan a tool-elicited response, read the session's signals. */
 export interface WebSignalKit {
-  /** @deprecated Use the vortex.* equivalents — CS signal fabric retires once Vortex proves out (#15). */
-  SignalStore: typeof SignalStore
-  SignalRouter: typeof SignalRouter
-  CanaryRegistry: typeof CanaryRegistry
-  runDetectors: typeof runDetectors
-  DETECTORS: typeof DETECTORS
-  scanCapturedResponse: typeof scanCapturedResponse
-  scanProbeResponse: typeof scanProbeResponse
-  scanElicitedResponse: typeof scanElicitedResponse
   vortex: {
     registerCanary(sessionID: string, input: { token: string; kind?: string; requestId: string; field?: string; vulnClass?: string; agent?: string }): void
     recordSignal(sessionID: string, input: { ruleId: string; transactionId: string; category: string; severity: string; title: string; evidence?: string }): void
@@ -107,14 +89,6 @@ export function buildWebKit(): WebKit {
     toolResult,
     toolError,
     signal: {
-      SignalStore,
-      SignalRouter,
-      CanaryRegistry,
-      runDetectors,
-      DETECTORS,
-      scanCapturedResponse,
-      scanProbeResponse,
-      scanElicitedResponse,
       vortex: {
         registerCanary: vortexRegisterCanary,
         recordSignal: vortexRecordSignal,

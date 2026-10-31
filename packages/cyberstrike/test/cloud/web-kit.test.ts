@@ -38,17 +38,12 @@ describe("web building-block kit (input.core.web)", () => {
     expect(typeof web.toolError).toBe("function")
   })
 
-  test("the signal fabric subsystem is present", () => {
+  test("the signal subsystem exposes the Vortex surface (single producer, #15)", () => {
     const signal = buildWebKit().signal
-    expect(typeof signal.SignalStore).toBe("function") // class
-    expect(typeof signal.SignalRouter).toBe("function")
-    expect(typeof signal.CanaryRegistry).toBe("function")
-    expect(typeof signal.runDetectors).toBe("function")
-    expect(Array.isArray(signal.DETECTORS)).toBe(true)
-    expect(signal.DETECTORS.length).toBeGreaterThan(0)
-    expect(typeof signal.scanCapturedResponse).toBe("function")
-    expect(typeof signal.scanProbeResponse).toBe("function")
-    expect(typeof signal.scanElicitedResponse).toBe("function")
+    expect(typeof signal.vortex.registerCanary).toBe("function")
+    expect(typeof signal.vortex.recordSignal).toBe("function")
+    expect(typeof signal.vortex.scanProbeResponse).toBe("function")
+    expect(typeof signal.vortex.signals).toBe("function")
   })
 
   test("the injected members are live (not broken bindings)", () => {
@@ -56,15 +51,7 @@ describe("web building-block kit (input.core.web)", () => {
     // HttpMessage.parse is pure — proves the reference is the real function.
     const req = web.HttpMessage.parse("GET /a HTTP/1.1\r\nHost: x\r\n\r\n")
     expect(req.method).toBe("GET")
-    // runDetectors on a clean response yields an array (no throw).
-    const signals = web.signal.runDetectors({
-      requestId: "r1",
-      url: "https://x/",
-      method: "GET",
-      status: 200,
-      headers: [],
-      body: "",
-    })
-    expect(Array.isArray(signals)).toBe(true)
+    // vortex.signals on an unknown session degrades to an empty list (no throw).
+    expect(web.signal.vortex.signals("no-such-session").signals).toEqual([])
   })
 })

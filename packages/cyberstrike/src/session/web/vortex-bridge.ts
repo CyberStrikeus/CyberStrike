@@ -736,11 +736,11 @@ export function kickProbe(sessionID: string): void {
   })()
 }
 
-// Register a canary token into this session's Vortex store (#15 step 2), so a later observed page
-// that renders it is caught as a cross-request STORED reflection by scanStored at the next ingest.
-// Called alongside the CS CanaryRegistry from the agent tools (inject_probe / http_replay) during
-// the migration. `requestId` anchors the origin transaction; a synthetic/unknown id (a constructed
-// target with no Vortex tx) is skipped — the CS canary still covers that case. Never throws.
+// Register a canary token into this session's Vortex store (#15), so a later observed page that
+// renders it is caught as a cross-request STORED reflection by scanStored at the next ingest. The
+// agent tools (inject_probe / http_replay) call this directly — Vortex is the only canary registry
+// now. `requestId` anchors the origin transaction; a synthetic/unknown id (a constructed target with
+// no Vortex tx) is skipped. Never throws.
 export function vortexRegisterCanary(
   sessionID: string,
   input: { token: string; kind?: CanaryKind; requestId: string; field?: string; vulnClass?: string; agent?: string },

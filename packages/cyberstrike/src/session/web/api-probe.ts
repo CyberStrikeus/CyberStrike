@@ -18,7 +18,7 @@ import { WebInspect } from "./web-inspect"
 import { WebScope } from "./scope"
 import { DataCollector } from "./data-collector"
 import { Request } from "../request"
-import { scanProbeResponse } from "./signal/ingest"
+import { vortexScanProbeResponse } from "./vortex-bridge"
 import { governedSend } from "@/replay/govern"
 import { Instance } from "@/project/instance"
 import { Log } from "@/util/log"
@@ -102,19 +102,17 @@ export namespace ApiProbe {
     return h
   }
 
-  // Feed one probe response to the signal fabric; returns how many signals it raised (which, for a
-  // real captured request, each queue a specialist retest).
+  // Feed one probe response to Vortex (the single producer); returns how many signals it raised,
+  // which bridgeSignals queues as specialist retests. No-ops for a synthetic id (no Vortex tx).
   function feed(input: { sessionID: string; requestId: string; realRequest: boolean; method: string; url: string; parsed: Send.Result["response"] }): number {
     if (!input.parsed) return 0
-    return scanProbeResponse({
-      sessionID: input.sessionID,
+    return vortexScanProbeResponse(input.sessionID, {
       requestId: input.requestId,
       method: input.method,
       url: input.url,
       status: input.parsed.status,
       headers: headersOf(input.parsed),
       body: new TextDecoder("latin1").decode(input.parsed.body),
-      sourceIsCaptured: input.realRequest,
     })
   }
 

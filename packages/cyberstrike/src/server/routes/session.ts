@@ -2273,12 +2273,11 @@ export const SessionRoutes = lazy(() =>
               slots: normalized.observedParams,
             })
 
-          // Slice 1 (three-surface plan): the CS passive signal fabric that used to scan the raw
-          // response here (runFabric → scanCapturedResponse) is RETIRED. Vortex now sees the full
-          // traffic (slice 0), runs the equivalent rules + canary at ingest (detection parity proven
-          // by the ingest-route tests), and routes signals to the retest pipeline via the #14 bridge —
-          // so passive detection is no longer duplicated here. The signal/ detector modules remain in
-          // the tree (consumed by the agent-elicited scanProbeResponse/scanElicitedResponse paths).
+          // The CS passive signal fabric that used to scan the raw response here is GONE (#15): its
+          // detector/store/canary modules were deleted and Vortex is the single producer. Vortex sees
+          // the full traffic (slice 0), runs the rules + canary at ingest, and routes signals to the
+          // retest pipeline via the #14 bridge — the agent-elicited tool paths (inject_probe, http_replay,
+          // recon_test, api_probe) feed the same Vortex path through vortexScanProbeResponse.
 
           // Slice 0 (three-surface plan, docs/three-surface-architecture.md): feed EVERY meaningful
           // hit to Vortex — not only the first of each endpoint shape — so Vortex holds the full

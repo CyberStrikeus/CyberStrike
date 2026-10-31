@@ -12,7 +12,12 @@
 // 1.2.0 — added the web building-block kit (`CoreRuntime.web`: governed send,
 // replay engine, captured-traffic store, webhook tool shells, signal fabric) so a
 // domain plugin can build its own web tools; additive, older packages still load.
-export const CORE_API_VERSION = "1.3.0"
+// 2.0.0 — removed the CS signal-fabric members from `CoreRuntime.web.signal`
+// (SignalStore/SignalRouter/CanaryRegistry/runDetectors/DETECTORS/scan*), retired in
+// favour of Vortex as the single producer (#15). Only `signal.vortex.*` remains, so
+// this is a MAJOR bump. (coreApiSatisfies is a monotonic >= check, so a domain pinned
+// to >= 1.x still loads; none used the removed members.)
+export const CORE_API_VERSION = "2.0.0"
 
 function parse(v: string): [number, number, number] {
   const m = /^(\d+)\.(\d+)\.(\d+)/.exec((v ?? "").trim())
