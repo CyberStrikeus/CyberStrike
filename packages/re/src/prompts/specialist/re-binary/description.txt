@@ -1,1 +1,1 @@
-Native binary analyst — ELF/PE/Mach-O disassembly via radare2, readelf, objdump, checksec, strings
+Native binary analyst — ELF/PE/Mach-O disassembly, symbol analysis, vulnerability patterns

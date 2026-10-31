@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "license": "AGPL-3.0-only",
-  "description": "CyberStrike Reverse Engineering domain — multi-agent RE pipeline (binary, mobile, firmware, web/JS, managed, network, smart contract analysis).",
+  "description": "CyberStrike Reverse Engineering domain — multi-agent RE pipeline powered by REA MCP server (binary, mobile, firmware, web/JS, managed, network, smart contract analysis).",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -11,7 +11,14 @@
     "coreApi": "1.2.0",
     "domains": ["re"],
     "tools": [],
-    "tier": "free"
+    "tier": "free",
+    "mcp": {
+      "rea": {
+        "type": "local",
+        "command": ["npx", "rea-agents"],
+        "description": "REA (Reverse Engineer Anything) — 130+ tools for binary, mobile, firmware, JS, managed, network, and smart contract reverse engineering."
+      }
+    }
   },
   "files": ["src"],
   "publishConfig": {

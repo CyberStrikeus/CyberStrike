@@ -26,10 +26,19 @@ import DESC_RE_NETWORK from "./prompts/specialist/re-network/description.txt"
 import PROMPT_RE_DEBUG from "./prompts/specialist/re-debug/prompt.txt"
 import DESC_RE_DEBUG from "./prompts/specialist/re-debug/description.txt"
 
+// REA MCP tools are permission-gated per specialist. Each family maps to a tool
+// prefix the host resolves at runtime (e.g. `mcp__rea__disassemble_*`). We grant
+// broad MCP access here because the agent prompt constrains the tool set and REA
+// itself is read-only analysis — no destructive ops.
+const RE_MCP_PERMISSIONS: Record<string, PermissionRule> = {
+  "mcp__rea__*": "allow",
+}
+
 const BASE_PERMISSIONS: Record<string, PermissionRule> = {
   "*": "deny",
   bash: {
     "*": "allow",
+    // no network egress from RE agents — they analyze local artifacts
     "*curl *": "deny",
     "*wget *": "deny",
     "*nc *": "deny",
@@ -39,6 +48,7 @@ const BASE_PERMISSIONS: Record<string, PermissionRule> = {
   },
   report_vulnerability: "allow",
   add_intel: "allow",
+  ...RE_MCP_PERMISSIONS,
 }
 
 type SpecDef = {
@@ -68,7 +78,7 @@ function specs(): SpecDef[] {
         "*": "deny",
         task: "allow",
         question: "allow",
-        bash: { "*": "allow" },
+        ...RE_MCP_PERMISSIONS,
       },
     },
 

@@ -1,1 +1,1 @@
-Firmware reverse engineer — binwalk extraction, filesystem audit, device tree parsing, bootloader analysis
+Firmware reverse engineer — embedded systems, IoT firmware extraction, bootloader analysis

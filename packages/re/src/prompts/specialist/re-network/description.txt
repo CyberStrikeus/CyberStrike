@@ -1,1 +1,1 @@
-Network & smart contract analyst — tshark/tcpdump for PCAP, wasm2wat for WASM, mythril/slither for EVM
+Network & smart contract analyst — PCAP dissection, WASM modules, EVM bytecode, protocol RE

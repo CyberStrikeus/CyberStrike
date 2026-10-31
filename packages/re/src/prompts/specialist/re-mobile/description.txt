@@ -1,1 +1,1 @@
-Mobile reverse engineer — apktool, jadx, aapt2, adb, frida for Android APK/DEX analysis and instrumentation
+Mobile reverse engineer — Android APK/DEX, Flutter, Frida instrumentation, dynamic analysis
